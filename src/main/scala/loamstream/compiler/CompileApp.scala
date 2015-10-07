@@ -6,7 +6,7 @@ package loamstream.compiler
  */
 object CompileApp extends App {
 
-  val pipeline = PipelineMta
+  val pipeline = PipelineTargeted
   println(Compiler.compile(pipeline))
 
 }

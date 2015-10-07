@@ -1,5 +1,7 @@
 package loamstream.compiler
 
+import loamstream.pipeline.examples.PipelineTargeted
+
 /**
  * LoamStream
  * Created by oliverr on 10/6/2015.

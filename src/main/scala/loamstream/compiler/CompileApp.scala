@@ -9,6 +9,6 @@ import loamstream.pipeline.examples.PipelineTargeted
 object CompileApp extends App {
 
   val pipeline = PipelineTargeted
-  println(Compiler.compile(pipeline))
+  println(CamelBricksCompiler.compile(pipeline))
 
 }

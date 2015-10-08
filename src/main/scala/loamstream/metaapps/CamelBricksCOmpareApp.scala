@@ -5,6 +5,7 @@ import loamstream.compiler.CamelBricksCompiler
 import loamstream.pipeline.Pipeline
 import loamstream.pipeline.examples.{PipelineMta, PipelineTargeted}
 import loamstream.util.CamelBricksComparer
+import loamstream.util.CamelBricksComparer.Diff
 
 /**
  * LoamStream
@@ -20,6 +21,14 @@ object CamelBricksCompareApp extends App {
 
   def compareTargeted = compareCompiled(CamelBricksFiles.targetedAsString, PipelineTargeted)
 
-  println("Compare mta: " + compareMta.size)
+  val diffs: Seq[Diff] = compareTargeted
+  println("Number of diffs: " + diffs.size)
 
+  for(diff <- diffs) {
+    println("Next diff:")
+    println(diff.hood1.preLine + diff.hood1.string)
+    println(diff.hood2.preLine + diff.hood2.string)
+  }
+  
+  
 }

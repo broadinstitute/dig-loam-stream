@@ -17,18 +17,18 @@ object CamelBricksCompareApp extends App {
     CamelBricksComparer.compare(string, CamelBricksCompiler.compile(pipeline))
   }
 
-  def compareMta = compareCompiled(CamelBricksFiles.mtaAsString, PipelineMta)
+  def compareMta = compareCompiled(CamelBricksFiles.asString(CamelBricksFiles.mta), PipelineMta)
 
-  def compareTargeted = compareCompiled(CamelBricksFiles.targetedAsString, PipelineTargeted)
+  def compareTargeted = compareCompiled(CamelBricksFiles.asString(CamelBricksFiles.targeted), PipelineTargeted)
 
   val diffs: Seq[Diff] = compareTargeted
   println("Number of diffs: " + diffs.size)
 
-  for(diff <- diffs) {
+  for (diff <- diffs) {
     println("Next diff:")
     println(diff.hood1.preLine + diff.hood1.string)
     println(diff.hood2.preLine + diff.hood2.string)
   }
-  
-  
+
+
 }

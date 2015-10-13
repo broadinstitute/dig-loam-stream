@@ -1,5 +1,7 @@
 package loamstream.decompiler
 
+import java.nio.file.Path
+
 import loamstream.CamelBricksFiles
 import loamstream.camelbricks.CamelBricksPipeline
 
@@ -9,13 +11,11 @@ import loamstream.camelbricks.CamelBricksPipeline
  */
 object CamelBricksDecompileApp extends App {
 
-  def decompileMta: CamelBricksPipeline = CamelBricksDecompiler.decompile(CamelBricksFiles.mtaAsSource)
+  def decompile(path: Path): CamelBricksPipeline = CamelBricksDecompiler.decompile(CamelBricksFiles.asSource(path))
 
-  def decompileTargeted: CamelBricksPipeline = CamelBricksDecompiler.decompile(CamelBricksFiles.targetedAsSource)
+  val pipeline = decompile(CamelBricksFiles.targeted)
 
-  val pipeline = decompileTargeted
-  
-  for(entry <- pipeline.entries) {
+  for (entry <- pipeline.entries) {
     println(entry.asString)
   }
 

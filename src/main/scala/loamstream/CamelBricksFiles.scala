@@ -15,19 +15,14 @@ object CamelBricksFiles {
   val charset = Charset.forName(charsetName)
 
   val dir = Paths.get("pipelines/old")
+
   val mta = dir.resolve("simple/mta.cfg")
   val targeted = dir.resolve("real/targeted.cfg")
+
+  val allFiles = Seq(mta, targeted)
 
   def asString(path: Path): String = new String(Files.readAllBytes(path), charset)
 
   def asSource(path: Path): Source = Source.fromFile(path.toFile, charsetName)
-
-  def mtaAsString: String = asString(mta)
-
-  def mtaAsSource: Source = asSource(mta)
-
-  def targetedAsString: String = asString(targeted)
-
-  def targetedAsSource: Source = asSource(targeted)
 
 }

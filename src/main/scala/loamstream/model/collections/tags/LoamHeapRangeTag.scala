@@ -7,14 +7,17 @@ package loamstream.model.collections.tags
 object LoamHeapRangeTag {
 
   def apply[C <: LoamHeapTag[_]](collection: C): LoamHeapRangeTag[C, Nothing] =
-    new LoamHeapRangeTag[C, Nothing](collection, None)
+    LoamHeapRangeTag[C, Nothing](collection, None)
 
 }
 
-class LoamHeapRangeTag[C <: LoamHeapTag[_], P <: LoamHeapRangeTag[_, _]]
-(val collection: C, val parentOpt: Option[P]) {
+case class LoamHeapRangeTag[H <: LoamHeapTag[_], P <: LoamHeapRangeTag[_, _]](heap: H, parentOpt: Option[P]) {
 
   def :+[CN <: LoamHeapTag[_]](inputTag: CN): LoamHeapRangeTag[CN, this.type] =
-    new LoamHeapRangeTag[CN, this.type](inputTag, Some(this))
+    LoamHeapRangeTag[CN, this.type](inputTag, Some(this))
+
+  def toSeq: Seq[LoamHeapTag[_]] = heap +: parentOpt.map(_.toSeq).getOrElse(Nil)
+
+  override def toString: String = toSeq.mkString("(", ",", ")")
 
 }

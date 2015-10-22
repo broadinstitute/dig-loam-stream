@@ -1,6 +1,6 @@
 package loamstream.model.collections.tags
 
-import scala.reflect.runtime.universe.{TypeTag, typeOf, typeTag}
+import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
 /**
  * LoamStream

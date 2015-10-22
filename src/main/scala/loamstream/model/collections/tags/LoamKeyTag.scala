@@ -1,4 +1,4 @@
-package loamstream.model.collections
+package loamstream.model.collections.tags
 
 import scala.reflect.runtime.universe.{TypeTag, typeOf}
 

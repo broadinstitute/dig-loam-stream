@@ -1,6 +1,6 @@
-package loamstream.model.collections.bones.apps
+package loamstream.model.collections.tags.bones.apps
 
-import loamstream.model.collections.LoamKeyTag
+import loamstream.model.collections.tags.LoamKeyTag
 
 /**
  * LoamStream

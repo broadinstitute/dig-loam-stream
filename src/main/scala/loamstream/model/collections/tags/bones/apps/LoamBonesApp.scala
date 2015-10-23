@@ -1,6 +1,6 @@
 package loamstream.model.collections.tags.bones.apps
 
-import loamstream.model.collections.tags.LoamKeyTag
+import loamstream.model.collections.tags.{LNil, LoamMethodTag, LoamHeapRangeTag, LoamKeyTag}
 
 /**
  * LoamStream
@@ -8,8 +8,21 @@ import loamstream.model.collections.tags.LoamKeyTag
  */
 object LoamBonesApp extends App {
 
-  val keyTag = LoamKeyTag.node[Int].node[String].node[Double]
+  val inputSet = LoamKeyTag.node[Int].node[String].node[Double].getLSet
+  val inputMap = LoamKeyTag.node[String].node[Char].getLMap[String]
+  val outputSet = LoamKeyTag.node[Int].node[String].node[Double].getLSet
+  val outputMap = LoamKeyTag.node[Byte].node[String].getLMap[Int]
 
-  println(keyTag)
+  val inputs = inputSet :: inputMap :: LNil
+  val outputs = outputMap :: outputSet :: LNil
+
+  val method = LoamMethodTag(inputs, outputs)
+
+  println(inputSet)
+  println(inputMap)
+  println(outputSet)
+  println(outputMap)
+  println(method)
+
 
 }

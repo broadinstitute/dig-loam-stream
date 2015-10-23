@@ -6,15 +6,20 @@ package loamstream.model.collections.tags
  */
 object LoamHeapRangeTag {
 
-  def apply[C <: LoamHeapTag[_]](collection: C): LoamHeapRangeTag[C, Nothing] =
-    LoamHeapRangeTag[C, Nothing](collection, None)
+  def apply[H <: LoamHeapTag[_]](heap: H): LoamHeapRangeTag[H, Nothing] =
+    LoamHeapRangeTag[H, Nothing](heap, None)
 
+}
+
+object LNil {
+  def ::[CN <: LoamHeapTag[_]](heapTag: CN): LoamHeapRangeTag[CN, Nothing] =
+    LoamHeapRangeTag[CN, Nothing](heapTag, None)
 }
 
 case class LoamHeapRangeTag[H <: LoamHeapTag[_], P <: LoamHeapRangeTag[_, _]](heap: H, parentOpt: Option[P]) {
 
-  def :+[CN <: LoamHeapTag[_]](inputTag: CN): LoamHeapRangeTag[CN, this.type] =
-    LoamHeapRangeTag[CN, this.type](inputTag, Some(this))
+  def ::[CN <: LoamHeapTag[_]](heapTag: CN): LoamHeapRangeTag[CN, this.type] =
+    LoamHeapRangeTag[CN, this.type](heapTag, Some(this))
 
   def toSeq: Seq[LoamHeapTag[_]] = heap +: parentOpt.map(_.toSeq).getOrElse(Nil)
 

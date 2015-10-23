@@ -8,7 +8,7 @@ import scala.reflect.runtime.universe.{TypeTag, typeTag}
  */
 object LoamMapTag {
 
-  def createMap[K <: LoamKeyTag[_, _], V: TypeTag](keys: K): LoamMapTag[K, V] = LoamMapTag(keys, typeTag[V])
+  def fromKeys[K <: LoamKeyTag[_, _], V: TypeTag](keys: K): LoamMapTag[K, V] = LoamMapTag(keys, typeTag[V])
 
 }
 

@@ -22,4 +22,8 @@ case class LoamKeyTag[T, P <: LoamKeyTag[_, _]](tpeTag: TypeTag[T], parentOpt: O
 
   override def toString: String = parentOpt.map(_.toString).getOrElse("") + "/" + tpeTag.tpe
 
+  def getLSet: LoamSetTag[LoamKeyTag[T, P]] = LoamSetTag(this)
+
+  def getLMap[V: TypeTag]: LoamMapTag[LoamKeyTag[T, P], V] = LoamMapTag.fromKeys[LoamKeyTag[T, P], V](this)
+
 }

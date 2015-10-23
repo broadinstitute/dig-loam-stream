@@ -20,14 +20,15 @@ object LKey {
 
 case class LoamKeyTag[T, P <: LoamKeyTag[_, _]](tpeTag: TypeTag[T], parentOpt: Option[P]) {
 
-  def createChild[TC: TypeTag]: LoamKeyTag[TC, this.type] = new LoamKeyTag[TC, this.type](typeTag[TC], Some(this))
+  def createChild[TC: TypeTag]: LoamKeyTag[TC, LoamKeyTag[T, P]] =
+    new LoamKeyTag[TC, LoamKeyTag[T, P]](typeTag[TC], Some(this))
 
   def key[TC: TypeTag] = createChild[TC]
 
   override def toString: String = parentOpt.map(_.toString).getOrElse("") + "/" + tpeTag.tpe
 
-  def getLSet: LoamSetTag[LoamKeyTag[T, P]] = LoamSetTag(this)
+  def getLSet: LoamSetTag[T, P] = LoamSetTag(this)
 
-  def getLMap[V: TypeTag]: LoamMapTag[LoamKeyTag[T, P], V] = LoamMapTag.fromKeys[LoamKeyTag[T, P], V](this)
+  def getLMap[V: TypeTag]: LoamMapTag[T, P, V] = LoamMapTag.fromKeys[T, P, V](this)
 
 }

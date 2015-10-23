@@ -8,14 +8,17 @@ import scala.reflect.runtime.universe.{TypeTag, typeTag}
  */
 object LoamMapTag {
 
-  def fromKeys[K <: LoamKeyTag[_, _], V: TypeTag](keys: K): LoamMapTag[K, V] = LoamMapTag(keys, typeTag[V])
+  def fromKeys[T, P <: LoamKeyTag[_, _], V: TypeTag](keys: LoamKeyTag[T, P]): LoamMapTag[T, P, V] =
+    LoamMapTag(keys, typeTag[V])
 
 }
 
-case class LoamMapTag[K <: LoamKeyTag[_, _], V](keys: K, vTag: TypeTag[V]) extends LoamHeapTag[K] {
+case class LoamMapTag[T, P <: LoamKeyTag[_, _], V](keys: LoamKeyTag[T, P], vTag: TypeTag[V])
+  extends LoamHeapTag[T, P] {
 
-  def keySet: LoamSetTag[K] = LoamSetTag(keys)
+  def keySet: LoamSetTag[T, P] = LoamSetTag(keys)
 
   override def toString: String = "LMap(" + keys + " -> " + vTag.tpe + ")"
 
+  override def withKey[TC: TypeTag] = LoamMapTag(keys.key[TC], vTag)
 }

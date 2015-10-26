@@ -1,5 +1,8 @@
 package loamstream.model.collections.tags.bones.apps
 
+import loamstream.model.collections.tags.maps.LoamMapTag02
+import loamstream.model.collections.tags.sets.LoamSetTag03
+
 
 /**
  * LoamStream
@@ -7,15 +10,12 @@ package loamstream.model.collections.tags.bones.apps
  */
 object LoamBonesApp extends App {
 
-  val inputSet = LKey.key[Int].key[String].key[Double].getLSet
-  val inputMap = LKey.key[String].key[Char].getLMap[String]
-  val outputSet = LKey.key[Int].key[String].key[Double].getLSet
-  val outputMap = LKey.key[Byte].key[String].getLMap[Int]
+  val inputSet = LoamSetTag03.create[Int, String, Double]
+  val inputMap = LoamMapTag02.create[String, Char, String]
+  val outputSet = LoamSetTag03.create[Int, String, Double]
+  val outputMap = LoamMapTag02.create[Byte, String, Int]
 
-  val inputs = inputSet :: inputMap :: LNil
-  val outputs = outputMap :: outputSet :: LNil
-
-  val method = LoamMethodTag(inputs, outputs)
+  val method = LoamMethodTag(inputSet, inputMap, outputSet, outputMap)
 
   println(inputSet)
   println(inputMap)

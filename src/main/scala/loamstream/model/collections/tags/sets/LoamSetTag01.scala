@@ -16,5 +16,5 @@ object LoamSetTag01 {
 case class LoamSetTag01[K00](kTag00: TypeTag[K00]) extends LoamSetTag with LoamHeapTag01[K00] {
   override def key = LoamKeyTag01[K00](kTag00)
 
-  override def plusKey[K00: TypeTag]: LoamSetTag01[K00] = ???
+  override def plusKey[K01: TypeTag] = LoamSetTag02[K00, K01](kTag00, typeTag[K01])
 }

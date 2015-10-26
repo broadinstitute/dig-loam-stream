@@ -16,7 +16,7 @@ case object LoamKeyTag00 extends LoamKeyTag {
     def key: LoamKeyTag00.type
   }
 
-  override def plusKey[TC: TypeTag]: LoamKeyTag01 = ???
+  override def plusKey[K00: TypeTag] = LoamKeyTag01(typeTag[K00])
 
   override def getLSet = LoamSetTag00
 

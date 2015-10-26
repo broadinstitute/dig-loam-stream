@@ -15,5 +15,5 @@ trait LoamMapTag[V] extends LoamHeapTag {
 
   def toSet: LoamSetTag
 
-  override def plusKey[TC: TypeTag]: LoamMapTag
+  override def plusKey[KN: TypeTag]: LoamMapTag[V]
 }

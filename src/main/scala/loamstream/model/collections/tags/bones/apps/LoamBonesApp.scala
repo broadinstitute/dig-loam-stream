@@ -1,6 +1,5 @@
 package loamstream.model.collections.tags.bones.apps
 
-import loamstream.model.collections.tags.{LKey, LNil, LoamMethodTag}
 
 /**
  * LoamStream

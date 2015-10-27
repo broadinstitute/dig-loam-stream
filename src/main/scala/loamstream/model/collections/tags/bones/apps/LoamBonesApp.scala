@@ -1,6 +1,7 @@
 package loamstream.model.collections.tags.bones.apps
 
 import loamstream.model.collections.tags.maps.LMapTag02
+import loamstream.model.collections.tags.methods.LMethodTag2I2O
 import loamstream.model.collections.tags.sets.LSetTag03
 
 
@@ -15,7 +16,7 @@ object LoamBonesApp extends App {
   val outputSet = LSetTag03.create[Int, String, Double]
   val outputMap = LMapTag02.create[Byte, String, Int]
 
-  val method = LoamMethodTag(inputSet, inputMap, outputSet, outputMap)
+  val method = LMethodTag2I2O(inputSet, inputMap, outputSet, outputMap)
 
   println(inputSet)
   println(inputMap)

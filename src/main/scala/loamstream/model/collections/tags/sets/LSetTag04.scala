@@ -20,5 +20,5 @@ case class LSetTag04[K00, K01, K02, K03](kTag00: TypeTag[K00], kTag01: TypeTag[K
   override def key = LKeyTag04[K00, K01, K02, K03](kTag00, kTag01, kTag02, kTag03)
 
   override def plusKey[K04: TypeTag] =
-    LoamSetTag05[K00, K01, K02, K03](kTag00, kTag01,  kTag02,  kTag03, typeTag[K04])
+    LSetTag05[K00, K01, K02, K03, K04](kTag00, kTag01,  kTag02,  kTag03, typeTag[K04])
 }

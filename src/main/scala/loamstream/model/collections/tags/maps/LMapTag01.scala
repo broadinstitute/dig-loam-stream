@@ -1,6 +1,6 @@
 package loamstream.model.collections.tags.maps
 
-import loamstream.model.collections.tags.heaps.LHeapTag01
+import loamstream.model.collections.tags.piles.LPileTag01
 import loamstream.model.collections.tags.keys.LKeyTag01
 import loamstream.model.collections.tags.sets.LSetTag01
 
@@ -14,7 +14,7 @@ object LMapTag01 {
   def create[K00: TypeTag, V: TypeTag] = LMapTag01(typeTag[K00], typeTag[V])
 }
 
-case class LMapTag01[K00, V](kTag00: TypeTag[K00], vTag: TypeTag[V]) extends LMapTag[V] with LHeapTag01[K00] {
+case class LMapTag01[K00, V](kTag00: TypeTag[K00], vTag: TypeTag[V]) extends LMapTag[V] with LPileTag01[K00] {
   override def plusKey[K01: TypeTag] = LMapTag02(kTag00, typeTag[K01], vTag)
 
   override def key = LKeyTag01(kTag00)

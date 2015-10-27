@@ -1,6 +1,6 @@
 package loamstream.model.collections.tags.sets
 
-import loamstream.model.collections.tags.heaps.LHeapTag03
+import loamstream.model.collections.tags.piles.LPileTag03
 import loamstream.model.collections.tags.keys.LKeyTag03
 
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
@@ -14,7 +14,7 @@ object LSetTag03 {
 }
 
 case class LSetTag03[K00, K01, K02](kTag00: TypeTag[K00], kTag01: TypeTag[K01], kTag02: TypeTag[K02])
-  extends LSetTag with LHeapTag03[K00, K01, K02] {
+  extends LSetTag with LPileTag03[K00, K01, K02] {
   override def key = LKeyTag03[K00, K01, K02](kTag00, kTag01, kTag02)
 
   override def plusKey[K03: TypeTag] = LSetTag04[K00, K01, K02, K03](kTag00, kTag01,  kTag02, typeTag[K03])

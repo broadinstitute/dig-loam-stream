@@ -1,7 +1,7 @@
 package loamstream.model.collections.tags.sets
 
-import loamstream.model.collections.tags.heaps.{LoamHeapTag03, LoamHeapTag02, LoamHeapTag01}
-import loamstream.model.collections.tags.keys.{LoamKeyTag03, LoamKeyTag02, LoamKeyTag01}
+import loamstream.model.collections.tags.heaps.LoamHeapTag03
+import loamstream.model.collections.tags.keys.LoamKeyTag03
 
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
 

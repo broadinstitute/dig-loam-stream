@@ -10,8 +10,8 @@ import loamstream.model.tags.piles.LPileTag
  * LoamStream
  * Created by oliverr on 10/28/2015.
  */
-trait LEdge[PT <: LPileTag, MT <: LMethodTag, P[_] <: LPile[_], M[_] <: LMethod[_], S[_, _, _] <: LSocket[_, _, _]] {
-  def pile: P[PT]
+trait LEdge[PT <: LPileTag, MT <: LMethodTag, P <: LPile[PT], M <: LMethod[MT], S <: LSocket[PT, MT, M]] {
+  def pile: P
 
-  def socket: S[PT, MT, M[MT]]
+  def socket: S
 }

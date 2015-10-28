@@ -8,7 +8,7 @@ import loamstream.model.tags.piles.LPileTag
  * LoamStream
  * Created by oliverr on 10/28/2015.
  */
-trait LSocket[PT <: LPileTag, MT <: LMethodTag, M[_] <: LMethod[_]] {
-  def method: M[MT]
+trait LSocket[PT <: LPileTag, MT <: LMethodTag, M <: LMethod[MT]] {
+  def method: M
   def pileTag: PT
 }

@@ -8,6 +8,6 @@ import loamstream.model.tags.piles.LPileTag
  * LoamStream
  * Created by oliverr on 10/29/2015.
  */
-trait LMethod0I2O[O0 <: LPileTag, O1 <: LPileTag, MT <: LMethodTag0I2O[O0, O1], M <: LMethod[MT]]
-  extends Has2O[O0, O1, MT, M]
+trait LMethod0I2O[O0 <: LPileTag, O1 <: LPileTag, M <: LMethod[LMethodTag0I2O[O0, O1]]]
+  extends Has2O[O0, O1, LMethodTag0I2O[O0, O1], M]
 

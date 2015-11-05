@@ -22,7 +22,7 @@ object LMethodAtom0I1O {
 }
 
 case class LMethodAtom0I1O[O0 <: LPileTag : TypeTag](id: String, tag: LMethodTag0I1O[O0])
-  extends LMethod0I1O[O0, LMethodAtom0I1O[O0]] {
+  extends LMethodAtom with LMethod0I1O[O0, LMethodAtom0I1O[O0]] {
   override def output0: LSocket[O0, LMethodTag0I1O[O0], LMethodAtom0I1O[O0]] = LSocketO0(this)
 
 }

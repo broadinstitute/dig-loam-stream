@@ -9,13 +9,12 @@ import loamstream.model.tags.piles.LPileTag
 import scala.reflect.runtime.universe.TypeTag
 
 /**
- * RugLoom - A prototype for a pipeline building toolkit
- * Created by oruebenacker on 11/2/15.
- */
+  * RugLoom - A prototype for a pipeline building toolkit
+  * Created by oruebenacker on 11/2/15.
+  */
 object LMethodAtom0I1O {
 
-  case class LSocketO0[O0 <: LPileTag](method: LMethodAtom0I1O[O0])
-    extends LSocket[O0, LMethodTag0I1O[O0], LMethodAtom0I1O[O0]] {
+  case class LSocketO0[O0 <: LPileTag](method: LMethodAtom0I1O[O0]) extends LSocket[O0, LMethodAtom0I1O[O0]] {
     override def pileTag = method.tag.output0
   }
 
@@ -23,6 +22,6 @@ object LMethodAtom0I1O {
 
 case class LMethodAtom0I1O[O0 <: LPileTag : TypeTag](id: String, tag: LMethodTag0I1O[O0])
   extends LMethodAtom with LMethod0I1O[O0, LMethodAtom0I1O[O0]] {
-  override def output0: LSocket[O0, LMethodTag0I1O[O0], LMethodAtom0I1O[O0]] = LSocketO0(this)
+  override def output0: LSocket[O0, LMethodAtom0I1O[O0]] = LSocketO0(this)
 
 }

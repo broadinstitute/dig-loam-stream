@@ -11,7 +11,7 @@ import loamstream.model.streams.piles.LPile
 trait LStream {
   def piles: Iterable[LPile]
 
-  def methods: Iterable[LMethod[_]]
+  def methods: Iterable[LMethod]
 
   def edges: Iterable[LEdge[_, _, _, _, _]]
 

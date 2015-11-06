@@ -4,9 +4,10 @@ import loamstream.model.streams.piles.LPile
 import loamstream.model.tags.sets.LSetTag
 
 /**
- * LoamStream
- * Created by oliverr on 10/28/2015.
- */
-trait LSet[T <: LSetTag] extends LPile[T] {
+  * LoamStream
+  * Created by oliverr on 10/28/2015.
+  */
+trait LSet extends LPile {
+  type T <: LSetTag
 
 }

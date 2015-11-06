@@ -9,7 +9,7 @@ import loamstream.model.streams.piles.LPile
   * Created by oliverr on 10/28/2015.
   */
 trait LStream {
-  def piles: Iterable[LPile[_]]
+  def piles: Iterable[LPile]
 
   def methods: Iterable[LMethod[_]]
 

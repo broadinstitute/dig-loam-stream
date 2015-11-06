@@ -7,5 +7,5 @@ import loamstream.model.tags.piles.LPileTag01
   * Created by oliverr on 10/28/2015.
   */
 trait LPile01[K00] extends LPile {
-  type T <: LPileTag01[K00]
+  type PTag <: LPileTag01[K00]
 }

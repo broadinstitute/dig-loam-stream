@@ -8,6 +8,6 @@ import loamstream.model.tags.sets.LSetTag
   * Created by oliverr on 10/28/2015.
   */
 trait LSet extends LPile {
-  type T <: LSetTag
+  type PTag <: LSetTag
 
 }

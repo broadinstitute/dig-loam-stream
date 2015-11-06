@@ -8,7 +8,7 @@ import loamstream.model.tags.piles.LPileTag
  * LoamStream
  * Created by oliverr on 10/29/2015.
  */
-trait LMethod1I0O[I0 <: LPileTag, M <: LMethod] extends Has1I[I0, M] {
-  type T = LMethodTag1I0O[I0]
+trait LMethod1I0O[I0 <: LPileTag] extends Has1I[I0, LMethod1I0O[I0]] {
+  type MTag = LMethodTag1I0O[I0]
 }
 

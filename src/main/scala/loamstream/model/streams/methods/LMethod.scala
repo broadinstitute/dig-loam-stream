@@ -37,7 +37,7 @@ object LMethod {
 }
 
 trait LMethod {
-  type T <: LMethodTag
+  type MTag <: LMethodTag
 
-  def tag: T
+  def tag: MTag
 }

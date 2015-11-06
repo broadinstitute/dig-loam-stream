@@ -8,5 +8,5 @@ import loamstream.model.tags.maps.LMapTag00
   * Created by oliverr on 10/28/2015.
   */
 trait LMap00[V] extends LMap[V] with LPile00 {
-  type T = LMapTag00[V]
+  type PTag = LMapTag00[V]
 }

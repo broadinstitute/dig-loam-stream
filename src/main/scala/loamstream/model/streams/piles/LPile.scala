@@ -7,7 +7,7 @@ import loamstream.model.tags.piles.LPileTag
   * Created by oliverr on 10/28/2015.
   */
 trait LPile {
-  type T <: LPileTag
+  type PTag <: LPileTag
 
-  def tag: T
+  def tag: PTag
 }

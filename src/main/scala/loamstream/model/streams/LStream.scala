@@ -13,6 +13,6 @@ trait LStream {
 
   def methods: Iterable[LMethod]
 
-  def edges: Iterable[LEdge[_, _, _, _, _]]
+  def edges: Iterable[LEdge[_, _, _]]
 
 }

@@ -9,5 +9,5 @@ import loamstream.model.tags.sets.LSetTag03
   */
 trait LSet03[K00, K01, K02]
   extends LSet with LPile03[K00, K01, K02] {
-  type T = LSetTag03[K00, K01, K02]
+  type PTag = LSetTag03[K00, K01, K02]
 }

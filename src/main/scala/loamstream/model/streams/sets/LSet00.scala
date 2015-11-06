@@ -8,5 +8,5 @@ import loamstream.model.tags.sets.LSetTag00
   * Created by oliverr on 10/28/2015.
   */
 trait LSet00 extends LSet with LPile00 {
-  type T = LSetTag00.type
+  type PTag = LSetTag00.type
 }

@@ -7,5 +7,5 @@ import loamstream.model.tags.methods.LMethodTag0I0O
   * Created by oliverr on 10/29/2015.
   */
 trait LMethod0I0O extends LMethod {
-  type T = LMethodTag0I0O.type
+  type MTag = LMethodTag0I0O.type
 }

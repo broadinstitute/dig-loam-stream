@@ -1,6 +1,8 @@
 package loamstream.model.streams.maps
 
 import loamstream.model.streams.piles.LPile
+import loamstream.model.streams.piles.LPile.Namer
+import loamstream.model.streams.pots.maps.LMapPot
 import loamstream.model.tags.maps.LMapTag
 
 /**
@@ -9,4 +11,7 @@ import loamstream.model.tags.maps.LMapTag
   */
 trait LMap[V] extends LPile {
   type PTag <: LMapTag[V]
+
+  def addKey[K](namer: Namer): LMapPot[V, _]
+
 }

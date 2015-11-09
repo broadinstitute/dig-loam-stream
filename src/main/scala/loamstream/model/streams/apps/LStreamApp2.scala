@@ -18,7 +18,8 @@ object LStreamApp2 extends App {
   val inputSetChild = LSetAtom02.create[Int, String]("InputSetChild")
   val inputSet = LSetPot03.create[Int, String, Double]("InputSet", inputSetChild)
   val inputMap = LMapAtom02.create[String, Char, String]("InputMap")
-  val outputSet = LSetAtom03.create[Int, String, Double]("OutputSet")
+  val outputSetChild = LSetAtom02.create[Int, String]("OutputSetChild")
+  val outputSet = LSetPot03.create[Int, String, Double]("OutputSet", outputSetChild)
   val outputMap = LMapAtom02.create[Byte, String, Int]("OutputMap")
 
   val method =

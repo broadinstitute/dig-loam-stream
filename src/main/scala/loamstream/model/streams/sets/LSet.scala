@@ -1,8 +1,12 @@
 package loamstream.model.streams.sets
 
 import loamstream.model.streams.piles.LPile
+import loamstream.model.streams.piles.LPile.Namer
 import loamstream.model.streams.pots.sets.LSetPot
 import loamstream.model.tags.sets.LSetTag
+
+import scala.language.higherKinds
+import scala.reflect.runtime.universe.TypeTag
 
 /**
   * LoamStream
@@ -10,7 +14,8 @@ import loamstream.model.tags.sets.LSetTag
   */
 trait LSet extends LPile {
   type PTag <: LSetTag
+  type Parent[_] <: LSetPot[LSet]
 
-  def addKey[K]: LSetPot[_]
+  def plusKey[KN: TypeTag](namer: Namer): Parent[KN]
 
 }

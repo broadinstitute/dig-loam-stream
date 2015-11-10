@@ -1,6 +1,10 @@
 package loamstream.model.streams.piles
 
+import loamstream.model.streams.pots.piles.LPilePot
 import loamstream.model.tags.piles.LPileTag00
+
+import scala.language.higherKinds
+
 
 /**
   * LoamStream
@@ -8,4 +12,5 @@ import loamstream.model.tags.piles.LPileTag00
   */
 trait LPile00 extends LPile {
   type PTag <: LPileTag00
+  type Parent[_] <: LPilePot[LPile]
 }

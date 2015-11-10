@@ -6,6 +6,6 @@ import loamstream.model.streams.piles.LPile
   * LoamStream
   * Created by oliverr on 11/9/2015.
   */
-trait LPilePot[C] extends LPile {
+trait LPilePot[+C <: LPile] extends LPile {
   def child: C
 }

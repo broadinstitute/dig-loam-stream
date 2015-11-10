@@ -6,6 +6,9 @@ import loamstream.model.tags.maps.LMapTag
 import loamstream.model.tags.piles.LPileTag
 import loamstream.model.tags.sets.LSetTag
 
+import scala.language.higherKinds
+import scala.reflect.runtime.universe.TypeTag
+
 /**
   * LoamStream
   * Created by oliverr on 10/28/2015.
@@ -37,10 +40,11 @@ object LPile {
 
 trait LPile {
   type PTag <: LPileTag
+  type Parent[_] <: LPilePot[LPile]
 
   def tag: PTag
 
-  def addKey[KN]: LPilePot[_] = addKey[KN](Namer.Default)
+  def plusKey[KN: TypeTag]: Parent[KN] = plusKey[KN](Namer.Default)
 
-  def addKey[KN](namer: Namer): LPilePot[_]
+  def plusKey[KN: TypeTag](namer: Namer): Parent[KN]
 }

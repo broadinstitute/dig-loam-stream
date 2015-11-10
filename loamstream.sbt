@@ -3,6 +3,7 @@ lazy val root = (project in file(".")).
     name := "LoamStream",
     version := "0.1",
     scalaVersion := "2.11.7",
+    scalacOptions ++= Seq("-feature"),
     resolvers ++= Seq(
       Resolver.sonatypeRepo("releases"),
       Resolver.sonatypeRepo("snapshots")

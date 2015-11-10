@@ -1,5 +1,6 @@
 package loamstream.model.streams.methods
 
+import loamstream.model.streams.LNode
 import loamstream.model.streams.sockets.LSocket
 import loamstream.model.tags.methods.LMethodTag
 import loamstream.model.tags.piles.LPileTag
@@ -36,7 +37,8 @@ object LMethod {
 
 }
 
-trait LMethod {
+trait LMethod extends LNode {
+  type Tag = MTag
   type MTag <: LMethodTag
 
   def tag: MTag

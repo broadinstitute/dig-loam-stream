@@ -8,4 +8,5 @@ import loamstream.model.tags.methods.LMethodTag0I0O
   */
 trait LMethod0I0O extends LMethod {
   type MTag = LMethodTag0I0O.type
+  val tag = LMethodTag0I0O
 }

@@ -1,13 +1,29 @@
 package loamstream.model.streams.methods
 
 import loamstream.model.streams.methods.LMethod.Has2O
+import loamstream.model.streams.sockets.LSocket
 import loamstream.model.tags.methods.LMethodTag0I2O
 import loamstream.model.tags.piles.LPileTag
 
 /**
- * LoamStream
- * Created by oliverr on 10/29/2015.
- */
+  * LoamStream
+  * Created by oliverr on 10/29/2015.
+  */
+object LMethod0I2O {
+
+  case class LSocketO0[O0 <: LPileTag, O1 <: LPileTag](method: LMethod0I2O[O0, O1])
+    extends LSocket[O0, LMethod0I2O[O0, O1]] {
+    override def pileTag = method.tag.output0
+  }
+
+  case class LSocketO1[O0 <: LPileTag, O1 <: LPileTag](method: LMethod0I2O[O0, O1])
+    extends LSocket[O1, LMethod0I2O[O0, O1]] {
+    override def pileTag = method.tag.output1
+  }
+
+}
+
+
 trait LMethod0I2O[O0 <: LPileTag, O1 <: LPileTag] extends Has2O[O0, O1, LMethod0I2O[O0, O1]] {
   type MTag = LMethodTag0I2O[O0, O1]
 }

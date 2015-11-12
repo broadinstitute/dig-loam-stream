@@ -1,6 +1,5 @@
 package loamstream.model.tags.methods
 
-import loamstream.model.tags.methods.LMethodTag.Has1I
 import loamstream.model.tags.piles.LPileTag
 
 import scala.reflect.runtime.universe.TypeTag

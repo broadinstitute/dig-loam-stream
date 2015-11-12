@@ -1,6 +1,7 @@
 package loamstream.model.streams.methods
 
 import loamstream.model.streams.methods.LMethod.{Has2I, Has2O}
+import loamstream.model.streams.methods.LMethod2I2O.{LSocketI0, LSocketI1, LSocketO0, LSocketO1}
 import loamstream.model.streams.sockets.LSocket
 import loamstream.model.tags.methods.LMethodTag2I2O
 import loamstream.model.tags.piles.LPileTag
@@ -40,5 +41,13 @@ object LMethod2I2O {
 trait LMethod2I2O[I0 <: LPileTag, I1 <: LPileTag, O0 <: LPileTag, O1 <: LPileTag]
   extends Has2I[I0, I1, LMethod2I2O[I0, I1, O0, O1]] with Has2O[O0, O1, LMethod2I2O[I0, I1, O0, O1]] {
   type MTag = LMethodTag2I2O[I0, I1, O0, O1]
+
+  override def input0: LSocket[I0, LMethod2I2O[I0, I1, O0, O1]] = LSocketI0(this)
+
+  override def input1: LSocket[I1, LMethod2I2O[I0, I1, O0, O1]] = LSocketI1(this)
+
+  override def output0: LSocket[O0, LMethod2I2O[I0, I1, O0, O1]] = LSocketO0(this)
+
+  override def output1: LSocket[O1, LMethod2I2O[I0, I1, O0, O1]] = LSocketO1(this)
 }
 

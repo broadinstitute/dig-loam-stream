@@ -15,8 +15,5 @@ import scala.reflect.runtime.universe.TypeTag
 case class LMethodAtom0I2O[O0 <: LPileTag : TypeTag,
 O1 <: LPileTag : TypeTag](id: String, tag: LMethodTag0I2O[O0, O1])
   extends LMethodAtom with LMethod0I2O[O0, O1] {
-  override def output0: LSocket[O0, LMethod0I2O[O0, O1]] = LSocketO0(this)
-
-  override def output1: LSocket[O1, LMethod0I2O[O0, O1]] = LSocketO1(this)
 
 }

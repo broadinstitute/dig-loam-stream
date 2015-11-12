@@ -1,7 +1,6 @@
 package loamstream.model.streams.pots.methods
 
 import loamstream.model.streams.methods.LMethod1I0O
-import loamstream.model.streams.sockets.LSocket
 import loamstream.model.tags.piles.LPileTag
 
 import scala.language.higherKinds
@@ -12,8 +11,6 @@ import scala.language.higherKinds
   */
 case class LMethodPot1I0O[I0C <: LPileTag, +C[_] <: LMethod1I0O[_], KN](id: String, child: C[I0C])
   extends LMethodPot[C[I0C]] with LMethod1I0O[I0C#UpTag[KN]] {
-  def input0: LSocket[I0C#UpTag[KN], LMethod1I0O[I0C#UpTag[KN]]] = ???
 
-  // TODO
   def tag = ??? // TODO
 }

@@ -13,6 +13,5 @@ import scala.reflect.runtime.universe.TypeTag
   */
 case class LMethodPot0I1O[O0C <: LPileTag, KN: TypeTag](id: String, child: LMethod0I1O[O0C])
   extends LMethodPot[LMethod0I1O[O0C]] with LMethod0I1O[O0C#UpTag[KN]] {
-  //  def tag = child.tag.plusKeyO0[KN]
-  def tag = ???
+  def tag = child.tag.plusKey[KN]
 }

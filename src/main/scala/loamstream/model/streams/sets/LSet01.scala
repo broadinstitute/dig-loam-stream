@@ -16,5 +16,4 @@ trait LSet01[K00] extends LSet with LPile01[K00] {
   type Parent[_] = LSetPot02[K00, _]
 
   def plusKey[KN: TypeTag](namer: Namer) = LSetPot02.create[K00, KN](namer.name(tag.plusKey[KN]), this)
-
 }

@@ -15,6 +15,10 @@ case class LMethodTag1I2O[I0 <: LPileTag, O0 <: LPileTag, O1 <: LPileTag](input0
 
   override def outputs: Seq[LPileTag] = Seq(output0, output1)
 
+  def plusKey[KN: TypeTag] =
+    LMethodTag1I2O[I0#UpTag[KN], O0#UpTag[KN], O1#UpTag[KN]](input0.plusKey[KN], output0.plusKey[KN],
+      output1.plusKey[KN])
+
   def plusKeyI0[KN: TypeTag] =
     LMethodTag1I2O[I0#UpTag[KN], O0#UpTag[KN], O1#UpTag[KN]](input0.plusKey[KN], output0.plusKey[KN],
       output1.plusKey[KN])

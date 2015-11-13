@@ -13,5 +13,7 @@ case class LMethodTag1I0O[I0 <: LPileTag](input0: I0) extends LMethodTag with LM
 
   override def outputs: Seq[LPileTag] = Seq.empty
 
+  override def plusKey[KN: TypeTag] = LMethodTag1I0O[I0#UpTag[KN]](input0.plusKey[KN])
+
   override def plusKeyI0[KN: TypeTag] = LMethodTag1I0O[I0#UpTag[KN]](input0.plusKey[KN])
 }

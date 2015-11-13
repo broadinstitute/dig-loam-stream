@@ -10,7 +10,7 @@ import scala.reflect.runtime.universe.TypeTag
   */
 object LMethodTag {
 
-  trait Has1I[I0 <: LPileTag] {
+  trait Has1I[I0 <: LPileTag] extends LMethodTag {
     def input0: I0
 
     def plusKeyI0[KN: TypeTag]: Has1I[I0#UpTag[KN]]
@@ -56,7 +56,7 @@ object LMethodTag {
     def plusKeyI6[KN: TypeTag]: Has7I[I0, I1, I2, I3, I4, I5, I6#UpTag[KN]]
   }
 
-  trait Has1O[O0 <: LPileTag] {
+  trait Has1O[O0 <: LPileTag] extends LMethodTag {
     def output0: O0
   }
 
@@ -85,15 +85,15 @@ object LMethodTag {
   trait Has7O[O0 <: LPileTag, O1 <: LPileTag, O2 <: LPileTag, O3 <: LPileTag, O4 <: LPileTag, O5 <: LPileTag,
   O6 <: LPileTag]
     extends Has6O[O0, O1, O2, O3, O4, O5] {
-    def output5: O5
+    def output6: O6
   }
 
 }
 
 trait LMethodTag {
-
   def inputs: Seq[LPileTag]
 
   def outputs: Seq[LPileTag]
 
+  def plusKey[KN: TypeTag]: LMethodTag
 }

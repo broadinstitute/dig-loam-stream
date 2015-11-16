@@ -63,7 +63,7 @@ object LMethod {
 trait LMethod extends LNode {
   type Tag = MTag
   type MTag <: LMethodTag
-  type Parent[_] <: LMethodPot[LMethod]
+  type Parent[KN] <: LMethodPot[LMethod]
 
   def tag: MTag
 

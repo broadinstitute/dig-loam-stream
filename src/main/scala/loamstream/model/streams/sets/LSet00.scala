@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe.TypeTag
   */
 trait LSet00 extends LSet with LPile00 {
   type PTag = LSetTag00.type
-  type Parent[_] = LSetPot01[_]
+  type Parent[KN] = LSetPot01[KN]
 
   def plusKey[KN: TypeTag](namer: Namer) = LSetPot01.create[KN](namer.name(tag.plusKey[KN]), this)
 }

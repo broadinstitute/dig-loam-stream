@@ -12,7 +12,7 @@ import scala.reflect.runtime.universe.TypeTag
   */
 trait LMethod0I0O extends LMethod {
   type MTag = LMethodTag0I0O.type
-  type Parent[_] = LMethodPot0I0O
+  type Parent[KN] = LMethodPot0I0O
   val tag = LMethodTag0I0O
 
   def plusKey[KN: TypeTag](namer: Namer) = LMethodPot0I0O(namer.name(tag.plusKey[KN]), this)

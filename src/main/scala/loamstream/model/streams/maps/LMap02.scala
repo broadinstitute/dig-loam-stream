@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe.TypeTag
   */
 trait LMap02[K00, K01, V] extends LMap[V] with LPile02[K00, K01] {
   type PTag = LMapTag02[K00, K01, V]
-  type Parent[_] = LMapPot03[K00, K01, _, V]
+  type Parent[KN] = LMapPot03[K00, K01, KN, V]
 
   def plusKey[KN: TypeTag](namer: Namer): Parent[KN] = LMapPot03.create(namer.name(tag.plusKey[KN]), this)
 }

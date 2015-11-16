@@ -14,7 +14,7 @@ trait LSet03[K00, K01, K02]
   extends LSet with LPile03[K00, K01, K02] {
   type PTag = LSetTag03[K00, K01, K02]
   //  type Parent[_] = LSetPot04[K00, K01, K02, _]
-  type Parent[_] = Nothing
+  type Parent[KN] = Nothing
 
   // TODO
   //  def addKey[KN: TypeTag](namer: Namer) = LSetPot04.create[K00, K01, K02, KN](namer.name(tag.plusKey[KN]), this)

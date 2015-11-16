@@ -12,5 +12,5 @@ import scala.language.higherKinds
   */
 trait LSet extends LPile {
   type PTag <: LSetTag
-  type Parent[_] <: LSetPot[LSet]
+  type Parent[KN] <: LSetPot[LSet]
 }

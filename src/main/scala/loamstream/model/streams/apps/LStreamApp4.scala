@@ -28,7 +28,9 @@ object LStreamApp4 extends App {
       LMapTag01.create[String, Char], LSetTag02.create[Int, String],
       LMapTag01.create[Byte, String]))
 
-  val method2 = methodChild.plusKey[String](MethodNamer.Default)
+  val method = methodChild.plusKey[String](MethodNamer.Default)
+
+//  val seq = Seq[LMethodAtom2I2O[LSetTag02[Int, String], LMapTag01[String, Char], LSetTag02[Int, String], LMapTag01[String, Char]]#Parent[Byte]](???)
 
 //  val edgeI0 = LEdge(inputSet, method.input0)
 //  val edgeI1 = LEdge(inputMap, method.input1)
@@ -40,7 +42,7 @@ object LStreamApp4 extends App {
   println(outputSet)
   println(outputMap)
   println(methodChild)
-  println(method2)
+  println(method)
 
 
 }

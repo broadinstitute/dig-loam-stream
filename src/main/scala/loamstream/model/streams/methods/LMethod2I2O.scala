@@ -45,7 +45,7 @@ object LMethod2I2O {
 trait LMethod2I2O[I0 <: LPileTag, I1 <: LPileTag, O0 <: LPileTag, O1 <: LPileTag]
   extends Has2I[I0, I1, LMethod2I2O[I0, I1, O0, O1]] with Has2O[O0, O1, LMethod2I2O[I0, I1, O0, O1]] {
   type MTag = LMethodTag2I2O[I0, I1, O0, O1]
-  type Parent[_] = LMethodPot2I2O[I0, I1, O0, O1, _]
+  type Parent[KN] = LMethodPot2I2O[I0, I1, O0, O1, KN]
 
   override def input0: LSocket[I0, LMethod2I2O[I0, I1, O0, O1]] = LSocketI0(this)
 

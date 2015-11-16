@@ -24,7 +24,7 @@ object LMethod0I1O {
 
 trait LMethod0I1O[O0 <: LPileTag] extends LMethod with Has1O[O0, LMethod0I1O[O0]] {
   type MTag = LMethodTag0I1O[O0]
-  type Parent[_] = LMethodPot0I1O[O0, _]
+  type Parent[KN] = LMethodPot0I1O[O0, KN]
 
   override def output0: LSocket[O0, LMethod0I1O[O0]] = LSocketO0(this)
 

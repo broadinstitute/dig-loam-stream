@@ -42,7 +42,7 @@ object LPile {
 trait LPile extends LNode {
   type Tag = PTag
   type PTag <: LPileTag
-  type Parent[_] <: LPilePot[LPile]
+  type Parent[KN] <: LPilePot[LPile]
 
   def tag: PTag
 

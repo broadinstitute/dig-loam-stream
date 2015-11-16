@@ -12,5 +12,5 @@ import scala.language.higherKinds
   */
 trait LMap[V] extends LPile {
   type PTag <: LMapTag[V]
-  type Parent[_] <: LMapPot[V, LMap[V]]
+  type Parent[KN] <: LMapPot[V, LMap[V]]
 }

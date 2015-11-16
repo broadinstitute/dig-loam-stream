@@ -19,7 +19,7 @@ case class LSetTag07[K00, K01, K02, K03, K04, K05, K06]
  kTag05: TypeTag[K05], kTag06: TypeTag[K06])
   extends LSetTag with LPileTag07[K00, K01, K02, K03, K04, K05, K06] {
   //  type UpTag[_] = LSetTag08[K00, K01, K02, K03, K04, K05, K06, _]
-  type UpTag[_] = Nothing
+  type UpTag[KN] = Nothing
 
   // TODO
   override def key = LKeyTag07[K00, K01, K02, K03, K04, K05, K06](kTag00, kTag01, kTag02, kTag03, kTag04, kTag05,

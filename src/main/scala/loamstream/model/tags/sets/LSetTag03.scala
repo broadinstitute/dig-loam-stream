@@ -15,7 +15,7 @@ object LSetTag03 {
 
 case class LSetTag03[K00, K01, K02](kTag00: TypeTag[K00], kTag01: TypeTag[K01], kTag02: TypeTag[K02])
   extends LSetTag with LPileTag03[K00, K01, K02] {
-  type UpTag[_] = LSetTag04[K00, K01, K02, _]
+  type UpTag[KN] = LSetTag04[K00, K01, K02, KN]
 
   override def key = LKeyTag03[K00, K01, K02](kTag00, kTag01, kTag02)
 

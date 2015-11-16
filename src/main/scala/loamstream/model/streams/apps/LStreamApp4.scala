@@ -18,24 +18,22 @@ object LStreamApp4 extends App {
 
   val inputSetChild = LSetAtom02.create[Int, String]("InputSetChild")
   val inputSet = inputSetChild.plusKey[String](PileNamer.Default)
-  val inputMap = LMapAtom02.create[String, Char, String]("InputMap")
+  val inputMap = LMapAtom02.create[Char, String, Long]("InputMap")
   val outputSetChild = LSetAtom02.create[Int, String]("OutputSetChild")
   val outputSet = outputSetChild.plusKey[String](PileNamer.Default)
   val outputMap = LMapAtom02.create[Byte, String, String]("OutputMap")
 
   val methodChild =
     LMethodAtom2I2O("TheMethod", LMethodTag2I2O(LSetTag02.create[Int, String],
-      LMapTag01.create[String, Char], LSetTag02.create[Int, String],
+      LMapTag01.create[Char, Long], LSetTag02.create[Int, String],
       LMapTag01.create[Byte, String]))
 
   val method = methodChild.plusKey[String](MethodNamer.Default)
 
-//  val seq = Seq[LMethodAtom2I2O[LSetTag02[Int, String], LMapTag01[String, Char], LSetTag02[Int, String], LMapTag01[String, Char]]#Parent[Byte]](???)
-
-//  val edgeI0 = LEdge(inputSet, method.input0)
-//  val edgeI1 = LEdge(inputMap, method.input1)
-//  val edgeO0 = LEdge(outputSet, method.output0)
-//  val edgeO1 = LEdge(outputMap, method.output1)
+  val edgeI0 = LEdge(inputSet, method.input0)
+  val edgeI1 = LEdge(inputMap, method.input1)
+  val edgeO0 = LEdge(outputSet, method.output0)
+  val edgeO1 = LEdge(outputMap, method.output1)
 
   println(inputSet)
   println(inputMap)

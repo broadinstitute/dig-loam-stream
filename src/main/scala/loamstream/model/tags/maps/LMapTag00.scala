@@ -15,6 +15,8 @@ object LMapTag00 {
 }
 
 case class LMapTag00[V](vTag: TypeTag[V]) extends LMapTag[V] with LPileTag00 {
+  type UpTag[KN] = LMapTag01[KN, V]
+
   override def plusKey[K00: TypeTag] = LMapTag01[K00, V](typeTag[K00], vTag)
 
   override def key = LKeyTag00

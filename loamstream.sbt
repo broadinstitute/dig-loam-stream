@@ -9,7 +9,6 @@ lazy val root = (project in file(".")).
       Resolver.sonatypeRepo("snapshots")
     ),
     libraryDependencies ++= Seq(
-      "com.chuusai" %% "shapeless" % "2.2.5",
       "org.scala-lang" % "scala-library" % scalaVersion.value,
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value)

@@ -4,19 +4,25 @@ import java.nio.file.Path
 
 import loamstream.LAPFiles
 import loamstream.lap.LAPPipeline
+import util.shot.{Hit, Miss, Shot}
 
 /**
- * LoamStream
- * Created by oliverr on 10/13/2015.
- */
+  * LoamStream
+  * Created by oliverr on 10/13/2015.
+  */
 object LAPParseApp extends App {
 
-  def decompile(path: Path): LAPPipeline = LAPParser.decompile(LAPFiles.asSource(path))
+  def parse(path: Path): Shot[LAPPipeline] = LAPParser.parse(LAPFiles.asSource(path))
 
-  val pipeline = decompile(LAPFiles.targeted)
+  val pipelineShot = parse(LAPFiles.targeted)
 
-  for (entry <- pipeline.entries) {
-    println(entry.asString)
+  pipelineShot match {
+    case Hit(pipeline) =>
+      for (entry <- pipeline.entries) {
+        println(entry.asString)
+      }
+    case Miss(snag) =>
+      println(snag)
   }
 
 }

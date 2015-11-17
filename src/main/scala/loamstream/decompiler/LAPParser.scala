@@ -1,6 +1,6 @@
 package loamstream.decompiler
 
-import loamstream.camelbricks.{CamelBricksEntry, CamelBricksPipeline, CamelBricksRawEntry}
+import loamstream.lap.{LAPEntry, LAPPipeline, LAPRawEntry}
 
 import scala.io.Source
 
@@ -8,13 +8,13 @@ import scala.io.Source
  * LoamStream
  * Created by oliverr on 10/13/2015.
  */
-object CamelBricksDecompiler {
+object LAPParser {
 
   val trailingWhitespaces = """\s+$"""
   val backslash = """\"""
 
-  def decompile(source: Source): CamelBricksPipeline = {
-    var statements: Seq[CamelBricksEntry] = Seq.empty
+  def decompile(source: Source): LAPPipeline = {
+    var statements: Seq[LAPEntry] = Seq.empty
     val lineIter = source.getLines()
     var commandBuffer = ""
     while (lineIter.hasNext) {
@@ -24,14 +24,14 @@ object CamelBricksDecompiler {
         if(lineNoWhiteEnd.endsWith(backslash)) {
           commandBuffer += lineNoWhiteEnd.stripSuffix(backslash)
         } else {
-          statements :+= CamelBricksRawEntry(commandBuffer + lineNoWhiteEnd)
+          statements :+= LAPRawEntry(commandBuffer + lineNoWhiteEnd)
           commandBuffer = ""
         }
       } else if(commandBuffer.trim.nonEmpty){
-        statements :+= CamelBricksRawEntry(commandBuffer)
+        statements :+= LAPRawEntry(commandBuffer)
       }
     }
-    CamelBricksPipeline(statements)
+    LAPPipeline(statements)
   }
 
 }

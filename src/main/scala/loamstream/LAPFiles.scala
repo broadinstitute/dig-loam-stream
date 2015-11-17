@@ -9,7 +9,7 @@ import scala.io.Source
  * LoamStream
  * Created by oliverr on 10/8/2015.
  */
-object CamelBricksFiles {
+object LAPFiles {
 
   val charsetName: String = "UTF-8"
   val charset = Charset.forName(charsetName)

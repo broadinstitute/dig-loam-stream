@@ -1,10 +1,10 @@
-package loamstream.camelbricks
+package loamstream.lap
 
 /**
  * LoamStream
  * Created by oliverr on 10/9/2015.
  */
-trait CamelBricksEntry {
+trait LAPEntry {
 
   def asString : String
 

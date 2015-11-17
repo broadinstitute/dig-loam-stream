@@ -4,7 +4,7 @@ package loamstream.util
  * LoamStream
  * Created by oliverr on 10/7/2015.
  */
-object CamelBricksComparer {
+object LAPComparer {
 
   object Pos {
     def start: Pos = Pos(0, 0, 0)

@@ -1,4 +1,4 @@
-package loamstream.decompiler
+package loamstream.parser
 
 import java.nio.file.Path
 

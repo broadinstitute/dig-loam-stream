@@ -1,4 +1,4 @@
-package loamstream.decompiler
+package loamstream.parser
 
 import loamstream.lap.{LAPEntry, LAPPipeline, LAPRawEntry}
 import util.shot.{Hit, Shot}

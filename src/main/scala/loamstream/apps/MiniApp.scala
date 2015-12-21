@@ -6,6 +6,6 @@ package loamstream.apps
   */
 object MiniApp extends App {
 
-
+  println("Hello World")
 
 }

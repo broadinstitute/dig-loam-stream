@@ -1,6 +1,5 @@
 package loamstream.model.streams.piles
 
-import loamstream.model.streams.LNode
 import loamstream.model.streams.piles.LPile.Namer
 import loamstream.model.streams.pots.piles.LPilePot
 import loamstream.model.tags.maps.LMapTag
@@ -39,7 +38,7 @@ object LPile {
 
 }
 
-trait LPile extends LNode {
+trait LPile {
   type Tag = PTag
   type PTag <: LPileTag
   type Parent[KN] <: LPilePot[LPile]

@@ -1,18 +1,17 @@
 package loamstream.model.tags
 
 import scala.language.higherKinds
-import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
 /**
- * LoamStream
- * Created by oliverr on 10/21/2015.
- */
-trait LMapTag[K, KT <: BList[_, TypeTag, _], V] extends LPileTag[K, KT] {
-  type UpTag[KN] <: LMapTag[KN, BList[K, TypeTag, KT], V]
+  * LoamStream
+  * Created by oliverr on 10/21/2015.
+  */
+case class LMapTag[K, KT <: BList[_, TypeTag, _], V](keyTags: BList[K, TypeTag, KT], vTag: TypeTag[V])
+  extends LPileTag[K, KT] {
+  type UpTag[KN] = LMapTag[KN, BList[K, TypeTag, KT], V]
 
-  def vTag: TypeTag[V]
+  def toSet: LSetTag[K, KT] = LSetTag(keyTags)
 
-  def toSet: LSetTag[K, KT]
-
-  override def plusKey[KN: TypeTag]: UpTag[KN]
+  override def plusKey[KN: TypeTag]: UpTag[KN] = LMapTag(typeTag[KN] :: keyTags, vTag)
 }

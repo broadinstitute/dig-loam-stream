@@ -7,11 +7,11 @@ import scala.reflect.runtime.universe.{TypeTag, typeTag}
   * LoamStream
   * Created by oliverr on 10/21/2015.
   */
-case class LMapTag[K, KT <: BList[Any, _, TypeTag, _], V](keyTags: BList[Any, K, TypeTag, KT], vTag: TypeTag[V])
-  extends LPileTag[K, KT] {
-  type UpTag[KN] = LMapTag[KN, BList[Any, K, TypeTag, KT], V]
+case class LMapTag[HeadKey, KeysTail <: LKeys[_, _], V](keyTags: LKeys[HeadKey, KeysTail], vTag: TypeTag[V])
+  extends LPileTag[HeadKey, KeysTail] {
+  type UpTag[KeyNew] = LMapTag[KeyNew, LKeys[HeadKey, KeysTail], V]
 
-  def toSet: LSetTag[K, KT] = LSetTag(keyTags)
+  def toSet: LSetTag[HeadKey, KeysTail] = LSetTag(keyTags)
 
-  override def plusKey[KN: TypeTag]: UpTag[KN] = LMapTag(typeTag[KN] :: keyTags, vTag)
+  override def plusKey[KeyNew: TypeTag]: UpTag[KeyNew] = LMapTag(typeTag[KeyNew] :: keyTags, vTag)
 }

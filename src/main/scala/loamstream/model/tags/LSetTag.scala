@@ -7,8 +7,9 @@ import scala.reflect.runtime.universe.{TypeTag, typeTag}
   * LoamStream
   * Created by oliverr on 10/21/2015.
   */
-case class LSetTag[K, KT <: BList[Any, _, TypeTag, _]](keyTags: BList[Any, K, TypeTag, KT]) extends LPileTag[K, KT] {
-  type UpTag[KN] = LSetTag[KN, BList[Any, K, TypeTag, KT]]
+case class LSetTag[HeadKey, KeysTail <: LKeys[_, _]](keyTags: LKeys[HeadKey, KeysTail])
+  extends LPileTag[HeadKey, KeysTail] {
+  type UpTag[KeyNew] = LSetTag[KeyNew, LKeys[HeadKey, KeysTail]]
 
-  override def plusKey[KN: TypeTag]: UpTag[KN] = LSetTag(typeTag[KN] :: keyTags)
+  override def plusKey[KeyNew: TypeTag]: UpTag[KeyNew] = LSetTag(typeTag[KeyNew] :: keyTags)
 }

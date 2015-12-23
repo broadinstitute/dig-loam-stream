@@ -1,5 +1,6 @@
 package loamstream.model.calls
 
+import loamstream.model.recipes.{LPileCalls, LRecipe}
 import loamstream.model.tags.LPileTag
 
 /**
@@ -8,4 +9,6 @@ import loamstream.model.tags.LPileTag
   */
 trait LPileCall[Tag <: LPileTag[_, _]] {
   def tag: Tag
+
+  def recipe[Inputs <: LPileCalls[_, _, _]]: LRecipe[Inputs]
 }

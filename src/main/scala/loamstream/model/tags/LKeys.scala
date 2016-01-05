@@ -8,12 +8,18 @@ import scala.reflect.runtime.universe.{TypeTag, typeTag}
   * Created by oliverr on 12/22/2015.
   */
 object LKeys {
-  def tup1[K0: TypeTag]: LKeys[K0, LKeys[Nothing, Nothing]] = typeTag[K0] :: LKeyNil
+  type LKeys0 = LKeys[Nothing, Nothing]
+  type LKeys1[K0] = LKeys[K0, LKeys[Nothing, Nothing]]
+  type LKeys2[K0, K1] = LKeys[K0, LKeys[K1, LKeys[Nothing, Nothing]]]
+  type LKeys3[K0, K1, K2] = LKeys[K0, LKeys[K1, LKeys[K2, LKeys[Nothing, Nothing]]]]
 
-  def tup2[K0: TypeTag, K1: TypeTag]: LKeys[K0, LKeys[K1, LKeys[Nothing, Nothing]]] =
-    typeTag[K0] :: typeTag[K1] :: LKeyNil
+  def tup0: LKeys0 = LKeyNil
 
-  def tup3[K0: TypeTag, K1: TypeTag, K2: TypeTag]: LKeys[K0, LKeys[K1, LKeys[K2, LKeys[Nothing, Nothing]]]] =
+  def tup1[K0: TypeTag]: LKeys1[K0] = typeTag[K0] :: LKeyNil
+
+  def tup2[K0: TypeTag, K1: TypeTag]: LKeys2[K0, K1] = typeTag[K0] :: typeTag[K1] :: LKeyNil
+
+  def tup3[K0: TypeTag, K1: TypeTag, K2: TypeTag]: LKeys3[K0, K1, K2] =
     typeTag[K0] :: typeTag[K1] :: typeTag[K2] :: LKeyNil
 }
 

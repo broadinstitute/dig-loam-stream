@@ -7,8 +7,8 @@ import loamstream.model.tags.LPileTag
   * LoamStream
   * Created by oliverr on 12/23/2015.
   */
-trait LPileCall[Tag <: LPileTag[_, _]] {
+trait LPileCall[Tag <: LPileTag[_, _], Inputs <: LPileCalls[_, _, _]] {
   def tag: Tag
 
-  def recipe[Inputs <: LPileCalls[_, _, _]]: LRecipe[Inputs]
+  def recipe: LRecipe[Inputs]
 }

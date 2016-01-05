@@ -1,6 +1,6 @@
 package loamstream.apps
 
-import loamstream.model.calls.LMapCall
+import loamstream.model.tags.{LMapTag, LSetTag}
 
 /**
   * LoamStream
@@ -8,6 +8,14 @@ import loamstream.model.calls.LMapCall
   */
 object MiniApp extends App {
 
-  println("Hello World")
+  class VariantId
+
+  class GenotypeCall
+
+  val genotypeCallsTag = LMapTag.forKeyTup2[String, VariantId, GenotypeCall]
+  val sampleIdsTag = LSetTag.forKeyTup1[String]
+
+  println(genotypeCallsTag)
+  println(sampleIdsTag)
 
 }

@@ -1,6 +1,6 @@
 package loamstream.apps
 
-import loamstream.model.calls.LMapPreexisting
+import loamstream.model.calls.LMapCall
 import loamstream.model.tags.{LMapTag, LSetTag}
 
 /**
@@ -15,7 +15,7 @@ object MiniApp extends App {
 
   val genotypeCallsTag = LMapTag.forKeyTup2[String, VariantId, GenotypeCall]
 
-  val genotypeCalls = LMapPreexisting(genotypeCallsTag, "myGenotypes")
+  val genotypeCalls = LMapCall.getPreexisting(genotypeCallsTag, "myGenotypes")
 
   val sampleIdsTag = LSetTag.forKeyTup1[String]
 

@@ -17,5 +17,5 @@ object LMapCall {
 case class LMapCall[Tag <: LMapTag[_, _, _], Inputs <: LPileCalls[_, _, _],
 +Props <: LProps](tag: Tag, recipe: LRecipe[Inputs])
   extends LPileCall[Tag, Inputs, Props] {
-
+  def withProps[PropsNew <: LProps] = this.asInstanceOf[LMapCall[Tag, Inputs, Props with PropsNew]]
 }

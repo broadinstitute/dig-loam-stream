@@ -1,6 +1,8 @@
 package loamstream.apps
 
-import loamstream.model.calls.LMapCall
+import loamstream.model.calls.{LSetCall, LMapCall}
+import loamstream.model.calls.props.LProps
+import loamstream.model.recipes.{LPileCalls, ExtractKey0}
 import loamstream.model.tags.{LMapTag, LSetTag}
 
 /**
@@ -15,9 +17,13 @@ object MiniApp extends App {
 
   val genotypeCallsTag = LMapTag.forKeyTup2[String, VariantId, GenotypeCall]
 
-  val genotypeCalls = LMapCall.getPreexisting(genotypeCallsTag, "myGenotypes")
+  trait CanExtractSampleIds extends LProps
+
+  val genotypeCalls = LMapCall.getPreexisting(genotypeCallsTag, "myGenotypes").withProps[ExtractKey0.CanExtractKey0]
 
   val sampleIdsTag = LSetTag.forKeyTup1[String]
+
+  val sampleIds = LSetCall(sampleIdsTag, ExtractKey0.fromPile(???))
 
   println(genotypeCallsTag)
   println(genotypeCalls)

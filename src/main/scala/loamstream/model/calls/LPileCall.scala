@@ -12,4 +12,6 @@ trait LPileCall[Tag <: LPileTag[_, _], Inputs <: LPileCalls[_, _, _], +Props <: 
   def tag: Tag
 
   def recipe: LRecipe[Inputs]
+
+  def withProps[PropsNew <: LProps]: LPileCall[Tag, Inputs, Props with PropsNew]
 }

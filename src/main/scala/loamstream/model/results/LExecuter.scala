@@ -13,7 +13,7 @@ import util.shot.Shot
   */
 trait LExecuter {
 
-  def execute[Tag <: LPileTag[_, _], Inputs <: LPileCalls[_, _, _], Props <: LProps,
+  def execute[Tag <: LPileTag[_, _], Inputs <: LPileCalls[_, _], Props <: LProps,
   Call <: LPileCall[Tag, Inputs, Props], Tool <: LTool[Tag, Inputs, Props, Call]]:
   Shot[LResult[Tag, Inputs, Props, Call, Tool]]
 

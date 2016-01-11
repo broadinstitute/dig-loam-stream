@@ -14,7 +14,7 @@ object LSetCall {
   = LSetCall(tag, new LCheckoutPreexisting(id))
 }
 
-case class LSetCall[Tag <: LSetTag[_, _], Inputs <: LPileCalls[_, _, _],
+case class LSetCall[Tag <: LSetTag[_, _], Inputs <: LPileCalls[_, _],
 +Props <: LProps](tag: Tag, recipe: LRecipe[Inputs])
   extends LPileCall[Tag, Inputs, Props] {
   def withProps[PropsNew <: LProps] = this.asInstanceOf[LSetCall[Tag, Inputs, Props with PropsNew]]

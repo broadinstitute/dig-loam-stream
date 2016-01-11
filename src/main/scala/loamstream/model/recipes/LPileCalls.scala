@@ -11,9 +11,9 @@ import scala.language.higherKinds
   */
 object LPileCalls {
   type LCalls0 = LPileCallsNil.type
-  type LCalls1[Tag0 <: LPileTag[_, _], Call0[Tag] <: LPileCall[Tag, _, _]] = LPileCallsNode[Tag0, Call0, LCalls0]
+  type LCalls1[Tag0 <: LPileTag[_, _], Call0 <: LPileCall[Tag0, _, _]] = LPileCallsNode[Tag0, Call0, LCalls0]
   type LCalls2[Tag0 <: LPileTag[_, _], Call0[Tag] <: LPileCall[Tag, _, _],
-  Tag1 <: LPileTag[_, _], Call1[Tag] <: LPileCall[Tag, _, _]] =
+  Tag1 <: LPileTag[_, _], Call1 <: LPileCall[Tag1, _, _]] =
   LPileCallsNode[Tag0, Call0, LCalls1[Tag1, Call1]]
   type LCalls3[Tag0 <: LPileTag[_, _], Call0[Tag] <: LPileCall[Tag, _, _],
   Tag1 <: LPileTag[_, _], Call1[Tag] <: LPileCall[Tag, _, _],
@@ -22,7 +22,7 @@ object LPileCalls {
 
   def calls0(): LCalls0 = LPileCallsNil
 
-  def calls1[Tag0 <: LPileTag[_, _], Call0[Tag] <: LPileCall[Tag, _, _]](call0: Call0[Tag0]): LCalls1[Tag0, Call0] =
+  def calls1[Tag0 <: LPileTag[_, _], Call0 <: LPileCall[Tag0, _, _]](call0: Call0): LCalls1[Tag0, Call0] =
     LPileCallsNode[Tag0, Call0, LCalls0](call0, calls0())
 
   def calls2[Tag0 <: LPileTag[_, _], Call0[Tag] <: LPileCall[Tag, _, _],
@@ -44,5 +44,5 @@ trait LPileCalls[Call0 <: LPileCall[_, _, _], MoreCalls <: LPileCalls[_, _]] {
 
 object LPileCallsNil extends LPileCalls[Nothing, Nothing]
 
-case class LPileCallsNode[Tag0 <: LPileTag[_, _], Call0[Tag] <: LPileCall[Tag, _, _],
-MoreCalls <: LPileCalls[_, _]](call0: Call0[Tag0], tail: MoreCalls) extends LPileCalls[Call0[_], MoreCalls]
+case class LPileCallsNode[Tag0 <: LPileTag[_, _], Call0 <: LPileCall[Tag0, _, _],
+MoreCalls <: LPileCalls[_, _]](call0: Call0[Tag0], tail: MoreCalls) extends LPileCalls[Call0, MoreCalls]

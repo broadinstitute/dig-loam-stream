@@ -10,7 +10,7 @@ import loamstream.model.tools.LTool
   * LoamStream
   * Created by oliverr on 12/23/2015.
   */
-case class LJob[Tag <: LPileTag[_, _], Inputs <: LPileCalls[_, _, _], +Props <: LProps,
+case class LJob[Tag <: LPileTag[_, _], Inputs <: LPileCalls[_, _], +Props <: LProps,
 Call <: LPileCall[Tag, Inputs, Props]](call: Call, tool: LTool[Tag, Inputs, Props, Call]) {
 
 }

@@ -12,7 +12,7 @@ import util.shot.Shot
   */
 trait ToolMapper {
 
-  def findTool[Tag <: LPileTag[_, _], Inputs <: LPileCalls[_, _, _], Props <: LProps,
+  def findTool[Tag <: LPileTag[_, _], Inputs <: LPileCalls[_, _], Props <: LProps,
   Call <: LPileCall[Tag, Inputs, Props]]: Shot[LTool[Tag, Inputs, Props, Call]]
 
 }

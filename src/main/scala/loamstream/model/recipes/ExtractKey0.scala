@@ -15,13 +15,13 @@ object ExtractKey0 {
 
   trait CanExtractKey0 extends LProps
 
-  def fromPile[K,Inputs0 <: LPileCalls[_, _, _], Tag0 <: LPileTag[K, _], Call0[Tag <: LPileTag[_, _]] <: LPileCall[Tag, Inputs0, CanExtractKey0]
+  def fromPile[K, Inputs0 <: LPileCalls[_, _], Tag0 <: LPileTag[K, _], Call0[Tag <: LPileTag[K, _]] <: LPileCall[Tag, Inputs0, CanExtractKey0]
   ](pile: Call0[Tag0]) = {
     ExtractKey0[K, Inputs0, Tag0, Call0](LPileCalls.calls1[Tag0, Call0](pile))
   }
 }
 
-case class ExtractKey0[K, Inputs0 <: LPileCalls[_, _, _], Tag0 <: LPileTag[K, _],
-Call0[Tag <: LPileTag[_, _]] <: LPileCall[Tag, Inputs0, CanExtractKey0]](inputs: LPileCalls.LCalls1[Tag0, Call0])
+case class ExtractKey0[K, Inputs0 <: LPileCalls[_, _], Tag0 <: LPileTag[K, _],
+Call0[Tag <: LPileTag[K, _]] <: LPileCall[Tag, Inputs0, CanExtractKey0]](inputs: LPileCalls.LCalls1[Tag0, Call0])
   extends LRecipe[LPileCalls.LCalls1[Tag0, Call0]] {
 }

@@ -8,6 +8,7 @@ import scala.reflect.runtime.universe.TypeTag
   * Created by oliverr on 10/26/2015.
   */
 trait LPileTag[HeadKey, KeysTail <: LKeys[_, _]] {
+  type K0 = HeadKey
 
   def keyTags: LKeys[HeadKey, KeysTail]
 

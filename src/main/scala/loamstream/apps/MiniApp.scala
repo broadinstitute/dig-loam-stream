@@ -10,9 +10,9 @@ object MiniApp extends App {
 
   class GenotypeCall
 
-//  val genotypeCallsTag = LMapTag.forKeyTup2[String, VariantId, GenotypeCall]
+  //  val genotypeCallsTag = LMapTag.forKeyTup2[String, VariantId, GenotypeCall]
 
-//  val genotypeCalls = LMapCall.getPreexisting(genotypeCallsTag, "myGenotypes")
+  //  val genotypeCalls = LMapCall.getPreexisting(genotypeCallsTag, "myGenotypes")
 
   //  val sampleIdsTag = LSetTag.forKeyTup1[String]
 
@@ -23,5 +23,7 @@ object MiniApp extends App {
   //  println(genotypeCallsTag)
   //  println(genotypeCalls)
   //  println(sampleIdsTag)
+
+  println("Yo!")
 
 }

@@ -1,9 +1,8 @@
 package loamstream.model.tools
 
 import loamstream.model.calls.LPileCall
-import loamstream.model.calls.props.LProps
 import loamstream.model.recipes.LPileCalls
-import loamstream.model.tags.LTags
+import loamstream.model.tags.{LSemTag, LSigTag}
 import util.shot.Shot
 
 /**
@@ -11,6 +10,6 @@ import util.shot.Shot
   * Created by oliverr on 12/23/2015.
   */
 trait ToolMapper {
-  def findTool[Tags <: LTags, Inputs <: LPileCalls[_, _], Props <: LProps,
-  Call <: LPileCall[Tags, Inputs, Props]]: Shot[LTool[Tags, Inputs, Props, Call]]
+  def findTool[SigTag <: LSigTag, SemTag <: LSemTag, Inputs <: LPileCalls[_, _],
+  Call <: LPileCall[SigTag, SemTag, Inputs]]: Shot[LTool[SigTag, SemTag, Inputs, Call]]
 }

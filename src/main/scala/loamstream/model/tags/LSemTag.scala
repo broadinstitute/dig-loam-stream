@@ -1,9 +1,9 @@
-package loamstream.model.calls.props
+package loamstream.model.tags
 
 /**
   * LoamStream
   * Created by oliverr on 1/8/2016.
   */
-trait LProps {
+trait LSemTag {
 
 }

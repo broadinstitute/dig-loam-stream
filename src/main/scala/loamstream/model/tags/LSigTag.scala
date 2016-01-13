@@ -6,18 +6,18 @@ import util.Index
   * LoamStream
   * Created by oliverr on 1/13/2016.
   */
-object LTags {
+object LSigTag {
 
-  trait IsMap extends LTags
+  trait IsMap extends LSigTag
 
-  trait IsSet extends LTags
+  trait IsSet extends LSigTag
 
   trait HasV[V] extends IsMap
 
-  trait HasKey[I <: Index, K] extends LTags
+  trait HasKey[I <: Index, K] extends LSigTag
 
 }
 
-trait LTags {
+trait LSigTag {
 
 }

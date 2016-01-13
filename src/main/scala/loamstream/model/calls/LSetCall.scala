@@ -1,27 +1,34 @@
 package loamstream.model.calls
 
-import loamstream.model.calls.props.LProps
 import loamstream.model.recipes.{LCheckoutPreexisting, LPileCalls, LRecipe}
-import loamstream.model.tags.LTags
-import util.Index.{I00, I01}
+import loamstream.model.tags.{LSemTag, LSigTag}
+
+import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
 /**
   * LoamStream
   * Created by oliverr on 12/23/2015.
   */
 object LSetCall {
-  type Set1[K0] = LTags.HasKey[I00, K0]
-  type Set2[K0, K1] = Set1[K0] with LTags.HasKey[I01, K1]
+  type Set0 = LPileCall.Pile0 with LSigTag.IsSet
+  type Set1[K0] = LPileCall.Pile1[K0] with LSigTag.IsSet
+  type Set2[K0, K1] = LPileCall.Pile2[K0, K1] with LSigTag.IsSet
+  type Set3[K0, K1, K2] = LPileCall.Pile3[K0, K1, K2] with LSigTag.IsSet
+  type Set4[K0, K1, K2, K3] = LPileCall.Pile4[K0, K1, K2, K3] with LSigTag.IsSet
+  type Set5[K0, K1, K2, K3, K4] = LPileCall.Pile5[K0, K1, K2, K3, K4] with LSigTag.IsSet
+  type Set6[K0, K1, K2, K3, K4, K5] = LPileCall.Pile6[K0, K1, K2, K3, K4, K5] with LSigTag.IsSet
+  type Set7[K0, K1, K2, K3, K4, K5, K6] = LPileCall.Pile7[K0, K1, K2, K3, K4, K5, K6] with LSigTag.IsSet
 
-  def getPreexisting[Tags <: LTags.IsSet, Props <: LProps](id: String):
-  LSetCall[Tags, LPileCalls.LCalls0, Props]
-  = LSetCall(new LCheckoutPreexisting(id))
+  def getPreexisting[SigTag <: LSigTag.IsSet, SemTag <: LSemTag](id: String):
+  LSetCall[SigTag, SemTag, LPileCalls.LCalls0]
+  = apply(new LCheckoutPreexisting(id))
+
+  def apply[SigTag <: LSigTag.IsSet : TypeTag, SemTag <: LSemTag : TypeTag,
+  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LSetCall[SigTag, SemTag, Inputs] =
+    LSetCall(typeTag[SigTag], typeTag[SemTag], recipe)
 }
 
-case class LSetCall[Tags <: LTags.IsSet, Inputs <: LPileCalls[_, _],
-+Props <: LProps](recipe: LRecipe[Inputs])
-  extends LPileCall[Tags, Inputs, Props] {
-  def withTags[TagsNew <: LTags] = this.asInstanceOf[LSetCall[Tags with TagsNew, Inputs, Props]]
-
-  def withProps[PropsNew <: LProps] = this.asInstanceOf[LSetCall[Tags, Inputs, Props with PropsNew]]
+case class LSetCall[+SigTag <: LSigTag.IsSet : TypeTag, +SemTag <: LSemTag : TypeTag,
+Inputs <: LPileCalls[_, _]](sigTag: TypeTag[_], semTag: TypeTag[_], recipe: LRecipe[Inputs])
+  extends LPileCall[SigTag, SemTag, Inputs] {
 }

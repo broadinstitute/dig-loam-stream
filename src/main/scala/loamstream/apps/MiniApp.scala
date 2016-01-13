@@ -1,5 +1,9 @@
 package loamstream.apps
 
+import loamstream.model.calls.{LPileCall, LMapCall}
+import loamstream.model.recipes.{LCheckoutPreexisting, LPileCalls}
+import loamstream.model.tags.LSemTag
+
 /**
   * LoamStream
   * Created by oliverr on 12/21/2015.
@@ -14,6 +18,10 @@ object MiniApp extends App {
 
   //  val genotypeCalls = LMapCall.getPreexisting(genotypeCallsTag, "myGenotypes")
 
+  val genotypeCalls =
+    LMapCall.apply[LMapCall.Map2[String, VariantId, GenotypeCall], LSemTag,
+      LPileCalls.LCalls0](LCheckoutPreexisting("myGenotypecalls"))
+
   //  val sampleIdsTag = LSetTag.forKeyTup1[String]
 
   //  val sampleIds = LSetCall(sampleIdsTag, ExtractKey0.fromPile[String, LMapTag.Map2[String, VariantId, GenotypeCall],
@@ -24,6 +32,7 @@ object MiniApp extends App {
   //  println(genotypeCalls)
   //  println(sampleIdsTag)
 
+  println(genotypeCalls)
   println("Yo!")
 
 }

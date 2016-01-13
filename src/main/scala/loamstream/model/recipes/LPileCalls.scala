@@ -1,7 +1,7 @@
 package loamstream.model.recipes
 
 import loamstream.model.calls.LPileCall
-import loamstream.model.tags.LPileTag
+import loamstream.model.tags.LTags
 
 import scala.language.higherKinds
 
@@ -32,7 +32,7 @@ object LPileCalls {
 }
 
 trait LPileCalls[Call0 <: LPileCall[_, _, _], MoreCalls <: LPileCalls[_, _]] {
-  def ::[TagNew <: LPileTag[_, _], CallNew <: LPileCall[TagNew, _, _]](callNew: CallNew) =
+  def ::[TagNew <: LTags, CallNew <: LPileCall[TagNew, _, _]](callNew: CallNew) =
     LPileCallsNode[CallNew, LPileCalls[Call0, MoreCalls]](callNew, this)
 }
 

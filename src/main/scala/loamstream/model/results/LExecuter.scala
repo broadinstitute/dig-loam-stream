@@ -3,7 +3,7 @@ package loamstream.model.results
 import loamstream.model.calls.LPileCall
 import loamstream.model.calls.props.LProps
 import loamstream.model.recipes.LPileCalls
-import loamstream.model.tags.LPileTag
+import loamstream.model.tags.LTags
 import loamstream.model.tools.LTool
 import util.shot.Shot
 
@@ -13,8 +13,8 @@ import util.shot.Shot
   */
 trait LExecuter {
 
-  def execute[Tag <: LPileTag[_, _], Inputs <: LPileCalls[_, _], Props <: LProps,
-  Call <: LPileCall[Tag, Inputs, Props], Tool <: LTool[Tag, Inputs, Props, Call]]:
-  Shot[LResult[Tag, Inputs, Props, Call, Tool]]
+  def execute[Tags <: LTags, Inputs <: LPileCalls[_, _], Props <: LProps,
+  Call <: LPileCall[Tags, Inputs, Props], Tool <: LTool[Tags, Inputs, Props, Call]]:
+  Shot[LResult[Tags, Inputs, Props, Call, Tool]]
 
 }

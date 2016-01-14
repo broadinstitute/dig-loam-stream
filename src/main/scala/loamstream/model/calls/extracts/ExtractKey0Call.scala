@@ -25,7 +25,6 @@ object ExtractKey0Call {
 
 class ExtractKey0Call[K0, SigTag <: LSigTag.HasKey[I00, K0] : TypeTag,
 Input <: LPileCall[SigTag, _, _]](input: Input)
-  extends LSetCall[LSigTag.HasKey[I00, K0], LSemTag,
-    LPileCalls.LCalls1[Input]](typeTag[SigTag], typeTag[LSemTag], Recipe(input)) {
+  extends LSetCall[SigTag, LSemTag, LPileCalls.LCalls1[Input]](typeTag[SigTag], typeTag[LSemTag], Recipe(input)) {
 
 }

@@ -2,14 +2,14 @@ package loamstream.model.jobs
 
 import loamstream.model.calls.LPileCall
 import loamstream.model.recipes.LPileCalls
-import loamstream.model.tags.{LSemTag, LSigTag}
+import loamstream.model.tags.LSigTag
 import loamstream.model.tools.LTool
 
 /**
   * LoamStream
   * Created by oliverr on 12/23/2015.
   */
-case class LJob[+SigTag <: LSigTag, +SemTag <: LSemTag, Inputs <: LPileCalls[_, _],
-Call <: LPileCall[SigTag, SemTag, Inputs]](call: Call, tool: LTool[SigTag, SemTag, Inputs, Call]) {
+case class LJob[+SigTag <: LSigTag, Inputs <: LPileCalls[_, _],
+Call <: LPileCall[SigTag, Inputs]](call: Call, tool: LTool[SigTag, Inputs, Call]) {
 
 }

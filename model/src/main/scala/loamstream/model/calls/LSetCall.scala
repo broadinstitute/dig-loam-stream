@@ -1,7 +1,7 @@
 package loamstream.model.calls
 
 import loamstream.model.recipes.{LCheckoutPreexisting, LPileCalls, LRecipe}
-import loamstream.model.tags.{LSemTag, LSigTag}
+import loamstream.model.tags.LSigTag
 
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
@@ -19,16 +19,16 @@ object LSetCall {
   type Set6[K0, K1, K2, K3, K4, K5] = LPileCall.Pile6[K0, K1, K2, K3, K4, K5] with LSigTag.IsSet
   type Set7[K0, K1, K2, K3, K4, K5, K6] = LPileCall.Pile7[K0, K1, K2, K3, K4, K5, K6] with LSigTag.IsSet
 
-  def getPreexisting[SigTag <: LSigTag.IsSet, SemTag <: LSemTag](id: String):
-  LSetCall[SigTag, SemTag, LPileCalls.LCalls0]
+  def getPreexisting[SigTag <: LSigTag.IsSet](id: String):
+  LSetCall[SigTag, LPileCalls.LCalls0]
   = apply(new LCheckoutPreexisting(id))
 
-  def apply[SigTag <: LSigTag.IsSet : TypeTag, SemTag <: LSemTag : TypeTag,
-  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LSetCall[SigTag, SemTag, Inputs] =
-    LSetCall(typeTag[SigTag], typeTag[SemTag], recipe)
+  def apply[SigTag <: LSigTag.IsSet : TypeTag,
+  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LSetCall[SigTag, Inputs] =
+    LSetCall(typeTag[SigTag], recipe)
 }
 
-case class LSetCall[+SigTag <: LSigTag.IsSet : TypeTag, +SemTag <: LSemTag : TypeTag,
-Inputs <: LPileCalls[_, _]](sigTag: TypeTag[_], semTag: TypeTag[_], recipe: LRecipe[Inputs])
-  extends LPileCall[SigTag, SemTag, Inputs] {
+case class LSetCall[+SigTag <: LSigTag.IsSet : TypeTag,
+Inputs <: LPileCalls[_, _]](sigTag: TypeTag[_], recipe: LRecipe[Inputs])
+  extends LPileCall[SigTag, Inputs] {
 }

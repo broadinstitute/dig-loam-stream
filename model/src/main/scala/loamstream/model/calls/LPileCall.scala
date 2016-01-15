@@ -1,7 +1,7 @@
 package loamstream.model.calls
 
 import loamstream.model.recipes.{LPileCalls, LRecipe}
-import loamstream.model.tags.{LSemTag, LSigTag}
+import loamstream.model.tags.LSigTag
 import util.Index.{I00, I01, I02, I03, I04, I05, I06}
 
 import scala.reflect.runtime.universe.TypeTag
@@ -21,10 +21,8 @@ object LPileCall {
   type Pile7[K0, K1, K2, K3, K4, K5, K6] = Pile6[K0, K1, K2, K3, K4, K5] with LSigTag.HasKey[I06, K6]
 }
 
-trait LPileCall[+SigTag <: LSigTag, +SemTag <: LSemTag, Inputs <: LPileCalls[_, _]] {
+trait LPileCall[+SigTag <: LSigTag, Inputs <: LPileCalls[_, _]] {
   def sigTag: TypeTag[_]
-
-  def semTag: TypeTag[_]
 
   def recipe: LRecipe[Inputs]
 }

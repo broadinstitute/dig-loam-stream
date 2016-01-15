@@ -1,7 +1,7 @@
 package loamstream.model.calls
 
 import loamstream.model.recipes.{LPileCalls, LRecipe}
-import loamstream.model.tags.{LSemTag, LSigTag}
+import loamstream.model.tags.LSigTag
 
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
@@ -22,12 +22,12 @@ object LMapCall {
   //  def getPreexisting[Tag <: LMapTag[_, _, _], Props <: LProps](tag: Tag, id: String):
   //  LMapCall[Tag, LPileCalls.LCalls0, Props]
   //  = LMapCall(tag, new LCheckoutPreexisting(id))
-  def apply[SigTag <: LSigTag.IsMap : TypeTag, SemTag <: LSemTag : TypeTag,
-  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LMapCall[SigTag, SemTag, Inputs] =
-    LMapCall(typeTag[SigTag], typeTag[SemTag], recipe)
+  def apply[SigTag <: LSigTag.IsMap : TypeTag,
+  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LMapCall[SigTag, Inputs] =
+    LMapCall(typeTag[SigTag], recipe)
 }
 
-case class LMapCall[+SigTag <: LSigTag.IsMap : TypeTag, +SemTag <: LSemTag : TypeTag,
-Inputs <: LPileCalls[_, _]](sigTag: TypeTag[_], semTag: TypeTag[_], recipe: LRecipe[Inputs])
-  extends LPileCall[SigTag, SemTag, Inputs] {
+case class LMapCall[+SigTag <: LSigTag.IsMap : TypeTag,
+Inputs <: LPileCalls[_, _]](sigTag: TypeTag[_], recipe: LRecipe[Inputs])
+  extends LPileCall[SigTag, Inputs] {
 }

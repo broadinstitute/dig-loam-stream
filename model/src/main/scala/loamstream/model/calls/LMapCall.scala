@@ -22,12 +22,12 @@ object LMapCall {
   //  def getPreexisting[Tag <: LMapTag[_, _, _], Props <: LProps](tag: Tag, id: String):
   //  LMapCall[Tag, LPileCalls.LCalls0, Props]
   //  = LMapCall(tag, new LCheckoutPreexisting(id))
-  def apply[SigTag <: LSigTag.IsMap : TypeTag,
-  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LMapCall[SigTag, Inputs] =
-    LMapCall(typeTag[SigTag], recipe)
+  def apply[Keys <: LKeys[_, _] : TypeTag, SigTag <: LSigTag.IsMap : TypeTag, V: TypeTag,
+  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LMapCall[Keys, SigTag, V, Inputs] =
+    LMapCall(typeTag[Keys], typeTag[SigTag], typeTag[V], recipe)
 }
 
-case class LMapCall[+SigTag <: LSigTag.IsMap : TypeTag,
-Inputs <: LPileCalls[_, _]](sigTag: TypeTag[_], recipe: LRecipe[Inputs])
-  extends LPileCall[SigTag, Inputs] {
+case class LMapCall[Keys <: LKeys[_, _] : TypeTag, +SigTag <: LSigTag.IsMap : TypeTag, V: TypeTag,
+Inputs <: LPileCalls[_, _]](keysTag: TypeTag[Keys], sigTag: TypeTag[_], vTag: TypeTag[V], recipe: LRecipe[Inputs])
+  extends LPileCall[Keys, SigTag, Inputs] {
 }

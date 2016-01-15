@@ -19,16 +19,16 @@ object LSetCall {
   type Set6[K0, K1, K2, K3, K4, K5] = LPileCall.Pile6[K0, K1, K2, K3, K4, K5] with LSigTag.IsSet
   type Set7[K0, K1, K2, K3, K4, K5, K6] = LPileCall.Pile7[K0, K1, K2, K3, K4, K5, K6] with LSigTag.IsSet
 
-  def getPreexisting[SigTag <: LSigTag.IsSet](id: String):
-  LSetCall[SigTag, LPileCalls.LCalls0]
-  = apply(new LCheckoutPreexisting(id))
+  def getPreexisting[Keys <: LKeys[_, _] : TypeTag, SigTag <: LSigTag.IsSet : TypeTag](id: String):
+  LSetCall[Keys, SigTag, LPileCalls.LCalls0]
+  = apply[Keys, SigTag, LPileCalls.LCalls0](new LCheckoutPreexisting(id))
 
-  def apply[SigTag <: LSigTag.IsSet : TypeTag,
-  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LSetCall[SigTag, Inputs] =
-    LSetCall(typeTag[SigTag], recipe)
+  def apply[Keys <: LKeys[_, _] : TypeTag, SigTag <: LSigTag.IsSet : TypeTag,
+  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LSetCall[Keys, SigTag, Inputs] =
+    LSetCall(typeTag[Keys], typeTag[SigTag], recipe)
 }
 
-case class LSetCall[+SigTag <: LSigTag.IsSet : TypeTag,
-Inputs <: LPileCalls[_, _]](sigTag: TypeTag[_], recipe: LRecipe[Inputs])
-  extends LPileCall[SigTag, Inputs] {
+case class LSetCall[Keys <: LKeys[_, _], +SigTag <: LSigTag.IsSet : TypeTag,
+Inputs <: LPileCalls[_, _]](keysTag: TypeTag[Keys], sigTag: TypeTag[_], recipe: LRecipe[Inputs])
+  extends LPileCall[Keys, SigTag, Inputs] {
 }

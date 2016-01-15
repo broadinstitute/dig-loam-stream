@@ -21,7 +21,7 @@ object LPileCall {
   type Pile7[K0, K1, K2, K3, K4, K5, K6] = Pile6[K0, K1, K2, K3, K4, K5] with LSigTag.HasKey[I06, K6]
 }
 
-trait LPileCall[+SigTag <: LSigTag, Inputs <: LPileCalls[_, _]] {
+trait LPileCall[Keys <: LKeys[_, _], +SigTag <: LSigTag, Inputs <: LPileCalls[_, _]] {
   def sigTag: TypeTag[_]
 
   def recipe: LRecipe[Inputs]

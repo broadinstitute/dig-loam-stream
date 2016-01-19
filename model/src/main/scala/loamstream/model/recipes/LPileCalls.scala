@@ -5,9 +5,9 @@ import loamstream.model.calls.LPileCall
 import scala.language.higherKinds
 
 /**
-  * LoamStream
-  * Created by oliverr on 12/23/2015.
-  */
+ * LoamStream
+ * Created by oliverr on 12/23/2015.
+ */
 object LPileCalls {
   type LCalls0 = LPileCallsNil.type
   type LCalls1[Call0 <: LPileCall[_, _]] = LPileCallsNode[Call0, LCalls0]

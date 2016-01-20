@@ -1,8 +1,10 @@
 package loamstream.model.calls
 
 import loamstream.model.recipes.{LPileCalls, LRecipe}
+import util.ProductTypeExploder
+import util.shot.Shot
 
-import scala.reflect.runtime.universe.{TypeTag, typeTag}
+import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
 
 /**
   * LoamStream
@@ -14,11 +16,11 @@ object LMapCall {
   //  LMapCall[Tag, LPileCalls.LCalls0, Props]
   //  = LMapCall(tag, new LCheckoutPreexisting(id))
   def apply[Keys <: Product : TypeTag, V: TypeTag,
-  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): LMapCall[Keys, V, Inputs] =
-    LMapCall(typeTag[Keys], typeTag[V], recipe)
+  Inputs <: LPileCalls[_, _]](recipe: LRecipe[Inputs]): Shot[LMapCall[Keys, V, Inputs]] =
+    ProductTypeExploder.explode(typeTag[Keys].tpe).map(LMapCall(_, typeTag[V].tpe, recipe))
 }
 
 case class LMapCall[Keys <: Product, V: TypeTag,
-Inputs <: LPileCalls[_, _]](keysTag: TypeTag[Keys], vTag: TypeTag[V], recipe: LRecipe[Inputs])
+Inputs <: LPileCalls[_, _]](keyTypes: Seq[Type], vType: Type, recipe: LRecipe[Inputs])
   extends LPileCall[Keys, Inputs] {
 }

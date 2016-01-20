@@ -2,7 +2,7 @@ package loamstream.model.calls
 
 import loamstream.model.recipes.{LPileCalls, LRecipe}
 
-import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.runtime.universe.Type
 
 /**
   * LoamStream
@@ -10,7 +10,7 @@ import scala.reflect.runtime.universe.TypeTag
   */
 
 trait LPileCall[Keys <: Product, Inputs <: LPileCalls[_, _]] {
-  def keysTag: TypeTag[Keys]
+  def keyTypes: Seq[Type]
 
   def recipe: LRecipe[Inputs]
 }

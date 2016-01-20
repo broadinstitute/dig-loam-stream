@@ -1,7 +1,7 @@
 package loamstream.apps
 
 import loamstream.model.calls.LMapCall
-import loamstream.model.recipes.{LCheckoutPreexisting, LPileCalls}
+import loamstream.model.recipes.LCheckoutPreexisting
 
 /**
   * LoamStream
@@ -17,8 +17,7 @@ object MiniApp extends App {
 
   //  val genotypeCalls = LMapCall.getPreexisting(genotypeCallsTag, "myGenotypes")
 
-  val genotypeCalls =
-    LMapCall.apply[(String, VariantId), GenotypeCall, LPileCalls.LCalls0](LCheckoutPreexisting("myGenotypecalls"))
+  val genotypeCalls = LMapCall.apply[(String, VariantId), GenotypeCall](LCheckoutPreexisting("myGenotypecalls")).get
 
   //  val sampleIds = new KeyOps[I01].extractKey(genotypeCalls)
 

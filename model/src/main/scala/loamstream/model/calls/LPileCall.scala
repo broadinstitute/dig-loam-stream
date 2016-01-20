@@ -1,6 +1,6 @@
 package loamstream.model.calls
 
-import loamstream.model.recipes.{LPileCalls, LRecipe}
+import loamstream.model.recipes.LRecipe
 
 import scala.reflect.runtime.universe.Type
 
@@ -9,8 +9,8 @@ import scala.reflect.runtime.universe.Type
   * Created by oliverr on 12/23/2015.
   */
 
-trait LPileCall[Keys <: Product, Inputs <: LPileCalls[_, _]] {
+trait LPileCall {
   def keyTypes: Seq[Type]
 
-  def recipe: LRecipe[Inputs]
+  def recipe: LRecipe
 }

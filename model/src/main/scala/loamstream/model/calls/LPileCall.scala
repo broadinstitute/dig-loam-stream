@@ -13,4 +13,6 @@ trait LPileCall {
   def keyTypes: Seq[Type]
 
   def recipe: LRecipe
+
+  def extractKey(index: Int) = LSetCall(Seq(keyTypes(index)), LRecipe.ExtractKey(this, index))
 }

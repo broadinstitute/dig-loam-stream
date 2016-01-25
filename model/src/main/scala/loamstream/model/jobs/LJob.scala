@@ -1,12 +1,15 @@
 package loamstream.model.jobs
 
-import loamstream.model.calls.LPileCall
-import loamstream.model.tools.LTool
+import util.shot.Shot
+
+import scala.concurrent.Future
 
 /**
   * LoamStream
   * Created by oliverr on 12/23/2015.
   */
-case class LJob[Call <: LPileCall](call: Call, tool: LTool[Call]) {
+trait LJob[T] {
+  def inputs: Set[LJob[_]]
 
+  def execute: Shot[Future[T]]
 }

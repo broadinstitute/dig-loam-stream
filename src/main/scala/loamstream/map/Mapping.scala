@@ -10,38 +10,27 @@ object Mapping {
 
   trait Target
 
-  trait SlotBase
+  trait Slot
 
-  trait Slot[T <: Target] extends SlotBase
-
-  trait TargetGeneratorBase {
-    def slot: SlotBase
+  trait TargetGenerator {
+    def slot: Slot
 
     def numMoreTargets: Int
 
     def nextTarget: Target
   }
 
-  trait TargetGenerator[T <: Target] extends TargetGeneratorBase {
-    def slot: Slot[T]
-
-    def nextTarget: T
-  }
-
   trait Constraint {
-    def slots: Set[Slot[_]]
+    def slots: Set[Slot]
 
-    def applyToSlotUntyped(mapping: Mapping, slot: SlotBase, generator: TargetGeneratorBase): TargetGeneratorBase
-
-    def applyToSlot[T](mapping: Mapping, slot: Slot[T], generator: TargetGenerator[T]): TargetGenerator[T] =
-      applyToSlotUntyped(mapping, slot, generator).asInstanceOf[TargetGenerator[T]]
+    def applyToSlot(mapping: Mapping, slot: Slot, generator: TargetGenerator): TargetGenerator
 
     def applyToMapping(mapping: Mapping): Mapping = {
       var generatorsNew = mapping.generators
       for (slot <- slots) {
         mapping.generators.get(slot) match {
           case Some(generator) =>
-            generatorsNew += slot -> applyToSlotUntyped(mapping, slot, generator)
+            generatorsNew += slot -> applyToSlot(mapping, slot, generator)
           case None => ()
         }
       }
@@ -51,15 +40,15 @@ object Mapping {
 
   def empty = Mapping(Set.empty, Set.empty, Map.empty, Set.empty, Map.empty)
 
-  def fromSlots(slots: Map[Slot[_], TargetGenerator[_]]) =
+  def fromSlots(slots: Map[Slot, TargetGenerator]) =
     Mapping(slots.keySet, slots.keySet, slots, Set.empty, Map.empty)
 
 }
 
-case class Mapping(slots: Set[Slot[_]], emptySlots: Set[Slot[_]], generators: Map[Slot[_], TargetGenerator[_]],
-                   constraints: Set[Constraint], bindings: Map[Slot[_], Target]) {
+case class Mapping(slots: Set[Slot], emptySlots: Set[Slot], generators: Map[Slot, TargetGenerator],
+                   constraints: Set[Constraint], bindings: Map[Slot, Target]) {
 
-  def plusSlot[T <: Target](slot: Slot[T], generator: TargetGenerator[T]) =
+  def plusSlot(slot: Slot, generator: TargetGenerator) =
     copy(slots = slots + slot, emptySlots = emptySlots + slot, generators = generators + (slot -> generator))
 
   def constraintRefreshed(constraint: Constraint) = constraint.applyToMapping(this)
@@ -75,7 +64,7 @@ case class Mapping(slots: Set[Slot[_]], emptySlots: Set[Slot[_]], generators: Ma
   def plusConstraint(constraint: Constraint) =
     copy(constraints = constraints + constraint).constraintRefreshed(constraint)
 
-  def plusBinding[T <: Target](slot: Slot[T], target: T) =
+  def plusBinding(slot: Slot, target: Target) =
     copy(emptySlots = emptySlots - slot, bindings = bindings + (slot -> target))
 
 }

@@ -31,7 +31,7 @@ object Mapping {
   }
 
   trait RawChoices {
-    def constrainedBy(constraints: Set[Constraint]): ConstrainedChoices
+    def constrainedBy(slot: Slot, constraints: Set[Constraint]): ConstrainedChoices
   }
 
   trait ConstrainedChoices {

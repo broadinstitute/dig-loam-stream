@@ -6,6 +6,10 @@ package loamstream.map
   */
 object MappingTestApp extends App {
 
+  val sudoku = new SudokuBoard
+  sudoku.set(1, 1, 5)
+  sudoku.set(6, 2, 7)
+  println(sudoku)
   println("Yo, mapper!")
 
 }

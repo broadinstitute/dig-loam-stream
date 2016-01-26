@@ -13,29 +13,15 @@ object Mapping {
   trait Slot
 
   trait TargetGenerator {
-    def slot: Slot
-
     def numMoreTargets: Int
 
     def nextTarget: Target
+
+    def withConstraint(constraint: Constraint): TargetGenerator
   }
 
   trait Constraint {
     def slots: Set[Slot]
-
-    def applyToSlot(mapping: Mapping, slot: Slot, generator: TargetGenerator): TargetGenerator
-
-    def applyToMapping(mapping: Mapping): Mapping = {
-      var generatorsNew = mapping.generators
-      for (slot <- slots) {
-        mapping.generators.get(slot) match {
-          case Some(generator) =>
-            generatorsNew += slot -> applyToSlot(mapping, slot, generator)
-          case None => ()
-        }
-      }
-      mapping.copy(generators = generatorsNew)
-    }
   }
 
   def empty = Mapping(Set.empty, Set.empty, Map.empty, Set.empty, Map.empty)
@@ -51,18 +37,10 @@ case class Mapping(slots: Set[Slot], emptySlots: Set[Slot], generators: Map[Slot
   def plusSlot(slot: Slot, generator: TargetGenerator) =
     copy(slots = slots + slot, emptySlots = emptySlots + slot, generators = generators + (slot -> generator))
 
-  def constraintRefreshed(constraint: Constraint) = constraint.applyToMapping(this)
-
-  def allConstraintsRefreshed = {
-    var mapping = this
-    for (constraint <- constraints) {
-      mapping = mapping.constraintRefreshed(constraint)
-    }
-    mapping
+  def plusConstraint(constraint: Constraint) = {
+    val constrainedGenerators = constraint.slots.map(slot => (slot, generators(slot).withConstraint(constraint))).toMap
+    copy(constraints = constraints + constraint, generators = generators ++ constrainedGenerators)
   }
-
-  def plusConstraint(constraint: Constraint) =
-    copy(constraints = constraints + constraint).constraintRefreshed(constraint)
 
   def plusBinding(slot: Slot, target: Target) =
     copy(emptySlots = emptySlots - slot, bindings = bindings + (slot -> target))

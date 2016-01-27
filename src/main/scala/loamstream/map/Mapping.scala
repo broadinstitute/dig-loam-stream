@@ -40,38 +40,50 @@ object Mapping {
     def nextChoice: Target
   }
 
-  def empty = Mapping(Set.empty, Set.empty, Map.empty, Set.empty, Set.empty, Map.empty)
+  def empty = Mapping(Set.empty, Set.empty, Map.empty, Set.empty, Map.empty, Set.empty, Map.empty)
 
   def fromSlots(slots: Map[Slot, RawChoices]) =
-    Mapping(slots.keySet, slots.keySet, slots, Set.empty, Set.empty, Map.empty)
+    Mapping(slots.keySet, slots.keySet, slots, Set.empty, Map.empty, Set.empty, Map.empty)
 
 }
 
 case class Mapping(slots: Set[Slot], emptySlots: Set[Slot], choices: Map[Slot, RawChoices],
-                   rules: Set[Rule], constraints: Set[Constraint], bindings: Map[Slot, Target]) {
+                   rules: Set[Rule], bindings: Map[Slot, Target], constraints: Set[Constraint],
+                   slotConstraints: Map[Slot, Set[Constraint]]) {
 
-  def plusSlot(slot: Slot, slotChoices: RawChoices) = {
+  def plusSlot(slot: Slot, slotChoices: RawChoices): Mapping = {
     def slotsNew = slots + slot
     copy(slots = slotsNew, emptySlots = emptySlots + slot,
       constraints = rules.map(_.constraintFor(slotsNew, bindings)), choices = choices + (slot -> slotChoices))
   }
 
-  def plusSlots(slotsChoices: Map[Slot, RawChoices]) = {
+  def plusSlots(slotsChoices: Map[Slot, RawChoices]): Mapping = {
     val slotsNew = slots ++ slotsChoices.keys
     copy(slots = slotsNew, emptySlots = emptySlots ++ slotsChoices.keys,
       constraints = rules.map(_.constraintFor(slotsNew, bindings)), choices = choices ++ slotsChoices)
   }
 
-  def plusRule(rule: Rule) =
-    copy(rules = rules + rule, constraints = constraints + rule.constraintFor(slots, bindings))
+  private def groupConstraintsBySlots(constraints: Set[Constraint]): Map[Slot, Set[Constraint]] =
+    constraints.flatMap(constraint => constraint.slots.map(slot => (slot, constraint)))
+      .groupBy(_._1).mapValues(_.map(_._2)).view.force
 
-  def plusRules(rulesNew: Iterable[Rule]) =
-    copy(rules = rules ++ rulesNew, constraints = constraints ++ rulesNew.map(_.constraintFor(slots, bindings)))
+  def plusRule(rule: Rule) :Mapping= {
+    val constraintsNew = constraints + rule.constraintFor(slots, bindings)
+    copy(rules = rules + rule, constraints = constraintsNew,
+      slotConstraints = groupConstraintsBySlots(constraintsNew))
+  }
 
-  def plusBinding(slot: Slot, target: Target) = {
+  def plusRules(rulesNew: Iterable[Rule]) :Mapping= {
+    val constraintsNew: Set[Constraint] = constraints ++ rulesNew.map(_.constraintFor(slots, bindings))
+    copy(rules = rules ++ rulesNew, constraints = constraintsNew,
+      slotConstraints = groupConstraintsBySlots(constraintsNew))
+  }
+
+  def plusBinding(slot: Slot, target: Target):Mapping = {
     val bindingsNew = bindings + (slot -> target)
-    copy(emptySlots = emptySlots - slot, constraints = rules.map(_.constraintFor(slots, bindings)),
-      bindings = bindingsNew)
+    val constraintsNew = rules.map(_.constraintFor(slots, bindingsNew))
+    copy(emptySlots = emptySlots - slot, bindings = bindingsNew, constraints = constraintsNew,
+      slotConstraints = groupConstraintsBySlots(constraintsNew))
   }
 
 }

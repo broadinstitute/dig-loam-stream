@@ -2,7 +2,7 @@ package loamstream.map
 
 import loamstream.map.Mapping.{Constraint, RawChoices, Rule, Slot, Target}
 import loamstream.map.SudokuBoard.{IntTarget, SlotXY}
-import util.SizePredictionIterator
+import util.Iterative
 
 /**
   * LoamStream
@@ -17,25 +17,13 @@ object SudokuBoard {
   val targets = (1 to 9).map(IntTarget)
 
   object AllNumbers extends RawChoices {
-    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): SizePredictionIterator[Target] = {
+    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Iterative.SizePredicting[Target] = {
       var remainingTargets = targets.toSet
       for (slotConstraint <- slotConstraints) {
         remainingTargets = remainingTargets.filter(slotConstraint.slotFilter(slot))
       }
-      new RemainingNumbers(remainingTargets)
+      Iterative.SetBased(remainingTargets)
     }
-  }
-
-  class RemainingNumbers(var targets: Set[IntTarget]) extends SizePredictionIterator[IntTarget] {
-    override def predictSize: Int = targets.size
-
-    override def next(): IntTarget = {
-      val head = targets.head
-      targets -= head
-      head
-    }
-
-    override def hasNext: Boolean = targets.nonEmpty
   }
 
   case class UniquenessRule(slots: Set[Slot]) extends Rule {
@@ -95,7 +83,7 @@ class SudokuBoard {
   }
 
   def getChoices(x: Int, y: Int): Set[Int] =
-    mapping.choices(SlotXY(x, y)).collect({ case IntTarget(value) => value }).toSet
+    mapping.choices(SlotXY(x, y)).toSeq.collect({ case IntTarget(value) => value }).toSet
 
   def cellToString(x: Int, y: Int) = get(x, y).map(_.toString).getOrElse(".")
 

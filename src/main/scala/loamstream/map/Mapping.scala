@@ -1,7 +1,7 @@
 package loamstream.map
 
-import loamstream.map.Mapping._
-import util.SizePredictionIterator
+import loamstream.map.Mapping.{Target, Constraint, RawChoices, Slot, Rule}
+import util.Iterative
 
 /**
   * LoamStream
@@ -26,7 +26,7 @@ object Mapping {
   }
 
   trait RawChoices {
-    def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): SizePredictionIterator[Target]
+    def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Iterative.SizePredicting[Target]
   }
 
   def empty = Mapping(Set.empty, Set.empty, Map.empty, Set.empty, Map.empty, Set.empty, Map.empty)
@@ -75,7 +75,7 @@ case class Mapping(slots: Set[Slot], emptySlots: Set[Slot], rawChoices: Map[Slot
       slotConstraints = groupConstraintsBySlots(constraintsNew))
   }
 
-  def choices(slot: Slot): SizePredictionIterator[Target] =
+  def choices(slot: Slot): Iterative.SizePredicting[Target] =
     rawChoices(slot).constrainedBy(slot, slotConstraints(slot))
 
 }

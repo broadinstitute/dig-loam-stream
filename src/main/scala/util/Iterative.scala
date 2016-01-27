@@ -21,13 +21,13 @@ object Iterative {
 
     override def head: Nothing = throw new NoSuchElementException("No more elements in this iterative.")
 
-    override def empty: Boolean = true
+    override def isEmpty: Boolean = true
 
     override def nonEmpty: Boolean = false
   }
 
   case class SetBased[A](set: Set[A]) extends SizePredicting[A] {
-    def empty: Boolean = set.isEmpty
+    def isEmpty: Boolean = set.isEmpty
 
     def nonEmpty: Boolean = set.nonEmpty
 
@@ -45,7 +45,7 @@ object Iterative {
   }
 
   case class FilteredIterative[A](head: A, tail: Iterative[A], p: (A) => Boolean) extends Iterative[A] {
-    override def empty: Boolean = false
+    override def isEmpty: Boolean = false
 
     override def nonEmpty: Boolean = true
 
@@ -55,7 +55,7 @@ object Iterative {
 }
 
 trait Iterative[+A] {
-  def empty: Boolean
+  def isEmpty: Boolean
 
   def nonEmpty: Boolean
 
@@ -66,7 +66,7 @@ trait Iterative[+A] {
   def tail: Iterative[A]
 
   def seek(p: (A) => Boolean): Option[(A, Iterative[A])] =
-    if (empty) None else if (p(head)) Some(head, tail) else tail.seek(p)
+    if (isEmpty) None else if (p(head)) Some(head, tail) else tail.seek(p)
 
   def filter(p: (A) => Boolean): Iterative[A] =
     seek(p) match {
@@ -74,6 +74,6 @@ trait Iterative[+A] {
       case Some(sought) => FilteredIterative(sought._1, sought._2, p)
     }
 
-  def toSeq: Seq[A] = if (empty) Seq.empty else head +: tail.toSeq
+  def toSeq: Seq[A] = if (isEmpty) Seq.empty else head +: tail.toSeq
 
 }

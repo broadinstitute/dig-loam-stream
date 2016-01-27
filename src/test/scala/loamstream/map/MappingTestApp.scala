@@ -10,6 +10,7 @@ object MappingTestApp extends App {
   sudoku.set(1, 1, 5)
   sudoku.set(6, 2, 7)
   println(sudoku)
+  println("Choices for (6,1): " + sudoku.getChoices(6, 1))
   println("Yo, mapper!")
 
 }

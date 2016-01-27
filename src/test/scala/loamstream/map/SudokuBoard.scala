@@ -1,6 +1,6 @@
 package loamstream.map
 
-import loamstream.map.Mapping.{ConstrainedChoices, Constraint, RawChoices, Slot, Target}
+import loamstream.map.Mapping.{ConstrainedChoices, Constraint, RawChoices, Rule, Slot, Target}
 import loamstream.map.SudokuBoard.{IntTarget, SlotXY}
 
 /**
@@ -13,8 +13,39 @@ object SudokuBoard {
 
   case class IntTarget(value: Int) extends Target
 
+  val targets = (1 to 9).map(IntTarget)
+
   object AllNumbers extends RawChoices {
-    override def constrainedBy(slot: Slot, constraints: Set[Constraint]): ConstrainedChoices = ???
+    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): ConstrainedChoices = {
+      var remainingTargets = targets.toSet
+      for (slotConstraint <- slotConstraints) {
+        remainingTargets = remainingTargets.filter(slotConstraint.slotFilter(slot))
+      }
+      new RemainingNumbers(remainingTargets)
+    }
+  }
+
+  class RemainingNumbers(var targets: Set[IntTarget]) extends ConstrainedChoices {
+    override def countChoices: Int = targets.size
+
+    override def next(): Target = {
+      val head = targets.head
+      targets -= head
+      head
+    }
+
+    override def hasNext: Boolean = targets.nonEmpty
+  }
+
+  case class UniquenessRule(slots: Set[Slot]) extends Rule {
+    override def slots(slots: Set[Slot]): Set[Slot] = slots
+
+    override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint =
+      UniquenessConstraint(this.slots, targets.toSet -- this.slots.flatMap(bindings.get))
+  }
+
+  case class UniquenessConstraint(slots: Set[Slot], remainingTargets: Set[Target]) extends Constraint {
+    override def slotFilter(slot: Slot): (Target) => Boolean = remainingTargets.contains
   }
 
   val xRange = 1 to 9
@@ -31,11 +62,25 @@ object SudokuBoard {
     }
   }
 
+  def row(y: Int) = xRange.map(SlotXY(_, y))
+
+  def column(x: Int) = yRange.map(SlotXY(x, _))
+
+  def sector(ix: Int, iy: Int) = {
+    val xMin = 3 * ix - 2
+    val yMin = 3 * iy - 2
+    for (x <- xMin to xMin + 2; y <- yMin to yMin + 2) yield SlotXY(x, y)
+  }
+
+  def slotUniquenessGroups = (for (y <- yRange) yield row(y)) ++ (for (x <- xRange) yield column(x)) ++
+    (for (ix <- 1 to 3; iy <- 1 to 3) yield sector(ix, iy))
+
+  def uniquenessRules = slotUniquenessGroups.map(slotGroup => UniquenessRule(slotGroup.toSet))
 }
 
 class SudokuBoard {
 
-  var mapping = SudokuBoard.unboundMapping
+  var mapping = SudokuBoard.unboundMapping.plusRules(SudokuBoard.uniquenessRules)
 
   def set(x: Int, y: Int, value: Int): Unit = {
     mapping = mapping.plusBinding(SlotXY(x, y), IntTarget(value))
@@ -47,6 +92,9 @@ class SudokuBoard {
       case _ => None
     }
   }
+
+  def getChoices(x: Int, y: Int): Set[Int] =
+    mapping.constrainedChoices(SlotXY(x, y)).collect({ case IntTarget(value) => value }).toSet
 
   def cellToString(x: Int, y: Int) = get(x, y).map(_.toString).getOrElse(".")
 

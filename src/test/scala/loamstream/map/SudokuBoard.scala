@@ -1,7 +1,8 @@
 package loamstream.map
 
-import loamstream.map.Mapping.{ConstrainedChoices, Constraint, RawChoices, Rule, Slot, Target}
+import loamstream.map.Mapping.{Constraint, RawChoices, Rule, Slot, Target}
 import loamstream.map.SudokuBoard.{IntTarget, SlotXY}
+import util.SizePredictionIterator
 
 /**
   * LoamStream
@@ -16,7 +17,7 @@ object SudokuBoard {
   val targets = (1 to 9).map(IntTarget)
 
   object AllNumbers extends RawChoices {
-    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): ConstrainedChoices = {
+    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): SizePredictionIterator[Target] = {
       var remainingTargets = targets.toSet
       for (slotConstraint <- slotConstraints) {
         remainingTargets = remainingTargets.filter(slotConstraint.slotFilter(slot))
@@ -25,10 +26,10 @@ object SudokuBoard {
     }
   }
 
-  class RemainingNumbers(var targets: Set[IntTarget]) extends ConstrainedChoices {
-    override def countChoices: Int = targets.size
+  class RemainingNumbers(var targets: Set[IntTarget]) extends SizePredictionIterator[IntTarget] {
+    override def predictSize: Int = targets.size
 
-    override def next(): Target = {
+    override def next(): IntTarget = {
       val head = targets.head
       targets -= head
       head
@@ -94,7 +95,7 @@ class SudokuBoard {
   }
 
   def getChoices(x: Int, y: Int): Set[Int] =
-    mapping.constrainedChoices(SlotXY(x, y)).collect({ case IntTarget(value) => value }).toSet
+    mapping.choices(SlotXY(x, y)).collect({ case IntTarget(value) => value }).toSet
 
   def cellToString(x: Int, y: Int) = get(x, y).map(_.toString).getOrElse(".")
 

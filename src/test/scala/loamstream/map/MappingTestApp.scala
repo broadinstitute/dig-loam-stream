@@ -13,7 +13,7 @@ object MappingTestApp extends App {
   sudoku.set(6, 2, 7)
   println(sudoku)
   println("Choices for (6,1): " + sudoku.getChoices(6, 1))
-  MapMaker.findBinding(sudoku.mapping) match {
+  MapMaker.shootAtBinding(sudoku.mapping, 18) match {
     case Hit(mapping) => sudoku.mapping = mapping; println(sudoku)
     case Miss(snag) => println(snag)
   }

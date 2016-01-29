@@ -1,6 +1,6 @@
 package loamstream.map
 
-import util.shot.{Miss, Hit}
+import loamstream.map.MapMaker.Consumer
 
 /**
   * LoamStream
@@ -8,15 +8,45 @@ import util.shot.{Miss, Hit}
   */
 object MappingTestApp extends App {
 
+  class TestConsumer(val nStepsMax: Int) extends Consumer {
+    var nSteps = 0
+    var sudoku = new SudokuBoard
+    var solutions = Set.empty[AriadneNode]
+
+    def print(node: AriadneNode) = {
+      sudoku.mapping = node.mapping
+      println(sudoku)
+    }
+
+    override def wantsMore: Boolean = nSteps < nStepsMax
+
+    override def solution(node: AriadneNode): Unit = {
+      println("Solution!")
+      print(node)
+      solutions += node
+    }
+
+    override def step(node: AriadneNode): Unit = {
+      println()
+      print(node)
+      nSteps += 1
+    }
+
+    override def end(): Unit = {
+      println("Number of solutions: " + solutions.size)
+      if (solutions.nonEmpty) {
+        print(solutions.head)
+      }
+    }
+  }
+
   val sudoku = new SudokuBoard
   sudoku.set(1, 1, 5)
   sudoku.set(6, 2, 7)
   println(sudoku)
   println("Choices for (6,1): " + sudoku.getChoices(6, 1))
-  MapMaker.shootAtBinding(sudoku.mapping, 18) match {
-    case Hit(mapping) => sudoku.mapping = mapping; println(sudoku)
-    case Miss(snag) => println(snag)
-  }
+  val consumer = new TestConsumer(90)
+  MapMaker.traverse(sudoku.mapping, consumer)
   println("Yo, mapper!")
 
 }

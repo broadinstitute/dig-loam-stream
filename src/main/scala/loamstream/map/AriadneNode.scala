@@ -13,12 +13,20 @@ object AriadneNode {
 
   trait Root extends AriadneNode {
     def parentOpt = None
+
+    def nextAncestorWithOtherChoices: Option[AriadneNode.WithSlot] = None
   }
 
   trait Child extends AriadneNode {
-    def parent: AriadneNode
+    def parent: AriadneNode.WithSlot
 
     def parentOpt = Some(parent)
+
+    def nextAncestorWithOtherChoices: Option[AriadneNode.WithSlot] = {
+      val choices = parent.choices
+      if (choices.nonEmpty && choices.tail.nonEmpty) Some(parent) else parent.nextAncestorWithOtherChoices
+    }
+
   }
 
   trait WithoutSlot extends AriadneNode {
@@ -27,6 +35,8 @@ object AriadneNode {
     def pickSlot(slot: Slot): WithSlot
 
     def choicesOpt = None
+
+    def isSolution: Boolean = mapping.unboundSlots.isEmpty
   }
 
   trait WithSlot extends AriadneNode {
@@ -41,6 +51,8 @@ object AriadneNode {
     def bind: ChildWithoutSlot
 
     def withNextChoice: WithSlot
+
+    def isSolution: Boolean = false
   }
 
   case class RootWithoutSlot(mapping: Mapping) extends Root with WithoutSlot {
@@ -54,13 +66,13 @@ object AriadneNode {
     override def withNextChoice: WithSlot = RootWithSlot(mapping, slot, choices.tail)
   }
 
-  case class ChildWithoutSlot(mapping: Mapping, parent: AriadneNode)
+  case class ChildWithoutSlot(mapping: Mapping, parent: AriadneNode.WithSlot)
     extends Child with WithoutSlot {
     override def pickSlot(slot: Slot): ChildWithSlot =
       ChildWithSlot(mapping, parent, slot, mapping.choices(slot))
   }
 
-  case class ChildWithSlot(mapping: Mapping, parent: AriadneNode, slot: Slot, choices: Iterative[Target])
+  case class ChildWithSlot(mapping: Mapping, parent: AriadneNode.WithSlot, slot: Slot, choices: Iterative[Target])
     extends Child with WithSlot {
     override def bind: ChildWithoutSlot = ChildWithoutSlot(mapping.plusBinding(slot, choices.head), this)
 
@@ -72,7 +84,7 @@ object AriadneNode {
 trait AriadneNode {
   def mapping: Mapping
 
-  def parentOpt: Option[AriadneNode]
+  def parentOpt: Option[AriadneNode.WithSlot]
 
   def slotOpt: Option[Slot]
 
@@ -81,5 +93,9 @@ trait AriadneNode {
   def hasChoice: Boolean = choicesOpt.flatMap(_.headOpt).nonEmpty
 
   def hasOtherChoices: Boolean = choicesOpt.flatMap(_.tail.headOpt).nonEmpty
+
+  def isSolution: Boolean
+
+  def nextAncestorWithOtherChoices: Option[AriadneNode.WithSlot]
 }
 

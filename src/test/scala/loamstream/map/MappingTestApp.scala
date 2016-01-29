@@ -21,7 +21,7 @@ object MappingTestApp extends App {
     override def wantsMore: Boolean = nSteps < nStepsMax
 
     override def solution(node: AriadneNode): Unit = {
-      println("Solution!")
+      println("=Solution!=")
       print(node)
       solutions += node
     }
@@ -34,8 +34,9 @@ object MappingTestApp extends App {
 
     override def end(): Unit = {
       println("Number of solutions: " + solutions.size)
-      if (solutions.nonEmpty) {
-        print(solutions.head)
+      for (solution <- solutions) {
+        println("=Solution!=")
+        print(solution)
       }
     }
   }
@@ -45,7 +46,7 @@ object MappingTestApp extends App {
   sudoku.set(6, 2, 7)
   println(sudoku)
   println("Choices for (6,1): " + sudoku.getChoices(6, 1))
-  val consumer = new TestConsumer(90)
+  val consumer = new TestConsumer(140)
   MapMaker.traverse(sudoku.mapping, consumer)
   println("Yo, mapper!")
 

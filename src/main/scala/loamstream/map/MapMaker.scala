@@ -96,7 +96,6 @@ object MapMaker {
           }
         case Terminate => keepGoingTactic = false
       }
-      if (node.isSolution) consumer.solution(node)
     }
     consumer.end()
   }

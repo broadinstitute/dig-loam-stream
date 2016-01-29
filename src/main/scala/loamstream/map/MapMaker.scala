@@ -24,12 +24,13 @@ object MapMaker {
   }
 
   def findBinding(mapping: Mapping): Shot[Mapping] = {
-    var ariadneNode = AriadneNode.fromMapping(mapping)
+    val ariadneNode = AriadneNode.fromMapping(mapping)
     val (bestSlot, nBestSlotChoices) = findBestSlotToBind(ariadneNode)
     println("Best slot is " + bestSlot + " with " + nBestSlotChoices + " choices.")
     if (nBestSlotChoices > 0) {
-      ariadneNode = ariadneNode.pickSlot(bestSlot)
-      Hit(mapping)
+      val ariadneNodeWithSlot = ariadneNode.pickSlot(bestSlot)
+      val ariadneNodeNext = ariadneNodeWithSlot.bind
+      Hit(ariadneNodeNext.mapping)
     } else {
       Miss(Snag("No more choice available."))
     }

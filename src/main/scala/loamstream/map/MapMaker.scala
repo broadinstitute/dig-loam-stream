@@ -1,6 +1,8 @@
 package loamstream.map
 
-import util.shot.{Hit, Shot}
+import loamstream.map.Mapping.Slot
+import util.shot.{Hit, Miss, Shot}
+import util.snag.Snag
 
 /**
   * LoamStream
@@ -8,18 +10,29 @@ import util.shot.{Hit, Shot}
   */
 object MapMaker {
 
-  def findBinding(mapping: Mapping) : Shot[Mapping] = {
-    var bestSlot = mapping.slots.head
-    var nBestSlotChoices = mapping.choices(bestSlot).predictedSize
-    for(slot <- mapping.slots) {
-      val nSlotChoices = mapping.choices(slot).predictedSize
-      if(nSlotChoices < nBestSlotChoices) {
+  def findBestSlotToBind(ariadneNode: AriadneNode): (Slot, Int) = {
+    var bestSlot = ariadneNode.mapping.slots.head
+    var nBestSlotChoices = ariadneNode.mapping.choices(bestSlot).predictedSize
+    for (slot <- ariadneNode.mapping.slots) {
+      val nSlotChoices = ariadneNode.mapping.choices(slot).predictedSize
+      if (nSlotChoices < nBestSlotChoices) {
         bestSlot = slot
         nBestSlotChoices = nSlotChoices
       }
     }
+    (bestSlot, nBestSlotChoices)
+  }
+
+  def findBinding(mapping: Mapping): Shot[Mapping] = {
+    var ariadneNode = AriadneNode.fromMapping(mapping)
+    val (bestSlot, nBestSlotChoices) = findBestSlotToBind(ariadneNode)
     println("Best slot is " + bestSlot + " with " + nBestSlotChoices + " choices.")
-    Hit(mapping)
+    if (nBestSlotChoices > 0) {
+      ariadneNode = ariadneNode.pickSlot(bestSlot)
+      Hit(mapping)
+    } else {
+      Miss(Snag("No more choice available."))
+    }
   }
 
 }

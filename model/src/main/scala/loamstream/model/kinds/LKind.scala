@@ -6,8 +6,8 @@ package loamstream.model.kinds
   */
 trait LKind {
 
-  def isSubKindOf(oKind: LKind): Boolean
+  def <:<(oKind: LKind): Boolean
 
-  def isSuperKindOf(oKind: LKind): Boolean
+  def >:>(oKind: LKind): Boolean
 
 }

@@ -5,7 +5,7 @@ package loamstream.model.kinds
   * Created by oliverr on 2/11/2016.
   */
 object LNamedKind {
-  def apply(name: String, supers: LKind*) = LNamedKind(name, supers.toSet)
+  def apply(name: String, supers: LKind*): LNamedKind = LNamedKind(name, supers.toSet)
 }
 
 case class LNamedKind(name: String, supers: Set[LKind]) extends LKind {

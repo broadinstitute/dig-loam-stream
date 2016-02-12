@@ -1,5 +1,6 @@
 package loamstream.model.calls
 
+import loamstream.model.kinds.LKind
 import loamstream.model.recipes.LRecipe
 
 import scala.reflect.runtime.universe.Type
@@ -12,7 +13,9 @@ import scala.reflect.runtime.universe.Type
 trait LPileCall {
   def keyTypes: Seq[Type]
 
+  def kind: LKind
+
   def recipe: LRecipe
 
-  def extractKey(index: Int) = LSetCall(Seq(keyTypes(index)), LRecipe.ExtractKey(this, index))
+  def extractKey(index: Int, kind: LKind) = LSetCall(Seq(keyTypes(index)), LRecipe.ExtractKey(this, index), kind)
 }

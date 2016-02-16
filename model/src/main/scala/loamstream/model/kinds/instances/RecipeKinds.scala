@@ -8,6 +8,8 @@ import loamstream.model.kinds.LSpecificKind
   */
 object RecipeKinds {
   val usePreExisting = LSpecificKind("Use pre-existing")
-  val extractFirstKey = LSpecificKind("Extract first key")
+
+  def extractKey(index: Int) = LSpecificKind("Extract key " + index)
+
   val extractSampleIdsFromGenotypeCalls = LSpecificKind("Extract sample ids from genotype calls.")
 }

@@ -19,10 +19,11 @@ object MiniApp extends App {
     LPile(LSig.Map.apply[(String, VariantId), GenotypeCall].get, PileKinds.genotypeCallsBySampleAndVariant)
   val genotypeCallsCall =
     LPileCall.apply(genotypeCallsPile, LCheckoutPreexisting("myGenotypecalls", genotypeCallsPile))
-  val sampleIds = genotypeCallsCall.extractKey(0, PileKinds.sampleIds)
+  val sampleIdsPile = LPile(LSig.Set.apply[Tuple1[String]].get, PileKinds.sampleIds)
+  val sampleIdsCall = genotypeCallsCall.extractKey(0, sampleIdsPile, PileKinds.sampleIds)
 
   println(genotypeCallsCall)
-  println(sampleIds)
+  println(sampleIdsCall)
   println("Yo!")
 
 }

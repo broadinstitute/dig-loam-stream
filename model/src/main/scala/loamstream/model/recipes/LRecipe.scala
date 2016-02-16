@@ -1,6 +1,6 @@
 package loamstream.model.recipes
 
-import loamstream.model.kinds.{LAnyKind, LKind}
+import loamstream.model.kinds.LKind
 import loamstream.model.kinds.instances.RecipeKinds
 import loamstream.model.piles.LPile
 
@@ -12,10 +12,10 @@ import scala.language.higherKinds
   */
 object LRecipe {
 
-  case class ExtractKey(pile: LPile, index: Int) extends LRecipe {
-    val kind = RecipeKinds.extractFirstKey
-    def inputs = Seq(pile)
-    def output = ???
+  case class ExtractKey(input: LPile, output: LPile, index: Int) extends LRecipe {
+    val kind = RecipeKinds.extractKey(index)
+
+    def inputs = Seq(input)
   }
 
 }

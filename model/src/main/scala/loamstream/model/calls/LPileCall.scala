@@ -17,6 +17,6 @@ object LPileCall {
 }
 
 case class LPileCall(pile: LPile, recipe: LRecipe) {
-  def extractKey(index: Int, kind: LKind) =
-    LPileCall(LPile(LSig.Set(Seq(pile.sig.keyTypes(index))), kind), LRecipe.ExtractKey(pile, index))
+  def extractKey(index: Int, output: LPile, kind: LKind) =
+    LPileCall(LPile(LSig.Set(Seq(pile.sig.keyTypes(index))), kind), LRecipe.ExtractKey(pile, output, index))
 }

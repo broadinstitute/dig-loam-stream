@@ -12,18 +12,12 @@ import scala.language.higherKinds
   */
 object LRecipe {
 
-  case class ExtractKey(input: LPile, output: LPile, index: Int) extends LRecipe {
-    val kind = RecipeKinds.extractKey(index)
+  def keyExtraction(input: LPile, output: LPile, index: Int) =
+    LRecipe(RecipeKinds.extractKey(index), Seq(input), output)
 
-    def inputs = Seq(input)
-  }
+  def preExistingCheckout(id: String, output: LPile) =
+    LRecipe(RecipeKinds.usePreExisting(id), Seq.empty[LPile], output)
 
 }
 
-trait LRecipe {
-  def kind: LKind
-
-  def inputs: Seq[LPile]
-
-  def output: LPile
-}
+case class LRecipe(kind: LKind, inputs: Seq[LPile], output: LPile)

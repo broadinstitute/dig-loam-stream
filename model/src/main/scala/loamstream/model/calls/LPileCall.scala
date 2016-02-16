@@ -2,7 +2,7 @@ package loamstream.model.calls
 
 import loamstream.model.kinds.LKind
 import loamstream.model.piles.LPile
-import loamstream.model.recipes.{LCheckoutPreexisting, LRecipe}
+import loamstream.model.recipes.LRecipe
 
 /**
   * LoamStream
@@ -11,12 +11,12 @@ import loamstream.model.recipes.{LCheckoutPreexisting, LRecipe}
 object LPileCall {
   def getPreexisting(sig: LSig, kind: LKind, id: String): LPileCall = getPreexisting(LPile(sig, kind), id)
 
-  def getPreexisting(pile: LPile, id: String): LPileCall = LPileCall(pile, new LCheckoutPreexisting(id, pile))
+  def getPreexisting(pile: LPile, id: String): LPileCall = LPileCall(pile, LRecipe.preExistingCheckout(id, pile))
 
   def apply(sig: LSig, kind: LKind, recipe: LRecipe): LPileCall = apply(LPile(sig, kind), recipe)
 }
 
 case class LPileCall(pile: LPile, recipe: LRecipe) {
   def extractKey(index: Int, output: LPile, kind: LKind) =
-    LPileCall(LPile(LSig.Set(Seq(pile.sig.keyTypes(index))), kind), LRecipe.ExtractKey(pile, output, index))
+    LPileCall(LPile(LSig.Set(Seq(pile.sig.keyTypes(index))), kind), LRecipe.keyExtraction(pile, output, index))
 }

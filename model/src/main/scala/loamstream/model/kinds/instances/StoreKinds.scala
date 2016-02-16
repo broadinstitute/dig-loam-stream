@@ -1,6 +1,6 @@
 package loamstream.model.kinds.instances
 
-import loamstream.model.kinds.LNamedKind
+import loamstream.model.kinds.LSpecificKind
 import loamstream.model.kinds.instances.PileKinds.{genotypeCallsBySampleAndVariant, sampleIds}
 
 /**
@@ -8,8 +8,8 @@ import loamstream.model.kinds.instances.PileKinds.{genotypeCallsBySampleAndVaria
   * Created by oliverr on 2/12/2016.
   */
 class StoreKinds {
-  val vcfFile = LNamedKind("VCF file", genotypeCallsBySampleAndVariant)
-  val genotypesCassandraTable = LNamedKind("Genotypes Cassandra table", genotypeCallsBySampleAndVariant)
-  val sampleIdsFile = LNamedKind("Sample ids file", sampleIds)
-  val sampleIdsCassandraTable = LNamedKind("Sample ids file", sampleIds)
+  val vcfFile = LSpecificKind("VCF file", genotypeCallsBySampleAndVariant)
+  val genotypesCassandraTable = LSpecificKind("Genotypes Cassandra table", genotypeCallsBySampleAndVariant)
+  val sampleIdsFile = LSpecificKind("Sample ids file", sampleIds)
+  val sampleIdsCassandraTable = LSpecificKind("Sample ids file", sampleIds)
 }

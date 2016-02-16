@@ -1,6 +1,6 @@
 package loamstream.model.kinds.instances
 
-import loamstream.model.kinds.LNamedKind
+import loamstream.model.kinds.LSpecificKind
 
 /**
   * LoamStream
@@ -8,7 +8,7 @@ import loamstream.model.kinds.LNamedKind
   */
 object PileKinds {
 
-  val genotypeCallsBySampleAndVariant = LNamedKind("Genotype calls by sample and variant")
-  val sampleIds = LNamedKind("sample ids")
+  val genotypeCallsBySampleAndVariant = LSpecificKind("Genotype calls by sample and variant")
+  val sampleIds = LSpecificKind("sample ids")
 
 }

@@ -11,7 +11,7 @@ import loamstream.model.recipes.{LCheckoutPreexisting, LRecipe}
 object LPileCall {
   def getPreexisting(sig: LSig, kind: LKind, id: String): LPileCall = getPreexisting(LPile(sig, kind), id)
 
-  def getPreexisting(pile: LPile, id: String): LPileCall = LPileCall(pile, new LCheckoutPreexisting(id))
+  def getPreexisting(pile: LPile, id: String): LPileCall = LPileCall(pile, new LCheckoutPreexisting(id, pile))
 
   def apply(sig: LSig, kind: LKind, recipe: LRecipe): LPileCall = apply(LPile(sig, kind), recipe)
 }

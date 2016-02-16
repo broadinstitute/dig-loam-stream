@@ -2,6 +2,7 @@ package loamstream.apps
 
 import loamstream.model.calls.{LPileCall, LSig}
 import loamstream.model.kinds.instances.PileKinds
+import loamstream.model.piles.LPile
 import loamstream.model.recipes.LCheckoutPreexisting
 
 /**
@@ -14,12 +15,13 @@ object MiniApp extends App {
 
   class GenotypeCall
 
-  val genotypeCalls =
-    LPileCall.apply(LSig.Map.apply[(String, VariantId), GenotypeCall].get, PileKinds.genotypeCallsBySampleAndVariant,
-      LCheckoutPreexisting("myGenotypecalls"))
-  val sampleIds = genotypeCalls.extractKey(0, PileKinds.sampleIds)
+  val genotypeCallsPile =
+    LPile(LSig.Map.apply[(String, VariantId), GenotypeCall].get, PileKinds.genotypeCallsBySampleAndVariant)
+  val genotypeCallsCall =
+    LPileCall.apply(genotypeCallsPile, LCheckoutPreexisting("myGenotypecalls", genotypeCallsPile))
+  val sampleIds = genotypeCallsCall.extractKey(0, PileKinds.sampleIds)
 
-  println(genotypeCalls)
+  println(genotypeCallsCall)
   println(sampleIds)
   println("Yo!")
 

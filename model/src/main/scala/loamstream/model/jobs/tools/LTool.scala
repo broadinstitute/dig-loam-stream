@@ -1,7 +1,7 @@
 package loamstream.model.jobs.tools
 
 import loamstream.model.jobs.LJob
-import loamstream.model.kinds.LKind
+import loamstream.model.recipes.LRecipe
 
 /**
   * LoamStream
@@ -9,9 +9,7 @@ import loamstream.model.kinds.LKind
   */
 trait LTool[T] {
 
-  def toolKind: LKind
-
-  def outputKind: LKind
+  def recipe: LRecipe
 
   def createJob(inputTools: Seq[LTool[_]]): LJob[T]
 

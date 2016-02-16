@@ -7,7 +7,7 @@ import loamstream.model.kinds.instances.PileKinds.{genotypeCallsBySampleAndVaria
   * LoamStream
   * Created by oliverr on 2/12/2016.
   */
-class StoreKinds {
+object StoreKinds {
   val vcfFile = LSpecificKind("VCF file", genotypeCallsBySampleAndVariant)
   val genotypesCassandraTable = LSpecificKind("Genotypes Cassandra table", genotypeCallsBySampleAndVariant)
   val sampleIdsFile = LSpecificKind("Sample ids file", sampleIds)

@@ -8,9 +8,11 @@ import loamstream.model.kinds.instances.RecipeKinds.{extractKey, extractSampleId
   * Created by oliverr on 2/16/2016.
   */
 object ToolKinds {
-  val usePreExistingVCFFile = LSpecificKind("Use pre-existing VCF file", usePreExisting)
-  val usePreExistingCassandraGenotypeCallsTable =
-    LSpecificKind("Use pre-existing Cassandra genotype calls table", usePreExisting)
+  def usePreExistingVCFFile(id: String) = LSpecificKind(("Use pre-existing VCF file", id), usePreExisting(id))
+
+  def usePreExistingCassandraGenotypeCallsTable(id: String) =
+    LSpecificKind(("Use pre-existing Cassandra genotype calls table", id), usePreExisting(id))
+
   val extractSampleIdsFromVCFFile =
     LSpecificKind("Extract sample ids from VCF file", extractKey(0), extractSampleIdsFromGenotypeCalls)
   val extractSampleIdsFromCassandraGenotypeCallsTable =

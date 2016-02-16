@@ -8,7 +8,7 @@ import loamstream.model.piles.LPile
   * Created by oliverr on 1/5/2016.
   */
 case class LCheckoutPreexisting(id: String, output: LPile) extends LRecipe {
-  override val kind = RecipeKinds.usePreExisting
+  override val kind = RecipeKinds.usePreExisting(id)
 
   override def inputs = Seq.empty[LPile]
 }

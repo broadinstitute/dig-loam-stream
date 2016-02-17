@@ -1,7 +1,7 @@
 package loamstream.model.calls
 
 import loamstream.model.kinds.LKind
-import loamstream.model.piles.LPile
+import loamstream.model.piles.{LSig, LPile}
 import loamstream.model.recipes.LRecipe
 
 /**

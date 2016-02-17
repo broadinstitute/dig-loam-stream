@@ -7,9 +7,9 @@ import loamstream.model.piles.LPile
 import scala.language.higherKinds
 
 /**
-  * LoamStream
-  * Created by oliverr on 12/23/2015.
-  */
+ * LoamStream
+ * Created by oliverr on 12/23/2015.
+ */
 object LRecipe {
 
   def keyExtraction(input: LPile, output: LPile, index: Int) =
@@ -21,10 +21,13 @@ object LRecipe {
 }
 
 case class LRecipe(kind: LKind, inputs: Seq[LPile], output: LPile) {
+  def =:=(oRecipe: LRecipe): Boolean =
+    kind == oRecipe.kind && inputs.zip(oRecipe.inputs).map(tup => tup._1 =:= tup._2).forall(b => b)
+
   def <:<(oRecipe: LRecipe): Boolean = kind <:< oRecipe.kind && inputs.size == oRecipe.inputs.size &&
-    inputs.zip(oRecipe.inputs).map(tup => tup._1 >:> tup._2).fold(true)(_ && _) && output <:< oRecipe.output
+    inputs.zip(oRecipe.inputs).map(tup => tup._1 >:> tup._2).forall(b => b) && output <:< oRecipe.output
 
   def >:>(oRecipe: LRecipe): Boolean = kind >:> oRecipe.kind && inputs.size == oRecipe.inputs.size &&
-    inputs.zip(oRecipe.inputs).map(tup => tup._1 <:< tup._2).fold(true)(_ && _) && output >:> oRecipe.output
+    inputs.zip(oRecipe.inputs).map(tup => tup._1 <:< tup._2).forall(b => b) && output >:> oRecipe.output
 
 }

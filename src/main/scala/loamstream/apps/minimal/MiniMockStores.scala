@@ -1,9 +1,8 @@
 package loamstream.apps.minimal
 
 import loamstream.apps.minimal.MiniApp.{GenotypeCall, VariantId}
-import loamstream.model.calls.LSig
 import loamstream.model.kinds.instances.StoreKinds
-import loamstream.model.piles.LPile
+import loamstream.model.piles.{LSig, LPile}
 
 /**
   * LoamStream
@@ -11,9 +10,9 @@ import loamstream.model.piles.LPile
   */
 object MiniMockStores {
 
-  val vcfFile = LPile(LSig.Map.apply[(String, VariantId), GenotypeCall].get, StoreKinds.vcfFile)
+  val vcfFile = LPile(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.vcfFile)
   val genotypesCassandraTable =
-    LPile(LSig.Map.apply[(String, VariantId), GenotypeCall].get, StoreKinds.genotypesCassandraTable)
-  val sampleIdsFile = LPile(LSig.Set.apply[Tuple1[String]].get, StoreKinds.sampleIdsFile)
-  val sampleIdsCassandraTable = LPile(LSig.Set.apply[Tuple1[String]].get, StoreKinds.sampleIdsCassandraTable)
+    LPile(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.genotypesCassandraTable)
+  val sampleIdsFile = LPile(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsFile)
+  val sampleIdsCassandraTable = LPile(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsCassandraTable)
 }

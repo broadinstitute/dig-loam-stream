@@ -4,7 +4,7 @@ import loamstream.map.MapMaker.Consumer
 
 /**
   * LoamStream
-  * Created by oliverr on 1/26/2016.
+  * Created by oliverr on 1/26/2016.j
   */
 object MappingTestApp extends App {
 

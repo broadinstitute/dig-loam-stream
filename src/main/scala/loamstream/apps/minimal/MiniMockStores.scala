@@ -1,6 +1,6 @@
 package loamstream.apps.minimal
 
-import loamstream.apps.minimal.MiniApp.{GenotypeCall, VariantId}
+import loamstream.apps.minimal.MiniPipeline.{GenotypeCall, VariantId}
 import loamstream.model.kinds.instances.StoreKinds
 import loamstream.model.piles.{LSig, LPile}
 

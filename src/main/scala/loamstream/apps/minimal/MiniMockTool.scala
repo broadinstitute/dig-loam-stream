@@ -11,7 +11,20 @@ import loamstream.model.recipes.LRecipe
 object MiniMockTool {
 
   val checkPreExistingVcfFile =
-    MiniMockTool(LRecipe.preExistingCheckout(MiniApp.genotypeCallsPileId, MiniMockStores.vcfFile), "What a nice VCF file!")
+    MiniMockTool(LRecipe.preExistingCheckout(MiniPipeline.genotypeCallsPileId, MiniMockStores.vcfFile),
+      "What a nice VCF file!")
+
+  val checkPreExistingGenotypeCassandraTable =
+    MiniMockTool(LRecipe.preExistingCheckout(MiniPipeline.genotypeCallsPileId, MiniMockStores.genotypesCassandraTable),
+      "What a nice table on Cassandra full of genotype calls!")
+
+  val extractSampleIdsFromVcfFile =
+    MiniMockTool(LRecipe.keyExtraction(MiniPipeline.genotypeCallsPile, MiniMockStores.sampleIdsFile, 0),
+      "Extracted sample ids from VCF file into a text file.")
+
+  val extractSampleIdsFromCassandraTable =
+    MiniMockTool(LRecipe.keyExtraction(MiniPipeline.genotypeCallsPile, MiniMockStores.sampleIdsCassandraTable, 0),
+      "Extracted sample ids from Cassandra genotype calls table into another table.")
 
 }
 

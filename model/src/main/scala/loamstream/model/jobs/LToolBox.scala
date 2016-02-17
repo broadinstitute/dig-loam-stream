@@ -9,6 +9,10 @@ import loamstream.model.recipes.LRecipe
   */
 object LToolBox {
 
+  object LToolBag {
+    def apply(tools: LTool[_]*): LToolBag = apply(tools.toSet)
+  }
+
   case class LToolBag(tools: Set[LTool[_]]) extends LToolBox {
     override def toolsFor(recipe: LRecipe): Set[LTool[_]] = tools.filter(_.recipe <:< recipe)
   }

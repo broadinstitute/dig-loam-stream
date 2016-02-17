@@ -1,5 +1,7 @@
 package loamstream.apps.minimal
 
+import loamstream.map.LToolMapper
+import loamstream.map.LToolMapper.Mapping
 import loamstream.model.piles.LSig
 
 /**
@@ -8,19 +10,29 @@ import loamstream.model.piles.LSig
   */
 object MiniApp extends App {
 
-  def debugCompare(x: Any, y: Any) = {
-    println("Are the following two equal: " + (x == y))
-    println(x)
-    println(y)
-  }
-
   println(MiniPipeline.genotypeCallsCall)
   println(MiniPipeline.sampleIdsCall)
-  //  debugCompare(MiniMockStores.vcfFile.sig, genotypeCallsPile.sig)
-  println(MiniMockStores.vcfFile.sig =:= MiniPipeline.genotypeCallsPile.sig)
+  println(MiniMockStore.vcfFile.pile.sig =:= MiniPipeline.genotypeCallsPile.sig)
   println(MiniMockTool.checkPreExistingVcfFile.recipe <:< MiniPipeline.genotypeCallsCall.recipe)
   println(LSig.Map[(String, MiniPipeline.VariantId), MiniPipeline.GenotypeCall] ==
     LSig.Map[(String, MiniPipeline.VariantId), MiniPipeline.GenotypeCall])
   println("Yo!")
+
+  val toolbox = MiniMockTool.toolBox
+
+  val consumer = new LToolMapper.Consumer {
+    override def foundMapping(mapping: Mapping): Unit = {
+      println("Yay, found a mapping!")
+      println(mapping)
+    }
+
+    override def wantMore: Boolean = true
+
+    override def searchEnded(): Unit = {
+      println("Search ended")
+    }
+  }
+
+  LToolMapper.findSolutions(MiniPipeline.pipeline, toolbox, consumer)
 
 }

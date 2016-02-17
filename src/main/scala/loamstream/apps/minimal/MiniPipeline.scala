@@ -1,5 +1,8 @@
 package loamstream.apps.minimal
 
+import loamstream.map.LToolMapper
+import loamstream.map.LToolMapper.Mapping
+import loamstream.model.LPipeline
 import loamstream.model.calls.LPileCall
 import loamstream.model.kinds.instances.PileKinds
 import loamstream.model.piles.{LPile, LSig}
@@ -23,5 +26,6 @@ object MiniPipeline {
   val sampleIdsPile = LPile(LSig.Set[Tuple1[String]].get, PileKinds.sampleIds).as(PileKinds.sampleIds)
   val sampleIdsCall = genotypeCallsCall.extractKey(0, sampleIdsPile, PileKinds.sampleIds)
 
+  val pipeline = LPipeline(genotypeCallsCall, sampleIdsCall)
 
 }

@@ -3,6 +3,7 @@ package loamstream.apps.minimal
 import loamstream.apps.minimal.MiniPipeline.{GenotypeCall, VariantId}
 import loamstream.model.kinds.instances.StoreKinds
 import loamstream.model.piles.{LPile, LSig}
+import loamstream.model.stores.LStore
 
 /**
   * LoamStream
@@ -20,6 +21,8 @@ object MiniMockStore {
   val sampleIdsCassandraTable =
     MiniMockStore(LPile(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsCassandraTable),
       "A Cassandra table with sample ids.")
+
+  val stores = Set[LStore](vcfFile, genotypesCassandraTable, sampleIdsFile, sampleIdsCassandraTable)
 }
 
-case class MiniMockStore(pile: LPile, comment: String)
+case class MiniMockStore(pile: LPile, comment: String) extends LStore

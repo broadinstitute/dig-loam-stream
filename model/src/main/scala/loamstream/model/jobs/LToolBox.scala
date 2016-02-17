@@ -1,7 +1,9 @@
 package loamstream.model.jobs
 
 import loamstream.model.jobs.tools.LTool
+import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
+import loamstream.model.stores.LStore
 
 /**
   * LoamStream
@@ -9,16 +11,16 @@ import loamstream.model.recipes.LRecipe
   */
 object LToolBox {
 
-  object LToolBag {
-    def apply(tools: LTool[_]*): LToolBag = apply(tools.toSet)
-  }
+  case class LToolBag(stores: Set[LStore], tools: Set[LTool]) extends LToolBox {
+    override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile)
 
-  case class LToolBag(tools: Set[LTool[_]]) extends LToolBox {
-    override def toolsFor(recipe: LRecipe): Set[LTool[_]] = tools.filter(_.recipe <:< recipe)
+    override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <:< recipe)
   }
 
 }
 
 trait LToolBox {
-  def toolsFor(recipe: LRecipe): Set[LTool[_]]
+  def storesFor(pile: LPile): Set[LStore]
+
+  def toolsFor(recipe: LRecipe): Set[LTool]
 }

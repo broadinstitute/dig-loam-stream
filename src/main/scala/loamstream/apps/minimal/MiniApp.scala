@@ -1,7 +1,8 @@
 package loamstream.apps.minimal
 
 import loamstream.map.LToolMapper
-import loamstream.map.LToolMapper.Mapping
+import loamstream.map.LToolMapper.ToolMapping
+import loamstream.model.jobs.LToolBox
 import loamstream.model.piles.LSig
 
 /**
@@ -18,10 +19,10 @@ object MiniApp extends App {
     LSig.Map[(String, MiniPipeline.VariantId), MiniPipeline.GenotypeCall])
   println("Yo!")
 
-  val toolbox = MiniMockTool.toolBox
+  val toolbox = LToolBox.LToolBag(MiniMockStore.stores, MiniMockTool.tools)
 
   val consumer = new LToolMapper.Consumer {
-    override def foundMapping(mapping: Mapping): Unit = {
+    override def foundMapping(mapping: ToolMapping): Unit = {
       println("Yay, found a mapping!")
       println(mapping)
     }

@@ -7,10 +7,10 @@ import loamstream.model.recipes.LRecipe
   * LoamStream
   * Created by oliverr on 2/12/2016.
   */
-trait LTool[T] {
+trait LTool {
 
   def recipe: LRecipe
 
-  def createJob(inputTools: Seq[LTool[_]]): LJob[T]
+  def createJob[T](inputTools: Seq[LTool]): LJob[T]
 
 }

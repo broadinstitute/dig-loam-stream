@@ -1,7 +1,7 @@
 package loamstream.apps.minimal
 
+import loamstream.model.jobs.LJob
 import loamstream.model.jobs.tools.LTool
-import loamstream.model.jobs.{LJob, LToolBox}
 import loamstream.model.recipes.LRecipe
 
 /**
@@ -27,12 +27,11 @@ object MiniMockTool {
     MiniMockTool(LRecipe.keyExtraction(MiniPipeline.genotypeCallsPile, MiniMockStore.sampleIdsCassandraTable.pile, 0),
       "Extracted sample ids from Cassandra genotype calls table into another table.")
 
-  val toolBox =
-    LToolBox.LToolBag(checkPreExistingVcfFile, checkPreExistingGenotypeCassandraTable, extractSampleIdsFromVcfFile,
-      extractSampleIdsFromCassandraTable)
+  val tools = Set[LTool](checkPreExistingVcfFile, checkPreExistingGenotypeCassandraTable, extractSampleIdsFromVcfFile,
+    extractSampleIdsFromCassandraTable)
 
 }
 
-case class MiniMockTool[T](recipe: LRecipe, comment: String) extends LTool[T] {
-  override def createJob(inputTools: Seq[LTool[_]]): LJob[T] = ???
+case class MiniMockTool(recipe: LRecipe, comment: String) extends LTool {
+  override def createJob[T](inputTools: Seq[LTool]): LJob[T] = ???
 }

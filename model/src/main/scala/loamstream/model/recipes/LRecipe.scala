@@ -22,12 +22,12 @@ object LRecipe {
 
 case class LRecipe(kind: LKind, inputs: Seq[LPile], output: LPile) {
   def =:=(oRecipe: LRecipe): Boolean =
-    kind == oRecipe.kind && inputs.zip(oRecipe.inputs).map(tup => tup._1 =:= tup._2).forall(b => b)
+    kind == oRecipe.kind && inputs.zip(oRecipe.inputs).forall(tup => tup._1 =:= tup._2)
 
   def <:<(oRecipe: LRecipe): Boolean = kind <:< oRecipe.kind && inputs.size == oRecipe.inputs.size &&
-    inputs.zip(oRecipe.inputs).map(tup => tup._1 >:> tup._2).forall(b => b) && output <:< oRecipe.output
+    inputs.zip(oRecipe.inputs).forall(tup => tup._1 >:> tup._2) && output <:< oRecipe.output
 
   def >:>(oRecipe: LRecipe): Boolean = kind >:> oRecipe.kind && inputs.size == oRecipe.inputs.size &&
-    inputs.zip(oRecipe.inputs).map(tup => tup._1 <:< tup._2).forall(b => b) && output >:> oRecipe.output
+    inputs.zip(oRecipe.inputs).forall(tup => tup._1 <:< tup._2) && output >:> oRecipe.output
 
 }

@@ -12,7 +12,7 @@ import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
 object LSig {
 
   def areEquivalent(types1: Seq[Type], types2: Seq[Type]): Boolean =
-    types1.zip(types2).map(tup => tup._1 =:= tup._2).forall(b => b)
+    types1.zip(types2).forall(tup => tup._1 =:= tup._2)
 
   object Set {
     def apply[Keys <: Product : TypeTag]: Shot[Set] = ProductTypeExploder.explode(typeTag[Keys].tpe).map(Set(_))

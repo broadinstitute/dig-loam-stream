@@ -75,12 +75,7 @@ case class Mapping(slots: Set[Slot], unboundSlots: Set[Slot], rawChoices: Map[Sl
       slotConstraints = groupConstraintsBySlots(constraintsNew))
   }
 
-  def choices(slot: Slot): Iterative.SizePredicting[Target] = {
-    println(slot.hashCode() + "   " + slot)
-    for ((keySlot, rawChoices) <- rawChoices) {
-      println(keySlot.hashCode() + "   " + (keySlot == slot) + "   " + keySlot)
-    }
-    rawChoices(slot).constrainedBy(slot, slotConstraints(slot))
-  }
+  def choices(slot: Slot): Iterative.SizePredicting[Target] =
+    rawChoices(slot).constrainedBy(slot, slotConstraints.getOrElse(slot, Set.empty))
 
 }

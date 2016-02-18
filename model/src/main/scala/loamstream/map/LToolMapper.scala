@@ -26,7 +26,9 @@ object LToolMapper {
     def searchEnded(): Unit
   }
 
-  case class PileSlot(pile: LPile) extends Mapping.Slot
+  case class PileSlot(pile: LPile) extends Mapping.Slot {
+    println(hashCode + "   " + toString)
+  }
 
   case class RecipeSlot(recipe: LRecipe) extends Mapping.Slot
 
@@ -78,11 +80,16 @@ object LToolMapper {
       pipeline.calls.map(_.recipe)
         .map(recipe => (RecipeSlot(recipe), AvailableTools(recipe, toolBox.toolsFor(recipe)))).toMap
     val slots : Map[Mapping.Slot, Mapping.RawChoices] = pileSlots ++ recipeSlots
+    println("Generating mapping from these slots:")
+    for ((keySlot, rawChoices) <- pileSlots) {
+      println(keySlot.hashCode() + "   " + keySlot)
+    }
+    for ((keySlot, rawChoices) <- recipeSlots) {
+      println(keySlot.hashCode() + "   " + keySlot)
+    }
     val mapping = Mapping.fromSlots(slots)
     for(slot <- mapping.slots) {
-      println("1")
       println(mapping.rawChoices(slot))
-      println("2")
     }
     MapMaker.traverse(mapping, MapMakerConsumer(consumer))
   }

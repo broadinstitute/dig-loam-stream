@@ -25,7 +25,12 @@ object MiniApp extends App {
   val consumer = new LToolMapper.Consumer {
     override def foundMapping(mapping: ToolMapping): Unit = {
       println("Yay, found a mapping!")
-      println(mapping)
+      for((pile, store) <- mapping.stores) {
+        println(pile + " -> " + store)
+      }
+      for((recipe, tool) <- mapping.tools) {
+        println(recipe + " -> " + tool)
+      }
     }
 
     override def wantMore: Boolean = true

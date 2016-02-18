@@ -1,6 +1,6 @@
 package loamstream.map
 
-import loamstream.map.Mapping.{Target, Constraint, RawChoices, Slot, Rule}
+import loamstream.map.Mapping.{Constraint, RawChoices, Rule, Slot, Target}
 import util.Iterative
 
 /**
@@ -75,7 +75,12 @@ case class Mapping(slots: Set[Slot], unboundSlots: Set[Slot], rawChoices: Map[Sl
       slotConstraints = groupConstraintsBySlots(constraintsNew))
   }
 
-  def choices(slot: Slot): Iterative.SizePredicting[Target] =
+  def choices(slot: Slot): Iterative.SizePredicting[Target] = {
+    println(slot.hashCode() + "   " + slot)
+    for ((keySlot, rawChoices) <- rawChoices) {
+      println(keySlot.hashCode() + "   " + (keySlot == slot) + "   " + keySlot)
+    }
     rawChoices(slot).constrainedBy(slot, slotConstraints(slot))
+  }
 
 }

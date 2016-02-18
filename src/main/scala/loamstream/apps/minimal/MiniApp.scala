@@ -11,6 +11,7 @@ import loamstream.model.piles.LSig
   */
 object MiniApp extends App {
 
+  println(MiniPipeline.genotypeCallsCall.pile.hashCode())
   println(MiniPipeline.genotypeCallsCall)
   println(MiniPipeline.sampleIdsCall)
   println(MiniMockStore.vcfFile.pile.sig =:= MiniPipeline.genotypeCallsPile.sig)

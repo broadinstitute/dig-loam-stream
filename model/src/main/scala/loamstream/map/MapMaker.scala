@@ -30,6 +30,7 @@ object MapMaker {
       val availableSlots = node.mapping.unboundSlots
       if (availableSlots.nonEmpty) {
         var bestSlot = availableSlots.head
+        println(bestSlot + "   " + node.mapping.rawChoices(bestSlot))
         var nBestSlotChoices = node.mapping.choices(bestSlot).predictedSize
         val slotIterator = availableSlots.iterator
         while (slotIterator.hasNext && nBestSlotChoices > 0) {

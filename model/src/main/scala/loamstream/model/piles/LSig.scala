@@ -11,36 +11,36 @@ import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
  */
 object LSig {
 
-  def areEquivalent(types1: Seq[Type], types2: Seq[Type]): Boolean =
-    types1.zip(types2).forall(tup => tup._1 =:= tup._2)
-
   object Set {
-    def apply[Keys <: Product : TypeTag]: Shot[Set] = ProductTypeExploder.explode(typeTag[Keys].tpe).map(Set(_))
+    def apply[Keys <: Product : TypeTag]: Shot[Set] =
+      ProductTypeExploder.explode(typeTag[Keys].tpe).map(types => Set(types.map(new LType(_))))
   }
 
-  case class Set(keyTypes: Seq[Type]) extends LSig {
+  case class Set(keyTypes: Seq[LType]) extends LSig {
     override def =:=(oSig: LSig): Boolean = oSig match {
-      case Set(oKeyTypes) => areEquivalent(keyTypes, oKeyTypes)
+      case Set(oKeyTypes) => keyTypes == oKeyTypes
       case _ => false
     }
   }
 
   object Map {
     def apply[Keys <: Product : TypeTag, V: TypeTag]: Shot[Map] =
-      ProductTypeExploder.explode(typeTag[Keys].tpe).map(Map(_, typeTag[V].tpe))
+      ProductTypeExploder.explode(typeTag[Keys].tpe)
+        .map(types => Map(types.map(new LType(_)), new LType(typeTag[V].tpe)))
   }
 
-  case class Map(keyTypes: Seq[Type], vType: Type) extends LSig {
+  case class Map(keyTypes: Seq[LType], vType: LType) extends LSig {
     override def =:=(oSig: LSig): Boolean =
       oSig match {
-        case Map(oKeyTypes, oVType) => areEquivalent(keyTypes, oKeyTypes) && vType =:= oVType
+        case Map(oKeyTypes, oVType) => keyTypes == oKeyTypes && vType == oVType
+        case _ => false
       }
   }
 
 }
 
 sealed trait LSig {
-  def keyTypes: Seq[Type]
+  def keyTypes: Seq[LType]
 
   def =:=(oSig: LSig): Boolean
 }

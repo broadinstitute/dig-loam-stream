@@ -92,17 +92,7 @@ object LToolMapper {
       pipeline.calls.map(_.recipe)
         .map(recipe => (RecipeSlot(recipe), AvailableTools(recipe, toolBox.toolsFor(recipe)))).toMap
     val slots: Map[Mapping.Slot, Mapping.RawChoices] = pileSlots ++ recipeSlots
-    println("Generating mapping from these slots:")
-    for ((keySlot, rawChoices) <- pileSlots) {
-      println(keySlot.hashCode() + "   " + keySlot)
-    }
-    for ((keySlot, rawChoices) <- recipeSlots) {
-      println(keySlot.hashCode() + "   " + keySlot)
-    }
     val mapping = Mapping.fromSlots(slots)
-    for (slot <- mapping.slots) {
-      println(mapping.rawChoices(slot))
-    }
     MapMaker.traverse(mapping, MapMakerConsumer(consumer))
   }
 

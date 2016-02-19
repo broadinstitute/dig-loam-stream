@@ -13,13 +13,14 @@ import loamstream.model.stores.LStore
   */
 object MiniApp extends App {
 
-  println(MiniPipeline.genotypeCallsCall.pile.hashCode())
-  println(MiniPipeline.genotypeCallsCall)
-  println(MiniPipeline.sampleIdsCall)
-  println(MiniMockStore.vcfFile.pile.sig =:= MiniPipeline.genotypeCallsPile.sig)
+  println(MiniMockStore.vcfFile.pile <:< MiniPipeline.genotypeCallsPile)
   println(MiniMockTool.checkPreExistingVcfFile.recipe <:< MiniPipeline.genotypeCallsCall.recipe)
-  println(LSig.Map[(String, MiniPipeline.VariantId), MiniPipeline.GenotypeCall] ==
-    LSig.Map[(String, MiniPipeline.VariantId), MiniPipeline.GenotypeCall])
+  println(MiniMockStore.genotypesCassandraTable.pile <:< MiniPipeline.genotypeCallsPile)
+  println(MiniMockTool.checkPreExistingGenotypeCassandraTable.recipe <:< MiniPipeline.genotypeCallsCall.recipe)
+  println(MiniMockStore.sampleIdsFile.pile <:< MiniPipeline.sampleIdsPile)
+  println(MiniMockTool.extractSampleIdsFromVcfFile.recipe <:< MiniPipeline.sampleIdsCall.recipe)
+  println(MiniMockStore.sampleIdsCassandraTable.pile <:< MiniPipeline.sampleIdsPile)
+  println(MiniMockTool.extractSampleIdsFromCassandraTable.recipe <:< MiniPipeline.sampleIdsCall.recipe)
   println("Yo!")
 
   val toolbox = LToolBox.LToolBag(MiniMockStore.stores, MiniMockTool.tools)

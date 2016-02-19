@@ -76,18 +76,21 @@ object LToolMapper {
 
   case class StoreTargetFilter(outputRole: Option[LRecipe], inputRoles: Set[(Int, LRecipe)])
     extends ((Mapping.Target) => Boolean) {
-    override def apply(target: Mapping.Target): Boolean = target match {
-      case storeTarget: StoreTarget =>
-        val outputRoleCompatible = outputRole match {
-          case Some(recipe) => storeTarget.store.pile >:> recipe.output
-          case None => true
-        }
-        val inputRolesCompatible = inputRoles.forall({ tup =>
-          val (index, recipe) = tup
-          storeTarget.store.pile <:< recipe.inputs(index)
-        })
-        outputRoleCompatible && inputRolesCompatible
-      case _ => false
+    override def apply(target: Mapping.Target): Boolean = {
+      target match {
+        case storeTarget: StoreTarget =>
+          val outputRoleCompatible = outputRole match {
+            case Some(recipe) =>
+              storeTarget.store.pile <:< recipe.output
+            case None => true
+          }
+          val inputRolesCompatible = inputRoles.forall({ tup =>
+            val (index, recipe) = tup
+            storeTarget.store.pile <:< recipe.inputs(index)
+          })
+          outputRoleCompatible && inputRolesCompatible
+        case _ => false
+      }
     }
   }
 
@@ -125,7 +128,6 @@ object LToolMapper {
         case Some(tool) => tool.recipe
         case None => recipe
       }
-      //      val piles = slots.collect({case PileSlot(pile) => pile})
       val recipes = slots.collect({ case RecipeSlot(recipe) => recipe })
       val outputRoles = (for (recipe <- recipes) yield (recipe.output, mapRecipeOrNot(recipe))).toMap
       var inputRoles = Map.empty[LPile, Set[(Int, LRecipe)]]

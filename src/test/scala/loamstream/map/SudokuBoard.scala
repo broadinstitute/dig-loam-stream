@@ -27,8 +27,6 @@ object SudokuBoard {
   }
 
   case class UniquenessRule(slots: Set[Slot]) extends Rule {
-    override def slots(slots: Set[Slot]): Set[Slot] = slots
-
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint =
       UniquenessConstraint(this.slots, targets.toSet -- this.slots.flatMap(bindings.get))
   }

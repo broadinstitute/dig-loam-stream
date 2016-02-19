@@ -16,6 +16,14 @@ import util.Iterative.SizePredicting
   */
 object LToolMapper {
 
+  object ToolMapping {
+    def apply(bindings: Map[Mapping.Slot, Mapping.Target]): ToolMapping = {
+      val storeMapping = bindings.collect({ case (PileSlot(pile), StoreTarget(store)) => (pile, store) })
+      val toolMapping = bindings.collect({ case (RecipeSlot(recipe), ToolTarget(tool)) => (recipe, tool) })
+      ToolMapping(storeMapping, toolMapping)
+    }
+  }
+
   case class ToolMapping(stores: Map[LPile, LStore], tools: Map[LRecipe, LTool])
 
   trait Consumer {
@@ -39,13 +47,7 @@ object LToolMapper {
   case class MapMakerConsumer(consumer: Consumer) extends MapMaker.Consumer {
     override def wantsMore: Boolean = consumer.wantMore
 
-    override def solution(node: AriadneNode): Unit = {
-      val storeMapping =
-        node.mapping.bindings.collect({ case (PileSlot(pile), StoreTarget(store)) => (pile, store) })
-      val toolMapping =
-        node.mapping.bindings.collect({ case (RecipeSlot(recipe), ToolTarget(tool)) => (recipe, tool) })
-      consumer.foundMapping(ToolMapping(storeMapping, toolMapping))
-    }
+    override def solution(node: AriadneNode): Unit = consumer.foundMapping(ToolMapping(node.mapping.bindings))
 
     override def step(node: AriadneNode): Unit = ()
 
@@ -72,9 +74,19 @@ object LToolMapper {
     }
   }
 
-  case class StoreTargetFilter(pile: LPile) extends ((Mapping.Target) => Boolean) {
+  case class StoreTargetFilter(outputter: Option[LRecipe], inputters: Set[(Int, LRecipe)])
+    extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = target match {
-      case storeTarget: StoreTarget => storeTarget.store.pile <:< pile
+      case storeTarget: StoreTarget => {
+        val outputterCompatible = outputter match {
+          case Some(recipe) => storeTarget.store.pile >:> recipe.output
+        }
+        val inputtersCompatible = inputters.forall({ tup =>
+          val (index, recipe) = tup
+          storeTarget.store.pile <:< recipe.inputs(index)
+        })
+        outputterCompatible && inputtersCompatible
+      }
       case _ => false
     }
   }
@@ -86,16 +98,14 @@ object LToolMapper {
     }
   }
 
-  case class CompatibilityConstraint(pileBounds: Map[LPile, LPile], recipeBounds: Map[LRecipe, LRecipe])
+  case class CompatibilityConstraint(outputters: Map[LPile, LRecipe], inputters: Map[LPile, Set[(Int, LRecipe)]],
+                                     pileBounds: Map[LPile, LPile], recipeBounds: Map[LRecipe, LRecipe])
     extends Mapping.Constraint {
 
     override val slots: Set[Slot] = pileBounds.keySet.map(PileSlot) ++ recipeBounds.keySet.map(RecipeSlot)
 
     override def slotFilter(slot: Slot): (Target) => Boolean = slot match {
-      case PileSlot(slotPile) => pileBounds.get(slotPile) match {
-        case Some(pileBound) => StoreTargetFilter(pileBound)
-        case None => Function.const(true)
-      }
+      case PileSlot(slotPile) => StoreTargetFilter(outputters.get(slotPile), inputters.getOrElse(slotPile, Set.empty))
       case RecipeSlot(slotRecipe) => recipeBounds.get(slotRecipe) match {
         case Some(recipeBound) => ToolTargetFilter(recipeBound)
         case None => Function.const(true)
@@ -106,9 +116,19 @@ object LToolMapper {
 
   object CompatibilityRule extends Mapping.Rule {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
-      val pileBounds = ???
-      val recipeBounds = ???
-     CompatibilityConstraint(pileBounds, recipeBounds)
+      val toolMapping = ToolMapping(bindings)
+      var pileBounds = Map.empty[LPile, LPile]
+      for ((recipe, tool) <- toolMapping.tools) {
+        pileBounds += (recipe.output -> tool.recipe.output)
+        pileBounds ++= recipe.inputs.zip(tool.recipe.inputs)
+      }
+      val recipeBounds = Map.empty[LRecipe, LRecipe]
+      val outputters = for ((recipe, tool) <- toolMapping.tools) yield (recipe.output, tool.recipe)
+      var inputters = Map.empty[LPile, Set[(Int, LRecipe)]]
+      for ((recipe, tool) <- toolMapping.tools) {
+        ???   // TODO
+      }
+      CompatibilityConstraint(outputters, inputters, pileBounds, recipeBounds)
     }
   }
 

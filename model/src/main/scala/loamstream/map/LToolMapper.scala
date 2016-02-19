@@ -117,23 +117,30 @@ object LToolMapper {
   object CompatibilityRule extends Mapping.Rule {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
       val toolMapping = ToolMapping(bindings)
-      val outputRoles = for ((recipe, tool) <- toolMapping.tools) yield (recipe.output, tool.recipe)
+      def mapPileOrNot(pile: LPile): LPile = toolMapping.stores.get(pile) match {
+        case Some(store) => store.pile
+        case None => pile
+      }
+      def mapRecipeOrNot(recipe: LRecipe): LRecipe = toolMapping.tools.get(recipe) match {
+        case Some(tool) => tool.recipe
+        case None => recipe
+      }
+      //      val piles = slots.collect({case PileSlot(pile) => pile})
+      val recipes = slots.collect({ case RecipeSlot(recipe) => recipe })
+      val outputRoles = (for (recipe <- recipes) yield (recipe.output, mapRecipeOrNot(recipe))).toMap
       var inputRoles = Map.empty[LPile, Set[(Int, LRecipe)]]
-      for ((recipe, tool) <- toolMapping.tools) {
-        val toolRecipe = tool.recipe
+      for (recipe <- recipes) {
+        val toolRecipe = mapRecipeOrNot(recipe)
         for ((inputPile, index) <- toolRecipe.inputs.zipWithIndex) {
           inputRoles +=
             (inputPile -> (inputRoles.getOrElse(inputPile, Set.empty[(Int, LRecipe)]) + ((index, toolRecipe))))
         }
       }
-      val unmappedRecipes = toolMapping.tools.keySet -- bindings.keySet.collect({ case RecipeSlot(recipe) => recipe })
-      def mapPileOrNot(pile: LPile): LPile = toolMapping.stores.get(pile) match {
-        case Some(store) => store.pile
-        case None => pile
-      }
+      val unmappedRecipes = recipes -- bindings.keySet.collect({ case RecipeSlot(recipe) => recipe })
       val recipeBounds = unmappedRecipes.map({ recipe =>
         (recipe, recipe.copy(inputs = recipe.inputs.map(mapPileOrNot), output = mapPileOrNot(recipe.output)))
       }).toMap
+      println("Recipe bounds size: " + recipeBounds.size)
       CompatibilityConstraint(slots, outputRoles, inputRoles, recipeBounds)
     }
   }

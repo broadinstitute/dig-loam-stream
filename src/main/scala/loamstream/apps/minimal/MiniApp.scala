@@ -31,6 +31,7 @@ object MiniApp extends App {
       for((recipe, tool) <- mapping.tools) {
         println(recipe + " -> " + tool)
       }
+      println("That was the mapping.")
     }
 
     override def wantMore: Boolean = true

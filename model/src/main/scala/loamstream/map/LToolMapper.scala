@@ -72,16 +72,44 @@ object LToolMapper {
     }
   }
 
-  object InputRule extends Mapping.Rule {
-    override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = ???
+  case class StoreTargetFilter(pile: LPile) extends ((Mapping.Target) => Boolean) {
+    override def apply(target: Mapping.Target): Boolean = target match {
+      case storeTarget: StoreTarget => storeTarget.store.pile <:< pile
+      case _ => false
+    }
   }
 
-  case class InputConstraint(pileBounds: Map[LPile, LPile], recipeBounds: Map[LRecipe, LRecipe])
+  case class ToolTargetFilter(recipe: LRecipe) extends ((Mapping.Target) => Boolean) {
+    override def apply(target: Mapping.Target): Boolean = target match {
+      case toolTarget: ToolTarget => toolTarget.tool.recipe <:< recipe
+      case _ => false
+    }
+  }
+
+  case class CompatibilityConstraint(pileBounds: Map[LPile, LPile], recipeBounds: Map[LRecipe, LRecipe])
     extends Mapping.Constraint {
 
     override val slots: Set[Slot] = pileBounds.keySet.map(PileSlot) ++ recipeBounds.keySet.map(RecipeSlot)
 
-    override def slotFilter(slot: Slot): (Target) => Boolean = ???
+    override def slotFilter(slot: Slot): (Target) => Boolean = slot match {
+      case PileSlot(slotPile) => pileBounds.get(slotPile) match {
+        case Some(pileBound) => StoreTargetFilter(pileBound)
+        case None => Function.const(true)
+      }
+      case RecipeSlot(slotRecipe) => recipeBounds.get(slotRecipe) match {
+        case Some(recipeBound) => ToolTargetFilter(recipeBound)
+        case None => Function.const(true)
+      }
+      case _ => Function.const(false)
+    }
+  }
+
+  object CompatibilityRule extends Mapping.Rule {
+    override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
+      val pileBounds = ???
+      val recipeBounds = ???
+     CompatibilityConstraint(pileBounds, recipeBounds)
+    }
   }
 
   def findSolutions(pipeline: LPipeline, toolBox: LToolBox, consumer: Consumer,

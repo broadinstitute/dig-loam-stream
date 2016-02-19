@@ -72,6 +72,20 @@ object LToolMapper {
     }
   }
 
+  case class InputRule(recipe:LRecipe, index:Int) extends Mapping.Rule {
+    val inputPile = recipe.inputs(index)
+
+    override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = ???
+  }
+
+  case class InputConstraint(recipe: LRecipe, index: Int) extends Mapping.Constraint {
+    val inputPile = recipe.inputs(index)
+
+    override def slots: Set[Slot] = Set(PileSlot(inputPile), RecipeSlot(recipe))
+
+    override def slotFilter(slot: Slot): (Target) => Boolean = ???
+  }
+
   def findSolutions(pipeline: LPipeline, toolBox: LToolBox, consumer: Consumer,
                     strategy: MapMaker.Strategy = MapMaker.NarrowFirstStrategy): Unit = {
     val pileSlots =
@@ -79,7 +93,7 @@ object LToolMapper {
     val recipeSlots =
       pipeline.calls.map(_.recipe)
         .map(recipe => (RecipeSlot(recipe), AvailableTools(recipe, toolBox.toolsFor(recipe)))).toMap
-    val slots : Map[Mapping.Slot, Mapping.RawChoices] = pileSlots ++ recipeSlots
+    val slots: Map[Mapping.Slot, Mapping.RawChoices] = pileSlots ++ recipeSlots
     println("Generating mapping from these slots:")
     for ((keySlot, rawChoices) <- pileSlots) {
       println(keySlot.hashCode() + "   " + keySlot)
@@ -88,7 +102,7 @@ object LToolMapper {
       println(keySlot.hashCode() + "   " + keySlot)
     }
     val mapping = Mapping.fromSlots(slots)
-    for(slot <- mapping.slots) {
+    for (slot <- mapping.slots) {
       println(mapping.rawChoices(slot))
     }
     MapMaker.traverse(mapping, MapMakerConsumer(consumer))

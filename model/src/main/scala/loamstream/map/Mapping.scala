@@ -14,8 +14,6 @@ object Mapping {
   trait Slot
 
   trait Rule {
-    def slots(slots: Set[Slot]): Set[Slot]
-
     def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint
   }
 

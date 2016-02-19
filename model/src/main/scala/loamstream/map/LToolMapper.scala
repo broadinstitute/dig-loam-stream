@@ -11,9 +11,9 @@ import util.Iterative
 import util.Iterative.SizePredicting
 
 /**
- * LoamStream
- * Created by oliverr on 2/17/2016.
- */
+  * LoamStream
+  * Created by oliverr on 2/17/2016.
+  */
 object LToolMapper {
 
   case class ToolMapping(stores: Map[LPile, LStore], tools: Map[LRecipe, LTool])
@@ -72,16 +72,14 @@ object LToolMapper {
     }
   }
 
-  case class InputRule(recipe:LRecipe, index:Int) extends Mapping.Rule {
-    val inputPile = recipe.inputs(index)
-
+  object InputRule extends Mapping.Rule {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = ???
   }
 
-  case class InputConstraint(recipe: LRecipe, index: Int) extends Mapping.Constraint {
-    val inputPile = recipe.inputs(index)
+  case class InputConstraint(pileBounds: Map[LPile, LPile], recipeBounds: Map[LRecipe, LRecipe])
+    extends Mapping.Constraint {
 
-    override def slots: Set[Slot] = Set(PileSlot(inputPile), RecipeSlot(recipe))
+    override val slots: Set[Slot] = pileBounds.keySet.map(PileSlot) ++ recipeBounds.keySet.map(RecipeSlot)
 
     override def slotFilter(slot: Slot): (Target) => Boolean = ???
   }

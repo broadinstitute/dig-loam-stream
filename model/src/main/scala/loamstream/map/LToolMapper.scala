@@ -96,7 +96,12 @@ object LToolMapper {
 
   case class ToolTargetFilter(recipe: LRecipe) extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = target match {
-      case toolTarget: ToolTarget => toolTarget.tool.recipe <:< recipe
+      case toolTarget: ToolTarget =>
+        println("tool target filter")
+        println(toolTarget.tool.recipe)
+        println(recipe)
+        println(toolTarget.tool.recipe <:< recipe)
+        toolTarget.tool.recipe <:< recipe
       case _ => false
     }
   }

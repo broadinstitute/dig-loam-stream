@@ -20,11 +20,12 @@ object MiniMockTool {
       "What a nice table on Cassandra full of genotype calls!")
 
   val extractSampleIdsFromVcfFile =
-    MiniMockTool(LRecipe.keyExtraction(MiniPipeline.genotypeCallsPile, MiniMockStore.sampleIdsFile.pile, 0),
+    MiniMockTool(LRecipe.keyExtraction(MiniMockStore.vcfFile.pile, MiniMockStore.sampleIdsFile.pile, 0),
       "Extracted sample ids from VCF file into a text file.")
 
   val extractSampleIdsFromCassandraTable =
-    MiniMockTool(LRecipe.keyExtraction(MiniPipeline.genotypeCallsPile, MiniMockStore.sampleIdsCassandraTable.pile, 0),
+    MiniMockTool(LRecipe.keyExtraction(MiniMockStore.genotypesCassandraTable.pile,
+      MiniMockStore.sampleIdsCassandraTable.pile, 0),
       "Extracted sample ids from Cassandra genotype calls table into another table.")
 
   val tools = Set[LTool](checkPreExistingVcfFile, checkPreExistingGenotypeCassandraTable, extractSampleIdsFromVcfFile,

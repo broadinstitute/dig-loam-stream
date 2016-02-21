@@ -11,5 +11,5 @@ object StoreKinds {
   val vcfFile = LSpecificKind("VCF file", genotypeCallsBySampleAndVariant)
   val genotypesCassandraTable = LSpecificKind("Genotypes Cassandra table", genotypeCallsBySampleAndVariant)
   val sampleIdsFile = LSpecificKind("Sample ids file", sampleIds)
-  val sampleIdsCassandraTable = LSpecificKind("Sample ids file", sampleIds)
+  val sampleIdsCassandraTable = LSpecificKind("Sample ids Cassandra table", sampleIds)
 }

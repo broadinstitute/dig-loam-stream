@@ -13,14 +13,14 @@ import loamstream.model.stores.LStore
   */
 object MiniApp extends App {
 
-  println(MiniMockStore.vcfFile.pile <:< MiniPipeline.genotypeCallsPile)
-  println(MiniMockTool.checkPreExistingVcfFile.recipe <:< MiniPipeline.genotypeCallsCall.recipe)
-  println(MiniMockStore.genotypesCassandraTable.pile <:< MiniPipeline.genotypeCallsPile)
-  println(MiniMockTool.checkPreExistingGenotypeCassandraTable.recipe <:< MiniPipeline.genotypeCallsCall.recipe)
-  println(MiniMockStore.sampleIdsFile.pile <:< MiniPipeline.sampleIdsPile)
-  println(MiniMockTool.extractSampleIdsFromVcfFile.recipe <:< MiniPipeline.sampleIdsCall.recipe)
-  println(MiniMockStore.sampleIdsCassandraTable.pile <:< MiniPipeline.sampleIdsPile)
-  println(MiniMockTool.extractSampleIdsFromCassandraTable.recipe <:< MiniPipeline.sampleIdsCall.recipe)
+  println(MiniMockStore.vcfFile.pile <:< MiniMockStore.genotypesCassandraTable.pile)
+  println(MiniMockTool.checkPreExistingVcfFile.recipe <:< MiniMockTool.checkPreExistingGenotypeCassandraTable.recipe)
+  println(MiniMockStore.genotypesCassandraTable.pile <:< MiniMockStore.vcfFile.pile)
+  println(MiniMockTool.checkPreExistingGenotypeCassandraTable.recipe <:< MiniMockTool.checkPreExistingVcfFile.recipe)
+  println(MiniMockStore.sampleIdsFile.pile <:< MiniMockStore.sampleIdsCassandraTable.pile)
+  println(MiniMockTool.extractSampleIdsFromVcfFile.recipe <:< MiniMockTool.extractSampleIdsFromCassandraTable.recipe)
+  println(MiniMockStore.sampleIdsCassandraTable.pile <:< MiniMockStore.sampleIdsFile.pile)
+  println(MiniMockTool.extractSampleIdsFromCassandraTable.recipe <:< MiniMockTool.extractSampleIdsFromVcfFile.recipe)
   println("Yo!")
 
   val toolbox = LToolBox.LToolBag(MiniMockStore.stores, MiniMockTool.tools)
@@ -38,15 +38,24 @@ object MiniApp extends App {
         case _ => tool.toString
       }
     }
-
-    override def foundMapping(mapping: ToolMapping): Unit = {
-      println("Yay, found a mapping!")
+    def printMapping(mapping:ToolMapping) : Unit = {
       for ((pile, store) <- mapping.stores) {
         println(pile + " -> " + printStore(store))
       }
       for ((recipe, tool) <- mapping.tools) {
         println(recipe + " -> " + printTool(tool))
       }
+    }
+
+    override def intermediaryStep(mapping: ToolMapping): Unit = {
+      println("Intermediary step:")
+      printMapping(mapping)
+      println("That was an intermediary step.")
+    }
+
+    override def foundMapping(mapping: ToolMapping): Unit = {
+      println("Yay, found a mapping!")
+      printMapping(mapping)
       println("That was the mapping.")
     }
 
@@ -55,6 +64,7 @@ object MiniApp extends App {
     override def searchEnded(): Unit = {
       println("Search ended")
     }
+
   }
 
   LToolMapper.findSolutions(MiniPipeline.pipeline, toolbox, consumer)

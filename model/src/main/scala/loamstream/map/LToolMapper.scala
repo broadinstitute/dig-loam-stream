@@ -29,6 +29,8 @@ object LToolMapper {
   trait Consumer {
     def foundMapping(mapping: ToolMapping): Unit
 
+    def intermediaryStep(mapping: ToolMapping) : Unit
+
     def wantMore: Boolean
 
     def searchEnded(): Unit
@@ -49,7 +51,7 @@ object LToolMapper {
 
     override def solution(node: AriadneNode): Unit = consumer.foundMapping(ToolMapping(node.mapping.bindings))
 
-    override def step(node: AriadneNode): Unit = ()
+    override def step(node: AriadneNode): Unit = consumer.intermediaryStep(ToolMapping(node.mapping.bindings))
 
     override def end(): Unit = consumer.searchEnded()
   }
@@ -96,12 +98,7 @@ object LToolMapper {
 
   case class ToolTargetFilter(recipe: LRecipe) extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = target match {
-      case toolTarget: ToolTarget =>
-        println("tool target filter")
-        println(toolTarget.tool.recipe)
-        println(recipe)
-        println(toolTarget.tool.recipe <:< recipe)
-        toolTarget.tool.recipe <:< recipe
+      case toolTarget: ToolTarget => toolTarget.tool.recipe <:< recipe
       case _ => false
     }
   }
@@ -143,11 +140,15 @@ object LToolMapper {
             (inputPile -> (inputRoles.getOrElse(inputPile, Set.empty[(Int, LRecipe)]) + ((index, toolRecipe))))
         }
       }
-      val unmappedRecipes = recipes -- bindings.keySet.collect({ case RecipeSlot(recipe) => recipe })
+      val unmappedRecipes = recipes -- toolMapping.tools.keySet
       val recipeBounds = unmappedRecipes.map({ recipe =>
         (recipe, recipe.copy(inputs = recipe.inputs.map(mapPileOrNot), output = mapPileOrNot(recipe.output)))
       }).toMap
+      println("Mapped recipes: " + toolMapping.tools.size)
       println("Recipe bounds size: " + recipeBounds.size)
+      for((slotRecipe, recipeBound) <- recipeBounds) {
+        println(slotRecipe + " -> " + recipeBound)
+      }
       CompatibilityConstraint(slots, outputRoles, inputRoles, recipeBounds)
     }
   }

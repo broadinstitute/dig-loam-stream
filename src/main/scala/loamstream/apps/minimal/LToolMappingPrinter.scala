@@ -1,6 +1,6 @@
 package loamstream.apps.minimal
 
-import loamstream.map.LToolMapper.ToolMapping
+import loamstream.map.LToolMapping
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.stores.LStore
 
@@ -23,7 +23,7 @@ object LToolMappingPrinter {
     }
   }
 
-  def printMapping(mapping: ToolMapping): Unit = {
+  def printMapping(mapping: LToolMapping): Unit = {
     for ((pile, store) <- mapping.stores) {
       println(pile + " -> " + printStore(store))
     }

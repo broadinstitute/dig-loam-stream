@@ -16,20 +16,17 @@ import util.Iterative.SizePredicting
   */
 object LToolMapper {
 
-  object ToolMapping {
-    def apply(bindings: Map[Mapping.Slot, Mapping.Target]): ToolMapping = {
-      val storeMapping = bindings.collect({ case (PileSlot(pile), StoreTarget(store)) => (pile, store) })
-      val toolMapping = bindings.collect({ case (RecipeSlot(recipe), ToolTarget(tool)) => (recipe, tool) })
-      ToolMapping(storeMapping, toolMapping)
-    }
+  def bindingsToToolMappings(bindings: Map[Mapping.Slot, Mapping.Target]): LToolMapping = {
+    val storeMapping = bindings.collect({ case (PileSlot(pile), StoreTarget(store)) => (pile, store) })
+    val toolMapping = bindings.collect({ case (RecipeSlot(recipe), ToolTarget(tool)) => (recipe, tool) })
+    LToolMapping(storeMapping, toolMapping)
   }
 
-  case class ToolMapping(stores: Map[LPile, LStore], tools: Map[LRecipe, LTool])
 
   trait Consumer {
-    def foundMapping(mapping: ToolMapping): Unit
+    def foundMapping(mapping: LToolMapping): Unit
 
-    def intermediaryStep(mapping: ToolMapping): Unit
+    def intermediaryStep(mapping: LToolMapping): Unit
 
     def wantMore: Boolean
 
@@ -47,9 +44,11 @@ object LToolMapper {
   case class MapMakerConsumer(consumer: Consumer) extends MapMaker.Consumer {
     override def wantsMore: Boolean = consumer.wantMore
 
-    override def solution(node: AriadneNode): Unit = consumer.foundMapping(ToolMapping(node.mapping.bindings))
+    override def solution(node: AriadneNode): Unit =
+      consumer.foundMapping(bindingsToToolMappings(node.mapping.bindings))
 
-    override def step(node: AriadneNode): Unit = consumer.intermediaryStep(ToolMapping(node.mapping.bindings))
+    override def step(node: AriadneNode): Unit =
+      consumer.intermediaryStep(bindingsToToolMappings(node.mapping.bindings))
 
     override def end(): Unit = consumer.searchEnded()
   }
@@ -126,7 +125,7 @@ object LToolMapper {
 
   object CompatibilityRule extends Mapping.Rule {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
-      val toolMapping = ToolMapping(bindings)
+      val toolMapping = bindingsToToolMappings(bindings)
       def mapPileOrNot(pile: LPile): Option[LPile] = toolMapping.stores.get(pile).map(_.pile)
       def mapRecipeOrNot(recipe: LRecipe): LRecipe = toolMapping.tools.get(recipe) match {
         case Some(tool) => tool.recipe
@@ -163,14 +162,14 @@ object LToolMapper {
   }
 
   class SetBuilderConsumer extends Consumer {
-    var mappings: Set[ToolMapping] = Set.empty
+    var mappings: Set[LToolMapping] = Set.empty
     var searchHasEnded = false
 
-    override def foundMapping(mapping: ToolMapping): Unit = {
+    override def foundMapping(mapping: LToolMapping): Unit = {
       mappings += mapping
     }
 
-    override def intermediaryStep(mapping: ToolMapping): Unit = ()
+    override def intermediaryStep(mapping: LToolMapping): Unit = ()
 
     override def wantMore: Boolean = true
 
@@ -180,7 +179,7 @@ object LToolMapper {
   }
 
   def findAllSolutions(pipeline: LPipeline, toolBox: LToolBox,
-                       strategy: MapMaker.Strategy = MapMaker.NarrowFirstStrategy): Set[ToolMapping] = {
+                       strategy: MapMaker.Strategy = MapMaker.NarrowFirstStrategy): Set[LToolMapping] = {
     val setBuilderConsumer = new SetBuilderConsumer
     findSolutions(pipeline, toolBox, setBuilderConsumer, strategy)
     setBuilderConsumer.mappings

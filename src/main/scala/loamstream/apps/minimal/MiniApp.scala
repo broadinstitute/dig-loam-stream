@@ -18,46 +18,12 @@ object MiniApp extends App {
 
   val toolbox = LToolBox.LToolBag(MiniMockStore.stores, MiniMockTool.tools)
 
-  val consumer = new LToolMapper.Consumer {
-    def printStore(store: LStore): String = {
-      store match {
-        case MiniMockStore(_, comment) => comment
-        case _ => store.toString
-      }
-    }
+  val mappings = LToolMapper.findAllSolutions(MiniPipeline.pipeline, toolbox)
 
-    def printTool(tool: LTool): String = {
-      tool match {
-        case MiniMockTool(_, comment) => comment
-        case _ => tool.toString
-      }
-    }
-
-    def printMapping(mapping: ToolMapping): Unit = {
-      for ((pile, store) <- mapping.stores) {
-        println(pile + " -> " + printStore(store))
-      }
-      for ((recipe, tool) <- mapping.tools) {
-        println(recipe + " -> " + printTool(tool))
-      }
-    }
-
-    override def intermediaryStep(mapping: ToolMapping): Unit = ()
-
-    override def foundMapping(mapping: ToolMapping): Unit = {
-      println("Yay, found a mapping!")
-      printMapping(mapping)
-      println("That was the mapping.")
-    }
-
-    override def wantMore: Boolean = true
-
-    override def searchEnded(): Unit = {
-      println("Search ended")
-    }
-
+  for(mapping <- mappings) {
+    println("Here comes a mapping")
+    LToolMappingPrinter.printMapping(mapping)
+    println("That was a mapping")
   }
-
-  LToolMapper.findSolutions(MiniPipeline.pipeline, toolbox, consumer)
 
 }

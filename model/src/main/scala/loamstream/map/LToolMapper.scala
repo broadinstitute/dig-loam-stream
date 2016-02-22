@@ -11,9 +11,9 @@ import util.Iterative
 import util.Iterative.SizePredicting
 
 /**
- * LoamStream
- * Created by oliverr on 2/17/2016.
- */
+  * LoamStream
+  * Created by oliverr on 2/17/2016.
+  */
 object LToolMapper {
 
   object ToolMapping {
@@ -160,6 +160,30 @@ object LToolMapper {
     val slots: Map[Mapping.Slot, Mapping.RawChoices] = pileSlots ++ recipeSlots
     val mapping = Mapping.fromSlots(slots).plusRule(CompatibilityRule)
     MapMaker.traverse(mapping, MapMakerConsumer(consumer))
+  }
+
+  class SetBuilderConsumer extends Consumer {
+    var mappings: Set[ToolMapping] = Set.empty
+    var searchHasEnded = false
+
+    override def foundMapping(mapping: ToolMapping): Unit = {
+      mappings += mapping
+    }
+
+    override def intermediaryStep(mapping: ToolMapping): Unit = ()
+
+    override def wantMore: Boolean = true
+
+    override def searchEnded(): Unit = {
+      searchHasEnded = true
+    }
+  }
+
+  def findAllSolutions(pipeline: LPipeline, toolBox: LToolBox,
+                       strategy: MapMaker.Strategy = MapMaker.NarrowFirstStrategy): Set[ToolMapping] = {
+    val setBuilderConsumer = new SetBuilderConsumer
+    findSolutions(pipeline, toolBox, setBuilderConsumer, strategy)
+    setBuilderConsumer.mappings
   }
 
 }

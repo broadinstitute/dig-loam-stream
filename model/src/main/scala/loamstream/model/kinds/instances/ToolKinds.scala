@@ -4,9 +4,9 @@ import loamstream.model.kinds.LSpecificKind
 import loamstream.model.kinds.instances.RecipeKinds.{extractKey, extractSampleIdsFromGenotypeCalls, usePreExisting}
 
 /**
-  * LoamStream
-  * Created by oliverr on 2/16/2016.
-  */
+ * LoamStream
+ * Created by oliverr on 2/16/2016.
+ */
 object ToolKinds {
   def usePreExistingVCFFile(id: String) = LSpecificKind(("Use pre-existing VCF file", id), usePreExisting(id))
 

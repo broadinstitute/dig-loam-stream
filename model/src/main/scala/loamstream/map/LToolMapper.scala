@@ -36,9 +36,7 @@ object LToolMapper {
     def searchEnded(): Unit
   }
 
-  case class PileSlot(pile: LPile) extends Mapping.Slot {
-    println(hashCode + "   " + toString)
-  }
+  case class PileSlot(pile: LPile) extends Mapping.Slot
 
   case class RecipeSlot(recipe: LRecipe) extends Mapping.Slot
 
@@ -148,11 +146,6 @@ object LToolMapper {
       val recipeBounds = unmappedRecipes.map({ recipe =>
         (recipe, ToolTargetFilter(recipe.inputs.map(mapPileOrNot), mapPileOrNot(recipe.output)))
       }).toMap
-      println("Mapped recipes: " + toolMapping.tools.size)
-      println("Recipe bounds size: " + recipeBounds.size)
-      for ((slotRecipe, recipeBound) <- recipeBounds) {
-        println(slotRecipe + " -> " + recipeBound)
-      }
       CompatibilityConstraint(slots, outputRoles, inputRoles, recipeBounds)
     }
   }

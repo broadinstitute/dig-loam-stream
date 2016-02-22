@@ -5,9 +5,9 @@ import loamstream.model.jobs.tools.LTool
 import loamstream.model.recipes.LRecipe
 
 /**
-  * LoamStream
-  * Created by oliverr on 2/16/2016.
-  */
+ * LoamStream
+ * Created by oliverr on 2/16/2016.
+ */
 object MiniMockTool {
 
   val checkPreExistingVcfFile =

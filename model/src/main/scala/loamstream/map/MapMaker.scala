@@ -6,9 +6,9 @@ import util.shot.{Hit, Miss, Shot}
 import util.snag.Snag
 
 /**
-  * LoamStream
-  * Created by oliverr on 1/27/2016.
-  */
+ * LoamStream
+ * Created by oliverr on 1/27/2016.
+ */
 object MapMaker {
 
   sealed trait Tactic
@@ -30,7 +30,6 @@ object MapMaker {
       val availableSlots = node.mapping.unboundSlots
       if (availableSlots.nonEmpty) {
         var bestSlot = availableSlots.head
-        println(bestSlot + "   " + node.mapping.rawChoices(bestSlot))
         var nBestSlotChoices = node.mapping.choices(bestSlot).predictedSize
         val slotIterator = availableSlots.iterator
         while (slotIterator.hasNext && nBestSlotChoices > 0) {

@@ -6,9 +6,9 @@ import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
 
 /**
-  * LoamStream
-  * Created by oliverr on 2/16/2016.
-  */
+ * LoamStream
+ * Created by oliverr on 2/16/2016.
+ */
 object LToolBox {
 
   case class LToolBag(stores: Set[LStore], tools: Set[LTool]) extends LToolBox {

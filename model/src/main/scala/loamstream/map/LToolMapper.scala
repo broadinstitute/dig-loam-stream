@@ -53,7 +53,7 @@ object LToolMapper {
     override def end(): Unit = consumer.searchEnded()
   }
 
-  case class AvailableStores(pile: LPile, stores: Set[LStore]) extends Mapping.RawChoices {
+  case class AvailableStores(stores: Set[LStore]) extends Mapping.RawChoices {
     override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): SizePredicting[Target] = {
       var remainingTargets: Set[Target] = stores.map(StoreTarget)
       for (slotConstraint <- slotConstraints) {
@@ -63,7 +63,7 @@ object LToolMapper {
     }
   }
 
-  case class AvailableTools(recipe: LRecipe, tools: Set[LTool]) extends Mapping.RawChoices {
+  case class AvailableTools(tools: Set[LTool]) extends Mapping.RawChoices {
     override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): SizePredicting[Target] = {
       var remainingTargets: Set[Target] = tools.map(ToolTarget)
       for (slotConstraint <- slotConstraints) {
@@ -152,10 +152,10 @@ object LToolMapper {
   def findSolutions(pipeline: LPipeline, toolBox: LToolBox, consumer: Consumer,
                     strategy: MapMaker.Strategy = MapMaker.NarrowFirstStrategy): Unit = {
     val pileSlots =
-      pipeline.calls.map(_.pile).map(pile => (PileSlot(pile), AvailableStores(pile, toolBox.storesFor(pile)))).toMap
+      pipeline.calls.map(_.pile).map(pile => (PileSlot(pile), AvailableStores(toolBox.storesFor(pile)))).toMap
     val recipeSlots =
       pipeline.calls.map(_.recipe)
-        .map(recipe => (RecipeSlot(recipe), AvailableTools(recipe, toolBox.toolsFor(recipe)))).toMap
+        .map(recipe => (RecipeSlot(recipe), AvailableTools(toolBox.toolsFor(recipe)))).toMap
     val slots: Map[Mapping.Slot, Mapping.RawChoices] = pileSlots ++ recipeSlots
     val mapping = Mapping.fromSlots(slots).plusRule(CompatibilityRule)
     MapMaker.traverse(mapping, MapMakerConsumer(consumer))

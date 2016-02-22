@@ -11,9 +11,9 @@ import util.Iterative
 import util.Iterative.SizePredicting
 
 /**
-  * LoamStream
-  * Created by oliverr on 2/17/2016.
-  */
+ * LoamStream
+ * Created by oliverr on 2/17/2016.
+ */
 object LToolMapper {
 
   object ToolMapping {
@@ -29,7 +29,7 @@ object LToolMapper {
   trait Consumer {
     def foundMapping(mapping: ToolMapping): Unit
 
-    def intermediaryStep(mapping: ToolMapping) : Unit
+    def intermediaryStep(mapping: ToolMapping): Unit
 
     def wantMore: Boolean
 
@@ -96,23 +96,30 @@ object LToolMapper {
     }
   }
 
-  case class ToolTargetFilter(recipe: LRecipe) extends ((Mapping.Target) => Boolean) {
+  case class ToolTargetFilter(inputOpts: Seq[Option[LPile]], outputOpt: Option[LPile])
+    extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = target match {
-      case toolTarget: ToolTarget => toolTarget.tool.recipe <:< recipe
+      case toolTarget: ToolTarget =>
+        val toolRecipe = toolTarget.tool.recipe
+        val inputCompatible = inputOpts.zip(toolRecipe.inputs).collect({
+          case (Some(inPile), toolInPile) => inPile <:< toolInPile
+        }).forall(p => p)
+        val outputCompatible = outputOpt.map(_ >:> toolRecipe.output).getOrElse(true)
+        inputCompatible && outputCompatible
       case _ => false
     }
   }
 
   case class CompatibilityConstraint(slots: Set[Slot], outputRoles: Map[LPile, LRecipe],
                                      inputRoles: Map[LPile, Set[(Int, LRecipe)]],
-                                     recipeBounds: Map[LRecipe, LRecipe])
+                                     recipeBounds: Map[LRecipe, ToolTargetFilter])
     extends Mapping.Constraint {
 
     override def slotFilter(slot: Slot): (Target) => Boolean = slot match {
       case PileSlot(slotPile) =>
         StoreTargetFilter(outputRoles.get(slotPile), inputRoles.getOrElse(slotPile, Set.empty))
       case RecipeSlot(slotRecipe) => recipeBounds.get(slotRecipe) match {
-        case Some(recipeBound) => ToolTargetFilter(recipeBound)
+        case Some(toolTargetFilter) => toolTargetFilter
         case None => Function.const(true)
       }
       case _ => Function.const(false)
@@ -122,10 +129,7 @@ object LToolMapper {
   object CompatibilityRule extends Mapping.Rule {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
       val toolMapping = ToolMapping(bindings)
-      def mapPileOrNot(pile: LPile): LPile = toolMapping.stores.get(pile) match {
-        case Some(store) => store.pile
-        case None => pile
-      }
+      def mapPileOrNot(pile: LPile): Option[LPile] = toolMapping.stores.get(pile).map(_.pile)
       def mapRecipeOrNot(recipe: LRecipe): LRecipe = toolMapping.tools.get(recipe) match {
         case Some(tool) => tool.recipe
         case None => recipe
@@ -142,11 +146,11 @@ object LToolMapper {
       }
       val unmappedRecipes = recipes -- toolMapping.tools.keySet
       val recipeBounds = unmappedRecipes.map({ recipe =>
-        (recipe, recipe.copy(inputs = recipe.inputs.map(mapPileOrNot), output = mapPileOrNot(recipe.output)))
+        (recipe, ToolTargetFilter(recipe.inputs.map(mapPileOrNot), mapPileOrNot(recipe.output)))
       }).toMap
       println("Mapped recipes: " + toolMapping.tools.size)
       println("Recipe bounds size: " + recipeBounds.size)
-      for((slotRecipe, recipeBound) <- recipeBounds) {
+      for ((slotRecipe, recipeBound) <- recipeBounds) {
         println(slotRecipe + " -> " + recipeBound)
       }
       CompatibilityConstraint(slots, outputRoles, inputRoles, recipeBounds)

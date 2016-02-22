@@ -30,4 +30,10 @@ case class LRecipe(kind: LKind, inputs: Seq[LPile], output: LPile) {
   def >:>(oRecipe: LRecipe): Boolean = kind >:> oRecipe.kind && inputs.size == oRecipe.inputs.size &&
     inputs.zip(oRecipe.inputs).forall(tup => tup._1 <:< tup._2) && output >:> oRecipe.output
 
+  def <<<(oRecipe: LRecipe): Boolean = kind <:< oRecipe.kind && inputs.size == oRecipe.inputs.size &&
+    inputs.zip(oRecipe.inputs).forall(tup => tup._1 <:< tup._2) && output <:< oRecipe.output
+
+  def >>>(oRecipe: LRecipe): Boolean = kind >:> oRecipe.kind && inputs.size == oRecipe.inputs.size &&
+    inputs.zip(oRecipe.inputs).forall(tup => tup._1 >:> tup._2) && output >:> oRecipe.output
+
 }

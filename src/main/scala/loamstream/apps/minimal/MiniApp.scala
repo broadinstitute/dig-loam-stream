@@ -13,14 +13,7 @@ import loamstream.model.stores.LStore
   */
 object MiniApp extends App {
 
-  println(MiniMockStore.vcfFile.pile <:< MiniMockStore.genotypesCassandraTable.pile)
-  println(MiniMockTool.checkPreExistingVcfFile.recipe <:< MiniMockTool.checkPreExistingGenotypeCassandraTable.recipe)
-  println(MiniMockStore.genotypesCassandraTable.pile <:< MiniMockStore.vcfFile.pile)
-  println(MiniMockTool.checkPreExistingGenotypeCassandraTable.recipe <:< MiniMockTool.checkPreExistingVcfFile.recipe)
-  println(MiniMockStore.sampleIdsFile.pile <:< MiniMockStore.sampleIdsCassandraTable.pile)
-  println(MiniMockTool.extractSampleIdsFromVcfFile.recipe <:< MiniMockTool.extractSampleIdsFromCassandraTable.recipe)
-  println(MiniMockStore.sampleIdsCassandraTable.pile <:< MiniMockStore.sampleIdsFile.pile)
-  println(MiniMockTool.extractSampleIdsFromCassandraTable.recipe <:< MiniMockTool.extractSampleIdsFromVcfFile.recipe)
+  println(MiniAppDebug.theseShouldAllBeTrue())
   println("Yo!")
 
   val toolbox = LToolBox.LToolBag(MiniMockStore.stores, MiniMockTool.tools)

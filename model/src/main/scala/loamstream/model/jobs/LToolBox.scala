@@ -14,7 +14,7 @@ object LToolBox {
   case class LToolBag(stores: Set[LStore], tools: Set[LTool]) extends LToolBox {
     override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile)
 
-    override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <:< recipe)
+    override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe)
   }
 
 }

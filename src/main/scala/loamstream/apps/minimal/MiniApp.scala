@@ -13,9 +13,11 @@ object MiniApp extends App {
   //  println(MiniAppDebug.theseShouldAllBeFalse())
   println("Yo!")
 
-  val toolbox = LToolBox.LToolBag(MiniMockStore.stores, MiniMockTool.tools)
+  val pipeline = MiniPipeline.pipeline
 
-  val mappings = LToolMapper.findAllSolutions(MiniPipeline.pipeline, toolbox)
+  val toolbox = MiniToolBox
+
+  val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
 
   println("Found " + mappings.size + " mappings.")
 
@@ -30,7 +32,9 @@ object MiniApp extends App {
     System.exit(0)
   }
 
-  val mapping = LPipelineSillyCostEstimator.pickCheapest(mappings)
+  val mappingCostEstimator = LPipelineSillyCostEstimator
+
+  val mapping = mappingCostEstimator.pickCheapest(mappings)
 
   println("Here comes the cheapest mapping")
   LToolMappingPrinter.printMapping(mapping)

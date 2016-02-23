@@ -1,5 +1,6 @@
 package loamstream.model.jobs.tools
 
+import loamstream.map.LToolMapping
 import loamstream.model.jobs.LJob
 import loamstream.model.recipes.LRecipe
 
@@ -11,6 +12,6 @@ trait LTool {
 
   def recipe: LRecipe
 
-  def createJob[T](inputTools: Seq[LTool]): LJob[T]
+  def createJob(recipe: LRecipe, mapping:LToolMapping): LJob
 
 }

@@ -1,8 +1,11 @@
 package loamstream.apps.minimal
 
+import loamstream.map.LToolMapping
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.recipes.LRecipe
+
+import scala.concurrent.ExecutionContext
 
 /**
  * LoamStream
@@ -34,5 +37,5 @@ object MiniMockTool {
 }
 
 case class MiniMockTool(recipe: LRecipe, comment: String) extends LTool {
-  override def createJob[T](inputTools: Seq[LTool]): LJob[T] = ???
+  override def createJob(recipe: LRecipe, mapping: LToolMapping): LJob = ???
 }

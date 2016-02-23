@@ -7,29 +7,29 @@ package loamstream.apps.minimal
 object MiniAppDebug {
 
   def theseShouldAllBeFalse() : Unit = {
-    println(MiniMockStore.vcfFile.pile <:< MiniMockStore.genotypesCassandraTable.pile)
+    println(MiniStore.vcfFile.pile <:< MiniStore.genotypesCassandraTable.pile)
     println(
-      MiniMockTool.checkPreExistingVcfFile.recipe <:< MiniMockTool.checkPreExistingGenotypeCassandraTable.recipe)
-    println(MiniMockStore.genotypesCassandraTable.pile <:< MiniMockStore.vcfFile.pile)
+      MiniTool.checkPreExistingVcfFile.recipe <:< MiniTool.checkPreExistingGenotypeCassandraTable.recipe)
+    println(MiniStore.genotypesCassandraTable.pile <:< MiniStore.vcfFile.pile)
     println(
-      MiniMockTool.checkPreExistingGenotypeCassandraTable.recipe <:< MiniMockTool.checkPreExistingVcfFile.recipe)
-    println(MiniMockStore.sampleIdsFile.pile <:< MiniMockStore.sampleIdsCassandraTable.pile)
+      MiniTool.checkPreExistingGenotypeCassandraTable.recipe <:< MiniTool.checkPreExistingVcfFile.recipe)
+    println(MiniStore.sampleIdsFile.pile <:< MiniStore.sampleIdsCassandraTable.pile)
     println(
-      MiniMockTool.extractSampleIdsFromVcfFile.recipe <:< MiniMockTool.extractSampleIdsFromCassandraTable.recipe)
-    println(MiniMockStore.sampleIdsCassandraTable.pile <:< MiniMockStore.sampleIdsFile.pile)
+      MiniTool.extractSampleIdsFromVcfFile.recipe <:< MiniTool.extractSampleIdsFromCassandraTable.recipe)
+    println(MiniStore.sampleIdsCassandraTable.pile <:< MiniStore.sampleIdsFile.pile)
     println(
-      MiniMockTool.extractSampleIdsFromCassandraTable.recipe <:< MiniMockTool.extractSampleIdsFromVcfFile.recipe)
+      MiniTool.extractSampleIdsFromCassandraTable.recipe <:< MiniTool.extractSampleIdsFromVcfFile.recipe)
   }
 
   def theseShouldAllBeTrue() : Unit = {
-    println(MiniMockStore.vcfFile.pile <:< MiniPipeline.genotypeCallsPile)
-    println(MiniMockStore.genotypesCassandraTable.pile <:< MiniPipeline.genotypeCallsPile)
-    println(MiniMockStore.sampleIdsFile.pile <:< MiniPipeline.sampleIdsPile)
-    println(MiniMockStore.sampleIdsCassandraTable.pile <:< MiniPipeline.sampleIdsPile)
-    println(MiniMockTool.checkPreExistingVcfFile.recipe <<< MiniPipeline.genotypeCallsCall.recipe)
-    println(MiniMockTool.checkPreExistingGenotypeCassandraTable.recipe <<< MiniPipeline.genotypeCallsCall.recipe)
-    println(MiniMockTool.extractSampleIdsFromVcfFile.recipe <<< MiniPipeline.sampleIdsCall.recipe)
-    println(MiniMockTool.extractSampleIdsFromCassandraTable.recipe <<< MiniPipeline.sampleIdsCall.recipe)
+    println(MiniStore.vcfFile.pile <:< MiniPipeline.genotypeCallsPile)
+    println(MiniStore.genotypesCassandraTable.pile <:< MiniPipeline.genotypeCallsPile)
+    println(MiniStore.sampleIdsFile.pile <:< MiniPipeline.sampleIdsPile)
+    println(MiniStore.sampleIdsCassandraTable.pile <:< MiniPipeline.sampleIdsPile)
+    println(MiniTool.checkPreExistingVcfFile.recipe <<< MiniPipeline.genotypeCallsCall.recipe)
+    println(MiniTool.checkPreExistingGenotypeCassandraTable.recipe <<< MiniPipeline.genotypeCallsCall.recipe)
+    println(MiniTool.extractSampleIdsFromVcfFile.recipe <<< MiniPipeline.sampleIdsCall.recipe)
+    println(MiniTool.extractSampleIdsFromCassandraTable.recipe <<< MiniPipeline.sampleIdsCall.recipe)
   }
 
 }

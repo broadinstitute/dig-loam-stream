@@ -3,11 +3,21 @@ package loamstream.apps.minimal
 import loamstream.map.LToolMapper
 import loamstream.model.jobs.LToolBox
 
+import scala.io.Source
+import java.nio.file.{Paths, Path}
+
+
 /**
   * LoamStream
   * Created by oliverr on 12/21/2015.
   */
 object MiniApp extends App {
+
+  val dataFilesDir = Paths.get("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles")
+  val vcfDirPath = dataFilesDir.resolve("vcf")
+
+  val config = MiniToolBox.Config(vcfDirPath)
+
 
   //  println(MiniAppDebug.theseShouldAllBeTrue())
   //  println(MiniAppDebug.theseShouldAllBeFalse())
@@ -15,7 +25,7 @@ object MiniApp extends App {
 
   val pipeline = MiniPipeline.pipeline
 
-  val toolbox = MiniToolBox
+  val toolbox = MiniToolBox(config)
 
   val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
 
@@ -32,7 +42,7 @@ object MiniApp extends App {
     System.exit(0)
   }
 
-  val mappingCostEstimator = LPipelineSillyCostEstimator
+  val mappingCostEstimator = LPipelineMiniCostEstimator
 
   val mapping = mappingCostEstimator.pickCheapest(mappings)
 

@@ -11,14 +11,14 @@ import loamstream.model.stores.LStore
 object LToolMappingPrinter {
   def printStore(store: LStore): String = {
     store match {
-      case MiniMockStore(_, comment) => comment
+      case MiniStore(_, comment) => comment
       case _ => store.toString
     }
   }
 
   def printTool(tool: LTool): String = {
     tool match {
-      case MiniMockTool(_, comment) => comment
+      case MiniTool(_, comment) => comment
       case _ => tool.toString
     }
   }

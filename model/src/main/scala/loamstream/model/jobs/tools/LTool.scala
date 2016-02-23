@@ -13,6 +13,4 @@ trait LTool {
 
   def recipe: LRecipe
 
-  def createJob(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): LJob
-
 }

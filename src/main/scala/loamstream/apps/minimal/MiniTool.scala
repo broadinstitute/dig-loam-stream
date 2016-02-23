@@ -37,6 +37,4 @@ object MiniTool {
 
 }
 
-case class MiniTool(recipe: LRecipe, comment: String) extends LTool {
-  override def createJob(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): LJob = ???
-}
+case class MiniTool(recipe: LRecipe, comment: String) extends LTool

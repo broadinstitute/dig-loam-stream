@@ -32,5 +32,5 @@ object LJob {
 trait LJob {
   def inputs: Set[LJob]
 
-  def execute(context: ExecutionContext): Shot[Future[Result]]
+  def execute(implicit context: ExecutionContext): Shot[Future[Result]]
 }

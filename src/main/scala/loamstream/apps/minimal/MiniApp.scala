@@ -1,10 +1,12 @@
 package loamstream.apps.minimal
 
-import loamstream.map.LToolMapper
-import loamstream.model.jobs.LToolBox
+import java.nio.file.Paths
 
-import scala.io.Source
-import java.nio.file.{Paths, Path}
+import loamstream.map.LToolMapper
+
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 
 
 /**
@@ -14,9 +16,8 @@ import java.nio.file.{Paths, Path}
 object MiniApp extends App {
 
   val dataFilesDir = Paths.get("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles")
-  val vcfDirPath = dataFilesDir.resolve("vcf")
 
-  val config = MiniToolBox.Config(vcfDirPath)
+  val config = MiniToolBox.Config(dataFilesDir)
 
 
   //  println(MiniAppDebug.theseShouldAllBeTrue())
@@ -37,7 +38,7 @@ object MiniApp extends App {
     println("That was a mapping")
   }
 
-  if(mappings.isEmpty) {
+  if (mappings.isEmpty) {
     println("No mappings found - bye")
     System.exit(0)
   }
@@ -50,4 +51,9 @@ object MiniApp extends App {
   LToolMappingPrinter.printMapping(mapping)
   println("That was the cheapest mapping")
 
+  val genotypesJob = toolbox.createJob(MiniPipeline.genotypeCallsCall.recipe, pipeline, mapping)
+  val extractSamplesJob = toolbox.createJob(MiniPipeline.sampleIdsCall.recipe, pipeline, mapping)
+
+  println(Await.result(genotypesJob.get.execute.get, Duration.Inf))
+  println(Await.result(extractSamplesJob.get.execute.get, Duration.Inf))
 }

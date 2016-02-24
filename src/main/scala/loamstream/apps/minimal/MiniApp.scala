@@ -4,10 +4,6 @@ import java.nio.file.Paths
 
 import loamstream.map.LToolMapper
 
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-
 
 /**
   * LoamStream
@@ -17,7 +13,7 @@ object MiniApp extends App {
 
   val dataFilesDir = Paths.get("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles")
 
-  val config = MiniToolBox.Config(dataFilesDir)
+  val config = MiniToolBox.InteractiveConfig
 
 
   //  println(MiniAppDebug.theseShouldAllBeTrue())

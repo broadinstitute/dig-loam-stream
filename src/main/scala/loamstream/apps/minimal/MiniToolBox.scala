@@ -15,18 +15,29 @@ import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
 import tools.VcfParser
+import util.FileAsker
 import util.shot.{Hit, Miss, Shot}
 import util.snag.SnagAtom
 
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * LoamStream
- * Created by oliverr on 2/23/2016.
- */
+  * LoamStream
+  * Created by oliverr on 2/23/2016.
+  */
 object MiniToolBox {
 
-  case class Config(dataFilesFolder: Path)
+  trait Config {
+    def getVcfFilePath(id: String): Path
+
+    def getSampleFilePath: Path
+  }
+
+  object InteractiveConfig extends Config {
+    override def getVcfFilePath(id: String): Path = FileAsker.ask(" VCF file '" + id + "'")
+
+    override def getSampleFilePath: Path = FileAsker.ask("samples file")
+  }
 
   case class VcfFileExists(path: Path) extends LJob.Success {
     override def successMessage: String = path + " exists"
@@ -68,18 +79,35 @@ object MiniToolBox {
 }
 
 case class MiniToolBox(config: Config) extends LBasicToolBox {
-  val vcfFilesFolder = config.dataFilesFolder.resolve("vcf")
-  val sampleFilesFolder = config.dataFilesFolder.resolve("samples")
   val stores = MiniStore.stores
   val tools = MiniTool.tools
+
+  var vcfFiles: Map[String, Path] = Map.empty
+  var sampleFileOpt: Option[Path] = None
 
   override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile)
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe)
 
-  override def getPredefindedVcfFile(id: String): Path = vcfFilesFolder.resolve(id + ".vcf")
+  override def getPredefindedVcfFile(id: String): Path = {
+    vcfFiles.get(id) match {
+      case Some(path) => path
+      case None =>
+        val path = config.getVcfFilePath(id)
+        vcfFiles += (id -> path)
+        path
+    }
+  }
 
-  override def pickNewSampleFile: Path = sampleFilesFolder.resolve("samples" + System.currentTimeMillis())
+  override def getSampleFile: Path = {
+    sampleFileOpt match {
+      case Some(path) => path
+      case None =>
+        val path = config.getSampleFilePath
+        sampleFileOpt = Some(path)
+        path
+    }
+  }
 
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
     MiniTool.checkPreExistingVcfFile.recipe.kind match {
@@ -92,7 +120,7 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
   }
 
   def createExtractSamplesJob: Shot[ExtractSampleIdsFromVcfFileJob] =
-    createVcfFileJob.map(ExtractSampleIdsFromVcfFileJob(_, pickNewSampleFile))
+    createVcfFileJob.map(ExtractSampleIdsFromVcfFileJob(_, getSampleFile))
 
 
   override def createJob(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[LJob] = {

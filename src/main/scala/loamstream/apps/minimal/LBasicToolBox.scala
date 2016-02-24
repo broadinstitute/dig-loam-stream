@@ -12,6 +12,6 @@ trait LBasicToolBox extends LToolBox {
 
   def getPredefindedVcfFile(id: String): Path
 
-  def pickNewSampleFile: Path
+  def getSampleFile: Path
 
 }

@@ -6,6 +6,7 @@ import java.nio.file.{Files, Path}
 import loamstream.apps.minimal.MiniToolBox.{CheckPreexistingVcfFileJob, Config, ExtractSampleIdsFromVcfFileJob}
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
+import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.tools.LTool
@@ -20,9 +21,9 @@ import util.snag.SnagAtom
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
-  * LoamStream
-  * Created by oliverr on 2/23/2016.
-  */
+ * LoamStream
+ * Created by oliverr on 2/23/2016.
+ */
 object MiniToolBox {
 
   case class Config(dataFilesFolder: Path)
@@ -103,5 +104,9 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
       }
       case None => Miss(SnagAtom("No tool mapped to recipe " + recipe))
     }
+  }
+
+  override def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable = {
+    LExecutable(mapping.tools.keySet.map(createJob(_, pipeline, mapping)).collect({ case Hit(job) => job }))
   }
 }

@@ -1,6 +1,6 @@
-package util
+package loamstream.util
 
-import util.shot.{Hit, Miss}
+import loamstream.util.shot.{Hit, Miss}
 
 import scala.reflect.runtime.universe.typeTag
 

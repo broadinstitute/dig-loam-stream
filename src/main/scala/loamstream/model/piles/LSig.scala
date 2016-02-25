@@ -1,14 +1,14 @@
 package loamstream.model.piles
 
-import util.ProductTypeExploder
-import util.shot.Shot
+import loamstream.util.ProductTypeExploder
+import loamstream.util.shot.Shot
 
-import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
+import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
 /**
- * LoamStream
- * Created by oliverr on 2/12/2016.
- */
+  * LoamStream
+  * Created by oliverr on 2/12/2016.
+  */
 object LSig {
 
   object Set {

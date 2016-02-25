@@ -14,10 +14,10 @@ import loamstream.model.kinds.LSpecificKind
 import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
+import loamstream.util.snag.SnagAtom
 import tools.VcfParser
-import util.FileAsker
-import util.shot.{Hit, Miss, Shot}
-import util.snag.SnagAtom
+import loamstream.util.FileAsker
+import loamstream.util.shot.{Hit, Miss, Shot}
 
 import scala.concurrent.{ExecutionContext, Future}
 

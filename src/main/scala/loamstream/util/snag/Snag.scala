@@ -1,4 +1,4 @@
-package util.snag
+package loamstream.util.snag
 
 /**
   * LoamStream

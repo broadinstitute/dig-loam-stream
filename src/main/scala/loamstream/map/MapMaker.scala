@@ -2,13 +2,13 @@ package loamstream.map
 
 import loamstream.map.AriadneNode.WithoutSlot
 import loamstream.map.Mapping.Slot
-import util.shot.{Hit, Miss, Shot}
-import util.snag.Snag
+import loamstream.util.snag.Snag
+import loamstream.util.shot.{Hit, Miss, Shot}
 
 /**
- * LoamStream
- * Created by oliverr on 1/27/2016.
- */
+  * LoamStream
+  * Created by oliverr on 1/27/2016.
+  */
 object MapMaker {
 
   sealed trait Tactic

@@ -1,7 +1,7 @@
 package loamstream.map
 
 import loamstream.map.Mapping.{Slot, Target}
-import util.Iterative
+import loamstream.util.Iterative
 
 /**
   * LoamStream

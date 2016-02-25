@@ -17,3 +17,13 @@ server.pid
 *~
 /dist/
 .cache
+.cache-main
+.cache-tests
+.classpath
+.project
+.settings
+model/.cache-main
+model/.cache-tests
+model/.classpath
+model/.project
+model/.settings

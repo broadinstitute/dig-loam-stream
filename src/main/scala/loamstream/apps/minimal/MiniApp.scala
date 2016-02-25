@@ -1,63 +1,56 @@
 package loamstream.apps.minimal
 
+import java.nio.file.Paths
+
 import loamstream.map.LToolMapper
-import loamstream.map.LToolMapper.ToolMapping
-import loamstream.model.jobs.LToolBox
-import loamstream.model.jobs.tools.LTool
-import loamstream.model.stores.LStore
+
 
 /**
- * LoamStream
- * Created by oliverr on 12/21/2015.
- */
+  * LoamStream
+  * Created by oliverr on 12/21/2015.
+  */
 object MiniApp extends App {
+
+  val dataFilesDir = Paths.get("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles")
+
+  val config = MiniToolBox.InteractiveConfig
+
 
   //  println(MiniAppDebug.theseShouldAllBeTrue())
   //  println(MiniAppDebug.theseShouldAllBeFalse())
   println("Yo!")
 
-  val toolbox = LToolBox.LToolBag(MiniMockStore.stores, MiniMockTool.tools)
+  val pipeline = MiniPipeline.pipeline
 
-  val consumer = new LToolMapper.Consumer {
-    def printStore(store: LStore): String = {
-      store match {
-        case MiniMockStore(_, comment) => comment
-        case _ => store.toString
-      }
-    }
+  val toolbox = MiniToolBox(config)
 
-    def printTool(tool: LTool): String = {
-      tool match {
-        case MiniMockTool(_, comment) => comment
-        case _ => tool.toString
-      }
-    }
+  val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
 
-    def printMapping(mapping: ToolMapping): Unit = {
-      for ((pile, store) <- mapping.stores) {
-        println(pile + " -> " + printStore(store))
-      }
-      for ((recipe, tool) <- mapping.tools) {
-        println(recipe + " -> " + printTool(tool))
-      }
-    }
+  println("Found " + mappings.size + " mappings.")
 
-    override def intermediaryStep(mapping: ToolMapping): Unit = ()
-
-    override def foundMapping(mapping: ToolMapping): Unit = {
-      println("Yay, found a mapping!")
-      printMapping(mapping)
-      println("That was the mapping.")
-    }
-
-    override def wantMore: Boolean = true
-
-    override def searchEnded(): Unit = {
-      println("Search ended")
-    }
-
+  for (mapping <- mappings) {
+    println("Here comes a mapping")
+    LToolMappingPrinter.printMapping(mapping)
+    println("That was a mapping")
   }
 
-  LToolMapper.findSolutions(MiniPipeline.pipeline, toolbox, consumer)
+  if (mappings.isEmpty) {
+    println("No mappings found - bye")
+    System.exit(0)
+  }
 
+  val mappingCostEstimator = LPipelineMiniCostEstimator
+
+  val mapping = mappingCostEstimator.pickCheapest(mappings)
+
+  println("Here comes the cheapest mapping")
+  LToolMappingPrinter.printMapping(mapping)
+  println("That was the cheapest mapping")
+
+  val genotypesJob = toolbox.createJob(MiniPipeline.genotypeCallsCall.recipe, pipeline, mapping)
+  val extractSamplesJob = toolbox.createJob(MiniPipeline.sampleIdsCall.recipe, pipeline, mapping)
+
+  val executable = toolbox.createExecutable(pipeline, mapping)
+  val results = MiniExecuter.execute(executable)
+  println(results)
 }

@@ -152,10 +152,9 @@ object LToolMapper {
   def findSolutions(pipeline: LPipeline, toolBox: LToolBox, consumer: Consumer,
                     strategy: MapMaker.Strategy = MapMaker.NarrowFirstStrategy): Unit = {
     val pileSlots =
-      pipeline.calls.map(_.pile).map(pile => (PileSlot(pile), AvailableStores(toolBox.storesFor(pile)))).toMap
+      pipeline.piles.map(pile => (PileSlot(pile), AvailableStores(toolBox.storesFor(pile)))).toMap
     val recipeSlots =
-      pipeline.calls.map(_.recipe)
-        .map(recipe => (RecipeSlot(recipe), AvailableTools(toolBox.toolsFor(recipe)))).toMap
+      pipeline.recipes.map(recipe => (RecipeSlot(recipe), AvailableTools(toolBox.toolsFor(recipe)))).toMap
     val slots: Map[Mapping.Slot, Mapping.RawChoices] = pileSlots ++ recipeSlots
     val mapping = Mapping.fromSlots(slots).plusRule(CompatibilityRule)
     MapMaker.traverse(mapping, MapMakerConsumer(consumer))

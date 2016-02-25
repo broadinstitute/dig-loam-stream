@@ -34,7 +34,7 @@ object MiniToolBox {
   }
 
   object InteractiveConfig extends Config {
-    override def getVcfFilePath(id: String): Path = FileAsker.ask(" VCF file '" + id + "'")
+    override def getVcfFilePath(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
 
     override def getSampleFilePath: Path = FileAsker.ask("samples file")
   }

@@ -53,8 +53,8 @@ object MiniApp extends App {
   LToolMappingPrinter.printMapping(mapping)
   println("That was the cheapest mapping")
 
-  val genotypesJob = toolbox.createJob(MiniPipeline.genotypeCallsCall.recipe, pipeline, mapping)
-  val extractSamplesJob = toolbox.createJob(MiniPipeline.sampleIdsCall.recipe, pipeline, mapping)
+  val genotypesJob = toolbox.createJob(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)
+  val extractSamplesJob = toolbox.createJob(MiniPipeline.sampleIdsRecipe, pipeline, mapping)
 
   val executable = toolbox.createExecutable(pipeline, mapping)
   val results = MiniExecuter.execute(executable)

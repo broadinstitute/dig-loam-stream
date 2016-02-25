@@ -26,10 +26,10 @@ object MiniAppDebug {
     println(MiniStore.genotypesCassandraTable.pile <:< MiniPipeline.genotypeCallsPile)
     println(MiniStore.sampleIdsFile.pile <:< MiniPipeline.sampleIdsPile)
     println(MiniStore.sampleIdsCassandraTable.pile <:< MiniPipeline.sampleIdsPile)
-    println(MiniTool.checkPreExistingVcfFile.recipe <<< MiniPipeline.genotypeCallsCall.recipe)
-    println(MiniTool.checkPreExistingGenotypeCassandraTable.recipe <<< MiniPipeline.genotypeCallsCall.recipe)
-    println(MiniTool.extractSampleIdsFromVcfFile.recipe <<< MiniPipeline.sampleIdsCall.recipe)
-    println(MiniTool.extractSampleIdsFromCassandraTable.recipe <<< MiniPipeline.sampleIdsCall.recipe)
+    println(MiniTool.checkPreExistingVcfFile.recipe <<< MiniPipeline.genotypeCallsRecipe)
+    println(MiniTool.checkPreExistingGenotypeCassandraTable.recipe <<< MiniPipeline.genotypeCallsRecipe)
+    println(MiniTool.extractSampleIdsFromVcfFile.recipe <<< MiniPipeline.sampleIdsRecipe)
+    println(MiniTool.extractSampleIdsFromCassandraTable.recipe <<< MiniPipeline.sampleIdsRecipe)
   }
 
 }

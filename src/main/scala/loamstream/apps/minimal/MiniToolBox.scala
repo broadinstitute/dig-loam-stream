@@ -14,10 +14,10 @@ import loamstream.model.kinds.LSpecificKind
 import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
-import loamstream.util.snag.SnagAtom
-import tools.VcfParser
 import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
+import loamstream.util.snag.SnagAtom
+import tools.VcfParser
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,6 +37,13 @@ object MiniToolBox {
     override def getVcfFilePath(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
 
     override def getSampleFilePath: Path = FileAsker.ask("samples file")
+  }
+
+  case class InteractiveFallbackConfig(vcfFiles: Seq[String => Path], sampleFiles: Seq[Path]) extends Config {
+    override def getVcfFilePath(id: String): Path =
+      FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
+
+    override def getSampleFilePath: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
   }
 
   case class VcfFileExists(path: Path) extends LJob.Success {

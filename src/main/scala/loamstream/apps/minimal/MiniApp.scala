@@ -1,6 +1,6 @@
 package loamstream.apps.minimal
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
 import loamstream.map.LToolMapper
 
@@ -11,9 +11,15 @@ import loamstream.map.LToolMapper
   */
 object MiniApp extends App {
 
-  val dataFilesDir = Paths.get("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles")
+  def pathTemplate(template: String, slot: String): String => Path = {
+    id => Paths.get(template.replace(slot, id))
+  }
 
-  val config = MiniToolBox.InteractiveConfig
+  val vcfFiles = Seq(pathTemplate("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles\\vcf\\XXX.vcf", "XXX"))
+  val sampleFiles =
+    Seq("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles\\samples\\samples.txt").map(Paths.get(_))
+
+  val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFiles)
 
 
   //  println(MiniAppDebug.theseShouldAllBeTrue())

@@ -20,15 +20,8 @@ lazy val model = (project in file("model")).
     name := "LoamStream Model"
   )
 
-lazy val macros = (project in file("macros")).
-  dependsOn(model).
-  settings(commonSettings: _*).
-  settings(
-    name := "LoamStream Macros"
-  )
-
 lazy val root = (project in file(".")).
-  dependsOn(model, macros).
+  dependsOn(model).
   settings(commonSettings: _*).
   settings(
     name := "LoamStream",

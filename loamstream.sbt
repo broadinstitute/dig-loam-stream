@@ -14,21 +14,7 @@ lazy val commonSettings = Seq(
     "org.scala-lang" % "scala-reflect" % scalaVersion.value)
 )
 
-lazy val model = (project in file("model")).
-  settings(commonSettings: _*).
-  settings(
-    name := "LoamStream Model"
-  )
-
-lazy val macros = (project in file("macros")).
-  dependsOn(model).
-  settings(commonSettings: _*).
-  settings(
-    name := "LoamStream Macros"
-  )
-
 lazy val root = (project in file(".")).
-  dependsOn(model, macros).
   settings(commonSettings: _*).
   settings(
     name := "LoamStream",

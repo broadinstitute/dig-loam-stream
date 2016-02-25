@@ -2,7 +2,7 @@ package loamstream.map
 
 import loamstream.map.Mapping.{Constraint, RawChoices, Rule, Slot, Target}
 import loamstream.map.SudokuBoard.{IntTarget, SlotXY}
-import util.Iterative
+import loamstream.util.Iterative
 
 /**
   * LoamStream

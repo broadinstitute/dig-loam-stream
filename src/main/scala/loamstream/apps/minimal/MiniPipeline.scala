@@ -16,7 +16,7 @@ object MiniPipeline {
 
   class GenotypeCall
 
-  val genotypeCallsPileId = "myGenotypecalls"
+  val genotypeCallsPileId = "mini"
   val genotypeCallsPile =
     LPile(LSig.Map[(String, VariantId), GenotypeCall].get, PileKinds.genotypeCallsBySampleAndVariant)
   val genotypeCallsCall =

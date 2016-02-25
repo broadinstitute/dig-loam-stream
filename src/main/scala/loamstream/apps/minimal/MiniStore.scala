@@ -9,20 +9,20 @@ import loamstream.model.stores.LStore
   * LoamStream
   * Created by oliverr on 2/16/2016.
   */
-object MiniMockStore {
+object MiniStore {
 
   val vcfFile =
-    MiniMockStore(LPile(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.vcfFile), "A VCF file.")
+    MiniStore(LPile(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.vcfFile), "A VCF file.")
   val genotypesCassandraTable =
-    MiniMockStore(LPile(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.genotypesCassandraTable),
+    MiniStore(LPile(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.genotypesCassandraTable),
       "A Cassandra table of genotype calls")
   val sampleIdsFile =
-    MiniMockStore(LPile(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsFile), "A text file with sample ids")
+    MiniStore(LPile(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsFile), "A text file with sample ids")
   val sampleIdsCassandraTable =
-    MiniMockStore(LPile(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsCassandraTable),
+    MiniStore(LPile(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsCassandraTable),
       "A Cassandra table with sample ids.")
 
   val stores = Set[LStore](vcfFile, genotypesCassandraTable, sampleIdsFile, sampleIdsCassandraTable)
 }
 
-case class MiniMockStore(pile: LPile, comment: String) extends LStore
+case class MiniStore(pile: LPile, comment: String) extends LStore

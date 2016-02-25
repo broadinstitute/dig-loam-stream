@@ -1,7 +1,7 @@
 package loamstream.model.jobs
 
 import loamstream.model.jobs.LJob.Result
-import util.shot.Shot
+import loamstream.util.shot.Shot
 
 import scala.concurrent.{ExecutionContext, Future}
 

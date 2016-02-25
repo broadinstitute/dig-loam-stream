@@ -3,7 +3,7 @@ package loamstream.apps.minimal
 import loamstream.model.execute.{LExecutable, LExecuter}
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import util.shot.{Miss, Shot, Hit}
+import loamstream.util.shot.{Miss, Shot, Hit}
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration

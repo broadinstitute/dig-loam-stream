@@ -1,7 +1,7 @@
-package util
+package loamstream.util
 
-import util.shot.{Hit, Miss, Shot}
-import util.snag.Snag
+import loamstream.util.snag.Snag
+import loamstream.util.shot.{Hit, Miss, Shot}
 
 import scala.reflect.runtime.universe.Type
 
@@ -13,7 +13,7 @@ object ProductTypeExploder {
 
   val tuplePrefix = "scala.Tuple"
 
-  def unsupportedTypeMiss(typeName : String) = Miss(Snag("Don't know how to explode type " + typeName))
+  def unsupportedTypeMiss(typeName: String) = Miss(Snag("Don't know how to explode type " + typeName))
 
   def explode(tpe: Type): Shot[Seq[Type]] = {
     val fullName = tpe.typeConstructor.typeSymbol.fullName

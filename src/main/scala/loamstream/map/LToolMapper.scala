@@ -7,8 +7,8 @@ import loamstream.model.jobs.tools.LTool
 import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
-import util.Iterative
-import util.Iterative.SizePredicting
+import loamstream.util.Iterative
+import loamstream.util.Iterative.SizePredicting
 
 /**
   * LoamStream

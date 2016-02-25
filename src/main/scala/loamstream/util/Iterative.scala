@@ -1,6 +1,6 @@
-package util
+package loamstream.util
 
-import util.Iterative.{Empty, FilteredIterative}
+import loamstream.util.Iterative.{FilteredIterative, Empty}
 
 /**
   * LoamStream

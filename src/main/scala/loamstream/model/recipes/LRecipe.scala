@@ -7,20 +7,26 @@ import loamstream.model.piles.LPile
 import scala.language.higherKinds
 
 /**
- * LoamStream
- * Created by oliverr on 12/23/2015.
- */
+  * LoamStream
+  * Created by oliverr on 12/23/2015.
+  */
 object LRecipe {
 
-  def keyExtraction(input: LPile, output: LPile, index: Int) =
-    LRecipe(RecipeKinds.extractKey(index), Seq(input), output)
+  def keyExtraction(input: LPile, output: LPile, index: Int) = {
+    val kind = RecipeKinds.extractKey(index)
+    val inputs = Seq(input)
+    LRecipe(LRecipeSpec(kind, inputs, output), kind, inputs, output)
+  }
 
-  def preExistingCheckout(id: String, output: LPile) =
-    LRecipe(RecipeKinds.usePreExisting(id), Seq.empty[LPile], output)
+  def preExistingCheckout(id: String, output: LPile) = {
+    val kind = RecipeKinds.usePreExisting(id)
+    val inputs = Seq.empty[LPile]
+    LRecipe(LRecipeSpec(kind, inputs, output), kind, inputs, output)
+  }
 
 }
 
-case class LRecipe(kind: LKind, inputs: Seq[LPile], output: LPile) {
+case class LRecipe(spec: LRecipeSpec, kind: LKind, inputs: Seq[LPile], output: LPile) {
   def =:=(oRecipe: LRecipe): Boolean =
     kind == oRecipe.kind && inputs.zip(oRecipe.inputs).forall(tup => tup._1.spec =:= tup._2.spec)
 

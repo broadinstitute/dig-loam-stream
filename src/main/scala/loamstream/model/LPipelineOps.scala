@@ -1,7 +1,7 @@
 package loamstream.model
 
 import loamstream.model.kinds.LKind
-import loamstream.model.piles.{LPile, LPileSpec, LSig}
+import loamstream.model.piles.{LPile, LSig}
 import loamstream.model.recipes.LRecipe
 
 /**
@@ -11,7 +11,7 @@ import loamstream.model.recipes.LRecipe
 object LPipelineOps {
 
   def extractKeyPile(inputPile: LPile, index: Int, kind: LKind) =
-    LPile(LPileSpec(LSig.Set(Seq(inputPile.spec.sig.keyTypes(index))), kind))
+    LPile(LSig.Set(Seq(inputPile.spec.sig.keyTypes(index))), kind)
 
   def extractKeyRecipe(inputPile: LPile, index: Int, outputPile: LPile) =
     LRecipe.keyExtraction(inputPile, outputPile, index)

@@ -92,7 +92,7 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
   var vcfFiles: Map[String, Path] = Map.empty
   var sampleFileOpt: Option[Path] = None
 
-  override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile.spec <:< pile.spec)
+  override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pileSpec <:< pile.spec)
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe)
 

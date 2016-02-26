@@ -80,12 +80,12 @@ object LToolMapper {
         case storeTarget: StoreTarget =>
           val outputRoleCompatible = outputRole match {
             case Some(recipe) =>
-              storeTarget.store.pile.spec <:< recipe.output.spec
+              storeTarget.store.pileSpec <:< recipe.output.spec
             case None => true
           }
           val inputRolesCompatible = inputRoles.forall({ tup =>
             val (index, recipe) = tup
-            storeTarget.store.pile.spec <:< recipe.inputs(index).spec
+            storeTarget.store.pileSpec <:< recipe.inputs(index).spec
           })
           outputRoleCompatible && inputRolesCompatible
         case _ => false

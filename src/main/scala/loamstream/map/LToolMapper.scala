@@ -5,7 +5,7 @@ import loamstream.model.LPipeline
 import loamstream.model.jobs.LToolBox
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.piles.LPile
-import loamstream.model.recipes.LRecipe
+import loamstream.model.recipes.{LRecipe, LRecipeSpec}
 import loamstream.model.stores.LStore
 import loamstream.util.Iterative
 import loamstream.util.Iterative.SizePredicting
@@ -73,19 +73,19 @@ object LToolMapper {
     }
   }
 
-  case class StoreTargetFilter(outputRole: Option[LRecipe], inputRoles: Set[(Int, LRecipe)])
+  case class StoreTargetFilter(outputRole: Option[LRecipeSpec], inputRoles: Set[(Int, LRecipeSpec)])
     extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = {
       target match {
         case storeTarget: StoreTarget =>
           val outputRoleCompatible = outputRole match {
             case Some(recipe) =>
-              storeTarget.store.pileSpec <:< recipe.output.spec
+              storeTarget.store.pileSpec <:< recipe.output
             case None => true
           }
           val inputRolesCompatible = inputRoles.forall({ tup =>
             val (index, recipe) = tup
-            storeTarget.store.pileSpec <:< recipe.inputs(index).spec
+            storeTarget.store.pileSpec <:< recipe.inputs(index)
           })
           outputRoleCompatible && inputRolesCompatible
         case _ => false
@@ -97,18 +97,18 @@ object LToolMapper {
     extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = target match {
       case toolTarget: ToolTarget =>
-        val toolRecipe = toolTarget.tool.recipe
-        val inputCompatible = inputOpts.zip(toolRecipe.inputs).collect({
-          case (Some(inPile), toolInPile) => inPile.spec <:< toolInPile.spec
+        val toolRecipeSpec = toolTarget.tool.recipe
+        val inputCompatible = inputOpts.zip(toolRecipeSpec.inputs).collect({
+          case (Some(inPile), toolInPile) => inPile.spec <:< toolInPile
         }).forall(p => p)
-        val outputCompatible = outputOpt.map(_.spec >:> toolRecipe.output.spec).getOrElse(true)
+        val outputCompatible = outputOpt.map(_.spec >:> toolRecipeSpec.output).getOrElse(true)
         inputCompatible && outputCompatible
       case _ => false
     }
   }
 
-  case class CompatibilityConstraint(slots: Set[Slot], outputRoles: Map[LPile, LRecipe],
-                                     inputRoles: Map[LPile, Set[(Int, LRecipe)]],
+  case class CompatibilityConstraint(slots: Set[Slot], outputRoles: Map[LPile, LRecipeSpec],
+                                     inputRoles: Map[LPile, Set[(Int, LRecipeSpec)]],
                                      recipeBounds: Map[LRecipe, ToolTargetFilter])
     extends Mapping.Constraint {
 
@@ -127,18 +127,19 @@ object LToolMapper {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
       val toolMapping = bindingsToToolMappings(bindings)
       def mapPileOrNot(pile: LPile): Option[LPile] = toolMapping.stores.get(pile).map(_.pile)
-      def mapRecipeOrNot(recipe: LRecipe): LRecipe = toolMapping.tools.get(recipe) match {
+      def mapRecipeOrNot(recipe: LRecipe): LRecipeSpec = toolMapping.tools.get(recipe) match {
         case Some(tool) => tool.recipe
-        case None => recipe
+        case None => recipe.spec
       }
       val recipes = slots.collect({ case RecipeSlot(recipe) => recipe })
       val outputRoles = (for (recipe <- recipes) yield (recipe.output, mapRecipeOrNot(recipe))).toMap
-      var inputRoles = Map.empty[LPile, Set[(Int, LRecipe)]]
+      var inputRoles = Map.empty[LPile, Set[(Int, LRecipeSpec)]]
       for (recipe <- recipes) {
         val toolRecipe = mapRecipeOrNot(recipe)
-        for ((inputPile, index) <- toolRecipe.inputs.zipWithIndex) {
+        for ((inputPile, index) <- recipe.inputs.zipWithIndex) {
           inputRoles +=
-            (inputPile -> (inputRoles.getOrElse(inputPile, Set.empty[(Int, LRecipe)]) + ((index, toolRecipe))))
+            (inputPile ->
+              (inputRoles.getOrElse(inputPile, Set.empty[(Int, LRecipeSpec)]) + ((index, toolRecipe))))
         }
       }
       val unmappedRecipes = recipes -- toolMapping.tools.keySet

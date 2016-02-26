@@ -94,7 +94,7 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
 
   override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pileSpec <:< pile.spec)
 
-  override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe.spec <<< recipe.spec)
+  override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
 
   override def getPredefindedVcfFile(id: String): Path = {
     vcfFiles.get(id) match {
@@ -117,7 +117,7 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
   }
 
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
-    MiniTool.checkPreExistingVcfFile.recipe.spec.kind match {
+    MiniTool.checkPreExistingVcfFile.recipe.kind match {
       case LSpecificKind(specifics, _) => specifics match {
         case (_, id: String) => Hit(CheckPreexistingVcfFileJob(getPredefindedVcfFile(id)))
         case _ => Miss(SnagAtom("Recipe is not of the right kind."))

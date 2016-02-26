@@ -7,25 +7,25 @@ package loamstream.apps.minimal
 object MiniAppDebug {
 
   def theseShouldAllBeFalse() : Unit = {
-    println(MiniStore.vcfFile.pile <:< MiniStore.genotypesCassandraTable.pile)
+    println(MiniStore.vcfFile.pile.spec <:< MiniStore.genotypesCassandraTable.pile.spec)
     println(
       MiniTool.checkPreExistingVcfFile.recipe <:< MiniTool.checkPreExistingGenotypeCassandraTable.recipe)
-    println(MiniStore.genotypesCassandraTable.pile <:< MiniStore.vcfFile.pile)
+    println(MiniStore.genotypesCassandraTable.pile.spec <:< MiniStore.vcfFile.pile.spec)
     println(
       MiniTool.checkPreExistingGenotypeCassandraTable.recipe <:< MiniTool.checkPreExistingVcfFile.recipe)
-    println(MiniStore.sampleIdsFile.pile <:< MiniStore.sampleIdsCassandraTable.pile)
+    println(MiniStore.sampleIdsFile.pile.spec <:< MiniStore.sampleIdsCassandraTable.pile.spec)
     println(
       MiniTool.extractSampleIdsFromVcfFile.recipe <:< MiniTool.extractSampleIdsFromCassandraTable.recipe)
-    println(MiniStore.sampleIdsCassandraTable.pile <:< MiniStore.sampleIdsFile.pile)
+    println(MiniStore.sampleIdsCassandraTable.pile.spec <:< MiniStore.sampleIdsFile.pile.spec)
     println(
       MiniTool.extractSampleIdsFromCassandraTable.recipe <:< MiniTool.extractSampleIdsFromVcfFile.recipe)
   }
 
   def theseShouldAllBeTrue() : Unit = {
-    println(MiniStore.vcfFile.pile <:< MiniPipeline.genotypeCallsPile)
-    println(MiniStore.genotypesCassandraTable.pile <:< MiniPipeline.genotypeCallsPile)
-    println(MiniStore.sampleIdsFile.pile <:< MiniPipeline.sampleIdsPile)
-    println(MiniStore.sampleIdsCassandraTable.pile <:< MiniPipeline.sampleIdsPile)
+    println(MiniStore.vcfFile.pile.spec <:< MiniPipeline.genotypeCallsPile.spec)
+    println(MiniStore.genotypesCassandraTable.pile.spec <:< MiniPipeline.genotypeCallsPile.spec)
+    println(MiniStore.sampleIdsFile.pile.spec <:< MiniPipeline.sampleIdsPile.spec)
+    println(MiniStore.sampleIdsCassandraTable.pile.spec <:< MiniPipeline.sampleIdsPile.spec)
     println(MiniTool.checkPreExistingVcfFile.recipe <<< MiniPipeline.genotypeCallsRecipe)
     println(MiniTool.checkPreExistingGenotypeCassandraTable.recipe <<< MiniPipeline.genotypeCallsRecipe)
     println(MiniTool.extractSampleIdsFromVcfFile.recipe <<< MiniPipeline.sampleIdsRecipe)

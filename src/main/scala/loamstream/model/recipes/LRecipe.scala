@@ -1,5 +1,6 @@
 package loamstream.model.recipes
 
+import loamstream.model.id.LId
 import loamstream.model.kinds.LKind
 import loamstream.model.kinds.instances.RecipeKinds
 import loamstream.model.piles.LPile
@@ -16,12 +17,15 @@ object LRecipe {
     LRecipe(RecipeKinds.extractKey(index), Seq(input), output)
 
   def preExistingCheckout(id: String, output: LPile) =
-    LRecipe(RecipeKinds.usePreExisting(id), Seq.empty[LPile], output)
+    LRecipe(id, RecipeKinds.usePreExisting(id), Seq.empty[LPile], output)
 
+
+  def apply(id: String, kind: LKind, inputs: Seq[LPile], output: LPile): LRecipe =
+    LRecipe(LId.LNamedId(id), LRecipeSpec(kind, inputs.map(_.spec), output.spec), inputs, output)
 
   def apply(kind: LKind, inputs: Seq[LPile], output: LPile): LRecipe =
-    LRecipe(LRecipeSpec(kind, inputs.map(_.spec), output.spec), inputs, output)
+    LRecipe(LId.newAnonId, LRecipeSpec(kind, inputs.map(_.spec), output.spec), inputs, output)
 
 }
 
-case class LRecipe(spec: LRecipeSpec, inputs: Seq[LPile], output: LPile)
+case class LRecipe(id: LId, spec: LRecipeSpec, inputs: Seq[LPile], output: LPile) extends LId.Owner

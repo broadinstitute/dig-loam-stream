@@ -1,5 +1,7 @@
 package loamstream.apps.minimal
 
+import loamstream.model.id.LId
+import loamstream.model.id.LId.LNamedId
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.recipes.LRecipeSpec
 
@@ -10,26 +12,28 @@ import loamstream.model.recipes.LRecipeSpec
 object MiniTool {
 
   val checkPreExistingVcfFile =
-    MiniTool(LRecipeSpec.preExistingCheckout(MiniPipeline.genotypeCallsPileId, MiniStore.vcfFile.pileSpec),
-      "What a nice VCF file!")
+    MiniTool("What a nice VCF file!",
+      LRecipeSpec.preExistingCheckout(MiniPipeline.genotypeCallsPileId, MiniStore.vcfFile.pile))
 
   val checkPreExistingGenotypeCassandraTable =
-    MiniTool(LRecipeSpec.preExistingCheckout(MiniPipeline.genotypeCallsPileId,
-      MiniStore.genotypesCassandraTable.pileSpec),
-      "What a nice table on Cassandra full of genotype calls!")
+    MiniTool("What a nice table on Cassandra full of genotype calls!",
+      LRecipeSpec.preExistingCheckout(MiniPipeline.genotypeCallsPileId,
+      MiniStore.genotypesCassandraTable.pile))
 
   val extractSampleIdsFromVcfFile =
-    MiniTool(LRecipeSpec.keyExtraction(MiniStore.vcfFile.pileSpec, MiniStore.sampleIdsFile.pileSpec, 0),
-      "Extracted sample ids from VCF file into a text file.")
+    MiniTool("Extracted sample ids from VCF file into a text file.",
+      LRecipeSpec.keyExtraction(MiniStore.vcfFile.pile, MiniStore.sampleIdsFile.pile, 0))
 
   val extractSampleIdsFromCassandraTable =
-    MiniTool(LRecipeSpec.keyExtraction(MiniStore.genotypesCassandraTable.pileSpec,
-      MiniStore.sampleIdsCassandraTable.pileSpec, 0),
-      "Extracted sample ids from Cassandra genotype calls table into another table.")
+    MiniTool("Extracted sample ids from Cassandra genotype calls table into another table.",
+      LRecipeSpec.keyExtraction(MiniStore.genotypesCassandraTable.pile,
+      MiniStore.sampleIdsCassandraTable.pile, 0))
 
   val tools = Set[LTool](checkPreExistingVcfFile, checkPreExistingGenotypeCassandraTable, extractSampleIdsFromVcfFile,
     extractSampleIdsFromCassandraTable)
 
+  def apply(name: String, recipe: LRecipeSpec): MiniTool = MiniTool(LNamedId(name), recipe)
+
 }
 
-case class MiniTool(recipe: LRecipeSpec, comment: String) extends LTool
+case class MiniTool(id: LId, recipe: LRecipeSpec) extends LTool

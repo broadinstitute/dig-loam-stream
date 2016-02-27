@@ -4,7 +4,7 @@ import loamstream.map.Mapping.{Constraint, Slot, Target}
 import loamstream.model.LPipeline
 import loamstream.model.jobs.LToolBox
 import loamstream.model.jobs.tools.LTool
-import loamstream.model.piles.LPile
+import loamstream.model.piles.{LPileSpec, LPile}
 import loamstream.model.recipes.{LRecipe, LRecipeSpec}
 import loamstream.model.stores.LStore
 import loamstream.util.Iterative
@@ -80,12 +80,12 @@ object LToolMapper {
         case storeTarget: StoreTarget =>
           val outputRoleCompatible = outputRole match {
             case Some(recipe) =>
-              storeTarget.store.pileSpec <:< recipe.output
+              storeTarget.store.pile <:< recipe.output
             case None => true
           }
           val inputRolesCompatible = inputRoles.forall({ tup =>
             val (index, recipe) = tup
-            storeTarget.store.pileSpec <:< recipe.inputs(index)
+            storeTarget.store.pile <:< recipe.inputs(index)
           })
           outputRoleCompatible && inputRolesCompatible
         case _ => false
@@ -93,15 +93,15 @@ object LToolMapper {
     }
   }
 
-  case class ToolTargetFilter(inputOpts: Seq[Option[LPile]], outputOpt: Option[LPile])
+  case class ToolTargetFilter(inputOpts: Seq[Option[LPileSpec]], outputOpt: Option[LPileSpec])
     extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = target match {
       case toolTarget: ToolTarget =>
         val toolRecipeSpec = toolTarget.tool.recipe
         val inputCompatible = inputOpts.zip(toolRecipeSpec.inputs).collect({
-          case (Some(inPile), toolInPile) => inPile.spec <:< toolInPile
+          case (Some(inPile), toolInPile) => inPile <:< toolInPile
         }).forall(p => p)
-        val outputCompatible = outputOpt.map(_.spec >:> toolRecipeSpec.output).getOrElse(true)
+        val outputCompatible = outputOpt.map(_ >:> toolRecipeSpec.output).getOrElse(true)
         inputCompatible && outputCompatible
       case _ => false
     }
@@ -126,7 +126,7 @@ object LToolMapper {
   object CompatibilityRule extends Mapping.Rule {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
       val toolMapping = bindingsToToolMappings(bindings)
-      def mapPileOrNot(pile: LPile): Option[LPile] = toolMapping.stores.get(pile).map(_.pile)
+      def mapPileOrNot(pile: LPile): Option[LPileSpec] = toolMapping.stores.get(pile).map(_.pile)
       def mapRecipeOrNot(recipe: LRecipe): LRecipeSpec = toolMapping.tools.get(recipe) match {
         case Some(tool) => tool.recipe
         case None => recipe.spec

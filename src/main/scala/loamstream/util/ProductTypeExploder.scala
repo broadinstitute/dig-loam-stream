@@ -13,7 +13,8 @@ object ProductTypeExploder {
 
   val tuplePrefix = "scala.Tuple"
 
-  def unsupportedTypeMiss(typeName: String) = Miss(Snag("Don't know how to explode type " + typeName))
+  def unsupportedTypeMiss(typeName: String): Miss =
+    Miss(Snag("Don't know how to explode type " + typeName))
 
   def explode(tpe: Type): Shot[Seq[Type]] = {
     val fullName = tpe.typeConstructor.typeSymbol.fullName

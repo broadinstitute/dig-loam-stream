@@ -26,7 +26,7 @@ trait Snag {
 }
 
 case class SnagAtom(message: String) extends Snag {
-  override def children = Seq.empty[Snag]
+  override def children: Seq[Snag] = Seq.empty[Snag]
 }
 
 case class SnagSeq(children: Seq[Snag]) extends Snag {

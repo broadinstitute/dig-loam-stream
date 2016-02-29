@@ -18,7 +18,7 @@ object LId {
 
   val random = new Random
 
-  def newAnonId = LAnonId(System.currentTimeMillis, random.nextLong())
+  def newAnonId: LAnonId = LAnonId(System.currentTimeMillis, random.nextLong())
 
 }
 

@@ -13,7 +13,7 @@ object MappingTestApp extends App {
     var sudoku = new SudokuBoard
     var solutions = Set.empty[AriadneNode]
 
-    def print(node: AriadneNode) = {
+    def print(node: AriadneNode): Unit = {
       sudoku.mapping = node.mapping
       println(sudoku)
     }
@@ -42,11 +42,18 @@ object MappingTestApp extends App {
   }
 
   val sudoku = new SudokuBoard
-  sudoku.set(1, 1, 5)
-  sudoku.set(6, 2, 7)
+
+  case class Pos(x:Int, y:Int)
+  case class Entry(pos:Pos, value: Int)
+
+  val entry1 = Entry(Pos(1, 1), 5)
+  val entry2 = Entry(Pos(6, 2), 7)
+  sudoku.set(entry1.pos.x, entry1.pos.y, entry1.value)
+  sudoku.set(entry2.pos.x, entry2.pos.y, entry2.value)
   println(sudoku)
   println("Choices for (6,1): " + sudoku.getChoices(6, 1))
-  val consumer = new TestConsumer(140)
+  val nStepsMax: Int = 140
+  val consumer = new TestConsumer(nStepsMax)
   MapMaker.traverse(sudoku.mapping, consumer)
   println("Yo, mapper!")
 

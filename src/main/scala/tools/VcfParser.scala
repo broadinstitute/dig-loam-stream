@@ -3,10 +3,11 @@ package tools
 import java.io.{PrintWriter, BufferedReader, File, FileInputStream}
 import java.util.zip.GZIPInputStream
 
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 
 /**
- * Created on: 1/20/16 
+ * Created on: 1/20/16
+ *
  * @author Kaan Yuksel 
  */
 class VcfParser {
@@ -15,9 +16,10 @@ class VcfParser {
     header.stripPrefix(ignoreable).split("\t")
   }
 
-  def gzBufferedReader(gzFile: String) = gzBufferedSource(gzFile).bufferedReader()
+  def gzBufferedReader(gzFile: String): BufferedReader = gzBufferedSource(gzFile).bufferedReader()
 
-  def gzBufferedSource(gzFile: String) = Source.fromInputStream(new GZIPInputStream(new FileInputStream(gzFile)))
+  def gzBufferedSource(gzFile: String): BufferedSource =
+    Source.fromInputStream(new GZIPInputStream(new FileInputStream(gzFile)))
 
   def versionSupported(versionLine: String, versionSupported: String): Boolean = {
     val expectedLine = "##fileformat=VCFv" + versionSupported

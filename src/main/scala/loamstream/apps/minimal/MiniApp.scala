@@ -15,9 +15,11 @@ object MiniApp extends App {
     id => Paths.get(template.replace(slot, id))
   }
 
-  val vcfFiles = Seq(pathTemplate("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles\\vcf\\XXX.vcf", "XXX"))
+  val vcfFiles = Seq(pathTemplate("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles\\vcf\\XXX.vcf", "XXX"),
+    pathTemplate("/home/oruebenacker/git/dig-loam-stream/dataFiles/vcf/XXX.vcf", "XXX"))
   val sampleFiles =
-    Seq("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles\\samples\\samples.txt").map(Paths.get(_))
+    Seq("C:\\Users\\oliverr\\git\\dig-loam-stream\\dataFiles\\samples\\samples.txt",
+      "/home/oruebenacker/git/dig-loam-stream/dataFiles/samples/samples.txt").map(Paths.get(_))
 
   val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFiles)
 
@@ -53,8 +55,8 @@ object MiniApp extends App {
   LToolMappingPrinter.printMapping(mapping)
   println("That was the cheapest mapping")
 
-  val genotypesJob = toolbox.createJob(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)
-  val extractSamplesJob = toolbox.createJob(MiniPipeline.sampleIdsRecipe, pipeline, mapping)
+  val genotypesJob = toolbox.createJobs(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)
+  val extractSamplesJob = toolbox.createJobs(MiniPipeline.sampleIdsRecipe, pipeline, mapping)
 
   val executable = toolbox.createExecutable(pipeline, mapping)
   val results = MiniExecuter.execute(executable)

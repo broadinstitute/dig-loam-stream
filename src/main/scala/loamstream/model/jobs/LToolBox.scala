@@ -18,7 +18,7 @@ trait LToolBox {
 
   def toolsFor(recipe: LRecipe): Set[LTool]
 
-  def createJob(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[LJob]
+  def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]]
 
   def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable
 

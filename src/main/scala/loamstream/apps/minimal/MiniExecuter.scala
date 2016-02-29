@@ -3,7 +3,8 @@ package loamstream.apps.minimal
 import loamstream.model.execute.{LExecutable, LExecuter}
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.util.shot.{Miss, Shot, Hit}
+import loamstream.util.shot.{Hit, Shot}
+
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
@@ -27,14 +28,10 @@ object MiniExecuter extends LExecuter {
         case None => false
       }
       }))
-      if(jobsReady.nonEmpty) {
+      if (jobsReady.nonEmpty) {
         val job = jobsReady.head
-        job.execute match {
-          case Hit(resultFuture) =>
-            val result = Await.result(resultFuture, Duration.Inf)
-            results += (job -> Hit(result))
-          case miss:Miss => results += (job -> miss)
-        }
+        val result = Await.result(job.execute, Duration.Inf)
+        results += (job -> Hit(result))
         jobsWaiting -= job
       }
     }

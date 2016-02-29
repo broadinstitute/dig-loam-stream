@@ -25,7 +25,7 @@ object FileAsker {
     askIfParentDoesNotExist(path +: paths)(fileDescription)
 
   def askIfParentDoesNotExist(paths: Seq[Path])(fileDescription: String): Path = {
-    paths.find(path => Files.exists(path.getParent)) match {
+    paths.find(path => path.getParent != null && Files.exists(path.getParent)) match {
       case Some(path) => path
       case None => ask(fileDescription)
     }
@@ -33,7 +33,7 @@ object FileAsker {
 
   def ask(fileDescription: String): Path = {
     println("Please enter path of " + fileDescription)
-    Paths.get(readLine)
+    Paths.get(readLine())
   }
 
 }

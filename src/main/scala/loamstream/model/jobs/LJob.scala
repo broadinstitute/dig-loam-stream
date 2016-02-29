@@ -21,16 +21,20 @@ object LJob {
     def message: String = "Success! " + successMessage
   }
 
+  case class SimpleSuccess(successMessage: String) extends Success
+
   trait Failure extends Result {
     def failureMessage: String
 
     def message: String = "Failure! " + failureMessage
   }
 
+  case class SimpleFailure(failureMessage: String) extends Failure
+
 }
 
 trait LJob {
   def inputs: Set[LJob]
 
-  def execute(implicit context: ExecutionContext): Shot[Future[Result]]
+  def execute(implicit context: ExecutionContext): Future[Result]
 }

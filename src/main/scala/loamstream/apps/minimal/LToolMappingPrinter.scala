@@ -9,19 +9,9 @@ import loamstream.model.stores.LStore
   * Created by oliverr on 2/22/2016.
   */
 object LToolMappingPrinter {
-  def printStore(store: LStore): String = {
-    store match {
-      case MiniStore(_, comment) => comment
-      case _ => store.toString
-    }
-  }
+  def printStore(store: LStore): String = store.id.toString
 
-  def printTool(tool: LTool): String = {
-    tool match {
-      case MiniTool(_, comment) => comment
-      case _ => tool.toString
-    }
-  }
+  def printTool(tool: LTool): String = tool.id.toString
 
   def printMapping(mapping: LToolMapping): Unit = {
     for ((pile, store) <- mapping.stores) {

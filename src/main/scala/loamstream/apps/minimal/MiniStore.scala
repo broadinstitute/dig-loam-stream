@@ -1,8 +1,9 @@
 package loamstream.apps.minimal
 
 import loamstream.apps.minimal.MiniPipeline.{GenotypeCall, VariantId}
+import loamstream.model.id.LId
 import loamstream.model.kinds.instances.StoreKinds
-import loamstream.model.piles.{LPile, LSig}
+import loamstream.model.piles.{LPileSpec, LSig}
 import loamstream.model.stores.LStore
 
 /**
@@ -11,18 +12,19 @@ import loamstream.model.stores.LStore
   */
 object MiniStore {
 
-  val vcfFile =
-    MiniStore(LPile(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.vcfFile), "A VCF file.")
+  val vcfFile = MiniStore("VCF file", LPileSpec(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.vcfFile))
   val genotypesCassandraTable =
-    MiniStore(LPile(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.genotypesCassandraTable),
-      "A Cassandra table of genotype calls")
+    MiniStore("Cassandra genotype calls table",
+      LPileSpec(LSig.Map[(String, VariantId), GenotypeCall].get, StoreKinds.genotypesCassandraTable))
   val sampleIdsFile =
-    MiniStore(LPile(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsFile), "A text file with sample ids")
+    MiniStore("Sample ids file", LPileSpec(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsFile))
   val sampleIdsCassandraTable =
-    MiniStore(LPile(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsCassandraTable),
-      "A Cassandra table with sample ids.")
+    MiniStore("Cassandra sample ids table.",
+      LPileSpec(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsCassandraTable))
 
   val stores = Set[LStore](vcfFile, genotypesCassandraTable, sampleIdsFile, sampleIdsCassandraTable)
+
+  def apply(name: String, pile: LPileSpec): MiniStore = MiniStore(LId.LNamedId(name), pile)
 }
 
-case class MiniStore(pile: LPile, comment: String) extends LStore
+case class MiniStore(id: LId, pile: LPileSpec) extends LStore

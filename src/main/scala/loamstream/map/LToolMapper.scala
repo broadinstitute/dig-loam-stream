@@ -4,8 +4,8 @@ import loamstream.map.Mapping.{Constraint, Slot, Target}
 import loamstream.model.LPipeline
 import loamstream.model.jobs.LToolBox
 import loamstream.model.jobs.tools.LTool
-import loamstream.model.piles.LPile
-import loamstream.model.recipes.LRecipe
+import loamstream.model.piles.{LPileSpec, LPile}
+import loamstream.model.recipes.{LRecipe, LRecipeSpec}
 import loamstream.model.stores.LStore
 import loamstream.util.Iterative
 import loamstream.util.Iterative.SizePredicting
@@ -73,7 +73,7 @@ object LToolMapper {
     }
   }
 
-  case class StoreTargetFilter(outputRole: Option[LRecipe], inputRoles: Set[(Int, LRecipe)])
+  case class StoreTargetFilter(outputRole: Option[LRecipeSpec], inputRoles: Set[(Int, LRecipeSpec)])
     extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = {
       target match {
@@ -93,22 +93,22 @@ object LToolMapper {
     }
   }
 
-  case class ToolTargetFilter(inputOpts: Seq[Option[LPile]], outputOpt: Option[LPile])
+  case class ToolTargetFilter(inputOpts: Seq[Option[LPileSpec]], outputOpt: Option[LPileSpec])
     extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = target match {
       case toolTarget: ToolTarget =>
-        val toolRecipe = toolTarget.tool.recipe
-        val inputCompatible = inputOpts.zip(toolRecipe.inputs).collect({
+        val toolRecipeSpec = toolTarget.tool.recipe
+        val inputCompatible = inputOpts.zip(toolRecipeSpec.inputs).collect({
           case (Some(inPile), toolInPile) => inPile <:< toolInPile
         }).forall(p => p)
-        val outputCompatible = outputOpt.map(_ >:> toolRecipe.output).getOrElse(true)
+        val outputCompatible = outputOpt.map(_ >:> toolRecipeSpec.output).getOrElse(true)
         inputCompatible && outputCompatible
       case _ => false
     }
   }
 
-  case class CompatibilityConstraint(slots: Set[Slot], outputRoles: Map[LPile, LRecipe],
-                                     inputRoles: Map[LPile, Set[(Int, LRecipe)]],
+  case class CompatibilityConstraint(slots: Set[Slot], outputRoles: Map[LPile, LRecipeSpec],
+                                     inputRoles: Map[LPile, Set[(Int, LRecipeSpec)]],
                                      recipeBounds: Map[LRecipe, ToolTargetFilter])
     extends Mapping.Constraint {
 
@@ -126,19 +126,20 @@ object LToolMapper {
   object CompatibilityRule extends Mapping.Rule {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
       val toolMapping = bindingsToToolMappings(bindings)
-      def mapPileOrNot(pile: LPile): Option[LPile] = toolMapping.stores.get(pile).map(_.pile)
-      def mapRecipeOrNot(recipe: LRecipe): LRecipe = toolMapping.tools.get(recipe) match {
+      def mapPileOrNot(pile: LPile): Option[LPileSpec] = toolMapping.stores.get(pile).map(_.pile)
+      def mapRecipeOrNot(recipe: LRecipe): LRecipeSpec = toolMapping.tools.get(recipe) match {
         case Some(tool) => tool.recipe
-        case None => recipe
+        case None => recipe.spec
       }
       val recipes = slots.collect({ case RecipeSlot(recipe) => recipe })
       val outputRoles = (for (recipe <- recipes) yield (recipe.output, mapRecipeOrNot(recipe))).toMap
-      var inputRoles = Map.empty[LPile, Set[(Int, LRecipe)]]
+      var inputRoles = Map.empty[LPile, Set[(Int, LRecipeSpec)]]
       for (recipe <- recipes) {
         val toolRecipe = mapRecipeOrNot(recipe)
-        for ((inputPile, index) <- toolRecipe.inputs.zipWithIndex) {
+        for ((inputPile, index) <- recipe.inputs.zipWithIndex) {
           inputRoles +=
-            (inputPile -> (inputRoles.getOrElse(inputPile, Set.empty[(Int, LRecipe)]) + ((index, toolRecipe))))
+            (inputPile ->
+              (inputRoles.getOrElse(inputPile, Set.empty[(Int, LRecipeSpec)]) + ((index, toolRecipe))))
         }
       }
       val unmappedRecipes = recipes -- toolMapping.tools.keySet
@@ -152,10 +153,9 @@ object LToolMapper {
   def findSolutions(pipeline: LPipeline, toolBox: LToolBox, consumer: Consumer,
                     strategy: MapMaker.Strategy = MapMaker.NarrowFirstStrategy): Unit = {
     val pileSlots =
-      pipeline.calls.map(_.pile).map(pile => (PileSlot(pile), AvailableStores(toolBox.storesFor(pile)))).toMap
+      pipeline.piles.map(pile => (PileSlot(pile), AvailableStores(toolBox.storesFor(pile)))).toMap
     val recipeSlots =
-      pipeline.calls.map(_.recipe)
-        .map(recipe => (RecipeSlot(recipe), AvailableTools(toolBox.toolsFor(recipe)))).toMap
+      pipeline.recipes.map(recipe => (RecipeSlot(recipe), AvailableTools(toolBox.toolsFor(recipe)))).toMap
     val slots: Map[Mapping.Slot, Mapping.RawChoices] = pileSlots ++ recipeSlots
     val mapping = Mapping.fromSlots(slots).plusRule(CompatibilityRule)
     MapMaker.traverse(mapping, MapMakerConsumer(consumer))

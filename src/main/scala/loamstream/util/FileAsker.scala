@@ -1,6 +1,6 @@
 package loamstream.util
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import scala.io.StdIn.readLine
 
@@ -11,9 +11,29 @@ import scala.io.StdIn.readLine
   */
 object FileAsker {
 
+  def askIfNotExist(path: Path, paths: Path*)(fileDescription: String): Path =
+    askIfNotExist(path +: paths)(fileDescription)
+
+  def askIfNotExist(paths: Seq[Path])(fileDescription: String): Path = {
+    paths.find(Files.exists(_)) match {
+      case Some(path) => path
+      case None => ask(fileDescription)
+    }
+  }
+
+  def askIfParentDoesNotExist(path: Path, paths: Path*)(fileDescription: String): Path =
+    askIfParentDoesNotExist(path +: paths)(fileDescription)
+
+  def askIfParentDoesNotExist(paths: Seq[Path])(fileDescription: String): Path = {
+    paths.find(path => path.getParent != null && Files.exists(path.getParent)) match {
+      case Some(path) => path
+      case None => ask(fileDescription)
+    }
+  }
+
   def ask(fileDescription: String): Path = {
     println("Please enter path of " + fileDescription)
-    Paths.get(readLine)
+    Paths.get(readLine())
   }
 
 }

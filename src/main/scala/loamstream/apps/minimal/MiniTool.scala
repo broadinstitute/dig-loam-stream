@@ -1,40 +1,39 @@
 package loamstream.apps.minimal
 
-import loamstream.map.LToolMapping
-import loamstream.model.LPipeline
-import loamstream.model.jobs.LJob
+import loamstream.model.id.LId
+import loamstream.model.id.LId.LNamedId
 import loamstream.model.jobs.tools.LTool
-import loamstream.model.recipes.LRecipe
-
-import scala.concurrent.ExecutionContext
+import loamstream.model.recipes.LRecipeSpec
 
 /**
- * LoamStream
- * Created by oliverr on 2/16/2016.
- */
+  * LoamStream
+  * Created by oliverr on 2/16/2016.
+  */
 object MiniTool {
 
   val checkPreExistingVcfFile =
-    MiniTool(LRecipe.preExistingCheckout(MiniPipeline.genotypeCallsPileId, MiniStore.vcfFile.pile),
-      "What a nice VCF file!")
+    MiniTool("What a nice VCF file!",
+      LRecipeSpec.preExistingCheckout(MiniPipeline.genotypeCallsPileId, MiniStore.vcfFile.pile))
 
   val checkPreExistingGenotypeCassandraTable =
-    MiniTool(LRecipe.preExistingCheckout(MiniPipeline.genotypeCallsPileId,
-      MiniStore.genotypesCassandraTable.pile),
-      "What a nice table on Cassandra full of genotype calls!")
+    MiniTool("What a nice table on Cassandra full of genotype calls!",
+      LRecipeSpec.preExistingCheckout(MiniPipeline.genotypeCallsPileId,
+      MiniStore.genotypesCassandraTable.pile))
 
   val extractSampleIdsFromVcfFile =
-    MiniTool(LRecipe.keyExtraction(MiniStore.vcfFile.pile, MiniStore.sampleIdsFile.pile, 0),
-      "Extracted sample ids from VCF file into a text file.")
+    MiniTool("Extracted sample ids from VCF file into a text file.",
+      LRecipeSpec.keyExtraction(MiniStore.vcfFile.pile, MiniStore.sampleIdsFile.pile, 0))
 
   val extractSampleIdsFromCassandraTable =
-    MiniTool(LRecipe.keyExtraction(MiniStore.genotypesCassandraTable.pile,
-      MiniStore.sampleIdsCassandraTable.pile, 0),
-      "Extracted sample ids from Cassandra genotype calls table into another table.")
+    MiniTool("Extracted sample ids from Cassandra genotype calls table into another table.",
+      LRecipeSpec.keyExtraction(MiniStore.genotypesCassandraTable.pile,
+      MiniStore.sampleIdsCassandraTable.pile, 0))
 
   val tools = Set[LTool](checkPreExistingVcfFile, checkPreExistingGenotypeCassandraTable, extractSampleIdsFromVcfFile,
     extractSampleIdsFromCassandraTable)
 
+  def apply(name: String, recipe: LRecipeSpec): MiniTool = MiniTool(LNamedId(name), recipe)
+
 }
 
-case class MiniTool(recipe: LRecipe, comment: String) extends LTool
+case class MiniTool(id: LId, recipe: LRecipeSpec) extends LTool

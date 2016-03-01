@@ -9,11 +9,13 @@ bin/
 /project/project
 /project/target
 /target
+/src/target
 tmp/
 test-result
 server.pid
 *.iml
 *.eml
+*.txt
 *~
 /dist/
 .cache

@@ -11,13 +11,14 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scala-lang" % "scala-library" % scalaVersion.value,
     "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value),
+    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+    "org.scalatest" % "scalatest_2.11" % "2.1.3"),
   scalastyleFailOnError := true
 )
 
-lazy val root = (project in file(".")).
-  settings(commonSettings: _*).
-  settings(
+lazy val root = (project in file("."))
+  .settings(commonSettings: _*)
+  .settings(
     name := "LoamStream",
     packageSummary in Linux := "LoamStream - Language for Omics Analysis Management",
     packageSummary in Windows := "LoamStream - Language for Omics Analysis Management",

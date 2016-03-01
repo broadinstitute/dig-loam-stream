@@ -1,23 +1,36 @@
 import sbt.project
 
+lazy val Versions = new {
+  val App = "0.1"
+  val Scala = "2.11.7"
+  val ScalaTest = "2.2.6"
+}
+
+lazy val mainDeps = Seq(
+  "org.scala-lang" % "scala-library" % Versions.Scala,
+  "org.scala-lang" % "scala-compiler" % Versions.Scala,
+  "org.scala-lang" % "scala-reflect" % Versions.Scala
+)
+
+lazy val testDeps = Seq(
+  "org.scalatest" %% "scalatest" % Versions.ScalaTest % Test
+)
+
 lazy val commonSettings = Seq(
-  version := "0.1",
-  scalaVersion := "2.11.7",
+  version := Versions.App,
+  scalaVersion := Versions.Scala,
   scalacOptions ++= Seq("-feature"),
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.sonatypeRepo("snapshots")
   ),
-  libraryDependencies ++= Seq(
-    "org.scala-lang" % "scala-library" % scalaVersion.value,
-    "org.scala-lang" % "scala-compiler" % scalaVersion.value,
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value),
+  libraryDependencies ++= (mainDeps ++ testDeps),
   scalastyleFailOnError := true
 )
 
-lazy val root = (project in file(".")).
-  settings(commonSettings: _*).
-  settings(
+lazy val root = (project in file("."))
+  .settings(commonSettings: _*)
+  .settings(
     name := "LoamStream",
     packageSummary in Linux := "LoamStream - Language for Omics Analysis Management",
     packageSummary in Windows := "LoamStream - Language for Omics Analysis Management",

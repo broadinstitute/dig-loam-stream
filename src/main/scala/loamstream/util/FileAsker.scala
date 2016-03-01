@@ -25,8 +25,8 @@ object FileAsker {
     askIfParentDoesNotExist(path +: paths)(fileDescription)
 
   def askIfParentDoesNotExist(paths: Seq[Path])(fileDescription: String): Path = {
-    paths.find(path => path.getParent != null && Files.exists(path.getParent)) match {
-      case Some(path) => path
+    paths.find(path => Some(path.getParent).exists(Files.exists(_))) match {
+      case Some(pathFound) => pathFound
       case None => ask(fileDescription)
     }
   }

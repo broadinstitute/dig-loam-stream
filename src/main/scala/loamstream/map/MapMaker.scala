@@ -72,29 +72,37 @@ object MapMaker {
     }
   }
 
+  case class TraversalState(node: WithoutSlot, keepGoingTactic: Boolean)
+
+  def traverseDoNotDescend(state: TraversalState): TraversalState = {
+    backtrack(state.node) match {
+      case Some(nodeNew) => state.copy(node = nodeNew)
+      case None => state.copy(keepGoingTactic = false)
+    }
+  }
+
+  def traverseSolution(state: TraversalState, consumer: Consumer): TraversalState = {
+    consumer.solution(state.node)
+    if (consumer.wantsMore) {
+      backtrack(state.node) match {
+        case Some(nodeNew) => state.copy(node = nodeNew)
+        case None => state.copy(keepGoingTactic = false)
+      }
+    } else {
+      state.copy(keepGoingTactic = false)
+    }
+  }
+
   def traverse(mapping: Mapping, consumer: Consumer, strategy: Strategy = NarrowFirstStrategy): Unit = {
-    var node: WithoutSlot = AriadneNode.fromMapping(mapping)
-    var keepGoingTactic = true
-    while (keepGoingTactic && consumer.wantsMore) {
-      consumer.step(node)
-      strategy.forNode(node) match {
-        case Descend(slot) => node = node.pickSlot(slot).bind
-        case DoNotDescend =>
-          backtrack(node) match {
-            case Some(nodeNew) => node = nodeNew
-            case None => keepGoingTactic = false
-          }
-        case Solution =>
-          consumer.solution(node)
-          if (consumer.wantsMore) {
-            backtrack(node) match {
-              case Some(nodeNew) => node = nodeNew
-              case None => keepGoingTactic = false
-            }
-          } else {
-            keepGoingTactic = false
-          }
-        case Terminate => keepGoingTactic = false
+    val keepGoingTacticInitial = true
+    var state = TraversalState(AriadneNode.fromMapping(mapping), keepGoingTacticInitial)
+    while (state.keepGoingTactic && consumer.wantsMore) {
+      consumer.step(state.node)
+      strategy.forNode(state.node) match {
+        case Descend(slot) => state = state.copy(node = state.node.pickSlot(slot).bind)
+        case DoNotDescend => state = traverseDoNotDescend(state)
+        case Solution => state = traverseSolution(state, consumer)
+        case Terminate => state = state.copy(keepGoingTactic = false)
       }
     }
     consumer.end()

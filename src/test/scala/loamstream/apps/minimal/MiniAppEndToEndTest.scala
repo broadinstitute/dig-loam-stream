@@ -1,11 +1,13 @@
 package loamstream.apps.minimal
 
-import java.nio.file.{Files, Paths}
+import java.io.File
+import java.nio.file.{Files, Path, Paths}
+
 import loamstream.map.LToolMapper
 import org.scalatest.{BeforeAndAfter, FunSuite}
+import utils.{FileUtils, StringUtils}
+
 import scala.io.Source
-import utils.FileUtils
-import utils.StringUtils
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -15,14 +17,16 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val miniVcfFile = "/mini.vcf"
     val extractedSamplesFile = "/samples.txt"
 
-    val miniVcfFilePath = getClass.getResource(miniVcfFile).getPath
-    val extractedSamplesFilePath = getClass.getResource(extractedSamplesFile).getPath
+    def toPath(relativePath: String): Path = new File(getClass.getResource(relativePath).toURI).toPath
+
+    val miniVcfFilePath = toPath(miniVcfFile)
+    val extractedSamplesFilePath = toPath(extractedSamplesFile)
 
     // Make sure to not mistakenly use an output file from a previous run, if any
-    Files.deleteIfExists(Paths.get(extractedSamplesFilePath))
+    Files.deleteIfExists(extractedSamplesFilePath)
 
-    val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath, "XXX"))
-    val sampleFiles = Seq(extractedSamplesFilePath).map(Paths.get(_))
+    val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath.toString, "XXX"))
+    val sampleFiles = Seq(extractedSamplesFilePath)
 
     val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFiles)
     val pipeline = MiniPipeline.pipeline
@@ -39,7 +43,7 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val executable = toolbox.createExecutable(pipeline, mapping)
     MiniExecuter.execute(executable)
 
-    FileUtils.enclosed(Source.fromFile(extractedSamplesFilePath))(bufSrc => {
+    FileUtils.enclosed(Source.fromFile(extractedSamplesFilePath.toFile))(bufSrc => {
       val extractedSamplesList = bufSrc.getLines().toList
       val expectedSamplesList = List("Sample1", "Sample2", "Sample3")
       assert(extractedSamplesList == expectedSamplesList)

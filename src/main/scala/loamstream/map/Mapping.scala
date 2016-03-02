@@ -27,9 +27,9 @@ object Mapping {
     def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Iterative.SizePredicting[Target]
   }
 
-  def empty = Mapping(Set.empty, Set.empty, Map.empty, Set.empty, Map.empty, Set.empty, Map.empty)
+  def empty: Mapping = Mapping(Set.empty, Set.empty, Map.empty, Set.empty, Map.empty, Set.empty, Map.empty)
 
-  def fromSlots(slots: Map[Slot, RawChoices]) =
+  def fromSlots(slots: Map[Slot, RawChoices]): Mapping =
     Mapping(slots.keySet, slots.keySet, slots, Set.empty, Map.empty, Set.empty, Map.empty)
 
 }

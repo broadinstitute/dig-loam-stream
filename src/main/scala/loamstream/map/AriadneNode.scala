@@ -9,10 +9,10 @@ import loamstream.util.Iterative
   */
 object AriadneNode {
 
-  def fromMapping(mapping: Mapping) = RootWithoutSlot(mapping)
+  def fromMapping(mapping: Mapping): RootWithoutSlot = RootWithoutSlot(mapping)
 
   trait Root extends AriadneNode {
-    def parentOpt = None
+    def parentOpt: None.type = None
 
     def nextAncestorWithOtherChoices: Option[AriadneNode.WithSlot] = None
   }
@@ -20,7 +20,7 @@ object AriadneNode {
   trait Child extends AriadneNode {
     def parent: AriadneNode.WithSlot
 
-    def parentOpt = Some(parent)
+    def parentOpt: Some[WithSlot] = Some(parent)
 
     def nextAncestorWithOtherChoices: Option[AriadneNode.WithSlot] = {
       val choices = parent.choices
@@ -30,11 +30,11 @@ object AriadneNode {
   }
 
   trait WithoutSlot extends AriadneNode {
-    def slotOpt = None
+    def slotOpt: None.type = None
 
     def pickSlot(slot: Slot): WithSlot
 
-    def choicesOpt = None
+    def choicesOpt: None.type = None
 
     def isSolution: Boolean = mapping.unboundSlots.isEmpty
   }
@@ -42,11 +42,11 @@ object AriadneNode {
   trait WithSlot extends AriadneNode {
     def slot: Slot
 
-    def slotOpt = Some(slot)
+    def slotOpt: Some[Slot] = Some(slot)
 
     def choices: Iterative[Target]
 
-    def choicesOpt = Some(choices)
+    def choicesOpt: Some[Iterative[Target]] = Some(choices)
 
     def bind: ChildWithoutSlot
 

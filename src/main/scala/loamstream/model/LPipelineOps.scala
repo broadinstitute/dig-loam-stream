@@ -10,10 +10,10 @@ import loamstream.model.recipes.LRecipe
   */
 object LPipelineOps {
 
-  def extractKeyPile(inputPile: LPile, index: Int, kind: LKind) =
+  def extractKeyPile(inputPile: LPile, index: Int, kind: LKind): LPile =
     LPile(LSig.Set(Seq(inputPile.spec.sig.keyTypes(index))), kind)
 
-  def extractKeyRecipe(inputPile: LPile, index: Int, outputPile: LPile) =
+  def extractKeyRecipe(inputPile: LPile, index: Int, outputPile: LPile): LRecipe =
     LRecipe.keyExtraction(inputPile, outputPile, index)
 
   def extractKey(inputPile: LPile, index: Int, outputPile: LPile, kind: LKind): (LPile, LRecipe) = {

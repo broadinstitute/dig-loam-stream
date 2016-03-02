@@ -12,10 +12,10 @@ import scala.language.higherKinds
   */
 object LRecipeSpec {
 
-  def keyExtraction(input: LPileSpec, output: LPileSpec, index: Int) =
+  def keyExtraction(input: LPileSpec, output: LPileSpec, index: Int): LRecipeSpec =
     LRecipeSpec(RecipeKinds.extractKey(index), Seq(input), output)
 
-  def preExistingCheckout(id: String, output: LPileSpec) =
+  def preExistingCheckout(id: String, output: LPileSpec): LRecipeSpec =
     LRecipeSpec(RecipeKinds.usePreExisting(id), Seq.empty[LPileSpec], output)
 
 }

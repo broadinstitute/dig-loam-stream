@@ -4,6 +4,8 @@ import loamstream.map.Mapping.{Constraint, RawChoices, Rule, Slot, Target}
 import loamstream.map.SudokuBoard.{IntTarget, SlotXY}
 import loamstream.util.Iterative
 
+import scala.collection.immutable.IndexedSeq
+
 /**
   * LoamStream
   * Created by oliverr on 1/26/2016.
@@ -49,20 +51,22 @@ object SudokuBoard {
     }
   }
 
-  def row(y: Int) = xRange.map(SlotXY(_, y))
+  def row(y: Int): IndexedSeq[SlotXY] = xRange.map(SlotXY(_, y))
 
-  def column(x: Int) = yRange.map(SlotXY(x, _))
+  def column(x: Int): IndexedSeq[SlotXY] = yRange.map(SlotXY(x, _))
 
-  def sector(ix: Int, iy: Int) = {
+  def sector(ix: Int, iy: Int): IndexedSeq[SlotXY] = {
     val xMin = 3 * ix - 2
     val yMin = 3 * iy - 2
     for (x <- xMin to xMin + 2; y <- yMin to yMin + 2) yield SlotXY(x, y)
   }
 
-  def slotUniquenessGroups = (for (y <- yRange) yield row(y)) ++ (for (x <- xRange) yield column(x)) ++
-    (for (ix <- 1 to 3; iy <- 1 to 3) yield sector(ix, iy))
+  def slotUniquenessGroups: IndexedSeq[IndexedSeq[SlotXY]] =
+    (for (y <- yRange) yield row(y)) ++ (for (x <- xRange) yield column(x)) ++
+      (for (ix <- 1 to 3; iy <- 1 to 3) yield sector(ix, iy))
 
-  def uniquenessRules = slotUniquenessGroups.map(slotGroup => UniquenessRule(slotGroup.toSet))
+  def uniquenessRules: IndexedSeq[UniquenessRule] =
+    slotUniquenessGroups.map(slotGroup => UniquenessRule(slotGroup.toSet))
 }
 
 class SudokuBoard {
@@ -83,7 +87,7 @@ class SudokuBoard {
   def getChoices(x: Int, y: Int): Set[Int] =
     mapping.choices(SlotXY(x, y)).toSeq.collect({ case IntTarget(value) => value }).toSet
 
-  def cellToString(x: Int, y: Int) = get(x, y).map(_.toString).getOrElse(".")
+  def cellToString(x: Int, y: Int): String = get(x, y).map(_.toString).getOrElse(".")
 
   override def toString: String = {
     SudokuBoard.yRange.map({ y =>

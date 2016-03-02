@@ -22,14 +22,26 @@ object LPipelineMiniCostEstimator extends LPipelineCostEstimator {
 
   override def estimateCost(mapping: LToolMapping): Double = {
     val storeCosts = mapping.stores.values.map(store =>
-      if (cheapStores.contains(store)) lowCost
-      else if (expensiveStores.contains(store)) highCost
-      else mediumCost
+      if (cheapStores.contains(store)) {
+        lowCost
+      }
+      else if (expensiveStores.contains(store)) {
+        highCost
+      }
+      else {
+        mediumCost
+      }
     ).sum
     val toolCosts = mapping.tools.values.map(tool =>
-      if (cheapTools.contains(tool)) lowCost
-      else if (expensiveTools.contains(tool)) highCost
-      else mediumCost
+      if (cheapTools.contains(tool)) {
+        lowCost
+      }
+      else if (expensiveTools.contains(tool)) {
+        highCost
+      }
+      else {
+        mediumCost
+      }
     ).sum
     storeCosts + toolCosts
   }

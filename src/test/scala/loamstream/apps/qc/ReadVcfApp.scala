@@ -1,7 +1,5 @@
 package loamstream.apps.qc
 
-import java.nio.file.Paths
-
 import loamstream.testdata.VcfFiles
 
 import scala.io.{Codec, Source}

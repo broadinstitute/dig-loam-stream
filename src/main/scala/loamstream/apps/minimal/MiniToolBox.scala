@@ -1,6 +1,5 @@
 package loamstream.apps.minimal
 
-import java.io.{BufferedReader, FileReader}
 import java.nio.file.{Files, Path}
 
 import loamstream.apps.minimal.MiniToolBox.{CheckPreexistingVcfFileJob, Config, ExtractSampleIdsFromVcfFileJob}
@@ -8,7 +7,7 @@ import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.{SimpleSuccess, SimpleFailure, Result}
+import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.kinds.LSpecificKind
 import loamstream.model.piles.LPile
@@ -22,9 +21,9 @@ import tools.VcfParser
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * LoamStream
- * Created by oliverr on 2/23/2016.
- */
+  * LoamStream
+  * Created by oliverr on 2/23/2016.
+  */
 object MiniToolBox {
 
   trait Config {
@@ -71,8 +70,7 @@ object MiniToolBox {
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
-        val headerLine = vcfParser.getHeaderLine(new BufferedReader(new FileReader(vcfFileJob.vcfFile.toFile)))
-        val samples = vcfParser.getSamples(headerLine)
+        val samples = vcfParser.readSamples(vcfFileJob.vcfFile)
         vcfParser.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println)
         }

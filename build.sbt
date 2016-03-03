@@ -2,6 +2,7 @@ import sbt.project
 
 lazy val Versions = new {
   val App = "0.1"
+  val LogBack = "1.1.6"
   val Scala = "2.11.7"
   val ScalaTest = "2.2.6"
 }
@@ -9,7 +10,8 @@ lazy val Versions = new {
 lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-library" % Versions.Scala,
   "org.scala-lang" % "scala-compiler" % Versions.Scala,
-  "org.scala-lang" % "scala-reflect" % Versions.Scala
+  "org.scala-lang" % "scala-reflect" % Versions.Scala,
+  "ch.qos.logback" % "logback-classic" % Versions.LogBack
 )
 
 lazy val testDeps = Seq(

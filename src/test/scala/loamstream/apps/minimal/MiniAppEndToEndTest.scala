@@ -17,10 +17,8 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val miniVcfFile = "/mini.vcf"
     val extractedSamplesFile = "/samples.txt"
 
-    def toPath(relativePath: String): Path = new File(getClass.getResource(relativePath).toURI).toPath
-
-    val miniVcfFilePath = toPath(miniVcfFile)
-    val extractedSamplesFilePath = toPath(extractedSamplesFile)
+    val miniVcfFilePath = FileUtils.resolveRelativePath(miniVcfFile)
+    val extractedSamplesFilePath = FileUtils.resolveRelativePath(extractedSamplesFile)
 
     // Make sure to not mistakenly use an output file from a previous run, if any
     Files.deleteIfExists(extractedSamplesFilePath)

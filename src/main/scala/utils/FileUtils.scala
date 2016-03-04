@@ -13,11 +13,11 @@ import scala.language.reflectiveCalls
 object FileUtils {
   def resolveRelativePath(relativePath: String): Path = new File(getClass.getResource(relativePath).toURI).toPath
 
-  def enclosed[C <: {def close()}](c: C)(f: C => Unit) {
+  def enclosed[C](c: C)(closeOp: () => Unit)(f: C => Unit) {
     try {
       f(c)
     } finally {
-      c.close()
+      closeOp()
     }
   }
 }

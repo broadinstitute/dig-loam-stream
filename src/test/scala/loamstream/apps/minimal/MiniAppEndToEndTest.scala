@@ -4,6 +4,8 @@ import java.nio.file.Files
 
 import loamstream.conf.SampleFiles
 import loamstream.map.LToolMapper
+import loamstream.model.jobs.LJob
+import loamstream.util.shot.{Hit, Shot}
 import loamstream.utils.TestUtils
 import org.scalatest.{BeforeAndAfter, FunSuite}
 import utils.{FileUtils, StringUtils}
@@ -34,12 +36,22 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val mapping = mappingCostEstimator.pickCheapest(mappings)
     LToolMappingPrinter.printMapping(mapping)
 
+    def isHitOfSetOfOne(shot: Shot[Set[LJob]]): Boolean = {
+      shot match {
+        case Hit(jobs) => jobs.size == 1
+        case _ => false
+      }
+    }
+
     val genotypesJob = toolbox.createJobs(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)
+    assert(isHitOfSetOfOne(genotypesJob))
     val extractSamplesJob = toolbox.createJobs(MiniPipeline.sampleIdsRecipe, pipeline, mapping)
+    assert(isHitOfSetOfOne(extractSamplesJob))
     val executable = toolbox.createExecutable(pipeline, mapping)
     MiniExecuter.execute(executable)
 
-    FileUtils.enclosed(Source.fromFile(extractedSamplesFilePath.toFile))(bufSrc => {
+    val source = Source.fromFile(extractedSamplesFilePath.toFile)
+    FileUtils.enclosed(source)(source.close)(bufSrc => {
       val extractedSamplesList = bufSrc.getLines().toList
       val expectedSamplesList = List("Sample1", "Sample2", "Sample3")
       assert(extractedSamplesList == expectedSamplesList)

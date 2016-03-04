@@ -1,9 +1,10 @@
 package loamstream.apps.minimal
 
-import java.io.File
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Files
 
+import loamstream.conf.SampleFiles
 import loamstream.map.LToolMapper
+import loamstream.utils.TestUtils
 import org.scalatest.{BeforeAndAfter, FunSuite}
 import utils.{FileUtils, StringUtils}
 
@@ -14,11 +15,8 @@ import scala.io.Source
   */
 class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
   test("Pipeline successfully extracts sample IDs from VCF") {
-    val miniVcfFile = "/mini.vcf"
-    val extractedSamplesFile = "/samples.txt"
-
-    val miniVcfFilePath = FileUtils.resolveRelativePath(miniVcfFile)
-    val extractedSamplesFilePath = FileUtils.resolveRelativePath(extractedSamplesFile)
+    val miniVcfFilePath = TestUtils.assertSomeAndGet(SampleFiles.miniVcfOpt)
+    val extractedSamplesFilePath = TestUtils.assertSomeAndGet(SampleFiles.samplesOpt)
 
     // Make sure to not mistakenly use an output file from a previous run, if any
     Files.deleteIfExists(extractedSamplesFilePath)

@@ -1,35 +1,42 @@
 package loamstream.apps.minimal
 
-/**
- * RugLoom - A prototype for a pipeline building toolkit
- * Created by oruebenacker on 2/22/16.
- */
-object MiniAppDebug {
+import utils.Loggable
 
-  def theseShouldAllBeFalse() : Unit = {
-    println(MiniStore.vcfFile.pile <:< MiniStore.genotypesCassandraTable.pile)
-    println(
+/**
+  * RugLoom - A prototype for a pipeline building toolkit
+  * Created by oruebenacker on 2/22/16.
+  */
+object MiniAppDebug extends Loggable {
+
+  def thisShouldBeFalse(test: Boolean): Unit = debug("This should be false: " + test)
+
+  def theseShouldAllBeFalse(): Unit = {
+    thisShouldBeFalse(MiniStore.vcfFile.pile <:< MiniStore.genotypesCassandraTable.pile)
+    thisShouldBeFalse(
       MiniTool.checkPreExistingVcfFile.recipe <:< MiniTool.checkPreExistingGenotypeCassandraTable.recipe)
-    println(MiniStore.genotypesCassandraTable.pile <:< MiniStore.vcfFile.pile)
-    println(
+    thisShouldBeFalse(MiniStore.genotypesCassandraTable.pile <:< MiniStore.vcfFile.pile)
+    thisShouldBeFalse(
       MiniTool.checkPreExistingGenotypeCassandraTable.recipe <:< MiniTool.checkPreExistingVcfFile.recipe)
-    println(MiniStore.sampleIdsFile.pile <:< MiniStore.sampleIdsCassandraTable.pile)
-    println(
+    thisShouldBeFalse(MiniStore.sampleIdsFile.pile <:< MiniStore.sampleIdsCassandraTable.pile)
+    thisShouldBeFalse(
       MiniTool.extractSampleIdsFromVcfFile.recipe <:< MiniTool.extractSampleIdsFromCassandraTable.recipe)
-    println(MiniStore.sampleIdsCassandraTable.pile <:< MiniStore.sampleIdsFile.pile)
-    println(
+    thisShouldBeFalse(MiniStore.sampleIdsCassandraTable.pile <:< MiniStore.sampleIdsFile.pile)
+    thisShouldBeFalse(
       MiniTool.extractSampleIdsFromCassandraTable.recipe <:< MiniTool.extractSampleIdsFromVcfFile.recipe)
   }
 
-  def theseShouldAllBeTrue() : Unit = {
-    println(MiniStore.vcfFile.pile <:< MiniPipeline.genotypeCallsPile.spec)
-    println(MiniStore.genotypesCassandraTable.pile <:< MiniPipeline.genotypeCallsPile.spec)
-    println(MiniStore.sampleIdsFile.pile <:< MiniPipeline.sampleIdsPile.spec)
-    println(MiniStore.sampleIdsCassandraTable.pile <:< MiniPipeline.sampleIdsPile.spec)
-    println(MiniTool.checkPreExistingVcfFile.recipe <<< MiniPipeline.genotypeCallsRecipe.spec)
-    println(MiniTool.checkPreExistingGenotypeCassandraTable.recipe <<< MiniPipeline.genotypeCallsRecipe.spec)
-    println(MiniTool.extractSampleIdsFromVcfFile.recipe <<< MiniPipeline.sampleIdsRecipe.spec)
-    println(MiniTool.extractSampleIdsFromCassandraTable.recipe <<< MiniPipeline.sampleIdsRecipe.spec)
+  def thisShouldBeTrue(test: Boolean): Unit = debug("This should be true: " + test)
+
+  def theseShouldAllBeTrue(): Unit = {
+    thisShouldBeTrue(MiniStore.vcfFile.pile <:< MiniPipeline.genotypeCallsPile.spec)
+    thisShouldBeTrue(MiniStore.genotypesCassandraTable.pile <:< MiniPipeline.genotypeCallsPile.spec)
+    thisShouldBeTrue(MiniStore.sampleIdsFile.pile <:< MiniPipeline.sampleIdsPile.spec)
+    thisShouldBeTrue(MiniStore.sampleIdsCassandraTable.pile <:< MiniPipeline.sampleIdsPile.spec)
+    thisShouldBeTrue(MiniTool.checkPreExistingVcfFile.recipe <<< MiniPipeline.genotypeCallsRecipe.spec)
+    thisShouldBeTrue(
+      MiniTool.checkPreExistingGenotypeCassandraTable.recipe <<< MiniPipeline.genotypeCallsRecipe.spec)
+    thisShouldBeTrue(MiniTool.extractSampleIdsFromVcfFile.recipe <<< MiniPipeline.sampleIdsRecipe.spec)
+    thisShouldBeTrue(MiniTool.extractSampleIdsFromCassandraTable.recipe <<< MiniPipeline.sampleIdsRecipe.spec)
   }
 
 }

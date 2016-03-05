@@ -17,6 +17,7 @@ import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagAtom
 import tools.VcfParser
+import utils.Loggable
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -24,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * LoamStream
   * Created by oliverr on 2/23/2016.
   */
-object MiniToolBox {
+object MiniToolBox extends Loggable {
 
   trait Config {
     def getVcfFilePath(id: String): Path
@@ -72,7 +73,7 @@ object MiniToolBox {
       Future {
         val samples = vcfParser.readSamples(vcfFileJob.vcfFile)
         vcfParser.printToFile(samplesFile.toFile) {
-          p => samples.foreach(p.println)
+          p => samples.foreach(p.println) // scalastyle:ignore
         }
         new SimpleSuccess("Extracted sample ids.")
       }

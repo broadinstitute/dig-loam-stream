@@ -2,6 +2,8 @@ package loamstream.util
 
 import java.nio.file.{Files, Path, Paths}
 
+import utils.Loggable
+
 import scala.io.StdIn.readLine
 
 
@@ -9,7 +11,7 @@ import scala.io.StdIn.readLine
   * LoamStream
   * Created by oliverr on 2/24/2016.
   */
-object FileAsker {
+object FileAsker extends Loggable {
 
   def askIfNotExist(path: Path, paths: Path*)(fileDescription: String): Path =
     askIfNotExist(path +: paths)(fileDescription)
@@ -32,7 +34,7 @@ object FileAsker {
   }
 
   def ask(fileDescription: String): Path = {
-    println("Please enter path of " + fileDescription)
+    debug("Please enter path of " + fileDescription)
     Paths.get(readLine())
   }
 

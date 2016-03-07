@@ -1,21 +1,16 @@
 package loamstream.apps.minimal
 
-import java.nio.file.Paths
+import java.nio.file.Files
 
+import loamstream.conf.SampleFiles
 import loamstream.map.LToolMapper
-import utils.{Loggable, StringUtils}
-
+import utils.{StringUtils, Loggable}
 /**
   * LoamStream
   * Created by oliverr on 12/21/2015.
   */
 object MiniApp extends App with Loggable {
-  val vcfFiles = Seq(StringUtils.pathTemplate("dataFiles/vcf/XXX.vcf", "XXX"),
-    StringUtils.pathTemplate("/home/oruebenacker/git/dig-loam-stream/dataFiles/vcf/XXX.vcf", "XXX"))
-  val sampleFiles = Seq("dataFiles/samples/samples.txt",
-    "/home/oruebenacker/git/dig-loam-stream/dataFiles/samples/samples.txt").map(Paths.get(_))
-
-  val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFiles)
+  val config = MiniToolBox.InteractiveConfig
 
   debug("Yo!")
 

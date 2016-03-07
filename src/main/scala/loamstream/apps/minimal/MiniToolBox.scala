@@ -17,7 +17,7 @@ import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagAtom
 import tools.VcfParser
-import utils.Loggable
+import utils.{FileUtils, Loggable}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -72,7 +72,7 @@ object MiniToolBox extends Loggable {
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
         val samples = vcfParser.readSamples(vcfFileJob.vcfFile)
-        vcfParser.printToFile(samplesFile.toFile) {
+        FileUtils.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println) // scalastyle:ignore
         }
         new SimpleSuccess("Extracted sample ids.")

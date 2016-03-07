@@ -23,10 +23,6 @@ class VcfParser {
   def readSamples(path: Path, requireIndex: Boolean = false): Seq[String] =
     readSamples(newVcfFileReader(path, requireIndex))
 
-  def printToFile(f: File)(op: PrintWriter => Unit) {
-    val p = new java.io.PrintWriter(f)
-    FileUtils.enclosed(p)(p.close)(op)
-  }
 }
 
 object SampleExtractorApp extends App with Loggable {
@@ -34,7 +30,7 @@ object SampleExtractorApp extends App with Loggable {
   (SampleFiles.miniVcfOpt, SampleFiles.samplesOpt) match {
     case (Some(vcfFile), Some(samplesFile)) =>
       val samples = vcfParser.readSamples(vcfFile)
-      vcfParser.printToFile(new File("samples.txt")) {
+      FileUtils.printToFile(new File("samples.txt")) {
         p => samples.foreach(p => debug(p.toString))
       }
     case _ => ()

@@ -1,6 +1,6 @@
 package utils
 
-import java.io.File
+import java.io.{File, PrintWriter}
 import java.nio.file.Path
 
 import scala.language.reflectiveCalls
@@ -12,6 +12,12 @@ import scala.language.reflectiveCalls
   */
 object FileUtils {
   def resolveRelativePath(relativePath: String): Path = new File(getClass.getResource(relativePath).toURI).toPath
+
+  def printToFile(f: File)(op: PrintWriter => Unit) {
+    val p = new PrintWriter(f)
+    FileUtils.enclosed(p)(p.close)(op)
+  }
+
 
   def enclosed[C](c: C)(closeOp: () => Unit)(f: C => Unit) {
     try {

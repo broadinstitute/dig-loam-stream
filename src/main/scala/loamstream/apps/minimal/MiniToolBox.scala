@@ -65,13 +65,12 @@ object MiniToolBox extends Loggable {
   }
 
   case class ExtractSampleIdsFromVcfFileJob(vcfFileJob: CheckPreexistingVcfFileJob, samplesFile: Path) extends LJob {
-    val vcfParser = new VcfParser
 
     override def inputs: Set[LJob] = Set(vcfFileJob)
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
-        val samples = vcfParser.readSamples(vcfFileJob.vcfFile)
+        val samples = VcfParser(vcfFileJob.vcfFile).readSamples
         FileUtils.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println) // scalastyle:ignore
         }

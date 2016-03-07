@@ -2,7 +2,7 @@ package tools
 
 import java.nio.file.Path
 
-import htsjdk.variant.variantcontext.VariantContext
+import htsjdk.variant.variantcontext.{Genotype, VariantContext}
 import htsjdk.variant.vcf.VCFFileReader
 
 import scala.collection.JavaConverters.{asScalaBufferConverter, asScalaIteratorConverter}
@@ -18,8 +18,14 @@ object VcfParser {
 }
 
 class VcfParser(val reader: VCFFileReader) {
-  def readSamples: Seq[String] = reader.getFileHeader.getGenotypeSamples.asScala.toSeq
+  val samples: Seq[String] = reader.getFileHeader.getGenotypeSamples.asScala.toSeq
 
-  def rowIterator: Iterator[VariantContext] = reader.iterator().asScala
+  def rowIter: Iterator[VariantContext] = reader.iterator().asScala
+
+  def genotypesIter: Iterator[Seq[Genotype]] = rowIter.map({ row => row.getGenotypes.asScala.toSeq })
+
+  def genotypeMapIter: Iterator[Map[String, Genotype]] =
+    rowIter.map({row => samples.zip(row.getGenotypes.asScala).toMap})
+
 
 }

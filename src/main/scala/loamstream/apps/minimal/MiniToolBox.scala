@@ -70,7 +70,7 @@ object MiniToolBox extends Loggable {
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
-        val samples = VcfParser(vcfFileJob.vcfFile).readSamples
+        val samples = VcfParser(vcfFileJob.vcfFile).samples
         FileUtils.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println) // scalastyle:ignore
         }

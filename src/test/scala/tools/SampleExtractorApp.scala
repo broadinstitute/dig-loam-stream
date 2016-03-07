@@ -12,7 +12,7 @@ import utils.{FileUtils, Loggable}
 object SampleExtractorApp extends App with Loggable {
   (SampleFiles.miniVcfOpt, SampleFiles.samplesOpt) match {
     case (Some(vcfFile), Some(samplesFile)) =>
-      val samples = VcfParser(vcfFile).readSamples
+      val samples = VcfParser(vcfFile).samples
       FileUtils.printToFile(new File("samples.txt")) {
         p => samples.foreach(p => debug(p.toString))
       }

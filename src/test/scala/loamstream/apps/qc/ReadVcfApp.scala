@@ -2,7 +2,7 @@ package loamstream.apps.qc
 
 import loamstream.conf.SampleFiles
 import loamstream.utils.TestUtils
-import tools.VcfParser
+import tools.{VcfParser, VcfUtils}
 import utils.Loggable
 
 /**
@@ -12,10 +12,16 @@ import utils.Loggable
 object ReadVcfApp extends App with Loggable {
   val sampleVcfFile = TestUtils.assertSomeAndGet(SampleFiles.miniVcfOpt)
   val vcfParser = VcfParser(sampleVcfFile)
-  val samples = vcfParser.readSamples
+  val samples = vcfParser.samples
   debug(samples.toString)
 
-  for(row <- vcfParser.rowIterator) {
+  for (row <- vcfParser.rowIter) {
     debug(row.toString)
+  }
+  for (row <- vcfParser.genotypesIter) {
+    debug(row.map(VcfUtils.genotypeToAltCount).toString)
+  }
+  for (row <- vcfParser.genotypeMapIter) {
+    debug(row.mapValues(VcfUtils.genotypeToAltCount).toString)
   }
 }

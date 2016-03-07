@@ -15,6 +15,7 @@ object ReadVcfApp extends App with Loggable {
   val samples = vcfParser.readSamples
   debug(samples.toString)
 
-  val firstRow = vcfParser.rowIterator.next()
-  debug(firstRow.toString)
+  for(row <- vcfParser.rowIterator) {
+    debug(row.toString)
+  }
 }

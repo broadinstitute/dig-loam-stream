@@ -8,6 +8,7 @@ import loamstream.model.jobs.LJob
 import loamstream.util.shot.{Hit, Shot}
 import loamstream.utils.TestUtils
 import org.scalatest.{BeforeAndAfter, FunSuite}
+import utils.Loggable.Level
 import utils.{FileUtils, StringUtils}
 
 import scala.io.Source
@@ -31,10 +32,10 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val toolbox = MiniToolBox(config)
     val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
     for (mapping <- mappings)
-      LToolMappingPrinter.printMapping(mapping)
+      LToolMappingLogger.logMapping(Level.trace, mapping)
     val mappingCostEstimator = LPipelineMiniCostEstimator
     val mapping = mappingCostEstimator.pickCheapest(mappings)
-    LToolMappingPrinter.printMapping(mapping)
+    LToolMappingLogger.logMapping(Level.trace, mapping)
 
     def isHitOfSetOfOne(shot: Shot[Set[LJob]]): Boolean = {
       shot match {

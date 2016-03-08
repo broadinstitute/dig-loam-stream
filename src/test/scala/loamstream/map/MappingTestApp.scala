@@ -1,12 +1,13 @@
 package loamstream.map
 
 import loamstream.map.MapMaker.Consumer
+import utils.Loggable
 
 /**
   * LoamStream
   * Created by oliverr on 1/26/2016.j
   */
-object MappingTestApp extends App {
+object MappingTestApp extends App with Loggable {
 
   class TestConsumer(val nStepsMax: Int) extends Consumer {
     var nSteps = 0
@@ -15,27 +16,27 @@ object MappingTestApp extends App {
 
     def print(node: AriadneNode): Unit = {
       sudoku.mapping = node.mapping
-      println(sudoku)
+      debug(sudoku.toString)
     }
 
     override def wantsMore: Boolean = nSteps < nStepsMax
 
     override def solution(node: AriadneNode): Unit = {
-      println("=Solution!=")
+      debug("=Solution!=")
       print(node)
       solutions += node
     }
 
     override def step(node: AriadneNode): Unit = {
-      println()
+      debug("=Step=")
       print(node)
       nSteps += 1
     }
 
     override def end(): Unit = {
-      println("Number of solutions: " + solutions.size)
+      debug("Number of solutions: " + solutions.size)
       for (solution <- solutions) {
-        println("=Solution!=")
+        debug("=Solution!=")
         print(solution)
       }
     }
@@ -43,8 +44,9 @@ object MappingTestApp extends App {
 
   val sudoku = new SudokuBoard
 
-  case class Pos(x:Int, y:Int)
-  case class Entry(pos:Pos, value: Int)
+  case class Pos(x: Int, y: Int)
+
+  case class Entry(pos: Pos, value: Int)
 
   val x1 = 1
   val y1 = 1
@@ -56,14 +58,14 @@ object MappingTestApp extends App {
   val entry2 = Entry(Pos(x2, y2), value2)
   sudoku.set(entry1.pos.x, entry1.pos.y, entry1.value)
   sudoku.set(entry2.pos.x, entry2.pos.y, entry2.value)
-  println(sudoku)
+  debug(sudoku.toString)
   val x3 = 6
   val y3 = 1
   val pos3 = Pos(x3, y3)
-  println("Choices for " + pos3 + ": " + sudoku.getChoices(pos3.x, pos3.y))
+  debug("Choices for " + pos3 + ": " + sudoku.getChoices(pos3.x, pos3.y))
   val nStepsMax: Int = 140
   val consumer = new TestConsumer(nStepsMax)
   MapMaker.traverse(sudoku.mapping, consumer)
-  println("Yo, mapper!")
+  debug("Yo, mapper!")
 
 }

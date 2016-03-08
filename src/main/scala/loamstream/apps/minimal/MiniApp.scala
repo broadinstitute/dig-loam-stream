@@ -1,20 +1,17 @@
 package loamstream.apps.minimal
 
-import java.nio.file.Paths
-import loamstream.map.LToolMapper
-import utils.{Loggable, StringUtils}
+import java.nio.file.Files
 
+import loamstream.conf.SampleFiles
+import loamstream.map.LToolMapper
+import utils.Loggable.Level
+import utils.{StringUtils, Loggable}
 /**
   * LoamStream
   * Created by oliverr on 12/21/2015.
   */
 object MiniApp extends App with Loggable {
-  val vcfFiles = Seq(StringUtils.pathTemplate("dataFiles/vcf/XXX.vcf", "XXX"),
-    StringUtils.pathTemplate("/home/oruebenacker/git/dig-loam-stream/dataFiles/vcf/XXX.vcf", "XXX"))
-  val sampleFiles = Seq("dataFiles/samples/samples.txt",
-      "/home/oruebenacker/git/dig-loam-stream/dataFiles/samples/samples.txt").map(Paths.get(_))
-
-  val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFiles)
+  val config = MiniToolBox.InteractiveConfig
 
   debug("Yo!")
 
@@ -24,16 +21,16 @@ object MiniApp extends App with Loggable {
 
   val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
 
-  println("Found " + mappings.size + " mappings.")
+  debug("Found " + mappings.size + " mappings.")
 
   for (mapping <- mappings) {
-    println("Here comes a mapping")
-    LToolMappingPrinter.printMapping(mapping)
-    println("That was a mapping")
+    debug("Here comes a mapping")
+    LToolMappingLogger.logMapping(Level.info, mapping)
+    debug("That was a mapping")
   }
 
   if (mappings.isEmpty) {
-    println("No mappings found - bye")
+    debug("No mappings found - bye")
     System.exit(0)
   }
 
@@ -41,14 +38,14 @@ object MiniApp extends App with Loggable {
 
   val mapping = mappingCostEstimator.pickCheapest(mappings)
 
-  println("Here comes the cheapest mapping")
-  LToolMappingPrinter.printMapping(mapping)
-  println("That was the cheapest mapping")
+  debug("Here comes the cheapest mapping")
+  LToolMappingLogger.logMapping(Level.info, mapping)
+  debug("That was the cheapest mapping")
 
   val genotypesJob = toolbox.createJobs(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)
   val extractSamplesJob = toolbox.createJobs(MiniPipeline.sampleIdsRecipe, pipeline, mapping)
 
   val executable = toolbox.createExecutable(pipeline, mapping)
   val results = MiniExecuter.execute(executable)
-  println(results)
+  debug(results.toString)
 }

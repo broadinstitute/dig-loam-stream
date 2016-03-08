@@ -4,6 +4,7 @@ import java.nio.file.Files
 
 import loamstream.conf.SampleFiles
 import loamstream.map.LToolMapper
+import utils.Loggable.Level
 import utils.{StringUtils, Loggable}
 /**
   * LoamStream
@@ -24,7 +25,7 @@ object MiniApp extends App with Loggable {
 
   for (mapping <- mappings) {
     debug("Here comes a mapping")
-    LToolMappingPrinter.printMapping(mapping)
+    LToolMappingLogger.logMapping(Level.info, mapping)
     debug("That was a mapping")
   }
 
@@ -38,7 +39,7 @@ object MiniApp extends App with Loggable {
   val mapping = mappingCostEstimator.pickCheapest(mappings)
 
   debug("Here comes the cheapest mapping")
-  LToolMappingPrinter.printMapping(mapping)
+  LToolMappingLogger.logMapping(Level.info, mapping)
   debug("That was the cheapest mapping")
 
   val genotypesJob = toolbox.createJobs(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)

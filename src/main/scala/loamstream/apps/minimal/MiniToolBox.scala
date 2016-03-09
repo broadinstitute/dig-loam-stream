@@ -17,7 +17,7 @@ import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagAtom
 import tools.VcfParser
-import utils.Loggable
+import utils.{FileUtils, Loggable}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -65,14 +65,13 @@ object MiniToolBox extends Loggable {
   }
 
   case class ExtractSampleIdsFromVcfFileJob(vcfFileJob: CheckPreexistingVcfFileJob, samplesFile: Path) extends LJob {
-    val vcfParser = new VcfParser
 
     override def inputs: Set[LJob] = Set(vcfFileJob)
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
-        val samples = vcfParser.readSamples(vcfFileJob.vcfFile)
-        vcfParser.printToFile(samplesFile.toFile) {
+        val samples = VcfParser(vcfFileJob.vcfFile).samples
+        FileUtils.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println) // scalastyle:ignore
         }
         new SimpleSuccess("Extracted sample ids.")

@@ -1,42 +1,31 @@
 package tools
 
-import java.io.{File, PrintWriter}
 import java.nio.file.Path
 
+import htsjdk.variant.variantcontext.{Genotype, VariantContext}
 import htsjdk.variant.vcf.VCFFileReader
-import loamstream.conf.SampleFiles
-import utils.{FileUtils, Loggable}
 
-import scala.collection.JavaConverters.asScalaBufferConverter
+import scala.collection.JavaConverters.{asScalaBufferConverter, asScalaIteratorConverter}
 
 /**
   * Created on: 1/20/16
   *
   * @author Kaan Yuksel
   */
-class VcfParser {
-  def newVcfFileReader(path: Path, requireIndex: Boolean = false): VCFFileReader =
-    new VCFFileReader(path.toFile, requireIndex)
-
-  def readSamples(reader: VCFFileReader): Seq[String] = reader.getFileHeader.getGenotypeSamples.asScala.toSeq
-
-  def readSamples(path: Path, requireIndex: Boolean = false): Seq[String] =
-    readSamples(newVcfFileReader(path, requireIndex))
-
-  def printToFile(f: File)(op: PrintWriter => Unit) {
-    val p = new java.io.PrintWriter(f)
-    FileUtils.enclosed(p)(p.close)(op)
-  }
+object VcfParser {
+  def apply(path: Path, requireIndex: Boolean = false): VcfParser =
+    new VcfParser(new VCFFileReader(path.toFile, requireIndex))
 }
 
-object SampleExtractorApp extends App with Loggable {
-  val vcfParser = new VcfParser
-  (SampleFiles.miniVcfOpt, SampleFiles.samplesOpt) match {
-    case (Some(vcfFile), Some(samplesFile)) =>
-      val samples = vcfParser.readSamples(vcfFile)
-      vcfParser.printToFile(new File("samples.txt")) {
-        p => samples.foreach(p => debug(p.toString))
-      }
-    case _ => ()
-  }
+class VcfParser(val reader: VCFFileReader) {
+  val samples: Seq[String] = reader.getFileHeader.getGenotypeSamples.asScala.toSeq
+
+  def rowIter: Iterator[VariantContext] = reader.iterator().asScala
+
+  def genotypesIter: Iterator[Seq[Genotype]] = rowIter.map({ row => row.getGenotypes.asScala.toSeq })
+
+  def genotypeMapIter: Iterator[Map[String, Genotype]] =
+    rowIter.map({row => samples.zip(row.getGenotypes.asScala).toMap})
+
+
 }

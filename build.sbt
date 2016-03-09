@@ -3,7 +3,7 @@ import sbt.project
 lazy val Versions = new {
   val App = "0.1"
   val LogBack = "1.1.6"
-  val Scala = "2.11.7"
+  val Scala = "2.11.8"
   val ScalaTest = "2.2.6"
   val Htsjdk = "2.1.0"
 }

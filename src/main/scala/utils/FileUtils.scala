@@ -11,13 +11,14 @@ import scala.language.reflectiveCalls
   * @author Kaan Yuksel
   */
 object FileUtils {
-  def resolveRelativePath(relativePath: String): Path = new File(getClass.getResource(relativePath).toURI).toPath
+  private def classLoader = getClass.getClassLoader
+  
+  def resolveRelativePath(relativePath: String): Path = new File(classLoader.getResource(relativePath).toURI).toPath
 
   def printToFile(f: File)(op: PrintWriter => Unit) {
     val p = new PrintWriter(f)
     FileUtils.enclosed(p)(p.close)(op)
   }
-
 
   def enclosed[C](c: C)(closeOp: () => Unit)(f: C => Unit) {
     try {

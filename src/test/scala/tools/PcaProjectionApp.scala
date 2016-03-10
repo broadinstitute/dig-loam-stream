@@ -1,5 +1,6 @@
 package tools
 
+import htsjdk.variant.variantcontext.Genotype
 import loamstream.conf.SampleFiles
 import loamstream.utils.TestUtils
 import utils.Loggable
@@ -13,7 +14,9 @@ object PcaProjectionApp extends App with Loggable {
   val weights = PcaWeightsReader.read(pcaWeightsFile)
   val miniVcf = TestUtils.assertSomeAndGet(SampleFiles.miniVcfOpt)
   val vcfParser = VcfParser(miniVcf)
-  for (genotypeMap <- vcfParser.genotypeMapIter) {
-    // TODO
-  }
+  val samples = vcfParser.samples
+  val pcaProjecter = PcaProjecter(weights)
+  val genotypeToDouble: Genotype => Double = { genotype => VcfUtils.genotypeToAltCount(genotype).toDouble }
+  val pcas = pcaProjecter.project(samples, vcfParser.genotypeMapIter, genotypeToDouble)
+  debug(pcas.toString)
 }

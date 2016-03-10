@@ -13,7 +13,7 @@ object PcaProjectionApp extends App with Loggable {
   val weights = PcaWeightsReader.read(pcaWeightsFile)
   val miniVcf = TestUtils.assertSomeAndGet(SampleFiles.miniVcfOpt)
   val vcfParser = VcfParser(miniVcf)
-  for(genotypeMap <- vcfParser.genotypeMapIter) {
+  for (genotypeMap <- vcfParser.genotypeMapIter) {
     // TODO
   }
 }

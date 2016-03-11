@@ -3,8 +3,6 @@ package utils
 import java.io.{File, PrintWriter}
 import java.nio.file.Path
 
-import scala.language.reflectiveCalls
-
 /**
   * Created on: 3/1/16
   *
@@ -13,7 +11,13 @@ import scala.language.reflectiveCalls
 object FileUtils {
   private def classLoader = getClass.getClassLoader
   
-  def resolveRelativePath(relativePath: String): Path = new File(classLoader.getResource(relativePath).toURI).toPath
+  def resolveRelativePath(relativePath: String): Option[Path] = {
+    for {
+      resource <- Option(classLoader.getResource(relativePath))
+      uri = resource.toURI
+      file = new File(uri)
+    } yield file.toPath
+  }
 
   def printToFile(f: File)(op: PrintWriter => Unit) {
     val p = new PrintWriter(f)

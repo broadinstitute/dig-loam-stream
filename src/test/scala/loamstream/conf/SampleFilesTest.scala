@@ -5,6 +5,7 @@ import loamstream.TestData
 import java.nio.file.Paths
 import java.nio.file.Files
 import org.scalatest.Matchers
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -12,7 +13,7 @@ import org.scalatest.Matchers
  */
 final class SampleFilesTest extends FunSuite with Matchers {
   test("Sample files are correctly located") {
-    def path(s: String) = Paths.get(s)
+    import TestHelpers.path
     
     import TestData.sampleFiles
     

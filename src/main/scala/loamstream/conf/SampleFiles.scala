@@ -19,8 +19,8 @@ final case class SampleFiles(props: LProperties) {
   
   private def getFileFromProperties(key: String): Option[Path] = {
     for {
-      path <- props.getAs[String](key)
-      resolvedPath <- Try(FileUtils.resolveRelativePath(path)).toOption
+      path <- props.getString(key)
+      resolvedPath <- FileUtils.resolveRelativePath(path)
     } yield resolvedPath
   }
 }

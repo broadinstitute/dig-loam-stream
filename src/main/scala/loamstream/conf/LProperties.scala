@@ -1,12 +1,7 @@
 package loamstream.conf
 
-import java.io.FileInputStream
-import java.nio.file.{DirectoryStream, Files, Path}
-import java.util.Properties
+import java.nio.file.Path
 
-import utils.FileUtils
-
-import scala.collection.JavaConverters.asScalaIteratorConverter
 import com.typesafe.config.ConfigFactory
 
 /**
@@ -14,7 +9,9 @@ import com.typesafe.config.ConfigFactory
   * Created by oliverr on 3/4/2016.
   */
 trait LProperties {
-  def getAs[A: Extractor](key: String): Option[A]
+  def getString(key: String): Option[String]
+  
+  def getPath(key: String): Option[Path]
 }
 
 object LProperties {

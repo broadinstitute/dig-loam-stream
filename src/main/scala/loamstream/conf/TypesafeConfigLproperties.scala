@@ -2,6 +2,8 @@ package loamstream.conf
 
 import com.typesafe.config.Config
 import scala.util.Try
+import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
  * @author clint
@@ -10,17 +12,16 @@ import scala.util.Try
 final case class TypesafeConfigLproperties(config: Config) extends LProperties {
   import TypesafeConfigLproperties._
   
-  override def getAs[A: Extractor](key: String): Option[A] = {
-    val extractor = implicitly[Extractor[A]]
-    
+  override def getString(key: String): Option[String] = {
     val attempt = for {
       fullKey <- Try(qualifiedKey(key))
-      configValue <- Try(config.getValue(fullKey))
-      extracted <- extractor.extract(configValue)
-    } yield extracted
+      s <- Try(config.getString(fullKey))
+    } yield s
     
     attempt.toOption
   }
+  
+  override def getPath(key: String): Option[Path] = getString(key).map(Paths.get(_))
 }
 
 object TypesafeConfigLproperties {

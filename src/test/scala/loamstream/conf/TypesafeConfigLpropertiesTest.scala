@@ -30,18 +30,18 @@ final class TypesafeConfigLpropertiesTest extends FunSuite {
   test("getAs()") {
     val props = TypesafeConfigLproperties(ConfigFactory.load("loamstream-test"))
     
-    val s: String = props.getAs[String]("sampleFiles.samples").get
+    val s: String = props.getString("sampleFiles.samples").get
     
     assert(s == "samples.txt")
     
-    val p: Path = props.getAs[Path]("sampleFiles.samples").get
+    val p: Path = props.getPath("sampleFiles.samples").get
     
     assert(p == Paths.get("samples.txt"))
     
-    assert(props.getAs[String]("sampleFiles") == None)
-    assert(props.getAs[String]("foo") == None)
+    assert(props.getString("sampleFiles") == None)
+    assert(props.getString("foo") == None)
     
-    assert(props.getAs[Path]("sampleFiles") == None)
-    assert(props.getAs[Path]("foo") == None)
+    assert(props.getPath("sampleFiles") == None)
+    assert(props.getPath("foo") == None)
   }
 }

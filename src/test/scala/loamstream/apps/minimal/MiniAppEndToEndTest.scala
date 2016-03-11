@@ -52,10 +52,10 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     MiniExecuter.execute(executable)
 
     val source = Source.fromFile(extractedSamplesFilePath.toFile)
-    FileUtils.enclosed(source)(source.close)(bufSrc => {
-      val extractedSamplesList = bufSrc.getLines().toList
+    FileUtils.enclosed(source) { bufSrc =>
+      val extractedSamplesList = bufSrc.getLines.toList
       val expectedSamplesList = List("Sample1", "Sample2", "Sample3")
       assert(extractedSamplesList == expectedSamplesList)
-    })
+    }
   }
 }

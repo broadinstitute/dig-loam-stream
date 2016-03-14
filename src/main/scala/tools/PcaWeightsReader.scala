@@ -1,6 +1,6 @@
 package tools
 
-import java.nio.file.{Paths, Path}
+import java.nio.file.Path
 
 import loamstream.conf.LProperties
 import utils.{FileUtils, Loggable}
@@ -19,7 +19,7 @@ object PcaWeightsReader extends Loggable {
     LProperties.Default.getString(weightsFilePropertiesKey).flatMap(FileUtils.resolveRelativePath)
 
   def read(path: Path): Map[String, Seq[Double]] = {
-    var weightsMap = Map.empty[String,Seq[Double]]
+    var weightsMap = Map.empty[String, Seq[Double]]
     for (line <- Source.fromFile(path.toFile).getLines()) {
       val tokens: Seq[String] = line.trim.split("\\s+").toSeq
       val id = tokens.head

@@ -10,9 +10,9 @@ import loamstream.model.stores.LStore
 import loamstream.util.shot.Shot
 
 /**
- * LoamStream
- * Created by oliverr on 2/16/2016.
- */
+  * LoamStream
+  * Created by oliverr on 2/16/2016.
+  */
 trait LToolBox {
   def storesFor(pile: LPile): Set[LStore]
 

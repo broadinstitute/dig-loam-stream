@@ -12,22 +12,27 @@ import utils.Loggable.Level
 import utils.{FileUtils, StringUtils}
 
 import scala.io.Source
+import loamstream.conf.LProperties
+import loamstream.TestData
 
 /**
   * Created by kyuksel on 2/29/2016.
   */
 class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
   test("Pipeline successfully extracts sample IDs from VCF") {
-    val miniVcfFilePath = TestUtils.assertSomeAndGet(SampleFiles.miniVcfOpt)
-    val extractedSamplesFilePath = TestUtils.assertSomeAndGet(SampleFiles.samplesOpt)
+    import TestData.sampleFiles
+    
+    //NB: Just calling sampleFiles.miniVcfOpt would be fine here, since the test 
+    val miniVcfFilePath = TestUtils.assertSomeAndGet(sampleFiles.miniVcfOpt)
+    val extractedSamplesFilePath = TestUtils.assertSomeAndGet(sampleFiles.samplesOpt)
 
     // Make sure to not mistakenly use an output file from a previous run, if any
     Files.deleteIfExists(extractedSamplesFilePath)
 
     val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath.toString, "XXX"))
-    val sampleFiles = Seq(extractedSamplesFilePath)
+    val sampleFilePaths = Seq(extractedSamplesFilePath)
 
-    val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFiles)
+    val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFilePaths)
     val pipeline = MiniPipeline.pipeline
     val toolbox = MiniToolBox(config)
     val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)

@@ -3,7 +3,6 @@ package loamstream.conf
 import java.nio.file.Path
 
 import utils.FileUtils
-import scala.util.Try
 
 /**
   * LoamStream
@@ -12,11 +11,12 @@ import scala.util.Try
 final case class SampleFiles(props: LProperties) {
 
   import SampleFiles.PropertyKeys
-  
+
   lazy val miniVcfOpt: Option[Path] = getFileFromProperties(PropertyKeys.miniVcf)
-  
+  lazy val miniForPcaVcfOpt: Option[Path] = getFileFromProperties(PropertyKeys.miniForPcaVcf)
+
   lazy val samplesOpt: Option[Path] = getFileFromProperties(PropertyKeys.samples)
-  
+
   private def getFileFromProperties(key: String): Option[Path] = {
     for {
       path <- props.getString(key)
@@ -26,8 +26,11 @@ final case class SampleFiles(props: LProperties) {
 }
 
 object SampleFiles {
+
   object PropertyKeys {
     val miniVcf = "sampleFiles.vcf.mini"
+    val miniForPcaVcf = "sampleFiles.vcf.miniForPca"
     val samples = "sampleFiles.samples"
   }
+
 }

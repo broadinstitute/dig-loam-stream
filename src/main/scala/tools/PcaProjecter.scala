@@ -16,7 +16,9 @@ object PcaProjecter {
 case class PcaProjecter(weights: Map[String, Seq[Double]], nPcaMax: Int) {
 
   def addPcas(pcas1: Seq[Seq[Double]], pcas2: Seq[Seq[Double]]): Seq[Seq[Double]] =
-    pcas1.zip(pcas2).map({ tup => tup._1.zip(tup._2).map({ tup => tup._1 + tup._2 }) })
+    pcas1.zip(pcas2).map { case (samplePcas1, samplePcas2) =>
+      samplePcas1.zip(samplePcas2).map { case (samplePca1, samplePca2) => samplePca1 + samplePca2 }
+    }
 
   def project(variant: String, samples: Seq[String], row: MapRow, genotypeToDouble: Genotype => Double,
               nPca: Int): Seq[Seq[Double]] = {

@@ -3,15 +3,17 @@ package tools
 import loamstream.conf.SampleFiles
 import loamstream.utils.TestUtils
 import org.scalatest.FunSuite
+import loamstream.TestData.sampleFiles
+
 
 /**
   * LoamStream
   * Created by oliverr on 3/8/2016.
   */
-class VcfParserTest extends FunSuite {
+final class VcfParserTest extends FunSuite {
 
   test("Reading a sample VCF file and count alt alleles") {
-    val sampleVcfFile = TestUtils.assertSomeAndGet(SampleFiles.miniVcfOpt)
+    val sampleVcfFile = TestUtils.assertSomeAndGet(sampleFiles.miniVcfOpt)
     val vcfParser = VcfParser(sampleVcfFile)
     val samples = vcfParser.samples
     assert(samples === Seq("Sample1", "Sample2", "Sample3"))

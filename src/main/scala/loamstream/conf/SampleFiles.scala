@@ -3,21 +3,31 @@ package loamstream.conf
 import java.nio.file.Path
 
 import utils.FileUtils
+import scala.util.Try
 
 /**
   * LoamStream
   * Created by oliverr on 3/2/2016.
   */
-object SampleFiles {
+final case class SampleFiles(props: LProperties) {
 
-  object PropertyKeys {
-    val miniVcf = "sample.file.vcf.mini"
-    val samples = "sample.file.samples"
+  import SampleFiles.PropertyKeys
+  
+  lazy val miniVcfOpt: Option[Path] = getFileFromProperties(PropertyKeys.miniVcf)
+  
+  lazy val samplesOpt: Option[Path] = getFileFromProperties(PropertyKeys.samples)
+  
+  private def getFileFromProperties(key: String): Option[Path] = {
+    for {
+      path <- props.getString(key)
+      resolvedPath <- FileUtils.resolveRelativePath(path)
+    } yield resolvedPath
   }
+}
 
-  def getFileFromProperties(key: String): Option[Path] = LProperties.get(key).map(FileUtils.resolveRelativePath)
-
-  val miniVcfOpt: Option[Path] = getFileFromProperties(PropertyKeys.miniVcf)
-  val samplesOpt: Option[Path] = getFileFromProperties(PropertyKeys.samples)
-
+object SampleFiles {
+  object PropertyKeys {
+    val miniVcf = "sampleFiles.vcf.mini"
+    val samples = "sampleFiles.samples"
+  }
 }

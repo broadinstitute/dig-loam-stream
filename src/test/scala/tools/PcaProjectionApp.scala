@@ -1,7 +1,7 @@
 package tools
 
 import htsjdk.variant.variantcontext.Genotype
-import loamstream.conf.SampleFiles
+import loamstream.conf.{LProperties, SampleFiles}
 import loamstream.utils.TestUtils
 import utils.Loggable
 
@@ -12,7 +12,8 @@ import utils.Loggable
 object PcaProjectionApp extends App with Loggable {
   val pcaWeightsFile = TestUtils.assertSomeAndGet(PcaWeightsReader.weightsFilePath)
   val weights = PcaWeightsReader.read(pcaWeightsFile)
-  val miniVcf = TestUtils.assertSomeAndGet(SampleFiles.miniVcfOpt)
+  val sampleFiles = SampleFiles(LProperties.Default)
+  val miniVcf = TestUtils.assertSomeAndGet(sampleFiles.miniVcfOpt)
   val vcfParser = VcfParser(miniVcf)
   val samples = vcfParser.samples
   val pcaProjecter = PcaProjecter(weights)

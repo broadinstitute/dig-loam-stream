@@ -15,7 +15,8 @@ object PcaWeightsReader extends Loggable {
 
   val weightsFilePropertiesKey = "pca.weights.file"
 
-  def weightsFilePath: Option[Path] = LProperties.get(weightsFilePropertiesKey).map(FileUtils.resolveRelativePath)
+  def weightsFilePath: Option[Path] =
+    LProperties.Default.getString(weightsFilePropertiesKey).flatMap(FileUtils.resolveRelativePath)
 
   def read(path: Path): Map[String, Seq[Double]] = {
     var weightsMap = Map.empty[String,Seq[Double]]

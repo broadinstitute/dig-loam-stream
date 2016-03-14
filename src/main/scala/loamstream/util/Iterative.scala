@@ -66,12 +66,12 @@ trait Iterative[+A] {
   def tail: Iterative[A]
 
   def seek(p: (A) => Boolean): Option[(A, Iterative[A])] =
-    if (isEmpty) None else if (p(head)) Some(head, tail) else tail.seek(p)
+    if (isEmpty) None else if (p(head)) Some((head, tail)) else tail.seek(p)
 
   def filter(p: (A) => Boolean): Iterative[A] =
     seek(p) match {
       case None => Empty
-      case Some(sought) => FilteredIterative(sought._1, sought._2, p)
+      case Some((hd, tl)) => FilteredIterative(hd, tl, p)
     }
 
   def toSeq: Seq[A] = if (isEmpty) Seq.empty else head +: tail.toSeq

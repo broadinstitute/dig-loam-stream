@@ -17,7 +17,7 @@ import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagAtom
 import tools.VcfParser
-import utils.{FileUtils, Loggable}
+import utils.FileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * LoamStream
   * Created by oliverr on 2/23/2016.
   */
-object MiniToolBox extends Loggable {
+object MiniToolBox {
 
   trait Config {
     def getVcfFilePath(id: String): Path

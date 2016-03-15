@@ -14,6 +14,8 @@ trait LineCommand {
 
   def name: String
 
+  override def toString: String = name
+
   trait Param {
     def key: String
 
@@ -34,6 +36,32 @@ trait LineCommand {
 
   case class DashSwitchParam(key: String) extends Param {
     override def tokens: Seq[String] = Seq("-" + key)
+  }
+
+  object UnkeyedValueParam {
+
+    case class Builder[Value](key: String) extends ValueParam.Builder[Value] {
+      def apply(value: Value): UnkeyedValueParam[Value] = UnkeyedValueParam[Value](key, value)
+    }
+
+  }
+
+  case class UnkeyedValueParam[Value](key: String, value: Value)
+    extends ValueParam[Value] {
+    override def tokens: Seq[String] = Seq(value.toString)
+  }
+
+  object KeyedValueParam {
+
+    case class Builder[Value](key: String) extends ValueParam.Builder[Value] {
+      def apply(value: Value): KeyedValueParam[Value] = KeyedValueParam[Value](key, value)
+    }
+
+  }
+
+  case class KeyedValueParam[Value](key: String, value: Value)
+    extends ValueParam[Value] {
+    override def tokens: Seq[String] = Seq(key, value.toString)
   }
 
   object DashValueParam {

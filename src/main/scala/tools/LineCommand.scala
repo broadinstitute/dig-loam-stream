@@ -1,13 +1,13 @@
 package tools
 
-import tools.LineCommand.lineTokenSep
+import tools.LineCommand.tokenSep
 
 /**
   * LoamStream - Language for Omics Analysis Management
   * Created by oruebenacker on 3/15/16.
   */
 object LineCommand {
-  val lineTokenSep = " "
+  val tokenSep = " "
 }
 
 trait LineCommand {
@@ -82,7 +82,9 @@ trait LineCommand {
   case class CommandLine(command: LineCommand, params: Seq[Param]) {
     def +(param: Param): CommandLine = copy(params = params :+ param)
 
-    def commandLine: String = command + lineTokenSep + params.flatMap(_.tokens).mkString(lineTokenSep)
+    def tokens: Seq[String] = command.toString +: params.flatMap(_.tokens)
+
+    def commandLine: String = tokens.mkString(tokenSep)
   }
 
 }

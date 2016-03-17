@@ -32,6 +32,11 @@ class KlustaKwikRunTest extends FunSuite {
     }
     val process = Process(command.tokens, workDir)
     val printLines: String => Unit = line => println(line) // scalastyle:ignore
+    println("Start process") // scalastyle:ignore
     process.lineStream_!(ProcessLogger(printLines)).foreach(printLines)
+    println("Process started, going to wait.") // scalastyle:ignore
+    val sleepTimeMillis = 10000
+    Thread.sleep(sleepTimeMillis)
+    println("Done waiting.") // scalastyle:ignore
   }
 }

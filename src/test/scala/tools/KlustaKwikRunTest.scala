@@ -4,14 +4,17 @@ import java.io.File
 
 import org.scalatest.FunSuite
 
-import scala.sys.process.{Process, ProcessLogger}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future, blocking}
+import scala.sys.process.{ProcessLogger, Process}
 
 /**
   * LoamStream
   * Created by oliverr on 3/16/2016.
   */
 class KlustaKwikRunTest extends FunSuite {
-  test("Running KlustaKwik. That's all for now.") {
+  test("Running KlustaKwik, assert exit value is zero. That's all for now.") {
     val fileBaseVal = "data"
     val workDirName = "klusta"
     val workDir = new File(workDirName)
@@ -19,8 +22,8 @@ class KlustaKwikRunTest extends FunSuite {
       assume(workDir.mkdir)
     }
     assume(workDir.isDirectory)
-    val nSamples = 3
-    val nPcas = 5
+    val nSamples = 100
+    val nPcas = 7
     val pcaMin = 0.0
     val pcaMax = 1.0
     val data = KlustaKwikMockDataGenerator.generate(nSamples, nPcas, pcaMin, pcaMax)
@@ -28,15 +31,17 @@ class KlustaKwikRunTest extends FunSuite {
     KlustaKwikInputWriter.writeFeatures(workDir, fileBaseVal, iShankVal, data)
     val command = {
       import KlustaKwikLineCommand._
-      KlustaKwikLineCommand + fileBase(fileBaseVal) + elecNo(iShankVal)
+      KlustaKwikLineCommand + fileBase(fileBaseVal) + elecNo(iShankVal) + useDistributional(0)
     }
-    val process = Process(command.tokens, workDir)
-    val printLines: String => Unit = line => println(line) // scalastyle:ignore
-    println("Start process") // scalastyle:ignore
-    process.lineStream_!(ProcessLogger(printLines)).foreach(printLines)
-    println("Process started, going to wait.") // scalastyle:ignore
-    val sleepTimeMillis = 10000
-    Thread.sleep(sleepTimeMillis)
-    println("Done waiting.") // scalastyle:ignore
+    val exitValueFuture = Future {
+      blocking {
+        val noOpProcessLogger = ProcessLogger(line => ())
+        Process(command.tokens, workDir).run(noOpProcessLogger).exitValue
+      }
+    }
+    val timeOut = 10.seconds
+    val exitValue = Await.result(exitValueFuture, timeOut)
+    val exitValueOnSuccess = 0
+    assert(exitValue === exitValueOnSuccess)
   }
 }

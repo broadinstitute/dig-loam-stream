@@ -25,13 +25,13 @@ class KlustaKwikRunTest extends FunSuite {
     val pcaMax = 1.0
     val data = KlustaKwikMockDataGenerator.generate(nSamples, nPcas, pcaMin, pcaMax)
     val iShankVal = 1
-    KlustaKwikInputWriter.write(workDir, fileBaseVal, iShankVal, data)
+    KlustaKwikInputWriter.writeFeatures(workDir, fileBaseVal, iShankVal, data)
     val command = {
       import KlustaKwikLineCommand._
       KlustaKwikLineCommand + fileBase(fileBaseVal) + elecNo(iShankVal)
     }
     val process = Process(command.tokens, workDir)
-    val printLines : String => Unit = line => println(line) // scalastyle:ignore
+    val printLines: String => Unit = line => println(line) // scalastyle:ignore
     process.lineStream_!(ProcessLogger(printLines)).foreach(printLines)
   }
 }

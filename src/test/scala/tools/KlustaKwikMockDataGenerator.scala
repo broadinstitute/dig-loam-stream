@@ -9,8 +9,12 @@ import scala.util.Random
 object KlustaKwikMockDataGenerator {
   val random = new Random()
 
-  def generate(nSamples: Int, nPcas: Int, pcaMin: Double, pcaMax: Double,
-               random: Random = this.random): Seq[Seq[Double]] = {
-    Seq.fill(nSamples, nPcas)(pcaMin + (pcaMax - pcaMin) * random.nextDouble)
+  def generate(nSamples: Int, nPcas: Int, nClusters: Int, random: Random = this.random): Seq[Seq[Double]] = {
+    val numberThatGivesEnoughSpaceForClusters = 10.0
+    val clusterCenters = Seq.fill(nClusters, nPcas)(numberThatGivesEnoughSpaceForClusters * random.nextDouble())
+    Seq.fill(nSamples)({
+      val iCluster = random.nextInt(nClusters)
+      clusterCenters(iCluster).map(_ + random.nextGaussian)
+    })
   }
 }

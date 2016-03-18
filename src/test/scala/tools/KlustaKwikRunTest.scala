@@ -14,7 +14,7 @@ import scala.sys.process.{ProcessLogger, Process}
   * Created by oliverr on 3/16/2016.
   */
 class KlustaKwikRunTest extends FunSuite {
-  test("Running KlustaKwik, assert exit value is zero. That's all for now.") {
+  test("Running KlustaKwik, checking number of clusters detected looks reasonable.") {
     val fileBaseVal = "data"
     val workDirName = "klusta"
     val workDir = new File(workDirName)
@@ -22,11 +22,10 @@ class KlustaKwikRunTest extends FunSuite {
       assume(workDir.mkdir)
     }
     assume(workDir.isDirectory)
-    val nSamples = 100
-    val nPcas = 7
-    val pcaMin = 0.0
-    val pcaMax = 1.0
-    val data = KlustaKwikMockDataGenerator.generate(nSamples, nPcas, pcaMin, pcaMax)
+    val nSamples = 1000
+    val nPcas = 10
+    val nClusters = 7
+    val data = KlustaKwikMockDataGenerator.generate(nSamples, nPcas, nClusters)
     val iShankVal = 1
     KlustaKwikInputWriter.writeFeatures(workDir, fileBaseVal, iShankVal, data)
     val command = {
@@ -43,5 +42,11 @@ class KlustaKwikRunTest extends FunSuite {
     val exitValue = Await.result(exitValueFuture, timeOut)
     val exitValueOnSuccess = 0
     assert(exitValue === exitValueOnSuccess)
+    val klustaOutput = KlustaKwikOutputReader.read(workDir, fileBaseVal, iShankVal).get
+    val nClustersDetected = klustaOutput.nClusters
+    val nClustersDetectedMin = 4
+    val nClustersDetectedMax = 8
+    assert(nClustersDetectedMin <= nClustersDetected)
+    assert(nClustersDetected <= nClustersDetectedMax)
   }
 }

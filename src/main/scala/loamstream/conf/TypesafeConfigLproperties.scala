@@ -28,7 +28,7 @@ object TypesafeConfigLproperties {
   private val prefix = "loamstream"
   
   private[conf] def qualifiedKey(k: String): String = {
-    require(k != null)
+    require(k != null)  // scalastyle:ignore null
     
     val trimmedKey = k.trim
     

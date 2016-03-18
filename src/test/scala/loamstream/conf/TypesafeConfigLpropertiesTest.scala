@@ -23,7 +23,7 @@ final class TypesafeConfigLpropertiesTest extends FunSuite {
     }
     
     intercept[Exception] {
-      TypesafeConfigLproperties.qualifiedKey(null)
+      TypesafeConfigLproperties.qualifiedKey(null)  // scalastyle:ignore null
     }
   }
   
@@ -38,10 +38,10 @@ final class TypesafeConfigLpropertiesTest extends FunSuite {
     
     assert(p == Paths.get("samples.txt"))
     
-    assert(props.getString("sampleFiles") == None)
-    assert(props.getString("foo") == None)
+    assert(props.getString("sampleFiles").isEmpty)
+    assert(props.getString("foo").isEmpty)
     
-    assert(props.getPath("sampleFiles") == None)
-    assert(props.getPath("foo") == None)
+    assert(props.getPath("sampleFiles").isEmpty)
+    assert(props.getPath("foo").isEmpty)
   }
 }

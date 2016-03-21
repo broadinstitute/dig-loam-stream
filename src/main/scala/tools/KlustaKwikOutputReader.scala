@@ -1,6 +1,5 @@
 package tools
 
-import java.io.File
 import java.nio.file.Path
 
 import loamstream.util.shot.{Hit, Miss, Shot}

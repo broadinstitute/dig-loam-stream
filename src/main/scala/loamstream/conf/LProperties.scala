@@ -4,7 +4,7 @@ import java.io.FileInputStream
 import java.nio.file.{DirectoryStream, Files, Path}
 import java.util.Properties
 
-import utils.FileUtils
+import utils.LoamFileUtils
 
 import scala.collection.JavaConverters.asScalaIteratorConverter
 
@@ -18,7 +18,7 @@ object LProperties {
 
   val confFolderRelativePath = "/"
 
-  val confFolderPath = FileUtils.resolveRelativePath(confFolderRelativePath)
+  val confFolderPath = LoamFileUtils.resolveRelativePath(confFolderRelativePath)
 
   val propertyFilesFilter = new DirectoryStream.Filter[Path] {
     override def accept(file: Path): Boolean = file.toString.endsWith(".properties")

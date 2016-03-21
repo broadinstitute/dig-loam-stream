@@ -22,4 +22,16 @@ object LPipelineOps {
     (outputPile, recipe)
   }
 
+  def importVcfPile(inputPile: LPile, index: Int, kind: LKind): LPile =
+    LPile(LSig.Set(Seq(inputPile.spec.sig.keyTypes(index))), kind)
+
+  def importVcfRecipe(inputPile: LPile, index: Int, outputPile: LPile): LRecipe =
+    LRecipe.vcfImport(inputPile, outputPile, index)
+
+  def calculateSingletonsPile(inputPile: LPile, index: Int, kind: LKind): LPile =
+    LPile(LSig.Set(Seq(inputPile.spec.sig.keyTypes(index))), kind)
+
+  def calculateSingletonsRecipe(inputPile: LPile, index: Int, outputPile: LPile): LRecipe =
+    LRecipe.singletonCalculation(inputPile, outputPile, index)
+
 }

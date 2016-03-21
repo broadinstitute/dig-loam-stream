@@ -10,12 +10,12 @@ import scala.language.reflectiveCalls
   *
   * @author Kaan Yuksel
   */
-object FileUtils {
+object LoamFileUtils {
   def resolveRelativePath(relativePath: String): Path = new File(getClass.getResource(relativePath).toURI).toPath
 
   def printToFile(f: File)(op: PrintWriter => Unit) {
     val p = new PrintWriter(f)
-    FileUtils.enclosed(p)(p.close)(op)
+    LoamFileUtils.enclosed(p)(p.close)(op)
   }
 
 

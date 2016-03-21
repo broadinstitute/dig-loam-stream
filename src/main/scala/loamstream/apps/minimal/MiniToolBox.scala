@@ -1,8 +1,9 @@
 package loamstream.apps.minimal
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Paths, Files, Path}
 
-import loamstream.apps.minimal.MiniToolBox.{CheckPreexistingVcfFileJob, Config, ExtractSampleIdsFromVcfFileJob}
+import loamstream.apps.minimal.MiniToolBox.{ImportVcfFileJob, CheckPreexistingVcfFileJob, Config,
+  ExtractSampleIdsFromVcfFileJob, CalculateSingletonsJob}
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
@@ -16,8 +17,8 @@ import loamstream.model.stores.LStore
 import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagAtom
-import tools.VcfParser
-import utils.{FileUtils, Loggable}
+import tools.{HailTools, VcfParser}
+import utils.{LoamFileUtils, Loggable}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -31,19 +32,26 @@ object MiniToolBox extends Loggable {
     def getVcfFilePath(id: String): Path
 
     def getSampleFilePath: Path
+
+    def getSingletonFilePath: Path
   }
 
   object InteractiveConfig extends Config {
     override def getVcfFilePath(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
 
     override def getSampleFilePath: Path = FileAsker.ask("samples file")
+
+    override def getSingletonFilePath: Path = FileAsker.ask("singleton counts file")
   }
 
-  case class InteractiveFallbackConfig(vcfFiles: Seq[String => Path], sampleFiles: Seq[Path]) extends Config {
+  case class InteractiveFallbackConfig(vcfFiles: Seq[String => Path], sampleFiles: Seq[Path], singletonFiles: Seq[Path])
+    extends Config {
     override def getVcfFilePath(id: String): Path =
       FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
 
     override def getSampleFilePath: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
+
+    override def getSingletonFilePath: Path = FileAsker.askIfParentDoesNotExist(singletonFiles)("singleton file")
   }
 
   case class VcfFileExists(path: Path) extends LJob.Success {
@@ -71,7 +79,7 @@ object MiniToolBox extends Loggable {
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
         val samples = VcfParser(vcfFileJob.vcfFile).samples
-        FileUtils.printToFile(samplesFile.toFile) {
+        LoamFileUtils.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println) // scalastyle:ignore
         }
         new SimpleSuccess("Extracted sample ids.")
@@ -79,6 +87,29 @@ object MiniToolBox extends Loggable {
     }
   }
 
+  case class ImportVcfFileJob(vcfFileJob: CheckPreexistingVcfFileJob, vdsFile: Path) extends LJob {
+
+    override def inputs: Set[LJob] = Set(vcfFileJob)
+
+    override def execute(implicit context: ExecutionContext): Future[Result] = {
+      Future {
+        HailTools.importVcf(vcfFileJob.vcfFile, vdsFile)
+        new SimpleSuccess("Imported VCF in VDS format.")
+      }
+    }
+  }
+
+  case class CalculateSingletonsJob(importVcfFileJob: ImportVcfFileJob, singletonsFile: Path) extends LJob {
+
+    override def inputs: Set[LJob] = Set(importVcfFileJob)
+
+    override def execute(implicit context: ExecutionContext): Future[Result] = {
+      Future {
+        HailTools.calculateSingletons(importVcfFileJob.vdsFile, singletonsFile)
+        new SimpleSuccess("Calculated singletons from VDS.")
+      }
+    }
+  }
 }
 
 case class MiniToolBox(config: Config) extends LBasicToolBox {
@@ -87,12 +118,13 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
 
   var vcfFiles: Map[String, Path] = Map.empty
   var sampleFileOpt: Option[Path] = None
+  var singletonFileOpt: Option[Path] = None
 
   override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
 
-  override def getPredefindedVcfFile(id: String): Path = {
+  override def getPredefinedVcfFile(id: String): Path = {
     vcfFiles.get(id) match {
       case Some(path) => path
       case None =>
@@ -112,10 +144,20 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
     }
   }
 
+  override def getSingletonFile: Path = {
+    singletonFileOpt match {
+      case Some(path) => path
+      case None =>
+        val path = config.getSingletonFilePath
+        singletonFileOpt = Some(path)
+        path
+    }
+  }
+
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
     MiniTool.checkPreExistingVcfFile.recipe.kind match {
       case LSpecificKind(specifics, _) => specifics match {
-        case (_, id: String) => Hit(CheckPreexistingVcfFileJob(getPredefindedVcfFile(id)))
+        case (_, id: String) => Hit(CheckPreexistingVcfFileJob(getPredefinedVcfFile(id)))
         case _ => Miss(SnagAtom("Recipe is not of the right kind."))
       }
       case _ => Miss(SnagAtom("Can't get id for VCF file."))
@@ -125,12 +167,19 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
   def createExtractSamplesJob: Shot[ExtractSampleIdsFromVcfFileJob] =
     createVcfFileJob.map(ExtractSampleIdsFromVcfFileJob(_, getSampleFile))
 
+  def createImportVcfJob: Shot[ImportVcfFileJob] =
+    createVcfFileJob.map(ImportVcfFileJob(_, getSampleFile))
+
+  def calculateSingletonsJob: Shot[CalculateSingletonsJob] =
+    createImportVcfJob.map(CalculateSingletonsJob(_, getSingletonFile))
 
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
       case Some(tool) => tool match {
         case MiniTool.checkPreExistingVcfFile => createVcfFileJob.map(Set(_))
         case MiniTool.extractSampleIdsFromVcfFile => createExtractSamplesJob.map(Set(_))
+        case MiniTool.importVcf => createImportVcfJob.map(Set(_))
+        case MiniTool.calculateSingletons => calculateSingletonsJob.map(Set(_))
         case _ => Miss(SnagAtom("Have not yet implemented tool " + tool))
       }
       case None => Miss(SnagAtom("No tool mapped to recipe " + recipe))

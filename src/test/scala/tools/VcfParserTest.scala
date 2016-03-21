@@ -1,8 +1,8 @@
 package tools
 
 import loamstream.conf.SampleFiles
-import loamstream.utils.TestUtils
 import org.scalatest.FunSuite
+import utils.TestUtils
 
 /**
   * LoamStream

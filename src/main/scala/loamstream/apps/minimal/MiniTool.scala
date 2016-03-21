@@ -3,6 +3,7 @@ package loamstream.apps.minimal
 import loamstream.model.id.LId
 import loamstream.model.id.LId.LNamedId
 import loamstream.model.jobs.tools.LTool
+import loamstream.model.kinds.instances.PileKinds
 import loamstream.model.recipes.LRecipeSpec
 
 /**
@@ -22,12 +23,13 @@ object MiniTool {
 
   val extractSampleIdsFromVcfFile =
     MiniTool("Extracted sample ids from VCF file into a text file.",
-      LRecipeSpec.keyExtraction(MiniStore.vcfFile.pile, MiniStore.sampleIdsFile.pile, 0))
+      LRecipeSpec.keyExtraction(MiniStore.vcfFile.pile, MiniStore.sampleIdsFile.pile,
+        PileKinds.sampleKeyIndexInGenotypes))
 
   val extractSampleIdsFromCassandraTable =
     MiniTool("Extracted sample ids from Cassandra genotype calls table into another table.",
       LRecipeSpec.keyExtraction(MiniStore.genotypesCassandraTable.pile,
-      MiniStore.sampleIdsCassandraTable.pile, 0))
+      MiniStore.sampleIdsCassandraTable.pile, PileKinds.sampleKeyIndexInGenotypes))
 
   val tools = Set[LTool](checkPreExistingVcfFile, checkPreExistingGenotypeCassandraTable, extractSampleIdsFromVcfFile,
     extractSampleIdsFromCassandraTable)

@@ -12,4 +12,6 @@ object RecipeKinds {
   def extractKey(index: Int): LSpecificKind[(String, Int)] = LSpecificKind(("Extract key", index))
 
   val extractSampleIdsFromGenotypeCalls = LSpecificKind("Extract sample ids from genotype calls.")
+
+  val pcaProjection = LSpecificKind("PCA projection")
 }

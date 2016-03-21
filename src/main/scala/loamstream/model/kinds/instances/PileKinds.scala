@@ -13,5 +13,7 @@ object PileKinds {
 
   val genotypeCallsByVariantAndSample = LSpecificKind("Genotype calls by sample and variant")
   val sampleIds = LSpecificKind("sample ids")
+  val pcaWeights = LSpecificKind("PCA weights")
+  val pcaProjected = LSpecificKind("PCA projected")
 
 }

@@ -1,6 +1,7 @@
 package tools
 
 import java.io.File
+import java.nio.file.Path
 
 import loamstream.util.shot.{Hit, Miss, Shot}
 
@@ -14,10 +15,10 @@ object KlustaKwikOutputReader {
 
   case class Output(nClusters: Int, clustering: Seq[Int])
 
-  def read(dir: File, fileBase: String, shankNo: Int): Shot[Output] = {
+  def read(dir: Path, fileBase: String, shankNo: Int): Shot[Output] = {
     val fileName = fileBase + ".clu." + shankNo
-    val file = new File(dir, fileName)
-    val lineIter = Source.fromFile(file)(Codec.UTF8).getLines
+    val file = dir.resolve(fileName)
+    val lineIter = Source.fromFile(file.toFile)(Codec.UTF8).getLines
     if (lineIter.hasNext) {
       try {
         val nClusters = lineIter.next.toInt

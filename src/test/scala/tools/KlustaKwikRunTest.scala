@@ -1,6 +1,6 @@
 package tools
 
-import java.io.File
+import java.nio.file.Files
 
 import org.scalatest.FunSuite
 
@@ -16,12 +16,7 @@ import scala.sys.process.{Process, ProcessLogger}
 class KlustaKwikRunTest extends FunSuite {
   test("Running KlustaKwik with mock data, checking output sanity.") {
     val fileBaseVal = "data"
-    val workDirName = "klusta"
-    val workDir = new File(workDirName)
-    if (!workDir.exists) {
-      assume(workDir.mkdir)
-    }
-    assume(workDir.isDirectory)
+    val workDir = Files.createTempDirectory("klusta")
     val nSamples = 1000
     val nPcas = 10
     val nClusters = 7
@@ -35,7 +30,7 @@ class KlustaKwikRunTest extends FunSuite {
     val exitValueFuture = Future {
       blocking {
         val noOpProcessLogger = ProcessLogger(line => ())
-        Process(command.tokens, workDir).run(noOpProcessLogger).exitValue
+        Process(command.tokens, workDir.toFile).run(noOpProcessLogger).exitValue
       }
     }
     val timeOut = 10.seconds

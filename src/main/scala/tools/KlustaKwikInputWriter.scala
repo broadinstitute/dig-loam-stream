@@ -1,6 +1,7 @@
 package tools
 
-import java.io.{File, FileOutputStream, PrintStream}
+import java.io.PrintStream
+import java.nio.file.{Files, Path}
 
 /**
   * LoamStream
@@ -8,10 +9,10 @@ import java.io.{File, FileOutputStream, PrintStream}
   */
 object KlustaKwikInputWriter {
 
-  def writeFeatures(dir: File, fileBase: String, shankNo: Int, data: Seq[Seq[Double]]): Unit = {
+  def writeFeatures(dir: Path, fileBase: String, shankNo: Int, data: Seq[Seq[Double]]): Unit = {
     val fileName = fileBase + ".fet." + shankNo
-    val file = new File(dir, fileName)
-    val out = new PrintStream(new FileOutputStream(file))
+    val file = dir.resolve(fileName)
+    val out = new PrintStream(Files.newOutputStream(file))
     writeFeatures(out, data)
   }
 

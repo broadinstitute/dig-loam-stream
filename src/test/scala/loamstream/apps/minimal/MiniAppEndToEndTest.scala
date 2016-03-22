@@ -2,7 +2,7 @@ package loamstream.apps.minimal
 
 import java.nio.file.{Files, Path}
 
-import loamstream.conf.SampleFiles
+import loamstream.TestData
 import loamstream.map.LToolMapper
 import org.scalatest.{BeforeAndAfter, FunSuite}
 import utils.Loggable.Level
@@ -15,16 +15,18 @@ import scala.io.Source
   */
 class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
   test("Pipeline successfully extracts sample IDs from VCF") {
-    val miniVcfFilePath = TestUtils.assertSomeAndGet(SampleFiles.miniVcfOpt)
-    val extractedSamplesFilePath = TestUtils.assertSomeAndGet(SampleFiles.samplesOpt)
+    import TestData.sampleFiles
+
+    val miniVcfFilePath = sampleFiles.miniVcfOpt.get
+    val extractedSamplesFilePath = sampleFiles.samplesOpt.get
 
     // Make sure to not mistakenly use an output file from a previous run, if any
     Files.deleteIfExists(extractedSamplesFilePath)
 
     val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath.toString, "XXX"))
-    val sampleFiles = Seq(extractedSamplesFilePath)
+    val sampleFilePaths = Seq(extractedSamplesFilePath)
 
-    val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFiles, Seq.empty[Path])
+    val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFilePaths, Seq.empty[Path])
     val pipeline = MiniPipeline.pipeline
     val toolbox = MiniToolBox(config)
     val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
@@ -42,10 +44,10 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     MiniExecuter.execute(executable)
 
     val source = Source.fromFile(extractedSamplesFilePath.toFile)
-    LoamFileUtils.enclosed(source)(source.close)(bufSrc => {
+    LoamFileUtils.enclosed(source) { bufSrc =>
       val extractedSamplesList = bufSrc.getLines().toList
       val expectedSamplesList = List("Sample1", "Sample2", "Sample3")
       assert(extractedSamplesList == expectedSamplesList)
-    })
+    }
   }
 }

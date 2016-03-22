@@ -1,42 +1,22 @@
 package loamstream.conf
 
-import java.io.FileInputStream
-import java.nio.file.{DirectoryStream, Files, Path}
-import java.util.Properties
+import java.nio.file.Path
 
-import utils.LoamFileUtils
-
-import scala.collection.JavaConverters.asScalaIteratorConverter
+import com.typesafe.config.ConfigFactory
 
 /**
-  * LoamStream
-  * Created by oliverr on 3/4/2016.
-  */
+ * LoamStream
+ * Created by oliverr on 3/4/2016.
+ */
+trait LProperties {
+  def getString(key: String): Option[String]
+
+  def getPath(key: String): Option[Path]
+}
+
 object LProperties {
+  lazy val Default: LProperties = load("loamstream")
 
-  def properties: Properties = System.getProperties
-
-  val confFolderRelativePath = "/"
-
-  val confFolderPath = LoamFileUtils.resolveRelativePath(confFolderRelativePath)
-
-  val propertyFilesFilter = new DirectoryStream.Filter[Path] {
-    override def accept(file: Path): Boolean = file.toString.endsWith(".properties")
-  }
-
-  def propertyFilesIterator: Iterator[Path] =
-    Files.newDirectoryStream(confFolderPath, propertyFilesFilter).iterator().asScala
-
-  def propertyFilesIteratorUnfiltered: Iterator[Path] =
-    Files.newDirectoryStream(confFolderPath).iterator().asScala
-
-  def loadProperties(): Unit = {
-    for (propertyFile <- propertyFilesIterator) {
-      properties.load(new FileInputStream(propertyFile.toFile))
-    }
-  }
-
-  loadProperties()
-
-  def get(key: String): Option[String] = Option(properties.get(key)).map(_.asInstanceOf[String])
+  def load(prefix: String): LProperties =
+    TypesafeConfigLproperties(ConfigFactory.load(prefix).withFallback(ConfigFactory.load()))
 }

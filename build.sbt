@@ -7,6 +7,7 @@ lazy val Versions = new {
   val LogBack = "1.1.6"
   val Scala = "2.11.8"
   val ScalaTest = "2.2.6"
+  val TypesafeConfig = "1.3.0"
 }
 
 lazy val mainDeps = Seq(
@@ -15,7 +16,8 @@ lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-reflect" % Versions.Scala,
   "com.github.samtools" % "htsjdk" % Versions.Htsjdk,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
-  "ch.qos.logback" % "logback-classic" % Versions.LogBack
+  "ch.qos.logback" % "logback-classic" % Versions.LogBack,
+  "com.typesafe" % "config" % Versions.TypesafeConfig
 )
 
 lazy val testDeps = Seq(

@@ -1,6 +1,6 @@
 package loamstream.apps.minimal
 
-import java.nio.file.{Paths, Files, Path}
+import java.nio.file.{Files, Path}
 
 import loamstream.apps.minimal.MiniToolBox.{ImportVcfFileJob, CheckPreexistingVcfFileJob, Config,
   ExtractSampleIdsFromVcfFileJob, CalculateSingletonsJob}
@@ -18,7 +18,7 @@ import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagAtom
 import tools.{HailTools, VcfParser}
-import utils.{LoamFileUtils, Loggable}
+import utils.LoamFileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -26,7 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * LoamStream
   * Created by oliverr on 2/23/2016.
   */
-object MiniToolBox extends Loggable {
+object MiniToolBox {
 
   trait Config {
     def getVcfFilePath(id: String): Path

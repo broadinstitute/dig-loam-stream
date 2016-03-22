@@ -4,7 +4,7 @@ import loamstream.map.Mapping.{Constraint, Slot, Target}
 import loamstream.model.LPipeline
 import loamstream.model.jobs.LToolBox
 import loamstream.model.jobs.tools.LTool
-import loamstream.model.piles.{LPileSpec, LPile}
+import loamstream.model.piles.{LPile, LPileSpec}
 import loamstream.model.recipes.{LRecipe, LRecipeSpec}
 import loamstream.model.stores.LStore
 import loamstream.util.Iterative

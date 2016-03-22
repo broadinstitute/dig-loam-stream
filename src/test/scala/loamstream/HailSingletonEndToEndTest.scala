@@ -16,9 +16,11 @@ import scala.io.Source
   * Created by kyuksel on 2/29/2016.
   */
 class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
-  val hailVdsFilePath = TestUtils.assertSomeAndGet(SampleFiles.hailVdsOpt)
-  val hailVcfFilePath = TestUtils.assertSomeAndGet(SampleFiles.hailVcfOpt)
-  val hailSingletonFilePath = TestUtils.assertSomeAndGet(SampleFiles.singletonsOpt)
+  import TestData.sampleFiles
+
+  val hailVdsFilePath = sampleFiles.hailVdsOpt.get
+  val hailVcfFilePath = sampleFiles.hailVcfOpt.get
+  val hailSingletonFilePath = sampleFiles.singletonsOpt.get
 
   // Make sure to not mistakenly use an output file from a previous run, if any
   FileUtils.deleteQuietly(new File(hailVdsFilePath.toString))
@@ -61,7 +63,7 @@ class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
     MiniExecuter.execute(executable)
 
     val source = Source.fromFile(hailSingletonFilePath.toFile)
-    LoamFileUtils.enclosed(source)(source.close)(bufSrc => {
+    LoamFileUtils.enclosed(source)(bufSrc => {
       val singletonCounts = bufSrc.getLines().toList
       assert(singletonCounts.size == 101)
       assert(singletonCounts.head == "SAMPLE\tSINGLETONS")

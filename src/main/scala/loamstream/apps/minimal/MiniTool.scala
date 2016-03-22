@@ -29,8 +29,16 @@ object MiniTool {
       LRecipeSpec.keyExtraction(MiniStore.genotypesCassandraTable.pile,
       MiniStore.sampleIdsCassandraTable.pile, 0))
 
+  val importVcf =
+    MiniTool("Import VCF file into VDS format Hail works with.",
+      LRecipeSpec.vcfImport(MiniStore.vcfFile.pile, MiniStore.vdsFile.pile, 0))
+
+  val calculateSingletons =
+    MiniTool("Calculate singletons from genotype calls in VDS format.",
+      LRecipeSpec.calculateSingletons(MiniStore.vdsFile.pile, MiniStore.singletonsFile.pile, 0))
+
   val tools = Set[LTool](checkPreExistingVcfFile, checkPreExistingGenotypeCassandraTable, extractSampleIdsFromVcfFile,
-    extractSampleIdsFromCassandraTable)
+    extractSampleIdsFromCassandraTable, importVcf, calculateSingletons)
 
   def apply(name: String, recipe: LRecipeSpec): MiniTool = MiniTool(LNamedId(name), recipe)
 

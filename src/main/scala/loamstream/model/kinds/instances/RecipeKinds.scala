@@ -8,8 +8,11 @@ import loamstream.model.kinds.LSpecificKind
  */
 object RecipeKinds {
   def usePreExisting(id: String): LSpecificKind[(String, String)] = LSpecificKind(("Use pre-existing", id))
-
   def extractKey(index: Int): LSpecificKind[(String, Int)] = LSpecificKind(("Extract key", index))
+  def importVcf(index: Int): LSpecificKind[(String, Int)] = LSpecificKind(("Convert VCF to VDS", index))
+  def calculateSingletons(index: Int): LSpecificKind[(String, Int)] = LSpecificKind(("Calculate singletons", index))
 
   val extractSampleIdsFromGenotypeCalls = LSpecificKind("Extract sample ids from genotype calls.")
+  val loadVdsFromGenotypeCalls = LSpecificKind("Transform genotype calls.")
+  val calculateSingletonsFromGenotypeCalls = LSpecificKind("Calculate singletons from genotype calls.")
 }

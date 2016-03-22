@@ -11,12 +11,7 @@ case class LPileSpec(sig: LSig, kind: LKind) {
 
   def =:=(oPile: LPileSpec): Boolean = kind == oPile.kind && sig =:= oPile.sig
 
-  def <:<(oPile: LPileSpec): Boolean = {
-    val pileKindAndSigMatch = kind <:< oPile.kind && sig =:= oPile.sig
-    val pileKindMatch = kind <:< oPile.kind
-    val pileSigMatch = sig =:= oPile.sig
-    pileKindAndSigMatch
-  }
+  def <:<(oPile: LPileSpec): Boolean = kind <:< oPile.kind && sig =:= oPile.sig
 
   def >:>(oPile: LPileSpec): Boolean = kind >:> oPile.kind && sig =:= oPile.sig
 }

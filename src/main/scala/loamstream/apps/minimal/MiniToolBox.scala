@@ -117,8 +117,6 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
   val tools = MiniTool.tools
 
   var vcfFiles: Map[String, Path] = Map.empty
-  var sampleFileOpt: Option[Path] = None
-  var singletonFileOpt: Option[Path] = None
 
   override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)
 
@@ -134,25 +132,9 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
     }
   }
 
-  override def getSampleFile: Path = {
-    sampleFileOpt match {
-      case Some(path) => path
-      case None =>
-        val path = config.getSampleFilePath
-        sampleFileOpt = Some(path)
-        path
-    }
-  }
+  override lazy val getSampleFile: Path = config.getSampleFilePath
 
-  override def getSingletonFile: Path = {
-    singletonFileOpt match {
-      case Some(path) => path
-      case None =>
-        val path = config.getSingletonFilePath
-        singletonFileOpt = Some(path)
-        path
-    }
-  }
+  override lazy val getSingletonFile: Path = config.getSingletonFilePath
 
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
     MiniTool.checkPreExistingVcfFile.recipe.kind match {

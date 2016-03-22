@@ -15,8 +15,6 @@ final case class SampleFiles(props: LProperties) {
   lazy val miniVcfOpt: Option[Path] = getFileFromProperties(PropertyKeys.miniVcf)
   lazy val miniForPcaVcfOpt: Option[Path] = getFileFromProperties(PropertyKeys.miniForPcaVcf)
 
-  lazy val samplesOpt: Option[Path] = getFileFromProperties(PropertyKeys.samples)
-
   private def getFileFromProperties(key: String): Option[Path] = {
     for {
       path <- props.getString(key)
@@ -30,7 +28,6 @@ object SampleFiles {
   object PropertyKeys {
     val miniVcf = "sampleFiles.vcf.mini"
     val miniForPcaVcf = "sampleFiles.vcf.miniForPca"
-    val samples = "sampleFiles.samples"
   }
 
 }

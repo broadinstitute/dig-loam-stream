@@ -10,7 +10,7 @@ import java.nio.file.Path
   */
 object FileUtils {
   private def classLoader = getClass.getClassLoader
-  
+
   def resolveRelativePath(relativePath: String): Option[Path] = {
     for {
       resource <- Option(classLoader.getResource(relativePath))
@@ -21,7 +21,7 @@ object FileUtils {
 
   def printToFile(f: File)(op: PrintWriter => Unit): Unit = {
     val p = new PrintWriter(f)
-    
+
     FileUtils.enclosed(p)(op)
   }
 
@@ -30,7 +30,7 @@ object FileUtils {
       f(c)
     } finally {
       val closer = implicitly[CanBeClosed[C]]
-      
+
       closer.close(c)
     }
   }

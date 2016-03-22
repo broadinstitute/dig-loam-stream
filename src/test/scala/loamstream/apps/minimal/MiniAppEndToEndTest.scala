@@ -20,10 +20,7 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     import TestData.sampleFiles
 
     val miniVcfFilePath = sampleFiles.miniVcfOpt.get
-    val extractedSamplesFilePath = sampleFiles.samplesOpt.get
-
-    // Make sure to not mistakenly use an output file from a previous run, if any
-    Files.deleteIfExists(extractedSamplesFilePath)
+    val extractedSamplesFilePath = Files.createTempFile("samples", "txt")
 
     val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath.toString, "XXX"))
     val sampleFilePaths = Seq(extractedSamplesFilePath)

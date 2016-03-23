@@ -5,14 +5,13 @@ import loamstream.model.piles.{LPile, LSig}
 import loamstream.model.recipes.LRecipe
 import loamstream.model.{LPipeline, LPipelineOps}
 import htsjdk.variant.variantcontext.Genotype
+import loamstream.model.signatures.Signatures.{SampleId, VariantId}
 
 /**
   * LoamStream
   * Created by oliverr on 2/17/2016.
   */
 object MiniPipeline {
-  type SampleId = String
-  type VariantId = String
   val genotypeCallsPileId = "genotypes"
   val genotypeCallsPile =
     LPile(genotypeCallsPileId, LSig.Map[(VariantId, SampleId), Genotype].get,

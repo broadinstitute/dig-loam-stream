@@ -5,7 +5,7 @@ package loamstream.model.signatures
  * @author Kaan Yuksel 
  */
 object Signatures {
-  class VariantId
-  class GenotypeCall
+  type SampleId = String
+  type VariantId = String
   class SingletonCount
 }

@@ -28,7 +28,7 @@ object VcfParser {
   }
 
   object SeqRow {
-    def apply(context: VariantContext): SeqRow = new SeqRow(context.getID, context.getGenotypes.asScala.toSeq)
+    def apply(context: VariantContext): SeqRow = new SeqRow(context.getID, context.getGenotypes.asScala)
   }
 
   class SeqRow(val id: String, val genotypes: Seq[Genotype]) extends Row[Seq[Genotype]] {
@@ -49,7 +49,7 @@ object VcfParser {
 }
 
 class VcfParser(val reader: VCFFileReader) {
-  val samples: Seq[String] = reader.getFileHeader.getGenotypeSamples.asScala.toSeq
+  val samples: Seq[String] = reader.getFileHeader.getGenotypeSamples.asScala
 
   def rowIter: Iterator[RawRow] = reader.iterator().asScala.map(RawRow)
 

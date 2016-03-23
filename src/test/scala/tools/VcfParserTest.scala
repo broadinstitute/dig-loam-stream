@@ -3,7 +3,6 @@ package tools
 import loamstream.TestData.sampleFiles
 import org.scalatest.FunSuite
 
-
 /**
   * LoamStream
   * Created by oliverr on 3/8/2016.

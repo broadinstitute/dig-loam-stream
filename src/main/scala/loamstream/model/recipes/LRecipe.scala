@@ -19,6 +19,11 @@ object LRecipe {
   def preExistingCheckout(id: String, output: LPile): LRecipe =
     LRecipe(id, RecipeKinds.usePreExisting(id), Seq.empty[LPile], output)
 
+  def vcfImport(input: LPile, output: LPile, index: Int): LRecipe =
+    LRecipe(RecipeKinds.importVcf(index), Seq(input), output)
+
+  def singletonCalculation(input: LPile, output: LPile, index: Int): LRecipe =
+    LRecipe(RecipeKinds.calculateSingletons(index), Seq(input), output)
 
   def apply(id: String, kind: LKind, inputs: Seq[LPile], output: LPile): LRecipe =
     LRecipe(LId.LNamedId(id), LRecipeSpec(kind, inputs.map(_.spec), output.spec), inputs, output)

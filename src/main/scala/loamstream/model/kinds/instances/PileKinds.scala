@@ -10,5 +10,6 @@ object PileKinds {
 
   val genotypeCallsBySampleAndVariant = LSpecificKind("Genotype calls by sample and variant")
   val sampleIds = LSpecificKind("sample ids")
+  val singletonCounts = LSpecificKind("singleton counts")
 
 }

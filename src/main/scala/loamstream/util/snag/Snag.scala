@@ -5,7 +5,7 @@ package loamstream.util.snag
   * Created by oliverr on 11/17/2015.
   */
 object Snag {
-  def apply(message: String): Snag = SnagAtom(message)
+  def apply(message: String): Snag = SnagMessage(message)
 
   def apply(child: Snag, children: Snag*): Snag = SnagSeq(children)
 
@@ -25,8 +25,14 @@ trait Snag {
   }
 }
 
-case class SnagAtom(message: String) extends Snag {
+trait SnagLeaf extends Snag {
   override def children: Seq[Snag] = Seq.empty[Snag]
+}
+
+case class SnagMessage(message: String) extends SnagLeaf
+
+case class SnagThrowable(throwable: Throwable) extends SnagLeaf {
+  override def message: String = throwable.toString
 }
 
 case class SnagSeq(children: Seq[Snag]) extends Snag {

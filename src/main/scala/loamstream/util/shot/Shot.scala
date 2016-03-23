@@ -1,6 +1,6 @@
 package loamstream.util.shot
 
-import loamstream.util.snag.{Snag, SnagAtom}
+import loamstream.util.snag.{Snag, SnagMessage, SnagThrowable}
 
 import scala.util.{Failure, Success, Try}
 
@@ -12,7 +12,7 @@ object Shot {
   def fromTry[A](myTry: Try[A]): Shot[A] =
     myTry match {
       case Success(a) => Hit(a)
-      case Failure(ex) => Miss(SnagAtom(ex.toString))
+      case Failure(ex) => Miss(SnagThrowable(ex))
     }
 }
 
@@ -42,7 +42,7 @@ case class Hit[+A](value: A) extends Shot[A] {
 }
 
 object Miss {
-  def apply(message: String): Miss = Miss(SnagAtom(message))
+  def apply(message: String): Miss = Miss(SnagMessage(message))
 }
 
 case class Miss(snag: Snag) extends Shot[Nothing] {

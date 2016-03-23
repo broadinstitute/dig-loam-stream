@@ -27,7 +27,8 @@ object AncestryInferencePipeline {
   val pcaProjectionRecipe = LRecipe(RecipeKinds.pcaProjection, Seq(genotypesPile, pcaWeightsPile), projectedValsPile)
   val sampleClustering = LRecipe(RecipeKinds.clusteringSamplesByFeatures, Seq(projectedValsPile), sampleClustersPile)
 
-  val pipeline = LPipeline(genotypesPile, pcaWeightsPile, projectedValsPile, sampleClustersPile)(genotypesPileRecipe,
-    pcaWeightsPileRecipe, pcaProjectionRecipe, sampleClustering)
+  val pipeline =
+    LPipeline(genotypesPile, pcaWeightsPile, projectedValsPile, sampleClustersPile)(genotypesPileRecipe,
+      pcaWeightsPileRecipe, pcaProjectionRecipe, sampleClustering)
 
 }

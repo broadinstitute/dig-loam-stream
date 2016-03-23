@@ -1,7 +1,6 @@
 package loamstream.model.piles
 
 import loamstream.util.ProductTypeExploder
-import loamstream.util.shot.Shot
 
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
@@ -12,8 +11,7 @@ import scala.reflect.runtime.universe.{TypeTag, typeTag}
 object LSig {
 
   object Set {
-    def apply[Keys <: Product : TypeTag]: Shot[Set] =
-      ProductTypeExploder.explode(typeTag[Keys].tpe).map(types => Set(types.map(new LType(_))))
+    def apply[Keys: TypeTag]: Set = Set(ProductTypeExploder.explode(typeTag[Keys].tpe).map(new LType(_)))
   }
 
   case class Set(keyTypes: Seq[LType]) extends LSig {
@@ -24,9 +22,8 @@ object LSig {
   }
 
   object Map {
-    def apply[Keys <: Product : TypeTag, V: TypeTag]: Shot[Map] =
-      ProductTypeExploder.explode(typeTag[Keys].tpe)
-        .map(types => Map(types.map(new LType(_)), new LType(typeTag[V].tpe)))
+    def apply[Keys: TypeTag, V: TypeTag]: Map =
+      Map(ProductTypeExploder.explode(typeTag[Keys].tpe).map(new LType(_)), new LType(typeTag[V].tpe))
   }
 
   case class Map(keyTypes: Seq[LType], vType: LType) extends LSig {

@@ -1,11 +1,11 @@
 package loamstream.apps.minimal
 
+import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.kinds.instances.PileKinds
 import loamstream.model.piles.{LPile, LSig}
 import loamstream.model.recipes.LRecipe
-import loamstream.model.{LPipeline, LPipelineOps}
-import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.signatures.Signatures.{SampleId, VariantId}
+import loamstream.model.{LPipeline, LPipelineOps}
 
 /**
   * LoamStream
@@ -14,8 +14,7 @@ import loamstream.model.signatures.Signatures.{SampleId, VariantId}
 object MiniPipeline {
   val genotypeCallsPileId = "genotypes"
   val genotypeCallsPile =
-    LPile(genotypeCallsPileId, LSig.Map[(VariantId, SampleId), Genotype].get,
-      PileKinds.genotypeCallsByVariantAndSample)
+    LPile(genotypeCallsPileId, LSig.Map[(VariantId, SampleId), Genotype], PileKinds.genotypeCallsByVariantAndSample)
   val genotypeCallsRecipe = LRecipe.preExistingCheckout(genotypeCallsPileId, genotypeCallsPile)
   val sampleIdsPile =
     LPipelineOps.extractKeyPile(genotypeCallsPile, PileKinds.sampleKeyIndexInGenotypes, PileKinds.sampleIds)

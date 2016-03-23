@@ -13,15 +13,15 @@ import loamstream.model.stores.LStore
   */
 object MiniStore {
 
-  val vcfFile = MiniStore("VCF file", LPileSpec(LSig.Map[(String, VariantId), Genotype].get, StoreKinds.vcfFile))
-  val vdsFile = MiniStore("VDS file", LPileSpec(LSig.Map[(String, VariantId), Genotype].get, StoreKinds.vdsFile))
-  val singletonsFile = MiniStore("Singletons file",
-    LPileSpec(LSig.Map[Tuple1[String], SingletonCount].get, StoreKinds.singletonsFile))
+  val vcfFile = MiniStore("VCF file", LPileSpec(LSig.Map[(String, VariantId), Genotype], StoreKinds.vcfFile))
+  val vdsFile = MiniStore("VDS file", LPileSpec(LSig.Map[(String, VariantId), Genotype], StoreKinds.vdsFile))
+  val singletonsFile = MiniStore("Singletons file", LPileSpec(LSig.Map[Tuple1[String], SingletonCount],
+    StoreKinds.singletonsFile))
   val genotypesCassandraTable = MiniStore("Cassandra genotype calls table",
-      LPileSpec(LSig.Map[(String, VariantId), Genotype].get, StoreKinds.genotypesCassandraTable))
-  val sampleIdsFile = MiniStore("Sample ids file", LPileSpec(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsFile))
-  val sampleIdsCassandraTable = MiniStore("Cassandra sample ids table.",
-      LPileSpec(LSig.Set[Tuple1[String]].get, StoreKinds.sampleIdsCassandraTable))
+    LPileSpec(LSig.Map[(String, VariantId), Genotype], StoreKinds.genotypesCassandraTable))
+  val sampleIdsFile = MiniStore("Sample ids file", LPileSpec(LSig.Set[Tuple1[String]], StoreKinds.sampleIdsFile))
+  val sampleIdsCassandraTable = MiniStore("Cassandra sample ids table.", LPileSpec(LSig.Set[Tuple1[String]],
+    StoreKinds.sampleIdsCassandraTable))
 
   val stores = Set[LStore](vcfFile, vdsFile, singletonsFile, genotypesCassandraTable, sampleIdsFile,
     sampleIdsCassandraTable)

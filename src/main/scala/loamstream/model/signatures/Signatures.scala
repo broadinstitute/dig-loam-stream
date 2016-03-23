@@ -1,11 +1,15 @@
 package loamstream.model.signatures
 
 /**
- * Created on: 3/11/16 
- * @author Kaan Yuksel 
- */
+  * Created on: 3/11/16
+  *
+  * @author Kaan Yuksel
+  */
 object Signatures {
   type SampleId = String
   type VariantId = String
+  type ClusterId = Int
+
   class SingletonCount
+
 }

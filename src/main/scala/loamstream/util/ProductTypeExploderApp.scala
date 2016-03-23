@@ -1,6 +1,5 @@
 package loamstream.util
 
-import loamstream.util.shot.{Hit, Miss}
 import utils.Loggable
 
 import scala.reflect.runtime.universe.typeTag
@@ -19,8 +18,6 @@ object ProductTypeExploderApp extends App with Loggable {
 
   }
 
-  ProductTypeExploder.explode(typeTag[(Int, String, A[Int], A.B, Double)].tpe) match {
-    case Hit(tagList) => debug(tagList.toString)
-    case Miss(snag) => debug(snag.toString)
-  }
+  debug(ProductTypeExploder.explode(typeTag[(Int, String, A[Int], A.B, Double)].tpe).toString)
+  debug(ProductTypeExploder.explode(typeTag[String].tpe).toString)
 }

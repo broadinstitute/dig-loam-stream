@@ -3,7 +3,7 @@ package tools
 import java.nio.file.Path
 
 import loamstream.conf.LProperties
-import utils.{FileUtils, Loggable}
+import utils.{LoamFileUtils, Loggable}
 
 import scala.io.Source
 
@@ -16,7 +16,7 @@ object PcaWeightsReader extends Loggable {
   val weightsFilePropertiesKey = "pca.weights.file"
 
   def weightsFilePath: Option[Path] =
-    LProperties.Default.getString(weightsFilePropertiesKey).flatMap(FileUtils.resolveRelativePath)
+    LProperties.Default.getString(weightsFilePropertiesKey).flatMap(LoamFileUtils.resolveRelativePath)
 
   def read(path: Path): Map[String, Seq[Double]] = {
     var weightsMap = Map.empty[String, Seq[Double]]

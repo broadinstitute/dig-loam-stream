@@ -10,8 +10,10 @@ import loamstream.model.jobs.LToolBox
   */
 trait LBasicToolBox extends LToolBox {
 
-  def getPredefindedVcfFile(id: String): Path
+  def getPredefinedVcfFile(id: String): Path
 
   def getSampleFile: Path
+         
+  def getSingletonFile: Path
 
 }

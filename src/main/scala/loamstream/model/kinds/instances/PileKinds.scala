@@ -15,5 +15,5 @@ object PileKinds {
   val sampleIds = LSpecificKind("sample ids")
   val pcaWeights = LSpecificKind("PCA weights")
   val pcaProjected = LSpecificKind("PCA projected")
-
+  val singletonCounts = LSpecificKind("singleton counts")
 }

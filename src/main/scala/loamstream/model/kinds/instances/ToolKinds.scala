@@ -1,7 +1,8 @@
 package loamstream.model.kinds.instances
 
 import loamstream.model.kinds.LSpecificKind
-import loamstream.model.kinds.instances.RecipeKinds.{extractKey, extractSampleIdsFromGenotypeCalls, usePreExisting}
+import loamstream.model.kinds.instances.RecipeKinds.{extractKey, extractSampleIdsFromGenotypeCalls,
+  loadVdsFromGenotypeCalls, importVcf, calculateSingletonsFromGenotypeCalls, calculateSingletons, usePreExisting}
 
 /**
  * LoamStream
@@ -14,9 +15,13 @@ object ToolKinds {
   def usePreExistingCassandraGenotypeCallsTable(id: String): LSpecificKind[(String, String)] =
     LSpecificKind(("Use pre-existing Cassandra genotype calls table", id), usePreExisting(id))
 
-  val extractSampleIdsFromVCFFile =
+  val extractSampleIdsFromVcfFile =
     LSpecificKind("Extract sample ids from VCF file", extractKey(0), extractSampleIdsFromGenotypeCalls)
   val extractSampleIdsFromCassandraGenotypeCallsTable =
-    LSpecificKind("Extract sample ids from Cassandra genotype calls table", extractKey(0),
+    LSpecificKind("Extract sample ids from Cassandra genotype calls table", extractKey(0), 
       extractSampleIdsFromGenotypeCalls)
+  val convertVcfToVds =
+    LSpecificKind("Import VCF file into VDS format", importVcf(0), loadVdsFromGenotypeCalls)
+  val calculateSingletonsFromVdsFile =
+    LSpecificKind("Calculate singletons from VDS", calculateSingletons(0), calculateSingletonsFromGenotypeCalls)
 }

@@ -7,6 +7,8 @@ package loamstream.util.snag
 object Snag {
   def apply(message: String): Snag = SnagMessage(message)
 
+  def apply(throwable: Throwable): Snag = Snag(throwable)
+
   def apply(child: Snag, children: Snag*): Snag = SnagSeq(children)
 
   def apply(message: String, children: Snag*): Snag = SnagTree(message, children)

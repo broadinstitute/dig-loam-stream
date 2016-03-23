@@ -15,6 +15,12 @@ object LRecipeSpec {
   def keyExtraction(input: LPileSpec, output: LPileSpec, index: Int): LRecipeSpec =
     LRecipeSpec(RecipeKinds.extractKey(index), Seq(input), output)
 
+  def vcfImport(input: LPileSpec, output: LPileSpec, index: Int): LRecipeSpec =
+    LRecipeSpec(RecipeKinds.importVcf(index), Seq(input), output)
+
+  def calculateSingletons(input: LPileSpec, output: LPileSpec, index: Int): LRecipeSpec =
+    LRecipeSpec(RecipeKinds.calculateSingletons(index), Seq(input), output)
+
   def preExistingCheckout(id: String, output: LPileSpec): LRecipeSpec =
     LRecipeSpec(RecipeKinds.usePreExisting(id), Seq.empty[LPileSpec], output)
 
@@ -31,7 +37,7 @@ case class LRecipeSpec(kind: LKind, inputs: Seq[LPileSpec], output: LPileSpec) {
     inputs.zip(oRecipe.inputs).forall(tup => tup._1 <:< tup._2) && output >:> oRecipe.output
 
   def <<<(oRecipe: LRecipeSpec): Boolean = kind <:< oRecipe.kind && inputs.size == oRecipe.inputs.size &&
-    inputs.zip(oRecipe.inputs).forall(tup => tup._1 <:< tup._2) && output <:< oRecipe.output
+      inputs.zip(oRecipe.inputs).forall(tup => tup._1 <:< tup._2) && output <:< oRecipe.output
 
   def >>>(oRecipe: LRecipeSpec): Boolean = kind >:> oRecipe.kind && inputs.size == oRecipe.inputs.size &&
     inputs.zip(oRecipe.inputs).forall(tup => tup._1 >:> tup._2) && output >:> oRecipe.output

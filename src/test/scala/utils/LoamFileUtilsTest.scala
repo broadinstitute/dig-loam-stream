@@ -7,11 +7,11 @@ import org.scalatest.FunSuite
   * @author clint
   *         date: Mar 10, 2016
   */
-final class FileUtilsTest extends FunSuite {
+final class LoamFileUtilsTest extends FunSuite {
   test("Relative paths can be resolved properly") {
-    val samples = FileUtils.resolveRelativePath("samples.txt").get
+    val samples = LoamFileUtils.resolveRelativePath("samples.txt").get
 
-    val miniVcf = FileUtils.resolveRelativePath("mini.vcf").get
+    val miniVcf = LoamFileUtils.resolveRelativePath("mini.vcf").get
 
     import TestHelpers.path
 

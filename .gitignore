@@ -5,6 +5,7 @@ bin/
 .idea
 /lib/
 /logs/
+hail.log
 /modules
 /out
 /project/project

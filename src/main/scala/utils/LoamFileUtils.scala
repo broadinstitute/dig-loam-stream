@@ -8,7 +8,7 @@ import java.nio.file.Path
   *
   * @author Kaan Yuksel
   */
-object FileUtils {
+object LoamFileUtils {
   private def classLoader = getClass.getClassLoader
 
   def resolveRelativePath(relativePath: String): Option[Path] = {
@@ -22,7 +22,7 @@ object FileUtils {
   def printToFile(f: File)(op: PrintWriter => Unit): Unit = {
     val p = new PrintWriter(f)
 
-    FileUtils.enclosed(p)(op)
+    LoamFileUtils.enclosed(p)(op)
   }
 
   def enclosed[C: CanBeClosed](c: C)(f: C => Unit): Unit = {

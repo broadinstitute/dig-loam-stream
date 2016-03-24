@@ -14,9 +14,15 @@ object PipelineConsistencyChecker {
     def message: String
   }
 
-  sealed trait PileIsNotProducedByExactlyOneRecipe extends Problem {
+  sealed trait PileSpecificProblem extends Problem {
     def pile: LPile
   }
+
+  sealed trait RecipeSpecificProblem extends Problem {
+    def recipe: LRecipe
+  }
+
+  sealed trait PileIsNotProducedByExactlyOneRecipe extends PileSpecificProblem
 
   case class PileIsProducedByNoRecipe(pile: LPile) extends PileIsNotProducedByExactlyOneRecipe {
     override def message: String = "Pile " + pile.id + " is not produced by any recipe."
@@ -28,11 +34,7 @@ object PipelineConsistencyChecker {
       "Pile " + pile.id + " is produced by multiple recipes: " + recipes.map(_.id).mkString(", ") + "."
   }
 
-  sealed trait PileIsNotCompatibleWithRecipe extends Problem {
-    def pile: LPile
-
-    def recipe: LRecipe
-  }
+  sealed trait PileIsNotCompatibleWithRecipe extends PileSpecificProblem with RecipeSpecificProblem
 
   case class PileIsIncompatibleOutputOfRecipe(pile: LPile, recipe: LRecipe) extends PileIsNotCompatibleWithRecipe {
     override def message: String = "Pile " + pile.id + " is not compatible output of recipe " + recipe.id + "."
@@ -42,6 +44,17 @@ object PipelineConsistencyChecker {
     extends PileIsNotCompatibleWithRecipe {
     override def message: String =
       "Pile " + pile.id + " is not compatible input (position " + pos + ") of recipe " + recipe.id + "."
+  }
+
+  sealed trait PileMissingUsedInRecipe extends PileSpecificProblem with RecipeSpecificProblem
+
+  case class PileMissingUsedAsOutput(pile: LPile, recipe: LRecipe) extends PileMissingUsedInRecipe {
+    override def message: String = "Pile " + pile.id + " used as output in recipe " + recipe.id + " is missing."
+  }
+
+  case class PileMissingUsedAsInput(pile: LPile, recipe: LRecipe, pos: Int) extends PileMissingUsedInRecipe {
+    override def message: String = "Pile " + pile.id + " used as input (pos " + pos + ") in recipe " +
+      recipe.id + " is missing."
   }
 
   def checkEachPileIsProducedByExactlyOneRecipe(pipeline: LPipeline): Iterable[PileIsNotProducedByExactlyOneRecipe] = {
@@ -66,9 +79,23 @@ object PipelineConsistencyChecker {
     })
   }
 
+  def checkEachOutputIsPresent(pipeline: LPipeline): Iterable[PileMissingUsedAsOutput] = {
+    pipeline.recipes.collect({ case recipe if !pipeline.piles.contains(recipe.output) =>
+      PileMissingUsedAsOutput(recipe.output, recipe)
+    })
+  }
+
+  def checkEachInputIsPresent(pipeline: LPipeline): Iterable[PileMissingUsedAsInput] = {
+    pipeline.recipes.flatMap({ recipe => recipe.inputs.indices.map(pos => (recipe.inputs(pos), recipe, pos)) }).
+      collect({ case (input, recipe, pos) if !pipeline.piles.contains(input) =>
+        PileMissingUsedAsInput(input, recipe, pos)
+      })
+  }
+
   def check(pipeline: LPipeline): Iterable[Problem] = {
     checkEachPileIsProducedByExactlyOneRecipe(pipeline) ++ checkEachOutputPileIsCompatible(pipeline) ++
-      checkEachInputPileIsCompatible(pipeline)
+      checkEachInputPileIsCompatible(pipeline) ++ checkEachOutputIsPresent(pipeline) ++
+      checkEachInputIsPresent(pipeline)
   }
 
 }

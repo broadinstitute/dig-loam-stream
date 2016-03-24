@@ -1,11 +1,21 @@
 package loamstream.util.shot
 
-import loamstream.util.snag.Snag
+import loamstream.util.snag.{Snag, SnagMessage}
+
+import scala.util.{Failure, Success, Try}
 
 /**
   * LoamStream
   * Created by oliverr on 11/17/2015.
   */
+object Shot {
+  def fromTry[A](myTry: Try[A]): Shot[A] =
+    myTry match {
+      case Success(a) => Hit(a)
+      case Failure(ex) => Miss(Snag(ex))
+    }
+}
+
 sealed trait Shot[+A] {
   def get: A
 
@@ -29,6 +39,10 @@ case class Hit[+A](value: A) extends Shot[A] {
   }
 
   override def asOpt: Option[A] = Some(value)
+}
+
+object Miss {
+  def apply(message: String): Miss = Miss(SnagMessage(message))
 }
 
 case class Miss(snag: Snag) extends Shot[Nothing] {

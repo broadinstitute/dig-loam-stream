@@ -2,8 +2,7 @@ package loamstream.apps.minimal
 
 import java.nio.file.{Files, Path}
 
-import loamstream.apps.minimal.MiniToolBox.{ImportVcfFileJob, CheckPreexistingVcfFileJob, Config,
-  ExtractSampleIdsFromVcfFileJob, CalculateSingletonsJob}
+import loamstream.apps.minimal.MiniToolBox._
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
@@ -16,7 +15,7 @@ import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
 import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
-import loamstream.util.snag.SnagAtom
+import loamstream.util.snag.SnagMessage
 import tools.{HailTools, VcfParser}
 import utils.LoamFileUtils
 
@@ -110,6 +109,7 @@ object MiniToolBox {
       }
     }
   }
+
 }
 
 case class MiniToolBox(config: Config) extends LBasicToolBox {
@@ -140,9 +140,9 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
     MiniTool.checkPreExistingVcfFile.recipe.kind match {
       case LSpecificKind(specifics, _) => specifics match {
         case (_, id: String) => Hit(CheckPreexistingVcfFileJob(getPredefinedVcfFile(id)))
-        case _ => Miss(SnagAtom("Recipe is not of the right kind."))
+        case _ => Miss(SnagMessage("Recipe is not of the right kind."))
       }
-      case _ => Miss(SnagAtom("Can't get id for VCF file."))
+      case _ => Miss(SnagMessage("Can't get id for VCF file."))
     }
   }
 
@@ -162,9 +162,9 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
         case MiniTool.extractSampleIdsFromVcfFile => createExtractSamplesJob.map(Set(_))
         case MiniTool.importVcf => createImportVcfJob.map(Set(_))
         case MiniTool.calculateSingletons => calculateSingletonsJob.map(Set(_))
-        case _ => Miss(SnagAtom("Have not yet implemented tool " + tool))
+        case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
       }
-      case None => Miss(SnagAtom("No tool mapped to recipe " + recipe))
+      case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))
     }
   }
 

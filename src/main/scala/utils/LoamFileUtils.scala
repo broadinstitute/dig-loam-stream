@@ -4,10 +4,10 @@ import java.io.{File, PrintWriter}
 import java.nio.file.Path
 
 /**
- * Created on: 3/1/16
- *
- * @author Kaan Yuksel
- */
+  * Created on: 3/1/16
+  *
+  * @author Kaan Yuksel
+  */
 object LoamFileUtils {
   private def classLoader = getClass.getClassLoader
 

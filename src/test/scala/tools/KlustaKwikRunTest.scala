@@ -1,5 +1,6 @@
 package tools
 
+import java.io.IOException
 import java.nio.file.Files
 
 import org.scalatest.FunSuite
@@ -24,13 +25,18 @@ class KlustaKwikRunTest extends FunSuite {
     val iShankVal = 1
     KlustaKwikInputWriter.writeFeatures(workDir, fileBaseVal, iShankVal, data)
     val command = {
-      import KlustaKwikLineCommand._
-      KlustaKwikLineCommand + fileBase(fileBaseVal) + elecNo(iShankVal) + useDistributional(0)
+      import KlustaKwikLineCommand.{klustaKwik, useDistributional}
+      klustaKwik(fileBaseVal, iShankVal) + useDistributional(0)
     }
     val exitValueFuture = Future {
       blocking {
         val noOpProcessLogger = ProcessLogger(line => ())
-        Process(command.tokens, workDir.toFile).run(noOpProcessLogger).exitValue
+        try {
+          Process(command.tokens, workDir.toFile).run(noOpProcessLogger).exitValue
+        } catch {
+          case ex: IOException => cancel(ex)
+          case ex: SecurityException => cancel(ex)
+        }
       }
     }
     val timeOut = 10.seconds

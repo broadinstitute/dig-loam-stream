@@ -1,21 +1,22 @@
 package loamstream
 
 import java.io.File
-import java.nio.file.Files
+
 import _root_.utils.Loggable.Level
-import utils.{LoamFileUtils, TestUtils, StringUtils}
 import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal._
-import loamstream.conf.SampleFiles
 import loamstream.map.LToolMapper
-import org.scalatest.{BeforeAndAfter, FunSuite}
 import org.apache.commons.io.FileUtils
+import org.scalatest.{BeforeAndAfter, FunSuite}
+import utils.{LoamFileUtils, StringUtils, TestUtils}
+
 import scala.io.Source
 
 /**
   * Created by kyuksel on 2/29/2016.
   */
 class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
+
   import TestData.sampleFiles
 
   val hailVdsFilePath = sampleFiles.hailVdsOpt.get

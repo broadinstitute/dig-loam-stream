@@ -5,7 +5,11 @@ package tools
   * Created by oliverr on 3/15/2016.
   */
 object KlustaKwikLineCommand extends LineCommand {
+
   override def name: String = "klustakwik"
+
+  def klustaKwik(fileBaseVal: String, elecNoVal: Int): CommandLine =
+    KlustaKwikLineCommand + fileBase(fileBaseVal) + elecNo(elecNoVal)
 
   val fileBase = UnkeyedValueParam.Builder[String]("FileBase")
   val elecNo = UnkeyedValueParam.Builder[Int]("ElecNo")

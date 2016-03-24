@@ -14,9 +14,9 @@ class KlustaKwikLineCommandTest extends FunSuite {
       "-PenaltyKLogN 0.0 " +
       "-UseFeatures 111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110"
     // scalastyle:off magic.number
-    val command = KlustaKwikLineCommand + fileBase("recording") + elecNo(4) + useDistributional(1) +
-      useMaskedInitialConditions(1) + assignToFirstClosestMask(1) + maxPossibleClusters(500) + minClusters(300) +
-      maxClusters(300) + penaltyK(1.0) + penaltyKLogN(0.0) +
+    val command = klustaKwik("recording", 4) + useDistributional(1) + useMaskedInitialConditions(1) +
+      assignToFirstClosestMask(1) + maxPossibleClusters(500) + minClusters(300) + maxClusters(300) + penaltyK(1.0) +
+      penaltyKLogN(0.0) +
       useFeatures("111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110")
     // scalastyle:on magic.number
     val constructedCommandLine = command.commandLine

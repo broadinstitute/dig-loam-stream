@@ -101,7 +101,7 @@ object LToolMapper {
         val inputCompatible = inputOpts.zip(toolRecipeSpec.inputs).collect({
           case (Some(inPile), toolInPile) => inPile <:< toolInPile
         }).forall(p => p)
-        val outputCompatible = outputOpt.map(_ >:> toolRecipeSpec.output).getOrElse(true)
+        val outputCompatible = outputOpt.forall(_ >:> toolRecipeSpec.output)
         inputCompatible && outputCompatible
       case _ => false
     }

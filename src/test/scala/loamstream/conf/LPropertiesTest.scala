@@ -11,16 +11,15 @@ final class LPropertiesTest extends FunSuite {
     val props = LProperties.load("loamstream-test")
 
     assert(props.getString("sampleFiles.vcf.mini").contains("mini.vcf"))
-    assert(props.getString("sampleFiles.samples").contains("samples.txt"))
 
     //not present
-    assert(props.getString(null).isEmpty) // scalastyle:ignore null
-    assert(props.getString("").isEmpty)
-    assert(props.getString("loamstream.foo").isEmpty)
-    assert(props.getString("foo").isEmpty)
+    assertResult(None)(props.getString(null)) // scalastyle:ignore null
+    assertResult(None)(props.getString(""))
+    assertResult(None)(props.getString("loamstream.foo"))
+    assertResult(None)(props.getString("foo"))
 
     //not strings
-    assert(props.getString("sampleFiles.vcf").isEmpty)
-    assert(props.getString("sampleFiles").isEmpty)
+    assertResult(None)(props.getString("sampleFiles.vcf"))
+    assertResult(None)(props.getString("sampleFiles"))
   }
 }

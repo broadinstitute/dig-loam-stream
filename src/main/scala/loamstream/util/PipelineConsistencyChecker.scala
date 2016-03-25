@@ -14,6 +14,14 @@ object PipelineConsistencyChecker {
     def message: String
   }
 
+  case object NoPiles extends Problem {
+    override def message: String = "Pipeline contains no piles."
+  }
+
+  case object NoRecipes extends Problem {
+    override def message: String = "Pipeline contains no recipes"
+  }
+
   sealed trait PileSpecificProblem extends Problem {
     def pile: LPile
   }
@@ -57,6 +65,15 @@ object PipelineConsistencyChecker {
       recipe.id + " is missing."
   }
 
+  def checkPipelineHasPilesAndRecipes(pipeline: LPipeline): Seq[Problem] = {
+    (pipeline.piles.isEmpty, pipeline.recipes.isEmpty) match {
+      case (true, true) => Seq(NoPiles, NoRecipes)
+      case (true, false) => Seq(NoPiles)
+      case (false, true) => Seq(NoRecipes)
+      case (false, false) => Seq.empty
+    }
+  }
+
   def checkEachPileIsProducedByExactlyOneRecipe(pipeline: LPipeline): Iterable[PileIsNotProducedByExactlyOneRecipe] = {
     val pilesProducedByNoRecipe = (pipeline.piles -- pipeline.recipes.map(_.output)).map(PileIsProducedByNoRecipe)
     val pilesProducedByMultipleRecipes =
@@ -93,9 +110,9 @@ object PipelineConsistencyChecker {
   }
 
   def check(pipeline: LPipeline): Iterable[Problem] = {
-    checkEachPileIsProducedByExactlyOneRecipe(pipeline) ++ checkEachOutputPileIsCompatible(pipeline) ++
-      checkEachInputPileIsCompatible(pipeline) ++ checkEachOutputIsPresent(pipeline) ++
-      checkEachInputIsPresent(pipeline)
+    checkPipelineHasPilesAndRecipes(pipeline) ++ checkEachPileIsProducedByExactlyOneRecipe(pipeline) ++
+      checkEachOutputPileIsCompatible(pipeline) ++ checkEachInputPileIsCompatible(pipeline) ++
+      checkEachOutputIsPresent(pipeline) ++ checkEachInputIsPresent(pipeline)
   }
 
 }

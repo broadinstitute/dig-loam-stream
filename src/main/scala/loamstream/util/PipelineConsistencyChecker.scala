@@ -65,6 +65,11 @@ object PipelineConsistencyChecker {
       recipe.id + " is missing."
   }
 
+  case class PipelineIsDisconnected(pile: LPile, otherPile: LPile) extends PileSpecificProblem {
+    override def message: String =
+      "Pipeline is disconnected: no path from pile " + pile.id + " to " + otherPile.id + "."
+  }
+
   def checkPipelineHasPilesAndRecipes(pipeline: LPipeline): Seq[Problem] = {
     (pipeline.piles.isEmpty, pipeline.recipes.isEmpty) match {
       case (true, true) => Seq(NoPiles, NoRecipes)
@@ -109,10 +114,37 @@ object PipelineConsistencyChecker {
       })
   }
 
+  def checkConnectedness(pipeline: LPipeline): Iterable[PipelineIsDisconnected] = {
+    pipeline.piles.headOption match {
+      case Some(arbitraryPile) =>
+        var makingProgress = true
+        var connectedPiles: Set[LPile] = Set(arbitraryPile)
+        while (makingProgress) {
+          makingProgress = false
+          for (recipe <- pipeline.recipes) {
+            val neighborPiles = recipe.inputs.toSet + recipe.output
+            val connectedPilesNew = neighborPiles -- connectedPiles
+            if (connectedPilesNew.nonEmpty) {
+              connectedPiles ++= connectedPilesNew
+              makingProgress = true
+            }
+          }
+        }
+        val unconnectedPiles = pipeline.piles -- connectedPiles
+        if (unconnectedPiles.nonEmpty) {
+          val arbitraryOtherPile = unconnectedPiles.head
+          Set(PipelineIsDisconnected(arbitraryPile, arbitraryOtherPile))
+        } else {
+          Set.empty
+        }
+      case None => Seq.empty
+    }
+  }
+
   def check(pipeline: LPipeline): Iterable[Problem] = {
     checkPipelineHasPilesAndRecipes(pipeline) ++ checkEachPileIsProducedByExactlyOneRecipe(pipeline) ++
       checkEachOutputPileIsCompatible(pipeline) ++ checkEachInputPileIsCompatible(pipeline) ++
-      checkEachOutputIsPresent(pipeline) ++ checkEachInputIsPresent(pipeline)
+      checkEachOutputIsPresent(pipeline) ++ checkEachInputIsPresent(pipeline) ++ checkConnectedness(pipeline)
   }
 
 }

@@ -5,16 +5,15 @@ import java.nio.file.Path
 import utils.LoamFileUtils
 
 /**
- * LoamStream
- * Created by oliverr on 3/2/2016.
- */
+  * LoamStream
+  * Created by oliverr on 3/2/2016.
+  */
 final case class SampleFiles(props: LProperties) {
 
   import SampleFiles.PropertyKeys
 
   lazy val miniVcfOpt: Option[Path] = getFileFromProperties(PropertyKeys.miniVcf)
   lazy val miniForPcaVcfOpt: Option[Path] = getFileFromProperties(PropertyKeys.miniForPcaVcf)
-  lazy val samplesOpt: Option[Path] = getFileFromProperties(PropertyKeys.samples)
   lazy val hailVcfOpt: Option[Path] = getFileFromProperties(PropertyKeys.hailVcf)
   lazy val hailVdsOpt: Option[Path] = getFileFromProperties(PropertyKeys.hailVds)
   lazy val singletonsOpt: Option[Path] = getFileFromProperties(PropertyKeys.singletons)
@@ -32,7 +31,6 @@ object SampleFiles {
   object PropertyKeys {
     val miniVcf = "sampleFiles.vcf.mini"
     val miniForPcaVcf = "sampleFiles.vcf.miniForPca"
-    val samples = "sampleFiles.samples"
     val hailVcf = "hail.vcf"
     val hailVds = "hail.vds"
     val singletons = "hail.singletons"

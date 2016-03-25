@@ -70,6 +70,10 @@ object PipelineConsistencyChecker {
       "Pipeline is disconnected: no path from pile " + pile.id + " to " + otherPile.id + "."
   }
 
+  case class PipelineHasCycle(pile: LPile) extends PileSpecificProblem {
+    override def message: String = "Pipeline contains a cycle containing pile " + pile.id + "."
+  }
+
   def checkPipelineHasPilesAndRecipes(pipeline: LPipeline): Seq[Problem] = {
     (pipeline.piles.isEmpty, pipeline.recipes.isEmpty) match {
       case (true, true) => Seq(NoPiles, NoRecipes)
@@ -141,10 +145,32 @@ object PipelineConsistencyChecker {
     }
   }
 
+  def checkAcyclicity(pipeline: LPipeline): Iterable[PipelineHasCycle] = {
+    var pilesLeft = pipeline.piles
+    var makingProgress = true
+    var nPilesLeft = pilesLeft.size
+    while (pilesLeft.nonEmpty && makingProgress) {
+      pilesLeft = pipeline.recipes.filter(recipe => pilesLeft.contains(recipe.output)).flatMap(_.inputs)
+      val nPilesLeftNew = pilesLeft.size
+      if (nPilesLeftNew < nPilesLeft) {
+        nPilesLeft = nPilesLeftNew
+        makingProgress = true
+      } else {
+        makingProgress = false
+      }
+    }
+    if (pilesLeft.nonEmpty) {
+      Set(PipelineHasCycle(pilesLeft.head))
+    } else {
+      Set.empty
+    }
+  }
+
   def check(pipeline: LPipeline): Iterable[Problem] = {
     checkPipelineHasPilesAndRecipes(pipeline) ++ checkEachPileIsProducedByExactlyOneRecipe(pipeline) ++
       checkEachOutputPileIsCompatible(pipeline) ++ checkEachInputPileIsCompatible(pipeline) ++
-      checkEachOutputIsPresent(pipeline) ++ checkEachInputIsPresent(pipeline) ++ checkConnectedness(pipeline)
+      checkEachOutputIsPresent(pipeline) ++ checkEachInputIsPresent(pipeline) ++ checkConnectedness(pipeline) ++
+      checkAcyclicity(pipeline)
   }
 
 }

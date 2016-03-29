@@ -16,7 +16,7 @@ import loamstream.model.stores.LStore
 import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
-import tools.core.{CoreStore, LCoreToolBox}
+import tools.core.{CoreStore, CoreTool, LCoreToolBox}
 import tools.{HailTools, VcfParser}
 import utils.LoamFileUtils
 
@@ -115,7 +115,10 @@ object MiniToolBox {
 
 case class MiniToolBox(config: Config) extends LCoreToolBox {
   val stores = CoreStore.stores ++ MiniMockStore.stores
-  val tools = MiniTool.tools
+  val genotypesId = MiniPipeline.genotypeCallsPileId
+  val tools = CoreTool.tools(genotypesId) ++ MiniMockTool.tools(genotypesId)
+
+  val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)
 
   var vcfFiles: Map[String, Path] = Map.empty
 
@@ -138,7 +141,7 @@ case class MiniToolBox(config: Config) extends LCoreToolBox {
   override lazy val getSingletonFile: Path = config.getSingletonFilePath
 
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
-    MiniTool.checkPreExistingVcfFile.recipe.kind match {
+    checkPreexistingVcfFileTool.recipe.kind match {
       case LSpecificKind(specifics, _) => specifics match {
         case (_, id: String) => Hit(CheckPreexistingVcfFileJob(getPredefinedVcfFile(id)))
         case _ => Miss(SnagMessage("Recipe is not of the right kind."))
@@ -159,10 +162,10 @@ case class MiniToolBox(config: Config) extends LCoreToolBox {
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
       case Some(tool) => tool match {
-        case MiniTool.checkPreExistingVcfFile => createVcfFileJob.map(Set(_))
-        case MiniTool.extractSampleIdsFromVcfFile => createExtractSamplesJob.map(Set(_))
-        case MiniTool.importVcf => createImportVcfJob.map(Set(_))
-        case MiniTool.calculateSingletons => calculateSingletonsJob.map(Set(_))
+        case this.checkPreexistingVcfFileTool => createVcfFileJob.map(Set(_))
+        case CoreTool.extractSampleIdsFromVcfFile => createExtractSamplesJob.map(Set(_))
+        case CoreTool.importVcf => createImportVcfJob.map(Set(_))
+        case CoreTool.calculateSingletons => calculateSingletonsJob.map(Set(_))
         case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
       }
       case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))

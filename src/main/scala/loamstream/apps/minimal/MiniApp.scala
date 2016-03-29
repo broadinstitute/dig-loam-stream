@@ -1,11 +1,9 @@
 package loamstream.apps.minimal
 
-import java.nio.file.Files
-
-import loamstream.conf.SampleFiles
 import loamstream.map.LToolMapper
+import utils.Loggable
 import utils.Loggable.Level
-import utils.{StringUtils, Loggable}
+
 /**
   * LoamStream
   * Created by oliverr on 12/21/2015.
@@ -34,7 +32,7 @@ object MiniApp extends App with Loggable {
     System.exit(0)
   }
 
-  val mappingCostEstimator = LPipelineMiniCostEstimator
+  val mappingCostEstimator = LPipelineMiniCostEstimator(MiniPipeline.genotypeCallsPileId)
 
   val mapping = mappingCostEstimator.pickCheapest(mappings)
 

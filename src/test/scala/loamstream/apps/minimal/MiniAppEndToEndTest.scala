@@ -29,7 +29,7 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
     for (mapping <- mappings)
       LToolMappingLogger.logMapping(Level.trace, mapping)
-    val mappingCostEstimator = LPipelineMiniCostEstimator
+    val mappingCostEstimator = LPipelineMiniCostEstimator(MiniPipeline.genotypeCallsPileId)
     val mapping = mappingCostEstimator.pickCheapest(mappings)
     LToolMappingLogger.logMapping(Level.trace, mapping)
 

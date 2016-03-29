@@ -4,19 +4,21 @@ import loamstream.cost.LPipelineCostEstimator
 import loamstream.map.LToolMapping
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.stores.LStore
-import tools.core.CoreStore
+import tools.core.{CoreStore, CoreTool}
 
 /**
   * LoamStream
   * Created by oliverr on 2/22/2016.
   */
-object LPipelineMiniCostEstimator extends LPipelineCostEstimator {
+case class LPipelineMiniCostEstimator(genotypesId: String) extends LPipelineCostEstimator {
   val cheapStores = Set[LStore](CoreStore.vcfFile, CoreStore.sampleIdsFile, CoreStore.vdsFile)
   val cheapTools =
-    Set[LTool](MiniTool.checkPreExistingVcfFile, MiniTool.extractSampleIdsFromVcfFile, MiniTool.importVcf)
+    Set[LTool](CoreTool.checkPreExistingVcfFile(genotypesId), CoreTool.extractSampleIdsFromVcfFile,
+      CoreTool.importVcf)
   val expensiveStores = Set[LStore](MiniMockStore.genotypesCassandraTable, MiniMockStore.sampleIdsCassandraTable)
   val expensiveTools =
-    Set[LTool](MiniTool.checkPreExistingGenotypeCassandraTable, MiniTool.extractSampleIdsFromCassandraTable)
+    Set[LTool](MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypesId),
+      MiniMockTool.extractSampleIdsFromCassandraTable)
 
   val lowCost = 100
   val mediumCost = 200

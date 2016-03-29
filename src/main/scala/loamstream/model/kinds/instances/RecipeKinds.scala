@@ -11,8 +11,9 @@ object RecipeKinds {
   def extractKey(index: Int): LSpecificKind[(String, Int)] = LSpecificKind(("Extract key", index))
   def importVcf(index: Int): LSpecificKind[(String, Int)] = LSpecificKind(("Convert VCF to VDS", index))
   def calculateSingletons(index: Int): LSpecificKind[(String, Int)] = LSpecificKind(("Calculate singletons", index))
-
   val extractSampleIdsFromGenotypeCalls = LSpecificKind("Extract sample ids from genotype calls.")
+  val pcaProjection = LSpecificKind("PCA projection")
+  val clusteringSamplesByFeatures = LSpecificKind("clustering samples by features")
   val loadVdsFromGenotypeCalls = LSpecificKind("Transform genotype calls.")
   val calculateSingletonsFromGenotypeCalls = LSpecificKind("Calculate singletons from genotype calls.")
 }

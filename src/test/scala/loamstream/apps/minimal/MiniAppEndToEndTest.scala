@@ -6,7 +6,7 @@ import loamstream.TestData
 import loamstream.map.LToolMapper
 import org.scalatest.{BeforeAndAfter, FunSuite}
 import utils.Loggable.Level
-import utils.{TestUtils, LoamFileUtils, StringUtils}
+import utils.{LoamFileUtils, StringUtils, TestUtils}
 
 import scala.io.Source
 

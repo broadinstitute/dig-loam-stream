@@ -32,11 +32,11 @@ final class TypesafeConfigLpropertiesTest extends FunSuite {
 
     val s: String = props.getString("sampleFiles.samples").get
 
-    assert(s == "samples.txt")
+    assert(s == "target/samples.txt")
 
     val p: Path = props.getPath("sampleFiles.samples").get
 
-    assert(p == Paths.get("samples.txt"))
+    assert(p == Paths.get("target/samples.txt"))
 
     assert(props.getString("sampleFiles").isEmpty)
     assert(props.getString("foo").isEmpty)

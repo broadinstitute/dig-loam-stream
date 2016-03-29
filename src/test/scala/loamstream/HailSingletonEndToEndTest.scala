@@ -24,8 +24,8 @@ class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val hailSingletonFilePath = sampleFiles.singletonsOpt.get
 
   // Make sure to not mistakenly use an output file from a previous run, if any
-  FileUtils.deleteQuietly(new File(hailVdsFilePath.toString))
-  FileUtils.deleteQuietly(new File(hailSingletonFilePath.toString))
+  //FileUtils.deleteQuietly(new File(hailVdsFilePath.toString))
+  //FileUtils.deleteQuietly(new File(hailSingletonFilePath.toString))
 
   val vcfFiles = Seq(StringUtils.pathTemplate(hailVcfFilePath.toString, "XXX"),
     StringUtils.pathTemplate(hailVdsFilePath.toString, "XXX"))
@@ -74,6 +74,6 @@ class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   }
 
   // Make sure to not mistakenly use an output file from a previous run, if any
-  FileUtils.deleteQuietly(new File(hailVdsFilePath.toString))
-  FileUtils.deleteQuietly(new File(hailSingletonFilePath.toString))
+  //FileUtils.deleteQuietly(new File(hailVdsFilePath.toString))
+  //FileUtils.deleteQuietly(new File(hailSingletonFilePath.toString))
 }

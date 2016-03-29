@@ -22,6 +22,7 @@ import tools.{HailTools, VcfParser}
 import utils.LoamFileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.runtime.universe.typeOf
 
 /**
   * LoamStream
@@ -29,7 +30,9 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 object MiniToolBox {
 
-  trait VcfFilePathChannel extends LChannel[String, Path]
+  trait VcfFilePathChannel extends LChannel[String, Path] {
+    override val key = typeOf[VcfFilePathChannel].toString
+  }
 
   trait Config {
     def getVcfFilePath(id: String): Path

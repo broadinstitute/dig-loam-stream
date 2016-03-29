@@ -2,9 +2,6 @@ package utils
 
 import loamstream.model.jobs.LJob
 import loamstream.util.shot.{Hit, Shot}
-import scala.annotation.elidable
-import scala.annotation.elidable.ASSERTION
-import org.scalatest.Assertions
 
 /**
   * LoamStream
@@ -13,7 +10,9 @@ import org.scalatest.Assertions
 object TestUtils {
 
   def assertSomeAndGet[A](option: Option[A]): A = {
-    Assertions.assert(option.nonEmpty)
+    import org.scalatest.Assertions._
+
+    assert(option.nonEmpty)
     
     option.get
   }

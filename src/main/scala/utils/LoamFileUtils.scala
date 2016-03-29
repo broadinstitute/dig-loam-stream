@@ -2,6 +2,8 @@ package utils
 
 import java.io.{File, PrintWriter}
 import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.Files
 
 /**
   * Created on: 3/1/16
@@ -11,13 +13,7 @@ import java.nio.file.Path
 object LoamFileUtils {
   private def classLoader = getClass.getClassLoader
 
-  def resolveRelativePath(relativePath: String): Option[Path] = {
-    for {
-      resource <- Option(classLoader.getResource(relativePath))
-      uri = resource.toURI
-      file = new File(uri)
-    } yield file.toPath
-  }
+  def resolveRelativePath(relativePath: String): Path = Paths.get(relativePath)
 
   def printToFile(f: File)(op: PrintWriter => Unit): Unit = {
     val p = new PrintWriter(f)

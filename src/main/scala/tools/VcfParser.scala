@@ -51,12 +51,12 @@ object VcfParser {
 class VcfParser(val reader: VCFFileReader) {
   val samples: Seq[String] = reader.getFileHeader.getGenotypeSamples.asScala
 
-  def rowIter: Iterator[RawRow] = reader.iterator().asScala.map(RawRow)
+  def rowIter: Iterator[RawRow] = reader.iterator.asScala.map(RawRow)
 
-  def genotypesIter: Iterator[SeqRow] = reader.iterator().asScala.map(SeqRow(_))
+  def genotypesIter: Iterator[SeqRow] = reader.iterator.asScala.map(SeqRow(_))
 
   def genotypeMapIter: Iterator[MapRow] =
-    reader.iterator().asScala.map(MapRow(_, samples))
+    reader.iterator.asScala.map(MapRow(_, samples))
 
 
 }

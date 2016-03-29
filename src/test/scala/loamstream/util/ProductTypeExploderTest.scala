@@ -32,6 +32,22 @@ final class ProductTypeExploderTest extends FunSuite {
     assert(exploded === Seq(typeOf[Int], typeOf[String], typeOf[A[Int]], typeOf[A.B], typeOf[Double]))
   }
   
+  test("Should be able to explode 1-Tuples") {
+    def doTest[A : TypeTag](): Unit = {
+      val tupleType = typeOf[Tuple1[A]]
+    
+      val exploded = explode(tupleType)
+    
+      assert(exploded === Seq(typeOf[A]))
+    }
+    
+    doTest[Int]()
+    doTest[String]()
+    doTest[C]()
+    doTest[A[Double]]()
+    doTest[A.B]()
+  }
+  
   test("Should be able to explode non-Tuple type to itself") {
     def doTest[A : TypeTag](): Unit = {
       assert(explode(typeOf[A]) === Seq(typeOf[A]))

@@ -3,7 +3,6 @@ package loamstream.apps.minimal
 import java.nio.file.{Files, Path}
 
 import loamstream.apps.minimal.MiniToolBox._
-import loamstream.channels.LChannel
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
@@ -22,7 +21,6 @@ import tools.{HailTools, VcfParser}
 import utils.LoamFileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect.runtime.universe.typeOf
 
 /**
   * LoamStream
@@ -30,34 +28,51 @@ import scala.reflect.runtime.universe.typeOf
   */
 object MiniToolBox {
 
-  trait VcfFilePathChannel extends LChannel[String, Path] {
-    override val key = typeOf[VcfFilePathChannel].toString
+  trait VcfFilePathFun extends (String => Path)
+
+  trait SampleFilePathFun {
+    def get: Path
+  }
+
+  trait SingletonFilePathFun {
+    def get: Path
   }
 
   trait Config {
-    def getVcfFilePath(id: String): Path
+    def getVcfFilePathFun: VcfFilePathFun
 
-    def getSampleFilePath: Path
+    def getSampleFilePathFun: SampleFilePathFun
 
-    def getSingletonFilePath: Path
+    def getSingletonFilePathFun: SingletonFilePathFun
   }
 
   object InteractiveConfig extends Config {
-    override def getVcfFilePath(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
+    override val getVcfFilePathFun: VcfFilePathFun = new VcfFilePathFun {
+      override def apply(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
+    }
 
-    override def getSampleFilePath: Path = FileAsker.ask("samples file")
+    override def getSampleFilePathFun: SampleFilePathFun = new SampleFilePathFun {
+      override def get: Path = FileAsker.ask("samples file")
+    }
 
-    override def getSingletonFilePath: Path = FileAsker.ask("singleton counts file")
+    override def getSingletonFilePathFun: SingletonFilePathFun = new SingletonFilePathFun {
+      override def get: Path = FileAsker.ask("singleton counts file")
+    }
   }
 
   case class InteractiveFallbackConfig(vcfFiles: Seq[String => Path], sampleFiles: Seq[Path], singletonFiles: Seq[Path])
     extends Config {
-    override def getVcfFilePath(id: String): Path =
-      FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
+    override val getVcfFilePathFun: VcfFilePathFun = new VcfFilePathFun {
+      override def apply(id: String): Path = FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
+    }
 
-    override def getSampleFilePath: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
+    override def getSampleFilePathFun: SampleFilePathFun = new SampleFilePathFun {
+      override def get: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
+    }
 
-    override def getSingletonFilePath: Path = FileAsker.askIfParentDoesNotExist(singletonFiles)("singleton file")
+    override def getSingletonFilePathFun: SingletonFilePathFun = new SingletonFilePathFun {
+      override def get: Path = FileAsker.askIfParentDoesNotExist(singletonFiles)("singleton file")
+    }
   }
 
   case class VcfFileExists(path: Path) extends LJob.Success {
@@ -136,15 +151,15 @@ case class MiniToolBox(config: Config) extends LCoreToolBox {
     vcfFiles.get(id) match {
       case Some(path) => path
       case None =>
-        val path = config.getVcfFilePath(id)
+        val path = config.getVcfFilePathFun(id)
         vcfFiles += (id -> path)
         path
     }
   }
 
-  override lazy val getSampleFile: Path = config.getSampleFilePath
+  override lazy val getSampleFile: Path = config.getSampleFilePathFun.get
 
-  override lazy val getSingletonFile: Path = config.getSingletonFilePath
+  override lazy val getSingletonFile: Path = config.getSingletonFilePathFun.get
 
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {

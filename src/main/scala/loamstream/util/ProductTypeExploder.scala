@@ -8,21 +8,14 @@ import scala.reflect.runtime.universe.Type
   */
 object ProductTypeExploder {
 
-  val tuplePrefix = "scala.Tuple"
-
+  private val tupleRegex = "scala.Tuple(\\d+)".r
+  
   def explode(tpe: Type): Seq[Type] = {
     val fullName = tpe.typeConstructor.typeSymbol.fullName
-    if (fullName.startsWith(tuplePrefix)) {
-      val suffix = fullName.replace(tuplePrefix, "")
-      try {
-        suffix.toInt
-        tpe.typeArgs
-      } catch {
-        case ex: NumberFormatException => Seq(tpe)
-      }
-    } else {
-      Seq(tpe)
+    
+    fullName match {
+      case tupleRegex(_) => tpe.typeArgs
+      case _ => Seq(tpe)
     }
   }
-
 }

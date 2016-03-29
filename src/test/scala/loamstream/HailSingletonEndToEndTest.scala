@@ -11,11 +11,12 @@ import org.scalatest.{BeforeAndAfter, FunSuite}
 import utils.{LoamFileUtils, StringUtils, TestUtils}
 
 import scala.io.Source
+import java.nio.file.Path
 
 /**
   * Created by kyuksel on 2/29/2016.
   */
-class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
+final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
 
   import TestData.sampleFiles
 
@@ -23,9 +24,11 @@ class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val hailVcfFilePath = sampleFiles.hailVcfOpt.get
   val hailSingletonFilePath = sampleFiles.singletonsOpt.get
 
+  private def deleteQuietly(path: Path): Unit = FileUtils.deleteQuietly(path.toFile)
+  
   // Make sure to not mistakenly use an output file from a previous run, if any
-  //FileUtils.deleteQuietly(new File(hailVdsFilePath.toString))
-  //FileUtils.deleteQuietly(new File(hailSingletonFilePath.toString))
+  deleteQuietly(hailVdsFilePath)
+  deleteQuietly(hailSingletonFilePath)
 
   val vcfFiles = Seq(StringUtils.pathTemplate(hailVcfFilePath.toString, "XXX"),
     StringUtils.pathTemplate(hailVdsFilePath.toString, "XXX"))
@@ -64,16 +67,16 @@ class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
     MiniExecuter.execute(executable)
 
     val source = Source.fromFile(hailSingletonFilePath.toFile)
-    LoamFileUtils.enclosed(source)(bufSrc => {
+    LoamFileUtils.enclosed(source) { bufSrc =>
       val singletonCounts = bufSrc.getLines().toList
       assert(singletonCounts.size == 101)
       assert(singletonCounts.head == "SAMPLE\tSINGLETONS")
       assert(singletonCounts.tail.head == "C1046::HG02024\t0")
       assert(singletonCounts.last == "HG00629\t0")
-    })
+    }
   }
 
   // Make sure to not mistakenly use an output file from a previous run, if any
-  //FileUtils.deleteQuietly(new File(hailVdsFilePath.toString))
-  //FileUtils.deleteQuietly(new File(hailSingletonFilePath.toString))
+  deleteQuietly(hailVdsFilePath)
+  deleteQuietly(hailSingletonFilePath)
 }

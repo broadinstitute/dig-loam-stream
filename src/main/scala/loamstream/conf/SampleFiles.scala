@@ -21,7 +21,7 @@ final case class SampleFiles(props: LProperties) {
   private def getFileFromProperties(key: String): Option[Path] = {
     for {
       path <- props.getString(key)
-      resolvedPath <- LoamFileUtils.resolveRelativePath(path)
+      resolvedPath = LoamFileUtils.resolveRelativePath(path)
     } yield resolvedPath
   }
 }

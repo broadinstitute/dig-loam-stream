@@ -3,6 +3,7 @@ package loamstream.apps.minimal
 import java.nio.file.{Files, Path}
 
 import loamstream.apps.minimal.MiniToolBox._
+import loamstream.channels.LChannel
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
@@ -27,6 +28,8 @@ import scala.concurrent.{ExecutionContext, Future}
   * Created by oliverr on 2/23/2016.
   */
 object MiniToolBox {
+
+  trait VcfFilePathChannel extends LChannel[String, Path]
 
   trait Config {
     def getVcfFilePath(id: String): Path

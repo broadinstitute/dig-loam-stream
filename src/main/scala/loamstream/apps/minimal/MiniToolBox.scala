@@ -16,6 +16,7 @@ import loamstream.model.stores.LStore
 import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
+import tools.core.{CoreStore, LCoreToolBox}
 import tools.{HailTools, VcfParser}
 import utils.LoamFileUtils
 
@@ -112,8 +113,8 @@ object MiniToolBox {
 
 }
 
-case class MiniToolBox(config: Config) extends LBasicToolBox {
-  val stores = MiniStore.stores
+case class MiniToolBox(config: Config) extends LCoreToolBox {
+  val stores = CoreStore.stores ++ MiniMockStore.stores
   val tools = MiniTool.tools
 
   var vcfFiles: Map[String, Path] = Map.empty

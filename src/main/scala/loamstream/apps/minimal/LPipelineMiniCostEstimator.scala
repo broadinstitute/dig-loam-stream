@@ -4,16 +4,17 @@ import loamstream.cost.LPipelineCostEstimator
 import loamstream.map.LToolMapping
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.stores.LStore
+import tools.core.CoreStore
 
 /**
   * LoamStream
   * Created by oliverr on 2/22/2016.
   */
 object LPipelineMiniCostEstimator extends LPipelineCostEstimator {
-  val cheapStores = Set[LStore](MiniStore.vcfFile, MiniStore.sampleIdsFile, MiniStore.vdsFile)
+  val cheapStores = Set[LStore](CoreStore.vcfFile, CoreStore.sampleIdsFile, CoreStore.vdsFile)
   val cheapTools =
     Set[LTool](MiniTool.checkPreExistingVcfFile, MiniTool.extractSampleIdsFromVcfFile, MiniTool.importVcf)
-  val expensiveStores = Set[LStore](MiniStore.genotypesCassandraTable, MiniStore.sampleIdsCassandraTable)
+  val expensiveStores = Set[LStore](MiniMockStore.genotypesCassandraTable, MiniMockStore.sampleIdsCassandraTable)
   val expensiveTools =
     Set[LTool](MiniTool.checkPreExistingGenotypeCassandraTable, MiniTool.extractSampleIdsFromCassandraTable)
 

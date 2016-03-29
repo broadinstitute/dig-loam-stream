@@ -1,4 +1,4 @@
-package loamstream.apps.minimal
+package tools.core
 
 import java.nio.file.Path
 
@@ -8,7 +8,7 @@ import loamstream.model.jobs.LToolBox
   * LoamStream
   * Created by oliverr on 2/23/2016.
   */
-trait LBasicToolBox extends LToolBox {
+trait LCoreToolBox extends LToolBox {
 
   def getPredefinedVcfFile(id: String): Path
 

@@ -1,6 +1,7 @@
 package loamstream.apps.minimal
 
 import loamstream.map.LToolMapper
+import tools.core.{CoreConfig, CoreToolBox}
 import utils.Loggable
 import utils.Loggable.Level
 
@@ -9,13 +10,13 @@ import utils.Loggable.Level
   * Created by oliverr on 12/21/2015.
   */
 object MiniApp extends App with Loggable {
-  val config = MiniToolBox.InteractiveConfig
+  val config = CoreConfig.InteractiveConfig
 
   debug("Yo!")
 
   val pipeline = MiniPipeline.pipeline
 
-  val toolbox = MiniToolBox(config)
+  val toolbox = CoreToolBox(config) ++ MiniMockToolBox(config)
 
   val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
 

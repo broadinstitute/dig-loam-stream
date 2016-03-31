@@ -13,6 +13,8 @@ import utils.{LoamFileUtils, StringUtils, TestUtils}
 import scala.io.Source
 import java.nio.file.Path
 
+import tools.core.{CoreConfig, CoreToolBox}
+
 /**
   * Created by kyuksel on 2/29/2016.
   */
@@ -35,9 +37,9 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val vdsFiles = Seq(hailVdsFilePath)
   val singletonFiles = Seq(hailSingletonFilePath)
 
-  val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, vdsFiles, singletonFiles)
+  val config = CoreConfig.InteractiveFallbackConfig(vcfFiles, vdsFiles, singletonFiles)
   val pipeline = HailPipeline.pipeline
-  val toolbox = MiniToolBox(config)
+  val toolbox = CoreToolBox(config) ++ MiniMockToolBox(config)
   val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
   for (mapping <- mappings)
     LToolMappingLogger.logMapping(Level.trace, mapping)

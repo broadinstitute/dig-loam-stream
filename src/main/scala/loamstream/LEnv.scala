@@ -15,6 +15,8 @@ object LEnv {
   trait Value
 
   case class LMapEnv(entries: Map[KeyBase, Value]) extends LEnv {
+    override def apply[V <: Value](key: Key[V]): V = entries(key).asInstanceOf[V]
+
     override def get[V <: Value](key: Key[V]): Option[V] = entries.get(key).map(_.asInstanceOf[V])
 
     override def +[V <: Value](key: Key[V], value: V): LEnv = copy(entries = entries + (key -> value))

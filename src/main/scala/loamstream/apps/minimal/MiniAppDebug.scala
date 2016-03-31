@@ -31,15 +31,16 @@ object MiniAppDebug extends Loggable {
   def thisShouldBeTrue(test: Boolean): Unit = debug("This should be true: " + test)
 
   def theseShouldAllBeTrue(genotypeId: String): Unit = {
-    thisShouldBeTrue(CoreStore.vcfFile.pile <:< MiniPipeline.genotypeCallsPile.spec)
-    thisShouldBeTrue(MiniMockStore.genotypesCassandraTable.pile <:< MiniPipeline.genotypeCallsPile.spec)
-    thisShouldBeTrue(CoreStore.sampleIdsFile.pile <:< MiniPipeline.sampleIdsPile.spec)
-    thisShouldBeTrue(MiniMockStore.sampleIdsCassandraTable.pile <:< MiniPipeline.sampleIdsPile.spec)
-    thisShouldBeTrue(CoreTool.checkPreExistingVcfFile(genotypeId).recipe <<< MiniPipeline.genotypeCallsRecipe.spec)
+    val pipeline = MiniPipeline(genotypeId)
+    thisShouldBeTrue(CoreStore.vcfFile.pile <:< pipeline.genotypeCallsPile.spec)
+    thisShouldBeTrue(MiniMockStore.genotypesCassandraTable.pile <:< pipeline.genotypeCallsPile.spec)
+    thisShouldBeTrue(CoreStore.sampleIdsFile.pile <:< pipeline.sampleIdsPile.spec)
+    thisShouldBeTrue(MiniMockStore.sampleIdsCassandraTable.pile <:< pipeline.sampleIdsPile.spec)
+    thisShouldBeTrue(CoreTool.checkPreExistingVcfFile(genotypeId).recipe <<< pipeline.genotypeCallsRecipe.spec)
     thisShouldBeTrue(
-      MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).recipe <<< MiniPipeline.genotypeCallsRecipe.spec)
-    thisShouldBeTrue(CoreTool.extractSampleIdsFromVcfFile.recipe <<< MiniPipeline.sampleIdsRecipe.spec)
-    thisShouldBeTrue(MiniMockTool.extractSampleIdsFromCassandraTable.recipe <<< MiniPipeline.sampleIdsRecipe.spec)
+      MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).recipe <<< pipeline.genotypeCallsRecipe.spec)
+    thisShouldBeTrue(CoreTool.extractSampleIdsFromVcfFile.recipe <<< pipeline.sampleIdsRecipe.spec)
+    thisShouldBeTrue(MiniMockTool.extractSampleIdsFromCassandraTable.recipe <<< pipeline.sampleIdsRecipe.spec)
   }
 
 }

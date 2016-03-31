@@ -59,5 +59,10 @@ trait CoreConfig {
   def getSampleFilePathFun: SampleFilePathFun
 
   def getSingletonFilePathFun: SingletonFilePathFun
+
+  val genotypesId = "genotypes"
+  val vdsId = "variant dataset"
+  val singletonsId = "singleton counts"
+  val pcaWeightsId = "pcaWeights"
 }
 

@@ -14,7 +14,9 @@ object MiniApp extends App with Loggable {
 
   debug("Yo!")
 
-  val pipeline = MiniPipeline.pipeline
+  val genotypesId = "genotypes"
+
+  val pipeline = MiniPipeline(genotypesId)
 
   val toolbox = CoreToolBox(config) ++ MiniMockToolBox(config)
 
@@ -33,7 +35,7 @@ object MiniApp extends App with Loggable {
     System.exit(0)
   }
 
-  val mappingCostEstimator = LPipelineMiniCostEstimator(MiniPipeline.genotypeCallsPileId)
+  val mappingCostEstimator = LPipelineMiniCostEstimator(genotypesId)
 
   val mapping = mappingCostEstimator.pickCheapest(mappings)
 
@@ -41,8 +43,8 @@ object MiniApp extends App with Loggable {
   LToolMappingLogger.logMapping(Level.info, mapping)
   debug("That was the cheapest mapping")
 
-  val genotypesJob = toolbox.createJobs(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)
-  val extractSamplesJob = toolbox.createJobs(MiniPipeline.sampleIdsRecipe, pipeline, mapping)
+  val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline, mapping)
+  val extractSamplesJob = toolbox.createJobs(pipeline.sampleIdsRecipe, pipeline, mapping)
 
   val executable = toolbox.createExecutable(pipeline, mapping)
   val results = MiniExecuter.execute(executable)

@@ -88,7 +88,7 @@ object CoreToolBox {
 
 case class CoreToolBox(config: CoreConfig) extends LToolBox {
   val stores = CoreStore.stores
-  val genotypesId = MiniPipeline.genotypeCallsPileId
+  val genotypesId = config.genotypesId
   val tools = CoreTool.tools(genotypesId)
 
   val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)

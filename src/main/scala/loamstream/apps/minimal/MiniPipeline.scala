@@ -11,15 +11,16 @@ import loamstream.model.{LPipeline, LPipelineOps}
   * LoamStream
   * Created by oliverr on 2/17/2016.
   */
-object MiniPipeline {
-  val genotypeCallsPileId = "genotypes"
+case class MiniPipeline(genotypesId: String) extends LPipeline {
   val genotypeCallsPile =
-    LPile(genotypeCallsPileId, LSig.Map[(VariantId, SampleId), Genotype], PileKinds.genotypeCallsByVariantAndSample)
-  val genotypeCallsRecipe = LRecipe.preExistingCheckout(genotypeCallsPileId, genotypeCallsPile)
+    LPile(genotypesId, LSig.Map[(VariantId, SampleId), Genotype], PileKinds.genotypeCallsByVariantAndSample)
+  val genotypeCallsRecipe = LRecipe.preExistingCheckout(genotypesId, genotypeCallsPile)
   val sampleIdsPile =
     LPipelineOps.extractKeyPile(genotypeCallsPile, PileKinds.sampleKeyIndexInGenotypes, PileKinds.sampleIds)
   val sampleIdsRecipe = LPipelineOps.extractKeyRecipe(genotypeCallsPile, PileKinds.sampleKeyIndexInGenotypes,
     sampleIdsPile)
 
-  val pipeline = LPipeline(genotypeCallsPile, sampleIdsPile)(genotypeCallsRecipe, sampleIdsRecipe)
+  val piles = Set(genotypeCallsPile, sampleIdsPile)
+  val recipes = Set(genotypeCallsRecipe, sampleIdsRecipe)
+
 }

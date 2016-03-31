@@ -11,7 +11,7 @@ import loamstream.model.signatures.Signatures.{ClusterId, SampleId, VariantId}
   * LoamStream
   * Created by oliverr on 3/21/2016.
   */
-object AncestryInferencePipeline {
+object AncestryInferencePipeline(gneotypesId:String, pcaWeightsId:String) {
 
   val genotypesPileId = "genotypes"
   val pcaWeightsPileId = "pcaWeights"

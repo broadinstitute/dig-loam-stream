@@ -18,7 +18,7 @@ import tools.core.CoreConfig
   */
 case class MiniMockToolBox(config: CoreConfig) extends LToolBox {
   val stores = MiniMockStore.stores
-  val genotypesId = MiniPipeline.genotypeCallsPileId
+  val genotypesId = config.genotypesId
   val tools = MiniMockTool.tools(genotypesId)
 
   override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)

@@ -25,18 +25,18 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val sampleFilePaths = Seq(extractedSamplesFilePath)
 
     val config = CoreConfig.InteractiveFallbackConfig(vcfFiles, sampleFilePaths, Seq.empty[Path])
-    val pipeline = MiniPipeline.pipeline
+    val pipeline = MiniPipeline(config.genotypesId)
     val toolbox = CoreToolBox(config) ++ MiniMockToolBox(config)
     val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
     for (mapping <- mappings)
       LToolMappingLogger.logMapping(Level.trace, mapping)
-    val mappingCostEstimator = LPipelineMiniCostEstimator(MiniPipeline.genotypeCallsPileId)
+    val mappingCostEstimator = LPipelineMiniCostEstimator(pipeline.genotypesId)
     val mapping = mappingCostEstimator.pickCheapest(mappings)
     LToolMappingLogger.logMapping(Level.trace, mapping)
 
-    val genotypesJob = toolbox.createJobs(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)
+    val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline, mapping)
     assert(TestUtils.isHitOfSetOfOne(genotypesJob))
-    val extractSamplesJob = toolbox.createJobs(MiniPipeline.sampleIdsRecipe, pipeline, mapping)
+    val extractSamplesJob = toolbox.createJobs(pipeline.sampleIdsRecipe, pipeline, mapping)
     assert(TestUtils.isHitOfSetOfOne(extractSamplesJob))
     val executable = toolbox.createExecutable(pipeline, mapping)
     MiniExecuter.execute(executable)

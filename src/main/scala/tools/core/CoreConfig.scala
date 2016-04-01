@@ -2,8 +2,10 @@ package tools.core
 
 import java.nio.file.Path
 
+import loamstream.LEnv
+import loamstream.LEnv.{Key, LMapEnv}
 import loamstream.util.FileAsker
-import tools.core.CoreConfig.{SampleFilePathFun, SingletonFilePathFun, VcfFilePathFun}
+import tools.core.CoreConfig.{SampleFilePathVal, SingletonFilePathFun}
 
 /**
   * LoamStream
@@ -11,22 +13,27 @@ import tools.core.CoreConfig.{SampleFilePathFun, SingletonFilePathFun, VcfFilePa
   */
 object CoreConfig {
 
-  trait VcfFilePathFun extends (String => Path)
+  object Keys {
+    val vcfFilePath = Key[VcfFilePathVal]("VCF file path")
+    val sampleFilePath = Key[SampleFilePathVal]("sample file path")
+  }
 
-  trait SampleFilePathFun {
+  trait VcfFilePathVal extends (String => Path) with LEnv.Value
+
+  trait SampleFilePathVal extends LEnv.Value {
     def get: Path
   }
 
-  trait SingletonFilePathFun {
+  trait SingletonFilePathFun extends LEnv.Value {
     def get: Path
   }
 
-  object InteractiveConfig extends CoreConfig {
-    override val getVcfFilePathFun: VcfFilePathFun = new VcfFilePathFun {
+  object InteractiveConfig extends FileBasedCoreConfig {
+    override def vcfFilePathVal: VcfFilePathVal = new VcfFilePathVal {
       override def apply(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
     }
 
-    override def getSampleFilePathFun: SampleFilePathFun = new SampleFilePathFun {
+    override def sampleFilePathVal: SampleFilePathVal = new SampleFilePathVal {
       override def get: Path = FileAsker.ask("samples file")
     }
 
@@ -37,12 +44,12 @@ object CoreConfig {
 
   case class InteractiveFallbackConfig(vcfFiles: Seq[String => Path], sampleFiles: Seq[Path],
                                        singletonFiles: Seq[Path])
-    extends CoreConfig {
-    override val getVcfFilePathFun: VcfFilePathFun = new VcfFilePathFun {
+    extends FileBasedCoreConfig {
+    override def vcfFilePathVal: VcfFilePathVal = new VcfFilePathVal {
       override def apply(id: String): Path = FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
     }
 
-    override def getSampleFilePathFun: SampleFilePathFun = new SampleFilePathFun {
+    override def sampleFilePathVal: SampleFilePathVal = new SampleFilePathVal {
       override def get: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
     }
 
@@ -51,12 +58,20 @@ object CoreConfig {
     }
   }
 
+  trait FileBasedCoreConfig extends CoreConfig {
+    def vcfFilePathVal: VcfFilePathVal
+    def sampleFilePathVal: SampleFilePathVal
+    def getSingletonFilePathFun: SingletonFilePathFun
+    val env = LMapEnv(Map(Keys.vcfFilePath -> vcfFilePathVal, Keys.sampleFilePath -> sampleFilePathVal))
+  }
+
 }
 
-trait CoreConfig {
-  def getVcfFilePathFun: VcfFilePathFun
 
-  def getSampleFilePathFun: SampleFilePathFun
+trait CoreConfig {
+  def env: LEnv
+
+  def sampleFilePathVal: SampleFilePathVal
 
   def getSingletonFilePathFun: SingletonFilePathFun
 

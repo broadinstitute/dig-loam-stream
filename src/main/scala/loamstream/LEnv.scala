@@ -8,9 +8,11 @@ import loamstream.LEnv.{Key, LComboEnv, Value}
   */
 object LEnv {
 
-  trait KeyBase
+  trait KeyBase {
+    def name: String
+  }
 
-  trait Key[V <: Value] extends KeyBase
+  case class Key[V <: Value](name: String) extends KeyBase
 
   trait Value
 
@@ -51,7 +53,7 @@ trait LEnv {
 
   def +[V <: Value](key: Key[V], value: V): LEnv
 
-  def +[V <: Value](entry: (Key[V], V)): LEnv = this + (entry._1, entry._2)
+  def +[V <: Value](entry: (Key[V], V)): LEnv = this +(entry._1, entry._2)
 
   def ++(oEnv: LEnv): LComboEnv = oEnv match {
     case LComboEnv(oEnvs) => LComboEnv(this +: oEnvs)

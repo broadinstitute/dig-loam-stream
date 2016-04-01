@@ -103,13 +103,13 @@ case class CoreToolBox(config: CoreConfig) extends LToolBox {
     vcfFiles.get(id) match {
       case Some(path) => path
       case None =>
-        val path = config.getVcfFilePathFun(id)
+        val path = config.env(CoreConfig.Keys.vcfFilePath)(id)
         vcfFiles += (id -> path)
         path
     }
   }
 
-  lazy val getSampleFile: Path = config.getSampleFilePathFun.get
+  lazy val getSampleFile: Path = config.env(CoreConfig.Keys.sampleFilePath).get
 
   lazy val getSingletonFile: Path = config.getSingletonFilePathFun.get
 

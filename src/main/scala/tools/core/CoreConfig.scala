@@ -3,8 +3,7 @@ package tools.core
 import java.nio.file.Path
 
 import loamstream.LEnv
-import loamstream.LEnv.Key
-import loamstream.util.FileAsker
+import tools.core.LCoreEnv.Keys
 
 /**
   * LoamStream
@@ -12,66 +11,33 @@ import loamstream.util.FileAsker
   */
 object CoreConfig {
 
-  object Keys {
-    val vcfFilePath = Key[VcfFilePathVal]("VCF file path")
-    val sampleFilePath = Key[SampleFilePathVal]("sample file path")
-    val singletonFilePath = Key[SingletonFilePathVal]("singleton file path")
-    val genotypesId = Key[String]("genotypes id")
-    val vdsId = Key[String]("variant dataset")
-    val singletonsId = Key[String]("singleton counts")
-    val pcaWeightsId = Key[String]("pcaWeights")
-
-  }
-
-  trait VcfFilePathVal extends (String => Path)
-
-  trait SampleFilePathVal {
-    def get: Path
-  }
-
-  trait SingletonFilePathVal {
-    def get: Path
-  }
-
   object InteractiveConfig extends FileBasedCoreConfig {
-    override def vcfFilePathVal: VcfFilePathVal = new VcfFilePathVal {
-      override def apply(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
-    }
+    override def envVcfFile: LEnv = LCoreEnv.envVcfFileInteractive
 
-    override def sampleFilePathVal: SampleFilePathVal = new SampleFilePathVal {
-      override def get: Path = FileAsker.ask("samples file")
-    }
+    override def envSampleFile: LEnv = LCoreEnv.envSampleFileInteractive
 
-    override def singletonFilePathVal: SingletonFilePathVal = new SingletonFilePathVal {
-      override def get: Path = FileAsker.ask("singleton counts file")
-    }
+    override def envSingletonFile: LEnv = LCoreEnv.envSingletonFileInteractive
   }
 
   case class InteractiveFallbackConfig(vcfFiles: Seq[String => Path], sampleFiles: Seq[Path],
                                        singletonFiles: Seq[Path])
     extends FileBasedCoreConfig {
-    override def vcfFilePathVal: VcfFilePathVal = new VcfFilePathVal {
-      override def apply(id: String): Path = FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
-    }
+    override def envVcfFile: LEnv = LCoreEnv.envVcfFileInteractiveFallback(vcfFiles)
 
-    override def sampleFilePathVal: SampleFilePathVal = new SampleFilePathVal {
-      override def get: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
-    }
+    override def envSampleFile: LEnv = LCoreEnv.envSampleFileInteractiveFallback(sampleFiles)
 
-    override def singletonFilePathVal: SingletonFilePathVal = new SingletonFilePathVal {
-      override def get: Path = FileAsker.askIfParentDoesNotExist(singletonFiles)("singleton file")
-    }
+    override def envSingletonFile: LEnv = LCoreEnv.envSingletonFileInteractiveFallback(singletonFiles)
   }
 
   trait FileBasedCoreConfig extends CoreConfig {
-    def vcfFilePathVal: VcfFilePathVal
 
-    def sampleFilePathVal: SampleFilePathVal
+    def envVcfFile: LEnv
 
-    def singletonFilePathVal: SingletonFilePathVal
+    def envSampleFile: LEnv
 
-    val env = LEnv(Keys.vcfFilePath -> vcfFilePathVal, Keys.sampleFilePath -> sampleFilePathVal,
-      Keys.singletonFilePath -> singletonFilePathVal, Keys.genotypesId -> "genotypes",
+    def envSingletonFile: LEnv
+
+    val env = envVcfFile ++ envSampleFile ++ envSingletonFile ++ LEnv(Keys.genotypesId -> "genotypes",
       Keys.vdsId -> "variant dataset", Keys.singletonsId -> "singleton counts", Keys.pcaWeightsId -> "pcaWeights")
   }
 

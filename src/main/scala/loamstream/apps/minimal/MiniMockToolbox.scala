@@ -10,7 +10,7 @@ import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
-import tools.core.CoreConfig
+import tools.core.{CoreConfig, LCoreEnv}
 
 /**
   * LoamStream
@@ -18,7 +18,7 @@ import tools.core.CoreConfig
   */
 case class MiniMockToolBox(config: CoreConfig) extends LToolBox {
   val stores = MiniMockStore.stores
-  val genotypesId = config.genotypesId
+  val genotypesId = config.env(LCoreEnv.Keys.genotypesId)
   val tools = MiniMockTool.tools(genotypesId)
 
   override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)

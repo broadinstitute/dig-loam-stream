@@ -8,7 +8,7 @@ import loamstream.apps.minimal._
 import loamstream.map.LToolMapper
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfter, FunSuite}
-import tools.core.{CoreConfig, CoreToolBox}
+import tools.core.{CoreConfig, CoreToolBox, LCoreEnv}
 import utils.{LoamFileUtils, StringUtils, TestUtils}
 
 import scala.io.Source
@@ -36,9 +36,9 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val singletonFiles = Seq(hailSingletonFilePath)
 
   val config = CoreConfig.InteractiveFallbackConfig(vcfFiles, vdsFiles, singletonFiles)
-  val genotypesId = config.env(CoreConfig.Keys.genotypesId)
-  val vdsId = config.env(CoreConfig.Keys.vdsId)
-  val singletonsId = config.env(CoreConfig.Keys.singletonsId)
+  val genotypesId = config.env(LCoreEnv.Keys.genotypesId)
+  val vdsId = config.env(LCoreEnv.Keys.vdsId)
+  val singletonsId = config.env(LCoreEnv.Keys.singletonsId)
   val pipeline = HailPipeline(genotypesId, vdsId, singletonsId)
   val toolbox = CoreToolBox(config) ++ MiniMockToolBox(config)
   val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)

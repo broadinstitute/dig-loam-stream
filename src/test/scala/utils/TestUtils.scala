@@ -10,15 +10,15 @@ import loamstream.util.shot.{Hit, Shot}
 object TestUtils {
 
   def assertSomeAndGet[A](option: Option[A]): A = {
+    import org.scalatest.Assertions._
+
     assert(option.nonEmpty)
+    
     option.get
   }
 
-  def isHitOfSetOfOne(shot: Shot[Set[LJob]]): Boolean = {
-    shot match {
-      case Hit(jobs) => jobs.size == 1
-      case _ => false
-    }
+  def isHitOfSetOfOne(shot: Shot[Set[LJob]]): Boolean = shot match {
+    case Hit(jobs) => jobs.size == 1
+    case _ => false
   }
-
 }

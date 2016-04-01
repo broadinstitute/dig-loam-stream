@@ -11,14 +11,10 @@ import java.nio.file.Files
   * @author Kaan Yuksel
   */
 object LoamFileUtils {
-  private def classLoader = getClass.getClassLoader
-
   def resolveRelativePath(relativePath: String): Path = Paths.get(relativePath)
 
   def printToFile(f: File)(op: PrintWriter => Unit): Unit = {
-    val p = new PrintWriter(f)
-
-    LoamFileUtils.enclosed(p)(op)
+    enclosed(new PrintWriter(f))(op)
   }
 
   def enclosed[C: CanBeClosed](c: C)(f: C => Unit): Unit = {

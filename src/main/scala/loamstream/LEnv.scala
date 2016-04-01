@@ -16,16 +16,10 @@ object LEnv {
     def ->(value: V): Entry[V] = new Entry(this, value)
   }
 
-  trait EntryBase extends (KeyBase, Any) {
-    def key: KeyBase
+  type EntryBase = (KeyBase, Any)
+  type Entry[V] = (Key[V], V)
 
-    def value: Any
-  }
-
-  class Entry[V](val key: Key[V], val value: V) extends Tuple2[Key[V], V](key, value) with EntryBase
-
-  def apply(entry: EntryBase, entries: EntryBase*): LMapEnv =
-    LMapEnv((entry +: entries).map(entry => (entry.key, entry.value)).toMap)
+  def apply(entry: EntryBase, entries: EntryBase*): LMapEnv = LMapEnv((entry +: entries).toMap)
 
   case class LMapEnv(entries: Map[KeyBase, Any]) extends LEnv {
     override def apply[V](key: Key[V]): V = entries(key).asInstanceOf[V]

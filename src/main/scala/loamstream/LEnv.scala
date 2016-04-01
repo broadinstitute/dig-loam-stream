@@ -1,6 +1,6 @@
 package loamstream
 
-import loamstream.LEnv.{Key, LComboEnv, Value}
+import loamstream.LEnv.{Key, LComboEnv}
 
 /**
   * LoamStream
@@ -12,16 +12,27 @@ object LEnv {
     def name: String
   }
 
-  case class Key[V <: Value](name: String) extends KeyBase
+  case class Key[V](name: String) extends KeyBase {
+    def ->(value: V): Entry[V] = new Entry(this, value)
+  }
 
-  trait Value
+  trait EntryBase extends (KeyBase, Any) {
+    def key: KeyBase
 
-  case class LMapEnv(entries: Map[KeyBase, Value]) extends LEnv {
-    override def apply[V <: Value](key: Key[V]): V = entries(key).asInstanceOf[V]
+    def value: Any
+  }
 
-    override def get[V <: Value](key: Key[V]): Option[V] = entries.get(key).map(_.asInstanceOf[V])
+  class Entry[V](val key: Key[V], val value: V) extends Tuple2[Key[V], V](key, value) with EntryBase
 
-    override def +[V <: Value](key: Key[V], value: V): LEnv = copy(entries = entries + (key -> value))
+  def apply(entry: EntryBase, entries: EntryBase*): LMapEnv =
+    LMapEnv((entry +: entries).map(entry => (entry.key, entry.value)).toMap)
+
+  case class LMapEnv(entries: Map[KeyBase, Any]) extends LEnv {
+    override def apply[V](key: Key[V]): V = entries(key).asInstanceOf[V]
+
+    override def get[V](key: Key[V]): Option[V] = entries.get(key).map(_.asInstanceOf[V])
+
+    override def +[V](key: Key[V], value: V): LEnv = copy(entries = entries + (key -> value))
   }
 
   object LComboEnv {
@@ -29,11 +40,11 @@ object LEnv {
   }
 
   case class LComboEnv(envs: Seq[LEnv]) extends LEnv {
-    override def apply[V <: Value](key: Key[V]): V = envs.flatMap(_.get(key)).head
+    override def apply[V](key: Key[V]): V = envs.flatMap(_.get(key)).head
 
-    override def get[V <: Value](key: Key[V]): Option[V] = envs.flatMap(_.get(key)).headOption
+    override def get[V](key: Key[V]): Option[V] = envs.flatMap(_.get(key)).headOption
 
-    override def +[V <: Value](key: Key[V], value: V): LEnv = envs.head match {
+    override def +[V](key: Key[V], value: V): LEnv = envs.head match {
       case mapEnv: LMapEnv => LComboEnv((mapEnv + (key -> value)) +: envs.tail)
       case _ => LComboEnv(LMapEnv(Map(key -> value)) +: envs)
     }
@@ -47,13 +58,13 @@ object LEnv {
 }
 
 trait LEnv {
-  def apply[V <: Value](key: Key[V]): V
+  def apply[V](key: Key[V]): V
 
-  def get[V <: Value](key: Key[V]): Option[V]
+  def get[V](key: Key[V]): Option[V]
 
-  def +[V <: Value](key: Key[V], value: V): LEnv
+  def +[V](key: Key[V], value: V): LEnv
 
-  def +[V <: Value](entry: (Key[V], V)): LEnv = this +(entry._1, entry._2)
+  def +[V](entry: (Key[V], V)): LEnv = this. + (entry._1, entry._2)
 
   def ++(oEnv: LEnv): LComboEnv = oEnv match {
     case LComboEnv(oEnvs) => LComboEnv(this +: oEnvs)

@@ -5,7 +5,7 @@ import java.nio.file.Path
 import loamstream.LEnv
 import loamstream.LEnv.{Key, LMapEnv}
 import loamstream.util.FileAsker
-import tools.core.CoreConfig.{SampleFilePathVal, SingletonFilePathFun}
+import tools.core.CoreConfig.SingletonFilePathVal
 
 /**
   * LoamStream
@@ -16,15 +16,16 @@ object CoreConfig {
   object Keys {
     val vcfFilePath = Key[VcfFilePathVal]("VCF file path")
     val sampleFilePath = Key[SampleFilePathVal]("sample file path")
+    val singletonFilePath = Key[SingletonFilePathVal]("singleton file path")
   }
 
-  trait VcfFilePathVal extends (String => Path) with LEnv.Value
+  trait VcfFilePathVal extends (String => Path)
 
-  trait SampleFilePathVal extends LEnv.Value {
+  trait SampleFilePathVal {
     def get: Path
   }
 
-  trait SingletonFilePathFun extends LEnv.Value {
+  trait SingletonFilePathVal {
     def get: Path
   }
 
@@ -37,7 +38,7 @@ object CoreConfig {
       override def get: Path = FileAsker.ask("samples file")
     }
 
-    override def getSingletonFilePathFun: SingletonFilePathFun = new SingletonFilePathFun {
+    override def singletonFilePathVal: SingletonFilePathVal = new SingletonFilePathVal {
       override def get: Path = FileAsker.ask("singleton counts file")
     }
   }
@@ -53,15 +54,18 @@ object CoreConfig {
       override def get: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
     }
 
-    override def getSingletonFilePathFun: SingletonFilePathFun = new SingletonFilePathFun {
+    override def singletonFilePathVal: SingletonFilePathVal = new SingletonFilePathVal {
       override def get: Path = FileAsker.askIfParentDoesNotExist(singletonFiles)("singleton file")
     }
   }
 
   trait FileBasedCoreConfig extends CoreConfig {
     def vcfFilePathVal: VcfFilePathVal
+
     def sampleFilePathVal: SampleFilePathVal
-    def getSingletonFilePathFun: SingletonFilePathFun
+
+    def singletonFilePathVal: SingletonFilePathVal
+
     val env = LMapEnv(Map(Keys.vcfFilePath -> vcfFilePathVal, Keys.sampleFilePath -> sampleFilePathVal))
   }
 
@@ -71,9 +75,7 @@ object CoreConfig {
 trait CoreConfig {
   def env: LEnv
 
-  def sampleFilePathVal: SampleFilePathVal
-
-  def getSingletonFilePathFun: SingletonFilePathFun
+  def singletonFilePathVal: SingletonFilePathVal
 
   val genotypesId = "genotypes"
   val vdsId = "variant dataset"

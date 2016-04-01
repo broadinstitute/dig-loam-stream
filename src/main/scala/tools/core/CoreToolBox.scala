@@ -111,7 +111,7 @@ case class CoreToolBox(config: CoreConfig) extends LToolBox {
 
   lazy val getSampleFile: Path = config.env(CoreConfig.Keys.sampleFilePath).get
 
-  lazy val getSingletonFile: Path = config.getSingletonFilePathFun.get
+  lazy val getSingletonFile: Path = config.singletonFilePathVal.get
 
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {

@@ -36,9 +36,9 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val singletonFiles = Seq(hailSingletonFilePath)
 
   val config = CoreConfig.InteractiveFallbackConfig(vcfFiles, vdsFiles, singletonFiles)
-  val genotypesId = config.genotypesId
-  val vdsId = config.vdsId
-  val singletonsId = config.singletonsId
+  val genotypesId = config.env(CoreConfig.Keys.genotypesId)
+  val vdsId = config.env(CoreConfig.Keys.vdsId)
+  val singletonsId = config.env(CoreConfig.Keys.singletonsId)
   val pipeline = HailPipeline(genotypesId, vdsId, singletonsId)
   val toolbox = CoreToolBox(config) ++ MiniMockToolBox(config)
   val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)

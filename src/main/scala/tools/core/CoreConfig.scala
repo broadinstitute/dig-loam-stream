@@ -3,9 +3,8 @@ package tools.core
 import java.nio.file.Path
 
 import loamstream.LEnv
-import loamstream.LEnv.{Key, LMapEnv}
+import loamstream.LEnv.Key
 import loamstream.util.FileAsker
-import tools.core.CoreConfig.SingletonFilePathVal
 
 /**
   * LoamStream
@@ -17,6 +16,11 @@ object CoreConfig {
     val vcfFilePath = Key[VcfFilePathVal]("VCF file path")
     val sampleFilePath = Key[SampleFilePathVal]("sample file path")
     val singletonFilePath = Key[SingletonFilePathVal]("singleton file path")
+    val genotypesId = Key[String]("genotypes id")
+    val vdsId = Key[String]("variant dataset")
+    val singletonsId = Key[String]("singleton counts")
+    val pcaWeightsId = Key[String]("pcaWeights")
+
   }
 
   trait VcfFilePathVal extends (String => Path)
@@ -66,7 +70,9 @@ object CoreConfig {
 
     def singletonFilePathVal: SingletonFilePathVal
 
-    val env = LMapEnv(Map(Keys.vcfFilePath -> vcfFilePathVal, Keys.sampleFilePath -> sampleFilePathVal))
+    val env = LEnv(Keys.vcfFilePath -> vcfFilePathVal, Keys.sampleFilePath -> sampleFilePathVal,
+      Keys.singletonFilePath -> singletonFilePathVal, Keys.genotypesId -> "genotypes",
+      Keys.vdsId -> "variant dataset", Keys.singletonsId -> "singleton counts", Keys.pcaWeightsId -> "pcaWeights")
   }
 
 }
@@ -74,12 +80,5 @@ object CoreConfig {
 
 trait CoreConfig {
   def env: LEnv
-
-  def singletonFilePathVal: SingletonFilePathVal
-
-  val genotypesId = "genotypes"
-  val vdsId = "variant dataset"
-  val singletonsId = "singleton counts"
-  val pcaWeightsId = "pcaWeights"
 }
 

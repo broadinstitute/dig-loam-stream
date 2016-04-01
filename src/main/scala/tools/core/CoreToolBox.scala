@@ -88,7 +88,7 @@ object CoreToolBox {
 
 case class CoreToolBox(config: CoreConfig) extends LToolBox {
   val stores = CoreStore.stores
-  val genotypesId = config.genotypesId
+  val genotypesId = config.env(CoreConfig.Keys.genotypesId)
   val tools = CoreTool.tools(genotypesId)
 
   val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)
@@ -111,7 +111,7 @@ case class CoreToolBox(config: CoreConfig) extends LToolBox {
 
   lazy val getSampleFile: Path = config.env(CoreConfig.Keys.sampleFilePath).get
 
-  lazy val getSingletonFile: Path = config.singletonFilePathVal.get
+  lazy val getSingletonFile: Path = config.env(CoreConfig.Keys.singletonFilePath).get
 
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {

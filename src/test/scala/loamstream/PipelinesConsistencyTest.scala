@@ -20,17 +20,23 @@ class PipelinesConsistencyTest extends FunSuite {
 
   test("Mini pipeline is consistent.") {
     val config = CoreConfig.InteractiveConfig
-    check(MiniPipeline(config.genotypesId))
+    val genotypesId = config.env(CoreConfig.Keys.genotypesId)
+    check(MiniPipeline(genotypesId))
   }
 
   test("Hail pipeline is consistent.") {
     val config = CoreConfig.InteractiveConfig
-    check(HailPipeline(config.genotypesId, config.vdsId, config.singletonsId))
+    val genotypesId = config.env(CoreConfig.Keys.genotypesId)
+    val vdsId = config.env(CoreConfig.Keys.vdsId)
+    val singletonsId = config.env(CoreConfig.Keys.singletonsId)
+    check(HailPipeline(genotypesId, vdsId, singletonsId))
   }
 
   test("Ancestry inference pipeline is consistent.") {
     val config = CoreConfig.InteractiveConfig
-    check(AncestryInferencePipeline(config.genotypesId, config.pcaWeightsId))
+    val genotypesId = config.env(CoreConfig.Keys.genotypesId)
+    val pcaWeightsId = config.env(CoreConfig.Keys.pcaWeightsId)
+    check(AncestryInferencePipeline(genotypesId, pcaWeightsId))
   }
 
 

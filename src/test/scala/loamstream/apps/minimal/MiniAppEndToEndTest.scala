@@ -25,7 +25,8 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val sampleFilePaths = Seq(extractedSamplesFilePath)
 
     val config = CoreConfig.InteractiveFallbackConfig(vcfFiles, sampleFilePaths, Seq.empty[Path])
-    val pipeline = MiniPipeline(config.genotypesId)
+    val genotypesId = config.env(CoreConfig.Keys.genotypesId)
+    val pipeline = MiniPipeline(genotypesId)
     val toolbox = CoreToolBox(config) ++ MiniMockToolBox(config)
     val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
     for (mapping <- mappings)

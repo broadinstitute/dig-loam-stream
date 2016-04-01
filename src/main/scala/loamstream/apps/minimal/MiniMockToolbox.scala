@@ -1,5 +1,6 @@
 package loamstream.apps.minimal
 
+import loamstream.LEnv
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
@@ -10,15 +11,23 @@ import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
-import tools.core.{CoreConfig, LCoreEnv}
+import tools.core.{LCoreDefaultPileIds, LCoreEnv}
 
 /**
   * LoamStream
   * Created by oliverr on 3/31/2016.
   */
-case class MiniMockToolBox(config: CoreConfig) extends LToolBox {
+object MiniMockToolBox {
+  def apply(env: LEnv): Shot[MiniMockToolBox] = {
+    env.get(LCoreEnv.Keys.genotypesId) match {
+      case Some(genotypesId) => Hit(MiniMockToolBox(genotypesId))
+      case None => Miss("Genotypes id not defined in environment.")
+    }
+  }
+}
+
+case class MiniMockToolBox(genotypesId: String = LCoreDefaultPileIds.genotypes) extends LToolBox {
   val stores = MiniMockStore.stores
-  val genotypesId = config.env(LCoreEnv.Keys.genotypesId)
   val tools = MiniMockTool.tools(genotypesId)
 
   override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)

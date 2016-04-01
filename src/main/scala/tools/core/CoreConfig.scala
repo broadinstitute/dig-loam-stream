@@ -37,8 +37,7 @@ object CoreConfig {
 
     def envSingletonFile: LEnv
 
-    val env = envVcfFile ++ envSampleFile ++ envSingletonFile ++ LEnv(Keys.genotypesId -> "genotypes",
-      Keys.vdsId -> "variant dataset", Keys.singletonsId -> "singleton counts", Keys.pcaWeightsId -> "pcaWeights")
+    val env = envVcfFile ++ envSampleFile ++ envSingletonFile
   }
 
 }

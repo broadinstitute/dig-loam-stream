@@ -12,12 +12,14 @@ object LEnv {
     def name: String
   }
 
-  case class Key[V](name: String) extends KeyBase {
-    def ->(value: V): Entry[V] = new Entry(this, value)
-  }
-
   type EntryBase = (KeyBase, Any)
   type Entry[V] = (Key[V], V)
+
+  case class Key[V](name: String) extends KeyBase {
+    def apply(value: V): Entry[V] = new Entry(this, value)
+
+    def ->(value: V): Entry[V] = new Entry(this, value)
+  }
 
   def apply(entry: EntryBase, entries: EntryBase*): LMapEnv = LMapEnv((entry +: entries).toMap)
 

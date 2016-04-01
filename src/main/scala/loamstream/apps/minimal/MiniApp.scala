@@ -10,7 +10,7 @@ import utils.Loggable.Level
   * Created by oliverr on 12/21/2015.
   */
 object MiniApp extends App with Loggable {
-  val config = CoreConfig.InteractiveConfig
+  val env = CoreConfig.InteractiveConfig.env
 
   debug("Yo!")
 
@@ -18,7 +18,7 @@ object MiniApp extends App with Loggable {
 
   val pipeline = MiniPipeline(genotypesId)
 
-  val toolbox = CoreToolBox(config) ++ MiniMockToolBox(config)
+  val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
 
   val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
 

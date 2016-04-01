@@ -2,7 +2,7 @@ package tools.core
 
 import java.nio.file.{Files, Path}
 
-import loamstream.apps.minimal.MiniPipeline
+import loamstream.LEnv
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
@@ -86,9 +86,9 @@ object CoreToolBox {
 
 }
 
-case class CoreToolBox(config: CoreConfig) extends LToolBox {
+case class CoreToolBox(env: LEnv) extends LToolBox {
   val stores = CoreStore.stores
-  val genotypesId = config.env(LCoreEnv.Keys.genotypesId)
+  val genotypesId = env(LCoreEnv.Keys.genotypesId)
   val tools = CoreTool.tools(genotypesId)
 
   val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)
@@ -103,15 +103,15 @@ case class CoreToolBox(config: CoreConfig) extends LToolBox {
     vcfFiles.get(id) match {
       case Some(path) => path
       case None =>
-        val path = config.env(LCoreEnv.Keys.vcfFilePath)(id)
+        val path = env(LCoreEnv.Keys.vcfFilePath)(id)
         vcfFiles += (id -> path)
         path
     }
   }
 
-  lazy val getSampleFile: Path = config.env(LCoreEnv.Keys.sampleFilePath).get
+  lazy val getSampleFile: Path = env(LCoreEnv.Keys.sampleFilePath).get
 
-  lazy val getSingletonFile: Path = config.env(LCoreEnv.Keys.singletonFilePath).get
+  lazy val getSingletonFile: Path = env(LCoreEnv.Keys.singletonFilePath).get
 
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {

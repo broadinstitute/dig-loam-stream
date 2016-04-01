@@ -1,7 +1,7 @@
 package loamstream.apps.minimal
 
 import loamstream.map.LToolMapper
-import tools.core.{CoreConfig, CoreToolBox}
+import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
 import utils.Loggable
 import utils.Loggable.Level
 
@@ -10,11 +10,11 @@ import utils.Loggable.Level
   * Created by oliverr on 12/21/2015.
   */
 object MiniApp extends App with Loggable {
-  val env = CoreConfig.InteractiveConfig.env
+  val env = LCoreEnv.FilesInteractive.env
 
   debug("Yo!")
 
-  val genotypesId = "genotypes"
+  val genotypesId = LCoreDefaultPileIds.genotypes
 
   val pipeline = MiniPipeline(genotypesId)
 

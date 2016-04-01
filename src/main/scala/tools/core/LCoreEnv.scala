@@ -32,31 +32,40 @@ object LCoreEnv {
     def get: Path
   }
 
-  def envVcfFileInteractive: LEnv = LEnv(Keys.vcfFilePath -> new VcfFilePathVal {
-    override def apply(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
-  })
-
-  def envVcfFileInteractiveFallback(vcfFiles: Seq[String => Path]): LEnv =
-    LEnv(Keys.vcfFilePath -> new VcfFilePathVal {
-      override def apply(id: String): Path = FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
+  object FilesInteractive {
+    def envVcf: LEnv = LEnv(Keys.vcfFilePath -> new VcfFilePathVal {
+      override def apply(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
     })
 
-  def envSampleFileInteractive: LEnv = LEnv(Keys.sampleFilePath -> new SampleFilePathVal {
-    override def get: Path = FileAsker.ask("samples file")
-  })
-
-  def envSampleFileInteractiveFallback(sampleFiles: Seq[Path]): LEnv =
-    LEnv(Keys.sampleFilePath -> new SampleFilePathVal {
-      override def get: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
+    def envSamples: LEnv = LEnv(Keys.sampleFilePath -> new SampleFilePathVal {
+      override def get: Path = FileAsker.ask("samples file")
     })
 
-  def envSingletonFileInteractive: LEnv = LEnv(Keys.singletonFilePath -> new SingletonFilePathVal {
-    override def get: Path = FileAsker.ask("singleton counts file")
-  })
-
-  def envSingletonFileInteractiveFallback(singletonFiles: Seq[Path]): LEnv =
-    LEnv(Keys.singletonFilePath -> new SingletonFilePathVal {
-      override def get: Path = FileAsker.askIfParentDoesNotExist(singletonFiles)("singleton file")
+    def envSingletons: LEnv = LEnv(Keys.singletonFilePath -> new SingletonFilePathVal {
+      override def get: Path = FileAsker.ask("singleton counts file")
     })
+
+    def env: LEnv = envVcf ++ envSamples ++ envSingletons
+  }
+
+  object FileInteractiveFallback {
+    def envVcf(vcfFiles: Seq[String => Path]): LEnv =
+      LEnv(Keys.vcfFilePath -> new VcfFilePathVal {
+        override def apply(id: String): Path = FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
+      })
+
+    def envSamples(sampleFiles: Seq[Path]): LEnv =
+      LEnv(Keys.sampleFilePath -> new SampleFilePathVal {
+        override def get: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
+      })
+
+    def envSingletons(singletonFiles: Seq[Path]): LEnv =
+      LEnv(Keys.singletonFilePath -> new SingletonFilePathVal {
+        override def get: Path = FileAsker.askIfParentDoesNotExist(singletonFiles)("singleton file")
+      })
+
+    def env(vcfFiles: Seq[String => Path], sampleFiles: Seq[Path], singletonFiles: Seq[Path]): LEnv =
+      envVcf(vcfFiles) ++ envSamples(sampleFiles) ++ envSingletons(singletonFiles)
+  }
 
 }

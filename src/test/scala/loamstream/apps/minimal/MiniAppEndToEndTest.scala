@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import loamstream.TestData
 import loamstream.map.LToolMapper
 import org.scalatest.{BeforeAndAfter, FunSuite}
-import tools.core.{CoreConfig, CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
+import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
 import utils.Loggable.Level
 import utils.{LoamFileUtils, StringUtils, TestUtils}
 
@@ -24,7 +24,7 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath.toString, "XXX"))
     val sampleFilePaths = Seq(extractedSamplesFilePath)
 
-    val env = CoreConfig.InteractiveFallbackConfig(vcfFiles, sampleFilePaths, Seq.empty[Path]).env +
+    val env = LCoreEnv.FileInteractiveFallback.env(vcfFiles, sampleFilePaths, Seq.empty[Path]) +
       (LCoreEnv.Keys.genotypesId -> LCoreDefaultPileIds.genotypes)
     val genotypesId = env(LCoreEnv.Keys.genotypesId)
     val pipeline = MiniPipeline(genotypesId)

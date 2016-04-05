@@ -24,6 +24,8 @@ sealed trait Shot[+A] {
   def flatMap[B](f: A => Shot[B]): Shot[B]
 
   def asOpt: Option[A]
+
+  def orElse[B >: A](alternative: => Shot[B]): Shot[B]
 }
 
 case class Hit[+A](value: A) extends Shot[A] {
@@ -39,6 +41,8 @@ case class Hit[+A](value: A) extends Shot[A] {
   }
 
   override def asOpt: Option[A] = Some(value)
+
+  override def orElse[B >: A](alternative: => Shot[B]): Shot[B] = this
 }
 
 object Miss {
@@ -54,4 +58,8 @@ case class Miss(snag: Snag) extends Shot[Nothing] {
 
   override def flatMap[B](f: (Nothing) => Shot[B]): Shot[B] = this
 
+  override def orElse[B >: Nothing](alternative: => Shot[B]): Shot[B] = alternative match {
+    case hit: Hit[B] => hit
+    case Miss(altSnag) => Miss(snag ++ altSnag)
+  }
 }

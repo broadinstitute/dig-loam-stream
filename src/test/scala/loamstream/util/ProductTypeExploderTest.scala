@@ -56,6 +56,6 @@ final class ProductTypeExploderTest extends FunSuite {
     doTest[String]()
     doTest[A[Int]]()
     doTest[A.B]()
-    doTest[C]
+    doTest[C]()
   }
 }

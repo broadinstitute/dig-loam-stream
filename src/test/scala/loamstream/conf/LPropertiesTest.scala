@@ -10,7 +10,7 @@ final class LPropertiesTest extends FunSuite {
   test("Config files are correctly parsed") {
     val props = LProperties.load("loamstream-test")
 
-    assert(props.getString("sampleFiles.vcf.mini") == Some("src/test/resources/mini.vcf"))
+    assertResult(Some("src/test/resources/mini.vcf"))(props.getString("sampleFiles.vcf.mini"))
 
     //not present
     assertResult(None)(props.getString(null)) // scalastyle:ignore null

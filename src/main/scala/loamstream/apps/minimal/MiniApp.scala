@@ -1,23 +1,24 @@
 package loamstream.apps.minimal
 
-import java.nio.file.Files
-
-import loamstream.conf.SampleFiles
 import loamstream.map.LToolMapper
+import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
+import utils.Loggable
 import utils.Loggable.Level
-import utils.{StringUtils, Loggable}
+
 /**
   * LoamStream
   * Created by oliverr on 12/21/2015.
   */
 object MiniApp extends App with Loggable {
-  val config = MiniToolBox.InteractiveConfig
+  val env = LCoreEnv.FilesInteractive.env
 
   debug("Yo!")
 
-  val pipeline = MiniPipeline.pipeline
+  val genotypesId = LCoreDefaultPileIds.genotypes
 
-  val toolbox = MiniToolBox(config)
+  val pipeline = MiniPipeline(genotypesId)
+
+  val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
 
   val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
 
@@ -34,7 +35,7 @@ object MiniApp extends App with Loggable {
     System.exit(0)
   }
 
-  val mappingCostEstimator = LPipelineMiniCostEstimator
+  val mappingCostEstimator = LPipelineMiniCostEstimator(genotypesId)
 
   val mapping = mappingCostEstimator.pickCheapest(mappings)
 
@@ -42,8 +43,8 @@ object MiniApp extends App with Loggable {
   LToolMappingLogger.logMapping(Level.info, mapping)
   debug("That was the cheapest mapping")
 
-  val genotypesJob = toolbox.createJobs(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)
-  val extractSamplesJob = toolbox.createJobs(MiniPipeline.sampleIdsRecipe, pipeline, mapping)
+  val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline, mapping)
+  val extractSamplesJob = toolbox.createJobs(pipeline.sampleIdsRecipe, pipeline, mapping)
 
   val executable = toolbox.createExecutable(pipeline, mapping)
   val results = MiniExecuter.execute(executable)

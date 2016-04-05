@@ -13,10 +13,10 @@ trait LPipelineCostEstimator {
   def pickCheapest(mappings: Iterable[LToolMapping]): LToolMapping = {
     var cheapestMapping = mappings.head
     var lowestCost = estimateCost(cheapestMapping)
-    if(mappings.size > 1) {
-      for(mapping <- mappings.drop(1)) {
+    if (mappings.size > 1) {
+      for (mapping <- mappings.drop(1)) {
         val cost = estimateCost(mapping)
-        if(cost < lowestCost) {
+        if (cost < lowestCost) {
           cheapestMapping = mapping
           lowestCost = cost
         }

@@ -5,6 +5,7 @@ import java.nio.file.{Files, Path}
 import loamstream.TestData
 import loamstream.map.LToolMapper
 import org.scalatest.{BeforeAndAfter, FunSuite}
+import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
 import utils.Loggable.Level
 import utils.{LoamFileUtils, StringUtils, TestUtils}
 
@@ -23,19 +24,21 @@ class MiniAppEndToEndTest extends FunSuite with BeforeAndAfter {
     val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath.toString, "XXX"))
     val sampleFilePaths = Seq(extractedSamplesFilePath)
 
-    val config = MiniToolBox.InteractiveFallbackConfig(vcfFiles, sampleFilePaths, Seq.empty[Path])
-    val pipeline = MiniPipeline.pipeline
-    val toolbox = MiniToolBox(config)
+    val env = LCoreEnv.FileInteractiveFallback.env(vcfFiles, sampleFilePaths, Seq.empty[Path]) +
+      (LCoreEnv.Keys.genotypesId -> LCoreDefaultPileIds.genotypes)
+    val genotypesId = env(LCoreEnv.Keys.genotypesId)
+    val pipeline = MiniPipeline(genotypesId)
+    val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
     val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
     for (mapping <- mappings)
       LToolMappingLogger.logMapping(Level.trace, mapping)
-    val mappingCostEstimator = LPipelineMiniCostEstimator
+    val mappingCostEstimator = LPipelineMiniCostEstimator(pipeline.genotypesId)
     val mapping = mappingCostEstimator.pickCheapest(mappings)
     LToolMappingLogger.logMapping(Level.trace, mapping)
 
-    val genotypesJob = toolbox.createJobs(MiniPipeline.genotypeCallsRecipe, pipeline, mapping)
+    val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline, mapping)
     assert(TestUtils.isHitOfSetOfOne(genotypesJob))
-    val extractSamplesJob = toolbox.createJobs(MiniPipeline.sampleIdsRecipe, pipeline, mapping)
+    val extractSamplesJob = toolbox.createJobs(pipeline.sampleIdsRecipe, pipeline, mapping)
     assert(TestUtils.isHitOfSetOfOne(extractSamplesJob))
     val executable = toolbox.createExecutable(pipeline, mapping)
     MiniExecuter.execute(executable)

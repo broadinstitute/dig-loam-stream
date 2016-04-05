@@ -1,21 +1,21 @@
-package loamstream.apps.minimal
+package tools.core
 
 import java.nio.file.{Files, Path}
 
-import loamstream.apps.minimal.MiniToolBox._
+import loamstream.LEnv
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
-import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.jobs.tools.LTool
+import loamstream.model.jobs.{LJob, LToolBox}
 import loamstream.model.kinds.LSpecificKind
 import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
-import loamstream.util.FileAsker
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
+import tools.core.CoreToolBox._
 import tools.{HailTools, VcfParser}
 import utils.LoamFileUtils
 
@@ -25,33 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
   * LoamStream
   * Created by oliverr on 2/23/2016.
   */
-object MiniToolBox {
-
-  trait Config {
-    def getVcfFilePath(id: String): Path
-
-    def getSampleFilePath: Path
-
-    def getSingletonFilePath: Path
-  }
-
-  object InteractiveConfig extends Config {
-    override def getVcfFilePath(id: String): Path = FileAsker.ask("VCF file '" + id + "'")
-
-    override def getSampleFilePath: Path = FileAsker.ask("samples file")
-
-    override def getSingletonFilePath: Path = FileAsker.ask("singleton counts file")
-  }
-
-  case class InteractiveFallbackConfig(vcfFiles: Seq[String => Path], sampleFiles: Seq[Path], singletonFiles: Seq[Path])
-    extends Config {
-    override def getVcfFilePath(id: String): Path =
-      FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
-
-    override def getSampleFilePath: Path = FileAsker.askIfParentDoesNotExist(sampleFiles)("samples file")
-
-    override def getSingletonFilePath: Path = FileAsker.askIfParentDoesNotExist(singletonFiles)("singleton file")
-  }
+object CoreToolBox {
 
   case class VcfFileExists(path: Path) extends LJob.Success {
     override def successMessage: String = path + " exists"
@@ -112,9 +86,12 @@ object MiniToolBox {
 
 }
 
-case class MiniToolBox(config: Config) extends LBasicToolBox {
-  val stores = MiniStore.stores
-  val tools = MiniTool.tools
+case class CoreToolBox(env: LEnv) extends LToolBox {
+  val stores = CoreStore.stores
+  val genotypesId = env(LCoreEnv.Keys.genotypesId)
+  val tools = CoreTool.tools(genotypesId)
+
+  val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)
 
   var vcfFiles: Map[String, Path] = Map.empty
 
@@ -122,22 +99,22 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
 
-  override def getPredefinedVcfFile(id: String): Path = {
+  def getPredefinedVcfFile(id: String): Path = {
     vcfFiles.get(id) match {
       case Some(path) => path
       case None =>
-        val path = config.getVcfFilePath(id)
+        val path = env(LCoreEnv.Keys.vcfFilePath)(id)
         vcfFiles += (id -> path)
         path
     }
   }
 
-  override lazy val getSampleFile: Path = config.getSampleFilePath
+  lazy val getSampleFile: Path = env(LCoreEnv.Keys.sampleFilePath).get
 
-  override lazy val getSingletonFile: Path = config.getSingletonFilePath
+  lazy val getSingletonFile: Path = env(LCoreEnv.Keys.singletonFilePath).get
 
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
-    MiniTool.checkPreExistingVcfFile.recipe.kind match {
+    checkPreexistingVcfFileTool.recipe.kind match {
       case LSpecificKind(specifics, _) => specifics match {
         case (_, id: String) => Hit(CheckPreexistingVcfFileJob(getPredefinedVcfFile(id)))
         case _ => Miss(SnagMessage("Recipe is not of the right kind."))
@@ -158,10 +135,10 @@ case class MiniToolBox(config: Config) extends LBasicToolBox {
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
       case Some(tool) => tool match {
-        case MiniTool.checkPreExistingVcfFile => createVcfFileJob.map(Set(_))
-        case MiniTool.extractSampleIdsFromVcfFile => createExtractSamplesJob.map(Set(_))
-        case MiniTool.importVcf => createImportVcfJob.map(Set(_))
-        case MiniTool.calculateSingletons => calculateSingletonsJob.map(Set(_))
+        case this.checkPreexistingVcfFileTool => createVcfFileJob.map(Set(_))
+        case CoreTool.extractSampleIdsFromVcfFile => createExtractSamplesJob.map(Set(_))
+        case CoreTool.importVcf => createImportVcfJob.map(Set(_))
+        case CoreTool.calculateSingletons => calculateSingletonsJob.map(Set(_))
         case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
       }
       case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))

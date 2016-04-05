@@ -13,6 +13,10 @@ import loamstream.util.shot.Shot
   * LoamStream
   * Created by oliverr on 2/16/2016.
   */
+object LToolBox {
+  def apply(box: LToolBox, boxes: LToolBox*): LComboToolBox = LComboToolBox(boxes.toSet + box)
+}
+
 trait LToolBox {
   def storesFor(pile: LPile): Set[LStore]
 
@@ -21,5 +25,10 @@ trait LToolBox {
   def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]]
 
   def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable
+
+  def ++(oBox: LToolBox): LComboToolBox = oBox match {
+    case LComboToolBox(boxes) => LComboToolBox(boxes + this)
+    case _ => LToolBox(this, oBox)
+  }
 
 }

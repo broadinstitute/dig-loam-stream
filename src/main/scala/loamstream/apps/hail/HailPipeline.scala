@@ -12,17 +12,16 @@ import loamstream.model.{LPipeline, LPipelineOps}
   *
   * @author Kaan Yuksel
   */
-object HailPipeline {
-  val genotypeCallsPileId = "genotypes"
-  val vdsPileId = "variant dataset"
-  val singletonPileId = "singleton counts"
-  val genotypeCallsPile = LPile(genotypeCallsPileId, LSig.Map[(String, VariantId), Genotype],
+case class HailPipeline(genotypesId: String, vdsId: String, singletonsId: String) extends LPipeline {
+  val genotypeCallsPile = LPile(genotypesId, LSig.Map[(String, VariantId), Genotype],
     PileKinds.genotypeCallsByVariantAndSample)
-  val genotypeCallsRecipe = LRecipe.preExistingCheckout(genotypeCallsPileId, genotypeCallsPile)
-  val vdsPile = LPile(vdsPileId, LSig.Map[(String, VariantId), Genotype], PileKinds.genotypeCallsByVariantAndSample)
+  val genotypeCallsRecipe = LRecipe.preExistingCheckout(genotypesId, genotypeCallsPile)
+  val vdsPile = LPile(vdsId, LSig.Map[(String, VariantId), Genotype], PileKinds.genotypeCallsByVariantAndSample)
   val vdsRecipe = LPipelineOps.importVcfRecipe(genotypeCallsPile, 0, vdsPile)
-  val singletonPile = LPile(singletonPileId, LSig.Map[Tuple1[String], SingletonCount], PileKinds.singletonCounts)
+  val singletonPile = LPile(singletonsId, LSig.Map[Tuple1[String], SingletonCount], PileKinds.singletonCounts)
   val singletonRecipe = LPipelineOps.calculateSingletonsRecipe(vdsPile, 0, singletonPile)
 
-  val pipeline = LPipeline(genotypeCallsPile, vdsPile, singletonPile)(genotypeCallsRecipe, vdsRecipe, singletonRecipe)
+  val piles = Set(genotypeCallsPile, vdsPile, singletonPile)
+  val recipes = Set(genotypeCallsRecipe, vdsRecipe, singletonRecipe)
+
 }

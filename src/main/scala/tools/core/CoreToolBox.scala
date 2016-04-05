@@ -88,9 +88,9 @@ object CoreToolBox {
 
 case class CoreToolBox(env: LEnv) extends LToolBox {
   val stores = CoreStore.stores
-  val genotypesId = env(LCoreEnv.Keys.genotypesId)
-  val tools = CoreTool.tools(genotypesId)
+  val tools = CoreTool.tools(env)
 
+  val genotypesId = env(LCoreEnv.Keys.genotypesId)
   val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)
 
   var vcfFiles: Map[String, Path] = Map.empty

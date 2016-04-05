@@ -25,7 +25,8 @@ object CoreStore {
     StoreKinds.singletonsFile))
   val sampleIdsFile = CoreStore("Sample ids file", LPileSpec(LSig.Set[Tuple1[String]], StoreKinds.sampleIdsFile))
 
-  val stores = Set[LStore](vcfFile, vdsFile, pcaWeightsFile, singletonsFile, sampleIdsFile)
+  val stores =
+    Set[LStore](vcfFile, vdsFile, pcaWeightsFile, pcaProjectedFile, sampleClusterFile, singletonsFile, sampleIdsFile)
 
   def apply(name: String, pile: LPileSpec): CoreStore = CoreStore(LId.LNamedId(name), pile)
 }

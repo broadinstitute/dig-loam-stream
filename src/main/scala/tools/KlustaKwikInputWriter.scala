@@ -12,6 +12,10 @@ object KlustaKwikInputWriter {
   def writeFeatures(dir: Path, fileBase: String, shankNo: Int, data: Seq[Seq[Double]]): Unit = {
     val fileName = fileBase + ".fet." + shankNo
     val file = dir.resolve(fileName)
+    writeFeatures(file, data)
+  }
+
+  def writeFeatures(file: Path, data: Seq[Seq[Double]]): Unit = {
     val out = new PrintStream(Files.newOutputStream(file))
     writeFeatures(out, data)
   }

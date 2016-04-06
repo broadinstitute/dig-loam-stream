@@ -2,6 +2,7 @@ package tools.core
 
 import java.nio.file.{Files, Path}
 
+import htsjdk.variant.variantcontext.Genotype
 import loamstream.LEnv
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
@@ -16,10 +17,11 @@ import loamstream.model.stores.LStore
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
 import tools.core.CoreToolBox._
-import tools.{HailTools, VcfParser}
+import tools.{HailTools, KlustaKwikInputWriter, PcaProjecter, PcaWeightsReader, VcfParser, VcfUtils}
 import utils.LoamFileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 /**
   * LoamStream
@@ -27,23 +29,30 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 object CoreToolBox {
 
-  case class VcfFileExists(path: Path) extends LJob.Success {
+  case class FileExists(path: Path) extends LJob.Success {
     override def successMessage: String = path + " exists"
   }
 
-  case class CheckPreexistingVcfFileJob(vcfFile: Path) extends LJob {
+
+  trait CheckPreexistingFileJob extends LJob {
+    def file: Path
+
     override def inputs: Set[LJob] = Set.empty
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
-        if (Files.exists(vcfFile)) {
-          VcfFileExists(vcfFile)
+        if (Files.exists(file)) {
+          FileExists(file)
         } else {
-          SimpleFailure(vcfFile.toString + " does not exist.")
+          SimpleFailure(file.toString + " does not exist.")
         }
       }
     }
   }
+
+  case class CheckPreexistingVcfFileJob(file: Path) extends CheckPreexistingFileJob
+
+  case class CheckPreexistingPcaWeightsFileJob(file: Path) extends CheckPreexistingFileJob
 
   case class ExtractSampleIdsFromVcfFileJob(vcfFileJob: CheckPreexistingVcfFileJob, samplesFile: Path) extends LJob {
 
@@ -51,7 +60,7 @@ object CoreToolBox {
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
-        val samples = VcfParser(vcfFileJob.vcfFile).samples
+        val samples = VcfParser(vcfFileJob.file).samples
         LoamFileUtils.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println) // scalastyle:ignore
         }
@@ -66,7 +75,7 @@ object CoreToolBox {
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
-        HailTools.importVcf(vcfFileJob.vcfFile, vdsFile)
+        HailTools.importVcf(vcfFileJob.file, vdsFile)
         new SimpleSuccess("Imported VCF in VDS format.")
       }
     }
@@ -84,14 +93,35 @@ object CoreToolBox {
     }
   }
 
+  case class CalculatePcaProjectionsJob(vcfFileJob: CheckPreexistingVcfFileJob,
+                                        pcaWeightsJob: CheckPreexistingPcaWeightsFileJob,
+                                        pcaProjectionsFile: Path) extends LJob {
+    override def inputs: Set[LJob] = Set(vcfFileJob, pcaWeightsJob)
+
+    override def execute(implicit context: ExecutionContext): Future[Result] = {
+      Future {
+        val weights = PcaWeightsReader.read(pcaWeightsJob.file)
+        val pcaProjecter = PcaProjecter(weights)
+        val vcfParser = VcfParser(vcfFileJob.file)
+        val samples = vcfParser.samples
+        val genotypeToDouble: Genotype => Double = { genotype => VcfUtils.genotypeToAltCount(genotype).toDouble }
+        val pcaProjections = pcaProjecter.project(samples, vcfParser.genotypeMapIter, genotypeToDouble)
+        KlustaKwikInputWriter.writeFeatures(pcaProjectionsFile, pcaProjections)
+        new SimpleSuccess("Wrote PCA projections to file " + pcaProjectionsFile)
+      }
+    }
+  }
+
 }
 
 case class CoreToolBox(env: LEnv) extends LToolBox {
   val stores = CoreStore.stores
   val tools = CoreTool.tools(env)
 
-  val genotypesId = env(LCoreEnv.Keys.genotypesId)
-  val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)
+  lazy val genotypesId = env(LCoreEnv.Keys.genotypesId)
+  lazy val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)
+  lazy val pcaWeightsId = env(LCoreEnv.Keys.pcaWeightsId)
+  lazy val checkPreexistingPcaWeightsFileTool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
 
   var vcfFiles: Map[String, Path] = Map.empty
 
@@ -113,6 +143,12 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
 
   lazy val getSingletonFile: Path = env(LCoreEnv.Keys.singletonFilePath).get
 
+  lazy val getPcaWeightsFile: Path = env(LCoreEnv.Keys.pcaWeightsFilePath).get
+
+  lazy val getPcaProjectionsFile: Path = env(LCoreEnv.Keys.pcaProjectionsFilePath).get
+
+  lazy val getClusterFile: Path = env(LCoreEnv.Keys.clusterFilePath).get
+
   def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {
       case LSpecificKind(specifics, _) => specifics match {
@@ -132,6 +168,11 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   def calculateSingletonsJob: Shot[CalculateSingletonsJob] =
     createImportVcfJob.map(CalculateSingletonsJob(_, getSingletonFile))
 
+  def createPcaWeightsJob: Shot[CheckPreexistingPcaWeightsFileJob] =
+    Shot.fromTry(Try {
+      CheckPreexistingPcaWeightsFileJob(getPcaWeightsFile)
+    })
+
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
       case Some(tool) => tool match {
@@ -139,6 +180,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
         case CoreTool.extractSampleIdsFromVcfFile => createExtractSamplesJob.map(Set(_))
         case CoreTool.importVcf => createImportVcfJob.map(Set(_))
         case CoreTool.calculateSingletons => calculateSingletonsJob.map(Set(_))
+        case this.checkPreexistingPcaWeightsFileTool => createPcaWeightsJob.map(Set(_))
         case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
       }
       case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))

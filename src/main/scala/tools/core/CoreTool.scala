@@ -44,7 +44,7 @@ object CoreTool {
   def tools(env: LEnv): Set[LTool] = {
     env.get(Keys.genotypesId).map(checkPreExistingVcfFile(_)).toSet[LTool] ++
       env.get(Keys.pcaWeightsId).map(checkPreExistingPcaWeightsFile(_)).toSet[LTool] ++
-      Set[LTool](extractSampleIdsFromVcfFile, importVcf, calculateSingletons, projectPcaNative)
+      Set[LTool](extractSampleIdsFromVcfFile, importVcf, calculateSingletons, projectPcaNative, klustaKwikClustering)
 
   }
 

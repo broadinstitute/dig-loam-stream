@@ -149,7 +149,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
 
   lazy val getClusterFile: Path = env(LCoreEnv.Keys.clusterFilePath).get
 
-  def createVcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
+  lazy val vcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {
       case LSpecificKind(specifics, _) => specifics match {
         case (_, id: String) => Hit(CheckPreexistingVcfFileJob(getPredefinedVcfFile(id)))
@@ -159,16 +159,16 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
     }
   }
 
-  def createExtractSamplesJob: Shot[ExtractSampleIdsFromVcfFileJob] =
-    createVcfFileJob.map(ExtractSampleIdsFromVcfFileJob(_, getSampleFile))
+  lazy val extractSamplesJob: Shot[ExtractSampleIdsFromVcfFileJob] =
+    vcfFileJob.map(ExtractSampleIdsFromVcfFileJob(_, getSampleFile))
 
-  def createImportVcfJob: Shot[ImportVcfFileJob] =
-    createVcfFileJob.map(ImportVcfFileJob(_, getSampleFile))
+  lazy val importVcfJob: Shot[ImportVcfFileJob] =
+    vcfFileJob.map(ImportVcfFileJob(_, getSampleFile))
 
-  def calculateSingletonsJob: Shot[CalculateSingletonsJob] =
-    createImportVcfJob.map(CalculateSingletonsJob(_, getSingletonFile))
+  lazy val calculateSingletonsJob: Shot[CalculateSingletonsJob] =
+    importVcfJob.map(CalculateSingletonsJob(_, getSingletonFile))
 
-  def createPcaWeightsJob: Shot[CheckPreexistingPcaWeightsFileJob] =
+  lazy val pcaWeightsFileJob: Shot[CheckPreexistingPcaWeightsFileJob] =
     Shot.fromTry(Try {
       CheckPreexistingPcaWeightsFileJob(getPcaWeightsFile)
     })
@@ -176,11 +176,11 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
       case Some(tool) => tool match {
-        case this.checkPreexistingVcfFileTool => createVcfFileJob.map(Set(_))
-        case CoreTool.extractSampleIdsFromVcfFile => createExtractSamplesJob.map(Set(_))
-        case CoreTool.importVcf => createImportVcfJob.map(Set(_))
+        case this.checkPreexistingVcfFileTool => vcfFileJob.map(Set(_))
+        case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJob.map(Set(_))
+        case CoreTool.importVcf => importVcfJob.map(Set(_))
         case CoreTool.calculateSingletons => calculateSingletonsJob.map(Set(_))
-        case this.checkPreexistingPcaWeightsFileTool => createPcaWeightsJob.map(Set(_))
+        case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJob.map(Set(_))
         case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
       }
       case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))

@@ -1,6 +1,8 @@
 package loamstream
 
 import loamstream.LEnv.{Key, LComboEnv}
+import loamstream.util.shot.Shot
+import loamstream.util.snag.Snag
 
 /**
   * LoamStream
@@ -57,6 +59,8 @@ trait LEnv {
   def apply[V](key: Key[V]): V
 
   def get[V](key: Key[V]): Option[V]
+
+  def shoot[V](key: Key[V]): Shot[V] = Shot.fromOption(get(key), Snag("No value for key " + key.name))
 
   def +[V](key: Key[V], value: V): LEnv
 

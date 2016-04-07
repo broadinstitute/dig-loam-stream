@@ -21,7 +21,6 @@ import tools.{HailTools, KlustaKwikInputWriter, PcaProjecter, PcaWeightsReader, 
 import utils.LoamFileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 /**
   * LoamStream
@@ -94,8 +93,8 @@ object CoreToolBox {
   }
 
   case class CalculatePcaProjectionsJob(vcfFileJob: CheckPreexistingVcfFileJob,
-                                        pcaWeightsJob: CheckPreexistingPcaWeightsFileJob,
-                                        pcaProjectionsFile: Path) extends LJob {
+                                        pcaWeightsJob: CheckPreexistingPcaWeightsFileJob, pcaProjectionsFile: Path)
+    extends LJob {
     override def inputs: Set[LJob] = Set(vcfFileJob, pcaWeightsJob)
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
@@ -112,6 +111,17 @@ object CoreToolBox {
     }
   }
 
+  case class CalculateClustersJob(calculatePcaProjectionsJob: CalculatePcaProjectionsJob, clusterFile: Path)
+    extends LJob {
+    override def inputs: Set[LJob] = Set(calculatePcaProjectionsJob)
+
+    override def execute(implicit context: ExecutionContext): Future[Result] = {
+      Future {
+        ??? // TODO
+      }
+    }
+  }
+
 }
 
 case class CoreToolBox(env: LEnv) extends LToolBox {
@@ -123,64 +133,66 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   lazy val pcaWeightsId = env(LCoreEnv.Keys.pcaWeightsId)
   lazy val checkPreexistingPcaWeightsFileTool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
 
-  var vcfFiles: Map[String, Path] = Map.empty
+  var vcfFiles: Map[String, Shot[Path]] = Map.empty
 
   override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
 
-  def getPredefinedVcfFile(id: String): Path = {
+  def predefinedVcfFileShot(id: String): Shot[Path] = {
     vcfFiles.get(id) match {
-      case Some(path) => path
+      case Some(pathShot) => pathShot
       case None =>
-        val path = env(LCoreEnv.Keys.vcfFilePath)(id)
-        vcfFiles += (id -> path)
-        path
+        val pathShot = env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
+        vcfFiles += (id -> pathShot)
+        pathShot
     }
   }
 
-  lazy val getSampleFile: Path = env(LCoreEnv.Keys.sampleFilePath).get
+  lazy val sampleFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.sampleFilePath).map(_.get)
 
-  lazy val getSingletonFile: Path = env(LCoreEnv.Keys.singletonFilePath).get
+  lazy val singletonFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.singletonFilePath).map(_.get)
 
-  lazy val getPcaWeightsFile: Path = env(LCoreEnv.Keys.pcaWeightsFilePath).get
+  lazy val pcaWeightsFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.pcaWeightsFilePath).map(_.get)
 
-  lazy val getPcaProjectionsFile: Path = env(LCoreEnv.Keys.pcaProjectionsFilePath).get
+  lazy val pcaProjectionsFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.pcaProjectionsFilePath).map(_.get)
 
-  lazy val getClusterFile: Path = env(LCoreEnv.Keys.clusterFilePath).get
+  lazy val clusterFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.clusterFilePath).map(_.get)
 
-  lazy val vcfFileJob: Shot[CheckPreexistingVcfFileJob] = {
+  lazy val vcfFileJobShot: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {
       case LSpecificKind(specifics, _) => specifics match {
-        case (_, id: String) => Hit(CheckPreexistingVcfFileJob(getPredefinedVcfFile(id)))
+        case (_, id: String) => predefinedVcfFileShot(id).map(CheckPreexistingVcfFileJob)
         case _ => Miss(SnagMessage("Recipe is not of the right kind."))
       }
       case _ => Miss(SnagMessage("Can't get id for VCF file."))
     }
   }
 
-  lazy val extractSamplesJob: Shot[ExtractSampleIdsFromVcfFileJob] =
-    vcfFileJob.map(ExtractSampleIdsFromVcfFileJob(_, getSampleFile))
+  lazy val extractSamplesJobShot: Shot[ExtractSampleIdsFromVcfFileJob] =
+    (vcfFileJobShot and sampleFileShot) (ExtractSampleIdsFromVcfFileJob)
 
-  lazy val importVcfJob: Shot[ImportVcfFileJob] =
-    vcfFileJob.map(ImportVcfFileJob(_, getSampleFile))
+  lazy val importVcfJobShot: Shot[ImportVcfFileJob] =
+    (vcfFileJobShot and sampleFileShot) (ImportVcfFileJob)
 
-  lazy val calculateSingletonsJob: Shot[CalculateSingletonsJob] =
-    importVcfJob.map(CalculateSingletonsJob(_, getSingletonFile))
+  lazy val calculateSingletonsJobShot: Shot[CalculateSingletonsJob] =
+    (importVcfJobShot and singletonFileShot) (CalculateSingletonsJob)
 
-  lazy val pcaWeightsFileJob: Shot[CheckPreexistingPcaWeightsFileJob] =
-    Shot.fromTry(Try {
-      CheckPreexistingPcaWeightsFileJob(getPcaWeightsFile)
-    })
+  lazy val pcaWeightsFileJobShot: Shot[CheckPreexistingPcaWeightsFileJob] =
+    pcaWeightsFileShot.map(CheckPreexistingPcaWeightsFileJob)
+
+  lazy val calculatePcaProjectionsJobShot: Shot[CalculatePcaProjectionsJob] =
+    (vcfFileJobShot and pcaWeightsFileJobShot and pcaProjectionsFileShot) (CalculatePcaProjectionsJob)
 
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
       case Some(tool) => tool match {
-        case this.checkPreexistingVcfFileTool => vcfFileJob.map(Set(_))
-        case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJob.map(Set(_))
-        case CoreTool.importVcf => importVcfJob.map(Set(_))
-        case CoreTool.calculateSingletons => calculateSingletonsJob.map(Set(_))
-        case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJob.map(Set(_))
+        case this.checkPreexistingVcfFileTool => vcfFileJobShot.map(Set(_))
+        case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJobShot.map(Set(_))
+        case CoreTool.importVcf => importVcfJobShot.map(Set(_))
+        case CoreTool.calculateSingletons => calculateSingletonsJobShot.map(Set(_))
+        case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJobShot.map(Set(_))
+        case CoreTool.projectPcaNative => calculatePcaProjectionsJobShot.map(Set(_))
         case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
       }
       case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))

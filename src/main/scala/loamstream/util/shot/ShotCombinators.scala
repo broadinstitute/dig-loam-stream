@@ -73,10 +73,14 @@ object ShotCombinators {
     }
   }
 
+  def missingShots8ImplementationError: NotImplementedError =
+    new NotImplementedError("If you want to combine more than seven shots, " +
+      "you need to implement ShotCombinators.Shots8")
+
   case class Shots7[+T1, +T2, +T3, +T4, +T5, +T6, +T7](_1: Shot[T1], _2: Shot[T2], _3: Shot[T3], _4: Shot[T4],
                                                        _5: Shot[T5], _6: Shot[T6], _7: Shot[T7])
     extends Product7[Shot[T1], Shot[T2], Shot[T3], Shot[T4], Shot[T5], Shot[T6], Shot[T7]] with ShotsN {
-    override def and[T8](_8: Shot[T8]): ShotsN = ??? // scalastyle:ignore
+    override def and[T8](_8: Shot[T8]): ShotsN = throw missingShots8ImplementationError
 
     def apply[R](f: (T1, T2, T3, T4, T5, T6, T7) => R): Shot[R] = (_1, _2, _3, _4, _5, _6, _7) match {
       case (Hit(e1), Hit(e2), Hit(e3), Hit(e4), Hit(e5), Hit(e6), Hit(e7)) => Hit(f(e1, e2, e3, e4, e5, e6, e7))

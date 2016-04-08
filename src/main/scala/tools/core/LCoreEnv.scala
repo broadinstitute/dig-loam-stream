@@ -5,6 +5,7 @@ import java.nio.file.Path
 import loamstream.LEnv
 import loamstream.LEnv.Key
 import loamstream.util.FileAsker
+import tools.klusta.KlustaKwikKonfig
 
 /**
   * LoamStream
@@ -17,6 +18,7 @@ object LCoreEnv {
     val sampleFilePath = Key[PathProvider]("sample file path")
     val singletonFilePath = Key[PathProvider]("singleton file path")
     val pcaWeightsFilePath = Key[PathProvider]("PCA weights file path")
+    val klustaKwikKonfig = Key[KlustaKwikKonfig]("KlustaKwik konfig")
     val pcaProjectionsFilePath = Key[PathProvider]("PCA projections file path")
     val clusterFilePath = Key[PathProvider]("PCA projections file path")
     val genotypesId = Key[String]("genotypes id")

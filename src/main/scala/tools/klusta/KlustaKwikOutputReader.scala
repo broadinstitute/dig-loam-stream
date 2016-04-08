@@ -1,4 +1,4 @@
-package tools
+package tools.klusta
 
 import java.nio.file.Path
 
@@ -14,9 +14,11 @@ object KlustaKwikOutputReader {
 
   case class Output(nClusters: Int, clustering: Seq[Int])
 
-  def read(dir: Path, fileBase: String, shankNo: Int): Shot[Output] = {
-    val fileName = fileBase + ".clu." + shankNo
-    val file = dir.resolve(fileName)
+  def read(konfig: KlustaKwikKonfig): Shot[Output] = read(konfig.workDir, konfig.fileBase, konfig.iShank)
+
+  def read(workDir: Path, fileBase: String, iShank: Int): Shot[Output] = {
+    val fileName = fileBase + ".clu." + iShank
+    val file = workDir.resolve(fileName)
     val lineIter = Source.fromFile(file.toFile)(Codec.UTF8).getLines
     if (lineIter.hasNext) {
       try {

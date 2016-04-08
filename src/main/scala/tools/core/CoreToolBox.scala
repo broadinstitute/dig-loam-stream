@@ -17,7 +17,8 @@ import loamstream.model.stores.LStore
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
 import tools.core.CoreToolBox._
-import tools.{HailTools, KlustaKwikInputWriter, PcaProjecter, PcaWeightsReader, VcfParser, VcfUtils}
+import tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig}
+import tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser, VcfUtils}
 import utils.LoamFileUtils
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -93,7 +94,8 @@ object CoreToolBox {
   }
 
   case class CalculatePcaProjectionsJob(vcfFileJob: CheckPreexistingVcfFileJob,
-                                        pcaWeightsJob: CheckPreexistingPcaWeightsFileJob, pcaProjectionsFile: Path)
+                                        pcaWeightsJob: CheckPreexistingPcaWeightsFileJob,
+                                        klustaKwikKonfig: KlustaKwikKonfig)
     extends LJob {
     override def inputs: Set[LJob] = Set(vcfFileJob, pcaWeightsJob)
 
@@ -105,13 +107,14 @@ object CoreToolBox {
         val samples = vcfParser.samples
         val genotypeToDouble: Genotype => Double = { genotype => VcfUtils.genotypeToAltCount(genotype).toDouble }
         val pcaProjections = pcaProjecter.project(samples, vcfParser.genotypeMapIter, genotypeToDouble)
-        KlustaKwikInputWriter.writeFeatures(pcaProjectionsFile, pcaProjections)
-        new SimpleSuccess("Wrote PCA projections to file " + pcaProjectionsFile)
+        KlustaKwikInputWriter.writeFeatures(klustaKwikKonfig, pcaProjections)
+        new SimpleSuccess("Wrote PCA projections to file " + klustaKwikKonfig.inputFile)
       }
     }
   }
 
-  case class CalculateClustersJob(calculatePcaProjectionsJob: CalculatePcaProjectionsJob, clusterFile: Path)
+  case class CalculateClustersJob(calculatePcaProjectionsJob: CalculatePcaProjectionsJob,
+                                  klustaKwikKonfig: KlustaKwikKonfig)
     extends LJob {
     override def inputs: Set[LJob] = Set(calculatePcaProjectionsJob)
 
@@ -155,9 +158,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
 
   lazy val pcaWeightsFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.pcaWeightsFilePath).map(_.get)
 
-  lazy val pcaProjectionsFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.pcaProjectionsFilePath).map(_.get)
-
-  lazy val clusterFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.clusterFilePath).map(_.get)
+  lazy val klustaKwikConfigShot: Shot[KlustaKwikKonfig] = env.shoot(LCoreEnv.Keys.klustaKwikKonfig)
 
   lazy val vcfFileJobShot: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {
@@ -182,7 +183,10 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
     pcaWeightsFileShot.map(CheckPreexistingPcaWeightsFileJob)
 
   lazy val calculatePcaProjectionsJobShot: Shot[CalculatePcaProjectionsJob] =
-    (vcfFileJobShot and pcaWeightsFileJobShot and pcaProjectionsFileShot) (CalculatePcaProjectionsJob)
+    (vcfFileJobShot and pcaWeightsFileJobShot and klustaKwikConfigShot) (CalculatePcaProjectionsJob)
+
+  lazy val calculateClustersJobShot: Shot[CalculateClustersJob] =
+    (calculatePcaProjectionsJobShot and klustaKwikConfigShot) (CalculateClustersJob)
 
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {

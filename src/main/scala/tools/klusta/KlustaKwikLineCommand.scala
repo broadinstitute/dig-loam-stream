@@ -1,4 +1,6 @@
-package tools
+package tools.klusta
+
+import tools.LineCommand
 
 /**
   * LoamStream
@@ -7,6 +9,8 @@ package tools
 object KlustaKwikLineCommand extends LineCommand {
 
   override def name: String = "klustakwik"
+
+  def klustaKwik(konfig: KlustaKwikKonfig): CommandLine = klustaKwik(konfig.fileBase, konfig.iShank)
 
   def klustaKwik(fileBaseVal: String, elecNoVal: Int): CommandLine =
     KlustaKwikLineCommand + fileBase(fileBaseVal) + elecNo(elecNoVal)

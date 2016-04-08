@@ -9,7 +9,7 @@ import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.jobs.tools.LTool
-import loamstream.model.jobs.{LJob, LToolBox}
+import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
 import loamstream.model.kinds.LSpecificKind
 import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
@@ -17,7 +17,7 @@ import loamstream.model.stores.LStore
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
 import tools.core.CoreToolBox._
-import tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig}
+import tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
 import tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser, VcfUtils}
 import utils.LoamFileUtils
 
@@ -113,18 +113,6 @@ object CoreToolBox {
     }
   }
 
-  case class CalculateClustersJob(calculatePcaProjectionsJob: CalculatePcaProjectionsJob,
-                                  klustaKwikKonfig: KlustaKwikKonfig)
-    extends LJob {
-    override def inputs: Set[LJob] = Set(calculatePcaProjectionsJob)
-
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      Future {
-        ??? // TODO
-      }
-    }
-  }
-
 }
 
 case class CoreToolBox(env: LEnv) extends LToolBox {
@@ -185,9 +173,13 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   lazy val calculatePcaProjectionsJobShot: Shot[CalculatePcaProjectionsJob] =
     (vcfFileJobShot and pcaWeightsFileJobShot and klustaKwikConfigShot) (CalculatePcaProjectionsJob)
 
-  lazy val calculateClustersJobShot: Shot[CalculateClustersJob] =
-    (calculatePcaProjectionsJobShot and klustaKwikConfigShot) (CalculateClustersJob)
+  lazy val calculateClustersJobShot: Shot[LCommandLineJob] =
+    (calculatePcaProjectionsJobShot and klustaKwikConfigShot) ({ (calculatePcaProjectionJob, klustaKwikKonfig) =>
+      val commandLine = KlustaKwikLineCommand.klustaKwik(klustaKwikKonfig)
+      LCommandLineJob(commandLine, klustaKwikKonfig.workDir, Set(calculatePcaProjectionJob))
+    })
 
+  // scalastyle:off cyclomatic.complexity
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
       case Some(tool) => tool match {
@@ -197,11 +189,14 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
         case CoreTool.calculateSingletons => calculateSingletonsJobShot.map(Set(_))
         case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJobShot.map(Set(_))
         case CoreTool.projectPcaNative => calculatePcaProjectionsJobShot.map(Set(_))
+        case CoreTool.klustaKwikClustering => calculateClustersJobShot.map(Set(_))
         case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
       }
       case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))
     }
   }
+
+  // scalastyle:off cyclomatic.complexity
 
   override def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable = {
     LExecutable(mapping.tools.keySet.map(createJobs(_, pipeline, mapping)).collect({ case Hit(job) => job }).flatten)

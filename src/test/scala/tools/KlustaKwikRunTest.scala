@@ -1,9 +1,9 @@
 package tools
 
 import java.io.IOException
-import java.nio.file.Files
 
 import org.scalatest.FunSuite
+import tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand, KlustaKwikOutputReader}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
@@ -17,22 +17,21 @@ import scala.sys.process.{Process, ProcessLogger}
 class KlustaKwikRunTest extends FunSuite {
   test("Running KlustaKwik with mock data, checking output sanity.") {
     val fileBaseVal = "data"
-    val workDir = Files.createTempDirectory("klusta")
+    val konfig = KlustaKwikKonfig.withTempWorkDir(fileBaseVal)
     val nSamples = 1000
     val nPcas = 10
     val nClusters = 7
     val data = KlustaKwikMockDataGenerator.generate(nSamples, nPcas, nClusters)
-    val iShankVal = 1
-    KlustaKwikInputWriter.writeFeatures(workDir, fileBaseVal, iShankVal, data)
+    KlustaKwikInputWriter.writeFeatures(konfig, data)
     val command = {
       import KlustaKwikLineCommand.{klustaKwik, useDistributional}
-      klustaKwik(fileBaseVal, iShankVal) + useDistributional(0)
+      klustaKwik(konfig) + useDistributional(0)
     }
     val exitValueFuture = Future {
       blocking {
         val noOpProcessLogger = ProcessLogger(line => ())
         try {
-          Process(command.tokens, workDir.toFile).run(noOpProcessLogger).exitValue
+          Process(command.tokens, konfig.workDir.toFile).run(noOpProcessLogger).exitValue
         } catch {
           case ex: IOException => cancel(ex)
           case ex: SecurityException => cancel(ex)
@@ -43,7 +42,7 @@ class KlustaKwikRunTest extends FunSuite {
     val exitValue = Await.result(exitValueFuture, timeOut)
     val exitValueOnSuccess = 0
     assert(exitValue === exitValueOnSuccess)
-    val klustaOutput = KlustaKwikOutputReader.read(workDir, fileBaseVal, iShankVal).get
+    val klustaOutput = KlustaKwikOutputReader.read(konfig).get
     val nClustersDetected = klustaOutput.nClusters
     val nClustersDetectedMin = 4
     val nClustersDetectedMax = 8

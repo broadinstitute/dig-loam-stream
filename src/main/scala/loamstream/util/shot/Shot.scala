@@ -1,5 +1,6 @@
 package loamstream.util.shot
 
+import loamstream.util.shot.ShotCombinators.Shots2
 import loamstream.util.snag.{Snag, SnagMessage}
 
 import scala.util.{Failure, Success, Try}
@@ -14,6 +15,11 @@ object Shot {
       case Success(a) => Hit(a)
       case Failure(ex) => Miss(Snag(ex))
     }
+
+  def fromOption[A](option: Option[A], snag: Snag): Shot[A] = option match {
+    case Some(a) => Hit(a)
+    case None => Miss(snag)
+  }
 }
 
 sealed trait Shot[+A] {
@@ -26,6 +32,8 @@ sealed trait Shot[+A] {
   def asOpt: Option[A]
 
   def orElse[B >: A](alternative: => Shot[B]): Shot[B]
+
+  def and[B](shotB: Shot[B]): Shots2[A, B] = Shots2(this, shotB)
 }
 
 case class Hit[+A](value: A) extends Shot[A] {

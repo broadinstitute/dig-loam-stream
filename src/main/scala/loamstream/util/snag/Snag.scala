@@ -12,6 +12,8 @@ object Snag {
   def apply(child: Snag, children: Snag*): Snag = SnagSeq(children)
 
   def apply(message: String, children: Snag*): Snag = SnagTree(message, children)
+
+  def apply(snags: Seq[Snag]): Snag = SnagSeq(snags)
 }
 
 trait Snag {

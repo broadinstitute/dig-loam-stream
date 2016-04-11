@@ -17,7 +17,8 @@ object LoamFileUtils {
     enclosed(new PrintWriter(f))(op)
   }
 
-  def enclosed[C: CanBeClosed](c: C)(f: C => Unit): Unit = {
+  //TODO: Move this somewhere else, since it isn't file-specific anymore
+  def enclosed[A, C: CanBeClosed](c: C)(f: C => A): A = {
     try {
       f(c)
     } finally {

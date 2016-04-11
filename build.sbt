@@ -8,6 +8,7 @@ lazy val Versions = new {
   val Scala = "2.11.8"
   val ScalaTest = "2.2.6"
   val TypesafeConfig = "1.3.0"
+  val Sesame = "4.1.1"
 }
 
 lazy val mainDeps = Seq(
@@ -17,7 +18,8 @@ lazy val mainDeps = Seq(
   "com.github.samtools" % "htsjdk" % Versions.Htsjdk,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
   "ch.qos.logback" % "logback-classic" % Versions.LogBack,
-  "com.typesafe" % "config" % Versions.TypesafeConfig
+  "com.typesafe" % "config" % Versions.TypesafeConfig,
+  "org.openrdf.sesame" % "sesame-runtime" % Versions.Sesame
 )
 
 lazy val testDeps = Seq(

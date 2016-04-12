@@ -21,7 +21,7 @@ import tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineComm
 import tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser, VcfUtils}
 import utils.LoamFileUtils
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, blocking}
 
 /**
   * LoamStream
@@ -44,7 +44,7 @@ object CoreToolBox {
         if (Files.exists(file)) {
           FileExists(file)
         } else {
-          SimpleFailure(file.toString + " does not exist.")
+          SimpleFailure(s"$file does not exist.")
         }
       }
     }
@@ -101,14 +101,16 @@ object CoreToolBox {
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
-        val weights = PcaWeightsReader.read(pcaWeightsJob.file)
-        val pcaProjecter = PcaProjecter(weights)
-        val vcfParser = VcfParser(vcfFileJob.file)
-        val samples = vcfParser.samples
-        val genotypeToDouble: Genotype => Double = { genotype => VcfUtils.genotypeToAltCount(genotype).toDouble }
-        val pcaProjections = pcaProjecter.project(samples, vcfParser.genotypeMapIter, genotypeToDouble)
-        KlustaKwikInputWriter.writeFeatures(klustaKwikKonfig, pcaProjections)
-        new SimpleSuccess("Wrote PCA projections to file " + klustaKwikKonfig.inputFile)
+        blocking {
+          val weights = PcaWeightsReader.read(pcaWeightsJob.file)
+          val pcaProjecter = PcaProjecter(weights)
+          val vcfParser = VcfParser(vcfFileJob.file)
+          val samples = vcfParser.samples
+          val genotypeToDouble: Genotype => Double = { genotype => VcfUtils.genotypeToAltCount(genotype).toDouble }
+          val pcaProjections = pcaProjecter.project(samples, vcfParser.genotypeMapIter, genotypeToDouble)
+          KlustaKwikInputWriter.writeFeatures(klustaKwikKonfig, pcaProjections)
+          new SimpleSuccess(s"Wrote PCA projections to file ${klustaKwikKonfig.inputFile}")
+        }
       }
     }
   }
@@ -179,24 +181,23 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
       LCommandLineJob(commandLine, klustaKwikKonfig.workDir, Set(calculatePcaProjectionJob))
     })
 
-  // scalastyle:off cyclomatic.complexity
-  override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
-    mapping.tools.get(recipe) match {
-      case Some(tool) => tool match {
-        case this.checkPreexistingVcfFileTool => vcfFileJobShot.map(Set(_))
-        case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJobShot.map(Set(_))
-        case CoreTool.importVcf => importVcfJobShot.map(Set(_))
-        case CoreTool.calculateSingletons => calculateSingletonsJobShot.map(Set(_))
-        case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJobShot.map(Set(_))
-        case CoreTool.projectPcaNative => calculatePcaProjectionsJobShot.map(Set(_))
-        case CoreTool.klustaKwikClustering => calculateClustersJobShot.map(Set(_))
-        case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
-      }
-      case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))
-    }
+  def toolToJobShot(tool: LTool): Shot[LJob] = tool match {
+    case this.checkPreexistingVcfFileTool => vcfFileJobShot
+    case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJobShot
+    case CoreTool.importVcf => importVcfJobShot
+    case CoreTool.calculateSingletons => calculateSingletonsJobShot
+    case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJobShot
+    case CoreTool.projectPcaNative => calculatePcaProjectionsJobShot
+    case CoreTool.klustaKwikClustering => calculateClustersJobShot
+    case _ => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 
-  // scalastyle:off cyclomatic.complexity
+  override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
+    mapping.tools.get(recipe) match {
+      case Some(tool) => toolToJobShot(tool).map(Set(_))
+      case None => Miss(SnagMessage("No tool mapped to recipe $recipe"))
+    }
+  }
 
   override def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable = {
     LExecutable(mapping.tools.keySet.map(createJobs(_, pipeline, mapping)).collect({ case Hit(job) => job }).flatten)

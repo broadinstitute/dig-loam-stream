@@ -4,6 +4,7 @@ import htsjdk.variant.variantcontext.Genotype
 import loamstream.TestData.sampleFiles
 import loamstream.TestHelpers
 import org.scalatest.FunSuite
+import loamstream.TestData
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -11,7 +12,9 @@ import org.scalatest.FunSuite
   */
 class PcaProjectionTest extends FunSuite {
   test("PCA projection seems to work.") {
-    val pcaWeightsFile = PcaWeightsReader.weightsFilePath.get
+    val props = TestData.props
+    
+    val pcaWeightsFile = PcaWeightsReader.weightsFilePath(props).get
     val weights = PcaWeightsReader.read(pcaWeightsFile)
     val miniVcf = sampleFiles.miniForPcaVcfOpt.get
     val vcfParser = VcfParser(miniVcf)

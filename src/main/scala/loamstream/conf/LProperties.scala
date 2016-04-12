@@ -15,7 +15,9 @@ trait LProperties {
 }
 
 object LProperties {
-  lazy val Default: LProperties = load("loamstream")
+  val defaultPrefix = "loamstream"
+  
+  lazy val Default: LProperties = load(defaultPrefix)
 
   def load(prefix: String): LProperties =
     TypesafeConfigLproperties(ConfigFactory.load(prefix).withFallback(ConfigFactory.load()))

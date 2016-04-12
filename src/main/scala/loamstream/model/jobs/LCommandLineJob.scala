@@ -52,9 +52,6 @@ case class LCommandLineJob(commandLine: CommandLine, workDir: Path, inputs: Set[
           CommandLineNonZeroReturnFailure(commandLine, exitValue)
         }
       }
-    }.recoverWith({ case exception: Exception => Future {
-      CommandLineExceptionFailure(commandLine, exception)
-    }
-    })
+    }.recover({ case exception: Exception => CommandLineExceptionFailure(commandLine, exception) })
   }
 }

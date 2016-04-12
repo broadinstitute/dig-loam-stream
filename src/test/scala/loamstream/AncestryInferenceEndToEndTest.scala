@@ -24,11 +24,15 @@ class AncestryInferenceEndToEndTest extends FunSuite with BeforeAndAfter {
 
     val miniVcfFilePath = sampleFiles.miniVcfOpt.get
     val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath.toString, "XXX"))
+    
+    val props = TestData.props
+    
     val vcfFileProvider = new PathProviderById {
       override def apply(id: String): Path = FileAsker.askIfNotExist(vcfFiles.map(_ (id)))("VCF file '" + id + "'")
     }
+    
     val pcaWeightsFileProvider = new PathProvider {
-      override def get: Path = PcaWeightsReader.weightsFilePath.get
+      override def get: Path = PcaWeightsReader.weightsFilePath(props).get
     }
     val env =
       LEnv(Keys.vcfFilePath -> vcfFileProvider, Keys.pcaWeightsFilePath -> pcaWeightsFileProvider,

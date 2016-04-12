@@ -33,7 +33,7 @@ final class LoamFileUtilsTest extends FunSuite {
     assert(foo.isClosed === false)
     
     val result = LoamFileUtils.enclosed(foo) { foo =>
-      42
+      42 // scalastyle:ignore magic.number
     }
     
     assert(result === 42)

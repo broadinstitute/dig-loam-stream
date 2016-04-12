@@ -32,7 +32,7 @@ object PcaWeightsReader extends Loggable {
 
       val weights = rest.map(_.toDouble)
 
-      (id -> weights)
+      id -> weights
     }
 
     val mappings = for {

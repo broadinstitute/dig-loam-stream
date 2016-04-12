@@ -1,4 +1,4 @@
-package tools
+package tools.klusta
 
 import java.io.PrintStream
 import java.nio.file.{Files, Path}
@@ -9,9 +9,16 @@ import java.nio.file.{Files, Path}
   */
 object KlustaKwikInputWriter {
 
-  def writeFeatures(dir: Path, fileBase: String, shankNo: Int, data: Seq[Seq[Double]]): Unit = {
-    val fileName = fileBase + ".fet." + shankNo
-    val file = dir.resolve(fileName)
+  def writeFeatures(konfig: KlustaKwikKonfig, data: Seq[Seq[Double]]): Unit =
+    writeFeatures(konfig.workDir, konfig.fileBase, konfig.iShank, data)
+
+  def writeFeatures(workDir: Path, fileBase: String, iShank: Int, data: Seq[Seq[Double]]): Unit = {
+    val fileName = fileBase + ".fet." + iShank
+    val file = workDir.resolve(fileName)
+    writeFeatures(file, data)
+  }
+
+  def writeFeatures(file: Path, data: Seq[Seq[Double]]): Unit = {
     val out = new PrintStream(Files.newOutputStream(file))
     writeFeatures(out, data)
   }

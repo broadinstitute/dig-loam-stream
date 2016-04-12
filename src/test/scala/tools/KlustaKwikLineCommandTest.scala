@@ -1,7 +1,8 @@
 package tools
 
 import org.scalatest.FunSuite
-import tools.KlustaKwikLineCommand._
+import tools.klusta.KlustaKwikLineCommand.{assignToFirstClosestMask, klustaKwik, maxClusters, maxPossibleClusters,
+    minClusters, penaltyK, penaltyKLogN, useDistributional, useFeatures, useMaskedInitialConditions}
 
 /**
   * LoamStream

@@ -50,8 +50,12 @@ object RedFern {
   implicit val shortDecoder = LiteralDecoder(XMLSchema.SHORT, _.shortValue())
   implicit val byteEncoder = LiteralEncoder((maker: ValueFactory, byte: Byte) => maker.createLiteral(byte))
   implicit val byteDecoder = LiteralDecoder(XMLSchema.BYTE, _.byteValue())
-  implicit val booleanEncoder = LiteralEncoder((maker: ValueFactory, boolean: Boolean) => maker.createLiteral(boolean))
+  implicit val booleanEncoder =
+    LiteralEncoder((maker: ValueFactory, boolean: Boolean) => maker.createLiteral(boolean))
   implicit val booleanDecoder = LiteralDecoder(XMLSchema.BOOLEAN, _.booleanValue())
+  implicit val stringEncoder =
+    LiteralEncoder((maker: ValueFactory, string: String) => maker.createLiteral(string, XMLSchema.STRING))
+  implicit val stringDecoder = LiteralDecoder(XMLSchema.STRING, _.stringValue())
 }
 
 case class RedFern(conn: RepositoryConnection) extends LIO[Value, ValueFactory] {

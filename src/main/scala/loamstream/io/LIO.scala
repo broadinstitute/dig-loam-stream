@@ -9,24 +9,21 @@ import loamstream.util.shot.Shot
   */
 object LIO {
 
-  trait Encoder[Ref, T] {
-    def encode(io: LIO[Ref], thing: T): Ref
+  trait Encoder[Ref, Maker, T] {
+    def encode(io: LIO[Ref, Maker], thing: T): Ref
   }
 
-  trait Decoder[Ref, T] {
-    def read(io: LIO[Ref], ref: Ref): Shot[T]
+  trait Decoder[Ref, Maker, T] {
+    def read(io: LIO[Ref, Maker], ref: Ref): Shot[T]
   }
 
 }
 
-trait LIO[Ref] {
+trait LIO[Ref, Maker] {
+  def maker: Maker
 
-  def write[T](thing: T)(implicit encoder: Encoder[Ref, T]): Ref = encoder.encode(this, thing)
+  def write[T](thing: T)(implicit encoder: Encoder[Ref, Maker, T]): Ref = encoder.encode(this, thing)
 
-  def read[T](ref: Ref)(implicit decoder: Decoder[Ref, T]): Shot[T] = decoder.read(this, ref)
-
-  def writeDouble(double: Double): Ref
-
-  def readDouble(ref: Ref): Shot[Double]
+  def read[T](ref: Ref)(implicit decoder: Decoder[Ref, Maker, T]): Shot[T] = decoder.read(this, ref)
 
 }

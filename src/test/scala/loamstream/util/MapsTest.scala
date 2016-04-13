@@ -60,6 +60,10 @@ final class MapsTest extends FunSuite {
 
       v + 1
     }
+    
+    val expected = Map("a" -> 1, "b" -> 2, "c" -> 3)
+    
+    assert(mapped === expected) 
 
     assert(mapped.values.sum === 6)
     assert(mapped.values.sum === 6)

@@ -1,16 +1,17 @@
 package loamstream.apps.minimal
 
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+
+
+
 import loamstream.model.execute.{ LExecutable, LExecuter }
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.util.shot.{ Hit, Shot }
-
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 import loamstream.util.Maps
-import scala.concurrent.Future
-import loamstream.util.Futures
-import scala.concurrent.ExecutionContext
+import loamstream.util.shot.{ Hit, Shot }
 
 /**
  * RugLoom - A prototype for a pipeline building toolkit
@@ -19,7 +20,6 @@ import scala.concurrent.ExecutionContext
 object MiniExecuter extends LExecuter {
 
   override def execute(executable: LExecutable): Map[LJob, Shot[Result]] = {
-
     import scala.concurrent.ExecutionContext.Implicits.global
 
     def toShotMap(m: Map[LJob, Result]): Map[LJob, Shot[Result]] = m.mapValues(Hit(_)).toMap

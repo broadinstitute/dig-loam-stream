@@ -22,7 +22,9 @@ object MiniExecuter extends LExecuter {
   override def execute(executable: LExecutable): Map[LJob, Shot[Result]] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    def toShotMap(m: Map[LJob, Result]): Map[LJob, Shot[Result]] = m.mapValues(Hit(_)).toMap
+    import Maps.Implicits._
+    
+    def toShotMap(m: Map[LJob, Result]): Map[LJob, Shot[Result]] = m.strictMapValues(Hit(_))
     
     val mergedResults = execJobs(executable.jobs).map(toShotMap)
 
@@ -30,13 +32,13 @@ object MiniExecuter extends LExecuter {
     Await.result(mergedResults, Duration.Inf)
   }
 
-  private[minimal] def execJobs(jobs: Iterable[LJob])(implicit executor: ExecutionContext): Future[Map[LJob, Result]] = {
+  private[minimal] def execJobs(jobs: Iterable[LJob])(implicit ctx: ExecutionContext): Future[Map[LJob, Result]] = {
     //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
     //on the first failure, like the old code did.
     val subResultFutures = jobs.iterator.map(exec)
 
     //NB: Convert the iterator to an IndexedSeq to force evaluation, and make sure 
-    //input jobs are evaluated before `job`.
+    //input jobs are evaluated before jobs that depend on them.
     val futureSubResults = Future.sequence(subResultFutures).map(_.takeWhile(noFailures).toIndexedSeq)
 
     futureSubResults.map(Maps.mergeMaps)
@@ -52,10 +54,7 @@ object MiniExecuter extends LExecuter {
   }
   
   private[minimal] def noFailures[J <: LJob](m: Map[J, Result]): Boolean = {
-    m.forall {
-      case (_, r) => r.isSuccess
-      case _      => false
-    }
+    m.values.forall(_.isSuccess)
   }
 
   private[minimal] def executeLeaf(job: LJob)(implicit executor: ExecutionContext): Future[Map[LJob, Result]] = {

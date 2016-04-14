@@ -1,4 +1,4 @@
-package utils
+package loamstream.util
 
 import java.nio.file.{Paths, Path}
 import scala.util.Try

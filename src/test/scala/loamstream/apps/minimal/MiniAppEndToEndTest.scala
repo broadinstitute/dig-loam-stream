@@ -2,14 +2,17 @@ package loamstream.apps.minimal
 
 import java.nio.file.{Files, Path}
 
+import scala.io.Source
+
+import org.scalatest.{BeforeAndAfter, FunSuite}
+
 import loamstream.TestData
 import loamstream.map.LToolMapper
-import org.scalatest.{BeforeAndAfter, FunSuite}
+import loamstream.util.LoamFileUtils
+import loamstream.util.Loggable.Level
+import loamstream.util.StringUtils
 import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
-import utils.Loggable.Level
-import utils.{LoamFileUtils, StringUtils, TestUtils}
-
-import scala.io.Source
+import loamstream.util.TestUtils
 
 /**
   * Created by kyuksel on 2/29/2016.

@@ -1,7 +1,6 @@
-package utils
+package loamstream.util
 
 import org.slf4j.{Logger, LoggerFactory}
-import utils.Loggable.Level
 
 /**
   * Created on: 3/3/16
@@ -21,6 +20,8 @@ object Loggable {
 trait Loggable {
   private[this] lazy val logger: Logger = LoggerFactory.getLogger(this.getClass.getName)
 
+  import Loggable.Level
+  
   final def log(level: Level.Value, s: => String): Unit = level match {
     case Level.trace => trace(s)
     case Level.debug => debug(s)

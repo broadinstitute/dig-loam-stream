@@ -2,7 +2,7 @@ package tools
 
 import org.scalatest.FunSuite
 import loamstream.TestData
-import utils.LoamFileUtils
+import loamstream.util.LoamFileUtils
 import java.nio.file.Paths
 import scala.io.Source
 

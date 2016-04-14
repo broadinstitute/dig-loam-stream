@@ -1,4 +1,4 @@
-package utils
+package loamstream.util
 
 import loamstream.TestHelpers
 import org.scalatest.FunSuite

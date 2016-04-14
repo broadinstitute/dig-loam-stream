@@ -19,7 +19,7 @@ import loamstream.util.snag.SnagMessage
 import tools.core.CoreToolBox._
 import tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
 import tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser, VcfUtils}
-import utils.LoamFileUtils
+import loamstream.util.LoamFileUtils
 
 import scala.concurrent.{ExecutionContext, Future, blocking}
 

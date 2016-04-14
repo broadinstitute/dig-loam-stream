@@ -1,9 +1,8 @@
-package utils
+package loamstream.util
 
 import java.io.{File, PrintWriter}
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.nio.file.Files
 
 /**
   * Created on: 3/1/16

@@ -1,12 +1,14 @@
 package tools
 
 import java.nio.file.Path
-import loamstream.conf.LProperties
-import scala.util.Try
-import loamstream.util.LoamFileUtils
-import loamstream.util.StringUtils
-import loamstream.util.Loggable
+
 import scala.io.Source
+import scala.util.Try
+
+import loamstream.conf.LProperties
+import loamstream.util.LoamFileUtils
+import loamstream.util.Loggable
+import loamstream.util.StringUtils
 
 
 /**

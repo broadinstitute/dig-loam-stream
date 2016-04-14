@@ -14,7 +14,7 @@ import loamstream.util.LoamFileUtils
 import loamstream.util.Loggable.Level
 import loamstream.util.StringUtils
 import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
-import utils.TestUtils
+import loamstream.util.TestUtils
 
 /**
   * Created by kyuksel on 2/29/2016.

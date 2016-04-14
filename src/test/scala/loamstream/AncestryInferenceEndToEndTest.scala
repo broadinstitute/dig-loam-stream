@@ -14,7 +14,7 @@ import tools.PcaWeightsReader
 import tools.core.{CoreToolBox, LCoreDefaultPileIds}
 import tools.core.LCoreEnv.{Keys, PathProvider, PathProviderById}
 import tools.klusta.KlustaKwikKonfig
-import utils.TestUtils
+import loamstream.util.TestUtils
 
 /**
   * LoamStream

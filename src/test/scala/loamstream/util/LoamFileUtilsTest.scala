@@ -1,9 +1,7 @@
-package utils
+package loamstream.util
 
 import loamstream.TestHelpers
 import org.scalatest.FunSuite
-import loamstream.util.LoamFileUtils
-import loamstream.util.CanBeClosed
 
 /**
   * @author clint

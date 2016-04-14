@@ -2,7 +2,7 @@ package loamstream.conf
 
 import java.nio.file.Path
 
-import utils.LoamFileUtils
+import loamstream.util.LoamFileUtils
 
 /**
   * LoamStream

@@ -1,7 +1,7 @@
 package loamstream.apps.minimal
 
 import tools.core.{CoreStore, CoreTool}
-import utils.Loggable
+import loamstream.util.Loggable
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit

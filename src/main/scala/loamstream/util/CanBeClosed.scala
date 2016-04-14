@@ -1,4 +1,4 @@
-package utils
+package loamstream.util
 
 import scala.io.Source
 import java.io.Closeable

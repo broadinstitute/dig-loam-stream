@@ -2,17 +2,19 @@ package loamstream
 
 import java.nio.file.Path
 
+import org.scalatest.{BeforeAndAfter, FunSuite}
+
 import loamstream.apps.minimal.{LPipelineMiniCostEstimator, LToolMappingLogger, MiniExecuter, MiniMockToolBox}
 import loamstream.map.LToolMapper
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.util.FileAsker
-import org.scalatest.{BeforeAndAfter, FunSuite}
+import loamstream.util.Loggable.Level
+import loamstream.util.StringUtils
 import tools.PcaWeightsReader
-import tools.core.LCoreEnv.{Keys, PathProvider, PathProviderById}
 import tools.core.{CoreToolBox, LCoreDefaultPileIds}
+import tools.core.LCoreEnv.{Keys, PathProvider, PathProviderById}
 import tools.klusta.KlustaKwikKonfig
-import utils.Loggable.Level
-import utils.{StringUtils, TestUtils}
+import loamstream.util.TestUtils
 
 /**
   * LoamStream

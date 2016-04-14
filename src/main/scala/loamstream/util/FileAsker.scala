@@ -2,8 +2,6 @@ package loamstream.util
 
 import java.nio.file.{Files, Path, Paths}
 
-import utils.Loggable
-
 import scala.io.StdIn.readLine
 
 

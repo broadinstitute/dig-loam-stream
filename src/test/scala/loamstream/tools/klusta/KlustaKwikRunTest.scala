@@ -1,4 +1,4 @@
-package tools
+package loamstream.tools.klusta
 
 import java.io.IOException
 
@@ -9,9 +9,7 @@ import scala.sys.process.{ Process, ProcessLogger }
 
 import org.scalatest.FunSuite
 
-import loamstream.tools.KlustaKwikMockDataGenerator
-import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikOutputReader}
-import loamstream.tools.klusta.KlustaKwikLineCommand
+import KlustaKwikLineCommand.useDistributional
 
 /**
   * LoamStream

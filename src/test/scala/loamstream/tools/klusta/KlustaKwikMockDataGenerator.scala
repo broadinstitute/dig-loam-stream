@@ -1,4 +1,4 @@
-package loamstream.tools
+package loamstream.tools.klusta
 
 import scala.util.Random
 

@@ -1,14 +1,13 @@
-package loamstream.tools
+package loamstream.tools.klusta
 
 import org.scalatest.FunSuite
-
 import loamstream.tools.klusta.KlustaKwikLineCommand._
 
 /**
   * LoamStream
   * Created by oliverr on 3/15/2016.
   */
-class KlustaKwikLineCommandTest extends FunSuite {
+final class KlustaKwikLineCommandTest extends FunSuite {
   test("Constructing KlustaKwik command line works as expected.") {
     val desiredCommandLine = "klustakwik recording 4 -UseDistributional 1 -UseMaskedInitialConditions 1 " +
       "-AssignToFirstClosestMask 1 -MaxPossibleClusters 500 -MinClusters 300 -MaxClusters 300 -PenaltyK 1.0 " +

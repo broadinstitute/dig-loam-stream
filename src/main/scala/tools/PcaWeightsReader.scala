@@ -1,13 +1,13 @@
 package tools
 
 import java.nio.file.Path
-
 import loamstream.conf.LProperties
-import utils.{ LoamFileUtils, Loggable }
-
-import scala.io.Source
 import scala.util.Try
-import utils.StringUtils
+import loamstream.util.LoamFileUtils
+import loamstream.util.StringUtils
+import loamstream.util.Loggable
+import scala.io.Source
+
 
 /**
  * RugLoom - A prototype for a pipeline building toolkit

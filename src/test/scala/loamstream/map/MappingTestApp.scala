@@ -1,7 +1,7 @@
 package loamstream.map
 
 import loamstream.map.MapMaker.Consumer
-import utils.Loggable
+import loamstream.util.Loggable
 
 /**
   * LoamStream

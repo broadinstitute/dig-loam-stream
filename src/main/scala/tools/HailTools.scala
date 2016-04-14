@@ -1,7 +1,7 @@
 package tools
 
 import java.nio.file.Path
-import utils.Loggable
+import loamstream.util.Loggable
 
 import sys.process._
 

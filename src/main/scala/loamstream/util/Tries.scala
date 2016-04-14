@@ -1,4 +1,4 @@
-package utils
+package loamstream.util
 
 import scala.util.Failure
 

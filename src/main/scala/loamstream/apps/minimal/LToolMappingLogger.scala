@@ -3,7 +3,7 @@ package loamstream.apps.minimal
 import loamstream.map.LToolMapping
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.stores.LStore
-import utils.Loggable
+import loamstream.util.Loggable
 
 /**
   * LoamStream

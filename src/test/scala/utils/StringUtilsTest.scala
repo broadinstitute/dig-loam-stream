@@ -1,6 +1,7 @@
 package utils
 
 import org.scalatest.FunSuite
+import loamstream.util.StringUtils
 
 final class StringUtilsTest extends FunSuite {
   test("isWhitespace()") {

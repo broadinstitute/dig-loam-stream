@@ -2,16 +2,19 @@ package loamstream
 
 import java.nio.file.Path
 
-import _root_.utils.Loggable.Level
+import scala.io.Source
+
+import org.apache.commons.io.FileUtils
+import org.scalatest.{BeforeAndAfter, FunSuite}
+
 import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal._
 import loamstream.map.LToolMapper
-import org.apache.commons.io.FileUtils
-import org.scalatest.{BeforeAndAfter, FunSuite}
+import loamstream.util.LoamFileUtils
+import loamstream.util.Loggable.Level
+import loamstream.util.StringUtils
 import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
-import utils.{LoamFileUtils, StringUtils, TestUtils}
-
-import scala.io.Source
+import utils.TestUtils
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -30,8 +33,9 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   deleteQuietly(hailVdsFilePath)
   deleteQuietly(hailSingletonFilePath)
 
-  val vcfFiles = Seq(StringUtils.pathTemplate(hailVcfFilePath.toString, "XXX"),
-    StringUtils.pathTemplate(hailVdsFilePath.toString, "XXX"))
+  val vcfFiles = Seq(
+                  StringUtils.pathTemplate(hailVcfFilePath.toString, "XXX"),
+                  StringUtils.pathTemplate(hailVdsFilePath.toString, "XXX"))
   val vdsFiles = Seq(hailVdsFilePath)
   val singletonFiles = Seq(hailSingletonFilePath)
 

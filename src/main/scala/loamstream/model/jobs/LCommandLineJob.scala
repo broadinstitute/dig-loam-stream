@@ -2,7 +2,7 @@ package loamstream.model.jobs
 
 import java.nio.file.Path
 
-import _root_.tools.LineCommand.CommandLine
+import loamstream.tools.LineCommand.CommandLine
 import loamstream.model.jobs.LCommandLineJob.{CommandLineExceptionFailure, CommandLineNonZeroReturnFailure,
 CommandLineResult, CommandLineSuccess, exitValueSuccess, noOpProcessLogger}
 import loamstream.model.jobs.LJob.Result

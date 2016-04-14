@@ -1,4 +1,4 @@
-package tools.core
+package loamstream.tools.core
 
 import loamstream.LEnv
 import loamstream.model.id.LId
@@ -7,8 +7,8 @@ import loamstream.model.jobs.tools.LTool
 import loamstream.model.kinds.instances.PileKinds
 import loamstream.model.kinds.instances.ToolKinds.{klustakwikClustering, nativePcaProjection}
 import loamstream.model.recipes.LRecipeSpec
-import tools.core.CoreStore.{pcaProjectedFile, pcaWeightsFile, sampleClusterFile, vcfFile}
-import tools.core.LCoreEnv.Keys
+import LCoreEnv._
+import CoreStore._
 
 /**
   * LoamStream

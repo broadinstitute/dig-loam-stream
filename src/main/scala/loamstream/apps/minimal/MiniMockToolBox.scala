@@ -4,14 +4,16 @@ import loamstream.LEnv
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
-import loamstream.model.jobs.tools.LTool
 import loamstream.model.jobs.{LJob, LToolBox}
+import loamstream.model.jobs.tools.LTool
 import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
+import loamstream.tools.core.LCoreDefaultPileIds
+import loamstream.tools.core.LCoreEnv
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
-import tools.core.{LCoreDefaultPileIds, LCoreEnv}
+
 
 /**
   * LoamStream

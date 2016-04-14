@@ -1,4 +1,4 @@
-package tools.core
+package loamstream.tools.core
 
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.id.LId
@@ -6,6 +6,7 @@ import loamstream.model.kinds.instances.StoreKinds
 import loamstream.model.piles.{LPileSpec, LSig}
 import loamstream.model.signatures.Signatures._
 import loamstream.model.stores.LStore
+import scala.reflect.runtime.universe
 
 /**
   * LoamStream

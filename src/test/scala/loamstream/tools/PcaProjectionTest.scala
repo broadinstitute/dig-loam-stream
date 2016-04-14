@@ -1,4 +1,4 @@
-package tools
+package loamstream.tools
 
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.TestData.sampleFiles
@@ -10,7 +10,7 @@ import loamstream.TestData
   * RugLoom - A prototype for a pipeline building toolkit
   * Created by oruebenacker on 3/8/16.
   */
-class PcaProjectionTest extends FunSuite {
+final class PcaProjectionTest extends FunSuite {
   test("PCA projection seems to work.") {
     val props = TestData.props
     

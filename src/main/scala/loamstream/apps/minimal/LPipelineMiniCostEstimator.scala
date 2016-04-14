@@ -4,7 +4,8 @@ import loamstream.cost.LPipelineCostEstimator
 import loamstream.map.LToolMapping
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.stores.LStore
-import tools.core.{CoreStore, CoreTool}
+import loamstream.tools.core.CoreStore
+import loamstream.tools.core.CoreTool
 
 /**
   * LoamStream

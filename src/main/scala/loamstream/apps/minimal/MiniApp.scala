@@ -1,7 +1,9 @@
 package loamstream.apps.minimal
 
 import loamstream.map.LToolMapper
-import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
+import loamstream.tools.core.CoreToolBox
+import loamstream.tools.core.LCoreEnv
+import loamstream.tools.core.LCoreDefaultPileIds
 import loamstream.util.Loggable
 import Loggable.Level
 

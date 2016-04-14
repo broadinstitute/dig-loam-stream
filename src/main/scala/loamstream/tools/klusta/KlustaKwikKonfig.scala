@@ -1,8 +1,7 @@
-package tools.klusta
+package loamstream.tools.klusta
 
 import java.nio.file.{Files, Path}
-
-import tools.klusta.KlustaKwikKonfig.iShankDefault
+import KlustaKwikKonfig.iShankDefault
 
 /**
   * LoamStream

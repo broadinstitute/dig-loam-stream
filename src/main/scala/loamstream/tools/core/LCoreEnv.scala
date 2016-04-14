@@ -1,11 +1,10 @@
-package tools.core
+package loamstream.tools.core
 
 import java.nio.file.Path
-
 import loamstream.LEnv
 import loamstream.LEnv.Key
 import loamstream.util.FileAsker
-import tools.klusta.KlustaKwikKonfig
+import loamstream.tools.klusta.KlustaKwikKonfig
 
 /**
   * LoamStream

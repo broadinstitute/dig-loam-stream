@@ -1,4 +1,4 @@
-package tools
+package loamstream.tools
 
 import java.nio.file.Path
 

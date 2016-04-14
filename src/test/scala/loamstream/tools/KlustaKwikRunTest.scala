@@ -2,19 +2,22 @@ package tools
 
 import java.io.IOException
 
-import org.scalatest.FunSuite
-import tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand, KlustaKwikOutputReader}
-
+import scala.concurrent.{ Await, Future, blocking }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, Future, blocking}
-import scala.sys.process.{Process, ProcessLogger}
+import scala.sys.process.{ Process, ProcessLogger }
+
+import org.scalatest.FunSuite
+
+import loamstream.tools.KlustaKwikMockDataGenerator
+import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikOutputReader}
+import loamstream.tools.klusta.KlustaKwikLineCommand
 
 /**
   * LoamStream
   * Created by oliverr on 3/16/2016.
   */
-class KlustaKwikRunTest extends FunSuite {
+final class KlustaKwikRunTest extends FunSuite {
   test("Running KlustaKwik with mock data, checking output sanity.") {
     val fileBaseVal = "data"
     val konfig = KlustaKwikKonfig.withTempWorkDir(fileBaseVal)

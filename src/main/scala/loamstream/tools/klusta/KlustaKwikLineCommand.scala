@@ -1,6 +1,6 @@
-package tools.klusta
+package loamstream.tools.klusta
 
-import tools.LineCommand
+import loamstream.tools.LineCommand
 
 /**
   * LoamStream

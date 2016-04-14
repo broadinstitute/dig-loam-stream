@@ -1,7 +1,7 @@
-package tools
+package loamstream.tools
 
 import htsjdk.variant.variantcontext.Genotype
-import tools.VcfParser.MapRow
+import VcfParser.MapRow
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -23,10 +23,11 @@ case class PcaProjecter(weights: Map[String, Seq[Double]], nPcaMax: Int) {
   def project(variant: String, samples: Seq[String], row: MapRow, genotypeToDouble: Genotype => Double,
               nPca: Int): Seq[Seq[Double]] = {
     weights.get(variant) match {
-      case Some(variantWeights) =>
-        samples.map(row.genotypesMap).map(genotypeToDouble).map({
-          xSample => variantWeights.take(nPca).map(_ * xSample)
-        })
+      case Some(variantWeights) => {
+        samples.map(row.genotypesMap).map(genotypeToDouble).map { xSample => 
+          variantWeights.take(nPca).map(_ * xSample)
+        }
+      }
       case None => Seq.fill(samples.size, nPca)(0.0)
     }
   }

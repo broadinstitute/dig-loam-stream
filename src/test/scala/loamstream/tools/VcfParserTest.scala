@@ -1,4 +1,4 @@
-package tools
+package loamstream.tools
 
 import loamstream.TestData.sampleFiles
 import org.scalatest.FunSuite

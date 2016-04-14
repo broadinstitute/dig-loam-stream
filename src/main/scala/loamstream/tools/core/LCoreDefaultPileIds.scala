@@ -1,4 +1,4 @@
-package tools.core
+package loamstream.tools.core
 
 /**
   * LoamStream

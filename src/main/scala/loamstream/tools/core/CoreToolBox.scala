@@ -1,7 +1,6 @@
-package tools.core
+package loamstream.tools.core
 
 import java.nio.file.{Files, Path}
-
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.LEnv
 import loamstream.map.LToolMapping
@@ -16,11 +15,12 @@ import loamstream.model.recipes.LRecipe
 import loamstream.model.stores.LStore
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
-import tools.core.CoreToolBox._
-import tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
-import tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser, VcfUtils}
+import CoreToolBox._
+import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
+import loamstream.tools.klusta.{KlustaKwikLineCommand, KlustaKwikInputWriter}
+import loamstream.tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser}
+import loamstream.tools.VcfUtils
 import loamstream.util.LoamFileUtils
-
 import scala.concurrent.{ExecutionContext, Future, blocking}
 
 /**

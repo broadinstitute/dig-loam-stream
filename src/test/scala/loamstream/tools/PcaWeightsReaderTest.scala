@@ -1,8 +1,6 @@
-package tools
+package loamstream.tools
 
 import org.scalatest.FunSuite
-import loamstream.TestData
-import loamstream.util.LoamFileUtils
 import java.nio.file.Paths
 import scala.io.Source
 

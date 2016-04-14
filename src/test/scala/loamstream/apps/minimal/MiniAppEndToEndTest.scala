@@ -8,10 +8,11 @@ import org.scalatest.{BeforeAndAfter, FunSuite}
 
 import loamstream.TestData
 import loamstream.map.LToolMapper
+import loamstream.tools.core.{CoreToolBox, LCoreEnv}
+import loamstream.tools.core.LCoreDefaultPileIds
 import loamstream.util.LoamFileUtils
 import loamstream.util.Loggable.Level
 import loamstream.util.StringUtils
-import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
 import loamstream.util.TestUtils
 
 /**

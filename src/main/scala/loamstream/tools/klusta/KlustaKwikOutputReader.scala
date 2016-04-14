@@ -1,9 +1,7 @@
-package tools.klusta
+package loamstream.tools.klusta
 
 import java.nio.file.Path
-
 import loamstream.util.shot.{Hit, Miss, Shot}
-
 import scala.io.{Codec, Source}
 
 /**

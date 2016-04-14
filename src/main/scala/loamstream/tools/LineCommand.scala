@@ -1,6 +1,4 @@
-package tools
-
-import tools.LineCommand.{CommandLine, tokenSep}
+package loamstream.tools
 
 /**
   * LoamStream - Language for Omics Analysis Management
@@ -86,12 +84,12 @@ trait LineCommand {
 
   def +(param: Param): CommandLineBuildable = CommandLineBuildable(this, Seq(param))
 
-  case class CommandLineBuildable(command: LineCommand, params: Seq[Param]) extends CommandLine {
+  case class CommandLineBuildable(command: LineCommand, params: Seq[Param]) extends LineCommand.CommandLine {
     def +(param: Param): CommandLineBuildable = copy(params = params :+ param)
 
     def tokens: Seq[String] = command.toString +: params.flatMap(_.tokens)
 
-    def commandLine: String = tokens.mkString(tokenSep)
+    def commandLine: String = tokens.mkString(LineCommand.tokenSep)
   }
 
 }

@@ -1,10 +1,16 @@
 package loamstream.io
 
-import loamstream.util.shot.{Miss, Shot}
-import org.openrdf.model.vocabulary.XMLSchema
-import org.openrdf.model.{IRI, Literal, Value, ValueFactory}
-import org.openrdf.repository.RepositoryConnection
+import java.util
 
+import loamstream.util.shot.{Miss, Shot, Shots}
+import org.openrdf.model.impl.LinkedHashModel
+import org.openrdf.model.util.RDFCollections
+import org.openrdf.model.vocabulary.XMLSchema
+import org.openrdf.model.{IRI, Literal, Resource, Value, ValueFactory}
+import org.openrdf.repository.RepositoryConnection
+import org.openrdf.repository.util.Connections
+
+import scala.collection.JavaConverters.{asJavaIterableConverter, iterableAsScalaIterableConverter}
 import scala.util.Try
 
 /**
@@ -14,15 +20,16 @@ import scala.util.Try
 object RedFern {
   def getNew(implicit conn: RepositoryConnection): RedFern = RedFern(conn)
 
-  type Encoder[T] = LIO.Encoder[Value, ValueFactory, T]
-  type Decoder[T] = LIO.Decoder[Value, ValueFactory, T]
+  type Encoder[T] = LIO.Encoder[RepositoryConnection, Value, ValueFactory, T]
+  type Decoder[T] = LIO.Decoder[RepositoryConnection, Value, ValueFactory, T]
 
   case class LiteralEncoder[T](toLiteral: (ValueFactory, T) => Literal) extends Encoder[T] {
-    override def encode(io: LIO[Value, ValueFactory], thing: T): Value = toLiteral(io.maker, thing)
+    override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], thing: T): Value =
+      toLiteral(io.maker, thing)
   }
 
   case class LiteralDecoder[T](expectedDatatype: IRI, fromLiteral: Literal => T) extends Decoder[T] {
-    override def read(io: LIO[Value, ValueFactory], value: Value): Shot[T] =
+    override def read(io: LIO[RepositoryConnection, Value, ValueFactory], value: Value): Shot[T] =
       value match {
         case literal: Literal =>
           val actualDatatype = literal.getDatatype
@@ -56,9 +63,35 @@ object RedFern {
   implicit val stringEncoder =
     LiteralEncoder((maker: ValueFactory, string: String) => maker.createLiteral(string, XMLSchema.STRING))
   implicit val stringDecoder = LiteralDecoder(XMLSchema.STRING, _.stringValue())
+
+  implicit def iterableEncoder[E](implicit elementEncoder: Encoder[E]): Encoder[Iterable[E]] =
+    new Encoder[Iterable[E]] {
+      override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], iterable: Iterable[E]): Resource = {
+        val head = io.maker.createBNode()
+        val elementValues = iterable.map(elementEncoder.encode(io, _))
+        val listModel = RDFCollections.asRDF(elementValues.asJava, head, new LinkedHashModel())
+        io.conn.add(listModel)
+        head
+      }
+    }
+
+  implicit def iterableDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Iterable[E]] = {
+    new Decoder[Iterable[E]] {
+      override def read(io: LIO[RepositoryConnection, Value, ValueFactory], ref: Value): Shot[Iterable[E]] = {
+        ref match {
+          case resource: Resource =>
+            val rdfList = Connections.getRDFCollection(io.conn, resource, new LinkedHashModel())
+            val values = RDFCollections.asValues(rdfList, resource, new util.ArrayList[Value])
+            Shots.unpack(values.asScala.map(elementDecoder.read(io, _)))
+          case _ => Miss(s"Need resource to decode iterable, but got '$ref'")
+        }
+      }
+    }
+  }
+
 }
 
-case class RedFern(conn: RepositoryConnection) extends LIO[Value, ValueFactory] {
+case class RedFern(conn: RepositoryConnection) extends LIO[RepositoryConnection, Value, ValueFactory] {
   val maker = conn.getValueFactory
 
 }

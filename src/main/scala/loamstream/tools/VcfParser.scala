@@ -1,12 +1,9 @@
-package tools
+package loamstream.tools
 
 import java.nio.file.Path
-
 import htsjdk.variant.variantcontext.{Genotype, VariantContext}
 import htsjdk.variant.vcf.VCFFileReader
-import tools.VcfParser.{MapRow, RawRow, SeqRow}
-
-import scala.collection.JavaConverters.{asScalaBufferConverter, asScalaIteratorConverter}
+import scala.collection.JavaConverters._
 
 /**
   * Created on: 1/20/16
@@ -49,14 +46,13 @@ object VcfParser {
 }
 
 class VcfParser(val reader: VCFFileReader) {
+  import VcfParser._
+  
   val samples: Seq[String] = reader.getFileHeader.getGenotypeSamples.asScala
 
   def rowIter: Iterator[RawRow] = reader.iterator.asScala.map(RawRow)
 
   def genotypesIter: Iterator[SeqRow] = reader.iterator.asScala.map(SeqRow(_))
 
-  def genotypeMapIter: Iterator[MapRow] =
-    reader.iterator.asScala.map(MapRow(_, samples))
-
-
+  def genotypeMapIter: Iterator[MapRow] = reader.iterator.asScala.map(MapRow(_, samples))
 }

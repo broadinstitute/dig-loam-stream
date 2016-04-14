@@ -1,4 +1,4 @@
-package tools.klusta
+package loamstream.tools.klusta
 
 import java.io.PrintStream
 import java.nio.file.{Files, Path}

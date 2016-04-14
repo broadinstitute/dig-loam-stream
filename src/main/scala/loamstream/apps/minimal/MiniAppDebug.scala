@@ -1,6 +1,7 @@
 package loamstream.apps.minimal
 
-import tools.core.{CoreStore, CoreTool}
+import loamstream.tools.core.CoreTool
+import loamstream.tools.core.CoreStore
 import loamstream.util.Loggable
 
 /**

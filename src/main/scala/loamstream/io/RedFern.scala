@@ -93,6 +93,28 @@ object RedFern {
 
   implicit def seqDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Seq[E]] = iterableDecoder[E].map(_.toSeq)
 
+  implicit def tuple2Encoder[T1, T2](implicit encoder1: Encoder[T1], encoder2: Encoder[T2]): Encoder[(T1, T2)] = {
+    new Encoder[(T1, T2)] {
+      override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tuple: (T1, T2)): Value = {
+        val head = io.maker.createBNode()
+        io.conn.add(head, RdfContainers._1, encoder1.encode(io, tuple._1))
+        io.conn.add(head, RdfContainers._2, encoder2.encode(io, tuple._2))
+        head
+      }
+    }
+  }
+
+  implicit def tuple2Decoder[T1, T2](implicit decoder1: Decoder[T1], decoder2: Decoder[T2]): Decoder[(T1, T2)] = {
+    new Decoder[(T1, T2)] {
+      override def decode(io: LIO[RepositoryConnection, Value, ValueFactory], ref: Value): Shot[(T1, T2)] = {
+        ref match {
+          case resource: Resource =>
+            ???
+          case _ => Miss(s"Need resource to decode Tuple2, but got '$ref'")
+        }
+      }
+    }
+  }
 }
 
 case class RedFern(conn: RepositoryConnection) extends LIO[RepositoryConnection, Value, ValueFactory] {

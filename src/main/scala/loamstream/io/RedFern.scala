@@ -29,7 +29,7 @@ object RedFern {
   }
 
   case class LiteralDecoder[T](expectedDatatype: IRI, fromLiteral: Literal => T) extends Decoder[T] {
-    override def read(io: LIO[RepositoryConnection, Value, ValueFactory], value: Value): Shot[T] =
+    override def decode(io: LIO[RepositoryConnection, Value, ValueFactory], value: Value): Shot[T] =
       value match {
         case literal: Literal =>
           val actualDatatype = literal.getDatatype
@@ -77,17 +77,21 @@ object RedFern {
 
   implicit def iterableDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Iterable[E]] = {
     new Decoder[Iterable[E]] {
-      override def read(io: LIO[RepositoryConnection, Value, ValueFactory], ref: Value): Shot[Iterable[E]] = {
+      override def decode(io: LIO[RepositoryConnection, Value, ValueFactory], ref: Value): Shot[Iterable[E]] = {
         ref match {
           case resource: Resource =>
             val rdfList = Connections.getRDFCollection(io.conn, resource, new LinkedHashModel())
             val values = RDFCollections.asValues(rdfList, resource, new util.ArrayList[Value])
-            Shots.unpack(values.asScala.map(elementDecoder.read(io, _)))
+            Shots.unpack(values.asScala.map(elementDecoder.decode(io, _)))
           case _ => Miss(s"Need resource to decode iterable, but got '$ref'")
         }
       }
     }
   }
+
+  implicit def setDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Set[E]] = iterableDecoder[E].map(_.toSet)
+
+  implicit def seqDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Seq[E]] = iterableDecoder[E].map(_.toSeq)
 
 }
 

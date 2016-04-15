@@ -13,7 +13,7 @@ object LIO {
 
   object Encoder {
 
-    case class MappedEncoder[Conn, Ref, Maker, T, TDel](delegateEncoder: Encoder[Conn, Ref, Maker, TDel],
+    case class MappedEncoder[Conn, Ref, Maker, -T, TDel](delegateEncoder: Encoder[Conn, Ref, Maker, TDel],
                                                         fun: T => TDel)
       extends Encoder[Conn, Ref, Maker, T] {
       override def encode(io: LIO[Conn, Ref, Maker], thing: T): Ref = delegateEncoder.encode(io, fun(thing))
@@ -21,15 +21,16 @@ object LIO {
 
   }
 
-  trait Encoder[Conn, Ref, Maker, T] {
+  trait Encoder[Conn, Ref, Maker, -T] {
     def encode(io: LIO[Conn, Ref, Maker], thing: T): Ref
 
-    def map[TWrap](fun: TWrap => T): MappedEncoder[Conn, Ref, Maker, TWrap, T] = MappedEncoder(this, fun)
+    def map[TWrap, TMapped <: T](fun: TWrap => TMapped): MappedEncoder[Conn, Ref, Maker, TWrap, TMapped] =
+      MappedEncoder(this, fun)
   }
 
   object Decoder {
 
-    case class MappedDecoder[Conn, Ref, Maker, T, TDel](delegateDecoder: Decoder[Conn, Ref, Maker, TDel],
+    case class MappedDecoder[Conn, Ref, Maker, +T, TDel](delegateDecoder: Decoder[Conn, Ref, Maker, TDel],
                                                         fun: TDel => T)
       extends Decoder[Conn, Ref, Maker, T] {
       override def decode(io: LIO[Conn, Ref, Maker], ref: Ref): Shot[T] = delegateDecoder.decode(io, ref).map(fun(_))
@@ -37,10 +38,10 @@ object LIO {
 
   }
 
-  trait Decoder[Conn, Ref, Maker, T] {
+  trait Decoder[Conn, Ref, Maker, +T] {
     def decode(io: LIO[Conn, Ref, Maker], ref: Ref): Shot[T]
 
-    def map[TWrap](fun: T => TWrap): MappedDecoder[Conn, Ref, Maker, TWrap, T] = MappedDecoder(this, fun)
+    def map[TIn >: T, TWrap](fun: TIn => TWrap): MappedDecoder[Conn, Ref, Maker, TWrap, TIn] = MappedDecoder(this, fun)
   }
 
 }

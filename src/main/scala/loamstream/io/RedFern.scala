@@ -89,9 +89,11 @@ object RedFern {
     }
   }
 
-  implicit def setDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Set[E]] = iterableDecoder[E].map(_.toSet)
+  implicit def setDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Set[E]] =
+    iterableDecoder[E].map[Iterable[E], Set[E]](_.toSet)
 
-  implicit def seqDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Seq[E]] = iterableDecoder[E].map(_.toSeq)
+  implicit def seqDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Seq[E]] =
+    iterableDecoder[E].map[Iterable[E], Seq[E]](_.toSeq)
 
   implicit def tuple2Encoder[T1, T2](implicit encoder1: Encoder[T1], encoder2: Encoder[T2]): Encoder[(T1, T2)] = {
     new Encoder[(T1, T2)] {
@@ -119,6 +121,12 @@ object RedFern {
       }
     }
   }
+
+  implicit def mapEncoder[K, V](implicit keyEncoder: Encoder[K], valueEncoder: Encoder[V]): Encoder[Map[K, V]] =
+    iterableEncoder[(K, V)](tuple2Encoder)
+
+  implicit def mapDecoder[K, V](implicit keyDecoder: Decoder[K], valueDecoder: Decoder[V]): Decoder[Map[K, V]] =
+    iterableDecoder[(K, V)](tuple2Decoder).map[Iterable[(K, V)], Map[K, V]](_.toMap)
 }
 
 case class RedFern(conn: RepositoryConnection) extends LIO[RepositoryConnection, Value, ValueFactory] {

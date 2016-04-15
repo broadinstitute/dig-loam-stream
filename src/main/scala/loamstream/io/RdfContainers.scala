@@ -13,7 +13,7 @@ object RdfContainers {
   def membershipProperty(i: Int)(implicit conn: RepositoryConnection): IRI =
     conn.getValueFactory.createIRI(RDF.NS.getName, s"_$i")
 
-  val _1 = membershipProperty(1)
-  val _2 = membershipProperty(2)
+  def m1(implicit conn: RepositoryConnection): IRI = membershipProperty(1)(conn)
+  def m2(implicit conn: RepositoryConnection): IRI = membershipProperty(2)(conn)
 
 }

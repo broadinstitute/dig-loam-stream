@@ -97,8 +97,9 @@ object RedFern {
     new Encoder[(T1, T2)] {
       override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tuple: (T1, T2)): Value = {
         val head = io.maker.createBNode()
-        io.conn.add(head, RdfContainers._1, encoder1.encode(io, tuple._1))
-        io.conn.add(head, RdfContainers._2, encoder2.encode(io, tuple._2))
+        implicit val conn = io.conn
+        conn.add(head, RdfContainers.m1, encoder1.encode(io, tuple._1))
+        conn.add(head, RdfContainers.m2, encoder2.encode(io, tuple._2))
         head
       }
     }
@@ -109,7 +110,10 @@ object RedFern {
       override def decode(io: LIO[RepositoryConnection, Value, ValueFactory], ref: Value): Shot[(T1, T2)] = {
         ref match {
           case resource: Resource =>
-            ???
+            implicit val conn = io.conn
+            val m1Shot = RdfQueries.findUniqueObject(resource, RdfContainers.m1).flatMap(decoder1.decode(io, _))
+            val m2Shot = RdfQueries.findUniqueObject(resource, RdfContainers.m2).flatMap(decoder2.decode(io, _))
+            (m1Shot and m2Shot).get
           case _ => Miss(s"Need resource to decode Tuple2, but got '$ref'")
         }
       }

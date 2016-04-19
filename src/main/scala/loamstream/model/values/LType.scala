@@ -242,5 +242,7 @@ object LType {
 
 }
 
-sealed trait LType[T]
+sealed trait LType[T] {
+  def apply(value: T): LValue[T] = LValue(value, this)
+}
 

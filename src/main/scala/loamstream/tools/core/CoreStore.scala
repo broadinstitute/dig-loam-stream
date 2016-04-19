@@ -5,8 +5,7 @@ import loamstream.model.kinds.instances.StoreKinds
 import loamstream.model.piles.{LPileSpec, LSig}
 import loamstream.model.stores.LStore
 import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
-import loamstream.model.values.LType.{LClusterId, LDouble, LGenotype, LInt, LSampleId, LSingletonCount, LString,
-LVariantId}
+import loamstream.model.values.LType.{LClusterId, LDouble, LGenotype, LInt, LSampleId, LSingletonCount, LVariantId}
 
 /**
   * LoamStream
@@ -15,9 +14,9 @@ LVariantId}
 object CoreStore {
 
   val vcfFile =
-    CoreStore("VCF file", LPileSpec(LSig.Map(LTuple2(LString, LVariantId), LGenotype), StoreKinds.vcfFile))
+    CoreStore("VCF file", LPileSpec(LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype), StoreKinds.vcfFile))
   val vdsFile =
-    CoreStore("VDS file", LPileSpec(LSig.Map(LTuple2(LString, LVariantId), LGenotype), StoreKinds.vdsFile))
+    CoreStore("VDS file", LPileSpec(LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype), StoreKinds.vdsFile))
   val pcaWeightsFile =
     CoreStore("PCA weights file", LPileSpec(LSig.Map(LTuple2(LSampleId, LInt), LDouble), StoreKinds.pcaWeightsFile))
   val pcaProjectedFile =
@@ -26,9 +25,9 @@ object CoreStore {
   val sampleClusterFile =
     CoreStore("Sample cluster file", LPileSpec(LSig.Map(LTuple1(LSampleId), LClusterId),
       StoreKinds.sampleClustersFile))
-  val singletonsFile = CoreStore("Singletons file", LPileSpec(LSig.Map(LTuple1(LString), LSingletonCount),
+  val singletonsFile = CoreStore("Singletons file", LPileSpec(LSig.Map(LTuple1(LSampleId), LSingletonCount),
     StoreKinds.singletonsFile))
-  val sampleIdsFile = CoreStore("Sample ids file", LPileSpec(LSig.Set(LTuple1(LString)), StoreKinds.sampleIdsFile))
+  val sampleIdsFile = CoreStore("Sample ids file", LPileSpec(LSig.Set(LTuple1(LSampleId)), StoreKinds.sampleIdsFile))
 
   val stores =
     Set[LStore](vcfFile, vdsFile, pcaWeightsFile, pcaProjectedFile, sampleClusterFile, singletonsFile, sampleIdsFile)

@@ -31,6 +31,7 @@ class  SpecRelationsTest extends FunSuite {
   test("Various relations between pile and recipe specs are true as expected") {
     val genotypeId = LCoreDefaultPileIds.genotypes
     val pipeline = MiniPipeline(genotypeId)
+    assert(CoreStore.vcfFile.pile.sig =:= pipeline.genotypeCallsPile.spec.sig)
     assert(CoreStore.vcfFile.pile <:< pipeline.genotypeCallsPile.spec)
     assert(MiniMockStore.genotypesCassandraTable.pile <:< pipeline.genotypeCallsPile.spec)
     assert(CoreStore.sampleIdsFile.pile <:< pipeline.sampleIdsPile.spec)

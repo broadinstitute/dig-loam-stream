@@ -1,4 +1,4 @@
-package loamstream.io
+package loamstream.io.rdf
 
 import loamstream.util.shot.{Hit, Miss, Shot}
 import org.openrdf.model.{IRI, Resource, Statement, Value}

@@ -1,4 +1,4 @@
-package loamstream.io
+package loamstream.io.rdf
 
 import org.openrdf.model.IRI
 import org.openrdf.model.vocabulary.RDF

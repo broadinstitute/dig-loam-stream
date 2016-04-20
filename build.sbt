@@ -29,7 +29,7 @@ lazy val testDeps = Seq(
 lazy val commonSettings = Seq(
   version := Versions.App,
   scalaVersion := Versions.Scala,
-  scalacOptions ++= Seq("-feature", "-deprecation"),
+  scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.sonatypeRepo("snapshots")

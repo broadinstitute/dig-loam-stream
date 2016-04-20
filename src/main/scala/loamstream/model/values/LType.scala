@@ -23,6 +23,8 @@ object LType {
 
   case object LShort extends LType[Short]
 
+  case object LByte extends LType[Byte]
+
   case object LString extends LType[String]
 
   case object LVariantId extends LType[VariantId]

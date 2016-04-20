@@ -22,4 +22,7 @@ object Loam {
   val set = add("Set")
   val seq = add("Seq")
   val elementType = add("elementType")
+  val map = add("Map")
+  val keyType = add("keyType")
+  val valueType = add("valueType")
 }

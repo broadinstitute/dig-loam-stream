@@ -39,6 +39,12 @@ object LTypeEncoder extends Encoder[LType[_]] {
         io.conn.add(seqNode, RDF.TYPE, Loam.seq)
         io.conn.add(seqNode, Loam.elementType, encode(io, elementType))
         seqNode
+      case LMap(keyType, valueType) =>
+        val mapNode = io.maker.createBNode()
+        io.conn.add(mapNode, RDF.TYPE, Loam.map)
+        io.conn.add(mapNode, Loam.keyType, encode(io, keyType))
+        io.conn.add(mapNode, Loam.valueType, encode(io, valueType))
+        mapNode
     }
   }
 

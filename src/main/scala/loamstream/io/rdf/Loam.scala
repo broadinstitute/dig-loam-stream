@@ -19,4 +19,7 @@ object Loam {
   val variantId = add("VariantId")
   val sampleId = add("SampleId")
   val genotype = add("Genotype")
+  val set = add("Set")
+  val seq = add("Seq")
+  val elementType = add("elementType")
 }

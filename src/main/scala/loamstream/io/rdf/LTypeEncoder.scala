@@ -5,7 +5,7 @@ import loamstream.io.rdf.RedFern.Encoder
 import loamstream.model.values.LType
 import loamstream.model.values.LType._
 import org.openrdf.model.vocabulary.XMLSchema
-import org.openrdf.model.{IRI, Resource, Value, ValueFactory}
+import org.openrdf.model.{Resource, Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection
 
 /**
@@ -28,7 +28,9 @@ object LTypeEncoder extends Encoder[LType[_]] {
       case LString => XMLSchema.STRING
       case LVariantId => Loam.variantId
       case LSampleId => Loam.sampleId
+      case LGenotype => Loam.genotype
     }
   }
+
   // scalastyle:off cyclomatic.complexity
 }

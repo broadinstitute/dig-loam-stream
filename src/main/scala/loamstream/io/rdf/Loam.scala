@@ -18,4 +18,5 @@ object Loam {
   val char = add("Char")
   val variantId = add("VariantId")
   val sampleId = add("SampleId")
+  val genotype = add("Genotype")
 }

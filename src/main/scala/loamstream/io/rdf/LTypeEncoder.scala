@@ -4,7 +4,7 @@ import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Encoder
 import loamstream.model.values.LType
 import loamstream.model.values.LType._
-import org.openrdf.model.vocabulary.{RDF, XMLSchema}
+import org.openrdf.model.vocabulary.RDF
 import org.openrdf.model.{Resource, Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection
 
@@ -17,18 +17,9 @@ object LTypeEncoder extends Encoder[LType[_]] {
   // scalastyle:off cyclomatic.complexity
   override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tpe: LType[_]): Resource = {
     tpe match {
-      case LBoolean => XMLSchema.BOOLEAN
-      case LDouble => XMLSchema.DOUBLE
-      case LFloat => XMLSchema.FLOAT
-      case LLong => XMLSchema.LONG
-      case LInt => XMLSchema.INT
-      case LShort => XMLSchema.SHORT
-      case LChar => Loam.char
-      case LByte => XMLSchema.BYTE
-      case LString => XMLSchema.STRING
-      case LVariantId => Loam.variantId
-      case LSampleId => Loam.sampleId
-      case LGenotype => Loam.genotype
+      case LBoolean | LDouble | LFloat | LLong | LInt | LShort | LChar | LByte | LString | LVariantId | LSampleId |
+           LGenotype =>
+        LTypeRdfDatatypeMapper.typeToIri(tpe)
       case LSet(elementType) =>
         val setNode = io.maker.createBNode()
         io.conn.add(setNode, RDF.TYPE, Loam.set)

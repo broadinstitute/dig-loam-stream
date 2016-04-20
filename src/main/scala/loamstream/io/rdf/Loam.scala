@@ -13,16 +13,18 @@ object Loam {
   val prefix = "loam"
   val factory = SimpleValueFactory.getInstance()
 
-  def add(name: String): IRI = factory.createIRI(namespace, name)
+  def iri(name: String): IRI = factory.createIRI(namespace, name)
 
-  val char = add("Char")
-  val variantId = add("VariantId")
-  val sampleId = add("SampleId")
-  val genotype = add("Genotype")
-  val set = add("Set")
-  val seq = add("Seq")
-  val elementType = add("elementType")
-  val map = add("Map")
-  val keyType = add("keyType")
-  val valueType = add("valueType")
+  val char = iri("Char")
+  val variantId = iri("VariantId")
+  val sampleId = iri("SampleId")
+  val genotype = iri("Genotype")
+  val set = iri("Set")
+  val seq = iri("Seq")
+  val elementType = iri("elementType")
+  val map = iri("Map")
+  val keyType = iri("keyType")
+  val valueType = iri("valueType")
+
+  def tuple(n: Int): IRI = iri("Tuple" + n)
 }

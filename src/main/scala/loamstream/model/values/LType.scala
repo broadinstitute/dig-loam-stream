@@ -46,37 +46,44 @@ object LType {
   }
 
   sealed trait LTuple[T <: Product] extends LType[T] {
+    def arity: Int
     def asSeq: Seq[LType[_]]
   }
 
   object LTuple {
 
     case class LTuple1[T1](type1: LType[T1]) extends LTuple[Tuple1[T1]] {
+      override val arity: Int = 1
       override def asSeq: Seq[LType[_]] = Seq(type1)
     }
 
     case class LTuple2[T1, T2](type1: LType[T1], type2: LType[T2]) extends LTuple[(T1, T2)] {
+      override val arity: Int = 2
       override def asSeq: Seq[LType[_]] = Seq(type1, type2)
     }
 
     case class LTuple3[T1, T2, T3](type1: LType[T1], type2: LType[T2], type3: LType[T3]) extends LTuple[(T1, T2, T3)] {
+      override val arity: Int = 3
       override def asSeq: Seq[LType[_]] = Seq(type1, type2, type3)
     }
 
     case class LTuple4[T1, T2, T3, T4](type1: LType[T1], type2: LType[T2], type3: LType[T3], type4: LType[T4])
       extends LTuple[(T1, T2, T3, T4)] {
+      override val arity: Int = 4
       override def asSeq: Seq[LType[_]] = Seq(type1, type2, type3, type4)
     }
 
     case class LTuple5[T1, T2, T3, T4, T5](type1: LType[T1], type2: LType[T2], type3: LType[T3], type4: LType[T4],
                                            type5: LType[T5])
       extends LTuple[(T1, T2, T3, T4, T5)] {
+      override val arity: Int = 5
       override def asSeq: Seq[LType[_]] = Seq(type1, type2, type3, type4, type5)
     }
 
     case class LTuple6[T1, T2, T3, T4, T5, T6](type1: LType[T1], type2: LType[T2], type3: LType[T3], type4: LType[T4],
                                                type5: LType[T5], type6: LType[T6])
       extends LTuple[(T1, T2, T3, T4, T5, T6)] {
+      override val arity: Int = 6
       override def asSeq: Seq[LType[_]] = Seq(type1, type2, type3, type4, type5, type6)
     }
 
@@ -84,6 +91,7 @@ object LType {
                                                    type4: LType[T4], type5: LType[T5], type6: LType[T6],
                                                    type7: LType[T7])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7)] {
+      override val arity: Int = 7
       override def asSeq: Seq[LType[_]] = Seq(type1, type2, type3, type4, type5, type6, type7)
     }
 
@@ -91,6 +99,7 @@ object LType {
                                                        type4: LType[T4], type5: LType[T5], type6: LType[T6],
                                                        type7: LType[T7], type8: LType[T8])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8)] {
+      override val arity: Int = 8
       override def asSeq: Seq[LType[_]] = Seq(type1, type2, type3, type4, type5, type6, type7, type8)
     }
 
@@ -98,6 +107,7 @@ object LType {
                                                            type4: LType[T4], type5: LType[T5], type6: LType[T6],
                                                            type7: LType[T7], type8: LType[T8], type9: LType[T9])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9)] {
+      override val arity: Int = 9
       override def asSeq: Seq[LType[_]] = Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9)
     }
 
@@ -105,6 +115,7 @@ object LType {
     T8, T9, T10](type1: LType[T1], type2: LType[T2], type3: LType[T3], type4: LType[T4], type5: LType[T5],
                  type6: LType[T6], type7: LType[T7], type8: LType[T8], type9: LType[T9], type10: LType[T10])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)] {
+      override val arity: Int = 10
       override def asSeq: Seq[LType[_]] = Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10)
     }
 
@@ -112,6 +123,7 @@ object LType {
     T11](type1: LType[T1], type2: LType[T2], type3: LType[T3], type4: LType[T4], type5: LType[T5], type6: LType[T6],
          type7: LType[T7], type8: LType[T8], type9: LType[T9], type10: LType[T10], type11: LType[T11])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)] {
+      override val arity: Int = 11
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11)
     }
@@ -121,6 +133,7 @@ object LType {
          type7: LType[T7], type8: LType[T8], type9: LType[T9], type10: LType[T10], type11: LType[T11],
          type12: LType[T12])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)] {
+      override val arity: Int = 12
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12)
     }
@@ -130,6 +143,7 @@ object LType {
          type7: LType[T7], type8: LType[T8], type9: LType[T9], type10: LType[T10], type11: LType[T11],
          type12: LType[T12], type13: LType[T13])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)] {
+      override val arity: Int = 13
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13)
     }
@@ -139,6 +153,7 @@ object LType {
          type7: LType[T7], type8: LType[T8], type9: LType[T9], type10: LType[T10], type11: LType[T11],
          type12: LType[T12], type13: LType[T13], type14: LType[T14])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)] {
+      override val arity: Int = 14
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14)
     }
@@ -148,6 +163,7 @@ object LType {
          type7: LType[T7], type8: LType[T8], type9: LType[T9], type10: LType[T10], type11: LType[T11],
          type12: LType[T12], type13: LType[T13], type14: LType[T14], type15: LType[T15])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)] {
+      override val arity: Int = 15
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15)
@@ -158,6 +174,7 @@ object LType {
          type7: LType[T7], type8: LType[T8], type9: LType[T9], type10: LType[T10], type11: LType[T11],
          type12: LType[T12], type13: LType[T13], type14: LType[T14], type15: LType[T15], type16: LType[T16])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16)] {
+      override val arity: Int = 16
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16)
@@ -169,6 +186,7 @@ object LType {
          type12: LType[T12], type13: LType[T13], type14: LType[T14], type15: LType[T15], type16: LType[T16],
          type17: LType[T17])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17)] {
+      override val arity: Int = 17
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17)
@@ -180,6 +198,7 @@ object LType {
          type12: LType[T12], type13: LType[T13], type14: LType[T14], type15: LType[T15], type16: LType[T16],
          type17: LType[T17], type18: LType[T18])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18)] {
+      override val arity: Int = 18
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18)
@@ -191,6 +210,7 @@ object LType {
          type12: LType[T12], type13: LType[T13], type14: LType[T14], type15: LType[T15], type16: LType[T16],
          type17: LType[T17], type18: LType[T18], type19: LType[T19])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19)] {
+      override val arity: Int = 19
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19)
@@ -202,6 +222,7 @@ object LType {
          type12: LType[T12], type13: LType[T13], type14: LType[T14], type15: LType[T15], type16: LType[T16],
          type17: LType[T17], type18: LType[T18], type19: LType[T19], type20: LType[T20])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20)] {
+      override val arity: Int = 20
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20)
@@ -214,6 +235,7 @@ object LType {
          type17: LType[T17], type18: LType[T18], type19: LType[T19], type20: LType[T20], type21: LType[T21])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20,
         T21)] {
+      override val arity: Int = 21
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20, type21)
@@ -228,6 +250,7 @@ object LType {
          type22: LType[T22])
       extends LTuple[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20,
         T21, T22)] {
+      override val arity: Int = 22
       override def asSeq: Seq[LType[_]] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20, type21, type22)

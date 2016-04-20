@@ -36,6 +36,13 @@ object LTypeEncoder extends Encoder[LType[_]] {
         io.conn.add(mapNode, Loam.keyType, encode(io, keyType))
         io.conn.add(mapNode, Loam.valueType, encode(io, valueType))
         mapNode
+      case tuple: LTuple[_] =>
+        val tupleNode = io.maker.createBNode()
+        io.conn.add(tupleNode, RDF.TYPE, Loam.tuple(tuple.arity))
+        tuple.asSeq.zipWithIndex.foreach({ case (element, i) =>
+          io.conn.add(tupleNode, RdfContainers.membershipProperty(i)(io.conn), encode(io, element))
+        })
+        tupleNode
     }
   }
 

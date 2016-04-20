@@ -1,7 +1,10 @@
 package loamstream.io.rdf
 
-import org.openrdf.model.IRI
+import loamstream.util.shot.{Miss, Shot}
 import org.openrdf.model.impl.SimpleValueFactory
+import org.openrdf.model.{IRI, Value}
+
+import scala.util.Try
 
 /**
   * LoamStream - Language for Omics Analysis Management
@@ -26,5 +29,27 @@ object Loam {
   val keyType = iri("keyType")
   val valueType = iri("valueType")
 
-  def tuple(n: Int): IRI = iri("Tuple" + n)
+  val tupleNamePrefix = "Tuple"
+
+  def tuple(n: Int): IRI = iri(tupleNamePrefix + n)
+
+  def tupleTypeToArity(value: Value): Shot[Int] = {
+    value match {
+      case iri: IRI =>
+        if (iri.getNamespace == namespace) {
+          val name = iri.getLocalName
+          if (name.startsWith(tupleNamePrefix)) {
+            val arityString = name.replaceFirst(tupleNamePrefix, "")
+            Shot.fromTry(Try {
+              arityString.toInt
+            })
+          } else {
+            Miss(s"Expected name to start with '$tupleNamePrefix', but got '$name'.")
+          }
+        } else {
+          Miss(s"Expected namespace '$namespace', but got '${iri.getNamespace}'.")
+        }
+      case _ => Miss(s"Expected IRI, but got '$value'.")
+    }
+  }
 }

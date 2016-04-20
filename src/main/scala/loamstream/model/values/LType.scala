@@ -265,7 +265,9 @@ object LType {
 
 }
 
-sealed trait LType[T] {
+sealed trait LTypeAny
+
+sealed trait LType[T] extends LTypeAny {
   def apply(value: T): LValue[T] = LValue(value, this)
 }
 

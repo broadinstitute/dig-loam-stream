@@ -14,33 +14,21 @@ import org.openrdf.repository.RepositoryConnection
   */
 object LTypeEncoder extends Encoder[LType[_]] {
 
-  case class AtomicEncoder[T](iri: IRI) extends Encoder[T] {
-    override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], thing: T): IRI = iri
-  }
-
-  implicit val booleanEncoder = new AtomicEncoder[Boolean](XMLSchema.BOOLEAN)
-  implicit val doubleEncoder = new AtomicEncoder[Double](XMLSchema.DOUBLE)
-  implicit val floatEncoder = new AtomicEncoder[Float](XMLSchema.FLOAT)
-  implicit val longEncoder = new AtomicEncoder[Long](XMLSchema.LONG)
-  implicit val intEncoder = new AtomicEncoder[Int](XMLSchema.INT)
-  implicit val shortEncoder = new AtomicEncoder[Short](XMLSchema.SHORT)
-  implicit val charEncoder = new AtomicEncoder[Char](Loam.char)
-  implicit val byteEncoder = new AtomicEncoder[Byte](XMLSchema.BYTE)
-  implicit val stringEncoder = new AtomicEncoder[String](XMLSchema.STRING)
-
-  def encodeElementary[T](tpe: LType[T])(implicit encoder: AtomicEncoder[T]): IRI = encoder.iri
-
+  // scalastyle:off cyclomatic.complexity
   override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tpe: LType[_]): Resource = {
     tpe match {
-      case LBoolean => encodeElementary(LBoolean)
-      case LDouble => encodeElementary(LDouble)
-      case LFloat => encodeElementary(LFloat)
-      case LLong => encodeElementary(LLong)
-      case LInt => encodeElementary(LInt)
-      case LShort => encodeElementary(LShort)
-      case LChar => encodeElementary(LChar)
-      case LByte => encodeElementary(LByte)
-      case LString => encodeElementary(LString)
+      case LBoolean => XMLSchema.BOOLEAN
+      case LDouble => XMLSchema.DOUBLE
+      case LFloat => XMLSchema.FLOAT
+      case LLong => XMLSchema.LONG
+      case LInt => XMLSchema.INT
+      case LShort => XMLSchema.SHORT
+      case LChar => Loam.char
+      case LByte => XMLSchema.BYTE
+      case LString => XMLSchema.STRING
+      case LVariantId => Loam.variantId
+      case LSampleId => Loam.sampleId
     }
   }
+  // scalastyle:off cyclomatic.complexity
 }

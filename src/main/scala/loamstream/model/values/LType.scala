@@ -35,10 +35,6 @@ object LType {
 
   case object LGenotype extends LType[Genotype]
 
-  case object LSingletonCount extends LType[SingletonCount]
-
-  case object LClusterId extends LType[ClusterId]
-
   sealed trait LIterable[E, I <: Iterable[E]] extends LType[I] {
     def elementType: LType[E]
   }

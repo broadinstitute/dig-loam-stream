@@ -5,7 +5,7 @@ import loamstream.model.kinds.instances.StoreKinds
 import loamstream.model.piles.{LPileSpec, LSig}
 import loamstream.model.stores.LStore
 import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
-import loamstream.model.values.LType.{LClusterId, LDouble, LGenotype, LInt, LSampleId, LSingletonCount, LVariantId}
+import loamstream.model.values.LType.{LDouble, LGenotype, LInt, LSampleId, LVariantId}
 
 /**
   * LoamStream
@@ -23,9 +23,9 @@ object CoreStore {
     CoreStore("PCA projected file", LPileSpec(LSig.Map(LTuple2(LSampleId, LInt), LDouble),
       StoreKinds.pcaProjectedFile))
   val sampleClusterFile =
-    CoreStore("Sample cluster file", LPileSpec(LSig.Map(LTuple1(LSampleId), LClusterId),
+    CoreStore("Sample cluster file", LPileSpec(LSig.Map(LTuple1(LSampleId), LInt),
       StoreKinds.sampleClustersFile))
-  val singletonsFile = CoreStore("Singletons file", LPileSpec(LSig.Map(LTuple1(LSampleId), LSingletonCount),
+  val singletonsFile = CoreStore("Singletons file", LPileSpec(LSig.Map(LTuple1(LSampleId), LInt),
     StoreKinds.singletonsFile))
   val sampleIdsFile = CoreStore("Sample ids file", LPileSpec(LSig.Set(LTuple1(LSampleId)), StoreKinds.sampleIdsFile))
 

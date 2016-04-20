@@ -24,6 +24,7 @@ object LTypeEncoder extends Encoder[LType[_]] {
   implicit val longEncoder = new AtomicEncoder[Long](XMLSchema.LONG)
   implicit val intEncoder = new AtomicEncoder[Int](XMLSchema.INT)
   implicit val shortEncoder = new AtomicEncoder[Short](XMLSchema.SHORT)
+  implicit val charEncoder = new AtomicEncoder[Char](Loam.char)
   implicit val byteEncoder = new AtomicEncoder[Byte](XMLSchema.BYTE)
   implicit val stringEncoder = new AtomicEncoder[String](XMLSchema.STRING)
 
@@ -37,6 +38,7 @@ object LTypeEncoder extends Encoder[LType[_]] {
       case LLong => encodeElementary(LLong)
       case LInt => encodeElementary(LInt)
       case LShort => encodeElementary(LShort)
+      case LChar => encodeElementary(LChar)
       case LByte => encodeElementary(LByte)
       case LString => encodeElementary(LString)
     }

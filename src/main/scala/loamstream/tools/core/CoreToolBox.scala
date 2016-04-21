@@ -1,6 +1,7 @@
 package loamstream.tools.core
 
 import java.nio.file.{Files, Path}
+
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.LEnv
 import loamstream.map.LToolMapping
@@ -16,11 +17,13 @@ import loamstream.model.stores.LStore
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
 import CoreToolBox._
+import loamstream.model.values.LValue
 import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
-import loamstream.tools.klusta.{KlustaKwikLineCommand, KlustaKwikInputWriter}
+import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikLineCommand}
 import loamstream.tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser}
 import loamstream.tools.VcfUtils
 import loamstream.util.LoamFileUtils
+
 import scala.concurrent.{ExecutionContext, Future, blocking}
 
 /**
@@ -153,7 +156,10 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   lazy val vcfFileJobShot: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {
       case LSpecificKind(specifics, _) => specifics.value match {
-        case (_, id: String) => predefinedVcfFileShot(id).map(CheckPreexistingVcfFileJob)
+        case Seq(_, id) => id match {
+          case idString: String => predefinedVcfFileShot(idString).map(CheckPreexistingVcfFileJob)
+          case _ => Miss(s"'$id' is not a String. ")
+        }
         case _ => Miss(SnagMessage("Recipe is not of the right kind."))
       }
       case _ => Miss(SnagMessage("Can't get id for VCF file."))
@@ -189,7 +195,8 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
     case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJobShot
     case CoreTool.projectPcaNative => calculatePcaProjectionsJobShot
     case CoreTool.klustaKwikClustering => calculateClustersJobShot
-    case _ => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
+    case _ =>
+      Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {

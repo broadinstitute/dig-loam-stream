@@ -51,7 +51,6 @@ class AncestryInferenceEndToEndTest extends FunSuite with BeforeAndAfter {
     val mapping = mappingCostEstimator.pickCheapest(mappings)
     LToolMappingLogger.logMapping(Level.trace, mapping)
     val pcaProjectionJob = toolbox.createJobs(pipeline.pcaProjectionRecipe, pipeline, mapping)
-    println(pcaProjectionJob)
     assert(TestUtils.isHitOfSetOfOne(pcaProjectionJob))
     val SampleClusteringJob = toolbox.createJobs(pipeline.sampleClustering, pipeline, mapping)
     assert(TestUtils.isHitOfSetOfOne(SampleClusteringJob))

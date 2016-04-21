@@ -11,14 +11,14 @@ import scala.language.existentials
   */
 object LSig {
 
-  case class Set(keyTypes: LTuple[_ <: Product]) extends LSig {
+  case class Set(keyTypes: LTuple) extends LSig {
     override def =:=(oSig: LSig): Boolean = oSig match {
       case Set(oKeyTypes) => keyTypes == oKeyTypes
       case _ => false
     }
   }
 
-  case class Map(keyTypes: LTuple[_ <: Product], vType: LType[_]) extends LSig {
+  case class Map(keyTypes: LTuple, vType: LType[_]) extends LSig {
     override def =:=(oSig: LSig): Boolean =
       oSig match {
         case Map(oKeyTypes, oVType) => keyTypes == oKeyTypes && vType == oVType
@@ -29,7 +29,7 @@ object LSig {
 }
 
 sealed trait LSig {
-  def keyTypes: LTuple[_]
+  def keyTypes: LTuple
 
   def =:=(oSig: LSig): Boolean
 }

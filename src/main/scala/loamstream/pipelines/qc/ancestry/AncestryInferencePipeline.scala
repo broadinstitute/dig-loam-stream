@@ -4,8 +4,7 @@ import loamstream.model.LPipeline
 import loamstream.model.kinds.instances.{PileKinds, RecipeKinds}
 import loamstream.model.piles.{LPile, LSig}
 import loamstream.model.recipes.LRecipe
-import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
-import loamstream.model.values.LType.{LDouble, LGenotype, LInt, LSampleId, LVariantId}
+import loamstream.model.values.LType.{LDouble, LGenotype, LInt, LSampleId, LTuple, LVariantId}
 
 /**
   * LoamStream
@@ -14,10 +13,10 @@ import loamstream.model.values.LType.{LDouble, LGenotype, LInt, LSampleId, LVari
 case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) extends LPipeline {
 
   val genotypesPile =
-    LPile(genotypesId, LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype), PileKinds.genotypeCallsByVariantAndSample)
-  val pcaWeightsPile = LPile(pcaWeightsId, LSig.Map(LTuple2(LSampleId, LInt), LDouble), PileKinds.pcaWeights)
-  val projectedValsPile = LPile(LSig.Map(LTuple2(LSampleId, LInt), LDouble), PileKinds.pcaProjected)
-  val sampleClustersPile = LPile(LSig.Map(LTuple1(LSampleId), LInt), PileKinds.sampleClustersByAncestry)
+    LPile(genotypesId, LSig.Map(LTuple(LVariantId, LSampleId), LGenotype), PileKinds.genotypeCallsByVariantAndSample)
+  val pcaWeightsPile = LPile(pcaWeightsId, LSig.Map(LTuple(LSampleId, LInt), LDouble), PileKinds.pcaWeights)
+  val projectedValsPile = LPile(LSig.Map(LTuple(LSampleId, LInt), LDouble), PileKinds.pcaProjected)
+  val sampleClustersPile = LPile(LSig.Map(LTuple(LSampleId), LInt), PileKinds.sampleClustersByAncestry)
 
   val genotypesPileRecipe = LRecipe.preExistingCheckout(genotypesId, genotypesPile)
   val pcaWeightsPileRecipe = LRecipe.preExistingCheckout(pcaWeightsId, pcaWeightsPile)

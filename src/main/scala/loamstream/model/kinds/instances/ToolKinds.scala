@@ -2,21 +2,20 @@ package loamstream.model.kinds.instances
 
 import loamstream.model.kinds.LSpecificKind
 import loamstream.model.kinds.instances.RecipeKinds.{calculateSingletons, calculateSingletonsFromGenotypeCalls,
-  clusteringSamplesByFeatures, extractKey, extractSampleIdsFromGenotypeCalls, importVcf, loadVdsFromGenotypeCalls,
-  pcaProjection, usePreExisting}
-import loamstream.model.values.LType.LString
-import loamstream.model.values.LType.LTuple.LTuple2
+clusteringSamplesByFeatures, extractKey, extractSampleIdsFromGenotypeCalls, importVcf, loadVdsFromGenotypeCalls,
+pcaProjection, usePreExisting}
+import loamstream.model.values.LType.{LString, LTuple}
 
 /**
   * LoamStream
   * Created by oliverr on 2/16/2016.
   */
 object ToolKinds {
-  def usePreExistingVCFFile(id: String): LSpecificKind[(String, String)] =
-    LSpecificKind(LTuple2(LString, LString)("Use pre-existing VCF file", id), usePreExisting(id))
+  def usePreExistingVCFFile(id: String): LSpecificKind =
+    LSpecificKind(LTuple(LString, LString)("Use pre-existing VCF file", id), usePreExisting(id))
 
-  def usePreExistingCassandraGenotypeCallsTable(id: String): LSpecificKind[(String, String)] =
-    LSpecificKind(LTuple2(LString, LString)("Use pre-existing Cassandra genotype calls table", id),
+  def usePreExistingCassandraGenotypeCallsTable(id: String): LSpecificKind =
+    LSpecificKind(LTuple(LString, LString)("Use pre-existing Cassandra genotype calls table", id),
       usePreExisting(id))
 
   val extractSampleIdsFromVcfFile =

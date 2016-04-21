@@ -42,7 +42,7 @@ object LType {
   case class LSet[E](elementType: LType[E]) extends LIterable[E, Set[E]] {
   }
 
-  case class LSeq[E](elementType: LType[E]) extends LIterable[E, Set[E]] {
+  case class LSeq[E](elementType: LType[E]) extends LIterable[E, Seq[E]] {
   }
 
   sealed trait LTuple[T <: Product] extends LType[T] {

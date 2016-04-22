@@ -5,5 +5,5 @@ package loamstream.model.values
   * Created by oliverr on 4/19/2016.
   */
 case class LValue(value: Any, tpe: LTypeAny) {
-
+  def as[T]: T = value.asInstanceOf[T]
 }

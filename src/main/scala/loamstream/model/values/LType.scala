@@ -50,7 +50,8 @@ object LType {
 
   case class LTuple(types: Seq[LTypeAny]) extends LTypeAny {
     def arity: Int = types.size
-    def apply(value:Any, values: Any*): LValue = LValue(value +: values, this)
+
+    def apply(value: Any, values: Any*): LValue = LValue(value +: values, this)
   }
 
   case class LMap(keyType: LTypeAny, valueType: LTypeAny) extends LIterable[Map[_, _]] {
@@ -63,5 +64,7 @@ sealed trait LTypeAny
 
 sealed trait LType[T] extends LTypeAny {
   def apply(value: T): LValue = LValue(value, this)
+
+  def of(any: Any): T = any.asInstanceOf[T]
 }
 

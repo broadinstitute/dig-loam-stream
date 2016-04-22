@@ -2,11 +2,11 @@ package loamstream.io.rdf
 
 import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Decoder
-import loamstream.model.values.LType.LSet
+import loamstream.model.values.LType.{LMap, LSeq, LSet, LTuple}
 import loamstream.model.values.LTypeAny
-import loamstream.util.shot.{Hit, Miss, Shot}
+import loamstream.util.shot.{Hit, Miss, Shot, Shots}
 import org.openrdf.model.vocabulary.{RDF, XMLSchema}
-import org.openrdf.model.{IRI, Resource, Value, ValueFactory}
+import org.openrdf.model.{IRI, Literal, Resource, Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection
 
 /**
@@ -31,13 +31,27 @@ object LTypeDecoder extends Decoder[LTypeAny] {
                   case Loam.set =>
                     RdfQueries.findUniqueObject(typeResource, Loam.elementType)(io.conn).flatMap(decode(io, _)).
                       map(LSet(_))
-                  case Loam.seq => ???
-                  case Loam.map => ???
-                  case _ =>
+                  case Loam.seq =>
+                    RdfQueries.findUniqueObject(typeResource, Loam.elementType)(io.conn).flatMap(decode(io, _)).
+                      map(LSeq(_))
+                  case Loam.map =>
+                    val keyTypeShot =
+                      RdfQueries.findUniqueObject(typeResource, Loam.keyType)(io.conn).flatMap(decode(io, _))
+                    val valueTypeShot =
+                      RdfQueries.findUniqueObject(typeResource, Loam.valueType)(io.conn).flatMap(decode(io, _))
+                    (keyTypeShot and valueTypeShot) (LMap)
+                  case _ if Loam.isTupleType(rdfType) =>
                     Loam.tupleTypeToArity(rdfType) match {
-                      case Hit(arity) => ???
+                      case Hit(arity) =>
+                        val typeShots = (1 to arity).map(i =>
+                          RdfQueries.findUniqueObject(typeResource,
+                            RdfContainers.membershipProperty(i)(io.conn))(io.conn)
+                        ).map(_.flatMap(decode(io, _)))
+                        Shots.unpack(typeShots).map(_.toSeq).map(LTuple(_))
                       case miss: Miss => miss
                     }
+                  case literal: Literal => Miss(s"Expected RDF type to be a resource, but got literal '$literal'.")
+                  case _ => Miss(s"Unrecognized type for an LType '$rdfType'.")
                 }
               case miss: Miss => miss
             }

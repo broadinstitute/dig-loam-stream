@@ -33,6 +33,13 @@ object Loam {
 
   def tuple(n: Int): IRI = iri(tupleNamePrefix + n)
 
+  def isTupleType(value: Value): Boolean = {
+    value match {
+      case iri: IRI => (iri.getNamespace == namespace) && iri.getLocalName.startsWith(tupleNamePrefix)
+      case _ => false
+    }
+  }
+
   def tupleTypeToArity(value: Value): Shot[Int] = {
     value match {
       case iri: IRI =>

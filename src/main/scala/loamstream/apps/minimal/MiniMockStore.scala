@@ -1,11 +1,11 @@
 package loamstream.apps.minimal
 
-import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.id.LId
 import loamstream.model.kinds.instances.StoreKinds
 import loamstream.model.piles.{LPileSpec, LSig}
-import loamstream.model.signatures.Signatures.{SingletonCount, _}
 import loamstream.model.stores.LStore
+import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
+import loamstream.model.values.LType.{LGenotype, LSampleId, LString, LVariantId}
 
 /**
   * LoamStream
@@ -13,10 +13,12 @@ import loamstream.model.stores.LStore
   */
 object MiniMockStore {
 
-  val genotypesCassandraTable = MiniMockStore("Cassandra genotype calls table",
-    LPileSpec(LSig.Map[(String, VariantId), Genotype], StoreKinds.genotypesCassandraTable))
-  val sampleIdsCassandraTable = MiniMockStore("Cassandra sample ids table.", LPileSpec(LSig.Set[Tuple1[String]],
-    StoreKinds.sampleIdsCassandraTable))
+  val genotypesCassandraTable =
+    MiniMockStore("Cassandra genotype calls table", LPileSpec(LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype),
+      StoreKinds.genotypesCassandraTable))
+  val sampleIdsCassandraTable =
+    MiniMockStore("Cassandra sample ids table.", LPileSpec(LSig.Set(LTuple1(LSampleId)),
+      StoreKinds.sampleIdsCassandraTable))
 
   val stores = Set[LStore](genotypesCassandraTable, sampleIdsCassandraTable)
 

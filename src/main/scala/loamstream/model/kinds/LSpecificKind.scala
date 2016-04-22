@@ -1,14 +1,20 @@
 package loamstream.model.kinds
 
+import loamstream.model.values.LType.LString
+import loamstream.model.values.LValue
+
 /**
   * LoamStream
   * Created by oliverr on 2/11/2016.
   */
 object LSpecificKind {
-  def apply[T](specifics: T, supers: LKind*): LSpecificKind[T] = LSpecificKind[T](specifics, supers.toSet)
+  def apply(specifics: String, supers: LKind*): LSpecificKind[String] =
+    LSpecificKind[String](LString(specifics), supers.toSet)
+
+  def apply[T](specifics: LValue[T], supers: LKind*): LSpecificKind[T] = LSpecificKind[T](specifics, supers.toSet)
 }
 
-case class LSpecificKind[T](specifics: T, supers: Set[LKind]) extends LKind {
+case class LSpecificKind[T](specifics: LValue[T], supers: Set[LKind]) extends LKind {
   override def <:<(oKind: LKind): Boolean = oKind match {
     case _ if oKind == this => true
     case LAnyKind => true

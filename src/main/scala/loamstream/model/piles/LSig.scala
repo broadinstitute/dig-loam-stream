@@ -1,8 +1,9 @@
 package loamstream.model.piles
 
-import loamstream.util.ProductTypeExploder
+import loamstream.model.values.LType
+import loamstream.model.values.LType.LTuple
 
-import scala.reflect.runtime.universe.{TypeTag, typeTag}
+import scala.language.existentials
 
 /**
   * LoamStream
@@ -10,23 +11,14 @@ import scala.reflect.runtime.universe.{TypeTag, typeTag}
   */
 object LSig {
 
-  object Set {
-    def apply[Keys: TypeTag]: Set = Set(ProductTypeExploder.explode(typeTag[Keys].tpe).map(new LType(_)))
-  }
-
-  case class Set(keyTypes: Seq[LType]) extends LSig {
+  case class Set(keyTypes: LTuple[_ <: Product]) extends LSig {
     override def =:=(oSig: LSig): Boolean = oSig match {
       case Set(oKeyTypes) => keyTypes == oKeyTypes
       case _ => false
     }
   }
 
-  object Map {
-    def apply[Keys: TypeTag, V: TypeTag]: Map =
-      Map(ProductTypeExploder.explode(typeTag[Keys].tpe).map(new LType(_)), new LType(typeTag[V].tpe))
-  }
-
-  case class Map(keyTypes: Seq[LType], vType: LType) extends LSig {
+  case class Map(keyTypes: LTuple[_ <: Product], vType: LType[_]) extends LSig {
     override def =:=(oSig: LSig): Boolean =
       oSig match {
         case Map(oKeyTypes, oVType) => keyTypes == oKeyTypes && vType == oVType
@@ -37,7 +29,7 @@ object LSig {
 }
 
 sealed trait LSig {
-  def keyTypes: Seq[LType]
+  def keyTypes: LTuple[_]
 
   def =:=(oSig: LSig): Boolean
 }

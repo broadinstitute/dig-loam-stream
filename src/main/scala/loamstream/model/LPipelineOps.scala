@@ -3,6 +3,7 @@ package loamstream.model
 import loamstream.model.kinds.LKind
 import loamstream.model.piles.{LPile, LSig}
 import loamstream.model.recipes.LRecipe
+import loamstream.model.values.LType.LTuple.LTuple1
 
 /**
   * LoamStream
@@ -11,7 +12,7 @@ import loamstream.model.recipes.LRecipe
 object LPipelineOps {
 
   def extractKeyPile(inputPile: LPile, index: Int, kind: LKind): LPile =
-    LPile(LSig.Set(Seq(inputPile.spec.sig.keyTypes(index))), kind)
+    LPile(LSig.Set(LTuple1(inputPile.spec.sig.keyTypes.asSeq(index))), kind)
 
   def extractKeyRecipe(inputPile: LPile, index: Int, outputPile: LPile): LRecipe =
     LRecipe.keyExtraction(inputPile, outputPile, index)
@@ -22,14 +23,8 @@ object LPipelineOps {
     (outputPile, recipe)
   }
 
-  def importVcfPile(inputPile: LPile, index: Int, kind: LKind): LPile =
-    LPile(LSig.Set(Seq(inputPile.spec.sig.keyTypes(index))), kind)
-
   def importVcfRecipe(inputPile: LPile, index: Int, outputPile: LPile): LRecipe =
     LRecipe.vcfImport(inputPile, outputPile, index)
-
-  def calculateSingletonsPile(inputPile: LPile, index: Int, kind: LKind): LPile =
-    LPile(LSig.Set(Seq(inputPile.spec.sig.keyTypes(index))), kind)
 
   def calculateSingletonsRecipe(inputPile: LPile, index: Int, outputPile: LPile): LRecipe =
     LRecipe.singletonCalculation(inputPile, outputPile, index)

@@ -152,7 +152,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
 
   lazy val vcfFileJobShot: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.recipe.kind match {
-      case LSpecificKind(specifics, _) => specifics match {
+      case LSpecificKind(specifics, _) => specifics.value match {
         case (_, id: String) => predefinedVcfFileShot(id).map(CheckPreexistingVcfFileJob)
         case _ => Miss(SnagMessage("Recipe is not of the right kind."))
       }

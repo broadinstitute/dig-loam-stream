@@ -19,6 +19,7 @@ import scala.util.Try
   * Created by oliverr on 4/12/2016.
   */
 object RedFern {
+
   def getNew(implicit conn: RepositoryConnection): RedFern = RedFern(conn)
 
   type Encoder[T] = LIO.Encoder[RepositoryConnection, Value, ValueFactory, T]

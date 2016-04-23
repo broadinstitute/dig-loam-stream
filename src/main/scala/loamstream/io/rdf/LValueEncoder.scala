@@ -14,6 +14,8 @@ import org.openrdf.repository.RepositoryConnection
   * Created by oliverr on 4/22/2016.
   */
 object LValueEncoder extends Encoder[LValue] {
+
+
   // scalastyle:off cyclomatic.complexity
   override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], lValue: LValue): Value = {
     lValue.tpe match {
@@ -29,6 +31,7 @@ object LValueEncoder extends Encoder[LValue] {
       case LVariantId => io.maker.createLiteral(lValue.as[String], Loam.variantId)
       case LSampleId => io.maker.createLiteral(lValue.as[String], Loam.sampleId)
       case LGenotype => ???
+
     }
   }
 

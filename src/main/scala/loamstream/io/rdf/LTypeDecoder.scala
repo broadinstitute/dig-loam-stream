@@ -36,9 +36,11 @@ object LTypeDecoder extends Decoder[LTypeAny] {
                       map(LSeq(_))
                   case Loam.map =>
                     val keyTypeShot =
-                      RdfQueries.findUniqueObject(typeResource, Loam.keyType)(io.conn).flatMap(decode(io, _))
+                      RdfQueries.findUniqueObject(typeResource, Loam.keyType)(io.conn).flatMap(decode(io, _)).
+                        flatMap(_.asEncodeable)
                     val valueTypeShot =
-                      RdfQueries.findUniqueObject(typeResource, Loam.valueType)(io.conn).flatMap(decode(io, _))
+                      RdfQueries.findUniqueObject(typeResource, Loam.valueType)(io.conn).flatMap(decode(io, _)).
+                        flatMap(_.asEncodeable)
                     (keyTypeShot and valueTypeShot) (LMap)
                   case _ if Loam.isTupleType(rdfType) =>
                     Loam.tupleTypeToArity(rdfType) match {
@@ -46,7 +48,7 @@ object LTypeDecoder extends Decoder[LTypeAny] {
                         val typeShots = (1 to arity).map(i =>
                           RdfQueries.findUniqueObject(typeResource,
                             RdfContainers.membershipProperty(i)(io.conn))(io.conn)
-                        ).map(_.flatMap(decode(io, _)))
+                        ).map(_.flatMap(decode(io, _)).flatMap(_.asEncodeable))
                         Shots.unpack(typeShots).map(_.toSeq).map(LTuple(_))
                       case miss: Miss => miss
                     }

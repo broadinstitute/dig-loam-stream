@@ -30,8 +30,6 @@ object LValueEncoder extends Encoder[LValue] {
       case LString => io.maker.createLiteral(lValue.as[String], XMLSchema.STRING)
       case LVariantId => io.maker.createLiteral(lValue.as[String], Loam.variantId)
       case LSampleId => io.maker.createLiteral(lValue.as[String], Loam.sampleId)
-      case LGenotype => ???
-
     }
   }
 

@@ -23,6 +23,11 @@ object RedFern {
   def getNew(implicit conn: RepositoryConnection): RedFern = RedFern(conn)
 
   type Encoder[T] = LIO.Encoder[RepositoryConnection, Value, ValueFactory, T]
+
+  trait EncoderByResource[T] extends Encoder[T] {
+    override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], thing: T): Resource
+  }
+
   type Decoder[T] = LIO.Decoder[RepositoryConnection, Value, ValueFactory, T]
 
   case class LiteralEncoder[T](toLiteral: (ValueFactory, T) => Literal) extends Encoder[T] {
@@ -66,8 +71,8 @@ object RedFern {
     LiteralEncoder((maker: ValueFactory, string: String) => maker.createLiteral(string, XMLSchema.STRING))
   implicit val stringDecoder = LiteralDecoder(XMLSchema.STRING, _.stringValue())
 
-  implicit def iterableEncoder[E](implicit elementEncoder: Encoder[E]): Encoder[Iterable[E]] =
-    new Encoder[Iterable[E]] {
+  implicit def iterableEncoder[E](implicit elementEncoder: Encoder[E]): EncoderByResource[Iterable[E]] =
+    new EncoderByResource[Iterable[E]] {
       override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], iterable: Iterable[E]): Resource = {
         val head = io.maker.createBNode()
         val elementValues = iterable.map(elementEncoder.encode(io, _))
@@ -97,9 +102,10 @@ object RedFern {
   implicit def seqDecoder[E](implicit elementDecoder: Decoder[E]): Decoder[Seq[E]] =
     iterableDecoder[E].map[Iterable[E], Seq[E]](_.toSeq)
 
-  implicit def tuple2Encoder[T1, T2](implicit encoder1: Encoder[T1], encoder2: Encoder[T2]): Encoder[(T1, T2)] = {
-    new Encoder[(T1, T2)] {
-      override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tuple: (T1, T2)): Value = {
+  implicit def tuple2Encoder[T1, T2](implicit encoder1: Encoder[T1], encoder2: Encoder[T2]):
+  EncoderByResource[(T1, T2)] = {
+    new EncoderByResource[(T1, T2)] {
+      override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tuple: (T1, T2)): Resource = {
         val head = io.maker.createBNode()
         implicit val conn = io.conn
         conn.add(head, RdfContainers.m1, encoder1.encode(io, tuple._1))
@@ -124,8 +130,11 @@ object RedFern {
     }
   }
 
-  implicit def mapEncoder[K, V](implicit keyEncoder: Encoder[K], valueEncoder: Encoder[V]): Encoder[Map[K, V]] =
-    iterableEncoder[(K, V)](tuple2Encoder)
+  implicit def mapEncoder[K, V](implicit keyEncoder: Encoder[K], valueEncoder: Encoder[V]):
+  EncoderByResource[Map[K, V]] = new EncoderByResource[Map[K, V]] {
+    override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], thing: Map[K, V]): Resource =
+      iterableEncoder[(K, V)](tuple2Encoder).encode(io, thing)
+  }
 
   implicit def mapDecoder[K, V](implicit keyDecoder: Decoder[K], valueDecoder: Decoder[V]): Decoder[Map[K, V]] =
     iterableDecoder[(K, V)](tuple2Decoder).map[Iterable[(K, V)], Map[K, V]](_.toMap)

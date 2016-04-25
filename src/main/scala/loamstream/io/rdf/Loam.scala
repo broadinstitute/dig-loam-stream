@@ -29,6 +29,10 @@ object Loam {
   val keyType = iri("keyType")
   val valueType = iri("valueType")
 
+  val unknownType = iri("UnknownType")
+  val hasValue = iri("hasValue")
+  val hasType = iri("hasType")
+
   val tupleNamePrefix = "Tuple"
 
   def tuple(n: Int): IRI = iri(tupleNamePrefix + n)

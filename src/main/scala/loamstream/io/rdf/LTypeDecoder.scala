@@ -30,10 +30,10 @@ object LTypeDecoder extends Decoder[LTypeAny] {
                 rdfType match {
                   case Loam.set =>
                     RdfQueries.findUniqueObject(typeResource, Loam.elementType)(io.conn).flatMap(decode(io, _)).
-                      map(LSet(_))
+                      flatMap(_.asEncodeable).map(LSet(_))
                   case Loam.seq =>
                     RdfQueries.findUniqueObject(typeResource, Loam.elementType)(io.conn).flatMap(decode(io, _)).
-                      map(LSeq(_))
+                      flatMap(_.asEncodeable).map(LSeq(_))
                   case Loam.map =>
                     val keyTypeShot =
                       RdfQueries.findUniqueObject(typeResource, Loam.keyType)(io.conn).flatMap(decode(io, _)).

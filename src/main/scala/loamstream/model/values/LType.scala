@@ -13,6 +13,8 @@ import loamstream.util.shot.{Hit, Miss, Shot}
 object LType {
 
   sealed trait Encodeable extends LTypeAny {
+    def value(value: Any): LValue = LValue(value, this)
+
     override def asEncodeable: Hit[Encodeable] = Hit(this)
   }
 
@@ -41,20 +43,20 @@ object LType {
   case object LGenotype extends LType[Genotype]
 
   sealed trait LIterable[I <: Iterable[_]] extends LType[I] {
-    def elementType: LTypeAny
+    def elementType: Encodeable
   }
 
-  case class LSet(elementType: LTypeAny) extends LIterable[Set[_]] with Encodeable {
+  case class LSet(elementType: Encodeable) extends LIterable[Set[_]] with Encodeable {
   }
 
-  case class LSeq(elementType: LTypeAny) extends LIterable[Seq[_]] with Encodeable {
+  case class LSeq(elementType: Encodeable) extends LIterable[Seq[_]] with Encodeable {
   }
 
   object LTuple {
     def apply(tpe: Encodeable, types: Encodeable*): LTuple = LTuple(tpe +: types)
   }
 
-  case class LTuple(types: Seq[Encodeable]) extends Encodeable {
+  case class LTuple(types: Seq[Encodeable]) extends LType[Product] with Encodeable {
     def arity: Int = types.size
 
     def apply(value: Any, values: Any*): LValue = LValue(value +: values, this)

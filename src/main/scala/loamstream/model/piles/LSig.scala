@@ -17,6 +17,10 @@ object LSig {
       case _ => false
     }
   }
+  
+  object Set {
+    def of[K](k: LType[K]): LSig.Set = new LSig.Set(LTuple.LTuple1(k))
+  }
 
   case class Map(keyTypes: LTuple[_ <: Product], vType: LType[_]) extends LSig {
     override def =:=(oSig: LSig): Boolean =

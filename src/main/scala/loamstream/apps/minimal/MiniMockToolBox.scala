@@ -6,13 +6,12 @@ import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LJob, LToolBox}
 import loamstream.model.jobs.tools.LTool
-import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
-import loamstream.model.stores.LStore
 import loamstream.tools.core.LCoreDefaultPileIds
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
+import loamstream.model.StoreBase
 
 
 /**
@@ -32,7 +31,7 @@ case class MiniMockToolBox(genotypesId: String = LCoreDefaultPileIds.genotypes) 
   val stores = MiniMockStore.stores
   val tools = MiniMockTool.tools(genotypesId)
 
-  override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)
+  override def storesFor(pile: StoreBase): Set[StoreBase] = stores.filter(_.pile <:< pile.spec)
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
 

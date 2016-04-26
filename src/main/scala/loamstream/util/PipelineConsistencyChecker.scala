@@ -1,8 +1,8 @@
 package loamstream.util
 
 import loamstream.model.LPipeline
-import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
+import loamstream.model.StoreBase
 
 /**
   * LoamStream
@@ -35,7 +35,7 @@ object PipelineConsistencyChecker {
   }
 
   sealed trait PileSpecificProblem extends Problem {
-    def pile: LPile
+    def pile: StoreBase
   }
 
   sealed trait RecipeSpecificProblem extends Problem {
@@ -44,7 +44,7 @@ object PipelineConsistencyChecker {
 
   sealed trait PileIsNotProducedByExactlyOneRecipe extends PileSpecificProblem
 
-  case class PileIsProducedByNoRecipe(pile: LPile) extends PileIsNotProducedByExactlyOneRecipe {
+  case class PileIsProducedByNoRecipe(pile: StoreBase) extends PileIsNotProducedByExactlyOneRecipe {
     override def message: String = "Pile " + pile.id + " is not produced by any recipe."
   }
 
@@ -54,7 +54,7 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PileIsProducedByMultipleRecipes(pile: LPile, recipes: Set[LRecipe])
+  case class PileIsProducedByMultipleRecipes(pile: StoreBase, recipes: Set[LRecipe])
     extends PileIsNotProducedByExactlyOneRecipe {
     override def message: String =
       "Pile " + pile.id + " is produced by multiple recipes: " + recipes.map(_.id).mkString(", ") + "."
@@ -70,7 +70,7 @@ object PipelineConsistencyChecker {
 
   sealed trait PileIsNotCompatibleWithRecipe extends PileSpecificProblem with RecipeSpecificProblem
 
-  case class PileIsIncompatibleOutputOfRecipe(pile: LPile, recipe: LRecipe) extends PileIsNotCompatibleWithRecipe {
+  case class PileIsIncompatibleOutputOfRecipe(pile: StoreBase, recipe: LRecipe) extends PileIsNotCompatibleWithRecipe {
     override def message: String = "Pile " + pile.id + " is not compatible output of recipe " + recipe.id + "."
   }
 
@@ -81,7 +81,7 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PileIsIncompatibleInputOfRecipe(pile: LPile, recipe: LRecipe, pos: Int)
+  case class PileIsIncompatibleInputOfRecipe(pile: StoreBase, recipe: LRecipe, pos: Int)
     extends PileIsNotCompatibleWithRecipe {
     override def message: String =
       "Pile " + pile.id + " is not compatible input (position " + pos + ") of recipe " + recipe.id + "."
@@ -99,7 +99,7 @@ object PipelineConsistencyChecker {
 
   sealed trait PileMissingUsedInRecipe extends PileSpecificProblem with RecipeSpecificProblem
 
-  case class PileMissingUsedAsOutput(pile: LPile, recipe: LRecipe) extends PileMissingUsedInRecipe {
+  case class PileMissingUsedAsOutput(pile: StoreBase, recipe: LRecipe) extends PileMissingUsedInRecipe {
     override def message: String = "Pile " + pile.id + " used as output in recipe " + recipe.id + " is missing."
   }
 
@@ -111,7 +111,7 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PileMissingUsedAsInput(pile: LPile, recipe: LRecipe, pos: Int) extends PileMissingUsedInRecipe {
+  case class PileMissingUsedAsInput(pile: StoreBase, recipe: LRecipe, pos: Int) extends PileMissingUsedInRecipe {
     override def message: String = "Pile " + pile.id + " used as input (pos " + pos + ") in recipe " +
       recipe.id + " is missing."
   }
@@ -125,7 +125,7 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PipelineIsDisconnected(pile: LPile, otherPile: LPile) extends PileSpecificProblem {
+  case class PipelineIsDisconnected(pile: StoreBase, otherPile: StoreBase) extends PileSpecificProblem {
     override def message: String =
       "Pipeline is disconnected: no path from pile " + pile.id + " to " + otherPile.id + "."
   }
@@ -135,7 +135,7 @@ object PipelineConsistencyChecker {
       pipeline.piles.headOption match {
         case Some(arbitraryPile) =>
           var makingProgress = true
-          var connectedPiles: Set[LPile] = Set(arbitraryPile)
+          var connectedPiles: Set[StoreBase] = Set(arbitraryPile)
           while (makingProgress) {
             makingProgress = false
             for (recipe <- pipeline.recipes) {
@@ -154,23 +154,13 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PipelineHasCycle(pile: LPile) extends PileSpecificProblem {
+  case class PipelineHasCycle(pile: StoreBase) extends PileSpecificProblem {
     override def message: String = "Pipeline contains a cycle containing pile " + pile.id + "."
   }
 
   case object AcyclicityCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      val z: (Set[LPile], Boolean, Int) = (pipeline.piles, true, pipeline.piles.size) 
-      
-      pipeline.piles.foldLeft(z) { (acc, pile) =>
-        val (pilesLeft, makingProgress, nPilesLeft) = acc
-        
-        val newPilesLeft = pipeline.recipes.filter(recipe => pilesLeft.contains(recipe.output)).flatMap(_.inputs)
-        val nPilesLeftNew = newPilesLeft.size
-        
-        (newPilesLeft, nPilesLeftNew < nPilesLeft, nPilesLeftNew)
-      }
-      
+      //TODO: Get rid of vars with a fold 
       var pilesLeft = pipeline.piles
       var makingProgress = true
       var nPilesLeft = pilesLeft.size
@@ -184,13 +174,14 @@ object PipelineConsistencyChecker {
     }
   }
 
-  val allChecks: Set[Check] =
+  val allChecks: Set[Check] = {
     Set(PipelineHasPilesCheck, PipelineHasRecipesCheck, EachPileIsOutputOfAtLeastOneRecipeCheck,
       EachPileIsOutputOfNoMoreThanOneRecipeCheck, EachPileIsCompatibleOutputOfRecipeCheck,
       EachPileIsCompatibleInputOfRecipeCheck, EachOutputPileIsPresentCheck, EachInputPileIsPresentCheck,
       ConnectednessCheck, AcyclicityCheck)
+  }
 
-  def check(pipeline: LPipeline, checks: Set[Check] = allChecks): Set[Problem] =
+  def check(pipeline: LPipeline, checks: Set[Check] = allChecks): Set[Problem] = {
     checks.flatMap(check => check(pipeline))
-
+  }
 }

@@ -2,10 +2,13 @@ package loamstream.pipelines.qc.ancestry
 
 import loamstream.model.LPipeline
 import loamstream.model.kinds.instances.{PileKinds, RecipeKinds}
-import loamstream.model.piles.{LPile, LSig}
+import loamstream.model.piles.LSig
 import loamstream.model.recipes.LRecipe
-import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
-import loamstream.model.values.LType.{LClusterId, LDouble, LGenotype, LInt, LSampleId, LVariantId}
+import loamstream.model.values.LType._
+import loamstream.model.StoreBase
+import loamstream.tools.core.CoreStore
+import loamstream.Sigs
+
 
 /**
   * LoamStream
@@ -13,18 +16,29 @@ import loamstream.model.values.LType.{LClusterId, LDouble, LGenotype, LInt, LSam
   */
 case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) extends LPipeline {
 
-  val genotypesPile =
-    LPile(genotypesId, LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype), PileKinds.genotypeCallsByVariantAndSample)
-  val pcaWeightsPile = LPile(pcaWeightsId, LSig.Map(LTuple2(LSampleId, LInt), LDouble), PileKinds.pcaWeights)
-  val projectedValsPile = LPile(LSig.Map(LTuple2(LSampleId, LInt), LDouble), PileKinds.pcaProjected)
-  val sampleClustersPile = LPile(LSig.Map(LTuple1(LSampleId), LClusterId), PileKinds.sampleClustersByAncestry)
+  val genotypesPile: StoreBase = CoreStore(
+      genotypesId, 
+      Sigs.variantAndSampleToGenotype, 
+      PileKinds.genotypeCallsByVariantAndSample)
 
-  val genotypesPileRecipe = LRecipe.preExistingCheckout(genotypesId, genotypesPile)
-  val pcaWeightsPileRecipe = LRecipe.preExistingCheckout(pcaWeightsId, pcaWeightsPile)
-  val pcaProjectionRecipe = LRecipe(RecipeKinds.pcaProjection, Seq(genotypesPile, pcaWeightsPile), projectedValsPile)
-  val sampleClustering = LRecipe(RecipeKinds.clusteringSamplesByFeatures, Seq(projectedValsPile), sampleClustersPile)
+  val pcaWeightsPile: StoreBase = CoreStore(
+      pcaWeightsId, 
+      Sigs.sampleIdAndIntToDouble, 
+      PileKinds.pcaWeights)
+  
+  val projectedValsPile: StoreBase = CoreStore(Sigs.sampleIdAndIntToDouble, PileKinds.pcaProjected)
+  
+  val sampleClustersPile: StoreBase = CoreStore(LSampleId to LClusterId, PileKinds.sampleClustersByAncestry)
 
-  val piles = Set(genotypesPile, pcaWeightsPile, projectedValsPile, sampleClustersPile)
-  val recipes = Set(genotypesPileRecipe, pcaWeightsPileRecipe, pcaProjectionRecipe, sampleClustering)
+  val genotypesPileRecipe: LRecipe = LRecipe.preExistingCheckout(genotypesId, genotypesPile)
+  
+  val pcaWeightsPileRecipe: LRecipe = LRecipe.preExistingCheckout(pcaWeightsId, pcaWeightsPile)
+  
+  val pcaProjectionRecipe: LRecipe = LRecipe(RecipeKinds.pcaProjection, Seq(genotypesPile, pcaWeightsPile), projectedValsPile)
+  
+  val sampleClustering: LRecipe = LRecipe(RecipeKinds.clusteringSamplesByFeatures, Seq(projectedValsPile), sampleClustersPile)
 
+  override val piles = Set(genotypesPile, pcaWeightsPile, projectedValsPile, sampleClustersPile)
+  
+  override val recipes = Set(genotypesPileRecipe, pcaWeightsPileRecipe, pcaProjectionRecipe, sampleClustering)
 }

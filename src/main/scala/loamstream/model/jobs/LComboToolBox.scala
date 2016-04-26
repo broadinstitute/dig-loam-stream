@@ -4,9 +4,8 @@ import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.tools.LTool
-import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
-import loamstream.model.stores.LStore
+import loamstream.model.StoreBase
 import loamstream.util.shot.{Miss, Shot}
 
 /**
@@ -14,7 +13,7 @@ import loamstream.util.shot.{Miss, Shot}
   * Created by oliverr on 3/28/2016.
   */
 case class LComboToolBox(boxes: Set[LToolBox]) extends LToolBox {
-  override def storesFor(pile: LPile): Set[LStore] = boxes.flatMap(box => box.storesFor(pile))
+  override def storesFor(pile: StoreBase): Set[StoreBase] = boxes.flatMap(box => box.storesFor(pile))
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = boxes.flatMap(box => box.toolsFor(recipe))
 

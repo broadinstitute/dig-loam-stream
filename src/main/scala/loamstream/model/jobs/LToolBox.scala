@@ -4,10 +4,9 @@ import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.tools.LTool
-import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
-import loamstream.model.stores.LStore
 import loamstream.util.shot.Shot
+import loamstream.model.StoreBase
 
 /**
   * LoamStream
@@ -18,7 +17,7 @@ object LToolBox {
 }
 
 trait LToolBox {
-  def storesFor(pile: LPile): Set[LStore]
+  def storesFor(pile: StoreBase): Set[StoreBase]
 
   def toolsFor(recipe: LRecipe): Set[LTool]
 
@@ -30,5 +29,4 @@ trait LToolBox {
     case LComboToolBox(boxes) => LComboToolBox(boxes + this)
     case _ => LToolBox(this, oBox)
   }
-
 }

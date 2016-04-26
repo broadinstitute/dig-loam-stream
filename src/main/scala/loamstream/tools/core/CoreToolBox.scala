@@ -10,9 +10,7 @@ import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
 import loamstream.model.kinds.LSpecificKind
-import loamstream.model.piles.LPile
 import loamstream.model.recipes.LRecipe
-import loamstream.model.stores.LStore
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
 import CoreToolBox._
@@ -22,6 +20,8 @@ import loamstream.tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser}
 import loamstream.tools.VcfUtils
 import loamstream.util.LoamFileUtils
 import scala.concurrent.{ExecutionContext, Future, blocking}
+import loamstream.util.Functions
+import loamstream.model.StoreBase
 
 /**
   * LoamStream
@@ -76,7 +76,7 @@ object CoreToolBox {
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
         HailTools.importVcf(vcfFileJob.file, vdsFile)
-        new SimpleSuccess("Imported VCF in VDS format.")
+        SimpleSuccess("Imported VCF in VDS format.")
       }
     }
   }
@@ -126,20 +126,12 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   lazy val pcaWeightsId = env(LCoreEnv.Keys.pcaWeightsId)
   lazy val checkPreexistingPcaWeightsFileTool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
 
-  var vcfFiles: Map[String, Shot[Path]] = Map.empty
-
-  override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)
+  override def storesFor(pile: StoreBase): Set[StoreBase] = stores.filter(_.pile <:< pile.spec)
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
 
-  def predefinedVcfFileShot(id: String): Shot[Path] = {
-    vcfFiles.get(id) match {
-      case Some(pathShot) => pathShot
-      case None =>
-        val pathShot = env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
-        vcfFiles += (id -> pathShot)
-        pathShot
-    }
+  val predefinedVcfFileShot: String => Shot[Path] = Functions.memoize { id =>
+    env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
   }
 
   lazy val sampleFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.sampleFilePath).map(_.get)

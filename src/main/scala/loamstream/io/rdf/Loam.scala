@@ -27,11 +27,14 @@ object Loam {
   val elementType = iri("elementType")
   val map = iri("Map")
   val keyType = iri("keyType")
+  val keyTypes = iri("keyType")
   val valueType = iri("valueType")
 
   val unknownType = iri("UnknownType")
   val hasValue = iri("hasValue")
   val hasType = iri("hasType")
+
+
 
   val tupleNamePrefix = "Tuple"
 

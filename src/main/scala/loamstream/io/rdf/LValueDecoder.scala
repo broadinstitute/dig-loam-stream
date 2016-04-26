@@ -40,14 +40,24 @@ object LValueDecoder extends Decoder[LValue] {
               case Loam.set =>
                 val elementTypeShot = RdfQueries.findUniqueObject(resource, Loam.elementType)(io.conn).
                   flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
+                val typeShot = elementTypeShot.map(LSet)
                 val setShot = RedFern.setDecoder[LValue](this).decode(io, resource).map(_.map(_.value))
-                (setShot and elementTypeShot)(LValue)
+                (setShot and typeShot) (LValue)
               case Loam.seq =>
                 val elementTypeShot = RdfQueries.findUniqueObject(resource, Loam.elementType)(io.conn).
                   flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
+                val typeShot = elementTypeShot.map(LSeq)
                 val seqShot = RedFern.seqDecoder[LValue](this).decode(io, resource).map(_.map(_.value))
-                (seqShot and elementTypeShot)(LValue)
-              case Loam.map => ???
+                (seqShot and typeShot) (LValue)
+              case Loam.map =>
+                val keyTypeShot = RdfQueries.findUniqueObject(resource, Loam.keyType)(io.conn).
+                  flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
+                val valueTypeShot = RdfQueries.findUniqueObject(resource, Loam.keyType)(io.conn).
+                  flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
+                val typeShot = (keyTypeShot and valueTypeShot) (LMap)
+                val mapShot = RedFern.mapDecoder[LValue, LValue](this, this).decode(io, resource).
+                  map(_.map({ case (key, value) => (key.value, value.value) }))
+                (mapShot and typeShot) (LValue)
               case _ if Loam.isTupleType(rdfType) => ???
               case _ => Miss(s"Don't know how to decode instance of type '$rdfType'.")
             }

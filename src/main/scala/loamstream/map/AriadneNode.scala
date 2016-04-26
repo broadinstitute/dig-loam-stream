@@ -1,7 +1,6 @@
 package loamstream.map
 
 import loamstream.map.Mapping.{Slot, Target}
-import loamstream.util.Iterative
 
 /**
   * LoamStream
@@ -34,7 +33,7 @@ object AriadneNode {
 
     def pickSlot(slot: Slot): WithSlot
 
-    def choicesOpt: None.type = None
+    def choicesOpt: Option[Set[Target]] = None
 
     def isSolution: Boolean = mapping.unboundSlots.isEmpty
   }
@@ -44,9 +43,9 @@ object AriadneNode {
 
     def slotOpt: Some[Slot] = Some(slot)
 
-    def choices: Iterative[Target]
+    def choices: Set[Target]
 
-    def choicesOpt: Some[Iterative[Target]] = Some(choices)
+    def choicesOpt: Option[Set[Target]] = Some(choices)
 
     def bind: ChildWithoutSlot
 
@@ -60,7 +59,7 @@ object AriadneNode {
       RootWithSlot(mapping, slot, mapping.choices(slot))
   }
 
-  case class RootWithSlot(mapping: Mapping, slot: Slot, choices: Iterative[Target]) extends Root with WithSlot {
+  case class RootWithSlot(mapping: Mapping, slot: Slot, choices: Set[Target]) extends Root with WithSlot {
     override def bind: ChildWithoutSlot = ChildWithoutSlot(mapping.plusBinding(slot, choices.head), this)
 
     override def withNextChoice: WithSlot = RootWithSlot(mapping, slot, choices.tail)
@@ -72,7 +71,7 @@ object AriadneNode {
       ChildWithSlot(mapping, parent, slot, mapping.choices(slot))
   }
 
-  case class ChildWithSlot(mapping: Mapping, parent: AriadneNode.WithSlot, slot: Slot, choices: Iterative[Target])
+  case class ChildWithSlot(mapping: Mapping, parent: AriadneNode.WithSlot, slot: Slot, choices: Set[Target])
     extends Child with WithSlot {
     override def bind: ChildWithoutSlot = ChildWithoutSlot(mapping.plusBinding(slot, choices.head), this)
 
@@ -88,11 +87,11 @@ trait AriadneNode {
 
   def slotOpt: Option[Slot]
 
-  def choicesOpt: Option[Iterative[Target]]
+  def choicesOpt: Option[Set[Target]]
 
-  def hasChoice: Boolean = choicesOpt.flatMap(_.headOpt).nonEmpty
+  def hasChoice: Boolean = choicesOpt.flatMap(_.headOption).nonEmpty
 
-  def hasOtherChoices: Boolean = choicesOpt.flatMap(_.tail.headOpt).nonEmpty
+  def hasOtherChoices: Boolean = choicesOpt.flatMap(_.tail.headOption).nonEmpty
 
   def isSolution: Boolean
 

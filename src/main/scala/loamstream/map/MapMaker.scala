@@ -30,11 +30,11 @@ object MapMaker {
       val availableSlots = node.mapping.unboundSlots
       if (availableSlots.nonEmpty) {
         var bestSlot = availableSlots.head
-        var nBestSlotChoices = node.mapping.choices(bestSlot).predictedSize
+        var nBestSlotChoices = node.mapping.choices(bestSlot).size
         val slotIterator = availableSlots.iterator
         while (slotIterator.hasNext && nBestSlotChoices > 0) {
           val slot = slotIterator.next()
-          val nSlotChoices = node.mapping.choices(slot).predictedSize
+          val nSlotChoices = node.mapping.choices(slot).size
           if (nSlotChoices < nBestSlotChoices) {
             bestSlot = slot
             nBestSlotChoices = nSlotChoices
@@ -111,9 +111,9 @@ object MapMaker {
   def findBestSlotToBind(ariadneNode: AriadneNode.WithoutSlot): (Slot, Int) = {
     val availableSlots = ariadneNode.mapping.unboundSlots
     var bestSlot = availableSlots.head
-    var nBestSlotChoices = ariadneNode.mapping.choices(bestSlot).predictedSize
+    var nBestSlotChoices = ariadneNode.mapping.choices(bestSlot).size
     for (slot <- availableSlots) {
-      val nSlotChoices = ariadneNode.mapping.choices(slot).predictedSize
+      val nSlotChoices = ariadneNode.mapping.choices(slot).size
       if (nSlotChoices < nBestSlotChoices) {
         bestSlot = slot
         nBestSlotChoices = nSlotChoices

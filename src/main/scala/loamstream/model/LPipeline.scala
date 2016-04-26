@@ -7,7 +7,7 @@ import loamstream.model.recipes.LRecipe
   * Created by oliverr on 2/17/2016.
   */
 trait LPipeline {
-  def piles: Set[StoreBase]
+  def piles: Set[Store]
 
   def recipes: Set[LRecipe]
 }

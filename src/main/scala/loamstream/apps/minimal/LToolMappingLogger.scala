@@ -3,14 +3,14 @@ package loamstream.apps.minimal
 import loamstream.map.LToolMapping
 import loamstream.model.jobs.tools.LTool
 import loamstream.util.Loggable
-import loamstream.model.StoreBase
+import loamstream.model.Store
 
 /**
   * LoamStream
   * Created by oliverr on 2/22/2016.
   */
 object LToolMappingLogger extends Loggable {
-  def storeToString(store: StoreBase): String = store.id.toString
+  def storeToString(store: Store): String = store.id.toString
 
   def toolToString(tool: LTool): String = tool.id.toString
 

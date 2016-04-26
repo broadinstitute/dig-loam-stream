@@ -12,18 +12,18 @@ import loamstream.tools.core.CoreStore
   */
 object LPipelineOps {
 
-  def extractKeyPile(inputPile: StoreBase, index: Int, kind: LKind): StoreBase = {
+  def extractKeyPile(inputPile: Store, index: Int, kind: LKind): Store = {
     //TODO: NB: Fragile, what if no type at index?
     val keyType = inputPile.spec.sig.keyTypes.asSeq(index)
     
     CoreStore("Extract Keys", LSig.Set.of(keyType), kind)
   }
 
-  def extractKeyRecipe(inputPile: StoreBase, index: Int, outputPile: StoreBase): LRecipe = {
+  def extractKeyRecipe(inputPile: Store, index: Int, outputPile: Store): LRecipe = {
     LRecipe.keyExtraction(inputPile, outputPile, index)
   }
 
-  def extractKey(inputPile: StoreBase, index: Int, outputPile: StoreBase, kind: LKind): (StoreBase, LRecipe) = {
+  def extractKey(inputPile: Store, index: Int, outputPile: Store, kind: LKind): (Store, LRecipe) = {
     val outputPile = extractKeyPile(inputPile, index, kind)
     
     val recipe = extractKeyRecipe(inputPile, index, outputPile)
@@ -31,11 +31,11 @@ object LPipelineOps {
     (outputPile, recipe)
   }
 
-  def importVcfRecipe(inputPile: StoreBase, index: Int, outputPile: StoreBase): LRecipe = {
+  def importVcfRecipe(inputPile: Store, index: Int, outputPile: Store): LRecipe = {
     LRecipe.vcfImport(inputPile, outputPile, index)
   }
 
-  def calculateSingletonsRecipe(inputPile: StoreBase, index: Int, outputPile: StoreBase): LRecipe = {
+  def calculateSingletonsRecipe(inputPile: Store, index: Int, outputPile: Store): LRecipe = {
     LRecipe.singletonCalculation(inputPile, outputPile, index)
   }
 }

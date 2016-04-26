@@ -5,7 +5,7 @@ import loamstream.model.kinds.instances.StoreKinds
 import loamstream.model.piles.{LPileSpec, LSig}
 import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
 import loamstream.model.values.LType.{LClusterId, LDouble, LGenotype, LInt, LSampleId, LSingletonCount, LVariantId}
-import loamstream.model.StoreBase
+import loamstream.model.Store
 import loamstream.Sigs
 import loamstream.model.kinds.LKind
 
@@ -14,7 +14,7 @@ import loamstream.model.kinds.LKind
   * Created by oliverr on 2/16/2016.
   */
 //TODo rename? ConcreteStore?  
-final case class CoreStore(id: LId, spec: LPileSpec) extends StoreBase
+final case class CoreStore(id: LId, spec: LPileSpec) extends Store
 
 object CoreStore {
 
@@ -26,35 +26,35 @@ object CoreStore {
   
   import Sigs._
   
-  val vcfFile: StoreBase  = {
+  val vcfFile: Store  = {
     CoreStore("VCF file", LPileSpec(variantAndSampleToGenotype, StoreKinds.vcfFile))
   }
     
-  val vdsFile: StoreBase  = {
+  val vdsFile: Store  = {
     CoreStore("VDS file", LPileSpec(variantAndSampleToGenotype, StoreKinds.vdsFile))
   }
     
-  val pcaWeightsFile: StoreBase = {
+  val pcaWeightsFile: Store = {
     CoreStore("PCA weights file", LPileSpec(sampleIdAndIntToDouble, StoreKinds.pcaWeightsFile))
   }
   
-  val pcaProjectedFile: StoreBase  = {
+  val pcaProjectedFile: Store  = {
     CoreStore("PCA projected file", LPileSpec(sampleIdAndIntToDouble, StoreKinds.pcaProjectedFile))
   }
   
-  val sampleClusterFile: StoreBase  = {
+  val sampleClusterFile: Store  = {
     CoreStore("Sample cluster file", LPileSpec(LSampleId to LClusterId, StoreKinds.sampleClustersFile))
   }
   
-  val singletonsFile: StoreBase = {
+  val singletonsFile: Store = {
     CoreStore("Singletons file", LPileSpec(LSampleId to LSingletonCount, StoreKinds.singletonsFile))
   }
   
-  val sampleIdsFile: StoreBase = {
+  val sampleIdsFile: Store = {
     CoreStore("Sample ids file", LPileSpec(LSig.Set.of(LSampleId), StoreKinds.sampleIdsFile))
   }
 
-  val stores: Set[StoreBase] = Set(
+  val stores: Set[Store] = Set(
       vcfFile, vdsFile, pcaWeightsFile, pcaProjectedFile, 
       sampleClusterFile, singletonsFile, sampleIdsFile)
 }

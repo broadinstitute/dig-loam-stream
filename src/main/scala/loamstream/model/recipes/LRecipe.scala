@@ -5,7 +5,7 @@ import loamstream.model.kinds.LKind
 import loamstream.model.kinds.instances.RecipeKinds
 
 import scala.language.higherKinds
-import loamstream.model.StoreBase
+import loamstream.model.Store
 
 /**
   * LoamStream
@@ -13,29 +13,29 @@ import loamstream.model.StoreBase
   */
 object LRecipe {
 
-  def keyExtraction(input: StoreBase, output: StoreBase, index: Int): LRecipe = {
+  def keyExtraction(input: Store, output: Store, index: Int): LRecipe = {
     LRecipe(RecipeKinds.extractKey(index), Seq(input), output)
   }
 
-  def preExistingCheckout(id: String, output: StoreBase): LRecipe = {
-    LRecipe(id, RecipeKinds.usePreExisting(id), Seq.empty[StoreBase], output)
+  def preExistingCheckout(id: String, output: Store): LRecipe = {
+    LRecipe(id, RecipeKinds.usePreExisting(id), Seq.empty[Store], output)
   }
 
-  def vcfImport(input: StoreBase, output: StoreBase, index: Int): LRecipe = {
+  def vcfImport(input: Store, output: Store, index: Int): LRecipe = {
     LRecipe(RecipeKinds.importVcf(index), Seq(input), output)
   }
 
-  def singletonCalculation(input: StoreBase, output: StoreBase, index: Int): LRecipe = {
+  def singletonCalculation(input: Store, output: Store, index: Int): LRecipe = {
     LRecipe(RecipeKinds.calculateSingletons(index), Seq(input), output)
   }
 
-  def apply(id: String, kind: LKind, inputs: Seq[StoreBase], output: StoreBase): LRecipe = {
+  def apply(id: String, kind: LKind, inputs: Seq[Store], output: Store): LRecipe = {
     LRecipe(LId.LNamedId(id), LRecipeSpec(kind, inputs.map(_.spec), output.spec), inputs, output)
   }
 
-  def apply(kind: LKind, inputs: Seq[StoreBase], output: StoreBase): LRecipe = {
+  def apply(kind: LKind, inputs: Seq[Store], output: Store): LRecipe = {
     LRecipe(LId.newAnonId, LRecipeSpec(kind, inputs.map(_.spec), output.spec), inputs, output)
   }
 }
 
-case class LRecipe(id: LId, spec: LRecipeSpec, inputs: Seq[StoreBase], output: StoreBase) extends LId.Owner
+case class LRecipe(id: LId, spec: LRecipeSpec, inputs: Seq[Store], output: Store) extends LId.Owner

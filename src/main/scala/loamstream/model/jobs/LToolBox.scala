@@ -6,7 +6,7 @@ import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.tools.LTool
 import loamstream.model.recipes.LRecipe
 import loamstream.util.shot.Shot
-import loamstream.model.StoreBase
+import loamstream.model.Store
 
 /**
   * LoamStream
@@ -17,7 +17,7 @@ object LToolBox {
 }
 
 trait LToolBox {
-  def storesFor(pile: StoreBase): Set[StoreBase]
+  def storesFor(pile: Store): Set[Store]
 
   def toolsFor(recipe: LRecipe): Set[LTool]
 

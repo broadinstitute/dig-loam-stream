@@ -11,7 +11,7 @@ import loamstream.tools.core.LCoreDefaultPileIds
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
-import loamstream.model.StoreBase
+import loamstream.model.Store
 
 
 /**
@@ -28,10 +28,10 @@ object MiniMockToolBox {
 }
 
 case class MiniMockToolBox(genotypesId: String = LCoreDefaultPileIds.genotypes) extends LToolBox {
-  val stores: Set[StoreBase] = MiniMockStore.stores
+  val stores: Set[Store] = MiniMockStore.stores
   val tools: Set[LTool] = MiniMockTool.tools(genotypesId)
 
-  override def storesFor(store: StoreBase): Set[StoreBase] = stores.filter(_.spec <:< store.spec)
+  override def storesFor(store: Store): Set[Store] = stores.filter(_.spec <:< store.spec)
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
 

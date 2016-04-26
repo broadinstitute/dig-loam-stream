@@ -5,7 +5,7 @@ import loamstream.model.kinds.instances.{PileKinds, RecipeKinds}
 import loamstream.model.piles.LSig
 import loamstream.model.recipes.LRecipe
 import loamstream.model.values.LType._
-import loamstream.model.StoreBase
+import loamstream.model.Store
 import loamstream.tools.core.CoreStore
 import loamstream.Sigs
 
@@ -16,19 +16,19 @@ import loamstream.Sigs
   */
 case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) extends LPipeline {
 
-  val genotypesPile: StoreBase = CoreStore(
+  val genotypesPile: Store = CoreStore(
       genotypesId, 
       Sigs.variantAndSampleToGenotype, 
       PileKinds.genotypeCallsByVariantAndSample)
 
-  val pcaWeightsPile: StoreBase = CoreStore(
+  val pcaWeightsPile: Store = CoreStore(
       pcaWeightsId, 
       Sigs.sampleIdAndIntToDouble, 
       PileKinds.pcaWeights)
   
-  val projectedValsPile: StoreBase = CoreStore(Sigs.sampleIdAndIntToDouble, PileKinds.pcaProjected)
+  val projectedValsPile: Store = CoreStore(Sigs.sampleIdAndIntToDouble, PileKinds.pcaProjected)
   
-  val sampleClustersPile: StoreBase = CoreStore(LSampleId to LClusterId, PileKinds.sampleClustersByAncestry)
+  val sampleClustersPile: Store = CoreStore(LSampleId to LClusterId, PileKinds.sampleClustersByAncestry)
 
   val genotypesPileRecipe: LRecipe = LRecipe.preExistingCheckout(genotypesId, genotypesPile)
   

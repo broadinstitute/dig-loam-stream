@@ -7,8 +7,6 @@ import loamstream.model.id.LId
  * @author clint
  * date: Apr 26, 2016
  */
-trait StoreBase extends LId.Owner {
-  def id: LId
-  
+trait Store extends LId.Owner {
   def spec: LPileSpec
 }

@@ -6,7 +6,7 @@ import loamstream.model.recipes.LRecipe
 import loamstream.model.values.LType.LTuple.LTuple2
 import loamstream.model.values.LType.{LGenotype, LSampleId, LVariantId}
 import loamstream.model.{LPipeline, LPipelineOps}
-import loamstream.model.StoreBase
+import loamstream.model.Store
 import loamstream.tools.core.CoreStore
 import loamstream.Sigs
 
@@ -15,14 +15,14 @@ import loamstream.Sigs
   * Created by oliverr on 2/17/2016.
   */
 case class MiniPipeline(genotypesId: String) extends LPipeline {
-  val genotypeCallsPile: StoreBase = CoreStore(
+  val genotypeCallsPile: Store = CoreStore(
       genotypesId, 
       Sigs.variantAndSampleToGenotype, 
       PileKinds.genotypeCallsByVariantAndSample)
       
   val genotypeCallsRecipe: LRecipe = LRecipe.preExistingCheckout(genotypesId, genotypeCallsPile)
   
-  val sampleIdsPile: StoreBase = {
+  val sampleIdsPile: Store = {
     LPipelineOps.extractKeyPile(genotypeCallsPile, PileKinds.sampleKeyIndexInGenotypes, PileKinds.sampleIds)
   }
   

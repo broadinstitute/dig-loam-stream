@@ -1,7 +1,6 @@
 package loamstream.map
 
 import loamstream.map.Mapping.{Constraint, RawChoices, Rule, Slot, Target}
-import loamstream.util.Iterative
 
 /**
   * LoamStream
@@ -24,13 +23,14 @@ object Mapping {
   }
 
   trait RawChoices {
-    def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Iterative.SizePredicting[Target]
+    def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Set[Target]
   }
 
   def empty: Mapping = Mapping(Set.empty, Set.empty, Map.empty, Set.empty, Map.empty, Set.empty, Map.empty)
 
-  def fromSlots(slots: Map[Slot, RawChoices]): Mapping =
+  def fromSlots(slots: Map[Slot, RawChoices]): Mapping = {
     Mapping(slots.keySet, slots.keySet, slots, Set.empty, Map.empty, Set.empty, Map.empty)
+  }
 
 }
 
@@ -73,7 +73,7 @@ case class Mapping(slots: Set[Slot], unboundSlots: Set[Slot], rawChoices: Map[Sl
       slotConstraints = groupConstraintsBySlots(constraintsNew))
   }
 
-  def choices(slot: Slot): Iterative.SizePredicting[Target] =
+  def choices(slot: Slot): Set[Target] = {
     rawChoices(slot).constrainedBy(slot, slotConstraints.getOrElse(slot, Set.empty))
-
+  }
 }

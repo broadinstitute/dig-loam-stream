@@ -7,8 +7,6 @@ import loamstream.model.jobs.tools.LTool
 import loamstream.model.piles.{LPile, LPileSpec}
 import loamstream.model.recipes.{LRecipe, LRecipeSpec}
 import loamstream.model.stores.LStore
-import loamstream.util.Iterative
-import loamstream.util.Iterative.SizePredicting
 
 /**
   * LoamStream
@@ -54,22 +52,22 @@ object LToolMapper {
   }
 
   case class AvailableStores(stores: Set[LStore]) extends Mapping.RawChoices {
-    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): SizePredicting[Target] = {
-      var remainingTargets: Set[Target] = stores.map(StoreTarget)
-      for (slotConstraint <- slotConstraints) {
-        remainingTargets = remainingTargets.filter(slotConstraint.slotFilter(slot))
+    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Set[Target] = {
+      val z: Set[Target] = stores.map(StoreTarget)
+      
+      slotConstraints.foldLeft(z) { (remainingTargets, slotConstraint) =>
+        remainingTargets.filter(slotConstraint.slotFilter(slot))
       }
-      Iterative.SetBased(remainingTargets)
     }
   }
 
   case class AvailableTools(tools: Set[LTool]) extends Mapping.RawChoices {
-    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): SizePredicting[Target] = {
-      var remainingTargets: Set[Target] = tools.map(ToolTarget)
-      for (slotConstraint <- slotConstraints) {
-        remainingTargets = remainingTargets.filter(slotConstraint.slotFilter(slot))
+    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Set[Target] = {
+      val z: Set[Target] = tools.map(ToolTarget)
+      
+      slotConstraints.foldLeft(z) { (remainingTargets, slotConstraint) =>
+        remainingTargets.filter(slotConstraint.slotFilter(slot))
       }
-      Iterative.SetBased(remainingTargets)
     }
   }
 
@@ -143,9 +141,9 @@ object LToolMapper {
         }
       }
       val unmappedRecipes = recipes -- toolMapping.tools.keySet
-      val recipeBounds = unmappedRecipes.map({ recipe =>
+      val recipeBounds = unmappedRecipes.map { recipe =>
         (recipe, ToolTargetFilter(recipe.inputs.map(mapPileOrNot), mapPileOrNot(recipe.output)))
-      }).toMap
+      }.toMap
       CompatibilityConstraint(slots, outputRoles, inputRoles, recipeBounds)
     }
   }

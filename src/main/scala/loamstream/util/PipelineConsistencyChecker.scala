@@ -160,6 +160,17 @@ object PipelineConsistencyChecker {
 
   case object AcyclicityCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
+      val z: (Set[LPile], Boolean, Int) = (pipeline.piles, true, pipeline.piles.size) 
+      
+      pipeline.piles.foldLeft(z) { (acc, pile) =>
+        val (pilesLeft, makingProgress, nPilesLeft) = acc
+        
+        val newPilesLeft = pipeline.recipes.filter(recipe => pilesLeft.contains(recipe.output)).flatMap(_.inputs)
+        val nPilesLeftNew = newPilesLeft.size
+        
+        (newPilesLeft, nPilesLeftNew < nPilesLeft, nPilesLeftNew)
+      }
+      
       var pilesLeft = pipeline.piles
       var makingProgress = true
       var nPilesLeft = pilesLeft.size

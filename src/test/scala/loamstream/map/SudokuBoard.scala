@@ -2,7 +2,6 @@ package loamstream.map
 
 import loamstream.map.Mapping.{Constraint, RawChoices, Rule, Slot, Target}
 import loamstream.map.SudokuBoard.{IntTarget, SlotXY}
-import loamstream.util.Iterative
 
 import scala.collection.immutable.IndexedSeq
 
@@ -19,12 +18,12 @@ object SudokuBoard {
   val targets = (1 to 9).map(IntTarget)
 
   object AllNumbers extends RawChoices {
-    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Iterative.SizePredicting[Target] = {
-      var remainingTargets = targets.toSet
-      for (slotConstraint <- slotConstraints) {
-        remainingTargets = remainingTargets.filter(slotConstraint.slotFilter(slot))
+    override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Set[Target] = {
+      val z: Set[Target] = targets.toSet
+
+      slotConstraints.foldLeft(z) { (remainingTargets, slotConstraint) =>
+        remainingTargets.filter(slotConstraint.slotFilter(slot))
       }
-      Iterative.SetBased(remainingTargets)
     }
   }
 

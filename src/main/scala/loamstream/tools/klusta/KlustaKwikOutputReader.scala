@@ -18,6 +18,7 @@ object KlustaKwikOutputReader {
     val fileName = fileBase + ".clu." + iShank
     val file = workDir.resolve(fileName)
     val lineIter = Source.fromFile(file.toFile)(Codec.UTF8).getLines
+    
     if (lineIter.hasNext) {
       try {
         val nClusters = lineIter.next.toInt

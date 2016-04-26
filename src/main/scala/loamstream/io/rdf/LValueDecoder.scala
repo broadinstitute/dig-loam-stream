@@ -31,11 +31,26 @@ object LValueDecoder extends Decoder[LValue] {
           case XMLSchema.STRING => Hit(LString(literal.stringValue()))
           case Loam.variantId => Hit(LVariantId(literal.stringValue()))
           case Loam.sampleId => Hit(LSampleId(literal.stringValue()))
-          case _ => Miss(s"Don't know how to decode data type '$dataType'.")
+          case _ => Miss(s"Don't know how to decode literal with data type '$dataType'.")
         }
       case resource: Resource =>
         RdfQueries.findUniqueObject(resource, RDF.TYPE)(io.conn).flatMap({
-          case rdfType: Resource => ???
+          case rdfType: Resource =>
+            rdfType match {
+              case Loam.set =>
+                val elementTypeShot = RdfQueries.findUniqueObject(resource, Loam.elementType)(io.conn).
+                  flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
+                val setShot = RedFern.setDecoder[LValue](this).decode(io, resource).map(_.map(_.value))
+                (setShot and elementTypeShot)(LValue)
+              case Loam.seq =>
+                val elementTypeShot = RdfQueries.findUniqueObject(resource, Loam.elementType)(io.conn).
+                  flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
+                val seqShot = RedFern.seqDecoder[LValue](this).decode(io, resource).map(_.map(_.value))
+                (seqShot and elementTypeShot)(LValue)
+              case Loam.map => ???
+              case _ if Loam.isTupleType(rdfType) => ???
+              case _ => Miss(s"Don't know how to decode instance of type '$rdfType'.")
+            }
           case literal: Literal => Miss(s"Need resource as RDF type, but got Literal '$literal'.")
         })
     }

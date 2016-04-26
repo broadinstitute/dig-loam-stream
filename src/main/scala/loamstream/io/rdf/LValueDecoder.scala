@@ -4,7 +4,8 @@ import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Decoder
 import loamstream.model.values.LType._
 import loamstream.model.values.LValue
-import loamstream.util.shot.{Hit, Miss, Shot}
+import loamstream.util.TupleUtil
+import loamstream.util.shot.{Hit, Miss, Shot, Shots}
 import org.openrdf.model.vocabulary.{RDF, XMLSchema}
 import org.openrdf.model.{Literal, Resource, Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection
@@ -14,7 +15,7 @@ import org.openrdf.repository.RepositoryConnection
   * Created by oruebenacker on 4/26/16.
   */
 object LValueDecoder extends Decoder[LValue] {
-  // scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity method.length
   override def decode(io: LIO[RepositoryConnection, Value, ValueFactory], rdfNode: Value): Shot[LValue] = {
     rdfNode match {
       case literal: Literal =>
@@ -52,13 +53,21 @@ object LValueDecoder extends Decoder[LValue] {
               case Loam.map =>
                 val keyTypeShot = RdfQueries.findUniqueObject(resource, Loam.keyType)(io.conn).
                   flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
-                val valueTypeShot = RdfQueries.findUniqueObject(resource, Loam.keyType)(io.conn).
+                val valueTypeShot = RdfQueries.findUniqueObject(resource, Loam.valueType)(io.conn).
                   flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
                 val typeShot = (keyTypeShot and valueTypeShot) (LMap)
                 val mapShot = RedFern.mapDecoder[LValue, LValue](this, this).decode(io, resource).
                   map(_.map({ case (key, value) => (key.value, value.value) }))
                 (mapShot and typeShot) (LValue)
-              case _ if Loam.isTupleType(rdfType) => ???
+              case _ if Loam.isTupleType(rdfType) =>
+                val arityShot = Loam.tupleTypeToArity(rdfType)
+                val x = arityShot.flatMap({ arity =>
+                  Shots.unpack((1 to arity).map({index =>
+                    (RdfQueries.findUniqueObject(resource, RdfContainers.membershipProperty(index)(io.conn))(io.conn)).
+                      flatMap(decode(io, _)).map(_.value)
+                  })).flatMap(TupleUtil.seqToProduct[Any])
+                })
+                ???
               case _ => Miss(s"Don't know how to decode instance of type '$rdfType'.")
             }
           case literal: Literal => Miss(s"Need resource as RDF type, but got Literal '$literal'.")
@@ -66,5 +75,5 @@ object LValueDecoder extends Decoder[LValue] {
     }
   }
 
-  // scalastyle:on cyclomatic.complexity
+  // scalastyle:on cyclomatic.complexity method.length
 }

@@ -8,5 +8,7 @@ import loamstream.model.recipes.LRecipeSpec
   * Created by oliverr on 2/12/2016.
   */
 trait LTool extends LId.Owner {
+  override val ownerBaseName = "tool"
+
   def recipe: LRecipeSpec
 }

@@ -14,4 +14,6 @@ object LPile {
   def apply(sig: LSig, kind: LKind): LPile = LPile(LId.newAnonId, LPileSpec(sig, kind))
 }
 
-case class LPile(id: LId, spec: LPileSpec) extends LId.Owner
+case class LPile(id: LId, spec: LPileSpec) extends LId.Owner {
+  override val ownerBaseName = "pile"
+}

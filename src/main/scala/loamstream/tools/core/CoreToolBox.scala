@@ -126,7 +126,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   lazy val pcaWeightsId = env(LCoreEnv.Keys.pcaWeightsId)
   lazy val checkPreexistingPcaWeightsFileTool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
 
-  override def storesFor(pile: StoreBase): Set[StoreBase] = stores.filter(_.pile <:< pile.spec)
+  override def storesFor(pile: StoreBase): Set[StoreBase] = stores.filter(_.spec <:< pile.spec)
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
 

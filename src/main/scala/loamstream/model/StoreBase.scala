@@ -11,7 +11,4 @@ trait StoreBase extends LId.Owner {
   def id: LId
   
   def spec: LPileSpec
-  
-  @deprecated
-  final def pile: LPileSpec = spec
 }

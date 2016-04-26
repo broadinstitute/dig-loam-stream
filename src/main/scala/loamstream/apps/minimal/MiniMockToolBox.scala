@@ -28,10 +28,10 @@ object MiniMockToolBox {
 }
 
 case class MiniMockToolBox(genotypesId: String = LCoreDefaultPileIds.genotypes) extends LToolBox {
-  val stores = MiniMockStore.stores
-  val tools = MiniMockTool.tools(genotypesId)
+  val stores: Set[StoreBase] = MiniMockStore.stores
+  val tools: Set[LTool] = MiniMockTool.tools(genotypesId)
 
-  override def storesFor(pile: StoreBase): Set[StoreBase] = stores.filter(_.pile <:< pile.spec)
+  override def storesFor(store: StoreBase): Set[StoreBase] = stores.filter(_.spec <:< store.spec)
 
   override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
 

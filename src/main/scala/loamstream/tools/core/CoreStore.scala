@@ -13,6 +13,7 @@ import loamstream.model.kinds.LKind
   * LoamStream
   * Created by oliverr on 2/16/2016.
   */
+//TODo rename? ConcreteStore?  
 final case class CoreStore(id: LId, spec: LPileSpec) extends StoreBase
 
 object CoreStore {

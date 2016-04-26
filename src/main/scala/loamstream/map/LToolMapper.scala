@@ -79,12 +79,12 @@ object LToolMapper {
         case storeTarget: StoreTarget =>
           val outputRoleCompatible = outputRole match {
             case Some(recipe) =>
-              storeTarget.store.pile <:< recipe.output
+              storeTarget.store.spec <:< recipe.output
             case None => true
           }
           val inputRolesCompatible = inputRoles.forall({ tup =>
             val (index, recipe) = tup
-            storeTarget.store.pile <:< recipe.inputs(index)
+            storeTarget.store.spec <:< recipe.inputs(index)
           })
           outputRoleCompatible && inputRolesCompatible
         case _ => false
@@ -125,7 +125,7 @@ object LToolMapper {
   object CompatibilityRule extends Mapping.Rule {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
       val toolMapping = bindingsToToolMappings(bindings)
-      def mapPileOrNot(pile: StoreBase): Option[LPileSpec] = toolMapping.stores.get(pile).map(_.pile)
+      def mapPileOrNot(pile: StoreBase): Option[LPileSpec] = toolMapping.stores.get(pile).map(_.spec)
       def mapRecipeOrNot(recipe: LRecipe): LRecipeSpec = toolMapping.tools.get(recipe) match {
         case Some(tool) => tool.recipe
         case None => recipe.spec

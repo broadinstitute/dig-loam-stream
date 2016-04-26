@@ -17,29 +17,29 @@ import CoreStore._
 object CoreTool {
 
   def checkPreExistingVcfFile(id: String): CoreTool =
-    CoreTool("What a nice VCF file!", LRecipeSpec.preExistingCheckout(id, CoreStore.vcfFile.pile))
+    CoreTool("What a nice VCF file!", LRecipeSpec.preExistingCheckout(id, CoreStore.vcfFile.spec))
 
   def checkPreExistingPcaWeightsFile(id: String): CoreTool =
-    CoreTool("File with PCA weights", LRecipeSpec.preExistingCheckout(id, CoreStore.pcaWeightsFile.pile))
+    CoreTool("File with PCA weights", LRecipeSpec.preExistingCheckout(id, CoreStore.pcaWeightsFile.spec))
 
   val extractSampleIdsFromVcfFile =
     CoreTool("Extracted sample ids from VCF file into a text file.",
-      LRecipeSpec.keyExtraction(CoreStore.vcfFile.pile, CoreStore.sampleIdsFile.pile,
+      LRecipeSpec.keyExtraction(CoreStore.vcfFile.spec, CoreStore.sampleIdsFile.spec,
         PileKinds.sampleKeyIndexInGenotypes))
 
   val importVcf =
     CoreTool("Import VCF file into VDS format Hail works with.",
-      LRecipeSpec.vcfImport(CoreStore.vcfFile.pile, CoreStore.vdsFile.pile, 0))
+      LRecipeSpec.vcfImport(CoreStore.vcfFile.spec, CoreStore.vdsFile.spec, 0))
 
   val calculateSingletons =
     CoreTool("Calculate singletons from genotype calls in VDS format.",
-      LRecipeSpec.calculateSingletons(CoreStore.vdsFile.pile, CoreStore.singletonsFile.pile, 0))
+      LRecipeSpec.calculateSingletons(CoreStore.vdsFile.spec, CoreStore.singletonsFile.spec, 0))
 
   val projectPcaNative = CoreTool("Project PCA using native method",
-    LRecipeSpec(nativePcaProjection, Seq(vcfFile.pile, pcaWeightsFile.pile), pcaProjectedFile.pile))
+    LRecipeSpec(nativePcaProjection, Seq(vcfFile.spec, pcaWeightsFile.spec), pcaProjectedFile.spec))
 
   val klustaKwikClustering = CoreTool("Project PCA using native method",
-    LRecipeSpec(klustakwikClustering, Seq(pcaProjectedFile.pile), sampleClusterFile.pile))
+    LRecipeSpec(klustakwikClustering, Seq(pcaProjectedFile.spec), sampleClusterFile.spec))
 
   def tools(env: LEnv): Set[LTool] = {
     env.get(Keys.genotypesId).map(checkPreExistingVcfFile(_)).toSet[LTool] ++

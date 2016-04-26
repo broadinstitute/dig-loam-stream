@@ -61,13 +61,15 @@ object LValueDecoder extends Decoder[LValue] {
                 (mapShot and typeShot) (LValue)
               case _ if Loam.isTupleType(rdfType) =>
                 val arityShot = Loam.tupleTypeToArity(rdfType)
-                val x = arityShot.flatMap({ arity =>
-                  Shots.unpack((1 to arity).map({index =>
-                    (RdfQueries.findUniqueObject(resource, RdfContainers.membershipProperty(index)(io.conn))(io.conn)).
-                      flatMap(decode(io, _)).map(_.value)
-                  })).flatMap(TupleUtil.seqToProduct[Any])
+                val lValuesShot = arityShot.flatMap({ arity =>
+                  Shots.unpack((1 to arity).map({ index =>
+                    RdfQueries.findUniqueObject(resource, RdfContainers.membershipProperty(index)(io.conn))(io.conn).
+                      flatMap(decode(io, _))
+                  })).map(_.toSeq)
                 })
-                ???
+                val typeShot = lValuesShot.map(_.map(_.tpe)).map(LTuple(_))
+                val tupleValueShot = lValuesShot.map(_.map(_.value)).flatMap(TupleUtil.seqToProduct)
+                (tupleValueShot and typeShot) (LValue)
               case _ => Miss(s"Don't know how to decode instance of type '$rdfType'.")
             }
           case literal: Literal => Miss(s"Need resource as RDF type, but got Literal '$literal'.")

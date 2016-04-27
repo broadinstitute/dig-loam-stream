@@ -5,13 +5,13 @@ import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LJob, LToolBox}
-import loamstream.model.jobs.tools.LTool
 import loamstream.model.recipes.LRecipe
 import loamstream.tools.core.LCoreDefaultPileIds
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.shot.{Hit, Miss, Shot}
 import loamstream.util.snag.SnagMessage
 import loamstream.model.Store
+import loamstream.model.ToolBase
 
 
 /**
@@ -29,18 +29,16 @@ object MiniMockToolBox {
 
 case class MiniMockToolBox(genotypesId: String = LCoreDefaultPileIds.genotypes) extends LToolBox {
   val stores: Set[Store] = MiniMockStore.stores
-  val tools: Set[LTool] = MiniMockTool.tools(genotypesId)
+  val tools: Set[ToolBase] = MiniMockTool.tools(genotypesId)
 
   override def storesFor(store: Store): Set[Store] = stores.filter(_.spec <:< store.spec)
 
-  override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
+  override def toolsFor(recipe: LRecipe): Set[ToolBase] = tools.filter(_.spec <<< recipe.spec)
 
   override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
-      case Some(tool) => tool match {
-        case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
-      }
-      case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))
+      case Some(tool) => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
+      case None => Miss(SnagMessage(s"No tool mapped to recipe $recipe"))
     }
   }
 

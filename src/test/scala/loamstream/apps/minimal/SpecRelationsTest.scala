@@ -14,18 +14,18 @@ final class SpecRelationsTest extends FunSuite {
     val genotypeId = LCoreDefaultPileIds.genotypes
     assertResult(false)(CoreStore.vcfFile.spec <:< MiniMockStore.genotypesCassandraTable.spec)
     assertResult(false)(
-      CoreTool.checkPreExistingVcfFile(genotypeId).recipe <:<
-        MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).recipe)
+      CoreTool.checkPreExistingVcfFile(genotypeId).spec <:<
+        MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec)
     assertResult(false)(MiniMockStore.genotypesCassandraTable.spec <:< CoreStore.vcfFile.spec)
     assertResult(false)(
-      MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).recipe <:<
-        CoreTool.checkPreExistingVcfFile(genotypeId).recipe)
+      MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <:<
+        CoreTool.checkPreExistingVcfFile(genotypeId).spec)
     assertResult(false)(CoreStore.sampleIdsFile.spec <:< MiniMockStore.sampleIdsCassandraTable.spec)
     assertResult(false)(
-      CoreTool.extractSampleIdsFromVcfFile.recipe <:< MiniMockTool.extractSampleIdsFromCassandraTable.recipe)
+      CoreTool.extractSampleIdsFromVcfFile.spec <:< MiniMockTool.extractSampleIdsFromCassandraTable.spec)
     assertResult(false)(MiniMockStore.sampleIdsCassandraTable.spec <:< CoreStore.sampleIdsFile.spec)
     assertResult(false)(
-      MiniMockTool.extractSampleIdsFromCassandraTable.recipe <:< CoreTool.extractSampleIdsFromVcfFile.recipe)
+      MiniMockTool.extractSampleIdsFromCassandraTable.spec <:< CoreTool.extractSampleIdsFromVcfFile.spec)
   }
 
   test("Various relations between pile and recipe specs are true as expected") {
@@ -36,10 +36,10 @@ final class SpecRelationsTest extends FunSuite {
     assert(MiniMockStore.genotypesCassandraTable.spec <:< pipeline.genotypeCallsPile.spec)
     assert(CoreStore.sampleIdsFile.spec <:< pipeline.sampleIdsPile.spec)
     assert(MiniMockStore.sampleIdsCassandraTable.spec <:< pipeline.sampleIdsPile.spec)
-    assert(CoreTool.checkPreExistingVcfFile(genotypeId).recipe <<< pipeline.genotypeCallsRecipe.spec)
+    assert(CoreTool.checkPreExistingVcfFile(genotypeId).spec <<< pipeline.genotypeCallsRecipe.spec)
     assert(
-      MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).recipe <<< pipeline.genotypeCallsRecipe.spec)
-    assert(CoreTool.extractSampleIdsFromVcfFile.recipe <<< pipeline.sampleIdsRecipe.spec)
-    assert(MiniMockTool.extractSampleIdsFromCassandraTable.recipe <<< pipeline.sampleIdsRecipe.spec)
+      MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <<< pipeline.genotypeCallsRecipe.spec)
+    assert(CoreTool.extractSampleIdsFromVcfFile.spec <<< pipeline.sampleIdsRecipe.spec)
+    assert(MiniMockTool.extractSampleIdsFromCassandraTable.spec <<< pipeline.sampleIdsRecipe.spec)
   }
 }

@@ -7,7 +7,6 @@ import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
-import loamstream.model.jobs.tools.LTool
 import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
 import loamstream.model.kinds.LSpecificKind
 import loamstream.model.recipes.LRecipe
@@ -22,6 +21,7 @@ import loamstream.util.LoamFileUtils
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import loamstream.util.Functions
 import loamstream.model.Store
+import loamstream.model.ToolBase
 
 /**
   * LoamStream
@@ -128,7 +128,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
 
   override def storesFor(pile: Store): Set[Store] = stores.filter(_.spec <:< pile.spec)
 
-  override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
+  override def toolsFor(recipe: LRecipe): Set[ToolBase] = tools.filter(_.spec <<< recipe.spec)
 
   val predefinedVcfFileShot: String => Shot[Path] = Functions.memoize { id =>
     env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
@@ -143,7 +143,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   lazy val klustaKwikConfigShot: Shot[KlustaKwikKonfig] = env.shoot(LCoreEnv.Keys.klustaKwikKonfig)
 
   lazy val vcfFileJobShot: Shot[CheckPreexistingVcfFileJob] = {
-    checkPreexistingVcfFileTool.recipe.kind match {
+    checkPreexistingVcfFileTool.spec.kind match {
       case LSpecificKind(specifics, _) => specifics.value match {
         case (_, id: String) => predefinedVcfFileShot(id).map(CheckPreexistingVcfFileJob)
         case _ => Miss(SnagMessage("Recipe is not of the right kind."))
@@ -173,7 +173,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
       LCommandLineJob(commandLine, klustaKwikKonfig.workDir, Set(calculatePcaProjectionJob))
     })
 
-  def toolToJobShot(tool: LTool): Shot[LJob] = tool match {
+  def toolToJobShot(tool: ToolBase): Shot[LJob] = tool match {
     case this.checkPreexistingVcfFileTool => vcfFileJobShot
     case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJobShot
     case CoreTool.importVcf => importVcfJobShot

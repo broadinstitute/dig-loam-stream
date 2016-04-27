@@ -12,34 +12,48 @@ import scala.language.higherKinds
   */
 object LRecipeSpec {
 
-  def keyExtraction(input: LPileSpec, output: LPileSpec, index: Int): LRecipeSpec =
+  def keyExtraction(index: Int)(input: LPileSpec, output: LPileSpec): LRecipeSpec = {
     LRecipeSpec(RecipeKinds.extractKey(index), Seq(input), output)
+  }
 
-  def vcfImport(input: LPileSpec, output: LPileSpec, index: Int): LRecipeSpec =
+  def vcfImport(index: Int)(input: LPileSpec, output: LPileSpec): LRecipeSpec = {
     LRecipeSpec(RecipeKinds.importVcf(index), Seq(input), output)
+  }
 
-  def calculateSingletons(input: LPileSpec, output: LPileSpec, index: Int): LRecipeSpec =
+  def calculateSingletons(index: Int)(input: LPileSpec, output: LPileSpec): LRecipeSpec = {
     LRecipeSpec(RecipeKinds.calculateSingletons(index), Seq(input), output)
+  }
 
-  def preExistingCheckout(id: String, output: LPileSpec): LRecipeSpec =
+  def preExistingCheckout(id: String)(output: LPileSpec): LRecipeSpec = {
     LRecipeSpec(RecipeKinds.usePreExisting(id), Seq.empty[LPileSpec], output)
-
+  }
 }
 
 case class LRecipeSpec(kind: LKind, inputs: Seq[LPileSpec], output: LPileSpec) {
-  def =:=(oRecipe: LRecipeSpec): Boolean =
-    kind == oRecipe.kind && inputs.zip(oRecipe.inputs).forall(tup => tup._1 =:= tup._2)
+  //TODO: Test if input arities are the same?
+  //TODO Test if outputs are the same?
+  def =:=(oRecipe: LRecipeSpec): Boolean = {
+    kind == oRecipe.kind && 
+    inputs.zip(oRecipe.inputs).forall { case (mine, theirs) => mine =:= theirs }
+  }
 
-  def <:<(oRecipe: LRecipeSpec): Boolean = kind <:< oRecipe.kind && inputs.size == oRecipe.inputs.size &&
-    inputs.zip(oRecipe.inputs).forall(tup => tup._1 >:> tup._2) && output <:< oRecipe.output
+  def <:<(oRecipe: LRecipeSpec): Boolean = doOperator(kindOp = _.<:<, inputOp = _.>:>, outputOp = _.<:<)(oRecipe)
 
-  def >:>(oRecipe: LRecipeSpec): Boolean = kind >:> oRecipe.kind && inputs.size == oRecipe.inputs.size &&
-    inputs.zip(oRecipe.inputs).forall(tup => tup._1 <:< tup._2) && output >:> oRecipe.output
+  def >:>(oRecipe: LRecipeSpec): Boolean = doOperator(kindOp = _.>:>, inputOp = _.<:<, outputOp = _.>:>)(oRecipe)
 
-  def <<<(oRecipe: LRecipeSpec): Boolean = kind <:< oRecipe.kind && inputs.size == oRecipe.inputs.size &&
-      inputs.zip(oRecipe.inputs).forall(tup => tup._1 <:< tup._2) && output <:< oRecipe.output
+  def <<<(oRecipe: LRecipeSpec): Boolean = doOperator(kindOp = _.<:<, inputOp = _.<:<, outputOp = _.<:<)(oRecipe)
 
-  def >>>(oRecipe: LRecipeSpec): Boolean = kind >:> oRecipe.kind && inputs.size == oRecipe.inputs.size &&
-    inputs.zip(oRecipe.inputs).forall(tup => tup._1 >:> tup._2) && output >:> oRecipe.output
-
+  def >>>(oRecipe: LRecipeSpec): Boolean = doOperator(kindOp = _.>:>, inputOp = _.>:>, outputOp = _.>:>)(oRecipe)
+    
+  //NB: Stay DRY
+  private def doOperator(
+      kindOp: LKind => LKind => Boolean,
+      inputOp: LPileSpec => LPileSpec => Boolean,
+      outputOp: LPileSpec => LPileSpec => Boolean)(oRecipe: LRecipeSpec): Boolean = {
+    
+    kindOp(kind)(oRecipe.kind) &&
+    inputs.size == oRecipe.inputs.size &&
+    inputs.zip(oRecipe.inputs).forall { case (mine, theirs) => inputOp(mine)(theirs) } &&
+    outputOp(output)(oRecipe.output)
+  }
 }

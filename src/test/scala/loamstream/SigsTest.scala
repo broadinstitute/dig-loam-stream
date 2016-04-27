@@ -2,7 +2,7 @@ package loamstream
 
 import org.scalatest.FunSuite
 import loamstream.model.values.LType
-import loamstream.model.piles.LSig
+import loamstream.model.LSig
 
 /**
  * @author clint

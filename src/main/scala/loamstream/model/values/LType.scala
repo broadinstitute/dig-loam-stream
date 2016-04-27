@@ -2,7 +2,7 @@ package loamstream.model.values
 
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.signatures.Signatures.{ClusterId, SampleId, SingletonCount, VariantId}
-import loamstream.model.piles.LSig
+import loamstream.model.LSig
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit

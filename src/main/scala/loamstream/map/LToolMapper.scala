@@ -3,10 +3,10 @@ package loamstream.map
 import loamstream.map.Mapping.{Constraint, Slot, Target}
 import loamstream.model.LPipeline
 import loamstream.model.jobs.LToolBox
-import loamstream.model.jobs.tools.LTool
 import loamstream.model.piles.LPileSpec
 import loamstream.model.recipes.{LRecipe, LRecipeSpec}
 import loamstream.model.Store
+import loamstream.model.ToolBase
 
 /**
   * LoamStream
@@ -16,8 +16,9 @@ import loamstream.model.Store
 object LToolMapper {
 
   def bindingsToToolMappings(bindings: Map[Mapping.Slot, Mapping.Target]): LToolMapping = {
-    val storeMapping = bindings.collect({ case (PileSlot(pile), StoreTarget(store)) => (pile, store) })
-    val toolMapping = bindings.collect({ case (RecipeSlot(recipe), ToolTarget(tool)) => (recipe, tool) })
+    val storeMapping = bindings.collect { case (PileSlot(pile), StoreTarget(store)) => (pile, store) }
+    val toolMapping = bindings.collect { case (RecipeSlot(recipe), ToolTarget(tool)) => (recipe, tool) }
+    
     LToolMapping(storeMapping, toolMapping)
   }
 
@@ -38,7 +39,7 @@ object LToolMapper {
 
   case class StoreTarget(store: Store) extends Mapping.Target
 
-  case class ToolTarget(tool: LTool) extends Mapping.Target
+  case class ToolTarget(tool: ToolBase) extends Mapping.Target
 
   case class MapMakerConsumer(consumer: Consumer) extends MapMaker.Consumer {
     override def wantsMore: Boolean = consumer.wantMore
@@ -62,7 +63,7 @@ object LToolMapper {
     }
   }
 
-  case class AvailableTools(tools: Set[LTool]) extends Mapping.RawChoices {
+  case class AvailableTools(tools: Set[ToolBase]) extends Mapping.RawChoices {
     override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Set[Target] = {
       val z: Set[Target] = tools.map(ToolTarget)
       
@@ -96,7 +97,7 @@ object LToolMapper {
     extends ((Mapping.Target) => Boolean) {
     override def apply(target: Mapping.Target): Boolean = target match {
       case toolTarget: ToolTarget =>
-        val toolRecipeSpec = toolTarget.tool.recipe
+        val toolRecipeSpec = toolTarget.tool.spec
         val inputCompatible = inputOpts.zip(toolRecipeSpec.inputs).collect({
           case (Some(inPile), toolInPile) => inPile <:< toolInPile
         }).forall(p => p)
@@ -127,7 +128,7 @@ object LToolMapper {
       val toolMapping = bindingsToToolMappings(bindings)
       def mapPileOrNot(pile: Store): Option[LPileSpec] = toolMapping.stores.get(pile).map(_.spec)
       def mapRecipeOrNot(recipe: LRecipe): LRecipeSpec = toolMapping.tools.get(recipe) match {
-        case Some(tool) => tool.recipe
+        case Some(tool) => tool.spec
         case None => recipe.spec
       }
       val recipes = slots.collect({ case RecipeSlot(recipe) => recipe })

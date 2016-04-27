@@ -1,7 +1,6 @@
 package loamstream.model
 
 import loamstream.model.kinds.LKind
-import loamstream.model.piles.LSig
 import loamstream.model.recipes.LRecipe
 import loamstream.model.values.LType.LTuple.LTuple1
 import loamstream.tools.core.CoreStore

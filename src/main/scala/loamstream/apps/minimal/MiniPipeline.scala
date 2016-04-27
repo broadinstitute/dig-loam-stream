@@ -1,7 +1,7 @@
 package loamstream.apps.minimal
 
 import loamstream.model.kinds.instances.PileKinds
-import loamstream.model.piles.LSig
+import loamstream.model.LSig
 import loamstream.model.recipes.LRecipe
 import loamstream.model.values.LType.LTuple.LTuple2
 import loamstream.model.values.LType.{LGenotype, LSampleId, LVariantId}

@@ -2,7 +2,7 @@ package loamstream.pipelines.qc.ancestry
 
 import loamstream.model.LPipeline
 import loamstream.model.kinds.instances.{PileKinds, RecipeKinds}
-import loamstream.model.piles.LSig
+import loamstream.model.LSig
 import loamstream.model.recipes.LRecipe
 import loamstream.model.values.LType._
 import loamstream.model.Store

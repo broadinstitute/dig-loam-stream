@@ -2,10 +2,10 @@ package loamstream.apps.minimal
 
 import loamstream.cost.LPipelineCostEstimator
 import loamstream.map.LToolMapping
-import loamstream.model.jobs.tools.LTool
 import loamstream.tools.core.CoreStore
 import loamstream.tools.core.CoreTool
 import loamstream.model.Store
+import loamstream.model.ToolBase
 
 /**
   * LoamStream
@@ -20,7 +20,7 @@ case class LPipelineMiniCostEstimator(genotypesId: String) extends LPipelineCost
       CoreStore.sampleIdsFile, 
       CoreStore.vdsFile)
   
-  val cheapTools: Set[LTool] = Set(
+  val cheapTools: Set[ToolBase] = Set(
       CoreTool.checkPreExistingVcfFile(genotypesId), 
       CoreTool.extractSampleIdsFromVcfFile,
       CoreTool.importVcf)
@@ -29,7 +29,7 @@ case class LPipelineMiniCostEstimator(genotypesId: String) extends LPipelineCost
       MiniMockStore.genotypesCassandraTable, 
       MiniMockStore.sampleIdsCassandraTable)
   
-  val expensiveTools: Set[LTool] = Set(
+  val expensiveTools: Set[ToolBase] = Set(
       MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypesId),
       MiniMockTool.extractSampleIdsFromCassandraTable)
 
@@ -44,7 +44,8 @@ case class LPipelineMiniCostEstimator(genotypesId: String) extends LPipelineCost
     else { mediumCost }
   }
   
-  private[minimal] def costOf(tool: LTool): Int = {
+  //TODO: TEST
+  private[minimal] def costOf(tool: ToolBase): Int = {
     if (cheapTools.contains(tool)) { lowCost }
     else if (expensiveTools.contains(tool)) { highCost }
     else { mediumCost }

@@ -1,8 +1,7 @@
-package loamstream.model.piles
+package loamstream.model
 
 import loamstream.model.values.LType
 import loamstream.model.values.LType.LTuple
-
 import scala.language.existentials
 
 /**

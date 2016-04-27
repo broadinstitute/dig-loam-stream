@@ -6,11 +6,16 @@ import loamstream.model.kinds.instances.RecipeKinds
 
 import scala.language.higherKinds
 import loamstream.model.Store
+import loamstream.model.ToolBase
 
 /**
   * LoamStream
   * Created by oliverr on 12/23/2015.
   */
+@deprecated
+case class LRecipe(id: LId, spec: LRecipeSpec, inputs: Seq[Store], output: Store) extends ToolBase
+
+@deprecated
 object LRecipe {
 
   def keyExtraction(input: Store, output: Store, index: Int): LRecipe = {
@@ -38,4 +43,3 @@ object LRecipe {
   }
 }
 
-case class LRecipe(id: LId, spec: LRecipeSpec, inputs: Seq[Store], output: Store) extends LId.Owner

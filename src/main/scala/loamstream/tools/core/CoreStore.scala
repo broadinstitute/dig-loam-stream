@@ -2,7 +2,8 @@ package loamstream.tools.core
 
 import loamstream.model.id.LId
 import loamstream.model.kinds.instances.StoreKinds
-import loamstream.model.piles.{LPileSpec, LSig}
+import loamstream.model.piles.{LPileSpec}
+import loamstream.model.LSig
 import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
 import loamstream.model.values.LType.{LClusterId, LDouble, LGenotype, LInt, LSampleId, LSingletonCount, LVariantId}
 import loamstream.model.Store

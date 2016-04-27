@@ -7,7 +7,7 @@ import loamstream.model.values.LType.{LBoolean, LDouble, LFloat, LInt, LLong, LS
 LVariantId}
 import org.scalatest.FunSuite
 import loamstream.model.values.LType.LGenotype
-import loamstream.model.piles.LSig
+import loamstream.model.LSig
 
 /**
   * LoamStream

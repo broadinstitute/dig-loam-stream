@@ -1,6 +1,7 @@
 package loamstream.model.piles
 
 import loamstream.model.kinds.LKind
+import loamstream.model.LSig
 
 /**
   * LoamStream

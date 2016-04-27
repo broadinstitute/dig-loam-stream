@@ -1,7 +1,7 @@
 package loamstream.apps.hail
 
 import loamstream.model.kinds.instances.PileKinds
-import loamstream.model.piles.LSig
+import loamstream.model.LSig
 import loamstream.model.recipes.LRecipe
 import loamstream.model.{LPipeline, LPipelineOps}
 import loamstream.model.Store

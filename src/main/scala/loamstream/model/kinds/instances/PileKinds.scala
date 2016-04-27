@@ -9,8 +9,8 @@ import loamstream.model.kinds.LKind
   */
 object PileKinds {
 
-  val variantKeyIndexInGenotypes = 0
-  val sampleKeyIndexInGenotypes = 1
+  val variantKeyIndexInGenotypes: Int = 0
+  val sampleKeyIndexInGenotypes: Int = 1
 
   val genotypeCallsByVariantAndSample: LKind = LSpecificKind("genotypes by sample and variant")
   val sampleIds: LKind = LSpecificKind("sample ids")

@@ -20,6 +20,7 @@ object PipelineWriteApp extends App {
     redFern.write(pipeline)(LPipelineEncoder)
     val writer = Rio.createWriter(RDFFormat.TURTLE, new FileOutputStream(path.toFile))
     conn.export(writer)
+    conn.close()
   }
 
   val file = Paths.get("mini.rdf")

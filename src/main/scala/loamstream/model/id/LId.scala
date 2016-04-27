@@ -20,7 +20,15 @@ object LId {
 
   val random = new Random
 
-  def newAnonId: LAnonId = LAnonId(System.currentTimeMillis, random.nextLong())
+  def positiveRandomLong: Long = {
+    var myLong: Long = -1
+    while (myLong <= 0) {
+      myLong = random.nextLong()
+    }
+    myLong
+  }
+
+  def newAnonId: LAnonId = LAnonId(System.currentTimeMillis, positiveRandomLong)
 
   def fromName(name: String): LId = {
     if (name.matches("\\d+_\\d+")) {

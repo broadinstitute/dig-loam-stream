@@ -34,7 +34,7 @@ object LType {
   case object LSingletonCount extends LType[SingletonCount]
 
   case object LClusterId extends LType[ClusterId]
-
+  
   sealed trait LIterable[E, I <: Iterable[E]] extends LType[I] {
     def elementType: LType[E]
   }
@@ -45,6 +45,29 @@ object LType {
   case class LSeq[E](elementType: LType[E]) extends LIterable[E, Seq[E]] {
   }
 
+  sealed trait HasLType[A] {
+    def lType: LType[A]
+  }
+  
+  object HasLType {
+    private def toHasLType[A](lt: LType[A]): HasLType[A] = new HasLType[A] { override def lType = lt }
+    
+    implicit val BooleanHasLType: HasLType[Boolean] = toHasLType(LBoolean)
+    implicit val DoubleHasLType: HasLType[Double] = toHasLType(LDouble)
+    implicit val FloatHasLType: HasLType[Float] = toHasLType(LFloat)
+    implicit val LongHasLType: HasLType[Long] = toHasLType(LLong)
+    implicit val IntHasLType: HasLType[Int] = toHasLType(LInt)
+    implicit val ShortHasLType: HasLType[Short] = toHasLType(LShort)
+    implicit val StringHasLType: HasLType[String] = toHasLType(LString)
+    //implicit val VariantIdHasLType: HasLType[VariantId] = toHasLType(LVariantId)
+    //implicit val SampleIdHasLType: HasLType[SampleId] = toHasLType(LSampleId)
+    implicit val GenotypeHasLType: HasLType[Genotype] = toHasLType(LGenotype)
+    implicit val SingletonCountHasLType: HasLType[SingletonCount] = toHasLType(LSingletonCount)
+    //implicit val ClusterIdHasLType: HasLType[ClusterId] = toHasLType(LClusterId)
+    implicit def SetHasLType[E: HasLType]: HasLType[Set[E]] = toHasLType(LSet[E](implicitly[HasLType[E]].lType))
+    implicit def SeqHasLType[E: HasLType]: HasLType[Seq[E]] = toHasLType(LSeq[E](implicitly[HasLType[E]].lType))
+  }
+  
   sealed trait LTuple[T <: Product] extends LType[T] {
     def asSeq: Seq[LType[_]]
     
@@ -247,6 +270,8 @@ object LType {
 sealed trait LType[T] {
   def apply(value: T): LValue[T] = LValue(value, this)
 
+  def of(value: T): LValue[T] = apply(value)
+  
   import LType.LTuple.{LTuple1, LTuple2}
   
   def &[U](other: LType[U]): LTuple2[T, U] = LTuple2(this, other)

@@ -5,9 +5,11 @@ import loamstream.Sigs
 import loamstream.model.LPipeline
 import loamstream.model.Store
 import loamstream.model.Tool
-import loamstream.model.kinds.instances.{PileKinds, RecipeKinds}
+import loamstream.model.kinds.instances.PileKinds
 import loamstream.model.values.LType._
 import loamstream.tools.core.CoreStore
+import loamstream.tools.core.CoreTool
+import loamstream.model.kinds.instances.ToolKinds
 
 
 /**
@@ -16,29 +18,24 @@ import loamstream.tools.core.CoreStore
   */
 case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) extends LPipeline {
 
-  val genotypesPile: Store = CoreStore(
-      genotypesId, 
-      Sigs.variantAndSampleToGenotype, 
-      PileKinds.genotypeCallsByVariantAndSample)
+  val genotypesPileRecipe: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
+  
+  val pcaWeightsPileRecipe: Tool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
+  
+  val pcaProjectionRecipe: Tool = CoreTool.projectPca
+  
+  val sampleClustering: Tool = CoreTool.clusteringSamplesByFeatures
+  
+  val genotypesPile: Store = genotypesPileRecipe.output
 
-  val pcaWeightsPile: Store = CoreStore(
-      pcaWeightsId, 
-      Sigs.sampleIdAndIntToDouble, 
-      PileKinds.pcaWeights)
+  val pcaWeightsPile: Store = pcaWeightsPileRecipe.output
   
-  val projectedValsPile: Store = CoreStore(Sigs.sampleIdAndIntToDouble, PileKinds.pcaProjected)
+  val projectedValsPile: Store = pcaProjectionRecipe.output
   
-  val sampleClustersPile: Store = CoreStore(LSampleId to LClusterId, PileKinds.sampleClustersByAncestry)
+  val sampleClustersPile: Store = sampleClustering.output
+  
 
-  val genotypesPileRecipe: Tool = Tool.preExistingCheckout(genotypesId, genotypesPile)
+  override def stores = tools.map(_.output)
   
-  val pcaWeightsPileRecipe: Tool = Tool.preExistingCheckout(pcaWeightsId, pcaWeightsPile)
-  
-  val pcaProjectionRecipe: Tool = Tool(RecipeKinds.pcaProjection, Seq(genotypesPile, pcaWeightsPile), projectedValsPile)
-  
-  val sampleClustering: Tool = Tool(RecipeKinds.clusteringSamplesByFeatures, Seq(projectedValsPile), sampleClustersPile)
-
-  override val piles = Set(genotypesPile, pcaWeightsPile, projectedValsPile, sampleClustersPile)
-  
-  override val recipes = Set(genotypesPileRecipe, pcaWeightsPileRecipe, pcaProjectionRecipe, sampleClustering)
+  override val tools = Set(genotypesPileRecipe, pcaWeightsPileRecipe, pcaProjectionRecipe, sampleClustering)
 }

@@ -1,6 +1,5 @@
 package loamstream.model.jobs
 
-import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.Store
@@ -12,24 +11,19 @@ import loamstream.model.Tool
   * Created by oliverr on 3/28/2016.
   */
 case class LComboToolBox(boxes: Set[LToolBox]) extends LToolBox {
-  override def storesFor(pile: Store): Set[Store] = boxes.flatMap(box => box.storesFor(pile))
+  private val noBoxesErrorMessage = "This combination toolbox contains no toolboxes."
 
-  override def toolsFor(recipe: Tool): Set[Tool] = boxes.flatMap(box => box.toolsFor(recipe))
-
-  val noBoxesErrorMessage = "This combination toolbox contains no toolboxes."
-
-  override def createJobs(recipe: Tool, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] =
-    boxes.map(box => box.createJobs(recipe, pipeline, mapping)).reduceOption(_.orElse(_)) match {
+  override def createJobs(recipe: Tool, pipeline: LPipeline): Shot[Set[LJob]] =
+    boxes.map(box => box.createJobs(recipe, pipeline)).reduceOption(_.orElse(_)) match {
       case Some(shot) => shot
       case None => Miss(noBoxesErrorMessage)
     }
 
-  override def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable =
-    LExecutable(boxes.flatMap(box => box.createExecutable(pipeline, mapping).jobs))
+  override def createExecutable(pipeline: LPipeline): LExecutable =
+    LExecutable(boxes.flatMap(box => box.createExecutable(pipeline).jobs))
 
   override def ++(oBox: LToolBox): LComboToolBox = oBox match {
     case LComboToolBox(oBoxes) => LComboToolBox(oBoxes ++ boxes)
     case _ => LComboToolBox(boxes + oBox)
   }
-
 }

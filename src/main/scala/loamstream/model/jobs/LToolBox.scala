@@ -1,6 +1,5 @@
 package loamstream.model.jobs
 
-import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.util.shot.Shot
@@ -16,13 +15,9 @@ object LToolBox {
 }
 
 trait LToolBox {
-  def storesFor(pile: Store): Set[Store]
+  def createJobs(recipe: Tool, pipeline: LPipeline): Shot[Set[LJob]]
 
-  def toolsFor(recipe: Tool): Set[Tool]
-
-  def createJobs(recipe: Tool, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]]
-
-  def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable
+  def createExecutable(pipeline: LPipeline): LExecutable
 
   def ++(oBox: LToolBox): LComboToolBox = oBox match {
     case LComboToolBox(boxes) => LComboToolBox(boxes + this)

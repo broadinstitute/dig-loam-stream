@@ -3,12 +3,13 @@ package loamstream.model
 import loamstream.model.id.LId
 import loamstream.model.recipes.LRecipeSpec
 import loamstream.model.kinds.LKind
-import loamstream.model.kinds.instances.RecipeKinds
 import loamstream.tools.core.CoreTool
 import loamstream.tools.core.StoreOps
+import loamstream.model.kinds.instances.ToolKinds
 
 /**
- * @author clint
+ * @author Clint
+ * @author Oliver
  * date: Apr 26, 2016
  */
 trait Tool extends LId.Owner {
@@ -33,19 +34,19 @@ object Tool {
   
   def keyExtraction(input: Store, output: Store, index: Int): Tool = {
     //TODO: CoreTool.unaryTool() overload?
-    Tool(RecipeKinds.extractKey(index), Seq(input), output)
+    Tool(ToolKinds.extractKey(index), Seq(input), output)
   }
 
   def preExistingCheckout(id: String, output: Store): Tool = {
     //TODO: CoreTool.nullaryTool() overload?
-    Tool(id, RecipeKinds.usePreExisting(id), Seq.empty[Store], output)
+    Tool(id, ToolKinds.usePreExisting(id), Seq.empty[Store], output)
   }
 
   def vcfImport(input: Store, output: Store, index: Int): Tool = {
-    Tool(RecipeKinds.importVcf(index), Seq(input), output)
+    Tool(ToolKinds.importVcf(index), Seq(input), output)
   }
 
   def singletonCalculation(input: Store, output: Store, index: Int): Tool = {
-    Tool(RecipeKinds.calculateSingletons(index), Seq(input), output)
+    Tool(ToolKinds.calculateSingletons(index), Seq(input), output)
   }
 }

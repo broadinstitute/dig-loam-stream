@@ -9,7 +9,6 @@ import org.scalatest.{BeforeAndAfter, FunSuite}
 
 import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal._
-import loamstream.map.LToolMapper
 import loamstream.util.LoamFileUtils
 import loamstream.util.Loggable.Level
 import loamstream.util.StringUtils
@@ -48,24 +47,12 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val singletonsId = env(LCoreEnv.Keys.singletonsId)
   val pipeline = HailPipeline(genotypesId, vdsId, singletonsId)
   val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
-  val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
-  for (mapping <- mappings)
-    LToolMappingLogger.logMapping(Level.trace, mapping)
-  val mappingCostEstimator = LPipelineMiniCostEstimator(pipeline.genotypesId)
-  val mapping = mappingCostEstimator.pickCheapest(mappings)
-  LToolMappingLogger.logMapping(Level.trace, mapping)
 
-  val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline, mapping)
-  val importVcfJob = toolbox.createJobs(pipeline.vdsRecipe, pipeline, mapping)
-  val calculateSingletonsJob = toolbox.createJobs(pipeline.singletonRecipe, pipeline, mapping)
+  val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline)
+  val importVcfJob = toolbox.createJobs(pipeline.vdsRecipe, pipeline)
+  val calculateSingletonsJob = toolbox.createJobs(pipeline.singletonRecipe, pipeline)
 
-  val executable = toolbox.createExecutable(pipeline, mapping)
-
-  test("Methods and piles are successfully mapped to tools and stores") {
-    assert(mappings.size == 1)
-    assert(mappings.head.stores.size == 3)
-    assert(mappings.head.tools.size == 3)
-  }
+  val executable = toolbox.createExecutable(pipeline)
 
   test("Jobs are successfully created") {
     assert(TestUtils.isHitOfSetOfOne(genotypesJob))

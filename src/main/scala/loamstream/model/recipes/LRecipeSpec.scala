@@ -1,10 +1,10 @@
 package loamstream.model.recipes
 
 import loamstream.model.kinds.LKind
-import loamstream.model.kinds.instances.RecipeKinds
 import loamstream.model.piles.LPileSpec
 
 import scala.language.higherKinds
+import loamstream.model.kinds.instances.ToolKinds
 
 /**
   * LoamStream
@@ -13,19 +13,19 @@ import scala.language.higherKinds
 object LRecipeSpec {
 
   def keyExtraction(index: Int)(input: LPileSpec, output: LPileSpec): LRecipeSpec = {
-    LRecipeSpec(RecipeKinds.extractKey(index), Seq(input), output)
+    LRecipeSpec(ToolKinds.extractKey(index), Seq(input), output)
   }
 
   def vcfImport(index: Int)(input: LPileSpec, output: LPileSpec): LRecipeSpec = {
-    LRecipeSpec(RecipeKinds.importVcf(index), Seq(input), output)
+    LRecipeSpec(ToolKinds.importVcf(index), Seq(input), output)
   }
 
   def calculateSingletons(index: Int)(input: LPileSpec, output: LPileSpec): LRecipeSpec = {
-    LRecipeSpec(RecipeKinds.calculateSingletons(index), Seq(input), output)
+    LRecipeSpec(ToolKinds.calculateSingletons(index), Seq(input), output)
   }
 
   def preExistingCheckout(id: String)(output: LPileSpec): LRecipeSpec = {
-    LRecipeSpec(RecipeKinds.usePreExisting(id), Seq.empty[LPileSpec], output)
+    LRecipeSpec(ToolKinds.usePreExisting(id), Seq.empty[LPileSpec], output)
   }
 }
 

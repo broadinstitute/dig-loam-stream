@@ -4,13 +4,14 @@ import loamstream.LEnv
 import loamstream.model.id.LId
 import loamstream.model.id.LId.LNamedId
 import loamstream.model.kinds.instances.PileKinds
-import loamstream.model.kinds.instances.ToolKinds.{klustakwikClustering, nativePcaProjection}
+import loamstream.model.kinds.instances.ToolKinds.{klustakwikClustering, nativePcaProjection, pcaProjection}
 import loamstream.model.recipes.LRecipeSpec
 import LCoreEnv._
 import loamstream.model.Tool
 import loamstream.model.Store
 import loamstream.model.piles.LPileSpec
 import loamstream.model.kinds.LKind
+import loamstream.model.kinds.instances.ToolKinds
 
 /**
   * LoamStream
@@ -55,16 +56,26 @@ object CoreTool {
       "Project PCA using native method", 
       nativePcaProjection,
       (CoreStore.vcfFile, CoreStore.pcaWeightsFile) ~> CoreStore.pcaProjectedFile)
+      
+  val projectPca: Tool = binaryTool(
+      "Project PCA", 
+      pcaProjection,
+       (CoreStore.vcfFile, CoreStore.pcaWeightsFile) ~> CoreStore.pcaProjectedFile)
 
   val klustaKwikClustering: Tool = unaryTool(
-      "Project PCA using native method", 
+      "KlustaKwik Clustering", 
       klustakwikClustering,
       CoreStore.pcaProjectedFile ~> CoreStore.sampleClusterFile)
   
+  val clusteringSamplesByFeatures: Tool = unaryTool(
+      "Clustering Samples by Features",
+      ToolKinds.clusteringSamplesByFeatures, 
+      CoreStore.pcaProjectedFile ~> CoreStore.sampleClusterFile)
+      
   def tools(env: LEnv): Set[Tool] = {
     env.get(Keys.genotypesId).map(checkPreExistingVcfFile(_)).toSet ++
     env.get(Keys.pcaWeightsId).map(checkPreExistingPcaWeightsFile(_)).toSet ++
-    Set(extractSampleIdsFromVcfFile, importVcf, calculateSingletons, projectPcaNative, klustaKwikClustering)
+    Set(extractSampleIdsFromVcfFile, importVcf, calculateSingletons, projectPcaNative, projectPca, klustaKwikClustering)
   }
   
   //TODO: TEST

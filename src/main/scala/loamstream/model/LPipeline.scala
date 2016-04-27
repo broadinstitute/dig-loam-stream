@@ -5,7 +5,7 @@ package loamstream.model
   * Created by oliverr on 2/17/2016.
   */
 trait LPipeline {
-  def piles: Set[Store]
+  def stores: Set[Store]
 
-  def recipes: Set[Tool]
+  def tools: Set[Tool]
 }

@@ -8,8 +8,7 @@ import loamstream.model.values.LValue
   * Created by oliverr on 2/11/2016.
   */
 object LSpecificKind {
-  def apply(specifics: String, supers: LKind*): LSpecificKind[String] =
-    LSpecificKind[String](LString(specifics), supers.toSet)
+  def apply(specifics: String, supers: LKind*): LSpecificKind[String] = LSpecificKind(LString(specifics), supers.toSet)
 
   def apply[T](specifics: LValue[T], supers: LKind*): LSpecificKind[T] = LSpecificKind[T](specifics, supers.toSet)
 }

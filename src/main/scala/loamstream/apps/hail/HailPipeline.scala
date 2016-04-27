@@ -34,7 +34,7 @@ case class HailPipeline(genotypesId: String, vdsId: String, singletonsId: String
   
   val singletonRecipe: Tool = LPipelineOps.calculateSingletonsRecipe(vdsPile, 0, singletonPile)
 
-  override val piles: Set[Store] = Set(genotypeCallsPile, vdsPile, singletonPile)
+  override val stores: Set[Store] = Set(genotypeCallsPile, vdsPile, singletonPile)
   
-  override val recipes: Set[Tool] = Set(genotypeCallsRecipe, vdsRecipe, singletonRecipe)
+  override val tools: Set[Tool] = Set(genotypeCallsRecipe, vdsRecipe, singletonRecipe)
 }

@@ -7,27 +7,22 @@ import loamstream.model.Tool
 
 import loamstream.model.kinds.instances.PileKinds
 import loamstream.tools.core.CoreStore
+import loamstream.tools.core.CoreTool
 
 /**
   * LoamStream
   * Created by oliverr on 2/17/2016.
   */
 case class MiniPipeline(genotypesId: String) extends LPipeline {
-  val genotypeCallsPile: Store = CoreStore(
-      genotypesId, 
-      Sigs.variantAndSampleToGenotype, 
-      PileKinds.genotypeCallsByVariantAndSample)
-      
-  val genotypeCallsRecipe: Tool = Tool.preExistingCheckout(genotypesId, genotypeCallsPile)
+  val genotypeCallsTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
   
-  val sampleIdsPile: Store = {
-    LPipelineOps.extractKeyPile(genotypeCallsPile, PileKinds.sampleKeyIndexInGenotypes, PileKinds.sampleIds)
-  }
+  val genotypeCallsStore: Store = genotypeCallsTool.output
   
-  val sampleIdsRecipe: Tool = {
-    LPipelineOps.extractKeyRecipe(genotypeCallsPile, PileKinds.sampleKeyIndexInGenotypes, sampleIdsPile)
-  }
+  val sampleIdsTool: Tool = CoreTool.extractSampleIdsFromVcfFile
 
-  override val piles = Set(genotypeCallsPile, sampleIdsPile)
-  override val recipes = Set(genotypeCallsRecipe, sampleIdsRecipe)
+  val sampleIdsStore: Store = sampleIdsTool.output
+  
+  override val tools = Set(genotypeCallsTool, sampleIdsTool)
+  
+  override def stores = tools.map(_.output)
 }

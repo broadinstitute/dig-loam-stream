@@ -22,7 +22,7 @@ object PipelineConsistencyChecker {
 
   case object PipelineHasPilesCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] =
-      if (pipeline.piles.isEmpty) Set(NoPiles) else Set.empty
+      if (pipeline.stores.isEmpty) Set(NoPiles) else Set.empty
   }
 
   case object NoRecipes extends Problem {
@@ -31,7 +31,7 @@ object PipelineConsistencyChecker {
 
   case object PipelineHasRecipesCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] =
-      if (pipeline.recipes.isEmpty) Set(NoRecipes) else Set.empty
+      if (pipeline.tools.isEmpty) Set(NoRecipes) else Set.empty
   }
 
   sealed trait PileSpecificProblem extends Problem {
@@ -50,7 +50,7 @@ object PipelineConsistencyChecker {
 
   case object EachPileIsOutputOfAtLeastOneRecipeCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      (pipeline.piles -- pipeline.recipes.map(_.output)).map(PileIsProducedByNoRecipe)
+      (pipeline.stores -- pipeline.tools.map(_.output)).map(PileIsProducedByNoRecipe)
     }
   }
 
@@ -62,7 +62,7 @@ object PipelineConsistencyChecker {
 
   case object EachPileIsOutputOfNoMoreThanOneRecipeCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.groupBy(_.output).collect { case (pile, recipes) if recipes.size > 1 =>
+      pipeline.tools.groupBy(_.output).collect { case (pile, recipes) if recipes.size > 1 =>
         val result: Problem = PileIsProducedByMultipleRecipes(pile, recipes)
         
         result
@@ -78,7 +78,7 @@ object PipelineConsistencyChecker {
 
   case object EachPileIsCompatibleOutputOfRecipeCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.filterNot(recipe => recipe.output.spec >:> recipe.spec.output).
+      pipeline.tools.filterNot(recipe => recipe.output.spec >:> recipe.spec.output).
         map(recipe => PileIsIncompatibleOutputOfRecipe(recipe.output, recipe))
     }
   }
@@ -91,7 +91,7 @@ object PipelineConsistencyChecker {
 
   case object EachPileIsCompatibleInputOfRecipeCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.flatMap { recipe =>
+      pipeline.tools.flatMap { recipe =>
         recipe.inputs.indices.map(pos => (recipe, pos, recipe.inputs(pos), recipe.spec.inputs(pos)))
       }.collect { case (recipe, pos, input, inputSpec) if !(input.spec <:< inputSpec) =>
         PileIsIncompatibleInputOfRecipe(input, recipe, pos)
@@ -107,7 +107,7 @@ object PipelineConsistencyChecker {
 
   case object EachOutputPileIsPresentCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.collect { case recipe if !pipeline.piles.contains(recipe.output) =>
+      pipeline.tools.collect { case recipe if !pipeline.stores.contains(recipe.output) =>
         PileMissingUsedAsOutput(recipe.output, recipe)
       }
     }
@@ -119,8 +119,8 @@ object PipelineConsistencyChecker {
 
   case object EachInputPileIsPresentCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.flatMap { recipe => recipe.inputs.indices.map(pos => (recipe.inputs(pos), recipe, pos)) }.
-        collect { case (input, recipe, pos) if !pipeline.piles.contains(input) =>
+      pipeline.tools.flatMap { recipe => recipe.inputs.indices.map(pos => (recipe.inputs(pos), recipe, pos)) }.
+        collect { case (input, recipe, pos) if !pipeline.stores.contains(input) =>
           PileMissingUsedAsInput(input, recipe, pos)
         }
     }
@@ -132,13 +132,13 @@ object PipelineConsistencyChecker {
 
   case object ConnectednessCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.piles.headOption match {
+      pipeline.stores.headOption match {
         case Some(arbitraryPile) =>
           var makingProgress = true
           var connectedPiles: Set[Store] = Set(arbitraryPile)
           while (makingProgress) {
             makingProgress = false
-            for (recipe <- pipeline.recipes) {
+            for (recipe <- pipeline.tools) {
               val neighborPiles = recipe.inputs.toSet + recipe.output
               val connectedPilesNew = neighborPiles -- connectedPiles
               if (connectedPilesNew.nonEmpty) {
@@ -147,7 +147,7 @@ object PipelineConsistencyChecker {
               }
             }
           }
-          val otherPiles = pipeline.piles -- connectedPiles
+          val otherPiles = pipeline.stores -- connectedPiles
           if (otherPiles.nonEmpty) Set(PipelineIsDisconnected(arbitraryPile, otherPiles.head)) else Set.empty
         case None => Set.empty
       }
@@ -161,11 +161,11 @@ object PipelineConsistencyChecker {
   case object AcyclicityCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
       //TODO: Get rid of vars with a fold 
-      var pilesLeft = pipeline.piles
+      var pilesLeft = pipeline.stores
       var makingProgress = true
       var nPilesLeft = pilesLeft.size
       while (pilesLeft.nonEmpty && makingProgress) {
-        pilesLeft = pipeline.recipes.filter(recipe => pilesLeft.contains(recipe.output)).flatMap(_.inputs)
+        pilesLeft = pipeline.tools.filter(recipe => pilesLeft.contains(recipe.output)).flatMap(_.inputs)
         val nPilesLeftNew = pilesLeft.size
         makingProgress = nPilesLeftNew < nPilesLeft
         nPilesLeft = nPilesLeftNew

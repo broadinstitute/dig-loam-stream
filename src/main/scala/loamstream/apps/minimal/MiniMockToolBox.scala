@@ -1,7 +1,6 @@
 package loamstream.apps.minimal
 
 import loamstream.LEnv
-import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LJob, LToolBox}
@@ -30,18 +29,11 @@ case class MiniMockToolBox(genotypesId: String = LCoreDefaultPileIds.genotypes) 
   val stores: Set[Store] = MiniMockStore.stores
   val tools: Set[Tool] = MiniMockTool.tools(genotypesId)
 
-  override def storesFor(store: Store): Set[Store] = stores.filter(_.spec <:< store.spec)
-
-  override def toolsFor(recipe: Tool): Set[Tool] = tools.filter(_.spec <<< recipe.spec)
-
-  override def createJobs(recipe: Tool, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
-    mapping.tools.get(recipe) match {
-      case Some(tool) => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
-      case None => Miss(SnagMessage(s"No tool mapped to recipe $recipe"))
-    }
+  override def createJobs(tool: Tool, pipeline: LPipeline): Shot[Set[LJob]] = {
+    Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 
-  override def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable = {
-    LExecutable(mapping.tools.keySet.map(createJobs(_, pipeline, mapping)).collect({ case Hit(job) => job }).flatten)
+  override def createExecutable(pipeline: LPipeline): LExecutable = {
+    LExecutable(pipeline.tools.map(createJobs(_, pipeline)).collect { case Hit(job) => job }.flatten)
   }
 }

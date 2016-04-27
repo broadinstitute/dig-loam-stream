@@ -12,10 +12,10 @@ import tools.core.LCoreDefaultPileIds
   * LoamStream
   * Created by oliverr on 3/24/2016.
   */
-class PipelinesConsistencyTest extends FunSuite {
+final class PipelinesConsistencyTest extends FunSuite {
   def check(pipeline: LPipeline): Unit = {
     val problems = PipelineConsistencyChecker.check(pipeline)
-    assert(problems.isEmpty, problems.map(_.message).mkString("\n"))
+    assert(problems.isEmpty, problems.map(_.message).mkString(",\n"))
   }
 
   test("Mini pipeline is consistent.") {

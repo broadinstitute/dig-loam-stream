@@ -5,9 +5,12 @@ import loamstream.io.rdf.RedFern.Encoder
 import loamstream.model.values.LType.{LBoolean, LByte, LChar, LDouble, LFloat, LInt, LLong, LMap, LSampleId, LSeq,
 LSet, LShort, LString, LTuple, LVariantId}
 import loamstream.model.values.LValue
+import loamstream.util.TupleUtil
 import org.openrdf.model.vocabulary.{RDF, XMLSchema}
 import org.openrdf.model.{Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection
+
+import scala.collection.mutable
 
 /**
   * LoamStream
@@ -49,7 +52,7 @@ object LValueEncoder extends Encoder[LValue] {
         mapNode
       case LTuple(types) =>
         val tupleNode = io.maker.createBNode()
-        val tuple = lValue.as[Product]
+        val tuple = TupleUtil.seqToProduct(lValue.as[Seq[Any]]).get
         val arity = tuple.productArity
         io.conn.add(tupleNode, RDF.TYPE, Loam.tuple(arity))
         val valueNodes =

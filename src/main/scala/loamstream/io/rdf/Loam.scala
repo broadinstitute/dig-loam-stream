@@ -39,7 +39,7 @@ object Loam {
   val specificKind = iri("anyKind")
   val hasSpecifics = iri("specifics")
 
-  val pileSpecs = iri("PileSpecs")
+  val pile = iri("Pile")
   val hasSig = iri("hasSig")
 
   val tupleNamePrefix = "Tuple"

@@ -33,6 +33,4 @@ object LRecipe {
 
 }
 
-case class LRecipe(id: LId, spec: LRecipeSpec, inputs: Seq[LPile], output: LPile) extends LId.Owner {
-  override val ownerBaseName = "recipe"
-}
+case class LRecipe(id: LId, spec: LRecipeSpec, inputs: Seq[LPile], output: LPile) extends LId.Owner

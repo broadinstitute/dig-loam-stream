@@ -1,27 +1,28 @@
 package loamstream.tools.core
 
 import java.nio.file.{Files, Path}
+
+import scala.concurrent.{ ExecutionContext, Future, blocking }
+
+import CoreToolBox._
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.LEnv
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
-import loamstream.model.execute.LExecutable
-import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
-import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
-import loamstream.model.kinds.LSpecificKind
-import loamstream.model.recipes.LRecipe
-import loamstream.util.shot.{Hit, Miss, Shot}
-import loamstream.util.snag.SnagMessage
-import CoreToolBox._
-import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
-import loamstream.tools.klusta.{KlustaKwikLineCommand, KlustaKwikInputWriter}
-import loamstream.tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser}
-import loamstream.tools.VcfUtils
-import loamstream.util.LoamFileUtils
-import scala.concurrent.{ExecutionContext, Future, blocking}
-import loamstream.util.Functions
 import loamstream.model.Store
 import loamstream.model.ToolBase
+import loamstream.model.execute.LExecutable
+import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
+import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
+import loamstream.model.kinds.LSpecificKind
+import loamstream.tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser}
+import loamstream.tools.VcfUtils
+import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
+import loamstream.tools.klusta.{KlustaKwikLineCommand, KlustaKwikInputWriter}
+import loamstream.util.Functions
+import loamstream.util.LoamFileUtils
+import loamstream.util.shot.{Hit, Miss, Shot}
+import loamstream.util.snag.SnagMessage
 
 /**
   * LoamStream
@@ -128,7 +129,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
 
   override def storesFor(pile: Store): Set[Store] = stores.filter(_.spec <:< pile.spec)
 
-  override def toolsFor(recipe: LRecipe): Set[ToolBase] = tools.filter(_.spec <<< recipe.spec)
+  override def toolsFor(recipe: ToolBase): Set[ToolBase] = tools.filter(_.spec <<< recipe.spec)
 
   val predefinedVcfFileShot: String => Shot[Path] = Functions.memoize { id =>
     env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
@@ -184,7 +185,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
     case _ => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 
-  override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
+  override def createJobs(recipe: ToolBase, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
       case Some(tool) => toolToJobShot(tool).map(Set(_))
       case None => Miss(SnagMessage("No tool mapped to recipe $recipe"))

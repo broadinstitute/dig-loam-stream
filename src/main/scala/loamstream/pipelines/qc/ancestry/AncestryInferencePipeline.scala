@@ -1,13 +1,13 @@
 package loamstream.pipelines.qc.ancestry
 
-import loamstream.model.LPipeline
-import loamstream.model.kinds.instances.{PileKinds, RecipeKinds}
-import loamstream.model.LSig
-import loamstream.model.recipes.LRecipe
-import loamstream.model.values.LType._
-import loamstream.model.Store
-import loamstream.tools.core.CoreStore
 import loamstream.Sigs
+
+import loamstream.model.LPipeline
+import loamstream.model.Store
+import loamstream.model.ToolBase
+import loamstream.model.kinds.instances.{PileKinds, RecipeKinds}
+import loamstream.model.values.LType._
+import loamstream.tools.core.CoreStore
 
 
 /**
@@ -30,13 +30,13 @@ case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) 
   
   val sampleClustersPile: Store = CoreStore(LSampleId to LClusterId, PileKinds.sampleClustersByAncestry)
 
-  val genotypesPileRecipe: LRecipe = LRecipe.preExistingCheckout(genotypesId, genotypesPile)
+  val genotypesPileRecipe: ToolBase = ToolBase.preExistingCheckout(genotypesId, genotypesPile)
   
-  val pcaWeightsPileRecipe: LRecipe = LRecipe.preExistingCheckout(pcaWeightsId, pcaWeightsPile)
+  val pcaWeightsPileRecipe: ToolBase = ToolBase.preExistingCheckout(pcaWeightsId, pcaWeightsPile)
   
-  val pcaProjectionRecipe: LRecipe = LRecipe(RecipeKinds.pcaProjection, Seq(genotypesPile, pcaWeightsPile), projectedValsPile)
+  val pcaProjectionRecipe: ToolBase = ToolBase(RecipeKinds.pcaProjection, Seq(genotypesPile, pcaWeightsPile), projectedValsPile)
   
-  val sampleClustering: LRecipe = LRecipe(RecipeKinds.clusteringSamplesByFeatures, Seq(projectedValsPile), sampleClustersPile)
+  val sampleClustering: ToolBase = ToolBase(RecipeKinds.clusteringSamplesByFeatures, Seq(projectedValsPile), sampleClustersPile)
 
   override val piles = Set(genotypesPile, pcaWeightsPile, projectedValsPile, sampleClustersPile)
   

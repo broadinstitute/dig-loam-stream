@@ -82,22 +82,23 @@ object CoreTool {
   }
   
   //TODO: TEST
-  def unaryTool(name: String, kind: LKind, sig: UnarySig): ToolBase = {
-    CoreTool(
-      name,
-      LRecipeSpec(kind, Seq(sig.input.spec), sig.output.spec),
-      Seq(sig.input),
-      sig.output)
-  }
+  def unaryTool(name: String, kind: LKind, sig: UnarySig): ToolBase = nAryTool(name, kind, sig.toNarySig)
   
   //TODO: TEST
-  def binaryTool(name: String, kind: LKind, sig: BinarySig): ToolBase = {
-    val inputSeq = Seq(sig.inputs._1, sig.inputs._2)
-    
+  def binaryTool(name: String, kind: LKind, sig: BinarySig): ToolBase = nAryTool(name, kind, sig.toNarySig)
+  
+  //TODO: TEST
+  def nAryTool(name: String, kind: LKind, sig: NarySig): ToolBase = nAryTool(LId.LNamedId(name), kind, sig)
+  
+  //TODO: TEST
+  def nAryTool(kind: LKind, sig: NarySig): ToolBase = nAryTool(LId.newAnonId, kind, sig)
+  
+  //TODO: TEST
+  def nAryTool(id: LId, kind: LKind, sig: NarySig): ToolBase = {
     CoreTool(
-      name,
-      LRecipeSpec(kind, inputSeq.map(_.spec), sig.output.spec),
-      inputSeq,
+      id,
+      LRecipeSpec(kind, sig.inputs.map(_.spec), sig.output.spec),
+      sig.inputs,
       sig.output)
   }
 }

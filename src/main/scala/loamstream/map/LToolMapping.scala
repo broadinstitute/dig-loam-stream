@@ -1,6 +1,5 @@
 package loamstream.map
 
-import loamstream.model.recipes.LRecipe
 import loamstream.model.Store
 import loamstream.model.ToolBase
 
@@ -9,5 +8,5 @@ import loamstream.model.ToolBase
   * Created by oliverr on 2/22/2016.
   */
 @deprecated
-case class LToolMapping(stores: Map[Store, Store], tools: Map[LRecipe, ToolBase])
+case class LToolMapping(stores: Map[Store, Store], tools: Map[ToolBase, ToolBase])
 

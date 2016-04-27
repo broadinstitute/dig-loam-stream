@@ -1,7 +1,6 @@
 package loamstream.model
 
 import loamstream.model.kinds.LKind
-import loamstream.model.recipes.LRecipe
 import loamstream.model.values.LType.LTuple.LTuple1
 import loamstream.tools.core.CoreStore
 
@@ -18,11 +17,11 @@ object LPipelineOps {
     CoreStore("Extract Keys", LSig.Set.of(keyType), kind)
   }
 
-  def extractKeyRecipe(inputPile: Store, index: Int, outputPile: Store): LRecipe = {
-    LRecipe.keyExtraction(inputPile, outputPile, index)
+  def extractKeyRecipe(inputPile: Store, index: Int, outputPile: Store): ToolBase = {
+    ToolBase.keyExtraction(inputPile, outputPile, index)
   }
 
-  def extractKey(inputPile: Store, index: Int, outputPile: Store, kind: LKind): (Store, LRecipe) = {
+  def extractKey(inputPile: Store, index: Int, outputPile: Store, kind: LKind): (Store, ToolBase) = {
     val outputPile = extractKeyPile(inputPile, index, kind)
     
     val recipe = extractKeyRecipe(inputPile, index, outputPile)
@@ -30,11 +29,11 @@ object LPipelineOps {
     (outputPile, recipe)
   }
 
-  def importVcfRecipe(inputPile: Store, index: Int, outputPile: Store): LRecipe = {
-    LRecipe.vcfImport(inputPile, outputPile, index)
+  def importVcfRecipe(inputPile: Store, index: Int, outputPile: Store): ToolBase = {
+    ToolBase.vcfImport(inputPile, outputPile, index)
   }
 
-  def calculateSingletonsRecipe(inputPile: Store, index: Int, outputPile: Store): LRecipe = {
-    LRecipe.singletonCalculation(inputPile, outputPile, index)
+  def calculateSingletonsRecipe(inputPile: Store, index: Int, outputPile: Store): ToolBase = {
+    ToolBase.singletonCalculation(inputPile, outputPile, index)
   }
 }

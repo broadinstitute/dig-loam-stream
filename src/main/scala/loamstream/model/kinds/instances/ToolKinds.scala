@@ -6,6 +6,7 @@ import loamstream.model.kinds.instances.RecipeKinds.{calculateSingletons, calcul
   pcaProjection, usePreExisting}
 import loamstream.model.values.LType.LString
 import loamstream.model.values.LType.LTuple.LTuple2
+import loamstream.model.kinds.LKind
 
 /**
   * LoamStream
@@ -19,15 +20,23 @@ object ToolKinds {
     LSpecificKind(LTuple2(LString, LString)("Use pre-existing Cassandra genotype calls table", id),
       usePreExisting(id))
 
-  val extractSampleIdsFromVcfFile =
+  val extractSampleIdsFromVcfFile: LKind = {
     LSpecificKind("Extract sample ids from VCF file", extractKey(0), extractSampleIdsFromGenotypeCalls)
-  val extractSampleIdsFromCassandraGenotypeCallsTable =
-    LSpecificKind("Extract sample ids from Cassandra genotype calls table", extractKey(0),
-      extractSampleIdsFromGenotypeCalls)
-  val convertVcfToVds =
+  }
+  
+  val extractSampleIdsFromCassandraGenotypeCallsTable: LKind = {
+    LSpecificKind("Extract sample ids from Cassandra genotype calls table", extractKey(0), extractSampleIdsFromGenotypeCalls)
+  }
+  
+  val convertVcfToVds: LKind = {
     LSpecificKind("Import VCF file into VDS format", importVcf(0), loadVdsFromGenotypeCalls)
-  val calculateSingletonsFromVdsFile =
+  }
+    
+  val calculateSingletonsFromVdsFile: LKind = {
     LSpecificKind("Calculate singletons from VDS", calculateSingletons(0), calculateSingletonsFromGenotypeCalls)
-  val nativePcaProjection = LSpecificKind("PCA projection (native method)", pcaProjection)
-  val klustakwikClustering = LSpecificKind("Cluster samples using KlustaKwik", clusteringSamplesByFeatures)
+  }
+  
+  val nativePcaProjection: LKind = LSpecificKind("PCA projection (native method)", pcaProjection)
+  
+  val klustakwikClustering: LKind = LSpecificKind("Cluster samples using KlustaKwik", clusteringSamplesByFeatures)
 }

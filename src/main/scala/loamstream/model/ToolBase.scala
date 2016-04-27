@@ -2,9 +2,10 @@ package loamstream.model
 
 import loamstream.model.id.LId
 import loamstream.model.recipes.LRecipeSpec
-import loamstream.model.recipes.LRecipe
 import loamstream.model.kinds.LKind
 import loamstream.model.kinds.instances.RecipeKinds
+import loamstream.tools.core.CoreTool
+import loamstream.tools.core.StoreOps
 
 /**
  * @author clint
@@ -20,27 +21,31 @@ trait ToolBase extends LId.Owner {
 
 object ToolBase {
 
-  def keyExtraction(input: Store, output: Store, index: Int): ToolBase = {
-    LRecipe(RecipeKinds.extractKey(index), Seq(input), output)
-  }
-
-  def preExistingCheckout(id: String, output: Store): ToolBase = {
-    LRecipe(id, RecipeKinds.usePreExisting(id), Seq.empty[Store], output)
-  }
-
-  def vcfImport(input: Store, output: Store, index: Int): ToolBase = {
-    LRecipe(RecipeKinds.importVcf(index), Seq(input), output)
-  }
-
-  def singletonCalculation(input: Store, output: Store, index: Int): ToolBase = {
-    LRecipe(RecipeKinds.calculateSingletons(index), Seq(input), output)
-  }
+  import StoreOps._
 
   def apply(id: String, kind: LKind, inputs: Seq[Store], output: Store): ToolBase = {
-    LRecipe(LId.LNamedId(id), LRecipeSpec(kind, inputs.map(_.spec), output.spec), inputs, output)
+    CoreTool.nAryTool(id, kind, inputs ~> output)
   }
 
   def apply(kind: LKind, inputs: Seq[Store], output: Store): ToolBase = {
-    LRecipe(LId.newAnonId, LRecipeSpec(kind, inputs.map(_.spec), output.spec), inputs, output)
+    CoreTool.nAryTool(kind, inputs ~> output)
+  }
+  
+  def keyExtraction(input: Store, output: Store, index: Int): ToolBase = {
+    //TODO: CoreTool.unaryTool() overload?
+    ToolBase(RecipeKinds.extractKey(index), Seq(input), output)
+  }
+
+  def preExistingCheckout(id: String, output: Store): ToolBase = {
+    //TODO: CoreTool.nullaryTool() overload?
+    ToolBase(id, RecipeKinds.usePreExisting(id), Seq.empty[Store], output)
+  }
+
+  def vcfImport(input: Store, output: Store, index: Int): ToolBase = {
+    ToolBase(RecipeKinds.importVcf(index), Seq(input), output)
+  }
+
+  def singletonCalculation(input: Store, output: Store, index: Int): ToolBase = {
+    ToolBase(RecipeKinds.calculateSingletons(index), Seq(input), output)
   }
 }

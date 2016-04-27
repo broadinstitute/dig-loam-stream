@@ -49,6 +49,10 @@ object Loam {
   val hasOutput = iri("hasOutput")
   val providesOutput = iri("providesOutput")
 
+  val pipeline = iri("Pipeline")
+  val hasPiles = iri("hasPiles")
+  val hasRecipes = iri("hasRecipes")
+
   val tupleNamePrefix = "Tuple"
 
   def tuple(n: Int): IRI = iri(tupleNamePrefix + n)

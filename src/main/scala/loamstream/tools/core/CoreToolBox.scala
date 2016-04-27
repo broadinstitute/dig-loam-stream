@@ -10,7 +10,7 @@ import loamstream.LEnv
 import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.Store
-import loamstream.model.ToolBase
+import loamstream.model.Tool
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
 import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
@@ -129,7 +129,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
 
   override def storesFor(pile: Store): Set[Store] = stores.filter(_.spec <:< pile.spec)
 
-  override def toolsFor(recipe: ToolBase): Set[ToolBase] = tools.filter(_.spec <<< recipe.spec)
+  override def toolsFor(recipe: Tool): Set[Tool] = tools.filter(_.spec <<< recipe.spec)
 
   val predefinedVcfFileShot: String => Shot[Path] = Functions.memoize { id =>
     env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
@@ -174,7 +174,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
       LCommandLineJob(commandLine, klustaKwikKonfig.workDir, Set(calculatePcaProjectionJob))
     })
 
-  def toolToJobShot(tool: ToolBase): Shot[LJob] = tool match {
+  def toolToJobShot(tool: Tool): Shot[LJob] = tool match {
     case this.checkPreexistingVcfFileTool => vcfFileJobShot
     case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJobShot
     case CoreTool.importVcf => importVcfJobShot
@@ -185,7 +185,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
     case _ => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 
-  override def createJobs(recipe: ToolBase, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
+  override def createJobs(recipe: Tool, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
     mapping.tools.get(recipe) match {
       case Some(tool) => toolToJobShot(tool).map(Set(_))
       case None => Miss(SnagMessage("No tool mapped to recipe $recipe"))

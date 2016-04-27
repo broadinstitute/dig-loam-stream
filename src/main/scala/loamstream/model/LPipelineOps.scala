@@ -17,11 +17,11 @@ object LPipelineOps {
     CoreStore("Extract Keys", LSig.Set.of(keyType), kind)
   }
 
-  def extractKeyRecipe(inputPile: Store, index: Int, outputPile: Store): ToolBase = {
-    ToolBase.keyExtraction(inputPile, outputPile, index)
+  def extractKeyRecipe(inputPile: Store, index: Int, outputPile: Store): Tool = {
+    Tool.keyExtraction(inputPile, outputPile, index)
   }
 
-  def extractKey(inputPile: Store, index: Int, outputPile: Store, kind: LKind): (Store, ToolBase) = {
+  def extractKey(inputPile: Store, index: Int, outputPile: Store, kind: LKind): (Store, Tool) = {
     val outputPile = extractKeyPile(inputPile, index, kind)
     
     val recipe = extractKeyRecipe(inputPile, index, outputPile)
@@ -29,11 +29,11 @@ object LPipelineOps {
     (outputPile, recipe)
   }
 
-  def importVcfRecipe(inputPile: Store, index: Int, outputPile: Store): ToolBase = {
-    ToolBase.vcfImport(inputPile, outputPile, index)
+  def importVcfRecipe(inputPile: Store, index: Int, outputPile: Store): Tool = {
+    Tool.vcfImport(inputPile, outputPile, index)
   }
 
-  def calculateSingletonsRecipe(inputPile: Store, index: Int, outputPile: Store): ToolBase = {
-    ToolBase.singletonCalculation(inputPile, outputPile, index)
+  def calculateSingletonsRecipe(inputPile: Store, index: Int, outputPile: Store): Tool = {
+    Tool.singletonCalculation(inputPile, outputPile, index)
   }
 }

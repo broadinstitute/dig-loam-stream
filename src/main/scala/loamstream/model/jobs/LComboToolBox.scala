@@ -5,7 +5,7 @@ import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.Store
 import loamstream.util.shot.{Miss, Shot}
-import loamstream.model.ToolBase
+import loamstream.model.Tool
 
 /**
   * LoamStream
@@ -14,11 +14,11 @@ import loamstream.model.ToolBase
 case class LComboToolBox(boxes: Set[LToolBox]) extends LToolBox {
   override def storesFor(pile: Store): Set[Store] = boxes.flatMap(box => box.storesFor(pile))
 
-  override def toolsFor(recipe: ToolBase): Set[ToolBase] = boxes.flatMap(box => box.toolsFor(recipe))
+  override def toolsFor(recipe: Tool): Set[Tool] = boxes.flatMap(box => box.toolsFor(recipe))
 
   val noBoxesErrorMessage = "This combination toolbox contains no toolboxes."
 
-  override def createJobs(recipe: ToolBase, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] =
+  override def createJobs(recipe: Tool, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] =
     boxes.map(box => box.createJobs(recipe, pipeline, mapping)).reduceOption(_.orElse(_)) match {
       case Some(shot) => shot
       case None => Miss(noBoxesErrorMessage)

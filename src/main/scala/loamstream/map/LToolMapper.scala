@@ -6,7 +6,7 @@ import loamstream.model.jobs.LToolBox
 import loamstream.model.piles.LPileSpec
 import loamstream.model.recipes.LRecipeSpec
 import loamstream.model.Store
-import loamstream.model.ToolBase
+import loamstream.model.Tool
 
 /**
   * LoamStream
@@ -35,11 +35,11 @@ object LToolMapper {
 
   case class PileSlot(pile: Store) extends Mapping.Slot
 
-  case class RecipeSlot(recipe: ToolBase) extends Mapping.Slot
+  case class RecipeSlot(recipe: Tool) extends Mapping.Slot
 
   case class StoreTarget(store: Store) extends Mapping.Target
 
-  case class ToolTarget(tool: ToolBase) extends Mapping.Target
+  case class ToolTarget(tool: Tool) extends Mapping.Target
 
   case class MapMakerConsumer(consumer: Consumer) extends MapMaker.Consumer {
     override def wantsMore: Boolean = consumer.wantMore
@@ -63,7 +63,7 @@ object LToolMapper {
     }
   }
 
-  case class AvailableTools(tools: Set[ToolBase]) extends Mapping.RawChoices {
+  case class AvailableTools(tools: Set[Tool]) extends Mapping.RawChoices {
     override def constrainedBy(slot: Slot, slotConstraints: Set[Constraint]): Set[Target] = {
       val z: Set[Target] = tools.map(ToolTarget)
       
@@ -109,7 +109,7 @@ object LToolMapper {
 
   case class CompatibilityConstraint(slots: Set[Slot], outputRoles: Map[Store, LRecipeSpec],
                                      inputRoles: Map[Store, Set[(Int, LRecipeSpec)]],
-                                     recipeBounds: Map[ToolBase, ToolTargetFilter])
+                                     recipeBounds: Map[Tool, ToolTargetFilter])
     extends Mapping.Constraint {
 
     override def slotFilter(slot: Slot): (Target) => Boolean = slot match {
@@ -127,7 +127,7 @@ object LToolMapper {
     override def constraintFor(slots: Set[Slot], bindings: Map[Slot, Target]): Constraint = {
       val toolMapping = bindingsToToolMappings(bindings)
       def mapPileOrNot(pile: Store): Option[LPileSpec] = toolMapping.stores.get(pile).map(_.spec)
-      def mapRecipeOrNot(recipe: ToolBase): LRecipeSpec = toolMapping.tools.get(recipe) match {
+      def mapRecipeOrNot(recipe: Tool): LRecipeSpec = toolMapping.tools.get(recipe) match {
         case Some(tool) => tool.spec
         case None => recipe.spec
       }

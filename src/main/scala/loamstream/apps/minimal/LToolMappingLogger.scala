@@ -3,7 +3,7 @@ package loamstream.apps.minimal
 import loamstream.map.LToolMapping
 import loamstream.util.Loggable
 import loamstream.model.Store
-import loamstream.model.ToolBase
+import loamstream.model.Tool
 
 /**
   * LoamStream
@@ -12,7 +12,7 @@ import loamstream.model.ToolBase
 object LToolMappingLogger extends Loggable {
   def storeToString(store: Store): String = store.id.toString
 
-  def toolToString(tool: ToolBase): String = tool.id.toString
+  def toolToString(tool: Tool): String = tool.id.toString
 
   def logMapping(level: Loggable.Level.Value, mapping: LToolMapping): Unit = {
     for ((pile, store) <- mapping.stores) {

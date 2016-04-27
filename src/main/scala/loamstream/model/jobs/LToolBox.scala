@@ -5,7 +5,7 @@ import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.util.shot.Shot
 import loamstream.model.Store
-import loamstream.model.ToolBase
+import loamstream.model.Tool
 
 /**
   * LoamStream
@@ -18,9 +18,9 @@ object LToolBox {
 trait LToolBox {
   def storesFor(pile: Store): Set[Store]
 
-  def toolsFor(recipe: ToolBase): Set[ToolBase]
+  def toolsFor(recipe: Tool): Set[Tool]
 
-  def createJobs(recipe: ToolBase, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]]
+  def createJobs(recipe: Tool, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]]
 
   def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable
 

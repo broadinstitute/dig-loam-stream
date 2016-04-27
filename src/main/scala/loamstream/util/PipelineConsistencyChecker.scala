@@ -2,7 +2,7 @@ package loamstream.util
 
 import loamstream.model.LPipeline
 import loamstream.model.Store
-import loamstream.model.ToolBase
+import loamstream.model.Tool
 
 /**
   * LoamStream
@@ -39,7 +39,7 @@ object PipelineConsistencyChecker {
   }
 
   sealed trait RecipeSpecificProblem extends Problem {
-    def recipe: ToolBase
+    def recipe: Tool
   }
 
   sealed trait PileIsNotProducedByExactlyOneRecipe extends PileSpecificProblem
@@ -54,7 +54,7 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PileIsProducedByMultipleRecipes(pile: Store, recipes: Set[ToolBase])
+  case class PileIsProducedByMultipleRecipes(pile: Store, recipes: Set[Tool])
     extends PileIsNotProducedByExactlyOneRecipe {
     override def message: String =
       s"Pile ${pile.id} is produced by multiple recipes: ${recipes.map(_.id).mkString(", ")}."
@@ -72,7 +72,7 @@ object PipelineConsistencyChecker {
 
   sealed trait PileIsNotCompatibleWithRecipe extends PileSpecificProblem with RecipeSpecificProblem
 
-  case class PileIsIncompatibleOutputOfRecipe(pile: Store, recipe: ToolBase) extends PileIsNotCompatibleWithRecipe {
+  case class PileIsIncompatibleOutputOfRecipe(pile: Store, recipe: Tool) extends PileIsNotCompatibleWithRecipe {
     override def message: String = s"Pile ${pile.id} is not compatible output of recipe ${recipe.id}."
   }
 
@@ -83,7 +83,7 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PileIsIncompatibleInputOfRecipe(pile: Store, recipe: ToolBase, pos: Int)
+  case class PileIsIncompatibleInputOfRecipe(pile: Store, recipe: Tool, pos: Int)
     extends PileIsNotCompatibleWithRecipe {
     override def message: String =
       s"Pile ${pile.id} is not compatible input (position $pos) of recipe ${recipe.id}."
@@ -101,7 +101,7 @@ object PipelineConsistencyChecker {
 
   sealed trait PileMissingUsedInRecipe extends PileSpecificProblem with RecipeSpecificProblem
 
-  case class PileMissingUsedAsOutput(pile: Store, recipe: ToolBase) extends PileMissingUsedInRecipe {
+  case class PileMissingUsedAsOutput(pile: Store, recipe: Tool) extends PileMissingUsedInRecipe {
     override def message: String = s"Pile ${pile.id} used as output in recipe ${recipe.id} is missing."
   }
 
@@ -113,7 +113,7 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PileMissingUsedAsInput(pile: Store, recipe: ToolBase, pos: Int) extends PileMissingUsedInRecipe {
+  case class PileMissingUsedAsInput(pile: Store, recipe: Tool, pos: Int) extends PileMissingUsedInRecipe {
     override def message: String = s"Pile ${pile.id} used as input (pos $pos) in recipe ${recipe.id} is missing."
   }
 

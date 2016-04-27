@@ -3,7 +3,7 @@ package loamstream.apps.minimal
 import loamstream.Sigs
 import loamstream.model.{LPipeline, LPipelineOps}
 import loamstream.model.Store
-import loamstream.model.ToolBase
+import loamstream.model.Tool
 
 import loamstream.model.kinds.instances.PileKinds
 import loamstream.tools.core.CoreStore
@@ -18,13 +18,13 @@ case class MiniPipeline(genotypesId: String) extends LPipeline {
       Sigs.variantAndSampleToGenotype, 
       PileKinds.genotypeCallsByVariantAndSample)
       
-  val genotypeCallsRecipe: ToolBase = ToolBase.preExistingCheckout(genotypesId, genotypeCallsPile)
+  val genotypeCallsRecipe: Tool = Tool.preExistingCheckout(genotypesId, genotypeCallsPile)
   
   val sampleIdsPile: Store = {
     LPipelineOps.extractKeyPile(genotypeCallsPile, PileKinds.sampleKeyIndexInGenotypes, PileKinds.sampleIds)
   }
   
-  val sampleIdsRecipe: ToolBase = {
+  val sampleIdsRecipe: Tool = {
     LPipelineOps.extractKeyRecipe(genotypeCallsPile, PileKinds.sampleKeyIndexInGenotypes, sampleIdsPile)
   }
 

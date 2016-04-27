@@ -4,7 +4,7 @@ import loamstream.model.id.LId
 import loamstream.model.id.LId.LNamedId
 import loamstream.model.kinds.instances.PileKinds
 import loamstream.model.recipes.LRecipeSpec
-import loamstream.model.ToolBase
+import loamstream.model.Tool
 import loamstream.tools.core.StoreOps
 import loamstream.tools.core.CoreTool
 
@@ -16,18 +16,18 @@ object MiniMockTool {
   
   import StoreOps._
   
-  def checkPreExistingGenotypeCassandraTable(tableId: String): ToolBase = CoreTool.nullaryTool(
+  def checkPreExistingGenotypeCassandraTable(tableId: String): Tool = CoreTool.nullaryTool(
       tableId, 
       "What a nice table on Cassandra full of genotype calls!", 
       MiniMockStore.genotypesCassandraTable, 
       LRecipeSpec.preExistingCheckout(tableId))
 
-  val extractSampleIdsFromCassandraTable: ToolBase = CoreTool.unaryTool(
+  val extractSampleIdsFromCassandraTable: Tool = CoreTool.unaryTool(
       "Extracted sample ids from Cassandra genotype calls table into another table.", 
       MiniMockStore.genotypesCassandraTable ~> MiniMockStore.sampleIdsCassandraTable,
       LRecipeSpec.keyExtraction(PileKinds.sampleKeyIndexInGenotypes) _)
 
-  def tools(tableId: String): Set[ToolBase] = {
+  def tools(tableId: String): Set[Tool] = {
     Set(checkPreExistingGenotypeCassandraTable(tableId), extractSampleIdsFromCassandraTable)
   }
 }

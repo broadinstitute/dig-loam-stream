@@ -40,7 +40,14 @@ object Loam {
   val hasSpecifics = iri("specifics")
 
   val pile = iri("Pile")
+  val pileSpec = iri("PileSpec")
   val hasSig = iri("hasSig")
+
+  val recipe = iri("Recipe")
+  val hasInputs = iri("hasInputs")
+  val requiresInputs = iri("requiresInputs")
+  val hasOutput = iri("hasOutput")
+  val providesOutput = iri("providesOutput")
 
   val tupleNamePrefix = "Tuple"
 

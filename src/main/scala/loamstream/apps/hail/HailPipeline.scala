@@ -15,13 +15,13 @@ import loamstream.tools.core.CoreTool
   * @author Kaan Yuksel
   */
 case class HailPipeline(genotypesId: String, vdsId: String, singletonsId: String) extends LPipeline {
-  val genotypeCallsRecipe: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
+  val genotypeCallsTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
   
-  val vdsRecipe: Tool = CoreTool.importVcf
+  val vdsTool: Tool = CoreTool.importVcf
   
-  val singletonRecipe: Tool = CoreTool.calculateSingletons
+  val singletonTool: Tool = CoreTool.calculateSingletons
 
   override def stores: Set[Store] = tools.map(_.output)
   
-  override val tools: Set[Tool] = Set(genotypeCallsRecipe, vdsRecipe, singletonRecipe)
+  override val tools: Set[Tool] = Set(genotypeCallsTool, vdsTool, singletonTool)
 }

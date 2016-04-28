@@ -21,7 +21,7 @@ case class CoreTool(id: LId, spec: ToolSpec, inputs: Seq[Store], output: Store) 
 
 object CoreTool {
   
-  def apply(name: String, recipe: ToolSpec, inputs: Seq[Store], output: Store): CoreTool = CoreTool(LNamedId(name), recipe, inputs, output)
+  def apply(name: String, toolSpec: ToolSpec, inputs: Seq[Store], output: Store): CoreTool = CoreTool(LNamedId(name), toolSpec, inputs, output)
   
   import StoreOps._
   
@@ -79,15 +79,15 @@ object CoreTool {
   }
   
   //TODO: TEST
-  def nullaryTool(id: String, name: String, output: Store, makeRecipeSpec: StoreSpec => ToolSpec): Tool = {
-    CoreTool(name, makeRecipeSpec(output.spec), Seq.empty, output)
+  def nullaryTool(id: String, name: String, output: Store, makeToolSpec: StoreSpec => ToolSpec): Tool = {
+    CoreTool(name, makeToolSpec(output.spec), Seq.empty, output)
   }
   
   //TODO: TEST
-  def unaryTool(name: String, sig: UnarySig, makeRecipeSpec: (StoreSpec, StoreSpec) => ToolSpec): Tool = {
+  def unaryTool(name: String, sig: UnarySig, makeToolSpec: (StoreSpec, StoreSpec) => ToolSpec): Tool = {
     CoreTool(
       name,
-      makeRecipeSpec(sig.input.spec, sig.output.spec),
+      makeToolSpec(sig.input.spec, sig.output.spec),
       Seq(sig.input),
       sig.output)
   }

@@ -12,8 +12,8 @@ import loamstream.util.{Miss, Shot}
 case class LComboToolBox(boxes: Set[LToolBox]) extends LToolBox {
   private val noBoxesErrorMessage = "This combination toolbox contains no toolboxes."
 
-  override def createJobs(recipe: Tool, pipeline: LPipeline): Shot[Set[LJob]] = {
-    boxes.map(box => box.createJobs(recipe, pipeline)).reduceOption(_.orElse(_)) match {
+  override def createJobs(tool: Tool, pipeline: LPipeline): Shot[Set[LJob]] = {
+    boxes.map(box => box.createJobs(tool, pipeline)).reduceOption(_.orElse(_)) match {
       case Some(shot) => shot
       case None => Miss(noBoxesErrorMessage)
     }

@@ -14,7 +14,7 @@ object LToolBox {
 }
 
 trait LToolBox {
-  def createJobs(recipe: Tool, pipeline: LPipeline): Shot[Set[LJob]]
+  def createJobs(tool: Tool, pipeline: LPipeline): Shot[Set[LJob]]
 
   def createExecutable(pipeline: LPipeline): LExecutable
 

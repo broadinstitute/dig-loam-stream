@@ -49,7 +49,7 @@ final class AncestryInferenceEndToEndTest extends FunSuite with BeforeAndAfter {
     
     val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
 
-    val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionRecipe, pipeline)
+    val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionTool, pipeline)
     
     //NB: Try a pattern-match to get a better error message on failures
     val Hit(Seq(pcaProjectionJob)) = pcaProjectionJobsShot.map(_.toSeq)

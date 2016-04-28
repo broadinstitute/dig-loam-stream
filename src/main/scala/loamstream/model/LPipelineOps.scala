@@ -22,11 +22,11 @@ object LPipelineOps {
   }
 
   def extractKey(inputStore: Store, index: Int, outputStore: Store, kind: LKind): (Store, Tool) = {
-    val outputPile = extractKeyStore(inputStore, index, kind)
+    val outputStore = extractKeyStore(inputStore, index, kind)
     
-    val recipe = extractKeyTool(inputStore, index, outputPile)
+    val tool = extractKeyTool(inputStore, index, outputStore)
     
-    (outputPile, recipe)
+    (outputStore, tool)
   }
 
   def importVcfTool(inputStore: Store, index: Int, outputStore: Store): Tool = {

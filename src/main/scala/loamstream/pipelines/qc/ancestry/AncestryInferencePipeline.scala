@@ -17,23 +17,23 @@ import loamstream.model.kinds.ToolKinds
   */
 case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) extends LPipeline {
 
-  val genotypesPileRecipe: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
+  val genotypesStoreTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
   
-  val pcaWeightsPileRecipe: Tool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
+  val pcaWeightsStoreTool: Tool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
   
-  val pcaProjectionRecipe: Tool = CoreTool.projectPca
+  val pcaProjectionTool: Tool = CoreTool.projectPca
   
   val sampleClustering: Tool = CoreTool.clusteringSamplesByFeatures
   
-  val genotypesPile: Store = genotypesPileRecipe.output
+  val genotypesStore: Store = genotypesStoreTool.output
 
-  val pcaWeightsPile: Store = pcaWeightsPileRecipe.output
+  val pcaWeightsStore: Store = pcaWeightsStoreTool.output
   
-  val projectedValsPile: Store = pcaProjectionRecipe.output
+  val projectedValsStore: Store = pcaProjectionTool.output
   
-  val sampleClustersPile: Store = sampleClustering.output
+  val sampleClustersStore: Store = sampleClustering.output
 
   override def stores = tools.map(_.output)
   
-  override val tools = Set(genotypesPileRecipe, pcaWeightsPileRecipe, pcaProjectionRecipe, sampleClustering)
+  override val tools = Set(genotypesStoreTool, pcaWeightsStoreTool, pcaProjectionTool, sampleClustering)
 }

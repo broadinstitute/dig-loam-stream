@@ -142,7 +142,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
     checkPreexistingVcfFileTool.spec.kind match {
       case LSpecificKind(specifics, _) => specifics.value match {
         case (_, id: String) => predefinedVcfFileShot(id).map(CheckPreexistingVcfFileJob)
-        case _ => Miss(SnagMessage("Recipe is not of the right kind."))
+        case _ => Miss(SnagMessage("Tool is not of the right kind."))
       }
       case _ => Miss(SnagMessage("Can't get id for VCF file."))
     }

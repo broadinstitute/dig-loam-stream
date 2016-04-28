@@ -33,28 +33,28 @@ case class ToolSpec(kind: LKind, inputs: Seq[StoreSpec], output: StoreSpec) {
   
   //TODO: Test if input arities are the same?
   //TODO Test if outputs are the same?
-  def =:=(oRecipe: ToolSpec): Boolean = {
-    kind == oRecipe.kind && 
-    inputs.zip(oRecipe.inputs).forall { case (mine, theirs) => mine =:= theirs }
+  def =:=(other: ToolSpec): Boolean = {
+    kind == other.kind && 
+    inputs.zip(other.inputs).forall { case (mine, theirs) => mine =:= theirs }
   }
 
-  def <:<(oRecipe: ToolSpec): Boolean = doOperator(kindOp = _.<:<, inputOp = _.>:>, outputOp = _.<:<)(oRecipe)
+  def <:<(other: ToolSpec): Boolean = doOperator(kindOp = _.<:<, inputOp = _.>:>, outputOp = _.<:<)(other)
 
-  def >:>(oRecipe: ToolSpec): Boolean = doOperator(kindOp = _.>:>, inputOp = _.<:<, outputOp = _.>:>)(oRecipe)
+  def >:>(other: ToolSpec): Boolean = doOperator(kindOp = _.>:>, inputOp = _.<:<, outputOp = _.>:>)(other)
 
-  def <<<(oRecipe: ToolSpec): Boolean = doOperator(kindOp = _.<:<, inputOp = _.<:<, outputOp = _.<:<)(oRecipe)
+  def <<<(other: ToolSpec): Boolean = doOperator(kindOp = _.<:<, inputOp = _.<:<, outputOp = _.<:<)(other)
 
-  def >>>(oRecipe: ToolSpec): Boolean = doOperator(kindOp = _.>:>, inputOp = _.>:>, outputOp = _.>:>)(oRecipe)
+  def >>>(other: ToolSpec): Boolean = doOperator(kindOp = _.>:>, inputOp = _.>:>, outputOp = _.>:>)(other)
     
   //NB: Stay DRY
   private def doOperator(
       kindOp: LKind => LKind => Boolean,
       inputOp: StoreSpec => StoreSpec => Boolean,
-      outputOp: StoreSpec => StoreSpec => Boolean)(oRecipe: ToolSpec): Boolean = {
+      outputOp: StoreSpec => StoreSpec => Boolean)(other: ToolSpec): Boolean = {
     
-    kindOp(kind)(oRecipe.kind) &&
-    inputs.size == oRecipe.inputs.size &&
-    inputs.zip(oRecipe.inputs).forall { case (mine, theirs) => inputOp(mine)(theirs) } &&
-    outputOp(output)(oRecipe.output)
+    kindOp(kind)(other.kind) &&
+    inputs.size == other.inputs.size &&
+    inputs.zip(other.inputs).forall { case (mine, theirs) => inputOp(mine)(theirs) } &&
+    outputOp(output)(other.output)
   }
 }

@@ -4,7 +4,7 @@ import loamstream.model.kinds.LKind
 import loamstream.model.piles.LPileSpec
 
 import scala.language.higherKinds
-import loamstream.model.kinds.instances.ToolKinds
+import loamstream.model.kinds.ToolKinds
 
 /**
   * LoamStream

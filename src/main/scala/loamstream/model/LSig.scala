@@ -11,6 +11,9 @@ import scala.language.existentials
 object LSig {
 
   case class Set(keyTypes: LTuple[_ <: Product]) extends LSig {
+    
+    override def toString: String = keyTypes.toString
+    
     override def =:=(oSig: LSig): Boolean = oSig match {
       case Set(oKeyTypes) => keyTypes == oKeyTypes
       case _ => false
@@ -22,6 +25,9 @@ object LSig {
   }
 
   case class Map(keyTypes: LTuple[_ <: Product], vType: LType[_]) extends LSig {
+    
+    override def toString: String = s"$keyTypes to $vType"
+    
     override def =:=(oSig: LSig): Boolean =
       oSig match {
         case Map(oKeyTypes, oVType) => keyTypes == oKeyTypes && vType == oVType

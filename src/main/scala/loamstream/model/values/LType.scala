@@ -72,6 +72,8 @@ object LType {
     def asSeq: Seq[LType[_]]
     
     override def to[V](v: LType[V]): LSig.Map = LSig.Map(this, v)
+    
+    override def toString: String = asSeq.mkString(" & ")
   }
 
   object LTuple {

@@ -1,17 +1,17 @@
 package loamstream.tools.core
 
 import loamstream.LEnv
-import loamstream.model.id.LId
-import loamstream.model.id.LId.LNamedId
-import loamstream.model.kinds.instances.PileKinds
-import loamstream.model.kinds.instances.ToolKinds.{klustakwikClustering, nativePcaProjection, pcaProjection}
+import loamstream.model.LId
+import loamstream.model.LId.LNamedId
+import loamstream.model.kinds.ToolKinds.{klustakwikClustering, nativePcaProjection, pcaProjection}
 import loamstream.model.recipes.LRecipeSpec
 import LCoreEnv._
 import loamstream.model.Tool
 import loamstream.model.Store
 import loamstream.model.piles.LPileSpec
 import loamstream.model.kinds.LKind
-import loamstream.model.kinds.instances.ToolKinds
+import loamstream.model.kinds.ToolKinds
+import loamstream.model.kinds.StoreKinds
 
 /**
   * LoamStream
@@ -40,7 +40,7 @@ object CoreTool {
   val extractSampleIdsFromVcfFile: Tool = unaryTool(
       "Extracted sample ids from VCF file into a text file.",
       CoreStore.vcfFile ~> CoreStore.sampleIdsFile,
-      LRecipeSpec.keyExtraction(PileKinds.sampleKeyIndexInGenotypes) _)
+      LRecipeSpec.keyExtraction(StoreKinds.sampleKeyIndexInGenotypes) _)
 
   val importVcf: Tool = unaryTool(
       "Import VCF file into VDS format Hail works with.",

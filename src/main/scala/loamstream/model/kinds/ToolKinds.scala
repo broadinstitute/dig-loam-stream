@@ -1,9 +1,6 @@
-package loamstream.model.kinds.instances
+package loamstream.model.kinds
 
-import loamstream.model.kinds.LSpecificKind
 import loamstream.model.values.LType._
-import loamstream.model.values.LType.LTuple.LTuple2
-import loamstream.model.kinds.LKind
 import loamstream.model.values.LValue
 
 /**
@@ -37,14 +34,34 @@ object ToolKinds {
   def calculateSingletons(index: Int): LSpecificKind[(String, Int)] = {
     LSpecificKind("Calculate singletons" & index)
   }
-
-  val extractSampleIdsFromGenotypeCalls: LKind = LSpecificKind("Extract sample ids from genotype calls.")
-  
-  val pcaProjection: LKind = LSpecificKind("PCA projection")
-  
-  val clusteringSamplesByFeatures: LKind = LSpecificKind("clustering samples by features")
   
   val loadVdsFromGenotypeCalls: LKind = LSpecificKind("Transform genotype calls.")
   
+  val convertVcfToVds: LKind = {
+    LSpecificKind("Import VCF file into VDS format", importVcf(0), loadVdsFromGenotypeCalls)
+  }
+  
+  val extractSampleIdsFromGenotypeCalls: LKind = LSpecificKind("Extract sample ids from genotype calls.")
+  
   val calculateSingletonsFromGenotypeCalls: LKind = LSpecificKind("Calculate singletons from genotype calls.")
+  
+  val calculateSingletonsFromVdsFile: LKind = {
+    LSpecificKind("Calculate singletons from VDS", calculateSingletons(0), calculateSingletonsFromGenotypeCalls)
+  }
+
+  val extractSampleIdsFromCassandraGenotypeCallsTable: LKind = {
+    LSpecificKind("Extract sample ids from Cassandra genotype calls table", extractKey(0), extractSampleIdsFromGenotypeCalls)
+  }
+  
+  val extractSampleIdsFromVcfFile: LKind = {
+    LSpecificKind("Extract sample ids from VCF file", extractKey(0), extractSampleIdsFromGenotypeCalls)
+  }
+  
+  val pcaProjection: LKind = LSpecificKind("PCA projection")
+  
+  val nativePcaProjection: LKind = LSpecificKind("PCA projection (native method)", pcaProjection)
+  
+  val clusteringSamplesByFeatures: LKind = LSpecificKind("clustering samples by features")
+  
+  val klustakwikClustering: LKind = LSpecificKind("Cluster samples using KlustaKwik", clusteringSamplesByFeatures)
 }

@@ -1,11 +1,10 @@
 package loamstream.model
 
-import loamstream.model.id.LId
 import loamstream.model.recipes.LRecipeSpec
 import loamstream.model.kinds.LKind
 import loamstream.tools.core.CoreTool
 import loamstream.tools.core.StoreOps
-import loamstream.model.kinds.instances.ToolKinds
+import loamstream.model.kinds.ToolKinds
 
 /**
  * @author Clint

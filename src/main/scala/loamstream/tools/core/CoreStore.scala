@@ -1,7 +1,7 @@
 package loamstream.tools.core
 
-import loamstream.model.id.LId
-import loamstream.model.kinds.instances.StoreKinds
+import loamstream.model.LId
+import loamstream.model.kinds.StoreKinds
 import loamstream.model.piles.{LPileSpec}
 import loamstream.model.LSig
 import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
@@ -48,7 +48,7 @@ object CoreStore {
   }
   
   val singletonsFile: Store = {
-    CoreStore("Singletons file", LPileSpec(LSampleId to LSingletonCount, StoreKinds.singletonsFile))
+    CoreStore("Singletons file", LPileSpec(sampleToSingletonCount, StoreKinds.singletonsFile))
   }
   
   val sampleIdsFile: Store = {

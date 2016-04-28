@@ -1,12 +1,10 @@
 package loamstream.apps.minimal
 
-import loamstream.model.id.LId
-import loamstream.model.id.LId.LNamedId
-import loamstream.model.kinds.instances.PileKinds
-import loamstream.model.recipes.LRecipeSpec
 import loamstream.model.Tool
-import loamstream.tools.core.StoreOps
+import loamstream.model.kinds.StoreKinds
+import loamstream.model.recipes.LRecipeSpec
 import loamstream.tools.core.CoreTool
+import loamstream.tools.core.StoreOps
 
 /**
   * LoamStream
@@ -25,7 +23,7 @@ object MiniMockTool {
   val extractSampleIdsFromCassandraTable: Tool = CoreTool.unaryTool(
       "Extracted sample ids from Cassandra genotype calls table into another table.", 
       MiniMockStore.genotypesCassandraTable ~> MiniMockStore.sampleIdsCassandraTable,
-      LRecipeSpec.keyExtraction(PileKinds.sampleKeyIndexInGenotypes) _)
+      LRecipeSpec.keyExtraction(StoreKinds.sampleKeyIndexInGenotypes) _)
 
   def tools(tableId: String): Set[Tool] = {
     Set(checkPreExistingGenotypeCassandraTable(tableId), extractSampleIdsFromCassandraTable)

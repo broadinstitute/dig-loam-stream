@@ -14,6 +14,7 @@ import loamstream.util.Loggable.Level
 import loamstream.util.StringUtils
 import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
 import loamstream.util.TestUtils
+import loamstream.util.shot.Hit
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -48,16 +49,17 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val pipeline = HailPipeline(genotypesId, vdsId, singletonsId)
   val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
 
-  val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline)
-  val importVcfJob = toolbox.createJobs(pipeline.vdsRecipe, pipeline)
-  val calculateSingletonsJob = toolbox.createJobs(pipeline.singletonRecipe, pipeline)
+  val genotypesJobsShot = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline)
+  val importVcfJobsShot = toolbox.createJobs(pipeline.vdsRecipe, pipeline)
+  val calculateSingletonsJobsShot = toolbox.createJobs(pipeline.singletonRecipe, pipeline)
 
   val executable = toolbox.createExecutable(pipeline)
 
   test("Jobs are successfully created") {
-    assert(TestUtils.isHitOfSetOfOne(genotypesJob))
-    assert(TestUtils.isHitOfSetOfOne(calculateSingletonsJob))
-    assert(TestUtils.isHitOfSetOfOne(importVcfJob))
+    //NB: Try to unpack the shots to get better messages on failures
+    val Hit(Seq(genotypesJob)) = genotypesJobsShot.map(_.toSeq)
+    val Hit(Seq(importVcfJob)) = importVcfJobsShot.map(_.toSeq)
+    val Hit(Seq(calculateSingletonsJob)) = calculateSingletonsJobsShot.map(_.toSeq)
   }
 
   ignore("Singletons are successfully counted using Hail") {

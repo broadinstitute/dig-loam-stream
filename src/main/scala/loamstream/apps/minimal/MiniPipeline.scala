@@ -1,12 +1,8 @@
 package loamstream.apps.minimal
 
-import loamstream.Sigs
-import loamstream.model.{LPipeline, LPipelineOps}
+import loamstream.model.LPipeline
 import loamstream.model.Store
 import loamstream.model.Tool
-
-import loamstream.model.kinds.instances.PileKinds
-import loamstream.tools.core.CoreStore
 import loamstream.tools.core.CoreTool
 
 /**

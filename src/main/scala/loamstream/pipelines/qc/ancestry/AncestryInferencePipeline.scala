@@ -5,11 +5,10 @@ import loamstream.Sigs
 import loamstream.model.LPipeline
 import loamstream.model.Store
 import loamstream.model.Tool
-import loamstream.model.kinds.instances.PileKinds
 import loamstream.model.values.LType._
 import loamstream.tools.core.CoreStore
 import loamstream.tools.core.CoreTool
-import loamstream.model.kinds.instances.ToolKinds
+import loamstream.model.kinds.ToolKinds
 
 
 /**

@@ -32,7 +32,6 @@ case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) 
   val projectedValsPile: Store = pcaProjectionRecipe.output
   
   val sampleClustersPile: Store = sampleClustering.output
-  
 
   override def stores = tools.map(_.output)
   

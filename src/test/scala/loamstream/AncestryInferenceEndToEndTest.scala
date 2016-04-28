@@ -14,6 +14,7 @@ import tools.core.{CoreToolBox, LCoreDefaultPileIds}
 import tools.core.LCoreEnv.{Keys, PathProvider, PathProviderById}
 import tools.klusta.KlustaKwikKonfig
 import loamstream.util.TestUtils
+import loamstream.util.shot.Hit
 
 /**
   * LoamStream
@@ -50,11 +51,15 @@ final class AncestryInferenceEndToEndTest extends FunSuite with BeforeAndAfter {
     
     val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
 
-    val pcaProjectionJob = toolbox.createJobs(pipeline.pcaProjectionRecipe, pipeline)
-    assert(TestUtils.isHitOfSetOfOne(pcaProjectionJob))
+    val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionRecipe, pipeline)
     
-    val SampleClusteringJob = toolbox.createJobs(pipeline.sampleClustering, pipeline)
-    assert(TestUtils.isHitOfSetOfOne(SampleClusteringJob))
+    //NB: Try a pattern-match to get a better error message on failures
+    val Hit(Seq(pcaProjectionJob)) = pcaProjectionJobsShot.map(_.toSeq)
+    
+    val sampleClusteringJobsShot = toolbox.createJobs(pipeline.sampleClustering, pipeline)
+
+    //NB: Try a pattern-match to get a better error message on failures
+    val Hit(Seq(sampleClusteringJob)) = sampleClusteringJobsShot.map(_.toSeq)
     
     val executable = toolbox.createExecutable(pipeline)
     

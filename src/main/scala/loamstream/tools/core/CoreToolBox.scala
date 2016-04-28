@@ -185,6 +185,8 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
     //case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJobShot
     case CoreTool.projectPcaNative => calculatePcaProjectionsJobShot
     case CoreTool.klustaKwikClustering => calculateClustersJobShot
+    case CoreTool.projectPca => calculatePcaProjectionsJobShot
+    case CoreTool.clusteringSamplesByFeatures => calculateClustersJobShot
     case _ => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 

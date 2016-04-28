@@ -50,7 +50,10 @@ object ToolKinds {
   }
 
   val extractSampleIdsFromCassandraGenotypeCallsTable: LKind = {
-    LSpecificKind("Extract sample ids from Cassandra genotype calls table", extractKey(0), extractSampleIdsFromGenotypeCalls)
+    LSpecificKind(
+        "Extract sample ids from Cassandra genotype calls table", 
+        extractKey(0), 
+        extractSampleIdsFromGenotypeCalls)
   }
   
   val extractSampleIdsFromVcfFile: LKind = {

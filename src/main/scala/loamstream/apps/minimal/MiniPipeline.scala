@@ -18,7 +18,7 @@ case class MiniPipeline(genotypesId: String) extends LPipeline {
 
   val sampleIdsStore: Store = sampleIdsTool.output
   
-  override val tools = Set(genotypeCallsTool, sampleIdsTool)
+  override val tools: Set[Tool] = Set(genotypeCallsTool, sampleIdsTool)
   
-  override def stores = tools.map(_.output)
+  override def stores: Set[Store] = tools.map(_.output)
 }

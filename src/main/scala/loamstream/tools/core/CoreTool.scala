@@ -21,7 +21,9 @@ case class CoreTool(id: LId, spec: ToolSpec, inputs: Seq[Store], output: Store) 
 
 object CoreTool {
   
-  def apply(name: String, toolSpec: ToolSpec, inputs: Seq[Store], output: Store): CoreTool = CoreTool(LNamedId(name), toolSpec, inputs, output)
+  def apply(name: String, toolSpec: ToolSpec, inputs: Seq[Store], output: Store): CoreTool = {
+    CoreTool(LNamedId(name), toolSpec, inputs, output)
+  }
   
   import StoreOps._
   

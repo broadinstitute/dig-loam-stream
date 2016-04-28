@@ -8,8 +8,7 @@ case class LValue[T](value: T, tpe: LType[T])
 
 object LValue {
   object Implicits {
-    import LType.HasLType
-    import LType.HasLType._
+    import HasLType._
 
     final implicit class LTupleOps[A](val lhs: A)(implicit evA: HasLType[A]) {
       def &[B](rhs: B)(implicit evB: HasLType[B]): LValue[(A, B)] = {

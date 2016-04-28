@@ -33,7 +33,7 @@ case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) 
   
   val sampleClustersStore: Store = sampleClustering.output
 
-  override def stores = tools.map(_.output)
+  override def stores: Set[Store] = tools.map(_.output)
   
-  override val tools = Set(genotypesStoreTool, pcaWeightsStoreTool, pcaProjectionTool, sampleClustering)
+  override val tools: Set[Tool] = Set(genotypesStoreTool, pcaWeightsStoreTool, pcaProjectionTool, sampleClustering)
 }

@@ -1,7 +1,7 @@
 package loamstream.model.values
 
 import htsjdk.variant.variantcontext.Genotype
-import loamstream.model.signatures.Signatures.{ClusterId, SampleId, SingletonCount, VariantId}
+import loamstream.model.Types.{ClusterId, SampleId, SingletonCount, VariantId}
 import loamstream.model.LSig
 
 /**

@@ -1,10 +1,9 @@
 package loamstream.model
 
-import loamstream.model.recipes.LRecipeSpec
 import loamstream.model.kinds.LKind
+import loamstream.model.kinds.ToolKinds
 import loamstream.tools.core.CoreTool
 import loamstream.tools.core.StoreOps
-import loamstream.model.kinds.ToolKinds
 
 /**
  * @author Clint
@@ -12,7 +11,7 @@ import loamstream.model.kinds.ToolKinds
  * date: Apr 26, 2016
  */
 trait Tool extends LId.Owner {
-  def spec: LRecipeSpec 
+  def spec: ToolSpec 
   
   def inputs: Seq[Store] 
   

@@ -4,11 +4,11 @@ import loamstream.LEnv
 import loamstream.model.LId
 import loamstream.model.LId.LNamedId
 import loamstream.model.kinds.ToolKinds.{klustakwikClustering, nativePcaProjection, pcaProjection}
-import loamstream.model.recipes.LRecipeSpec
+import loamstream.model.ToolSpec
 import LCoreEnv._
 import loamstream.model.Tool
 import loamstream.model.Store
-import loamstream.model.piles.LPileSpec
+import loamstream.model.StoreSpec
 import loamstream.model.kinds.LKind
 import loamstream.model.kinds.ToolKinds
 import loamstream.model.kinds.StoreKinds
@@ -17,11 +17,11 @@ import loamstream.model.kinds.StoreKinds
   * LoamStream
   * Created by oliverr on 2/16/2016.
   */
-case class CoreTool(id: LId, spec: LRecipeSpec, inputs: Seq[Store], output: Store) extends Tool
+case class CoreTool(id: LId, spec: ToolSpec, inputs: Seq[Store], output: Store) extends Tool
 
 object CoreTool {
   
-  def apply(name: String, recipe: LRecipeSpec, inputs: Seq[Store], output: Store): CoreTool = CoreTool(LNamedId(name), recipe, inputs, output)
+  def apply(name: String, recipe: ToolSpec, inputs: Seq[Store], output: Store): CoreTool = CoreTool(LNamedId(name), recipe, inputs, output)
   
   import StoreOps._
   
@@ -29,28 +29,28 @@ object CoreTool {
       id, 
       "What a nice VCF file!",
       CoreStore.vcfFile,
-      LRecipeSpec.preExistingCheckout(id))
+      ToolSpec.preExistingCheckout(id))
 
   def checkPreExistingPcaWeightsFile(id: String): Tool = nullaryTool(
       id, 
       "File with PCA weights",
       CoreStore.pcaWeightsFile,
-      LRecipeSpec.preExistingCheckout(id))
+      ToolSpec.preExistingCheckout(id))
 
   val extractSampleIdsFromVcfFile: Tool = unaryTool(
       "Extracted sample ids from VCF file into a text file.",
       CoreStore.vcfFile ~> CoreStore.sampleIdsFile,
-      LRecipeSpec.keyExtraction(StoreKinds.sampleKeyIndexInGenotypes) _)
+      ToolSpec.keyExtraction(StoreKinds.sampleKeyIndexInGenotypes) _)
 
   val importVcf: Tool = unaryTool(
       "Import VCF file into VDS format Hail works with.",
       CoreStore.vcfFile ~> CoreStore.vdsFile,
-      LRecipeSpec.vcfImport(0) _)
+      ToolSpec.vcfImport(0) _)
 
   val calculateSingletons: Tool = unaryTool(
       "Calculate singletons from genotype calls in VDS format.",
       CoreStore.vdsFile ~> CoreStore.singletonsFile,
-      LRecipeSpec.calculateSingletons(0) _)
+      ToolSpec.calculateSingletons(0) _)
 
   val projectPcaNative: Tool = binaryTool(
       "Project PCA using native method", 
@@ -79,12 +79,12 @@ object CoreTool {
   }
   
   //TODO: TEST
-  def nullaryTool(id: String, name: String, output: Store, makeRecipeSpec: LPileSpec => LRecipeSpec): Tool = {
+  def nullaryTool(id: String, name: String, output: Store, makeRecipeSpec: StoreSpec => ToolSpec): Tool = {
     CoreTool(name, makeRecipeSpec(output.spec), Seq.empty, output)
   }
   
   //TODO: TEST
-  def unaryTool(name: String, sig: UnarySig, makeRecipeSpec: (LPileSpec, LPileSpec) => LRecipeSpec): Tool = {
+  def unaryTool(name: String, sig: UnarySig, makeRecipeSpec: (StoreSpec, StoreSpec) => ToolSpec): Tool = {
     CoreTool(
       name,
       makeRecipeSpec(sig.input.spec, sig.output.spec),
@@ -108,7 +108,7 @@ object CoreTool {
   def nAryTool(id: LId, kind: LKind, sig: NarySig): Tool = {
     CoreTool(
       id,
-      LRecipeSpec(kind, sig.inputs.map(_.spec), sig.output.spec),
+      ToolSpec(kind, sig.inputs.map(_.spec), sig.output.spec),
       sig.inputs,
       sig.output)
   }

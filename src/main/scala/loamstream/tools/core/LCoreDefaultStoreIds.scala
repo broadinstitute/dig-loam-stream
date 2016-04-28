@@ -4,7 +4,7 @@ package loamstream.tools.core
   * LoamStream
   * Created by oliverr on 4/1/2016.
   */
-object LCoreDefaultPileIds {
+object LCoreDefaultStoreIds {
   val genotypes = "genotypes"
   val vds = "variant dataset"
   val singletons = "singleton counts"

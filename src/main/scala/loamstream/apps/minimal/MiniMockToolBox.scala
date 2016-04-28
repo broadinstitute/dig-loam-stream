@@ -4,7 +4,7 @@ import loamstream.LEnv
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LJob, LToolBox}
-import loamstream.tools.core.LCoreDefaultPileIds
+import loamstream.tools.core.LCoreDefaultStoreIds
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.{Hit, Miss, Shot}
 import loamstream.util.SnagMessage
@@ -25,7 +25,7 @@ object MiniMockToolBox {
   }
 }
 
-case class MiniMockToolBox(genotypesId: String = LCoreDefaultPileIds.genotypes) extends LToolBox {
+case class MiniMockToolBox(genotypesId: String = LCoreDefaultStoreIds.genotypes) extends LToolBox {
   val stores: Set[Store] = MiniMockStore.stores
   val tools: Set[Tool] = MiniMockTool.tools(genotypesId)
 

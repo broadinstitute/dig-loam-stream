@@ -8,7 +8,6 @@ import CoreToolBox._
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.LEnv
 import loamstream.model.LPipeline
-import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
@@ -18,9 +17,9 @@ import loamstream.tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser}
 import loamstream.tools.VcfUtils
 import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
 import loamstream.tools.klusta.{KlustaKwikLineCommand, KlustaKwikInputWriter}
+import loamstream.util.{Hit, Miss, Shot}
 import loamstream.util.Functions
 import loamstream.util.LoamFileUtils
-import loamstream.util.{Hit, Miss, Shot}
 import loamstream.util.SnagMessage
 
 /**

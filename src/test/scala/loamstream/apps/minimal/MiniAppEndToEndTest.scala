@@ -8,7 +8,7 @@ import org.scalatest.FunSuite
 
 import loamstream.TestData
 import loamstream.tools.core.{CoreToolBox, LCoreEnv}
-import loamstream.tools.core.LCoreDefaultPileIds
+import loamstream.tools.core.LCoreDefaultStoreIds
 import loamstream.util.LoamFileUtils
 import loamstream.util.Loggable.Level
 import loamstream.util.StringUtils
@@ -32,7 +32,7 @@ final class MiniAppEndToEndTest extends FunSuite {
 
     val env = {
       LCoreEnv.FileInteractiveFallback.env(vcfFiles, sampleFilePaths, Seq.empty[Path]) +
-      (LCoreEnv.Keys.genotypesId -> LCoreDefaultPileIds.genotypes)
+      (LCoreEnv.Keys.genotypesId -> LCoreDefaultStoreIds.genotypes)
     }
 
     val genotypesId = env(LCoreEnv.Keys.genotypesId)

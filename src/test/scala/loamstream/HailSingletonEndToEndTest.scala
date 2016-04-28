@@ -12,7 +12,7 @@ import loamstream.apps.minimal._
 import loamstream.util.Hit
 import loamstream.util.LoamFileUtils
 import loamstream.util.StringUtils
-import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
+import tools.core.{CoreToolBox, LCoreDefaultStoreIds, LCoreEnv}
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -38,9 +38,9 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val singletonFiles = Seq(hailSingletonFilePath)
 
   val env = LCoreEnv.FileInteractiveFallback.env(vcfFiles, vdsFiles, singletonFiles) +
-    (LCoreEnv.Keys.genotypesId -> LCoreDefaultPileIds.genotypes) +
-    (LCoreEnv.Keys.vdsId -> LCoreDefaultPileIds.vds) +
-    (LCoreEnv.Keys.singletonsId -> LCoreDefaultPileIds.singletons)
+    (LCoreEnv.Keys.genotypesId -> LCoreDefaultStoreIds.genotypes) +
+    (LCoreEnv.Keys.vdsId -> LCoreDefaultStoreIds.vds) +
+    (LCoreEnv.Keys.singletonsId -> LCoreDefaultStoreIds.singletons)
   val genotypesId = env(LCoreEnv.Keys.genotypesId)
   val vdsId = env(LCoreEnv.Keys.vdsId)
   val singletonsId = env(LCoreEnv.Keys.singletonsId)

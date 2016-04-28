@@ -1,6 +1,6 @@
 package loamstream.apps.minimal
 
-import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultPileIds}
+import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultStoreIds}
 import loamstream.util.Loggable
 import org.scalatest.FunSuite
 import loamstream.model.kinds.LSpecificKind
@@ -15,7 +15,7 @@ final class SpecRelationsTest extends FunSuite {
   //TODO: Revisit all these tests to make them test specific specs, not ones obtained via
   //some pipeline.  This way, (valid) changes to pipelines won't break this test 
   test("Various relations between pile and recipe specs are false as expected") {
-    val genotypeId = LCoreDefaultPileIds.genotypes
+    val genotypeId = LCoreDefaultStoreIds.genotypes
     assertResult(false)(CoreStore.vcfFile.spec <:< MiniMockStore.genotypesCassandraTable.spec)
     assertResult(false)(
       CoreTool.checkPreExistingVcfFile(genotypeId).spec <:<
@@ -34,7 +34,7 @@ final class SpecRelationsTest extends FunSuite {
 
   
   test("Various relations between pile and recipe specs are true as expected") {
-    val genotypeId = LCoreDefaultPileIds.genotypes
+    val genotypeId = LCoreDefaultStoreIds.genotypes
     
     val pipeline = MiniPipeline(genotypeId)
     

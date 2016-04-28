@@ -10,7 +10,7 @@ import loamstream.util.FileAsker
 import loamstream.util.Hit
 import loamstream.util.StringUtils
 import tools.PcaWeightsReader
-import tools.core.{CoreToolBox, LCoreDefaultPileIds}
+import tools.core.{CoreToolBox, LCoreDefaultStoreIds}
 import tools.core.LCoreEnv.{Keys, PathProvider, PathProviderById}
 import tools.klusta.KlustaKwikKonfig
 
@@ -39,8 +39,8 @@ final class AncestryInferenceEndToEndTest extends FunSuite with BeforeAndAfter {
         Keys.vcfFilePath -> vcfFileProvider, 
         Keys.pcaWeightsFilePath -> pcaWeightsFileProvider,
         Keys.klustaKwikKonfig -> KlustaKwikKonfig.withTempWorkDir("data"),
-        Keys.genotypesId -> LCoreDefaultPileIds.genotypes, 
-        Keys.pcaWeightsId -> LCoreDefaultPileIds.pcaWeights)
+        Keys.genotypesId -> LCoreDefaultStoreIds.genotypes, 
+        Keys.pcaWeightsId -> LCoreDefaultStoreIds.pcaWeights)
     
     val genotypesId = env(Keys.genotypesId)
     val pcaWeightsId = env(Keys.pcaWeightsId)

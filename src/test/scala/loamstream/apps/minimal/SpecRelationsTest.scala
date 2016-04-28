@@ -3,6 +3,8 @@ package loamstream.apps.minimal
 import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultPileIds}
 import loamstream.util.Loggable
 import org.scalatest.FunSuite
+import loamstream.model.kinds.LSpecificKind
+import loamstream.model.kinds.StoreKinds
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -35,12 +37,41 @@ final class SpecRelationsTest extends FunSuite {
     
     assert(CoreStore.vcfFile.spec.sig =:= pipeline.genotypeCallsStore.spec.sig)
     assert(CoreStore.vcfFile.spec <:< pipeline.genotypeCallsStore.spec)
-    assert(MiniMockStore.genotypesCassandraTable.spec <:< pipeline.genotypeCallsStore.spec)
     assert(CoreStore.sampleIdsFile.spec <:< pipeline.sampleIdsStore.spec)
-    assert(MiniMockStore.sampleIdsCassandraTable.spec <:< pipeline.sampleIdsStore.spec)
     assert(CoreTool.checkPreExistingVcfFile(genotypeId).spec <<< pipeline.genotypeCallsTool.spec)
-    assert(MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <<< pipeline.genotypeCallsTool.spec)
+    //TODO: Revisit this
+    //assert(MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <<< pipeline.genotypeCallsTool.spec)
     assert(CoreTool.extractSampleIdsFromVcfFile.spec <<< pipeline.sampleIdsTool.spec)
-    assert(MiniMockTool.extractSampleIdsFromCassandraTable.spec <<< pipeline.sampleIdsTool.spec)
+    //TODO: Revisit this
+    //assert(MiniMockTool.extractSampleIdsFromCassandraTable.spec <<< pipeline.sampleIdsTool.spec)
+  }
+  
+  test("StoreKind relationships") {
+    import StoreKinds._
+    
+    assert(vcfFile <:< genotypeCallsByVariantAndSample)
+    assert(genotypesCassandraTable <:< genotypeCallsByVariantAndSample)
+    
+    assert(vcfFile isA genotypeCallsByVariantAndSample)
+    assert(genotypesCassandraTable isA genotypeCallsByVariantAndSample)
+    
+    assert(genotypeCallsByVariantAndSample >:> vcfFile)
+    assert(genotypeCallsByVariantAndSample >:> genotypesCassandraTable)
+    
+    assert(genotypeCallsByVariantAndSample hasSubKind vcfFile)
+    assert(genotypeCallsByVariantAndSample hasSubKind genotypesCassandraTable)
+    
+    
+    assert(sampleIdsFile <:< sampleIds)
+    assert(sampleIdsCassandraTable <:< sampleIds)
+    
+    assert(sampleIdsFile isA sampleIds)
+    assert(sampleIdsCassandraTable isA sampleIds)
+    
+    assert(sampleIds >:> sampleIdsFile)
+    assert(sampleIds >:> sampleIdsCassandraTable)
+    
+    assert(sampleIds hasSubKind sampleIdsFile)
+    assert(sampleIds hasSubKind sampleIdsCassandraTable)
   }
 }

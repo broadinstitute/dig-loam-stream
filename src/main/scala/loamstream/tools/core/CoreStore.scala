@@ -52,7 +52,7 @@ object CoreStore {
   }
   
   val sampleIdsFile: Store = {
-    CoreStore("Sample ids file", LPileSpec(LSig.Set.of(LSampleId), StoreKinds.sampleIdsFile))
+    CoreStore("Sample ids file", LPileSpec(Sigs.sampleIds, StoreKinds.sampleIdsFile))
   }
 
   val stores: Set[Store] = Set(

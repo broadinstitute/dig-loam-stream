@@ -8,6 +8,9 @@ trait LKind {
 
   def <:<(oKind: LKind): Boolean
 
+  final def isA(oKind: LKind): Boolean = <:<(oKind) 
+  
   def >:>(oKind: LKind): Boolean
-
+  
+  final def hasSubKind(oKind: LKind): Boolean = >:>(oKind)
 }

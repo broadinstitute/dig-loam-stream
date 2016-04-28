@@ -15,5 +15,7 @@ object Sigs {
 
   val sampleIdAndIntToDouble: LSig.Map = (LSampleId & LInt) to LDouble
   
+  val sampleIds: LSig.Set = LSig.Set.of(LSampleId)
+  
   def setOf[K](k: LType[K]): LSig.Set = LSig.Set.of(k)
 }

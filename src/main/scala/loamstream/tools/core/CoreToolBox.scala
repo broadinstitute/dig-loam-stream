@@ -20,8 +20,8 @@ import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
 import loamstream.tools.klusta.{KlustaKwikLineCommand, KlustaKwikInputWriter}
 import loamstream.util.Functions
 import loamstream.util.LoamFileUtils
-import loamstream.util.shot.{Hit, Miss, Shot}
-import loamstream.util.snag.SnagMessage
+import loamstream.util.{Hit, Miss, Shot}
+import loamstream.util.SnagMessage
 
 /**
   * LoamStream

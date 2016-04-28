@@ -6,8 +6,8 @@ import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LJob, LToolBox}
 import loamstream.tools.core.LCoreDefaultPileIds
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.shot.{Hit, Miss, Shot}
-import loamstream.util.snag.SnagMessage
+import loamstream.util.{Hit, Miss, Shot}
+import loamstream.util.SnagMessage
 import loamstream.model.Store
 import loamstream.model.Tool
 

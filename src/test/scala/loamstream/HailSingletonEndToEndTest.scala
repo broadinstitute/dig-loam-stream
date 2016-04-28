@@ -9,12 +9,10 @@ import org.scalatest.{BeforeAndAfter, FunSuite}
 
 import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal._
+import loamstream.util.Hit
 import loamstream.util.LoamFileUtils
-import loamstream.util.Loggable.Level
 import loamstream.util.StringUtils
 import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
-import loamstream.util.TestUtils
-import loamstream.util.shot.Hit
 
 /**
   * Created by kyuksel on 2/29/2016.

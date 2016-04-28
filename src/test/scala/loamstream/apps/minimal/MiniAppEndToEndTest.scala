@@ -13,8 +13,8 @@ import loamstream.util.LoamFileUtils
 import loamstream.util.Loggable.Level
 import loamstream.util.StringUtils
 import loamstream.util.TestUtils
-import loamstream.util.shot.Hit
-import loamstream.util.shot.Shot
+import loamstream.util.Hit
+import loamstream.util.Shot
 import loamstream.model.jobs.LJob
 
 /**
@@ -39,13 +39,13 @@ final class MiniAppEndToEndTest extends FunSuite {
     val pipeline = MiniPipeline(genotypesId)
     val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
 
-    /*val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline)
+    val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsTool, pipeline)
     
     assert(TestUtils.isHitOfSetOfOne(genotypesJob))
     
-    val extractSamplesJobShot = toolbox.createJobs(pipeline.sampleIdsRecipe, pipeline)
+    val extractSamplesJobShot = toolbox.createJobs(pipeline.sampleIdsTool, pipeline)
     
-    assert(TestUtils.isHitOfSetOfOne(extractSamplesJobShot))*/
+    assert(TestUtils.isHitOfSetOfOne(extractSamplesJobShot))
     
     val executable = toolbox.createExecutable(pipeline)
     

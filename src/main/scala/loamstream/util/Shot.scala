@@ -1,7 +1,6 @@
-package loamstream.util.shot
+package loamstream.util
 
-import loamstream.util.shot.ShotCombinators.Shots2
-import loamstream.util.snag.{Snag, SnagMessage}
+import loamstream.util.ShotCombinators.Shots2
 
 import scala.util.{Failure, Success, Try}
 

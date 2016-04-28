@@ -2,8 +2,8 @@ package loamstream.map
 
 import loamstream.map.AriadneNode.WithoutSlot
 import loamstream.map.Mapping.Slot
-import loamstream.util.snag.Snag
-import loamstream.util.shot.{Hit, Miss, Shot}
+import loamstream.util.Snag
+import loamstream.util.{Hit, Miss, Shot}
 
 /**
   * LoamStream

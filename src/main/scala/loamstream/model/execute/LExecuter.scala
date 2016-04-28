@@ -1,7 +1,7 @@
 package loamstream.model.execute
 
 import loamstream.model.jobs.LJob
-import loamstream.util.shot.Shot
+import loamstream.util.Shot
 
 /**
  * RugLoom - A prototype for a pipeline building toolkit

@@ -1,16 +1,18 @@
 package loamstream.apps.minimal
 
-import org.scalatest.FunSuite
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.LJob.SimpleSuccess
-import loamstream.model.jobs.LJob.SimpleFailure
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import loamstream.model.execute.LExecutable
-import loamstream.util.shot.Hit
-import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+
+import org.scalatest.FunSuite
+
+import loamstream.model.execute.LExecutable
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.LJob.Result
+import loamstream.model.jobs.LJob.SimpleFailure
+import loamstream.model.jobs.LJob.SimpleSuccess
+import loamstream.util.Hit
 
 /**
  * @author clint

@@ -7,14 +7,12 @@ import org.scalatest.{BeforeAndAfter, FunSuite}
 import loamstream.apps.minimal.{MiniExecuter, MiniMockToolBox}
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.util.FileAsker
-import loamstream.util.Loggable.Level
+import loamstream.util.Hit
 import loamstream.util.StringUtils
 import tools.PcaWeightsReader
 import tools.core.{CoreToolBox, LCoreDefaultPileIds}
 import tools.core.LCoreEnv.{Keys, PathProvider, PathProviderById}
 import tools.klusta.KlustaKwikKonfig
-import loamstream.util.TestUtils
-import loamstream.util.shot.Hit
 
 /**
   * LoamStream

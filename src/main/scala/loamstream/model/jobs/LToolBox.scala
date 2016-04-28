@@ -1,10 +1,9 @@
 package loamstream.model.jobs
 
 import loamstream.model.LPipeline
-import loamstream.model.execute.LExecutable
-import loamstream.util.shot.Shot
-import loamstream.model.Store
 import loamstream.model.Tool
+import loamstream.model.execute.LExecutable
+import loamstream.util.Shot
 
 /**
   * LoamStream

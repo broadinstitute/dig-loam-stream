@@ -30,6 +30,8 @@ object LRecipeSpec {
 }
 
 case class LRecipeSpec(kind: LKind, inputs: Seq[LPileSpec], output: LPileSpec) {
+  //TODO: non-symbolic alternative defs for each operator, a la LKind
+  
   //TODO: Test if input arities are the same?
   //TODO Test if outputs are the same?
   def =:=(oRecipe: LRecipeSpec): Boolean = {

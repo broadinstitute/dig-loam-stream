@@ -12,6 +12,8 @@ import loamstream.model.kinds.StoreKinds
   */
 final class SpecRelationsTest extends FunSuite {
 
+  //TODO: Revisit all these tests to make them test specific specs, not ones obtained via
+  //some pipeline.  This way, (valid) changes to pipelines won't break this test 
   test("Various relations between pile and recipe specs are false as expected") {
     val genotypeId = LCoreDefaultPileIds.genotypes
     assertResult(false)(CoreStore.vcfFile.spec <:< MiniMockStore.genotypesCassandraTable.spec)
@@ -30,6 +32,7 @@ final class SpecRelationsTest extends FunSuite {
       MiniMockTool.extractSampleIdsFromCassandraTable.spec <:< CoreTool.extractSampleIdsFromVcfFile.spec)
   }
 
+  
   test("Various relations between pile and recipe specs are true as expected") {
     val genotypeId = LCoreDefaultPileIds.genotypes
     

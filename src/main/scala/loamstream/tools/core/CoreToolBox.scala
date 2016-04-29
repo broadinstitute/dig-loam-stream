@@ -63,7 +63,7 @@ object CoreToolBox {
         LoamFileUtils.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println) // scalastyle:ignore
         }
-        new SimpleSuccess("Extracted sample ids.")
+        SimpleSuccess("Extracted sample ids.")
       }
     }
   }
@@ -87,7 +87,7 @@ object CoreToolBox {
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
         HailTools.calculateSingletons(importVcfFileJob.vdsFile, singletonsFile)
-        new SimpleSuccess("Calculated singletons from VDS.")
+        SimpleSuccess("Calculated singletons from VDS.")
       }
     }
   }
@@ -107,8 +107,10 @@ object CoreToolBox {
           val samples = vcfParser.samples
           val genotypeToDouble: Genotype => Double = { genotype => VcfUtils.genotypeToAltCount(genotype).toDouble }
           val pcaProjections = pcaProjecter.project(samples, vcfParser.genotypeMapIter, genotypeToDouble)
+          
           KlustaKwikInputWriter.writeFeatures(klustaKwikKonfig, pcaProjections)
-          new SimpleSuccess(s"Wrote PCA projections to file ${klustaKwikKonfig.inputFile}")
+          
+          SimpleSuccess(s"Wrote PCA projections to file ${klustaKwikKonfig.inputFile}")
         }
       }
     }

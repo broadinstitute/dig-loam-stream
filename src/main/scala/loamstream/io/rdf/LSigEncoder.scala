@@ -2,7 +2,7 @@ package loamstream.io.rdf
 
 import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Encoder
-import loamstream.model.piles.LSig
+import loamstream.model.LSig
 import org.openrdf.model.vocabulary.RDF
 import org.openrdf.model.{Resource, Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection

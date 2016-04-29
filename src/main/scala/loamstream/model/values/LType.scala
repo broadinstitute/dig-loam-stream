@@ -3,6 +3,7 @@ package loamstream.model.values
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.LSig
 import loamstream.model.Types.{ClusterId, SampleId, SingletonCount, VariantId}
+import loamstream.util.{Hit, Shot}
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -249,7 +250,13 @@ object LType {
 
 }
 
-sealed trait LTypeAny
+sealed trait LTypeAny {
+  def asEncodeable: Shot[LTypeEncodeable]
+}
+
+sealed trait LTypeEncodeable extends LTypeAny {
+  override def asEncodeable: Hit[LTypeEncodeable] = Hit(this)
+}
 
 sealed trait LType[T] extends LTypeAny {
   def apply(value: T): LValue[T] = LValue(value, this)

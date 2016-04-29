@@ -40,10 +40,13 @@ object Loam {
   val hasSpecifics = iri("specifics")
 
   val pile = iri("Pile")
+  val store = iri("Store")
+  val storeSpec = iri("StoreSpec")
   val pileSpec = iri("PileSpec")
   val hasSig = iri("hasSig")
 
   val recipe = iri("Recipe")
+  val tool = iri("Tool")
   val hasInputs = iri("hasInputs")
   val requiresInputs = iri("requiresInputs")
   val hasOutput = iri("hasOutput")

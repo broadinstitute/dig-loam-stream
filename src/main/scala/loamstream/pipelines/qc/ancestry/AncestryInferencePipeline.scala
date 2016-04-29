@@ -1,10 +1,15 @@
 package loamstream.pipelines.qc.ancestry
 
+import loamstream.Sigs
+
 import loamstream.model.LPipeline
-import loamstream.model.kinds.instances.{PileKinds, RecipeKinds}
-import loamstream.model.piles.{LPile, LSig}
-import loamstream.model.recipes.LRecipe
-import loamstream.model.values.LType.{LDouble, LGenotype, LInt, LSampleId, LTuple, LVariantId}
+import loamstream.model.Store
+import loamstream.model.Tool
+import loamstream.model.values.LType._
+import loamstream.tools.core.CoreStore
+import loamstream.tools.core.CoreTool
+import loamstream.model.kinds.ToolKinds
+
 
 /**
   * LoamStream
@@ -12,18 +17,23 @@ import loamstream.model.values.LType.{LDouble, LGenotype, LInt, LSampleId, LTupl
   */
 case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) extends LPipeline {
 
-  val genotypesPile =
-    LPile(genotypesId, LSig.Map(LTuple(LVariantId, LSampleId), LGenotype), PileKinds.genotypeCallsByVariantAndSample)
-  val pcaWeightsPile = LPile(pcaWeightsId, LSig.Map(LTuple(LSampleId, LInt), LDouble), PileKinds.pcaWeights)
-  val projectedValsPile = LPile(LSig.Map(LTuple(LSampleId, LInt), LDouble), PileKinds.pcaProjected)
-  val sampleClustersPile = LPile(LSig.Map(LTuple(LSampleId), LInt), PileKinds.sampleClustersByAncestry)
+  val genotypesStoreTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
+  
+  val pcaWeightsStoreTool: Tool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
+  
+  val pcaProjectionTool: Tool = CoreTool.projectPca
+  
+  val sampleClustering: Tool = CoreTool.clusteringSamplesByFeatures
+  
+  val genotypesStore: Store = genotypesStoreTool.output
 
-  val genotypesPileRecipe = LRecipe.preExistingCheckout(genotypesId, genotypesPile)
-  val pcaWeightsPileRecipe = LRecipe.preExistingCheckout(pcaWeightsId, pcaWeightsPile)
-  val pcaProjectionRecipe = LRecipe(RecipeKinds.pcaProjection, Seq(genotypesPile, pcaWeightsPile), projectedValsPile)
-  val sampleClustering = LRecipe(RecipeKinds.clusteringSamplesByFeatures, Seq(projectedValsPile), sampleClustersPile)
+  val pcaWeightsStore: Store = pcaWeightsStoreTool.output
+  
+  val projectedValsStore: Store = pcaProjectionTool.output
+  
+  val sampleClustersStore: Store = sampleClustering.output
 
-  val piles = Set(genotypesPile, pcaWeightsPile, projectedValsPile, sampleClustersPile)
-  val recipes = Set(genotypesPileRecipe, pcaWeightsPileRecipe, pcaProjectionRecipe, sampleClustering)
-
+  override def stores: Set[Store] = tools.map(_.output)
+  
+  override val tools: Set[Tool] = Set(genotypesStoreTool, pcaWeightsStoreTool, pcaProjectionTool, sampleClustering)
 }

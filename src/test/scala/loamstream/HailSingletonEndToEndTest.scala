@@ -9,12 +9,10 @@ import org.scalatest.{BeforeAndAfter, FunSuite}
 
 import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal._
-import loamstream.map.LToolMapper
+import loamstream.util.Hit
 import loamstream.util.LoamFileUtils
-import loamstream.util.Loggable.Level
 import loamstream.util.StringUtils
-import tools.core.{CoreToolBox, LCoreDefaultPileIds, LCoreEnv}
-import loamstream.util.TestUtils
+import tools.core.{CoreToolBox, LCoreDefaultStoreIds, LCoreEnv}
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -40,37 +38,26 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val singletonFiles = Seq(hailSingletonFilePath)
 
   val env = LCoreEnv.FileInteractiveFallback.env(vcfFiles, vdsFiles, singletonFiles) +
-    (LCoreEnv.Keys.genotypesId -> LCoreDefaultPileIds.genotypes) +
-    (LCoreEnv.Keys.vdsId -> LCoreDefaultPileIds.vds) +
-    (LCoreEnv.Keys.singletonsId -> LCoreDefaultPileIds.singletons)
+    (LCoreEnv.Keys.genotypesId -> LCoreDefaultStoreIds.genotypes) +
+    (LCoreEnv.Keys.vdsId -> LCoreDefaultStoreIds.vds) +
+    (LCoreEnv.Keys.singletonsId -> LCoreDefaultStoreIds.singletons)
   val genotypesId = env(LCoreEnv.Keys.genotypesId)
   val vdsId = env(LCoreEnv.Keys.vdsId)
   val singletonsId = env(LCoreEnv.Keys.singletonsId)
   val pipeline = HailPipeline(genotypesId, vdsId, singletonsId)
   val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
-  val mappings = LToolMapper.findAllSolutions(pipeline, toolbox)
-  for (mapping <- mappings)
-    LToolMappingLogger.logMapping(Level.trace, mapping)
-  val mappingCostEstimator = LPipelineMiniCostEstimator(pipeline.genotypesId)
-  val mapping = mappingCostEstimator.pickCheapest(mappings)
-  LToolMappingLogger.logMapping(Level.trace, mapping)
 
-  val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsRecipe, pipeline, mapping)
-  val importVcfJob = toolbox.createJobs(pipeline.vdsRecipe, pipeline, mapping)
-  val calculateSingletonsJob = toolbox.createJobs(pipeline.singletonRecipe, pipeline, mapping)
+  val genotypesJobsShot = toolbox.createJobs(pipeline.genotypeCallsTool, pipeline)
+  val importVcfJobsShot = toolbox.createJobs(pipeline.vdsTool, pipeline)
+  val calculateSingletonsJobsShot = toolbox.createJobs(pipeline.singletonTool, pipeline)
 
-  val executable = toolbox.createExecutable(pipeline, mapping)
-
-  test("Methods and piles are successfully mapped to tools and stores") {
-    assert(mappings.size == 1)
-    assert(mappings.head.stores.size == 3)
-    assert(mappings.head.tools.size == 3)
-  }
+  val executable = toolbox.createExecutable(pipeline)
 
   test("Jobs are successfully created") {
-    assert(TestUtils.isHitOfSetOfOne(genotypesJob))
-    assert(TestUtils.isHitOfSetOfOne(calculateSingletonsJob))
-    assert(TestUtils.isHitOfSetOfOne(importVcfJob))
+    //NB: Try to unpack the shots to get better messages on failures
+    val Hit(Seq(genotypesJob)) = genotypesJobsShot.map(_.toSeq)
+    val Hit(Seq(importVcfJob)) = importVcfJobsShot.map(_.toSeq)
+    val Hit(Seq(calculateSingletonsJob)) = calculateSingletonsJobsShot.map(_.toSeq)
   }
 
   ignore("Singletons are successfully counted using Hail") {

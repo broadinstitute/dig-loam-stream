@@ -1,8 +1,8 @@
 package loamstream.util
 
 import loamstream.model.LPipeline
-import loamstream.model.piles.LPile
-import loamstream.model.recipes.LRecipe
+import loamstream.model.Store
+import loamstream.model.Tool
 
 /**
   * LoamStream
@@ -16,181 +16,173 @@ object PipelineConsistencyChecker {
 
   sealed trait Check extends (LPipeline => Set[Problem])
 
-  case object NoPiles extends Problem {
-    override def message: String = "Pipeline contains no piles."
+  case object NoStores extends Problem {
+    override def message: String = "Pipeline contains no stores."
   }
 
-  case object PipelineHasPilesCheck extends Check {
+  case object PipelineHasStoresCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] =
-      if (pipeline.piles.isEmpty) Set(NoPiles) else Set.empty
+      if (pipeline.stores.isEmpty) Set(NoStores) else Set.empty
   }
 
-  case object NoRecipes extends Problem {
-    override def message: String = "Pipeline contains no recipes"
+  case object NoTools extends Problem {
+    override def message: String = "Pipeline contains no tools"
   }
 
-  case object PipelineHasRecipesCheck extends Check {
+  case object PipelineHasToolsCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] =
-      if (pipeline.recipes.isEmpty) Set(NoRecipes) else Set.empty
+      if (pipeline.tools.isEmpty) Set(NoTools) else Set.empty
   }
 
-  sealed trait PileSpecificProblem extends Problem {
-    def pile: LPile
+  sealed trait StoreSpecificProblem extends Problem {
+    def store: Store
   }
 
-  sealed trait RecipeSpecificProblem extends Problem {
-    def recipe: LRecipe
+  sealed trait ToolSpecificProblem extends Problem {
+    def tool: Tool
   }
 
-  sealed trait PileIsNotProducedByExactlyOneRecipe extends PileSpecificProblem
+  sealed trait StoreIsNotProducedByExactlyOneTool extends StoreSpecificProblem
 
-  case class PileIsProducedByNoRecipe(pile: LPile) extends PileIsNotProducedByExactlyOneRecipe {
-    override def message: String = "Pile " + pile.id + " is not produced by any recipe."
+  case class StoreIsProducedByNoTool(store: Store) extends StoreIsNotProducedByExactlyOneTool {
+    override def message: String = s"Store ${store.id} is not produced by any tool."
   }
 
-  case object EachPileIsOutputOfAtLeastOneRecipeCheck extends Check {
+  case object EachStoreIsOutputOfAtLeastOneToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      (pipeline.piles -- pipeline.recipes.map(_.output)).map(PileIsProducedByNoRecipe)
+      (pipeline.stores -- pipeline.tools.map(_.output)).map(StoreIsProducedByNoTool)
     }
   }
 
-  case class PileIsProducedByMultipleRecipes(pile: LPile, recipes: Set[LRecipe])
-    extends PileIsNotProducedByExactlyOneRecipe {
+  case class StoreIsProducedByMultipleTools(store: Store, tools: Set[Tool])
+    extends StoreIsNotProducedByExactlyOneTool {
     override def message: String =
-      "Pile " + pile.id + " is produced by multiple recipes: " + recipes.map(_.id).mkString(", ") + "."
+      s"Store ${store.id} is produced by multiple tools: ${tools.map(_.id).mkString(", ")}."
   }
 
-  case object EachPileIsOutputOfNoMoreThanOneRecipeCheck extends Check {
+  case object EachStoreIsOutputOfNoMoreThanOneToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.groupBy(_.output).collect({ case (pile, recipes) if recipes.size > 1 =>
-        PileIsProducedByMultipleRecipes(pile, recipes)
-      }).toSet
+      pipeline.tools.groupBy(_.output).collect { case (store, tools) if tools.size > 1 =>
+        val result: Problem = StoreIsProducedByMultipleTools(store, tools)
+        
+        result
+      }.toSet[Problem]
     }
   }
 
-  sealed trait PileIsNotCompatibleWithRecipe extends PileSpecificProblem with RecipeSpecificProblem
+  sealed trait StoreIsNotCompatibleWithTool extends StoreSpecificProblem with ToolSpecificProblem
 
-  case class PileIsIncompatibleOutputOfRecipe(pile: LPile, recipe: LRecipe) extends PileIsNotCompatibleWithRecipe {
-    override def message: String = "Pile " + pile.id + " is not compatible output of recipe " + recipe.id + "."
+  case class StoreIsIncompatibleOutputOfTool(store: Store, tool: Tool) extends StoreIsNotCompatibleWithTool {
+    override def message: String = s"Store ${store.id} is not compatible output of tool ${tool.id}."
   }
 
-  case object EachPileIsCompatibleOutputOfRecipeCheck extends Check {
+  case object EachStoreIsCompatibleOutputOfToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.filterNot(recipe => recipe.output.spec >:> recipe.spec.output).
-        map(recipe => PileIsIncompatibleOutputOfRecipe(recipe.output, recipe))
+      pipeline.tools.filterNot(tool => tool.output.spec >:> tool.spec.output).
+        map(tool => StoreIsIncompatibleOutputOfTool(tool.output, tool))
     }
   }
 
-  case class PileIsIncompatibleInputOfRecipe(pile: LPile, recipe: LRecipe, pos: Int)
-    extends PileIsNotCompatibleWithRecipe {
+  case class StoreIsIncompatibleInputOfTool(store: Store, tool: Tool, pos: Int)
+    extends StoreIsNotCompatibleWithTool {
     override def message: String =
-      "Pile " + pile.id + " is not compatible input (position " + pos + ") of recipe " + recipe.id + "."
+      s"Store ${store.id} is not compatible input (position $pos) of tool ${tool.id}."
   }
 
-  case object EachPileIsCompatibleInputOfRecipeCheck extends Check {
+  case object EachStoreIsCompatibleInputOfToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.flatMap({ recipe =>
-        recipe.inputs.indices.map(pos => (recipe, pos, recipe.inputs(pos), recipe.spec.inputs(pos)))
-      }).collect({ case (recipe, pos, input, inputSpec) if !(input.spec <:< inputSpec) =>
-        PileIsIncompatibleInputOfRecipe(input, recipe, pos)
-      })
+      pipeline.tools.flatMap { tool =>
+        tool.inputs.indices.map(pos => (tool, pos, tool.inputs(pos), tool.spec.inputs(pos)))
+      }.collect { case (tool, pos, input, inputSpec) if !(input.spec <:< inputSpec) =>
+        StoreIsIncompatibleInputOfTool(input, tool, pos)
+      }
     }
   }
 
-  sealed trait PileMissingUsedInRecipe extends PileSpecificProblem with RecipeSpecificProblem
+  sealed trait StoreMissingUsedInTool extends StoreSpecificProblem with ToolSpecificProblem
 
-  case class PileMissingUsedAsOutput(pile: LPile, recipe: LRecipe) extends PileMissingUsedInRecipe {
-    override def message: String = "Pile " + pile.id + " used as output in recipe " + recipe.id + " is missing."
+  case class StoreMissingUsedAsOutput(store: Store, tool: Tool) extends StoreMissingUsedInTool {
+    override def message: String = s"Store ${store.id} used as output in tool ${tool.id} is missing."
   }
 
-  case object EachOutputPileIsPresentCheck extends Check {
+  case object EachOutputStoreIsPresentCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.collect({ case recipe if !pipeline.piles.contains(recipe.output) =>
-        PileMissingUsedAsOutput(recipe.output, recipe)
-      })
+      pipeline.tools.collect { case tool if !pipeline.stores.contains(tool.output) =>
+        StoreMissingUsedAsOutput(tool.output, tool)
+      }
     }
   }
 
-  case class PileMissingUsedAsInput(pile: LPile, recipe: LRecipe, pos: Int) extends PileMissingUsedInRecipe {
-    override def message: String = "Pile " + pile.id + " used as input (pos " + pos + ") in recipe " +
-      recipe.id + " is missing."
+  case class StoreMissingUsedAsInput(store: Store, tool: Tool, pos: Int) extends StoreMissingUsedInTool {
+    override def message: String = s"Store ${store.id} used as input (pos $pos) in tool ${tool.id} is missing."
   }
 
-  case object EachInputPileIsPresentCheck extends Check {
+  case object EachInputStoreIsPresentCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.recipes.flatMap({ recipe => recipe.inputs.indices.map(pos => (recipe.inputs(pos), recipe, pos)) }).
-        collect({ case (input, recipe, pos) if !pipeline.piles.contains(input) =>
-          PileMissingUsedAsInput(input, recipe, pos)
-        })
+      pipeline.tools.flatMap { tool => tool.inputs.indices.map(pos => (tool.inputs(pos), tool, pos)) }.
+        collect { case (input, tool, pos) if !pipeline.stores.contains(input) =>
+          StoreMissingUsedAsInput(input, tool, pos)
+        }
     }
   }
 
-  case class PipelineIsDisconnected(pile: LPile, otherPile: LPile) extends PileSpecificProblem {
-    override def message: String =
-      "Pipeline is disconnected: no path from pile " + pile.id + " to " + otherPile.id + "."
+  case class PipelineIsDisconnected(store: Store, otherStore: Store) extends StoreSpecificProblem {
+    override def message: String = s"Pipeline is disconnected: no path from store ${store.id} to ${otherStore.id}."
   }
 
   case object ConnectednessCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.piles.headOption match {
-        case Some(arbitraryPile) =>
+      pipeline.stores.headOption match {
+        case Some(arbitraryStore) => {
           var makingProgress = true
-          var connectedPiles: Set[LPile] = Set(arbitraryPile)
+          var connectedStores: Set[Store] = Set(arbitraryStore)
           while (makingProgress) {
             makingProgress = false
-            for (recipe <- pipeline.recipes) {
-              val neighborPiles = recipe.inputs.toSet + recipe.output
-              val connectedPilesNew = neighborPiles -- connectedPiles
-              if (connectedPilesNew.nonEmpty) {
-                connectedPiles ++= connectedPilesNew
+            for (tool <- pipeline.tools) {
+              val neighborStores = tool.inputs.toSet + tool.output
+              val connectedStoresNew = neighborStores -- connectedStores
+              if (connectedStoresNew.nonEmpty) {
+                connectedStores ++= connectedStoresNew
                 makingProgress = true
               }
             }
           }
-          val otherPiles = pipeline.piles -- connectedPiles
-          if (otherPiles.nonEmpty) Set(PipelineIsDisconnected(arbitraryPile, otherPiles.head)) else Set.empty
+          val otherStores = pipeline.stores -- connectedStores
+          if (otherStores.nonEmpty) Set(PipelineIsDisconnected(arbitraryStore, otherStores.head)) else Set.empty
+        }
         case None => Set.empty
       }
     }
   }
 
-  case class PipelineHasCycle(pile: LPile) extends PileSpecificProblem {
-    override def message: String = "Pipeline contains a cycle containing pile " + pile.id + "."
+  case class PipelineHasCycle(store: Store) extends StoreSpecificProblem {
+    override def message: String = s"Pipeline contains a cycle containing store ${store.id}."
   }
 
   case object AcyclicityCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      val z: (Set[LPile], Boolean, Int) = (pipeline.piles, true, pipeline.piles.size) 
-      
-      pipeline.piles.foldLeft(z) { (acc, pile) =>
-        val (pilesLeft, makingProgress, nPilesLeft) = acc
-        
-        val newPilesLeft = pipeline.recipes.filter(recipe => pilesLeft.contains(recipe.output)).flatMap(_.inputs)
-        val nPilesLeftNew = newPilesLeft.size
-        
-        (newPilesLeft, nPilesLeftNew < nPilesLeft, nPilesLeftNew)
-      }
-      
-      var pilesLeft = pipeline.piles
+      //TODO: Get rid of vars with a fold 
+      var storesLeft = pipeline.stores
       var makingProgress = true
-      var nPilesLeft = pilesLeft.size
-      while (pilesLeft.nonEmpty && makingProgress) {
-        pilesLeft = pipeline.recipes.filter(recipe => pilesLeft.contains(recipe.output)).flatMap(_.inputs)
-        val nPilesLeftNew = pilesLeft.size
-        makingProgress = nPilesLeftNew < nPilesLeft
-        nPilesLeft = nPilesLeftNew
+      var nStoresLeft = storesLeft.size
+      while (storesLeft.nonEmpty && makingProgress) {
+        storesLeft = pipeline.tools.filter(tool => storesLeft.contains(tool.output)).flatMap(_.inputs)
+        val nStoresLeftNew = storesLeft.size
+        makingProgress = nStoresLeftNew < nStoresLeft
+        nStoresLeft = nStoresLeftNew
       }
-      if (pilesLeft.nonEmpty) Set(PipelineHasCycle(pilesLeft.head)) else Set.empty
+      if (storesLeft.nonEmpty) Set(PipelineHasCycle(storesLeft.head)) else Set.empty
     }
   }
 
-  val allChecks: Set[Check] =
-    Set(PipelineHasPilesCheck, PipelineHasRecipesCheck, EachPileIsOutputOfAtLeastOneRecipeCheck,
-      EachPileIsOutputOfNoMoreThanOneRecipeCheck, EachPileIsCompatibleOutputOfRecipeCheck,
-      EachPileIsCompatibleInputOfRecipeCheck, EachOutputPileIsPresentCheck, EachInputPileIsPresentCheck,
+  val allChecks: Set[Check] = {
+    Set(PipelineHasStoresCheck, PipelineHasToolsCheck, EachStoreIsOutputOfAtLeastOneToolCheck,
+      EachStoreIsOutputOfNoMoreThanOneToolCheck, EachStoreIsCompatibleOutputOfToolCheck,
+      EachStoreIsCompatibleInputOfToolCheck, EachOutputStoreIsPresentCheck, EachInputStoreIsPresentCheck,
       ConnectednessCheck, AcyclicityCheck)
+  }
 
-  def check(pipeline: LPipeline, checks: Set[Check] = allChecks): Set[Problem] =
+  def check(pipeline: LPipeline, checks: Set[Check] = allChecks): Set[Problem] = {
     checks.flatMap(check => check(pipeline))
-
+  }
 }

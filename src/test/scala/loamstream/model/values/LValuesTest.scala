@@ -3,12 +3,14 @@ package loamstream.model.values
 import loamstream.model.values.LType.{LBoolean, LDouble, LFloat, LInt, LLong, LSampleId, LSeq, LSet, LShort, LString,
 LTuple, LVariantId}
 import org.scalatest.FunSuite
+import loamstream.model.values.LType.LGenotype
+import loamstream.model.LSig
 
 /**
   * LoamStream
   * Created by oliverr on 4/21/2016.
   */
-class LValuesTest extends FunSuite {
+final class LValuesTest extends FunSuite {
   test("Testing LValues") {
     //scalastyle:off magic.number
     assert(LValue(42, LInt) === LInt(42))
@@ -85,4 +87,21 @@ class LValuesTest extends FunSuite {
     //scalastyle:on magic.number
   }
 
+  test("Sugar for LSig construction: to on tuple1") {
+    assert((LVariantId to LGenotype) === LSig.Map(LTuple1(LVariantId), LGenotype))
+  }
+  
+  test("Sugar for LSig construction: to on tupleN") {
+    assert(
+      (LTuple2(LVariantId, LSampleId) to LGenotype) === LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype))
+    
+    assert(
+      (LTuple3(LVariantId, LSampleId, LInt) to LGenotype) === LSig.Map(LTuple3(LVariantId, LSampleId, LInt),LGenotype))
+  }
+  
+  test("Sugar for LSig construction: to, &") {
+    assert((LVariantId & LSampleId) === LTuple2(LVariantId, LSampleId))
+    
+    assert(((LVariantId & LSampleId) to LGenotype) === LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype))
+  }
 }

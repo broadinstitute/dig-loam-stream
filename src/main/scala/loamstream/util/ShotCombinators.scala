@@ -1,6 +1,4 @@
-package loamstream.util.shot
-
-import loamstream.util.snag.Snag
+package loamstream.util
 
 /**
   * LoamStream

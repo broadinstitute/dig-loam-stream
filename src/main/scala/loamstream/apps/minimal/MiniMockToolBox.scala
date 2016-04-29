@@ -1,18 +1,15 @@
 package loamstream.apps.minimal
 
 import loamstream.LEnv
-import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LJob, LToolBox}
-import loamstream.model.jobs.tools.LTool
-import loamstream.model.piles.LPile
-import loamstream.model.recipes.LRecipe
-import loamstream.model.stores.LStore
-import loamstream.tools.core.LCoreDefaultPileIds
+import loamstream.tools.core.LCoreDefaultStoreIds
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.shot.{Hit, Miss, Shot}
-import loamstream.util.snag.SnagMessage
+import loamstream.util.{Hit, Miss, Shot}
+import loamstream.util.SnagMessage
+import loamstream.model.Store
+import loamstream.model.Tool
 
 
 /**
@@ -28,24 +25,15 @@ object MiniMockToolBox {
   }
 }
 
-case class MiniMockToolBox(genotypesId: String = LCoreDefaultPileIds.genotypes) extends LToolBox {
-  val stores = MiniMockStore.stores
-  val tools = MiniMockTool.tools(genotypesId)
+case class MiniMockToolBox(genotypesId: String = LCoreDefaultStoreIds.genotypes) extends LToolBox {
+  val stores: Set[Store] = MiniMockStore.stores
+  val tools: Set[Tool] = MiniMockTool.tools(genotypesId)
 
-  override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)
-
-  override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
-
-  override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
-    mapping.tools.get(recipe) match {
-      case Some(tool) => tool match {
-        case _ => Miss(SnagMessage("Have not yet implemented tool " + tool))
-      }
-      case None => Miss(SnagMessage("No tool mapped to recipe " + recipe))
-    }
+  override def createJobs(tool: Tool, pipeline: LPipeline): Shot[Set[LJob]] = {
+    Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 
-  override def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable = {
-    LExecutable(mapping.tools.keySet.map(createJobs(_, pipeline, mapping)).collect({ case Hit(job) => job }).flatten)
+  override def createExecutable(pipeline: LPipeline): LExecutable = {
+    LExecutable(pipeline.tools.map(createJobs(_, pipeline)).collect { case Hit(job) => job }.flatten)
   }
 }

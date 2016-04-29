@@ -1,8 +1,8 @@
 package loamstream
 
 import loamstream.LEnv.{Key, LComboEnv}
-import loamstream.util.shot.Shot
-import loamstream.util.snag.Snag
+import loamstream.util.Shot
+import loamstream.util.Snag
 
 /**
   * LoamStream

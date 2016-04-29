@@ -11,7 +11,7 @@ import loamstream.model.execute.{ LExecutable, LExecuter }
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.Maps
-import loamstream.util.shot.{ Hit, Shot }
+import loamstream.util.{ Hit, Shot }
 
 /**
  * RugLoom - A prototype for a pipeline building toolkit

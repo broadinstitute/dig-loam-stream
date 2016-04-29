@@ -95,9 +95,11 @@ final class LValuesTest extends FunSuite {
   }
   
   test("Sugar for LSig construction: to on tupleN") {
-    assert((LTuple2(LVariantId, LSampleId) to LGenotype) === LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype))
+    assert(
+        (LTuple2(LVariantId, LSampleId) to LGenotype) === LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype))
     
-    assert((LTuple3(LVariantId, LSampleId, LInt) to LGenotype) === LSig.Map(LTuple3(LVariantId, LSampleId, LInt), LGenotype))
+    assert(
+        (LTuple3(LVariantId, LSampleId, LInt) to LGenotype) === LSig.Map(LTuple3(LVariantId, LSampleId, LInt), LGenotype))
   }
   
   test("Sugar for LSig construction: to, &") {

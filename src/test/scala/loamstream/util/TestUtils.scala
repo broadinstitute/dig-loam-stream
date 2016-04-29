@@ -1,7 +1,6 @@
 package loamstream.util
 
 import loamstream.model.jobs.LJob
-import loamstream.util.shot.{Hit, Shot}
 
 /**
   * LoamStream

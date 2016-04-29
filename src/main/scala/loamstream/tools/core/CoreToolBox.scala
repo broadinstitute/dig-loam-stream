@@ -1,27 +1,26 @@
 package loamstream.tools.core
 
 import java.nio.file.{Files, Path}
+
+import scala.concurrent.{ ExecutionContext, Future, blocking }
+
+import CoreToolBox._
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.LEnv
-import loamstream.map.LToolMapping
 import loamstream.model.LPipeline
+import loamstream.model.Tool
 import loamstream.model.execute.LExecutable
-import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
-import loamstream.model.jobs.tools.LTool
 import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
+import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.kinds.LSpecificKind
-import loamstream.model.piles.LPile
-import loamstream.model.recipes.LRecipe
-import loamstream.model.stores.LStore
-import loamstream.util.shot.{Hit, Miss, Shot}
-import loamstream.util.snag.SnagMessage
-import CoreToolBox._
-import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
-import loamstream.tools.klusta.{KlustaKwikLineCommand, KlustaKwikInputWriter}
 import loamstream.tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser}
 import loamstream.tools.VcfUtils
+import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
+import loamstream.tools.klusta.{KlustaKwikLineCommand, KlustaKwikInputWriter}
+import loamstream.util.{Hit, Miss, Shot}
+import loamstream.util.Functions
 import loamstream.util.LoamFileUtils
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import loamstream.util.SnagMessage
 
 /**
   * LoamStream
@@ -76,7 +75,7 @@ object CoreToolBox {
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
         HailTools.importVcf(vcfFileJob.file, vdsFile)
-        new SimpleSuccess("Imported VCF in VDS format.")
+        SimpleSuccess("Imported VCF in VDS format.")
       }
     }
   }
@@ -114,7 +113,6 @@ object CoreToolBox {
       }
     }
   }
-
 }
 
 case class CoreToolBox(env: LEnv) extends LToolBox {
@@ -123,23 +121,13 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
 
   lazy val genotypesId = env(LCoreEnv.Keys.genotypesId)
   lazy val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)
-  lazy val pcaWeightsId = env(LCoreEnv.Keys.pcaWeightsId)
-  lazy val checkPreexistingPcaWeightsFileTool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
+  
+  //TODO: Why does this make tests crash?
+  //lazy val pcaWeightsId = env(LCoreEnv.Keys.pcaWeightsId)  
+  //lazy val checkPreexistingPcaWeightsFileTool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
 
-  var vcfFiles: Map[String, Shot[Path]] = Map.empty
-
-  override def storesFor(pile: LPile): Set[LStore] = stores.filter(_.pile <:< pile.spec)
-
-  override def toolsFor(recipe: LRecipe): Set[LTool] = tools.filter(_.recipe <<< recipe.spec)
-
-  def predefinedVcfFileShot(id: String): Shot[Path] = {
-    vcfFiles.get(id) match {
-      case Some(pathShot) => pathShot
-      case None =>
-        val pathShot = env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
-        vcfFiles += (id -> pathShot)
-        pathShot
-    }
+  val predefinedVcfFileShot: String => Shot[Path] = Functions.memoize { id =>
+    env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
   }
 
   lazy val sampleFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.sampleFilePath).map(_.get)
@@ -151,55 +139,62 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   lazy val klustaKwikConfigShot: Shot[KlustaKwikKonfig] = env.shoot(LCoreEnv.Keys.klustaKwikKonfig)
 
   lazy val vcfFileJobShot: Shot[CheckPreexistingVcfFileJob] = {
-    checkPreexistingVcfFileTool.recipe.kind match {
+    checkPreexistingVcfFileTool.spec.kind match {
       case LSpecificKind(specifics, _) => specifics.value match {
         case (_, id: String) => predefinedVcfFileShot(id).map(CheckPreexistingVcfFileJob)
-        case _ => Miss(SnagMessage("Recipe is not of the right kind."))
+        case _ => Miss(SnagMessage("Tool is not of the right kind."))
       }
       case _ => Miss(SnagMessage("Can't get id for VCF file."))
     }
   }
 
-  lazy val extractSamplesJobShot: Shot[ExtractSampleIdsFromVcfFileJob] =
+  lazy val extractSamplesJobShot: Shot[ExtractSampleIdsFromVcfFileJob] = {
     (vcfFileJobShot and sampleFileShot) (ExtractSampleIdsFromVcfFileJob)
+  }
 
-  lazy val importVcfJobShot: Shot[ImportVcfFileJob] =
+  lazy val importVcfJobShot: Shot[ImportVcfFileJob] = {
     (vcfFileJobShot and sampleFileShot) (ImportVcfFileJob)
+  }
 
-  lazy val calculateSingletonsJobShot: Shot[CalculateSingletonsJob] =
+  lazy val calculateSingletonsJobShot: Shot[CalculateSingletonsJob] = {
     (importVcfJobShot and singletonFileShot) (CalculateSingletonsJob)
+  }
 
-  lazy val pcaWeightsFileJobShot: Shot[CheckPreexistingPcaWeightsFileJob] =
+  lazy val pcaWeightsFileJobShot: Shot[CheckPreexistingPcaWeightsFileJob] = {
     pcaWeightsFileShot.map(CheckPreexistingPcaWeightsFileJob)
+  }
 
-  lazy val calculatePcaProjectionsJobShot: Shot[CalculatePcaProjectionsJob] =
+  lazy val calculatePcaProjectionsJobShot: Shot[CalculatePcaProjectionsJob] = {
     (vcfFileJobShot and pcaWeightsFileJobShot and klustaKwikConfigShot) (CalculatePcaProjectionsJob)
+  }
 
-  lazy val calculateClustersJobShot: Shot[LCommandLineJob] =
-    (calculatePcaProjectionsJobShot and klustaKwikConfigShot) ({ (calculatePcaProjectionJob, klustaKwikKonfig) =>
+  lazy val calculateClustersJobShot: Shot[LCommandLineJob] = {
+    (calculatePcaProjectionsJobShot and klustaKwikConfigShot) { (calculatePcaProjectionJob, klustaKwikKonfig) =>
       val commandLine = KlustaKwikLineCommand.klustaKwik(klustaKwikKonfig)
       LCommandLineJob(commandLine, klustaKwikKonfig.workDir, Set(calculatePcaProjectionJob))
-    })
+    }
+  }
 
-  def toolToJobShot(tool: LTool): Shot[LJob] = tool match {
+  def toolToJobShot(tool: Tool): Shot[LJob] = tool match {
     case this.checkPreexistingVcfFileTool => vcfFileJobShot
     case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJobShot
     case CoreTool.importVcf => importVcfJobShot
     case CoreTool.calculateSingletons => calculateSingletonsJobShot
-    case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJobShot
+    //TODO: Why does this make tests crash?
+    //case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJobShot
     case CoreTool.projectPcaNative => calculatePcaProjectionsJobShot
     case CoreTool.klustaKwikClustering => calculateClustersJobShot
+    case CoreTool.projectPca => calculatePcaProjectionsJobShot
+    case CoreTool.clusteringSamplesByFeatures => calculateClustersJobShot
     case _ => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 
-  override def createJobs(recipe: LRecipe, pipeline: LPipeline, mapping: LToolMapping): Shot[Set[LJob]] = {
-    mapping.tools.get(recipe) match {
-      case Some(tool) => toolToJobShot(tool).map(Set(_))
-      case None => Miss(SnagMessage("No tool mapped to recipe $recipe"))
-    }
+  override def createJobs(tool: Tool, pipeline: LPipeline): Shot[Set[LJob]] = {
+    toolToJobShot(tool).map(Set(_))
   }
 
-  override def createExecutable(pipeline: LPipeline, mapping: LToolMapping): LExecutable = {
-    LExecutable(mapping.tools.keySet.map(createJobs(_, pipeline, mapping)).collect({ case Hit(job) => job }).flatten)
+  override def createExecutable(pipeline: LPipeline): LExecutable = {
+    //TODO: Mapping over a property of a pipeline with a function that takes the pipeline feels weird.
+    LExecutable(pipeline.tools.map(createJobs(_, pipeline)).collect { case Hit(job) => job }.flatten)
   }
 }

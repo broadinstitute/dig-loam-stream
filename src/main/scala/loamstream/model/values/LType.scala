@@ -1,8 +1,8 @@
 package loamstream.model.values
 
 import htsjdk.variant.variantcontext.Genotype
-import loamstream.model.signatures.Signatures.{ClusterId, SampleId, SingletonCount, VariantId}
-import loamstream.model.values.LType.LTuple.LTuple2
+import loamstream.model.Types.{ClusterId, SampleId, SingletonCount, VariantId}
+import loamstream.model.LSig
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -34,7 +34,7 @@ object LType {
   case object LSingletonCount extends LType[SingletonCount]
 
   case object LClusterId extends LType[ClusterId]
-
+  
   sealed trait LIterable[E, I <: Iterable[E]] extends LType[I] {
     def elementType: LType[E]
   }
@@ -47,6 +47,10 @@ object LType {
 
   sealed trait LTuple[T <: Product] extends LType[T] {
     def asSeq: Seq[LType[_]]
+    
+    override def to[V](v: LType[V]): LSig.Map = LSig.Map(this, v)
+    
+    override def toString: String = asSeq.mkString(" & ")
   }
 
   object LTuple {
@@ -235,14 +239,20 @@ object LType {
 
   }
 
-
   case class LMap[K, V](keyType: LType[K], valueType: LType[V]) extends LIterable[(K, V), Map[K, V]] {
-    override val elementType: LType[(K, V)] = LTuple2[K, V](keyType, valueType)
+    override val elementType: LType[(K, V)] = keyType & valueType
   }
-
 }
 
 sealed trait LType[T] {
   def apply(value: T): LValue[T] = LValue(value, this)
+
+  def of(value: T): LValue[T] = apply(value)
+  
+  import LType.LTuple.{LTuple1, LTuple2}
+  
+  def &[U](other: LType[U]): LTuple2[T, U] = LTuple2(this, other)
+  
+  def to[U](other: LType[U]): LSig.Map = LTuple1(this) to other
 }
 

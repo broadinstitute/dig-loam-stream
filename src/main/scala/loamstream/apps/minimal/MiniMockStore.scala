@@ -1,11 +1,11 @@
 package loamstream.apps.minimal
 
-import loamstream.model.id.LId
-import loamstream.model.kinds.instances.StoreKinds
-import loamstream.model.piles.{LPileSpec, LSig}
-import loamstream.model.stores.LStore
-import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
-import loamstream.model.values.LType.{LGenotype, LSampleId, LString, LVariantId}
+import loamstream.Sigs
+import loamstream.model.Store
+import loamstream.model.StoreSpec
+import loamstream.model.kinds.StoreKinds
+import loamstream.model.values.LType.LSampleId
+import loamstream.tools.core.CoreStore
 
 /**
   * LoamStream
@@ -13,16 +13,13 @@ import loamstream.model.values.LType.{LGenotype, LSampleId, LString, LVariantId}
   */
 object MiniMockStore {
 
-  val genotypesCassandraTable =
-    MiniMockStore("Cassandra genotype calls table", LPileSpec(LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype),
-      StoreKinds.genotypesCassandraTable))
-  val sampleIdsCassandraTable =
-    MiniMockStore("Cassandra sample ids table.", LPileSpec(LSig.Set(LTuple1(LSampleId)),
-      StoreKinds.sampleIdsCassandraTable))
+  val genotypesCassandraTable: Store = CoreStore(
+      "Cassandra genotype calls table", 
+      StoreSpec(Sigs.variantAndSampleToGenotype, StoreKinds.genotypesCassandraTable))
+      
+  val sampleIdsCassandraTable: Store = CoreStore(
+      "Cassandra sample ids table.", 
+      StoreSpec(Sigs.setOf(LSampleId), StoreKinds.sampleIdsCassandraTable))
 
-  val stores = Set[LStore](genotypesCassandraTable, sampleIdsCassandraTable)
-
-  def apply(name: String, pile: LPileSpec): MiniMockStore = MiniMockStore(LId.LNamedId(name), pile)
+  val stores = Set[Store](genotypesCassandraTable, sampleIdsCassandraTable)
 }
-
-case class MiniMockStore(id: LId, pile: LPileSpec) extends LStore

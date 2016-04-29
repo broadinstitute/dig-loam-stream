@@ -1,4 +1,4 @@
-package loamstream.model.id
+package loamstream.model
 
 import scala.util.Random
 

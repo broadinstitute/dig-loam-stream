@@ -1,9 +1,8 @@
 package loamstream.model
 
 import loamstream.model.kinds.LKind
-import loamstream.model.piles.{LPile, LSig}
-import loamstream.model.recipes.LRecipe
 import loamstream.model.values.LType.LTuple.LTuple1
+import loamstream.tools.core.CoreStore
 
 /**
   * LoamStream
@@ -11,22 +10,30 @@ import loamstream.model.values.LType.LTuple.LTuple1
   */
 object LPipelineOps {
 
-  def extractKeyPile(inputPile: LPile, index: Int, kind: LKind): LPile =
-    LPile(LSig.Set(LTuple1(inputPile.spec.sig.keyTypes.asSeq(index))), kind)
-
-  def extractKeyRecipe(inputPile: LPile, index: Int, outputPile: LPile): LRecipe =
-    LRecipe.keyExtraction(inputPile, outputPile, index)
-
-  def extractKey(inputPile: LPile, index: Int, outputPile: LPile, kind: LKind): (LPile, LRecipe) = {
-    val outputPile = extractKeyPile(inputPile, index, kind)
-    val recipe = extractKeyRecipe(inputPile, index, outputPile)
-    (outputPile, recipe)
+  def extractKeyStore(inputStore: Store, index: Int, kind: LKind): Store = {
+    //TODO: NB: Fragile, what if no type at index?
+    val keyType = inputStore.spec.sig.keyTypes.asSeq(index)
+    
+    CoreStore("Extract Keys", LSig.Set.of(keyType), kind)
   }
 
-  def importVcfRecipe(inputPile: LPile, index: Int, outputPile: LPile): LRecipe =
-    LRecipe.vcfImport(inputPile, outputPile, index)
+  def extractKeyTool(inputStore: Store, index: Int, outputStore: Store): Tool = {
+    Tool.keyExtraction(inputStore, outputStore, index)
+  }
 
-  def calculateSingletonsRecipe(inputPile: LPile, index: Int, outputPile: LPile): LRecipe =
-    LRecipe.singletonCalculation(inputPile, outputPile, index)
+  def extractKey(inputStore: Store, index: Int, outputStore: Store, kind: LKind): (Store, Tool) = {
+    val outputStore = extractKeyStore(inputStore, index, kind)
+    
+    val tool = extractKeyTool(inputStore, index, outputStore)
+    
+    (outputStore, tool)
+  }
 
+  def importVcfTool(inputStore: Store, index: Int, outputStore: Store): Tool = {
+    Tool.vcfImport(inputStore, outputStore, index)
+  }
+
+  def calculateSingletonsTool(inputStore: Store, index: Int, outputStore: Store): Tool = {
+    Tool.singletonCalculation(inputStore, outputStore, index)
+  }
 }

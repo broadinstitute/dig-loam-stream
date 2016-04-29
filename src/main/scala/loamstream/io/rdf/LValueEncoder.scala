@@ -16,12 +16,12 @@ import scala.collection.mutable
   * LoamStream
   * Created by oliverr on 4/22/2016.
   */
-object LValueEncoder extends Encoder[LValue] {
+object LValueEncoder extends Encoder[LValue[_]] {
 
   // scalastyle:off cyclomatic.complexity
-  override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], lValue: LValue): Value = {
+  override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], lValue: LValue[_]): Value = {
     lValue.tpe match {
-      case LBoolean => io.maker.createLiteral(lValue.as[Boolean])
+      case LBoolean => io.maker.createLiteral(lValue.as(LBoolean).value)
       case LDouble => io.maker.createLiteral(lValue.as[Double])
       case LFloat => io.maker.createLiteral(lValue.as[Float])
       case LLong => io.maker.createLiteral(lValue.as[Long])

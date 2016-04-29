@@ -4,9 +4,18 @@ package loamstream.model.values
  * LoamStream
  * Created by oliverr on 4/19/2016.
  */
-case class LValue[T](value: T, tpe: LType[T])
+case class LValue[T](value: T, tpe: LType[T]) {
+  def as[T2](tpe2: LType[T2]) : LValue[T2] = LValue[T2](value.asInstanceOf[T2], tpe2)
+}
 
 object LValue {
+
+  trait LValueAny {
+    def value: Any
+    def tpe: LType
+    def as[T2](tpe2: LType[T2]) : LValue[T2] = LValue[T2](value.asInstanceOf[T2], tpe2)
+  }
+
   object Implicits {
     import HasLType._
 

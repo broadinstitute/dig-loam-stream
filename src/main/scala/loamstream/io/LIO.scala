@@ -3,7 +3,7 @@ package loamstream.io
 import loamstream.io.LIO.Decoder.MappedDecoder
 import loamstream.io.LIO.Encoder.MappedEncoder
 import loamstream.io.LIO.{Decoder, Encoder}
-import loamstream.util.shot.Shot
+import loamstream.util.Shot
 
 /**
   * LoamStream

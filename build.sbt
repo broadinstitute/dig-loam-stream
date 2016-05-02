@@ -8,7 +8,7 @@ lazy val Versions = new {
   val Scala = "2.11.8"
   val ScalaTest = "2.2.6"
   val TypesafeConfig = "1.3.0"
-  val Sesame = "4.1.1"
+  val Sesame = "4.1.2"
 }
 
 lazy val mainDeps = Seq(

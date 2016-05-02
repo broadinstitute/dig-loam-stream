@@ -1,8 +1,8 @@
 package loamstream.io.rdf
 
+import loamstream.model.values.LType
 import loamstream.model.values.LType.{LBoolean, LByte, LChar, LDouble, LFloat, LGenotype, LInt, LLong, LSampleId,
 LShort, LString, LVariantId}
-import loamstream.model.values.LTypeBase
 import org.openrdf.model.IRI
 import org.openrdf.model.vocabulary.XMLSchema
 
@@ -12,7 +12,7 @@ import org.openrdf.model.vocabulary.XMLSchema
   */
 object LTypeRdfDatatypeMapper {
 
-  val typeToIri = Map[LTypeBase, IRI](LBoolean -> XMLSchema.BOOLEAN, LDouble -> XMLSchema.DOUBLE,
+  val typeToIri = Map[LType, IRI](LBoolean -> XMLSchema.BOOLEAN, LDouble -> XMLSchema.DOUBLE,
     LFloat -> XMLSchema.FLOAT, LLong -> XMLSchema.LONG, LInt -> XMLSchema.INT, LShort -> XMLSchema.SHORT,
     LChar -> Loam.char, LByte -> XMLSchema.BYTE, LString -> XMLSchema.STRING, LVariantId -> Loam.variantId,
     LSampleId -> Loam.sampleId, LGenotype -> Loam.genotype)

@@ -2,8 +2,8 @@ package loamstream.io.rdf
 
 import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Encoder
+import loamstream.model.values.LType
 import loamstream.model.values.LType._
-import loamstream.model.values.LTypeBase
 import org.openrdf.model.vocabulary.RDF
 import org.openrdf.model.{Resource, Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection
@@ -12,10 +12,10 @@ import org.openrdf.repository.RepositoryConnection
   * LoamStream
   * Created by oliverr on 4/19/2016.
   */
-object LTypeEncoder extends Encoder[LTypeBase] {
+object LTypeEncoder extends Encoder[LType] {
 
   // scalastyle:off cyclomatic.complexity
-  override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tpe: LTypeBase): Resource = {
+  override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tpe: LType): Resource = {
     tpe match {
       case LBoolean | LDouble | LFloat | LLong | LInt | LShort | LChar | LByte | LString | LVariantId | LSampleId |
            LGenotype =>
@@ -39,7 +39,7 @@ object LTypeEncoder extends Encoder[LTypeBase] {
       case tuple: LTuple =>
         val tupleNode = io.maker.createBNode()
         io.conn.add(tupleNode, RDF.TYPE, Loam.tuple(tuple.arity))
-        tuple.types.zipWithIndex.foreach({ case (element, i) =>
+        tuple.asSeq.zipWithIndex.foreach({ case (element, i) =>
           io.conn.add(tupleNode, RdfContainers.membershipProperty(i)(io.conn), encode(io, element))
         })
         tupleNode

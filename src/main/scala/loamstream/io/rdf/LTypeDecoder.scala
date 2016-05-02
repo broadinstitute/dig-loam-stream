@@ -2,8 +2,9 @@ package loamstream.io.rdf
 
 import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Decoder
+import loamstream.model.values.LType
 import loamstream.model.values.LType.{LMap, LSeq, LSet, LTuple}
-import loamstream.model.values.LTypeBase
+import loamstream.util.shot.Shots
 import loamstream.util.{Hit, Miss, Shot}
 import org.openrdf.model.vocabulary.{RDF, XMLSchema}
 import org.openrdf.model.{IRI, Literal, Resource, Value, ValueFactory}
@@ -15,8 +16,8 @@ import org.openrdf.repository.RepositoryConnection
   */
 // scalastyle:off cyclomatic.complexity
 
-object LTypeDecoder extends Decoder[LTypeBase] {
-  override def decode(io: LIO[RepositoryConnection, Value, ValueFactory], typeNode: Value): Shot[LTypeBase] = {
+object LTypeDecoder extends Decoder[LType] {
+  override def decode(io: LIO[RepositoryConnection, Value, ValueFactory], typeNode: Value): Shot[LType] = {
     typeNode match {
       case typeResource: Resource =>
         typeResource match {

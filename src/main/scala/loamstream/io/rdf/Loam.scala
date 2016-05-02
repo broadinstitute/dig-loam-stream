@@ -1,6 +1,6 @@
 package loamstream.io.rdf
 
-import loamstream.util.shot.{Miss, Shot}
+import loamstream.util.{Miss, Shot}
 import org.openrdf.model.impl.SimpleValueFactory
 import org.openrdf.model.{IRI, Value}
 

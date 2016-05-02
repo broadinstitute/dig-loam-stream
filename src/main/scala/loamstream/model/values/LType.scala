@@ -65,6 +65,8 @@ object LType {
   }
 
   sealed trait LTuple extends LType {
+    def arity: Int
+
     def asSeq: Seq[LType]
 
     override def isEncodeable: Boolean = asSeq.forall(_.isEncodeable)
@@ -91,30 +93,35 @@ object LType {
     }
 
     case class LTuple1(type1: LType) extends LTuple {
+      override val arity: Int = 1
       override def asSeq: Seq[LType] = Seq(type1)
 
       override def asEncodeable: Shot[LTuple1] = LTuple.isEncodeable(this)
     }
 
     case class LTuple2(type1: LType, type2: LType) extends LTuple {
+      override val arity: Int = 2
       override def asSeq: Seq[LType] = Seq(type1, type2)
 
       override def asEncodeable: Shot[LTuple2] = LTuple.isEncodeable(this)
     }
 
     case class LTuple3(type1: LType, type2: LType, type3: LType) extends LTuple {
+      override val arity: Int = 3
       override def asSeq: Seq[LType] = Seq(type1, type2, type3)
 
       override def asEncodeable: Shot[LTuple3] = LTuple.isEncodeable(this)
     }
 
     case class LTuple4(type1: LType, type2: LType, type3: LType, type4: LType) extends LTuple {
+      override val arity: Int = 4
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4)
 
       override def asEncodeable: Shot[LTuple4] = LTuple.isEncodeable(this)
     }
 
     case class LTuple5(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType) extends LTuple {
+      override val arity: Int = 5
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5)
 
       override def asEncodeable: Shot[LTuple5] = LTuple.isEncodeable(this)
@@ -122,6 +129,7 @@ object LType {
 
     case class LTuple6(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType)
       extends LTuple {
+      override val arity: Int = 6
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6)
 
       override def asEncodeable: Shot[LTuple6] = LTuple.isEncodeable(this)
@@ -130,6 +138,7 @@ object LType {
     case class LTuple7(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
                        type7: LType)
       extends LTuple {
+      override val arity: Int = 7
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6, type7)
 
       override def asEncodeable: Shot[LTuple7] = LTuple.isEncodeable(this)
@@ -138,6 +147,7 @@ object LType {
     case class LTuple8(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
                        type7: LType, type8: LType)
       extends LTuple {
+      override val arity: Int = 8
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6, type7, type8)
 
       override def asEncodeable: Shot[LTuple8] = LTuple.isEncodeable(this)
@@ -146,6 +156,7 @@ object LType {
     case class LTuple9(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
                        type7: LType, type8: LType, type9: LType)
       extends LTuple {
+      override val arity: Int = 9
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9)
 
       override def asEncodeable: Shot[LTuple9] = LTuple.isEncodeable(this)
@@ -154,6 +165,7 @@ object LType {
     case class LTuple10(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
                         type7: LType, type8: LType, type9: LType, type10: LType)
       extends LTuple {
+      override val arity: Int = 10
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10)
 
       override def asEncodeable: Shot[LTuple10] = LTuple.isEncodeable(this)
@@ -162,6 +174,7 @@ object LType {
     case class LTuple11(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
                         type7: LType, type8: LType, type9: LType, type10: LType, type11: LType)
       extends LTuple {
+      override val arity: Int = 11
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11)
 
@@ -171,6 +184,7 @@ object LType {
     case class LTuple12(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
                         type7: LType, type8: LType, type9: LType, type10: LType, type11: LType, type12: LType)
       extends LTuple {
+      override val arity: Int = 12
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12)
 
@@ -181,6 +195,7 @@ object LType {
                         type7: LType, type8: LType, type9: LType, type10: LType, type11: LType, type12: LType,
                         type13: LType)
       extends LTuple {
+      override val arity: Int = 13
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13)
 
@@ -191,6 +206,7 @@ object LType {
                         type7: LType, type8: LType, type9: LType, type10: LType, type11: LType, type12: LType,
                         type13: LType, type14: LType)
       extends LTuple {
+      override val arity: Int = 14
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14)
 
@@ -201,6 +217,7 @@ object LType {
                         type7: LType, type8: LType, type9: LType, type10: LType, type11: LType, type12: LType,
                         type13: LType, type14: LType, type15: LType)
       extends LTuple {
+      override val arity: Int = 15
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15)
@@ -212,6 +229,7 @@ object LType {
                         type7: LType, type8: LType, type9: LType, type10: LType, type11: LType, type12: LType,
                         type13: LType, type14: LType, type15: LType, type16: LType)
       extends LTuple {
+      override val arity: Int = 16
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16)
@@ -223,6 +241,7 @@ object LType {
                         type7: LType, type8: LType, type9: LType, type10: LType, type11: LType, type12: LType,
                         type13: LType, type14: LType, type15: LType, type16: LType, type17: LType)
       extends LTuple {
+      override val arity: Int = 17
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17)
@@ -234,6 +253,7 @@ object LType {
                         type7: LType, type8: LType, type9: LType, type10: LType, type11: LType, type12: LType,
                         type13: LType, type14: LType, type15: LType, type16: LType, type17: LType, type18: LType)
       extends LTuple {
+      override val arity: Int = 18
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18)
@@ -246,6 +266,7 @@ object LType {
                         type13: LType, type14: LType, type15: LType, type16: LType, type17: LType, type18: LType,
                         type19: LType)
       extends LTuple {
+      override val arity: Int = 19
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19)
@@ -258,6 +279,7 @@ object LType {
                         type13: LType, type14: LType, type15: LType, type16: LType, type17: LType, type18: LType,
                         type19: LType, type20: LType)
       extends LTuple {
+      override val arity: Int = 20
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20)
@@ -270,6 +292,7 @@ object LType {
                         type13: LType, type14: LType, type15: LType, type16: LType, type17: LType, type18: LType,
                         type19: LType, type20: LType, type21: LType)
       extends LTuple {
+      override val arity: Int = 21
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20, type21)
@@ -282,6 +305,7 @@ object LType {
                         type13: LType, type14: LType, type15: LType, type16: LType, type17: LType, type18: LType,
                         type19: LType, type20: LType, type21: LType, type22: LType)
       extends LTuple {
+      override val arity: Int = 22
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20, type21, type22)
@@ -293,11 +317,13 @@ object LType {
 
   case class LMap(keyType: LType, valueType: LType) extends LIterable {
     override val elementType: LType = keyType & valueType
+
     override def isEncodeable: Boolean = elementType.isEncodeable
+
     override def asEncodeable: Shot[LSeq] =
       if (!keyType.isEncodeable) {
         Miss(s"Map is not encodeable, because key type '$keyType' is not encodeable.")
-      } else if(!valueType.isEncodeable) {
+      } else if (!valueType.isEncodeable) {
         Miss(s"Map is not encodeable, because value type '$valueType' is not encodeable.")
       } else {
         Hit(this)
@@ -313,9 +339,9 @@ sealed trait LTypeEncodeable extends LType {
 }
 
 sealed trait LTypeAtomic[T] extends LType {
-  def apply(value: T): LValue[T] = LValue(value, this)
+  def apply(value: T): LValue = LValue(value, this)
 
-  def of(value: T): LValue[T] = apply(value)
+  def of(value: T): LValue = apply(value)
 }
 
 sealed trait LType {

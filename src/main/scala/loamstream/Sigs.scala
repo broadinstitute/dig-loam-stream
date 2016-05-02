@@ -17,5 +17,5 @@ object Sigs {
   
   val sampleIds: LSig.Set = LSig.Set.of(LSampleId)
   
-  def setOf[K](k: LType[K]): LSig.Set = LSig.Set.of(k)
+  def setOf(k: LType): LSig.Set = LSig.Set.of(k)
 }

@@ -1,5 +1,7 @@
 package loamstream.util.shot
 
+import loamstream.util.{Hit, Miss, Shot}
+
 /**
   * LoamStream
   * Created by oliverr on 4/14/2016.

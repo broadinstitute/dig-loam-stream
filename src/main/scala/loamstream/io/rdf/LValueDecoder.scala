@@ -5,7 +5,8 @@ import loamstream.io.rdf.RedFern.Decoder
 import loamstream.model.values.LType._
 import loamstream.model.values.LValue
 import loamstream.util.TupleUtil
-import loamstream.util.shot.{Hit, Miss, Shot, Shots}
+import loamstream.util.{Hit, Miss, Shot}
+import loamstream.util.shot.Shots
 import org.openrdf.model.vocabulary.{RDF, XMLSchema}
 import org.openrdf.model.{Literal, Resource, Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection

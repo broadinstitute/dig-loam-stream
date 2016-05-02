@@ -8,12 +8,12 @@ import loamstream.model.values.LValue
   * Created by oliverr on 2/11/2016.
   */
 object LSpecificKind {
-  def apply(specifics: String, supers: LKind*): LSpecificKind[String] = LSpecificKind(LString(specifics), supers.toSet)
+  def apply(specifics: String, supers: LKind*): LSpecificKind = LSpecificKind(LString(specifics), supers.toSet)
 
-  def apply[T](specifics: LValue[T], supers: LKind*): LSpecificKind[T] = LSpecificKind[T](specifics, supers.toSet)
+  def apply[T](specifics: LValue, supers: LKind*): LSpecificKind = LSpecificKind(specifics, supers.toSet)
 }
 
-case class LSpecificKind[T](specifics: LValue[T], supers: Set[LKind]) extends LKind {
+case class LSpecificKind(specifics: LValue, supers: Set[LKind]) extends LKind {
   override def <:<(oKind: LKind): Boolean = oKind match {
     case _ if oKind == this => true
     case LAnyKind => true

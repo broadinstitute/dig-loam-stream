@@ -250,18 +250,24 @@ object LType {
 
 }
 
-sealed trait LTypeAny {
-  def asEncodeable: Shot[LTypeEncodeable]
+sealed trait LTypeBase {
+  def asEncodeable: Shot[LTypeEncodeableBase]
 }
 
-sealed trait LTypeEncodeable extends LTypeAny {
-  override def asEncodeable: Hit[LTypeEncodeable] = Hit(this)
+sealed trait LTypeEncodeableBase extends LTypeBase {
+  override def asEncodeable: Hit[LTypeEncodeableBase] = Hit(this)
 }
 
-sealed trait LType[T] extends LTypeAny {
+sealed trait LTypeEncodeable[T] extends LType[T] {
+  override def asEncodeable: Hit[LTypeEncodeable[T]] = Hit(this)
+}
+
+sealed trait LType[T] extends LTypeBase {
   def apply(value: T): LValue[T] = LValue(value, this)
 
   def of(value: T): LValue[T] = apply(value)
+
+  override def asEncodeable: Shot[LTypeEncodeable[T]]
 
   import LType.LTuple.{LTuple1, LTuple2}
 

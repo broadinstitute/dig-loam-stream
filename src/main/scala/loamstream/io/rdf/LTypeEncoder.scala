@@ -3,7 +3,7 @@ package loamstream.io.rdf
 import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Encoder
 import loamstream.model.values.LType._
-import loamstream.model.values.LTypeAny
+import loamstream.model.values.LTypeBase
 import org.openrdf.model.vocabulary.RDF
 import org.openrdf.model.{Resource, Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection
@@ -12,10 +12,10 @@ import org.openrdf.repository.RepositoryConnection
   * LoamStream
   * Created by oliverr on 4/19/2016.
   */
-object LTypeEncoder extends Encoder[LTypeAny] {
+object LTypeEncoder extends Encoder[LTypeBase] {
 
   // scalastyle:off cyclomatic.complexity
-  override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tpe: LTypeAny): Resource = {
+  override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], tpe: LTypeBase): Resource = {
     tpe match {
       case LBoolean | LDouble | LFloat | LLong | LInt | LShort | LChar | LByte | LString | LVariantId | LSampleId |
            LGenotype =>

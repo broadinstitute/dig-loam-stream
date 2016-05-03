@@ -3,6 +3,7 @@ package loamstream.model.values
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.LSig
 import loamstream.model.Types.{ClusterId, SampleId, SingletonCount, VariantId}
+import loamstream.model.values.LType.LTuple.LTuple2
 import loamstream.util.{Hit, Miss, Shot}
 
 /**
@@ -10,6 +11,7 @@ import loamstream.util.{Hit, Miss, Shot}
   * Created by oruebenacker on 2/18/16.
   */
 
+// scalastyle:off
 object LType {
 
   case object LBoolean extends LTypeAtomic[Boolean] with LTypeEncodeable
@@ -418,19 +420,47 @@ object LType {
 
   }
 
-  case class LMap(keyType: LType, valueType: LType) extends LIterable {
-    override val elementType: LType = keyType & valueType
+  object LMap {
+    def apply(keyType: LType, valueType: LType): LMap = LMapAny(keyType, valueType)
 
-    override def isEncodeable: Boolean = elementType.isEncodeable
+    def apply(keyType: LTypeEncodeable, valueType: LTypeEncodeable): LMapEncodeable =
+      LMapEncodeable(keyType, valueType)
 
-    override def asEncodeable: Shot[LMap with LTypeEncodeable] =
-      if (!keyType.isEncodeable) {
-        Miss(s"Map is not encodeable, because key type '$keyType' is not encodeable.")
-      } else if (!valueType.isEncodeable) {
+    def unapply(map: LMap): Option[(LType, LType)] = Some((map.keyType, map.valueType))
+  }
+
+  sealed trait LMap extends LIterable {
+    def keyType: LType
+
+    def valueType: LType
+
+    override def elementType: LTuple2 = LTuple2(keyType, valueType)
+
+    override def asEncodeable: Shot[LMapEncodeable] = Miss("This method is supposed to be overridden.")
+  }
+
+  case class LMapAny(keyType: LType, valueType: LType) extends LMap {
+    override def isEncodeable: Boolean = keyType.isEncodeable && valueType.isEncodeable
+
+    override def asEncodeable: Shot[LMapEncodeable] = (keyType, valueType) match {
+      case (keyTypeEncodeable: LTypeEncodeable, valueTypeEncodeable: LTypeEncodeable) =>
+        Hit(LMapEncodeable(keyTypeEncodeable, valueTypeEncodeable))
+      case (keyTypeEncodeable: LTypeEncodeable, _) =>
         Miss(s"Map is not encodeable, because value type '$valueType' is not encodeable.")
-      } else {
-        Hit(this.asInstanceOf[LMap with LTypeEncodeable])
-      }
+      case (_, valueTypeEncodeable: LTypeEncodeable) =>
+        Miss(s"Map is not encodeable, because key type '$keyType' is not encodeable.")
+      case (_, _) =>
+        Miss(s"Map is not encodeable, because neither key type '$keyType' nor " +
+          s"value type '$valueType' is encodeable.")
+    }
+  }
+
+  case class LMapEncodeable(keyType: LTypeEncodeable, valueType: LTypeEncodeable)
+    extends LMap with LIterableEncodeable {
+    override def elementType: LTuple2 with LTypeEncodeable =
+      LTuple2(keyType, valueType).asInstanceOf[LTuple2 with LTypeEncodeable]
+
+    override def asEncodeable: Hit[LMapEncodeable] = Hit(this)
   }
 
 }
@@ -461,3 +491,4 @@ sealed trait LType {
   def to(other: LType): LSig.Map = LTuple1(this) to other
 }
 
+//scalastyle:on

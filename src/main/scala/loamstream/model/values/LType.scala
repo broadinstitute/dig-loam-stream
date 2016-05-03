@@ -79,7 +79,49 @@ object LType {
 
   object LTuple {
 
-    def isEncodeable[Tup <: LTuple](tuple: Tup): Shot[Tup] = if (tuple.isEncodeable) {
+    // scalastyle:off cyclomatic.complexity
+    def seqToTupleShot(seq: Seq[LType]): Shot[LTuple] = seq match {
+      case Seq(e1) => Hit(LTuple1(e1))
+      case Seq(e1, e2) => Hit(LTuple2(e1, e2))
+      case Seq(e1, e2, e3) => Hit(LTuple3(e1, e2, e3))
+      case Seq(e1, e2, e3, e4) => Hit(LTuple4(e1, e2, e3, e4))
+      case Seq(e1, e2, e3, e4, e5) => Hit(LTuple5(e1, e2, e3, e4, e5))
+      case Seq(e1, e2, e3, e4, e5, e6) => Hit(LTuple6(e1, e2, e3, e4, e5, e6))
+      case Seq(e1, e2, e3, e4, e5, e6, e7) => Hit(LTuple7(e1, e2, e3, e4, e5, e6, e7))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8) => Hit(LTuple8(e1, e2, e3, e4, e5, e6, e7, e8))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9) => Hit(LTuple9(e1, e2, e3, e4, e5, e6, e7, e8, e9))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10) => Hit(LTuple10(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11) =>
+        Hit(LTuple11(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12) =>
+        Hit(LTuple12(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13) =>
+        Hit(LTuple13(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14) =>
+        Hit(LTuple14(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15) =>
+        Hit(LTuple15(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16) =>
+        Hit(LTuple16(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17) =>
+        Hit(LTuple17(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18) =>
+        Hit(LTuple18(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19) =>
+        Hit(LTuple19(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19, e20) =>
+        Hit(LTuple20(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19, e20))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19, e20, e21) =>
+        Hit(LTuple21(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19, e20, e21))
+      case Seq(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19, e20, e21, e22) =>
+        Hit(LTuple22(e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15, e16, e17, e18, e19, e20, e21,
+          e22))
+      case _ if(seq.isEmpty) => Miss("Cannot convert empty seq to tuple.")
+      case _ => Miss(s"Cannot convert this seq of size ${seq.size} to tuple.")
+    }
+    // scalastyle:on cyclomatic.complexity
+
+    def asEncodeable[Tup <: LTuple](tuple: Tup): Shot[Tup] = if (tuple.isEncodeable) {
       Hit(tuple)
     } else {
       val className = tuple.getClass.getSimpleName
@@ -96,35 +138,35 @@ object LType {
       override val arity: Int = 1
       override def asSeq: Seq[LType] = Seq(type1)
 
-      override def asEncodeable: Shot[LTuple1] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple1] = LTuple.asEncodeable(this)
     }
 
     case class LTuple2(type1: LType, type2: LType) extends LTuple {
       override val arity: Int = 2
       override def asSeq: Seq[LType] = Seq(type1, type2)
 
-      override def asEncodeable: Shot[LTuple2] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple2] = LTuple.asEncodeable(this)
     }
 
     case class LTuple3(type1: LType, type2: LType, type3: LType) extends LTuple {
       override val arity: Int = 3
       override def asSeq: Seq[LType] = Seq(type1, type2, type3)
 
-      override def asEncodeable: Shot[LTuple3] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple3] = LTuple.asEncodeable(this)
     }
 
     case class LTuple4(type1: LType, type2: LType, type3: LType, type4: LType) extends LTuple {
       override val arity: Int = 4
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4)
 
-      override def asEncodeable: Shot[LTuple4] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple4] = LTuple.asEncodeable(this)
     }
 
     case class LTuple5(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType) extends LTuple {
       override val arity: Int = 5
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5)
 
-      override def asEncodeable: Shot[LTuple5] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple5] = LTuple.asEncodeable(this)
     }
 
     case class LTuple6(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType)
@@ -132,7 +174,7 @@ object LType {
       override val arity: Int = 6
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6)
 
-      override def asEncodeable: Shot[LTuple6] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple6] = LTuple.asEncodeable(this)
     }
 
     case class LTuple7(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -141,7 +183,7 @@ object LType {
       override val arity: Int = 7
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6, type7)
 
-      override def asEncodeable: Shot[LTuple7] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple7] = LTuple.asEncodeable(this)
     }
 
     case class LTuple8(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -150,7 +192,7 @@ object LType {
       override val arity: Int = 8
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6, type7, type8)
 
-      override def asEncodeable: Shot[LTuple8] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple8] = LTuple.asEncodeable(this)
     }
 
     case class LTuple9(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -159,7 +201,7 @@ object LType {
       override val arity: Int = 9
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9)
 
-      override def asEncodeable: Shot[LTuple9] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple9] = LTuple.asEncodeable(this)
     }
 
     case class LTuple10(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -168,7 +210,7 @@ object LType {
       override val arity: Int = 10
       override def asSeq: Seq[LType] = Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10)
 
-      override def asEncodeable: Shot[LTuple10] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple10] = LTuple.asEncodeable(this)
     }
 
     case class LTuple11(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -178,7 +220,7 @@ object LType {
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11)
 
-      override def asEncodeable: Shot[LTuple11] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple11] = LTuple.asEncodeable(this)
     }
 
     case class LTuple12(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -188,7 +230,7 @@ object LType {
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12)
 
-      override def asEncodeable: Shot[LTuple12] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple12] = LTuple.asEncodeable(this)
     }
 
     case class LTuple13(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -199,7 +241,7 @@ object LType {
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13)
 
-      override def asEncodeable: Shot[LTuple13] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple13] = LTuple.asEncodeable(this)
     }
 
     case class LTuple14(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -210,7 +252,7 @@ object LType {
       override def asSeq: Seq[LType] =
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14)
 
-      override def asEncodeable: Shot[LTuple14] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple14] = LTuple.asEncodeable(this)
     }
 
     case class LTuple15(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -222,7 +264,7 @@ object LType {
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15)
 
-      override def asEncodeable: Shot[LTuple15] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple15] = LTuple.asEncodeable(this)
     }
 
     case class LTuple16(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -234,7 +276,7 @@ object LType {
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16)
 
-      override def asEncodeable: Shot[LTuple16] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple16] = LTuple.asEncodeable(this)
     }
 
     case class LTuple17(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -246,7 +288,7 @@ object LType {
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17)
 
-      override def asEncodeable: Shot[LTuple17] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple17] = LTuple.asEncodeable(this)
     }
 
     case class LTuple18(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -258,7 +300,7 @@ object LType {
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18)
 
-      override def asEncodeable: Shot[LTuple18] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple18] = LTuple.asEncodeable(this)
     }
 
     case class LTuple19(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -271,7 +313,7 @@ object LType {
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19)
 
-      override def asEncodeable: Shot[LTuple19] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple19] = LTuple.asEncodeable(this)
     }
 
     case class LTuple20(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -284,7 +326,7 @@ object LType {
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20)
 
-      override def asEncodeable: Shot[LTuple20] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple20] = LTuple.asEncodeable(this)
     }
 
     case class LTuple21(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -297,7 +339,7 @@ object LType {
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20, type21)
 
-      override def asEncodeable: Shot[LTuple21] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple21] = LTuple.asEncodeable(this)
     }
 
     case class LTuple22(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
@@ -310,7 +352,7 @@ object LType {
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20, type21, type22)
 
-      override def asEncodeable: Shot[LTuple22] = LTuple.isEncodeable(this)
+      override def asEncodeable: Shot[LTuple22] = LTuple.asEncodeable(this)
     }
 
   }

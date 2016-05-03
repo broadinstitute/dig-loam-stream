@@ -50,7 +50,7 @@ object LTypeDecoder extends Decoder[LType] {
                           RdfQueries.findUniqueObject(typeResource,
                             RdfContainers.membershipProperty(i)(io.conn))(io.conn)
                         ).map(_.flatMap(decode(io, _)).flatMap(_.asEncodeable))
-                        Shots.unpack(typeShots).map(_.toSeq).map(LTuple(_))
+                        Shots.unpack(typeShots).map(_.toSeq).flatMap(LTuple.seqToTupleShot(_))
                       case miss: Miss => miss
                     }
                   case literal: Literal => Miss(s"Expected RDF type to be a resource, but got literal '$literal'.")

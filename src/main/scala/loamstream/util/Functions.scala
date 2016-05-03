@@ -11,10 +11,11 @@ object Functions {
     a => {
       memo.get(a) match {
         case Some(result) => result
-        case None =>
+        case None => {
           val result = f(a)
           memo += (a -> result)
           result
+        }
       }
     }
   }

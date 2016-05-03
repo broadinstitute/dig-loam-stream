@@ -47,7 +47,7 @@ object LValueDecoder extends Decoder[LValue] {
               case Loam.seq =>
                 val elementTypeShot = RdfQueries.findUniqueObject(resource, Loam.elementType)(io.conn).
                   flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
-                val typeShot = elementTypeShot.map(LSeq)
+                val typeShot = elementTypeShot.map(LSeq(_))
                 val seqShot = RedFern.seqDecoder[LValue](this).decode(io, resource).map(_.map(_.value))
                 (seqShot and typeShot) (LValue(_, _))
               case Loam.map =>

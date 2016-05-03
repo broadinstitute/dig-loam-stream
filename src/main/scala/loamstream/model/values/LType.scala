@@ -61,7 +61,7 @@ object LType {
   }
 
   sealed trait LSet extends LIterable {
-    def asEncodeable: Shot[LSetEncodeable]
+    override def asEncodeable: Shot[LSetEncodeable]
   }
 
   case class LSetAny(elementType: LType) extends LSet {
@@ -77,13 +77,29 @@ object LType {
     override def asEncodeable: Hit[LSetEncodeable] = Hit(this)
   }
 
-  case class LSeq(elementType: LType) extends LIterable {
-    override def asEncodeable: Shot[LSeq with LTypeEncodeable] =
-      if (isEncodeable) {
-        Hit(this)
-      } else {
-        Miss(s"Seq is not encodeable, because element type '$elementType' is not encodeable.")
-      }
+  object LSeq {
+    def apply(elementType: LType): LSeq = LSeqAny(elementType)
+
+    def apply(elementType: LTypeEncodeable): LSeqEncodeable = LSeqEncodeable(elementType)
+
+    def unapply(seq: LSeq): Option[LType] = Some(seq.elementType)
+  }
+
+  sealed trait LSeq extends LIterable {
+    def asEncodeable: Shot[LSeqEncodeable]
+  }
+
+  case class LSeqAny(elementType: LType) extends LSeq {
+    override def isEncodeable: Boolean = elementType.isEncodeable
+
+    override def asEncodeable: Shot[LSeqEncodeable] = elementType match {
+      case elementTypeEncodeable: LTypeEncodeable => Hit(LSeqEncodeable(elementTypeEncodeable))
+      case _ => Miss(s"Seq is not encodeable, because element type '$elementType' is not encodeable.")
+    }
+  }
+
+  case class LSeqEncodeable(elementType: LTypeEncodeable) extends LSeq with LIterableEncodeable {
+    override def asEncodeable: Hit[LSeqEncodeable] = Hit(this)
   }
 
   sealed trait LTuple extends LType {

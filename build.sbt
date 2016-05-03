@@ -49,3 +49,11 @@ lazy val root = (project in file("."))
     maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
     mainClass in Compile := Some("loamstream.apps.LapRunApp")
   ).enablePlugins(JavaAppPackaging)
+
+lazy val webui = (project in file("webui"))
+  .dependsOn(root)
+  .enablePlugins(PlayScala)
+  .settings(commonSettings: _*)
+  .settings(
+    name := "LoamStream WebUI"
+  )

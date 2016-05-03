@@ -16,7 +16,7 @@ object LValue {
 
     final implicit class LTupleOps[A](val lhs: A)(implicit evA: HasLType[A]) {
       def &[B](rhs: B)(implicit evB: HasLType[B]): LValue = {
-        (evA.lType & evB.lType).of(lhs -> rhs)
+        (evA.lType & evB.lType).toValue(lhs -> rhs)
       }
     }
 

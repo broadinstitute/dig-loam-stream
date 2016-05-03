@@ -46,17 +46,39 @@ object LType {
     override def isEncodeable: Boolean = elementType.isEncodeable
   }
 
-  case class LSet(elementType: LType) extends LIterable {
-    override def asEncodeable: Shot[LSet] =
-      if (isEncodeable) {
-        Hit(this)
-      } else {
-        Miss(s"Set is not encodeable, because element type '$elementType' is not encodeable.")
-      }
+  sealed trait LIterableEncodeable extends LIterable with LTypeEncodeable {
+    override def elementType: LTypeEncodeable
+
+    override def isEncodeable: Boolean = true
+  }
+
+  object LSet {
+    def apply(elementType: LType): LSet = LSetAny(elementType)
+
+    def apply(elementType: LTypeEncodeable): LSetEncodeable = LSetEncodeable(elementType)
+
+    def unapply(set: LSet): Option[LType] = Some(set.elementType)
+  }
+
+  sealed trait LSet extends LIterable {
+    def asEncodeable: Shot[LSetEncodeable]
+  }
+
+  case class LSetAny(elementType: LType) extends LSet {
+    override def isEncodeable: Boolean = elementType.isEncodeable
+
+    override def asEncodeable: Shot[LSetEncodeable] = elementType match {
+      case elementTypeEncodeable: LTypeEncodeable => Hit(LSetEncodeable(elementTypeEncodeable))
+      case _ => Miss(s"Set is not encodeable, because element type '$elementType' is not encodeable.")
+    }
+  }
+
+  case class LSetEncodeable(elementType: LTypeEncodeable) extends LSet with LIterableEncodeable {
+    override def asEncodeable: Hit[LSetEncodeable] = Hit(this)
   }
 
   case class LSeq(elementType: LType) extends LIterable {
-    override def asEncodeable: Shot[LSeq] =
+    override def asEncodeable: Shot[LSeq with LTypeEncodeable] =
       if (isEncodeable) {
         Hit(this)
       } else {
@@ -385,7 +407,7 @@ object LType {
 
     override def isEncodeable: Boolean = elementType.isEncodeable
 
-    override def asEncodeable: Shot[LSeq] =
+    override def asEncodeable: Shot[LMap] =
       if (!keyType.isEncodeable) {
         Miss(s"Map is not encodeable, because key type '$keyType' is not encodeable.")
       } else if (!valueType.isEncodeable) {

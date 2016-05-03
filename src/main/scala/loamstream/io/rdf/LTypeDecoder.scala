@@ -42,7 +42,7 @@ object LTypeDecoder extends Decoder[LType] {
                     val valueTypeShot =
                       RdfQueries.findUniqueObject(typeResource, Loam.valueType)(io.conn).flatMap(decode(io, _)).
                         flatMap(_.asEncodeable)
-                    (keyTypeShot and valueTypeShot) (LMap)
+                    (keyTypeShot and valueTypeShot) (LMap(_, _))
                   case _ if Loam.isTupleType(rdfType) =>
                     Loam.tupleTypeToArity(rdfType) match {
                       case Hit(arity) =>

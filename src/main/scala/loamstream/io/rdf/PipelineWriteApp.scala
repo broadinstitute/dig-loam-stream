@@ -7,10 +7,9 @@ import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal.MiniPipeline
 import loamstream.model.LPipeline
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
-import loamstream.tools.core.LCoreDefaultPileIds
+import loamstream.tools.core.LCoreDefaultStoreIds
 import org.openrdf.rio.helpers.{BasicWriterSettings, BufferedGroupingRDFHandler}
-import org.openrdf.rio.turtle.TurtleWriter
-import org.openrdf.rio.{RDFFormat, Rio, RioSetting}
+import org.openrdf.rio.{RDFFormat, Rio}
 
 /**
   * LoamStream - Language for Omics Analysis Management
@@ -30,9 +29,9 @@ object PipelineWriteApp extends App {
     conn.close()
   }
 
-  writePipeline(MiniPipeline(LCoreDefaultPileIds.genotypes), Paths.get("mini.ttl"))
-  writePipeline(HailPipeline(LCoreDefaultPileIds.genotypes, LCoreDefaultPileIds.vds,
-    LCoreDefaultPileIds.singletons), Paths.get("hail.ttl"))
-  writePipeline(AncestryInferencePipeline(LCoreDefaultPileIds.genotypes, LCoreDefaultPileIds.pcaWeights),
+  writePipeline(MiniPipeline(LCoreDefaultStoreIds.genotypes), Paths.get("mini.ttl"))
+  writePipeline(HailPipeline(LCoreDefaultStoreIds.genotypes, LCoreDefaultStoreIds.vds,
+    LCoreDefaultStoreIds.singletons), Paths.get("hail.ttl"))
+  writePipeline(AncestryInferencePipeline(LCoreDefaultStoreIds.genotypes, LCoreDefaultStoreIds.pcaWeights),
     Paths.get("ancestry.ttl"))
 }

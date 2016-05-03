@@ -6,7 +6,7 @@ package loamstream.model
   */
 object LPipeline {
 
-  case class Flat(piles: Set[LPile], recipes: Set[LRecipe]) extends LPipeline
+  case class Flat(stores: Set[Store], tools: Set[Tool]) extends LPipeline
 
 }
 

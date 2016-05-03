@@ -2,15 +2,12 @@ package loamstream.io.rdf
 
 import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Encoder
-import loamstream.model.values.LType.{LBoolean, LByte, LChar, LDouble, LFloat, LInt, LLong, LMap, LSampleId, LSeq,
-LSet, LShort, LString, LTuple, LVariantId}
+import loamstream.model.values.LType.LTuple.LTuple2
+import loamstream.model.values.LType.{LBoolean, LByte, LChar, LDouble, LFloat, LInt, LLong, LMap, LSampleId, LSeq, LSet, LShort, LString, LTuple, LVariantId}
 import loamstream.model.values.LValue
-import loamstream.util.TupleUtil
 import org.openrdf.model.vocabulary.{RDF, XMLSchema}
 import org.openrdf.model.{Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection
-
-import scala.collection.mutable
 
 /**
   * LoamStream
@@ -18,45 +15,47 @@ import scala.collection.mutable
   */
 object LValueEncoder extends Encoder[LValue] {
 
-  // scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity method.length
   override def encode(io: LIO[RepositoryConnection, Value, ValueFactory], lValue: LValue): Value = {
     lValue.tpe match {
       case LBoolean => io.maker.createLiteral(lValue.valueAs[Boolean])
       case LDouble => io.maker.createLiteral(lValue.valueAs[Double])
       case LFloat => io.maker.createLiteral(lValue.valueAs[Float])
-      case LLong => io.maker.createLiteral(lValue.as[Long])
-      case LInt => io.maker.createLiteral(lValue.as[Int])
-      case LShort => io.maker.createLiteral(lValue.as[Short])
-      case LChar => io.maker.createLiteral(lValue.as[Char].toString, Loam.char)
-      case LByte => io.maker.createLiteral(lValue.as[Byte])
-      case LString => io.maker.createLiteral(lValue.as[String], XMLSchema.STRING)
-      case LVariantId => io.maker.createLiteral(lValue.as[String], Loam.variantId)
-      case LSampleId => io.maker.createLiteral(lValue.as[String], Loam.sampleId)
+      case LLong => io.maker.createLiteral(lValue.valueAs[Long])
+      case LInt => io.maker.createLiteral(lValue.valueAs[Int])
+      case LShort => io.maker.createLiteral(lValue.valueAs[Short])
+      case LChar => io.maker.createLiteral(lValue.valueAs[Char].toString, Loam.char)
+      case LByte => io.maker.createLiteral(lValue.valueAs[Byte])
+      case LString => io.maker.createLiteral(lValue.valueAs[String], XMLSchema.STRING)
+      case LVariantId => io.maker.createLiteral(lValue.valueAs[String], Loam.variantId)
+      case LSampleId => io.maker.createLiteral(lValue.valueAs[String], Loam.sampleId)
       case LSet(elementType) =>
-        val setNode = RedFern.iterableEncoder[LValue](this).encode(io, lValue.as[Set[_]].map(elementType.value))
+        val setNode = RedFern.iterableEncoder[LValue](this).encode(io, lValue.valueAs[Set[_]].map(elementType.toValue))
         io.conn.add(setNode, RDF.TYPE, Loam.set)
         io.conn.add(setNode, Loam.elementType, LTypeEncoder.encode(io, elementType))
         setNode
       case LSeq(elementType) =>
-        val seqNode = RedFern.iterableEncoder[LValue](this).encode(io, lValue.as[Seq[_]].map(elementType.value))
+        val seqNode = RedFern.iterableEncoder[LValue](this).encode(io, lValue.valueAs[Seq[_]].map(elementType.toValue))
         io.conn.add(seqNode, RDF.TYPE, Loam.seq)
         io.conn.add(seqNode, Loam.elementType, LTypeEncoder.encode(io, elementType))
         seqNode
       case LMap(keyType, valueType) =>
         val mapNode =
-          RedFern.iterableEncoder[LValue](this).encode(io, lValue.as[Map[_, _]].
-            map(LTuple(keyType, valueType).value(_)))
+          RedFern.iterableEncoder[LValue](this).encode(io, lValue.valueAs[Map[_, _]].
+            map(LTuple2(keyType, valueType).toValue(_)))
         io.conn.add(mapNode, RDF.TYPE, Loam.map)
         io.conn.add(mapNode, Loam.keyType, LTypeEncoder.encode(io, keyType))
         io.conn.add(mapNode, Loam.valueType, LTypeEncoder.encode(io, valueType))
         mapNode
-      case LTuple(types) =>
+      case tupleType: LTuple =>
         val tupleNode = io.maker.createBNode()
-        val tuple = TupleUtil.seqToProduct(lValue.as[Seq[Any]]).get
-        val arity = tuple.productArity
+        val arity = tupleType.arity
         io.conn.add(tupleNode, RDF.TYPE, Loam.tuple(arity))
+        val tupleValue = lValue.valueAs[Product]
         val valueNodes =
-          types.zip(tuple.productIterator.toSeq).map({ case (lType, value) => lType.value(value) }).map(encode(io, _))
+          tupleType.asSeq.zip(tupleValue.productIterator.toSeq).map({ case (lType, value) =>
+            lType.toValue(value)
+          }).map(encode(io, _))
         valueNodes.zipWithIndex.foreach({
           case (node, index) => io.conn.add(tupleNode, RdfContainers.membershipProperty(index)(io.conn), node)
         })
@@ -70,5 +69,5 @@ object LValueEncoder extends Encoder[LValue] {
     }
   }
 
-  // scalastyle:off cyclomatic.complexity
+  // scalastyle:off cyclomatic.complexity method.length
 }

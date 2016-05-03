@@ -4,9 +4,8 @@ import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Decoder
 import loamstream.model.values.LType._
 import loamstream.model.values.LValue
-import loamstream.util.TupleUtil
-import loamstream.util.{Hit, Miss, Shot}
 import loamstream.util.shot.Shots
+import loamstream.util.{Hit, Miss, Shot, TupleUtil}
 import org.openrdf.model.vocabulary.{RDF, XMLSchema}
 import org.openrdf.model.{Literal, Resource, Value, ValueFactory}
 import org.openrdf.repository.RepositoryConnection
@@ -44,13 +43,13 @@ object LValueDecoder extends Decoder[LValue] {
                   flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
                 val typeShot = elementTypeShot.map(LSet)
                 val setShot = RedFern.setDecoder[LValue](this).decode(io, resource).map(_.map(_.value))
-                (setShot and typeShot) (LValue)
+                (setShot and typeShot) (LValue(_, _))
               case Loam.seq =>
                 val elementTypeShot = RdfQueries.findUniqueObject(resource, Loam.elementType)(io.conn).
                   flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
                 val typeShot = elementTypeShot.map(LSeq)
                 val seqShot = RedFern.seqDecoder[LValue](this).decode(io, resource).map(_.map(_.value))
-                (seqShot and typeShot) (LValue)
+                (seqShot and typeShot) (LValue(_, _))
               case Loam.map =>
                 val keyTypeShot = RdfQueries.findUniqueObject(resource, Loam.keyType)(io.conn).
                   flatMap(LTypeDecoder.decode(io, _)).flatMap(_.asEncodeable)
@@ -59,7 +58,7 @@ object LValueDecoder extends Decoder[LValue] {
                 val typeShot = (keyTypeShot and valueTypeShot) (LMap)
                 val mapShot = RedFern.mapDecoder[LValue, LValue](this, this).decode(io, resource).
                   map(_.map({ case (key, value) => (key.value, value.value) }))
-                (mapShot and typeShot) (LValue)
+                (mapShot and typeShot) (LValue(_, _))
               case _ if Loam.isTupleType(rdfType) =>
                 val arityShot = Loam.tupleTypeToArity(rdfType)
                 val lValuesShot = arityShot.flatMap({ arity =>
@@ -68,9 +67,9 @@ object LValueDecoder extends Decoder[LValue] {
                       flatMap(decode(io, _))
                   })).map(_.toSeq)
                 })
-                val typeShot = lValuesShot.map(_.map(_.tpe)).map(LTuple(_))
                 val tupleValueShot = lValuesShot.map(_.map(_.value)).flatMap(TupleUtil.seqToProduct)
-                (tupleValueShot and typeShot) (LValue)
+                val typeShot = lValuesShot.map(_.map(_.tpe)).flatMap(LTuple.seqToTupleShot(_))
+                (tupleValueShot and typeShot) (LValue(_, _))
               case _ => Miss(s"Don't know how to decode instance of type '$rdfType'.")
             }
           case literal: Literal => Miss(s"Need resource as RDF type, but got Literal '$literal'.")

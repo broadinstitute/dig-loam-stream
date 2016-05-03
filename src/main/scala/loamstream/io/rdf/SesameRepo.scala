@@ -16,8 +16,6 @@ object SesameRepo {
     conn.setNamespace("rdf", RDF.NAMESPACE)
     conn.setNamespace("rdfs", RDFS.NAMESPACE)
     conn.setNamespace("xsd", XMLSchema.NAMESPACE)
-    conn.setNamespace("pile", LIdIris.pilesNamespace)
-    conn.setNamespace("recipe", LIdIris.recipesNamespace)
     conn.setNamespace("store", LIdIris.storesNamespace)
     conn.setNamespace("tool", LIdIris.toolsNamespace)
   }

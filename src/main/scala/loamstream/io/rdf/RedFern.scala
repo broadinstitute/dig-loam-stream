@@ -3,7 +3,8 @@ package loamstream.io.rdf
 import java.util
 
 import loamstream.io.LIO
-import loamstream.util.shot.{Miss, Shot, Shots}
+import loamstream.util.shot.Shots
+import loamstream.util.{Miss, Shot}
 import org.openrdf.model.impl.LinkedHashModel
 import org.openrdf.model.util.RDFCollections
 import org.openrdf.model.vocabulary.XMLSchema

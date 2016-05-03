@@ -68,7 +68,7 @@ object LValueDecoder extends Decoder[LValue] {
                   })).map(_.toSeq)
                 })
                 val tupleValueShot = lValuesShot.map(_.map(_.value)).flatMap(TupleUtil.seqToProduct)
-                val typeShot = lValuesShot.map(_.map(_.tpe)).flatMap(LTuple.seqToTupleShot(_))
+                val typeShot = lValuesShot.map(_.map(_.tpe)).flatMap(LTuple.seqToTupleShot)
                 (tupleValueShot and typeShot) (LValue(_, _))
               case _ => Miss(s"Don't know how to decode instance of type '$rdfType'.")
             }

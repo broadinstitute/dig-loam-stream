@@ -3,7 +3,8 @@ package loamstream.io.rdf
 import loamstream.io.LIO
 import loamstream.io.rdf.RedFern.Encoder
 import loamstream.model.values.LType.LTuple.LTuple2
-import loamstream.model.values.LType.{LBoolean, LByte, LChar, LDouble, LFloat, LInt, LLong, LMap, LSampleId, LSeq, LSet, LShort, LString, LTuple, LVariantId}
+import loamstream.model.values.LType.{LBoolean, LByte, LChar, LDouble, LFloat, LInt, LLong, LMap, LSampleId, LSeq,
+LSet, LShort, LString, LTuple, LVariantId}
 import loamstream.model.values.LValue
 import org.openrdf.model.vocabulary.{RDF, XMLSchema}
 import org.openrdf.model.{Value, ValueFactory}

@@ -117,5 +117,4 @@ final class ShotTest extends FunSuite {
   }
 
   //scalastyle:off magic.number
-
 }

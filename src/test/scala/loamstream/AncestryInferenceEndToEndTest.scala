@@ -54,7 +54,7 @@ final class AncestryInferenceEndToEndTest extends FunSuite with BeforeAndAfter {
     //NB: Try a pattern-match to get a better error message on failures
     val Hit(Seq(pcaProjectionJob)) = pcaProjectionJobsShot.map(_.toSeq)
     
-    val sampleClusteringJobsShot = toolbox.createJobs(pipeline.sampleClustering, pipeline)
+    val sampleClusteringJobsShot = toolbox.createJobs(pipeline.sampleClusteringTool, pipeline)
 
     //NB: Try a pattern-match to get a better error message on failures
     val Hit(Seq(sampleClusteringJob)) = sampleClusteringJobsShot.map(_.toSeq)

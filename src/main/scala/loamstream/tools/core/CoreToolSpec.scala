@@ -61,12 +61,9 @@ object CoreToolSpec {
     Set(extractSampleIdsFromVcfFile, importVcf, calculateSingletons, projectPcaNative, projectPca, klustaKwikClustering)
   }
   
-  //TODO: TEST
   def unaryTool(kind: LKind, sig: UnarySig): ToolSpec = nAryTool(kind, sig.toNarySig)
   
-  //TODO: TEST
   def binaryTool(kind: LKind, sig: BinarySig): ToolSpec = nAryTool(kind, sig.toNarySig)
   
-  //TODO: TEST
   def nAryTool(kind: LKind, sig: NarySig): ToolSpec = ToolSpec(kind, sig.inputs, sig.output)
 }

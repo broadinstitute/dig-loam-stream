@@ -8,7 +8,7 @@ import loamstream.model.ToolSpec
  * @author clint
  * date: May 4, 2016
  */
-final class CoreToolTest extends FunSuite {
+final class CoreToolSpecTest extends FunSuite {
   import CoreToolSpec._
   import CoreStoreSpec._
   import StoreOps._

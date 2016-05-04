@@ -23,7 +23,8 @@ final case class AST(output: StoreSpec, inputs: Set[AST]) {
 
   def ~>(other: AST): AST = this.thenRun(other)
   
-  def dependsOn(dependencies: Tool*)(implicit discriminator: Int = 42): AST = dependsOn(dependencies.map(AST(_)): _*)
+  //NB: Use dummy all-implicit param list to allow 2 overloads that otherwise would be the same after erasure
+  def dependsOn(dependencies: Tool*)(implicit discriminator: Int = 1): AST = dependsOn(dependencies.map(AST(_)): _*)
 
   def thenRun(other: Tool): AST = AST(other).dependsOn(this)
 

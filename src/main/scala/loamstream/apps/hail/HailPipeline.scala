@@ -3,7 +3,7 @@ package loamstream.apps.hail
 import loamstream.Sigs
 import loamstream.model.{LPipeline, LPipelineOps}
 import loamstream.model.StoreSpec
-import loamstream.model.Tool
+import loamstream.model.ToolSpec
 
 import loamstream.tools.core.CoreStore
 import loamstream.model.kinds.StoreKinds
@@ -15,13 +15,13 @@ import loamstream.tools.core.CoreTool
   * @author Kaan Yuksel
   */
 case class HailPipeline(genotypesId: String, vdsId: String, singletonsId: String) extends LPipeline {
-  val genotypeCallsTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
+  val genotypeCallsTool: ToolSpec = CoreTool.checkPreExistingVcfFile(genotypesId)
   
-  val vdsTool: Tool = CoreTool.importVcf
+  val vdsTool: ToolSpec = CoreTool.importVcf
   
-  val singletonTool: Tool = CoreTool.calculateSingletons
+  val singletonTool: ToolSpec = CoreTool.calculateSingletons
 
   override def stores: Set[StoreSpec] = tools.map(_.output)
   
-  override val tools: Set[Tool] = Set(genotypeCallsTool, vdsTool, singletonTool)
+  override val tools: Set[ToolSpec] = Set(genotypeCallsTool, vdsTool, singletonTool)
 }

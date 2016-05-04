@@ -184,7 +184,7 @@ final class AstTest extends FunSuite {
   }
   
   test("findTerminalTool") {
-    final case class ExplicitPipeline(tools: Set[Tool]) extends LPipeline {
+    final case class ExplicitPipeline(tools: Set[ToolSpec]) extends LPipeline {
       override def stores: Set[StoreSpec] = tools.map(_.output)
     }
     
@@ -210,9 +210,9 @@ final class AstTest extends FunSuite {
   test("astFor") {
     val pipeline = AncestryInferencePipeline("foo", "bar")
     
-    val byOutput: Map[StoreSpec, Set[Tool]] = pipeline.tools.groupBy(_.output)
+    val byOutput: Map[StoreSpec, Set[ToolSpec]] = pipeline.tools.groupBy(_.output)
     
-    def astFor(tool: Tool) = AST.astFor(byOutput)(tool.output)
+    def astFor(tool: ToolSpec) = AST.astFor(byOutput)(tool.output)
     
     import pipeline._
     

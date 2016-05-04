@@ -1,6 +1,7 @@
 package loamstream.tools.core
 
 import loamstream.model.StoreSpec
+import loamstream.model.ToolSpec
 
 /**
  * @author clint
@@ -17,6 +18,8 @@ object StoreOps {
   
   final case class UnarySig(input: StoreSpec, output: StoreSpec) extends ToolSig {
     override def toNarySig: NarySig = NarySig(Seq(input), output)
+    
+    def as(f: (StoreSpec, StoreSpec) => ToolSpec): ToolSpec = f(input, output)
   }
   
   final case class BinarySig(inputs: (StoreSpec, StoreSpec), output: StoreSpec) extends ToolSig {

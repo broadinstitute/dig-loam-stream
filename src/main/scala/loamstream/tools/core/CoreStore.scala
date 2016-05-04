@@ -32,11 +32,11 @@ object CoreStore {
     StoreSpec(variantAndSampleToGenotype, StoreKinds.vdsFile)
   }
     
-  val pcaWeightsFile: StoreSpec= {
+  val pcaWeightsFile: StoreSpec = {
     StoreSpec(sampleIdAndIntToDouble, StoreKinds.pcaWeightsFile)
   }
   
-  val pcaProjectedFile: StoreSpec  = {
+  val pcaProjectedFile: StoreSpec = {
     StoreSpec(sampleIdAndIntToDouble, StoreKinds.pcaProjectedFile)
   }
   

@@ -7,5 +7,5 @@ package loamstream.model
 trait LPipeline {
   def stores: Set[StoreSpec]
 
-  def tools: Set[Tool]
+  def tools: Set[ToolSpec]
 }

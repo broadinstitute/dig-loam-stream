@@ -24,37 +24,37 @@ final case class AST(output: StoreSpec, inputs: Set[AST]) {
   def ~>(other: AST): AST = this.thenRun(other)
   
   //NB: Use dummy all-implicit param list to allow 2 overloads that otherwise would be the same after erasure
-  def dependsOn(dependencies: Tool*)(implicit discriminator: Int = 1): AST = dependsOn(dependencies.map(AST(_)): _*)
+  def dependsOn(dependencies: ToolSpec*)(implicit discriminator: Int = 1): AST = dependsOn(dependencies.map(AST(_)): _*)
 
-  def thenRun(other: Tool): AST = AST(other).dependsOn(this)
+  def thenRun(other: ToolSpec): AST = AST(other).dependsOn(this)
 
-  def ~>(other: Tool): AST = this.thenRun(other)
+  def ~>(other: ToolSpec): AST = this.thenRun(other)
 }
 
 object AST {
   def apply(output: StoreSpec): AST = AST(output, Set.empty[AST])
 
-  def apply(tool: Tool): AST = apply(tool.output)
+  def apply(tool: ToolSpec): AST = apply(tool.output)
 
   object Implicits {
-    final implicit class IterableOps(val tools: Iterable[Tool]) extends AnyVal {
+    final implicit class IterableOps(val tools: Iterable[ToolSpec]) extends AnyVal {
       def thenRun(other: AST): AST = other.dependsOn(tools.toSeq: _*)
 
       def ~>(other: AST): AST = thenRun(other)
       
-      def thenRun(other: Tool): AST = other.toAST.dependsOn(tools.toSeq: _*)
+      def thenRun(other: ToolSpec): AST = other.toAST.dependsOn(tools.toSeq: _*)
 
-      def ~>(other: Tool): AST = thenRun(other)
+      def ~>(other: ToolSpec): AST = thenRun(other)
     }
     
-    final implicit class ToolOps(val self: Tool) extends AnyVal {
+    final implicit class ToolOps(val self: ToolSpec) extends AnyVal {
       def toAST: AST = AST(self)
       
-      def dependsOn(t: Tool): AST = toAST.dependsOn(t)
+      def dependsOn(t: ToolSpec): AST = toAST.dependsOn(t)
       
-      def thenRun(t: Tool): AST = toAST.thenRun(t)
+      def thenRun(t: ToolSpec): AST = toAST.thenRun(t)
       
-      def ~>(t: Tool): AST = thenRun(t)
+      def ~>(t: ToolSpec): AST = thenRun(t)
       
       def dependsOn(other: AST): AST = toAST.dependsOn(other)
       
@@ -79,7 +79,7 @@ object AST {
       for {
         terminal <- findTerminalTool(pipeline)
       } yield {
-        val byOutput: Map[StoreSpec, Set[Tool]] = pipeline.tools.groupBy(_.output)
+        val byOutput: Map[StoreSpec, Set[ToolSpec]] = pipeline.tools.groupBy(_.output)
 
         astFor(byOutput)(terminal.output)
       }
@@ -91,14 +91,14 @@ object AST {
    * of any other tools.  This Tool can be seen as producing the "output" of a
    * pipeline.
    */
-  private[model] def findTerminalTool(pipeline: LPipeline): Try[Tool] = {
+  private[model] def findTerminalTool(pipeline: LPipeline): Try[ToolSpec] = {
     val tools = pipeline.tools
 
     val toolsAndOthers = tools.map(t => t -> (tools - t))
 
-    def isNoOnesInput(tool: Tool, others: Set[Tool]): Boolean = {
-      def inputsOf(t: Tool) = t.spec.inputs
-      def outputOf(t: Tool) = t.spec.output
+    def isNoOnesInput(tool: ToolSpec, others: Set[ToolSpec]): Boolean = {
+      def inputsOf(t: ToolSpec) = t.inputs
+      def outputOf(t: ToolSpec) = t.output
 
       others.forall(otherTool => !inputsOf(otherTool).contains(outputOf(tool)))
     }
@@ -117,10 +117,10 @@ object AST {
    * Runs in O(n) time, where n is the total number of tools the tool indicated by toolOutput 
    * directly and transitively depends on.     
    */
-  private[model] def astFor(byOutput: Map[StoreSpec, Set[Tool]])(toolOutput: StoreSpec): AST = {
+  private[model] def astFor(byOutput: Map[StoreSpec, Set[ToolSpec]])(toolOutput: StoreSpec): AST = {
     val toolOption = byOutput.get(toolOutput).flatMap(_.headOption)
 
-    def toInteriorNode(tool: Tool) = {
+    def toInteriorNode(tool: ToolSpec) = {
       val inputSpecs = tool.inputs.toSet
 
       AST(tool.output, inputSpecs.map(astFor(byOutput)))

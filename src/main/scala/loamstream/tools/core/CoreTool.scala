@@ -6,7 +6,6 @@ import loamstream.model.LId.LNamedId
 import loamstream.model.kinds.ToolKinds.{klustakwikClustering, nativePcaProjection, pcaProjection}
 import loamstream.model.ToolSpec
 import LCoreEnv._
-import loamstream.model.Tool
 import loamstream.model.StoreSpec
 import loamstream.model.kinds.LKind
 import loamstream.model.kinds.ToolKinds
@@ -14,103 +13,60 @@ import loamstream.model.kinds.StoreKinds
 
 /**
   * LoamStream
-  * Created by oliverr on 2/16/2016.
+  * @author oliverr 
+  * @date 2/16/2016.
+  * @author Clint
   */
-case class CoreTool(id: LId, spec: ToolSpec, inputs: Seq[StoreSpec], output: StoreSpec) extends Tool
-
 object CoreTool {
-  
-  def apply(name: String, toolSpec: ToolSpec, inputs: Seq[StoreSpec], output: StoreSpec): CoreTool = {
-    CoreTool(LNamedId(name), toolSpec, inputs, output)
-  }
   
   import StoreOps._
   
-  def checkPreExistingVcfFile(id: String): Tool = nullaryTool(
-      id, 
-      "What a nice VCF file!",
-      CoreStore.vcfFile,
-      ToolSpec.preExistingCheckout(id))
+  def checkPreExistingVcfFile(id: String): ToolSpec = ToolSpec.preExistingCheckout(id)(CoreStore.vcfFile)
 
-  def checkPreExistingPcaWeightsFile(id: String): Tool = nullaryTool(
-      id, 
-      "File with PCA weights",
-      CoreStore.pcaWeightsFile,
-      ToolSpec.preExistingCheckout(id))
+  def checkPreExistingPcaWeightsFile(id: String): ToolSpec = ToolSpec.preExistingCheckout(id)(CoreStore.pcaWeightsFile)
 
-  val extractSampleIdsFromVcfFile: Tool = unaryTool(
-      "Extracted sample ids from VCF file into a text file.",
-      CoreStore.vcfFile ~> CoreStore.sampleIdsFile,
-      ToolSpec.keyExtraction(StoreKinds.sampleKeyIndexInGenotypes) _)
+  val extractSampleIdsFromVcfFile: ToolSpec = {
+    (CoreStore.vcfFile ~> CoreStore.sampleIdsFile).as {
+      ToolSpec.keyExtraction(StoreKinds.sampleKeyIndexInGenotypes)
+    }
+  }
 
-  val importVcf: Tool = unaryTool(
-      "Import VCF file into VDS format Hail works with.",
-      CoreStore.vcfFile ~> CoreStore.vdsFile,
-      ToolSpec.vcfImport(0) _)
+  val importVcf: ToolSpec = {
+    (CoreStore.vcfFile ~> CoreStore.vdsFile).as(ToolSpec.vcfImport(0))
+  }
 
-  val calculateSingletons: Tool = unaryTool(
-      "Calculate singletons from genotype calls in VDS format.",
-      CoreStore.vdsFile ~> CoreStore.singletonsFile,
-      ToolSpec.calculateSingletons(0) _)
+  val calculateSingletons: ToolSpec = {
+    (CoreStore.vdsFile ~> CoreStore.singletonsFile).as(ToolSpec.calculateSingletons(0))
+  }
 
-  val projectPcaNative: Tool = binaryTool(
-      "Project PCA using native method", 
+  val projectPcaNative: ToolSpec = binaryTool(
       nativePcaProjection,
       (CoreStore.vcfFile, CoreStore.pcaWeightsFile) ~> CoreStore.pcaProjectedFile)
       
-  val projectPca: Tool = binaryTool(
-      "Project PCA", 
+  val projectPca: ToolSpec = binaryTool(
       pcaProjection,
        (CoreStore.vcfFile, CoreStore.pcaWeightsFile) ~> CoreStore.pcaProjectedFile)
 
-  val klustaKwikClustering: Tool = unaryTool(
-      "KlustaKwik Clustering", 
+  val klustaKwikClustering: ToolSpec = unaryTool(
       klustakwikClustering,
       CoreStore.pcaProjectedFile ~> CoreStore.sampleClusterFile)
   
-  val clusteringSamplesByFeatures: Tool = unaryTool(
-      "Clustering Samples by Features",
+  val clusteringSamplesByFeatures: ToolSpec = unaryTool(
       ToolKinds.clusteringSamplesByFeatures, 
       CoreStore.pcaProjectedFile ~> CoreStore.sampleClusterFile)
       
-  def tools(env: LEnv): Set[Tool] = {
+  def tools(env: LEnv): Set[ToolSpec] = {
     env.get(Keys.genotypesId).map(checkPreExistingVcfFile(_)).toSet ++
     env.get(Keys.pcaWeightsId).map(checkPreExistingPcaWeightsFile(_)).toSet ++
     Set(extractSampleIdsFromVcfFile, importVcf, calculateSingletons, projectPcaNative, projectPca, klustaKwikClustering)
   }
   
   //TODO: TEST
-  def nullaryTool(id: String, name: String, output: StoreSpec, makeToolSpec: StoreSpec => ToolSpec): Tool = {
-    CoreTool(name, makeToolSpec(output), Seq.empty, output)
-  }
+  def unaryTool(kind: LKind, sig: UnarySig): ToolSpec = nAryTool(kind, sig.toNarySig)
   
   //TODO: TEST
-  def unaryTool(name: String, sig: UnarySig, makeToolSpec: (StoreSpec, StoreSpec) => ToolSpec): Tool = {
-    CoreTool(
-      name,
-      makeToolSpec(sig.input, sig.output),
-      Seq(sig.input),
-      sig.output)
-  }
+  def binaryTool(kind: LKind, sig: BinarySig): ToolSpec = nAryTool(kind, sig.toNarySig)
   
   //TODO: TEST
-  def unaryTool(name: String, kind: LKind, sig: UnarySig): Tool = nAryTool(name, kind, sig.toNarySig)
-  
-  //TODO: TEST
-  def binaryTool(name: String, kind: LKind, sig: BinarySig): Tool = nAryTool(name, kind, sig.toNarySig)
-  
-  //TODO: TEST
-  def nAryTool(name: String, kind: LKind, sig: NarySig): Tool = nAryTool(LId.LNamedId(name), kind, sig)
-  
-  //TODO: TEST
-  def nAryTool(kind: LKind, sig: NarySig): Tool = nAryTool(LId.newAnonId, kind, sig)
-  
-  //TODO: TEST
-  def nAryTool(id: LId, kind: LKind, sig: NarySig): Tool = {
-    CoreTool(
-      id,
-      ToolSpec(kind, sig.inputs, sig.output),
-      sig.inputs,
-      sig.output)
-  }
+  def nAryTool(kind: LKind, sig: NarySig): ToolSpec = ToolSpec(kind, sig.inputs, sig.output)
 }

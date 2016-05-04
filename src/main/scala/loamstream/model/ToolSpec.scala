@@ -9,26 +9,7 @@ import loamstream.model.kinds.ToolKinds
   * LoamStream
   * Created by oliverr on 02/26/2016.
   */
-object ToolSpec {
-
-  def keyExtraction(index: Int)(input: StoreSpec, output: StoreSpec): ToolSpec = {
-    ToolSpec(ToolKinds.extractKey(index), Seq(input), output)
-  }
-
-  def vcfImport(index: Int)(input: StoreSpec, output: StoreSpec): ToolSpec = {
-    ToolSpec(ToolKinds.importVcf(index), Seq(input), output)
-  }
-
-  def calculateSingletons(index: Int)(input: StoreSpec, output: StoreSpec): ToolSpec = {
-    ToolSpec(ToolKinds.calculateSingletons(index), Seq(input), output)
-  }
-
-  def preExistingCheckout(id: String)(output: StoreSpec): ToolSpec = {
-    ToolSpec(ToolKinds.usePreExisting(id), Seq.empty[StoreSpec], output)
-  }
-}
-
-case class ToolSpec(kind: LKind, inputs: Seq[StoreSpec], output: StoreSpec) {
+final case class ToolSpec(kind: LKind, inputs: Seq[StoreSpec], output: StoreSpec) {
   //TODO: non-symbolic alternative defs for each operator, a la LKind
   
   //TODO: Test if input arities are the same?
@@ -56,5 +37,24 @@ case class ToolSpec(kind: LKind, inputs: Seq[StoreSpec], output: StoreSpec) {
     inputs.size == other.inputs.size &&
     inputs.zip(other.inputs).forall { case (mine, theirs) => inputOp(mine)(theirs) } &&
     outputOp(output)(other.output)
+  }
+}
+
+object ToolSpec {
+
+  def keyExtraction(index: Int)(input: StoreSpec, output: StoreSpec): ToolSpec = {
+    ToolSpec(ToolKinds.extractKey(index), Seq(input), output)
+  }
+
+  def vcfImport(index: Int)(input: StoreSpec, output: StoreSpec): ToolSpec = {
+    ToolSpec(ToolKinds.importVcf(index), Seq(input), output)
+  }
+
+  def calculateSingletons(index: Int)(input: StoreSpec, output: StoreSpec): ToolSpec = {
+    ToolSpec(ToolKinds.calculateSingletons(index), Seq(input), output)
+  }
+
+  def preExistingCheckout(id: String)(output: StoreSpec): ToolSpec = {
+    ToolSpec(ToolKinds.usePreExisting(id), Seq.empty[StoreSpec], output)
   }
 }

@@ -8,7 +8,7 @@ import CoreToolBox._
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.LEnv
 import loamstream.model.LPipeline
-import loamstream.model.Tool
+import loamstream.model.ToolSpec
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
 import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
@@ -141,7 +141,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   lazy val klustaKwikConfigShot: Shot[KlustaKwikKonfig] = env.shoot(LCoreEnv.Keys.klustaKwikKonfig)
 
   lazy val vcfFileJobShot: Shot[CheckPreexistingVcfFileJob] = {
-    checkPreexistingVcfFileTool.spec.kind match {
+    checkPreexistingVcfFileTool.kind match {
       case LSpecificKind(specifics, _) => specifics.value match {
         case (_, id: String) => predefinedVcfFileShot(id).map(CheckPreexistingVcfFileJob)
         case _ => Miss(SnagMessage("Tool is not of the right kind."))
@@ -177,7 +177,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
     }
   }
 
-  def toolToJobShot(tool: Tool): Shot[LJob] = tool match {
+  def toolToJobShot(tool: ToolSpec): Shot[LJob] = tool match {
     case this.checkPreexistingVcfFileTool => vcfFileJobShot
     case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJobShot
     case CoreTool.importVcf => importVcfJobShot
@@ -191,7 +191,7 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
     case _ => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 
-  override def createJobs(tool: Tool, pipeline: LPipeline): Shot[Set[LJob]] = {
+  override def createJobs(tool: ToolSpec, pipeline: LPipeline): Shot[Set[LJob]] = {
     toolToJobShot(tool).map(Set(_))
   }
 

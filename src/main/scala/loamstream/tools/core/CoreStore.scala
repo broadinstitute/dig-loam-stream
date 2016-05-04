@@ -14,7 +14,7 @@ import loamstream.model.kinds.LKind
   * LoamStream
   * Created by oliverr on 2/16/2016.
   */
-//TODo rename? ConcreteStore?  
+//TODO rename? ConcreteStore?  
 final case class CoreStore(id: LId, spec: StoreSpec) extends Store
 
 object CoreStore {
@@ -27,11 +27,11 @@ object CoreStore {
   
   import Sigs._
   
-  val vcfFile: Store  = {
+  val vcfFile: Store = {
     CoreStore("VCF file", StoreSpec(variantAndSampleToGenotype, StoreKinds.vcfFile))
   }
     
-  val vdsFile: Store  = {
+  val vdsFile: Store = {
     CoreStore("VDS file", StoreSpec(variantAndSampleToGenotype, StoreKinds.vdsFile))
   }
     

@@ -37,7 +37,7 @@ final class MiniAppEndToEndTest extends FunSuite {
 
     val genotypesId = env(LCoreEnv.Keys.genotypesId)
     val pipeline = MiniPipeline(genotypesId)
-    val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
+    val toolbox = CoreToolBox(env)
 
     val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsTool, pipeline)
     

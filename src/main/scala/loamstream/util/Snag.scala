@@ -4,19 +4,7 @@ package loamstream.util
   * LoamStream
   * Created by oliverr on 11/17/2015.
   */
-object Snag {
-  def apply(message: String): Snag = SnagMessage(message)
-
-  def apply(throwable: Throwable): Snag = Snag(throwable)
-
-  def apply(child: Snag, children: Snag*): Snag = SnagSeq(children)
-
-  def apply(message: String, children: Snag*): Snag = SnagTree(message, children)
-
-  def apply(snags: Seq[Snag]): Snag = SnagSeq(snags)
-}
-
-trait Snag {
+sealed trait Snag {
   def message: String
 
   def children: Seq[Snag]
@@ -27,6 +15,18 @@ trait Snag {
       case _ => SnagSeq(Seq(this, snag))
     }
   }
+}
+
+object Snag {
+  def apply(message: String): Snag = SnagMessage(message)
+
+  def apply(throwable: Throwable): Snag = SnagThrowable(throwable)
+
+  def apply(child: Snag, children: Snag*): Snag = SnagSeq(children)
+
+  def apply(message: String, children: Snag*): Snag = SnagTree(message, children)
+
+  def apply(snags: Seq[Snag]): Snag = SnagSeq(snags)
 }
 
 trait SnagLeaf extends Snag {

@@ -6,6 +6,8 @@ package loamstream.util
   */
 object ShotCombinators {
 
+  //TODO: TEST! 
+  
   trait ShotsN {
     def and[TN](_n: Shot[TN]): ShotsN
   }

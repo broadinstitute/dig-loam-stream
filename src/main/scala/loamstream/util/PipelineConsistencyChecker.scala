@@ -1,7 +1,7 @@
 package loamstream.util
 
 import loamstream.model.LPipeline
-import loamstream.model.Store
+import loamstream.model.StoreSpec
 import loamstream.model.Tool
 
 /**
@@ -35,7 +35,7 @@ object PipelineConsistencyChecker {
   }
 
   sealed trait StoreSpecificProblem extends Problem {
-    def store: Store
+    def store: StoreSpec
   }
 
   sealed trait ToolSpecificProblem extends Problem {
@@ -44,8 +44,8 @@ object PipelineConsistencyChecker {
 
   sealed trait StoreIsNotProducedByExactlyOneTool extends StoreSpecificProblem
 
-  case class StoreIsProducedByNoTool(store: Store) extends StoreIsNotProducedByExactlyOneTool {
-    override def message: String = s"Store ${store.id} is not produced by any tool."
+  case class StoreIsProducedByNoTool(store: StoreSpec) extends StoreIsNotProducedByExactlyOneTool {
+    override def message: String = s"Store $store is not produced by any tool."
   }
 
   case object EachStoreIsOutputOfAtLeastOneToolCheck extends Check {
@@ -54,10 +54,10 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class StoreIsProducedByMultipleTools(store: Store, tools: Set[Tool])
+  case class StoreIsProducedByMultipleTools(store: StoreSpec, tools: Set[Tool])
     extends StoreIsNotProducedByExactlyOneTool {
     override def message: String =
-      s"Store ${store.id} is produced by multiple tools: ${tools.map(_.id).mkString(", ")}."
+      s"Store $store is produced by multiple tools: ${tools.map(_.id).mkString(", ")}."
   }
 
   case object EachStoreIsOutputOfNoMoreThanOneToolCheck extends Check {
@@ -72,28 +72,28 @@ object PipelineConsistencyChecker {
 
   sealed trait StoreIsNotCompatibleWithTool extends StoreSpecificProblem with ToolSpecificProblem
 
-  case class StoreIsIncompatibleOutputOfTool(store: Store, tool: Tool) extends StoreIsNotCompatibleWithTool {
-    override def message: String = s"Store ${store.id} is not compatible output of tool ${tool.id}."
+  case class StoreIsIncompatibleOutputOfTool(store: StoreSpec, tool: Tool) extends StoreIsNotCompatibleWithTool {
+    override def message: String = s"Store $store is not compatible output of tool ${tool.id}."
   }
 
   case object EachStoreIsCompatibleOutputOfToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.tools.filterNot(tool => tool.output.spec >:> tool.spec.output).
+      pipeline.tools.filterNot(tool => tool.output >:> tool.spec.output).
         map(tool => StoreIsIncompatibleOutputOfTool(tool.output, tool))
     }
   }
 
-  case class StoreIsIncompatibleInputOfTool(store: Store, tool: Tool, pos: Int)
+  case class StoreIsIncompatibleInputOfTool(store: StoreSpec, tool: Tool, pos: Int)
     extends StoreIsNotCompatibleWithTool {
     override def message: String =
-      s"Store ${store.id} is not compatible input (position $pos) of tool ${tool.id}."
+      s"Store $store is not compatible input (position $pos) of tool ${tool.id}."
   }
 
   case object EachStoreIsCompatibleInputOfToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
       pipeline.tools.flatMap { tool =>
         tool.inputs.indices.map(pos => (tool, pos, tool.inputs(pos), tool.spec.inputs(pos)))
-      }.collect { case (tool, pos, input, inputSpec) if !(input.spec <:< inputSpec) =>
+      }.collect { case (tool, pos, input, inputSpec) if !(input <:< inputSpec) =>
         StoreIsIncompatibleInputOfTool(input, tool, pos)
       }
     }
@@ -101,8 +101,8 @@ object PipelineConsistencyChecker {
 
   sealed trait StoreMissingUsedInTool extends StoreSpecificProblem with ToolSpecificProblem
 
-  case class StoreMissingUsedAsOutput(store: Store, tool: Tool) extends StoreMissingUsedInTool {
-    override def message: String = s"Store ${store.id} used as output in tool ${tool.id} is missing."
+  case class StoreMissingUsedAsOutput(store: StoreSpec, tool: Tool) extends StoreMissingUsedInTool {
+    override def message: String = s"Store $store used as output in tool ${tool.id} is missing."
   }
 
   case object EachOutputStoreIsPresentCheck extends Check {
@@ -113,8 +113,8 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class StoreMissingUsedAsInput(store: Store, tool: Tool, pos: Int) extends StoreMissingUsedInTool {
-    override def message: String = s"Store ${store.id} used as input (pos $pos) in tool ${tool.id} is missing."
+  case class StoreMissingUsedAsInput(store: StoreSpec, tool: Tool, pos: Int) extends StoreMissingUsedInTool {
+    override def message: String = s"Store $store used as input (pos $pos) in tool ${tool.id} is missing."
   }
 
   case object EachInputStoreIsPresentCheck extends Check {
@@ -126,8 +126,8 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PipelineIsDisconnected(store: Store, otherStore: Store) extends StoreSpecificProblem {
-    override def message: String = s"Pipeline is disconnected: no path from store ${store.id} to ${otherStore.id}."
+  case class PipelineIsDisconnected(store: StoreSpec, otherStore: StoreSpec) extends StoreSpecificProblem {
+    override def message: String = s"Pipeline is disconnected: no path from store $store to $otherStore."
   }
 
   case object ConnectednessCheck extends Check {
@@ -135,7 +135,7 @@ object PipelineConsistencyChecker {
       pipeline.stores.headOption match {
         case Some(arbitraryStore) => {
           var makingProgress = true
-          var connectedStores: Set[Store] = Set(arbitraryStore)
+          var connectedStores: Set[StoreSpec] = Set(arbitraryStore)
           while (makingProgress) {
             makingProgress = false
             for (tool <- pipeline.tools) {
@@ -155,8 +155,8 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class PipelineHasCycle(store: Store) extends StoreSpecificProblem {
-    override def message: String = s"Pipeline contains a cycle containing store ${store.id}."
+  case class PipelineHasCycle(store: StoreSpec) extends StoreSpecificProblem {
+    override def message: String = s"Pipeline contains a cycle containing store $store."
   }
 
   case object AcyclicityCheck extends Check {

@@ -3,7 +3,7 @@ package loamstream.pipelines.qc.ancestry
 import loamstream.Sigs
 
 import loamstream.model.LPipeline
-import loamstream.model.Store
+import loamstream.model.StoreSpec
 import loamstream.model.Tool
 import loamstream.model.values.LType._
 import loamstream.tools.core.CoreStore
@@ -25,15 +25,15 @@ case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) 
   
   val sampleClusteringTool: Tool = CoreTool.clusteringSamplesByFeatures
   
-  val genotypesStore: Store = genotypesTool.output
+  val genotypesStore: StoreSpec = genotypesTool.output
 
-  val pcaWeightsStore: Store = pcaWeightsTool.output
+  val pcaWeightsStore: StoreSpec = pcaWeightsTool.output
   
-  val projectedValsStore: Store = pcaProjectionTool.output
+  val projectedValsStore: StoreSpec = pcaProjectionTool.output
   
-  val sampleClustersStore: Store = sampleClusteringTool.output
+  val sampleClustersStore: StoreSpec = sampleClusteringTool.output
 
-  override def stores: Set[Store] = tools.map(_.output)
+  override def stores: Set[StoreSpec] = tools.map(_.output)
   
   override val tools: Set[Tool] = Set(genotypesTool, pcaWeightsTool, pcaProjectionTool, sampleClusteringTool)
 }

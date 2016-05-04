@@ -13,38 +13,38 @@ import loamstream.tools.core.StoreOps
 trait Tool extends LId.Owner {
   def spec: ToolSpec 
   
-  def inputs: Seq[Store] 
+  def inputs: Seq[StoreSpec] 
   
-  def output: Store
+  def output: StoreSpec
 }
 
 object Tool {
 
   import StoreOps._
 
-  def apply(id: String, kind: LKind, inputs: Seq[Store], output: Store): Tool = {
+  def apply(id: String, kind: LKind, inputs: Seq[StoreSpec], output: StoreSpec): Tool = {
     CoreTool.nAryTool(id, kind, inputs ~> output)
   }
 
-  def apply(kind: LKind, inputs: Seq[Store], output: Store): Tool = {
+  def apply(kind: LKind, inputs: Seq[StoreSpec], output: StoreSpec): Tool = {
     CoreTool.nAryTool(kind, inputs ~> output)
   }
   
-  def keyExtraction(input: Store, output: Store, index: Int): Tool = {
+  def keyExtraction(input: StoreSpec, output: StoreSpec, index: Int): Tool = {
     //TODO: CoreTool.unaryTool() overload?
     Tool(ToolKinds.extractKey(index), Seq(input), output)
   }
 
-  def preExistingCheckout(id: String, output: Store): Tool = {
+  def preExistingCheckout(id: String, output: StoreSpec): Tool = {
     //TODO: CoreTool.nullaryTool() overload?
-    Tool(id, ToolKinds.usePreExisting(id), Seq.empty[Store], output)
+    Tool(id, ToolKinds.usePreExisting(id), Seq.empty[StoreSpec], output)
   }
 
-  def vcfImport(input: Store, output: Store, index: Int): Tool = {
+  def vcfImport(input: StoreSpec, output: StoreSpec, index: Int): Tool = {
     Tool(ToolKinds.importVcf(index), Seq(input), output)
   }
 
-  def singletonCalculation(input: Store, output: Store, index: Int): Tool = {
+  def singletonCalculation(input: StoreSpec, output: StoreSpec, index: Int): Tool = {
     Tool(ToolKinds.calculateSingletons(index), Seq(input), output)
   }
 }

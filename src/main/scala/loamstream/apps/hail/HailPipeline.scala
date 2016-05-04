@@ -2,7 +2,7 @@ package loamstream.apps.hail
 
 import loamstream.Sigs
 import loamstream.model.{LPipeline, LPipelineOps}
-import loamstream.model.Store
+import loamstream.model.StoreSpec
 import loamstream.model.Tool
 
 import loamstream.tools.core.CoreStore
@@ -21,7 +21,7 @@ case class HailPipeline(genotypesId: String, vdsId: String, singletonsId: String
   
   val singletonTool: Tool = CoreTool.calculateSingletons
 
-  override def stores: Set[Store] = tools.map(_.output)
+  override def stores: Set[StoreSpec] = tools.map(_.output)
   
   override val tools: Set[Tool] = Set(genotypeCallsTool, vdsTool, singletonTool)
 }

@@ -7,7 +7,6 @@ import loamstream.model.kinds.ToolKinds.{klustakwikClustering, nativePcaProjecti
 import loamstream.model.ToolSpec
 import LCoreEnv._
 import loamstream.model.Tool
-import loamstream.model.Store
 import loamstream.model.StoreSpec
 import loamstream.model.kinds.LKind
 import loamstream.model.kinds.ToolKinds
@@ -17,11 +16,11 @@ import loamstream.model.kinds.StoreKinds
   * LoamStream
   * Created by oliverr on 2/16/2016.
   */
-case class CoreTool(id: LId, spec: ToolSpec, inputs: Seq[Store], output: Store) extends Tool
+case class CoreTool(id: LId, spec: ToolSpec, inputs: Seq[StoreSpec], output: StoreSpec) extends Tool
 
 object CoreTool {
   
-  def apply(name: String, toolSpec: ToolSpec, inputs: Seq[Store], output: Store): CoreTool = {
+  def apply(name: String, toolSpec: ToolSpec, inputs: Seq[StoreSpec], output: StoreSpec): CoreTool = {
     CoreTool(LNamedId(name), toolSpec, inputs, output)
   }
   
@@ -81,15 +80,15 @@ object CoreTool {
   }
   
   //TODO: TEST
-  def nullaryTool(id: String, name: String, output: Store, makeToolSpec: StoreSpec => ToolSpec): Tool = {
-    CoreTool(name, makeToolSpec(output.spec), Seq.empty, output)
+  def nullaryTool(id: String, name: String, output: StoreSpec, makeToolSpec: StoreSpec => ToolSpec): Tool = {
+    CoreTool(name, makeToolSpec(output), Seq.empty, output)
   }
   
   //TODO: TEST
   def unaryTool(name: String, sig: UnarySig, makeToolSpec: (StoreSpec, StoreSpec) => ToolSpec): Tool = {
     CoreTool(
       name,
-      makeToolSpec(sig.input.spec, sig.output.spec),
+      makeToolSpec(sig.input, sig.output),
       Seq(sig.input),
       sig.output)
   }
@@ -110,7 +109,7 @@ object CoreTool {
   def nAryTool(id: LId, kind: LKind, sig: NarySig): Tool = {
     CoreTool(
       id,
-      ToolSpec(kind, sig.inputs.map(_.spec), sig.output.spec),
+      ToolSpec(kind, sig.inputs, sig.output),
       sig.inputs,
       sig.output)
   }

@@ -1,6 +1,6 @@
 package loamstream.tools.core
 
-import loamstream.model.Store
+import loamstream.model.StoreSpec
 
 /**
  * @author clint
@@ -11,33 +11,31 @@ import loamstream.model.Store
  */
 object StoreOps {
   
-  //TODO TEST!
-  
   sealed trait ToolSig {
     def toNarySig: NarySig
   }
   
-  final case class UnarySig(input: Store, output: Store) extends ToolSig {
+  final case class UnarySig(input: StoreSpec, output: StoreSpec) extends ToolSig {
     override def toNarySig: NarySig = NarySig(Seq(input), output)
   }
   
-  final case class BinarySig(inputs: (Store, Store), output: Store) extends ToolSig {
+  final case class BinarySig(inputs: (StoreSpec, StoreSpec), output: StoreSpec) extends ToolSig {
     override def toNarySig: NarySig = NarySig(Seq(inputs._1, inputs._2), output)
   }
   
-  final case class NarySig(inputs: Seq[Store], output: Store) extends ToolSig {
+  final case class NarySig(inputs: Seq[StoreSpec], output: StoreSpec) extends ToolSig {
     override def toNarySig: NarySig = this
   }
   
-  final implicit class UnaryStoreOps(val lhs: Store) extends AnyVal {
-    def ~>(rhs: Store): UnarySig = UnarySig(lhs, rhs)
+  final implicit class UnaryStoreOps(val lhs: StoreSpec) extends AnyVal {
+    def ~>(rhs: StoreSpec): UnarySig = UnarySig(lhs, rhs)
   }
   
-  final implicit class BinaryStoreOps(val lhs: (Store, Store)) extends AnyVal {
-    def ~>(rhs: Store): BinarySig = BinarySig(lhs, rhs)
+  final implicit class BinaryStoreOps(val lhs: (StoreSpec, StoreSpec)) extends AnyVal {
+    def ~>(rhs: StoreSpec): BinarySig = BinarySig(lhs, rhs)
   }
   
-  final implicit class NaryStoreOps(val lhs: Seq[Store]) extends AnyVal {
-    def ~>(rhs: Store): NarySig = NarySig(lhs, rhs)
+  final implicit class NaryStoreOps(val lhs: Seq[StoreSpec]) extends AnyVal {
+    def ~>(rhs: StoreSpec): NarySig = NarySig(lhs, rhs)
   }
 }

@@ -1,7 +1,6 @@
 package loamstream.apps.minimal
 
 import loamstream.Sigs
-import loamstream.model.Store
 import loamstream.model.StoreSpec
 import loamstream.model.kinds.StoreKinds
 import loamstream.model.values.LType.LSampleId
@@ -13,13 +12,13 @@ import loamstream.tools.core.CoreStore
   */
 object MiniMockStore {
 
-  val genotypesCassandraTable: Store = CoreStore(
-      "Cassandra genotype calls table", 
-      StoreSpec(Sigs.variantAndSampleToGenotype, StoreKinds.genotypesCassandraTable))
+  val genotypesCassandraTable: StoreSpec = {
+    StoreSpec(Sigs.variantAndSampleToGenotype, StoreKinds.genotypesCassandraTable)
+  }
       
-  val sampleIdsCassandraTable: Store = CoreStore(
-      "Cassandra sample ids table.", 
-      StoreSpec(Sigs.setOf(LSampleId), StoreKinds.sampleIdsCassandraTable))
+  val sampleIdsCassandraTable: StoreSpec = {
+    StoreSpec(Sigs.setOf(LSampleId), StoreKinds.sampleIdsCassandraTable)
+  }
 
-  val stores = Set[Store](genotypesCassandraTable, sampleIdsCassandraTable)
+  val stores = Set[StoreSpec](genotypesCassandraTable, sampleIdsCassandraTable)
 }

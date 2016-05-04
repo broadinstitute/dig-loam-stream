@@ -16,18 +16,18 @@ final class SpecRelationsTest extends FunSuite {
   //some pipeline.  This way, (valid) changes to pipelines won't break this test 
   test("Various relations between store and tool specs are false as expected") {
     val genotypeId = LCoreDefaultStoreIds.genotypes
-    assertResult(false)(CoreStore.vcfFile.spec <:< MiniMockStore.genotypesCassandraTable.spec)
+    assertResult(false)(CoreStore.vcfFile <:< MiniMockStore.genotypesCassandraTable)
     assertResult(false)(
       CoreTool.checkPreExistingVcfFile(genotypeId).spec <:<
         MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec)
-    assertResult(false)(MiniMockStore.genotypesCassandraTable.spec <:< CoreStore.vcfFile.spec)
+    assertResult(false)(MiniMockStore.genotypesCassandraTable <:< CoreStore.vcfFile)
     assertResult(false)(
       MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <:<
         CoreTool.checkPreExistingVcfFile(genotypeId).spec)
-    assertResult(false)(CoreStore.sampleIdsFile.spec <:< MiniMockStore.sampleIdsCassandraTable.spec)
+    assertResult(false)(CoreStore.sampleIdsFile <:< MiniMockStore.sampleIdsCassandraTable)
     assertResult(false)(
       CoreTool.extractSampleIdsFromVcfFile.spec <:< MiniMockTool.extractSampleIdsFromCassandraTable.spec)
-    assertResult(false)(MiniMockStore.sampleIdsCassandraTable.spec <:< CoreStore.sampleIdsFile.spec)
+    assertResult(false)(MiniMockStore.sampleIdsCassandraTable <:< CoreStore.sampleIdsFile)
     assertResult(false)(
       MiniMockTool.extractSampleIdsFromCassandraTable.spec <:< CoreTool.extractSampleIdsFromVcfFile.spec)
   }
@@ -39,9 +39,9 @@ final class SpecRelationsTest extends FunSuite {
     
     val pipeline = MiniPipeline(genotypeId)
     
-    assert(CoreStore.vcfFile.spec.sig =:= pipeline.genotypeCallsStore.spec.sig)
-    assert(CoreStore.vcfFile.spec <:< pipeline.genotypeCallsStore.spec)
-    assert(CoreStore.sampleIdsFile.spec <:< pipeline.sampleIdsStore.spec)
+    assert(CoreStore.vcfFile.sig =:= pipeline.genotypeCallsStore.sig)
+    assert(CoreStore.vcfFile <:< pipeline.genotypeCallsStore)
+    assert(CoreStore.sampleIdsFile <:< pipeline.sampleIdsStore)
     assert(CoreTool.checkPreExistingVcfFile(genotypeId).spec <<< pipeline.genotypeCallsTool.spec)
     //TODO: Revisit this
     //assert(MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <<< pipeline.genotypeCallsTool.spec)

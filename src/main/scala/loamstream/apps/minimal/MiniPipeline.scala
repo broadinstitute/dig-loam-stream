@@ -1,7 +1,7 @@
 package loamstream.apps.minimal
 
 import loamstream.model.LPipeline
-import loamstream.model.Store
+import loamstream.model.StoreSpec
 import loamstream.model.Tool
 import loamstream.tools.core.CoreTool
 
@@ -12,13 +12,13 @@ import loamstream.tools.core.CoreTool
 case class MiniPipeline(genotypesId: String) extends LPipeline {
   val genotypeCallsTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
   
-  val genotypeCallsStore: Store = genotypeCallsTool.output
+  val genotypeCallsStore: StoreSpec = genotypeCallsTool.output
   
   val sampleIdsTool: Tool = CoreTool.extractSampleIdsFromVcfFile
 
-  val sampleIdsStore: Store = sampleIdsTool.output
+  val sampleIdsStore: StoreSpec = sampleIdsTool.output
   
   override val tools: Set[Tool] = Set(genotypeCallsTool, sampleIdsTool)
   
-  override def stores: Set[Store] = tools.map(_.output)
+  override def stores: Set[StoreSpec] = tools.map(_.output)
 }

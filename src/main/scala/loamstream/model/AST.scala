@@ -32,13 +32,9 @@ final case class AST(output: StoreSpec, inputs: Set[AST]) {
 }
 
 object AST {
-  def apply(output: Store): AST = apply(output.spec)
-
   def apply(output: StoreSpec): AST = AST(output, Set.empty[AST])
 
-  def apply(output: Store, inputs: Set[AST]): AST = AST(output.spec, inputs)
-  
-  def apply(tool: Tool): AST = apply(tool.output.spec)
+  def apply(tool: Tool): AST = apply(tool.output)
 
   object Implicits {
     final implicit class IterableOps(val tools: Iterable[Tool]) extends AnyVal {
@@ -83,9 +79,9 @@ object AST {
       for {
         terminal <- findTerminalTool(pipeline)
       } yield {
-        val byOutput: Map[StoreSpec, Set[Tool]] = pipeline.tools.groupBy(_.output.spec)
+        val byOutput: Map[StoreSpec, Set[Tool]] = pipeline.tools.groupBy(_.output)
 
-        astFor(byOutput)(terminal.output.spec)
+        astFor(byOutput)(terminal.output)
       }
     }
   }
@@ -125,7 +121,7 @@ object AST {
     val toolOption = byOutput.get(toolOutput).flatMap(_.headOption)
 
     def toInteriorNode(tool: Tool) = {
-      val inputSpecs = tool.inputs.map(_.spec).toSet
+      val inputSpecs = tool.inputs.toSet
 
       AST(tool.output, inputSpecs.map(astFor(byOutput)))
     }

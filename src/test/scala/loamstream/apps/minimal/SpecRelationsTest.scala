@@ -1,10 +1,15 @@
 package loamstream.apps.minimal
 
-import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultStoreIds}
+import loamstream.tools.core.{CoreStoreSpec, CoreToolSpec, LCoreDefaultStoreIds}
 import loamstream.util.Loggable
 import org.scalatest.FunSuite
 import loamstream.model.kinds.LSpecificKind
 import loamstream.model.kinds.StoreKinds
+import loamstream.model.StoreSpec
+import loamstream.Sigs
+import loamstream.model.values.LType
+import loamstream.tools.core.StoreOps
+import loamstream.model.ToolSpec
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -16,20 +21,20 @@ final class SpecRelationsTest extends FunSuite {
   //some pipeline.  This way, (valid) changes to pipelines won't break this test 
   test("Various relations between store and tool specs are false as expected") {
     val genotypeId = LCoreDefaultStoreIds.genotypes
-    assertResult(false)(CoreStore.vcfFile.spec <:< MiniMockStore.genotypesCassandraTable.spec)
+    assertResult(false)(CoreStoreSpec.vcfFile <:< MiniMockStore.genotypesCassandraTable)
     assertResult(false)(
-      CoreTool.checkPreExistingVcfFile(genotypeId).spec <:<
-        MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec)
-    assertResult(false)(MiniMockStore.genotypesCassandraTable.spec <:< CoreStore.vcfFile.spec)
+      CoreToolSpec.checkPreExistingVcfFile(genotypeId) <:<
+        MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId))
+    assertResult(false)(MiniMockStore.genotypesCassandraTable <:< CoreStoreSpec.vcfFile)
     assertResult(false)(
-      MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <:<
-        CoreTool.checkPreExistingVcfFile(genotypeId).spec)
-    assertResult(false)(CoreStore.sampleIdsFile.spec <:< MiniMockStore.sampleIdsCassandraTable.spec)
+      MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId) <:<
+        CoreToolSpec.checkPreExistingVcfFile(genotypeId))
+    assertResult(false)(CoreStoreSpec.sampleIdsFile <:< MiniMockStore.sampleIdsCassandraTable)
     assertResult(false)(
-      CoreTool.extractSampleIdsFromVcfFile.spec <:< MiniMockTool.extractSampleIdsFromCassandraTable.spec)
-    assertResult(false)(MiniMockStore.sampleIdsCassandraTable.spec <:< CoreStore.sampleIdsFile.spec)
+      CoreToolSpec.extractSampleIdsFromVcfFile <:< MiniMockTool.extractSampleIdsFromCassandraTable)
+    assertResult(false)(MiniMockStore.sampleIdsCassandraTable <:< CoreStoreSpec.sampleIdsFile)
     assertResult(false)(
-      MiniMockTool.extractSampleIdsFromCassandraTable.spec <:< CoreTool.extractSampleIdsFromVcfFile.spec)
+      MiniMockTool.extractSampleIdsFromCassandraTable <:< CoreToolSpec.extractSampleIdsFromVcfFile)
   }
 
   //TODO: Revisit this test to make them test specific specs, not ones obtained via
@@ -39,15 +44,15 @@ final class SpecRelationsTest extends FunSuite {
     
     val pipeline = MiniPipeline(genotypeId)
     
-    assert(CoreStore.vcfFile.spec.sig =:= pipeline.genotypeCallsStore.spec.sig)
-    assert(CoreStore.vcfFile.spec <:< pipeline.genotypeCallsStore.spec)
-    assert(CoreStore.sampleIdsFile.spec <:< pipeline.sampleIdsStore.spec)
-    assert(CoreTool.checkPreExistingVcfFile(genotypeId).spec <<< pipeline.genotypeCallsTool.spec)
+    assert(CoreStoreSpec.vcfFile.sig =:= pipeline.genotypeCallsStore.sig)
+    assert(CoreStoreSpec.vcfFile <:< pipeline.genotypeCallsStore)
+    assert(CoreStoreSpec.sampleIdsFile <:< pipeline.sampleIdsStore)
+    assert(CoreToolSpec.checkPreExistingVcfFile(genotypeId) <<< pipeline.genotypeCallsTool)
     //TODO: Revisit this
-    //assert(MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <<< pipeline.genotypeCallsTool.spec)
-    assert(CoreTool.extractSampleIdsFromVcfFile.spec <<< pipeline.sampleIdsTool.spec)
+    //assert(MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId) <<< pipeline.genotypeCallsTool)
+    assert(CoreToolSpec.extractSampleIdsFromVcfFile <<< pipeline.sampleIdsTool)
     //TODO: Revisit this
-    //assert(MiniMockTool.extractSampleIdsFromCassandraTable.spec <<< pipeline.sampleIdsTool.spec)
+    //assert(MiniMockTool.extractSampleIdsFromCassandraTable <<< pipeline.sampleIdsTool)
   }
   
   test("StoreKind relationships") {
@@ -77,5 +82,37 @@ final class SpecRelationsTest extends FunSuite {
     
     assert(sampleIds hasSubKind sampleIdsFile)
     assert(sampleIds hasSubKind sampleIdsCassandraTable)
+  }
+  
+  private object MiniMockStore {
+    import LType._
+    
+    val genotypesCassandraTable: StoreSpec = {
+      StoreSpec(Sigs.variantAndSampleToGenotype, StoreKinds.genotypesCassandraTable)
+    }
+      
+    val sampleIdsCassandraTable: StoreSpec = {
+      StoreSpec(Sigs.setOf(LSampleId), StoreKinds.sampleIdsCassandraTable)
+    }
+
+    val stores = Set[StoreSpec](genotypesCassandraTable, sampleIdsCassandraTable)
+  }
+  
+  private object MiniMockTool {
+    import StoreOps._
+
+    def checkPreExistingGenotypeCassandraTable(tableId: String): ToolSpec = {
+      ToolSpec.preExistingCheckout(tableId)(MiniMockStore.genotypesCassandraTable)
+    }
+ 
+    val extractSampleIdsFromCassandraTable: ToolSpec = {
+      (MiniMockStore.genotypesCassandraTable ~> MiniMockStore.sampleIdsCassandraTable).as {
+        ToolSpec.keyExtraction(StoreKinds.sampleKeyIndexInGenotypes)
+      }
+    }
+ 
+    def tools(tableId: String): Set[ToolSpec] = {
+      Set(checkPreExistingGenotypeCassandraTable(tableId), extractSampleIdsFromCassandraTable)
+    } 
   }
 }

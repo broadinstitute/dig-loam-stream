@@ -1,8 +1,6 @@
 package loamstream.model
 
 import loamstream.model.kinds.LKind
-import loamstream.model.values.LType.LTuple.LTuple1
-import loamstream.tools.core.CoreStore
 
 /**
   * LoamStream
@@ -10,30 +8,22 @@ import loamstream.tools.core.CoreStore
   */
 object LPipelineOps {
 
-  def extractKeyStore(inputStore: Store, index: Int, kind: LKind): Store = {
+  def extractKeyStore(inputStore: StoreSpec, index: Int, kind: LKind): StoreSpec = {
     //TODO: NB: Fragile, what if no type at index?
-    val keyType = inputStore.spec.sig.keyTypes.asSeq(index)
+    val keyType = inputStore.sig.keyTypes.asSeq(index)
     
-    CoreStore("Extract Keys", LSig.Set.of(keyType), kind)
+    StoreSpec(LSig.Set.of(keyType), kind)
   }
 
-  def extractKeyTool(inputStore: Store, index: Int, outputStore: Store): Tool = {
-    Tool.keyExtraction(inputStore, outputStore, index)
+  def extractKeyTool(inputStore: StoreSpec, index: Int, outputStore: StoreSpec): ToolSpec = {
+    ToolSpec.keyExtraction(index)(inputStore, outputStore)
   }
 
-  def extractKey(inputStore: Store, index: Int, outputStore: Store, kind: LKind): (Store, Tool) = {
-    val outputStore = extractKeyStore(inputStore, index, kind)
+  def extractKey(inputStore: StoreSpec, index: Int, outputStoreSpec: StoreSpec, kind: LKind): (StoreSpec, ToolSpec) = {
+    val outputStoreSpec = extractKeyStore(inputStore, index, kind)
     
-    val tool = extractKeyTool(inputStore, index, outputStore)
+    val toolSpec = extractKeyTool(inputStore, index, outputStoreSpec)
     
-    (outputStore, tool)
-  }
-
-  def importVcfTool(inputStore: Store, index: Int, outputStore: Store): Tool = {
-    Tool.vcfImport(inputStore, outputStore, index)
-  }
-
-  def calculateSingletonsTool(inputStore: Store, index: Int, outputStore: Store): Tool = {
-    Tool.singletonCalculation(inputStore, outputStore, index)
+    (outputStoreSpec, toolSpec)
   }
 }

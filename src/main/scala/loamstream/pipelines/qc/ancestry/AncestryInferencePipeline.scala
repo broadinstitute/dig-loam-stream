@@ -1,14 +1,10 @@
 package loamstream.pipelines.qc.ancestry
 
-import loamstream.Sigs
-
 import loamstream.model.LPipeline
-import loamstream.model.Store
-import loamstream.model.Tool
+import loamstream.model.StoreSpec
+import loamstream.model.ToolSpec
 import loamstream.model.values.LType._
-import loamstream.tools.core.CoreStore
-import loamstream.tools.core.CoreTool
-import loamstream.model.kinds.ToolKinds
+import loamstream.tools.core.CoreToolSpec
 
 
 /**
@@ -17,23 +13,23 @@ import loamstream.model.kinds.ToolKinds
   */
 case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) extends LPipeline {
 
-  val genotypesTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
+  val genotypesTool: ToolSpec = CoreToolSpec.checkPreExistingVcfFile(genotypesId)
   
-  val pcaWeightsTool: Tool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
+  val pcaWeightsTool: ToolSpec = CoreToolSpec.checkPreExistingPcaWeightsFile(pcaWeightsId)
   
-  val pcaProjectionTool: Tool = CoreTool.projectPca
+  val pcaProjectionTool: ToolSpec = CoreToolSpec.projectPca
   
-  val sampleClusteringTool: Tool = CoreTool.clusteringSamplesByFeatures
+  val sampleClusteringTool: ToolSpec = CoreToolSpec.clusteringSamplesByFeatures
   
-  val genotypesStore: Store = genotypesTool.output
+  val genotypesStore: StoreSpec = genotypesTool.output
 
-  val pcaWeightsStore: Store = pcaWeightsTool.output
+  val pcaWeightsStore: StoreSpec = pcaWeightsTool.output
   
-  val projectedValsStore: Store = pcaProjectionTool.output
+  val projectedValsStore: StoreSpec = pcaProjectionTool.output
   
-  val sampleClustersStore: Store = sampleClusteringTool.output
+  val sampleClustersStore: StoreSpec = sampleClusteringTool.output
 
-  override def stores: Set[Store] = tools.map(_.output)
+  override def stores: Set[StoreSpec] = tools.map(_.output)
   
-  override val tools: Set[Tool] = Set(genotypesTool, pcaWeightsTool, pcaProjectionTool, sampleClusteringTool)
+  override val tools: Set[ToolSpec] = Set(genotypesTool, pcaWeightsTool, pcaProjectionTool, sampleClusteringTool)
 }

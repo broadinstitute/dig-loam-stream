@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import org.scalatest.{BeforeAndAfter, FunSuite}
 
-import loamstream.apps.minimal.{MiniExecuter, MiniMockToolBox}
+import loamstream.apps.minimal.MiniExecuter
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.util.FileAsker
 import loamstream.util.Hit
@@ -47,7 +47,7 @@ final class AncestryInferenceEndToEndTest extends FunSuite with BeforeAndAfter {
     
     val pipeline = AncestryInferencePipeline(genotypesId, pcaWeightsId)
     
-    val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
+    val toolbox = CoreToolBox(env)
 
     val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionTool, pipeline)
     

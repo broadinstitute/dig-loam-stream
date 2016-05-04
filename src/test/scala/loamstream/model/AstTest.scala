@@ -20,7 +20,7 @@ final class AstTest extends FunSuite {
     
     val expected = {
       AST(pipeline.sampleIdsTool.output).dependsOn {
-        AST(pipeline.genotypeCallsTool.output.spec)
+        AST(pipeline.genotypeCallsTool.output)
       }
     }
     
@@ -184,8 +184,8 @@ final class AstTest extends FunSuite {
   }
   
   test("findTerminalTool") {
-    final case class ExplicitPipeline(tools: Set[Tool]) extends LPipeline {
-      override def stores: Set[Store] = tools.map(_.output)
+    final case class ExplicitPipeline(tools: Set[ToolSpec]) extends LPipeline {
+      override def stores: Set[StoreSpec] = tools.map(_.output)
     }
     
     import AST.findTerminalTool
@@ -210,22 +210,22 @@ final class AstTest extends FunSuite {
   test("astFor") {
     val pipeline = AncestryInferencePipeline("foo", "bar")
     
-    val byOutput: Map[StoreSpec, Set[Tool]] = pipeline.tools.groupBy(_.output.spec)
+    val byOutput: Map[StoreSpec, Set[ToolSpec]] = pipeline.tools.groupBy(_.output)
     
-    def astFor(tool: Tool) = AST.astFor(byOutput)(tool.output.spec)
+    def astFor(tool: ToolSpec) = AST.astFor(byOutput)(tool.output)
     
     import pipeline._
     
-    assert(astFor(genotypesTool) === AST(genotypesTool.output.spec, Set.empty[AST]))
+    assert(astFor(genotypesTool) === AST(genotypesTool.output, Set.empty[AST]))
     
-    assert(astFor(pcaWeightsTool) === AST(pcaWeightsTool.output.spec, Set.empty[AST]))
+    assert(astFor(pcaWeightsTool) === AST(pcaWeightsTool.output, Set.empty[AST]))
     
-    val expected1 = AST(pcaProjectionTool.output.spec, Set(
-        AST(genotypesTool.output.spec, Set.empty[AST]),
-        AST(pcaWeightsTool.output.spec, Set.empty[AST])))
+    val expected1 = AST(pcaProjectionTool.output, Set(
+        AST(genotypesTool.output, Set.empty[AST]),
+        AST(pcaWeightsTool.output, Set.empty[AST])))
     
     assert(astFor(pcaProjectionTool) === expected1)
     
-    assert(astFor(sampleClusteringTool) === AST(sampleClusteringTool.output.spec, Set(expected1)))
+    assert(astFor(sampleClusteringTool) === AST(sampleClusteringTool.output, Set(expected1)))
   }
 }

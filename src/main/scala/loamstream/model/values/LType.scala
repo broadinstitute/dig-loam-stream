@@ -112,6 +112,8 @@ object LType {
       override def asSeq: Seq[LType[_]] = Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10)
     }
 
+    //scalastyle:off number.of.types
+
     case class LTuple11[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10,
     T11](type1: LType[T1], type2: LType[T2], type3: LType[T3], type4: LType[T4], type5: LType[T5], type6: LType[T6],
          type7: LType[T7], type8: LType[T8], type9: LType[T9], type10: LType[T10], type11: LType[T11])
@@ -236,6 +238,8 @@ object LType {
         Seq(type1, type2, type3, type4, type5, type6, type7, type8, type9, type10, type11, type12, type13, type14,
           type15, type16, type17, type18, type19, type20, type21, type22)
     }
+
+    //scalastyle:on number.of.types
 
   }
 

@@ -8,19 +8,6 @@ import scala.util.{Failure, Success, Try}
   * LoamStream
   * Created by oliverr on 11/17/2015.
   */
-object Shot {
-  def fromTry[A](myTry: Try[A]): Shot[A] =
-    myTry match {
-      case Success(a) => Hit(a)
-      case Failure(ex) => Miss(Snag(ex))
-    }
-
-  def fromOption[A](option: Option[A], snag: Snag): Shot[A] = option match {
-    case Some(a) => Hit(a)
-    case None => Miss(snag)
-  }
-}
-
 sealed trait Shot[+A] {
   def get: A
 
@@ -35,8 +22,21 @@ sealed trait Shot[+A] {
   def and[B](shotB: Shot[B]): Shots2[A, B] = Shots2(this, shotB)
 }
 
+object Shot {
+  def fromTry[A](myTry: Try[A]): Shot[A] =
+    myTry match {
+      case Success(a) => Hit(a)
+      case Failure(ex) => Miss(Snag(ex))
+    }
+
+  def fromOption[A](option: Option[A], snag: => Snag): Shot[A] = option match {
+    case Some(a) => Hit(a)
+    case None => Miss(snag)
+  }
+}
+
 case class Hit[+A](value: A) extends Shot[A] {
-  override val get = value
+  override val get: A = value
 
   override def map[B](f: (A) => B): Shot[B] = Hit(f(value))
 
@@ -57,7 +57,7 @@ object Miss {
 }
 
 case class Miss(snag: Snag) extends Shot[Nothing] {
-  override def get: Nothing = throw new NoSuchElementException("No such element: " + snag.message)
+  override def get: Nothing = throw new NoSuchElementException(s"No such element: ${snag.message}")
 
   override def map[B](f: (Nothing) => B): Shot[B] = Miss(snag)
 

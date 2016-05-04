@@ -16,7 +16,7 @@ import loamstream.model.kinds.LKind
   * @author Clint
   */
 //TODO rename? ConcreteStore?  
-object CoreStore {
+object CoreStoreSpec {
 
   def apply(name: String, sig: LSig, kind: LKind): StoreSpec = StoreSpec(sig, kind)
   

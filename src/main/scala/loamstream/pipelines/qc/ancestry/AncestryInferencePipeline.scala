@@ -4,7 +4,7 @@ import loamstream.model.LPipeline
 import loamstream.model.StoreSpec
 import loamstream.model.ToolSpec
 import loamstream.model.values.LType._
-import loamstream.tools.core.CoreTool
+import loamstream.tools.core.CoreToolSpec
 
 
 /**
@@ -13,13 +13,13 @@ import loamstream.tools.core.CoreTool
   */
 case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) extends LPipeline {
 
-  val genotypesTool: ToolSpec = CoreTool.checkPreExistingVcfFile(genotypesId)
+  val genotypesTool: ToolSpec = CoreToolSpec.checkPreExistingVcfFile(genotypesId)
   
-  val pcaWeightsTool: ToolSpec = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
+  val pcaWeightsTool: ToolSpec = CoreToolSpec.checkPreExistingPcaWeightsFile(pcaWeightsId)
   
-  val pcaProjectionTool: ToolSpec = CoreTool.projectPca
+  val pcaProjectionTool: ToolSpec = CoreToolSpec.projectPca
   
-  val sampleClusteringTool: ToolSpec = CoreTool.clusteringSamplesByFeatures
+  val sampleClusteringTool: ToolSpec = CoreToolSpec.clusteringSamplesByFeatures
   
   val genotypesStore: StoreSpec = genotypesTool.output
 

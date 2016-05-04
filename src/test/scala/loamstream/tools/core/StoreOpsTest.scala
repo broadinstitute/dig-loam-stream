@@ -10,7 +10,7 @@ import loamstream.model.kinds.LAnyKind
  * date: Apr 29, 2016
  */
 final class StoreOpsTest extends FunSuite {
-  import CoreStore._
+  import CoreStoreSpec._
   import StoreOps._
   
   test("~>") {

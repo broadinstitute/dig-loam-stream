@@ -9,8 +9,8 @@ import loamstream.model.ToolSpec
  * date: May 4, 2016
  */
 final class CoreToolTest extends FunSuite {
-  import CoreTool._
-  import CoreStore._
+  import CoreToolSpec._
+  import CoreStoreSpec._
   import StoreOps._
   
   private val kind = LSpecificKind("foo")

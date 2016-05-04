@@ -1,8 +1,9 @@
 package loamstream.model
 
 import org.scalatest.FunSuite
-import loamstream.apps.minimal.MiniPipeline
+
 import loamstream.apps.hail.HailPipeline
+import loamstream.apps.minimal.MiniPipeline
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 
 /**

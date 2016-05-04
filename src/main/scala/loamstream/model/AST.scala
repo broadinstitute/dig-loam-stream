@@ -1,12 +1,8 @@
 package loamstream.model
 
 import scala.util.Try
+
 import loamstream.util.Tries
-import loamstream.model.kinds.LKind
-import loamstream.model.kinds.LAnyKind
-import loamstream.model.kinds.LSpecificKind
-import loamstream.model.values.LType
-import loamstream.util.Functions
 
 /**
  * @author clint

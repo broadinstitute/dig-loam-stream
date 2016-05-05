@@ -9,7 +9,7 @@ import play.api.mvc.{Action, AnyContent, Controller}
 class WebController extends Controller {
 
   def index: Action[AnyContent] = Action {
-    Ok("It works!")
+    Ok(loamstream.web.views.html.Application.index())
   }
 
 }

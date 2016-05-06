@@ -6,20 +6,20 @@ import scala.util.Random
   * LoamStream
   * Created by oliverr on 2/26/2016.
   */
+sealed trait LId
+
 object LId {
 
   trait Owner {
     def id: LId
   }
 
-  case class LNamedId(name: String) extends LId
+  final case class LNamedId(name: String) extends LId
 
-  case class LAnonId(time: Long, random: Long) extends LId
+  final case class LAnonId(time: Long, random: Long) extends LId
 
-  val random = new Random
+  private val random = new Random
 
   def newAnonId: LAnonId = LAnonId(System.currentTimeMillis, random.nextLong())
 
 }
-
-sealed trait LId

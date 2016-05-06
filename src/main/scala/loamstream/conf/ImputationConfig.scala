@@ -12,6 +12,7 @@ case class ImputationConfig(configFile: String) {
   val imputationConfig = ConfigFactory.parseFile(new File(configFile))
   val props = TypesafeConfigLproperties(ConfigFactory.load(imputationConfig))
   val shapeItBaseKey = "imputation.shapeit"
+  val shapeItWorkDirKey = s"$shapeItBaseKey.workDir"
   val shapeItExecutableKey = s"$shapeItBaseKey.executable"
   val shapeItVcfFileKey = s"$shapeItBaseKey.vcfFile"
   val shapeItMapFileKey = s"$shapeItBaseKey.mapFile"
@@ -20,11 +21,12 @@ case class ImputationConfig(configFile: String) {
   val shapeItLogFileKey = s"$shapeItBaseKey.logFile"
   val shapeItNumThreadsKey = s"$shapeItBaseKey.numThreads"
 
+  val shapeItWorkDir = props.getString(shapeItWorkDirKey).get
   val shapeItExecutable = props.getString(shapeItExecutableKey).get
-  val shapeItVcfFile = props.getString(shapeItVcfFileKey).get
-  val shapeItMapFile = props.getString(shapeItMapFileKey).get
-  val shapeItHapFile = props.getString(shapeItHapFileKey).get
-  val shapeItSampleFile = props.getString(shapeItSampleFileKey).get
-  val shapeItLogFile = props.getString(shapeItLogFileKey).get
+  val shapeItVcfFile = shapeItWorkDir + props.getString(shapeItVcfFileKey).get
+  val shapeItMapFile = shapeItWorkDir + props.getString(shapeItMapFileKey).get
+  val shapeItHapFile = shapeItWorkDir + props.getString(shapeItHapFileKey).get
+  val shapeItSampleFile = shapeItWorkDir + props.getString(shapeItSampleFileKey).get
+  val shapeItLogFile = shapeItWorkDir + props.getString(shapeItLogFileKey).get
   val shapeItNumThreads = props.getString(shapeItNumThreadsKey).get
 }

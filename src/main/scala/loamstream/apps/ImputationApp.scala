@@ -1,41 +1,25 @@
 package loamstream.apps
 
+import java.nio.file.Paths
+
 import loamstream.apps.minimal.MiniExecuter
 import loamstream.conf.ImputationConfig
 import loamstream.model.execute.LExecutable
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.{SimpleSuccess, Result}
-import loamstream.tools.ImputationTools
+import loamstream.model.jobs.LCommandLineJob
+import loamstream.tools.LineCommand
 import loamstream.util.Loggable
-
-import scala.concurrent.{Future, ExecutionContext}
 
 /**
   * LoamStream
   * Created by kyuksel on 05/02/2016.
   */
 object ImputationApp extends Loggable {
-  final case class ShapeItJob(inputs: Set[LJob], configFile: String) extends LJob {
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      Future {
-        val config = ImputationConfig(configFile)
-        val shapeItExecutable = config.shapeItExecutable
-        val vcf = config.shapeItVcfFile
-        val map = config.shapeItMapFile
-        val haps = config.shapeItHapFile
-        val samples = config.shapeItSampleFile
-        val log = config.shapeItLogFile
-        val numThreads = config.shapeItNumThreads.toInt
-
-        val command = ImputationTools.getShapeItCmdLine(shapeItExecutable, vcf, map, haps, samples, log, numThreads)
-        ImputationTools.execute(command)
-        SimpleSuccess(s"Phased the VCF $vcf")
-      }
-    }
+  final case class ShapeItCommandLine(tokens: Seq[String]) extends LineCommand.CommandLine {
+    def commandLine = tokens.mkString(LineCommand.tokenSep)
   }
 
   // TODO: Replace with command line interface
-  def CheckIfArgsValid(args: Array[String]): Unit = {
+  def checkIfArgsValid(args: Array[String]): Unit = {
     val configHelpText = "Please provide path to config file in the form: --config <path> or -c <path>"
 
     var isArgsValid = false
@@ -54,13 +38,33 @@ object ImputationApp extends Loggable {
     }
   }
 
+  def getShapeItCmdLineTokens(shapeItExecutable: String, vcf: String, map: String, haps: String, samples: String,
+                              log: String,
+                              numThreads: Int = 1): Seq[String] = {
+    Seq(shapeItExecutable, "-V", vcf, "-M", map, "-O", haps, samples, "-L", log, "--thread", numThreads.toString)
+  }
+
   def main(args: Array[String]) {
-    CheckIfArgsValid(args)
+    checkIfArgsValid(args)
 
     trace("Attempting to run ShapeIt...")
 
     val configFile = args(1)
-    val shapeItJob = ShapeItJob(Set.empty, args(1))
+
+    val config = ImputationConfig(configFile)
+    val shapeItExecutable = config.shapeItExecutable
+    val shapeItWorkDir = config.shapeItWorkDir
+    val vcf = config.shapeItVcfFile
+    val map = config.shapeItMapFile
+    val haps = config.shapeItHapFile
+    val samples = config.shapeItSampleFile
+    val log = config.shapeItLogFile
+    val numThreads = config.shapeItNumThreads
+
+    val commandLine = ShapeItCommandLine(getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps,
+      samples, log, numThreads.toInt))
+    val shapeItJob = LCommandLineJob(commandLine, Paths.get(shapeItWorkDir), Set.empty)
+
     val executable = LExecutable(Set(shapeItJob))
     val result = MiniExecuter.execute(executable)
   }

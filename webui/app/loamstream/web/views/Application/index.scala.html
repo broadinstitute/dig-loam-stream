@@ -1,4 +1,4 @@
-@()
+@()(implicit request: RequestHeader)
 <html>
     <head>
         <title>LoamStream WebUI</title>
@@ -9,9 +9,20 @@
             background-color: black;
         }
         </style>
+        <script>
+            var socket = new WebSocket("@{loamstream.web.controllers.routes.WebController.socket.webSocketURL()}");
+            function sendText(text) {
+                socket.send(JSON.stringify({type : "text", text: text}))
+            }
+            function sendTextSample() {
+                sendText("Blub!")
+            }
+        </script>
     </head>
     <body>
         <h1>LoamStream WebUI</h1>
         <p>Hello World!</p>
+        <p><button type="button" onclick="sendTextSample()">Submit</button></p>
+        <p><textarea title="DSL Editor" rows="50" cols="100"></textarea></p>
     </body>
 </html>

@@ -13,7 +13,7 @@ import play.api.mvc.{Action, AnyContent, Controller, WebSocket}
   */
 class WebController @Inject()(implicit system: ActorSystem, materializer: Materializer) extends Controller {
 
-  def index: Action[AnyContent] = Action {
+  def index: Action[AnyContent] = Action { implicit request =>
     Ok(loamstream.web.views.html.Application.index())
   }
 

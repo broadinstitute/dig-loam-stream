@@ -1,1 +1,2 @@
-GET   /   loamstream.web.controllers.WebController.index
+GET   /         loamstream.web.controllers.WebController.index
+GET   /socket   loamstream.web.controllers.WebController.socket

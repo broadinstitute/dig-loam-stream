@@ -13,7 +13,9 @@ final class ShotTest extends FunSuite {
   private val toStr: Int => String = _.toString
   private val toInt: String => Int = _.toInt
   private val inc: Int => Int = _ + 1
-    
+
+  //scalastyle:off magic.number
+
   private val hit = Hit(42)
   
   private val snag = Snag("foo")
@@ -113,4 +115,6 @@ final class ShotTest extends FunSuite {
   test("Miss()") {
     assert(Miss("asdf") === Miss(SnagMessage("asdf")))
   }
+
+  //scalastyle:off magic.number
 }

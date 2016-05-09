@@ -44,6 +44,5 @@ lazy val root = (project in file("."))
     packageSummary in Windows := "LoamStream - Language for Omics Analysis Management",
     packageDescription := "A high level-language and runtime environment for large-scale omics analysis.",
     maintainer in Windows := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
-    maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
-    mainClass in Compile := Some("loamstream.apps.LapRunApp")
+    maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org"
   ).enablePlugins(JavaAppPackaging)

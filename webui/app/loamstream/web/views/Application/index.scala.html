@@ -12,16 +12,23 @@
         <script src="@{routes.Assets.at("javascripts/d3.min.js")}" type="text/javascript"></script>
         <script>
                 var socket = new WebSocket("@{loamstream.web.controllers.routes.WebController.socket.webSocketURL()}");
+                socket.onmessage = function (event) {
+                    receiveSocketMessage(event)
+                };
                 function sendText() {
                     var text = d3.select("textarea").property("value");
                     socket.send(JSON.stringify({type: "text", text: text}))
+                }
+                function receiveSocketMessage(socketMessage) {
+                    var data = JSON.parse(socketMessage.data);
+                    d3.select("#serverResponse").text("[" + data.type + "] " + data.message)
                 }
         </script>
     </head>
     <body>
         <h1>LoamStream WebUI</h1>
-        <p>Hello World!</p>
         <p><button type="button" onclick="sendText()">Submit</button></p>
+        <pre id="serverResponse">Write into the text area and click 'submit'.</pre>
         <p><textarea title="DSL Editor" rows="50" cols="100"></textarea></p>
     </body>
 </html>

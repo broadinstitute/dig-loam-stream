@@ -26,7 +26,7 @@ object ImputationApp extends Loggable {
     val longConfigOptionName = "--config"
     val shortConfigOptionName = "-c"
 
-    if (args.size != 2) {
+    if (args.length != 2) {
       error(configHelpText)
       System.exit(-1)
     }

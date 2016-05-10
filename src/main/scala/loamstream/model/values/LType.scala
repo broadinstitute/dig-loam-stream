@@ -264,6 +264,7 @@ object LType {
       override def asEncodeable: Shot[LTuple10 with LTypeEncodeable] = LTuple.asEncodeable[LTuple10](this)
     }
 
+    //scalastyle:off number.of.types
     case class LTuple11(type1: LType, type2: LType, type3: LType, type4: LType, type5: LType, type6: LType,
                         type7: LType, type8: LType, type9: LType, type10: LType, type11: LType)
       extends LTuple {
@@ -417,6 +418,8 @@ object LType {
 
       override def asEncodeable: Shot[LTuple22 with LTypeEncodeable] = LTuple.asEncodeable[LTuple22](this)
     }
+
+    //scalastyle:on number.of.types
 
   }
 

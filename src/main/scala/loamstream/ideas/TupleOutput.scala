@@ -1,4 +1,4 @@
-package loamstream.ideas
+/*package loamstream.ideas
 
 import loamstream.model.LSig
 import loamstream.model.kinds.LKind
@@ -8,10 +8,10 @@ import loamstream.model.values.LType
 import loamstream.Sigs
 import loamstream.model.kinds.StoreKinds
 
-/**
+*//**
  * @author clint
  * date: May 5, 2016
- */
+ *//*
 object Trees {
 
   //Trying out kind-less 'StoreSpec' that's just a sig
@@ -24,30 +24,44 @@ object Trees {
     }
   }
 
-  final case class AST(id: LId, spec: ToolSpec, inputs: Seq[AST] = Seq.empty) {
+  final case class NamedOutput(producer: AST, outputId: LId) {
+    def to(consumer: AST): AST = consumer.dependsOn(outputId, producer)
+    
+    def ~>(consumer: AST): AST = to(consumer)
+    
+    def to(consumers: Seq[NamedOutput]): Seq[AST] = consumers.map { consumer =>
+      val producer = consumer.producer
+      
+      producer.connect(outputId).to(producer))
+    }
+    
+    def ~>(consumers: Seq[NamedOutput]): Seq[AST] = to(consumers)
+    
+    def modify(f: AST => AST): NamedOutput = copy(f(producer), outputId)
+  }
+  
+  final case class AST(id: LId, spec: ToolSpec, inputs: Map[LId, AST] = Map.empty) {
     def isLeaf: Boolean = inputs.isEmpty
 
-    def dependsOn(dependencies: AST*): AST = copy(inputs = inputs ++ dependencies)
+    def dependsOn(inputId: LId, input: AST): AST = dependsOn(inputId -> input)
+    
+    def dependsOn(dependencies: (LId, AST)*): AST = copy(inputs = inputs ++ dependencies)
 
-    //NB: I had wanted to call this "andThen", but that can't be added as an extension method
-    //to Seqs of Tools/ASTs, since Seqs are functions and inherit a different method named andThen.
-    //I also considered "then", but that's now a reserved word. :\ -Clinid: LId, inputs: Seq[Execution]t
-    def thenRun(other: AST): AST = other.dependsOn(this)
-
-    def ~>(other: AST): AST = this.thenRun(other)
-
-    def ~>(others: Seq[AST]): Seq[AST] = others.map(other => this.thenRun(other))
+    def connect(outputId: LId): NamedOutput = NamedOutput(this, outputId)
+    
+    def output(outputId: LId): NamedOutput = connect(outputId)
   }
 
   object AST {
-    /*final implicit class ASTOps(val ast: AST) extends AnyVal {
+    final implicit class ASTOps(val ast: AST) extends AnyVal {
       
-    }*/
+    }
     
     final implicit class SeqOfASTsOps(val asts: Seq[AST]) extends AnyVal {
       def ~>(other: AST): AST = other.dependsOn(asts: _*)
       
       def ~>(others: Seq[AST]): Seq[AST] = {
+        //TODO: What if one seq is longer than the other? Will probably want to pass through "ends" of seqs.  But which one?  How to align seqs?  Will have to match on inputs/outputs.
         asts.zip(others).map { case (ast, other) => ast thenRun other }
       }
     }
@@ -100,12 +114,13 @@ object Trees {
 
     val ySpec = ToolSpec(kind = kind, inputs = Map(), outputs = Map(E -> sig, F -> sig, G -> sig))
 
-    val efg2tuv: Seq[AST] = Seq(
-        (eSpec as E) ~> (tSpec as T), 
-        (fSpec as E) ~> (uSpec as T), 
-        (gSpec as E) ~> (vSpec as T))
+    //val efg2tuv: Seq[AST] = 
     
-    val ast = (ySpec as Y) ~> efg2tuv ~> (hSpec as H) ~> (zSpec as Z)
+    val e2t = ((eSpec as E).output(E) ~> (tSpec as T)).output(outputId)
+    
+    val ast = (ySpec as Y).connect(Y) ~> Seq((eSpec as E) ~> (tSpec as T), 
+                                  (fSpec as F) ~> (uSpec as U), 
+                                  (gSpec as G) ~> (vSpec as V)) ~> (hSpec as H) ~> (zSpec as Z)
   }
 
   trait Reified[S] extends LId.Owner {
@@ -125,4 +140,4 @@ object Trees {
   final case class ExecutionNode(id: LId, inputs: Seq[Execution])
 
   final case class CompositeExecution(id: LId, inputs: Seq[Execution])
-}
+}*/

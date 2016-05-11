@@ -13,6 +13,8 @@ object ClientHandler extends SocketMessageHandler {
     inMessage match {
       case TextSubmitMessage(text) =>
         outMessageSink.send(ReceiptOutMessage(text))
+        val compiler = new LoamCompiler(outMessageSink)
+        val result = compiler.compile(text)
       case _ =>
         outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
     }

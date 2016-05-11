@@ -17,12 +17,12 @@ import loamstream.model.kinds.StoreKinds
   * LoamStream
   * Created by oliverr on 2/16/2016.
   */
-case class CoreTool(id: LId, spec: ToolSpec, inputs: Seq[Store], output: Store) extends Tool
+final case class CoreTool(id: LId, spec: ToolSpec, inputs: Seq[Store], outputs: Seq[Store]) extends Tool
 
 object CoreTool {
   
-  def apply(name: String, toolSpec: ToolSpec, inputs: Seq[Store], output: Store): CoreTool = {
-    CoreTool(LNamedId(name), toolSpec, inputs, output)
+  def apply(name: String, toolSpec: ToolSpec, inputs: Seq[Store], outputs: Seq[Store]): CoreTool = {
+    CoreTool(LNamedId(name), toolSpec, inputs, outputs)
   }
   
   import StoreOps._
@@ -82,7 +82,7 @@ object CoreTool {
   
   //TODO: TEST
   def nullaryTool(id: String, name: String, output: Store, makeToolSpec: StoreSpec => ToolSpec): Tool = {
-    CoreTool(name, makeToolSpec(output.spec), Seq.empty, output)
+    CoreTool(name, makeToolSpec(output.spec), Seq.empty, Seq(output))
   }
   
   //TODO: TEST
@@ -91,7 +91,7 @@ object CoreTool {
       name,
       makeToolSpec(sig.input.spec, sig.output.spec),
       Seq(sig.input),
-      sig.output)
+      Seq(sig.output))
   }
   
   //TODO: TEST
@@ -110,8 +110,8 @@ object CoreTool {
   def nAryTool(id: LId, kind: LKind, sig: NarySig): Tool = {
     CoreTool(
       id,
-      ToolSpec(kind, sig.inputs.map(_.spec), sig.output.spec),
+      ToolSpec(kind, sig.inputs.map(_.spec), sig.outputs.map(_.spec)),
       sig.inputs,
-      sig.output)
+      sig.outputs)
   }
 }

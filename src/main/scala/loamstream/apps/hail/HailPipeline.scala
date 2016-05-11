@@ -21,7 +21,7 @@ case class HailPipeline(genotypesId: String, vdsId: String, singletonsId: String
   
   val singletonTool: Tool = CoreTool.calculateSingletons
 
-  override def stores: Set[Store] = tools.map(_.output)
+  override def stores: Set[Store] = tools.flatMap(_.outputs)
   
   override val tools: Set[Tool] = Set(genotypeCallsTool, vdsTool, singletonTool)
 }

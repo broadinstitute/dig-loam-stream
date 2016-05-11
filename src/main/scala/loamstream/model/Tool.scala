@@ -15,7 +15,7 @@ trait Tool extends LId.Owner {
   
   def inputs: Seq[Store] 
   
-  def output: Store
+  def outputs: Seq[Store]
 }
 
 object Tool {

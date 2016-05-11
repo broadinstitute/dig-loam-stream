@@ -1,0 +1,44 @@
+package loamstream.web.parser
+
+import loamstream.util.{Miss, Shot}
+import loamstream.web.controllers.socket.CompilerOutMessage
+import loamstream.web.controllers.socket.CompilerOutMessage.Severity
+import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
+import loamstream.web.parser.LoamCompiler.CompilerReporter
+
+import scala.reflect.internal.util.Position
+import scala.tools.nsc.io.VirtualDirectory
+import scala.tools.nsc.reporters.Reporter
+import scala.tools.nsc.{Global, Settings}
+
+/**
+  * LoamStream
+  * Created by oliverr on 5/10/2016.
+  */
+object LoamCompiler {
+
+  class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
+    override protected def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
+      outMessageSink.send(CompilerOutMessage(pos, msg, Severity(severity.id), force))
+    }
+  }
+
+}
+
+class LoamCompiler(outMessageSink: OutMessageSink) {
+
+  val targetDirectoryName = "target"
+  val targetDirectoryParentOption = None
+  val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
+  val settings = new Settings()
+  settings.outputDirs.setSingleOutput(targetDirectory)
+  val reporter = new CompilerReporter(outMessageSink)
+  val compiler = new Global(settings, reporter)
+
+  trait Result
+
+  def compile(string: String): Shot[Result] = {
+    Miss("Parser is not yet implemented!")
+  }
+
+}

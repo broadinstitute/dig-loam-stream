@@ -1,5 +1,7 @@
 package loamstream.web.parser
 
+import java.io.File
+
 import loamstream.web.controllers.socket.CompilerOutMessage.Severity
 import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
 import loamstream.web.controllers.socket.{CompilerOutMessage, ErrorOutMessage}
@@ -32,8 +34,8 @@ class LoamCompiler(outMessageSink: OutMessageSink) {
   val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
   val settings = new Settings()
   settings.outputDirs.setSingleOutput(targetDirectory)
-  settings.embeddedDefaults[LoamCompiler]
-  settings.usejavacp.value = true
+  val sbtClasspath = System.getProperty("sbt-classpath")
+  settings.classpath.value = s".${File.pathSeparator}$sbtClasspath"
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new Global(settings, reporter)
 

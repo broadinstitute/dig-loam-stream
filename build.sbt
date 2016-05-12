@@ -1,3 +1,5 @@
+import java.io.File
+
 import sbt.project
 
 lazy val Versions = new {
@@ -47,10 +49,18 @@ lazy val root = (project in file("."))
     maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org"
   ).enablePlugins(JavaAppPackaging)
 
+val captureSbtClasspath = taskKey[Unit]("sbt-classpath")
+
 lazy val webui = (project in file("webui"))
   .dependsOn(root)
   .enablePlugins(PlayScala)
   .settings(commonSettings: _*)
   .settings(
+    captureSbtClasspath := {
+      val files: Seq[File] = (fullClasspath in Compile).value.files
+      val sbtClasspath: String = files.map(x => x.getAbsolutePath).mkString(File.pathSeparator)
+      println("Set SBT classpath to 'sbt-classpath' environment variable") // scalastyle:ignore
+      System.setProperty("sbt-classpath", sbtClasspath)
+    },
     name := "LoamStream WebUI"
   )

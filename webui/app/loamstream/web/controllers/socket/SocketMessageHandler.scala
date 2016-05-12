@@ -16,6 +16,6 @@ object SocketMessageHandler {
 
 trait SocketMessageHandler {
 
-  def handleInMessage(inMessage: SocketInMessage, outMessageSink : OutMessageSink)
+  def handleInMessage(inMessage: SocketInMessage)
 
 }

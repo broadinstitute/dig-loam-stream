@@ -1,16 +1,15 @@
 package loamstream.web.parser
 
-import loamstream.util.Miss
-import loamstream.web.controllers.socket.CompilerOutMessage
 import loamstream.web.controllers.socket.CompilerOutMessage.Severity
 import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
+import loamstream.web.controllers.socket.{CompilerOutMessage, ErrorOutMessage}
 import loamstream.web.parser.LoamCompiler.CompilerReporter
 
 import scala.reflect.internal.util.Position
 import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.Global
 import scala.tools.nsc.io.VirtualDirectory
-import scala.tools.nsc.reporters.Reporter
+import scala.tools.nsc.reporters.{ConsoleReporter, Reporter}
 
 /**
   * LoamStream
@@ -37,8 +36,7 @@ class LoamCompiler(outMessageSink: OutMessageSink) {
   val compiler = new Global(settings, reporter)
 
   def compile(codeString: String): Unit = {
-
-    Miss("Parser is not yet implemented!")
+    outMessageSink.send(ErrorOutMessage("Parser is not yet implemented!"))
   }
 
 }

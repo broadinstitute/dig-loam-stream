@@ -8,13 +8,13 @@ TextSubmitMessage}
   * LoamStream
   * Created by oliverr on 5/9/2016.
   */
-object ClientHandler extends SocketMessageHandler {
-  override def handleInMessage(inMessage: SocketInMessage, outMessageSink: OutMessageSink): Unit = {
+case class ClientHandler(outMessageSink: OutMessageSink) extends SocketMessageHandler {
+  override def handleInMessage(inMessage: SocketInMessage): Unit = {
     inMessage match {
       case TextSubmitMessage(text) =>
         outMessageSink.send(ReceiptOutMessage(text))
         val compiler = new LoamCompiler(outMessageSink)
-        val result = compiler.compile(text)
+        compiler.compile(text)
       case _ =>
         outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
     }

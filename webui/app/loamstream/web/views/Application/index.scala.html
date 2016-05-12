@@ -21,14 +21,15 @@
                 }
                 function receiveSocketMessage(socketMessage) {
                     var data = JSON.parse(socketMessage.data);
-                    d3.select("#serverResponse").text("[" + data.type + "] " + data.message)
+                    var responseText = d3.select("#serverResponse").text() + "\n[" + data.type + "] " + data.message;
+                    d3.select("#serverResponse").text(responseText)
                 }
         </script>
     </head>
     <body>
         <h1>LoamStream WebUI</h1>
         <p><button type="button" onclick="sendText()">Submit</button></p>
+        <p><textarea title="DSL Editor" rows="42" cols="100"></textarea></p>
         <pre id="serverResponse">Write into the text area and click 'submit'.</pre>
-        <p><textarea title="DSL Editor" rows="50" cols="100"></textarea></p>
     </body>
 </html>

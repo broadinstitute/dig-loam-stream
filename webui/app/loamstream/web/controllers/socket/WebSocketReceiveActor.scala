@@ -13,11 +13,14 @@ object WebSocketReceiveActor {
 }
 
 class WebSocketReceiveActor(sendActor: ActorRef) extends Actor with SocketMessageHandler.OutMessageSink {
+
+  val clientHandler = ClientHandler(this)
+
   override def receive: Receive = {
     case json: JsValue =>
       json.validate(SocketJsonReader) match {
         case JsSuccess(inMessage, _) =>
-          ClientHandler.handleInMessage(inMessage, this)
+          clientHandler.handleInMessage(inMessage)
         case error: JsError =>
           val outJson = Json.obj("type" -> "error", "error" -> JsError.toJson(error))
           sendActor ! outJson

@@ -32,6 +32,8 @@ class LoamCompiler(outMessageSink: OutMessageSink) {
   val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
   val settings = new Settings()
   settings.outputDirs.setSingleOutput(targetDirectory)
+  settings.embeddedDefaults[LoamCompiler]
+  settings.usejavacp.value = true
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new Global(settings, reporter)
 

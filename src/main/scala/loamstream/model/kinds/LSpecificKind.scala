@@ -14,6 +14,10 @@ object LSpecificKind {
 }
 
 case class LSpecificKind[T](specifics: LValue[T], supers: Set[LKind]) extends LKind {
+  override def toString: String = {
+    s"LSpecificKind($specifics extends ${supers.mkString(",")})"
+  }
+  
   override def <:<(oKind: LKind): Boolean = oKind match {
     case _ if oKind == this => true
     case LAnyKind => true

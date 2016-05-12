@@ -13,6 +13,9 @@ import loamstream.util.Maps
  * composing trees and tools.
  */
 final case class AST(toolSpec: ToolSpec, inputs: Set[AST]) {
+  //TODO
+  def id: LId = LId.newAnonId
+  
   def isLeaf: Boolean = inputs.isEmpty
 
   def dependsOn(dependencies: AST*): AST = copy(inputs = inputs ++ dependencies)

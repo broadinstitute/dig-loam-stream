@@ -48,6 +48,7 @@ object PipelineConsistencyChecker {
     override def message: String = s"Store ${store.id} is not produced by any tool."
   }
 
+  //TODO: TEST
   case object EachStoreIsOutputOfAtLeastOneToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
       (pipeline.stores -- pipeline.tools.flatMap(_.outputs)).map(StoreIsProducedByNoTool)
@@ -78,7 +79,7 @@ object PipelineConsistencyChecker {
 
   case object EachStoreIsCompatibleOutputOfToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      
+      //TODO: TEST
       pipeline.tools.filterNot { tool =>
         tool.outputs.map(_.spec).zip(tool.spec.outputs).forall {
           case (toolOutput, specOutput) => toolOutput >:> specOutput
@@ -112,6 +113,7 @@ object PipelineConsistencyChecker {
   }
 
   case object EachOutputStoreIsPresentCheck extends Check {
+    //TODO: TEST
     override def apply(pipeline: LPipeline): Set[Problem] = {
       def unspecifiedOutputsFor(tool: Tool): Seq[Store] = {
         tool.outputs.filterNot(pipeline.tools.flatMap(_.outputs).contains)
@@ -146,6 +148,7 @@ object PipelineConsistencyChecker {
   }
 
   case object ConnectednessCheck extends Check {
+    //TODO: TEST
     override def apply(pipeline: LPipeline): Set[Problem] = {
       pipeline.stores.headOption match {
         case Some(arbitraryStore) => {
@@ -174,6 +177,7 @@ object PipelineConsistencyChecker {
     override def message: String = s"Pipeline contains a cycle containing store ${store.id}."
   }
 
+  //TODO: TEST
   case object AcyclicityCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
       //TODO: Get rid of vars with a fold 

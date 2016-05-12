@@ -9,11 +9,12 @@ TextSubmitMessage}
   * Created by oliverr on 5/9/2016.
   */
 case class ClientHandler(outMessageSink: OutMessageSink) extends SocketMessageHandler {
+  val compiler = new LoamCompiler(outMessageSink)
+
   override def handleInMessage(inMessage: SocketInMessage): Unit = {
     inMessage match {
       case TextSubmitMessage(text) =>
         outMessageSink.send(ReceiptOutMessage(text))
-        val compiler = new LoamCompiler(outMessageSink)
         compiler.compile(text)
       case _ =>
         outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))

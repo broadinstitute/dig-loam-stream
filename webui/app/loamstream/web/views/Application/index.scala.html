@@ -13,23 +13,27 @@
         <script>
                 var socket = new WebSocket("@{loamstream.web.controllers.routes.WebController.socket.webSocketURL()}");
                 socket.onmessage = function (event) {
-                    receiveSocketMessage(event)
+                    receiveSocketMessage(event);
                 };
+                function serverResponseNode() {
+                    return d3.select("#serverResponse");
+                }
                 function sendText() {
                     var text = d3.select("textarea").property("value");
-                    socket.send(JSON.stringify({type: "text", text: text}))
+                    serverResponseNode().text("");
+                    socket.send(JSON.stringify({type: "text", text: text}));
                 }
                 function receiveSocketMessage(socketMessage) {
                     var data = JSON.parse(socketMessage.data);
-                    var responseText = d3.select("#serverResponse").text() + "\n[" + data.type + "] " + data.message;
-                    d3.select("#serverResponse").text(responseText)
+                    var responseText = serverResponseNode().text() + "\n[" + data.type + "] " + data.message;
+                    serverResponseNode().text(responseText);
                 }
         </script>
     </head>
     <body>
         <h1>LoamStream WebUI</h1>
         <p><button type="button" onclick="sendText()">Submit</button></p>
-        <p><textarea title="DSL Editor" rows="42" cols="100"></textarea></p>
         <pre id="serverResponse">Write into the text area and click 'submit'.</pre>
+        <p><textarea title="DSL Editor" rows="42" cols="100"></textarea></p>
     </body>
 </html>

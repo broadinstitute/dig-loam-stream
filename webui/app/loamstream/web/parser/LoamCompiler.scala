@@ -4,14 +4,14 @@ import java.io.File
 
 import loamstream.web.controllers.socket.CompilerOutMessage.Severity
 import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
-import loamstream.web.controllers.socket.{CompilerOutMessage, ErrorOutMessage}
+import loamstream.web.controllers.socket.{CompilerOutMessage, ErrorOutMessage, ReceiptOutMessage, StatusOutMessage}
 import loamstream.web.parser.LoamCompiler.CompilerReporter
 
-import scala.reflect.internal.util.Position
+import scala.reflect.internal.util.{BatchSourceFile, Position}
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.Global
+import scala.tools.nsc.interactive.{Global, Response}
 import scala.tools.nsc.io.VirtualDirectory
-import scala.tools.nsc.reporters.{ConsoleReporter, Reporter}
+import scala.tools.nsc.reporters.Reporter
 
 /**
   * LoamStream
@@ -38,9 +38,13 @@ class LoamCompiler(outMessageSink: OutMessageSink) {
   settings.classpath.value = s".${File.pathSeparator}$sbtClasspath"
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new Global(settings, reporter)
+  val sourceFileName = "Config.scala"
 
   def compile(codeString: String): Unit = {
-    outMessageSink.send(ErrorOutMessage("Parser is not yet implemented!"))
+    val sourceFile = new BatchSourceFile(sourceFileName, codeString)
+    val response = new Response[Unit]
+    compiler.askReload(List(sourceFile), response)
+    outMessageSink.send(StatusOutMessage(s"Compiler reloaded and we got response '$response'."))
   }
 
 }

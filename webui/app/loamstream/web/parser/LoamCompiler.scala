@@ -15,6 +15,7 @@ import scala.tools.nsc.interactive.{Global, Response}
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.util.{Failure, Success, Try}
+import scala.reflect.internal.Trees
 
 /**
   * LoamStream
@@ -54,21 +55,21 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
     s"there were $soManyErrors and $soManyWarnings"
   }
 
-  def sendOutResponse(responseValue: Try[Option[Either[Unit, Throwable]]]): Unit = {
+  def sendOutResponse(responseValue: Try[Option[Either[compiler.Tree, Throwable]]]): Unit = {
     val outMessageTextEnd = responseValue match {
-      case Success(Some(Left(_))) => s"completed and $soManyIssues (${reporter.ERROR.count})."
-      case Success(Some(Right(ex: InterruptedException))) => "was interrupted."
-      case Success(Some(Right(ex))) => "exception was packaged by Response.get: " + ex.getMessage
-      case Success(None) => "timed out."
-      case Failure(ex) => "exception was thrown by Response.get: " + ex.getMessage
+      case Success(Some(Left(_))) => s"There were $soManyIssues."
+      case Success(Some(Right(ex: InterruptedException))) => "Compiler was interrupted."
+      case Success(Some(Right(ex))) => "Packaged Exception: " + ex.getMessage
+      case Success(None) => "Compiler tried to reload and timed out."
+      case Failure(ex) => "Exception was thrown: " + ex.getMessage
     }
-    outMessageSink.send(StatusOutMessage("Compiler reloaded and " + outMessageTextEnd))
+    outMessageSink.send(StatusOutMessage(outMessageTextEnd))
   }
 
   def compile(codeString: String): Unit = {
     val sourceFile = new BatchSourceFile(sourceFileName, codeString)
-    val response = new Response[Unit]
-    compiler.askReload(List(sourceFile), response)
+    val response = new Response[compiler.Tree]
+    compiler.askLoadedTyped(sourceFile, response)
     val timeOutMs = 30000
     val responseFut = Future(blocking(response.get(timeOutMs)))
     responseFut.onComplete(sendOutResponse)

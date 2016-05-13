@@ -20,7 +20,8 @@ object LEnv {
   case class Key[V](name: String) extends KeyBase {
     def apply(value: V): Entry[V] = new Entry(this, value)
 
-    def ->(value: V): Entry[V] = new Entry(this, value)
+    def ->(value: V): Entry[V] = new Entry(this, value) // TODO remove this - ambiguous!
+    def :=(value: V): Entry[V] = new Entry(this, value)
   }
 
   def apply(entry: EntryBase, entries: EntryBase*): LMapEnv = LMapEnv((entry +: entries).toMap)

@@ -2,6 +2,7 @@ package loamstream.web.parser
 
 import java.io.File
 
+import loamstream.tools.core.LCoreEnv
 import loamstream.util.StringUtils
 import loamstream.web.controllers.socket.CompilerOutMessage.Severity
 import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
@@ -66,8 +67,10 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
     outMessageSink.send(StatusOutMessage(outMessageTextEnd))
   }
 
+
   def wrapCode(raw: String): String =
     s"""package loamstream.dynamic.input
+        |import ${loamstream.tools.core.LCoreEnv.Keys.nameOfThisObject}._
         |object UserInput {
         |$raw
         |}

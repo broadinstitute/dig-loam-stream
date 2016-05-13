@@ -13,6 +13,7 @@ import loamstream.tools.klusta.KlustaKwikKonfig
 object LCoreEnv {
 
   object Keys {
+    val nameOfThisObject = "loamstream.tools.core.LCoreEnv.Keys"
     val vcfFilePath = Key[PathProviderById]("VCF file path")
     val sampleFilePath = Key[PathProvider]("sample file path")
     val singletonFilePath = Key[PathProvider]("singleton file path")

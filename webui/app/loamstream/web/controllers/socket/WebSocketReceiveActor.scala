@@ -3,6 +3,7 @@ package loamstream.web.controllers.socket
 import akka.actor.{Actor, ActorRef, Props}
 import loamstream.web.parser.ClientHandler
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 /**
   * LoamStream

@@ -4,11 +4,14 @@ import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
 import loamstream.web.controllers.socket.{ErrorOutMessage, ReceiptOutMessage, SocketInMessage, SocketMessageHandler,
 TextSubmitMessage}
 
+import scala.concurrent.ExecutionContext
+
 /**
   * LoamStream
   * Created by oliverr on 5/9/2016.
   */
-case class ClientHandler(outMessageSink: OutMessageSink) extends SocketMessageHandler {
+case class ClientHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext)
+  extends SocketMessageHandler {
   val compiler = new LoamCompiler(outMessageSink)
 
   override def handleInMessage(inMessage: SocketInMessage): Unit = {

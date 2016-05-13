@@ -15,7 +15,6 @@ import scala.tools.nsc.interactive.{Global, Response}
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.util.{Failure, Success, Try}
-import scala.reflect.internal.Trees
 
 /**
   * LoamStream
@@ -30,7 +29,8 @@ object LoamCompiler {
         case 1 => this.WARNING.count += 1
         case _ => ()
       }
-      outMessageSink.send(CompilerOutMessage(pos, msg, Severity(severity.id), force))
+      val message = s"[$severity] $msg"
+      outMessageSink.send(CompilerOutMessage(pos, message, Severity(severity.id), force))
     }
   }
 
@@ -50,9 +50,9 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
   val sourceFileName = "Config.scala"
 
   def soManyIssues: String = {
-    val soManyErrors = StringUtils.soMany(reporter.ERROR.count, "error")
-    val soManyWarnings = StringUtils.soMany(reporter.WARNING.count, "warning")
-    s"there were $soManyErrors and $soManyWarnings"
+    val soManyErrors = StringUtils.soMany(reporter.errorCount, "error")
+    val soManyWarnings = StringUtils.soMany(reporter.warningCount, "warning")
+    s"$soManyErrors and $soManyWarnings"
   }
 
   def sendOutResponse(responseValue: Try[Option[Either[compiler.Tree, Throwable]]]): Unit = {
@@ -66,9 +66,17 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
     outMessageSink.send(StatusOutMessage(outMessageTextEnd))
   }
 
-  def compile(codeString: String): Unit = {
-    val sourceFile = new BatchSourceFile(sourceFileName, codeString)
+  def wrapCode(raw: String): String =
+    s"""package loamstream.dynamic.input
+        |object UserInput {
+        |$raw
+        |}
+     """.stripMargin
+
+  def compile(rawCode: String): Unit = {
+    val sourceFile = new BatchSourceFile(sourceFileName, wrapCode(rawCode))
     val response = new Response[compiler.Tree]
+    reporter.reset()
     compiler.askLoadedTyped(sourceFile, response)
     val timeOutMs = 30000
     val responseFut = Future(blocking(response.get(timeOutMs)))

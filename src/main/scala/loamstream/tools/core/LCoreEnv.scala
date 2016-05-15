@@ -1,10 +1,11 @@
 package loamstream.tools.core
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path, Paths}
+
 import loamstream.LEnv
 import loamstream.LEnv.Key
-import loamstream.util.FileAsker
 import loamstream.tools.klusta.KlustaKwikKonfig
+import loamstream.util.FileAsker
 
 /**
   * LoamStream
@@ -27,10 +28,29 @@ object LCoreEnv {
     val pcaWeightsId = Key[String]("pcaWeights")
   }
 
+  object Helpers {
+    val nameOfThisObject = "loamstream.tools.core.LCoreEnv.Helpers"
+
+    def path(pathString: String): PathProvider = PathProviderConst(Paths.get(pathString))
+
+    def tempFile(prefix: String, suffix: String): PathProvider = tempFileProvider(prefix, suffix)
+    def tempDir(prefix: String): PathProvider = tempDirProvider(prefix)
+  }
+
   trait PathProviderById extends (String => Path)
 
   trait PathProvider {
     def get: Path
+  }
+
+  case class PathProviderConst(get: Path) extends PathProvider
+
+  def tempFileProvider(prefix: String, suffix: String) = new PathProvider {
+    override def get: Path = Files.createTempFile(prefix, suffix)
+  }
+
+  def tempDirProvider(prefix: String) = new PathProvider {
+    override def get: Path = Files.createTempDirectory(prefix)
   }
 
   object FilesInteractive {

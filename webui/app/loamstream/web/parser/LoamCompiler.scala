@@ -2,7 +2,7 @@ package loamstream.web.parser
 
 import java.io.File
 
-import loamstream.tools.core.LCoreEnv
+import loamstream.LEnv
 import loamstream.util.StringUtils
 import loamstream.web.controllers.socket.CompilerOutMessage.Severity
 import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
@@ -22,6 +22,14 @@ import scala.util.{Failure, Success, Try}
   * Created by oliverr on 5/10/2016.
   */
 object LoamCompiler {
+
+  object DSLChunk {
+    val nameOfClass = "loamstream.web.parser.LoamCompiler.DSLChunk"
+  }
+
+  trait DSLChunk {
+    def env: LEnv
+  }
 
   class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
     override protected def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
@@ -70,14 +78,26 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
 
   def wrapCode(raw: String): String =
     s"""package loamstream.dynamic.input
+        |
         |import ${loamstream.tools.core.LCoreEnv.Keys.nameOfThisObject}._
-        |object UserInput {
+        |import ${loamstream.tools.core.LCoreEnv.Helpers.nameOfThisObject}._
+        |import ${loamstream.util.LEnvBuilder.nameOfCLass}
+        |import ${loamstream.web.parser.LoamCompiler.DSLChunk.nameOfClass}
+        |import ${loamstream.LEnv.nameOfObject}._
+        |import java.nio.file._
+        |
+        |object SomeDSLChunk extends DSLChunk {
+        |implicit val envBuilder = new LEnvBuilder
+        |
         |$raw
+        |
+        |def env = envBuilder.toEnv
         |}
      """.stripMargin
 
   def compile(rawCode: String): Unit = {
-    val sourceFile = new BatchSourceFile(sourceFileName, wrapCode(rawCode))
+    val wrappedCode = wrapCode(rawCode)
+    val sourceFile = new BatchSourceFile(sourceFileName, wrappedCode)
     val response = new Response[compiler.Tree]
     reporter.reset()
     compiler.askLoadedTyped(sourceFile, response)

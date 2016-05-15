@@ -1,14 +1,15 @@
 package loamstream
 
 import loamstream.LEnv.{Key, LComboEnv}
-import loamstream.util.Shot
-import loamstream.util.Snag
+import loamstream.util.{LEnvBuilder, Shot, Snag}
 
 /**
   * LoamStream
   * Created by oliverr on 3/30/2016.
   */
 object LEnv {
+
+  val nameOfObject = "loamstream.LEnv"
 
   trait KeyBase {
     def name: String
@@ -21,8 +22,15 @@ object LEnv {
     def apply(value: V): Entry[V] = new Entry(this, value)
 
     def ->(value: V): Entry[V] = new Entry(this, value) // TODO remove this - ambiguous!
-    def :=(value: V): Entry[V] = new Entry(this, value)
+
+    def :=(value: V)(implicit envBuilder: LEnvBuilder): Entry[V] = {
+      val entry = new Entry(this, value)
+      envBuilder += entry
+      entry
+    }
   }
+
+  def empty: LEnv = LMapEnv(Map.empty)
 
   def apply(entry: EntryBase, entries: EntryBase*): LMapEnv = LMapEnv((entry +: entries).toMap)
 
@@ -65,7 +73,7 @@ trait LEnv {
 
   def +[V](key: Key[V], value: V): LEnv
 
-  def +[V](entry: (Key[V], V)): LEnv = this. + (entry._1, entry._2)
+  def +[V](entry: (Key[V], V)): LEnv = this. +(entry._1, entry._2)
 
   def ++(oEnv: LEnv): LComboEnv = oEnv match {
     case LComboEnv(oEnvs) => LComboEnv(this +: oEnvs)

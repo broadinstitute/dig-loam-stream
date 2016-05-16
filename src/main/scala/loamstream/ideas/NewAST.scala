@@ -39,6 +39,16 @@ sealed trait NewAST {
     f(this)
   }
   
+  def fold[R](z: R)(op: (R, NewAST) => R): R = {
+    var acc = z
+    
+    traverse { node =>
+      acc = op(acc, node)
+    }
+    
+    acc
+  }
+  
   def transform(f: NewAST => NewAST): NewAST = {
     traverse(_ => ???)
     

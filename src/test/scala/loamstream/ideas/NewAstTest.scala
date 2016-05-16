@@ -14,7 +14,7 @@ import loamstream.model.ToolSpec
  * date: May 12, 2016
  */
 final class NewAstTest extends FunSuite {
-  
+
   import Ids._
   import Specs._
   import NewAST._
@@ -22,166 +22,166 @@ final class NewAstTest extends FunSuite {
 
   test("leaves()") {
     assert(a.leaves == Set(a))
-    
+
     assert(a.dependsOn(b(B)).leaves == Set(b))
-    
+
     assert(a.dependsOn(b(B)).dependsOn(c(C)).leaves == Set(b, c))
-    
+
     //a -> b -> (c, d)
-    
+
     val bc = b.dependsOn(c(C))
     val bcd = bc.dependsOn(d(D))
-    
+
     val abcd = a.dependsOn(B).from(bcd)
-    
-    assert(abcd.leaves == Set(c,d))
+
+    assert(abcd.leaves == Set(c, d))
   }
-  
+
   test("isLeaf") {
     assert(a.isLeaf == true)
-    
+
     assert(a.dependsOn(b(B)).isLeaf == false)
-    
+
     //a -> b -> (c, d)
-      
+
     val bcd = b.dependsOn(c(C)).dependsOn(d(D))
-    
+
     val abcd = a.dependsOn(B).from(bcd)
-    
+
     assert(abcd.isLeaf == false)
     assert(bcd.isLeaf == false)
     assert(c.isLeaf == true)
     assert(d.isLeaf == true)
   }
-  
+
   test("traverse()") {
     {
       //just node a
-      
+
       var visited: Seq[NewAST] = Vector.empty
-      
+
       assert(visited == Nil)
-      
+
       a.traverse(visited :+= _)
-      
+
       assert(visited == Seq(a))
     }
-    
+
     {
       //a -> b -> (c, d)
-      
+
       var visited: Seq[NewAST] = Vector.empty
-      
+
       val bcd = b.dependsOn(c(C)).dependsOn(d(D))
-    
+
       val abcd = a.dependsOn(B).from(bcd)
-      
+
       abcd.traverse(visited :+= _)
-      
+
       assert(visited.take(2).toSet == Set(c, d))
-      
+
       assert(visited.drop(2) == Seq(bcd, abcd))
     }
   }
-  
+
   test(s"1 node dependsOn 1 other node (${classOf[NamedInput].getSimpleName}) => AST") {
     val ast = a dependsOn b(Z)
-    
+
     val expected = ToolNode(A, aSpec, Set(NamedInput(Z, b)))
-    
+
     assert(ast == expected)
   }
-  
+
   test("1 node dependsOn 1 other node (id, ast) => AST") {
     val ast = a.dependsOn(Z, b)
-    
+
     val expected = ToolNode(A, aSpec, Set(NamedInput(Z, b)))
-    
+
     assert(ast == expected)
   }
-  
+
   test("1 node dependsOn 1 other node (id) => named dep") {
     val namedDep = a.dependsOn(Z)
-    
+
     val expected = NamedDependency(a, Z)
-    
+
     assert(namedDep == expected)
   }
-  
+
   test("1 node dependsOn 1 other node (id) => named dep => ast => ast") {
     val namedDep = a.dependsOn(Z).from(b)
-    
+
     val expected = ToolNode(A, aSpec, Set(NamedInput(Z, b)))
-    
+
     assert(namedDep == expected)
   }
-  
+
   test("1 node dependsOn 1 other node (id, id ... ) => multi named dep") {
     val namedDep = a.dependsOn(Z, Y, X)
-    
+
     val expected = MultiNamedDependency(a, Set(Z, Y, X))
-    
+
     assert(namedDep == expected)
   }
-  
+
   test("1 node dependsOn 1 other node (id, id ... ) => multi named dep => ast => ast") {
     val namedDep = a.dependsOn(Z, Y, X).from(b)
-    
+
     val expected = ToolNode(A, aSpec, Set(NamedInput(Z, b), NamedInput(Y, b), NamedInput(X, b)))
-    
+
     assert(namedDep == expected)
   }
-  
+
   test("output(LId) and apply(LId)") {
     assert(a.output(Z) == NamedInput(Z, a))
-    
+
     assert(a(Z) == NamedInput(Z, a))
   }
-  
+
   test("NamedInput.to(AST) and NamedInput.~>(AST)") {
     //a depends on b
     val b2a = NamedInput(Z, b).to(a)
-    
+
     assert(b(Z) ~> a === b2a)
-    
+
     val expected1 = a.copy(inputs = Set(NamedInput(Z, b)))
-    
+
     assert(b2a == expected1)
-    
+
     assert(b(Z).to(a) == expected1)
     assert(b(Z) ~> (a) == expected1)
-    
+
     //c depends on (a depends on b)
-    
+
     val b2a2c = NamedInput(Y, b2a).to(c)
-    
+
     assert(b2a(Y) ~> c === b2a2c)
-    
+
     val expected2 = c.copy(inputs = Set(NamedInput(Y, a.copy(inputs = Set(NamedInput(Z, b))))))
-    
+
     assert(b2a2c == expected2)
-    
+
     assert(b2a(Y).to(c) == expected2)
     assert(b2a(Y) ~> (c) == expected2)
   }
-  
+
   test("NamedInput.to(NamedInput) and NamedInput.~>(NamedInput)") {
-    
+
     //c <- b <- a
-    
-    val a2b2c = a(A) to b(B) to c  
-    
+
+    val a2b2c = a(A) to b(B) to c
+
     assert(a2b2c == a(A).to(b(B)).to(c))
-    
+
     assert(a2b2c == a(A).~>(b(B)).~>(c))
-    
+
     assert(a2b2c == a(A) ~> b(B) ~> c)
 
     val expected = c.dependsOn(B, b.dependsOn(A, a))
-    
+
     assert(a2b2c == expected)
   }
-  
+
   test("NamedInput.to(Seq[AST]) and NamedInput.~>(Seq[AST])") {
 
     /*      a
@@ -190,20 +190,66 @@ final class NewAstTest extends FunSuite {
      *    \
      *      c
      */
-    
+
     val dests = Seq(a, b, c)
-                    
+
     val asts = x(X).to(dests)
-    
+
     assert(asts == x(X) ~> dests)
-    
+
     val expected = Seq(x(X) ~> a,
-                       x(X) ~> b,
-                       x(X) ~> c)
-    
+      x(X) ~> b,
+      x(X) ~> c)
+
     assert(asts == expected)
   }
-  
+
+  test("'Complex' pipeline") {
+    /*
+     *            b
+     *          /   \
+     *  a <- x <- c  <- y
+     *          \   /
+     *            d
+     */
+    
+    val b2y = b.dependsOn(y(Y))
+    val c2y = c.dependsOn(y(Y))
+    val d2y = d.dependsOn(y(Y))
+    
+    val bcd = Set(b2y.output(B), c2y.output(C), d2y.output(D))
+    
+    val x2bcd = x.withInputs(bcd)
+    
+    val a2y = a.dependsOn(X, x2bcd)
+
+    val expected = {
+      a.dependsOn(X, x.withInputs {
+        Set(b.dependsOn(y(Y)).output(B), c.dependsOn(y(Y)).output(C), d.dependsOn(y(Y)).output(D))
+      })
+    }
+    
+    assert(a2y == expected)
+    
+    val z = Map.empty[LId, Int]
+    
+    val visitCounts = a2y.fold(z) { (visitCounts, node) =>
+      val newCount = visitCounts.getOrElse(node.id, 0) + 1
+      
+      visitCounts + (node.id -> newCount)
+    }
+
+    val expectedCounts = Map(
+        A -> 1,
+        X -> 1,
+        B -> 1,
+        C -> 1,
+        D -> 1,
+        Y -> 3)
+    
+    assert(visitCounts == expectedCounts)
+  }
+
   object Nodes {
     val a = aSpec as A
 
@@ -221,49 +267,13 @@ final class NewAstTest extends FunSuite {
     val x = xSpec as X
     val y = ySpec as Y
     val z = zSpec as Z
-
-    val e2t = e.output(E) ~> t
-
-    val t2e = t.dependsOn(E, e)
-
-    val alsoT2e = t.dependsOn(E).from(e)
-
-    //val ast = t.output(T) ~> (h.output(H) ~> z)
-
-    import NewAST._
-
-    {
-      val bcd = Parallel(Seq(b, c, d))
-
-      val a2x = a(A) ~> x
-
-      val bcd2y = bcd.outputs(b.id / B, c.id / C, d.id / D) ~> y
-
-      val a2y = a2x(X) ~> bcd2y
-
-      val efg2tuv = Seq(e(E) ~> t, f(F) ~> u, g(G) ~> v)
-
-      val a2tuv = a2y(Y) ~> efg2tuv
-
-      val a2h = (a2tuv).outputs(t.id / T, u.id / U, v.id / V) ~> h
-
-      val a2z = a2h(H) ~> z
-    }
-    
-    {
-      val a2x = x.dependsOn(A).from(a)
-      
-      val a2bcd = Parallel(Seq(b.dependsOn(X).from(x), c.dependsOn(Y).from(y), d.dependsOn(Z).from(z)))
-      
-      val a2y = y.dependsOn(b.id / B, c.id / C, d.id / D).from(a2bcd)
-    }
   }
 
   object Specs {
     import LType._
 
     private val kind: LKind = LAnyKind
-    
+
     private val hStoreSpec = StoreSpec(LInt to LDouble, kind)
     private val zStoreSpec = hStoreSpec
     private val storeSpec = hStoreSpec

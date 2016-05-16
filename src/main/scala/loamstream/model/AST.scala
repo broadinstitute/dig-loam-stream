@@ -36,11 +36,6 @@ final case class AST(toolSpec: ToolSpec, inputs: Set[AST]) {
 }
 
 object AST {
-  /*def apply(output: Store): AST = apply(output.spec)
-
-  def apply(output: StoreSpec): AST = AST(output, Set.empty[AST])
-
-  def apply(output: Store, inputs: Set[AST]): AST = AST(output.spec, inputs)*/
 
   def apply(tool: Tool): AST = AST(tool.spec, Set.empty)
 

@@ -6,10 +6,6 @@ import loamstream.LEnv
   * LoamStream
   * Created by oliverr on 5/15/2016.
   */
-object LEnvBuilder {
-  val nameOfCLass = "loamstream.util.LEnvBuilder"
-}
-
 class LEnvBuilder {
 
   var env = LEnv.empty

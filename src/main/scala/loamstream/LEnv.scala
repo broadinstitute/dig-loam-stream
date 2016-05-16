@@ -9,8 +9,6 @@ import loamstream.util.{LEnvBuilder, Shot, Snag}
   */
 object LEnv {
 
-  val nameOfObject = "loamstream.LEnv"
-
   trait KeyBase {
     def name: String
   }

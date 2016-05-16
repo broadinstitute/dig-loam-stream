@@ -3,7 +3,8 @@ package loamstream.web.parser
 import java.io.File
 
 import loamstream.LEnv
-import loamstream.util.StringUtils
+import loamstream.tools.core.LCoreEnv
+import loamstream.util.{LEnvBuilder, SourceUtils, StringUtils}
 import loamstream.web.controllers.socket.CompilerOutMessage.Severity
 import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
 import loamstream.web.controllers.socket.{CompilerOutMessage, StatusOutMessage}
@@ -16,16 +17,13 @@ import scala.tools.nsc.interactive.{Global, Response}
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.util.{Failure, Success, Try}
+import loamstream.web.parser.LoamCompiler.DSLChunk
 
 /**
   * LoamStream
   * Created by oliverr on 5/10/2016.
   */
 object LoamCompiler {
-
-  object DSLChunk {
-    val nameOfClass = "loamstream.web.parser.LoamCompiler.DSLChunk"
-  }
 
   trait DSLChunk {
     def env: LEnv
@@ -75,22 +73,21 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
     outMessageSink.send(StatusOutMessage(outMessageTextEnd))
   }
 
-
   def wrapCode(raw: String): String =
     s"""package loamstream.dynamic.input
         |
-        |import ${loamstream.tools.core.LCoreEnv.Keys.nameOfThisObject}._
-        |import ${loamstream.tools.core.LCoreEnv.Helpers.nameOfThisObject}._
-        |import ${loamstream.tools.core.LCoreEnv.Implicits.nameOfThisObject}._
-        |import ${loamstream.util.LEnvBuilder.nameOfCLass}
-        |import ${loamstream.web.parser.LoamCompiler.DSLChunk.nameOfClass}
-        |import ${loamstream.LEnv.nameOfObject}._
+        |import ${SourceUtils.likelyTypeName(LCoreEnv.Keys)}._
+        |import ${SourceUtils.likelyTypeName(LCoreEnv.Helpers)}._
+        |import ${SourceUtils.likelyTypeName(LCoreEnv.Implicits)}._
+        |import ${SourceUtils.likelyTypeName[LEnvBuilder]}
+        |import ${SourceUtils.likelyTypeName[DSLChunk]}
+        |import ${SourceUtils.likelyTypeName(LEnv)}._
         |import java.nio.file._
         |
         |object SomeDSLChunk extends DSLChunk {
         |implicit val envBuilder = new LEnvBuilder
         |
-        |$raw
+        |${raw.trim}
         |
         |def env = envBuilder.toEnv
         |}

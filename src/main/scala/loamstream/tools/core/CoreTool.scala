@@ -110,7 +110,7 @@ object CoreTool {
   def nAryTool(id: LId, kind: LKind, sig: NarySig): Tool = {
     CoreTool(
       id,
-      ToolSpec(kind, sig.inputs.map(_.spec), sig.outputs.map(_.spec)),
+      ToolSpec(kind, sig.inputs.map(_.toTuple).toMap, sig.outputs.map(_.toTuple).toMap),
       sig.inputs,
       sig.outputs)
   }

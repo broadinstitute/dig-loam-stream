@@ -25,6 +25,8 @@ object LId {
   final case class CompositeId(namespace: LId, name: LId) extends LId {
     override def toString = s"$namespace/$name"
   }
+  
+  case object Unknown extends LId
 
   private val random = new Random
 

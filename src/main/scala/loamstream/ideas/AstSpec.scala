@@ -19,5 +19,5 @@ final case class AstSpec(inputs: Map[LId, StoreSpec], outputs: Map[LId, StoreSpe
   }
   
   //TODO: What if ordering of inputs and outputs matters
-  def toToolSpec(kind: LKind): ToolSpec = ToolSpec(kind, inputs.values.toSeq, outputs.values.toSeq)
+  def toToolSpec(kind: LKind): ToolSpec = ToolSpec(kind, inputs, outputs)
 }

@@ -108,13 +108,22 @@ object AST {
 
     val toolsAndOthers = tools.map(t => t -> (tools - t))
 
+    final implicit class ToolOps(val t: Tool) {
+      def takesNoInputFrom(otherTool: Tool): Boolean = {
+        t.inputs.map(_.toTuple).forall { case (inputId, inputSpec) =>
+          !otherTool.outputs.map(_.toTuple).exists { case (outputId, outputSpec) =>
+            inputId == outputId && inputSpec == outputSpec
+          }
+        }
+      } 
+    }
+    
     def isNoOnesInput(tool: Tool, others: Set[Tool]): Boolean = {
-      def inputsOf(t: Tool) = t.spec.inputs
-      def outputsOf(t: Tool) = t.spec.outputs
-
-      others.forall { otherTool =>
-        !outputsOf(tool).exists(inputsOf(otherTool).contains)
-      }
+      def inputsOf(t: Tool): Map[LId, StoreSpec] = t.spec.inputs
+      def outputsOf(t: Tool): Map[LId, StoreSpec] = t.spec.outputs
+      
+      //No other tool takes any of `tool`'s outputs as input 
+      others.forall(otherTool => otherTool.takesNoInputFrom(tool))
     }
 
     val terminals = toolsAndOthers.collect { case (tool, others) if isNoOnesInput(tool, others) => tool }

@@ -11,8 +11,6 @@ import loamstream.model.kinds.CompositeKind
 sealed trait NewAST {
   def id: LId = LId.newAnonId
 
-  def spec: AstSpec
-
   import NewAST._
   
   def inputs: Set[NamedInput]
@@ -32,6 +30,21 @@ sealed trait NewAST {
 
   final def isLeaf: Boolean = inputs.isEmpty
 
+  /**
+   * Performs post-order traversal and invokes f for each node
+   */
+  def traverse(f: NewAST => Any): Unit = {
+    inputs.foreach(_.producer.traverse(f))
+    
+    f(this)
+  }
+  
+  def transform(f: NewAST => NewAST): NewAST = {
+    traverse(_ => ???)
+    
+    ???
+  }
+  
   def print(indent: Int = 0, via: Option[LId] = None): Unit = {
     val indentString = s"${"-" * indent}${via.map(v => s"($v)").getOrElse("")}> "
 
@@ -41,11 +54,8 @@ sealed trait NewAST {
   }
   
   def leaves: Set[NewAST] = {
-    if(isLeaf) {
-      Set(this)
-    } else {
-      inputs.flatMap(_.producer.leaves)
-    }
+    if(isLeaf) { Set(this) } 
+    else { inputs.flatMap(_.producer.leaves) }
   }
 }
 
@@ -54,7 +64,16 @@ object NewAST {
     def ~>(downstream: NewAST): NewAST = downstream.withInputs(asts.toSet)
   }
 
-  final implicit class SpecOps(val spec: AstSpec) extends AnyVal {
+  final implicit class SeqOfASTsOps(val asts: Seq[NewAST]) extends AnyVal {
+    def outputs(ids: LId.CompositeId*): Seq[NamedInput] = {
+      val byId: Map[LId, NewAST] = asts.map(c => c.id -> c).toMap
+      
+      //NB: Can fail
+      ids.collect { case LId.CompositeId(namespace, name) if byId.contains(namespace) => byId(namespace).output(name) }
+    }
+  }
+  
+  final implicit class SpecOps(val spec: ToolSpec) extends AnyVal {
     def as(id: LId): ToolNode = ToolNode(id, spec)
   }
 
@@ -71,25 +90,24 @@ object NewAST {
   }
 
   final case class NamedInput(id: LId, producer: NewAST) {
+    def to(consumer: NamedInput): NamedInput = NamedInput(consumer.id, consumer.producer.dependsOn(id, producer))
+
+    def ~>(consumer: NamedInput): NamedInput = to(consumer)
+    
     def to(consumer: NewAST): NewAST = consumer.dependsOn(id, producer)
 
     def ~>(consumer: NewAST): NewAST = to(consumer)
 
-    def to(consumers: Seq[NewAST]): Parallel = Parallel(consumers.map(consumer => consumer.dependsOn(id, producer)))
+    def to(consumers: Seq[NewAST]): Seq[NewAST] = consumers.map(consumer => producer(id) ~> consumer)
 
-    def ~>(consumers: Seq[NewAST]): Parallel = to(consumers)
+    def ~>(consumers: Seq[NewAST]): Seq[NewAST] = to(consumers)
   }
 
-  final case class ToolNode(override val id: LId, spec: AstSpec, inputs: Set[NamedInput] = Set.empty) extends NewAST {
+  final case class ToolNode(override val id: LId, spec: ToolSpec, inputs: Set[NamedInput] = Set.empty) extends NewAST {
     override def withInputs(newInputs: Set[NamedInput]): NewAST = copy(inputs = newInputs)
   }
 
   final case class Either(lhs: NewAST, rhs: NewAST, inputs: Set[NamedInput] = Set.empty) extends NewAST {
-    require(lhs.spec == rhs.spec)
-
-    //TODO: Correct?
-    override def spec: AstSpec = ???//if (predicate()) lhs.spec else rhs.spec
-
     override def withInputs(newInputs: Set[NamedInput]): NewAST = copy(inputs = newInputs)
   }
 
@@ -97,17 +115,6 @@ object NewAST {
     override val id = LId.LNamedId(components.map(_.id).mkString(","))
 
     private lazy val byId: Map[LId, NewAST] = components.map(c => c.id -> c).toMap
-
-    override def spec: AstSpec = {
-      //TODO
-      val z = AstSpec(Map.empty, Map.empty)
-
-      components.foldLeft(z) { (lhsSpec, rhs) =>
-        val rhsSpec = rhs.spec
-
-        lhsSpec.copy(inputs = lhsSpec.inputs ++ rhsSpec.inputs, outputs = lhsSpec.outputs ++ rhsSpec.outputs)
-      }
-    }
 
     override def withInputs(newInputs: Set[NamedInput]): NewAST = copy(inputs = newInputs)
 

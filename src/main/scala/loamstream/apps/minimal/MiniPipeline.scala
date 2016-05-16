@@ -13,13 +13,13 @@ case class MiniPipeline(genotypesId: String) extends LPipeline {
   val genotypeCallsTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
   
   //TODO: Fragile
-  @deprecated
+  @deprecated("", "")
   def genotypeCallsStore: Store = genotypeCallsTool.outputs.head
   
   val sampleIdsTool: Tool = CoreTool.extractSampleIdsFromVcfFile
 
   //TODO: Fragile
-  @deprecated
+  @deprecated("", "")
   def sampleIdsStore: Store = sampleIdsTool.outputs.head
   
   override val tools: Set[Tool] = Set(genotypeCallsTool, sampleIdsTool)

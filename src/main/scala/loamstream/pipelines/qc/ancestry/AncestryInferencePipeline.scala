@@ -26,19 +26,19 @@ case class AncestryInferencePipeline(genotypesId: String, pcaWeightsId: String) 
   val sampleClusteringTool: Tool = CoreTool.clusteringSamplesByFeatures
   
   //TODO: Fragile
-  @deprecated
+  @deprecated("", "")
   def genotypesStore: Store = genotypesTool.outputs.head
 
   //TODO: Fragile
-  @deprecated
+  @deprecated("", "")
   def pcaWeightsStore: Store = pcaWeightsTool.outputs.head
   
   //TODO: Fragile
-  @deprecated
+  @deprecated("", "")
   def projectedValsStore: Store = pcaProjectionTool.outputs.head
   
   //TODO: Fragile
-  @deprecated
+  @deprecated("", "")
   def sampleClustersStore: Store = sampleClusteringTool.outputs.head
 
   override def stores: Set[Store] = tools.flatMap(_.outputs)

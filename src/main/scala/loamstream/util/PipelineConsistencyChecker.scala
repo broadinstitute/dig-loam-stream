@@ -3,6 +3,7 @@ package loamstream.util
 import loamstream.model.LPipeline
 import loamstream.model.Store
 import loamstream.model.Tool
+import loamstream.model.LId
 
 /**
   * LoamStream
@@ -81,8 +82,10 @@ object PipelineConsistencyChecker {
     override def apply(pipeline: LPipeline): Set[Problem] = {
       //TODO: TEST
       pipeline.tools.filterNot { tool =>
-        tool.outputs.map(_.spec).zip(tool.spec.outputs).forall {
-          case (toolOutput, specOutput) => toolOutput >:> specOutput
+        tool.outputs.map(_.toTuple).zip(tool.spec.outputs).forall {
+          case ((toolOutputId, toolOutput), (specOutputId, specOutput)) => {
+            /*toolOutputId == specOutputId && */toolOutput >:> specOutput
+          }
         }
       }.flatMap { tool =>
         tool.outputs.map(output => StoreIsIncompatibleOutputOfTool(output, tool))
@@ -90,18 +93,27 @@ object PipelineConsistencyChecker {
     }
   }
 
-  case class StoreIsIncompatibleInputOfTool(store: Store, tool: Tool, pos: Int)
+  case class StoreIsIncompatibleInputOfTool(store: Store, tool: Tool, paramName: LId)
     extends StoreIsNotCompatibleWithTool {
     override def message: String =
-      s"Store ${store.id} is not compatible input (position $pos) of tool ${tool.id}."
+      s"Store ${store.id} is not compatible input (name: $paramName) of tool ${tool.id}."
   }
 
   case object EachStoreIsCompatibleInputOfToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.tools.flatMap { tool =>
-        tool.inputs.indices.map(pos => (tool, pos, tool.inputs(pos), tool.spec.inputs(pos)))
-      }.collect { case (tool, pos, input, inputSpec) if !(input.spec <:< inputSpec) =>
-        StoreIsIncompatibleInputOfTool(input, tool, pos)
+      val toolsStoresAndStoreSpecs = for {
+        tool <- pipeline.tools
+        store <- tool.inputs
+      } yield {
+        (tool, 
+         tool.inputs.find(_.id == store.id), 
+         tool.spec.inputs.collect { case(id, spec) if id == store.id => spec }.headOption)
+      }
+      
+      toolsStoresAndStoreSpecs.collect { 
+        case (tool, Some(input), Some(inputSpec)) if !(input.spec <:< inputSpec) => {
+          StoreIsIncompatibleInputOfTool(input, tool, input.id)
+        }
       }
     }
   }

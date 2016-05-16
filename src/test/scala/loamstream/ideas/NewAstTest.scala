@@ -7,6 +7,7 @@ import loamstream.Sigs
 import loamstream.model.kinds.LAnyKind
 import loamstream.model.kinds.LKind
 import loamstream.model.StoreSpec
+import loamstream.model.ToolSpec
 
 /**
  * @author clint
@@ -34,6 +35,53 @@ final class NewAstTest extends FunSuite {
     val abcd = a.dependsOn(B).from(bcd)
     
     assert(abcd.leaves == Set(c,d))
+  }
+  
+  test("isLeaf") {
+    assert(a.isLeaf == true)
+    
+    assert(a.dependsOn(b(B)).isLeaf == false)
+    
+    //a -> b -> (c, d)
+      
+    val bcd = b.dependsOn(c(C)).dependsOn(d(D))
+    
+    val abcd = a.dependsOn(B).from(bcd)
+    
+    assert(abcd.isLeaf == false)
+    assert(bcd.isLeaf == false)
+    assert(c.isLeaf == true)
+    assert(d.isLeaf == true)
+  }
+  
+  test("traverse()") {
+    {
+      //just node a
+      
+      var visited: Seq[NewAST] = Vector.empty
+      
+      assert(visited == Nil)
+      
+      a.traverse(visited :+= _)
+      
+      assert(visited == Seq(a))
+    }
+    
+    {
+      //a -> b -> (c, d)
+      
+      var visited: Seq[NewAST] = Vector.empty
+      
+      val bcd = b.dependsOn(c(C)).dependsOn(d(D))
+    
+      val abcd = a.dependsOn(B).from(bcd)
+      
+      abcd.traverse(visited :+= _)
+      
+      assert(visited.take(2).toSet == Set(c, d))
+      
+      assert(visited.drop(2) == Seq(bcd, abcd))
+    }
   }
   
   test(s"1 node dependsOn 1 other node (${classOf[NamedInput].getSimpleName}) => AST") {
@@ -83,7 +131,79 @@ final class NewAstTest extends FunSuite {
     
     assert(namedDep == expected)
   }
+  
+  test("output(LId) and apply(LId)") {
+    assert(a.output(Z) == NamedInput(Z, a))
+    
+    assert(a(Z) == NamedInput(Z, a))
+  }
+  
+  test("NamedInput.to(AST) and NamedInput.~>(AST)") {
+    //a depends on b
+    val b2a = NamedInput(Z, b).to(a)
+    
+    assert(b(Z) ~> a === b2a)
+    
+    val expected1 = a.copy(inputs = Set(NamedInput(Z, b)))
+    
+    assert(b2a == expected1)
+    
+    assert(b(Z).to(a) == expected1)
+    assert(b(Z) ~> (a) == expected1)
+    
+    //c depends on (a depends on b)
+    
+    val b2a2c = NamedInput(Y, b2a).to(c)
+    
+    assert(b2a(Y) ~> c === b2a2c)
+    
+    val expected2 = c.copy(inputs = Set(NamedInput(Y, a.copy(inputs = Set(NamedInput(Z, b))))))
+    
+    assert(b2a2c == expected2)
+    
+    assert(b2a(Y).to(c) == expected2)
+    assert(b2a(Y) ~> (c) == expected2)
+  }
+  
+  test("NamedInput.to(NamedInput) and NamedInput.~>(NamedInput)") {
+    
+    //c <- b <- a
+    
+    val a2b2c = a(A) to b(B) to c  
+    
+    assert(a2b2c == a(A).to(b(B)).to(c))
+    
+    assert(a2b2c == a(A).~>(b(B)).~>(c))
+    
+    assert(a2b2c == a(A) ~> b(B) ~> c)
 
+    val expected = c.dependsOn(B, b.dependsOn(A, a))
+    
+    assert(a2b2c == expected)
+  }
+  
+  test("NamedInput.to(Seq[AST]) and NamedInput.~>(Seq[AST])") {
+
+    /*      a
+     *    /
+     *  x - b
+     *    \
+     *      c
+     */
+    
+    val dests = Seq(a, b, c)
+                    
+    val asts = x(X).to(dests)
+    
+    assert(asts == x(X) ~> dests)
+    
+    val expected = Seq(x(X) ~> a,
+                       x(X) ~> b,
+                       x(X) ~> c)
+    
+    assert(asts == expected)
+  }
+  
   object Nodes {
     val a = aSpec as A
 
@@ -108,7 +228,7 @@ final class NewAstTest extends FunSuite {
 
     val alsoT2e = t.dependsOn(E).from(e)
 
-    val ast = t.output(T) ~> (h.output(H) ~> z)
+    //val ast = t.output(T) ~> (h.output(H) ~> z)
 
     import NewAST._
 
@@ -136,8 +256,6 @@ final class NewAstTest extends FunSuite {
       val a2bcd = Parallel(Seq(b.dependsOn(X).from(x), c.dependsOn(Y).from(y), d.dependsOn(Z).from(z)))
       
       val a2y = y.dependsOn(b.id / B, c.id / C, d.id / D).from(a2bcd)
-      
-      //a2y.print()
     }
   }
 
@@ -150,26 +268,26 @@ final class NewAstTest extends FunSuite {
     private val zStoreSpec = hStoreSpec
     private val storeSpec = hStoreSpec
 
-    val zSpec = AstSpec(inputs = Map(H -> hStoreSpec), outputs = Map(Z -> zStoreSpec))
+    val zSpec = ToolSpec(kind, inputs = Map(H -> hStoreSpec), outputs = Map(Z -> zStoreSpec))
 
-    val hSpec = AstSpec(inputs = Map(T -> storeSpec, U -> storeSpec, V -> storeSpec), outputs = Map(H -> hStoreSpec))
+    val hSpec = ToolSpec(kind, inputs = Map(T -> storeSpec, U -> storeSpec, V -> storeSpec), outputs = Map(H -> hStoreSpec))
 
-    val tSpec = AstSpec(inputs = Map(E -> storeSpec), outputs = Map(T -> storeSpec))
-    val uSpec = AstSpec(inputs = Map(F -> storeSpec), outputs = Map(U -> storeSpec))
-    val vSpec = AstSpec(inputs = Map(G -> storeSpec), outputs = Map(V -> storeSpec))
+    val tSpec = ToolSpec(kind, inputs = Map(E -> storeSpec), outputs = Map(T -> storeSpec))
+    val uSpec = ToolSpec(kind, inputs = Map(F -> storeSpec), outputs = Map(U -> storeSpec))
+    val vSpec = ToolSpec(kind, inputs = Map(G -> storeSpec), outputs = Map(V -> storeSpec))
 
-    val eSpec = AstSpec(inputs = Map(Y -> storeSpec), outputs = Map(E -> storeSpec))
-    val fSpec = AstSpec(inputs = Map(Y -> storeSpec), outputs = Map(F -> storeSpec))
-    val gSpec = AstSpec(inputs = Map(Y -> storeSpec), outputs = Map(G -> storeSpec))
+    val eSpec = ToolSpec(kind, inputs = Map(Y -> storeSpec), outputs = Map(E -> storeSpec))
+    val fSpec = ToolSpec(kind, inputs = Map(Y -> storeSpec), outputs = Map(F -> storeSpec))
+    val gSpec = ToolSpec(kind, inputs = Map(Y -> storeSpec), outputs = Map(G -> storeSpec))
 
-    val xSpec = AstSpec(inputs = Map(A -> storeSpec), outputs = Map(X -> storeSpec))
-    val ySpec = AstSpec(inputs = Map(), outputs = Map(E -> storeSpec, F -> storeSpec, G -> storeSpec))
+    val xSpec = ToolSpec(kind, inputs = Map(A -> storeSpec), outputs = Map(X -> storeSpec))
+    val ySpec = ToolSpec(kind, inputs = Map(), outputs = Map(E -> storeSpec, F -> storeSpec, G -> storeSpec))
 
-    val aSpec = AstSpec(inputs = Map(), outputs = Map(A -> storeSpec))
+    val aSpec = ToolSpec(kind, inputs = Map(), outputs = Map(A -> storeSpec))
 
-    val bSpec = AstSpec(inputs = Map(X -> storeSpec), outputs = Map(B -> storeSpec))
-    val cSpec = AstSpec(inputs = Map(X -> storeSpec), outputs = Map(C -> storeSpec))
-    val dSpec = AstSpec(inputs = Map(X -> storeSpec), outputs = Map(D -> storeSpec))
+    val bSpec = ToolSpec(kind, inputs = Map(X -> storeSpec), outputs = Map(B -> storeSpec))
+    val cSpec = ToolSpec(kind, inputs = Map(X -> storeSpec), outputs = Map(C -> storeSpec))
+    val dSpec = ToolSpec(kind, inputs = Map(X -> storeSpec), outputs = Map(D -> storeSpec))
   }
 
   private object Ids {

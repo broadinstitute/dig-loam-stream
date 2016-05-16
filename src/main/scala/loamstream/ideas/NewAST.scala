@@ -39,6 +39,7 @@ sealed trait NewAST {
     f(this)
   }
   
+  //TODO: TEST!
   def fold[R](z: R)(op: (R, NewAST) => R): R = {
     var acc = z
     
@@ -47,12 +48,6 @@ sealed trait NewAST {
     }
     
     acc
-  }
-  
-  def transform(f: NewAST => NewAST): NewAST = {
-    traverse(_ => ???)
-    
-    ???
   }
   
   def print(indent: Int = 0, via: Option[LId] = None): Unit = {

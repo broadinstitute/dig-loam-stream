@@ -7,6 +7,8 @@ import loamstream.LEnv.Key
 import loamstream.tools.klusta.KlustaKwikKonfig
 import loamstream.util.FileAsker
 
+import scala.language.implicitConversions
+
 /**
   * LoamStream
   * Created by oliverr on 4/1/2016.
@@ -31,10 +33,17 @@ object LCoreEnv {
   object Helpers {
     val nameOfThisObject = "loamstream.tools.core.LCoreEnv.Helpers"
 
-    def path(pathString: String): PathProvider = PathProviderConst(Paths.get(pathString))
+    def path(pathString: String): Path = Paths.get(pathString)
 
     def tempFile(prefix: String, suffix: String): PathProvider = tempFileProvider(prefix, suffix)
+
     def tempDir(prefix: String): PathProvider = tempDirProvider(prefix)
+  }
+
+  object Implicits {
+    val nameOfThisObject = "loamstream.tools.core.LCoreEnv.Implicits"
+
+    implicit def pathToPathProvider(path: Path): PathProvider = PathProviderConst(path)
   }
 
   trait PathProviderById extends (String => Path)

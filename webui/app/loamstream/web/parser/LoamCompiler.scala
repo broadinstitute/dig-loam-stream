@@ -81,6 +81,7 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
         |
         |import ${loamstream.tools.core.LCoreEnv.Keys.nameOfThisObject}._
         |import ${loamstream.tools.core.LCoreEnv.Helpers.nameOfThisObject}._
+        |import ${loamstream.tools.core.LCoreEnv.Implicits.nameOfThisObject}._
         |import ${loamstream.util.LEnvBuilder.nameOfCLass}
         |import ${loamstream.web.parser.LoamCompiler.DSLChunk.nameOfClass}
         |import ${loamstream.LEnv.nameOfObject}._

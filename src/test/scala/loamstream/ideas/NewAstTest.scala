@@ -138,72 +138,6 @@ final class NewAstTest extends FunSuite {
     assert(a(Z) == NamedInput(Z, a))
   }
 
-  test("NamedInput.to(AST) and NamedInput.~>(AST)") {
-    //a depends on b
-    val b2a = NamedInput(Z, b).to(a)
-
-    assert(b(Z) ~> a === b2a)
-
-    val expected1 = a.copy(inputs = Set(NamedInput(Z, b)))
-
-    assert(b2a == expected1)
-
-    assert(b(Z).to(a) == expected1)
-    assert(b(Z) ~> (a) == expected1)
-
-    //c depends on (a depends on b)
-
-    val b2a2c = NamedInput(Y, b2a).to(c)
-
-    assert(b2a(Y) ~> c === b2a2c)
-
-    val expected2 = c.copy(inputs = Set(NamedInput(Y, a.copy(inputs = Set(NamedInput(Z, b))))))
-
-    assert(b2a2c == expected2)
-
-    assert(b2a(Y).to(c) == expected2)
-    assert(b2a(Y) ~> (c) == expected2)
-  }
-
-  test("NamedInput.to(NamedInput) and NamedInput.~>(NamedInput)") {
-
-    //c <- b <- a
-
-    val a2b2c = a(A) to b(B) to c
-
-    assert(a2b2c == a(A).to(b(B)).to(c))
-
-    assert(a2b2c == a(A).~>(b(B)).~>(c))
-
-    assert(a2b2c == a(A) ~> b(B) ~> c)
-
-    val expected = c.dependsOn(B, b.dependsOn(A, a))
-
-    assert(a2b2c == expected)
-  }
-
-  test("NamedInput.to(Seq[AST]) and NamedInput.~>(Seq[AST])") {
-
-    /*      a
-     *    /
-     *  x - b
-     *    \
-     *      c
-     */
-
-    val dests = Seq(a, b, c)
-
-    val asts = x(X).to(dests)
-
-    assert(asts == x(X) ~> dests)
-
-    val expected = Seq(x(X) ~> a,
-      x(X) ~> b,
-      x(X) ~> c)
-
-    assert(asts == expected)
-  }
-
   test("'Complex' pipeline") {
     /*
      *            b
@@ -230,6 +164,27 @@ final class NewAstTest extends FunSuite {
     }
     
     assert(a2y == expected)
+    
+    def getChildOf(root: NewAST, childName: LId, rest: LId*): NewAST = {
+      def childWithId(rt: NewAST, id: LId): NewAST = {
+        rt.inputs.find(_.id == id).get.producer
+      }
+      
+      val z: NewAST = childWithId(root, childName)
+      
+      rest.foldLeft(z)(childWithId)
+    }
+    
+    assert(a2y.inputs.size == 1)
+    
+    assert(getChildOf(a2y, X).inputs.size == 3)
+    assert(getChildOf(a2y, X, B).inputs.size == 1)
+    assert(getChildOf(a2y, X, C).inputs.size == 1)
+    assert(getChildOf(a2y, X, D).inputs.size == 1)
+    
+    assert(getChildOf(a2y, X, B, Y).inputs.size == 0)
+    assert(getChildOf(a2y, X, C, Y).inputs.size == 0)
+    assert(getChildOf(a2y, X, D, Y).inputs.size == 0)
     
     val z = Map.empty[LId, Int]
     

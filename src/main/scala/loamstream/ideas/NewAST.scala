@@ -17,11 +17,13 @@ sealed trait NewAST {
 
   def withInputs(inputs: Set[NamedInput]): NewAST
 
-  final def dependsOn(input: NamedInput): NewAST = dependsOn(input.id, input.producer)
+  final def <~(input: NamedInput): NewAST = dependsOn(input)
   
+  final def dependsOn(input: NamedInput): NewAST = dependsOn(input.id, input.producer)
   final def dependsOn(inputId: LId, input: NewAST): NewAST = withInputs(inputs + NamedInput(inputId, input))
-
+  
   final def dependsOn(inputId: LId): NamedDependency = NamedDependency(this, inputId)
+  
   final def dependsOn(inputId: LId, rest: LId*): MultiNamedDependency = MultiNamedDependency(this, rest.toSet + inputId)
 
   final def output(outputId: LId): NamedInput = NamedInput(outputId, this)
@@ -65,10 +67,6 @@ sealed trait NewAST {
 }
 
 object NewAST {
-  final implicit class SeqOfNamedInputsOps(val asts: Seq[NamedInput]) extends AnyVal {
-    def ~>(downstream: NewAST): NewAST = downstream.withInputs(asts.toSet)
-  }
-
   final implicit class SeqOfASTsOps(val asts: Seq[NewAST]) extends AnyVal {
     def outputs(ids: LId.CompositeId*): Seq[NamedInput] = {
       val byId: Map[LId, NewAST] = asts.map(c => c.id -> c).toMap
@@ -94,19 +92,7 @@ object NewAST {
     }
   }
 
-  final case class NamedInput(id: LId, producer: NewAST) {
-    def to(consumer: NamedInput): NamedInput = NamedInput(consumer.id, consumer.producer.dependsOn(id, producer))
-
-    def ~>(consumer: NamedInput): NamedInput = to(consumer)
-    
-    def to(consumer: NewAST): NewAST = consumer.dependsOn(id, producer)
-
-    def ~>(consumer: NewAST): NewAST = to(consumer)
-
-    def to(consumers: Seq[NewAST]): Seq[NewAST] = consumers.map(consumer => producer(id) ~> consumer)
-
-    def ~>(consumers: Seq[NewAST]): Seq[NewAST] = to(consumers)
-  }
+  final case class NamedInput(id: LId, producer: NewAST)
 
   final case class ToolNode(override val id: LId, spec: ToolSpec, inputs: Set[NamedInput] = Set.empty) extends NewAST {
     override def withInputs(newInputs: Set[NamedInput]): NewAST = copy(inputs = newInputs)

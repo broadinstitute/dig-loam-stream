@@ -4,21 +4,18 @@ import java.io.File
 
 import loamstream.LEnv
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.{LEnvBuilder, SourceUtils, StringUtils}
+import loamstream.util.{LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
 import loamstream.web.controllers.socket.CompilerOutMessage.Severity
 import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
 import loamstream.web.controllers.socket.{CompilerOutMessage, StatusOutMessage}
-import loamstream.web.parser.LoamCompiler.CompilerReporter
+import loamstream.web.parser.LoamCompiler.{CompilerReporter, DslChunk}
 
-import scala.concurrent.{ExecutionContext, Future, blocking}
-import scala.reflect.internal.util.{BatchSourceFile, Position}
-import scala.tools.nsc.Settings
-import scala.tools.nsc.Global
-import scala.tools.nsc.interactive.Response
+import scala.concurrent.ExecutionContext
+import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
+import scala.tools.nsc.{Global, Settings}
 import scala.util.{Failure, Success, Try}
-import loamstream.web.parser.LoamCompiler.DSLChunk
 
 /**
   * LoamStream
@@ -26,7 +23,7 @@ import loamstream.web.parser.LoamCompiler.DSLChunk
   */
 object LoamCompiler {
 
-  trait DSLChunk {
+  trait DslChunk {
     def env: LEnv
   }
 
@@ -56,6 +53,11 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new Global(settings, reporter)
   val sourceFileName = "Config.scala"
+  val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
+
+  val inputObjectPackage = "loamstream.dynamic.input"
+  val inputObjectName = "Some" + SourceUtils.shortTypeName[DslChunk]
+  val inputObjectFullName = s"$inputObjectPackage.$inputObjectName"
 
   def soManyIssues: String = {
     val soManyErrors = StringUtils.soMany(reporter.errorCount, "error")
@@ -75,17 +77,17 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
   }
 
   def wrapCode(raw: String): String =
-    s"""package loamstream.dynamic.input
+    s"""package $inputObjectPackage
         |
         |import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
         |import ${SourceUtils.fullTypeName[LCoreEnv.Helpers.type]}._
         |import ${SourceUtils.fullTypeName[LCoreEnv.Implicits.type]}._
         |import ${SourceUtils.fullTypeName[LEnvBuilder]}
-        |import ${SourceUtils.fullTypeName[DSLChunk]}
+        |import ${SourceUtils.fullTypeName[DslChunk]}
         |import ${SourceUtils.fullTypeName[LEnv]}._
         |import java.nio.file._
         |
-        |object SomeDSLChunk extends DSLChunk {
+        |object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
         |implicit val envBuilder = new LEnvBuilder
         |
         |${raw.trim}
@@ -100,6 +102,10 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
     reporter.reset()
     val run = new compiler.Run
     run.compileSources(List(sourceFile))
+    outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
+    val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
+    val env = dslChunk.env
+    outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
   }
 
 }

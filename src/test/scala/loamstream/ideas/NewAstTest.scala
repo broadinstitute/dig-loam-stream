@@ -83,6 +83,22 @@ final class NewAstTest extends FunSuite {
       assert(visited.drop(2) == Seq(bcd, abcd))
     }
   }
+  
+  test("fold()") {
+    // a -> b -> (c, d)
+
+    val bcd = b.dependsOn(c(C)).dependsOn(d(D))
+
+    val abcd = a.dependsOn(B).from(bcd)
+    
+    val z: Seq[LId] = Vector.empty
+    
+    val visited: Seq[LId] = abcd.fold(z)((acc, node) => acc :+ node.id)
+    
+    assert(visited.take(2) == Seq(C, D))
+      
+    assert(visited.drop(2).toSet == Set(B, A))
+  }
 
   test(s"1 node dependsOn 1 other node (${classOf[NamedInput].getSimpleName}) => AST") {
     val ast = a dependsOn b(Z)

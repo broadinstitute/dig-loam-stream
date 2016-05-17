@@ -52,7 +52,7 @@ object PipelineConsistencyChecker {
   //TODO: TEST
   case object EachStoreIsOutputOfAtLeastOneToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      (pipeline.stores -- pipeline.tools.flatMap(_.outputs)).map(StoreIsProducedByNoTool)
+      (pipeline.stores -- pipeline.tools.flatMap(_.outputs.values)).map(StoreIsProducedByNoTool)
     }
   }
 
@@ -82,13 +82,13 @@ object PipelineConsistencyChecker {
     override def apply(pipeline: LPipeline): Set[Problem] = {
       //TODO: TEST
       pipeline.tools.filterNot { tool =>
-        tool.outputs.map(_.toTuple).zip(tool.spec.outputs).forall {
+        tool.outputs.zip(tool.spec.outputs).forall {
           case ((toolOutputId, toolOutput), (specOutputId, specOutput)) => {
-            /*toolOutputId == specOutputId && */toolOutput >:> specOutput
+            /*toolOutputId == specOutputId && */toolOutput.spec >:> specOutput
           }
         }
       }.flatMap { tool =>
-        tool.outputs.map(output => StoreIsIncompatibleOutputOfTool(output, tool))
+        tool.outputs.map { case (name, output) => StoreIsIncompatibleOutputOfTool(output, tool) }
       }
     }
   }
@@ -100,14 +100,15 @@ object PipelineConsistencyChecker {
   }
 
   case object EachStoreIsCompatibleInputOfToolCheck extends Check {
+    //TODO: TEST
     override def apply(pipeline: LPipeline): Set[Problem] = {
       val toolsStoresAndStoreSpecs = for {
         tool <- pipeline.tools
-        store <- tool.inputs
+        (inputName, store) <- tool.inputs
       } yield {
         (tool, 
-         tool.inputs.find(_.id == store.id), 
-         tool.spec.inputs.collect { case(id, spec) if id == store.id => spec }.headOption)
+         tool.inputs.collect { case (id, inputStore) if id == store.id => inputStore }.headOption, 
+         tool.spec.inputs.collect { case (id, spec) if id == store.id => spec }.headOption)
       }
       
       toolsStoresAndStoreSpecs.collect { 
@@ -127,8 +128,10 @@ object PipelineConsistencyChecker {
   case object EachOutputStoreIsPresentCheck extends Check {
     //TODO: TEST
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      def unspecifiedOutputsFor(tool: Tool): Seq[Store] = {
-        tool.outputs.filterNot(pipeline.tools.flatMap(_.outputs).contains)
+      def unspecifiedOutputsFor(tool: Tool): Iterable[Store] = {
+        tool.outputs.filterNot { case (_, output) => 
+          pipeline.tools.flatMap(_.outputs.values).contains(output)
+        }.map { case (_, store) => store }
       }
       
       def someOutputIsNotSpecified(tool: Tool): Boolean = !unspecifiedOutputsFor(tool).isEmpty
@@ -148,10 +151,14 @@ object PipelineConsistencyChecker {
 
   case object EachInputStoreIsPresentCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.tools.flatMap { tool => tool.inputs.indices.map(pos => (tool.inputs(pos), tool, pos)) }.
-        collect { case (input, tool, pos) if !pipeline.stores.contains(input) =>
+      val inputsToolsAndIndices = {
+        pipeline.tools.flatMap { tool => tool.inputs.toSeq.indices.map(pos => (tool.inputs.toSeq.apply(pos), tool, pos)) }
+      }
+      
+      inputsToolsAndIndices.collect { 
+        case ((_, input), tool, pos) if !pipeline.stores.contains(input) =>
           StoreMissingUsedAsInput(input, tool, pos)
-        }
+      }
     }
   }
 
@@ -169,7 +176,7 @@ object PipelineConsistencyChecker {
           while (makingProgress) {
             makingProgress = false
             for (tool <- pipeline.tools) {
-              val neighborStores = tool.inputs.toSet ++ tool.outputs
+              val neighborStores = tool.inputs.map(_._2).toSet ++ tool.outputs.map(_._2)
               val connectedStoresNew = neighborStores -- connectedStores
               if (connectedStoresNew.nonEmpty) {
                 connectedStores ++= connectedStoresNew
@@ -197,9 +204,9 @@ object PipelineConsistencyChecker {
       var makingProgress = true
       var nStoresLeft = storesLeft.size
       while (storesLeft.nonEmpty && makingProgress) {
-        def keep(tool: Tool) = tool.outputs.exists(storesLeft.contains)
+        def keep(tool: Tool) = tool.outputs.exists { case (_, store) => storesLeft.contains(store) }
         
-        storesLeft = pipeline.tools.filter(keep).flatMap(_.inputs)
+        storesLeft = pipeline.tools.filter(keep).flatMap(_.inputs.values)
 
         val nStoresLeftNew = storesLeft.size
         

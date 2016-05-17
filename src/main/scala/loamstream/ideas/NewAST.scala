@@ -2,11 +2,13 @@ package loamstream.ideas
 
 import loamstream.model.LId
 import loamstream.model.ToolSpec
-import loamstream.model.kinds.CompositeKind
 
 /**
  * @author clint
  * date: May 12, 2016
+ *
+ * Class representing the tree of relationships between tools in a pipeline.  Allows
+ * composing trees and tools.
  */
 sealed trait NewAST {
   def id: LId = LId.newAnonId
@@ -41,7 +43,6 @@ sealed trait NewAST {
     f(this)
   }
   
-  //TODO: TEST!
   def fold[R](z: R)(op: (R, NewAST) => R): R = {
     var acc = z
     

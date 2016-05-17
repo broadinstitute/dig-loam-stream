@@ -17,11 +17,11 @@ import loamstream.model.kinds.StoreKinds
   * LoamStream
   * Created by oliverr on 2/16/2016.
   */
-final case class CoreTool(id: LId, spec: ToolSpec, inputs: Seq[Store], outputs: Seq[Store]) extends Tool
+final case class CoreTool(id: LId, spec: ToolSpec, inputs: Map[LId, Store], outputs: Map[LId, Store]) extends Tool
 
 object CoreTool {
   
-  def apply(name: String, toolSpec: ToolSpec, inputs: Seq[Store], outputs: Seq[Store]): CoreTool = {
+  def apply(name: String, toolSpec: ToolSpec, inputs: Map[LId, Store], outputs: Map[LId, Store]): CoreTool = {
     CoreTool(LNamedId(name), toolSpec, inputs, outputs)
   }
   
@@ -82,7 +82,11 @@ object CoreTool {
   
   //TODO: TEST
   def nullaryTool(id: String, name: String, output: Store, makeToolSpec: StoreSpec => ToolSpec): Tool = {
-    CoreTool(name, makeToolSpec(output.spec), Seq.empty, Seq(output))
+    CoreTool(
+        name, 
+        makeToolSpec(output.spec), 
+        Map.empty[LId, Store], 
+        Map(output.id -> output)) //TODO: correct?
   }
   
   //TODO: TEST
@@ -90,8 +94,8 @@ object CoreTool {
     CoreTool(
       name,
       makeToolSpec(sig.input.spec, sig.output.spec),
-      Seq(sig.input),
-      Seq(sig.output))
+      Map(sig.input.id -> sig.input), //TODO: correct?
+      Map(sig.output.id -> sig.output)) //TODO: correct?
   }
   
   //TODO: TEST
@@ -111,7 +115,7 @@ object CoreTool {
     CoreTool(
       id,
       ToolSpec(kind, sig.inputs.map(_.toTuple).toMap, sig.outputs.map(_.toTuple).toMap),
-      sig.inputs,
-      sig.outputs)
+      sig.inputs.map(i => i.id -> i).toMap,  //TODO: correct?
+      sig.outputs.map(o => o.id -> o).toMap) //TODO: correct?
   }
 }

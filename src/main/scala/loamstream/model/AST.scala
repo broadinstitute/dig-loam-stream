@@ -1,69 +1,122 @@
 package loamstream.model
 
 import scala.util.Try
-
 import loamstream.util.Tries
 import loamstream.util.Maps
 
 /**
  * @author clint
- * date: Apr 29, 2016
+ * date: May 12, 2016
  *
  * Class representing the tree of relationships between tools in a pipeline.  Allows
  * composing trees and tools.
  */
-final case class AST(toolSpec: ToolSpec, inputs: Set[AST]) {
-  //TODO
+sealed trait AST {
   def id: LId = LId.newAnonId
-  
-  def isLeaf: Boolean = inputs.isEmpty
 
-  def dependsOn(dependencies: AST*): AST = copy(inputs = inputs ++ dependencies)
+  import AST._
 
-  //NB: I had wanted to call this "andThen", but that can't be added as an extension method
-  //to Seqs of Tools/ASTs, since Seqs are functions and inherit a different method named andThen.
-  //I also considered "then", but that's now a reserved word. :\ -Clint
-  def thenRun(other: AST): AST = other.dependsOn(this)
+  def inputs: Set[NamedInput]
 
-  def ~>(other: AST): AST = this.thenRun(other)
+  def withInputs(inputs: Set[NamedInput]): AST
 
-  //NB: Use dummy all-implicit param list to allow 2 overloads that otherwise would be the same after erasure
-  def dependsOn(dependencies: Tool*)(implicit discriminator: Int = 1): AST = dependsOn(dependencies.map(AST(_)): _*)
+  final def <~(input: NamedInput): AST = dependsOn(input)
 
-  def thenRun(other: Tool): AST = AST(other).dependsOn(this)
+  final def dependsOn(input: NamedInput): AST = dependsOn(input.id, input.producer)
+  final def dependsOn(inputId: LId, input: AST): AST = withInputs(inputs + NamedInput(inputId, input))
 
-  def ~>(other: Tool): AST = this.thenRun(other)
+  final def dependsOn(inputId: LId): NamedDependency = NamedDependency(this, inputId)
+
+  final def dependsOn(inputId: LId, rest: LId*): MultiNamedDependency = MultiNamedDependency(this, rest.toSet + inputId)
+
+  final def output(outputId: LId): NamedInput = NamedInput(outputId, this)
+
+  final def apply(outputId: LId): NamedInput = output(outputId)
+
+  final def isLeaf: Boolean = inputs.isEmpty
+
+  /**
+   * Performs post-order traversal and invokes f for each node
+   */
+  def traverse(f: AST => Any): Unit = {
+    inputs.foreach(_.producer.traverse(f))
+
+    f(this)
+  }
+
+  def fold[R](z: R)(op: (R, AST) => R): R = {
+    var acc = z
+
+    traverse { node =>
+      acc = op(acc, node)
+    }
+
+    acc
+  }
+
+  def print(indent: Int = 0, via: Option[LId] = None, doPrint: (String) => Any = println(_)): Unit = {
+    val indentString = s"${"-" * indent}${via.map(v => s"($v)").getOrElse("")}> "
+
+    doPrint(s"$indentString$id")
+
+    inputs.foreach { case NamedInput(inputId, dep) => dep.print(indent + 2, Option(inputId), doPrint) }
+  }
+
+  def leaves: Set[AST] = {
+    if (isLeaf) { Set(this) }
+    else { inputs.flatMap(_.producer.leaves) }
+  }
 }
 
 object AST {
-
-  def apply(tool: Tool): AST = AST(tool.spec, Set.empty)
+  def apply(tool: Tool): AST = ToolNode(tool.id, tool.spec, Set.empty)
 
   object Implicits {
-    final implicit class IterableOps(val tools: Iterable[Tool]) extends AnyVal {
-      def thenRun(other: AST): AST = other.dependsOn(tools.toSeq: _*)
+    final implicit class SeqOfASTsOps(val asts: Seq[AST]) extends AnyVal {
+      def outputs(ids: LId.CompositeId*): Seq[NamedInput] = {
+        val byId: Map[LId, AST] = asts.map(c => c.id -> c).toMap
 
-      def ~>(other: AST): AST = thenRun(other)
-
-      def thenRun(other: Tool): AST = other.toAST.dependsOn(tools.toSeq: _*)
-
-      def ~>(other: Tool): AST = thenRun(other)
+        //NB: Can fail
+        ids.collect { case LId.CompositeId(namespace, name) if byId.contains(namespace) => byId(namespace).output(name) }
+      }
     }
 
-    final implicit class ToolOps(val self: Tool) extends AnyVal {
-      def toAST: AST = AST(self)
+    final implicit class SpecOps(val spec: ToolSpec) extends AnyVal {
+      def as(id: LId): ToolNode = ToolNode(id, spec)
+    }
+  }
 
-      def dependsOn(t: Tool): AST = toAST.dependsOn(t)
+  final case class NamedDependency(consumer: AST, outputId: LId) {
+    def from(producer: AST): AST = consumer.dependsOn(outputId, producer)
+  }
 
-      def thenRun(t: Tool): AST = toAST.thenRun(t)
+  final case class MultiNamedDependency(consumer: AST, outputIds: Set[LId]) {
+    def from(producer: AST): AST = {
+      outputIds.foldLeft(consumer) { (ast, id) =>
+        ast.dependsOn(id).from(producer)
+      }
+    }
+  }
 
-      def ~>(t: Tool): AST = thenRun(t)
+  final case class NamedInput(id: LId, producer: AST)
 
-      def dependsOn(other: AST): AST = toAST.dependsOn(other)
+  final case class ToolNode(override val id: LId, spec: ToolSpec, inputs: Set[NamedInput] = Set.empty) extends AST {
+    override def withInputs(newInputs: Set[NamedInput]): AST = copy(inputs = newInputs)
+  }
 
-      def thenRun(other: AST): AST = toAST.thenRun(other)
+  final case class Either(lhs: AST, rhs: AST, inputs: Set[NamedInput] = Set.empty) extends AST {
+    override def withInputs(newInputs: Set[NamedInput]): AST = copy(inputs = newInputs)
+  }
 
-      def ~>(other: AST): AST = thenRun(other)
+  final case class Parallel(components: Seq[AST], inputs: Set[NamedInput] = Set.empty) extends AST {
+    override val id = LId.LNamedId(components.map(_.id).mkString(","))
+
+    private lazy val byId: Map[LId, AST] = components.map(c => c.id -> c).toMap
+
+    override def withInputs(newInputs: Set[NamedInput]): AST = copy(inputs = newInputs)
+
+    def outputs(ids: LId.CompositeId*): Seq[NamedInput] = {
+      ids.map { case LId.CompositeId(namespace, name) => byId(namespace).output(name) }
     }
   }
 
@@ -76,8 +129,6 @@ object AST {
    *
    */
   def fromPipeline(pipeline: LPipeline): Try[AST] = {
-    
-
     if (pipeline.tools.isEmpty) {
       Tries.failure("No tools")
     } else {
@@ -85,9 +136,9 @@ object AST {
         terminal <- findTerminalTool(pipeline)
       } yield {
         import Maps.Implicits._
-        
+
         val byOutput = pipeline.toolsByOutput.mapKeys(_.spec)
-        
+
         astFor(byOutput)(terminal)
       }
     }
@@ -105,18 +156,18 @@ object AST {
 
     final implicit class ToolOps(val t: Tool) {
       def takesNoInputFrom(otherTool: Tool): Boolean = {
-        t.inputs.map(_.toTuple).forall { case (inputId, inputSpec) =>
-          !otherTool.outputs.map(_.toTuple).exists { case (outputId, outputSpec) =>
+        t.inputs.forall { case (inputId, inputSpec) =>
+          !otherTool.outputs.exists { case (outputId, outputSpec) =>
             inputId == outputId && inputSpec == outputSpec
           }
         }
-      } 
+      }
     }
-    
+
     def isNoOnesInput(tool: Tool, others: Set[Tool]): Boolean = {
       def inputsOf(t: Tool): Map[LId, StoreSpec] = t.spec.inputs
       def outputsOf(t: Tool): Map[LId, StoreSpec] = t.spec.outputs
-      
+
       //No other tool takes any of `tool`'s outputs as input 
       others.forall(otherTool => otherTool.takesNoInputFrom(tool))
     }
@@ -136,12 +187,25 @@ object AST {
    * directly and transitively depends on.
    */
   private[model] def astFor(byOutput: Map[StoreSpec, Set[Tool]])(tool: Tool): AST = {
-    val toolsProducingInputs = for {
-      input <- tool.inputs.toSet[Store]
+    /*def idOfInputSpec(inputSpec: StoreSpec): Option[LId] = {
+      tool.spec.outputs.find { 
+        case (_, outputSpec) => inputSpec == outputSpec 
+      }.collect {
+        case (id, _) => id
+      }
+    }*/
+    
+    val toolsProducingInputs: Set[(LId, Tool)] = for {
+      (inputId, input) <- tool.inputs.toSet[(LId, Store)]
       inputSpec = input.spec
       producer <- byOutput.get(inputSpec).toSet.flatten
-    } yield producer
+      //inputId <- idOfInputSpec(inputSpec).toSet[LId]
+    } yield (inputId, producer)
 
-    AST(tool.spec, toolsProducingInputs.map(astFor(byOutput)))
+    val inputTrees: Set[NamedInput] = toolsProducingInputs.map {
+      case (inputId, toolProducingInput) => NamedInput(inputId, astFor(byOutput)(toolProducingInput))
+    }
+    
+    ToolNode(tool.id, tool.spec, inputTrees)
   }
 }

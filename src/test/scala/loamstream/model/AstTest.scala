@@ -6,6 +6,7 @@ import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal.MiniPipeline
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.util.Maps
+import LId.LNamedId
 
 /**
  * @author clint
@@ -14,16 +15,23 @@ import loamstream.util.Maps
 final class AstTest extends FunSuite {
   import AST._
   
+  import ToolSpec.ParamNames.{ input, output }
+  
   test("infer dependencies between tools in the MiniPipeline") {
     val pipeline = MiniPipeline("foo")
     
     val ast = AST.fromPipeline(pipeline).get
     
+    
     val expected = {
-      AST(pipeline.sampleIdsTool).dependsOn {
-        AST(pipeline.genotypeCallsTool)
-      }
+      AST(pipeline.sampleIdsTool).dependsOn(output).from(AST(pipeline.genotypeCallsTool))
     }
+    
+    ast.print()
+    
+    println()
+    
+    expected.print()
     
     assert(ast == expected)
   }
@@ -34,39 +42,11 @@ final class AstTest extends FunSuite {
     val ast = AST.fromPipeline(pipeline).get
     
     val expected = {
-      AST(pipeline.singletonTool).dependsOn {
-        AST(pipeline.vdsTool).dependsOn {
+      AST(pipeline.singletonTool).dependsOn(output).from {
+        AST(pipeline.vdsTool).dependsOn(output).from {
           AST(pipeline.genotypeCallsTool)
         }
       }
-    }
-    
-    assert(ast == expected)
-  }
-  
-  test("infer dependencies between tools in the Hail pipeline (~>) ") {
-    val pipeline = HailPipeline("foo", "bar", "baz")
-    
-    val ast = AST.fromPipeline(pipeline).get
-    
-    val expected = {
-      AST(pipeline.genotypeCallsTool) ~>
-      AST(pipeline.vdsTool) ~>
-      AST(pipeline.singletonTool) 
-    }
-    
-    assert(ast == expected)
-  }
-  
-  test("infer dependencies between tools in the Hail pipeline (thenRun) ") {
-    val pipeline = HailPipeline("foo", "bar", "baz")
-    
-    val ast = AST.fromPipeline(pipeline).get
-    
-    val expected = {
-      AST(pipeline.genotypeCallsTool) thenRun
-      AST(pipeline.vdsTool) thenRun
-      AST(pipeline.singletonTool) 
     }
     
     assert(ast == expected)
@@ -78,115 +58,21 @@ final class AstTest extends FunSuite {
     val ast = AST.fromPipeline(pipeline).get
     
     val expected = {
-      AST(pipeline.sampleClusteringTool).dependsOn {
-        AST(pipeline.pcaProjectionTool).dependsOn(
-          AST(pipeline.pcaWeightsTool),
+      AST(pipeline.sampleClusteringTool).dependsOn(output).from {
+        AST(pipeline.pcaProjectionTool).dependsOn(output).from {
+          AST(pipeline.pcaWeightsTool)
+        }.dependsOn(output).from {
           AST(pipeline.genotypesTool)
-        )
+        }
       }
     }
     
     assert(ast == expected)
   }
   
-  test("AST Implicits: iterables of tools, branching pipeline") {
-    val pipeline = AncestryInferencePipeline("foo", "bar")
-    
-    val expected = AST.fromPipeline(pipeline).get
-    
-    import pipeline._
-    import AST.Implicits._
-    
-    val actual1 = {
-      Seq(genotypesTool, pcaWeightsTool) thenRun
-      pcaProjectionTool thenRun
-      sampleClusteringTool
-    }
-    
-    assert(expected === actual1)
-    
-    val actual2 = {
-      Seq(genotypesTool, pcaWeightsTool) ~>
-      pcaProjectionTool ~>
-      sampleClusteringTool
-    }
-    
-    assert(expected === actual2)
-    
-    val actual3 = {
-      sampleClusteringTool.toAST.dependsOn {
-        pcaProjectionTool.toAST.dependsOn(
-          genotypesTool, 
-          pcaWeightsTool
-        )
-      }
-    }
-    assert(expected === actual3)
-  }
-  
-  test("AST Implicits: iterables of tools, linear pipeline") {
-    val pipeline = HailPipeline("foo", "bar", "baz")
-    
-    val expected = AST.fromPipeline(pipeline).get
-    
-    import pipeline._
-    import AST.Implicits._
-    
-    val actual1 = {
-      Seq(genotypeCallsTool) thenRun
-      vdsTool thenRun
-      singletonTool
-    }
-    
-    assert(expected === actual1)
-    
-    val actual2 = {
-      Seq(genotypeCallsTool) ~>
-      vdsTool ~>
-      singletonTool
-    }
-    
-    assert(expected === actual2)
-  }
-  
-  test("AST Implicits: single tools, linear pipeline") {
-    val pipeline = HailPipeline("foo", "bar", "baz")
-    
-    val expected = AST.fromPipeline(pipeline).get
-    
-    import pipeline._
-    import AST.Implicits._
-    
-    val actual1 = {
-      genotypeCallsTool thenRun
-      vdsTool thenRun
-      singletonTool
-    }
-    
-    assert(expected === actual1)
-    
-    val actual2 = {
-      genotypeCallsTool ~>
-      vdsTool ~>
-      singletonTool
-    }
-    
-    assert(expected === actual2)
-    
-    val actual3 = {
-      singletonTool.dependsOn {
-        vdsTool.dependsOn {
-          genotypeCallsTool
-        }
-      }
-    }
-    
-    assert(expected === actual3)
-  }
-  
   test("findTerminalTool") {
     final case class ExplicitPipeline(tools: Set[Tool]) extends LPipeline {
-      override def stores: Set[Store] = tools.flatMap(_.outputs)
+      override def stores: Set[Store] = tools.flatMap(_.outputs.values)
     }
     
     import AST.findTerminalTool
@@ -206,6 +92,8 @@ final class AstTest extends FunSuite {
     
     //Should work
     assert(findTerminalTool(hailPipeline).get === hailPipeline.singletonTool)
+    
+    assert(findTerminalTool(ancestryPipeline).get == ancestryPipeline.sampleClusteringTool)
   }
   
   test("astFor") {
@@ -219,16 +107,18 @@ final class AstTest extends FunSuite {
     
     import pipeline._
     
-    assert(astFor(genotypesTool) === AST(genotypesTool.spec, Set.empty[AST]))
+    assert(astFor(genotypesTool) === AST(genotypesTool))
     
-    assert(astFor(pcaWeightsTool) === AST(pcaWeightsTool.spec, Set.empty[AST]))
+    assert(astFor(pcaWeightsTool) === AST(pcaWeightsTool))
     
-    val expected1 = AST(pcaProjectionTool.spec, Set(
-        AST(genotypesTool.spec, Set.empty[AST]),
-        AST(pcaWeightsTool.spec, Set.empty[AST])))
+    val expected1 = AST(pcaProjectionTool).dependsOn(output).from {
+      AST(genotypesTool)
+    }.dependsOn(output).from {
+      AST(pcaWeightsTool)
+    }
     
     assert(astFor(pcaProjectionTool) === expected1)
     
-    assert(astFor(sampleClusteringTool) === AST(sampleClusteringTool.spec, Set(expected1)))
+    assert(astFor(sampleClusteringTool) === AST(sampleClusteringTool).dependsOn(output).from(expected1))
   }
 }

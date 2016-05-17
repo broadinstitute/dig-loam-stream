@@ -12,7 +12,7 @@ trait LPipeline {
   lazy val toolsByOutput: Map[Store, Set[Tool]] = {
     val outputsToTools = for {
       tool <- tools.toSeq
-      output <- tool.outputs
+      (outputId, output) <- tool.outputs
     } yield output -> tool
 
     val z: Map[Store, Set[Tool]] = Map.empty

@@ -76,12 +76,12 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
   def wrapCode(raw: String): String =
     s"""package loamstream.dynamic.input
         |
-        |import ${SourceUtils.likelyTypeName(LCoreEnv.Keys)}._
-        |import ${SourceUtils.likelyTypeName(LCoreEnv.Helpers)}._
-        |import ${SourceUtils.likelyTypeName(LCoreEnv.Implicits)}._
-        |import ${SourceUtils.likelyTypeName[LEnvBuilder]}
-        |import ${SourceUtils.likelyTypeName[DSLChunk]}
-        |import ${SourceUtils.likelyTypeName(LEnv)}._
+        |import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
+        |import ${SourceUtils.fullTypeName[LCoreEnv.Helpers.type]}._
+        |import ${SourceUtils.fullTypeName[LCoreEnv.Implicits.type]}._
+        |import ${SourceUtils.fullTypeName[LEnvBuilder]}
+        |import ${SourceUtils.fullTypeName[DSLChunk]}
+        |import ${SourceUtils.fullTypeName[LEnv]}._
         |import java.nio.file._
         |
         |object SomeDSLChunk extends DSLChunk {

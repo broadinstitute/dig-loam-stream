@@ -11,10 +11,12 @@ import com.typesafe.config.ConfigFactory
  */
 case class ImputationConfig(configFile: String) {
   val imputationConfig = ConfigFactory.parseFile(new File(configFile)).withFallback(ConfigFactory.load("loamstream"))
-  val props = TypesafeConfigLproperties(ConfigFactory.load(imputationConfig))
+  val shapeItProps = TypesafeConfigLproperties(ConfigFactory.load(imputationConfig))
   val shapeItBaseKey = "imputation.shapeit"
+
   val shapeItWorkDirKey = s"$shapeItBaseKey.workDir"
   val shapeItExecutableKey = s"$shapeItBaseKey.executable"
+  val shapeItScriptKey = s"$shapeItBaseKey.script"
   val shapeItVcfFileKey = s"$shapeItBaseKey.vcfFile"
   val shapeItMapFileKey = s"$shapeItBaseKey.mapFile"
   val shapeItHapFileKey = s"$shapeItBaseKey.hapFile"
@@ -22,12 +24,13 @@ case class ImputationConfig(configFile: String) {
   val shapeItLogFileKey = s"$shapeItBaseKey.logFile"
   val shapeItNumThreadsKey = s"$shapeItBaseKey.numThreads"
 
-  val shapeItWorkDir = props.getString(shapeItWorkDirKey).get
-  val shapeItExecutable = props.getString(shapeItExecutableKey).get
-  val shapeItVcfFile = Paths.get(shapeItWorkDir, props.getString(shapeItVcfFileKey).get).toString
-  val shapeItMapFile = Paths.get(shapeItWorkDir, props.getString(shapeItMapFileKey).get).toString
-  val shapeItHapFile = Paths.get(shapeItWorkDir, props.getString(shapeItHapFileKey).get).toString
-  val shapeItSampleFile = Paths.get(shapeItWorkDir, props.getString(shapeItSampleFileKey).get).toString
-  val shapeItLogFile = Paths.get(shapeItWorkDir, props.getString(shapeItLogFileKey).get).toString
-  val shapeItNumThreads = props.getString(shapeItNumThreadsKey).get
+  val shapeItWorkDir = shapeItProps.getString(shapeItWorkDirKey).get
+  val shapeItExecutable = shapeItProps.getString(shapeItExecutableKey).get
+  val shapeItScript = shapeItProps.getString(shapeItScriptKey).get
+  val shapeItVcfFile = Paths.get(shapeItWorkDir, shapeItProps.getString(shapeItVcfFileKey).get).toString
+  val shapeItMapFile = Paths.get(shapeItWorkDir, shapeItProps.getString(shapeItMapFileKey).get).toString
+  val shapeItHapFile = Paths.get(shapeItWorkDir, shapeItProps.getString(shapeItHapFileKey).get).toString
+  val shapeItSampleFile = Paths.get(shapeItWorkDir, shapeItProps.getString(shapeItSampleFileKey).get).toString
+  val shapeItLogFile = Paths.get(shapeItWorkDir, shapeItProps.getString(shapeItLogFileKey).get).toString
+  val shapeItNumThreads = shapeItProps.getString(shapeItNumThreadsKey).get
 }

@@ -13,7 +13,8 @@ import loamstream.web.parser.LoamCompiler.CompilerReporter
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.reflect.internal.util.{BatchSourceFile, Position}
 import scala.tools.nsc.Settings
-import scala.tools.nsc.interactive.{Global, Response}
+import scala.tools.nsc.Global
+import scala.tools.nsc.interactive.Response
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.util.{Failure, Success, Try}
@@ -96,12 +97,9 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
   def compile(rawCode: String): Unit = {
     val wrappedCode = wrapCode(rawCode)
     val sourceFile = new BatchSourceFile(sourceFileName, wrappedCode)
-    val response = new Response[compiler.Tree]
     reporter.reset()
-    compiler.askLoadedTyped(sourceFile, response)
-    val timeOutMs = 30000
-    val responseFut = Future(blocking(response.get(timeOutMs)))
-    responseFut.onComplete(sendOutResponse)
+    val run = new compiler.Run
+    run.compileSources(List(sourceFile))
   }
 
 }

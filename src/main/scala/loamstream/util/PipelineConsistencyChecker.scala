@@ -64,7 +64,27 @@ object PipelineConsistencyChecker {
 
   case object EachStoreIsOutputOfNoMoreThanOneToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.toolsByOutput.collect { case (store, tools) if tools.size > 1 =>
+      val toolsByOutput: Map[Store, Set[Tool]] = {
+        val outputsToTools = for {
+          tool <- pipeline.tools.toSeq
+          (outputId, output) <- tool.outputs
+        } yield output -> tool
+    
+        val z: Map[Store, Set[Tool]] = Map.empty
+    
+        outputsToTools.foldLeft(z) { (map, tuple) =>
+          val (output, tool) = tuple
+    
+          val newTools = map.get(output) match {
+            case None        => Set(tool)
+            case Some(tools) => tools + tool
+          }
+    
+          map + (output -> newTools)
+        }
+      }
+
+      toolsByOutput.collect { case (store, tools) if tools.size > 1 =>
         val result: Problem = StoreIsProducedByMultipleTools(store, tools)
         
         result

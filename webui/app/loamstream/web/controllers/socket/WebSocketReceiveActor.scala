@@ -1,9 +1,9 @@
 package loamstream.web.controllers.socket
 
 import akka.actor.{Actor, ActorRef, Props}
-import loamstream.web.parser.ClientHandler
-import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
+import loamstream.compiler.{ClientMessageHandler, ClientOutMessage}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 
 /**
   * LoamStream
@@ -13,9 +13,9 @@ object WebSocketReceiveActor {
   def props(sendActor: ActorRef): Props = Props(new WebSocketReceiveActor(sendActor))
 }
 
-class WebSocketReceiveActor(sendActor: ActorRef) extends Actor with SocketMessageHandler.OutMessageSink {
+class WebSocketReceiveActor(sendActor: ActorRef) extends Actor with ClientMessageHandler.OutMessageSink {
 
-  val clientHandler = ClientHandler(this)
+  val clientHandler = ClientMessageHandler(this)
 
   override def receive: Receive = {
     case json: JsValue =>
@@ -28,7 +28,7 @@ class WebSocketReceiveActor(sendActor: ActorRef) extends Actor with SocketMessag
       }
   }
 
-  override def send(outMessage: SocketOutMessage): Unit = {
+  override def send(outMessage: ClientOutMessage): Unit = {
     sendActor ! SocketJsonWriter.writes(outMessage)
   }
 }

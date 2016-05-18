@@ -1,14 +1,13 @@
-package loamstream.web.parser
+package loamstream.compiler
 
 import java.io.File
 
 import loamstream.LEnv
+import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.CompilerOutMessage.Severity
+import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.{LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
-import loamstream.web.controllers.socket.CompilerOutMessage.Severity
-import loamstream.web.controllers.socket.SocketMessageHandler.OutMessageSink
-import loamstream.web.controllers.socket.{CompilerOutMessage, StatusOutMessage}
-import loamstream.web.parser.LoamCompiler.{CompilerReporter, DslChunk}
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}

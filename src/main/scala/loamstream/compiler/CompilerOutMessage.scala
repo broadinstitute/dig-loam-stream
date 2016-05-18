@@ -1,6 +1,6 @@
-package loamstream.web.controllers.socket
+package loamstream.compiler
 
-import loamstream.web.controllers.socket.CompilerOutMessage.Severity
+import loamstream.compiler.CompilerOutMessage.Severity
 
 import scala.reflect.internal.util.Position
 
@@ -37,6 +37,6 @@ object CompilerOutMessage {
 }
 
 case class CompilerOutMessage(pos: Position, message: String, severity: Severity, force: Boolean)
-  extends SocketOutMessage {
+  extends ClientOutMessage {
   override val typeName = "compiler"
 }

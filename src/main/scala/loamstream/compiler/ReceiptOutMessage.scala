@@ -1,4 +1,4 @@
-package loamstream.web.controllers.socket
+package loamstream.compiler
 
 import java.util.Date
 
@@ -10,7 +10,7 @@ object ReceiptOutMessage {
   def apply(text: String): ReceiptOutMessage = ReceiptOutMessage(System.currentTimeMillis(), text.length)
 }
 
-case class ReceiptOutMessage(time: Long, size: Int) extends SocketOutMessage {
+case class ReceiptOutMessage(time: Long, size: Int) extends ClientOutMessage {
   override def typeName: String = "receipt"
 
   def timeAsString: String = new Date(time).toString

@@ -73,7 +73,7 @@ object ImputationApp extends Loggable {
     val log = config.shapeItLogFile
     val numThreads = config.shapeItNumThreads
 
-    val shapeItTokens = getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads.toInt)
+    val shapeItTokens = getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads)
     val commandLine = ShapeItCommandLine(shapeItTokens)
     val shapeItJob = LCommandLineJob(commandLine, Paths.get(shapeItWorkDir), Set.empty)
 

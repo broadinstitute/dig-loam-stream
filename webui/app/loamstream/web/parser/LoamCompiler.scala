@@ -77,24 +77,25 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
   }
 
   def wrapCode(raw: String): String =
-    s"""package $inputObjectPackage
-        |
-        |import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
-        |import ${SourceUtils.fullTypeName[LCoreEnv.Helpers.type]}._
-        |import ${SourceUtils.fullTypeName[LCoreEnv.Implicits.type]}._
-        |import ${SourceUtils.fullTypeName[LEnvBuilder]}
-        |import ${SourceUtils.fullTypeName[DslChunk]}
-        |import ${SourceUtils.fullTypeName[LEnv]}._
-        |import java.nio.file._
-        |
-        |object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
-        |implicit val envBuilder = new LEnvBuilder
-        |
-        |${raw.trim}
-        |
-        |def env = envBuilder.toEnv
-        |}
-     """.stripMargin
+    s"""
+package $inputObjectPackage
+
+import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
+import ${SourceUtils.fullTypeName[LCoreEnv.Helpers.type]}._
+import ${SourceUtils.fullTypeName[LCoreEnv.Implicits.type]}._
+import ${SourceUtils.fullTypeName[LEnvBuilder]}
+import ${SourceUtils.fullTypeName[DslChunk]}
+import ${SourceUtils.fullTypeName[LEnv]}._
+import java.nio.file._
+
+object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
+implicit val envBuilder = new LEnvBuilder
+
+${raw.trim}
+
+def env = envBuilder.toEnv
+}
+"""
 
   def compile(rawCode: String): Unit = {
     val wrappedCode = wrapCode(rawCode)

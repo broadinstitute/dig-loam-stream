@@ -11,7 +11,7 @@ import loamstream.util.Maps
  * Class representing the tree of relationships between tools in a pipeline.  Allows
  * composing trees and tools.
  */
-sealed trait AST {
+sealed trait AST extends Iterable[AST] {
   def id: LId = LId.newAnonId
 
   import AST._
@@ -36,24 +36,29 @@ sealed trait AST {
   final def isLeaf: Boolean = inputs.isEmpty
 
   /**
-   * Performs post-order traversal and invokes f for each node
+   * Returns an iterator that does a post-order traversal of this tree
    */
-  def traverse(f: AST => Any): Unit = {
-    inputs.foreach(_.producer.traverse(f))
-
-    f(this)
+  override def iterator: Iterator[AST] = postOrder
+  
+  /**
+   * Returns an iterator that does a post-order traversal of this tree; that is, 
+   * this node's children (dependencies/inputs) are visited before this node.  
+   */
+  def postOrder: Iterator[AST] = childIterator(_.postOrder) ++ Iterator.single(this)
+  
+  /**
+   * Returns an iterator that does a pre-order traversal of this tree; that is, 
+   * this node is visited before its children (dependencies/inputs).  
+   */
+  def preOrder: Iterator[AST] = Iterator.single(this) ++ childIterator(_.preOrder)
+  
+  private def childIterator(iterationStrategy: AST => Iterator[AST]): Iterator[AST] = {
+    inputs.iterator.map(_.producer).flatMap(iterationStrategy)
   }
 
-  def fold[R](z: R)(op: (R, AST) => R): R = {
-    var acc = z
-
-    traverse { node =>
-      acc = op(acc, node)
-    }
-
-    acc
-  }
-
+  /**
+   * Convenience method to print the tree for debugging
+   */
   def print(indent: Int = 0, via: Option[LId] = None, doPrint: (String) => Any = println(_)): Unit = {
     val indentString = s"${"-" * indent}${via.map(v => s"($v)").getOrElse("")}> "
 
@@ -118,94 +123,5 @@ object AST {
     def outputs(ids: LId.CompositeId*): Seq[NamedInput] = {
       ids.map { case LId.CompositeId(namespace, name) => byId(namespace).output(name) }
     }
-  }
-
-  /**
-   * Given an LPipeline, return a Try[AST], representing an attempt at the tree of dependencies between
-   * Tools in the pipeline.
-   *
-   * Returns Failure if pipeline contains no tools, or if exactly one terminal tool cannot be found,
-   * returns Success otherwise.
-   *
-   */
-  def fromPipeline(pipeline: LPipeline): Try[AST] = {
-    if (pipeline.tools.isEmpty) {
-      Tries.failure("No tools")
-    } else {
-      for {
-        terminal <- findTerminalTool(pipeline)
-      } yield {
-        import Maps.Implicits._
-
-        val byOutput = pipeline.toolsByOutput.mapKeys(_.spec)
-
-        astFor(byOutput)(terminal)
-      }
-    }
-  }
-
-  /**
-   * Given an LPipeline, finds the "last" Tool, the one who's output isn't the input
-   * of any other tools.  This Tool can be seen as producing the "output" of a
-   * pipeline.
-   */
-  private[model] def findTerminalTool(pipeline: LPipeline): Try[Tool] = {
-    val tools = pipeline.tools
-
-    val toolsAndOthers = tools.map(t => t -> (tools - t))
-
-    final implicit class ToolOps(val t: Tool) {
-      def takesNoInputFrom(otherTool: Tool): Boolean = {
-        t.inputs.forall { case (inputId, inputSpec) =>
-          !otherTool.outputs.exists { case (outputId, outputSpec) =>
-            inputId == outputId && inputSpec == outputSpec
-          }
-        }
-      }
-    }
-
-    def isNoOnesInput(tool: Tool, others: Set[Tool]): Boolean = {
-      def inputsOf(t: Tool): Map[LId, StoreSpec] = t.spec.inputs
-      def outputsOf(t: Tool): Map[LId, StoreSpec] = t.spec.outputs
-
-      //No other tool takes any of `tool`'s outputs as input 
-      others.forall(otherTool => otherTool.takesNoInputFrom(tool))
-    }
-
-    val terminals = toolsAndOthers.collect { case (tool, others) if isNoOnesInput(tool, others) => tool }
-
-    if (terminals.size != 1) { Tries.failure(s"Expected 1 terminal tool, but found ${terminals.size}: $terminals") }
-    else { Try(terminals.head) }
-  }
-
-  /**
-   * Given a mapping tool outputs to sets of tools with that output spec, and a tool output spec,
-   * Produce a tree of AST.Nodes prepresenting that tool, by walking out from that tool, making ASTs
-   * for its inputs recursively.
-   *
-   * Runs in O(n) time, where n is the total number of tools the tool indicated by toolOutput
-   * directly and transitively depends on.
-   */
-  private[model] def astFor(byOutput: Map[StoreSpec, Set[Tool]])(tool: Tool): AST = {
-    /*def idOfInputSpec(inputSpec: StoreSpec): Option[LId] = {
-      tool.spec.outputs.find { 
-        case (_, outputSpec) => inputSpec == outputSpec 
-      }.collect {
-        case (id, _) => id
-      }
-    }*/
-    
-    val toolsProducingInputs: Set[(LId, Tool)] = for {
-      (inputId, input) <- tool.inputs.toSet[(LId, Store)]
-      inputSpec = input.spec
-      producer <- byOutput.get(inputSpec).toSet.flatten
-      //inputId <- idOfInputSpec(inputSpec).toSet[LId]
-    } yield (inputId, producer)
-
-    val inputTrees: Set[NamedInput] = toolsProducingInputs.map {
-      case (inputId, toolProducingInput) => NamedInput(inputId, astFor(byOutput)(toolProducingInput))
-    }
-    
-    ToolNode(tool.id, tool.spec, inputTrees)
   }
 }

@@ -24,9 +24,9 @@ final class AstTest extends FunSuite {
   test("leaves()") {
     assert(a.leaves == Set(a))
 
-    assert(a.dependsOn(b(B)).leaves == Set(b))
+    assert(a.dependsOn(b(B).as(X)).leaves == Set(b))
 
-    assert(a.dependsOn(b(B)).dependsOn(c(C)).leaves == Set(b, c))
+    assert(a.dependsOn(b(B).as(X)).dependsOn(c(C).as(Y)).leaves == Set(b, c))
 
     //a -> b -> (c, d)
 
@@ -36,7 +36,7 @@ final class AstTest extends FunSuite {
   test("isLeaf") {
     assert(a.isLeaf == true)
 
-    assert(a.dependsOn(b(B)).isLeaf == false)
+    assert(a.dependsOn(b(B).as(X)).isLeaf == false)
 
     assert(Trees.abcd.isLeaf == false)
     assert(Trees.bcd.isLeaf == false)
@@ -87,66 +87,52 @@ final class AstTest extends FunSuite {
     })
   }
   
-  test(s"1 node dependsOn 1 other node (${classOf[NamedInput].getSimpleName}) => AST") {
-    val ast = a dependsOn b(Z)
+  test(s"1 node dependsOn 1 other node (${classOf[NamedOutput].getSimpleName}) => AST") {
+    val ast = a dependsOn (b(Z) as Q)
 
-    val expected = ToolNode(A, aSpec, Set(NamedInput(Z, b)))
+    val expected = ToolNode(A, aSpec, Set(Connection(Q, Z, b)))
 
     assert(ast == expected)
   }
   
-  test(s"1 node <~ 1 other node (${classOf[NamedInput].getSimpleName}) => AST") {
-    val ast = a <~ b(Z)
-
-    val expected = ToolNode(A, aSpec, Set(NamedInput(Z, b)))
-
-    assert(ast == expected)
-  }
-
   test("1 node dependsOn 1 other node (id, ast) => AST") {
-    val ast = a.dependsOn(Z, b)
+    val ast = a.dependsOn(Q, Z, b)
 
-    val expected = ToolNode(A, aSpec, Set(NamedInput(Z, b)))
+    val expected = ToolNode(A, aSpec, Set(Connection(Q, Z, b)))
+
+    assert(ast == expected)
+  }
+  
+  test("1 node dependsOn 1 other node (connection) => AST") {
+    val connection = Connection(A, B, b)
+    
+    val ast = a.dependsOn(connection)
+
+    val expected = ToolNode(A, aSpec, Set(connection))
 
     assert(ast == expected)
   }
 
-  test("1 node dependsOn 1 other node (id) => named dep") {
-    val namedDep = a.dependsOn(Z)
+  test("1 node dependsOn 1 other node get(id).from(named dep)") {
+    val ast = a.get(Z).from(b(X))
 
-    val expected = NamedDependency(a, Z)
+    val expected = ToolNode(A, aSpec, Set(Connection(Z, X, b)))
 
-    assert(namedDep == expected)
+    assert(ast == expected)
   }
+  
+  test("1 node dependsOn 1 other node get(iid).from(oid).from(producer)") {
+    val ast = a.get(Z).from(X).from(b)
 
-  test("1 node dependsOn 1 other node (id) => named dep => ast => ast") {
-    val namedDep = a.dependsOn(Z).from(b)
+    val expected = ToolNode(A, aSpec, Set(Connection(Z, X, b)))
 
-    val expected = ToolNode(A, aSpec, Set(NamedInput(Z, b)))
-
-    assert(namedDep == expected)
-  }
-
-  test("1 node dependsOn 1 other node (id, id ... ) => multi named dep") {
-    val namedDep = a.dependsOn(Z, Y, X)
-
-    val expected = MultiNamedDependency(a, Set(Z, Y, X))
-
-    assert(namedDep == expected)
-  }
-
-  test("1 node dependsOn 1 other node (id, id ... ) => multi named dep => ast => ast") {
-    val namedDep = a.dependsOn(Z, Y, X).from(b)
-
-    val expected = ToolNode(A, aSpec, Set(NamedInput(Z, b), NamedInput(Y, b), NamedInput(X, b)))
-
-    assert(namedDep == expected)
+    assert(ast == expected)
   }
 
   test("output(LId) and apply(LId)") {
-    assert(a.output(Z) == NamedInput(Z, a))
+    assert(a.output(Z) == NamedOutput(Z, a))
 
-    assert(a(Z) == NamedInput(Z, a))
+    assert(a(Z) == NamedOutput(Z, a))
   }
 
   test("'Complex' pipeline") {
@@ -158,19 +144,22 @@ final class AstTest extends FunSuite {
      *            d
      */
     
-    val b2y = b.dependsOn(y(Y))
-    val c2y = c.dependsOn(y(Y))
-    val d2y = d.dependsOn(y(Y))
+    val b2y = b.dependsOn(y(Y).as(I))
+    val c2y = c.dependsOn(y(Y).as(I))
+    val d2y = d.dependsOn(y(Y).as(I))
     
-    val bcd = Set(b2y.output(B), c2y.output(C), d2y.output(D))
+    val bcd = Set(b2y.output(B).as(B), c2y.output(C).as(C), d2y.output(D).as(D))
     
-    val x2bcd = x.withInputs(bcd)
+    val x2bcd = x.withDependencies(bcd)
     
-    val a2y = a.dependsOn(X, x2bcd)
+    val a2y = a.dependsOn(x2bcd(X).as(I))
 
     val expected = {
-      a.dependsOn(X, x.withInputs {
-        Set(b.dependsOn(y(Y)).output(B), c.dependsOn(y(Y)).output(C), d.dependsOn(y(Y)).output(D))
+      a.dependsOn(I, X, x.withDependencies {
+        Set(
+          b.dependsOn(y(Y).as(I)).output(B).as(B), 
+          c.dependsOn(y(Y).as(I)).output(C).as(C), 
+          d.dependsOn(y(Y).as(I)).output(D).as(D))
       })
     }
     
@@ -178,7 +167,7 @@ final class AstTest extends FunSuite {
     
     def getChildOf(root: AST, childName: LId, rest: LId*): AST = {
       def childWithId(rt: AST, id: LId): AST = {
-        rt.inputs.find(_.id == id).get.producer
+        rt.dependencies.find(_.outputId == id).get.producer
       }
       
       val z: AST = childWithId(root, childName)
@@ -186,25 +175,21 @@ final class AstTest extends FunSuite {
       rest.foldLeft(z)(childWithId)
     }
     
-    assert(a2y.inputs.size == 1)
+    assert(a2y.dependencies.size == 1)
     
-    assert(getChildOf(a2y, X).inputs.size == 3)
-    assert(getChildOf(a2y, X, B).inputs.size == 1)
-    assert(getChildOf(a2y, X, C).inputs.size == 1)
-    assert(getChildOf(a2y, X, D).inputs.size == 1)
+    assert(getChildOf(a2y, X).dependencies.size == 3)
+    assert(getChildOf(a2y, X, B).dependencies.size == 1)
+    assert(getChildOf(a2y, X, C).dependencies.size == 1)
+    assert(getChildOf(a2y, X, D).dependencies.size == 1)
     
-    assert(getChildOf(a2y, X, B, Y).inputs.size == 0)
-    assert(getChildOf(a2y, X, C, Y).inputs.size == 0)
-    assert(getChildOf(a2y, X, D, Y).inputs.size == 0)
+    assert(getChildOf(a2y, X, B, Y).dependencies.size == 0)
+    assert(getChildOf(a2y, X, C, Y).dependencies.size == 0)
+    assert(getChildOf(a2y, X, D, Y).dependencies.size == 0)
     
-    val z = Map.empty[LId, Int]
-    
-    val visitCounts = a2y.iterator.foldLeft(z) { (visitCounts, node) =>
-      val newCount = visitCounts.getOrElse(node.id, 0) + 1
-      
-      visitCounts + (node.id -> newCount)
+    val visitCounts: Map[LId, Int] = {
+      a2y.iterator.map(_.id).toIndexedSeq.groupBy(identity).mapValues(_.size)
     }
-
+    
     val expectedCounts = Map(
         A -> 1,
         X -> 1,
@@ -219,9 +204,9 @@ final class AstTest extends FunSuite {
   private object Trees {
     //a -> b -> (c, d)
 
-    lazy val bcd = b.dependsOn(c(C)).dependsOn(d(D))
+    lazy val bcd = b.dependsOn(c(C).as(I)).dependsOn(d(D).as(J))
 
-    lazy val abcd = a.dependsOn(B).from(bcd)
+    lazy val abcd = a.get(B).from(I).from(bcd)
   }
   
   private object Nodes {

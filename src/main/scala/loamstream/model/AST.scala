@@ -11,29 +11,30 @@ import loamstream.util.Maps
  * Class representing the tree of relationships between tools in a pipeline.  Allows
  * composing trees and tools.
  */
-sealed trait AST extends Iterable[AST] {
+sealed trait AST extends Iterable[AST] { self =>
   def id: LId = LId.newAnonId
 
   import AST._
 
-  def inputs: Set[NamedInput]
+  def dependencies: Set[Connection]
 
-  def withInputs(inputs: Set[NamedInput]): AST
+  def withDependencies(inputs: Set[Connection]): AST
 
-  final def <~(input: NamedInput): AST = dependsOn(input)
+  final def dependsOn(connection: Connection): AST = {
+    dependsOn(connection.inputId, connection.outputId, connection.producer)
+  }
+  
+  final def dependsOn(inputId: LId, outputId: LId, producer: AST): AST = {
+    withDependencies(dependencies + Connection(inputId, outputId, producer))
+  }
 
-  final def dependsOn(input: NamedInput): AST = dependsOn(input.id, input.producer)
-  final def dependsOn(inputId: LId, input: AST): AST = withInputs(inputs + NamedInput(inputId, input))
+  final def output(outputId: LId): NamedOutput = NamedOutput(outputId, this)
 
-  final def dependsOn(inputId: LId): NamedDependency = NamedDependency(this, inputId)
+  final def apply(outputId: LId): NamedOutput = output(outputId)
 
-  final def dependsOn(inputId: LId, rest: LId*): MultiNamedDependency = MultiNamedDependency(this, rest.toSet + inputId)
-
-  final def output(outputId: LId): NamedInput = NamedInput(outputId, this)
-
-  final def apply(outputId: LId): NamedInput = output(outputId)
-
-  final def isLeaf: Boolean = inputs.isEmpty
+  final def get(inputId: LId): InputHandle = InputHandle(inputId, this)
+  
+  final def isLeaf: Boolean = dependencies.isEmpty
 
   /**
    * Returns an iterator that does a post-order traversal of this tree
@@ -53,7 +54,7 @@ sealed trait AST extends Iterable[AST] {
   def preOrder: Iterator[AST] = Iterator.single(this) ++ childIterator(_.preOrder)
   
   private def childIterator(iterationStrategy: AST => Iterator[AST]): Iterator[AST] = {
-    inputs.iterator.map(_.producer).flatMap(iterationStrategy)
+    dependencies.iterator.map(_.producer).flatMap(iterationStrategy)
   }
 
   /**
@@ -64,64 +65,51 @@ sealed trait AST extends Iterable[AST] {
 
     doPrint(s"$indentString$id")
 
-    inputs.foreach { case NamedInput(inputId, dep) => dep.print(indent + 2, Option(inputId), doPrint) }
+    dependencies.foreach { case Connection(inputId, outputId, dep) => 
+      dep.print(indent + 2, Option(outputId), doPrint) 
+    }
   }
 
   def leaves: Set[AST] = {
     if (isLeaf) { Set(this) }
-    else { inputs.flatMap(_.producer.leaves) }
+    else { dependencies.flatMap(_.producer.leaves) }
   }
 }
 
 object AST {
   def apply(tool: Tool): AST = ToolNode(tool.id, tool.spec, Set.empty)
 
+  final case class ToolNode(
+      override val id: LId, 
+      spec: ToolSpec, 
+      dependencies: Set[Connection] = Set.empty) extends AST {
+    
+    override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
+  }
+
+  final case class Either(lhs: AST, rhs: AST, dependencies: Set[Connection] = Set.empty) extends AST {
+    override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
+  }
+  
   object Implicits {
-    final implicit class SeqOfASTsOps(val asts: Seq[AST]) extends AnyVal {
-      def outputs(ids: LId.CompositeId*): Seq[NamedInput] = {
-        val byId: Map[LId, AST] = asts.map(c => c.id -> c).toMap
-
-        //NB: Can fail
-        ids.collect { case LId.CompositeId(namespace, name) if byId.contains(namespace) => byId(namespace).output(name) }
-      }
-    }
-
     final implicit class SpecOps(val spec: ToolSpec) extends AnyVal {
       def as(id: LId): ToolNode = ToolNode(id, spec)
     }
   }
 
-  final case class NamedDependency(consumer: AST, outputId: LId) {
-    def from(producer: AST): AST = consumer.dependsOn(outputId, producer)
+  final case class Connection(inputId: LId, outputId: LId, producer: AST)
+  
+  final case class ConsumerConnection(consumer: AST, inputId: LId, outputId: LId) {
+    def from(producer: AST): AST = consumer.dependsOn(inputId, outputId, producer)
   }
-
-  final case class MultiNamedDependency(consumer: AST, outputIds: Set[LId]) {
-    def from(producer: AST): AST = {
-      outputIds.foldLeft(consumer) { (ast, id) =>
-        ast.dependsOn(id).from(producer)
-      }
-    }
+  
+  final case class InputHandle(inputId: LId, consumer: AST) {
+    def from(namedOutput: NamedOutput): AST = consumer.dependsOn(inputId, namedOutput.outputId, namedOutput.producer)
+    
+    def from(outputId: LId) = ConsumerConnection(consumer, inputId, outputId)
   }
-
-  final case class NamedInput(id: LId, producer: AST)
-
-  final case class ToolNode(override val id: LId, spec: ToolSpec, inputs: Set[NamedInput] = Set.empty) extends AST {
-    override def withInputs(newInputs: Set[NamedInput]): AST = copy(inputs = newInputs)
-  }
-
-  final case class Either(lhs: AST, rhs: AST, inputs: Set[NamedInput] = Set.empty) extends AST {
-    override def withInputs(newInputs: Set[NamedInput]): AST = copy(inputs = newInputs)
-  }
-
-  final case class Parallel(components: Seq[AST], inputs: Set[NamedInput] = Set.empty) extends AST {
-    override val id = LId.LNamedId(components.map(_.id).mkString(","))
-
-    private lazy val byId: Map[LId, AST] = components.map(c => c.id -> c).toMap
-
-    override def withInputs(newInputs: Set[NamedInput]): AST = copy(inputs = newInputs)
-
-    def outputs(ids: LId.CompositeId*): Seq[NamedInput] = {
-      ids.map { case LId.CompositeId(namespace, name) => byId(namespace).output(name) }
-    }
+  
+  final case class NamedOutput(outputId: LId, producer: AST) {
+    def as(inputId: LId): Connection = Connection(inputId, outputId, producer)
   }
 }

@@ -52,7 +52,6 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new Global(settings, reporter)
   val sourceFileName = "Config.scala"
-  val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
 
   val inputObjectPackage = "loamstream.dynamic.input"
   val inputObjectName = "Some" + SourceUtils.shortTypeName[DslChunk]
@@ -100,12 +99,18 @@ def env = envBuilder.toEnv
     val wrappedCode = wrapCode(rawCode)
     val sourceFile = new BatchSourceFile(sourceFileName, wrappedCode)
     reporter.reset()
+    targetDirectory.foreach(_.delete())
     val run = new compiler.Run
     run.compileSources(List(sourceFile))
-    outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
-    val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
-    val env = dslChunk.env
-    outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
+    if(targetDirectory.nonEmpty) {
+      outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
+      val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
+      val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
+      val env = dslChunk.env
+      outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
+    } else {
+      outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
+    }
   }
 
 }

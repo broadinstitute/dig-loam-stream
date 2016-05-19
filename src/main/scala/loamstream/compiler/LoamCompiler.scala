@@ -99,7 +99,7 @@ def env = envBuilder.toEnv
     val wrappedCode = wrapCode(rawCode)
     val sourceFile = new BatchSourceFile(sourceFileName, wrappedCode)
     reporter.reset()
-    targetDirectory.foreach(_.delete())
+    targetDirectory.clear()
     val run = new compiler.Run
     run.compileSources(List(sourceFile))
     if(targetDirectory.nonEmpty) {

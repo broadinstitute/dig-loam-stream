@@ -18,7 +18,7 @@ import loamstream.model.kinds.LAnyKind
 final class AstTest extends FunSuite {
   import AST._
   import Ids._
-  import Specs._
+  import Tools._
   import Nodes._
 
   test("leaves()") {
@@ -90,7 +90,7 @@ final class AstTest extends FunSuite {
   test(s"1 node dependsOn 1 other node (${classOf[NamedOutput].getSimpleName}) => AST") {
     val ast = a dependsOn (b(Z) as Q)
 
-    val expected = ToolNode(A, aSpec, Set(Connection(Q, Z, b)))
+    val expected = ToolNode(A, a.tool, Set(Connection(Q, Z, b)))
 
     assert(ast == expected)
   }
@@ -98,7 +98,7 @@ final class AstTest extends FunSuite {
   test("1 node dependsOn 1 other node (id, ast) => AST") {
     val ast = a.dependsOn(Q, Z, b)
 
-    val expected = ToolNode(A, aSpec, Set(Connection(Q, Z, b)))
+    val expected = ToolNode(A, a.tool, Set(Connection(Q, Z, b)))
 
     assert(ast == expected)
   }
@@ -108,7 +108,7 @@ final class AstTest extends FunSuite {
     
     val ast = a.dependsOn(connection)
 
-    val expected = ToolNode(A, aSpec, Set(connection))
+    val expected = ToolNode(A, a.tool, Set(connection))
 
     assert(ast == expected)
   }
@@ -116,7 +116,7 @@ final class AstTest extends FunSuite {
   test("1 node dependsOn 1 other node get(id).from(named dep)") {
     val ast = a.get(Z).from(b(X))
 
-    val expected = ToolNode(A, aSpec, Set(Connection(Z, X, b)))
+    val expected = ToolNode(A, a.tool, Set(Connection(Z, X, b)))
 
     assert(ast == expected)
   }
@@ -124,7 +124,7 @@ final class AstTest extends FunSuite {
   test("1 node dependsOn 1 other node get(iid).from(oid).from(producer)") {
     val ast = a.get(Z).from(X).from(b)
 
-    val expected = ToolNode(A, aSpec, Set(Connection(Z, X, b)))
+    val expected = ToolNode(A, a.tool, Set(Connection(Z, X, b)))
 
     assert(ast == expected)
   }
@@ -210,29 +210,37 @@ final class AstTest extends FunSuite {
   }
   
   private object Nodes {
-    import AST.Implicits._
-    
-    val a = aSpec as A
+    val a = ToolNode(SimpleTool(aSpec, A))
 
-    val b = bSpec as B
-    val c = cSpec as C
-    val d = dSpec as D
+    val b = ToolNode(SimpleTool(bSpec, B))
+    val c = ToolNode(SimpleTool(cSpec, C))
+    val d = ToolNode(SimpleTool(dSpec, D))
 
-    val h = hSpec as H
-    val t = tSpec as T
-    val u = uSpec as U
-    val v = vSpec as V
-    val e = eSpec as E
-    val f = fSpec as F
-    val g = gSpec as G
-    val x = xSpec as X
-    val y = ySpec as Y
-    val z = zSpec as Z
+    val h = ToolNode(SimpleTool(hSpec, H))
+    val t = ToolNode(SimpleTool(tSpec, T))
+    val u = ToolNode(SimpleTool(uSpec, U))
+    val v = ToolNode(SimpleTool(vSpec, V))
+    val e = ToolNode(SimpleTool(eSpec, E))
+    val f = ToolNode(SimpleTool(fSpec, F))
+    val g = ToolNode(SimpleTool(gSpec, G))
+    val x = ToolNode(SimpleTool(xSpec, X))
+    val y = ToolNode(SimpleTool(ySpec, Y))
+    val z = ToolNode(SimpleTool(zSpec, Z))
   }
 
-  private object Specs {
+  private object Tools {
     import LType._
 
+    final case class SimpleStore(spec: StoreSpec, id: LId = LId.newAnonId) extends Store
+    
+    final case class SimpleTool(spec: ToolSpec, id: LId = LId.newAnonId) extends Tool {
+      private def toStoreMap(m: Map[LId, StoreSpec]): Map[LId, Store] = m.mapValues(SimpleStore(_))
+      
+      override val inputs: Map[LId, Store] = toStoreMap(spec.inputs)
+  
+      override val outputs: Map[LId, Store] = toStoreMap(spec.outputs)
+    }
+    
     //NB: These specs are all totally bogus, and are basically placeholders just to have a way to make unique nodes.
     //That's fine for now since we don't 'typecheck' ASTs.  This will change in the near future.
     

@@ -4,6 +4,8 @@ import loamstream.model.LPipeline
 import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.tools.core.CoreTool
+import loamstream.model.AST
+import loamstream.model.ToolSpec
 
 /**
   * LoamStream
@@ -23,4 +25,12 @@ case class MiniPipeline(genotypesId: String) extends LPipeline {
   override val tools: Set[Tool] = Set(genotypeCallsTool, sampleIdsTool)
   
   override def stores: Set[Store] = tools.flatMap(_.outputs.values)
+  
+  private[minimal] val ast: AST = {
+    import ToolSpec.ParamNames.{ input, output }
+    
+    val genotypeCallsNode = AST(genotypeCallsTool)
+    
+    AST(sampleIdsTool).get(input).from(genotypeCallsNode(output))
+  }
 }

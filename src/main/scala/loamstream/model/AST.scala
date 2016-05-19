@@ -77,24 +77,25 @@ sealed trait AST extends Iterable[AST] { self =>
 }
 
 object AST {
-  def apply(tool: Tool): AST = ToolNode(tool.id, tool.spec, Set.empty)
+  def apply(tool: Tool): AST = ToolNode(tool)
 
   final case class ToolNode(
-      override val id: LId, 
-      spec: ToolSpec, 
+      override val id: LId,
+      tool: Tool, 
       dependencies: Set[Connection] = Set.empty) extends AST {
     
+    def spec: ToolSpec = tool.spec
+    
     override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
+  }
+  
+  object ToolNode {
+    def apply(tool: Tool, dependencies: Set[Connection]): ToolNode = ToolNode(tool.id, tool, dependencies)
+    def apply(tool: Tool): ToolNode = apply(tool, Set.empty[Connection])
   }
 
   final case class Either(lhs: AST, rhs: AST, dependencies: Set[Connection] = Set.empty) extends AST {
     override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
-  }
-  
-  object Implicits {
-    final implicit class SpecOps(val spec: ToolSpec) extends AnyVal {
-      def as(id: LId): ToolNode = ToolNode(id, spec)
-    }
   }
 
   final case class Connection(inputId: LId, outputId: LId, producer: AST)

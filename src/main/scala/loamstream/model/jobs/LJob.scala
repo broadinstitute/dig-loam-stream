@@ -8,6 +8,14 @@ import loamstream.model.jobs.LJob.Result
  * LoamStream
  * Created by oliverr on 12/23/2015.
  */
+trait LJob {
+  def inputs: Set[LJob]
+
+  def execute(implicit context: ExecutionContext): Future[Result]
+  
+  final def isLeaf: Boolean = inputs.isEmpty
+}
+
 object LJob {
 
   sealed trait Result {
@@ -41,11 +49,4 @@ object LJob {
   }
 
   case class SimpleFailure(failureMessage: String) extends Failure
-
-}
-
-trait LJob {
-  def inputs: Set[LJob]
-
-  def execute(implicit context: ExecutionContext): Future[Result]
 }

@@ -21,6 +21,8 @@ import loamstream.util.{Hit, Miss, Shot}
 import loamstream.util.Functions
 import loamstream.util.LoamFileUtils
 import loamstream.util.SnagMessage
+import loamstream.model.AST
+import loamstream.model.AST.ToolNode
 
 /**
   * LoamStream
@@ -36,7 +38,7 @@ object CoreToolBox {
   trait CheckPreexistingFileJob extends LJob {
     def file: Path
 
-    override def inputs: Set[LJob] = Set.empty
+    override val inputs: Set[LJob] = Set.empty
 
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       Future {
@@ -115,9 +117,20 @@ object CoreToolBox {
       }
     }
   }
+  
+  final case class ChainableJob(run: ExecutionContext => Future[Result], inputs: Set[LJob]) extends LJob {
+    
+    override def execute(implicit context: ExecutionContext): Future[Result] = run(context)
+    
+    def addInputs(extraInputs: Set[LJob]): ChainableJob = copy(inputs = inputs ++ extraInputs)
+  }
+  
+  object ChainableJob {
+    def apply(root: LJob): ChainableJob = ChainableJob(implicit ctx => root.execute, root.inputs)
+  }
 }
 
-case class CoreToolBox(env: LEnv) extends LToolBox {
+final case class CoreToolBox(env: LEnv) extends LToolBox {
   val stores = CoreStore.stores
   val tools = CoreTool.tools(env)
 
@@ -198,5 +211,26 @@ case class CoreToolBox(env: LEnv) extends LToolBox {
   override def createExecutable(pipeline: LPipeline): LExecutable = {
     //TODO: Mapping over a property of a pipeline with a function that takes the pipeline feels weird.
     LExecutable(pipeline.tools.map(createJobs(_, pipeline)).collect { case Hit(job) => job }.flatten)
+  }
+  
+  override def createExecutable(ast: AST): LExecutable = {
+    val noJobs: Set[LJob] = Set.empty
+    
+    val jobs: Set[LJob] = ast match {
+      case ToolNode(id, tool, deps) => {
+        val jobsOption = for {
+          job <- toolToJobShot(tool).asOpt
+          chainable = ChainableJob(job)
+          newInputs = deps.iterator.map(_.producer).flatMap(createExecutable(_).jobs).toSet[LJob]
+        } yield {
+          Set[LJob](chainable.addInputs(newInputs))
+        }
+        
+        jobsOption.getOrElse(noJobs)
+      }
+      case _ => noJobs //TODO: other AST nodes
+    }
+    
+    LExecutable(jobs)
   }
 }

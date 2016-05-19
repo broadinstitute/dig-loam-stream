@@ -45,7 +45,7 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   val vdsId = env(LCoreEnv.Keys.vdsId)
   val singletonsId = env(LCoreEnv.Keys.singletonsId)
   val pipeline = HailPipeline(genotypesId, vdsId, singletonsId)
-  val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
+  val toolbox = CoreToolBox(env)
 
   val genotypesJobsShot = toolbox.createJobs(pipeline.genotypeCallsTool, pipeline)
   val importVcfJobsShot = toolbox.createJobs(pipeline.vdsTool, pipeline)

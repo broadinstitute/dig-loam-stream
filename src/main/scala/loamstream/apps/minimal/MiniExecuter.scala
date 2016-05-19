@@ -19,7 +19,7 @@ import loamstream.util.{ Hit, Shot }
  */
 object MiniExecuter extends LExecuter {
 
-  override def execute(executable: LExecutable): Map[LJob, Shot[Result]] = {
+  override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     import Maps.Implicits._
@@ -29,7 +29,7 @@ object MiniExecuter extends LExecuter {
     val mergedResults = execJobs(executable.jobs).map(toShotMap)
 
     //TODO: Block here?
-    Await.result(mergedResults, Duration.Inf)
+    Await.result(mergedResults, timeout)
   }
 
   private[minimal] def execJobs(jobs: Iterable[LJob])(implicit ctx: ExecutionContext): Future[Map[LJob, Result]] = {

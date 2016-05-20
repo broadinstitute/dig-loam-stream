@@ -1,8 +1,7 @@
 package loamstream
 
-import loamstream.LEnv.{Key, LComboEnv}
-import loamstream.util.Shot
-import loamstream.util.Snag
+import loamstream.LEnv.{Key, KeyBase, LComboEnv}
+import loamstream.util.{LEnvBuilder, Shot, Snag}
 
 /**
   * LoamStream
@@ -20,12 +19,22 @@ object LEnv {
   case class Key[V](name: String) extends KeyBase {
     def apply(value: V): Entry[V] = new Entry(this, value)
 
-    def ->(value: V): Entry[V] = new Entry(this, value)
+    def ->(value: V): Entry[V] = new Entry(this, value) // TODO remove this - ambiguous!
+
+    def :=(value: V)(implicit envBuilder: LEnvBuilder): Entry[V] = {
+      val entry = new Entry(this, value)
+      envBuilder += entry
+      entry
+    }
   }
+
+  def empty: LEnv = LMapEnv(Map.empty)
 
   def apply(entry: EntryBase, entries: EntryBase*): LMapEnv = LMapEnv((entry +: entries).toMap)
 
   case class LMapEnv(entries: Map[KeyBase, Any]) extends LEnv {
+    override def keys: Set[KeyBase] = entries.keySet
+
     override def apply[V](key: Key[V]): V = entries(key).asInstanceOf[V]
 
     override def get[V](key: Key[V]): Option[V] = entries.get(key).map(_.asInstanceOf[V])
@@ -38,6 +47,8 @@ object LEnv {
   }
 
   case class LComboEnv(envs: Seq[LEnv]) extends LEnv {
+    override def keys: Iterable[KeyBase] = envs.flatMap(_.keys)
+
     override def apply[V](key: Key[V]): V = envs.flatMap(_.get(key)).head
 
     override def get[V](key: Key[V]): Option[V] = envs.flatMap(_.get(key)).headOption
@@ -56,6 +67,10 @@ object LEnv {
 }
 
 trait LEnv {
+  def keys: Iterable[KeyBase]
+
+  def size: Int = keys.size
+
   def apply[V](key: Key[V]): V
 
   def get[V](key: Key[V]): Option[V]
@@ -64,7 +79,7 @@ trait LEnv {
 
   def +[V](key: Key[V], value: V): LEnv
 
-  def +[V](entry: (Key[V], V)): LEnv = this. + (entry._1, entry._2)
+  def +[V](entry: (Key[V], V)): LEnv = this. +(entry._1, entry._2)
 
   def ++(oEnv: LEnv): LComboEnv = oEnv match {
     case LComboEnv(oEnvs) => LComboEnv(this +: oEnvs)

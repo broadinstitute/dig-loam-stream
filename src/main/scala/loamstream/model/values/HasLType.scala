@@ -9,11 +9,11 @@ import htsjdk.variant.variantcontext.Genotype
  * date: Apr 28, 2016
  */
 sealed trait HasLType[A] {
-  def lType: LType[A]
+  def lType: LType
 }
 
 object HasLType {
-  private def toHasLType[A](lt: LType[A]): HasLType[A] = new HasLType[A] { override def lType = lt }
+  private def toHasLType[A](lt: LType): HasLType[A] = new HasLType[A] { override def lType = lt }
 
   implicit val BooleanHasLType: HasLType[Boolean] = toHasLType(LBoolean)
   implicit val DoubleHasLType: HasLType[Double] = toHasLType(LDouble)
@@ -27,6 +27,6 @@ object HasLType {
   implicit val GenotypeHasLType: HasLType[Genotype] = toHasLType(LGenotype)
   implicit val SingletonCountHasLType: HasLType[SingletonCount] = toHasLType(LSingletonCount)
   //implicit val ClusterIdHasLType: HasLType[ClusterId] = toHasLType(LClusterId)
-  implicit def setHasLType[E: HasLType]: HasLType[Set[E]] = toHasLType(LSet[E](implicitly[HasLType[E]].lType))
-  implicit def seqHasLType[E: HasLType]: HasLType[Seq[E]] = toHasLType(LSeq[E](implicitly[HasLType[E]].lType))
+  implicit def setHasLType[E: HasLType]: HasLType[Set[E]] = toHasLType(LSet(implicitly[HasLType[E]].lType))
+  implicit def seqHasLType[E: HasLType]: HasLType[Seq[E]] = toHasLType(LSeq(implicitly[HasLType[E]].lType))
 }

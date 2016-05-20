@@ -11,27 +11,27 @@ object ToolKinds {
   
   import LValue.Implicits._
   
-  def usePreExistingVCFFile(id: String): LSpecificKind[(String, String)] = {
+  def usePreExistingVCFFile(id: String): LSpecificKind = {
     LSpecificKind("Use pre-existing VCF file" & id, usePreExisting(id))
   }
 
-  def usePreExistingCassandraGenotypeCallsTable(id: String): LSpecificKind[(String, String)] = {
+  def usePreExistingCassandraGenotypeCallsTable(id: String): LSpecificKind = {
     LSpecificKind("Use pre-existing Cassandra genotype calls table" & id, usePreExisting(id))
   }
       
-  def usePreExisting(id: String): LSpecificKind[(String, String)] = {
+  def usePreExisting(id: String): LSpecificKind = {
     LSpecificKind("Use pre-existing" & id)
   }
 
-  def extractKey(index: Int): LSpecificKind[(String, Int)] = {
+  def extractKey(index: Int): LSpecificKind = {
     LSpecificKind("Extract key" & index)
   }
 
-  def importVcf(index: Int): LSpecificKind[(String, Int)] = {
+  def importVcf(index: Int): LSpecificKind = {
     LSpecificKind("Convert VCF to VDS" & index)
   }
 
-  def calculateSingletons(index: Int): LSpecificKind[(String, Int)] = {
+  def calculateSingletons(index: Int): LSpecificKind = {
     LSpecificKind("Calculate singletons" & index)
   }
   

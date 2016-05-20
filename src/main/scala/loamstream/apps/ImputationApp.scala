@@ -95,7 +95,6 @@ object ImputationApp extends Loggable {
 
     val isBulk = args(3)
 
-    //DrmaaExample.main(Array(shapeItScript, ugerLog, isBulk))
     val drmaaClient = new Drmaa
     drmaaClient.runJob(Array(shapeItScript, ugerLog, isBulk))
   }

@@ -221,7 +221,7 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
         val jobsOption = for {
           job <- toolToJobShot(tool).asOpt
           chainable = ChainableJob(job)
-          newInputs = deps.iterator.map(_.producer).flatMap(createExecutable(_).jobs).toSet[LJob]
+          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs).toSet[LJob]
         } yield {
           Set[LJob](chainable.addInputs(newInputs))
         }

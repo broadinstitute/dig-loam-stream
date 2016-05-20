@@ -14,19 +14,13 @@ import loamstream.model.ToolSpec
 case class MiniPipeline(genotypesId: String) extends LPipeline {
   val genotypeCallsTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
   
-  //TODO: Fragile
-  private[minimal] def genotypeCallsStore: Store = genotypeCallsTool.outputs.head._2
-  
   val sampleIdsTool: Tool = CoreTool.extractSampleIdsFromVcfFile
 
-  //TODO: Fragile
-  private[minimal] def sampleIdsStore: Store = sampleIdsTool.outputs.head._2
-  
   override val tools: Set[Tool] = Set(genotypeCallsTool, sampleIdsTool)
   
   override def stores: Set[Store] = tools.flatMap(_.outputs.values)
   
-  private[minimal] val ast: AST = {
+  lazy val ast: AST = {
     import ToolSpec.ParamNames.{ input, output }
     
     val genotypeCallsNode = AST(genotypeCallsTool)

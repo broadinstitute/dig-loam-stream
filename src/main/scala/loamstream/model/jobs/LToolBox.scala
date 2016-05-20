@@ -11,8 +11,10 @@ import loamstream.model.AST
   * Created by oliverr on 2/16/2016.
   */
 trait LToolBox {
+  @deprecated("", "")
   def createJobs(tool: Tool, pipeline: LPipeline): Shot[Set[LJob]]
 
+  @deprecated("", "")
   def createExecutable(pipeline: LPipeline): LExecutable
 
   def createExecutable(ast: AST): LExecutable

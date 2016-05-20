@@ -43,22 +43,31 @@ final class SpecRelationsTest extends FunSuite {
       extractSampleIdsFromCassandraTable.spec <:< CoreTool.extractSampleIdsFromVcfFile.spec)
   }
 
-  //TODO: Revisit this test to make them test specific specs, not ones obtained via
-  //some pipeline.  This way, (valid) changes to pipelines won't break this test
   test("Various relations between store and tool specs are true as expected") {
     val genotypeId = LCoreDefaultStoreIds.genotypes
     
-    val pipeline = MiniPipeline(genotypeId)
+    //NB: Fragile
+    val coreGenotypeCallsStore = CoreTool.checkPreExistingVcfFile(genotypeId).outputs.head._2
     
-    assert(CoreStore.vcfFile.spec.sig =:= pipeline.genotypeCallsStore.spec.sig)
-    assert(CoreStore.vcfFile.spec <:< pipeline.genotypeCallsStore.spec)
-    assert(CoreStore.sampleIdsFile.spec <:< pipeline.sampleIdsStore.spec)
-    assert(CoreTool.checkPreExistingVcfFile(genotypeId).spec <<< pipeline.genotypeCallsTool.spec)
+    assert(CoreStore.vcfFile.spec.sig =:= coreGenotypeCallsStore.spec.sig)
+    assert(CoreStore.vcfFile.spec <:< coreGenotypeCallsStore.spec)
+    
+    //NB: Fragile
+    val coreSampleIdsStore = CoreTool.extractSampleIdsFromVcfFile.outputs.head._2
+    
+    assert(CoreStore.sampleIdsFile.spec <:< coreSampleIdsStore.spec)
+    
+    val genotypeCallsTool = CoreTool.checkPreExistingVcfFile(genotypeId)
+    
+    assert(CoreTool.checkPreExistingVcfFile(genotypeId).spec <<< genotypeCallsTool.spec)
     //TODO: Revisit this
-    //assert(MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <<< pipeline.genotypeCallsTool.spec)
-    assert(CoreTool.extractSampleIdsFromVcfFile.spec <<< pipeline.sampleIdsTool.spec)
+    //assert(MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <<< genotypeCallsTool.spec)
+    
+    val sampleIdsTool = CoreTool.extractSampleIdsFromVcfFile
+    
+    assert(CoreTool.extractSampleIdsFromVcfFile.spec <<< sampleIdsTool.spec)
     //TODO: Revisit this
-    //assert(MiniMockTool.extractSampleIdsFromCassandraTable.spec <<< pipeline.sampleIdsTool.spec)
+    //assert(MiniMockTool.extractSampleIdsFromCassandraTable.spec <<< sampleIdsTool.spec)
   }
   
   test("StoreKind relationships") {

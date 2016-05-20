@@ -10,6 +10,14 @@ import scala.concurrent.ExecutionContext
   */
 object ClientMessageHandler {
 
+  object OutMessageSink {
+
+    object NoOp extends OutMessageSink {
+      override def send(outMessage: ClientOutMessage): Unit = ()
+    }
+
+  }
+
   trait OutMessageSink {
     def send(outMessage: ClientOutMessage)
   }

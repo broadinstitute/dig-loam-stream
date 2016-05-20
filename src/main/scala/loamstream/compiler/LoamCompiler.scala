@@ -62,15 +62,20 @@ object LoamCompiler {
 
 }
 
-class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
+class LoamCompiler(outMessageSink: OutMessageSink,
+                   classPathOpt: Option[String] = None)(implicit executionContext: ExecutionContext) {
 
   val targetDirectoryName = "target"
   val targetDirectoryParentOption = None
   val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
   val settings = new Settings()
   settings.outputDirs.setSingleOutput(targetDirectory)
-  val sbtClasspath = System.getProperty("sbt-classpath")
-  settings.classpath.value = s".${File.pathSeparator}$sbtClasspath"
+  settings.classpath.value = classPathOpt match {
+    case Some(classPath) => classPath
+    case None =>
+      val sbtClasspath = System.getProperty("sbt-classpath")
+      s".${File.pathSeparator}$sbtClasspath"
+  }
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new Global(settings, reporter)
   val sourceFileName = "Config.scala"

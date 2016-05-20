@@ -30,6 +30,8 @@ lazy val testDeps = Seq(
   "org.scalatest" %% "scalatest" % Versions.ScalaTest % Test
 )
 
+val captureSbtClasspath = taskKey[Unit]("sbt-classpath")
+
 lazy val commonSettings = Seq(
   version := Versions.App,
   scalaVersion := Versions.Scala,
@@ -39,6 +41,12 @@ lazy val commonSettings = Seq(
     Resolver.sonatypeRepo("snapshots")
   ),
   libraryDependencies ++= (mainDeps ++ testDeps),
+  captureSbtClasspath := {
+    val files: Seq[File] = (fullClasspath in Compile).value.files
+    val sbtClasspath: String = files.map(x => x.getAbsolutePath).mkString(File.pathSeparator)
+    println("Set SBT classpath to 'sbt-classpath' environment variable") // scalastyle:ignore
+    System.setProperty("sbt-classpath", sbtClasspath)
+  },
   scalastyleFailOnError := true
 )
 
@@ -54,18 +62,10 @@ lazy val root = (project in file("."))
     mainClass in Compile := Some("loamstream.apps.ImputationApp")
   ).enablePlugins(JavaAppPackaging)
 
-val captureSbtClasspath = taskKey[Unit]("sbt-classpath")
-
 lazy val webui = (project in file("webui"))
   .dependsOn(root)
   .enablePlugins(PlayScala)
   .settings(commonSettings: _*)
   .settings(
-    captureSbtClasspath := {
-      val files: Seq[File] = (fullClasspath in Compile).value.files
-      val sbtClasspath: String = files.map(x => x.getAbsolutePath).mkString(File.pathSeparator)
-      println("Set SBT classpath to 'sbt-classpath' environment variable") // scalastyle:ignore
-      System.setProperty("sbt-classpath", sbtClasspath)
-    },
     name := "LoamStream WebUI"
   )

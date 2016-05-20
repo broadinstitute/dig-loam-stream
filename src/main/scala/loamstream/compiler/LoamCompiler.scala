@@ -4,7 +4,7 @@ import java.io.File
 
 import loamstream.LEnv
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
-import loamstream.compiler.CompilerOutMessage.Severity
+import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.{LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
@@ -27,39 +27,33 @@ object LoamCompiler {
   }
 
   class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
+    var errors = Seq.empty[Issue]
+    var warnings = Seq.empty[Issue]
+    var infos = Seq.empty[Issue]
+
     override protected def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
+      val issue = Issue(pos, msg, Severity(severity.id))
       severity.id match {
-        case 2 => this.ERROR.count += 1
-        case 1 => this.WARNING.count += 1
-        case _ => ()
+        case 2 => errors :+= issue
+        case 1 => warnings :+= issue
+        case _ => infos :+= issue
       }
-      val message = s"[$severity] $msg"
-      outMessageSink.send(CompilerOutMessage(pos, message, Severity(severity.id), force))
+      if (issue.severity.isProblem) {
+        outMessageSink.send(CompilerIssueMessage(issue))
+      }
     }
   }
 
-  sealed trait Result {
-    def nErrors: Int
+  object Result {
+    def success(reporter: CompilerReporter, env: LEnv): Result =
+      Result(reporter.errors, reporter.warnings, reporter.infos, Some(env))
 
-    def nWarnings: Int
-
-    def envOpt: Option[LEnv]
+    def failure(reporter: CompilerReporter): Result =
+      Result(reporter.errors, reporter.warnings, reporter.infos, None)
   }
 
-  object Failure {
-    def apply(reporter: Reporter): Failure = Failure(reporter.errorCount, reporter.warningCount)
-  }
-
-  case class Failure(nErrors: Int, nWarnings: Int) extends Result {
-    override def envOpt: None.type = None
-  }
-
-  object Success {
-    def apply(reporter: Reporter, env: LEnv): Success = Success(reporter.errorCount, reporter.warningCount, env)
-  }
-
-  case class Success(nErrors: Int, nWarnings: Int, env: LEnv) extends Result {
-    override def envOpt: Some[LEnv] = Some(env)
+  case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv]) {
+    def isSuccess: Boolean = envOpt.nonEmpty
   }
 
 }
@@ -132,10 +126,10 @@ def env = envBuilder.toEnv
       val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
       val env = dslChunk.env
       outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
-      LoamCompiler.Success(reporter, env)
+      LoamCompiler.Result.success(reporter, env)
     } else {
       outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
-      LoamCompiler.Failure(reporter)
+      LoamCompiler.Result.failure(reporter)
     }
   }
 

@@ -5,6 +5,8 @@ import sbt.project
 lazy val Versions = new {
   val App = "0.1"
   val ApacheCommonsIO = "2.4"
+  val DrmaaCommon = "1.0"
+  val DrmaaGridEngine = "6.2u5"
   val Htsjdk = "2.1.0"
   val LogBack = "1.1.6"
   val Scala = "2.11.8"
@@ -18,6 +20,8 @@ lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-reflect" % Versions.Scala,
   "com.github.samtools" % "htsjdk" % Versions.Htsjdk,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
+  "us.levk" % "drmaa-common" % Versions.DrmaaCommon,
+  "us.levk" % "drmaa-gridengine" % Versions.DrmaaGridEngine,
   "ch.qos.logback" % "logback-classic" % Versions.LogBack,
   "com.typesafe" % "config" % Versions.TypesafeConfig
 )
@@ -46,7 +50,8 @@ lazy val root = (project in file("."))
     packageSummary in Windows := "LoamStream - Language for Omics Analysis Management",
     packageDescription := "A high level-language and runtime environment for large-scale omics analysis.",
     maintainer in Windows := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
-    maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org"
+    maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
+    mainClass in Compile := Some("loamstream.apps.ImputationApp")
   ).enablePlugins(JavaAppPackaging)
 
 val captureSbtClasspath = taskKey[Unit]("sbt-classpath")

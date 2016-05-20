@@ -2,8 +2,10 @@ package loamstream.apps
 
 import java.nio.file.Paths
 
+import drmaa.DrmaaExample
 import loamstream.apps.minimal.MiniExecuter
-import loamstream.conf.ImputationConfig
+import loamstream.client.Drmaa
+import loamstream.conf.{UgerConfig, ImputationConfig}
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.LCommandLineJob
 import loamstream.tools.LineCommand
@@ -20,13 +22,18 @@ object ImputationApp extends Loggable {
 
   // TODO: Replace with command line interface
   def checkIfArgsValid(args: Array[String]): Unit = {
-    val configHelpText = "Please provide path to config file in the form: --config <path> or -c <path>"
+    val configHelpText = "Please provide path to config file in the form: --config <path> or -c <path> " +
+      "and specify whether there is a single or bulk job(s) in the form: --bulk <true/false> or -b <true/false>"
 
     var isArgsValid = false
+
     val longConfigOptionName = "--config"
     val shortConfigOptionName = "-c"
 
-    if (args.length != 2) {
+    val longBulkOptionName = "--bulk"
+    val shortBulkOptionName = "-b"
+
+    if (args.size != 4) {
       error(configHelpText)
       System.exit(-1)
     }
@@ -34,6 +41,12 @@ object ImputationApp extends Loggable {
     args(0) match {
       case `longConfigOptionName` => isArgsValid = true
       case `shortConfigOptionName` => isArgsValid = true
+      case _ => error(configHelpText) ; System.exit(-1)
+    }
+
+    args(2) match {
+      case `longBulkOptionName` => isArgsValid = true
+      case `shortBulkOptionName` => isArgsValid = true
       case _ => error(configHelpText) ; System.exit(-1)
     }
   }
@@ -44,7 +57,7 @@ object ImputationApp extends Loggable {
     Seq(shapeItExecutable, "-V", vcf, "-M", map, "-O", haps, samples, "-L", log, "--thread", numThreads.toString)
   }
 
-  def main(args: Array[String]) {
+  def runShapeItLocally(args: Array[String]): Unit = {
     checkIfArgsValid(args)
 
     trace("Attempting to run ShapeIt...")
@@ -61,11 +74,33 @@ object ImputationApp extends Loggable {
     val log = config.shapeItLogFile
     val numThreads = config.shapeItNumThreads
 
-    val commandLine = ShapeItCommandLine(getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps,
-      samples, log, numThreads.toInt))
+    val shapeItTokens = getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads)
+    val commandLine = ShapeItCommandLine(shapeItTokens)
     val shapeItJob = LCommandLineJob(commandLine, Paths.get(shapeItWorkDir), Set.empty)
 
     val executable = LExecutable(Set(shapeItJob))
     val result = MiniExecuter.execute(executable)
+  }
+
+  def runShapeItOnUger(args: Array[String]): Unit = {
+    checkIfArgsValid(args)
+
+    trace("Attempting to run ShapeIt...")
+
+    val configFile = args(1)
+    val shapeItConfig = ImputationConfig(configFile)
+    val shapeItScript = shapeItConfig.shapeItScript
+    val ugerConfig = UgerConfig(configFile)
+    val ugerLog = ugerConfig.ugerLogFile
+
+    val isBulk = args(3)
+
+    val drmaaClient = new Drmaa
+    drmaaClient.runJob(Array(shapeItScript, ugerLog, isBulk))
+  }
+
+  def main(args: Array[String]) {
+    //runShapeItLocally(args)
+    runShapeItOnUger(args)
   }
 }

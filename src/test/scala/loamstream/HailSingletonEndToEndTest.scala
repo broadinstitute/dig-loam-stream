@@ -52,6 +52,12 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
     
       val results = MiniExecuter.execute(executable)
       
+      //TODO: More-explicit test for better message on failures.
+      results.values.forall {
+        case Hit(r) => r.isSuccess
+        case _ => false
+      }
+      
       val source = Source.fromFile(hailSingletonFilePath.toFile)
     
       val singletonCounts = LoamFileUtils.enclosed(source)(_.getLines.toList)

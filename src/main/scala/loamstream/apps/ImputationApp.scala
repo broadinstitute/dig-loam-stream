@@ -2,7 +2,6 @@ package loamstream.apps
 
 import java.nio.file.Paths
 
-import drmaa.DrmaaExample
 import loamstream.apps.minimal.MiniExecuter
 import loamstream.client.Drmaa
 import loamstream.conf.{UgerConfig, ImputationConfig}

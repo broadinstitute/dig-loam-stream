@@ -6,12 +6,13 @@ import loamstream.model.Tool
 import loamstream.tools.core.CoreTool
 import loamstream.model.AST
 import loamstream.model.ToolSpec
+import loamstream.model.HasAst
 
 /**
   * LoamStream
   * Created by oliverr on 2/17/2016.
   */
-case class MiniPipeline(genotypesId: String) extends LPipeline {
+final case class MiniPipeline(genotypesId: String) extends LPipeline with HasAst {
   val genotypeCallsTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
   
   val sampleIdsTool: Tool = CoreTool.extractSampleIdsFromVcfFile
@@ -20,7 +21,7 @@ case class MiniPipeline(genotypesId: String) extends LPipeline {
   
   override def stores: Set[Store] = tools.flatMap(_.outputs.values)
   
-  lazy val ast: AST = {
+  override lazy val ast: AST = {
     import ToolSpec.ParamNames.{ input, output }
     
     val genotypeCallsNode = AST(genotypeCallsTool)

@@ -4,6 +4,7 @@ import java.nio.file.Paths
 
 import drmaa.DrmaaExample
 import loamstream.apps.minimal.MiniExecuter
+import loamstream.client.Drmaa
 import loamstream.conf.{UgerConfig, ImputationConfig}
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.LCommandLineJob
@@ -94,7 +95,9 @@ object ImputationApp extends Loggable {
 
     val isBulk = args(3)
 
-    DrmaaExample.main(Array(shapeItScript, ugerLog, isBulk))
+    //DrmaaExample.main(Array(shapeItScript, ugerLog, isBulk))
+    val drmaaClient = new Drmaa
+    drmaaClient.runJob(Array(shapeItScript, ugerLog, isBulk))
   }
 
   def main(args: Array[String]) {

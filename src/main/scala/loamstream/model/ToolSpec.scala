@@ -19,7 +19,9 @@ final case class ToolSpec(kind: LKind, inputs: Map[LId, StoreSpec], outputs: Map
     inputs.zip(other.inputs).forall { case ((myId, mine), (theirId, theirs)) => myId == theirId && mine =:= theirs }
   }
 
-  private def andCompareIds(f: StoreSpec => StoreSpec => Boolean): ((LId, StoreSpec)) => ((LId, StoreSpec)) => Boolean = {
+  private def andCompareIds(
+      f: StoreSpec => StoreSpec => Boolean): ((LId, StoreSpec)) => ((LId, StoreSpec)) => Boolean = {
+        
     case (lhsId, lhsSpec) => {
       case (rhsId, rhsSpec) => (lhsId == rhsId) && f(lhsSpec)(rhsSpec)
     }

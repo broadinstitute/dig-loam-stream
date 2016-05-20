@@ -60,7 +60,7 @@ sealed trait AST extends Iterable[AST] { self =>
   /**
    * Convenience method to print the tree for debugging
    */
-  def print(indent: Int = 0, via: Option[LId] = None, doPrint: (String) => Any = println(_)): Unit = {
+  def print(indent: Int = 0, via: Option[LId] = None, doPrint: (String) => Any = println(_)): Unit = { //scalastyle:ignore
     val indentString = s"${"-" * indent}${via.map(v => s"($v)").getOrElse("")}> "
 
     doPrint(s"$indentString$id")

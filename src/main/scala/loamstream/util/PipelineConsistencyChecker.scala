@@ -172,7 +172,12 @@ object PipelineConsistencyChecker {
   case object EachInputStoreIsPresentCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
       val inputsToolsAndIndices = {
-        pipeline.tools.flatMap { tool => tool.inputs.toSeq.indices.map(pos => (tool.inputs.toSeq.apply(pos), tool, pos)) }
+        for {
+          tool <- pipeline.tools
+          pos <- tool.inputs.toSeq.indices
+        } yield {
+          (tool.inputs.toSeq.apply(pos), tool, pos)
+        }
       }
       
       inputsToolsAndIndices.collect { 

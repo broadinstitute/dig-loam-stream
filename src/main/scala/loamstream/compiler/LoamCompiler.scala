@@ -50,9 +50,13 @@ object LoamCompiler {
 
     def failure(reporter: CompilerReporter): Result =
       Result(reporter.errors, reporter.warnings, reporter.infos, None)
+
+    def exception(reporter: CompilerReporter, exception: Exception): Result =
+      Result(reporter.errors, reporter.warnings, reporter.infos, None, Some(exception))
   }
 
-  case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv]) {
+  case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv],
+                    exOpt: Option[Exception] = None) {
     def isSuccess: Boolean = envOpt.nonEmpty
   }
 
@@ -114,22 +118,29 @@ def env = envBuilder.toEnv
 """
 
   def compile(rawCode: String): LoamCompiler.Result = {
-    val wrappedCode = wrapCode(rawCode)
-    val sourceFile = new BatchSourceFile(sourceFileName, wrappedCode)
-    reporter.reset()
-    targetDirectory.clear()
-    val run = new compiler.Run
-    run.compileSources(List(sourceFile))
-    if (targetDirectory.nonEmpty) {
-      outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
-      val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-      val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
-      val env = dslChunk.env
-      outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
-      LoamCompiler.Result.success(reporter, env)
-    } else {
-      outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
-      LoamCompiler.Result.failure(reporter)
+    try {
+      val wrappedCode = wrapCode(rawCode)
+      val sourceFile = new BatchSourceFile(sourceFileName, wrappedCode)
+      reporter.reset()
+      targetDirectory.clear()
+      val run = new compiler.Run
+      run.compileSources(List(sourceFile))
+      if (targetDirectory.nonEmpty) {
+        outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
+        val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
+        val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
+        val env = dslChunk.env
+        outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
+        LoamCompiler.Result.success(reporter, env)
+      } else {
+        outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
+        LoamCompiler.Result.failure(reporter)
+      }
+    } catch {
+      case exception: Exception =>
+        outMessageSink.send(
+          StatusOutMessage(s"${exception.getClass.getName} while trying to compile: ${exception.getMessage}"))
+        LoamCompiler.Result.exception(reporter, exception)
     }
   }
 

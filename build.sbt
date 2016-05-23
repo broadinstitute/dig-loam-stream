@@ -44,9 +44,10 @@ lazy val commonSettings = Seq(
   captureSbtClasspath := {
     val files: Seq[File] = (fullClasspath in Compile).value.files
     val sbtClasspath: String = files.map(x => x.getAbsolutePath).mkString(File.pathSeparator)
-    println("Set SBT classpath to 'sbt-classpath' environment variable") // scalastyle:ignore
+    println("Set SBT classpath to 'sbt-classpath' JVM system property") // scalastyle:ignore
     System.setProperty("sbt-classpath", sbtClasspath)
   },
+  test <<= (test in Test) dependsOn captureSbtClasspath,
   scalastyleFailOnError := true
 )
 

@@ -32,7 +32,7 @@ object LId {
 
   def newAnonId: LAnonId = LAnonId(System.currentTimeMillis, positiveRandomLong)
 
-  private val anonIdNameRegex = "\\(d+)_\\(d+)".r
+  private val anonIdNameRegex = "(\\d+)_(\\d+)".r
   
   def fromName(name: String): LId = name match {
     case anonIdNameRegex(time, rand) => LAnonId(time.toLong, rand.toLong)

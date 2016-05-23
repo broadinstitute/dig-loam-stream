@@ -1,13 +1,11 @@
 package loamstream.compiler
 
-import java.io.File
-
 import loamstream.LEnv
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.{LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
+import loamstream.util.{ClassPathFinder, LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
@@ -72,9 +70,7 @@ class LoamCompiler(outMessageSink: OutMessageSink,
   settings.outputDirs.setSingleOutput(targetDirectory)
   settings.classpath.value = classPathOpt match {
     case Some(classPath) => classPath
-    case None =>
-      val sbtClasspath = System.getProperty("sbt-classpath")
-      s".${File.pathSeparator}$sbtClasspath"
+    case None => ClassPathFinder.getClassPath(this)
   }
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new Global(settings, reporter)

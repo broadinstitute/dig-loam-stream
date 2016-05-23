@@ -20,7 +20,10 @@ object LId {
     override def toString = name 
   }
 
-  case class LAnonId(time: Long, random: Long) extends LId {
+  final case class LAnonId(time: Long, random: Long) extends LId {
+    require(time >= 0)
+    require(random >= 0)
+    
     override def name: String = time + "_" + random
   }
   

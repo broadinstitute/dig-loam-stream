@@ -26,7 +26,7 @@ object LoamCompiler {
     def env: LEnv
   }
 
-  class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
+  final class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
     var errors = Seq.empty[Issue]
     var warnings = Seq.empty[Issue]
     var infos = Seq.empty[Issue]
@@ -45,37 +45,54 @@ object LoamCompiler {
   }
 
   object Result {
-    def success(reporter: CompilerReporter, env: LEnv): Result =
+    def success(reporter: CompilerReporter, env: LEnv): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, Some(env))
+    }
 
-    def failure(reporter: CompilerReporter): Result =
+    def failure(reporter: CompilerReporter): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, None)
+    }
 
-    def exception(reporter: CompilerReporter, exception: Exception): Result =
+    def exception(reporter: CompilerReporter, exception: Exception): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, None, Some(exception))
+    }
   }
 
-  case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv],
+  final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv],
                     exOpt: Option[Exception] = None) {
     def isSuccess: Boolean = envOpt.nonEmpty
   }
 
+  
+  private[compiler] def mungeClassPath(classpath: String): String = {
+    require(classpath != null)
+    
+    val trimmed = classpath.trim
+    
+    require(trimmed != "")
+    
+    s".${File.pathSeparator}$trimmed"
+  }
+  
+  private[compiler] val sbtClasspathSysPropKey = "sbt-classpath"
 }
 
-class LoamCompiler(outMessageSink: OutMessageSink,
+final class LoamCompiler(outMessageSink: OutMessageSink,
                    classPathOpt: Option[String] = None)(implicit executionContext: ExecutionContext) {
 
   val targetDirectoryName = "target"
   val targetDirectoryParentOption = None
   val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
   val settings = new Settings()
+
   settings.outputDirs.setSingleOutput(targetDirectory)
-  settings.classpath.value = classPathOpt match {
-    case Some(classPath) => classPath
-    case None =>
-      val sbtClasspath = System.getProperty("sbt-classpath")
-      s".${File.pathSeparator}$sbtClasspath"
+  
+  settings.classpath.value = classPathOpt.getOrElse {
+    import LoamCompiler._
+    
+    mungeClassPath(System.getProperty(sbtClasspathSysPropKey))
   }
+  
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new Global(settings, reporter)
   val sourceFileName = "Config.scala"
@@ -101,7 +118,7 @@ class LoamCompiler(outMessageSink: OutMessageSink,
     outMessageSink.send(StatusOutMessage(outMessageTextEnd))
   }
 
-  def wrapCode(raw: String): String =
+  def wrapCode(raw: String): String = {
     s"""
 package $inputObjectPackage
 
@@ -121,7 +138,8 @@ ${raw.trim}
 def env = envBuilder.toEnv
 }
 """
-
+  }
+  
   def compile(rawCode: String): LoamCompiler.Result = {
     try {
       val wrappedCode = wrapCode(rawCode)
@@ -142,10 +160,11 @@ def env = envBuilder.toEnv
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
-      case exception: Exception =>
+      case exception: Exception => {
         outMessageSink.send(
           StatusOutMessage(s"${exception.getClass.getName} while trying to compile: ${exception.getMessage}"))
         LoamCompiler.Result.exception(reporter, exception)
+      }
     }
   }
 

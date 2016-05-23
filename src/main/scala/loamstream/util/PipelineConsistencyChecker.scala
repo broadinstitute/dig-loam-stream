@@ -190,7 +190,7 @@ object PipelineConsistencyChecker {
     //TODO: TEST
     override def apply(pipeline: LPipeline): Set[Problem] = {
       pipeline.stores.headOption match {
-        case Some(arbitraryStore) => {
+        case Some(arbitraryStore) =>
           var makingProgress = true
           var connectedStores: Set[Store] = Set(arbitraryStore)
           while (makingProgress) {
@@ -206,7 +206,6 @@ object PipelineConsistencyChecker {
           }
           val otherStores = pipeline.stores -- connectedStores
           if (otherStores.nonEmpty) Set(PipelineIsDisconnected(arbitraryStore, otherStores.head)) else Set.empty
-        }
         case None => Set.empty
       }
     }

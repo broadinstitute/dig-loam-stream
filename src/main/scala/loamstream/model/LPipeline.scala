@@ -9,3 +9,10 @@ trait LPipeline {
 
   def tools: Set[Tool]
 }
+
+object LPipeline {
+
+  final case class Flat(stores: Set[Store], tools: Set[Tool]) extends LPipeline
+
+}
+

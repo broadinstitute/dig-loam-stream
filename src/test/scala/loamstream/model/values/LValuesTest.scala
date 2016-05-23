@@ -1,13 +1,12 @@
 package loamstream.model.values
 
+import loamstream.model.LSig
 import loamstream.model.values.LType.LTuple.{LTuple1, LTuple10, LTuple11, LTuple12, LTuple13, LTuple14, LTuple15,
 LTuple16, LTuple17, LTuple18, LTuple19, LTuple2, LTuple20, LTuple21, LTuple22, LTuple3, LTuple4, LTuple5, LTuple6,
 LTuple7, LTuple8, LTuple9}
-import loamstream.model.values.LType.{LBoolean, LDouble, LFloat, LInt, LLong, LSampleId, LSeq, LSet, LShort, LString,
-LVariantId}
+import loamstream.model.values.LType.{LBoolean, LDouble, LFloat, LGenotype, LInt, LLong, LSampleId, LSeq, LSet, LShort,
+LString, LVariantId}
 import org.scalatest.FunSuite
-import loamstream.model.values.LType.LGenotype
-import loamstream.model.LSig
 
 /**
   * LoamStream
@@ -19,8 +18,8 @@ final class LValuesTest extends FunSuite {
     assert(LValue(42, LInt) === LInt(42))
     assert(LValue(42L, LLong) === LLong(42))
     assert(LValue("Hello World!", LString) === LString("Hello World!"))
-    assert(LValue(Set("Hello", " World!"), LSet(LString)) === LSet(LString)(Set("Hello", " World!")))
-    assert(LValue(Seq("Hello", " World!"), LSeq(LString)) === LSeq(LString)(Seq("Hello", " World!")))
+    assert(LValue(Set("Hello", " World!"), LSet(LString)) === LSet(LString).toValue(Set("Hello", " World!")))
+    assert(LValue(Seq("Hello", " World!"), LSeq(LString)) === LSeq(LString).toValue(Seq("Hello", " World!")))
     assert(LTuple1(LString).asSeq === Seq(LString))
     assert(LTuple2(LString, LInt).asSeq === Seq(LString, LInt))
     assert(LTuple3(LString, LInt, LShort).asSeq === Seq(LString, LInt, LShort))
@@ -83,7 +82,7 @@ final class LValuesTest extends FunSuite {
       Seq(LString, LInt, LShort, LLong, LVariantId, LBoolean, LFloat, LDouble, LSampleId, LString, LInt, LShort,
         LLong, LVariantId, LBoolean, LFloat, LDouble, LSampleId, LString, LInt, LShort, LLong))
     assertResult(false)(LInt(42) == LLong(42))
-    assertResult(false)(LSet(LString)(Set("Hello", "World")) == LSeq(LString)(Seq("Hello", "World")))
+    assertResult(false)(LSet(LString).toValue(Set("Hello", "World")) == LSeq(LString).toValue(Seq("Hello", "World")))
     assertResult(false)(LSampleId("Sample1") == LString("Sample1"))
     assertResult(false)(LVariantId("Sample1") == LString("Sample1"))
     assertResult(false)(LVariantId("Sample1") == LSampleId("Sample1"))
@@ -93,18 +92,18 @@ final class LValuesTest extends FunSuite {
   test("Sugar for LSig construction: to on tuple1") {
     assert((LVariantId to LGenotype) === LSig.Map(LTuple1(LVariantId), LGenotype))
   }
-  
+
   test("Sugar for LSig construction: to on tupleN") {
     assert(
       (LTuple2(LVariantId, LSampleId) to LGenotype) === LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype))
-    
+
     assert(
-      (LTuple3(LVariantId, LSampleId, LInt) to LGenotype) === LSig.Map(LTuple3(LVariantId, LSampleId, LInt),LGenotype))
+      (LTuple3(LVariantId, LSampleId, LInt) to LGenotype) === LSig.Map(LTuple3(LVariantId, LSampleId, LInt), LGenotype))
   }
-  
+
   test("Sugar for LSig construction: to, &") {
     assert((LVariantId & LSampleId) === LTuple2(LVariantId, LSampleId))
-    
+
     assert(((LVariantId & LSampleId) to LGenotype) === LSig.Map(LTuple2(LVariantId, LSampleId), LGenotype))
   }
 }

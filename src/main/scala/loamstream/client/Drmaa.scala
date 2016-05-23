@@ -66,9 +66,8 @@ class Drmaa extends Loggable {
       session.exit()
     }
     catch {
-      case e: DrmaaException => {
+      case e: DrmaaException =>
         error("Error: " + e.getMessage)
-      }
     }
   }
 }

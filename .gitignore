@@ -10,6 +10,7 @@ hail.log
 /out
 /project/project
 /project/target
+
 /target
 /src/target
 tmp/
@@ -30,3 +31,5 @@ model/.cache-tests
 model/.classpath
 model/.project
 model/.settings
+/webui/logs/
+/webui/target/

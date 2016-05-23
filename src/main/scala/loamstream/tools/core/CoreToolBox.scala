@@ -145,11 +145,11 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
   }
 
-  lazy val sampleFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.sampleFilePath).map(_.get)
+  lazy val sampleFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.sampleFilePath).map(_())
 
-  lazy val singletonFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.singletonFilePath).map(_.get)
+  lazy val singletonFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.singletonFilePath).map(_())
 
-  lazy val pcaWeightsFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.pcaWeightsFilePath).map(_.get)
+  lazy val pcaWeightsFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.pcaWeightsFilePath).map(_())
 
   lazy val klustaKwikConfigShot: Shot[KlustaKwikKonfig] = env.shoot(LCoreEnv.Keys.klustaKwikKonfig)
 

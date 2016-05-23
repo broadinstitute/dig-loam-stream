@@ -1,0 +1,39 @@
+@()(implicit request: RequestHeader)
+<html>
+    <head>
+        <title>LoamStream WebUI</title>
+        <style>
+        body {
+            font-family: sans-serif;
+            color: yellow;
+            background-color: black;
+        }
+        </style>
+        <script src="@{routes.Assets.at("javascripts/d3.min.js")}" type="text/javascript"></script>
+        <script>
+                var socket = new WebSocket("@{loamstream.web.controllers.routes.WebController.socket.webSocketURL()}");
+                socket.onmessage = function (event) {
+                    receiveSocketMessage(event);
+                };
+                function serverResponseNode() {
+                    return d3.select("#serverResponse");
+                }
+                function sendText() {
+                    var text = d3.select("textarea").property("value");
+                    serverResponseNode().text("");
+                    socket.send(JSON.stringify({type: "text", text: text}));
+                }
+                function receiveSocketMessage(socketMessage) {
+                    var data = JSON.parse(socketMessage.data);
+                    var responseText = serverResponseNode().text() + "\n[" + data.type + "] " + data.message;
+                    serverResponseNode().text(responseText);
+                }
+        </script>
+    </head>
+    <body>
+        <h1>LoamStream WebUI</h1>
+        <p><button type="button" onclick="sendText()">Submit</button></p>
+        <pre id="serverResponse">Write into the text area and click 'submit'.</pre>
+        <p><textarea title="DSL Editor" rows="42" cols="100"></textarea></p>
+    </body>
+</html>

@@ -1,3 +1,5 @@
+import java.io.File
+
 import sbt.project
 
 lazy val Versions = new {
@@ -28,15 +30,23 @@ lazy val testDeps = Seq(
   "org.scalatest" %% "scalatest" % Versions.ScalaTest % Test
 )
 
+val captureSbtClasspath = taskKey[Unit]("sbt-classpath")
+
 lazy val commonSettings = Seq(
   version := Versions.App,
   scalaVersion := Versions.Scala,
-  scalacOptions ++= Seq("-feature", "-deprecation"),
+  scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.sonatypeRepo("snapshots")
   ),
   libraryDependencies ++= (mainDeps ++ testDeps),
+  captureSbtClasspath := {
+    val files: Seq[File] = (fullClasspath in Compile).value.files
+    val sbtClasspath: String = files.map(x => x.getAbsolutePath).mkString(File.pathSeparator)
+    println("Set SBT classpath to 'sbt-classpath' environment variable") // scalastyle:ignore
+    System.setProperty("sbt-classpath", sbtClasspath)
+  },
   scalastyleFailOnError := true
 )
 
@@ -51,3 +61,11 @@ lazy val root = (project in file("."))
     maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
     mainClass in Compile := Some("loamstream.apps.ImputationApp")
   ).enablePlugins(JavaAppPackaging)
+
+lazy val webui = (project in file("webui"))
+  .dependsOn(root)
+  .enablePlugins(PlayScala)
+  .settings(commonSettings: _*)
+  .settings(
+    name := "LoamStream WebUI"
+  )

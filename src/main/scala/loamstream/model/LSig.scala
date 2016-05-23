@@ -10,7 +10,7 @@ import scala.language.existentials
   */
 object LSig {
 
-  case class Set(keyTypes: LTuple[_ <: Product]) extends LSig {
+  case class Set(keyTypes: LTuple) extends LSig {
     
     override def toString: String = keyTypes.toString
     
@@ -21,10 +21,10 @@ object LSig {
   }
   
   object Set {
-    def of[K](k: LType[K]): LSig.Set = new LSig.Set(LTuple.LTuple1(k))
+    def of(k: LType): LSig.Set = new LSig.Set(LTuple.LTuple1(k))
   }
 
-  case class Map(keyTypes: LTuple[_ <: Product], vType: LType[_]) extends LSig {
+  case class Map(keyTypes: LTuple, vType: LType) extends LSig {
     
     override def toString: String = s"$keyTypes to $vType"
     
@@ -38,7 +38,7 @@ object LSig {
 }
 
 sealed trait LSig {
-  def keyTypes: LTuple[_]
+  def keyTypes: LTuple
 
   def =:=(oSig: LSig): Boolean
 }

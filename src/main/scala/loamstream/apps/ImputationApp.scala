@@ -4,7 +4,7 @@ import java.nio.file.Paths
 
 import loamstream.apps.minimal.MiniExecuter
 import loamstream.client.Drmaa
-import loamstream.conf.{UgerConfig, ImputationConfig}
+import loamstream.conf.{ImputationConfig, UgerConfig}
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.LCommandLineJob
 import loamstream.tools.LineCommand
@@ -15,6 +15,7 @@ import loamstream.util.Loggable
   * Created by kyuksel on 05/02/2016.
   */
 object ImputationApp extends Loggable {
+
   final case class ShapeItCommandLine(tokens: Seq[String]) extends LineCommand.CommandLine {
     def commandLine = tokens.mkString(LineCommand.tokenSep)
   }
@@ -32,7 +33,7 @@ object ImputationApp extends Loggable {
     val longBulkOptionName = "--bulk"
     val shortBulkOptionName = "-b"
 
-    if (args.size != 4) {
+    if (args.length != 4) {
       error(configHelpText)
       System.exit(-1)
     }
@@ -40,13 +41,13 @@ object ImputationApp extends Loggable {
     args(0) match {
       case `longConfigOptionName` => isArgsValid = true
       case `shortConfigOptionName` => isArgsValid = true
-      case _ => error(configHelpText) ; System.exit(-1)
+      case _ => error(configHelpText); System.exit(-1)
     }
 
     args(2) match {
       case `longBulkOptionName` => isArgsValid = true
       case `shortBulkOptionName` => isArgsValid = true
-      case _ => error(configHelpText) ; System.exit(-1)
+      case _ => error(configHelpText); System.exit(-1)
     }
   }
 

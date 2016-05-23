@@ -72,4 +72,12 @@ final class MapsTest extends FunSuite {
     //If we'd used .mapValues(), invocations would be 9
     assert(invocations === 3)
   }
+  
+  test("mapKeys") {
+    val m = Map(1 -> "a", 2 -> "b", 3 -> "c")
+    
+    import Maps.Implicits._
+    
+    assert(m.mapKeys(_ + 1) == Map(2 -> "a", 3 -> "b", 4 -> "c"))
+  }
 }

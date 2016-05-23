@@ -13,9 +13,9 @@ import loamstream.tools.core.StoreOps
 trait Tool extends LId.Owner {
   def spec: ToolSpec 
   
-  def inputs: Seq[Store] 
+  def inputs: Map[LId, Store] 
   
-  def output: Store
+  def outputs: Map[LId, Store]
 }
 
 object Tool {

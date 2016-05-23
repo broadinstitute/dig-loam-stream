@@ -13,7 +13,11 @@ object LSpecificKind {
   def apply[T](specifics: LValue, supers: LKind*): LSpecificKind = LSpecificKind(specifics, supers.toSet)
 }
 
-case class LSpecificKind(specifics: LValue, supers: Set[LKind]) extends LKind {
+final case class LSpecificKind(specifics: LValue, supers: Set[LKind]) extends LKind {
+  override def toString: String = {
+    s"LSpecificKind($specifics extends ${supers.mkString(",")})"
+  }
+
   override def <:<(oKind: LKind): Boolean = oKind match {
     case _ if oKind == this => true
     case LAnyKind => true

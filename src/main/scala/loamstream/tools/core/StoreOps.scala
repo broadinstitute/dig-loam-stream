@@ -18,14 +18,14 @@ object StoreOps {
   }
   
   final case class UnarySig(input: Store, output: Store) extends ToolSig {
-    override def toNarySig: NarySig = NarySig(Seq(input), output)
+    override def toNarySig: NarySig = NarySig(Seq(input), Seq(output))
   }
   
   final case class BinarySig(inputs: (Store, Store), output: Store) extends ToolSig {
-    override def toNarySig: NarySig = NarySig(Seq(inputs._1, inputs._2), output)
+    override def toNarySig: NarySig = NarySig(Seq(inputs._1, inputs._2), Seq(output))
   }
   
-  final case class NarySig(inputs: Seq[Store], output: Store) extends ToolSig {
+  final case class NarySig(inputs: Seq[Store], outputs: Seq[Store]) extends ToolSig {
     override def toNarySig: NarySig = this
   }
   
@@ -38,6 +38,8 @@ object StoreOps {
   }
   
   final implicit class NaryStoreOps(val lhs: Seq[Store]) extends AnyVal {
-    def ~>(rhs: Store): NarySig = NarySig(lhs, rhs)
+    def ~>(rhs: Store): NarySig = NarySig(lhs, Seq(rhs))
+    
+    def ~>(rhs: Seq[Store]): NarySig = NarySig(lhs, rhs)
   }
 }

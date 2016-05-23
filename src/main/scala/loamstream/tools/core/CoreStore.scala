@@ -57,5 +57,5 @@ object CoreStore {
 
   val stores: Set[Store] = Set(
       vcfFile, vdsFile, pcaWeightsFile, pcaProjectedFile, 
-      sampleClusterFile, singletonsFile, sampleIdsFile)
+      sampleClusterFile, /*singletonsFile, */sampleIdsFile)
 }

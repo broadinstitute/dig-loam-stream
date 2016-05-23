@@ -7,4 +7,6 @@ package loamstream.model
  */
 trait Store extends LId.Owner {
   def spec: StoreSpec
+  
+  final def toTuple: (LId, StoreSpec) = (id, spec)
 }

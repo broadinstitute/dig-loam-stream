@@ -10,6 +10,8 @@ object Maps {
   object Implicits {
     implicit final class MapOps[A,B](val m: Map[A,B]) extends AnyVal {
       def strictMapValues[C](f: B => C): Map[A, C] = m.map { case (a, b) => (a, f(b)) }
+      
+      def mapKeys[A1](f: A => A1): Map[A1, B] = m.map { case (a, b) => (f(a), b) }
     }
   }
 }

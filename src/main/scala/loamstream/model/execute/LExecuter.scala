@@ -2,6 +2,7 @@ package loamstream.model.execute
 
 import loamstream.model.jobs.LJob
 import loamstream.util.Shot
+import scala.concurrent.duration.Duration
 
 /**
  * RugLoom - A prototype for a pipeline building toolkit
@@ -9,6 +10,6 @@ import loamstream.util.Shot
  */
 trait LExecuter {
 
-  def execute(executable:LExecutable): Map[LJob,Shot[LJob.Result]]
+  def execute(executable:LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob,Shot[LJob.Result]]
 
 }

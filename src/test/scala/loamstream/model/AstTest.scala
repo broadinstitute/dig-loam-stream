@@ -5,6 +5,11 @@ import org.scalatest.FunSuite
 import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal.MiniPipeline
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
+import loamstream.util.Maps
+import LId.LNamedId
+import loamstream.model.values.LType
+import loamstream.model.kinds.LKind
+import loamstream.model.kinds.LAnyKind
 
 /**
  * @author clint
@@ -12,220 +17,287 @@ import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
  */
 final class AstTest extends FunSuite {
   import AST._
-  
-  test("infer dependencies between tools in the MiniPipeline") {
-    val pipeline = MiniPipeline("foo")
+  import Ids._
+  import Tools._
+  import Nodes._
+
+  test("leaves()") {
+    assert(a.leaves == Set(a))
+
+    assert(a.dependsOn(b(B).as(X)).leaves == Set(b))
+
+    assert(a.dependsOn(b(B).as(X)).dependsOn(c(C).as(Y)).leaves == Set(b, c))
+
+    //a -> b -> (c, d)
+
+    assert(Trees.abcd.leaves == Set(c, d))
+  }
+
+  test("isLeaf") {
+    assert(a.isLeaf == true)
+
+    assert(a.dependsOn(b(B).as(X)).isLeaf == false)
+
+    assert(Trees.abcd.isLeaf == false)
+    assert(Trees.bcd.isLeaf == false)
+    assert(c.isLeaf == true)
+    assert(d.isLeaf == true)
+  }
+
+  private def doTraversalTest(ast: AST, iteratorFrom: AST => Iterator[AST], validate: Seq[LId] => Unit): Unit = {
     
-    val ast = AST.fromPipeline(pipeline).get
-    
-    val expected = {
-      AST(pipeline.sampleIdsTool.output).dependsOn {
-        AST(pipeline.genotypeCallsTool.output.spec)
-      }
+    def idsFrom(asts: Iterator[AST]): Seq[LId] = {
+      asts.map(_.id).toIndexedSeq
     }
     
+    {
+      //just node a
+
+      val visited = idsFrom(iteratorFrom(a))
+
+      assert(visited == Seq(A))
+    }
+
+    val visited = idsFrom(iteratorFrom(ast))
+
+    validate(visited)
+  }
+  
+  test("postOrder()") {
+    doTraversalTest(Trees.abcd, _.postOrder, visited => {
+      assert(visited.take(2).toSet == Set(C, D))
+
+      assert(visited.drop(2) == Seq(B, A))
+    })
+  }
+  
+  test("iterator()") {
+    doTraversalTest(Trees.abcd, _.iterator, visited => {
+      assert(visited.take(2).toSet == Set(C, D))
+
+      assert(visited.drop(2) == Seq(B, A))
+    })
+  }
+  
+  test("preOrder()") {
+    doTraversalTest(Trees.abcd, _.preOrder, visited => {
+      assert(visited.take(2) == Seq(A, B))
+
+      assert(visited.drop(2).toSet == Set(C, D))
+    })
+  }
+  
+  test(s"1 node dependsOn 1 other node (${classOf[NamedOutput].getSimpleName}) => AST") {
+    val ast = a dependsOn (b(Z) as Q)
+
+    val expected = ToolNode(A, a.tool, Set(Connection(Q, Z, b)))
+
     assert(ast == expected)
   }
   
-  test("infer dependencies between tools in the Hail pipeline (dependsOn) ") {
-    val pipeline = HailPipeline("foo", "bar", "baz")
-    
-    val ast = AST.fromPipeline(pipeline).get
-    
-    val expected = {
-      AST(pipeline.singletonTool.output).dependsOn {
-        AST(pipeline.vdsTool.output).dependsOn {
-          AST(pipeline.genotypeCallsTool.output)
-        }
-      }
-    }
-    
+  test("1 node dependsOn 1 other node (id, ast) => AST") {
+    val ast = a.dependsOn(Q, Z, b)
+
+    val expected = ToolNode(A, a.tool, Set(Connection(Q, Z, b)))
+
     assert(ast == expected)
   }
   
-  test("infer dependencies between tools in the Hail pipeline (~>) ") {
-    val pipeline = HailPipeline("foo", "bar", "baz")
+  test("1 node dependsOn 1 other node (connection) => AST") {
+    val connection = Connection(A, B, b)
     
-    val ast = AST.fromPipeline(pipeline).get
-    
-    val expected = {
-      AST(pipeline.genotypeCallsTool.output) ~>
-      AST(pipeline.vdsTool.output) ~>
-      AST(pipeline.singletonTool.output) 
-    }
-    
+    val ast = a.dependsOn(connection)
+
+    val expected = ToolNode(A, a.tool, Set(connection))
+
+    assert(ast == expected)
+  }
+
+  test("1 node dependsOn 1 other node get(id).from(named dep)") {
+    val ast = a.get(Z).from(b(X))
+
+    val expected = ToolNode(A, a.tool, Set(Connection(Z, X, b)))
+
     assert(ast == expected)
   }
   
-  test("infer dependencies between tools in the Hail pipeline (thenRun) ") {
-    val pipeline = HailPipeline("foo", "bar", "baz")
-    
-    val ast = AST.fromPipeline(pipeline).get
-    
-    val expected = {
-      AST(pipeline.genotypeCallsTool.output) thenRun
-      AST(pipeline.vdsTool.output) thenRun
-      AST(pipeline.singletonTool.output) 
-    }
-    
+  test("1 node dependsOn 1 other node get(iid).from(oid).from(producer)") {
+    val ast = a.get(Z).from(X).from(b)
+
+    val expected = ToolNode(A, a.tool, Set(Connection(Z, X, b)))
+
     assert(ast == expected)
   }
-  
-  test("infer dependencies between tools in the ancestry inference pipeline") {
-    val pipeline = AncestryInferencePipeline("foo", "bar")
+
+  test("output(LId) and apply(LId)") {
+    assert(a.output(Z) == NamedOutput(Z, a))
+
+    assert(a(Z) == NamedOutput(Z, a))
+  }
+
+  test("'Complex' pipeline") {
+    /*
+     *            b
+     *          /   \
+     *  a <- x <- c  <- y
+     *          \   /
+     *            d
+     */
     
-    val ast = AST.fromPipeline(pipeline).get
+    val b2y = b.dependsOn(y(Y).as(I))
+    val c2y = c.dependsOn(y(Y).as(I))
+    val d2y = d.dependsOn(y(Y).as(I))
     
+    val bcd = Set(b2y.output(B).as(B), c2y.output(C).as(C), d2y.output(D).as(D))
+    
+    val x2bcd = x.withDependencies(bcd)
+    
+    val a2y = a.dependsOn(x2bcd(X).as(I))
+
     val expected = {
-      AST(pipeline.sampleClusteringTool.output).dependsOn {
-        AST(pipeline.pcaProjectionTool.output).dependsOn(
-          AST(pipeline.pcaWeightsTool.output),
-          AST(pipeline.genotypesTool.output)
-        )
+      a.dependsOn(I, X, x.withDependencies {
+        Set(
+          b.dependsOn(y(Y).as(I)).output(B).as(B), 
+          c.dependsOn(y(Y).as(I)).output(C).as(C), 
+          d.dependsOn(y(Y).as(I)).output(D).as(D))
+      })
+    }
+    
+    assert(a2y == expected)
+    
+    def getChildOf(root: AST, childName: LId, rest: LId*): AST = {
+      def childWithId(rt: AST, id: LId): AST = {
+        rt.dependencies.find(_.outputId == id).get.producer
       }
+      
+      val z: AST = childWithId(root, childName)
+      
+      rest.foldLeft(z)(childWithId)
     }
     
-    assert(ast == expected)
+    assert(a2y.dependencies.size == 1)
+    
+    assert(getChildOf(a2y, X).dependencies.size == 3)
+    assert(getChildOf(a2y, X, B).dependencies.size == 1)
+    assert(getChildOf(a2y, X, C).dependencies.size == 1)
+    assert(getChildOf(a2y, X, D).dependencies.size == 1)
+    
+    assert(getChildOf(a2y, X, B, Y).dependencies.size == 0)
+    assert(getChildOf(a2y, X, C, Y).dependencies.size == 0)
+    assert(getChildOf(a2y, X, D, Y).dependencies.size == 0)
+    
+    val visitCounts: Map[LId, Int] = {
+      a2y.iterator.map(_.id).toIndexedSeq.groupBy(identity).mapValues(_.size)
+    }
+    
+    val expectedCounts = Map(
+        A -> 1,
+        X -> 1,
+        B -> 1,
+        C -> 1,
+        D -> 1,
+        Y -> 3)
+    
+    assert(visitCounts == expectedCounts)
+  }
+
+  private object Trees {
+    //a -> b -> (c, d)
+
+    lazy val bcd = b.dependsOn(c(C).as(I)).dependsOn(d(D).as(J))
+
+    lazy val abcd = a.get(B).from(I).from(bcd)
   }
   
-  test("AST Implicits: iterables of tools, branching pipeline") {
-    val pipeline = AncestryInferencePipeline("foo", "bar")
-    
-    val expected = AST.fromPipeline(pipeline).get
-    
-    import pipeline._
-    import AST.Implicits._
-    
-    val actual1 = {
-      Seq(genotypesTool, pcaWeightsTool) thenRun
-      pcaProjectionTool thenRun
-      sampleClusteringTool
-    }
-    
-    assert(expected === actual1)
-    
-    val actual2 = {
-      Seq(genotypesTool, pcaWeightsTool) ~>
-      pcaProjectionTool ~>
-      sampleClusteringTool
-    }
-    
-    assert(expected === actual2)
-    
-    val actual3 = {
-      sampleClusteringTool.toAST.dependsOn {
-        pcaProjectionTool.toAST.dependsOn(
-          genotypesTool, 
-          pcaWeightsTool
-        )
-      }
-    }
-    assert(expected === actual3)
+  private object Nodes {
+    val a = ToolNode(SimpleTool(aSpec, A))
+
+    val b = ToolNode(SimpleTool(bSpec, B))
+    val c = ToolNode(SimpleTool(cSpec, C))
+    val d = ToolNode(SimpleTool(dSpec, D))
+
+    val h = ToolNode(SimpleTool(hSpec, H))
+    val t = ToolNode(SimpleTool(tSpec, T))
+    val u = ToolNode(SimpleTool(uSpec, U))
+    val v = ToolNode(SimpleTool(vSpec, V))
+    val e = ToolNode(SimpleTool(eSpec, E))
+    val f = ToolNode(SimpleTool(fSpec, F))
+    val g = ToolNode(SimpleTool(gSpec, G))
+    val x = ToolNode(SimpleTool(xSpec, X))
+    val y = ToolNode(SimpleTool(ySpec, Y))
+    val z = ToolNode(SimpleTool(zSpec, Z))
   }
+
+  private object Tools {
+    import LType._
+
+    final case class SimpleStore(spec: StoreSpec, id: LId = LId.newAnonId) extends Store
+    
+    final case class SimpleTool(spec: ToolSpec, id: LId = LId.newAnonId) extends Tool {
+      private def toStoreMap(m: Map[LId, StoreSpec]): Map[LId, Store] = m.mapValues(SimpleStore(_))
+      
+      override val inputs: Map[LId, Store] = toStoreMap(spec.inputs)
   
-  test("AST Implicits: iterables of tools, linear pipeline") {
-    val pipeline = HailPipeline("foo", "bar", "baz")
-    
-    val expected = AST.fromPipeline(pipeline).get
-    
-    import pipeline._
-    import AST.Implicits._
-    
-    val actual1 = {
-      Seq(genotypeCallsTool) thenRun
-      vdsTool thenRun
-      singletonTool
+      override val outputs: Map[LId, Store] = toStoreMap(spec.outputs)
     }
     
-    assert(expected === actual1)
+    //NB: These specs are all totally bogus, and are basically placeholders just to have a way to make unique nodes.
+    //That's fine for now since we don't 'typecheck' ASTs.  This will change in the near future.
     
-    val actual2 = {
-      Seq(genotypeCallsTool) ~>
-      vdsTool ~>
-      singletonTool
-    }
-    
-    assert(expected === actual2)
+    private val kind: LKind = LAnyKind
+
+    private val hStoreSpec = StoreSpec(LInt to LDouble, kind)
+    private val zStoreSpec = hStoreSpec
+    private val storeSpec = hStoreSpec
+
+    val zSpec = ToolSpec(kind, inputs = Map(H -> hStoreSpec), outputs = Map(Z -> zStoreSpec))
+
+    val hSpec = ToolSpec(kind, inputs = Map(T -> storeSpec, U -> storeSpec, V -> storeSpec), outputs = Map(H -> hStoreSpec))
+
+    val tSpec = ToolSpec(kind, inputs = Map(E -> storeSpec), outputs = Map(T -> storeSpec))
+    val uSpec = ToolSpec(kind, inputs = Map(F -> storeSpec), outputs = Map(U -> storeSpec))
+    val vSpec = ToolSpec(kind, inputs = Map(G -> storeSpec), outputs = Map(V -> storeSpec))
+
+    val eSpec = ToolSpec(kind, inputs = Map(Y -> storeSpec), outputs = Map(E -> storeSpec))
+    val fSpec = ToolSpec(kind, inputs = Map(Y -> storeSpec), outputs = Map(F -> storeSpec))
+    val gSpec = ToolSpec(kind, inputs = Map(Y -> storeSpec), outputs = Map(G -> storeSpec))
+
+    val xSpec = ToolSpec(kind, inputs = Map(A -> storeSpec), outputs = Map(X -> storeSpec))
+    val ySpec = ToolSpec(kind, inputs = Map(), outputs = Map(E -> storeSpec, F -> storeSpec, G -> storeSpec))
+
+    val aSpec = ToolSpec(kind, inputs = Map(), outputs = Map(A -> storeSpec))
+
+    val bSpec = ToolSpec(kind, inputs = Map(X -> storeSpec), outputs = Map(B -> storeSpec))
+    val cSpec = ToolSpec(kind, inputs = Map(X -> storeSpec), outputs = Map(C -> storeSpec))
+    val dSpec = ToolSpec(kind, inputs = Map(X -> storeSpec), outputs = Map(D -> storeSpec))
   }
-  
-  test("AST Implicits: single tools, linear pipeline") {
-    val pipeline = HailPipeline("foo", "bar", "baz")
-    
-    val expected = AST.fromPipeline(pipeline).get
-    
-    import pipeline._
-    import AST.Implicits._
-    
-    val actual1 = {
-      genotypeCallsTool thenRun
-      vdsTool thenRun
-      singletonTool
-    }
-    
-    assert(expected === actual1)
-    
-    val actual2 = {
-      genotypeCallsTool ~>
-      vdsTool ~>
-      singletonTool
-    }
-    
-    assert(expected === actual2)
-    
-    val actual3 = {
-      singletonTool.dependsOn {
-        vdsTool.dependsOn {
-          genotypeCallsTool
-        }
-      }
-    }
-    
-    assert(expected === actual3)
-  }
-  
-  test("findTerminalTool") {
-    final case class ExplicitPipeline(tools: Set[Tool]) extends LPipeline {
-      override def stores: Set[Store] = tools.map(_.output)
-    }
-    
-    import AST.findTerminalTool
-    
-    //Should fail, no tools
-    assert(findTerminalTool(ExplicitPipeline(Set.empty)).isFailure)
-    
-    val ancestryPipeline = AncestryInferencePipeline("foo", "bar")
-    
-    val pipelineWith2Terminals = ExplicitPipeline(
-        Set(ancestryPipeline.genotypesTool, ancestryPipeline.pcaWeightsTool))
-    
-    //Should fail, 2 terminals
-    assert(findTerminalTool(pipelineWith2Terminals).isFailure)
-    
-    val hailPipeline = HailPipeline("foo", "bar", "baz")
-    
-    //Should work
-    assert(findTerminalTool(hailPipeline).get === hailPipeline.singletonTool)
-  }
-  
-  test("astFor") {
-    val pipeline = AncestryInferencePipeline("foo", "bar")
-    
-    val byOutput: Map[StoreSpec, Set[Tool]] = pipeline.tools.groupBy(_.output.spec)
-    
-    def astFor(tool: Tool) = AST.astFor(byOutput)(tool.output.spec)
-    
-    import pipeline._
-    
-    assert(astFor(genotypesTool) === AST(genotypesTool.output.spec, Set.empty[AST]))
-    
-    assert(astFor(pcaWeightsTool) === AST(pcaWeightsTool.output.spec, Set.empty[AST]))
-    
-    val expected1 = AST(pcaProjectionTool.output.spec, Set(
-        AST(genotypesTool.output.spec, Set.empty[AST]),
-        AST(pcaWeightsTool.output.spec, Set.empty[AST])))
-    
-    assert(astFor(pcaProjectionTool) === expected1)
-    
-    assert(astFor(sampleClusteringTool) === AST(sampleClusteringTool.output.spec, Set(expected1)))
+
+  private object Ids {
+    val A = LId.LNamedId("A")
+    val B = LId.LNamedId("B")
+    val C = LId.LNamedId("C")
+    val D = LId.LNamedId("D")
+    val E = LId.LNamedId("E")
+    val F = LId.LNamedId("F")
+    val G = LId.LNamedId("G")
+    val H = LId.LNamedId("H")
+    val I = LId.LNamedId("I")
+    val J = LId.LNamedId("J")
+    val K = LId.LNamedId("K")
+    val L = LId.LNamedId("L")
+    val M = LId.LNamedId("M")
+    val N = LId.LNamedId("N")
+    val O = LId.LNamedId("O")
+    val P = LId.LNamedId("P")
+    val Q = LId.LNamedId("Q")
+    val R = LId.LNamedId("R")
+    val S = LId.LNamedId("S")
+    val T = LId.LNamedId("T")
+    val U = LId.LNamedId("U")
+    val V = LId.LNamedId("V")
+    val W = LId.LNamedId("W")
+    val X = LId.LNamedId("X")
+    val Y = LId.LNamedId("Y")
+    val Z = LId.LNamedId("Z")
   }
 }

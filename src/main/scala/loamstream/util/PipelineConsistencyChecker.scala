@@ -3,6 +3,7 @@ package loamstream.util
 import loamstream.model.LPipeline
 import loamstream.model.Store
 import loamstream.model.Tool
+import loamstream.model.LId
 
 /**
   * LoamStream
@@ -48,9 +49,10 @@ object PipelineConsistencyChecker {
     override def message: String = s"Store ${store.id} is not produced by any tool."
   }
 
+  //TODO: TEST
   case object EachStoreIsOutputOfAtLeastOneToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      (pipeline.stores -- pipeline.tools.map(_.output)).map(StoreIsProducedByNoTool)
+      (pipeline.stores -- pipeline.tools.flatMap(_.outputs.values)).map(StoreIsProducedByNoTool)
     }
   }
 
@@ -62,7 +64,27 @@ object PipelineConsistencyChecker {
 
   case object EachStoreIsOutputOfNoMoreThanOneToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.tools.groupBy(_.output).collect { case (store, tools) if tools.size > 1 =>
+      val toolsByOutput: Map[Store, Set[Tool]] = {
+        val outputsToTools = for {
+          tool <- pipeline.tools.toSeq
+          (outputId, output) <- tool.outputs
+        } yield output -> tool
+    
+        val z: Map[Store, Set[Tool]] = Map.empty
+    
+        outputsToTools.foldLeft(z) { (map, tuple) =>
+          val (output, tool) = tuple
+    
+          val newTools = map.get(output) match {
+            case None        => Set(tool)
+            case Some(tools) => tools + tool
+          }
+    
+          map + (output -> newTools)
+        }
+      }
+
+      toolsByOutput.collect { case (store, tools) if tools.size > 1 =>
         val result: Problem = StoreIsProducedByMultipleTools(store, tools)
         
         result
@@ -78,23 +100,41 @@ object PipelineConsistencyChecker {
 
   case object EachStoreIsCompatibleOutputOfToolCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.tools.filterNot(tool => tool.output.spec >:> tool.spec.output).
-        map(tool => StoreIsIncompatibleOutputOfTool(tool.output, tool))
+      //TODO: TEST
+      pipeline.tools.filterNot { tool =>
+        tool.outputs.zip(tool.spec.outputs).forall {
+          case ((toolOutputId, toolOutput), (specOutputId, specOutput)) => {
+            /*toolOutputId == specOutputId && */toolOutput.spec >:> specOutput
+          }
+        }
+      }.flatMap { tool =>
+        tool.outputs.map { case (name, output) => StoreIsIncompatibleOutputOfTool(output, tool) }
+      }
     }
   }
 
-  case class StoreIsIncompatibleInputOfTool(store: Store, tool: Tool, pos: Int)
+  case class StoreIsIncompatibleInputOfTool(store: Store, tool: Tool, paramName: LId)
     extends StoreIsNotCompatibleWithTool {
     override def message: String =
-      s"Store ${store.id} is not compatible input (position $pos) of tool ${tool.id}."
+      s"Store ${store.id} is not compatible input (name: $paramName) of tool ${tool.id}."
   }
 
   case object EachStoreIsCompatibleInputOfToolCheck extends Check {
+    //TODO: TEST
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.tools.flatMap { tool =>
-        tool.inputs.indices.map(pos => (tool, pos, tool.inputs(pos), tool.spec.inputs(pos)))
-      }.collect { case (tool, pos, input, inputSpec) if !(input.spec <:< inputSpec) =>
-        StoreIsIncompatibleInputOfTool(input, tool, pos)
+      val toolsStoresAndStoreSpecs = for {
+        tool <- pipeline.tools
+        (inputName, store) <- tool.inputs
+      } yield {
+        (tool, 
+         tool.inputs.collect { case (id, inputStore) if id == store.id => inputStore }.headOption, 
+         tool.spec.inputs.collect { case (id, spec) if id == store.id => spec }.headOption)
+      }
+      
+      toolsStoresAndStoreSpecs.collect { 
+        case (tool, Some(input), Some(inputSpec)) if !(input.spec <:< inputSpec) => {
+          StoreIsIncompatibleInputOfTool(input, tool, input.id)
+        }
       }
     }
   }
@@ -106,10 +146,22 @@ object PipelineConsistencyChecker {
   }
 
   case object EachOutputStoreIsPresentCheck extends Check {
+    //TODO: TEST
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.tools.collect { case tool if !pipeline.stores.contains(tool.output) =>
-        StoreMissingUsedAsOutput(tool.output, tool)
+      def unspecifiedOutputsFor(tool: Tool): Iterable[Store] = {
+        tool.outputs.filterNot { case (_, output) => 
+          pipeline.tools.flatMap(_.outputs.values).contains(output)
+        }.map { case (_, store) => store }
       }
+      
+      def someOutputIsNotSpecified(tool: Tool): Boolean = !unspecifiedOutputsFor(tool).isEmpty
+      
+      val toolsWithUnspecifiedOutputs = pipeline.tools.filter(someOutputIsNotSpecified)
+      
+      for {
+        tool <- toolsWithUnspecifiedOutputs
+        unspecifiedOutput <- unspecifiedOutputsFor(tool)
+      } yield StoreMissingUsedAsOutput(unspecifiedOutput, tool)
     }
   }
 
@@ -119,10 +171,19 @@ object PipelineConsistencyChecker {
 
   case object EachInputStoreIsPresentCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
-      pipeline.tools.flatMap { tool => tool.inputs.indices.map(pos => (tool.inputs(pos), tool, pos)) }.
-        collect { case (input, tool, pos) if !pipeline.stores.contains(input) =>
-          StoreMissingUsedAsInput(input, tool, pos)
+      val inputsToolsAndIndices = {
+        for {
+          tool <- pipeline.tools
+          pos <- tool.inputs.toSeq.indices
+        } yield {
+          (tool.inputs.toSeq.apply(pos), tool, pos)
         }
+      }
+      
+      inputsToolsAndIndices.collect { 
+        case ((_, input), tool, pos) if !pipeline.stores.contains(input) =>
+          StoreMissingUsedAsInput(input, tool, pos)
+      }
     }
   }
 
@@ -131,6 +192,7 @@ object PipelineConsistencyChecker {
   }
 
   case object ConnectednessCheck extends Check {
+    //TODO: TEST
     override def apply(pipeline: LPipeline): Set[Problem] = {
       pipeline.stores.headOption match {
         case Some(arbitraryStore) =>
@@ -139,7 +201,7 @@ object PipelineConsistencyChecker {
           while (makingProgress) {
             makingProgress = false
             for (tool <- pipeline.tools) {
-              val neighborStores = tool.inputs.toSet + tool.output
+              val neighborStores = tool.inputs.map(_._2).toSet ++ tool.outputs.map(_._2)
               val connectedStoresNew = neighborStores -- connectedStores
               if (connectedStoresNew.nonEmpty) {
                 connectedStores ++= connectedStoresNew
@@ -158,6 +220,7 @@ object PipelineConsistencyChecker {
     override def message: String = s"Pipeline contains a cycle containing store ${store.id}."
   }
 
+  //TODO: TEST
   case object AcyclicityCheck extends Check {
     override def apply(pipeline: LPipeline): Set[Problem] = {
       //TODO: Get rid of vars with a fold 
@@ -165,8 +228,12 @@ object PipelineConsistencyChecker {
       var makingProgress = true
       var nStoresLeft = storesLeft.size
       while (storesLeft.nonEmpty && makingProgress) {
-        storesLeft = pipeline.tools.filter(tool => storesLeft.contains(tool.output)).flatMap(_.inputs)
+        def keep(tool: Tool) = tool.outputs.exists { case (_, store) => storesLeft.contains(store) }
+        
+        storesLeft = pipeline.tools.filter(keep).flatMap(_.inputs.values)
+
         val nStoresLeftNew = storesLeft.size
+        
         makingProgress = nStoresLeftNew < nStoresLeft
         nStoresLeft = nStoresLeftNew
       }

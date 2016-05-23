@@ -1,19 +1,21 @@
 package loamstream
 
-import loamstream.apps.minimal.{MiniExecuter, MiniMockToolBox}
+import org.scalatest.FunSuite
+
+import loamstream.apps.minimal.MiniExecuter
+
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.tools.PcaWeightsReader
-import loamstream.tools.core.LCoreEnv.Keys
 import loamstream.tools.core.{CoreToolBox, LCoreDefaultStoreIds}
+import loamstream.tools.core.LCoreEnv.Keys
 import loamstream.tools.klusta.KlustaKwikKonfig
 import loamstream.util.{FileAsker, Hit, StringUtils}
-import org.scalatest.{BeforeAndAfter, FunSuite}
 
 /**
   * LoamStream
   * Created by oliverr on 4/8/2016.
   */
-final class AncestryInferenceEndToEndTest extends FunSuite with BeforeAndAfter {
+final class AncestryInferenceEndToEndTest extends FunSuite {
   test("Going through ancestry inference pipeline without crashing.") {
     import TestData.sampleFiles
 
@@ -37,8 +39,7 @@ final class AncestryInferenceEndToEndTest extends FunSuite with BeforeAndAfter {
     val pcaWeightsId = env(Keys.pcaWeightsId)
 
     val pipeline = AncestryInferencePipeline(genotypesId, pcaWeightsId)
-
-    val toolbox = CoreToolBox(env) ++ MiniMockToolBox(env).get
+    val toolbox = CoreToolBox(env)
 
     val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionTool, pipeline)
 

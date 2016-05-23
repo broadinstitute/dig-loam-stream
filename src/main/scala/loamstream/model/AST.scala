@@ -1,135 +1,116 @@
 package loamstream.model
 
 import scala.util.Try
-
 import loamstream.util.Tries
+import loamstream.util.Maps
 
 /**
  * @author clint
- * date: Apr 29, 2016
- * 
+ * date: May 12, 2016
+ *
  * Class representing the tree of relationships between tools in a pipeline.  Allows
- * composing trees and tools. 
+ * composing trees and tools.
  */
-final case class AST(output: StoreSpec, inputs: Set[AST]) {
-  def isLeaf: Boolean = inputs.isEmpty
+sealed trait AST extends Iterable[AST] { self =>
+  def id: LId = LId.newAnonId
 
-  def dependsOn(dependencies: AST*): AST = copy(inputs = inputs ++ dependencies)
+  import AST._
 
-  //NB: I had wanted to call this "andThen", but that can't be added as an extension method
-  //to Seqs of Tools/ASTs, since Seqs are functions and inherit a different method named andThen.
-  //I also considered "then", but that's now a reserved word. :\ -Clint
-  def thenRun(other: AST): AST = other.dependsOn(this)
+  def dependencies: Set[Connection]
 
-  def ~>(other: AST): AST = this.thenRun(other)
+  def withDependencies(inputs: Set[Connection]): AST
+
+  final def dependsOn(connection: Connection): AST = {
+    dependsOn(connection.inputId, connection.outputId, connection.producer)
+  }
   
-  //NB: Use dummy all-implicit param list to allow 2 overloads that otherwise would be the same after erasure
-  def dependsOn(dependencies: Tool*)(implicit discriminator: Int = 1): AST = dependsOn(dependencies.map(AST(_)): _*)
+  final def dependsOn(inputId: LId, outputId: LId, producer: AST): AST = {
+    withDependencies(dependencies + Connection(inputId, outputId, producer))
+  }
 
-  def thenRun(other: Tool): AST = AST(other).dependsOn(this)
+  final def output(outputId: LId): NamedOutput = NamedOutput(outputId, this)
 
-  def ~>(other: Tool): AST = this.thenRun(other)
+  final def apply(outputId: LId): NamedOutput = output(outputId)
+
+  final def get(inputId: LId): InputHandle = InputHandle(inputId, this)
+  
+  final def isLeaf: Boolean = dependencies.isEmpty
+
+  /**
+   * Returns an iterator that does a post-order traversal of this tree
+   */
+  override def iterator: Iterator[AST] = postOrder
+  
+  /**
+   * Returns an iterator that does a post-order traversal of this tree; that is, 
+   * this node's children (dependencies/inputs) are visited before this node.  
+   */
+  def postOrder: Iterator[AST] = childIterator(_.postOrder) ++ Iterator.single(this)
+  
+  /**
+   * Returns an iterator that does a pre-order traversal of this tree; that is, 
+   * this node is visited before its children (dependencies/inputs).  
+   */
+  def preOrder: Iterator[AST] = Iterator.single(this) ++ childIterator(_.preOrder)
+  
+  private def childIterator(iterationStrategy: AST => Iterator[AST]): Iterator[AST] = {
+    dependencies.iterator.map(_.producer).flatMap(iterationStrategy)
+  }
+
+  /**
+   * Convenience method to print the tree for debugging
+   */
+  def print(indent: Int = 0, via: Option[LId] = None, doPrint: (String) => Any = println(_)): Unit = { //scalastyle:ignore
+    val indentString = s"${"-" * indent}${via.map(v => s"($v)").getOrElse("")}> "
+
+    doPrint(s"$indentString$id")
+
+    dependencies.foreach { case Connection(inputId, outputId, dep) => 
+      dep.print(indent + 2, Option(outputId), doPrint) 
+    }
+  }
+
+  def leaves: Set[AST] = {
+    if (isLeaf) { Set(this) }
+    else { dependencies.flatMap(_.producer.leaves) }
+  }
 }
 
 object AST {
-  def apply(output: Store): AST = apply(output.spec)
+  def apply(tool: Tool): AST = ToolNode(tool)
 
-  def apply(output: StoreSpec): AST = AST(output, Set.empty[AST])
-
-  def apply(output: Store, inputs: Set[AST]): AST = AST(output.spec, inputs)
-  
-  def apply(tool: Tool): AST = apply(tool.output.spec)
-
-  object Implicits {
-    final implicit class IterableOps(val tools: Iterable[Tool]) extends AnyVal {
-      def thenRun(other: AST): AST = other.dependsOn(tools.toSeq: _*)
-
-      def ~>(other: AST): AST = thenRun(other)
-      
-      def thenRun(other: Tool): AST = other.toAST.dependsOn(tools.toSeq: _*)
-
-      def ~>(other: Tool): AST = thenRun(other)
-    }
+  final case class ToolNode(
+      override val id: LId,
+      tool: Tool, 
+      dependencies: Set[Connection] = Set.empty) extends AST {
     
-    final implicit class ToolOps(val self: Tool) extends AnyVal {
-      def toAST: AST = AST(self)
-      
-      def dependsOn(t: Tool): AST = toAST.dependsOn(t)
-      
-      def thenRun(t: Tool): AST = toAST.thenRun(t)
-      
-      def ~>(t: Tool): AST = thenRun(t)
-      
-      def dependsOn(other: AST): AST = toAST.dependsOn(other)
-      
-      def thenRun(other: AST): AST = toAST.thenRun(other)
-      
-      def ~>(other: AST): AST = thenRun(other)
-    }
+    def spec: ToolSpec = tool.spec
+    
+    override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
   }
   
-  /**
-   * Given an LPipeline, return a Try[AST], representing an attempt at the tree of dependencies between 
-   * Tools in the pipeline.  
-   * 
-   * Returns Failure if pipeline contains no tools, or if exactly one terminal tool cannot be found,
-   * returns Success otherwise.
-   *  
-   */
-  def fromPipeline(pipeline: LPipeline): Try[AST] = {
-    if (pipeline.tools.isEmpty) {
-      Tries.failure("No tools")
-    } else {
-      for {
-        terminal <- findTerminalTool(pipeline)
-      } yield {
-        val byOutput: Map[StoreSpec, Set[Tool]] = pipeline.tools.groupBy(_.output.spec)
-
-        astFor(byOutput)(terminal.output.spec)
-      }
-    }
+  object ToolNode {
+    def apply(tool: Tool, dependencies: Set[Connection]): ToolNode = ToolNode(tool.id, tool, dependencies)
+    def apply(tool: Tool): ToolNode = apply(tool, Set.empty[Connection])
   }
 
-  /**
-   * Given an LPipeline, finds the "last" Tool, the one who's output isn't the input
-   * of any other tools.  This Tool can be seen as producing the "output" of a
-   * pipeline.
-   */
-  private[model] def findTerminalTool(pipeline: LPipeline): Try[Tool] = {
-    val tools = pipeline.tools
-
-    val toolsAndOthers = tools.map(t => t -> (tools - t))
-
-    def isNoOnesInput(tool: Tool, others: Set[Tool]): Boolean = {
-      def inputsOf(t: Tool) = t.spec.inputs
-      def outputOf(t: Tool) = t.spec.output
-
-      others.forall(otherTool => !inputsOf(otherTool).contains(outputOf(tool)))
-    }
-
-    val terminals = toolsAndOthers.collect { case (tool, others) if isNoOnesInput(tool, others) => tool }
-
-    if (terminals.size != 1) { Tries.failure(s"Expected 1 terminal tool, but found ${terminals.size}: $terminals") }
-    else { Try(terminals.head) }
+  final case class Either(lhs: AST, rhs: AST, dependencies: Set[Connection] = Set.empty) extends AST {
+    override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
   }
 
-  /**
-   * Given a mapping tool outputs to sets of tools with that output spec, and a tool output spec,
-   * Produce a tree of AST.Nodes prepresenting that tool, by walking out from that tool, making ASTs
-   * for its inputs recursively. 
-   * 
-   * Runs in O(n) time, where n is the total number of tools the tool indicated by toolOutput 
-   * directly and transitively depends on.     
-   */
-  private[model] def astFor(byOutput: Map[StoreSpec, Set[Tool]])(toolOutput: StoreSpec): AST = {
-    val toolOption = byOutput.get(toolOutput).flatMap(_.headOption)
-
-    def toInteriorNode(tool: Tool) = {
-      val inputSpecs = tool.inputs.map(_.spec).toSet
-
-      AST(tool.output, inputSpecs.map(astFor(byOutput)))
-    }
-
-    toolOption.map(toInteriorNode).getOrElse(AST(toolOutput))
+  final case class Connection(inputId: LId, outputId: LId, producer: AST)
+  
+  final case class ConsumerConnection(consumer: AST, inputId: LId, outputId: LId) {
+    def from(producer: AST): AST = consumer.dependsOn(inputId, outputId, producer)
+  }
+  
+  final case class InputHandle(inputId: LId, consumer: AST) {
+    def from(namedOutput: NamedOutput): AST = consumer.dependsOn(inputId, namedOutput.outputId, namedOutput.producer)
+    
+    def from(outputId: LId) = ConsumerConnection(consumer, inputId, outputId)
+  }
+  
+  final case class NamedOutput(outputId: LId, producer: AST) {
+    def as(inputId: LId): Connection = Connection(inputId, outputId, producer)
   }
 }

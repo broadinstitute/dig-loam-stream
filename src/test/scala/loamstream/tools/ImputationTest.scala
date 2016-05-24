@@ -15,7 +15,7 @@ final class ImputationTest extends FunSuite {
   import Nodes._
 
   test("nothing yet") {
-    println(i1Ast.id.name)
+    gToolNode.print()
   }
 
   private object Tools {
@@ -78,12 +78,10 @@ final class ImputationTest extends FunSuite {
     val i1Id = LId.LNamedId("I1")
     val i1ToolSpec = ToolSpec(iKind, inputs = Map(), outputs = Map(i1Id -> iStoreSpec))
     val i1Tool = SimpleTool(i1ToolSpec, i1Id)
-    val i1Ast = AST(i1Tool)
 
     val i2Id = LId.LNamedId("I2")
     val i2ToolSpec = ToolSpec(iKind, inputs = Map(), outputs = Map(i2Id -> iStoreSpec))
     val i2Tool = SimpleTool(i2ToolSpec, i2Id)
-    val i2Ast = AST(i2Tool)
 
     // Gatherer
     val gKind: LKind = LAnyKind
@@ -96,7 +94,10 @@ final class ImputationTest extends FunSuite {
 
     // Dependencies
     val i1ToolNode = ToolNode(i1Id, i1Tool, Set(Connection(s1Id, i1Id, s1Ast)))
+    val i1Ast = i1ToolNode.get(i1Id).from(s1ToolNode(s1Id))
+
     val i2ToolNode = ToolNode(i2Id, i2Tool, Set(Connection(s2Id, i2Id, s2Ast)))
+    val i2Ast = i1ToolNode.get(i2Id).from(s2ToolNode(s2Id))
 
     val gToolNode = ToolNode(gId, gTool, Set(Connection(i1Id, g1Id, i1Ast), Connection(i2Id, g2Id, i2Ast)))
   }

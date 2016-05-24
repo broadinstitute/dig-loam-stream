@@ -12,6 +12,7 @@ import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Po
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.nsc.{Global, Settings}
+import scala.tools.reflect.ReflectGlobal
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -74,7 +75,7 @@ class LoamCompiler(outMessageSink: OutMessageSink,
     case None => ClassPathFinder.getClassPath(this)
   }
   val reporter = new CompilerReporter(outMessageSink)
-  val compiler = new Global(settings, reporter)
+  val compiler = new ReflectGlobal(settings, reporter, getClass.getClassLoader)
   val sourceFileName = "Config.scala"
 
   val inputObjectPackage = "loamstream.dynamic.input"

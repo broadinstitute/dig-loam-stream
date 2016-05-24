@@ -68,6 +68,7 @@ class LoamCompiler(outMessageSink: OutMessageSink,
   val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
   val settings = new Settings()
   settings.outputDirs.setSingleOutput(targetDirectory)
+  // Setting classpath used by compiler, either provided through classPathOpt or from classloader
   settings.classpath.value = classPathOpt match {
     case Some(classPath) => classPath
     case None => ClassPathFinder.getClassPath(this)

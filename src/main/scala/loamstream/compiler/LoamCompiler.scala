@@ -5,13 +5,13 @@ import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.{ClassPathFinder, LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
+import loamstream.util.{LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
+import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
-import scala.tools.nsc.{Global, Settings}
 import scala.tools.reflect.ReflectGlobal
 import scala.util.{Failure, Success, Try}
 
@@ -61,19 +61,13 @@ object LoamCompiler {
 
 }
 
-class LoamCompiler(outMessageSink: OutMessageSink,
-                   classPathOpt: Option[String] = None)(implicit executionContext: ExecutionContext) {
+class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
 
   val targetDirectoryName = "target"
   val targetDirectoryParentOption = None
   val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
   val settings = new Settings()
   settings.outputDirs.setSingleOutput(targetDirectory)
-  // Setting classpath used by compiler, either provided through classPathOpt or from classloader
-  settings.classpath.value = classPathOpt match {
-    case Some(classPath) => classPath
-    case None => ClassPathFinder.getClassPath(this)
-  }
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new ReflectGlobal(settings, reporter, getClass.getClassLoader)
   val sourceFileName = "Config.scala"

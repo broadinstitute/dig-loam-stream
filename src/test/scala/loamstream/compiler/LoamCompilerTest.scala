@@ -1,11 +1,10 @@
 package loamstream.compiler
 
-import java.io.File
 import java.nio.file.Paths
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.{ClassPathFinder, SourceUtils, StringUtils}
+import loamstream.util.SourceUtils
 import org.scalatest.FunSuite
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -18,6 +17,9 @@ object LoamCompilerTest {
 
   object SomeObject
 
+  def classIsLoaded(classLoader: ClassLoader, className: String): Boolean =
+    classLoader.loadClass(className).getName == className
+
 }
 
 class LoamCompilerTest extends FunSuite {
@@ -28,14 +30,12 @@ class LoamCompilerTest extends FunSuite {
     assert(SourceUtils.fullTypeName[LoamCompilerTest.SomeObject.type] ===
       "loamstream.compiler.LoamCompilerTest.SomeObject")
   }
-  test("Testing sanity of classpath obtained from classloader.") {
-    val classpath = ClassPathFinder.getClassPath(this)
-    assert(classpath.split(File.pathSeparator).length > 5)
-    assert(classpath.contains("scala-library"))
-    assert(classpath.contains("scala-compiler"))
-    assert(classpath.contains("scala-reflect"))
-    assert(classpath.contains("htsjdk"))
-    assert(classpath.contains("logback"))
+  test("Testing sanity of classloader used by compiler.") {
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+    val compilerClassLoader = compiler.compiler.rootClassLoader
+    assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "java.lang.String"))
+    assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.collection.immutable.Seq"))
+    assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.tools.nsc.Settings"))
   }
   test("Testing compilation of legal code fragment with no settings.") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)

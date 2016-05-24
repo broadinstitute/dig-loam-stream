@@ -1,5 +1,3 @@
-import java.io.File
-
 import sbt.project
 
 lazy val Versions = new {
@@ -30,8 +28,6 @@ lazy val testDeps = Seq(
   "org.scalatest" %% "scalatest" % Versions.ScalaTest % Test
 )
 
-val captureSbtClasspath = taskKey[Unit]("sbt-classpath")
-
 lazy val commonSettings = Seq(
   version := Versions.App,
   scalaVersion := Versions.Scala,
@@ -41,13 +37,6 @@ lazy val commonSettings = Seq(
     Resolver.sonatypeRepo("snapshots")
   ),
   libraryDependencies ++= (mainDeps ++ testDeps),
-  captureSbtClasspath := {
-    val files: Seq[File] = (fullClasspath in Compile).value.files
-    val sbtClasspath: String = files.map(x => x.getAbsolutePath).mkString(File.pathSeparator)
-    println("Set SBT classpath to 'sbt-classpath' JVM system property") // scalastyle:ignore
-    System.setProperty("sbt-classpath", sbtClasspath)
-  },
-  test <<= (test in Test) dependsOn captureSbtClasspath,
   scalastyleFailOnError := true
 )
 

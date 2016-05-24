@@ -200,6 +200,13 @@ final class AstTest extends FunSuite {
     
     assert(visitCounts == expectedCounts)
   }
+  
+  test("toString") {
+    //NB: Assert that we can get *something* out of an AST's .toString();
+    //previously, when AST mixed in Iterable[AST], .toString would fail with
+    //a StackOverflowError.
+    assert(Trees.abcd.toString != "")
+  }
 
   private object Trees {
     //a -> b -> (c, d)

@@ -11,7 +11,7 @@ import loamstream.util.Maps
  * Class representing the tree of relationships between tools in a pipeline.  Allows
  * composing trees and tools.
  */
-sealed trait AST extends Iterable[AST] { self =>
+sealed trait AST { self =>
   def id: LId = LId.newAnonId
 
   import AST._
@@ -39,7 +39,7 @@ sealed trait AST extends Iterable[AST] { self =>
   /**
    * Returns an iterator that does a post-order traversal of this tree
    */
-  override def iterator: Iterator[AST] = postOrder
+  def iterator: Iterator[AST] = postOrder
   
   /**
    * Returns an iterator that does a post-order traversal of this tree; that is, 

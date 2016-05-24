@@ -1,5 +1,3 @@
-import java.io.File
-
 import sbt.project
 
 lazy val Versions = new {

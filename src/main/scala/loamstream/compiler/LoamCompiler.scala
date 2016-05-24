@@ -25,7 +25,7 @@ object LoamCompiler {
     def env: LEnv
   }
 
-  class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
+  final class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
     var errors = Seq.empty[Issue]
     var warnings = Seq.empty[Issue]
     var infos = Seq.empty[Issue]
@@ -44,17 +44,20 @@ object LoamCompiler {
   }
 
   object Result {
-    def success(reporter: CompilerReporter, env: LEnv): Result =
+    def success(reporter: CompilerReporter, env: LEnv): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, Some(env))
+    }
 
-    def failure(reporter: CompilerReporter): Result =
+    def failure(reporter: CompilerReporter): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, None)
+    }
 
-    def exception(reporter: CompilerReporter, exception: Exception): Result =
+    def exception(reporter: CompilerReporter, exception: Exception): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, None, Some(exception))
+    }
   }
 
-  case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv],
+  final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv],
                     exOpt: Option[Exception] = None) {
     def isSuccess: Boolean = envOpt.nonEmpty
   }
@@ -93,7 +96,7 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
     outMessageSink.send(StatusOutMessage(outMessageTextEnd))
   }
 
-  def wrapCode(raw: String): String =
+  def wrapCode(raw: String): String = {
     s"""
 package $inputObjectPackage
 
@@ -113,7 +116,8 @@ ${raw.trim}
 def env = envBuilder.toEnv
 }
 """
-
+  }
+  
   def compile(rawCode: String): LoamCompiler.Result = {
     try {
       val wrappedCode = wrapCode(rawCode)
@@ -134,10 +138,11 @@ def env = envBuilder.toEnv
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
-      case exception: Exception =>
+      case exception: Exception => {
         outMessageSink.send(
           StatusOutMessage(s"${exception.getClass.getName} while trying to compile: ${exception.getMessage}"))
         LoamCompiler.Result.exception(reporter, exception)
+      }
     }
   }
 

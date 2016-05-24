@@ -45,15 +45,15 @@ class LoamCompilerTest extends FunSuite {
      println(hello.replace("!", "?").size)
       """
     val result = compiler.compile(code)
-    assert(result.errors.isEmpty)
-    assert(result.warnings.isEmpty)
+    assert(result.errors === Nil)
+    assert(result.warnings === Nil)
     assert(result.envOpt.nonEmpty)
     val env = result.envOpt.get
     assert(env.size === 0)
   }
   test("Testing compilation of legal code fragment with five settings.") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
-    val code =
+    val code = {
       """
     genotypesId := "myImportantGenotypes"
     sampleFilePath := path("/some/path/to/file")
@@ -64,11 +64,15 @@ class LoamCompilerTest extends FunSuite {
     val favoriteSquirrel = Key[Squirrel]("My favourite Squirrel")
     favoriteSquirrel := Squirrel("Tom")
       """
+    }
+
     val result = compiler.compile(code)
-    assert(result.errors.isEmpty)
-    assert(result.warnings.isEmpty)
-    assert(result.envOpt.nonEmpty)
+
+    assert(result.errors === Nil) //NB: Compare with Nil for better failure messages
+    assert(result.warnings === Nil) //NB: Compare with Nil for better failure messages
+
     val env = result.envOpt.get
+
     assert(env(LCoreEnv.Keys.genotypesId) === "myImportantGenotypes")
     assert(env(LCoreEnv.Keys.sampleFilePath)() === Paths.get("/some/path/to/file"))
     assert(env.get(LCoreEnv.Keys.pcaProjectionsFilePath).nonEmpty)

@@ -79,7 +79,7 @@ trait LEnv {
 
   def +[V](key: Key[V], value: V): LEnv
 
-  def +[V](entry: (Key[V], V)): LEnv = this. +(entry._1, entry._2)
+  def +[V](entry: (Key[V], V)): LEnv = this.+(entry._1, entry._2)
 
   def ++(oEnv: LEnv): LComboEnv = oEnv match {
     case LComboEnv(oEnvs) => LComboEnv(this +: oEnvs)

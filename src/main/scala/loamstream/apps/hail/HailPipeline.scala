@@ -7,18 +7,19 @@ import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.tools.core.CoreTool
 import loamstream.model.ToolSpec
+import java.nio.file.Path
 
 /**
   * Created on: 3/10/2016
   *
   * @author Kaan Yuksel
   */
-final case class HailPipeline(genotypesId: String, vdsId: String, singletonsId: String) extends LPipeline with HasAst {
-  val genotypeCallsTool: Tool = CoreTool.checkPreExistingVcfFile(genotypesId)
+final case class HailPipeline(vcfFile: Path, vdsDir: Path, singletonsFile: Path) extends LPipeline with HasAst {
+  val genotypeCallsTool: Tool = CoreTool.CheckPreExistingVcfFile(vcfFile)
   
-  val vdsTool: Tool = CoreTool.importVcf
+  val vdsTool: Tool = CoreTool.ConvertVcfToVds(vcfFile, vdsDir)
   
-  val singletonTool: Tool = CoreTool.calculateSingletons
+  val singletonTool: Tool = CoreTool.CalculateSingletons(vdsDir, singletonsFile)
 
   override def stores: Set[Store] = tools.flatMap(_.outputs.values)
   

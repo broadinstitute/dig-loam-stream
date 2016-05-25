@@ -8,8 +8,6 @@ import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.util.Maps
 import LId.LNamedId
 import loamstream.model.values.LType
-import loamstream.model.kinds.LKind
-import loamstream.model.kinds.LAnyKind
 
 /**
  * @author clint
@@ -251,32 +249,30 @@ final class AstTest extends FunSuite {
     //NB: These specs are all totally bogus, and are basically placeholders just to have a way to make unique nodes.
     //That's fine for now since we don't 'typecheck' ASTs.  This will change in the near future.
     
-    private val kind: LKind = LAnyKind
-
-    private val hStoreSpec = StoreSpec(LInt to LDouble, kind)
+    private val hStoreSpec = StoreSpec(LInt to LDouble)
     private val zStoreSpec = hStoreSpec
     private val storeSpec = hStoreSpec
 
-    val zSpec = ToolSpec(kind, inputs = Map(H -> hStoreSpec), outputs = Map(Z -> zStoreSpec))
+    val zSpec = ToolSpec(inputs = Map(H -> hStoreSpec), outputs = Map(Z -> zStoreSpec))
 
-    val hSpec = ToolSpec(kind, inputs = Map(T -> storeSpec, U -> storeSpec, V -> storeSpec), outputs = Map(H -> hStoreSpec))
+    val hSpec = ToolSpec(inputs = Map(T -> storeSpec, U -> storeSpec, V -> storeSpec), outputs = Map(H -> hStoreSpec))
 
-    val tSpec = ToolSpec(kind, inputs = Map(E -> storeSpec), outputs = Map(T -> storeSpec))
-    val uSpec = ToolSpec(kind, inputs = Map(F -> storeSpec), outputs = Map(U -> storeSpec))
-    val vSpec = ToolSpec(kind, inputs = Map(G -> storeSpec), outputs = Map(V -> storeSpec))
+    val tSpec = ToolSpec(inputs = Map(E -> storeSpec), outputs = Map(T -> storeSpec))
+    val uSpec = ToolSpec(inputs = Map(F -> storeSpec), outputs = Map(U -> storeSpec))
+    val vSpec = ToolSpec(inputs = Map(G -> storeSpec), outputs = Map(V -> storeSpec))
 
-    val eSpec = ToolSpec(kind, inputs = Map(Y -> storeSpec), outputs = Map(E -> storeSpec))
-    val fSpec = ToolSpec(kind, inputs = Map(Y -> storeSpec), outputs = Map(F -> storeSpec))
-    val gSpec = ToolSpec(kind, inputs = Map(Y -> storeSpec), outputs = Map(G -> storeSpec))
+    val eSpec = ToolSpec(inputs = Map(Y -> storeSpec), outputs = Map(E -> storeSpec))
+    val fSpec = ToolSpec(inputs = Map(Y -> storeSpec), outputs = Map(F -> storeSpec))
+    val gSpec = ToolSpec(inputs = Map(Y -> storeSpec), outputs = Map(G -> storeSpec))
 
-    val xSpec = ToolSpec(kind, inputs = Map(A -> storeSpec), outputs = Map(X -> storeSpec))
-    val ySpec = ToolSpec(kind, inputs = Map(), outputs = Map(E -> storeSpec, F -> storeSpec, G -> storeSpec))
+    val xSpec = ToolSpec(inputs = Map(A -> storeSpec), outputs = Map(X -> storeSpec))
+    val ySpec = ToolSpec(inputs = Map(), outputs = Map(E -> storeSpec, F -> storeSpec, G -> storeSpec))
 
-    val aSpec = ToolSpec(kind, inputs = Map(), outputs = Map(A -> storeSpec))
+    val aSpec = ToolSpec(inputs = Map(), outputs = Map(A -> storeSpec))
 
-    val bSpec = ToolSpec(kind, inputs = Map(X -> storeSpec), outputs = Map(B -> storeSpec))
-    val cSpec = ToolSpec(kind, inputs = Map(X -> storeSpec), outputs = Map(C -> storeSpec))
-    val dSpec = ToolSpec(kind, inputs = Map(X -> storeSpec), outputs = Map(D -> storeSpec))
+    val bSpec = ToolSpec(inputs = Map(X -> storeSpec), outputs = Map(B -> storeSpec))
+    val cSpec = ToolSpec(inputs = Map(X -> storeSpec), outputs = Map(C -> storeSpec))
+    val dSpec = ToolSpec(inputs = Map(X -> storeSpec), outputs = Map(D -> storeSpec))
   }
 
   private object Ids {

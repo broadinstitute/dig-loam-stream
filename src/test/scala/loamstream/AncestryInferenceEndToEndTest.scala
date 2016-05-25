@@ -24,21 +24,15 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
 
     val props = TestData.props
 
-    val vcfFileProvider = (id: String) => FileAsker.askIfNotExist(vcfFiles.map(_ (id)))(s"VCF file '$id'")
-
-    val pcaWeightsFileProvider = () => PcaWeightsReader.weightsFilePath(props).get
-
+    val pcaWeightsFile = PcaWeightsReader.weightsFilePath(props).get
+    
+    val klustaConfig = KlustaKwikKonfig.withTempWorkDir("data")
+    
     val env = LEnv(
-      Keys.vcfFilePath -> vcfFileProvider,
-      Keys.pcaWeightsFilePath -> pcaWeightsFileProvider,
-      Keys.klustaKwikKonfig -> KlustaKwikKonfig.withTempWorkDir("data"),
       Keys.genotypesId -> LCoreDefaultStoreIds.genotypes,
       Keys.pcaWeightsId -> LCoreDefaultStoreIds.pcaWeights)
 
-    val genotypesId = env(Keys.genotypesId)
-    val pcaWeightsId = env(Keys.pcaWeightsId)
-
-    val pipeline = AncestryInferencePipeline(genotypesId, pcaWeightsId)
+    val pipeline = AncestryInferencePipeline(miniVcfFilePath, pcaWeightsFile, klustaConfig)
     val toolbox = CoreToolBox(env)
 
     val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionTool, pipeline)

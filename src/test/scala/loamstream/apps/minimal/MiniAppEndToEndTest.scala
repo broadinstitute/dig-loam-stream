@@ -82,7 +82,7 @@ final class MiniAppEndToEndTest extends FunSuite {
     }
 
     val genotypesId = env(LCoreEnv.Keys.genotypesId)
-    val pipeline = MiniPipeline(genotypesId)
+    val pipeline = MiniPipeline(miniVcfFilePath, extractedSamplesFilePath)
     val toolbox = CoreToolBox(env)
     
     (toolbox, pipeline, extractedSamplesFilePath)

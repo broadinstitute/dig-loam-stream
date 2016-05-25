@@ -5,21 +5,20 @@ import java.nio.file.Path
 import scala.io.Source
 
 import org.apache.commons.io.FileUtils
-import org.scalatest.{BeforeAndAfter, FunSuite}
+import org.scalatest.FunSuite
 
 import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal._
+import loamstream.model.execute.LExecutable
 import loamstream.util.Hit
 import loamstream.util.LoamFileUtils
 import loamstream.util.StringUtils
 import tools.core.{CoreToolBox, LCoreDefaultStoreIds, LCoreEnv}
-import loamstream.model.LPipeline
-import loamstream.model.execute.LExecutable
 
 /**
   * Created by kyuksel on 2/29/2016.
   */
-final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
+final class HailSingletonEndToEndTest extends FunSuite {
 
   test("Jobs are successfully created") {
     val (toolbox, pipeline, Paths(hailVdsFilePath, hailSingletonFilePath)) = makeToolboxAndPipeline()
@@ -27,6 +26,9 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
     deleteSampleFilesBeforeAndAfter(hailVdsFilePath, hailSingletonFilePath) {
       val genotypesJobsShot = toolbox.createJobs(pipeline.genotypeCallsTool, pipeline)
       val importVcfJobsShot = toolbox.createJobs(pipeline.vdsTool, pipeline)
+
+      hailVdsFilePath.toFile.mkdir()
+      
       val calculateSingletonsJobsShot = toolbox.createJobs(pipeline.singletonTool, pipeline)
 
       //NB: Try to unpack the shots to get better messages on failures
@@ -72,8 +74,9 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
   private final case class Paths(hailVdsFilePath: Path, hailSingletonFilePath: Path)
   
   private def makeToolboxAndPipeline(): (CoreToolBox, HailPipeline, Paths) = {
-    import TestData.sampleFiles
 
+    import TestData.sampleFiles
+    
     val hailVdsFilePath = sampleFiles.hailVdsOpt.get
     val hailVcfFilePath = sampleFiles.hailVcfOpt.get
     val hailSingletonFilePath = sampleFiles.singletonsOpt.get
@@ -94,7 +97,7 @@ final class HailSingletonEndToEndTest extends FunSuite with BeforeAndAfter {
     val vdsId = env(LCoreEnv.Keys.vdsId)
     val singletonsId = env(LCoreEnv.Keys.singletonsId)
     
-    val pipeline = HailPipeline(genotypesId, vdsId, singletonsId)
+    val pipeline = HailPipeline(hailVcfFilePath, hailVdsFilePath, hailSingletonFilePath)
     
     val toolbox = CoreToolBox(env)
 

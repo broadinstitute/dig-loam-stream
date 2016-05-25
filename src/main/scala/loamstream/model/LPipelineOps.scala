@@ -1,6 +1,5 @@
 package loamstream.model
 
-import loamstream.model.kinds.LKind
 import loamstream.model.values.LType.LTuple.LTuple1
 import loamstream.tools.core.CoreStore
 
@@ -10,19 +9,19 @@ import loamstream.tools.core.CoreStore
   */
 object LPipelineOps {
 
-  def extractKeyStore(inputStore: Store, index: Int, kind: LKind): Store = {
+  def extractKeyStore(inputStore: Store, index: Int): Store = {
     //TODO: NB: Fragile, what if no type at index?
     val keyType = inputStore.spec.sig.keyTypes.asSeq(index)
     
-    CoreStore("Extract Keys", LSig.Set.of(keyType), kind)
+    CoreStore("Extract Keys", LSig.Set.of(keyType))
   }
 
   def extractKeyTool(inputStore: Store, index: Int, outputStore: Store): Tool = {
     Tool.keyExtraction(inputStore, outputStore, index)
   }
 
-  def extractKey(inputStore: Store, index: Int, outputStore: Store, kind: LKind): (Store, Tool) = {
-    val outputStore = extractKeyStore(inputStore, index, kind)
+  def extractKey(inputStore: Store, index: Int, outputStore: Store): (Store, Tool) = {
+    val outputStore = extractKeyStore(inputStore, index)
     
     val tool = extractKeyTool(inputStore, index, outputStore)
     

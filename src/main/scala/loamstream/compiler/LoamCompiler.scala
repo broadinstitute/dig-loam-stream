@@ -1,7 +1,5 @@
 package loamstream.compiler
 
-import java.io.File
-
 import loamstream.LEnv
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
@@ -11,9 +9,10 @@ import loamstream.util.{LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
+import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
-import scala.tools.nsc.{Global, Settings}
+import scala.tools.reflect.ReflectGlobal
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -63,38 +62,17 @@ object LoamCompiler {
     def isSuccess: Boolean = envOpt.nonEmpty
   }
 
-  
-  private[compiler] def mungeClassPath(classpath: String): String = {
-    require(classpath != null)
-    
-    val trimmed = classpath.trim
-    
-    require(trimmed != "")
-    
-    s".${File.pathSeparator}$trimmed"
-  }
-  
-  private[compiler] val sbtClasspathSysPropKey = "sbt-classpath"
 }
 
-final class LoamCompiler(outMessageSink: OutMessageSink,
-                   classPathOpt: Option[String] = None)(implicit executionContext: ExecutionContext) {
+class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
 
   val targetDirectoryName = "target"
   val targetDirectoryParentOption = None
   val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
   val settings = new Settings()
-
   settings.outputDirs.setSingleOutput(targetDirectory)
-  
-  settings.classpath.value = classPathOpt.getOrElse {
-    import LoamCompiler._
-    
-    mungeClassPath(System.getProperty(sbtClasspathSysPropKey))
-  }
-  
   val reporter = new CompilerReporter(outMessageSink)
-  val compiler = new Global(settings, reporter)
+  val compiler = new ReflectGlobal(settings, reporter, getClass.getClassLoader)
   val sourceFileName = "Config.scala"
 
   val inputObjectPackage = "loamstream.dynamic.input"

@@ -1,6 +1,6 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ ExecutionContext, Future, blocking }
 
 import loamstream.model.jobs.LJob.Result
 
@@ -9,8 +9,19 @@ import loamstream.model.jobs.LJob.Result
  * Created by oliverr on 12/23/2015.
  */
 trait LJob {
+  @deprecated("", "")
+  def print(indent: Int = 0): Unit = {
+    val indentString = s"${"-" * indent} >"
+    
+    println(s"$indentString ${getClass.getName}")
+    
+    inputs.foreach(_.print(indent + 2))
+  }
+  
   def inputs: Set[LJob]
 
+  def withInputs(newInputs: Set[LJob]) : LJob
+  
   def execute(implicit context: ExecutionContext): Future[Result]
   
   final def isLeaf: Boolean = inputs.isEmpty
@@ -18,6 +29,16 @@ trait LJob {
 
 object LJob {
 
+  trait NoInputs { self: LJob =>
+    override def inputs: Set[LJob] = Set.empty
+  }
+  
+  trait Helpers { self: LJob =>
+    protected def runBlocking(f: => Result)(implicit context: ExecutionContext): Future[Result] = {
+      Future(blocking(f))
+    }
+  }
+  
   sealed trait Result {
     def isSuccess: Boolean
     
@@ -36,7 +57,7 @@ object LJob {
     def message: String = "Success! " + successMessage
   }
 
-  case class SimpleSuccess(successMessage: String) extends Success
+  final case class SimpleSuccess(successMessage: String) extends Success
 
   trait Failure extends Result {
     final def isSuccess: Boolean = false
@@ -48,5 +69,5 @@ object LJob {
     def message: String = "Failure! " + failureMessage
   }
 
-  case class SimpleFailure(failureMessage: String) extends Failure
+  final case class SimpleFailure(failureMessage: String) extends Failure
 }

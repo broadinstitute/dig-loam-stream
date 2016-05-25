@@ -30,8 +30,8 @@ final case class HailPipeline(vcfFile: Path, vdsDir: Path, singletonsFile: Path)
     
     val genotypeCallsNode = AST(genotypeCallsTool)
     
-    val vdsTree = AST(vdsTool).get(input).from(genotypeCallsNode(output))
+    val vdsTree = AST(vdsTool).connect(input).to(genotypeCallsNode(output))
     
-    AST(singletonTool).get(input).from(vdsTree(output))
+    AST(singletonTool).connect(input).to(vdsTree(output))
   }
 }

@@ -33,6 +33,8 @@ sealed trait AST { self =>
   final def apply(outputId: LId): NamedOutput = output(outputId)
 
   final def get(inputId: LId): InputHandle = InputHandle(inputId, this)
+  //NB: Trying out connect(...).to(...) instead of get(...).from(...)
+  final def connect(inputId: LId): InputHandle = get(inputId)
   
   final def isLeaf: Boolean = dependencies.isEmpty
 
@@ -106,8 +108,12 @@ object AST {
   
   final case class InputHandle(inputId: LId, consumer: AST) {
     def from(namedOutput: NamedOutput): AST = consumer.dependsOn(inputId, namedOutput.outputId, namedOutput.producer)
+    //NB: Trying out connect(...).to(...) instead of get(...).from(...)
+    def to(namedOutput: NamedOutput): AST = from(namedOutput)
     
     def from(outputId: LId) = ConsumerConnection(consumer, inputId, outputId)
+    //NB: Trying out connect(...).to(...) instead of get(...).from(...)
+    def to(outputId: LId) = from(outputId)
   }
   
   final case class NamedOutput(outputId: LId, producer: AST) {

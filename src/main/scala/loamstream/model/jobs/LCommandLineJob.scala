@@ -14,34 +14,11 @@ import scala.sys.process.{Process, ProcessLogger}
   * LoamStream
   * Created by oliverr on 4/8/2016.
   */
-object LCommandLineJob {
+final case class LCommandLineJob(commandLine: CommandLine, workDir: Path, inputs: Set[LJob],
+                           logger: ProcessLogger = noOpProcessLogger) extends LJob {
 
-  sealed trait CommandLineResult
-
-  case class CommandLineSuccess(commandLine: CommandLine) extends LJob.Success with CommandLineResult {
-    override def successMessage: String = "Successfully completed job '" + commandLine.toString + "'"
-  }
-
-  case class CommandLineExceptionFailure(commandLine: CommandLine, exception: Exception)
-    extends LJob.Failure with CommandLineResult {
-    override def failureMessage: String = "Failed with exception '" + exception.getMessage +
-      "' when trying command line + '" + commandLine.toString + "'"
-  }
-
-  case class CommandLineNonZeroReturnFailure(commandLine: CommandLine, returnValue: Int)
-    extends LJob.Failure with CommandLineResult {
-    override def failureMessage: String = "Failed with non-zero return value '" + returnValue +
-      "' when trying command line + '" + commandLine.toString + "'"
-  }
-
-  val exitValueSuccess = 0
-  val noOpProcessLogger = ProcessLogger(line => ())
-}
-
-case class LCommandLineJob(commandLine: CommandLine, workDir: Path, inputs: Set[LJob],
-                           logger: ProcessLogger = noOpProcessLogger)
-  extends LJob {
-
+  override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs) 
+  
   override def execute(implicit context: ExecutionContext): Future[Result with CommandLineResult] = {
     Future {
       blocking {
@@ -54,4 +31,28 @@ case class LCommandLineJob(commandLine: CommandLine, workDir: Path, inputs: Set[
       }
     }.recover({ case exception: Exception => CommandLineExceptionFailure(commandLine, exception) })
   }
+}
+
+object LCommandLineJob {
+
+  sealed trait CommandLineResult
+
+  final case class CommandLineSuccess(commandLine: CommandLine) extends LJob.Success with CommandLineResult {
+    override def successMessage: String = "Successfully completed job '" + commandLine.toString + "'"
+  }
+
+  final case class CommandLineExceptionFailure(commandLine: CommandLine, exception: Exception)
+    extends LJob.Failure with CommandLineResult {
+    override def failureMessage: String = "Failed with exception '" + exception.getMessage +
+      "' when trying command line + '" + commandLine.toString + "'"
+  }
+
+  final case class CommandLineNonZeroReturnFailure(commandLine: CommandLine, returnValue: Int)
+    extends LJob.Failure with CommandLineResult {
+    override def failureMessage: String = "Failed with non-zero return value '" + returnValue +
+      "' when trying command line + '" + commandLine.toString + "'"
+  }
+
+  val exitValueSuccess = 0
+  val noOpProcessLogger = ProcessLogger(line => ())
 }

@@ -138,11 +138,10 @@ def env = envBuilder.toEnv
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
-      case exception: Exception => {
+      case exception: Exception =>
         outMessageSink.send(
           StatusOutMessage(s"${exception.getClass.getName} while trying to compile: ${exception.getMessage}"))
         LoamCompiler.Result.exception(reporter, exception)
-      }
     }
   }
 

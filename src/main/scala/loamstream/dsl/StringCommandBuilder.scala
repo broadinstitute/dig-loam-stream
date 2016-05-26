@@ -13,7 +13,9 @@ object StringCommandBuilder {
 
   trait Token
 
-  case class StringToken(string: String) extends Token
+  case class StringToken(string: String) extends Token {
+    def +(oStringToken: StringToken): StringToken = StringToken(string + oStringToken.string)
+  }
 
   case class EnvToken(key: LEnv.KeyBase) extends Token
 
@@ -24,6 +26,29 @@ object StringCommandBuilder {
   case class InSlot(name: String) extends Slot
 
   case class OutSlot(name: String) extends Slot
+
+  def mergeStringTokens(tokens: Seq[Token]): Seq[Token] = {
+    var tokensMerged: Seq[Token] = Seq.empty
+    val tokenIter = tokens.iterator.filter(_ match {
+      case stringToken: StringToken if stringToken.string.length == 0 => false
+      case _ => true
+    })
+    if (tokenIter.hasNext) {
+      var currentToken = tokenIter.next()
+      while (tokenIter.hasNext) {
+        val nextToken = tokenIter.next()
+        (currentToken, nextToken) match {
+          case (currentStringToken: StringToken, nextStringToken: StringToken) =>
+            currentToken = currentStringToken + nextStringToken
+          case _ =>
+            tokensMerged :+= currentToken
+            currentToken = nextToken
+        }
+      }
+      tokensMerged :+= currentToken
+    }
+    tokensMerged
+  }
 
   implicit class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
     def cmd(args: Any*): StringCommandBuilder = {
@@ -41,6 +66,7 @@ object StringCommandBuilder {
         tokens :+= argToken
         tokens :+= StringToken(stringPartsIter.next())
       }
+      tokens = mergeStringTokens(tokens)
       StringCommandBuilder(tokens)
     }
   }

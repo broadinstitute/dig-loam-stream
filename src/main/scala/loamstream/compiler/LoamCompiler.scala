@@ -4,6 +4,7 @@ import loamstream.LEnv
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
+import loamstream.dsl.StringCommandBuilder
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.{LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
 
@@ -106,6 +107,8 @@ import ${SourceUtils.fullTypeName[LCoreEnv.Implicits.type]}._
 import ${SourceUtils.fullTypeName[LEnvBuilder]}
 import ${SourceUtils.fullTypeName[DslChunk]}
 import ${SourceUtils.fullTypeName[LEnv]}._
+import ${SourceUtils.fullTypeName[StringCommandBuilder.type]}._
+import loamstream.dsl._
 import java.nio.file._
 
 object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
@@ -132,6 +135,7 @@ def env = envBuilder.toEnv
         val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
         val env = dslChunk.env
         outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
+        outMessageSink.send(StatusOutMessage(s"Command definition: ${env.get(StringCommandBuilder.command)}"))
         LoamCompiler.Result.success(reporter, env)
       } else {
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))

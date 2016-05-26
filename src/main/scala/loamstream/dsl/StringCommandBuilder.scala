@@ -9,17 +9,21 @@ import loamstream.dsl.StringCommandBuilder.Token
   */
 object StringCommandBuilder {
 
+  val command = new LEnv.Key[StringCommandBuilder]("command")
+
   trait Token
 
   case class StringToken(string: String) extends Token
 
   case class EnvToken(key: LEnv.KeyBase) extends Token
 
-  trait Slot extends Token
+  trait Slot extends Token {
+    def name: String
+  }
 
-  trait InSlot extends Slot
+  case class InSlot(name: String) extends Slot
 
-  trait OutSlot extends Slot
+  case class OutSlot(name: String) extends Slot
 
   implicit class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
     def cmd(args: Any*): StringCommandBuilder = {
@@ -30,6 +34,8 @@ object StringCommandBuilder {
         val arg = argsIter.next()
         val argToken = arg match {
           case key: LEnv.KeyBase => EnvToken(key)
+          case InputBuilder(name) => InSlot(name)
+          case OutputBuilder(name) => OutSlot(name)
           case _ => StringToken(arg.toString)
         }
         tokens :+= argToken

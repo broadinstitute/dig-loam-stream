@@ -54,6 +54,8 @@ final class HailSingletonEndToEndTest extends FunSuite {
     
       val results = MiniExecuter.execute(executable)
       
+      assert(results.size == 3)
+      
       //TODO: More-explicit test for better message on failures.
       results.values.forall {
         case Hit(r) => r.isSuccess
@@ -110,7 +112,6 @@ final class HailSingletonEndToEndTest extends FunSuite {
     try { 
       // Make sure to not mistakenly use an output file from a previous run, if any
       files.foreach(deleteQuietly)
-
       
       f
     } finally {

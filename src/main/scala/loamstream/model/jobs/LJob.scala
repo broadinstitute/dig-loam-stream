@@ -13,7 +13,8 @@ trait LJob {
   def print(indent: Int = 0): Unit = {
     val indentString = s"${"-" * indent} >"
     
-    println(s"$indentString ${getClass.getName}")
+    //println(s"$indentString ${getClass.getName}")
+    println(s"$indentString ${this}")
     
     inputs.foreach(_.print(indent + 2))
   }
@@ -29,10 +30,6 @@ trait LJob {
 
 object LJob {
 
-  trait NoInputs { self: LJob =>
-    override def inputs: Set[LJob] = Set.empty
-  }
-  
   trait Helpers { self: LJob =>
     protected def runBlocking(f: => Result)(implicit context: ExecutionContext): Future[Result] = {
       Future(blocking(f))

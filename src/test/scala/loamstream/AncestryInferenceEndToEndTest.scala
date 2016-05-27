@@ -20,9 +20,21 @@ import tools.klusta.KlustaKwikKonfig
   * Created by oliverr on 4/8/2016.
   */
 final class AncestryInferenceEndToEndTest extends FunSuite {
-  private val canRunKlustaKwik = true
+  test("creating jobs from inference tools.") {
+    val (toolbox, pipeline) = makeToolBoxAndPipeline()
+
+    val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionTool, pipeline)
+    
+    //NB: Try a pattern-match to get a better error message on failures
+    val Hit(Seq(pcaProjectionJob)) = pcaProjectionJobsShot.map(_.toSeq)
+    
+    val sampleClusteringJobsShot = toolbox.createJobs(pipeline.sampleClusteringTool, pipeline)
+
+    //NB: Try a pattern-match to get a better error message on failures
+    val Hit(Seq(sampleClusteringJob)) = sampleClusteringJobsShot.map(_.toSeq)
+  }
   
-  test("Running ancestry inference pipeline. (LPipeline)") {
+  ignore("Running ancestry inference pipeline. (LPipeline)") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
 
     val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionTool, pipeline)
@@ -37,32 +49,22 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
     
     val executable = toolbox.createExecutable(pipeline)
     
-    if (canRunKlustaKwik) {
-      val jobResults = MiniExecuter.execute(executable)
+    val jobResults = MiniExecuter.execute(executable)
       
-      checkResults(jobResults)
-    }
+    checkResults(jobResults)
   }
   
-  test("Running ancestry inference pipeline. (AST)") {
+  ignore("Running ancestry inference pipeline. (AST)") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
-
+    
     val executable = toolbox.createExecutable(pipeline.ast)
     
-    println(s"Made ${executable.jobs.size} jobs:")
-    
-    executable.jobs.foreach(_.print())
-    
-    if (canRunKlustaKwik) {
-      val jobResults = MiniExecuter.execute(executable)
+    val jobResults = MiniExecuter.execute(executable)
       
-      checkResults(jobResults)
-    }
+    checkResults(jobResults)
   }
 
   private def checkResults(results: Map[LJob, Shot[LJob.Result]]): Unit = {
-    println(results)
-    
     assert(results.size === 4)
       
     //TODO: More-explicit assertion for better failure messages

@@ -17,6 +17,9 @@ import scala.sys.process.{Process, ProcessLogger}
 final case class LCommandLineJob(commandLine: CommandLine, workDir: Path, inputs: Set[LJob],
                            logger: ProcessLogger = noOpProcessLogger) extends LJob {
 
+  @deprecated("", "")
+  override def toString = s"LCommandLineJob('$commandLine', ...)"
+  
   override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs) 
   
   override def execute(implicit context: ExecutionContext): Future[Result with CommandLineResult] = {
@@ -29,7 +32,9 @@ final case class LCommandLineJob(commandLine: CommandLine, workDir: Path, inputs
           CommandLineNonZeroReturnFailure(commandLine, exitValue)
         }
       }
-    }.recover({ case exception: Exception => CommandLineExceptionFailure(commandLine, exception) })
+    }.recover { 
+      case exception: Exception => CommandLineExceptionFailure(commandLine, exception) 
+    }
   }
 }
 
@@ -43,14 +48,16 @@ object LCommandLineJob {
 
   final case class CommandLineExceptionFailure(commandLine: CommandLine, exception: Exception)
     extends LJob.Failure with CommandLineResult {
-    override def failureMessage: String = "Failed with exception '" + exception.getMessage +
-      "' when trying command line + '" + commandLine.toString + "'"
+    override def failureMessage: String = {
+      s"Failed with exception '${exception.getMessage}' when trying command line '$commandLine'"
+    }
   }
 
   final case class CommandLineNonZeroReturnFailure(commandLine: CommandLine, returnValue: Int)
     extends LJob.Failure with CommandLineResult {
-    override def failureMessage: String = "Failed with non-zero return value '" + returnValue +
-      "' when trying command line + '" + commandLine.toString + "'"
+    override def failureMessage: String = {
+      s"Failed with non-zero return value '$returnValue' when trying command line + '$commandLine'"
+    }
   }
 
   val exitValueSuccess = 0

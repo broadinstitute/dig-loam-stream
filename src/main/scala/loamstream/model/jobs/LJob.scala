@@ -3,6 +3,9 @@ package loamstream.model.jobs
 import scala.concurrent.{ ExecutionContext, Future, blocking }
 
 import loamstream.model.jobs.LJob.Result
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 /**
  * LoamStream
@@ -13,7 +16,6 @@ trait LJob {
   def print(indent: Int = 0): Unit = {
     val indentString = s"${"-" * indent} >"
     
-    //println(s"$indentString ${getClass.getName}")
     println(s"$indentString ${this}")
     
     inputs.foreach(_.print(indent + 2))
@@ -26,22 +28,29 @@ trait LJob {
   def execute(implicit context: ExecutionContext): Future[Result]
   
   final def isLeaf: Boolean = inputs.isEmpty
+  
+  protected def runBlocking(f: => Result)(implicit context: ExecutionContext): Future[Result] = Future(blocking(f))
 }
 
 object LJob {
 
-  trait Helpers { self: LJob =>
-    protected def runBlocking(f: => Result)(implicit context: ExecutionContext): Future[Result] = {
-      Future(blocking(f))
-    }
-  }
-  
   sealed trait Result {
     def isSuccess: Boolean
     
     def isFailure: Boolean
     
     def message: String
+  }
+  
+  object Result {
+    def attempt(f: => Result): Result = {
+      import scala.{ util => su }
+      
+      su.Try(f) match {
+        case su.Success(r) => r
+        case su.Failure(ex) => SimpleFailure(ex.getMessage)
+      }
+    }
   }
 
   trait Success extends Result {
@@ -51,7 +60,7 @@ object LJob {
     
     def successMessage: String
 
-    def message: String = "Success! " + successMessage
+    def message: String = s"Success! $successMessage"
   }
 
   final case class SimpleSuccess(successMessage: String) extends Success
@@ -63,8 +72,12 @@ object LJob {
     
     def failureMessage: String
 
-    def message: String = "Failure! " + failureMessage
+    override def message: String = s"Failure! $failureMessage"
   }
 
   final case class SimpleFailure(failureMessage: String) extends Failure
+  
+  final case class FailureFromThrowable(cause: Throwable) extends Failure {
+    override def failureMessage: String = cause.getMessage
+  }
 }

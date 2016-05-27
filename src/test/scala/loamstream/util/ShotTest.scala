@@ -24,6 +24,18 @@ final class ShotTest extends FunSuite {
 
   private val incAndToString: Int => Shot[String] = i => Hit((i + 1).toString)
   
+  test("apply()") {
+    assert(Shot(42) === Hit(42))
+
+    val e = new Exception with scala.util.control.NoStackTrace
+
+    val shot = Shot {
+      throw e
+    }
+    
+    assert(shot === Miss(SnagThrowable(e)))
+  }
+  
   test("fromTry") {
     assert(Shot.fromTry(Success(42)) === Hit(42))
 

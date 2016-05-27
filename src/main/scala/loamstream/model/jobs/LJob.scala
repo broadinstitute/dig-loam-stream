@@ -48,7 +48,7 @@ object LJob {
       
       su.Try(f) match {
         case su.Success(r) => r
-        case su.Failure(ex) => SimpleFailure(ex.getMessage)
+        case su.Failure(ex) => FailureFromThrowable(ex)
       }
     }
   }

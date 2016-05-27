@@ -48,7 +48,7 @@ final class SpecRelationsTest extends FunSuite {
       extractSampleIdsFromCassandraTable.spec <:< CoreTool.ExtractSampleIdsFromVcfFile(vcfFile, sampleIdFile).spec)*/
   }
 
-  test("Various relations between store and tool specs are true as expected") {
+  test("Various relations between store and tool specs are true as expected") { 
     val genotypeId = LCoreDefaultStoreIds.genotypes
 
     //NB: Fragile

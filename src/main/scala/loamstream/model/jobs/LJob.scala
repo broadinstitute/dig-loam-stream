@@ -6,17 +6,17 @@ import loamstream.model.jobs.LJob.Result
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
+import loamstream.util.Loggable
 
 /**
  * LoamStream
  * Created by oliverr on 12/23/2015.
  */
-trait LJob {
-  @deprecated("", "")
-  def print(indent: Int = 0): Unit = {
+trait LJob extends Loggable {
+  def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
     val indentString = s"${"-" * indent} >"
     
-    println(s"$indentString ${this}")
+    doPrint(s"$indentString ${this}")
     
     inputs.foreach(_.print(indent + 2))
   }

@@ -3,6 +3,7 @@ package loamstream.model
 import scala.util.Try
 import loamstream.util.Tries
 import loamstream.util.Maps
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -11,7 +12,7 @@ import loamstream.util.Maps
  * Class representing the tree of relationships between tools in a pipeline.  Allows
  * composing trees and tools.
  */
-sealed trait AST { self =>
+sealed trait AST extends Loggable { self =>
   def id: LId = LId.newAnonId
 
   import AST._
@@ -62,7 +63,7 @@ sealed trait AST { self =>
   /**
    * Convenience method to print the tree for debugging
    */
-  def print(indent: Int = 0, via: Option[LId] = None, doPrint: (String) => Any = println(_)): Unit = { //scalastyle:ignore
+  def print(indent: Int = 0, via: Option[LId] = None, doPrint: String => Any = debug(_)): Unit = {
     val indentString = s"^${"-" * indent}${via.map(v => s"($v)").getOrElse("")} "
 
     doPrint(s"$indentString$id")

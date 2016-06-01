@@ -7,6 +7,27 @@ import loamstream.util.{LEnvBuilder, Shot, Snag}
   * LoamStream
   * Created by oliverr on 3/30/2016.
   */
+trait LEnv {
+  def keys: Iterable[KeyBase]
+
+  def size: Int = keys.size
+
+  def apply[V](key: Key[V]): V
+
+  def get[V](key: Key[V]): Option[V]
+
+  def shoot[V](key: Key[V]): Shot[V] = Shot.fromOption(get(key), Snag("No value for key " + key.name))
+
+  def +[V](key: Key[V], value: V): LEnv
+
+  def +[V](entry: (Key[V], V)): LEnv = this. +(entry._1, entry._2)
+
+  def ++(oEnv: LEnv): LComboEnv = oEnv match {
+    case LComboEnv(oEnvs) => LComboEnv(this +: oEnvs)
+    case _ => LComboEnv(this, oEnv)
+  }
+}
+
 object LEnv {
 
   trait KeyBase {
@@ -16,7 +37,7 @@ object LEnv {
   type EntryBase = (KeyBase, Any)
   type Entry[V] = (Key[V], V)
 
-  case class Key[V](name: String) extends KeyBase {
+  final case class Key[V](name: String) extends KeyBase {
     def apply(value: V): Entry[V] = new Entry(this, value)
 
     def ->(value: V): Entry[V] = new Entry(this, value) // TODO remove this - ambiguous!
@@ -32,7 +53,7 @@ object LEnv {
 
   def apply(entry: EntryBase, entries: EntryBase*): LMapEnv = LMapEnv((entry +: entries).toMap)
 
-  case class LMapEnv(entries: Map[KeyBase, Any]) extends LEnv {
+  final case class LMapEnv(entries: Map[KeyBase, Any]) extends LEnv {
     override def keys: Set[KeyBase] = entries.keySet
 
     override def apply[V](key: Key[V]): V = entries(key).asInstanceOf[V]
@@ -46,7 +67,7 @@ object LEnv {
     def apply(env: LEnv, envs: LEnv*): LComboEnv = LComboEnv(env +: envs)
   }
 
-  case class LComboEnv(envs: Seq[LEnv]) extends LEnv {
+  final case class LComboEnv(envs: Seq[LEnv]) extends LEnv {
     override def keys: Iterable[KeyBase] = envs.flatMap(_.keys)
 
     override def apply[V](key: Key[V]): V = envs.flatMap(_.get(key)).head
@@ -63,26 +84,5 @@ object LEnv {
       case _ => LComboEnv(envs :+ oEnv)
     }
   }
-
 }
 
-trait LEnv {
-  def keys: Iterable[KeyBase]
-
-  def size: Int = keys.size
-
-  def apply[V](key: Key[V]): V
-
-  def get[V](key: Key[V]): Option[V]
-
-  def shoot[V](key: Key[V]): Shot[V] = Shot.fromOption(get(key), Snag("No value for key " + key.name))
-
-  def +[V](key: Key[V], value: V): LEnv
-
-  def +[V](entry: (Key[V], V)): LEnv = this.+(entry._1, entry._2)
-
-  def ++(oEnv: LEnv): LComboEnv = oEnv match {
-    case LComboEnv(oEnvs) => LComboEnv(this +: oEnvs)
-    case _ => LComboEnv(this, oEnv)
-  }
-}

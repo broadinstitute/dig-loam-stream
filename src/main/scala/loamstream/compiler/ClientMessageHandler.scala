@@ -1,6 +1,7 @@
 package loamstream.compiler
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import loamstream.util.{Hit, Miss}
 
 import scala.concurrent.ExecutionContext
 
@@ -32,6 +33,11 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
       case TextSubmitMessage(text) =>
         outMessageSink.send(ReceiptOutMessage(text))
         compiler.compile(text)
+      case LoadRequestMessage(name) =>
+        LoamRepository.default.get(name) match {
+          case Hit(content) => outMessageSink.send(LoadResponseMessage(name, content))
+          case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not load $name: ${snag.message}"))
+        }
       case _ =>
         outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
     }

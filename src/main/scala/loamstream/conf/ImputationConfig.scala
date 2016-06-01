@@ -23,26 +23,21 @@ final case class ImputationConfig private (
     shapeItNumThreads: Int)
 
 object ImputationConfig {
-  val DefaultConfigPrefix = "loamstream"
-
-  object Keys {
-    private val base = "imputation.shapeit"
   
-    val workDirKey = s"$base.workDir"
-    val executableKey = s"$base.executable"
-    val scriptKey = s"$base.script"
-    val vcfFileKey = s"$base.vcfFile"
-    val mapFileKey = s"$base.mapFile"
-    val hapFileKey = s"$base.hapFile"
-    val sampleFileKey = s"$base.sampleFile"
-    val logFileKey = s"$base.logFile"
-    val numThreadsKey = s"$base.numThreads"
+  object Keys extends TypesafeConfig.KeyHolder("imputation.shapeit") {
+    val workDirKey = key("workDir")
+    val executableKey = key("executable")
+    val scriptKey = key("script")
+    val vcfFileKey = key("vcfFile")
+    val mapFileKey = key("mapFile")
+    val hapFileKey = key("hapFile")
+    val sampleFileKey = key("sampleFile")
+    val logFileKey = key("logFile")
+    val numThreadsKey = key("numThreads")
   }
 
   def apply(configFile: String): ImputationConfig = {
-    val defaultConfig = ConfigFactory.load(DefaultConfigPrefix)
-    
-    val config = ConfigFactory.parseFile(new File(configFile)).withFallback(defaultConfig)
+    val config = TypesafeConfig.fromFile(configFile)
     
     ImputationConfig(config)
   }

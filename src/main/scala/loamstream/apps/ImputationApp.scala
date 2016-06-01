@@ -90,7 +90,7 @@ object ImputationApp extends Loggable {
     val configFile = args(1)
     val shapeItConfig = ImputationConfig(configFile)
     val shapeItScript = shapeItConfig.shapeItScript.toString
-    val ugerConfig = UgerConfig(configFile)
+    val ugerConfig = UgerConfig(configFile).get //TODO: Fragile
     val ugerLog = ugerConfig.ugerLogFile.toString
 
     val isBulk = args(3)

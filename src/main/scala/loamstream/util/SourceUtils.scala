@@ -1,6 +1,6 @@
 package loamstream.util
 
-import scala.reflect.runtime.universe.{TypeTag, typeOf}
+import scala.reflect.runtime.universe.{TypeTag, typeOf, Symbol}
 
 /**
   * LoamStream - Language for Omics Analysis Management
@@ -8,8 +8,10 @@ import scala.reflect.runtime.universe.{TypeTag, typeOf}
   */
 object SourceUtils {
 
-  def fullTypeName[T: TypeTag]: String = typeOf[T].typeSymbol.fullName
+  private def typeSymbol[T : TypeTag]: Symbol = typeOf[T].typeSymbol
+  
+  def fullTypeName[T: TypeTag]: String = typeSymbol[T].fullName
 
-  def shortTypeName[T: TypeTag]: String = typeOf[T].typeSymbol.name.toString
+  def shortTypeName[T: TypeTag]: String = typeSymbol[T].name.toString
 
 }

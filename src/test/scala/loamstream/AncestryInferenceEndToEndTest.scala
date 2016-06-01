@@ -35,34 +35,10 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
     val Hit(Seq(sampleClusteringJob)) = sampleClusteringJobsShot.map(_.toSeq)
   }
   
-  test("Running ancestry inference pipeline. (LPipeline)") {
-    val (toolbox, pipeline) = makeToolBoxAndPipeline()
-
-    val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionTool, pipeline)
-    
-    //NB: Try a pattern-match to get a better error message on failures
-    val Hit(Seq(pcaProjectionJob)) = pcaProjectionJobsShot.map(_.toSeq)
-    
-    val sampleClusteringJobsShot = toolbox.createJobs(pipeline.sampleClusteringTool, pipeline)
-
-    //NB: Try a pattern-match to get a better error message on failures
-    val Hit(Seq(sampleClusteringJob)) = sampleClusteringJobsShot.map(_.toSeq)
-    
-    val executable = toolbox.createExecutable(pipeline)
-    
-    val jobResults = MiniExecuter.execute(executable)
-      
-    checkResults(jobResults)
-  }
-  
   test("Running ancestry inference pipeline. (AST)") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
     
     val executable = toolbox.createExecutable(pipeline.ast)
-    
-    //println(s"KK command: '${executable.jobs.head.asInstanceOf[LCommandLineJob].commandLine.commandLine}'")
-    
-    //println(s"KK work dir: '${executable.jobs.head.asInstanceOf[LCommandLineJob].workDir}'")
     
     val jobResults = MiniExecuter.execute(executable)
       

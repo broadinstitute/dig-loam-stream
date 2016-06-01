@@ -185,7 +185,7 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
 
   lazy val calculateClustersJobShot: Shot[LCommandLineJob] = {
     (calculatePcaProjectionsJobShot and klustaKwikConfigShot) { (calculatePcaProjectionJob, klustaKwikKonfig) =>
-      val commandLine = KlustaKwikLineCommand.klustaKwik(klustaKwikKonfig)
+      val commandLine = KlustaKwikLineCommand.klustaKwik(klustaKwikKonfig) + KlustaKwikLineCommand.useDistributional(0)
       LCommandLineJob(commandLine, klustaKwikKonfig.workDir, Set(calculatePcaProjectionJob))
     }
   }
@@ -217,17 +217,16 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     val noJobs: Set[LJob] = Set.empty
     
     val jobs: Set[LJob] = ast match {
-      case ToolNode(id, tool, deps) => {
+      case ToolNode(id, tool, deps) =>
         val jobsOption = for {
           job <- toolToJobShot(tool).asOpt
           chainable = ChainableJob(job)
-          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs).toSet[LJob]
+          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs)
         } yield {
           Set[LJob](chainable.addInputs(newInputs))
         }
-        
+
         jobsOption.getOrElse(noJobs)
-      }
       case _ => noJobs //TODO: other AST nodes
     }
     

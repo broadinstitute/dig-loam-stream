@@ -15,12 +15,18 @@ import tools.PcaWeightsReader
 import tools.core.{CoreToolBox, LCoreDefaultStoreIds}
 import tools.klusta.KlustaKwikKonfig
 import loamstream.model.jobs.LCommandLineJob
+import loamstream.tools.klusta.KlustaKwikLineCommand
+import scala.util.Try
 
 /**
   * LoamStream
   * Created by oliverr on 4/8/2016.
   */
 final class AncestryInferenceEndToEndTest extends FunSuite {
+  //TODO: Make this field unnecessary via CI
+  @deprecated("", "")
+  val canRunKlustaKwik = isKlustaKwikPresent()
+  
   test("creating jobs from inference tools.") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
 
@@ -46,7 +52,9 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
   }
 
   private def checkResults(results: Map[LJob, Shot[LJob.Result]]): Unit = {
-    assert(results.size === 4)
+    val numResultsExpected = if(canRunKlustaKwik) 4 else 3 
+    
+    assert(results.size === numResultsExpected)
       
     //TODO: More-explicit assertion for better failure messages
     assert(allSuccesses(results.values))
@@ -78,5 +86,17 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
     val toolbox = CoreToolBox(env)
     
     (toolbox, pipeline)
+  }
+  
+  //Returns true if the command for KlustaKwik, as specified by KlustaKwikLineCommand.name is on the path
+  //and runnable; returns false otherwise.
+  private def isKlustaKwikPresent(): Boolean = {
+    import scala.sys.process._
+    
+    val command = KlustaKwikLineCommand.name
+    
+    val processLogger = ProcessLogger(_ => (), _ => ())
+    
+    Try(command.!(processLogger)).isSuccess
   }
 }

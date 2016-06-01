@@ -1,9 +1,10 @@
 package loamstream.tools
 
-import loamstream.model._
-import loamstream.model.kinds.{LAnyKind, LKind}
-import loamstream.model.values.LType.{LDouble, LInt}
 import org.scalatest.FunSuite
+
+
+import loamstream.model._
+import loamstream.model.values.LType.{LDouble, LInt}
 
 /**
  * Created on: 1/20/16
@@ -54,42 +55,38 @@ final class ImputationTest extends FunSuite {
     */
 
     // ShapeIt
-    val sKind: LKind = LAnyKind
-    val sStoreSpec = StoreSpec(LInt to LDouble, sKind)
+    val sStoreSpec = StoreSpec(LInt to LDouble)
 
     val s1Id = LId.LNamedId("S1")
-    val s1ToolSpec = ToolSpec(sKind, inputs = Map(), outputs = Map(s1Id -> sStoreSpec))
+    val s1ToolSpec = ToolSpec(inputs = Map(), outputs = Map(s1Id -> sStoreSpec))
     val s1Tool = SimpleTool(s1ToolSpec, s1Id)
     val s1ToolNode = ToolNode(s1Tool)
     val s1Ast = AST(s1Tool)
 
-    val s2Kind: LKind = LAnyKind
     val s2Id = LId.LNamedId("S2")
-    val s2StoreSpec = StoreSpec(LInt to LDouble, s2Kind)
-    val s2ToolSpec = ToolSpec(s2Kind, inputs = Map(), outputs = Map(s2Id -> s2StoreSpec))
+    val s2StoreSpec = StoreSpec(LInt to LDouble)
+    val s2ToolSpec = ToolSpec(inputs = Map(), outputs = Map(s2Id -> s2StoreSpec))
     val s2Tool = SimpleTool(s2ToolSpec, s2Id)
     val s2ToolNode = ToolNode(s2Tool)
     val s2Ast = AST(s2Tool)
 
     // Impute2
-    val iKind: LKind = LAnyKind
-    val iStoreSpec = StoreSpec(LInt to LDouble, iKind)
+    val iStoreSpec = StoreSpec(LInt to LDouble)
 
     val i1Id = LId.LNamedId("I1")
-    val i1ToolSpec = ToolSpec(iKind, inputs = Map(), outputs = Map(i1Id -> iStoreSpec))
+    val i1ToolSpec = ToolSpec(inputs = Map(), outputs = Map(i1Id -> iStoreSpec))
     val i1Tool = SimpleTool(i1ToolSpec, i1Id)
 
     val i2Id = LId.LNamedId("I2")
-    val i2ToolSpec = ToolSpec(iKind, inputs = Map(), outputs = Map(i2Id -> iStoreSpec))
+    val i2ToolSpec = ToolSpec(inputs = Map(), outputs = Map(i2Id -> iStoreSpec))
     val i2Tool = SimpleTool(i2ToolSpec, i2Id)
 
     // Gatherer
-    val gKind: LKind = LAnyKind
     val gId = LId.LNamedId("G")
     val g1Id = LId.LNamedId("G1")
     val g2Id = LId.LNamedId("G2")
-    val gStoreSpec = StoreSpec(LInt to LDouble, gKind)
-    val gToolSpec = ToolSpec(gKind, inputs = Map(), outputs = Map(gId -> gStoreSpec))
+    val gStoreSpec = StoreSpec(LInt to LDouble)
+    val gToolSpec = ToolSpec(inputs = Map(), outputs = Map(gId -> gStoreSpec))
     val gTool = SimpleTool(gToolSpec, gId)
 
     // Dependencies

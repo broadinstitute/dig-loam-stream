@@ -29,7 +29,7 @@ trait LJob {
   
   final def isLeaf: Boolean = inputs.isEmpty
   
-  protected def runBlocking(f: => Result)(implicit context: ExecutionContext): Future[Result] = Future(blocking(f))
+  protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))
 }
 
 object LJob {

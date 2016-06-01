@@ -14,6 +14,7 @@ import loamstream.util.StringUtils
 import tools.PcaWeightsReader
 import tools.core.{CoreToolBox, LCoreDefaultStoreIds}
 import tools.klusta.KlustaKwikKonfig
+import loamstream.model.jobs.LCommandLineJob
 
 /**
   * LoamStream
@@ -34,7 +35,7 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
     val Hit(Seq(sampleClusteringJob)) = sampleClusteringJobsShot.map(_.toSeq)
   }
   
-  ignore("Running ancestry inference pipeline. (LPipeline)") {
+  test("Running ancestry inference pipeline. (LPipeline)") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
 
     val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionTool, pipeline)
@@ -54,10 +55,14 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
     checkResults(jobResults)
   }
   
-  ignore("Running ancestry inference pipeline. (AST)") {
+  test("Running ancestry inference pipeline. (AST)") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
     
     val executable = toolbox.createExecutable(pipeline.ast)
+    
+    //println(s"KK command: '${executable.jobs.head.asInstanceOf[LCommandLineJob].commandLine.commandLine}'")
+    
+    //println(s"KK work dir: '${executable.jobs.head.asInstanceOf[LCommandLineJob].workDir}'")
     
     val jobResults = MiniExecuter.execute(executable)
       

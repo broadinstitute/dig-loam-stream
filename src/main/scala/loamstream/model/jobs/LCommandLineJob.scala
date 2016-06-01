@@ -18,23 +18,17 @@ final case class LCommandLineJob(commandLine: CommandLine, workDir: Path, inputs
                            logger: ProcessLogger = noOpProcessLogger) extends LJob {
 
   @deprecated("", "")
-  override def toString = s"LCommandLineJob('$commandLine', ...)"
+  override def toString = s"LCommandLineJob('${commandLine.commandLine}', ...)"
   
   override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs) 
   
-  override def execute(implicit context: ExecutionContext): Future[Result with CommandLineResult] = {
-    Future {
-      blocking {
-        val exitValue = Process(commandLine.tokens, workDir.toFile).run(logger).exitValue
-        if (exitValue == exitValueSuccess) {
-          CommandLineSuccess(commandLine)
-        } else {
-          CommandLineNonZeroReturnFailure(commandLine, exitValue)
-        }
-      }
-    }.recover { 
-      case exception: Exception => CommandLineExceptionFailure(commandLine, exception) 
-    }
+  override def execute(implicit context: ExecutionContext): Future[Result with CommandLineResult] = runBlocking {
+    val exitValue = Process(commandLine.tokens, workDir.toFile).run(logger).exitValue
+    
+    if (exitValue == exitValueSuccess) { CommandLineSuccess(commandLine) } 
+    else { CommandLineNonZeroReturnFailure(commandLine, exitValue) }
+  }.recover { 
+    case exception: Exception => CommandLineExceptionFailure(commandLine, exception) 
   }
 }
 

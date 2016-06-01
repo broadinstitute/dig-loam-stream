@@ -176,7 +176,9 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
 
   def calculateClustersJobShot(klustaConfig: KlustaKwikKonfig): Shot[LCommandLineJob] = {
     Hit {
-      val commandLine = KlustaKwikLineCommand.klustaKwik(klustaConfig)
+      import KlustaKwikLineCommand._
+      
+      val commandLine = klustaKwik(klustaConfig) + useDistributional(0)
       
       LCommandLineJob(commandLine, klustaConfig.workDir, Set.empty)
     }

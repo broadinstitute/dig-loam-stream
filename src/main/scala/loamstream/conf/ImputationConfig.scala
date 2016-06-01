@@ -5,6 +5,7 @@ import java.nio.file.Paths
 
 import com.typesafe.config.{Config, ConfigFactory}
 import java.nio.file.Path
+import loamstream.util.PathEnrichments
 
 /**
  * Created on: 5/4/16 
@@ -46,14 +47,11 @@ object ImputationConfig {
     ImputationConfig(config)
   }
 
-  private[this] final implicit class PathHelpers(val path: Path) extends AnyVal {
-    def /(next: String): Path = Paths.get(path.toString, next)
-  }
-  
   def apply(config: Config): ImputationConfig = {
     val shapeItProps = TypesafeConfigLproperties(config)
 
     import Keys._
+    import PathEnrichments._
     
     val shapeItWorkDir = Paths.get(shapeItProps.getString(workDirKey).get)
     val shapeItExecutable = Paths.get(shapeItProps.getString(executableKey).get)

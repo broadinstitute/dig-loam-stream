@@ -21,6 +21,8 @@ import loamstream.util.Hit
 final class MiniExecuterTest extends FunSuite {
   private final case class MockLJob(inputs: Set[LJob], toReturn: LJob.Result) extends LJob {
     override def execute(implicit context: ExecutionContext): Future[Result] = Future.successful(toReturn)
+    
+    override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs) 
   }
 
   private val two0Success = SimpleSuccess("2(0)")

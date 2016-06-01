@@ -1,6 +1,7 @@
 package loamstream.tools.core
 
 import org.scalatest.FunSuite
+import loamstream.model.StoreOps
 
 /**
  * @author clint

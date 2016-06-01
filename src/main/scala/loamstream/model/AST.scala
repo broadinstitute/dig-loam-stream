@@ -3,6 +3,7 @@ package loamstream.model
 import scala.util.Try
 import loamstream.util.Tries
 import loamstream.util.Maps
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -11,7 +12,7 @@ import loamstream.util.Maps
  * Class representing the tree of relationships between tools in a pipeline.  Allows
  * composing trees and tools.
  */
-sealed trait AST extends Iterable[AST] { self =>
+sealed trait AST extends Loggable { self =>
   def id: LId = LId.newAnonId
 
   import AST._
@@ -33,13 +34,15 @@ sealed trait AST extends Iterable[AST] { self =>
   final def apply(outputId: LId): NamedOutput = output(outputId)
 
   final def get(inputId: LId): InputHandle = InputHandle(inputId, this)
+  //NB: Trying out connect(...).to(...) instead of get(...).from(...)
+  final def connect(inputId: LId): InputHandle = get(inputId)
   
   final def isLeaf: Boolean = dependencies.isEmpty
 
   /**
    * Returns an iterator that does a post-order traversal of this tree
    */
-  override def iterator: Iterator[AST] = postOrder
+  def iterator: Iterator[AST] = postOrder
   
   /**
    * Returns an iterator that does a post-order traversal of this tree; that is, 
@@ -60,8 +63,8 @@ sealed trait AST extends Iterable[AST] { self =>
   /**
    * Convenience method to print the tree for debugging
    */
-  def print(indent: Int = 0, via: Option[LId] = None, doPrint: (String) => Any = println(_)): Unit = { //scalastyle:ignore
-    val indentString = s"${"-" * indent}${via.map(v => s"($v)").getOrElse("")}> "
+  def print(indent: Int = 0, via: Option[LId] = None, doPrint: String => Any = debug(_)): Unit = {
+    val indentString = s"^${"-" * indent}${via.map(v => s"($v)").getOrElse("")} "
 
     doPrint(s"$indentString$id")
 
@@ -106,8 +109,12 @@ object AST {
   
   final case class InputHandle(inputId: LId, consumer: AST) {
     def from(namedOutput: NamedOutput): AST = consumer.dependsOn(inputId, namedOutput.outputId, namedOutput.producer)
+    //NB: Trying out connect(...).to(...) instead of get(...).from(...)
+    def to(namedOutput: NamedOutput): AST = from(namedOutput)
     
     def from(outputId: LId) = ConsumerConnection(consumer, inputId, outputId)
+    //NB: Trying out connect(...).to(...) instead of get(...).from(...)
+    def to(outputId: LId) = from(outputId)
   }
   
   final case class NamedOutput(outputId: LId, producer: AST) {

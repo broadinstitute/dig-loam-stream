@@ -12,17 +12,20 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.Maps
 import loamstream.util.{ Hit, Shot }
+import loamstream.util.Loggable
 
 /**
  * RugLoom - A prototype for a pipeline building toolkit
  * Created by oruebenacker on 2/24/16.
  */
-object MiniExecuter extends LExecuter {
+object MiniExecuter extends LExecuter with Loggable {
 
   override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     import Maps.Implicits._
+    
+    //debug(s"MiniExecuter got ${executable.jobs.size} jobs")
     
     def toShotMap(m: Map[LJob, Result]): Map[LJob, Shot[Result]] = m.strictMapValues(Hit(_))
     
@@ -62,7 +65,11 @@ object MiniExecuter extends LExecuter {
       result <- job.execute
     } yield {
       if (result.isSuccess) { Map(job -> result) }
-      else { Map.empty[LJob, Result] }
+      else { 
+        //warn(s"Discarding failure $result encountered when running $job")
+        
+        Map.empty[LJob, Result] 
+      }
     }
   }
 }

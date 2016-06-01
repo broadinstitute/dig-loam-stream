@@ -1,6 +1,4 @@
-package loamstream.tools.core
-
-import loamstream.model.Store
+package loamstream.model
 
 /**
  * @author clint
@@ -10,8 +8,6 @@ import loamstream.model.Store
  * forest for the trees.
  */
 object StoreOps {
-  
-  //TODO TEST!
   
   sealed trait ToolSig {
     def toNarySig: NarySig

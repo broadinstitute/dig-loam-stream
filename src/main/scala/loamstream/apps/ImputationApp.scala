@@ -65,18 +65,18 @@ object ImputationApp extends Loggable {
     val configFile = args(1)
 
     val config = ImputationConfig(configFile)
-    val shapeItExecutable = config.shapeItExecutable
+    val shapeItExecutable = config.shapeItExecutable.toString
     val shapeItWorkDir = config.shapeItWorkDir
-    val vcf = config.shapeItVcfFile
-    val map = config.shapeItMapFile
-    val haps = config.shapeItHapFile
-    val samples = config.shapeItSampleFile
-    val log = config.shapeItLogFile
+    val vcf = config.shapeItVcfFile.toString
+    val map = config.shapeItMapFile.toString
+    val haps = config.shapeItHapFile.toString
+    val samples = config.shapeItSampleFile.toString
+    val log = config.shapeItLogFile.toString
     val numThreads = config.shapeItNumThreads
 
     val shapeItTokens = getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads)
     val commandLine = ShapeItCommandLine(shapeItTokens)
-    val shapeItJob = LCommandLineJob(commandLine, Paths.get(shapeItWorkDir), Set.empty)
+    val shapeItJob = LCommandLineJob(commandLine, shapeItWorkDir, Set.empty)
 
     val executable = LExecutable(Set(shapeItJob))
     val result = MiniExecuter.execute(executable)
@@ -89,9 +89,9 @@ object ImputationApp extends Loggable {
 
     val configFile = args(1)
     val shapeItConfig = ImputationConfig(configFile)
-    val shapeItScript = shapeItConfig.shapeItScript
+    val shapeItScript = shapeItConfig.shapeItScript.toString
     val ugerConfig = UgerConfig(configFile)
-    val ugerLog = ugerConfig.ugerLogFile
+    val ugerLog = ugerConfig.ugerLogFile.toString
 
     val isBulk = args(3)
 

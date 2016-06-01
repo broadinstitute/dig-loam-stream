@@ -1,9 +1,7 @@
 package loamstream.model
 
-import loamstream.model.kinds.LKind
-import loamstream.model.kinds.ToolKinds
 import loamstream.tools.core.CoreTool
-import loamstream.tools.core.StoreOps
+import java.nio.file.Path
 
 /**
  * @author Clint
@@ -21,30 +19,39 @@ trait Tool extends LId.Owner {
 object Tool {
 
   import StoreOps._
-
-  def apply(id: String, kind: LKind, inputs: Seq[Store], output: Store): Tool = {
-    CoreTool.nAryTool(id, kind, inputs ~> output)
-  }
-
-  def apply(kind: LKind, inputs: Seq[Store], output: Store): Tool = {
-    CoreTool.nAryTool(kind, inputs ~> output)
+  
+  trait NoInputs { self: Tool =>
+    override def inputs: Map[LId, Store] = Map.empty
   }
   
-  def keyExtraction(input: Store, output: Store, index: Int): Tool = {
-    //TODO: CoreTool.unaryTool() overload?
-    Tool(ToolKinds.extractKey(index), Seq(input), output)
+  abstract class OneToOne(sig: UnarySig) extends Tool {
+    
+    override val spec: ToolSpec = ToolSpec.oneToOne(sig.input.spec, sig.output.spec)
+  
+    override val inputs: Map[LId, Store] = Map(ToolSpec.ParamNames.input -> sig.input)
+    
+    override val outputs: Map[LId, Store] = Map(ToolSpec.ParamNames.output -> sig.output)
   }
-
-  def preExistingCheckout(id: String, output: Store): Tool = {
-    //TODO: CoreTool.nullaryTool() overload?
-    Tool(id, ToolKinds.usePreExisting(id), Seq.empty[Store], output)
+  
+  abstract class Nary(sig: NarySig) extends Tool {
+    
+    def this(binarySig: BinarySig) = this(binarySig.toNarySig)
+    def this(unarySig: UnarySig) = this(unarySig.toNarySig)
+    
+    override val spec: ToolSpec = ToolSpec(sig.inputs.map(_.toTuple).toMap, sig.outputs.map(_.toTuple).toMap)
+  
+    override val inputs: Map[LId, Store] = sig.inputs.map(i => i.id -> i).toMap   //TODO: correct?
+    
+    override val outputs: Map[LId, Store] = sig.outputs.map(o => o.id -> o).toMap //TODO: correct?
   }
-
-  def vcfImport(input: Store, output: Store, index: Int): Tool = {
-    Tool(ToolKinds.importVcf(index), Seq(input), output)
+  
+  abstract class Nullary(outputStore: Store) extends Tool with NoInputs {
+    override val spec: ToolSpec = ToolSpec.producing(outputStore.spec) 
+  
+    override val outputs: Map[LId, Store] = Map(ToolSpec.ParamNames.output -> outputStore)
   }
-
-  def singletonCalculation(input: Store, output: Store, index: Int): Tool = {
-    Tool(ToolKinds.calculateSingletons(index), Seq(input), output)
+  
+  abstract class CheckPreexisting(file: Path, outputStore: Store) extends Nullary(outputStore) {
+    override val id = LId.LNamedId(s"Check for $file")
   }
 }

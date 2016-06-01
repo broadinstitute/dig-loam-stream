@@ -12,7 +12,6 @@ import loamstream.model.Tool
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{LCommandLineJob, LJob, LToolBox}
 import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
-import loamstream.model.kinds.LSpecificKind
 import loamstream.tools.{HailTools, PcaProjecter, PcaWeightsReader, VcfParser}
 import loamstream.tools.VcfUtils
 import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
@@ -23,6 +22,10 @@ import loamstream.util.LoamFileUtils
 import loamstream.util.SnagMessage
 import loamstream.model.AST
 import loamstream.model.AST.ToolNode
+import loamstream.model.LId
+import loamstream.model.ToolSpec
+import loamstream.model.Store
+import loamstream.tools.LineCommand
 
 /**
   * LoamStream
@@ -30,177 +33,188 @@ import loamstream.model.AST.ToolNode
   */
 object CoreToolBox {
 
-  case class FileExists(path: Path) extends LJob.Success {
-    override def successMessage: String = path + " exists"
+  final case class FileExists(path: Path) extends LJob.Success {
+    override def successMessage: String = s"'$path' exists"
   }
-
 
   trait CheckPreexistingFileJob extends LJob {
     def file: Path
 
-    override val inputs: Set[LJob] = Set.empty
-
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      Future {
-        if (Files.exists(file)) {
-          FileExists(file)
-        } else {
-          SimpleFailure(s"$file does not exist.")
-        }
+    override def execute(implicit context: ExecutionContext): Future[Result] = Future {
+      Result.attempt {
+        if (Files.exists(file)) { FileExists(file) } 
+        else { SimpleFailure(s"$file does not exist.") }
       }
     }
   }
 
-  case class CheckPreexistingVcfFileJob(file: Path) extends CheckPreexistingFileJob
+  final case class CheckPreexistingVcfFileJob(
+      file: Path, 
+      inputs: Set[LJob] = Set.empty) extends CheckPreexistingFileJob {
+    
+    @deprecated("", "")
+    override def toString = s"CheckPreexistingVcfFileJob($file, ...)"
+    
+    override def withInputs(newInputs: Set[LJob]) : LJob = copy(inputs = newInputs)
+  }
 
-  case class CheckPreexistingPcaWeightsFileJob(file: Path) extends CheckPreexistingFileJob
+  final case class CheckPreexistingPcaWeightsFileJob(
+      file: Path, 
+      inputs: Set[LJob] = Set.empty) extends CheckPreexistingFileJob {
+    
+    @deprecated("", "")
+    override def toString = s"CheckPreexistingPcaWeightsFileJob($file, ...)"
+    
+    override def withInputs(newInputs: Set[LJob]) : LJob = copy(inputs = newInputs)
+  }
 
-  case class ExtractSampleIdsFromVcfFileJob(vcfFileJob: CheckPreexistingVcfFileJob, samplesFile: Path) extends LJob {
+  final case class ExtractSampleIdsFromVcfFileJob(
+      vcfFile: Path, 
+      samplesFile: Path, 
+      inputs: Set[LJob] = Set.empty) extends LJob {
 
-    override def inputs: Set[LJob] = Set(vcfFileJob)
+    override def withInputs(newInputs: Set[LJob]) : LJob = copy(inputs = newInputs)
 
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      Future {
-        val samples = VcfParser(vcfFileJob.file).samples
+    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
+      Result.attempt {
+        val samples = VcfParser(vcfFile).samples
+            
         LoamFileUtils.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println) // scalastyle:ignore
         }
+            
         SimpleSuccess("Extracted sample ids.")
       }
     }
   }
 
-  case class ImportVcfFileJob(vcfFileJob: CheckPreexistingVcfFileJob, vdsFile: Path) extends LJob {
+  final case class ImportVcfFileJob(vcfFile: Path, vdsFile: Path, inputs: Set[LJob] = Set.empty) extends LJob {
 
-    override def inputs: Set[LJob] = Set(vcfFileJob)
-
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      Future {
-        HailTools.importVcf(vcfFileJob.file, vdsFile)
+    override def withInputs(newInputs: Set[LJob]) : LJob = copy(inputs = newInputs)
+    
+    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
+      Result.attempt {
+        HailTools.importVcf(vcfFile, vdsFile)
+        
         SimpleSuccess("Imported VCF in VDS format.")
       }
     }
   }
 
-  case class CalculateSingletonsJob(importVcfFileJob: ImportVcfFileJob, singletonsFile: Path) extends LJob {
+  final case class CalculateSingletonsJob(
+      vdsDir: Path, 
+      singletonsFile: Path, 
+      inputs: Set[LJob] = Set.empty) extends LJob {
 
-    override def inputs: Set[LJob] = Set(importVcfFileJob)
+    override def withInputs(newInputs: Set[LJob]) : LJob = copy(inputs = newInputs)
 
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      Future {
-        HailTools.calculateSingletons(importVcfFileJob.vdsFile, singletonsFile)
+    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
+      Result.attempt {
+        HailTools.calculateSingletons(vdsDir, singletonsFile)
+    
         SimpleSuccess("Calculated singletons from VDS.")
       }
     }
   }
 
-  case class CalculatePcaProjectionsJob(vcfFileJob: CheckPreexistingVcfFileJob,
-                                        pcaWeightsJob: CheckPreexistingPcaWeightsFileJob,
-                                        klustaKwikKonfig: KlustaKwikKonfig)
-    extends LJob {
-    override def inputs: Set[LJob] = Set(vcfFileJob, pcaWeightsJob)
+  final case class CalculatePcaProjectionsJob(vcfFile: Path,
+                                              pcaWeightsFile: Path,
+                                              klustaKwikKonfig: KlustaKwikKonfig,
+                                              inputs: Set[LJob] = Set.empty) extends LJob {
+    
+    @deprecated("", "")
+    override def toString = s"CalculatePcaProjectionsJob($vcfFile, $pcaWeightsFile, ...)"
+    
+    override def withInputs(newInputs: Set[LJob]) : LJob = copy(inputs = newInputs)
 
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      Future {
-        blocking {
-          val weights = PcaWeightsReader.read(pcaWeightsJob.file)
-          val pcaProjecter = PcaProjecter(weights)
-          val vcfParser = VcfParser(vcfFileJob.file)
-          val samples = vcfParser.samples
-          val genotypeToDouble: Genotype => Double = { genotype => VcfUtils.genotypeToAltCount(genotype).toDouble }
-          val pcaProjections = pcaProjecter.project(samples, vcfParser.genotypeMapIter, genotypeToDouble)
-          
-          KlustaKwikInputWriter.writeFeatures(klustaKwikKonfig, pcaProjections)
-          
-          SimpleSuccess(s"Wrote PCA projections to file ${klustaKwikKonfig.inputFile}")
-        }
+    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
+      Result.attempt {
+        val weights = PcaWeightsReader.read(pcaWeightsFile)
+        val pcaProjecter = PcaProjecter(weights)
+        val vcfParser = VcfParser(vcfFile)
+        val samples = vcfParser.samples
+        val genotypeToDouble: Genotype => Double = { genotype => VcfUtils.genotypeToAltCount(genotype).toDouble }
+        val pcaProjections = pcaProjecter.project(samples, vcfParser.genotypeMapIter, genotypeToDouble)
+        
+        KlustaKwikInputWriter.writeFeatures(klustaKwikKonfig.inputFile, pcaProjections)
+        
+        SimpleSuccess(s"Wrote PCA projections to file ${klustaKwikKonfig.inputFile}")
       }
     }
-  }
-  
-  final case class ChainableJob(run: ExecutionContext => Future[Result], inputs: Set[LJob]) extends LJob {
-    
-    override def execute(implicit context: ExecutionContext): Future[Result] = run(context)
-    
-    def addInputs(extraInputs: Set[LJob]): ChainableJob = copy(inputs = inputs ++ extraInputs)
-  }
-  
-  object ChainableJob {
-    def apply(root: LJob): ChainableJob = ChainableJob(implicit ctx => root.execute, root.inputs)
   }
 }
 
 final case class CoreToolBox(env: LEnv) extends LToolBox {
-  val stores = CoreStore.stores
-  val tools = CoreTool.tools(env)
 
-  lazy val genotypesId = env(LCoreEnv.Keys.genotypesId)
-  lazy val checkPreexistingVcfFileTool = CoreTool.checkPreExistingVcfFile(genotypesId)
+  private def pathShot(path: Path): Shot[Path] = {
+    if(path.toFile.exists) { Hit(path) } 
+    else { Miss(s"Couldn't find '$path'") }
+  }
   
-  //TODO: Why does this make tests crash?
-  //lazy val pcaWeightsId = env(LCoreEnv.Keys.pcaWeightsId)  
-  //lazy val checkPreexistingPcaWeightsFileTool = CoreTool.checkPreExistingPcaWeightsFile(pcaWeightsId)
+  def sampleFileShot(path: Path): Shot[Path] = pathShot(path)
 
-  val predefinedVcfFileShot: String => Shot[Path] = Functions.memoize { id =>
-    env.shoot(LCoreEnv.Keys.vcfFilePath).map(_ (id))
+  def vcfFileJobShot(path: Path): Shot[CheckPreexistingVcfFileJob] = Hit(CheckPreexistingVcfFileJob(path))
+
+  def pcaWeightsFileJobShot(path: Path): Shot[CheckPreexistingPcaWeightsFileJob] = {
+    Hit(CheckPreexistingPcaWeightsFileJob(path))
+  }
+  
+  def extractSamplesJobShot(vcfFile: Path, sampleFile: Path): Shot[ExtractSampleIdsFromVcfFileJob] = {
+    Hit(ExtractSampleIdsFromVcfFileJob(vcfFile, sampleFile))
   }
 
-  lazy val sampleFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.sampleFilePath).map(_())
+  def convertVcfToVdsJobShot(vcfFile: Path, vdsPath: Path): Shot[ImportVcfFileJob] = {
+    Hit(ImportVcfFileJob(vcfFile, vdsPath))
+  }
 
-  lazy val singletonFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.singletonFilePath).map(_())
+  def calculateSingletonsJobShot(vdsDir: Path, singletonsFile: Path): Shot[CalculateSingletonsJob] = {
+    Hit(CalculateSingletonsJob(vdsDir, singletonsFile))
+  }
 
-  lazy val pcaWeightsFileShot: Shot[Path] = env.shoot(LCoreEnv.Keys.pcaWeightsFilePath).map(_())
+  def calculatePcaProjectionsJobShot(
+      vcfFile: Path, 
+      pcaWeightsFile: Path, 
+      klustaConfig: KlustaKwikKonfig): Shot[CalculatePcaProjectionsJob] = {
+    
+    Hit(CalculatePcaProjectionsJob(vcfFile, pcaWeightsFile, klustaConfig))
+  }
 
-  lazy val klustaKwikConfigShot: Shot[KlustaKwikKonfig] = env.shoot(LCoreEnv.Keys.klustaKwikKonfig)
+  private def klustaKlwikCommandLine(klustaConfig: KlustaKwikKonfig): LineCommand.CommandLine = {
+    import KlustaKwikLineCommand._
+    
+    klustaKwik(klustaConfig) + useDistributional(0)
+  }
+  
+  def calculateClustersJobShot(klustaConfig: KlustaKwikKonfig): Shot[LCommandLineJob] = Shot {
+    LCommandLineJob(
+        klustaKlwikCommandLine(klustaConfig), 
+        klustaConfig.workDir, 
+        Set.empty)
+  }
 
-  lazy val vcfFileJobShot: Shot[CheckPreexistingVcfFileJob] = {
-    checkPreexistingVcfFileTool.spec.kind match {
-      case LSpecificKind(specifics, _) => specifics.value match {
-        case (_, id: String) => predefinedVcfFileShot(id).map(CheckPreexistingVcfFileJob)
-        case _ => Miss(SnagMessage("Tool is not of the right kind."))
-      }
-      case _ => Miss(SnagMessage("Can't get id for VCF file."))
+  def toolToJobShot(tool: Tool): Shot[LJob] = tool match { //scalastyle:ignore
+    case CoreTool.CheckPreExistingVcfFile(vcfFile) => vcfFileJobShot(vcfFile)
+    
+    case CoreTool.CheckPreExistingPcaWeightsFile(pcaWeightsFile) => pcaWeightsFileJobShot(pcaWeightsFile)
+    
+    case CoreTool.ExtractSampleIdsFromVcfFile(vcfFile, sampleFile) => extractSamplesJobShot(vcfFile, sampleFile)
+    
+    case CoreTool.ConvertVcfToVds(vcfFile, vdsDir) => convertVcfToVdsJobShot(vcfFile, vdsDir)
+    
+    case CoreTool.CalculateSingletons(vdsDir, singletonsFile) => calculateSingletonsJobShot(vdsDir, singletonsFile)
+    
+    case CoreTool.ProjectPcaNative(vcfFile, pcaWeightsFile, klustaKonfig) => {
+      calculatePcaProjectionsJobShot(vcfFile, pcaWeightsFile, klustaKonfig)
     }
-  }
-
-  lazy val extractSamplesJobShot: Shot[ExtractSampleIdsFromVcfFileJob] = {
-    (vcfFileJobShot and sampleFileShot) (ExtractSampleIdsFromVcfFileJob)
-  }
-
-  lazy val importVcfJobShot: Shot[ImportVcfFileJob] = {
-    (vcfFileJobShot and sampleFileShot) (ImportVcfFileJob)
-  }
-
-  lazy val calculateSingletonsJobShot: Shot[CalculateSingletonsJob] = {
-    (importVcfJobShot and singletonFileShot) (CalculateSingletonsJob)
-  }
-
-  lazy val pcaWeightsFileJobShot: Shot[CheckPreexistingPcaWeightsFileJob] = {
-    pcaWeightsFileShot.map(CheckPreexistingPcaWeightsFileJob)
-  }
-
-  lazy val calculatePcaProjectionsJobShot: Shot[CalculatePcaProjectionsJob] = {
-    (vcfFileJobShot and pcaWeightsFileJobShot and klustaKwikConfigShot) (CalculatePcaProjectionsJob)
-  }
-
-  lazy val calculateClustersJobShot: Shot[LCommandLineJob] = {
-    (calculatePcaProjectionsJobShot and klustaKwikConfigShot) { (calculatePcaProjectionJob, klustaKwikKonfig) =>
-      val commandLine = KlustaKwikLineCommand.klustaKwik(klustaKwikKonfig)
-      LCommandLineJob(commandLine, klustaKwikKonfig.workDir, Set(calculatePcaProjectionJob))
+    
+    case CoreTool.ProjectPca(vcfFile, pcaWeightsFile, klustaKonfig) => {
+      calculatePcaProjectionsJobShot(vcfFile, pcaWeightsFile, klustaKonfig)
     }
-  }
-
-  def toolToJobShot(tool: Tool): Shot[LJob] = tool match {
-    case this.checkPreexistingVcfFileTool => vcfFileJobShot
-    case CoreTool.extractSampleIdsFromVcfFile => extractSamplesJobShot
-    case CoreTool.importVcf => importVcfJobShot
-    case CoreTool.calculateSingletons => calculateSingletonsJobShot
-    //TODO: Why does this make tests crash?
-    //case this.checkPreexistingPcaWeightsFileTool => pcaWeightsFileJobShot
-    case CoreTool.projectPcaNative => calculatePcaProjectionsJobShot
-    case CoreTool.klustaKwikClustering => calculateClustersJobShot
-    case CoreTool.projectPca => calculatePcaProjectionsJobShot
-    case CoreTool.clusteringSamplesByFeatures => calculateClustersJobShot
+    
+    case CoreTool.KlustaKwikClustering(klustaConfig) => calculateClustersJobShot(klustaConfig)
+    
+    case CoreTool.ClusteringSamplesByFeatures(klustaConfig) => calculateClustersJobShot(klustaConfig)
+    
     case _ => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }
 
@@ -219,11 +233,11 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     val jobs: Set[LJob] = ast match {
       case ToolNode(id, tool, deps) => {
         val jobsOption = for {
+          //TODO: Don't convert to option, pass misses through and fail loudly
           job <- toolToJobShot(tool).asOpt
-          chainable = ChainableJob(job)
           newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs).toSet[LJob]
         } yield {
-          Set[LJob](chainable.addInputs(newInputs))
+          Set[LJob](job.withInputs(newInputs))
         }
         
         jobsOption.getOrElse(noJobs)

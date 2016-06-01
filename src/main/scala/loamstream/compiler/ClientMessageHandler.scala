@@ -25,7 +25,8 @@ object ClientMessageHandler {
 
 }
 
-case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
+case class ClientMessageHandler(outMessageSink: OutMessageSink,
+                                repo: LoamRepository)(implicit executionContext: ExecutionContext) {
   val compiler = new LoamCompiler(outMessageSink)
 
   def handleInMessage(inMessage: ClientInMessage): Unit = {
@@ -34,7 +35,7 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
         outMessageSink.send(ReceiptOutMessage(text))
         compiler.compile(text)
       case LoadRequestMessage(name) =>
-        LoamRepository.default.get(name) match {
+        repo.get(name) match {
           case Hit(content) => outMessageSink.send(LoadResponseMessage(name, content))
           case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not load $name: ${snag.message}"))
         }

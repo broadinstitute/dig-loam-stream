@@ -1,7 +1,7 @@
 package loamstream.compiler
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 
 import loamstream.util.Shot
 
@@ -12,8 +12,9 @@ import scala.util.Try
   * Created by oliverr on 6/1/2016.
   */
 object LoamRepository {
-  val defaultFolderName = "loam"
-  val default = LoamRepository(Paths.get(defaultFolderName))
+  val folderName = "loam"
+
+  def inDefaultDirectoryInRoot(root: Path) = LoamRepository(root.resolve(folderName))
 }
 
 case class LoamRepository(folder: Path) {

@@ -14,8 +14,11 @@ import scala.sys.process.{Process, ProcessLogger}
   * LoamStream
   * Created by oliverr on 4/8/2016.
   */
-final case class LCommandLineJob(commandLine: CommandLine, workDir: Path, inputs: Set[LJob],
-                           logger: ProcessLogger = noOpProcessLogger) extends LJob {
+final case class LCommandLineJob(
+    commandLine: CommandLine, 
+    workDir: Path, 
+    inputs: Set[LJob],
+    logger: ProcessLogger = noOpProcessLogger) extends LJob {
 
   @deprecated("", "")
   override def toString = s"LCommandLineJob('${commandLine.commandLine}', ...)"

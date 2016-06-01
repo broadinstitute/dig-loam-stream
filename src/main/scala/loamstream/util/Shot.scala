@@ -45,7 +45,9 @@ object Shot {
   * 
   * NB: Now named sequence to match the general monadic pattern, and
   * specific methods like Future.sequence, etc.
-  * NB: Use CanBuildFrom magic to make sure that 
+  * NB: Use CanBuildFrom magic to make sure that the "best" type is returned, based on the
+  * type passed in.  This allows Seq[Shot[A]] => Shot[Seq[A]], Set[Shot[A]] => Shot[Set[A]],
+  * Vector[Shot[A]] => Shot[Vector[A]], etc, etc, etc.
   * 
   * Given a type T[A] <: Traversable[A],
   * and given a T[Shot[A]], returns a Shot[T[A]] such that:

@@ -28,24 +28,15 @@ final class SpecRelationsTest extends FunSuite {
   private val sampleIdFile = Paths.get("foo.vcf")
   private val genotypeId = LCoreDefaultStoreIds.genotypes
 
-  //TODO: Revisit this test to make them test specific specs, not ones obtained via
-  //some pipeline.  This way, (valid) changes to pipelines won't break this test 
   test("Various relations between store and tool specs are false as expected") {
-
-    //assertResult(false)(CoreStore.vcfFile.spec <:< genotypesCassandraTable.spec)
-    /*assertResult(false)(
-      CoreTool.CheckPreExistingVcfFile(vcfFile).spec <:<
-        checkPreExistingGenotypeCassandraTable(genotypeId).spec)*/
-    //assertResult(false)(genotypesCassandraTable.spec <:< CoreStore.vcfFile.spec)
-    /*assertResult(false)(
-      checkPreExistingGenotypeCassandraTable(genotypeId).spec <:<
-        CoreTool.CheckPreExistingVcfFile(vcfFile).spec)*/
-    //assertResult(false)(CoreStore.sampleIdsFile.spec <:< sampleIdsCassandraTable.spec)
-    /*assertResult(false)(
-      CoreTool.ExtractSampleIdsFromVcfFile(vcfFile, sampleIdFile).spec <:< extractSampleIdsFromCassandraTable.spec)*/
-    //assertResult(false)(sampleIdsCassandraTable.spec <:< CoreStore.sampleIdsFile.spec)
-    /*assertResult(false)(
-      extractSampleIdsFromCassandraTable.spec <:< CoreTool.ExtractSampleIdsFromVcfFile(vcfFile, sampleIdFile).spec)*/
+    //NB: Dummy path
+    val dummyPath = Paths.get("foo") 
+    
+    CoreTool.CalculateSingletons(dummyPath, dummyPath).spec <:< CoreTool.CheckPreExistingPcaWeightsFile(dummyPath).spec 
+    
+    CoreTool.ConvertVcfToVds(dummyPath, dummyPath).spec <:< CoreTool.CheckPreExistingPcaWeightsFile(dummyPath).spec
+    
+    //TODO: more
   }
 
   test("Various relations between store and tool specs are true as expected") { 

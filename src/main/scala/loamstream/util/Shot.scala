@@ -54,7 +54,9 @@ object Shot {
   *  If the input contains all hits, returns a Hit wrapping a T containing all the values of the input Hits.
   *  If the input contains any misses, returns a Miss wrapping the concatenation of all the input Miss's Snags. 
   */
-  def sequence[E, M[X] <: Traversable[X]](shots: M[Shot[E]])(implicit cbf: CanBuildFrom[M[Shot[E]], E, M[E]]): Shot[M[E]] = {
+  def sequence[E, M[X] <: Traversable[X]]
+      (shots: M[Shot[E]])(implicit cbf: CanBuildFrom[M[Shot[E]], E, M[E]]): Shot[M[E]] = {
+    
     val misses = shots.collect { case miss: Miss => miss }
     
     if (misses.isEmpty) {

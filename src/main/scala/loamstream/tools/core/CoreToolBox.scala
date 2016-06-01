@@ -25,6 +25,7 @@ import loamstream.model.AST.ToolNode
 import loamstream.model.LId
 import loamstream.model.ToolSpec
 import loamstream.model.Store
+import loamstream.tools.LineCommand
 
 /**
   * LoamStream
@@ -170,21 +171,28 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     Hit(CalculateSingletonsJob(vdsDir, singletonsFile))
   }
 
-  def calculatePcaProjectionsJobShot(vcfFile: Path, pcaWeightsFile: Path, klustaConfig: KlustaKwikKonfig): Shot[CalculatePcaProjectionsJob] = {
+  def calculatePcaProjectionsJobShot(
+      vcfFile: Path, 
+      pcaWeightsFile: Path, 
+      klustaConfig: KlustaKwikKonfig): Shot[CalculatePcaProjectionsJob] = {
+    
     Hit(CalculatePcaProjectionsJob(vcfFile, pcaWeightsFile, klustaConfig))
   }
 
-  def calculateClustersJobShot(klustaConfig: KlustaKwikKonfig): Shot[LCommandLineJob] = {
-    Hit {
-      import KlustaKwikLineCommand._
-      
-      val commandLine = klustaKwik(klustaConfig) + useDistributional(0)
-      
-      LCommandLineJob(commandLine, klustaConfig.workDir, Set.empty)
-    }
+  private def klustaKlwikCommandLine(klustaConfig: KlustaKwikKonfig): LineCommand.CommandLine = {
+    import KlustaKwikLineCommand._
+    
+    klustaKwik(klustaConfig) + useDistributional(0)
+  }
+  
+  def calculateClustersJobShot(klustaConfig: KlustaKwikKonfig): Shot[LCommandLineJob] = Shot {
+    LCommandLineJob(
+        klustaKlwikCommandLine(klustaConfig), 
+        klustaConfig.workDir, 
+        Set.empty)
   }
 
-  def toolToJobShot(tool: Tool): Shot[LJob] = tool match {
+  def toolToJobShot(tool: Tool): Shot[LJob] = tool match { //scalastyle:ignore
     case CoreTool.CheckPreExistingVcfFile(vcfFile) => vcfFileJobShot(vcfFile)
     
     case CoreTool.CheckPreExistingPcaWeightsFile(pcaWeightsFile) => pcaWeightsFileJobShot(pcaWeightsFile)

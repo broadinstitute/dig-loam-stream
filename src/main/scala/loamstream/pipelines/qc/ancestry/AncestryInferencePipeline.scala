@@ -19,7 +19,10 @@ import loamstream.model.HasAst
   * LoamStream
   * Created by oliverr on 3/21/2016.
   */
-final case class AncestryInferencePipeline(vcfFile: Path, pcaWeightsFile: Path, klustaConfig: KlustaKwikKonfig) extends LPipeline with HasAst {
+final case class AncestryInferencePipeline(
+    vcfFile: Path, 
+    pcaWeightsFile: Path, 
+    klustaConfig: KlustaKwikKonfig) extends LPipeline with HasAst {
 
   val genotypesTool: Tool = CoreTool.CheckPreExistingVcfFile(vcfFile)
   

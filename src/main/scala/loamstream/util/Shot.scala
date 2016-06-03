@@ -33,6 +33,12 @@ object Shot {
     case Some(a) => Hit(a)
     case None => Miss(snag)
   }
+
+  def notNull[A](value: A, snag: => Snag): Shot[A] = if (value != null) { // scalastyle:ignore null
+    Hit(value)
+  } else {
+    Miss(snag)
+  }
 }
 
 case class Hit[+A](value: A) extends Shot[A] {

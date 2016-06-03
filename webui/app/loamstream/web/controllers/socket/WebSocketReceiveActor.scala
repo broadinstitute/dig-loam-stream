@@ -18,8 +18,7 @@ object WebSocketReceiveActor {
 class WebSocketReceiveActor(sendActor: ActorRef, environment: Environment)
   extends Actor with ClientMessageHandler.OutMessageSink {
 
-  val repo = LoamRepository.inDefaultDirectoryInRoot(environment.rootPath.toPath)
-  val clientHandler = ClientMessageHandler(this, repo)
+  val clientHandler = ClientMessageHandler(this)
 
   override def receive: Receive = {
     case json: JsValue =>

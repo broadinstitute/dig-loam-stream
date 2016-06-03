@@ -25,8 +25,8 @@ object ClientMessageHandler {
 
 }
 
-case class ClientMessageHandler(outMessageSink: OutMessageSink,
-                                repo: LoamRepository)(implicit executionContext: ExecutionContext) {
+case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
+  val repo = LoamRepository.ofPackage("loam")
   val compiler = new LoamCompiler(outMessageSink)
 
   def handleInMessage(inMessage: ClientInMessage): Unit = {

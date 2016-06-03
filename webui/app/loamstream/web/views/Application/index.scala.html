@@ -33,6 +33,9 @@
                     var data = JSON.parse(socketMessage.data);
                     var responseText = serverResponseNode().text() + "\n[" + data.type + "] " + data.message;
                     serverResponseNode().text(responseText);
+                    if (data.type == "load") {
+                        d3.select("textarea").property("value", data.content)
+                    }
                 }
         </script>
     </head>

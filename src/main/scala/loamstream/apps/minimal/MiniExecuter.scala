@@ -13,6 +13,7 @@ import loamstream.model.jobs.LJob.Result
 import loamstream.util.Maps
 import loamstream.util.{ Hit, Shot }
 import loamstream.util.Loggable
+import loamstream.util.IteratorEnrichments
 
 /**
  * RugLoom - A prototype for a pipeline building toolkit
@@ -40,9 +41,11 @@ object MiniExecuter extends LExecuter with Loggable {
     //on the first failure, like the old code did.
     val subResultFutures = jobs.iterator.map(exec)
 
+    import IteratorEnrichments._
+    
     //NB: Convert the iterator to an IndexedSeq to force evaluation, and make sure 
     //input jobs are evaluated before jobs that depend on them.
-    val futureSubResults = Future.sequence(subResultFutures).map(_.takeWhile(noFailures).toIndexedSeq)
+    val futureSubResults = Future.sequence(subResultFutures).map(_.takeUntil(noFailures).toIndexedSeq)
 
     futureSubResults.map(Maps.mergeMaps)
   }
@@ -64,12 +67,7 @@ object MiniExecuter extends LExecuter with Loggable {
     for {
       result <- job.execute
     } yield {
-      if (result.isSuccess) { Map(job -> result) }
-      else { 
-        //warn(s"Discarding failure $result encountered when running $job")
-        
-        Map.empty[LJob, Result] 
-      }
+      Map(job -> result)
     }
   }
 }

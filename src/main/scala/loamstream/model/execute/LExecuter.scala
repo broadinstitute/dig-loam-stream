@@ -10,6 +10,6 @@ import scala.concurrent.duration.Duration
  */
 trait LExecuter {
 
-  def execute(executable:LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob,Shot[LJob.Result]]
+  def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob,Shot[LJob.Result]]
 
 }

@@ -30,6 +30,24 @@ trait LJob extends Loggable {
   final def isLeaf: Boolean = inputs.isEmpty
   
   protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))
+  
+  def leaves: Set[LJob] = {
+    if(isLeaf) { Set(this) }
+    else { inputs.flatMap(_.leaves) }
+  }
+  
+  def remove(input: LJob): LJob = {
+    if((input eq this) || isLeaf) { this }
+    else {
+      val newInputs = (inputs - input).map(_.remove(input))
+      
+      withInputs(newInputs)
+    }
+  }
+  
+  def removeAll(toRemove: Iterable[LJob]): LJob = {
+    toRemove.foldLeft(this)(_.remove(_))
+  }
 }
 
 object LJob {

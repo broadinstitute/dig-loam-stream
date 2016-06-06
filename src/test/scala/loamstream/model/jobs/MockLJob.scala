@@ -11,7 +11,7 @@ import LJob.Result
 final case class MockLJob(inputs: Set[LJob], toReturn: LJob.Result) extends LJob {
   val id: Int = MockLJob.nextId()
   
-  override def toString: String = s"#$id -> $toReturn"
+  override def toString: String = s"#$id (returning $toReturn)"
   
   override def execute(implicit context: ExecutionContext): Future[Result] = Future.successful(toReturn)
 

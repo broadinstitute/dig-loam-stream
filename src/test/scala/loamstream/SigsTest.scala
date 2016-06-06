@@ -15,16 +15,16 @@ final class SigsTest extends FunSuite {
   test("setOf()") {
     assert(Sigs.setOf(LInt) === LSig.Set(LTuple1(LInt)))
     
-    assert(Sigs.setOf(LVariantId) === LSig.Set(LTuple1(LVariantId)))
+    assert(Sigs.setOf(LString) === LSig.Set(LTuple1(LString)))
   }
   
   test("Built-in sigs") {  
     import Sigs._
     
-    assert(variantAndSampleToGenotype === ((LVariantId & LSampleId) to LGenotype))
+    assert(variantAndSampleToGenotype === ((LString & LString) to LGenotype))
 
-    assert(sampleToSingletonCount === (LSampleId to LSingletonCount))
+    assert(sampleToSingletonCount === (LString to LSingletonCount))
 
-    assert(sampleIdAndIntToDouble === ((LSampleId & LInt) to LDouble))
+    assert(sampleIdAndIntToDouble === ((LString & LInt) to LDouble))
   }
 }

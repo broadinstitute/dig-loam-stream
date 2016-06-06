@@ -1,7 +1,7 @@
 package loamstream.model.values
 
-import loamstream.model.values.LType.LTuple.{LTuple1, LTuple2}
-import loamstream.model.values.LType.{LInt, LLong, LSampleId, LSeq, LSet, LString, LVariantId}
+import loamstream.model.values.LType.LTuple.LTuple1
+import loamstream.model.values.LType.{LInt, LLong, LSeq, LSet, LString}
 import org.scalatest.FunSuite
 
 /**
@@ -19,9 +19,6 @@ final class LValuesTest extends FunSuite {
     assert(LTuple1(LString).asSeq === Seq(LString))
     assertResult(false)(LInt(42) == LLong(42))
     assertResult(false)(LSet(LString).toValue(Set("Hello", "World")) == LSeq(LString).toValue(Seq("Hello", "World")))
-    assertResult(false)(LSampleId("Sample1") == LString("Sample1"))
-    assertResult(false)(LVariantId("Sample1") == LString("Sample1"))
-    assertResult(false)(LVariantId("Sample1") == LSampleId("Sample1"))
     //scalastyle:on magic.number
   }
 

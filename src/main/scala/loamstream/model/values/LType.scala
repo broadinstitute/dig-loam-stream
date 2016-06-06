@@ -2,7 +2,7 @@ package loamstream.model.values
 
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.LSig
-import loamstream.model.Types.{ClusterId, SampleId, SingletonCount, VariantId}
+import loamstream.model.Types.SingletonCount
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -30,24 +30,14 @@ object LType {
 
   case object LString extends LTypeAtomic[String]
 
-  case object LVariantId extends LTypeAtomic[VariantId]
-
-  case object LSampleId extends LTypeAtomic[SampleId]
-
   case object LGenotype extends LTypeAtomic[Genotype]
 
   case object LSingletonCount extends LTypeAtomic[SingletonCount]
 
-  case object LClusterId extends LTypeAtomic[ClusterId]
-
-  sealed trait LIterable extends LType {
-    def elementType: LType
-  }
+  sealed trait LIterable extends LType
 
   object LSet {
     def apply(elementType: LType): LSet = LSetAny(elementType)
-
-    def unapply(set: LSet): Option[LType] = Some(set.elementType)
   }
 
   sealed trait LSet extends LIterable
@@ -56,8 +46,6 @@ object LType {
 
   object LSeq {
     def apply(elementType: LType): LSeq = LSeqAny(elementType)
-
-    def unapply(seq: LSeq): Option[LType] = Some(seq.elementType)
   }
 
   sealed trait LSeq extends LIterable {

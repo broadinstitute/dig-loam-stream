@@ -2,6 +2,7 @@ package loamstream.dsl
 
 import loamstream.LEnv
 import loamstream.dsl.StringCommandBuilder.Token
+import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
 
 /**
   * LoamStream
@@ -21,11 +22,12 @@ object StringCommandBuilder {
 
   trait Slot extends Token {
     def name: String
+    def tpe: Type
   }
 
-  case class InSlot(name: String) extends Slot
+  case class InSlot(name: String, tpe:Type) extends Slot
 
-  case class OutSlot(name: String) extends Slot
+  case class OutSlot(name: String, tpe: Type) extends Slot
 
   def mergeStringTokens(tokens: Seq[Token]): Seq[Token] = {
     var tokensMerged: Seq[Token] = Seq.empty
@@ -59,8 +61,8 @@ object StringCommandBuilder {
         val arg = argsIter.next()
         val argToken = arg match {
           case key: LEnv.KeyBase => EnvToken(key)
-          case InputBuilder(name) => InSlot(name)
-          case OutputBuilder(name) => OutSlot(name)
+          case InputBuilder(name, tpe) => InSlot(name, tpe)
+          case OutputBuilder(name, tpe) => OutSlot(name, tpe)
           case _ => StringToken(arg.toString)
         }
         tokens :+= argToken

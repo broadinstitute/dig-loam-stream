@@ -1,8 +1,6 @@
 package loamstream.model.values
 
-import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.LSig
-import loamstream.model.Types.SingletonCount
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -12,27 +10,25 @@ import loamstream.model.Types.SingletonCount
 // scalastyle:off
 object LType {
 
-  case object LBoolean extends LTypeAtomic[Boolean]
+  case object LBoolean extends LType
 
-  case object LDouble extends LTypeAtomic[Double]
+  case object LDouble extends LType
 
-  case object LFloat extends LTypeAtomic[Float]
+  case object LFloat extends LType
 
-  case object LLong extends LTypeAtomic[Long]
+  case object LLong extends LType
 
-  case object LInt extends LTypeAtomic[Int]
+  case object LInt extends LType
 
-  case object LShort extends LTypeAtomic[Short]
+  case object LShort extends LType
 
-  case object LChar extends LTypeAtomic[Char]
+  case object LChar extends LType
 
-  case object LByte extends LTypeAtomic[Byte]
+  case object LByte extends LType
 
-  case object LString extends LTypeAtomic[String]
+  case object LString extends LType
 
-  case object LGenotype extends LTypeAtomic[Genotype]
-
-  case object LSingletonCount extends LTypeAtomic[SingletonCount]
+  case object LGenotype extends LType
 
   sealed trait LIterable extends LType
 
@@ -76,14 +72,7 @@ object LType {
 
 }
 
-sealed trait LTypeAtomic[T] extends LType {
-  def apply(value: T): LValue = LValue(value, this)
-
-  def of(value: T): LValue = apply(value)
-}
-
 sealed trait LType {
-  def toValue(value: Any): LValue = LValue(value, this)
 
   import LType.LTuple.{LTuple1, LTuple2}
 

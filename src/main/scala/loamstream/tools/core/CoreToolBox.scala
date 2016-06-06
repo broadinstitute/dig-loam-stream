@@ -155,7 +155,7 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
 
   lazy val vcfFileJobShot: Shot[CheckPreexistingVcfFileJob] = {
     checkPreexistingVcfFileTool.spec.kind match {
-      case LSpecificKind(specifics, _) => specifics.value match {
+      case LSpecificKind(specifics, _) => specifics match {
         case (_, id: String) => predefinedVcfFileShot(id).map(CheckPreexistingVcfFileJob)
         case _ => Miss(SnagMessage("Tool is not of the right kind."))
       }
@@ -217,17 +217,16 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     val noJobs: Set[LJob] = Set.empty
     
     val jobs: Set[LJob] = ast match {
-      case ToolNode(id, tool, deps) => {
+      case ToolNode(id, tool, deps) =>
         val jobsOption = for {
           job <- toolToJobShot(tool).asOpt
           chainable = ChainableJob(job)
-          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs).toSet[LJob]
+          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs)
         } yield {
           Set[LJob](chainable.addInputs(newInputs))
         }
-        
+
         jobsOption.getOrElse(noJobs)
-      }
       case _ => noJobs //TODO: other AST nodes
     }
     

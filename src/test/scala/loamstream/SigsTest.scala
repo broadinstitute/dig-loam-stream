@@ -23,7 +23,7 @@ final class SigsTest extends FunSuite {
     
     assert(variantAndSampleToGenotype === ((LString & LString) to LGenotype))
 
-    assert(sampleToSingletonCount === (LString to LSingletonCount))
+    assert(sampleToSingletonCount === (LString to LInt))
 
     assert(sampleIdAndIntToDouble === ((LString & LInt) to LDouble))
   }

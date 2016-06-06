@@ -11,7 +11,7 @@ import loamstream.model.values.LType
 object Sigs {
   val variantAndSampleToGenotype: LSig.Map = (LString & LString) to LGenotype
 
-  val sampleToSingletonCount: LSig.Map = LString to LSingletonCount
+  val sampleToSingletonCount: LSig.Map = LString to LInt
 
   val sampleIdAndIntToDouble: LSig.Map = (LString & LInt) to LDouble
   

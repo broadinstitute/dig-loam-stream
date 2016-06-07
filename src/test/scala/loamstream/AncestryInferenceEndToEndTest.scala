@@ -2,7 +2,7 @@ package loamstream
 
 import org.scalatest.FunSuite
 
-import loamstream.apps.minimal.MiniExecuter
+import loamstream.model.execute.SimpleExecuter
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LToolBox
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
@@ -17,6 +17,8 @@ import tools.klusta.KlustaKwikKonfig
 import loamstream.model.jobs.LCommandLineJob
 import loamstream.tools.klusta.KlustaKwikLineCommand
 import scala.util.Try
+import loamstream.model.execute.LeavesFirstExecuter
+import loamstream.model.execute.SimpleExecuter
 
 /**
   * LoamStream
@@ -26,6 +28,12 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
   //TODO: Make this field unnecessary via CI
   @deprecated("", "")
   val canRunKlustaKwik = isKlustaKwikPresent
+  
+  private val executer = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+      
+    new LeavesFirstExecuter
+  }
   
   test("creating jobs from inference tools.") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
@@ -46,7 +54,7 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
     
     val executable = toolbox.createExecutable(pipeline.ast)
 
-    val jobResults = MiniExecuter.execute(executable)
+    val jobResults = executer.execute(executable)
 
     checkResults(jobResults)
   }

@@ -2,52 +2,56 @@ package loamstream.model.execute
 
 import scala.concurrent.duration.Duration
 import loamstream.model.jobs.LJob
+import loamstream.model.jobs.LJob.Result
 import loamstream.util.Shot
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import loamstream.util.Hit
 import scala.concurrent.Await
+import loamstream.util.Maps
 
 /**
  * @author clint
  * date: Jun 1, 2016
  */
 final class LeavesFirstExecuter(implicit executionContext: ExecutionContext) extends LExecuter {
-  import LJob.Result
   
-  override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob,Shot[Result]] = {
-    val futureAllResults = Future.sequence(executable.jobs.map(executeTree))
+  import ExecuterHelpers._
+  
+  override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
+    val futureResults = Future.sequence(executable.jobs.map(executeJob)).map(Maps.mergeMaps)
     
-    val future = for {
-      allResults <- futureAllResults
-    } yield {
-      allResults.foldLeft(Map.empty[LJob,Shot[Result]])(_ ++ _)
-    }
-    
+    val future = futureResults.map(toShotMap)
+
     Await.result(future, timeout)
   }
-  
-  private def executeTree(job: LJob): Future[Map[LJob, Shot[Result]]] = {
-    def loop(remainingOption: Option[LJob], acc: Map[LJob, Shot[Result]]): Future[Map[LJob, Shot[Result]]] = remainingOption match {
-      case None => Future.successful(acc)
-      /*case Some(j) if j.isLeaf => {
-        j.execute.map(result => Map(j -> result))
-      }*/
-      case Some(j) => {
-        val leaves: Set[LJob] = j.leaves
-    
-        val leavesToFutures: Set[Future[(LJob, Shot[Result])]] = leaves.map(leaf => leaf.execute.map(result => leaf -> Hit(result)))
-    
-        val futureLeafResultMap: Future[Map[LJob, Shot[Result]]] = Future.sequence(leavesToFutures).map(_.toMap)
-        
-        for {
-          leafResults <- futureLeafResultMap
-          next = if(j.isLeaf) None else Some(j.removeAll(leaves))  
-          resultsSoFar <- loop(next, acc ++ leafResults)
-        } yield resultsSoFar
+
+  def executeJob(job: LJob)(implicit executionContext: ExecutionContext): Future[Map[LJob, Result]] = {
+    def loop(remainingOption: Option[LJob], acc: Map[LJob, Result]): Future[Map[LJob, Result]] = {
+      remainingOption match {
+        case None => Future.successful(acc)
+        case Some(j) => {
+          val leaves: Set[LJob] = j.leaves
+
+          //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
+          //on the first failure, like the old code did.
+          val leafResultFutures = leaves.iterator.map(executeSingle)
+
+          //NB: Convert the iterator to an IndexedSeq to force evaluation, and make sure 
+          //input jobs are evaluated before jobs that depend on them.
+          val futureLeafResults = Future.sequence(leafResultFutures).map(consumeUntilFirstFailure)
+      
+          val futureAllLeafResultsMap = futureLeafResults.map(Maps.mergeMaps)
+          
+          for {
+            leafResults <- futureAllLeafResultsMap
+            next = if (j.isLeaf) None else Some(j.removeAll(leaves))
+            resultsSoFar <- loop(next, acc ++ leafResults)
+          } yield resultsSoFar
+        }
       }
     }
-   
+
     loop(Option(job), Map.empty)
   }
 }

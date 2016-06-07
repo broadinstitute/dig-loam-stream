@@ -10,6 +10,7 @@ import org.scalatest.FunSuite
 import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal._
 import loamstream.model.execute.LExecutable
+import loamstream.model.execute.LeavesFirstExecuter
 import loamstream.util.Hit
 import loamstream.util.LoamFileUtils
 import loamstream.util.StringUtils
@@ -52,7 +53,13 @@ final class HailSingletonEndToEndTest extends FunSuite {
     deleteSampleFilesBeforeAndAfter(hailVdsFilePath, hailSingletonFilePath) {
       val executable = makeExecutable(toolbox, pipeline)
     
-      val results = MiniExecuter.execute(executable)
+      val executer = {
+        import scala.concurrent.ExecutionContext.Implicits.global
+      
+        new LeavesFirstExecuter
+      }
+      
+      val results = executer.execute(executable)
       
       assert(results.size == 3)
       
@@ -76,7 +83,7 @@ final class HailSingletonEndToEndTest extends FunSuite {
   private final case class Paths(hailVdsFilePath: Path, hailSingletonFilePath: Path)
   
   private def makeToolboxAndPipeline(): (CoreToolBox, HailPipeline, Paths) = {
-
+    
     import TestData.sampleFiles
     
     val hailVdsFilePath = sampleFiles.hailVdsOpt.get

@@ -4,6 +4,7 @@ import java.io.File
 
 import org.scalatest.FunSuite
 import java.nio.file.Paths
+import com.typesafe.config.ConfigFactory
 
 /**
   * @author kyuksel
@@ -11,7 +12,7 @@ import java.nio.file.Paths
   */
 final class ImputationConfigTest extends FunSuite {
   test("Config file is correctly parsed") {
-    val config = ImputationConfig("loamstream-test.conf")
+    val config = ImputationConfig(ConfigFactory.load("loamstream-test"))
 
     // Single fields are correctly parsed
     assert(config.shapeItExecutable == Paths.get("/humgen/diabetes/users/ryank/software/shapeit/bin/shapeit"))

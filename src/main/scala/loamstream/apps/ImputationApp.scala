@@ -1,15 +1,14 @@
 package loamstream.apps
 
-import java.nio.file.Paths
+import java.nio.file.Path
 
-import loamstream.apps.minimal.MiniExecuter
 import loamstream.client.Drmaa
 import loamstream.conf.{ImputationConfig, UgerConfig}
 import loamstream.model.execute.LExecutable
+import loamstream.model.execute.LeavesFirstExecuter
 import loamstream.model.jobs.LCommandLineJob
 import loamstream.tools.LineCommand
 import loamstream.util.Loggable
-import java.nio.file.Path
 
 /**
   * LoamStream
@@ -99,7 +98,14 @@ object ImputationApp extends Loggable {
     val shapeItJob = LCommandLineJob(commandLine, shapeItWorkDir, Set.empty)
 
     val executable = LExecutable(Set(shapeItJob))
-    val result = MiniExecuter.execute(executable)
+    
+    val executer = {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      
+      new LeavesFirstExecuter
+    }
+    
+    val result = executer.execute(executable)
     
     println(result)
     

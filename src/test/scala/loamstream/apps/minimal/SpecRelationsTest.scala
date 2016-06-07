@@ -4,9 +4,10 @@ import java.nio.file.Paths
 
 import loamstream.Sigs
 import loamstream.model.{LId, Store, StoreOps, StoreSpec, Tool, ToolSpec}
-import loamstream.model.values.LType.LString
 import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultStoreIds}
 import org.scalatest.FunSuite
+
+import scala.reflect.runtime.universe.typeOf
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -71,7 +72,7 @@ object SpecRelationsTest {
 
     val sampleIdsCassandraTable: Store = CoreStore(
       "Cassandra sample ids table.",
-      StoreSpec(Sigs.setOf(LString)))
+      StoreSpec(typeOf[Set[String]]))
 
     val stores = Set[Store](genotypesCassandraTable, sampleIdsCassandraTable)
   }

@@ -3,7 +3,8 @@ package loamstream.model
 import java.nio.file.Path
 
 import loamstream.Sigs
-import loamstream.model.values.LType.{LInt, LString}
+
+import scala.reflect.runtime.universe.typeOf
 
 /**
   * @author clint
@@ -26,7 +27,7 @@ object FileStore {
 
   def pcaProjectedFile(path: Path): FileStore = FileStore(path, StoreSpec(sampleIdAndIntToDouble))
 
-  def sampleClusterFile(path: Path): FileStore = FileStore(path, StoreSpec(LString to LInt))
+  def sampleClusterFile(path: Path): FileStore = FileStore(path, StoreSpec(typeOf[Map[String, Int]]))
 
   def singletonsFile(path: Path): FileStore = FileStore(path, StoreSpec(sampleToSingletonCount))
 

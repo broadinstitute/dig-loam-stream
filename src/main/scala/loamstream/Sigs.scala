@@ -15,6 +15,6 @@ object Sigs {
 
   val sampleIdAndIntToDouble: Type = typeOf[Map[(String, Int), Double]]
 
-  val sampleIds: Type = typeOf[String]
+  val sampleIds: Type = typeOf[Set[String]]
 
 }

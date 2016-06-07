@@ -72,7 +72,7 @@ object SpecRelationsTest {
 
     val sampleIdsCassandraTable: Store = CoreStore(
       "Cassandra sample ids table.",
-      StoreSpec(typeOf[String]))
+      StoreSpec(typeOf[Set[String]]))
 
     val stores = Set[Store](genotypesCassandraTable, sampleIdsCassandraTable)
   }

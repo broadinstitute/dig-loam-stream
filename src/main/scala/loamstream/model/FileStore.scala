@@ -4,6 +4,8 @@ import java.nio.file.Path
 
 import loamstream.Sigs
 
+import scala.reflect.runtime.universe.typeOf
+
 /**
   * @author clint
   *         date: May 25, 2016
@@ -25,7 +27,7 @@ object FileStore {
 
   def pcaProjectedFile(path: Path): FileStore = FileStore(path, StoreSpec(sampleIdAndIntToDouble))
 
-  def sampleClusterFile(path: Path): FileStore = FileStore(path, StoreSpec(LSig.create[Map[String, Int]]))
+  def sampleClusterFile(path: Path): FileStore = FileStore(path, StoreSpec(LSig(typeOf[Map[String, Int]])))
 
   def singletonsFile(path: Path): FileStore = FileStore(path, StoreSpec(sampleToSingletonCount))
 

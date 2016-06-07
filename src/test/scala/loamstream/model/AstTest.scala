@@ -2,22 +2,19 @@ package loamstream.model
 
 import org.scalatest.FunSuite
 
-import loamstream.apps.hail.HailPipeline
-import loamstream.apps.minimal.MiniPipeline
-import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
-import loamstream.util.Maps
-import LId.LNamedId
-import loamstream.model.values.LType
+import scala.reflect.runtime.universe.typeOf
+
 
 /**
- * @author clint
- * date: May 2, 2016
- */
+  * @author clint
+  *         date: May 2, 2016
+  */
 final class AstTest extends FunSuite {
+
   import AST._
   import Ids._
-  import Tools._
   import Nodes._
+  import Tools._
 
   test("leaves()") {
     assert(a.leaves == Set(a))
@@ -43,11 +40,11 @@ final class AstTest extends FunSuite {
   }
 
   private def doTraversalTest(ast: AST, iteratorFrom: AST => Iterator[AST], validate: Seq[LId] => Unit): Unit = {
-    
+
     def idsFrom(asts: Iterator[AST]): Seq[LId] = {
       asts.map(_.id).toIndexedSeq
     }
-    
+
     {
       //just node a
 
@@ -60,7 +57,7 @@ final class AstTest extends FunSuite {
 
     validate(visited)
   }
-  
+
   test("postOrder()") {
     doTraversalTest(Trees.abcd, _.postOrder, visited => {
       assert(visited.take(2).toSet == Set(C, D))
@@ -68,7 +65,7 @@ final class AstTest extends FunSuite {
       assert(visited.drop(2) == Seq(B, A))
     })
   }
-  
+
   test("iterator()") {
     doTraversalTest(Trees.abcd, _.iterator, visited => {
       assert(visited.take(2).toSet == Set(C, D))
@@ -76,7 +73,7 @@ final class AstTest extends FunSuite {
       assert(visited.drop(2) == Seq(B, A))
     })
   }
-  
+
   test("preOrder()") {
     doTraversalTest(Trees.abcd, _.preOrder, visited => {
       assert(visited.take(2) == Seq(A, B))
@@ -84,7 +81,7 @@ final class AstTest extends FunSuite {
       assert(visited.drop(2).toSet == Set(C, D))
     })
   }
-  
+
   test(s"1 node dependsOn 1 other node (${classOf[NamedOutput].getSimpleName}) => AST") {
     val ast = a dependsOn (b(Z) as Q)
 
@@ -92,7 +89,7 @@ final class AstTest extends FunSuite {
 
     assert(ast == expected)
   }
-  
+
   test("1 node dependsOn 1 other node (id, ast) => AST") {
     val ast = a.dependsOn(Q, Z, b)
 
@@ -100,10 +97,10 @@ final class AstTest extends FunSuite {
 
     assert(ast == expected)
   }
-  
+
   test("1 node dependsOn 1 other node (connection) => AST") {
     val connection = Connection(A, B, b)
-    
+
     val ast = a.dependsOn(connection)
 
     val expected = ToolNode(A, a.tool, Set(connection))
@@ -118,7 +115,7 @@ final class AstTest extends FunSuite {
 
     assert(ast == expected)
   }
-  
+
   test("1 node dependsOn 1 other node get(iid).from(oid).from(producer)") {
     val ast = a.get(Z).from(X).from(b)
 
@@ -141,64 +138,64 @@ final class AstTest extends FunSuite {
      *          \   /
      *            d
      */
-    
+
     val b2y = b.dependsOn(y(Y).as(I))
     val c2y = c.dependsOn(y(Y).as(I))
     val d2y = d.dependsOn(y(Y).as(I))
-    
+
     val bcd = Set(b2y.output(B).as(B), c2y.output(C).as(C), d2y.output(D).as(D))
-    
+
     val x2bcd = x.withDependencies(bcd)
-    
+
     val a2y = a.dependsOn(x2bcd(X).as(I))
 
     val expected = {
       a.dependsOn(I, X, x.withDependencies {
         Set(
-          b.dependsOn(y(Y).as(I)).output(B).as(B), 
-          c.dependsOn(y(Y).as(I)).output(C).as(C), 
+          b.dependsOn(y(Y).as(I)).output(B).as(B),
+          c.dependsOn(y(Y).as(I)).output(C).as(C),
           d.dependsOn(y(Y).as(I)).output(D).as(D))
       })
     }
-    
+
     assert(a2y == expected)
-    
+
     def getChildOf(root: AST, childName: LId, rest: LId*): AST = {
       def childWithId(rt: AST, id: LId): AST = {
         rt.dependencies.find(_.outputId == id).get.producer
       }
-      
+
       val z: AST = childWithId(root, childName)
-      
+
       rest.foldLeft(z)(childWithId)
     }
-    
+
     assert(a2y.dependencies.size == 1)
-    
+
     assert(getChildOf(a2y, X).dependencies.size == 3)
     assert(getChildOf(a2y, X, B).dependencies.size == 1)
     assert(getChildOf(a2y, X, C).dependencies.size == 1)
     assert(getChildOf(a2y, X, D).dependencies.size == 1)
-    
+
     assert(getChildOf(a2y, X, B, Y).dependencies.size === 0)
     assert(getChildOf(a2y, X, C, Y).dependencies.size === 0)
     assert(getChildOf(a2y, X, D, Y).dependencies.size === 0)
-    
+
     val visitCounts: Map[LId, Int] = {
       a2y.iterator.map(_.id).toIndexedSeq.groupBy(identity).mapValues(_.size)
     }
-    
+
     val expectedCounts = Map(
-        A -> 1,
-        X -> 1,
-        B -> 1,
-        C -> 1,
-        D -> 1,
-        Y -> 3)
-    
+      A -> 1,
+      X -> 1,
+      B -> 1,
+      C -> 1,
+      D -> 1,
+      Y -> 3)
+
     assert(visitCounts == expectedCounts)
   }
-  
+
   test("toString") {
     //NB: Assert that we can get *something* out of an AST's .toString();
     //previously, when AST mixed in Iterable[AST], .toString would fail with
@@ -213,7 +210,7 @@ final class AstTest extends FunSuite {
 
     lazy val abcd = a.get(B).from(I).from(bcd)
   }
-  
+
   private object Nodes {
     val a = ToolNode(SimpleTool(aSpec, A))
 
@@ -234,22 +231,21 @@ final class AstTest extends FunSuite {
   }
 
   private object Tools {
-    import LType._
 
     final case class SimpleStore(spec: StoreSpec, id: LId = LId.newAnonId) extends Store
-    
+
     final case class SimpleTool(spec: ToolSpec, id: LId = LId.newAnonId) extends Tool {
       private def toStoreMap(m: Map[LId, StoreSpec]): Map[LId, Store] = m.mapValues(SimpleStore(_))
-      
+
       override val inputs: Map[LId, Store] = toStoreMap(spec.inputs)
-  
+
       override val outputs: Map[LId, Store] = toStoreMap(spec.outputs)
     }
-    
+
     //NB: These specs are all totally bogus, and are basically placeholders just to have a way to make unique nodes.
     //That's fine for now since we don't 'typecheck' ASTs.  This will change in the near future.
-    
-    private val hStoreSpec = StoreSpec(LSig.create[Map[Int, Double]])
+
+    private val hStoreSpec = StoreSpec(LSig(typeOf[Map[Int, Double]]))
     private val zStoreSpec = hStoreSpec
     private val storeSpec = hStoreSpec
 
@@ -303,4 +299,5 @@ final class AstTest extends FunSuite {
     val Y = LId.LNamedId("Y")
     val Z = LId.LNamedId("Z")
   }
+
 }

@@ -1,8 +1,9 @@
 package loamstream
 
 import htsjdk.variant.variantcontext.Genotype
-import loamstream.model.LSig
 import org.scalatest.FunSuite
+
+import scala.reflect.runtime.universe.typeOf
 
 /**
   * @author clint
@@ -13,10 +14,10 @@ final class SigsTest extends FunSuite {
   test("Built-in sigs") {
     import Sigs._
 
-    assert(variantAndSampleToGenotype =:= LSig.create[Map[(String, String), Genotype]])
+    assert(variantAndSampleToGenotype.tpe =:= typeOf[Map[(String, String), Genotype]])
 
-    assert(sampleToSingletonCount =:= LSig.create[Map[String, Int]])
+    assert(sampleToSingletonCount.tpe =:= typeOf[Map[String, Int]])
 
-    assert(sampleIdAndIntToDouble =:= LSig.create[Map[(String, Int), Double]])
+    assert(sampleIdAndIntToDouble.tpe =:= typeOf[Map[(String, Int), Double]])
   }
 }

@@ -6,6 +6,7 @@ import loamstream.Sigs
 import loamstream.model.{LId, LSig, Store, StoreOps, StoreSpec, Tool, ToolSpec}
 import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultStoreIds}
 import org.scalatest.FunSuite
+import scala.reflect.runtime.universe.typeOf
 
 /**
   * RugLoom - A prototype for a pipeline building toolkit
@@ -34,7 +35,7 @@ final class SpecRelationsTest extends FunSuite {
     //NB: Fragile
     val coreGenotypeCallsStore = CoreTool.CheckPreExistingVcfFile(vcfFile).outputs.head._2
 
-    assert(CoreStore.vcfFile.spec.sig =:= coreGenotypeCallsStore.spec.sig)
+    assert(CoreStore.vcfFile.spec.sig.tpe =:= coreGenotypeCallsStore.spec.sig.tpe)
     assert(CoreStore.vcfFile.spec <:< coreGenotypeCallsStore.spec)
 
     //NB: Fragile
@@ -70,7 +71,7 @@ object SpecRelationsTest {
 
     val sampleIdsCassandraTable: Store = CoreStore(
       "Cassandra sample ids table.",
-      StoreSpec(LSig.create[String]))
+      StoreSpec(LSig(typeOf[String])))
 
     val stores = Set[Store](genotypesCassandraTable, sampleIdsCassandraTable)
   }

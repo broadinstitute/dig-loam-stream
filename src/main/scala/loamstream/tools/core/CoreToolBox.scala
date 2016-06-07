@@ -203,14 +203,12 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     
     case CoreTool.CalculateSingletons(vdsDir, singletonsFile) => calculateSingletonsJobShot(vdsDir, singletonsFile)
     
-    case CoreTool.ProjectPcaNative(vcfFile, pcaWeightsFile, klustaKonfig) => {
+    case CoreTool.ProjectPcaNative(vcfFile, pcaWeightsFile, klustaKonfig) =>
       calculatePcaProjectionsJobShot(vcfFile, pcaWeightsFile, klustaKonfig)
-    }
-    
-    case CoreTool.ProjectPca(vcfFile, pcaWeightsFile, klustaKonfig) => {
+
+    case CoreTool.ProjectPca(vcfFile, pcaWeightsFile, klustaKonfig) =>
       calculatePcaProjectionsJobShot(vcfFile, pcaWeightsFile, klustaKonfig)
-    }
-    
+
     case CoreTool.KlustaKwikClustering(klustaConfig) => calculateClustersJobShot(klustaConfig)
     
     case CoreTool.ClusteringSamplesByFeatures(klustaConfig) => calculateClustersJobShot(klustaConfig)
@@ -231,17 +229,16 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     val noJobs: Set[LJob] = Set.empty
     
     val jobs: Set[LJob] = ast match {
-      case ToolNode(id, tool, deps) => {
+      case ToolNode(id, tool, deps) =>
         val jobsOption = for {
           //TODO: Don't convert to option, pass misses through and fail loudly
           job <- toolToJobShot(tool).asOpt
-          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs).toSet[LJob]
+          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs)
         } yield {
           Set[LJob](job.withInputs(newInputs))
         }
-        
+
         jobsOption.getOrElse(noJobs)
-      }
       case _ => noJobs //TODO: other AST nodes
     }
     

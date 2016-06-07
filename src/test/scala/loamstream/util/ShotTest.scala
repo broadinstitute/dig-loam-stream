@@ -47,7 +47,7 @@ final class ShotTest extends FunSuite {
   }
 
   test("fromOption") {
-    assert(Shot.fromOption(Some(42), ???) === Hit(42))
+    assert(Shot.fromOption(Some(42), Snag("This should never happen.")) === Hit(42))
     
     assert(Shot.fromOption(None, snag) === Miss(snag))
   }

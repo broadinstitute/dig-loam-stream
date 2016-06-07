@@ -25,7 +25,7 @@ import scala.util.Try
 final class AncestryInferenceEndToEndTest extends FunSuite {
   //TODO: Make this field unnecessary via CI
   @deprecated("", "")
-  val canRunKlustaKwik = isKlustaKwikPresent()
+  val canRunKlustaKwik = isKlustaKwikPresent
   
   test("creating jobs from inference tools.") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
@@ -45,15 +45,16 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
     
     val executable = toolbox.createExecutable(pipeline.ast)
-    
+
     val jobResults = MiniExecuter.execute(executable)
-      
+
     checkResults(jobResults)
   }
 
   private def checkResults(results: Map[LJob, Shot[LJob.Result]]): Unit = {
-    val numResultsExpected = if(canRunKlustaKwik) 4 else 3 
-    
+    // TODO: Should be able to calculate the number of results expected form number of jobs
+    val numResultsExpected = if(canRunKlustaKwik) 4 else 3 //scalastyle:ignore
+
     assert(results.size === numResultsExpected)
       
     //TODO: More-explicit assertion for better failure messages
@@ -90,7 +91,7 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
   
   //Returns true if the command for KlustaKwik, as specified by KlustaKwikLineCommand.name is on the path
   //and runnable; returns false otherwise.
-  private def isKlustaKwikPresent(): Boolean = {
+  private def isKlustaKwikPresent: Boolean = {
     import scala.sys.process._
     
     val command = KlustaKwikLineCommand.name

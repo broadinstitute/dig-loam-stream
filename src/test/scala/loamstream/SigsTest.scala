@@ -1,30 +1,23 @@
 package loamstream
 
+import htsjdk.variant.variantcontext.Genotype
 import org.scalatest.FunSuite
-import loamstream.model.values.LType
-import loamstream.model.LSig
+
+import scala.reflect.runtime.universe.typeOf
 
 /**
- * @author clint
- * date: Apr 26, 2016
- */
+  * @author clint
+  *         date: Apr 26, 2016
+  */
 final class SigsTest extends FunSuite {
-  import LType._
-  import LType.LTuple._
-  
-  test("setOf()") {
-    assert(Sigs.setOf(LInt) === LSig.Set(LTuple1(LInt)))
-    
-    assert(Sigs.setOf(LVariantId) === LSig.Set(LTuple1(LVariantId)))
-  }
-  
-  test("Built-in sigs") {  
+
+  test("Built-in sigs") {
     import Sigs._
-    
-    assert(variantAndSampleToGenotype === ((LVariantId & LSampleId) to LGenotype))
 
-    assert(sampleToSingletonCount === (LSampleId to LSingletonCount))
+    assert(variantAndSampleToGenotype =:= typeOf[Map[(String, String), Genotype]])
 
-    assert(sampleIdAndIntToDouble === ((LSampleId & LInt) to LDouble))
+    assert(sampleToSingletonCount =:= typeOf[Map[String, Int]])
+
+    assert(sampleIdAndIntToDouble =:= typeOf[Map[(String, Int), Double]])
   }
 }

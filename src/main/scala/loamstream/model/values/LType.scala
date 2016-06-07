@@ -9,7 +9,6 @@ import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
   * Created by oruebenacker on 2/18/16.
   */
 
-// scalastyle:off
 object LType {
 
   case object LDouble extends LType
@@ -59,5 +58,3 @@ case class LTypeNative(tpe: Type) extends LType
 sealed trait LType {
 
 }
-
-//scalastyle:on

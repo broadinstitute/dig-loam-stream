@@ -18,7 +18,12 @@ object LTypeAnalyzer {
 
   def isProduct(tpe: Type): Boolean = tpe <:< typeOf[scala.Product]
 
-  def explode(tpe: Type): Seq[Type] = if (isProduct(tpe)) {
+  val tupleRegex = """scala.Tuple(\d+)"""
+
+  def isTuple(tpe: Type): Boolean = tpe.typeConstructor.typeSymbol.fullName.matches(tupleRegex)
+
+  // TODO: Make this work for products that are not tuples (e.g. case classes)
+  def explode(tpe: Type): Seq[Type] = if (isTuple(tpe)) {
     tpe.typeArgs
   } else {
     Seq(tpe)

@@ -14,7 +14,7 @@ object LTypeAnalyzer {
 
   // TODO: this would break if some one creates sub-types of Iterable with unusual parametrization
   def isIterable(tpe: Type): Boolean =
-    tpe.erasure <:< typeOf[scala.collection.Iterable[_]].erasure && tpe.typeArgs.size == 1
+    tpe.erasure <:< typeOf[scala.collection.Iterable[_]].erasure && tpe.typeArgs.nonEmpty
 
   def isProduct(tpe: Type): Boolean = tpe <:< typeOf[scala.Product]
 

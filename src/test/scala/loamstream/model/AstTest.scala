@@ -245,7 +245,7 @@ final class AstTest extends FunSuite {
     //NB: These specs are all totally bogus, and are basically placeholders just to have a way to make unique nodes.
     //That's fine for now since we don't 'typecheck' ASTs.  This will change in the near future.
 
-    private val hStoreSpec = StoreSpec(LSig(typeOf[Map[Int, Double]]))
+    private val hStoreSpec = StoreSpec(typeOf[Map[Int, Double]])
     private val zStoreSpec = hStoreSpec
     private val storeSpec = hStoreSpec
 

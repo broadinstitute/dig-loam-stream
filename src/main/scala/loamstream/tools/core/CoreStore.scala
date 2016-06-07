@@ -1,8 +1,9 @@
 package loamstream.tools.core
 
 import loamstream.Sigs
-import loamstream.model.{LId, LSig, Store, StoreSpec}
-import scala.reflect.runtime.universe.typeOf
+import loamstream.model.{LId, Store, StoreSpec}
+
+import scala.reflect.runtime.universe.{Type, typeOf}
 
 /**
   * LoamStream
@@ -15,9 +16,9 @@ object CoreStore {
 
   def apply(name: String, spec: StoreSpec): CoreStore = CoreStore(LId.LNamedId(name), spec)
 
-  def apply(name: String, sig: LSig): CoreStore = CoreStore(name, StoreSpec(sig))
+  def apply(name: String, sig: Type): CoreStore = CoreStore(name, StoreSpec(sig))
 
-  def apply(sig: LSig): CoreStore = CoreStore(LId.newAnonId, StoreSpec(sig))
+  def apply(sig: Type): CoreStore = CoreStore(LId.newAnonId, StoreSpec(sig))
 
   import Sigs._
 
@@ -37,7 +38,7 @@ object CoreStore {
   }
 
   val sampleClusterFile: Store = {
-    CoreStore("Sample cluster file", StoreSpec(LSig(typeOf[Map[String, Int]])))
+    CoreStore("Sample cluster file", StoreSpec(typeOf[Map[String, Int]]))
   }
 
   val singletonsFile: Store = {

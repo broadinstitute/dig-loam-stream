@@ -14,10 +14,10 @@ final class SigsTest extends FunSuite {
   test("Built-in sigs") {
     import Sigs._
 
-    assert(variantAndSampleToGenotype.tpe =:= typeOf[Map[(String, String), Genotype]])
+    assert(variantAndSampleToGenotype =:= typeOf[Map[(String, String), Genotype]])
 
-    assert(sampleToSingletonCount.tpe =:= typeOf[Map[String, Int]])
+    assert(sampleToSingletonCount =:= typeOf[Map[String, Int]])
 
-    assert(sampleIdAndIntToDouble.tpe =:= typeOf[Map[(String, Int), Double]])
+    assert(sampleIdAndIntToDouble =:= typeOf[Map[(String, Int), Double]])
   }
 }

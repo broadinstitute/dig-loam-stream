@@ -103,9 +103,8 @@ object PipelineConsistencyChecker {
       //TODO: TEST
       pipeline.tools.filterNot { tool =>
         tool.outputs.zip(tool.spec.outputs).forall {
-          case ((toolOutputId, toolOutput), (specOutputId, specOutput)) => {
-            /*toolOutputId == specOutputId && */toolOutput.spec >:> specOutput
-          }
+          case ((toolOutputId, toolOutput), (specOutputId, specOutput)) =>
+            /*toolOutputId == specOutputId && */ toolOutput.spec >:> specOutput
         }
       }.flatMap { tool =>
         tool.outputs.map { case (name, output) => StoreIsIncompatibleOutputOfTool(output, tool) }
@@ -132,9 +131,8 @@ object PipelineConsistencyChecker {
       }
       
       toolsStoresAndStoreSpecs.collect { 
-        case (tool, Some(input), Some(inputSpec)) if !(input.spec <:< inputSpec) => {
+        case (tool, Some(input), Some(inputSpec)) if !(input.spec <:< inputSpec) =>
           StoreIsIncompatibleInputOfTool(input, tool, input.id)
-        }
       }
     }
   }
@@ -154,7 +152,7 @@ object PipelineConsistencyChecker {
         }.map { case (_, store) => store }
       }
       
-      def someOutputIsNotSpecified(tool: Tool): Boolean = !unspecifiedOutputsFor(tool).isEmpty
+      def someOutputIsNotSpecified(tool: Tool): Boolean = unspecifiedOutputsFor(tool).nonEmpty
       
       val toolsWithUnspecifiedOutputs = pipeline.tools.filter(someOutputIsNotSpecified)
       
@@ -201,7 +199,7 @@ object PipelineConsistencyChecker {
           while (makingProgress) {
             makingProgress = false
             for (tool <- pipeline.tools) {
-              val neighborStores = tool.inputs.map(_._2).toSet ++ tool.outputs.map(_._2)
+              val neighborStores = tool.inputs.values.toSet ++ tool.outputs.values
               val connectedStoresNew = neighborStores -- connectedStores
               if (connectedStoresNew.nonEmpty) {
                 connectedStores ++= connectedStoresNew

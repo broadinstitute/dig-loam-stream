@@ -2,8 +2,8 @@ package loamstream.util
 
 import loamstream.util.ShotCombinators.Shots2
 
-import scala.util.{Failure, Success, Try}
 import scala.collection.generic.CanBuildFrom
+import scala.util.{Failure, Success, Try}
 
 /**
   * LoamStream
@@ -25,7 +25,7 @@ sealed trait Shot[+A] {
 
 object Shot {
   def apply[A](f: => A): Shot[A] = fromTry(Try(f))
-  
+
   def fromTry[A](myTry: Try[A]): Shot[A] =
     myTry match {
       case Success(a) => Hit(a)
@@ -37,33 +37,35 @@ object Shot {
     case None => Miss(snag)
   }
 
+  def notNull[A](a: A, snag: Snag): Shot[A] = if (a != null) Hit(a) else Miss(snag) // scalastyle:ignore null
+
   import scala.language.higherKinds
-  
+
   /**
-  * LoamStream
-  * Created by oliverr on 4/14/2016.
-  * 
-  * NB: Now named sequence to match the general monadic pattern, and
-  * specific methods like Future.sequence, etc.
-  * NB: Use CanBuildFrom magic to make sure that the "best" type is returned, based on the
-  * type passed in.  This allows Seq[Shot[A]] => Shot[Seq[A]], Set[Shot[A]] => Shot[Set[A]],
-  * Vector[Shot[A]] => Shot[Vector[A]], etc, etc, etc.
-  * 
-  * Given a type T[A] <: Traversable[A],
-  * and given a T[Shot[A]], returns a Shot[T[A]] such that:
-  *  If the input contains all hits, returns a Hit wrapping a T containing all the values of the input Hits.
-  *  If the input contains any misses, returns a Miss wrapping the concatenation of all the input Miss's Snags. 
-  */
+    * LoamStream
+    * Created by oliverr on 4/14/2016.
+    *
+    * NB: Now named sequence to match the general monadic pattern, and
+    * specific methods like Future.sequence, etc.
+    * NB: Use CanBuildFrom magic to make sure that the "best" type is returned, based on the
+    * type passed in.  This allows Seq[Shot[A]] => Shot[Seq[A]], Set[Shot[A]] => Shot[Set[A]],
+    * Vector[Shot[A]] => Shot[Vector[A]], etc, etc, etc.
+    *
+    * Given a type T[A] <: Traversable[A],
+    * and given a T[Shot[A]], returns a Shot[T[A]] such that:
+    * If the input contains all hits, returns a Hit wrapping a T containing all the values of the input Hits.
+    * If the input contains any misses, returns a Miss wrapping the concatenation of all the input Miss's Snags.
+    */
   def sequence[E, M[X] <: Traversable[X]]
-      (shots: M[Shot[E]])(implicit cbf: CanBuildFrom[M[Shot[E]], E, M[E]]): Shot[M[E]] = {
-    
+  (shots: M[Shot[E]])(implicit cbf: CanBuildFrom[M[Shot[E]], E, M[E]]): Shot[M[E]] = {
+
     val misses = shots.collect { case miss: Miss => miss }
-    
+
     if (misses.isEmpty) {
-      val builder = cbf(shots) 
-      
+      val builder = cbf(shots)
+
       builder ++= shots.collect { case Hit(h) => h }
-      
+
       Hit(builder.result())
     } else {
       Miss(misses.map(_.snag).reduce(_ ++ _))

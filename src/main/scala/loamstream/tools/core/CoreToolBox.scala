@@ -203,14 +203,12 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     
     case CoreTool.CalculateSingletons(vdsDir, singletonsFile) => calculateSingletonsJobShot(vdsDir, singletonsFile)
     
-    case CoreTool.ProjectPcaNative(vcfFile, pcaWeightsFile, klustaKonfig) => {
+    case CoreTool.ProjectPcaNative(vcfFile, pcaWeightsFile, klustaKonfig) =>
       calculatePcaProjectionsJobShot(vcfFile, pcaWeightsFile, klustaKonfig)
-    }
-    
-    case CoreTool.ProjectPca(vcfFile, pcaWeightsFile, klustaKonfig) => {
+
+    case CoreTool.ProjectPca(vcfFile, pcaWeightsFile, klustaKonfig) =>
       calculatePcaProjectionsJobShot(vcfFile, pcaWeightsFile, klustaKonfig)
-    }
-    
+
     case CoreTool.KlustaKwikClustering(klustaConfig) => calculateClustersJobShot(klustaConfig)
     
     case CoreTool.ClusteringSamplesByFeatures(klustaConfig) => calculateClustersJobShot(klustaConfig)

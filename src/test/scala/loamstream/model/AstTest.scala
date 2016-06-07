@@ -32,14 +32,14 @@ final class AstTest extends FunSuite {
   }
 
   test("isLeaf") {
-    assert(a.isLeaf == true)
+    assert(a.isLeaf === true)
 
-    assert(a.dependsOn(b(B).as(X)).isLeaf == false)
+    assert(a.dependsOn(b(B).as(X)).isLeaf === false)
 
-    assert(Trees.abcd.isLeaf == false)
-    assert(Trees.bcd.isLeaf == false)
-    assert(c.isLeaf == true)
-    assert(d.isLeaf == true)
+    assert(Trees.abcd.isLeaf === false)
+    assert(Trees.bcd.isLeaf === false)
+    assert(c.isLeaf === true)
+    assert(d.isLeaf === true)
   }
 
   private def doTraversalTest(ast: AST, iteratorFrom: AST => Iterator[AST], validate: Seq[LId] => Unit): Unit = {
@@ -180,9 +180,9 @@ final class AstTest extends FunSuite {
     assert(getChildOf(a2y, X, C).dependencies.size == 1)
     assert(getChildOf(a2y, X, D).dependencies.size == 1)
     
-    assert(getChildOf(a2y, X, B, Y).dependencies.size == 0)
-    assert(getChildOf(a2y, X, C, Y).dependencies.size == 0)
-    assert(getChildOf(a2y, X, D, Y).dependencies.size == 0)
+    assert(getChildOf(a2y, X, B, Y).dependencies.size === 0)
+    assert(getChildOf(a2y, X, C, Y).dependencies.size === 0)
+    assert(getChildOf(a2y, X, D, Y).dependencies.size === 0)
     
     val visitCounts: Map[LId, Int] = {
       a2y.iterator.map(_.id).toIndexedSeq.groupBy(identity).mapValues(_.size)

@@ -3,8 +3,7 @@ package loamstream.apps.minimal
 import java.nio.file.Paths
 
 import loamstream.Sigs
-import loamstream.model.{LId, Store, StoreOps, StoreSpec, Tool, ToolSpec}
-import loamstream.model.values.LType.LString
+import loamstream.model.{LId, LSig, Store, StoreOps, StoreSpec, Tool, ToolSpec}
 import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultStoreIds}
 import org.scalatest.FunSuite
 
@@ -71,7 +70,7 @@ object SpecRelationsTest {
 
     val sampleIdsCassandraTable: Store = CoreStore(
       "Cassandra sample ids table.",
-      StoreSpec(Sigs.setOf(LString)))
+      StoreSpec(LSig.create[String]))
 
     val stores = Set[Store](genotypesCassandraTable, sampleIdsCassandraTable)
   }

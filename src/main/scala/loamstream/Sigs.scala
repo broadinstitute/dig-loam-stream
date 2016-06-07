@@ -1,21 +1,19 @@
 package loamstream
 
+import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.LSig
-import loamstream.model.values.LType._
-import loamstream.model.values.LType
 
 /**
- * @author clint
- * date: Apr 26, 2016
- */
+  * @author clint
+  *         date: Apr 26, 2016
+  */
 object Sigs {
-  val variantAndSampleToGenotype: LSig.Map = (LString & LString) to LGenotype
+  val variantAndSampleToGenotype: LSig = LSig.create[Map[(String, String), Genotype]]
 
-  val sampleToSingletonCount: LSig.Map = LString to LInt
+  val sampleToSingletonCount: LSig = LSig.create[Map[String, Int]]
 
-  val sampleIdAndIntToDouble: LSig.Map = (LString & LInt) to LDouble
-  
-  val sampleIds: LSig.Set = LSig.Set.of(LString)
-  
-  def setOf(k: LType): LSig.Set = LSig.Set.of(k)
+  val sampleIdAndIntToDouble: LSig = LSig.create[Map[(String, Int), Double]]
+
+  val sampleIds: LSig = LSig.create[String]
+
 }

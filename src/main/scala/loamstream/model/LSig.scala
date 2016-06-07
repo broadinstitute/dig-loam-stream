@@ -1,8 +1,12 @@
 package loamstream.model
 
-import loamstream.model.values.LType
 import loamstream.model.values.LType.LTuple
+import loamstream.model.values.LType.LTuple.LTupleN
+import loamstream.model.values.{LType, LTypeAnalyzer}
+
 import scala.language.existentials
+import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
+
 
 /**
   * LoamStream
@@ -10,29 +14,26 @@ import scala.language.existentials
   */
 object LSig {
 
-  case class Set(keyTypes: LTuple) extends LSig {
-    
-    override def toString: String = keyTypes.toString
-    
-    override def =:=(oSig: LSig): Boolean = oSig match {
-      case Set(oKeyTypes) => keyTypes == oKeyTypes
-      case _ => false
-    }
-  }
-  
-  object Set {
-    def of(k: LType): LSig.Set = new LSig.Set(LTuple.LTuple1(k))
-  }
-
   case class Map(keyTypes: LTuple, vType: LType) extends LSig {
-    
+
     override def toString: String = s"$keyTypes to $vType"
-    
+
     override def =:=(oSig: LSig): Boolean =
       oSig match {
         case Map(oKeyTypes, oVType) => keyTypes == oKeyTypes && vType == oVType
         case _ => false
       }
+  }
+
+  def create[T: TypeTag]: LSigNative = LSigNative(typeTag[T].tpe)
+
+  case class LSigNative(tpe: Type) extends LSig {
+    override def keyTypes: LTuple = LTupleN(LTypeAnalyzer.keyTypes(tpe))
+
+    override def =:=(oSig: LSig): Boolean = oSig match {
+      case LSigNative(oTpe) => tpe =:= oTpe
+      case _ => false
+    }
   }
 
 }

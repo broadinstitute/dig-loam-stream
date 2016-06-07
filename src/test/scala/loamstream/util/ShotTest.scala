@@ -24,6 +24,18 @@ final class ShotTest extends FunSuite {
 
   private val incAndToString: Int => Shot[String] = i => Hit((i + 1).toString)
   
+  test("apply()") {
+    assert(Shot(42) === Hit(42))
+
+    val e = new Exception with scala.util.control.NoStackTrace
+
+    val shot = Shot {
+      throw e
+    }
+    
+    assert(shot === Miss(SnagThrowable(e)))
+  }
+  
   test("fromTry") {
     assert(Shot.fromTry(Success(42)) === Hit(42))
 
@@ -116,5 +128,25 @@ final class ShotTest extends FunSuite {
     assert(Miss("asdf") === Miss(SnagMessage("asdf")))
   }
 
+  test("sequence()") {
+    import Shot.sequence
+    
+    val allHits: Traversable[Shot[Int]] = Vector(Hit(1), Hit(2), Hit(99))
+    
+    assert(Hit(Vector(1, 2, 99)) == sequence(allHits))
+    
+    val someHits: Traversable[Shot[Int]] = Vector(Hit(1), Hit(2), Miss("foo"), Miss("bar"), Hit(99))
+    
+    assert(Miss(SnagSeq(Seq(SnagMessage("foo"), SnagMessage("bar")))) == sequence(someHits))
+    
+    val allMisses: Traversable[Shot[Int]] = Seq(Miss("foo"), Miss("bar"), Miss("baz"))
+    
+    assert(Miss(SnagSeq(Seq(SnagMessage("foo"), SnagMessage("bar"), SnagMessage("baz")))) == sequence(allMisses))
+    
+    val empty: Traversable[Shot[Int]] = Nil
+    
+    assert(sequence(empty) == Hit(Nil))
+  }
+  
   //scalastyle:off magic.number
 }

@@ -17,6 +17,7 @@ import loamstream.util.Hit
 import loamstream.util.Shot
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LToolBox
+import loamstream.model.execute.LExecutable
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -37,13 +38,7 @@ final class MiniAppEndToEndTest extends FunSuite {
     
     val results = MiniExecuter.execute(executable)
 
-    val source = Source.fromFile(extractedSamplesFilePath.toFile)
-    
-    val samples = LoamFileUtils.enclosed(source)(_.getLines.toList)
-
-    val expectedSamplesList = List("Sample1", "Sample2", "Sample3")
-    
-    assert(samples == expectedSamplesList)
+    doTestExecutable(executable, extractedSamplesFilePath)
   }
   
   test("Pipeline successfully extracts sample IDs from VCF (via AST)") {
@@ -51,7 +46,13 @@ final class MiniAppEndToEndTest extends FunSuite {
 
     val executable = toolbox.createExecutable(pipeline.ast)
     
+    doTestExecutable(executable, extractedSamplesFilePath)
+  }
+  
+  private def doTestExecutable(executable: LExecutable, extractedSamplesFilePath: Path): Unit = {
     val results = MiniExecuter.execute(executable)
+    
+    assert(results.size == 2)
     
     assert(results.values.forall {
       case Hit(r) => r.isSuccess
@@ -82,7 +83,7 @@ final class MiniAppEndToEndTest extends FunSuite {
     }
 
     val genotypesId = env(LCoreEnv.Keys.genotypesId)
-    val pipeline = MiniPipeline(genotypesId)
+    val pipeline = MiniPipeline(miniVcfFilePath, extractedSamplesFilePath)
     val toolbox = CoreToolBox(env)
     
     (toolbox, pipeline, extractedSamplesFilePath)

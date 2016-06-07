@@ -1,10 +1,11 @@
 package loamstream.apps.minimal
 
+import java.nio.file.Paths
+
 import loamstream.Sigs
-import loamstream.model.{Store, StoreSpec, Tool, ToolSpec}
-import loamstream.model.kinds.StoreKinds
+import loamstream.model.{LId, Store, StoreOps, StoreSpec, Tool, ToolSpec}
 import loamstream.model.values.LType.LString
-import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultStoreIds, StoreOps}
+import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultStoreIds}
 import org.scalatest.FunSuite
 
 /**
@@ -13,84 +14,46 @@ import org.scalatest.FunSuite
   */
 final class SpecRelationsTest extends FunSuite {
 
-  import SpecRelationsTest._
-  import MiniMockStore._
-  import MiniMockTool._
+  private val vcfFile = Paths.get("foo.vcf")
+  private val sampleIdFile = Paths.get("foo.vcf")
+  private val genotypeId = LCoreDefaultStoreIds.genotypes
 
-  //TODO: Revisit this test to make them test specific specs, not ones obtained via
-  //some pipeline.  This way, (valid) changes to pipelines won't break this test 
   test("Various relations between store and tool specs are false as expected") {
-    val genotypeId = LCoreDefaultStoreIds.genotypes
-    assertResult(false)(CoreStore.vcfFile.spec <:< genotypesCassandraTable.spec)
-    assertResult(false)(
-      CoreTool.checkPreExistingVcfFile(genotypeId).spec <:<
-        checkPreExistingGenotypeCassandraTable(genotypeId).spec)
-    assertResult(false)(genotypesCassandraTable.spec <:< CoreStore.vcfFile.spec)
-    assertResult(false)(
-      checkPreExistingGenotypeCassandraTable(genotypeId).spec <:<
-        CoreTool.checkPreExistingVcfFile(genotypeId).spec)
-    assertResult(false)(CoreStore.sampleIdsFile.spec <:< sampleIdsCassandraTable.spec)
-    assertResult(false)(
-      CoreTool.extractSampleIdsFromVcfFile.spec <:< extractSampleIdsFromCassandraTable.spec)
-    assertResult(false)(sampleIdsCassandraTable.spec <:< CoreStore.sampleIdsFile.spec)
-    assertResult(false)(
-      extractSampleIdsFromCassandraTable.spec <:< CoreTool.extractSampleIdsFromVcfFile.spec)
+    //NB: Dummy path
+    val dummyPath = Paths.get("foo")
+
+    CoreTool.CalculateSingletons(dummyPath, dummyPath).spec <:< CoreTool.CheckPreExistingPcaWeightsFile(dummyPath).spec
+
+    CoreTool.ConvertVcfToVds(dummyPath, dummyPath).spec <:< CoreTool.CheckPreExistingPcaWeightsFile(dummyPath).spec
+
+    //TODO: more
   }
 
   test("Various relations between store and tool specs are true as expected") {
     val genotypeId = LCoreDefaultStoreIds.genotypes
 
     //NB: Fragile
-    val coreGenotypeCallsStore = CoreTool.checkPreExistingVcfFile(genotypeId).outputs.head._2
+    val coreGenotypeCallsStore = CoreTool.CheckPreExistingVcfFile(vcfFile).outputs.head._2
 
     assert(CoreStore.vcfFile.spec.sig =:= coreGenotypeCallsStore.spec.sig)
     assert(CoreStore.vcfFile.spec <:< coreGenotypeCallsStore.spec)
 
     //NB: Fragile
-    val coreSampleIdsStore = CoreTool.extractSampleIdsFromVcfFile.outputs.head._2
+    val coreSampleIdsStore = CoreTool.ExtractSampleIdsFromVcfFile(vcfFile, sampleIdFile).outputs.head._2
 
     assert(CoreStore.sampleIdsFile.spec <:< coreSampleIdsStore.spec)
 
-    val genotypeCallsTool = CoreTool.checkPreExistingVcfFile(genotypeId)
+    val genotypeCallsTool = CoreTool.CheckPreExistingVcfFile(vcfFile)
 
-    assert(CoreTool.checkPreExistingVcfFile(genotypeId).spec <<< genotypeCallsTool.spec)
+    assert(CoreTool.CheckPreExistingVcfFile(vcfFile).spec <<< genotypeCallsTool.spec)
     //TODO: Revisit this
     //assert(MiniMockTool.checkPreExistingGenotypeCassandraTable(genotypeId).spec <<< genotypeCallsTool.spec)
 
-    val sampleIdsTool = CoreTool.extractSampleIdsFromVcfFile
+    val sampleIdsTool = CoreTool.ExtractSampleIdsFromVcfFile(vcfFile, sampleIdFile)
 
-    assert(CoreTool.extractSampleIdsFromVcfFile.spec <<< sampleIdsTool.spec)
+    assert(CoreTool.ExtractSampleIdsFromVcfFile(vcfFile, sampleIdFile).spec <<< sampleIdsTool.spec)
     //TODO: Revisit this
     //assert(MiniMockTool.extractSampleIdsFromCassandraTable.spec <<< sampleIdsTool.spec)
-  }
-
-  test("StoreKind relationships") {
-    import StoreKinds._
-
-    assert(vcfFile <:< genotypeCallsByVariantAndSample)
-    assert(genotypesCassandraTable <:< genotypeCallsByVariantAndSample)
-
-    assert(vcfFile isA genotypeCallsByVariantAndSample)
-    assert(genotypesCassandraTable isA genotypeCallsByVariantAndSample)
-
-    assert(genotypeCallsByVariantAndSample >:> vcfFile)
-    assert(genotypeCallsByVariantAndSample >:> genotypesCassandraTable)
-
-    assert(genotypeCallsByVariantAndSample hasSubKind vcfFile)
-    assert(genotypeCallsByVariantAndSample hasSubKind genotypesCassandraTable)
-
-
-    assert(sampleIdsFile <:< sampleIds)
-    assert(sampleIdsCassandraTable <:< sampleIds)
-
-    assert(sampleIdsFile isA sampleIds)
-    assert(sampleIdsCassandraTable isA sampleIds)
-
-    assert(sampleIds >:> sampleIdsFile)
-    assert(sampleIds >:> sampleIdsCassandraTable)
-
-    assert(sampleIds hasSubKind sampleIdsFile)
-    assert(sampleIds hasSubKind sampleIdsCassandraTable)
   }
 }
 
@@ -104,11 +67,11 @@ object SpecRelationsTest {
 
     val genotypesCassandraTable: Store = CoreStore(
       "Cassandra genotype calls table",
-      StoreSpec(Sigs.variantAndSampleToGenotype, StoreKinds.genotypesCassandraTable))
+      StoreSpec(Sigs.variantAndSampleToGenotype))
 
     val sampleIdsCassandraTable: Store = CoreStore(
       "Cassandra sample ids table.",
-      StoreSpec(Sigs.setOf(LString), StoreKinds.sampleIdsCassandraTable))
+      StoreSpec(Sigs.setOf(LString)))
 
     val stores = Set[Store](genotypesCassandraTable, sampleIdsCassandraTable)
   }
@@ -121,19 +84,35 @@ object SpecRelationsTest {
 
     import StoreOps._
 
-    def checkPreExistingGenotypeCassandraTable(tableId: String): Tool = CoreTool.nullaryTool(
+    def checkPreExistingGenotypeCassandraTable(tableId: String): Tool = nullaryTool(
       tableId,
       "What a nice table on Cassandra full of genotype calls!",
       MiniMockStore.genotypesCassandraTable,
-      ToolSpec.preExistingCheckout(tableId))
+      ToolSpec.producing)
 
-    val extractSampleIdsFromCassandraTable: Tool = CoreTool.unaryTool(
+    val extractSampleIdsFromCassandraTable: Tool = unaryTool(
       "Extracted sample ids from Cassandra genotype calls table into another table.",
       MiniMockStore.genotypesCassandraTable ~> MiniMockStore.sampleIdsCassandraTable,
-      ToolSpec.keyExtraction(StoreKinds.sampleKeyIndexInGenotypes) _)
+      ToolSpec.oneToOne)
 
     def tools(tableId: String): Set[Tool] = {
       Set(checkPreExistingGenotypeCassandraTable(tableId), extractSampleIdsFromCassandraTable)
+    }
+
+    private def nullaryTool(id: String, name: String, output: Store, makeToolSpec: StoreSpec => ToolSpec): Tool = {
+      CoreTool(
+        LId.LNamedId(name),
+        makeToolSpec(output.spec),
+        Map.empty[LId, Store],
+        Map(output.id -> output)) //TODO: correct?
+    }
+
+    private def unaryTool(name: String, sig: UnarySig, makeToolSpec: (StoreSpec, StoreSpec) => ToolSpec): Tool = {
+      CoreTool(
+        LId.LNamedId(name),
+        makeToolSpec(sig.input.spec, sig.output.spec),
+        Map(sig.input.id -> sig.input), //TODO: correct?
+        Map(sig.output.id -> sig.output)) //TODO: correct?
     }
   }
 

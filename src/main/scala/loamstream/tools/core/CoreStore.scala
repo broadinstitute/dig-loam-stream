@@ -1,8 +1,6 @@
 package loamstream.tools.core
 
 import loamstream.Sigs
-import loamstream.model.kinds.{LKind, StoreKinds}
-import loamstream.model.values.LType.{LInt, LString}
 import loamstream.model.{LId, LSig, Store, StoreSpec}
 
 /**
@@ -16,41 +14,40 @@ object CoreStore {
 
   def apply(name: String, spec: StoreSpec): CoreStore = CoreStore(LId.LNamedId(name), spec)
 
-  def apply(name: String, sig: LSig, kind: LKind): CoreStore = CoreStore(name, StoreSpec(sig, kind))
+  def apply(name: String, sig: LSig): CoreStore = CoreStore(name, StoreSpec(sig))
 
-  def apply(sig: LSig, kind: LKind): CoreStore = CoreStore(LId.newAnonId, StoreSpec(sig, kind))
+  def apply(sig: LSig): CoreStore = CoreStore(LId.newAnonId, StoreSpec(sig))
 
   import Sigs._
 
   val vcfFile: Store = {
-    CoreStore("VCF file", StoreSpec(variantAndSampleToGenotype, StoreKinds.vcfFile))
+    CoreStore("VCF file", StoreSpec(variantAndSampleToGenotype))
   }
 
   val vdsFile: Store = {
-    CoreStore("VDS file", StoreSpec(variantAndSampleToGenotype, StoreKinds.vdsFile))
+    CoreStore("VDS file", StoreSpec(variantAndSampleToGenotype))
   }
 
   val pcaWeightsFile: Store = {
-    CoreStore("PCA weights file", StoreSpec(sampleIdAndIntToDouble, StoreKinds.pcaWeightsFile))
+    CoreStore("PCA weights file", StoreSpec(sampleIdAndIntToDouble))
   }
-
   val pcaProjectedFile: Store = {
-    CoreStore("PCA projected file", StoreSpec(sampleIdAndIntToDouble, StoreKinds.pcaProjectedFile))
+    CoreStore("PCA projected file", StoreSpec(sampleIdAndIntToDouble))
   }
 
   val sampleClusterFile: Store = {
-    CoreStore("Sample cluster file", StoreSpec(LString to LInt, StoreKinds.sampleClustersFile))
+    CoreStore("Sample cluster file", StoreSpec(LSampleId to LClusterId))
   }
 
   val singletonsFile: Store = {
-    CoreStore("Singletons file", StoreSpec(sampleToSingletonCount, StoreKinds.singletonsFile))
+    CoreStore("Singletons file", StoreSpec(sampleToSingletonCount))
   }
 
   val sampleIdsFile: Store = {
-    CoreStore("Sample ids file", StoreSpec(Sigs.sampleIds, StoreKinds.sampleIdsFile))
+    CoreStore("Sample ids file", StoreSpec(Sigs.sampleIds))
   }
 
   val stores: Set[Store] = Set(
     vcfFile, vdsFile, pcaWeightsFile, pcaProjectedFile,
-    sampleClusterFile, /*singletonsFile, */ sampleIdsFile)
+    sampleClusterFile, singletonsFile, sampleIdsFile)
 }

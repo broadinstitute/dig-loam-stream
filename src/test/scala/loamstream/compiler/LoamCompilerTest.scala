@@ -17,12 +17,12 @@ object LoamCompilerTest {
 
   object SomeObject
 
-  def classIsLoaded(classLoader: ClassLoader, className: String): Boolean =
+  def classIsLoaded(classLoader: ClassLoader, className: String): Boolean = {
     classLoader.loadClass(className).getName == className
-
+  }
 }
 
-class LoamCompilerTest extends FunSuite {
+final class LoamCompilerTest extends FunSuite {
   test("Testing resolution ot type name.") {
     assert(SourceUtils.shortTypeName[LoamCompilerTest] === "LoamCompilerTest")
     assert(SourceUtils.fullTypeName[LoamCompilerTest] === "loamstream.compiler.LoamCompilerTest")
@@ -30,6 +30,7 @@ class LoamCompilerTest extends FunSuite {
     assert(SourceUtils.fullTypeName[LoamCompilerTest.SomeObject.type] ===
       "loamstream.compiler.LoamCompilerTest.SomeObject")
   }
+
   test("Testing sanity of classloader used by compiler.") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
     val compilerClassLoader = compiler.compiler.rootClassLoader
@@ -37,13 +38,15 @@ class LoamCompilerTest extends FunSuite {
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.collection.immutable.Seq"))
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.tools.nsc.Settings"))
   }
+  
   test("Testing compilation of legal code fragment with no settings.") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
-    val code =
+    val code = {
       """
      val hello = "Hello!"
      println(hello.replace("!", "?").size)
       """
+    }
     val result = compiler.compile(code)
     assert(result.errors === Nil)
     assert(result.warnings === Nil)
@@ -81,11 +84,12 @@ class LoamCompilerTest extends FunSuite {
   }
   test("Testing that compilation of illegal code fragment causes compile errors.") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
-    val code =
+    val code = {
       """
     The enlightened soul is a person who is self-conscious of his "human condition" in his time and historical
     and social setting, and whose awareness inevitably and necessarily gives him a sense of social responsibility.
       """
+    }
     val result = compiler.compile(code)
     assert(result.errors.nonEmpty)
     assert(result.envOpt.isEmpty)

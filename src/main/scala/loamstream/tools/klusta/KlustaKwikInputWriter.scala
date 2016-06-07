@@ -2,6 +2,7 @@ package loamstream.tools.klusta
 
 import java.io.PrintStream
 import java.nio.file.{Files, Path}
+import loamstream.util.LoamFileUtils
 
 /**
   * LoamStream
@@ -9,11 +10,12 @@ import java.nio.file.{Files, Path}
   */
 object KlustaKwikInputWriter {
 
-  def writeFeatures(konfig: KlustaKwikKonfig, data: Seq[Seq[Double]]): Unit =
+  private[klusta] def writeFeatures(konfig: KlustaKwikKonfig, data: Seq[Seq[Double]]): Unit = {
     writeFeatures(konfig.workDir, konfig.fileBase, konfig.iShank, data)
+  }
 
-  def writeFeatures(workDir: Path, fileBase: String, iShank: Int, data: Seq[Seq[Double]]): Unit = {
-    val fileName = fileBase + ".fet." + iShank
+  private[klusta] def writeFeatures(workDir: Path, fileBase: String, iShank: Int, data: Seq[Seq[Double]]): Unit = {
+    val fileName = s"$fileBase.fet.$iShank"
     val file = workDir.resolve(fileName)
     writeFeatures(file, data)
   }
@@ -24,9 +26,12 @@ object KlustaKwikInputWriter {
   }
 
   def writeFeatures(out: PrintStream, data: Seq[Seq[Double]]): Unit = {
-    out.println(data.head.size) // scalastyle:ignore regex
-    for (line <- data) {
-      out.println(line.mkString("\t")) // scalastyle:ignore regex
+    LoamFileUtils.enclosed(out) { out =>
+      out.println(data.head.size) // scalastyle:ignore regex
+     
+      for (line <- data) {
+        out.println(line.mkString("\t")) // scalastyle:ignore regex
+      }
     }
   }
 

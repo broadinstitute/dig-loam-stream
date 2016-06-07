@@ -12,8 +12,9 @@ object KlustaKwikLineCommand extends LineCommand {
 
   def klustaKwik(konfig: KlustaKwikKonfig): CommandLineBuildable = klustaKwik(konfig.fileBase, konfig.iShank)
 
-  def klustaKwik(fileBaseVal: String, elecNoVal: Int): CommandLineBuildable =
+  def klustaKwik(fileBaseVal: String, elecNoVal: Int): CommandLineBuildable = {
     KlustaKwikLineCommand + fileBase(fileBaseVal) + elecNo(elecNoVal)
+  }
 
   val fileBase = UnkeyedValueParam.Builder[String]("FileBase")
   val elecNo = UnkeyedValueParam.Builder[Int]("ElecNo")

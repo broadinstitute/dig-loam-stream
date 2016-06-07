@@ -4,55 +4,75 @@ import java.io.File
 import java.nio.file.Paths
 
 import com.typesafe.config.{Config, ConfigFactory}
+import java.nio.file.Path
+import loamstream.util.PathEnrichments
 
 /**
  * Created on: 5/4/16 
  * @author Kaan Yuksel 
  */
-case class ImputationConfig private (shapeItWorkDir: String, shapeItExecutable: String, shapeItScript: String,
-                            shapeItVcfFile: String, shapeItMapFile: String, shapeItHapFile: String,
-                            shapeItSampleFile: String, shapeItLogFile: String, shapeItNumThreads: Int) {
-}
+final case class ImputationConfig private (
+    shapeItWorkDir: Path, 
+    shapeItExecutable: Path, 
+    shapeItScript: Path,
+    shapeItVcfFile: Path, 
+    shapeItMapFile: Path, 
+    shapeItHapFile: Path,
+    shapeItSampleFile: Path, 
+    shapeItLogFile: Path, 
+    shapeItNumThreads: Int)
 
 object ImputationConfig {
-  val DEFAULT_CONFIG = "loamstream"
+  val DefaultConfigPrefix = "loamstream"
 
-  val shapeItBaseKey = "imputation.shapeit"
-  val shapeItWorkDirKey = s"$shapeItBaseKey.workDir"
-  val shapeItExecutableKey = s"$shapeItBaseKey.executable"
-  val shapeItScriptKey = s"$shapeItBaseKey.script"
-  val shapeItVcfFileKey = s"$shapeItBaseKey.vcfFile"
-  val shapeItMapFileKey = s"$shapeItBaseKey.mapFile"
-  val shapeItHapFileKey = s"$shapeItBaseKey.hapFile"
-  val shapeItSampleFileKey = s"$shapeItBaseKey.sampleFile"
-  val shapeItLogFileKey = s"$shapeItBaseKey.logFile"
-  val shapeItNumThreadsKey = s"$shapeItBaseKey.numThreads"
+  object Keys {
+    private val base = "imputation.shapeit"
+  
+    val workDirKey = s"$base.workDir"
+    val executableKey = s"$base.executable"
+    val scriptKey = s"$base.script"
+    val vcfFileKey = s"$base.vcfFile"
+    val mapFileKey = s"$base.mapFile"
+    val hapFileKey = s"$base.hapFile"
+    val sampleFileKey = s"$base.sampleFile"
+    val logFileKey = s"$base.logFile"
+    val numThreadsKey = s"$base.numThreads"
+  }
 
   def apply(configFile: String): ImputationConfig = {
-    val config = ConfigFactory.parseFile(new File(configFile)).withFallback(ConfigFactory
-      .load(ImputationConfig.DEFAULT_CONFIG))
+    val defaultConfig = ConfigFactory.load(DefaultConfigPrefix)
+    
+    val config = ConfigFactory.parseFile(new File(configFile)).withFallback(defaultConfig)
+    
     ImputationConfig(config)
   }
 
   def apply(config: Config): ImputationConfig = {
     val shapeItProps = TypesafeConfigLproperties(config)
 
-    val shapeItWorkDir = shapeItProps.getString(ImputationConfig.shapeItWorkDirKey).get
-    val shapeItExecutable = shapeItProps.getString(ImputationConfig.shapeItExecutableKey).get
-    val shapeItScript = shapeItProps.getString(ImputationConfig.shapeItScriptKey).get
-    val shapeItVcfFile = Paths.get(shapeItWorkDir, shapeItProps.getString(ImputationConfig.shapeItVcfFileKey).get)
-      .toString
-    val shapeItMapFile = Paths.get(shapeItWorkDir, shapeItProps.getString(ImputationConfig.shapeItMapFileKey).get)
-      .toString
-    val shapeItHapFile = Paths.get(shapeItWorkDir, shapeItProps.getString(ImputationConfig.shapeItHapFileKey).get)
-      .toString
-    val shapeItSampleFile = Paths.get(shapeItWorkDir, shapeItProps.getString(ImputationConfig.shapeItSampleFileKey).get)
-      .toString
-    val shapeItLogFile = Paths.get(shapeItWorkDir, shapeItProps.getString(ImputationConfig.shapeItLogFileKey).get)
-      .toString
-    val shapeItNumThreads = shapeItProps.getString(ImputationConfig.shapeItNumThreadsKey).get.toInt
+    import Keys._
+    import PathEnrichments._
+    
+    val shapeItWorkDir = Paths.get(shapeItProps.getString(workDirKey).get)
+    val shapeItExecutable = Paths.get(shapeItProps.getString(executableKey).get)
+    val shapeItScript = Paths.get(shapeItProps.getString(scriptKey).get)
+    
+    val shapeItVcfFile = shapeItWorkDir / shapeItProps.getString(vcfFileKey).get
+    val shapeItMapFile = shapeItWorkDir / shapeItProps.getString(mapFileKey).get
+    val shapeItHapFile = shapeItWorkDir / shapeItProps.getString(hapFileKey).get
+    val shapeItSampleFile = shapeItWorkDir / shapeItProps.getString(sampleFileKey).get
+    val shapeItLogFile = shapeItWorkDir / shapeItProps.getString(logFileKey).get
+    val shapeItNumThreads = shapeItProps.getString(numThreadsKey).get.toInt
 
-    ImputationConfig(shapeItWorkDir, shapeItExecutable, shapeItScript, shapeItVcfFile, shapeItMapFile, shapeItHapFile,
-      shapeItSampleFile, shapeItLogFile, shapeItNumThreads)
+    ImputationConfig(
+        shapeItWorkDir, 
+        shapeItExecutable, 
+        shapeItScript, 
+        shapeItVcfFile, 
+        shapeItMapFile, 
+        shapeItHapFile,
+        shapeItSampleFile, 
+        shapeItLogFile, 
+        shapeItNumThreads)
   }
 }

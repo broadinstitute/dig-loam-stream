@@ -6,6 +6,7 @@ package loamstream.tools
   */
 object LineCommand {
 
+  //TODO: New name: this trait is, confusingly, if pleasantly symmetically, LineCommand.CommandLine.
   trait CommandLine {
     def tokens: Seq[String]
 

@@ -2,27 +2,18 @@ package loamstream.apps.minimal
 
 import java.nio.file.Paths
 
+import loamstream.Sigs
+import loamstream.model.{LId, Store, StoreOps, StoreSpec, Tool, ToolSpec}
+import loamstream.tools.core.{CoreStore, CoreTool, LCoreDefaultStoreIds}
 import org.scalatest.FunSuite
 
-import loamstream.Sigs
-import loamstream.model.LId
-import loamstream.model.Store
-import loamstream.model.StoreOps
-import loamstream.model.StoreSpec
-import loamstream.model.Tool
-import loamstream.model.ToolSpec
-import loamstream.model.values.LType.LSampleId
-import loamstream.tools.core.{ CoreStore, CoreTool, LCoreDefaultStoreIds }
+import scala.reflect.runtime.universe.typeOf
 
 /**
- * RugLoom - A prototype for a pipeline building toolkit
- * Created by oruebenacker on 2/22/16.
- */
+  * RugLoom - A prototype for a pipeline building toolkit
+  * Created by oruebenacker on 2/22/16.
+  */
 final class SpecRelationsTest extends FunSuite {
-
-  import SpecRelationsTest._
-  import MiniMockTool._
-  import MiniMockStore._
 
   private val vcfFile = Paths.get("foo.vcf")
   private val sampleIdFile = Paths.get("foo.vcf")
@@ -30,16 +21,16 @@ final class SpecRelationsTest extends FunSuite {
 
   test("Various relations between store and tool specs are false as expected") {
     //NB: Dummy path
-    val dummyPath = Paths.get("foo") 
-    
-    CoreTool.CalculateSingletons(dummyPath, dummyPath).spec <:< CoreTool.CheckPreExistingPcaWeightsFile(dummyPath).spec 
-    
+    val dummyPath = Paths.get("foo")
+
+    CoreTool.CalculateSingletons(dummyPath, dummyPath).spec <:< CoreTool.CheckPreExistingPcaWeightsFile(dummyPath).spec
+
     CoreTool.ConvertVcfToVds(dummyPath, dummyPath).spec <:< CoreTool.CheckPreExistingPcaWeightsFile(dummyPath).spec
-    
+
     //TODO: more
   }
 
-  test("Various relations between store and tool specs are true as expected") { 
+  test("Various relations between store and tool specs are true as expected") {
     val genotypeId = LCoreDefaultStoreIds.genotypes
 
     //NB: Fragile
@@ -70,9 +61,9 @@ final class SpecRelationsTest extends FunSuite {
 object SpecRelationsTest {
 
   /**
-   * LoamStream
-   * Created by oliverr on 3/29/2016.
-   */
+    * LoamStream
+    * Created by oliverr on 3/29/2016.
+    */
   private object MiniMockStore {
 
     val genotypesCassandraTable: Store = CoreStore(
@@ -81,16 +72,17 @@ object SpecRelationsTest {
 
     val sampleIdsCassandraTable: Store = CoreStore(
       "Cassandra sample ids table.",
-      StoreSpec(Sigs.setOf(LSampleId)))
+      StoreSpec(typeOf[Set[String]]))
 
     val stores = Set[Store](genotypesCassandraTable, sampleIdsCassandraTable)
   }
 
   /**
-   * LoamStream
-   * Created by oliverr on 3/29/2016.
-   */
+    * LoamStream
+    * Created by oliverr on 3/29/2016.
+    */
   private object MiniMockTool {
+
     import StoreOps._
 
     def checkPreExistingGenotypeCassandraTable(tableId: String): Tool = nullaryTool(
@@ -124,4 +116,5 @@ object SpecRelationsTest {
         Map(sig.output.id -> sig.output)) //TODO: correct?
     }
   }
+
 }

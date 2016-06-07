@@ -18,7 +18,8 @@ final class StoreOpsTest extends FunSuite {
         
     assert((vcfFile, sampleIdsFile) ~> vdsFile === BinarySig((vcfFile, sampleIdsFile), vdsFile))
     
-    assert(BinarySig((vcfFile, sampleIdsFile), vdsFile).toNarySig === NarySig(Seq(vcfFile, sampleIdsFile), Seq(vdsFile)))
+    assert(BinarySig((vcfFile, sampleIdsFile), vdsFile).toNarySig ===
+      NarySig(Seq(vcfFile, sampleIdsFile), Seq(vdsFile)))
     
     val narySig = NarySig(Seq(vcfFile, sampleIdsFile, singletonsFile), Seq(vdsFile))
     

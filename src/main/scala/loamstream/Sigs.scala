@@ -9,13 +9,13 @@ import loamstream.model.values.LType
  * date: Apr 26, 2016
  */
 object Sigs {
-  val variantAndSampleToGenotype: LSig.Map = (LVariantId & LSampleId) to LGenotype
+  val variantAndSampleToGenotype: LSig.Map = (LString & LString) to LGenotype
 
-  val sampleToSingletonCount: LSig.Map = LSampleId to LSingletonCount
+  val sampleToSingletonCount: LSig.Map = LString to LInt
 
-  val sampleIdAndIntToDouble: LSig.Map = (LSampleId & LInt) to LDouble
+  val sampleIdAndIntToDouble: LSig.Map = (LString & LInt) to LDouble
   
-  val sampleIds: LSig.Set = LSig.Set.of(LSampleId)
+  val sampleIds: LSig.Set = LSig.Set.of(LString)
   
   def setOf(k: LType): LSig.Set = LSig.Set.of(k)
 }

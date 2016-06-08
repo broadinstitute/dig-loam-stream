@@ -64,7 +64,7 @@ final class LoamCompilerTest extends FunSuite {
     klustaKwikKonfig :=
       loamstream.tools.klusta.KlustaKwikKonfig(path("/usr/local/bin/klusta"), "stuff")
     case class Squirrel(name: String)
-    val favoriteSquirrel = Key[Squirrel]("My favourite Squirrel")
+    val favoriteSquirrel = key[Squirrel]
     favoriteSquirrel := Squirrel("Tom")
       """
     }

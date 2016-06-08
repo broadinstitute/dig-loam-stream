@@ -9,15 +9,23 @@ import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
   * Created by oliverr on 6/8/2016.
   */
 object StoreBuilder {
+  def defaultIsInput = false
+
   def create[T: TypeTag](implicit flowBuilder: FlowBuilder): StoreBuilder =
-    StoreBuilder(LId.newAnonId, typeTag[T].tpe)
+    StoreBuilder(LId.newAnonId, typeTag[T].tpe, defaultIsInput)
 }
 
-case class StoreBuilder(id: LId, tpe: Type)(implicit flowBuilder: FlowBuilder) {
+case class StoreBuilder(id: LId, tpe: Type, isInput: Boolean)(implicit flowBuilder: FlowBuilder) {
   update()
 
   def update(): Unit = flowBuilder.add(this)
 
-  override def toString: String = tpe.toString
+  def asInput = {
+    val newThis = copy(isInput = true)
+    newThis.update()
+    newThis
+  }
+
+  override def toString: String = if (isInput) s"in[$tpe]" else s"out[$tpe]"
 }
 

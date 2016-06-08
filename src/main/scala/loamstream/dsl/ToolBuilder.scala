@@ -23,7 +23,7 @@ object ToolBuilder {
   }
 
   case class StoreToken(store: StoreBuilder) extends Token {
-    override def toString: String = s"store[${store.tpe}]"
+    override def toString: String = store.toString
   }
 
   def mergeStringTokens(tokens: Seq[Token]): Seq[Token] = {

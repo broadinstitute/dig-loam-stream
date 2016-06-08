@@ -10,8 +10,6 @@ import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
   */
 object StringCommandBuilder {
 
-  val command = new LEnv.Key[StringCommandBuilder]("command")
-
   trait Token
 
   case class StringToken(string: String) extends Token {

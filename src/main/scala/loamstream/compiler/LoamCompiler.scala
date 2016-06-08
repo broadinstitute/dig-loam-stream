@@ -102,8 +102,7 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
 package $inputObjectPackage
 
 import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
-import ${SourceUtils.fullTypeName[LCoreEnv.Helpers.type]}._
-import ${SourceUtils.fullTypeName[LCoreEnv.Implicits.type]}._
+import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LEnvBuilder]}
 import ${SourceUtils.fullTypeName[DslChunk]}
 import ${SourceUtils.fullTypeName[LEnv]}._
@@ -135,7 +134,7 @@ def env = envBuilder.toEnv
         val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
         val env = dslChunk.env
         outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
-        outMessageSink.send(StatusOutMessage(s"Command definition: ${env.get(StringCommandBuilder.command)}"))
+        outMessageSink.send(StatusOutMessage(s"Command definition: ${env.get(LCoreEnv.Keys.command)}"))
         LoamCompiler.Result.success(reporter, env)
       } else {
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))

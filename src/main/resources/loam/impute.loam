@@ -1,0 +1,15 @@
+genotypesId := "myImportantGenotypes"
+sampleFilePath := path("/some/path/to/file")
+pcaProjectionsFilePath := tempFile("pca", "pjs")
+klustaKwikKonfig :=
+loamstream.tools.klusta.KlustaKwikKonfig(path("/usr/local/bin/klusta"), "stuff")
+
+val imputeCommand = key[String]
+
+imputeCommand := "impute42"
+
+val raw = in[VCF]("raw")
+val template = in[VCF]("template")
+val imputed = out[VCF]("imputed")
+
+command := cmd"$imputeCommand -in $raw -template $template -out $imputed"

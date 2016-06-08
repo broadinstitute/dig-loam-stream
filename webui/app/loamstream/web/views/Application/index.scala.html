@@ -26,7 +26,7 @@
                     socket.send(JSON.stringify({type: "text", text: text}));
                 }
                 function load() {
-                    var name = "first.loam";
+                    var name = "impute.loam";
                     socket.send(JSON.stringify({type: "load", name: name}));
                 }
                 function receiveSocketMessage(socketMessage) {

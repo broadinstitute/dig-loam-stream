@@ -8,8 +8,8 @@ val imputeCommand = key[String]
 
 imputeCommand := "impute42"
 
-val raw = in[VCF]("raw")
-val template = in[VCF]("template")
-val imputed = out[VCF]("imputed")
+val raw = store[VCF]
+val template = store[VCF]
+val imputed = store[VCF]
 
-command := cmd"$imputeCommand -in $raw -template $template -out $imputed"
+cmd"$imputeCommand -in $raw -template $template -out $imputed"

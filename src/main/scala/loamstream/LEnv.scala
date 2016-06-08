@@ -1,10 +1,11 @@
 package loamstream
 
 import loamstream.LEnv.{Key, KeyBase, LComboEnv}
+import loamstream.dsl.LEnvBuilder
 import loamstream.model.LId
-import loamstream.util.{LEnvBuilder, Shot, Snag}
+import loamstream.util.{Shot, Snag}
 
-import scala.reflect.runtime.universe.{TypeTag, typeTag}
+import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
 
 /**
   * LoamStream
@@ -35,12 +36,16 @@ object LEnv {
 
   trait KeyBase {
     def id: LId
+
+    def tpe: Type
   }
 
   type EntryBase = (KeyBase, Any)
   type Entry[V] = (Key[V], V)
 
   final case class Key[V](typeTag: TypeTag[V], id: LId) extends KeyBase {
+    def tpe: Type = typeTag.tpe
+
     def apply(value: V): Entry[V] = new Entry(this, value)
 
     def ->(value: V): Entry[V] = new Entry(this, value) // TODO remove this - ambiguous!

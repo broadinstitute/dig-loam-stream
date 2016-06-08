@@ -1,4 +1,4 @@
-package loamstream.util
+package loamstream.dsl
 
 import loamstream.LEnv
 

@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 
 import loamstream.LEnv
 import loamstream.LEnv.Key
-import loamstream.dsl.StringCommandBuilder
+import loamstream.dsl.ToolBuilder
 import loamstream.tools.klusta.KlustaKwikKonfig
 import loamstream.util.FileAsker
 
@@ -28,7 +28,7 @@ object LCoreEnv {
     val vdsId = Key.create[String]
     val singletonsId = Key.create[String]
     val pcaWeightsId = Key.create[String]
-    val command = LEnv.Key.create[StringCommandBuilder]
+    val command = LEnv.Key.create[ToolBuilder]
   }
 
   def tempFileProvider(prefix: String, suffix: String): () => Path = () => Files.createTempFile(prefix, suffix)

@@ -1,31 +1,30 @@
 package loamstream.dsl
 
 import loamstream.LEnv
-import loamstream.dsl.StringCommandBuilder.Token
-import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
+import loamstream.dsl.ToolBuilder.Token
+import loamstream.model.LId
 
 /**
   * LoamStream
   * Created by oliverr on 5/25/2016.
   */
-object StringCommandBuilder {
+object ToolBuilder {
 
   trait Token
 
   case class StringToken(string: String) extends Token {
     def +(oStringToken: StringToken): StringToken = StringToken(string + oStringToken.string)
+
+    override def toString: String = string
   }
 
-  case class EnvToken(key: LEnv.KeyBase) extends Token
-
-  trait Slot extends Token {
-    def name: String
-    def tpe: Type
+  case class EnvToken(key: LEnv.KeyBase) extends Token {
+    override def toString: String = s"env[${key.tpe}]"
   }
 
-  case class InSlot(name: String, tpe:Type) extends Slot
-
-  case class OutSlot(name: String, tpe: Type) extends Slot
+  case class StoreToken(store: StoreBuilder) extends Token {
+    override def toString: String = s"store[${store.tpe}]"
+  }
 
   def mergeStringTokens(tokens: Seq[Token]): Seq[Token] = {
     var tokensMerged: Seq[Token] = Seq.empty
@@ -51,7 +50,7 @@ object StringCommandBuilder {
   }
 
   implicit class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
-    def cmd(args: Any*): StringCommandBuilder = {
+    def cmd(args: Any*)(implicit flowBuilder: FlowBuilder): ToolBuilder = {
       val stringPartsIter = stringContext.parts.iterator
       val argsIter = args.iterator
       var tokens: Seq[Token] = Seq(StringToken(stringPartsIter.next))
@@ -59,18 +58,23 @@ object StringCommandBuilder {
         val arg = argsIter.next()
         val argToken = arg match {
           case key: LEnv.KeyBase => EnvToken(key)
-          case InputBuilder(name, tpe) => InSlot(name, tpe)
-          case OutputBuilder(name, tpe) => OutSlot(name, tpe)
+          case store: StoreBuilder => StoreToken(store)
           case _ => StringToken(arg.toString)
         }
         tokens :+= argToken
         tokens :+= StringToken(stringPartsIter.next())
       }
       tokens = mergeStringTokens(tokens)
-      StringCommandBuilder(tokens)
+      ToolBuilder(LId.newAnonId, tokens)
     }
   }
 
 }
 
-case class StringCommandBuilder(tokens: Seq[Token])
+case class ToolBuilder(id: LId, tokens: Seq[Token])(implicit flowBuilder: FlowBuilder) {
+  update()
+
+  def update(): Unit = flowBuilder.add(this)
+
+  override def toString: String = tokens.mkString
+}

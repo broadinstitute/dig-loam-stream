@@ -4,9 +4,9 @@ import loamstream.LEnv
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
-import loamstream.dsl.StringCommandBuilder
+import loamstream.dsl.{FlowBuilder, LEnvBuilder, ToolBuilder}
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.{LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
+import loamstream.util.{ReflectionUtil, SourceUtils, StringUtils}
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
@@ -24,6 +24,8 @@ object LoamCompiler {
 
   trait DslChunk {
     def env: LEnv
+
+    def flowBuilder: FlowBuilder
   }
 
   final class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
@@ -59,7 +61,7 @@ object LoamCompiler {
   }
 
   final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv],
-                    exOpt: Option[Exception] = None) {
+                          exOpt: Option[Exception] = None) {
     def isSuccess: Boolean = envOpt.nonEmpty
   }
 
@@ -106,12 +108,13 @@ import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LEnvBuilder]}
 import ${SourceUtils.fullTypeName[DslChunk]}
 import ${SourceUtils.fullTypeName[LEnv]}._
-import ${SourceUtils.fullTypeName[StringCommandBuilder.type]}._
+import ${SourceUtils.fullTypeName[ToolBuilder.type]}._
 import loamstream.dsl._
 import java.nio.file._
 
 object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
 implicit val envBuilder = new LEnvBuilder
+implicit val flowBuilder = new FlowBuilder
 
 ${raw.trim}
 
@@ -119,7 +122,7 @@ def env = envBuilder.toEnv
 }
 """
   }
-  
+
   def compile(rawCode: String): LoamCompiler.Result = {
     try {
       val wrappedCode = wrapCode(rawCode)
@@ -133,8 +136,17 @@ def env = envBuilder.toEnv
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
         val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
         val env = dslChunk.env
-        outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
-        outMessageSink.send(StatusOutMessage(s"Command definition: ${env.get(LCoreEnv.Keys.command)}"))
+        val flowBuilder = dslChunk.flowBuilder
+        val stores = flowBuilder.stores
+        val tools = flowBuilder.tools
+        val soManySettings = StringUtils.soMany(env.size, "runtime setting")
+        val soManyStores = StringUtils.soMany(stores.size, "store")
+        val soManyTools = StringUtils.soMany(tools.size, "tool")
+        outMessageSink.send(StatusOutMessage(s"Found $soManySettings, $soManyStores and $soManyTools."))
+        for(store <- stores.values)
+          outMessageSink.send(StatusOutMessage(s"Store: $store"))
+        for(tool <- tools.values)
+          outMessageSink.send(StatusOutMessage(s"Tool: $tool"))
         LoamCompiler.Result.success(reporter, env)
       } else {
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))

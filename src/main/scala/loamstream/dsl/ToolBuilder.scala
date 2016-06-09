@@ -10,7 +10,7 @@ import loamstream.model.LId
   */
 object ToolBuilder {
 
-  trait Token
+  sealed trait Token
 
   case class StringToken(string: String) extends Token {
     def +(oStringToken: StringToken): StringToken = StringToken(string + oStringToken.string)
@@ -71,7 +71,7 @@ object ToolBuilder {
 
 }
 
-case class ToolBuilder(id: LId, tokens: Seq[Token])(implicit flowBuilder: FlowBuilder) {
+case class ToolBuilder(id: LId, tokens: Seq[Token])(implicit val flowBuilder: FlowBuilder) {
   update()
 
   def update(): Unit = flowBuilder.add(this)

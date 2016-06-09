@@ -2,6 +2,7 @@ package loamstream.dsl
 
 import java.nio.file.Path
 
+import loamstream.LEnv
 import loamstream.dsl.FlowBuilder.StoreSource
 import loamstream.model.LId
 
@@ -22,6 +23,8 @@ case class StoreBuilder(id: LId, tpe: Type, sourceOpt: Option[StoreSource])(impl
   def update(): Unit = flowBuilder.add(this)
 
   def from(path: Path): StoreBuilder = from(StoreSource.FromPath(path))
+
+  def from(key: LEnv.Key[Path]): StoreBuilder = from(StoreSource.FromPathKey(key))
 
   def from(source: StoreSource): StoreBuilder = {
     flowBuilder.addSource(this, source)

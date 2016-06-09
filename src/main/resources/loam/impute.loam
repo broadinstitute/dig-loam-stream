@@ -1,15 +1,15 @@
-genotypesId := "myImportantGenotypes"
-sampleFilePath := path("/some/path/to/file")
-pcaProjectionsFilePath := tempFile("pca", "pjs")
-klustaKwikKonfig :=
-loamstream.tools.klusta.KlustaKwikKonfig(path("/usr/local/bin/klusta"), "stuff")
-
+val inputFile = key[Path]
+val phaseCommand = key[String]
 val imputeCommand = key[String]
 
-imputeCommand := "impute42"
+inputFile := path("/user/home/someone/data.vcf")
+phaseCommand := "shapeit"
+imputeCommand := "impute2"
 
-val raw = store[VCF].from(path("/home/myself/data.vcf"))
+val raw = store[VCF].from(inputFile)
+val phased = store[VCF]
 val template = store[VCF].from(path("/home/myself/template.vcf"))
 val imputed = store[VCF]
 
-cmd"$imputeCommand -in $raw -template $template -out $imputed"
+cmd"$phaseCommand -in $raw -out $phased"
+cmd"$imputeCommand -in $phased -template $template -out $imputed"

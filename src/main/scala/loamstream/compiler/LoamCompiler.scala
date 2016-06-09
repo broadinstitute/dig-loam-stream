@@ -4,7 +4,7 @@ import loamstream.LEnv
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
-import loamstream.dsl.{FlowBuilder, LEnvBuilder, ToolBuilder}
+import loamstream.dsl.{FlowBuilder, FlowBuilderPrinter, LEnvBuilder, ToolBuilder}
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.{ReflectionUtil, SourceUtils, StringUtils}
 
@@ -143,10 +143,12 @@ def env = envBuilder.toEnv
         val soManyStores = StringUtils.soMany(stores.size, "store")
         val soManyTools = StringUtils.soMany(tools.size, "tool")
         outMessageSink.send(StatusOutMessage(s"Found $soManySettings, $soManyStores and $soManyTools."))
+        val idLength = 4
+        val flowPrinter = new FlowBuilderPrinter(idLength)
         outMessageSink.send(StatusOutMessage(
           s"""
              |[Start FlowBuilder]
-             |$flowBuilder
+             |${flowPrinter.print(flowBuilder)}
              |[End FlowBuilder]
            """.stripMargin))
         LoamCompiler.Result.success(reporter, env)

@@ -143,10 +143,12 @@ def env = envBuilder.toEnv
         val soManyStores = StringUtils.soMany(stores.size, "store")
         val soManyTools = StringUtils.soMany(tools.size, "tool")
         outMessageSink.send(StatusOutMessage(s"Found $soManySettings, $soManyStores and $soManyTools."))
-        for(store <- stores.values)
-          outMessageSink.send(StatusOutMessage(s"Store: $store"))
-        for(tool <- tools.values)
-          outMessageSink.send(StatusOutMessage(s"Tool: $tool"))
+        outMessageSink.send(StatusOutMessage(
+          s"""
+             |[Start FlowBuilder]
+             |$flowBuilder
+             |[End FlowBuilder]
+           """.stripMargin))
         LoamCompiler.Result.success(reporter, env)
       } else {
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))

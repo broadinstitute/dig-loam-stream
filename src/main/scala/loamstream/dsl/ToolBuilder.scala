@@ -1,7 +1,7 @@
 package loamstream.dsl
 
 import loamstream.LEnv
-import loamstream.dsl.ToolBuilder.Token
+import loamstream.dsl.ToolBuilder.{StoreToken, Token}
 import loamstream.model.LId
 
 /**
@@ -75,6 +75,8 @@ case class ToolBuilder(id: LId, tokens: Seq[Token])(implicit flowBuilder: FlowBu
   update()
 
   def update(): Unit = flowBuilder.add(this)
+
+  def stores : Seq[StoreBuilder] = tokens.collect({case StoreToken(store) => store})
 
   override def toString: String = tokens.mkString
 }

@@ -8,8 +8,8 @@ val imputeCommand = key[String]
 
 imputeCommand := "impute42"
 
-val raw = store[VCF].asInput
-val template = store[VCF].asInput
+val raw = store[VCF].providedBy(path("/home/myself/data.vcf"))
+val template = store[VCF].providedBy(path("/home/myself/template.vcf"))
 val imputed = store[VCF]
 
 cmd"$imputeCommand -in $raw -template $template -out $imputed"

@@ -3,7 +3,7 @@ package loamstream
 import loamstream.LEnv.{Key, KeyBase, LComboEnv}
 import loamstream.dsl.LEnvBuilder
 import loamstream.model.LId
-import loamstream.util.{Shot, Snag}
+import loamstream.util.{Shot, Snag, TypeBox}
 
 import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
 
@@ -43,8 +43,8 @@ object LEnv {
   type EntryBase = (KeyBase, Any)
   type Entry[V] = (Key[V], V)
 
-  final case class Key[V](typeTag: TypeTag[V], id: LId) extends KeyBase {
-    def tpe: Type = typeTag.tpe
+  final case class Key[V](typeBox: TypeBox[V], id: LId) extends KeyBase {
+    def tpe: Type = typeBox.tpe
 
     def apply(value: V): Entry[V] = new Entry(this, value)
 
@@ -60,7 +60,7 @@ object LEnv {
   object Key {
     def create[T: TypeTag]: Key[T] = apply[T](LId.newAnonId)
 
-    def apply[T: TypeTag](id: LId): Key[T] = Key[T](typeTag[T], id)
+    def apply[T: TypeTag](id: LId): Key[T] = Key[T](TypeBox.of[T], id)
   }
 
   def empty: LEnv = LMapEnv(Map.empty)

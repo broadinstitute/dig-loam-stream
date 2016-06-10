@@ -47,21 +47,21 @@ object LoamCompiler {
   }
 
   object Result {
-    def success(reporter: CompilerReporter, env: LEnv): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, Some(env))
+    def success(reporter: CompilerReporter, graph: LoamGraph, env: LEnv): Result = {
+      Result(reporter.errors, reporter.warnings, reporter.infos, Some(graph), Some(env))
     }
 
     def failure(reporter: CompilerReporter): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, None)
+      Result(reporter.errors, reporter.warnings, reporter.infos, None, None)
     }
 
     def exception(reporter: CompilerReporter, exception: Exception): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, None, Some(exception))
+      Result(reporter.errors, reporter.warnings, reporter.infos, None, None, Some(exception))
     }
   }
 
-  final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv],
-                          exOpt: Option[Exception] = None) {
+  final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], graphOpt: Option[LoamGraph],
+                          envOpt: Option[LEnv], exOpt: Option[Exception] = None) {
     def isSuccess: Boolean = envOpt.nonEmpty
   }
 
@@ -153,7 +153,7 @@ def graph = graphBuilder.graph
              |${graphPrinter.print(graph)}
              |[End Graph]
            """.stripMargin))
-        LoamCompiler.Result.success(reporter, env)
+        LoamCompiler.Result.success(reporter, graph, env)
       } else {
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
         LoamCompiler.Result.failure(reporter)

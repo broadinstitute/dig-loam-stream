@@ -21,6 +21,11 @@ sealed trait Shot[+A] {
   def orElse[B >: A](alternative: => Shot[B]): Shot[B]
 
   def and[B](shotB: Shot[B]): Shots2[A, B] = Shots2(this, shotB)
+
+  def isEmpty: Boolean
+
+  def nonEmpty: Boolean
+
 }
 
 object Shot {
@@ -88,6 +93,10 @@ case class Hit[+A](value: A) extends Shot[A] {
   override def asOpt: Option[A] = Some(value)
 
   override def orElse[B >: A](alternative: => Shot[B]): Shot[B] = this
+
+  override val isEmpty: Boolean = false
+
+  override val nonEmpty: Boolean = true
 }
 
 object Miss {
@@ -107,4 +116,8 @@ case class Miss(snag: Snag) extends Shot[Nothing] {
     case hit: Hit[B] => hit
     case Miss(altSnag) => Miss(snag ++ altSnag)
   }
+
+  override val isEmpty: Boolean = true
+
+  override val nonEmpty: Boolean = false
 }

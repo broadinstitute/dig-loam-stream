@@ -4,8 +4,9 @@ import loamstream.LEnv
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
+import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, ToolBuilder}
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.{LEnvBuilder, ReflectionUtil, SourceUtils, StringUtils}
+import loamstream.util.{ReflectionUtil, SourceUtils, StringUtils}
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
@@ -23,6 +24,8 @@ object LoamCompiler {
 
   trait DslChunk {
     def env: LEnv
+
+    def graph: LoamGraph
   }
 
   final class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
@@ -44,21 +47,21 @@ object LoamCompiler {
   }
 
   object Result {
-    def success(reporter: CompilerReporter, env: LEnv): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, Some(env))
+    def success(reporter: CompilerReporter, graph: LoamGraph, env: LEnv): Result = {
+      Result(reporter.errors, reporter.warnings, reporter.infos, Some(graph), Some(env))
     }
 
     def failure(reporter: CompilerReporter): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, None)
+      Result(reporter.errors, reporter.warnings, reporter.infos, None, None)
     }
 
     def exception(reporter: CompilerReporter, exception: Exception): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, None, Some(exception))
+      Result(reporter.errors, reporter.warnings, reporter.infos, None, None, Some(exception))
     }
   }
 
-  final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], envOpt: Option[LEnv],
-                    exOpt: Option[Exception] = None) {
+  final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], graphOpt: Option[LoamGraph],
+                          envOpt: Option[LEnv], exOpt: Option[Exception] = None) {
     def isSuccess: Boolean = envOpt.nonEmpty
   }
 
@@ -101,23 +104,27 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
 package $inputObjectPackage
 
 import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
-import ${SourceUtils.fullTypeName[LCoreEnv.Helpers.type]}._
-import ${SourceUtils.fullTypeName[LCoreEnv.Implicits.type]}._
+import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LEnvBuilder]}
+import ${SourceUtils.fullTypeName[LoamGraphBuilder]}
 import ${SourceUtils.fullTypeName[DslChunk]}
 import ${SourceUtils.fullTypeName[LEnv]}._
+import ${SourceUtils.fullTypeName[ToolBuilder.type]}._
+import loamstream.dsl._
 import java.nio.file._
 
 object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
 implicit val envBuilder = new LEnvBuilder
+implicit val graphBuilder = new LoamGraphBuilder
 
 ${raw.trim}
 
 def env = envBuilder.toEnv
+def graph = graphBuilder.graph
 }
 """
   }
-  
+
   def compile(rawCode: String): LoamCompiler.Result = {
     try {
       val wrappedCode = wrapCode(rawCode)
@@ -131,18 +138,31 @@ def env = envBuilder.toEnv
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
         val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
         val env = dslChunk.env
-        outMessageSink.send(StatusOutMessage(s"Found ${StringUtils.soMany(env.size, "runtime setting")}."))
-        LoamCompiler.Result.success(reporter, env)
+        val graph = dslChunk.graph
+        val stores = graph.stores
+        val tools = graph.tools
+        val soManySettings = StringUtils.soMany(env.size, "runtime setting")
+        val soManyStores = StringUtils.soMany(stores.size, "store")
+        val soManyTools = StringUtils.soMany(tools.size, "tool")
+        outMessageSink.send(StatusOutMessage(s"Found $soManySettings, $soManyStores and $soManyTools."))
+        val idLength = 4
+        val graphPrinter = new GraphPrinter(idLength)
+        outMessageSink.send(StatusOutMessage(
+          s"""
+             |[Start Graph]
+             |${graphPrinter.print(graph)}
+             |[End Graph]
+           """.stripMargin))
+        LoamCompiler.Result.success(reporter, graph, env)
       } else {
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
-      case exception: Exception => {
+      case exception: Exception =>
         outMessageSink.send(
           StatusOutMessage(s"${exception.getClass.getName} while trying to compile: ${exception.getMessage}"))
         LoamCompiler.Result.exception(reporter, exception)
-      }
     }
   }
 

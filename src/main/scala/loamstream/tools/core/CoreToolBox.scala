@@ -184,7 +184,6 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     
     klustaKwik(klustaConfig) + useDistributional(0)
   }
-  
   def calculateClustersJobShot(klustaConfig: KlustaKwikKonfig): Shot[LCommandLineJob] = Shot {
     LCommandLineJob(
         klustaKlwikCommandLine(klustaConfig), 

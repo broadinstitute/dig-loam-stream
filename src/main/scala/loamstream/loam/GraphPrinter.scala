@@ -1,9 +1,9 @@
-package loamstream.dsl
+package loamstream.loam
 
 import loamstream.LEnv
-import loamstream.dsl.FlowBuilder.StoreSource
-import loamstream.dsl.FlowBuilder.StoreSource.{FromPath, FromPathKey, FromTool}
-import loamstream.dsl.ToolBuilder.{EnvToken, StoreToken, StringToken}
+import loamstream.loam.LoamGraph.StoreSource
+import loamstream.loam.LoamGraph.StoreSource.{FromPath, FromPathKey, FromTool}
+import loamstream.loam.ToolBuilder.{EnvToken, StoreToken, StringToken}
 import loamstream.model.LId
 import loamstream.util.SourceUtils
 
@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe.Type
   * LoamStream
   * Created by oliverr on 6/9/2016.
   */
-case class FlowBuilderPrinter(idLength: Int) {
+case class GraphPrinter(idLength: Int) {
 
   def print(id: LId): String = id match {
     case LId.LNamedId(name) => name
@@ -29,14 +29,14 @@ case class FlowBuilderPrinter(idLength: Int) {
 
   def print(store: StoreBuilder, fully: Boolean): String = s"@${print(store.id)}[${print(store.tpe, fully)}]"
 
-  def print(tool: ToolBuilder): String = print(tool, tool.flowBuilder)
+  def print(tool: ToolBuilder): String = print(tool, tool.graphBuilder.graph)
 
-  def print(tool: ToolBuilder, flow: FlowBuilder): String = {
+  def print(tool: ToolBuilder, graph: LoamGraph): String = {
     val tokenString = tool.tokens.map({
       case StringToken(string) => string
       case EnvToken(key) => s"${print(key.id)}[${print(key.tpe, fully = false)}]"
       case StoreToken(store) =>
-        val ioPrefix = flow.storeSources.get(store) match {
+        val ioPrefix = graph.storeSources.get(store) match {
           case Some(StoreSource.FromTool(sourceTool)) if sourceTool == tool => ">"
           case _ => "<"
         }
@@ -51,10 +51,10 @@ case class FlowBuilderPrinter(idLength: Int) {
     case FromTool(tool) => s"#${print(tool.id)}"
   }
 
-  def print(flow: FlowBuilder): String = {
-    val storesString = flow.stores.map(print(_, fully = true)).mkString("\n")
-    val toolsString = flow.tools.map(print(_)).mkString("\n")
-    val storeSourcesString = flow.storeSources.map({
+  def print(graph: LoamGraph): String = {
+    val storesString = graph.stores.map(print(_, fully = true)).mkString("\n")
+    val toolsString = graph.tools.map(print(_)).mkString("\n")
+    val storeSourcesString = graph.storeSources.map({
       case (store, source) => s"${print(store, fully = false)} <- ${print(source)}"
     }).mkString("\n")
     Seq(storesString, toolsString, storeSourcesString).mkString("\n")

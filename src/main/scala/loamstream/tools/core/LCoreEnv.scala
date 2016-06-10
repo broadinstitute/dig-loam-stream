@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 
 import loamstream.LEnv
 import loamstream.LEnv.Key
-import loamstream.dsl.ToolBuilder
+import loamstream.loam.ToolBuilder
 import loamstream.tools.klusta.KlustaKwikKonfig
 import loamstream.util.FileAsker
 

@@ -4,7 +4,7 @@ import java.nio.file.{Path, Paths}
 
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.LEnv.Key
-import loamstream.dsl.{FlowBuilder, StoreBuilder}
+import loamstream.loam.{LoamGraphBuilder, StoreBuilder}
 import loamstream.tools.core.LCoreEnv
 
 import scala.language.implicitConversions
@@ -26,7 +26,7 @@ object LoamPredef {
 
   def key[T: TypeTag]: Key[T] = Key.create[T]
 
-  def store[T: TypeTag](implicit flowBuilder: FlowBuilder): StoreBuilder = StoreBuilder.create[T]
+  def store[T: TypeTag](implicit graphBuilder: LoamGraphBuilder): StoreBuilder = StoreBuilder.create[T]
 
   type VCF = Map[(String, String), Genotype]
 

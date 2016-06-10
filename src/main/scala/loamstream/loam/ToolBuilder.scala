@@ -1,7 +1,7 @@
-package loamstream.dsl
+package loamstream.loam
 
 import loamstream.LEnv
-import loamstream.dsl.ToolBuilder.{StoreToken, Token}
+import loamstream.loam.ToolBuilder.{StoreToken, Token}
 import loamstream.model.LId
 
 /**
@@ -50,7 +50,7 @@ object ToolBuilder {
   }
 
   implicit class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
-    def cmd(args: Any*)(implicit flowBuilder: FlowBuilder): ToolBuilder = {
+    def cmd(args: Any*)(implicit graphBuilder: LoamGraphBuilder): ToolBuilder = {
       val stringPartsIter = stringContext.parts.iterator
       val argsIter = args.iterator
       var tokens: Seq[Token] = Seq(StringToken(stringPartsIter.next))
@@ -71,10 +71,10 @@ object ToolBuilder {
 
 }
 
-case class ToolBuilder(id: LId, tokens: Seq[Token])(implicit val flowBuilder: FlowBuilder) {
+case class ToolBuilder(id: LId, tokens: Seq[Token])(implicit val graphBuilder: LoamGraphBuilder) {
   update()
 
-  def update(): Unit = flowBuilder.add(this)
+  def update(): Unit = graphBuilder.add(this)
 
   def stores : Seq[StoreBuilder] = tokens.collect({case StoreToken(store) => store})
 

@@ -4,7 +4,7 @@ import loamstream.LEnv
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
-import loamstream.dsl.{FlowBuilder, FlowBuilderPrinter, LEnvBuilder, ToolBuilder}
+import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, ToolBuilder}
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.{ReflectionUtil, SourceUtils, StringUtils}
 
@@ -25,7 +25,7 @@ object LoamCompiler {
   trait DslChunk {
     def env: LEnv
 
-    def flowBuilder: FlowBuilder
+    def graph: LoamGraph
   }
 
   final class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
@@ -106,6 +106,7 @@ package $inputObjectPackage
 import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LEnvBuilder]}
+import ${SourceUtils.fullTypeName[LoamGraphBuilder]}
 import ${SourceUtils.fullTypeName[DslChunk]}
 import ${SourceUtils.fullTypeName[LEnv]}._
 import ${SourceUtils.fullTypeName[ToolBuilder.type]}._
@@ -114,11 +115,12 @@ import java.nio.file._
 
 object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
 implicit val envBuilder = new LEnvBuilder
-implicit val flowBuilder = new FlowBuilder
+implicit val graphBuilder = new LoamGraphBuilder
 
 ${raw.trim}
 
 def env = envBuilder.toEnv
+def graph = graphBuilder.graph
 }
 """
   }
@@ -136,20 +138,20 @@ def env = envBuilder.toEnv
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
         val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
         val env = dslChunk.env
-        val flowBuilder = dslChunk.flowBuilder
-        val stores = flowBuilder.stores
-        val tools = flowBuilder.tools
+        val graph = dslChunk.graph
+        val stores = graph.stores
+        val tools = graph.tools
         val soManySettings = StringUtils.soMany(env.size, "runtime setting")
         val soManyStores = StringUtils.soMany(stores.size, "store")
         val soManyTools = StringUtils.soMany(tools.size, "tool")
         outMessageSink.send(StatusOutMessage(s"Found $soManySettings, $soManyStores and $soManyTools."))
         val idLength = 4
-        val flowPrinter = new FlowBuilderPrinter(idLength)
+        val graphPrinter = new GraphPrinter(idLength)
         outMessageSink.send(StatusOutMessage(
           s"""
-             |[Start FlowBuilder]
-             |${flowPrinter.print(flowBuilder)}
-             |[End FlowBuilder]
+             |[Start Graph]
+             |${graphPrinter.print(graph)}
+             |[End Graph]
            """.stripMargin))
         LoamCompiler.Result.success(reporter, env)
       } else {

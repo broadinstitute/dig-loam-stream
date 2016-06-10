@@ -1,7 +1,7 @@
 package loamstream
 
 import loamstream.LEnv.{Key, KeyBase, LComboEnv}
-import loamstream.dsl.LEnvBuilder
+import loamstream.loam.LEnvBuilder
 import loamstream.model.LId
 import loamstream.util.{Shot, Snag, TypeBox}
 

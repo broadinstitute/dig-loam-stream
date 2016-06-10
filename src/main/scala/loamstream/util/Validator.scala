@@ -26,9 +26,13 @@ object Validator {
 
   trait Severity
 
-  case object Warning extends Severity
+  object Severity {
 
-  case object Error extends Severity
+    case object Warning extends Severity
+
+    case object Error extends Severity
+
+  }
 
   trait Issue[Item] {
     def item: Item
@@ -36,12 +40,15 @@ object Validator {
     def rule: Rule[Item]
 
     def severity: Severity
+
+    def message: String
   }
 
-  case class GlobalIssue[Item](item: Item, rule: GlobalRule[Item], severity: Severity) extends Issue[Item]
+  case class GlobalIssue[Item](item: Item, rule: GlobalRule[Item], severity: Severity, message: String)
+    extends Issue[Item]
 
   case class LocalIssue[Item, Location](item: Item, location: Location, rule: LocalRule[Item, Location],
-                                        severity: Severity)
+                                        severity: Severity, message: String)
     extends Issue
 
 }

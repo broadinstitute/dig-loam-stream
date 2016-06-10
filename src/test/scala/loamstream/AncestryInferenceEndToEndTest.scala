@@ -1,24 +1,21 @@
 package loamstream
 
+import scala.util.Try
+
 import org.scalatest.FunSuite
 
-import loamstream.model.execute.SimpleExecuter
+import loamstream.model.execute.LeavesFirstExecuter
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LToolBox
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.tools.core.LCoreEnv.Keys
-import loamstream.util.FileAsker
+import loamstream.tools.klusta.KlustaKwikLineCommand
 import loamstream.util.Hit
 import loamstream.util.Shot
 import loamstream.util.StringUtils
 import tools.PcaWeightsReader
 import tools.core.{CoreToolBox, LCoreDefaultStoreIds}
 import tools.klusta.KlustaKwikKonfig
-import loamstream.model.jobs.LCommandLineJob
-import loamstream.tools.klusta.KlustaKwikLineCommand
-import scala.util.Try
-import loamstream.model.execute.LeavesFirstExecuter
-import loamstream.model.execute.SimpleExecuter
 
 /**
   * LoamStream

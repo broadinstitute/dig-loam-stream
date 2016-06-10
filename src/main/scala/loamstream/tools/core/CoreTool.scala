@@ -15,6 +15,7 @@ import loamstream.model.StoreOps.UnarySig
 import loamstream.model.StoreOps.NarySig
 import loamstream.model.StoreOps.BinarySig
 import loamstream.model.StoreOps
+import loamstream.Sigs
 
 /**
   * LoamStream
@@ -35,10 +36,10 @@ object CoreTool {
     sampleClusterFile => sampleClusterStore
   }
   
-  final case class CheckPreExistingVcfFile(vcfFile: Path) extends Tool.CheckPreexisting(vcfFile, vcfStore(vcfFile))
+  final case class CheckPreExistingVcfFile(vcfFile: Path) extends Tool.CheckPreexisting(vcfFile, StoreSpec(Sigs.variantAndSampleToGenotype))
   
   final case class CheckPreExistingPcaWeightsFile(pcaWeightsFile: Path) extends 
-      Tool.CheckPreexisting(pcaWeightsFile, pcaWeightsStore(pcaWeightsFile))
+      Tool.CheckPreexisting(pcaWeightsFile, StoreSpec(Sigs.sampleIdAndIntToDouble))
   
   final case class ExtractSampleIdsFromVcfFile(
       vcfFile: Path, 

@@ -1,0 +1,15 @@
+val inputFile = key[Path]
+val phaseCommand = key[String]
+val imputeCommand = key[String]
+
+inputFile := path("/user/home/someone/data.vcf")
+phaseCommand := "shapeit"
+imputeCommand := "impute2"
+
+val raw = store[VCF].from(inputFile)
+val phased = store[VCF]
+val template = store[VCF].from(path("/home/myself/template.vcf"))
+val imputed = store[VCF]
+
+cmd"$phaseCommand -in $raw -out $phased"
+cmd"$imputeCommand -in $phased -template $template -out $imputed"

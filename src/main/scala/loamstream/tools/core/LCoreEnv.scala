@@ -4,6 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 
 import loamstream.LEnv
 import loamstream.LEnv.Key
+import loamstream.loam.ToolBuilder
 import loamstream.tools.klusta.KlustaKwikKonfig
 import loamstream.util.FileAsker
 
@@ -16,34 +17,18 @@ import scala.language.implicitConversions
 object LCoreEnv {
 
   object Keys {
-    val nameOfThisObject = "loamstream.tools.core.LCoreEnv.Keys"
-    val vcfFilePath = Key[String => Path]("VCF file path")
-    val sampleFilePath = Key[() => Path]("sample file path")
-    val singletonFilePath = Key[() => Path]("singleton file path")
-    val pcaWeightsFilePath = Key[() => Path]("PCA weights file path")
-    val klustaKwikKonfig = Key[KlustaKwikKonfig]("KlustaKwik konfig")
-    val pcaProjectionsFilePath = Key[() => Path]("PCA projections file path")
-    val clusterFilePath = Key[() => Path]("PCA projections file path")
-    val genotypesId = Key[String]("genotypes id")
-    val vdsId = Key[String]("variant dataset")
-    val singletonsId = Key[String]("singleton counts")
-    val pcaWeightsId = Key[String]("pcaWeights")
-  }
-
-  object Helpers {
-    val nameOfThisObject = "loamstream.tools.core.LCoreEnv.Helpers"
-
-    def path(pathString: String): Path = Paths.get(pathString)
-
-    def tempFile(prefix: String, suffix: String): () => Path = tempFileProvider(prefix, suffix)
-
-    def tempDir(prefix: String): () => Path = tempDirProvider(prefix)
-  }
-
-  object Implicits {
-    val nameOfThisObject = "loamstream.tools.core.LCoreEnv.Implicits"
-
-    implicit def toConstantFunction[T](item: T): () => T = () => item
+    val vcfFilePath = Key.create[String => Path]
+    val sampleFilePath = Key.create[() => Path]
+    val singletonFilePath = Key.create[() => Path]
+    val pcaWeightsFilePath = Key.create[() => Path]
+    val klustaKwikKonfig = Key.create[KlustaKwikKonfig]
+    val pcaProjectionsFilePath = Key.create[() => Path]
+    val clusterFilePath = Key.create[() => Path]
+    val genotypesId = Key.create[String]
+    val vdsId = Key.create[String]
+    val singletonsId = Key.create[String]
+    val pcaWeightsId = Key.create[String]
+    val command = LEnv.Key.create[ToolBuilder]
   }
 
   def tempFileProvider(prefix: String, suffix: String): () => Path = () => Files.createTempFile(prefix, suffix)

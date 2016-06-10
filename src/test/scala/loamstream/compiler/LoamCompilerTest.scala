@@ -3,6 +3,7 @@ package loamstream.compiler
 import java.nio.file.Paths
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import loamstream.loam.LoamGraph.StoreSource
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.SourceUtils
 import org.scalatest.FunSuite
@@ -38,7 +39,7 @@ final class LoamCompilerTest extends FunSuite {
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.collection.immutable.Seq"))
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.tools.nsc.Settings"))
   }
-  
+
   test("Testing compilation of legal code fragment with no settings.") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
     val code = {
@@ -64,7 +65,7 @@ final class LoamCompilerTest extends FunSuite {
     klustaKwikKonfig :=
       loamstream.tools.klusta.KlustaKwikKonfig(path("/usr/local/bin/klusta"), "stuff")
     case class Squirrel(name: String)
-    val favoriteSquirrel = Key[Squirrel]("My favourite Squirrel")
+    val favoriteSquirrel = key[Squirrel]
     favoriteSquirrel := Squirrel("Tom")
       """
     }
@@ -93,5 +94,19 @@ final class LoamCompilerTest extends FunSuite {
     val result = compiler.compile(code)
     assert(result.errors.nonEmpty)
     assert(result.envOpt.isEmpty)
+  }
+  test("Testing sample code impute.loam") {
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+    val codeShot = LoamRepository.defaultRepo.get("impute.loam")
+    assert(codeShot.nonEmpty)
+    val result = compiler.compile(codeShot.get)
+    assert(result.errors.isEmpty)
+    assert(result.warnings.isEmpty)
+    val graph = result.graphOpt.get
+    assert(graph.tools.size === 2)
+    assert(graph.stores.size === 4)
+    val sources = graph.storeSources.values.toSet
+    assert(!sources.forall(_.isInstanceOf[StoreSource.FromTool]))
+    assert(sources.collect({ case StoreSource.FromTool(tool) => tool }) == graph.tools)
   }
 }

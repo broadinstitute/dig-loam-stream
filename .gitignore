@@ -16,7 +16,6 @@ hail.log
 tmp/
 test-result
 server.pid
-*.iml
 *.eml
 *~
 /dist/
@@ -33,3 +32,4 @@ model/.project
 model/.settings
 /webui/logs/
 /webui/target/
+pipelines/

@@ -1,7 +1,11 @@
 package loamstream
 
 import loamstream.LEnv.{Key, KeyBase, LComboEnv}
-import loamstream.util.{LEnvBuilder, Shot, Snag}
+import loamstream.loam.LEnvBuilder
+import loamstream.model.LId
+import loamstream.util.{Shot, Snag, TypeBox}
+
+import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
 
 /**
   * LoamStream
@@ -16,7 +20,7 @@ trait LEnv {
 
   def get[V](key: Key[V]): Option[V]
 
-  def shoot[V](key: Key[V]): Shot[V] = Shot.fromOption(get(key), Snag("No value for key " + key.name))
+  def shoot[V](key: Key[V], name: String): Shot[V] = Shot.fromOption(get(key), Snag(s"No value for key '$name'."))
 
   def +[V](key: Key[V], value: V): LEnv
 
@@ -31,13 +35,17 @@ trait LEnv {
 object LEnv {
 
   trait KeyBase {
-    def name: String
+    def id: LId
+
+    def tpe: Type
   }
 
   type EntryBase = (KeyBase, Any)
   type Entry[V] = (Key[V], V)
 
-  final case class Key[V](name: String) extends KeyBase {
+  final case class Key[V](typeBox: TypeBox[V], id: LId) extends KeyBase {
+    def tpe: Type = typeBox.tpe
+
     def apply(value: V): Entry[V] = new Entry(this, value)
 
     def ->(value: V): Entry[V] = new Entry(this, value) // TODO remove this - ambiguous!
@@ -47,6 +55,12 @@ object LEnv {
       envBuilder += entry
       entry
     }
+  }
+
+  object Key {
+    def create[T: TypeTag]: Key[T] = apply[T](LId.newAnonId)
+
+    def apply[T: TypeTag](id: LId): Key[T] = Key[T](TypeBox.of[T], id)
   }
 
   def empty: LEnv = LMapEnv(Map.empty)
@@ -84,5 +98,6 @@ object LEnv {
       case _ => LComboEnv(envs :+ oEnv)
     }
   }
+
 }
 

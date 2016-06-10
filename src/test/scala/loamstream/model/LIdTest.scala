@@ -32,13 +32,13 @@ final class LIdTest extends FunSuite {
     doTestWithNonRandomName("fooaksjpa823045782j.sfmclajalhfr;'k;fl;jdf")
     doTestWithNonRandomName("") //TODO: Should we allow empty-string ids?
     
-    doTestWithRandomName(123, 444)
+    doTestWithRandomName(123, 444) // scalastyle:ignore magic.number
     doTestWithRandomName(0, 0)
     doTestWithRandomName(Long.MaxValue, Long.MaxValue)
     doTestWithRandomName(Long.MaxValue, 0)
     doTestWithRandomName(0, Long.MaxValue)
-    doTestWithRandomName(Long.MaxValue, 123)
-    doTestWithRandomName(321, Long.MaxValue)
+    doTestWithRandomName(Long.MaxValue, 123) // scalastyle:ignore magic.number
+    doTestWithRandomName(321, Long.MaxValue) // scalastyle:ignore magic.number
     
     doTestWithRandomName(0, Long.MinValue)
     doTestWithRandomName(Long.MinValue, 0)
@@ -51,10 +51,11 @@ final class LIdTest extends FunSuite {
     assert(LNamedId("foo").name == "foo")
     assert(LNamedId("").name == "") //TODO: Should we allow empty-string ids?
     
-    assert(LAnonId(123, 456).name == "123_456")
+    assert(LAnonId(123, 456).name == "123_456") // scalastyle:ignore magic.number
   }
   
   test("Anon ID Invariants") {
+    // scalastyle:off magic.number
     LAnonId(123, 456)
     LAnonId(0, 0)
     LAnonId(0, 123)
@@ -62,7 +63,7 @@ final class LIdTest extends FunSuite {
     LAnonId(Long.MaxValue, 123)
     LAnonId(123, Long.MaxValue)
     LAnonId(Long.MaxValue, Long.MaxValue)
-    
+    // scalastyle:on magic.number
     intercept[Exception] {
       LAnonId(-1, 0)
       LAnonId(-1, -1)

@@ -1,0 +1,11 @@
+genotypesId := "myImportantGenotypes"
+sampleFilePath := path("/some/path/to/file")
+pcaProjectionsFilePath := tempFile("pca", "pjs")
+klustaKwikKonfig :=
+loamstream.tools.klusta.KlustaKwikKonfig(path("/usr/local/bin/klusta"), "stuff")
+
+val cmdName = "doThis"
+val input1 = InputBuilder[Set[String]]("input1")
+val output1 = OutputBuilder[Map[String, Int]]("output1")
+
+command := cmd"$cmdName -id $genotypesId -in $input1 -out $output1"

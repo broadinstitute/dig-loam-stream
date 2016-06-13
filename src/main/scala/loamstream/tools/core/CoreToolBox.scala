@@ -200,7 +200,7 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
   }
 
   //TODO: Shouldn't be here
-  private def shapeitJobShot(config: ShapeItConfig, inputVcf: Path, outputVcf: Path): Shot[LJob] = {
+  private def shapeitJobShot(config: ShapeItConfig, inputVcf: Path, outputHaps: Path): Shot[LJob] = {
     //TODO
     val tokens: Seq[String] = Seq(
       config.executable.toString, 
@@ -209,8 +209,8 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
       "-M", 
       config.mapFile.toString, 
       "-O", 
-      config.hapFile.toString, 
-      config.sampleFile.toString, 
+      outputHaps.toString, 
+      s"$outputHaps.samples.gz", //TODO
       "-L", 
       config.logFile.toString, 
       "--thread", 
@@ -270,7 +270,7 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     case CoreTool.ClusteringSamplesByFeatures(klustaConfig) => calculateClustersJobShot(klustaConfig)
 
     //TODO: Shouldn't be here
-    case CoreTool.Phase(config, inputVcf, outputVcf) => shapeitJobShot(config, inputVcf, outputVcf)
+    case CoreTool.Phase(config, inputVcf, outputHaps) => shapeitJobShot(config, inputVcf, outputHaps)
 
     //TODO: Shouldn't be here
     case CoreTool.Impute(config, inputVcf, output) => impute2JobShot(config, inputVcf, output)

@@ -26,26 +26,32 @@ final class LeavesFirstExecuter(implicit executionContext: ExecutionContext) ext
     Await.result(future, timeout)
   }
 
+  def executeLeaves(leaves: Set[LJob]): Future[Map[LJob, Result]] = {
+
+    //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
+    //on the first failure, like the old code did.
+    val leafResultFutures = leaves.iterator.map(executeSingle)
+
+    //NB: Convert the iterator to an IndexedSeq to force evaluation, and make sure 
+    //input jobs are evaluated before jobs that depend on them.
+    val futureLeafResults = Future.sequence(leafResultFutures).map(consumeUntilFirstFailure)
+
+    val futureAllLeafResultsMap = futureLeafResults.map(Maps.mergeMaps)
+    
+    futureAllLeafResultsMap
+  }
+  
   def executeJob(job: LJob)(implicit executionContext: ExecutionContext): Future[Map[LJob, Result]] = {
     def loop(remainingOption: Option[LJob], acc: Map[LJob, Result]): Future[Map[LJob, Result]] = {
       remainingOption match {
         case None => Future.successful(acc)
         case Some(j) => {
-          val leaves: Set[LJob] = j.leaves
-
-          //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
-          //on the first failure, like the old code did.
-          val leafResultFutures = leaves.iterator.map(executeSingle)
-
-          //NB: Convert the iterator to an IndexedSeq to force evaluation, and make sure 
-          //input jobs are evaluated before jobs that depend on them.
-          val futureLeafResults = Future.sequence(leafResultFutures).map(consumeUntilFirstFailure)
-      
-          val futureAllLeafResultsMap = futureLeafResults.map(Maps.mergeMaps)
+          val leaves = j.leaves
           
           for {
-            leafResults <- futureAllLeafResultsMap
-            next = if (j.isLeaf) None else Some(j.removeAll(leaves))
+            leafResults <- executeLeaves(leaves)
+            shouldStop = j.isLeaf || anyFailures(leafResults)
+            next = if (shouldStop) None else Some(j.removeAll(leaves))
             resultsSoFar <- loop(next, acc ++ leafResults)
           } yield resultsSoFar
         }
@@ -54,4 +60,6 @@ final class LeavesFirstExecuter(implicit executionContext: ExecutionContext) ext
 
     loop(Option(job), Map.empty)
   }
+  
+  private def anyFailures(m: Map[LJob, LJob.Result]): Boolean = m.values.exists(_.isFailure) 
 }

@@ -41,8 +41,8 @@ object CoreTool {
   final case class CheckPreExistingPcaWeightsFile(pcaWeightsFile: Path) extends 
       Tool.CheckPreexisting(pcaWeightsFile, StoreSpec(Sigs.sampleIdAndIntToDouble))
   
-  final case class Phase(config: ShapeItConfig, inputVcf: Path, outputVcf: Path) extends Tool.OneToOne(vcfStore(inputVcf) ~> vcfStore(outputVcf)) {
-    override val id: LId = LNamedId(s"Phasing '$inputVcf', producing '$outputVcf'")
+  final case class Phase(config: ShapeItConfig, inputVcf: Path, outputHaps: Path) extends Tool.OneToOne(vcfStore(inputVcf) ~> vcfStore(outputHaps)) {
+    override val id: LId = LNamedId(s"Phasing '$inputVcf', producing '$outputHaps'")
   }
   
   final case class Impute(config: Impute2Config, inputVcf: Path, output: Path) extends Tool.OneToOne(vcfStore(inputVcf) ~> imputationResults(output)) {

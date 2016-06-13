@@ -29,7 +29,6 @@ object ImputationConfig extends ConfigCompanion[ImputationConfig] {
     
     for {
       shapeItTsConfig <- config.tryGetConfig(shapeIt)
-      _ = println(shapeItTsConfig)
       shapeItConfig <- ShapeItConfig.fromConfig(shapeItTsConfig)
       impute2TsConfig <- config.tryGetConfig(impute2)
       impute2Config <- Impute2Config.fromConfig(impute2TsConfig)

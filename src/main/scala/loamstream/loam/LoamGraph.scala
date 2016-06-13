@@ -54,4 +54,11 @@ case class LoamGraph(stores: Set[StoreBuilder], tools: Set[ToolBuilder],
 
   def +(store: StoreBuilder, source: StoreSource): LoamGraph = copy(storeSources = storeSources + (store -> source))
 
+  def toolsPreceding(tool: ToolBuilder): Set[ToolBuilder] =
+    toolInputs.getOrElse(tool, Set.empty).flatMap(storeSources.get).collect({
+      case StoreSource.FromTool(toolPreceding) => toolPreceding
+    })
+
+  def toolsSucceeding(tool: ToolBuilder): Set[ToolBuilder] =
+    toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers.get).flatten
 }

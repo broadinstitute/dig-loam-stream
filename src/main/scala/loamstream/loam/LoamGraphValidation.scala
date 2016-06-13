@@ -147,9 +147,25 @@ object LoamGraphValidation {
     }
   }
 
+  val graphIsAcyclic = new LoamGlobalRule[Set[ToolBuilder]] {
+    override def apply(graph: LoamGraph, unit: Unit): Seq[LoamGlobalIssue[Set[ToolBuilder]]] = {
+      var tools = graph.tools
+      var makingProgress = true
+      while (tools.nonEmpty && makingProgress) {
+        val toolsNew =
+          tools.intersect(tools.flatMap(graph.toolsPreceding)).intersect(tools.flatMap(graph.toolsSucceeding))
+        makingProgress = toolsNew.size < tools.size
+        tools = toolsNew
+      }
+      issueIf(tools.nonEmpty,
+        newIssue[Unit, Set[ToolBuilder]](graph, this, (), tools, Severity.Error,
+          s"Graph contains one or more cycles including tools ${tools.mkString(", ")}"))
+    }
+  }
+
   val consistencyRules = Seq(eachStoreHasASource, eachToolSourcedStoreIsOutputOfThatTool,
     eachStoresIsInputOfItsConsumers, eachToolsInputStoresArePresent, eachToolsOutputStoresArePresent)
   val connectivityRules = Seq(eachStoreIsConnectedToATool, eachToolHasEitherInputsOrOutputs, allToolsAreConnected)
-  val allRules = consistencyRules ++ connectivityRules
+  val allRules = consistencyRules ++ connectivityRules :+ graphIsAcyclic
 
 }

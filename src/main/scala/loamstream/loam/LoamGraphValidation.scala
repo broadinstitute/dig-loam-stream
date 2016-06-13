@@ -14,10 +14,11 @@ object LoamGraphValidation {
   type LoamGlobalIssue[Details] = LoamIssue[LoamGraph, Details]
   type LoamStoreIssue[Details] = LoamIssue[StoreBuilder, Details]
   type LoamToolIssue[Details] = LoamIssue[ToolBuilder, Details]
+  type LoamSourceIssue[Details] = LoamIssue[(StoreBuilder, LoamGraph.StoreSource), Details]
 
-  def storeIssue[Details](graph: LoamGraph, rule: LoamStoreRule[Details], store: StoreBuilder, details: Details,
-                          severity: Severity, message: String): LoamStoreIssue[Details] =
-    Issue[LoamGraph, StoreBuilder, Details](graph, rule, store, details, severity, message)
+  def newIssue[Target, Details](graph: LoamGraph, rule: LoamRule[Target, Details], target: Target, details: Details,
+                                severity: Severity, message: String): LoamIssue[Target, Details] =
+    Issue[LoamGraph, Target, Details](graph, rule, target, details, severity, message)
 
   def issueIf[I <: LoamIssue[_, _]](cond: Boolean, issue: I): Seq[I] = if (cond) Seq(issue) else Seq.empty
 
@@ -32,12 +33,28 @@ object LoamGraphValidation {
     override def targets(graph: LoamGraph): Seq[ToolBuilder] = graph.tools.toSeq
   }
 
+  trait LoamSourceRule[Details] extends LoamRule[(StoreBuilder, LoamGraph.StoreSource), Details] {
+    override def targets(graph: LoamGraph): Seq[(StoreBuilder, LoamGraph.StoreSource)] = graph.storeSources.toSeq
+  }
+
   val eachStoreHasASource = new LoamStoreRule[Unit] {
     override def apply(graph: LoamGraph, store: StoreBuilder): Seq[LoamStoreIssue[Unit]] =
       issueIf(graph.storeSources.get(store).isEmpty,
-        storeIssue[Unit](graph, this, store, (), Severity.Error, s"No source for $store"))
+        newIssue[StoreBuilder, Unit](graph, this, store, (), Severity.Error, s"No source for store $store"))
   }
 
-  val allRules = Seq(eachStoreHasASource)
+  val eachStoreSourceFromToolHasTool = new LoamSourceRule[Unit] {
+    override def apply(graph: LoamGraph, sourceEntry: (StoreBuilder, LoamGraph.StoreSource)):
+    Seq[LoamSourceIssue[Unit]] = sourceEntry match {
+      case (store, fromTool: LoamGraph.StoreSource.FromTool) =>
+        val tool = fromTool.tool
+        issueIf(!graph.tools(tool),
+          newIssue[(StoreBuilder, LoamGraph.StoreSource), Unit](graph, this, (store, fromTool), (), Severity.Error,
+            s"Store $store has source from tool $tool, but this tool is not part of the graph."))
+      case _ => Seq.empty
+    }
+  }
+
+  val allRules = Seq(eachStoreHasASource, eachStoreSourceFromToolHasTool)
 
 }

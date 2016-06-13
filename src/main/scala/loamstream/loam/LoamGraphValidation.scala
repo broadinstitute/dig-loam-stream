@@ -9,9 +9,8 @@ import loamstream.util.Validator.{Issue, Rule, Severity}
 object LoamGraphValidation {
 
   type LoamRule[Target, Details] = Rule[LoamGraph, Target, Details]
-  type LoamGlobalRule[Details] = Rule.SingleTarget[LoamGraph, Details]
   type LoamIssue[Target, Details] = Issue[LoamGraph, Target, Details]
-  type LoamGlobalIssue[Details] = LoamIssue[LoamGraph, Details]
+  type LoamGlobalIssue[Details] = LoamIssue[Unit, Details]
   type LoamStoreIssue[Details] = LoamIssue[StoreBuilder, Details]
   type LoamToolIssue[Details] = LoamIssue[ToolBuilder, Details]
   type LoamSourceIssue[Details] = LoamIssue[(StoreBuilder, LoamGraph.StoreSource), Details]
@@ -25,6 +24,10 @@ object LoamGraphValidation {
 
   def issueIfElseIf[I <: LoamIssue[_, _]](cond1: Boolean, issue1: I, cond2: Boolean, issue2: I): Seq[I] =
     if (cond1) Seq(issue1) else if (cond2) Seq(issue2) else Seq.empty
+
+  trait LoamGlobalRule[Details] extends LoamRule[Unit, Details] {
+    override def targets(graph: LoamGraph): Seq[Unit] = Seq(())
+  }
 
   trait LoamStoreRule[Details] extends LoamRule[StoreBuilder, Details] {
     override def targets(graph: LoamGraph): Seq[StoreBuilder] = graph.stores.toSeq
@@ -92,7 +95,61 @@ object LoamGraphValidation {
     }
   }
 
-  val allRules = Seq(eachStoreHasASource, eachToolSourcedStoreIsOutputOfThatTool, eachStoresIsInputOfItsConsumers,
-    eachToolsInputStoresArePresent, eachToolsOutputStoresArePresent)
+  val eachStoreIsConnectedToATool = new LoamStoreRule[Unit] {
+    override def apply(graph: LoamGraph, store: StoreBuilder): Seq[LoamStoreIssue[Unit]] = {
+      val storeIsInput = graph.storeConsumers.contains(store)
+      val storeIsOutput = graph.storeSources.get(store) match {
+        case Some(fromTool: LoamGraph.StoreSource.FromTool) => true
+        case _ => false
+      }
+      issueIf(!(storeIsInput || storeIsOutput),
+        newIssue[StoreBuilder, Unit](graph, this, store, (), Severity.Error,
+          s"Store $store is neither input nor output of any tool."))
+    }
+  }
+
+  val eachToolHasEitherInputsOrOutputs = new LoamToolRule[Unit] {
+    override def apply(graph: LoamGraph, tool: ToolBuilder): Seq[LoamToolIssue[Unit]] = {
+      val hasNoInputs = graph.toolInputs.getOrElse(tool, Set.empty).isEmpty
+      val hasNoOutputs = graph.toolOutputs.getOrElse(tool, Set.empty).isEmpty
+      issueIf(hasNoInputs && hasNoOutputs,
+        newIssue[ToolBuilder, Unit](graph, this, tool, (), Severity.Error,
+          s"Tool $tool has neither inputs nor outputs."))
+    }
+  }
+
+  val allToolsAreConnected = new LoamGlobalRule[(ToolBuilder, ToolBuilder)] {
+    def nearestNeighbours(graph: LoamGraph, tool: ToolBuilder): Set[ToolBuilder] =
+      graph.toolsPreceding(tool) ++ graph.toolsSucceeding(tool)
+
+    override def apply(graph: LoamGraph, unit: Unit): Seq[LoamGlobalIssue[(ToolBuilder, ToolBuilder)]] = {
+      if (graph.tools.size > 1) {
+        val tool1 = graph.tools.head
+        var connectedTools = Set(tool1)
+        var front = connectedTools
+        while (front.nonEmpty) {
+          connectedTools ++= front
+          front = front.flatMap(nearestNeighbours(graph, _)) -- connectedTools
+        }
+        val disconnectedTools = graph.tools -- connectedTools
+        if (disconnectedTools.nonEmpty) {
+          val tool2 = disconnectedTools.head
+          val issue =
+            newIssue[Unit, (ToolBuilder, ToolBuilder)](graph, this, (), (tool1, tool2), Severity.Error,
+              s"Tools $tool1 and $tool2 are not connected.")
+          Seq(issue)
+        } else {
+          Seq.empty
+        }
+      } else {
+        Seq.empty
+      }
+    }
+  }
+
+  val consistencyRules = Seq(eachStoreHasASource, eachToolSourcedStoreIsOutputOfThatTool,
+    eachStoresIsInputOfItsConsumers, eachToolsInputStoresArePresent, eachToolsOutputStoresArePresent)
+  val connectivityRules = Seq(eachStoreIsConnectedToATool, eachToolHasEitherInputsOrOutputs, allToolsAreConnected)
+  val allRules = consistencyRules ++ connectivityRules
 
 }

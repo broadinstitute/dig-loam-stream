@@ -17,7 +17,7 @@ object Validator {
 
     override def apply(item: Item): Seq[Issue[Item, Target, Details]] = targets(item).flatMap(apply(item, _))
 
-    def apply(item: Item, location: Target): Seq[Issue[Item, Target, Details]]
+    def apply(item: Item, target: Target): Seq[Issue[Item, Target, Details]]
   }
 
   object Rule {

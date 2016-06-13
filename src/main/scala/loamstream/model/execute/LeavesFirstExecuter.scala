@@ -50,7 +50,7 @@ final class LeavesFirstExecuter(implicit executionContext: ExecutionContext) ext
           
           for {
             leafResults <- executeLeaves(leaves)
-            shouldStop = j.isLeaf || anyFailures(leafResults)
+            shouldStop = j.isLeaf //|| anyFailures(leafResults)
             next = if (shouldStop) None else Some(j.removeAll(leaves))
             resultsSoFar <- loop(next, acc ++ leafResults)
           } yield resultsSoFar

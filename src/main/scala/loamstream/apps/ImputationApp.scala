@@ -83,15 +83,15 @@ object ImputationApp extends Loggable {
 
     val configFile = args(1)
 
-    val config = ImputationConfig(configFile)
-    val shapeItExecutable = config.shapeItExecutable
-    val shapeItWorkDir = config.shapeItWorkDir
-    val vcf = config.shapeItVcfFile
-    val map = config.shapeItMapFile
-    val haps = config.shapeItHapFile
-    val samples = config.shapeItSampleFile
-    val log = config.shapeItLogFile
-    val numThreads = config.shapeItNumThreads
+    val config = ImputationConfig.fromFile(configFile).get
+    val shapeItExecutable = config.shapeIt.executable
+    val shapeItWorkDir = config.shapeIt.workDir
+    val vcf = config.shapeIt.vcfFile
+    val map = config.shapeIt.mapFile
+    val haps = config.shapeIt.hapFile
+    val samples = config.shapeIt.sampleFile
+    val log = config.shapeIt.logFile
+    val numThreads = config.shapeIt.numThreads
 
     val shapeItTokens = getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads)
     val commandLine = ShapeItCommandLine(shapeItTokens)
@@ -120,8 +120,8 @@ object ImputationApp extends Loggable {
     trace("Attempting to run ShapeIt...")
 
     val configFile = args(1)
-    val shapeItConfig = ImputationConfig(configFile)
-    val shapeItScript = shapeItConfig.shapeItScript.toString
+    val shapeItConfig = ImputationConfig.fromFile(configFile).get
+    val shapeItScript = shapeItConfig.shapeIt.script.toString
     val ugerConfig = UgerConfig(configFile).get //TODO: Fragile
     val ugerLog = ugerConfig.ugerLogFile.toString
 

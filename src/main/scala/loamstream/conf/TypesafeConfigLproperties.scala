@@ -22,8 +22,6 @@ final case class TypesafeConfigLproperties(config: Config) extends LProperties {
       s <- config.tryGetString(fullKey)
     } yield s
   }
-
-  override def tryGetPath(key: String): Try[Path] = tryGetString(key).map(Paths.get(_))
 }
 
 object TypesafeConfigLproperties {

@@ -34,6 +34,11 @@ final class MockLJob(override val inputs: Set[LJob], val toReturn: LJob.Result) 
 
 object MockLJob {
   def apply(inputs: Set[LJob], toReturn: LJob.Result): MockLJob = new MockLJob(inputs, toReturn)
+
+  def unapply(job: LJob): Option[(Set[LJob], LJob.Result)] = job match {
+    case mj: MockLJob => Some(mj.inputs -> mj.toReturn)
+    case _ => None
+  }
   
   private[this] var latestId: Int = 0
   

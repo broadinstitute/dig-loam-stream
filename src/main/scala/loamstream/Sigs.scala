@@ -16,6 +16,9 @@ object Sigs {
   val sampleIdAndIntToDouble: Type = typeOf[Map[(String, Int), Double]]
 
   val sampleIds: Type = typeOf[Set[String]]
+  
+  //TODO
+  val imputationResults: Type = typeOf[Set[String]]
 
   def sig[T: TypeTag]: Type = typeOf[T]
   

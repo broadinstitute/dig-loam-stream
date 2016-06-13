@@ -12,42 +12,46 @@ import com.typesafe.config.ConfigFactory
   */
 final class ImputationConfigTest extends FunSuite {
   test("Config file is correctly parsed") {
-    val config = ImputationConfig(ConfigFactory.load("loamstream-test"))
+    val config = ImputationConfig.fromConfig(ConfigFactory.load("loamstream-test")).get
 
     // Single fields are correctly parsed
-    assert(config.shapeItExecutable == Paths.get("/humgen/diabetes/users/ryank/software/shapeit/bin/shapeit"))
+    assert(config.shapeIt.executable == Paths.get("/humgen/diabetes/users/ryank/software/shapeit/bin/shapeit"))
     
-    assert(config.shapeItScript == Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/shapeit.sh"))
+    assert(config.impute2.executable == Paths.get("/humgen/diabetes/users/ryank/software/shapeit/bin/impute2"))
     
-    assert(config.shapeItWorkDir == Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example"))
+    assert(config.shapeIt.script == Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/shapeit.sh"))
     
-    val expectedNumThreads: Int = 16
+    assert(config.shapeIt.workDir == Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example"))
     
-    assert(config.shapeItNumThreads == expectedNumThreads)
+    assert(config.impute2.workDir == Paths.get("/humgen/diabetes/users/kyuksel/imputation/impute2_example"))
+    
+    val expectedNumThreads: Int = 8
+    
+    assert(config.shapeIt.numThreads == expectedNumThreads)
 
     // Composite fields are correctly formed
-    assert(config.shapeItMapFile == 
+    assert(config.shapeIt.mapFile == 
         Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/genetic_map.txt.gz"))
   }
 
   test("Config objects are correctly parsed") {
     import com.typesafe.config.{Config, ConfigFactory}
 
-    // Empty config object triggers exception
-    intercept[NoSuchElementException] {
-      ImputationConfig(ConfigFactory.empty)
-    }
+    // Empty config object triggers failure
+    assert(ImputationConfig.fromConfig(ConfigFactory.empty).isFailure)
 
     // Valid config is processed correctly
     val testConfFile = Paths.get("src/test/resources/loamstream-test.conf").toFile
     
-    val config = ImputationConfig(ConfigFactory.parseFile(testConfFile))
+    val config = ImputationConfig.fromConfig(ConfigFactory.parseFile(testConfFile)).get
 
     // Single fields are correctly parsed
-    assert(config.shapeItScript == Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/shapeit.sh"))
+    assert(config.shapeIt.script == Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/shapeit.sh"))
 
     // Composite fields are correctly formed
-    assert(config.shapeItMapFile == 
+    assert(config.shapeIt.mapFile == 
         Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/genetic_map.txt.gz"))
+        
+        
   }
 }

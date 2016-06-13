@@ -6,68 +6,35 @@ import java.nio.file.Paths
 import com.typesafe.config.{Config, ConfigFactory}
 import java.nio.file.Path
 import loamstream.util.PathEnrichments
+import scala.util.Try
+import loamstream.util.ConfigEnrichments
 
 /**
  * Created on: 5/4/16 
  * @author Kaan Yuksel 
  */
-final case class ImputationConfig private (
-    shapeItWorkDir: Path, 
-    shapeItExecutable: Path, 
-    shapeItScript: Path,
-    shapeItVcfFile: Path, 
-    shapeItMapFile: Path, 
-    shapeItHapFile: Path,
-    shapeItSampleFile: Path, 
-    shapeItLogFile: Path, 
-    shapeItNumThreads: Int)
+final case class ImputationConfig(shapeIt: ShapeItConfig, impute2: Impute2Config)
 
-object ImputationConfig {
+object ImputationConfig extends ConfigCompanion[ImputationConfig] {
   
-  object Keys extends TypesafeConfig.KeyHolder("imputation.shapeit") {
-    val workDirKey = key("workDir")
-    val executableKey = key("executable")
-    val scriptKey = key("script")
-    val vcfFileKey = key("vcfFile")
-    val mapFileKey = key("mapFile")
-    val hapFileKey = key("hapFile")
-    val sampleFileKey = key("sampleFile")
-    val logFileKey = key("logFile")
-    val numThreadsKey = key("numThreads")
+  object Keys extends TypesafeConfig.KeyHolder("loamstream.imputation") {
+    val shapeIt = key("shapeit")
+    val impute2 = key("impute2")
   }
-
-  def apply(configFile: String): ImputationConfig = {
-    val config = TypesafeConfig.fromFile(configFile)
+  
+  override def fromConfig(config: Config): Try[ImputationConfig] = {
     
-    ImputationConfig(config)
-  }
-
-  def apply(config: Config): ImputationConfig = {
-    val shapeItProps = TypesafeConfigLproperties(config)
-
+    import ConfigEnrichments._
     import Keys._
-    import PathEnrichments._
     
-    val shapeItWorkDir = Paths.get(shapeItProps.getString(workDirKey).get)
-    val shapeItExecutable = Paths.get(shapeItProps.getString(executableKey).get)
-    val shapeItScript = Paths.get(shapeItProps.getString(scriptKey).get)
-    
-    val shapeItVcfFile = shapeItWorkDir / shapeItProps.getString(vcfFileKey).get
-    val shapeItMapFile = shapeItWorkDir / shapeItProps.getString(mapFileKey).get
-    val shapeItHapFile = shapeItWorkDir / shapeItProps.getString(hapFileKey).get
-    val shapeItSampleFile = shapeItWorkDir / shapeItProps.getString(sampleFileKey).get
-    val shapeItLogFile = shapeItWorkDir / shapeItProps.getString(logFileKey).get
-    val shapeItNumThreads = shapeItProps.getString(numThreadsKey).get.toInt
-
-    ImputationConfig(
-        shapeItWorkDir, 
-        shapeItExecutable, 
-        shapeItScript, 
-        shapeItVcfFile, 
-        shapeItMapFile, 
-        shapeItHapFile,
-        shapeItSampleFile, 
-        shapeItLogFile, 
-        shapeItNumThreads)
+    for {
+      shapeItTsConfig <- config.tryGetConfig(shapeIt)
+      _ = println(shapeItTsConfig)
+      shapeItConfig <- ShapeItConfig.fromConfig(shapeItTsConfig)
+      impute2TsConfig <- config.tryGetConfig(impute2)
+      impute2Config <- Impute2Config.fromConfig(impute2TsConfig)
+    } yield {
+      ImputationConfig(shapeItConfig, impute2Config)
+    }
   }
 }

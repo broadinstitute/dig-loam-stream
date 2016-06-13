@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import com.typesafe.config.ConfigFactory
 import scala.util.Try
+import java.nio.file.Paths
 
 /**
   * LoamStream
@@ -12,11 +13,15 @@ import scala.util.Try
 trait LProperties {
   def tryGetString(key: String): Try[String]
 
-  def tryGetPath(key: String): Try[Path]
+  def tryGetPath(key: String): Try[Path] = tryGetString(key).map(Paths.get(_))
+  
+  def tryGetInt(key: String): Try[Int] = tryGetString(key).map(_.toInt)
   
   def getString(key: String): Option[String] = tryGetString(key).toOption
 
   def getPath(key: String): Option[Path] = tryGetPath(key).toOption
+  
+  def getInt(key: String): Option[Int] = tryGetInt(key).toOption
 }
 
 object LProperties {

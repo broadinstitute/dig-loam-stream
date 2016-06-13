@@ -7,6 +7,21 @@ import org.scalatest.FunSuite
  * date: May 27, 2016
  */
 final class JobTest extends FunSuite with TestJobs {
+  test("chunks()") {
+    def jobToString(j: LJob): String = {
+      val MockLJob(_, LJob.SimpleSuccess(msg)) = j
+      
+      msg
+    }
+    
+    val expected = Seq(
+      Set("2(0)", "2(1)"),
+      Set("2 + 2"),
+      Set("(2 + 2) + 1"))
+      
+    assert(plusOne.chunks.map(_.map(jobToString)).toIndexedSeq == expected)
+  }
+  
   test("Result.attempt() (something thrown)") {
     val ex = new Exception("foo")
     

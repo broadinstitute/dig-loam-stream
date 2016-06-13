@@ -1,6 +1,6 @@
 package loamstream.util
 
-import loamstream.util.Validator.{Issue, Rule}
+import loamstream.util.Validator.{IssueBase, RuleBase}
 
 /**
   * LoamStream
@@ -8,20 +8,26 @@ import loamstream.util.Validator.{Issue, Rule}
   */
 object Validator {
 
-  trait Rule[Item] {
-    def apply(item: Item): Seq[Issue[Item]]
+  trait RuleBase[Item] {
+    def apply(item: Item): Seq[IssueBase[Item]]
   }
 
-  trait GlobalRule[Item] extends Rule[Item] {
-    override def apply(item: Item): Seq[GlobalIssue[Item]]
+  trait Rule[Item, Target, Details] extends RuleBase[Item] {
+    def targets(item: Item): Seq[Target]
+
+    override def apply(item: Item): Seq[Issue[Item, Target, Details]] = targets(item).flatMap(apply(item, _))
+
+    def apply(item: Item, location: Target): Seq[Issue[Item, Target, Details]]
   }
 
-  trait LocalRule[Item, Location] extends Rule[Item] {
-    def locations(item: Item): Seq[Location]
+  object Rule {
 
-    override def apply(item: Item): Seq[LocalIssue[Item, Location]] = locations(item).flatMap(apply(item, _))
+    trait SingleTarget[Item, Details] extends Rule[Item, Item, Details] {
+      override def targets(item: Item): Seq[Item] = Seq(item)
+    }
 
-    def apply(item: Item, location: Location): Seq[LocalIssue[Item, Location]]
+    trait NoDetails[Item, Targets] extends Rule[Item, Targets, Unit]
+
   }
 
   trait Severity
@@ -34,27 +40,28 @@ object Validator {
 
   }
 
-  trait Issue[Item] {
+  trait IssueBase[Item] {
     def item: Item
 
-    def rule: Rule[Item]
+    def rule: RuleBase[Item]
+
+    def target: Any
+
+    def details: Any
 
     def severity: Severity
 
     def message: String
   }
 
-  case class GlobalIssue[Item](item: Item, rule: GlobalRule[Item], severity: Severity, message: String)
-    extends Issue[Item]
-
-  case class LocalIssue[Item, Location](item: Item, location: Location, rule: LocalRule[Item, Location],
-                                        severity: Severity, message: String)
-    extends Issue
+  final case class Issue[Item, Target, Details](item: Item, rule: Rule[Item, Target, Details], target: Target,
+                                                details: Details, severity: Severity, message: String)
+    extends IssueBase[Item]
 
 }
 
-case class Validator[Item](rules: Seq[Rule[Item]]) {
+case class Validator[Item](rules: Seq[RuleBase[Item]]) {
 
-  def validate(item: Item): Seq[Issue[Item]] = rules.flatMap(rule => rule(item))
+  def validate(item: Item): Seq[IssueBase[Item]] = rules.flatMap(rule => rule(item))
 
 }

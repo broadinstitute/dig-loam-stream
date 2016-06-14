@@ -2,7 +2,7 @@ package loamstream.loam
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.LoamCompiler
-import loamstream.loam.LoamGraph.StoreSource
+import loamstream.loam.LoamGraph.StoreEdge
 import org.scalatest.FunSuite
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,22 +15,24 @@ class LoamGraphValidationTest extends FunSuite {
 
   val code =
     """
-  val inputFile = key[Path]
-  val phaseCommand = key[String]
-  val imputeCommand = key[String]
-
-  inputFile := path("/user/home/someone/data.vcf")
-  phaseCommand := "shapeit"
-  imputeCommand := "impute2"
-
-  val raw = store[VCF].from(inputFile)
-  val phased = store[VCF]
-  val template = store[VCF].from(path("/home/myself/template.vcf"))
-  val imputed = store[VCF]
-
-  cmd"$phaseCommand -in $raw -out $phased"
-  cmd"$imputeCommand -in $phased -template $template -out $imputed"
-    """
+      |val inputFile = key[Path]
+      |val outputFile = key[Path]
+      |val phaseCommand = key[String]
+      |val imputeCommand = key[String]
+      |
+      |inputFile := path("/user/home/someone/data.vcf")
+      |outputFile := path("/user/home/someone/dataImputed.vcf")
+      |phaseCommand := "shapeit"
+      |imputeCommand := "impute2"
+      |
+      |val raw = store[VCF].from(inputFile)
+      |val phased = store[VCF]
+      |val template = store[VCF].from(path("/home/myself/template.vcf"))
+      |val imputed = store[VCF].to(outputFile)
+      |
+      |cmd"$phaseCommand -in $raw -out $phased"
+      |cmd"$imputeCommand -in $phased -template $template -out $imputed"
+      |""".stripMargin
 
   val graph = {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
@@ -49,7 +51,7 @@ class LoamGraphValidationTest extends FunSuite {
   test("Test rule eachToolSourcedStoreIsOutputOfThatTool") {
     val someTool = graph.tools.head
     val storeSourcesAllFromSameTool =
-      graph.storeSources.mapValues(source => StoreSource.FromTool(someTool)).view.force
+      graph.storeSources.mapValues(source => StoreEdge.ToolEdge(someTool)).view.force
     val graphBroken = graph.copy(storeSources = storeSourcesAllFromSameTool)
     assert(LoamGraphValidation.eachToolSourcedStoreIsOutputOfThatTool(graphBroken).nonEmpty)
   }
@@ -68,7 +70,7 @@ class LoamGraphValidationTest extends FunSuite {
     assert(LoamGraphValidation.eachToolsOutputStoresArePresent(graphBroken).nonEmpty)
   }
   test("Test rule eachStoreIsConnectedToATool") {
-    val graphBroken = graph.copy(storeSources = Map.empty, storeConsumers = Map.empty)
+    val graphBroken = graph.copy(storeSources = Map.empty, storeSinks = Map.empty)
     assert(LoamGraphValidation.eachStoreIsConnectedToATool(graphBroken).nonEmpty)
   }
   test("Test rule eachToolHasEitherInputsOrOutputs") {

@@ -1,6 +1,6 @@
 package loamstream.loam
 
-import loamstream.loam.LoamGraph.StoreSource
+import loamstream.loam.LoamGraph.StoreEdge
 
 /**
   * LoamStream
@@ -20,8 +20,13 @@ class LoamGraphBuilder {
     this
   }
 
-  def addSource(store: StoreBuilder, source: StoreSource): LoamGraphBuilder = {
-    graph += (store, source)
+  def addSource(store: StoreBuilder, source: StoreEdge): LoamGraphBuilder = {
+    graph = graph.withStoreSource(store, source)
+    this
+  }
+
+  def addSink(store: StoreBuilder, sink: StoreEdge): LoamGraphBuilder = {
+    graph = graph.withStoreSink(store, sink)
     this
   }
 

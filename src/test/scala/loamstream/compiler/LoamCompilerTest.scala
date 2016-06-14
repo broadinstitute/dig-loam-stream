@@ -3,7 +3,7 @@ package loamstream.compiler
 import java.nio.file.Paths
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
-import loamstream.loam.LoamGraph.StoreSource
+import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraphValidation
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.SourceUtils
@@ -41,12 +41,12 @@ final class LoamCompilerTest extends FunSuite {
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.tools.nsc.Settings"))
   }
 
-  test("Testing compilation of legal code fragment with no settings.") {
+  test("Testing compilation of legal code fragment with no settings (saying 'Hello!').") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
     val code = {
       """
-     val hello = "Hello!"
-     println(hello.replace("!", "?").size)
+     val hello = "Yo!".replace("Yo", "Hello")
+     println(s"A code fragment used to test the Loam compiler says '$hello'")
       """
     }
     val result = compiler.compile(code)
@@ -107,8 +107,8 @@ final class LoamCompilerTest extends FunSuite {
     assert(graph.tools.size === 2)
     assert(graph.stores.size === 4)
     val sources = graph.storeSources.values.toSet
-    assert(!sources.forall(_.isInstanceOf[StoreSource.FromTool]))
-    assert(sources.collect({ case StoreSource.FromTool(tool) => tool }) == graph.tools)
+    assert(!sources.forall(_.isInstanceOf[StoreEdge.ToolEdge]))
+    assert(sources.collect({ case StoreEdge.ToolEdge(tool) => tool }) == graph.tools)
     val validationIssues = LoamGraphValidation.allRules(graph)
     assert(validationIssues.isEmpty)
   }

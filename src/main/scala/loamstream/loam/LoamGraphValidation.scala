@@ -1,5 +1,6 @@
 package loamstream.loam
 
+import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
 import loamstream.util.Validation
 import loamstream.util.Validation.{BulkIssue, BulkValidation, Issue, Severity, SimpleIssue}
 
@@ -14,7 +15,7 @@ object LoamGraphValidation {
   type LoamBulkIssue[Target, Details] = BulkIssue[LoamGraph, Target, Details]
   type LoamStoreIssue[Details] = LoamBulkIssue[StoreBuilder, Details]
   type LoamToolIssue[Details] = LoamBulkIssue[ToolBuilder, Details]
-  type LoamSourceIssue[Details] = LoamBulkIssue[(StoreBuilder, LoamGraph.StoreSource), Details]
+  type LoamSourceIssue[Details] = LoamBulkIssue[(StoreBuilder, LoamGraph.StoreEdge), Details]
   type LoamConsumerIssue[Details] = LoamBulkIssue[(StoreBuilder, ToolBuilder), Details]
 
   def newIssue[Details](graph: LoamGraph, rule: LoamGlobalRule[Details], details: Details, severity: Severity,
@@ -42,13 +43,14 @@ object LoamGraphValidation {
     override def targets(graph: LoamGraph): Seq[ToolBuilder] = graph.tools.toSeq
   }
 
-  trait LoamSourceRule[Details] extends LoamBulkRule[(StoreBuilder, LoamGraph.StoreSource), Details] {
-    override def targets(graph: LoamGraph): Seq[(StoreBuilder, LoamGraph.StoreSource)] = graph.storeSources.toSeq
+  trait LoamSourceRule[Details] extends LoamBulkRule[(StoreBuilder, LoamGraph.StoreEdge), Details] {
+    override def targets(graph: LoamGraph): Seq[(StoreBuilder, LoamGraph.StoreEdge)] = graph.storeSources.toSeq
   }
 
   trait LoamConsumerRule[Details] extends LoamBulkRule[(StoreBuilder, ToolBuilder), Details] {
     override def targets(graph: LoamGraph): Seq[(StoreBuilder, ToolBuilder)] =
-      graph.storeConsumers.flatMap({ case (store, tools) => tools.map((store, _)) }).toSeq
+      graph.stores.flatMap(store =>
+        graph.storeSinks.getOrElse(store, Set.empty).collect({ case ToolEdge(tool) => (store, tool) })).toSeq
   }
 
   val eachStoreHasASource: LoamStoreRule[Unit] = new LoamStoreRule[Unit] {
@@ -58,15 +60,15 @@ object LoamGraphValidation {
   }
 
   val eachToolSourcedStoreIsOutputOfThatTool: LoamSourceRule[Unit] = new LoamSourceRule[Unit] {
-    override def apply(graph: LoamGraph, sourceEntry: (StoreBuilder, LoamGraph.StoreSource)):
+    override def apply(graph: LoamGraph, sourceEntry: (StoreBuilder, LoamGraph.StoreEdge)):
     Seq[LoamSourceIssue[Unit]] = sourceEntry match {
-      case (store, fromTool: LoamGraph.StoreSource.FromTool) =>
+      case (store, fromTool: LoamGraph.StoreEdge.ToolEdge) =>
         val tool = fromTool.tool
         issueIfElseIf(!graph.tools(tool),
-          newBulkIssue[(StoreBuilder, LoamGraph.StoreSource), Unit](graph, this, (store, fromTool), (), Severity.Error,
+          newBulkIssue[(StoreBuilder, LoamGraph.StoreEdge), Unit](graph, this, (store, fromTool), (), Severity.Error,
             s"Store $store has as source tool $tool, but this tool is not part of the graph."),
           !graph.toolOutputs.getOrElse(tool, Set.empty).contains(store),
-          newBulkIssue[(StoreBuilder, LoamGraph.StoreSource), Unit](graph, this, (store, fromTool), (), Severity.Error,
+          newBulkIssue[(StoreBuilder, LoamGraph.StoreEdge), Unit](graph, this, (store, fromTool), (), Severity.Error,
             s"Store $store has as source tool $tool, but is not an output of that tool."))
       case _ => Seq.empty
     }
@@ -102,11 +104,8 @@ object LoamGraphValidation {
 
   val eachStoreIsConnectedToATool: LoamStoreRule[Unit] = new LoamStoreRule[Unit] {
     override def apply(graph: LoamGraph, store: StoreBuilder): Seq[LoamStoreIssue[Unit]] = {
-      val storeIsInput = graph.storeConsumers.contains(store)
-      val storeIsOutput = graph.storeSources.get(store) match {
-        case Some(fromTool: LoamGraph.StoreSource.FromTool) => true
-        case _ => false
-      }
+      val storeIsInput = graph.storeConsumers(store).nonEmpty
+      val storeIsOutput = graph.storeProducers(store).nonEmpty
       issueIf(!(storeIsInput || storeIsOutput),
         newBulkIssue[StoreBuilder, Unit](graph, this, store, (), Severity.Error,
           s"Store $store is neither input nor output of any tool."))

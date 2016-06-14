@@ -3,7 +3,7 @@ package loamstream.loam
 import java.nio.file.Path
 
 import loamstream.LEnv
-import loamstream.loam.LoamGraph.StoreSource
+import loamstream.loam.LoamGraph.StoreEdge
 
 /**
   * LoamStream
@@ -11,15 +11,15 @@ import loamstream.loam.LoamGraph.StoreSource
   */
 object LoamGraph {
 
-  trait StoreSource
+  trait StoreEdge
 
-  object StoreSource {
+  object StoreEdge {
 
-    case class FromPath(path: Path) extends StoreSource
+    case class PathEdge(path: Path) extends StoreEdge
 
-    case class FromPathKey(key: LEnv.Key[Path]) extends StoreSource
+    case class PathKeyEdge(key: LEnv.Key[Path]) extends StoreEdge
 
-    case class FromTool(tool: ToolBuilder) extends StoreSource
+    case class ToolEdge(tool: ToolBuilder) extends StoreEdge
 
   }
 
@@ -27,10 +27,10 @@ object LoamGraph {
 }
 
 case class LoamGraph(stores: Set[StoreBuilder], tools: Set[ToolBuilder],
-                     storeSources: Map[StoreBuilder, StoreSource],
-                     storeConsumers: Map[StoreBuilder, Set[ToolBuilder]],
                      toolInputs: Map[ToolBuilder, Set[StoreBuilder]],
-                     toolOutputs: Map[ToolBuilder, Set[StoreBuilder]]) {
+                     toolOutputs: Map[ToolBuilder, Set[StoreBuilder]],
+                     storeSources: Map[StoreBuilder, StoreEdge],
+                     storeSinks: Map[StoreBuilder, Set[StoreEdge]]) {
 
   def +(store: StoreBuilder): LoamGraph = copy(stores = stores + store)
 
@@ -39,26 +39,38 @@ case class LoamGraph(stores: Set[StoreBuilder], tools: Set[ToolBuilder],
       val toolStores = tool.stores.toSet
       val toolInputStores = toolStores.filter(storeSources.contains)
       val toolOutputStores = toolStores -- toolInputStores
-      val sourceFromTool = StoreSource.FromTool(tool)
-      val outputsWithSource = toolOutputStores.map(store => store -> sourceFromTool)
-      val inputsWithConsumers = toolInputStores.map({ store =>
-        val consumers = storeConsumers.getOrElse(store, Set.empty) + tool
-        store -> consumers
-      }).toMap
-      copy(tools = tools + tool, storeSources = storeSources ++ outputsWithSource,
-        storeConsumers = storeConsumers ++ inputsWithConsumers, toolInputs = toolInputs + (tool -> toolInputStores),
-        toolOutputs = toolOutputs + (tool -> toolOutputStores))
+      val toolEdge = StoreEdge.ToolEdge(tool)
+      val outputsWithSource = toolOutputStores.map(store => store -> toolEdge)
+      val storeSinksNew =
+        toolInputStores.map(store => store -> (storeSinks.getOrElse(store, Set.empty) + toolEdge))
+      copy(tools = tools + tool, toolInputs = toolInputs + (tool -> toolInputStores),
+        toolOutputs = toolOutputs + (tool -> toolOutputStores), storeSources = storeSources ++ outputsWithSource,
+        storeSinks = storeSinks ++ storeSinksNew)
     } else {
       this
     }
 
-  def +(store: StoreBuilder, source: StoreSource): LoamGraph = copy(storeSources = storeSources + (store -> source))
+  def withStoreSource(store: StoreBuilder, source: StoreEdge): LoamGraph =
+    copy(storeSources = storeSources + (store -> source))
+
+  def withStoreSink(store: StoreBuilder, sink: StoreEdge): LoamGraph =
+    copy(storeSinks = storeSinks + (store -> (storeSinks.getOrElse(store, Set.empty) + sink)))
+
+  def storeProducers(store: StoreBuilder): Option[ToolBuilder] = storeSources.get(store).flatMap({
+    case StoreEdge.ToolEdge(tool) => Some(tool)
+    case _ => None
+  })
+
+  def storeConsumers(store: StoreBuilder): Set[ToolBuilder] = storeSinks.getOrElse(store, Set.empty).flatMap({
+    case StoreEdge.ToolEdge(tool) => Some(tool)
+    case _ => None
+  })
 
   def toolsPreceding(tool: ToolBuilder): Set[ToolBuilder] =
     toolInputs.getOrElse(tool, Set.empty).flatMap(storeSources.get).collect({
-      case StoreSource.FromTool(toolPreceding) => toolPreceding
+      case StoreEdge.ToolEdge(toolPreceding) => toolPreceding
     })
 
   def toolsSucceeding(tool: ToolBuilder): Set[ToolBuilder] =
-    toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers.get).flatten
+    toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers)
 }

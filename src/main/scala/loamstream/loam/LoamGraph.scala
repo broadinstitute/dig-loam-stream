@@ -4,6 +4,9 @@ import java.nio.file.Path
 
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.LoamToken.{EnvToken, StringToken}
+
+import scala.reflect.runtime.universe.typeOf
 
 /**
   * LoamStream
@@ -74,4 +77,18 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
 
   def toolsSucceeding(tool: LoamTool): Set[LoamTool] =
     toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers)
+
+  def withEnv(env: LEnv): LoamGraph = {
+    val toolTokensNew = toolTokens.mapValues({ tokens =>
+      val tokensMapped = tokens.map(token => token match {
+        case EnvToken(key) if key.tpe =:= typeOf[Path] => env.get(key.asInstanceOf[LEnv.Key[Path]]) match {
+          case Some(path) => StringToken(path.toString)
+          case None => token
+        }
+        case _ => token
+      })
+      LoamToken.mergeStringTokens(tokensMapped)
+    }).view.force
+    copy(toolTokens = toolTokensNew)
+  }
 }

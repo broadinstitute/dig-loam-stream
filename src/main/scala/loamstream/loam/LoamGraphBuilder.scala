@@ -1,5 +1,6 @@
 package loamstream.loam
 
+import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 
 /**
@@ -30,4 +31,7 @@ class LoamGraphBuilder {
     sink
   }
 
+  def applyEnv(env: LEnv): Unit = {
+    graph = graph.withEnv(env)
+  }
 }

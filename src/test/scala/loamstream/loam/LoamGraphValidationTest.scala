@@ -3,7 +3,6 @@ package loamstream.loam
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.LoamCompiler
 import loamstream.loam.LoamGraph.StoreSource
-import loamstream.util.Validator
 import org.scalatest.FunSuite
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,7 +38,7 @@ class LoamGraphValidationTest extends FunSuite {
     result.graphOpt.get
   }
   test("Test that valid graph passes all checks.") {
-    assert(Validator(LoamGraphValidation.allRules).validate(graph).isEmpty)
+    assert(LoamGraphValidation.allRules(graph).isEmpty)
   }
   test("Test rule eachStoreHasASource") {
     val someStore = graph.storeSources.head._1

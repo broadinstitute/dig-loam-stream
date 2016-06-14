@@ -6,7 +6,7 @@ import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamGraph.StoreSource
 import loamstream.loam.LoamGraphValidation
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.{SourceUtils, Validator}
+import loamstream.util.SourceUtils
 import org.scalatest.FunSuite
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -109,7 +109,7 @@ final class LoamCompilerTest extends FunSuite {
     val sources = graph.storeSources.values.toSet
     assert(!sources.forall(_.isInstanceOf[StoreSource.FromTool]))
     assert(sources.collect({ case StoreSource.FromTool(tool) => tool }) == graph.tools)
-    val validationIssues = Validator(LoamGraphValidation.allRules).validate(graph)
+    val validationIssues = LoamGraphValidation.allRules(graph)
     assert(validationIssues.isEmpty)
   }
 }

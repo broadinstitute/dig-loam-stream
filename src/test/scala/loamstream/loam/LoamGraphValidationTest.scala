@@ -1,8 +1,9 @@
 package loamstream.loam
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
-import loamstream.compiler.{LoamCompiler, LoamRepository}
+import loamstream.compiler.LoamCompiler
 import loamstream.loam.LoamGraph.StoreSource
+import loamstream.util.Validator
 import org.scalatest.FunSuite
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,13 +14,33 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 class LoamGraphValidationTest extends FunSuite {
 
+  val code =
+    """
+  val inputFile = key[Path]
+  val phaseCommand = key[String]
+  val imputeCommand = key[String]
+
+  inputFile := path("/user/home/someone/data.vcf")
+  phaseCommand := "shapeit"
+  imputeCommand := "impute2"
+
+  val raw = store[VCF].from(inputFile)
+  val phased = store[VCF]
+  val template = store[VCF].from(path("/home/myself/template.vcf"))
+  val imputed = store[VCF]
+
+  cmd"$phaseCommand -in $raw -out $phased"
+  cmd"$imputeCommand -in $phased -template $template -out $imputed"
+    """
+
   val graph = {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
-    val codeShot = LoamRepository.defaultRepo.get("impute.loam")
-    val result = compiler.compile(codeShot.get)
+    val result = compiler.compile(code)
     result.graphOpt.get
   }
-
+  test("Test that valid graph passes all checks.") {
+    assert(Validator(LoamGraphValidation.allRules).validate(graph).isEmpty)
+  }
   test("Test rule eachStoreHasASource") {
     val someStore = graph.storeSources.head._1
     val storeSourcesWithoutSomeStore = graph.storeSources - someStore

@@ -4,6 +4,7 @@ import java.nio.file.Paths
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamGraph.StoreSource
+import loamstream.loam.LoamGraphValidation
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.SourceUtils
 import org.scalatest.FunSuite
@@ -108,5 +109,7 @@ final class LoamCompilerTest extends FunSuite {
     val sources = graph.storeSources.values.toSet
     assert(!sources.forall(_.isInstanceOf[StoreSource.FromTool]))
     assert(sources.collect({ case StoreSource.FromTool(tool) => tool }) == graph.tools)
+    val validationIssues = LoamGraphValidation.allRules(graph)
+    assert(validationIssues.isEmpty)
   }
 }

@@ -3,7 +3,7 @@ package loamstream.loam
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, PathKeyEdge, ToolEdge}
-import loamstream.loam.ToolBuilder.{EnvToken, StoreToken, StringToken}
+import loamstream.loam.LoamToken.{EnvToken, StoreToken, StringToken}
 import loamstream.model.LId
 import loamstream.util.SourceUtils
 
@@ -27,12 +27,12 @@ case class GraphPrinter(idLength: Int) {
 
   def print(key: LEnv.Key[_], fully: Boolean): String = s"%${print(key.id)}[${print(key.tpe, fully)}]"
 
-  def print(store: StoreBuilder, fully: Boolean): String = s"@${print(store.id)}[${print(store.tpe, fully)}]"
+  def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.tpe, fully)}]"
 
-  def print(tool: ToolBuilder): String = print(tool, tool.graphBuilder.graph)
+  def print(tool: LoamTool): String = print(tool, tool.graphBuilder.graph)
 
-  def print(tool: ToolBuilder, graph: LoamGraph): String = {
-    val tokenString = tool.tokens.map({
+  def print(tool: LoamTool, graph: LoamGraph): String = {
+    val tokenString = graph.toolTokens.getOrElse(tool, Seq.empty).map({
       case StringToken(string) => string
       case EnvToken(key) => s"${print(key.id)}[${print(key.tpe, fully = false)}]"
       case StoreToken(store) =>

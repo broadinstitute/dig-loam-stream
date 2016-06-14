@@ -10,24 +10,24 @@ class LoamGraphBuilder {
 
   var graph = LoamGraph.empty
 
-  def add(store: StoreBuilder): LoamGraphBuilder = {
-    graph += store
-    this
+  def addStore(store: LoamStore): LoamStore = {
+    graph = graph.withStore(store)
+    store
   }
 
-  def add(tool: ToolBuilder): LoamGraphBuilder = {
-    graph += tool
-    this
+  def addTool(tool: LoamTool, tokens: Seq[LoamToken]): LoamTool = {
+    graph = graph.withTool(tool, tokens)
+    tool
   }
 
-  def addSource(store: StoreBuilder, source: StoreEdge): LoamGraphBuilder = {
+  def addSource(store: LoamStore, source: StoreEdge): StoreEdge = {
     graph = graph.withStoreSource(store, source)
-    this
+    source
   }
 
-  def addSink(store: StoreBuilder, sink: StoreEdge): LoamGraphBuilder = {
+  def addSink(store: LoamStore, sink: StoreEdge): StoreEdge = {
     graph = graph.withStoreSink(store, sink)
-    this
+    sink
   }
 
 }

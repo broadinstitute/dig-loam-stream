@@ -20,7 +20,7 @@ final class ImputationTest extends FunSuite {
   import Nodes._
 
   test("nothing yet") {
-    gToolNode.print()
+    //gToolNode.print()
   }
 
   private object Tools {

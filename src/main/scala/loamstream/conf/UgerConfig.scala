@@ -16,31 +16,16 @@ import scala.util.Success
  * Created on: 5/4/16 
  * @author Kaan Yuksel 
  */
-case class UgerConfig private (ugerWorkDir: Path, ugerLogFile: Path)
+final case class UgerConfig private (ugerWorkDir: Path, ugerLogFile: Path)
 
-object UgerConfig {
+object UgerConfig extends ConfigCompanion[UgerConfig] {
 
   object Keys extends TypesafeConfig.KeyHolder("uger") {
     val ugerWorkDirKey = key("workDir")
     val ugerLogFileKey = key("logFile")
   }
 
-  def apply(configFile: String): Try[UgerConfig] = {
-    def tryFile(fileName: String): Try[Path] = {
-      val path = Paths.get(fileName)
-      
-      if(path.toFile.exists) { Success(path) }
-      else { Failure(new FileNotFoundException(s"Can't find '$fileName'")) }
-    }
-    
-    for {
-      file <- tryFile(configFile)
-      config = TypesafeConfig.fromFile(file)
-      result <- UgerConfig(config)
-    } yield result
-  }
-
-  def apply(config: Config): Try[UgerConfig] = {
+  override def fromConfig(config: Config): Try[UgerConfig] = {
     val ugerProps = TypesafeConfigLproperties(config)
 
     import Keys._

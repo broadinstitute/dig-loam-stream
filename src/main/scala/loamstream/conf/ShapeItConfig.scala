@@ -18,10 +18,7 @@ final case class ShapeItConfig(
     workDir: Path, 
     executable: Path, 
     script: Path,
-    vcfFile: Path, 
     mapFile: Path, 
-    hapFile: Path,
-    sampleFile: Path, 
     logFile: Path, 
     numThreads: Int)
     
@@ -31,10 +28,7 @@ object ShapeItConfig extends ConfigCompanion[ShapeItConfig] {
     val workDirKey = "workDir"
     val executableKey = "executable"
     val scriptKey = "script"
-    val vcfFileKey = "vcfFile"
     val mapFileKey = "mapFile"
-    val hapFileKey = "hapFile"
-    val sampleFileKey = "sampleFile"
     val logFileKey = "logFile"
     val numThreadsKey = "numThreads"
   }
@@ -48,11 +42,7 @@ object ShapeItConfig extends ConfigCompanion[ShapeItConfig] {
       workDir <- config.tryGetPath(workDirKey)
       executable <- config.tryGetPath(executableKey)
       script <- config.tryGetPath(scriptKey)
-    
-      vcfFile <- workDir / config.tryGetString(vcfFileKey)
       mapFile <- workDir / config.tryGetString(mapFileKey)
-      hapFile <- workDir / config.tryGetString(hapFileKey)
-      sampleFile <- workDir / config.tryGetString(sampleFileKey)
       logFile <- workDir / config.tryGetString(logFileKey)
       numThreads <- config.tryGetInt(numThreadsKey)
     } yield {
@@ -60,10 +50,7 @@ object ShapeItConfig extends ConfigCompanion[ShapeItConfig] {
         workDir, 
         executable, 
         script, 
-        vcfFile, 
         mapFile, 
-        hapFile,
-        sampleFile, 
         logFile, 
         numThreads)
     }

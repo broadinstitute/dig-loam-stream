@@ -15,23 +15,23 @@ final class ImputationConfigTest extends FunSuite {
     val config = ImputationConfig.fromConfig(ConfigFactory.load("loamstream-test")).get
 
     // Single fields are correctly parsed
-    assert(config.shapeIt.executable == Paths.get("/humgen/diabetes/users/ryank/software/shapeit/bin/shapeit"))
+    assert(config.shapeIt.executable == Paths.get("/home/clint/bin/shapeit"))
     
-    assert(config.impute2.executable == Paths.get("/humgen/diabetes/users/ryank/software/shapeit/bin/impute2"))
+    assert(config.impute2.executable == Paths.get("/home/clint/bin/impute2"))
     
-    assert(config.shapeIt.script == Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/shapeit.sh"))
+    assert(config.shapeIt.script == Paths.get("/home/clint/workspace/imputation/shapeit.sh"))
     
-    assert(config.shapeIt.workDir == Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example"))
+    assert(config.shapeIt.workDir == Paths.get("/home/clint/workspace/imputation/shapeit_example"))
     
-    assert(config.impute2.workDir == Paths.get("/humgen/diabetes/users/kyuksel/imputation/impute2_example"))
+    assert(config.impute2.workDir == Paths.get("/home/clint/workspace/imputation/impute2_example"))
     
-    val expectedNumThreads: Int = 8
+    val expectedNumThreads: Int = 4
     
     assert(config.shapeIt.numThreads == expectedNumThreads)
 
     // Composite fields are correctly formed
     assert(config.shapeIt.mapFile == 
-        Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/genetic_map.txt.gz"))
+        Paths.get("/home/clint/workspace/imputation/shapeit_example/genetic_map.txt.gz"))
   }
 
   test("Config objects are correctly parsed") {
@@ -46,11 +46,11 @@ final class ImputationConfigTest extends FunSuite {
     val config = ImputationConfig.fromConfig(ConfigFactory.parseFile(testConfFile)).get
 
     // Single fields are correctly parsed
-    assert(config.shapeIt.script == Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/shapeit.sh"))
+    assert(config.shapeIt.script == Paths.get("/home/clint/workspace/imputation/shapeit.sh"))
 
     // Composite fields are correctly formed
     assert(config.shapeIt.mapFile == 
-        Paths.get("/humgen/diabetes/users/kyuksel/imputation/shapeit_example/genetic_map.txt.gz"))
+        Paths.get("/home/clint/workspace/imputation/shapeit_example/genetic_map.txt.gz"))
         
         
   }

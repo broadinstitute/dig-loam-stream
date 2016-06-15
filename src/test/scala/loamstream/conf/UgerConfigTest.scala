@@ -11,13 +11,13 @@ import java.nio.file.Paths
  */
 final class UgerConfigTest extends FunSuite {
   test("Parsing bad input should fail") {
-    assert(UgerConfig.apply(ConfigFactory.empty()).isFailure)
+    assert(UgerConfig.fromConfig(ConfigFactory.empty()).isFailure)
     
-    assert(UgerConfig.apply(ConfigFactory.load()).isFailure)
+    assert(UgerConfig.fromConfig(ConfigFactory.load()).isFailure)
     
-    assert(UgerConfig.apply(ConfigFactory.parseString("{}")).isFailure)
+    assert(UgerConfig.fromConfig(ConfigFactory.parseString("{}")).isFailure)
     
-    assert(UgerConfig.apply("asjdghjasdgjhasdg").isFailure)
+    assert(UgerConfig.fromFile("asjdghjasdgjhasdg").isFailure)
   }
   
   test("Parsing a UgerConfig should work") {
@@ -30,7 +30,7 @@ final class UgerConfigTest extends FunSuite {
       }
       """)
       
-    val ugerConfig = UgerConfig(valid).get
+    val ugerConfig = UgerConfig.fromConfig(valid).get
     
     assert(ugerConfig.ugerWorkDir == Paths.get("/foo/bar/baz"))
     assert(ugerConfig.ugerLogFile == Paths.get("nuh/zuh.log"))

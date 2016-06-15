@@ -26,11 +26,7 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
   @deprecated("", "")
   val canRunKlustaKwik = isKlustaKwikPresent
   
-  private val executer = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-      
-    new LeavesFirstExecuter
-  }
+  private val executer = LeavesFirstExecuter.default
   
   test("creating jobs from inference tools.") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()

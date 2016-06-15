@@ -14,6 +14,7 @@ import loamstream.tools.core.CoreToolBox
 import java.nio.file.Paths
 import loamstream.model.execute.LeavesFirstExecuter
 import loamstream.util.Hit
+import loamstream.model.execute.LExecuter
 
 /**
  * @author clint
@@ -22,52 +23,47 @@ import loamstream.util.Hit
 final class PhaseImputeEndToEndTest extends FunSuite {
   import PhaseImputeEndToEndTest._
   
-  test("Run shapeit, then impute2 on example data") {
-    val (toolbox, pipeline) = makeToolBoxAndPipeline()
+  //NB: Ignored, since this relies on external tools
+  ignore("Run shapeit, then impute2 on example data") {
+    val inputFile = Paths.get("src/test/resources/imputation/gwas.vcf.gz")
     
-    val executer = {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      
-      new LeavesFirstExecuter
-    }
+    val output = Paths.get("target/bar")
+    
+    val (toolbox, pipeline, executer) = doSetup(inputFile, output)
     
     val executable = toolbox.createExecutable(pipeline.ast)
     
     val results = executer.execute(executable)
     
-    println(results)
-    
     assert(results.size == 2)
     
+    //Basically, see that each pipeline step finished with a non-zero status
     assert(results.values.forall {
       case Hit(r) => r.isSuccess
       case _ => false
     })
     
-    
+    //TODO: More; Ideally, we want to know we're computing the expected results 
   }
   
-  
-  private def makeToolBoxAndPipeline(): (LToolBox, ShapeItImpute2Pipeline) = {
-
-    val input = Paths.get("src/test/resources/imputation/gwas.vcf.gz").toAbsolutePath
-    
-    val output = Paths.get("target/bar")
+  private def doSetup(inputFile: Path, output: Path): (LToolBox, ShapeItImpute2Pipeline, LExecuter) = {
     
     val config = ImputationConfig.fromFile("src/test/resources/loamstream-test.conf").get
     
-    val pipeline = ShapeItImpute2Pipeline(config, input, output)
+    val pipeline = ShapeItImpute2Pipeline(config, inputFile.toAbsolutePath, output.toAbsolutePath)
     
     val toolbox = CoreToolBox(LEnv.empty)
     
-    (toolbox, pipeline)
+    val executer: LExecuter = LeavesFirstExecuter.default
+    
+    (toolbox, pipeline, executer)
   }
 }
 
 object PhaseImputeEndToEndTest {
   
   final case class ShapeItImpute2Pipeline(config: ImputationConfig, inputVcf: Path, outputFile: Path) extends HasAst {
-    private def tempFile = File.createTempFile("shapeit", "loamstream").toPath
+    private def tempFile = File.createTempFile("shapeit", "loamstream").toPath.toAbsolutePath
     
     private lazy val shapeItTool = CoreTool.Phase(config.shapeIt, inputVcf, tempFile)
     

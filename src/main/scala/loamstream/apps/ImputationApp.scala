@@ -9,6 +9,8 @@ import loamstream.model.execute.LeavesFirstExecuter
 import loamstream.model.jobs.LCommandLineJob
 import loamstream.tools.LineCommand
 import loamstream.util.Loggable
+import loamstream.util.Files
+import java.nio.file.Paths
 
 /**
   * LoamStream
@@ -76,20 +78,16 @@ object ImputationApp extends Loggable {
       numThreads).map(_.toString)
   }
 
-  def runShapeItLocally(args: Array[String]): Unit = {
-    checkIfArgsValid(args)
-
+  def runShapeItLocally(configFile: Path, inputFile: Path, outputFile: Path): Unit = {
     trace("Attempting to run ShapeIt...")
-
-    val configFile = args(1)
 
     val config = ImputationConfig.fromFile(configFile).get
     val shapeItExecutable = config.shapeIt.executable
     val shapeItWorkDir = config.shapeIt.workDir
-    val vcf = config.shapeIt.vcfFile
+    val vcf = inputFile
     val map = config.shapeIt.mapFile
-    val haps = config.shapeIt.hapFile
-    val samples = config.shapeIt.sampleFile
+    val haps = outputFile
+    val samples = Files.tempFile("shapeit-samples")
     val log = config.shapeIt.logFile
     val numThreads = config.shapeIt.numThreads
 
@@ -99,11 +97,7 @@ object ImputationApp extends Loggable {
 
     val executable = LExecutable(Set(shapeItJob))
     
-    val executer = {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      
-      new LeavesFirstExecuter
-    }
+    val executer = LeavesFirstExecuter.default
     
     val result = executer.execute(executable)
     
@@ -114,18 +108,13 @@ object ImputationApp extends Loggable {
     }
   }
 
-  def runShapeItOnUger(args: Array[String]): Unit = {
-    checkIfArgsValid(args)
-
+  def runShapeItOnUger(configFile: Path, isBulk: Boolean): Unit = {
     trace("Attempting to run ShapeIt...")
 
-    val configFile = args(1)
     val shapeItConfig = ImputationConfig.fromFile(configFile).get
     val shapeItScript = shapeItConfig.shapeIt.script.toString
-    val ugerConfig = UgerConfig(configFile).get //TODO: Fragile
+    val ugerConfig = UgerConfig.fromFile(configFile).get //TODO: Fragile
     val ugerLog = ugerConfig.ugerLogFile.toString
-
-    val isBulk = args(3).toBoolean
 
     val drmaaClient = new Drmaa
     
@@ -133,7 +122,13 @@ object ImputationApp extends Loggable {
   }
 
   def main(args: Array[String]) {
-    runShapeItLocally(Array("--config", "src/main/resources/loamstream.conf", "--bulk", "false"))
+    def path(s: String) = Paths.get(s)
+    
+    runShapeItLocally(
+      path("src/main/resources/loamstream.conf"), 
+      path("src/test/resources/imputation/gwas.vcf.gz"),
+      path("target/foo"))
+      
     //runShapeItLocally(args)
     //runShapeItOnUger(args)
   }

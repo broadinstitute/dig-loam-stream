@@ -3,6 +3,9 @@ package loamstream.conf
 import scala.util.Try
 
 import com.typesafe.config.Config
+import java.nio.file.Path
+import loamstream.util.Files
+import java.nio.file.Paths
 
 /**
  * @author clint
@@ -11,5 +14,13 @@ import com.typesafe.config.Config
 trait ConfigCompanion[C] {
   def fromConfig(config: Config): Try[C]
     
-  def fromFile(configFile: String): Try[C] = fromConfig(TypesafeConfig.fromFile(configFile))
+  final def fromFile(configFile: String): Try[C] = fromFile(Paths.get(configFile))
+  
+  final def fromFile(configFile: Path): Try[C] = {
+    for {
+      path <- Files.tryFile(configFile)
+      config = TypesafeConfig.fromFile(path)
+      result <- fromConfig(config)
+    } yield result
+  }
 }

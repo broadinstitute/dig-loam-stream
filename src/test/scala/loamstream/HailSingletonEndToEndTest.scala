@@ -53,11 +53,7 @@ final class HailSingletonEndToEndTest extends FunSuite {
     deleteSampleFilesBeforeAndAfter(hailVdsFilePath, hailSingletonFilePath) {
       val executable = makeExecutable(toolbox, pipeline)
     
-      val executer = {
-        import scala.concurrent.ExecutionContext.Implicits.global
-      
-        new LeavesFirstExecuter
-      }
+      val executer = LeavesFirstExecuter.default
       
       val results = executer.execute(executable)
       

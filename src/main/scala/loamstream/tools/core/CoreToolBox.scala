@@ -1,11 +1,12 @@
 package loamstream.tools.core
 
+import java.io.File
 import java.nio.file.{ Files, Path }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-import CoreToolBox._
 import htsjdk.variant.variantcontext.Genotype
+
 import loamstream.LEnv
 import loamstream.conf.Impute2Config
 import loamstream.conf.ShapeItConfig
@@ -144,6 +145,8 @@ object CoreToolBox {
 
 final case class CoreToolBox(env: LEnv) extends LToolBox {
 
+  import CoreToolBox._
+  
   private def pathShot(path: Path): Shot[Path] = {
     if (path.toFile.exists) { Hit(path) }
     else { Miss(s"Couldn't find '$path'") }
@@ -201,6 +204,8 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
 
   //TODO: Shouldn't be here
   private def shapeitJobShot(config: ShapeItConfig, inputVcf: Path, outputHaps: Path): Shot[LJob] = {
+    def tempFile: Path = File.createTempFile("loamstream", "shapeit-output-samples").toPath.toAbsolutePath 
+    
     //TODO
     val tokens: Seq[String] = Seq(
       config.executable.toString, 
@@ -210,7 +215,7 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
       config.mapFile.toString, 
       "-O", 
       outputHaps.toString, 
-      s"$outputHaps.samples.gz", //TODO
+      tempFile.toString,
       "-L", 
       config.logFile.toString, 
       "--thread", 
@@ -227,21 +232,20 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
       "-use_prephased_g",
       "-m",
       "example.chr22.map",
-      "-h", //example.chr22.1kG.haps.gz \
+      "-h", //example.chr22.1kG.haps.gz
       inputFile.toString,
       "-l",
       "example.chr22.1kG.legend.gz",
       "-known_haps_g",
       "example.chr22.prephasing.impute2_haps.gz",
-      //"-strand_g",
-      //"example.chr22.study.strand",
       "-int",
       "20.4e6",
       "20.5e6",
       "-Ne",
       "20000",
       "-o",
-      outputFile.toString, //example.chr22.imputed.gen \
+      //NB: Must be an absolute path or impute2 will go haywire and never terminate.
+      outputFile.toAbsolutePath.toString, 
       "-verbose",
       "-o_gz")
 

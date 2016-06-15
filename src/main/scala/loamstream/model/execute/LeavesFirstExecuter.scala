@@ -63,3 +63,7 @@ final class LeavesFirstExecuter(implicit executionContext: ExecutionContext) ext
   
   private def anyFailures(m: Map[LJob, LJob.Result]): Boolean = m.values.exists(_.isFailure) 
 }
+
+object LeavesFirstExecuter {
+  def default: LeavesFirstExecuter = new LeavesFirstExecuter()(scala.concurrent.ExecutionContext.global)
+}

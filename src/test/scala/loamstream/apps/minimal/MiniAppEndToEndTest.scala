@@ -21,11 +21,8 @@ import loamstream.util.TestUtils
   * Created by kyuksel on 2/29/2016.
   */
 final class MiniAppEndToEndTest extends FunSuite {
-  private val executer = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-      
-    new LeavesFirstExecuter
-  }
+
+  private val executer = LeavesFirstExecuter.default
   
   test("Pipeline successfully extracts sample IDs from VCF") {
     val (toolbox, pipeline, extractedSamplesFilePath) = makePipelineAndToolbox()

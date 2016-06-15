@@ -3,11 +3,8 @@ package loamstream.model.jobs
 import scala.concurrent.{ ExecutionContext, Future, blocking }
 
 import loamstream.model.jobs.LJob.Result
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
-import loamstream.util.Loggable
 import loamstream.util.DagHelpers
+import loamstream.util.Loggable
 
 /**
  * LoamStream
@@ -63,7 +60,8 @@ object LJob {
   
   object Result {
     def attempt(f: => Result): Result = {
-      import scala.{ util => su }
+      
+      import scala.{util => su}
       
       su.Try(f) match {
         case su.Success(r) => r

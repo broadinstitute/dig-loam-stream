@@ -97,21 +97,6 @@ object AST {
     def apply(tool: Tool): ToolNode = apply(tool, Set.empty[Connection])
   }
   
-  final case class StoreNode(
-      override val id: LId,
-      store: Store,
-      dependencies: Set[Connection] = Set.empty) extends AST {
-    
-    def spec: StoreSpec = store.spec
-    
-    override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
-  }
-  
-  object StoreNode {
-    def apply(store: Store, dependencies: Set[Connection]): StoreNode = StoreNode(store.id, store, dependencies)
-    def apply(store: Store): StoreNode = apply(store, Set.empty[Connection])
-  }
-
   final case class Either(lhs: AST, rhs: AST, dependencies: Set[Connection] = Set.empty) extends AST {
     override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
   }

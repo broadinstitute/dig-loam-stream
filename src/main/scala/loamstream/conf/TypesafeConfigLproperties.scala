@@ -5,6 +5,7 @@ import java.nio.file.{Path, Paths}
 import com.typesafe.config.Config
 
 import scala.util.Try
+import loamstream.util.ConfigEnrichments
 
 /**
   * @author clint
@@ -13,17 +14,14 @@ import scala.util.Try
 final case class TypesafeConfigLproperties(config: Config) extends LProperties {
 
   import TypesafeConfigLproperties._
+  import ConfigEnrichments._
 
-  override def getString(key: String): Option[String] = {
-    val attempt = for {
+  override def tryGetString(key: String): Try[String] = {
+    for {
       fullKey <- Try(qualifiedKey(key))
-      s <- Try(config.getString(fullKey))
+      s <- config.tryGetString(fullKey)
     } yield s
-
-    attempt.toOption
   }
-
-  override def getPath(key: String): Option[Path] = getString(key).map(Paths.get(_))
 }
 
 object TypesafeConfigLproperties {

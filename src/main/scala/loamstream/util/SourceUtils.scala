@@ -15,5 +15,4 @@ object SourceUtils {
   def shortTypeName(tpe: Type): String = tpe.typeSymbol.name.toString
 
   def shortTypeName[T: TypeTag]: String = shortTypeName(typeOf[T])
-
 }

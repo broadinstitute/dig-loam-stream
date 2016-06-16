@@ -27,6 +27,8 @@ object FileStore {
 
   def pcaProjectedFile(path: Path): FileStore = FileStore(path, StoreSpec(sampleIdAndIntToDouble))
 
+  def imputationResults(path: Path): FileStore = FileStore(path, StoreSpec(Sigs.imputationResults))
+  
   def sampleClusterFile(path: Path): FileStore = FileStore(path, StoreSpec(typeOf[Map[String, Int]]))
 
   def singletonsFile(path: Path): FileStore = FileStore(path, StoreSpec(sampleToSingletonCount))

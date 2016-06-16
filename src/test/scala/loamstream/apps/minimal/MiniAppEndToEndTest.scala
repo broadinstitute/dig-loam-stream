@@ -7,22 +7,23 @@ import scala.io.Source
 import org.scalatest.FunSuite
 
 import loamstream.TestData
+import loamstream.model.execute.LExecutable
+import loamstream.model.execute.LeavesFirstExecuter
+import loamstream.model.jobs.LToolBox
 import loamstream.tools.core.{CoreToolBox, LCoreEnv}
 import loamstream.tools.core.LCoreDefaultStoreIds
+import loamstream.util.Hit
 import loamstream.util.LoamFileUtils
-import loamstream.util.Loggable.Level
 import loamstream.util.StringUtils
 import loamstream.util.TestUtils
-import loamstream.util.Hit
-import loamstream.util.Shot
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LToolBox
-import loamstream.model.execute.LExecutable
 
 /**
   * Created by kyuksel on 2/29/2016.
   */
 final class MiniAppEndToEndTest extends FunSuite {
+
+  private val executer = LeavesFirstExecuter.default
+  
   test("Pipeline successfully extracts sample IDs from VCF") {
     val (toolbox, pipeline, extractedSamplesFilePath) = makePipelineAndToolbox()
 
@@ -36,7 +37,7 @@ final class MiniAppEndToEndTest extends FunSuite {
     
     val executable = toolbox.createExecutable(pipeline)
     
-    val results = MiniExecuter.execute(executable)
+    val results = executer.execute(executable)
 
     doTestExecutable(executable, extractedSamplesFilePath)
   }
@@ -50,7 +51,7 @@ final class MiniAppEndToEndTest extends FunSuite {
   }
   
   private def doTestExecutable(executable: LExecutable, extractedSamplesFilePath: Path): Unit = {
-    val results = MiniExecuter.execute(executable)
+    val results = executer.execute(executable)
     
     assert(results.size == 2)
     

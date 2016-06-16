@@ -9,6 +9,7 @@ import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.MockLJob
 import loamstream.model.jobs.TestJobs
 import loamstream.util.Hit
+import loamstream.util.Shot
 
 
 /**
@@ -95,7 +96,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
     
     val expected0 = alwaysExpected + (two0Failed -> Hit(two0Failure))
     val expected1 = alwaysExpected + (two1Failed -> Hit(two1Failure))
-
+    
     assert(result == expected0 || result == expected1)
   }
   
@@ -108,7 +109,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
     val executable = LExecutable(Set(plusOne))
 
     val result = executer.execute(executable)
-
+    
     val alwaysExpected = Map(
       twoPlusTwo -> Hit(twoPlusTwoFailure),
       plusOne -> Hit(plusOneFailure))

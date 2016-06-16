@@ -17,7 +17,7 @@ import scala.sys.process.{Process, ProcessLogger}
 final case class LCommandLineJob(
     commandLine: CommandLine, 
     workDir: Path, 
-    inputs: Set[LJob],
+    inputs: Set[LJob] = Set.empty,
     logger: ProcessLogger = noOpProcessLogger) extends LJob {
 
   @deprecated("", "")

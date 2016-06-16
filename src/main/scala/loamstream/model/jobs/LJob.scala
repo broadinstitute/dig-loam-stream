@@ -3,16 +3,14 @@ package loamstream.model.jobs
 import scala.concurrent.{ ExecutionContext, Future, blocking }
 
 import loamstream.model.jobs.LJob.Result
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
+import loamstream.util.DagHelpers
 import loamstream.util.Loggable
 
 /**
  * LoamStream
  * Created by oliverr on 12/23/2015.
  */
-trait LJob extends Loggable {
+trait LJob extends Loggable with DagHelpers[LJob] {
   def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
     val indentString = s"${"-" * indent} >"
     
@@ -27,9 +25,27 @@ trait LJob extends Loggable {
   
   def execute(implicit context: ExecutionContext): Future[Result]
   
-  final def isLeaf: Boolean = inputs.isEmpty
-  
   protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))
+  
+  final override def isLeaf: Boolean = inputs.isEmpty
+  
+  final override def leaves: Set[LJob] = {
+    if(isLeaf) { Set(this) }
+    else { inputs.flatMap(_.leaves) }
+  }
+
+  def remove(input: LJob): LJob = {
+    if((input eq this) || isLeaf) { this }
+    else {
+      val newInputs = (inputs - input).map(_.remove(input))
+      
+      withInputs(newInputs)
+    }
+  }
+  
+  final override def removeAll(toRemove: Iterable[LJob]): LJob = {
+    toRemove.foldLeft(this)(_.remove(_))
+  }
 }
 
 object LJob {
@@ -44,7 +60,8 @@ object LJob {
   
   object Result {
     def attempt(f: => Result): Result = {
-      import scala.{ util => su }
+      
+      import scala.{util => su}
       
       su.Try(f) match {
         case su.Success(r) => r

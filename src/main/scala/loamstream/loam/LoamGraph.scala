@@ -80,12 +80,12 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
 
   def withEnv(env: LEnv): LoamGraph = {
     val toolTokensNew = toolTokens.mapValues({ tokens =>
-      val tokensMapped = tokens.map(token => token match {
-        case EnvToken(key) if key.tpe =:= typeOf[Path] => env.get(key.asInstanceOf[LEnv.Key[Path]]) match {
+      val tokensMapped = tokens.map({
+        case token@EnvToken(key) if key.tpe =:= typeOf[Path] => env.get(key.asInstanceOf[LEnv.Key[Path]]) match {
           case Some(path) => StringToken(path.toString)
           case None => token
         }
-        case _ => token
+        case token => token
       })
       LoamToken.mergeStringTokens(tokensMapped)
     }).view.force

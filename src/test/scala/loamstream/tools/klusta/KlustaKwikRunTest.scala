@@ -39,7 +39,7 @@ final class KlustaKwikRunTest extends FunSuite {
         }
       }
     }
-    val timeOut = 10.seconds
+    val timeOut = 15.seconds
     val exitValue = Await.result(exitValueFuture, timeOut)
     val exitValueOnSuccess = 0
     assert(exitValue === exitValueOnSuccess)

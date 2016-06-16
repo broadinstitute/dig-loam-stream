@@ -99,13 +99,7 @@ object ImputationApp extends Loggable {
     
     val executer = LeavesFirstExecuter.default
     
-    val result = executer.execute(executable)
-    
-    println(result)
-    
-    result.foreach { case (job, result) =>
-      println(s"$result: $job")
-    }
+    executer.execute(executable)
   }
 
   def runShapeItOnUger(configFile: Path, isBulk: Boolean): Unit = {

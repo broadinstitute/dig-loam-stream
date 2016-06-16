@@ -36,16 +36,21 @@ object CoreTool {
     sampleClusterFile => sampleClusterStore
   }
   
-  final case class CheckPreExistingVcfFile(vcfFile: Path) extends Tool.CheckPreexisting(vcfFile, StoreSpec(Sigs.variantAndSampleToGenotype))
+  final case class CheckPreExistingVcfFile(vcfFile: Path) extends 
+      Tool.CheckPreexisting(vcfFile, StoreSpec(Sigs.variantAndSampleToGenotype))
   
   final case class CheckPreExistingPcaWeightsFile(pcaWeightsFile: Path) extends 
       Tool.CheckPreexisting(pcaWeightsFile, StoreSpec(Sigs.sampleIdAndIntToDouble))
   
-  final case class Phase(config: ShapeItConfig, inputVcf: Path, outputHaps: Path) extends Tool.OneToOne(vcfStore(inputVcf) ~> vcfStore(outputHaps)) {
+  final case class Phase(config: ShapeItConfig, inputVcf: Path, outputHaps: Path) extends 
+      Tool.OneToOne(vcfStore(inputVcf) ~> vcfStore(outputHaps)) {
+    
     override val id: LId = LNamedId(s"Phasing '$inputVcf', producing '$outputHaps'")
   }
   
-  final case class Impute(config: Impute2Config, inputVcf: Path, output: Path) extends Tool.OneToOne(vcfStore(inputVcf) ~> imputationResults(output)) {
+  final case class Impute(config: Impute2Config, inputVcf: Path, output: Path) extends 
+      Tool.OneToOne(vcfStore(inputVcf) ~> imputationResults(output)) {
+    
     override val id: LId = LNamedId(s"Phasing '$inputVcf', producing '$output'")
   }
       

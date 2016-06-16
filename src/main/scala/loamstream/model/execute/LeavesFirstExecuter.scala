@@ -45,16 +45,15 @@ final class LeavesFirstExecuter(implicit executionContext: ExecutionContext) ext
     def loop(remainingOption: Option[LJob], acc: Map[LJob, Result]): Future[Map[LJob, Result]] = {
       remainingOption match {
         case None => Future.successful(acc)
-        case Some(j) => {
+        case Some(j) =>
           val leaves = j.leaves
-          
+
           for {
             leafResults <- executeLeaves(leaves)
             shouldStop = j.isLeaf //|| anyFailures(leafResults)
             next = if (shouldStop) None else Some(j.removeAll(leaves))
             resultsSoFar <- loop(next, acc ++ leafResults)
           } yield resultsSoFar
-        }
       }
     }
 

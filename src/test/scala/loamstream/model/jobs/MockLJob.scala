@@ -19,7 +19,7 @@ final class MockLJob(override val inputs: Set[LJob], val toReturn: LJob.Result) 
   override def hashCode: Int = equalityFields.hashCode
   
   override def equals(other: Any): Boolean = other match {
-    case that: MockLJob if that != null => this.equalityFields == that.equalityFields
+    case that: MockLJob => this.equalityFields == that.equalityFields
     case _ => false
   }
   

@@ -96,7 +96,7 @@ object AST {
     def apply(tool: Tool, dependencies: Set[Connection]): ToolNode = ToolNode(tool.id, tool, dependencies)
     def apply(tool: Tool): ToolNode = apply(tool, Set.empty[Connection])
   }
-
+  
   final case class Either(lhs: AST, rhs: AST, dependencies: Set[Connection] = Set.empty) extends AST {
     override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
   }

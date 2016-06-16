@@ -20,10 +20,6 @@ object Tool {
 
   import StoreOps._
   
-  trait NoInputs { self: Tool =>
-    override def inputs: Map[LId, Store] = Map.empty
-  }
-  
   abstract class OneToOne(sig: UnarySig) extends Tool {
     
     override val spec: ToolSpec = ToolSpec.oneToOne(sig.input.spec, sig.output.spec)
@@ -45,13 +41,15 @@ object Tool {
     override val outputs: Map[LId, Store] = sig.outputs.map(o => o.id -> o).toMap //TODO: correct?
   }
   
-  abstract class Nullary(outputStore: Store) extends Tool with NoInputs {
+  abstract class Nullary(outputStore: Store) extends Tool {
+    override def inputs: Map[LId, Store] = Map.empty
+    
     override val spec: ToolSpec = ToolSpec.producing(outputStore.spec) 
   
     override val outputs: Map[LId, Store] = Map(ToolSpec.ParamNames.output -> outputStore)
   }
   
-  abstract class CheckPreexisting(file: Path, outputStore: Store) extends Nullary(outputStore) {
+  abstract class CheckPreexisting(file: Path, spec: StoreSpec) extends Nullary(FileStore(file, spec)) {
     override val id = LId.LNamedId(s"Check for $file")
   }
 }

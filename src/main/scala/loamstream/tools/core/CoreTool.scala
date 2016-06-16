@@ -1,20 +1,20 @@
 package loamstream.tools.core
 
-import loamstream.LEnv
+import java.nio.file.Path
+
+import LCoreEnv._
+import loamstream.Sigs
+import loamstream.conf.Impute2Config
+import loamstream.conf.ShapeItConfig
+import loamstream.model.FileStore
 import loamstream.model.LId
 import loamstream.model.LId.LNamedId
-import loamstream.model.ToolSpec
-import LCoreEnv._
-import loamstream.model.Tool
 import loamstream.model.Store
-import loamstream.model.StoreSpec
-import java.nio.file.Path
-import loamstream.model.FileStore
-import loamstream.tools.klusta.KlustaKwikKonfig
-import loamstream.model.StoreOps.UnarySig
-import loamstream.model.StoreOps.NarySig
-import loamstream.model.StoreOps.BinarySig
 import loamstream.model.StoreOps
+import loamstream.model.StoreSpec
+import loamstream.model.Tool
+import loamstream.model.ToolSpec
+import loamstream.tools.klusta.KlustaKwikKonfig
 
 /**
   * LoamStream
@@ -25,7 +25,8 @@ final case class CoreTool(id: LId, spec: ToolSpec, inputs: Map[LId, Store], outp
 object CoreTool {
   
   import StoreOps._
-  import FileStore.{ 
+  import FileStore.{
+    imputationResults,
     vcfFile => vcfStore, 
     vdsFile => vdsStore, 
     singletonsFile => singletonsStore, 
@@ -35,11 +36,24 @@ object CoreTool {
     sampleClusterFile => sampleClusterStore
   }
   
-  final case class CheckPreExistingVcfFile(vcfFile: Path) extends Tool.CheckPreexisting(vcfFile, vcfStore(vcfFile))
+  final case class CheckPreExistingVcfFile(vcfFile: Path) extends 
+      Tool.CheckPreexisting(vcfFile, StoreSpec(Sigs.variantAndSampleToGenotype))
   
   final case class CheckPreExistingPcaWeightsFile(pcaWeightsFile: Path) extends 
-      Tool.CheckPreexisting(pcaWeightsFile, pcaWeightsStore(pcaWeightsFile))
+      Tool.CheckPreexisting(pcaWeightsFile, StoreSpec(Sigs.sampleIdAndIntToDouble))
   
+  final case class Phase(config: ShapeItConfig, inputVcf: Path, outputHaps: Path) extends 
+      Tool.OneToOne(vcfStore(inputVcf) ~> vcfStore(outputHaps)) {
+    
+    override val id: LId = LNamedId(s"Phasing '$inputVcf', producing '$outputHaps'")
+  }
+  
+  final case class Impute(config: Impute2Config, inputVcf: Path, output: Path) extends 
+      Tool.OneToOne(vcfStore(inputVcf) ~> imputationResults(output)) {
+    
+    override val id: LId = LNamedId(s"Phasing '$inputVcf', producing '$output'")
+  }
+      
   final case class ExtractSampleIdsFromVcfFile(
       vcfFile: Path, 
       sampleFile: Path) extends Tool.OneToOne(vcfStore(vcfFile) ~> sampleIdsStore(sampleFile)) {

@@ -1,37 +1,34 @@
-package loamstream.apps.minimal
+package loamstream.model.execute
 
+import org.scalatest.FunSuite
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
+import loamstream.model.jobs.TestJobs
 import scala.concurrent.duration.Duration
-
-import loamstream.model.execute.ExecuterTest
-import loamstream.model.execute.LExecuter
+import loamstream.model.jobs.LJob.SimpleFailure
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.LJob.SimpleFailure
 
 /**
  * @author clint
- * date: Apr 12, 2016
+ * date: Jun 7, 2016
  */
-final class MiniExecuterTest extends ExecuterTest {
-  
-  override def makeExecuter: LExecuter = MiniExecuter
+final class ExecuterHelpersTest extends FunSuite with TestJobs {
   
   test("execSingle()") {
-    import MiniExecuter.execSingle
+    import ExecuterHelpers.executeSingle
+    import scala.concurrent.ExecutionContext.Implicits.global
     
-    val success = Await.result(execSingle(two0), Duration.Inf)
+    val success = Await.result(executeSingle(two0), Duration.Inf)
     
     assert(success === Map(two0 -> two0Success))
     
-    val failure = Await.result(execSingle(two0Failed), Duration.Inf)
+    val failure = Await.result(executeSingle(two0Failed), Duration.Inf)
     
     assert(failure === Map(two0Failed -> two0Failure))
   }
   
   test("noFailures()") {
-    import MiniExecuter.noFailures
+    import ExecuterHelpers.noFailures
 
     assert(noFailures(Map.empty) === true)
 
@@ -61,7 +58,7 @@ final class MiniExecuterTest extends ExecuterTest {
   }
   
   test("consumeUntilFirstFailure()") {
-    import MiniExecuter.consumeUntilFirstFailure
+    import ExecuterHelpers.consumeUntilFirstFailure
     
     assert(consumeUntilFirstFailure(Iterator.empty) == Vector.empty)
     

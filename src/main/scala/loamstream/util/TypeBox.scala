@@ -10,7 +10,7 @@ object TypeBox {
   def of[T: TypeTag]: TypeBox[T] = new TypeBox[T](typeTag[T].tpe)
 }
 
-class TypeBox[T] private(val tpe: Type) {
+class TypeBox[T](val tpe: Type) {
   override def equals(o: Any): Boolean = o match {
     case oBox: TypeBox[_] => tpe =:= oBox.tpe
     case _ => false

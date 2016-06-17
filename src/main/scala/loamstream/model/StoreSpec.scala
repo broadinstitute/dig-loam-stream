@@ -6,10 +6,17 @@ import scala.reflect.runtime.universe.Type
   * LoamStream
   * Created by oliverr on 2/26/2016.
   */
-final case class StoreSpec(sig: Type) {
-  def =:=(other: StoreSpec): Boolean = sig =:= other.sig
+final class StoreSpec(val tpe: Type) {
+  override def equals(o: Any): Boolean = o match {
+    case oSig: StoreSpec => tpe =:= oSig.tpe
+    case _ => false
+  }
 
-  def <:<(other: StoreSpec): Boolean = sig =:= other.sig
+  override def hashCode: Int = tpe.toString.hashCode
 
-  def >:>(other: StoreSpec): Boolean = sig =:= other.sig
+  def =:=(other: StoreSpec): Boolean = tpe =:= other.tpe
+
+  def <:<(other: StoreSpec): Boolean = tpe =:= other.tpe
+
+  def >:>(other: StoreSpec): Boolean = tpe =:= other.tpe
 }

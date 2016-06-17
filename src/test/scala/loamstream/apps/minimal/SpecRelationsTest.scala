@@ -23,7 +23,7 @@ final class SpecRelationsTest extends FunSuite {
     //NB: Fragile
     val coreGenotypeCallsStore = CoreTool.CheckPreExistingVcfFile(vcfFile).outputs.head._2
 
-    assert(CoreStore.vcfFile.spec.sig =:= coreGenotypeCallsStore.spec.sig)
+    assert(CoreStore.vcfFile.spec.tpe =:= coreGenotypeCallsStore.spec.tpe)
     assert(CoreStore.vcfFile.spec <:< coreGenotypeCallsStore.spec)
 
     //NB: Fragile

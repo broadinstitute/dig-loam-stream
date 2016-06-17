@@ -1,13 +1,9 @@
 package loamstream.apps.hail
 
-import loamstream.model.AST
-import loamstream.model.HasAst
-import loamstream.model.LPipeline
-import loamstream.model.Store
-import loamstream.model.Tool
-import loamstream.tools.core.CoreTool
-import loamstream.model.ToolSpec
 import java.nio.file.Path
+
+import loamstream.model.{AST, HasAst, LPipeline, Store, Tool}
+import loamstream.tools.core.CoreTool
 
 /**
   * Created on: 3/10/2016
@@ -16,22 +12,22 @@ import java.nio.file.Path
   */
 final case class HailPipeline(vcfFile: Path, vdsDir: Path, singletonsFile: Path) extends LPipeline with HasAst {
   val genotypeCallsTool: Tool = CoreTool.CheckPreExistingVcfFile(vcfFile)
-  
+
   val vdsTool: Tool = CoreTool.ConvertVcfToVds(vcfFile, vdsDir)
-  
+
   val singletonTool: Tool = CoreTool.CalculateSingletons(vdsDir, singletonsFile)
 
   override def stores: Set[Store] = tools.flatMap(_.outputs.values)
-  
+
   override val tools: Set[Tool] = Set(genotypeCallsTool, vdsTool, singletonTool)
-  
+
   override lazy val ast: AST = {
-    import ToolSpec.ParamNames.{ input, output }
-    
+    import Tool.ParamNames.{input, output}
+
     val genotypeCallsNode = AST(genotypeCallsTool)
-    
+
     val vdsTree = AST(vdsTool).connect(input).to(genotypeCallsNode(output))
-    
+
     AST(singletonTool).connect(input).to(vdsTree(output))
   }
 }

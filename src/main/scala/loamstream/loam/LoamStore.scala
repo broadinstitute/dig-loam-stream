@@ -40,7 +40,9 @@ case class LoamStore private(id: LId, tpe: Type)(implicit graphBuilder: LoamGrap
     this
   }
 
-  override def toString : String = s"store[$tpe]"
+  override def toString: String = s"store[$tpe]"
+
+  def graph: LoamGraph = graphBuilder.graph
 
   override val spec: StoreSpec = StoreSpec(tpe)
 }

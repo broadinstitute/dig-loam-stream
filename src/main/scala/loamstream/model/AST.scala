@@ -87,8 +87,6 @@ object AST {
       tool: Tool, 
       dependencies: Set[Connection] = Set.empty) extends AST {
     
-    def spec: ToolSpec = tool.spec
-    
     override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
   }
   

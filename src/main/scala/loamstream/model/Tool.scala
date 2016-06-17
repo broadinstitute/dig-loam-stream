@@ -8,8 +8,6 @@ import java.nio.file.Path
   *         date: Apr 26, 2016
   */
 trait Tool extends LId.Owner {
-  def spec: ToolSpec
-
   def inputs: Map[LId, Store]
 
   def outputs: Map[LId, Store]
@@ -17,15 +15,18 @@ trait Tool extends LId.Owner {
 
 object Tool {
 
+  object ParamNames {
+    val input = LId.LNamedId("input")
+    val output = LId.LNamedId("output")
+  }
+
   import StoreOps._
 
   abstract class OneToOne(sig: UnarySig) extends Tool {
 
-    override val spec: ToolSpec = ToolSpec.oneToOne(sig.input.spec, sig.output.spec)
+    override val inputs: Map[LId, Store] = Map(ParamNames.input -> sig.input)
 
-    override val inputs: Map[LId, Store] = Map(ToolSpec.ParamNames.input -> sig.input)
-
-    override val outputs: Map[LId, Store] = Map(ToolSpec.ParamNames.output -> sig.output)
+    override val outputs: Map[LId, Store] = Map(ParamNames.output -> sig.output)
   }
 
   abstract class Nary(sig: NarySig) extends Tool {
@@ -33,8 +34,6 @@ object Tool {
     def this(binarySig: BinarySig) = this(binarySig.toNarySig)
 
     def this(unarySig: UnarySig) = this(unarySig.toNarySig)
-
-    override val spec: ToolSpec = ToolSpec(sig.inputs.map(_.toTuple).toMap, sig.outputs.map(_.toTuple).toMap)
 
     override val inputs: Map[LId, Store] = sig.inputs.map(i => i.id -> i).toMap //TODO: correct?
 
@@ -44,9 +43,7 @@ object Tool {
   abstract class Nullary(outputStore: Store) extends Tool {
     override def inputs: Map[LId, Store] = Map.empty
 
-    override val spec: ToolSpec = ToolSpec.producing(outputStore.spec)
-
-    override val outputs: Map[LId, Store] = Map(ToolSpec.ParamNames.output -> outputStore)
+    override val outputs: Map[LId, Store] = Map(ParamNames.output -> outputStore)
   }
 
   abstract class CheckPreexisting(file: Path, spec: StoreSpec) extends Nullary(FileStore(file, spec)) {

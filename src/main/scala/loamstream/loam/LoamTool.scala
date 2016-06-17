@@ -2,7 +2,7 @@ package loamstream.loam
 
 import loamstream.LEnv
 import loamstream.loam.LoamToken.{EnvToken, StoreToken, StringToken}
-import loamstream.model.LId
+import loamstream.model.{LId, Store, Tool}
 
 /**
   * LoamStream
@@ -35,4 +35,14 @@ object LoamTool {
 
 }
 
-case class LoamTool private(id: LId)(implicit val graphBuilder: LoamGraphBuilder)
+case class LoamTool private(id: LId)(implicit val graphBuilder: LoamGraphBuilder) extends Tool {
+  def graph: LoamGraph = graphBuilder.graph
+
+  override def inputs: Map[LId, Store] =
+    graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
+
+
+  override def outputs: Map[LId, Store] =
+    graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
+
+}

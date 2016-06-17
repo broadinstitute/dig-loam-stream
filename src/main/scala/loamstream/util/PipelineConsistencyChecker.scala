@@ -98,43 +98,10 @@ object PipelineConsistencyChecker {
     override def message: String = s"Store ${store.id} is not compatible output of tool ${tool.id}."
   }
 
-  case object EachStoreIsCompatibleOutputOfToolCheck extends Check {
-    override def apply(pipeline: LPipeline): Set[Problem] = {
-      //TODO: TEST
-      pipeline.tools.filterNot { tool =>
-        tool.outputs.zip(tool.spec.outputs).forall {
-          case ((toolOutputId, toolOutput), (specOutputId, specOutput)) =>
-            /*toolOutputId == specOutputId && */ toolOutput.spec >:> specOutput
-        }
-      }.flatMap { tool =>
-        tool.outputs.map { case (name, output) => StoreIsIncompatibleOutputOfTool(output, tool) }
-      }
-    }
-  }
-
   case class StoreIsIncompatibleInputOfTool(store: Store, tool: Tool, paramName: LId)
     extends StoreIsNotCompatibleWithTool {
     override def message: String =
       s"Store ${store.id} is not compatible input (name: $paramName) of tool ${tool.id}."
-  }
-
-  case object EachStoreIsCompatibleInputOfToolCheck extends Check {
-    //TODO: TEST
-    override def apply(pipeline: LPipeline): Set[Problem] = {
-      val toolsStoresAndStoreSpecs = for {
-        tool <- pipeline.tools
-        (inputName, store) <- tool.inputs
-      } yield {
-        (tool, 
-         tool.inputs.collect { case (id, inputStore) if id == store.id => inputStore }.headOption, 
-         tool.spec.inputs.collect { case (id, spec) if id == store.id => spec }.headOption)
-      }
-      
-      toolsStoresAndStoreSpecs.collect { 
-        case (tool, Some(input), Some(inputSpec)) if !(input.spec <:< inputSpec) =>
-          StoreIsIncompatibleInputOfTool(input, tool, input.id)
-      }
-    }
   }
 
   sealed trait StoreMissingUsedInTool extends StoreSpecificProblem with ToolSpecificProblem
@@ -241,9 +208,8 @@ object PipelineConsistencyChecker {
 
   val allChecks: Set[Check] = {
     Set(PipelineHasStoresCheck, PipelineHasToolsCheck, EachStoreIsOutputOfAtLeastOneToolCheck,
-      EachStoreIsOutputOfNoMoreThanOneToolCheck, EachStoreIsCompatibleOutputOfToolCheck,
-      EachStoreIsCompatibleInputOfToolCheck, EachOutputStoreIsPresentCheck, EachInputStoreIsPresentCheck,
-      ConnectednessCheck, AcyclicityCheck)
+      EachStoreIsOutputOfNoMoreThanOneToolCheck, EachOutputStoreIsPresentCheck,
+      EachInputStoreIsPresentCheck, ConnectednessCheck, AcyclicityCheck)
   }
 
   def check(pipeline: LPipeline, checks: Set[Check] = allChecks): Set[Problem] = {

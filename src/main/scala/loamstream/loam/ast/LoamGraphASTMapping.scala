@@ -1,24 +1,18 @@
 package loamstream.loam.ast
 
-import loamstream.loam.{LoamGraph, LoamStore, LoamTool}
-import loamstream.model.{AST, Store, Tool}
+import loamstream.loam.{LoamGraph, LoamTool}
+import loamstream.model.AST
 
 /**
   * LoamStream
   * Created by oliverr on 6/16/2016.
   */
 object LoamGraphASTMapping {
-  def apply(graph: LoamGraph): LoamGraphASTMapping =
-    LoamGraphASTMapping(graph, Map.empty, Map.empty, Map.empty)
+  def apply(graph: LoamGraph): LoamGraphASTMapping = LoamGraphASTMapping(graph, Map.empty)
 }
 
-case class LoamGraphASTMapping(graph: LoamGraph, tools: Map[LoamTool, Tool], loamToolAsts: Map[LoamTool, AST],
-                               toolAsts: Map[Tool, AST]) {
+case class LoamGraphASTMapping(graph: LoamGraph, toolAsts: Map[LoamTool, AST]) {
 
-  def withTool(loamTool: LoamTool, tool: Tool): LoamGraphASTMapping = copy(tools = tools + (loamTool -> tool))
-
-  def withAst(loamTool: LoamTool, tool: Tool, ast: AST): LoamGraphASTMapping =
-    copy(tools = tools + (loamTool -> tool), loamToolAsts = loamToolAsts + (loamTool -> ast),
-      toolAsts = toolAsts + (tool -> ast))
+  def withAst(tool: LoamTool, ast: AST): LoamGraphASTMapping = copy(toolAsts = toolAsts + (tool -> ast))
 
 }

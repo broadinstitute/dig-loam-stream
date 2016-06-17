@@ -10,7 +10,7 @@ import loamstream.model.LId
 import loamstream.model.LId.LNamedId
 import loamstream.model.Store
 import loamstream.model.StoreOps
-import loamstream.model.StoreSpec
+import loamstream.model.StoreSig
 import loamstream.model.Tool
 import loamstream.tools.klusta.KlustaKwikKonfig
 
@@ -35,10 +35,10 @@ object CoreTool {
   }
 
   final case class CheckPreExistingVcfFile(vcfFile: Path) extends
-      Tool.CheckPreexisting(vcfFile, StoreSpec(Sigs.variantAndSampleToGenotype))
+      Tool.CheckPreexisting(vcfFile, new StoreSig(Sigs.variantAndSampleToGenotype))
 
   final case class CheckPreExistingPcaWeightsFile(pcaWeightsFile: Path) extends
-      Tool.CheckPreexisting(pcaWeightsFile, StoreSpec(Sigs.sampleIdAndIntToDouble))
+      Tool.CheckPreexisting(pcaWeightsFile, new StoreSig(Sigs.sampleIdAndIntToDouble))
 
   final case class Phase(config: ShapeItConfig, inputVcf: Path, outputHaps: Path) extends
       Tool.OneToOne(vcfStore(inputVcf) ~> vcfStore(outputHaps)) {

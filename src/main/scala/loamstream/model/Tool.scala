@@ -46,7 +46,7 @@ object Tool {
     override val outputs: Map[LId, Store] = Map(ParamNames.output -> outputStore)
   }
 
-  abstract class CheckPreexisting(file: Path, spec: StoreSpec) extends Nullary(FileStore(file, spec)) {
+  abstract class CheckPreexisting(file: Path, spec: StoreSig) extends Nullary(FileStore(file, spec)) {
     override val id = LId.LNamedId(s"Check for $file")
   }
 

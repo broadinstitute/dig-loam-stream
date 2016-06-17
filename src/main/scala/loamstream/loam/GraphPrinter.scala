@@ -27,7 +27,7 @@ case class GraphPrinter(idLength: Int) {
 
   def print(key: LEnv.Key[_], fully: Boolean): String = s"%${print(key.id)}[${print(key.tpe, fully)}]"
 
-  def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.tpe, fully)}]"
+  def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
   def print(tool: LoamTool): String = print(tool, tool.graphBuilder.graph)
 

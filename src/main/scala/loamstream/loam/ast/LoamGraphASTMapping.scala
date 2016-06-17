@@ -9,14 +9,11 @@ import loamstream.model.{AST, Store, Tool}
   */
 object LoamGraphASTMapping {
   def apply(graph: LoamGraph): LoamGraphASTMapping =
-    LoamGraphASTMapping(graph, Map.empty, Map.empty, Map.empty, Map.empty)
+    LoamGraphASTMapping(graph, Map.empty, Map.empty, Map.empty)
 }
 
-case class LoamGraphASTMapping(graph: LoamGraph, stores: Map[LoamStore, Store], tools: Map[LoamTool, Tool],
-                               loamToolAsts: Map[LoamTool, AST], toolAsts: Map[Tool, AST]) {
-
-  def withStore(loamStore: LoamStore, store: Store): LoamGraphASTMapping =
-    copy(stores = stores + (loamStore -> store))
+case class LoamGraphASTMapping(graph: LoamGraph, tools: Map[LoamTool, Tool], loamToolAsts: Map[LoamTool, AST],
+                               toolAsts: Map[Tool, AST]) {
 
   def withTool(loamTool: LoamTool, tool: Tool): LoamGraphASTMapping = copy(tools = tools + (loamTool -> tool))
 

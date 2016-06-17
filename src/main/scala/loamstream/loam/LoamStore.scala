@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.model.LId
+import loamstream.model.{LId, Store, StoreSpec}
 
 import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
 
@@ -17,7 +17,7 @@ object LoamStore {
     LoamStore(LId.newAnonId, typeTag[T].tpe)
 }
 
-case class LoamStore private(id: LId, tpe: Type)(implicit graphBuilder: LoamGraphBuilder) {
+case class LoamStore private(id: LId, tpe: Type)(implicit graphBuilder: LoamGraphBuilder) extends Store {
   update()
 
   def update(): Unit = graphBuilder.addStore(this)
@@ -42,5 +42,6 @@ case class LoamStore private(id: LId, tpe: Type)(implicit graphBuilder: LoamGrap
 
   override def toString : String = s"store[$tpe]"
 
+  override val spec: StoreSpec = StoreSpec(tpe)
 }
 

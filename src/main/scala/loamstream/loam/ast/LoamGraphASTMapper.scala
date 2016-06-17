@@ -21,23 +21,6 @@ object LoamGraphASTMapper {
     def perform(loamGraphASTMapping: LoamGraphASTMapping): TaskResult
   }
 
-  case class MapStoreTask(loamStore: LoamStore) extends Task {
-    override def perform(mapping: LoamGraphASTMapping): TaskResult = {
-      val storeSpec = StoreSpec(loamStore.tpe)
-      val path = mapping.graph.storeSources.get(loamStore) match {
-        case Some(StoreEdge.PathEdge(inputPath)) => inputPath
-        case _ => mapping.graph.storeSinks.get(loamStore) match {
-          case Some(StoreEdge.PathEdge(outputPath)) => outputPath
-          case _ =>
-            val suffix = FileSuffixes(loamStore.tpe)
-            Files.createTempFile(tempFilePrefix, suffix)
-        }
-      }
-      val store = FileStore(path, storeSpec)
-      TaskResult(mapping.withStore(loamStore, store), Set.empty)
-    }
-  }
-
   case class MapToolTask(loamTool: LoamTool) extends Task {
     override def perform(mapping: LoamGraphASTMapping): TaskResult = ??? // TODO
   }
@@ -48,7 +31,7 @@ object LoamGraphASTMapper {
 
   def newMapping(graph: LoamGraph): LoamGraphASTMapping = {
     var mapping = LoamGraphASTMapping(graph)
-    var tasksCurrent: Set[Task] = graph.stores.map(MapStoreTask) ++ graph.tools.map(MapToolTask)
+    var tasksCurrent: Set[Task] = graph.tools.map(MapToolTask)
     var tasksNext: Set[Task] = Set.empty
     while (tasksCurrent.nonEmpty || tasksNext.nonEmpty) {
       if (tasksCurrent.isEmpty) {

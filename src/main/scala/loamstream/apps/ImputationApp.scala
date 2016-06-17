@@ -1,16 +1,13 @@
 package loamstream.apps
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import loamstream.client.Drmaa
 import loamstream.conf.{ImputationConfig, UgerConfig}
-import loamstream.model.execute.LExecutable
-import loamstream.model.execute.LeavesFirstExecuter
-import loamstream.model.jobs.LCommandLineJob
+import loamstream.model.execute.{LExecutable, LeavesFirstExecuter}
+import loamstream.model.jobs.commandline.LCommandLineBuilderJob
 import loamstream.tools.LineCommand
-import loamstream.util.Loggable
-import loamstream.util.Files
-import java.nio.file.Paths
+import loamstream.util.{Files, Loggable}
 
 /**
   * LoamStream
@@ -35,10 +32,10 @@ object ImputationApp extends Loggable {
 
     def quitWith(msg: String): Unit = {
       error(configHelpText)
-      
+
       System.exit(-1)
     }
-    
+
     if (args.length != 4) {
       quitWith(configHelpText)
     }
@@ -55,26 +52,26 @@ object ImputationApp extends Loggable {
   }
 
   def getShapeItCmdLineTokens(
-      shapeItExecutable: Path, 
-      vcf: Path, 
-      map: Path, 
-      haps: Path, 
-      samples: Path,
-      log: Path,
-      numThreads: Int = 1): Seq[String] = {
-    
+                               shapeItExecutable: Path,
+                               vcf: Path,
+                               map: Path,
+                               haps: Path,
+                               samples: Path,
+                               log: Path,
+                               numThreads: Int = 1): Seq[String] = {
+
     Seq(
-      shapeItExecutable, 
-      "-V", 
-      vcf, 
-      "-M", 
-      map, 
-      "-O", 
-      haps, 
-      samples, 
-      "-L", 
-      log, 
-      "--thread", 
+      shapeItExecutable,
+      "-V",
+      vcf,
+      "-M",
+      map,
+      "-O",
+      haps,
+      samples,
+      "-L",
+      log,
+      "--thread",
       numThreads).map(_.toString)
   }
 
@@ -93,12 +90,12 @@ object ImputationApp extends Loggable {
 
     val shapeItTokens = getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads)
     val commandLine = ShapeItCommandLine(shapeItTokens)
-    val shapeItJob = LCommandLineJob(commandLine, shapeItWorkDir, Set.empty)
+    val shapeItJob = LCommandLineBuilderJob(commandLine, shapeItWorkDir, Set.empty)
 
     val executable = LExecutable(Set(shapeItJob))
-    
+
     val executer = LeavesFirstExecuter.default
-    
+
     executer.execute(executable)
   }
 
@@ -111,18 +108,18 @@ object ImputationApp extends Loggable {
     val ugerLog = ugerConfig.ugerLogFile.toString
 
     val drmaaClient = new Drmaa
-    
+
     drmaaClient.runJob(shapeItScript, ugerLog, isBulk)
   }
 
   def main(args: Array[String]) {
     def path(s: String) = Paths.get(s)
-    
+
     runShapeItLocally(
-      path("src/main/resources/loamstream.conf"), 
+      path("src/main/resources/loamstream.conf"),
       path("src/test/resources/imputation/gwas.vcf.gz"),
       path("target/foo"))
-      
+
     //runShapeItLocally(args)
     //runShapeItOnUger(args)
   }

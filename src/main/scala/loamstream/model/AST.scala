@@ -13,7 +13,7 @@ import loamstream.util.Loggable
  * composing trees and tools.
  */
 sealed trait AST extends Loggable { self =>
-  def id: LId = LId.newAnonId
+  val id: LId = LId.newAnonId
 
   import AST._
 

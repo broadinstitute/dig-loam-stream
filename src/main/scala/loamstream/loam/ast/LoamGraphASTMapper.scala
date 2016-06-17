@@ -1,40 +1,48 @@
 package loamstream.loam.ast
 
+import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.{LoamGraph, LoamTool}
+import loamstream.model.AST
+import loamstream.model.AST.{Connection, ToolNode}
 
 /**
   * LoamStream
   * Created by oliverr on 6/16/2016.
   */
-object LoamGraphASTMapper {
+object LoamGraphAstMapper {
 
   val tempFilePrefix = "loam"
 
-  case class TaskResult(mapping: LoamGraphASTMapping, moreTasks: Set[Task])
-
-  sealed trait Task {
-    def perform(loamGraphASTMapping: LoamGraphASTMapping): TaskResult
-  }
-
-  case class MapToolASTTask(tool: LoamTool) extends Task {
-    override def perform(mapping: LoamGraphASTMapping): TaskResult = ??? // TODO
-  }
-
-  def newMapping(graph: LoamGraph): LoamGraphASTMapping = {
-    var mapping = LoamGraphASTMapping(graph)
-    var tasksCurrent: Set[Task] = graph.tools.map(MapToolASTTask)
-    var tasksNext: Set[Task] = Set.empty
-    while (tasksCurrent.nonEmpty || tasksNext.nonEmpty) {
-      if (tasksCurrent.isEmpty) {
-        tasksCurrent = tasksNext
-        tasksNext = Set.empty
+  def newMapping(graph: LoamGraph): LoamGraphAstMapping = {
+    var toolsUnmapped: Set[LoamTool] = graph.tools
+    var toolAsts: Map[LoamTool, AST] = Map.empty
+    var rootTools: Set[LoamTool] = Set.empty
+    var rootAsts: Set[AST] = Set.empty
+    var makingProgress: Boolean = true
+    while (toolsUnmapped.nonEmpty && makingProgress) {
+      makingProgress = false
+      for (tool <- toolsUnmapped) {
+        if (graph.toolsPreceding(tool).forall(toolAsts.contains)) {
+          val inputStores = graph.toolInputs.getOrElse(tool, Set.empty)
+          val inputConnections = inputStores.flatMap(inputStore =>
+            graph.storeSources.get(inputStore) match {
+              case Some(StoreEdge.ToolEdge(sourceTool)) =>
+                val id = inputStore.id
+                toolAsts.get(sourceTool).map(ast => Connection(id, id, ast))
+              case _ => None
+            })
+          val ast = ToolNode(tool, inputConnections)
+          toolsUnmapped -= tool
+          toolAsts += tool -> ast
+          if(graph.toolsSucceeding(tool).isEmpty) {
+            rootTools += tool
+            rootAsts += ast
+          }
+          makingProgress = true
+        }
       }
-      val task = tasksCurrent.head
-      val taskResult = task.perform(mapping)
-      mapping = taskResult.mapping
-      tasksNext ++= (taskResult.moreTasks -- (tasksCurrent - task))
     }
-    mapping
+    LoamGraphAstMapping(graph, toolAsts, rootTools, rootAsts, toolsUnmapped)
   }
 
 }

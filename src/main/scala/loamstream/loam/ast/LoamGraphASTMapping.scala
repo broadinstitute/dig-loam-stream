@@ -7,12 +7,8 @@ import loamstream.model.AST
   * LoamStream
   * Created by oliverr on 6/16/2016.
   */
-object LoamGraphASTMapping {
-  def apply(graph: LoamGraph): LoamGraphASTMapping = LoamGraphASTMapping(graph, Map.empty)
-}
+case class LoamGraphAstMapping(graph: LoamGraph, toolAsts: Map[LoamTool, AST], rootTools: Set[LoamTool],
+                               rootAsts: Set[AST], toolsUnmapped: Set[LoamTool]) {
 
-case class LoamGraphASTMapping(graph: LoamGraph, toolAsts: Map[LoamTool, AST]) {
-
-  def withAst(tool: LoamTool, ast: AST): LoamGraphASTMapping = copy(toolAsts = toolAsts + (tool -> ast))
-
+  def complete: Boolean = toolsUnmapped.isEmpty
 }

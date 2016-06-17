@@ -9,6 +9,11 @@ import java.nio.file.Paths
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import java.nio.file.StandardOpenOption
+import java.util.Collection
+import java.util.stream.Collector
+import java.util.stream.Collectors
+import java.io.FileWriter
 
 /**
  * @author clint
@@ -26,5 +31,11 @@ object Files {
   def tryFile(path: Path): Try[Path] = {
     if(path.toFile.exists) { Success(path) }
     else { Failure(new FileNotFoundException(s"Can't find '$path'")) }
+  }
+  
+  def writeTo(file: Path)(contents: String): Unit = {
+    LoamFileUtils.enclosed(new FileWriter(file.toFile)) { 
+      _.write(contents)
+    }
   }
 }

@@ -12,7 +12,7 @@ import com.typesafe.config.ConfigFactory
 import loamstream.model.jobs.LToolBox
 import loamstream.tools.core.CoreToolBox
 import java.nio.file.Paths
-import loamstream.model.execute.LeavesFirstExecuter
+import loamstream.model.execute.ChunkedExecuter
 import loamstream.util.Hit
 import loamstream.model.execute.LExecuter
 
@@ -54,7 +54,7 @@ final class PhaseImputeEndToEndTest extends FunSuite {
     
     val toolbox = CoreToolBox(LEnv.empty)
     
-    val executer: LExecuter = LeavesFirstExecuter.default
+    val executer: LExecuter = ChunkedExecuter.default
     
     (toolbox, pipeline, executer)
   }

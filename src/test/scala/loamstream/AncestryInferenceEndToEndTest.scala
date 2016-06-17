@@ -4,7 +4,7 @@ import scala.util.Try
 
 import org.scalatest.FunSuite
 
-import loamstream.model.execute.LeavesFirstExecuter
+import loamstream.model.execute.ChunkedExecuter
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LToolBox
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
@@ -26,7 +26,7 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
   @deprecated("", "")
   val canRunKlustaKwik = isKlustaKwikPresent
   
-  private val executer = LeavesFirstExecuter.default
+  private val executer = ChunkedExecuter.default
   
   test("creating jobs from inference tools.") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()

@@ -8,7 +8,7 @@ import org.scalatest.FunSuite
 
 import loamstream.TestData
 import loamstream.model.execute.LExecutable
-import loamstream.model.execute.LeavesFirstExecuter
+import loamstream.model.execute.ChunkedExecuter
 import loamstream.model.jobs.LToolBox
 import loamstream.tools.core.{CoreToolBox, LCoreEnv}
 import loamstream.tools.core.LCoreDefaultStoreIds
@@ -22,7 +22,7 @@ import loamstream.util.TestUtils
   */
 final class MiniAppEndToEndTest extends FunSuite {
 
-  private val executer = LeavesFirstExecuter.default
+  private val executer = ChunkedExecuter.default
   
   test("Pipeline successfully extracts sample IDs from VCF") {
     val (toolbox, pipeline, extractedSamplesFilePath) = makePipelineAndToolbox()

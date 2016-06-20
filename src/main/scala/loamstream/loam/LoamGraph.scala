@@ -78,6 +78,10 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
   def toolsSucceeding(tool: LoamTool): Set[LoamTool] =
     toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers)
 
+  def initialTools: Set[LoamTool] = tools.filter(toolsPreceding(_).isEmpty)
+
+  def finalTools: Set[LoamTool] = tools.filter(toolsSucceeding(_).isEmpty)
+
   def withEnv(env: LEnv): LoamGraph = {
     val toolTokensNew = toolTokens.mapValues({ tokens =>
       val tokensMapped = tokens.map({

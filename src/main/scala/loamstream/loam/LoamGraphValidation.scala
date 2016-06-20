@@ -102,6 +102,30 @@ object LoamGraphValidation {
     }
   }
 
+  val noToolsPrecedeInitialTool: LoamToolRule[Set[LoamTool]] = new LoamToolRule[Set[LoamTool]] {
+    override def targets(graph: LoamGraph): Seq[LoamTool] = graph.initialTools.toSeq
+
+    override def apply(graph: LoamGraph, tool: LoamTool): Seq[BulkIssue[LoamGraph, LoamTool, Set[LoamTool]]] = {
+      val precedingTools = graph.toolInputs.getOrElse(tool, Set.empty).flatMap(graph.storeProducers)
+      issueIf(precedingTools.nonEmpty,
+        newBulkIssue[LoamTool, Set[LoamTool]](graph, this, tool, precedingTools, Severity.Error,
+          s"Tool $tool is considered initial, but the following tools precede it: ${precedingTools.mkString(", ")}.")
+      )
+    }
+  }
+
+  val noToolsSucceedFinalTool: LoamToolRule[Set[LoamTool]] = new LoamToolRule[Set[LoamTool]] {
+    override def targets(graph: LoamGraph): Seq[LoamTool] = graph.finalTools.toSeq
+
+    override def apply(graph: LoamGraph, tool: LoamTool): Seq[BulkIssue[LoamGraph, LoamTool, Set[LoamTool]]] = {
+      val succeedingTools = graph.toolOutputs.getOrElse(tool, Set.empty).flatMap(graph.storeConsumers)
+      issueIf(succeedingTools.nonEmpty,
+        newBulkIssue[LoamTool, Set[LoamTool]](graph, this, tool, succeedingTools, Severity.Error,
+          s"Tool $tool is considered final, but the following tools succeed it: ${succeedingTools.mkString(", ")}.")
+      )
+    }
+  }
+
   val eachStoreIsConnectedToATool: LoamStoreRule[Unit] = new LoamStoreRule[Unit] {
     override def apply(graph: LoamGraph, store: LoamStore): Seq[LoamStoreIssue[Unit]] = {
       val storeIsInput = graph.storeConsumers(store).nonEmpty
@@ -169,7 +193,8 @@ object LoamGraphValidation {
   }
 
   val consistencyRules = eachStoreHasASource ++ eachToolSourcedStoreIsOutputOfThatTool ++
-    eachStoresIsInputOfItsConsumers ++ eachToolsInputStoresArePresent ++ eachToolsOutputStoresArePresent
+    eachStoresIsInputOfItsConsumers ++ eachToolsInputStoresArePresent ++ eachToolsOutputStoresArePresent ++
+    noToolsPrecedeInitialTool ++ noToolsSucceedFinalTool
   val connectivityRules = eachStoreIsConnectedToATool ++ eachToolHasEitherInputsOrOutputs ++ allToolsAreConnected
   val allRules = consistencyRules ++ connectivityRules ++ graphIsAcyclic
 

@@ -1,7 +1,7 @@
 package loamstream.tools
 
 import org.scalatest.FunSuite
-import loamstream.model.StoreSpec
+import loamstream.model.StoreSig
 import loamstream.model.Store
 import loamstream.model.LId
 import loamstream.model.ToolSpec
@@ -24,10 +24,10 @@ final class ImputationTest extends FunSuite {
   }
 
   private object Tools {
-    final case class SimpleStore(spec: StoreSpec, id: LId = LId.newAnonId) extends Store
+    final case class SimpleStore(sig: StoreSig, id: LId = LId.newAnonId) extends Store
 
     final case class SimpleTool(spec: ToolSpec, id: LId = LId.newAnonId) extends Tool {
-      private def toStoreMap(m: Map[LId, StoreSpec]): Map[LId, Store] = m.mapValues(SimpleStore(_))
+      private def toStoreMap(m: Map[LId, StoreSig]): Map[LId, Store] = m.mapValues(SimpleStore(_))
 
       override val inputs: Map[LId, Store] = toStoreMap(spec.inputs)
 
@@ -61,7 +61,7 @@ final class ImputationTest extends FunSuite {
     val intToDouble = Sigs.map[Int, Double]
     
     // ShapeIt
-    val sStoreSpec = StoreSpec(intToDouble)
+    val sStoreSpec = new StoreSig(intToDouble)
 
     val s1Id = LId.LNamedId("S1")
     val s1ToolSpec = ToolSpec(inputs = Map(), outputs = Map(s1Id -> sStoreSpec))
@@ -69,13 +69,13 @@ final class ImputationTest extends FunSuite {
     val s1Ast = AST(s1Tool)
 
     val s2Id = LId.LNamedId("S2")
-    val s2StoreSpec = StoreSpec(intToDouble)
+    val s2StoreSpec = new StoreSig(intToDouble)
     val s2ToolSpec = ToolSpec(inputs = Map(), outputs = Map(s2Id -> s2StoreSpec))
     val s2Tool = SimpleTool(s2ToolSpec, s2Id)
     val s2Ast = AST(s2Tool)
 
     // Impute2
-    val iStoreSpec = StoreSpec(intToDouble)
+    val iStoreSpec = new StoreSig(intToDouble)
 
     val i1Id = LId.LNamedId("I1")
     val i1ToolSpec = ToolSpec(inputs = Map(), outputs = Map(i1Id -> iStoreSpec))
@@ -89,7 +89,7 @@ final class ImputationTest extends FunSuite {
     val gId = LId.LNamedId("G")
     val g1Id = LId.LNamedId("G1")
     val g2Id = LId.LNamedId("G2")
-    val gStoreSpec = StoreSpec(intToDouble)
+    val gStoreSpec = new StoreSig(intToDouble)
     val gToolSpec = ToolSpec(inputs = Map(), outputs = Map(gId -> gStoreSpec))
     val gTool = SimpleTool(gToolSpec, gId)
 

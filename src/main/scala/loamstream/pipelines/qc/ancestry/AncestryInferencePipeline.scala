@@ -2,7 +2,7 @@ package loamstream.pipelines.qc.ancestry
 
 import java.nio.file.Path
 
-import loamstream.model.{AST, HasAst, LPipeline, Store, Tool, ToolSpec}
+import loamstream.model.{AST, HasAst, LPipeline, Store, Tool}
 import loamstream.tools.core.{CoreStore, CoreTool}
 import loamstream.tools.klusta.KlustaKwikKonfig
 
@@ -33,7 +33,7 @@ final case class AncestryInferencePipeline(
     val pcaWeightsNode = AST(pcaWeightsTool)
     val genotypesNode = AST(genotypesTool)
 
-    import ToolSpec.ParamNames.{input, output}
+    import Tool.ParamNames.{input, output}
 
     //TODO: sort out names
     val vcfFileInput = CoreStore.vcfFile.id

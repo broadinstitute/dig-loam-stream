@@ -1,9 +1,9 @@
 package loamstream.loam
 
 import loamstream.LEnv
-import loamstream.loam.LoamGraph.StoreSource
-import loamstream.loam.LoamGraph.StoreSource.{FromPath, FromPathKey, FromTool}
-import loamstream.loam.ToolBuilder.{EnvToken, StoreToken, StringToken}
+import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, PathKeyEdge, ToolEdge}
+import loamstream.loam.LoamToken.{EnvToken, StoreToken, StringToken}
 import loamstream.model.LId
 import loamstream.util.SourceUtils
 
@@ -27,17 +27,17 @@ case class GraphPrinter(idLength: Int) {
 
   def print(key: LEnv.Key[_], fully: Boolean): String = s"%${print(key.id)}[${print(key.tpe, fully)}]"
 
-  def print(store: StoreBuilder, fully: Boolean): String = s"@${print(store.id)}[${print(store.tpe, fully)}]"
+  def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
-  def print(tool: ToolBuilder): String = print(tool, tool.graphBuilder.graph)
+  def print(tool: LoamTool): String = print(tool, tool.graphBuilder.graph)
 
-  def print(tool: ToolBuilder, graph: LoamGraph): String = {
-    val tokenString = tool.tokens.map({
+  def print(tool: LoamTool, graph: LoamGraph): String = {
+    val tokenString = graph.toolTokens.getOrElse(tool, Seq.empty).map({
       case StringToken(string) => string
       case EnvToken(key) => s"${print(key.id)}[${print(key.tpe, fully = false)}]"
       case StoreToken(store) =>
         val ioPrefix = graph.storeSources.get(store) match {
-          case Some(StoreSource.FromTool(sourceTool)) if sourceTool == tool => ">"
+          case Some(StoreEdge.ToolEdge(sourceTool)) if sourceTool == tool => ">"
           case _ => "<"
         }
         s"$ioPrefix${print(store, fully = false)}"
@@ -45,10 +45,10 @@ case class GraphPrinter(idLength: Int) {
     s"#${print(tool.id)}[$tokenString]"
   }
 
-  def print(source: StoreSource): String = source match {
-    case FromPath(path) => path.toString
-    case FromPathKey(key) => print(key, fully = true)
-    case FromTool(tool) => s"#${print(tool.id)}"
+  def print(source: StoreEdge): String = source match {
+    case PathEdge(path) => path.toString
+    case PathKeyEdge(key) => print(key, fully = true)
+    case ToolEdge(tool) => s"#${print(tool.id)}"
   }
 
   def print(graph: LoamGraph): String = {

@@ -23,7 +23,6 @@ import tools.klusta.KlustaKwikKonfig
   */
 final class AncestryInferenceEndToEndTest extends FunSuite {
   //TODO: Make this field unnecessary via CI
-  @deprecated("", "")
   val canRunKlustaKwik = isKlustaKwikPresent
   
   private val executer = LeavesFirstExecuter.default

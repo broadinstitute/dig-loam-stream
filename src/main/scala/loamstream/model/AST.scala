@@ -13,7 +13,7 @@ import loamstream.util.Loggable
  * composing trees and tools.
  */
 sealed trait AST extends Loggable { self =>
-  def id: LId = LId.newAnonId
+  val id: LId = LId.newAnonId
 
   import AST._
 
@@ -86,8 +86,6 @@ object AST {
       override val id: LId,
       tool: Tool, 
       dependencies: Set[Connection] = Set.empty) extends AST {
-    
-    def spec: ToolSpec = tool.spec
     
     override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
   }

@@ -4,7 +4,7 @@ import loamstream.LEnv
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
-import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, ToolBuilder}
+import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, LoamTool}
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.{ReflectionUtil, SourceUtils, StringUtils}
 
@@ -109,7 +109,7 @@ import ${SourceUtils.fullTypeName[LEnvBuilder]}
 import ${SourceUtils.fullTypeName[LoamGraphBuilder]}
 import ${SourceUtils.fullTypeName[DslChunk]}
 import ${SourceUtils.fullTypeName[LEnv]}._
-import ${SourceUtils.fullTypeName[ToolBuilder.type]}._
+import ${SourceUtils.fullTypeName[LoamTool.type]}._
 import loamstream.dsl._
 import java.nio.file._
 

@@ -53,8 +53,8 @@ final class JobTest extends FunSuite with TestJobs {
     assert(two0.isLeaf)
     assert(two1.isLeaf)
     
-    assert(twoPlusTwo.isLeaf == false)
-    assert(plusOne.isLeaf == false)
+    assert(twoPlusTwo.isLeaf === false)
+    assert(plusOne.isLeaf === false)
   }
   
   /*

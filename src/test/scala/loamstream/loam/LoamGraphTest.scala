@@ -3,7 +3,6 @@ package loamstream.loam
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.LoamCompiler
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.ast.LoamGraphAstMapper
 import org.scalatest.FunSuite
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -91,14 +90,4 @@ class LoamGraphTest extends FunSuite {
     val graphBroken = graph.copy(toolInputs = toolInputsNew, toolOutputs = toolOutputsNew)
     assert(LoamGraphValidation.graphIsAcyclic(graphBroken).nonEmpty)
   }
-  test("Map graph to AST") {
-    val mapping = LoamGraphAstMapper.newMapping(graph)
-    assert(mapping.toolsUnmapped.isEmpty)
-    assert(mapping.toolAsts.size === 2)
-    assert(mapping.rootTools.size === 1)
-    assert(mapping.rootAsts.size === 1)
-    val rootAst = mapping.rootAsts.head
-    assert(rootAst.dependencies.size === 1)
-  }
-
 }

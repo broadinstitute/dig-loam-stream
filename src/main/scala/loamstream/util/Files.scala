@@ -2,7 +2,7 @@ package loamstream.util
 
 import java.io.File
 import java.io.FileNotFoundException
-
+import java.io.FileWriter
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -26,5 +26,11 @@ object Files {
   def tryFile(path: Path): Try[Path] = {
     if(path.toFile.exists) { Success(path) }
     else { Failure(new FileNotFoundException(s"Can't find '$path'")) }
+  }
+  
+  def writeTo(file: Path)(contents: String): Unit = {
+    LoamFileUtils.enclosed(new FileWriter(file.toFile)) { 
+      _.write(contents)
+    }
   }
 }

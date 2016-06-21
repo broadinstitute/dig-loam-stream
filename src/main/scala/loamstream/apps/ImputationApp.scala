@@ -1,13 +1,16 @@
 package loamstream.apps
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 
-import loamstream.client.Drmaa
+import loamstream.uger.Drmaa
 import loamstream.conf.{ImputationConfig, UgerConfig}
-import loamstream.model.execute.{LExecutable, LeavesFirstExecuter}
-import loamstream.model.jobs.commandline.CommandLineBuilderJob
+import loamstream.model.execute.LExecutable
+import loamstream.model.execute.ChunkedExecuter
+import loamstream.model.jobs.LCommandLineJob
 import loamstream.tools.LineCommand
-import loamstream.util.{Files, Loggable}
+import loamstream.util.Loggable
+import loamstream.util.Files
+import java.nio.file.Paths
 
 /**
   * LoamStream
@@ -52,13 +55,13 @@ object ImputationApp extends Loggable {
   }
 
   def getShapeItCmdLineTokens(
-                               shapeItExecutable: Path,
-                               vcf: Path,
-                               map: Path,
-                               haps: Path,
-                               samples: Path,
-                               log: Path,
-                               numThreads: Int = 1): Seq[String] = {
+      shapeItExecutable: Path,
+      vcf: Path,
+      map: Path,
+      haps: Path,
+      samples: Path,
+      log: Path,
+      numThreads: Int = 1): Seq[String] = {
 
     Seq(
       shapeItExecutable,
@@ -90,11 +93,11 @@ object ImputationApp extends Loggable {
 
     val shapeItTokens = getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads)
     val commandLine = ShapeItCommandLine(shapeItTokens)
-    val shapeItJob = CommandLineBuilderJob(commandLine, shapeItWorkDir, Set.empty)
+    val shapeItJob = LCommandLineJob(commandLine, shapeItWorkDir, Set.empty)
 
     val executable = LExecutable(Set(shapeItJob))
 
-    val executer = LeavesFirstExecuter.default
+    val executer = ChunkedExecuter.default
 
     executer.execute(executable)
   }
@@ -102,25 +105,32 @@ object ImputationApp extends Loggable {
   def runShapeItOnUger(configFile: Path, isBulk: Boolean): Unit = {
     trace("Attempting to run ShapeIt...")
 
+    //TODO: Fragile
     val shapeItConfig = ImputationConfig.fromFile(configFile).get
-    val shapeItScript = shapeItConfig.shapeIt.script.toString
-    val ugerConfig = UgerConfig.fromFile(configFile).get //TODO: Fragile
-    val ugerLog = ugerConfig.ugerLogFile.toString
+
+    val shapeItScript = shapeItConfig.shapeIt.script
+
+    //TODO: Fragile
+    val ugerConfig = UgerConfig.fromFile(configFile).get
+
+    val ugerLog = ugerConfig.ugerLogFile
 
     val drmaaClient = new Drmaa
 
-    drmaaClient.runJob(shapeItScript, ugerLog, isBulk)
+    drmaaClient.runJob(shapeItScript, ugerLog, isBulk, "ShapeIt")
   }
 
   def main(args: Array[String]) {
     def path(s: String) = Paths.get(s)
 
-    runShapeItLocally(
+    /*runShapeItLocally(
       path("src/main/resources/loamstream.conf"),
       path("src/test/resources/imputation/gwas.vcf.gz"),
-      path("target/foo"))
+      path("target/foo"))*/
 
     //runShapeItLocally(args)
-    //runShapeItOnUger(args)
+    runShapeItOnUger(path("src/main/resources/loamstream.conf"), true)
+
+
   }
 }

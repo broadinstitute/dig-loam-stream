@@ -7,5 +7,5 @@ import scala.concurrent.ExecutionContext.Implicits.global
  * date: Jun 2, 2016
  */
 final class LeavesFirstExecuterTest extends ExecuterTest {
-  override def makeExecuter: LExecuter = new LeavesFirstExecuter
+  override def makeExecuter: LExecuter = ChunkedExecuter.default
 }

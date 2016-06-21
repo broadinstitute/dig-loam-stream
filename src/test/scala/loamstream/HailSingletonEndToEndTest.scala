@@ -10,7 +10,7 @@ import org.scalatest.FunSuite
 import loamstream.apps.hail.HailPipeline
 import loamstream.apps.minimal._
 import loamstream.model.execute.LExecutable
-import loamstream.model.execute.LeavesFirstExecuter
+import loamstream.model.execute.ChunkedExecuter
 import loamstream.util.Hit
 import loamstream.util.LoamFileUtils
 import loamstream.util.StringUtils
@@ -53,7 +53,7 @@ final class HailSingletonEndToEndTest extends FunSuite {
     deleteSampleFilesBeforeAndAfter(hailVdsFilePath, hailSingletonFilePath) {
       val executable = makeExecutable(toolbox, pipeline)
     
-      val executer = LeavesFirstExecuter.default
+      val executer = ChunkedExecuter.default
       
       val results = executer.execute(executable)
       

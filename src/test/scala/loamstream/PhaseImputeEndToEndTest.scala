@@ -10,7 +10,7 @@ import loamstream.conf.ImputationConfig
 import loamstream.model.jobs.LToolBox
 import loamstream.tools.core.CoreToolBox
 import java.nio.file.Paths
-import loamstream.model.execute.LeavesFirstExecuter
+import loamstream.model.execute.ChunkedExecuter
 import loamstream.util.Hit
 import loamstream.model.execute.LExecuter
 
@@ -27,9 +27,9 @@ final class PhaseImputeEndToEndTest extends FunSuite {
 
     val output = Paths.get("target/bar")
 
-    val (toolbox, pipeline, executer) = doSetup(inputFile, output)
+    val (toolbox, ast, executer) = doSetup(inputFile, output)
 
-    val executable = toolbox.createExecutable(pipeline.ast)
+    val executable = toolbox.createExecutable(ast)
 
     val results = executer.execute(executable)
 
@@ -44,33 +44,31 @@ final class PhaseImputeEndToEndTest extends FunSuite {
     //TODO: More; Ideally, we want to know we're computing the expected results 
   }
 
-  private def doSetup(inputFile: Path, output: Path): (LToolBox, ShapeItImpute2Pipeline, LExecuter) = {
+  private def doSetup(inputFile: Path, output: Path): (LToolBox, AST, LExecuter) = {
 
     val config = ImputationConfig.fromFile("src/test/resources/loamstream-test.conf").get
 
-    val pipeline = ShapeItImpute2Pipeline(config, inputFile.toAbsolutePath, output.toAbsolutePath)
+    val ast = shapeItImpute2PipelineAst(config, inputFile.toAbsolutePath, output.toAbsolutePath)
 
     val toolbox = CoreToolBox(LEnv.empty)
-
-    val executer: LExecuter = LeavesFirstExecuter.default
-
-    (toolbox, pipeline, executer)
+    
+    val executer = ChunkedExecuter.default
+    
+    (toolbox, ast, executer)
   }
 }
 
 object PhaseImputeEndToEndTest {
 
-  final case class ShapeItImpute2Pipeline(config: ImputationConfig, inputVcf: Path, outputFile: Path) extends HasAst {
-    private def tempFile = File.createTempFile("shapeit", "loamstream").toPath.toAbsolutePath
+  def shapeItImpute2PipelineAst(config: ImputationConfig, inputVcf: Path, outputFile: Path): AST = {
+    val tempFile = File.createTempFile("shapeit", "loamstream").toPath.toAbsolutePath
 
-    private lazy val shapeItTool = CoreTool.Phase(config.shapeIt, inputVcf, tempFile)
+    val shapeItTool = CoreTool.Phase(config.shapeIt, inputVcf, tempFile)
 
-    private lazy val impute2Tool = CoreTool.Impute(config.impute2, shapeItTool.outputHaps, outputFile)
+    val impute2Tool = CoreTool.Impute(config.impute2, shapeItTool.outputHaps, outputFile)
 
-    override lazy val ast: AST = {
-      import Tool.ParamNames.{ input, output }
+    import Tool.ParamNames.{ input, output }
 
-      AST(impute2Tool).get(input).from(AST(shapeItTool)(output))
-    }
+    AST(impute2Tool).get(input).from(AST(shapeItTool)(output))
   }
 }

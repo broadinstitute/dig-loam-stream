@@ -1,6 +1,6 @@
 package loamstream.util
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files => JFiles, Path, Paths}
 
 import scala.io.StdIn.readLine
 
@@ -15,7 +15,7 @@ object FileAsker extends Loggable {
     askIfNotExist(path +: paths)(fileDescription)
 
   def askIfNotExist(paths: Seq[Path])(fileDescription: String): Path = {
-    paths.find(Files.exists(_)) match {
+    paths.find(JFiles.exists(_)) match {
       case Some(path) => path
       case None => ask(fileDescription)
     }
@@ -25,7 +25,7 @@ object FileAsker extends Loggable {
     askIfParentDoesNotExist(path +: paths)(fileDescription)
 
   def askIfParentDoesNotExist(paths: Seq[Path])(fileDescription: String): Path = {
-    paths.find(path => Some(path.getParent).exists(Files.exists(_))) match {
+    paths.find(path => Option(path.getParent).exists(JFiles.exists(_))) match {
       case Some(pathFound) => pathFound
       case None => ask(fileDescription)
     }

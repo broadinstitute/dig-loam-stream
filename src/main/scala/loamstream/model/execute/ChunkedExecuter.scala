@@ -28,16 +28,15 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
     def loop(remainingOption: Option[LJob], acc: Map[LJob, Result]): Future[Map[LJob, Result]] = {
       remainingOption match {
         case None => Future.successful(acc)
-        case Some(j) => {
+        case Some(j) =>
           val leaves = j.leaves
-          
+
           for {
             leafResults <- runner.run(leaves)
             shouldStop = j.isLeaf //|| anyFailures(leafResults)
             next = if (shouldStop) None else Some(j.removeAll(leaves))
             resultsSoFar <- loop(next, acc ++ leafResults)
           } yield resultsSoFar
-        }
       }
     }
 

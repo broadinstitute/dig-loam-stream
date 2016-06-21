@@ -116,7 +116,7 @@ final class ShotTest extends FunSuite {
   }
   
   test("and") {
-    import ShotCombinators._
+    import Shots._
     
     assert((hit and miss) === Shots2(hit, miss))
     assert((miss and hit) === Shots2(miss, hit))

@@ -1,13 +1,13 @@
 package loamstream.loam
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import loamstream.LEnv
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.{LJob, LToolBox}
 import loamstream.model.{AST, LPipeline, Tool}
-import loamstream.util.{Hit, Shot}
+import loamstream.util.{Hit, Miss, Shot, Shots}
 
 /**
   * LoamStream
@@ -15,13 +15,27 @@ import loamstream.util.{Hit, Shot}
   */
 case class LoamToolBox(env: LEnv) extends LToolBox {
 
-  def loamToolJob(tool: LoamTool): Shot[LJob] = {
+  var loamJobs: Map[LoamTool, LJob] = Map.empty
+
+  def newLoamJob(tool: LoamTool): Shot[LJob] = {
     tool.graphBuilder.applyEnv(env)
     val graph = tool.graphBuilder.graph
     val commandLineString = graph.toolTokens(tool).mkString
-    val workDir: Path = ??? // TODO
-    val inputs: Set[LJob] = ??? // TODO
-    Hit(CommandLineStringJob(commandLineString, workDir, inputs))
+    val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
+    Shots.unpack(graph.toolsPreceding(tool).map(getLoamJob)).map(inputJobs =>
+      CommandLineStringJob(commandLineString, workDir, inputJobs.toSet)
+    )
+  }
+
+  def getLoamJob(tool: LoamTool): Shot[LJob] = loamJobs.get(tool) match {
+    case Some(job) => Hit(job)
+    case _ =>
+      newLoamJob(tool) match {
+        case jobHit@Hit(job) =>
+          loamJobs += tool -> job
+          jobHit
+        case miss: Miss => miss
+      }
   }
 
   @deprecated("", "")

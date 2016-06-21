@@ -103,4 +103,6 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
       case _ => storeSinks.getOrElse(store, Set.empty).collect({ case StoreEdge.PathEdge(path) => path }).headOption
     }
   }
+
+  def workDirOpt(tool:LoamTool): Option[Path] = None // TODO
 }

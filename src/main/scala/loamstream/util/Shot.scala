@@ -1,6 +1,6 @@
 package loamstream.util
 
-import loamstream.util.ShotCombinators.Shots2
+import loamstream.util.Shots.Shots2
 
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}

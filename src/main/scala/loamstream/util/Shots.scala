@@ -4,7 +4,7 @@ package loamstream.util
   * LoamStream
   * Created by oliverr on 4/7/2016.
   */
-object ShotCombinators {
+object Shots {
 
   //TODO: TEST! 
   
@@ -120,6 +120,12 @@ object ShotCombinators {
       case (Hit(e1), Hit(e2), Hit(e3), Hit(e4), Hit(e5), Hit(e6), Hit(e7)) => Hit(f(e1, e2, e3, e4, e5, e6, e7))
       case _ => combinedMiss(productIterator)
     }
+  }
+
+  def unpack[E](shots:Iterable[Shot[E]]): Shot[Iterable[E]] = if(shots.forall(_.isInstanceOf[Hit[E]])) {
+    Hit(shots.map(_.get))
+  } else {
+    combinedMiss(shots.iterator)
   }
 
 }

@@ -2,18 +2,13 @@ package loamstream.util
 
 import java.io.File
 import java.io.FileNotFoundException
-
+import java.io.FileWriter
 import java.nio.file.Path
 import java.nio.file.Paths
 
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import java.nio.file.StandardOpenOption
-import java.util.Collection
-import java.util.stream.Collector
-import java.util.stream.Collectors
-import java.io.FileWriter
 
 /**
  * @author clint

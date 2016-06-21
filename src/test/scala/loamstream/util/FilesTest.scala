@@ -49,7 +49,7 @@ final class FilesTest extends FunSuite {
       LoamFileUtils.enclosed(new BufferedReader(new FileReader(tempFile.toFile))) { reader =>
         import scala.collection.JavaConverters._
         
-        reader.lines.collect(Collectors.toList()).asScala.mkString("\n")
+        reader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
       }
     }
     

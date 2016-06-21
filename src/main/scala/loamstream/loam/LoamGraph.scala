@@ -5,6 +5,7 @@ import java.nio.file.Path
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamToken.{EnvToken, StringToken}
+import loamstream.model.LPipeline
 
 import scala.reflect.runtime.universe.typeOf
 
@@ -94,5 +95,12 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
       LoamToken.mergeStringTokens(tokensMapped)
     }).view.force
     copy(toolTokens = toolTokensNew)
+  }
+
+  def pathOpt(store: LoamStore): Option[Path] = {
+    storeSources.get(store) match {
+      case Some(StoreEdge.PathEdge(path)) => Some(path)
+      case _ => storeSinks.getOrElse(store, Set.empty).collect({ case StoreEdge.PathEdge(path) => path }).headOption
+    }
   }
 }

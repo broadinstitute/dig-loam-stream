@@ -12,10 +12,10 @@ import scala.sys.process.{Process, ProcessBuilder, ProcessLogger}
   * LoamStream
   * Created by oliverr on 4/8/2016.
   */
-final case class LCommandLineBuilderJob(commandLine: CommandLine,
-                                        workDir: Path,
-                                        inputs: Set[LJob] = Set.empty,
-                                        override val logger: ProcessLogger = noOpProcessLogger)
+final case class CommandLineBuilderJob(commandLine: CommandLine,
+                                       workDir: Path,
+                                       inputs: Set[LJob] = Set.empty,
+                                       override val logger: ProcessLogger = noOpProcessLogger)
   extends CommandLineJob {
 
   override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)

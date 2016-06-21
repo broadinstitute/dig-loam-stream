@@ -16,7 +16,7 @@ import loamstream.model.LPipeline
 import loamstream.model.Tool
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{ LJob, LToolBox }
-import loamstream.model.jobs.commandline.LCommandLineBuilderJob
+import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.model.jobs.LJob.{ Result, SimpleFailure, SimpleSuccess }
 import loamstream.tools.{ HailTools, PcaProjecter, PcaWeightsReader, VcfParser }
 import loamstream.tools.LineCommand
@@ -187,20 +187,20 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     klustaKwik(klustaConfig) + useDistributional(0)
   }
 
-  def calculateClustersJobShot(klustaConfig: KlustaKwikKonfig): Shot[LCommandLineBuilderJob] = Shot {
-    LCommandLineBuilderJob(
+  def calculateClustersJobShot(klustaConfig: KlustaKwikKonfig): Shot[CommandLineBuilderJob] = Shot {
+    CommandLineBuilderJob(
       klustaKlwikCommandLine(klustaConfig),
       klustaConfig.workDir,
       Set.empty)
   }
 
-  private def commandLineJobShot(tokens: Seq[String], workDir: Path): Shot[LCommandLineBuilderJob] = {
+  private def commandLineJobShot(tokens: Seq[String], workDir: Path): Shot[CommandLineBuilderJob] = {
     def commandLine(parts: Seq[String]): LineCommand.CommandLine = new LineCommand.CommandLine {
       override def tokens: Seq[String] = parts
       override def commandLine = tokens.mkString(LineCommand.tokenSep)
     }
 
-    Shot(LCommandLineBuilderJob(commandLine(tokens), workDir))
+    Shot(CommandLineBuilderJob(commandLine(tokens), workDir))
   }
 
   //TODO: Shouldn't be here

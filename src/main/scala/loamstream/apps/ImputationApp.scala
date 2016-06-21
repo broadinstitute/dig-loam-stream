@@ -5,7 +5,7 @@ import java.nio.file.{Path, Paths}
 import loamstream.client.Drmaa
 import loamstream.conf.{ImputationConfig, UgerConfig}
 import loamstream.model.execute.{LExecutable, LeavesFirstExecuter}
-import loamstream.model.jobs.commandline.LCommandLineBuilderJob
+import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.tools.LineCommand
 import loamstream.util.{Files, Loggable}
 
@@ -90,7 +90,7 @@ object ImputationApp extends Loggable {
 
     val shapeItTokens = getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads)
     val commandLine = ShapeItCommandLine(shapeItTokens)
-    val shapeItJob = LCommandLineBuilderJob(commandLine, shapeItWorkDir, Set.empty)
+    val shapeItJob = CommandLineBuilderJob(commandLine, shapeItWorkDir, Set.empty)
 
     val executable = LExecutable(Set(shapeItJob))
 

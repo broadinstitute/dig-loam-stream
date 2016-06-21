@@ -77,11 +77,10 @@ final class Drmaa extends Loggable {
     
     try { f(jt) }
     catch {
-      case e: DrmaaException => {
+      case e: DrmaaException =>
         error(s"Error: ${e.getMessage}", e)
-        
+
         Failure(e)
-      }
     }
     finally { session.deleteJobTemplate(jt) }
   }

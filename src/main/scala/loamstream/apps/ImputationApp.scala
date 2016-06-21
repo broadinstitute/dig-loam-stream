@@ -6,7 +6,7 @@ import loamstream.uger.Drmaa
 import loamstream.conf.{ImputationConfig, UgerConfig}
 import loamstream.model.execute.LExecutable
 import loamstream.model.execute.ChunkedExecuter
-import loamstream.model.jobs.LCommandLineJob
+import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.tools.LineCommand
 import loamstream.util.Loggable
 import loamstream.util.Files
@@ -93,7 +93,7 @@ object ImputationApp extends Loggable {
 
     val shapeItTokens = getShapeItCmdLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads)
     val commandLine = ShapeItCommandLine(shapeItTokens)
-    val shapeItJob = LCommandLineJob(commandLine, shapeItWorkDir, Set.empty)
+    val shapeItJob = CommandLineBuilderJob(commandLine, shapeItWorkDir, Set.empty)
 
     val executable = LExecutable(Set(shapeItJob))
 

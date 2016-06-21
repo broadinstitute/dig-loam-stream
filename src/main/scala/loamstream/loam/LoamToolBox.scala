@@ -7,7 +7,7 @@ import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.{LJob, LToolBox}
 import loamstream.model.{AST, LPipeline, Tool}
-import loamstream.util.{Hit, Miss, Shot, Shots}
+import loamstream.util.{Hit, Miss, Shot, Shots, Snag}
 
 /**
   * LoamStream
@@ -38,11 +38,9 @@ case class LoamToolBox(env: LEnv) extends LToolBox {
       }
   }
 
-  @deprecated("", "")
-  override def createJobs(tool: Tool, pipeline: LPipeline): Shot[Set[LJob]] = ???
+  def toolToJobShot(tool: Tool): Shot[LJob] = tool match {
+    case loamTool: LoamTool => getLoamJob(loamTool)
+    case _ => Miss(Snag(s"LoamToolBox only knows Loam tools; don't know $tool."))
+  }
 
-  @deprecated("", "")
-  override def createExecutable(pipeline: LPipeline): LExecutable = ???
-
-  override def createExecutable(ast: AST): LExecutable = ???
 }

@@ -1,16 +1,13 @@
 package loamstream.apps
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
-import loamstream.uger.Drmaa
 import loamstream.conf.{ImputationConfig, UgerConfig}
-import loamstream.model.execute.LExecutable
-import loamstream.model.execute.ChunkedExecuter
+import loamstream.model.execute.{ChunkedExecuter, LExecutable}
 import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.tools.LineCommand
-import loamstream.util.Loggable
-import loamstream.util.Files
-import java.nio.file.Paths
+import loamstream.uger.Drmaa
+import loamstream.util.{Files, Loggable}
 
 /**
   * LoamStream
@@ -55,13 +52,13 @@ object ImputationApp extends Loggable {
   }
 
   def getShapeItCmdLineTokens(
-      shapeItExecutable: Path,
-      vcf: Path,
-      map: Path,
-      haps: Path,
-      samples: Path,
-      log: Path,
-      numThreads: Int = 1): Seq[String] = {
+                               shapeItExecutable: Path,
+                               vcf: Path,
+                               map: Path,
+                               haps: Path,
+                               samples: Path,
+                               log: Path,
+                               numThreads: Int = 1): Seq[String] = {
 
     Seq(
       shapeItExecutable,
@@ -129,7 +126,7 @@ object ImputationApp extends Loggable {
       path("target/foo"))*/
 
     //runShapeItLocally(args)
-    runShapeItOnUger(path("src/main/resources/loamstream.conf"), true)
+    runShapeItOnUger(path("src/main/resources/loamstream.conf"), isBulk = true)
 
 
   }

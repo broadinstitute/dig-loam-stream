@@ -20,10 +20,12 @@ trait CommandLineJob extends LJob {
 
   def logger: ProcessLogger = CommandLineJob.noOpProcessLogger
 
+  def exitValueCheck: Int => Boolean
+
   override def execute(implicit context: ExecutionContext): Future[Result with CommandResult] = runBlocking {
     val exitValue = processBuilder.run(logger).exitValue
 
-    if (exitValue == CommandLineJob.exitValueSuccess) {
+    if (exitValueCheck(exitValue)) {
       CommandSuccess(commandLineString)
     } else {
       CommandNonZeroReturn(commandLineString, exitValue)
@@ -35,6 +37,9 @@ trait CommandLineJob extends LJob {
 }
 
 object CommandLineJob {
+
+  val mustBeNonZero: Int => Boolean = _ == 0
+  val acceptAll : Int => Boolean = i => true
 
   sealed trait CommandResult
 

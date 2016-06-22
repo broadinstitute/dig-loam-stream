@@ -3,6 +3,7 @@ package loamstream.loam
 import java.nio.file.{Path, Paths}
 
 import loamstream.LEnv
+import loamstream.loam.files.LoamFileManager
 import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.{LJob, LToolBox}
@@ -15,12 +16,13 @@ import loamstream.util.{Hit, Miss, Shot, Shots, Snag}
   */
 case class LoamToolBox(env: LEnv) extends LToolBox {
 
+  val fileManager = new LoamFileManager
   var loamJobs: Map[LoamTool, LJob] = Map.empty
 
   def newLoamJob(tool: LoamTool): Shot[LJob] = {
     tool.graphBuilder.applyEnv(env)
     val graph = tool.graphBuilder.graph
-    val commandLineString = graph.toolTokens(tool).mkString
+    val commandLineString = graph.toolTokens(tool).map(_.toString(env, fileManager)).mkString
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
     Shots.unpack(graph.toolsPreceding(tool).map(getLoamJob)).map(inputJobs =>
       CommandLineStringJob(commandLineString, workDir, inputJobs.toSet)

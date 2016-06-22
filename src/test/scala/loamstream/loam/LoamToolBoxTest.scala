@@ -20,7 +20,7 @@ class LoamToolBoxTest extends FunSuite {
       """
         |val dir = store[Path]
         |cmd"mkdir $dir"
-        |cmd"rmdir $dir"
+        |cmd"ls $dir"
       """.stripMargin
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
     val compileResult = compiler.compile(code)

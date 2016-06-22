@@ -11,7 +11,7 @@ import scala.util.Try
   * LoamStream
   * Created by oliverr on 6/3/2016.
   */
-case class LoamPackageRepository(packageName: String) extends LoamRepository {
+case class LoamPackageRepository(packageName: String, entries: Seq[String]) extends LoamRepository {
   override def get(name: String): Shot[String] = {
     val fullName = s"$packageName${File.separator}$name"
     val classLoader: ClassLoader = classOf[LoamPackageRepository].getClassLoader
@@ -21,4 +21,6 @@ case class LoamPackageRepository(packageName: String) extends LoamRepository {
       Source.fromInputStream(is)(Codec.UTF8).mkString
     })))
   }
+
+  override def list: Seq[String] = entries
 }

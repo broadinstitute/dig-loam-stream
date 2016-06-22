@@ -10,13 +10,17 @@ import loamstream.util.Shot
   */
 object LoamRepository {
   val defaultPackageName = "loam"
-  val defaultRepo = ofPackage(defaultPackageName)
+  val defaultEntries = Seq("first", "impute")
+  val defaultRepo = ofPackage(defaultPackageName, defaultEntries)
 
   def ofFolder(path: Path): LoamFolderRepository = LoamFolderRepository(path)
 
-  def ofPackage(packageName: String): LoamPackageRepository = LoamPackageRepository(packageName)
+  def ofPackage(packageName: String, entries: Seq[String]): LoamPackageRepository =
+    LoamPackageRepository(packageName, entries)
 }
 
 trait LoamRepository {
+  def list: Seq[String]
+
   def get(name: String): Shot[String]
 }

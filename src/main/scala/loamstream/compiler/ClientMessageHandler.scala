@@ -39,6 +39,8 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
           case Hit(content) => outMessageSink.send(LoadResponseMessage(name, content))
           case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not load $name: ${snag.message}"))
         }
+      case ListRequestMessage =>
+        outMessageSink.send(ListResponseMessage(repo.entries))
       case _ =>
         outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
     }

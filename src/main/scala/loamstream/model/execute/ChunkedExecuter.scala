@@ -1,24 +1,21 @@
 package loamstream.model.execute
 
-import scala.concurrent.duration.Duration
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.util.Shot
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import loamstream.util.Hit
-import scala.concurrent.Await
-import loamstream.util.Maps
+import loamstream.util.{Maps, Shot}
+
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.Duration
 
 /**
- * @author clint
- * date: Jun 1, 2016
- */
+  * @author clint
+  *         date: Jun 1, 2016
+  */
 final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: ExecutionContext) extends LExecuter {
-  
+
   override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     val futureResults = Future.sequence(executable.jobs.map(executeJob)).map(Maps.mergeMaps)
-    
+
     val future = futureResults.map(ExecuterHelpers.toShotMap)
 
     Await.result(future, timeout)
@@ -42,18 +39,18 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
 
     loop(Option(job), Map.empty)
   }
-  
-  private def anyFailures(m: Map[LJob, LJob.Result]): Boolean = m.values.exists(_.isFailure) 
+
+  private def anyFailures(m: Map[LJob, LJob.Result]): Boolean = m.values.exists(_.isFailure)
 }
 
 object ChunkedExecuter {
-  
+
   def default: ChunkedExecuter = new ChunkedExecuter(AsyncLocalChunkRunner)(scala.concurrent.ExecutionContext.global)
-  
+
   object AsyncLocalChunkRunner extends ChunkRunner {
-    
+
     import ExecuterHelpers._
-    
+
     override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
       //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
       //on the first failure, like the old code did.
@@ -66,4 +63,5 @@ object ChunkedExecuter {
       futureLeafResults.map(Maps.mergeMaps)
     }
   }
+
 }

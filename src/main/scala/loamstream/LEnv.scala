@@ -5,7 +5,7 @@ import loamstream.loam.LEnvBuilder
 import loamstream.model.LId
 import loamstream.util.{Shot, Snag, TypeBox}
 
-import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
+import scala.reflect.runtime.universe.{Type, TypeTag}
 
 /**
   * LoamStream
@@ -21,6 +21,8 @@ trait LEnv {
   def get[V](key: Key[V]): Option[V]
 
   def shoot[V](key: Key[V], name: String): Shot[V] = Shot.fromOption(get(key), Snag(s"No value for key '$name'."))
+
+  def grab(key: KeyBase): Option[Any]
 
   def +[V](key: Key[V], value: V): LEnv
 
@@ -75,6 +77,8 @@ object LEnv {
     override def get[V](key: Key[V]): Option[V] = entries.get(key).map(_.asInstanceOf[V])
 
     override def +[V](key: Key[V], value: V): LEnv = copy(entries = entries + (key -> value))
+
+    override def grab(key: KeyBase): Option[Any] = entries.get(key)
   }
 
   object LComboEnv {
@@ -97,6 +101,8 @@ object LEnv {
       case LComboEnv(oEnvs) => LComboEnv(envs ++ oEnvs)
       case _ => LComboEnv(envs :+ oEnv)
     }
+
+    override def grab(key: KeyBase): Option[Any] = envs.flatMap(_.grab(key)).headOption
   }
 
 }

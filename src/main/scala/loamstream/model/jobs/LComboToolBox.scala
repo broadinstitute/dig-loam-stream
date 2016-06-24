@@ -1,10 +1,8 @@
 package loamstream.model.jobs
 
-import loamstream.model.LPipeline
-import loamstream.model.Tool
 import loamstream.model.execute.LExecutable
-import loamstream.util.{Miss, Shot}
-import loamstream.model.AST
+import loamstream.model.{AST, LPipeline, Tool}
+import loamstream.util.{Miss, Shot, Shots}
 
 /**
   * LoamStream
@@ -23,13 +21,11 @@ case class LComboToolBox(boxes: Set[LToolBox]) extends LToolBox {
   override def createExecutable(pipeline: LPipeline): LExecutable = {
     LExecutable(boxes.flatMap(box => box.createExecutable(pipeline).jobs))
   }
-  
-  def createExecutable(ast: AST): LExecutable = {
-    LExecutable(boxes.flatMap(box => box.createExecutable(ast).jobs))
-  }
 
   override def ++(oBox: LToolBox): LComboToolBox = oBox match {
     case LComboToolBox(oBoxes) => LComboToolBox(oBoxes ++ boxes)
     case _ => LComboToolBox(boxes + oBox)
   }
+
+  override def toolToJobShot(tool: Tool): Shot[LJob] = Shots.findHit[LToolBox, LJob](boxes, _.toolToJobShot(tool))
 }

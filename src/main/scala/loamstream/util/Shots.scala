@@ -4,10 +4,10 @@ package loamstream.util
   * LoamStream
   * Created by oliverr on 4/7/2016.
   */
-object ShotCombinators {
+object Shots {
 
   //TODO: TEST! 
-  
+
   trait ShotsN {
     def and[TN](_n: Shot[TN]): ShotsN
   }
@@ -116,9 +116,27 @@ object ShotCombinators {
       case (Hit(e1), Hit(e2), Hit(e3), Hit(e4), Hit(e5), Hit(e6), Hit(e7)) => Hit((e1, e2, e3, e4, e5, e6, e7))
       case _ => combinedMiss(productIterator)
     }
+
     def apply[R](f: (T1, T2, T3, T4, T5, T6, T7) => R): Shot[R] = (_1, _2, _3, _4, _5, _6, _7) match {
       case (Hit(e1), Hit(e2), Hit(e3), Hit(e4), Hit(e5), Hit(e6), Hit(e7)) => Hit(f(e1, e2, e3, e4, e5, e6, e7))
       case _ => combinedMiss(productIterator)
+    }
+  }
+
+  def findHit[A, B](items: Iterable[A], shooter: A => Shot[B]): Shot[B] = {
+    val itemIter = items.iterator
+    var hitOpt: Option[Hit[B]] = None
+    var misses: Seq[Miss] = Seq.empty
+    while (itemIter.hasNext && hitOpt.isEmpty) {
+      val item = itemIter.next()
+      shooter(item) match {
+        case hit: Hit[B] => hitOpt = Some(hit)
+        case miss: Miss => misses :+= miss
+      }
+    }
+    hitOpt match {
+      case Some(hit) => hit
+      case _ => if (items.isEmpty) Miss("List of items is empty.") else combinedMiss(misses.iterator)
     }
   }
 

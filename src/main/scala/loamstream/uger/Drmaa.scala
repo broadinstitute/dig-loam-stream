@@ -79,7 +79,7 @@ final class Drmaa extends Loggable {
     catch {
       case e: DrmaaException => {
         error(s"Error: ${e.getMessage}", e)
-        
+
         Failure(e)
       }
     }

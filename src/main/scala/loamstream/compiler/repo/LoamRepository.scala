@@ -10,6 +10,7 @@ import loamstream.util.Shot
   */
 object LoamRepository {
   val defaultPackageName = "loam"
+  val fileSuffix = ".loam"
   val defaultEntries = Seq("first", "impute")
   val defaultRepo = ofPackage(defaultPackageName, defaultEntries)
 

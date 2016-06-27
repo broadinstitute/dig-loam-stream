@@ -13,7 +13,7 @@ import scala.util.Try
   */
 case class LoamPackageRepository(packageName: String, entries: Seq[String]) extends LoamRepository {
   override def get(name: String): Shot[String] = {
-    val fullName = s"$packageName${File.separator}$name"
+    val fullName = s"$packageName${File.separator}$name${LoamRepository.fileSuffix}"
     val classLoader: ClassLoader = classOf[LoamPackageRepository].getClassLoader
     val iStreamShot =
       Shot.notNull(classLoader.getResourceAsStream(fullName), Snag(s"Could not find resource $fullName"))

@@ -24,8 +24,8 @@ case class LoamToolBox(env: LEnv) extends LToolBox {
     val graph = tool.graphBuilder.graph
     val commandLineString = graph.toolTokens(tool).map(_.toString(env, fileManager)).mkString
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
-    Shots.unpack(graph.toolsPreceding(tool).map(getLoamJob)).map(inputJobs =>
-      CommandLineStringJob(commandLineString, workDir, inputJobs.toSet)
+    Shot.sequence(graph.toolsPreceding(tool).map(getLoamJob)).map(inputJobs =>
+      CommandLineStringJob(commandLineString, workDir, inputJobs)
     )
   }
 

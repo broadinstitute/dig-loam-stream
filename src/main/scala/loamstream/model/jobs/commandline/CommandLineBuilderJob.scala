@@ -12,6 +12,8 @@ import scala.sys.process.{Process, ProcessBuilder, ProcessLogger}
   * LoamStream
   * Created by oliverr on 4/8/2016.
   */
+
+/** A job based on a programmatically built command line. */
 final case class CommandLineBuilderJob(commandLine: CommandLine,
                                        workDir: Path,
                                        inputs: Set[LJob] = Set.empty,
@@ -25,4 +27,5 @@ final case class CommandLineBuilderJob(commandLine: CommandLine,
 
   override def commandLineString: String = commandLine.toString
 
+  override def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 }

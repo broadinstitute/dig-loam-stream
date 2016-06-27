@@ -123,12 +123,6 @@ object Shots {
     }
   }
 
-  def unpack[E](shots: Iterable[Shot[E]]): Shot[Iterable[E]] = if (shots.forall(_.isInstanceOf[Hit[E]])) {
-    Hit(shots.map(_.get))
-  } else {
-    combinedMiss(shots.iterator)
-  }
-
   def findHit[A, B](items: Iterable[A], shooter: A => Shot[B]): Shot[B] = {
     val itemIter = items.iterator
     var hitOpt: Option[Hit[B]] = None
@@ -142,7 +136,7 @@ object Shots {
     }
     hitOpt match {
       case Some(hit) => hit
-      case _ => combinedMiss(misses.iterator)
+      case _ => if (items.isEmpty) Miss("List of items is empty.") else combinedMiss(misses.iterator)
     }
   }
 

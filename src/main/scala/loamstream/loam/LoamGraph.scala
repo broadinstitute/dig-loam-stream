@@ -5,7 +5,6 @@ import java.nio.file.Path
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamToken.{EnvToken, StringToken}
-import loamstream.model.LPipeline
 
 import scala.reflect.runtime.universe.typeOf
 
@@ -15,13 +14,20 @@ import scala.reflect.runtime.universe.typeOf
   */
 object LoamGraph {
 
-  trait StoreEdge
+  trait StoreEdge {
+    def withEnv(env: LEnv): StoreEdge = this
+  }
 
   object StoreEdge {
 
     case class PathEdge(path: Path) extends StoreEdge
 
-    case class PathKeyEdge(key: LEnv.Key[Path]) extends StoreEdge
+    case class PathKeyEdge(key: LEnv.Key[Path]) extends StoreEdge {
+      override def withEnv(env: LEnv): StoreEdge = env.get(key) match {
+        case Some(path) => PathEdge(path)
+        case _ => this
+      }
+    }
 
     case class ToolEdge(tool: LoamTool) extends StoreEdge
 
@@ -94,7 +100,9 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
       })
       LoamToken.mergeStringTokens(tokensMapped)
     }).view.force
-    copy(toolTokens = toolTokensNew)
+    val storeSourcesNew = storeSources.mapValues(_.withEnv(env)).view.force
+    val storeSinksNew = storeSinks.mapValues(_.map(_.withEnv(env))).view.force
+    copy(toolTokens = toolTokensNew, storeSources = storeSourcesNew, storeSinks = storeSinksNew)
   }
 
   def pathOpt(store: LoamStore): Option[Path] = {
@@ -104,5 +112,5 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
     }
   }
 
-  def workDirOpt(tool:LoamTool): Option[Path] = None // TODO
+  def workDirOpt(tool: LoamTool): Option[Path] = None // TODO
 }

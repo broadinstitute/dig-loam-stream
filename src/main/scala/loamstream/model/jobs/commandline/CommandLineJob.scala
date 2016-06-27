@@ -2,7 +2,7 @@ package loamstream.model.jobs.commandline
 
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandNonZeroReturn, CommandResult,
+import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandReturnValueIssue, CommandResult,
 CommandSuccess}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -13,6 +13,8 @@ import scala.sys.process.{ProcessBuilder, ProcessLogger}
   * LoamStream
   * Created by oliverr on 6/17/2016.
   */
+
+/** A job based on a command line definition */
 trait CommandLineJob extends LJob {
   def processBuilder: ProcessBuilder
 
@@ -20,15 +22,15 @@ trait CommandLineJob extends LJob {
 
   def logger: ProcessLogger = CommandLineJob.noOpProcessLogger
 
-  def exitValueCheck: Int => Boolean
+  def exitValueIsOk(exitValue: Int): Boolean
 
   override def execute(implicit context: ExecutionContext): Future[Result with CommandResult] = runBlocking {
     val exitValue = processBuilder.run(logger).exitValue
 
-    if (exitValueCheck(exitValue)) {
+    if (exitValueIsOk(exitValue)) {
       CommandSuccess(commandLineString)
     } else {
-      CommandNonZeroReturn(commandLineString, exitValue)
+      CommandReturnValueIssue(commandLineString, exitValue)
     }
   }.recover {
     case exception: Exception => CommandException(commandLineString, exception)
@@ -38,7 +40,7 @@ trait CommandLineJob extends LJob {
 
 object CommandLineJob {
 
-  val mustBeNonZero: Int => Boolean = _ == 0
+  val mustBeZero: Int => Boolean = _ == 0
   val acceptAll : Int => Boolean = i => true
 
   sealed trait CommandResult
@@ -54,14 +56,13 @@ object CommandLineJob {
     }
   }
 
-  final case class CommandNonZeroReturn(commandLine: String, returnValue: Int)
+  final case class CommandReturnValueIssue(commandLine: String, returnValue: Int)
     extends LJob.Failure with CommandResult {
     override def failureMessage: String = {
-      s"Failed with non-zero return value '$returnValue' when trying command line + '$commandLine'"
+      s"Undesired return value '$returnValue' when trying command line + '$commandLine'"
     }
   }
 
-  val exitValueSuccess = 0
   val noOpProcessLogger = ProcessLogger(line => ())
 
 }

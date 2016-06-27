@@ -1,7 +1,7 @@
 package loamstream.loam.ast
 
-import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.LoamCompiler
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamGraphValidation
 import loamstream.model.AST.ToolNode
 import org.scalatest.FunSuite

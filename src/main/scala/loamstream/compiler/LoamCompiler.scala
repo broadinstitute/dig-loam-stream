@@ -1,9 +1,10 @@
 package loamstream.compiler
 
 import loamstream.LEnv
-import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
 import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, LoamTool}
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.{ReflectionUtil, SourceUtils, StringUtils}

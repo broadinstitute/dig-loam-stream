@@ -1,4 +1,4 @@
-package loamstream.compiler
+package loamstream.compiler.messages
 
 /**
   * LoamStream
@@ -7,5 +7,5 @@ package loamstream.compiler
 case class LoadResponseMessage(name: String, content: String) extends ClientOutMessage {
   override val typeName: String = "load"
 
-  override def message: String = s"Loading $name."
+  override def message: String = s"Loaded $name."
 }

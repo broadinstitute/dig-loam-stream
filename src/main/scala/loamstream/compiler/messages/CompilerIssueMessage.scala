@@ -1,4 +1,6 @@
-package loamstream.compiler
+package loamstream.compiler.messages
+
+import loamstream.compiler.Issue
 
 /**
   * LoamStream

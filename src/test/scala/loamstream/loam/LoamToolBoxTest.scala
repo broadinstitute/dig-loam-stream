@@ -3,8 +3,8 @@ package loamstream.loam
 import java.nio.file.{Paths, Files => JFiles}
 
 import loamstream.LEnv
-import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.LoamCompiler
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamToolBoxTest.Results
 import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
 import loamstream.model.execute.ChunkedExecuter

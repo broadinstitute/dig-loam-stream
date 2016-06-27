@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{DirectoryStream, Files, Path}
 
 import loamstream.util.Shot
+import loamstream.util.{Files => LSFiles}
 
 import scala.util.Try
 
@@ -25,11 +26,17 @@ case class LoamFolderRepository(folder: Path) extends LoamRepository {
       .map(name => name.substring(name.length - LoamRepository.fileSuffix.length))
   }
 
+  def nameToPath(name: String): Path = folder.resolve(s"$name${LoamRepository.fileSuffix}")
+
   override def get(name: String): Shot[String] =
     Shot.fromTry(Try {
-      val fileName = s"$name${LoamRepository.fileSuffix}"
-      val filePath = folder.resolve(fileName)
-      new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8)
+      new String(Files.readAllBytes(nameToPath(name)), StandardCharsets.UTF_8)
+    })
+
+  override def add(name: String, content: String): Shot[String] =
+    Shot.fromTry(Try {
+      LSFiles.writeTo(nameToPath(name))(content)
+      name
     })
 
 }

@@ -1,4 +1,4 @@
-package loamstream.compiler
+package loamstream.compiler.messages
 
 import java.util.Date
 

@@ -16,4 +16,6 @@ case class LoamComboRepository(repos: Seq[LoamRepository]) extends LoamRepositor
     case _ => LoamComboRepository(repos :+ that)
   }
 
+  override def add(name: String, content: String): Shot[String] =
+    Shots.findHit[LoamRepository, String](repos, _.add(name, content))
 }

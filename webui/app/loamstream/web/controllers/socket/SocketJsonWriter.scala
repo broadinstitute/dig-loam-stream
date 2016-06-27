@@ -1,6 +1,6 @@
 package loamstream.web.controllers.socket
 
-import loamstream.compiler.{ClientOutMessage, ListResponseMessage, LoadResponseMessage}
+import loamstream.compiler.messages.{ClientOutMessage, ListResponseMessage, LoadResponseMessage, SaveResponseMessage}
 import play.api.libs.json.{JsValue, Json, Writes}
 
 /**
@@ -20,6 +20,11 @@ object SocketJsonWriter extends Writes[ClientOutMessage] {
         "type" -> message.typeName,
         "message" -> message.message,
         "entries" -> entries
+      )
+    case SaveResponseMessage(name) =>
+      Json.obj(
+        "type" -> message.typeName,
+        "message" -> message.message
       )
     case _ =>
       Json.obj(

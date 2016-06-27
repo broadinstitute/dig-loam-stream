@@ -1,6 +1,6 @@
 package loamstream.compiler
 
-import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
 import org.scalatest.FunSuite
 

@@ -36,8 +36,13 @@
                     socket.send(JSON.stringify({type: "list"}));
                 }
                 function load() {
-                    var name = d3.select("#selectFile").node().value + ".loam";
+                    var name = d3.select("#selectFile").node().value;
                     socket.send(JSON.stringify({type: "load", name: name}));
+                }
+                function save() {
+                    var name = d3.select("#selectFile").node().value;
+                    var text = d3.select("textarea").property("value");
+                    socket.send(JSON.stringify({type: "save", name: name, content: text}));
                 }
                 function receiveSocketMessage(socketMessage) {
                     var data = JSON.parse(socketMessage.data);
@@ -46,7 +51,7 @@
                     if (data.type == "load") {
                         d3.select("textarea").property("value", data.content);
                     } else if (data.type == "list") {
-                        var options = d3.select("#selectFile").selectAll("option").data(data.entries);
+                        var options = d3.select("#loamFiles").selectAll("option").data(data.entries);
                         options.enter().append("option")
                                 .attr("value", function (d) {
                                     return d;
@@ -62,8 +67,10 @@
         <p>
             <button type="button" onclick="sendText()">Submit</button>
             <button type="button" onclick="load()">Load</button>
-            <label for="selectFile">Select File</label>
-            <select id="selectFile"></select>
+            <button type="button" onclick="save()">Save</button>
+            <label for="selectFile">File:</label>
+            <input list="loamFiles" id="selectFile"/>
+            <datalist id="loamFiles"></datalist>
         </p>
         <pre id="serverResponse">Write into the text area and click 'submit'.</pre>
         <p><textarea title="DSL Editor" rows="42" cols="100"></textarea></p>

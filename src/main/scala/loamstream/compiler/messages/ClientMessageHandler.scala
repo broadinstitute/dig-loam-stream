@@ -1,6 +1,7 @@
-package loamstream.compiler
+package loamstream.compiler.messages
 
-import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.LoamCompiler
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
 import loamstream.util.{Hit, Miss}
 
@@ -42,6 +43,11 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
         }
       case ListRequestMessage =>
         outMessageSink.send(ListResponseMessage(repo.entries))
+      case SaveRequestMessage(name, content) =>
+        repo.add(name, content) match {
+          case Hit(nameSaved) => outMessageSink.send(SaveResponseMessage(nameSaved))
+          case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not save $name: ${snag.message}"))
+        }
       case _ =>
         outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
     }

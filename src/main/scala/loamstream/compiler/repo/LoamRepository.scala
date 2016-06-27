@@ -20,6 +20,7 @@ object LoamRepository {
     LoamPackageRepository(packageName, entries)
 
   def ofMap(entries: Map[String, String]): LoamMapRepository = LoamMapRepository(entries)
+
 }
 
 trait LoamRepository {
@@ -27,7 +28,7 @@ trait LoamRepository {
 
   def get(name: String): Shot[String]
 
-  def find(name: String): Shot[String] = get(name).orElse(get(s"$name.loam"))
+  def add(name: String, content: String): Shot[String]
 
   def ++(that: LoamRepository) = that match {
     case LoamComboRepository(repos) => LoamComboRepository(this +: repos)

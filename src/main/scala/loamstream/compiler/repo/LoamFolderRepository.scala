@@ -1,4 +1,4 @@
-package loamstream.compiler
+package loamstream.compiler.repo
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{DirectoryStream, Files, Path}
@@ -14,7 +14,7 @@ import scala.util.Try
 case class LoamFolderRepository(folder: Path) extends LoamRepository {
   override def list: Seq[String] = {
     val filter = new DirectoryStream.Filter[Path] {
-      override def accept(entry: Path): Boolean = entry.toString.endsWith(".loam")
+      override def accept(entry: Path): Boolean = entry.toString.endsWith(LoamFolderRepository.fileSuffix)
     }
     val streamIter = Files.newDirectoryStream(folder, filter).iterator()
     var entries: Seq[Path] = Seq.empty
@@ -22,13 +22,18 @@ case class LoamFolderRepository(folder: Path) extends LoamRepository {
       entries :+= streamIter.next()
     }
     entries.map(path => path.getName(path.getNameCount - 1)).map(_.toString)
-      .map(name => name.substring(name.length - 5))
+      .map(name => name.substring(name.length - LoamFolderRepository.fileSuffix.length))
   }
 
   override def get(name: String): Shot[String] =
     Shot.fromTry(Try {
-      val filePath = folder.resolve(name)
+      val fileName = s"$name${LoamFolderRepository.fileSuffix}"
+      val filePath = folder.resolve(fileName)
       new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8)
     })
 
+}
+
+object LoamFolderRepository {
+  val fileSuffix = ".loam"
 }

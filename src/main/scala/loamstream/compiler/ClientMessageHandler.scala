@@ -1,6 +1,7 @@
 package loamstream.compiler
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.repo.LoamRepository
 import loamstream.util.{Hit, Miss}
 
 import scala.concurrent.ExecutionContext

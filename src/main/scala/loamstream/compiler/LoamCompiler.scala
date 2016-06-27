@@ -14,7 +14,6 @@ import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.reflect.ReflectGlobal
-import scala.util.{Failure, Success, Try}
 
 /**
   * LoamStream
@@ -64,9 +63,22 @@ object LoamCompiler {
                           envOpt: Option[LEnv], exOpt: Option[Exception] = None) {
     def isValid: Boolean = errors.isEmpty
 
-    def isClean: Boolean = isValid && warnings.isEmpty
+    def isClean: Boolean = isValid && warnings.isEmpty && infos.isEmpty
 
     def isSuccess: Boolean = envOpt.nonEmpty && graphOpt.nonEmpty
+
+    def summary: String = {
+      val soManyErrors = StringUtils.soMany(errors.size, "error")
+      val soManyWarnings = StringUtils.soMany(warnings.size, "warning")
+      val soManyInfos = StringUtils.soMany(infos.size, "info")
+      val soManySettings = StringUtils.soMany(envOpt.map(_.keys.size).getOrElse(0), "runtime setting")
+      val soManyStores = StringUtils.soMany(graphOpt.map(_.stores.size).getOrElse(0), "stores")
+      val soManyTools = StringUtils.soMany(graphOpt.map(_.tools.size).getOrElse(0), "tools")
+      s"There were $soManyErrors, $soManyWarnings, $soManyInfos, $soManySettings, $soManyStores and $soManyTools."
+    }
+
+    def report: String = (summary +: (errors ++ warnings ++ infos).map(_.summary)).mkString(System.lineSeparator)
+
   }
 
 }
@@ -90,17 +102,6 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
     val soManyErrors = StringUtils.soMany(reporter.errorCount, "error")
     val soManyWarnings = StringUtils.soMany(reporter.warningCount, "warning")
     s"$soManyErrors and $soManyWarnings"
-  }
-
-  def sendOutResponse(responseValue: Try[Option[Either[compiler.Tree, Throwable]]]): Unit = {
-    val outMessageTextEnd = responseValue match {
-      case Success(Some(Left(_))) => s"There were $soManyIssues."
-      case Success(Some(Right(ex: InterruptedException))) => "Compiler was interrupted."
-      case Success(Some(Right(ex))) => "Packaged Exception: " + ex.getMessage
-      case Success(None) => "Compiler tried to reload and timed out."
-      case Failure(ex) => "Exception was thrown: " + ex.getMessage
-    }
-    outMessageSink.send(StatusOutMessage(outMessageTextEnd))
   }
 
   def wrapCode(raw: String): String = {

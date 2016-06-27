@@ -1,6 +1,7 @@
 package loamstream.compiler
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.repo.LoamRepository
 import org.scalatest.FunSuite
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -12,7 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 final class LoamRepositoryTest extends FunSuite {
   test("Default repo is complete") {
     for (entry <- LoamRepository.defaultEntries) {
-      val codeShot = LoamRepository.defaultRepo.find(entry)
+      val codeShot = LoamRepository.defaultRepo.get(entry)
       assert(codeShot.nonEmpty, codeShot.message)
     }
   }
@@ -20,14 +21,17 @@ final class LoamRepositoryTest extends FunSuite {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
     val repo = LoamRepository.defaultRepo
     for (entry <- repo.list) {
-      val codeShot = repo.find(entry)
+      val codeShot = repo.get(entry)
       assert(codeShot.nonEmpty, codeShot.message)
       val code = codeShot.get
       val compileResult = compiler.compile(code)
-      assert(compileResult.isSuccess)
-      assert(compileResult.isClean)
-
+      assert(compileResult.isSuccess, compileResult.summary)
+      assert(compileResult.isClean, compileResult.report)
     }
+  }
+  test("LoamComboRepository") {
+
   }
 
 }
+

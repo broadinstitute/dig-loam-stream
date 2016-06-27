@@ -1,4 +1,4 @@
-package loamstream.compiler
+package loamstream.compiler.repo
 
 import java.nio.file.Path
 
@@ -17,6 +17,8 @@ object LoamRepository {
 
   def ofPackage(packageName: String, entries: Seq[String]): LoamPackageRepository =
     LoamPackageRepository(packageName, entries)
+
+  def ofMap(entries: Map[String, String]): LoamMapRepository = LoamMapRepository(entries)
 }
 
 trait LoamRepository {

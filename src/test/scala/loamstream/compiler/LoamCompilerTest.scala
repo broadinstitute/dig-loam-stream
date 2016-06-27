@@ -3,6 +3,7 @@ package loamstream.compiler
 import java.nio.file.Paths
 
 import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.repo.LoamRepository
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraphValidation
 import loamstream.tools.core.LCoreEnv

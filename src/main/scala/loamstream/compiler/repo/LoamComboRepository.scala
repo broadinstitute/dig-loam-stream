@@ -1,4 +1,4 @@
-package loamstream.compiler
+package loamstream.compiler.repo
 
 import loamstream.util.{Shot, Shots}
 

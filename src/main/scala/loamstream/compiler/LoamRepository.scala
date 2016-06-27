@@ -23,4 +23,11 @@ trait LoamRepository {
   def list: Seq[String]
 
   def get(name: String): Shot[String]
+
+  def find(name: String): Shot[String] = get(name).orElse(get(s"$name.loam"))
+
+  def ++(that: LoamRepository) = that match {
+    case LoamComboRepository(repos) => LoamComboRepository(this +: repos)
+    case _ => LoamComboRepository(Seq(this, that))
+  }
 }

@@ -62,7 +62,11 @@ object LoamCompiler {
 
   final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], graphOpt: Option[LoamGraph],
                           envOpt: Option[LEnv], exOpt: Option[Exception] = None) {
-    def isSuccess: Boolean = envOpt.nonEmpty
+    def isValid: Boolean = errors.isEmpty
+
+    def isClean: Boolean = isValid && warnings.isEmpty
+
+    def isSuccess: Boolean = envOpt.nonEmpty && graphOpt.nonEmpty
   }
 
 }

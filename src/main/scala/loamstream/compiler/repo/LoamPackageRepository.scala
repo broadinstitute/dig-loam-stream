@@ -1,9 +1,10 @@
 package loamstream.compiler.repo
 
 import java.io.File
+import java.net.URL
 
 import loamstream.compiler.messages.LoadResponseMessage
-import loamstream.util.{Shot, Snag}
+import loamstream.util.{Shot, Shots, Snag}
 
 import scala.io.{Codec, Source}
 import scala.util.Try
@@ -26,6 +27,13 @@ case class LoamPackageRepository(packageName: String, entries: Seq[String]) exte
       LoadResponseMessage(name, content, s"Got '$name' from package '$packageName'.")
     })))
   }
+
+  def getUrl(name: String): Shot[URL] = {
+    val fullName = nameToFullName(name)
+    Shot.notNull(classLoader.getResource(fullName), Snag(s"Could not get URL for $fullName"))
+  }
+
+  def getSomeUrl: Shot[URL] = Shots.findHit(entries, getUrl)
 
   override def list: Seq[String] = entries
 }

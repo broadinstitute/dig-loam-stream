@@ -11,9 +11,14 @@ import loamstream.util.Shot
   */
 object LoamRepository {
   val defaultPackageName = "loam"
-  val fileSuffix = ".loam"
   val defaultEntries = Seq("first", "impute")
-  val defaultRepo: LoamRepository.Mutable = inMemory ++ ofPackage(defaultPackageName, defaultEntries)
+  val defaultPackageRepo = ofPackage(defaultPackageName, defaultEntries)
+  val fileSuffix = ".loam"
+
+  val defaultRepo: LoamRepository.Mutable = {
+
+    inMemory ++ ofPackage(defaultPackageName, defaultEntries)
+  }
 
   def ofFolder(path: Path): LoamFolderRepository = LoamFolderRepository(path)
 

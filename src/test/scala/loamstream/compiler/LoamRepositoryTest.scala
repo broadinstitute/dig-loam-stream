@@ -29,8 +29,8 @@ final class LoamRepositoryTest extends FunSuite {
       assert(compileResult.isClean, compileResult.report)
     }
   }
-  test("LoamComboRepository") {
-
+  test("Construction of default repository") {
+//    prontln(LoamRepository.defaultPackageRepo.getSomeUrl)
   }
 
 }

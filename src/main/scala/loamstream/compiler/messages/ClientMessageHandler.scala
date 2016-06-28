@@ -37,15 +37,15 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
         outMessageSink.send(ReceiptOutMessage(text))
         compiler.compile(text)
       case LoadRequestMessage(name) =>
-        repo.get(name) match {
-          case Hit(content) => outMessageSink.send(LoadResponseMessage(name, content))
+        repo.load(name) match {
+          case Hit(loadResponseMessage) => outMessageSink.send(loadResponseMessage)
           case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not load $name: ${snag.message}"))
         }
       case ListRequestMessage =>
-        outMessageSink.send(ListResponseMessage(repo.entries))
+        outMessageSink.send(ListResponseMessage(repo.list))
       case SaveRequestMessage(name, content) =>
-        repo.add(name, content) match {
-          case Hit(nameSaved) => outMessageSink.send(SaveResponseMessage(nameSaved))
+        repo.save(name, content) match {
+          case Hit(saveResponseMessage) => outMessageSink.send(saveResponseMessage)
           case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not save $name: ${snag.message}"))
         }
       case _ =>

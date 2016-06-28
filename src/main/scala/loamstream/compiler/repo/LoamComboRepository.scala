@@ -1,21 +1,16 @@
 package loamstream.compiler.repo
 
-import loamstream.util.{Shot, Shots}
+import loamstream.compiler.messages.{LoadResponseMessage, SaveResponseMessage}
+import loamstream.util.Shot
 
 /**
   * LoamStream
-  * Created by oliverr on 6/27/2016.
+  * Created by oliverr on 6/28/2016.
   */
-case class LoamComboRepository(repos: Seq[LoamRepository]) extends LoamRepository {
-  override def list: Seq[String] = repos.flatMap(_.list)
+case class LoamComboRepository(repo1: LoamRepository.Mutable, repo2: LoamRepository) extends LoamRepository.Mutable {
+  override def save(name: String, content: String): Shot[SaveResponseMessage] = repo1.save(name, content)
 
-  override def get(name: String): Shot[String] = Shots.findHit[LoamRepository, String](repos, _.get(name))
+  override def load(name: String): Shot[LoadResponseMessage] = repo1.load(name).orElse(repo2.load(name))
 
-  override def ++(that: LoamRepository) = that match {
-    case LoamComboRepository(thoseRepos) => LoamComboRepository(repos ++ thoseRepos)
-    case _ => LoamComboRepository(repos :+ that)
-  }
-
-  override def add(name: String, content: String): Shot[String] =
-    Shots.findHit[LoamRepository, String](repos, _.add(name, content))
+  override def list: Seq[String] = repo1.list ++ repo2.list
 }

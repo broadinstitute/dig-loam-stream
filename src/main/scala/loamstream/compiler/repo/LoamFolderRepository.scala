@@ -3,8 +3,8 @@ package loamstream.compiler.repo
 import java.nio.charset.StandardCharsets
 import java.nio.file.{DirectoryStream, Files, Path}
 
-import loamstream.util.Shot
-import loamstream.util.{Files => LSFiles}
+import loamstream.compiler.messages.{LoadResponseMessage, SaveResponseMessage}
+import loamstream.util.{Shot, Files => LSFiles}
 
 import scala.util.Try
 
@@ -12,7 +12,7 @@ import scala.util.Try
   * LoamStream
   * Created by oliverr on 6/3/2016.
   */
-case class LoamFolderRepository(folder: Path) extends LoamRepository {
+case class LoamFolderRepository(folder: Path) extends LoamRepository.Mutable {
   override def list: Seq[String] = {
     val filter = new DirectoryStream.Filter[Path] {
       override def accept(entry: Path): Boolean = entry.toString.endsWith(LoamRepository.fileSuffix)
@@ -28,18 +28,16 @@ case class LoamFolderRepository(folder: Path) extends LoamRepository {
 
   def nameToPath(name: String): Path = folder.resolve(s"$name${LoamRepository.fileSuffix}")
 
-  override def get(name: String): Shot[String] =
+  override def load(name: String): Shot[LoadResponseMessage] =
     Shot.fromTry(Try {
-      new String(Files.readAllBytes(nameToPath(name)), StandardCharsets.UTF_8)
+      val content = new String(Files.readAllBytes(nameToPath(name)), StandardCharsets.UTF_8)
+      LoadResponseMessage(name, content, s"Got '$name' from $folder.")
     })
 
-  override def add(name: String, content: String): Shot[String] =
+  override def save(name: String, content: String): Shot[SaveResponseMessage] =
     Shot.fromTry(Try {
       LSFiles.writeTo(nameToPath(name))(content)
-      name
+      SaveResponseMessage(name, s"Added '$name' to $folder.")
     })
 
-}
-
-object LoamFolderRepository {
 }

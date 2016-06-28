@@ -8,28 +8,28 @@ import play.api.libs.json.{JsValue, Json, Writes}
   * Created by oliverr on 5/9/2016.
   */
 object SocketJsonWriter extends Writes[ClientOutMessage] {
-  override def writes(message: ClientOutMessage): JsValue = message match {
-    case LoadResponseMessage(name, content) =>
+  override def writes(clientOutMessage: ClientOutMessage): JsValue = clientOutMessage match {
+    case LoadResponseMessage(name, content, message) =>
       Json.obj(
-        "type" -> message.typeName,
-        "message" -> message.message,
+        "type" -> clientOutMessage.typeName,
+        "message" -> message,
         "content" -> content
       )
     case ListResponseMessage(entries) =>
       Json.obj(
-        "type" -> message.typeName,
-        "message" -> message.message,
+        "type" -> clientOutMessage.typeName,
+        "message" -> clientOutMessage.message,
         "entries" -> entries
       )
-    case SaveResponseMessage(name) =>
+    case SaveResponseMessage(name, message) =>
       Json.obj(
-        "type" -> message.typeName,
-        "message" -> message.message
+        "type" -> clientOutMessage.typeName,
+        "message" -> message
       )
     case _ =>
       Json.obj(
-        "type" -> message.typeName,
-        "message" -> message.message
+        "type" -> clientOutMessage.typeName,
+        "message" -> clientOutMessage.message
       )
   }
 }

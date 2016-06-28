@@ -99,7 +99,7 @@ final class LoamCompilerTest extends FunSuite {
   }
   test("Testing sample code impute.loam") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
-    val codeShot = LoamRepository.defaultRepo.get("impute")
+    val codeShot = LoamRepository.defaultRepo.load("impute").map(_.content)
     assert(codeShot.nonEmpty)
     val result = compiler.compile(codeShot.get)
     assert(result.errors.isEmpty)

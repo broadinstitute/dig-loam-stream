@@ -1,9 +1,9 @@
 package loamstream.compiler.repo
 
 import java.io.File
-import java.nio.file.{Path, Paths}
 
-import loamstream.util.{Miss, Shot, Snag}
+import loamstream.compiler.messages.LoadResponseMessage
+import loamstream.util.{Shot, Snag}
 
 import scala.io.{Codec, Source}
 import scala.util.Try
@@ -17,21 +17,15 @@ case class LoamPackageRepository(packageName: String, entries: Seq[String]) exte
 
   def nameToFullName(name: String): String = s"$packageName${File.separator}$name${LoamRepository.fileSuffix}"
 
-  override def get(name: String): Shot[String] = {
+  override def load(name: String): Shot[LoadResponseMessage] = {
     val fullName = nameToFullName(name)
     val iStreamShot =
       Shot.notNull(classLoader.getResourceAsStream(fullName), Snag(s"Could not find resource $fullName"))
     iStreamShot.flatMap(is => Shot.fromTry(Try({
-      Source.fromInputStream(is)(Codec.UTF8).mkString
+      val content = Source.fromInputStream(is)(Codec.UTF8).mkString
+      LoadResponseMessage(name, content, s"Got '$name' from package '$packageName'.")
     })))
   }
 
   override def list: Seq[String] = entries
-
-  override def add(name: String, content: String): Shot[String] = {
-    val urlTemplate = classLoader.getResource(nameToFullName(entries.head))
-    val pathTemplate = urlTemplate.getPath
-    val classFolder = Paths.get(pathTemplate).resolve("..")
-    Miss(s"Not yet implemented how to deal with $classFolder.")
-  }
 }

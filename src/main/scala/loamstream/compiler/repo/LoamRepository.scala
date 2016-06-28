@@ -2,6 +2,7 @@ package loamstream.compiler.repo
 
 import java.nio.file.Path
 
+import loamstream.compiler.messages.{LoadResponseMessage, SaveResponseMessage}
 import loamstream.util.Shot
 
 /**
@@ -12,7 +13,7 @@ object LoamRepository {
   val defaultPackageName = "loam"
   val fileSuffix = ".loam"
   val defaultEntries = Seq("first", "impute")
-  val defaultRepo = ofPackage(defaultPackageName, defaultEntries)
+  val defaultRepo: LoamRepository.Mutable = inMemory ++ ofPackage(defaultPackageName, defaultEntries)
 
   def ofFolder(path: Path): LoamFolderRepository = LoamFolderRepository(path)
 
@@ -21,17 +22,18 @@ object LoamRepository {
 
   def ofMap(entries: Map[String, String]): LoamMapRepository = LoamMapRepository(entries)
 
+  def inMemory: LoamMapRepository = ofMap(Map.empty)
+
+  trait Mutable extends LoamRepository {
+    def save(name: String, content: String): Shot[SaveResponseMessage]
+
+    def ++(that: LoamRepository): LoamComboRepository = LoamComboRepository(this, that)
+  }
+
 }
 
 trait LoamRepository {
   def list: Seq[String]
 
-  def get(name: String): Shot[String]
-
-  def add(name: String, content: String): Shot[String]
-
-  def ++(that: LoamRepository) = that match {
-    case LoamComboRepository(repos) => LoamComboRepository(this +: repos)
-    case _ => LoamComboRepository(Seq(this, that))
-  }
+  def load(name: String): Shot[LoadResponseMessage]
 }

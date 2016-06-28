@@ -11,6 +11,7 @@ import loamstream.util.{Hit, Shot}
   */
 object LoamRepository {
   val projectName = "dig-loam-stream"
+  val resourceFolder = "src/main/resources"
   val defaultPackageName = "loam"
   val defaultEntries = Seq("first", "impute")
   val defaultPackageRepo = ofPackage(defaultPackageName, defaultEntries)
@@ -19,7 +20,6 @@ object LoamRepository {
   val defaultRepo: LoamRepository.Mutable = {
     defaultPackageRepo.shootForClassFolder match {
       case Hit(classFolder) =>
-        println(classFolder)
         val classFolderDepth =
           classFolder.getNameCount - 1 -
             (0 until classFolder.getNameCount).map(classFolder.getName).map(_.toString).indexOf(projectName)
@@ -30,11 +30,8 @@ object LoamRepository {
           }
           folder
         }
-        val loamFolder = rootFolder.resolve("src/main/resources/" + defaultPackageName)
-        println(loamFolder)
-        val repo = ofFolder(loamFolder)
-        println(repo.list)
-        repo
+        val loamFolder = rootFolder.resolve(s"$resourceFolder/$defaultPackageName")
+        ofFolder(loamFolder)
       case _ => inMemory ++ defaultPackageRepo
     }
   }

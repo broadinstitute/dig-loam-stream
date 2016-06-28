@@ -27,9 +27,12 @@
                 function serverResponseNode() {
                     return d3.select("#serverResponse");
                 }
+                function clearServerResponses() {
+                    serverResponseNode().text("");
+                }
                 function sendText() {
                     var text = d3.select("textarea").property("value");
-                    serverResponseNode().text("");
+                    clearServerResponses();
                     socket.send(JSON.stringify({type: "text", text: text}));
                 }
                 function list() {
@@ -52,12 +55,20 @@
                         d3.select("textarea").property("value", data.content);
                     } else if (data.type == "list") {
                         var options = d3.select("#loamFiles").selectAll("option").data(data.entries);
+                        options.attr("value", function (d) {
+                            return d;
+                        }).text(function (d) {
+                            return d;
+                        });
                         options.enter().append("option")
                                 .attr("value", function (d) {
                                     return d;
                                 }).text(function (d) {
                             return d;
                         });
+                        options.exit().remove();
+                    } else if (data.type == "save") {
+                        list();
                     }
                 }
         </script>
@@ -68,6 +79,7 @@
             <button type="button" onclick="sendText()">Submit</button>
             <button type="button" onclick="load()">Load</button>
             <button type="button" onclick="save()">Save</button>
+            <button type="button" onclick="clearServerResponses()">Clear</button>
             <label for="selectFile">File:</label>
             <input list="loamFiles" id="selectFile"/>
             <datalist id="loamFiles"></datalist>

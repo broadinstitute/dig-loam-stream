@@ -23,7 +23,7 @@ case class LoamFolderRepository(folder: Path) extends LoamRepository.Mutable {
       entries :+= streamIter.next()
     }
     entries.map(path => path.getName(path.getNameCount - 1)).map(_.toString)
-      .map(name => name.substring(name.length - LoamRepository.fileSuffix.length))
+      .map(name => name.substring(0, name.length - LoamRepository.fileSuffix.length))
   }
 
   def nameToPath(name: String): Path = folder.resolve(s"$name${LoamRepository.fileSuffix}")

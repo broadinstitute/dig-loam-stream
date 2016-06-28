@@ -1,5 +1,7 @@
 package loamstream.compiler
 
+import java.nio.file.Paths
+
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
 import org.scalatest.FunSuite
@@ -30,7 +32,7 @@ final class LoamRepositoryTest extends FunSuite {
     }
   }
   test("Construction of default repository") {
-//    prontln(LoamRepository.defaultPackageRepo.getSomeUrl)
+    println(LoamRepository.defaultPackageRepo.shootForClassFolder)
   }
 
 }

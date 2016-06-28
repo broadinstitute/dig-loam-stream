@@ -2,6 +2,7 @@ package loamstream.compiler.repo
 
 import java.io.File
 import java.net.URL
+import java.nio.file.{Path, Paths}
 
 import loamstream.compiler.messages.LoadResponseMessage
 import loamstream.util.{Shot, Shots, Snag}
@@ -34,6 +35,13 @@ case class LoamPackageRepository(packageName: String, entries: Seq[String]) exte
   }
 
   def getSomeUrl: Shot[URL] = Shots.findHit(entries, getUrl)
+
+  def shootForClassFolder: Shot[Path] =
+    Shots.findHit[String, Path](entries, entry => getUrl(entry).flatMap(url => Shot.fromTry(Try {
+      val entryPath = Paths.get(url.toURI)
+      entryPath.getParent
+    })))
+
 
   override def list: Seq[String] = entries
 }

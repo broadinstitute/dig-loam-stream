@@ -9,7 +9,7 @@
             background-color: black;
         }
 
-        textarea, button {
+        textarea, button, select, option {
             color: yellow;
             background-color: darkgreen;
             font-weight: bold;
@@ -23,24 +23,52 @@
                 socket.onmessage = function (event) {
                     receiveSocketMessage(event);
                 };
+                socket.onopen = list;
                 function serverResponseNode() {
                     return d3.select("#serverResponse");
                 }
+                function clearServerResponses() {
+                    serverResponseNode().text("");
+                }
                 function sendText() {
                     var text = d3.select("textarea").property("value");
-                    serverResponseNode().text("");
+                    clearServerResponses();
                     socket.send(JSON.stringify({type: "text", text: text}));
                 }
+                function list() {
+                    socket.send(JSON.stringify({type: "list"}));
+                }
                 function load() {
-                    var name = "impute.loam";
+                    var name = d3.select("#selectFile").node().value;
                     socket.send(JSON.stringify({type: "load", name: name}));
+                }
+                function save() {
+                    var name = d3.select("#selectFile").node().value;
+                    var text = d3.select("textarea").property("value");
+                    socket.send(JSON.stringify({type: "save", name: name, content: text}));
                 }
                 function receiveSocketMessage(socketMessage) {
                     var data = JSON.parse(socketMessage.data);
                     var responseText = serverResponseNode().text() + "\n[" + data.type + "] " + data.message;
                     serverResponseNode().text(responseText);
                     if (data.type == "load") {
-                        d3.select("textarea").property("value", data.content)
+                        d3.select("textarea").property("value", data.content);
+                    } else if (data.type == "list") {
+                        var options = d3.select("#loamFiles").selectAll("option").data(data.entries);
+                        options.attr("value", function (d) {
+                            return d;
+                        }).text(function (d) {
+                            return d;
+                        });
+                        options.enter().append("option")
+                                .attr("value", function (d) {
+                                    return d;
+                                }).text(function (d) {
+                            return d;
+                        });
+                        options.exit().remove();
+                    } else if (data.type == "save") {
+                        list();
                     }
                 }
         </script>
@@ -50,6 +78,11 @@
         <p>
             <button type="button" onclick="sendText()">Submit</button>
             <button type="button" onclick="load()">Load</button>
+            <button type="button" onclick="save()">Save</button>
+            <button type="button" onclick="clearServerResponses()">Clear</button>
+            <label for="selectFile">File:</label>
+            <input list="loamFiles" id="selectFile"/>
+            <datalist id="loamFiles"></datalist>
         </p>
         <pre id="serverResponse">Write into the text area and click 'submit'.</pre>
         <p><textarea title="DSL Editor" rows="42" cols="100"></textarea></p>

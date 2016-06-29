@@ -5,10 +5,7 @@ import loamstream.util.Shots.Shots2
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}
 
-/**
-  * LoamStream
-  * Created by oliverr on 11/17/2015.
-  */
+/** A container of an object or an error description */
 sealed trait Shot[+A] {
   def get: A
 
@@ -30,6 +27,7 @@ sealed trait Shot[+A] {
 
 }
 
+/** A container of an object or an error description */
 object Shot {
   def apply[A](f: => A): Shot[A] = fromTry(Try(f))
 

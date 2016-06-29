@@ -8,9 +8,9 @@ import loamstream.util.{Shot, Files => LSFiles}
 
 import scala.util.Try
 
-/**
-  * LoamStream
-  * Created by oliverr on 6/3/2016.
+/** A repository of Loam scripts stored in a folder
+  *
+  * @param folder Folder to contain the Loam scripts
   */
 case class LoamFolderRepository(folder: Path) extends LoamRepository.Mutable {
   override def list: Seq[String] = {

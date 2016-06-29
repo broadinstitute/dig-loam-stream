@@ -1,9 +1,6 @@
 package loamstream.compiler.messages
 
-/**
-  * LoamStream
-  * Created by oliverr on 5/9/2016.
-  */
+/** A message submitting a Loam script to be compiled into an execution plan */
 case class TextSubmitMessage(text: String) extends ClientInMessage {
 
 }

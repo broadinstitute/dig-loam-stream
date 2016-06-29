@@ -3,10 +3,7 @@ package loamstream.compiler.repo
 import loamstream.compiler.messages.{LoadResponseMessage, SaveResponseMessage}
 import loamstream.util.{Hit, Shot, Snag}
 
-/**
-  * LoamStream
-  * Created by oliverr on 6/27/2016.
-  */
+/** A repository storing Loam scripts in memory as a Map */
 case class LoamMapRepository(var entries: Map[String, String]) extends LoamRepository.Mutable {
   override def list: Seq[String] = entries.keys.toSeq
 

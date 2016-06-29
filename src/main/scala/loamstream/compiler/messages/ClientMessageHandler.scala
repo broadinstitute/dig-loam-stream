@@ -7,30 +7,33 @@ import loamstream.util.{Hit, Miss}
 
 import scala.concurrent.ExecutionContext
 
-/**
-  * LoamStream
-  * Created by oliverr on 5/9/2016.
-  */
+/** The handler responding to messages sent by a client */
 object ClientMessageHandler {
 
+  /** A receiver of messages sent to a client */
   object OutMessageSink {
 
+    /** A receiver of messages that does nothing */
     object NoOp extends OutMessageSink {
       override def send(outMessage: ClientOutMessage): Unit = ()
     }
 
   }
 
+  /** A receiver of messages sent to a client */
   trait OutMessageSink {
+    /** Accepts messages to be sent to the client */
     def send(outMessage: ClientOutMessage)
   }
 
 }
 
+/** The handler responding to messages sent by a client */
 case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
   val repo = LoamRepository.defaultRepo
   val compiler = new LoamCompiler(outMessageSink)
 
+  /** Handles messages sent in by a client */
   def handleInMessage(inMessage: ClientInMessage): Unit = {
     inMessage match {
       case TextSubmitMessage(text) =>

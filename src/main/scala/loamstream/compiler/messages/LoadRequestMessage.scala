@@ -1,8 +1,8 @@
 package loamstream.compiler.messages
 
-/**
-  * LoamStream
-  * Created by oliverr on 6/1/2016.
+/** A request by a client to load Loam script form a repository
+  *
+  * @param name Name of the script to be loaded
   */
 case class LoadRequestMessage(name: String) extends ClientInMessage {
 

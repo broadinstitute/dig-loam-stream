@@ -1,9 +1,6 @@
 package loamstream.compiler.messages
 
-/**
-  * LoamStream
-  * Created by oliverr on 5/9/2016.
-  */
+/** A message sent by a client such as a UI */
 trait ClientInMessage {
 
 }

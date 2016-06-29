@@ -1,9 +1,6 @@
 package loamstream.compiler.messages
 
-/**
-  * LoamStream
-  * Created by oliverr on 6/22/2016.
-  */
+/** A message containing the requested list of names of available Loam scripts */
 case class ListResponseMessage(entries: Seq[String]) extends ClientOutMessage {
   override val typeName: String = "list"
 

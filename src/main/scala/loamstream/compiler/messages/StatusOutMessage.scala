@@ -1,9 +1,6 @@
 package loamstream.compiler.messages
 
-/**
-  * LoamStream
-  * Created by oliverr on 5/12/2016.
-  */
+/** A message to client with a status update */
 case class StatusOutMessage(message: String) extends ClientOutMessage {
   override def typeName: String = "status"
 }

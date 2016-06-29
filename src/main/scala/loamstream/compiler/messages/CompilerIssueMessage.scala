@@ -2,10 +2,7 @@ package loamstream.compiler.messages
 
 import loamstream.compiler.Issue
 
-/**
-  * LoamStream
-  * Created by oliverr on 5/11/2016.
-  */
+/** A message that the compiler has found an issue */
 case class CompilerIssueMessage(issue: Issue)
   extends ClientOutMessage {
   override val typeName = "compiler"

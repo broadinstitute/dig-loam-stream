@@ -1,9 +1,6 @@
 package loamstream.compiler.messages
 
-/**
-  * LoamStream
-  * Created by oliverr on 6/22/2016.
-  */
+/** A message by the client requesting a list of names of available Loam scrips */
 object ListRequestMessage extends ClientInMessage {
 
 }

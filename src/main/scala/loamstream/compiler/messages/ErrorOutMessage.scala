@@ -1,9 +1,6 @@
 package loamstream.compiler.messages
 
-/**
-  * LoamStream
-  * Created by oliverr on 5/9/2016.
-  */
+/** A message to the client that an error has occurred */
 case class ErrorOutMessage(message: String) extends ClientOutMessage {
   override def typeName: String = "error"
 }

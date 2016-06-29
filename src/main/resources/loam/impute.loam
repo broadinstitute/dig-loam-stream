@@ -1,17 +1,24 @@
-val inputFile = key[Path]
-val outputFile = key[Path]
-val phaseCommand = key[String]
-val imputeCommand = key[String]
+val chr = 22
+val start = 1
+val end = 1000000
 
-inputFile := path("/user/home/someone/data.vcf")
-outputFile := path("/user/home/someone/dataImputed.vcf")
-phaseCommand := "shapeit"
-imputeCommand := "impute2"
+val gwas = store[VCF].from(path("gwas.chr${chr}.vcf.gz"))
+val geneticMap = store[TXT].from(path("genetic_map.txt.gz"))
+val gwasPhasedHaps = store[TXT].to(path("gwas.chr${chr}.phased.haps.gz"))
+val gwasPhasedSample = store[TXT].to(path("gwas.chr${chr}.phased.sample.gz"))
+val log = store[TXT].to(path("gwas.chr${chr}.phased.log"))
 
-val raw = store[VCF].from(inputFile)
-val phased = store[VCF]
-val template = store[VCF].from(path("/home/myself/template.vcf"))
-val imputed = store[VCF].to(outputFile)
+cmd"shapeit -V $gwas -M $geneticMap -O $gwasPhasedHaps $gwasPhasedSample -L $log --thread 8"
 
-cmd"$phaseCommand -in $raw -out $phased"
-cmd"$imputeCommand -in $phased -template $template -out $imputed"
+cmd"""impute2 -use_prephased_g 
+-m example.chr${chr}.map 
+-h example.chr${chr}.1kG.haps.gz 
+-l example.chr${chr}.1kG.legend.gz 
+-known_haps_g example.chr${chr}.prephasing.impute2_haps.gz 
+-strand_g example.chr${chr}.study.strand 
+-int ${start} ${end} 
+-Ne 20000 
+-o example.chr${chr}bp${start}-${end}.imputed.gen 
+-verbose 
+-o_gz
+"""

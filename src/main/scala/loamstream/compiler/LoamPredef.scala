@@ -28,6 +28,7 @@ object LoamPredef {
 
   def store[T: TypeTag](implicit graphBuilder: LoamGraphBuilder): LoamStore = LoamStore.create[T]
 
-  type VCF = Map[(String, String), Genotype]
+  trait VCF extends Map[(String, String), Genotype]
+  trait TXT extends  Seq[String]
 
 }

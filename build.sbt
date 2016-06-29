@@ -39,9 +39,9 @@ lazy val commonSettings = Seq(
     Resolver.sonatypeRepo("snapshots")
   ),
   libraryDependencies ++= (mainDeps ++ testDeps),
-  scalastyleFailOnError := true,
-  unmanagedBase := file("/opt/drmaa"),
-  unmanagedJars in Compile <<= unmanagedBase map { base => (base ** "*.jar").classpath }
+  scalastyleFailOnError := true//,
+  //unmanagedBase := file("/opt/drmaa"),
+  //unmanagedJars in Compile <<= unmanagedBase map { base => (base ** "*.jar").classpath }
 )
 
 lazy val root = (project in file("."))

@@ -2,7 +2,7 @@ package loamstream.apps
 
 import java.nio.file.Path
 
-import loamstream.uger.Drmaa
+//import loamstream.uger.Drmaa
 import loamstream.conf.{ImputationConfig, UgerConfig}
 import loamstream.model.execute.LExecutable
 import loamstream.model.execute.ChunkedExecuter
@@ -11,6 +11,12 @@ import loamstream.tools.LineCommand
 import loamstream.util.Loggable
 import loamstream.util.Files
 import java.nio.file.Paths
+import loamstream.uger.Jobs
+import loamstream.uger.Poller
+import loamstream.uger.DrmaaClient
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import loamstream.uger.Drmaa1Client
 
 /**
   * LoamStream
@@ -102,7 +108,7 @@ object ImputationApp extends Loggable {
     executer.execute(executable)
   }
 
-  def runShapeItOnUger(configFile: Path, isBulk: Boolean): Unit = {
+  def runShapeItOnUger(configFile: Path): DrmaaClient.SubmissionResult = {
     trace("Attempting to run ShapeIt...")
 
     //TODO: Fragile
@@ -115,9 +121,12 @@ object ImputationApp extends Loggable {
     
     val ugerLog = ugerConfig.ugerLogFile
 
-    val drmaaClient = new Drmaa
+    //val drmaaClient = new Drmaa
+    //drmaaClient.runJob(shapeItScript, ugerLog, isBulk, "ShapeIt")
     
-    drmaaClient.runJob(shapeItScript, ugerLog, isBulk, "ShapeIt")
+    val drmaaClient = DrmaaClient.drmaa1(new Drmaa1Client)
+    
+    drmaaClient.submitJob(shapeItScript, ugerLog, "ShapeIt")
   }
 
   def main(args: Array[String]) {
@@ -129,8 +138,36 @@ object ImputationApp extends Loggable {
       path("target/foo"))*/
       
     //runShapeItLocally(args)
-    runShapeItOnUger(path("src/main/resources/loamstream.conf"), true)
+    //runShapeItOnUger(path("src/main/resources/loamstream.conf"), true)
     
+    val result = runShapeItOnUger(path(args(0)))
     
+    if(result.isFailure) {
+      Console.err.println(s"Failure: $result")
+    } else {
+      val DrmaaClient.BulkJobSubmissionResult(jobIds) = result
+      
+      if(jobIds.tail.nonEmpty) {
+        Console.err.println(s"Expected 1 job but got $jobIds")
+        
+        System.exit(1)
+      }
+      
+      val jobId = jobIds.head.toString
+      
+      //import scala.concurrent.ExecutionContext.Implicits.global
+      import monix.execution.Scheduler.Implicits.global
+      
+      val poller = Poller.drmaa1(DrmaaClient.drmaa1(new Drmaa1Client))
+      
+      val fut = Jobs.monitor(poller, 0.2)(jobId).foreach { jobStatus => 
+        println(s"Job '$jobId': $jobStatus")
+      }
+      
+      Await.result(fut, Duration.Inf)
+      
+      //Block until a keypress
+      Console.in.readLine()
+    }
   }
 }

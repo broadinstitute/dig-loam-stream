@@ -1,10 +1,27 @@
 package loamstream.uger
 
-import org.ggf.drmaa2.JobState
+import scala.util.Try
+import org.ggf.drmaa.Session
+import scala.util.Success
 
 /**
  * @author clint
  * date: Jun 16, 2016
+ * 
+ * An ADT/"Enum" to represent job statuses as reported by UGER.  Values correspond to
+ * org.ggf.drmaa.Session.{
+ *   UNDETERMINED,
+ *   QUEUED_ACTIVE,
+ *   SYSTEM_ON_HOLD,
+ *   USER_ON_HOLD,
+ *   USER_SYSTEM_ON_HOLD,
+ *   RUNNING,
+ *   SYSTEM_SUSPENDED,
+ *   USER_SUSPENDED,
+ *   USER_SYSTEM_SUSPENDED,
+ *   DONE,
+ *   FAILED
+ * }
  */
 sealed trait JobStatus {
   import JobStatus._
@@ -13,8 +30,6 @@ sealed trait JobStatus {
   def isFailed: Boolean = this == Failed
   def isQueued: Boolean = this == Queued
   def isQueuedHeld: Boolean = this == QueuedHeld
-  def isRequeued: Boolean = this == Requeued
-  def isRequeuedHeld: Boolean = this == RequeuedHeld
   def isRunning: Boolean = this == Running
   def isSuspended: Boolean = this == Suspended
   def isUndetermined: Boolean = this == Undetermined
@@ -31,21 +46,15 @@ object JobStatus {
   case object Suspended extends JobStatus
   case object Undetermined extends JobStatus
   
-  def fromJobState(state: JobState): JobStatus = {
-    require(state != null)
-    
-    import JobState._
-    
-    state match {
-      case DONE => Done
-      case FAILED => Failed
-      case QUEUED => Queued
-      case QUEUED_HELD => QueuedHeld
-      case REQUEUED => Requeued
-      case REQUEUED_HELD => RequeuedHeld
-      case RUNNING => Running
-      case SUSPENDED => Suspended
-      case UNDETERMINED => Undetermined
-    }
+  import Session._
+  
+  def fromUgerStatusCode(status: Int): JobStatus = status match {
+    case QUEUED_ACTIVE                                              => Queued
+    case SYSTEM_ON_HOLD | USER_ON_HOLD | USER_SYSTEM_ON_HOLD        => QueuedHeld
+    case RUNNING                                                    => Running
+    case SYSTEM_SUSPENDED | USER_SUSPENDED | USER_SYSTEM_SUSPENDED  => Suspended
+    case DONE                                                       => Done
+    case FAILED                                                     => Failed
+    case UNDETERMINED | _                                           => Undetermined
   }
 }

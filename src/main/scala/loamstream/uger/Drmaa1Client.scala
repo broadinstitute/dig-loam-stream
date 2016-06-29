@@ -8,15 +8,44 @@ import org.ggf.drmaa.SessionFactory
 import scala.collection.JavaConverters._
 import java.nio.file.Path
 import org.ggf.drmaa.NoActiveSessionException
+import scala.util.Try
 
 /**
  * Created on: 5/19/16 
  * @author Kaan Yuksel 
  * @author clint
  */
-final class Drmaa extends Loggable {
+final class Drmaa1Client extends DrmaaClient with Loggable {
   
-  import Drmaa._
+  import DrmaaClient._
+  
+  override def statusOf(jobId: String): Try[JobStatus] = {
+    withSession { session =>
+      for {
+        status <- Try(session.getJobProgramStatus(jobId))
+      } yield {
+        JobStatus.fromUgerStatusCode(status)
+      }
+    }
+  }
+  
+  override def submitJob(
+      pathToScript: Path,
+      pathToUgerOutput: Path,
+      jobName: String): DrmaaClient.SubmissionResult = {
+
+    runJob(pathToScript, pathToUgerOutput, true, jobName)
+  }
+  
+  def runJob(pathToScript: Path, pathToUgerOutput: Path, isBulk: Boolean, jobName: String): SubmissionResult = {
+    withSession { session =>
+      if (isBulk) {
+        runBulkJobs(session, pathToScript, pathToUgerOutput, s"${jobName}BulkJobs", 1, 1, 1)
+      } else {
+        runSingleJob(session, pathToScript, pathToUgerOutput, s"${jobName}SingleJob")
+      }
+    }
+  }
   
   private def runSingleJob(
       session: Session, 
@@ -62,16 +91,6 @@ final class Drmaa extends Loggable {
     }
   }
 
-  def runJob(pathToScript: Path, pathToUgerOutput: Path, isBulk: Boolean, jobName: String): SubmissionResult = {
-    withSession { session =>
-      if (isBulk) {
-        runBulkJobs(session, pathToScript, pathToUgerOutput, s"${jobName}BulkJobs", 1, 3, 1)
-      } else {
-        runSingleJob(session, pathToScript, pathToUgerOutput, s"${jobName}SingleJob")
-      }
-    }
-  }
-  
   private def withJobTemplate[A <: SubmissionResult](session: Session)(f: JobTemplate => A): SubmissionResult = {
     val jt = session.createJobTemplate
     
@@ -101,14 +120,4 @@ final class Drmaa extends Loggable {
       }
     }
   }
-}
-
-object Drmaa {
-  sealed trait SubmissionResult
-  
-  final case class Failure(cause: Exception) extends SubmissionResult 
-  
-  final case class SingleJobSubmissionResult(jobId: String) extends SubmissionResult
-  
-  final case class BulkJobSubmissionResult(jobIds: Seq[Any]) extends SubmissionResult
 }

@@ -12,12 +12,13 @@ trait Poller {
 }
 
 object Poller {
-  final class Drmaa2Poller(client: Drmaa2Client)(implicit context: ExecutionContext) extends Poller {
+  
+  final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller {
     override def poll(jobId: String): Future[JobStatus] = Future {
       //TODO: Something better
-      client.statusOf(jobId).get 
+      client.statusOf(jobId).get
     }
   }
   
-  def drmaa2(client: Drmaa2Client)(implicit context: ExecutionContext): Poller = new Drmaa2Poller(client)
+  def drmaa1(client: DrmaaClient)(implicit context: ExecutionContext): Poller = new DrmaaPoller(client)
 }

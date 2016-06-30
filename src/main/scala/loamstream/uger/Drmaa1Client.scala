@@ -9,6 +9,9 @@ import scala.collection.JavaConverters._
 import java.nio.file.Path
 import org.ggf.drmaa.NoActiveSessionException
 import scala.util.Try
+import scala.concurrent.duration.Duration
+import org.ggf.drmaa.ExitTimeoutException
+import scala.util.control.NonFatal
 
 /**
  * Created on: 5/19/16 
@@ -19,13 +22,31 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   import DrmaaClient._
   
+  private[this] lazy val session: Session = {
+    val s = SessionFactory.getFactory.getSession
+    
+    s.init("")
+    
+    s
+  }
+
+  /**
+   * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
+   */
+  override def shutdown(): Unit = {
+    try { session.exit() }
+    catch {
+      //NB: session.exit() will fail if an exception was thrown by session.init(), or if it is invoked more than
+      //once.  In that case, there's not much we can do.
+      case e: NoActiveSessionException => ()
+    }
+  }
+  
   override def statusOf(jobId: String): Try[JobStatus] = {
-    withSession { session =>
-      for {
-        status <- Try(session.getJobProgramStatus(jobId))
-      } yield {
-        JobStatus.fromUgerStatusCode(status)
-      }
+    for {
+      status <- Try(session.getJobProgramStatus(jobId))
+    } yield {
+      JobStatus.fromUgerStatusCode(status)
     }
   }
   
@@ -37,18 +58,54 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     runJob(pathToScript, pathToUgerOutput, true, jobName)
   }
   
-  def runJob(pathToScript: Path, pathToUgerOutput: Path, isBulk: Boolean, jobName: String): SubmissionResult = {
-    withSession { session =>
-      if (isBulk) {
-        runBulkJobs(session, pathToScript, pathToUgerOutput, s"${jobName}BulkJobs", 1, 1, 1)
+  override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
+    Try {
+      val jobInfo = session.wait(jobId, timeout.toSeconds.toLong)
+      
+      if (jobInfo.hasExited) {
+        info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
+        
+        //TODO: More flexibility?
+        jobInfo.getExitStatus match { 
+          case 0 => JobStatus.Done
+          case _ => JobStatus.Failed
+        }
+      } else if (jobInfo.wasAborted) {
+        info(s"Job '$jobId' was aborted; job info: $jobInfo")
+
+        //TODO: Add JobStatus.Aborted?
+        JobStatus.Failed
+      } else if (jobInfo.hasSignaled) {
+        info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
+
+        JobStatus.Failed
+      } else if (jobInfo.hasCoreDump) {
+        info(s"Job '$jobId' dumped core")
+        
+        JobStatus.Failed
       } else {
-        runSingleJob(session, pathToScript, pathToUgerOutput, s"${jobName}SingleJob")
+        info(s"Job '$jobId' finished with unknown status")
+        
+        JobStatus.Undetermined
+      }
+    }.recoverWith {
+      case e: ExitTimeoutException => {
+        info(s"Timed out waiting for job '$jobId' to finish, checking its status")
+        
+        statusOf(jobId)
       }
     }
   }
   
+  def runJob(pathToScript: Path, pathToUgerOutput: Path, isBulk: Boolean, jobName: String): SubmissionResult = {
+    if (isBulk) {
+      runBulkJobs(pathToScript, pathToUgerOutput, s"${jobName}BulkJobs", 1, 1, 1)
+    } else {
+      runSingleJob(pathToScript, pathToUgerOutput, s"${jobName}SingleJob")
+    }
+  }
+  
   private def runSingleJob(
-      session: Session, 
       pathToScript: Path, 
       pathToUgerOutput: Path,
       jobName: String): SubmissionResult = {
@@ -68,7 +125,6 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   }
 
   private def runBulkJobs(
-      session: Session, 
       pathToScript: Path, 
       pathToUgerOutput: Path, 
       jobName: String,
@@ -103,21 +159,5 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       }
     }
     finally { session.deleteJobTemplate(jt) }
-  }
-  
-  private def withSession[A](f: Session => A): A = {
-    val session: Session = SessionFactory.getFactory.getSession
-
-    try {
-      session.init("")
-
-      f(session)
-    } finally {
-      try { session.exit() }
-      catch {
-        //NB: session.exit() will fail if an exception was thrown by session.init().  In that case, just bail.
-        case e: NoActiveSessionException => ()
-      }
-    }
   }
 }

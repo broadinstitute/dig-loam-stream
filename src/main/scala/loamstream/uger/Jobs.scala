@@ -4,6 +4,9 @@ import java.nio.file.Path
 import monix.reactive.Observable
 import scala.concurrent.Future
 import java.nio.file.Paths
+import scala.util.Failure
+import org.ggf.drmaa.InvalidJobException
+import scala.util.Success
 
 /**
  * @author clint
@@ -17,9 +20,24 @@ object Jobs {
     
     val period = (1 / frequencyInHz).seconds
     
-    for {
+    val statusAttempts = for {
       _ <- Observable.interval(period)
-      status <- Observable.fromFuture(poller.poll(jobId))
+      status <- Observable.fromFuture(poller.poll(jobId, period))
     } yield status
+    
+    val result = statusAttempts.distinctUntilChanged.zipWithIndex.collect { 
+      //If the first polling attempt fails due to an unknown job, status is undetermined
+      case (Failure(e: InvalidJobException), i) if i == 0 => JobStatus.Undetermined
+      //NB: DRMAA won't always report when jobs are done, so we assume that an 'unknown job' failure for a job
+      //we've previously inquired about successfully means the job is done.  This means we can't determine how 
+      //a job ended (success of failure), though.
+      case (Failure(e: InvalidJobException), i) if i > 0 => JobStatus.Done
+      //Any polling failure leaves us unable to know the job's status
+      case (Failure(_), _) => JobStatus.Undetermined
+      case (Success(status), _) => status
+    }
+    
+    //TODO: end with actual final status, not Done
+    result.takeWhile(_.notFinished).endWith(Seq(JobStatus.Done))
   }
 }

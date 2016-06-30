@@ -5,6 +5,7 @@ import scala.util.Try
 import loamstream.util.Loggable
 import org.ggf.drmaa.Session
 import loamstream.uger.JobStatus.Undetermined
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -31,6 +32,19 @@ trait DrmaaClient {
    * @return a Try, since inquiring might fail
    */
   def statusOf(jobId: String): Try[JobStatus]
+  
+  /**
+   * Wait (synchronously) for a job to complete.  
+   * @param jobId the job ID, assigned by UGER, of the job to wait for
+   * @param timeout how long to wait.  If timeout elapses and the job doesn't finish, try to determine the job's
+   * status using statusOf()
+   */
+  def waitFor(jobId: String, timeout: Duration): Try[JobStatus]
+  
+  /**
+   * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
+   */
+  def shutdown(): Unit
 }
 
 object DrmaaClient {

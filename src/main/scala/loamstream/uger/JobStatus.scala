@@ -33,6 +33,9 @@ sealed trait JobStatus {
   def isRunning: Boolean = this == Running
   def isSuspended: Boolean = this == Suspended
   def isUndetermined: Boolean = this == Undetermined
+  
+  //TODO: Does Undetermined belong here?
+  def notFinished: Boolean = isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
 }
 
 object JobStatus {

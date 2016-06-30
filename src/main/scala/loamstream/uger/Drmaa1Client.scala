@@ -86,7 +86,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       } else {
         info(s"Job '$jobId' finished with unknown status")
         
-        JobStatus.Undetermined
+        JobStatus.Done
       }
     }.recoverWith {
       case e: ExitTimeoutException => {

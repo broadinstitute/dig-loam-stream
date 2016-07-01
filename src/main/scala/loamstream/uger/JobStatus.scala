@@ -33,13 +33,17 @@ sealed trait JobStatus {
   def isRunning: Boolean = this == Running
   def isSuspended: Boolean = this == Suspended
   def isUndetermined: Boolean = this == Undetermined
+  def isDoneUndetermined: Boolean = this == DoneUndetermined
   
   //TODO: Does Undetermined belong here?
   def notFinished: Boolean = isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
+  
+  def isFinished: Boolean = !notFinished
 }
 
 object JobStatus {
   case object Done extends JobStatus
+  case object DoneUndetermined extends JobStatus
   case object Failed extends JobStatus
   case object Queued extends JobStatus
   case object QueuedHeld extends JobStatus

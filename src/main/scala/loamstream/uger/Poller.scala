@@ -1,9 +1,10 @@
 package loamstream.uger
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
-import scala.util.Try
+import scala.concurrent.Future
+import scala.concurrent.blocking
 import scala.concurrent.duration.Duration
+import scala.util.Try
 
 /**
  * @author clint
@@ -17,7 +18,9 @@ object Poller {
   
   final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller {
     override def poll(jobId: String, timeout: Duration): Future[Try[JobStatus]] = Future {
-      client.waitFor(jobId, timeout)
+      blocking {
+        client.waitFor(jobId, timeout)
+      }
     }
   }
   

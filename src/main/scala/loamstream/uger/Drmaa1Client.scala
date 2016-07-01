@@ -37,8 +37,8 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     try { session.exit() }
     catch {
       //NB: session.exit() will fail if an exception was thrown by session.init(), or if it is invoked more than
-      //once.  In that case, there's not much we can do.
-      case e: NoActiveSessionException => ()
+      //once.  In those cases, there's not much we can do.
+      case e: DrmaaException => ()
     }
   }
   
@@ -47,7 +47,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       status <- Try(session.getJobProgramStatus(jobId))
       jobStatus = JobStatus.fromUgerStatusCode(status)
     } yield {
-      println(s"statusOf(): Job '$jobId' has status $status, mapped to $jobStatus")
+      info(s"statusOf(): Job '$jobId' has status $status, mapped to $jobStatus")
       
       jobStatus
     }
@@ -66,7 +66,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val jobInfo = session.wait(jobId, timeout.toSeconds.toLong)
       
       if (jobInfo.hasExited) {
-        println(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
+        info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
         
         //TODO: More flexibility?
         jobInfo.getExitStatus match { 
@@ -74,26 +74,26 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
           case _ => JobStatus.Failed
         }
       } else if (jobInfo.wasAborted) {
-        println(s"Job '$jobId' was aborted; job info: $jobInfo")
+        info(s"Job '$jobId' was aborted; job info: $jobInfo")
 
         //TODO: Add JobStatus.Aborted?
         JobStatus.Failed
       } else if (jobInfo.hasSignaled) {
-        println(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
+        info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
         JobStatus.Failed
       } else if (jobInfo.hasCoreDump) {
-        println(s"Job '$jobId' dumped core")
+        info(s"Job '$jobId' dumped core")
         
         JobStatus.Failed
       } else {
-        println(s"Job '$jobId' finished with unknown status")
+        info(s"Job '$jobId' finished with unknown status")
         
-        JobStatus.Done
+        JobStatus.DoneUndetermined
       }
     }.recoverWith {
       case e: ExitTimeoutException => {
-        println(s"Timed out waiting for job '$jobId' to finish, checking its status")
+        info(s"Timed out waiting for job '$jobId' to finish, checking its status")
         
         statusOf(jobId)
       }

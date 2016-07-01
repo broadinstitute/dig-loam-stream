@@ -10,7 +10,7 @@ object LoamRepository {
   val projectName = "dig-loam-stream"
   val resourceFolder = "src/main/resources"
   val defaultPackageName = "loam"
-  val defaultEntries = Seq("first", "toyImpute", "impute")
+  val defaultEntries = Seq("first", "toyImpute", "impute", "imputeParallel")
   val defaultPackageRepo = ofPackage(defaultPackageName, defaultEntries)
   val fileSuffix = ".loam"
 

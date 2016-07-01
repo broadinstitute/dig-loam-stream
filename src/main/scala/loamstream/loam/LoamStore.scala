@@ -1,6 +1,6 @@
 package loamstream.loam
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
@@ -22,6 +22,8 @@ case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBuilder: Loam
 
   def update(): Unit = graphBuilder.addStore(this)
 
+  def from(path: String): LoamStore = from(Paths.get(path))
+
   def from(path: Path): LoamStore = from(StoreEdge.PathEdge(path))
 
   def from(key: LEnv.Key[Path]): LoamStore = from(StoreEdge.PathKeyEdge(key))
@@ -30,6 +32,8 @@ case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBuilder: Loam
     graphBuilder.addSource(this, source)
     this
   }
+
+  def to(path: String): LoamStore = to(Paths.get(path))
 
   def to(path: Path): LoamStore = to(StoreEdge.PathEdge(path))
 

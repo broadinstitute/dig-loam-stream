@@ -2,23 +2,22 @@ val chr = 22
 val start = 1
 val end = 1000000
 
-val gwas = store[VCF].from(path("gwas.chr${chr}.vcf.gz"))
-val geneticMap = store[TXT].from(path("genetic_map.txt.gz"))
-val gwasPhasedHaps = store[TXT].to(path("gwas.chr${chr}.phased.haps.gz"))
-val gwasPhasedSample = store[TXT].to(path("gwas.chr${chr}.phased.sample.gz"))
-val log = store[TXT].to(path("gwas.chr${chr}.phased.log"))
+val gwas = store[VCF].from(s"gwas.chr${chr}.vcf.gz")
+val geneticMap = store[TXT].from("genetic_map.txt.gz")
+val gwasPhasedHaps = store[TXT].to(s"gwas.chr${chr}.phased.haps.gz")
+val gwasPhasedSample = store[TXT].to(s"gwas.chr${chr}.phased.sample.gz")
+val log = store[TXT].to(s"gwas.chr${chr}.phased.log")
 
 cmd"shapeit -V $gwas -M $geneticMap -O $gwasPhasedHaps $gwasPhasedSample -L $log --thread 8"
 
-cmd"""impute2 -use_prephased_g 
--m example.chr${chr}.map 
--h example.chr${chr}.1kG.haps.gz 
--l example.chr${chr}.1kG.legend.gz 
--known_haps_g example.chr${chr}.prephasing.impute2_haps.gz 
--strand_g example.chr${chr}.study.strand 
--int ${start} ${end} 
--Ne 20000 
--o example.chr${chr}bp${start}-${end}.imputed.gen 
--verbose 
--o_gz
+val exampleMap = store[TXT].from(s"example.chr${chr}.map")
+val exampleHaps = store[TXT].from(s"example.chr${chr}.map")
+val exampleLegend = store[TXT].from(s"example.chr${chr}.map")
+val knownHapsG = store[TXT].from(s"example.chr${chr}.prephasing.impute2_haps.gz")
+val exampleStudyStrand = store[TXT].from(s"example.chr${chr}.study.strand")
+val imputed = store[TXT].to(s"example.chr${chr}bp${start}-${end}.imputed.gen")
+
+cmd"""impute2 -use_prephased_g -m $exampleMap -h $exampleHaps -l $exampleLegend 
+-known_haps_g $knownHapsG -strand_g $exampleStudyStrand  -int ${start} ${end} -Ne 20000 
+-o imputes $imputed -verbose -o_gz
 """

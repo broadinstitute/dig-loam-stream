@@ -3,6 +3,8 @@ bin/
 /db
 .eclipse
 .idea
+.idea_modules/
+projectFilesBackup/
 /lib/
 /logs/
 hail.log

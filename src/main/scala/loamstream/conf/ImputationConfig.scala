@@ -1,11 +1,6 @@
 package loamstream.conf
 
-import java.io.File
-import java.nio.file.Paths
-
-import com.typesafe.config.{Config, ConfigFactory}
-import java.nio.file.Path
-import loamstream.util.PathEnrichments
+import com.typesafe.config.Config
 import scala.util.Try
 import loamstream.util.ConfigEnrichments
 

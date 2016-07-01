@@ -1,16 +1,15 @@
 package loamstream.util
 
-import loamstream.util.ShotCombinators.Shots2
+import loamstream.util.Shots.Shots2
 
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}
 
-/**
-  * LoamStream
-  * Created by oliverr on 11/17/2015.
-  */
+/** A container of an object or an error description */
 sealed trait Shot[+A] {
   def get: A
+
+  def message: String
 
   def map[B](f: A => B): Shot[B]
 
@@ -28,6 +27,7 @@ sealed trait Shot[+A] {
 
 }
 
+/** A container of an object or an error description */
 object Shot {
   def apply[A](f: => A): Shot[A] = fromTry(Try(f))
 
@@ -81,6 +81,8 @@ object Shot {
 case class Hit[+A](value: A) extends Shot[A] {
   override val get: A = value
 
+  def message: String = s"Hit: got '$value'"
+
   override def map[B](f: (A) => B): Shot[B] = Hit(f(value))
 
   override def flatMap[B](f: (A) => Shot[B]): Shot[B] = {
@@ -105,6 +107,8 @@ object Miss {
 
 case class Miss(snag: Snag) extends Shot[Nothing] {
   override def get: Nothing = throw new NoSuchElementException(s"No such element: ${snag.message}")
+
+  def message: String = s"Miss: '${snag.message}'"
 
   override def map[B](f: (Nothing) => B): Shot[B] = Miss(snag)
 

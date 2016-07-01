@@ -1,7 +1,7 @@
 package loamstream.web.controllers.socket
 
 import akka.actor.{Actor, ActorRef, Props}
-import loamstream.compiler.{ClientMessageHandler, ClientOutMessage, LoamRepository}
+import loamstream.compiler.messages.{ClientMessageHandler, ClientOutMessage}
 import play.api.Environment
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}

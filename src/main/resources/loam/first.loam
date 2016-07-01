@@ -5,7 +5,7 @@ klustaKwikKonfig :=
 loamstream.tools.klusta.KlustaKwikKonfig(path("/usr/local/bin/klusta"), "stuff")
 
 val cmdName = "doThis"
-val input1 = InputBuilder[Set[String]]("input1")
-val output1 = OutputBuilder[Map[String, Int]]("output1")
+val input1 = store[Set[String]].from(path("input1"))
+val output1 = store[Map[String, Int]].to(path("output1"))
 
-command := cmd"$cmdName -id $genotypesId -in $input1 -out $output1"
+cmd"$cmdName -id $genotypesId -in $input1 -out $output1"

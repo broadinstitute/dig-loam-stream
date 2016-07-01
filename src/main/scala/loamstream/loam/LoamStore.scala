@@ -6,7 +6,7 @@ import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.model.{LId, Store, StoreSig}
 
-import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
+import scala.reflect.runtime.universe.TypeTag
 
 /**
   * LoamStream
@@ -43,6 +43,8 @@ case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBuilder: Loam
   override def toString: String = s"store[${sig.tpe}]"
 
   def graph: LoamGraph = graphBuilder.graph
+
+  def pathOpt: Option[Path] = graph.pathOpt(this)
 }
 
 

@@ -1,8 +1,11 @@
 package loamstream.loam
 
-import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import java.nio.file.Paths
+
 import loamstream.compiler.LoamCompiler
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.files.LoamFileManager
 import org.scalatest.FunSuite
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,7 +40,7 @@ class LoamGraphTest extends FunSuite {
   val graph = {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
     val result = compiler.compile(code)
-    result.graphOpt.get
+    result.graphOpt.get.withEnv(result.envOpt.get)
   }
   test("Test that valid graph passes all checks.") {
     assert(LoamGraphValidation.allRules(graph).isEmpty)
@@ -89,5 +92,18 @@ class LoamGraphTest extends FunSuite {
     val toolOutputsNew = graph.toolOutputs + (someTool -> graph.stores)
     val graphBroken = graph.copy(toolInputs = toolInputsNew, toolOutputs = toolOutputsNew)
     assert(LoamGraphValidation.graphIsAcyclic(graphBroken).nonEmpty)
+  }
+  test("LoamGraph.pathOpt and LoamFileManager") {
+    val pathInputFile = Paths.get("/user/home/someone/data.vcf")
+    val pathOutputFile = Paths.get("/user/home/someone/dataImputed.vcf")
+    val pathTemplate = Paths.get("/home/myself/template.vcf")
+    assert(graph.stores.map(graph.pathOpt) ===
+      Set(Some(pathInputFile), Some(pathTemplate), Some(pathOutputFile), None))
+    val fileManager = new LoamFileManager
+    for (store <- graph.stores) {
+      val path = fileManager.getPath(store)
+      val pathLastPart = path.getName(path.getNameCount - 1)
+      assert(pathLastPart.toString.startsWith(fileManager.filePrefix) || store.pathOpt.contains(path))
+    }
   }
 }

@@ -1,9 +1,10 @@
 package loamstream.compiler
 
 import loamstream.LEnv
-import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
 import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, LoamTool}
 import loamstream.tools.core.LCoreEnv
 import loamstream.util.{ReflectionUtil, SourceUtils, StringUtils}
@@ -14,25 +15,29 @@ import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.reflect.ReflectGlobal
-import scala.util.{Failure, Success, Try}
 
-/**
-  * LoamStream
-  * Created by oliverr on 5/10/2016.
-  */
+/** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler {
 
+  /** A wrapper type for Loam scripts */
   trait DslChunk {
+    /** The runtime environment defined by this Loam script */
     def env: LEnv
 
+    /** The graph of stores and tools defined by this Loam script */
     def graph: LoamGraph
   }
 
+  /** A reporter receiving messages form the underlying Scala compiler
+    *
+    * @param outMessageSink The recipient of the Scala compiler messages
+    */
   final class CompilerReporter(outMessageSink: OutMessageSink) extends Reporter {
     var errors = Seq.empty[Issue]
     var warnings = Seq.empty[Issue]
     var infos = Seq.empty[Issue]
 
+    /** Method called by the Scala compiler to emit errors, warnings and infos */
     override protected def info0(pos: Position, msg: String, severity: Severity, force: Boolean): Unit = {
       val issue = Issue(pos, msg, Severity(severity.id))
       severity.id match {
@@ -46,27 +51,63 @@ object LoamCompiler {
     }
   }
 
+  /** The result of the compilation of a Loam script */
   object Result {
+    /** Constructs a result representing successful compilation */
     def success(reporter: CompilerReporter, graph: LoamGraph, env: LEnv): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, Some(graph), Some(env))
     }
 
+    /** Constructs a result that the Loam script cannot be compiled */
     def failure(reporter: CompilerReporter): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, None, None)
     }
 
+    /** Constructs a result that an exception was thrown during compilation */
     def exception(reporter: CompilerReporter, exception: Exception): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, None, None, Some(exception))
     }
   }
 
+  /** The result of the compilation of a Loam script
+    *
+    * @param errors   Errors from the Scala compiler
+    * @param warnings Warnings from the Scala compiler
+    * @param infos    Infos from the Scala compiler
+    * @param graphOpt Option of graph of stores and tools
+    * @param envOpt   Option of runtime settings
+    * @param exOpt    Option of an exception if thrown
+    */
   final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], graphOpt: Option[LoamGraph],
                           envOpt: Option[LEnv], exOpt: Option[Exception] = None) {
-    def isSuccess: Boolean = envOpt.nonEmpty
+    /** Returns true if no errors */
+    def isValid: Boolean = errors.isEmpty
+
+    /** Returns true if no issues */
+    def isClean: Boolean = isValid && warnings.isEmpty && infos.isEmpty
+
+    /** Returns true if graph of stores and tools and runtime settings have been found */
+    def isSuccess: Boolean = envOpt.nonEmpty && graphOpt.nonEmpty
+
+    /** One-line summary of the result */
+    def summary: String = {
+      val soManyErrors = StringUtils.soMany(errors.size, "error")
+      val soManyWarnings = StringUtils.soMany(warnings.size, "warning")
+      val soManyInfos = StringUtils.soMany(infos.size, "info")
+      val soManySettings = StringUtils.soMany(envOpt.map(_.keys.size).getOrElse(0), "runtime setting")
+      val soManyStores = StringUtils.soMany(graphOpt.map(_.stores.size).getOrElse(0), "stores")
+      val soManyTools = StringUtils.soMany(graphOpt.map(_.tools.size).getOrElse(0), "tools")
+      s"There were $soManyErrors, $soManyWarnings, $soManyInfos, $soManySettings, $soManyStores and $soManyTools."
+    }
+
+    /** Detailed report listing all issues */
+    def report: String = (summary +: (errors ++ warnings ++ infos).map(_.summary)).mkString(System.lineSeparator)
+
   }
 
 }
 
+/** The compiler compiling Loam scripts into execution plans */
 class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
 
   val targetDirectoryName = "target"
@@ -88,17 +129,7 @@ class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: Ex
     s"$soManyErrors and $soManyWarnings"
   }
 
-  def sendOutResponse(responseValue: Try[Option[Either[compiler.Tree, Throwable]]]): Unit = {
-    val outMessageTextEnd = responseValue match {
-      case Success(Some(Left(_))) => s"There were $soManyIssues."
-      case Success(Some(Right(ex: InterruptedException))) => "Compiler was interrupted."
-      case Success(Some(Right(ex))) => "Packaged Exception: " + ex.getMessage
-      case Success(None) => "Compiler tried to reload and timed out."
-      case Failure(ex) => "Exception was thrown: " + ex.getMessage
-    }
-    outMessageSink.send(StatusOutMessage(outMessageTextEnd))
-  }
-
+  /** Wraps Loam script in template to create valid Scala file */
   def wrapCode(raw: String): String = {
     s"""
 package $inputObjectPackage
@@ -125,6 +156,7 @@ def graph = graphBuilder.graph
 """
   }
 
+  /** Compiles Loam script into execution plan */
   def compile(rawCode: String): LoamCompiler.Result = {
     try {
       val wrappedCode = wrapCode(rawCode)

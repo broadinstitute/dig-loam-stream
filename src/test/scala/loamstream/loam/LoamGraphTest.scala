@@ -2,8 +2,8 @@ package loamstream.loam
 
 import java.nio.file.Paths
 
-import loamstream.compiler.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.LoamCompiler
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.files.LoamFileManager
 import org.scalatest.FunSuite
@@ -100,7 +100,7 @@ class LoamGraphTest extends FunSuite {
     assert(graph.stores.map(graph.pathOpt) ===
       Set(Some(pathInputFile), Some(pathTemplate), Some(pathOutputFile), None))
     val fileManager = new LoamFileManager
-    for(store <- graph.stores) {
+    for (store <- graph.stores) {
       val path = fileManager.getPath(store)
       val pathLastPart = path.getName(path.getNameCount - 1)
       assert(pathLastPart.toString.startsWith(fileManager.filePrefix) || store.pathOpt.contains(path))

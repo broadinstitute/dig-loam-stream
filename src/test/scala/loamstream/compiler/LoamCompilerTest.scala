@@ -2,7 +2,8 @@ package loamstream.compiler
 
 import java.nio.file.Paths
 
-import loamstream.compiler.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.repo.LoamRepository
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraphValidation
 import loamstream.tools.core.LCoreEnv
@@ -100,7 +101,7 @@ final class LoamCompilerTest extends FunSuite {
   }
   test("Testing sample code impute.loam") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
-    val codeShot = LoamRepository.defaultRepo.get("impute.loam")
+    val codeShot = LoamRepository.defaultRepo.load("impute").map(_.content)
     assert(codeShot.nonEmpty)
     val result = compiler.compile(codeShot.get)
     assert(result.errors.isEmpty)

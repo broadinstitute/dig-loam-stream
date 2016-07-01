@@ -30,7 +30,7 @@ final class ImputationConfigTest extends FunSuite {
     assert(config.shapeIt.numThreads == expectedNumThreads)
 
     // Composite fields are correctly formed
-    assert(config.shapeIt.mapFile == 
+    assert(config.shapeIt.mapFile ==
         Paths.get("/home/clint/workspace/imputation/shapeit_example/genetic_map.txt.gz"))
   }
 
@@ -49,7 +49,7 @@ final class ImputationConfigTest extends FunSuite {
     assert(config.shapeIt.script == Paths.get("/home/clint/workspace/imputation/shapeit.sh"))
 
     // Composite fields are correctly formed
-    assert(config.shapeIt.mapFile == 
+    assert(config.shapeIt.mapFile ==
         Paths.get("/home/clint/workspace/imputation/shapeit_example/genetic_map.txt.gz"))
         
         

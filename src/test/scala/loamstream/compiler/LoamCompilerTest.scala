@@ -45,10 +45,12 @@ final class LoamCompilerTest extends FunSuite {
   test("Testing compilation of legal code fragment with no settings (saying 'Hello!').") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
     val code = {
+      // scalastyle:off regex
       """
      val hello = "Yo!".replace("Yo", "Hello")
      println(s"A code fragment used to test the Loam compiler says '$hello'")
       """
+      // scalastyle:on regex
     }
     val result = compiler.compile(code)
     assert(result.errors === Nil)

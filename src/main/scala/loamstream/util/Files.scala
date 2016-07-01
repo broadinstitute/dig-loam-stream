@@ -9,6 +9,7 @@ import java.nio.file.Paths
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import java.util.stream.Collectors
 
 /**
  * @author clint
@@ -31,6 +32,16 @@ object Files {
   def writeTo(file: Path)(contents: String): Unit = {
     LoamFileUtils.enclosed(new FileWriter(file.toFile)) { 
       _.write(contents)
+    }
+  }
+  
+  def readFrom(file: Path): String = {
+    import java.io._
+      
+    LoamFileUtils.enclosed(new BufferedReader(new FileReader(file.toFile))) { reader =>
+      import scala.collection.JavaConverters._
+        
+      reader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
     }
   }
 }

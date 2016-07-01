@@ -11,6 +11,9 @@ import scala.util.Try
  * date: Jun 21, 2016
  */
 trait Poller {
+  /**
+   * 
+   */
   def poll(jobId: String, timeout: Duration): Future[Try[JobStatus]]
 }
 
@@ -24,5 +27,5 @@ object Poller {
     }
   }
   
-  def drmaa1(client: DrmaaClient)(implicit context: ExecutionContext): Poller = new DrmaaPoller(client)
+  def drmaa(client: DrmaaClient)(implicit context: ExecutionContext): Poller = new DrmaaPoller(client)
 }

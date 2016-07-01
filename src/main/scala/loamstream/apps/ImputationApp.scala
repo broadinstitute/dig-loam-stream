@@ -157,7 +157,7 @@ object ImputationApp extends Loggable {
         //import scala.concurrent.ExecutionContext.Implicits.global
         import monix.execution.Scheduler.Implicits.global
         
-        val poller = Poller.drmaa1(drmaaClient)
+        val poller = Poller.drmaa(drmaaClient)
       
         val fut = Jobs.monitor(poller, 0.2)(jobId).foreach { jobStatus => 
           println(s"Job '$jobId': $jobStatus")

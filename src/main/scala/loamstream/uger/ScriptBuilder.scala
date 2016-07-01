@@ -54,8 +54,4 @@ i=$$SGE_TASK_ID
   def getElseIfHeader(index: Int): String = {
     s"""elif [ $$i -eq $index ]${newLine}then"""
   }
-
-  //TODO Should this be moved into Executor?
-  private def numberOfCpuCores: Int = Runtime.getRuntime.availableProcessors
-
 }

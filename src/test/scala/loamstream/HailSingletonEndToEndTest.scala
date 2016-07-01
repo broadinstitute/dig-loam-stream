@@ -21,28 +21,6 @@ import tools.core.{CoreToolBox, LCoreDefaultStoreIds, LCoreEnv}
   */
 final class HailSingletonEndToEndTest extends FunSuite {
 
-  test("Jobs are successfully created") {
-    val (toolbox, pipeline, Paths(hailVdsFilePath, hailSingletonFilePath)) = makeToolboxAndPipeline()
-    
-    deleteSampleFilesBeforeAndAfter(hailVdsFilePath, hailSingletonFilePath) {
-      val genotypesJobsShot = toolbox.createJobs(pipeline.genotypeCallsTool, pipeline)
-      val importVcfJobsShot = toolbox.createJobs(pipeline.vdsTool, pipeline)
-
-      hailVdsFilePath.toFile.mkdir()
-      
-      val calculateSingletonsJobsShot = toolbox.createJobs(pipeline.singletonTool, pipeline)
-
-      //NB: Try to unpack the shots to get better messages on failures
-      val Hit(Seq(genotypesJob)) = genotypesJobsShot.map(_.toSeq)
-      val Hit(Seq(importVcfJob)) = importVcfJobsShot.map(_.toSeq)
-      val Hit(Seq(calculateSingletonsJob)) = calculateSingletonsJobsShot.map(_.toSeq)
-    }
-  }
-
-  ignore("Singletons are successfully counted using Hail (LPipeline)") {
-    doTestExecutable((toolbox, pipeline) => toolbox.createExecutable(pipeline))
-  }
-  
   ignore("Singletons are successfully counted using Hail (AST)") {
     doTestExecutable((toolbox, pipeline) => toolbox.createExecutable(pipeline.ast))
   }

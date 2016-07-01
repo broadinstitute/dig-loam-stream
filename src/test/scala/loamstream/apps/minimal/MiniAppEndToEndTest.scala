@@ -24,24 +24,6 @@ final class MiniAppEndToEndTest extends FunSuite {
 
   private val executer = ChunkedExecuter.default
   
-  test("Pipeline successfully extracts sample IDs from VCF") {
-    val (toolbox, pipeline, extractedSamplesFilePath) = makePipelineAndToolbox()
-
-    val genotypesJob = toolbox.createJobs(pipeline.genotypeCallsTool, pipeline)
-    
-    assert(TestUtils.isHitOfSetOfOne(genotypesJob))
-    
-    val extractSamplesJobShot = toolbox.createJobs(pipeline.sampleIdsTool, pipeline)
-    
-    assert(TestUtils.isHitOfSetOfOne(extractSamplesJobShot))
-    
-    val executable = toolbox.createExecutable(pipeline)
-    
-    val results = executer.execute(executable)
-
-    doTestExecutable(executable, extractedSamplesFilePath)
-  }
-  
   test("Pipeline successfully extracts sample IDs from VCF (via AST)") {
     val (toolbox, pipeline, extractedSamplesFilePath) = makePipelineAndToolbox()
 

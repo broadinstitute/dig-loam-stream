@@ -45,8 +45,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   override def statusOf(jobId: String): Try[JobStatus] = {
     for {
       status <- Try(session.getJobProgramStatus(jobId))
+      jobStatus = JobStatus.fromUgerStatusCode(status)
     } yield {
-      JobStatus.fromUgerStatusCode(status)
+      println(s"statusOf(): Job '$jobId' has status $status, mapped to $jobStatus")
+      
+      jobStatus
     }
   }
   
@@ -63,7 +66,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val jobInfo = session.wait(jobId, timeout.toSeconds.toLong)
       
       if (jobInfo.hasExited) {
-        info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
+        println(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
         
         //TODO: More flexibility?
         jobInfo.getExitStatus match { 
@@ -71,26 +74,26 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
           case _ => JobStatus.Failed
         }
       } else if (jobInfo.wasAborted) {
-        info(s"Job '$jobId' was aborted; job info: $jobInfo")
+        println(s"Job '$jobId' was aborted; job info: $jobInfo")
 
         //TODO: Add JobStatus.Aborted?
         JobStatus.Failed
       } else if (jobInfo.hasSignaled) {
-        info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
+        println(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
         JobStatus.Failed
       } else if (jobInfo.hasCoreDump) {
-        info(s"Job '$jobId' dumped core")
+        println(s"Job '$jobId' dumped core")
         
         JobStatus.Failed
       } else {
-        info(s"Job '$jobId' finished with unknown status")
+        println(s"Job '$jobId' finished with unknown status")
         
         JobStatus.Done
       }
     }.recoverWith {
       case e: ExitTimeoutException => {
-        info(s"Timed out waiting for job '$jobId' to finish, checking its status")
+        println(s"Timed out waiting for job '$jobId' to finish, checking its status")
         
         statusOf(jobId)
       }

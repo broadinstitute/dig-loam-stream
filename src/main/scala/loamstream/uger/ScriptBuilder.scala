@@ -1,6 +1,6 @@
 package loamstream.uger
 
-import loamstream.model.jobs.commandline.CommandLineBuilderJob
+import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
   * @author Kaan
@@ -10,6 +10,7 @@ import loamstream.model.jobs.commandline.CommandLineBuilderJob
   * For an example of such scripts, see src/test/resources/imputation/shapeItUgerSubmissionScript.sh
   */
 object ScriptBuilder {
+  val space: String = " "
   val tab: String = "\t"
   val newLine: String = "\n"
   val unixLineSep: String = " \\"
@@ -26,25 +27,26 @@ i=$$SGE_TASK_ID
       """
   val endIf: String = s"""${newLine}fi$newLine"""
 
-  def buildFrom(commandLineBuilderJobs: Seq[CommandLineBuilderJob]): String = {
+  def buildFrom(commandLineJobs: Seq[CommandLineJob]): String = {
     val taskIndexStartValue = 1
-    val firstIfBlock = getFirstIfBlock(commandLineBuilderJobs.head, taskIndexStartValue)
+    val firstIfBlock = getFirstIfBlock(commandLineJobs.head, taskIndexStartValue)
 
-    val elseIfBlocks = commandLineBuilderJobs.tail.zipWithIndex.map({case (job, index) =>
+    val elseIfBlocks = commandLineJobs.tail.zipWithIndex.map({case (job, index) =>
       s"${getElseIfHeader(index + 2)}${getBody(job, s"$newLine$tab")}"}).mkString(newLine)
 
     s"$scriptHeader$newLine$firstIfBlock$newLine$elseIfBlocks$endIf"
   }
 
-  def getFirstIfBlock(commandLineBuilderJob: CommandLineBuilderJob, indexStartValue: Int): String = {
+  def getFirstIfBlock(commandLineJob: CommandLineJob, indexStartValue: Int): String = {
     val ifHeader = getIfHeader(indexStartValue)
-    val ifBody = getBody(commandLineBuilderJob, s"$newLine$tab")
+    val ifBody = getBody(commandLineJob, s"$newLine$tab")
 
     s"$ifHeader$ifBody"
   }
 
-  def getBody(commandLineBuilderJob: CommandLineBuilderJob, sep: String): String = {
-    s"""$newLine$tab${commandLineBuilderJob.commandLine.tokens.mkString(s"$unixLineSep$sep")}$unixLineSep"""
+  def getBody(commandLineJob: CommandLineJob, sep: String): String = {
+    val tokens = commandLineJob.commandLineString.split(space)
+    s"""$newLine$tab${tokens.mkString(s"$unixLineSep$sep")}$unixLineSep"""
   }
 
   def getIfHeader(index: Int): String = {

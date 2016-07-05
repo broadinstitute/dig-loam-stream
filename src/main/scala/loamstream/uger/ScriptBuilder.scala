@@ -30,8 +30,9 @@ i=$$SGE_TASK_ID
     val taskIndexStartValue = 1
     val firstIfBlock = getFirstIfBlock(commandLineBuilderJobs.head, taskIndexStartValue)
 
-    val elseIfBlocks = commandLineBuilderJobs.tail.zipWithIndex.map({case (job, index) =>
-      s"${getElseIfHeader(index + 2)}${getBody(job, s"$newLine$tab")}"}).mkString(newLine)
+    val elseIfBlocks = commandLineBuilderJobs.tail.zipWithIndex.map { case (job, index) =>
+      s"${getElseIfHeader(index + 2)}${getBody(job, s"$newLine$tab")}"
+    }.mkString(newLine)
 
     s"$scriptHeader$newLine$firstIfBlock$newLine$elseIfBlocks$endIf"
   }
@@ -44,9 +45,7 @@ i=$$SGE_TASK_ID
   }
 
   def getBody(commandLineBuilderJob: CommandLineBuilderJob, sep: String): String = {
-    val actualCommandLine = commandLineBuilderJob.commandLine.tokens.mkString(s"$unixLineSep$sep")
-    
-    s"$newLine$tab$actualCommandLine$unixLineSep"
+    s"""$newLine$tab${commandLineBuilderJob.commandLine.tokens.mkString(s"$unixLineSep$sep")}$unixLineSep"""
   }
 
   def getIfHeader(index: Int): String = {

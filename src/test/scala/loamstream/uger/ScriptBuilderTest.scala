@@ -2,16 +2,12 @@ package loamstream.uger
 
 import java.nio.file.Path
 
-import scala.io.Source
-
-import org.scalatest.FunSuite
-
 import loamstream.conf.ImputationConfig
 import loamstream.model.jobs.commandline.CommandLineBuilderJob
+import org.scalatest.FunSuite
+
+import scala.io.Source
 import loamstream.tools.LineCommand
-import loamstream.util.LoamFileUtils
-import loamstream.util.Files
-import java.nio.file.Paths
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -20,16 +16,16 @@ final class ScriptBuilderTest extends FunSuite {
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
     val shapeItJob = Seq.fill(3)(getShapeItCommandLineBuilderJob)
     val ugerScriptToRunShapeIt = ScriptBuilder.buildFrom(shapeItJob)
-
-    val scriptFile = Paths.get("src/test/resources/imputation/shapeItUgerSubmissionScript.sh")
-
-    val expectedScript = Files.readFrom(scriptFile)
+    //TODO Make sure the following way of getting file path works in Windows
+    val scriptFile = "src/test/resources/imputation/shapeItUgerSubmissionScript.sh"
+    //TODO Use LoamFileUtils.enclosed to make sure of proper resource closing
+    val expectedScript = Source.fromFile(scriptFile).mkString
 
     assert(ugerScriptToRunShapeIt == expectedScript)
   }
 
   private final case class ShapeItCommandLine(tokens: Seq[String]) extends LineCommand.CommandLine {
-    def commandLine = tokens.mkString(LineCommand.tokenSep)
+    override def commandLine = tokens.mkString(LineCommand.tokenSep)
   }
   
   private def getShapeItCommandLineBuilderJob: CommandLineBuilderJob = {

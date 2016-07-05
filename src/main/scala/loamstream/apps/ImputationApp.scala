@@ -17,6 +17,9 @@ import scala.concurrent.duration.Duration
 import loamstream.uger.Drmaa1Client
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.model.AST
+import loamstream.uger.UgerChunkRunner
+import loamstream.model.jobs.commandline.CommandLineBuilderJob
 
 /**
   * LoamStream
@@ -130,6 +133,7 @@ object ImputationApp extends Loggable {
   def main(args: Array[String]) {
     def path(s: String) = Paths.get(s)
     
+    //==== Original ====
     /*runShapeItLocally(
       path("src/main/resources/loamstream.conf"), 
       path("src/test/resources/imputation/gwas.vcf.gz"),
@@ -138,7 +142,8 @@ object ImputationApp extends Loggable {
     //runShapeItLocally(args)
     //runShapeItOnUger(path("src/main/resources/loamstream.conf"), true)
     
-    withClient { drmaaClient =>
+    //==== UGER job monitoring ====
+    /*withClient { drmaaClient =>
       val result = runShapeItOnUger(drmaaClient, path(args(0)))
     
       if(result.isFailure) {
@@ -169,6 +174,48 @@ object ImputationApp extends Loggable {
         println("Press any key to exit")
         
         Console.in.readLine()
+      }
+    }*/
+    
+    val ugerConfig = UgerConfig.fromFile("loamstream.conf").get
+    
+    final case class TokenizedCommandLine(tokens: Seq[String]) extends LineCommand.CommandLine {
+      override def commandLine = tokens.mkString(LineCommand.tokenSep)
+    }
+    
+    withClient { drmaaClient =>
+      val jobGraph: CommandLineJob = {
+        /*val abJob = CommandLineStringJob("cp a.txt b.txt", ugerConfig.ugerWorkDir)
+        
+        val bcJob = CommandLineStringJob("cp b.txt c.txt", ugerConfig.ugerWorkDir, inputs = Set(abJob))
+        
+        bcJob*/
+        
+        val abJob = CommandLineBuilderJob(TokenizedCommandLine(Seq("cp", "/home/unix/cgilbert/shapeit/a.txt", "/home/unix/cgilbert/shapeit/b.txt")), ugerConfig.ugerWorkDir)
+        
+        val bcJob = CommandLineBuilderJob(TokenizedCommandLine(Seq("cp", "/home/unix/cgilbert/shapeit/b.txt", "/home/unix/cgilbert/shapeit/c.txt")), ugerConfig.ugerWorkDir, inputs = Set(abJob))
+        
+        bcJob
+      }
+      
+      import scala.concurrent.ExecutionContext.Implicits.global
+      
+      val chunkRunner = UgerChunkRunner(ugerConfig, drmaaClient)
+      
+      val executer = ChunkedExecuter(chunkRunner)
+      
+      val executable = LExecutable(Set(jobGraph))
+      
+      info(s"Running Job Graph")
+      
+      val results = executer.execute(executable)
+      
+      info(s"Run complete; results:")
+      
+      for {
+        (job, result) <- results
+      } {
+        info(s"Got $result when running $job")
       }
     }
   }

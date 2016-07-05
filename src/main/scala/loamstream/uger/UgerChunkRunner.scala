@@ -40,6 +40,8 @@ final case class UgerChunkRunner(
 
     val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs))
 
+    info(s"Made script '$ugerScript' from $leafCommandLineJobs")
+    
     val ugerLogFile: Path = ugerConfig.ugerLogFile
 
     //TODO: 
@@ -70,7 +72,7 @@ final case class UgerChunkRunner(
     val jobsToFutureResults: Iterable[(LJob, Future[Result])] = for {
       jobId <- jobIds
       job = jobsById(jobId)
-      futureResult = statuses(jobId).lastL.runAsync.collect { case Some(status) => resultFrom(status) }
+      futureResult = statuses(jobId).lastL.runAsync.collect { case Some(status) => resultFrom(job, status) }
     } yield {
       job -> futureResult
     }
@@ -85,12 +87,12 @@ object UgerChunkRunner extends Loggable {
     case _                   => false
   }
 
-  private[uger] def resultFrom(status: JobStatus): LJob.Result = {
+  private[uger] def resultFrom(job: LJob, status: JobStatus): LJob.Result = {
     //TODO
     if (status.isDone) {
-      LJob.SimpleSuccess("") //TODO
+      LJob.SimpleSuccess(s"$job") //TODO
     } else {
-      LJob.SimpleFailure("") //TODO
+      LJob.SimpleFailure(s"$job") //TODO
     }
   }
 

@@ -76,10 +76,6 @@ final class HailSingletonEndToEndTest extends FunSuite {
       (LCoreEnv.Keys.vdsId -> LCoreDefaultStoreIds.vds) +
       (LCoreEnv.Keys.singletonsId -> LCoreDefaultStoreIds.singletons)
     
-    val genotypesId = env(LCoreEnv.Keys.genotypesId)
-    val vdsId = env(LCoreEnv.Keys.vdsId)
-    val singletonsId = env(LCoreEnv.Keys.singletonsId)
-    
     val pipeline = HailPipeline(hailVcfFilePath, hailVdsFilePath, hailSingletonFilePath)
     
     val toolbox = CoreToolBox(env)

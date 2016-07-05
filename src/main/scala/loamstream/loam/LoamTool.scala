@@ -3,6 +3,7 @@ package loamstream.loam
 import loamstream.LEnv
 import loamstream.loam.LoamToken.{EnvToken, StoreToken, StringToken}
 import loamstream.model.{LId, Store, Tool}
+import loamstream.util.StringUtils
 
 /**
   * LoamStream
@@ -10,11 +11,13 @@ import loamstream.model.{LId, Store, Tool}
   */
 object LoamTool {
 
+  def createStringToken(string: String): StringToken = StringToken(StringUtils.unwrapLines(string))
+
   implicit class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
     def cmd(args: Any*)(implicit graphBuilder: LoamGraphBuilder): LoamTool = {
       val stringPartsIter = stringContext.parts.iterator
       val argsIter = args.iterator
-      var tokens: Seq[LoamToken] = Seq(StringToken(stringPartsIter.next))
+      var tokens: Seq[LoamToken] = Seq(createStringToken(stringPartsIter.next))
       while (stringPartsIter.hasNext) {
         val arg = argsIter.next()
         val argToken = arg match {
@@ -23,7 +26,7 @@ object LoamTool {
           case _ => StringToken(arg.toString)
         }
         tokens :+= argToken
-        tokens :+= StringToken(stringPartsIter.next())
+        tokens :+= createStringToken(stringPartsIter.next())
       }
       tokens = LoamToken.mergeStringTokens(tokens)
       LoamTool.create(tokens)

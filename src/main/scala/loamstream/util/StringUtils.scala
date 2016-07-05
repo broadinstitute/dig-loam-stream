@@ -26,13 +26,20 @@ object StringUtils {
   val numNames =
     Seq("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve")
 
+  /** Converts numbers to Strings while using number words for number zero to twelve. */
   def prettyPrint(num: Int): String = if (num < numNames.size) numNames(num) else num.toString
 
+  /** Prints expression specifying a count of some item, assuming plural is singular plus s. */
   def soMany(count: Int, singular: String): String = soMany(count, singular, singular + "s")
 
+  /** Prints expression specifying a count of some item such as 'five apples' */
   def soMany(count: Int, singular: String, plural: String): String = count match {
     case 0 => "no " + plural
     case 1 => "one " + singular
     case _ => s"${prettyPrint(count)} $plural"
   }
+
+  /** Replaces each line break by a space on almost all platforms.  */
+  def unwrapLines(string: String): String =
+    string.replaceAll("\r\n", " ").replaceAll("\n\r", " ").replaceAll("\n", " ").replaceAll("\r", " ")
 }

@@ -1,7 +1,7 @@
 package loamstream.web.controllers.socket
 
 import loamstream.compiler.messages.{ClientInMessage, ListRequestMessage, LoadRequestMessage, SaveRequestMessage,
-TextSubmitMessage}
+CompileRequestMessage}
 import play.api.libs.json.{JsError, JsPath, JsResult, JsSuccess, JsValue, Reads}
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 
@@ -14,9 +14,9 @@ object SocketJsonReader extends Reads[ClientInMessage] {
     val typeReads = (JsPath \ "type").read[String]
     json.validate(typeReads) match {
       case JsSuccess(typeName, _) => typeName match {
-        case "text" =>
-          val textSubmitMessageReads = (JsPath \ "text").read[String].map(TextSubmitMessage)
-          json.validate(textSubmitMessageReads)
+        case "compile" =>
+          val compileRequestMessageReads = (JsPath \ "code").read[String].map(CompileRequestMessage)
+          json.validate(compileRequestMessageReads)
         case "load" =>
           val loadRequestMessageReads = (JsPath \ "name").read[String].map(LoadRequestMessage)
           json.validate(loadRequestMessageReads)

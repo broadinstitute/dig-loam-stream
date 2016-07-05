@@ -64,7 +64,11 @@ final case class UgerChunkRunner(
     }
   }
 
-  private[uger] def toResultMap(drmaaClient: DrmaaClient, jobs: Seq[LJob], rawJobIds: Seq[Any])(implicit scheduler: Scheduler): Future[Map[LJob, Result]] = {
+  private[uger] def toResultMap(
+      drmaaClient: DrmaaClient, 
+      jobs: Seq[LJob], 
+      rawJobIds: Seq[Any])(implicit scheduler: Scheduler): Future[Map[LJob, Result]] = {
+    
     val jobIds = rawJobIds.map(_.toString)
 
     val jobsById = jobIds.zip(jobs).toMap

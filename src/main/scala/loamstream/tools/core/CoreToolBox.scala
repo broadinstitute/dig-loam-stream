@@ -88,6 +88,7 @@ object CoreToolBox {
     }
   }
 
+  @deprecated("", "")
   final case class ImportVcfFileJob(vcfFile: Path, vdsFile: Path, inputs: Set[LJob] = Set.empty) extends LJob {
 
     override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
@@ -101,6 +102,7 @@ object CoreToolBox {
     }
   }
 
+  @deprecated("", "")
   final case class CalculateSingletonsJob(
       vdsDir: Path,
       singletonsFile: Path,
@@ -117,6 +119,7 @@ object CoreToolBox {
     }
   }
 
+  @deprecated("", "")
   final case class CalculatePcaProjectionsJob(vcfFile: Path,
                                               pcaWeightsFile: Path,
                                               klustaKwikKonfig: KlustaKwikKonfig,

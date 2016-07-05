@@ -49,12 +49,17 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
   val repo = LoamRepository.defaultRepo
   val compiler = new LoamCompiler(outMessageSink)
 
+  // scalastyle:off cyclomatic.complexity
   /** Handles messages sent in by a client */
   def handleInMessage(inMessage: ClientInMessage): Unit = {
     inMessage match {
-      case CompileRequestMessage(text) =>
-        outMessageSink.send(ReceiptOutMessage(text))
-        compiler.compile(text)
+      case CompileRequestMessage(code) =>
+        outMessageSink.send(ReceiptOutMessage(code))
+        compiler.compile(code)
+      case RunRequestMessage(code) =>
+        outMessageSink.send(ReceiptOutMessage(code))
+        compiler.compile(code)
+        ???
       case LoadRequestMessage(name) =>
         repo.load(name) match {
           case Hit(loadResponseMessage) => outMessageSink.send(loadResponseMessage)
@@ -71,4 +76,6 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
         outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
     }
   }
+  // scalastyle:on cyclomatic.complexity
+
 }

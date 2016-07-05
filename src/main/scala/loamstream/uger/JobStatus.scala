@@ -8,20 +8,8 @@ import scala.util.Success
  * @author clint
  * date: Jun 16, 2016
  * 
- * An ADT/"Enum" to represent job statuses as reported by UGER.  Values correspond to
- * org.ggf.drmaa.Session.{
- *   UNDETERMINED,
- *   QUEUED_ACTIVE,
- *   SYSTEM_ON_HOLD,
- *   USER_ON_HOLD,
- *   USER_SYSTEM_ON_HOLD,
- *   RUNNING,
- *   SYSTEM_SUSPENDED,
- *   USER_SUSPENDED,
- *   USER_SYSTEM_SUSPENDED,
- *   DONE,
- *   FAILED
- * }
+ * An ADT/"Enum" to represent job statuses as reported by UGER.  Values roughly correspond to constants in 
+ * org.ggf.drmaa.Session.
  */
 sealed trait JobStatus {
   import JobStatus._

@@ -207,10 +207,10 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
   }
 
   //TODO: Shouldn't be here
+  @deprecated("", "")
   private def shapeitJobShot(config: ShapeItConfig, inputVcf: Path, outputHaps: Path): Shot[LJob] = {
     def tempFile: Path = File.createTempFile("loamstream", "shapeit-output-samples").toPath.toAbsolutePath
 
-    //TODO
     val tokens: Seq[String] = Seq(
       config.executable.toString,
       "-V",
@@ -229,6 +229,7 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
   }
 
   //TODO: Shouldn't be here
+  @deprecated("", "")
   private def impute2JobShot(config: Impute2Config, inputFile: Path, outputFile: Path): Shot[LJob] = {
 
     val tokens: Seq[String] = Seq(

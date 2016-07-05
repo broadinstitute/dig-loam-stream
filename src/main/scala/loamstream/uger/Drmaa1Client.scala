@@ -17,11 +17,15 @@ import scala.util.control.NonFatal
  * Created on: 5/19/16 
  * @author Kaan Yuksel 
  * @author clint
+ * 
+ * A DRMAAv1 implementation of DrmaaClient; can submit work to UGER and monitor it.
  */
 final class Drmaa1Client extends DrmaaClient with Loggable {
   
   import DrmaaClient._
   
+  //NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
+  //use one Session per client to ensure that all operations performed by this instance use the same Session.
   private[this] lazy val session: Session = {
     val s = SessionFactory.getFactory.getSession
     
@@ -42,17 +46,29 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }
   }
   
+  /**
+   * Synchronously obtain the status of one running UGER job, given its id.
+   * @param jobId the id of the job to get the status of
+   * @return Success wrapping the JobStatus corresponding to the code obtained from UGER,
+   * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
+   */
   override def statusOf(jobId: String): Try[JobStatus] = {
     for {
       status <- Try(session.getJobProgramStatus(jobId))
       jobStatus = JobStatus.fromUgerStatusCode(status)
     } yield {
-      info(s"statusOf(): Job '$jobId' has status $status, mapped to $jobStatus")
+      info(s"Job '$jobId' has status $status, mapped to $jobStatus")
       
       jobStatus
     }
   }
-  
+
+  /**
+   * Synchronously submit a job, in the form of a UGER wrapper shell script.
+   * @param pathToScript the wrapper script to submit
+   * @param pathToUgerOutput a path pointing the the desered location of log output from UGER
+   * @param jobName a descriptive, human-readable name for the submitted work
+   */
   override def submitJob(
       pathToScript: Path,
       pathToUgerOutput: Path,
@@ -61,6 +77,23 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     runJob(pathToScript, pathToUgerOutput, true, jobName)
   }
   
+  /**
+   * Synchronously wait for the timeout period for the job with the given id to complete.
+   * If the timeout period elapses and the job doesn't complete, assume the job is still running, and inquire
+   * about its status with statusOf.
+   * 
+   * @param jobId the job id to wait for
+   * @param timeout how long to wait (note that this method can be called many times)
+   * @return Success with a JobStatus reflecting the completion status of the job, or the result of statusOf()
+   * if the timeout elapses without the job finishing.  Otherwise, return a Failure if the job's status can't be 
+   * determined. 
+   * 
+   * Specifically: 
+   *   JobStatus.Done: Job finishes with status code 0
+   *   JobStatus.Failed: Job exited with a non-zero return code, OR the job was aborted, OR the job ended due to a 
+   *   signal, OR the job dumped core/
+   *   JobStatus.Undetermined: The job completed, but none of the above applies.
+   */
   override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
     Try {
       val jobInfo = session.wait(jobId, timeout.toSeconds.toLong)
@@ -100,7 +133,8 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }
   }
   
-  def runJob(pathToScript: Path, pathToUgerOutput: Path, isBulk: Boolean, jobName: String): SubmissionResult = {
+  //TODO: support non-bulk case?
+  private def runJob(pathToScript: Path, pathToUgerOutput: Path, isBulk: Boolean, jobName: String): SubmissionResult = {
     if (isBulk) {
       runBulkJobs(pathToScript, pathToUgerOutput, s"${jobName}BulkJobs", 1, 1, 1)
     } else {
@@ -108,6 +142,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }
   }
   
+  //TODO: Still necessary?
   private def runSingleJob(
       pathToScript: Path, 
       pathToUgerOutput: Path,

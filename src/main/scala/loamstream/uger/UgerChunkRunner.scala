@@ -17,10 +17,15 @@ import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.util.Files
 import loamstream.conf.ImputationConfig
 import loamstream.conf.UgerConfig
+import java.util.UUID
 
 /**
  * @author clint
  * date: Jul 1, 2016
+ * 
+ * A ChunkRunner that runs groups of command line jobs as UGER task arrays, via the provided DrmaaClient.
+ * 
+ * TODO: Make logging more fine-grained; right now, too much is at info level.
  */
 final case class UgerChunkRunner(
     ugerConfig: UgerConfig,
@@ -35,8 +40,7 @@ final case class UgerChunkRunner(
       leaves.forall(isCommandLineJob),
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
-    //TODO: Work with any CommandLineJob
-    val leafCommandLineJobs = leaves.toSeq.collect { case clj: CommandLineBuilderJob => clj }
+    val leafCommandLineJobs = leaves.toSeq.collect { case clj: CommandLineJob => clj }
 
     val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs))
 
@@ -44,8 +48,8 @@ final case class UgerChunkRunner(
     
     val ugerLogFile: Path = ugerConfig.ugerLogFile
 
-    //TODO: 
-    val jobName: String = s"LoamStream-${System.currentTimeMillis}"
+    //TODO: do we need this?  Should it be something better?
+    val jobName: String = s"LoamStream-${UUID.randomUUID}"
 
     val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName)
 
@@ -88,11 +92,11 @@ object UgerChunkRunner extends Loggable {
   }
 
   private[uger] def resultFrom(job: LJob, status: JobStatus): LJob.Result = {
-    //TODO
+    //TODO: Anything better; this was purely expedient
     if (status.isDone) {
-      LJob.SimpleSuccess(s"$job") //TODO
+      LJob.SimpleSuccess(s"$job")
     } else {
-      LJob.SimpleFailure(s"$job") //TODO
+      LJob.SimpleFailure(s"$job")
     }
   }
 
@@ -113,6 +117,6 @@ object UgerChunkRunner extends Loggable {
     file
   }
   
-  //TODO:
+  //TODO: Store the script somewhere more permanent, for debugging or review
   private[uger] def createScriptFile(contents: String): Path = createScriptFile(contents, Files.tempFile(".sh"))
 }

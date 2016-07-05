@@ -40,8 +40,6 @@ lazy val commonSettings = Seq(
   ),
   libraryDependencies ++= (mainDeps ++ testDeps),
   scalastyleFailOnError := true//,
-  //unmanagedBase := file("/opt/drmaa"),
-  //unmanagedJars in Compile <<= unmanagedBase map { base => (base ** "*.jar").classpath }
 )
 
 lazy val root = (project in file("."))
@@ -52,7 +50,8 @@ lazy val root = (project in file("."))
     packageSummary in Windows := "LoamStream - Language for Omics Analysis Management",
     packageDescription := "A high level-language and runtime environment for large-scale omics analysis.",
     maintainer in Windows := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
-    maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org"
+    maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
+    mainClass in assembly := Some("loamstream.apps.LoamRunApp")
   ).enablePlugins(JavaAppPackaging)
 
 lazy val webui = (project in file("webui"))

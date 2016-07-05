@@ -16,7 +16,7 @@ import scala.concurrent.duration.Duration
  */
 trait DrmaaClient {
   /**
-   * Submit a job to UGER.  
+   * Synchronously submit a job to UGER.  
    * @param pathToScript the path to the script that UGER should run
    * @param pathToUgerOutput the path to the log file UGER should write to
    * @param jobName a descriptive prefix used to identify the job.  Has no impact on how the job runs.
@@ -27,7 +27,7 @@ trait DrmaaClient {
     jobName: String): DrmaaClient.SubmissionResult
 
   /**
-   * Inspect the status of a job with the given ID
+   * Synchronously inspect the status of a job with the given ID
    * @param jobId the job ID, assigned by UGER, to inquire about
    * @return a Try, since inquiring might fail
    */

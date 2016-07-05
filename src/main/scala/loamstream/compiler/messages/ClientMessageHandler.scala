@@ -1,9 +1,9 @@
 package loamstream.compiler.messages
 
-import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
-import loamstream.util.{Hit, Miss}
+import loamstream.compiler.{Issue, LoamCompiler}
+import loamstream.util.{Hit, Loggable, Miss}
 
 import scala.concurrent.ExecutionContext
 
@@ -16,6 +16,22 @@ object ClientMessageHandler {
     /** A receiver of messages that does nothing */
     object NoOp extends OutMessageSink {
       override def send(outMessage: ClientOutMessage): Unit = ()
+    }
+
+    /** A receiver of messages that logs messages */
+    case class LoggableOutMessageSink(loggable: Loggable) extends OutMessageSink {
+      /** Accepts messages and logs them */
+      override def send(outMessage: ClientOutMessage): Unit = {
+        outMessage match {
+          case ErrorOutMessage(message) => loggable.error(message)
+          case CompilerIssueMessage(issue) => issue.severity match {
+            case Issue.Info => loggable.info(issue.msg)
+            case Issue.Warning => loggable.warn(issue.msg)
+            case Issue.Error => loggable.error(issue.msg)
+          }
+          case _ => loggable.info(outMessage.message)
+        }
+      }
     }
 
   }

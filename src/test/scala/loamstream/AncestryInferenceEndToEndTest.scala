@@ -68,7 +68,6 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
   private def makeToolBoxAndPipeline(): (LToolBox, AncestryInferencePipeline) = {
 
     val miniVcfFilePath = TestData.sampleFiles.miniVcfOpt.get
-    val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath.toString, "XXX"))
 
     val props = TestData.props
 

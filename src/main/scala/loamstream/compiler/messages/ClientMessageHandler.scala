@@ -36,7 +36,7 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
   /** Handles messages sent in by a client */
   def handleInMessage(inMessage: ClientInMessage): Unit = {
     inMessage match {
-      case TextSubmitMessage(text) =>
+      case CompileRequestMessage(text) =>
         outMessageSink.send(ReceiptOutMessage(text))
         compiler.compile(text)
       case LoadRequestMessage(name) =>

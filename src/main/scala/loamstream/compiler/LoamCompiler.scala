@@ -7,7 +7,7 @@ import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
 import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, LoamTool}
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.{ReflectionUtil, SourceUtils, StringUtils}
+import loamstream.util.{PathEnrichments, ReflectionUtil, SourceUtils, StringUtils}
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
@@ -141,6 +141,7 @@ import ${SourceUtils.fullTypeName[LoamGraphBuilder]}
 import ${SourceUtils.fullTypeName[DslChunk]}
 import ${SourceUtils.fullTypeName[LEnv]}._
 import ${SourceUtils.fullTypeName[LoamTool.type]}._
+import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._
 

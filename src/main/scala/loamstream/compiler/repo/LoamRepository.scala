@@ -10,10 +10,15 @@ object LoamRepository {
   val projectName = "dig-loam-stream"
   val resourceFolder = "src/main/resources"
   val defaultPackageName = "loam"
-  val defaultEntries = Seq("first", "impute")
+  val defaultEntries = Seq("first", "toyImpute", "impute", "imputeParallel")
   val defaultPackageRepo = ofPackage(defaultPackageName, defaultEntries)
   val fileSuffix = ".loam"
 
+  /** The default repository
+    *
+    * Tries to locate resource folder containing the Loam scripts, if that fails, use a combination of in-memory
+    * repository and package-based repository.
+    */
   val defaultRepo: LoamRepository.Mutable = {
     defaultPackageRepo.shootForClassFolder match {
       case Hit(classFolder) =>

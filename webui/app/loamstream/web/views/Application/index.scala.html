@@ -30,10 +30,10 @@
                 function clearServerResponses() {
                     serverResponseNode().text("");
                 }
-                function sendText() {
-                    var text = d3.select("textarea").property("value");
+                function compile() {
+                    var code = d3.select("textarea").property("value");
                     clearServerResponses();
-                    socket.send(JSON.stringify({type: "text", text: text}));
+                    socket.send(JSON.stringify({type: "compile", code: code}));
                 }
                 function list() {
                     socket.send(JSON.stringify({type: "list"}));
@@ -76,7 +76,7 @@
     <body>
         <h1>LoamStream WebUI</h1>
         <p>
-            <button type="button" onclick="sendText()">Submit</button>
+            <button type="button" onclick="compile()">Compile</button>
             <button type="button" onclick="load()">Load</button>
             <button type="button" onclick="save()">Save</button>
             <button type="button" onclick="clearServerResponses()">Clear</button>

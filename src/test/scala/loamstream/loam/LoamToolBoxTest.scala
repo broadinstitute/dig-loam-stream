@@ -29,7 +29,6 @@ class LoamToolBoxTest extends FunSuite {
     val graph = compileResult.graphOpt.get.withEnv(env)
     val mapping = LoamGraphAstMapper.newMapping(graph)
     val toolBox = LoamToolBox(env)
-    //    assert(mapping.rootAsts.size == 1)
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
     val jobResults = executer.execute(executable)
     Results(env, graph, mapping, jobResults)

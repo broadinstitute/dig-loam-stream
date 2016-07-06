@@ -1,12 +1,9 @@
 package loamstream.uger
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Paths
 
-import loamstream.conf.ImputationConfig
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import org.scalatest.FunSuite
-
-import scala.io.Source
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -18,7 +15,8 @@ final class ScriptBuilderTest extends FunSuite {
     //TODO Make sure the following way of getting file path works in Windows
     val scriptFile = getClass.getClassLoader.getResource("imputation/shapeItUgerSubmissionScript.sh").getFile
     //TODO Use LoamFileUtils.enclosed to make sure of proper resource closing
-    val expectedScript = Source.fromFile(scriptFile).mkString
+      //val expectedScript = Source.fromFile(scriptFile).mkString
+    val expectedScript = expectedScriptAsString
 
     assert(ugerScriptToRunShapeIt == expectedScript)
   }
@@ -75,4 +73,57 @@ final class ScriptBuilderTest extends FunSuite {
 
     getShapeItCommandLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads).mkString(" ")
   }
+
+  val expectedScriptAsString: String =
+    s"""#!/bin/bash
+#$$ -cwd
+#$$ -j y
+
+source /broad/software/scripts/useuse
+reuse -q UGER
+
+i=$$SGE_TASK_ID\n      \nif [ $$i -eq 1 ]
+then
+\t/some/shapeit/executable \\
+\t-V \\
+\t/some/vcf/file \\
+\t-M \\
+\t/some/map/file \\
+\t-O \\
+\t/some/haplotype/file \\
+\t/some/sample/file \\
+\t-L \\
+\t/some/log/file \\
+\t--thread \\
+\t2 \\
+elif [ $$i -eq 2 ]
+then
+\t/some/shapeit/executable \\
+\t-V \\
+\t/some/vcf/file \\
+\t-M \\
+\t/some/map/file \\
+\t-O \\
+\t/some/haplotype/file \\
+\t/some/sample/file \\
+\t-L \\
+\t/some/log/file \\
+\t--thread \\
+\t2 \\
+elif [ $$i -eq 3 ]
+then
+\t/some/shapeit/executable \\
+\t-V \\
+\t/some/vcf/file \\
+\t-M \\
+\t/some/map/file \\
+\t-O \\
+\t/some/haplotype/file \\
+\t/some/sample/file \\
+\t-L \\
+\t/some/log/file \\
+\t--thread \\
+\t2 \\
+fi
+"""
 }

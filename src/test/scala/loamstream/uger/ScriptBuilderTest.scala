@@ -9,10 +9,15 @@ import org.scalatest.FunSuite
   * Created by kyuksel on 2/29/2016.
   */
 final class ScriptBuilderTest extends FunSuite {
+
+  implicit class EnrichedString(string:String) {
+    def withNormalizedLineBreaks:String = string.replaceAll("\r\n", "\n")
+  }
+
   test("A shell script is generated out of a CommandLineStringJob, and can be used to submit a UGER job") {
     val shapeItJob = Seq.fill(3)(getShapeItCommandLineStringJob)
-    val ugerScriptToRunShapeIt = ScriptBuilder.buildFrom(shapeItJob)
-    val expectedScript = expectedScriptAsString
+    val ugerScriptToRunShapeIt = ScriptBuilder.buildFrom(shapeItJob).withNormalizedLineBreaks
+    val expectedScript = expectedScriptAsString.withNormalizedLineBreaks
 
     assert(ugerScriptToRunShapeIt == expectedScript)
   }

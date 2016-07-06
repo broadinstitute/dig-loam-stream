@@ -1,6 +1,6 @@
 package loamstream.uger
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import loamstream.conf.ImputationConfig
 import loamstream.model.jobs.commandline.CommandLineStringJob
@@ -24,31 +24,29 @@ final class ScriptBuilderTest extends FunSuite {
   }
 
   private def getShapeItCommandLineStringJob: CommandLineStringJob = {
-    val configFile = "src/test/resources/loamstream-test.conf"
-    val config = ImputationConfig.fromFile(configFile).get
-    val shapeItExecutable = config.shapeIt.executable
-    val shapeItWorkDir = config.shapeIt.workDir
-    val vcf = config.shapeIt.vcfFile
-    val map = config.shapeIt.mapFile
-    val hap = config.shapeIt.hapFile
-    val samples = config.shapeIt.sampleFile
-    val log = config.shapeIt.logFile
-    val numThreads = numberOfCpuCores
+    val shapeItExecutable = "/some/shapeit/executable"
+    val shapeItWorkDir = "someWorkDir"
+    val vcf = "/some/vcf/file"
+    val map = "/some/map/file"
+    val hap = "/some/haplotype/file"
+    val samples = "/some/sample/file"
+    val log = "/some/log/file"
+    val numThreads = 2
 
     val shapeItTokens = getShapeItCommandLineTokens(shapeItExecutable, vcf, map, hap, samples, log, numThreads)
     val shapeItCommandLineString = getShapeItCommandLineString(shapeItExecutable, vcf, map, hap, samples, log,
       numThreads)
 
-    CommandLineStringJob(shapeItCommandLineString, shapeItWorkDir)
+    CommandLineStringJob(shapeItCommandLineString, Paths.get(shapeItWorkDir))
   }
 
   private def getShapeItCommandLineTokens(
-                               shapeItExecutable: Path,
-                               vcf: Path,
-                               map: Path,
-                               haps: Path,
-                               samples: Path,
-                               log: Path,
+                               shapeItExecutable: String,
+                               vcf: String,
+                               map: String,
+                               haps: String,
+                               samples: String,
+                               log: String,
                                numThreads: Int = 1): Seq[String] = {
 
     Seq(
@@ -67,16 +65,14 @@ final class ScriptBuilderTest extends FunSuite {
   }
 
   private def getShapeItCommandLineString(
-                                       shapeItExecutable: Path,
-                                       vcf: Path,
-                                       map: Path,
-                                       haps: Path,
-                                       samples: Path,
-                                       log: Path,
+                                       shapeItExecutable: String,
+                                       vcf: String,
+                                       map: String,
+                                       haps: String,
+                                       samples: String,
+                                       log: String,
                                        numThreads: Int = 1): String = {
 
     getShapeItCommandLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads).mkString(" ")
   }
-
-  private def numberOfCpuCores: Int = Runtime.getRuntime.availableProcessors
 }

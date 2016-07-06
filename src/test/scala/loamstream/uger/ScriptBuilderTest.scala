@@ -35,13 +35,13 @@ final class ScriptBuilderTest extends FunSuite {
   }
 
   private def getShapeItCommandLineTokens(
-                               shapeItExecutable: String,
-                               vcf: String,
-                               map: String,
-                               haps: String,
-                               samples: String,
-                               log: String,
-                               numThreads: Int = 1): Seq[String] = {
+                                           shapeItExecutable: String,
+                                           vcf: String,
+                                           map: String,
+                                           haps: String,
+                                           samples: String,
+                                           log: String,
+                                           numThreads: Int = 1): Seq[String] = {
 
     Seq(
       shapeItExecutable,
@@ -59,18 +59,20 @@ final class ScriptBuilderTest extends FunSuite {
   }
 
   private def getShapeItCommandLineString(
-                                       shapeItExecutable: String,
-                                       vcf: String,
-                                       map: String,
-                                       haps: String,
-                                       samples: String,
-                                       log: String,
-                                       numThreads: Int = 1): String = {
+                                           shapeItExecutable: String,
+                                           vcf: String,
+                                           map: String,
+                                           haps: String,
+                                           samples: String,
+                                           log: String,
+                                           numThreads: Int = 1): String = {
 
     getShapeItCommandLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads).mkString(" ")
   }
 
-  val expectedScriptAsString: String =
+  def expectedScriptAsString: String = {
+    val sixSpaces = "      "
+
     s"""#!/bin/bash
 #$$ -cwd
 #$$ -j y
@@ -78,7 +80,9 @@ final class ScriptBuilderTest extends FunSuite {
 source /broad/software/scripts/useuse
 reuse -q UGER
 
-i=$$SGE_TASK_ID\n      \nif [ $$i -eq 1 ]
+i=$$SGE_TASK_ID
+$sixSpaces
+if [ $$i -eq 1 ]
 then
 \t/some/shapeit/executable \\
 \t-V \\
@@ -122,4 +126,5 @@ then
 \t2 \\
 fi
 """
+  }
 }

@@ -12,10 +12,6 @@ final class ScriptBuilderTest extends FunSuite {
   test("A shell script is generated out of a CommandLineStringJob, and can be used to submit a UGER job") {
     val shapeItJob = Seq.fill(3)(getShapeItCommandLineStringJob)
     val ugerScriptToRunShapeIt = ScriptBuilder.buildFrom(shapeItJob)
-    //TODO Make sure the following way of getting file path works in Windows
-    val scriptFile = getClass.getClassLoader.getResource("imputation/shapeItUgerSubmissionScript.sh").getFile
-    //TODO Use LoamFileUtils.enclosed to make sure of proper resource closing
-      //val expectedScript = Source.fromFile(scriptFile).mkString
     val expectedScript = expectedScriptAsString
 
     assert(ugerScriptToRunShapeIt == expectedScript)

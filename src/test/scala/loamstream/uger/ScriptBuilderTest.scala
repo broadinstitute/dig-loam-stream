@@ -1,6 +1,7 @@
 package loamstream.uger
 
-import java.nio.file.{Path, Paths}
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.conf.ImputationConfig
 import loamstream.model.jobs.commandline.CommandLineStringJob
@@ -16,9 +17,9 @@ final class ScriptBuilderTest extends FunSuite {
     val shapeItJob = Seq.fill(3)(getShapeItCommandLineStringJob)
     val ugerScriptToRunShapeIt = ScriptBuilder.buildFrom(shapeItJob)
     //TODO Make sure the following way of getting file path works in Windows
-    val scriptFile = getClass.getClassLoader.getResource("imputation/shapeItUgerSubmissionScript.sh").getFile
+    val scriptFile = Paths.get(getClass.getClassLoader.getResource("imputation/shapeItUgerSubmissionScript.sh").toURI)
     //TODO Use LoamFileUtils.enclosed to make sure of proper resource closing
-    val expectedScript = Source.fromFile(scriptFile).mkString
+    val expectedScript = new String(JFiles.readAllBytes(scriptFile), StandardCharsets.UTF_8)
 
     assert(ugerScriptToRunShapeIt == expectedScript)
   }

@@ -9,44 +9,44 @@ i=$SGE_TASK_ID
       
 if [ $i -eq 1 ]
 then
-	/home/clint/bin/shapeit \
+	/some/shapeit/executable \
 	-V \
-	/home/clint/workspace/imputation/shapeit_example/gwas.vcf.gz \
+	/some/vcf/file \
 	-M \
-	/home/clint/workspace/imputation/shapeit_example/genetic_map.txt.gz \
+	/some/map/file \
 	-O \
-	/home/clint/workspace/imputation/shapeit_example/gwas.phased.haps.gz \
-	/home/clint/workspace/imputation/shapeit_example/gwas.phased.sample.gz \
+	/some/haplotype/file \
+	/some/sample/file \
 	-L \
-	/home/clint/workspace/imputation/shapeit_example/gwas.phased.log \
+	/some/log/file \
 	--thread \
-	8 \
+	2 \
 elif [ $i -eq 2 ]
 then
-	/home/clint/bin/shapeit \
+	/some/shapeit/executable \
 	-V \
-	/home/clint/workspace/imputation/shapeit_example/gwas.vcf.gz \
+	/some/vcf/file \
 	-M \
-	/home/clint/workspace/imputation/shapeit_example/genetic_map.txt.gz \
+	/some/map/file \
 	-O \
-	/home/clint/workspace/imputation/shapeit_example/gwas.phased.haps.gz \
-	/home/clint/workspace/imputation/shapeit_example/gwas.phased.sample.gz \
+	/some/haplotype/file \
+	/some/sample/file \
 	-L \
-	/home/clint/workspace/imputation/shapeit_example/gwas.phased.log \
+	/some/log/file \
 	--thread \
-	8 \
+	2 \
 elif [ $i -eq 3 ]
 then
-	/home/clint/bin/shapeit \
+	/some/shapeit/executable \
 	-V \
-	/home/clint/workspace/imputation/shapeit_example/gwas.vcf.gz \
+	/some/vcf/file \
 	-M \
-	/home/clint/workspace/imputation/shapeit_example/genetic_map.txt.gz \
+	/some/map/file \
 	-O \
-	/home/clint/workspace/imputation/shapeit_example/gwas.phased.haps.gz \
-	/home/clint/workspace/imputation/shapeit_example/gwas.phased.sample.gz \
+	/some/haplotype/file \
+	/some/sample/file \
 	-L \
-	/home/clint/workspace/imputation/shapeit_example/gwas.phased.log \
+	/some/log/file \
 	--thread \
-	8 \
+	2 \
 fi

@@ -9,17 +9,6 @@ import loamstream.util.{Hit, Shot}
   * Created by oliverr on 2/16/2016.
   */
 trait LToolBox {
-  @deprecated("", "")
-  def createJobs(tool: Tool, pipeline: LPipeline): Shot[Set[LJob]] = {
-    toolToJobShot(tool).map(Set(_))
-  }
-
-  @deprecated("", "")
-  def createExecutable(pipeline: LPipeline): LExecutable = {
-    //TODO: Mapping over a property of a pipeline with a function that takes the pipeline feels weird.
-    LExecutable(pipeline.tools.map(createJobs(_, pipeline)).collect { case Hit(job) => job }.flatten)
-  }
-
   def toolToJobShot(tool: Tool): Shot[LJob]
 
   def createExecutable(ast: AST): LExecutable = {

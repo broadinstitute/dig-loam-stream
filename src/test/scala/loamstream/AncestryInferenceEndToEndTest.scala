@@ -22,20 +22,6 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
 
   private val executer = ChunkedExecuter.default
 
-  test("creating jobs from inference tools.") {
-    val (toolbox, pipeline) = makeToolBoxAndPipeline()
-
-    val pcaProjectionJobsShot = toolbox.createJobs(pipeline.pcaProjectionTool, pipeline)
-
-    //NB: Try a pattern-match to get a better error message on failures
-    val Hit(Seq(pcaProjectionJob)) = pcaProjectionJobsShot.map(_.toSeq)
-
-    val sampleClusteringJobsShot = toolbox.createJobs(pipeline.sampleClusteringTool, pipeline)
-
-    //NB: Try a pattern-match to get a better error message on failures
-    val Hit(Seq(sampleClusteringJob)) = sampleClusteringJobsShot.map(_.toSeq)
-  }
-
   test("Running ancestry inference pipeline. (AST)") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
 

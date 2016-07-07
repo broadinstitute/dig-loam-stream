@@ -14,10 +14,11 @@ import loamstream.util.{Hit, Miss, Shot, Shots, Snag}
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-case class LoamToolBox(env: LEnv) extends LToolBox {
+final case class LoamToolBox(env: LEnv) extends LToolBox {
 
-  val fileManager = new LoamFileManager
-  var loamJobs: Map[LoamTool, LJob] = Map.empty
+  private val fileManager = new LoamFileManager
+  
+  private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
 
   def newLoamJob(tool: LoamTool): Shot[LJob] = {
     tool.graphBuilder.applyEnv(env)

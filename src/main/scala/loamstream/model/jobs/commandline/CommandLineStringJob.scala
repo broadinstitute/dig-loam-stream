@@ -13,10 +13,13 @@ import scala.sys.process.{Process, ProcessBuilder, ProcessLogger}
   */
 
 /** A job based on a command line provided as a String */
-case class CommandLineStringJob(commandLineString: String, workDir: Path, inputs: Set[LJob] = Set.empty,
-                                exitValueCheck: Int => Boolean = CommandLineJob.acceptAll,
-                                override val logger: ProcessLogger = noOpProcessLogger)
-  extends CommandLineJob {
+final case class CommandLineStringJob(
+    commandLineString: String, 
+    workDir: Path, 
+    inputs: Set[LJob] = Set.empty,
+    exitValueCheck: Int => Boolean = CommandLineJob.acceptAll,
+    override val logger: ProcessLogger = noOpProcessLogger) extends CommandLineJob {
+  
   override def processBuilder: ProcessBuilder = Process(commandLineString, workDir.toFile)
 
   override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)

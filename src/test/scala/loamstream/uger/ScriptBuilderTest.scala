@@ -10,8 +10,8 @@ import org.scalatest.FunSuite
   */
 final class ScriptBuilderTest extends FunSuite {
 
-  implicit class EnrichedString(string:String) {
-    def withNormalizedLineBreaks:String = string.replaceAll("\r\n", "\n")
+  private implicit class EnrichedString(string: String) {
+    def withNormalizedLineBreaks: String = string.replaceAll("\r\n", "\n")
   }
 
   test("A shell script is generated out of a CommandLineStringJob, and can be used to submit a UGER job") {

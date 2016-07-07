@@ -16,7 +16,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
   private def isOdd(i: Int): Boolean = !isEven(i)
   
   test("takeUntil") {
-    val observable = Observable.fromIterable(Seq(2,4,6,7,8,9,10))
+    val observable = Observable.fromIterable(Seq(2,4,6,7,8,9,10)) // scalastyle:ignore magic.number
     
     import monix.execution.Scheduler.Implicits.global
     
@@ -31,7 +31,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     
       waitFor(fut)
     
-      assert(buf.toSeq == Seq(2,4,6,7))
+      assert(buf.toSeq == Seq(2,4,6,7)) // scalastyle:ignore magic.number
     }
     
     {
@@ -51,7 +51,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     
       waitFor(fut)
     
-      assert(buf.toSeq == Seq(2,4,6,7,8))
+      assert(buf.toSeq == Seq(2,4,6,7,8)) // scalastyle:ignore magic.number
     }
     
     {
@@ -61,7 +61,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     
       waitFor(fut)
     
-      assert(buf.toSeq == Seq(2,4,6,7,8,9,10))
+      assert(buf.toSeq == Seq(2,4,6,7,8,9,10)) // scalastyle:ignore magic.number
     }
   }
 }

@@ -12,7 +12,10 @@ import scala.util.Try
  */
 trait Poller {
   /**
-   * 
+   * Asynchronously inquire about the status of a job
+   * @param jobId the id of the job to inquire about
+   * @timeout how long to wait for a response before trying an alternate method to determine the job's status
+   * @return a Future wrapping an attempt at determining the job's status
    */
   def poll(jobId: String, timeout: Duration): Future[Try[JobStatus]]
 }

@@ -2,11 +2,8 @@ package loamstream.compiler.messages
 
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
-import loamstream.compiler.{Issue, LoamCompiler}
-import loamstream.loam.LoamToolBox
-import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.model.execute.ChunkedExecuter
-import loamstream.util.{Hit, Loggable, Miss, StringUtils}
+import loamstream.compiler.{Issue, LoamCompiler, LoamEngine}
+import loamstream.util.{Hit, Loggable, Miss}
 
 import scala.concurrent.ExecutionContext
 
@@ -50,6 +47,7 @@ object ClientMessageHandler {
 /** The handler responding to messages sent by a client */
 case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
   val repo = LoamRepository.defaultRepo
+  val engine = LoamEngine.default(outMessageSink)
   val compiler = new LoamCompiler(outMessageSink)
 
   // scalastyle:off cyclomatic.complexity
@@ -58,23 +56,10 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
     inMessage match {
       case CompileRequestMessage(code) =>
         outMessageSink.send(ReceiptOutMessage(code))
-        compiler.compile(code)
+        engine.compile(code)
       case RunRequestMessage(code) =>
         outMessageSink.send(ReceiptOutMessage(code))
-        val compileResults = compiler.compile(code)
-        if (!compileResults.isValid) {
-          outMessageSink.send(ErrorOutMessage("Could not compile."))
-        } else {
-          outMessageSink.send(StatusOutMessage(compileResults.summary))
-          val env = compileResults.envOpt.get
-          val graph = compileResults.graphOpt.get.withEnv(env)
-          val mapping = LoamGraphAstMapper.newMapping(graph)
-          val toolBox = LoamToolBox(env)
-          val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
-          outMessageSink.send(StatusOutMessage("Now going to execute."))
-          val jobResults = ChunkedExecuter.default.execute(executable)
-          outMessageSink.send(StatusOutMessage(s"Done executing ${StringUtils.soMany(jobResults.size, "job")}."))
-        }
+        engine.run(code)
       case LoadRequestMessage(name) =>
         repo.load(name) match {
           case Hit(loadResponseMessage) => outMessageSink.send(loadResponseMessage)

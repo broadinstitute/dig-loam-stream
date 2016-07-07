@@ -8,7 +8,6 @@ import loamstream.compiler.messages.LoadResponseMessage
 import loamstream.util.{Shot, Shots, Snag}
 
 import scala.io.{Codec, Source}
-import scala.util.Try
 
 /** A repository of Loam scripts based on a package
   *
@@ -25,10 +24,10 @@ case class LoamPackageRepository(packageName: String, entries: Seq[String]) exte
     val fullName = nameToFullName(name)
     val iStreamShot =
       Shot.notNull(classLoader.getResourceAsStream(fullName), Snag(s"Could not find resource $fullName"))
-    iStreamShot.flatMap(is => Shot.fromTry(Try({
+    iStreamShot.flatMap(is => Shot.trying {
       val content = Source.fromInputStream(is)(Codec.UTF8).mkString
       LoadResponseMessage(name, content, s"Got '$name' from package '$packageName'.")
-    })))
+    })
   }
 
   /** Tries to convert Loam script name into URL to its location */
@@ -42,10 +41,10 @@ case class LoamPackageRepository(packageName: String, entries: Seq[String]) exte
 
   /** Tries to obtain the folder where class files are stored */
   def shootForClassFolder: Shot[Path] =
-    Shots.findHit[String, Path](entries, entry => getUrl(entry).flatMap(url => Shot.fromTry(Try {
+    Shots.findHit[String, Path](entries, entry => getUrl(entry).flatMap(url => Shot.trying {
       val entryPath = Paths.get(url.toURI)
       entryPath.getParent
-    })))
+    }))
 
 
   override def list: Seq[String] = entries

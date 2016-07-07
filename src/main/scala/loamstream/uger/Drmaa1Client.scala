@@ -133,7 +133,10 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }
   }
   
-  private def runJob(pathToScript: Path, pathToUgerOutput: Path, @deprecated("", "") isBulk: Boolean, jobName: String): SubmissionResult = {
+  private def runJob(pathToScript: Path,
+                     pathToUgerOutput: Path,
+                     @deprecated("", "") isBulk: Boolean,
+                     jobName: String): SubmissionResult = {
     if (isBulk) {
       runBulkJobs(pathToScript, pathToUgerOutput, s"${jobName}BulkJobs", 1, 1, 1)
     } else {

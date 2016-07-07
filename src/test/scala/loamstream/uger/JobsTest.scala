@@ -33,5 +33,11 @@ final class JobsTest extends FunSuite {
     Await.ready(fut, Duration.Inf)
     
     assert(buf.toSeq == Seq(Queued, Running, Done))
+    
+    import scala.concurrent.duration._
+    
+    val expectedParamTuple = jobId -> 0.5.seconds
+    
+    assert(client.params == Seq(expectedParamTuple, expectedParamTuple, expectedParamTuple))
   }
 }

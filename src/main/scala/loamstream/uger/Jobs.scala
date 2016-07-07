@@ -30,6 +30,7 @@ object Jobs {
     import scala.concurrent.duration._
     
     require(pollingFrequencyInHz != 0.0)
+    require(pollingFrequencyInHz > 0.0 && pollingFrequencyInHz < 5.0)
     
     val period = (1 / pollingFrequencyInHz).seconds
     

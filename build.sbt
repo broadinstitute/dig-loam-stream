@@ -39,7 +39,7 @@ lazy val commonSettings = Seq(
     Resolver.sonatypeRepo("snapshots")
   ),
   libraryDependencies ++= (mainDeps ++ testDeps),
-  scalastyleFailOnError := true//,
+  scalastyleFailOnError := true
 )
 
 lazy val root = (project in file("."))

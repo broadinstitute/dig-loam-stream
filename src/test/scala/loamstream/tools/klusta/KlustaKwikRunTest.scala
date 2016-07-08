@@ -16,7 +16,7 @@ import KlustaKwikLineCommand.useDistributional
   * Created by oliverr on 3/16/2016.
   */
 final class KlustaKwikRunTest extends FunSuite {
-  test("Running KlustaKwik with mock data, checking output sanity.") {
+  ignore("Running KlustaKwik with mock data, checking output sanity.") {
     val fileBaseVal = "data"
     val konfig = KlustaKwikKonfig.withTempWorkDir(fileBaseVal)
     val nSamples = 1000

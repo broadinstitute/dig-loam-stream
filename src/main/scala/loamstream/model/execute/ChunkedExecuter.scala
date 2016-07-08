@@ -45,8 +45,12 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
 
 object ChunkedExecuter {
 
-  def default: ChunkedExecuter = new ChunkedExecuter(AsyncLocalChunkRunner)(scala.concurrent.ExecutionContext.global)
+  def default: ChunkedExecuter = new ChunkedExecuter(AsyncLocalChunkRunner)(ExecutionContext.global)
 
+  def apply(chunkRunner: ChunkRunner)(implicit context: ExecutionContext): ChunkedExecuter = {
+    new ChunkedExecuter(chunkRunner)
+  }
+  
   object AsyncLocalChunkRunner extends ChunkRunner {
 
     import ExecuterHelpers._

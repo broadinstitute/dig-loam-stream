@@ -5,9 +5,12 @@ import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.Loggable
 import loamstream.util.Loggable
 
 /** Compiles and runs Loam script provided as argument */
-object LoamRunApp extends App with Loggable {
-  if (args.length < 2) throw new IllegalArgumentException("No Loam script file name provided")
-  if (args.length > 2) {
+object LoamRunApp extends App with DrmaaClientHelpers with Loggable {
+  if (args.length < 1) {
+    throw new IllegalArgumentException("No Loam script file name provided")
+  }
+
+  if (args.length > 1) {
     throw new IllegalArgumentException("This app takes only one argument, the Loam script file name.")
   }
   val loamEngine = LoamEngine.default(LoggableOutMessageSink(this))

@@ -40,28 +40,18 @@ final class FilesTest extends FunSuite {
     assert(path == tempFile)
   }
   
-  test("writeTo()()") {
+  test("writeTo()() and readFrom()") {
     val tempFile = Files.tempFile("foo")
-    
-    def readContents(): String = {
-      import java.io._
-      
-      LoamFileUtils.enclosed(new BufferedReader(new FileReader(tempFile.toFile))) { reader =>
-        import scala.collection.JavaConverters._
-        
-        reader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
-      }
-    }
     
     val contents = """hello
       world
         blah
         yo  """
     
-    assert(readContents() == "")
+    assert(Files.readFrom(tempFile) == "")
     
     Files.writeTo(tempFile)(contents)
     
-    assert(readContents() == contents)
+    assert(Files.readFrom(tempFile) == contents)
   }
 }

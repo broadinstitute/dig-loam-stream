@@ -18,20 +18,16 @@ import loamstream.model.execute.LExecuter
  * @author clint
  * date: Jun 13, 2016
  */
-final class PhaseImputeEndToEndTest extends FunSuite {
-  import PhaseImputeEndToEndTest._
-
+final class PhaseImputeEndToEndTest extends FunSuite with LoamTestHelpers {
   //NB: Ignored, since this relies on external tools
   ignore("Run shapeit, then impute2 on example data") {
-    val inputFile = Paths.get("src/test/resources/imputation/gwas.vcf.gz")
+    val sourceFile = Paths.get("src/test/resources/loam/impute.loam")
+    
+    import scala.concurrent.ExecutionContext.Implicits.global
+    
+    val executable = compile(sourceFile)
 
-    val output = Paths.get("target/bar")
-
-    val (toolbox, ast, executer) = doSetup(inputFile, output)
-
-    val executable = toolbox.createExecutable(ast)
-
-    val results = executer.execute(executable)
+    val results = run(executable)
 
     assert(results.size == 2)
 
@@ -42,33 +38,5 @@ final class PhaseImputeEndToEndTest extends FunSuite {
     })
 
     //TODO: More; Ideally, we want to know we're computing the expected results 
-  }
-
-  private def doSetup(inputFile: Path, output: Path): (LToolBox, AST, LExecuter) = {
-
-    val config = ImputationConfig.fromFile("src/test/resources/loamstream-test.conf").get
-
-    val ast = shapeItImpute2PipelineAst(config, inputFile.toAbsolutePath, output.toAbsolutePath)
-
-    val toolbox = CoreToolBox(LEnv.empty)
-    
-    val executer = ChunkedExecuter.default
-    
-    (toolbox, ast, executer)
-  }
-}
-
-object PhaseImputeEndToEndTest {
-
-  def shapeItImpute2PipelineAst(config: ImputationConfig, inputVcf: Path, outputFile: Path): AST = {
-    val tempFile = File.createTempFile("shapeit", "loamstream").toPath.toAbsolutePath
-
-    val shapeItTool = CoreTool.Phase(config.shapeIt, inputVcf, tempFile)
-
-    val impute2Tool = CoreTool.Impute(config.impute2, shapeItTool.outputHaps, outputFile)
-
-    import Tool.ParamNames.{ input, output }
-
-    AST(impute2Tool).get(input).from(AST(shapeItTool)(output))
   }
 }

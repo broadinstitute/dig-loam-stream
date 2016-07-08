@@ -206,57 +206,6 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     Shot(CommandLineBuilderJob(commandLine(tokens), workDir))
   }
 
-  //TODO: Shouldn't be here
-  @deprecated("", "")
-  private def shapeitJobShot(config: ShapeItConfig, inputVcf: Path, outputHaps: Path): Shot[LJob] = {
-    def tempFile: Path = File.createTempFile("loamstream", "shapeit-output-samples").toPath.toAbsolutePath
-
-    val tokens: Seq[String] = Seq(
-      config.executable.toString,
-      "-V",
-      inputVcf.toString,
-      "-M",
-      config.mapFile.toString,
-      "-O",
-      outputHaps.toString,
-      tempFile.toString,
-      "-L",
-      config.logFile.toString,
-      "--thread",
-      config.numThreads.toString)
-
-    commandLineJobShot(tokens, config.workDir)
-  }
-
-  //TODO: Shouldn't be here
-  @deprecated("", "")
-  private def impute2JobShot(config: Impute2Config, inputFile: Path, outputFile: Path): Shot[LJob] = {
-
-    val tokens: Seq[String] = Seq(
-      config.executable.toString,
-      "-use_prephased_g",
-      "-m",
-      "example.chr22.map",
-      "-h", //example.chr22.1kG.haps.gz
-      inputFile.toString,
-      "-l",
-      "example.chr22.1kG.legend.gz",
-      "-known_haps_g",
-      "example.chr22.prephasing.impute2_haps.gz",
-      "-int",
-      "20.4e6",
-      "20.5e6",
-      "-Ne",
-      "20000",
-      "-o",
-      //NB: Must be an absolute path or impute2 will go haywire and never terminate.
-      outputFile.toAbsolutePath.toString,
-      "-verbose",
-      "-o_gz")
-
-    commandLineJobShot(tokens, config.workDir)
-  }
-
   def toolToJobShot(tool: Tool): Shot[LJob] = tool match { //scalastyle:ignore
     case CoreTool.CheckPreExistingVcfFile(vcfFile)                 => vcfFileJobShot(vcfFile)
 
@@ -277,12 +226,6 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     case CoreTool.KlustaKwikClustering(klustaConfig) => calculateClustersJobShot(klustaConfig)
 
     case CoreTool.ClusteringSamplesByFeatures(klustaConfig) => calculateClustersJobShot(klustaConfig)
-
-    //TODO: Shouldn't be here
-    case CoreTool.Phase(config, inputVcf, outputHaps) => shapeitJobShot(config, inputVcf, outputHaps)
-
-    //TODO: Shouldn't be here
-    case CoreTool.Impute(config, inputVcf, output) => impute2JobShot(config, inputVcf, output)
 
     case _ => Miss(SnagMessage(s"Have not yet implemented tool $tool"))
   }

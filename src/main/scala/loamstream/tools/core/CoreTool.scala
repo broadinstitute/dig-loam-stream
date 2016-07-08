@@ -47,20 +47,6 @@ object CoreTool {
     override val id: LId = LNamedId(s"Extracting sample ids from '$vcfFile' and storing them in '$sampleFile'")
   }
 
-  final case class ConvertVcfToVds(
-      vcfFile: Path,
-      vdsDir: Path) extends Tool.OneToOne(vcfStore(vcfFile) ~> vdsStore(vdsDir)) {
-
-    override val id: LId = LNamedId(s"Convert '$vcfFile' into Hail format VDS dir '$vdsDir'.")
-  }
-
-  final case class CalculateSingletons(
-      vdsDir: Path,
-      singletonsFile: Path) extends Tool.OneToOne(vdsStore(vdsDir) ~> singletonsStore(singletonsFile)) {
-
-    override val id: LId = LNamedId(s"Calculate singletons from genotype calls in VDS format at '$vdsDir'.")
-  }
-
   final case class ProjectPcaNative(vcfFile: Path, pcaWeightsFile: Path, klustaConfig: KlustaKwikKonfig) extends
       Tool.Nary((vcfStore(vcfFile), pcaWeightsStore(pcaWeightsFile)) ~> pcaProjectedStore(klustaConfig.inputFile)) {
 

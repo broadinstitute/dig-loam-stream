@@ -15,12 +15,15 @@ import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.Shot
+import java.nio.file.Paths
 
 /**
  * @author clint
  * date: Jul 8, 2016
  */
 trait LoamTestHelpers extends Loggable {
+  
+  def compileFile(file: String)(implicit context: ExecutionContext): LExecutable = compile(Paths.get(file))
   
   def compile(path: Path)(implicit context: ExecutionContext): LExecutable = {
     val source = new String(Files.readAllBytes(path), StandardCharsets.UTF_8)

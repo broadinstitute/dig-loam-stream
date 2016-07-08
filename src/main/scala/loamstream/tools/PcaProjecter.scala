@@ -13,7 +13,7 @@ object PcaProjecter {
   def apply(weights: Map[String, Seq[Double]]): PcaProjecter = PcaProjecter(weights, findNPcaMax(weights))
 }
 
-case class PcaProjecter(weights: Map[String, Seq[Double]], nPcaMax: Int) {
+final case class PcaProjecter(weights: Map[String, Seq[Double]], nPcaMax: Int) {
 
   def addPcas(pcas1: Seq[Seq[Double]], pcas2: Seq[Seq[Double]]): Seq[Seq[Double]] =
     pcas1.zip(pcas2).map { case (samplePcas1, samplePcas2) =>
@@ -34,12 +34,12 @@ case class PcaProjecter(weights: Map[String, Seq[Double]], nPcaMax: Int) {
   def project(samples: Seq[String], rowIter: Iterator[MapRow], genotypeToDouble: Genotype => Double,
               nPca: Int = nPcaMax): Seq[Seq[Double]] = {
     val nSamples = samples.size
-    var pcas = Seq.fill(nSamples, nPca)(0.0)
-    for (row <- rowIter) {
+    val z: Seq[Seq[Double]] = Seq.fill(nSamples, nPca)(0.0)
+    
+    rowIter.foldLeft(z) { (pcas, row) =>
       val variantPcas = project(row.id, samples, row, genotypeToDouble, nPca)
-      pcas = addPcas(pcas, variantPcas)
+      
+      addPcas(pcas, variantPcas)
     }
-    pcas
   }
-
 }

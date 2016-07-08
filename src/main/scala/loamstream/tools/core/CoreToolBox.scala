@@ -1,24 +1,16 @@
 package loamstream.tools.core
 
-import java.io.File
 import java.nio.file.{ Files, Path }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 import htsjdk.variant.variantcontext.Genotype
-
 import loamstream.LEnv
-import loamstream.conf.Impute2Config
-import loamstream.conf.ShapeItConfig
-import loamstream.model.AST
-import loamstream.model.AST.ToolNode
-import loamstream.model.LPipeline
 import loamstream.model.Tool
-import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.{ LJob, LToolBox }
-import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.model.jobs.LJob.{ Result, SimpleFailure, SimpleSuccess }
-import loamstream.tools.{ HailTools, PcaProjecter, PcaWeightsReader, VcfParser }
+import loamstream.model.jobs.commandline.CommandLineBuilderJob
+import loamstream.tools.{ PcaProjecter, PcaWeightsReader, VcfParser }
 import loamstream.tools.LineCommand
 import loamstream.tools.VcfUtils
 import loamstream.tools.klusta.{ KlustaKwikKonfig, KlustaKwikLineCommand }
@@ -52,7 +44,6 @@ object CoreToolBox {
       file: Path,
       inputs: Set[LJob] = Set.empty) extends CheckPreexistingFileJob {
 
-    @deprecated("", "")
     override def toString = s"CheckPreexistingVcfFileJob($file, ...)"
 
     override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
@@ -62,7 +53,6 @@ object CoreToolBox {
       file: Path,
       inputs: Set[LJob] = Set.empty) extends CheckPreexistingFileJob {
 
-    @deprecated("", "")
     override def toString = s"CheckPreexistingPcaWeightsFileJob($file, ...)"
 
     override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
@@ -88,44 +78,11 @@ object CoreToolBox {
     }
   }
 
-  @deprecated("", "")
-  final case class ImportVcfFileJob(vcfFile: Path, vdsFile: Path, inputs: Set[LJob] = Set.empty) extends LJob {
-
-    override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-
-    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
-      Result.attempt {
-        HailTools.importVcf(vcfFile, vdsFile)
-
-        SimpleSuccess("Imported VCF in VDS format.")
-      }
-    }
-  }
-
-  @deprecated("", "")
-  final case class CalculateSingletonsJob(
-      vdsDir: Path,
-      singletonsFile: Path,
-      inputs: Set[LJob] = Set.empty) extends LJob {
-
-    override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-
-    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
-      Result.attempt {
-        HailTools.calculateSingletons(vdsDir, singletonsFile)
-
-        SimpleSuccess("Calculated singletons from VDS.")
-      }
-    }
-  }
-
-  @deprecated("", "")
   final case class CalculatePcaProjectionsJob(vcfFile: Path,
                                               pcaWeightsFile: Path,
                                               klustaKwikKonfig: KlustaKwikKonfig,
                                               inputs: Set[LJob] = Set.empty) extends LJob {
 
-    @deprecated("", "")
     override def toString = s"CalculatePcaProjectionsJob($vcfFile, $pcaWeightsFile, ...)"
 
     override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
@@ -168,14 +125,6 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     Hit(ExtractSampleIdsFromVcfFileJob(vcfFile, sampleFile))
   }
 
-  def convertVcfToVdsJobShot(vcfFile: Path, vdsPath: Path): Shot[ImportVcfFileJob] = {
-    Hit(ImportVcfFileJob(vcfFile, vdsPath))
-  }
-
-  def calculateSingletonsJobShot(vdsDir: Path, singletonsFile: Path): Shot[CalculateSingletonsJob] = {
-    Hit(CalculateSingletonsJob(vdsDir, singletonsFile))
-  }
-
   def calculatePcaProjectionsJobShot(
     vcfFile: Path,
     pcaWeightsFile: Path,
@@ -212,10 +161,6 @@ final case class CoreToolBox(env: LEnv) extends LToolBox {
     case CoreTool.CheckPreExistingPcaWeightsFile(pcaWeightsFile)   => pcaWeightsFileJobShot(pcaWeightsFile)
 
     case CoreTool.ExtractSampleIdsFromVcfFile(vcfFile, sampleFile) => extractSamplesJobShot(vcfFile, sampleFile)
-
-    case CoreTool.ConvertVcfToVds(vcfFile, vdsDir)                 => convertVcfToVdsJobShot(vcfFile, vdsDir)
-
-    case CoreTool.CalculateSingletons(vdsDir, singletonsFile)      => calculateSingletonsJobShot(vdsDir, singletonsFile)
 
     case CoreTool.ProjectPcaNative(vcfFile, pcaWeightsFile, klustaKonfig) =>
       calculatePcaProjectionsJobShot(vcfFile, pcaWeightsFile, klustaKonfig)

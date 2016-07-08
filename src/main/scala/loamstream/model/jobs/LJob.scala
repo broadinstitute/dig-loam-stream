@@ -5,6 +5,7 @@ import scala.concurrent.{ ExecutionContext, Future, blocking }
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.DagHelpers
 import loamstream.util.Loggable
+import scala.util.control.NonFatal
 
 /**
  * LoamStream
@@ -60,12 +61,8 @@ object LJob {
   
   object Result {
     def attempt(f: => Result): Result = {
-      
-      import scala.{util => su}
-      
-      su.Try(f) match {
-        case su.Success(r) => r
-        case su.Failure(ex) => FailureFromThrowable(ex)
+      try { f } catch {
+        case NonFatal(ex) => FailureFromThrowable(ex)
       }
     }
   }

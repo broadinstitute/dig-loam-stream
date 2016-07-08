@@ -27,13 +27,13 @@ case class LoamFolderRepository(folder: Path) extends LoamRepository.Mutable {
   def nameToPath(name: String): Path = folder.resolve(s"$name${LoamRepository.fileSuffix}")
 
   override def load(name: String): Shot[LoadResponseMessage] =
-    Shot.trying {
+    Shot {
       val content = new String(Files.readAllBytes(nameToPath(name)), StandardCharsets.UTF_8)
       LoadResponseMessage(name, content, s"Got '$name' from $folder.")
     }
 
   override def save(name: String, content: String): Shot[SaveResponseMessage] =
-    Shot.trying {
+    Shot {
       LSFiles.writeTo(nameToPath(name))(content)
       SaveResponseMessage(name, s"Added '$name' to $folder.")
     }

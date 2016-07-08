@@ -31,8 +31,6 @@ sealed trait Shot[+A] {
 object Shot {
   def apply[A](f: => A): Shot[A] = fromTry(Try(f))
 
-  def trying[A](f: => A): Shot[A] = fromTry(Try(f))
-
   def fromTry[A](myTry: Try[A]): Shot[A] =
     myTry match {
       case Success(a) => Hit(a)

@@ -1,6 +1,7 @@
 package loamstream.web.controllers.socket
 
-import loamstream.compiler.messages.{ClientInMessage, CompileRequestMessage, ListRequestMessage, LoadRequestMessage, RunRequestMessage, SaveRequestMessage}
+import loamstream.compiler.messages.{ClientInMessage, CompileRequestMessage, ListRequestMessage, LoadRequestMessage,
+RunRequestMessage, SaveRequestMessage}
 import play.api.libs.json.{JsError, JsPath, JsResult, JsSuccess, JsValue, Reads}
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 

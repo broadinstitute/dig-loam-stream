@@ -55,7 +55,7 @@ case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     } else {
       Miss(s"Could not find '$file'.")
     }
-    val scriptShot = fileShot.flatMap(file => Shot.trying[String]({
+    val scriptShot = fileShot.flatMap(file => Shot[String]({
       new String(JFiles.readAllBytes(file), StandardCharsets.UTF_8)
     }))
     report(scriptShot, s"Loaded '$file'.")
@@ -63,7 +63,7 @@ case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
   }
 
   def compileFile(fileName: String): Shot[LoamCompiler.Result] = {
-    val pathShot = Shot.trying {
+    val pathShot = Shot {
       Paths.get(fileName)
     }
     pathShot match {
@@ -79,7 +79,7 @@ case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
   def compile(script: String): LoamCompiler.Result = compiler.compile(script)
 
   def runFile(fileName: String): LoamEngine.Result = {
-    val pathShot = Shot.trying {
+    val pathShot = Shot {
       Paths.get(fileName)
     }
     pathShot match {

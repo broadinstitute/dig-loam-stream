@@ -15,6 +15,7 @@ import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.reflect.ReflectGlobal
+import scala.util.control.NonFatal
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler {
@@ -192,7 +193,7 @@ def graph = graphBuilder.graph
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
-      case throwable: Throwable =>
+      case NonFatal(throwable) =>
         outMessageSink.send(
           StatusOutMessage(s"${throwable.getClass.getName} while trying to compile: ${throwable.getMessage}"))
         LoamCompiler.Result.throwable(reporter, throwable)

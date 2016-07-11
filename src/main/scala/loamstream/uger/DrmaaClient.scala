@@ -54,15 +54,11 @@ object DrmaaClient {
     def isFailure: Boolean
   }
 
-  final case class Failure(cause: Exception) extends SubmissionResult {
+  final case class SubmissionFailure(cause: Exception) extends SubmissionResult {
     override val isFailure: Boolean = true
   }
 
-  final case class SingleJobSubmissionResult(jobId: String) extends SubmissionResult {
-    override val isFailure: Boolean = false
-  }
-
-  final case class BulkJobSubmissionResult(jobIds: Seq[Any]) extends SubmissionResult {
+  final case class SubmissionSuccess(jobIds: Seq[String]) extends SubmissionResult {
     override val isFailure: Boolean = false
   }
 }

@@ -1,17 +1,18 @@
 package loamstream.uger
 
-import loamstream.util.Loggable
+import java.nio.file.Path
+
+import scala.collection.JavaConverters._
+import scala.concurrent.duration.Duration
+import scala.util.Try
+
 import org.ggf.drmaa.DrmaaException
+import org.ggf.drmaa.ExitTimeoutException
 import org.ggf.drmaa.JobTemplate
 import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
-import scala.collection.JavaConverters._
-import java.nio.file.Path
-import org.ggf.drmaa.NoActiveSessionException
-import scala.util.Try
-import scala.concurrent.duration.Duration
-import org.ggf.drmaa.ExitTimeoutException
-import scala.util.control.NonFatal
+
+import loamstream.util.Loggable
 
 /**
  * Created on: 5/19/16 
@@ -74,7 +75,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       pathToUgerOutput: Path,
       jobName: String): DrmaaClient.SubmissionResult = {
 
-    runJob(pathToScript, pathToUgerOutput, true, jobName)
+    runJob(pathToScript, pathToUgerOutput, jobName)
   }
   
   /**
@@ -135,43 +136,8 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   private def runJob(pathToScript: Path,
                      pathToUgerOutput: Path,
-                     @deprecated("", "") isBulk: Boolean,
                      jobName: String): SubmissionResult = {
-    if (isBulk) {
-      runBulkJobs(pathToScript, pathToUgerOutput, s"${jobName}BulkJobs", 1, 1, 1)
-    } else {
-      runSingleJob(pathToScript, pathToUgerOutput, s"${jobName}SingleJob")
-    }
-  }
-  
-  @deprecated("", "")
-  private def runSingleJob(
-      pathToScript: Path, 
-      pathToUgerOutput: Path,
-      jobName: String): SubmissionResult = {
-    
-    withJobTemplate(session) { jt =>
-    
-      jt.setRemoteCommand(pathToScript.toString)
-      jt.setJobName(jobName)
-      jt.setOutputPath(s":$pathToUgerOutput")
 
-      val jobId = session.runJob(jt)
-    
-      info(s"Job has been submitted with id $jobId")
-
-      SingleJobSubmissionResult(jobId)
-    }
-  }
-
-  private def runBulkJobs(
-      pathToScript: Path, 
-      pathToUgerOutput: Path, 
-      jobName: String,
-      start: Int, 
-      end: Int, 
-      incr: Int): SubmissionResult = {
-    
     withJobTemplate(session) { jt =>
 
       jt.setNativeSpecification("-cwd -shell y -b n")
@@ -179,11 +145,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")
 
-      val jobIds = session.runBulkJobs(jt, start, end, incr).asScala
+      val jobIds = session.runBulkJobs(jt, 1, 1, 1).asScala.map(_.toString)
     
       info(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
 
-      BulkJobSubmissionResult(jobIds)
+      SubmissionSuccess(jobIds)
     }
   }
 
@@ -195,7 +161,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       case e: DrmaaException => {
         error(s"Error: ${e.getMessage}", e)
         
-        Failure(e)
+        SubmissionFailure(e)
       }
     }
     finally { session.deleteJobTemplate(jt) }

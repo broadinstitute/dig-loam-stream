@@ -1,14 +1,13 @@
 package loamstream
 
-import loamstream.apps.hail.HailPipeline
-import loamstream.apps.minimal.MiniPipeline
+import java.nio.file.Paths
+
+import org.scalatest.FunSuite
+
 import loamstream.model.LPipeline
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
-import loamstream.util.PipelineConsistencyChecker
-import org.scalatest.FunSuite
-import tools.core.LCoreDefaultStoreIds
-import java.nio.file.Paths
 import loamstream.tools.klusta.KlustaKwikKonfig
+import loamstream.util.PipelineConsistencyChecker
 
 /**
   * LoamStream
@@ -27,13 +26,6 @@ final class PipelinesConsistencyTest extends FunSuite {
   
   test("Mini pipeline is consistent.") {
     check(MiniPipeline(vcfFile, sampleIdsFile))
-  }
-
-  test("Hail pipeline is consistent.") {
-    val vdsDir = Paths.get("foo.vds")
-    val singletonsFile = Paths.get("singletons.foo")
-    
-    check(HailPipeline(vcfFile, vdsDir, singletonsFile))
   }
 
   test("Ancestry inference pipeline is consistent.") {

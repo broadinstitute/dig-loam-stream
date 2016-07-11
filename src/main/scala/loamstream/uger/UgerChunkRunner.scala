@@ -54,23 +54,20 @@ final case class UgerChunkRunner(
     val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName)
 
     submissionResult match {
-      case DrmaaClient.BulkJobSubmissionResult(rawJobIds) => {
+      case DrmaaClient.SubmissionSuccess(rawJobIds) => {
         import monix.execution.Scheduler.Implicits.global
 
         toResultMap(drmaaClient, leafCommandLineJobs, rawJobIds)
       }
-      case DrmaaClient.Failure(e) => makeAllFailureMap(leafCommandLineJobs, Some(e))
-      case _                      => makeAllFailureMap(leafCommandLineJobs, None)
+      case DrmaaClient.SubmissionFailure(e) => makeAllFailureMap(leafCommandLineJobs, Some(e))
     }
   }
 
   private[uger] def toResultMap(
       drmaaClient: DrmaaClient, 
       jobs: Seq[LJob], 
-      rawJobIds: Seq[Any])(implicit scheduler: Scheduler): Future[Map[LJob, Result]] = {
+      jobIds: Seq[String])(implicit scheduler: Scheduler): Future[Map[LJob, Result]] = {
     
-    val jobIds = rawJobIds.map(_.toString)
-
     val jobsById = jobIds.zip(jobs).toMap
 
     val poller = Poller.drmaa(drmaaClient)

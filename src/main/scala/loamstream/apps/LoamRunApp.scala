@@ -1,5 +1,6 @@
 package loamstream.apps
 
+import com.typesafe.config.ConfigFactory
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.conf.UgerConfig
@@ -17,7 +18,7 @@ object LoamRunApp extends App with DrmaaClientHelpers with Loggable {
     throw new IllegalArgumentException("This app takes only one argument, the Loam script file name.")
   }
 
-  val ugerConfig = UgerConfig.fromFile("loamstream.conf").get
+  val ugerConfig = UgerConfig.fromConfig(ConfigFactory.load("loamstream.conf")).get
 
   info("Making Executer")
 

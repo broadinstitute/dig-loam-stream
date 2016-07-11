@@ -28,7 +28,7 @@ trait CommandLineJob extends LJob {
     val exitValue = processBuilder.run(logger).exitValue
 
     if (exitValueIsOk(exitValue)) {
-      CommandSuccess(commandLineString)
+      CommandSuccess(commandLineString, exitValue)
     } else {
       CommandReturnValueIssue(commandLineString, exitValue)
     }
@@ -45,7 +45,7 @@ object CommandLineJob {
 
   sealed trait CommandResult
 
-  final case class CommandSuccess(commandLine: String) extends LJob.Success with CommandResult {
+  final case class CommandSuccess(commandLine: String, returnValue: Int) extends LJob.Success with CommandResult {
     override def successMessage: String = s"Successfully completed job '$commandLine'."
   }
 

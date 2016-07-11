@@ -6,8 +6,6 @@ import java.nio.file.{DirectoryStream, Files, Path}
 import loamstream.compiler.messages.{LoadResponseMessage, SaveResponseMessage}
 import loamstream.util.{Shot, Files => LSFiles}
 
-import scala.util.Try
-
 /** A repository of Loam scripts stored in a folder
   *
   * @param folder Folder to contain the Loam scripts
@@ -29,15 +27,15 @@ case class LoamFolderRepository(folder: Path) extends LoamRepository.Mutable {
   def nameToPath(name: String): Path = folder.resolve(s"$name${LoamRepository.fileSuffix}")
 
   override def load(name: String): Shot[LoadResponseMessage] =
-    Shot.fromTry(Try {
+    Shot {
       val content = new String(Files.readAllBytes(nameToPath(name)), StandardCharsets.UTF_8)
       LoadResponseMessage(name, content, s"Got '$name' from $folder.")
-    })
+    }
 
   override def save(name: String, content: String): Shot[SaveResponseMessage] =
-    Shot.fromTry(Try {
+    Shot {
       LSFiles.writeTo(nameToPath(name))(content)
       SaveResponseMessage(name, s"Added '$name' to $folder.")
-    })
+    }
 
 }

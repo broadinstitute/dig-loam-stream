@@ -40,39 +40,11 @@ object CoreTool {
   final case class CheckPreExistingPcaWeightsFile(pcaWeightsFile: Path) extends
       Tool.CheckPreexisting(pcaWeightsFile, new StoreSig(Sigs.sampleIdAndIntToDouble))
 
-  @deprecated("", "")
-  final case class Phase(config: ShapeItConfig, inputVcf: Path, outputHaps: Path) extends
-      Tool.OneToOne(vcfStore(inputVcf) ~> vcfStore(outputHaps)) {
-
-    override val id: LId = LNamedId(s"Phasing '$inputVcf', producing '$outputHaps'")
-  }
-
-  @deprecated("", "")
-  final case class Impute(config: Impute2Config, inputVcf: Path, output: Path) extends
-      Tool.OneToOne(vcfStore(inputVcf) ~> imputationResults(output)) {
-
-    override val id: LId = LNamedId(s"Phasing '$inputVcf', producing '$output'")
-  }
-
   final case class ExtractSampleIdsFromVcfFile(
       vcfFile: Path,
       sampleFile: Path) extends Tool.OneToOne(vcfStore(vcfFile) ~> sampleIdsStore(sampleFile)) {
 
     override val id: LId = LNamedId(s"Extracting sample ids from '$vcfFile' and storing them in '$sampleFile'")
-  }
-
-  final case class ConvertVcfToVds(
-      vcfFile: Path,
-      vdsDir: Path) extends Tool.OneToOne(vcfStore(vcfFile) ~> vdsStore(vdsDir)) {
-
-    override val id: LId = LNamedId(s"Convert '$vcfFile' into Hail format VDS dir '$vdsDir'.")
-  }
-
-  final case class CalculateSingletons(
-      vdsDir: Path,
-      singletonsFile: Path) extends Tool.OneToOne(vdsStore(vdsDir) ~> singletonsStore(singletonsFile)) {
-
-    override val id: LId = LNamedId(s"Calculate singletons from genotype calls in VDS format at '$vdsDir'.")
   }
 
   final case class ProjectPcaNative(vcfFile: Path, pcaWeightsFile: Path, klustaConfig: KlustaKwikKonfig) extends

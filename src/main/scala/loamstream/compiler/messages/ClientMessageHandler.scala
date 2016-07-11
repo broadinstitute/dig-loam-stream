@@ -50,33 +50,40 @@ case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executi
   val engine = LoamEngine.default(outMessageSink)
   val compiler = new LoamCompiler(outMessageSink)
 
-  // scalastyle:off cyclomatic.complexity
+  def compile(code: String): Unit = {
+    outMessageSink.send(ReceiptOutMessage(code))
+    engine.compile(code)
+  }
+
+  def run(code: String): Unit = {
+    outMessageSink.send(ReceiptOutMessage(code))
+    engine.run(code)
+  }
+
+  def load(name: String): Unit = repo.load(name) match {
+    case Hit(loadResponseMessage) => outMessageSink.send(loadResponseMessage)
+    case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not load $name: ${snag.message}"))
+  }
+
+  def list(): Unit = outMessageSink.send(ListResponseMessage(repo.list))
+
+  def save(name: String, content: String): Unit = repo.save(name, content) match {
+    case Hit(saveResponseMessage) => outMessageSink.send(saveResponseMessage)
+    case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not save $name: ${snag.message}"))
+  }
+
+  def unknownMessageType(inMessage: ClientInMessage): Unit =
+    outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
+
   /** Handles messages sent in by a client */
   def handleInMessage(inMessage: ClientInMessage): Unit = {
     inMessage match {
-      case CompileRequestMessage(code) =>
-        outMessageSink.send(ReceiptOutMessage(code))
-        engine.compile(code)
-      case RunRequestMessage(code) =>
-        outMessageSink.send(ReceiptOutMessage(code))
-        engine.run(code)
-      case LoadRequestMessage(name) =>
-        repo.load(name) match {
-          case Hit(loadResponseMessage) => outMessageSink.send(loadResponseMessage)
-          case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not load $name: ${snag.message}"))
-        }
-      case ListRequestMessage =>
-        outMessageSink.send(ListResponseMessage(repo.list))
-      case SaveRequestMessage(name, content) =>
-        repo.save(name, content) match {
-          case Hit(saveResponseMessage) => outMessageSink.send(saveResponseMessage)
-          case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not save $name: ${snag.message}"))
-        }
-      case _ =>
-        outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
+      case CompileRequestMessage(code) => compile(code)
+      case RunRequestMessage(code) => run(code)
+      case LoadRequestMessage(name) => load(name)
+      case ListRequestMessage => list()
+      case SaveRequestMessage(name, content) => save(name, content)
+      case _ => unknownMessageType(inMessage)
     }
   }
-
-  // scalastyle:on cyclomatic.complexity
-
 }

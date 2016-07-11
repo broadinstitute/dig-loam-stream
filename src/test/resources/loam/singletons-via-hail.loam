@@ -1,4 +1,4 @@
-val hail = path("/home/clint/bin/hail")
+val hail = path("/Users/kyuksel/GitHubClones/hail/build/install/hail/bin/hail")
 
 val vcfFile = store[VCF].from("src/test/resources/hail.vcf.gz")
 val vdsDir = store[TXT].to("target/hail.vds")

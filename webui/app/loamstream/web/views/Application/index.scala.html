@@ -35,6 +35,11 @@
                     clearServerResponses();
                     socket.send(JSON.stringify({type: "compile", code: code}));
                 }
+                function run() {
+                    var code = d3.select("textarea").property("value");
+                    clearServerResponses();
+                    socket.send(JSON.stringify({type: "run", code: code}));
+                }
                 function list() {
                     socket.send(JSON.stringify({type: "list"}));
                 }
@@ -77,9 +82,10 @@
         <h1>LoamStream WebUI</h1>
         <p>
             <button type="button" onclick="compile()">Compile</button>
+            <button type="button" onclick="run()">Run</button>
             <button type="button" onclick="load()">Load</button>
             <button type="button" onclick="save()">Save</button>
-            <button type="button" onclick="clearServerResponses()">Clear</button>
+            <button type="button" onclick="clearServerResponses()">Clear Console</button>
             <label for="selectFile">File:</label>
             <input list="loamFiles" id="selectFile"/>
             <datalist id="loamFiles"></datalist>

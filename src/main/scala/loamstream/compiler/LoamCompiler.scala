@@ -64,8 +64,8 @@ object LoamCompiler {
     }
 
     /** Constructs a result that an exception was thrown during compilation */
-    def exception(reporter: CompilerReporter, exception: Exception): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, None, None, Some(exception))
+    def throwable(reporter: CompilerReporter, throwable: Throwable): Result = {
+      Result(reporter.errors, reporter.warnings, reporter.infos, None, None, Some(throwable))
     }
   }
 
@@ -79,7 +79,7 @@ object LoamCompiler {
     * @param exOpt    Option of an exception if thrown
     */
   final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], graphOpt: Option[LoamGraph],
-                          envOpt: Option[LEnv], exOpt: Option[Exception] = None) {
+                          envOpt: Option[LEnv], exOpt: Option[Throwable] = None) {
     /** Returns true if no errors */
     def isValid: Boolean = errors.isEmpty
 
@@ -95,8 +95,8 @@ object LoamCompiler {
       val soManyWarnings = StringUtils.soMany(warnings.size, "warning")
       val soManyInfos = StringUtils.soMany(infos.size, "info")
       val soManySettings = StringUtils.soMany(envOpt.map(_.keys.size).getOrElse(0), "runtime setting")
-      val soManyStores = StringUtils.soMany(graphOpt.map(_.stores.size).getOrElse(0), "stores")
-      val soManyTools = StringUtils.soMany(graphOpt.map(_.tools.size).getOrElse(0), "tools")
+      val soManyStores = StringUtils.soMany(graphOpt.map(_.stores.size).getOrElse(0), "store")
+      val soManyTools = StringUtils.soMany(graphOpt.map(_.tools.size).getOrElse(0), "tool")
       s"There were $soManyErrors, $soManyWarnings, $soManyInfos, $soManySettings, $soManyStores and $soManyTools."
     }
 
@@ -192,10 +192,10 @@ def graph = graphBuilder.graph
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
-      case exception: Exception =>
+      case throwable: Throwable =>
         outMessageSink.send(
-          StatusOutMessage(s"${exception.getClass.getName} while trying to compile: ${exception.getMessage}"))
-        LoamCompiler.Result.exception(reporter, exception)
+          StatusOutMessage(s"${throwable.getClass.getName} while trying to compile: ${throwable.getMessage}"))
+        LoamCompiler.Result.throwable(reporter, throwable)
     }
   }
 

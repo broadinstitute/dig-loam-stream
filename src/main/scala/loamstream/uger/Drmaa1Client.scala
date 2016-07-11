@@ -97,7 +97,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    */
   override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
     Try {
-      val jobInfo = session.wait(jobId, timeout.toSeconds.toLong)
+      val jobInfo = session.wait(jobId, timeout.toSeconds)
       
       if (jobInfo.hasExited) {
         info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")

@@ -32,7 +32,7 @@ final class JobsTest extends FunSuite {
 
     Await.ready(fut, Duration.Inf)
     
-    assert(buf.toSeq == Seq(Queued, Running, Done))
+    assert(buf == Seq(Queued, Running, Done))
     
     import scala.concurrent.duration._
     

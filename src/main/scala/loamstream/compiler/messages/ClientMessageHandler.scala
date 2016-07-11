@@ -2,7 +2,7 @@ package loamstream.compiler.messages
 
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
-import loamstream.compiler.{Issue, LoamCompiler}
+import loamstream.compiler.{Issue, LoamCompiler, LoamEngine}
 import loamstream.util.{Hit, Loggable, Miss}
 
 import scala.concurrent.ExecutionContext
@@ -47,28 +47,43 @@ object ClientMessageHandler {
 /** The handler responding to messages sent by a client */
 case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
   val repo = LoamRepository.defaultRepo
+  val engine = LoamEngine.default(outMessageSink)
   val compiler = new LoamCompiler(outMessageSink)
+
+  def compile(code: String): Unit = {
+    outMessageSink.send(ReceiptOutMessage(code))
+    engine.compile(code)
+  }
+
+  def run(code: String): Unit = {
+    outMessageSink.send(ReceiptOutMessage(code))
+    engine.run(code)
+  }
+
+  def load(name: String): Unit = repo.load(name) match {
+    case Hit(loadResponseMessage) => outMessageSink.send(loadResponseMessage)
+    case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not load $name: ${snag.message}"))
+  }
+
+  def list(): Unit = outMessageSink.send(ListResponseMessage(repo.list))
+
+  def save(name: String, content: String): Unit = repo.save(name, content) match {
+    case Hit(saveResponseMessage) => outMessageSink.send(saveResponseMessage)
+    case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not save $name: ${snag.message}"))
+  }
+
+  def unknownMessageType(inMessage: ClientInMessage): Unit =
+    outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
 
   /** Handles messages sent in by a client */
   def handleInMessage(inMessage: ClientInMessage): Unit = {
     inMessage match {
-      case CompileRequestMessage(text) =>
-        outMessageSink.send(ReceiptOutMessage(text))
-        compiler.compile(text)
-      case LoadRequestMessage(name) =>
-        repo.load(name) match {
-          case Hit(loadResponseMessage) => outMessageSink.send(loadResponseMessage)
-          case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not load $name: ${snag.message}"))
-        }
-      case ListRequestMessage =>
-        outMessageSink.send(ListResponseMessage(repo.list))
-      case SaveRequestMessage(name, content) =>
-        repo.save(name, content) match {
-          case Hit(saveResponseMessage) => outMessageSink.send(saveResponseMessage)
-          case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not save $name: ${snag.message}"))
-        }
-      case _ =>
-        outMessageSink.send(ErrorOutMessage(s"Don't know what to do with incoming socket message '$inMessage'."))
+      case CompileRequestMessage(code) => compile(code)
+      case RunRequestMessage(code) => run(code)
+      case LoadRequestMessage(name) => load(name)
+      case ListRequestMessage => list()
+      case SaveRequestMessage(name, content) => save(name, content)
+      case _ => unknownMessageType(inMessage)
     }
   }
 }

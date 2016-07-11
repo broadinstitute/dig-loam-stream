@@ -31,7 +31,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     
       waitFor(fut)
     
-      assert(buf.toSeq == Seq(2,4,6,7)) // scalastyle:ignore magic.number
+      assert(buf == Seq(2,4,6,7)) // scalastyle:ignore magic.number
     }
     
     {
@@ -41,7 +41,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     
       waitFor(fut)
     
-      assert(buf.toSeq == Seq(2))
+      assert(buf == Seq(2))
     }
     
     {
@@ -51,7 +51,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     
       waitFor(fut)
     
-      assert(buf.toSeq == Seq(2,4,6,7,8)) // scalastyle:ignore magic.number
+      assert(buf == Seq(2,4,6,7,8)) // scalastyle:ignore magic.number
     }
     
     {
@@ -61,7 +61,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     
       waitFor(fut)
     
-      assert(buf.toSeq == Seq(2,4,6,7,8,9,10)) // scalastyle:ignore magic.number
+      assert(buf == Seq(2,4,6,7,8,9,10)) // scalastyle:ignore magic.number
     }
   }
 }

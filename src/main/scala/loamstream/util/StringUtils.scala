@@ -42,4 +42,7 @@ object StringUtils {
   /** Replaces each line break by a space on almost all platforms.  */
   def unwrapLines(string: String): String =
     string.replaceAll("\r\n", " ").replaceAll("\n\r", " ").replaceAll("\n", " ").replaceAll("\r", " ")
+
+  /** Converts backslashes into double backslashes */
+  def unescapeBackslashes(string: String): String = string.replaceAll("\\\\", "\\\\\\\\")
 }

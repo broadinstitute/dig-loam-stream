@@ -89,7 +89,7 @@ object LoamToolBoxTest {
   final case class Results(env: LEnv, graph: LoamGraph, mapping: LoamGraphAstMapping,
                         jobResults: Map[LJob, Shot[LJob.Result]]) {
     def allJobResultsAreSuccess: Boolean = jobResults.values.forall {
-      case Hit(CommandSuccess(_)) => true
+      case Hit(CommandSuccess(_, _)) => true
       case _ => false
     }
   }

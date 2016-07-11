@@ -10,9 +10,9 @@ import scala.sys.process.{Process, ProcessBuilder, ProcessLogger}
 /**
   * LoamStream
   * Created by oliverr on 6/21/2016.
+  * 
+  * A job based on a command line provided as a String
   */
-
-/** A job based on a command line provided as a String */
 final case class CommandLineStringJob(
     commandLineString: String, 
     workDir: Path, 

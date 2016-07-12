@@ -48,4 +48,6 @@ case class LoamTool private(id: LId)(implicit val graphBuilder: LoamGraphBuilder
   override def outputs: Map[LId, Store] =
     graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
 
+  def tokens: Seq[LoamToken] = graph.toolTokens(this)
+
 }

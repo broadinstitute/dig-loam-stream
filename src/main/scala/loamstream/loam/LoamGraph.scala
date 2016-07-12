@@ -133,13 +133,13 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
 
   /** Ranks for all tools: zero for final tools; for all others one plus maximum of rank of succeeding tools */
   def ranks: Map[LoamTool, Int] = {
-    var ranks : Map[LoamTool, Int] = tools.map(tool => (tool, 0)).toMap
+    var ranks: Map[LoamTool, Int] = tools.map(tool => (tool, 0)).toMap
     var notDoneYet = true
-    while(notDoneYet) {
+    while (notDoneYet) {
       notDoneYet = false
-      for(tool <- tools) {
-        val newRankEstimate = (toolsSucceeding(tool).map(ranks.getOrElse(_, 0)) + 0).max
-        if(newRankEstimate != ranks(tool)) {
+      for (tool <- tools) {
+        val newRankEstimate = (toolsSucceeding(tool).map(ranks.getOrElse(_, 0)).map(_ + 1) + 0).max
+        if (newRankEstimate != ranks(tool)) {
           notDoneYet = true
           ranks += (tool -> newRankEstimate)
         }

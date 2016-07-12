@@ -1,7 +1,7 @@
 package loamstream.loam
 
 import loamstream.LEnv
-import loamstream.loam.LoamToken.{EnvToken, StoreToken, StringToken}
+import loamstream.loam.LoamToken.{EnvToken, StoreRefToken, StoreToken, StringToken}
 import loamstream.model.{LId, Store, Tool}
 import loamstream.util.StringUtils
 
@@ -23,6 +23,7 @@ object LoamTool {
         val argToken = arg match {
           case key: LEnv.KeyBase => EnvToken(key)
           case store: LoamStore => StoreToken(store)
+          case storeRef: LoamStoreRef => StoreRefToken(storeRef)
           case _ => StringToken(arg.toString)
         }
         tokens :+= argToken

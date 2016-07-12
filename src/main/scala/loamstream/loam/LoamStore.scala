@@ -49,6 +49,10 @@ case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBuilder: Loam
   def graph: LoamGraph = graphBuilder.graph
 
   def pathOpt: Option[Path] = graph.pathOpt(this)
+
+  def +(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixAdder(suffix))
+
+  def -(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixRemover(suffix))
 }
 
 

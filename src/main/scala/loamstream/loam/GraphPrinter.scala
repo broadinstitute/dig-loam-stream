@@ -9,4 +9,6 @@ trait GraphPrinter {
 
 object GraphPrinter {
   def byId(idLength: Int): GraphPrinterById = GraphPrinterById(idLength)
+
+  def byLine(lineLength: Int): GraphPrinterCommandlines = GraphPrinterCommandlines(lineLength)
 }

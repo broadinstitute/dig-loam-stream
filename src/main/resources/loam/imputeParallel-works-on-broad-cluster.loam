@@ -22,7 +22,7 @@ val phasedHaps = store[TXT].to(outputDir / "phased.haps.gz")
 val phasedSamples = store[TXT].to(outputDir / "phased.samples.gz")
 val log = store[TXT].to(outputDir / "shapeit.log")
 
-cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSample -L $log --thread 16"
+cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSamples -L $log --thread 16"
 
 val mapFile = store[TXT].from(impute2DataDir / "example.chr22.map")
 val legend = store[TXT].from(impute2DataDir / "example.chr22.1kG.legend.gz")

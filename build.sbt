@@ -62,3 +62,11 @@ lazy val webui = (project in file("webui"))
   .settings(
     name := "LoamStream WebUI"
   )
+
+val loamCompileTask = inputKey[Unit]("A demo input task.")
+loamCompileTask := {
+  val args: Seq[String] = sbt.complete.Parsers.spaceDelimited("<arg>").parsed
+  val loamFile: String = args(0)
+  println(loamFile)
+  //TODO invoke loamstream.apps.CompileLoamFileApp with 'loamFile' as input
+}

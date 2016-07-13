@@ -1,8 +1,9 @@
 package loamstream.loam
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 
 import loamstream.loam.files.LoamFileManager
+import loamstream.util.PathUtil
 
 /** A reference to a Loam store and a path modifier to be used in command line tools */
 case class LoamStoreRef(store: LoamStore, pathModifier: Path => Path) {
@@ -14,17 +15,15 @@ case class LoamStoreRef(store: LoamStore, pathModifier: Path => Path) {
 object LoamStoreRef {
   val pathIdentity: Path => Path = path => path
 
-  def suffixAdder(suffix: String): Path => Path = { path => Paths.get(path.toString + suffix) }
+  def suffixAdder(suffix: String): Path => Path = PathUtil.getFileNameTransformation(_ + suffix)
 
-  def suffixRemover(suffix: String): Path => Path = { path =>
-    val pathString = path.toString
-    val pathStringPruned = if (pathString.endsWith(suffix)) {
-      pathString.substring(0, pathString.length - suffix.length)
-    } else {
-      pathString
-    }
-    Paths.get(pathStringPruned)
-  }
-
+  def suffixRemover(suffix: String): Path => Path = PathUtil.getFileNameTransformation({
+    fileName =>
+      if (fileName.endsWith(suffix)) {
+        fileName.substring(0, fileName.length - suffix.length)
+      } else {
+        fileName
+      }
+  })
 
 }

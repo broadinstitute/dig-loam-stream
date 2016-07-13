@@ -51,4 +51,13 @@ case class LoamTool private(id: LId)(implicit val graphBuilder: LoamGraphBuilder
 
   def tokens: Seq[LoamToken] = graph.toolTokens(this)
 
+  def in(inStores: LoamStore*): LoamTool = {
+    graphBuilder.addInputStores(this, inStores)
+    this
+  }
+
+  def out(outStores: LoamStore*): LoamTool = {
+    graphBuilder.addOutputStores(this, outStores)
+    this
+  }
 }

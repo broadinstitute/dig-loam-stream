@@ -148,4 +148,12 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
     ranks
   }
 
+  def withInputStores(tool: LoamTool, stores: Seq[LoamStore]) : LoamGraph = {
+    ???
+  }
+
+  def withOutputStores(tool: LoamTool, stores: Seq[LoamStore]) : LoamGraph = {
+    ???
+  }
+
 }

@@ -113,7 +113,7 @@ case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
       val toolBox = LoamToolBox(env)
       val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
       outMessageSink.send(StatusOutMessage("Now going to execute."))
-      val jobResults = ChunkedExecuter.default.execute(executable)
+      val jobResults = executer.execute(executable)
       outMessageSink.send(StatusOutMessage(s"Done executing ${StringUtils.soMany(jobResults.size, "job")}."))
       LoamEngine.Result(Hit(script), Hit(compileResults), Hit(jobResults))
     }

@@ -33,7 +33,7 @@ object LoamRunApp extends App with DrmaaClientHelpers with Loggable {
     val outMessageSink = LoggableOutMessageSink(this)
 
     val loamEngine = LoamEngine(new LoamCompiler(outMessageSink)(global), executer, outMessageSink)
-    val engineResult = loamEngine.runFile(args(1))
+    val engineResult = loamEngine.runFile(args(0))
 
     for {
       (job, result) <- engineResult.jobResultsOpt.get

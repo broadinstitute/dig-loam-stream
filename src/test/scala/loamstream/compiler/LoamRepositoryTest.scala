@@ -27,7 +27,7 @@ final class LoamRepositoryTest extends FunSuite {
       assert(codeShot.nonEmpty, codeShot.message)
       val code = codeShot.get
       val compileResult = compiler.compile(code)
-      assert(compileResult.isSuccess, compileResult.summary)
+      assert(compileResult.isSuccess, compileResult.report)
       assert(compileResult.isClean, compileResult.report)
     }
   }

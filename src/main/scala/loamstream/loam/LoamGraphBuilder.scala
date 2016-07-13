@@ -35,11 +35,13 @@ class LoamGraphBuilder {
     graph = graph.withEnv(env)
   }
 
-  def addInputStores(tool: LoamTool, stores: Seq[LoamStore]): Unit = {
+  /** Adds input stores to this tool */
+  def addInputStores(tool: LoamTool, stores: Set[LoamStore]): Unit = {
     graph = graph.withInputStores(tool, stores)
   }
 
-  def addOutputStores(tool: LoamTool, stores: Seq[LoamStore]): Unit = {
+  /** Adds output stores to this tool */
+  def addOutputStores(tool: LoamTool, stores: Set[LoamStore]): Unit = {
     graph = graph.withInputStores(tool, stores)
   }
 }

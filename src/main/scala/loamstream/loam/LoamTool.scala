@@ -39,25 +39,32 @@ object LoamTool {
 
 }
 
+/** A tool specified in a Loam script */
 case class LoamTool private(id: LId)(implicit val graphBuilder: LoamGraphBuilder) extends Tool {
+  /** The graph this tool is part of */
   def graph: LoamGraph = graphBuilder.graph
 
+  /** Input stores of this tool */
   override def inputs: Map[LId, Store] =
     graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
 
 
+  /** Output stores of this tool */
   override def outputs: Map[LId, Store] =
     graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
 
+  /** Tokens used in the tool definition, representing parts of interpolated string and embedded objects */
   def tokens: Seq[LoamToken] = graph.toolTokens(this)
 
-  def in(inStores: LoamStore*): LoamTool = {
-    graphBuilder.addInputStores(this, inStores)
+  /** Adds input stores to this tool */
+  def in(inStore: LoamStore, inStores: LoamStore*): LoamTool = {
+    graphBuilder.addInputStores(this, (inStore +: inStores).toSet)
     this
   }
 
-  def out(outStores: LoamStore*): LoamTool = {
-    graphBuilder.addOutputStores(this, outStores)
+  /** Adds output stores to this tool */
+  def out(outStore: LoamStore, outStores: LoamStore*): LoamTool = {
+    graphBuilder.addOutputStores(this, (outStore +: outStores).toSet)
     this
   }
 }

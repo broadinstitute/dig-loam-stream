@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
 import loamstream.loam.LoamToken.{EnvToken, StringToken}
 
 import scala.reflect.runtime.universe.typeOf
@@ -148,12 +149,32 @@ case class LoamGraph(stores: Set[LoamStore], tools: Set[LoamTool], toolTokens: M
     ranks
   }
 
-  def withInputStores(tool: LoamTool, stores: Seq[LoamStore]) : LoamGraph = {
-    ???
+  /** Adds input stores to tool
+    *
+    * Assuming tool and stores are already part of the graph. If stores were output stores, they will no longer be.
+    */
+  def withInputStores(tool: LoamTool, stores: Set[LoamStore]): LoamGraph = {
+    val toolInputsNew = toolInputs + (tool -> (toolInputs.getOrElse(tool, Set.empty) ++ stores))
+    val toolOutputsNew = toolOutputs + (tool -> (toolOutputs.getOrElse(tool, Set.empty) -- stores))
+    val toolEdge = ToolEdge(tool)
+    val storeSourcesNew = storeSources.filter({ case (store, edge) => edge != toolEdge })
+    val storeSinksNew = storeSinks ++ stores.map(store => (store, storeSinks.getOrElse(store, Set.empty) + toolEdge))
+    copy(toolInputs = toolInputsNew, toolOutputs = toolOutputsNew, storeSources = storeSourcesNew,
+      storeSinks = storeSinksNew)
   }
 
-  def withOutputStores(tool: LoamTool, stores: Seq[LoamStore]) : LoamGraph = {
-    ???
+  /** Adds output stores to tool
+    *
+    * Assuming tool and stores are already part of the graph. If stores were input stores, they will no longer be.
+    */
+  def withOutputStores(tool: LoamTool, stores: Set[LoamStore]): LoamGraph = {
+    val toolInputsNew = toolInputs + (tool -> (toolInputs.getOrElse(tool, Set.empty) -- stores))
+    val toolOutputsNew = toolOutputs + (tool -> (toolOutputs.getOrElse(tool, Set.empty) ++ stores))
+    val toolEdge = ToolEdge(tool)
+    val storeSourcesNew = storeSources ++ stores.map(store => (store, toolEdge))
+    val storeSinksNew = storeSinks ++ stores.map(store => (store, storeSinks.getOrElse(store, Set.empty) - toolEdge))
+    copy(toolInputs = toolInputsNew, toolOutputs = toolOutputsNew, storeSources = storeSourcesNew,
+      storeSinks = storeSinksNew)
   }
 
 }

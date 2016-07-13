@@ -3,7 +3,7 @@ package loamstream.loam
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, PathKeyEdge, ToolEdge}
-import loamstream.loam.LoamToken.{EnvToken, StoreToken, StringToken}
+import loamstream.loam.LoamToken.{EnvToken, StoreRefToken, StoreToken, StringToken}
 import loamstream.model.LId
 import loamstream.util.SourceUtils
 
@@ -33,17 +33,24 @@ case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   /** Prints tool */
   def print(tool: LoamTool): String = print(tool, tool.graphBuilder.graph)
 
+  /** Prints prefix symbol to distinguish input and output stores */
+  def printIoPrefix(tool: LoamTool, store: LoamStore, graph: LoamGraph): String =
+    graph.storeSources.get(store) match {
+      case Some(StoreEdge.ToolEdge(sourceTool)) if sourceTool == tool => ">"
+      case _ => "<"
+    }
+
   /** Prints tool */
   def print(tool: LoamTool, graph: LoamGraph): String = {
     val tokenString = graph.toolTokens.getOrElse(tool, Seq.empty).map({
       case StringToken(string) => string
       case EnvToken(key) => s"${print(key.id)}[${print(key.tpe, fully = false)}]"
       case StoreToken(store) =>
-        val ioPrefix = graph.storeSources.get(store) match {
-          case Some(StoreEdge.ToolEdge(sourceTool)) if sourceTool == tool => ">"
-          case _ => "<"
-        }
+        val ioPrefix = printIoPrefix(tool, store, graph)
         s"$ioPrefix${print(store, fully = false)}"
+      case StoreRefToken(storeRef) =>
+        val ioPrefix = printIoPrefix(tool, storeRef.store, graph)
+        s"$ioPrefix${print(storeRef.store, fully = false)}"
     }).mkString
     s"#${print(tool.id)}[$tokenString]"
   }

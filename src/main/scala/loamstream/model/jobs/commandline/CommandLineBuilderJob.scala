@@ -17,7 +17,7 @@ import scala.sys.process.{Process, ProcessBuilder, ProcessLogger}
 final case class CommandLineBuilderJob(commandLine: CommandLine,
                                        workDir: Path,
                                        inputs: Set[LJob] = Set.empty,
-                                       exitValueCheck: Int => Boolean = CommandLineJob.acceptAll,
+                                       exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
                                        override val logger: ProcessLogger = noOpProcessLogger)
   extends CommandLineJob {
 
@@ -26,6 +26,4 @@ final case class CommandLineBuilderJob(commandLine: CommandLine,
   override def processBuilder: ProcessBuilder = Process(commandLine.tokens, workDir.toFile)
 
   override def commandLineString: String = commandLine.toString
-
-  override def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 }

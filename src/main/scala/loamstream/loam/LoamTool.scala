@@ -15,22 +15,26 @@ object LoamTool {
 
   implicit class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
     def cmd(args: Any*)(implicit graphBuilder: LoamGraphBuilder): LoamTool = {
-      val stringPartsIter = stringContext.parts.iterator
-      val argsIter = args.iterator
-      var tokens: Seq[LoamToken] = Seq(createStringToken(stringPartsIter.next))
-      while (stringPartsIter.hasNext) {
-        val arg = argsIter.next()
-        val argToken = arg match {
-          case key: LEnv.KeyBase => EnvToken(key)
-          case store: LoamStore => StoreToken(store)
-          case storeRef: LoamStoreRef => StoreRefToken(storeRef)
-          case _ => StringToken(arg.toString)
+      //TODO: handle case where there are no parts (can that happen? cmd"" ?)
+      val firstPart +: stringParts = stringContext.parts
+
+      val firstToken: LoamToken = createStringToken(firstPart)
+      
+      val tokens: Seq[LoamToken] = firstToken +: {
+        stringParts.zip(args).flatMap { case (stringPart, arg) =>
+          val argToken = arg match {
+            case key: LEnv.KeyBase => EnvToken(key)
+            case store: LoamStore => StoreToken(store)
+            case storeRef: LoamStoreRef => StoreRefToken(storeRef)
+            case _ => StringToken(arg.toString)
+          }
+          Seq(argToken, createStringToken(stringPart))
         }
-        tokens :+= argToken
-        tokens :+= createStringToken(stringPartsIter.next())
       }
-      tokens = LoamToken.mergeStringTokens(tokens)
-      LoamTool.create(tokens)
+
+      val merged = LoamToken.mergeStringTokens(tokens)
+      
+      LoamTool.create(merged)
     }
   }
 

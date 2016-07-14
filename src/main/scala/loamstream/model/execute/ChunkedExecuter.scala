@@ -21,7 +21,7 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
     Await.result(future, timeout)
   }
 
-  def executeJob(job: LJob)(implicit executionContext: ExecutionContext): Future[Map[LJob, Result]] = {
+  private def executeJob(job: LJob)(implicit executionContext: ExecutionContext): Future[Map[LJob, Result]] = {
     def loop(remainingOption: Option[LJob], acc: Map[LJob, Result]): Future[Map[LJob, Result]] = {
       remainingOption match {
         case None => Future.successful(acc)

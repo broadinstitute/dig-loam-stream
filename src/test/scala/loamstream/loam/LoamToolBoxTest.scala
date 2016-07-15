@@ -61,7 +61,8 @@ final class LoamToolBoxTest extends FunSuite with LoamTestHelpers {
     }
   }
   
-  test("'real' pipeline: 3 impute2 invocations that all depend on the same shapeit invocation should produce expected ASTs and job graph") {
+  test("'real' pipeline: 3 impute2 invocations that all depend on the same shapeit invocation should produce " +
+    "expected ASTs and job graph") {
     val source = LoamToolBoxTest.Sources.imputeParallel
     
     val compileResult = compile(source)
@@ -145,7 +146,8 @@ object LoamToolBoxTest {
         |cmd"cp $fileTmp2 $fileOut3"
       """.stripMargin
     }
-    
+
+    // scalastyle:off line.size.limit
     val imputeParallel = {
       """
 val kgpDir = path("/humgen/diabetes/users/ryank/internal_qc/1kg_phase3/1000GP_Phase3")
@@ -188,5 +190,6 @@ for(iShard <- 0 until nShards) {
 }
 """
     }
+    // scalastyle:on line.size.limit
   }
 }

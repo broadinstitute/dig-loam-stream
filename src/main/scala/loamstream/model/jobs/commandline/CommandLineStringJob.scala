@@ -22,5 +22,5 @@ final case class CommandLineStringJob(
   
   override def processBuilder: ProcessBuilder = Process(commandLineString, workDir.toFile)
 
-  override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+  override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 }

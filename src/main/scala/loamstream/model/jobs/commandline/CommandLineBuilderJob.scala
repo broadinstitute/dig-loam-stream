@@ -21,7 +21,7 @@ final case class CommandLineBuilderJob(commandLine: CommandLine,
                                        override val logger: ProcessLogger = noOpProcessLogger)
   extends CommandLineJob {
 
-  override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+  override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
   override def processBuilder: ProcessBuilder = Process(commandLine.tokens, workDir.toFile)
 

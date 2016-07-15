@@ -8,13 +8,11 @@ import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.files.LoamFileManager
 import org.scalatest.FunSuite
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 /**
   * LoamStream
   * Created by oliverr on 6/13/2016.
   */
-class LoamGraphTest extends FunSuite {
+final class LoamGraphTest extends FunSuite {
 
   val code =
     """
@@ -38,8 +36,10 @@ class LoamGraphTest extends FunSuite {
       | """.stripMargin
 
   val graph = {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)
+
     val result = compiler.compile(code)
+    
     result.graphOpt.get.withEnv(result.envOpt.get)
   }
   test("Test that valid graph passes all checks.") {

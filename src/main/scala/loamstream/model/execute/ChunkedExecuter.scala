@@ -17,7 +17,7 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
     val futureResults = Future.sequence(executable.jobs.map(executeJob)).map(Maps.mergeMaps)
 
     val future = futureResults.map(ExecuterHelpers.toShotMap)
-
+    
     Await.result(future, timeout)
   }
 
@@ -32,11 +32,11 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
             leafResults <- runner.run(leaves)
             shouldStop = j.isLeaf //|| anyFailures(leafResults)
             next = if (shouldStop) None else Some(j.removeAll(leaves))
-            resultsSoFar <- loop(next, acc ++ leafResults)
+            resultsSoFar <- scala.concurrent.blocking(loop(next, acc ++ leafResults))
           } yield resultsSoFar
       }
     }
-
+    
     loop(Option(job), Map.empty)
   }
 

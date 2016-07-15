@@ -1,6 +1,7 @@
 package loamstream.util
 
 import org.scalatest.FunSuite
+import java.nio.charset.StandardCharsets
 
 /**
   * @author clint
@@ -74,8 +75,17 @@ final class StringUtilsTest extends FunSuite {
     assert(IsLong.unapply(" 42 ") === None)
     assert(IsLong.unapply("1.23") === None)
   }
+  
   test("unwrapLines") {
     val text = "Hello\nWorld!\rHow\r\nare\n\ryou?"
     assert(StringUtils.unwrapLines(text) === "Hello World! How are you?")
+  }
+  
+  test("fromUtf8Bytes") {
+    val s = "askdljlasudjalru0985234***';l'"
+    
+    val bytes = s.getBytes(StandardCharsets.UTF_8)
+    
+    assert(StringUtils.fromUtf8Bytes(bytes) == s)
   }
 }

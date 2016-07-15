@@ -62,7 +62,8 @@ final class LoamToolBoxTest extends FunSuite with LoamTestHelpers {
   }
   
   test("'real' pipeline: 3 impute2 invocations that all depend on the same shapeit invocation should produce " +
-    "expected ASTs and job graph") {
+       "expected ASTs and job graph") {
+
     val source = LoamToolBoxTest.Sources.imputeParallel
     
     val compileResult = compile(source)
@@ -102,9 +103,9 @@ final class LoamToolBoxTest extends FunSuite with LoamTestHelpers {
     val depJob1 = getJob(1).inputs.head
     val depJob2 = getJob(2).inputs.head
     
-    assert(depJob0 == depJob1)
-    assert(depJob1 == depJob2)
-    assert(depJob0 == depJob2)
+    assert(depJob0 eq depJob1)
+    assert(depJob1 eq depJob2)
+    assert(depJob0 eq depJob2)
   }
   
   private def withFiles[A](names: String*)(f: Seq[Path] => A): A = {
@@ -186,7 +187,8 @@ for(iShard <- 0 until nShards) {
 
   val imputed = store[TXT].to(outputDir / s"imputed.data.bp${start}-${end}.gen")
 
-  cmd"$impute2 -use_prephased_g -m $mapFile -h $phasedHaps -l $legend -known_haps_g $knownHaps -int $start $end -Ne 20000 -o $imputed -verbose -o_gz"
+  //NB: Bogus inpute2 command; doesn't need wrapping to appease ScalaStyle, and the content doesn't matter 
+  cmd"$impute2 -use_prephased_g -m $mapFile -h $phasedHaps -l $legend -known_haps_g $knownHaps -int $start $end" 
 }
 """
     }

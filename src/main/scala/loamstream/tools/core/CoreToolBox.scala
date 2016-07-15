@@ -46,7 +46,7 @@ object CoreToolBox {
 
     override def toString = s"CheckPreexistingVcfFileJob($file, ...)"
 
-    override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
   }
 
   final case class CheckPreexistingPcaWeightsFileJob(
@@ -55,7 +55,7 @@ object CoreToolBox {
 
     override def toString = s"CheckPreexistingPcaWeightsFileJob($file, ...)"
 
-    override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
   }
 
   final case class ExtractSampleIdsFromVcfFileJob(
@@ -63,7 +63,7 @@ object CoreToolBox {
       samplesFile: Path,
       inputs: Set[LJob] = Set.empty) extends LJob {
 
-    override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
     override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
@@ -85,7 +85,7 @@ object CoreToolBox {
 
     override def toString = s"CalculatePcaProjectionsJob($vcfFile, $pcaWeightsFile, ...)"
 
-    override def withInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
     override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {

@@ -24,6 +24,8 @@ import loamstream.loam.ast.LoamGraphAstMapping
  */
 trait LoamTestHelpers extends Loggable {
   
+  lazy val compiler = new LoamCompiler(LoggableOutMessageSink(this))
+  
   def compileFile(file: String)(implicit context: ExecutionContext): LoamCompiler.Result = compile(Paths.get(file))
   
   def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result = {
@@ -33,7 +35,6 @@ trait LoamTestHelpers extends Loggable {
   }
   
   def compile(source: String)(implicit context: ExecutionContext): LoamCompiler.Result = {
-    val compiler = new LoamCompiler(LoggableOutMessageSink(this))
     
     val compileResults = compiler.compile(source)
 

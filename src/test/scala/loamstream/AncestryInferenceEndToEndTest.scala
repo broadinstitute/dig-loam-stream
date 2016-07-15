@@ -17,12 +17,10 @@ import scala.util.Try
   * Created by oliverr on 4/8/2016.
   */
 final class AncestryInferenceEndToEndTest extends FunSuite {
-  //TODO: Make this field unnecessary via CI
-  val canRunKlustaKwik = isKlustaKwikPresent
 
   private val executer = ChunkedExecuter.default
 
-  test("Running ancestry inference pipeline. (AST)") {
+  ignore("Running ancestry inference pipeline. (AST)") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()
 
     val executable = toolbox.createExecutable(pipeline.ast)
@@ -38,12 +36,9 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
 
     assert(results.size === numResultsExpected)
 
-    val numSuccesses = results.count({ case (job, resultShot) => isSuccessShot(resultShot) })
-    if (canRunKlustaKwik) {
-      assert(numSuccesses === 4)
-    } else {
-      assert(numSuccesses === 3)
-    }
+    val numSuccesses = results.count { case (_, resultShot) => isSuccessShot(resultShot) }
+    
+    assert(numSuccesses === 4)
   }
 
   private def isSuccessShot(resultShot: Shot[LJob.Result]): Boolean = resultShot match {

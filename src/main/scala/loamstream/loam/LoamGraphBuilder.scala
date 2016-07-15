@@ -7,17 +7,14 @@ import loamstream.loam.LoamGraph.StoreEdge
   * LoamStream
   * Created by oliverr on 6/8/2016.
   */
-class LoamGraphBuilder {
+final class LoamGraphBuilder {
 
   @volatile private[this] var _graph: LoamGraph = LoamGraph.empty
   
   private[this] val lock = new AnyRef
   
-  def graph = lock.synchronized(_graph)
-
-  // scalastyle:off method.name
-  def graph_=(newGraph: LoamGraph): Unit = lock.synchronized(_graph = newGraph)
-  // scalastyle:on method.name
+  def graph: LoamGraph = lock.synchronized(_graph)
+  def graph_=(newGraph: LoamGraph): Unit = _graph = newGraph
 
   private def updateGraph(f: LoamGraph => LoamGraph): Unit = lock.synchronized {
     graph = f(graph)

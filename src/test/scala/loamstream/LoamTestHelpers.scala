@@ -17,6 +17,7 @@ import loamstream.util.Loggable
 import loamstream.util.Shot
 import java.nio.file.Paths
 import loamstream.loam.ast.LoamGraphAstMapping
+import loamstream.util.StringUtils
 
 /**
  * @author clint
@@ -24,23 +25,23 @@ import loamstream.loam.ast.LoamGraphAstMapping
  */
 trait LoamTestHelpers extends Loggable {
   
-  lazy val compiler = new LoamCompiler(LoggableOutMessageSink(this))
-  
   def compileFile(file: String)(implicit context: ExecutionContext): LoamCompiler.Result = compile(Paths.get(file))
   
   def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result = {
-    val source = new String(Files.readAllBytes(path), StandardCharsets.UTF_8)
+    val source = StringUtils.fromUtf8Bytes(Files.readAllBytes(path))
     
     compile(source)
   }
   
   def compile(source: String)(implicit context: ExecutionContext): LoamCompiler.Result = {
     
+    val compiler = new LoamCompiler(LoggableOutMessageSink(this))
+    
     val compileResults = compiler.compile(source)
 
-    /*if (!compileResults.isValid) {
-      throw new IllegalArgumentException(s"Could not compile '$source'.")
-    }*/
+    if (!compileResults.isValid) {
+      throw new IllegalArgumentException(s"Could not compile '$source': ${compileResults.errors}.")
+    }
 
     compileResults
   }

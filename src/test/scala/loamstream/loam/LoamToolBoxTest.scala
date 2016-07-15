@@ -13,27 +13,38 @@ import loamstream.model.jobs.commandline.CommandLineJob.CommandSuccess
 import loamstream.util.{Files, Hit, Shot}
 import org.scalatest.FunSuite
 
-import scala.concurrent.ExecutionContext.Implicits.global
+//import scala.concurrent.ExecutionContext.Implicits.global
 import java.nio.file.Path
 import scala.util.Try
 import loamstream.LoamTestHelpers
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
+import loamstream.util.Loggable
 
 /**
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-final class LoamToolBoxTest extends FunSuite with LoamTestHelpers {
+final class LoamToolBoxTest extends FunSuite {
   
   private def run(code: String): Results = {
-    val compileResults = compile(code)
+
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)
     
-    val (mapping, executable) = toExecutable(compileResults)
-    
-    val jobResults = run(executable)
+    val compileResults = compiler.compile(code)
+
+    assert(compileResults.errors == Nil)
     
     val env = compileResults.envOpt.get
 
     val graph = compileResults.graphOpt.get.withEnv(env)
+
+    val mapping = LoamGraphAstMapper.newMapping(graph)
+
+    val toolBox = LoamToolBox(env)
+
+    val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
+    
+    val jobResults = ChunkedExecuter.default.execute(executable)
     
     Results(env, graph, mapping, jobResults)
   }
@@ -49,10 +60,10 @@ final class LoamToolBoxTest extends FunSuite with LoamTestHelpers {
 
       val results = run(code)
       
-      assert(results.allJobResultsAreSuccess)
-      assert(results.jobResults.size === 5)
+      assert(results.jobResults.size === 5, s"${results.jobResults}")
       assert(results.mapping.rootAsts.size === 3)
       assert(results.mapping.rootTools.size === 3)
+      assert(results.allJobResultsAreSuccess)
       
       assert(JFiles.exists(fileIn))
       assert(JFiles.exists(fileOut1))
@@ -66,22 +77,30 @@ final class LoamToolBoxTest extends FunSuite with LoamTestHelpers {
 
     val source = LoamToolBoxTest.Sources.imputeParallel
     
-    val compileResult = compile(source)
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)
     
-    if(!compileResult.isValid) {
-      fail(s"Could not compile '$source': ${compileResult.errors}")
-    }
+    val compileResults = compiler.compile(source)
+
+    assert(compileResults.errors === Nil)
     
-    val (mapping, executable) = toExecutable(compileResult)
+    val env = compileResults.envOpt.get
+
+    val graph = compileResults.graphOpt.get.withEnv(env)
+
+    val mapping = LoamGraphAstMapper.newMapping(graph)
+
+    val toolBox = LoamToolBox(env)
+
+    val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
     
-    assert(mapping.toolAsts.size == 4)
-    assert(mapping.rootAsts.size == 3)
+    assert(mapping.toolAsts.size === 4)
+    assert(mapping.rootAsts.size === 3)
     
     def getRootAst(i: Int) = mapping.rootAsts.toSeq.apply(i)
     
-    assert(getRootAst(0).dependencies.size == 1)
-    assert(getRootAst(1).dependencies.size == 1)
-    assert(getRootAst(2).dependencies.size == 1)
+    assert(getRootAst(0).dependencies.size === 1)
+    assert(getRootAst(1).dependencies.size === 1)
+    assert(getRootAst(2).dependencies.size === 1)
     
     val dep0 = getRootAst(0).dependencies.head.producer
     val dep1 = getRootAst(1).dependencies.head.producer
@@ -95,9 +114,9 @@ final class LoamToolBoxTest extends FunSuite with LoamTestHelpers {
     
     def getJob(i: Int) = executable.jobs.toSeq.apply(i)
     
-    assert(getJob(0).inputs.size == 1)
-    assert(getJob(1).inputs.size == 1)
-    assert(getJob(2).inputs.size == 1)
+    assert(getJob(0).inputs.size === 1)
+    assert(getJob(1).inputs.size === 1)
+    assert(getJob(2).inputs.size === 1)
     
     val depJob0 = getJob(0).inputs.head
     val depJob1 = getJob(1).inputs.head
@@ -125,6 +144,7 @@ object LoamToolBoxTest {
 
   final case class Results(env: LEnv, graph: LoamGraph, mapping: LoamGraphAstMapping,
                         jobResults: Map[LJob, Shot[LJob.Result]]) {
+    
     def allJobResultsAreSuccess: Boolean = jobResults.values.forall {
       case Hit(CommandSuccess(_, _)) => true
       case _ => false

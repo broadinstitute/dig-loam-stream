@@ -32,7 +32,7 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
             leafResults <- runner.run(leaves)
             shouldStop = j.isLeaf //|| anyFailures(leafResults)
             next = if (shouldStop) None else Some(j.removeAll(leaves))
-            resultsSoFar <- scala.concurrent.blocking(loop(next, acc ++ leafResults))
+            resultsSoFar <- loop(next, acc ++ leafResults)
           } yield resultsSoFar
       }
     }

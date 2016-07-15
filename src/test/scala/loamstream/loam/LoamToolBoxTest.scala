@@ -102,9 +102,9 @@ final class LoamToolBoxTest extends FunSuite with LoamTestHelpers {
     val depJob1 = getJob(1).inputs.head
     val depJob2 = getJob(2).inputs.head
     
-    assert(depJob0 eq depJob1)
-    assert(depJob1 eq depJob2)
-    assert(depJob0 eq depJob2)
+    assert(depJob0 == depJob1)
+    assert(depJob1 == depJob2)
+    assert(depJob0 == depJob2)
   }
   
   private def withFiles[A](names: String*)(f: Seq[Path] => A): A = {

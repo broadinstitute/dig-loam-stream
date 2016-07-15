@@ -6,7 +6,17 @@ import loamstream.compiler.messages.{LoadResponseMessage, SaveResponseMessage}
 import loamstream.util.{Hit, Shot}
 
 /** A repository of Loam scripts */
+trait LoamRepository {
+  /** Lists names of all available Loam scripts */
+  def list: Seq[String]
+
+  /** Loads Loam script of given name from repository  */
+  def load(name: String): Shot[LoadResponseMessage]
+}
+
+/** A repository of Loam scripts */
 object LoamRepository {
+  //TODO: Is this supposed to match what's defined in build.sbt?
   val projectName = "dig-loam-stream"
   val resourceFolder = "src/main/resources"
   val defaultPackageName = "loam"
@@ -26,14 +36,12 @@ object LoamRepository {
           classFolder.getNameCount - 1 -
             (0 until classFolder.getNameCount).map(classFolder.getName).map(_.toString).indexOf(projectName)
         val rootFolder = {
-          var folder = classFolder
-          for (i <- 0 until classFolderDepth) {
-            folder = folder.getParent
-          }
-          folder
+          (0 until classFolderDepth).foldLeft(classFolder) { (folder, _) => folder.getParent }
         }
         val loamFolder = rootFolder.resolve(s"$resourceFolder/$defaultPackageName")
+        
         ofFolder(loamFolder)
+        
       case _ => inMemory ++ defaultPackageRepo
     }
   }
@@ -60,13 +68,4 @@ object LoamRepository {
     def ++(that: LoamRepository): LoamComboRepository = LoamComboRepository(this, that)
   }
 
-}
-
-/** A repository of Loam scripts */
-trait LoamRepository {
-  /** Lists names of all available Loam scripts */
-  def list: Seq[String]
-
-  /** Loads Loam script of given name from repository  */
-  def load(name: String): Shot[LoadResponseMessage]
 }

@@ -16,6 +16,8 @@ import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.Shot
 import java.nio.file.Paths
+import loamstream.loam.ast.LoamGraphAstMapping
+import loamstream.util.StringUtils
 
 /**
  * @author clint
@@ -23,23 +25,28 @@ import java.nio.file.Paths
  */
 trait LoamTestHelpers extends Loggable {
   
-  def compileFile(file: String)(implicit context: ExecutionContext): LExecutable = compile(Paths.get(file))
+  def compileFile(file: String)(implicit context: ExecutionContext): LoamCompiler.Result = compile(Paths.get(file))
   
-  def compile(path: Path)(implicit context: ExecutionContext): LExecutable = {
-    val source = new String(Files.readAllBytes(path), StandardCharsets.UTF_8)
+  def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result = {
+    val source = StringUtils.fromUtf8Bytes(Files.readAllBytes(path))
     
     compile(source)
   }
   
-  def compile(source: String)(implicit context: ExecutionContext): LExecutable = {
+  def compile(source: String)(implicit context: ExecutionContext): LoamCompiler.Result = {
+    
     val compiler = new LoamCompiler(LoggableOutMessageSink(this))
-
+    
     val compileResults = compiler.compile(source)
 
     if (!compileResults.isValid) {
-      throw new IllegalArgumentException(s"Could not compile '$source'.")
+      throw new IllegalArgumentException(s"Could not compile '$source': ${compileResults.errors}.")
     }
 
+    compileResults
+  }
+  
+  def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, LExecutable) = {
     val env = compileResults.envOpt.get
 
     val graph = compileResults.graphOpt.get.withEnv(env)
@@ -50,7 +57,7 @@ trait LoamTestHelpers extends Loggable {
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
   
-    executable
+    (mapping, executable)
   }
   
   def run(executable: LExecutable): Map[LJob, Shot[LJob.Result]] = ChunkedExecuter.default.execute(executable)

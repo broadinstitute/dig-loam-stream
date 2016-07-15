@@ -20,25 +20,33 @@ object LId {
     override def toString = name 
   }
 
-  final case class LAnonId(time: Long, random: Long) extends LId {
-    require(time >= 0)
-    require(random >= 0)
+  final case class LAnonId(id: Long) extends LId {
+    require(id >= 0)
     
-    override def name: String = time + "_" + random
+    override def name: String = "anon$" + id
+
+    override def toString = name 
   }
   
-  private val random = new Random
+  def newAnonId: LAnonId = LAnonId(Ids.next())
 
-  private[model] def positiveRandomLong: Long = {
-    Iterator.continually(random.nextLong()).dropWhile(_ <= 0).next()
-  }
-
-  def newAnonId: LAnonId = LAnonId(System.currentTimeMillis, positiveRandomLong)
-
-  private val anonIdNameRegex = "(\\d+)_(\\d+)".r
+  private val anonIdNameRegex = "anon\\$(\\d+)".r
   
   def fromName(name: String): LId = name match {
-    case anonIdNameRegex(time, rand) => LAnonId(time.toLong, rand.toLong)
+    case anonIdNameRegex(id) => LAnonId(id.toLong)
     case _ => LNamedId(name)
+  }
+  
+  private object Ids {
+    private[this] var _next: Long = 0
+    
+    private[this] val lock = new AnyRef
+    
+    def next(): Long = lock.synchronized {
+      try { _next } 
+      finally {
+        _next += 1
+      }
+    }
   }
 }

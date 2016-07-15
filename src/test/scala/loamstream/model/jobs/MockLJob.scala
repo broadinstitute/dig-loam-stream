@@ -29,7 +29,7 @@ final class MockLJob(override val inputs: Set[LJob], val toReturn: LJob.Result) 
     new MockLJob(inputs, toReturn)
   }
   
-  override def withInputs(newInputs: Set[LJob]): LJob = new MockLJob(newInputs, toReturn)//copy(inputs = newInputs)
+  override protected def doWithInputs(newInputs: Set[LJob]): LJob = new MockLJob(newInputs, toReturn)
 }
 
 object MockLJob {

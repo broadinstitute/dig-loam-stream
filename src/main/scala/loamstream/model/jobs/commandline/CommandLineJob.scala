@@ -22,7 +22,9 @@ trait CommandLineJob extends LJob {
 
   def logger: ProcessLogger = CommandLineJob.noOpProcessLogger
 
-  def exitValueIsOk(exitValue: Int): Boolean
+  def exitValueCheck: Int => Boolean
+  
+  def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
   override def execute(implicit context: ExecutionContext): Future[Result with CommandResult] = runBlocking {
     val exitValue = processBuilder.run(logger).exitValue
@@ -42,6 +44,8 @@ object CommandLineJob {
 
   val mustBeZero: Int => Boolean = _ == 0
   val acceptAll : Int => Boolean = i => true
+  
+  val defaultExitValueChecker = mustBeZero
 
   sealed trait CommandResult
 

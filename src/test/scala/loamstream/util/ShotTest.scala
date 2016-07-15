@@ -76,6 +76,14 @@ final class ShotTest extends FunSuite {
 
     assert(miss.map(toStr andThen toInt andThen inc) === miss)
   }
+  
+  test("map (exception thrown)") {
+    val e = new Exception
+    
+    val Miss(SnagThrowable(ex)) = hit.map(_ => throw e)
+    
+    assert(ex == e)
+  }
 
   test("flatMap") {
     assert(hit.flatMap(_ => miss) === miss)
@@ -83,6 +91,27 @@ final class ShotTest extends FunSuite {
 
     assert(hit.flatMap(incAndToString) === Hit("43"))
     assert(miss.flatMap(incAndToString) === miss)
+  }
+  
+  test("flatMap (exception thrown)") {
+    val e = new Exception
+    
+    val f: Int => Shot[Int] = _ => throw e
+    
+    val Miss(SnagThrowable(ex)) = hit.flatMap(f)
+    
+    assert(ex == e)
+    
+    assert(miss.flatMap(f) == miss)
+  }
+  
+  test("flatten") {
+    assert(Hit(miss).flatten == miss)
+    assert(Hit(hit).flatten == hit)
+    
+    assert(Hit(Hit(Hit(Hit(42)))).flatten == Hit(Hit(Hit(42))))
+    
+    assert(Hit(Hit(Hit(Hit(miss)))).flatten == Hit(Hit(Hit(miss))))
   }
 
   test("Monad laws") {

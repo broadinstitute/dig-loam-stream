@@ -25,6 +25,10 @@ sealed trait Shot[+A] {
 
   def nonEmpty: Boolean
 
+  def flatten[A1](implicit evidence: A => Shot[A1]): Shot[A1] = this match {
+    case m: Miss => m
+    case Hit(shot) => shot
+  }
 }
 
 /** A container of an object or an error description */
@@ -78,19 +82,14 @@ object Shot {
   }
 }
 
-case class Hit[+A](value: A) extends Shot[A] {
+final case class Hit[+A](value: A) extends Shot[A] {
   override val get: A = value
 
-  def message: String = s"Hit: got '$value'"
+  override def message: String = s"Hit: got '$value'"
 
-  override def map[B](f: (A) => B): Shot[B] = Hit(f(value))
+  override def map[B](f: (A) => B): Shot[B] = Shot(f(value))
 
-  override def flatMap[B](f: (A) => Shot[B]): Shot[B] = {
-    f(value) match {
-      case Hit(valueB) => Hit(valueB)
-      case miss: Miss => miss
-    }
-  }
+  override def flatMap[B](f: (A) => Shot[B]): Shot[B] = Shot(f(value)).flatten
 
   override def asOpt: Option[A] = Some(value)
 
@@ -105,10 +104,10 @@ object Miss {
   def apply(message: String): Miss = Miss(SnagMessage(message))
 }
 
-case class Miss(snag: Snag) extends Shot[Nothing] {
+final case class Miss(snag: Snag) extends Shot[Nothing] {
   override def get: Nothing = throw new NoSuchElementException(s"No such element: ${snag.message}")
 
-  def message: String = s"Miss: '${snag.message}'"
+  override def message: String = s"Miss: '${snag.message}'"
 
   override def map[B](f: (Nothing) => B): Shot[B] = Miss(snag)
 

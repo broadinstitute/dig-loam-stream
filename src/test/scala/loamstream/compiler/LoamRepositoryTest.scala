@@ -107,7 +107,7 @@ final class LoamRepositoryTest extends FunSuite {
     assertAllEntriesCompile(LoamRepository.defaultPackageRepo)
   }
   
-  /*test("All entries of default repo compile") {
+  test("All entries of default repo compile") {
     assertAllEntriesCompile(LoamRepository.defaultRepo)
-  }*/
+  }
 }

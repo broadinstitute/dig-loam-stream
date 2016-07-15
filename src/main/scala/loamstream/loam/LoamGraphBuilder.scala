@@ -14,8 +14,11 @@ class LoamGraphBuilder {
   private[this] val lock = new AnyRef
   
   def graph = lock.synchronized(_graph)
+
+  // scalastyle:off method.name
   def graph_=(newGraph: LoamGraph): Unit = lock.synchronized(_graph = newGraph)
-  
+  // scalastyle:on method.name
+
   private def updateGraph(f: LoamGraph => LoamGraph): Unit = lock.synchronized {
     graph = f(graph)
   }

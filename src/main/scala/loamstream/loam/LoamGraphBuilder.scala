@@ -9,29 +9,40 @@ import loamstream.loam.LoamGraph.StoreEdge
   */
 class LoamGraphBuilder {
 
-  var graph = LoamGraph.empty
-
+  @volatile private[this] var _graph: LoamGraph = LoamGraph.empty
+  
+  private[this] val lock = new AnyRef
+  
+  def graph = lock.synchronized(_graph)
+  def graph_=(newGraph: LoamGraph): Unit = lock.synchronized(_graph = newGraph)
+  
+  private def updateGraph(f: LoamGraph => LoamGraph): Unit = lock.synchronized {
+    graph = f(graph)
+  }
+  
   def addStore(store: LoamStore): LoamStore = {
-    graph = graph.withStore(store)
+    updateGraph(_.withStore(store))
+    
     store
   }
 
   def addTool(tool: LoamTool, tokens: Seq[LoamToken]): LoamTool = {
-    graph = graph.withTool(tool, tokens)
+    updateGraph(_.withTool(tool, tokens))
+    
     tool
   }
 
   def addSource(store: LoamStore, source: StoreEdge): StoreEdge = {
-    graph = graph.withStoreSource(store, source)
+    updateGraph(_.withStoreSource(store, source))
+    
     source
   }
 
   def addSink(store: LoamStore, sink: StoreEdge): StoreEdge = {
-    graph = graph.withStoreSink(store, sink)
+    updateGraph(_.withStoreSink(store, sink))
+    
     sink
   }
 
-  def applyEnv(env: LEnv): Unit = {
-    graph = graph.withEnv(env)
-  }
+  def applyEnv(env: LEnv): Unit = updateGraph(_.withEnv(env))
 }

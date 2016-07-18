@@ -35,26 +35,26 @@ class ChunkedExecuterTest extends FunSuite {
   test("Parallel pipeline mocking imputation results in expected number of steps") {
     /* Two-step pipeline to result in 4 executions:
      *
-     *           Impute0
-     *          /
-     * ShapeIt --Impute1
-     *          \
-     *           Impute2
+     *            Impute0
+     *           /
+     * ShapeIt -- Impute1
+     *           \
+     *            Impute2
      */
-    val twoStepExecutable = LExecutable(Set(secondStepJob1, secondStepJob2, secondStepJob3))
+    val twoStepExecutable = LExecutable(Set(secondStepJob1, secondStepJob2, secondStepJob3)).addNoOpRootJob
     executer.execute(twoStepExecutable)
-    assert(numExecutions === 6)
+    assert(numExecutions === 4)
 
     /* Three-step pipeline to result in 5 more executions:
      *
-     *           Impute0
-     *          /       \
-     * ShapeIt --Impute1--NoOp
-     *          \       /
-     *           Impute2
+     *            Impute0
+     *           /        \
+     * ShapeIt -- Impute1 -- QC
+     *           \        /
+     *            Impute2
      */
     val threeStepExecutable = LExecutable(Set(thirdStepJob))
     executer.execute(threeStepExecutable)
-    assert(numExecutions === 11)
+    assert(numExecutions === 9)
   }
 }

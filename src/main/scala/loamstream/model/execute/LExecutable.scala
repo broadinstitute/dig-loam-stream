@@ -1,8 +1,10 @@
 package loamstream.model.execute
 
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{LJob, NoOpJob}
+
 import scala.concurrent.Future
 import loamstream.model.jobs.LJob.Result
+
 import scala.concurrent.ExecutionContext
 
 /**
@@ -11,6 +13,8 @@ import scala.concurrent.ExecutionContext
   */
 final case class LExecutable(jobs: Set[LJob]) {
   def ++(oExecutable: LExecutable): LExecutable = LExecutable(jobs ++ oExecutable.jobs)
+
+  def addNoOpRootJob: LExecutable = LExecutable(Set(new NoOpJob(jobs)))
 }
 
 object LExecutable {

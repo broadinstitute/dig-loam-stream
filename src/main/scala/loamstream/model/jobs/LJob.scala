@@ -25,7 +25,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   protected def doWithInputs(newInputs: Set[LJob]): LJob
   
   final def withInputs(newInputs: Set[LJob]): LJob = {
-    if(inputs == newInputs) { this }
+    if(inputs eq newInputs) { this }
     else { doWithInputs(newInputs) }
   }
   

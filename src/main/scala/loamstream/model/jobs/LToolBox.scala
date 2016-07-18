@@ -20,8 +20,9 @@ trait LToolBox {
         //TODO: Don't convert to option, pass misses through and fail loudly
           job <- toolToJobShot(tool).asOpt
           newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs)
+          newJob = if(newInputs == job.inputs) job else job.withInputs(newInputs)
         } yield {
-          Set[LJob](job.withInputs(newInputs))
+          Set[LJob](newJob)
         }
 
         jobsOption.getOrElse(noJobs)

@@ -22,7 +22,12 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   
   def inputs: Set[LJob]
 
-  def withInputs(newInputs: Set[LJob]) : LJob
+  protected def doWithInputs(newInputs: Set[LJob]): LJob
+  
+  final def withInputs(newInputs: Set[LJob]): LJob = {
+    if(inputs eq newInputs) { this }
+    else { doWithInputs(newInputs) }
+  }
   
   def execute(implicit context: ExecutionContext): Future[Result]
   

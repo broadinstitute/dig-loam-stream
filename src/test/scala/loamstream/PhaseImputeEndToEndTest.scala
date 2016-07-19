@@ -23,7 +23,7 @@ final class PhaseImputeEndToEndTest extends FunSuite with LoamTestHelpers {
   ignore("Run shapeit, then impute2 on example data") {
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val executable = compileFile("src/test/resources/loam/impute.loam")
+    val (_, executable) = toExecutable(compileFile("src/test/resources/loam/impute.loam"))
 
     val results = run(executable)
 

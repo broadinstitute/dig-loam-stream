@@ -1,6 +1,6 @@
 package loamstream.model.execute
 
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{LJob, NoOpJob}
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.{Maps, Shot}
 
@@ -17,11 +17,11 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
     val futureResults = Future.sequence(executable.jobs.map(executeJob)).map(Maps.mergeMaps)
 
     val future = futureResults.map(ExecuterHelpers.toShotMap)
-
+    
     Await.result(future, timeout)
   }
 
-  def executeJob(job: LJob)(implicit executionContext: ExecutionContext): Future[Map[LJob, Result]] = {
+  private def executeJob(job: LJob)(implicit executionContext: ExecutionContext): Future[Map[LJob, Result]] = {
     def loop(remainingOption: Option[LJob], acc: Map[LJob, Result]): Future[Map[LJob, Result]] = {
       remainingOption match {
         case None => Future.successful(acc)
@@ -36,7 +36,7 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
           } yield resultsSoFar
       }
     }
-
+    
     loop(Option(job), Map.empty)
   }
 

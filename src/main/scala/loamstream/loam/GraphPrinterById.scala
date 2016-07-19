@@ -10,15 +10,10 @@ import loamstream.util.SourceUtils
 import scala.reflect.runtime.universe.Type
 
 /** Prints LoamGraph for educational and debugging purposes exposing ids */
-case class GraphPrinterById(idLength: Int) extends GraphPrinter {
+final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
   /** Prints id */
-  def print(id: LId): String = id match {
-    case LId.LNamedId(name) => name
-    case LId.LAnonId(time, random) =>
-      val hex = random.toHexString
-      if (hex.length > 4) hex.substring(hex.length - 4) else hex
-  }
+  def print(id: LId): String = id.name
 
   /** Prints id */
   def print(tpe: Type, fully: Boolean): String =

@@ -1,21 +1,20 @@
 package loamstream.compiler
 
-import loamstream.LEnv
-import loamstream.compiler.Issue.Severity
-import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
-import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, LoamTool}
-import loamstream.tools.core.LCoreEnv
-import loamstream.util.{PathEnrichments, ReflectionUtil, SourceUtils, StringUtils}
-
-import scala.concurrent.ExecutionContext
-import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
+import scala.reflect.internal.util.{ AbstractFileClassLoader, BatchSourceFile, Position }
 import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.reflect.ReflectGlobal
 import scala.util.control.NonFatal
+
+import loamstream.LEnv
+import loamstream.compiler.Issue.Severity
+import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
+import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
+import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, LoamTool}
+import loamstream.tools.core.LCoreEnv
+import loamstream.util.{PathEnrichments, ReflectionUtil, SourceUtils, StringUtils}
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler {
@@ -103,25 +102,23 @@ object LoamCompiler {
 
     /** Detailed report listing all issues */
     def report: String = (summary +: (errors ++ warnings ++ infos).map(_.summary)).mkString(System.lineSeparator)
-
   }
-
 }
 
 /** The compiler compiling Loam scripts into execution plans */
-class LoamCompiler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
+final class LoamCompiler(outMessageSink: OutMessageSink) {
 
   val targetDirectoryName = "target"
   val targetDirectoryParentOption = None
   val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
-  val settings = new Settings()
+  val settings = new Settings
   settings.outputDirs.setSingleOutput(targetDirectory)
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new ReflectGlobal(settings, reporter, getClass.getClassLoader)
   val sourceFileName = "Config.scala"
 
   val inputObjectPackage = "loamstream.dynamic.input"
-  val inputObjectName = "Some" + SourceUtils.shortTypeName[DslChunk]
+  val inputObjectName = s"Some${SourceUtils.shortTypeName[DslChunk]}"
   val inputObjectFullName = s"$inputObjectPackage.$inputObjectName"
 
   def soManyIssues: String = {
@@ -199,5 +196,4 @@ def graph = graphBuilder.graph
         LoamCompiler.Result.throwable(reporter, throwable)
     }
   }
-
 }

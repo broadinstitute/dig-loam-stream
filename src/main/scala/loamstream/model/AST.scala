@@ -99,7 +99,9 @@ object AST {
     override def withDependencies(newDeps: Set[Connection]): AST = copy(dependencies = newDeps)
   }
 
-  final case class Connection(inputId: LId, outputId: LId, producer: AST)
+  final case class Connection(inputId: LId, outputId: LId, producer: AST) {
+    override def toString: String = s"($inputId) <~ ($outputId)$producer"
+  }
   
   final case class ConsumerConnection(consumer: AST, inputId: LId, outputId: LId) {
     def from(producer: AST): AST = consumer.dependsOn(inputId, outputId, producer)

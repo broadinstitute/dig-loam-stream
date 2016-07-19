@@ -2,7 +2,6 @@ package loamstream.loam
 
 /** Prints LoamGraph in human readable form for educational and debugging purposes */
 trait GraphPrinter {
-
   /** Prints LoamGraph in human readable form for educational and debugging purposes */
   def print(graph: LoamGraph): String
 }

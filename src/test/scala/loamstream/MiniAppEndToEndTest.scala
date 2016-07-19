@@ -17,6 +17,7 @@ import loamstream.model.LPipeline
 import loamstream.model.HasAst
 import loamstream.model.Store
 import loamstream.model.AST
+import java.nio.file.Paths
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -53,22 +54,11 @@ final class MiniAppEndToEndTest extends FunSuite {
   }
 
   private def makePipelineAndToolbox(): (LToolBox, MiniPipeline, Path) = {
-    import TestData.sampleFiles
-
-    val miniVcfFilePath = sampleFiles.miniVcfOpt.get
+    val miniVcfFilePath = Paths.get("src/test/resources/mini.vcf")
     val extractedSamplesFilePath = Files.createTempFile("samples", "txt")
 
-    val vcfFiles = Seq(StringUtils.pathTemplate(miniVcfFilePath.toString, "XXX"))
-    val sampleFilePaths = Seq(extractedSamplesFilePath)
-
-    val env = {
-      LCoreEnv.FileInteractiveFallback.env(vcfFiles, sampleFilePaths, Seq.empty[Path]) +
-        (LCoreEnv.Keys.genotypesId -> LCoreDefaultStoreIds.genotypes)
-    }
-
-    val genotypesId = env(LCoreEnv.Keys.genotypesId)
     val pipeline = MiniPipeline(miniVcfFilePath, extractedSamplesFilePath)
-    val toolbox = CoreToolBox(env)
+    val toolbox = CoreToolBox(LEnv.empty)
 
     (toolbox, pipeline, extractedSamplesFilePath)
   }

@@ -11,10 +11,6 @@ import java.nio.charset.StandardCharsets
   * @author Kaan Yuksel
   */
 object StringUtils {
-  //TODO: TEST!
-  def pathTemplate(template: String, slot: String): String => Path = {
-    id => Paths.get(template.replace(slot, id))
-  }
 
   def isWhitespace(s: String): Boolean = s.trim.isEmpty
 

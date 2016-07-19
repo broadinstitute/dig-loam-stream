@@ -1,7 +1,6 @@
 package loamstream.conf
 
 import java.nio.file.Path
-
 import loamstream.util.LoamFileUtils
 
 /**

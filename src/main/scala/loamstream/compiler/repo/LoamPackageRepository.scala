@@ -5,7 +5,7 @@ import java.net.URL
 import java.nio.file.{Path, Paths}
 
 import loamstream.compiler.messages.LoadResponseMessage
-import loamstream.util.{Shot, Shots, Snag}
+import loamstream.util.{Shot, Snag}
 
 import scala.io.{Codec, Source}
 
@@ -37,11 +37,11 @@ case class LoamPackageRepository(packageName: String, entries: Seq[String]) exte
   }
 
   /** Tries to obtain a URL to any available Loam script in this package */
-  def getSomeUrl: Shot[URL] = Shots.findHit(entries, getUrl)
+  def getSomeUrl: Shot[URL] = Shot.findHit(entries, getUrl)
 
   /** Tries to obtain the folder where class files are stored */
   def shootForClassFolder: Shot[Path] =
-    Shots.findHit[String, Path](entries, entry => getUrl(entry).flatMap(url => Shot {
+    Shot.findHit[String, Path](entries, entry => getUrl(entry).flatMap(url => Shot {
       val entryPath = Paths.get(url.toURI)
       entryPath.getParent
     }))

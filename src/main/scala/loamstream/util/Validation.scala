@@ -6,6 +6,16 @@ import loamstream.util.Validation.{Composite, Issue, IssueBase}
   * LoamStream
   * Created by oliverr on 6/10/2016.
   */
+trait Validation[Item] {
+
+  def apply(item: Item): Seq[IssueBase[Item]]
+
+  def ++(oValidation: Validation[Item]): Composite[Item] = oValidation match {
+    case Composite(oRules) => Composite(this +: oRules)
+    case _ => Composite(Seq(this, oValidation))
+  }
+}
+
 object Validation {
 
   trait BulkValidation[Item, Target, Details] extends Validation[Item] {
@@ -16,7 +26,7 @@ object Validation {
     def apply(item: Item, target: Target): Seq[BulkIssue[Item, Target, Details]]
   }
 
-  trait Severity
+  sealed trait Severity
 
   object Severity {
 
@@ -55,7 +65,7 @@ object Validation {
                                                     message: String)
     extends BulkIssueBase[Item] with Issue[Item, Details]
 
-  case class Composite[Item](rules: Seq[Validation[Item]]) extends Validation[Item] {
+  final case class Composite[Item](rules: Seq[Validation[Item]]) extends Validation[Item] {
 
     def apply(item: Item): Seq[IssueBase[Item]] = rules.flatMap(rule => rule(item))
 
@@ -65,14 +75,4 @@ object Validation {
     }
   }
 
-}
-
-trait Validation[Item] {
-
-  def apply(item: Item): Seq[IssueBase[Item]]
-
-  def ++(oValidation: Validation[Item]): Composite[Item] = oValidation match {
-    case Composite(oRules) => Composite(this +: oRules)
-    case _ => Composite(Seq(this, oValidation))
-  }
 }

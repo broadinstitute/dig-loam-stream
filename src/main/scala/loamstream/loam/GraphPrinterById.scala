@@ -37,7 +37,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
   /** Prints tool */
   def print(tool: LoamTool, graph: LoamGraph): String = {
-    val tokenString = graph.toolTokens.getOrElse(tool, Seq.empty).map({
+    def toString(token: LoamToken): String = token match {
       case StringToken(string) => string
       case EnvToken(key) => s"${print(key.id)}[${print(key.tpe, fully = false)}]"
       case StoreToken(store) =>
@@ -46,7 +46,12 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
       case StoreRefToken(storeRef) =>
         val ioPrefix = printIoPrefix(tool, storeRef.store, graph)
         s"$ioPrefix${print(storeRef.store, fully = false)}"
-    }).mkString
+    }
+    
+    val tokensForTool = graph.toolTokens.getOrElse(tool, Seq.empty)
+    
+    val tokenString = tokensForTool.map(toString).mkString
+    
     s"#${print(tool.id)}[$tokenString]"
   }
 
@@ -58,13 +63,19 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   }
 
   /** Prints LoamGraph for educational and debugging purposes exposing ids */
-  def print(graph: LoamGraph): String = {
-    val storesString = graph.stores.map(print(_, fully = true)).mkString("\n")
-    val toolsString = graph.tools.map(print(_)).mkString("\n")
-    val storeSourcesString = graph.storeSources.map({
+  override def print(graph: LoamGraph): String = {
+    val delimiter = "\n"
+    
+    def toString(parts: Iterable[String]): String = parts.mkString(delimiter)
+    
+    val storesString = toString(graph.stores.map(print(_, fully = true)))
+    
+    val toolsString = toString(graph.tools.map(print(_)))
+    
+    val storeSourcesString = toString(graph.storeSources.map {
       case (store, source) => s"${print(store, fully = false)} <- ${print(source)}"
-    }).mkString("\n")
-    Seq(storesString, toolsString, storeSourcesString).mkString("\n")
-  }
+    })
 
+    toString(Seq(storesString, toolsString, storeSourcesString))
+  }
 }

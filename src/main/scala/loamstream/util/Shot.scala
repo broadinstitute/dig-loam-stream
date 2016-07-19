@@ -1,7 +1,5 @@
 package loamstream.util
 
-import loamstream.util.Shots.Shots2
-
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}
 
@@ -19,8 +17,6 @@ sealed trait Shot[+A] {
 
   def orElse[B >: A](alternative: => Shot[B]): Shot[B]
 
-  def and[B](shotB: Shot[B]): Shots2[A, B] = Shots2(this, shotB)
-
   def isEmpty: Boolean
 
   def nonEmpty: Boolean
@@ -29,6 +25,9 @@ sealed trait Shot[+A] {
     case m: Miss => m
     case Hit(shot) => shot
   }
+  
+  def isHit: Boolean
+  def isMiss: Boolean
 }
 
 /** A container of an object or an error description */
@@ -80,6 +79,24 @@ object Shot {
       Miss(misses.map(_.snag).reduce(_ ++ _))
     }
   }
+  
+  def combinedMiss(iter: Iterable[Shot[_]]): Miss = Miss(Snag(iter.collect { case Miss(snag) => snag }.toSeq))
+
+  def findHit[A, B](items: Iterable[A], shooter: A => Shot[B]): Shot[B] = {
+    if(items.isEmpty) { Miss("List of items is empty.") }
+    else {
+      val shots = items.map(shooter)
+    
+      val misses = shots.takeWhile(_.isMiss).collect { case miss: Miss => miss }
+    
+      val hitOpt = shots.dropWhile(_.isMiss).headOption.collect { case hit @ Hit(_) => hit }
+    
+      hitOpt match {
+        case Some(hit) => hit
+        case None => combinedMiss(misses)
+      }
+    }
+  }
 }
 
 final case class Hit[+A](value: A) extends Shot[A] {
@@ -98,6 +115,10 @@ final case class Hit[+A](value: A) extends Shot[A] {
   override val isEmpty: Boolean = false
 
   override val nonEmpty: Boolean = true
+  
+  override val isHit: Boolean = true
+  
+  override val isMiss: Boolean = false
 }
 
 object Miss {
@@ -123,4 +144,8 @@ final case class Miss(snag: Snag) extends Shot[Nothing] {
   override val isEmpty: Boolean = true
 
   override val nonEmpty: Boolean = false
+  
+  override val isHit: Boolean = false
+  
+  override val isMiss: Boolean = true
 }

@@ -3,7 +3,7 @@ package loamstream.loam
 import loamstream.loam.LoamToken.{EnvToken, StoreRefToken, StoreToken, StringToken}
 
 /** Prints file names and command lines in LoamGraph */
-case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
+final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
 
   /** Prints a store */
   def print(store: LoamStore): String = store.pathOpt.map(_.toString).getOrElse("[file]")
@@ -25,6 +25,6 @@ case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
 
   /** Prints file names and command lines in LoamGraph */
   override def print(graph: LoamGraph): String =
-    graph.ranks.map({ case (tool, rank) => s"$rank: ${print(tool)}" }).mkString("\n")
+    graph.ranks.map { case (tool, rank) => s"$rank: ${print(tool)}" }.mkString("\n")
 
 }

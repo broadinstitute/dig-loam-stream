@@ -8,9 +8,9 @@ import scala.concurrent.{ExecutionContext, Future}
  * @author Kaan Yuksel
  * date: Jun 2, 2016
  */
-final class NoOpJob(override val inputs: Set[LJob]) extends LJob {
+final case class NoOpJob(inputs: Set[LJob]) extends LJob {
   override def execute(implicit context: ExecutionContext): Future[Result] =
     Future.successful(SimpleSuccess("NoOp Job"))
 
-  override def withInputs(newInputs: Set[LJob]): LJob = new NoOpJob(newInputs)
+  override def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 }

@@ -10,8 +10,6 @@ import loamstream.model.execute.{ChunkedExecuter, LExecuter}
 import loamstream.model.jobs.LJob
 import loamstream.util.{Hit, Miss, Shot, StringUtils}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 
 /**
   * LoamStream
@@ -19,16 +17,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
   */
 object LoamEngine {
   def default(outMessageSink: ClientMessageHandler.OutMessageSink): LoamEngine =
-    LoamEngine(new LoamCompiler(outMessageSink)(global), ChunkedExecuter.default, outMessageSink)
+    LoamEngine(new LoamCompiler(outMessageSink), ChunkedExecuter.default, outMessageSink)
 
-  case class Result(sourceCodeOpt: Shot[String],
-                    compileResultOpt: Shot[LoamCompiler.Result],
-                    jobResultsOpt: Shot[Map[LJob, Shot[LJob.Result]]])
+  final case class Result(sourceCodeOpt: Shot[String],
+                          compileResultOpt: Shot[LoamCompiler.Result],
+                          jobResultsOpt: Shot[Map[LJob, Shot[LJob.Result]]])
 
 }
 
-case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
-                      outMessageSink: ClientMessageHandler.OutMessageSink) {
+final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
+                            outMessageSink: ClientMessageHandler.OutMessageSink) {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
     val message = shot match {
@@ -55,17 +53,20 @@ case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     } else {
       Miss(s"Could not find '$file'.")
     }
-    val scriptShot = fileShot.flatMap(file => Shot {
-      new String(JFiles.readAllBytes(file), StandardCharsets.UTF_8)
-    })
+    
+    import StringUtils.fromUtf8Bytes
+    import JFiles.readAllBytes
+    
+    val scriptShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
+    
     report(scriptShot, s"Loaded '$file'.")
+    
     scriptShot
   }
 
   def compileFile(fileName: String): Shot[LoamCompiler.Result] = {
-    val pathShot = Shot {
-      Paths.get(fileName)
-    }
+    val pathShot = Shot(Paths.get(fileName))
+
     pathShot match {
       case Hit(path) => compile(path)
       case miss: Miss =>

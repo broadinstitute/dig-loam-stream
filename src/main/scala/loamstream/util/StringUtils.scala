@@ -3,6 +3,7 @@ package loamstream.util
 import java.nio.file.{Path, Paths}
 
 import scala.util.Try
+import java.nio.charset.StandardCharsets
 
 /**
   * Created on: 3/1/16
@@ -45,4 +46,6 @@ object StringUtils {
 
   /** Converts backslashes into double backslashes */
   def unescapeBackslashes(string: String): String = string.replaceAll("\\\\", "\\\\\\\\")
+  
+  def fromUtf8Bytes(bytes: Array[Byte]): String = new String(bytes, StandardCharsets.UTF_8) 
 }

@@ -24,7 +24,7 @@ final class HailSingletonEndToEndTest extends FunSuite with LoamTestHelpers {
     val hailVdsDir = Paths.get("target/hail.vds")
 
     deleteBeforeAndAfter(hailSingletonFilePath, hailVdsDir) {
-      val executable = compileFile("src/test/resources/loam/singletons-via-hail.loam")
+      val (_, executable) = toExecutable(compileFile("src/test/resources/loam/singletons-via-hail.loam"))
 
       val results = run(executable)
 

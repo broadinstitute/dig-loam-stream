@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   * Created by oliverr on 6/27/2016.
   */
 final class LoamRepositoryTest extends FunSuite {
-  val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+  val compiler = new LoamCompiler(OutMessageSink.NoOp)
 
   def assertDefaultEntriesPresent(repo: LoamRepository): Unit = {
     for (entry <- LoamRepository.defaultEntries) {
@@ -48,6 +48,7 @@ final class LoamRepositoryTest extends FunSuite {
     assert(helloLoad.get.content === "How are you doing?")
     assert(repo.load("nope").isEmpty)
   }
+  
   test("Combo repository works as expected") {
     val repo1 = LoamRepository.ofMap(Map("1" -> "one", "2" -> "two"))
     val repo2 = LoamRepository.ofMap(Map("3" -> "three", "4" -> "four"))
@@ -71,6 +72,7 @@ final class LoamRepositoryTest extends FunSuite {
     assert(repo1.list.toSet === Set("1", "2", "5"))
     assert(repo2.list.toSet === Set("3", "4"))
   }
+  
   test("Folder repository works as expected"){
     val folder = java.nio.file.Files.createTempDirectory("repo")
     val file1 = folder.resolve("file1.loam")
@@ -92,17 +94,20 @@ final class LoamRepositoryTest extends FunSuite {
     assert(load3.get.name === "file3")
     assert(load3.get.content === "content of file3")
   }
+  
   test("Default package repo contains all default entries") {
     assertDefaultEntriesPresent(LoamRepository.defaultPackageRepo)
   }
+  
   test("Default repo contains all default entries") {
     assertDefaultEntriesPresent(LoamRepository.defaultRepo)
   }
+  
   test("All entries of default package repo compile") {
     assertAllEntriesCompile(LoamRepository.defaultPackageRepo)
   }
+  
   test("All entries of default repo compile") {
     assertAllEntriesCompile(LoamRepository.defaultRepo)
   }
 }
-

@@ -6,14 +6,13 @@ import loamstream.loam.LoamGraphValidation
 import loamstream.model.AST.ToolNode
 import org.scalatest.FunSuite
 
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * LoamStream
   * Created by oliverr on 6/20/2016.
   */
-class LoamGraphAstTest extends FunSuite {
-  val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+final class LoamGraphAstTest extends FunSuite {
+  val compiler = new LoamCompiler(OutMessageSink.NoOp)
 
   def validate(code: String): Unit = {
     val result = compiler.compile(code)

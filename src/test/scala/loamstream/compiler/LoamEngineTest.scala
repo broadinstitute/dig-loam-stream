@@ -7,6 +7,66 @@ import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.util.{Files, StringUtils}
 import org.scalatest.FunSuite
 
+
+final class LoamEngineTest extends FunSuite {
+  val engine = LoamEngine.default(ClientMessageHandler.OutMessageSink.NoOp)
+
+  test("Compile string") {
+    val fixture = Fixture.default
+    val compileResult = engine.compile(fixture.code)
+    fixture.assertCompileResultsLookGood(compileResult)
+  }
+  
+  test("Compile file") {
+    val fixture = Fixture.default
+    val file = JFiles.createTempFile("LoamEngineTest", "loam")
+    Files.writeTo(file)(fixture.code)
+    val compileResultShot = engine.compile(file)
+    assert(compileResultShot.nonEmpty)
+    val compileResult = compileResultShot.get
+    fixture.assertCompileResultsLookGood(compileResult)
+  }
+  
+  test("Compile file specified without .loam suffix") {
+    val fixture = Fixture.default
+    val folder = JFiles.createTempDirectory("LoamEngineTest")
+    val fileWithoutSuffix = folder.resolve("cp")
+    val fileWithSuffix = folder.resolve("cp.loam")
+    Files.writeTo(fileWithSuffix)(fixture.code)
+    val compileResultShot = engine.compile(fileWithoutSuffix)
+    assert(compileResultShot.nonEmpty)
+    val compileResult = compileResultShot.get
+    fixture.assertCompileResultsLookGood(compileResult)
+  }
+  
+  test("Run string") {
+    val fixture = Fixture.default
+    fixture.writeFileIn()
+    engine.run(fixture.code)
+    fixture.assertOutputFilesArePresent()
+  }
+  
+  test("Run file") {
+    val fixture = Fixture.default
+    val file = JFiles.createTempFile("LoamEngineTest", "loam")
+    Files.writeTo(file)(fixture.code)
+    fixture.writeFileIn()
+    engine.run(file)
+    fixture.assertOutputFilesArePresent()
+  }
+  
+  test("Run file specified without .loam suffix") {
+    val fixture = Fixture.default
+    val folder = JFiles.createTempDirectory("LoamEngineTest")
+    val fileWithoutSuffix = folder.resolve("cp")
+    val fileWithSuffix = folder.resolve("cp.loam")
+    Files.writeTo(fileWithSuffix)(fixture.code)
+    fixture.writeFileIn()
+    engine.run(fileWithoutSuffix)
+    fixture.assertOutputFilesArePresent()
+  }
+}
+
 /**
   * LoamStream
   * Created by oliverr on 7/8/2016.
@@ -25,7 +85,7 @@ object LoamEngineTest {
     }
   }
 
-  case class Fixture(fileIn: Path, fileOut1: Path, fileOut2: Path, fileOut3: Path) {
+  final case class Fixture(fileIn: Path, fileOut1: Path, fileOut2: Path, fileOut3: Path) {
     def code = {
       val fileInUnescaped = StringUtils.unescapeBackslashes(fileIn.toString)
       val fileOut1Unescaped = StringUtils.unescapeBackslashes(fileOut1.toString)
@@ -60,62 +120,5 @@ object LoamEngineTest {
       assert(JFiles.exists(fileOut2))
       assert(JFiles.exists(fileOut3))
     }
-
   }
-
-}
-
-class LoamEngineTest extends FunSuite {
-  val engine = LoamEngine.default(ClientMessageHandler.OutMessageSink.NoOp)
-
-  test("Compile string") {
-    val fixture = Fixture.default
-    val compileResult = engine.compile(fixture.code)
-    fixture.assertCompileResultsLookGood(compileResult)
-  }
-  test("Compile file") {
-    val fixture = Fixture.default
-    val file = JFiles.createTempFile("LoamEngineTest", "loam")
-    Files.writeTo(file)(fixture.code)
-    val compileResultShot = engine.compile(file)
-    assert(compileResultShot.nonEmpty)
-    val compileResult = compileResultShot.get
-    fixture.assertCompileResultsLookGood(compileResult)
-  }
-  test("Compile file specified without .loam suffix") {
-    val fixture = Fixture.default
-    val folder = JFiles.createTempDirectory("LoamEngineTest")
-    val fileWithoutSuffix = folder.resolve("cp")
-    val fileWithSuffix = folder.resolve("cp.loam")
-    Files.writeTo(fileWithSuffix)(fixture.code)
-    val compileResultShot = engine.compile(fileWithoutSuffix)
-    assert(compileResultShot.nonEmpty)
-    val compileResult = compileResultShot.get
-    fixture.assertCompileResultsLookGood(compileResult)
-  }
-  test("Run string") {
-    val fixture = Fixture.default
-    fixture.writeFileIn()
-    engine.run(fixture.code)
-    fixture.assertOutputFilesArePresent()
-  }
-  test("Run file") {
-    val fixture = Fixture.default
-    val file = JFiles.createTempFile("LoamEngineTest", "loam")
-    Files.writeTo(file)(fixture.code)
-    fixture.writeFileIn()
-    engine.run(file)
-    fixture.assertOutputFilesArePresent()
-  }
-  test("Run file specified without .loam suffix") {
-    val fixture = Fixture.default
-    val folder = JFiles.createTempDirectory("LoamEngineTest")
-    val fileWithoutSuffix = folder.resolve("cp")
-    val fileWithSuffix = folder.resolve("cp.loam")
-    Files.writeTo(fileWithSuffix)(fixture.code)
-    fixture.writeFileIn()
-    engine.run(fileWithoutSuffix)
-    fixture.assertOutputFilesArePresent()
-  }
-
 }

@@ -13,14 +13,9 @@ import scala.reflect.runtime.universe.Type
   * LoamStream
   * Created by oliverr on 6/9/2016.
   */
-case class GraphPrinter(idLength: Int) {
+final case class GraphPrinter(idLength: Int) {
 
-  def print(id: LId): String = id match {
-    case LId.LNamedId(name) => name
-    case LId.LAnonId(time, random) =>
-      val hex = random.toHexString
-      if (hex.length > 4) hex.substring(hex.length - 4) else hex
-  }
+  def print(id: LId): String = id.name
 
   def print(tpe: Type, fully: Boolean): String =
     if (fully) SourceUtils.fullTypeName(tpe) else SourceUtils.shortTypeName(tpe)

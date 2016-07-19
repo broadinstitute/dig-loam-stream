@@ -10,8 +10,6 @@ import loamstream.tools.core.LCoreEnv
 import loamstream.util.SourceUtils
 import org.scalatest.FunSuite
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 /**
   * LoamStream
   * Created by oliverr on 5/20/2016.
@@ -35,7 +33,7 @@ final class LoamCompilerTest extends FunSuite {
   }
 
   test("Testing sanity of classloader used by compiler.") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)
     val compilerClassLoader = compiler.compiler.rootClassLoader
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "java.lang.String"))
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.collection.immutable.Seq"))
@@ -43,7 +41,7 @@ final class LoamCompilerTest extends FunSuite {
   }
 
   test("Testing compilation of legal code fragment with no settings (saying 'Hello!').") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)
     val code = {
       // scalastyle:off regex
       """
@@ -60,7 +58,7 @@ final class LoamCompilerTest extends FunSuite {
     assert(env.size === 0)
   }
   test("Testing compilation of legal code fragment with five settings.") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)
     val code = {
       """
     genotypesId := "myImportantGenotypes"
@@ -88,7 +86,7 @@ final class LoamCompilerTest extends FunSuite {
     assert(env.size === 5)
   }
   test("Testing that compilation of illegal code fragment causes compile errors.") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)
     val code = {
       """
     The enlightened soul is a person who is self-conscious of his "human condition" in his time and historical
@@ -100,7 +98,7 @@ final class LoamCompilerTest extends FunSuite {
     assert(result.envOpt.isEmpty)
   }
   test("Testing sample code toyImpute.loam") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)(global)
+    val compiler = new LoamCompiler(OutMessageSink.NoOp)
     val codeShot = LoamRepository.defaultRepo.load("toyImpute").map(_.content)
     assert(codeShot.nonEmpty)
     val result = compiler.compile(codeShot.get)

@@ -24,7 +24,8 @@ trait DrmaaClient {
   def submitJob(
     pathToScript: Path,
     pathToUgerOutput: Path,
-    jobName: String): DrmaaClient.SubmissionResult
+    jobName: String,
+    numTasks: Int = 1): DrmaaClient.SubmissionResult
 
   /**
    * Synchronously inspect the status of a job with the given ID

@@ -73,9 +73,10 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   override def submitJob(
       pathToScript: Path,
       pathToUgerOutput: Path,
-      jobName: String): DrmaaClient.SubmissionResult = {
+      jobName: String,
+      numTasks: Int = 1): DrmaaClient.SubmissionResult = {
 
-    runJob(pathToScript, pathToUgerOutput, jobName)
+    runJob(pathToScript, pathToUgerOutput, jobName, numTasks)
   }
   
   /**
@@ -136,16 +137,20 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   private def runJob(pathToScript: Path,
                      pathToUgerOutput: Path,
-                     jobName: String): SubmissionResult = {
+                     jobName: String,
+                     numTasks: Int = 1): SubmissionResult = {
 
     withJobTemplate(session) { jt =>
+      val taskStartIndex = 1
+      val taskEndIndex = numTasks
+      val taskIndexIncr = 1
 
       jt.setNativeSpecification("-cwd -shell y -b n")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")
 
-      val jobIds = session.runBulkJobs(jt, 1, 1, 1).asScala.map(_.toString)
+      val jobIds = session.runBulkJobs(jt, taskStartIndex, taskEndIndex, taskIndexIncr).asScala.map(_.toString)
     
       info(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
 

@@ -100,7 +100,7 @@ then
 \t-L \\
 \t/some/log/file \\
 \t--thread \\
-\t2 \\
+\t2
 elif [ $$i -eq 2 ]
 then
 \t/some/shapeit/executable \\
@@ -114,7 +114,7 @@ then
 \t-L \\
 \t/some/log/file \\
 \t--thread \\
-\t2 \\
+\t2
 elif [ $$i -eq 3 ]
 then
 \t/some/shapeit/executable \\
@@ -128,7 +128,7 @@ then
 \t-L \\
 \t/some/log/file \\
 \t--thread \\
-\t2 \\
+\t2
 fi
 """
   }

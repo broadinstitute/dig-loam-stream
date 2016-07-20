@@ -8,7 +8,7 @@ import loamstream.model.execute.LExecutable
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.{ LJob, LToolBox }
 import loamstream.model.{ AST, LPipeline, Tool }
-import loamstream.util.{ Hit, Miss, Shot, Shots, Snag }
+import loamstream.util.{ Hit, Miss, Shot, Snag }
 
 /**
  * LoamStream

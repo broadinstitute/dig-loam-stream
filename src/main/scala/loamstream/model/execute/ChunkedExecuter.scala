@@ -67,5 +67,4 @@ object ChunkedExecuter {
       futureLeafResults.map(Maps.mergeMaps)
     }
   }
-
 }

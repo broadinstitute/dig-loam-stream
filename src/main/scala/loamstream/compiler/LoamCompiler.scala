@@ -176,8 +176,8 @@ def graph = graphBuilder.graph
         val soManyStores = StringUtils.soMany(stores.size, "store")
         val soManyTools = StringUtils.soMany(tools.size, "tool")
         outMessageSink.send(StatusOutMessage(s"Found $soManySettings, $soManyStores and $soManyTools."))
-        val idLength = 4
-        val graphPrinter = new GraphPrinter(idLength)
+        val lengthOfLine = 100
+        val graphPrinter = GraphPrinter.byLine(lengthOfLine)
         outMessageSink.send(StatusOutMessage(
           s"""
              |[Start Graph]

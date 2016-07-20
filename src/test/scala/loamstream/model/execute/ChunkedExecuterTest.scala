@@ -8,7 +8,11 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
 
 /**
-  * Created by kyuksel on 7/15/16.
+  * @author clint
+  * date: Jun 2, 2016
+  * 
+  * @author kyuksel 
+  * date: Jul 15, 2016
   */
 final class ChunkedExecuterTest extends ExecuterTest {
   override def makeExecuter: LExecuter = ChunkedExecuter.default

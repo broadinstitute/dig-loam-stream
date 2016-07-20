@@ -143,15 +143,6 @@ final class ShotTest extends FunSuite {
     assert((miss orElse hit1) === hit1)
   }
 
-  test("and") {
-    import Shots._
-
-    assert((hit and miss) === Shots2(hit, miss))
-    assert((miss and hit) === Shots2(miss, hit))
-    assert((miss and miss) === Shots2(miss, miss))
-    assert((hit and hit) === Shots2(hit, hit))
-  }
-
   test("Miss()") {
     assert(Miss("asdf") === Miss(SnagMessage("asdf")))
   }
@@ -176,13 +167,43 @@ final class ShotTest extends FunSuite {
     assert(sequence(empty) == Hit(Nil))
   }
 
-  test("Shots.findHit") {
-    val divideEvenNumberByTwo: Int => Shot[Int] = i => if (i % 2 == 0) Hit(i / 2) else Miss("Odd number")
-    assert(Shots.findHit(Seq(1, 2, 3, 4, 5), divideEvenNumberByTwo) === Hit(1))
-    assert(Shots.findHit(Seq(1, 3, 5), divideEvenNumberByTwo) ===
+  test("combinedMiss") {
+    import Shot.combinedMiss
+    
+    val m0 = Miss("blarg")
+    val m1 = Miss("foo")
+    val m2 = Miss("bar")
+    
+    val shots: Seq[Shot[Int]] = Seq(Hit(42), m0, Hit(99), Hit(1), m1, Hit(3), m2)
+    
+    assert(combinedMiss(shots) == Miss(Snag(Seq(m0.snag, m1.snag, m2.snag))))
+  }
+  
+  test("findHit") {
+    import Shot.findHit
+    
+    val divideEvenNumberByTwo: Int => Shot[Int] = { i => 
+      if (i % 2 == 0) Hit(i / 2) else Miss("Odd number")
+    }
+    
+    assert(findHit(Seq(1, 2, 3, 4, 5), divideEvenNumberByTwo) === Hit(1))
+    
+    assert(findHit(Seq(1, 3, 5), divideEvenNumberByTwo) ===
       Miss(SnagSeq(Seq(SnagMessage("Odd number"), SnagMessage("Odd number"), SnagMessage("Odd number")))))
-    assert(Shots.findHit(Seq.empty[Int], divideEvenNumberByTwo) === Miss(SnagMessage("List of items is empty.")))
+    
+    assert(findHit(Seq.empty[Int], divideEvenNumberByTwo) === Miss(SnagMessage("List of items is empty.")))
   }
 
+  test("isMiss/isHit") {
+    val hit = Hit(42)
+    val miss = Miss("foo")
+    
+    assert(hit.isHit)
+    assert(!hit.isMiss)
+    
+    assert(!miss.isHit)
+    assert(miss.isMiss)
+  }
+  
   //scalastyle:off magic.number
 }

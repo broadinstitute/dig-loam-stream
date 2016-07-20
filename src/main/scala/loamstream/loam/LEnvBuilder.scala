@@ -6,20 +6,22 @@ import loamstream.LEnv
   * LoamStream
   * Created by oliverr on 5/15/2016.
   */
-class LEnvBuilder {
+final class LEnvBuilder {
 
-  var env = LEnv.empty
+  @volatile private[this] var _env: LEnv = LEnv.empty
 
-  def +[V](entry: LEnv.Entry[V]): LEnvBuilder = {
-    env = env + entry
+  private[this] val lock = new AnyRef
+  
+  private[this] def updateEnv(f: LEnv => LEnv): LEnvBuilder = lock.synchronized {
+    _env = f(_env)
+    
     this
   }
+  
+  def +[V](entry: LEnv.Entry[V]): LEnvBuilder = updateEnv(_ + entry)
 
-  def +=[V](entry: LEnv.Entry[V]): LEnvBuilder = {
-    env = env + entry
-    this
-  }
+  def +=[V](entry: LEnv.Entry[V]): LEnvBuilder = updateEnv(_ + entry)
 
-  def toEnv: LEnv = env
+  def toEnv: LEnv = lock.synchronized(_env)
 
 }

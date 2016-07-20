@@ -81,6 +81,51 @@ final class StringUtilsTest extends FunSuite {
     assert(StringUtils.unwrapLines(text) === "Hello World! How are you?")
   }
   
+  test("soMany(count, singular, plural)") {
+    import StringUtils.soMany
+    //scalastyle:off magic.number
+    assert(soMany(0, "foo", "Foos") == "no Foos")
+    assert(soMany(1, "foo", "Foos") == "one foo")
+    
+    assert(soMany(2, "foo", "Foos") == "two Foos")
+    assert(soMany(3, "foo", "Foos") == "three Foos")
+    assert(soMany(4, "foo", "Foos") == "four Foos")
+    assert(soMany(5, "foo", "Foos") == "five Foos")
+    assert(soMany(6, "foo", "Foos") == "six Foos")
+    assert(soMany(7, "foo", "Foos") == "seven Foos")
+    assert(soMany(8, "foo", "Foos") == "eight Foos")
+    assert(soMany(9, "foo", "Foos") == "nine Foos")
+    assert(soMany(10, "foo", "Foos") == "ten Foos")
+    assert(soMany(11, "foo", "Foos") == "eleven Foos")
+    assert(soMany(12, "foo", "Foos") == "twelve Foos")
+  
+    assert(soMany(13, "foo", "Foos") == "13 Foos")
+    assert(soMany(42, "foo", "Foos") == "42 Foos")
+  }
+  
+  test("soMany(count, singular)") {
+    import StringUtils.soMany
+    
+    assert(soMany(0, "Foo") == "no Foos")
+    assert(soMany(1, "Foo") == "one Foo")
+    
+    assert(soMany(2, "Foo") == "two Foos")
+    assert(soMany(3, "Foo") == "three Foos")
+    assert(soMany(4, "Foo") == "four Foos")
+    assert(soMany(5, "Foo") == "five Foos")
+    assert(soMany(6, "Foo") == "six Foos")
+    assert(soMany(7, "Foo") == "seven Foos")
+    assert(soMany(8, "Foo") == "eight Foos")
+    assert(soMany(9, "Foo") == "nine Foos")
+    assert(soMany(10, "Foo") == "ten Foos")
+    assert(soMany(11, "Foo") == "eleven Foos")
+    assert(soMany(12, "Foo") == "twelve Foos")
+    
+    assert(soMany(13, "Foo") == "13 Foos")
+    assert(soMany(42, "Foo") == "42 Foos")
+    //scalastyle:on magic.number
+  }
+  
   test("fromUtf8Bytes") {
     val s = "askdljlasudjalru0985234***';l'"
     

@@ -199,9 +199,9 @@ final class ShotTest extends FunSuite {
     val miss = Miss("foo")
     
     assert(hit.isHit)
-    assert(hit.isMiss == false)
+    assert(!hit.isMiss)
     
-    assert(miss.isHit == false)
+    assert(!miss.isHit)
     assert(miss.isMiss)
   }
   

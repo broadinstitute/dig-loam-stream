@@ -37,7 +37,7 @@ final class LoamFolderRepositoryTest extends FunSuite {
     
     newFile.toFile.delete()
     
-    assert(newFile.toFile.exists == false)
+    assert(!newFile.toFile.exists)
     
     val repo = LoamFolderRepository(dir)
     

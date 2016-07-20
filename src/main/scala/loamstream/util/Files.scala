@@ -44,4 +44,6 @@ object Files {
       reader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
     }
   }
+  
+  def readFromAsUtf8(file: Path): String = StringUtils.fromUtf8Bytes(java.nio.file.Files.readAllBytes(file))
 }

@@ -45,7 +45,7 @@ object Shot {
     case None => Miss(snag)
   }
 
-  def notNull[A](a: A, snag: Snag): Shot[A] = if (a != null) Hit(a) else Miss(snag) // scalastyle:ignore null
+  def notNull[A](a: A, snag: Snag): Shot[A] = Shot.fromOption(Option(a), snag)
 
   import scala.language.higherKinds
 

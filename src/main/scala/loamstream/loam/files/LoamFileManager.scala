@@ -8,13 +8,15 @@ import loamstream.loam.LoamStore
   * LoamStream
   * Created by oliverr on 6/22/2016.
   */
-class LoamFileManager {
+final class LoamFileManager {
 
-  var paths: Map[LoamStore, Path] = Map.empty
+  private[this] var paths: Map[LoamStore, Path] = Map.empty
 
+  private[this] val lock = new AnyRef
+  
   val filePrefix = "loam"
 
-  def getPath(store: LoamStore): Path = {
+  def getPath(store: LoamStore): Path = lock.synchronized {
     paths.get(store).orElse(store.pathOpt) match {
       case Some(path) => path
       case None =>
@@ -24,5 +26,4 @@ class LoamFileManager {
         path
     }
   }
-
 }

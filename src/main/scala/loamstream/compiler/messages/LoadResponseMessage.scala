@@ -6,6 +6,6 @@ package loamstream.compiler.messages
   * @param content Content of Loam script
   * @param message A human-readable message typically describing where script was loaded from
   */
-case class LoadResponseMessage(name: String, content: String, message: String) extends ClientOutMessage {
+final case class LoadResponseMessage(name: String, content: String, message: String) extends ClientOutMessage {
   override val typeName: String = "load"
 }

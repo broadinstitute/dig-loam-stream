@@ -14,38 +14,45 @@ import scala.io.{Codec, Source}
   * @param packageName Name of package where Loam scripts are stored
   * @param entries     List of names of available Loam scripts
   **/
-case class LoamPackageRepository(packageName: String, entries: Seq[String]) extends LoamRepository {
-  val classLoader: ClassLoader = classOf[LoamPackageRepository].getClassLoader
+final case class LoamPackageRepository(packageName: String, entries: Seq[String]) extends LoamRepository {
+  private val classLoader: ClassLoader = classOf[LoamPackageRepository].getClassLoader
 
-  /** Converts name of Loam script into its resource name */
-  def nameToFullName(name: String): String = s"$packageName${File.separator}$name${LoamRepository.fileSuffix}"
-
+  override def list: Seq[String] = entries
+  
   override def load(name: String): Shot[LoadResponseMessage] = {
     val fullName = nameToFullName(name)
-    val iStreamShot =
-      Shot.notNull(classLoader.getResourceAsStream(fullName), Snag(s"Could not find resource $fullName"))
-    iStreamShot.flatMap(is => Shot {
+    val stream = classLoader.getResourceAsStream(fullName)
+    
+    val iStreamShot = Shot.notNull(stream, Snag(s"Could not find resource $fullName"))
+    
+    iStreamShot.map { is => 
       val content = Source.fromInputStream(is)(Codec.UTF8).mkString
+     
       LoadResponseMessage(name, content, s"Got '$name' from package '$packageName'.")
-    })
+    }
   }
 
+  /** Converts name of Loam script into its resource name */
+  private def nameToFullName(name: String): String = s"$packageName${File.separator}$name${LoamRepository.fileSuffix}"
+  
   /** Tries to convert Loam script name into URL to its location */
-  def getUrl(name: String): Shot[URL] = {
+  private def getUrl(name: String): Shot[URL] = {
     val fullName = nameToFullName(name)
+    
     Shot.notNull(classLoader.getResource(fullName), Snag(s"Could not get URL for $fullName"))
   }
 
   /** Tries to obtain a URL to any available Loam script in this package */
-  def getSomeUrl: Shot[URL] = Shot.findHit(entries, getUrl)
+  private def getSomeUrl: Shot[URL] = Shot.findHit(entries, getUrl)
 
   /** Tries to obtain the folder where class files are stored */
-  def shootForClassFolder: Shot[Path] =
-    Shot.findHit[String, Path](entries, entry => getUrl(entry).flatMap(url => Shot {
-      val entryPath = Paths.get(url.toURI)
-      entryPath.getParent
-    }))
-
-
-  override def list: Seq[String] = entries
+  private[repo] def shootForClassFolder: Shot[Path] = {
+    def getEnclosingFolder(entry: String): Shot[Path] = {
+      getUrl(entry).map { url => 
+        Paths.get(url.toURI).getParent
+      }
+    }
+    
+    Shot.findHit(entries, getEnclosingFolder)
+  }
 }

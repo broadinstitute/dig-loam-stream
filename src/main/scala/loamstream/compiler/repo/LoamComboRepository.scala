@@ -8,7 +8,7 @@ import loamstream.util.Shot
   * @param repo1 A mutable repository to which all save requests go
   * @param repo2 A repository to be read only
   */
-case class LoamComboRepository(repo1: LoamRepository.Mutable, repo2: LoamRepository) extends LoamRepository.Mutable {
+final case class LoamComboRepository(repo1: LoamRepository.Mutable, repo2: LoamRepository) extends LoamRepository.Mutable {
   /** Tries to save Loam script to repo1 */
   override def save(name: String, content: String): Shot[SaveResponseMessage] = repo1.save(name, content)
 

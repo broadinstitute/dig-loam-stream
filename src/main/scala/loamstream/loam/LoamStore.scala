@@ -17,7 +17,7 @@ object LoamStore {
     LoamStore(LId.newAnonId, StoreSig.create[T])
 }
 
-case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBuilder: LoamGraphBuilder) extends Store {
+final case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBuilder: LoamGraphBuilder) extends Store {
   update()
 
   def update(): Unit = graphBuilder.addStore(this)

@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 import scala.util.Success
 import java.nio.file.Paths
 import java.util.stream.Collectors
+import java.nio.file.Path
 
 /**
  * @author clint
@@ -41,6 +42,14 @@ final class FilesTest extends FunSuite {
   }
   
   test("writeTo()() and readFrom()") {
+    doWriteReadTest(Files.readFrom)
+  }
+  
+  test("readFromAsUtf8") {
+    doWriteReadTest(Files.readFromAsUtf8)
+  }
+  
+  private def doWriteReadTest(read: Path => String): Unit = {
     val tempFile = Files.tempFile("foo")
     
     val contents = """hello
@@ -48,10 +57,10 @@ final class FilesTest extends FunSuite {
         blah
         yo  """
     
-    assert(Files.readFrom(tempFile) == "")
+    assert(Files.readFromAsUtf8(tempFile) == "")
     
     Files.writeTo(tempFile)(contents)
     
-    assert(Files.readFrom(tempFile) == contents)
+    assert(read(tempFile) == contents)
   }
 }

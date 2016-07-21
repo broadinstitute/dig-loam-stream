@@ -9,7 +9,7 @@ import org.scalatest.FunSuite
 final class IssueTest extends FunSuite {
   test("Severity.apply") {
     intercept[Exception] {
-      Issue.Severity(-100)
+      Issue.Severity(-100) // scalastyle:ignore magic.number
     }
     
     intercept[Exception] {
@@ -21,7 +21,7 @@ final class IssueTest extends FunSuite {
     }
     
     intercept[Exception] {
-      Issue.Severity(42)
+      Issue.Severity(42) // scalastyle:ignore magic.number
     }
     
     assert(Issue.Severity(0) == Issue.Severity.Info)

@@ -26,10 +26,11 @@ final class LoamTokenTest extends FunSuite {
         
     assert(mergeStringTokens(allStringTokens) == Seq(StringToken("foo bar baz")))
   }
-  
+
+
   test("mergeStringTokens - mixed") {
     import LoamToken.mergeStringTokens
-    
+    // scalastyle:off null
     val tokens = Seq(
         StringToken(""), 
         StringToken("foo"), 
@@ -51,8 +52,8 @@ final class LoamTokenTest extends FunSuite {
         StoreToken(null), 
         StringToken(" "), 
         EnvToken(null), 
-        StringToken("baz"))  
-        
+        StringToken("baz"))
+    // scalastyle:on null
     assert(mergeStringTokens(tokens) == expected)
   }
 }

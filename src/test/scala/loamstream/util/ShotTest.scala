@@ -208,7 +208,7 @@ final class ShotTest extends FunSuite {
   test("notNull") {
     val snag = Snag("blarg")
     
-    assert(Shot.notNull(null, snag) == Miss(snag))
+    assert(Shot.notNull(null, snag) == Miss(snag)) // scalastyle:ignore null
     
     assert(Shot.notNull("foo", snag) == Hit("foo"))
     assert(Shot.notNull(42, snag) == Hit(42))

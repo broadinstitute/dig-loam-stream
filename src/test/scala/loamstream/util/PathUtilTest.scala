@@ -18,7 +18,8 @@ final class PathUtilTest extends FunSuite {
   private val foo = Paths.get("foo")
   
   private val fooBar = Paths.get("foo/bar")
-  
+
+  // scalastyle:off null
   test("transformFileName") {
 
     assert(root.getParent == null)
@@ -54,4 +55,5 @@ final class PathUtilTest extends FunSuite {
     
     assert(getFileNameTransformation(add2)(fooBar) == Paths.get("foo/bar2"))
   }
+  // scalastyle:on null
 }

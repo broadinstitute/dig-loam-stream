@@ -25,9 +25,9 @@ object ClientMessageHandler {
         outMessage match {
           case ErrorOutMessage(message) => loggable.error(message)
           case CompilerIssueMessage(issue) => issue.severity match {
-            case Issue.Info => loggable.info(issue.msg)
-            case Issue.Warning => loggable.warn(issue.msg)
-            case Issue.Error => loggable.error(issue.msg)
+            case Issue.Severity.Info => loggable.info(issue.msg)
+            case Issue.Severity.Warning => loggable.warn(issue.msg)
+            case Issue.Severity.Error => loggable.error(issue.msg)
           }
           case _ => loggable.info(outMessage.message)
         }
@@ -45,7 +45,7 @@ object ClientMessageHandler {
 }
 
 /** The handler responding to messages sent by a client */
-case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
+final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
   val repo = LoamRepository.defaultRepo
   val engine = LoamEngine.default(outMessageSink)
   val compiler = new LoamCompiler(outMessageSink)

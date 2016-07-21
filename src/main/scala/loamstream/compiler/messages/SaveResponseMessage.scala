@@ -5,6 +5,6 @@ package loamstream.compiler.messages
   * @param name    Name of Loam script
   * @param message Message about the saving such as where it was saved to
   */
-case class SaveResponseMessage(name: String, message: String) extends ClientOutMessage {
+final case class SaveResponseMessage(name: String, message: String) extends ClientOutMessage {
   override val typeName: String = "save"
 }

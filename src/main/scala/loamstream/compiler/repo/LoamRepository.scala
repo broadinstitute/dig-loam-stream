@@ -17,8 +17,13 @@ trait LoamRepository {
 /** A repository of Loam scripts */
 object LoamRepository {
   //TODO: Is this supposed to match what's defined in build.sbt?
+  //What happens if we clone to a different dir, like dig-loamstream-foo? 
   val projectName = "dig-loam-stream"
+  //TODO: This assumes this code will run from ABT or an IDE; when deployed, 'src/main/resources' won't exist. 
   val resourceFolder = "src/main/resources"
+  //TODO: Hard-coding a package name an especially .loam file names feels bad.  Classloaders can't enumerate the
+  //contents of a package, but it is possible to look at the classpath and walk down/into each entry.  This is
+  //what Spring, JAX-RS, etc do.
   val defaultPackageName = "loam"
   val defaultEntries = Seq("first", "toyImpute", "impute", "imputeParallel")
   val defaultPackageRepo = ofPackage(defaultPackageName, defaultEntries)
@@ -32,12 +37,23 @@ object LoamRepository {
   val defaultRepo: LoamRepository.Mutable = {
     defaultPackageRepo.shootForClassFolder match {
       case Hit(classFolder) =>
-        val classFolderDepth =
-          classFolder.getNameCount - 1 -
-            (0 until classFolder.getNameCount).map(classFolder.getName).map(_.toString).indexOf(projectName)
+        //TODO: being tied to a hardcoded SBT project name like this feels a bit bad.  It assumes that we'll be in a
+        // subdir of `projectName`, for one thing.
+        val classFolderDepth = {
+          val indexOfProjectFolder = {
+            val parts = (0 until classFolder.getNameCount).map(classFolder.getName).map(_.toString)
+            
+            //TODO: What happens when we're not in a subdir of `projectName` and indexOf returns -1? 
+            parts.indexOf(projectName)
+          }
+          
+          classFolder.getNameCount - 1 - indexOfProjectFolder
+        }
+        
         val rootFolder = {
           (0 until classFolderDepth).foldLeft(classFolder) { (folder, _) => folder.getParent }
         }
+        
         val loamFolder = rootFolder.resolve(s"$resourceFolder/$defaultPackageName")
         
         ofFolder(loamFolder)

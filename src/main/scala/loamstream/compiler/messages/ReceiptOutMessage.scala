@@ -12,7 +12,7 @@ object ReceiptOutMessage {
   * @param time Time when Loam script was received as millis since epoch
   * @param size String length of Loam script
   */
-case class ReceiptOutMessage(time: Long, size: Int) extends ClientOutMessage {
+final case class ReceiptOutMessage(time: Long, size: Int) extends ClientOutMessage {
   override def typeName: String = "receipt"
 
   def timeAsString: String = new Date(time).toString

@@ -5,6 +5,6 @@ package loamstream.compiler.messages
   * @param name    Name of Laom script
   * @param content Contant of Loam script
   */
-case class SaveRequestMessage(name: String, content: String) extends ClientInMessage {
+final case class SaveRequestMessage(name: String, content: String) extends ClientInMessage {
 
 }

@@ -16,7 +16,8 @@ final class MockDrmaaClient(toReturn: Seq[Try[JobStatus]]) extends DrmaaClient {
   override def submitJob(
       pathToScript: Path, 
       pathToUgerOutput: Path, 
-      jobName: String): DrmaaClient.SubmissionResult = ???
+      jobName: String,
+      numTasks: Int): DrmaaClient.SubmissionResult = ???
 
   override def statusOf(jobId: String): Try[JobStatus] = ???
 

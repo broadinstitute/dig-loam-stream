@@ -24,7 +24,10 @@ import loamstream.util.Loggable
 final class Drmaa1Client extends DrmaaClient with Loggable {
   
   import DrmaaClient._
-  
+
+  // Maximum number of tasks to be bundled as an array and submitted as a single job
+  val MAX_NUM_TASKS = 1000
+
   //NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
   //use one Session per client to ensure that all operations performed by this instance use the same Session.
   private[this] lazy val session: Session = {
@@ -69,13 +72,16 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @param pathToScript the wrapper script to submit
    * @param pathToUgerOutput a path pointing to the desired location of log output from UGER
    * @param jobName a descriptive, human-readable name for the submitted work
+   * @param numTasks length of task array to be submitted as a single UGER job
    */
   override def submitJob(
       pathToScript: Path,
       pathToUgerOutput: Path,
-      jobName: String): DrmaaClient.SubmissionResult = {
+      jobName: String,
+      numTasks: Int = 1): DrmaaClient.SubmissionResult = {
 
-    runJob(pathToScript, pathToUgerOutput, jobName)
+    require(1 to MAX_NUM_TASKS contains numTasks)
+    runJob(pathToScript, pathToUgerOutput, jobName, numTasks)
   }
   
   /**
@@ -136,16 +142,22 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   private def runJob(pathToScript: Path,
                      pathToUgerOutput: Path,
-                     jobName: String): SubmissionResult = {
+                     jobName: String,
+                     numTasks: Int = 1): SubmissionResult = {
+
+    require(1 to MAX_NUM_TASKS contains numTasks)
 
     withJobTemplate(session) { jt =>
+      val taskStartIndex = 1
+      val taskEndIndex = numTasks
+      val taskIndexIncr = 1
 
       jt.setNativeSpecification("-cwd -shell y -b n")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")
 
-      val jobIds = session.runBulkJobs(jt, 1, 1, 1).asScala.map(_.toString)
+      val jobIds = session.runBulkJobs(jt, taskStartIndex, taskEndIndex, taskIndexIncr).asScala.map(_.toString)
     
       info(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
 

@@ -47,7 +47,7 @@ i=$$SGE_TASK_ID
 
   def getBody(commandLineJob: CommandLineJob, sep: String): String = {
     val tokens = commandLineJob.commandLineString.split(space)
-    s"""$newLine$tab${tokens.mkString(s"$unixLineSep$sep")}$unixLineSep"""
+    s"""$newLine$tab${tokens.mkString(s"$unixLineSep$sep")}"""
   }
 
   def getIfHeader(index: Int): String = {

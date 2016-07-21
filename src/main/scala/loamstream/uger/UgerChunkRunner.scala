@@ -13,9 +13,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import monix.execution.Scheduler
-import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.util.Files
-import loamstream.conf.ImputationConfig
 import loamstream.conf.UgerConfig
 import java.util.UUID
 
@@ -51,7 +49,7 @@ final case class UgerChunkRunner(
     //TODO: do we need this?  Should it be something better?
     val jobName: String = s"LoamStream-${UUID.randomUUID}"
 
-    val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName)
+    val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName, leafCommandLineJobs.size)
 
     submissionResult match {
       case DrmaaClient.SubmissionSuccess(rawJobIds) => {

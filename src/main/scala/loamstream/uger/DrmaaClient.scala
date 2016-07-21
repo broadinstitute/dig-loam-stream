@@ -20,6 +20,7 @@ trait DrmaaClient {
    * @param pathToScript the path to the script that UGER should run
    * @param pathToUgerOutput the path to the log file UGER should write to
    * @param jobName a descriptive prefix used to identify the job.  Has no impact on how the job runs.
+   * @param numTasks length of task array to be submitted as a single UGER job
    */
   def submitJob(
     pathToScript: Path,

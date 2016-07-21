@@ -69,6 +69,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @param pathToScript the wrapper script to submit
    * @param pathToUgerOutput a path pointing to the desired location of log output from UGER
    * @param jobName a descriptive, human-readable name for the submitted work
+   * @param numTasks length of task array to be submitted as a single UGER job
    */
   override def submitJob(
       pathToScript: Path,

@@ -147,21 +147,21 @@ final case class LoamGraph(
 
   /** Ranks for all tools: zero for final tools; for all others one plus maximum of rank of succeeding tools */
   def ranks: Map[LoamTool, Int] = {
-    var ranks: Map[LoamTool, Int] = tools.map(tool => (tool, 0)).toMap
+    val initialRanks: Map[LoamTool, Int] = tools.map(tool => (tool, 0)).toMap
     
-    var notDoneYet = true
+    tools.foldLeft(initialRanks) { (ranks, tool) =>
+      def rankFor(tool: LoamTool): Int = ranks.getOrElse(tool, 0)
     
-    while (notDoneYet) {
-      notDoneYet = false
-      for (tool <- tools) {
-        val newRankEstimate = (toolsSucceeding(tool).map(ranks.getOrElse(_, 0)).map(_ + 1) + 0).max
-        if (newRankEstimate != ranks(tool)) {
-          notDoneYet = true
-          ranks += (tool -> newRankEstimate)
-        }
-      }
+      def succeedingToolRanks(tool: LoamTool): Set[Int] = toolsSucceeding(tool).map(rankFor).map(_ + 1)
+      
+      val newRankEstimate = (succeedingToolRanks(tool) + 0).max
+        
+      if (newRankEstimate == ranks(tool)) { 
+        ranks 
+      } else {
+        ranks + (tool -> newRankEstimate)
+      } 
     }
-    ranks
   }
 
   private def storesFor(tool: LoamTool)(storeMap: Map[LoamTool, Set[LoamStore]]): Set[LoamStore] = {

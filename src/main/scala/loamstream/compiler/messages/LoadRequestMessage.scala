@@ -4,6 +4,6 @@ package loamstream.compiler.messages
   *
   * @param name Name of the script to be loaded
   */
-case class LoadRequestMessage(name: String) extends ClientInMessage {
+final case class LoadRequestMessage(name: String) extends ClientInMessage {
 
 }

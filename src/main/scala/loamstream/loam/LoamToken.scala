@@ -4,6 +4,7 @@ import java.nio.file.Paths
 
 import loamstream.LEnv
 import loamstream.loam.files.LoamFileManager
+import scala.annotation.tailrec
 
 /**
   * LoamStream
@@ -57,28 +58,29 @@ object LoamToken {
   }
 
   def mergeStringTokens(tokens: Seq[LoamToken]): Seq[LoamToken] = {
-    var tokensMerged: Seq[LoamToken] = Seq.empty
-    
     val tokenIter = tokens.iterator.filter {
-      case stringToken: StringToken if stringToken.string.length == 0 => false
+      case StringToken(string) => string.nonEmpty
       case _ => true
     }
-    
-    if (tokenIter.hasNext) {
-      var currentToken = tokenIter.next()
-      while (tokenIter.hasNext) {
-        val nextToken = tokenIter.next()
-        (currentToken, nextToken) match {
-          case (currentStringToken: StringToken, nextStringToken: StringToken) =>
-            currentToken = currentStringToken + nextStringToken
-          case _ =>
-            tokensMerged :+= currentToken
-            currentToken = nextToken
+
+    if(tokenIter.isEmpty) {
+      Nil
+    } else {
+      val z: (Seq[LoamToken], LoamToken) = (Seq.empty, tokenIter.next())
+      
+      val (merged, last) = tokenIter.foldLeft(z) { (acc, nextToken) =>
+        val (mergedSoFar, current) = acc
+        
+        (current, nextToken) match {
+          case (currentStringToken: StringToken, nextStringToken: StringToken) => {
+            (mergedSoFar, currentStringToken + nextStringToken)
+          }
+          case _ => (mergedSoFar :+ current, nextToken)
         }
       }
-      tokensMerged :+= currentToken
+      
+      merged :+ last
     }
-    tokensMerged
   }
 }
 

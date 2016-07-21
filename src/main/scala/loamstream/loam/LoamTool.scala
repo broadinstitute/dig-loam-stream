@@ -59,14 +59,12 @@ final case class LoamTool private(id: LId)(implicit val graphBuilder: LoamGraphB
   /** Tokens used in the tool definition, representing parts of interpolated string and embedded objects */
   def tokens: Seq[LoamToken] = graph.toolTokens(this)
 
-  //TODO: TEST
   /** Adds input stores to this tool */
   def in(inStore: LoamStore, inStores: LoamStore*): LoamTool = {
     graphBuilder.addInputStores(this, (inStore +: inStores).toSet)
     this
   }
 
-  //TODO: TEST
   /** Adds output stores to this tool */
   def out(outStore: LoamStore, outStores: LoamStore*): LoamTool = {
     graphBuilder.addOutputStores(this, (outStore +: outStores).toSet)

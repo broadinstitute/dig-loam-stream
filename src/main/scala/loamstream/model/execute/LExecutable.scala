@@ -2,11 +2,6 @@ package loamstream.model.execute
 
 import loamstream.model.jobs.{LJob, NoOpJob}
 
-import scala.concurrent.Future
-import loamstream.model.jobs.LJob.Result
-
-import scala.concurrent.ExecutionContext
-
 /**
   * RugLoom - A prototype for a pipeline building toolkit
   * Created by oruebenacker on 2/24/16.

@@ -2,9 +2,6 @@ package loamstream.uger
 
 import java.nio.file.Path
 import scala.util.Try
-import loamstream.util.Loggable
-import org.ggf.drmaa.Session
-import loamstream.uger.JobStatus.Undetermined
 import scala.concurrent.duration.Duration
 
 /**

@@ -1,6 +1,5 @@
 package loamstream.compiler
 
-import java.nio.charset.StandardCharsets
 import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}

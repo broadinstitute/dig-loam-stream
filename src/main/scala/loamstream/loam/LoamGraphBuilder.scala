@@ -50,5 +50,5 @@ final class LoamGraphBuilder {
   def addInputStores(tool: LoamTool, stores: Set[LoamStore]): Unit = updateGraph(_.withInputStores(tool, stores))
 
   /** Adds output stores to this tool */
-  def addOutputStores(tool: LoamTool, stores: Set[LoamStore]): Unit = updateGraph(_.withInputStores(tool, stores))
+  def addOutputStores(tool: LoamTool, stores: Set[LoamStore]): Unit = updateGraph(_.withOutputStores(tool, stores))
 }

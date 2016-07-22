@@ -1,6 +1,7 @@
 package loamstream.loam
 
 import org.scalatest.FunSuite
+
 import loamstream.loam.LoamToken.StringToken
 import loamstream.model.LId
 import loamstream.model.StoreSig
@@ -50,16 +51,16 @@ final class LoamToolTest extends FunSuite {
     assert(tool.outputs == Map.empty)
     assert(tool.tokens == Seq(StringToken("foo bar baz")))
 
-    val withInputStores = tool.in(inStore0, inStore1)
+    val toolWithInputStores = tool.in(inStore0, inStore1)
     
-    assert(withInputStores.inputs == Map(inStore0.id -> inStore0, inStore1.id -> inStore1))
-    assert(withInputStores.outputs == Map.empty)
-    assert(withInputStores.tokens == Seq(StringToken("foo bar baz")))
+    assert(toolWithInputStores.inputs == Map(inStore0.id -> inStore0, inStore1.id -> inStore1))
+    assert(toolWithInputStores.outputs == Map.empty)
+    assert(toolWithInputStores.tokens == Seq(StringToken("foo bar baz")))
     
-    val withOutputStoresStores = withInputStores.out(outStore0, outStore1)
+    val toolWithOutputStoresStores = toolWithInputStores.out(outStore0, outStore1)
     
-    assert(withOutputStoresStores.inputs == Map(inStore0.id -> inStore0, inStore1.id -> inStore1))
-    assert(withOutputStoresStores.outputs == Map(outStore0.id -> outStore0, outStore1.id -> outStore1))
-    assert(withOutputStoresStores.tokens == Seq(StringToken("foo bar baz")))
+    assert(toolWithOutputStoresStores.inputs == Map(inStore0.id -> inStore0, inStore1.id -> inStore1))
+    assert(toolWithOutputStoresStores.outputs == Map(outStore0.id -> outStore0, outStore1.id -> outStore1))
+    assert(toolWithOutputStoresStores.tokens == Seq(StringToken("foo bar baz")))
   }
 }

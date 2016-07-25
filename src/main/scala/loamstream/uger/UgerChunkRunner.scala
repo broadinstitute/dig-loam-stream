@@ -37,26 +37,32 @@ final case class UgerChunkRunner(
       leaves.forall(isAcceptableJob),
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
+    // Filter out NoOpJob's
     val leafCommandLineJobs = leaves.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
 
-    val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs))
+    if (leafCommandLineJobs.nonEmpty) {
+      val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs))
 
-    info(s"Made script '$ugerScript' from $leafCommandLineJobs")
-    
-    val ugerLogFile: Path = ugerConfig.ugerLogFile
+      info(s"Made script '$ugerScript' from $leafCommandLineJobs")
 
-    //TODO: do we need this?  Should it be something better?
-    val jobName: String = s"LoamStream-${UUID.randomUUID}"
+      val ugerLogFile: Path = ugerConfig.ugerLogFile
 
-    val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName, leafCommandLineJobs.size)
+      //TODO: do we need this?  Should it be something better?
+      val jobName: String = s"LoamStream-${UUID.randomUUID}"
 
-    submissionResult match {
-      case DrmaaClient.SubmissionSuccess(rawJobIds) => {
-        import monix.execution.Scheduler.Implicits.global
+      val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName, leafCommandLineJobs.size)
 
-        toResultMap(drmaaClient, leafCommandLineJobs, rawJobIds)
+      submissionResult match {
+        case DrmaaClient.SubmissionSuccess(rawJobIds) => {
+          import monix.execution.Scheduler.Implicits.global
+
+          toResultMap(drmaaClient, leafCommandLineJobs, rawJobIds)
+        }
+        case DrmaaClient.SubmissionFailure(e) => makeAllFailureMap(leafCommandLineJobs, Some(e))
       }
-      case DrmaaClient.SubmissionFailure(e) => makeAllFailureMap(leafCommandLineJobs, Some(e))
+    } else {
+      // Handle NoOp case or a case when no jobs were presented for some reason
+      Future.successful(Map.empty)
     }
   }
 

@@ -4,9 +4,8 @@ import java.nio.file.Path
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-
 import loamstream.model.execute.ChunkRunner
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{LJob, NoOpJob}
 import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.LJob.SimpleFailure
 import loamstream.model.jobs.commandline.CommandLineJob
@@ -35,10 +34,10 @@ final case class UgerChunkRunner(
   override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
 
     require(
-      leaves.forall(isCommandLineJob),
+      leaves.forall(isAcceptableJob),
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
-    val leafCommandLineJobs = leaves.toSeq.collect { case clj: CommandLineJob => clj }
+    val leafCommandLineJobs = leaves.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
 
     val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs))
 
@@ -89,6 +88,13 @@ object UgerChunkRunner extends Loggable {
     case clj: CommandLineJob => true
     case _                   => false
   }
+
+  private[uger] def isNoOpJob(job: LJob): Boolean = job match {
+    case noj: NoOpJob => true
+    case _            => false
+  }
+
+  private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
   private[uger] def resultFrom(job: LJob, status: JobStatus): LJob.Result = {
     //TODO: Anything better; this was purely expedient

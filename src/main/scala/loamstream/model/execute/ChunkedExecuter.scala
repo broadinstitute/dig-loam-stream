@@ -1,6 +1,6 @@
 package loamstream.model.execute
 
-import loamstream.model.jobs.{LJob, NoOpJob}
+import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.{Maps, Shot}
 

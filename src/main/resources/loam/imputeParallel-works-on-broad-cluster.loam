@@ -14,7 +14,7 @@ val dataDir = homeDir / "imputation"
 val shapeitDataDir = dataDir / "shapeit_example"
 val impute2DataDir = dataDir / "impute2_example"
 
-val outputDir = homeDir / "output"
+val outputDir = path("/humgen/diabetes/users/kyuksel/imputation/run_dir")
 
 val data = store[VCF].from(shapeitDataDir / "gwas.vcf.gz")
 val geneticMap = store[TXT].from(shapeitDataDir / "genetic_map.txt.gz")
@@ -34,9 +34,7 @@ for(iShard <- 0 until nShards) {
 
   val imputed = store[TXT].to(outputDir / s"imputed.data.bp${start}-${end}.gen")
 
-  cmd"""$impute2 -use_prephased_g -m $mapFile -h $phasedHaps -l $legend
-  -known_haps_g $knownHaps -int $start $end -Ne 20000 -o $imputed -verbose -o_gz
+  cmd"""$impute2 -use_prephased_g -m $mapFile -h $knownHaps -l $legend
+  -known_haps_g $phasedHaps -int $start $end -Ne 20000 -o $imputed -verbose -o_gz
   """
 }
-
-

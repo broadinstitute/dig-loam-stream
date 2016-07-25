@@ -4,9 +4,8 @@ import java.nio.file.Path
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-
 import loamstream.model.execute.ChunkRunner
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{LJob, NoOpJob}
 import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.LJob.SimpleFailure
 import loamstream.model.jobs.commandline.CommandLineJob
@@ -35,29 +34,35 @@ final case class UgerChunkRunner(
   override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
 
     require(
-      leaves.forall(isCommandLineJob),
+      leaves.forall(isAcceptableJob),
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
-    val leafCommandLineJobs = leaves.toSeq.collect { case clj: CommandLineJob => clj }
+    // Filter out NoOpJob's
+    val leafCommandLineJobs = leaves.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
 
-    val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs))
+    if (leafCommandLineJobs.nonEmpty) {
+      val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs))
 
-    info(s"Made script '$ugerScript' from $leafCommandLineJobs")
-    
-    val ugerLogFile: Path = ugerConfig.ugerLogFile
+      info(s"Made script '$ugerScript' from $leafCommandLineJobs")
 
-    //TODO: do we need this?  Should it be something better?
-    val jobName: String = s"LoamStream-${UUID.randomUUID}"
+      val ugerLogFile: Path = ugerConfig.ugerLogFile
 
-    val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName, leafCommandLineJobs.size)
+      //TODO: do we need this?  Should it be something better?
+      val jobName: String = s"LoamStream-${UUID.randomUUID}"
 
-    submissionResult match {
-      case DrmaaClient.SubmissionSuccess(rawJobIds) => {
-        import monix.execution.Scheduler.Implicits.global
+      val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName, leafCommandLineJobs.size)
 
-        toResultMap(drmaaClient, leafCommandLineJobs, rawJobIds)
+      submissionResult match {
+        case DrmaaClient.SubmissionSuccess(rawJobIds) => {
+          import monix.execution.Scheduler.Implicits.global
+
+          toResultMap(drmaaClient, leafCommandLineJobs, rawJobIds)
+        }
+        case DrmaaClient.SubmissionFailure(e) => makeAllFailureMap(leafCommandLineJobs, Some(e))
       }
-      case DrmaaClient.SubmissionFailure(e) => makeAllFailureMap(leafCommandLineJobs, Some(e))
+    } else {
+      // Handle NoOp case or a case when no jobs were presented for some reason
+      Future.successful(Map.empty)
     }
   }
 
@@ -89,6 +94,13 @@ object UgerChunkRunner extends Loggable {
     case clj: CommandLineJob => true
     case _                   => false
   }
+
+  private[uger] def isNoOpJob(job: LJob): Boolean = job match {
+    case noj: NoOpJob => true
+    case _            => false
+  }
+
+  private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
   private[uger] def resultFrom(job: LJob, status: JobStatus): LJob.Result = {
     //TODO: Anything better; this was purely expedient

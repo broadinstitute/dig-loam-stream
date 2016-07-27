@@ -153,7 +153,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskIndexIncr = 1
 
       // TODO Make native specification controllable from Loam (DSL)
-      jt.setNativeSpecification("-cwd -shell y -b n -q long -l m_mem_free=16g")
+      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l m_mem_free=16g")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")

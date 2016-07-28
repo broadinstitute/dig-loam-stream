@@ -17,7 +17,7 @@ object Files {
   private[util] val tempFilePrefix = "loamstream"
 
   /**
-   * Creates an empty file in the *default temporary-file directory*, using
+   * Creates an empty file in the *default temporary-file* directory, using
    * the given prefix and suffix to generate its name.
    */
   def tempFile(suffix: String): Path = {

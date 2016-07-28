@@ -37,7 +37,7 @@ chr_props += (22 -> (36, 16050074))
 
 //---------------------------LOOP THROUGH CHROMOSOMES-------------------------------------------------------------------
 for (chr_num <- 1 to 22) {
-  val chr = s"chr${chr_num}"
+  var chr = s"chr${chr_num}"
 
   var vcf_data = store[VCF].from(shapeit_data_dir / s"camp.biallelic.${chr}.clean.vcf.gz")
   var genetic_map = store[TXT].from(kgp_dir / s"genetic_map_${chr}_combined_b37.txt")
@@ -47,18 +47,18 @@ for (chr_num <- 1 to 22) {
 
   cmd"$shapeit -V $vcf_data -M $genetic_map -O $phased_haps $phased_samples -L $log --thread 16"
 
-  val map_file = store[TXT].from(kgp_dir / s"genetic_map_${chr}_combined_b37.txt")
-  val legend = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.legend.gz")
-  val known_haps = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.hap.gz")
+  var map_file = store[TXT].from(kgp_dir / s"genetic_map_${chr}_combined_b37.txt")
+  var legend = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.legend.gz")
+  var known_haps = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.hap.gz")
 
-  val num_shards = chr_props.get(chr_num).get._1
-  val offset = chr_props.get(chr_num).get._2
+  var num_shards = chr_props.get(chr_num).get._1
+  var offset = chr_props.get(chr_num).get._2
 //---------------------------LOOP THROUGH WINDOWS WITHIN CHROMOSOME-----------------------------------------------------
   for(shard <- 0 until num_shards) {
-    val start = offset + shard*num_bases_per_shard + 1
-    val end = start + num_bases_per_shard - 1
+    var start = offset + shard*num_bases_per_shard + 1
+    var end = start + num_bases_per_shard - 1
 
-    val imputed = store[TXT].to(output_dir / s"imputed_data_${chr}_bp${start}-${end}.gen")
+    val imputed = store[TXT].to(output_dir / s"imputed_data_${chr}_bp${start}_${end}.gen")
 
     cmd"""$impute2 -use_prephased_g -m $map_file -h $known_haps -l $legend
     -known_haps_g $phased_haps -int $start $end -Ne 20000 -o $imputed -verbose -o_gz

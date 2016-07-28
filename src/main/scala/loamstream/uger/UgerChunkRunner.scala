@@ -41,7 +41,8 @@ final case class UgerChunkRunner(
     val leafCommandLineJobs = leaves.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
 
     if (leafCommandLineJobs.nonEmpty) {
-      val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs))
+      val ugerWorkDir = ugerConfig.ugerWorkDir
+      val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs), ugerWorkDir)
 
       info(s"Made script '$ugerScript' from $leafCommandLineJobs")
 
@@ -128,6 +129,5 @@ object UgerChunkRunner extends Loggable {
     file
   }
   
-  //TODO: Store the script somewhere more permanent, for debugging or review
   private[uger] def createScriptFile(contents: String): Path = createScriptFile(contents, Files.tempFile(".sh"))
 }

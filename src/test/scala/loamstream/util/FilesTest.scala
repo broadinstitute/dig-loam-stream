@@ -22,7 +22,7 @@ final class FilesTest extends FunSuite {
   }
 
   test("tempFile in specified temporary-file directory") {
-    val parentOfDefaultTempDir = Files.tempFile("foo").getParent.getParent.toFile
+    val parentOfDefaultTempDir = Files.tempFile("foo").getParent.toFile
     val path = Files.tempFile("foo", parentOfDefaultTempDir)
 
     assert(path.toString.endsWith("foo"))

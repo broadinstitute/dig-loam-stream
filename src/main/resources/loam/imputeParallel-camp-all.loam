@@ -37,26 +37,25 @@ chr_props += (22 -> (36, 16050074))
 
 //---------------------------LOOP THROUGH CHROMOSOMES-------------------------------------------------------------------
 for (chr_num <- 1 to 22) {
-  var chr = s"chr${chr_num}"
+  val chr = s"chr${chr_num}"
 
-  var vcf_data = store[VCF].from(shapeit_data_dir / s"camp.biallelic.${chr}.clean.vcf.gz")
-  var genetic_map = store[TXT].from(kgp_dir / s"genetic_map_${chr}_combined_b37.txt")
-  var phased_haps = store[TXT].to(output_dir / s"phased_haps_${chr}.gz")
-  var phased_samples = store[TXT].to(output_dir / s"phased_samples_${chr}.gz")
-  var log = store[TXT].to(output_dir / s"shapeit_${chr}.log")
+  val vcf_data = store[VCF].from(shapeit_data_dir / s"camp.biallelic.${chr}.clean.vcf.gz")
+  val genetic_map = store[TXT].from(kgp_dir / s"genetic_map_${chr}_combined_b37.txt")
+  val phased_haps = store[TXT].to(output_dir / s"phased_haps_${chr}.gz")
+  val phased_samples = store[TXT].to(output_dir / s"phased_samples_${chr}.gz")
+  val log = store[TXT].to(output_dir / s"shapeit_${chr}.log")
 
   cmd"$shapeit -V $vcf_data -M $genetic_map -O $phased_haps $phased_samples -L $log --thread 16"
 
-  var map_file = store[TXT].from(kgp_dir / s"genetic_map_${chr}_combined_b37.txt")
-  var legend = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.legend.gz")
-  var known_haps = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.hap.gz")
+  val map_file = store[TXT].from(kgp_dir / s"genetic_map_${chr}_combined_b37.txt")
+  val legend = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.legend.gz")
+  val known_haps = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.hap.gz")
 
-  var num_shards = chr_props.get(chr_num).get._1
-  var offset = chr_props.get(chr_num).get._2
+  val (num_shards, offset) = chr_props.get(chr_num).get
 //---------------------------LOOP THROUGH WINDOWS WITHIN CHROMOSOME-----------------------------------------------------
   for(shard <- 0 until num_shards) {
-    var start = offset + shard*num_bases_per_shard + 1
-    var end = start + num_bases_per_shard - 1
+    val start = offset + shard*num_bases_per_shard + 1
+    val end = start + num_bases_per_shard - 1
 
     val imputed = store[TXT].to(output_dir / s"imputed_data_${chr}_bp${start}_${end}.gen")
 

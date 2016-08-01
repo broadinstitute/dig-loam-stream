@@ -15,9 +15,7 @@ final class FilesTest extends FunSuite {
     val path = Files.tempFile("foo")
     
     assert(path.toString.endsWith("foo"))
-    
     assert(path.getFileName.toString.startsWith(Files.tempFilePrefix))
-    
     assert(path.toFile.exists)
   }
 
@@ -26,9 +24,7 @@ final class FilesTest extends FunSuite {
     val path = Files.tempFile("foo", parentOfDefaultTempDir)
 
     assert(path.toString.endsWith("foo"))
-
     assert(path.getFileName.toString.startsWith(Files.tempFilePrefix))
-
     assert(path.toFile.exists)
   }
   

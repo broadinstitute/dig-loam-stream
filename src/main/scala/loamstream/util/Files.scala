@@ -10,9 +10,9 @@ import scala.util.Try
 import java.util.stream.Collectors
 
 /**
-  * @author clint
-  *         date: Jun 15, 2016
-  */
+ * @author clint
+ *         date: Jun 15, 2016
+ */
 object Files {
   private[util] val tempFilePrefix = "loamstream"
 
@@ -37,8 +37,7 @@ object Files {
   def tryFile(path: Path): Try[Path] = {
     if (path.toFile.exists) {
       Success(path)
-    }
-    else {
+    } else {
       Failure(new FileNotFoundException(s"Can't find '$path'"))
     }
   }

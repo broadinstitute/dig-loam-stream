@@ -1,5 +1,6 @@
 package loamstream.uger
 
+import java.io.File
 import java.nio.file.Path
 
 import scala.concurrent.ExecutionContext
@@ -41,7 +42,8 @@ final case class UgerChunkRunner(
     val leafCommandLineJobs = leaves.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
 
     if (leafCommandLineJobs.nonEmpty) {
-      val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs))
+      val ugerWorkDir = ugerConfig.ugerWorkDir.toFile
+      val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs), ugerWorkDir)
 
       info(s"Made script '$ugerScript' from $leafCommandLineJobs")
 
@@ -127,7 +129,18 @@ object UgerChunkRunner extends Loggable {
     
     file
   }
-  
-  //TODO: Store the script somewhere more permanent, for debugging or review
+
+  /**
+   * Creates a script file in the *default temporary-file directory*, using
+   * the given prefix and suffix to generate its name.
+   */
   private[uger] def createScriptFile(contents: String): Path = createScriptFile(contents, Files.tempFile(".sh"))
+
+  /**
+   * Creates a script file in the *specified* directory, using
+   * the given prefix and suffix to generate its name.
+   */
+  private[uger] def createScriptFile(contents: String, directory: File): Path = {
+    createScriptFile(contents, Files.tempFile(".sh", directory))
+  }
 }

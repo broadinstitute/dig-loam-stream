@@ -26,7 +26,8 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   import DrmaaClient._
 
   // Maximum number of tasks to be bundled as an array and submitted as a single job
-  val MAX_NUM_TASKS = 1000
+  // The way the UGER scripts are generated, 2500 is about the limit.
+  val MAX_NUM_TASKS = 2400
 
   //NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
   //use one Session per client to ensure that all operations performed by this instance use the same Session.
@@ -153,7 +154,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskIndexIncr = 1
 
       // TODO Make native specification controllable from Loam (DSL)
-      jt.setNativeSpecification("-cwd -shell y -b n -q long -l m_mem_free=16g")
+      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l m_mem_free=16g")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")

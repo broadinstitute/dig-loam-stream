@@ -11,13 +11,20 @@ import java.nio.file.Path
  * date: Jun 15, 2016
  */
 final class FilesTest extends FunSuite {
-  test("tempFile()") {
+  test("tempFile in default temporary-file directory") {
     val path = Files.tempFile("foo")
     
     assert(path.toString.endsWith("foo"))
-    
     assert(path.getFileName.toString.startsWith(Files.tempFilePrefix))
-    
+    assert(path.toFile.exists)
+  }
+
+  test("tempFile in specified temporary-file directory") {
+    val parentOfDefaultTempDir = Files.tempFile("foo").getParent.toFile
+    val path = Files.tempFile("foo", parentOfDefaultTempDir)
+
+    assert(path.toString.endsWith("foo"))
+    assert(path.getFileName.toString.startsWith(Files.tempFilePrefix))
     assert(path.toFile.exists)
   }
   

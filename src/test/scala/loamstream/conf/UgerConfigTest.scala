@@ -26,13 +26,15 @@ final class UgerConfigTest extends FunSuite {
         uger {
           workDir = "/foo/bar/baz"
           logFile = "nuh/zuh.log"
+          maxNumJobs=44
         }
       }
       """)
       
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
-    assert(ugerConfig.ugerWorkDir == Paths.get("/foo/bar/baz"))
-    assert(ugerConfig.ugerLogFile == Paths.get("nuh/zuh.log"))
+    assert(ugerConfig.ugerWorkDir === Paths.get("/foo/bar/baz"))
+    assert(ugerConfig.ugerLogFile === Paths.get("nuh/zuh.log"))
+    assert(ugerConfig.ugerMaxNumJobs === 44)
   }
 }

@@ -11,13 +11,14 @@ import scala.util.Try
   *
   * @author Kaan Yuksel
   */
-final case class UgerConfig private(ugerWorkDir: Path, ugerLogFile: Path)
+final case class UgerConfig private(ugerWorkDir: Path, ugerLogFile: Path, ugerMaxNumJobs: Int)
 
 object UgerConfig extends ConfigCompanion[UgerConfig] {
 
   object Keys extends TypesafeConfig.KeyHolder("uger") {
     val ugerWorkDirKey = key("workDir")
     val ugerLogFileKey = key("logFile")
+    val ugerMaxNumJobsKey = key("maxNumJobs")
   }
 
   override def fromConfig(config: Config): Try[UgerConfig] = {
@@ -28,8 +29,9 @@ object UgerConfig extends ConfigCompanion[UgerConfig] {
     for {
       ugerWorkDir <- ugerProps.tryGetPath(ugerWorkDirKey)
       ugerLogFile <- ugerProps.tryGetPath(ugerLogFileKey)
+      ugerMaxNumJobs <- ugerProps.tryGetInt(ugerMaxNumJobsKey)
     } yield {
-      UgerConfig(ugerWorkDir, ugerLogFile)
+      UgerConfig(ugerWorkDir, ugerLogFile, ugerMaxNumJobs)
     }
   }
 }

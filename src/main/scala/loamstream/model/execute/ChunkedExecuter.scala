@@ -28,12 +28,20 @@ final class ChunkedExecuter(runner: ChunkRunner)(implicit executionContext: Exec
         case Some(j) =>
           val leaves = j.leaves
 
-          for {
-            leafResults <- runner.run(leaves)
-            shouldStop = j.isLeaf //|| anyFailures(leafResults)
-            next = if (shouldStop) None else Some(j.removeAll(leaves))
-            resultsSoFar <- loop(next, acc ++ leafResults)
-          } yield resultsSoFar
+          def leafChunks: Seq[Set[LJob]] = leaves.grouped(runner.maxNumJobs).toSeq
+
+          val futures = for {
+            leafChunk <- leafChunks
+          } yield {
+            for {
+              leafResults <- runner.run(leafChunk)
+              shouldStop = j.isLeaf
+              next = if (shouldStop) None else Some(j.removeAll(leaves))
+              resultsSoFar <- loop(next, acc ++ leafResults)
+            } yield resultsSoFar
+          }
+
+          Future.sequence(futures).map(Maps.mergeMaps)
       }
     }
     

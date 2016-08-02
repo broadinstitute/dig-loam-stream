@@ -1,7 +1,5 @@
 package loamstream.conf
 
-import java.io.File
-
 import org.scalatest.FunSuite
 import java.nio.file.Paths
 import com.typesafe.config.ConfigFactory
@@ -25,7 +23,7 @@ final class ImputationConfigTest extends FunSuite {
     
     assert(config.impute2.workDir == Paths.get("/home/clint/workspace/imputation/impute2_example"))
     
-    val expectedNumThreads: Int = 4
+    val expectedNumThreads: Int = 16
     
     assert(config.shapeIt.numThreads == expectedNumThreads)
 
@@ -35,7 +33,7 @@ final class ImputationConfigTest extends FunSuite {
   }
 
   test("Config objects are correctly parsed") {
-    import com.typesafe.config.{Config, ConfigFactory}
+    import com.typesafe.config.ConfigFactory
 
     // Empty config object triggers failure
     assert(ImputationConfig.fromConfig(ConfigFactory.empty).isFailure)

@@ -9,7 +9,7 @@ import loamstream.model.jobs.{LJob, NoOpJob}
 final case class LExecutable(jobs: Set[LJob]) {
   def ++(oExecutable: LExecutable): LExecutable = LExecutable(jobs ++ oExecutable.jobs)
 
-  def addNoOpRootJob: LExecutable = LExecutable(Set(new NoOpJob(jobs)))
+  def addNoOpRootJob: LExecutable = LExecutable(Set(NoOpJob(jobs)))
 }
 
 object LExecutable {

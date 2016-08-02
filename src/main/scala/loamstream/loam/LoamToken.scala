@@ -72,9 +72,8 @@ object LoamToken {
         val (mergedSoFar, current) = acc
         
         (current, nextToken) match {
-          case (currentStringToken: StringToken, nextStringToken: StringToken) => {
+          case (currentStringToken: StringToken, nextStringToken: StringToken) =>
             (mergedSoFar, currentStringToken + nextStringToken)
-          }
           case _ => (mergedSoFar :+ current, nextToken)
         }
       }

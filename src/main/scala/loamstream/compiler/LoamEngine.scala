@@ -74,7 +74,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     }
   }
 
-  def compile(file: Path): Shot[LoamCompiler.Result] = loadFile(file).map(compile(_))
+  def compile(file: Path): Shot[LoamCompiler.Result] = loadFile(file).map(compile)
 
   def compile(script: String): LoamCompiler.Result = compiler.compile(script)
 

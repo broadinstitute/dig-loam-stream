@@ -70,7 +70,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
     
     val storesString = toString(graph.stores.map(print(_, fully = true)))
     
-    val toolsString = toString(graph.tools.map(print(_)))
+    val toolsString = toString(graph.tools.map(print))
     
     val storeSourcesString = toString(graph.storeSources.map {
       case (store, source) => s"${print(store, fully = false)} <- ${print(source)}"

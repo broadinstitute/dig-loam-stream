@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext
  * date: Jun 16, 2016
  */
 trait ChunkRunner {
-  def maxNumJobs = Int.MaxValue
+  def maxNumJobs: Int
 
   def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]]
 }

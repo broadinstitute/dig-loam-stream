@@ -169,5 +169,4 @@ object ChunkedExecuterTest {
       delegate.run(leaves)
     }
   }
-
 }

@@ -63,6 +63,8 @@ object ChunkedExecuter {
 
     import ExecuterHelpers._
 
+    override def maxNumJobs = 100 // scalastyle:ignore magic.number
+
     override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
       //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
       //on the first failure, like the old code did.

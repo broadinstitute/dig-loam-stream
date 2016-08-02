@@ -32,6 +32,8 @@ final case class UgerChunkRunner(
 
   import UgerChunkRunner._
 
+  override def maxNumJobs = ugerConfig.ugerMaxNumJobs
+
   override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
 
     require(

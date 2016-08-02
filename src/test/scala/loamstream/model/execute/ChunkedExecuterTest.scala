@@ -1,9 +1,12 @@
 package loamstream.model.execute
 
+import com.typesafe.config.ConfigFactory
+import loamstream.conf.UgerConfig
+import loamstream.model.execute.ChunkedExecuter.AsyncLocalChunkRunner
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
 
@@ -111,6 +114,31 @@ final class ChunkedExecuterTest extends ExecuterTest {
     
     assert(executionCount(step3) == 1)
   }
+
+  test("Number of jobs run at a time doesn't exceed specified limit") {
+    /* Three-step pipeline to result in 5 more executions:
+     *
+     *            Impute0
+     *           /        \
+     * ShapeIt -- Impute1 -- QC
+     *           \        /
+     *            Impute2
+     */
+    val firstStepJob = MockJob("1st_step")
+    val secondStepJob1 = MockJob("2nd_step_job_1", Set(firstStepJob))
+    val secondStepJob2 = MockJob("2nd_step_job_2", Set(firstStepJob))
+    val secondStepJob3 = MockJob("2nd_step_job_3", Set(firstStepJob))
+    val thirdStepJob = MockJob("3rd_step", Set(secondStepJob1, secondStepJob2, secondStepJob3))
+
+    val threeStepExecutable = LExecutable(Set(thirdStepJob))
+
+    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner)
+    val executer = ChunkedExecuter(mockRunner)
+    executer.execute(threeStepExecutable)
+
+    val maxNumJobs = UgerConfig.fromConfig(ConfigFactory.load("loamstream-test.conf")).get.ugerMaxNumJobs
+    assert(mockRunner.chunks.forall(_.size <= maxNumJobs))
+  }
 }
 
 object ChunkedExecuterTest {
@@ -127,6 +155,18 @@ object ChunkedExecuterTest {
       lock.synchronized(_executionCount += 1)
       
       Future.successful(LJob.SimpleSuccess(name))
+    }
+  }
+
+  private final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
+    var chunks: Seq[Set[LJob]] = Nil
+
+    override def maxNumJobs = UgerConfig.fromConfig(ConfigFactory.load("loamstream-test.conf")).get.ugerMaxNumJobs
+
+    override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
+      chunks = chunks :+ leaves
+
+      delegate.run(leaves)
     }
   }
 }

@@ -25,10 +25,6 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   import DrmaaClient._
 
-  // Maximum number of tasks to be bundled as an array and submitted as a single job
-  // The way the UGER scripts are generated, 2500 is about the limit.
-  val MAX_NUM_TASKS = 2400
-
   //NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
   //use one Session per client to ensure that all operations performed by this instance use the same Session.
   private[this] lazy val session: Session = {
@@ -81,7 +77,6 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       jobName: String,
       numTasks: Int = 1): DrmaaClient.SubmissionResult = {
 
-    require(1 to MAX_NUM_TASKS contains numTasks)
     runJob(pathToScript, pathToUgerOutput, jobName, numTasks)
   }
   
@@ -145,8 +140,6 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
                      pathToUgerOutput: Path,
                      jobName: String,
                      numTasks: Int = 1): SubmissionResult = {
-
-    require(1 to MAX_NUM_TASKS contains numTasks)
 
     withJobTemplate(session) { jt =>
       val taskStartIndex = 1

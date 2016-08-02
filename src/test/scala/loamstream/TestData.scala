@@ -1,6 +1,6 @@
 package loamstream
 
-import loamstream.conf.{LProperties}
+import loamstream.conf.LProperties
 import loamstream.conf.SampleFiles
 
 object TestData {

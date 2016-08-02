@@ -1,12 +1,15 @@
 package loamstream.uger
 
 import org.scalatest.FunSuite
+
 import scala.util.Success
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 import monix.execution.Scheduler
+
+import scala.collection.mutable
 
 /**
  * @author clint
@@ -26,7 +29,7 @@ final class JobsTest extends FunSuite {
     
     val statuses = Jobs.monitor(poller, 2)(jobId)
     
-    val buf: Buffer[JobStatus] = new ArrayBuffer
+    val buf: mutable.Buffer[JobStatus] = new ArrayBuffer
     
     val fut = statuses.foreach(buf += _)
 

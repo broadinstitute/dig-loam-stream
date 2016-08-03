@@ -2,7 +2,7 @@ package loamstream.util
 
 /** Stores stated equivalences between objects, with transitive reasoning */
 trait Equivalences[E] {
-  /** Creates a new Equivalencer which holds e1 and e2 equal */
+  /** Creates a new Equivalences which holds e1 and e2 equal */
   def withTheseEqual(e1: E, e2: E): Equivalences[E]
 
   /** Returns whether e1 and e2 are considered equal */
@@ -13,10 +13,10 @@ trait Equivalences[E] {
 }
 
 object Equivalences {
-  /** An empty equivalencer which holds no two objects equal */
+  /** An empty equivalences which holds no two objects equal */
   def empty[E]: Equivalences[E] = MapEquivalences(Map.empty)
 
-  /** An equivalencer that stores a set of equals for each object */
+  /** An equivalences that stores a set of equals for each object */
   final case class MapEquivalences[E](equals: Map[E, Set[E]]) extends Equivalences[E] {
     /** Creates a new Equivalencer which holds e1 and e2 equal */
     override def withTheseEqual(e1: E, e2: E): Equivalences[E] = {

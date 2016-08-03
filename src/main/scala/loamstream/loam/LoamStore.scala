@@ -44,6 +44,8 @@ final case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBuilder
     this
   }
 
+  def key(name: String): LoamStoreKeySlot = LoamStoreKeySlot(this, name)
+
   override def toString: String = s"store[${sig.tpe}]"
 
   def graph: LoamGraph = graphBuilder.graph

@@ -1,20 +1,19 @@
 package loamstream.compiler
 
-import scala.reflect.internal.util.{ AbstractFileClassLoader, BatchSourceFile, Position }
+import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
 import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.reflect.ReflectGlobal
 import scala.util.control.NonFatal
-
 import loamstream.LEnv
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
 import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, LoamTool}
+import loamstream.loam._
 import loamstream.tools.core.LCoreEnv
-import loamstream.util.{PathEnrichments, ReflectionUtil, SourceUtils, StringUtils}
+import loamstream.util._
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler {
@@ -136,6 +135,8 @@ import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LEnvBuilder]}
 import ${SourceUtils.fullTypeName[LoamGraphBuilder]}
+import ${SourceUtils.fullTypeName[LoamGraph]}
+import ${SourceUtils.fullTypeName[ValueBox.type]}
 import ${SourceUtils.fullTypeName[DslChunk]}
 import ${SourceUtils.fullTypeName[LEnv]}._
 import ${SourceUtils.fullTypeName[LoamTool.type]}._
@@ -145,7 +146,7 @@ import java.nio.file._
 
 object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
 implicit val envBuilder = new LEnvBuilder
-implicit val graphBuilder = new LoamGraphBuilder
+implicit val graphBuilder = new LoamGraphBuilder(new ValueBox(LoamGraph.empty))
 
 ${raw.trim}
 

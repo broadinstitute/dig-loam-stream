@@ -2,24 +2,14 @@ package loamstream.loam
 
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.util.ValueBox
 
-/**
-  * LoamStream
-  * Created by oliverr on 6/8/2016.
-  */
-final class LoamGraphBuilder {
+/** A helper class to build a graph */
+final case class LoamGraphBuilder(graphBox: ValueBox[LoamGraph]) {
 
-  @volatile private[this] var _graph: LoamGraph = LoamGraph.empty
+  def graph: LoamGraph = graphBox.value
 
-  private[this] val lock = new AnyRef
-
-  def graph: LoamGraph = lock.synchronized(_graph)
-
-  def graph_=(newGraph: LoamGraph): Unit = _graph = newGraph
-
-  private def updateGraph(f: LoamGraph => LoamGraph): Unit = lock.synchronized {
-    graph = f(graph)
-  }
+  private def updateGraph(f: LoamGraph => LoamGraph): Unit = graphBox(f)
 
   def addStore(store: LoamStore): LoamStore = {
     updateGraph(_.withStore(store))

@@ -208,6 +208,6 @@ object ChunkedExecuterTest {
 
   private object MockChunkRunner {
     def apply(delegate: ChunkRunner): MockChunkRunner = new MockChunkRunner(delegate,
-      UgerConfig.fromConfig(ConfigFactory.load("loamstream-test.conf")).get.ugerMaxNumJobs)
+      UgerConfig.fromFile("src/test/resources/loamstream-test.conf").get.ugerMaxNumJobs)
   }
 }

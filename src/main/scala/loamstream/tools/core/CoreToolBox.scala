@@ -23,7 +23,7 @@ import loamstream.util.SnagMessage
  * LoamStream
  * Created by oliverr on 2/23/2016.
  */
-object CoreToolBox {
+object CoreToolBox extends LToolBox {
 
   final case class FileExists(path: Path) extends LJob.Success {
     override def successMessage: String = s"'$path' exists"
@@ -102,11 +102,6 @@ object CoreToolBox {
       }
     }
   }
-}
-
-final case class CoreToolBox(env: LEnv) extends LToolBox {
-
-  import CoreToolBox._
 
   private def pathShot(path: Path): Shot[Path] = {
     if (path.toFile.exists) { Hit(path) }

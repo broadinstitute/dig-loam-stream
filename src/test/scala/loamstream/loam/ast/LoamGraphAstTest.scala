@@ -38,15 +38,10 @@ final class LoamGraphAstTest extends FunSuite {
   test("Validate AST for impute pipeline POC example") {
     val code =
       """
-        |val inputFile = key[Path]
-        |val outputFile = key[Path]
-        |val phaseCommand = key[String]
-        |val imputeCommand = key[String]
-        |
-        |inputFile := path("/user/home/someone/data.vcf")
-        |outputFile := path("/user/home/someone/dataImputed.vcf")
-        |phaseCommand := "shapeit"
-        |imputeCommand := "impute2"
+        |val inputFile = path("/user/home/someone/data.vcf")
+        |val outputFile = path("/user/home/someone/dataImputed.vcf")
+        |val phaseCommand = "shapeit"
+        |val imputeCommand = "impute2"
         |
         |val raw = store[VCF].from(inputFile)
         |val phased = store[VCF]

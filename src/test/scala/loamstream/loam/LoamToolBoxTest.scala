@@ -34,19 +34,17 @@ final class LoamToolBoxTest extends FunSuite {
 
     assert(compileResults.errors == Nil)
     
-    val env = compileResults.envOpt.get
-
-    val graph = compileResults.graphOpt.get.withEnv(env)
+    val graph = compileResults.graphOpt.get
 
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
-    val toolBox = LoamToolBox(env)
+    val toolBox = new LoamToolBox
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
     
     val jobResults = ChunkedExecuter.default.execute(executable)
     
-    Results(env, graph, mapping, jobResults)
+    Results(graph, mapping, jobResults)
   }
 
   test("Simple toy pipeline using cp.") {
@@ -83,13 +81,11 @@ final class LoamToolBoxTest extends FunSuite {
 
     assert(compileResults.errors === Nil)
     
-    val env = compileResults.envOpt.get
-
-    val graph = compileResults.graphOpt.get.withEnv(env)
+    val graph = compileResults.graphOpt.get
 
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
-    val toolBox = LoamToolBox(env)
+    val toolBox = new LoamToolBox
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
     
@@ -142,8 +138,7 @@ final class LoamToolBoxTest extends FunSuite {
 
 object LoamToolBoxTest {
 
-  final case class Results(env: LEnv, graph: LoamGraph, mapping: LoamGraphAstMapping,
-                        jobResults: Map[LJob, Shot[LJob.Result]]) {
+  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobResults: Map[LJob, Shot[LJob.Result]]) {
     
     def allJobResultsAreSuccess: Boolean = jobResults.values.forall {
       case Hit(CommandSuccess(_, _)) => true

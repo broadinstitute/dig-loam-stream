@@ -5,10 +5,7 @@ import java.nio.file.Path
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
-import loamstream.loam.LoamToken.{EnvToken, StringToken}
-
-import scala.reflect.runtime.universe.typeOf
-import loamstream.util.{Equivalences, Maps}
+import loamstream.util.Equivalences
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
@@ -121,32 +118,6 @@ final case class LoamGraph(stores: Set[LoamStore],
 
   /** All tools with no succeeding tools */
   def finalTools: Set[LoamTool] = tools.filter(toolsSucceeding(_).isEmpty)
-
-  /** Returns graph with environment bindings applied */
-  def withEnv(env: LEnv): LoamGraph = {
-    import Maps.Implicits._
-
-    def mungeTokens(tokens: Seq[LoamToken]): Seq[LoamToken] = {
-      val tokensMapped = tokens.map {
-        //TODO: Find a way to avoid casting
-        case token@EnvToken(key) if key.tpe =:= typeOf[Path] => env.get(key.asInstanceOf[LEnv.Key[Path]]) match {
-          case Some(path) => StringToken(path.toString)
-          case None => token
-        }
-        case token => token
-      }
-
-      LoamToken.mergeStringTokens(tokensMapped)
-    }
-
-    val toolTokensNew = toolTokens.strictMapValues(mungeTokens)
-
-    val storeSourcesNew = storeSources.strictMapValues(_.withEnv(env))
-
-    val storeSinksNew = storeSinks.strictMapValues(_.map(_.withEnv(env)))
-
-    copy(toolTokens = toolTokensNew, storeSources = storeSourcesNew, storeSinks = storeSinksNew)
-  }
 
   /** Optionally the path associated with a store */
   def pathOpt(store: LoamStore): Option[Path] = {

@@ -1,20 +1,18 @@
 package loamstream.loam
 
-import java.nio.file.{ Path, Paths }
+import java.nio.file.{Path, Paths}
 
-import loamstream.LEnv
 import loamstream.loam.files.LoamFileManager
-import loamstream.model.execute.LExecutable
+import loamstream.model.Tool
 import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.model.jobs.{ LJob, LToolBox }
-import loamstream.model.{ AST, LPipeline, Tool }
-import loamstream.util.{ Hit, Miss, Shot, Snag }
+import loamstream.model.jobs.{LJob, LToolBox}
+import loamstream.util.{Hit, Miss, Shot, Snag}
 
 /**
  * LoamStream
  * Created by oliverr on 6/21/2016.
  */
-final case class LoamToolBox(env: LEnv) extends LToolBox {
+final class LoamToolBox extends LToolBox {
 
   private val fileManager = new LoamFileManager
 
@@ -23,11 +21,9 @@ final case class LoamToolBox(env: LEnv) extends LToolBox {
   private[this] val lock = new AnyRef
 
   private[loam] def newLoamJob(tool: LoamTool): Shot[LJob] = {
-    tool.graphBox(_.withEnv(env))
-
     val graph = tool.graphBox.value
 
-    val commandLineString = graph.toolTokens(tool).map(_.toString(env, fileManager)).mkString
+    val commandLineString = graph.toolTokens(tool).map(_.toString(fileManager)).mkString
 
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
 

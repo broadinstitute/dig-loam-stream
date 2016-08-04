@@ -1,11 +1,10 @@
 package loamstream.compiler
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.LEnv.Key
 import loamstream.loam.{LoamGraph, LoamStore}
-import loamstream.tools.core.LCoreEnv
 import loamstream.util.ValueBox
 
 import scala.language.implicitConversions
@@ -21,9 +20,9 @@ object LoamPredef {
 
   def path(pathString: String): Path = Paths.get(pathString)
 
-  def tempFile(prefix: String, suffix: String): () => Path = LCoreEnv.tempFileProvider(prefix, suffix)
+  def tempFile(prefix: String, suffix: String): () => Path = () => Files.createTempFile(prefix, suffix)
 
-  def tempDir(prefix: String): () => Path = LCoreEnv.tempDirProvider(prefix)
+  def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
   def key[T: TypeTag]: Key[T] = Key.create[T]
 

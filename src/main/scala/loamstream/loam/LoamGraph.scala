@@ -82,6 +82,14 @@ final case class LoamGraph(stores: Set[LoamStore],
   copy(keysSameSets = keysSameSets.withTheseEqual(slot1, slot2),
     keysSameLists = keysSameLists.withTheseEqual(slot1, slot2))
 
+  /** True if slots have same key set */
+  def areSameKeySets(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): Boolean =
+    keysSameSets.theseAreEqual(slot1, slot2)
+
+  /** True if slots have same key list */
+  def areSameKeyLists(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): Boolean =
+    keysSameLists.theseAreEqual(slot1, slot2)
+
   /** Returns the option of a producer (tool) of a store */
   def storeProducers(store: LoamStore): Option[LoamTool] = storeSources.get(store).collect {
     case StoreEdge.ToolEdge(tool) => tool

@@ -177,7 +177,7 @@ def graph = graphBox.value
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
-      case NonFatal(throwable) =>
+      case NonFatalInitializer(throwable) =>
         outMessageSink.send(
           StatusOutMessage(s"${throwable.getClass.getName} while trying to compile: ${throwable.getMessage}"))
         LoamCompiler.Result.throwable(reporter, throwable)

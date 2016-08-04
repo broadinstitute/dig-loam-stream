@@ -1,6 +1,5 @@
 package loamstream.loam
 
-import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge}
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}

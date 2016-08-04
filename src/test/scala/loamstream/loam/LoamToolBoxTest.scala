@@ -2,7 +2,6 @@ package loamstream.loam
 
 import java.nio.file.{Paths, Files => JFiles}
 
-import loamstream.LEnv
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamToolBoxTest.Results
@@ -15,10 +14,8 @@ import org.scalatest.FunSuite
 
 //import scala.concurrent.ExecutionContext.Implicits.global
 import java.nio.file.Path
+
 import scala.util.Try
-import loamstream.LoamTestHelpers
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import loamstream.util.Loggable
 
 /**
   * LoamStream

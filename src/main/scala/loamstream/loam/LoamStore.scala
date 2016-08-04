@@ -2,7 +2,6 @@ package loamstream.loam
 
 import java.nio.file.{Path, Paths}
 
-import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.model.{LId, Store, StoreSig}
 import loamstream.util.ValueBox

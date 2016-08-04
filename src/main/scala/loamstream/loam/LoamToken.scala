@@ -2,9 +2,7 @@ package loamstream.loam
 
 import java.nio.file.Paths
 
-import loamstream.LEnv
 import loamstream.loam.files.LoamFileManager
-import scala.annotation.tailrec
 
 /**
   * LoamStream

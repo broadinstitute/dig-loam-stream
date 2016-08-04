@@ -2,7 +2,6 @@ package loamstream.loam
 
 import java.nio.file.Path
 
-import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
 import loamstream.util.Equivalences

@@ -1,23 +1,17 @@
 package loamstream.tools.core
 
-import java.nio.file.{ Files, Path }
-
-import scala.concurrent.{ ExecutionContext, Future }
+import java.nio.file.{Files, Path}
 
 import htsjdk.variant.variantcontext.Genotype
-import loamstream.LEnv
 import loamstream.model.Tool
-import loamstream.model.jobs.{ LJob, LToolBox }
-import loamstream.model.jobs.LJob.{ Result, SimpleFailure, SimpleSuccess }
+import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.jobs.commandline.CommandLineBuilderJob
-import loamstream.tools.{ PcaProjecter, PcaWeightsReader, VcfParser }
-import loamstream.tools.LineCommand
-import loamstream.tools.VcfUtils
-import loamstream.tools.klusta.{ KlustaKwikKonfig, KlustaKwikLineCommand }
-import loamstream.tools.klusta.{ KlustaKwikLineCommand, KlustaKwikInputWriter }
-import loamstream.util.{ Hit, Miss, Shot }
-import loamstream.util.LoamFileUtils
-import loamstream.util.SnagMessage
+import loamstream.model.jobs.{LJob, LToolBox}
+import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
+import loamstream.tools._
+import loamstream.util._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * LoamStream

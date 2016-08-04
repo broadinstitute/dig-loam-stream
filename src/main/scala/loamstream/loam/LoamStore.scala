@@ -27,8 +27,6 @@ final case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBox: Va
 
   def from(path: Path): LoamStore = from(StoreEdge.PathEdge(path))
 
-  def from(key: LEnv.Key[Path]): LoamStore = from(StoreEdge.PathKeyEdge(key))
-
   def from(source: StoreEdge): LoamStore = {
     graphBox(_.withStoreSource(this, source))
     this
@@ -37,8 +35,6 @@ final case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBox: Va
   def to(path: String): LoamStore = to(Paths.get(path))
 
   def to(path: Path): LoamStore = to(StoreEdge.PathEdge(path))
-
-  def to(key: LEnv.Key[Path]): LoamStore = to(StoreEdge.PathKeyEdge(key))
 
   def to(sink: StoreEdge): LoamStore = {
     graphBox(_.withStoreSink(this, sink))

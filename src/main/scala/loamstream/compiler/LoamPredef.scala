@@ -3,7 +3,6 @@ package loamstream.compiler
 import java.nio.file.{Files, Path, Paths}
 
 import htsjdk.variant.variantcontext.Genotype
-import loamstream.LEnv.Key
 import loamstream.loam.{LoamGraph, LoamStore}
 import loamstream.util.ValueBox
 
@@ -23,8 +22,6 @@ object LoamPredef {
   def tempFile(prefix: String, suffix: String): () => Path = () => Files.createTempFile(prefix, suffix)
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
-
-  def key[T: TypeTag]: Key[T] = Key.create[T]
 
   def store[T: TypeTag](implicit graphBox: ValueBox[LoamGraph]): LoamStore = LoamStore.create[T]
 

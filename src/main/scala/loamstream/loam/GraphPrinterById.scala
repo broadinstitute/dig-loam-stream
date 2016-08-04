@@ -2,7 +2,7 @@ package loamstream.loam
 
 import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, PathKeyEdge, ToolEdge}
+import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge}
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.model.LId
 import loamstream.util.SourceUtils
@@ -18,9 +18,6 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   /** Prints id */
   def print(tpe: Type, fully: Boolean): String =
     if (fully) SourceUtils.fullTypeName(tpe) else SourceUtils.shortTypeName(tpe)
-
-  /** Prints environment settings key */
-  def print(key: LEnv.Key[_], fully: Boolean): String = s"%${print(key.id)}[${print(key.tpe, fully)}]"
 
   /** Prints store */
   def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
@@ -57,7 +54,6 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   /** Prints store edge */
   def print(source: StoreEdge): String = source match {
     case PathEdge(path) => path.toString
-    case PathKeyEdge(key) => print(key, fully = true)
     case ToolEdge(tool) => s"#${print(tool.id)}"
   }
 

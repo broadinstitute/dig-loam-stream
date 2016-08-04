@@ -11,23 +11,13 @@ import loamstream.util.Equivalences
 object LoamGraph {
 
   /** A connection between a store and a tool or other consumer or producer */
-  trait StoreEdge {
-    def withEnv(env: LEnv): StoreEdge = this
-  }
+  trait StoreEdge
 
   /** A connection between a store and a tool or other consumer or producer */
   object StoreEdge {
 
     /** A connection between a store and a path */
     final case class PathEdge(path: Path) extends StoreEdge
-
-    /** A connection between a store and a path-type environment key  */
-    final case class PathKeyEdge(key: LEnv.Key[Path]) extends StoreEdge {
-      override def withEnv(env: LEnv): StoreEdge = env.get(key) match {
-        case Some(path) => PathEdge(path)
-        case _ => this
-      }
-    }
 
     /** A connection between a store and a tool */
     final case class ToolEdge(tool: LoamTool) extends StoreEdge

@@ -16,8 +16,10 @@ final class SourceUtilsTest extends FunSuite {
     assert(fullTypeName[SourceUtilsTest.Foo] == s"${classOf[SourceUtilsTest].getName}.Foo")
     
     assert(fullTypeName[SourceUtilsTest.Bar] == s"${classOf[SourceUtilsTest].getName}.Bar")
-    
+
     assert(fullTypeName[SourceUtilsTest.Baz] == s"${classOf[SourceUtilsTest].getName}.Baz")
+
+    assert(fullTypeName[SourceUtilsTest.Generic[_]] == s"${classOf[SourceUtilsTest].getName}.Generic")
   }
   
   test("shortTypeName") {
@@ -26,8 +28,10 @@ final class SourceUtilsTest extends FunSuite {
     assert(shortTypeName[SourceUtilsTest.Foo] == "Foo")
     
     assert(shortTypeName[SourceUtilsTest.Bar] == "Bar")
-    
+
     assert(shortTypeName[SourceUtilsTest.Baz] == "Baz")
+
+    assert(shortTypeName[SourceUtilsTest.Generic[_]] == "Generic")
   }
 }
 
@@ -37,4 +41,6 @@ object SourceUtilsTest {
   trait Bar
   
   case class Baz()
+
+  trait Generic[A]
 }

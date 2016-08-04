@@ -136,7 +136,7 @@ import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LEnvBuilder]}
 import ${SourceUtils.fullTypeName[LoamGraphBuilder]}
 import ${SourceUtils.fullTypeName[LoamGraph]}
-import ${SourceUtils.fullTypeName[ValueBox.type]}
+import ${SourceUtils.fullTypeName[ValueBox[_]]}
 import ${SourceUtils.fullTypeName[DslChunk]}
 import ${SourceUtils.fullTypeName[LEnv]}._
 import ${SourceUtils.fullTypeName[LoamTool.type]}._

@@ -24,14 +24,6 @@ object LoamCompilerTest {
 }
 
 final class LoamCompilerTest extends FunSuite {
-  test("Testing resolution ot type name.") {
-    assert(SourceUtils.shortTypeName[LoamCompilerTest] === "LoamCompilerTest")
-    assert(SourceUtils.fullTypeName[LoamCompilerTest] === "loamstream.compiler.LoamCompilerTest")
-    assert(SourceUtils.shortTypeName[LoamCompilerTest.SomeObject.type] === "SomeObject")
-    assert(SourceUtils.fullTypeName[LoamCompilerTest.SomeObject.type] ===
-      "loamstream.compiler.LoamCompilerTest.SomeObject")
-  }
-
   test("Testing sanity of classloader used by compiler.") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)
     val compilerClassLoader = compiler.compiler.rootClassLoader

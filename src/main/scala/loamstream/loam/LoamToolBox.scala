@@ -23,9 +23,9 @@ final case class LoamToolBox(env: LEnv) extends LToolBox {
   private[this] val lock = new AnyRef
 
   private[loam] def newLoamJob(tool: LoamTool): Shot[LJob] = {
-    tool.graphBuilder.applyEnv(env)
+    tool.graphBox(_.withEnv(env))
 
-    val graph = tool.graphBuilder.graph
+    val graph = tool.graphBox.value
 
     val commandLineString = graph.toolTokens(tool).map(_.toString(env, fileManager)).mkString
 

@@ -134,7 +134,6 @@ package $inputObjectPackage
 import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LEnvBuilder]}
-import ${SourceUtils.fullTypeName[LoamGraphBuilder]}
 import ${SourceUtils.fullTypeName[LoamGraph]}
 import ${SourceUtils.fullTypeName[ValueBox[_]]}
 import ${SourceUtils.fullTypeName[DslChunk]}
@@ -146,12 +145,12 @@ import java.nio.file._
 
 object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
 implicit val envBuilder = new LEnvBuilder
-implicit val graphBuilder = new LoamGraphBuilder(new ValueBox(LoamGraph.empty))
+implicit val graphBox : ValueBox[LoamGraph] = new ValueBox(LoamGraph.empty)
 
 ${raw.trim}
 
 def env = envBuilder.toEnv
-def graph = graphBuilder.graph
+def graph = graphBox.value
 }
 """
   }

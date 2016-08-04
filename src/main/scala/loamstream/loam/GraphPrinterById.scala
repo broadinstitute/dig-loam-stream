@@ -26,7 +26,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
   /** Prints tool */
-  def print(tool: LoamTool): String = print(tool, tool.graphBuilder.graph)
+  def print(tool: LoamTool): String = print(tool, tool.graphBox.value)
 
   /** Prints prefix symbol to distinguish input and output stores */
   def printIoPrefix(tool: LoamTool, store: LoamStore, graph: LoamGraph): String =

@@ -14,11 +14,11 @@ final class LoamToolTest extends FunSuite {
   import LoamTool._
 
   test("string interpolation (trivial)") {
-    implicit val builder = LoamGraphBuilder(new ValueBox(LoamGraph.empty))
+    implicit val graphBox = new ValueBox(LoamGraph.empty)
 
     val tool = cmd"foo bar baz"
 
-    assert(tool.graph eq builder.graph)
+    assert(tool.graph eq graphBox.value)
 
     assert(tool.graph.stores == Set.empty)
     assert(tool.graph.storeSinks == Map.empty)
@@ -37,7 +37,7 @@ final class LoamToolTest extends FunSuite {
 
   test("in() and out()") {
 
-    implicit val builder = LoamGraphBuilder(new ValueBox(LoamGraph.empty))
+    implicit val graphBox = new ValueBox(LoamGraph.empty)
 
     val tool = cmd"foo bar baz"
 

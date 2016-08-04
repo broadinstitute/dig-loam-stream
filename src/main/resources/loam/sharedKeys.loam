@@ -1,0 +1,11 @@
+val vcf1 = store[VCF]
+val vcf2 = store[VCF]
+val vcf3 = store[VCF]
+
+vcf1.key("sample").setSameSetAs(vcf2.key("sample"))
+vcf2.key("sample").setSameSetAs(vcf3.key("sample"))
+
+assert(vcf1.key("sample").isSameSetAs(vcf3.key("sample")))
+
+
+

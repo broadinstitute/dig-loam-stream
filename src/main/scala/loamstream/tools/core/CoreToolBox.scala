@@ -12,6 +12,8 @@ import loamstream.tools._
 import loamstream.util._
 
 import scala.concurrent.{ExecutionContext, Future}
+import loamstream.model.jobs.Output
+import loamstream.model.jobs.Output.FileOutput
 
 /**
  * LoamStream
@@ -26,12 +28,14 @@ object CoreToolBox extends LToolBox {
   trait CheckPreexistingFileJob extends LJob {
     def file: Path
 
-    override def execute(implicit context: ExecutionContext): Future[Result] = Future {
+    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
       Result.attempt {
         if (Files.exists(file)) { FileExists(file) }
         else { SimpleFailure(s"$file does not exist.") }
       }
     }
+    
+    override val outputs: Set[Output] = Set(Output.FileOutput(file))
   }
 
   final case class CheckPreexistingVcfFileJob(
@@ -57,9 +61,11 @@ object CoreToolBox extends LToolBox {
       samplesFile: Path,
       inputs: Set[LJob] = Set.empty) extends LJob {
 
+    override val outputs: Set[Output] = Set(Output.FileOutput(samplesFile))
+    
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
-    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
+    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
         val samples = VcfParser(vcfFile).samples
 
@@ -81,7 +87,10 @@ object CoreToolBox extends LToolBox {
 
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
-    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
+    //TODO: specify outputs; allow dir outputs
+    override val outputs: Set[Output] = Set.empty 
+    
+    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
         val weights = PcaWeightsReader.read(pcaWeightsFile)
         val pcaProjecter = PcaProjecter(weights)

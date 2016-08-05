@@ -16,8 +16,6 @@ trait NewJob {
   
   def outputs: Set[Output]
   
-  protected def canRun: Boolean
-  
   private val statusRef: SyncRef[JobState] = SyncRef(JobState.NotStarted)
   
   def status: JobState = statusRef.getOrElse(JobState.Unknown)
@@ -41,22 +39,9 @@ trait NewJob {
 
 object NewJob {
   final case class Default(inputs: Set[NewJob] = Set.empty, outputs: Set[Output] = Set.empty) extends NewJob {
-    
-    override protected def canRun(): Boolean = inputs.forall { input =>
-      input.outputs.forall(o => o.isPresent) //TODO: Check hash
-    }
-
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      ???
-    }
-    
     override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
       //TODO
-      Future.successful(LJob.SimpleSuccess("")) 
+      Future.successful(LJob.SimpleSuccess(""))
     }
-    
-    override protected def isSuccess(): Boolean = ??? //TODO
-  
-    override def status: JobState = ??? //TODO
   }
 }

@@ -8,7 +8,10 @@ import LJob.Result
  * @author clint
  * date: Jun 2, 2016
  */
-final class MockLJob(override val inputs: Set[LJob], val toReturn: LJob.Result) extends LJob {
+final class MockLJob(
+    override val inputs: Set[LJob], 
+    val outputs: Set[Output], 
+    val toReturn: LJob.Result) extends LJob {
   
   val id: Int = MockLJob.nextId()
   
@@ -23,17 +26,20 @@ final class MockLJob(override val inputs: Set[LJob], val toReturn: LJob.Result) 
     case _ => false
   }
   
-  override def execute(implicit context: ExecutionContext): Future[Result] = Future.successful(toReturn)
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future.successful(toReturn)
 
-  def copy(inputs: Set[LJob] = this.inputs, toReturn: LJob.Result = this.toReturn): MockLJob = {
-    new MockLJob(inputs, toReturn)
-  }
+  def copy(
+      inputs: Set[LJob] = this.inputs, 
+      outputs: Set[Output] = this.outputs, 
+      toReturn: LJob.Result = this.toReturn): MockLJob = new MockLJob(inputs, outputs, toReturn)
   
-  override protected def doWithInputs(newInputs: Set[LJob]): LJob = new MockLJob(newInputs, toReturn)
+  override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 }
 
 object MockLJob {
-  def apply(inputs: Set[LJob], toReturn: LJob.Result): MockLJob = new MockLJob(inputs, toReturn)
+  def apply(inputs: Set[LJob], outputs: Set[Output], toReturn: LJob.Result): MockLJob = {
+    new MockLJob(inputs, outputs, toReturn)
+  }
 
   def unapply(job: LJob): Option[(Set[LJob], LJob.Result)] = job match {
     case mj: MockLJob => Some(mj.inputs -> mj.toReturn)

@@ -7,6 +7,9 @@ import loamstream.model.Tool
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.{LJob, LToolBox}
 import loamstream.util.{Hit, Miss, Shot, Snag}
+import loamstream.loam.LoamGraph.StoreEdge.PathEdge
+import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
+import loamstream.model.jobs.Output
 
 /**
  * LoamStream
@@ -25,12 +28,26 @@ final class LoamToolBox extends LToolBox {
 
     val commandLineString = graph.toolTokens(tool).map(_.toString(fileManager)).mkString
 
+    def pathOutputsFor(tool: LoamTool): Set[Output] = {
+      val loamStores: Set[LoamStore] = graph.toolOutputs(tool) 
+      
+      def pathFor(loamStore: LoamStore): Option[Output] = {
+        graph.storeSources(loamStore) match {
+          case PathEdge(path) => Some(Output.FileOutput(path))
+          /*case ToolEdge(tool) ???*/
+          case _ => None
+        }
+      }
+      
+      loamStores.flatMap(pathFor)
+    }
+    
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
 
     val shotsForPrecedingTools: Shot[Set[LJob]] = Shot.sequence(graph.toolsPreceding(tool).map(getLoamJob))
     
     shotsForPrecedingTools.map { inputJobs =>
-      CommandLineStringJob(commandLineString, workDir, inputJobs)
+      CommandLineStringJob(commandLineString, workDir, inputJobs, pathOutputsFor(tool))
     }
   }
 

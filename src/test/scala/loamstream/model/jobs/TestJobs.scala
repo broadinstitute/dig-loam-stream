@@ -22,17 +22,17 @@ trait TestJobs {
 
   protected val plusOneFailure = SimpleFailure("(2 + 2) + 1")
 
-  protected val two0 = MockLJob(Set.empty, two0Success)
-  protected val two1 = MockLJob(Set.empty, two1Success)
+  protected val two0 = MockLJob(Set.empty, Set.empty, two0Success)
+  protected val two1 = MockLJob(Set.empty, Set.empty,two1Success)
 
-  protected val twoPlusTwo = MockLJob(Set(two0, two1), twoPlusTwoSuccess)
+  protected val twoPlusTwo = MockLJob(Set(two0, two1), Set.empty, twoPlusTwoSuccess)
 
-  protected val plusOne = MockLJob(Set(twoPlusTwo), plusOneSuccess)
+  protected val plusOne = MockLJob(Set(twoPlusTwo), Set.empty, plusOneSuccess)
   
-  protected val two0Failed = MockLJob(Set.empty, two0Failure)
-  protected val two1Failed = MockLJob(Set.empty, two1Failure)
+  protected val two0Failed = MockLJob(Set.empty, Set.empty, two0Failure)
+  protected val two1Failed = MockLJob(Set.empty, Set.empty, two1Failure)
 
-  protected val twoPlusTwoFailed = MockLJob(Set(two0Failed, two1Failed), twoPlusTwoFailure)
+  protected val twoPlusTwoFailed = MockLJob(Set(two0Failed, two1Failed), Set.empty, twoPlusTwoFailure)
 
-  protected val plusOneFailed = MockLJob(Set(twoPlusTwoFailed), plusOneFailure)
+  protected val plusOneFailed = MockLJob(Set(twoPlusTwoFailed), Set.empty, plusOneFailure)
 }

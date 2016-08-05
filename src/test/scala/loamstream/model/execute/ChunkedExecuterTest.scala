@@ -9,6 +9,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
+import loamstream.model.jobs.Output
+import loamstream.util.SyncRef
 
 /**
   * @author clint
@@ -180,17 +182,20 @@ final class ChunkedExecuterTest extends ExecuterTest {
 }
 
 object ChunkedExecuterTest {
-  private final case class MockJob(name: String, inputs: Set[LJob] = Set.empty, delay: Int = 0) extends LJob {
+  private final case class MockJob(
+      name: String, 
+      inputs: Set[LJob] = Set.empty, 
+      outputs: Set[Output] = Set.empty, 
+      delay: Int = 0) extends LJob {
+    
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
     
-    private[this] val lock = new AnyRef
+    private[this] val _executionCount = SyncRef(0)
     
-    private[this] var _executionCount = 0
+    def executionCount = _executionCount()
     
-    def executionCount = lock.synchronized(_executionCount)
-    
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      lock.synchronized(_executionCount += 1)
+    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
+      _executionCount.mutate(_ + 1)
       Thread.sleep(delay)
       Future.successful(LJob.SimpleSuccess(name))
     }

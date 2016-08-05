@@ -102,9 +102,9 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   
   withExecuter("execute() should work if some (early) sub-jobs fail") { executer =>
 
-    val twoPlusTwo = MockLJob(Set(two0Failed, two1Failed), twoPlusTwoFailure)
+    val twoPlusTwo = MockLJob(Set(two0Failed, two1Failed), Set.empty, twoPlusTwoFailure)
 
-    val plusOne = MockLJob(Set(twoPlusTwo), plusOneFailure)
+    val plusOne = MockLJob(Set(twoPlusTwo), Set.empty, plusOneFailure)
     
     val executable = LExecutable(Set(plusOne))
 
@@ -122,9 +122,9 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   
   withExecuter("execute() should work if some (late) sub-jobs fail") { executer =>
 
-    val twoPlusTwo = MockLJob(Set(two0, two1), twoPlusTwoFailure)
+    val twoPlusTwo = MockLJob(Set(two0, two1), Set.empty, twoPlusTwoFailure)
 
-    val plusOne = MockLJob(Set(twoPlusTwo), plusOneFailure)
+    val plusOne = MockLJob(Set(twoPlusTwo), Set.empty, plusOneFailure)
     
     val executable = LExecutable(Set(plusOne))
 

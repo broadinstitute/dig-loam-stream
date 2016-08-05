@@ -1,6 +1,7 @@
 package loamstream.util
 
 import javax.xml.bind.DatatypeConverter
+import scala.util.Try
 
 /**
  * @author clint
@@ -12,4 +13,13 @@ final case class Hash(value: Array[Byte], tpe: HashType) {
   override def toString: String = s"$tpe($valueAsHexString)"
   
   def valueAsHexString: String = DatatypeConverter.printHexBinary(value).toLowerCase
+}
+
+object Hash {
+  def fromStrings(value: String, tpe: String): Try[Hash] = {
+    for {
+      bytes <- Try(DatatypeConverter.parseHexBinary(value))
+      hashType <- HashType.fromAlgorithmName(tpe)
+    } yield Hash(bytes, hashType)
+  }
 }

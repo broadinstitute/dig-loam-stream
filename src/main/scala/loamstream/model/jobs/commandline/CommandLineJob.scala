@@ -26,7 +26,7 @@ trait CommandLineJob extends LJob {
   
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
-  override def execute(implicit context: ExecutionContext): Future[Result with CommandResult] = runBlocking {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Result with CommandResult] = runBlocking {
     val exitValue = processBuilder.run(logger).exitValue
 
     if (exitValueIsOk(exitValue)) {

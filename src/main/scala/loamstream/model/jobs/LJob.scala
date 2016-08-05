@@ -6,6 +6,7 @@ import loamstream.model.jobs.LJob.Result
 import loamstream.util.DagHelpers
 import loamstream.util.Loggable
 import scala.util.control.NonFatal
+import loamstream.util.SyncRef
 
 /**
  * LoamStream
@@ -22,6 +23,28 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   
   def inputs: Set[LJob]
 
+  def outputs: Set[Output]
+  
+  private val statusRef: SyncRef[JobState] = SyncRef(JobState.NotStarted)
+  
+  final def status: JobState = statusRef.getOrElse(JobState.Unknown)
+  
+  final protected def isSuccess: Boolean = status.isFinished
+  
+  final def execute(implicit context: ExecutionContext): Future[Result] = {
+    val f = executeSelf
+    
+    import JobState._
+    
+    f.foreach { result =>
+      statusRef() = if(result.isSuccess) Finished else Failed
+    }
+    
+    f
+  }
+  
+  protected def executeSelf(implicit context: ExecutionContext): Future[Result]
+  
   protected def doWithInputs(newInputs: Set[LJob]): LJob
   
   final def withInputs(newInputs: Set[LJob]): LJob = {
@@ -29,9 +52,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     else { doWithInputs(newInputs) }
   }
   
-  def execute(implicit context: ExecutionContext): Future[Result]
-  
-  protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))
+  final protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))
   
   final override def isLeaf: Boolean = inputs.isEmpty
   

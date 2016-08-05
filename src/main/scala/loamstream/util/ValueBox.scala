@@ -1,7 +1,7 @@
 package loamstream.util
 
 /** A simple container to hold a value that is being updated */
-class ValueBox[V](valueNew: V) {
+final class ValueBox[V](valueNew: V) {
 
   @volatile private[this] var _value: V = valueNew
 

@@ -1,9 +1,8 @@
 package loamstream.loam
 
-import loamstream.LEnv
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, PathKeyEdge, ToolEdge}
-import loamstream.loam.LoamToken.{EnvToken, StoreRefToken, StoreToken, StringToken}
+import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge}
+import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.model.LId
 import loamstream.util.SourceUtils
 
@@ -19,14 +18,11 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print(tpe: Type, fully: Boolean): String =
     if (fully) SourceUtils.fullTypeName(tpe) else SourceUtils.shortTypeName(tpe)
 
-  /** Prints environment settings key */
-  def print(key: LEnv.Key[_], fully: Boolean): String = s"%${print(key.id)}[${print(key.tpe, fully)}]"
-
   /** Prints store */
   def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
   /** Prints tool */
-  def print(tool: LoamTool): String = print(tool, tool.graphBuilder.graph)
+  def print(tool: LoamTool): String = print(tool, tool.graphBox.value)
 
   /** Prints prefix symbol to distinguish input and output stores */
   def printIoPrefix(tool: LoamTool, store: LoamStore, graph: LoamGraph): String =
@@ -39,7 +35,6 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print(tool: LoamTool, graph: LoamGraph): String = {
     def toString(token: LoamToken): String = token match {
       case StringToken(string) => string
-      case EnvToken(key) => s"${print(key.id)}[${print(key.tpe, fully = false)}]"
       case StoreToken(store) =>
         val ioPrefix = printIoPrefix(tool, store, graph)
         s"$ioPrefix${print(store, fully = false)}"
@@ -58,7 +53,6 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   /** Prints store edge */
   def print(source: StoreEdge): String = source match {
     case PathEdge(path) => path.toString
-    case PathKeyEdge(key) => print(key, fully = true)
     case ToolEdge(tool) => s"#${print(tool.id)}"
   }
 

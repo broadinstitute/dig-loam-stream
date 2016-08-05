@@ -16,15 +16,10 @@ final class LoamGraphTest extends FunSuite {
 
   val code =
     """
-      |val inputFile = key[Path]
-      |val outputFile = key[Path]
-      |val phaseCommand = key[String]
-      |val imputeCommand = key[String]
-      |
-      |inputFile := path("/user/home/someone/data.vcf")
-      |outputFile := path("/user/home/someone/dataImputed.vcf")
-      |phaseCommand := "shapeit"
-      |imputeCommand := "impute2"
+      |val inputFile = path("/user/home/someone/data.vcf")
+      |val outputFile = path("/user/home/someone/dataImputed.vcf")
+      |val phaseCommand = "shapeit"
+      |val imputeCommand = "impute2"
       |
       |val raw = store[VCF].from(inputFile)
       |val phased = store[VCF]
@@ -40,7 +35,7 @@ final class LoamGraphTest extends FunSuite {
 
     val result = compiler.compile(code)
     
-    result.graphOpt.get.withEnv(result.envOpt.get)
+    result.graphOpt.get
   }
   test("Test that valid graph passes all checks.") {
     assert(LoamGraphValidation.allRules(graph).isEmpty)

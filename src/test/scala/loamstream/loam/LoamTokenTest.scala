@@ -1,9 +1,7 @@
 package loamstream.loam
 
+import loamstream.loam.LoamToken.{StoreToken, StringToken}
 import org.scalatest.FunSuite
-import loamstream.loam.LoamToken.StringToken
-import loamstream.loam.LoamToken.StoreToken
-import loamstream.loam.LoamToken.EnvToken
 
 /**
  * @author clint
@@ -41,8 +39,7 @@ final class LoamTokenTest extends FunSuite {
         StringToken(""), 
         StringToken(""), 
         StringToken(" "),
-        EnvToken(null),
-        StringToken("baz"), 
+        StringToken("baz"),
         StringToken(""))
         
     val expected = Seq(
@@ -50,9 +47,7 @@ final class LoamTokenTest extends FunSuite {
         StoreToken(null), 
         StringToken("bar"), 
         StoreToken(null), 
-        StringToken(" "), 
-        EnvToken(null), 
-        StringToken("baz"))
+        StringToken(" baz"))
     // scalastyle:on null
     assert(mergeStringTokens(tokens) == expected)
   }

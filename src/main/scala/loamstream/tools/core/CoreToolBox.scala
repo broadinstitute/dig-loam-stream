@@ -1,29 +1,23 @@
 package loamstream.tools.core
 
-import java.nio.file.{ Files, Path }
-
-import scala.concurrent.{ ExecutionContext, Future }
+import java.nio.file.{Files, Path}
 
 import htsjdk.variant.variantcontext.Genotype
-import loamstream.LEnv
 import loamstream.model.Tool
-import loamstream.model.jobs.{ LJob, LToolBox }
-import loamstream.model.jobs.LJob.{ Result, SimpleFailure, SimpleSuccess }
+import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.jobs.commandline.CommandLineBuilderJob
-import loamstream.tools.{ PcaProjecter, PcaWeightsReader, VcfParser }
-import loamstream.tools.LineCommand
-import loamstream.tools.VcfUtils
-import loamstream.tools.klusta.{ KlustaKwikKonfig, KlustaKwikLineCommand }
-import loamstream.tools.klusta.{ KlustaKwikLineCommand, KlustaKwikInputWriter }
-import loamstream.util.{ Hit, Miss, Shot }
-import loamstream.util.LoamFileUtils
-import loamstream.util.SnagMessage
+import loamstream.model.jobs.{LJob, LToolBox}
+import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
+import loamstream.tools._
+import loamstream.util._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * LoamStream
  * Created by oliverr on 2/23/2016.
  */
-object CoreToolBox {
+object CoreToolBox extends LToolBox {
 
   final case class FileExists(path: Path) extends LJob.Success {
     override def successMessage: String = s"'$path' exists"
@@ -102,11 +96,6 @@ object CoreToolBox {
       }
     }
   }
-}
-
-final case class CoreToolBox(env: LEnv) extends LToolBox {
-
-  import CoreToolBox._
 
   private def pathShot(path: Path): Shot[Path] = {
     if (path.toFile.exists) { Hit(path) }

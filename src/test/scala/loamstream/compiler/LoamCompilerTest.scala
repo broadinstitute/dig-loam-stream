@@ -1,13 +1,9 @@
 package loamstream.compiler
 
-import java.nio.file.Paths
-
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraphValidation
-import loamstream.tools.core.LCoreEnv
-import loamstream.util.SourceUtils
 import org.scalatest.FunSuite
 
 /**
@@ -24,14 +20,6 @@ object LoamCompilerTest {
 }
 
 final class LoamCompilerTest extends FunSuite {
-  test("Testing resolution ot type name.") {
-    assert(SourceUtils.shortTypeName[LoamCompilerTest] === "LoamCompilerTest")
-    assert(SourceUtils.fullTypeName[LoamCompilerTest] === "loamstream.compiler.LoamCompilerTest")
-    assert(SourceUtils.shortTypeName[LoamCompilerTest.SomeObject.type] === "SomeObject")
-    assert(SourceUtils.fullTypeName[LoamCompilerTest.SomeObject.type] ===
-      "loamstream.compiler.LoamCompilerTest.SomeObject")
-  }
-
   test("Testing sanity of classloader used by compiler.") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)
     val compilerClassLoader = compiler.compiler.rootClassLoader
@@ -53,37 +41,6 @@ final class LoamCompilerTest extends FunSuite {
     val result = compiler.compile(code)
     assert(result.errors === Nil)
     assert(result.warnings === Nil)
-    assert(result.envOpt.nonEmpty)
-    val env = result.envOpt.get
-    assert(env.size === 0)
-  }
-  test("Testing compilation of legal code fragment with five settings.") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
-    val code = {
-      """
-    genotypesId := "myImportantGenotypes"
-    sampleFilePath := path("/some/path/to/file")
-    pcaProjectionsFilePath := tempFile("pca", "pjs")
-    klustaKwikKonfig :=
-      loamstream.tools.klusta.KlustaKwikKonfig(path("/usr/local/bin/klusta"), "stuff")
-    case class Squirrel(name: String)
-    val favoriteSquirrel = key[Squirrel]
-    favoriteSquirrel := Squirrel("Tom")
-      """
-    }
-
-    val result = compiler.compile(code)
-
-    assert(result.errors === Nil) //NB: Compare with Nil for better failure messages
-    assert(result.warnings === Nil) //NB: Compare with Nil for better failure messages
-
-    val env = result.envOpt.get
-
-    assert(env(LCoreEnv.Keys.genotypesId) === "myImportantGenotypes")
-    assert(env(LCoreEnv.Keys.sampleFilePath)() === Paths.get("/some/path/to/file"))
-    assert(env.get(LCoreEnv.Keys.pcaProjectionsFilePath).nonEmpty)
-    assert(env.get(LCoreEnv.Keys.klustaKwikKonfig).nonEmpty)
-    assert(env.size === 5)
   }
   test("Testing that compilation of illegal code fragment causes compile errors.") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)
@@ -95,7 +52,6 @@ final class LoamCompilerTest extends FunSuite {
     }
     val result = compiler.compile(code)
     assert(result.errors.nonEmpty)
-    assert(result.envOpt.isEmpty)
   }
   test("Testing sample code toyImpute.loam") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)

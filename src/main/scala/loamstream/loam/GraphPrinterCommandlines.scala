@@ -1,6 +1,6 @@
 package loamstream.loam
 
-import loamstream.loam.LoamToken.{EnvToken, StoreRefToken, StoreToken, StringToken}
+import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 
 /** Prints file names and command lines in LoamGraph */
 final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
@@ -15,7 +15,6 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
   /** Prints a token */
   def print(token: LoamToken, graph: LoamGraph): String = token match {
     case StringToken(string) => string
-    case EnvToken(key) => "[key]"
     case StoreToken(store) => print(store)
     case StoreRefToken(storeRef) => print(storeRef)
   }

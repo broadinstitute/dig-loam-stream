@@ -47,13 +47,11 @@ trait LoamTestHelpers extends Loggable {
   }
   
   def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, LExecutable) = {
-    val env = compileResults.envOpt.get
-
-    val graph = compileResults.graphOpt.get.withEnv(env)
+    val graph = compileResults.graphOpt.get
 
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
-    val toolBox = LoamToolBox(env)
+    val toolBox = new LoamToolBox
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
   

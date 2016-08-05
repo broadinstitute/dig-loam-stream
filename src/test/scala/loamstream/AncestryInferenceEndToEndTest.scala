@@ -4,10 +4,9 @@ import loamstream.model.execute.ChunkedExecuter
 import loamstream.model.jobs.{LJob, LToolBox}
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.tools.PcaWeightsReader
-import loamstream.tools.core.LCoreEnv.Keys
-import loamstream.tools.core.{CoreToolBox, LCoreDefaultStoreIds}
+import loamstream.tools.core.CoreToolBox
 import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
-import loamstream.util.{Hit, Shot, StringUtils}
+import loamstream.util.{Hit, Shot}
 import org.scalatest.FunSuite
 
 import scala.util.Try
@@ -56,12 +55,8 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
 
     val klustaConfig = KlustaKwikKonfig.withTempWorkDir("data")
 
-    val env = LEnv(
-      Keys.genotypesId -> LCoreDefaultStoreIds.genotypes,
-      Keys.pcaWeightsId -> LCoreDefaultStoreIds.pcaWeights)
-
     val pipeline = AncestryInferencePipeline(miniVcfFilePath, pcaWeightsFile, klustaConfig)
-    val toolbox = CoreToolBox(env)
+    val toolbox = CoreToolBox
 
     (toolbox, pipeline)
   }

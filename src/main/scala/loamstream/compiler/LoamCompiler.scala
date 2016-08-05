@@ -1,29 +1,24 @@
 package loamstream.compiler
 
-import scala.reflect.internal.util.{ AbstractFileClassLoader, BatchSourceFile, Position }
+import loamstream.compiler.Issue.Severity
+import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
+import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
+import loamstream.loam._
+import loamstream.util._
+
+import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
 import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.reflect.ReflectGlobal
 import scala.util.control.NonFatal
 
-import loamstream.LEnv
-import loamstream.compiler.Issue.Severity
-import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
-import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.loam.{GraphPrinter, LEnvBuilder, LoamGraph, LoamGraphBuilder, LoamTool}
-import loamstream.tools.core.LCoreEnv
-import loamstream.util.{PathEnrichments, ReflectionUtil, SourceUtils, StringUtils}
-
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler {
 
   /** A wrapper type for Loam scripts */
   trait DslChunk {
-    /** The runtime environment defined by this Loam script */
-    def env: LEnv
-
     /** The graph of stores and tools defined by this Loam script */
     def graph: LoamGraph
   }
@@ -54,18 +49,18 @@ object LoamCompiler {
   /** The result of the compilation of a Loam script */
   object Result {
     /** Constructs a result representing successful compilation */
-    def success(reporter: CompilerReporter, graph: LoamGraph, env: LEnv): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, Some(graph), Some(env))
+    def success(reporter: CompilerReporter, graph: LoamGraph): Result = {
+      Result(reporter.errors, reporter.warnings, reporter.infos, Some(graph))
     }
 
     /** Constructs a result that the Loam script cannot be compiled */
     def failure(reporter: CompilerReporter): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, None, None)
+      Result(reporter.errors, reporter.warnings, reporter.infos, None)
     }
 
     /** Constructs a result that an exception was thrown during compilation */
     def throwable(reporter: CompilerReporter, throwable: Throwable): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, None, None, Some(throwable))
+      Result(reporter.errors, reporter.warnings, reporter.infos, None, Some(throwable))
     }
   }
 
@@ -75,29 +70,27 @@ object LoamCompiler {
     * @param warnings Warnings from the Scala compiler
     * @param infos    Infos from the Scala compiler
     * @param graphOpt Option of graph of stores and tools
-    * @param envOpt   Option of runtime settings
     * @param exOpt    Option of an exception if thrown
     */
   final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], graphOpt: Option[LoamGraph],
-                          envOpt: Option[LEnv], exOpt: Option[Throwable] = None) {
+                          exOpt: Option[Throwable] = None) {
     /** Returns true if no errors */
     def isValid: Boolean = errors.isEmpty
 
     /** Returns true if no issues */
     def isClean: Boolean = isValid && warnings.isEmpty && infos.isEmpty
 
-    /** Returns true if graph of stores and tools and runtime settings have been found */
-    def isSuccess: Boolean = envOpt.nonEmpty && graphOpt.nonEmpty
+    /** Returns true if graph of stores and tools has been found */
+    def isSuccess: Boolean = graphOpt.nonEmpty
 
     /** One-line summary of the result */
     def summary: String = {
       val soManyErrors = StringUtils.soMany(errors.size, "error")
       val soManyWarnings = StringUtils.soMany(warnings.size, "warning")
       val soManyInfos = StringUtils.soMany(infos.size, "info")
-      val soManySettings = StringUtils.soMany(envOpt.map(_.keys.size).getOrElse(0), "runtime setting")
       val soManyStores = StringUtils.soMany(graphOpt.map(_.stores.size).getOrElse(0), "store")
       val soManyTools = StringUtils.soMany(graphOpt.map(_.tools.size).getOrElse(0), "tool")
-      s"There were $soManyErrors, $soManyWarnings, $soManyInfos, $soManySettings, $soManyStores and $soManyTools."
+      s"There were $soManyErrors, $soManyWarnings, $soManyInfos, $soManyStores and $soManyTools."
     }
 
     /** Detailed report listing all issues */
@@ -132,25 +125,21 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
     s"""
 package $inputObjectPackage
 
-import ${SourceUtils.fullTypeName[LCoreEnv.Keys.type]}._
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
-import ${SourceUtils.fullTypeName[LEnvBuilder]}
-import ${SourceUtils.fullTypeName[LoamGraphBuilder]}
+import ${SourceUtils.fullTypeName[LoamGraph]}
+import ${SourceUtils.fullTypeName[ValueBox[_]]}
 import ${SourceUtils.fullTypeName[DslChunk]}
-import ${SourceUtils.fullTypeName[LEnv]}._
 import ${SourceUtils.fullTypeName[LoamTool.type]}._
 import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._
 
 object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
-implicit val envBuilder = new LEnvBuilder
-implicit val graphBuilder = new LoamGraphBuilder
+implicit val graphBox : ValueBox[LoamGraph] = new ValueBox(LoamGraph.empty)
 
 ${raw.trim}
 
-def env = envBuilder.toEnv
-def graph = graphBuilder.graph
+def graph = graphBox.value
 }
 """
   }
@@ -168,14 +157,12 @@ def graph = graphBuilder.graph
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
         val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
-        val env = dslChunk.env
         val graph = dslChunk.graph
         val stores = graph.stores
         val tools = graph.tools
-        val soManySettings = StringUtils.soMany(env.size, "runtime setting")
         val soManyStores = StringUtils.soMany(stores.size, "store")
         val soManyTools = StringUtils.soMany(tools.size, "tool")
-        outMessageSink.send(StatusOutMessage(s"Found $soManySettings, $soManyStores and $soManyTools."))
+        outMessageSink.send(StatusOutMessage(s"Found $soManyStores and $soManyTools."))
         val lengthOfLine = 100
         val graphPrinter = GraphPrinter.byLine(lengthOfLine)
         outMessageSink.send(StatusOutMessage(
@@ -184,13 +171,13 @@ def graph = graphBuilder.graph
              |${graphPrinter.print(graph)}
              |[End Graph]
            """.stripMargin))
-        LoamCompiler.Result.success(reporter, graph, env)
+        LoamCompiler.Result.success(reporter, graph)
       } else {
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
-      case NonFatal(throwable) =>
+      case NonFatalInitializer(throwable) =>
         outMessageSink.send(
           StatusOutMessage(s"${throwable.getClass.getName} while trying to compile: ${throwable.getMessage}"))
         LoamCompiler.Result.throwable(reporter, throwable)

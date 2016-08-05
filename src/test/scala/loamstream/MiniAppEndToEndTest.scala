@@ -1,23 +1,14 @@
 package loamstream
 
-import java.nio.file.{ Files, Path }
-import scala.io.Source
-import org.scalatest.FunSuite
-import loamstream.model.execute.LExecutable
-import loamstream.model.execute.ChunkedExecuter
+import java.nio.file.{Files, Path, Paths}
+
+import loamstream.model.execute.{ChunkedExecuter, LExecutable}
 import loamstream.model.jobs.LToolBox
-import loamstream.tools.core.{ CoreToolBox, LCoreEnv }
-import loamstream.tools.core.LCoreDefaultStoreIds
-import loamstream.util.Hit
-import loamstream.util.LoamFileUtils
-import loamstream.util.StringUtils
-import loamstream.model.Tool
-import loamstream.tools.core.CoreTool
-import loamstream.model.LPipeline
-import loamstream.model.HasAst
-import loamstream.model.Store
-import loamstream.model.AST
-import java.nio.file.Paths
+import loamstream.tools.core.CoreToolBox
+import loamstream.util.{Hit, LoamFileUtils}
+import org.scalatest.FunSuite
+
+import scala.io.Source
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -58,7 +49,7 @@ final class MiniAppEndToEndTest extends FunSuite {
     val extractedSamplesFilePath = Files.createTempFile("samples", "txt")
 
     val pipeline = MiniPipeline(miniVcfFilePath, extractedSamplesFilePath)
-    val toolbox = CoreToolBox(LEnv.empty)
+    val toolbox = CoreToolBox
 
     (toolbox, pipeline, extractedSamplesFilePath)
   }

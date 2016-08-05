@@ -22,17 +22,17 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
   /** Prints tool */
-  def print(tool: LoamTool): String = print(tool, tool.graphBox.value)
+  def print(tool: LoamCmdTool): String = print(tool, tool.graphBox.value)
 
   /** Prints prefix symbol to distinguish input and output stores */
-  def printIoPrefix(tool: LoamTool, store: LoamStore, graph: LoamGraph): String =
+  def printIoPrefix(tool: LoamCmdTool, store: LoamStore, graph: LoamGraph): String =
     graph.storeSources.get(store) match {
       case Some(StoreEdge.ToolEdge(sourceTool)) if sourceTool == tool => ">"
       case _ => "<"
     }
 
   /** Prints tool */
-  def print(tool: LoamTool, graph: LoamGraph): String = {
+  def print(tool: LoamCmdTool, graph: LoamGraph): String = {
     def toString(token: LoamToken): String = token match {
       case StringToken(string) => string
       case StoreToken(store) =>

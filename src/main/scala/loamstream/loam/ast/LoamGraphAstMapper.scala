@@ -1,23 +1,23 @@
 package loamstream.loam.ast
 
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.{ LoamGraph, LoamTool }
+import loamstream.loam.{LoamGraph, LoamCmdTool}
 import loamstream.model.AST
-import loamstream.model.AST.{ Connection, ToolNode }
+import loamstream.model.AST.{Connection, ToolNode}
 import loamstream.loam.LoamStore
 
 /**
- * LoamStream
- * Created by oliverr on 6/16/2016.
- */
+  * LoamStream
+  * Created by oliverr on 6/16/2016.
+  */
 object LoamGraphAstMapper {
 
   val tempFilePrefix = "loam"
 
   def newMapping(graph: LoamGraph): LoamGraphAstMapping = {
-    var toolsUnmapped: Set[LoamTool] = graph.tools
-    var toolAsts: Map[LoamTool, AST] = Map.empty
-    var rootTools: Set[LoamTool] = Set.empty
+    var toolsUnmapped: Set[LoamCmdTool] = graph.tools
+    var toolAsts: Map[LoamCmdTool, AST] = Map.empty
+    var rootTools: Set[LoamCmdTool] = Set.empty
     var rootAsts: Set[AST] = Set.empty
     var makingProgress: Boolean = true
 
@@ -49,9 +49,9 @@ object LoamGraphAstMapper {
     LoamGraphAstMapping(graph, toolAsts, rootTools, rootAsts, toolsUnmapped)
   }
 
-  private def toConnection(graph: LoamGraph, toolAsts: Map[LoamTool, AST])
-      (inputStore: LoamStore): Option[Connection] = {
-    
+  private def toConnection(graph: LoamGraph, toolAsts: Map[LoamCmdTool, AST])
+                          (inputStore: LoamStore): Option[Connection] = {
+
     graph.storeSources.get(inputStore) match {
       case Some(StoreEdge.ToolEdge(sourceTool)) =>
         val id = inputStore.id
@@ -61,7 +61,7 @@ object LoamGraphAstMapper {
     }
   }
 
-  private def toAst(graph: LoamGraph, toolAsts: Map[LoamTool, AST])(tool: LoamTool): AST = {
+  private def toAst(graph: LoamGraph, toolAsts: Map[LoamCmdTool, AST])(tool: LoamCmdTool): AST = {
     val inputStores = graph.toolInputs.getOrElse(tool, Set.empty)
 
     val inputConnections = inputStores.flatMap(toConnection(graph, toolAsts))
@@ -69,9 +69,9 @@ object LoamGraphAstMapper {
     ToolNode(tool, inputConnections)
   }
 
-  private def isRoot(graph: LoamGraph)(tool: LoamTool): Boolean = graph.toolsSucceeding(tool).isEmpty
+  private def isRoot(graph: LoamGraph)(tool: LoamCmdTool): Boolean = graph.toolsSucceeding(tool).isEmpty
 
-  private def precedingToolsArePresent(graph: LoamGraph, toolAsts: Map[LoamTool, AST])(tool: LoamTool): Boolean = {
+  private def precedingToolsArePresent(graph: LoamGraph, toolAsts: Map[LoamCmdTool, AST])(tool: LoamCmdTool): Boolean = {
     graph.toolsPreceding(tool).forall(toolAsts.contains)
   }
 }

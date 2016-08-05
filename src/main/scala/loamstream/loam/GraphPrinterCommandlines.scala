@@ -20,7 +20,7 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
   }
 
   /** Prints a tool */
-  def print(tool: LoamTool): String = tool.tokens.map(print(_, tool.graph)).mkString
+  def print(tool: LoamCmdTool): String = tool.tokens.map(print(_, tool.graph)).mkString
 
   /** Prints file names and command lines in LoamGraph */
   override def print(graph: LoamGraph): String =

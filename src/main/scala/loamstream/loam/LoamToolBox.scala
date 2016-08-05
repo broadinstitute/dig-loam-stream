@@ -16,11 +16,11 @@ final class LoamToolBox extends LToolBox {
 
   private val fileManager = new LoamFileManager
 
-  @volatile private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
+  @volatile private[this] var loamJobs: Map[LoamCmdTool, LJob] = Map.empty
 
   private[this] val lock = new AnyRef
 
-  private[loam] def newLoamJob(tool: LoamTool): Shot[LJob] = {
+  private[loam] def newLoamJob(tool: LoamCmdTool): Shot[LJob] = {
     val graph = tool.graphBox.value
 
     val commandLineString = graph.toolTokens(tool).map(_.toString(fileManager)).mkString
@@ -34,7 +34,7 @@ final class LoamToolBox extends LToolBox {
     }
   }
 
-  private[loam] def getLoamJob(tool: LoamTool): Shot[LJob] = lock.synchronized {
+  private[loam] def getLoamJob(tool: LoamCmdTool): Shot[LJob] = lock.synchronized {
     loamJobs.get(tool) match {
       case Some(job) => Hit(job)
       case _ => newLoamJob(tool) match {
@@ -47,7 +47,7 @@ final class LoamToolBox extends LToolBox {
   }
 
   override def toolToJobShot(tool: Tool): Shot[LJob] = tool match {
-    case loamTool: LoamTool => getLoamJob(loamTool)
+    case loamTool: LoamCmdTool => getLoamJob(loamTool)
     case _                  => Miss(Snag(s"LoamToolBox only knows Loam tools; it doesn't know about $tool."))
   }
 

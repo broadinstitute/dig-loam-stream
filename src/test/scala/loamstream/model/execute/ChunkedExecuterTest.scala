@@ -132,17 +132,55 @@ final class ChunkedExecuterTest extends ExecuterTest {
 
     val threeStepExecutable = LExecutable(Set(thirdStepJob))
 
-    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner)
+    val maxNumJobs = 2
+    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxNumJobs)
     val executer = ChunkedExecuter(mockRunner)
     executer.execute(threeStepExecutable)
 
-    val maxNumJobs = UgerConfig.fromConfig(ConfigFactory.load("loamstream-test.conf")).get.ugerMaxNumJobs
     assert(mockRunner.chunks.forall(_.size <= maxNumJobs))
+  }
+
+  ignore("New leaves are executed as soon as possible") {
+    /* A four-step pipeline:
+     *
+     *           Job21
+     *          /      \
+     * Job11 --          -- Job31
+     *          \      /         \
+     *           Job22            \
+     *                              -- Job4
+     *           Job23            /
+     *          /      \         /
+     * Job12 --          -- Job32
+     *          \      /
+     *           Job24
+     */
+    // The delay added to job11 should cause job23 and job24 to be bundled and executed prior to job21 and job22
+    val job11 = MockJob("1st_step_job_1", delay = 1000) // scalastyle:ignore magic.number
+    val job12 = MockJob("1st_step_job_2")
+    val job21 = MockJob("2nd_step_job_1", Set(job11))
+    val job22 = MockJob("2nd_step_job_2", Set(job11))
+    val job23 = MockJob("2nd_step_job_3", Set(job12))
+    val job24 = MockJob("2nd_step_job_4", Set(job12))
+    val job31 = MockJob("3rd_step_job_1", Set(job21, job22))
+    val job32 = MockJob("3rd_step_job_2", Set(job23, job24))
+    val job4  = MockJob("4th_step_job"  , Set(job31, job32))
+
+    val executable = LExecutable(Set(job4))
+
+    val maxSimultaneousJobs = 5
+    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxSimultaneousJobs)
+    val executer = ChunkedExecuter(mockRunner)
+
+    executer.execute(executable)
+    val chunks = mockRunner.chunks
+    val expectedMaxSimultaneousJobs = 2
+    assert(mockRunner.chunks.forall(_.size <= expectedMaxSimultaneousJobs))
   }
 }
 
 object ChunkedExecuterTest {
-  private final case class MockJob(name: String, inputs: Set[LJob] = Set.empty) extends LJob {
+  private final case class MockJob(name: String, inputs: Set[LJob] = Set.empty, delay: Int = 0) extends LJob {
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
     
     private[this] val lock = new AnyRef
@@ -153,20 +191,23 @@ object ChunkedExecuterTest {
     
     override def execute(implicit context: ExecutionContext): Future[Result] = {
       lock.synchronized(_executionCount += 1)
-      
+      Thread.sleep(delay)
       Future.successful(LJob.SimpleSuccess(name))
     }
   }
 
-  private final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
+  private final case class MockChunkRunner(delegate: ChunkRunner, maxNumJobs: Int) extends ChunkRunner {
     var chunks: Seq[Set[LJob]] = Nil
-
-    override def maxNumJobs = UgerConfig.fromConfig(ConfigFactory.load("loamstream-test.conf")).get.ugerMaxNumJobs
 
     override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
       chunks = chunks :+ leaves
 
       delegate.run(leaves)
     }
+  }
+
+  private object MockChunkRunner {
+    def apply(delegate: ChunkRunner): MockChunkRunner = new MockChunkRunner(delegate,
+      UgerConfig.fromFile("src/test/resources/loamstream-test.conf").get.ugerMaxNumJobs)
   }
 }

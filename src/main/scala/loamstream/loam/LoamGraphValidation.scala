@@ -14,9 +14,9 @@ object LoamGraphValidation {
   type LoamIssue[Details] = Issue[LoamGraph, Details]
   type LoamBulkIssue[Target, Details] = BulkIssue[LoamGraph, Target, Details]
   type LoamStoreIssue[Details] = LoamBulkIssue[LoamStore, Details]
-  type LoamToolIssue[Details] = LoamBulkIssue[LoamCmdTool, Details]
+  type LoamToolIssue[Details] = LoamBulkIssue[LoamTool, Details]
   type LoamSourceIssue[Details] = LoamBulkIssue[(LoamStore, LoamGraph.StoreEdge), Details]
-  type LoamConsumerIssue[Details] = LoamBulkIssue[(LoamStore, LoamCmdTool), Details]
+  type LoamConsumerIssue[Details] = LoamBulkIssue[(LoamStore, LoamTool), Details]
 
   def newIssue[Details](graph: LoamGraph, rule: LoamGlobalRule[Details], details: Details, severity: Severity,
                         message: String):
@@ -39,16 +39,16 @@ object LoamGraphValidation {
     override def targets(graph: LoamGraph): Seq[LoamStore] = graph.stores.toSeq
   }
 
-  trait LoamToolRule[Details] extends LoamBulkRule[LoamCmdTool, Details] {
-    override def targets(graph: LoamGraph): Seq[LoamCmdTool] = graph.tools.toSeq
+  trait LoamToolRule[Details] extends LoamBulkRule[LoamTool, Details] {
+    override def targets(graph: LoamGraph): Seq[LoamTool] = graph.tools.toSeq
   }
 
   trait LoamSourceRule[Details] extends LoamBulkRule[(LoamStore, LoamGraph.StoreEdge), Details] {
     override def targets(graph: LoamGraph): Seq[(LoamStore, LoamGraph.StoreEdge)] = graph.storeSources.toSeq
   }
 
-  trait LoamConsumerRule[Details] extends LoamBulkRule[(LoamStore, LoamCmdTool), Details] {
-    override def targets(graph: LoamGraph): Seq[(LoamStore, LoamCmdTool)] =
+  trait LoamConsumerRule[Details] extends LoamBulkRule[(LoamStore, LoamTool), Details] {
+    override def targets(graph: LoamGraph): Seq[(LoamStore, LoamTool)] =
       graph.stores.flatMap(store =>
         graph.storeSinks.getOrElse(store, Set.empty).collect({ case ToolEdge(tool) => (store, tool) })).toSeq
   }
@@ -75,52 +75,52 @@ object LoamGraphValidation {
   }
 
   val eachStoresIsInputOfItsConsumers: LoamConsumerRule[Unit] = new LoamConsumerRule[Unit] {
-    override def apply(graph: LoamGraph, consumerEntry: (LoamStore, LoamCmdTool)):
+    override def apply(graph: LoamGraph, consumerEntry: (LoamStore, LoamTool)):
     Seq[LoamConsumerIssue[Unit]] = {
       val (store, tool) = consumerEntry
       issueIf(!graph.toolInputs.getOrElse(tool, Set.empty).contains(store),
-        newBulkIssue[(LoamStore, LoamCmdTool), Unit](graph, this, consumerEntry, (), Severity.Error,
+        newBulkIssue[(LoamStore, LoamTool), Unit](graph, this, consumerEntry, (), Severity.Error,
           s"Tool $tool is consumer of store $store, but the store is not among its inputs."))
     }
   }
 
   val eachToolsInputStoresArePresent: LoamToolRule[Set[LoamStore]] = new LoamToolRule[Set[LoamStore]] {
-    override def apply(graph: LoamGraph, tool: LoamCmdTool): Seq[LoamToolIssue[Set[LoamStore]]] = {
+    override def apply(graph: LoamGraph, tool: LoamTool): Seq[LoamToolIssue[Set[LoamStore]]] = {
       val missingInputs = graph.toolInputs.getOrElse(tool, Set.empty) -- graph.stores
       issueIf(missingInputs.nonEmpty,
-        newBulkIssue[LoamCmdTool, Set[LoamStore]](graph, this, tool, missingInputs, Severity.Error,
+        newBulkIssue[LoamTool, Set[LoamStore]](graph, this, tool, missingInputs, Severity.Error,
           s"The following inputs of tool $tool are missing from the graph: ${missingInputs.mkString(", ")}"))
     }
   }
 
   val eachToolsOutputStoresArePresent: LoamToolRule[Set[LoamStore]] = new LoamToolRule[Set[LoamStore]] {
-    override def apply(graph: LoamGraph, tool: LoamCmdTool): Seq[LoamToolIssue[Set[LoamStore]]] = {
+    override def apply(graph: LoamGraph, tool: LoamTool): Seq[LoamToolIssue[Set[LoamStore]]] = {
       val missingOutputs = graph.toolOutputs.getOrElse(tool, Set.empty) -- graph.stores
       issueIf(missingOutputs.nonEmpty,
-        newBulkIssue[LoamCmdTool, Set[LoamStore]](graph, this, tool, missingOutputs, Severity.Error,
+        newBulkIssue[LoamTool, Set[LoamStore]](graph, this, tool, missingOutputs, Severity.Error,
           s"The following outputs of tool $tool are missing from the graph: ${missingOutputs.mkString(", ")}"))
     }
   }
 
-  val noToolsPrecedeInitialTool: LoamToolRule[Set[LoamCmdTool]] = new LoamToolRule[Set[LoamCmdTool]] {
-    override def targets(graph: LoamGraph): Seq[LoamCmdTool] = graph.initialTools.toSeq
+  val noToolsPrecedeInitialTool: LoamToolRule[Set[LoamTool]] = new LoamToolRule[Set[LoamTool]] {
+    override def targets(graph: LoamGraph): Seq[LoamTool] = graph.initialTools.toSeq
 
-    override def apply(graph: LoamGraph, tool: LoamCmdTool): Seq[BulkIssue[LoamGraph, LoamCmdTool, Set[LoamCmdTool]]] = {
+    override def apply(graph: LoamGraph, tool: LoamTool): Seq[BulkIssue[LoamGraph, LoamTool, Set[LoamTool]]] = {
       val precedingTools = graph.toolInputs.getOrElse(tool, Set.empty).flatMap(graph.storeProducers)
       issueIf(precedingTools.nonEmpty,
-        newBulkIssue[LoamCmdTool, Set[LoamCmdTool]](graph, this, tool, precedingTools, Severity.Error,
+        newBulkIssue[LoamTool, Set[LoamTool]](graph, this, tool, precedingTools, Severity.Error,
           s"Tool $tool is considered initial, but the following tools precede it: ${precedingTools.mkString(", ")}.")
       )
     }
   }
 
-  val noToolsSucceedFinalTool: LoamToolRule[Set[LoamCmdTool]] = new LoamToolRule[Set[LoamCmdTool]] {
-    override def targets(graph: LoamGraph): Seq[LoamCmdTool] = graph.finalTools.toSeq
+  val noToolsSucceedFinalTool: LoamToolRule[Set[LoamTool]] = new LoamToolRule[Set[LoamTool]] {
+    override def targets(graph: LoamGraph): Seq[LoamTool] = graph.finalTools.toSeq
 
-    override def apply(graph: LoamGraph, tool: LoamCmdTool): Seq[BulkIssue[LoamGraph, LoamCmdTool, Set[LoamCmdTool]]] = {
+    override def apply(graph: LoamGraph, tool: LoamTool): Seq[BulkIssue[LoamGraph, LoamTool, Set[LoamTool]]] = {
       val succeedingTools = graph.toolOutputs.getOrElse(tool, Set.empty).flatMap(graph.storeConsumers)
       issueIf(succeedingTools.nonEmpty,
-        newBulkIssue[LoamCmdTool, Set[LoamCmdTool]](graph, this, tool, succeedingTools, Severity.Error,
+        newBulkIssue[LoamTool, Set[LoamTool]](graph, this, tool, succeedingTools, Severity.Error,
           s"Tool $tool is considered final, but the following tools succeed it: ${succeedingTools.mkString(", ")}.")
       )
     }
@@ -137,21 +137,21 @@ object LoamGraphValidation {
   }
 
   val eachToolHasEitherInputsOrOutputs: LoamToolRule[Unit] = new LoamToolRule[Unit] {
-    override def apply(graph: LoamGraph, tool: LoamCmdTool): Seq[LoamToolIssue[Unit]] = {
+    override def apply(graph: LoamGraph, tool: LoamTool): Seq[LoamToolIssue[Unit]] = {
       val hasNoInputs = graph.toolInputs.getOrElse(tool, Set.empty).isEmpty
       val hasNoOutputs = graph.toolOutputs.getOrElse(tool, Set.empty).isEmpty
       issueIf(hasNoInputs && hasNoOutputs,
-        newBulkIssue[LoamCmdTool, Unit](graph, this, tool, (), Severity.Error,
+        newBulkIssue[LoamTool, Unit](graph, this, tool, (), Severity.Error,
           s"Tool $tool has neither inputs nor outputs."))
     }
   }
 
-  val allToolsAreConnected: LoamGlobalRule[(LoamCmdTool, LoamCmdTool)] =
-    new LoamGlobalRule[(LoamCmdTool, LoamCmdTool)] {
-      def nearestNeighbours(graph: LoamGraph, tool: LoamCmdTool): Set[LoamCmdTool] =
+  val allToolsAreConnected: LoamGlobalRule[(LoamTool, LoamTool)] =
+    new LoamGlobalRule[(LoamTool, LoamTool)] {
+      def nearestNeighbours(graph: LoamGraph, tool: LoamTool): Set[LoamTool] =
         graph.toolsPreceding(tool) ++ graph.toolsSucceeding(tool)
 
-      override def apply(graph: LoamGraph): Seq[LoamIssue[(LoamCmdTool, LoamCmdTool)]] = {
+      override def apply(graph: LoamGraph): Seq[LoamIssue[(LoamTool, LoamTool)]] = {
         if (graph.tools.size > 1) {
           val tool1 = graph.tools.head
           var connectedTools = Set(tool1)
@@ -164,7 +164,7 @@ object LoamGraphValidation {
           if (disconnectedTools.nonEmpty) {
             val tool2 = disconnectedTools.head
             val issue =
-              newIssue[(LoamCmdTool, LoamCmdTool)](graph, this, (tool1, tool2), Severity.Error,
+              newIssue[(LoamTool, LoamTool)](graph, this, (tool1, tool2), Severity.Error,
                 s"Tools $tool1 and $tool2 are not connected.")
             Seq(issue)
           } else {
@@ -176,8 +176,8 @@ object LoamGraphValidation {
       }
     }
 
-  val graphIsAcyclic: LoamGlobalRule[Set[LoamCmdTool]] = new LoamGlobalRule[Set[LoamCmdTool]] {
-    override def apply(graph: LoamGraph): Seq[LoamIssue[Set[LoamCmdTool]]] = {
+  val graphIsAcyclic: LoamGlobalRule[Set[LoamTool]] = new LoamGlobalRule[Set[LoamTool]] {
+    override def apply(graph: LoamGraph): Seq[LoamIssue[Set[LoamTool]]] = {
       var tools = graph.tools
       var makingProgress = true
       while (tools.nonEmpty && makingProgress) {
@@ -187,7 +187,7 @@ object LoamGraphValidation {
         tools = toolsNew
       }
       issueIf(tools.nonEmpty,
-        newIssue[Set[LoamCmdTool]](graph, this, tools, Severity.Error,
+        newIssue[Set[LoamTool]](graph, this, tools, Severity.Error,
           s"Graph contains one or more cycles including tools ${tools.mkString(", ")}"))
     }
   }

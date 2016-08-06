@@ -19,7 +19,7 @@ object LoamGraph {
     final case class PathEdge(path: Path) extends StoreEdge
 
     /** A connection between a store and a tool */
-    final case class ToolEdge(tool: LoamCmdTool) extends StoreEdge
+    final case class ToolEdge(tool: LoamTool) extends StoreEdge
 
   }
 
@@ -31,10 +31,10 @@ object LoamGraph {
 
 /** The graph of all Loam stores and tools and their relationships */
 final case class LoamGraph(stores: Set[LoamStore],
-                           tools: Set[LoamCmdTool],
+                           tools: Set[LoamTool],
                            toolTokens: Map[LoamCmdTool, Seq[LoamToken]],
-                           toolInputs: Map[LoamCmdTool, Set[LoamStore]],
-                           toolOutputs: Map[LoamCmdTool, Set[LoamStore]],
+                           toolInputs: Map[LoamTool, Set[LoamStore]],
+                           toolOutputs: Map[LoamTool, Set[LoamStore]],
                            storeSources: Map[LoamStore, StoreEdge],
                            storeSinks: Map[LoamStore, Set[StoreEdge]],
                            keysSameSets: Equivalences[LoamStoreKeySlot],
@@ -91,30 +91,30 @@ final case class LoamGraph(stores: Set[LoamStore],
     keysSameLists.theseAreEqual(slot1, slot2)
 
   /** Returns the option of a producer (tool) of a store */
-  def storeProducers(store: LoamStore): Option[LoamCmdTool] = storeSources.get(store).collect {
+  def storeProducers(store: LoamStore): Option[LoamTool] = storeSources.get(store).collect {
     case StoreEdge.ToolEdge(tool) => tool
   }
 
   /** Returns the set of consumers (tools) of a store */
-  def storeConsumers(store: LoamStore): Set[LoamCmdTool] = storeSinks.getOrElse(store, Set.empty).collect {
+  def storeConsumers(store: LoamStore): Set[LoamTool] = storeSinks.getOrElse(store, Set.empty).collect {
     case StoreEdge.ToolEdge(tool) => tool
   }
 
   /** Tools that produce a store consumed by this tool */
-  def toolsPreceding(tool: LoamCmdTool): Set[LoamCmdTool] =
+  def toolsPreceding(tool: LoamTool): Set[LoamTool] =
   toolInputs.getOrElse(tool, Set.empty).flatMap(storeSources.get).collect {
     case StoreEdge.ToolEdge(toolPreceding) => toolPreceding
   }
 
   /** Tools that consume a store produced by this tool */
-  def toolsSucceeding(tool: LoamCmdTool): Set[LoamCmdTool] =
+  def toolsSucceeding(tool: LoamTool): Set[LoamTool] =
   toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers)
 
   /** All tools with no preceeding tools */
-  def initialTools: Set[LoamCmdTool] = tools.filter(toolsPreceding(_).isEmpty)
+  def initialTools: Set[LoamTool] = tools.filter(toolsPreceding(_).isEmpty)
 
   /** All tools with no succeeding tools */
-  def finalTools: Set[LoamCmdTool] = tools.filter(toolsSucceeding(_).isEmpty)
+  def finalTools: Set[LoamTool] = tools.filter(toolsSucceeding(_).isEmpty)
 
   /** Optionally the path associated with a store */
   def pathOpt(store: LoamStore): Option[Path] = {
@@ -125,16 +125,16 @@ final case class LoamGraph(stores: Set[LoamStore],
   }
 
   /** Optionally, the work directory of a tool (currently always none) */
-  def workDirOpt(tool: LoamCmdTool): Option[Path] = None // TODO
+  def workDirOpt(tool: LoamTool): Option[Path] = None // TODO
 
   /** Ranks for all tools: zero for final tools; for all others one plus maximum of rank of succeeding tools */
-  def ranks: Map[LoamCmdTool, Int] = {
-    val initialRanks: Map[LoamCmdTool, Int] = tools.map(tool => (tool, 0)).toMap
+  def ranks: Map[LoamTool, Int] = {
+    val initialRanks: Map[LoamTool, Int] = tools.map(tool => (tool, 0)).toMap
 
     tools.foldLeft(initialRanks) { (ranks, tool) =>
-      def rankFor(tool: LoamCmdTool): Int = ranks.getOrElse(tool, 0)
+      def rankFor(tool: LoamTool): Int = ranks.getOrElse(tool, 0)
 
-      def succeedingToolRanks(tool: LoamCmdTool): Set[Int] = toolsSucceeding(tool).map(rankFor).map(_ + 1)
+      def succeedingToolRanks(tool: LoamTool): Set[Int] = toolsSucceeding(tool).map(rankFor).map(_ + 1)
 
       val newRankEstimate = (succeedingToolRanks(tool) + 0).max
 
@@ -146,19 +146,19 @@ final case class LoamGraph(stores: Set[LoamStore],
     }
   }
 
-  private def storesFor(tool: LoamCmdTool)(storeMap: Map[LoamCmdTool, Set[LoamStore]]): Set[LoamStore] = {
+  private def storesFor(tool: LoamTool)(storeMap: Map[LoamTool, Set[LoamStore]]): Set[LoamStore] = {
     storeMap.getOrElse(tool, Set.empty)
   }
 
-  private def inputsFor(tool: LoamCmdTool): Set[LoamStore] = storesFor(tool)(toolInputs)
+  private def inputsFor(tool: LoamTool): Set[LoamStore] = storesFor(tool)(toolInputs)
 
-  private def outputsFor(tool: LoamCmdTool): Set[LoamStore] = storesFor(tool)(toolOutputs)
+  private def outputsFor(tool: LoamTool): Set[LoamStore] = storesFor(tool)(toolOutputs)
 
   /** Adds input stores to tool
     *
     * Assuming tool and stores are already part of the graph. If stores were output stores, they will no longer be.
     */
-  def withInputStores(tool: LoamCmdTool, stores: Set[LoamStore]): LoamGraph = {
+  def withInputStores(tool: LoamTool, stores: Set[LoamStore]): LoamGraph = {
     val toolInputsNew = toolInputs + (tool -> (inputsFor(tool) ++ stores))
 
     val toolOutputsNew = toolOutputs + (tool -> (outputsFor(tool) -- stores))
@@ -180,7 +180,7 @@ final case class LoamGraph(stores: Set[LoamStore],
     *
     * Assuming tool and stores are already part of the graph. If stores were input stores, they will no longer be.
     */
-  def withOutputStores(tool: LoamCmdTool, stores: Set[LoamStore]): LoamGraph = {
+  def withOutputStores(tool: LoamTool, stores: Set[LoamStore]): LoamGraph = {
     val toolInputsNew = toolInputs + (tool -> (inputsFor(tool) -- stores))
 
     val toolOutputsNew = toolOutputs + (tool -> (outputsFor(tool) ++ stores))

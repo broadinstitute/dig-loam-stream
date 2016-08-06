@@ -16,20 +16,29 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
   /** Prints id */
   def print(tpe: Type, fully: Boolean): String =
-    if (fully) SourceUtils.fullTypeName(tpe) else SourceUtils.shortTypeName(tpe)
+  if (fully) SourceUtils.fullTypeName(tpe) else SourceUtils.shortTypeName(tpe)
 
   /** Prints store */
   def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
-  /** Prints tool */
+  /** Prints cmd tool */
+  def print(tool: LoamTool): String = tool match {
+    case cmdTool: LoamCmdTool => print(cmdTool)
+    case nativeTool: LoamNativeTool => print(nativeTool)
+  }
+
+  /** Prints cmd tool */
   def print(tool: LoamCmdTool): String = print(tool, tool.graphBox.value)
+
+  /** Prints cmd tool */
+  def print(tool: LoamNativeTool): String = "[native tool]"
 
   /** Prints prefix symbol to distinguish input and output stores */
   def printIoPrefix(tool: LoamCmdTool, store: LoamStore, graph: LoamGraph): String =
-    graph.storeSources.get(store) match {
-      case Some(StoreEdge.ToolEdge(sourceTool)) if sourceTool == tool => ">"
-      case _ => "<"
-    }
+  graph.storeSources.get(store) match {
+    case Some(StoreEdge.ToolEdge(sourceTool)) if sourceTool == tool => ">"
+    case _ => "<"
+  }
 
   /** Prints tool */
   def print(tool: LoamCmdTool, graph: LoamGraph): String = {
@@ -42,11 +51,11 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
         val ioPrefix = printIoPrefix(tool, storeRef.store, graph)
         s"$ioPrefix${print(storeRef.store, fully = false)}"
     }
-    
+
     val tokensForTool = graph.toolTokens.getOrElse(tool, Seq.empty)
-    
+
     val tokenString = tokensForTool.map(toString).mkString
-    
+
     s"#${print(tool.id)}[$tokenString]"
   }
 
@@ -59,13 +68,13 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   /** Prints LoamGraph for educational and debugging purposes exposing ids */
   override def print(graph: LoamGraph): String = {
     val delimiter = "\n"
-    
+
     def toString(parts: Iterable[String]): String = parts.mkString(delimiter)
-    
+
     val storesString = toString(graph.stores.map(print(_, fully = true)))
-    
+
     val toolsString = toString(graph.tools.map(print))
-    
+
     val storeSourcesString = toString(graph.storeSources.map {
       case (store, source) => s"${print(store, fully = false)} <- ${print(source)}"
     })

@@ -1,6 +1,6 @@
 package loamstream.loam.ast
 
-import loamstream.loam.{LoamGraph, LoamCmdTool}
+import loamstream.loam.{LoamGraph, LoamTool}
 import loamstream.model.AST
 
 /**
@@ -9,10 +9,10 @@ import loamstream.model.AST
   */
 final case class LoamGraphAstMapping(
                                       graph: LoamGraph,
-                                      toolAsts: Map[LoamCmdTool, AST],
-                                      rootTools: Set[LoamCmdTool],
+                                      toolAsts: Map[LoamTool, AST],
+                                      rootTools: Set[LoamTool],
                                       rootAsts: Set[AST],
-                                      toolsUnmapped: Set[LoamCmdTool]) {
+                                      toolsUnmapped: Set[LoamTool]) {
 
   def complete: Boolean = toolsUnmapped.isEmpty
 }

@@ -1,7 +1,7 @@
 package loamstream.loam.ast
 
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.{LoamCmdTool, LoamGraph, LoamStore, LoamTool}
+import loamstream.loam.{LoamGraph, LoamStore, LoamTool}
 import loamstream.model.AST
 import loamstream.model.AST.{Connection, ToolNode}
 

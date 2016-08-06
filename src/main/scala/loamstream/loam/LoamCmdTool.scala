@@ -1,7 +1,7 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
-import loamstream.model.{LId, Store, Tool}
+import loamstream.model.{LId, Store}
 import loamstream.util.{StringUtils, ValueBox}
 
 /**
@@ -9,6 +9,8 @@ import loamstream.util.{StringUtils, ValueBox}
   * Created by oliverr on 5/25/2016.
   */
 object LoamCmdTool {
+
+  type Tool = LoamCmdTool
 
   def createStringToken(string: String): StringToken = StringToken(StringUtils.unwrapLines(string))
 
@@ -45,26 +47,19 @@ object LoamCmdTool {
 
 /** A command line tool specified in a Loam script */
 final case class LoamCmdTool private(id: LId)(implicit val graphBox: ValueBox[LoamGraph]) extends LoamTool {
-  /** Input stores of this tool */
-  override def inputs: Map[LId, Store] =
-    graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
-
-  /** Output stores of this tool */
-  override def outputs: Map[LId, Store] =
-    graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
-
   /** Tokens used in the tool definition, representing parts of interpolated string and embedded objects */
   def tokens: Seq[LoamToken] = graph.toolTokens(this)
 
-  /** Adds input stores to this tool */
-  def in(inStore: LoamStore, inStores: LoamStore*): LoamCmdTool = {
-    graphBox(_.withInputStores(this, (inStore +: inStores).toSet))
+  /** Returns this after adding input stores to this tool */
+  override def in(inStore: LoamStore, inStores: LoamStore*): LoamCmdTool = {
+    doIn(inStore, inStores)
     this
   }
 
-  /** Adds output stores to this tool */
-  def out(outStore: LoamStore, outStores: LoamStore*): LoamCmdTool = {
-    graphBox(_.withOutputStores(this, (outStore +: outStores).toSet))
+  /** Returns this after adding output stores to this tool */
+  override def out(outStore: LoamStore, outStores: LoamStore*): LoamCmdTool = {
+    doOut(outStore, outStores)
     this
   }
+
 }

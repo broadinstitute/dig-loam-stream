@@ -24,7 +24,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
   import rx._
 
-  //def isRunnable: Rx[Boolean]
+  def isRunnable(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx { inputs.isEmpty || dependenciesSuccessful.now }
 
   val isSuccessful: Var[Boolean] = Var(false)
 

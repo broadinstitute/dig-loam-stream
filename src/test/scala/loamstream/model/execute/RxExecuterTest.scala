@@ -196,12 +196,6 @@ object RxExecuterTest {
       isSuccessful() = true
       Future.successful(LJob.SimpleSuccess(name))
     }
-/*
-    override def isRunnable: Rx[Boolean] = Rx{
-      if (inputs.isEmpty || dependenciesSuccessful()) { true }
-      else { false }
-    }
-*/
   }
 
   private final case class MockChunkRunner(delegate: ChunkRunner, maxNumJobs: Int) extends ChunkRunner {

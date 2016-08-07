@@ -8,7 +8,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import rx.Rx
 
 /**
  * @author clint
@@ -27,116 +26,9 @@ final class RxExecuterTest extends ExecuterTest {
 
   private def executionCount(job: LJob): Int = job.asInstanceOf[RxMockJob].executionCount
 
-  test("Parallel pipeline mocking imputation results in expected number of steps") {
-    /* Two-step pipeline to result in 4 executions:
-     *
-     *            Impute0
-     *           /
-     * ShapeIt -- Impute1
-     *           \
-     *            Impute2
-     */
-    val firstStepJob = RxMockJob("1st_step")
-    val secondStepJob1 = RxMockJob("2nd_step_job_1", Set(firstStepJob))
-    val secondStepJob2 = RxMockJob("2nd_step_job_2", Set(firstStepJob))
-    val secondStepJob3 = RxMockJob("2nd_step_job_3", Set(firstStepJob))
-
-    val twoStepExecutable = addNoOp(LExecutable(Set(secondStepJob1, secondStepJob2, secondStepJob3)))
-
-    assert(firstStepJob.executionCount == 0)
-
-    assert(secondStepJob1.executionCount == 0)
-    assert(secondStepJob2.executionCount == 0)
-    assert(secondStepJob3.executionCount == 0)
-
-    assert(executionCount(twoStepExecutable.jobs.head) == 0)
-
-    val results = executer.execute(twoStepExecutable)
-
-    def withName(n: String): RxMockJob = results.keySet.map(_.asInstanceOf[RxMockJob]).find(_.name == n).get
-
-    val step1 = withName(firstStepJob.name)
-    val step21 = withName(secondStepJob1.name)
-    val step22 = withName(secondStepJob2.name)
-    val step23 = withName(secondStepJob3.name)
-    val step3 = withName("NoOp")
-
-    assert(executionCount(step1) == 1)
-
-    assert(executionCount(step21) == 1)
-    assert(executionCount(step22) == 1)
-    assert(executionCount(step23) == 1)
-
-    assert(executionCount(step3) == 1)
-  }
-
-  test("Parallel pipeline mocking imputation (with QC) results in expected number of steps") {
-    /* Three-step pipeline to result in 5 more executions:
-     *
-     *            Impute0
-     *           /        \
-     * ShapeIt -- Impute1 -- QC
-     *           \        /
-     *            Impute2
-     */
-    val firstStepJob = RxMockJob("1st_step")
-    val secondStepJob1 = RxMockJob("2nd_step_job_1", Set(firstStepJob))
-    val secondStepJob2 = RxMockJob("2nd_step_job_2", Set(firstStepJob))
-    val secondStepJob3 = RxMockJob("2nd_step_job_3", Set(firstStepJob))
-    val thirdStepJob = RxMockJob("3rd_step", Set(secondStepJob1, secondStepJob2, secondStepJob3))
-
-    val threeStepExecutable = LExecutable(Set(thirdStepJob))
-
-    assert(firstStepJob.executionCount == 0)
-
-    assert(secondStepJob1.executionCount == 0)
-    assert(secondStepJob2.executionCount == 0)
-    assert(secondStepJob3.executionCount == 0)
-
-    assert(thirdStepJob.executionCount == 0)
-
-    val results = executer.execute(threeStepExecutable)
-
-    def withName(n: String): RxMockJob = results.keySet.map(_.asInstanceOf[RxMockJob]).find(_.name == n).get
-
-    val step1 = withName(firstStepJob.name)
-    val step21 = withName(secondStepJob1.name)
-    val step22 = withName(secondStepJob2.name)
-    val step23 = withName(secondStepJob3.name)
-    val step3 = withName(thirdStepJob.name)
-
-    assert(executionCount(step1) == 1)
-
-    assert(executionCount(step21) == 1)
-    assert(executionCount(step22) == 1)
-    assert(executionCount(step23) == 1)
-
-    assert(executionCount(step3) == 1)
-  }
-
-  test("Number of jobs run at a time doesn't exceed specified limit") {
-    /* Three-step pipeline to result in 5 more executions:
-     *
-     *            Impute0
-     *           /        \
-     * ShapeIt -- Impute1 -- QC
-     *           \        /
-     *            Impute2
-     */
-    val firstStepJob = RxMockJob("1st_step")
-    val secondStepJob1 = RxMockJob("2nd_step_job_1", Set(firstStepJob))
-    val secondStepJob2 = RxMockJob("2nd_step_job_2", Set(firstStepJob))
-    val secondStepJob3 = RxMockJob("2nd_step_job_3", Set(firstStepJob))
-    val thirdStepJob = RxMockJob("3rd_step", Set(secondStepJob1, secondStepJob2, secondStepJob3))
-
-    val threeStepExecutable = LExecutable(Set(thirdStepJob))
-
-    val maxNumJobs = 2
-    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxNumJobs)
-    val executer = RxExecuter(mockRunner)
-    executer.execute(threeStepExecutable)
-
-    assert(mockRunner.chunks.forall(_.size <= maxNumJobs))
+  def flattenTree(tree: Set[LJob]): Set[LJob] = {
+    tree.foldLeft(tree)((acc, x) =>
+      x.inputs ++ flattenTree(x.inputs) ++ acc)
   }
 
   ignore("New leaves are executed as soon as possible") {
@@ -166,6 +58,8 @@ final class RxExecuterTest extends ExecuterTest {
     val job4 = RxMockJob("4th_step_job", Set(job31, job32))
 
     val executable = LExecutable(Set(job4))
+
+    val flattenedJobs = flattenTree(Set(job4))
 
     val maxSimultaneousJobs = 5
     val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxSimultaneousJobs)

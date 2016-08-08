@@ -1,12 +1,21 @@
 package loamstream.db.slick
 
-import slick.driver.JdbcProfile
-import loamstream.db.LoamDao
 import java.nio.file.Path
-import loamstream.util.Hash
+
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
+import loamstream.db.LoamDao
+import loamstream.util.Hash
+
+import slick.driver.JdbcProfile
+
+/**
+ * @author clint
+ * date: Aug 8, 2016
+ * 
+ * Rough-draft LoamDao implementation backed by Slick 
+ */
 final class SlickLoamDao(driver: JdbcProfile) extends LoamDao {
   import driver.api._
   
@@ -15,9 +24,19 @@ final class SlickLoamDao(driver: JdbcProfile) extends LoamDao {
     
     val futureRow = db.run(query)
     
+    //TODO: Re-evaluate
     val row = Await.result(futureRow, Duration.Inf)
 
     row.toHash
+  }
+  
+  override def storeHash(path: Path, hash: Hash): Unit = {
+    val newRow = new HashRow(path, hash)
+    
+    val future = db.run(tables.hashes.insertOrUpdate(newRow))
+    
+    //TODO: Re-evaluate
+    Await.result(future, Duration.Inf)
   }
   
   //TODO
@@ -27,19 +46,6 @@ final class SlickLoamDao(driver: JdbcProfile) extends LoamDao {
 }
 
 object SlickLoamDao {
-  /*final class Tables(val driver: JdbcProfile) {
-    import driver.api._
-    
-    final class Hashes(tag: Tag) extends Table[(String, String, String)](tag, "HASHES") {
-      def path = column[String]("PATH", O.PrimaryKey)
-      def hash = column[String]("HASH")
-      def hashType = column[String]("HASH_TYPE")
-      def * = (path, hash, hashType)
-    }
-    
-    val hashes = TableQuery[Hashes]
-  }*/
-  
   final class Tables(val driver: JdbcProfile) {
     import driver.api._
     
@@ -52,29 +58,4 @@ object SlickLoamDao {
     
     val hashes = TableQuery[Hashes]
   }
-  
-  /*class Suppliers(tag: Tag)
-  extends Table[(Int, String, String, String, String, String)](tag, "SUPPLIERS") {
-
-  // This is the primary key column:
-  def id: Column[Int] = column[Int]("SUP_ID", O.PrimaryKey)
-  def name: Column[String] = column[String]("SUP_NAME")
-  def street: Column[String] = column[String]("STREET")
-  def city: Column[String] = column[String]("CITY")
-  def state: Column[String] = column[String]("STATE")
-  def zip: Column[String] = column[String]("ZIP")
-  
-  // Every table needs a * projection with the same type as the table's type parameter
-  def * : ProvenShape[(Int, String, String, String, String, String)] =
-    (id, name, street, city, state, zip)
-}
-  
-  import com.lightbend.slick._
-  
-  final class Hashes(tag: Tag) extends Table[(String, Double)](tag, "COFFEES") {
-  def name = column[String]("COF_NAME", O.PrimaryKey)
-  def price = column[Double]("PRICE")
-  def * = (name, price)
-}
-val coffees = TableQuery[Coffees]*/
 }

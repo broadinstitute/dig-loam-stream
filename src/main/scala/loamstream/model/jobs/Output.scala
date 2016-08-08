@@ -17,7 +17,7 @@ trait Output {
 }
 
 object Output {
-  final case class FileOutput(file: Path) extends Output {
+  final case class PathOutput(file: Path) extends Output {
     override def isPresent: Boolean = Files.exists(file)
     
     override def hash: Hash = Hashes.sha1(file)

@@ -6,7 +6,7 @@ import loamstream.model.jobs.LJob.Result
 import loamstream.util.DagHelpers
 import loamstream.util.Loggable
 import scala.util.control.NonFatal
-import loamstream.util.SyncRef
+import loamstream.util.ValueBox
 
 /**
  * LoamStream
@@ -25,9 +25,9 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
   def outputs: Set[Output]
   
-  private val statusRef: SyncRef[JobState] = SyncRef(JobState.NotStarted)
+  private val statusRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
   
-  final def status: JobState = statusRef.getOrElse(JobState.Unknown)
+  final def status: JobState = statusRef.value
   
   final protected def isSuccess: Boolean = status.isFinished
   

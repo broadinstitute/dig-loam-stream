@@ -6,13 +6,13 @@ import loamstream.util.ValueBox
 final case class LoamStoreKeySlot(store: LoamStore, name: String)(implicit graphBox: ValueBox[LoamGraph]) {
   /** Specifies that this key slot has the same set of keys as that key slot (order may be different) */
   def setSameSetAs(oSlot: LoamStoreKeySlot): LoamStoreKeySlot = {
-    graphBox(_.withKeysSameSet(this, oSlot))
+    graphBox.mutate(_.withKeysSameSet(this, oSlot))
     this
   }
 
   /** Specifies that this key slot has the same list of keys as that key slot (same order) */
   def setSameListAs(oSlot: LoamStoreKeySlot): LoamStoreKeySlot = {
-    graphBox(_.withKeysSameList(this, oSlot))
+    graphBox.mutate(_.withKeysSameList(this, oSlot))
     this
   }
 

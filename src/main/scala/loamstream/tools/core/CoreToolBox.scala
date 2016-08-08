@@ -2,18 +2,18 @@ package loamstream.tools.core
 
 import java.nio.file.{Files, Path}
 
+import scala.concurrent.{ ExecutionContext, Future }
+
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.Tool
-import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
-import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.model.jobs.{LJob, LToolBox}
-import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
-import loamstream.tools._
-import loamstream.util._
-
-import scala.concurrent.{ExecutionContext, Future}
+import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.jobs.Output
-import loamstream.model.jobs.Output.FileOutput
+import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.commandline.CommandLineBuilderJob
+import loamstream.tools._
+import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
+import loamstream.util._
 
 /**
  * LoamStream
@@ -35,7 +35,7 @@ object CoreToolBox extends LToolBox {
       }
     }
     
-    override val outputs: Set[Output] = Set(Output.FileOutput(file))
+    override val outputs: Set[Output] = Set(PathOutput(file))
   }
 
   final case class CheckPreexistingVcfFileJob(
@@ -61,7 +61,7 @@ object CoreToolBox extends LToolBox {
       samplesFile: Path,
       inputs: Set[LJob] = Set.empty) extends LJob {
 
-    override val outputs: Set[Output] = Set(Output.FileOutput(samplesFile))
+    override val outputs: Set[Output] = Set(PathOutput(samplesFile))
     
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 

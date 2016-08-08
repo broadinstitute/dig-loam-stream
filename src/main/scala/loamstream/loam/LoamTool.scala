@@ -38,7 +38,7 @@ object LoamTool {
 
   def create(tokens: Seq[LoamToken])(implicit graphBox: ValueBox[LoamGraph]): LoamTool = {
     val tool = LoamTool(LId.newAnonId)
-    graphBox(_.withTool(tool, tokens))
+    graphBox.mutate(_.withTool(tool, tokens))
     tool
   }
 }
@@ -61,13 +61,13 @@ final case class LoamTool private(id: LId)(implicit val graphBox: ValueBox[LoamG
 
   /** Adds input stores to this tool */
   def in(inStore: LoamStore, inStores: LoamStore*): LoamTool = {
-    graphBox(_.withInputStores(this, (inStore +: inStores).toSet))
+    graphBox.mutate(_.withInputStores(this, (inStore +: inStores).toSet))
     this
   }
 
   /** Adds output stores to this tool */
   def out(outStore: LoamStore, outStores: LoamStore*): LoamTool = {
-    graphBox(_.withOutputStores(this, (outStore +: outStores).toSet))
+    graphBox.mutate(_.withOutputStores(this, (outStore +: outStores).toSet))
     this
   }
 }

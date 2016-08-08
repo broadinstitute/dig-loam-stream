@@ -10,7 +10,7 @@ import scala.concurrent.Future
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.Output
-import loamstream.util.SyncRef
+import loamstream.util.ValueBox
 
 /**
   * @author clint
@@ -190,12 +190,12 @@ object ChunkedExecuterTest {
     
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
     
-    private[this] val _executionCount = SyncRef(0)
+    private[this] val count = ValueBox(0)
     
-    def executionCount = _executionCount()
+    def executionCount = count.value
     
     override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
-      _executionCount.mutate(_ + 1)
+      count.mutate(_ + 1)
       Thread.sleep(delay)
       Future.successful(LJob.SimpleSuccess(name))
     }

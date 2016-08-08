@@ -9,4 +9,6 @@ import loamstream.util.Hash
  */
 trait LoamDao {
   def hashFor(path: Path): Hash
+  
+  def storeHash(path: Path, hash: Hash): Unit
 }

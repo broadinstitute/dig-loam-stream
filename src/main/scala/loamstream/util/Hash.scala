@@ -1,18 +1,21 @@
 package loamstream.util
 
-import javax.xml.bind.DatatypeConverter
+import scala.collection.mutable.WrappedArray
 import scala.util.Try
+
+import javax.xml.bind.DatatypeConverter
 
 /**
  * @author clint
  * date: Jul 28, 2016
  */
-final case class Hash(value: Array[Byte], tpe: HashType) {
+//NB: Use WrappedArray to ensure value field is compared by-value 
+final case class Hash(value: WrappedArray[Byte], tpe: HashType) {
   //TODO: Stub
   
   override def toString: String = s"$tpe($valueAsHexString)"
   
-  def valueAsHexString: String = DatatypeConverter.printHexBinary(value).toLowerCase
+  def valueAsHexString: String = DatatypeConverter.printHexBinary(value.toArray).toLowerCase
 }
 
 object Hash {

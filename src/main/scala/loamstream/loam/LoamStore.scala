@@ -20,14 +20,14 @@ object LoamStore {
 final case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBox: ValueBox[LoamGraph]) extends Store {
   update()
 
-  def update(): Unit = graphBox(_.withStore(this))
+  def update(): Unit = graphBox.mutate(_.withStore(this))
 
   def from(path: String): LoamStore = from(Paths.get(path))
 
   def from(path: Path): LoamStore = from(StoreEdge.PathEdge(path))
 
   def from(source: StoreEdge): LoamStore = {
-    graphBox(_.withStoreSource(this, source))
+    graphBox.mutate(_.withStoreSource(this, source))
     this
   }
 
@@ -36,7 +36,7 @@ final case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBox: Va
   def to(path: Path): LoamStore = to(StoreEdge.PathEdge(path))
 
   def to(sink: StoreEdge): LoamStore = {
-    graphBox(_.withStoreSink(this, sink))
+    graphBox.mutate(_.withStoreSink(this, sink))
     this
   }
 

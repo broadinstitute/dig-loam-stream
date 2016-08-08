@@ -8,11 +8,11 @@ import java.nio.file.Paths
  * date: Aug 5, 2016
  */
 final class OutputTest extends FunSuite {
-  test("FileOutput") {
-    import Output.FileOutput
+  test("PathOutput") {
+    import Output.PathOutput
     
-    val doesntExist = FileOutput(Paths.get("sjkafhkfhksdjfh"))
-    val exists = FileOutput(Paths.get("src/test/resources/for-hashing/foo.txt"))
+    val doesntExist = PathOutput(Paths.get("sjkafhkfhksdjfh"))
+    val exists = PathOutput(Paths.get("src/test/resources/for-hashing/foo.txt"))
     
     assert(doesntExist.isPresent == false)
     

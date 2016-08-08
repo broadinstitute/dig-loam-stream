@@ -33,7 +33,7 @@ final class LoamToolBox extends LToolBox {
       
       def pathFor(loamStore: LoamStore): Option[Output] = {
         graph.storeSources(loamStore) match {
-          case PathEdge(path) => Some(Output.FileOutput(path))
+          case PathEdge(path) => Some(Output.PathOutput(path))
           /*case ToolEdge(tool) ???*/
           case _ => None
         }

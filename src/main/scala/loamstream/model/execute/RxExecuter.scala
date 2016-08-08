@@ -4,8 +4,6 @@ import loamstream.model.execute.RxExecuter.RxMockJob.{Result, SimpleSuccess}
 import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
 
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
@@ -13,20 +11,9 @@ import scala.util.control.NonFatal
  * @author clint
  *         date: Jun 1, 2016
  */
-final class RxExecuter(implicit executionContext: ExecutionContext) {
+final class RxExecuter {
 
-  def execute(executable: RxMockExecutable)(implicit timeout: Duration = Duration.Inf):
-  Map[RxMockJob, Shot[Result]] = {
-    import Maps.Implicits._
-    val futureResults = Future.sequence(executable.jobs.map(executeJob)).map(Maps.mergeMaps)
-
-    val future = futureResults.strictMapValues(Hit(_))
-
-    Await.result(future, timeout)
-  }
-
-  private def executeJob(job: RxMockJob)(implicit executionContext: ExecutionContext):
-  Future[Map[RxMockJob, Result]] = {
+  def execute(executable: RxMockExecutable)(implicit timeout: Duration = Duration.Inf): Map[RxMockJob, Shot[Result]] = {
     def flattenTree(tree: Set[RxMockJob]): Set[RxMockJob] = {
       tree.foldLeft(tree)((acc, x) =>
         x.inputs ++ flattenTree(x.inputs) ++ acc)
@@ -34,27 +21,30 @@ final class RxExecuter(implicit executionContext: ExecutionContext) {
 
     def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = ???
 
-    def loop(remainingOption: Option[Set[RxMockJob]], acc: Map[RxMockJob, Result]): Future[Map[RxMockJob, Result]] = {
+    def loop(remainingOption: Option[Set[RxMockJob]], acc: Map[RxMockJob, Result]): Map[RxMockJob, Result] = {
       remainingOption match {
-        case None => Future.successful(acc)
+        case None => acc
         case Some(jobs) =>
           val shouldStop = jobs.isEmpty
           val jobsReadyToDispatch = getRunnableJobs(jobs)
-          val results = runner.run(jobsReadyToDispatch)
+          val results = jobsReadyToDispatch.map(job => (job, job.execute)).toMap
           val next = if (shouldStop) None else Some(jobs -- jobsReadyToDispatch)
+          Thread.sleep(2000) // scalastyle:ignore magic.number
           loop(next, acc ++ results)
       }
     }
 
-    val jobs = flattenTree(Set(job))
+    val jobs = flattenTree(executable.jobs)
+    val results = loop(Option(jobs), Map.empty)
 
+    import Maps.Implicits._
+    results.strictMapValues(Hit(_))
   }
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)
 }
 
 object RxExecuter {
-
   def default: RxExecuter = new RxExecuter
 
   class RxMockJob(name: String, val inputs: Set[RxMockJob] = Set.empty, delay: Int = 0) extends Loggable {
@@ -84,17 +74,15 @@ object RxExecuter {
 
     def executionCount = lock.synchronized(_executionCount)
 
-
-    def execute(implicit context: ExecutionContext): Future[Result] = {
+    def execute: Result = {
       lock.synchronized(_executionCount += 1)
       Thread.sleep(delay)
       isSuccessful() = true
-      Future.successful(RxMockJob.SimpleSuccess(name))
+      RxMockJob.SimpleSuccess(name)
     }
   }
 
   object RxMockJob {
-
     sealed trait Result {
       def isSuccess: Boolean
 
@@ -140,14 +128,13 @@ object RxExecuter {
     final case class FailureFromThrowable(cause: Throwable) extends Failure {
       def failureMessage: String = cause.getMessage
     }
-
   }
 
   final case class RxNoOpJob(name: String = "NoOpJob", override val inputs: Set[RxMockJob] = Set.empty)
     extends RxMockJob(name, inputs) {
 
-    override def execute(implicit context: ExecutionContext): Future[Result] =
-      Future.successful(SimpleSuccess(name))
+    override def execute: Result =
+      SimpleSuccess(name)
   }
 
   final case class RxMockExecutable(jobs: Set[RxMockJob]) {

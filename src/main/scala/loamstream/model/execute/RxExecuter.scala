@@ -5,6 +5,7 @@ import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
@@ -56,7 +57,7 @@ object RxExecuter {
 
   def default: RxExecuter = new RxExecuter
 
-  case class RxMockJob(name: String, inputs: Set[RxMockJob] = Set.empty, delay: Int = 0) extends Loggable {
+  class RxMockJob(name: String, val inputs: Set[RxMockJob] = Set.empty, delay: Int = 0) extends Loggable {
     def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
       val indentString = s"${"-" * indent} >"
 
@@ -73,9 +74,9 @@ object RxExecuter {
 
     final val isSuccessful: Var[Boolean] = Var(false)
 
-    final def dependenciesSuccessful(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx { inputs.forall(_.isSuccessful()) }
-
-    protected def doWithInputs(newInputs: Set[RxMockJob]): RxMockJob = copy(inputs = newInputs)
+    final def dependenciesSuccessful(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx {
+      inputs.forall(_.isSuccessful())
+    }
 
     private[this] val lock = new AnyRef
 
@@ -142,22 +143,21 @@ object RxExecuter {
 
   }
 
-  final case class NoOpJob(override val name: String = "NoOp Job", override val inputs: Set[RxMockJob])
-    extends RxMockJob {
+  final case class RxNoOpJob(name: String = "NoOpJob", override val inputs: Set[RxMockJob] = Set.empty)
+    extends RxMockJob(name, inputs) {
 
     override def execute(implicit context: ExecutionContext): Future[Result] =
       Future.successful(SimpleSuccess(name))
-
-    override def doWithInputs(newInputs: Set[RxMockJob]): RxMockJob = copy(inputs = newInputs)
   }
 
   final case class RxMockExecutable(jobs: Set[RxMockJob]) {
     def ++(oExecutable: RxMockExecutable): RxMockExecutable = RxMockExecutable(jobs ++ oExecutable.jobs)
 
-    def addNoOpRootJob: RxMockExecutable = RxMockExecutable(Set(NoOpJob(inputs = jobs)))
+    def addNoOpRootJob: RxMockExecutable = RxMockExecutable(Set(RxNoOpJob(inputs = jobs)))
   }
 
   object RxMockExecutable {
     val empty = RxMockExecutable(Set.empty)
   }
+
 }

@@ -5,7 +5,7 @@ import java.nio.file.{Path, Paths}
 import loamstream.loam.files.LoamFileManager
 import loamstream.model.Tool
 import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.model.jobs.{LJob, LToolBox}
+import loamstream.model.jobs.{LJob, LToolBox, NativeJob}
 import loamstream.util.{Hit, Miss, Shot, Snag}
 
 /**
@@ -32,7 +32,7 @@ final class LoamToolBox extends LToolBox {
         case cmdTool: LoamCmdTool =>
           val commandLineString = cmdTool.tokens.map(_.toString(fileManager)).mkString
           CommandLineStringJob(commandLineString, workDir, inputJobs)
-        case nativeTool => ??? // TODO Implement native jobs
+        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs)
       }
     }
   }

@@ -5,7 +5,7 @@ import scala.util.Try
 import scala.reflect.runtime.universe.{Type, TypeTag}
 
 /** Stores a by-name argument to evaluate later on demand */
-class EvalLaterBox[T](expr: => T, typeBox: TypeBox[T]) {
+class EvalLaterBox[T](expr: => T, val typeBox: TypeBox[T]) {
   /** Evaluates the expression */
   def eval: T = expr
 

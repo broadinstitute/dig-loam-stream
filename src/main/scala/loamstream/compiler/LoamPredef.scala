@@ -22,9 +22,10 @@ object LoamPredef {
 
   def store[T: TypeTag](implicit graphBox: ValueBox[LoamGraph]): LoamStore = LoamStore.create[T]
 
-  def job[T](exp: => T)(implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] = LoamNativeTool(Set.empty, exp)
+  def job[T: TypeTag](exp: => T)(implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] =
+    LoamNativeTool(Set.empty, exp)
 
-  def job[T](store: LoamStore, stores: LoamStore*)(exp: => T)(
+  def job[T: TypeTag](store: LoamStore, stores: LoamStore*)(exp: => T)(
     implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] =
     LoamNativeTool((store +: stores).toSet, exp)
 

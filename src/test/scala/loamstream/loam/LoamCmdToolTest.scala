@@ -28,7 +28,6 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.graph.toolOutputs == Map(tool -> Set.empty))
 
     assert(tool.graph.tools == Set(tool))
-    assert(tool.tokens == Seq(StringToken("foo bar baz")))
 
     assert(tool.inputs == Map.empty)
     assert(tool.outputs == Map.empty)

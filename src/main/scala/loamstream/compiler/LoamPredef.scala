@@ -3,16 +3,13 @@ package loamstream.compiler
 import java.nio.file.{Files, Path, Paths}
 
 import htsjdk.variant.variantcontext.Genotype
-import loamstream.loam.{LoamGraph, LoamStore}
+import loamstream.loam.{LoamGraph, LoamNativeTool, LoamStore}
 import loamstream.util.ValueBox
 
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
 
-/**
-  * LoamStream
-  * Created by oliverr on 6/8/2016.
-  */
+/** Predefined symbols in Loam scripts */
 object LoamPredef {
 
   implicit def toConstantFunction[T](item: T): () => T = () => item
@@ -25,7 +22,14 @@ object LoamPredef {
 
   def store[T: TypeTag](implicit graphBox: ValueBox[LoamGraph]): LoamStore = LoamStore.create[T]
 
+  def job[T](exp: => T)(implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] = LoamNativeTool(Set.empty, exp)
+
+  def job[T](store: LoamStore, stores: LoamStore*)(exp: => T)(
+    implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] =
+    LoamNativeTool((store +: stores).toSet, exp)
+
   trait VCF extends Map[(String, String), Genotype]
-  trait TXT extends  Seq[String]
+
+  trait TXT extends Seq[String]
 
 }

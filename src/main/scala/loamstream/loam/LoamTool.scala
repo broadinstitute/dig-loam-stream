@@ -15,6 +15,9 @@ trait LoamTool extends Tool {
   /** The graph this tool is part of */
   def graph: LoamGraph = graphBox.value
 
+  /** Input and output stores before any are specified using in or out */
+  def defaultStores: Set[LoamStore]
+
   /** Input stores of this tool */
   override def inputs: Map[LId, Store] =
   graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap

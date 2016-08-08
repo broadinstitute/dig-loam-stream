@@ -24,14 +24,14 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   /** Prints cmd tool */
   def print(tool: LoamTool): String = tool match {
     case cmdTool: LoamCmdTool => print(cmdTool)
-    case nativeTool: LoamNativeTool => print(nativeTool)
+    case nativeTool: LoamNativeTool[_] => print(nativeTool)
   }
 
   /** Prints cmd tool */
   def print(tool: LoamCmdTool): String = print(tool, tool.graphBox.value)
 
   /** Prints cmd tool */
-  def print(tool: LoamNativeTool): String = "[native tool]"
+  def print[T](tool: LoamNativeTool[T]): String = "[native tool]"
 
   /** Prints prefix symbol to distinguish input and output stores */
   def printIoPrefix(tool: LoamCmdTool, store: LoamStore, graph: LoamGraph): String =

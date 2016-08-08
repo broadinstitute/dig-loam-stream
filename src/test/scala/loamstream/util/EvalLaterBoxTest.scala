@@ -8,9 +8,18 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Failure
+import scala.util.control.NonFatal
+import scala.reflect.runtime.universe.typeOf
 
 /** Tests of EvalLaterBox */
 class EvalLaterBoxTest extends FunSuite {
+  test("Type is stored") {
+    val intBox = EvalLaterBox { 1 }
+    assert(intBox.tpe =:= typeOf[Int] )
+    val stringBox = EvalLaterBox { "Hello World!"}
+    assert(stringBox.tpe =:= typeOf[String])
+  }
+
   var counter: Int = 0
   var counterCompare: Int = 0
 
@@ -35,14 +44,17 @@ class EvalLaterBoxTest extends FunSuite {
     assertCounter(Await.result(box.evalFuture, futureAwaitTime))
   }
 
-  class EvalLaterTestExpectedException(msg: String) extends Exception(msg)
+  val myException = new Exception("Oops, I threw it again!")
 
-  val myException = new EvalLaterTestExpectedException("Oops, I threw it again!")
   test("Expression throws exception") {
     val box = EvalLaterBox[Int] {
       throw myException
     }
-    assertThrows[EvalLaterTestExpectedException](box.eval)
+    assert((try {
+      box.eval
+    } catch {
+      case NonFatal(throwable) => throwable
+    }) === myException)
     assert(box.evalTry.asInstanceOf[Failure[Int]].exception === myException)
     assert(box.evalShot.asInstanceOf[Miss].snag.asInstanceOf[SnagThrowable].throwable === myException)
     assert(Await.ready(box.evalFuture, futureAwaitTime).value.get.asInstanceOf[Failure[Int]].exception === myException)

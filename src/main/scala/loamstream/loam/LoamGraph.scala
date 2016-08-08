@@ -42,12 +42,12 @@ final case class LoamGraph(stores: Set[LoamStore],
   def withStore(store: LoamStore): LoamGraph = copy(stores = stores + store)
 
   /** Returns graph with tool added */
-  def withCmdTool(tool: LoamCmdTool, tokens: Seq[LoamToken]): LoamGraph =
+  def withTool(tool: LoamTool, tokens: Seq[LoamToken]): LoamGraph =
   if (tools(tool)) {
     this
   }
   else {
-    val toolStores = LoamToken.storesFromTokens(tokens)
+    val toolStores = tool.defaultStores
     val toolInputStores = toolStores.filter(storeSources.contains)
     val toolOutputStores = toolStores -- toolInputStores
     val toolEdge = StoreEdge.ToolEdge(tool)

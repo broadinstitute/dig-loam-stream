@@ -1,9 +1,17 @@
 package loamstream.loam
 
 import loamstream.model.LId
-import loamstream.util.ValueBox
+import loamstream.util.{EvalLaterBox, ValueBox}
+import scala.reflect.runtime.universe.TypeTag
 
-/** A command line tool specified in a Loam script */
-final case class LoamNativeTool private(id: LId)(implicit val graphBox: ValueBox[LoamGraph]) extends LoamTool {
+/** A native tool specified in a Loam script */
+final case class LoamNativeTool[T] private(id: LId, defaultStores: Set[LoamStore], expBox: EvalLaterBox[T])
+                                          (implicit val graphBox: ValueBox[LoamGraph]) extends LoamTool
 
+object LoamNativeTool {
+  def apply[T: TypeTag](defaultStores: Set[LoamStore], expr: => T)(
+    implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] =
+    LoamNativeTool(LId.newAnonId, defaultStores, EvalLaterBox(expr))
 }
+
+

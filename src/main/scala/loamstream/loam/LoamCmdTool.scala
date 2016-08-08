@@ -50,16 +50,4 @@ final case class LoamCmdTool private(id: LId)(implicit val graphBox: ValueBox[Lo
   /** Tokens used in the tool definition, representing parts of interpolated string and embedded objects */
   def tokens: Seq[LoamToken] = graph.toolTokens(this)
 
-  /** Returns this after adding input stores to this tool */
-  override def in(inStore: LoamStore, inStores: LoamStore*): LoamCmdTool = {
-    doIn(inStore, inStores)
-    this
-  }
-
-  /** Returns this after adding output stores to this tool */
-  override def out(outStore: LoamStore, outStores: LoamStore*): LoamCmdTool = {
-    doOut(outStore, outStores)
-    this
-  }
-
 }

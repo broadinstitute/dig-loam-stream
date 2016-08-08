@@ -24,22 +24,14 @@ trait LoamTool extends Tool {
   graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
 
   /** Adds input stores to this tool */
-  def doIn(inStore: LoamStore, inStores: Seq[LoamStore]): Unit =
+  def in(inStore: LoamStore, inStores: LoamStore*): this.type = {
     graphBox(_.withInputStores(this, (inStore +: inStores).toSet))
-
-  /** Adds output stores to this tool */
-  def doOut(outStore: LoamStore, outStores: Seq[LoamStore]): Unit =
-    graphBox(_.withOutputStores(this, (outStore +: outStores).toSet))
-
-  /** Returns this after adding input stores to this tool */
-  def in(inStore: LoamStore, inStores: LoamStore*): LoamTool = {
-    doIn(inStore, inStores)
     this
   }
 
-  /** Returns this after adding output stores to this tool */
-  def out(outStore: LoamStore, outStores: LoamStore*): LoamTool = {
-    doOut(outStore, outStores)
+  /** Adds output stores to this tool */
+  def out(outStore: LoamStore, outStores: LoamStore*): this.type = {
+    graphBox(_.withOutputStores(this, (outStore +: outStores).toSet))
     this
   }
 }

@@ -26,11 +26,6 @@ final class RxExecuterTest extends ExecuterTest {
 
   private def executionCount(job: LJob): Int = job.asInstanceOf[RxMockJob].executionCount
 
-  def flattenTree(tree: Set[LJob]): Set[LJob] = {
-    tree.foldLeft(tree)((acc, x) =>
-      x.inputs ++ flattenTree(x.inputs) ++ acc)
-  }
-
   ignore("New leaves are executed as soon as possible") {
     /* A four-step pipeline:
      *
@@ -58,8 +53,6 @@ final class RxExecuterTest extends ExecuterTest {
     val job4 = RxMockJob("4th_step_job", Set(job31, job32))
 
     val executable = LExecutable(Set(job4))
-
-    val flattenedJobs = flattenTree(Set(job4))
 
     val maxSimultaneousJobs = 5
     val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxSimultaneousJobs)

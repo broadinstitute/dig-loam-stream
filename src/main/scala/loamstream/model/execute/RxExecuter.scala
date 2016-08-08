@@ -1,35 +1,39 @@
 package loamstream.model.execute
 
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
-import loamstream.util.{Maps, Shot}
+import loamstream.model.execute.RxExecuter.RxMockJob.{Result, SimpleSuccess}
+import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
+import loamstream.util.{Hit, Loggable, Maps, Shot}
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.Duration
+import scala.util.control.NonFatal
 
 /**
  * @author clint
  *         date: Jun 1, 2016
  */
-final class RxExecuter(runner: ChunkRunner)(implicit executionContext: ExecutionContext) extends LExecuter {
+final class RxExecuter(implicit executionContext: ExecutionContext) {
 
-  override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
+  def execute(executable: RxMockExecutable)(implicit timeout: Duration = Duration.Inf):
+  Map[RxMockJob, Shot[Result]] = {
+    import Maps.Implicits._
     val futureResults = Future.sequence(executable.jobs.map(executeJob)).map(Maps.mergeMaps)
 
-    val future = futureResults.map(ExecuterHelpers.toShotMap)
+    val future = futureResults.strictMapValues(Hit(_))
 
     Await.result(future, timeout)
   }
 
-  private def executeJob(job: LJob)(implicit executionContext: ExecutionContext): Future[Map[LJob, Result]] = {
-    def flattenTree(tree: Set[LJob]): Set[LJob] = {
+  private def executeJob(job: RxMockJob)(implicit executionContext: ExecutionContext):
+  Future[Map[RxMockJob, Result]] = {
+    def flattenTree(tree: Set[RxMockJob]): Set[RxMockJob] = {
       tree.foldLeft(tree)((acc, x) =>
         x.inputs ++ flattenTree(x.inputs) ++ acc)
     }
 
-    def getRunnableJobs(jobs: Set[LJob]): Set[LJob] = ???
+    def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = ???
 
-    def loop(remainingOption: Option[Set[LJob]], acc: Map[LJob, Result]): Future[Map[LJob, Result]] = {
+    def loop(remainingOption: Option[Set[RxMockJob]], acc: Map[RxMockJob, Result]): Future[Map[RxMockJob, Result]] = {
       remainingOption match {
         case None => Future.successful(acc)
         case Some(jobs) =>
@@ -45,34 +49,115 @@ final class RxExecuter(runner: ChunkRunner)(implicit executionContext: Execution
 
   }
 
-  private def anyFailures(m: Map[LJob, LJob.Result]): Boolean = m.values.exists(_.isFailure)
+  private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)
 }
 
 object RxExecuter {
 
-  def default: RxExecuter = new RxExecuter(AsyncLocalChunkRunner)(ExecutionContext.global)
+  def default: RxExecuter = new RxExecuter
 
-  def apply(chunkRunner: ChunkRunner)(implicit context: ExecutionContext): RxExecuter = {
-    new RxExecuter(chunkRunner)
-  }
+  case class RxMockJob(name: String, inputs: Set[RxMockJob] = Set.empty, delay: Int = 0) extends Loggable {
+    def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
+      val indentString = s"${"-" * indent} >"
 
-  object AsyncLocalChunkRunner extends ChunkRunner {
+      doPrint(s"$indentString ${this}")
 
-    import ExecuterHelpers._
+      inputs.foreach(_.print(indent + 2))
+    }
 
-    override def maxNumJobs = 100 // scalastyle:ignore magic.number
+    import rx._
 
-    override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
-      //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
-      //on the first failure, like the old code did.
-      val leafResultFutures = leaves.iterator.map(executeSingle)
+    final def isRunnable(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx {
+      inputs.isEmpty || dependenciesSuccessful.now
+    }
 
-      //NB: Convert the iterator to an IndexedSeq to force evaluation, and make sure 
-      //input jobs are evaluated before jobs that depend on them.
-      val futureLeafResults = Future.sequence(leafResultFutures).map(consumeUntilFirstFailure)
+    final val isSuccessful: Var[Boolean] = Var(false)
 
-      futureLeafResults.map(Maps.mergeMaps)
+    final def dependenciesSuccessful(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx { inputs.forall(_.isSuccessful()) }
+
+    protected def doWithInputs(newInputs: Set[RxMockJob]): RxMockJob = copy(inputs = newInputs)
+
+    private[this] val lock = new AnyRef
+
+    private[this] var _executionCount = 0
+
+    def executionCount = lock.synchronized(_executionCount)
+
+
+    def execute(implicit context: ExecutionContext): Future[Result] = {
+      lock.synchronized(_executionCount += 1)
+      Thread.sleep(delay)
+      isSuccessful() = true
+      Future.successful(RxMockJob.SimpleSuccess(name))
     }
   }
 
+  object RxMockJob {
+
+    sealed trait Result {
+      def isSuccess: Boolean
+
+      def isFailure: Boolean
+
+      def message: String
+    }
+
+    object Result {
+      def attempt(f: => Result): Result = {
+        try {
+          f
+        } catch {
+          case NonFatal(ex) => FailureFromThrowable(ex)
+        }
+      }
+    }
+
+    trait Success extends Result {
+      final def isSuccess: Boolean = true
+
+      final def isFailure: Boolean = false
+
+      def successMessage: String
+
+      def message: String = s"Success! $successMessage"
+    }
+
+    final case class SimpleSuccess(successMessage: String) extends Success
+
+    trait Failure extends Result {
+      final def isSuccess: Boolean = false
+
+      final def isFailure: Boolean = true
+
+      def failureMessage: String
+
+      def message: String = s"Failure! $failureMessage"
+    }
+
+    final case class SimpleFailure(failureMessage: String) extends Failure
+
+    final case class FailureFromThrowable(cause: Throwable) extends Failure {
+      def failureMessage: String = cause.getMessage
+    }
+
+  }
+
+  final case class NoOpJob(override val name: String = "NoOp Job", override val inputs: Set[RxMockJob])
+    extends RxMockJob {
+
+    override def execute(implicit context: ExecutionContext): Future[Result] =
+      Future.successful(SimpleSuccess(name))
+
+    override def doWithInputs(newInputs: Set[RxMockJob]): RxMockJob = copy(inputs = newInputs)
+  }
+
+  final case class RxMockExecutable(jobs: Set[RxMockJob]) {
+    def ++(oExecutable: RxMockExecutable): RxMockExecutable = RxMockExecutable(jobs ++ oExecutable.jobs)
+
+    def addNoOpRootJob: RxMockExecutable = RxMockExecutable(Set(NoOpJob(inputs = jobs)))
+  }
+
+  object RxMockExecutable {
+    val empty = RxMockExecutable(Set.empty)
+  }
 }

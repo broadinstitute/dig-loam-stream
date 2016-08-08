@@ -39,15 +39,14 @@ object LoamCmdTool {
   }
 
   def create(tokens: Seq[LoamToken])(implicit graphBox: ValueBox[LoamGraph]): LoamCmdTool = {
-    val tool = LoamCmdTool(LId.newAnonId)
-    graphBox(_.withTool(tool, tokens))
+    val tool = LoamCmdTool(LId.newAnonId, tokens)
+    graphBox(_.withCmdTool(tool, tokens))
     tool
   }
 }
 
 /** A command line tool specified in a Loam script */
-final case class LoamCmdTool private(id: LId)(implicit val graphBox: ValueBox[LoamGraph]) extends LoamTool {
-  /** Tokens used in the tool definition, representing parts of interpolated string and embedded objects */
-  def tokens: Seq[LoamToken] = graph.toolTokens(this)
+final case class LoamCmdTool private(id: LId, tokens: Seq[LoamToken])(implicit val graphBox: ValueBox[LoamGraph])
+  extends LoamTool {
 
 }

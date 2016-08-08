@@ -52,9 +52,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
         s"$ioPrefix${print(storeRef.store, fully = false)}"
     }
 
-    val tokensForTool = graph.toolTokens.getOrElse(tool, Seq.empty)
-
-    val tokenString = tokensForTool.map(toString).mkString
+    val tokenString = tool.tokens.map(toString).mkString
 
     s"#${print(tool.id)}[$tokenString]"
   }

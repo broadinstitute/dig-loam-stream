@@ -30,7 +30,7 @@ final class LoamToolBox extends LToolBox {
     shotsForPrecedingTools.map { inputJobs =>
       tool match {
         case cmdTool: LoamCmdTool =>
-          val commandLineString = graph.toolTokens(cmdTool).map(_.toString(fileManager)).mkString
+          val commandLineString = cmdTool.tokens.map(_.toString(fileManager)).mkString
           CommandLineStringJob(commandLineString, workDir, inputJobs)
         case nativeTool => ??? // TODO Implement native jobs
       }

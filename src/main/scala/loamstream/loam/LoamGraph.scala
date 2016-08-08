@@ -25,14 +25,12 @@ object LoamGraph {
 
   /** An empty graph */
   def empty: LoamGraph =
-  LoamGraph(Set.empty, Set.empty, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty, Equivalences.empty,
-    Equivalences.empty)
+  LoamGraph(Set.empty, Set.empty, Map.empty, Map.empty, Map.empty, Map.empty, Equivalences.empty, Equivalences.empty)
 }
 
 /** The graph of all Loam stores and tools and their relationships */
 final case class LoamGraph(stores: Set[LoamStore],
                            tools: Set[LoamTool],
-                           toolTokens: Map[LoamCmdTool, Seq[LoamToken]],
                            toolInputs: Map[LoamTool, Set[LoamStore]],
                            toolOutputs: Map[LoamTool, Set[LoamStore]],
                            storeSources: Map[LoamStore, StoreEdge],
@@ -44,7 +42,7 @@ final case class LoamGraph(stores: Set[LoamStore],
   def withStore(store: LoamStore): LoamGraph = copy(stores = stores + store)
 
   /** Returns graph with tool added */
-  def withTool(tool: LoamCmdTool, tokens: Seq[LoamToken]): LoamGraph =
+  def withCmdTool(tool: LoamCmdTool, tokens: Seq[LoamToken]): LoamGraph =
   if (tools(tool)) {
     this
   }
@@ -58,7 +56,6 @@ final case class LoamGraph(stores: Set[LoamStore],
 
     copy(
       tools = tools + tool,
-      toolTokens = toolTokens + (tool -> tokens),
       toolInputs = toolInputs + (tool -> toolInputStores),
       toolOutputs = toolOutputs + (tool -> toolOutputStores),
       storeSources = storeSources ++ outputsWithSource,

@@ -3,7 +3,7 @@ package loamstream.compiler
 import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}
-import loamstream.loam.LoamToolBox
+import loamstream.loam.{LoamGraph, LoamToolBox}
 import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.model.execute.{ChunkedExecuter, LExecuter}
 import loamstream.model.jobs.LJob
@@ -99,6 +99,17 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
 
   }
 
+  def run(graph: LoamGraph): Map[LJob, Shot[LJob.Result]] = {
+    val mapping = LoamGraphAstMapper.newMapping(graph)
+    val toolBox = new LoamToolBox
+    //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
+    val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).addNoOpRootJob
+    outMessageSink.send(StatusOutMessage("Now going to execute."))
+    val jobResults = executer.execute(executable)
+    outMessageSink.send(StatusOutMessage(s"Done executing ${StringUtils.soMany(jobResults.size, "job")}."))
+    jobResults
+  }
+
   def run(script: String): LoamEngine.Result = {
     outMessageSink.send(StatusOutMessage(s"Now compiling script of ${script.length} characters."))
     val compileResults = compile(script)
@@ -108,13 +119,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     } else {
       outMessageSink.send(StatusOutMessage(compileResults.summary))
       val graph = compileResults.graphOpt.get
-      val mapping = LoamGraphAstMapper.newMapping(graph)
-      val toolBox = new LoamToolBox
-      //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
-      val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).addNoOpRootJob
-      outMessageSink.send(StatusOutMessage("Now going to execute."))
-      val jobResults = executer.execute(executable)
-      outMessageSink.send(StatusOutMessage(s"Done executing ${StringUtils.soMany(jobResults.size, "job")}."))
+      val jobResults = run(graph)
       LoamEngine.Result(Hit(script), Hit(compileResults), Hit(jobResults))
     }
   }

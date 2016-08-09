@@ -10,8 +10,11 @@ final case class LoamNativeTool[T] private(id: LId, defaultStores: Set[LoamStore
 
 object LoamNativeTool {
   def apply[T: TypeTag](defaultStores: Set[LoamStore], expr: => T)(
-    implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] =
-    LoamNativeTool(LId.newAnonId, defaultStores, EvalLaterBox(expr))
+    implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] = {
+    val tool = LoamNativeTool(LId.newAnonId, defaultStores, EvalLaterBox(expr))
+    graphBox(_.withTool(tool))
+    tool
+  }
 }
 
 

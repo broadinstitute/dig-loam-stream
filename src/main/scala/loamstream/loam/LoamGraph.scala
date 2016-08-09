@@ -42,11 +42,10 @@ final case class LoamGraph(stores: Set[LoamStore],
   def withStore(store: LoamStore): LoamGraph = copy(stores = stores + store)
 
   /** Returns graph with tool added */
-  def withTool(tool: LoamTool, tokens: Seq[LoamToken]): LoamGraph =
+  def withTool(tool: LoamTool): LoamGraph =
   if (tools(tool)) {
     this
-  }
-  else {
+  } else {
     val toolStores = tool.defaultStores
     val toolInputStores = toolStores.filter(storeSources.contains)
     val toolOutputStores = toolStores -- toolInputStores
@@ -81,11 +80,11 @@ final case class LoamGraph(stores: Set[LoamStore],
 
   /** True if slots have same key set */
   def areSameKeySets(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): Boolean =
-    keysSameSets.theseAreEqual(slot1, slot2)
+  keysSameSets.theseAreEqual(slot1, slot2)
 
   /** True if slots have same key list */
   def areSameKeyLists(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): Boolean =
-    keysSameLists.theseAreEqual(slot1, slot2)
+  keysSameLists.theseAreEqual(slot1, slot2)
 
   /** Returns the option of a producer (tool) of a store */
   def storeProducers(store: LoamStore): Option[LoamTool] = storeSources.get(store).collect {

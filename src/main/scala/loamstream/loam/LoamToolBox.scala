@@ -50,7 +50,7 @@ final class LoamToolBox extends LToolBox {
   }
 
   override def toolToJobShot(tool: Tool): Shot[LJob] = tool match {
-    case loamTool: LoamCmdTool => getLoamJob(loamTool)
+    case loamTool: LoamTool => getLoamJob(loamTool)
     case _ => Miss(Snag(s"LoamToolBox only knows Loam tools; it doesn't know about $tool."))
   }
 

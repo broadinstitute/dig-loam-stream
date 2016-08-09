@@ -40,7 +40,7 @@ object LoamCmdTool {
 
   def create(tokens: Seq[LoamToken])(implicit graphBox: ValueBox[LoamGraph]): LoamCmdTool = {
     val tool = LoamCmdTool(LId.newAnonId, tokens)
-    graphBox(_.withTool(tool, tokens))
+    graphBox(_.withTool(tool))
     tool
   }
 }

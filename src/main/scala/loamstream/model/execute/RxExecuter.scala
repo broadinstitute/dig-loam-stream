@@ -3,15 +3,17 @@ package loamstream.model.execute
 import loamstream.model.execute.RxExecuter.RxMockJob.{Result, SimpleSuccess}
 import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
+import rx.Ctx
 
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
 /**
- * @author clint
- *         date: Jun 1, 2016
+ * @author kaan
+ *         date: Aug 8, 2016
  */
 final class RxExecuter {
+  implicit val ctx: Ctx.Owner = Ctx.Owner.safe
 
   def execute(executable: RxMockExecutable)(implicit timeout: Duration = Duration.Inf): Map[RxMockJob, Shot[Result]] = {
     def flattenTree(tree: Set[RxMockJob]): Set[RxMockJob] = {
@@ -19,7 +21,7 @@ final class RxExecuter {
         x.inputs ++ flattenTree(x.inputs) ++ acc)
     }
 
-    def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = ???
+    def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = jobs.filter(_.isRunnable.now)
 
     def loop(remainingOption: Option[Set[RxMockJob]], acc: Map[RxMockJob, Result]): Map[RxMockJob, Result] = {
       remainingOption match {

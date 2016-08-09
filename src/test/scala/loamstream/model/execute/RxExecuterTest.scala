@@ -1,6 +1,7 @@
 package loamstream.model.execute
 
 import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
+import org.scalatest.FunSuite
 
 /**
  * @author clint
@@ -8,9 +9,7 @@ import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
  * @author kyuksel
  *         date: Jul 15, 2016
  */
-final class RxExecuterTest extends ExecuterTest {
-  def makeExecuter: RxExecuter = RxExecuter.default
-
+final class RxExecuterTest extends FunSuite {
   private val executer = RxExecuter.default
 
   private def addNoOp(executable: RxMockExecutable): RxMockExecutable =
@@ -18,7 +17,7 @@ final class RxExecuterTest extends ExecuterTest {
 
   private def executionCount(job: RxMockJob): Int = job.asInstanceOf[RxMockJob].executionCount
 
-  ignore("New leaves are executed as soon as possible") {
+  test("New leaves are executed as soon as possible") {
     /* A four-step pipeline:
      *
      *           Job21

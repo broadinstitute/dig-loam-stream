@@ -29,9 +29,12 @@ final class RxExecuter {
         case Some(jobs) =>
           val shouldStop = jobs.isEmpty
           val jobsReadyToDispatch = getRunnableJobs(jobs)
-          val results = jobsReadyToDispatch.map(job => (job, job.execute)).toMap
+          println("Jobs read to dispatch: ") // scalastyle:ignore
+          jobsReadyToDispatch.foreach(job => println(job.name)) // scalastyle:ignore
+          //val results = jobsReadyToDispatch.par.map(job => (job, job.execute)).toMap
+          val results = jobsReadyToDispatch.par.map(job => (job, job.execute)).toMap
           val next = if (shouldStop) None else Some(jobs -- jobsReadyToDispatch)
-          Thread.sleep(2000) // scalastyle:ignore magic.number
+          Thread.sleep(1000) // scalastyle:ignore magic.number
           loop(next, acc ++ results)
       }
     }
@@ -49,7 +52,7 @@ final class RxExecuter {
 object RxExecuter {
   def default: RxExecuter = new RxExecuter
 
-  class RxMockJob(name: String, val inputs: Set[RxMockJob] = Set.empty, delay: Int = 0) extends Loggable {
+  class RxMockJob(val name: String, val inputs: Set[RxMockJob] = Set.empty, delay: Int = 0) extends Loggable {
     def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
       val indentString = s"${"-" * indent} >"
 
@@ -78,8 +81,10 @@ object RxExecuter {
 
     def execute: Result = {
       lock.synchronized(_executionCount += 1)
+      println("\tStarting to execute job: " + this.name)
       Thread.sleep(delay)
       isSuccessful() = true
+      println("\t\tFinished executing job: " + this.name)
       RxMockJob.SimpleSuccess(name)
     }
   }
@@ -132,7 +137,7 @@ object RxExecuter {
     }
   }
 
-  final case class RxNoOpJob(name: String = "NoOpJob", override val inputs: Set[RxMockJob] = Set.empty)
+  final case class RxNoOpJob(override val name: String = "NoOpJob", override val inputs: Set[RxMockJob] = Set.empty)
     extends RxMockJob(name, inputs) {
 
     override def execute: Result =

@@ -15,4 +15,6 @@ final case class NoOpJob(inputs: Set[LJob]) extends LJob {
   override val outputs: Set[Output] = Set.empty
     
   override def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+  
+  override def doWithOutputs(newOutputs: Set[Output]): LJob = this
 }

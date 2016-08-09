@@ -8,10 +8,11 @@ lazy val Versions = new {
   val Htsjdk = "2.1.0"
   val LogBack = "1.1.6"
   val Scala = "2.11.8"
-  val ScalaTest = "2.2.6"
+  val ScalaTest = "3.0.0"
   val TypesafeConfig = "1.3.0"
-  val Monix = "2.0-RC6"
+  val Monix = "2.0-RC9"
   val Slick = "3.1.1"
+  val H2 = "1.4.192"
 }
 
 lazy val mainDeps = Seq(
@@ -29,7 +30,8 @@ lazy val mainDeps = Seq(
 )
 
 lazy val testDeps = Seq(
-  "org.scalatest" %% "scalatest" % Versions.ScalaTest % Test
+  "org.scalatest" %% "scalatest" % Versions.ScalaTest % Test,
+  "com.h2database" % "h2" % Versions.H2 % Test
 )
 
 lazy val commonSettings = Seq(

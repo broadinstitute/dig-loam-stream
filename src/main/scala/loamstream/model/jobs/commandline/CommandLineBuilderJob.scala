@@ -24,6 +24,8 @@ final case class CommandLineBuilderJob(commandLine: CommandLine,
   extends CommandLineJob {
 
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+  
+  override protected def doWithOutputs(newOutputs: Set[Output]): LJob = copy(outputs = newOutputs)
 
   override def processBuilder: ProcessBuilder = Process(commandLine.tokens, workDir.toFile)
 

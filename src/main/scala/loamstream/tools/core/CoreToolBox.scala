@@ -36,6 +36,9 @@ object CoreToolBox extends LToolBox {
     }
     
     override val outputs: Set[Output] = Set(PathOutput(file))
+    
+    //TODO: Smell
+    override protected def doWithOutputs(newOutputs: Set[Output]): LJob = this
   }
 
   final case class CheckPreexistingVcfFileJob(
@@ -64,6 +67,9 @@ object CoreToolBox extends LToolBox {
     override val outputs: Set[Output] = Set(PathOutput(samplesFile))
     
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+    
+    //TODO: Smell
+    override protected def doWithOutputs(newOutputs: Set[Output]): LJob = this
 
     override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
@@ -86,9 +92,11 @@ object CoreToolBox extends LToolBox {
     override def toString = s"CalculatePcaProjectionsJob($vcfFile, $pcaWeightsFile, ...)"
 
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+    
+    //TODO: Smell
+    override protected def doWithOutputs(newOutputs: Set[Output]): LJob = this
 
-    //TODO: specify outputs; allow dir outputs
-    override val outputs: Set[Output] = Set.empty 
+    override val outputs: Set[Output] = Set(PathOutput(klustaKwikKonfig.workDir))
     
     override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
@@ -105,13 +113,6 @@ object CoreToolBox extends LToolBox {
       }
     }
   }
-
-  private def pathShot(path: Path): Shot[Path] = {
-    if (path.toFile.exists) { Hit(path) }
-    else { Miss(s"Couldn't find '$path'") }
-  }
-
-  def sampleFileShot(path: Path): Shot[Path] = pathShot(path)
 
   def vcfFileJobShot(path: Path): Shot[CheckPreexistingVcfFileJob] = Hit(CheckPreexistingVcfFileJob(path))
 
@@ -141,16 +142,7 @@ object CoreToolBox extends LToolBox {
     CommandLineBuilderJob(
       klustaKlwikCommandLine(klustaConfig),
       klustaConfig.workDir,
-      Set.empty)
-  }
-
-  private def commandLineJobShot(tokens: Seq[String], workDir: Path): Shot[CommandLineBuilderJob] = {
-    def commandLine(parts: Seq[String]): LineCommand.CommandLine = new LineCommand.CommandLine {
-      override def tokens: Seq[String] = parts
-      override def commandLine = tokens.mkString(LineCommand.tokenSep)
-    }
-
-    Shot(CommandLineBuilderJob(commandLine(tokens), workDir))
+      outputs = Set(PathOutput(klustaConfig.workDir)))
   }
 
   def toolToJobShot(tool: Tool): Shot[LJob] = tool match { //scalastyle:ignore

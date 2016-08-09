@@ -190,6 +190,8 @@ object ChunkedExecuterTest {
     
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
     
+    override protected def doWithOutputs(newOutputs: Set[Output]): LJob = copy(outputs = newOutputs)
+    
     private[this] val count = ValueBox(0)
     
     def executionCount = count.value

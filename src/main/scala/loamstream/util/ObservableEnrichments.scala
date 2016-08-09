@@ -22,7 +22,7 @@ object ObservableEnrichments {
      * 
      * val statuses: Obervable[JobStatus] = ... // monitor some job
      * 
-     * statuses.takeUntil(_.isFinished)
+     * statuses.until(_.isFinished)
      * 
      * will produce an Observable that will emit elements like
      * 
@@ -32,7 +32,7 @@ object ObservableEnrichments {
      * 
      * val numbers = Observable(1,2,3,4,5,6,7,8,9,10) //an Observable that emits the elements passed to apply()
      * 
-     * numbers.takeUntil(_ >= 6)
+     * numbers.until(_ >= 6)
      * 
      * Would produce an Observable that yields 
      * 
@@ -60,8 +60,11 @@ object ObservableEnrichments {
      * @param p the predicate to use to decide what events to emit
      * @return an Observable that emits elements that satisfy the passed-in predicate, up to and including the FIRST
      * element that does not satisy the predicate.
+     * 
+     * NB: Note that this was renamed to 'until' from 'takeUntil'.  The latter would be preferrable, but it conflicts
+     * with a new method in Monix proper.
      */
-    def takeUntil(p: A => Boolean)(implicit scheduler: Scheduler): Observable[A] = {
+    def until(p: A => Boolean)(implicit scheduler: Scheduler): Observable[A] = {
       //TODO: Revisit Overflow Strategy
       Observable.create(OverflowStrategy.Unbounded) { downstream =>
         def complete() = downstream.onComplete()

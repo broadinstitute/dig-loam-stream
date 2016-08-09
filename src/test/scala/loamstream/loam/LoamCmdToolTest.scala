@@ -9,9 +9,9 @@ import org.scalatest.FunSuite
   * @author clint
   *         date: Jul 21, 2016
   */
-final class LoamToolTest extends FunSuite {
+final class LoamCmdToolTest extends FunSuite {
 
-  import LoamTool._
+  import LoamCmdTool._
 
   test("string interpolation (trivial)") {
     implicit val graphBox = new ValueBox(LoamGraph.empty)
@@ -28,7 +28,6 @@ final class LoamToolTest extends FunSuite {
     assert(tool.graph.toolOutputs == Map(tool -> Set.empty))
 
     assert(tool.graph.tools == Set(tool))
-    assert(tool.graph.toolTokens == Map(tool -> Seq(StringToken("foo bar baz"))))
 
     assert(tool.inputs == Map.empty)
     assert(tool.outputs == Map.empty)

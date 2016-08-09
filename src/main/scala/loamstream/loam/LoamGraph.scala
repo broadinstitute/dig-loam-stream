@@ -25,14 +25,12 @@ object LoamGraph {
 
   /** An empty graph */
   def empty: LoamGraph =
-  LoamGraph(Set.empty, Set.empty, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty, Equivalences.empty,
-    Equivalences.empty)
+  LoamGraph(Set.empty, Set.empty, Map.empty, Map.empty, Map.empty, Map.empty, Equivalences.empty, Equivalences.empty)
 }
 
 /** The graph of all Loam stores and tools and their relationships */
 final case class LoamGraph(stores: Set[LoamStore],
                            tools: Set[LoamTool],
-                           toolTokens: Map[LoamTool, Seq[LoamToken]],
                            toolInputs: Map[LoamTool, Set[LoamStore]],
                            toolOutputs: Map[LoamTool, Set[LoamStore]],
                            storeSources: Map[LoamStore, StoreEdge],
@@ -44,12 +42,11 @@ final case class LoamGraph(stores: Set[LoamStore],
   def withStore(store: LoamStore): LoamGraph = copy(stores = stores + store)
 
   /** Returns graph with tool added */
-  def withTool(tool: LoamTool, tokens: Seq[LoamToken]): LoamGraph =
+  def withTool(tool: LoamTool): LoamGraph =
   if (tools(tool)) {
     this
-  }
-  else {
-    val toolStores = LoamToken.storesFromTokens(tokens)
+  } else {
+    val toolStores = tool.defaultStores
     val toolInputStores = toolStores.filter(storeSources.contains)
     val toolOutputStores = toolStores -- toolInputStores
     val toolEdge = StoreEdge.ToolEdge(tool)
@@ -58,7 +55,6 @@ final case class LoamGraph(stores: Set[LoamStore],
 
     copy(
       tools = tools + tool,
-      toolTokens = toolTokens + (tool -> tokens),
       toolInputs = toolInputs + (tool -> toolInputStores),
       toolOutputs = toolOutputs + (tool -> toolOutputStores),
       storeSources = storeSources ++ outputsWithSource,
@@ -84,11 +80,11 @@ final case class LoamGraph(stores: Set[LoamStore],
 
   /** True if slots have same key set */
   def areSameKeySets(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): Boolean =
-    keysSameSets.theseAreEqual(slot1, slot2)
+  keysSameSets.theseAreEqual(slot1, slot2)
 
   /** True if slots have same key list */
   def areSameKeyLists(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): Boolean =
-    keysSameLists.theseAreEqual(slot1, slot2)
+  keysSameLists.theseAreEqual(slot1, slot2)
 
   /** Returns the option of a producer (tool) of a store */
   def storeProducers(store: LoamStore): Option[LoamTool] = storeSources.get(store).collect {

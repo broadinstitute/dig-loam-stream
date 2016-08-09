@@ -35,7 +35,7 @@ final class RxExecuter {
           println("Jobs ready to dispatch: ")
           jobsReadyToDispatch.foreach(job => println("\t" + job.name))
           import scala.concurrent.ExecutionContext.Implicits.global
-          Future { jobsReadyToDispatch.par.foreach(job => result += job -> job.execute)}
+          Future { jobsReadyToDispatch.par.foreach(job => result += job -> job.execute) }
           val next = if (shouldStop) None else Some(jobs.filterNot(_.isSuccessful.now))
           Thread.sleep(500) // scalastyle:ignore magic.number
           loop(next, result)
@@ -44,7 +44,7 @@ final class RxExecuter {
     // scalastyle:on regex
 
     val jobs = flattenTree(executable.jobs)
-    var result: collection.mutable.Map[RxMockJob, Result] = collection.mutable.Map.empty
+    val result: collection.mutable.Map[RxMockJob, Result] = collection.mutable.Map.empty
     loop(Option(jobs), result)
 
     import Maps.Implicits._

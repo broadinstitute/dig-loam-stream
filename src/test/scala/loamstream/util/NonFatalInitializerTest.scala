@@ -3,7 +3,7 @@ package loamstream.util
 import org.scalatest.FunSuite
 
 /** Tests for NonFatalInitializer */
-class NonFatalInitializerTest extends FunSuite {
+final class NonFatalInitializerTest extends FunSuite {
   val nonFatalError = new AssertionError()
   val exInInitErrorWithNonFatalError = new ExceptionInInitializerError(nonFatalError)
   val fatalError = new OutOfMemoryError()

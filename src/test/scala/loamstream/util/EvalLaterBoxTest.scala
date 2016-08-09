@@ -12,7 +12,7 @@ import scala.util.control.NonFatal
 import scala.reflect.runtime.universe.typeOf
 
 /** Tests of EvalLaterBox */
-class EvalLaterBoxTest extends FunSuite {
+final class EvalLaterBoxTest extends FunSuite {
   test("Type is stored") {
     val intBox = EvalLaterBox { 1 }
     assert(intBox.tpe =:= typeOf[Int] )

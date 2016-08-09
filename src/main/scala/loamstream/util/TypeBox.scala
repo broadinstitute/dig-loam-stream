@@ -7,20 +7,21 @@ import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
   * Created by oruebenacker on 6/9/16.
   */
 object TypeBox {
-  def of[T: TypeTag]: TypeBox[T] = new TypeBox[T](typeTag[T].tpe)
+  def of[A: TypeTag]: TypeBox[A] = new TypeBox[A](typeTag[A].tpe)
 }
 
-final class TypeBox[T](val tpe: Type) {
+final class TypeBox[A](val tpe: Type) {
+  
+  def isSubTypeOf[B](oBox: TypeBox[B]): Boolean = this <:< oBox
+  def <:<[B](oBox: TypeBox[B]): Boolean = tpe <:< oBox.tpe
+
+  def isSuperTypeOf[B](oBox: TypeBox[B]): Boolean = this >:> oBox 
+  def >:>[B](oBox: TypeBox[B]): Boolean = oBox.tpe <:< tpe
+
   override def equals(o: Any): Boolean = o match {
     case oBox: TypeBox[_] => tpe =:= oBox.tpe
     case _ => false
   }
-
-  //TODO: Describe what these operators mean, possibly provide a human-language alternative
-  def <:<[S](oBox: TypeBox[S]): Boolean = tpe <:< oBox.tpe
-
-  //TODO: Describe what these operators mean, possibly provide a human-language alternative
-  def >:>[S](oBox: TypeBox[S]): Boolean = oBox.tpe <:< tpe
-
+  
   override def hashCode: Int = tpe.toString.hashCode
 }

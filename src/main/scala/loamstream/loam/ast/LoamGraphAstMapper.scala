@@ -1,15 +1,14 @@
 package loamstream.loam.ast
 
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.{ LoamGraph, LoamTool }
+import loamstream.loam.{LoamGraph, LoamStore, LoamTool}
 import loamstream.model.AST
-import loamstream.model.AST.{ Connection, ToolNode }
-import loamstream.loam.LoamStore
+import loamstream.model.AST.{Connection, ToolNode}
 
 /**
- * LoamStream
- * Created by oliverr on 6/16/2016.
- */
+  * LoamStream
+  * Created by oliverr on 6/16/2016.
+  */
 object LoamGraphAstMapper {
 
   val tempFilePrefix = "loam"
@@ -50,8 +49,8 @@ object LoamGraphAstMapper {
   }
 
   private def toConnection(graph: LoamGraph, toolAsts: Map[LoamTool, AST])
-      (inputStore: LoamStore): Option[Connection] = {
-    
+                          (inputStore: LoamStore): Option[Connection] = {
+
     graph.storeSources.get(inputStore) match {
       case Some(StoreEdge.ToolEdge(sourceTool)) =>
         val id = inputStore.id

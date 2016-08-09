@@ -129,7 +129,7 @@ import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LoamGraph]}
 import ${SourceUtils.fullTypeName[ValueBox[_]]}
 import ${SourceUtils.fullTypeName[DslChunk]}
-import ${SourceUtils.fullTypeName[LoamTool.type]}._
+import ${SourceUtils.fullTypeName[LoamCmdTool.type]}._
 import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._

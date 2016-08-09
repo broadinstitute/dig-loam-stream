@@ -3,7 +3,7 @@ package loamstream.util
 import org.scalatest.FunSuite
 
 /** Test of Equivalencer */
-class EquivalencesTest extends FunSuite {
+final class EquivalencesTest extends FunSuite {
   test("Nothing is equivalent") {
     assert(Equivalences.empty[String].theseAreEqual("Hello World!", "Hello World!"))
     assert(!Equivalences.empty[String].theseAreEqual("Hello World!", "Hi folks!"))

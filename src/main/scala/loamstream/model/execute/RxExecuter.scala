@@ -5,6 +5,7 @@ import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
 import rx.Ctx
 
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
@@ -23,27 +24,29 @@ final class RxExecuter {
 
     def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = jobs.filter(_.isRunnable.now)
 
-    def loop(remainingOption: Option[Set[RxMockJob]], acc: Map[RxMockJob, Result]): Map[RxMockJob, Result] = {
+    def loop(remainingOption: Option[Set[RxMockJob]], result: collection.mutable.Map[RxMockJob, Result]):
+    Map[RxMockJob, Result] = {
       remainingOption match {
-        case None => acc
+        case None => Map.empty
         case Some(jobs) =>
           val shouldStop = jobs.isEmpty
           val jobsReadyToDispatch = getRunnableJobs(jobs)
-          println("Jobs read to dispatch: ") // scalastyle:ignore
-          jobsReadyToDispatch.foreach(job => println(job.name)) // scalastyle:ignore
-          //val results = jobsReadyToDispatch.par.map(job => (job, job.execute)).toMap
-          val results = jobsReadyToDispatch.par.map(job => (job, job.execute)).toMap
-          val next = if (shouldStop) None else Some(jobs -- jobsReadyToDispatch)
-          Thread.sleep(1000) // scalastyle:ignore magic.number
-          loop(next, acc ++ results)
+          println("Jobs ready to dispatch: ") // scalastyle:ignore
+          jobsReadyToDispatch.foreach(job => println("\t" + job.name)) // scalastyle:ignore
+          import scala.concurrent.ExecutionContext.Implicits.global
+          Future { jobsReadyToDispatch.par.foreach(job => result += job -> job.execute)}
+          val next = if (shouldStop) None else Some(jobs.filterNot(_.isSuccessful.now))
+          Thread.sleep(500) // scalastyle:ignore magic.number
+          loop(next, result)
       }
     }
 
     val jobs = flattenTree(executable.jobs)
-    val results = loop(Option(jobs), Map.empty)
+    var result: collection.mutable.Map[RxMockJob, Result] = collection.mutable.Map.empty
+    loop(Option(jobs), result)
 
     import Maps.Implicits._
-    results.strictMapValues(Hit(_))
+    result.toMap.strictMapValues(Hit(_))
   }
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)
@@ -64,10 +67,11 @@ object RxExecuter {
     import rx._
 
     final def isRunnable(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx {
-      inputs.isEmpty || dependenciesSuccessful.now
+      !isSuccessful.now && !isRunning.now && (inputs.isEmpty || dependenciesSuccessful.now)
     }
 
     final val isSuccessful: Var[Boolean] = Var(false)
+    final val isRunning: Var[Boolean] = Var(false)
 
     final def dependenciesSuccessful(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx {
       inputs.forall(_.isSuccessful())
@@ -81,10 +85,11 @@ object RxExecuter {
 
     def execute: Result = {
       lock.synchronized(_executionCount += 1)
-      println("\tStarting to execute job: " + this.name)
+      println("\t\tStarting to execute job: " + this.name)
+      isRunning() = true
       Thread.sleep(delay)
       isSuccessful() = true
-      println("\t\tFinished executing job: " + this.name)
+      println("\t\t\tFinished executing job: " + this.name)
       RxMockJob.SimpleSuccess(name)
     }
   }

@@ -79,4 +79,14 @@ final class FilesTest extends FunSuite {
     assert(StringUtils.unwrapLines(contentReread).trim === StringUtils.unwrapLines(content).trim)
     assert(path.toFile.length() < 100)
   }
+  
+  test("Read from file compressed by an external tool") {
+    val expected = "This is some text."
+    
+    val file = Paths.get("src/test/resources/foo.txt.gz")
+    
+    val actual = Files.readFromGzipped(file)
+    
+    assert(actual == expected)
+  }
 }

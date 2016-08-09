@@ -44,39 +44,39 @@ object Files {
   }
 
   def writeTo(file: Path)(contents: String): Unit = {
-    LoamFileUtils.enclosed(new FileWriter(file.toFile)) {
-      _.write(contents)
-    }
+    doWriteTo(new FileWriter(file.toFile), contents)
   }
 
   def readFrom(file: Path): String = {
-    import java.io._
-
-    LoamFileUtils.enclosed(new BufferedReader(new FileReader(file.toFile))) { reader =>
-      import scala.collection.JavaConverters._
-
-      reader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
-    }
+    doReadFrom(new FileReader(file.toFile))
   }
 
   /** Writes to gzipped file */
   def writeToGzipped(file: Path)(contents: String): Unit = {
-    LoamFileUtils.enclosed(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file.toFile)))) {
-      _.write(contents)
-    }
+    doWriteTo(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file.toFile))), contents)
   }
-
+  
   /** Read from gzipped file */
   def readFromGzipped(file: Path): String = {
-    import java.io._
-
-    LoamFileUtils.enclosed(new BufferedReader(new InputStreamReader(new GZIPInputStream(
-      new FileInputStream(file.toFile))))) { reader =>
-      import scala.collection.JavaConverters._
-
-      reader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
-    }
+    doReadFrom(new InputStreamReader(new GZIPInputStream(new FileInputStream(file.toFile))))
   }
 
   def readFromAsUtf8(file: Path): String = StringUtils.fromUtf8Bytes(java.nio.file.Files.readAllBytes(file))
+  
+  private def doWriteTo(writer: Writer, contents: String): Unit = {
+    LoamFileUtils.enclosed(writer)(_.write(contents))
+  }
+  
+  private def doReadFrom(reader: Reader): String = {
+    def toBufferedReader = reader match {
+      case br: BufferedReader => br
+      case _ => new BufferedReader(reader)
+    }
+    
+    LoamFileUtils.enclosed(toBufferedReader) { bufferedReader =>
+      import scala.collection.JavaConverters._
+
+      bufferedReader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
+    }
+  }
 }

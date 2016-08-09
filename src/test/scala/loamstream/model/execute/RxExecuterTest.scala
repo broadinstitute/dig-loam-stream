@@ -48,6 +48,5 @@ final class RxExecuterTest extends FunSuite {
     val executable = RxMockExecutable(Set(job4))
     val result = executer.execute(executable)
     assert(result.size === 9)
-    assert(result.hashCode === 135101903)
   }
 }

@@ -24,6 +24,7 @@ final class RxExecuter {
 
     def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = jobs.filter(_.isRunnable.now)
 
+    // scalastyle:off regex
     def loop(remainingOption: Option[Set[RxMockJob]], result: collection.mutable.Map[RxMockJob, Result]):
     Map[RxMockJob, Result] = {
       remainingOption match {
@@ -31,8 +32,8 @@ final class RxExecuter {
         case Some(jobs) =>
           val shouldStop = jobs.isEmpty
           val jobsReadyToDispatch = getRunnableJobs(jobs)
-          println("Jobs ready to dispatch: ") // scalastyle:ignore
-          jobsReadyToDispatch.foreach(job => println("\t" + job.name)) // scalastyle:ignore
+          println("Jobs ready to dispatch: ")
+          jobsReadyToDispatch.foreach(job => println("\t" + job.name))
           import scala.concurrent.ExecutionContext.Implicits.global
           Future { jobsReadyToDispatch.par.foreach(job => result += job -> job.execute)}
           val next = if (shouldStop) None else Some(jobs.filterNot(_.isSuccessful.now))
@@ -40,6 +41,7 @@ final class RxExecuter {
           loop(next, result)
       }
     }
+    // scalastyle:on regex
 
     val jobs = flattenTree(executable.jobs)
     var result: collection.mutable.Map[RxMockJob, Result] = collection.mutable.Map.empty
@@ -83,6 +85,7 @@ object RxExecuter {
 
     def executionCount = lock.synchronized(_executionCount)
 
+    // scalastyle:off regex
     def execute: Result = {
       lock.synchronized(_executionCount += 1)
       println("\t\tStarting to execute job: " + this.name)
@@ -92,6 +95,7 @@ object RxExecuter {
       println("\t\t\tFinished executing job: " + this.name)
       RxMockJob.SimpleSuccess(name)
     }
+    // scalastyle:on regex
   }
 
   object RxMockJob {

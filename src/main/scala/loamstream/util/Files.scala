@@ -59,12 +59,14 @@ object Files {
     }
   }
 
+  /** Writes to gzipped file */
   def writeToGzipped(file: Path)(contents: String): Unit = {
     LoamFileUtils.enclosed(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file.toFile)))) {
       _.write(contents)
     }
   }
 
+  /** Read from gzipped file */
   def readFromGzipped(file: Path): String = {
     import java.io._
 

@@ -70,4 +70,13 @@ final class FilesTest extends FunSuite {
     
     assert(read(tempFile) == contents)
   }
+
+  test("Write to compressed file and read back") {
+    val content = "Hello World!\n" * 100
+    val path = Files.tempFile("txt")
+    Files.writeToGzipped(path)(content)
+    val contentReread = Files.readFromGzipped(path)
+    assert(StringUtils.unwrapLines(contentReread).trim === StringUtils.unwrapLines(content).trim)
+    assert(path.toFile.length() < 100)
+  }
 }

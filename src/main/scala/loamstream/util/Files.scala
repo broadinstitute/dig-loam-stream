@@ -1,6 +1,6 @@
 package loamstream.util
 
-import java.io.{File, FileNotFoundException, FileWriter}
+import java.io._
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -8,6 +8,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 import java.util.stream.Collectors
+import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 /**
  * @author clint
@@ -52,6 +53,23 @@ object Files {
     import java.io._
 
     LoamFileUtils.enclosed(new BufferedReader(new FileReader(file.toFile))) { reader =>
+      import scala.collection.JavaConverters._
+
+      reader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
+    }
+  }
+
+  def writeToGzipped(file: Path)(contents: String): Unit = {
+    LoamFileUtils.enclosed(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file.toFile)))) {
+      _.write(contents)
+    }
+  }
+
+  def readFromGzipped(file: Path): String = {
+    import java.io._
+
+    LoamFileUtils.enclosed(new BufferedReader(new InputStreamReader(new GZIPInputStream(
+      new FileInputStream(file.toFile))))) { reader =>
       import scala.collection.JavaConverters._
 
       reader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)

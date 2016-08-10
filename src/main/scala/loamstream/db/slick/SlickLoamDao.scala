@@ -3,12 +3,13 @@ package loamstream.db.slick
 import java.nio.file.Path
 
 import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 
 import loamstream.db.LoamDao
 import loamstream.util.Hash
-
 import slick.driver.JdbcProfile
+import java.sql.ResultSet
 
 /**
  * @author clint
@@ -16,33 +17,35 @@ import slick.driver.JdbcProfile
  * 
  * Rough-draft LoamDao implementation backed by Slick 
  */
-final class SlickLoamDao(driver: JdbcProfile) extends LoamDao {
+final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
+  val driver = descriptor.driver
+  
   import driver.api._
   
   override def hashFor(path: Path): Hash = {
-    val query = tables.hashes.filter(_.path === path.toString).result.head
+    val query = tables.hashes.filter(_.path === Helpers.normalize(path)).result.head
     
     val futureRow = db.run(query)
     
     //TODO: Re-evaluate
-    val row = Await.result(futureRow, Duration.Inf)
-
-    row.toHash
+    waitFor(futureRow).toHash
   }
   
   override def storeHash(path: Path, hash: Hash): Unit = {
     val newRow = new HashRow(path, hash)
     
-    val future = db.run(tables.hashes.insertOrUpdate(newRow))
+    val action = DBIO.seq(tables.hashes += newRow).transactionally
     
     //TODO: Re-evaluate
-    Await.result(future, Duration.Inf)
+    waitFor(db.run(action))
   }
   
-  //TODO
-  private lazy val db = Database.forURL("jdbc:h2:mem:hello", driver = "org.h2.Driver")
+  private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.jdbcDriverClass)
+
+  private[slick] lazy val tables = new SlickLoamDao.Tables(driver)
   
-  private lazy val tables = new SlickLoamDao.Tables(driver) 
+  //TODO: Re-evaluate; don't wait forever
+  private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
 }
 
 object SlickLoamDao {
@@ -57,5 +60,17 @@ object SlickLoamDao {
     }
     
     val hashes = TableQuery[Hashes]
+    
+    private def ddlForAllTables = hashes.schema
+    
+    def create(database: Database): Unit = perform(database)(ddlForAllTables.create)
+    
+    def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop)
+    
+    private def perform(database: Database)(action: DBIO[_]): Unit = {
+      val f = database.run(ddlForAllTables.create)
+      
+      Await.result(f, Duration.Inf)
+    }
   }
 }

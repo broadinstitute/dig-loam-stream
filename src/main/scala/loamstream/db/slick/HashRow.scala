@@ -11,7 +11,7 @@ import java.nio.file.Paths
  */
 final case class HashRow(pathValue: String, hashValue: String, hashType: String) {
   def this(path: Path, hash: Hash) = {
-    this(path.toAbsolutePath.toString, hash.valueAsHexString, hash.tpe.algorithmName)
+    this(Helpers.normalize(path), hash.valueAsHexString, hash.tpe.algorithmName)
   }
   
   def toPath: Path = Paths.get(pathValue)

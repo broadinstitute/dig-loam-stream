@@ -10,25 +10,27 @@ import scala.util.Try
 import java.util.stream.Collectors
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
+import scala.io.Source
+
 /**
- * @author clint
- *         date: Jun 15, 2016
- */
+  * @author clint
+  *         date: Jun 15, 2016
+  */
 object Files {
   private[util] val tempFilePrefix = "loamstream"
 
   /**
-   * Creates an empty file in the *default temporary-file* directory, using
-   * the given prefix and suffix to generate its name.
-   */
+    * Creates an empty file in the *default temporary-file* directory, using
+    * the given prefix and suffix to generate its name.
+    */
   def tempFile(suffix: String): Path = {
     File.createTempFile(tempFilePrefix, suffix).toPath.toAbsolutePath
   }
 
   /**
-   * Creates an empty file in the *specified* directory, using
-   * the given prefix and suffix to generate its name.
-   */
+    * Creates an empty file in the *specified* directory, using
+    * the given prefix and suffix to generate its name.
+    */
   def tempFile(suffix: String, directory: File): Path = {
     File.createTempFile(tempFilePrefix, suffix, directory).toPath.toAbsolutePath
   }
@@ -55,28 +57,43 @@ object Files {
   def writeToGzipped(file: Path)(contents: String): Unit = {
     doWriteTo(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file.toFile))), contents)
   }
-  
+
   /** Read from gzipped file */
   def readFromGzipped(file: Path): String = {
     doReadFrom(new InputStreamReader(new GZIPInputStream(new FileInputStream(file.toFile))))
   }
 
   def readFromAsUtf8(file: Path): String = StringUtils.fromUtf8Bytes(java.nio.file.Files.readAllBytes(file))
-  
+
   private def doWriteTo(writer: Writer, contents: String): Unit = {
     LoamFileUtils.enclosed(writer)(_.write(contents))
   }
-  
+
   private def doReadFrom(reader: Reader): String = {
     def toBufferedReader = reader match {
       case br: BufferedReader => br
       case _ => new BufferedReader(reader)
     }
-    
+
     LoamFileUtils.enclosed(toBufferedReader) { bufferedReader =>
       import scala.collection.JavaConverters._
 
       bufferedReader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
+    }
+  }
+
+  def mergeGzippedLines(sourcePaths: Iterable[Path], targetPath: Path): Unit = {
+    val writer =
+      new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(targetPath.toFile))))
+    LoamFileUtils.enclosed(writer) { writer =>
+      for (sourcePath <- sourcePaths) {
+        val source = Source.createBufferedSource(new GZIPInputStream(new FileInputStream(sourcePath.toFile)))
+        LoamFileUtils.enclosed(source) { source =>
+          for (line <- source.getLines()) {
+            writer.write(line + "\n")
+          }
+        }
+      }
     }
   }
 }

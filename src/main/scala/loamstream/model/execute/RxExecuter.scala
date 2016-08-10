@@ -3,7 +3,7 @@ package loamstream.model.execute
 import loamstream.model.execute.RxExecuter.RxMockJob.{Result, SimpleSuccess}
 import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
-import rx.Ctx
+import rx.{Ctx, Rx, Var}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
@@ -16,6 +16,7 @@ import scala.util.control.NonFatal
 final class RxExecuter {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe
 
+  // scalastyle:off
   def execute(executable: RxMockExecutable)(implicit timeout: Duration = Duration.Inf): Map[RxMockJob, Shot[Result]] = {
     def flattenTree(tree: Set[RxMockJob]): Set[RxMockJob] = {
       tree.foldLeft(tree)((acc, x) =>
@@ -24,7 +25,10 @@ final class RxExecuter {
 
     def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = jobs.filter(_.isRunnable.now)
 
-    // scalastyle:off regex
+    def getRunnableJobsMap(jobs: Set[RxMockJob]): Rx[Map[RxMockJob, Rx[Boolean]]] = Rx {
+      jobs.map(job => (job, job.isRunnable)).toMap
+    }
+/*
     def loop(remainingOption: Option[Set[RxMockJob]], result: collection.mutable.Map[RxMockJob, Result]):
     Map[RxMockJob, Result] = {
       remainingOption match {
@@ -41,15 +45,30 @@ final class RxExecuter {
           loop(next, result)
       }
     }
-    // scalastyle:on regex
+*/
 
     val jobs = flattenTree(executable.jobs)
     val result: collection.mutable.Map[RxMockJob, Result] = collection.mutable.Map.empty
-    loop(Option(jobs), result)
+    val jobStatuses = Rx { jobs.map(_.isRunnable()) }
+
+    val observer = jobStatuses.trigger {
+      val jobsReadyToDispatch = getRunnableJobs(jobs)
+      println("Jobs ready to dispatch: ")
+      jobsReadyToDispatch.foreach(job => println("\t" + job.name))
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Future { jobsReadyToDispatch.par.foreach(job => result += job -> job.execute) }
+    }
+
+    //loop(Option(jobs), result)
+
+    //if (!jobs.forall(_.isSuccessful.now)) execute(executable)
+
+    Thread.sleep(10000)
 
     import Maps.Implicits._
     result.toMap.strictMapValues(Hit(_))
   }
+  // scalastyle:on
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)
 }
@@ -67,16 +86,17 @@ object RxExecuter {
     }
 
     import rx._
-
+/*
     final def isRunnable(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx {
-      !isSuccessful.now && !isRunning.now && (inputs.isEmpty || dependenciesSuccessful.now)
+      inputs.isEmpty || (!isSuccessful() && !isRunning() && dependenciesSuccessful)
     }
-
+*/
     final val isSuccessful: Var[Boolean] = Var(false)
     final val isRunning: Var[Boolean] = Var(false)
 
-    final def dependenciesSuccessful(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx {
-      inputs.forall(_.isSuccessful())
+    implicit val ctxOwner: Ctx.Owner = Ctx.Owner.safe
+    val isRunnable: Rx[Boolean] = Rx {
+      !isSuccessful() && !isRunning() && (inputs.isEmpty || inputs.forall(_.isSuccessful()))
     }
 
     private[this] val lock = new AnyRef

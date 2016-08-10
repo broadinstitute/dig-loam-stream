@@ -82,7 +82,14 @@ object Files {
     }
   }
 
-  def mergeGzippedLines(sourcePaths: Iterable[Path], targetPath: Path): Unit = {
+  type LineFilter = String => Boolean
+  type LineFilterFactory = () => LineFilter
+
+  val acceptAllLinesFactory : LineFilterFactory = () => _ => true
+
+  def mergeLinesGzipped(sourcePaths: Iterable[Path], targetPath: Path,
+                        lineFilterFactory: LineFilterFactory = acceptAllLinesFactory): Unit = {
+    val lineFilter = lineFilterFactory()
     val writer =
       new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(targetPath.toFile))))
     LoamFileUtils.enclosed(writer) { writer =>
@@ -90,7 +97,9 @@ object Files {
         val source = Source.createBufferedSource(new GZIPInputStream(new FileInputStream(sourcePath.toFile)))
         LoamFileUtils.enclosed(source) { source =>
           for (line <- source.getLines()) {
-            writer.write(line + "\n")
+            if(lineFilter(line)) {
+              writer.write(line + "\n")
+            }
           }
         }
       }

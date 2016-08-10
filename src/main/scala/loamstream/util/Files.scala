@@ -82,22 +82,49 @@ object Files {
     }
   }
 
-  type LineFilter = String => Boolean
-  type LineFilterFactory = () => LineFilter
+  trait LinesFilter {
+    def reset(): Unit = ()
 
-  val acceptAllLinesFactory : LineFilterFactory = () => _ => true
+    def setNewSource(): Unit = ()
+
+    def apply(line: String): Boolean
+  }
+
+  object LinesFilter {
+    type Factory = () => LinesFilter
+    val acceptAll: Factory = () => new LinesFilter {
+      override def apply(line: String): Boolean = true
+    }
+    val onlyFirstVcfHeader: Factory = () => new LinesFilter {
+      var firstVcfHeaderIsPast = false
+
+      override def apply(line: String): Boolean = {
+        val lineIsNotHeader = !line.startsWith("##")
+        if (firstVcfHeaderIsPast) {
+          lineIsNotHeader
+        } else {
+          if (lineIsNotHeader) {
+            firstVcfHeaderIsPast = true
+          }
+          true
+        }
+      }
+    }
+  }
 
   def mergeLinesGzipped(sourcePaths: Iterable[Path], targetPath: Path,
-                        lineFilterFactory: LineFilterFactory = acceptAllLinesFactory): Unit = {
+                        lineFilterFactory: LinesFilter.Factory = LinesFilter.acceptAll): Unit = {
     val lineFilter = lineFilterFactory()
+    lineFilter.reset()
     val writer =
       new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(targetPath.toFile))))
     LoamFileUtils.enclosed(writer) { writer =>
       for (sourcePath <- sourcePaths) {
+        lineFilter.setNewSource()
         val source = Source.createBufferedSource(new GZIPInputStream(new FileInputStream(sourcePath.toFile)))
         LoamFileUtils.enclosed(source) { source =>
           for (line <- source.getLines()) {
-            if(lineFilter(line)) {
+            if (lineFilter(line)) {
               writer.write(line + "\n")
             }
           }

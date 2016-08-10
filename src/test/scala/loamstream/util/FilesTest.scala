@@ -93,18 +93,37 @@ final class FilesTest extends FunSuite {
   test("Merging gzipped files") {
     val nFiles = 3
     val nLinesPerFile = 5
+    val iFiles = 0 until nFiles
     val folder = JFiles.createTempDirectory("loamStreamFilesTest")
-    val pathsAndContents = (0 until 3).map({ iFile =>
-      val path = folder.resolve(s"file$iFile.txt")
-      val content = (0 until nLinesPerFile).map(iLine => s"Line $iLine of file $iFile.").mkString("\n")
-      (path, content)
+    val paths = iFiles.map(iFile => folder.resolve(s"file$iFile.txt"))
+    val contents = iFiles.map({ iFile =>
+      (0 until nLinesPerFile).map(iLine => s"Line $iLine of file $iFile.").mkString("\n")
     })
-    pathsAndContents.foreach({ case (path, content) => Files.writeToGzipped(path)(content) })
-    val paths = pathsAndContents.map({ case (path, _) => path })
+    iFiles.foreach({ iFile => Files.writeToGzipped(paths(iFile))(contents(iFile)) })
     val pathOut = folder.resolve("fileOut.txt")
     Files.mergeLinesGzipped(paths, pathOut)
-    val contents = pathsAndContents.map({ case (_, content) => content })
     val contentOutExpected = contents.mkString("\n")
+    val contentOut = Files.readFromGzipped(pathOut)
+    assert(contentOut === contentOutExpected)
+  }
+  test("Merging pseudo-VCF files, keeping only header of first file") {
+    val nFiles = 3
+    val nHeaderLines = 5
+    val nBodyLines = 7
+    val iFiles = 0 until nFiles
+    val folder = JFiles.createTempDirectory("loamStreamFilesTest")
+    val paths = iFiles.map(iFile => folder.resolve(s"file$iFile.vcf"))
+    val headers = iFiles.map({iFile =>
+      (0 until nHeaderLines).map(iLine => s"## Header line $iLine of file $iFile.").mkString("\n")
+    })
+    val bodies = iFiles.map({iFile =>
+      (0 until nBodyLines).map(iLine => s"Body line $iLine of file $iFile.").mkString("\n")
+    })
+    val contents = iFiles.map(iFile => s"${headers(iFile)}\n${bodies(iFile)}")
+    iFiles.foreach({ iFile => Files.writeToGzipped(paths(iFile))(contents(iFile)) })
+    val pathOut = folder.resolve("fileOut.txt")
+    Files.mergeLinesGzipped(paths, pathOut, Files.LinesFilter.onlyFirstVcfHeader)
+    val contentOutExpected = s"${headers(0)}\n${bodies.mkString("\n")}"
     val contentOut = Files.readFromGzipped(pathOut)
     assert(contentOut === contentOutExpected)
   }

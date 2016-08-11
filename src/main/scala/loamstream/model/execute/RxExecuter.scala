@@ -1,7 +1,6 @@
 package loamstream.model.execute
 
 import java.util.concurrent.TimeUnit.SECONDS
-
 import loamstream.model.execute.RxExecuter.RxMockJob.{Result, SimpleSuccess}
 import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
@@ -64,6 +63,7 @@ final class RxExecuter {
     import Maps.Implicits._
     result.toMap.strictMapValues(Hit(_))
   }
+
   // scalastyle:on
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)

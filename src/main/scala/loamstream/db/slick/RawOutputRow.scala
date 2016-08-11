@@ -8,6 +8,7 @@ import java.sql.Timestamp
 import loamstream.db.OutputRow
 import java.time.Instant
 import Helpers._
+import loamstream.util.PathUtils.lastModifiedTime
 
 /**
  * @author clint

@@ -1,19 +1,21 @@
-package loamstream.model.jobs
+package loamstream.model.execute
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
-
-import loamstream.model.execute.LExecutable
-
-import loamstream.model.execute.LExecuter
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.Hash
 import loamstream.util.Maps
 import loamstream.util.Shot
 import loamstream.util.ValueBox
 import loamstream.db.LoamDao
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.Output
+import scala.annotation.migration
+import loamstream.db.OutputRow
+import loamstream.util.TimeEnrichments
+import loamstream.util.Traversables
 
 /**
  * @author clint
@@ -33,30 +35,50 @@ final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContex
     Await.result(futureResults, timeout)
   }
   
-  private[this] val hashes: ValueBox[Map[Output, Hash]] = {
-    //TODO: 
+  private[this] lazy val outputs: ValueBox[Map[Output, OutputRow]] = {
+    //TODO: All of them?  What 
+    val map: Map[Output, OutputRow] = dao.allRows.map { row => 
+      Output.PathOutput(row.path) -> row
+    }.toMap
     
-    ValueBox(Map.empty)
+    ValueBox(map)
   }
   
-  private def isHashed(output: Output): Boolean = hashes.value.contains(output)
+  private def isHashed(output: Output): Boolean = outputs.value.contains(output)
       
-  private def hasSameHash(output: Output): Boolean = hashes.value.get(output).map(_ == output.hash).getOrElse(false)
+  private def hasSameHash(output: Output): Boolean = outputs.value.get(output).map(_ == output.hash).getOrElse(false)
+  
+  private def isNewer(output: Output): Boolean = {
+    import TimeEnrichments._
+    
+    outputs.value.get(output).map(_.lastModified > output.lastModified).getOrElse(false)
+  }
   
   private def shouldRun(dep: LJob): Boolean = {
-    dep.outputs.exists { output =>
-      !isHashed(output) || !hasSameHash(output)
+    def needsToBeRun(output: Output): Boolean = {
+      isNewer(output) || !isHashed(output) || !hasSameHash(output)
     }
+    
+    dep.outputs.exists(needsToBeRun)
   }
   
   private def runWithoutDeps(job: LJob): Future[Result] = {
     val f = job.execute
     
+    def toOutputRow(output: Output): OutputRow = {
+      //TODO: Smell
+      val path = output.asInstanceOf[Output.PathOutput].file
+      
+      OutputRow(path, output.lastModified, output.hash)
+    }
+    
+    import Traversables.Implicits._
+    
     f.foreach { _ =>
-      hashes.mutate { oldHashes =>
-        val newHashes = (job.outputs.map(o => o -> o.hash))
+      outputs.mutate { oldOutputs =>
+        val newOutputs = job.outputs.mapTo(toOutputRow)
         
-        oldHashes ++ newHashes 
+        oldOutputs ++ newOutputs 
       }
     }
     

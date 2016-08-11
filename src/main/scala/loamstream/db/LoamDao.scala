@@ -11,4 +11,7 @@ trait LoamDao {
   def hashFor(path: Path): Hash
   
   def storeHash(path: Path, hash: Hash): Unit
+  
+  //TODO: Re-evaluate
+  def allRows: Seq[OutputRow]
 }

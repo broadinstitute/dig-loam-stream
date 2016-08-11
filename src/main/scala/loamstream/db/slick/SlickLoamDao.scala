@@ -11,6 +11,7 @@ import loamstream.util.Hash
 import slick.driver.JdbcProfile
 import java.sql.ResultSet
 import java.sql.Timestamp
+import loamstream.db.OutputRow
 
 /**
  * @author clint
@@ -25,7 +26,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
   import SlickLoamDao.waitFor
   
   override def hashFor(path: Path): Hash = {
-    val query = tables.outputs.filter(_.path === Helpers.normalize(path)).result.head
+    val query = tables.outputs.filter(_.path === Helpers.normalize(path)).result.head.transactionally
     
     val futureRow = db.run(query)
     
@@ -40,6 +41,15 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     
     //TODO: Re-evaluate
     waitFor(db.run(action))
+  }
+  
+  override def allRows: Seq[OutputRow] = {
+    val query = tables.outputs.result.transactionally
+    
+    val futureRow = db.run(query)
+    
+    //TODO: Re-evaluate
+    waitFor(futureRow).map(_.toOutputRow)
   }
   
   private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.jdbcDriverClass)
@@ -63,12 +73,12 @@ object SlickLoamDao {
     
     private def ddlForAllTables = outputs.schema
     
-    def create(database: Database): Unit = perform(database)(ddlForAllTables.create)
+    def create(database: Database): Unit = perform(database)(ddlForAllTables.create.transactionally)
     
-    def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop)
+    def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)
   
     private def perform(database: Database)(action: DBIO[_]): Unit = {
-      waitFor(database.run(ddlForAllTables.create))
+      waitFor(database.run(action))
     }
   }
   

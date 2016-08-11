@@ -5,6 +5,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import loamstream.util.Hash
 import loamstream.util.Hashes
+import java.time.Instant
+import loamstream.util.PathUtils
 
 /**
  * @author clint
@@ -14,6 +16,8 @@ trait Output {
   def isPresent: Boolean
   
   def hash: Hash
+  
+  def lastModified: Instant
 }
 
 object Output {
@@ -21,5 +25,9 @@ object Output {
     override def isPresent: Boolean = Files.exists(file)
     
     override def hash: Hash = Hashes.sha1(file)
+    
+    override def lastModified: Instant = {
+      if(isPresent) PathUtils.lastModifiedTime(file) else Instant.ofEpochMilli(0) 
+    }
   }
 }

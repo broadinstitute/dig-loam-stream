@@ -1,12 +1,13 @@
 package loamstream.util
 
 import java.nio.file.{Path, Paths}
+import java.time.Instant
 
 /**
   * LoamStream
   * Created by oliverr on 7/13/2016.
   */
-object PathUtil {
+object PathUtils {
   //TODO: TEST!
   def transformFileName(path: Path, transformation: String => String): Path =
     (path.getParent, path.getFileName) match {
@@ -20,4 +21,11 @@ object PathUtil {
     transformFileName(path, nameTransform)
   }
 
+  def lastModifiedTime(p: Path): Instant = {
+    val file = p.toFile
+    
+    val lastModifiedTimeInMillis = if(file.exists) file.lastModified else 0L
+    
+    Instant.ofEpochMilli(lastModifiedTimeInMillis)
+  }
 }

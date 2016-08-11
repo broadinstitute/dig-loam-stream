@@ -84,7 +84,7 @@ final case class UgerChunkRunner(
     val jobsToFutureResults: Iterable[(LJob, Future[Result])] = for {
       jobId <- jobIds
       job = jobsById(jobId)
-      futureResult = statuses(jobId).lastL.runAsync.collect { case Some(status) => resultFrom(job, status) }
+      futureResult = statuses(jobId).lastL.runAsync.map(resultFrom(job))
     } yield {
       job -> futureResult
     }
@@ -106,7 +106,7 @@ object UgerChunkRunner extends Loggable {
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
-  private[uger] def resultFrom(job: LJob, status: JobStatus): LJob.Result = {
+  private[uger] def resultFrom(job: LJob)(status: JobStatus): LJob.Result = {
     //TODO: Anything better; this was purely expedient
     if (status.isDone) {
       LJob.SimpleSuccess(s"$job")

@@ -82,21 +82,20 @@ object Files {
     }
   }
 
-  trait LinesFilter {
-    def reset(): Unit = ()
+  type LineFilter = String => Boolean
 
-    def setNewSource(): Unit = ()
-
-    def apply(line: String): Boolean
-  }
-
-  object LinesFilter {
-    type Factory = () => LinesFilter
-    val acceptAll: Factory = () => new LinesFilter {
+  object LineFilter {
+    type Factory = () => LineFilter
+    
+    private object AcceptsAllLineFilter extends LineFilter {
       override def apply(line: String): Boolean = true
     }
-    val onlyFirstVcfHeader: Factory = () => new LinesFilter {
-      var firstVcfHeaderIsPast = false
+    
+    val acceptAll: Factory = () => AcceptsAllLineFilter
+    
+    //TODO: It would be nice to not need a stateful predicate
+    val onlyFirstVcfHeader: Factory = () => new LineFilter {
+      private var firstVcfHeaderIsPast = false
 
       override def apply(line: String): Boolean = {
         val lineIsNotHeader = !line.startsWith("##")
@@ -112,22 +111,26 @@ object Files {
     }
   }
 
-  def mergeLinesGzipped(sourcePaths: Iterable[Path], targetPath: Path,
-                        lineFilterFactory: LinesFilter.Factory = LinesFilter.acceptAll): Unit = {
+  //TODO: Currently, this always creates the output file, even if sourcePaths is empty.  Is that the right thing to do?
+  def mergeLinesGzipped(
+      sourcePaths: Iterable[Path], 
+      targetPath: Path,
+      lineFilterFactory: LineFilter.Factory = LineFilter.acceptAll): Unit = {
+    
     val lineFilter = lineFilterFactory()
-    lineFilter.reset()
-    val writer =
+    
+    val writer = {
       new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(targetPath.toFile))))
+    }
+    
+    def inputStreamFor(path: Path) = new GZIPInputStream(new FileInputStream(path.toFile))
+    
     LoamFileUtils.enclosed(writer) { writer =>
       for (sourcePath <- sourcePaths) {
-        lineFilter.setNewSource()
-        val source = Source.createBufferedSource(new GZIPInputStream(new FileInputStream(sourcePath.toFile)))
+        val source = Source.createBufferedSource(inputStreamFor(sourcePath))
         LoamFileUtils.enclosed(source) { source =>
-          for (line <- source.getLines()) {
-            if (lineFilter(line)) {
-              writer.write(line + "\n")
-            }
-          }
+          //TODO: Use System.lineSeparator for platform-specific line endings, instead of '\n'?
+          source.getLines.filter(lineFilter).map(line => s"$line\n").foreach(writer.write)
         }
       }
     }

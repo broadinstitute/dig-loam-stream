@@ -12,6 +12,7 @@ lazy val Versions = new {
   val TypesafeConfig = "1.3.0"
   val Monix = "2.0-RC6"
   val ScalaRx = "0.3.1"
+  val Awaitility = "2.0.0"
 }
 
 lazy val mainDeps = Seq(
@@ -25,7 +26,8 @@ lazy val mainDeps = Seq(
   "ch.qos.logback" % "logback-classic" % Versions.LogBack,
   "com.typesafe" % "config" % Versions.TypesafeConfig,
   "io.monix" %% "monix" % Versions.Monix,
-  "com.lihaoyi" %% "scalarx" % Versions.ScalaRx
+  "com.lihaoyi" %% "scalarx" % Versions.ScalaRx,
+  "org.awaitility" % "awaitility-scala" % Versions.Awaitility
 )
 
 lazy val testDeps = Seq(

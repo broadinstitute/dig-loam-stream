@@ -1,8 +1,11 @@
 package loamstream.model.execute
 
+import java.util.concurrent.TimeUnit.SECONDS
 import loamstream.model.execute.RxExecuter.RxMockJob.{Result, SimpleSuccess}
 import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
+import org.awaitility.Awaitility.await
+import org.awaitility.scala.AwaitilitySupport
 import rx.{Ctx, Rx}
 
 import scala.concurrent.{Await, Future, Promise}
@@ -31,27 +34,36 @@ final class RxExecuter {
 
     val jobs = flattenTree(executable.jobs)
     val result: collection.mutable.Map[RxMockJob, Result] = collection.mutable.Map.empty
-    val jobStatuses = Rx { jobs.map(_.isRunnable()) }
+    val jobStatuses = Rx {
+      jobs.map(_.isRunnable())
+    }
 
     val observer = jobStatuses.trigger {
       val jobsReadyToDispatch = getRunnableJobs(jobs)
       println("Jobs ready to dispatch: ")
       jobsReadyToDispatch.foreach(job => println("\t" + job.name))
       import scala.concurrent.ExecutionContext.Implicits.global
-      Future { jobsReadyToDispatch.par.foreach(job => result += job -> job.execute) }
+      Future {
+        jobsReadyToDispatch.par.foreach(job => result += job -> job.execute)
+      }
     }
 
     val everythingIsDonePromise: Promise[Unit] = Promise()
     val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
-    val checkIfAllDone = Rx { jobs.forall(_.isSuccessful()) }
-    val observer2 = checkIfAllDone.triggerLater { everythingIsDonePromise.success(()) }
+    val checkIfAllDone = Rx {
+      jobs.forall(_.isSuccessful())
+    }
+    val observer2 = checkIfAllDone.triggerLater {
+      everythingIsDonePromise.success(())
+    }
 
     Await.result(everythingIsDoneFuture, Duration.Inf)
 
     import Maps.Implicits._
     result.toMap.strictMapValues(Hit(_))
   }
+
   // scalastyle:on
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)
@@ -60,7 +72,9 @@ final class RxExecuter {
 object RxExecuter {
   def default: RxExecuter = new RxExecuter
 
-  class RxMockJob(val name: String, val inputs: Set[RxMockJob] = Set.empty, delay: Int = 0) extends Loggable {
+  class RxMockJob(val name: String, val inputs: Set[RxMockJob] = Set.empty, delay: Int = 0)
+    extends Loggable {
+
     def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
       val indentString = s"${"-" * indent} >"
 
@@ -96,9 +110,25 @@ object RxExecuter {
       RxMockJob.SimpleSuccess(name)
     }
     // scalastyle:on regex
+
+    def withDependency(dependency: RxMockJob) = new RxMockJobWithDependency(name, inputs, this, dependency)
+  }
+
+  class RxMockJobWithDependency(override val name: String, override val inputs: Set[RxMockJob] = Set.empty,
+                                val parentJob: RxMockJob, val dependency: RxMockJob) extends RxMockJob(name, inputs)
+    with AwaitilitySupport {
+
+    override def execute: Result = {
+      await atMost(30, SECONDS) until ready
+      parentJob.execute
+    }
+
+    def ready: Boolean = dependency.isSuccessful.now
+
   }
 
   object RxMockJob {
+
     sealed trait Result {
       def isSuccess: Boolean
 
@@ -144,6 +174,7 @@ object RxExecuter {
     final case class FailureFromThrowable(cause: Throwable) extends Failure {
       def failureMessage: String = cause.getMessage
     }
+
   }
 
   final case class RxNoOpJob(override val name: String = "NoOpJob", override val inputs: Set[RxMockJob] = Set.empty)

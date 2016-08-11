@@ -30,15 +30,15 @@ final class TypeBoxTest extends FunSuite {
 
       assert(isSuper(parent, sub))
 
-      assert(isSuper(parent, cousin) == false)
-      assert(isSuper(sub, cousin) == false)
-      assert(isSuper(cousin, parent) == false)
-      assert(isSuper(cousin, sub) == false)
+      assert(isSuper(parent, cousin) === false)
+      assert(isSuper(sub, cousin) === false)
+      assert(isSuper(cousin, parent) === false)
+      assert(isSuper(cousin, sub) === false)
 
-      assert(isSub(parent, cousin) == false)
-      assert(isSub(sub, cousin) == false)
-      assert(isSub(cousin, parent) == false)
-      assert(isSub(cousin, sub) == false)
+      assert(isSub(parent, cousin) === false)
+      assert(isSub(sub, cousin) === false)
+      assert(isSub(cousin, parent) === false)
+      assert(isSub(cousin, sub) === false)
     }
 
     doTest(_ <:< _, _ >:> _)

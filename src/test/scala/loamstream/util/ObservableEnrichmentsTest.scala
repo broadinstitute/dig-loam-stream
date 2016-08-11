@@ -15,7 +15,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
   private def isEven(i: Int): Boolean = i % 2 == 0
   private def isOdd(i: Int): Boolean = !isEven(i)
   
-  test("takeUntil") {
+  test("until") {
     val observable = Observable.fromIterable(Seq(2,4,6,7,8,9,10)) // scalastyle:ignore magic.number
     
     import monix.execution.Scheduler.Implicits.global

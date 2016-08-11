@@ -1,15 +1,15 @@
 package loamstream.model.execute
 
 import java.util.concurrent.TimeUnit.SECONDS
+
 import loamstream.model.execute.RxExecuter.RxMockJob.{Result, SimpleSuccess}
 import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
 import org.awaitility.Awaitility.await
 import org.awaitility.scala.AwaitilitySupport
 import rx.{Ctx, Rx}
-
 import scala.concurrent.{Await, Future, Promise}
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 /**
@@ -38,6 +38,7 @@ final class RxExecuter {
       jobs.map(_.isRunnable())
     }
 
+    //val observer = jobStatuses.debounce(1000 millis).trigger {
     val observer = jobStatuses.trigger {
       val jobsReadyToDispatch = getRunnableJobs(jobs)
       println("Jobs ready to dispatch: ")
@@ -63,15 +64,18 @@ final class RxExecuter {
     import Maps.Implicits._
     result.toMap.strictMapValues(Hit(_))
   }
-
   // scalastyle:on
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)
 }
 
 object RxExecuter {
+  import rx._
+  implicit val ctxOwner: Ctx.Owner = Ctx.Owner.safe
+
   def default: RxExecuter = new RxExecuter
 
+  // scalastyle:off regex
   class RxMockJob(val name: String, val inputs: Set[RxMockJob] = Set.empty, delay: Int = 0)
     extends Loggable {
 
@@ -83,12 +87,9 @@ object RxExecuter {
       inputs.foreach(_.print(indent + 2))
     }
 
-    import rx._
+    val isSuccessful: Var[Boolean] = Var(false)
+    val isRunning: Var[Boolean] = Var(false)
 
-    final val isSuccessful: Var[Boolean] = Var(false)
-    final val isRunning: Var[Boolean] = Var(false)
-
-    implicit val ctxOwner: Ctx.Owner = Ctx.Owner.safe
     val isRunnable: Rx[Boolean] = Rx {
       !isSuccessful() && !isRunning() && (inputs.isEmpty || inputs.forall(_.isSuccessful()))
     }
@@ -99,7 +100,6 @@ object RxExecuter {
 
     def executionCount = lock.synchronized(_executionCount)
 
-    // scalastyle:off regex
     def execute: Result = {
       lock.synchronized(_executionCount += 1)
       println("\t\tStarting to execute job: " + this.name)
@@ -109,23 +109,27 @@ object RxExecuter {
       isSuccessful() = true
       RxMockJob.SimpleSuccess(name)
     }
-    // scalastyle:on regex
 
-    def withDependency(dependency: RxMockJob) = new RxMockJobWithDependency(name, inputs, this, dependency)
+    def withDependency(dependency: RxMockJob) = new RxMockJobWithDependency(this, dependency)
   }
 
-  class RxMockJobWithDependency(override val name: String, override val inputs: Set[RxMockJob] = Set.empty,
-                                val parentJob: RxMockJob, val dependency: RxMockJob) extends RxMockJob(name, inputs)
-    with AwaitilitySupport {
+  class RxMockJobWithDependency(val parentJob: RxMockJob, val dependency: RxMockJob)
+    extends RxMockJob(parentJob.name, parentJob.inputs) with AwaitilitySupport {
 
     override def execute: Result = {
-      await atMost(30, SECONDS) until ready
+      println(s"\t\t\t$name is waiting for ${dependency.name}")
+      await atMost(10, SECONDS) until ready
+      println(s"\t\t\t$name is DONE waiting for ${dependency.name}")
       parentJob.execute
     }
+
+    override val isRunnable: Rx[Boolean] = Rx { parentJob.isRunnable() }
 
     def ready: Boolean = dependency.isSuccessful.now
 
   }
+
+  // scalastyle:on regex
 
   object RxMockJob {
 

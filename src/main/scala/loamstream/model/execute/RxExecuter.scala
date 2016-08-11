@@ -3,9 +3,9 @@ package loamstream.model.execute
 import loamstream.model.execute.RxExecuter.RxMockJob.{Result, SimpleSuccess}
 import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
-import rx.{Ctx, Rx, Var}
+import rx.{Ctx, Rx}
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
@@ -28,24 +28,6 @@ final class RxExecuter {
     def getRunnableJobsMap(jobs: Set[RxMockJob]): Rx[Map[RxMockJob, Rx[Boolean]]] = Rx {
       jobs.map(job => (job, job.isRunnable)).toMap
     }
-/*
-    def loop(remainingOption: Option[Set[RxMockJob]], result: collection.mutable.Map[RxMockJob, Result]):
-    Map[RxMockJob, Result] = {
-      remainingOption match {
-        case None => Map.empty
-        case Some(jobs) =>
-          val shouldStop = jobs.isEmpty
-          val jobsReadyToDispatch = getRunnableJobs(jobs)
-          println("Jobs ready to dispatch: ")
-          jobsReadyToDispatch.foreach(job => println("\t" + job.name))
-          import scala.concurrent.ExecutionContext.Implicits.global
-          Future { jobsReadyToDispatch.par.foreach(job => result += job -> job.execute) }
-          val next = if (shouldStop) None else Some(jobs.filterNot(_.isSuccessful.now))
-          Thread.sleep(500) // scalastyle:ignore magic.number
-          loop(next, result)
-      }
-    }
-*/
 
     val jobs = flattenTree(executable.jobs)
     val result: collection.mutable.Map[RxMockJob, Result] = collection.mutable.Map.empty
@@ -59,11 +41,13 @@ final class RxExecuter {
       Future { jobsReadyToDispatch.par.foreach(job => result += job -> job.execute) }
     }
 
-    //loop(Option(jobs), result)
+    val everythingIsDonePromise: Promise[Unit] = Promise()
+    val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
-    //if (!jobs.forall(_.isSuccessful.now)) execute(executable)
+    val checkIfAllDone = Rx { jobs.forall(_.isSuccessful()) }
+    val observer2 = checkIfAllDone.triggerLater { everythingIsDonePromise.success(()) }
 
-    Thread.sleep(10000)
+    Await.result(everythingIsDoneFuture, Duration.Inf)
 
     import Maps.Implicits._
     result.toMap.strictMapValues(Hit(_))
@@ -86,11 +70,7 @@ object RxExecuter {
     }
 
     import rx._
-/*
-    final def isRunnable(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx {
-      inputs.isEmpty || (!isSuccessful() && !isRunning() && dependenciesSuccessful)
-    }
-*/
+
     final val isSuccessful: Var[Boolean] = Var(false)
     final val isRunning: Var[Boolean] = Var(false)
 
@@ -111,8 +91,8 @@ object RxExecuter {
       println("\t\tStarting to execute job: " + this.name)
       isRunning() = true
       Thread.sleep(delay)
-      isSuccessful() = true
       println("\t\t\tFinished executing job: " + this.name)
+      isSuccessful() = true
       RxMockJob.SimpleSuccess(name)
     }
     // scalastyle:on regex

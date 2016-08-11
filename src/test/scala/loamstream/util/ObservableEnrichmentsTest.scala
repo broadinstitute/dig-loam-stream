@@ -15,7 +15,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
   private def isEven(i: Int): Boolean = i % 2 == 0
   private def isOdd(i: Int): Boolean = !isEven(i)
   
-  test("takeUntil") {
+  test("until") {
     val observable = Observable.fromIterable(Seq(2,4,6,7,8,9,10)) // scalastyle:ignore magic.number
     
     import monix.execution.Scheduler.Implicits.global
@@ -27,7 +27,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     {
       val buf = new ArrayBuffer[Int]
     
-      val fut = observable.takeUntil(isOdd).foreach(buf += _)
+      val fut = observable.until(isOdd).foreach(buf += _)
     
       waitFor(fut)
     
@@ -37,7 +37,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     {
       val buf = new ArrayBuffer[Int]
     
-      val fut = observable.takeUntil(isEven).foreach(buf += _)
+      val fut = observable.until(isEven).foreach(buf += _)
     
       waitFor(fut)
     
@@ -47,7 +47,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     {
       val buf = new ArrayBuffer[Int]
     
-      val fut = observable.takeUntil(_ == 8).foreach(buf += _)
+      val fut = observable.until(_ == 8).foreach(buf += _)
     
       waitFor(fut)
     
@@ -57,7 +57,7 @@ final class ObservableEnrichmentsTest extends FunSuite {
     {
       val buf = new ArrayBuffer[Int]
     
-      val fut = observable.takeUntil(_ == 42).foreach(buf += _)
+      val fut = observable.until(_ == 42).foreach(buf += _)
     
       waitFor(fut)
     

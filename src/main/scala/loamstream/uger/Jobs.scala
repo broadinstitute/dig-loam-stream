@@ -53,6 +53,6 @@ object Jobs {
     import monix.execution.Scheduler.Implicits.global
     
     //'Finish' the result Observable when we get a 'final' status (done, failed, etc) from UGER.
-    result.takeUntil(_.isFinished)
+    result.until(_.isFinished)
   }
 }

@@ -57,7 +57,6 @@ object Hashes {
       case Some(_) =>
         //Sort files so that the order of files in a dir will always be the same across traversals
         children.sortBy(_.getAbsolutePath).iterator.flatMap { child =>
-          println(s"Hashing '$child'")
           if(child.isDirectory) { dirChunks(hashType, child) }
           else { Iterator(hash(hashType, toPath(child)).value.toArray) }
         }

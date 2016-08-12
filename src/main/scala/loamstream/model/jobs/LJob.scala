@@ -25,11 +25,11 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
   def outputs: Set[Output]
   
-  private val statusRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
+  private val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
   
-  final def status: JobState = statusRef.value
+  final def state: JobState = stateRef.value
   
-  final protected def isSuccess: Boolean = status.isFinished
+  final protected def isSuccess: Boolean = state.isFinished
   
   final def execute(implicit context: ExecutionContext): Future[Result] = {
     val f = executeSelf
@@ -37,7 +37,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     import JobState._
     
     f.foreach { result =>
-      statusRef() = if(result.isSuccess) Finished else Failed
+      stateRef() = if(result.isSuccess) Finished else Failed
     }
     
     f

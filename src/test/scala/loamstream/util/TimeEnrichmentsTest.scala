@@ -18,19 +18,20 @@ final class TimeEnrichmentsTest extends FunSuite {
     val after = now.plusMillis(10000)
     
     assert(now > before)
-    
     assert(after > before)
-    
     assert(before < now)
-    
     assert(before < after)
+    
+    assert(now >= before)
+    assert(after >= before)
+    assert(before <= now)
+    assert(before <= after)
     
     assert(now >= now)
     assert(now <= now)
     
     assert(before >= before)
     assert(before <= before)
-    
     assert(after >= after)
     assert(after <= after)
   }

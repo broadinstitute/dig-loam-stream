@@ -182,27 +182,6 @@ final class ChunkedExecuterTest extends ExecuterTest {
 }
 
 object ChunkedExecuterTest {
-  private final case class MockJob(
-      name: String, 
-      inputs: Set[LJob] = Set.empty, 
-      outputs: Set[Output] = Set.empty, 
-      delay: Int = 0) extends LJob {
-    
-    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-    
-    override protected def doWithOutputs(newOutputs: Set[Output]): LJob = copy(outputs = newOutputs)
-    
-    private[this] val count = ValueBox(0)
-    
-    def executionCount = count.value
-    
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
-      count.mutate(_ + 1)
-      Thread.sleep(delay)
-      Future.successful(LJob.SimpleSuccess(name))
-    }
-  }
-
   private final case class MockChunkRunner(delegate: ChunkRunner, maxNumJobs: Int) extends ChunkRunner {
     var chunks: Seq[Set[LJob]] = Nil
 

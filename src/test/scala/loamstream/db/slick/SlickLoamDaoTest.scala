@@ -10,15 +10,14 @@ import loamstream.db.OutputRow
 import loamstream.util.Hash
 import java.nio.file.Path
 import scala.util.Try
+import loamstream.db.TestDbDescriptors
 
 /**
  * @author clint
  * date: Aug 9, 2016
  */
-final class SlickLoamDaoTest extends FunSuite {
-  private val descriptor = DbDescriptor(slick.driver.H2Driver, "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver")
-  
-  private val dao = new SlickLoamDao(descriptor)
+final class SlickLoamDaoTest extends FunSuite with AbstractSlickLoamDaoTest {
+  override val descriptor = TestDbDescriptors.inMemoryH2
   
   test("Insert/Read") {
     createTablesAndThen {
@@ -55,17 +54,5 @@ final class SlickLoamDaoTest extends FunSuite {
       //Use Sets to ignore order
     	assert(dao.allRows.toSet == expected)
     }
-  }
-  
-  private def createTablesAndThen[A](f: => A): A = {
-    def drop(): Unit = dao.tables.drop(dao.db)
-    
-    def create(): Unit = dao.tables.create(dao.db)
-
-    Try(drop())
-      
-    create()
-      
-    f
   }
 }

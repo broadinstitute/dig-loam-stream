@@ -15,19 +15,34 @@ import loamstream.util.PathUtils
 trait Output {
   def isPresent: Boolean
   
+  final def isMissing: Boolean = !isPresent
+  
   def hash: Hash
   
   def lastModified: Instant
 }
 
 object Output {
-  final case class PathOutput(file: Path) extends Output {
-    override def isPresent: Boolean = Files.exists(file)
-    
-    override def hash: Hash = Hashes.sha1(file)
+  final case class PathOutput(path: Path) extends PathBased {
+    override def hash: Hash = Hashes.sha1(path)
     
     override def lastModified: Instant = {
-      if(isPresent) PathUtils.lastModifiedTime(file) else Instant.ofEpochMilli(0) 
+      if(isPresent) PathUtils.lastModifiedTime(path) else Instant.ofEpochMilli(0) 
+    }
+  }
+  
+  final case class CachedOutput(path: Path, hash: Hash, lastModified: Instant) extends PathBased
+  
+  trait PathBased extends Output {
+    def path: Path
+    
+    final override def isPresent: Boolean = Files.exists(path)
+    
+    override def hashCode: Int = path.hashCode
+    
+    override def equals(other: Any): Boolean = other match {
+      case that: PathBased => this.path.toAbsolutePath == that.path.toAbsolutePath
+      case _ => false
     }
   }
 }

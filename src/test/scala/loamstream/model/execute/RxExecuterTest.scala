@@ -34,7 +34,7 @@ final class RxExecuterTest extends FunSuite {
      */
     // scalastyle:off magic.number
     // The delay added to job11 should cause job23 and job24 to be bundled and executed prior to job21 and job22
-    val job11 = new RxMockJob("1st_step_job_1", delay = 500)
+    val job11 = new RxMockJob("1st_step_job_1", delay = 0)
     //val job11 = new RxMockJob("1st_step_job_1")
     val job12 = new RxMockJob("1st_step_job_2")
     //val job12 = new RxMockJob("1st_step_job_2", delay = 1000)

@@ -12,6 +12,8 @@ import scala.concurrent.duration._
 import scala.util.control.NonFatal
 import loamstream.util.Traversables
 import scala.collection.mutable
+import rx.Obs
+import loamstream.model.jobs.LJob
 
 /**
  * @author kaan
@@ -32,10 +34,10 @@ final class RxExecuter {
 
     import Traversables.Implicits._
     
-    def getRunnableJobsMap(jobs: Set[RxMockJob]): Rx[Map[RxMockJob, Rx[Boolean]]] = Rx {
+    /*def getRunnableJobsMap(jobs: Set[RxMockJob]): Rx[Map[RxMockJob, Rx[Boolean]]] = Rx {
       jobs.mapTo(_.isRunnable)
-    }
-
+    }*/
+    
     val jobs = flattenTree(executable.jobs)
     
     val resultLock = new AnyRef
@@ -43,13 +45,19 @@ final class RxExecuter {
     val result: mutable.Map[RxMockJob, Result] = mutable.Map.empty
     
     val jobStatuses: Rx[Set[Boolean]] = Rx {
-      jobs.map(_.isRunnable())
+      jobs.map(_.isRunnable() == true)
     }
 
-    //val observer = jobStatuses.debounce(1000 millis).trigger {
-    val observer = jobStatuses.trigger {
+    import scala.concurrent.duration._
+    import rx.async.AsyncCombinators
+    import rx.async.Platform.DefaultScheduler
+
+    val observer = jobStatuses.debounce(1000.millis).trigger {
+    //val observer = jobStatuses.trigger {
       val jobsReadyToDispatch = getRunnableJobs(jobs)
+      
       println("Jobs ready to dispatch: ")
+
       jobsReadyToDispatch.foreach(job => println("\t" + job.name))
       
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -109,7 +117,7 @@ object RxExecuter {
 
     val isSuccessful: Var[Boolean] = Var(false)
     val isRunning: Var[Boolean] = Var(false)
-
+    
     val isRunnable: Rx[Boolean] = Rx {
       !isSuccessful() && !isRunning() && (inputs.isEmpty || inputs.forall(_.isSuccessful()))
     }

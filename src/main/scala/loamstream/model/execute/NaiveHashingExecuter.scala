@@ -36,30 +36,57 @@ final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContex
   }
   
   private[this] lazy val outputs: ValueBox[Map[Output, OutputRow]] = {
-    //TODO: All of them?  What 
+    //TODO: All of them?  
     val map: Map[Output, OutputRow] = dao.allRows.map { row => 
-      Output.PathOutput(row.path) -> row
+      Output.CachedOutput(row.path, row.hash, row.lastModified) -> row
     }.toMap
     
     ValueBox(map)
   }
   
   private def isHashed(output: Output): Boolean = outputs.value.contains(output)
-      
-  private def hasSameHash(output: Output): Boolean = outputs.value.get(output).map(_ == output.hash).getOrElse(false)
   
-  private def isNewer(output: Output): Boolean = {
+  private def notHashed(output: Output): Boolean = !isHashed(output)
+      
+  private def hasDifferentHash(output: Output): Boolean = {
+    outputs.value.get(output) match {
+      case Some(outputRow) => outputRow.hash != output.hash
+      case None => true
+    }
+  }
+  
+  private def isOlder(output: Output): Boolean = {
     import TimeEnrichments._
     
-    outputs.value.get(output).map(_.lastModified > output.lastModified).getOrElse(false)
+    outputs.value.get(output) match {
+      case Some(outputRow) => output.lastModified < outputRow.lastModified
+      case None => false
+    }
   }
   
   private def shouldRun(dep: LJob): Boolean = {
+    /*println(s"shouldRun(): Considering $dep")
+    println(s"shouldRun(): Outputs: ${if(dep.outputs.isEmpty) "<none>" else ""}")
+    dep.outputs.foreach { o =>
+      println(s"shouldRun():   output: $o")
+    }*/
+    
     def needsToBeRun(output: Output): Boolean = {
-      isNewer(output) || !isHashed(output) || !hasSameHash(output)
+      /*println(s"shouldRun().needsToBeRun(): Considering: $output")
+      
+      println(s"shouldRun().needsToBeRun(): isMissing: ${output.isMissing}")
+      println(s"shouldRun().needsToBeRun(): isOlder(output): ${isOlder(output)}")
+      println(s"shouldRun().needsToBeRun(): notHashed: ${notHashed(output)}")
+      println(s"shouldRun().needsToBeRun(): hasDifferentHash: ${hasDifferentHash(output)}")*/
+     
+      output.isMissing || isOlder(output) || notHashed(output) || hasDifferentHash(output)
     }
     
-    dep.outputs.exists(needsToBeRun)
+    val result = dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
+    
+    //println(s"shouldRun(): $result")
+    
+    result
   }
   
   private def runWithoutDeps(job: LJob): Future[Result] = {
@@ -67,7 +94,7 @@ final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContex
     
     def toOutputRow(output: Output): OutputRow = {
       //TODO: Smell
-      val path = output.asInstanceOf[Output.PathOutput].file
+      val path = output.asInstanceOf[Output.PathOutput].path
       
       OutputRow(path, output.lastModified, output.hash)
     }

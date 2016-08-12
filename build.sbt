@@ -10,7 +10,7 @@ lazy val Versions = new {
   val Scala = "2.11.8"
   val ScalaTest = "3.0.0"
   val TypesafeConfig = "1.3.0"
-  val Monix = "2.0-RC6"
+  val Monix = "2.0-RC9"
 }
 
 lazy val mainDeps = Seq(

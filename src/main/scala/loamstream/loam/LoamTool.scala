@@ -1,5 +1,6 @@
 package loamstream.loam
 
+import loamstream.loam.LoamTool.DefaultStores
 import loamstream.model.{LId, Store, Tool}
 import loamstream.util.ValueBox
 
@@ -16,7 +17,7 @@ trait LoamTool extends Tool {
   def graph: LoamGraph = graphBox.value
 
   /** Input and output stores before any are specified using in or out */
-  def defaultStores: Set[LoamStore]
+  def defaultStores: DefaultStores
 
   /** Input stores of this tool */
   override def inputs: Map[LId, Store] =
@@ -37,4 +38,44 @@ trait LoamTool extends Tool {
     graphBox(_.withOutputStores(this, (outStore +: outStores).toSet))
     this
   }
+}
+
+object LoamTool {
+
+  sealed trait DefaultStores {
+    def all: Set[LoamStore]
+  }
+
+  object DefaultStores {
+    val empty: AllStores = AllStores(Set.empty)
+  }
+
+  final case class AllStores(stores: Set[LoamStore]) extends DefaultStores {
+    def all: Set[LoamStore] = stores
+  }
+
+  final case class In(stores: Set[LoamStore])
+
+  object In {
+    val empty: In = In(Set.empty)
+  }
+
+  final case class Out(stores: Set[LoamStore])
+
+  object Out {
+    val empty: Out = Out(Set.empty)
+  }
+
+  final case class InputsAndOutputs(inputs: Set[LoamStore], outputs: Set[LoamStore]) extends DefaultStores {
+    override def all: Set[LoamStore] = inputs ++ outputs
+  }
+
+  object InputsAndOutputs {
+    def apply(in: In, out: Out): InputsAndOutputs = InputsAndOutputs(in.stores, out.stores)
+
+    def apply(in: In): InputsAndOutputs = apply(in, Out.empty)
+
+    def apply(out: Out): InputsAndOutputs = apply(In.empty, out)
+  }
+
 }

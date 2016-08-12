@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
+import loamstream.loam.LoamTool.{AllStores, DefaultStores, InputsAndOutputs}
 import loamstream.util.Equivalences
 
 /** The graph of all Loam stores and tools and their relationships */
@@ -46,9 +47,13 @@ final case class LoamGraph(stores: Set[LoamStore],
   if (tools(tool)) {
     this
   } else {
-    val toolStores = tool.defaultStores
-    val toolInputStores = toolStores.filter(storeSources.contains)
-    val toolOutputStores = toolStores -- toolInputStores
+    val (toolInputStores, toolOutputStores) = tool.defaultStores match {
+      case AllStores(toolStores) =>
+        val inputStores = toolStores.filter(storeSources.contains)
+        val outputStores = toolStores -- inputStores
+        (inputStores, outputStores)
+      case InputsAndOutputs(inputStores, outputStores) => (inputStores, outputStores)
+    }
     val toolEdge = StoreEdge.ToolEdge(tool)
     val outputsWithSource = toolOutputStores.map(store => store -> toolEdge)
     val storeSinksNew = toolInputStores.map(store => store -> (storeSinks.getOrElse(store, Set.empty) + toolEdge))

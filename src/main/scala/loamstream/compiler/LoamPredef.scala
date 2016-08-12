@@ -3,7 +3,8 @@ package loamstream.compiler
 import java.nio.file.{Files, Path, Paths}
 
 import htsjdk.variant.variantcontext.Genotype
-import loamstream.loam.{LoamGraph, LoamNativeTool, LoamStore}
+import loamstream.loam.LoamTool.DefaultStores
+import loamstream.loam.{LoamGraph, LoamNativeTool, LoamStore, LoamTool}
 import loamstream.util.ValueBox
 
 import scala.language.implicitConversions
@@ -23,11 +24,24 @@ object LoamPredef {
   def store[T: TypeTag](implicit graphBox: ValueBox[LoamGraph]): LoamStore = LoamStore.create[T]
 
   def job[T: TypeTag](exp: => T)(implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] =
-    LoamNativeTool(Set.empty, exp)
+    LoamNativeTool(DefaultStores.empty, exp)
 
   def job[T: TypeTag](store: LoamStore, stores: LoamStore*)(exp: => T)(
     implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] =
     LoamNativeTool((store +: stores).toSet, exp)
+
+  def in(store: LoamStore, stores: LoamStore*): LoamTool.In = LoamTool.In((store +: stores).toSet)
+
+  def out(store: LoamStore, stores: LoamStore*): LoamTool.In = LoamTool.In((store +: stores).toSet)
+
+  def job[T: TypeTag](in: LoamTool.In, out: LoamTool.Out)(exp: => T)(
+    implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] = LoamNativeTool(in, out, exp)
+
+  def job[T: TypeTag](in: LoamTool.In)(exp: => T)(
+    implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] = LoamNativeTool(in, exp)
+
+  def job[T: TypeTag](out: LoamTool.Out)(exp: => T)(
+    implicit graphBox: ValueBox[LoamGraph]): LoamNativeTool[T] = LoamNativeTool(out, exp)
 
   trait VCF extends Map[(String, String), Genotype]
 

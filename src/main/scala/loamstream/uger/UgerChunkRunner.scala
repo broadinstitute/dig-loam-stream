@@ -84,7 +84,7 @@ final case class UgerChunkRunner(
     val jobsToFutureResults: Iterable[(LJob, Future[Result])] = for {
       jobId <- jobIds
       job = jobsById(jobId)
-      futureResult = statuses(jobId).lastL.runAsync.map(statusOpt => resultFrom(job)(statusOpt.get))
+      futureResult = statuses(jobId).lastL.runAsync.map(resultFrom(job))
     } yield {
       job -> futureResult
     }

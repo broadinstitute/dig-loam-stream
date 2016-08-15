@@ -52,7 +52,7 @@ final case class LoamGraph(stores: Set[LoamStore],
         val inputStores = toolStores.filter(storeSources.contains)
         val outputStores = toolStores -- inputStores
         (inputStores, outputStores)
-      case InputsAndOutputs(inputStores, outputStores) => (inputStores, outputStores)
+      case InputsAndOutputs(inputStores, outputStores) => (inputStores.toSet, outputStores.toSet)
     }
     val toolEdge = StoreEdge.ToolEdge(tool)
     val outputsWithSource = toolOutputStores.map(store => store -> toolEdge)

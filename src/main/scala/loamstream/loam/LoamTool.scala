@@ -28,14 +28,20 @@ trait LoamTool extends Tool {
   graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
 
   /** Adds input stores to this tool */
-  def in(inStore: LoamStore, inStores: LoamStore*): this.type = {
-    graphBox(_.withInputStores(this, (inStore +: inStores).toSet))
+  def in(inStore: LoamStore, inStores: LoamStore*): this.type = in(inStore +: inStores)
+
+  /** Adds input stores to this tool */
+  def in(inStores: Iterable[LoamStore]): this.type = {
+    graphBox(_.withInputStores(this, inStores.toSet))
     this
   }
 
   /** Adds output stores to this tool */
-  def out(outStore: LoamStore, outStores: LoamStore*): this.type = {
-    graphBox(_.withOutputStores(this, (outStore +: outStores).toSet))
+  def out(outStore: LoamStore, outStores: LoamStore*): this.type = out(outStore +: outStores)
+
+  /** Adds output stores to this tool */
+  def out(outStores: Iterable[LoamStore]): this.type = {
+    graphBox(_.withOutputStores(this, outStores.toSet))
     this
   }
 }
@@ -54,20 +60,20 @@ object LoamTool {
     def all: Set[LoamStore] = stores
   }
 
-  final case class In(stores: Set[LoamStore])
+  final case class In(stores: Iterable[LoamStore])
 
   object In {
     val empty: In = In(Set.empty)
   }
 
-  final case class Out(stores: Set[LoamStore])
+  final case class Out(stores: Iterable[LoamStore])
 
   object Out {
     val empty: Out = Out(Set.empty)
   }
 
-  final case class InputsAndOutputs(inputs: Set[LoamStore], outputs: Set[LoamStore]) extends DefaultStores {
-    override def all: Set[LoamStore] = inputs ++ outputs
+  final case class InputsAndOutputs(inputs: Iterable[LoamStore], outputs: Iterable[LoamStore]) extends DefaultStores {
+    override def all: Set[LoamStore] = (inputs ++ outputs).toSet
   }
 
   object InputsAndOutputs {

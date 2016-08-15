@@ -1,6 +1,7 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
+import loamstream.loam.LoamTool.{AllStores, DefaultStores}
 import loamstream.model.{LId, Store}
 import loamstream.util.{StringUtils, ValueBox}
 
@@ -9,8 +10,6 @@ import loamstream.util.{StringUtils, ValueBox}
   * Created by oliverr on 5/25/2016.
   */
 object LoamCmdTool {
-
-  type Tool = LoamCmdTool
 
   def createStringToken(string: String): StringToken = StringToken(StringUtils.unwrapLines(string))
 
@@ -49,5 +48,5 @@ object LoamCmdTool {
 final case class LoamCmdTool private(id: LId, tokens: Seq[LoamToken])(implicit val graphBox: ValueBox[LoamGraph])
   extends LoamTool {
   /** Input and output stores before any are specified using in or out */
-  override def defaultStores: Set[LoamStore] = LoamToken.storesFromTokens(tokens)
+  override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
 }

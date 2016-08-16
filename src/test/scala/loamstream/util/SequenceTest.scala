@@ -7,6 +7,7 @@ import org.scalatest.FunSuite
  * date: Aug 12, 2016
  */
 final class SequenceTest extends FunSuite {
+  //scalastyle:off magic.number
   test("Int and Long Sequences, using defaults") {
     {
       val is: Sequence[Int] = Sequence()
@@ -68,4 +69,5 @@ final class SequenceTest extends FunSuite {
       assert(first5 == Seq(-5,-8,-11,-14,-17))
     }
   }
+  //scalastyle:on magic.number
 }

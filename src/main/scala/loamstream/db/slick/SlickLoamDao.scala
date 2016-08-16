@@ -66,7 +66,7 @@ object SlickLoamDao {
       def lastModified = column[Timestamp]("LAST_MODIFIED")
       def hash = column[String]("HASH")
       def hashType = column[String]("HASH_TYPE")
-      def * = (path, lastModified, hash, hashType) <> (RawOutputRow.tupled, RawOutputRow.unapply)
+      def * = (path, lastModified, hash, hashType) <> (RawOutputRow.tupled, RawOutputRow.unapply) //scalastyle:ignore
     }
     
     val outputs = TableQuery[Outputs]

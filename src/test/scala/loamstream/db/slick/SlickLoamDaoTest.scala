@@ -18,19 +18,19 @@ import loamstream.db.TestDbDescriptors
  */
 final class SlickLoamDaoTest extends FunSuite with AbstractSlickLoamDaoTest {
   override val descriptor = TestDbDescriptors.inMemoryH2
-  
+
   test("Insert/Read") {
     createTablesAndThen {
       val path = Paths.get("src/test/resources/for-hashing/foo.txt")
 
       dao.storeHash(path, Hashes.sha1(path))
-    
+
       val hash = dao.hashFor(path)
-    
-    	assert(hash == Hashes.sha1(path))
+
+      assert(hash == Hashes.sha1(path))
     }
   }
-  
+
   test("Insert/allRows") {
     createTablesAndThen {
       val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
@@ -38,21 +38,21 @@ final class SlickLoamDaoTest extends FunSuite with AbstractSlickLoamDaoTest {
       val path2 = Paths.get("src/test/resources/for-hashing/empty.txt")
 
       assert(dao.allRows.isEmpty)
-      
+
       val hash0 = Hashes.sha1(path0)
       val hash1 = Hashes.sha1(path1)
       val hash2 = Hashes.sha1(path2)
-      
+
       dao.storeHash(path0, hash0)
       dao.storeHash(path1, hash1)
       dao.storeHash(path2, hash2)
-    
+
       def outputRow(p: Path, h: Hash): OutputRow = (new RawOutputRow(p, h)).toOutputRow
-      
-      val expected = Set(outputRow(path0, hash0), outputRow(path1, hash1), outputRow(path2, hash2)) 
-    
+
+      val expected = Set(outputRow(path0, hash0), outputRow(path1, hash1), outputRow(path2, hash2))
+
       //Use Sets to ignore order
-    	assert(dao.allRows.toSet == expected)
+      assert(dao.allRows.toSet == expected)
     }
   }
 }

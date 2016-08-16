@@ -126,9 +126,9 @@ final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoT
     
     createTablesAndThen {
       assert(start.toFile.exists)
-      assert(f1.toFile.exists == false)
-      assert(f2.toFile.exists == false)
-      assert(f3.toFile.exists == false)
+      assert(!f1.toFile.exists)
+      assert(!f2.toFile.exists)
+      assert(!f3.toFile.exists)
       
       setup(start, f1, f2, f3)
       

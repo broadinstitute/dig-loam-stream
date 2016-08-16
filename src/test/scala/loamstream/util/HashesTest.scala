@@ -13,7 +13,7 @@ final class HashesTest extends FunSuite {
   
   test("sha1(File) - bad input") {
     intercept[Exception] {
-      Hashes.sha1(null: Path)
+      Hashes.sha1(null: Path) //scalastyle:ignore
     }
     
     intercept[Exception] {

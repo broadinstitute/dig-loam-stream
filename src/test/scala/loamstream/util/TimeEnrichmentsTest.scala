@@ -8,6 +8,7 @@ import java.time.Instant
  * date: Aug 11, 2016
  */
 final class TimeEnrichmentsTest extends FunSuite {
+  //scalastyle:off magic.number
   test("Ordering on Instants") {
     import TimeEnrichments._
     
@@ -35,4 +36,5 @@ final class TimeEnrichmentsTest extends FunSuite {
     assert(after >= after)
     assert(after <= after)
   }
+  //scalastyle:on magic.number
 }

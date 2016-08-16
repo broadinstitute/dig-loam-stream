@@ -33,7 +33,7 @@ object Hashes {
    * compute its hash by building a Merkle Tree (https://en.wikipedia.org/wiki/Merkle_tree)
    */
   private def hash(hashType: HashType, path: Path): Hash = {
-    require(path != null)
+    require(path != null) //scalastyle:ignore
     
     val file = path.toFile
 

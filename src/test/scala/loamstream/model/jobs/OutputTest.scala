@@ -14,7 +14,7 @@ final class OutputTest extends FunSuite {
     val doesntExist = PathOutput(Paths.get("sjkafhkfhksdjfh"))
     val exists = PathOutput(Paths.get("src/test/resources/for-hashing/foo.txt"))
     
-    assert(doesntExist.isPresent == false)
+    assert(!doesntExist.isPresent)
     
     intercept[Exception] {
       doesntExist.hash

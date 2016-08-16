@@ -65,26 +65,12 @@ final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContex
   }
   
   private def shouldRun(dep: LJob): Boolean = {
-    /*println(s"shouldRun(): Considering $dep")
-    println(s"shouldRun(): Outputs: ${if(dep.outputs.isEmpty) "<none>" else ""}")
-    dep.outputs.foreach { o =>
-      println(s"shouldRun():   output: $o")
-    }*/
     
     def needsToBeRun(output: Output): Boolean = {
-      /*println(s"shouldRun().needsToBeRun(): Considering: $output")
-      
-      println(s"shouldRun().needsToBeRun(): isMissing: ${output.isMissing}")
-      println(s"shouldRun().needsToBeRun(): isOlder(output): ${isOlder(output)}")
-      println(s"shouldRun().needsToBeRun(): notHashed: ${notHashed(output)}")
-      println(s"shouldRun().needsToBeRun(): hasDifferentHash: ${hasDifferentHash(output)}")*/
-     
       output.isMissing || isOlder(output) || notHashed(output) || hasDifferentHash(output)
     }
     
     val result = dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
-    
-    //println(s"shouldRun(): $result")
     
     result
   }

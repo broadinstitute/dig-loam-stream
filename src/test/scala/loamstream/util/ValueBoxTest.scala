@@ -7,6 +7,7 @@ import org.scalatest.FunSuite
  * date: Aug 4, 2016
  */
 final class ValueBoxTest extends FunSuite {
+  //scalastyle:off magic.number
   test("Companion object apply with initial value") {
     val v: ValueBox[Int] = ValueBox(42)
     
@@ -113,4 +114,5 @@ final class ValueBoxTest extends FunSuite {
     assert(v() == 42)
     assert(foo == 84)
   }
+  //scalastyle:on magic.number
 }

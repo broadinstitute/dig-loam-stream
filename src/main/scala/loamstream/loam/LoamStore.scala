@@ -49,7 +49,7 @@ final case class LoamStore private(id: LId, sig: StoreSig)(implicit context: Loa
 
   def pathOpt: Option[Path] = graph.pathOpt(this)
 
-  def path(implicit context: LoamContext): Path = context.fileManager.getPath(this)
+  def path: Path = context.fileManager.getPath(this)
 
   def +(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixAdder(suffix))
 

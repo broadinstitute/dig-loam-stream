@@ -75,12 +75,18 @@ final class StringUtilsTest extends FunSuite {
     assert(IsLong.unapply(" 42 ") === None)
     assert(IsLong.unapply("1.23") === None)
   }
-  
+
+  test("assimilateLineBreaks") {
+    val text = "Hello\nWorld!\rHow\r\nare\n\ryou?"
+    val nl = System.lineSeparator()
+    assert(StringUtils.assimilateLineBreaks(text) === s"Hello${nl}World!${nl}How${nl}are${nl}you?")
+  }
+
   test("unwrapLines") {
     val text = "Hello\nWorld!\rHow\r\nare\n\ryou?"
     assert(StringUtils.unwrapLines(text) === "Hello World! How are you?")
   }
-  
+
   test("soMany(count, singular, plural)") {
     import StringUtils.soMany
     //scalastyle:off magic.number

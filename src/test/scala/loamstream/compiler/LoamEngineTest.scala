@@ -109,8 +109,8 @@ object LoamEngineTest {
     def assertCompileResultsLookGood(compileResult: LoamCompiler.Result): Unit = {
       assert(compileResult.isSuccess)
       assert(compileResult.isClean)
-      assert(compileResult.graphOpt.get.stores.size == 6)
-      assert(compileResult.graphOpt.get.tools.size == 5)
+      assert(compileResult.contextOpt.get.graph.stores.size == 6)
+      assert(compileResult.contextOpt.get.graph.tools.size == 5)
     }
 
     def writeFileIn(): Unit = Files.writeTo(fileIn)("Hello World!")

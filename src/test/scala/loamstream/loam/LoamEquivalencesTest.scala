@@ -1,12 +1,11 @@
 package loamstream.loam
 
 import loamstream.compiler.LoamPredef.{TXT, VCF, store}
-import loamstream.util.ValueBox
 import org.scalatest.FunSuite
 
 /** Testing key slot equivalences */
 class LoamEquivalencesTest extends FunSuite {
-  implicit val graphBox = new ValueBox(LoamGraph.empty)
+  implicit val context = new LoamContext
   val vcf1 = store[VCF]
   val vcf2 = store[VCF]
   val vcf3 = store[VCF]

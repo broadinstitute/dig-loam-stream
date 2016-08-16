@@ -30,12 +30,14 @@ final class LoamToolBoxTest extends FunSuite {
     val compileResults = compiler.compile(code)
 
     assert(compileResults.errors == Nil)
-    
-    val graph = compileResults.graphOpt.get
+
+    val context = compileResults.contextOpt.get
+
+    val graph = context.graph
 
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
-    val toolBox = new LoamToolBox
+    val toolBox = new LoamToolBox(context)
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
     
@@ -77,12 +79,14 @@ final class LoamToolBoxTest extends FunSuite {
     val compileResults = compiler.compile(source)
 
     assert(compileResults.errors === Nil)
-    
-    val graph = compileResults.graphOpt.get
+
+    val context = compileResults.contextOpt.get
+
+    val graph = context.graph
 
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
-    val toolBox = new LoamToolBox
+    val toolBox = new LoamToolBox(context)
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
     

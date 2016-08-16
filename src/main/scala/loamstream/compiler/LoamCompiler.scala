@@ -1,7 +1,7 @@
 package loamstream.compiler
 
 import loamstream.compiler.Issue.Severity
-import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
+import loamstream.compiler.LoamCompiler.{CompilerReporter, LoamScriptBox}
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
 import loamstream.loam._
@@ -12,15 +12,16 @@ import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.reflect.ReflectGlobal
-import scala.util.control.NonFatal
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler {
 
   /** A wrapper type for Loam scripts */
-  trait DslChunk {
+  trait LoamScriptBox {
+    /** LoamContext for tis script */
+    def loamContext: LoamContext
     /** The graph of stores and tools defined by this Loam script */
-    def graph: LoamGraph
+    def graph: LoamGraph = loamContext.graphBox.value
   }
 
   /** A reporter receiving messages form the underlying Scala compiler
@@ -49,8 +50,8 @@ object LoamCompiler {
   /** The result of the compilation of a Loam script */
   object Result {
     /** Constructs a result representing successful compilation */
-    def success(reporter: CompilerReporter, graph: LoamGraph): Result = {
-      Result(reporter.errors, reporter.warnings, reporter.infos, Some(graph))
+    def success(reporter: CompilerReporter, context: LoamContext): Result = {
+      Result(reporter.errors, reporter.warnings, reporter.infos, Some(context))
     }
 
     /** Constructs a result that the Loam script cannot be compiled */
@@ -69,11 +70,11 @@ object LoamCompiler {
     * @param errors   Errors from the Scala compiler
     * @param warnings Warnings from the Scala compiler
     * @param infos    Infos from the Scala compiler
-    * @param graphOpt Option of graph of stores and tools
+    * @param contextOpt Option of a context with graph of stores and tools
     * @param exOpt    Option of an exception if thrown
     */
-  final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue], graphOpt: Option[LoamGraph],
-                          exOpt: Option[Throwable] = None) {
+  final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue],
+                          contextOpt: Option[LoamContext], exOpt: Option[Throwable] = None) {
     /** Returns true if no errors */
     def isValid: Boolean = errors.isEmpty
 
@@ -81,15 +82,15 @@ object LoamCompiler {
     def isClean: Boolean = isValid && warnings.isEmpty && infos.isEmpty
 
     /** Returns true if graph of stores and tools has been found */
-    def isSuccess: Boolean = graphOpt.nonEmpty
+    def isSuccess: Boolean = contextOpt.nonEmpty
 
     /** One-line summary of the result */
     def summary: String = {
       val soManyErrors = StringUtils.soMany(errors.size, "error")
       val soManyWarnings = StringUtils.soMany(warnings.size, "warning")
       val soManyInfos = StringUtils.soMany(infos.size, "info")
-      val soManyStores = StringUtils.soMany(graphOpt.map(_.stores.size).getOrElse(0), "store")
-      val soManyTools = StringUtils.soMany(graphOpt.map(_.tools.size).getOrElse(0), "tool")
+      val soManyStores = StringUtils.soMany(contextOpt.map(_.graph.stores.size).getOrElse(0), "store")
+      val soManyTools = StringUtils.soMany(contextOpt.map(_.graph.tools.size).getOrElse(0), "tool")
       s"There were $soManyErrors, $soManyWarnings, $soManyInfos, $soManyStores and $soManyTools."
     }
 
@@ -111,7 +112,7 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
   val sourceFileName = "Config.scala"
 
   val inputObjectPackage = "loamstream.dynamic.input"
-  val inputObjectName = s"Some${SourceUtils.shortTypeName[DslChunk]}"
+  val inputObjectName = s"Some${SourceUtils.shortTypeName[LoamScriptBox]}"
   val inputObjectFullName = s"$inputObjectPackage.$inputObjectName"
 
   def soManyIssues: String = {
@@ -126,20 +127,20 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
 package $inputObjectPackage
 
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
+import ${SourceUtils.fullTypeName[LoamContext]}
 import ${SourceUtils.fullTypeName[LoamGraph]}
 import ${SourceUtils.fullTypeName[ValueBox[_]]}
-import ${SourceUtils.fullTypeName[DslChunk]}
+import ${SourceUtils.fullTypeName[LoamScriptBox]}
 import ${SourceUtils.fullTypeName[LoamCmdTool.type]}._
 import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._
 
-object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
-implicit val graphBox : ValueBox[LoamGraph] = new ValueBox(LoamGraph.empty)
+object $inputObjectName extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
+implicit val loamContext = new LoamContext
 
 ${raw.trim}
 
-def graph = graphBox.value
 }
 """
   }
@@ -156,8 +157,8 @@ def graph = graphBox.value
       if (targetDirectory.nonEmpty) {
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-        val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
-        val graph = dslChunk.graph
+        val scriptBox = ReflectionUtil.getObject[LoamScriptBox](classLoader, inputObjectFullName)
+        val graph = scriptBox.graph
         val stores = graph.stores
         val tools = graph.tools
         val soManyStores = StringUtils.soMany(stores.size, "store")
@@ -171,7 +172,7 @@ def graph = graphBox.value
              |${graphPrinter.print(graph)}
              |[End Graph]
            """.stripMargin))
-        LoamCompiler.Result.success(reporter, graph)
+        LoamCompiler.Result.success(reporter, scriptBox.loamContext)
       } else {
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
         LoamCompiler.Result.failure(reporter)

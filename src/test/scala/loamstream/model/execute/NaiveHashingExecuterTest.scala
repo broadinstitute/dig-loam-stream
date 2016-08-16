@@ -152,11 +152,11 @@ final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoT
 
     assert(compileResults.errors == Nil)
     
-    val graph = compileResults.graphOpt.get
+    val context = compileResults.contextOpt.get
 
-    val mapping = LoamGraphAstMapper.newMapping(graph)
+    val mapping = LoamGraphAstMapper.newMapping(context.graph)
 
-    val toolBox = new LoamToolBox
+    val toolBox = new LoamToolBox(context)
 
     mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJob
   }

@@ -1,4 +1,5 @@
 package loamstream.model.jobs
+
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.EvalLaterBox
 
@@ -14,6 +15,6 @@ final case class NativeJob[T](
   
   override protected def doWithOutputs(newOutputs: Set[Output]): LJob = copy(outputs = newOutputs)
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Result] =
+  override def executeSelf(implicit executionContext: ExecutionContext): Future[Result] =
     exprBox.evalFuture.map(LJob.ValueSuccess(_, exprBox.typeBox))
 }

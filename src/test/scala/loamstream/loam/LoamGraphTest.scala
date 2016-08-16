@@ -30,13 +30,14 @@ final class LoamGraphTest extends FunSuite {
       |cmd"$imputeCommand -in $phased -template $template -out $imputed"
       | """.stripMargin
 
-  val graph = {
+  implicit val context = {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)
 
     val result = compiler.compile(code)
     
-    result.graphOpt.get
+    result.contextOpt.get
   }
+  val graph = context.graph
   test("Test that valid graph passes all checks.") {
     assert(LoamGraphValidation.allRules(graph).isEmpty)
   }
@@ -94,10 +95,11 @@ final class LoamGraphTest extends FunSuite {
     val pathTemplate = Paths.get("/home/myself/template.vcf")
     assert(graph.stores.map(graph.pathOpt) ===
       Set(Some(pathInputFile), Some(pathTemplate), Some(pathOutputFile), None))
-    val fileManager = new LoamFileManager
+    val fileManager = context.fileManager
     for (store <- graph.stores) {
       val path = fileManager.getPath(store)
       val pathLastPart = path.getName(path.getNameCount - 1)
+      assert(path === store.path)
       assert(pathLastPart.toString.startsWith(fileManager.filePrefix) || store.pathOpt.contains(path))
     }
   }

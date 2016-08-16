@@ -2,7 +2,6 @@ package loamstream.loam
 
 import java.nio.file.{Path, Paths}
 
-import loamstream.loam.files.LoamFileManager
 import loamstream.model.Tool
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.{LJob, LToolBox, NativeJob}
@@ -15,9 +14,7 @@ import loamstream.model.jobs.Output
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-final class LoamToolBox extends LToolBox {
-
-  private val fileManager = new LoamFileManager
+final class LoamToolBox(context: LoamContext) extends LToolBox {
 
   @volatile private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
 
@@ -49,7 +46,7 @@ final class LoamToolBox extends LToolBox {
       
       tool match {
         case cmdTool: LoamCmdTool =>
-          val commandLineString = cmdTool.tokens.map(_.toString(fileManager)).mkString
+          val commandLineString = cmdTool.tokens.map(_.toString(context.fileManager)).mkString
           
           CommandLineStringJob(commandLineString, workDir, inputJobs, outputs)
           
@@ -62,7 +59,7 @@ final class LoamToolBox extends LToolBox {
     loamJobs.get(tool) match {
       case Some(job) => Hit(job)
       case _ => newLoamJob(tool) match {
-        case jobHit@Hit(job) =>
+        case jobHit @ Hit(job) =>
           loamJobs += tool -> job
           jobHit
         case miss: Miss => miss
@@ -74,5 +71,4 @@ final class LoamToolBox extends LToolBox {
     case loamTool: LoamTool => getLoamJob(loamTool)
     case _ => Miss(Snag(s"LoamToolBox only knows Loam tools; it doesn't know about $tool."))
   }
-
 }

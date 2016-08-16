@@ -13,12 +13,13 @@ import scala.reflect.runtime.universe.TypeTag
   * Created by oliverr on 6/8/2016.
   */
 object LoamStore {
-  def create[T: TypeTag](implicit graphBox: ValueBox[LoamGraph]): LoamStore =
-    LoamStore(LId.newAnonId, StoreSig.create[T])
+  def create[T: TypeTag](implicit context: LoamContext): LoamStore = LoamStore(LId.newAnonId, StoreSig.create[T])
 }
 
-final case class LoamStore private(id: LId, sig: StoreSig)(implicit graphBox: ValueBox[LoamGraph]) extends Store {
+final case class LoamStore private(id: LId, sig: StoreSig)(implicit context: LoamContext) extends Store {
   update()
+
+  def graphBox: ValueBox[LoamGraph] = context.graphBox
 
   def update(): Unit = graphBox(_.withStore(this))
 

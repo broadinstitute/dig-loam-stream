@@ -1,7 +1,7 @@
 package loamstream.compiler
 
 import loamstream.compiler.Issue.Severity
-import loamstream.compiler.LoamCompiler.{CompilerReporter, DslChunk}
+import loamstream.compiler.LoamCompiler.{CompilerReporter, LoamScriptBox}
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
 import loamstream.loam._
@@ -18,9 +18,11 @@ import scala.util.control.NonFatal
 object LoamCompiler {
 
   /** A wrapper type for Loam scripts */
-  trait DslChunk {
+  trait LoamScriptBox {
+    /** LoamContext for tis script */
+    def loamContext: LoamContext
     /** The graph of stores and tools defined by this Loam script */
-    def graph: LoamGraph
+    def graph: LoamGraph = loamContext.graphBox.value
   }
 
   /** A reporter receiving messages form the underlying Scala compiler
@@ -111,7 +113,7 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
   val sourceFileName = "Config.scala"
 
   val inputObjectPackage = "loamstream.dynamic.input"
-  val inputObjectName = s"Some${SourceUtils.shortTypeName[DslChunk]}"
+  val inputObjectName = s"Some${SourceUtils.shortTypeName[LoamScriptBox]}"
   val inputObjectFullName = s"$inputObjectPackage.$inputObjectName"
 
   def soManyIssues: String = {
@@ -126,20 +128,20 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
 package $inputObjectPackage
 
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
+import ${SourceUtils.fullTypeName[LoamContext]}
 import ${SourceUtils.fullTypeName[LoamGraph]}
 import ${SourceUtils.fullTypeName[ValueBox[_]]}
-import ${SourceUtils.fullTypeName[DslChunk]}
+import ${SourceUtils.fullTypeName[LoamScriptBox]}
 import ${SourceUtils.fullTypeName[LoamCmdTool.type]}._
 import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._
 
-object $inputObjectName extends ${SourceUtils.shortTypeName[DslChunk]} {
-implicit val graphBox : ValueBox[LoamGraph] = new ValueBox(LoamGraph.empty)
+object $inputObjectName extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
+implicit val loamContext = new LoamContext
 
 ${raw.trim}
 
-def graph = graphBox.value
 }
 """
   }
@@ -156,7 +158,7 @@ def graph = graphBox.value
       if (targetDirectory.nonEmpty) {
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-        val dslChunk = ReflectionUtil.getObject[DslChunk](classLoader, inputObjectFullName)
+        val dslChunk = ReflectionUtil.getObject[LoamScriptBox](classLoader, inputObjectFullName)
         val graph = dslChunk.graph
         val stores = graph.stores
         val tools = graph.tools

@@ -17,7 +17,7 @@ class LoamNativeToolTest extends FunSuite {
   val storePaths = (0 until 5).map(index => folder / s"file$index.txt")
 
   def createGraph: LoamGraph = {
-    implicit val graphBox = new ValueBox(LoamGraph.empty)
+    implicit val context = new LoamContext
     val store0 = store[TXT].from(storePaths(0))
     val store1 = store[TXT].to(storePaths(1))
     val store2 = store[TXT].to(storePaths(2))
@@ -31,7 +31,7 @@ class LoamNativeToolTest extends FunSuite {
     job(store3, store4) {
       JFiles.copy(storePaths(3), storePaths(4)) // scalastyle:ignore magic.number
     }
-    graphBox.value
+    context.graphBox.value
   }
 
   def validateGraph(graph: LoamGraph): Seq[Validation.IssueBase[LoamGraph]] =
@@ -66,7 +66,7 @@ class LoamNativeToolTest extends FunSuite {
 
   test("Loam native tool I/O API") {
     import loamstream.compiler.LoamPredef._
-    implicit val graphBox = new ValueBox(LoamGraph.empty)
+    implicit val context = new LoamContext
     val store0 = store[TXT].from(storePaths(0))
     val store1 = store[TXT].to(storePaths(1))
     val store2 = store[TXT].to(storePaths(2))

@@ -14,7 +14,7 @@ object LoamCmdTool {
   def createStringToken(string: String): StringToken = StringToken(StringUtils.unwrapLines(string))
 
   implicit class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
-    def cmd(args: Any*)(implicit graphBox: ValueBox[LoamGraph]): LoamCmdTool = {
+    def cmd(args: Any*)(implicit context: LoamContext): LoamCmdTool = {
       //TODO: handle case where there are no parts (can that happen? cmd"" ?)
       val firstPart +: stringParts = stringContext.parts
 
@@ -37,15 +37,15 @@ object LoamCmdTool {
     }
   }
 
-  def create(tokens: Seq[LoamToken])(implicit graphBox: ValueBox[LoamGraph]): LoamCmdTool = {
+  def create(tokens: Seq[LoamToken])(implicit context: LoamContext): LoamCmdTool = {
     val tool = LoamCmdTool(LId.newAnonId, tokens)
-    graphBox(_.withTool(tool))
+    context.graphBox(_.withTool(tool))
     tool
   }
 }
 
 /** A command line tool specified in a Loam script */
-final case class LoamCmdTool private(id: LId, tokens: Seq[LoamToken])(implicit val graphBox: ValueBox[LoamGraph])
+final case class LoamCmdTool private(id: LId, tokens: Seq[LoamToken])(implicit val context: LoamContext)
   extends LoamTool {
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))

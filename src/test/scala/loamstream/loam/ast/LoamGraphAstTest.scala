@@ -16,8 +16,9 @@ final class LoamGraphAstTest extends FunSuite {
 
   def validate(code: String): Unit = {
     val result = compiler.compile(code)
-    assert(result.graphOpt.nonEmpty)
-    val graph = result.graphOpt.get
+    assert(result.contextOpt.nonEmpty)
+    val context = result.contextOpt.get
+    val graph = context.graph
     assert(LoamGraphValidation.allRules(graph).isEmpty)
     val mapping = LoamGraphAstMapper.newMapping(graph)
     assert(mapping.toolsUnmapped.isEmpty)

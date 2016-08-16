@@ -3,8 +3,8 @@ package loamstream.compiler
 import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}
-import loamstream.loam.{LoamGraph, LoamToolBox}
 import loamstream.loam.ast.LoamGraphAstMapper
+import loamstream.loam.{LoamContext, LoamToolBox}
 import loamstream.model.execute.{ChunkedExecuter, LExecuter}
 import loamstream.model.jobs.LJob
 import loamstream.util.{Hit, Miss, Shot, StringUtils}
@@ -53,8 +53,9 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
       Miss(s"Could not find '$file'.")
     }
     
-    import StringUtils.fromUtf8Bytes
     import JFiles.readAllBytes
+
+    import StringUtils.fromUtf8Bytes
     
     val scriptShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
     
@@ -99,9 +100,9 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
 
   }
 
-  def run(graph: LoamGraph): Map[LJob, Shot[LJob.Result]] = {
-    val mapping = LoamGraphAstMapper.newMapping(graph)
-    val toolBox = new LoamToolBox
+  def run(context: LoamContext): Map[LJob, Shot[LJob.Result]] = {
+    val mapping = LoamGraphAstMapper.newMapping(context.graph)
+    val toolBox = new LoamToolBox(context)
     //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJob
     outMessageSink.send(StatusOutMessage("Now going to execute."))
@@ -118,8 +119,8 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
       LoamEngine.Result(Hit(script), Miss("Could not compile"), Miss("Could not compile"))
     } else {
       outMessageSink.send(StatusOutMessage(compileResults.summary))
-      val graph = compileResults.graphOpt.get
-      val jobResults = run(graph)
+      val context = compileResults.contextOpt.get
+      val jobResults = run(context)
       LoamEngine.Result(Hit(script), Hit(compileResults), Hit(jobResults))
     }
   }

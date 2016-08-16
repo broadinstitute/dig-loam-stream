@@ -10,8 +10,11 @@ trait LoamTool extends Tool {
   /** The unique tool id */
   def id: LId
 
+  /** The LoamContext associated with this tool */
+  def context: LoamContext
+
   /** The ValueBox used to store the graph this tool is part of */
-  def graphBox: ValueBox[LoamGraph]
+  def graphBox: ValueBox[LoamGraph] = context.graphBox
 
   /** The graph this tool is part of */
   def graph: LoamGraph = graphBox.value

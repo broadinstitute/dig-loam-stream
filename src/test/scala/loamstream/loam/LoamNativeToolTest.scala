@@ -25,11 +25,11 @@ class LoamNativeToolTest extends FunSuite {
     val store4 = store[TXT].to(storePaths(4)) // scalastyle:ignore magic.number
     cmd"cp $store0 $store1"
     job(store1, store2) {
-      JFiles.copy(storePaths(1), storePaths(2))
+      JFiles.copy(store1.path, store2.path)
     }
     cmd"cp $store2 $store3"
     job(store3, store4) {
-      JFiles.copy(storePaths(3), storePaths(4)) // scalastyle:ignore magic.number
+      JFiles.copy(store3.path, store4.path) // scalastyle:ignore magic.number
     }
     context
   }

@@ -90,27 +90,31 @@ final class FilesTest extends FunSuite {
 
     assert(actual == expected)
   }
-  
+
+  /** Asserts that both texts are the same except for possibly different line breaks */
+  def assertSameText(text1: String, text2: String): Unit =
+  assert(StringUtils.assimilateLineBreaks(text1) === StringUtils.assimilateLineBreaks(text2))
+
   test("Merging gzipped files") {
     val nFiles = 3
     val nLinesPerFile = 5
     val iFiles = 0 until nFiles
     val folder = JFiles.createTempDirectory("loamStreamFilesTest")
     val paths = iFiles.map(iFile => folder.resolve(s"file$iFile.txt"))
-    
+
     val contents = iFiles.map { iFile =>
       (0 until nLinesPerFile).map(iLine => s"Line $iLine of file $iFile.").mkString("\n")
     }
-    
+
     iFiles.foreach(iFile => Files.writeToGzipped(paths(iFile))(contents(iFile)))
-    
+
     val pathOut = folder.resolve("fileOut.txt")
     Files.mergeLinesGzipped(paths, pathOut)
     val contentOutExpected = contents.mkString("\n")
     val contentOut = Files.readFromGzipped(pathOut)
-    assert(contentOut === contentOutExpected)
+    assertSameText(contentOut, contentOutExpected)
   }
-  
+
   test("Merging pseudo-VCF files, keeping only header of first file") {
     val nFiles = 3
     val nHeaderLines = 5
@@ -118,41 +122,41 @@ final class FilesTest extends FunSuite {
     val iFiles = 0 until nFiles
     val folder = JFiles.createTempDirectory("loamStreamFilesTest")
     val paths = iFiles.map(iFile => folder.resolve(s"file$iFile.vcf"))
-    
+
     val headers = iFiles.map { iFile =>
       (0 until nHeaderLines).map(iLine => s"## Header line $iLine of file $iFile.").mkString("\n")
     }
-    
+
     val bodies = iFiles.map { iFile =>
       (0 until nBodyLines).map(iLine => s"Body line $iLine of file $iFile.").mkString("\n")
     }
-    
+
     val contents = iFiles.map(iFile => s"${headers(iFile)}\n${bodies(iFile)}")
     iFiles.foreach(iFile => Files.writeToGzipped(paths(iFile))(contents(iFile)))
     val pathOut = folder.resolve("fileOut.txt")
     Files.mergeLinesGzipped(paths, pathOut, Files.LineFilter.onlyFirstVcfHeader)
     val contentOutExpected = s"${headers(0)}\n${bodies.mkString("\n")}"
     val contentOut = Files.readFromGzipped(pathOut)
-    assert(contentOut === contentOutExpected)
+    assertSameText(contentOut, contentOutExpected)
   }
-  
+
   test("Merging empty bunch of pseudo-VCF files") {
     def doTest(filterFactory: Files.LineFilter.Factory): Unit = {
       val folder = JFiles.createTempDirectory("loamStreamFilesTest")
-    
+
       val pathOut = folder.resolve("fileOut.txt")
-    
+
       Files.mergeLinesGzipped(Nil, pathOut, filterFactory)
-      
+
       assert(pathOut.toFile.exists)
       //File will contain gzip header, etc
       assert(pathOut.toFile.length != 0)
       //But the file should contain no actual data
       assert(Files.readFromGzipped(pathOut) == "")
     }
-    
+
     doTest(Files.LineFilter.onlyFirstVcfHeader)
-    
+
     doTest(Files.LineFilter.acceptAll)
   }
 }

@@ -12,7 +12,7 @@ import loamstream.util.{Hit, Miss, Shot, Snag}
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-final class LoamToolBox extends LToolBox {
+final class LoamToolBox(context: LoamContext) extends LToolBox {
 
   private val fileManager = new LoamFileManager
 

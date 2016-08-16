@@ -2,7 +2,6 @@ package loamstream.loam
 
 import loamstream.loam.LoamToken.StringToken
 import loamstream.model.{LId, StoreSig}
-import loamstream.util.ValueBox
 import org.scalatest.FunSuite
 
 /**

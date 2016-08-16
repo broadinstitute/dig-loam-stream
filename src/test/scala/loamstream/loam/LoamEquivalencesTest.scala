@@ -1,7 +1,6 @@
 package loamstream.loam
 
 import loamstream.compiler.LoamPredef.{TXT, VCF, store}
-import loamstream.util.ValueBox
 import org.scalatest.FunSuite
 
 /** Testing key slot equivalences */

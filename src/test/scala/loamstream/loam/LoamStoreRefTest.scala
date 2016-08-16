@@ -2,7 +2,6 @@ package loamstream.loam
 
 import loamstream.compiler.LoamPredef.VCF
 import loamstream.loam.files.LoamFileManager
-import loamstream.util.ValueBox
 import org.scalatest.FunSuite
 
 /** Tests of LoamStoreRef, basically whether the path comes out right */

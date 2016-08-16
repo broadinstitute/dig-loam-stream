@@ -35,7 +35,7 @@ final class LoamGraphTest extends FunSuite {
 
     val result = compiler.compile(code)
     
-    result.graphOpt.get
+    result.contextOpt.get.graph
   }
   test("Test that valid graph passes all checks.") {
     assert(LoamGraphValidation.allRules(graph).isEmpty)

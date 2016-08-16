@@ -36,9 +36,14 @@ object StringUtils {
     case _ => s"${prettyPrint(count)} $plural"
   }
 
+  /** Regex matching line breaks on almost all platforms */
+  val lineBreaksRegex = """\n\r|\r\n|\n|\r"""
+
+  /** Replaces line breaks from almost all platforms to line breaks of the current platform */
+  def assimilateLineBreaks(string:String):String = string.replaceAll(lineBreaksRegex, System.lineSeparator)
+
   /** Replaces each line break by a space on almost all platforms.  */
-  def unwrapLines(string: String): String =
-    string.replaceAll("\r\n", " ").replaceAll("\n\r", " ").replaceAll("\n", " ").replaceAll("\r", " ")
+  def unwrapLines(string: String): String = string.replaceAll(lineBreaksRegex, " ")
 
   /** Converts backslashes into double backslashes */
   def unescapeBackslashes(string: String): String = string.replaceAll("\\\\", "\\\\\\\\")

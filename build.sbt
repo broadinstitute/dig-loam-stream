@@ -13,8 +13,6 @@ lazy val Versions = new {
   val Monix = "2.0-RC9"
   val Slick = "3.1.1"
   val H2 = "1.4.192"
-  val ScalaRx = "0.3.1"
-  val Awaitility = "2.0.0"
 }
 
 lazy val mainDeps = Seq(
@@ -29,13 +27,11 @@ lazy val mainDeps = Seq(
   "com.typesafe" % "config" % Versions.TypesafeConfig,
   "io.monix" %% "monix" % Versions.Monix,
   "com.typesafe.slick" %% "slick" % Versions.Slick,
-  "com.lihaoyi" %% "scalarx" % Versions.ScalaRx,
-  "org.awaitility" % "awaitility-scala" % Versions.Awaitility
+  "com.h2database" % "h2" % Versions.H2
 )
 
 lazy val testDeps = Seq(
-  "org.scalatest" %% "scalatest" % Versions.ScalaTest % Test,
-  "com.h2database" % "h2" % Versions.H2 % Test
+  "org.scalatest" %% "scalatest" % Versions.ScalaTest % Test
 )
 
 lazy val commonSettings = Seq(

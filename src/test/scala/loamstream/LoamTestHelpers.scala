@@ -45,7 +45,7 @@ trait LoamTestHelpers extends Loggable {
 
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
-    val toolBox = new LoamToolBox(context)
+    val toolBox = new LoamToolBox
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
   

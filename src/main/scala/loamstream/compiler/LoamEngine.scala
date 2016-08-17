@@ -102,7 +102,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
 
   def run(context: LoamContext): Map[LJob, Shot[LJob.Result]] = {
     val mapping = LoamGraphAstMapper.newMapping(context.graph)
-    val toolBox = new LoamToolBox(context)
+    val toolBox = new LoamToolBox
     //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJob
     outMessageSink.send(StatusOutMessage("Now going to execute."))

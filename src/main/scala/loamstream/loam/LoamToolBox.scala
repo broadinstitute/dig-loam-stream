@@ -11,7 +11,7 @@ import loamstream.util.{Hit, Miss, Shot, Snag}
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-final class LoamToolBox(context: LoamContext) extends LToolBox {
+final class LoamToolBox extends LToolBox {
 
   @volatile private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
 
@@ -27,7 +27,7 @@ final class LoamToolBox(context: LoamContext) extends LToolBox {
     shotsForPrecedingTools.map { inputJobs =>
       tool match {
         case cmdTool: LoamCmdTool =>
-          val commandLineString = cmdTool.tokens.map(_.toString(context.fileManager)).mkString
+          val commandLineString = cmdTool.tokens.map(_.toString(cmdTool.context.fileManager)).mkString
           CommandLineStringJob(commandLineString, workDir, inputJobs)
         case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs)
       }

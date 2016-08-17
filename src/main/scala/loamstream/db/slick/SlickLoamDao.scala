@@ -26,7 +26,9 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
   import SlickLoamDao.waitFor
   
   override def hashFor(path: Path): Hash = {
-    val query = tables.outputs.filter(_.path === Helpers.normalize(path)).result.head.transactionally
+    val normalizedPath = Helpers.normalize(path)
+    
+    val query = tables.outputs.filter(_.path === normalizedPath).result.head.transactionally
     
     val futureRow = db.run(query)
     
@@ -38,6 +40,30 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     val newRow = new RawOutputRow(path, hash)
     
     val action = (tables.outputs += newRow).transactionally
+    
+    //TODO: Re-evaluate
+    waitFor(db.run(action))
+  }
+  
+  private def deleteAction(pathsToDelete: Iterable[Path]): DBIO[Int] = {
+    val toDelete = pathsToDelete.map(Helpers.normalize).toSet
+    
+    tables.outputs.filter(_.path.inSetBind(toDelete)).delete
+  }
+  
+  override def delete(paths: Iterable[Path]): Unit = {
+    val action = deleteAction(paths).transactionally
+    
+    //TODO: Re-evaluate
+    waitFor(db.run(action))
+  }
+  
+  override def insertOrUpdate(rows: Iterable[OutputRow]): Unit = {
+    val paths = rows.map(_.path)
+    
+    val rawRows = rows.map(row => new RawOutputRow(row.path, row.hash))
+    
+    val action = DBIO.seq(deleteAction(paths), tables.outputs ++= rawRows).transactionally
     
     //TODO: Re-evaluate
     waitFor(db.run(action))

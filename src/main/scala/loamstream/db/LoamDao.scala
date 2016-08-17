@@ -12,6 +12,12 @@ trait LoamDao {
   
   def storeHash(path: Path, hash: Hash): Unit
   
+  final def delete(path: Path, others: Path*): Unit = delete(path +: others)
+  
+  def delete(paths: Iterable[Path]): Unit
+  
+  def insertOrUpdate(rows: Iterable[OutputRow]): Unit 
+  
   //TODO: Re-evaluate
   def allRows: Seq[OutputRow]
 }

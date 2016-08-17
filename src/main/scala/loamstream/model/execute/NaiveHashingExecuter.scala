@@ -78,21 +78,26 @@ final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContex
   private def runWithoutDeps(job: LJob): Future[Result] = {
     val f = job.execute
     
-    def toOutputRow(output: Output): OutputRow = {
+    def toOutputRow(output: Output): Option[OutputRow] = {
       //TODO: Smell
-      val path = output.asInstanceOf[Output.PathOutput].path
-      
-      OutputRow(path, output.lastModified, output.hash)
+      output match {
+        case pb: Output.PathBased if pb.isPresent => {
+          Option(OutputRow(pb.path, output.lastModified, output.hash))
+        }
+        case _ => None
+      }
     }
     
     import Traversables.Implicits._
     
     f.foreach { _ =>
+      val newOutputs = job.outputs.flatMapTo(toOutputRow)
+      
       outputs.mutate { oldOutputs =>
-        val newOutputs = job.outputs.mapTo(toOutputRow)
-        
         oldOutputs ++ newOutputs 
       }
+      
+      dao.insertOrUpdate(newOutputs.values)
     }
     
     f

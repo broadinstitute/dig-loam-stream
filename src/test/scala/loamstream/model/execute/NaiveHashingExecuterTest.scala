@@ -21,6 +21,7 @@ import loamstream.util.Hashes
 import loamstream.util.PathEnrichments
 import loamstream.util.Sequence
 import loamstream.model.jobs.MockJob
+import scala.concurrent.Future
 
 /**
  * @author clint
@@ -115,9 +116,31 @@ final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoT
     
     val cwd = Paths.get(".")
     
-    val startToF1 = CommandLineStringJob(s"cp $start $f1", cwd, outputs = Set(Output.PathOutput(f1))) 
-    val f1ToF2 = CommandLineStringJob(s"cp $f1 $f2", cwd, outputs = Set(Output.PathOutput(f2)), inputs = Set(startToF1))
-    val f2ToF3 = CommandLineStringJob(s"cp $f2 $f3", cwd, outputs = Set(Output.PathOutput(f3)), inputs = Set(f1ToF2))
+    def success(s: String) = LJob.SimpleSuccess(s)
+    
+    def mockJob(name: String, outputs: Set[Output], inputs: Set[LJob] = Set.empty)(body: => Any): MockJob = {
+      new MockJob(success(name), name, inputs, outputs, delay = 0) {
+        override protected def executeSelf(implicit context: ExecutionContext): Future[LJob.Result] = {
+          body
+          
+          super.executeSelf
+        }
+      }
+    }
+    
+    import java.nio.file.{ Files => JFiles }
+    
+    val startToF1 = mockJob(s"cp $start $f1", Set(Output.PathOutput(f1))) {
+      JFiles.copy(start, f1)
+    }
+    
+    val f1ToF2 = mockJob(s"cp $f1 $f2", Set(Output.PathOutput(f2)), Set(startToF1)) {
+      JFiles.copy(f1, f2)
+    }
+    
+    val f2ToF3 = mockJob(s"cp $f2 $f3", Set(Output.PathOutput(f3)), Set(f1ToF2)) {
+      JFiles.copy(f2, f3)
+    }
     
     assert(startToF1.state == JobState.NotStarted)
     assert(f1ToF2.state == JobState.NotStarted)

@@ -10,7 +10,7 @@ import loamstream.util.ValueBox
  * @author clint
  * date: Jun 2, 2016
  */
-final class MockJob private (
+class MockJob(
     val toReturn: LJob.Result,
     val name: String,
     override val inputs: Set[LJob], 
@@ -19,7 +19,7 @@ final class MockJob private (
   
   val id: Int = MockJob.nextId()
   
-  override def toString: String = s"#$id (returning $toReturn)"
+  override def toString: String = s"'$name'(#$id, returning $toReturn)"
  
   private val equalityFields = Seq(toReturn)
   

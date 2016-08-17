@@ -59,4 +59,12 @@ final class EvalLaterBoxTest extends FunSuite {
     assert(box.evalShot.asInstanceOf[Miss].snag.asInstanceOf[SnagThrowable].throwable === myException)
     assert(Await.ready(box.evalFuture, futureAwaitTime).value.get.asInstanceOf[Failure[Int]].exception === myException)
   }
+
+  test("Prepending, appending and wrapping") {
+    var seq: Seq[Int] = Seq.empty
+    val box = EvalLaterBox(seq :+= 2).prepend(seq :+= 1).append(seq :+= 3).wrap(seq :+= 0, seq :+= 4)
+    assert(seq.isEmpty)
+    box.eval
+    assert(seq === Seq(0, 1, 2, 3, 4)) // scalastyle:ignore magic.number
+  }
 }

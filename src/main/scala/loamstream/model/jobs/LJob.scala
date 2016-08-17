@@ -36,6 +36,8 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     
     import JobState._
     
+    stateRef() = Running
+    
     f.foreach { result =>
       stateRef() = if(result.isSuccess) Finished else Failed
     }
@@ -50,13 +52,6 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   final def withInputs(newInputs: Set[LJob]): LJob = {
     if (inputs eq newInputs) { this }
     else { doWithInputs(newInputs) }
-  }
-  
-  protected def doWithOutputs(newOutputs: Set[Output]): LJob
-  
-  final def withOutputs(newOutputs: Set[Output]): LJob = {
-   if (outputs eq newOutputs) { this }
-    else { doWithOutputs(newOutputs) } 
   }
 
   protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))

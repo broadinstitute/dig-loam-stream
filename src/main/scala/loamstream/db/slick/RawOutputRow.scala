@@ -25,6 +25,7 @@ final case class RawOutputRow(pathValue: String, lastModified: Timestamp, hashVa
   
   def toPath: Path = Paths.get(pathValue)
   
+  //NB: Fragile
   def toHash: Hash = Hash.fromStrings(hashValue, hashType).get
   
   def toOutputRow: OutputRow = OutputRow(toPath, lastModified.toInstant, toHash)

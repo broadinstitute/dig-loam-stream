@@ -34,8 +34,6 @@ final class MockLJob(
       toReturn: LJob.Result = this.toReturn): MockLJob = new MockLJob(inputs, outputs, toReturn)
   
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-  
-  override protected def doWithOutputs(newOutputs: Set[Output]): LJob = copy(outputs = newOutputs)
 }
 
 object MockLJob {

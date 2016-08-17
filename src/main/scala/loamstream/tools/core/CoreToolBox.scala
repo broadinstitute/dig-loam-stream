@@ -36,9 +36,6 @@ object CoreToolBox extends LToolBox {
     }
     
     override val outputs: Set[Output] = Set(PathOutput(file))
-    
-    //TODO: Smell
-    override protected def doWithOutputs(newOutputs: Set[Output]): LJob = this
   }
 
   final case class CheckPreexistingVcfFileJob(
@@ -67,9 +64,6 @@ object CoreToolBox extends LToolBox {
     override val outputs: Set[Output] = Set(PathOutput(samplesFile))
     
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-    
-    //TODO: Smell
-    override protected def doWithOutputs(newOutputs: Set[Output]): LJob = this
 
     override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
@@ -92,9 +86,6 @@ object CoreToolBox extends LToolBox {
     override def toString = s"CalculatePcaProjectionsJob($vcfFile, $pcaWeightsFile, ...)"
 
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-    
-    //TODO: Smell
-    override protected def doWithOutputs(newOutputs: Set[Output]): LJob = this
 
     override val outputs: Set[Output] = Set(PathOutput(klustaKwikKonfig.workDir))
     

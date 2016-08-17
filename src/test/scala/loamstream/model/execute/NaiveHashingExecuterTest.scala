@@ -20,6 +20,7 @@ import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.util.Hashes
 import loamstream.util.PathEnrichments
 import loamstream.util.Sequence
+import loamstream.model.jobs.MockJob
 
 /**
  * @author clint

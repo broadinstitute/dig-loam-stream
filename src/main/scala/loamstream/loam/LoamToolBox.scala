@@ -29,7 +29,7 @@ final class LoamToolBox extends LToolBox {
         case cmdTool: LoamCmdTool =>
           val commandLineString = cmdTool.tokens.map(_.toString(cmdTool.context.fileManager)).mkString
           CommandLineStringJob(commandLineString, workDir, inputJobs)
-        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs)
+        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.wrappedExpBox, inputJobs)
       }
     }
   }

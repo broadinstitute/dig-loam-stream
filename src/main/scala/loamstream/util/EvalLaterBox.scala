@@ -28,16 +28,18 @@ class EvalLaterBox[T](expr: => T, val typeBox: TypeBox[T]) {
   })
 
   /** Returns new EvalLaterBox with expression appended after this one's expression */
-  def append[TA: TypeTag](postExpr: => TA): EvalLaterBox[TA] = EvalLaterBox[TA]({
-    expr
+  def append[TA](postExpr: => TA): EvalLaterBox[T] = EvalLaterBox.forType[T](typeBox)({
+    val result = expr
     postExpr
+    result
   })
 
   /** Returns new EvalLaterBox with given expression wrapped around this one's expression  */
-  def wrap[TP, TA: TypeTag](preExpr: => TP, postExpr: => TA): EvalLaterBox[TA] = EvalLaterBox[TA]({
+  def wrap[TP, TA](preExpr: => TP, postExpr: => TA): EvalLaterBox[T] = EvalLaterBox.forType[T](typeBox)({
     preExpr
-    expr
+    val result = expr
     postExpr
+    result
   })
 }
 

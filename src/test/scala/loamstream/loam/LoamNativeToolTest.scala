@@ -7,7 +7,7 @@ import loamstream.compiler.LoamPredef._
 import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.loam.LoamCmdTool.StringContextWithCmd
 import loamstream.util.PathEnrichments._
-import loamstream.util.Validation
+import loamstream.util.{Validation, ValueBox}
 import org.scalatest.FunSuite
 
 /** Tests of LoamNativeTool */
@@ -90,4 +90,30 @@ class LoamNativeToolTest extends FunSuite {
     assertInputsAndOutputs(tool3, Set.empty, Set(store3, store4))
   }
 
+  test("thisTool()"){
+    implicit val context = new LoamContext
+    val loamEngine = LoamEngine.default(ClientMessageHandler.OutMessageSink.NoOp)
+    val inStore = store[TXT].from("mock/in/path")
+    val outStore = store[TXT].to("mock/out/path")
+    val interStoresBox : ValueBox[Set[LoamStore]] = new ValueBox(Set.empty)
+    val nBranches = 100
+    val branchJobCounterBox : ValueBox[Int] = new ValueBox[Int](0)
+    for(iBranch <- 0 until nBranches) {
+      val interStore = store[TXT]
+      interStoresBox(_ + interStore)
+      job(in(inStore), out(interStore)) {
+        branchJobCounterBox(_ + 1)
+        assert(thisTool.inputs.values.toSet === Set(inStore))
+        assert(thisTool.outputs.values.toSet === Set(interStore))
+      }
+    }
+    job(in(interStoresBox.value), out(outStore)) {
+      "Done gather step"
+    }
+    val jobResults = loamEngine.run(context)
+    assert(branchJobCounterBox.value === nBranches)
+    assert(interStoresBox.value.size === nBranches)
+    assert(jobResults.values.forall(_.nonEmpty), s"Did not get results for all jobs: $jobResults")
+    assert(jobResults.values.forall(_.get.isSuccess), s"Not all job results were successful: $jobResults")
+  }
 }

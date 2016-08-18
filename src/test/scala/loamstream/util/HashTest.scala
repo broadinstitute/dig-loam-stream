@@ -1,17 +1,20 @@
 package loamstream.util
 
-import org.scalatest.FunSuite
 import java.nio.file.Paths
-import scala.collection.mutable.WrappedArray
+
+import org.scalatest.FunSuite
+
+import scala.collection.mutable
 
 /**
  * @author clint
  * date: Aug 4, 2016
  */
 final class HashTest extends FunSuite {
-  private val allZeroes = Hash(WrappedArray.make(Array(0.toByte,0.toByte,0.toByte,0.toByte)), HashType.Sha1)
+  private val allZeroes = Hash(mutable.WrappedArray.make(Array(0.toByte,0.toByte,0.toByte,0.toByte)), HashType.Sha1)
   
-  private val someOnes = Hash(WrappedArray.make(Array(0.toByte,255.toByte,255.toByte,0.toByte)), HashType.Sha1)
+  private val someOnes =
+    Hash(mutable.WrappedArray.make(Array(0.toByte,255.toByte,255.toByte,0.toByte)), HashType.Sha1)
   
   private val realWorld = Hashes.sha1(Paths.get("src/test/resources/for-hashing/foo.txt"))
   

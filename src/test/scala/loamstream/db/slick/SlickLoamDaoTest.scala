@@ -6,12 +6,12 @@ import loamstream.util.Hashes
 import scala.util.control.NonFatal
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
-import loamstream.db.OutputRow
 import loamstream.util.Hash
 import java.nio.file.Path
 import scala.util.Try
 import loamstream.db.TestDbDescriptors
 import loamstream.util.HashType
+import loamstream.model.jobs.Output.CachedOutput
 
 /**
  * @author clint
@@ -32,6 +32,8 @@ final class SlickLoamDaoTest extends FunSuite with AbstractSlickLoamDaoTest {
     }
   }
 
+  private def cachedOutput(p: Path, h: Hash): CachedOutput = (new RawOutputRow(p, h)).toCachedOutput
+  
   test("insert/allRows") {
     createTablesAndThen {
       val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
@@ -48,9 +50,7 @@ final class SlickLoamDaoTest extends FunSuite with AbstractSlickLoamDaoTest {
       dao.storeHash(path1, hash1)
       dao.storeHash(path2, hash2)
 
-      def outputRow(p: Path, h: Hash): OutputRow = (new RawOutputRow(p, h)).toOutputRow
-
-      val expected = Set(outputRow(path0, hash0), outputRow(path1, hash1), outputRow(path2, hash2))
+      val expected = Set(cachedOutput(path0, hash0), cachedOutput(path1, hash1), cachedOutput(path2, hash2))
 
       //Use Sets to ignore order
       assert(dao.allRows.toSet == expected)
@@ -120,13 +120,11 @@ final class SlickLoamDaoTest extends FunSuite with AbstractSlickLoamDaoTest {
       val h0 = Hashes.sha1(p0)
       val h1 = Hashes.sha1(p1)
       val h2 = Hashes.sha1(p2)
-
-      def outputRow(p: Path, h: Hash): OutputRow = (new RawOutputRow(p, h)).toOutputRow
       
       val rows = Seq(
-          outputRow(p0, h0),
-          outputRow(p1, h1),
-          outputRow(p2, h2))
+          cachedOutput(p0, h0),
+          cachedOutput(p1, h1),
+          cachedOutput(p2, h2))
 
       dao.insertOrUpdate(rows)
           
@@ -136,12 +134,12 @@ final class SlickLoamDaoTest extends FunSuite with AbstractSlickLoamDaoTest {
       val h1prime = Hash(Array(1.toByte), HashType.Sha1)
       
       val updatedRows = Seq(
-          outputRow(p0, h0prime),
-          outputRow(p1, h1prime))
+          cachedOutput(p0, h0prime),
+          cachedOutput(p1, h1prime))
           
       dao.insertOrUpdate(updatedRows)
       
-      val expected = updatedRows :+ outputRow(p2, h2)
+      val expected = updatedRows :+ cachedOutput(p2, h2)
 
       assert(dao.allRows.toSet == expected.toSet)
     }

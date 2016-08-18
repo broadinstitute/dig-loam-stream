@@ -11,7 +11,7 @@ import loamstream.util.Hash
 import slick.driver.JdbcProfile
 import java.sql.ResultSet
 import java.sql.Timestamp
-import loamstream.db.OutputRow
+import loamstream.model.jobs.Output.CachedOutput
 
 /**
  * @author clint
@@ -58,7 +58,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     waitFor(db.run(action))
   }
   
-  override def insertOrUpdate(rows: Iterable[OutputRow]): Unit = {
+  override def insertOrUpdate(rows: Iterable[CachedOutput]): Unit = {
     val paths = rows.map(_.path)
     
     val rawRows = rows.map(row => new RawOutputRow(row.path, row.hash))
@@ -69,13 +69,13 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     waitFor(db.run(action))
   }
   
-  override def allRows: Seq[OutputRow] = {
+  override def allRows: Seq[CachedOutput] = {
     val query = tables.outputs.result.transactionally
     
     val futureRow = db.run(query)
     
     //TODO: Re-evaluate
-    waitFor(futureRow).map(_.toOutputRow)
+    waitFor(futureRow).map(_.toCachedOutput)
   }
   
   private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.jdbcDriverClass)

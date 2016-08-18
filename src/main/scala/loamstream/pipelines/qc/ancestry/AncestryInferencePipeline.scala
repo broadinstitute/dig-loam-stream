@@ -2,7 +2,7 @@ package loamstream.pipelines.qc.ancestry
 
 import java.nio.file.Path
 
-import loamstream.model.{AST, HasAst, Tool}
+import loamstream.model.{ AST, HasAst, Tool }
 import loamstream.tools.core.{CoreStore, CoreTool}
 import loamstream.tools.klusta.KlustaKwikKonfig
 

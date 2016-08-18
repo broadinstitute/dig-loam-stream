@@ -1,6 +1,8 @@
 package loamstream.db
 
 import java.nio.file.Path
+
+import loamstream.model.jobs.Output.CachedOutput
 import loamstream.util.Hash
 
 /**
@@ -16,8 +18,8 @@ trait LoamDao {
   
   def delete(paths: Iterable[Path]): Unit
   
-  def insertOrUpdate(rows: Iterable[OutputRow]): Unit 
+  def insertOrUpdate(rows: Iterable[CachedOutput]): Unit 
   
   //TODO: Re-evaluate
-  def allRows: Seq[OutputRow]
+  def allRows: Seq[CachedOutput]
 }

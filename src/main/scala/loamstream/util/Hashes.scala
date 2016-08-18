@@ -75,7 +75,7 @@ object Hashes {
       if(count == chunkSize) buf else buf.take(count)
     }
 
-    def notDone(buf: Array[Byte]): Boolean = buf.size > 0
+    def notDone(buf: Array[Byte]): Boolean = buf.length > 0
 
     val chunks = Iterator.continually(read()).takeWhile(notDone)
 

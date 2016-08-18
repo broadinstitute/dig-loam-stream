@@ -12,7 +12,7 @@ final class TraversablesTest extends FunSuite {
     
     import Traversables.Implicits._
     
-    val map = as.mapTo(_.size)
+    val map = as.mapTo(_.length)
     
     assert(map == Map("a" -> 1, "bb" -> 2, "asdfghj" -> 7))
   }

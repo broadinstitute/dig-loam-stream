@@ -26,15 +26,7 @@ final class LoamToolBox(context: LoamContext) extends LToolBox {
     def pathOutputsFor(tool: LoamTool): Set[Output] = {
       val loamStores: Set[LoamStore] = graph.toolOutputs(tool) 
       
-      def pathFor(loamStore: LoamStore): Option[Output] = {
-        graph.storeSources(loamStore) match {
-          case PathEdge(path) => Some(Output.PathOutput(path))
-          /*case ToolEdge(tool) ???*/
-          case _ => None
-        }
-      }
-      
-      loamStores.flatMap(pathFor)
+      loamStores.flatMap(_.pathOpt).map(Output.PathOutput)
     }
 
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))

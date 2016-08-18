@@ -102,9 +102,9 @@ class LoamNativeToolTest extends FunSuite {
       val interStore = store[TXT]
       interStoresBox(_ + interStore)
       job(in(inStore), out(interStore)) {
-        branchJobCounterBox(_ + 1)
         assert(thisTool.inputs.values.toSet === Set(inStore))
         assert(thisTool.outputs.values.toSet === Set(interStore))
+        branchJobCounterBox(_ + 1)
       }
     }
     job(in(interStoresBox.value), out(outStore)) {

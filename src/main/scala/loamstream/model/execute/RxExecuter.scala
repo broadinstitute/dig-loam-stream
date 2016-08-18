@@ -5,9 +5,11 @@ import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.JobState.{Finished, NotStarted, Running}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
-import rx.lang.scala.{Observable, Subscription}
+import rx.lang.scala.subjects.PublishSubject
+import rx.lang.scala.Observable
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future, Promise}
+import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
@@ -34,11 +36,28 @@ final class RxExecuter extends Loggable {
     val jobsAlreadyLaunched: collection.mutable.Set[RxMockJob] = collection.mutable.Set.empty
     var jobsReadyToDispatch: collection.mutable.Set[RxMockJob] = collection.mutable.Set.empty
     val jobsReadyToDispatchLock = new AnyRef
+    val jobStates: collection.mutable.Map[RxMockJob, JobState] = collection.mutable.Map.empty
+    val jobStatesLock = new AnyRef
     var result: collection.mutable.Map[RxMockJob, Result] = collection.mutable.Map.empty
     val resultLock = new AnyRef
 
-    def loop(jobs: Set[RxMockJob]): Unit = {
-      if (jobs.nonEmpty) {
+    val everythingIsDonePromise: Promise[Unit] = Promise()
+    val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
+
+    val allJobStatuses = PublishSubject[Map[RxMockJob, JobState]]
+    def updateJobState(job: RxMockJob, newState: JobState): Unit = {
+      jobStatesLock.synchronized {
+        jobStates(job) = newState
+      }
+      allJobStatuses.onNext(jobStates.toMap)
+    }
+
+    def executeIter(jobs: Set[RxMockJob]): Unit = {
+      if (jobs.isEmpty) {
+        if (jobStates.values.forall(_ == Finished)) {
+          everythingIsDonePromise.success(())
+        }
+      } else {
         jobsReadyToDispatchLock.synchronized {
           jobsReadyToDispatch =
             collection.mutable.Set[RxMockJob](getRunnableJobs(jobs).toArray: _*) -- jobsAlreadyLaunched
@@ -55,25 +74,35 @@ final class RxExecuter extends Loggable {
           }
         }
 
-        Thread.sleep(2000)
-
         jobsReadyToDispatchLock.synchronized {
           jobsAlreadyLaunched ++= jobsReadyToDispatch
-          loop(jobs -- jobsAlreadyLaunched.toSet)
         }
       }
     }
 
     val jobs = flattenTree(executable.jobs)
-    jobs.foreach(_.deferredJobStateObservable.subscribe(jobState => println(jobState)))
-    loop(jobs)
+
+    import scala.language.postfixOps
+    jobs foreach { job =>
+      jobStatesLock.synchronized {
+        jobStates += job -> NotStarted
+      }
+      job.jobStateChange.sample(100 millis).subscribe(jobState => updateJobState(job, jobState))
+    }
+
+    allJobStatuses.subscribe(jobStatuses => {
+      executeIter(getRunnableJobs(jobStatuses.keySet))
+    })
+
+    executeIter(jobs)
+
+    Await.result(everythingIsDoneFuture, Duration.Inf)
 
     import Maps.Implicits._
     resultLock.synchronized {
       result.toMap.strictMapValues(Hit(_))
     }
   }
-  // scalastyle:on
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)
 }
@@ -94,34 +123,40 @@ object RxExecuter {
 
     private[this] val jobStatusLock = new AnyRef
     private[this] var _jobStatus: JobState = NotStarted
+
     def getJobState = jobStatusLock.synchronized(_jobStatus)
+
     def setJobState(newState: JobState) = jobStatusLock.synchronized(_jobStatus = newState)
-    def emitJobState: Subscription = {
-      Observable.just(getJobState) subscribe { js =>
-        getJobState
-      }
-    }
+
     def jobStateObservable: Observable[JobState] = Observable.just(getJobState)
+
+    val jobStateChange = PublishSubject[JobState]
+    def emitJobState = jobStateChange.onNext(getJobState)
+
     def deferredJobStateObservable: Observable[JobState] = Observable.defer(jobStateObservable)
 
     def isRunnable: Boolean = getJobState == NotStarted && (inputs.isEmpty || inputs.forall(_.getJobState == Finished))
 
     private[this] val executionCountLock = new AnyRef
     private[this] var _executionCount = 0
+
     def executionCount = executionCountLock.synchronized(_executionCount)
 
     def execute: Result = {
-      debug("\t\tStarting to execute job: " + this.name)
+      //debug("\t\tStarting to execute job: " + this.name)
       setJobState(Running)
+      emitJobState
       Thread.sleep(delay)
       setJobState(Finished)
+      emitJobState
       executionCountLock.synchronized(_executionCount += 1)
-      debug("\t\t\tFinished executing job: " + this.name)
+      //debug("\t\t\tFinished executing job: " + this.name)
       RxMockJob.SimpleSuccess(name)
     }
   }
 
   object RxMockJob {
+
     sealed trait Result {
       def isSuccess: Boolean
 
@@ -187,3 +222,4 @@ object RxExecuter {
   }
 
 }
+// scalastyle:on

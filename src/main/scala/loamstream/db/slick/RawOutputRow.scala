@@ -5,16 +5,18 @@ import loamstream.util.Hash
 import loamstream.util.HashType
 import java.nio.file.Paths
 import java.sql.Timestamp
-import loamstream.db.OutputRow
 import java.time.Instant
 import Helpers._
 import loamstream.util.PathUtils.lastModifiedTime
+import loamstream.model.jobs.Output.CachedOutput
 
 /**
  * @author clint
  * date: Aug 4, 2016
+ * 
+ * A class representing a row in the 'Outputs' table. 
  */
-final case class RawOutputRow(pathValue: String, lastModified: Timestamp, hashValue: String, hashType: String) {
+final case class RawOutputRow private (pathValue: String, lastModified: Timestamp, hashValue: String, hashType: String) {
   def this(path: Path, hash: Hash) = {
     this(
         normalize(path), 
@@ -28,5 +30,5 @@ final case class RawOutputRow(pathValue: String, lastModified: Timestamp, hashVa
   //NB: Fragile
   def toHash: Hash = Hash.fromStrings(hashValue, hashType).get
   
-  def toOutputRow: OutputRow = OutputRow(toPath, lastModified.toInstant, toHash)
+  def toCachedOutput: CachedOutput = CachedOutput(toPath, toHash, lastModified.toInstant)
 }

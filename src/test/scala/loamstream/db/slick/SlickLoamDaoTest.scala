@@ -6,11 +6,11 @@ import loamstream.util.Hashes
 import scala.util.control.NonFatal
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
-import loamstream.db.OutputRow
 import loamstream.util.Hash
 import java.nio.file.Path
 import scala.util.Try
 import loamstream.db.TestDbDescriptors
+import loamstream.model.jobs.Output.CachedOutput
 
 /**
  * @author clint
@@ -47,9 +47,9 @@ final class SlickLoamDaoTest extends FunSuite with AbstractSlickLoamDaoTest {
       dao.storeHash(path1, hash1)
       dao.storeHash(path2, hash2)
 
-      def outputRow(p: Path, h: Hash): OutputRow = (new RawOutputRow(p, h)).toOutputRow
+      def cachedOutput(p: Path, h: Hash): CachedOutput = (new RawOutputRow(p, h)).toCachedOutput
 
-      val expected = Set(outputRow(path0, hash0), outputRow(path1, hash1), outputRow(path2, hash2))
+      val expected = Set(cachedOutput(path0, hash0), cachedOutput(path1, hash1), cachedOutput(path2, hash2))
 
       //Use Sets to ignore order
       assert(dao.allRows.toSet == expected)

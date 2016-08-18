@@ -12,10 +12,15 @@ import loamstream.util.ValueBox
 import loamstream.db.LoamDao
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.Output
+import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.Output.CachedOutput
 import scala.annotation.migration
-import loamstream.db.OutputRow
 import loamstream.util.TimeEnrichments
 import loamstream.util.Traversables
+import java.nio.file.Path
+import loamstream.util.Hashes
+import loamstream.util.PathUtils
+import loamstream.model.jobs.Output.PathOutput
 
 /**
  * @author clint
@@ -35,61 +40,73 @@ final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContex
     Await.result(futureResults, timeout)
   }
   
-  private[this] lazy val outputs: ValueBox[Map[Output, OutputRow]] = {
+  //Support outputs other than Paths
+  private[this] lazy val outputs: ValueBox[Map[Path, CachedOutput]] = {
     //TODO: All of them?  
-    val map: Map[Output, OutputRow] = dao.allRows.map { row => 
-      Output.CachedOutput(row.path, row.hash, row.lastModified) -> row
-    }.toMap
+    val map: Map[Path, CachedOutput] = dao.allRows.map(row => row.path -> row).toMap
     
     ValueBox(map)
   }
   
-  private def isHashed(output: Output): Boolean = outputs.value.contains(output)
+  private def normalize(p: Path) = p.toAbsolutePath
   
-  private def notHashed(output: Output): Boolean = !isHashed(output)
+  private def isHashed(output: Path): Boolean = {
+    outputs.value.contains(normalize(output))
+  }
+  
+  private def notHashed(output: Path): Boolean = !isHashed(output)
       
-  private def hasDifferentHash(output: Output): Boolean = {
-    outputs.value.get(output) match {
-      case Some(outputRow) => outputRow.hash != output.hash
+  private def hasDifferentHash(output: Path): Boolean = {
+    //TODO: Other hash types
+    def hash(p: Path) = PathOutput(p).hash
+    
+    val path = normalize(output)
+    
+    outputs.value.get(path) match {
+      case Some(cachedOutput) => cachedOutput.hash != hash(path) 
       case None => true
     }
   }
   
-  private def isOlder(output: Output): Boolean = {
+  private def isOlder(output: Path): Boolean = {
     import TimeEnrichments._
     
-    outputs.value.get(output) match {
-      case Some(outputRow) => output.lastModified < outputRow.lastModified
+    def lastModified(p: Path) = PathOutput(p).lastModified
+    
+    val path = normalize(output)
+    
+    outputs.value.get(path) match {
+      case Some(cachedOutput) => lastModified(path) < cachedOutput.lastModified
       case None => false
     }
   }
   
   private def shouldRun(dep: LJob): Boolean = {
     
-    def needsToBeRun(output: Output): Boolean = {
-      output.isMissing || isOlder(output) || notHashed(output) || hasDifferentHash(output)
+    def needsToBeRun(output: Output): Boolean = output match {
+      case Output.PathBased(p) => {
+        val path = normalize(p)
+
+        output.isMissing || isOlder(path) || notHashed(path) || hasDifferentHash(path)
+      }
+      case _ => true
     }
     
-    val result = dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
-    
-    result
+    dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
   }
   
   private def runWithoutDeps(job: LJob): Future[Result] = {
     val f = job.execute
     
-    def toOutputRow(output: Output): OutputRow = {
-      //TODO: Smell
-      val path = output.asInstanceOf[Output.PathOutput].path
-      
-      OutputRow(path, output.lastModified, output.hash)
-    }
+    def toCachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
     
     import Traversables.Implicits._
     
     f.foreach { _ =>
       outputs.mutate { oldOutputs =>
-        val newOutputs = job.outputs.mapTo(toOutputRow)
+        val outputPaths = job.outputs.collect { case Output.PathBased(path) => path }
+        
+        val newOutputs = outputPaths.mapTo(toCachedOutput)
         
         oldOutputs ++ newOutputs 
       }

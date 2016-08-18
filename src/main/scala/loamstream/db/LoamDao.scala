@@ -1,6 +1,8 @@
 package loamstream.db
 
 import java.nio.file.Path
+
+import loamstream.model.jobs.Output
 import loamstream.util.Hash
 
 /**
@@ -13,5 +15,5 @@ trait LoamDao {
   def storeHash(path: Path, hash: Hash): Unit
   
   //TODO: Re-evaluate
-  def allRows: Seq[OutputRow]
+  def allRows: Seq[Output.CachedOutput]
 }

@@ -16,7 +16,12 @@ import loamstream.model.jobs.Output.CachedOutput
  * 
  * A class representing a row in the 'Outputs' table. 
  */
-final case class RawOutputRow private (pathValue: String, lastModified: Timestamp, hashValue: String, hashType: String) {
+final case class RawOutputRow private (
+    pathValue: String, 
+    lastModified: Timestamp, 
+    hashValue: String, 
+    hashType: String) {
+  
   def this(path: Path, hash: Hash) = {
     this(
         normalize(path), 

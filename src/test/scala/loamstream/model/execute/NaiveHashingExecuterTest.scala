@@ -36,7 +36,7 @@ final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoT
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
     import JobState._
 
-    doTest(Seq(NotStarted, Finished, Finished)) { (start, f1, f2, f3) =>
+    doTest(Seq(NotStarted, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{ Files => JFiles }
 
       JFiles.copy(start, f1)
@@ -52,7 +52,7 @@ final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoT
 
     import JobState._
 
-    doTest(Seq(NotStarted, NotStarted, Finished)) { (start, f1, f2, f3) =>
+    doTest(Seq(NotStarted, NotStarted, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{ Files => JFiles }
 
       JFiles.copy(start, f1)
@@ -98,7 +98,7 @@ final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoT
   test("Every job is run for Pipelines with no existing outputs") {
     import JobState._
 
-    doTest(Seq(Finished, Finished, Finished)) { (start, f1, f2, f3) =>
+    doTest(Seq(Succeeded, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
       //No setup
     }
   }
@@ -160,7 +160,7 @@ final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoT
 
       assert(jobStates == expectations)
 
-      assert(jobResults.size == expectations.count(_.isFinished))
+      assert(jobResults.size == expectations.count(_.isSuccess))
 
       assert(jobResults.values.forall(_.get.isSuccess))
     }

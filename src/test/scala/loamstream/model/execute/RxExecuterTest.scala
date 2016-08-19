@@ -16,12 +16,6 @@ final class RxExecuterTest extends FunSuite {
   private def executionCount(job: RxMockJob): Int = job.asInstanceOf[RxMockJob].executionCount
 
   // scalastyle:off
-  test("") {
-    val executer = new RxExecuter
-    executer.hello("Just", "checking")
-    assert(true)
-  }
-
   test("New leaves are executed as soon as possible when there is no delay") {
     /* A four-step pipeline:
      *
@@ -38,7 +32,7 @@ final class RxExecuterTest extends FunSuite {
      *           Job24
      */
 
-    val job11 = new RxMockJob("Job_1_1", delay = 3000)
+    val job11 = new RxMockJob("Job_1_1")
     val job12 = new RxMockJob("Job_1_2")
     val job21 = new RxMockJob("Job_2_1", Set(job11))
     val job22 = new RxMockJob("Job_2_2", Set(job11))

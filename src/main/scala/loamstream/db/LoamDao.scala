@@ -22,4 +22,10 @@ trait LoamDao {
   
   //TODO: Re-evaluate
   def allRows: Seq[CachedOutput]
+ 
+  def createTables(): Unit
+  
+  def dropTables(): Unit
+  
+  def shutdown(): Unit
 }

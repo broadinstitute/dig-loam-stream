@@ -21,6 +21,7 @@ import java.nio.file.Path
 import loamstream.util.Hashes
 import loamstream.util.PathUtils
 import loamstream.model.jobs.Output.PathOutput
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -29,7 +30,7 @@ import loamstream.model.jobs.Output.PathOutput
  * NB: This class contains a naive, first-pass sketch of an executor that takes job outputs' hashes into account.
  * It doesn't make use of any stored information (yet) and is for illustrative purposes only.
  */
-final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContext) extends LExecuter {
+final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContext) extends LExecuter with Loggable {
   
   override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     def toShotMap(m: Map[LJob, Result]): Map[LJob, Shot[Result]] = m.mapValues(Shot(_))
@@ -44,6 +45,14 @@ final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContex
   private[this] lazy val outputs: ValueBox[Map[Path, CachedOutput]] = {
     //TODO: All of them?  
     val map: Map[Path, CachedOutput] = dao.allRows.map(row => row.path -> row).toMap
+    
+    if(isDebugEnabled) {
+      debug(s"Known paths: ${map.size}")
+    
+      map.values.foreach { data =>
+        debug(data.toString)
+      }
+    }
     
     ValueBox(map)
   }
@@ -92,29 +101,39 @@ final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContex
       case _ => true
     }
     
-    dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
+    val result = dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
+    
+    if(!result) {
+      debug("Skipping job $dep")
+    }
+    
+    result
   }
   
   private def runWithoutDeps(job: LJob): Future[Result] = {
     val f = job.execute
     
-    def toCachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
+    def cachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
     
     import Traversables.Implicits._
-    
-    f.foreach { _ =>
+
+    //NB: Use map here instead of foreach to ensure that side-effects happen before the resulting
+    //future is done. 
+    for {
+      result <- f
+    } yield {
       val outputPaths = job.outputs.collect { case Output.PathBased(path) => path }
         
-      val newOutputs = outputPaths.mapTo(toCachedOutput)
+      val newOutputs = outputPaths.mapTo(cachedOutput)
       
       outputs.mutate { oldOutputs =>
         oldOutputs ++ newOutputs 
       }
       
       dao.insertOrUpdate(newOutputs.values)
+      
+      result
     }
-    
-    f
   }
   
   private def run(job: LJob): Future[Map[LJob, Result]] = {

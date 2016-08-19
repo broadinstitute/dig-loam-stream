@@ -9,8 +9,8 @@ import org.scalatest.FunSuite
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.db.TestDbDescriptors
-import loamstream.db.slick.AbstractSlickLoamDaoTest
+import loamstream.db.slick.TestDbDescriptors
+import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.loam.LoamToolBox
 import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.model.jobs.JobState
@@ -27,7 +27,7 @@ import scala.concurrent.Future
  * @author clint
  * date: Aug 12, 2016
  */
-final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoTest {
+final class NaiveHashingExecuterTest extends FunSuite with ProvidesSlickLoamDao {
 
   override val descriptor = TestDbDescriptors.inMemoryH2
 

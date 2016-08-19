@@ -12,6 +12,7 @@ import slick.driver.JdbcProfile
 import java.sql.ResultSet
 import java.sql.Timestamp
 import loamstream.model.jobs.Output.CachedOutput
+import scala.util.Try
 
 /**
  * @author clint
@@ -20,7 +21,7 @@ import loamstream.model.jobs.Output.CachedOutput
  * Rough-draft LoamDao implementation backed by Slick 
  */
 final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
-  val driver = descriptor.driver
+  val driver = descriptor.dbType.driver
   
   import driver.api._
   import SlickLoamDao.waitFor
@@ -54,7 +55,6 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
   override def delete(paths: Iterable[Path]): Unit = {
     val action = deleteAction(paths).transactionally
     
-    //TODO: Re-evaluate
     waitFor(db.run(action))
   }
   
@@ -62,8 +62,10 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     val paths = rows.map(_.path)
     
     val rawRows = rows.map(row => new RawOutputRow(row.path, row.hash))
+
+    val insertAction = tables.outputs ++= rawRows
     
-    val action = DBIO.seq(deleteAction(paths), tables.outputs ++= rawRows).transactionally
+    val action = DBIO.seq(deleteAction(paths), insertAction).transactionally
     
     //TODO: Re-evaluate
     waitFor(db.run(action))
@@ -78,7 +80,13 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     waitFor(futureRow).map(_.toCachedOutput)
   }
   
-  private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.jdbcDriverClass)
+  override def createTables(): Unit = tables.create(db)
+  
+  override def dropTables(): Unit = tables.drop(db)
+  
+  override def shutdown(): Unit = waitFor(db.shutdown)
+  
+  private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.dbType.jdbcDriverClass)
 
   private[slick] lazy val tables = new SlickLoamDao.Tables(driver)
 }

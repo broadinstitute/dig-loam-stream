@@ -1,25 +1,24 @@
 package loamstream.db.slick
 
-import org.scalatest.FunSuite
-import java.nio.file.Paths
-import loamstream.util.Hashes
-import scala.util.control.NonFatal
-import scala.concurrent.duration.Duration
-import scala.concurrent.Await
-import loamstream.util.Hash
 import java.nio.file.Path
-import scala.util.Try
-import loamstream.db.TestDbDescriptors
-import loamstream.util.HashType
+import java.nio.file.Paths
+
+import org.scalatest.FunSuite
+
 import loamstream.model.jobs.Output.CachedOutput
+import loamstream.util.Hash
+import loamstream.util.HashType
+import loamstream.util.Hashes
+
 
 /**
  * @author clint
  * date: Aug 9, 2016
  */
-final class SlickLoamDaoTest extends FunSuite with AbstractSlickLoamDaoTest {
+final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
+  
   override val descriptor = TestDbDescriptors.inMemoryH2
-
+  
   test("insert/Read") {
     createTablesAndThen {
       val path = Paths.get("src/test/resources/for-hashing/foo.txt")

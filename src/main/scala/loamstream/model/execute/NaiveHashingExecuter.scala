@@ -104,7 +104,7 @@ final class NaiveHashingExecuter(dao: LoamDao)(implicit context: ExecutionContex
     val result = dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
     
     if(!result) {
-      debug("Skipping job $dep")
+      debug(s"Skipping job $dep")
     }
     
     result

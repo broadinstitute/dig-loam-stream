@@ -26,10 +26,8 @@ object LoamRunApp extends App with Loggable {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val pollingFrequencyInHz = 0.033
-
+  //TODO: Make this configurable
   val dbDescriptor = DbDescriptor(DbType.H2, s"jdbc:h2:./.loamstream/db;DB_CLOSE_DELAY=-1")
-  //val dbDescriptor = DbDescriptor(DbType.H2, s"jdbc:h2:./.loamstream/db")
   
   withDao(new SlickLoamDao(dbDescriptor)) { dao =>
   
@@ -50,7 +48,8 @@ object LoamRunApp extends App with Loggable {
   private def withDao[A](dao: LoamDao)(f: LoamDao => A): A = {
     try { 
       //Succinctly ignore failures
-      //Try(dao.createTables())
+      //TODO: Make whether this happens configurable
+      Try(dao.createTables()) 
       
       f(dao) 
     } finally { 

@@ -5,13 +5,13 @@ package loamstream.model.jobs
  * date: Aug 2, 2016
  */
 trait JobState {
-  def isFinished: Boolean = this == JobState.Finished
+  def isSuccess: Boolean = this == JobState.Succeeded
 }
 
 object JobState {
   case object NotStarted extends JobState
   case object Running extends JobState
   case object Failed extends JobState
-  case object Finished extends JobState
+  case object Succeeded extends JobState
   case object Unknown extends JobState
 }

@@ -3,7 +3,7 @@ package loamstream.model.execute
 import loamstream.model.execute.RxExecuter.RxMockJob._
 import loamstream.model.execute.RxExecuter.{Tracker, RxMockExecutable, RxMockJob}
 import loamstream.model.jobs.JobState
-import loamstream.model.jobs.JobState.{Finished, NotStarted, Running}
+import loamstream.model.jobs.JobState.{Succeeded, NotStarted, Running}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
 import rx.lang.scala.subjects.PublishSubject
 import rx.lang.scala.Observable
@@ -56,7 +56,7 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
 
     def executeIter(jobs: Set[RxMockJob]): Unit = {
       if (jobs.isEmpty) {
-        if (_jobStates.values.forall(_ == Finished)) {
+        if (_jobStates.values.forall(_ == Succeeded)) {
           everythingIsDonePromise.success(())
         }
       } else {
@@ -139,7 +139,7 @@ object RxExecuter {
     }
     def deferredJobStateObservable: Observable[JobState] = Observable.defer(jobStateObservable)
 
-    def isRunnable: Boolean = getJobState == NotStarted && (inputs.isEmpty || inputs.forall(_.getJobState == Finished))
+    def isRunnable: Boolean = getJobState == NotStarted && (inputs.isEmpty || inputs.forall(_.getJobState == Succeeded))
 
     private[this] val executionCountLock = new AnyRef
     private[this] var _executionCount = 0
@@ -152,7 +152,7 @@ object RxExecuter {
       emitJobState
       Thread.sleep(delay)
       trace("\t\t\tFinishing job: " + this.name)
-      setJobState(Finished)
+      setJobState(Succeeded)
       emitJobState
       executionCountLock.synchronized(_executionCount += 1)
       RxMockJob.SimpleSuccess(name)

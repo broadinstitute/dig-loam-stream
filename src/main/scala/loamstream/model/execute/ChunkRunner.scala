@@ -12,6 +12,6 @@ import scala.concurrent.ExecutionContext
  */
 trait ChunkRunner {
   def maxNumJobs: Int
-
+  
   def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]]
 }

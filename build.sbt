@@ -11,6 +11,8 @@ lazy val Versions = new {
   val ScalaTest = "3.0.0"
   val TypesafeConfig = "1.3.0"
   val Monix = "2.0-RC9"
+  val Slick = "3.1.1"
+  val H2 = "1.4.192"
 }
 
 lazy val mainDeps = Seq(
@@ -23,7 +25,9 @@ lazy val mainDeps = Seq(
   "us.levk" % "drmaa-gridengine" % Versions.DrmaaGridEngine,
   "ch.qos.logback" % "logback-classic" % Versions.LogBack,
   "com.typesafe" % "config" % Versions.TypesafeConfig,
-  "io.monix" %% "monix" % Versions.Monix
+  "io.monix" %% "monix" % Versions.Monix,
+  "com.typesafe.slick" %% "slick" % Versions.Slick,
+  "com.h2database" % "h2" % Versions.H2
 )
 
 lazy val testDeps = Seq(

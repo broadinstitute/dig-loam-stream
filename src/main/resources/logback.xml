@@ -23,5 +23,8 @@
     </root>
 
     <logger name="org.broadinstitute.genomestore.GenomeStore" level="INFO"/>
+    
+    <!-- Without this, Slick spews tons and tons of stuff to the console -->
+    <logger name="slick" level="INFO" />
 
 </configuration>

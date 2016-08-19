@@ -100,11 +100,11 @@ class LoamNativeToolTest extends FunSuite {
     val branchJobCounterBox : ValueBox[Int] = new ValueBox[Int](0)
     for(iBranch <- 0 until nBranches) {
       val interStore = store[TXT]
-      interStoresBox(_ + interStore)
+      interStoresBox.mutate(_ + interStore)
       job(in(inStore), out(interStore)) {
         assert(thisTool.inputs.values.toSet === Set(inStore))
         assert(thisTool.outputs.values.toSet === Set(interStore))
-        branchJobCounterBox(_ + 1)
+        branchJobCounterBox.mutate(_ + 1)
       }
     }
     job(in(interStoresBox.value), out(outStore)) {

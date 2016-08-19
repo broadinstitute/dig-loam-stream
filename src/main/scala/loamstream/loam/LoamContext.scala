@@ -4,7 +4,7 @@ import loamstream.loam.files.LoamFileManager
 import loamstream.util.ValueBox
 
 /** Container for compile time and run time context */
-class LoamContext {
+final class LoamContext {
 
   val graphBox: ValueBox[LoamGraph] = new ValueBox(LoamGraph.empty)
 
@@ -16,10 +16,10 @@ class LoamContext {
 
   def currentThreadId: Long = Thread.currentThread.getId
 
-  def setCurrentTool(tool: LoamNativeTool[_]) : Unit = currentToolsBox(_ + (currentThreadId -> tool))
+  def setCurrentTool(tool: LoamNativeTool[_]) : Unit = currentToolsBox.mutate(_ + (currentThreadId -> tool))
 
   def getCurrentTool: Option[LoamNativeTool[_]] = currentToolsBox.get(_.get(currentThreadId))
 
-  def unsetCurrentTool(): Unit = currentToolsBox(_ - currentThreadId)
+  def unsetCurrentTool(): Unit = currentToolsBox.mutate(_ - currentThreadId)
 
 }

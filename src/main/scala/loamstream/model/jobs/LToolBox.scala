@@ -1,8 +1,9 @@
 package loamstream.model.jobs
 
+import loamstream.model.{AST, Tool}
+
 import loamstream.model.execute.LExecutable
-import loamstream.model.{AST, LPipeline, Tool}
-import loamstream.util.{Hit, Shot}
+import loamstream.util.Shot
 
 /**
   * LoamStream

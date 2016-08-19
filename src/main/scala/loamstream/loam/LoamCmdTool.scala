@@ -39,7 +39,7 @@ object LoamCmdTool {
 
   def create(tokens: Seq[LoamToken])(implicit context: LoamContext): LoamCmdTool = {
     val tool = LoamCmdTool(LId.newAnonId, tokens)
-    context.graphBox(_.withTool(tool))
+    context.graphBox.mutate(_.withTool(tool))
     tool
   }
 }
@@ -47,6 +47,7 @@ object LoamCmdTool {
 /** A command line tool specified in a Loam script */
 final case class LoamCmdTool private(id: LId, tokens: Seq[LoamToken])(implicit val context: LoamContext)
   extends LoamTool {
+  
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
 }

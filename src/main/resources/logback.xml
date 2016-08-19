@@ -16,12 +16,12 @@
     </appender>
 
     <!-- Logging levels in the order of increasing significance are: TRACE < DEBUG < INFO <  WARN < ERROR -->
-    <!-- Only display messages of the level set below or higher -->
+    <!-- Only display messages of `level` or higher-->
     <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>
     </root>
 
-    <logger name="org.broadinstitute.genomestore.GenomeStore" level="INFO"/>
+    <logger name="LoamStream" level="INFO"/>
 
 </configuration>

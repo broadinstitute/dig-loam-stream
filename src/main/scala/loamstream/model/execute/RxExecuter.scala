@@ -18,7 +18,7 @@ import scala.util.control.NonFatal
  *         date: Aug 17, 2016
  */
 final class RxExecuter extends Loggable {
-  // scalastyle:off
+  // scalastyle:off method.length
   def execute(executable: RxMockExecutable)(implicit timeout: Duration = Duration.Inf): Map[RxMockJob, Shot[Result]] = {
     def flattenTree(tree: Set[RxMockJob]): Set[RxMockJob] = {
       tree.foldLeft(tree)((acc, x) =>
@@ -45,11 +45,12 @@ final class RxExecuter extends Loggable {
     val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
     val allJobStatuses = PublishSubject[Map[RxMockJob, JobState]]
+
     def updateJobState(job: RxMockJob, newState: JobState): Unit = {
       jobStatesLock.synchronized {
         _jobStates(job) = newState
       }
-      println("+++Emitting all job statuses")
+      trace("+++Emitting all job statuses")
       allJobStatuses.onNext(_jobStates.toMap)
     }
 
@@ -59,15 +60,15 @@ final class RxExecuter extends Loggable {
           everythingIsDonePromise.success(())
         }
       } else {
-        println("Jobs already launched: ")
-        jobsAlreadyLaunched.foreach(job => println("\t" + job.name))
+        trace("Jobs already launched: ")
+        jobsAlreadyLaunched.foreach(job => trace("\t" + job.name))
 
         jobsReadyToDispatchLock.synchronized {
           _jobsReadyToDispatch =
             collection.mutable.Set[RxMockJob](getRunnableJobs(jobs).toArray: _*) -- jobsAlreadyLaunched
         }
-        println("Jobs ready to dispatch: ")
-        jobsReadyToDispatch.foreach(job => println("\t" + job.name))
+        debug("Jobs ready to dispatch: ")
+        jobsReadyToDispatch.foreach(job => debug("\t" + job.name))
         import scala.concurrent.ExecutionContext.Implicits.global
         Future {
           jobsReadyToDispatch.par.foreach { job =>
@@ -89,7 +90,7 @@ final class RxExecuter extends Loggable {
       job.jobStateChange.subscribe(jobState => updateJobState(job, jobState))
     }
 
-    allJobStatuses.subscribe(jobStatuses => {
+    allJobStatuses.sample(10 millis).subscribe(jobStatuses => {
       executeIter(getRunnableJobs(jobStatuses.keySet))
     })
 
@@ -102,6 +103,7 @@ final class RxExecuter extends Loggable {
       _result.toMap.strictMapValues(Hit(_))
     }
   }
+  // scalastyle:off method.length
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)
 }
@@ -130,8 +132,10 @@ object RxExecuter {
     def jobStateObservable: Observable[JobState] = Observable.just(getJobState)
 
     val jobStateChange = PublishSubject[JobState]
-    def emitJobState = {println("***Emitting job state change ==> " + getJobState); jobStateChange.onNext(getJobState)}
-
+    private def emitJobState: Unit = {
+      trace("***Emitting job state change ==> " + getJobState)
+      jobStateChange.onNext(getJobState)
+    }
     def deferredJobStateObservable: Observable[JobState] = Observable.defer(jobStateObservable)
 
     def isRunnable: Boolean = getJobState == NotStarted && (inputs.isEmpty || inputs.forall(_.getJobState == Finished))
@@ -142,11 +146,11 @@ object RxExecuter {
     def executionCount = executionCountLock.synchronized(_executionCount)
 
     def execute: Result = {
-      println("\t\tStarting job: " + this.name)
+      trace("\t\tStarting job: " + this.name)
       setJobState(Running)
       emitJobState
       Thread.sleep(delay)
-      println("\t\t\tFinishing job: " + this.name)
+      trace("\t\t\tFinishing job: " + this.name)
       setJobState(Finished)
       emitJobState
       executionCountLock.synchronized(_executionCount += 1)
@@ -219,6 +223,4 @@ object RxExecuter {
   object RxMockExecutable {
     val empty = RxMockExecutable(Set.empty)
   }
-
 }
-// scalastyle:on

@@ -2,7 +2,6 @@ package loamstream.loam
 
 import loamstream.loam.LoamToken.StringToken
 import loamstream.model.{LId, StoreSig}
-import loamstream.util.ValueBox
 import org.scalatest.FunSuite
 
 /**
@@ -14,11 +13,11 @@ final class LoamCmdToolTest extends FunSuite {
   import LoamCmdTool._
 
   test("string interpolation (trivial)") {
-    implicit val graphBox = new ValueBox(LoamGraph.empty)
+    implicit val context = new LoamContext
 
     val tool = cmd"foo bar baz"
 
-    assert(tool.graph eq graphBox.value)
+    assert(tool.graph eq context.graphBox.value)
 
     assert(tool.graph.stores == Set.empty)
     assert(tool.graph.storeSinks == Map.empty)
@@ -36,7 +35,7 @@ final class LoamCmdToolTest extends FunSuite {
 
   test("in() and out()") {
 
-    implicit val graphBox = new ValueBox(LoamGraph.empty)
+    implicit val context = new LoamContext
 
     val tool = cmd"foo bar baz"
 

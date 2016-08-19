@@ -9,7 +9,7 @@ import org.scalatest.FunSuite
 final class JobTest extends FunSuite with TestJobs {
   test("chunks()") {
     def jobToString(j: LJob): String = {
-      val MockLJob(_, LJob.SimpleSuccess(msg)) = j
+      val MockJob(LJob.SimpleSuccess(msg), _, _, _, _) = j
       
       msg
     }

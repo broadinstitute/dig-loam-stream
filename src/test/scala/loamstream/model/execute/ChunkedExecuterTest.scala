@@ -9,6 +9,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
+import loamstream.model.jobs.Output
+import loamstream.util.ValueBox
+import loamstream.model.jobs.MockJob
 
 /**
   * @author clint
@@ -24,7 +27,9 @@ final class ChunkedExecuterTest extends ExecuterTest {
   
   private val executer = ChunkedExecuter.default
 
-  private def addNoOp(executable: LExecutable): LExecutable = LExecutable(Set(MockJob("NoOp", executable.jobs)))
+  private def success(name: String) = LJob.SimpleSuccess(name)
+  
+  private def addNoOp(executable: LExecutable) = LExecutable(Set(MockJob(success("NoOp"), "NoOp", executable.jobs)))
   
   private def executionCount(job: LJob): Int = job.asInstanceOf[MockJob].executionCount
   
@@ -37,10 +42,10 @@ final class ChunkedExecuterTest extends ExecuterTest {
      *           \
      *            Impute2
      */
-    val firstStepJob = MockJob("1st_step")
-    val secondStepJob1 = MockJob("2nd_step_job_1", Set(firstStepJob))
-    val secondStepJob2 = MockJob("2nd_step_job_2", Set(firstStepJob))
-    val secondStepJob3 = MockJob("2nd_step_job_3", Set(firstStepJob))
+    val firstStepJob = MockJob(success("1st_step"))
+    val secondStepJob1 = MockJob(success("2nd_step_job_1"), inputs = Set(firstStepJob))
+    val secondStepJob2 = MockJob(success("2nd_step_job_2"), inputs = Set(firstStepJob))
+    val secondStepJob3 = MockJob(success("2nd_step_job_3"), inputs = Set(firstStepJob))
     
     val twoStepExecutable = addNoOp(LExecutable(Set(secondStepJob1, secondStepJob2, secondStepJob3)))
     
@@ -80,11 +85,11 @@ final class ChunkedExecuterTest extends ExecuterTest {
      *           \        /
      *            Impute2
      */
-    val firstStepJob = MockJob("1st_step")
-    val secondStepJob1 = MockJob("2nd_step_job_1", Set(firstStepJob))
-    val secondStepJob2 = MockJob("2nd_step_job_2", Set(firstStepJob))
-    val secondStepJob3 = MockJob("2nd_step_job_3", Set(firstStepJob))
-    val thirdStepJob = MockJob("3rd_step", Set(secondStepJob1, secondStepJob2, secondStepJob3))
+    val firstStepJob = MockJob(success("1st_step"))
+    val secondStepJob1 = MockJob(success("2nd_step_job_1"), inputs = Set(firstStepJob))
+    val secondStepJob2 = MockJob(success("2nd_step_job_2"), inputs = Set(firstStepJob))
+    val secondStepJob3 = MockJob(success("2nd_step_job_3"), inputs = Set(firstStepJob))
+    val thirdStepJob = MockJob(success("3rd_step"), inputs = Set(secondStepJob1, secondStepJob2, secondStepJob3))
     
     val threeStepExecutable = LExecutable(Set(thirdStepJob))
     
@@ -124,11 +129,11 @@ final class ChunkedExecuterTest extends ExecuterTest {
      *           \        /
      *            Impute2
      */
-    val firstStepJob = MockJob("1st_step")
-    val secondStepJob1 = MockJob("2nd_step_job_1", Set(firstStepJob))
-    val secondStepJob2 = MockJob("2nd_step_job_2", Set(firstStepJob))
-    val secondStepJob3 = MockJob("2nd_step_job_3", Set(firstStepJob))
-    val thirdStepJob = MockJob("3rd_step", Set(secondStepJob1, secondStepJob2, secondStepJob3))
+    val firstStepJob = MockJob(success("1st_step"))
+    val secondStepJob1 = MockJob(success("2nd_step_job_1"), inputs = Set(firstStepJob))
+    val secondStepJob2 = MockJob(success("2nd_step_job_2"), inputs = Set(firstStepJob))
+    val secondStepJob3 = MockJob(success("2nd_step_job_3"), inputs = Set(firstStepJob))
+    val thirdStepJob = MockJob(success("3rd_step"), inputs = Set(secondStepJob1, secondStepJob2, secondStepJob3))
 
     val threeStepExecutable = LExecutable(Set(thirdStepJob))
 
@@ -156,15 +161,15 @@ final class ChunkedExecuterTest extends ExecuterTest {
      *           Job24
      */
     // The delay added to job11 should cause job23 and job24 to be bundled and executed prior to job21 and job22
-    val job11 = MockJob("1st_step_job_1", delay = 1000) // scalastyle:ignore magic.number
-    val job12 = MockJob("1st_step_job_2")
-    val job21 = MockJob("2nd_step_job_1", Set(job11))
-    val job22 = MockJob("2nd_step_job_2", Set(job11))
-    val job23 = MockJob("2nd_step_job_3", Set(job12))
-    val job24 = MockJob("2nd_step_job_4", Set(job12))
-    val job31 = MockJob("3rd_step_job_1", Set(job21, job22))
-    val job32 = MockJob("3rd_step_job_2", Set(job23, job24))
-    val job4  = MockJob("4th_step_job"  , Set(job31, job32))
+    val job11 = MockJob(success("1st_step_job_1"), delay = 1000) // scalastyle:ignore magic.number
+    val job12 = MockJob(success("1st_step_job_2"))
+    val job21 = MockJob(success("2nd_step_job_1"), inputs = Set(job11))
+    val job22 = MockJob(success("2nd_step_job_2"), inputs = Set(job11))
+    val job23 = MockJob(success("2nd_step_job_3"), inputs = Set(job12))
+    val job24 = MockJob(success("2nd_step_job_4"), inputs = Set(job12))
+    val job31 = MockJob(success("3rd_step_job_1"), inputs = Set(job21, job22))
+    val job32 = MockJob(success("3rd_step_job_2"), inputs = Set(job23, job24))
+    val job4  = MockJob(success("4th_step_job")  , inputs = Set(job31, job32))
 
     val executable = LExecutable(Set(job4))
 
@@ -180,22 +185,6 @@ final class ChunkedExecuterTest extends ExecuterTest {
 }
 
 object ChunkedExecuterTest {
-  private final case class MockJob(name: String, inputs: Set[LJob] = Set.empty, delay: Int = 0) extends LJob {
-    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-    
-    private[this] val lock = new AnyRef
-    
-    private[this] var _executionCount = 0
-    
-    def executionCount = lock.synchronized(_executionCount)
-    
-    override def execute(implicit context: ExecutionContext): Future[Result] = {
-      lock.synchronized(_executionCount += 1)
-      Thread.sleep(delay)
-      Future.successful(LJob.SimpleSuccess(name))
-    }
-  }
-
   private final case class MockChunkRunner(delegate: ChunkRunner, maxNumJobs: Int) extends ChunkRunner {
     var chunks: Seq[Set[LJob]] = Nil
 

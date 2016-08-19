@@ -60,7 +60,7 @@ final class LoamCompilerTest extends FunSuite {
     val result = compiler.compile(codeShot.get)
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)
-    val graph = result.graphOpt.get
+    val graph = result.contextOpt.get.graph
     assert(graph.tools.size === 2)
     assert(graph.stores.size === 4)
     val sources = graph.storeSources.values.toSet

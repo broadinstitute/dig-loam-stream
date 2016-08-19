@@ -22,7 +22,7 @@ object ObservableEnrichments {
      * 
      * val statuses: Obervable[JobStatus] = ... // monitor some job
      * 
-     * statuses.takeUntil(_.isFinished)
+     * statuses.until(_.isFinished)
      * 
      * will produce an Observable that will emit elements like
      * 
@@ -32,7 +32,7 @@ object ObservableEnrichments {
      * 
      * val numbers = Observable(1,2,3,4,5,6,7,8,9,10) //an Observable that emits the elements passed to apply()
      * 
-     * numbers.takeUntil(_ >= 6)
+     * numbers.until(_ >= 6)
      * 
      * Would produce an Observable that yields 
      * 

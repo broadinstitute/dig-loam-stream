@@ -6,6 +6,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.CommandLineJob.noOpProcessLogger
 
 import scala.sys.process.{Process, ProcessBuilder, ProcessLogger}
+import loamstream.model.jobs.Output
 
 /**
   * LoamStream
@@ -17,6 +18,7 @@ final case class CommandLineStringJob(
     commandLineString: String, 
     workDir: Path, 
     inputs: Set[LJob] = Set.empty,
+    outputs: Set[Output] = Set.empty,
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
     override val logger: ProcessLogger = noOpProcessLogger) extends CommandLineJob {
   

@@ -1,7 +1,7 @@
 package loamstream.model.execute
 
 import loamstream.model.execute.RxExecuter.RxMockJob._
-import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
+import loamstream.model.execute.RxExecuter.{Tracker, RxMockExecutable, RxMockJob}
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.JobState.{Finished, NotStarted, Running}
 import loamstream.util.{Hit, Loggable, Maps, Shot}
@@ -17,7 +17,7 @@ import scala.util.control.NonFatal
  * @author kaan
  *         date: Aug 17, 2016
  */
-final class RxExecuter extends Loggable {
+final class RxExecuter(val tracker: Tracker) extends Loggable {
   // scalastyle:off method.length
   def execute(executable: RxMockExecutable)(implicit timeout: Duration = Duration.Inf): Map[RxMockJob, Shot[Result]] = {
     def flattenTree(tree: Set[RxMockJob]): Set[RxMockJob] = {
@@ -27,18 +27,18 @@ final class RxExecuter extends Loggable {
 
     def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = jobs.filter(_.isRunnable)
 
-    val _jobsAlreadyLaunched: collection.mutable.Set[RxMockJob] = collection.mutable.Set.empty
+    val _jobsAlreadyLaunched = collection.mutable.Set.empty[RxMockJob]
     val jobsAlreadyLaunchedLock = new AnyRef
     def jobsAlreadyLaunched = jobsAlreadyLaunchedLock.synchronized(_jobsAlreadyLaunched)
 
-    var _jobsReadyToDispatch: collection.mutable.Set[RxMockJob] = collection.mutable.Set.empty
+    var _jobsReadyToDispatch = collection.mutable.Set.empty[RxMockJob]
     val jobsReadyToDispatchLock = new AnyRef
     def jobsReadyToDispatch = jobsReadyToDispatchLock.synchronized(_jobsReadyToDispatch)
 
-    val _jobStates: collection.mutable.Map[RxMockJob, JobState] = collection.mutable.Map.empty
+    val _jobStates = collection.mutable.Map.empty[RxMockJob, JobState]
     val jobStatesLock = new AnyRef
 
-    var _result: collection.mutable.Map[RxMockJob, Result] = collection.mutable.Map.empty
+    var _result = collection.mutable.Map.empty[RxMockJob, Result]
     val resultLock = new AnyRef
 
     val everythingIsDonePromise: Promise[Unit] = Promise()
@@ -71,6 +71,7 @@ final class RxExecuter extends Loggable {
         jobsReadyToDispatch.foreach(job => debug("\t" + job.name))
         import scala.concurrent.ExecutionContext.Implicits.global
         Future {
+          tracker.addJobs(jobsReadyToDispatch.toSet)
           jobsReadyToDispatch.par.foreach { job =>
             val newResult = job -> job.execute
             resultLock.synchronized(_result += newResult)
@@ -109,7 +110,7 @@ final class RxExecuter extends Loggable {
 }
 
 object RxExecuter {
-  def default: RxExecuter = new RxExecuter
+  def default: RxExecuter = new RxExecuter(new Tracker)
 
   class RxMockJob(val name: String, val inputs: Set[RxMockJob] = Set.empty, delay: Int = 0)
     extends Loggable {
@@ -222,5 +223,14 @@ object RxExecuter {
 
   object RxMockExecutable {
     val empty = RxMockExecutable(Set.empty)
+  }
+
+  final case class Tracker() {
+    private var _executionSeq = collection.mutable.ArrayBuffer.empty[Set[RxMockJob]]
+    private val executionSeqLock = new AnyRef
+
+    def addJobs(jobs: Set[RxMockJob]): Unit = executionSeqLock.synchronized(_executionSeq += jobs)
+
+    def jobExecutionSeq = executionSeqLock.synchronized(_executionSeq.toArray)
   }
 }

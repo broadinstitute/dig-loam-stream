@@ -8,13 +8,6 @@ import org.scalatest.FunSuite
  *         date: Aug 17, 2016
  */
 final class RxExecuterTest extends FunSuite {
-  private val executer = RxExecuter.default
-
-  private def addNoOp(executable: RxMockExecutable): RxMockExecutable =
-    RxMockExecutable(Set(new RxMockJob("NoOp", executable.jobs)))
-
-  private def executionCount(job: RxMockJob): Int = job.asInstanceOf[RxMockJob].executionCount
-
   // scalastyle:off magic.number
   test("New leaves are executed as soon as possible when there is no delay") {
     /* A four-step pipeline:
@@ -31,6 +24,8 @@ final class RxExecuterTest extends FunSuite {
      *          \      /
      *           Job24
      */
+
+    val executer = RxExecuter.default
 
     val job11 = new RxMockJob("Job_1_1")
     val job12 = new RxMockJob("Job_1_2")
@@ -66,6 +61,14 @@ final class RxExecuterTest extends FunSuite {
     assert(job4.executionCount == 1)
 
     assert(result.size === 9)
+
+    // Check if jobs were correctly chunked
+    val jobExecutionSeq = executer.tracker.jobExecutionSeq
+    assert(jobExecutionSeq.length == 4)
+    assert(jobExecutionSeq(0) == Set(job11, job12))
+    assert(jobExecutionSeq(1) == Set(job21, job22, job23, job24))
+    assert(jobExecutionSeq(2) == Set(job31, job32))
+    assert(jobExecutionSeq(3) == Set(job4))
   }
 
   test("New leaves are executed as soon as possible when there are delays") {
@@ -83,6 +86,9 @@ final class RxExecuterTest extends FunSuite {
      *          \      /
      *           Job24
      */
+
+    val executer = RxExecuter.default
+
     // The delay added to job11 should cause job23 and job24 to be bundled and executed prior to job21 and job22
     val job11 = new RxMockJob("Job_1_1", delay = 100)
     val job12 = new RxMockJob("Job_1_2", delay = 50)
@@ -118,6 +124,16 @@ final class RxExecuterTest extends FunSuite {
     assert(job4.executionCount == 1)
 
     assert(result.size === 9)
+
+    // Check if jobs were correctly chunked
+    val jobExecutionSeq = executer.tracker.jobExecutionSeq
+    assert(jobExecutionSeq.length == 6)
+    assert(jobExecutionSeq(0) == Set(job11, job12))
+    assert(jobExecutionSeq(1) == Set(job23, job24))
+    assert(jobExecutionSeq(2) == Set(job21, job22))
+    assert(jobExecutionSeq(3) == Set(job31))
+    assert(jobExecutionSeq(4) == Set(job32))
+    assert(jobExecutionSeq(5) == Set(job4))
   }
   // scalastyle:on magic.number
 }

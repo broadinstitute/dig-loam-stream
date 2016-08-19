@@ -4,13 +4,13 @@ package loamstream.loam
 final case class LoamStoreKeySlot(store: LoamStore, name: String)(implicit context: LoamContext) {
   /** Specifies that this key slot has the same set of keys as that key slot (order may be different) */
   def setSameSetAs(oSlot: LoamStoreKeySlot): LoamStoreKeySlot = {
-    context.graphBox(_.withKeysSameSet(this, oSlot))
+    context.graphBox.mutate(_.withKeysSameSet(this, oSlot))
     this
   }
 
   /** Specifies that this key slot has the same list of keys as that key slot (same order) */
   def setSameListAs(oSlot: LoamStoreKeySlot): LoamStoreKeySlot = {
-    context.graphBox(_.withKeysSameList(this, oSlot))
+    context.graphBox.mutate(_.withKeysSameList(this, oSlot))
     this
   }
 

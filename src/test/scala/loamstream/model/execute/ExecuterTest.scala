@@ -6,7 +6,7 @@ import org.scalatest.FunSuite
 
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.MockLJob
+import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.TestJobs
 import loamstream.util.Hit
 import loamstream.util.Shot
@@ -102,9 +102,9 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   
   withExecuter("execute() should work if some (early) sub-jobs fail") { executer =>
 
-    val twoPlusTwo = MockLJob(Set(two0Failed, two1Failed), twoPlusTwoFailure)
+    val twoPlusTwo = MockJob(twoPlusTwoFailure, inputs = Set(two0Failed, two1Failed))
 
-    val plusOne = MockLJob(Set(twoPlusTwo), plusOneFailure)
+    val plusOne = MockJob(plusOneFailure, inputs = Set(twoPlusTwo))
     
     val executable = LExecutable(Set(plusOne))
 
@@ -122,9 +122,9 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   
   withExecuter("execute() should work if some (late) sub-jobs fail") { executer =>
 
-    val twoPlusTwo = MockLJob(Set(two0, two1), twoPlusTwoFailure)
+    val twoPlusTwo = MockJob(twoPlusTwoFailure, inputs = Set(two0, two1))
 
-    val plusOne = MockLJob(Set(twoPlusTwo), plusOneFailure)
+    val plusOne = MockJob(plusOneFailure, inputs = Set(twoPlusTwo))
     
     val executable = LExecutable(Set(plusOne))
 

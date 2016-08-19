@@ -4,7 +4,7 @@ import loamstream.loam.files.LoamFileManager
 import loamstream.util.ValueBox
 
 /** Container for compile time and run time context */
-class LoamContext {
+final class LoamContext {
 
   val graphBox: ValueBox[LoamGraph] = new ValueBox(LoamGraph.empty)
 

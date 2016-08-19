@@ -1,10 +1,11 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scala.util.control.NonFatal
+
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.{DagHelpers, Loggable, TypeBox}
-
-import scala.util.control.NonFatal
+import loamstream.util.ValueBox
 import scala.reflect.runtime.universe.Type
 
 /**
@@ -20,20 +21,57 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     inputs.foreach(_.print(indent + 2))
   }
 
+  /**
+   * Any jobs this job depends on
+   */
   def inputs: Set[LJob]
 
+  /**
+   * Any outputs produced by this job
+   */
+  def outputs: Set[Output]
+  
+  private val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
+  
+  /**
+   * This job's current state
+   */
+  final def state: JobState = stateRef.value
+  
+  final protected def isSuccess: Boolean = state.isSuccess
+  
+  /**
+   * Decorates exececuteSelf, updating the value of 'state' from
+   * Running to (Succeeded | Failed).
+   * 
+   * TODO: Go back to just 'execute', and use a decorator subclass of LJob to do 
+   * the work currently done by this method.
+   */
+  final def execute(implicit context: ExecutionContext): Future[Result] = {
+    val f = executeSelf
+    
+    import JobState._
+    
+    stateRef() = Running
+    
+    f.foreach { result =>
+      stateRef() = if(result.isSuccess) Succeeded else Failed
+    }
+    
+    f
+  }
+  
+  /**
+   * Implementions of executeSelf will do any actual work performed by this job   
+   */
+  protected def executeSelf(implicit context: ExecutionContext): Future[Result]
+  
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 
   final def withInputs(newInputs: Set[LJob]): LJob = {
-    if (inputs eq newInputs) {
-      this
-    }
-    else {
-      doWithInputs(newInputs)
-    }
+    if (inputs eq newInputs) { this }
+    else { doWithInputs(newInputs) }
   }
-
-  def execute(implicit context: ExecutionContext): Future[Result]
 
   protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))
 

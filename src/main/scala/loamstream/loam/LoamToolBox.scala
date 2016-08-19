@@ -6,6 +6,9 @@ import loamstream.model.Tool
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.{LJob, LToolBox, NativeJob}
 import loamstream.util.{Hit, Miss, Shot, Snag}
+import loamstream.loam.LoamGraph.StoreEdge.PathEdge
+import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
+import loamstream.model.jobs.Output
 
 /**
   * LoamStream
@@ -20,16 +23,26 @@ final class LoamToolBox(context: LoamContext) extends LToolBox {
   private[loam] def newLoamJob(tool: LoamTool): Shot[LJob] = {
     val graph = tool.graphBox.value
 
+    def pathOutputsFor(tool: LoamTool): Set[Output] = {
+      val loamStores: Set[LoamStore] = graph.toolOutputs(tool) 
+      
+      loamStores.flatMap(_.pathOpt).map(Output.PathOutput)
+    }
+
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
 
     val shotsForPrecedingTools: Shot[Set[LJob]] = Shot.sequence(graph.toolsPreceding(tool).map(getLoamJob))
 
     shotsForPrecedingTools.map { inputJobs =>
+      val outputs = pathOutputsFor(tool)
+      
       tool match {
         case cmdTool: LoamCmdTool =>
           val commandLineString = cmdTool.tokens.map(_.toString(context.fileManager)).mkString
-          CommandLineStringJob(commandLineString, workDir, inputJobs)
-        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs)
+          
+          CommandLineStringJob(commandLineString, workDir, inputJobs, outputs)
+          
+        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs)
       }
     }
   }
@@ -38,7 +51,7 @@ final class LoamToolBox(context: LoamContext) extends LToolBox {
     loamJobs.get(tool) match {
       case Some(job) => Hit(job)
       case _ => newLoamJob(tool) match {
-        case jobHit@Hit(job) =>
+        case jobHit @ Hit(job) =>
           loamJobs += tool -> job
           jobHit
         case miss: Miss => miss
@@ -50,5 +63,4 @@ final class LoamToolBox(context: LoamContext) extends LToolBox {
     case loamTool: LoamTool => getLoamJob(loamTool)
     case _ => Miss(Snag(s"LoamToolBox only knows Loam tools; it doesn't know about $tool."))
   }
-
 }

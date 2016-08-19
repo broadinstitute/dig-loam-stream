@@ -2,16 +2,18 @@ package loamstream.tools.core
 
 import java.nio.file.{Files, Path}
 
+import scala.concurrent.{ ExecutionContext, Future }
+
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.Tool
-import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
-import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.model.jobs.{LJob, LToolBox}
-import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
+import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
+import loamstream.model.jobs.Output
+import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.tools._
+import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
 import loamstream.util._
-
-import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * LoamStream
@@ -26,12 +28,14 @@ object CoreToolBox extends LToolBox {
   trait CheckPreexistingFileJob extends LJob {
     def file: Path
 
-    override def execute(implicit context: ExecutionContext): Future[Result] = Future {
+    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
       Result.attempt {
         if (Files.exists(file)) { FileExists(file) }
         else { SimpleFailure(s"$file does not exist.") }
       }
     }
+    
+    override val outputs: Set[Output] = Set(PathOutput(file))
   }
 
   final case class CheckPreexistingVcfFileJob(
@@ -57,9 +61,11 @@ object CoreToolBox extends LToolBox {
       samplesFile: Path,
       inputs: Set[LJob] = Set.empty) extends LJob {
 
+    override val outputs: Set[Output] = Set(PathOutput(samplesFile))
+    
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
-    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
+    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
         val samples = VcfParser(vcfFile).samples
 
@@ -81,7 +87,9 @@ object CoreToolBox extends LToolBox {
 
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
-    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
+    override val outputs: Set[Output] = Set(PathOutput(klustaKwikKonfig.workDir))
+    
+    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
         val weights = PcaWeightsReader.read(pcaWeightsFile)
         val pcaProjecter = PcaProjecter(weights)
@@ -96,13 +104,6 @@ object CoreToolBox extends LToolBox {
       }
     }
   }
-
-  private def pathShot(path: Path): Shot[Path] = {
-    if (path.toFile.exists) { Hit(path) }
-    else { Miss(s"Couldn't find '$path'") }
-  }
-
-  def sampleFileShot(path: Path): Shot[Path] = pathShot(path)
 
   def vcfFileJobShot(path: Path): Shot[CheckPreexistingVcfFileJob] = Hit(CheckPreexistingVcfFileJob(path))
 
@@ -132,16 +133,7 @@ object CoreToolBox extends LToolBox {
     CommandLineBuilderJob(
       klustaKlwikCommandLine(klustaConfig),
       klustaConfig.workDir,
-      Set.empty)
-  }
-
-  private def commandLineJobShot(tokens: Seq[String], workDir: Path): Shot[CommandLineBuilderJob] = {
-    def commandLine(parts: Seq[String]): LineCommand.CommandLine = new LineCommand.CommandLine {
-      override def tokens: Seq[String] = parts
-      override def commandLine = tokens.mkString(LineCommand.tokenSep)
-    }
-
-    Shot(CommandLineBuilderJob(commandLine(tokens), workDir))
+      outputs = Set(PathOutput(klustaConfig.workDir)))
   }
 
   def toolToJobShot(tool: Tool): Shot[LJob] = tool match { //scalastyle:ignore

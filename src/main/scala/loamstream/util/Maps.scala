@@ -1,5 +1,9 @@
 package loamstream.util
 
+/**
+ * @author clint
+ * date: Aug 11, 2016
+ */
 object Maps {
   def mergeMaps[A, B](maps: TraversableOnce[Map[A, B]]): Map[A, B] = {
     val z: Map[A, B] = Map.empty

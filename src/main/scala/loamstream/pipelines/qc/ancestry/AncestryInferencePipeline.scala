@@ -2,7 +2,7 @@ package loamstream.pipelines.qc.ancestry
 
 import java.nio.file.Path
 
-import loamstream.model.{AST, HasAst, LPipeline, Store, Tool}
+import loamstream.model.{ AST, HasAst, Tool }
 import loamstream.tools.core.{CoreStore, CoreTool}
 import loamstream.tools.klusta.KlustaKwikKonfig
 
@@ -14,7 +14,7 @@ import loamstream.tools.klusta.KlustaKwikKonfig
 final case class AncestryInferencePipeline(
                                             vcfFile: Path,
                                             pcaWeightsFile: Path,
-                                            klustaConfig: KlustaKwikKonfig) extends LPipeline with HasAst {
+                                            klustaConfig: KlustaKwikKonfig) extends HasAst {
 
   val genotypesTool: Tool = CoreTool.CheckPreExistingVcfFile(vcfFile)
 
@@ -23,10 +23,6 @@ final case class AncestryInferencePipeline(
   val pcaProjectionTool: Tool = CoreTool.ProjectPca(vcfFile, pcaWeightsFile, klustaConfig)
 
   val sampleClusteringTool: Tool = CoreTool.ClusteringSamplesByFeatures(klustaConfig)
-
-  override def stores: Set[Store] = tools.flatMap(_.outputs.values)
-
-  override val tools: Set[Tool] = Set(genotypesTool, pcaWeightsTool, pcaProjectionTool, sampleClusteringTool)
 
   override lazy val ast: AST = {
 

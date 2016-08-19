@@ -14,7 +14,7 @@ object LoamNativeTool {
   def apply[T: TypeTag](defaultStores: DefaultStores, expr: => T)(
     implicit context: LoamContext): LoamNativeTool[T] = {
     val tool = LoamNativeTool(LId.newAnonId, defaultStores, EvalLaterBox(expr))
-    context.graphBox(_.withTool(tool))
+    context.graphBox.mutate(_.withTool(tool))
     tool
   }
 

@@ -9,7 +9,7 @@ import java.nio.file.Paths
  */
 final class PathUtilTest extends FunSuite {
 
-  import PathUtil._
+  import PathUtils._
   
   private val add2: String => String = (_: String) + "2"
   
@@ -56,4 +56,14 @@ final class PathUtilTest extends FunSuite {
     assert(getFileNameTransformation(add2)(fooBar) == Paths.get("foo/bar2"))
   }
   // scalastyle:on null
+  
+  test("lastModifiedTime") {
+    val doesntExist = Paths.get("/aslkdjklas/lakjslks/askldjlaksd/asklfj")
+    
+    assert(lastModifiedTime(doesntExist).toEpochMilli == 0L)
+    
+    val exists = Paths.get("src/test/resources/for-hashing/foo.txt")
+    
+    assert(lastModifiedTime(exists).toEpochMilli == exists.toFile.lastModified)
+  }
 }

@@ -26,18 +26,21 @@ trait CommandLineJob extends LJob {
   
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
-  override def execute(implicit context: ExecutionContext): Future[Result with CommandResult] = runBlocking {
-    val exitValue = processBuilder.run(logger).exitValue
-
-    if (exitValueIsOk(exitValue)) {
-      CommandSuccess(commandLineString, exitValue)
-    } else {
-      CommandReturnValueIssue(commandLineString, exitValue)
+  type CommandLineResult = Result with CommandResult
+  
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Result with CommandResult] = {
+    runBlocking {
+      val exitValue = processBuilder.run(logger).exitValue
+  
+      if (exitValueIsOk(exitValue)) {
+        CommandSuccess(commandLineString, exitValue)
+      } else {
+        CommandReturnValueIssue(commandLineString, exitValue)
+      }
+    }.recover {
+      case exception: Exception => CommandException(commandLineString, exception)
     }
-  }.recover {
-    case exception: Exception => CommandException(commandLineString, exception)
   }
-
 }
 
 object CommandLineJob {

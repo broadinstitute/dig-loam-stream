@@ -1,10 +1,12 @@
 package loamstream.model.execute
 
+import java.lang.Boolean
+
 import loamstream.model.execute.RxExecuter.RxMockJob._
-import loamstream.model.execute.RxExecuter.{Tracker, RxMockExecutable, RxMockJob}
+import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob, Tracker}
 import loamstream.model.jobs.JobState
-import loamstream.model.jobs.JobState.{Succeeded, NotStarted, Running}
-import loamstream.util.{Hit, Loggable, Maps, Shot}
+import loamstream.model.jobs.JobState.{NotStarted, Running, Succeeded}
+import loamstream.util._
 import rx.lang.scala.subjects.PublishSubject
 import rx.lang.scala.Observable
 
@@ -104,6 +106,7 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
       _result.toMap.strictMapValues(Hit(_))
     }
   }
+
   // scalastyle:off method.length
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)
@@ -112,8 +115,8 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
 object RxExecuter {
   def default: RxExecuter = new RxExecuter(new Tracker)
 
-  class RxMockJob(val name: String, val inputs: Set[RxMockJob] = Set.empty, delay: Int = 0)
-    extends Loggable {
+  class RxMockJob(val name: String, val inputs: Set[RxMockJob] = Set.empty,
+                  val dependencies: Set[RxMockJob] = Set.empty, delay: Int = 0) extends Loggable {
 
     def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
       val indentString = s"${"-" * indent} >"
@@ -133,13 +136,18 @@ object RxExecuter {
     def jobStateObservable: Observable[JobState] = Observable.just(getJobState)
 
     val jobStateChange = PublishSubject[JobState]
+
     private def emitJobState: Unit = {
-      trace("***Emitting job state change ==> " + getJobState)
+      trace(s"***Emitting state change for $name ==> " + getJobState)
       jobStateChange.onNext(getJobState)
     }
-    def deferredJobStateObservable: Observable[JobState] = Observable.defer(jobStateObservable)
 
-    def isRunnable: Boolean = getJobState == NotStarted && (inputs.isEmpty || inputs.forall(_.getJobState == Succeeded))
+    def dependenciesDone: Boolean = dependencies.isEmpty || dependencies.forall(_.getJobState == JobState.Succeeded)
+
+    def inputsDone: Boolean = inputs.isEmpty || inputs.forall(_.getJobState == Succeeded)
+
+    def isRunnable: Boolean = getJobState == NotStarted && dependenciesDone && inputsDone
+
 
     private[this] val executionCountLock = new AnyRef
     private[this] var _executionCount = 0
@@ -233,4 +241,5 @@ object RxExecuter {
 
     def jobExecutionSeq = executionSeqLock.synchronized(_executionSeq.toArray)
   }
+
 }

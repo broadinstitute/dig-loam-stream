@@ -9,9 +9,9 @@ import loamstream.util.ValueBox
 import scala.reflect.runtime.universe.Type
 
 /**
-  * LoamStream
-  * Created by oliverr on 12/23/2015.
-  */
+ * LoamStream
+ * Created by oliverr on 12/23/2015.
+ */
 trait LJob extends Loggable with DagHelpers[LJob] {
   def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
     val indentString = s"${"-" * indent} >"
@@ -30,42 +30,46 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    * Any outputs produced by this job
    */
   def outputs: Set[Output]
-  
+
   private val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
-  
+
   /**
    * This job's current state
    */
   final def state: JobState = stateRef.value
-  
+
   final protected def isSuccess: Boolean = state.isSuccess
-  
+
   /**
    * Decorates exececuteSelf, updating the value of 'state' from
    * Running to (Succeeded | Failed).
-   * 
+   *
    * TODO: Go back to just 'execute', and use a decorator subclass of LJob to do 
    * the work currently done by this method.
    */
   final def execute(implicit context: ExecutionContext): Future[Result] = {
     val f = executeSelf
-    
+
     import JobState._
-    
+
     stateRef() = Running
-    
-    f.foreach { result =>
+
+    //NB: Use map here instead of foreach to ensure that side-effects happen before the resulting
+    //future is done.
+    for {
+      result <- f
+    } yield {
       stateRef() = if(result.isSuccess) Succeeded else Failed
+
+      result
     }
-    
-    f
   }
-  
+
   /**
-   * Implementions of executeSelf will do any actual work performed by this job   
+   * Implementions of executeSelf will do any actual work performed by this job
    */
   protected def executeSelf(implicit context: ExecutionContext): Future[Result]
-  
+
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 
   final def withInputs(newInputs: Set[LJob]): LJob = {

@@ -29,11 +29,10 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
 
     def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = jobs.filter(_.isRunnable)
 
+    // Mutable state variables
     val jobsAlreadyLaunched: ValueBox[Set[RxMockJob]] = ValueBox(Set.empty)
     val jobsReadyToDispatch: ValueBox[Set[RxMockJob]] = ValueBox(Set.empty)
-
-    val _jobStates = collection.mutable.Map.empty[RxMockJob, JobState]
-    val jobStatesLock = new AnyRef
+    val jobStates: ValueBox[Map[RxMockJob, JobState]] = ValueBox(Map.empty)
 
     var _result = collection.mutable.Map.empty[RxMockJob, Result]
     val resultLock = new AnyRef
@@ -44,16 +43,14 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
     val allJobStatuses = PublishSubject[Map[RxMockJob, JobState]]
 
     def updateJobState(job: RxMockJob, newState: JobState): Unit = {
-      jobStatesLock.synchronized {
-        _jobStates(job) = newState
-      }
+      jobStates.mutate(_ + (job -> newState))
       trace("+++Emitting all job statuses")
-      allJobStatuses.onNext(_jobStates.toMap)
+      allJobStatuses.onNext(jobStates())
     }
 
     def executeIter(jobs: Set[RxMockJob]): Unit = {
       if (jobs.isEmpty) {
-        if (_jobStates.values.forall(_ == Succeeded)) {
+        if (jobStates().values.forall(_ == Succeeded)) {
           everythingIsDonePromise.success(())
         }
       } else {
@@ -81,9 +78,7 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
 
     import scala.language.postfixOps
     jobs foreach { job =>
-      jobStatesLock.synchronized {
-        _jobStates += job -> NotStarted
-      }
+      jobStates.mutate(_ + (job -> NotStarted))
       job.jobStateChange.subscribe(jobState => updateJobState(job, jobState))
     }
 

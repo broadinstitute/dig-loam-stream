@@ -29,10 +29,7 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
 
     def getRunnableJobs(jobs: Set[RxMockJob]): Set[RxMockJob] = jobs.filter(_.isRunnable)
 
-    val _jobsAlreadyLaunched = collection.mutable.Set.empty[RxMockJob]
-    val jobsAlreadyLaunchedLock = new AnyRef
-    def jobsAlreadyLaunched = jobsAlreadyLaunchedLock.synchronized(_jobsAlreadyLaunched)
-
+    val jobsAlreadyLaunched: ValueBox[Set[RxMockJob]] = ValueBox(Set.empty)
     val jobsReadyToDispatch: ValueBox[Set[RxMockJob]] = ValueBox(Set.empty)
 
     val _jobStates = collection.mutable.Map.empty[RxMockJob, JobState]
@@ -61,9 +58,9 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
         }
       } else {
         trace("Jobs already launched: ")
-        jobsAlreadyLaunched.foreach(job => trace("\t" + job.name))
+        jobsAlreadyLaunched().foreach(job => trace("\t" + job.name))
 
-        jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched
+        jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched()
 
         debug("Jobs ready to dispatch: ")
         jobsReadyToDispatch().foreach(job => debug("\t" + job.name))
@@ -74,7 +71,7 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
           jobsReadyToDispatch().par.foreach { job =>
             val newResult = job -> job.execute
             resultLock.synchronized(_result += newResult)
-            jobsAlreadyLaunchedLock.synchronized(_jobsAlreadyLaunched += job)
+            jobsAlreadyLaunched.mutate(_ + job)
           }
         }
       }

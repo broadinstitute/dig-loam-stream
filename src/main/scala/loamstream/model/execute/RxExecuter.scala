@@ -33,12 +33,7 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
     val jobsAlreadyLaunched: ValueBox[Set[RxMockJob]] = ValueBox(Set.empty)
     val jobsReadyToDispatch: ValueBox[Set[RxMockJob]] = ValueBox(Set.empty)
     val jobStates: ValueBox[Map[RxMockJob, JobState]] = ValueBox(Map.empty)
-
-    var _result = collection.mutable.Map.empty[RxMockJob, Result]
-    val resultLock = new AnyRef
-
-    val everythingIsDonePromise: Promise[Unit] = Promise()
-    val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
+    val result: ValueBox[Map[RxMockJob, Result]] = ValueBox(Map.empty)
 
     val allJobStatuses = PublishSubject[Map[RxMockJob, JobState]]
 
@@ -47,6 +42,10 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
       trace("+++Emitting all job statuses")
       allJobStatuses.onNext(jobStates())
     }
+
+    // Future-Promise pair used as a flag to check if the main thread can be resumed (i.e. all jobs are done)
+    val everythingIsDonePromise: Promise[Unit] = Promise()
+    val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
     def executeIter(jobs: Set[RxMockJob]): Unit = {
       if (jobs.isEmpty) {
@@ -67,7 +66,7 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
           tracker.addJobs(jobsReadyToDispatch())
           jobsReadyToDispatch().par.foreach { job =>
             val newResult = job -> job.execute
-            resultLock.synchronized(_result += newResult)
+            result.mutate(_ + newResult)
             jobsAlreadyLaunched.mutate(_ + job)
           }
         }
@@ -88,14 +87,12 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
 
     executeIter(jobs)
 
+    // Block the main thread until all jobs are done
     Await.result(everythingIsDoneFuture, Duration.Inf)
 
     import Maps.Implicits._
-    resultLock.synchronized {
-      _result.toMap.strictMapValues(Hit(_))
-    }
+    result().strictMapValues(Hit(_))
   }
-
   // scalastyle:off method.length
 
   private def anyFailures(m: Map[RxMockJob, RxMockJob.Result]): Boolean = m.values.exists(_.isFailure)

@@ -107,10 +107,10 @@ final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoT
     def success(s: String) = LJob.SimpleSuccess(s)
 
     new MockJob(success(name), name, inputs, outputs, delay = 0) {
-      override protected def executeSelf(implicit context: ExecutionContext): Future[LJob.Result] = {
+      override def execute(implicit context: ExecutionContext): Future[LJob.Result] = {
         body
 
-        super.executeSelf
+        super.execute
       }
     }
   }

@@ -30,7 +30,7 @@ class MockJob(
     case _ => false
   }
   
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
+  override def execute(implicit context: ExecutionContext): Future[Result] = {
     count.mutate(_ + 1)
     
     if(delay > 0) {
@@ -47,10 +47,10 @@ class MockJob(
   def copy(
       toReturn: LJob.Result = this.toReturn,
       name: String = this.name,
-      inputs: Set[LJob] = this.inputs, 
-      outputs: Set[Output] = this.outputs, 
+      inputs: Set[LJob] = this.inputs,
+      outputs: Set[Output] = this.outputs,
       delay: Int = this.delay): MockJob = new MockJob(toReturn, name, inputs, outputs, delay)
-  
+
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 }
 

@@ -28,7 +28,7 @@ object CoreToolBox extends LToolBox {
   trait CheckPreexistingFileJob extends LJob {
     def file: Path
 
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
+    override def execute(implicit context: ExecutionContext): Future[Result] = Future {
       Result.attempt {
         if (Files.exists(file)) { FileExists(file) }
         else { SimpleFailure(s"$file does not exist.") }
@@ -65,7 +65,7 @@ object CoreToolBox extends LToolBox {
     
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
+    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
         val samples = VcfParser(vcfFile).samples
 
@@ -89,7 +89,7 @@ object CoreToolBox extends LToolBox {
 
     override val outputs: Set[Output] = Set(PathOutput(klustaKwikKonfig.workDir))
     
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
+    override def execute(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
         val weights = PcaWeightsReader.read(pcaWeightsFile)
         val pcaProjecter = PcaProjecter(weights)

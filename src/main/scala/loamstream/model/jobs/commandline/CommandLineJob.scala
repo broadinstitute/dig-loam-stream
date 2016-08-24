@@ -28,7 +28,7 @@ trait CommandLineJob extends LJob {
 
   type CommandLineResult = Result with CommandResult
   
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Result with CommandResult] = {
+  override def execute(implicit context: ExecutionContext): Future[Result with CommandResult] = {
     runBlocking {
       val exitValue = processBuilder.run(logger).exitValue
   

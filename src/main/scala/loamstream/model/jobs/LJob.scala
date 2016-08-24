@@ -1,11 +1,12 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.util.control.NonFatal
-
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.{DagHelpers, Loggable, TypeBox}
 import loamstream.util.ValueBox
+import rx.lang.scala.subjects.PublishSubject
+
 import scala.reflect.runtime.universe.Type
 
 /**
@@ -31,44 +32,38 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    */
   def outputs: Set[Output]
 
-  private val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
+  protected val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
 
   /**
    * This job's current state
    */
   final def state: JobState = stateRef.value
 
+  final val stateEmitter = PublishSubject[JobState]
+
+  def dependencies: Set[LJob] = Set.empty
+
+  /**
+   * If explicitly specified dependencies are done
+   */
+  def dependenciesDone: Boolean = dependencies.isEmpty || dependencies.forall(_.state == JobState.Succeeded)
+
+  /**
+   * If this job can be executed
+   */
+  def isRunnable: Boolean = state == JobState.NotStarted && dependenciesDone && inputsDone
+
+  /**
+   * If inputs to this job are available
+   */
+  def inputsDone: Boolean = inputs.isEmpty || inputs.forall(_.state == JobState.Succeeded)
+
   final protected def isSuccess: Boolean = state.isSuccess
 
   /**
-   * Decorates exececuteSelf, updating the value of 'state' from
-   * Running to (Succeeded | Failed).
-   *
-   * TODO: Go back to just 'execute', and use a decorator subclass of LJob to do 
-   * the work currently done by this method.
+   * Will do any actual work meant to performed by this job
    */
-  final def execute(implicit context: ExecutionContext): Future[Result] = {
-    val f = executeSelf
-
-    import JobState._
-
-    stateRef() = Running
-
-    //NB: Use map here instead of foreach to ensure that side-effects happen before the resulting
-    //future is done.
-    for {
-      result <- f
-    } yield {
-      stateRef() = if(result.isSuccess) Succeeded else Failed
-
-      result
-    }
-  }
-
-  /**
-   * Implementions of executeSelf will do any actual work performed by this job
-   */
-  protected def executeSelf(implicit context: ExecutionContext): Future[Result]
+  def execute(implicit context: ExecutionContext): Future[Result]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 

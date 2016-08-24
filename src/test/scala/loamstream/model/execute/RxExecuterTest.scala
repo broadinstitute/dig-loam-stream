@@ -1,6 +1,6 @@
 package loamstream.model.execute
 
-import loamstream.model.execute.RxExecuter.{RxMockExecutable, RxMockJob}
+import loamstream.model.execute.RxExecuter.RxMockJob
 import org.scalatest.FunSuite
 
 /**
@@ -47,7 +47,7 @@ final class RxExecuterTest extends FunSuite {
     assert(job32.executionCount === 0)
     assert(job4.executionCount === 0)
 
-    val executable = RxMockExecutable(Set(job4))
+    val executable = LExecutable(Set(job4))
     val result = executer.execute(executable)
 
     assert(job11.executionCount === 1)
@@ -110,7 +110,7 @@ final class RxExecuterTest extends FunSuite {
     assert(job32.executionCount === 0)
     assert(job4.executionCount === 0)
 
-    val executable = RxMockExecutable(Set(job4))
+    val executable = LExecutable(Set(job4))
     val result = executer.execute(executable)
 
     assert(job11.executionCount === 1)

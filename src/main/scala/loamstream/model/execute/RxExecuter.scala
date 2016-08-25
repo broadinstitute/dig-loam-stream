@@ -80,7 +80,7 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
       job.stateEmitter.subscribe(jobState => updateJobState(job, jobState))
     }
 
-    allJobStatuses.sample(10 millis).subscribe(jobStatuses => {
+    allJobStatuses.sample(20 millis).subscribe(jobStatuses => {
       executeIter(getRunnableJobs(jobStatuses.keySet))
     })
 

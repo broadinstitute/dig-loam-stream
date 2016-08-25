@@ -1,7 +1,5 @@
 package loamstream.model.execute
 
-import java.lang.Boolean
-
 import loamstream.model.execute.RxExecuter.{RxMockJob, Tracker}
 import loamstream.model.jobs.{JobState, LJob, Output}
 import loamstream.model.jobs.JobState.{NotStarted, Running, Succeeded}
@@ -17,7 +15,8 @@ import scala.concurrent.duration.Duration
  * @author kaan
  *         date: Aug 17, 2016
  */
-final class RxExecuter(val tracker: Tracker) extends Loggable {
+final case class RxExecuter(runner: ChunkRunner, val tracker: Tracker)(implicit executionContext: ExecutionContext)
+  extends LExecuter with Loggable {
   // scalastyle:off method.length
   def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     def flattenTree(tree: Set[LJob]): Set[LJob] = {
@@ -96,7 +95,26 @@ final class RxExecuter(val tracker: Tracker) extends Loggable {
 }
 
 object RxExecuter {
-  def default: RxExecuter = new RxExecuter(new Tracker)
+  def default: RxExecuter = new RxExecuter(AsyncLocalChunkRunner, Tracker())(ExecutionContext.global)
+
+  object AsyncLocalChunkRunner extends ChunkRunner {
+
+    import ExecuterHelpers._
+
+    override def maxNumJobs = 100 // scalastyle:ignore magic.number
+
+    override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
+      //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
+      //on the first failure, like the old code did.
+      val jobResultFutures = jobs.iterator.map(executeSingle)
+
+      //NB: Convert the iterator to an IndexedSeq to force evaluation, and make sure
+      //input jobs are evaluated before jobs that depend on them.
+      val futureJobResults = Future.sequence(jobResultFutures).map(consumeUntilFirstFailure)
+
+      futureJobResults.map(Maps.mergeMaps)
+    }
+  }
 
   class RxMockJob(val name: String, val inputs: Set[LJob] = Set.empty, val outputs: Set[Output] = Set.empty,
                   override val dependencies: Set[LJob] = Set.empty, delay: Int = 0) extends LJob {

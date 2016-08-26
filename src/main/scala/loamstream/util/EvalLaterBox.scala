@@ -22,20 +22,20 @@ class EvalLaterBox[T](expr: => T, val typeBox: TypeBox[T]) {
   def evalFuture(implicit ec: ExecutionContext): Future[T] = Future(expr)
 
   /** Returns new EvalLaterBox with expression prepended before this one's expression */
-  def prepend[TP](preExpr: => TP): EvalLaterBox[T] = EvalLaterBox.forType[T](typeBox)({
+  def prepend(preExpr: => Any): EvalLaterBox[T] = EvalLaterBox.forType[T](typeBox)({
     preExpr
     expr
   })
 
   /** Returns new EvalLaterBox with expression appended after this one's expression */
-  def append[TA](postExpr: => TA): EvalLaterBox[T] = EvalLaterBox.forType[T](typeBox)({
+  def append(postExpr: => Any): EvalLaterBox[T] = EvalLaterBox.forType[T](typeBox)({
     val result = expr
     postExpr
     result
   })
 
   /** Returns new EvalLaterBox with given expression wrapped around this one's expression  */
-  def wrap[TP, TA](preExpr: => TP, postExpr: => TA): EvalLaterBox[T] = EvalLaterBox.forType[T](typeBox)({
+  def wrap(preExpr: => Any, postExpr: => Any): EvalLaterBox[T] = EvalLaterBox.forType[T](typeBox)({
     preExpr
     val result = expr
     postExpr

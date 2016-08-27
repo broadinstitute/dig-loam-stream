@@ -7,12 +7,13 @@ import loamstream.conf.UgerConfig
 import loamstream.model.execute.ChunkedExecuter
 import loamstream.uger.UgerChunkRunner
 import loamstream.util.Loggable
-import loamstream.model.execute.NaiveHashingExecuter
+import loamstream.model.execute.NaiveFilteringExecuter
 import loamstream.db.slick.SlickLoamDao
 import loamstream.db.slick.DbDescriptor
 import loamstream.db.slick.DbType
 import loamstream.db.LoamDao
 import scala.util.Try
+import loamstream.model.execute.JobFilter
 
 /** Compiles and runs Loam script provided as argument */
 object LoamRunApp extends App with Loggable {
@@ -31,7 +32,7 @@ object LoamRunApp extends App with Loggable {
   
   withDao(new SlickLoamDao(dbDescriptor)) { dao =>
   
-    val executer = new NaiveHashingExecuter(dao)
+    val executer = new NaiveFilteringExecuter(new JobFilter.DbBackedJobFilter(dao))
   
     val outMessageSink = LoggableOutMessageSink(this)
   

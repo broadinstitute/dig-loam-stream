@@ -27,11 +27,13 @@ import scala.concurrent.Future
  * @author clint
  * date: Aug 12, 2016
  */
-final class NaiveHashingExecuterTest extends FunSuite with ProvidesSlickLoamDao {
+final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDao {
 
   override val descriptor = TestDbDescriptors.inMemoryH2
 
-  private def executer = new NaiveHashingExecuter(dao)(ExecutionContext.global)
+  private def executer = {
+    new NaiveFilteringExecuter(new JobFilter.DbBackedJobFilter(dao))(ExecutionContext.global)
+  }
 
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
     import JobState._

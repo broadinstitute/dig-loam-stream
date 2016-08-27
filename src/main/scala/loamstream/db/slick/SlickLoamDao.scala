@@ -13,6 +13,7 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import loamstream.model.jobs.Output.CachedOutput
 import scala.util.Try
+import slick.jdbc.meta.MTable
 
 /**
  * @author clint
@@ -95,7 +96,11 @@ object SlickLoamDao {
   final class Tables(val driver: JdbcProfile) {
     import driver.api._
     
-    final class Outputs(tag: Tag) extends Table[RawOutputRow](tag, "OUTPUTS") {
+    object Names {
+      val outputs = "OUTPUTS"
+    }
+    
+    final class Outputs(tag: Tag) extends Table[RawOutputRow](tag, Names.outputs) {
       def path = column[String]("PATH", O.PrimaryKey)
       def lastModified = column[Timestamp]("LAST_MODIFIED")
       def hash = column[String]("HASH")
@@ -107,11 +112,22 @@ object SlickLoamDao {
     
     private def ddlForAllTables = outputs.schema
     
-    def create(database: Database): Unit = perform(database)(ddlForAllTables.create.transactionally)
+    def create(database: Database): Unit = {
+      def exists(tableName: String): Boolean = {
+        val existingTables = perform(database)(MTable.getTables)
+        
+        existingTables.exists(_.name == tableName)
+      }
+      
+      //TODO: Find a way to avoid explicitly naming each table :(
+      if(!exists(Names.outputs)) {
+        perform(database)(outputs.schema.create.transactionally)
+      }
+    }
     
     def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)
   
-    private def perform(database: Database)(action: DBIO[_]): Unit = {
+    private def perform[A](database: Database)(action: DBIO[A]): A = {
       waitFor(database.run(action))
     }
   }

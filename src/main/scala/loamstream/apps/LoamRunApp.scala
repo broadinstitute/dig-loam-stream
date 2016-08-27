@@ -47,9 +47,8 @@ object LoamRunApp extends App with Loggable {
   
   private def withDao[A](dao: LoamDao)(f: LoamDao => A): A = {
     try { 
-      //Succinctly ignore failures
       //TODO: Make whether this happens configurable
-      Try(dao.createTables()) 
+      dao.createTables() 
       
       f(dao) 
     } finally { 

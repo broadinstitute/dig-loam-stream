@@ -1,7 +1,7 @@
 import sbt.project
 
 lazy val Versions = new {
-  val App = "0.1"
+  val App = "1.0-rc1"
   val ApacheCommonsIO = "2.4"
   val DrmaaCommon = "1.0"
   val DrmaaGridEngine = "6.2u5"

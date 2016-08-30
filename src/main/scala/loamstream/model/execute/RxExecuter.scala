@@ -15,7 +15,8 @@ import scala.concurrent.duration.Duration
  * @author kaan
  *         date: Aug 17, 2016
  */
-final case class RxExecuter(runner: ChunkRunner, tracker: Tracker)(implicit executionContext: ExecutionContext)
+final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
+                           (implicit executionContext: ExecutionContext)
   extends LExecuter with Loggable {
   // scalastyle:off method.length
   def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
@@ -92,7 +93,7 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker)(implicit exec
 }
 
 object RxExecuter {
-  def default: RxExecuter = new RxExecuter(AsyncLocalChunkRunner, Tracker())(ExecutionContext.global)
+  def default: RxExecuter = new RxExecuter(AsyncLocalChunkRunner)(ExecutionContext.global)
 
   object AsyncLocalChunkRunner extends ChunkRunner {
 

@@ -17,6 +17,8 @@ import loamstream.util.Files
 import loamstream.conf.UgerConfig
 import java.util.UUID
 
+import loamstream.model.jobs.JobState.{Failed, Running, Succeeded}
+
 /**
  * @author clint
  * date: Jul 1, 2016
@@ -59,10 +61,13 @@ final case class UgerChunkRunner(
       submissionResult match {
         case DrmaaClient.SubmissionSuccess(rawJobIds) => {
           import monix.execution.Scheduler.Implicits.global
-
+          leafCommandLineJobs.foreach(_.updateAndEmitJobState(Running))
           toResultMap(drmaaClient, leafCommandLineJobs, rawJobIds)
         }
-        case DrmaaClient.SubmissionFailure(e) => makeAllFailureMap(leafCommandLineJobs, Some(e))
+        case DrmaaClient.SubmissionFailure(e) => {
+          leafCommandLineJobs.foreach(_.updateAndEmitJobState(Failed))
+          makeAllFailureMap(leafCommandLineJobs, Some(e))
+        }
       }
     } else {
       // Handle NoOp case or a case when no jobs were presented for some reason
@@ -109,8 +114,10 @@ object UgerChunkRunner extends Loggable {
   private[uger] def resultFrom(job: LJob)(status: JobStatus): LJob.Result = {
     //TODO: Anything better; this was purely expedient
     if (status.isDone) {
+      job.updateAndEmitJobState(Succeeded)
       LJob.SimpleSuccess(s"$job")
     } else {
+      job.updateAndEmitJobState(Failed)
       LJob.SimpleFailure(s"$job")
     }
   }

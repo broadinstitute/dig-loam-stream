@@ -41,7 +41,13 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
   final val stateEmitter = PublishSubject[JobState]
 
-  protected def emitJobState(): Unit = stateEmitter.onNext(state)
+  final protected def emitJobState(): Unit = stateEmitter.onNext(state)
+
+  final def updateAndEmitJobState(newState: JobState): Unit = {
+    trace(s"$newState: $this")
+    stateRef() = newState
+    emitJobState()
+  }
 
   def dependencies: Set[LJob] = Set.empty
 

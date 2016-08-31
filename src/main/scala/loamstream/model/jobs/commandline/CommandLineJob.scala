@@ -30,18 +30,18 @@ trait CommandLineJob extends LJob {
 
   override def execute(implicit context: ExecutionContext): Future[Result with CommandResult] = {
     runBlocking {
-      stateRef() = Running
-      emitJobState()
+      trace(s"RUNNING: $commandLineString")
+      updateAndEmitJobState(Running)
 
       val exitValue = processBuilder.run(logger).exitValue
   
       if (exitValueIsOk(exitValue)) {
-        stateRef() = Succeeded
-        emitJobState()
+        trace(s"SUCCEEDED: $commandLineString")
+        updateAndEmitJobState(Succeeded)
         CommandSuccess(commandLineString, exitValue)
       } else {
-        stateRef() = Failed
-        emitJobState()
+        trace(s"FAILED: $commandLineString")
+        updateAndEmitJobState(Failed)
         CommandReturnValueIssue(commandLineString, exitValue)
       }
     }.recover {

@@ -1,6 +1,6 @@
 package loamstream.model.execute
 
-import loamstream.model.execute.RxExecuter.{RxMockJob, Tracker}
+import loamstream.model.execute.RxExecuter.Tracker
 import loamstream.model.jobs.{JobState, LJob, Output}
 import loamstream.model.jobs.JobState.{NotStarted, Running, Succeeded}
 import loamstream.model.jobs.LJob._
@@ -52,12 +52,12 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
         }
       } else {
         trace("Jobs already launched: ")
-        jobsAlreadyLaunched().foreach(job => trace("\t" + job.asInstanceOf[RxMockJob].name))
+        jobsAlreadyLaunched().foreach(job => trace("\t" + job))
 
         jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched()
 
         debug("Jobs ready to dispatch: ")
-        jobsReadyToDispatch().foreach(job => debug("\t" + job.asInstanceOf[RxMockJob].name))
+        jobsReadyToDispatch().foreach(job => debug("\t" + job))
 
         import scala.concurrent.ExecutionContext.Implicits.global
         Future {
@@ -131,12 +131,10 @@ object RxExecuter {
 
     def execute(implicit context: ExecutionContext): Future[Result] = Future {
       trace("\t\tStarting job: " + this.name)
-      stateRef() = Running
-      emitJobState()
+      updateAndEmitJobState(Running)
       if (delay > 0) { Thread.sleep(delay) }
       trace("\t\t\tFinishing job: " + this.name)
-      stateRef() = Succeeded
-      emitJobState()
+      updateAndEmitJobState(Succeeded)
       count.mutate(_ + 1)
       LJob.SimpleSuccess(name)
     }

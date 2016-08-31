@@ -34,13 +34,13 @@ class MockJob(
   override def execute(implicit context: ExecutionContext): Future[Result] = {
     count.mutate(_ + 1)
 
-    stateRef() = Running
+    updateAndEmitJobState(Running)
 
     if (delay > 0) {
       Thread.sleep(delay)
     }
 
-    stateRef() = Succeeded
+    updateAndEmitJobState(Succeeded)
 
     Future.successful(toReturn)
   }

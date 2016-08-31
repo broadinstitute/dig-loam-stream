@@ -41,6 +41,8 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
   final val stateEmitter = PublishSubject[JobState]
 
+  protected def emitJobState(): Unit = stateEmitter.onNext(state)
+
   def dependencies: Set[LJob] = Set.empty
 
   /**
@@ -63,6 +65,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   /**
    * Will do any actual work meant to performed by this job
    */
+  // TODO: Reintroduce `executeSelf` to separate code common to all implementers of LJob
   def execute(implicit context: ExecutionContext): Future[Result]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob

@@ -1,9 +1,9 @@
 package loamstream.model.jobs.commandline
 
+import loamstream.model.jobs.JobState.{Failed, Running, Succeeded}
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandReturnValueIssue, CommandResult,
-CommandSuccess}
+import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandResult, CommandReturnValueIssue, CommandSuccess}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
@@ -27,14 +27,21 @@ trait CommandLineJob extends LJob {
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
   type CommandLineResult = Result with CommandResult
-  
+
   override def execute(implicit context: ExecutionContext): Future[Result with CommandResult] = {
     runBlocking {
+      stateRef() = Running
+      emitJobState()
+
       val exitValue = processBuilder.run(logger).exitValue
   
       if (exitValueIsOk(exitValue)) {
+        stateRef() = Succeeded
+        emitJobState()
         CommandSuccess(commandLineString, exitValue)
       } else {
+        stateRef() = Failed
+        emitJobState()
         CommandReturnValueIssue(commandLineString, exitValue)
       }
     }.recover {

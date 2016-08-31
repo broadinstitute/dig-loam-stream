@@ -125,11 +125,6 @@ object RxExecuter {
       inputs.foreach(_.print(indent + 2))
     }
 
-    private def emitJobState: Unit = {
-      trace(s"***Emitting state change for $name ==> " + state)
-      stateEmitter.onNext(state)
-    }
-
     private[this] val count = ValueBox(0)
 
     def executionCount = count.value
@@ -137,11 +132,11 @@ object RxExecuter {
     def execute(implicit context: ExecutionContext): Future[Result] = Future {
       trace("\t\tStarting job: " + this.name)
       stateRef() = Running
-      emitJobState
+      emitJobState()
       if (delay > 0) { Thread.sleep(delay) }
       trace("\t\t\tFinishing job: " + this.name)
       stateRef() = Succeeded
-      emitJobState
+      emitJobState()
       count.mutate(_ + 1)
       LJob.SimpleSuccess(name)
     }

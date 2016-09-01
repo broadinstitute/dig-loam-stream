@@ -1,7 +1,14 @@
 package loamstream.model.execute
 
-import loamstream.model.execute.RxExecuter.RxMockJob
+import loamstream.conf.UgerConfig
+import loamstream.model.execute.RxExecuter.{AsyncLocalChunkRunner, RxMockJob}
+import loamstream.model.execute.RxExecuterTest.MockChunkRunner
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.LJob.Result
 import org.scalatest.FunSuite
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * @author kyuksel
@@ -136,5 +143,63 @@ final class RxExecuterTest extends FunSuite {
     assert(jobExecutionSeq(5) === Set(job32))
     assert(jobExecutionSeq(6) === Set(job4))
   }
+
+  test("maxNumJobs is taken into account") {
+    /* A four-step pipeline:
+     *
+     *           Job21
+     *          /      \
+     * Job11 --          -- Job31
+     *          \      /         \
+     *           Job22            \
+     *                              -- Job4
+     *           Job23            /
+     *          /      \         /
+     * Job12 --  Job24 - -- Job32
+     *          \      /
+     *           Job25
+     */
+
+    val job11 = new RxMockJob("Job_1_1")
+    val job12 = new RxMockJob("Job_1_2")
+    val job21 = new RxMockJob("Job_2_1", Set(job11))
+    val job22 = new RxMockJob("Job_2_2", Set(job11))
+    val job23 = new RxMockJob("Job_2_3", Set(job12))
+    val job24 = new RxMockJob("Job_2_4", Set(job12))
+    val job25 = new RxMockJob("Job_2_5", Set(job12))
+    val job31 = new RxMockJob("Job_3_1", Set(job21, job22))
+    val job32 = new RxMockJob("Job_3_2", Set(job23, job24, job25))
+    val job4 = new RxMockJob("Job_4", Set(job31, job32))
+
+    val executable = LExecutable(Set(job4))
+
+    val maxSimultaneousJobs = 4
+    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxSimultaneousJobs)
+    val executer = RxExecuter(mockRunner)
+
+    executer.execute(executable)
+    val chunks = mockRunner.chunks
+    val expectedMaxSimultaneousJobs = 4
+    assert(mockRunner.chunks.forall(_.size <= expectedMaxSimultaneousJobs))
+
+    val result = executer.execute(executable)
+  }
   // scalastyle:on magic.number
+}
+
+object RxExecuterTest {
+  private final case class MockChunkRunner(delegate: ChunkRunner, maxNumJobs: Int) extends ChunkRunner {
+    var chunks: Seq[Set[LJob]] = Nil
+
+    override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
+      chunks = chunks :+ leaves
+
+      delegate.run(leaves)
+    }
+  }
+
+  private object MockChunkRunner {
+    def apply(delegate: ChunkRunner): MockChunkRunner = new MockChunkRunner(delegate,
+      UgerConfig.fromFile("src/test/resources/loamstream-test.conf").get.ugerMaxNumJobs)
+  }
 }

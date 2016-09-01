@@ -13,7 +13,7 @@ import loamstream.util.ValueBox
  */
 class MockJob(
     val toReturn: LJob.Result,
-    val name: String,
+    override val name: String,
     override val inputs: Set[LJob], 
     val outputs: Set[Output], 
     val delay: Int) extends LJob {

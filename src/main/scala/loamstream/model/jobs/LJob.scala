@@ -22,6 +22,8 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     inputs.foreach(_.print(indent + 2))
   }
 
+  def name: String = ""
+
   /**
    * Any jobs this job depends on
    */
@@ -44,7 +46,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   final protected def emitJobState(): Unit = stateEmitter.onNext(state)
 
   final def updateAndEmitJobState(newState: JobState): Unit = {
-    trace(s"$newState: $this")
+    trace(s"$newState: ${this.name}")
     stateRef() = newState
     emitJobState()
   }

@@ -144,7 +144,7 @@ final class RxExecuterTest extends FunSuite {
     assert(jobExecutionSeq(6) === Set(job4))
   }
 
-  test("maxNumJobs is taken into account") {
+  ignore("maxNumJobs is taken into account") {
     /* A four-step pipeline:
      *
      *           Job21

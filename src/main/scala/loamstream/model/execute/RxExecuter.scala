@@ -47,17 +47,17 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
 
     def executeIter(jobs: Set[LJob]): Unit = {
       if (jobs.isEmpty) {
-        if (jobStates().values.forall(_ == Succeeded)) {
+        if (jobStates().values.forall(_.isFinished)) {
           everythingIsDonePromise.success(())
         }
       } else {
         trace("Jobs already launched: ")
-        jobsAlreadyLaunched().foreach(job => trace("\t" + job))
+        jobsAlreadyLaunched().foreach(job => trace("\t" + job.name))
 
         jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched()
 
         debug("Jobs ready to dispatch: ")
-        jobsReadyToDispatch().foreach(job => debug("\t" + job))
+        jobsReadyToDispatch().foreach(job => debug("\t" + job.name))
 
         import scala.concurrent.ExecutionContext.Implicits.global
         Future {
@@ -114,16 +114,8 @@ object RxExecuter {
     }
   }
 
-  class RxMockJob(val name: String, val inputs: Set[LJob] = Set.empty, val outputs: Set[Output] = Set.empty,
+  class RxMockJob(override val name: String, val inputs: Set[LJob] = Set.empty, val outputs: Set[Output] = Set.empty,
                   override val dependencies: Set[LJob] = Set.empty, delay: Int = 0) extends LJob {
-
-    override def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
-      val indentString = s"${"-" * indent} >"
-
-      doPrint(s"$indentString ${this}")
-
-      inputs.foreach(_.print(indent + 2))
-    }
 
     private[this] val count = ValueBox(0)
 

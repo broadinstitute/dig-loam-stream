@@ -22,6 +22,8 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     inputs.foreach(_.print(indent + 2))
   }
 
+  override def toString: String = name
+
   def name: String = ""
 
   /**
@@ -53,7 +55,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
   def dependencies: Set[LJob] = Set.empty
 
-  /**
+  /**                                                            f
    * If explicitly specified dependencies are done
    */
   def dependenciesDone: Boolean = dependencies.isEmpty || dependencies.forall(_.state == JobState.Succeeded)

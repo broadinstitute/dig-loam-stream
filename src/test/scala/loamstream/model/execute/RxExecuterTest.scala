@@ -144,7 +144,7 @@ final class RxExecuterTest extends FunSuite {
     assert(jobExecutionSeq(6) === Set(job4))
   }
 
-  ignore("maxNumJobs is taken into account") {
+  test("maxNumJobs is taken into account") {
     /* A four-step pipeline:
      *
      *           Job21
@@ -178,11 +178,12 @@ final class RxExecuterTest extends FunSuite {
     val executer = RxExecuter(mockRunner)
 
     executer.execute(executable)
+
     val chunks = mockRunner.chunks
     val expectedMaxSimultaneousJobs = 4
-    assert(mockRunner.chunks.forall(_.size <= expectedMaxSimultaneousJobs))
-
-    val result = executer.execute(executable)
+    val expectedNumberOfChunks = 5
+    assert(chunks.size === expectedNumberOfChunks)
+    assert(chunks.forall(_.size <= expectedMaxSimultaneousJobs))
   }
   // scalastyle:on magic.number
 }

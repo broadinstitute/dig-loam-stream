@@ -33,11 +33,15 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
     val jobStates: ValueBox[Map[LJob, JobState]] = ValueBox(Map.empty)
     val result: ValueBox[Map[LJob, Result]] = ValueBox(Map.empty)
 
+    def jobsToBeDispatched: Set[LJob] = jobsReadyToDispatch().grouped(runner.maxNumJobs).toSet.headOption match {
+      case Some(j) => j
+      case _ => Set.empty[LJob]
+    }
+
     val allJobStatuses = PublishSubject[Map[LJob, JobState]]
 
     def updateJobState(job: LJob, newState: JobState): Unit = {
       jobStates.mutate(_ + (job -> newState))
-      trace("+++Emitting all job statuses")
       allJobStatuses.onNext(jobStates())
     }
 
@@ -48,7 +52,7 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
     def executeIter(jobs: Set[LJob]): Unit = {
       if (jobs.isEmpty) {
         if (jobStates().values.forall(_.isFinished)) {
-          everythingIsDonePromise.success(())
+          everythingIsDonePromise.trySuccess(())
         }
       } else {
         trace("Jobs already launched: ")
@@ -56,15 +60,18 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
 
         jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched()
 
-        debug("Jobs ready to dispatch: ")
+        trace("Jobs ready to dispatch: ")
         jobsReadyToDispatch().foreach(job => debug("\t" + job.name))
+
+        debug("Jobs to be dispatched at this time: ")
+        jobsToBeDispatched.foreach(job => debug("\t" + job.name))
 
         import scala.concurrent.ExecutionContext.Implicits.global
         Future {
-          tracker.addJobs(jobsReadyToDispatch())
-          val newResultMap = Await.result(runner.run(jobsReadyToDispatch()), Duration.Inf)
+          tracker.addJobs(jobsToBeDispatched)
+          val newResultMap = Await.result(runner.run(jobsToBeDispatched), Duration.Inf)
           result.mutate(_ ++ newResultMap)
-          jobsAlreadyLaunched.mutate(_ ++ jobsReadyToDispatch())
+          jobsAlreadyLaunched.mutate(_ ++ jobsToBeDispatched)
         }
       }
     }
@@ -77,9 +84,11 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
       job.stateEmitter.subscribe(jobState => updateJobState(job, jobState))
     }
 
-    allJobStatuses.sample(20 millis).subscribe(jobStatuses => {
-      executeIter(getRunnableJobs(jobStatuses.keySet))
-    })
+    allJobStatuses.sample(20 millis).subscribe(
+      jobStatuses => {
+        executeIter(getRunnableJobs(jobStatuses.keySet))
+      }
+    )
 
     executeIter(jobs)
 
@@ -89,6 +98,7 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
     import Maps.Implicits._
     result().strictMapValues(Hit(_))
   }
+
   // scalastyle:off method.length
 }
 
@@ -124,7 +134,9 @@ object RxExecuter {
     def execute(implicit context: ExecutionContext): Future[Result] = Future {
       trace("\t\tStarting job: " + this.name)
       updateAndEmitJobState(Running)
-      if (delay > 0) { Thread.sleep(delay) }
+      if (delay > 0) {
+        Thread.sleep(delay)
+      }
       trace("\t\t\tFinishing job: " + this.name)
       updateAndEmitJobState(Succeeded)
       count.mutate(_ + 1)

@@ -22,6 +22,7 @@ import loamstream.util.Hashes
 import loamstream.util.PathUtils
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.Loggable
+import loamstream.util.Futures
 
 /**
  * @author clint
@@ -30,7 +31,7 @@ import loamstream.util.Loggable
  * NB: This class contains a naive, first-pass sketch of an executor that takes job outputs' hashes into account.
  * It doesn't make use of any stored information (yet) and is for illustrative purposes only.
  */
-final class NaiveFilteringExecuter(jobFilter: JobFilter)
+final case class NaiveFilteringExecuter(jobFilter: JobFilter)
     (implicit context: ExecutionContext) extends LExecuter with Loggable {
   
   override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
@@ -43,21 +44,9 @@ final class NaiveFilteringExecuter(jobFilter: JobFilter)
   }
   
   private def runWithoutDeps(job: LJob): Future[Result] = {
-    val f = job.execute
+    import Futures.Implicits._
     
-    def cachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
-    
-    import Traversables.Implicits._
-
-    //NB: Use map here instead of foreach to ensure that side-effects happen before the resulting
-    //future is done. 
-    for {
-      result <- f
-    } yield {
-      jobFilter.record(job.outputs)
-      
-      result
-    }
+    job.execute.withSideEffect(_ => jobFilter.record(job.outputs))
   }
   
   private def run(job: LJob): Future[Map[LJob, Result]] = {

@@ -53,12 +53,16 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     import JobState._
     
     stateRef() = Running
-    
-    f.foreach { result =>
+  
+    //NB: Use map here instead of foreach to ensure that side-effects happen before the resulting
+    //future is done. 
+    for {
+      result <- f
+    } yield {
       stateRef() = if(result.isSuccess) Succeeded else Failed
+      
+      result
     }
-    
-    f
   }
   
   /**

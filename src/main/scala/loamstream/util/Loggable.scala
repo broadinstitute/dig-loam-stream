@@ -38,6 +38,12 @@ trait Loggable {
     case Level.error => error(s, e)
   }
 
+  final def isTraceEnabled: Boolean = logger.isTraceEnabled
+  final def isDebugEnabled: Boolean = logger.isDebugEnabled
+  final def isInfoEnabled: Boolean = logger.isInfoEnabled
+  final def isWarnEnabled: Boolean = logger.isWarnEnabled
+  final def isErrorEnabled: Boolean = logger.isErrorEnabled
+  
   final def trace(s: => String): Unit = if (logger.isTraceEnabled) logger.trace(s)
 
   final def trace(s: => String, e: Throwable): Unit = if (logger.isTraceEnabled) logger.trace(s, e)

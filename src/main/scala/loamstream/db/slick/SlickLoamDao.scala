@@ -12,6 +12,8 @@ import slick.driver.JdbcProfile
 import java.sql.ResultSet
 import java.sql.Timestamp
 import loamstream.model.jobs.Output.CachedOutput
+import scala.util.Try
+import slick.jdbc.meta.MTable
 
 /**
  * @author clint
@@ -20,13 +22,15 @@ import loamstream.model.jobs.Output.CachedOutput
  * Rough-draft LoamDao implementation backed by Slick 
  */
 final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
-  val driver = descriptor.driver
+  val driver = descriptor.dbType.driver
   
   import driver.api._
   import SlickLoamDao.waitFor
   
   override def hashFor(path: Path): Hash = {
-    val query = tables.outputs.filter(_.path === Helpers.normalize(path)).result.head.transactionally
+    val normalizedPath = Helpers.normalize(path)
+    
+    val query = tables.outputs.filter(_.path === normalizedPath).result.head.transactionally
     
     val futureRow = db.run(query)
     
@@ -43,6 +47,31 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     waitFor(db.run(action))
   }
   
+  private def deleteAction(pathsToDelete: Iterable[Path]): DBIO[Int] = {
+    val toDelete = pathsToDelete.map(Helpers.normalize).toSet
+    
+    tables.outputs.filter(_.path.inSetBind(toDelete)).delete
+  }
+  
+  override def delete(paths: Iterable[Path]): Unit = {
+    val action = deleteAction(paths).transactionally
+    
+    waitFor(db.run(action))
+  }
+  
+  override def insertOrUpdate(rows: Iterable[CachedOutput]): Unit = {
+    val paths = rows.map(_.path)
+    
+    val rawRows = rows.map(row => new RawOutputRow(row.path, row.hash))
+
+    val insertAction = tables.outputs ++= rawRows
+    
+    val action = DBIO.seq(deleteAction(paths), insertAction).transactionally
+    
+    //TODO: Re-evaluate
+    waitFor(db.run(action))
+  }
+  
   override def allRows: Seq[CachedOutput] = {
     val query = tables.outputs.result.transactionally
     
@@ -52,7 +81,13 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     waitFor(futureRow).map(_.toCachedOutput)
   }
   
-  private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.jdbcDriverClass)
+  override def createTables(): Unit = tables.create(db)
+  
+  override def dropTables(): Unit = tables.drop(db)
+  
+  override def shutdown(): Unit = waitFor(db.shutdown)
+  
+  private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.dbType.jdbcDriverClass)
 
   private[slick] lazy val tables = new SlickLoamDao.Tables(driver)
 }
@@ -61,7 +96,11 @@ object SlickLoamDao {
   final class Tables(val driver: JdbcProfile) {
     import driver.api._
     
-    final class Outputs(tag: Tag) extends Table[RawOutputRow](tag, "OUTPUTS") {
+    object Names {
+      val outputs = "OUTPUTS"
+    }
+    
+    final class Outputs(tag: Tag) extends Table[RawOutputRow](tag, Names.outputs) {
       def path = column[String]("PATH", O.PrimaryKey)
       def lastModified = column[Timestamp]("LAST_MODIFIED")
       def hash = column[String]("HASH")
@@ -73,11 +112,22 @@ object SlickLoamDao {
     
     private def ddlForAllTables = outputs.schema
     
-    def create(database: Database): Unit = perform(database)(ddlForAllTables.create.transactionally)
+    def create(database: Database): Unit = {
+      def exists(tableName: String): Boolean = {
+        val existingTables = perform(database)(MTable.getTables)
+        
+        existingTables.exists(_.name == tableName)
+      }
+      
+      //TODO: Find a way to avoid explicitly naming each table :(
+      if(!exists(Names.outputs)) {
+        perform(database)(outputs.schema.create.transactionally)
+      }
+    }
     
     def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)
   
-    private def perform(database: Database)(action: DBIO[_]): Unit = {
+    private def perform[A](database: Database)(action: DBIO[A]): A = {
       waitFor(database.run(action))
     }
   }

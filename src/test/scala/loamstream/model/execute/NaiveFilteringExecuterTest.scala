@@ -9,8 +9,8 @@ import org.scalatest.FunSuite
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.db.TestDbDescriptors
-import loamstream.db.slick.AbstractSlickLoamDaoTest
+import loamstream.db.slick.TestDbDescriptors
+import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.loam.LoamToolBox
 import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.model.jobs.JobState
@@ -27,11 +27,13 @@ import scala.concurrent.Future
  * @author clint
  * date: Aug 12, 2016
  */
-final class NaiveHashingExecuterTest extends FunSuite with AbstractSlickLoamDaoTest {
+final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDao {
 
   override val descriptor = TestDbDescriptors.inMemoryH2
 
-  private def executer = new NaiveHashingExecuter(dao)(ExecutionContext.global)
+  private def executer = {
+    new NaiveFilteringExecuter(new JobFilter.DbBackedJobFilter(dao))(ExecutionContext.global)
+  }
 
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
     import JobState._

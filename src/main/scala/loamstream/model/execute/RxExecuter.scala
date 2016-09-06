@@ -59,6 +59,8 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
         jobsAlreadyLaunched().foreach(job => trace("\t" + job.name))
 
         jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched()
+        // TODO: Consider moving updating of jobsAlreadyLaunched here. It may prevent race conditions, which is
+        // TODO: probably the culprit for sporadic test failures
 
         trace("Jobs ready to dispatch: ")
         jobsReadyToDispatch().foreach(job => debug("\t" + job.name))
@@ -66,6 +68,7 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
         debug("Jobs to be dispatched at this time: ")
         jobsToBeDispatched.foreach(job => debug("\t" + job.name))
 
+        // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
         import scala.concurrent.ExecutionContext.Implicits.global
         Future {
           tracker.addJobs(jobsToBeDispatched)

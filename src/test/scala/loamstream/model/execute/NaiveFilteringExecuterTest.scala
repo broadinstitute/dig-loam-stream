@@ -119,6 +119,7 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
     }
   }
 
+  // scalastyle:off method.length
   //NB: Tests with the 'run-everything' JobFilter as well as a DB-backed one.
   private def doTest(expectations: Seq[JobState])(setup: (Path, Path, Path, Path) => Any): Unit = {
     
@@ -188,6 +189,7 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
     
     doTestWithExecuter(dbBackedExecuter)
   }
+  // scalastyle:on method.length
 
   private lazy val compiler = new LoamCompiler(OutMessageSink.NoOp)
 

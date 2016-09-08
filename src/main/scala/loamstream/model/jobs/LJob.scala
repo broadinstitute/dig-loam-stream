@@ -22,9 +22,6 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     inputs.foreach(_.print(indent + 2))
   }
 
-  // TODO: Find a way to print a job properly; displaying only default JVM names makes debugging difficult
-  override def toString: String = name
-
   def name: String = ""
 
   /**

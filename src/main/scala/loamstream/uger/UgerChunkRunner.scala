@@ -10,6 +10,7 @@ import loamstream.model.jobs.{LJob, NoOpJob}
 import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.LJob.SimpleFailure
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.uger.JobStatus._
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import monix.execution.Scheduler
@@ -89,7 +90,9 @@ final case class UgerChunkRunner(
     val jobsToFutureResults: Iterable[(LJob, Future[Result])] = for {
       jobId <- jobIds
       job = jobsById(jobId)
-      futureResult = statuses(jobId).lastL.runAsync.map(resultFrom(job))
+      jobStatuses = statuses(jobId)
+      _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
+      futureResult = jobStatuses.lastL.runAsync.map(resultFrom(job))
     } yield {
       job -> futureResult
     }

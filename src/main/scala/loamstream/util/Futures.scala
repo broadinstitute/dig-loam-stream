@@ -31,4 +31,23 @@ object Futures {
       }
     }
   }
+  
+  object Implicits {
+    final implicit class FutureOps[A](val fut: Future[A]) extends AnyVal {
+      /**
+       * Return a new Future that contains the result of fut, and ensures that the passed-in function f
+       * completes before the returned future completes.  This ordering guarantee is more than what 
+       * Future.foreach / Future.onComplete provides. 
+       */
+      def withSideEffect(f: A => Any)(implicit context: ExecutionContext): Future[A] = {
+        //NB: Use map here instead of foreach to ensure that side-effects happen before the resulting
+        //future is done.
+        fut.map { a =>
+          f(a)
+          
+          a
+        }
+      }
+    }
+  }
 }

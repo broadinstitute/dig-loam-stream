@@ -48,6 +48,8 @@ trait CommandLineJob extends LJob {
       case exception: Exception => CommandException(commandLineString, exception)
     }
   }
+
+  override def toString: String = commandLineString
 }
 
 object CommandLineJob {

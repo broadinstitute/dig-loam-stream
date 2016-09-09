@@ -1,13 +1,11 @@
 package loamstream.uger
 
-import java.nio.file.Path
 import monix.reactive.Observable
-import scala.concurrent.Future
-import java.nio.file.Paths
 import scala.util.Failure
 import org.ggf.drmaa.InvalidJobException
 import scala.util.Success
 import loamstream.util.ObservableEnrichments
+import loamstream.util.TimeEnrichments._
 
 /**
  * @author clint
@@ -36,7 +34,7 @@ object Jobs {
     
     val statusAttempts = for {
       _ <- Observable.interval(period)
-      status <- Observable.fromFuture(poller.poll(jobId, period))
+      status <- Observable.fromFuture(time("Calling poll()") { poller.poll(jobId, period) })
     } yield status
     
     val result = statusAttempts.distinctUntilChanged.zipWithIndex.collect { 

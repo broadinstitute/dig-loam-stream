@@ -4,6 +4,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.blocking
 import scala.concurrent.duration.Duration
+import loamstream.util.TimeEnrichments._
 import scala.util.Try
 
 /**
@@ -25,7 +26,9 @@ object Poller {
   final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller {
     override def poll(jobId: String, timeout: Duration): Future[Try[JobStatus]] = Future {
       blocking {
-        client.waitFor(jobId, timeout)
+        time("Calling waitFor()") {
+          client.waitFor(jobId, timeout)
+        }
       }
     }
   }

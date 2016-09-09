@@ -50,23 +50,24 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
     val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
     def executeIter(jobs: Set[LJob]): Unit = {
+      trace("executeIter called...")
       if (jobs.isEmpty) {
         if (jobStates().values.forall(_.isFinished)) {
           everythingIsDonePromise.trySuccess(())
         }
       } else {
         trace("Jobs already launched: ")
-        jobsAlreadyLaunched().foreach(job => trace("\t" + job.name))
+        jobsAlreadyLaunched().foreach(job => trace("\t" + job))
 
         jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched()
         // TODO: Consider moving updating of jobsAlreadyLaunched here. It may prevent race conditions, which is
         // TODO: probably the culprit for sporadic test failures
 
         trace("Jobs ready to dispatch: ")
-        jobsReadyToDispatch().foreach(job => debug("\t" + job.name))
+        jobsReadyToDispatch().foreach(job => debug("\t" + job))
 
         debug("Jobs to be dispatched at this time: ")
-        jobsToBeDispatched.foreach(job => debug("\t" + job.name))
+        jobsToBeDispatched.foreach(job => debug("\t" + job))
 
         // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
         import scala.concurrent.ExecutionContext.Implicits.global
@@ -154,6 +155,8 @@ object RxExecuter {
               delay: Int = this.delay): RxMockJob = new RxMockJob(name, inputs, outputs, dependencies, delay)
 
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+
+    override def toString: String = name
   }
 
   final case class Tracker() {

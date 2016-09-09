@@ -15,10 +15,11 @@ import loamstream.util.Futures
 import loamstream.util.Loggable
 import monix.execution.Scheduler
 import loamstream.util.Files
+import loamstream.util.TimeEnrichments._
 import loamstream.conf.UgerConfig
 import java.util.UUID
 
-import loamstream.model.jobs.JobState.{Failed, Running, Succeeded}
+import loamstream.model.jobs.JobState.{Failed, Running}
 
 /**
  * @author clint
@@ -85,7 +86,9 @@ final case class UgerChunkRunner(
 
     val poller = Poller.drmaa(drmaaClient)
 
-    def statuses(jobId: String) = Jobs.monitor(poller, pollingFrequencyInHz)(jobId)
+    def statuses(jobId: String) = time("Calling Jobs.monitor()") {
+      Jobs.monitor(poller, pollingFrequencyInHz)(jobId)
+    }
 
     val jobsToFutureResults: Iterable[(LJob, Future[Result])] = for {
       jobId <- jobIds
@@ -117,10 +120,8 @@ object UgerChunkRunner extends Loggable {
   private[uger] def resultFrom(job: LJob)(status: JobStatus): LJob.Result = {
     //TODO: Anything better; this was purely expedient
     if (status.isDone) {
-      job.updateAndEmitJobState(Succeeded)
       LJob.SimpleSuccess(s"$job")
     } else {
-      job.updateAndEmitJobState(Failed)
       LJob.SimpleFailure(s"$job")
     }
   }

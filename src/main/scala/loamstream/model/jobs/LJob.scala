@@ -42,7 +42,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    */
   final def state: JobState = stateRef.value
 
-  final val stateEmitter = PublishSubject[JobState]
+  final val stateEmitter = PublishSubject[JobState]()
 
   final protected def emitJobState(): Unit = stateEmitter.onNext(state)
 

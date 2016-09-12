@@ -82,17 +82,14 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
 
     val jobs = flattenTree(executable.jobs)
 
-    import scala.language.postfixOps
     jobs foreach { job =>
       jobStates.mutate(_ + (job -> NotStarted))
       job.stateEmitter.subscribe(jobState => updateJobState(job, jobState))
     }
 
-    allJobStatuses.sample(20 millis).subscribe(
-      jobStatuses => {
-        executeIter(getRunnableJobs(jobStatuses.keySet))
-      }
-    )
+    allJobStatuses.sample(20.millis).subscribe { jobStatuses => 
+      executeIter(getRunnableJobs(jobStatuses.keySet))
+    }
 
     executeIter(jobs)
 

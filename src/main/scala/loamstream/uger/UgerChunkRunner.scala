@@ -86,7 +86,7 @@ final case class UgerChunkRunner(
     
     val poller = Poller.drmaa(drmaaClient)
 
-    def statuses(jobId: String) = time(s"Job 'jobId': Calling Jobs.monitor()") {
+    def statuses(jobId: String) = time(s"Job '$jobId': Calling Jobs.monitor()") {
       Jobs.monitor(poller, pollingFrequencyInHz)(jobId)
     }
 

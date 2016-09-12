@@ -13,11 +13,11 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.uger.JobStatus._
 import loamstream.util.Futures
 import loamstream.util.Loggable
-import monix.execution.Scheduler
 import loamstream.util.Files
 import loamstream.util.TimeEnrichments._
 import loamstream.conf.UgerConfig
 import java.util.UUID
+import loamstream.util.ObservableEnrichments
 
 import loamstream.model.jobs.JobState.{Failed, Running}
 
@@ -62,12 +62,13 @@ final case class UgerChunkRunner(
 
       submissionResult match {
         case DrmaaClient.SubmissionSuccess(rawJobIds) => {
-          import monix.execution.Scheduler.Implicits.global
           leafCommandLineJobs.foreach(_.updateAndEmitJobState(Running))
+
           toResultMap(drmaaClient, leafCommandLineJobs, rawJobIds)
         }
         case DrmaaClient.SubmissionFailure(e) => {
           leafCommandLineJobs.foreach(_.updateAndEmitJobState(Failed))
+          
           makeAllFailureMap(leafCommandLineJobs, Some(e))
         }
       }
@@ -80,7 +81,7 @@ final case class UgerChunkRunner(
   private[uger] def toResultMap(
       drmaaClient: DrmaaClient, 
       jobs: Seq[LJob], 
-      jobIds: Seq[String])(implicit scheduler: Scheduler): Future[Map[LJob, Result]] = {
+      jobIds: Seq[String])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
     
     val jobsById = jobIds.zip(jobs).toMap
 
@@ -90,12 +91,14 @@ final case class UgerChunkRunner(
       Jobs.monitor(poller, pollingFrequencyInHz)(jobId)
     }
 
+    import ObservableEnrichments._
+    
     val jobsToFutureResults: Iterable[(LJob, Future[Result])] = for {
       jobId <- jobIds
       job = jobsById(jobId)
       jobStatuses = statuses(jobId)
       _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
-      futureResult = jobStatuses.lastL.runAsync.map(resultFrom(job))
+      futureResult = jobStatuses.lastAsFuture.map(resultFrom(job))
     } yield {
       job -> futureResult
     }

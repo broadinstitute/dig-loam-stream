@@ -8,6 +8,7 @@ import loamstream.util.ValueBox
 import rx.lang.scala.subjects.PublishSubject
 
 import scala.reflect.runtime.universe.Type
+import loamstream.util.Futures
 
 /**
  * LoamStream
@@ -70,6 +71,17 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
   final protected def isSuccess: Boolean = state.isSuccess
 
+  /*final def execute(implicit context: ExecutionContext): Future[Result] = {
+    import JobState._
+    import Futures.Implicits._
+    
+    stateRef() = Running
+    
+    executeSelf.withSideEffect { result =>
+      stateRef() = if(result.isSuccess) Succeeded else Failed
+    }
+  }*/
+  
   /**
    * Will do any actual work meant to performed by this job
    */

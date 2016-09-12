@@ -1,11 +1,12 @@
 package loamstream.util
 
-import org.scalatest.FunSuite
-import monix.reactive.Observable
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+
+import org.scalatest.FunSuite
+
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -15,53 +16,49 @@ final class ObservableEnrichmentsTest extends FunSuite {
   private def isEven(i: Int): Boolean = i % 2 == 0
   private def isOdd(i: Int): Boolean = !isEven(i)
   
+  private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
+
+  import ObservableEnrichments._
+  
   test("until") {
-    val observable = Observable.fromIterable(Seq(2,4,6,7,8,9,10)) // scalastyle:ignore magic.number
-    
-    import monix.execution.Scheduler.Implicits.global
-    
-    import ObservableEnrichments._
-    
-    def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
+    def observable = Observable.just(2, 4, 6, 7, 8, 9, 10) // scalastyle:ignore magic.number
+
+    def toFuture[A](o: Observable[A]): Future[Seq[A]] = o.to[Seq].firstAsFuture
     
     {
-      val buf = new ArrayBuffer[Int]
-    
-      val fut = observable.until(isOdd).foreach(buf += _)
-    
-      waitFor(fut)
-    
-      assert(buf == Seq(2,4,6,7)) // scalastyle:ignore magic.number
+      val fut = toFuture(observable.until(isOdd))
+
+      assert(waitFor(fut) == Seq(2, 4, 6, 7)) // scalastyle:ignore magic.number
     }
-    
+
     {
-      val buf = new ArrayBuffer[Int]
-    
-      val fut = observable.until(isEven).foreach(buf += _)
-    
-      waitFor(fut)
-    
-      assert(buf == Seq(2))
+      val fut = toFuture(observable.until(isEven))
+
+      assert(waitFor(fut) == Seq(2))
     }
-    
+
     {
-      val buf = new ArrayBuffer[Int]
-    
-      val fut = observable.until(_ == 8).foreach(buf += _)
-    
-      waitFor(fut)
-    
-      assert(buf == Seq(2,4,6,7,8)) // scalastyle:ignore magic.number
+      val fut = toFuture(observable.until(_ == 8))
+
+      assert(waitFor(fut) == Seq(2, 4, 6, 7, 8)) // scalastyle:ignore magic.number
     }
-    
+
     {
-      val buf = new ArrayBuffer[Int]
-    
-      val fut = observable.until(_ == 42).foreach(buf += _)
-    
-      waitFor(fut)
-    
-      assert(buf == Seq(2,4,6,7,8,9,10)) // scalastyle:ignore magic.number
+      val fut = toFuture(observable.until(_ == 42))
+
+      assert(waitFor(fut) == Seq(2, 4, 6, 7, 8, 9, 10)) // scalastyle:ignore magic.number
     }
+  }
+
+  test("firstAsFuture") {
+    val f = Observable.just("a", "b", "c", "d").firstAsFuture
+
+    assert(waitFor(f) == "a")
+  }
+
+  test("lastAsFuture") {
+    val f = Observable.just("a", "b", "c", "d").lastAsFuture
+
+    assert(waitFor(f) == "d")
   }
 }

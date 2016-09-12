@@ -1,6 +1,7 @@
 package loamstream.model
 
 import scala.util.Random
+import loamstream.util.Sequence
 
 /**
   * LoamStream
@@ -28,7 +29,7 @@ object LId {
     override def toString = name 
   }
   
-  def newAnonId: LAnonId = LAnonId(Ids.next())
+  def newAnonId: LAnonId = LAnonId(ids.next())
 
   private val anonIdNameRegex = "anon\\$(\\d+)".r
   
@@ -37,16 +38,5 @@ object LId {
     case _ => LNamedId(name)
   }
   
-  private object Ids {
-    private[this] var _next: Long = 0
-    
-    private[this] val lock = new AnyRef
-    
-    def next(): Long = lock.synchronized {
-      try { _next } 
-      finally {
-        _next += 1
-      }
-    }
-  }
+  private val ids: Sequence[Long] = Sequence()
 }

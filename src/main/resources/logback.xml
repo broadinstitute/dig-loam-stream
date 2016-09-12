@@ -16,7 +16,7 @@
     </appender>
 
     <!-- Logging levels in the order of increasing significance are: TRACE < DEBUG < INFO <  WARN < ERROR -->
-    <!-- Only display messages of `level` or higher-->
+    <!-- Only display messages of the level set below or higher -->
     <root level="TRACE">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>

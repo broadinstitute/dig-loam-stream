@@ -14,7 +14,7 @@ import loamstream.uger.JobStatus._
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.Files
-import loamstream.util.TimeEnrichments._
+import loamstream.util.TimeEnrichments.time
 import loamstream.conf.UgerConfig
 import java.util.UUID
 import loamstream.util.ObservableEnrichments
@@ -86,7 +86,7 @@ final case class UgerChunkRunner(
     
     val poller = Poller.drmaa(drmaaClient)
 
-    def statuses(jobId: String) = time(s"Job '$jobId': Calling Jobs.monitor()") {
+    def statuses(jobId: String) = time(s"Job '$jobId': Calling Jobs.monitor()", debug(_)) {
       Jobs.monitor(poller, pollingFrequencyInHz)(jobId)
     }
 

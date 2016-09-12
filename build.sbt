@@ -1,7 +1,5 @@
 import sbt.project
 
-import uk.gov.hmrc.gitstamp.GitStampPlugin._
-
 lazy val Versions = new {
   val App = "1.0-rc1"
   val ApacheCommonsIO = "2.4"
@@ -46,7 +44,7 @@ lazy val commonSettings = Seq(
   ),
   libraryDependencies ++= (mainDeps ++ testDeps),
   scalastyleFailOnError := true
-) ++ gitStampSettings
+)
 
 lazy val root = (project in file("."))
   .settings(commonSettings: _*)

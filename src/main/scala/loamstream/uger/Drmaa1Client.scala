@@ -130,9 +130,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       }
     }.recoverWith {
       case e: ExitTimeoutException => {
-        info(s"Timed out waiting for job '$jobId' to finish, checking its status")
+        info(s"Job '$jobId': Timed out waiting for job to finish, checking its status")
 
-        time("Calling statusOf()") { statusOf(jobId) }
+        time(s"Job '$jobId': Calling statusOf()") { statusOf(jobId) }
       }
     }
   }
@@ -148,7 +148,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskIndexIncr = 1
 
       // TODO Make native specification controllable from Loam (DSL)
-      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=8g")
+      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=2g")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")

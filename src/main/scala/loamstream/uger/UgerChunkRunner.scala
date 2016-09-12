@@ -64,7 +64,9 @@ final case class UgerChunkRunner(
         case DrmaaClient.SubmissionSuccess(rawJobIds) => {
           leafCommandLineJobs.foreach(_.updateAndEmitJobState(Running))
 
-          toResultMap(drmaaClient, leafCommandLineJobs, rawJobIds)
+          val jobsById = rawJobIds.zip(leafCommandLineJobs).toMap
+          
+          toResultMap(drmaaClient, jobsById)
         }
         case DrmaaClient.SubmissionFailure(e) => {
           leafCommandLineJobs.foreach(_.updateAndEmitJobState(Failed))
@@ -80,22 +82,18 @@ final case class UgerChunkRunner(
 
   private[uger] def toResultMap(
       drmaaClient: DrmaaClient, 
-      jobs: Seq[LJob], 
-      jobIds: Seq[String])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
+      jobsById: Map[String, LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
     
-    val jobsById = jobIds.zip(jobs).toMap
-
     val poller = Poller.drmaa(drmaaClient)
 
-    def statuses(jobId: String) = time("Calling Jobs.monitor()") {
+    def statuses(jobId: String) = time(s"Job 'jobId': Calling Jobs.monitor()") {
       Jobs.monitor(poller, pollingFrequencyInHz)(jobId)
     }
 
     import ObservableEnrichments._
     
     val jobsToFutureResults: Iterable[(LJob, Future[Result])] = for {
-      jobId <- jobIds
-      job = jobsById(jobId)
+      (jobId, job) <- jobsById
       jobStatuses = statuses(jobId)
       _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
       futureResult = jobStatuses.lastAsFuture.map(resultFrom(job))

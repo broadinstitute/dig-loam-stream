@@ -11,6 +11,7 @@ import loamstream.util.TimeEnrichments._
 import rx.lang.scala.Observable
 import scala.concurrent.Future
 import scala.util.Try
+import rx.lang.scala.schedulers.IOScheduler
 
 /**
  * @author clint
@@ -41,10 +42,12 @@ object Jobs {
     
     val period = (1 / pollingFrequencyInHz).seconds
     
-    def poll(): Future[Try[JobStatus]] = time("Calling poll()") { poller.poll(jobId, period) }
+    def poll(): Future[Try[JobStatus]] = time(s"Job '$jobId': Calling poll()") { poller.poll(jobId, period) }
+    
+    val ioScheduler = IOScheduler()
     
     val statusAttempts = for {
-      _ <- Observable.interval(period)
+      _ <- Observable.interval(period, ioScheduler)
       status <- Observable.from(poll())
     } yield status
     

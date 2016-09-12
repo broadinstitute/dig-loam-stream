@@ -1,7 +1,7 @@
 package loamstream.model.execute
 
 import loamstream.model.execute.RxExecuter.Tracker
-import loamstream.model.jobs.{JobState, LJob, Output}
+import loamstream.model.jobs.{JobState, LJob, NoOpJob, Output}
 import loamstream.model.jobs.JobState.{NotStarted, Running, Succeeded}
 import loamstream.model.jobs.LJob._
 import loamstream.util._
@@ -45,12 +45,26 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
       allJobStatuses.onNext(jobStates())
     }
 
+    /** Check if jobs ready to be dispatched include a NoOpJob. If yes, make sure there is only one
+     * and handle it by directly executing it
+     */
+    def checkForAndHandleNoOpJob(): Unit = {
+      if (!jobsToBeDispatched.forall(!_.isInstanceOf[NoOpJob])) {
+        trace("Handling NoOpJob")
+        assert(jobsToBeDispatched.size == 1, "There should be at most a single NoOpJob")
+        val noOpJob = jobsToBeDispatched.head
+        val noOpResult = Await.result(noOpJob.execute, Duration.Inf)
+        result.mutate(_ + (noOpJob -> noOpResult))
+        jobsAlreadyLaunched.mutate(_ + noOpJob)
+      }
+    }
+
     // Future-Promise pair used as a flag to check if the main thread can be resumed (i.e. all jobs are done)
     val everythingIsDonePromise: Promise[Unit] = Promise()
     val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
     def executeIter(jobs: Set[LJob]): Unit = {
-      trace("executeIter called...")
+      trace("executeIter() is called...")
       if (jobs.isEmpty) {
         if (jobStates().values.forall(_.isFinished)) {
           everythingIsDonePromise.trySuccess(())
@@ -68,6 +82,9 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
 
         debug("Jobs to be dispatched at this time: ")
         jobsToBeDispatched.foreach(job => debug("\t" + job))
+
+        // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
+        checkForAndHandleNoOpJob()
 
         // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
         import scala.concurrent.ExecutionContext.Implicits.global

@@ -20,6 +20,7 @@ object LoamCompiler {
   trait LoamScriptBox {
     /** LoamContext for tis script */
     def loamContext: LoamContext
+
     /** The graph of stores and tools defined by this Loam script */
     def graph: LoamGraph = loamContext.graphBox.value
   }
@@ -67,11 +68,11 @@ object LoamCompiler {
 
   /** The result of the compilation of a Loam script
     *
-    * @param errors   Errors from the Scala compiler
-    * @param warnings Warnings from the Scala compiler
-    * @param infos    Infos from the Scala compiler
+    * @param errors     Errors from the Scala compiler
+    * @param warnings   Warnings from the Scala compiler
+    * @param infos      Infos from the Scala compiler
     * @param contextOpt Option of a context with graph of stores and tools
-    * @param exOpt    Option of an exception if thrown
+    * @param exOpt      Option of an exception if thrown
     */
   final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue],
                           contextOpt: Option[LoamContext], exOpt: Option[Throwable] = None) {
@@ -97,6 +98,7 @@ object LoamCompiler {
     /** Detailed report listing all issues */
     def report: String = (summary +: (errors ++ warnings ++ infos).map(_.summary)).mkString(System.lineSeparator)
   }
+
 }
 
 /** The compiler compiling Loam scripts into execution plans */
@@ -111,9 +113,7 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
   val compiler = new ReflectGlobal(settings, reporter, getClass.getClassLoader)
   val sourceFileName = "Config.scala"
 
-  val inputObjectPackage = "loamstream.dynamic.input"
-  val inputObjectName = s"Some${SourceUtils.shortTypeName[LoamScriptBox]}"
-  val inputObjectFullName = s"$inputObjectPackage.$inputObjectName"
+  val loamScriptDefaultName = s"Some${SourceUtils.shortTypeName[LoamScriptBox]}"
 
   def soManyIssues: String = {
     val soManyErrors = StringUtils.soMany(reporter.errorCount, "error")
@@ -122,9 +122,9 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
   }
 
   /** Wraps Loam script in template to create valid Scala file */
-  def wrapCode(raw: String): String = {
+  def wrapCode(script: LoamScript): String = {
     s"""
-package $inputObjectPackage
+package ${LoamScript.scriptsPackage}
 
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LoamContext]}
@@ -136,19 +136,25 @@ import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._
 
-object $inputObjectName extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
+object ${script.name} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
 implicit val loamContext = new LoamContext
 
-${raw.trim}
+${script.code.trim}
 
 }
 """
   }
 
   /** Compiles Loam script into execution plan */
-  def compile(rawCode: String): LoamCompiler.Result = {
+  def compile(loamCode: String): LoamCompiler.Result = compile(LoamScript.withGeneratedName(loamCode))
+
+  /** Compiles Loam script into execution plan */
+  def compile(scriptName: String, loamCode: String): LoamCompiler.Result = compile(LoamScript(scriptName, loamCode))
+
+  /** Compiles Loam script into execution plan */
+  def compile(script: LoamScript): LoamCompiler.Result = {
     try {
-      val wrappedCode = wrapCode(rawCode)
+      val wrappedCode = wrapCode(script)
       val sourceFile = new BatchSourceFile(sourceFileName, wrappedCode)
       reporter.reset()
       targetDirectory.clear()
@@ -157,7 +163,7 @@ ${raw.trim}
       if (targetDirectory.nonEmpty) {
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-        val scriptBox = ReflectionUtil.getObject[LoamScriptBox](classLoader, inputObjectFullName)
+        val scriptBox = ReflectionUtil.getObject[LoamScriptBox](classLoader, script.longName)
         val graph = scriptBox.graph
         val stores = graph.stores
         val tools = graph.tools

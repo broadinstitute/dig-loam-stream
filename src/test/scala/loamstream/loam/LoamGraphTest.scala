@@ -33,7 +33,7 @@ final class LoamGraphTest extends FunSuite {
   implicit val context = {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)
 
-    val result = compiler.compile(code)
+    val result = compiler.compile(LoamScript.withGeneratedName(code))
     
     result.contextOpt.get
   }

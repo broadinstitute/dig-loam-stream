@@ -3,7 +3,7 @@ package loamstream.compiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.LoamGraphValidation
+import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
 
 /**
@@ -38,7 +38,7 @@ final class LoamCompilerTest extends FunSuite {
       """
       // scalastyle:on regex
     }
-    val result = compiler.compile(code)
+    val result = compiler.compile(LoamScript.withGeneratedName(code))
     assert(result.errors === Nil)
     assert(result.warnings === Nil)
   }
@@ -50,14 +50,14 @@ final class LoamCompilerTest extends FunSuite {
     and social setting, and whose awareness inevitably and necessarily gives him a sense of social responsibility.
       """
     }
-    val result = compiler.compile(code)
+    val result = compiler.compile(LoamScript.withGeneratedName(code))
     assert(result.errors.nonEmpty)
   }
   test("Testing sample code toyImpute.loam") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)
     val codeShot = LoamRepository.defaultRepo.load("toyImpute").map(_.content)
     assert(codeShot.nonEmpty)
-    val result = compiler.compile(codeShot.get)
+    val result = compiler.compile(LoamScript.withGeneratedName(codeShot.get))
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)
     val graph = result.contextOpt.get.graph

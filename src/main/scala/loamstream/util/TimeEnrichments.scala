@@ -20,7 +20,7 @@ object TimeEnrichments extends Loggable {
     def >=(rhs: T): Boolean = compareTo(rhs) >= 0
   }
 
-  def time[A](message: => String, doPrint: String => Any = debug(_))(block: => A): A = {
+  def time[A](message: => String, doPrint: String => Any = trace(_))(block: => A): A = {
     val start = System.currentTimeMillis
 
     try { block }

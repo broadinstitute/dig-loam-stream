@@ -26,7 +26,7 @@ object LoamRunApp extends App with DrmaaClientHelpers with Loggable {
 
     import scala.concurrent.ExecutionContext.Implicits.global
 
-    val pollingFrequencyInHz = 0.033
+    val pollingFrequencyInHz = 0.1
     val chunkRunner = UgerChunkRunner(ugerConfig, drmaaClient, pollingFrequencyInHz)
 
     val executer = ChunkedExecuter(chunkRunner)

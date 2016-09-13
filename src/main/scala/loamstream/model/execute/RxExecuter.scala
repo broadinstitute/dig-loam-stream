@@ -64,25 +64,25 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
     val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
     def executeIter(jobs: Set[LJob]): Unit = {
-      debug("\nexecuteIter() is called...")
+      debug("executeIter() is called...\n")
       if (jobs.isEmpty) {
         if (jobStates().values.forall(_.isFinished)) {
           everythingIsDonePromise.trySuccess(())
         }
       } else {
-        debug("\nJobs already launched: ")
+        debug("Jobs already launched: ")
         jobsAlreadyLaunched().foreach(job => debug(s"\tAlready launched: $job"))
 
         jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched()
         // TODO: Consider moving updating of jobsAlreadyLaunched here. It may prevent race conditions, which is
         // TODO: probably the culprit for sporadic test failures
 
-        debug("\nJobs available to run: ")
-        jobsReadyToDispatch().foreach(job => debug(s"\tReady to dispatch: $job"))
+        debug("Jobs available to run: ")
+        jobsReadyToDispatch().foreach(job => debug(s"\tAvailable to run: $job"))
 
         val jobsToBeDispatched = getJobsToBeDispatched
         jobsAlreadyLaunched.mutate(_ ++ jobsToBeDispatched)
-        debug("\nJobs to be dispatched now: ")
+        debug("Jobs to be dispatched now: ")
         jobsToBeDispatched.foreach(job => debug(s"\tTo be dispatched now: $job"))
 
         // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary

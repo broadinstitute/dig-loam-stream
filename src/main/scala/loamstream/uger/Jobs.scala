@@ -52,7 +52,7 @@ object Jobs extends Loggable {
       status <- Observable.from(poll())
     } yield status
     
-    val result = statusAttempts./*distinctUntilChanged.*/zipWithIndex.collect { 
+    val result = statusAttempts.distinctUntilChanged.zipWithIndex.collect { 
       //NB: DRMAA won't always report when jobs are done, so we assume that an 'unknown job' failure for a job
       //we've previously inquired about successfully means the job is done.  This means we can't determine how 
       //a job ended (success of failure), though. :(

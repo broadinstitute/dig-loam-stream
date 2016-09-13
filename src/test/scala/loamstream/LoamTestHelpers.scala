@@ -23,17 +23,17 @@ trait LoamTestHelpers extends Loggable {
   def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result = {
     val source = StringUtils.fromUtf8Bytes(Files.readAllBytes(path))
 
-    compile(source)
+    compile(LoamScript.withGeneratedName(source))
   }
 
-  def compile(source: String)(implicit context: ExecutionContext): LoamCompiler.Result = {
+  def compile(script:LoamScript)(implicit context: ExecutionContext): LoamCompiler.Result = {
 
     val compiler = new LoamCompiler(LoggableOutMessageSink(this))
 
-    val compileResults = compiler.compile(LoamScript.withGeneratedName(source))
+    val compileResults = compiler.compile(script)
 
     if (!compileResults.isValid) {
-      throw new IllegalArgumentException(s"Could not compile '$source': ${compileResults.errors}.")
+      throw new IllegalArgumentException(s"Could not compile '$script': ${compileResults.errors}.")
     }
 
     compileResults

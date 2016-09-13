@@ -16,27 +16,61 @@ import scala.concurrent.duration.Duration
  *         date: Aug 17, 2016
  */
 final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
-                           (implicit executionContext: ExecutionContext)
-  extends LExecuter with Loggable {
+                           (implicit executionContext: ExecutionContext) extends LExecuter with Loggable {
   // scalastyle:off method.length
+  private[this] val lock = new AnyRef
+
+  // Mutable state variables
+  val jobsAlreadyLaunched: ValueBox[Set[LJob]] = ValueBox(Set.empty)
+  val jobStates: ValueBox[Map[LJob, JobState]] = ValueBox(Map.empty)
+  val result: ValueBox[Map[LJob, Result]] = ValueBox(Map.empty)
+
   def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     def flattenTree(tree: Set[LJob]): Set[LJob] = {
       tree.foldLeft(tree)((acc, x) =>
         x.inputs ++ flattenTree(x.inputs) ++ acc)
     }
 
-    def getRunnableJobs(jobs: Set[LJob]): Set[LJob] = jobs.filter(_.isRunnable)
-
-    // Mutable state variables
-    val jobsAlreadyLaunched: ValueBox[Set[LJob]] = ValueBox(Set.empty)
-    val jobsReadyToDispatch: ValueBox[Set[LJob]] = ValueBox(Set.empty)
-    val jobStates: ValueBox[Map[LJob, JobState]] = ValueBox(Map.empty)
-    val result: ValueBox[Map[LJob, Result]] = ValueBox(Map.empty)
-
-    def getJobsToBeDispatched: Set[LJob] = jobsReadyToDispatch().grouped(runner.maxNumJobs).toSet.headOption match {
-      case Some(j) => j
-      case _ => Set.empty[LJob]
+    /** Check if jobs ready to be dispatched include a NoOpJob. If yes, make sure there is only one
+     * and handle it by directly executing it
+     */
+    def checkForAndHandleNoOpJob(jobs: Set[LJob]): Unit = {
+      if (!jobs.forall(!_.isInstanceOf[NoOpJob])) {
+        trace("Handling NoOpJob")
+        assert(jobs.size == 1, "There should be at most a single NoOpJob")
+        val noOpJob = jobs.head
+        val noOpResult = Await.result(noOpJob.execute, Duration.Inf)
+        result.mutate(_ + (noOpJob -> noOpResult))
+      }
     }
+
+    val allJobs = flattenTree(executable.jobs)
+
+    def getRunnableJobsAndMarkThemAsLaunched(): Set[LJob] = lock synchronized {
+      debug("Jobs already launched: ")
+      jobsAlreadyLaunched().foreach(job => debug(s"\tAlready launched: $job"))
+
+      val allRunnableJobs = allJobs.filter(_.isRunnable) -- jobsAlreadyLaunched()
+      debug("Jobs available to run: ")
+      allRunnableJobs.foreach(job => debug(s"\tAvailable to run: $job"))
+
+      val jobsToDispatch = getJobsToBeDispatched(allRunnableJobs)
+      debug("Jobs to dispatch now: ")
+      jobsToDispatch.foreach(job => debug(s"\tTo dispatch now: $job"))
+
+      // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
+      checkForAndHandleNoOpJob(jobsToDispatch)
+
+      jobsAlreadyLaunched.mutate(_ ++ jobsToDispatch)
+
+      jobsToDispatch
+    }
+
+    def getJobsToBeDispatched(jobs: Set[LJob]): Set[LJob] =
+      jobs.grouped(runner.maxNumJobs).toSet.headOption match {
+        case Some(j) => j
+        case _ => Set.empty[LJob]
+      }
 
     val allJobStatuses = PublishSubject[Map[LJob, JobState]]
 
@@ -45,74 +79,42 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
       allJobStatuses.onNext(jobStates())
     }
 
-    /** Check if jobs ready to be dispatched include a NoOpJob. If yes, make sure there is only one
-     * and handle it by directly executing it
-     */
-    def checkForAndHandleNoOpJob(): Unit = {
-      if (!getJobsToBeDispatched.forall(!_.isInstanceOf[NoOpJob])) {
-        trace("Handling NoOpJob")
-        assert(getJobsToBeDispatched.size == 1, "There should be at most a single NoOpJob")
-        val noOpJob = getJobsToBeDispatched.head
-        val noOpResult = Await.result(noOpJob.execute, Duration.Inf)
-        result.mutate(_ + (noOpJob -> noOpResult))
-        jobsAlreadyLaunched.mutate(_ + noOpJob)
-      }
-    }
-
     // Future-Promise pair used as a flag to check if the main thread can be resumed (i.e. all jobs are done)
     val everythingIsDonePromise: Promise[Unit] = Promise()
     val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
-    def executeIter(jobs: Set[LJob]): Unit = {
+    def executeIter(): Unit = {
       debug("executeIter() is called...\n")
+
+      val jobs = getRunnableJobsAndMarkThemAsLaunched()
       if (jobs.isEmpty) {
         if (jobStates().values.forall(_.isFinished)) {
           everythingIsDonePromise.trySuccess(())
         }
       } else {
-        debug("Jobs already launched: ")
-        jobsAlreadyLaunched().foreach(job => debug(s"\tAlready launched: $job"))
-
-        jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched()
-        // TODO: Consider moving updating of jobsAlreadyLaunched here. It may prevent race conditions, which is
-        // TODO: probably the culprit for sporadic test failures
-
-        debug("Jobs available to run: ")
-        jobsReadyToDispatch().foreach(job => debug(s"\tAvailable to run: $job"))
-
-        val jobsToBeDispatched = getJobsToBeDispatched
-        jobsAlreadyLaunched.mutate(_ ++ jobsToBeDispatched)
-        debug("Jobs to be dispatched now: ")
-        jobsToBeDispatched.foreach(job => debug(s"\tTo be dispatched now: $job"))
-
-        // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
-        checkForAndHandleNoOpJob()
-
         // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
         import scala.concurrent.ExecutionContext.Implicits.global
         Future {
-          tracker.addJobs(getJobsToBeDispatched)
-          val newResultMap = Await.result(runner.run(getJobsToBeDispatched), Duration.Inf)
+          tracker.addJobs(jobs)
+          val newResultMap = Await.result(runner.run(jobs), Duration.Inf)
           result.mutate(_ ++ newResultMap)
         }
       }
     }
 
-    val jobs = flattenTree(executable.jobs)
-
     import scala.language.postfixOps
-    jobs foreach { job =>
+    allJobs foreach { job =>
       jobStates.mutate(_ + (job -> NotStarted))
       job.stateEmitter.subscribe(jobState => updateJobState(job, jobState))
     }
 
     allJobStatuses.sample(20 millis).subscribe(
       jobStatuses => {
-        executeIter(getRunnableJobs(jobStatuses.keySet))
+        executeIter()
       }
     )
 
-    executeIter(jobs)
+    executeIter()
 
     // Block the main thread until all jobs are done
     Await.result(everythingIsDoneFuture, Duration.Inf)

@@ -7,6 +7,7 @@ import loamstream.model.jobs.LJob.Result
 import loamstream.util.{DagHelpers, Loggable, TypeBox}
 import loamstream.util.ValueBox
 import scala.reflect.runtime.universe.Type
+import loamstream.util.Futures
 
 /**
   * LoamStream
@@ -48,17 +49,14 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    * the work currently done by this method.
    */
   final def execute(implicit context: ExecutionContext): Future[Result] = {
-    val f = executeSelf
-    
     import JobState._
+    import Futures.Implicits._
     
     stateRef() = Running
     
-    f.foreach { result =>
+    executeSelf.withSideEffect { result =>
       stateRef() = if(result.isSuccess) Succeeded else Failed
     }
-    
-    f
   }
   
   /**

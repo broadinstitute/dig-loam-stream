@@ -33,7 +33,7 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
     val jobStates: ValueBox[Map[LJob, JobState]] = ValueBox(Map.empty)
     val result: ValueBox[Map[LJob, Result]] = ValueBox(Map.empty)
 
-    def jobsToBeDispatched: Set[LJob] = jobsReadyToDispatch().grouped(runner.maxNumJobs).toSet.headOption match {
+    def getJobsToBeDispatched: Set[LJob] = jobsReadyToDispatch().grouped(runner.maxNumJobs).toSet.headOption match {
       case Some(j) => j
       case _ => Set.empty[LJob]
     }
@@ -49,10 +49,10 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
      * and handle it by directly executing it
      */
     def checkForAndHandleNoOpJob(): Unit = {
-      if (!jobsToBeDispatched.forall(!_.isInstanceOf[NoOpJob])) {
+      if (!getJobsToBeDispatched.forall(!_.isInstanceOf[NoOpJob])) {
         trace("Handling NoOpJob")
-        assert(jobsToBeDispatched.size == 1, "There should be at most a single NoOpJob")
-        val noOpJob = jobsToBeDispatched.head
+        assert(getJobsToBeDispatched.size == 1, "There should be at most a single NoOpJob")
+        val noOpJob = getJobsToBeDispatched.head
         val noOpResult = Await.result(noOpJob.execute, Duration.Inf)
         result.mutate(_ + (noOpJob -> noOpResult))
         jobsAlreadyLaunched.mutate(_ + noOpJob)
@@ -64,24 +64,24 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
     val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
     def executeIter(jobs: Set[LJob]): Unit = {
-      trace("executeIter() is called...")
+      debug("\nexecuteIter() is called...")
       if (jobs.isEmpty) {
         if (jobStates().values.forall(_.isFinished)) {
           everythingIsDonePromise.trySuccess(())
         }
       } else {
-        trace("Jobs already launched: ")
-        jobsAlreadyLaunched().foreach(job => trace("\t" + job))
+        debug("\nJobs already launched: ")
+        jobsAlreadyLaunched().foreach(job => debug(s"\tAlready launched: $job"))
 
         jobsReadyToDispatch() = getRunnableJobs(jobs) -- jobsAlreadyLaunched()
         // TODO: Consider moving updating of jobsAlreadyLaunched here. It may prevent race conditions, which is
         // TODO: probably the culprit for sporadic test failures
 
-        trace("Jobs ready to dispatch: ")
-        jobsReadyToDispatch().foreach(job => debug("\t" + job))
+        debug("\nJobs ready to dispatch: ")
+        jobsReadyToDispatch().foreach(job => debug(s"\tReady to dispatch: $job"))
 
-        debug("Jobs to be dispatched at this time: ")
-        jobsToBeDispatched.foreach(job => debug("\t" + job))
+        debug("\nJobs to be dispatched at this time: ")
+        getJobsToBeDispatched.foreach(job => debug(s"\tTo be dispatched now: $job"))
 
         // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
         checkForAndHandleNoOpJob()
@@ -89,10 +89,10 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
         // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
         import scala.concurrent.ExecutionContext.Implicits.global
         Future {
-          tracker.addJobs(jobsToBeDispatched)
-          val newResultMap = Await.result(runner.run(jobsToBeDispatched), Duration.Inf)
+          tracker.addJobs(getJobsToBeDispatched)
+          val newResultMap = Await.result(runner.run(getJobsToBeDispatched), Duration.Inf)
           result.mutate(_ ++ newResultMap)
-          jobsAlreadyLaunched.mutate(_ ++ jobsToBeDispatched)
+          jobsAlreadyLaunched.mutate(_ ++ getJobsToBeDispatched)
         }
       }
     }
@@ -116,6 +116,7 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
     // Block the main thread until all jobs are done
     Await.result(everythingIsDoneFuture, Duration.Inf)
 
+    info("All jobs are done")
     import Maps.Implicits._
     result().strictMapValues(Hit(_))
   }

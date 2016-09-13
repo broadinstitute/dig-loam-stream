@@ -71,7 +71,7 @@ final class RxExecuterTest extends FunSuite {
 
     // Check if jobs were correctly chunked
     val jobExecutionSeq = executer.tracker.jobExecutionSeq
-    assert(jobExecutionSeq.length === 4)
+    assert(jobExecutionSeq.length === 4, jobExecutionSeq.foreach(seq => println(seq))) // scalastyle:ignore regex
     assert(jobExecutionSeq(0) === Set(job11, job12))
     assert(jobExecutionSeq(1) === Set(job21, job22, job23, job24))
     assert(jobExecutionSeq(2) === Set(job31, job32))

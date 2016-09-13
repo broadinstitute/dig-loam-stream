@@ -15,7 +15,7 @@ import scala.concurrent.duration.Duration
  * @author kaan
  *         date: Aug 17, 2016
  */
-final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
+final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
                            (implicit executionContext: ExecutionContext)
   extends LExecuter with Loggable {
   // scalastyle:off method.length
@@ -178,7 +178,7 @@ object RxExecuter {
     override def toString: String = name
   }
 
-  final case class Tracker() {
+  final class Tracker() {
     private val executionSeq: ValueBox[Array[Set[LJob]]] = ValueBox(Array.empty)
 
     def addJobs(jobs: Set[LJob]): Unit = executionSeq.mutate(_ :+ jobs)

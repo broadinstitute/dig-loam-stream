@@ -77,11 +77,13 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
         // TODO: Consider moving updating of jobsAlreadyLaunched here. It may prevent race conditions, which is
         // TODO: probably the culprit for sporadic test failures
 
-        debug("\nJobs ready to dispatch: ")
+        debug("\nJobs available to run: ")
         jobsReadyToDispatch().foreach(job => debug(s"\tReady to dispatch: $job"))
 
-        debug("\nJobs to be dispatched at this time: ")
-        getJobsToBeDispatched.foreach(job => debug(s"\tTo be dispatched now: $job"))
+        val jobsToBeDispatched = getJobsToBeDispatched
+        jobsAlreadyLaunched.mutate(_ ++ jobsToBeDispatched)
+        debug("\nJobs to be dispatched now: ")
+        jobsToBeDispatched.foreach(job => debug(s"\tTo be dispatched now: $job"))
 
         // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
         checkForAndHandleNoOpJob()
@@ -92,7 +94,6 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = Tracker())
           tracker.addJobs(getJobsToBeDispatched)
           val newResultMap = Await.result(runner.run(getJobsToBeDispatched), Duration.Inf)
           result.mutate(_ ++ newResultMap)
-          jobsAlreadyLaunched.mutate(_ ++ getJobsToBeDispatched)
         }
       }
     }

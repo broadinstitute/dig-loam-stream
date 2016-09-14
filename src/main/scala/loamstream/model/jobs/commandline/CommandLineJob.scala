@@ -3,7 +3,10 @@ package loamstream.model.jobs.commandline
 import loamstream.model.jobs.JobState.{Failed, Running, Succeeded}
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandResult, CommandReturnValueIssue, CommandSuccess}
+import loamstream.model.jobs.commandline.CommandLineJob.CommandException
+import loamstream.model.jobs.commandline.CommandLineJob.CommandResult
+import loamstream.model.jobs.commandline.CommandLineJob.CommandReturnValueIssue
+import loamstream.model.jobs.commandline.CommandLineJob.CommandSuccess
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
@@ -13,9 +16,9 @@ import loamstream.util.Futures
 /**
   * LoamStream
   * Created by oliverr on 6/17/2016.
+  * 
+  * A job based on a command line definition 
   */
-
-/** A job based on a command line definition */
 trait CommandLineJob extends LJob {
   def processBuilder: ProcessBuilder
 

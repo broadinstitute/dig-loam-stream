@@ -26,12 +26,12 @@ final class UgerChunkRunnerTest extends FunSuite {
     val noOpJob = NoOpJob(Set.empty)
     val result = runner.run(Set(noOpJob))(ExecutionContext.global)
     
-    assert(waitFor(result.lastAsFuture) === Success(Map()))
+    assert(waitFor(result.lastAsFuture) === Map())
   }
 
   test("No failures when empty set of jobs is presented") {
     val result = runner.run(Set.empty)(ExecutionContext.global)
     
-    assert(waitFor(result.lastAsFuture) === Success(Map()))
+    assert(waitFor(result.lastAsFuture) === Map())
   }
 }

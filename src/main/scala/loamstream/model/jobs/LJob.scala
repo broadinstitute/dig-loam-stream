@@ -149,7 +149,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     }
   }
 
-  def remove(input: LJob): LJob = {
+  final def remove(input: LJob): LJob = {
     if ((input eq this) || isLeaf) {
       this
     }

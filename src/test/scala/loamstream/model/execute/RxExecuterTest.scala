@@ -19,7 +19,7 @@ import loamstream.util.ValueBox
  *         date: Aug 17, 2016
  */
 final class RxExecuterTest extends FunSuite {
-  
+  // scalastyle:off magic.number  
   private def exec(
       executable: LExecutable, 
       maxSimultaneousJobs: Int = 8): (Map[LJob, Shot[Result]], Seq[Set[LJob]]) = {
@@ -55,7 +55,6 @@ final class RxExecuterTest extends FunSuite {
     assert(jobExecutionSeq == Seq(Set(job1)))
   }
   
-  // scalastyle:off magic.number
   test("2-job linear pipeline works") {
     /* A 2-step pipeline:
      *

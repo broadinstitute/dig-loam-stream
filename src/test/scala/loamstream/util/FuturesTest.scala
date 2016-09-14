@@ -28,7 +28,9 @@ final class FuturesTest extends FunSuite {
   test("runBlocking / waitFor") {
     import scala.concurrent.ExecutionContext.Implicits.global
     
+    // scalastyle:off magic.number
     val f = Futures.runBlocking(42)
+    // scalastyle:on magic.number
     
     //We can't easily tell that the code chunk was marked 'blocking', so just see that the right
     //result comes back.

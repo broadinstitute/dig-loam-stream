@@ -14,6 +14,8 @@ final class ObservablesTest extends FunSuite {
   import ObservableEnrichments._
   import Futures.waitFor
   
+  // scalastyle:off magic.number
+  
   private def makeObservable[A](period: Int, msgs: A*): Observable[A] = {
     if(period == 0) {
       Observable.from(msgs)
@@ -48,7 +50,10 @@ final class ObservablesTest extends FunSuite {
     val y = "Y"
     val z = "Z"
     
-    val os: Seq[Observable[String]] = Seq(makeObservable(50, a, x), makeObservable(200, b, y), makeObservable(100, c, z))
+    val os: Seq[Observable[String]] = Seq(
+        makeObservable(50, a, x), 
+        makeObservable(200, b, y), 
+        makeObservable(100, c, z))
     
     val future = sequence(os).map(_.toSet).take(2).to[Seq].lastAsFuture
     
@@ -111,4 +116,26 @@ final class ObservablesTest extends FunSuite {
       waitFor(o.firstAsFuture)
     }
   }
+  
+  test("toMap") {
+    import Observables.toMap
+    
+    assert(waitFor(toMap(Nil).lastAsFuture) == Map.empty)
+    
+    {
+      val tuples = Seq("a" -> Observable.just(1), "b" -> Observable.just(2), "c" -> Observable.just(3))
+      
+      assert(waitFor(toMap(tuples).lastAsFuture) == Map("a" -> 1, "b" -> 2, "c" -> 3))
+    }
+    
+    {
+      val tuples = Seq("a" -> Observable.just(1), "b" -> Observable.just(2, 22), "c" -> Observable.just(3))
+      
+      val expected = Seq(Map("a" -> 1, "b" -> 2, "c" -> 3), Map("a" -> 1, "b" -> 22, "c" -> 3))
+      
+      assert(waitFor(toMap(tuples).to[Seq].firstAsFuture) == expected)
+    }
+  }
+  
+  // scalastyle:on magic.number
 }

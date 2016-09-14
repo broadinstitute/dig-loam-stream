@@ -17,6 +17,7 @@ import rx.lang.scala.schedulers.IOScheduler
 
 /**
  * @author kaan
+ * @author clint
  *         date: Aug 17, 2016
  */
 final case class RxExecuter(
@@ -61,7 +62,11 @@ final case class RxExecuter(
 }
 
 object RxExecuter {
-  def default: RxExecuter = new RxExecuter(asyncLocalChunkRunner(8))(ExecutionContext.global)
+  // scalastyle:off magic.number
+  val defaultMaxNumConcurrentJobs = 8
+  // scalastyle:on magic.number
+  
+  def default: RxExecuter = new RxExecuter(asyncLocalChunkRunner(defaultMaxNumConcurrentJobs))(ExecutionContext.global)
 
   def asyncLocalChunkRunner(maxJobs: Int): ChunkRunner = new ChunkRunner {
 

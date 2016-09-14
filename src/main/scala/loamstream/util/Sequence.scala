@@ -14,7 +14,7 @@ package loamstream.util
  * @param N the type of values produced by the sequence.  An instance of scala.Numeric[N] needs to be available.
  * By default, this means we can make Sequences of Bytes, Shorts, Ints, Longs, Doubles, Floats, and possibly more. 
  */
-final class Sequence[N](val start: N, val step: N)(implicit evidence: Numeric[N]) {
+final class Sequence[N](val start: N, val step: N)(implicit evidence: Numeric[N]) extends Iterable[N] {
   private val current: ValueBox[N] = ValueBox(start)
   
   /**
@@ -25,6 +25,8 @@ final class Sequence[N](val start: N, val step: N)(implicit evidence: Numeric[N]
     
     current.getAndUpdate(i => (inc(i), i))
   }
+  
+  override def iterator: Iterator[N] = Iterator.continually(next())
 }
 
 object Sequence {

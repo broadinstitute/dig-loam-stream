@@ -1,15 +1,17 @@
 package loamstream.apps
 
-import com.typesafe.config.ConfigFactory
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import loamstream.compiler.{LoamCompiler, LoamEngine}
-import loamstream.conf.UgerConfig
-import loamstream.model.execute.ChunkedExecuter
-import loamstream.uger.UgerChunkRunner
+import loamstream.compiler.{ LoamCompiler, LoamEngine }
 import loamstream.util.Loggable
+import loamstream.model.execute.NaiveFilteringExecuter
+import loamstream.db.slick.SlickLoamDao
+import loamstream.db.slick.DbDescriptor
+import loamstream.db.slick.DbType
+import loamstream.db.LoamDao
+import loamstream.model.execute.JobFilter
 
 /** Compiles and runs Loam script provided as argument */
-object LoamRunApp extends App with DrmaaClientHelpers with Loggable {
+object LoamRunApp extends App with Loggable {
   if (args.length < 1) {
     throw new IllegalArgumentException("No Loam script file name provided")
   }
@@ -18,18 +20,16 @@ object LoamRunApp extends App with DrmaaClientHelpers with Loggable {
     throw new IllegalArgumentException("This app takes only one argument, the Loam script file name.")
   }
 
-  val ugerConfig = UgerConfig.fromConfig(ConfigFactory.load("loamstream.conf")).get
+  info("Creating resumptive executer...")
 
-  info("Making Executer")
+  import scala.concurrent.ExecutionContext.Implicits.global
 
-  withClient { drmaaClient =>
+  //TODO: Make this configurable
+  val dbDescriptor = DbDescriptor(DbType.H2, s"jdbc:h2:./.loamstream/db;DB_CLOSE_DELAY=-1")
 
-    import scala.concurrent.ExecutionContext.Implicits.global
+  withDao(new SlickLoamDao(dbDescriptor)) { dao =>
 
-    val pollingFrequencyInHz = 0.1
-    val chunkRunner = UgerChunkRunner(ugerConfig, drmaaClient, pollingFrequencyInHz)
-
-    val executer = ChunkedExecuter(chunkRunner)
+    val executer = new NaiveFilteringExecuter(new JobFilter.DbBackedJobFilter(dao))
 
     val outMessageSink = LoggableOutMessageSink(this)
 
@@ -40,6 +40,17 @@ object LoamRunApp extends App with DrmaaClientHelpers with Loggable {
       (job, result) <- engineResult.jobResultsOpt.get
     } {
       info(s"Got $result when running $job")
+    }
+  }
+
+  private def withDao[A](dao: LoamDao)(f: LoamDao => A): A = {
+    try {
+      //TODO: Make whether this happens configurable
+      dao.createTables()
+
+      f(dao)
+    } finally {
+      dao.shutdown()
     }
   }
 }

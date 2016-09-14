@@ -1,11 +1,11 @@
 package loamstream.uger
 
-import monix.reactive.Observable
-import scala.util.Failure
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 import org.ggf.drmaa.InvalidJobException
-import scala.util.Success
-import loamstream.util.ObservableEnrichments
-import loamstream.util.TimeEnrichments._
+import loamstream.util.{Loggable, ObservableEnrichments}
+import loamstream.util.TimeEnrichments.time
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -13,7 +13,7 @@ import loamstream.util.TimeEnrichments._
  * 
  * Methods for monitoring jobs, returning Streams of JobStatuses
  */
-object Jobs {
+object Jobs extends Loggable {
   /**
    * Using the supplied Poller and polling frequency, produce an Observable stream of statuses for the job with the
    * given id.  The statuses are the result of polling UGER via the supplied poller at the provided rate.
@@ -24,17 +24,24 @@ object Jobs {
    * @return an Observable stream of statuses for the job with jobId. The statuses are the result of polling UGER 
    * *asynchronously* via the supplied poller at the supplied rate.
    */
-  def monitor(poller: Poller, pollingFrequencyInHz: Double = 1.0)(jobId: String): Observable[JobStatus] = {
+  def monitor(poller: Poller, pollingFrequencyInHz: Double = 1.0)
+             (jobId: String)
+             (implicit context: ExecutionContext): Observable[JobStatus] = {
+    
+    import ObservableEnrichments._
     import scala.concurrent.duration._
     
     require(pollingFrequencyInHz != 0.0)
     require(pollingFrequencyInHz > 0.0 && pollingFrequencyInHz < 5.0)
     
     val period = (1 / pollingFrequencyInHz).seconds
-    
+
+    def poll(): Future[Try[JobStatus]] = time(s"Job '$jobId': Calling poll()", trace(_)) { poller.poll(jobId, period) }
+
     val statusAttempts = for {
+      // TODO: Consider using a more appropriate scheduler (e.g. IOScheduler) than the default
       _ <- Observable.interval(period)
-      status <- Observable.fromFuture(time("Calling poll()") { poller.poll(jobId, period) })
+      status <- Observable.from(poll())
     } yield status
     
     val result = statusAttempts.distinctUntilChanged.zipWithIndex.collect { 
@@ -46,9 +53,6 @@ object Jobs {
       case (Failure(_), _) => JobStatus.Undetermined
       case (Success(status), _) => status
     }
-    
-    import ObservableEnrichments._
-    import monix.execution.Scheduler.Implicits.global
     
     //'Finish' the result Observable when we get a 'final' status (done, failed, etc) from UGER.
     result.until(_.isFinished)

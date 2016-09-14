@@ -10,8 +10,10 @@ object LoamScript {
   var scriptNameCounter: Int = 0
   val scriptNameCounterLock = new AnyRef
 
+  val generatedNameBase = "LoamScript"
+
   def withGeneratedName(code: String): LoamScript = scriptNameCounterLock.synchronized({
-    val name = StringUtils.leftPadTo(scriptNameCounter.toString, "0", 3)
+    val name = s"$generatedNameBase${StringUtils.leftPadTo(scriptNameCounter.toString, "0", 3)}"
     scriptNameCounter += 1
     LoamScript(name, code)
   })

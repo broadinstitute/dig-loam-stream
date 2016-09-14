@@ -3,6 +3,7 @@ package loamstream.compiler.messages
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
 import loamstream.compiler.{Issue, LoamCompiler, LoamEngine}
+import loamstream.loam.LoamScript
 import loamstream.util.{Hit, Loggable, Miss}
 
 import scala.concurrent.ExecutionContext
@@ -61,14 +62,14 @@ final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit e
   }
 
   def load(name: String): Unit = repo.load(name) match {
-    case Hit(loadResponseMessage) => outMessageSink.send(loadResponseMessage)
+    case Hit(script) => outMessageSink.send(LoadResponseMessage(repo, script))
     case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not load $name: ${snag.message}"))
   }
 
   def list(): Unit = outMessageSink.send(ListResponseMessage(repo.list))
 
-  def save(name: String, content: String): Unit = repo.save(name, content) match {
-    case Hit(saveResponseMessage) => outMessageSink.send(saveResponseMessage)
+  def save(name: String, content: String): Unit = repo.save(LoamScript(name, content)) match {
+    case Hit(script) => outMessageSink.send(SaveResponseMessage(repo, script))
     case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not save $name: ${snag.message}"))
   }
 

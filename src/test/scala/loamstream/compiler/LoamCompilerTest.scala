@@ -55,7 +55,7 @@ final class LoamCompilerTest extends FunSuite {
   }
   test("Testing sample code toyImpute.loam") {
     val compiler = new LoamCompiler(OutMessageSink.NoOp)
-    val codeShot = LoamRepository.defaultRepo.load("toyImpute").map(_.content)
+    val codeShot = LoamRepository.defaultRepo.load("toyImpute").map(_.code)
     assert(codeShot.nonEmpty)
     val result = compiler.compile(LoamScript("LoamCompilerTestScript1", codeShot.get))
     assert(result.errors.isEmpty)

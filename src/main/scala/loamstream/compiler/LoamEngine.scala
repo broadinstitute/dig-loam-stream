@@ -4,7 +4,7 @@ import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}
 import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.loam.{LoamContext, LoamToolBox}
+import loamstream.loam.{LoamContext, LoamScript, LoamToolBox}
 import loamstream.model.execute.{ChunkedExecuter, LExecuter}
 import loamstream.model.jobs.LJob
 import loamstream.util.{Hit, Miss, Shot, StringUtils}
@@ -52,15 +52,15 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     } else {
       Miss(s"Could not find '$file'.")
     }
-    
+
     import JFiles.readAllBytes
 
     import StringUtils.fromUtf8Bytes
-    
+
     val scriptShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
-    
+
     report(scriptShot, s"Loaded '$file'.")
-    
+
     scriptShot
   }
 
@@ -77,7 +77,11 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
 
   def compile(file: Path): Shot[LoamCompiler.Result] = loadFile(file).map(compile)
 
-  def compile(script: String): LoamCompiler.Result = compiler.compile(script)
+  def compile(script: String): LoamCompiler.Result = compiler.compile(LoamScript.withGeneratedName(script))
+
+  def compile(name: String, script: String): LoamCompiler.Result = compiler.compile(LoamScript(name, script))
+
+  def compile(script: LoamScript): LoamCompiler.Result = compiler.compile(script)
 
   def runFile(fileName: String): LoamEngine.Result = {
     val pathShot = Shot {

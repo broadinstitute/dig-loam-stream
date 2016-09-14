@@ -1,15 +1,17 @@
 package loamstream.model.execute
 
-import loamstream.model.execute.RxExecuter.Tracker
-import loamstream.model.jobs.{JobState, LJob, NoOpJob, Output}
-import loamstream.model.jobs.JobState.{NotStarted, Running, Succeeded}
-import loamstream.model.jobs.LJob._
-import loamstream.util._
-import rx.lang.scala.subjects.PublishSubject
-
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
+
+import loamstream.model.jobs.{ LJob, Output }
+import loamstream.model.jobs.LJob._
+import loamstream.util.Loggable
+import loamstream.util.Maps
+import loamstream.util.ObservableEnrichments
+import loamstream.util.Observables
+import loamstream.util.Shot
+import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
 
@@ -18,31 +20,28 @@ import rx.lang.scala.schedulers.IOScheduler
  *         date: Aug 17, 2016
  */
 final case class RxExecuter(
-    runner: ChunkRunner, 
-    windowLength: Duration = 30.seconds,
-    tracker: Tracker = Tracker())(implicit executionContext: ExecutionContext) extends LExecuter with Loggable {
+    runner: ChunkRunner,  
+    windowLength: Duration = 30.seconds)(implicit executionContext: ExecutionContext) extends LExecuter with Loggable {
   
   override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
-    val runnables = executable.jobs.toSeq.map(_.runnables).reduceOption(_ ++ _).getOrElse(Observable.empty)
+    import Maps.Implicits._
+    import ObservableEnrichments._
+    val runnables = executable.jobs.toSeq.map(_.runnables).reduceOption(_ merge _).getOrElse(Observable.empty)
     
     val ioScheduler = IOScheduler()
-    
-    import scala.concurrent.duration._
     
     val chunks = runnables.distinct.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
     
     val chunkResults = for {
       chunk <- chunks
       jobs <- chunk.to[Set]
+      if jobs.nonEmpty
       _ = info(s"%%%%% RUNNING CHUNK: ${jobs.map(_.name)}")
-      _ = tracker.addJobs(jobs)
       resultMap <- runner.run(jobs)
     } yield {
       resultMap
     }
     
-    import ObservableEnrichments._
-    import Maps.Implicits._
     
     val futureMergedResults = for {
       mergedResults <- chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
@@ -62,18 +61,6 @@ object RxExecuter {
     import ExecuterHelpers._
 
     override def maxNumJobs = maxJobs
-
-    /*override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
-      //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
-      //on the first failure, like the old code did.
-      val jobResultFutures = jobs.iterator.map(executeSingle)
-
-      //NB: Convert the iterator to an IndexedSeq to force evaluation, and make sure
-      //input jobs are evaluated before jobs that depend on them.
-      val futureJobResults = Future.sequence(jobResultFutures).map(consumeUntilFirstFailure)
-
-      futureJobResults.map(Maps.mergeMaps)
-    }*/
     
     override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Observable[Map[LJob, Result]] = {
       def exec(job: LJob): Observable[Map[LJob, Result]] = Observable.from(executeSingle(job))
@@ -94,12 +81,16 @@ object RxExecuter {
 
     def executionCount = count.value
 
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
-      trace(s"\t\tStarting job: $name")
-      
+    private def waitIfNecessary(): Unit = {
       if (delay > 0) {
         Thread.sleep(delay)
       }
+    }
+    
+    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
+      trace(s"\t\tStarting job: $name")
+      
+      waitIfNecessary()
       
       trace(s"\t\t\tFinishing job: $name")
       
@@ -112,13 +103,4 @@ object RxExecuter {
 
     override def toString: String = name
   }
-
-  final case class Tracker() {
-    private val executionSeq: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
-
-    def addJobs(jobs: Set[LJob]): Unit = executionSeq.mutate(_ :+ jobs)
-
-    def jobExecutionSeq = executionSeq.value
-  }
-
 }

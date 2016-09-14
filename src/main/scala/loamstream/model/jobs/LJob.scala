@@ -1,22 +1,19 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ExecutionContext, Future, blocking}
+import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scala.reflect.runtime.universe.Type
 import scala.util.control.NonFatal
+
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.{DagHelpers, Loggable, TypeBox}
-import loamstream.util.ValueBox
-import rx.lang.scala.subjects.PublishSubject
-
-import scala.reflect.runtime.universe.Type
 import loamstream.util.Futures
+import loamstream.util.Observables
+import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.Subject
-import loamstream.util.Observables
-import rx.lang.scala.observables.ConnectableObservable
-import rx.lang.scala.Subscription
-import loamstream.util.CompositeSubscription
-import rx.lang.scala.subjects.AsyncSubject
 import rx.lang.scala.subjects.ReplaySubject
+
+
 
 /**
  * LoamStream
@@ -67,7 +64,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   final lazy val runnables: Observable[LJob] = {
     val inputRunnables = {
       if(inputs.isEmpty) { Observable.empty }
-      else { inputs.toSeq.map(_.runnables).reduce(_ ++ _) }
+      else { inputs.toSeq.map(_.runnables).reduce(_ merge _) }
     }
     
     (inputRunnables ++ selfRunnable) 
@@ -78,11 +75,11 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     else { Observables.sequence(inputs.toSeq.map(_.lastState)) }
   }
   
-  final lazy val selfRunnable: Observable[LJob] = {
-    info(s"$name.selfRunnable: *****BEGIN*****")
+  private lazy val selfRunnable: Observable[LJob] = {
+    //info(s"$name.selfRunnable: *****BEGIN*****")
     
     if(inputs.isEmpty) { 
-      info(s"$name.selfRunnable: *****END*****")
+      //info(s"$name.selfRunnable: *****END*****")
       
       Observable.just(this)
     } else {
@@ -91,7 +88,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
         _ = info(s"$name.selfRunnable: deps finished with states: $states")
       } yield this
       
-      info(s"$name.selfRunnable: *****END*****")
+      //info(s"$name.selfRunnable: *****END*****")
     
       result
     }
@@ -104,15 +101,16 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    */
   final def state: JobState = stateRef.value
 
-  final private[this] val stateEmitter: Subject[JobState] = ReplaySubject[JobState]()//AsyncSubject[JobState]()//PublishSubject[JobState]()
+  //NB: Needs to be a ReplaySubject
+  final private[this] val stateEmitter: Subject[JobState] = ReplaySubject[JobState]()
 
   def states: Observable[JobState] = stateEmitter
   
   private lazy val lastState: Observable[JobState] = states.filter(_.isFinished).first
   
-  lastState.foreach { st =>
+  /*lastState.foreach { st =>
     info(s"$name: LAST state: $st")
-  }
+  }*/
   
   final def updateAndEmitJobState(newState: JobState): Unit = {
     trace(s"Status change to $newState for job: ${this}")
@@ -121,20 +119,18 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   }
 
   final def execute(implicit context: ExecutionContext): Future[Result] = {
-    import JobState._
     import Futures.Implicits._
+    import JobState._
     
     updateAndEmitJobState(Running)
     
     executeSelf.withSideEffect { result =>
       updateAndEmitJobState(if(result.isSuccess) Succeeded else Failed)
-      
-      //stateEmitter.onCompleted()
     }
   }
   
   /**
-   * Will do any actual work meant to performed by this job
+   * Will do any actual work meant to be performed by this job
    */
   protected def executeSelf(implicit context: ExecutionContext): Future[Result]
 

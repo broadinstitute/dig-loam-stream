@@ -149,37 +149,6 @@ object RxExecuter {
     }
   }
 
-  class RxMockJob(override val name: String, val inputs: Set[LJob] = Set.empty, val outputs: Set[Output] = Set.empty,
-                  override val dependencies: Set[LJob] = Set.empty, delay: Int = 0) extends LJob {
-
-    private[this] val count = ValueBox(0)
-
-    def executionCount = count.value
-
-    def execute(implicit context: ExecutionContext): Future[Result] = Future {
-      trace("\t\tStarting job: " + this.name)
-      updateAndEmitJobState(Running)
-      if (delay > 0) {
-        Thread.sleep(delay)
-      }
-      trace("\t\t\tFinishing job: " + this.name)
-      updateAndEmitJobState(Succeeded)
-      count.mutate(_ + 1)
-      LJob.SimpleSuccess(name)
-    }
-
-    def copy(
-              name: String = this.name,
-              inputs: Set[LJob] = this.inputs,
-              outputs: Set[Output] = this.outputs,
-              dependencies: Set[LJob] = this.dependencies,
-              delay: Int = this.delay): RxMockJob = new RxMockJob(name, inputs, outputs, dependencies, delay)
-
-    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-
-    override def toString: String = name
-  }
-
   final class Tracker() {
     private val executionSeq: ValueBox[Array[Set[LJob]]] = ValueBox(Array.empty)
 

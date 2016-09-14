@@ -1,10 +1,11 @@
 package loamstream.model.execute
 
 import loamstream.conf.UgerConfig
-import loamstream.model.execute.RxExecuter.{AsyncLocalChunkRunner, RxMockJob}
+import loamstream.model.execute.RxExecuter.AsyncLocalChunkRunner
 import loamstream.model.execute.RxExecuterTest.MockChunkRunner
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{LJob, RxMockJob}
 import loamstream.model.jobs.LJob.Result
+import loamstream.util.Loggable
 import org.scalatest.FunSuite
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -14,7 +15,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
  * @author kyuksel
  *         date: Aug 17, 2016
  */
-final class RxExecuterTest extends FunSuite {
+final class RxExecuterTest extends FunSuite with Loggable {
   // scalastyle:off magic.number
   test("New leaves are executed as soon as possible when there is no delay") {
     /* A four-step pipeline:
@@ -34,15 +35,15 @@ final class RxExecuterTest extends FunSuite {
 
     val executer = RxExecuter.default
 
-    val job11 = new RxMockJob("Job_1_1")
-    val job12 = new RxMockJob("Job_1_2")
-    val job21 = new RxMockJob("Job_2_1", Set(job11))
-    val job22 = new RxMockJob("Job_2_2", Set(job11))
-    val job23 = new RxMockJob("Job_2_3", Set(job12))
-    val job24 = new RxMockJob("Job_2_4", Set(job12))
-    val job31 = new RxMockJob("Job_3_1", Set(job21, job22))
-    val job32 = new RxMockJob("Job_3_2", Set(job23, job24))
-    val job4 = new RxMockJob("Job_4", Set(job31, job32))
+    val job11 = RxMockJob("Job_1_1")
+    val job12 = RxMockJob("Job_1_2")
+    val job21 = RxMockJob("Job_2_1", Set(job11))
+    val job22 = RxMockJob("Job_2_2", Set(job11))
+    val job23 = RxMockJob("Job_2_3", Set(job12))
+    val job24 = RxMockJob("Job_2_4", Set(job12))
+    val job31 = RxMockJob("Job_3_1", Set(job21, job22))
+    val job32 = RxMockJob("Job_3_2", Set(job23, job24))
+    val job4 = RxMockJob("Job_4", Set(job31, job32))
 
     assert(job11.executionCount === 0)
     assert(job12.executionCount === 0)
@@ -71,7 +72,7 @@ final class RxExecuterTest extends FunSuite {
 
     // Check if jobs were correctly chunked
     val jobExecutionSeq = executer.tracker.jobExecutionSeq
-    assert(jobExecutionSeq.length === 4, jobExecutionSeq.foreach(seq => println(seq))) // scalastyle:ignore regex
+    assert(jobExecutionSeq.length === 4, jobExecutionSeq.foreach(seq => debug(seq.toString)))
     assert(jobExecutionSeq(0) === Set(job11, job12))
     assert(jobExecutionSeq(1) === Set(job21, job22, job23, job24))
     assert(jobExecutionSeq(2) === Set(job31, job32))
@@ -97,15 +98,15 @@ final class RxExecuterTest extends FunSuite {
     val executer = RxExecuter.default
 
     // The delay added to job11 should cause job23 and job24 to be bundled and executed prior to job21 and job22
-    lazy val job11 = new RxMockJob("Job_1_1", dependencies = Set(job12))
-    lazy val job12 = new RxMockJob("Job_1_2")
-    lazy val job21 = new RxMockJob("Job_2_1", Set(job11))
-    lazy val job22 = new RxMockJob("Job_2_2", Set(job11))
-    lazy val job23 = new RxMockJob("Job_2_3", Set(job12), dependencies = Set(job31))
-    lazy val job24 = new RxMockJob("Job_2_4", Set(job12))
-    lazy val job31 = new RxMockJob("Job_3_1", Set(job21, job22))
-    lazy val job32 = new RxMockJob("Job_3_2", Set(job23, job24))
-    lazy val job4 = new RxMockJob("Job_4", Set(job31, job32))
+    lazy val job11 = RxMockJob("Job_1_1", dependencies = Set(job12))
+    lazy val job12 = RxMockJob("Job_1_2")
+    lazy val job21 = RxMockJob("Job_2_1", Set(job11))
+    lazy val job22 = RxMockJob("Job_2_2", Set(job11))
+    lazy val job23 = RxMockJob("Job_2_3", Set(job12), dependencies = Set(job31))
+    lazy val job24 = RxMockJob("Job_2_4", Set(job12))
+    lazy val job31 = RxMockJob("Job_3_1", Set(job21, job22))
+    lazy val job32 = RxMockJob("Job_3_2", Set(job23, job24))
+    lazy val job4 = RxMockJob("Job_4", Set(job31, job32))
 
     assert(job11.executionCount === 0)
     assert(job12.executionCount === 0)
@@ -160,16 +161,16 @@ final class RxExecuterTest extends FunSuite {
      *           Job25
      */
 
-    val job11 = new RxMockJob("Job_1_1")
-    val job12 = new RxMockJob("Job_1_2")
-    val job21 = new RxMockJob("Job_2_1", Set(job11))
-    val job22 = new RxMockJob("Job_2_2", Set(job11))
-    val job23 = new RxMockJob("Job_2_3", Set(job12))
-    val job24 = new RxMockJob("Job_2_4", Set(job12))
-    val job25 = new RxMockJob("Job_2_5", Set(job12))
-    val job31 = new RxMockJob("Job_3_1", Set(job21, job22))
-    val job32 = new RxMockJob("Job_3_2", Set(job23, job24, job25))
-    val job4 = new RxMockJob("Job_4", Set(job31, job32))
+    val job11 = RxMockJob("Job_1_1")
+    val job12 = RxMockJob("Job_1_2")
+    val job21 = RxMockJob("Job_2_1", Set(job11))
+    val job22 = RxMockJob("Job_2_2", Set(job11))
+    val job23 = RxMockJob("Job_2_3", Set(job12))
+    val job24 = RxMockJob("Job_2_4", Set(job12))
+    val job25 = RxMockJob("Job_2_5", Set(job12))
+    val job31 = RxMockJob("Job_3_1", Set(job21, job22))
+    val job32 = RxMockJob("Job_3_2", Set(job23, job24, job25))
+    val job4 = RxMockJob("Job_4", Set(job31, job32))
 
     val executable = LExecutable(Set(job4))
 

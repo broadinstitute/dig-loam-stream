@@ -2,7 +2,7 @@ package loamstream.model.execute
 
 import loamstream.conf.UgerConfig
 import loamstream.model.execute.RxExecuter.asyncLocalChunkRunner
-import loamstream.model.execute.RxExecuter.RxMockJob
+import loamstream.model.execute.RxExecuterTest.RxMockJob
 import loamstream.model.execute.RxExecuterTest.MockChunkRunner
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
@@ -11,6 +11,8 @@ import org.scalatest.FunSuite
 import scala.concurrent.{ExecutionContext, Future}
 import rx.lang.scala.Observable
 import loamstream.util.Shot
+import loamstream.model.jobs.Output
+import loamstream.util.ValueBox
 
 /**
  * @author kyuksel
@@ -420,5 +422,38 @@ object RxExecuterTest {
 
       delegate.run(jobs)
     }
+  }
+  
+  private final case class RxMockJob(
+      override val name: String, 
+      inputs: Set[LJob] = Set.empty, 
+      outputs: Set[Output] = Set.empty,
+      delay: Int = 0) extends LJob {
+
+    private[this] val count = ValueBox(0)
+
+    def executionCount = count.value
+
+    private def waitIfNecessary(): Unit = {
+      if (delay > 0) {
+        Thread.sleep(delay)
+      }
+    }
+    
+    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
+      trace(s"\t\tStarting job: $name")
+      
+      waitIfNecessary()
+      
+      trace(s"\t\t\tFinishing job: $name")
+      
+      count.mutate(_ + 1)
+      
+      LJob.SimpleSuccess(name)
+    }
+
+    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+
+    override def toString: String = name
   }
 }

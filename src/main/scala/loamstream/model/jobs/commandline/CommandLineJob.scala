@@ -7,6 +7,7 @@ import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, Comma
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
+import loamstream.util.Futures
 
 
 /**
@@ -29,7 +30,7 @@ trait CommandLineJob extends LJob {
   type CommandLineResult = Result with CommandResult
 
   override protected def executeSelf(implicit context: ExecutionContext): Future[Result with CommandResult] = {
-    runBlocking {
+    Futures.runBlocking {
       trace(s"RUNNING: $commandLineString")
 
       val exitValue = processBuilder.run(logger).exitValue

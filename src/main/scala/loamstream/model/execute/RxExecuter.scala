@@ -26,23 +26,30 @@ final case class RxExecuter(
   override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     import Maps.Implicits._
     import ObservableEnrichments._
-    val runnables = executable.jobs.toSeq.map(_.runnables).reduceOption(_ merge _).getOrElse(Observable.empty)
+    
+    //An Observable stream of jobs; each job is emitted when it becomes runnable.
+    //Note the use of 'distinct' to avoid running jobs more than once, if that job is depended on by multiple 'root' 
+    //jobs in an LExecutable.  This is a bit brute-force, but allows for simpler logic in LJob.
+    val runnables = executable.jobs.toSeq.map(_.runnables).reduceOption(_ merge _).getOrElse(Observable.empty).distinct
     
     val ioScheduler = IOScheduler()
     
-    val chunks = runnables.distinct.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
+    //An observable stream of "chunks" of runnable jobs, with each chunk represented as an observable stream.
+    //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
+    //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
+    val chunks = runnables.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
     
     val chunkResults = for {
       chunk <- chunks
       jobs <- chunk.to[Set]
+      //jobs can be empty if no jobs become runnable during 'windowLength'
       if jobs.nonEmpty
-      _ = info(s"%%%%% RUNNING CHUNK: ${jobs.map(_.name)}")
       resultMap <- runner.run(jobs)
     } yield {
       resultMap
     }
     
-    
+    //Collect the results from each chunk, and merge them, producing a future holding the merged results
     val futureMergedResults = for {
       mergedResults <- chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
     } yield {
@@ -69,38 +76,5 @@ object RxExecuter {
       
       Observables.sequence(resultObservables).map(Maps.mergeMaps)
     }
-  }
-
-  final case class RxMockJob(
-      override val name: String, 
-      inputs: Set[LJob] = Set.empty, 
-      outputs: Set[Output] = Set.empty,
-      delay: Int = 0) extends LJob {
-
-    private[this] val count = ValueBox(0)
-
-    def executionCount = count.value
-
-    private def waitIfNecessary(): Unit = {
-      if (delay > 0) {
-        Thread.sleep(delay)
-      }
-    }
-    
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
-      trace(s"\t\tStarting job: $name")
-      
-      waitIfNecessary()
-      
-      trace(s"\t\t\tFinishing job: $name")
-      
-      count.mutate(_ + 1)
-      
-      LJob.SimpleSuccess(name)
-    }
-
-    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-
-    override def toString: String = name
   }
 }

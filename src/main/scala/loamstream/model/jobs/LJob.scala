@@ -41,83 +41,80 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   def outputs: Set[Output]
   
   /**
-   * Returns an iterator that does a post-order traversal of this tree
+   * An observable producing a stream of all the runnable jobs among this job, its dependencies, their dependencies,
+   * and so on, as soon as those jobs become runnable.  A job becomes runnable when all its dependencies are finished,
+   * or if it has no dependencies, it's runnable immediately.  (See selfRunnable)
    */
-  def iterator: Iterator[LJob] = postOrder
-  
-  /**
-   * Returns an iterator that does a post-order traversal of this tree; that is, 
-   * this node's children (dependencies/inputs) are visited before this node.  
-   */
-  def postOrder: Iterator[LJob] = childIterator(_.postOrder) ++ Iterator.single(this)
-  
-  /**
-   * Returns an iterator that does a pre-order traversal of this tree; that is, 
-   * this node is visited before its children (dependencies/inputs).  
-   */
-  def preOrder: Iterator[LJob] = Iterator.single(this) ++ childIterator(_.preOrder)
-  
-  private def childIterator(iterationStrategy: LJob => Iterator[LJob]): Iterator[LJob] = {
-    inputs.iterator.flatMap(iterationStrategy)
-  }
-
   final lazy val runnables: Observable[LJob] = {
-    val inputRunnables = {
+    //Multiplex the streams of runnable jobs starting from each of our dependencies
+    val dependencyRunnables = {
       if(inputs.isEmpty) { Observable.empty }
+      //NB: Note the use of merge instead of ++; this ensures that we don't emit jobs from the sub-graph rooted at
+      //one dependency before the other dependencies, but rather emit all the streams of runnable jobs "together".
       else { inputs.toSeq.map(_.runnables).reduce(_ merge _) }
     }
     
-    (inputRunnables ++ selfRunnable) 
+    //Emit the current job after all our dependencies
+    (dependencyRunnables ++ selfRunnable) 
   }
   
-  private lazy val lastInputStates: Observable[Seq[JobState]] = {
-    if(inputs.isEmpty) { Observable.just(Nil) }
-    else { Observables.sequence(inputs.toSeq.map(_.lastState)) }
-  }
-  
+  /**
+   * An observable that will emit this job ONLY when all this job's dependencies are finished.
+   * If the this job has no dependencies, this job is emitted immediately.  This will fire at most once.
+   */
   private lazy val selfRunnable: Observable[LJob] = {
-    //info(s"$name.selfRunnable: *****BEGIN*****")
-    
     if(inputs.isEmpty) { 
-      //info(s"$name.selfRunnable: *****END*****")
-      
       Observable.just(this)
     } else {
-      val result = for {
-        states <- lastInputStates
-        _ = info(s"$name.selfRunnable: deps finished with states: $states")
-      } yield this
+      //An observable that will emit a sequence containing all our dependencies' "terminal" states.
+      //When this fires, our dependencies are finished.
+      val lastInputStates: Observable[Seq[JobState]] = Observables.sequence(inputs.toSeq.map(_.lastState))
       
-      //info(s"$name.selfRunnable: *****END*****")
-    
-      result
+      for {
+        states <- lastInputStates
+      } yield {
+        debug(s"$name.selfRunnable: deps finished with states: $states")
+        
+        this
+      }
     }
   }
   
-  final private[this] val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
+  private[this] val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
 
   /**
-   * This job's current state
+   * This job's current state.
    */
   final def state: JobState = stateRef.value
 
-  //NB: Needs to be a ReplaySubject
-  final private[this] val stateEmitter: Subject[JobState] = ReplaySubject[JobState]()
+  //NB: Needs to be a ReplaySubject for correct operation
+  private[this] val stateEmitter: Subject[JobState] = ReplaySubject[JobState]()
 
-  def states: Observable[JobState] = stateEmitter
-  
+  /**
+   * An observable stream of states emitted by this job, each one reflecting a state this job transitioned to.
+   */
+  final def states: Observable[JobState] = stateEmitter
+
+  /**
+   * The "terminal" state emitted by this job: the one that indicates the job is finished for any reason.
+   * Will fire at most one time. 
+   */
   private lazy val lastState: Observable[JobState] = states.filter(_.isFinished).first
   
-  /*lastState.foreach { st =>
-    info(s"$name: LAST state: $st")
-  }*/
-  
+  /**
+   * Sets the state of this job to be newState, and emits the new state to any observers.
+   * @param newState the new state to set for this job 
+   */
+  //NB: Currently needs to be public for use in UgerChunkRunner :\
   final def updateAndEmitJobState(newState: JobState): Unit = {
     trace(s"Status change to $newState for job: ${this}")
     stateRef() = newState
     stateEmitter.onNext(newState)
   }
 
+  /**
+   * Decorates executeSelf, ensuring that job state change events are emitted.
+   */
   final def execute(implicit context: ExecutionContext): Future[Result] = {
     import Futures.Implicits._
     import JobState._
@@ -140,8 +137,6 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     if (inputs eq newInputs) { this }
     else { doWithInputs(newInputs) }
   }
-
-  protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))
 
   final override def isLeaf: Boolean = inputs.isEmpty
 

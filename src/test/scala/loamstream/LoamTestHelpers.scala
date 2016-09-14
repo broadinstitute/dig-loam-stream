@@ -1,6 +1,6 @@
 package loamstream
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Path, Paths}
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
@@ -8,7 +8,7 @@ import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
 import loamstream.loam.{LoamContext, LoamScript, LoamToolBox}
 import loamstream.model.execute.{ChunkedExecuter, LExecutable}
 import loamstream.model.jobs.LJob
-import loamstream.util.{Loggable, Shot, StringUtils}
+import loamstream.util.{Loggable, Shot}
 
 import scala.concurrent.ExecutionContext
 
@@ -20,13 +20,11 @@ trait LoamTestHelpers extends Loggable {
 
   def compileFile(file: String)(implicit context: ExecutionContext): LoamCompiler.Result = compile(Paths.get(file))
 
-  def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result = {
-    val source = StringUtils.fromUtf8Bytes(Files.readAllBytes(path))
+  def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result =
+    compile(LoamScript.read(path).get)
 
-    compile(LoamScript.withGeneratedName(source))
-  }
 
-  def compile(script:LoamScript)(implicit context: ExecutionContext): LoamCompiler.Result = {
+  def compile(script: LoamScript)(implicit context: ExecutionContext): LoamCompiler.Result = {
 
     val compiler = new LoamCompiler(LoggableOutMessageSink(this))
 

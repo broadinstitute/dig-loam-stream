@@ -23,11 +23,11 @@ import scala.util.Try
   */
 final class LoamToolBoxTest extends FunSuite {
   
-  private def run(code: String): Results = {
+  private def run(script: LoamScript): Results = {
 
     val compiler = new LoamCompiler(OutMessageSink.NoOp)
     
-    val compileResults = compiler.compile(code)
+    val compileResults = compiler.compile(script)
 
     assert(compileResults.errors == Nil)
 
@@ -148,7 +148,7 @@ object LoamToolBoxTest {
   }
   
   object Sources {
-    val toyCp = {
+    val toyCp = LoamScript("ToyCp", {
       """
         |val fileIn = store[String].from(path("target/fileIn.txt"))
         |val fileTmp1 = store[String]
@@ -162,10 +162,10 @@ object LoamToolBoxTest {
         |cmd"cp $fileTmp2 $fileOut2"
         |cmd"cp $fileTmp2 $fileOut3"
       """.stripMargin
-    }
+    })
 
     // scalastyle:off line.size.limit
-    val imputeParallel = {
+    val imputeParallel = LoamScript("ImputeParallel", {
       """
 val kgpDir = path("/humgen/diabetes/users/ryank/internal_qc/1kg_phase3/1000GP_Phase3")
 val softDir = path("/humgen/diabetes/users/ryank/software")
@@ -207,7 +207,7 @@ for(iShard <- 0 until nShards) {
   cmd"$impute2 -use_prephased_g -m $mapFile -h $phasedHaps -l $legend -known_haps_g $knownHaps -int $start $end" 
 }
 """
-    }
+    })
     // scalastyle:on line.size.limit
   }
 }

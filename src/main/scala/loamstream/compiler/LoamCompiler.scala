@@ -136,7 +136,7 @@ import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._
 
-object ${script.name} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
+object `${script.name}` extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
 implicit val loamContext = new LoamContext
 
 ${script.code.trim}
@@ -144,12 +144,6 @@ ${script.code.trim}
 }
 """
   }
-
-  /** Compiles Loam script into execution plan */
-  def compile(loamCode: String): LoamCompiler.Result = compile(LoamScript.withGeneratedName(loamCode))
-
-  /** Compiles Loam script into execution plan */
-  def compile(scriptName: String, loamCode: String): LoamCompiler.Result = compile(LoamScript(scriptName, loamCode))
 
   /** Compiles Loam script into execution plan */
   def compile(script: LoamScript): LoamCompiler.Result = {

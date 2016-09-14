@@ -18,7 +18,7 @@ object LoamEngine {
   def default(outMessageSink: ClientMessageHandler.OutMessageSink): LoamEngine =
     LoamEngine(new LoamCompiler(outMessageSink), ChunkedExecuter.default, outMessageSink)
 
-  final case class Result(sourceCodeOpt: Shot[String],
+  final case class Result(sourceCodeOpt: Shot[LoamScript],
                           compileResultOpt: Shot[LoamCompiler.Result],
                           jobResultsOpt: Shot[Map[LJob, Shot[LJob.Result]]])
 
@@ -35,20 +35,13 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     outMessageSink.send(message)
   }
 
-  def loadFile(fileName: String): Shot[String] = {
+  def loadFile(fileName: String): Shot[LoamScript] = {
     loadFile(Paths.get(fileName))
   }
 
-  def loadFile(file: Path): Shot[String] = {
+  def loadFile(file: Path): Shot[LoamScript] = {
     val fileShot = if (JFiles.exists(file)) {
       Hit(file)
-    } else if (!file.toString.endsWith(".loam")) {
-      val alternateFile = Paths.get(file.toString + ".loam")
-      if (JFiles.exists(alternateFile)) {
-        Hit(alternateFile)
-      } else {
-        Miss(s"Could not find '$file' nor '$alternateFile'.")
-      }
     } else {
       Miss(s"Could not find '$file'.")
     }
@@ -57,11 +50,12 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
 
     import StringUtils.fromUtf8Bytes
 
-    val scriptShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
+    val codeShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
 
-    report(scriptShot, s"Loaded '$file'.")
+    report(codeShot, s"Loaded '$file'.")
+    val nameShot = LoamScript.nameFromFilePath(file)
 
-    scriptShot
+    for (name <- nameShot; code <- codeShot) yield LoamScript(name, code)
   }
 
   def compileFile(fileName: String): Shot[LoamCompiler.Result] = {
@@ -75,7 +69,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     }
   }
 
-  def compile(file: Path): Shot[LoamCompiler.Result] = loadFile(file).map(compile)
+  def compile(file: Path): Shot[LoamCompiler.Result] = for (script <- loadFile(file)) yield compile(script)
 
   def compile(script: String): LoamCompiler.Result = compiler.compile(LoamScript.withGeneratedName(script))
 
@@ -115,8 +109,10 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     jobResults
   }
 
-  def run(script: String): LoamEngine.Result = {
-    outMessageSink.send(StatusOutMessage(s"Now compiling script of ${script.length} characters."))
+  def run(code: String): LoamEngine.Result = run(LoamScript.withGeneratedName(code))
+
+  def run(script: LoamScript): LoamEngine.Result = {
+    outMessageSink.send(StatusOutMessage(s"Now compiling script of ${script.code.length} characters."))
     val compileResults = compile(script)
     if (!compileResults.isValid) {
       outMessageSink.send(ErrorOutMessage("Could not compile."))

@@ -22,12 +22,12 @@ final class LoamRepositoryTest extends FunSuite {
 
   def assertAllEntriesCompile(repo: LoamRepository): Unit = {
     for (entry <- repo.list) {
-      val codeShot = repo.load(entry).map(_.code)
-      assert(codeShot.nonEmpty, codeShot.message)
-      val code = codeShot.get
-      val compileResult = compiler.compile(code)
-      assert(compileResult.isSuccess, compileResult.report)
-      assert(compileResult.isClean, compileResult.report)
+      val scriptShot = repo.load(entry)
+      assert(scriptShot.nonEmpty, scriptShot.message)
+      val script = scriptShot.get
+      val compileResult = compiler.compile(script)
+      assert(compileResult.isSuccess, script + "\n" + compileResult.report)
+      assert(compileResult.isClean, script + "\n" + compileResult.report)
     }
   }
 

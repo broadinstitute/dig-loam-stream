@@ -4,14 +4,12 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import scala.concurrent.ExecutionContext
-
 import org.scalatest.FunSuite
-
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.db.slick.TestDbDescriptors
 import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.loam.LoamToolBox
+import loamstream.loam.{LoamScript, LoamToolBox}
 import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
@@ -21,6 +19,7 @@ import loamstream.util.Hashes
 import loamstream.util.PathEnrichments
 import loamstream.util.Sequence
 import loamstream.model.jobs.MockJob
+
 import scala.concurrent.Future
 
 /**
@@ -193,9 +192,9 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
 
   private lazy val compiler = new LoamCompiler(OutMessageSink.NoOp)
 
-  private def compile(loamCode: String): LExecutable = {
+  private def compile(loamScript: LoamScript): LExecutable = {
 
-    val compileResults = compiler.compile(loamCode)
+    val compileResults = compiler.compile(loamScript)
 
     assert(compileResults.errors == Nil)
 

@@ -101,7 +101,7 @@ object JobFilter {
     }
 
     private def isOlder(output: Path): Boolean = {
-      import TimeEnrichments._
+      import TimeEnrichments.Implicits._
 
       def lastModified(p: Path) = PathOutput(p).lastModified
 

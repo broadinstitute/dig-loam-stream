@@ -13,7 +13,7 @@ import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
 
 import loamstream.util.Loggable
-import loamstream.util.TimeEnrichments._
+import loamstream.util.TimeEnrichments.time
 
 /**
  * Created on: 5/19/16 
@@ -132,7 +132,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       case e: ExitTimeoutException => {
         info(s"Timed out waiting for job '$jobId' to finish, checking its status")
 
-        time("Calling statusOf()") { statusOf(jobId) }
+        time(s"Job '$jobId': Calling Drmaa1Client.statusOf()", trace(_)) {
+          statusOf(jobId)
+        }
       }
     }
   }

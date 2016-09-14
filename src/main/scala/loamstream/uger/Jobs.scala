@@ -36,7 +36,9 @@ object Jobs extends Loggable {
     
     val period = (1 / pollingFrequencyInHz).seconds
 
-    def poll(): Future[Try[JobStatus]] = time(s"Job '$jobId': Calling poll()", trace(_)) { poller.poll(jobId, period) }
+    def poll(): Future[Try[JobStatus]] = time(s"Job '$jobId': Calling Jobs.poll()", trace(_)) {
+      poller.poll(jobId, period)
+    }
 
     val statusAttempts = for {
       // TODO: Consider using a more appropriate scheduler (e.g. IOScheduler) than the default

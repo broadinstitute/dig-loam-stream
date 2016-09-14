@@ -26,7 +26,7 @@ object Poller {
   final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller {
     override def poll(jobId: String, timeout: Duration): Future[Try[JobStatus]] = Future {
       blocking {
-        time("Calling waitFor()") {
+        time(s"Job '$jobId': Calling Poller.poll()", trace(_)) {
           client.waitFor(jobId, timeout)
         }
       }

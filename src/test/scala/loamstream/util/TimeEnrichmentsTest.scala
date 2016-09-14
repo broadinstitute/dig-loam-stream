@@ -10,7 +10,7 @@ import java.time.Instant
 final class TimeEnrichmentsTest extends FunSuite {
   //scalastyle:off magic.number
   test("Ordering on Instants") {
-    import TimeEnrichments._
+    import TimeEnrichments.Implicits._
     
     val now = Instant.now
     

@@ -17,7 +17,7 @@ import scala.concurrent.duration.Duration
  */
 final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
                            (implicit executionContext: ExecutionContext) extends LExecuter with Loggable {
-  // scalastyle:off method.length
+
   private[this] val lock = new AnyRef
 
   // Mutable state variables
@@ -25,52 +25,52 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
   val jobStates: ValueBox[Map[LJob, JobState]] = ValueBox(Map.empty)
   val result: ValueBox[Map[LJob, Result]] = ValueBox(Map.empty)
 
+  def flattenTree(tree: Set[LJob]): Set[LJob] = {
+    tree.foldLeft(tree)((acc, x) =>
+      x.inputs ++ flattenTree(x.inputs) ++ acc)
+  }
+
+  /** Check if jobs ready to be dispatched include a NoOpJob. If yes, make sure there is only one
+   * and handle it by directly executing it
+   */
+  def checkForAndHandleNoOpJob(jobs: Set[LJob]): Unit = {
+    if (!jobs.forall(!_.isInstanceOf[NoOpJob])) {
+      trace("Handling NoOpJob")
+      assert(jobs.size == 1, "There should be at most a single NoOpJob")
+      val noOpJob = jobs.head
+      val noOpResult = Await.result(noOpJob.execute, Duration.Inf)
+      result.mutate(_ + (noOpJob -> noOpResult))
+    }
+  }
+
+  def getJobsToBeDispatched(jobs: Set[LJob]): Set[LJob] =
+    jobs.grouped(runner.maxNumJobs).toSet.headOption match {
+      case Some(j) => j
+      case _ => Set.empty[LJob]
+    }
+
+  def getRunnableJobsAndMarkThemAsLaunched(jobs: Set[LJob]): Set[LJob] = lock synchronized {
+    debug("Jobs already launched: ")
+    jobsAlreadyLaunched().foreach(job => debug(s"\tAlready launched: $job"))
+
+    val allRunnableJobs = jobs.filter(_.isRunnable) -- jobsAlreadyLaunched()
+    debug("Jobs available to run: ")
+    allRunnableJobs.foreach(job => debug(s"\tAvailable to run: $job"))
+
+    val jobsToDispatch = getJobsToBeDispatched(allRunnableJobs)
+    debug("Jobs to dispatch now: ")
+    jobsToDispatch.foreach(job => debug(s"\tTo dispatch now: $job"))
+
+    // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
+    checkForAndHandleNoOpJob(jobsToDispatch)
+
+    jobsAlreadyLaunched.mutate(_ ++ jobsToDispatch)
+
+    jobsToDispatch
+  }
+
   def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
-    def flattenTree(tree: Set[LJob]): Set[LJob] = {
-      tree.foldLeft(tree)((acc, x) =>
-        x.inputs ++ flattenTree(x.inputs) ++ acc)
-    }
-
-    /** Check if jobs ready to be dispatched include a NoOpJob. If yes, make sure there is only one
-     * and handle it by directly executing it
-     */
-    def checkForAndHandleNoOpJob(jobs: Set[LJob]): Unit = {
-      if (!jobs.forall(!_.isInstanceOf[NoOpJob])) {
-        trace("Handling NoOpJob")
-        assert(jobs.size == 1, "There should be at most a single NoOpJob")
-        val noOpJob = jobs.head
-        val noOpResult = Await.result(noOpJob.execute, Duration.Inf)
-        result.mutate(_ + (noOpJob -> noOpResult))
-      }
-    }
-
     val allJobs = flattenTree(executable.jobs)
-
-    def getRunnableJobsAndMarkThemAsLaunched(): Set[LJob] = lock synchronized {
-      debug("Jobs already launched: ")
-      jobsAlreadyLaunched().foreach(job => debug(s"\tAlready launched: $job"))
-
-      val allRunnableJobs = allJobs.filter(_.isRunnable) -- jobsAlreadyLaunched()
-      debug("Jobs available to run: ")
-      allRunnableJobs.foreach(job => debug(s"\tAvailable to run: $job"))
-
-      val jobsToDispatch = getJobsToBeDispatched(allRunnableJobs)
-      debug("Jobs to dispatch now: ")
-      jobsToDispatch.foreach(job => debug(s"\tTo dispatch now: $job"))
-
-      // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
-      checkForAndHandleNoOpJob(jobsToDispatch)
-
-      jobsAlreadyLaunched.mutate(_ ++ jobsToDispatch)
-
-      jobsToDispatch
-    }
-
-    def getJobsToBeDispatched(jobs: Set[LJob]): Set[LJob] =
-      jobs.grouped(runner.maxNumJobs).toSet.headOption match {
-        case Some(j) => j
-        case _ => Set.empty[LJob]
-      }
 
     val allJobStatuses = PublishSubject[Map[LJob, JobState]]
 
@@ -86,7 +86,7 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
     def executeIter(): Unit = {
       debug("executeIter() is called...\n")
 
-      val jobs = getRunnableJobsAndMarkThemAsLaunched()
+      val jobs = getRunnableJobsAndMarkThemAsLaunched(allJobs)
       if (jobs.isEmpty) {
         if (jobStates().values.forall(_.isFinished)) {
           everythingIsDonePromise.trySuccess(())
@@ -108,11 +108,7 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
       job.stateEmitter.subscribe(jobState => updateJobState(job, jobState))
     }
 
-    allJobStatuses.sample(20 millis).subscribe(
-      jobStatuses => {
-        executeIter()
-      }
-    )
+    allJobStatuses.sample(20 millis).subscribe(jobStatuses => executeIter())
 
     executeIter()
 
@@ -123,8 +119,6 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
     import Maps.Implicits._
     result().strictMapValues(Hit(_))
   }
-
-  // scalastyle:off method.length
 }
 
 object RxExecuter {

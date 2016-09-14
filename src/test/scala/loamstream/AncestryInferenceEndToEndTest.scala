@@ -1,6 +1,6 @@
 package loamstream
 
-import loamstream.model.execute.ChunkedExecuter
+import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.{LJob, LToolBox}
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.tools.PcaWeightsReader
@@ -17,7 +17,7 @@ import scala.util.Try
   */
 final class AncestryInferenceEndToEndTest extends FunSuite {
 
-  private val executer = ChunkedExecuter.default
+  private val executer = RxExecuter.default
 
   ignore("Running ancestry inference pipeline. (AST)") {
     val (toolbox, pipeline) = makeToolBoxAndPipeline()

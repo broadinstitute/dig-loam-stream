@@ -31,7 +31,7 @@ class MockJob(
     case _ => false
   }
   
-  override def execute(implicit context: ExecutionContext): Future[Result] = {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
     count.mutate(_ + 1)
 
     updateAndEmitJobState(Running)

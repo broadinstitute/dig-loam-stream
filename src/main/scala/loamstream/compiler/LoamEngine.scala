@@ -2,10 +2,13 @@ package loamstream.compiler
 
 import java.nio.file.{Path, Paths, Files => JFiles}
 
-import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}
-import loamstream.loam.ast.LoamGraphAstMapper
+import loamstream.compiler.messages.ClientMessageHandler
+import loamstream.compiler.messages.ErrorOutMessage
+import loamstream.compiler.messages.StatusOutMessage
 import loamstream.loam.{LoamContext, LoamToolBox}
-import loamstream.model.execute.{ChunkedExecuter, LExecuter}
+import loamstream.loam.ast.LoamGraphAstMapper
+import loamstream.model.execute.LExecuter
+import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.LJob
 import loamstream.util.{Hit, Miss, Shot, StringUtils}
 
@@ -16,7 +19,7 @@ import loamstream.util.{Hit, Miss, Shot, StringUtils}
   */
 object LoamEngine {
   def default(outMessageSink: ClientMessageHandler.OutMessageSink): LoamEngine =
-    LoamEngine(new LoamCompiler(outMessageSink), ChunkedExecuter.default, outMessageSink)
+    LoamEngine(new LoamCompiler(outMessageSink), RxExecuter.default, outMessageSink)
 
   final case class Result(sourceCodeOpt: Shot[String],
                           compileResultOpt: Shot[LoamCompiler.Result],
@@ -24,7 +27,7 @@ object LoamEngine {
 
 }
 
-final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
+final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter, 
                             outMessageSink: ClientMessageHandler.OutMessageSink) {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
@@ -40,6 +43,8 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
   }
 
   def loadFile(file: Path): Shot[String] = {
+    import JFiles.readAllBytes
+    import StringUtils.fromUtf8Bytes
     val fileShot = if (JFiles.exists(file)) {
       Hit(file)
     } else if (!file.toString.endsWith(".loam")) {
@@ -52,10 +57,6 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     } else {
       Miss(s"Could not find '$file'.")
     }
-    
-    import JFiles.readAllBytes
-
-    import StringUtils.fromUtf8Bytes
     
     val scriptShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
     

@@ -9,6 +9,14 @@ import rx.lang.scala.subjects.PublishSubject
 
 import scala.reflect.runtime.universe.Type
 import loamstream.util.Futures
+import rx.lang.scala.Observable
+import rx.lang.scala.Subject
+import loamstream.util.Observables
+import rx.lang.scala.observables.ConnectableObservable
+import rx.lang.scala.Subscription
+import loamstream.util.CompositeSubscription
+import rx.lang.scala.subjects.AsyncSubject
+import rx.lang.scala.subjects.ReplaySubject
 
 /**
  * LoamStream
@@ -34,59 +42,101 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    * Any outputs produced by this job
    */
   def outputs: Set[Output]
+  
+  /**
+   * Returns an iterator that does a post-order traversal of this tree
+   */
+  def iterator: Iterator[LJob] = postOrder
+  
+  /**
+   * Returns an iterator that does a post-order traversal of this tree; that is, 
+   * this node's children (dependencies/inputs) are visited before this node.  
+   */
+  def postOrder: Iterator[LJob] = childIterator(_.postOrder) ++ Iterator.single(this)
+  
+  /**
+   * Returns an iterator that does a pre-order traversal of this tree; that is, 
+   * this node is visited before its children (dependencies/inputs).  
+   */
+  def preOrder: Iterator[LJob] = Iterator.single(this) ++ childIterator(_.preOrder)
+  
+  private def childIterator(iterationStrategy: LJob => Iterator[LJob]): Iterator[LJob] = {
+    inputs.iterator.flatMap(iterationStrategy)
+  }
 
-  protected val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
+  final lazy val runnables: Observable[LJob] = {
+    val inputRunnables = {
+      if(inputs.isEmpty) { Observable.empty }
+      else { inputs.toSeq.map(_.runnables).reduce(_ ++ _) }
+    }
+    
+    (inputRunnables ++ selfRunnable) 
+  }
+  
+  private lazy val lastInputStates: Observable[Seq[JobState]] = {
+    if(inputs.isEmpty) { Observable.just(Nil) }
+    else { Observables.sequence(inputs.toSeq.map(_.lastState)) }
+  }
+  
+  final lazy val selfRunnable: Observable[LJob] = {
+    info(s"$name.selfRunnable: *****BEGIN*****")
+    
+    if(inputs.isEmpty) { 
+      info(s"$name.selfRunnable: *****END*****")
+      
+      Observable.just(this)
+    } else {
+      val result = for {
+        states <- lastInputStates
+        _ = info(s"$name.selfRunnable: deps finished with states: $states")
+      } yield this
+      
+      info(s"$name.selfRunnable: *****END*****")
+    
+      result
+    }
+  }
+  
+  final private[this] val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
 
   /**
    * This job's current state
    */
   final def state: JobState = stateRef.value
 
-  final val stateEmitter = PublishSubject[JobState]()
+  final private[this] val stateEmitter: Subject[JobState] = ReplaySubject[JobState]()//AsyncSubject[JobState]()//PublishSubject[JobState]()
 
-  final protected def emitJobState(): Unit = stateEmitter.onNext(state)
-
+  def states: Observable[JobState] = stateEmitter
+  
+  private lazy val lastState: Observable[JobState] = states.filter(_.isFinished).first
+  
+  lastState.foreach { st =>
+    info(s"$name: LAST state: $st")
+  }
+  
   final def updateAndEmitJobState(newState: JobState): Unit = {
     trace(s"Status change to $newState for job: ${this}")
     stateRef() = newState
-    emitJobState()
+    stateEmitter.onNext(newState)
   }
 
-  def dependencies: Set[LJob] = Set.empty
-
-  /**                                                            f
-   * If explicitly specified dependencies are done
-   */
-  def dependenciesDone: Boolean = dependencies.isEmpty || dependencies.forall(_.state == JobState.Succeeded)
-
-  /**
-   * If this job can be executed
-   */
-  def isRunnable: Boolean = state == JobState.NotStarted && dependenciesDone && inputsDone
-
-  /**
-   * If inputs to this job are available
-   */
-  def inputsDone: Boolean = inputs.isEmpty || inputs.forall(_.state == JobState.Succeeded)
-
-  final protected def isSuccess: Boolean = state.isSuccess
-
-  /*final def execute(implicit context: ExecutionContext): Future[Result] = {
+  final def execute(implicit context: ExecutionContext): Future[Result] = {
     import JobState._
     import Futures.Implicits._
     
-    stateRef() = Running
+    updateAndEmitJobState(Running)
     
     executeSelf.withSideEffect { result =>
-      stateRef() = if(result.isSuccess) Succeeded else Failed
+      updateAndEmitJobState(if(result.isSuccess) Succeeded else Failed)
+      
+      //stateEmitter.onCompleted()
     }
-  }*/
+  }
   
   /**
    * Will do any actual work meant to performed by this job
    */
-  // TODO: Reintroduce `executeSelf` to separate code common to all implementers of LJob
-  def execute(implicit context: ExecutionContext): Future[Result]
+  protected def executeSelf(implicit context: ExecutionContext): Future[Result]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 

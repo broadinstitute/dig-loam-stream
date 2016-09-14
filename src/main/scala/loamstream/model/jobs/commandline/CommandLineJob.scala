@@ -3,11 +3,11 @@ package loamstream.model.jobs.commandline
 import loamstream.model.jobs.JobState.{Failed, Running, Succeeded}
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandResult, CommandReturnValueIssue, CommandSuccess}
+import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandResult}
+import loamstream.model.jobs.commandline.CommandLineJob.{CommandReturnValueIssue, CommandSuccess}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
-
 
 /**
   * LoamStream

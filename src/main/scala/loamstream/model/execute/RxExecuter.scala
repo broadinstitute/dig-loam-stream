@@ -187,5 +187,4 @@ object RxExecuter {
 
     def jobExecutionSeq = executionSeq.value
   }
-
 }

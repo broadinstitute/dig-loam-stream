@@ -165,5 +165,4 @@ object LJob {
   final case class FailureFromThrowable(cause: Throwable) extends Failure {
     override def failureMessage: String = cause.getMessage
   }
-
 }

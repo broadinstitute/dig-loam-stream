@@ -3,13 +3,13 @@ package loamstream.loam
 import java.nio.file.{Files, Path}
 
 import loamstream.loam.LoamScript.scriptsPackage
-import loamstream.util.{Hit, Miss, Shot, StringUtils}
+import loamstream.util.{Hit, Miss, Shot, StringUtils, TypeName}
 
 import scala.util.Try
 
 /** A named Loam script */
 object LoamScript {
-  val scriptsPackage = "loamstream.loam.scripts"
+  val scriptsPackage = TypeName("loamstream", "loam", "scripts")
 
   var scriptNameCounter: Int = 0
   val scriptNameCounterLock = new AnyRef
@@ -48,6 +48,6 @@ object LoamScript {
 /** A named Loam script */
 case class LoamScript(name: String, code: String) {
 
-  def longName: String = s"$scriptsPackage.$name"
+  def typeName: TypeName = scriptsPackage + name
 
 }

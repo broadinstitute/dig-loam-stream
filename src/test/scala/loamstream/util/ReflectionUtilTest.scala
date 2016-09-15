@@ -13,9 +13,10 @@ final class ReflectionUtilTest extends FunSuite {
   private def classLoader = getClass.getClassLoader
   
   test("getObject") {
-    assert(getObject[Try.type](classLoader, "scala.util.Try") eq Try)
+    assert(getObject[Try.type](classLoader, TypeName("scala", "util", "Try")) eq Try)
     
-    assert(getObject[ReflectionUtilTest.type](classLoader, "loamstream.util.ReflectionUtilTest") eq ReflectionUtilTest)
+    assert(getObject[ReflectionUtilTest.type](classLoader,
+      TypeName("loamstream", "util", "ReflectionUtilTest")) eq ReflectionUtilTest)
   }
 }
 

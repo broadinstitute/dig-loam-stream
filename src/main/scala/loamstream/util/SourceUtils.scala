@@ -15,4 +15,5 @@ object SourceUtils {
 
   /** Returns short type name, such as Set */
   def shortTypeName[T: TypeTag]: String = shortTypeName(typeOf[T])
+
 }

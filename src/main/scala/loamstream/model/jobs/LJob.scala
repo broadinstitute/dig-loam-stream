@@ -3,8 +3,7 @@ package loamstream.model.jobs
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.util.control.NonFatal
 import loamstream.model.jobs.LJob.Result
-import loamstream.util.{DagHelpers, Loggable, TypeBox}
-import loamstream.util.ValueBox
+import loamstream.util._
 import rx.lang.scala.subjects.PublishSubject
 
 import scala.reflect.runtime.universe.Type
@@ -71,10 +70,30 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   final protected def isSuccess: Boolean = state.isSuccess
 
   /**
-   * Will do any actual work meant to performed by this job
+   * Decorates executeSelf(), updating and emitting the value of 'state' from
+   * Running to Succeeded/Failed.
    */
-  // TODO: Reintroduce `executeSelf` to separate code common to all implementers of LJob
-  def execute(implicit context: ExecutionContext): Future[Result]
+  final def execute(implicit context: ExecutionContext): Future[Result] = {
+    import JobState._
+    import Futures.Implicits._
+
+    stateRef() = Running
+
+    executeSelf.withSideEffect { result =>
+      stateRef() = if (result.isSuccess) {
+        updateAndEmitJobState(Succeeded)
+        Succeeded
+      } else {
+        updateAndEmitJobState(Failed)
+        Failed
+      }
+    }
+  }
+
+  /**
+   * Implementions of this method will do any actual work to be performed by this job
+   */
+  protected def executeSelf(implicit context: ExecutionContext): Future[Result]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 

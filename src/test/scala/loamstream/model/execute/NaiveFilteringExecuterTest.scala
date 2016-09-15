@@ -111,10 +111,10 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
     def success(s: String) = LJob.SimpleSuccess(s)
 
     new MockJob(success(name), name, inputs, outputs, delay = 0) {
-      override def execute(implicit context: ExecutionContext): Future[LJob.Result] = {
+      override protected def executeSelf(implicit context: ExecutionContext): Future[LJob.Result] = {
         body
 
-        super.execute
+        super.executeSelf
       }
     }
   }

@@ -1,6 +1,5 @@
 package loamstream.model.jobs
 
-import loamstream.model.jobs.JobState.{Running, Succeeded}
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.ValueBox
 
@@ -21,15 +20,17 @@ class RxMockJob(
 
   def executionCount = count.value
 
-  def execute(implicit context: ExecutionContext): Future[Result] = Future {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
     trace("\t\tStarting job: " + this.name)
-    updateAndEmitJobState(Running)
+
     if (delay > 0) {
       Thread.sleep(delay)
     }
+
     trace("\t\t\tFinishing job: " + this.name)
-    updateAndEmitJobState(Succeeded)
+
     count.mutate(_ + 1)
+
     LJob.SimpleSuccess(name)
   }
 

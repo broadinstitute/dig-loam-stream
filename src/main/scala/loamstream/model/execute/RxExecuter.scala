@@ -22,7 +22,7 @@ import rx.lang.scala.schedulers.IOScheduler
  */
 final case class RxExecuter(
     runner: ChunkRunner,  
-    windowLength: Duration = 30.seconds)(implicit executionContext: ExecutionContext) extends LExecuter with Loggable {
+    windowLength: Duration)(implicit executionContext: ExecutionContext) extends LExecuter with Loggable {
   
   override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     import Maps.Implicits._
@@ -66,7 +66,10 @@ object RxExecuter {
   val defaultMaxNumConcurrentJobs = 8
   // scalastyle:on magic.number
   
-  def default: RxExecuter = new RxExecuter(asyncLocalChunkRunner(defaultMaxNumConcurrentJobs))(ExecutionContext.global)
+  def default: RxExecuter = {
+    //NB: Use a short windowLength to speed up tests
+    new RxExecuter(asyncLocalChunkRunner(defaultMaxNumConcurrentJobs), 0.25.seconds)(ExecutionContext.global)
+  }
 
   def asyncLocalChunkRunner(maxJobs: Int): ChunkRunner = new ChunkRunner {
 

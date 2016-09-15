@@ -25,11 +25,14 @@ object RxLoamRunApp extends App with DrmaaClientHelpers with Loggable {
   withClient { drmaaClient =>
 
     import scala.concurrent.ExecutionContext.Implicits.global
+    import scala.concurrent.duration._
 
     val pollingFrequencyInHz = 0.017
     val chunkRunner = UgerChunkRunner(ugerConfig, drmaaClient, pollingFrequencyInHz)
 
-    val executer = RxExecuter(chunkRunner)
+    //NB: Buffer up jobs for up to 30 seconds before running them
+    //TODO: This should be configurable
+    val executer = RxExecuter(chunkRunner, 30.seconds)
 
     val outMessageSink = LoggableOutMessageSink(this)
 

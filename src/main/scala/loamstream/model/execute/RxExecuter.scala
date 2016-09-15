@@ -1,17 +1,16 @@
 package loamstream.model.execute
 
-import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
 
-import loamstream.model.jobs.{ LJob, Output }
+import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob._
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.ObservableEnrichments
 import loamstream.util.Observables
 import loamstream.util.Shot
-import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
 

@@ -1,6 +1,5 @@
 package loamstream.model.execute
 
-import loamstream.conf.UgerConfig
 import loamstream.model.execute.RxExecuter.asyncLocalChunkRunner
 import loamstream.model.execute.RxExecuterTest.RxMockJob
 import loamstream.model.execute.RxExecuterTest.MockChunkRunner
@@ -344,7 +343,7 @@ final class RxExecuterTest extends FunSuite {
      */
 
     // The delay added to job11 should cause job23 and job24 to be bundled and executed prior to job21 and job22
-    lazy val job11 = RxMockJob("Job_1_1", delay = 1000)
+    lazy val job11 = RxMockJob("Job_1_1", delay = 500)
     lazy val job12 = RxMockJob("Job_1_2")
     lazy val job21 = RxMockJob("Job_2_1", Set(job11))
     lazy val job22 = RxMockJob("Job_2_2", Set(job11))
@@ -383,9 +382,15 @@ final class RxExecuterTest extends FunSuite {
     assert(result.size === 9)
 
     // Check if jobs were correctly chunked
-    // Only check that relationships are maintained, 
-    // not for a literal sequence of chunks, since the latter is non-deterministic.
-    
+    assert(jobExecutionSeq.length === 6)
+    assert(jobExecutionSeq(0) === Set(job11, job12))
+    assert(jobExecutionSeq(1) === Set(job23, job24))
+    assert(jobExecutionSeq(2) === Set(job21, job22))
+    assert(jobExecutionSeq(3) === Set(job31))
+    assert(jobExecutionSeq(4) === Set(job32))
+    assert(jobExecutionSeq(5) === Set(job4))
+
+    // Also check that relationships are maintained,
     assert(job11 ranBefore job21)
     assert(job11 ranBefore job22)
     
@@ -418,6 +423,7 @@ final class RxExecuterTest extends FunSuite {
      *           Job25
      */
 
+    // scalastyle:off method.length
     def doTest(maxSimultaneousJobs: Int): Unit = {
       val job11 = RxMockJob("Job_1_1")
       val job12 = RxMockJob("Job_1_2")
@@ -493,6 +499,7 @@ final class RxExecuterTest extends FunSuite {
     doTest(8)
     doTest(1)
   }
+  // scalastyle:on method.length
   // scalastyle:on magic.number
 }
 

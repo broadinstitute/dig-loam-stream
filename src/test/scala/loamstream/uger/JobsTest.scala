@@ -38,6 +38,6 @@ final class JobsTest extends FunSuite {
     
     val expectedParamTuple = jobId -> 0.5.seconds
     
-    assert(client.params == Seq(expectedParamTuple, expectedParamTuple, expectedParamTuple))
+    assert(client.params.value == Seq(expectedParamTuple, expectedParamTuple, expectedParamTuple))
   }
 }

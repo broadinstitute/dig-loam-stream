@@ -114,7 +114,7 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
       override protected def executeSelf(implicit context: ExecutionContext): Future[LJob.Result] = {
         body
 
-        super.execute
+        super.executeSelf
       }
     }
   }

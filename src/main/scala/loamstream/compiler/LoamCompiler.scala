@@ -7,6 +7,7 @@ import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
 import loamstream.loam.LoamScript.LoamScriptBox
 import loamstream.loam._
 import loamstream.util._
+import loamstream.util.code.{ReflectionUtil, SourceUtils}
 
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
 import scala.tools.nsc.Settings
@@ -105,8 +106,6 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
   val compiler = new ReflectGlobal(settings, reporter, getClass.getClassLoader)
   val sourceFileName = "Config.scala"
 
-  val loamScriptDefaultName = s"Some${SourceUtils.shortTypeName[LoamScriptBox]}"
-
   def soManyIssues: String = {
     val soManyErrors = StringUtils.soMany(reporter.errorCount, "error")
     val soManyWarnings = StringUtils.soMany(reporter.warningCount, "warning")
@@ -116,7 +115,7 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
   /** Wraps Loam script in template to create valid Scala file */
   def wrapCode(script: LoamScript): String = {
     s"""
-package ${LoamScript.scriptsPackage.fullNameSource}
+package ${LoamScript.scriptsPackage.fullNameScala}
 
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LoamContext]}

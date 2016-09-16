@@ -1,6 +1,8 @@
 package loamstream.util
 
+import loamstream.util.code.TypeName
 import org.scalatest.FunSuite
+
 import scala.util.Try
 
 /**
@@ -8,7 +10,7 @@ import scala.util.Try
  * date: Jul 19, 2016
  */
 final class ReflectionUtilTest extends FunSuite {
-  import ReflectionUtil.getObject
+  import loamstream.util.code.ReflectionUtil.getObject
   
   private def classLoader = getClass.getClassLoader
   

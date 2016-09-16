@@ -4,7 +4,8 @@ import java.nio.file.{Files, Path}
 
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
-import loamstream.util.{Hit, Miss, PathEnrichments, Shot, SourceUtils, StringUtils, TypeName, ValueBox}
+import loamstream.util.code.{SourceUtils, TypeName}
+import loamstream.util.{Hit, Miss, PathEnrichments, Shot, StringUtils, ValueBox}
 
 import scala.util.Try
 
@@ -63,7 +64,7 @@ case class LoamScript(name: String, code: String) {
 
   def asScalaCode: String = {
     s"""
-package ${LoamScript.scriptsPackage.fullNameSource}
+package ${LoamScript.scriptsPackage.fullNameScala}
 
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LoamContext]}
@@ -75,7 +76,7 @@ import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._
 
-object ${typeName.shortNameSource} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
+object ${typeName.shortNameScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
 implicit val loamContext = new LoamContext
 
 ${code.trim}

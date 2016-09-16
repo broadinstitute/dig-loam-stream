@@ -1,4 +1,4 @@
-package loamstream.util
+package loamstream.util.code
 
 import scala.reflect.NameTransformer
 
@@ -22,9 +22,9 @@ object TypeName {
 }
 
 case class TypeName(parts: Seq[String]) {
-  def shortNameSource: String = TypeName.withBackticksIfNeeded(parts.last)
+  def shortNameScala: String = TypeName.withBackticksIfNeeded(parts.last)
 
-  def fullNameSource: String = parts.map(TypeName.withBackticksIfNeeded).mkString(".")
+  def fullNameScala: String = parts.map(TypeName.withBackticksIfNeeded).mkString(".")
 
   def shortNameJvm: String = NameTransformer.encode(parts.last)
 

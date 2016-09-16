@@ -1,4 +1,4 @@
-package loamstream.util
+package loamstream.util.code
 
 import scala.reflect.runtime.universe.{Type, TypeTag, typeOf}
 

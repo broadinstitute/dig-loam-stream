@@ -4,7 +4,7 @@ import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge}
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.model.LId
-import loamstream.util.SourceUtils
+import loamstream.util.code.SourceUtils
 
 import scala.reflect.runtime.universe.Type
 

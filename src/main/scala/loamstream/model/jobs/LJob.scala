@@ -66,12 +66,8 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     if(inputs.isEmpty) { 
       Observable.just(this)
     } else {
-      //An observable that will emit a sequence containing all our dependencies' "terminal" states.
-      //When this fires, our dependencies are finished.
-      val lastInputStates: Observable[Seq[JobState]] = Observables.sequence(inputs.toSeq.map(_.lastState))
-      
       for {
-        states <- lastInputStates
+        states <- finalInputStates
       } yield {
         debug(s"$name.selfRunnable: deps finished with states: $states")
         
@@ -99,7 +95,13 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    * The "terminal" state emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time. 
    */
-  private lazy val lastState: Observable[JobState] = states.filter(_.isFinished).first
+  protected lazy val lastState: Observable[JobState] = states.filter(_.isFinished).first
+  
+  /**
+   * An observable that will emit a sequence containing all our dependencies' "terminal" states.
+   * When this fires, our dependencies are finished.
+   */
+  protected lazy val finalInputStates: Observable[Seq[JobState]] = Observables.sequence(inputs.toSeq.map(_.lastState))
   
   /**
    * Sets the state of this job to be newState, and emits the new state to any observers.
@@ -115,7 +117,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   /**
    * Decorates executeSelf, ensuring that job state change events are emitted.
    */
-  final def execute(implicit context: ExecutionContext): Future[Result] = {
+  def execute(implicit context: ExecutionContext): Future[Result] = {
     import Futures.Implicits._
     import JobState._
     

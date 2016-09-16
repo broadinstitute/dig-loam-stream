@@ -1,7 +1,6 @@
 package loamstream.model.execute
 
 import loamstream.model.execute.RxExecuter.asyncLocalChunkRunner
-import loamstream.model.execute.RxExecuterTest.RxMockJob
 import loamstream.model.execute.RxExecuterTest.MockChunkRunner
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
@@ -12,6 +11,9 @@ import rx.lang.scala.Observable
 import loamstream.util.Shot
 import loamstream.model.jobs.Output
 import loamstream.util.ValueBox
+import loamstream.util.Observables
+import loamstream.util.Futures
+import loamstream.util.ObservableEnrichments
 
 /**
  * @author kyuksel
@@ -343,11 +345,11 @@ final class RxExecuterTest extends FunSuite {
      */
 
     // The delay added to job11 should cause job23 and job24 to be bundled and executed prior to job21 and job22
-    lazy val job11 = RxMockJob("Job_1_1", delay = 500)
+    lazy val job11 = RxMockJob("Job_1_1", runsAfter = Set(job12), fakeExecutionTimeInMs = 500)
     lazy val job12 = RxMockJob("Job_1_2")
     lazy val job21 = RxMockJob("Job_2_1", Set(job11))
     lazy val job22 = RxMockJob("Job_2_2", Set(job11))
-    lazy val job23 = RxMockJob("Job_2_3", Set(job12), delay = 1000)
+    lazy val job23 = RxMockJob("Job_2_3", Set(job12), runsAfter = Set(job31), fakeExecutionTimeInMs = 1000)
     lazy val job24 = RxMockJob("Job_2_4", Set(job12))
     lazy val job31 = RxMockJob("Job_3_1", Set(job21, job22))
     lazy val job32 = RxMockJob("Job_3_2", Set(job23, job24))
@@ -382,13 +384,13 @@ final class RxExecuterTest extends FunSuite {
     assert(result.size === 9)
 
     // Check if jobs were correctly chunked
-    assert(jobExecutionSeq.length === 6)
     assert(jobExecutionSeq(0) === Set(job11, job12))
     assert(jobExecutionSeq(1) === Set(job23, job24))
     assert(jobExecutionSeq(2) === Set(job21, job22))
     assert(jobExecutionSeq(3) === Set(job31))
     assert(jobExecutionSeq(4) === Set(job32))
     assert(jobExecutionSeq(5) === Set(job4))
+    assert(jobExecutionSeq.length === 6)
 
     // Also check that relationships are maintained,
     assert(job11 ranBefore job21)
@@ -535,38 +537,5 @@ object RxExecuterTest {
 
       delegate.run(jobs)
     }
-  }
-  
-  private final case class RxMockJob(
-      override val name: String, 
-      inputs: Set[LJob] = Set.empty, 
-      outputs: Set[Output] = Set.empty,
-      delay: Int = 0) extends LJob {
-
-    private[this] val count = ValueBox(0)
-
-    def executionCount = count.value
-
-    private def waitIfNecessary(): Unit = {
-      if (delay > 0) {
-        Thread.sleep(delay)
-      }
-    }
-    
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
-      trace(s"\t\tStarting job: $name")
-      
-      waitIfNecessary()
-      
-      trace(s"\t\t\tFinishing job: $name")
-      
-      count.mutate(_ + 1)
-      
-      LJob.SimpleSuccess(name)
-    }
-
-    override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-
-    override def toString: String = name
   }
 }

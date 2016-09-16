@@ -1,6 +1,5 @@
 package loamstream.model.execute
 
-import com.typesafe.config.ConfigFactory
 import loamstream.conf.UgerConfig
 import loamstream.model.execute.ChunkedExecuter.AsyncLocalChunkRunner
 
@@ -9,8 +8,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.Output
-import loamstream.util.ValueBox
 import loamstream.model.jobs.MockJob
 
 /**

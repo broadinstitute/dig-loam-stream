@@ -7,7 +7,12 @@ import scala.util.Success
 import org.ggf.drmaa.InvalidJobException
 
 import loamstream.util.ObservableEnrichments
+import loamstream.util.TimeEnrichments.time
 import rx.lang.scala.Observable
+import scala.concurrent.Future
+import scala.util.Try
+import rx.lang.scala.schedulers.IOScheduler
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -15,7 +20,7 @@ import rx.lang.scala.Observable
  * 
  * Methods for monitoring jobs, returning Streams of JobStatuses
  */
-object Jobs {
+object Jobs extends Loggable {
   /**
    * Using the supplied Poller and polling frequency, produce an Observable stream of statuses for the job with the
    * given id.  The statuses are the result of polling UGER via the supplied poller at the provided rate.
@@ -38,9 +43,13 @@ object Jobs {
     
     val period = (1 / pollingFrequencyInHz).seconds
     
+    def poll(): Future[Try[JobStatus]] = time(s"Job '$jobId': Calling poll()", debug(_)) { poller.poll(jobId, period) }
+    
+    val ioScheduler = IOScheduler()
+    
     val statusAttempts = for {
-      _ <- Observable.interval(period)
-      status <- Observable.from(poller.poll(jobId, period))
+      _ <- Observable.interval(period, ioScheduler)
+      status <- Observable.from(poll())
     } yield status
     
     val result = statusAttempts.distinctUntilChanged.zipWithIndex.collect { 

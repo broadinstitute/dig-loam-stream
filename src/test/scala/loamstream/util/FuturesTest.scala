@@ -10,11 +10,10 @@ import scala.concurrent.duration.Duration
  * date: Jul 1, 2016
  */
 final class FuturesTest extends FunSuite {
-  private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
-  
+  import Futures.waitFor
   import scala.concurrent.ExecutionContext.Implicits.global
   
-  test("toMap") {
+  test("toMap / waitFor") {
     import Futures.toMap
     
     val empty: Iterable[(Int, Future[String])] = Nil
@@ -26,6 +25,18 @@ final class FuturesTest extends FunSuite {
     assert(waitFor(toMap(tuples)) == Map(42 -> "x", 99 -> "y"))
   }
   
+  test("runBlocking / waitFor") {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    
+    // scalastyle:off magic.number
+    val f = Futures.runBlocking(42)
+    // scalastyle:on magic.number
+    
+    //We can't easily tell that the code chunk was marked 'blocking', so just see that the right
+    //result comes back.
+    assert(waitFor(f) == 42)
+  }
+
   test("withSideEffect") {
     //Single side effect
     {

@@ -34,7 +34,15 @@ object JobFilter {
         case Output.PathBased(p) => {
           val path = normalize(p)
 
-          output.isMissing || isOlder(path) || notHashed(path) || hasDifferentHash(path)
+          val missing = output.isMissing
+          
+          def older = isOlder(path)
+          
+          def noHash = notHashed(path)
+          
+          def differentHash = hasDifferentHash(path)
+          
+          missing || older || noHash || differentHash
         }
         case _ => true
       }

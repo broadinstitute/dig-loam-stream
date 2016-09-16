@@ -1,8 +1,7 @@
 package loamstream.uger
 
-import scala.util.Try
+import loamstream.model.jobs.JobState
 import org.ggf.drmaa.Session
-import scala.util.Success
 
 /**
  * @author clint
@@ -51,5 +50,15 @@ object JobStatus {
     case DONE                                                       => Done
     case FAILED                                                     => Failed
     case UNDETERMINED | _                                           => Undetermined
+  }
+
+  def toJobState(status: JobStatus): JobState = status match {
+    case Done                                                       => JobState.Succeeded
+    case DoneUndetermined                                           => JobState.Failed
+    case Failed                                                     => JobState.Failed
+    case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobState.Running
+    case Running                                                    => JobState.Running
+    case Suspended                                                  => JobState.Failed
+    case Undetermined                                               => JobState.Failed
   }
 }

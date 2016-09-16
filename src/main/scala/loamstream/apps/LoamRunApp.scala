@@ -1,19 +1,14 @@
 package loamstream.apps
 
-import com.typesafe.config.ConfigFactory
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.{ LoamCompiler, LoamEngine }
-import loamstream.conf.UgerConfig
-import loamstream.model.execute.ChunkedExecuter
-import loamstream.uger.UgerChunkRunner
 import loamstream.util.Loggable
 import loamstream.model.execute.NaiveFilteringExecuter
 import loamstream.db.slick.SlickLoamDao
-import loamstream.db.slick.DbDescriptor
 import loamstream.db.slick.DbType
 import loamstream.db.LoamDao
-import scala.util.Try
 import loamstream.model.execute.JobFilter
+import loamstream.db.slick.DbDescriptor
 
 /** Compiles and runs Loam script provided as argument */
 object LoamRunApp extends App with Loggable {

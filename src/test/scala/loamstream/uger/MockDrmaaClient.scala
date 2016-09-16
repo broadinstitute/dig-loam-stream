@@ -3,15 +3,16 @@ package loamstream.uger
 import scala.util.Try
 import scala.concurrent.duration.Duration
 import java.nio.file.Path
+import loamstream.util.ValueBox
 
 /**
  * @author clint
  * date: Jul 6, 2016
  */
 final class MockDrmaaClient(toReturn: Seq[Try[JobStatus]]) extends DrmaaClient {
-  private var remaining = toReturn
+  private val remaining: ValueBox[Seq[Try[JobStatus]]] = ValueBox(toReturn)
   
-  var params: Seq[(String, Duration)] = Vector.empty
+  val params: ValueBox[Seq[(String, Duration)]] = ValueBox(Vector.empty)
   
   override def submitJob(
       pathToScript: Path, 
@@ -22,10 +23,9 @@ final class MockDrmaaClient(toReturn: Seq[Try[JobStatus]]) extends DrmaaClient {
   override def statusOf(jobId: String): Try[JobStatus] = ???
 
   override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
-    params :+= (jobId -> timeout)
+    params.mutate(_ :+ (jobId -> timeout))
     
-    try { remaining.head }
-    finally { remaining = remaining.tail }
+    remaining.getAndUpdate(rem => (rem.tail, rem.head))
   }
 
   override def shutdown(): Unit = ()

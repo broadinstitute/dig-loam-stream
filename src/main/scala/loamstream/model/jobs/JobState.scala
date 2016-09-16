@@ -6,6 +6,8 @@ package loamstream.model.jobs
  */
 trait JobState {
   def isSuccess: Boolean = this == JobState.Succeeded
+  def isFinished: Boolean = this == JobState.Succeeded || this == JobState.Failed
+  def notFinished: Boolean = !isFinished
 }
 
 object JobState {

@@ -75,7 +75,7 @@ import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._
 
-object `${typeName.shortNameSource}` extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
+object ${typeName.shortNameSource} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
 implicit val loamContext = new LoamContext
 
 ${code.trim}

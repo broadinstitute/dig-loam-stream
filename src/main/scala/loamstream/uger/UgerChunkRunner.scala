@@ -96,11 +96,17 @@ final case class UgerChunkRunner(
     
     val jobsToFutureResults: Iterable[(LJob, Observable[Result])] = for {
       (jobId, job) <- jobsById
-      jobStatuses = statuses(jobId)
-      _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
-      futureResult = jobStatuses.last.map(resultFrom(job))
     } yield {
-      job -> futureResult
+      //TODO: TRY THIS OUT
+      //_ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
+      
+      val jobStatuses = statuses(jobId)
+      
+      jobStatuses.map(toJobState).foreach(job.updateAndEmitJobState)
+      
+      val resultObservable = jobStatuses.last.map(resultFrom(job))
+
+      job -> resultObservable
     }
 
     Observables.toMap(jobsToFutureResults)

@@ -115,7 +115,7 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
   /** Wraps Loam script in template to create valid Scala file */
   def wrapCode(script: LoamScript): String = {
     s"""
-package ${LoamScript.scriptsPackage.fullNameScala}
+package ${LoamScript.scriptsPackage.inScalaFull}
 
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LoamContext]}
@@ -147,7 +147,7 @@ ${script.code.trim}
       if (targetDirectory.nonEmpty) {
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-        val scriptBox = ReflectionUtil.getObject[LoamScriptBox](classLoader, script.typeName)
+        val scriptBox = ReflectionUtil.getObject[LoamScriptBox](classLoader, script.scalaId)
         val graph = scriptBox.graph
         val stores = graph.stores
         val tools = graph.tools

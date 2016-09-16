@@ -35,6 +35,25 @@ object ScalaId {
 
 }
 
+object PackageId {
+  def apply(): RootPackageId.type = RootPackageId
+
+  def apply(name: String): TopLevelPackageId = TopLevelPackageId(name)
+
+  def apply(parent: ChildIdPackageId, name: String): SubLevelPackageId = SubLevelPackageId(parent, name)
+
+  def apply(part: String, parts: String*): SubLevelPackageId = PackageId(part +: parts).asInstanceOf[SubLevelPackageId]
+
+  def apply(parts: Seq[String]): PackageId =
+    if (parts.isEmpty) {
+      RootPackageId
+    } else if (parts.size == 1) {
+      TopLevelPackageId(parts.last)
+    } else {
+      SubLevelPackageId(PackageId(parts.dropRight(1)), parts.last)
+    }
+}
+
 sealed trait PackageId extends ScalaId {
   def inJvm: String = NameTransformer.encode(name)
 }
@@ -80,8 +99,38 @@ case class TopLevelPackageId(name: String) extends ChildIdPackageId with TopLeve
 
 case class SubLevelPackageId(parent: PackageId, name: String) extends ChildIdPackageId with SubLevel
 
+object TypeId {
+  def apply(name: String): TopLevelTypeId = TopLevelTypeId(name)
+
+  def apply(parent: ChildIdPackageId, name: String): SubLevelTypeId = SubLevelTypeId(parent, name)
+
+  def apply(part: String, parts: String*): SubLevelTypeId = TypeId(part +: parts).asInstanceOf[SubLevelTypeId]
+
+  def apply(parts: Seq[String]): TypeId =
+    if (parts.size == 1) {
+      TopLevelTypeId(parts.last)
+    } else {
+      SubLevelTypeId(PackageId(parts.dropRight(1)), parts.last)
+    }
+}
+
 trait TypeId extends ChildId {
   def inJvm: String = NameTransformer.encode(name)
+}
+
+object ObjectId {
+  def apply(name: String): TopLevelObjectId = TopLevelObjectId(name)
+
+  def apply(parent: ChildIdPackageId, name: String): SubLevelObjectId = SubLevelObjectId(parent, name)
+
+  def apply(part: String, parts: String*): SubLevelObjectId = ObjectId(part +: parts).asInstanceOf[SubLevelObjectId]
+
+  def apply(parts: Seq[String]): ObjectId =
+    if (parts.size == 1) {
+      TopLevelObjectId(parts.last)
+    } else {
+      SubLevelObjectId(PackageId(parts.dropRight(1)), parts.last)
+    }
 }
 
 trait ObjectId extends ChildId {

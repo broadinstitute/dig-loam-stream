@@ -9,8 +9,8 @@ object ReflectionUtil {
   private val nullAsDummyValue = null // scalastyle:ignore null
 
   /** Encodes object name and creates instance of it */
-  def getObject[T](classLoader: ClassLoader, typeName: TypeName): T =
-  classLoader.loadClass(typeName.fullNameJvm + "$").getField("MODULE$").get(nullAsDummyValue).asInstanceOf[T]
+  def getObject[T](classLoader: ClassLoader, scalaObjectId: ObjectId): T =
+  classLoader.loadClass(scalaObjectId.inJvmFull).getField("MODULE$").get(nullAsDummyValue).asInstanceOf[T]
 
 }
 

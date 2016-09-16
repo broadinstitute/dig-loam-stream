@@ -4,14 +4,14 @@ import java.nio.file.{Files, Path}
 
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
-import loamstream.util.code.{SourceUtils, TypeName}
+import loamstream.util.code.{ObjectId, PackageId, SourceUtils}
 import loamstream.util.{Hit, Miss, PathEnrichments, Shot, StringUtils, ValueBox}
 
 import scala.util.Try
 
 /** A named Loam script */
 object LoamScript {
-  val scriptsPackage = TypeName("loamstream", "loam", "scripts")
+  val scriptsPackage = PackageId("loamstream", "loam", "scripts")
 
   var scriptNameCounter: Int = 0
   val scriptNameCounterLock = new AnyRef
@@ -60,11 +60,11 @@ object LoamScript {
 /** A named Loam script */
 case class LoamScript(name: String, code: String) {
 
-  def typeName: TypeName = scriptsPackage + name
+  def scalaId: ObjectId = ObjectId(scriptsPackage, name)
 
   def asScalaCode: String = {
     s"""
-package ${LoamScript.scriptsPackage.fullNameScala}
+package ${LoamScript.scriptsPackage.inScalaFull}
 
 import ${SourceUtils.fullTypeName[LoamPredef.type]}._
 import ${SourceUtils.fullTypeName[LoamContext]}
@@ -76,7 +76,7 @@ import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import loamstream.dsl._
 import java.nio.file._
 
-object ${typeName.shortNameScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
+object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
 implicit val loamContext = new LoamContext
 
 ${code.trim}

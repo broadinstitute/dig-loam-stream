@@ -1,9 +1,10 @@
 package loamstream.compiler
 
 import loamstream.compiler.Issue.Severity
-import loamstream.compiler.LoamCompiler.{CompilerReporter, LoamScriptBox}
+import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
+import loamstream.loam.LoamScript.LoamScriptBox
 import loamstream.loam._
 import loamstream.util._
 
@@ -15,15 +16,6 @@ import scala.tools.reflect.ReflectGlobal
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler {
-
-  /** A wrapper type for Loam scripts */
-  trait LoamScriptBox {
-    /** LoamContext for tis script */
-    def loamContext: LoamContext
-
-    /** The graph of stores and tools defined by this Loam script */
-    def graph: LoamGraph = loamContext.graphBox.value
-  }
 
   /** A reporter receiving messages form the underlying Scala compiler
     *
@@ -148,8 +140,7 @@ ${script.code.trim}
   /** Compiles Loam script into execution plan */
   def compile(script: LoamScript): LoamCompiler.Result = {
     try {
-      val wrappedCode = wrapCode(script)
-      val sourceFile = new BatchSourceFile(sourceFileName, wrappedCode)
+      val sourceFile = new BatchSourceFile(sourceFileName, script.asScalaCode)
       reporter.reset()
       targetDirectory.clear()
       val run = new compiler.Run

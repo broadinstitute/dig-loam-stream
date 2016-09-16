@@ -2,8 +2,9 @@ package loamstream.loam
 
 import java.nio.file.{Files, Path}
 
-import loamstream.loam.LoamScript.scriptsPackage
-import loamstream.util.{Hit, Miss, Shot, StringUtils, TypeName}
+import loamstream.compiler.LoamPredef
+import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
+import loamstream.util.{Hit, Miss, PathEnrichments, Shot, SourceUtils, StringUtils, TypeName, ValueBox}
 
 import scala.util.Try
 
@@ -43,11 +44,45 @@ object LoamScript {
       })
     })
   }
+
+  /** A wrapper type for Loam scripts */
+  trait LoamScriptBox {
+    /** LoamContext for tis script */
+    def loamContext: LoamContext
+
+    /** The graph of stores and tools defined by this Loam script */
+    def graph: LoamGraph = loamContext.graphBox.value
+  }
+
 }
 
 /** A named Loam script */
 case class LoamScript(name: String, code: String) {
 
   def typeName: TypeName = scriptsPackage + name
+
+  def asScalaCode: String = {
+    s"""
+package ${LoamScript.scriptsPackage.fullNameSource}
+
+import ${SourceUtils.fullTypeName[LoamPredef.type]}._
+import ${SourceUtils.fullTypeName[LoamContext]}
+import ${SourceUtils.fullTypeName[LoamGraph]}
+import ${SourceUtils.fullTypeName[ValueBox[_]]}
+import ${SourceUtils.fullTypeName[LoamScriptBox]}
+import ${SourceUtils.fullTypeName[LoamCmdTool.type]}._
+import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
+import loamstream.dsl._
+import java.nio.file._
+
+object `${typeName.shortNameSource}` extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
+implicit val loamContext = new LoamContext
+
+${code.trim}
+
+}
+"""
+  }
+
 
 }

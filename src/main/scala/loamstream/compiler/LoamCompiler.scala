@@ -7,7 +7,7 @@ import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
 import loamstream.loam.LoamScript.LoamScriptBox
 import loamstream.loam._
 import loamstream.util._
-import loamstream.util.code.{ReflectionUtil, SourceUtils}
+import loamstream.util.code.ReflectionUtil
 
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
 import scala.tools.nsc.Settings
@@ -112,42 +112,23 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
     s"$soManyErrors and $soManyWarnings"
   }
 
-  /** Wraps Loam script in template to create valid Scala file */
-  def wrapCode(script: LoamScript): String = {
-    s"""
-package ${LoamScript.scriptsPackage.inScalaFull}
-
-import ${SourceUtils.fullTypeName[LoamPredef.type]}._
-import ${SourceUtils.fullTypeName[LoamContext]}
-import ${SourceUtils.fullTypeName[LoamGraph]}
-import ${SourceUtils.fullTypeName[ValueBox[_]]}
-import ${SourceUtils.fullTypeName[LoamScriptBox]}
-import ${SourceUtils.fullTypeName[LoamCmdTool.type]}._
-import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
-import loamstream.dsl._
-import java.nio.file._
-
-object `${script.name}` extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
-implicit val loamContext = new LoamContext
-
-${script.code.trim}
-
-}
-"""
-  }
+  /** Compiles Loam script into execution plan */
+  def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(script))
 
   /** Compiles Loam script into execution plan */
-  def compile(script: LoamScript): LoamCompiler.Result = {
+  def compile(project: LoamProject): LoamCompiler.Result = {
     try {
-      val sourceFile = new BatchSourceFile(sourceFileName, script.asScalaCode)
+      val sourceFiles = project.scripts.map({ script =>
+        new BatchSourceFile(script.scalaFileName, script.asScalaCode)
+      })
       reporter.reset()
       targetDirectory.clear()
       val run = new compiler.Run
-      run.compileSources(List(sourceFile))
+      run.compileSources(sourceFiles.toList)
       if (targetDirectory.nonEmpty) {
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-        val scriptBox = ReflectionUtil.getObject[LoamScriptBox](classLoader, script.scalaId)
+        val scriptBox = ReflectionUtil.getObject[LoamScriptBox](classLoader, project.mainScript.scalaId)
         val graph = scriptBox.graph
         val stores = graph.stores
         val tools = graph.tools

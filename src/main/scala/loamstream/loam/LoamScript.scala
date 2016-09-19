@@ -62,6 +62,8 @@ case class LoamScript(name: String, code: String) {
 
   def scalaId: ObjectId = ObjectId(scriptsPackage, name)
 
+  def scalaFileName: String = s"$name.scala"
+
   def asScalaCode: String = {
     s"""
 package ${LoamScript.scriptsPackage.inScalaFull}
@@ -73,7 +75,6 @@ import ${SourceUtils.fullTypeName[ValueBox[_]]}
 import ${SourceUtils.fullTypeName[LoamScriptBox]}
 import ${SourceUtils.fullTypeName[LoamCmdTool.type]}._
 import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
-import loamstream.dsl._
 import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {

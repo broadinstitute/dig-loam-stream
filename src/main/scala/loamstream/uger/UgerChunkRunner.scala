@@ -22,6 +22,9 @@ import loamstream.util.ObservableEnrichments
 import loamstream.model.jobs.JobState.{Failed, Running}
 import rx.lang.scala.Observable
 import loamstream.util.Observables
+import loamstream.model.jobs.JobState
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * @author clint
@@ -47,73 +50,100 @@ final case class UgerChunkRunner(
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
     // Filter out NoOpJob's
-    val leafCommandLineJobs = jobs.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
+    val commandLineJobs = jobs.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
 
-    if (leafCommandLineJobs.nonEmpty) {
-      val ugerWorkDir = ugerConfig.ugerWorkDir.toFile
-      val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs), ugerWorkDir)
-
-      info(s"Made script '$ugerScript' from $leafCommandLineJobs")
+    if (commandLineJobs.nonEmpty) {
+      val (ugerWorkDir, ugerScript) = makeUgerScript(commandLineJobs)
 
       val ugerLogFile: Path = ugerConfig.ugerLogFile
 
-      //TODO: do we need this?  Should it be something better?
-      val jobName: String = s"LoamStream-${UUID.randomUUID}"
-
-      val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName, leafCommandLineJobs.size)
+      val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName, commandLineJobs.size)
 
       submissionResult match {
         case DrmaaClient.SubmissionSuccess(rawJobIds) => {
-          leafCommandLineJobs.foreach(_.updateAndEmitJobState(Running))
-
-          val jobsById = rawJobIds.zip(leafCommandLineJobs).toMap
-          
-          toResultMap(drmaaClient, jobsById)
+          handleSuccessfulSubmission(drmaaClient, pollingFrequencyInHz, commandLineJobs, rawJobIds)
         }
-        case DrmaaClient.SubmissionFailure(e) => {
-          leafCommandLineJobs.foreach(_.updateAndEmitJobState(Failed))
-          
-          makeAllFailureMap(leafCommandLineJobs, Some(e))
-        }
+        case DrmaaClient.SubmissionFailure(e) => handleFailedSubmission(commandLineJobs, e)
       }
     } else {
       // Handle NoOp case or a case when no jobs were presented for some reason
       Observable.just(Map.empty)
     }
   }
+  
+  private[uger] def makeUgerScript(commandLineJobs: Seq[CommandLineJob]): (File, Path) = {
+    val ugerWorkDir = ugerConfig.ugerWorkDir.toFile
+    val ugerScript = createScriptFile(ScriptBuilder.buildFrom(commandLineJobs), ugerWorkDir)
+
+    info(s"Made script '$ugerScript' from $commandLineJobs")
+    
+    (ugerWorkDir, ugerScript)
+  }
+}
+
+object UgerChunkRunner extends Loggable {
+  private[uger] def handleFailedSubmission(jobs: Seq[LJob], e: Exception): Observable[Map[LJob, Result]] = {
+    jobs.foreach(_.updateAndEmitJobState(Failed))
+          
+    makeAllFailureMap(jobs, Some(e))
+  }
+  
+  private[uger] def handleSuccessfulSubmission(
+      drmaaClient: DrmaaClient,
+      pollingFrequencyInHz: Double,
+      jobs: Seq[CommandLineJob],
+      rawJobIds: Seq[String])(implicit context: ExecutionContext): Observable[Map[LJob, Result]] = {
+
+    val jobsById = rawJobIds.zip(jobs).toMap
+    
+    for {
+      (jobId, job) <- jobsById
+    } {
+      val status = drmaaClient.statusOf(jobId).getOrElse(JobStatus.Undetermined)
+      
+      job.updateAndEmitJobState(toJobState(status))
+    }
+          
+    toResultMap(drmaaClient, pollingFrequencyInHz, jobsById)
+  }
 
   private[uger] def toResultMap(
-      drmaaClient: DrmaaClient, 
+      drmaaClient: DrmaaClient,
+      pollingFrequencyInHz: Double,
       jobsById: Map[String, LJob])(implicit context: ExecutionContext): Observable[Map[LJob, Result]] = {
     
     val poller = Poller.drmaa(drmaaClient)
 
-    def statuses(jobId: String) = time(s"Job '$jobId': Calling Jobs.monitor()", debug(_)) {
-      Jobs.monitor(poller, pollingFrequencyInHz)(jobId)
-    }
+    def statuses(jobId: String) = Jobs.monitor(poller, pollingFrequencyInHz)(jobId)
 
-    import ObservableEnrichments._
-    
-    val jobsToFutureResults: Iterable[(LJob, Observable[Result])] = for {
+    val jobsToStates: Iterable[(LJob, Observable[JobState])] = for {
       (jobId, job) <- jobsById
     } yield {
-      //TODO: TRY THIS OUT
-      //_ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
+      val states = statuses(jobId).map(toJobState)
       
-      val jobStatuses = statuses(jobId)
-      
-      jobStatuses.map(toJobState).foreach(job.updateAndEmitJobState)
-      
-      val resultObservable = jobStatuses.last.map(resultFrom(job))
+      job -> states
+    }
+
+    for {
+      (job, states) <- jobsToStates
+    } {
+      states.distinctUntilChanged.foreach(job.updateAndEmitJobState)
+    }
+    
+    val jobsToFutureResults: Iterable[(LJob, Observable[Result])] = for {
+      (job, jobStates) <- jobsToStates
+    } yield {
+      val resultObservable = jobStates.last.map(resultFrom(job))
 
       job -> resultObservable
     }
 
     Observables.toMap(jobsToFutureResults)
   }
-}
-
-object UgerChunkRunner extends Loggable {
+  
+  //TODO: do we need this?  Should it be something better?
+  private[uger] def jobName: String = s"LoamStream-${UUID.randomUUID}"
+  
   private[uger] def isCommandLineJob(job: LJob): Boolean = job match {
     case clj: CommandLineJob => true
     case _                   => false
@@ -126,9 +156,9 @@ object UgerChunkRunner extends Loggable {
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
-  private[uger] def resultFrom(job: LJob)(status: JobStatus): LJob.Result = {
+  private[uger] def resultFrom(job: LJob)(status: JobState): LJob.Result = {
     //TODO: Anything better; this was purely expedient
-    if (status.isDone) {
+    if (status.isSuccess) {
       LJob.SimpleSuccess(s"$job")
     } else {
       LJob.SimpleFailure(s"$job")

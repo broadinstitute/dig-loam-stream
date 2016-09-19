@@ -14,6 +14,8 @@ import org.ggf.drmaa.SessionFactory
 
 import loamstream.util.Loggable
 import loamstream.util.TimeEnrichments.time
+import scala.util.control.NonFatal
+import org.ggf.drmaa.JobInfo
 
 /**
  * Created on: 5/19/16 
@@ -99,9 +101,10 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    *   JobStatus.Undetermined: The job completed, but none of the above applies.
    */
   override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
-    Try {
-      val jobInfo = session.wait(jobId, timeout.toSeconds)
-      
+    //NB: Extract these methods, since apparently log methods from Loggable don't produce methods when run
+    //inside a Try(...) block.  Why is unclear; perhaps the cell-by-name param, even though it's evaluated 
+    //immediately?
+    def toJobStatus(jobInfo: JobInfo): JobStatus = {
       if (jobInfo.hasExited) {
         info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
         
@@ -128,13 +131,27 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         
         JobStatus.DoneUndetermined
       }
-    }.recoverWith {
+    }
+    
+    def attemptWaiting(): JobStatus = {
+      debug(s"Job '$jobId': waiting ${timeout.toSeconds} seconds for completion")
+      
+      val jobInfo = session.wait(jobId, timeout.toSeconds)
+  
+      debug(s"Job '$jobId': waited, got jobInfo, job exited? ${jobInfo.hasExited}")
+      
+      toJobStatus(jobInfo)
+    }
+    
+    val handleTimeout: PartialFunction[Throwable, Try[JobStatus]] = {
       case e: ExitTimeoutException => {
         info(s"Job '$jobId': Timed out waiting for job to finish, checking its status")
 
         time(s"Job '$jobId': Calling statusOf()", debug(_)) { statusOf(jobId) }
       }
     }
+    
+    Try(attemptWaiting()).recoverWith(handleTimeout)
   }
   
   private def runJob(pathToScript: Path,

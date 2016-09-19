@@ -56,9 +56,12 @@ object JobStatus {
     case Done                                                       => JobState.Succeeded
     case DoneUndetermined                                           => JobState.Failed
     case Failed                                                     => JobState.Failed
+    //TODO: Perhaps these should be something like JobState.NotStarted?
     case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobState.Running
     case Running                                                    => JobState.Running
+    //TODO: Is this right?
     case Suspended                                                  => JobState.Failed
+    //TODO: Is this right?
     case Undetermined                                               => JobState.Failed
   }
 }

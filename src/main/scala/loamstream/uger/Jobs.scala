@@ -39,11 +39,11 @@ object Jobs extends Loggable {
     import scala.concurrent.duration._
     
     require(pollingFrequencyInHz != 0.0)
-    require(pollingFrequencyInHz > 0.0 && pollingFrequencyInHz < 5.0)
+    require(pollingFrequencyInHz > 0.0 && pollingFrequencyInHz < 10.0)
     
     val period = (1 / pollingFrequencyInHz).seconds
     
-    def poll(): Future[Try[JobStatus]] = time(s"Job '$jobId': Calling poll()", debug(_)) { poller.poll(jobId, period) }
+    def poll(): Future[Try[JobStatus]] = poller.poll(jobId, period)
     
     val ioScheduler = IOScheduler()
     

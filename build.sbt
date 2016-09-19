@@ -15,6 +15,8 @@ lazy val Versions = new {
   val RxScala = "0.26.2"
 }
 
+test in assembly := {}
+
 lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-library" % Versions.Scala,
   "org.scala-lang" % "scala-compiler" % Versions.Scala,

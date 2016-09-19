@@ -35,7 +35,41 @@ final class ScalaIdTest extends FunSuite {
   }
 
   test("Java id in package") {
-    val parent = PackageId("parent")
+    val parent = PackageId("a", "b", "c")
+    assertAllNames(PackageId(parent, "test"), "test", "test", "a.b.c.test", "a.b.c.test")
+    assertAllNames(TypeId(parent, "test"), "test", "test", "a.b.c.test", "a.b.c.test")
+    assertAllNames(ObjectId(parent, "test"), "test", "test$", "a.b.c.test", "a.b.c.test$")
+  }
+
+  test("Non-Java id in package") {
+    val parent = PackageId("a", "b", "c")
+    val prefix = "a.b.c."
+    val name = "Hello, World!"
+    val nameWithBackticks = "`Hello, World!`"
+    val nameEncoded = "Hello$u002C$u0020World$bang"
+    val objectNameEncoded = "Hello$u002C$u0020World$bang$"
+    assertAllNames(PackageId(parent, name), nameWithBackticks, nameEncoded,
+      prefix + nameWithBackticks, prefix + nameEncoded)
+    assertAllNames(TypeId(parent, name), nameWithBackticks, nameEncoded,
+      prefix + nameWithBackticks, prefix + nameEncoded)
+    assertAllNames(ObjectId(parent, name), nameWithBackticks, objectNameEncoded,
+      prefix + nameWithBackticks, prefix + objectNameEncoded)
+  }
+
+  test("Non-Java id and non-Java package name") {
+    val parent = PackageId("+", "42", " ")
+    val prefixScala = "`+`.`42`.` `."
+    val prefixJvm = "$plus.42.$u0020."
+    val name = "Hello, World!"
+    val nameWithBackticks = "`Hello, World!`"
+    val nameEncoded = "Hello$u002C$u0020World$bang"
+    val objectNameEncoded = "Hello$u002C$u0020World$bang$"
+    assertAllNames(PackageId(parent, name), nameWithBackticks, nameEncoded,
+      prefixScala + nameWithBackticks, prefixJvm + nameEncoded)
+    assertAllNames(TypeId(parent, name), nameWithBackticks, nameEncoded,
+      prefixScala + nameWithBackticks, prefixJvm + nameEncoded)
+    assertAllNames(ObjectId(parent, name), nameWithBackticks, objectNameEncoded,
+      prefixScala + nameWithBackticks, prefixJvm + objectNameEncoded)
   }
 
 }

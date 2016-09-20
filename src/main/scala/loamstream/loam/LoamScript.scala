@@ -60,7 +60,11 @@ object LoamScript {
 /** A named Loam script */
 case class LoamScript(name: String, code: String) {
 
+  def alphaNumHash = s"${name.##.toHexString}${code.##.toHexString}"
+
   def scalaId: ObjectId = ObjectId(scriptsPackage, name)
+
+  def scriptContextName = s"context$alphaNumHash"
 
   def scalaFileName: String = s"$name.scala"
 
@@ -78,7 +82,11 @@ import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
 import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
-implicit val loamContext = new LoamContext
+  object LocalImplicits {
+    implicit val $scriptContextName = new LoamContext
+  }
+import LocalImplicits._
+def loamContext: LoamContext = $scriptContextName
 
 ${code.trim}
 

@@ -104,7 +104,6 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
   settings.outputDirs.setSingleOutput(targetDirectory)
   val reporter = new CompilerReporter(outMessageSink)
   val compiler = new ReflectGlobal(settings, reporter, getClass.getClassLoader)
-  val sourceFileName = "Config.scala"
 
   def soManyIssues: String = {
     val soManyErrors = StringUtils.soMany(reporter.errorCount, "error")

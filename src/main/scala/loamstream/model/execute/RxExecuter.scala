@@ -1,8 +1,8 @@
 package loamstream.model.execute
 
 import loamstream.model.execute.RxExecuter.Tracker
-import loamstream.model.jobs.{JobState, LJob, NoOpJob, Output}
-import loamstream.model.jobs.JobState.{NotStarted, Running, Succeeded}
+import loamstream.model.jobs.{JobState, LJob, NoOpJob}
+import loamstream.model.jobs.JobState.NotStarted
 import loamstream.model.jobs.LJob._
 import loamstream.util._
 import rx.lang.scala.subjects.PublishSubject
@@ -50,11 +50,11 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
     }
 
   def getRunnableJobsAndMarkThemAsLaunched(jobs: Set[LJob]): Set[LJob] = lock synchronized {
-    debug("Jobs already launched: ")
+    trace("Jobs already launched: ")
     jobsAlreadyLaunched().foreach(job => debug(s"\tAlready launched: $job"))
 
     val allRunnableJobs = jobs.filter(_.isRunnable) -- jobsAlreadyLaunched()
-    debug("Jobs available to run: ")
+    trace("Jobs available to run: ")
     allRunnableJobs.foreach(job => debug(s"\tAvailable to run: $job"))
 
     val jobsToDispatch = getJobsToBeDispatched(allRunnableJobs)
@@ -96,7 +96,7 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
         import scala.concurrent.ExecutionContext.Implicits.global
         Future {
           tracker.addJobs(jobs)
-          val newResultMap = Await.result(runner.run(jobs), Duration.Inf)
+          val newResultMap = Await.result(runner.run(jobs)(executionContext), Duration.Inf)
           result.mutate(_ ++ newResultMap)
         }
       }

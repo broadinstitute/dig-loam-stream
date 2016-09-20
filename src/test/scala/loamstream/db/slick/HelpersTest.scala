@@ -16,7 +16,7 @@ final class HelpersTest extends FunSuite {
     val expectedAbsolute = if (OsInfo.current.family == OsInfo.Family.Windows) {
       "C:\\x\\y\\z"
     } else {
-      "x/y/z"
+      "/x/y/z"
     }
 
     assert(Helpers.normalize(absolute) == expectedAbsolute)

@@ -59,14 +59,14 @@ object ExecuterHelpers {
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
   def threadPool(numThreads: Int): ExecutionContext = {
-    val es = Executors.newFixedThreadPool(numThreads, factoryWithDaemonThreads())
+    val es = Executors.newFixedThreadPool(numThreads, factoryWithDaemonThreads)
     ExecutionContext.fromExecutorService(es)
   }
 
   /**
    * @return Factory of daemon threads
    */
-  def factoryWithDaemonThreads() = new ThreadFactory() {
+  def factoryWithDaemonThreads: ThreadFactory = new ThreadFactory() {
     val defaultFactory = Executors.defaultThreadFactory()
 
     override def newThread(r: Runnable): Thread = {

@@ -21,14 +21,15 @@ object Jobs extends Loggable {
   private lazy val ioScheduler = IOScheduler()
   
   /**
-   * Using the supplied Poller and polling frequency, produce an Observable stream of statuses for the job with the
-   * given id.  The statuses are the result of polling UGER via the supplied poller at the provided rate.
+   * Using the supplied Poller and polling frequency, produce an Observable stream of statuses for each job id
+   * in a bunch of jobIds.  The statuses are the result of polling UGER via the supplied poller at the provided rate.
    * 
    * @param poller the Poller object to use to poll for job statuses
    * @param pollingFrequencyInHz the rate at which to poll
-   * @param jobId the id of the job to monitor
-   * @return an Observable stream of statuses for the job with jobId. The statuses are the result of polling UGER 
-   * *asynchronously* via the supplied poller at the supplied rate.
+   * @param scheduler the RxScala Scheduler to run the polling operations on 
+   * @param jobIds the ids of the jobs to monitor
+   * @return a map of job ids to Observable streams of statuses for each job. The statuses are the result of polling 
+   * UGER *synchronously* via the supplied poller at the supplied rate.
    */
   def monitor(poller: Poller, pollingFrequencyInHz: Double = 1.0, scheduler: Scheduler = ioScheduler)(
              jobIds: Iterable[String]): Map[String, Observable[JobStatus]] = {

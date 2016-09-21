@@ -17,8 +17,8 @@ import loamstream.util.Files
 import loamstream.util.TimeEnrichments.time
 import loamstream.conf.UgerConfig
 import java.util.UUID
-import loamstream.util.ObservableEnrichments
 
+import loamstream.util.ObservableEnrichments
 import loamstream.model.jobs.JobState.{Failed, Running}
 
 /**
@@ -66,7 +66,7 @@ final case class UgerChunkRunner(
 
           val jobsById = rawJobIds.zip(leafCommandLineJobs).toMap
 
-          toResultMap(drmaaClient, jobsById)
+          toResultMap(drmaaClient, jobsById)(context)
         }
         case DrmaaClient.SubmissionFailure(e) => {
           leafCommandLineJobs.foreach(_.updateAndEmitJobState(Failed))
@@ -82,7 +82,7 @@ final case class UgerChunkRunner(
   private[uger] def toResultMap(drmaaClient: DrmaaClient, jobsById: Map[String, LJob])
                                (implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
 
-    val poller = Poller.drmaa(drmaaClient)
+    val poller = Poller.drmaa(drmaaClient)(context)
 
     def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
       Jobs.monitor(poller, pollingFrequencyInHz)(jobIds)

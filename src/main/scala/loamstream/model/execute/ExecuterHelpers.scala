@@ -1,10 +1,12 @@
 package loamstream.model.execute
 
+import java.util.concurrent.{Executors, ThreadFactory}
+
 import scala.annotation.tailrec
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
+
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
 import loamstream.util.Hit
 import loamstream.util.Shot
 import loamstream.util.Maps
@@ -47,5 +49,30 @@ object ExecuterHelpers {
     import Maps.Implicits._
     
     m.strictMapValues(Hit(_))
+  }
+
+  /**
+   * Creates and returns a fixed-size pool of daemon threads that will shutdown when non-daemon
+   * threads complete so JVM is not prevented from exiting.
+   * @param numThreads size of thread pool
+   * @return Success wrapping the JobStatus corresponding to the code obtained from UGER,
+   * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
+   */
+  def threadPool(numThreads: Int): ExecutionContext = {
+    val es = Executors.newFixedThreadPool(numThreads, factoryWithDaemonThreads)
+    ExecutionContext.fromExecutorService(es)
+  }
+
+  /**
+   * @return Factory of daemon threads
+   */
+  def factoryWithDaemonThreads: ThreadFactory = new ThreadFactory() {
+    val defaultFactory = Executors.defaultThreadFactory()
+
+    override def newThread(r: Runnable): Thread = {
+      val thread = defaultFactory.newThread(r)
+      thread.setDaemon(true)
+      thread
+    }
   }
 }

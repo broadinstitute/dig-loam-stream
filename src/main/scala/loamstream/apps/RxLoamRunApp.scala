@@ -23,13 +23,14 @@ object RxLoamRunApp extends App with DrmaaClientHelpers with Loggable {
   info("Creating reactive executer...")
 
   withClient { drmaaClient =>
-
-    import scala.concurrent.ExecutionContext.Implicits.global
+    import loamstream.model.execute.ExecuterHelpers._
+    val size = 50
+    val executionContextWithThreadPool = threadPool(size)
 
     val pollingFrequencyInHz = 0.1
     val chunkRunner = UgerChunkRunner(ugerConfig, drmaaClient, pollingFrequencyInHz)
 
-    val executer = RxExecuter(chunkRunner)
+    val executer = RxExecuter(chunkRunner)(executionContextWithThreadPool)
 
     val outMessageSink = LoggableOutMessageSink(this)
 

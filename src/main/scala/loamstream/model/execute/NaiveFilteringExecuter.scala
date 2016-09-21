@@ -5,22 +5,9 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import loamstream.model.jobs.LJob.Result
-import loamstream.util.Hash
 import loamstream.util.Maps
 import loamstream.util.Shot
-import loamstream.util.ValueBox
-import loamstream.db.LoamDao
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Output
-import loamstream.model.jobs.Output.PathOutput
-import loamstream.model.jobs.Output.CachedOutput
-import scala.annotation.migration
-import loamstream.util.TimeEnrichments
-import loamstream.util.Traversables
-import java.nio.file.Path
-import loamstream.util.Hashes
-import loamstream.util.PathUtils
-import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.Loggable
 import loamstream.util.Futures
 

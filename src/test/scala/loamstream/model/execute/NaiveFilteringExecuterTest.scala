@@ -16,7 +16,6 @@ import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.Output
-import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.util.Hashes
 import loamstream.util.PathEnrichments
 import loamstream.util.Sequence

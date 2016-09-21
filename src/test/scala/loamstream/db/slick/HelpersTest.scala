@@ -2,7 +2,7 @@ package loamstream.db.slick
 
 import java.nio.file.Paths
 
-import loamstream.util.OsInfo
+import loamstream.util.OsName
 import org.scalatest.FunSuite
 
 /**
@@ -13,7 +13,7 @@ final class HelpersTest extends FunSuite {
   test("normalize") {
     val absolute = Paths.get("/x/y/z")
 
-    val expectedAbsolute = if (OsInfo.current.family == OsInfo.Family.Windows) {
+    val expectedAbsolute = if (OsName.current.isWindows) {
       "C:\\x\\y\\z"
     } else {
       "/x/y/z"

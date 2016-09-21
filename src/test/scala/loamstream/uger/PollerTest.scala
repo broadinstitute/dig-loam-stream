@@ -1,13 +1,14 @@
 package loamstream.uger
 
-import org.scalatest.FunSuite
-import scala.util.Try
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
-import scala.util.Success
-import java.nio.file.Path
 import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.util.Failure
+import scala.util.Success
+
+import org.scalatest.FunSuite
+
+import loamstream.util.ObservableEnrichments
+import scala.util.Try
 
 /**
  * @author clint
@@ -17,56 +18,124 @@ final class PollerTest extends FunSuite {
   import JobStatus._
   import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.duration._
+  import ObservableEnrichments._
+  
+  //TODO: Replace with Futures.waitFor
+  private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
+
+  private val zero = Duration.Zero
   
   test("drama().poll() - happy path") {
-    val client = MockDrmaaClient(Success(Running), Success(Running), Success(Done))
+    val jobId = "foo"
+    
+    val client = MockDrmaaClient(Map(jobId -> Seq(Success(Running), Success(Running), Success(Done))))
     
     val poller = Poller.drmaa(client)
     
-    val jobId = "foo"
+    val statuses = Seq(
+      poller.poll(Seq(jobId)),
+      poller.poll(Seq(jobId)),
+      poller.poll(Seq(jobId)))
     
-    val future = for {
-      s0 <- poller.poll(jobId, 1.second)
-      s1 <- poller.poll(jobId, 2.seconds)
-      s2 <- poller.poll(jobId, 3.seconds)
-    } yield {
-      assert(s0 == Success(Running))
-      assert(s1 == Success(Running))
-      assert(s2 == Success(Done))
-      
-      assert(client.params == Seq(jobId -> 1.second, jobId -> 2.seconds, jobId -> 3.seconds))
-      
-      ()
-    }
+    val Seq(s0, s1, s2) = statuses.map(_.values.head)
     
-    Await.ready(future, Duration.Inf)
+    assert(s0 == Success(Running))
+    assert(s1 == Success(Running))
+    assert(s2 == Success(Done))
+      
+    assert(client.params.value == Seq(jobId -> zero, jobId -> zero, jobId -> zero))
   }
   
-  test("drama().poll() - some failures") {
-    val exception = new Exception with scala.util.control.NoStackTrace
+  test("drama().poll() - happy path, multiple jobs") {
+    val jobId1 = "foo"
+    val jobId2 = "bar"
+    val jobId3 = "baz"
     
-    val client = MockDrmaaClient(Success(Running), Failure(exception), Success(Done), Failure(exception))
+    val jobIds = Seq(jobId1, jobId2, jobId3)
+    
+    val client = MockDrmaaClient(
+      Map(
+        jobId1 -> Seq(Success(Running), Success(Running), Success(Running), Success(Done)),
+        jobId2 -> Seq(Success(Running), Success(Done)),
+        jobId3 -> Seq(Success(Running), Success(Running), Success(Done))))
     
     val poller = Poller.drmaa(client)
+  
+    def poll: Map[String, Try[JobStatus]] = poller.poll(jobIds)
+    
+    {
+      val expected = Map(
+          jobId1 -> Success(Running),
+          jobId2 -> Success(Running),
+          jobId3 -> Success(Running))
+          
+      assert(poll == expected)
+    }
+    
+    {
+      val expected = Map(
+          jobId1 -> Success(Running),
+          jobId2 -> Success(Done),
+          jobId3 -> Success(Running))
+          
+      assert(poll == expected)
+    }
+    
+    {
+      val expected = Map(
+          jobId1 -> Success(Running),
+          jobId2 -> Success(Done),
+          jobId3 -> Success(Done))
+          
+      assert(poll == expected)
+    }
+    
+    {
+      val expected = Map(
+          jobId1 -> Success(Done),
+          jobId2 -> Success(Done),
+          jobId3 -> Success(Done))
+          
+      assert(poll == expected)
+    }
+    
+    {
+      val expected = Map(
+          jobId1 -> Success(Done),
+          jobId2 -> Success(Done),
+          jobId3 -> Success(Done))
+          
+      assert(poll == expected)
+    }
+  }
+  
+  test("drmaa().poll() - some failures") {
+    val exception = new Exception with scala.util.control.NoStackTrace
     
     val jobId = "foo"
     
-    val future = for {
-      s0 <- poller.poll(jobId, 1.second)
-      s1 <- poller.poll(jobId, 2.seconds)
-      s2 <- poller.poll(jobId, 3.seconds)
-      s3 <- poller.poll(jobId, 4.seconds)
-    } yield {
-      assert(s0 == Success(Running))
-      assert(s1 == Failure(exception))
-      assert(s2 == Success(Done))
-      assert(s3 == Failure(exception))
-      
-      assert(client.params == Seq(jobId -> 1.second, jobId -> 2.seconds, jobId -> 3.seconds, jobId -> 4.seconds))
-      
-      ()
-    }
+    val jobIds = Seq(jobId)
     
-    Await.ready(future, Duration.Inf)
+    val client = MockDrmaaClient(
+      Map(
+        jobId -> Seq(Success(Running), Failure(exception), Success(Done), Failure(exception))))
+    
+    val poller = Poller.drmaa(client)
+    
+    val results = Seq(
+      poller.poll(jobIds),
+      poller.poll(jobIds),
+      poller.poll(jobIds),
+      poller.poll(jobIds)).map(_.values.head)
+     
+    
+    val Seq(s0, s1, s2, s3) = results 
+    
+    assert(s0 == Success(Running))
+    assert(s1 == Failure(exception))
+    assert(s2 == Success(Done))
+    assert(s3 == Failure(exception))
+      
+    assert(client.params.value == Seq(jobId -> zero, jobId -> zero, jobId -> zero, jobId -> zero))
   }
 }

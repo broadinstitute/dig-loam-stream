@@ -84,17 +84,18 @@ final case class UgerChunkRunner(
 
     val poller = Poller.drmaa(drmaaClient)
 
-    def statuses(jobId: String) = time(s"Job '$jobId': Calling Jobs.monitor()", trace(_)) {
-      Jobs.monitor(poller, pollingFrequencyInHz)(jobId)
+    def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
+      Jobs.monitor(poller, pollingFrequencyInHz)(jobIds)
     }
 
     import ObservableEnrichments._
+    
+    val jobsAndStatusesById = combine(jobsById, statuses(jobsById.keys))
 
     val jobsToFutureResults: Iterable[(LJob, Future[Result])] = for {
-      (jobId, job) <- jobsById
-      jobStatuses = statuses(jobId)
+      (jobId, (job, jobStatuses)) <- jobsAndStatusesById
       _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
-      futureResult = statuses(jobId).lastAsFuture.map(resultFrom(job))
+      futureResult = jobStatuses.lastAsFuture.map(resultFrom(job))
     } yield {
       job -> futureResult
     }
@@ -154,5 +155,14 @@ object UgerChunkRunner extends Loggable {
    */
   private[uger] def createScriptFile(contents: String, directory: File): Path = {
     createScriptFile(contents, Files.tempFile(".sh", directory))
+  }
+  
+  private[uger] def combine[A,U,V](m1: Map[A, U], m2: Map[A, V]): Map[A, (U, V)] = {
+    Map.empty[A, (U, V)] ++ (for {
+      (a, u) <- m1.toIterable
+      v <- m2.get(a)  
+    } yield {
+      a -> (u -> v)
+    })
   }
 }

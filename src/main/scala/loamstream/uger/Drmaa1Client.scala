@@ -36,6 +36,20 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     s
   }
 
+  override def track(jobIds: Iterable[String]): Unit = {
+    import scala.collection.JavaConverters._
+    
+    /*
+     * Inform DRMAA that we'd like to know the status of the jobs indicated by 'jobIds', allowing easier access to 
+     * information about their statuses later.
+     * 
+     * The 'Session.TIMEOUT_NO_WAIT' param tells DRMAA not to wait for the jobs to finish at this time.  
+     * The 'false' param indicates that we would like DRMAA to keep information about Jobs around after the call to
+     * synchronize() completes, so we can access it later via statusOf() or waitFor().
+     */
+    session.synchronize(jobIds.toSeq.asJava, Session.TIMEOUT_NO_WAIT, false)
+  }
+  
   /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */

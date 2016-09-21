@@ -24,8 +24,6 @@ trait DrmaaClient {
     pathToUgerOutput: Path,
     jobName: String,
     numTasks: Int = 1): DrmaaClient.SubmissionResult
-
-  def track(jobIds: Iterable[String]): Unit
     
   /**
    * Synchronously inspect the status of a job with the given ID

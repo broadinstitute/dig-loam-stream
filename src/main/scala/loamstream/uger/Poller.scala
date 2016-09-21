@@ -19,9 +19,6 @@ import loamstream.util.Maps
  * date: Jun 21, 2016
  */
 trait Poller {
-  //TODO: ???
-  def init(jobIds: Iterable[String]): Unit
-  
   /**
    * Synchronously inquire about the status of one or more jobs
    * @param jobIds the ids of the jobs to inquire about
@@ -33,8 +30,6 @@ trait Poller {
 object Poller {
   
   final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller {
-    override def init(jobIds: Iterable[String]): Unit = client.track(jobIds)
-    
     override def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]] = {
       
       def statusAttempt(jobId: String): Try[JobStatus] = {

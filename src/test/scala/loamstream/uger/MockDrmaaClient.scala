@@ -47,6 +47,4 @@ final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[JobSt
   }
 
   override def shutdown(): Unit = ()
-  
-  override def track(jobIds: Iterable[String]): Unit = ()
 }

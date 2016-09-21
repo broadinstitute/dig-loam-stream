@@ -15,59 +15,43 @@ class OsNameTest extends FunSuite {
     val currentOsName = OsName.current
     assert(currentOsName.name == scala.sys.props(OsName.propKey))
     assert(currentOsName.familyShot.nonEmpty)
+    assert(currentOsName.newlineShot.contains(System.lineSeparator))
   }
+
+  def assertShot[T](shot: Shot[T], opt: Option[T]): Unit = opt match {
+    case Some(value) => assert(shot.contains(value))
+    case None => assert(shot.isEmpty)
+  }
+
+  def assertFamily(osName: OsName, familyOpt: Option[Family], isWindows: Boolean, isUnixLike: Boolean,
+                   newlineOpt: Option[String], intraPathSepOpt: Option[String],
+                   interPathSepOpt: Option[String]): Unit = {
+    assertShot(osName.familyShot, familyOpt)
+    assert(osName.isWindows === isWindows)
+    assert(osName.isUnixLike === isUnixLike)
+    assertShot(osName.newlineShot, newlineOpt)
+    assertShot(osName.intraPathSepShot, intraPathSepOpt)
+    assertShot(osName.interPathSepShot, interPathSepOpt)
+  }
+
 
   test("Identify various names as Windows") {
     for (osName <- osNames("Windows XP", "Windows Blub", "Windows 10", "Super Windows")) {
-      assert(osName.familyShot.contains(Family.windows))
-      assert(osName.isWindows)
-      assert(!osName.isUnixLike)
-      assert(!osName.isMacOsX)
-      assert(!osName.isOtherMac)
-      assert(!osName.isMac)
+      assertFamily(osName, Some(Family.windows), isWindows = true, isUnixLike = false,
+        Some("\r\n"), Some("\\"), Some(";"))
     }
   }
 
   test("Identify various names as Unix-like") {
-    for (osName <- osNames("Linux", "SunOS", "AIX", "HP-UX", "Solaris", "Minix", "Yunux")) {
-      assert(osName.familyShot.contains(Family.unixLike))
-      assert(!osName.isWindows)
-      assert(osName.isUnixLike)
-      assert(!osName.isMacOsX)
-      assert(!osName.isOtherMac)
-      assert(!osName.isMac)
-    }
-  }
-
-  test("Identify Mac OS X") {
-    val osName = OsName("Mac OS X")
-    assert(osName.familyShot.contains(Family.unixLike))
-    assert(!osName.isWindows)
-    assert(osName.isUnixLike)
-    assert(osName.isMacOsX)
-    assert(!osName.isOtherMac)
-    assert(osName.isMac)
-  }
-
-  test("Identify various names as other Mac versions") {
-    for (osName <- osNames("Mac Old", "Mac 1", "Mac whatever")) {
-      assert(osName.familyShot.contains(Family.otherMac))
-      assert(!osName.isWindows)
-      assert(!osName.isUnixLike)
-      assert(!osName.isMacOsX)
-      assert(osName.isOtherMac)
-      assert(osName.isMac)
+    for (osName <- osNames("Linux", "Mac OS X", "SunOS", "AIX", "HP-UX", "Solaris", "Minix", "Yunux")) {
+      assertFamily(osName, Some(Family.unixLike), isWindows = false, isUnixLike = true,
+        Some("\n"), Some("/"), Some(":"))
     }
   }
 
   test("Categorize certain unknown names as neither Windows, nor Unix-like, nor Mac") {
     for (osName <- osNames("Wubbzy OS", "OS/2", "Zuse 2", "Atari TOS", "DOS")) {
-      assert(osName.familyShot.isEmpty)
-      assert(!osName.isWindows)
-      assert(!osName.isUnixLike)
-      assert(!osName.isMacOsX)
-      assert(!osName.isOtherMac)
-      assert(!osName.isMac)
+      assertFamily(osName, None, isWindows = false, isUnixLike = false, None, None, None)
     }
   }
 

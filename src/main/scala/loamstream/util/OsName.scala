@@ -18,14 +18,14 @@ case class OsName(name: String) {
   /** Whether this is Unix-like (including Mac OS X) */
   def isUnixLike: Boolean = familyShot.contains(Family.unixLike)
 
-  /** Whether this is Mac OS X */
-  def isMacOsX: Boolean = this == OsName.macOsX
+  /** Shot of the newline String */
+  def newlineShot: Shot[String] = familyShot.map(_.newline)
 
-  /** Whether this is Mac other than Mac OS X */
-  def isOtherMac: Boolean = familyShot.contains(Family.otherMac)
+  /** Shot of the separator inside paths  */
+  def intraPathSepShot: Shot[String] = familyShot.map(_.intraPathSep)
 
-  /** Whether this is Mac (including Mac OS X) */
-  def isMac: Boolean = isMacOsX || isOtherMac
+  /** Shot of the separator between paths in PATH variable */
+  def interPathSepShot: Shot[String] = familyShot.map(_.interPathSep)
 
 }
 
@@ -36,9 +36,8 @@ object OsName {
 
   def current: OsName = OsName(scala.sys.props(propKey))
 
-  val macOsX: OsName = OsName("Mac OS X")
-
-  case class Family private(knownNames: Set[OsName], nameClues: Set[String]) {
+  case class Family private(knownNames: Set[OsName], nameClues: Set[String], newline: String,
+                            intraPathSep: String, interPathSep: String) {
     Family._all += this
   }
 
@@ -50,17 +49,18 @@ object OsName {
       knownNames =
         Set("98", "XP", "NT", "Me", "2000", "2003", "Vista", "7", "10").map(suffix => s"Windows $suffix")
           .map(OsName.apply),
-      nameClues = Set("Windows")
+      nameClues = Set("Windows"),
+      newline = "\r\n",
+      intraPathSep = "\\",
+      interPathSep = ";"
     )
 
     val unixLike = Family(
-      knownNames = Set("Linux", "SunOS", "FreeBSD").map(OsName.apply) + macOsX,
-      nameClues = Set("nix", "nux", "AIX", "UX", "Solaris")
-    )
-
-    val otherMac = Family(
-      knownNames = Set(),
-      nameClues = Set("Mac")
+      knownNames = Set("Linux", "Mac OS X", "SunOS", "FreeBSD").map(OsName.apply),
+      nameClues = Set("nix", "nux", "AIX", "UX", "Solaris"),
+      newline = "\n",
+      intraPathSep = "/",
+      interPathSep = ":"
     )
 
     val all = _all

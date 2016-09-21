@@ -31,6 +31,10 @@ sealed trait Shot[+A] {
   def isHit: Boolean
 
   def isMiss: Boolean
+
+  override def equals(obj: Any): Boolean
+
+  override def hashCode(): Int
 }
 
 /** A container of an object or an error description */
@@ -126,6 +130,13 @@ final case class Hit[+A](value: A) extends Shot[A] {
   override val isHit: Boolean = true
 
   override val isMiss: Boolean = false
+
+  override def equals(obj: Any): Boolean = obj match {
+    case Hit(oValue) => value == oValue
+    case _ => false
+  }
+
+  override def hashCode(): Int = value.hashCode
 }
 
 object Miss {
@@ -157,5 +168,12 @@ final case class Miss(snag: Snag) extends Shot[Nothing] {
   override val isHit: Boolean = false
 
   override val isMiss: Boolean = true
+
+  override def equals(obj: Any): Boolean = obj match {
+    case Miss(oSnag) => snag == oSnag
+    case _ => false
+  }
+
+  override def hashCode(): Int = snag.hashCode
 
 }

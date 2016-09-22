@@ -12,7 +12,7 @@ final case class NativeJob[T](
     outputs: Set[Output] = Set.empty) extends LJob {
   
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-  
-  override def executeSelf(implicit executionContext: ExecutionContext): Future[Result] =
+
+  override protected def executeSelf(implicit executionContext: ExecutionContext): Future[Result] =
     exprBox.evalFuture.map(LJob.ValueSuccess(_, exprBox.typeBox))
 }

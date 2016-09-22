@@ -6,7 +6,7 @@ import loamstream.model.jobs.NoOpJob
 import loamstream.uger.JobStatus.{Done, Queued, Running}
 import org.scalatest.FunSuite
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.util.Success
 
 /**

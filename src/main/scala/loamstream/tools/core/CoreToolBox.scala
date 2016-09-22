@@ -88,7 +88,7 @@ object CoreToolBox extends LToolBox {
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
     override val outputs: Set[Output] = Set(PathOutput(klustaKwikKonfig.workDir))
-    
+
     override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = runBlocking {
       Result.attempt {
         val weights = PcaWeightsReader.read(pcaWeightsFile)

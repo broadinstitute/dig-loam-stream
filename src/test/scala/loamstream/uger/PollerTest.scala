@@ -46,7 +46,7 @@ final class PollerTest extends FunSuite {
     assert(client.params.value == Seq(jobId -> zero, jobId -> zero, jobId -> zero))
   }
   
-  test("drama().poll() - happy path, multiple jobs") {
+  test("drmaa().poll() - happy path, multiple jobs") {
     val jobId1 = "foo"
     val jobId2 = "bar"
     val jobId3 = "baz"

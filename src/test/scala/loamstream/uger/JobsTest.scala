@@ -3,15 +3,11 @@ package loamstream.uger
 import org.scalatest.FunSuite
 
 import scala.util.Success
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 
-import scala.collection.mutable
 import loamstream.util.ObservableEnrichments
 import scala.concurrent.Future
-import rx.lang.scala.Observable
 
 /**
  * @author clint

@@ -1,18 +1,9 @@
 package loamstream.uger
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.blocking
 import scala.concurrent.duration.Duration
-import loamstream.util.TimeEnrichments._
 import scala.util.Try
-import rx.lang.scala.Observable
-import rx.lang.scala.Subject
-import rx.lang.scala.subjects.PublishSubject
-import scala.util.Success
-import rx.lang.scala.subjects.ReplaySubject
 import org.ggf.drmaa.InvalidJobException
-import loamstream.util.Maps
 
 /**
  * @author clint

@@ -163,6 +163,11 @@ object LJob {
 
   final case class SimpleSuccess(successMessage: String) extends Success
 
+  /**
+   * If a job was skipped for various possible reasons (e.g. its outputs were already present)
+   */
+  final case class SkippedSuccess(successMessage: String) extends Success
+
   final case class ValueSuccess[T](value: T, typeBox: TypeBox[T]) extends Success {
     def tpe: Type = typeBox.tpe
 

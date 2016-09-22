@@ -35,7 +35,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     
     s
   }
-
+  
   /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */

@@ -80,21 +80,27 @@ object Jobs extends Loggable {
     val (jobId, statusAttempts) = jobStatusTuple
     
     import ObservableEnrichments._
+    import JobStatus.{DoneUndetermined, Undetermined}
     
     val statuses = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
       //NB: DRMAA might not report when jobs are done, say if it hasn't cached the final status of a job, so we 
       //assume that an 'unknown job' failure for a job we've previously inquired about successfully means the job 
       //is done, though we can't determine how such a job ended. :(
       case (Failure(e: InvalidJobException), i) if i > 0 => {
-        warn(s"Job '$jobId': Got InvalidJobException for job we've previously inquired about successfully; mapping to ${JobStatus.DoneUndetermined}")
+        //Appease scalastyle
+        val msg = {
+          s"Got InvalidJobException for job we've previously inquired about successfully; mapping to $DoneUndetermined"
+        }
         
-        JobStatus.DoneUndetermined
+        warn(s"Job '$jobId': $msg")
+        
+        DoneUndetermined
       }
       //Any other polling failure leaves us unable to know the job's status
       case (Failure(e), _) => {
-        warn(s"Job '$jobId': polling failed with a ${e.getClass.getName}; mapping to ${JobStatus.Undetermined}", e)
+        warn(s"Job '$jobId': polling failed with a(n) ${e.getClass.getName}; mapping to $Undetermined", e)
         
-        JobStatus.Undetermined
+        Undetermined
       }
       case (Success(status), _) => status
     }

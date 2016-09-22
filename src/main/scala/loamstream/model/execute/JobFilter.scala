@@ -61,13 +61,13 @@ object JobFilter {
         oldOutputs ++ newOutputs 
       }
       
-      dao.insertOrUpdate(newOutputs.values)
+      dao.insertOrUpdateOutput(newOutputs.values)
     }
 
     //Support outputs other than Paths
     private[this] lazy val cachedOutputsByPath: ValueBox[Map[Path, CachedOutput]] = {
       //TODO: All of them?  
-      val map: Map[Path, CachedOutput] = dao.allRows.map(row => row.path -> row).toMap
+      val map: Map[Path, CachedOutput] = dao.allOutputRows.map(row => row.path -> row).toMap
 
       if (isDebugEnabled) {
         debug(s"Known paths: ${map.size}")

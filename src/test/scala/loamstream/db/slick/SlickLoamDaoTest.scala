@@ -19,102 +19,100 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
   
   override val descriptor = TestDbDescriptors.inMemoryH2
   
-  test("insert/Read") {
+  test("insert/Read Outputs") {
     createTablesAndThen {
       val path = Paths.get("src/test/resources/for-hashing/foo.txt")
 
-      dao.storeHash(path, Hashes.sha1(path))
+      store(path, Hashes.sha1(path))
 
-      val hash = dao.hashFor(path)
-
-      assert(hash == Hashes.sha1(path))
+      val Seq(row) = dao.allOutputRows
+      
+      assert(row.hash == Hashes.sha1(path))
     }
   }
 
-  private def cachedOutput(p: Path, h: Hash): CachedOutput = (new RawOutputRow(p, h)).toCachedOutput
-  
-  test("insert/allRows") {
+  test("insert/allOutputRows") {
     createTablesAndThen {
       val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
       val path1 = Paths.get("src/test/resources/for-hashing/bigger")
       val path2 = Paths.get("src/test/resources/for-hashing/empty.txt")
 
-      assert(dao.allRows.isEmpty)
+      assert(dao.allOutputRows.isEmpty)
 
       val hash0 = Hashes.sha1(path0)
       val hash1 = Hashes.sha1(path1)
       val hash2 = Hashes.sha1(path2)
 
-      dao.storeHash(path0, hash0)
-      dao.storeHash(path1, hash1)
-      dao.storeHash(path2, hash2)
+      store(path0, hash0)
+      store(path1, hash1)
+      store(path2, hash2)
 
       val expected = Set(cachedOutput(path0, hash0), cachedOutput(path1, hash1), cachedOutput(path2, hash2))
 
       //Use Sets to ignore order
-      assert(dao.allRows.toSet == expected)
+      assert(dao.allOutputRows.toSet == expected)
     }
   }
 
-  test("delete all") {
+  test("delete all Outputs") {
     createTablesAndThen {
       val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
       val path1 = Paths.get("src/test/resources/for-hashing/bigger")
       val path2 = Paths.get("src/test/resources/for-hashing/empty.txt")
 
-      assert(dao.allRows.isEmpty)
+      assert(dao.allOutputRows.isEmpty)
 
       val hash0 = Hashes.sha1(path0)
       val hash1 = Hashes.sha1(path1)
       val hash2 = Hashes.sha1(path2)
 
-      dao.storeHash(path0, hash0)
-      dao.storeHash(path1, hash1)
-      dao.storeHash(path2, hash2)
+      store(path0, hash0)
+      store(path1, hash1)
+      store(path2, hash2)
 
-      assert(dao.allRows.size == 3)
+      assert(dao.allOutputRows.size == 3)
 
-      dao.delete(path0, path1, path2)
+      dao.deleteOutput(path0, path1, path2)
 
-      assert(dao.allRows.isEmpty)
+      assert(dao.allOutputRows.isEmpty)
     }
   }
   
-  test("delete some") {
+  test("delete some Outputs") {
     createTablesAndThen {
       val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
       val path1 = Paths.get("src/test/resources/for-hashing/bigger")
       val path2 = Paths.get("src/test/resources/for-hashing/empty.txt")
 
-      assert(dao.allRows.isEmpty)
+      assert(dao.allOutputRows.isEmpty)
 
       val hash0 = Hashes.sha1(path0)
       val hash1 = Hashes.sha1(path1)
       val hash2 = Hashes.sha1(path2)
 
-      dao.storeHash(path0, hash0)
-      dao.storeHash(path1, hash1)
-      dao.storeHash(path2, hash2)
+      store(path0, hash0)
+      store(path1, hash1)
+      store(path2, hash2)
 
-      assert(dao.allRows.size == 3)
+      assert(dao.allOutputRows.size == 3)
 
-      dao.delete(path0, path2)
+      dao.deleteOutput(path0, path2)
 
-      assert(dao.allRows.map(_.path) == Seq(path1.toAbsolutePath))
+      assert(dao.allOutputRows.map(_.path) == Seq(path1.toAbsolutePath))
       
-      dao.delete(path0, path1)
+      dao.deleteOutput(path0, path1)
       
-      assert(dao.allRows.isEmpty)
+      assert(dao.allOutputRows.isEmpty)
     }
   }
   
-  test("insertOrUpdate") {
+  test("insertOrUpdateOutputs") {
     createTablesAndThen {
       val p0 = Paths.get("src/test/resources/for-hashing/foo.txt")
       val p1 = Paths.get("src/test/resources/for-hashing/bigger")
       val p2 = Paths.get("src/test/resources/for-hashing/empty.txt")
 
-      assert(dao.allRows.isEmpty)
+      assert(dao.allOutputRows.isEmpty)
 
       val h0 = Hashes.sha1(p0)
       val h1 = Hashes.sha1(p1)
@@ -125,9 +123,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
           cachedOutput(p1, h1),
           cachedOutput(p2, h2))
 
-      dao.insertOrUpdate(rows)
+      dao.insertOrUpdateOutput(rows)
           
-      assert(dao.allRows.toSet == rows.toSet)
+      assert(dao.allOutputRows.toSet == rows.toSet)
       
       val h0prime = Hash(Array(0.toByte), HashType.Sha1)
       val h1prime = Hash(Array(1.toByte), HashType.Sha1)
@@ -136,11 +134,15 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
           cachedOutput(p0, h0prime),
           cachedOutput(p1, h1prime))
           
-      dao.insertOrUpdate(updatedRows)
+      dao.insertOrUpdateOutput(updatedRows)
       
       val expected = updatedRows :+ cachedOutput(p2, h2)
 
-      assert(dao.allRows.toSet == expected.toSet)
+      assert(dao.allOutputRows.toSet == expected.toSet)
     }
+  }
+  
+  test("insertExecution/allExecutionRows") {
+    
   }
 }

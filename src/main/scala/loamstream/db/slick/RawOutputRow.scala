@@ -9,6 +9,7 @@ import java.time.Instant
 import Helpers._
 import loamstream.util.PathUtils.lastModifiedTime
 import loamstream.model.jobs.Output.CachedOutput
+import loamstream.model.jobs.Output
 
 /**
  * @author clint
@@ -20,15 +21,19 @@ final case class RawOutputRow private (
     pathValue: String, 
     lastModified: Timestamp, 
     hashValue: String, 
-    hashType: String) {
+    hashType: String,
+    executionId: Option[Int] = None) {
   
   def this(path: Path, hash: Hash) = {
     this(
         normalize(path), 
         Timestamp.from(lastModifiedTime(path)), 
         hash.valueAsHexString, 
-        hash.tpe.algorithmName)
+        hash.tpe.algorithmName,
+        None)
   }
+  
+  def this(output: Output.PathBased) = this(output.path, output.hash)
   
   def toPath: Path = Paths.get(pathValue)
   

@@ -4,25 +4,28 @@ import java.nio.file.Path
 
 import loamstream.model.jobs.Output.CachedOutput
 import loamstream.util.Hash
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.Output
 
 /**
  * @author clint
  * date: Aug 4, 2016
  */
 trait LoamDao {
-  def hashFor(path: Path): Hash
   
-  def storeHash(path: Path, hash: Hash): Unit
+  final def deleteOutput(path: Path, others: Path*): Unit = deleteOutput(path +: others)
   
-  final def delete(path: Path, others: Path*): Unit = delete(path +: others)
+  def deleteOutput(paths: Iterable[Path]): Unit
   
-  def delete(paths: Iterable[Path]): Unit
+  //TODO: Need to allow updating?
+  def insertOrUpdateOutput(rows: Iterable[CachedOutput]): Unit
   
-  def insertOrUpdate(rows: Iterable[CachedOutput]): Unit 
+  def allOutputRows: Seq[CachedOutput]
   
-  //TODO: Re-evaluate
-  def allRows: Seq[CachedOutput]
- 
+  def insertExecutions(rows: Iterable[Execution]): Unit
+  
+  def allExecutionRows: Seq[Execution]
+  
   def createTables(): Unit
   
   def dropTables(): Unit

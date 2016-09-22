@@ -14,6 +14,10 @@ import java.sql.Timestamp
 import loamstream.model.jobs.Output.CachedOutput
 import scala.util.Try
 import slick.jdbc.meta.MTable
+import loamstream.util.Futures
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.Output
+import slick.jdbc.GetResult
 
 /**
  * @author clint
@@ -25,60 +29,95 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
   val driver = descriptor.dbType.driver
   
   import driver.api._
-  import SlickLoamDao.waitFor
+  import Futures.waitFor
   
-  override def hashFor(path: Path): Hash = {
-    val normalizedPath = Helpers.normalize(path)
-    
-    val query = tables.outputs.filter(_.path === normalizedPath).result.head.transactionally
-    
-    val futureRow = db.run(query)
-    
-    //TODO: Re-evaluate
-    waitFor(futureRow).toHash
-  }
-  
-  override def storeHash(path: Path, hash: Hash): Unit = {
-    val newRow = new RawOutputRow(path, hash)
-    
-    val action = (tables.outputs += newRow).transactionally
-    
-    //TODO: Re-evaluate
-    waitFor(db.run(action))
-  }
-  
-  private def deleteAction(pathsToDelete: Iterable[Path]): DBIO[Int] = {
+  private def outputDeleteAction(pathsToDelete: Iterable[Path]): DBIO[Int] = {
     val toDelete = pathsToDelete.map(Helpers.normalize).toSet
     
-    tables.outputs.filter(_.path.inSetBind(toDelete)).delete
+    outputDeleteActionRaw(toDelete)
   }
   
-  override def delete(paths: Iterable[Path]): Unit = {
-    val action = deleteAction(paths).transactionally
+  private def outputDeleteActionRaw(pathsToDelete: Iterable[String]): DBIO[Int] = {
+    tables.outputs.filter(_.path.inSetBind(pathsToDelete)).delete
+  }
+  
+  override def deleteOutput(paths: Iterable[Path]): Unit = {
+    val action = outputDeleteAction(paths).transactionally
     
     waitFor(db.run(action))
   }
   
-  override def insertOrUpdate(rows: Iterable[CachedOutput]): Unit = {
-    val paths = rows.map(_.path)
-    
+  //TODO: Need to allow updating?
+  override def insertOrUpdateOutput(rows: Iterable[CachedOutput]): Unit = {
     val rawRows = rows.map(row => new RawOutputRow(row.path, row.hash))
 
-    val insertAction = tables.outputs ++= rawRows
+    val action = insertOrUpdateRawOutputRows(rawRows)
     
-    val action = DBIO.seq(deleteAction(paths), insertAction).transactionally
-    
-    //TODO: Re-evaluate
     waitFor(db.run(action))
   }
   
-  override def allRows: Seq[CachedOutput] = {
+  private def insertOrUpdateRawOutputRows(rawRows: Iterable[RawOutputRow]): DBIO[_] = {
+    val paths = rawRows.map(_.pathValue)
+    
+    val insertAction = tables.outputs ++= rawRows
+    
+    DBIO.seq(outputDeleteActionRaw(paths), insertAction).transactionally
+  }
+  
+  override def insertExecutions(executions: Iterable[Execution]): Unit = {
+    def insert(execution: Execution): DBIO[_] = {
+      val rawExecutionRow = new RawExecutionRow(None, execution.exitStatus)
+      
+      val executionIdQuery = (tables.executions returning tables.executions.map(_.id)) += rawExecutionRow
+      
+      val pathBasedOutputs = execution.outputs.collect { case pb: Output.PathBased => pb }
+      
+      val outputs = pathBasedOutputs.map(new RawOutputRow(_))
+      
+      implicit val context = db.executor.executionContext
+      
+      for {
+        newId <- executionIdQuery
+      } yield {
+        val outputsWithExecutionIds = outputs.map(_.copy(executionId = Option(newId)))
+        
+        insertOrUpdateRawOutputRows(outputsWithExecutionIds)
+      }
+    }
+    
+    val inserts = DBIO.sequence(executions.map(insert)).transactionally
+    
+    waitFor(db.run(inserts))
+  }
+  
+  override def allOutputRows: Seq[CachedOutput] = {
     val query = tables.outputs.result.transactionally
     
     val futureRow = db.run(query)
     
     //TODO: Re-evaluate
     waitFor(futureRow).map(_.toCachedOutput)
+  }
+  
+  override def allExecutionRows: Seq[Execution] = {
+    val query = tables.executions.result.transactionally
+    
+    val executions = waitFor(db.run(query))
+    
+    for {
+      execution <- executions
+    } yield {
+      val outputs = outputsFor(execution)
+      
+      execution.toExecution(outputs.toSet)
+    }
+  }
+  
+  //TODO: There must be a better way than a subquery
+  private def outputsFor(execution: RawExecutionRow): Seq[Output] = {
+    val query = tables.outputs.filter(_.executionId === execution.id).result
+    
+    waitFor(db.run(query)).map(_.toCachedOutput)
   }
   
   override def createTables(): Unit = tables.create(db)
@@ -89,49 +128,5 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
   
   private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.dbType.jdbcDriverClass)
 
-  private[slick] lazy val tables = new SlickLoamDao.Tables(driver)
-}
-
-object SlickLoamDao {
-  final class Tables(val driver: JdbcProfile) {
-    import driver.api._
-    
-    object Names {
-      val outputs = "OUTPUTS"
-    }
-    
-    final class Outputs(tag: Tag) extends Table[RawOutputRow](tag, Names.outputs) {
-      def path = column[String]("PATH", O.PrimaryKey)
-      def lastModified = column[Timestamp]("LAST_MODIFIED")
-      def hash = column[String]("HASH")
-      def hashType = column[String]("HASH_TYPE")
-      def * = (path, lastModified, hash, hashType) <> (RawOutputRow.tupled, RawOutputRow.unapply) //scalastyle:ignore
-    }
-    
-    val outputs = TableQuery[Outputs]
-    
-    private def ddlForAllTables = outputs.schema
-    
-    def create(database: Database): Unit = {
-      def exists(tableName: String): Boolean = {
-        val existingTables = perform(database)(MTable.getTables)
-        
-        existingTables.exists(_.name == tableName)
-      }
-      
-      //TODO: Find a way to avoid explicitly naming each table :(
-      if(!exists(Names.outputs)) {
-        perform(database)(outputs.schema.create.transactionally)
-      }
-    }
-    
-    def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)
-  
-    private def perform[A](database: Database)(action: DBIO[A]): A = {
-      waitFor(database.run(action))
-    }
-  }
-  
-  //TODO: Re-evaluate; don't wait forever
-  private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
+  private[slick] lazy val tables = new Tables(driver)
 }

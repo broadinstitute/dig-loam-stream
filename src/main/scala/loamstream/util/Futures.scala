@@ -2,6 +2,8 @@ package loamstream.util
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -10,6 +12,11 @@ import scala.concurrent.ExecutionContext
  * Useful utility methods for collections of Futures
  */
 object Futures {
+  /**
+   * Wait forever for a Future to complete, and return the result of the Future.
+   */
+  def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
+  
   /**
    * Folds a bunch of keys and future-values into a future map of keys to values
    * 

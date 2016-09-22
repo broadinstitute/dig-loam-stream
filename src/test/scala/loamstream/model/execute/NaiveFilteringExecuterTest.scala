@@ -45,7 +45,7 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
 
       JFiles.copy(start, f1)
 
-      dao.storeHash(f1, Hashes.sha1(f1))
+      store(f1, Hashes.sha1(f1))
 
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))
@@ -62,8 +62,8 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
       JFiles.copy(start, f1)
       JFiles.copy(start, f2)
 
-      dao.storeHash(f1, Hashes.sha1(f1))
-      dao.storeHash(f2, Hashes.sha1(f2))
+      store(f1, Hashes.sha1(f1))
+      store(f2, Hashes.sha1(f2))
 
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))
@@ -84,9 +84,9 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
       JFiles.copy(start, f2)
       JFiles.copy(start, f3)
 
-      dao.storeHash(f1, Hashes.sha1(f1))
-      dao.storeHash(f2, Hashes.sha1(f2))
-      dao.storeHash(f3, Hashes.sha1(f3))
+      store(f1, Hashes.sha1(f1))
+      store(f2, Hashes.sha1(f2))
+      store(f3, Hashes.sha1(f3))
 
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))

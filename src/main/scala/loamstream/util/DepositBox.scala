@@ -29,7 +29,7 @@ object DepositBox {
   def empty[A]: DepositBox[A] = DepositBox(ValueBox(State.empty))
 
   case class Receipt(id: Long) {
-    def asScalaCode: String = s"DepositBox.Receipt($id)"
+    def asScalaCode: String = s"DepositBox.Receipt(${id}L)"
   }
 
 }

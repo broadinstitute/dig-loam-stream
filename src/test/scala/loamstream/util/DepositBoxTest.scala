@@ -72,5 +72,11 @@ class DepositBoxTest extends FunSuite {
       removeItem(receiptHelloAgain)
     }
   }
+  test("Receipt.toScalaCode"){
+    for(id <- Seq(0L, 1L, 2L, 42L, -1L, -100L, Long.MinValue, Long.MaxValue)) {  // scalastyle:ignore magic.number
+      assert(Receipt(id).asScalaCode === s"DepositBox.Receipt(${id}L)")
+    }
+
+  }
 
 }

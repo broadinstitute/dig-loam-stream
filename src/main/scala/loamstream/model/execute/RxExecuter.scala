@@ -74,7 +74,7 @@ final case class RxExecuter(runner: ChunkRunner,
   def filterOutAndProcessSkippableJobs(jobs: Set[LJob], filter: JobFilter): Set[LJob] = {
     val jobsToSkip = jobs.filterNot(filter.shouldRun)
     jobsToSkip foreach { job =>
-      job.updateAndEmitJobState(JobState.Succeeded)
+      job.updateAndEmitJobState(JobState.Skipped)
       result.mutate(_ + (job -> SkippedSuccess(job.name)))
     }
 

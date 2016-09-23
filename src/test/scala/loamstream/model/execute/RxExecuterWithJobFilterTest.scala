@@ -30,14 +30,14 @@ final class RxExecuterWithJobFilterTest extends FunSuite with ProvidesSlickLoamD
 
   override val descriptor = TestDbDescriptors.inMemoryH2
 
-  private val runsEverythingExecuter = RxExecuter.defaultWith(JobFilter.RunEverything)
+  private val runsEverythingExecuter = RxExecuter.default
   
   private def dbBackedExecuter = RxExecuter.defaultWith(new JobFilter.DbBackedJobFilter(dao))
   
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
     import JobState._
 
-    doTest(Seq(NotStarted, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
+    doTest(Seq(Skipped, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{ Files => JFiles }
 
       JFiles.copy(start, f1)
@@ -53,7 +53,7 @@ final class RxExecuterWithJobFilterTest extends FunSuite with ProvidesSlickLoamD
 
     import JobState._
 
-    doTest(Seq(NotStarted, NotStarted, Succeeded)) { (start, f1, f2, f3) =>
+    doTest(Seq(Skipped, Skipped, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{ Files => JFiles }
 
       JFiles.copy(start, f1)
@@ -74,7 +74,7 @@ final class RxExecuterWithJobFilterTest extends FunSuite with ProvidesSlickLoamD
 
     import JobState._
 
-    doTest(Seq(NotStarted, NotStarted, NotStarted)) { (start, f1, f2, f3) =>
+    doTest(Seq(Skipped, Skipped, Skipped)) { (start, f1, f2, f3) =>
       import java.nio.file.{ Files => JFiles }
 
       JFiles.copy(start, f1)
@@ -171,16 +171,16 @@ final class RxExecuterWithJobFilterTest extends FunSuite with ProvidesSlickLoamD
         val jobStates = Seq(startToF1.state, f1ToF2.state, f2ToF3.state)
   
         val expectedStates = {
-          if(runningEverything) { Seq(JobState.Succeeded, JobState.Succeeded, JobState.Succeeded) }
+          if (runningEverything) { Seq(JobState.Succeeded, JobState.Succeeded, JobState.Succeeded) }
           else { expectations }
         }
         
         assert(jobStates == expectedStates)
   
-        val expectedNumResults = if(runningEverything) 3 else expectations.count(_.isSuccess)
-        
+        val expectedNumResults = if (runningEverything) 3 else expectations.count(_.isSuccess)
+
         assert(jobResults.size == expectedNumResults)
-  
+
         assert(jobResults.values.forall(_.get.isSuccess))
       }
     }

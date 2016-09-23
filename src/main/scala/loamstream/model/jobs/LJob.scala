@@ -55,7 +55,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   /**                                                            f
    * If explicitly specified dependencies are done
    */
-  def dependenciesDone: Boolean = dependencies.isEmpty || dependencies.forall(_.state == JobState.Succeeded)
+  def dependenciesDone: Boolean = dependencies.isEmpty || dependencies.forall(_.state.isSuccess)
 
   /**
    * If this job can be executed
@@ -65,9 +65,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   /**
    * If inputs to this job are available
    */
-  def inputsDone: Boolean = inputs.isEmpty || inputs.forall(_.state == JobState.Succeeded)
-
-  final protected def isSuccess: Boolean = state.isSuccess
+  def inputsDone: Boolean = inputs.isEmpty || inputs.forall(_.state.isSuccess)
 
   /**
    * Decorates executeSelf(), updating and emitting the value of 'state' from

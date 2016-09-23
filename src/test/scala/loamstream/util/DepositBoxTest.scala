@@ -18,47 +18,58 @@ class DepositBoxTest extends FunSuite {
     assertThrows[NoSuchElementException](box(receipt))
   }
 
+  def assertHasThese[A](box: DepositBox[A], items: Map[Receipt, A]): Unit = {
+    for ((receipt, item) <- items) {
+      assertHas(box, receipt, item)
+    }
+    assert(box.size === items.size)
+  }
+
+  def assertHasNotThese[A](box: DepositBox[A], receipts: Set[Receipt]): Unit = {
+    for (receipt <- receipts) {
+      assertHasNot(box, receipt)
+    }
+  }
+
   test("deposit, size, contains, get, apply, remove") {
     val box = DepositBox.empty[String]
-    for(i1 <- 1 until 3) {
-      assert(box.size === 0)
-      val yo = "Yo!"
-      val receiptYo = box.deposit(yo)
-      assert(box.size === 1)
-      assertHas(box, receiptYo, yo)
-      val hey = "Hey!"
-      val receiptHey = box.deposit(hey)
-      assert(box.size === 2)
-      assertHas(box, receiptYo, yo)
-      assertHas(box, receiptHey, hey)
-      val hello = "Hello!"
-      val receiptHello = box.deposit(hello)
-      assert(box.size === 3)
-      assertHas(box, receiptYo, yo)
-      assertHas(box, receiptHey, hey)
-      assertHas(box, receiptHello, hello)
-      for (i2 <- 1 until 3) {
-        box.remove(receiptYo)
-        assert(box.size === 2)
-        assertHasNot(box, receiptYo)
-        assertHas(box, receiptHey, hey)
-        assertHas(box, receiptHello, hello)
-      }
-      box.remove(receiptHey)
-      assert(box.size === 1)
-      assertHasNot(box, receiptYo)
-      assertHasNot(box, receiptHey)
-      assertHas(box, receiptHello, hello)
-      box.remove(receiptHey)
-      assert(box.size === 1)
-      assertHasNot(box, receiptYo)
-      assertHasNot(box, receiptHey)
-      assertHas(box, receiptHello, hello)
-      box.remove(receiptHello)
-      assert(box.size === 0)
-      assertHasNot(box, receiptYo)
-      assertHasNot(box, receiptHey)
-      assertHasNot(box, receiptHello)
+    var addedItems: Map[Receipt, String] = Map.empty
+    var removedItems: Set[Receipt] = Set.empty
+    def assertItemsInBox(): Unit = {
+      assertHasThese(box, addedItems)
+      assertHasNotThese(box, removedItems)
+    }
+    def addItem(item: String): Receipt = {
+      val receipt = box.deposit(item)
+      addedItems += receipt -> item
+      removedItems -= receipt
+      assertItemsInBox()
+      receipt
+    }
+    def removeItem(receipt: Receipt): Unit = {
+      box.remove(receipt)
+      addedItems -= receipt
+      removedItems += receipt
+      assertItemsInBox()
+    }
+    assertItemsInBox()
+    for (i1 <- 1 until 3) {
+      val receiptYo = addItem("Yo!")
+      val receiptHey = addItem("Hey!")
+      val receiptHello1 = addItem("Hello!")
+      val receiptHello2 = addItem("Hello!")
+      val receiptHello3 = addItem("Hello!")
+      removeItem(receiptHey)
+      removeItem(receiptHey)
+      removeItem(receiptHey)
+      removeItem(receiptHello1)
+      removeItem(receiptHello2)
+      removeItem(receiptHello3)
+      val receiptHelloAgain = addItem("Hello!")
+      removeItem(receiptYo)
+      removeItem(receiptHelloAgain)
+      removeItem(receiptYo)
+      removeItem(receiptHelloAgain)
     }
   }
 

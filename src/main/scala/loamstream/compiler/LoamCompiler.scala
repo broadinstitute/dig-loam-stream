@@ -92,6 +92,8 @@ object LoamCompiler {
     def report: String = (summary +: (errors ++ warnings ++ infos).map(_.summary)).mkString(System.lineSeparator)
   }
 
+  val graphBoxDepositBox: DepositBox[ValueBox[LoamGraph]] = DepositBox.empty
+
 }
 
 /** The compiler compiling Loam scripts into execution plans */

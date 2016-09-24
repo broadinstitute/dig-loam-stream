@@ -83,7 +83,7 @@ import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
   object LocalImplicits {
-    implicit val $scriptContextName = new LoamContext
+    implicit val $scriptContextName = LoamContext.empty
   }
 import LocalImplicits._
 def loamContext: LoamContext = $scriptContextName

@@ -118,9 +118,10 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
 
   /** Compiles Loam script into execution plan */
   def compile(project: LoamProject): LoamCompiler.Result = {
+    val graphBoxReceipt = LoamCompiler.graphBoxDepositBox.deposit(ValueBox(LoamGraph.empty))
     try {
       val sourceFiles = project.scripts.map({ script =>
-        new BatchSourceFile(script.scalaFileName, script.asScalaCode)
+        new BatchSourceFile(script.scalaFileName, script.asScalaCode(graphBoxReceipt))
       })
       reporter.reset()
       targetDirectory.clear()
@@ -129,7 +130,10 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
       if (targetDirectory.nonEmpty) {
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-        val scriptBox = ReflectionUtil.getObject[LoamScriptBox](classLoader, project.mainScript.scalaId)
+        val scriptBoxes = project.scripts.map({script =>
+          ReflectionUtil.getObject[LoamScriptBox](classLoader, script.scalaId)
+        })
+        val scriptBox = scriptBoxes.head
         val graph = scriptBox.graph
         val stores = graph.stores
         val tools = graph.tools
@@ -154,6 +158,8 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
         outMessageSink.send(
           StatusOutMessage(s"${throwable.getClass.getName} while trying to compile: ${throwable.getMessage}"))
         LoamCompiler.Result.throwable(reporter, throwable)
+    } finally {
+      LoamCompiler.graphBoxDepositBox.remove(graphBoxReceipt)
     }
   }
 }

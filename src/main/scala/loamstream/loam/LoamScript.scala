@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
 import loamstream.util.code.{ObjectId, PackageId, SourceUtils}
-import loamstream.util.{Hit, Miss, PathEnrichments, Shot, StringUtils, ValueBox}
+import loamstream.util._
 
 import scala.util.Try
 
@@ -68,7 +68,12 @@ case class LoamScript(name: String, code: String) {
 
   def scalaFileName: String = s"$name.scala"
 
-  def asScalaCode: String = {
+  def asScalaCode: String = asScalaCode("LoamContext.empty")
+
+  def asScalaCode(graphBoxReceipt: DepositBox.Receipt): String =
+    asScalaCode(s"LoamContext.fromDepositedGraphBox(${graphBoxReceipt.asScalaCode})")
+
+  def asScalaCode(loamContextInitCode: String): String = {
     s"""
 package ${LoamScript.scriptsPackage.inScalaFull}
 
@@ -79,11 +84,12 @@ import ${SourceUtils.fullTypeName[ValueBox[_]]}
 import ${SourceUtils.fullTypeName[LoamScriptBox]}
 import ${SourceUtils.fullTypeName[LoamCmdTool.type]}._
 import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
+import ${SourceUtils.fullTypeName[DepositBox[_]]}
 import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
   object LocalImplicits {
-    implicit val $scriptContextName = LoamContext.empty
+    implicit val $scriptContextName = $loamContextInitCode
   }
 import LocalImplicits._
 def loamContext: LoamContext = $scriptContextName

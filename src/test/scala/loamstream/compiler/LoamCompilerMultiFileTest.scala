@@ -21,7 +21,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
       """.stripMargin
     val scriptMain = LoamScript("main", codeMain)
     val scriptLib = LoamScript("lib", codeLib)
-    val project = LoamProject(scriptMain) + scriptLib
+    val project = LoamProject(scriptMain, scriptLib)
     val compiler = new LoamCompiler(OutMessageSink.NoOp)
     val compileResults = compiler.compile(project)
     assert(compileResults.isSuccess)

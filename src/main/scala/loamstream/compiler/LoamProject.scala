@@ -4,12 +4,14 @@ import loamstream.loam.LoamScript
 
 /** A collection of Loam scripts to be compiled together */
 object LoamProject {
+  /** Returns LoamProject with one or more scripts */
+  def apply(script: LoamScript, scripts: LoamScript*): LoamProject = LoamProject((script +: scripts).toSet)
   /** Returns LoamProject with only one script*/
-  def apply(script: LoamScript): LoamProject = LoamProject(script, Set(script))
+  def apply(script: LoamScript): LoamProject = LoamProject(Set(script))
 }
 
 /** A collection of Loam scripts to be compiled together */
-case class LoamProject(mainScript: LoamScript, scripts: Set[LoamScript]) {
+case class LoamProject(scripts: Set[LoamScript]) {
 
   /** Returns project with that script added */
   def +(script: LoamScript): LoamProject = copy(scripts = scripts + script)

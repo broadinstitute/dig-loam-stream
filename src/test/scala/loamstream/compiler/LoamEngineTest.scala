@@ -39,7 +39,7 @@ final class LoamEngineTest extends FunSuite {
     val file = JFiles.createTempFile("LoamEngineTest", ".loam")
     Files.writeTo(file)(fixture.code)
     fixture.writeFileIn()
-    engine.run(file)
+    engine.runFile(file)
     fixture.assertOutputFilesArePresent()
   }
   

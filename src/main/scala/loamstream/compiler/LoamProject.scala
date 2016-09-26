@@ -5,8 +5,12 @@ import loamstream.loam.LoamScript
 /** A collection of Loam scripts to be compiled together */
 object LoamProject {
   /** Returns LoamProject with one or more scripts */
-  def apply(script: LoamScript, scripts: LoamScript*): LoamProject = LoamProject((script +: scripts).toSet)
-  /** Returns LoamProject with only one script*/
+  def apply(script: LoamScript, scripts: LoamScript*): LoamProject = LoamProject(script +: scripts)
+
+  /** Returns LoamProject with iterable of scripts */
+  def apply(scripts: Iterable[LoamScript]): LoamProject = LoamProject(scripts.toSet)
+
+  /** Returns LoamProject with only one script */
   def apply(script: LoamScript): LoamProject = LoamProject(Set(script))
 }
 

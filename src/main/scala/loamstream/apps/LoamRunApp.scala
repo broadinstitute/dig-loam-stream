@@ -13,10 +13,6 @@ object LoamRunApp extends App with Loggable {
     throw new IllegalArgumentException("No Loam script file name provided")
   }
 
-  if (args.length > 1) {
-    throw new IllegalArgumentException("This app takes only one argument, the Loam script file name.")
-  }
-
   info("Creating resumptive executer...")
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -32,7 +28,7 @@ object LoamRunApp extends App with Loggable {
 
     val loamEngine =
       LoamEngine(new LoamCompiler(LoamCompiler.Settings.default, outMessageSink), executer, outMessageSink)
-    val engineResult = loamEngine.runFile(args(0))
+    val engineResult = loamEngine.runFilesWithNames(args)
 
     for {
       (job, result) <- engineResult.jobResultsOpt.get

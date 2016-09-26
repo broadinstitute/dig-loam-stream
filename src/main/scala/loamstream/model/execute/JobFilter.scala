@@ -61,7 +61,7 @@ object JobFilter {
         oldOutputs ++ newOutputs 
       }
       
-      dao.insertOrUpdateOutput(newOutputs.values)
+      dao.insertOrUpdateOutputs(newOutputs.values)
     }
 
     //Support outputs other than Paths

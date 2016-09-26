@@ -31,6 +31,18 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
   import driver.api._
   import Futures.waitFor
   
+  private def findOutputAction(path: Path): DBIO[Option[RawOutputRow]] = {
+    val lookingFor = Helpers.normalize(path)
+    
+    tables.outputs.filter(_.path === lookingFor).take(1).result.headOption.transactionally
+  }
+  
+  override def findOutput(path: Path): Option[CachedOutput] = {
+    val action = findOutputAction(path)
+    
+    waitFor(db.run(action)).map(_.toCachedOutput)
+  }
+  
   private def outputDeleteAction(pathsToDelete: Iterable[Path]): DBIO[Int] = {
     val toDelete = pathsToDelete.map(Helpers.normalize).toSet
     
@@ -48,7 +60,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
   }
   
   //TODO: Need to allow updating?
-  override def insertOrUpdateOutput(rows: Iterable[CachedOutput]): Unit = {
+  override def insertOrUpdateOutputs(rows: Iterable[Output.PathBased]): Unit = {
     val rawRows = rows.map(row => new RawOutputRow(row.path, row.hash))
 
     val action = insertOrUpdateRawOutputRows(rawRows)
@@ -99,7 +111,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     waitFor(futureRow).map(_.toCachedOutput)
   }
   
-  override def allExecutionRows: Seq[Execution] = {
+  override def allExecutions: Seq[Execution] = {
     val query = tables.executions.result.transactionally
     
     val executions = waitFor(db.run(query))
@@ -111,6 +123,27 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
       
       execution.toExecution(outputs.toSet)
     }
+  }
+  
+  //TODO: This is a total mess
+  override def findExecution(output: Output.PathBased): Option[Execution] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    
+    val lookingFor = Helpers.normalize(output.path)
+    
+    val query = for {
+      outputRowOption <- tables.outputs.filter(_.path === lookingFor).result.headOption
+      if outputRowOption.isDefined
+      output = outputRowOption.get
+      executionIdOption = output.executionId
+      if executionIdOption.isDefined
+      executionId = executionIdOption.get
+      executionRow <- tables.executions.filter(_.id === executionId).result.headOption
+    } yield {
+      executionRow.map(ex => ex.toExecution(outputsFor(ex).toSet))
+    }
+    
+    waitFor(db.run(query))
   }
   
   //TODO: There must be a better way than a subquery

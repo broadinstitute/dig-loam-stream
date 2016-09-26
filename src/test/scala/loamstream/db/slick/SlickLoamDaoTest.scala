@@ -123,7 +123,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
           cachedOutput(p1, h1),
           cachedOutput(p2, h2))
 
-      dao.insertOrUpdateOutput(rows)
+      dao.insertOrUpdateOutputs(rows)
           
       assert(dao.allOutputRows.toSet == rows.toSet)
       
@@ -134,7 +134,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
           cachedOutput(p0, h0prime),
           cachedOutput(p1, h1prime))
           
-      dao.insertOrUpdateOutput(updatedRows)
+      dao.insertOrUpdateOutputs(updatedRows)
       
       val expected = updatedRows :+ cachedOutput(p2, h2)
 

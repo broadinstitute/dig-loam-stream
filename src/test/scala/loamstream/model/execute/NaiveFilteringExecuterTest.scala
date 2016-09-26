@@ -1,31 +1,21 @@
 package loamstream.model.execute
 
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
-import scala.concurrent.ExecutionContext
-import org.scalatest.FunSuite
 import loamstream.compiler.LoamCompiler
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.db.slick.TestDbDescriptors
-import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.loam.{LoamScript, LoamToolBox}
+import loamstream.db.slick.{ProvidesSlickLoamDao, TestDbDescriptors}
 import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.model.jobs.JobState
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Output
-import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.util.Hashes
-import loamstream.util.PathEnrichments
-import loamstream.util.Sequence
-import loamstream.model.jobs.MockJob
+import loamstream.loam.{LoamScript, LoamToolBox}
+import loamstream.model.jobs.{JobState, LJob, MockJob, Output}
+import loamstream.util.{Hashes, PathEnrichments, Sequence}
+import org.scalatest.FunSuite
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * @author clint
- * date: Aug 12, 2016
- */
+  * @author clint
+  *         date: Aug 12, 2016
+  */
 final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDao {
 
   override val descriptor = TestDbDescriptors.inMemoryH2
@@ -33,14 +23,14 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
   private def executer(filter: JobFilter) = NaiveFilteringExecuter(filter)(ExecutionContext.global)
 
   private val runsEverythingExecuter = executer(JobFilter.RunEverything)
-  
+
   private def dbBackedExecuter = executer(new JobFilter.DbBackedJobFilter(dao))
-  
+
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
     import JobState._
 
     doTest(Seq(NotStarted, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
-      import java.nio.file.{ Files => JFiles }
+      import java.nio.file.{Files => JFiles}
 
       JFiles.copy(start, f1)
 
@@ -56,7 +46,7 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
     import JobState._
 
     doTest(Seq(NotStarted, NotStarted, Succeeded)) { (start, f1, f2, f3) =>
-      import java.nio.file.{ Files => JFiles }
+      import java.nio.file.{Files => JFiles}
 
       JFiles.copy(start, f1)
       JFiles.copy(start, f2)
@@ -77,7 +67,7 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
     import JobState._
 
     doTest(Seq(NotStarted, NotStarted, NotStarted)) { (start, f1, f2, f3) =>
-      import java.nio.file.{ Files => JFiles }
+      import java.nio.file.{Files => JFiles}
 
       JFiles.copy(start, f1)
       JFiles.copy(start, f2)
@@ -121,76 +111,81 @@ final class NaiveFilteringExecuterTest extends FunSuite with ProvidesSlickLoamDa
   // scalastyle:off method.length
   //NB: Tests with the 'run-everything' JobFilter as well as a DB-backed one.
   private def doTest(expectations: Seq[JobState])(setup: (Path, Path, Path, Path) => Any): Unit = {
-    
+
     def doTestWithExecuter(executer: NaiveFilteringExecuter): Unit = {
       import PathEnrichments._
       val workDir = makeWorkDir()
-  
+
       def path(s: String) = Paths.get(s)
-  
+
       val start = path("src/test/resources/a.txt")
       val f1 = workDir / "fileOut1.txt"
       val f2 = workDir / "fileOut2.txt"
       val f3 = workDir / "fileOut3.txt"
-  
-      import java.nio.file.{ Files => JFiles }
-  
+
+      import java.nio.file.{Files => JFiles}
+
       val startToF1 = mockJob(s"cp $start $f1", Set(Output.PathOutput(f1))) {
         JFiles.copy(start, f1)
       }
-  
+
       val f1ToF2 = mockJob(s"cp $f1 $f2", Set(Output.PathOutput(f2)), Set(startToF1)) {
         JFiles.copy(f1, f2)
       }
-  
+
       val f2ToF3 = mockJob(s"cp $f2 $f3", Set(Output.PathOutput(f3)), Set(f1ToF2)) {
         JFiles.copy(f2, f3)
       }
-  
+
       assert(startToF1.state == JobState.NotStarted)
       assert(f1ToF2.state == JobState.NotStarted)
       assert(f2ToF3.state == JobState.NotStarted)
-  
+
       val executable = LExecutable(Set(f2ToF3))
-  
+
       def runningEverything: Boolean = executer.jobFilter == JobFilter.RunEverything
-      
+
       createTablesAndThen {
         assert(start.toFile.exists)
         assert(!f1.toFile.exists)
         assert(!f2.toFile.exists)
         assert(!f3.toFile.exists)
-  
-        if(!runningEverything) {
+
+        if (!runningEverything) {
           setup(start, f1, f2, f3)
         }
-  
+
         val jobResults = executer.execute(executable)
-  
+
         val jobStates = Seq(startToF1.state, f1ToF2.state, f2ToF3.state)
-  
+
         val expectedStates = {
-          if(runningEverything) { Seq(JobState.Succeeded, JobState.Succeeded, JobState.Succeeded) }
-          else { expectations }
+          if (runningEverything) {
+            Seq(JobState.Succeeded, JobState.Succeeded, JobState.Succeeded)
+          }
+          else {
+            expectations
+          }
         }
-        
+
         assert(jobStates == expectedStates)
-  
-        val expectedNumResults = if(runningEverything) 3 else expectations.count(_.isSuccess)
-        
+
+        val expectedNumResults = if (runningEverything) 3 else expectations.count(_.isSuccess)
+
         assert(jobResults.size == expectedNumResults)
-  
+
         assert(jobResults.values.forall(_.get.isSuccess))
       }
     }
-    
+
     doTestWithExecuter(runsEverythingExecuter)
-    
+
     doTestWithExecuter(dbBackedExecuter)
   }
+
   // scalastyle:on method.length
 
-  private lazy val compiler = new LoamCompiler(OutMessageSink.NoOp)
+  private lazy val compiler = new LoamCompiler
 
   private def compile(loamScript: LoamScript): LExecutable = {
 

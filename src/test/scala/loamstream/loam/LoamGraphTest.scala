@@ -3,9 +3,7 @@ package loamstream.loam
 import java.nio.file.Paths
 
 import loamstream.compiler.LoamCompiler
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.files.LoamFileManager
 import org.scalatest.FunSuite
 
 /**
@@ -31,10 +29,10 @@ final class LoamGraphTest extends FunSuite {
       | """.stripMargin
 
   implicit val context = {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
+    val compiler = new LoamCompiler
 
     val result = compiler.compile(LoamScript("LoamGraphTestScript1", code))
-    
+
     result.contextOpt.get
   }
   val graph = context.graph

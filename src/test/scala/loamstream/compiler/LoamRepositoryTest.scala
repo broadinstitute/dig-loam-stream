@@ -1,6 +1,5 @@
 package loamstream.compiler
 
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
 import loamstream.loam.LoamScript
 import loamstream.util.Files
@@ -11,7 +10,7 @@ import org.scalatest.FunSuite
   * Created by oliverr on 6/27/2016.
   */
 final class LoamRepositoryTest extends FunSuite {
-  val compiler = new LoamCompiler(OutMessageSink.NoOp)
+  val compiler = new LoamCompiler
 
   def assertDefaultEntriesPresent(repo: LoamRepository): Unit = {
     for (entry <- LoamRepository.defaultEntries) {

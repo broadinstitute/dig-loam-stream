@@ -16,7 +16,8 @@ import loamstream.util.{Hit, Miss, Shot, StringUtils}
   */
 object LoamEngine {
   def default(outMessageSink: ClientMessageHandler.OutMessageSink): LoamEngine =
-    LoamEngine(new LoamCompiler(outMessageSink), ChunkedExecuter.default, outMessageSink)
+    LoamEngine(new LoamCompiler(LoamCompiler.Settings.default, outMessageSink),
+      ChunkedExecuter.default, outMessageSink)
 
   final case class Result(sourceCodeOpt: Shot[LoamScript],
                           compileResultOpt: Shot[LoamCompiler.Result],

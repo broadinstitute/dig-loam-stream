@@ -49,7 +49,6 @@ object ClientMessageHandler {
 final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
   val repo = LoamRepository.defaultRepo
   val engine = LoamEngine.default(outMessageSink)
-  val compiler = new LoamCompiler(outMessageSink)
 
   def compile(code: String): Unit = {
     outMessageSink.send(ReceiptOutMessage(code))

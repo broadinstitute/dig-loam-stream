@@ -1,6 +1,5 @@
 package loamstream.compiler
 
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamScript
 import org.scalatest.FunSuite
 
@@ -22,7 +21,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     val scriptMain = LoamScript("main", codeMain)
     val scriptLib = LoamScript("lib", codeLib)
     val project = LoamProject(scriptMain, scriptLib)
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
+    val compiler = new LoamCompiler
     val compileResults = compiler.compile(project)
     assert(compileResults.isSuccess)
     assert(compileResults.isClean)
@@ -42,7 +41,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     val scriptMain = LoamScript("main", codeMain)
     val scriptLib = LoamScript("lib", codeLib)
     val project = LoamProject(scriptMain) + scriptLib
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
+    val compiler = new LoamCompiler
     val compileResults = compiler.compile(project)
     assert(compileResults.isSuccess)
     assert(compileResults.isClean)

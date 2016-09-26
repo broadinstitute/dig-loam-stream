@@ -26,7 +26,7 @@ trait LoamTestHelpers extends Loggable {
 
   def compile(script: LoamScript)(implicit context: ExecutionContext): LoamCompiler.Result = {
 
-    val compiler = new LoamCompiler(LoggableOutMessageSink(this))
+    val compiler = new LoamCompiler(LoamCompiler.Settings.default, LoggableOutMessageSink(this))
 
     val compileResults = compiler.compile(script)
 

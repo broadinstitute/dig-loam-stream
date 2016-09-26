@@ -43,7 +43,8 @@ final class LoamCompilerTest extends FunSuite {
     assert(result.warnings === Nil)
   }
   test("Testing that compilation of illegal code fragment causes compile errors.") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
+    val settingsWithNoCodeLoggingOnError = LoamCompiler.Settings.default.copy(logCodeOnError = false)
+    val compiler = new LoamCompiler(OutMessageSink.NoOp, settingsWithNoCodeLoggingOnError)
     val code = {
       """
     The enlightened soul is a person who is self-conscious of his "human condition" in his time and historical

@@ -8,7 +8,8 @@ import loamstream.model.jobs.JobState.{Failed, Skipped, Succeeded}
  */
 trait JobState {
   def isSuccess: Boolean = this == Succeeded || this == Skipped
-  def isFinished: Boolean = this == Succeeded || this == Failed || this == Skipped
+  def isFailure: Boolean = this == Failed
+  def isFinished: Boolean = isSuccess || isFailure
 }
 
 object JobState {

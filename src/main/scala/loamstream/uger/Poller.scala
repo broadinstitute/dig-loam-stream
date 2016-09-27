@@ -1,11 +1,9 @@
 package loamstream.uger
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.blocking
 import scala.concurrent.duration.Duration
-import loamstream.util.TimeEnrichments._
 import scala.util.Try
+import org.ggf.drmaa.InvalidJobException
 
 /**
  * @author clint
@@ -13,23 +11,29 @@ import scala.util.Try
  */
 trait Poller {
   /**
-   * Asynchronously inquire about the status of a job
-   * @param jobId the id of the job to inquire about
-   * @param timeout how long to wait for a response before trying an alternate method to determine the job's status
-   * @return a Future wrapping an attempt at determining the job's status
+   * Synchronously inquire about the status of one or more jobs
+   * @param jobIds the ids of the jobs to inquire about
+   * @return a map of job ids to attempts at that job's status
    */
-  def poll(jobId: String, timeout: Duration): Future[Try[JobStatus]]
+  def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]]
 }
 
 object Poller {
   
   final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller {
-    override def poll(jobId: String, timeout: Duration): Future[Try[JobStatus]] = Future {
-      blocking {
-        time(s"Job '$jobId': Calling Poller.poll()", trace(_)) {
-          client.waitFor(jobId, timeout)
+    override def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]] = {
+      
+      def statusAttempt(jobId: String): Try[JobStatus] = {
+        client.statusOf(jobId).recoverWith {
+          case e: InvalidJobException => client.waitFor(jobId, Duration.Zero)
         }
       }
+      
+      val pollResults = jobIds.map { jobId =>
+        jobId -> statusAttempt(jobId)
+      }
+      
+      pollResults.toMap
     }
   }
   

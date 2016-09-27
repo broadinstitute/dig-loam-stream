@@ -20,13 +20,7 @@ trait LoamDao {
   
   def deleteOutput(paths: Iterable[Path]): Unit
   
-  final def insertOrUpdateOutputs(output: Output.PathBased, others: Output.PathBased*): Unit = {
-    insertOrUpdateOutputs(output +: others)
-  }
-  
-  def insertOrUpdateOutputs(rows: Iterable[Output.PathBased]): Unit
-  
-  def allOutputRows: Seq[CachedOutput]
+  def allOutputs: Seq[CachedOutput]
   
   final def insertExecutions(execution: Execution, others: Execution*): Unit = insertExecutions(execution +: others)
   

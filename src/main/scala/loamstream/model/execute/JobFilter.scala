@@ -10,6 +10,7 @@ import loamstream.model.jobs.Output.CachedOutput
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.TimeEnrichments
 import loamstream.util.Traversables
+import loamstream.model.jobs.Execution
 
 /**
  * @author clint
@@ -61,13 +62,16 @@ object JobFilter {
         oldOutputs ++ newOutputs 
       }
       
-      dao.insertOrUpdateOutputs(newOutputs.values)
+      //TODO: HACK HACK HACK
+      val execution = Execution(42, newOutputs.values.toSet)
+      
+      dao.insertExecutions(execution)
     }
 
     //Support outputs other than Paths
     private[this] lazy val cachedOutputsByPath: ValueBox[Map[Path, CachedOutput]] = {
       //TODO: All of them?  
-      val map: Map[Path, CachedOutput] = dao.allOutputRows.map(row => row.path -> row).toMap
+      val map: Map[Path, CachedOutput] = dao.allOutputs.map(row => row.path -> row).toMap
 
       if (isDebugEnabled) {
         debug(s"Known paths: ${map.size}")

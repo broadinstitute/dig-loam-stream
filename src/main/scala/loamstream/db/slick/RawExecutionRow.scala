@@ -7,6 +7,6 @@ import loamstream.model.jobs.Output
  * @author clint
  * date: Sep 22, 2016
  */
-final case class RawExecutionRow(id: Option[Int], exitStatus: Int) {
+final case class RawExecutionRow(id: Int, exitStatus: Int) {
   def toExecution(outputs: Set[Output]): Execution = Execution(exitStatus, outputs)
 }

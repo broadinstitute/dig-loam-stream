@@ -28,35 +28,46 @@ final class Tables(val driver: JdbcProfile) {
   final class Executions(tag: Tag) extends Table[RawExecutionRow](tag, Names.executions) {
     def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
     def exitStatus = column[Int]("EXIT_STATUS")
-    def * = (id.?, exitStatus) <> (RawExecutionRow.tupled, RawExecutionRow.unapply)
+    def * = (id, exitStatus) <> (RawExecutionRow.tupled, RawExecutionRow.unapply)
   }
   
   lazy val outputs = TableQuery[Outputs]
   
   lazy val executions = TableQuery[Executions]
 
-  private lazy val allTables: Map[String, SchemaDescription] = Map(
-    Names.outputs -> outputs.schema, 
-    Names.executions -> executions.schema
+  private lazy val allTables: Seq[(String, SchemaDescription)] = Seq(
+    Names.executions -> executions.schema,
+    Names.outputs -> outputs.schema 
   )
   
-  //private def ddlForAllTables = outputs.schema ++ jobs.schema
-  private def ddlForAllTables = allTables.values.reduce(_ ++ _)
+  private def allTableNames: Seq[String] = allTables.unzip._1
+  
+  private def allSchemas: Seq[SchemaDescription] = allTables.unzip._2
+  
+  private def ddlForAllTables = allSchemas.reduce(_ ++ _)
   
   def create(database: Database): Unit = {
-    def exists(tableName: String): Boolean = {
-      val existingTables = perform(database)(MTable.getTables)
+    //TODO: Is this appropriate?
+    implicit val executionContext = database.executor.executionContext
+    
+    val existingTableNames = for {
+      tables <- MTable.getTables
+    } yield tables.map(_.name.name).toSet
+    
+    val existing = perform(database)(existingTableNames)
+    
+    val createActions = for {
+      (tableName, schema) <- allTables
+      if !existing.contains(tableName)
+    } yield {
+      schema.createStatements.foreach(s => println(s"Tables.create: DDL: $s"))
       
-      existingTables.exists(_.name == tableName)
+      schema.create
     }
     
-    for {
-      (tableName, schema) <- allTables
-      if !exists(tableName)
-    } yield {
-      //TODO: Find a way to compose all these create actions
-      perform(database)(schema.create.transactionally)
-    }
+    val createEverythingAction = DBIO.sequence(createActions).transactionally
+    
+    perform(database)(createEverythingAction)
   }
   
   def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)

@@ -18,8 +18,6 @@ trait ProvidesSlickLoamDao {
   protected lazy val dao = new SlickLoamDao(descriptor)
   
   protected def cachedOutput(p: Path, h: Hash): CachedOutput = (new RawOutputRow(p, h)).toCachedOutput
-
-  protected def store(p: Path, h: Hash): Unit = dao.insertOrUpdateOutputs(cachedOutput(p, h))
   
   protected def store(execution: Execution): Unit = dao.insertExecutions(Seq(execution))
   

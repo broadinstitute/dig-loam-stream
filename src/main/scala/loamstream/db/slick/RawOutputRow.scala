@@ -41,4 +41,6 @@ final case class RawOutputRow private (
   def toHash: Hash = Hash.fromStrings(hashValue, hashType).get
   
   def toCachedOutput: CachedOutput = CachedOutput(toPath, toHash, lastModified.toInstant)
+  
+  def withExecutionId(newExecutionId: Int): RawOutputRow = copy(executionId = Some(newExecutionId))
 }

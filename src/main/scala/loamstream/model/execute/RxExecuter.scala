@@ -53,15 +53,13 @@ final case class RxExecuter(runner: ChunkRunner,
 
   def getRunnableJobsAndMarkThemAsLaunched(jobs: Set[LJob]): Set[LJob] = lock synchronized {
     trace("Jobs already launched: ")
-    jobsAlreadyLaunched().foreach(job => debug(s"\tAlready launched: $job"))
+    jobsAlreadyLaunched().foreach(job => trace(s"\tAlready launched: $job"))
 
     val allRunnableJobs = jobs.filter(_.isRunnable) -- jobsAlreadyLaunched()
     trace("Jobs available to run: ")
-    allRunnableJobs.foreach(job => debug(s"\tAvailable to run: $job"))
+    allRunnableJobs.foreach(job => trace(s"\tAvailable to run: $job"))
 
     val jobsToDispatch = getJobsToBeDispatched(allRunnableJobs)
-    debug("Jobs to dispatch now: ")
-    jobsToDispatch.foreach(job => debug(s"\tTo dispatch now: $job"))
 
     // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
     checkForAndHandleNoOpJob(jobsToDispatch)
@@ -74,6 +72,7 @@ final case class RxExecuter(runner: ChunkRunner,
   def filterOutAndProcessSkippableJobs(jobs: Set[LJob], filter: JobFilter): Set[LJob] = {
     val jobsToSkip = jobs.filterNot(filter.shouldRun)
     jobsToSkip foreach { job =>
+      trace(s"\tBeing skipped: $job")
       job.updateAndEmitJobState(JobState.Skipped)
       result.mutate(_ + (job -> SkippedSuccess(job.name)))
     }
@@ -100,7 +99,11 @@ final case class RxExecuter(runner: ChunkRunner,
       debug("executeIter() is called...\n")
 
       val runnableJobs = getRunnableJobsAndMarkThemAsLaunched(allJobs)
+
       val jobs = filterOutAndProcessSkippableJobs(runnableJobs, jobFilter)
+      trace("Jobs to dispatch now: ")
+      jobs.foreach(job => trace(s"\tTo dispatch now: $job"))
+
       if (jobs.isEmpty) {
         if (jobStates().values.forall(_.isFinished)) {
           everythingIsDonePromise.trySuccess(())
@@ -137,6 +140,12 @@ final case class RxExecuter(runner: ChunkRunner,
     result().strictMapValues(Hit(_))
   }
   // scalastyle:on method.length
+
+  def clearStates(): Unit = {
+    jobsAlreadyLaunched() = Set.empty
+    result() = Map.empty
+    jobStates() = Map.empty
+  }
 }
 
 object RxExecuter {
@@ -152,6 +161,7 @@ object RxExecuter {
                                                                                       new Tracker)
 
   def default: RxExecuter = defaultWith(JobFilter.RunEverything)
+
   def defaultWith(jobFilter: JobFilter): RxExecuter =
     new RxExecuter(AsyncLocalChunkRunner, jobFilter)(ExecutionContext.global)
 

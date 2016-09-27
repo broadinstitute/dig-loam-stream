@@ -25,7 +25,7 @@ final class HashesTest extends FunSuite {
   test("sha1(File)") {
     doTest("src/test/resources/for-hashing/empty.txt",
       "da39a3ee5e6b4b0d3255bfef95601890afd80709",
-      "cb78b8412adaf7c8b5eecc09dbc9aa4d3cbb3675")
+      "da39a3ee5e6b4b0d3255bfef95601890afd80709")
 
     doTest("src/test/resources/for-hashing/foo.txt",
       "91452093e8cb99ff7d958fb17941ff317d026318",

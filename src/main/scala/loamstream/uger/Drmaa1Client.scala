@@ -13,6 +13,7 @@ import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
 
 import loamstream.util.Loggable
+import loamstream.util.TimeEnrichments.time
 
 /**
  * Created on: 5/19/16 
@@ -34,7 +35,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     
     s
   }
-
+  
   /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
@@ -130,8 +131,10 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }.recoverWith {
       case e: ExitTimeoutException => {
         info(s"Timed out waiting for job '$jobId' to finish, checking its status")
-        
-        statusOf(jobId)
+
+        time(s"Job '$jobId': Calling Drmaa1Client.statusOf()", trace(_)) {
+          statusOf(jobId)
+        }
       }
     }
   }
@@ -147,7 +150,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskIndexIncr = 1
 
       // TODO Make native specification controllable from Loam (DSL)
-      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l m_mem_free=16g")
+      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=16g")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")

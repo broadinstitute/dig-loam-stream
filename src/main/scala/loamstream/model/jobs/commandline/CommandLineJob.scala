@@ -1,13 +1,13 @@
 package loamstream.model.jobs.commandline
 
+import loamstream.model.jobs.JobState.{Failed, Running, Succeeded}
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandReturnValueIssue, CommandResult,
-CommandSuccess}
+import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandResult}
+import loamstream.model.jobs.commandline.CommandLineJob.{CommandReturnValueIssue, CommandSuccess}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
-
 
 /**
   * LoamStream
@@ -27,20 +27,25 @@ trait CommandLineJob extends LJob {
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
   type CommandLineResult = Result with CommandResult
-  
+
   override protected def executeSelf(implicit context: ExecutionContext): Future[Result with CommandResult] = {
     runBlocking {
+      trace(s"RUNNING: $commandLineString")
       val exitValue = processBuilder.run(logger).exitValue
   
       if (exitValueIsOk(exitValue)) {
+        trace(s"SUCCEEDED: $commandLineString")
         CommandSuccess(commandLineString, exitValue)
       } else {
+        trace(s"FAILED: $commandLineString")
         CommandReturnValueIssue(commandLineString, exitValue)
       }
     }.recover {
       case exception: Exception => CommandException(commandLineString, exception)
     }
   }
+
+  override def toString: String = commandLineString
 }
 
 object CommandLineJob {

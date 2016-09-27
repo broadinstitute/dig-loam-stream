@@ -12,7 +12,7 @@ import loamstream.util.ValueBox
  */
 class MockJob(
     val toReturn: LJob.Result,
-    val name: String,
+    override val name: String,
     override val inputs: Set[LJob], 
     val outputs: Set[Output], 
     val delay: Int) extends LJob {
@@ -29,14 +29,14 @@ class MockJob(
     case that: MockJob => this.equalityFields == that.equalityFields
     case _ => false
   }
-  
+
   override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
     count.mutate(_ + 1)
-    
-    if(delay > 0) {
+
+    if (delay > 0) {
       Thread.sleep(delay)
     }
-    
+
     Future.successful(toReturn)
   }
   
@@ -47,10 +47,10 @@ class MockJob(
   def copy(
       toReturn: LJob.Result = this.toReturn,
       name: String = this.name,
-      inputs: Set[LJob] = this.inputs, 
-      outputs: Set[Output] = this.outputs, 
+      inputs: Set[LJob] = this.inputs,
+      outputs: Set[Output] = this.outputs,
       delay: Int = this.delay): MockJob = new MockJob(toReturn, name, inputs, outputs, delay)
-  
+
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 }
 

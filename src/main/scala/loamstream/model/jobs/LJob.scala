@@ -1,18 +1,17 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.util.control.NonFatal
-
 import loamstream.model.jobs.LJob.Result
-import loamstream.util.{DagHelpers, Loggable, TypeBox}
-import loamstream.util.ValueBox
+import loamstream.util._
+import rx.lang.scala.subjects.PublishSubject
+
 import scala.reflect.runtime.universe.Type
-import loamstream.util.Futures
 
 /**
-  * LoamStream
-  * Created by oliverr on 12/23/2015.
-  */
+ * LoamStream
+ * Created by oliverr on 12/23/2015.
+ */
 trait LJob extends Loggable with DagHelpers[LJob] {
   def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
     val indentString = s"${"-" * indent} >"
@@ -21,6 +20,8 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
     inputs.foreach(_.print(indent + 2))
   }
+
+  def name: String = ""
 
   /**
    * Any jobs this job depends on
@@ -31,39 +32,69 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    * Any outputs produced by this job
    */
   def outputs: Set[Output]
-  
-  private val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
-  
+
+  protected val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
+
   /**
    * This job's current state
    */
   final def state: JobState = stateRef.value
-  
-  final protected def isSuccess: Boolean = state.isSuccess
-  
+
+  final val stateEmitter = PublishSubject[JobState]
+
+  final protected def emitJobState(): Unit = stateEmitter.onNext(state)
+
+  final def updateAndEmitJobState(newState: JobState): Unit = {
+    debug(s"Status change to $newState for job: ${this}")
+    stateRef() = newState
+    emitJobState()
+  }
+
+  def dependencies: Set[LJob] = Set.empty
+
+  /**                                                            f
+   * If explicitly specified dependencies are done
+   */
+  def dependenciesDone: Boolean = dependencies.isEmpty || dependencies.forall(_.state == JobState.Succeeded)
+
   /**
-   * Decorates exececuteSelf, updating the value of 'state' from
-   * Running to (Succeeded | Failed).
-   * 
-   * TODO: Go back to just 'execute', and use a decorator subclass of LJob to do 
-   * the work currently done by this method.
+   * If this job can be executed
+   */
+  def isRunnable: Boolean = state == JobState.NotStarted && dependenciesDone && inputsDone
+
+  /**
+   * If inputs to this job are available
+   */
+  def inputsDone: Boolean = inputs.isEmpty || inputs.forall(_.state == JobState.Succeeded)
+
+  final protected def isSuccess: Boolean = state.isSuccess
+
+  /**
+   * Decorates executeSelf(), updating and emitting the value of 'state' from
+   * Running to Succeeded/Failed.
    */
   final def execute(implicit context: ExecutionContext): Future[Result] = {
     import JobState._
     import Futures.Implicits._
-    
+
     stateRef() = Running
-    
+
     executeSelf.withSideEffect { result =>
-      stateRef() = if(result.isSuccess) Succeeded else Failed
+      stateRef() = if (result.isSuccess) {
+        updateAndEmitJobState(Succeeded)
+        Succeeded
+      } else {
+        updateAndEmitJobState(Failed)
+        Failed
+      }
     }
   }
-  
+
   /**
-   * Implementions of executeSelf will do any actual work performed by this job   
+   * Implementions of this method will do any actual work to be performed by this job
    */
   protected def executeSelf(implicit context: ExecutionContext): Future[Result]
-  
+
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 
   final def withInputs(newInputs: Set[LJob]): LJob = {
@@ -153,5 +184,4 @@ object LJob {
   final case class FailureFromThrowable(cause: Throwable) extends Failure {
     override def failureMessage: String = cause.getMessage
   }
-
 }

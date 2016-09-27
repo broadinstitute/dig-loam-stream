@@ -11,7 +11,7 @@ import scala.util.Try
   *
   * @author Kaan Yuksel
   */
-final case class UgerConfig private(ugerWorkDir: Path, ugerLogFile: Path, ugerMaxNumJobs: Int)
+final case class UgerConfig(ugerWorkDir: Path, ugerLogFile: Path, ugerMaxNumJobs: Int)
 
 object UgerConfig extends ConfigCompanion[UgerConfig] {
 

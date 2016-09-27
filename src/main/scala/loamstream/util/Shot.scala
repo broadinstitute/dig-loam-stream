@@ -13,6 +13,8 @@ sealed trait Shot[+A] {
 
   def flatMap[B](f: A => Shot[B]): Shot[B]
 
+  def contains[A1 >: A](that: A1): Boolean
+
   def asOpt: Option[A]
 
   def orElse[B >: A](alternative: => Shot[B]): Shot[B]
@@ -25,9 +27,14 @@ sealed trait Shot[+A] {
     case m: Miss => m
     case Hit(shot) => shot
   }
-  
+
   def isHit: Boolean
+
   def isMiss: Boolean
+
+  override def equals(obj: Any): Boolean
+
+  override def hashCode(): Int
 }
 
 /** A container of an object or an error description */
@@ -79,18 +86,20 @@ object Shot {
       Miss(misses.map(_.snag).reduce(_ ++ _))
     }
   }
-  
+
   def combinedMiss(iter: Iterable[Shot[_]]): Miss = Miss(Snag(iter.collect { case Miss(snag) => snag }.toSeq))
 
   def findHit[A, B](items: Iterable[A], shooter: A => Shot[B]): Shot[B] = {
-    if(items.isEmpty) { Miss("List of items is empty.") }
+    if (items.isEmpty) {
+      Miss("List of items is empty.")
+    }
     else {
       val shots = items.map(shooter)
-    
+
       val misses = shots.takeWhile(_.isMiss).collect { case miss: Miss => miss }
-    
-      val hitOpt = shots.dropWhile(_.isMiss).headOption.collect { case hit @ Hit(_) => hit }
-    
+
+      val hitOpt = shots.dropWhile(_.isMiss).headOption.collect { case hit@Hit(_) => hit }
+
       hitOpt match {
         case Some(hit) => hit
         case None => combinedMiss(misses)
@@ -108,6 +117,8 @@ final case class Hit[+A](value: A) extends Shot[A] {
 
   override def flatMap[B](f: (A) => Shot[B]): Shot[B] = Shot(f(value)).flatten
 
+  override def contains[A1 >: A](that: A1): Boolean = value == that
+
   override def asOpt: Option[A] = Some(value)
 
   override def orElse[B >: A](alternative: => Shot[B]): Shot[B] = this
@@ -115,10 +126,17 @@ final case class Hit[+A](value: A) extends Shot[A] {
   override val isEmpty: Boolean = false
 
   override val nonEmpty: Boolean = true
-  
+
   override val isHit: Boolean = true
-  
+
   override val isMiss: Boolean = false
+
+  override def equals(obj: Any): Boolean = obj match {
+    case Hit(oValue) => value == oValue
+    case _ => false
+  }
+
+  override def hashCode(): Int = value.hashCode
 }
 
 object Miss {
@@ -132,9 +150,11 @@ final case class Miss(snag: Snag) extends Shot[Nothing] {
 
   override def map[B](f: (Nothing) => B): Shot[B] = Miss(snag)
 
-  override val asOpt = None
-
   override def flatMap[B](f: (Nothing) => Shot[B]): Shot[B] = this
+
+  override def contains[A1 >: Nothing](that: A1): Boolean = false
+
+  override val asOpt = None
 
   override def orElse[B >: Nothing](alternative: => Shot[B]): Shot[B] = alternative match {
     case hit: Hit[B] => hit
@@ -144,8 +164,16 @@ final case class Miss(snag: Snag) extends Shot[Nothing] {
   override val isEmpty: Boolean = true
 
   override val nonEmpty: Boolean = false
-  
+
   override val isHit: Boolean = false
-  
+
   override val isMiss: Boolean = true
+
+  override def equals(obj: Any): Boolean = obj match {
+    case Miss(oSnag) => snag == oSnag
+    case _ => false
+  }
+
+  override def hashCode(): Int = snag.hashCode
+
 }

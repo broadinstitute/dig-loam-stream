@@ -108,10 +108,13 @@ final case class RxExecuter(runner: ChunkRunner,
       } else {
         // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
         import scala.concurrent.ExecutionContext.Implicits.global
-        Future {
-          tracker.addJobs(jobs)
-          val newResultMap = Await.result(runner.run(jobs)(executionContext), Duration.Inf)
+        tracker.addJobs(jobs)
+        for {
+          newResultMap <- runner.run(jobs)(executionContext)
+        } yield {
           result.mutate(_ ++ newResultMap)
+          newResultMap.filter { case (job, result) => result.isSuccess }
+                      .keys.foreach(job => jobFilter.record(job.outputs))
         }
       }
     }

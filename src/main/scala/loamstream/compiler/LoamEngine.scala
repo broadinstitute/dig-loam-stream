@@ -52,15 +52,15 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     } else {
       Miss(s"Could not find '$file'.")
     }
-    
+
     import JFiles.readAllBytes
 
     import StringUtils.fromUtf8Bytes
-    
+
     val scriptShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
-    
+
     report(scriptShot, s"Loaded '$file'.")
-    
+
     scriptShot
   }
 

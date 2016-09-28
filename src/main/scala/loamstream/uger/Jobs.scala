@@ -6,7 +6,6 @@ import org.ggf.drmaa.InvalidJobException
 
 import loamstream.util.Loggable
 import loamstream.util.ObservableEnrichments
-import loamstream.util.Maps
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler

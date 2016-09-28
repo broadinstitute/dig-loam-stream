@@ -33,27 +33,16 @@ object JobFilter {
       def needsToBeRun(output: Output): Boolean = output match {
         case Output.PathBased(p) => {
           val path = normalize(p)
-
-          val iM = output.isMissing
-          val iO = isOlder(path)
-          val nH = notHashed(path)
-          val hD = hasDifferentHash(path)
           output.isMissing || isOlder(path) || notHashed(path) || hasDifferentHash(path)
         }
         case _ => true
       }
 
-      val result = dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
-
-      if (!result) {
-        debug(s"Skipping job $dep")
-      }
-
-      result
+      dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
     }
 
     override def record(outputs: Iterable[Output]): Unit = {
-      val outputPaths = outputs.collect { case Output.PathBased(path) => path }
+      val outputPaths = outputs.collect { case Output.PathBased(path) => normalize(path) }
       
       def cachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
       

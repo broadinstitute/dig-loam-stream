@@ -1,15 +1,18 @@
 package loamstream.db.slick
 
-import slick.driver.JdbcProfile
 import java.sql.Timestamp
-import slick.jdbc.meta.MTable
+
 import loamstream.util.Futures
+import loamstream.util.Loggable
+
+import slick.driver.JdbcProfile
+import slick.jdbc.meta.MTable
 
 /**
  * @author clint
  * date: Sep 22, 2016
  */
-final class Tables(val driver: JdbcProfile) {
+final class Tables(val driver: JdbcProfile) extends Loggable {
   import driver.api._
   import driver.SchemaDescription
   import Tables.Names
@@ -60,7 +63,7 @@ final class Tables(val driver: JdbcProfile) {
       (tableName, schema) <- allTables
       if !existing.contains(tableName)
     } yield {
-      schema.createStatements.foreach(s => println(s"Tables.create: DDL: $s"))
+      log(schema)
       
       schema.create
     }
@@ -72,6 +75,10 @@ final class Tables(val driver: JdbcProfile) {
   
   def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)
 
+  private def log(schema: SchemaDescription): Unit = {
+    schema.createStatements.foreach(s => debug(s"DDL: $s"))
+  }
+  
   private def perform[A](database: Database)(action: DBIO[A]): A = {
     Futures.waitFor(database.run(action))
   }

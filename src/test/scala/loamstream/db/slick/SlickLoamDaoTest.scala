@@ -102,35 +102,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
     }
   }
   
-  /*test("insertOrUpdateOutputs") {
-    createTablesAndThen {
-
-      assert(noOutputs)
-
-      val rows = Seq(
-          cachedOutput(path0, hash0),
-          cachedOutput(path1, hash1),
-          cachedOutput(path2, hash2))
-
-      dao.insertOrUpdateOutputs(rows)
-          
-      assert(dao.allOutputs.toSet == rows.toSet)
-      
-      val h0prime = Hash(Array(0.toByte), HashType.Sha1)
-      val h1prime = Hash(Array(1.toByte), HashType.Sha1)
-      
-      val updatedRows = Seq(
-          cachedOutput(path0, h0prime),
-          cachedOutput(path1, h1prime))
-          
-      dao.insertOrUpdateOutputs(updatedRows)
-      
-      val expected = updatedRows :+ cachedOutput(path2, hash2)
-
-      assert(dao.allOutputs.toSet == expected.toSet)
-    }
-  }*/
-  
   test("insertExecutions/allExecutionRows") {
     createTablesAndThen {
       val status0 = 42
@@ -155,6 +126,43 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       dao.insertExecutions(ex1, ex2)
       
       assert(dao.allExecutions.toSet === Set(ex0, ex1, ex2))
+    }
+  }
+  
+  test("findExecution") {
+    createTablesAndThen {
+      val status0 = 42
+      val status1 = 0
+      val status2 = 1
+      
+      val output0 = cachedOutput(path0, hash0)
+      val output1 = cachedOutput(path1, hash1)
+      val output2 = cachedOutput(path2, hash2)
+      
+      val ex0 = Execution(status0, Set(output0))
+      val ex1 = Execution(status1, Set(output1, output2))
+      val ex2 = Execution(status2, Set.empty)
+      
+      assert(noOutputs)
+      assert(noExecutions)
+
+      dao.insertExecutions(ex0)
+      
+      assert(dao.allExecutions.toSet === Set(ex0))
+      
+      assert(dao.findExecution(output0) === Some(ex0))
+      
+      assert(dao.findExecution(output1) === None)
+      assert(dao.findExecution(output2) === None)
+      
+      dao.insertExecutions(ex1, ex2)
+      
+      assert(dao.allExecutions.toSet === Set(ex0, ex1, ex2))
+      
+      assert(dao.findExecution(output0) === Some(ex0))
+      
+      assert(dao.findExecution(output1) === Some(ex1))
+      assert(dao.findExecution(output2) === Some(ex1))
     }
   }
 }

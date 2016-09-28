@@ -19,6 +19,8 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.Output
 import slick.jdbc.GetResult
 import slick.profile.SqlAction
+import loamstream.util.Loggable
+import scala.concurrent.ExecutionContext
 
 /**
  * @author clint
@@ -26,7 +28,7 @@ import slick.profile.SqlAction
  * 
  * Rough-draft LoamDao implementation backed by Slick 
  */
-final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
+final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Loggable {
   val driver = descriptor.dbType.driver
   
   import driver.api._
@@ -34,92 +36,35 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
   
   private lazy val outputsAndExecutions = tables.outputs.join(tables.executions).on(_.executionId === _.id)
   
-  private def findOutputAction(path: Path): DBIO[Option[RawOutputRow]] = {
-    Queries.outputByPath(path).result.headOption.transactionally
-  }
-  
   override def findOutput(path: Path): Option[CachedOutput] = {
     val action = findOutputAction(path)
     
     runBlocking(action).map(_.toCachedOutput)
   }
-  
-  private def outputDeleteAction(pathsToDelete: Iterable[Path]): SqlAction[Int, NoStream, Effect.Write] = {
-    Queries.outputsByPaths(pathsToDelete).delete
-  }
-  
-  private def outputDeleteActionRaw(pathsToDelete: Iterable[String]): SqlAction[Int,NoStream, Effect.Write] = {
-    Queries.outputsByRawPaths(pathsToDelete).delete
-  }
-  
+
   override def deleteOutput(paths: Iterable[Path]): Unit = {
     val delete = outputDeleteAction(paths)
     
     runBlocking(delete.transactionally)
   }
   
-  //TODO: Need to allow updating?
-  private def insertOrUpdateOutputs(rows: Iterable[Output.PathBased]): Unit = {
-    val rawRows = rows.map(row => new RawOutputRow(row.path, row.hash))
-
-    val insertOrUpdate = insertOrUpdateRawOutputRows(rawRows)
-    
-    runBlocking(insertOrUpdate)
-  }
-  
-  private def insertOrUpdateRawOutputRows(rawRows: Iterable[RawOutputRow]): DBIO[Iterable[Int]] = {
-    println(s"insertOrUpdateRawOutputRows(): inserting: $rawRows")
-    
-    /*val paths = rawRows.map(_.pathValue)
-    
-    val insertAction = tables.outputs ++= rawRows
-    
-    log(insertAction)
-    
-    DBIO.seq(outputDeleteActionRaw(paths), insertAction).transactionally*/
-    
-    DBIO.sequence(rawRows.map(tables.outputs.insertOrUpdate)).transactionally
-  }
-  
-  private object Queries {
-    lazy val insertExecution = (tables.executions returning tables.executions.map(_.id)).into { 
-      (execution, newId) => execution.copy(id = newId)
-    }
-    
-    def outputByPath(path: Path) = { 
-      val lookingFor = Helpers.normalize(path)
-
-      tables.outputs.filter(_.path === lookingFor).take(1)
-    }
-    
-    def outputsByPaths(paths: Iterable[Path]) = {
-      val rawPaths = paths.map(Helpers.normalize).toSet
-      
-      outputsByRawPaths(rawPaths)
-    }
-    
-    def outputsByRawPaths(rawPaths: Iterable[String]) = {
-      tables.outputs.filter(_.path.inSetBind(rawPaths))
-    }
-  }
-  
   override def insertExecutions(executions: Iterable[Execution]): Unit = {
     def insert(execution: Execution): DBIO[Iterable[Int]] = {
-      //NB: Note dummy ID :\
-      val rawExecutionRow = new RawExecutionRow(-1, execution.exitStatus)
-
-      println(s"insertExecutions(): Inserting: $rawExecutionRow")
+      val dummyId = -1
+      
+      //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
+      val rawExecutionRow = new RawExecutionRow(dummyId, execution.exitStatus)
       
       val pathBasedOutputs = execution.outputs.collect { case pb: Output.PathBased => pb }
       
       val outputs = pathBasedOutputs.map(new RawOutputRow(_))
       
-      implicit val context = db.executor.executionContext
+      val insertExectionQuery = Queries.insertExecution += rawExecutionRow
+
+      import Implicits._
       
       for {
-        newExecution <- Queries.insertExecution += rawExecutionRow
-        _ = log(Queries.insertExecution += rawExecutionRow)
-        _ = println(s"NEW EXECUTION ID: '${newExecution.id}'")
+        newExecution <- (Queries.insertExecution += rawExecutionRow)
         outputsWithExecutionIds = outputs.map(_.withExecutionId(newExecution.id))
         insertedOutputCounts <- insertOrUpdateRawOutputRows(outputsWithExecutionIds)
       } yield {
@@ -127,9 +72,11 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
       }
     }
     
-    val inserts = DBIO.sequence(executions.map(insert)).transactionally
+    val inserts = executions.map(insert)
     
-    runBlocking(inserts)
+    val insertEverything = DBIO.sequence(inserts).transactionally
+    
+    runBlocking(insertEverything)
   }
   
   override def allOutputs: Seq[CachedOutput] = {
@@ -157,7 +104,6 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
   }
   
   override def findExecution(output: Output.PathBased): Option[Execution] = {
-    import scala.concurrent.ExecutionContext.Implicits.global
     
     val lookingFor = Helpers.normalize(output.path)
     
@@ -170,11 +116,73 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     
     log(executionForPath.result)
     
+    import Implicits._
+    
     val query = for {
       executionOption <- executionForPath.result.headOption
     } yield executionOption.map(reify)
     
     runBlocking(query)
+  }
+  
+  override def createTables(): Unit = tables.create(db)
+  
+  override def dropTables(): Unit = tables.drop(db)
+  
+  override def shutdown(): Unit = waitFor(db.shutdown)
+
+  private object Implicits {
+    //TODO: re-evaluate; does this make sense?
+    implicit val dbExecutionContext: ExecutionContext = db.executor.executionContext
+  }
+  
+  private def findOutputAction(path: Path): DBIO[Option[RawOutputRow]] = {
+    Queries.outputByPath(path).result.headOption.transactionally
+  }
+  
+  private def outputDeleteAction(pathsToDelete: Iterable[Path]): SqlAction[Int, NoStream, Effect.Write] = {
+    Queries.outputsByPaths(pathsToDelete).delete
+  }
+  
+  private def outputDeleteActionRaw(pathsToDelete: Iterable[String]): SqlAction[Int,NoStream, Effect.Write] = {
+    Queries.outputsByRawPaths(pathsToDelete).delete
+  }
+  
+  //TODO: Need to allow updating?
+  private def insertOrUpdateOutputs(rows: Iterable[Output.PathBased]): Unit = {
+    val rawRows = rows.map(row => new RawOutputRow(row.path, row.hash))
+
+    val insertOrUpdate = insertOrUpdateRawOutputRows(rawRows)
+    
+    runBlocking(insertOrUpdate)
+  }
+  
+  private def insertOrUpdateRawOutputRows(rawRows: Iterable[RawOutputRow]): DBIO[Iterable[Int]] = {
+    val insertActions = rawRows.map(tables.outputs.insertOrUpdate)
+    
+    DBIO.sequence(insertActions).transactionally
+  }
+  
+  private object Queries {
+    lazy val insertExecution = (tables.executions returning tables.executions.map(_.id)).into { 
+      (execution, newId) => execution.copy(id = newId)
+    }
+    
+    def outputByPath(path: Path) = { 
+      val lookingFor = Helpers.normalize(path)
+
+      tables.outputs.filter(_.path === lookingFor).take(1)
+    }
+    
+    def outputsByPaths(paths: Iterable[Path]) = {
+      val rawPaths = paths.map(Helpers.normalize).toSet
+      
+      outputsByRawPaths(rawPaths)
+    }
+    
+    def outputsByRawPaths(rawPaths: Iterable[String]) = {
+      tables.outputs.filter(_.path.inSetBind(rawPaths))
+    }
   }
   
   private def reify(executionRow: RawExecutionRow): Execution = {
@@ -188,19 +196,12 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao {
     runBlocking(query).map(_.toCachedOutput)
   }
   
-  //TODO: Re-evaluate
+  //TODO: Re-evaluate; block all the time?
   private def runBlocking[A](action: DBIO[A]): A = waitFor(db.run(action))
 
-  //TODO
   private def log(sqlAction: SqlAction[_, _, _]): Unit = {
-    sqlAction.statements.foreach(s => println(s"SQL: $s"))
+    sqlAction.statements.foreach(s => debug(s"SQL: $s"))
   }
-  
-  override def createTables(): Unit = tables.create(db)
-  
-  override def dropTables(): Unit = tables.drop(db)
-  
-  override def shutdown(): Unit = waitFor(db.shutdown)
   
   private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.dbType.jdbcDriverClass)
 

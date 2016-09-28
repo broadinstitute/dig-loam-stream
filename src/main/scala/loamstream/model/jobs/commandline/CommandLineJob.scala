@@ -1,6 +1,5 @@
 package loamstream.model.jobs.commandline
 
-import loamstream.model.jobs.JobState.{Failed, Running, Succeeded}
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandResult}

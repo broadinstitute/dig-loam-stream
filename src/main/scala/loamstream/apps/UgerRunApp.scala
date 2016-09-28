@@ -9,7 +9,7 @@ import loamstream.uger.UgerChunkRunner
 import loamstream.util.Loggable
 
 /** Compiles and runs Loam script provided as argument */
-object RxLoamRunApp extends App with DrmaaClientHelpers with Loggable {
+object UgerRunApp extends App with DrmaaClientHelpers with Loggable {
   if (args.length < 1) {
     throw new IllegalArgumentException("No Loam script file name provided")
   }

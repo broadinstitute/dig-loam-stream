@@ -15,7 +15,9 @@ import scala.concurrent.duration.Duration
  * @author kaan
  *         date: Aug 17, 2016
  */
-final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
+final case class RxExecuter(runner: ChunkRunner,
+                            jobFilter: JobFilter,
+                            tracker: Tracker = new Tracker)
                            (implicit executionContext: ExecutionContext) extends LExecuter with Loggable {
 
   private[this] val lock = new AnyRef
@@ -51,15 +53,13 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
 
   def getRunnableJobsAndMarkThemAsLaunched(jobs: Set[LJob]): Set[LJob] = lock synchronized {
     trace("Jobs already launched: ")
-    jobsAlreadyLaunched().foreach(job => debug(s"\tAlready launched: $job"))
+    jobsAlreadyLaunched().foreach(job => trace(s"\tAlready launched: $job"))
 
     val allRunnableJobs = jobs.filter(_.isRunnable) -- jobsAlreadyLaunched()
     trace("Jobs available to run: ")
-    allRunnableJobs.foreach(job => debug(s"\tAvailable to run: $job"))
+    allRunnableJobs.foreach(job => trace(s"\tAvailable to run: $job"))
 
     val jobsToDispatch = getJobsToBeDispatched(allRunnableJobs)
-    debug("Jobs to dispatch now: ")
-    jobsToDispatch.foreach(job => debug(s"\tTo dispatch now: $job"))
 
     // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
     checkForAndHandleNoOpJob(jobsToDispatch)
@@ -69,6 +69,18 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
     jobsToDispatch
   }
 
+  def filterOutAndProcessSkippableJobs(jobs: Set[LJob], filter: JobFilter): Set[LJob] = {
+    val jobsToSkip = jobs.filterNot(filter.shouldRun)
+    jobsToSkip foreach { job =>
+      trace(s"\tBeing skipped: $job")
+      job.updateAndEmitJobState(JobState.Skipped)
+      result.mutate(_ + (job -> SkippedSuccess(job.name)))
+    }
+
+    jobs -- jobsToSkip
+  }
+
+  // scalastyle:off method.length
   def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     val allJobs = flattenTree(executable.jobs)
 
@@ -86,7 +98,12 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
     def executeIter(): Unit = {
       debug("executeIter() is called...\n")
 
-      val jobs = getRunnableJobsAndMarkThemAsLaunched(allJobs)
+      val runnableJobs = getRunnableJobsAndMarkThemAsLaunched(allJobs)
+
+      val jobs = filterOutAndProcessSkippableJobs(runnableJobs, jobFilter)
+      trace("Jobs to dispatch now: ")
+      jobs.foreach(job => trace(s"\tTo dispatch now: $job"))
+
       if (jobs.isEmpty) {
         if (jobStates().values.forall(_.isFinished)) {
           everythingIsDonePromise.trySuccess(())
@@ -94,10 +111,13 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
       } else {
         // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
         import scala.concurrent.ExecutionContext.Implicits.global
-        Future {
-          tracker.addJobs(jobs)
-          val newResultMap = Await.result(runner.run(jobs)(executionContext), Duration.Inf)
+        tracker.addJobs(jobs)
+        for {
+          newResultMap <- runner.run(jobs)(executionContext)
+        } yield {
           result.mutate(_ ++ newResultMap)
+          newResultMap.filter { case (job, result) => result.isSuccess }
+                      .keys.foreach(job => jobFilter.record(job.outputs))
         }
       }
     }
@@ -119,10 +139,31 @@ final case class RxExecuter(runner: ChunkRunner, tracker: Tracker = new Tracker)
     import Maps.Implicits._
     result().strictMapValues(Hit(_))
   }
+  // scalastyle:on method.length
+
+  def clearStates(): Unit = {
+    jobsAlreadyLaunched() = Set.empty
+    result() = Map.empty
+    jobStates() = Map.empty
+  }
 }
 
 object RxExecuter {
-  def default: RxExecuter = new RxExecuter(AsyncLocalChunkRunner)(ExecutionContext.global)
+  def apply(runner: ChunkRunner,
+            tracker: Tracker)
+           (implicit executionContext: ExecutionContext): RxExecuter = new RxExecuter(runner,
+                                                                                      JobFilter.RunEverything,
+                                                                                      tracker)
+
+  def apply(runner: ChunkRunner)
+           (implicit executionContext: ExecutionContext): RxExecuter = new RxExecuter(runner,
+                                                                                      JobFilter.RunEverything,
+                                                                                      new Tracker)
+
+  def default: RxExecuter = defaultWith(JobFilter.RunEverything)
+
+  def defaultWith(jobFilter: JobFilter): RxExecuter =
+    new RxExecuter(AsyncLocalChunkRunner, jobFilter)(ExecutionContext.global)
 
   object AsyncLocalChunkRunner extends ChunkRunner {
 

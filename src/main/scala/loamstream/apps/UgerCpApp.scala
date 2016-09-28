@@ -13,7 +13,7 @@ import loamstream.model.jobs.LJob
   * LoamStream
   * Created by kyuksel on 05/02/2016.
   */
-object ImputationApp extends DrmaaClientHelpers with Loggable {
+object UgerCpApp extends DrmaaClientHelpers with Loggable {
 
   def main(args: Array[String]) {
 

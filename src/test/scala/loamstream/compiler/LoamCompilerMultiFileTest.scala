@@ -1,6 +1,6 @@
 package loamstream.compiler
 
-import loamstream.loam.LoamScript
+import loamstream.loam.{LoamCmdTool, LoamScript}
 import org.scalatest.FunSuite
 
 /**
@@ -17,13 +17,36 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     assert(graph.tools.size === nTools)
   }
 
+  def assertEchoCommand(results: LoamCompiler.Result): Unit = {
+    assert(results.contextOpt.nonEmpty)
+    val graph = results.contextOpt.get.graph
+    assert(graph.tools.size === 1)
+    val tool = graph.tools.head
+    assert(tool.isInstanceOf[LoamCmdTool])
+    val cmdTool = tool.asInstanceOf[LoamCmdTool]
+    assert(cmdTool.tokens.size === 1)
+    assert(cmdTool.tokens.head.toString() === "echo Hello the answer is 42")
+  }
+
   val scriptValues = LoamScript("values",
     """
       |val greeting = "Hello"
       |val answer = 42
     """.stripMargin)
 
-  test("Compile project with two scripts, individual import") {
+  test("Full name instead of import") {
+    val scriptIndividualImport = LoamScript("individualImport",
+      """
+        |cmd"echo ${values.greeting} the answer is ${values.answer}"
+      """.stripMargin)
+    val project = LoamProject(scriptValues, scriptIndividualImport)
+    val compiler = new LoamCompiler
+    val compileResults = compiler.compile(project)
+    assertCompiledFine(compileResults, 0, 1)
+    assertEchoCommand(compileResults)
+  }
+
+  test("Individual import") {
     val scriptIndividualImport = LoamScript("individualImport",
       """
         |import values.{answer, greeting}
@@ -33,9 +56,23 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     val compiler = new LoamCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
+    assertEchoCommand(compileResults)
   }
 
-  test("Compile project with two scripts, wild-card import") {
+  test("Renaming import") {
+    val scriptIndividualImport = LoamScript("individualImport",
+      """
+        |import values.{answer => answerToTheGreatQuestion, greeting => casualGreeting}
+        |cmd"echo $casualGreeting the answer is $answerToTheGreatQuestion"
+      """.stripMargin)
+    val project = LoamProject(scriptValues, scriptIndividualImport)
+    val compiler = new LoamCompiler
+    val compileResults = compiler.compile(project)
+    assertCompiledFine(compileResults, 0, 1)
+    assertEchoCommand(compileResults)
+  }
+
+  test("Wild-card import") {
     val scriptWildcardImport = LoamScript("wildcardImport",
       """
         |import values._
@@ -45,6 +82,32 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     val compiler = new LoamCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
+    assertEchoCommand(compileResults)
+  }
+
+  test("Diamond import relationship diagram") {
+    val scripts = Set(scriptValues,
+      LoamScript("greetingForwarder",
+        """
+          |import values.greeting
+          |val copyOfGreeting = greeting
+        """.stripMargin),
+      LoamScript("answerForwarder",
+        """
+          |import values.answer
+          |val copyOfAnswer = answer
+        """.stripMargin),
+      LoamScript("combiner",
+        """
+          |import greetingForwarder.copyOfGreeting
+          |import answerForwarder.copyOfAnswer
+          |cmd"echo $copyOfGreeting the answer is $copyOfAnswer"
+        """.stripMargin))
+    val project = LoamProject(scripts)
+    val compiler = new LoamCompiler
+    val compileResults = compiler.compile(project)
+    assertCompiledFine(compileResults, 0, 1)
+    assertEchoCommand(compileResults)
   }
 
 }

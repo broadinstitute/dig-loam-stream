@@ -23,11 +23,7 @@ object Poller {
   final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller {
     override def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]] = {
       
-      def statusAttempt(jobId: String): Try[JobStatus] = {
-        client.statusOf(jobId).recoverWith {
-          case e: InvalidJobException => client.waitFor(jobId, Duration.Zero)
-        }
-      }
+      def statusAttempt(jobId: String): Try[JobStatus] = client.waitFor(jobId, Duration.Zero)
       
       val pollResults = jobIds.map { jobId =>
         jobId -> statusAttempt(jobId)

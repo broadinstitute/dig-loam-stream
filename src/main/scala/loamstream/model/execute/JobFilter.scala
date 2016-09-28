@@ -19,14 +19,14 @@ import loamstream.model.jobs.Execution
 trait JobFilter {
   def shouldRun(job: LJob): Boolean
 
-  def record(outputs: Iterable[Output]): Unit
+  def record(executions: Iterable[Execution]): Unit
 }
 
 object JobFilter {
   object RunEverything extends JobFilter {
     override def shouldRun(job: LJob): Boolean = true
 
-    override def record(outputs: Iterable[Output]): Unit = ()
+    override def record(executions: Iterable[Execution]): Unit = ()
   }
 
   final class DbBackedJobFilter(dao: LoamDao) extends JobFilter with Loggable {
@@ -42,23 +42,31 @@ object JobFilter {
       dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
     }
 
-    override def record(outputs: Iterable[Output]): Unit = {
-      val outputPaths = outputs.collect { case Output.PathBased(path) => normalize(path) }
-      
+    override def record(executions: Iterable[Execution]): Unit = {
       def cachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
+      
+      val executionsWithNormalizedOutputs = executions.map { execution =>
+        execution.transformOutputs { outputs =>
+          val outputPaths = outputs.collect { case Output.PathBased(path) => normalize(path) }
+          
+          outputPaths.map(cachedOutput)
+        }
+      }
+      
+      dao.insertExecutions(executionsWithNormalizedOutputs)
+      
+      // :(
+      val allOutputs = executionsWithNormalizedOutputs.flatMap(_.outputs).collect {
+        case cached: Output.CachedOutput => cached
+      }
       
       import Traversables.Implicits._
       
-      val newOutputs = outputPaths.mapTo(cachedOutput)
+      val newOutputMap = allOutputs.mapBy(_.path)
       
       cachedOutputsByPath.mutate { oldOutputs =>
-        oldOutputs ++ newOutputs 
+        oldOutputs ++ newOutputMap
       }
-      
-      //TODO: HACK HACK HACK
-      val execution = Execution(42, newOutputs.values.toSet)
-      
-      dao.insertExecutions(execution)
     }
 
     //Support outputs other than Paths

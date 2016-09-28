@@ -45,7 +45,7 @@ final case class UgerChunkRunner(
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
     // Filter out NoOpJob's
-    val leafCommandLineJobs = leaves.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
+    val leafCommandLineJobs = leaves.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
     if (leafCommandLineJobs.nonEmpty) {
       val ugerWorkDir = ugerConfig.ugerWorkDir.toFile
@@ -79,7 +79,7 @@ final case class UgerChunkRunner(
     }
   }
 
-  private[uger] def toResultMap(drmaaClient: DrmaaClient, jobsById: Map[String, LJob])
+  private[uger] def toResultMap(drmaaClient: DrmaaClient, jobsById: Map[String, CommandLineJob])
                                (implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
 
     val poller = Poller.drmaa(drmaaClient)(context)
@@ -117,13 +117,12 @@ object UgerChunkRunner extends Loggable {
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
-  private[uger] def resultFrom(job: LJob)(status: JobStatus): LJob.Result = {
-    //TODO: Anything better; this was purely expedient
-    if (status.isDone) {
-      LJob.SimpleSuccess(s"$job")
-    } else {
-      LJob.SimpleFailure(s"$job")
-    }
+  //TODO: Anything better; this was purely expedient
+  private[uger] def resultFrom(job: CommandLineJob)(status: JobStatus): LJob.Result = status match {
+    case JobStatus.CommandFailed(exitStatus) => CommandLineJob.CommandFailure(job.commandLineString, exitStatus)
+    case JobStatus.CommandSucceeded(exitStatus) => CommandLineJob.CommandSuccess(job.commandLineString, exitStatus)
+    case status if status.isDone => LJob.SimpleSuccess(s"$job")
+    case _ => LJob.SimpleFailure(s"$job")
   }
 
   private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Future[Map[LJob, Result]] = {

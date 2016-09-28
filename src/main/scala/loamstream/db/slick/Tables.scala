@@ -25,7 +25,7 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def hashType = column[String]("HASH_TYPE")
     def executionId = column[Int]("EXECUTION_ID")
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (path, lastModified, hash, hashType, executionId.?) <> (RawOutputRow.tupled, RawOutputRow.unapply) //scalastyle:ignore
+    def * = (path, lastModified, hash, hashType, executionId.?) <> (RawOutputRow.tupled, RawOutputRow.unapply)
   }
   
   final class Executions(tag: Tag) extends Table[RawExecutionRow](tag, Names.executions) {

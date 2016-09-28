@@ -56,8 +56,20 @@ object CommandLineJob {
 
   sealed trait CommandResult
 
+  object CommandResult {
+    def unapply(cr: CommandResult): Option[(String, Int)] = cr match {
+      case CommandSuccess(commandLine, returnValue) => Some(commandLine -> returnValue)
+      case CommandFailure(commandLine, returnValue) => Some(commandLine -> returnValue)
+      case _ => None
+    }
+  }
+  
   final case class CommandSuccess(commandLine: String, returnValue: Int) extends LJob.Success with CommandResult {
     override def successMessage: String = s"Successfully completed job '$commandLine'."
+  }
+  
+  final case class CommandFailure(commandLine: String, returnValue: Int) extends LJob.Failure with CommandResult {
+    override def failureMessage: String = s"Job '$commandLine' completed unsuccessfully with status code $returnValue."
   }
 
   final case class CommandException(commandLine: String, exception: Exception)

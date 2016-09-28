@@ -10,6 +10,10 @@ import rx.lang.scala.subjects.PublishSubject
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
+import scala.util.Try
+import scala.util.Success
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.jobs.Execution
 
 /**
  * @author kaan
@@ -23,11 +27,11 @@ final case class RxExecuter(runner: ChunkRunner,
   private[this] val lock = new AnyRef
 
   // Mutable state variables
-  val jobsAlreadyLaunched: ValueBox[Set[LJob]] = ValueBox(Set.empty)
-  val jobStates: ValueBox[Map[LJob, JobState]] = ValueBox(Map.empty)
-  val result: ValueBox[Map[LJob, Result]] = ValueBox(Map.empty)
+  private val jobsAlreadyLaunched: ValueBox[Set[LJob]] = ValueBox(Set.empty)
+  private val jobStates: ValueBox[Map[LJob, JobState]] = ValueBox(Map.empty)
+  private val result: ValueBox[Map[LJob, Result]] = ValueBox(Map.empty)
 
-  def flattenTree(tree: Set[LJob]): Set[LJob] = {
+  private def flattenTree(tree: Set[LJob]): Set[LJob] = {
     tree.foldLeft(tree)((acc, x) =>
       x.inputs ++ flattenTree(x.inputs) ++ acc)
   }
@@ -35,23 +39,26 @@ final case class RxExecuter(runner: ChunkRunner,
   /** Check if jobs ready to be dispatched include a NoOpJob. If yes, make sure there is only one
    * and handle it by directly executing it
    */
-  def checkForAndHandleNoOpJob(jobs: Set[LJob]): Unit = {
-    if (!jobs.forall(!_.isInstanceOf[NoOpJob])) {
+  private def checkForAndHandleNoOpJob(jobs: Set[LJob]): Unit = {
+    def isNoOpJob(job: LJob): Boolean = job.isInstanceOf[NoOpJob] 
+    
+    if (jobs.exists(isNoOpJob)) {
       trace("Handling NoOpJob")
+      //TODO: Maybe assert(jobs.count(isNoOpJob) == 1, ...) instead? 
       assert(jobs.size == 1, "There should be at most a single NoOpJob")
       val noOpJob = jobs.head
-      val noOpResult = Await.result(noOpJob.execute, Duration.Inf)
+      val noOpResult = Futures.waitFor(noOpJob.execute)
       result.mutate(_ + (noOpJob -> noOpResult))
     }
   }
 
-  def getJobsToBeDispatched(jobs: Set[LJob]): Set[LJob] =
-    jobs.grouped(runner.maxNumJobs).toSet.headOption match {
-      case Some(j) => j
-      case _ => Set.empty[LJob]
-    }
+  private def getJobsToBeDispatched(jobs: Set[LJob]): Set[LJob] = {
+    val firstChunk = jobs.grouped(runner.maxNumJobs).toSeq.headOption
+    
+    firstChunk.getOrElse(Set.empty)
+  }
 
-  def getRunnableJobsAndMarkThemAsLaunched(jobs: Set[LJob]): Set[LJob] = lock synchronized {
+  private def getRunnableJobsAndMarkThemAsLaunched(jobs: Set[LJob]): Set[LJob] = lock synchronized {
     trace("Jobs already launched: ")
     jobsAlreadyLaunched().foreach(job => trace(s"\tAlready launched: $job"))
 
@@ -69,7 +76,7 @@ final case class RxExecuter(runner: ChunkRunner,
     jobsToDispatch
   }
 
-  def filterOutAndProcessSkippableJobs(jobs: Set[LJob], filter: JobFilter): Set[LJob] = {
+  private def filterOutAndProcessSkippableJobs(jobs: Set[LJob], filter: JobFilter): Set[LJob] = {
     val jobsToSkip = jobs.filterNot(filter.shouldRun)
     jobsToSkip foreach { job =>
       trace(s"\tBeing skipped: $job")
@@ -80,14 +87,48 @@ final case class RxExecuter(runner: ChunkRunner,
     jobs -- jobsToSkip
   }
 
-  // scalastyle:off method.length
-  def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
+  private def executeIter(allJobs: Set[LJob], everythingIsDonePromise: Promise[Unit]): Unit = {
+    debug("executeIter() is called...\n")
+
+    val runnableJobs = getRunnableJobsAndMarkThemAsLaunched(allJobs)
+
+    val jobs = filterOutAndProcessSkippableJobs(runnableJobs, jobFilter)
+    trace("Jobs to dispatch now: ")
+    jobs.foreach(job => trace(s"\tTo dispatch now: $job"))
+
+    if (jobs.isEmpty) {
+      if (jobStates().values.forall(_.isFinished)) {
+        everythingIsDonePromise.complete(Success(()))
+      }
+    } else {
+      // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
+      tracker.addJobs(jobs)
+      for {
+        newResultMap <- runner.run(jobs)(executionContext)
+      } yield {
+        import Maps.Implicits._
+        
+        result.mutate(_ ++ newResultMap)
+        
+        import CommandLineJob.CommandResult
+        
+        val executions = newResultMap.collect {  case (job, CommandResult(commandLine, exitStatus)) => 
+          Execution(exitStatus, job.outputs)
+        }
+        
+        jobFilter.record(executions)
+      }
+    }
+  }
+  
+  override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     val allJobs = flattenTree(executable.jobs)
 
     val allJobStatuses = PublishSubject[Map[LJob, JobState]]
 
     def updateJobState(job: LJob, newState: JobState): Unit = {
       jobStates.mutate(_ + (job -> newState))
+      
       allJobStatuses.onNext(jobStates())
     }
 
@@ -95,53 +136,28 @@ final case class RxExecuter(runner: ChunkRunner,
     val everythingIsDonePromise: Promise[Unit] = Promise()
     val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
-    def executeIter(): Unit = {
-      debug("executeIter() is called...\n")
-
-      val runnableJobs = getRunnableJobsAndMarkThemAsLaunched(allJobs)
-
-      val jobs = filterOutAndProcessSkippableJobs(runnableJobs, jobFilter)
-      trace("Jobs to dispatch now: ")
-      jobs.foreach(job => trace(s"\tTo dispatch now: $job"))
-
-      if (jobs.isEmpty) {
-        if (jobStates().values.forall(_.isFinished)) {
-          everythingIsDonePromise.trySuccess(())
-        }
-      } else {
-        // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
-        import scala.concurrent.ExecutionContext.Implicits.global
-        tracker.addJobs(jobs)
-        for {
-          newResultMap <- runner.run(jobs)(executionContext)
-        } yield {
-          result.mutate(_ ++ newResultMap)
-          newResultMap.filter { case (job, result) => result.isSuccess }
-                      .keys.foreach(job => jobFilter.record(job.outputs))
-        }
-      }
-    }
-
-    import scala.language.postfixOps
     allJobs foreach { job =>
       jobStates.mutate(_ + (job -> NotStarted))
       job.stateEmitter.subscribe(jobState => updateJobState(job, jobState))
     }
 
-    allJobStatuses.sample(20 millis).subscribe(jobStatuses => executeIter())
+    def doExecuteIter() = executeIter(allJobs, everythingIsDonePromise)
+    
+    allJobStatuses.sample(20.millis).subscribe(jobStatuses => doExecuteIter())
 
-    executeIter()
+    doExecuteIter()
 
     // Block the main thread until all jobs are done
     Await.result(everythingIsDoneFuture, Duration.Inf)
 
     info("All jobs are done")
+    
     import Maps.Implicits._
+    
     result().strictMapValues(Hit(_))
   }
-  // scalastyle:on method.length
 
-  def clearStates(): Unit = {
+  private def clearStates(): Unit = {
     jobsAlreadyLaunched() = Set.empty
     result() = Map.empty
     jobStates() = Map.empty
@@ -184,6 +200,8 @@ object RxExecuter {
     }
   }
 
+  //TODO: Is this used for anything other than tests?  If not, replace this in tests with a mock/delegating ChunkRunner
+  //that does this recording
   final class Tracker() {
     private val executionSeq: ValueBox[Array[Set[LJob]]] = ValueBox(Array.empty)
 

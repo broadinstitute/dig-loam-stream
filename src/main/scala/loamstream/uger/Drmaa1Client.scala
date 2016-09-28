@@ -108,7 +108,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         //TODO: More flexibility?
         jobInfo.getExitStatus match { 
           case 0 => JobStatus.Done
-          case _ => JobStatus.Failed
+          case exitStatus => JobStatus.CommandFailed(exitStatus)
         }
       } else if (jobInfo.wasAborted) {
         info(s"Job '$jobId' was aborted; job info: $jobInfo")

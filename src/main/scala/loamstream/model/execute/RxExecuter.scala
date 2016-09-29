@@ -89,7 +89,7 @@ final case class RxExecuter(runner: ChunkRunner,
 
   private def executeIter(allJobs: Set[LJob], everythingIsDonePromise: Promise[Unit]): Unit = {
     debug("executeIter() is called...\n")
-
+    
     val runnableJobs = getRunnableJobsAndMarkThemAsLaunched(allJobs)
 
     val jobs = filterOutAndProcessSkippableJobs(runnableJobs, jobFilter)
@@ -122,6 +122,10 @@ final case class RxExecuter(runner: ChunkRunner,
   }
   
   override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
+    //NB: Clear out our state, to make sure that state built up from a previous invocation of execute() won't
+    //interfere with this one. :(
+    clearStates()
+    
     val allJobs = flattenTree(executable.jobs)
 
     val allJobStatuses = PublishSubject[Map[LJob, JobState]]

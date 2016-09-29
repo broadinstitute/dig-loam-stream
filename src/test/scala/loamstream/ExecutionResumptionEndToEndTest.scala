@@ -58,9 +58,6 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       firstResultValues(0) shouldBe a [CommandSuccess]
       firstResultValues(1) shouldBe a [SimpleSuccess]
 
-      // Prevent jobs launched as part of the first run from being considered as part of the subsequent run's
-      resumptiveExecuter.clearStates()
-
       /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
           val fileIn = store[String].from("src/test/resources/a.txt")
           val fileOut1 = store[String].to("$workDir/fileOut1.txt")

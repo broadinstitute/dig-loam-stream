@@ -21,6 +21,7 @@ import loamstream.util.PathEnrichments
 import loamstream.util.Sequence
 import loamstream.model.jobs.MockJob
 import scala.concurrent.Future
+import loamstream.model.jobs.Execution
 
 /**
  * @author clint
@@ -35,6 +36,12 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   
   private def dbBackedExecuter = RxExecuter.defaultWith(new JobFilter.DbBackedJobFilter(dao))
   
+  private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
+    val e = Execution(exitStatus, Set(cachedOutput(p, Hashes.sha1(p))))
+    
+    store(e)
+  }
+  
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
     import JobState._
 
@@ -42,8 +49,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       import java.nio.file.{ Files => JFiles }
 
       JFiles.copy(start, f1)
-
-      dao.storeHash(f1, Hashes.sha1(f1))
+      
+      hashAndStore(f1)
 
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))
@@ -60,8 +67,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       JFiles.copy(start, f1)
       JFiles.copy(start, f2)
 
-      dao.storeHash(f1, Hashes.sha1(f1))
-      dao.storeHash(f2, Hashes.sha1(f2))
+      hashAndStore(f1)
+      hashAndStore(f2)
 
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))
@@ -82,9 +89,9 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       JFiles.copy(start, f2)
       JFiles.copy(start, f3)
 
-      dao.storeHash(f1, Hashes.sha1(f1))
-      dao.storeHash(f2, Hashes.sha1(f2))
-      dao.storeHash(f3, Hashes.sha1(f3))
+      hashAndStore(f1)
+      hashAndStore(f2)
+      hashAndStore(f3)
 
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))

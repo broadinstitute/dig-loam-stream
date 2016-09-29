@@ -4,10 +4,10 @@ import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
-import loamstream.loam.{GraphPrinter, LoamContext, LoamGraph, LoamScript}
 import loamstream.loam.LoamScript.LoamScriptBox
-import loamstream.util.{DepositBox, Loggable, NonFatalInitializer, StringUtils, ValueBox}
+import loamstream.loam.{GraphPrinter, LoamContext, LoamGraph, LoamScript}
 import loamstream.util.code.ReflectionUtil
+import loamstream.util.{DepositBox, Loggable, NonFatalInitializer, StringUtils, ValueBox}
 
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
 import scala.tools.nsc.io.VirtualDirectory
@@ -102,6 +102,14 @@ object LoamCompiler {
   }
 
   val graphBoxDepositBox: DepositBox[ValueBox[LoamGraph]] = DepositBox.empty
+
+  def apply(settings: Settings): LoamCompiler = new LoamCompiler(settings)
+
+  def apply(outMessageSink: OutMessageSink): LoamCompiler =
+    new LoamCompiler(Settings.default, outMessageSink)
+
+  def apply(settings: Settings, outMessageSink: OutMessageSink): LoamCompiler =
+    new LoamCompiler(settings, outMessageSink)
 
 }
 

@@ -1,20 +1,19 @@
 package loamstream.model.execute
 
 import loamstream.model.execute.RxExecuter.Tracker
-import loamstream.model.jobs.{JobState, LJob, NoOpJob}
 import loamstream.model.jobs.JobState.NotStarted
 import loamstream.model.jobs.LJob._
+import loamstream.model.jobs.{JobState, LJob, NoOpJob}
 import loamstream.util._
 import rx.lang.scala.subjects.PublishSubject
 
+import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
-import scala.concurrent.duration._
-import scala.concurrent.duration.Duration
 
 /**
- * @author kaan
- *         date: Aug 17, 2016
- */
+  * @author kaan
+  *         date: Aug 17, 2016
+  */
 final case class RxExecuter(runner: ChunkRunner,
                             jobFilter: JobFilter,
                             tracker: Tracker = new Tracker)
@@ -33,8 +32,8 @@ final case class RxExecuter(runner: ChunkRunner,
   }
 
   /** Check if jobs ready to be dispatched include a NoOpJob. If yes, make sure there is only one
-   * and handle it by directly executing it
-   */
+    * and handle it by directly executing it
+    */
   def checkForAndHandleNoOpJob(jobs: Set[LJob]): Unit = {
     if (!jobs.forall(!_.isInstanceOf[NoOpJob])) {
       trace("Handling NoOpJob")
@@ -116,8 +115,8 @@ final case class RxExecuter(runner: ChunkRunner,
           newResultMap <- runner.run(jobs)(executionContext)
         } yield {
           result.mutate(_ ++ newResultMap)
-          newResultMap.filter { case (job, result) => result.isSuccess }
-                      .keys.foreach(job => jobFilter.record(job.outputs))
+          newResultMap.filter { case (job, jobResult) => jobResult.isSuccess }
+            .keys.foreach(job => jobFilter.record(job.outputs))
         }
       }
     }
@@ -139,6 +138,7 @@ final case class RxExecuter(runner: ChunkRunner,
     import Maps.Implicits._
     result().strictMapValues(Hit(_))
   }
+
   // scalastyle:on method.length
 
   def clearStates(): Unit = {
@@ -152,13 +152,13 @@ object RxExecuter {
   def apply(runner: ChunkRunner,
             tracker: Tracker)
            (implicit executionContext: ExecutionContext): RxExecuter = new RxExecuter(runner,
-                                                                                      JobFilter.RunEverything,
-                                                                                      tracker)
+    JobFilter.RunEverything,
+    tracker)
 
   def apply(runner: ChunkRunner)
            (implicit executionContext: ExecutionContext): RxExecuter = new RxExecuter(runner,
-                                                                                      JobFilter.RunEverything,
-                                                                                      new Tracker)
+    JobFilter.RunEverything,
+    new Tracker)
 
   def default: RxExecuter = defaultWith(JobFilter.RunEverything)
 
@@ -191,4 +191,5 @@ object RxExecuter {
 
     def jobExecutionSeq = executionSeq.value
   }
+
 }

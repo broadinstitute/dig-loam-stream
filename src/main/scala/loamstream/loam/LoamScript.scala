@@ -16,7 +16,7 @@ object LoamScript {
   var scriptNameCounter: Int = 0
   val scriptNameCounterLock = new AnyRef
 
-  val generatedNameBase = "LoamScript"
+  val generatedNameBase = "loamScript"
 
   val fileSuffix = ".loam"
 

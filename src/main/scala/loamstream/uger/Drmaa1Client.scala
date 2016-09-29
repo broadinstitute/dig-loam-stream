@@ -44,7 +44,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     catch {
       //NB: session.exit() will fail if an exception was thrown by session.init(), or if it is invoked more than
       //once.  In those cases, there's not much we can do.
-      case e: DrmaaException => ()
+      case e: DrmaaException => warn(s"Could not properly exit DRMAA Session due to ${e.getClass.getName}", e)
     }
   }
   
@@ -125,7 +125,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         JobStatus.Failed
       } else {
         info(s"Job '$jobId' finished with unknown status")
-        
+
         JobStatus.DoneUndetermined
       }
     }.recoverWith {

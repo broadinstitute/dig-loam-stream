@@ -8,7 +8,13 @@ import scala.reflect.runtime.universe.TypeTag
 
 /** A native tool specified in a Loam script */
 final case class LoamNativeTool[T] private(id: LId, defaultStores: DefaultStores, expBox: EvalLaterBox[T])
-                                          (implicit val context: LoamContext) extends LoamTool
+                                          (implicit val context: LoamContext) extends LoamTool {
+  def setThisTool(): Unit = context.setCurrentTool(this)
+
+  def unsetThisTool(): Unit = context.unsetCurrentTool()
+
+  def wrappedExpBox: EvalLaterBox[T] = expBox.wrap(setThisTool(), unsetThisTool())
+}
 
 object LoamNativeTool {
   def apply[T: TypeTag](defaultStores: DefaultStores, expr: => T)(

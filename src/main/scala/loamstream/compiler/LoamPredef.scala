@@ -46,6 +46,8 @@ object LoamPredef {
   def job[T: TypeTag](out: LoamTool.Out)(exp: => T)(
     implicit context: LoamContext): LoamNativeTool[T] = LoamNativeTool(out, exp)
 
+  def thisTool(implicit context: LoamContext): LoamNativeTool[_] = context.getCurrentTool.get
+
   trait VCF extends Map[(String, String), Genotype]
 
   trait TXT extends Seq[String]

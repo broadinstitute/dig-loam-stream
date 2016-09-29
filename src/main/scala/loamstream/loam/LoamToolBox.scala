@@ -14,7 +14,7 @@ import loamstream.model.jobs.Output
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-final class LoamToolBox(context: LoamContext) extends LToolBox {
+final class LoamToolBox extends LToolBox {
 
   @volatile private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
 
@@ -24,8 +24,8 @@ final class LoamToolBox(context: LoamContext) extends LToolBox {
     val graph = tool.graphBox.value
 
     def pathOutputsFor(tool: LoamTool): Set[Output] = {
-      val loamStores: Set[LoamStore] = graph.toolOutputs(tool) 
-      
+      val loamStores: Set[LoamStore] = graph.toolOutputs(tool)
+
       loamStores.flatMap(_.pathOpt).map(Output.PathOutput)
     }
 
@@ -35,14 +35,12 @@ final class LoamToolBox(context: LoamContext) extends LToolBox {
 
     shotsForPrecedingTools.map { inputJobs =>
       val outputs = pathOutputsFor(tool)
-      
+
       tool match {
         case cmdTool: LoamCmdTool =>
-          val commandLineString = cmdTool.tokens.map(_.toString(context.fileManager)).mkString
-          
+          val commandLineString = cmdTool.tokens.map(_.toString(cmdTool.context.fileManager)).mkString
           CommandLineStringJob(commandLineString, workDir, inputJobs, outputs)
-          
-        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs)
+        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.wrappedExpBox, inputJobs, outputs)
       }
     }
   }
@@ -51,7 +49,7 @@ final class LoamToolBox(context: LoamContext) extends LToolBox {
     loamJobs.get(tool) match {
       case Some(job) => Hit(job)
       case _ => newLoamJob(tool) match {
-        case jobHit @ Hit(job) =>
+        case jobHit@Hit(job) =>
           loamJobs += tool -> job
           jobHit
         case miss: Miss => miss

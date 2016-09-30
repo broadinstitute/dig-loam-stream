@@ -13,6 +13,6 @@ import loamstream.util.Shot
  */
 trait Executer {
 
-  def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[JobState]]
+  def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[JobState]]
   
 }

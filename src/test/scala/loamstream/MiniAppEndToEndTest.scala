@@ -6,7 +6,7 @@ import scala.io.Source
 
 import org.scalatest.FunSuite
 
-import loamstream.model.execute.LExecutable
+import loamstream.model.execute.Executable
 import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.LToolBox
 import loamstream.tools.core.CoreToolBox
@@ -27,7 +27,7 @@ final class MiniAppEndToEndTest extends FunSuite {
     doTestExecutable(executable, extractedSamplesFilePath)
   }
 
-  private def doTestExecutable(executable: LExecutable, extractedSamplesFilePath: Path): Unit = {
+  private def doTestExecutable(executable: Executable, extractedSamplesFilePath: Path): Unit = {
     val results = executer.execute(executable)
 
     assert(results.size == 2)

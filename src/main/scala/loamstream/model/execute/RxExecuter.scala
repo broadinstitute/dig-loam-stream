@@ -116,7 +116,7 @@ final case class RxExecuter(runner: ChunkRunner,
     }
   }
   
-  override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[JobState]] = {
+  override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[JobState]] = {
     //NB: Clear out our state, to make sure that state built up from a previous invocation of execute() won't
     //interfere with this one. :/
     clearStates()

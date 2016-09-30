@@ -157,7 +157,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       assert(f1ToF2.state == JobState.NotStarted)
       assert(f2ToF3.state == JobState.NotStarted)
   
-      val executable = LExecutable(Set(f2ToF3))
+      val executable = Executable(Set(f2ToF3))
   
       def runningEverything: Boolean = executer match {
         case RxExecuter(_, jobFilter, _) => jobFilter == JobFilter.RunEverything
@@ -201,7 +201,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
 
   private lazy val compiler = new LoamCompiler(OutMessageSink.NoOp)
 
-  private def compile(loamCode: String): LExecutable = {
+  private def compile(loamCode: String): Executable = {
 
     val compileResults = compiler.compile(loamCode)
 

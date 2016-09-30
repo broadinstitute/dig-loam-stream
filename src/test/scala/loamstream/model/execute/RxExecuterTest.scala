@@ -78,7 +78,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     assert(job32.executionCount === 0)
     assert(job4.executionCount === 0)
 
-    val executable = LExecutable(Set(job4))
+    val executable = Executable(Set(job4))
     val result = executer.execute(executable)
 
     assert(job11.executionCount === 1)
@@ -141,7 +141,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     assert(job32.executionCount === 0)
     assert(job4.executionCount === 0)
 
-    val executable = LExecutable(Set(job4))
+    val executable = Executable(Set(job4))
     val result = executer.execute(executable)
 
     assert(job11.executionCount === 1)
@@ -195,7 +195,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     val job32 = RxMockJob("Job_3_2", Set(job23, job24, job25))
     val job4 = RxMockJob("Job_4", Set(job31, job32))
 
-    val executable = LExecutable(Set(job4))
+    val executable = Executable(Set(job4))
 
     val maxSimultaneousJobs = 4
     val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxSimultaneousJobs)

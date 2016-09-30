@@ -3,9 +3,11 @@ package loamstream.compiler
 import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}
-import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.loam.{LoamContext, LoamToolBox}
-import loamstream.model.execute.{ChunkedExecuter, LExecuter}
+import loamstream.loam.ast.LoamGraphAstMapper
+import loamstream.model.execute.Executer
+import loamstream.model.execute.RxExecuter
+import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.util.{Hit, Miss, Shot, StringUtils}
 
@@ -16,15 +18,15 @@ import loamstream.util.{Hit, Miss, Shot, StringUtils}
   */
 object LoamEngine {
   def default(outMessageSink: ClientMessageHandler.OutMessageSink): LoamEngine =
-    LoamEngine(new LoamCompiler(outMessageSink), ChunkedExecuter.default, outMessageSink)
+    LoamEngine(new LoamCompiler(outMessageSink), RxExecuter.default, outMessageSink)
 
   final case class Result(sourceCodeOpt: Shot[String],
                           compileResultOpt: Shot[LoamCompiler.Result],
-                          jobResultsOpt: Shot[Map[LJob, Shot[LJob.Result]]])
+                          jobResultsOpt: Shot[Map[LJob, Shot[JobState]]])
 
 }
 
-final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
+final case class LoamEngine(compiler: LoamCompiler, executer: Executer, 
                             outMessageSink: ClientMessageHandler.OutMessageSink) {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
@@ -40,6 +42,8 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
   }
 
   def loadFile(file: Path): Shot[String] = {
+    import JFiles.readAllBytes
+    import StringUtils.fromUtf8Bytes
     val fileShot = if (JFiles.exists(file)) {
       Hit(file)
     } else if (!file.toString.endsWith(".loam")) {
@@ -52,10 +56,6 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     } else {
       Miss(s"Could not find '$file'.")
     }
-
-    import JFiles.readAllBytes
-
-    import StringUtils.fromUtf8Bytes
 
     val scriptShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
 
@@ -100,7 +100,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
 
   }
 
-  def run(context: LoamContext): Map[LJob, Shot[LJob.Result]] = {
+  def run(context: LoamContext): Map[LJob, Shot[JobState]] = {
     val mapping = LoamGraphAstMapper.newMapping(context.graph)
     val toolBox = new LoamToolBox(context)
     //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it

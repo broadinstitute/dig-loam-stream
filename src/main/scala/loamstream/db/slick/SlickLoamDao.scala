@@ -21,6 +21,7 @@ import slick.jdbc.GetResult
 import slick.profile.SqlAction
 import loamstream.util.Loggable
 import scala.concurrent.ExecutionContext
+import loamstream.model.jobs.JobState
 
 /**
  * @author clint
@@ -49,11 +50,17 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
   
   override def insertExecutions(executions: Iterable[Execution]): Unit = {
-    def insert(execution: Execution): DBIO[Iterable[Int]] = {
+    assert(executions.forall(isCommandExecution), "We only know how to record command executions")
+    
+    import JobState.CommandResult
+    
+    def insert(executionAndState: (Execution, CommandResult)): DBIO[Iterable[Int]] = {
+      val (execution, commandResult) = executionAndState
+      
       val dummyId = -1
       
       //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
-      val rawExecutionRow = new RawExecutionRow(dummyId, execution.exitStatus)
+      val rawExecutionRow = new RawExecutionRow(dummyId, commandResult.exitStatus)
       
       val pathBasedOutputs = execution.outputs.collect { case pb: Output.PathBased => pb }
       
@@ -72,7 +79,11 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       }
     }
     
-    val inserts = executions.map(insert)
+    val insertableExecutions: Iterable[(Execution, CommandResult)] = executions.collect {
+      case e @ Execution(cr: JobState.CommandResult, _) => e -> cr
+    } 
+    
+    val inserts = insertableExecutions.map(insert)
     
     val insertEverything = DBIO.sequence(inserts).transactionally
     
@@ -131,6 +142,15 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   
   override def shutdown(): Unit = waitFor(db.shutdown)
 
+  private def isCommandExecution(e: Execution): Boolean = {
+    import JobState._
+      
+    e.exitState match {
+      case CommandResult(_) => true
+      case _ => false
+    }
+  }
+  
   private object Implicits {
     //TODO: re-evaluate; does this make sense?
     implicit val dbExecutionContext: ExecutionContext = db.executor.executionContext

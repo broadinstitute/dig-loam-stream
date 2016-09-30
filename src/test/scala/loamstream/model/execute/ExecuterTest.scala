@@ -10,6 +10,7 @@ import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.TestJobs
 import loamstream.util.Hit
 import loamstream.util.Shot
+import loamstream.model.jobs.JobState
 
 
 /**
@@ -18,16 +19,16 @@ import loamstream.util.Shot
  */
 abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends FunSuite with TestJobs { 
 
-  def makeExecuter: LExecuter
+  def makeExecuter: Executer
   
-  def withExecuter(testName: String)(f: LExecuter => Any): Unit = {
+  def withExecuter(testName: String)(f: Executer => Any): Unit = {
     test(testName) {
       f(makeExecuter)
     }
   }
   
   withExecuter("single jobs should work") { executer =>
-    def doTest(job: LJob, expectedResult: Result): Unit = {
+    def doTest(job: LJob, expectedResult: JobState): Unit = {
       val executable = LExecutable(Set(job))
   
       val result = executer.execute(executable)

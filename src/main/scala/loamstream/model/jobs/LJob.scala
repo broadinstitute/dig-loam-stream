@@ -52,7 +52,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
   def dependencies: Set[LJob] = Set.empty
 
-  /**                                                            f
+  /**                                                            
    * If explicitly specified dependencies are done
    */
   def dependenciesDone: Boolean = dependencies.isEmpty || dependencies.forall(_.state.isSuccess)
@@ -60,7 +60,11 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   /**
    * If this job can be executed
    */
-  def isRunnable: Boolean = state == JobState.NotStarted && dependenciesDone && inputsDone
+  def isRunnable: Boolean = {
+    val notStarted = state == JobState.NotStarted 
+    
+    notStarted && dependenciesDone && inputsDone
+  }
 
   /**
    * If inputs to this job are available
@@ -71,7 +75,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    * Decorates executeSelf(), updating and emitting the value of 'state' from
    * Running to Succeeded/Failed.
    */
-  final def execute(implicit context: ExecutionContext): Future[Result] = {
+  final def execute(implicit context: ExecutionContext): Future[JobState] = {
     import JobState._
     import Futures.Implicits._
 
@@ -91,7 +95,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   /**
    * Implementions of this method will do any actual work to be performed by this job
    */
-  protected def executeSelf(implicit context: ExecutionContext): Future[Result]
+  protected def executeSelf(implicit context: ExecutionContext): Future[JobState]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 
@@ -100,32 +104,11 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     else { doWithInputs(newInputs) }
   }
 
-  protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))
-
   final override def isLeaf: Boolean = inputs.isEmpty
 
   final override def leaves: Set[LJob] = {
-    if (isLeaf) {
-      Set(this)
-    }
-    else {
-      inputs.flatMap(_.leaves)
-    }
-  }
-
-  def remove(input: LJob): LJob = {
-    if ((input eq this) || isLeaf) {
-      this
-    }
-    else {
-      val newInputs = (inputs - input).map(_.remove(input))
-
-      withInputs(newInputs)
-    }
-  }
-
-  final override def removeAll(toRemove: Iterable[LJob]): LJob = {
-    toRemove.foldLeft(this)(_.remove(_))
+    if (isLeaf) { Set(this) }
+    else { inputs.flatMap(_.leaves) }
   }
 }
 

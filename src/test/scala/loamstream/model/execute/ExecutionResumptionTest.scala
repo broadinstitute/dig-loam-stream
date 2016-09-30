@@ -37,7 +37,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   private def dbBackedExecuter = RxExecuter.defaultWith(new JobFilter.DbBackedJobFilter(dao))
   
   private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
-    val e = Execution(exitStatus, Set(cachedOutput(p, Hashes.sha1(p))))
+    val e = Execution(JobState.CommandResult(exitStatus), Set(cachedOutput(p, Hashes.sha1(p))))
     
     store(e)
   }
@@ -48,6 +48,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
     doTest(Seq(Skipped, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{ Files => JFiles }
 
+      assert(!f1.toFile.exists)
+      
       JFiles.copy(start, f1)
       
       hashAndStore(f1)
@@ -113,10 +115,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   }
 
   private def mockJob(name: String, outputs: Set[Output], inputs: Set[LJob] = Set.empty)(body: => Any): MockJob = {
-    def success(s: String) = LJob.SimpleSuccess(s)
-
-    new MockJob(success(name), name, inputs, outputs, delay = 0) {
-      override protected def executeSelf(implicit context: ExecutionContext): Future[LJob.Result] = {
+    new MockJob(JobState.Succeeded, name, inputs, outputs, delay = 0) {
+      override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
         body
 
         super.executeSelf

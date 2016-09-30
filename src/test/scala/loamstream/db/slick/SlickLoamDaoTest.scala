@@ -10,6 +10,8 @@ import loamstream.util.Hash
 import loamstream.util.HashType
 import loamstream.util.Hashes
 import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobState.CommandResult
 
 
 /**
@@ -39,7 +41,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       cachedOutput(path, hash)
     }
     
-    val execution = Execution(1, outputs.toSet)
+    val execution = Execution(JobState.CommandResult(0), outputs.toSet)
     
     dao.insertExecutions(execution)
   }
@@ -112,9 +114,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
       
-      val ex0 = Execution(status0, Set(output0))
-      val ex1 = Execution(status1, Set(output1, output2))
-      val ex2 = Execution(status2, Set.empty)
+      val ex0 = Execution(CommandResult(status0), Set(output0))
+      val ex1 = Execution(CommandResult(status1), Set(output1, output2))
+      val ex2 = Execution(CommandResult(status2), Set.empty)
       
       assert(noOutputs)
       assert(noExecutions)
@@ -139,9 +141,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
       
-      val ex0 = Execution(status0, Set(output0))
-      val ex1 = Execution(status1, Set(output1, output2))
-      val ex2 = Execution(status2, Set.empty)
+      val ex0 = Execution(CommandResult(status0), Set(output0))
+      val ex1 = Execution(CommandResult(status1), Set(output1, output2))
+      val ex2 = Execution(CommandResult(status2), Set.empty)
       
       assert(noOutputs)
       assert(noExecutions)

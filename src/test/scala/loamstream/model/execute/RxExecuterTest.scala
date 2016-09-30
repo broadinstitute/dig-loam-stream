@@ -10,12 +10,36 @@ import org.scalatest.FunSuite
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import loamstream.model.jobs.JobState
+import loamstream.util.ValueBox
 
 /**
  * @author kyuksel
  *         date: Aug 17, 2016
  */
 final class RxExecuterTest extends FunSuite with Loggable {
+  test("flattenTree") {
+    import RxExecuter.flattenTree
+    
+    val noDeps0 = RxMockJob("noDeps")
+    
+    assert(flattenTree(Set(noDeps0)) == Set(noDeps0))
+    
+    val middle0 = RxMockJob("middle", Set(noDeps0))
+    
+    assert(flattenTree(Set(middle0)) == Set(middle0, noDeps0))
+    
+    val root0 = RxMockJob("root", Set(middle0))
+    
+    assert(flattenTree(Set(root0)) == Set(root0, middle0, noDeps0))
+    
+    val noDeps1 = RxMockJob("noDeps1")
+    val middle1 = RxMockJob("middle1", Set(noDeps1))
+    val root1 = RxMockJob("root1", Set(middle1))
+    
+    assert(flattenTree(Set(root0, root1)) == Set(root0, middle0, noDeps0, root1, middle1, noDeps1))
+  }
+  
   // scalastyle:off magic.number
   test("New leaves are executed as soon as possible when there is no delay") {
     /* A four-step pipeline:
@@ -180,7 +204,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
 
     executer.execute(executable)
 
-    val chunks = mockRunner.chunks
+    val chunks = mockRunner.chunks.value
     val expectedMaxSimultaneousJobs = 4
     val expectedNumberOfChunks = 5
     assert(chunks.size === expectedNumberOfChunks)
@@ -191,12 +215,12 @@ final class RxExecuterTest extends FunSuite with Loggable {
 
 object RxExecuterTest {
   private final case class MockChunkRunner(delegate: ChunkRunner, maxNumJobs: Int) extends ChunkRunner {
-    var chunks: Seq[Set[LJob]] = Nil
+    val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 
-    override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
-      chunks = chunks :+ leaves
+    override def run(chunk: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
+      chunks.mutate(_ :+ chunk)
 
-      delegate.run(leaves)
+      delegate.run(chunk)
     }
   }
 

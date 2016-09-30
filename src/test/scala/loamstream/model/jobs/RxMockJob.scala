@@ -20,7 +20,7 @@ class RxMockJob(
 
   def executionCount = count.value
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = Future {
     trace("\t\tStarting job: " + this.name)
 
     if (delay > 0) {
@@ -31,7 +31,7 @@ class RxMockJob(
 
     count.mutate(_ + 1)
 
-    LJob.SimpleSuccess(name)
+    JobState.Succeeded
   }
 
   def copy(

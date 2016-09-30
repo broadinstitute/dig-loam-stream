@@ -22,19 +22,14 @@ import loamstream.model.jobs.Execution
 final case class RxExecuter(runner: ChunkRunner,
                             jobFilter: JobFilter,
                             tracker: Tracker = new Tracker)
-                           (implicit executionContext: ExecutionContext) extends LExecuter with Loggable {
+                           (implicit executionContext: ExecutionContext) extends Executer with Loggable {
 
   private[this] val lock = new AnyRef
 
   // Mutable state variables
   private val jobsAlreadyLaunched: ValueBox[Set[LJob]] = ValueBox(Set.empty)
   private val jobStates: ValueBox[Map[LJob, JobState]] = ValueBox(Map.empty)
-  private val result: ValueBox[Map[LJob, Result]] = ValueBox(Map.empty)
-
-  private def flattenTree(tree: Set[LJob]): Set[LJob] = {
-    tree.foldLeft(tree)((acc, x) =>
-      x.inputs ++ flattenTree(x.inputs) ++ acc)
-  }
+  private val result: ValueBox[Map[LJob, JobState]] = ValueBox(Map.empty)
 
   /** Check if jobs ready to be dispatched include a NoOpJob. If yes, make sure there is only one
    * and handle it by directly executing it
@@ -62,11 +57,13 @@ final case class RxExecuter(runner: ChunkRunner,
     trace("Jobs already launched: ")
     jobsAlreadyLaunched().foreach(job => trace(s"\tAlready launched: $job"))
 
-    val allRunnableJobs = jobs.filter(_.isRunnable) -- jobsAlreadyLaunched()
+    val allRunnableJobs = jobs.filter(_.isRunnable)
+    
+    val unlaunchedRunnableJobs = allRunnableJobs -- jobsAlreadyLaunched()
     trace("Jobs available to run: ")
-    allRunnableJobs.foreach(job => trace(s"\tAvailable to run: $job"))
+    unlaunchedRunnableJobs.foreach(job => trace(s"\tAvailable to run: $job"))
 
-    val jobsToDispatch = getJobsToBeDispatched(allRunnableJobs)
+    val jobsToDispatch = getJobsToBeDispatched(unlaunchedRunnableJobs)
 
     // TODO: Remove when NoOpJob insertion into job ASTs is no longer necessary
     checkForAndHandleNoOpJob(jobsToDispatch)
@@ -78,10 +75,11 @@ final case class RxExecuter(runner: ChunkRunner,
 
   private def filterOutAndProcessSkippableJobs(jobs: Set[LJob], filter: JobFilter): Set[LJob] = {
     val jobsToSkip = jobs.filterNot(filter.shouldRun)
+    
     jobsToSkip foreach { job =>
       trace(s"\tBeing skipped: $job")
       job.updateAndEmitJobState(JobState.Skipped)
-      result.mutate(_ + (job -> SkippedSuccess(job.name)))
+      result.mutate(_ + (job -> JobState.Skipped))
     }
 
     jobs -- jobsToSkip
@@ -93,12 +91,13 @@ final case class RxExecuter(runner: ChunkRunner,
     val runnableJobs = getRunnableJobsAndMarkThemAsLaunched(allJobs)
 
     val jobs = filterOutAndProcessSkippableJobs(runnableJobs, jobFilter)
+    
     trace("Jobs to dispatch now: ")
     jobs.foreach(job => trace(s"\tTo dispatch now: $job"))
 
     if (jobs.isEmpty) {
       if (jobStates().values.forall(_.isFinished)) {
-        everythingIsDonePromise.complete(Success(()))
+        everythingIsDonePromise.trySuccess(())
       }
     } else {
       // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
@@ -110,23 +109,21 @@ final case class RxExecuter(runner: ChunkRunner,
         
         result.mutate(_ ++ newResultMap)
         
-        import CommandLineJob.CommandResult
-        
-        val executions = newResultMap.collect {  case (job, CommandResult(commandLine, exitStatus)) => 
-          Execution(exitStatus, job.outputs)
-        }
+        val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
         
         jobFilter.record(executions)
       }
     }
   }
   
-  override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
+  override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[JobState]] = {
     //NB: Clear out our state, to make sure that state built up from a previous invocation of execute() won't
-    //interfere with this one. :(
+    //interfere with this one. :/
     clearStates()
     
-    val allJobs = flattenTree(executable.jobs)
+    val allJobs = RxExecuter.flattenTree(executable.jobs)
+    
+    trace(s"All Jobs: $allJobs")
 
     val allJobStatuses = PublishSubject[Map[LJob, JobState]]
 
@@ -156,9 +153,7 @@ final case class RxExecuter(runner: ChunkRunner,
 
     info("All jobs are done")
     
-    import Maps.Implicits._
-    
-    result().strictMapValues(Hit(_))
+    ExecuterHelpers.toShotMap(result())
   }
 
   private def clearStates(): Unit = {
@@ -185,13 +180,19 @@ object RxExecuter {
   def defaultWith(jobFilter: JobFilter): RxExecuter =
     new RxExecuter(AsyncLocalChunkRunner, jobFilter)(ExecutionContext.global)
 
+  private[execute] def flattenTree(roots: Set[LJob]): Set[LJob] = {
+    roots.foldLeft(roots) { (acc, job) =>
+      job.inputs ++ flattenTree(job.inputs) ++ acc
+    }
+  }
+    
   object AsyncLocalChunkRunner extends ChunkRunner {
 
     import ExecuterHelpers._
 
     override def maxNumJobs = 100 // scalastyle:ignore magic.number
 
-    override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
+    override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
       //NB: Use an iterator to evaluate input jobs lazily, so we can stop evaluating
       //on the first failure, like the old code did.
       val jobResultFutures = jobs.iterator.map(executeSingle)
@@ -207,10 +208,10 @@ object RxExecuter {
   //TODO: Is this used for anything other than tests?  If not, replace this in tests with a mock/delegating ChunkRunner
   //that does this recording
   final class Tracker() {
-    private val executionSeq: ValueBox[Array[Set[LJob]]] = ValueBox(Array.empty)
+    private val executionSeq: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 
     def addJobs(jobs: Set[LJob]): Unit = executionSeq.mutate(_ :+ jobs)
 
-    def jobExecutionSeq = executionSeq.value
+    def jobExecutionSeq: Seq[Set[LJob]] = executionSeq.value
   }
 }

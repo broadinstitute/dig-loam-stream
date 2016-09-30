@@ -11,7 +11,7 @@ import loamstream.util.ValueBox
  * date: Jun 2, 2016
  */
 class MockJob(
-    val toReturn: LJob.Result,
+    val toReturn: JobState,
     override val name: String,
     override val inputs: Set[LJob], 
     val outputs: Set[Output], 
@@ -19,18 +19,18 @@ class MockJob(
   
   val id: Int = MockJob.nextId()
   
-  override def toString: String = s"'$name'(#$id, returning $toReturn)"
+  override def toString: String = s"'$name'(#$id, returning $toReturn, ${inputs.size} dependencies)"
  
-  private val equalityFields = Seq(toReturn)
+  /*private val equalityFields = Seq(toReturn)
   
   override def hashCode: Int = equalityFields.hashCode
   
   override def equals(other: Any): Boolean = other match {
     case that: MockJob => this.equalityFields == that.equalityFields
     case _ => false
-  }
+  }*/
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
     count.mutate(_ + 1)
 
     if (delay > 0) {
@@ -45,7 +45,7 @@ class MockJob(
   def executionCount = count.value
 
   def copy(
-      toReturn: LJob.Result = this.toReturn,
+      toReturn: JobState = this.toReturn,
       name: String = this.name,
       inputs: Set[LJob] = this.inputs,
       outputs: Set[Output] = this.outputs,
@@ -56,13 +56,13 @@ class MockJob(
 
 object MockJob {
   def apply(
-      toReturn: LJob.Result,
+      toReturn: JobState,
       name: String = nextId().toString, 
       inputs: Set[LJob] = Set.empty, 
       outputs: Set[Output] = Set.empty, 
       delay: Int = 0): MockJob = new MockJob(toReturn, name, inputs, outputs, delay)
 
-  def unapply(job: LJob): Option[(LJob.Result, String, Set[LJob], Set[Output], Int)] = job match {
+  def unapply(job: LJob): Option[(JobState, String, Set[LJob], Set[Output], Int)] = job match {
     case mj: MockJob => Some((mj.toReturn, mj.name, mj.inputs, mj.outputs, mj.delay))
     case _ => None
   }

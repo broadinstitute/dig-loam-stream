@@ -45,19 +45,19 @@ object JobFilter {
     override def record(executions: Iterable[Execution]): Unit = {
       def cachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
       
-      val executionsWithNormalizedOutputs = executions.map { execution =>
+      val insertableExecutions = executions.collect { case e if e.isCommandExecution => e }
+      
+      val insertableExecutionsWithNormalizedOutputs = insertableExecutions.map { execution =>
         execution.transformOutputs { outputs =>
-          val outputPaths = outputs.collect { case Output.PathBased(path) => normalize(path) }
-          
-          outputPaths.map(cachedOutput)
+          outputs.collect { case Output.PathBased(path) => cachedOutput(normalize(path)) }
         }
       }
       
-      dao.insertExecutions(executionsWithNormalizedOutputs)
+      dao.insertExecutions(insertableExecutionsWithNormalizedOutputs)
       
       // :(
-      val allOutputs = executionsWithNormalizedOutputs.flatMap(_.outputs).collect {
-        case cached: Output.CachedOutput => cached
+      val allOutputs = insertableExecutionsWithNormalizedOutputs.flatMap(_.outputs).collect {
+        case cached: CachedOutput => cached
       }
       
       import Traversables.Implicits._

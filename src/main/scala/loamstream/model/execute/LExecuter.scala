@@ -11,13 +11,14 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
 import loamstream.util.Maps
 import loamstream.util.Shot
+import loamstream.model.jobs.JobState
 
 /**
  * RugLoom - A prototype for a pipeline building toolkit
  * Created by oruebenacker on 2/24/16.
  */
-trait LExecuter {
+trait Executer {
 
-  def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]]
+  def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[JobState]]
   
 }

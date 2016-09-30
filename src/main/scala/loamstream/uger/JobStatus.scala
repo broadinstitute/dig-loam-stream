@@ -31,9 +31,7 @@ sealed trait JobStatus {
 object JobStatus {
   case object Done extends JobStatus
   case object DoneUndetermined extends JobStatus
-  final case class CommandSucceeded(exitStatus: Int) extends JobStatus
   case object Failed extends JobStatus
-  final case class CommandFailed(exitStatus: Int) extends JobStatus
   case object Queued extends JobStatus
   case object QueuedHeld extends JobStatus
   case object Requeued extends JobStatus
@@ -41,6 +39,8 @@ object JobStatus {
   case object Running extends JobStatus
   case object Suspended extends JobStatus
   case object Undetermined extends JobStatus
+  
+  final case class CommandResult(exitStatus: Int) extends JobStatus
   
   import Session._
   
@@ -56,10 +56,9 @@ object JobStatus {
 
   def toJobState(status: JobStatus): JobState = status match {
     case Done                                                       => JobState.Succeeded
-    case CommandSucceeded(exitStatus)                               => JobState.CommandSucceeded(exitStatus)
+    case CommandResult(exitStatus)                                  => JobState.CommandResult(exitStatus)
     case DoneUndetermined                                           => JobState.Failed
     case Failed                                                     => JobState.Failed
-    case CommandFailed(exitStatus)                                  => JobState.CommandFailed(exitStatus)
     case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobState.Running
     case Running                                                    => JobState.Running
     case Suspended                                                  => JobState.Failed

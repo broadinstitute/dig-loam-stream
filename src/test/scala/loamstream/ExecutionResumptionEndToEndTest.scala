@@ -13,6 +13,7 @@ import loamstream.model.jobs.LJob.{SimpleSuccess, SkippedSuccess}
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.commandline.CommandLineJob.CommandSuccess
 import loamstream.util.{Hit, Loggable, Sequence, Shot}
+import loamstream.model.jobs.JobState
 
 /**
  * @author kaan
@@ -55,8 +56,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val Hit(firstResultValues) = Shot.sequence(firstResults.toVector)
 
       firstResultValues should have size 2
-      firstResultValues(0) shouldBe a [CommandSuccess]
-      firstResultValues(1) shouldBe a [SimpleSuccess]
+      firstResultValues(0) shouldBe a [JobState.CommandResult]
+      firstResultValues(1) shouldBe JobState.Succeeded
 
       /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
           val fileIn = store[String].from("src/test/resources/a.txt")
@@ -81,9 +82,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val Hit(secondResultValues) = Shot.sequence(secondResults.toVector)
 
       secondResultValues should have size 3
-      secondResultValues(0) shouldBe a [SkippedSuccess]
-      secondResultValues(1) shouldBe a [CommandSuccess]
-      secondResultValues(2) shouldBe a [SimpleSuccess]
+      secondResultValues(0) shouldBe JobState.Skipped
+      secondResultValues(1) shouldBe a [JobState.CommandResult]
+      secondResultValues(2) shouldBe JobState.Succeeded
 
       // scalastyle:off no.whitespace.before.left.bracket
     }

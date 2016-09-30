@@ -9,8 +9,8 @@ import scala.concurrent.{ExecutionContext, Future}
  * date: Jun 2, 2016
  */
 final case class NoOpJob(inputs: Set[LJob]) extends LJob {
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
-    Future.successful(SimpleSuccess("NoOp Job"))
+  override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
+    Future.successful(JobState.Succeeded)
   }
 
   override val outputs: Set[Output] = Set.empty

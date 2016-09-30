@@ -1,5 +1,6 @@
 package loamstream.util
 
+import scala.concurrent.blocking
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Await
@@ -16,6 +17,8 @@ object Futures {
    * Wait forever for a Future to complete, and return the result of the Future.
    */
   def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
+  
+  def runBlocking[A](f: => A)(implicit context: ExecutionContext): Future[A] = Future(blocking(f))
   
   /**
    * Folds a bunch of keys and future-values into a future map of keys to values

@@ -21,14 +21,8 @@ class MockJob(
   
   override def toString: String = s"'$name'(#$id, returning $toReturn, ${inputs.size} dependencies)"
  
-  /*private val equalityFields = Seq(toReturn)
-  
-  override def hashCode: Int = equalityFields.hashCode
-  
-  override def equals(other: Any): Boolean = other match {
-    case that: MockJob => this.equalityFields == that.equalityFields
-    case _ => false
-  }*/
+  //NB: Previous versions defined equals() and hashCode() only in terms of 'toReturn', which caused problems;
+  //switched back to reference equality.
 
   override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
     count.mutate(_ + 1)

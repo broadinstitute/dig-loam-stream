@@ -21,13 +21,13 @@ class RxMockJob(
   def executionCount = count.value
 
   override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = Future {
-    trace("\t\tStarting job: " + this.name)
+    trace(s"\t\tStarting job: $name")
 
     if (delay > 0) {
       Thread.sleep(delay)
     }
 
-    trace("\t\t\tFinishing job: " + this.name)
+    trace(s"\t\t\tFinishing job: $name")
 
     count.mutate(_ + 1)
 

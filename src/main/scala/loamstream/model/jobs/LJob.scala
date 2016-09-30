@@ -1,12 +1,12 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ExecutionContext, Future, blocking}
-import scala.util.control.NonFatal
-import loamstream.model.jobs.LJob.Result
-import loamstream.util._
-import rx.lang.scala.subjects.PublishSubject
+import scala.concurrent.{ ExecutionContext, Future }
 
-import scala.reflect.runtime.universe.Type
+import loamstream.util.DagHelpers
+import loamstream.util.Futures
+import loamstream.util.Loggable
+import loamstream.util.ValueBox
+import rx.lang.scala.subjects.PublishSubject
 
 /**
  * LoamStream
@@ -76,8 +76,8 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    * Running to Succeeded/Failed.
    */
   final def execute(implicit context: ExecutionContext): Future[JobState] = {
-    import JobState._
     import Futures.Implicits._
+    import JobState._
 
     stateRef() = Running
 
@@ -112,62 +112,3 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   }
 }
 
-object LJob {
-
-  sealed trait Result {
-    def isSuccess: Boolean
-
-    def isFailure: Boolean
-
-    def message: String
-  }
-
-  object Result {
-    def attempt(f: => Result): Result = {
-      try {
-        f
-      } catch {
-        case NonFatal(ex) => FailureFromThrowable(ex)
-      }
-    }
-  }
-
-  trait Success extends Result {
-    final def isSuccess: Boolean = true
-
-    final def isFailure: Boolean = false
-
-    def successMessage: String
-
-    def message: String = s"Success! $successMessage"
-  }
-
-  final case class SimpleSuccess(successMessage: String) extends Success
-
-  /**
-   * If a job was skipped for various possible reasons (e.g. its outputs were already present)
-   */
-  final case class SkippedSuccess(successMessage: String) extends Success
-
-  final case class ValueSuccess[T](value: T, typeBox: TypeBox[T]) extends Success {
-    def tpe: Type = typeBox.tpe
-
-    override def successMessage: String = s"Got $value"
-  }
-
-  trait Failure extends Result {
-    final def isSuccess: Boolean = false
-
-    final def isFailure: Boolean = true
-
-    def failureMessage: String
-
-    override def message: String = s"Failure! $failureMessage"
-  }
-
-  final case class SimpleFailure(failureMessage: String) extends Failure
-
-  final case class FailureFromThrowable(cause: Throwable) extends Failure {
-    override def failureMessage: String = cause.getMessage
-  }
-}

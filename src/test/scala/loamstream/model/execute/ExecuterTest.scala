@@ -5,7 +5,6 @@ import scala.concurrent.ExecutionContext
 import org.scalatest.FunSuite
 
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.TestJobs
 import loamstream.util.Hit

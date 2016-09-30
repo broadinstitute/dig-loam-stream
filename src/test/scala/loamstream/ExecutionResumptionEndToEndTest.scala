@@ -9,9 +9,7 @@ import loamstream.db.slick.TestDbDescriptors
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.execute.{JobFilter, RxExecuter}
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.{SimpleSuccess, SkippedSuccess}
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.commandline.CommandLineJob.CommandSuccess
 import loamstream.util.{Hit, Loggable, Sequence, Shot}
 import loamstream.model.jobs.JobState
 

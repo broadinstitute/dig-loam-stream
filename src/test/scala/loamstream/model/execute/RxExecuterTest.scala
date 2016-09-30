@@ -4,7 +4,6 @@ import loamstream.conf.UgerConfig
 import loamstream.model.execute.RxExecuter.AsyncLocalChunkRunner
 import loamstream.model.execute.RxExecuterTest.MockChunkRunner
 import loamstream.model.jobs.{LJob, RxMockJob}
-import loamstream.model.jobs.LJob.Result
 import loamstream.util.Loggable
 import org.scalatest.FunSuite
 

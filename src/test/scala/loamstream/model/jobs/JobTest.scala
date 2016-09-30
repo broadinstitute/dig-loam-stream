@@ -8,26 +8,6 @@ import org.scalatest.FunSuite
  */
 final class JobTest extends FunSuite with TestJobs {
   
-  test("Result.attempt() (something thrown)") {
-    val ex = new Exception("foo")
-    
-    val failure = LJob.Result.attempt {
-      throw ex 
-    }
-    
-    assert(failure == LJob.FailureFromThrowable(ex))
-    assert(failure.message == s"Failure! ${ex.getMessage}")
-  }
-  
-  test("Result.attempt() (nothing thrown)") {
-    val success = LJob.SimpleSuccess("yay")
-    val failure = LJob.SimpleFailure("foo")
-    
-    assert(LJob.Result.attempt(success) == success)
-    
-    assert(LJob.Result.attempt(failure) == failure)
-  }
-  
   /*
    * 2
    *  \

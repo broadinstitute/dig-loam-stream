@@ -1,9 +1,8 @@
 package loamstream.model.jobs
 
-import loamstream.model.jobs.LJob.Result
-import loamstream.util.EvalLaterBox
+import scala.concurrent.{ ExecutionContext, Future }
 
-import scala.concurrent.{ExecutionContext, Future}
+import loamstream.util.EvalLaterBox
 
 /** Job defined by Loam code */
 final case class NativeJob[T](

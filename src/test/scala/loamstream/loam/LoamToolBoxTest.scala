@@ -8,7 +8,6 @@ import loamstream.loam.LoamToolBoxTest.Results
 import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
 import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.commandline.CommandLineJob.CommandSuccess
 import loamstream.util.{Files, Hit, Shot}
 import org.scalatest.FunSuite
 

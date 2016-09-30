@@ -1,17 +1,11 @@
 package loamstream.model.execute
 
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 
 import ExecuterHelpers.toShotMap
-
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
-import loamstream.util.Maps
-import loamstream.util.Shot
 import loamstream.model.jobs.JobState
+import loamstream.model.jobs.LJob
+import loamstream.util.Shot
 
 /**
  * RugLoom - A prototype for a pipeline building toolkit

@@ -2,7 +2,6 @@ package loamstream.model.jobs
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import LJob.Result
 import loamstream.util.Sequence
 import loamstream.util.ValueBox
 

@@ -1,19 +1,19 @@
 package loamstream.model.execute
 
-import loamstream.model.execute.RxExecuter.Tracker
-import loamstream.model.jobs.{JobState, LJob, NoOpJob}
-import loamstream.model.jobs.JobState.NotStarted
-import loamstream.model.jobs.LJob._
-import loamstream.util._
-import rx.lang.scala.subjects.PublishSubject
-
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.concurrent.{ Await, ExecutionContext, Future, Promise }
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
-import scala.util.Try
-import scala.util.Success
-import loamstream.model.jobs.commandline.CommandLineJob
+
+import loamstream.model.execute.RxExecuter.Tracker
+import loamstream.model.jobs.{JobState, LJob, NoOpJob}
 import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobState.NotStarted
+import loamstream.util.Futures
+import loamstream.util.Loggable
+import loamstream.util.Maps
+import loamstream.util.Shot
+import loamstream.util.ValueBox
+import rx.lang.scala.subjects.PublishSubject
 
 /**
  * @author kaan

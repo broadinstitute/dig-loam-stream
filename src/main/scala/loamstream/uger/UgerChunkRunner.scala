@@ -7,8 +7,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import loamstream.model.execute.ChunkRunner
 import loamstream.model.jobs.{LJob, NoOpJob}
-import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.LJob.SimpleFailure
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.uger.JobStatus._
 import loamstream.util.Futures
@@ -118,13 +116,6 @@ object UgerChunkRunner extends Loggable {
   }
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
-
-  //TODO: Anything better; this was purely expedient
-  private[uger] def resultFrom(job: CommandLineJob)(status: JobStatus): LJob.Result = status match {
-    case JobStatus.CommandResult(exitStatus) => CommandLineJob.CommandFailure(job.commandLineString, exitStatus)
-    case status if status.isDone => LJob.SimpleSuccess(s"$job")
-    case _ => LJob.SimpleFailure(s"$job")
-  }
 
   private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Future[Map[LJob, JobState]] = {
     val failure = cause match {

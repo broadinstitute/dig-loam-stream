@@ -1,8 +1,5 @@
 package loamstream.model.jobs
 
-import loamstream.model.jobs.LJob.SimpleSuccess
-import loamstream.model.jobs.LJob.SimpleFailure
-
 /**
  * @author clint
  * date: Jun 2, 2016

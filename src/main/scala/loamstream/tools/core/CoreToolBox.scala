@@ -7,7 +7,6 @@ import scala.concurrent.{ ExecutionContext, Future }
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.Tool
 import loamstream.model.jobs.{LJob, LToolBox}
-import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.jobs.Output
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.commandline.CommandLineBuilderJob
@@ -23,10 +22,6 @@ import scala.util.control.NonFatal
  * Created by oliverr on 2/23/2016.
  */
 object CoreToolBox extends LToolBox {
-
-  final case class FileExists(path: Path) extends LJob.Success {
-    override def successMessage: String = s"'$path' exists"
-  }
 
   trait CheckPreexistingFileJob extends LJob {
     def file: Path

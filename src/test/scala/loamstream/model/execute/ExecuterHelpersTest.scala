@@ -4,9 +4,7 @@ import org.scalatest.FunSuite
 import scala.concurrent.Await
 import loamstream.model.jobs.TestJobs
 import scala.concurrent.duration.Duration
-import loamstream.model.jobs.LJob.SimpleFailure
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.JobState
 
 /**

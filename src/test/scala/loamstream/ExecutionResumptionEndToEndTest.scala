@@ -12,6 +12,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.{Hit, Loggable, Sequence, Shot}
 import loamstream.model.jobs.JobState
+import loamstream.model.execute.DbBackedJobFilter
 
 /**
  * @author kaan
@@ -19,9 +20,7 @@ import loamstream.model.jobs.JobState
  */
 final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickLoamDao with Loggable {
 
-  override val descriptor = TestDbDescriptors.inMemoryH2
-
-  private val resumptiveExecuter = RxExecuter.defaultWith(new JobFilter.DbBackedJobFilter(dao))
+  private val resumptiveExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
 
   test("Jobs are skipped if their outputs were already produced by a previous run") {
     // scalastyle:off no.whitespace.before.left.bracket

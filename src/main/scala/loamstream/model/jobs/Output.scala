@@ -47,13 +47,6 @@ object Output {
     
     final override def isPresent: Boolean = Files.exists(path)
     
-    /*override def hashCode: Int = path.hashCode
-    
-    override def equals(other: Any): Boolean = other match {
-      case that: PathBased => this.path.toAbsolutePath == that.path.toAbsolutePath
-      case _ => false
-    }*/
-    
     final def toCachedOutput: CachedOutput = this match {
       case co: CachedOutput => co
       case _ => CachedOutput(path, hash, lastModified)

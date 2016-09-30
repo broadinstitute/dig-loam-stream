@@ -105,15 +105,19 @@ final case class RxExecuter(runner: ChunkRunner,
       for {
         newResultMap <- runner.run(jobs)(executionContext)
       } yield {
-        import Maps.Implicits._
-        
-        result.mutate(_ ++ newResultMap)
-        
-        val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
-        
-        jobFilter.record(executions)
+        recordChunkExecution(newResultMap)
       }
     }
+  }
+  
+  private def recordChunkExecution(newResultMap: Map[LJob, JobState]): Unit = {
+    import Maps.Implicits._
+        
+    result.mutate(_ ++ newResultMap)
+        
+    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
+        
+    jobFilter.record(executions)
   }
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[JobState]] = {
@@ -149,7 +153,7 @@ final case class RxExecuter(runner: ChunkRunner,
     doExecuteIter()
 
     // Block the main thread until all jobs are done
-    Await.result(everythingIsDoneFuture, Duration.Inf)
+    Futures.waitFor(everythingIsDoneFuture)
 
     info("All jobs are done")
     

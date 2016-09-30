@@ -20,8 +20,6 @@ import loamstream.model.jobs.JobState.CommandResult
  */
 final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
   
-  override val descriptor = TestDbDescriptors.inMemoryH2
-  
   private val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
   private val path1 = Paths.get("src/test/resources/for-hashing/bigger")
   private val path2 = Paths.get("src/test/resources/for-hashing/empty.txt")

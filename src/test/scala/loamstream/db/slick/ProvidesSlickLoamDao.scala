@@ -13,7 +13,7 @@ import loamstream.model.jobs.Execution
  * date: Aug 12, 2016
  */
 trait ProvidesSlickLoamDao {
-  def descriptor: DbDescriptor
+  protected val descriptor: DbDescriptor = TestDbDescriptors.inMemoryH2
   
   protected lazy val dao = new SlickLoamDao(descriptor)
   

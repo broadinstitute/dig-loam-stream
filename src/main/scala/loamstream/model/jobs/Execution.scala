@@ -11,4 +11,6 @@ final case class Execution(exitState: JobState, outputs: Set[Output]) {
     case JobState.CommandResult(_) => true
     case _ => false
   }
+  
+  def withOutputs(newOutputs: Set[Output]): Execution = copy(outputs = newOutputs)
 }

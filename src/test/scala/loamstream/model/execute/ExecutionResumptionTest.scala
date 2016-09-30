@@ -4,24 +4,24 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 
 import org.scalatest.FunSuite
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.db.slick.TestDbDescriptors
 import loamstream.db.slick.ProvidesSlickLoamDao
+import loamstream.db.slick.TestDbDescriptors
 import loamstream.loam.LoamToolBox
 import loamstream.loam.ast.LoamGraphAstMapper
+import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.Output
 import loamstream.util.Hashes
 import loamstream.util.PathEnrichments
 import loamstream.util.Sequence
-import loamstream.model.jobs.MockJob
-import scala.concurrent.Future
-import loamstream.model.jobs.Execution
 
 /**
  * @author clint
@@ -30,11 +30,9 @@ import loamstream.model.jobs.Execution
  */
 final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
 
-  override val descriptor = TestDbDescriptors.inMemoryH2
-
   private def runsEverythingExecuter = RxExecuter.default
   
-  private def dbBackedExecuter = RxExecuter.defaultWith(new JobFilter.DbBackedJobFilter(dao))
+  private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
   
   private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
     val e = Execution(JobState.CommandResult(exitStatus), Set(cachedOutput(p, Hashes.sha1(p))))
@@ -129,6 +127,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   private def doTest(expectations: Seq[JobState])(setup: (Path, Path, Path, Path) => Any): Unit = {
     
     def doTestWithExecuter(executer: RxExecuter): Unit = {
+      import java.nio.file.{ Files => JFiles }
       import PathEnrichments._
       val workDir = makeWorkDir()
   
@@ -138,8 +137,6 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       val f1 = workDir / "fileOut1.txt"
       val f2 = workDir / "fileOut2.txt"
       val f3 = workDir / "fileOut3.txt"
-  
-      import java.nio.file.{ Files => JFiles }
   
       val startToF1 = mockJob(s"cp $start $f1", Set(Output.PathOutput(f1))) {
         JFiles.copy(start, f1)

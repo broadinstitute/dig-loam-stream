@@ -10,6 +10,8 @@ import loamstream.util.TypeBox
 final class JobStateTest extends FunSuite {
   import JobState._
   
+  //scalastyle:off magic.number
+  
   test("isSuccess") {
     assert(NotStarted.isSuccess === false)
     assert(Running.isSuccess === false)
@@ -24,9 +26,9 @@ final class JobStateTest extends FunSuite {
     assert(CommandResult(-1).isSuccess === false)
     assert(CommandResult(42).isSuccess === false)
 
-    assert(FailedWithException(new Exception).isSuccess == false)
+    assert(FailedWithException(new Exception).isSuccess === false)
   
-    assert(ValueSuccess(42, TypeBox.of[Int]).isSuccess == true)
+    assert(ValueSuccess(42, TypeBox.of[Int]).isSuccess === true)
   }
   
   test("isFailure") {
@@ -43,9 +45,9 @@ final class JobStateTest extends FunSuite {
     assert(CommandResult(-1).isFailure === true)
     assert(CommandResult(42).isFailure === true)
 
-    assert(FailedWithException(new Exception).isFailure == true)
+    assert(FailedWithException(new Exception).isFailure === true)
   
-    assert(ValueSuccess(42, TypeBox.of[Int]).isFailure == false)
+    assert(ValueSuccess(42, TypeBox.of[Int]).isFailure === false)
   }
   
   test("isFinished") {
@@ -62,8 +64,10 @@ final class JobStateTest extends FunSuite {
     assert(CommandResult(-1).isFinished === true)
     assert(CommandResult(42).isFinished === true)
 
-    assert(FailedWithException(new Exception).isFinished == true)
+    assert(FailedWithException(new Exception).isFinished === true)
   
-    assert(ValueSuccess(42, TypeBox.of[Int]).isFinished == true)
+    assert(ValueSuccess(42, TypeBox.of[Int]).isFinished === true)
   }
+  
+  //scalastyle:on magic.number
 }

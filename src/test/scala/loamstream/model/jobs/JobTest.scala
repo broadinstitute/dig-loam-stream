@@ -25,6 +25,6 @@ final class JobTest extends FunSuite with TestJobs {
     assert(root.state == JobState.NotStarted)
     
     assert(dep.isRunnable)
-    assert(root.isRunnable == false)
+    assert(root.isRunnable === false)
   }
 }

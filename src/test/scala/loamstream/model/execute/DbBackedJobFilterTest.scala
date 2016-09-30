@@ -16,6 +16,8 @@ import loamstream.db.slick.Helpers
 final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
   //TODO: MORE
   
+  //scalastyle:off magic.number
+  
   private val p0 = Paths.get("src/test/resources/for-hashing/foo.txt")
   private val p1 = Paths.get("src/test/resources/for-hashing/empty.txt")
   private val p2 = Paths.get("src/test/resources/for-hashing/subdir/bar.txt")
@@ -166,4 +168,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
       assert(cache === Map.empty)
     }
   }
+  
+  //scalastyle:on magic.number
 }

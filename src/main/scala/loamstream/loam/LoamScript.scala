@@ -55,6 +55,15 @@ object LoamScript {
     def graph: LoamGraph = loamContext.graphBox.value
   }
 
+  /** A ref to LoamPredef to make sure it is loaded before using reflection compiler which might fail otherwise */
+  val loamPredefOnlyHereToMakeSureItIsLoadedBeforeReflectGlobalIsCalled : LoamPredef.type = LoamPredef
+
+  /** A ref to LoamCmdTool to make sure it is loaded before using reflection compiler which might fail otherwise */
+  val loamCmdToolOnlyHereToMakeSureItIsLoadedBeforeReflectGlobalIsCalled : LoamCmdTool.type = LoamCmdTool
+
+  /** A ref to PathEnrichments to make sure it is loaded before using reflection compiler which might fail else */
+  val pathEnrichmentsOnlyHereToMakeSureItIsLoadedBeforeReflectGlobalIsCalled : PathEnrichments.type = PathEnrichments
+
 }
 
 /** A named Loam script */

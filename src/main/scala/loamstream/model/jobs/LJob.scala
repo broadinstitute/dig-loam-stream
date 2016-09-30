@@ -2,7 +2,6 @@ package loamstream.model.jobs
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-import loamstream.util.DagHelpers
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
@@ -12,7 +11,7 @@ import rx.lang.scala.subjects.PublishSubject
  * LoamStream
  * Created by oliverr on 12/23/2015.
  */
-trait LJob extends Loggable with DagHelpers[LJob] {
+trait LJob extends Loggable {
   def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
     val indentString = s"${"-" * indent} >"
 
@@ -102,13 +101,6 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   final def withInputs(newInputs: Set[LJob]): LJob = {
     if (inputs eq newInputs) { this }
     else { doWithInputs(newInputs) }
-  }
-
-  final override def isLeaf: Boolean = inputs.isEmpty
-
-  final override def leaves: Set[LJob] = {
-    if (isLeaf) { Set(this) }
-    else { inputs.flatMap(_.leaves) }
   }
 }
 

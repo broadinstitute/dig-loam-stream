@@ -123,7 +123,10 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
   val scalaCompilerSettings = new ScalaCompilerSettings
   scalaCompilerSettings.outputDirs.setSingleOutput(targetDirectory)
   val reporter = new CompilerReporter(outMessageSink)
-  val compiler = new ReflectGlobal(scalaCompilerSettings, reporter, getClass.getClassLoader)
+  val compiler = {
+    info(s"Making sure singletons used for Loam are loaded: ${LoamScript.makeSureNeededSingletonsAreLoaded}")
+    new ReflectGlobal(scalaCompilerSettings, reporter, getClass.getClassLoader)
+  }
 
   def soManyIssues: String = {
     val soManyErrors = StringUtils.soMany(reporter.errorCount, "error")

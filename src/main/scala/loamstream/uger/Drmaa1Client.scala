@@ -9,11 +9,13 @@ import scala.util.Try
 import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.ExitTimeoutException
 import org.ggf.drmaa.JobTemplate
+import org.ggf.drmaa.NoActiveSessionException
 import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
 
 import loamstream.util.Loggable
 import loamstream.util.TimeEnrichments.time
+import loamstream.util.ValueBox
 
 /**
  * Created on: 5/19/16 
@@ -27,10 +29,18 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   import DrmaaClient._
 
   //NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
-  //use one Session per client to ensure that all operations performed by this instance use the same Session.
-  private[this] lazy val session: Session = {
+  //previously, we used one Session per client to ensure that all operations performed by this instance use the 
+  //same Session.  Now allow mutating the session variable to attempt to recover in case of NoActiveSessionException 
+  //hours into a run. :\
+  private[this] lazy val sessionBox: ValueBox[Session] = ValueBox(getNewSession)
+  
+  private def getNewSession: Session = {
+    info("Getting new DRMAA session")
+    
     val s = SessionFactory.getFactory.getSession
     
+    //NB: Passing an empty string (or null) means that "the default DRM system is used, provided there is only one 
+    //DRMAA implementation available" according to the DRMAA javadocs. (Whatever that means :\)
     s.init("")
     
     s
@@ -39,14 +49,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
-  override def shutdown(): Unit = {
-    try { session.exit() }
-    catch {
-      //NB: session.exit() will fail if an exception was thrown by session.init(), or if it is invoked more than
-      //once.  In those cases, there's not much we can do.
-      case e: DrmaaException => warn(s"Could not properly exit DRMAA Session due to ${e.getClass.getName}", e)
-    }
-  }
+  override def shutdown(): Unit = tryShuttingDown(sessionBox.value)
   
   /**
    * Synchronously obtain the status of one running UGER job, given its id.
@@ -55,13 +58,15 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
   override def statusOf(jobId: String): Try[JobStatus] = {
-    for {
-      status <- Try(session.getJobProgramStatus(jobId))
-      jobStatus = JobStatus.fromUgerStatusCode(status)
-    } yield {
-      info(s"Job '$jobId' has status $status, mapped to $jobStatus")
-      
-      jobStatus
+    withSession { session =>
+      for {
+        status <- Try(session.getJobProgramStatus(jobId))
+        jobStatus = JobStatus.fromUgerStatusCode(status)
+      } yield {
+        info(s"Job '$jobId' has status $status, mapped to $jobStatus")
+        
+        jobStatus
+      }
     }
   }
 
@@ -99,43 +104,76 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    *   JobStatus.Undetermined: The job completed, but none of the above applies.
    */
   override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
-    Try {
-      val jobInfo = session.wait(jobId, timeout.toSeconds)
+    withSession { session =>
+      Try {
+        doWait(session, jobId, timeout)
+      }.recoverWith {
+        case e: ExitTimeoutException => {
+          info(s"Timed out waiting for job '$jobId' to finish, checking its status")
+  
+          time(s"Job '$jobId': Calling Drmaa1Client.statusOf()", trace(_)) {
+            statusOf(jobId)
+          }
+        }
+      }
+    }
+  }
+  
+  private def doWait(session: Session, jobId: String, timeout: Duration): JobStatus = {
+    val jobInfo = session.wait(jobId, timeout.toSeconds)
+        
+    if (jobInfo.hasExited) {
+      info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
       
-      if (jobInfo.hasExited) {
-        info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
-        
-        //TODO: More flexibility?
-        jobInfo.getExitStatus match { 
-          case 0 => JobStatus.Done
-          case _ => JobStatus.Failed
-        }
-      } else if (jobInfo.wasAborted) {
-        info(s"Job '$jobId' was aborted; job info: $jobInfo")
-
-        //TODO: Add JobStatus.Aborted?
-        JobStatus.Failed
-      } else if (jobInfo.hasSignaled) {
-        info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
-
-        JobStatus.Failed
-      } else if (jobInfo.hasCoreDump) {
-        info(s"Job '$jobId' dumped core")
-        
-        JobStatus.Failed
-      } else {
-        info(s"Job '$jobId' finished with unknown status")
-
-        JobStatus.DoneUndetermined
+      //TODO: More flexibility?
+      jobInfo.getExitStatus match { 
+        case 0 => JobStatus.Done
+        case _ => JobStatus.Failed
       }
-    }.recoverWith {
-      case e: ExitTimeoutException => {
-        info(s"Timed out waiting for job '$jobId' to finish, checking its status")
+    } else if (jobInfo.wasAborted) {
+      info(s"Job '$jobId' was aborted; job info: $jobInfo")
 
-        time(s"Job '$jobId': Calling Drmaa1Client.statusOf()", trace(_)) {
-          statusOf(jobId)
-        }
-      }
+      //TODO: Add JobStatus.Aborted?
+      JobStatus.Failed
+    } else if (jobInfo.hasSignaled) {
+      info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
+
+      JobStatus.Failed
+    } else if (jobInfo.hasCoreDump) {
+      info(s"Job '$jobId' dumped core")
+      
+      JobStatus.Failed
+    } else {
+      info(s"Job '$jobId' finished with unknown status")
+
+      JobStatus.DoneUndetermined
+    }
+  }
+
+  private def tryShuttingDown(s: Session): Unit = {
+    try { s.exit() }
+    catch {
+      //NB: session.exit() will fail if an exception was thrown by session.init(), or if it is invoked more than
+      //once.  In those cases, there's not much we can do.
+      case e: DrmaaException => warn(s"Could not properly exit DRMAA Session due to ${e.getClass.getName}", e)
+    }
+  }
+  
+  private def withSession[A](f: Session => A): A = {
+    val currentSession = sessionBox.value
+    
+    try { f(currentSession) } 
+    catch {
+      case e: NoActiveSessionException =>
+        warn(s"Got ${e.getClass.getSimpleName}; attempting to continue with a new Session", e)
+        
+        tryShuttingDown(currentSession)
+        
+        val newSession = getNewSession
+        
+        sessionBox.mutate(_ => newSession)
+        
+        f(newSession)
     }
   }
   
@@ -144,13 +182,14 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
                      jobName: String,
                      numTasks: Int = 1): SubmissionResult = {
 
-    withJobTemplate(session) { jt =>
+    withJobTemplate { (session, jt) =>
       val taskStartIndex = 1
       val taskEndIndex = numTasks
       val taskIndexIncr = 1
 
       // TODO Make native specification controllable from Loam (DSL)
-      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=16g")
+      // Request 2g memory to reduce the odds of getting queued forever. 
+      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=2g")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")
@@ -163,17 +202,19 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }
   }
 
-  private def withJobTemplate[A <: SubmissionResult](session: Session)(f: JobTemplate => A): SubmissionResult = {
-    val jt = session.createJobTemplate
-    
-    try { f(jt) }
-    catch {
-      case e: DrmaaException => {
-        error(s"Error: ${e.getMessage}", e)
-        
-        SubmissionFailure(e)
+  private def withJobTemplate[A <: SubmissionResult](f: (Session, JobTemplate) => A): SubmissionResult = {
+    withSession { session =>
+      val jt = session.createJobTemplate
+      
+      try { f(session, jt) }
+      catch {
+        case e: DrmaaException => {
+          error(s"Error: ${e.getMessage}", e)
+          
+          SubmissionFailure(e)
+        }
       }
+      finally { session.deleteJobTemplate(jt) }
     }
-    finally { session.deleteJobTemplate(jt) }
   }
 }

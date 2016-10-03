@@ -123,9 +123,11 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
   val scalaCompilerSettings = new ScalaCompilerSettings
   scalaCompilerSettings.outputDirs.setSingleOutput(targetDirectory)
   val reporter = new CompilerReporter(outMessageSink)
-  val compiler = {
-    info(s"Making sure singletons used for Loam are loaded: ${LoamScript.makeSureNeededSingletonsAreLoaded}")
-    new ReflectGlobal(scalaCompilerSettings, reporter, getClass.getClassLoader)
+  val compileLock = new AnyRef
+  val compiler = compileLock.synchronized {
+    val classLoader = getClass.getClassLoader
+    LoamScript.namesOfNeededSingletons.foreach(classLoader.loadClass)
+    new ReflectGlobal(scalaCompilerSettings, reporter, classLoader)
   }
 
   def soManyIssues: String = {
@@ -171,7 +173,7 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
   def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(script))
 
   /** Compiles Loam script into execution plan */
-  def compile(project: LoamProject): LoamCompiler.Result = {
+  def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
     val graphBoxReceipt = LoamCompiler.graphBoxDepositBox.deposit(ValueBox(LoamGraph.empty))
     try {
       val sourceFiles = project.scripts.map({

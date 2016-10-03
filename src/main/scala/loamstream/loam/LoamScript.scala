@@ -4,8 +4,8 @@ import java.nio.file.{Files, Path}
 
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
-import loamstream.util.code.{ObjectId, PackageId, SourceUtils}
 import loamstream.util._
+import loamstream.util.code.{ObjectId, PackageId, SourceUtils}
 
 import scala.util.Try
 
@@ -55,8 +55,9 @@ object LoamScript {
     def graph: LoamGraph = loamContext.graphBox.value
   }
 
-  /** Forces class loader to load singletons used when converting Loam script to Scala */
-  def makeSureNeededSingletonsAreLoaded: Int = LoamPredef.## + LoamCmdTool.## + PathEnrichments.##
+  /** Names of singletons that need to be loaded */
+  def namesOfNeededSingletons: Set[String] = Set(SourceUtils.fullTypeName[LoamPredef.type],
+    SourceUtils.fullTypeName[LoamCmdTool.type], SourceUtils.fullTypeName[PathEnrichments.type])
 
 }
 

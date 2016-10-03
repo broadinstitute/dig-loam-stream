@@ -9,9 +9,9 @@ import org.scalatest.FunSuite
   */
 final class LoamCompilerMultiFileTest extends FunSuite {
   def assertCompiledFine(results: LoamCompiler.Result, nStores: Int, nTools: Int): Unit = {
-    assert(results.isSuccess)
-    assert(results.isClean)
-    assert(results.contextOpt.nonEmpty)
+    assert(results.isSuccess, results.report)
+    assert(results.isClean, results.report)
+    assert(results.contextOpt.nonEmpty, results.report)
     val graph = results.contextOpt.get.graph
     assert(graph.stores.size === nStores)
     assert(graph.tools.size === nTools)

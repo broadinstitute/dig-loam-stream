@@ -1,9 +1,11 @@
 package loamstream.uger
 
+import loamstream.util.Loggable
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
-import scala.util.Try
-import org.ggf.drmaa.InvalidJobException
+import scala.util.{Failure, Try}
+import org.ggf.drmaa.{DrmaaException, InvalidJobException}
 
 /**
  * @author clint
@@ -20,12 +22,16 @@ trait Poller {
 
 object Poller {
   
-  final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller {
+  final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller with Loggable {
     override def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]] = {
       
       def statusAttempt(jobId: String): Try[JobStatus] = {
         client.statusOf(jobId).recoverWith {
           case e: InvalidJobException => client.waitFor(jobId, Duration.Zero)
+          case e: DrmaaException => {
+            warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
+            Failure(e)
+          }
         }
       }
       

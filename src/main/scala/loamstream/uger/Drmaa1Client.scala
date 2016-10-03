@@ -4,21 +4,20 @@ import java.nio.file.Path
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
-import scala.util.Try
-
+import scala.util.{Failure, Try}
 import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.ExitTimeoutException
 import org.ggf.drmaa.JobTemplate
 import org.ggf.drmaa.NoActiveSessionException
 import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
-
 import loamstream.util.Loggable
 import loamstream.util.TimeEnrichments.time
 import loamstream.util.ValueBox
 
 /**
- * Created on: 5/19/16 
+ * Created on: 5/19/16
+ *
  * @author Kaan Yuksel 
  * @author clint
  * 
@@ -38,7 +37,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     info("Getting new DRMAA session")
     
     val s = SessionFactory.getFactory.getSession
-    
+
+    debug(s"\tVersion: ${s.getVersion}")
+    debug(s"\tDrmSystem: ${s.getDrmSystem}")
+    debug(s"\tDrmaaImplementation: ${s.getDrmaaImplementation}")
+
     //NB: Passing an empty string (or null) means that "the default DRM system is used, provided there is only one 
     //DRMAA implementation available" according to the DRMAA javadocs. (Whatever that means :\)
     s.init("")
@@ -53,6 +56,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   /**
    * Synchronously obtain the status of one running UGER job, given its id.
+   *
    * @param jobId the id of the job to get the status of
    * @return Success wrapping the JobStatus corresponding to the code obtained from UGER,
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
@@ -72,6 +76,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
   /**
    * Synchronously submit a job, in the form of a UGER wrapper shell script.
+   *
    * @param pathToScript the wrapper script to submit
    * @param pathToUgerOutput a path pointing to the desired location of log output from UGER
    * @param jobName a descriptive, human-readable name for the submitted work
@@ -111,9 +116,13 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         case e: ExitTimeoutException => {
           info(s"Timed out waiting for job '$jobId' to finish, checking its status")
   
-          time(s"Job '$jobId': Calling Drmaa1Client.statusOf()", trace(_)) {
+          time(s"Job '$jobId': Calling Drmaa1Client.statusOf()", debug(_)) {
             statusOf(jobId)
           }
+        }
+        case e: DrmaaException => {
+          warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
+          Failure(e)
         }
       }
     }
@@ -166,13 +175,13 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     catch {
       case e: NoActiveSessionException =>
         warn(s"Got ${e.getClass.getSimpleName}; attempting to continue with a new Session", e)
-        
+
         tryShuttingDown(currentSession)
-        
+
         val newSession = getNewSession
-        
+
         sessionBox.mutate(_ => newSession)
-        
+
         f(newSession)
     }
   }

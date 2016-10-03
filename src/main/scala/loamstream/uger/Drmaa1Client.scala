@@ -4,15 +4,16 @@ import java.nio.file.Path
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
-import scala.util.{Failure, Try}
+import scala.util.Try
+
 import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.ExitTimeoutException
 import org.ggf.drmaa.JobTemplate
 import org.ggf.drmaa.NoActiveSessionException
 import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
+
 import loamstream.util.Loggable
-import loamstream.util.TimeEnrichments.time
 import loamstream.util.ValueBox
 
 /**
@@ -110,20 +111,15 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    */
   override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
     withSession { session =>
-      Try {
+      val waitAttempt = Try {
         doWait(session, jobId, timeout)
-      }.recoverWith {
-        case e: ExitTimeoutException => {
-          info(s"Timed out waiting for job '$jobId' to finish, checking its status")
-  
-          time(s"Job '$jobId': Calling Drmaa1Client.statusOf()", debug(_)) {
-            statusOf(jobId)
-          }
-        }
-        case e: DrmaaException => {
-          warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
-          Failure(e)
-        }
+      }
+      
+      //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
+      waitAttempt.recover { case e: ExitTimeoutException => 
+        debug(s"Timed out waiting for job '$jobId' to finish")
+        
+        JobStatus.Running
       }
     }
   }

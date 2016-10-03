@@ -3,6 +3,8 @@ package loamstream.util.code
 import javax.lang.model.SourceVersion
 
 import scala.reflect.NameTransformer
+import scala.reflect.runtime.universe.{Symbol, Type, TypeTag, typeOf}
+
 
 /** A Scala identifier */
 sealed trait ScalaId {
@@ -25,6 +27,11 @@ sealed trait ScalaId {
   /** Some(parent) if it has a parent, None otherwise */
   def parentOpt: Option[ScalaId]
 
+  /** Create TypeId that is child of this ScalaId */
+  def getType(name: String): TypeId
+
+  /** Create ObjectId that is child of this ScalaId */
+  def getObject(name: String): ObjectId
 }
 
 /** A Scala identifier */
@@ -41,6 +48,28 @@ object ScalaId {
     name
   }
 
+  /** Returns ScalaId of this type parameter */
+  def from[T: TypeTag]: ScalaId = from(typeOf[T])
+
+  /** Returns ScalaId of this type */
+  def from(tpe: Type): ScalaId = from(tpe.typeSymbol)
+
+  /** Returns ScalaId of this symbol */
+  def from(symbol: Symbol): ScalaId = {
+    if (PackageId.isRootPackage(symbol)) {
+      RootPackageId
+    } else if (symbol.isPackage) {
+      val parentPackageId = PackageId.from(symbol.owner)
+      parentPackageId.getPackage(symbol.name.toString)
+    } else {
+      val parentId = from(symbol.owner)
+      if (symbol.isType) {
+        parentId.getType(symbol.name.toString)
+      } else {
+        parentId.getObject(symbol.name.toString)
+      }
+    }
+  }
 }
 
 /** A Scala identifier specifying a package */
@@ -59,18 +88,35 @@ object PackageId {
 
   /** Returns sub-level package id composed of given names */
   def apply(parts: Seq[String]): PackageId =
-    if (parts.isEmpty) {
+  if (parts.isEmpty) {
+    RootPackageId
+  } else if (parts.size == 1) {
+    TopLevelPackageId(parts.last)
+  } else {
+    SubLevelPackageId(PackageId(parts.dropRight(1)), parts.last)
+  }
+
+  /** Whether this symbol represents the root package */
+  def isRootPackage(symbol: Symbol): Boolean = symbol.fullName.toString == symbol.owner.fullName.toString
+
+  /** Returns PackageId of this Symbol */
+  def from(symbol: Symbol): PackageId = {
+    if (isRootPackage(symbol)) {
       RootPackageId
-    } else if (parts.size == 1) {
-      TopLevelPackageId(parts.last)
     } else {
-      SubLevelPackageId(PackageId(parts.dropRight(1)), parts.last)
+      val parentId = from(symbol.owner)
+      parentId.getPackage(symbol.name.toString)
     }
+  }
+
 }
 
 /** A package id */
 sealed trait PackageId extends ScalaId {
   def inJvm: String = NameTransformer.encode(name)
+
+  /** Create ChildIdPackageId that is child of this ScalaId */
+  def getPackage(name: String): ChildIdPackageId
 }
 
 /** An id other than root package, having a parent */
@@ -79,6 +125,12 @@ sealed trait ChildId extends ScalaId {
   def parent: ScalaId
 
   def parentOpt: Some[ScalaId] = Some(parent)
+
+  /** Create SubLeveTypeId that is child of this ScalaId */
+  def getType(name: String): SubLevelTypeId = SubLevelTypeId(this, name)
+
+  /** Create SubLeveObjectId that is child of this ScalaId */
+  def getObject(name: String): SubLevelObjectId = SubLevelObjectId(this, name)
 }
 
 /** The root package id */
@@ -94,6 +146,15 @@ object RootPackageId extends PackageId {
   override val inJvmFull: String = "_root_"
 
   override val parentOpt: None.type = None
+
+  /** Create TopLevelPackageId that is child of this ScalaId */
+  override def getPackage(name: String): TopLevelPackageId = TopLevelPackageId(name)
+
+  /** Create TypeId that is child of this ScalaId */
+  override def getType(name: String): TopLevelTypeId = TopLevelTypeId(name)
+
+  /** Create ObjectId that is child of this ScalaId */
+  override def getObject(name: String): TopLevelObjectId = TopLevelObjectId(name)
 }
 
 /** A top level id, i.e. whose parent is the root package */
@@ -114,7 +175,16 @@ trait SubLevel extends ChildId {
 }
 
 /** A package id that is not the root package */
-trait ChildIdPackageId extends PackageId with ChildId
+trait ChildIdPackageId extends PackageId with ChildId {
+  /** Create SubLevelPackageId that is child of this ChildIdPackageId */
+  override def getPackage(name: String): SubLevelPackageId = SubLevelPackageId(this, name)
+
+  /** Create SubLeveTypeId that is child of this ScalaId */
+  override def getType(name: String): SubLevelTypeId = SubLevelTypeId(this, name)
+
+  /** Create SubLeveObjectId that is child of this ScalaId */
+  override def getObject(name: String): SubLevelObjectId = SubLevelObjectId(this, name)
+}
 
 /** A package id whose parent is the root package */
 case class TopLevelPackageId(name: String) extends ChildIdPackageId with TopLevel
@@ -135,11 +205,11 @@ object TypeId {
 
   /** Returns a sub-level class or trait id composed of these parts  */
   def apply(parts: Seq[String]): TypeId =
-    if (parts.size == 1) {
-      TopLevelTypeId(parts.last)
-    } else {
-      SubLevelTypeId(PackageId(parts.dropRight(1)), parts.last)
-    }
+  if (parts.size == 1) {
+    TopLevelTypeId(parts.last)
+  } else {
+    SubLevelTypeId(PackageId(parts.dropRight(1)), parts.last)
+  }
 }
 
 /** A class or trait id */
@@ -160,11 +230,11 @@ object ObjectId {
 
   /** Returns a sub-level object id composed of these names */
   def apply(parts: Seq[String]): ObjectId =
-    if (parts.size == 1) {
-      TopLevelObjectId(parts.last)
-    } else {
-      SubLevelObjectId(PackageId(parts.dropRight(1)), parts.last)
-    }
+  if (parts.size == 1) {
+    TopLevelObjectId(parts.last)
+  } else {
+    SubLevelObjectId(PackageId(parts.dropRight(1)), parts.last)
+  }
 }
 
 /** An object id */

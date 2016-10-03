@@ -4,6 +4,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 import scala.util.Try
 import org.ggf.drmaa.InvalidJobException
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -20,10 +21,16 @@ trait Poller {
 
 object Poller {
   
-  final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller {
+  final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller with Loggable {
     override def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]] = {
       
-      def statusAttempt(jobId: String): Try[JobStatus] = client.waitFor(jobId, Duration.Zero)
+      def statusAttempt(jobId: String): Try[JobStatus] = {
+        client.statusOf(jobId).recoverWith { case e: InvalidJobException =>
+          warn(s"Job '$jobId': Got an ${e.getClass.getSimpleName} when calling statusOf(); trying waitFor()", e)
+          
+          client.waitFor(jobId, Duration.Zero)
+        }
+      }
       
       val pollResults = jobIds.map { jobId =>
         jobId -> statusAttempt(jobId)

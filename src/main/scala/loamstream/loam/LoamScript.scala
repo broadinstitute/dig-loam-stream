@@ -56,8 +56,15 @@ object LoamScript {
   }
 
   /** Names of singletons that need to be loaded */
-  def namesOfNeededSingletons: Set[String] = Set(SourceUtils.fullTypeName[LoamPredef.type],
-    SourceUtils.fullTypeName[LoamCmdTool.type], SourceUtils.fullTypeName[PathEnrichments.type])
+  val namesOfNeededSingletons: Set[String] =
+  Set(SourceUtils.fullTypeName[LoamPredef.type] + "$",
+    SourceUtils.fullTypeName[LoamPredef.type] + "$VCF",
+    SourceUtils.fullTypeName[LoamPredef.type] + "$TXT",
+    SourceUtils.fullTypeName[LoamCmdTool.type] + "$",
+    SourceUtils.fullTypeName[LoamCmdTool.type] + "$StringContextWithCmd",
+    SourceUtils.fullTypeName[PathEnrichments.type] + "$",
+    SourceUtils.fullTypeName[PathEnrichments.type] + "$PathHelpers",
+    SourceUtils.fullTypeName[PathEnrichments.type] + "$PathAttemptHelpers")
 
 }
 

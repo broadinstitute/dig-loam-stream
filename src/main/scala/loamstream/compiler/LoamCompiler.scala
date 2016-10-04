@@ -16,7 +16,7 @@ import scala.tools.nsc.{Settings => ScalaCompilerSettings}
 import scala.tools.reflect.ReflectGlobal
 
 /** The compiler compiling Loam scripts into execution plans */
-object LoamCompiler {
+object LoamCompiler extends Loggable {
 
   object Settings {
     val default: Settings = Settings(logCode = false, logCodeOnError = true)
@@ -103,6 +103,9 @@ object LoamCompiler {
 
   val graphBoxDepositBox: DepositBox[ValueBox[LoamGraph]] = DepositBox.empty
 
+  def withLogging(settings: LoamCompiler.Settings = LoamCompiler.Settings.default): LoamCompiler =
+    LoamCompiler(settings, OutMessageSink.LoggableOutMessageSink(this))
+
   def apply(settings: Settings): LoamCompiler = new LoamCompiler(settings)
 
   def apply(outMessageSink: OutMessageSink): LoamCompiler =
@@ -125,7 +128,7 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
   val reporter = new CompilerReporter(outMessageSink)
   val compileLock = new AnyRef
   val compiler = compileLock.synchronized {
-    val classLoader = getClass.getClassLoader
+    val classLoader = new LoamClassLoader(getClass.getClassLoader)
     LoamScript.namesOfNeededSingletons.foreach(classLoader.loadClass)
     new ReflectGlobal(scalaCompilerSettings, reporter, classLoader)
   }

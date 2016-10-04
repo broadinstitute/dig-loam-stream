@@ -28,6 +28,8 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     assert(cmdTool.tokens.head.toString() === "echo Hello the answer is 42")
   }
 
+  def createNewCompiler: LoamCompiler = new LoamCompiler
+
   val scriptValues = LoamScript("values",
     """
       |val greeting = "Hello"
@@ -40,7 +42,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         |cmd"echo ${values.greeting} the answer is ${values.answer}"
       """.stripMargin)
     val project = LoamProject(scriptValues, scriptIndividualImport)
-    val compiler = new LoamCompiler
+    val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
@@ -53,7 +55,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         |cmd"echo $greeting the answer is $answer"
       """.stripMargin)
     val project = LoamProject(scriptValues, scriptIndividualImport)
-    val compiler = new LoamCompiler
+    val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
@@ -66,7 +68,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         |cmd"echo $casualGreeting the answer is $answerToTheGreatQuestion"
       """.stripMargin)
     val project = LoamProject(scriptValues, scriptIndividualImport)
-    val compiler = new LoamCompiler
+    val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
@@ -79,7 +81,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         |cmd"echo $greeting the answer is $answer"
       """.stripMargin)
     val project = LoamProject(scriptValues, scriptWildcardImport)
-    val compiler = new LoamCompiler
+    val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
@@ -104,7 +106,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
           |cmd"echo $copyOfGreeting the answer is $copyOfAnswer"
         """.stripMargin))
     val project = LoamProject(scripts)
-    val compiler = new LoamCompiler
+    val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)

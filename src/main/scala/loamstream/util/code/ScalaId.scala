@@ -27,14 +27,20 @@ sealed trait ScalaId {
     * so no extra dollar */
   def inJvmFull: String
 
+  /** Prefix to get the full name of a child id of this id in Scala */
+  def childPrefixInScala: String
+
+  /** Prefix to get the full name of a child id of this id in the JVM */
+  def childPrefixInJvm: String
+
   /** Some(parent) if it has a parent, None otherwise */
   def parentOpt: Option[ScalaId]
 
   /** Create TypeId that is child of this ScalaId */
-  def getType(name: String): TypeId
+  def getType(name: String): TypeId = TypeId(this, name)
 
   /** Create ObjectId that is child of this ScalaId */
-  def getObject(name: String): ObjectId
+  def getObject(name: String): ObjectId = ObjectId(this, name)
 }
 
 /** A Scala identifier */
@@ -81,22 +87,22 @@ object PackageId {
   def apply(): RootPackageId.type = RootPackageId
 
   /** Returns top-level package id of that name */
-  def apply(name: String): TopLevelPackageId = TopLevelPackageId(name)
+  def apply(name: String): ChildPackageId = ChildPackageId(name)
 
   /** Returns sub-level package id of that parent and name */
-  def apply(parent: ChildPackageId, name: String): SubLevelPackageId = SubLevelPackageId(parent, name)
+  def apply(parent: ChildPackageId, name: String): ChildPackageId = ChildPackageId(parent, name)
 
   /** Returns sub-level package id composed of given names */
-  def apply(part: String, parts: String*): SubLevelPackageId = PackageId(part +: parts).asInstanceOf[SubLevelPackageId]
+  def apply(part: String, parts: String*): ChildPackageId = PackageId(part +: parts).asInstanceOf[ChildPackageId]
 
   /** Returns sub-level package id composed of given names */
   def apply(parts: Seq[String]): PackageId =
   if (parts.isEmpty) {
     RootPackageId
   } else if (parts.size == 1) {
-    TopLevelPackageId(parts.last)
+    ChildPackageId(parts.last)
   } else {
-    SubLevelPackageId(PackageId(parts.dropRight(1)), parts.last)
+    ChildPackageId(PackageId(parts.dropRight(1)), parts.last)
   }
 
   /** Whether this symbol represents the root package */
@@ -129,11 +135,11 @@ sealed trait ChildId extends ScalaId {
 
   def parentOpt: Some[ScalaId] = Some(parent)
 
-  /** Create SubLeveTypeId that is child of this ScalaId */
-  def getType(name: String): SubLevelTypeId = SubLevelTypeId(this, name)
+  override def childPrefixInScala: String = s"$inScalaFull."
 
-  /** Create SubLeveObjectId that is child of this ScalaId */
-  def getObject(name: String): SubLevelObjectId = SubLevelObjectId(this, name)
+  override def inScalaFull: String = s"${parent.childPrefixInScala}$inScala"
+
+  override def inJvmFull: String = s"${parent.childPrefixInJvm}$inJvm"
 }
 
 /** The root package id */
@@ -151,114 +157,77 @@ object RootPackageId extends PackageId with ScalaId {
   override val parentOpt: None.type = None
 
   /** Create TopLevelPackageId that is child of this ScalaId */
-  override def getPackage(name: String): TopLevelPackageId = TopLevelPackageId(name)
+  override def getPackage(name: String): ChildPackageId = ChildPackageId(name)
 
-  /** Create TypeId that is child of this ScalaId */
-  override def getType(name: String): TopLevelTypeId = TopLevelTypeId(name)
+  override def childPrefixInScala: String = ""
 
-  /** Create ObjectId that is child of this ScalaId */
-  override def getObject(name: String): TopLevelObjectId = TopLevelObjectId(name)
-}
-
-/** A top level id, i.e. whose parent is the root package */
-trait TopLevel extends ChildId {
-  def parent: RootPackageId.type = RootPackageId
-
-  override def inScalaFull: String = inScala
-
-  override def inJvmFull: String = inJvm
-
-}
-
-/** A sub-level id, i.e. whose parent is not the root package */
-trait SubLevel extends ChildId {
-  override def inScalaFull: String = s"${parent.inScalaFull}.$inScala"
-
-  override def inJvmFull: String = parent match {
-    case packageId: PackageId => s"${parent.inJvmFull}.$inJvm"
-    case typeId: TypeId => s"${parent.inJvmFull}$$$inJvm"
-    case objectIdId: ObjectId => s"${parent.inJvmFull}$inJvm"
-  }
+  override def childPrefixInJvm: String = ""
 }
 
 /** A package id that is not the root package */
-trait ChildPackageId extends PackageId with ChildId {
-  /** Create SubLevelPackageId that is child of this ChildIdPackageId */
-  override def getPackage(name: String): SubLevelPackageId = SubLevelPackageId(this, name)
-
-  /** Create SubLeveTypeId that is child of this ScalaId */
-  override def getType(name: String): SubLevelTypeId = SubLevelTypeId(this, name)
-
-  /** Create SubLeveObjectId that is child of this ScalaId */
-  override def getObject(name: String): SubLevelObjectId = SubLevelObjectId(this, name)
+object ChildPackageId {
+  def apply(name: String): ChildPackageId = ChildPackageId(RootPackageId, name)
 }
 
-/** A package id whose parent is the root package */
-case class TopLevelPackageId(name: String) extends ChildPackageId with TopLevel
+/** A package id that is not the root package */
+case class ChildPackageId(parent: PackageId, name: String) extends PackageId with ChildId {
+  /** Create SubLevelPackageId that is child of this ChildIdPackageId */
+  override def getPackage(name: String): ChildPackageId = ChildPackageId(this, name)
 
-/** A package id whose parent is not the root package */
-case class SubLevelPackageId(parent: PackageId, name: String) extends ChildPackageId with SubLevel
+  override def childPrefixInJvm: String = s"$inJvmFull."
+}
 
 /** A class or trait id */
 object TypeId {
   /** Returns a top level class or trait id of that name */
-  def apply(name: String): TopLevelTypeId = TopLevelTypeId(name)
+  def apply(name: String): TypeId = TypeId(RootPackageId, name)
 
   /** Returns a sub-level class or trait id with that parent and name */
-  def apply(parent: ChildPackageId, name: String): SubLevelTypeId = SubLevelTypeId(parent, name)
+  def apply(parent: ChildPackageId, name: String): TypeId = TypeId(parent, name)
 
   /** Returns a sub-level class or trait id composed of these parts  */
-  def apply(part: String, parts: String*): SubLevelTypeId = TypeId(part +: parts).asInstanceOf[SubLevelTypeId]
+  def apply(part: String, parts: String*): TypeId = TypeId(part +: parts)
 
   /** Returns a sub-level class or trait id composed of these parts  */
   def apply(parts: Seq[String]): TypeId =
   if (parts.size == 1) {
-    TopLevelTypeId(parts.last)
+    TypeId(parts.last)
   } else {
-    SubLevelTypeId(PackageId(parts.dropRight(1)), parts.last)
+    TypeId(PackageId(parts.dropRight(1)), parts.last)
   }
 }
 
 /** A class or trait id */
-trait TypeId extends ChildId with ScalaId {
+case class TypeId(parent: ScalaId, name: String) extends ChildId {
   def inJvm: String = NameTransformer.encode(name)
+
+  override def childPrefixInJvm: String = s"$inJvmFull$$"
 }
 
 /** An object id */
 object ObjectId {
   /** Returns a top-level object id of that name */
-  def apply(name: String): TopLevelObjectId = TopLevelObjectId(name)
+  def apply(name: String): ObjectId = ObjectId(RootPackageId, name)
 
   /** Returns a sub-level object id of that parent and name */
-  def apply(parent: ChildPackageId, name: String): SubLevelObjectId = SubLevelObjectId(parent, name)
+  def apply(parent: ChildPackageId, name: String): ObjectId = ObjectId(parent, name)
 
   /** Returns a sub-level object id composed of these names */
-  def apply(part: String, parts: String*): SubLevelObjectId = ObjectId(part +: parts).asInstanceOf[SubLevelObjectId]
+  def apply(part: String, parts: String*): ObjectId = ObjectId(part +: parts)
 
   /** Returns a sub-level object id composed of these names */
   def apply(parts: Seq[String]): ObjectId =
   if (parts.size == 1) {
-    TopLevelObjectId(parts.last)
+    ObjectId(parts.last)
   } else {
-    SubLevelObjectId(PackageId(parts.dropRight(1)), parts.last)
+    ObjectId(PackageId(parts.dropRight(1)), parts.last)
   }
 }
 
 /** An object id */
-trait ObjectId extends ChildId with ScalaId {
+case class ObjectId(parent: ScalaId, name: String) extends ChildId with ScalaId {
   def inJvm: String = NameTransformer.encode(name) + "$"
+
+  override def childPrefixInJvm: String = s"$inJvmFull"
 }
-
-/** A top-level class or trait id, i.e. whose parent is the root package */
-case class TopLevelTypeId(name: String) extends TypeId with TopLevel
-
-/** A sub-level class or trait id, i.e. whose parent is not the root package */
-case class SubLevelTypeId(parent: ScalaId, name: String) extends TypeId with SubLevel
-
-/** A top-level object id, i.e. whose parent is the root package */
-case class TopLevelObjectId(name: String) extends ObjectId with TopLevel
-
-/** A sub-level object id, i.e. whose parent is not the root package */
-case class SubLevelObjectId(parent: ScalaId, name: String) extends ObjectId with SubLevel
-
 

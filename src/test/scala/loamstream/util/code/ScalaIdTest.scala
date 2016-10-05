@@ -18,13 +18,13 @@ final class ScalaIdTest extends FunSuite {
     assertAllNames(RootPackageId, "_root_", "_root_", "_root_", "_root_")
   }
 
-  test("Top level Java id") {
+  test("Top level Java id package") {
     assertAllNames(PackageId("test"), "test", "test", "test", "test")
     assertAllNames(TypeId("Test"), "Test", "Test", "Test", "Test")
     assertAllNames(ObjectId("Test"), "Test", "Test$", "Test", "Test$")
   }
 
-  test("Top level non-Java id.") {
+  test("Top level non-Java id package.") {
     val name = "Hello, World!"
     val nameWithBackticks = "`Hello, World!`"
     val nameEncoded = "Hello$u002C$u0020World$bang"
@@ -70,6 +70,26 @@ final class ScalaIdTest extends FunSuite {
       prefixScala + nameWithBackticks, prefixJvm + nameEncoded)
     assertAllNames(ObjectId(parent, name), nameWithBackticks, objectNameEncoded,
       prefixScala + nameWithBackticks, prefixJvm + objectNameEncoded)
+  }
+
+  test("Nested Java id types") {
+    val id = PackageId("a", "b").getType("c").getType("d").getType("e")
+    assertAllNames(id, "e", "e", "a.b.c.d.e", "a.b.c$d$e")
+  }
+
+  test("Nested Java id objects") {
+    val id = PackageId("a", "b").getObject("c").getObject("d").getObject("e")
+    assertAllNames(id, "e", "e$", "a.b.c.d.e", "a.b.c$d$e$")
+  }
+
+  test("Nested non-Java id types") {
+    val id = PackageId("a", "b").getType("+").getType("+").getType("+")
+    assertAllNames(id, "`+`", "$plus", "a.b.`+`.`+`.`+`", "a.b.$plus$$plus$$plus")
+  }
+
+  test("Nested non-Java id objects") {
+    val id = PackageId("a", "b").getObject("+").getObject("+").getObject("+")
+    assertAllNames(id, "`+`", "$plus$", "a.b.`+`.`+`.`+`", "a.b.$plus$$plus$$plus$")
   }
 
 }

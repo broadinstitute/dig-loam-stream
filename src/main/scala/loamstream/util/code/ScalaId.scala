@@ -3,7 +3,7 @@ package loamstream.util.code
 import javax.lang.model.SourceVersion
 
 import scala.reflect.NameTransformer
-import scala.reflect.runtime.universe.{Symbol, Type, TypeTag, typeOf}
+import scala.reflect.runtime.universe.{Symbol, Type, TypeTag, rootMirror, typeOf}
 
 
 /** A Scala identifier */
@@ -21,7 +21,10 @@ sealed trait ScalaId {
   /** Full name as it appears in Scala code, with backticks if necessary */
   def inScalaFull: String
 
-  /** Full name in JVM, encoded if necessary */
+  /** Full name in JVM, encoded if necessary
+    *
+    * Separator is dot after a package and dollar after a type. Objects already end with a dollar,
+    * so no extra dollar */
   def inJvmFull: String
 
   /** Some(parent) if it has a parent, None otherwise */
@@ -81,7 +84,7 @@ object PackageId {
   def apply(name: String): TopLevelPackageId = TopLevelPackageId(name)
 
   /** Returns sub-level package id of that parent and name */
-  def apply(parent: ChildIdPackageId, name: String): SubLevelPackageId = SubLevelPackageId(parent, name)
+  def apply(parent: ChildPackageId, name: String): SubLevelPackageId = SubLevelPackageId(parent, name)
 
   /** Returns sub-level package id composed of given names */
   def apply(part: String, parts: String*): SubLevelPackageId = PackageId(part +: parts).asInstanceOf[SubLevelPackageId]
@@ -97,7 +100,7 @@ object PackageId {
   }
 
   /** Whether this symbol represents the root package */
-  def isRootPackage(symbol: Symbol): Boolean = symbol.fullName.toString == symbol.owner.fullName.toString
+  def isRootPackage(symbol: Symbol): Boolean = symbol.name == rootMirror.RootPackage.asModule.moduleClass.name
 
   /** Returns PackageId of this Symbol */
   def from(symbol: Symbol): PackageId = {
@@ -116,7 +119,7 @@ sealed trait PackageId extends ScalaId {
   def inJvm: String = NameTransformer.encode(name)
 
   /** Create ChildIdPackageId that is child of this ScalaId */
-  def getPackage(name: String): ChildIdPackageId
+  def getPackage(name: String): ChildPackageId
 }
 
 /** An id other than root package, having a parent */
@@ -134,7 +137,7 @@ sealed trait ChildId extends ScalaId {
 }
 
 /** The root package id */
-object RootPackageId extends PackageId {
+object RootPackageId extends PackageId with ScalaId {
   override val name: String = "_root_"
 
   override val inScala: String = "_root_"
@@ -171,11 +174,15 @@ trait TopLevel extends ChildId {
 trait SubLevel extends ChildId {
   override def inScalaFull: String = s"${parent.inScalaFull}.$inScala"
 
-  override def inJvmFull: String = s"${parent.inJvmFull}.$inJvm"
+  override def inJvmFull: String = parent match {
+    case packageId: PackageId => s"${parent.inJvmFull}.$inJvm"
+    case typeId: TypeId => s"${parent.inJvmFull}$$$inJvm"
+    case objectIdId: ObjectId => s"${parent.inJvmFull}$inJvm"
+  }
 }
 
 /** A package id that is not the root package */
-trait ChildIdPackageId extends PackageId with ChildId {
+trait ChildPackageId extends PackageId with ChildId {
   /** Create SubLevelPackageId that is child of this ChildIdPackageId */
   override def getPackage(name: String): SubLevelPackageId = SubLevelPackageId(this, name)
 
@@ -187,10 +194,10 @@ trait ChildIdPackageId extends PackageId with ChildId {
 }
 
 /** A package id whose parent is the root package */
-case class TopLevelPackageId(name: String) extends ChildIdPackageId with TopLevel
+case class TopLevelPackageId(name: String) extends ChildPackageId with TopLevel
 
 /** A package id whose parent is not the root package */
-case class SubLevelPackageId(parent: PackageId, name: String) extends ChildIdPackageId with SubLevel
+case class SubLevelPackageId(parent: PackageId, name: String) extends ChildPackageId with SubLevel
 
 /** A class or trait id */
 object TypeId {
@@ -198,7 +205,7 @@ object TypeId {
   def apply(name: String): TopLevelTypeId = TopLevelTypeId(name)
 
   /** Returns a sub-level class or trait id with that parent and name */
-  def apply(parent: ChildIdPackageId, name: String): SubLevelTypeId = SubLevelTypeId(parent, name)
+  def apply(parent: ChildPackageId, name: String): SubLevelTypeId = SubLevelTypeId(parent, name)
 
   /** Returns a sub-level class or trait id composed of these parts  */
   def apply(part: String, parts: String*): SubLevelTypeId = TypeId(part +: parts).asInstanceOf[SubLevelTypeId]
@@ -213,7 +220,7 @@ object TypeId {
 }
 
 /** A class or trait id */
-trait TypeId extends ChildId {
+trait TypeId extends ChildId with ScalaId {
   def inJvm: String = NameTransformer.encode(name)
 }
 
@@ -223,7 +230,7 @@ object ObjectId {
   def apply(name: String): TopLevelObjectId = TopLevelObjectId(name)
 
   /** Returns a sub-level object id of that parent and name */
-  def apply(parent: ChildIdPackageId, name: String): SubLevelObjectId = SubLevelObjectId(parent, name)
+  def apply(parent: ChildPackageId, name: String): SubLevelObjectId = SubLevelObjectId(parent, name)
 
   /** Returns a sub-level object id composed of these names */
   def apply(part: String, parts: String*): SubLevelObjectId = ObjectId(part +: parts).asInstanceOf[SubLevelObjectId]
@@ -238,7 +245,7 @@ object ObjectId {
 }
 
 /** An object id */
-trait ObjectId extends ChildId {
+trait ObjectId extends ChildId with ScalaId {
   def inJvm: String = NameTransformer.encode(name) + "$"
 }
 

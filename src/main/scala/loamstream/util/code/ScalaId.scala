@@ -182,9 +182,6 @@ object TypeId {
   /** Returns a top level class or trait id of that name */
   def apply(name: String): TypeId = TypeId(RootPackageId, name)
 
-  /** Returns a sub-level class or trait id with that parent and name */
-  def apply(parent: ChildPackageId, name: String): TypeId = TypeId(parent, name)
-
   /** Returns a sub-level class or trait id composed of these parts  */
   def apply(part: String, parts: String*): TypeId = TypeId(part +: parts)
 
@@ -208,9 +205,6 @@ case class TypeId(parent: ScalaId, name: String) extends ChildId {
 object ObjectId {
   /** Returns a top-level object id of that name */
   def apply(name: String): ObjectId = ObjectId(RootPackageId, name)
-
-  /** Returns a sub-level object id of that parent and name */
-  def apply(parent: ChildPackageId, name: String): ObjectId = ObjectId(parent, name)
 
   /** Returns a sub-level object id composed of these names */
   def apply(part: String, parts: String*): ObjectId = ObjectId(part +: parts)

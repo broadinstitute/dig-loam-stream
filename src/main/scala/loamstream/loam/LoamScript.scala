@@ -5,7 +5,7 @@ import java.nio.file.{Files, Path}
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
 import loamstream.util._
-import loamstream.util.code.{ObjectId, PackageId, SourceUtils}
+import loamstream.util.code.{ObjectId, PackageId, ScalaId, SourceUtils}
 
 import scala.util.Try
 
@@ -13,8 +13,7 @@ import scala.util.Try
 object LoamScript {
   val scriptsPackage = PackageId("loamstream", "loam", "scripts")
 
-  var scriptNameCounter: Int = 0
-  val scriptNameCounterLock = new AnyRef
+  val generatedNameIndices: Sequence[Int] = new Sequence(0, 1)
 
   val generatedNameBase = "loamScript"
 
@@ -31,11 +30,11 @@ object LoamScript {
     }
   }
 
-  def withGeneratedName(code: String): LoamScript = scriptNameCounterLock.synchronized({
-    val name = s"$generatedNameBase${StringUtils.leftPadTo(scriptNameCounter.toString, "0", 3)}"
-    scriptNameCounter += 1
+  def withGeneratedName(code: String): LoamScript = {
+    val index = generatedNameIndices.next()
+    val name = s"$generatedNameBase${StringUtils.leftPadTo(index.toString, "0", 3)}"
     LoamScript(name, code)
-  })
+  }
 
   def read(path: Path): Shot[LoamScript] = {
     nameFromFilePath(path).flatMap({ name =>
@@ -55,16 +54,16 @@ object LoamScript {
     def graph: LoamGraph = loamContext.graphBox.value
   }
 
-  /** Names of singletons that need to be loaded */
-  val namesOfNeededSingletons: Set[String] =
-  Set(SourceUtils.fullTypeName[LoamPredef.type] + "$",
-    SourceUtils.fullTypeName[LoamPredef.type] + "$VCF",
-    SourceUtils.fullTypeName[LoamPredef.type] + "$TXT",
-    SourceUtils.fullTypeName[LoamCmdTool.type] + "$",
-    SourceUtils.fullTypeName[LoamCmdTool.type] + "$StringContextWithCmd",
-    SourceUtils.fullTypeName[PathEnrichments.type] + "$",
-    SourceUtils.fullTypeName[PathEnrichments.type] + "$PathHelpers",
-    SourceUtils.fullTypeName[PathEnrichments.type] + "$PathAttemptHelpers")
+  /** ScalaIds required to be loaded  */
+  val requiredScalaIds: Set[ScalaId] =
+  Set(ScalaId.from[LoamPredef.type],
+    ScalaId.from[LoamPredef.VCF],
+    ScalaId.from[LoamPredef.TXT],
+    ScalaId.from[LoamCmdTool.type],
+    ScalaId.from[LoamCmdTool.StringContextWithCmd],
+    ScalaId.from[PathEnrichments.type],
+    ScalaId.from[PathEnrichments.PathHelpers],
+    ScalaId.from[PathEnrichments.PathAttemptHelpers])
 
 }
 
@@ -88,14 +87,14 @@ case class LoamScript(name: String, code: String) {
     s"""
 package ${LoamScript.scriptsPackage.inScalaFull}
 
-import ${SourceUtils.fullTypeName[LoamPredef.type]}._
-import ${SourceUtils.fullTypeName[LoamContext]}
-import ${SourceUtils.fullTypeName[LoamGraph]}
-import ${SourceUtils.fullTypeName[ValueBox[_]]}
-import ${SourceUtils.fullTypeName[LoamScriptBox]}
-import ${SourceUtils.fullTypeName[LoamCmdTool.type]}._
-import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
-import ${SourceUtils.fullTypeName[DepositBox[_]]}
+import ${ScalaId.from[LoamPredef.type].inScalaFull}._
+import ${ScalaId.from[LoamContext].inScalaFull}
+import ${ScalaId.from[LoamGraph].inScalaFull}
+import ${ScalaId.from[ValueBox[_]].inScalaFull}
+import ${ScalaId.from[LoamScriptBox].inScalaFull}
+import ${ScalaId.from[LoamCmdTool.type].inScalaFull}._
+import ${ScalaId.from[PathEnrichments.type].inScalaFull}._
+import ${ScalaId.from[DepositBox[_]].inScalaFull}
 import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {

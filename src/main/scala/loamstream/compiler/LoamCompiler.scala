@@ -129,7 +129,6 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
   val compileLock = new AnyRef
   val compiler = compileLock.synchronized {
     val classLoader = new LoamClassLoader(getClass.getClassLoader)
-    LoamScript.namesOfNeededSingletons.foreach(classLoader.loadClass)
     new ReflectGlobal(scalaCompilerSettings, reporter, classLoader)
   }
 

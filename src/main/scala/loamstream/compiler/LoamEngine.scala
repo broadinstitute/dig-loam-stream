@@ -59,10 +59,6 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     for (name <- nameShot; code <- codeShot) yield LoamScript(name, code)
   }
 
-  //  def compileFiles(fileNames: Iterable[String]):Shot[LoamCompiler.Result] = {
-  //    val pathsShot
-  //  }
-  //
   def compileFile(fileName: String): Shot[LoamCompiler.Result] = {
     val pathShot = Shot(Paths.get(fileName))
 

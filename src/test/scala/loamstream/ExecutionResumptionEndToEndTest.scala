@@ -54,8 +54,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val Hit(firstResultValues) = Shot.sequence(firstResults.toVector)
 
       firstResultValues should have size 2
-      firstResultValues(0) shouldBe a[CommandSuccess]
-      firstResultValues(1) shouldBe a[SimpleSuccess]
+      firstResultValues(0) shouldBe a [CommandSuccess]
+      firstResultValues(1) shouldBe a [SimpleSuccess]
 
       // Prevent jobs launched as part of the first run from being considered as part of the subsequent run's
       resumptiveExecuter.clearStates()
@@ -83,9 +83,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val Hit(secondResultValues) = Shot.sequence(secondResults.toVector)
 
       secondResultValues should have size 3
-      secondResultValues(0) shouldBe a[SkippedSuccess]
-      secondResultValues(1) shouldBe a[CommandSuccess]
-      secondResultValues(2) shouldBe a[SimpleSuccess]
+      secondResultValues(0) shouldBe a [SkippedSuccess]
+      secondResultValues(1) shouldBe a [CommandSuccess]
+      secondResultValues(2) shouldBe a [SimpleSuccess]
 
       // scalastyle:off no.whitespace.before.left.bracket
     }

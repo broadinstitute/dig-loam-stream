@@ -114,7 +114,7 @@ object Jobs extends Loggable {
    * several Observables, each producing information about one job. 
    * 
    * @param jobIds the jobs we're polling for, and that are present in the maps produced by multiplexed
-   * @param mulitplexed an Observable stream of Maps from job ids to attempts at determining that job's status.
+   * @param multiplexed an Observable stream of Maps from job ids to attempts at determining that job's status.
    * 
    * Note that multiplexed must be a ConnectableObservable for this to work. 
    */

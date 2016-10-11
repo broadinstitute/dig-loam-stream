@@ -8,7 +8,7 @@ import org.scalatest.FunSuite
  */
 final class SourceUtilsTest extends FunSuite {
   
-  import SourceUtils._
+  import loamstream.util.code.SourceUtils._
 
   test("fullTypeName") {
     assert(fullTypeName[String] == classOf[String].getName)

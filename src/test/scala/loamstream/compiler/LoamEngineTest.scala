@@ -16,55 +16,33 @@ final class LoamEngineTest extends FunSuite {
     val compileResult = engine.compile(fixture.code)
     fixture.assertCompileResultsLookGood(compileResult)
   }
-
+  
   test("Compile file") {
     val fixture = Fixture.default
-    val file = JFiles.createTempFile("LoamEngineTest", "loam")
+    val file = JFiles.createTempFile("LoamEngineTest", ".loam")
     Files.writeTo(file)(fixture.code)
     val compileResultShot = engine.compile(file)
     assert(compileResultShot.nonEmpty)
     val compileResult = compileResultShot.get
     fixture.assertCompileResultsLookGood(compileResult)
   }
-
-  test("Compile file specified without .loam suffix") {
-    val fixture = Fixture.default
-    val folder = JFiles.createTempDirectory("LoamEngineTest")
-    val fileWithoutSuffix = folder.resolve("cp")
-    val fileWithSuffix = folder.resolve("cp.loam")
-    Files.writeTo(fileWithSuffix)(fixture.code)
-    val compileResultShot = engine.compile(fileWithoutSuffix)
-    assert(compileResultShot.nonEmpty)
-    val compileResult = compileResultShot.get
-    fixture.assertCompileResultsLookGood(compileResult)
-  }
-
+  
   test("Run string") {
     val fixture = Fixture.default
     fixture.writeFileIn()
     engine.run(fixture.code)
     fixture.assertOutputFilesArePresent()
   }
-
+  
   test("Run file") {
     val fixture = Fixture.default
-    val file = JFiles.createTempFile("LoamEngineTest", "loam")
+    val file = JFiles.createTempFile("LoamEngineTest", ".loam")
     Files.writeTo(file)(fixture.code)
     fixture.writeFileIn()
-    engine.run(file)
+    engine.runFile(file)
     fixture.assertOutputFilesArePresent()
   }
-
-  test("Run file specified without .loam suffix") {
-    val fixture = Fixture.default
-    val folder = JFiles.createTempDirectory("LoamEngineTest")
-    val fileWithoutSuffix = folder.resolve("cp")
-    val fileWithSuffix = folder.resolve("cp.loam")
-    Files.writeTo(fileWithSuffix)(fixture.code)
-    fixture.writeFileIn()
-    engine.run(fileWithoutSuffix)
-    fixture.assertOutputFilesArePresent()
-  }
+  
 }
 
 /**
@@ -107,10 +85,10 @@ object LoamEngineTest {
     }
 
     def assertCompileResultsLookGood(compileResult: LoamCompiler.Result): Unit = {
-      assert(compileResult.isSuccess)
-      assert(compileResult.isClean)
-      assert(compileResult.contextOpt.get.graph.stores.size == 6)
-      assert(compileResult.contextOpt.get.graph.tools.size == 5)
+      assert(compileResult.isSuccess, compileResult)
+      assert(compileResult.isClean, compileResult)
+      assert(compileResult.contextOpt.get.graph.stores.size == 6, compileResult)
+      assert(compileResult.contextOpt.get.graph.tools.size == 5, compileResult)
     }
 
     def writeFileIn(): Unit = Files.writeTo(fileIn)("Hello World!")
@@ -121,5 +99,4 @@ object LoamEngineTest {
       assert(JFiles.exists(fileOut3))
     }
   }
-
 }

@@ -1,29 +1,35 @@
 package loamstream.compiler.repo
 
-import loamstream.compiler.messages.{LoadResponseMessage, SaveResponseMessage}
+import loamstream.loam.LoamScript
 import loamstream.util.{Hit, Shot, Snag}
 
 /** A repository storing Loam scripts in memory as a Map */
-final case class LoamMapRepository(private var _entries: Map[String, String]) extends LoamRepository.Mutable {
+final case class LoamMapRepository(private var _entries: Map[String, LoamScript]) extends LoamRepository.Mutable {
   private[this] val lock = new AnyRef
-  
-  def entries: Map[String, String] = lock.synchronized(_entries)
-  
+
+  def entries: Map[String, LoamScript] = lock.synchronized(_entries)
+
+  /** Human-readable description on where the scripts are stored */
+  override def description: String = "in memory"
+
   override def list: Seq[String] = entries.keys.toSeq
 
-  override def load(name: String): Shot[LoadResponseMessage] = {
-    def toMessage(content: String) = LoadResponseMessage(name, content, s"Got '$name' from memory.")
-    
-    val messageOption = entries.get(name).map(toMessage)
-    
-    Shot.fromOption(messageOption, Snag("No entry for '$name'."))
+  override def save(script: LoamScript): Shot[LoamScript] = {
+    lock.synchronized {
+      _entries += (script.name -> script)
+    }
+    Hit(script)
   }
 
-  override def save(name: String, content: String): Shot[SaveResponseMessage] = {
-    lock.synchronized {
-      _entries += (name -> content)
-    }
-    
-    Hit(SaveResponseMessage(name, s"Added '$name' to memory."))
+  /** Loads Loam script of given name from repository  */
+  override def load(name: String): Shot[LoamScript] = {
+    val scriptOpt = entries.get(name)
+    Shot.fromOption(scriptOpt, Snag("No entry for '$name'."))
   }
+}
+
+object LoamMapRepository {
+  /** Creates a LoamMapRepository from a collection of LoamScripts */
+  def apply(scripts: Iterable[LoamScript]): LoamMapRepository =
+  LoamMapRepository(scripts.map(script => (script.name, script)).toMap)
 }

@@ -14,10 +14,6 @@ object UgerRunApp extends App with DrmaaClientHelpers with Loggable {
     throw new IllegalArgumentException("No Loam script file name provided")
   }
 
-  if (args.length > 1) {
-    throw new IllegalArgumentException("This app takes only one argument, the Loam script file name.")
-  }
-
   val ugerConfig = UgerConfig.fromConfig(ConfigFactory.load("loamstream.conf")).get
 
   info("Creating reactive executer...")
@@ -34,8 +30,9 @@ object UgerRunApp extends App with DrmaaClientHelpers with Loggable {
 
     val outMessageSink = LoggableOutMessageSink(this)
 
-    val loamEngine = LoamEngine(new LoamCompiler(outMessageSink), executer, outMessageSink)
-    val engineResult = loamEngine.runFile(args(0))
+    val loamEngine =
+      LoamEngine(new LoamCompiler(LoamCompiler.Settings.default, outMessageSink), executer, outMessageSink)
+    val engineResult = loamEngine.runFilesWithNames(args)
 
     for {
       (job, result) <- engineResult.jobResultsOpt.get

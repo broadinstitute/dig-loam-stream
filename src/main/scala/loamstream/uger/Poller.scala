@@ -3,7 +3,10 @@ package loamstream.uger
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 import scala.util.Try
+
+import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.InvalidJobException
+
 import loamstream.util.Loggable
 
 /**
@@ -21,15 +24,22 @@ trait Poller {
 
 object Poller {
   
-  final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller with Loggable {
+  final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
     override def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]] = {
-      
       def statusAttempt(jobId: String): Try[JobStatus] = {
-        client.statusOf(jobId).recoverWith { case e: InvalidJobException =>
+        
+        val result = client.statusOf(jobId).recoverWith { case e: InvalidJobException => 
           warn(s"Job '$jobId': Got an ${e.getClass.getSimpleName} when calling statusOf(); trying waitFor()", e)
           
           client.waitFor(jobId, Duration.Zero)
         }
+        
+        //Ignore the result of recover, we just want the logging side-effect
+        result.recover {
+          case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
+        }
+        
+        result
       }
       
       val pollResults = jobIds.map { jobId =>

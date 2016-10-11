@@ -13,29 +13,28 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.LJob
 import loamstream.util.{ Loggable, Shot, StringUtils }
 import loamstream.model.jobs.JobState
+import loamstream.loam.LoamScript
 
 /**
- * @author clint
- * date: Jul 8, 2016
- */
+  * @author clint
+  *         date: Jul 8, 2016
+  */
 trait LoamTestHelpers extends Loggable {
-  
+
   def compileFile(file: String)(implicit context: ExecutionContext): LoamCompiler.Result = compile(Paths.get(file))
-  
+
   def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result = {
-    val source = StringUtils.fromUtf8Bytes(Files.readAllBytes(path))
-    
-    compile(source)
+    compile(LoamScript.read(path).get)
   }
-  
-  def compile(source: String)(implicit context: ExecutionContext): LoamCompiler.Result = {
-    
-    val compiler = new LoamCompiler(LoggableOutMessageSink(this))
-    
-    val compileResults = compiler.compile(source)
+
+  def compile(script: LoamScript)(implicit context: ExecutionContext): LoamCompiler.Result = {
+
+    val compiler = new LoamCompiler(LoamCompiler.Settings.default, LoggableOutMessageSink(this))
+
+    val compileResults = compiler.compile(script)
 
     if (!compileResults.isValid) {
-      throw new IllegalArgumentException(s"Could not compile '$source': ${compileResults.errors}.")
+      throw new IllegalArgumentException(s"Could not compile '$script': ${compileResults.errors}.")
     }
 
     compileResults
@@ -50,9 +49,9 @@ trait LoamTestHelpers extends Loggable {
     val toolBox = new LoamToolBox(context)
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
-  
+
     (mapping, executable)
   }
-  
+
   def run(executable: Executable): Map[LJob, Shot[JobState]] = RxExecuter.default.execute(executable)
 }

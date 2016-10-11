@@ -1,13 +1,17 @@
 package loamstream.model.execute
 
-import scala.concurrent.{ Await, ExecutionContext, Future, Promise }
-import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.Promise
 import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationInt
 
 import loamstream.model.execute.RxExecuter.Tracker
-import loamstream.model.jobs.{JobState, LJob, NoOpJob}
 import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobState
 import loamstream.model.jobs.JobState.NotStarted
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.NoOpJob
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.Maps
@@ -111,7 +115,6 @@ final case class RxExecuter(runner: ChunkRunner,
   }
   
   private def recordChunkExecution(newResultMap: Map[LJob, JobState]): Unit = {
-    import Maps.Implicits._
         
     result.mutate(_ ++ newResultMap)
         

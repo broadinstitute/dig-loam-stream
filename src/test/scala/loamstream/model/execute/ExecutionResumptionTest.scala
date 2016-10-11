@@ -22,16 +22,17 @@ import loamstream.model.jobs.Output
 import loamstream.util.Hashes
 import loamstream.util.PathEnrichments
 import loamstream.util.Sequence
+import loamstream.loam.LoamScript
 
 /**
- * @author clint
- *         kaan
- * date: Aug 12, 2016
- */
+  * @author clint
+  *         kaan
+  *         date: Aug 12, 2016
+  */
 final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
 
   private def runsEverythingExecuter = RxExecuter.default
-  
+
   private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
   
   private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
@@ -39,12 +40,12 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
     
     store(e)
   }
-  
+
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
     import JobState._
 
     doTest(Seq(Skipped, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
-      import java.nio.file.{ Files => JFiles }
+      import java.nio.file.{Files => JFiles}
 
       assert(!f1.toFile.exists)
       
@@ -62,7 +63,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
     import JobState._
 
     doTest(Seq(Skipped, Skipped, Succeeded)) { (start, f1, f2, f3) =>
-      import java.nio.file.{ Files => JFiles }
+      import java.nio.file.{Files => JFiles}
 
       JFiles.copy(start, f1)
       JFiles.copy(start, f2)
@@ -83,7 +84,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
     import JobState._
 
     doTest(Seq(Skipped, Skipped, Skipped)) { (start, f1, f2, f3) =>
-      import java.nio.file.{ Files => JFiles }
+      import java.nio.file.{Files => JFiles}
 
       JFiles.copy(start, f1)
       JFiles.copy(start, f2)
@@ -125,31 +126,31 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   // scalastyle:off method.length
   //NB: Tests with the 'run-everything' JobFilter as well as a DB-backed one.
   private def doTest(expectations: Seq[JobState])(setup: (Path, Path, Path, Path) => Any): Unit = {
-    
+
     def doTestWithExecuter(executer: RxExecuter): Unit = {
       import java.nio.file.{ Files => JFiles }
       import PathEnrichments._
       val workDir = makeWorkDir()
-  
+
       def path(s: String) = Paths.get(s)
-  
+
       val start = path("src/test/resources/a.txt")
       val f1 = workDir / "fileOut1.txt"
       val f2 = workDir / "fileOut2.txt"
       val f3 = workDir / "fileOut3.txt"
-  
+
       val startToF1 = mockJob(s"cp $start $f1", Set(Output.PathOutput(f1))) {
         JFiles.copy(start, f1)
       }
-  
+
       val f1ToF2 = mockJob(s"cp $f1 $f2", Set(Output.PathOutput(f2)), Set(startToF1)) {
         JFiles.copy(f1, f2)
       }
-  
+
       val f2ToF3 = mockJob(s"cp $f2 $f3", Set(Output.PathOutput(f3)), Set(f1ToF2)) {
         JFiles.copy(f2, f3)
       }
-  
+
       assert(startToF1.state == JobState.NotStarted)
       assert(f1ToF2.state == JobState.NotStarted)
       assert(f2ToF3.state == JobState.NotStarted)
@@ -166,22 +167,26 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
         assert(!f1.toFile.exists)
         assert(!f2.toFile.exists)
         assert(!f3.toFile.exists)
-  
-        if(!runningEverything) {
+
+        if (!runningEverything) {
           setup(start, f1, f2, f3)
         }
-  
+
         val jobResults = executer.execute(executable)
-  
+
         val jobStates = Seq(startToF1.state, f1ToF2.state, f2ToF3.state)
-  
+
         val expectedStates = {
-          if (runningEverything) { Seq(JobState.Succeeded, JobState.Succeeded, JobState.Succeeded) }
-          else { expectations }
+          if (runningEverything) {
+            Seq(JobState.Succeeded, JobState.Succeeded, JobState.Succeeded)
+          }
+          else {
+            expectations
+          }
         }
-        
+
         assert(jobStates == expectedStates)
-  
+
         val expectedNumResults = if (runningEverything) 3 else expectations.count(_.isSuccess)
 
         assert(jobResults.size == expectedNumResults)
@@ -189,18 +194,19 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
         assert(jobResults.values.forall(_.get.isSuccess))
       }
     }
-    
+
     doTestWithExecuter(runsEverythingExecuter)
-    
+
     doTestWithExecuter(dbBackedExecuter)
   }
+
   // scalastyle:on method.length
 
-  private lazy val compiler = new LoamCompiler(OutMessageSink.NoOp)
+  private lazy val compiler = new LoamCompiler
 
   private def compile(loamCode: String): Executable = {
 
-    val compileResults = compiler.compile(loamCode)
+    val compileResults = compiler.compile(LoamScript.withGeneratedName(loamCode))
 
     assert(compileResults.errors == Nil)
 

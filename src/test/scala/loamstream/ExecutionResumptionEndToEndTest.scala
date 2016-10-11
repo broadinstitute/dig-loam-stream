@@ -1,23 +1,27 @@
 package loamstream
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
 
-import loamstream.compiler.{LoamCompiler, LoamEngine}
+import org.scalatest.FunSuite
+import org.scalatest.Matchers
+
+import loamstream.compiler.LoamCompiler
+import loamstream.compiler.LoamEngine
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import org.scalatest.{FunSuite, Matchers}
-import loamstream.db.slick.TestDbDescriptors
 import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.model.execute.{JobFilter, RxExecuter}
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.util.{Hit, Loggable, Sequence, Shot}
-import loamstream.model.jobs.JobState
 import loamstream.model.execute.DbBackedJobFilter
+import loamstream.model.execute.RxExecuter
+import loamstream.model.jobs.JobState
+import loamstream.util.Hit
+import loamstream.util.Loggable
+import loamstream.util.Sequence
+import loamstream.util.Shot
 
 /**
- * @author kaan
- *         date: Sep 27, 2016
- */
+  * @author kaan
+  *         date: Sep 27, 2016
+  */
 final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickLoamDao with Loggable {
 
   private val resumptiveExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
@@ -30,9 +34,11 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       val workDir = makeWorkDir()
 
+      val workDirInLoam = workDir.toString.replace("\\", "/")
+
       val outMessageSink = LoggableOutMessageSink(this)
 
-      val loamEngine = LoamEngine(new LoamCompiler(outMessageSink), resumptiveExecuter, outMessageSink)
+      val loamEngine = LoamEngine(LoamCompiler(outMessageSink), resumptiveExecuter, outMessageSink)
 
       /* Loam for the first run that mimics an incomplete pipeline run:
           val fileIn = store[String].from("src/test/resources/a.txt")
@@ -40,8 +46,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           cmd"cp $$fileIn $$fileOut1
        */
       val firstScript =
-        s"""val fileIn = store[String].from("src/test/resources/a.txt")
-                         val fileOut1 = store[String].to("$workDir/fileOut1.txt")
+      s"""val fileIn = store[String].from("src/test/resources/a.txt")
+                         val fileOut1 = store[String].to("$workDirInLoam/fileOut1.txt")
                          cmd"cp $$fileIn $$fileOut1""""
 
       val firstCompiled = loamEngine.run(firstScript)
@@ -64,9 +70,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           cmd"cp $$fileOut1 $$fileOut2
        */
       val secondScript =
-        s"""val fileIn = store[String].from("src/test/resources/a.txt")
-                            val fileOut1 = store[String].to("$workDir/fileOut1.txt")
-                            val fileOut2 = store[String].to("$workDir/fileOut2.txt")
+      s"""val fileIn = store[String].from("src/test/resources/a.txt")
+                            val fileOut1 = store[String].to("$workDirInLoam/fileOut1.txt")
+                            val fileOut2 = store[String].to("$workDirInLoam/fileOut2.txt")
                             cmd"cp $$fileIn $$fileOut1"
                             cmd"cp $$fileOut1 $$fileOut2""""
 

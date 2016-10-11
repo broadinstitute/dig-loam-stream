@@ -5,7 +5,7 @@ import org.scalatest.FunSuite
 
 /** Testing key slot equivalences */
 class LoamEquivalencesTest extends FunSuite {
-  implicit val context = new LoamContext
+  implicit val context = LoamContext.empty
   val vcf1 = store[VCF]
   val vcf2 = store[VCF]
   val vcf3 = store[VCF]

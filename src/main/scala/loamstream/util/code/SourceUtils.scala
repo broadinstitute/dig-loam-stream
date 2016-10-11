@@ -1,4 +1,4 @@
-package loamstream.util
+package loamstream.util.code
 
 import scala.reflect.runtime.universe.{Type, TypeTag, typeOf}
 
@@ -15,4 +15,5 @@ object SourceUtils {
 
   /** Returns short type name, such as Set */
   def shortTypeName[T: TypeTag]: String = shortTypeName(typeOf[T])
+
 }

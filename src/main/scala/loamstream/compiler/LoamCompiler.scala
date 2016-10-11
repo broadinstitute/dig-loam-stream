@@ -1,27 +1,30 @@
 package loamstream.compiler
 
 import loamstream.compiler.Issue.Severity
-import loamstream.compiler.LoamCompiler.{CompilerReporter, LoamScriptBox}
+import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
-import loamstream.loam._
-import loamstream.util._
+import loamstream.loam.LoamScript.LoamScriptBox
+import loamstream.loam.{GraphPrinter, LoamContext, LoamGraph, LoamScript}
+import loamstream.util.code.ReflectionUtil
+import loamstream.util.{DepositBox, Loggable, NonFatalInitializer, StringUtils, ValueBox}
 
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
-import scala.tools.nsc.Settings
 import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
+import scala.tools.nsc.{Settings => ScalaCompilerSettings}
 import scala.tools.reflect.ReflectGlobal
 
 /** The compiler compiling Loam scripts into execution plans */
-object LoamCompiler {
+object LoamCompiler extends Loggable {
 
-  /** A wrapper type for Loam scripts */
-  trait LoamScriptBox {
-    /** LoamContext for tis script */
-    def loamContext: LoamContext
-    /** The graph of stores and tools defined by this Loam script */
-    def graph: LoamGraph = loamContext.graphBox.value
+  object Settings {
+    val default: Settings = Settings(logCode = false, logCodeOnError = true)
+  }
+
+  case class Settings(logCode: Boolean, logCodeOnError: Boolean) {
+    def logCodeForLevel(level: Loggable.Level.Value): Boolean =
+      logCode || (logCodeOnError && (level >= Loggable.Level.warn))
   }
 
   /** A reporter receiving messages form the underlying Scala compiler
@@ -67,11 +70,11 @@ object LoamCompiler {
 
   /** The result of the compilation of a Loam script
     *
-    * @param errors   Errors from the Scala compiler
-    * @param warnings Warnings from the Scala compiler
-    * @param infos    Infos from the Scala compiler
+    * @param errors     Errors from the Scala compiler
+    * @param warnings   Warnings from the Scala compiler
+    * @param infos      Infos from the Scala compiler
     * @param contextOpt Option of a context with graph of stores and tools
-    * @param exOpt    Option of an exception if thrown
+    * @param exOpt      Option of an exception if thrown
     */
   final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue],
                           contextOpt: Option[LoamContext], exOpt: Option[Throwable] = None) {
@@ -97,23 +100,37 @@ object LoamCompiler {
     /** Detailed report listing all issues */
     def report: String = (summary +: (errors ++ warnings ++ infos).map(_.summary)).mkString(System.lineSeparator)
   }
+
+  val graphBoxDepositBox: DepositBox[ValueBox[LoamGraph]] = DepositBox.empty
+
+  def withLogging(settings: LoamCompiler.Settings = LoamCompiler.Settings.default): LoamCompiler =
+    LoamCompiler(settings, OutMessageSink.LoggableOutMessageSink(this))
+
+  def apply(settings: Settings): LoamCompiler = new LoamCompiler(settings)
+
+  def apply(outMessageSink: OutMessageSink): LoamCompiler =
+    new LoamCompiler(Settings.default, outMessageSink)
+
+  def apply(settings: Settings, outMessageSink: OutMessageSink): LoamCompiler =
+    new LoamCompiler(settings, outMessageSink)
+
 }
 
 /** The compiler compiling Loam scripts into execution plans */
-final class LoamCompiler(outMessageSink: OutMessageSink) {
+final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings.default,
+                         outMessageSink: OutMessageSink = OutMessageSink.NoOp) extends Loggable {
 
   val targetDirectoryName = "target"
   val targetDirectoryParentOption = None
   val targetDirectory = new VirtualDirectory(targetDirectoryName, targetDirectoryParentOption)
-  val settings = new Settings
-  settings.outputDirs.setSingleOutput(targetDirectory)
+  val scalaCompilerSettings = new ScalaCompilerSettings
+  scalaCompilerSettings.outputDirs.setSingleOutput(targetDirectory)
   val reporter = new CompilerReporter(outMessageSink)
-  val compiler = new ReflectGlobal(settings, reporter, getClass.getClassLoader)
-  val sourceFileName = "Config.scala"
-
-  val inputObjectPackage = "loamstream.dynamic.input"
-  val inputObjectName = s"Some${SourceUtils.shortTypeName[LoamScriptBox]}"
-  val inputObjectFullName = s"$inputObjectPackage.$inputObjectName"
+  val compileLock = new AnyRef
+  val compiler = compileLock.synchronized {
+    val classLoader = new LoamClassLoader(getClass.getClassLoader)
+    new ReflectGlobal(scalaCompilerSettings, reporter, classLoader)
+  }
 
   def soManyIssues: String = {
     val soManyErrors = StringUtils.soMany(reporter.errorCount, "error")
@@ -121,67 +138,82 @@ final class LoamCompiler(outMessageSink: OutMessageSink) {
     s"$soManyErrors and $soManyWarnings"
   }
 
-  /** Wraps Loam script in template to create valid Scala file */
-  def wrapCode(raw: String): String = {
-    s"""
-package $inputObjectPackage
+  def logScripts(logLevel: Loggable.Level.Value, project: LoamProject, graphBoxReceipt: DepositBox.Receipt): Unit = {
+    if (settings.logCodeForLevel(logLevel)) {
+      for (script <- project.scripts) {
+        log(logLevel, script.scalaId.toString)
+        log(logLevel, script.asScalaCode(graphBoxReceipt))
+      }
+    }
+  }
 
-import ${SourceUtils.fullTypeName[LoamPredef.type]}._
-import ${SourceUtils.fullTypeName[LoamContext]}
-import ${SourceUtils.fullTypeName[LoamGraph]}
-import ${SourceUtils.fullTypeName[ValueBox[_]]}
-import ${SourceUtils.fullTypeName[LoamScriptBox]}
-import ${SourceUtils.fullTypeName[LoamCmdTool.type]}._
-import ${SourceUtils.fullTypeName[PathEnrichments.type]}._
-import loamstream.dsl._
-import java.nio.file._
-
-object $inputObjectName extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
-implicit val loamContext = new LoamContext
-
-${raw.trim}
-
-}
-"""
+  def reportCompilation(project: LoamProject, graph: LoamGraph, graphBoxReceipt: DepositBox.Receipt): Unit = {
+    val soManyStores = StringUtils.soMany(graph.stores.size, "store")
+    val soManyTools = StringUtils.soMany(graph.tools.size, "tool")
+    outMessageSink.send(StatusOutMessage(s"Found $soManyStores and $soManyTools."))
+    val lengthOfLine = 100
+    val graphPrinter = GraphPrinter.byLine(lengthOfLine)
+    val logLevel = if (reporter.hasErrors) {
+      Loggable.Level.error
+    } else if (reporter.hasWarnings) {
+      Loggable.Level.warn
+    } else {
+      Loggable.Level.info
+    }
+    logScripts(logLevel, project, graphBoxReceipt)
+    outMessageSink.send(StatusOutMessage(
+      s"""
+         |[Start Graph]
+         |${
+        graphPrinter.print(graph)
+      }
+         |[End Graph]
+           """.stripMargin))
   }
 
   /** Compiles Loam script into execution plan */
-  def compile(rawCode: String): LoamCompiler.Result = {
+  def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(script))
+
+  /** Compiles Loam script into execution plan */
+  def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
+    val graphBoxReceipt = LoamCompiler.graphBoxDepositBox.deposit(ValueBox(LoamGraph.empty))
     try {
-      val wrappedCode = wrapCode(rawCode)
-      val sourceFile = new BatchSourceFile(sourceFileName, wrappedCode)
+      val sourceFiles = project.scripts.map({
+        script =>
+          new BatchSourceFile(script.scalaFileName, script.asScalaCode(graphBoxReceipt))
+      })
       reporter.reset()
       targetDirectory.clear()
       val run = new compiler.Run
-      run.compileSources(List(sourceFile))
+      run.compileSources(sourceFiles.toList)
       if (targetDirectory.nonEmpty) {
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-        val scriptBox = ReflectionUtil.getObject[LoamScriptBox](classLoader, inputObjectFullName)
+        val scriptBoxes = project.scripts.map({
+          script =>
+            ReflectionUtil.getObject[LoamScriptBox](classLoader, script.scalaId)
+        })
+        val scriptBox = scriptBoxes.head
         val graph = scriptBox.graph
-        val stores = graph.stores
-        val tools = graph.tools
-        val soManyStores = StringUtils.soMany(stores.size, "store")
-        val soManyTools = StringUtils.soMany(tools.size, "tool")
-        outMessageSink.send(StatusOutMessage(s"Found $soManyStores and $soManyTools."))
-        val lengthOfLine = 100
-        val graphPrinter = GraphPrinter.byLine(lengthOfLine)
-        outMessageSink.send(StatusOutMessage(
-          s"""
-             |[Start Graph]
-             |${graphPrinter.print(graph)}
-             |[End Graph]
-           """.stripMargin))
+        reportCompilation(project, graph, graphBoxReceipt)
         LoamCompiler.Result.success(reporter, scriptBox.loamContext)
       } else {
+        logScripts(Loggable.Level.error, project, graphBoxReceipt)
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
       case NonFatalInitializer(throwable) =>
+        logScripts(Loggable.Level.error, project, graphBoxReceipt)
         outMessageSink.send(
-          StatusOutMessage(s"${throwable.getClass.getName} while trying to compile: ${throwable.getMessage}"))
+          StatusOutMessage(s"${
+            throwable.getClass.getName
+          } while trying to compile: ${
+            throwable.getMessage
+          }"))
         LoamCompiler.Result.throwable(reporter, throwable)
+    } finally {
+      LoamCompiler.graphBoxDepositBox.remove(graphBoxReceipt)
     }
   }
 }

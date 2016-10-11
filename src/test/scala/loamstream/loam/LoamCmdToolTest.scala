@@ -13,7 +13,7 @@ final class LoamCmdToolTest extends FunSuite {
   import LoamCmdTool._
 
   test("string interpolation (trivial)") {
-    implicit val context = new LoamContext
+    implicit val context = LoamContext.empty
 
     val tool = cmd"foo bar baz"
 
@@ -35,7 +35,7 @@ final class LoamCmdToolTest extends FunSuite {
 
   test("in() and out()") {
 
-    implicit val context = new LoamContext
+    implicit val context = LoamContext.empty
 
     val tool = cmd"foo bar baz"
 

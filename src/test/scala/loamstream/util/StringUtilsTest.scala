@@ -129,7 +129,6 @@ final class StringUtilsTest extends FunSuite {
     
     assert(soMany(13, "Foo") == "13 Foos")
     assert(soMany(42, "Foo") == "42 Foos")
-    //scalastyle:on magic.number
   }
   
   test("fromUtf8Bytes") {
@@ -139,4 +138,12 @@ final class StringUtilsTest extends FunSuite {
     
     assert(StringUtils.fromUtf8Bytes(bytes) == s)
   }
+
+  test("leftPadTo"){
+    assert(StringUtils.leftPadTo("", "0", 7) === "0000000")
+    assert(StringUtils.leftPadTo("123", "0", 7) === "0000123")
+    assert(StringUtils.leftPadTo("1234567", "0", 7) === "1234567")
+    assert(StringUtils.leftPadTo("123456789", "0", 7) === "123456789")
+  }
+  //scalastyle:on magic.number
 }

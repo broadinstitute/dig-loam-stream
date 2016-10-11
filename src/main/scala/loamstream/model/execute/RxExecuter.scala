@@ -1,15 +1,14 @@
 package loamstream.model.execute
 
 import loamstream.model.execute.RxExecuter.Tracker
-import loamstream.model.jobs.{JobState, LJob, NoOpJob}
 import loamstream.model.jobs.JobState.NotStarted
 import loamstream.model.jobs.LJob._
+import loamstream.model.jobs.{JobState, LJob, NoOpJob}
 import loamstream.util._
 import rx.lang.scala.subjects.PublishSubject
 
+import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
-import scala.concurrent.duration._
-import scala.concurrent.duration.Duration
 
 /**
  * @author kaan
@@ -116,8 +115,8 @@ final case class RxExecuter(runner: ChunkRunner,
           newResultMap <- runner.run(jobs)(executionContext)
         } yield {
           result.mutate(_ ++ newResultMap)
-          newResultMap.filter { case (job, result) => result.isSuccess }
-                      .keys.foreach(job => jobFilter.record(job.outputs))
+          newResultMap.filter { case (job, jobResult) => jobResult.isSuccess }
+            .keys.foreach(job => jobFilter.record(job.outputs))
         }
       }
     }

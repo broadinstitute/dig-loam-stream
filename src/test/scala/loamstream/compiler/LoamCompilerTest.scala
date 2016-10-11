@@ -1,9 +1,8 @@
 package loamstream.compiler
 
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.repo.LoamRepository
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.LoamGraphValidation
+import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
 
 /**
@@ -21,7 +20,7 @@ object LoamCompilerTest {
 
 final class LoamCompilerTest extends FunSuite {
   test("Testing sanity of classloader used by compiler.") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
+    val compiler = new LoamCompiler
     val compilerClassLoader = compiler.compiler.rootClassLoader
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "java.lang.String"))
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.collection.immutable.Seq"))
@@ -29,7 +28,7 @@ final class LoamCompilerTest extends FunSuite {
   }
 
   test("Testing compilation of legal code fragment with no settings (saying 'Hello!').") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
+    val compiler = new LoamCompiler
     val code = {
       // scalastyle:off regex
       """
@@ -38,26 +37,27 @@ final class LoamCompilerTest extends FunSuite {
       """
       // scalastyle:on regex
     }
-    val result = compiler.compile(code)
+    val result = compiler.compile(LoamScript("LoamCompilerTestScript1", code))
     assert(result.errors === Nil)
     assert(result.warnings === Nil)
   }
   test("Testing that compilation of illegal code fragment causes compile errors.") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
+    val settingsWithNoCodeLoggingOnError = LoamCompiler.Settings.default.copy(logCodeOnError = false)
+    val compiler = new LoamCompiler(settingsWithNoCodeLoggingOnError)
     val code = {
       """
     The enlightened soul is a person who is self-conscious of his "human condition" in his time and historical
     and social setting, and whose awareness inevitably and necessarily gives him a sense of social responsibility.
       """
     }
-    val result = compiler.compile(code)
+    val result = compiler.compile(LoamScript("LoamCompilerTestScript2", code))
     assert(result.errors.nonEmpty)
   }
   test("Testing sample code toyImpute.loam") {
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
-    val codeShot = LoamRepository.defaultRepo.load("toyImpute").map(_.content)
+    val compiler = new LoamCompiler
+    val codeShot = LoamRepository.defaultRepo.load("toyImpute").map(_.code)
     assert(codeShot.nonEmpty)
-    val result = compiler.compile(codeShot.get)
+    val result = compiler.compile(LoamScript("LoamCompilerTestScript1", codeShot.get))
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)
     val graph = result.contextOpt.get.graph

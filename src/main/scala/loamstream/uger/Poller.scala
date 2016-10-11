@@ -22,7 +22,7 @@ trait Poller {
 
 object Poller {
   
-  final class DrmaaPoller(client: DrmaaClient)(implicit context: ExecutionContext) extends Poller with Loggable {
+  final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
     override def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]] = {
       
       def statusAttempt(jobId: String): Try[JobStatus] = {

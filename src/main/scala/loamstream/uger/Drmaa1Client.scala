@@ -29,9 +29,8 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   import DrmaaClient._
 
   //NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
-  //previously, we used one Session per client to ensure that all operations performed by this instance use the 
-  //same Session.  Now allow mutating the session variable to attempt to recover in case of NoActiveSessionException 
-  //hours into a run. :\
+  //We use one Session per client to ensure that all operations performed by this instance use the same Session.  
+  //We wrap the Session in a ValueBox to make it easier to synchronize access to it.
   private[this] lazy val sessionBox: ValueBox[Session] = ValueBox(getNewSession)
   
   private def getNewSession: Session = {

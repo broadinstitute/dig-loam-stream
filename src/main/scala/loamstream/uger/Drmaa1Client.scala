@@ -63,11 +63,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
   override def statusOf(jobId: String): Try[JobStatus] = {
-    withSession { session =>
-      for {
-        status <- Try(session.getJobProgramStatus(jobId))
-        jobStatus = JobStatus.fromUgerStatusCode(status)
-      } yield {
+    Try {
+      withSession { session =>
+        val status = session.getJobProgramStatus(jobId)
+        val jobStatus = JobStatus.fromUgerStatusCode(status)
+
         info(s"Job '$jobId' has status $status, mapped to $jobStatus")
         
         jobStatus
@@ -110,17 +110,17 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    *   JobStatus.Undetermined: The job completed, but none of the above applies.
    */
   override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
-    withSession { session =>
-      val waitAttempt = Try {
+    val waitAttempt = Try {
+      withSession { session =>
         doWait(session, jobId, timeout)
       }
+    }
       
-      //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
-      waitAttempt.recover { case e: ExitTimeoutException => 
-        debug(s"Timed out waiting for job '$jobId' to finish")
+    //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
+    waitAttempt.recover { case e: ExitTimeoutException => 
+      debug(s"Timed out waiting for job '$jobId' to finish")
         
-        JobStatus.Running
-      }
+      JobStatus.Running
     }
   }
   
@@ -165,20 +165,15 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   }
   
   private def withSession[A](f: Session => A): A = {
-    val currentSession = sessionBox.value
-    
-    try { f(currentSession) } 
-    catch {
-      case e: NoActiveSessionException =>
-        warn(s"Got ${e.getClass.getSimpleName}; attempting to continue with a new Session", e)
-
-        tryShuttingDown(currentSession)
-
-        val newSession = getNewSession
-
-        sessionBox.mutate(_ => newSession)
-
-        f(newSession)
+    sessionBox.get { currentSession =>
+      try { f(currentSession) } 
+      catch {
+        case e: NoActiveSessionException => {
+          warn(s"Got ${e.getClass.getSimpleName}; re-throwing", e)
+          
+          throw e
+        }
+      }
     }
   }
   

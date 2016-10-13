@@ -24,6 +24,8 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   // TODO: Add version info (ideally from build.sbt)?
   banner("""LoamStream is a genomic analysis stack featuring a high-level language, compiler and runtime engine.
            |Usage: scala loamstream.jar [Option]...
+           |       or if you have an executable produced by SBT Native Packager:
+           |       loamstream [Option]...
            |Options:
            |""".stripMargin)
 

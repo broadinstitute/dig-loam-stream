@@ -16,8 +16,8 @@ class LoamNativeToolTest extends FunSuite {
   val folder = JFiles.createTempDirectory("loamNativeToolTest")
   val storePaths = (0 until 5).map(index => folder / s"file$index.txt")
 
-  def createContext: LoamContext = {
-    implicit val context = LoamContext.empty
+  def createContext: LoamProjectContext = {
+    implicit val context = LoamProjectContext.empty
     val store0 = store[TXT].from(storePaths(0))
     val store1 = store[TXT].to(storePaths(1))
     val store2 = store[TXT].to(storePaths(2))
@@ -66,7 +66,7 @@ class LoamNativeToolTest extends FunSuite {
 
   test("Loam native tool I/O API") {
     import loamstream.compiler.LoamPredef._
-    implicit val context = LoamContext.empty
+    implicit val context = LoamProjectContext.empty
     val store0 = store[TXT].from(storePaths(0))
     val store1 = store[TXT].to(storePaths(1))
     val store2 = store[TXT].to(storePaths(2))

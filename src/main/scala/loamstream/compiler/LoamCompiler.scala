@@ -5,9 +5,9 @@ import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
 import loamstream.loam.LoamScript.LoamScriptBox
-import loamstream.loam.{GraphPrinter, LoamContext, LoamGraph, LoamScript}
+import loamstream.loam.{GraphPrinter, LoamGraph, LoamProjectContext, LoamScript}
 import loamstream.util.code.ReflectionUtil
-import loamstream.util.{DepositBox, Loggable, NonFatalInitializer, StringUtils, ValueBox}
+import loamstream.util.{DepositBox, Loggable, NonFatalInitializer, StringUtils}
 
 import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
 import scala.tools.nsc.io.VirtualDirectory
@@ -53,7 +53,7 @@ object LoamCompiler extends Loggable {
   /** The result of the compilation of a Loam script */
   object Result {
     /** Constructs a result representing successful compilation */
-    def success(reporter: CompilerReporter, context: LoamContext): Result = {
+    def success(reporter: CompilerReporter, context: LoamProjectContext): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, Some(context))
     }
 
@@ -77,7 +77,7 @@ object LoamCompiler extends Loggable {
     * @param exOpt      Option of an exception if thrown
     */
   final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue],
-                          contextOpt: Option[LoamContext], exOpt: Option[Throwable] = None) {
+                          contextOpt: Option[LoamProjectContext], exOpt: Option[Throwable] = None) {
     /** Returns true if no errors */
     def isValid: Boolean = errors.isEmpty
 
@@ -100,8 +100,6 @@ object LoamCompiler extends Loggable {
     /** Detailed report listing all issues */
     def report: String = (summary +: (errors ++ warnings ++ infos).map(_.summary)).mkString(System.lineSeparator)
   }
-
-  val graphBoxDepositBox: DepositBox[ValueBox[LoamGraph]] = DepositBox.empty
 
   def withLogging(settings: LoamCompiler.Settings = LoamCompiler.Settings.default): LoamCompiler =
     LoamCompiler(settings, OutMessageSink.LoggableOutMessageSink(this))
@@ -176,11 +174,11 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
 
   /** Compiles Loam script into execution plan */
   def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
-    val graphBoxReceipt = LoamCompiler.graphBoxDepositBox.deposit(ValueBox(LoamGraph.empty))
+    val projectContextReceipt = LoamProjectContext.depositBox.deposit(LoamProjectContext.empty)
     try {
       val sourceFiles = project.scripts.map({
         script =>
-          new BatchSourceFile(script.scalaFileName, script.asScalaCode(graphBoxReceipt))
+          new BatchSourceFile(script.scalaFileName, script.asScalaCode(projectContextReceipt))
       })
       reporter.reset()
       targetDirectory.clear()
@@ -195,16 +193,16 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
         })
         val scriptBox = scriptBoxes.head
         val graph = scriptBox.graph
-        reportCompilation(project, graph, graphBoxReceipt)
-        LoamCompiler.Result.success(reporter, scriptBox.loamContext)
+        reportCompilation(project, graph, projectContextReceipt)
+        LoamCompiler.Result.success(reporter, scriptBox.projectContext)
       } else {
-        logScripts(Loggable.Level.error, project, graphBoxReceipt)
+        logScripts(Loggable.Level.error, project, projectContextReceipt)
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))
         LoamCompiler.Result.failure(reporter)
       }
     } catch {
       case NonFatalInitializer(throwable) =>
-        logScripts(Loggable.Level.error, project, graphBoxReceipt)
+        logScripts(Loggable.Level.error, project, projectContextReceipt)
         outMessageSink.send(
           StatusOutMessage(s"${
             throwable.getClass.getName
@@ -213,7 +211,7 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
           }"))
         LoamCompiler.Result.throwable(reporter, throwable)
     } finally {
-      LoamCompiler.graphBoxDepositBox.remove(graphBoxReceipt)
+      LoamProjectContext.depositBox.remove(projectContextReceipt)
     }
   }
 }

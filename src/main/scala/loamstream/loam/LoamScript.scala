@@ -47,11 +47,13 @@ object LoamScript {
 
   /** A wrapper type for Loam scripts */
   trait LoamScriptBox {
-    /** LoamContext for tis script */
-    def loamContext: LoamContext
+    /** LoamScriptContext for this script */
+    def scriptContext: LoamScriptContext
+    /** LoamScriptContext for this project */
+    def projectContext: LoamProjectContext
 
     /** The graph of stores and tools defined by this Loam script */
-    def graph: LoamGraph = loamContext.graphBox.value
+    def graph: LoamGraph = projectContext.graphBox.value
   }
 
   /** ScalaIds required to be loaded  */
@@ -63,7 +65,11 @@ object LoamScript {
     ScalaId.from[LoamCmdTool.StringContextWithCmd],
     ScalaId.from[PathEnrichments.type],
     ScalaId.from[PathEnrichments.PathHelpers],
-    ScalaId.from[PathEnrichments.PathAttemptHelpers])
+    ScalaId.from[PathEnrichments.PathAttemptHelpers],
+    ScalaId.from[LoamScriptContext],
+    ScalaId.from[LoamProjectContext],
+    ScalaId.from[LoamProjectContext.type]
+  )
 
 }
 
@@ -74,35 +80,37 @@ case class LoamScript(name: String, code: String) {
 
   def scalaId: ObjectId = ObjectId(scriptsPackage, name)
 
-  def scriptContextName = s"context$alphaNumHash"
-
   def scalaFileName: String = s"$name.scala"
 
-  def asScalaCode: String = asScalaCode("LoamContext.empty")
+  def asScalaCode: String = asScalaCode("new LoamScriptContext(LoamProjectContext.empty)")
 
-  def asScalaCode(graphBoxReceipt: DepositBox.Receipt): String =
-    asScalaCode(s"LoamContext.fromDepositedGraphBox(${graphBoxReceipt.asScalaCode})")
+  def asScalaCode(projectContextReceipt: DepositBox.Receipt): String =
+    asScalaCode(s"LoamScriptContext.fromDepositedProjectContext(${projectContextReceipt.asScalaCode})")
 
   def asScalaCode(loamContextInitCode: String): String = {
     s"""
 package ${LoamScript.scriptsPackage.inScalaFull}
 
 import ${ScalaId.from[LoamPredef.type].inScalaFull}._
-import ${ScalaId.from[LoamContext].inScalaFull}
+import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamGraph].inScalaFull}
 import ${ScalaId.from[ValueBox[_]].inScalaFull}
 import ${ScalaId.from[LoamScriptBox].inScalaFull}
 import ${ScalaId.from[LoamCmdTool.type].inScalaFull}._
 import ${ScalaId.from[PathEnrichments.type].inScalaFull}._
 import ${ScalaId.from[DepositBox[_]].inScalaFull}
+import ${ScalaId.from[LoamProjectContext].inScalaFull}
+import ${ScalaId.from[LoamScriptContext].inScalaFull}
 import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
   object LocalImplicits {
-    implicit val $scriptContextName = $loamContextInitCode
+    implicit val scriptContext : ${ScalaId.from[LoamScriptContext].inScala} = $loamContextInitCode
+    implicit val projectContext : ${ScalaId.from[LoamProjectContext].inScala} = scriptContext.projectContext
   }
-import LocalImplicits._
-def loamContext: LoamContext = $scriptContextName
+import LocalImplicits.{scriptContext => scriptContextImplicit, projectContext => projectContextImplicit }
+def scriptContext: LoamScriptContext = LocalImplicits.scriptContext
+def projectContext: LoamProjectContext = LocalImplicits.projectContext
 
 ${code.trim}
 

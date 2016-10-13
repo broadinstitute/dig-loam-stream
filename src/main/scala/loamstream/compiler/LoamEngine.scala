@@ -4,7 +4,7 @@ import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}
 import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.loam.{LoamContext, LoamScript, LoamToolBox}
+import loamstream.loam.{LoamProjectContext, LoamScript, LoamToolBox}
 import loamstream.model.execute.{ChunkedExecuter, LExecuter}
 import loamstream.model.jobs.LJob
 import loamstream.util.{Hit, Miss, Shot, StringUtils}
@@ -124,7 +124,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     }
   }
 
-  def run(context: LoamContext): Map[LJob, Shot[LJob.Result]] = {
+  def run(context: LoamProjectContext): Map[LJob, Shot[LJob.Result]] = {
     val mapping = LoamGraphAstMapper.newMapping(context.graph)
     val toolBox = new LoamToolBox(context)
     //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it

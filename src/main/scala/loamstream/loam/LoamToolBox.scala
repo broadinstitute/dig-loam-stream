@@ -14,7 +14,7 @@ import loamstream.model.jobs.Output
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-final class LoamToolBox(context: LoamContext) extends LToolBox {
+final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
 
   @volatile private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
 

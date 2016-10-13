@@ -11,7 +11,7 @@ trait LoamTool extends Tool {
   def id: LId
 
   /** The LoamContext associated with this tool */
-  def context: LoamContext
+  def context: LoamProjectContext
 
   /** The ValueBox used to store the graph this tool is part of */
   def graphBox: ValueBox[LoamGraph] = context.graphBox

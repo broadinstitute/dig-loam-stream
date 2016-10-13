@@ -5,7 +5,7 @@ import java.nio.file.{Path, Paths}
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
-import loamstream.loam.{LoamContext, LoamScript, LoamToolBox}
+import loamstream.loam.{LoamProjectContext, LoamScript, LoamToolBox}
 import loamstream.model.execute.{ChunkedExecuter, LExecutable}
 import loamstream.model.jobs.LJob
 import loamstream.util.{Loggable, Shot}
@@ -38,7 +38,7 @@ trait LoamTestHelpers extends Loggable {
   }
 
   def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, LExecutable) = {
-    val context: LoamContext = compileResults.contextOpt.get
+    val context: LoamProjectContext = compileResults.contextOpt.get
     val graph = context.graph
 
     val mapping = LoamGraphAstMapper.newMapping(graph)

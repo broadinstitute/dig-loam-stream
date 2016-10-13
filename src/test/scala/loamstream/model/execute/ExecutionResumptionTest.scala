@@ -158,7 +158,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       val executable = Executable(Set(f2ToF3))
   
       def runningEverything: Boolean = executer match {
-        case RxExecuter(_, jobFilter, _) => jobFilter == JobFilter.RunEverything
+        case RxExecuter(_, jobFilter) => jobFilter == JobFilter.RunEverything
         case _ => false
       }
 
@@ -191,7 +191,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
 
         assert(jobResults.size == expectedNumResults)
 
-        assert(jobResults.values.forall(_.get.isSuccess))
+        assert(jobResults.values.forall(_.isSuccess))
       }
     }
 

@@ -10,6 +10,7 @@ import loamstream.model.execute.Executer
 import loamstream.model.jobs.LJob
 import loamstream.util.{Hit, Miss, Shot, StringUtils}
 import loamstream.model.jobs.JobState
+import loamstream.model.execute.Executable
 
 
 /**
@@ -23,7 +24,7 @@ object LoamEngine {
 
   final case class Result(projectOpt: Shot[LoamProject],
                           compileResultOpt: Shot[LoamCompiler.Result],
-                          jobResultsOpt: Shot[Map[LJob, Shot[JobState]]])
+                          jobResultsOpt: Shot[Map[LJob, JobState]])
 
 }
 
@@ -83,6 +84,12 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
   def compile(project: LoamProject): LoamCompiler.Result = compiler.compile(project)
 
   def compile(script: LoamScript): LoamCompiler.Result = compiler.compile(script)
+  
+  def compileToExecutable(code: String): Option[Executable] = {
+    val compilationResult = compile(LoamScript.withGeneratedName(code))
+    
+    compilationResult.contextOpt.map(toExecutable)
+  }
 
   def runFilesWithNames(fileNames: Iterable[String]): LoamEngine.Result = {
     val pathsShot = Shot.sequence(fileNames.map(name => Shot(Paths.get(name))))
@@ -123,14 +130,23 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
     }
   }
 
-  def run(context: LoamContext): Map[LJob, Shot[JobState]] = {
+  private def toExecutable(context: LoamContext): Executable = {
     val mapping = LoamGraphAstMapper.newMapping(context.graph)
     val toolBox = new LoamToolBox(context)
+    
     //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
-    val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJob
+    mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded
+  }
+  
+  def run(context: LoamContext): Map[LJob, JobState] = {
+    val executable = toExecutable(context)
+    
     outMessageSink.send(StatusOutMessage("Now going to execute."))
+    
     val jobResults = executer.execute(executable)
+    
     outMessageSink.send(StatusOutMessage(s"Done executing ${StringUtils.soMany(jobResults.size, "job")}."))
+    
     jobResults
   }
 

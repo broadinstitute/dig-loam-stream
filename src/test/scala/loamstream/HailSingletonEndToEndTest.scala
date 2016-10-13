@@ -31,10 +31,7 @@ final class HailSingletonEndToEndTest extends FunSuite with LoamTestHelpers {
       assert(results.size == 2)
 
       //TODO: More-explicit test for better message on failures.
-      results.values.forall {
-        case Hit(r) => r.isSuccess
-        case _      => false
-      }
+      results.values.forall(_.isSuccess)
 
       val source = Source.fromFile(hailSingletonFilePath.toFile)
 

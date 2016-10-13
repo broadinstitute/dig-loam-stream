@@ -54,8 +54,7 @@ class LoamNativeToolTest extends FunSuite {
     val loamEngine = LoamEngine.default(ClientMessageHandler.OutMessageSink.NoOp)
     val jobResults = loamEngine.run(context)
     assert(jobResults.size === 5, s"Should have gotten 5 results, but got $jobResults")
-    assert(jobResults.values.forall(_.nonEmpty), s"Did not get results for all jobs: $jobResults")
-    assert(jobResults.values.forall(_.get.isSuccess), s"Not all job results were successful: $jobResults")
+    assert(jobResults.values.forall(_.isSuccess), s"Not all job results were successful: $jobResults")
     storePaths.foreach(assertFile)
   }
 

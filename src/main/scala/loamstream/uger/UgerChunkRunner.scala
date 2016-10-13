@@ -40,6 +40,9 @@ final case class UgerChunkRunner(
 
   override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
 
+    debug(s"Running: ")
+    leaves.foreach(job => debug(s"  $job"))
+    
     require(
       leaves.forall(isAcceptableJob),
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")

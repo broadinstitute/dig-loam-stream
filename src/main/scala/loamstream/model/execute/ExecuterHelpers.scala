@@ -44,12 +44,6 @@ object ExecuterHelpers {
       Map(job -> result)
     }
   }
-  
-  def toShotMap(m: Map[LJob, JobState]): Map[LJob, Shot[JobState]] = {
-    import Maps.Implicits._
-    
-    m.strictMapValues(Hit(_))
-  }
 
   /**
    * Creates and returns a fixed-size pool of daemon threads that will shutdown when non-daemon
@@ -73,6 +67,12 @@ object ExecuterHelpers {
       val thread = defaultFactory.newThread(r)
       thread.setDaemon(true)
       thread
+    }
+  }
+  
+  def flattenTree(roots: Set[LJob]): Set[LJob] = {
+    roots.foldLeft(roots) { (acc, job) =>
+      job.inputs ++ flattenTree(job.inputs) ++ acc
     }
   }
 }

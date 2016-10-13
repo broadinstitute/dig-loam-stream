@@ -142,12 +142,10 @@ final class LoamToolBoxTest extends FunSuite {
 
 object LoamToolBoxTest {
 
-  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobResults: Map[LJob, Shot[JobState]]) {
+  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobResults: Map[LJob, JobState]) {
     
-    def allJobResultsAreSuccess: Boolean = jobResults.values.forall {
-      case Hit(state) => state.isSuccess
-      case _ => false
-    }
+    def allJobResultsAreSuccess: Boolean = jobResults.values.forall(_.isSuccess)
+    
   }
 
   object Sources {

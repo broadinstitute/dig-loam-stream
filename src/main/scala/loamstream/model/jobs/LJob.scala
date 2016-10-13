@@ -17,7 +17,7 @@ trait LJob extends Loggable {
 
     doPrint(s"$indentString ${this}")
 
-    inputs.foreach(_.print(indent + 2))
+    inputs.foreach(_.print(indent + 2, doPrint))
   }
 
   def name: String = ""
@@ -76,19 +76,8 @@ trait LJob extends Loggable {
    */
   final def execute(implicit context: ExecutionContext): Future[JobState] = {
     import Futures.Implicits._
-    import JobState._
 
-    stateRef() = Running
-
-    executeSelf.withSideEffect { result =>
-      stateRef() = if (result.isSuccess) {
-        updateAndEmitJobState(Succeeded)
-        Succeeded
-      } else {
-        updateAndEmitJobState(Failed)
-        Failed
-      }
-    }
+    executeSelf.withSideEffect(updateAndEmitJobState)
   }
 
   /**

@@ -1,45 +1,123 @@
 package loamstream.model.execute
 
-import loamstream.conf.UgerConfig
-import loamstream.model.execute.RxExecuter.AsyncLocalChunkRunner
-import loamstream.model.execute.RxExecuterTest.MockChunkRunner
-import loamstream.model.jobs.{LJob, RxMockJob}
-import loamstream.util.Loggable
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import org.scalatest.FunSuite
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.ExecutionContext.Implicits.global
+import loamstream.model.execute.RxExecuter.AsyncLocalChunkRunner
 import loamstream.model.jobs.JobState
-import loamstream.util.ValueBox
+import loamstream.model.jobs.RxMockJob
+import loamstream.util.Loggable
 
 /**
  * @author kyuksel
  *         date: Aug 17, 2016
  */
 final class RxExecuterTest extends FunSuite with Loggable {
-  test("flattenTree") {
-    import RxExecuter.flattenTree
-    
-    val noDeps0 = RxMockJob("noDeps")
-    
-    assert(flattenTree(Set(noDeps0)) == Set(noDeps0))
-    
-    val middle0 = RxMockJob("middle", Set(noDeps0))
-    
-    assert(flattenTree(Set(middle0)) == Set(middle0, noDeps0))
-    
-    val root0 = RxMockJob("root", Set(middle0))
-    
-    assert(flattenTree(Set(root0)) == Set(root0, middle0, noDeps0))
-    
-    val noDeps1 = RxMockJob("noDeps1")
-    val middle1 = RxMockJob("middle1", Set(noDeps1))
-    val root1 = RxMockJob("root1", Set(middle1))
-    
-    assert(flattenTree(Set(root0, root1)) == Set(root0, middle0, noDeps0, root1, middle1, noDeps1))
-  }
+  import RxExecuterTest.makeExecuter
   
   // scalastyle:off magic.number
+  
+  test("Single successful job") {
+    /* Single-job pipeline:
+     *
+     * 		Job1
+     * 
+     */
+
+    val (executer, mockRunner) = makeExecuter()
+
+    val job1 = RxMockJob("Job_1")
+
+    assert(job1.executionCount === 0)
+
+    val executable = Executable(Set(job1))
+    
+    val result = executer.execute(executable)
+
+    assert(job1.executionCount === 1)
+
+    assert(result.size === 1)
+
+    // Check if jobs were correctly chunked
+    val jobExecutionSeq = mockRunner.chunks.value
+
+    assert(jobExecutionSeq === Seq(Set(job1)))
+    
+    assert(result.values.head === JobState.Succeeded)
+  }
+  
+  test("Single failed job") {
+    /* Single-job pipeline:
+     *
+     * 		Job1
+     * 
+     */
+    def doTest(jobState: JobState): Unit = {
+      val (executer, mockRunner) = makeExecuter()
+
+      val job1 = RxMockJob("Job_1", toReturn = jobState)
+  
+      assert(job1.executionCount === 0)
+  
+      val executable = Executable(Set(job1))
+      
+      val result = executer.execute(executable)
+  
+      assert(job1.executionCount === 1)
+  
+      assert(result.size === 1)
+  
+      // Check if jobs were correctly chunked
+      val jobExecutionSeq = mockRunner.chunks.value
+  
+      assert(jobExecutionSeq === Seq(Set(job1)))
+      
+      assert(result.values.head === jobState)
+    }
+    
+    doTest(JobState.Failed)
+    doTest(JobState.FailedWithException(new Exception))
+    doTest(JobState.CommandResult(42))
+  }
+  
+  test("Two failed jobs") {
+    /* Linear two-job pipeline:
+     *
+     * 		Job1 --- Job2
+     * 
+     */
+    def doTest(jobState: JobState): Unit = {
+      val (executer, mockRunner) = makeExecuter()
+
+      val job1 = RxMockJob("Job_1", toReturn = jobState)
+      val job2 = RxMockJob("Job_2", inputs = Set(job1), toReturn = jobState)
+  
+      assert(job1.executionCount === 0)
+      assert(job2.executionCount === 0)
+  
+      val executable = Executable(Set(job1))
+      
+      val result = executer.execute(executable)
+  
+      //We expect that job wasn't run, since the preceding job failed
+      assert(job1.executionCount === 1)
+      assert(job2.executionCount === 0)
+  
+      assert(result.size === 1)
+  
+      // Check if jobs were correctly chunked
+      assert(mockRunner.chunks.value === Seq(Set(job1)))
+      
+      assert(result(job1) === jobState)
+      assert(result.get(job2).isEmpty)
+    }
+    
+    doTest(JobState.Failed)
+    doTest(JobState.FailedWithException(new Exception))
+    doTest(JobState.CommandResult(42))
+  }
+  
   test("New leaves are executed as soon as possible when there is no delay") {
     /* A four-step pipeline:
      *
@@ -56,7 +134,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
      *           Job24
      */
 
-    val executer = RxExecuter.default
+    val (executer, mockRunner) = makeExecuter()
 
     val job11 = RxMockJob("Job_1_1")
     val job12 = RxMockJob("Job_1_2")
@@ -94,7 +172,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     assert(result.size === 9)
 
     // Check if jobs were correctly chunked
-    val jobExecutionSeq = executer.tracker.jobExecutionSeq
+    val jobExecutionSeq = mockRunner.chunks.value
     assert(jobExecutionSeq.length === 4, jobExecutionSeq.foreach(seq => debug(seq.toString)))
     assert(jobExecutionSeq(0) === Set(job11, job12))
     assert(jobExecutionSeq(1) === Set(job21, job22, job23, job24))
@@ -118,7 +196,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
      *           Job24
      */
 
-    val executer = RxExecuter.default
+    val (executer, mockRunner) = makeExecuter()
 
     // The delay added to job11 should cause job23 and job24 to be bundled and executed prior to job21 and job22
     lazy val job11 = RxMockJob("Job_1_1", dependencies = Set(job12))
@@ -157,7 +235,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     assert(result.size === 9)
 
     // Check if jobs were correctly chunked
-    val jobExecutionSeq = executer.tracker.jobExecutionSeq
+    val jobExecutionSeq = mockRunner.chunks.value
     assert(jobExecutionSeq.length === 7)
     assert(jobExecutionSeq(0) === Set(job12))
     assert(jobExecutionSeq(1) === Set(job11, job24))
@@ -198,8 +276,8 @@ final class RxExecuterTest extends FunSuite with Loggable {
     val executable = Executable(Set(job4))
 
     val maxSimultaneousJobs = 4
-    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxSimultaneousJobs)
-    val executer = RxExecuter(mockRunner)
+    
+    val (executer, mockRunner) = makeExecuter(maxSimultaneousJobs)
 
     executer.execute(executable)
 
@@ -213,18 +291,10 @@ final class RxExecuterTest extends FunSuite with Loggable {
 }
 
 object RxExecuterTest {
-  private final case class MockChunkRunner(delegate: ChunkRunner, maxNumJobs: Int) extends ChunkRunner {
-    val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
-
-    override def run(chunk: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
-      chunks.mutate(_ :+ chunk)
-
-      delegate.run(chunk)
-    }
-  }
-
-  private object MockChunkRunner {
-    def apply(delegate: ChunkRunner): MockChunkRunner = new MockChunkRunner(delegate,
-      UgerConfig.fromFile("src/test/resources/loamstream-test.conf").get.ugerMaxNumJobs)
+  private def makeExecuter(maxNumJobs: Int = AsyncLocalChunkRunner.maxNumJobs): (RxExecuter, MockChunkRunner) = {
+    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxNumJobs)
+    val executer = RxExecuter(mockRunner)
+    
+    (executer, mockRunner)
   }
 }

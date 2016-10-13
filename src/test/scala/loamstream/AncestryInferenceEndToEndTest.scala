@@ -31,13 +31,13 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
     checkResults(jobResults)
   }
 
-  private def checkResults(results: Map[LJob, Shot[JobState]]): Unit = {
+  private def checkResults(results: Map[LJob, JobState]): Unit = {
     // TODO: Should be able to calculate the number of results expected form number of jobs
     val numResultsExpected = 4 //scalastyle:ignore
 
     assert(results.size === numResultsExpected)
 
-    val numSuccesses = results.count { case (_, resultShot) => isSuccessShot(resultShot) }
+    val numSuccesses = results.values.count(_.isSuccess)
     
     assert(numSuccesses === 4)
   }

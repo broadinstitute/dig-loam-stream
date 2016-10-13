@@ -9,6 +9,11 @@ final case class Executable(jobs: Set[LJob]) {
 
   /** Returns a new executable with a no-op root job added */
   def plusNoOpRootJob: Executable = Executable(Set(NoOpJob(jobs)))
+  
+  def plusNoOpRootJobIfNeeded: Executable = {
+    if(jobs.size > 1) { Executable(Set(NoOpJob(jobs))) }
+    else { this }
+  }
 }
 
 /** A container of jobs to be executed */

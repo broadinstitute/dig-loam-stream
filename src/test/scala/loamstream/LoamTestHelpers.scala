@@ -53,5 +53,5 @@ trait LoamTestHelpers extends Loggable {
     (mapping, executable)
   }
 
-  def run(executable: Executable): Map[LJob, Shot[JobState]] = RxExecuter.default.execute(executable)
+  def run(executable: Executable): Map[LJob, JobState] = RxExecuter.default.execute(executable)
 }

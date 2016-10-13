@@ -32,10 +32,7 @@ final class MiniAppEndToEndTest extends FunSuite {
 
     assert(results.size == 2)
 
-    assert(results.values.forall {
-      case Hit(r) => r.isSuccess
-      case _      => false
-    })
+    assert(results.values.forall(_.isSuccess))
 
     val source = Source.fromFile(extractedSamplesFilePath.toFile)
 

@@ -2,9 +2,25 @@ package loamstream.cli
 
 import java.nio.file.{Path, Paths}
 
+import loamstream.util.Loggable
 import org.rogach.scallop._
+import org.rogach.scallop.exceptions.ScallopException
 
-final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
+/**
+ * Provides a command line interface for LoamStream apps
+ * using [[https://github.com/scallop/scallop Scallop]] under the hood
+ * @param arguments command line arguments provided by the app user
+ */
+final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
+  // Inform the user about expected usage upon erroneous input/behaviour
+  override def onError(e: Throwable) = e match {
+    case ScallopException(message) =>
+      error(message)
+      printHelp
+      sys.exit(1)
+    case ex => super.onError(ex)
+  }
+
   // TODO: Add version info (ideally from build.sbt)?
   banner("""LoamStream is a genomic analysis stack featuring a high-level language, compiler and runtime engine.
            |Usage: scala loamstream.jar [Option]...
@@ -19,8 +35,9 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   validatePathExists(conf)
 
   verify()
-}
 
-object Conf {
-  def apply(): Conf = Conf(Seq("--help"))
+  if (arguments.isEmpty) {
+    printHelp()
+    sys.exit(1)
+  }
 }

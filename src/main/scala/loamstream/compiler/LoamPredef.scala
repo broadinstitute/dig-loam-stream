@@ -46,6 +46,21 @@ object LoamPredef {
   def job[T: TypeTag](out: LoamTool.Out)(exp: => T)(
     implicit context: LoamProjectContext): LoamNativeTool[T] = LoamNativeTool(out, exp)
 
+  def changeDir(newPath: Path)(implicit scriptContext: LoamScriptContext): Path = scriptContext.changeWorkDir(newPath)
+
+  def changeDir(newPath: String)(implicit scriptContext: LoamScriptContext): Path = changeDir(Paths.get(newPath))
+
+  def inDir[T](path: Path)(expr: => T)(implicit scriptContext: LoamScriptContext): T = {
+    val oldDir = scriptContext.workDir
+    scriptContext.changeWorkDir(path)
+    val value = expr
+    scriptContext.setWorkDir(oldDir)
+    value
+  }
+
+  def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T =
+    inDir[T](Paths.get(path))(expr)
+
   trait VCF extends Map[(String, String), Genotype]
 
   trait TXT extends Seq[String]

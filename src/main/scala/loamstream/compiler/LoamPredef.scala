@@ -22,11 +22,11 @@ object LoamPredef {
 
   def store[T: TypeTag](implicit context: LoamProjectContext): LoamStore = LoamStore.create[T]
 
-  def job[T: TypeTag](exp: => T)(implicit context: LoamProjectContext): LoamNativeTool[T] =
+  def job[T: TypeTag](exp: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool(DefaultStores.empty, exp)
 
   def job[T: TypeTag](store: LoamStore, stores: LoamStore*)(exp: => T)(
-    implicit context: LoamProjectContext): LoamNativeTool[T] =
+    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool((store +: stores).toSet, exp)
 
   def in(store: LoamStore, stores: LoamStore*): LoamTool.In = in(store +: stores)
@@ -38,13 +38,13 @@ object LoamPredef {
   def out(stores: Iterable[LoamStore]): LoamTool.Out = LoamTool.Out(stores)
 
   def job[T: TypeTag](in: LoamTool.In, out: LoamTool.Out)(exp: => T)(
-    implicit context: LoamProjectContext): LoamNativeTool[T] = LoamNativeTool(in, out, exp)
+    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, out, exp)
 
   def job[T: TypeTag](in: LoamTool.In)(exp: => T)(
-    implicit context: LoamProjectContext): LoamNativeTool[T] = LoamNativeTool(in, exp)
+    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, exp)
 
   def job[T: TypeTag](out: LoamTool.Out)(exp: => T)(
-    implicit context: LoamProjectContext): LoamNativeTool[T] = LoamNativeTool(out, exp)
+    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(out, exp)
 
   def changeDir(newPath: Path)(implicit scriptContext: LoamScriptContext): Path = scriptContext.changeWorkDir(newPath)
 

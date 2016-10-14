@@ -16,8 +16,9 @@ class LoamNativeToolTest extends FunSuite {
   val folder = JFiles.createTempDirectory("loamNativeToolTest")
   val storePaths = (0 until 5).map(index => folder / s"file$index.txt")
 
-  def createContext: LoamProjectContext = {
-    implicit val context = LoamProjectContext.empty
+  def createProjectContext: LoamProjectContext = {
+    implicit val projectContext = LoamProjectContext.empty
+    implicit val scriptContext = new LoamScriptContext(projectContext)
     val store0 = store[TXT].from(storePaths(0))
     val store1 = store[TXT].to(storePaths(1))
     val store2 = store[TXT].to(storePaths(2))
@@ -31,7 +32,7 @@ class LoamNativeToolTest extends FunSuite {
     job(store3, store4) {
       JFiles.copy(store3.path, store4.path) // scalastyle:ignore magic.number
     }
-    context
+    projectContext
   }
 
   def validateGraph(graph: LoamGraph): Seq[Validation.IssueBase[LoamGraph]] =
@@ -46,7 +47,7 @@ class LoamNativeToolTest extends FunSuite {
   }
 
   test("File copy pipeline with native and cmd tools.") {
-    val context = createContext
+    val context = createProjectContext
     val graphValidationIssues = LoamGraphValidation.allRules(context.graph)
     assert(graphValidationIssues.isEmpty,
       s"There were some graph validation issues: ${graphValidationIssues.mkString("\n")}")
@@ -66,7 +67,8 @@ class LoamNativeToolTest extends FunSuite {
 
   test("Loam native tool I/O API") {
     import loamstream.compiler.LoamPredef._
-    implicit val context = LoamProjectContext.empty
+    implicit val projectContext = LoamProjectContext.empty
+    implicit val scriptContext = new LoamScriptContext(projectContext)
     val store0 = store[TXT].from(storePaths(0))
     val store1 = store[TXT].to(storePaths(1))
     val store2 = store[TXT].to(storePaths(2))

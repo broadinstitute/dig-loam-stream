@@ -1,13 +1,14 @@
 package loamstream.model.execute
 
+import java.nio.file.Paths
+
 import org.scalatest.FunSuite
+
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.Output
-import java.nio.file.Paths
-import loamstream.model.jobs.Output.CachedOutput
-import loamstream.db.slick.Helpers
+import loamstream.model.jobs.Output.PathBased
 
 /**
  * @author clint
@@ -38,15 +39,11 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
       
-      def cache = filter.cache
-      
       assert(executions === Set.empty)
-      assert(cache === Map.empty)
       
       filter.record(Nil)
       
       assert(executions === Set.empty)
-      assert(cache === Map.empty)
     }
   }
   
@@ -54,17 +51,13 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
       
-      def cache = filter.cache
-      
       assert(executions === Set.empty)
-      assert(cache === Map.empty)
       
       val e = Execution(Succeeded, Set.empty)
       
       filter.record(Seq(e))
       
       assert(executions === Set.empty)
-      assert(cache === Map.empty)
     }
   }
   
@@ -72,10 +65,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
       
-      def cache = filter.cache
-      
       assert(executions === Set.empty)
-      assert(cache === Map.empty)
       
       val cr = CommandResult(0)
       
@@ -86,7 +76,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
       filter.record(Seq(e))
       
       assert(executions === Set(e))
-      assert(cache === Map.empty)
     }
   }
   
@@ -94,10 +83,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
       
-      def cache = filter.cache
-      
       assert(executions === Set.empty)
-      assert(cache === Map.empty)
       
       val cr = CommandResult(42)
       
@@ -108,7 +94,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
       filter.record(Seq(e))
       
       assert(executions === Set(e))
-      assert(cache === Map.empty)
     }
   }
   
@@ -116,22 +101,15 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
       
-      def cache = filter.cache
-      
       assert(executions === Set.empty)
-      assert(cache === Map.empty)
       
       val cr = CommandResult(0)
       
       assert(cr.isSuccess)
       
-      def normalizePath(co: CachedOutput): CachedOutput = {
-        co.copy(path = Paths.get(Helpers.normalize(co.path)))
-      }
-      
-      val normalized0 = normalizePath(cachedOutput0)
-      val normalized1 = normalizePath(cachedOutput1)
-      val normalized2 = normalizePath(cachedOutput2)
+      val normalized0 = cachedOutput0.normalized
+      val normalized1 = cachedOutput1.normalized
+      val normalized2 = cachedOutput2.normalized
       
       val e = Execution(cr, Set(o0, o1, o2))
       val withHashedOutputs = e.withOutputs(Set(normalized0, normalized1, normalized2))
@@ -139,9 +117,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
       filter.record(Seq(e))
       
       assert(executions === Set(withHashedOutputs))
-      
-      assert(cache === 
-        Map(normalized0.path -> normalized0, normalized1.path -> normalized1, normalized2.path -> normalized2))
     }
   }
   
@@ -149,10 +124,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
       
-      def cache = filter.cache
-      
       assert(executions === Set.empty)
-      assert(cache === Map.empty)
       
       val cr = CommandResult(42)
       
@@ -160,12 +132,13 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
       
       val e = Execution(cr, Set(o0, o1, o2))
       
-      val withNoOutputs = e.withOutputs(Set.empty)
+      val withNormalizedOutputs = e.transformOutputs { outputs => 
+        outputs.collect { case pb: PathBased => pb.normalized.toCachedOutput }
+      }
       
       filter.record(Seq(e))
       
-      assert(executions === Set(withNoOutputs))
-      assert(cache === Map.empty)
+      assert(executions === Set(withNormalizedOutputs))
     }
   }
   

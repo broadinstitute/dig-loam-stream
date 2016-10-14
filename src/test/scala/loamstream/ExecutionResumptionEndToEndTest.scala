@@ -24,6 +24,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.execute.MockChunkRunner
 import loamstream.model.execute.ExecuterHelpers
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.jobs.JobState.CommandInvocationFailure
 
 /**
   * @author kaan
@@ -164,7 +165,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       
       assert(allCommandLines.map(_.take(bogusCommandName.size)) === Seq(bogusCommandName))
       
-      val f0 @ FailedWithException(_) = jobStates.values.head
+      val f0 @ CommandInvocationFailure(_) = jobStates.values.head
 
       {
         import Matchers._

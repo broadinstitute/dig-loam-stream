@@ -9,8 +9,6 @@ import java.time.Instant
  * date: Aug 10, 2016
  */
 object Helpers {
-  def normalize(p: Path): String = p.toAbsolutePath.toString
-  
   def timestampFromLong(millisSinceEpoch: Long): Timestamp = {
     Timestamp.from(Instant.ofEpochMilli(millisSinceEpoch))
   }

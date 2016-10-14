@@ -1,13 +1,14 @@
 package loamstream.db.slick
 
 import java.nio.file.Path
-import loamstream.util.Hash
 import java.nio.file.Paths
 import java.sql.Timestamp
-import Helpers._
-import loamstream.util.PathUtils.lastModifiedTime
-import loamstream.model.jobs.Output.CachedOutput
+
 import loamstream.model.jobs.Output
+import loamstream.model.jobs.Output.CachedOutput
+import loamstream.util.Hash
+import loamstream.util.PathUtils.lastModifiedTime
+import loamstream.util.PathUtils.normalize
 
 /**
  * @author clint

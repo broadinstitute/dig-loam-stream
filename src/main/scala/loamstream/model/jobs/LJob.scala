@@ -6,6 +6,7 @@ import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
 import rx.lang.scala.subjects.PublishSubject
+import rx.lang.scala.Observable
 
 /**
  * LoamStream
@@ -40,6 +41,8 @@ trait LJob extends Loggable {
   final def state: JobState = stateRef.value
 
   final val stateEmitter = PublishSubject[JobState]
+  
+  lazy val states: Observable[JobState] = stateEmitter.share
 
   final protected def emitJobState(): Unit = stateEmitter.onNext(state)
 

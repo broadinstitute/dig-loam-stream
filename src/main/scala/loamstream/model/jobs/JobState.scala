@@ -32,6 +32,8 @@ object JobState {
     override def isFailure: Boolean = isFailureStatusCode(exitStatus)
   }
   
+  final case class CommandInvocationFailure(e: Throwable) extends FailureState
+  
   final case class FailedWithException(e: Throwable) extends FailureState
   
   //NB: Needed to support native jobs

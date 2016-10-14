@@ -118,6 +118,80 @@ final class RxExecuterTest extends FunSuite with Loggable {
     doTest(JobState.CommandResult(42))
   }
   
+  test("One job with two dependencies") {
+    /*
+     *   Job1
+     *       \
+     *         --- Job3
+     *       /
+     *   Job2
+     */
+    
+    val (executer, mockRunner) = makeExecuter()
+
+    val job1 = RxMockJob("Job_1")
+    val job2 = RxMockJob("Job_2")
+    val job3 = RxMockJob("Job_3", Set(job1, job2))
+    
+    assert(job1.executionCount === 0)
+    assert(job2.executionCount === 0)
+    assert(job3.executionCount === 0)
+
+    val executable = Executable(Set(job3))
+    val result = executer.execute(executable)
+
+    assert(job1.executionCount === 1)
+    assert(job2.executionCount === 1)
+    assert(job3.executionCount === 1)
+
+    assert(result.size === 3)
+
+    // Check if jobs were correctly chunked
+    val jobExecutionSeq = mockRunner.chunks.value
+    
+    assert(jobExecutionSeq(0) === Set(job1, job2))
+    assert(jobExecutionSeq(1) === Set(job3))
+    
+    assert(jobExecutionSeq.length === 2, jobExecutionSeq.foreach(seq => debug(seq.toString)))
+  }
+  
+  test("Two jobs with the same dependency") {
+    /*
+     *       Job2
+     *      /    
+     * Job1
+     *      \
+     *       Job3
+     */
+    
+    val (executer, mockRunner) = makeExecuter()
+
+    val job1 = RxMockJob("Job_1")
+    val job2 = RxMockJob("Job_2", Set(job1))
+    val job3 = RxMockJob("Job_3", Set(job1))
+    
+    assert(job1.executionCount === 0)
+    assert(job2.executionCount === 0)
+    assert(job3.executionCount === 0)
+
+    val executable = Executable(Set(job2, job3))
+    val result = executer.execute(executable)
+
+    assert(job1.executionCount === 1)
+    assert(job2.executionCount === 1)
+    assert(job3.executionCount === 1)
+
+    assert(result.size === 3)
+
+    // Check if jobs were correctly chunked
+    val jobExecutionSeq = mockRunner.chunks.value
+    
+    assert(jobExecutionSeq(0) === Set(job1))
+    assert(jobExecutionSeq(1) === Set(job2, job3))
+    
+    assert(jobExecutionSeq.length === 2, jobExecutionSeq.foreach(seq => debug(seq.toString)))
+  }
+  
   test("New leaves are executed as soon as possible when there is no delay") {
     /* A four-step pipeline:
      *

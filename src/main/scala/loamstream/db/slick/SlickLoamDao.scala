@@ -22,6 +22,7 @@ import slick.profile.SqlAction
 import loamstream.util.Loggable
 import scala.concurrent.ExecutionContext
 import loamstream.model.jobs.JobState
+import loamstream.util.PathUtils
 
 /**
  * @author clint
@@ -116,7 +117,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   
   override def findExecution(output: Output.PathBased): Option[Execution] = {
     
-    val lookingFor = Helpers.normalize(output.path)
+    val lookingFor = PathUtils.normalize(output.path)
     
     val executionForPath = for {
       output <- tables.outputs.filter(_.path === lookingFor)
@@ -184,18 +185,20 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
   
   private object Queries {
+    import PathUtils.normalize
+    
     lazy val insertExecution = (tables.executions returning tables.executions.map(_.id)).into { 
       (execution, newId) => execution.copy(id = newId)
     }
     
     def outputByPath(path: Path) = { 
-      val lookingFor = Helpers.normalize(path)
+      val lookingFor = normalize(path)
 
       tables.outputs.filter(_.path === lookingFor).take(1)
     }
     
     def outputsByPaths(paths: Iterable[Path]) = {
-      val rawPaths = paths.map(Helpers.normalize).toSet
+      val rawPaths = paths.map(normalize).toSet
       
       outputsByRawPaths(rawPaths)
     }

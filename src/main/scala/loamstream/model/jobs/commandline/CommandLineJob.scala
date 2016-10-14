@@ -38,7 +38,7 @@ trait CommandLineJob extends LJob {
       
       JobState.CommandResult(exitValue)
     }.recover {
-      case exception: Exception => JobState.FailedWithException(exception)
+      case exception: Exception => JobState.CommandInvocationFailure(exception)
     }
   }
 

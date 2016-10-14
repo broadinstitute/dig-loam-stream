@@ -2,6 +2,8 @@ package loamstream.util
 
 import org.scalatest.FunSuite
 import java.nio.file.Paths
+import java.nio.file.FileSystems
+import java.io.File
 
 /**
  * @author clint
@@ -65,5 +67,26 @@ final class PathUtilTest extends FunSuite {
     val exists = Paths.get("src/test/resources/for-hashing/foo.txt")
     
     assert(lastModifiedTime(exists).toEpochMilli == exists.toFile.lastModified)
+  }
+  
+  test("normalize") {
+    val absolute = Paths.get("/x/y/z")
+
+    val rootPath = FileSystems.getDefault.getRootDirectories.iterator.next
+
+    val absoluteExpected = s"${rootPath}x${File.separator}y${File.separator}z"
+
+    import PathUtils.normalize
+    
+    assert(normalize(absolute) == absoluteExpected)
+
+    val relative = Paths.get("x/y/z")
+
+    //NB: Hopefully this is cross-platform
+    val cwd = Paths.get(".").toAbsolutePath.normalize
+
+    val expected = cwd.resolve(relative).toString
+
+    assert(normalize(relative) == expected)
   }
 }

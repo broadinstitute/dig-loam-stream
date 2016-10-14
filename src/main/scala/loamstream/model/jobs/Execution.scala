@@ -7,8 +7,9 @@ package loamstream.model.jobs
 final case class Execution(exitState: JobState, outputs: Set[Output]) {
   def transformOutputs(f: Set[Output] => Set[Output]): Execution = copy(outputs = f(outputs))
   
+  //NB :(
   def isCommandExecution: Boolean = exitState match {
-    case JobState.CommandResult(_) => true
+    case JobState.CommandResult(_) | JobState.CommandInvocationFailure(_) => true
     case _ => false
   }
   

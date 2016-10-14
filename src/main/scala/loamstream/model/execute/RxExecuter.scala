@@ -106,7 +106,7 @@ final case class RxExecuter(runner: ChunkRunner,
     notFinishedOption.isEmpty
   }
   
-  private def executeIter(allJobs: Set[LJob], everythingIsDonePromise: Promise[Unit]): Observable[Unit] = {
+  private def executeIter(allJobs: Set[LJob], everythingIsDonePromise: Promise[Unit]): Future[Unit] = {
     debug("executeIter() is called...\n")
     
     val runnableJobs = getRunnableJobsAndMarkThemAsLaunched(allJobs)
@@ -120,26 +120,27 @@ final case class RxExecuter(runner: ChunkRunner,
       
       everythingIsDonePromise.trySuccess(())
         
-      Observable.just(())
+      Future.successful(())
     } else {
       // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
-      val future = for {
+      for {
         newResultMap <- runner.run(jobsToDispatch)(executionContext)
+        unit <- recordChunkExecution(newResultMap)
       } yield {
-        recordChunkExecution(newResultMap)
+        unit
       }
-      
-      Observable.from(future)
     }
   }
   
-  private def recordChunkExecution(newResultMap: Map[LJob, JobState]): Unit = {
+  private def recordChunkExecution(newResultMap: Map[LJob, JobState]): Future[Unit] = {
         
     result.mutate(_ ++ newResultMap)
         
     val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
         
-    jobFilter.record(executions)
+    debug(s"Recording $executions")
+    
+    Future.successful(jobFilter.record(executions))
   }
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobState] = {
@@ -168,7 +169,8 @@ final case class RxExecuter(runner: ChunkRunner,
       job.stateEmitter.subscribe(jobState => updateJobState(job, jobState))
     }
 
-    def doExecuteIter() = executeIter(allJobs, everythingIsDonePromise)
+    //NB: Block waiting for executeIter :(
+    def doExecuteIter() = Futures.waitFor(executeIter(allJobs, everythingIsDonePromise))
     
     allJobStatuses.sample(20.millis).subscribe(_ => doExecuteIter())
     

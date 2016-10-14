@@ -32,44 +32,11 @@ final class DbBackedJobFilter(dao: LoamDao) extends JobFilter with Loggable {
   }
 
   override def record(executions: Iterable[Execution]): Unit = {
-    val (insertedSuccesses, _) = insertExecutions(executions)
-    
-    updateCache(insertedSuccesses)
-  }
-  
-  private def updateCache(successes: Iterable[Execution]): Unit = {
-    // :(
-    val allOutputs = successes.flatMap(_.outputs).collect {
-      case cached: CachedOutput => cached
-    }
-
-    import Traversables.Implicits._
-    
-    val newOutputMap = allOutputs.mapBy(_.path)
-
-    cachedOutputsByPath.mutate { oldOutputs =>
-      oldOutputs ++ newOutputMap
-    }
-  }
-  
-  private def insertExecutions(executions: Iterable[Execution]): (Iterable[Execution], Iterable[Execution]) = {
     //NB: We can only insert command executions (UGER or command-line jobs, anything with an in exit status code) 
     //for now
-    val insertableExecutions = executions.collect { case e if e.isCommandExecution => e }
+    val insertableExecutions = executions.collect { case e if e.isCommandExecution => hashOutputsOf(e) }
 
-    //Insert successes and all their outputs
-    val insertableSuccesses = insertableExecutions.collect {
-      case e @ Execution(cr: CommandResult, _) if cr.isSuccess => hashOutputsOf(e)
-    }
-
-    //Don't hash or store outputs of failures 
-    val insertableFailures = insertableExecutions.collect {
-      case e @ Execution(cr: CommandResult, _) if cr.isFailure => e.withOutputs(Set.empty)
-    }
-
-    dao.insertExecutions(insertableSuccesses ++ insertableFailures)
-    
-    (insertableSuccesses, insertableFailures)
+    dao.insertExecutions(insertableExecutions)
   }
 
   private def cachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
@@ -80,29 +47,14 @@ final class DbBackedJobFilter(dao: LoamDao) extends JobFilter with Loggable {
     }
   }
 
-  //TODO: Support outputs other than Paths
-  //TODO: Use this at all?
-  private[this] lazy val cachedOutputsByPath: ValueBox[Map[Path, CachedOutput]] = {
-    //TODO: All of them?  
-    val map: Map[Path, CachedOutput] = dao.allOutputs.map(row => row.path -> row).toMap
-
-    if (isDebugEnabled) {
-      debug(s"Known paths: ${map.size}")
-
-      map.values.foreach { data =>
-        debug(data.toString)
-      }
-    }
-
-    ValueBox(map)
-  }
-  
-  private[execute] def cache: Map[Path, CachedOutput] = cachedOutputsByPath.value
-
   private def normalize(p: Path) = p.toAbsolutePath
 
-  private def isHashed(output: Path): Boolean = {
-    cachedOutputsByPath.value.contains(normalize(output))
+  private def findOutput(path: Path): Option[Output] = {
+    dao.findOutput(normalize(path))
+  }
+  
+  private def isHashed(path: Path): Boolean = {
+    findOutput(path).isDefined
   }
 
   private def notHashed(output: Path): Boolean = !isHashed(output)
@@ -113,7 +65,7 @@ final class DbBackedJobFilter(dao: LoamDao) extends JobFilter with Loggable {
 
     val path = normalize(output)
 
-    cachedOutputsByPath.value.get(path) match {
+    findOutput(path) match {
       case Some(cachedOutput) => cachedOutput.hash != hash(path)
       case None               => true
     }
@@ -126,7 +78,7 @@ final class DbBackedJobFilter(dao: LoamDao) extends JobFilter with Loggable {
 
     val path = normalize(output)
 
-    cachedOutputsByPath.value.get(path) match {
+    findOutput(path) match {
       case Some(cachedOutput) => lastModified(path) < cachedOutput.lastModified
       case None               => false
     }

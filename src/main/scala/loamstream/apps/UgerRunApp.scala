@@ -33,7 +33,7 @@ object UgerRunApp extends App with DrmaaClientHelpers with Loggable {
 
     val loamEngine =
       LoamEngine(new LoamCompiler(LoamCompiler.Settings.default, outMessageSink), executer, outMessageSink)
-    val engineResult = loamEngine.runFile(loam)
+    val engineResult = loamEngine.runFiles(loam)
 
     for {
       (job, result) <- engineResult.jobResultsOpt.get

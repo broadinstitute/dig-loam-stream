@@ -9,16 +9,34 @@ import org.rogach.scallop.exceptions.ScallopException
 /**
  * Provides a command line interface for LoamStream apps
  * using [[https://github.com/scallop/scallop Scallop]] under the hood
+ *
  * @param arguments command line arguments provided by the app user
  */
 final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
-  // Inform the user about expected usage upon erroneous input/behaviour
+  /** Inform the user about expected usage upon erroneous input/behaviour. */
   override def onError(e: Throwable) = e match {
     case ScallopException(message) =>
       error(message)
       printHelp
       sys.exit(1)
     case ex => super.onError(ex)
+  }
+
+  /** In the verify stage, check that files with the supplied paths exist. */
+  private def validatePathsExist(paths: ScallopOption[List[Path]]): Unit =
+    paths.toOption.foreach { paths =>
+      paths.foreach { path =>
+        if (!path.toFile.exists) {
+          error("File at '" + path + "' not found")
+          sys.exit(1)
+        }
+      }
+  }
+
+  private def printHelpIfNoArgsAndExit(): Unit =
+    if (arguments.isEmpty) {
+    printHelp()
+    sys.exit(1)
   }
 
   // TODO: Add version info (ideally from build.sbt)?
@@ -29,17 +47,15 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
            |Options:
            |""".stripMargin)
 
-  val loam = opt[Path](descr = "Path to loam script")
-  val conf = opt[Path](descr = "Path to config file", default = Option(Paths.get("src/main/resources/loamstream.conf")))
+  val listPathConverter = listArgConverter[Path](Paths.get(_))
+  val loam = opt[List[Path]](descr = "Path to loam script", required = true, validate = _.nonEmpty)(listPathConverter)
+  val conf = opt[Path](descr = "Path to config file", required = true)
 
-  dependsOnAny(conf, List(loam))
-  validatePathExists(loam)
   validatePathExists(conf)
 
   verify()
 
-  if (arguments.isEmpty) {
-    printHelp()
-    sys.exit(1)
-  }
+  // The following checks come after verify() since options are lazily built by Scallop
+  printHelpIfNoArgsAndExit()
+  validatePathsExist(loam)
 }

@@ -3,7 +3,6 @@ package loamstream.model.jobs
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import LJob.Result
-import loamstream.model.jobs.JobState.{Running, Succeeded}
 import loamstream.util.Sequence
 import loamstream.util.ValueBox
 
@@ -30,17 +29,13 @@ class MockJob(
     case that: MockJob => this.equalityFields == that.equalityFields
     case _ => false
   }
-  
+
   override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = {
     count.mutate(_ + 1)
-
-    updateAndEmitJobState(Running)
 
     if (delay > 0) {
       Thread.sleep(delay)
     }
-
-    updateAndEmitJobState(Succeeded)
 
     Future.successful(toReturn)
   }

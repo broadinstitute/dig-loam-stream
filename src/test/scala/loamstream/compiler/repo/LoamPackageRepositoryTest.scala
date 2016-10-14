@@ -24,7 +24,7 @@ final class LoamPackageRepositoryTest extends FunSuite {
     assert(repo.load("foo").isMiss)
     
     assert(repo.load("impute").get.name == "impute")
-    assert(repo.load("impute").get.content == Files.readFromAsUtf8(Paths.get("src/test/resources/loam/impute.loam")))
+    assert(repo.load("impute").get.code == Files.readFromAsUtf8(Paths.get("src/test/resources/loam/impute.loam")))
     
     assert(repo.load("foo").isMiss)
   }

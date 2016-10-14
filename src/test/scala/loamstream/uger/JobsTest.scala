@@ -3,41 +3,49 @@ package loamstream.uger
 import org.scalatest.FunSuite
 
 import scala.util.Success
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 
-import scala.collection.mutable
 import loamstream.util.ObservableEnrichments
+import scala.concurrent.Future
 
 /**
  * @author clint
  * date: Jul 6, 2016
  */
 final class JobsTest extends FunSuite {
+  private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf) 
+  
   test("monitor() - happy path") {
     import JobStatus._
     
-    val client = MockDrmaaClient(Success(Queued), Success(Running), Success(Done))
+    val jobId1 = "foo"
+    val jobId2 = "bar"
+    val jobId3 = "baz"
+    
+    val jobIds = Seq(jobId1, jobId2, jobId3)
+    
+    val client = MockDrmaaClient(
+      Map(
+        jobId1 -> Seq(Success(Queued), Success(Running), Success(Running), Success(Done)),
+        jobId2 -> Seq(Success(Running), Success(Done)),
+        jobId3 -> Seq(Success(Running), Success(Running), Success(Done))))
     
     import scala.concurrent.ExecutionContext.Implicits.global
     import ObservableEnrichments._
     
     val poller = Poller.drmaa(client)
     
-    val jobId = "bar"
+    val statuses = Jobs.monitor(poller, 9.99)(jobIds)
     
-    val statuses = Jobs.monitor(poller, 2)(jobId)
+    def futureStatuses(jobId: String): Future[Seq[JobStatus]] = statuses(jobId).to[Seq].firstAsFuture
     
-    val fut = statuses.to[Seq].firstAsFuture
+    val fut1 = futureStatuses(jobId1)
+    val fut2 = futureStatuses(jobId2)
+    val fut3 = futureStatuses(jobId3)
 
-    assert(Await.result(fut, Duration.Inf) == Seq(Queued, Running, Done))
-    
-    import scala.concurrent.duration._
-    
-    val expectedParamTuple = jobId -> 0.5.seconds
-    
-    assert(client.params.value == Seq(expectedParamTuple, expectedParamTuple, expectedParamTuple))
+    assert(waitFor(fut1) == Seq(Queued, Running, Done))
+    assert(waitFor(fut2) == Seq(Running, Done))
+    assert(waitFor(fut3) == Seq(Running, Done))
   }
 }

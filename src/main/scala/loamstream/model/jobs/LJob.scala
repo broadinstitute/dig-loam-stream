@@ -12,8 +12,8 @@ import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.Subject
 import rx.lang.scala.subjects.ReplaySubject
-
-
+import scala.reflect.runtime.universe.Type
+import rx.lang.scala.subjects.PublishSubject
 
 /**
  * LoamStream
@@ -109,7 +109,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    */
   //NB: Currently needs to be public for use in UgerChunkRunner :\
   final def updateAndEmitJobState(newState: JobState): Unit = {
-    trace(s"Status change to $newState for job: ${this}")
+    debug(s"Status change to $newState for job: ${this}")
     stateRef() = newState
     stateEmitter.onNext(newState)
   }
@@ -129,7 +129,7 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   }
   
   /**
-   * Will do any actual work meant to be performed by this job
+   * Implementions of this method will do any actual work to be performed by this job
    */
   protected def executeSelf(implicit context: ExecutionContext): Future[Result]
 
@@ -199,6 +199,11 @@ object LJob {
 
   final case class SimpleSuccess(successMessage: String) extends Success
 
+  /**
+   * If a job was skipped for various possible reasons (e.g. its outputs were already present)
+   */
+  final case class SkippedSuccess(successMessage: String) extends Success
+
   final case class ValueSuccess[T](value: T, typeBox: TypeBox[T]) extends Success {
     def tpe: Type = typeBox.tpe
 
@@ -220,5 +225,4 @@ object LJob {
   final case class FailureFromThrowable(cause: Throwable) extends Failure {
     override def failureMessage: String = cause.getMessage
   }
-
 }

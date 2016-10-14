@@ -24,7 +24,7 @@ trait DrmaaClient {
     pathToUgerOutput: Path,
     jobName: String,
     numTasks: Int = 1): DrmaaClient.SubmissionResult
-
+    
   /**
    * Synchronously inspect the status of a job with the given ID
    * @param jobId the job ID, assigned by UGER, to inquire about

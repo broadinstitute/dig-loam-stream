@@ -1,8 +1,7 @@
 package loamstream.loam.ast
 
 import loamstream.compiler.LoamCompiler
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.loam.LoamGraphValidation
+import loamstream.loam.{LoamGraphValidation, LoamScript}
 import loamstream.model.AST.ToolNode
 import org.scalatest.FunSuite
 
@@ -12,10 +11,10 @@ import org.scalatest.FunSuite
   * Created by oliverr on 6/20/2016.
   */
 final class LoamGraphAstTest extends FunSuite {
-  val compiler = new LoamCompiler(OutMessageSink.NoOp)
+  val compiler = new LoamCompiler
 
-  def validate(code: String): Unit = {
-    val result = compiler.compile(code)
+  def validate(script: LoamScript): Unit = {
+    val result = compiler.compile(script)
     assert(result.contextOpt.nonEmpty)
     val context = result.contextOpt.get
     val graph = context.graph
@@ -52,7 +51,7 @@ final class LoamGraphAstTest extends FunSuite {
         |cmd"$phaseCommand -in $raw -out $phased"
         |cmd"$imputeCommand -in $phased -template $template -out $imputed"
         | """.stripMargin
-    validate(code)
+    validate(LoamScript("ImputePipelineAstValidation", code))
   }
   test("Validate AST for example with multiple final tools, i.e. roots") {
     val code =
@@ -71,7 +70,7 @@ final class LoamGraphAstTest extends FunSuite {
         |cmd"command3 -in $temp1 $temp2 -out $out1"
         |cmd"command4 -in $temp1 $temp3 -out $out2"
         | """.stripMargin
-    validate(code)
+    validate(LoamScript("MultipleFinalToolsAstValidation", code))
   }
   test("Validate AST for diamond example (branch and remerge)") {
     val code =
@@ -89,6 +88,6 @@ final class LoamGraphAstTest extends FunSuite {
         |cmd"command3 -in $tempB1 -out $tempB2"
         |cmd"command4 -in $tempA2 $tempB2 -out $out"
         | """.stripMargin
-    validate(code)
+    validate(LoamScript("DiamondAstValidation", code))
   }
 }

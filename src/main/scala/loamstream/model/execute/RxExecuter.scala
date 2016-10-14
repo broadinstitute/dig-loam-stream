@@ -13,6 +13,8 @@ import loamstream.util.Observables
 import loamstream.util.Shot
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.util.Traversables
+import loamstream.model.jobs.JobState
 
 /**
  * @author kaan
@@ -20,8 +22,9 @@ import rx.lang.scala.schedulers.IOScheduler
  *         date: Aug 17, 2016
  */
 final case class RxExecuter(
-    runner: ChunkRunner,  
-    windowLength: Duration)(implicit executionContext: ExecutionContext) extends LExecuter with Loggable {
+    runner: ChunkRunner,
+    windowLength: Duration,
+    jobFilter: JobFilter)(private implicit val executionContext: ExecutionContext) extends LExecuter with Loggable {
   
   override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
     import Maps.Implicits._
@@ -37,16 +40,23 @@ final case class RxExecuter(
     //An observable stream of "chunks" of runnable jobs, with each chunk represented as an observable stream.
     //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
     //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
-    val chunks = runnables.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
+    val chunks: Observable[Observable[LJob]] = runnables.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
     
-    val chunkResults = for {
+    val chunkResults: Observable[Map[LJob, Result]] = for {
       chunk <- chunks
       jobs <- chunk.to[Set]
-      //jobs can be empty if no jobs become runnable during 'windowLength'
-      if jobs.nonEmpty
-      resultMap <- runner.run(jobs)
+      (jobsToRun, skippedJobs) = jobs.partition(jobFilter.shouldRun)
+      _ = debug(s"SKIPPING (${skippedJobs.size}) $skippedJobs")
+      _ = debug(s"RUNNING (${jobsToRun.size}) $jobsToRun")
+      _ = debug(s"Dispatching jobs to ChunkRunner: $jobsToRun")
+      _ = markJobsSkipped(skippedJobs)
+      resultMap <- runner.run(jobsToRun)
     } yield {
-      resultMap
+      record(resultMap)
+      
+      val skippedResultMap = toSkippedResultMap(skippedJobs)
+      
+      resultMap ++ skippedResultMap
     }
     
     //Collect the results from each chunk, and merge them, producing a future holding the merged results
@@ -58,6 +68,24 @@ final case class RxExecuter(
     
     Await.result(futureMergedResults, timeout)
   }
+  
+  private def markJobsSkipped(skippedJobs: Set[LJob]): Unit = {
+    skippedJobs.foreach(_.updateAndEmitJobState(JobState.Skipped))
+  }
+  
+  private def toSkippedResultMap(skippedJobs: Set[LJob]): Map[LJob, Result] = {
+    import Traversables.Implicits._
+      
+    skippedJobs.mapTo(job => LJob.SkippedSuccess(job.name))
+  }
+  
+  private def record(results: Map[LJob, Result]): Unit = {
+    if(results.nonEmpty) {
+      val outputs = results.keySet.flatMap(_.outputs)
+        
+      jobFilter.record(outputs)
+    }
+  }
 }
 
 object RxExecuter {
@@ -66,22 +94,36 @@ object RxExecuter {
   // scalastyle:on magic.number
   
   def default: RxExecuter = {
+    implicit val executionContext = ExecutionContext.global
+    val windowLength = 0.25.seconds
+    val chunkRunner = asyncLocalChunkRunner(defaultMaxNumConcurrentJobs)
+    val jobFilter = JobFilter.RunEverything
+    
     //NB: Use a short windowLength to speed up tests
-    new RxExecuter(asyncLocalChunkRunner(defaultMaxNumConcurrentJobs), 0.25.seconds)(ExecutionContext.global)
+    new RxExecuter(chunkRunner, windowLength, jobFilter)
+  }
+  
+  def defaultWith(newJobFilter: JobFilter): RxExecuter = {
+    val d = default
+    
+    d.copy(jobFilter = newJobFilter)(d.executionContext)
   }
 
-  def asyncLocalChunkRunner(maxJobs: Int): ChunkRunner = new ChunkRunner {
+  def asyncLocalChunkRunner(maxJobs: Int)(implicit context: ExecutionContext): ChunkRunner = new ChunkRunner {
 
     import ExecuterHelpers._
 
     override def maxNumJobs = maxJobs
     
-    override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Observable[Map[LJob, Result]] = {
-      def exec(job: LJob): Observable[Map[LJob, Result]] = Observable.from(executeSingle(job))
-
-      val resultObservables: Seq[Observable[Map[LJob, Result]]] = jobs.toSeq.map(exec)
-      
-      Observables.sequence(resultObservables).map(Maps.mergeMaps)
+    override def run(jobs: Set[LJob]): Observable[Map[LJob, Result]] = {
+      if(jobs.isEmpty) { Observable.just(Map.empty) }
+      else {
+        def exec(job: LJob): Observable[Map[LJob, Result]] = Observable.from(executeSingle(job))
+  
+        val resultObservables: Seq[Observable[Map[LJob, Result]]] = jobs.toSeq.map(exec)
+        
+        Observables.sequence(resultObservables).map(Maps.mergeMaps)
+      }
     }
   }
 }

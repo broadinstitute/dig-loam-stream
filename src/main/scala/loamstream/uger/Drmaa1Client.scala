@@ -37,7 +37,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     
     s
   }
-
+  
   /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
@@ -46,7 +46,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     catch {
       //NB: session.exit() will fail if an exception was thrown by session.init(), or if it is invoked more than
       //once.  In those cases, there's not much we can do.
-      case e: DrmaaException => ()
+      case e: DrmaaException => warn(s"Could not properly exit DRMAA Session due to ${e.getClass.getName}", e)
     }
   }
   
@@ -128,7 +128,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         JobStatus.Failed
       } else {
         info(s"Job '$jobId' finished with unknown status")
-        
+
         JobStatus.DoneUndetermined
       }
     }
@@ -147,7 +147,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       case e: ExitTimeoutException => {
         info(s"Job '$jobId': Timed out waiting for job to finish, checking its status")
 
-        time(s"Job '$jobId': Calling statusOf()", debug(_)) { statusOf(jobId) }
+        time(s"Job '$jobId': Calling Drmaa1Client.statusOf()", trace(_)) {
+          statusOf(jobId)
+        }
       }
     }
     
@@ -165,7 +167,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskIndexIncr = 1
 
       // TODO Make native specification controllable from Loam (DSL)
-      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=2g")
+      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=16g")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")

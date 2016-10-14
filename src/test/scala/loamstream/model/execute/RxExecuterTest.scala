@@ -21,6 +21,7 @@ import loamstream.util.ObservableEnrichments
  */
 final class RxExecuterTest extends FunSuite {
   import RxExecuterTest.ExecutionResults
+  import scala.concurrent.ExecutionContext.Implicits.global
   
   // scalastyle:off magic.number  
   private def exec(
@@ -31,7 +32,7 @@ final class RxExecuterTest extends FunSuite {
     
     val runner = MockChunkRunner(asyncLocalChunkRunner(maxSimultaneousJobs))
     
-    val executer = RxExecuter(runner, 0.25.seconds)(ExecutionContext.global)
+    val executer = RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything)
     
     ExecutionResults(executer.execute(executable), runner.chunks.value)
   }
@@ -369,7 +370,10 @@ final class RxExecuterTest extends FunSuite {
     
     val r @ ExecutionResults(result, _) = exec(executable)
     
-    import r.jobExecutionSeq
+    //NB: Chunks can be empty if no jobs became runnable during a certain period (RxExecuter.windowLength)
+    //This can happen non-deterministically since the precise timing of when jobs will be run can't be known.
+    //Filter out empty chunks here; we can still test that jobs were chunked properly and in the right order.  
+    implicit val jobExecutionSeq = r.jobExecutionSeq.filterNot(_.isEmpty)
 
     assert(job11.executionCount === 1)
     assert(job12.executionCount === 1)
@@ -455,7 +459,7 @@ final class RxExecuterTest extends FunSuite {
       
       val runner = MockChunkRunner(asyncLocalChunkRunner(maxSimultaneousJobs))
     
-      val executer = RxExecuter(runner, 0.25.seconds)(ExecutionContext.global)
+      val executer = RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything)
       
       val result = executer.execute(executable)
       
@@ -532,7 +536,7 @@ object RxExecuterTest {
     
     val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 
-    override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Observable[Map[LJob, Result]] = {
+    override def run(jobs: Set[LJob]): Observable[Map[LJob, Result]] = {
       chunks.mutate(_ :+ jobs)
 
       delegate.run(jobs)

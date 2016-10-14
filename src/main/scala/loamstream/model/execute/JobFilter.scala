@@ -30,6 +30,8 @@ object JobFilter {
 
   final class DbBackedJobFilter(dao: LoamDao) extends JobFilter with Loggable {
     override def shouldRun(dep: LJob): Boolean = {
+      debug(s"Should run? $dep")
+      
       def needsToBeRun(output: Output): Boolean = output match {
         case Output.PathBased(p) => {
           val path = normalize(p)
@@ -48,16 +50,14 @@ object JobFilter {
       }
 
       val result = dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
-
-      if (!result) {
-        debug(s"Skipping job $dep")
-      }
-
+      
+      debug(s"Should run? ($result) $dep")
+      
       result
     }
 
     override def record(outputs: Iterable[Output]): Unit = {
-      val outputPaths = outputs.collect { case Output.PathBased(path) => path }
+      val outputPaths = outputs.collect { case Output.PathBased(path) => normalize(path) }
       
       def cachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
       
@@ -109,7 +109,7 @@ object JobFilter {
     }
 
     private def isOlder(output: Path): Boolean = {
-      import TimeEnrichments._
+      import TimeEnrichments.Implicits._
 
       def lastModified(p: Path) = PathOutput(p).lastModified
 

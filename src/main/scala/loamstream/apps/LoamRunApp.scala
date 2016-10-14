@@ -3,12 +3,13 @@ package loamstream.apps
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.{ LoamCompiler, LoamEngine }
 import loamstream.util.Loggable
-import loamstream.model.execute.NaiveFilteringExecuter
 import loamstream.db.slick.SlickLoamDao
 import loamstream.db.slick.DbType
 import loamstream.db.LoamDao
 import loamstream.model.execute.JobFilter
 import loamstream.db.slick.DbDescriptor
+import loamstream.model.execute.RxExecuter
+import java.nio.file.Paths
 
 /** Compiles and runs Loam script provided as argument */
 object LoamRunApp extends App with Loggable {
@@ -27,12 +28,12 @@ object LoamRunApp extends App with Loggable {
   
   withDao(new SlickLoamDao(dbDescriptor)) { dao =>
   
-    val executer = new NaiveFilteringExecuter(new JobFilter.DbBackedJobFilter(dao))
+    val executer = RxExecuter.defaultWith(new JobFilter.DbBackedJobFilter(dao))
   
     val outMessageSink = LoggableOutMessageSink(this)
   
-    val loamEngine = LoamEngine(new LoamCompiler(outMessageSink), executer, outMessageSink)
-    val engineResult = loamEngine.runFile(args(0))
+    val loamEngine = LoamEngine(new LoamCompiler(outMessageSink = outMessageSink), executer, outMessageSink)
+    val engineResult = loamEngine.runFile(Paths.get(args(0)))
   
     for {
       (job, result) <- engineResult.jobResultsOpt.get

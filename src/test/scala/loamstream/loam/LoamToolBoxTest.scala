@@ -8,7 +8,6 @@ import scala.util.Try
 import org.scalatest.FunSuite
 
 import loamstream.compiler.LoamCompiler
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.loam.LoamToolBoxTest.Results
 import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
 import loamstream.model.execute.RxExecuter
@@ -21,12 +20,12 @@ import loamstream.util.{Files, Hit, Shot}
   * Created by oliverr on 6/21/2016.
   */
 final class LoamToolBoxTest extends FunSuite {
-  
-  private def run(code: String): Results = {
 
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
-    
-    val compileResults = compiler.compile(code)
+  private def run(script: LoamScript): Results = {
+
+    val compiler = new LoamCompiler
+
+    val compileResults = compiler.compile(script)
 
     assert(compileResults.errors == Nil)
 
@@ -39,7 +38,7 @@ final class LoamToolBoxTest extends FunSuite {
     val toolBox = new LoamToolBox(context)
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
-    
+
     val jobResults = RxExecuter.default.execute(executable)
     
     Results(graph, mapping, jobResults)
@@ -49,32 +48,32 @@ final class LoamToolBoxTest extends FunSuite {
     //Make files in target/ so we don't risk cluttering up the project root directory if anything goes wrong.
     withFiles("target/fileIn.txt", "target/fileOut1.txt", "target/fileOut2.txt", "target/fileOut3.txt") { paths =>
       val Seq(fileIn, fileOut1, fileOut2, fileOut3) = paths
-    
+
       Files.writeTo(fileIn)("Hello World!")
-      
+
       val code = LoamToolBoxTest.Sources.toyCp
 
       val results = run(code)
-      
+
       assert(results.jobResults.size === 5, s"${results.jobResults}")
       assert(results.mapping.rootAsts.size === 3)
       assert(results.mapping.rootTools.size === 3)
       assert(results.allJobResultsAreSuccess)
-      
+
       assert(JFiles.exists(fileIn))
       assert(JFiles.exists(fileOut1))
       assert(JFiles.exists(fileOut2))
       assert(JFiles.exists(fileOut3))
     }
   }
-  
+
   test("'real' pipeline: 3 impute2 invocations that all depend on the same shapeit invocation should produce " +
-       "expected ASTs and job graph") {
+    "expected ASTs and job graph") {
 
     val source = LoamToolBoxTest.Sources.imputeParallel
-    
-    val compiler = new LoamCompiler(OutMessageSink.NoOp)
-    
+
+    val compiler = new LoamCompiler
+
     val compileResults = compiler.compile(source)
 
     assert(compileResults.errors === Nil)
@@ -88,66 +87,70 @@ final class LoamToolBoxTest extends FunSuite {
     val toolBox = new LoamToolBox(context)
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
-    
+
     assert(mapping.toolAsts.size === 4)
     assert(mapping.rootAsts.size === 3)
-    
+
     def getRootAst(i: Int) = mapping.rootAsts.toSeq.apply(i)
-    
+
     assert(getRootAst(0).dependencies.size === 1)
     assert(getRootAst(1).dependencies.size === 1)
     assert(getRootAst(2).dependencies.size === 1)
-    
+
     val dep0 = getRootAst(0).dependencies.head.producer
     val dep1 = getRootAst(1).dependencies.head.producer
     val dep2 = getRootAst(2).dependencies.head.producer
-    
+
     assert(dep0 eq dep1)
     assert(dep1 eq dep2)
     assert(dep0 eq dep2)
-    
+
     assert(executable.jobs.size == 3)
-    
+
     def getJob(i: Int) = executable.jobs.toSeq.apply(i)
-    
+
     assert(getJob(0).inputs.size === 1)
     assert(getJob(1).inputs.size === 1)
     assert(getJob(2).inputs.size === 1)
-    
+
     val depJob0 = getJob(0).inputs.head
     val depJob1 = getJob(1).inputs.head
     val depJob2 = getJob(2).inputs.head
-    
+
     assert(depJob0 eq depJob1)
     assert(depJob1 eq depJob2)
     assert(depJob0 eq depJob2)
   }
-  
+
   private def withFiles[A](names: String*)(f: Seq[Path] => A): A = {
     //TODO: use Commons-IO, like elsewhere 
     def deleteQuietly(p: Path): Unit = Try(JFiles.delete(p))
-      
+
     val paths = names.map(Paths.get(_))
-    
+
     paths.foreach(deleteQuietly)
-    
-    try { f(paths) }
-    finally { paths.foreach(deleteQuietly) }
+
+    try {
+      f(paths)
+    }
+    finally {
+      paths.foreach(deleteQuietly)
+    }
   }
 }
 
 object LoamToolBoxTest {
 
   final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobResults: Map[LJob, Shot[LJob.Result]]) {
-    
+
     def allJobResultsAreSuccess: Boolean = jobResults.values.forall {
       case Hit(CommandSuccess(_, _)) => true
       case _ => false
     }
   }
-  
+
   object Sources {
-    val toyCp = {
+    val toyCp = LoamScript("ToyCp", {
       """
         |val fileIn = store[String].from(path("target/fileIn.txt"))
         |val fileTmp1 = store[String]
@@ -161,10 +164,10 @@ object LoamToolBoxTest {
         |cmd"cp $fileTmp2 $fileOut2"
         |cmd"cp $fileTmp2 $fileOut3"
       """.stripMargin
-    }
+    })
 
     // scalastyle:off line.size.limit
-    val imputeParallel = {
+    val imputeParallel = LoamScript("ImputeParallel", {
       """
 val kgpDir = path("/humgen/diabetes/users/ryank/internal_qc/1kg_phase3/1000GP_Phase3")
 val softDir = path("/humgen/diabetes/users/ryank/software")
@@ -205,8 +208,9 @@ for(iShard <- 0 until nShards) {
   //NB: Bogus inpute2 command; doesn't need wrapping to appease ScalaStyle, and the content doesn't matter 
   cmd"$impute2 -use_prephased_g -m $mapFile -h $phasedHaps -l $legend -known_haps_g $knownHaps -int $start $end" 
 }
-"""
-    }
+      """
+    })
     // scalastyle:on line.size.limit
   }
+
 }

@@ -14,5 +14,5 @@ import rx.lang.scala.Observable
 trait ChunkRunner {
   def maxNumJobs: Int
   
-  def run(jobs: Set[LJob])(implicit context: ExecutionContext): Observable[Map[LJob, Result]]
+  def run(jobs: Set[LJob]): Observable[Map[LJob, Result]]
 }

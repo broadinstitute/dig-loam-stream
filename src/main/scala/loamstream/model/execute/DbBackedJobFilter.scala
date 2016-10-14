@@ -36,6 +36,8 @@ final class DbBackedJobFilter(dao: LoamDao) extends JobFilter with Loggable {
     //for now
     val insertableExecutions = executions.collect { case e if e.isCommandExecution => hashOutputsOf(e) }
 
+    debug(s"RECORDING $insertableExecutions")
+    
     dao.insertExecutions(insertableExecutions)
   }
 
@@ -43,7 +45,11 @@ final class DbBackedJobFilter(dao: LoamDao) extends JobFilter with Loggable {
 
   private def hashOutputsOf(e: Execution): Execution = {
     e.transformOutputs { outputs =>
-      outputs.collect { case Output.PathBased(path) => cachedOutput(normalize(path)) }
+      outputs.collect { case Output.PathBased(path) =>
+        val normalized = normalize(path)
+        
+        if(e.isSuccess) cachedOutput(normalized) else Output.PathOutput(normalized)
+      }
     }
   }
 

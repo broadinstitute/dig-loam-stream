@@ -26,7 +26,7 @@ import loamstream.util.ObservableEnrichments
  */
 final case class RxExecuter(runner: ChunkRunner,
                             jobFilter: JobFilter)
-                           (implicit executionContext: ExecutionContext) extends Executer with Loggable {
+                           (implicit val executionContext: ExecutionContext) extends Executer with Loggable {
 
   private[this] val lock = new AnyRef
 
@@ -125,6 +125,7 @@ final case class RxExecuter(runner: ChunkRunner,
       // TODO: Dispatch all job chunks so they are submitted without waiting for the next iteration
       for {
         newResultMap <- runner.run(jobsToDispatch)(executionContext)
+        _ = debug(s"Results from ChunkRunner: $newResultMap")
         unit <- recordChunkExecution(newResultMap)
       } yield {
         unit
@@ -138,7 +139,9 @@ final case class RxExecuter(runner: ChunkRunner,
         
     val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
         
-    debug(s"Recording $executions")
+    debug(s"Recording Executions (${executions.size}): $executions")
+    
+    debug(s"JOBFILTER: $jobFilter")
     
     Future.successful(jobFilter.record(executions))
   }
@@ -176,22 +179,6 @@ final case class RxExecuter(runner: ChunkRunner,
     
     doExecuteIter()
     
-    /*val process = for {
-      _ <- doExecuteIter()
-      _ <- allJobStatuses.sample(20.millis)
-      _ <- doExecuteIter()
-    } yield ()
-    
-    import ObservableEnrichments._
-    
-    Futures.waitFor(process.until(_ => allJobsAreFinished).lastAsFuture)*/
-    
-    //val everythingIsDoneObservable = Observable.from(everythingIsDoneFuture)
-    
-    /*allJobStatuses.sample(20.millis).flatMap(_ => doExecuteIter())
-
-    doExecuteIter()*/
-
     // Block the main thread until all jobs are done
     Futures.waitFor(everythingIsDoneFuture)
 
@@ -217,7 +204,7 @@ object RxExecuter {
   def defaultWith(jobFilter: JobFilter): RxExecuter = {
     new RxExecuter(AsyncLocalChunkRunner, jobFilter)(ExecutionContext.global)
   }
-
+  
   object AsyncLocalChunkRunner extends ChunkRunner {
 
     import ExecuterHelpers._

@@ -28,24 +28,38 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def * = (path, lastModified, hash, hashType, executionId.?) <> (RawOutputRow.tupled, RawOutputRow.unapply)
   }
   
+  final class FailedOutputs(tag: Tag) extends Table[FailedOutputRow](tag, Names.failedOutputs) {
+    def path = column[String]("PATH", O.PrimaryKey)
+    def executionId = column[Int]("EXECUTION_ID")
+    def execution = foreignKey(
+        "FAILED_EXECUTION_FK", 
+        executionId, 
+        executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+        
+    def * = (path, executionId) <> (FailedOutputRow.tupled, FailedOutputRow.unapply) 
+  }
+  
   final class Executions(tag: Tag) extends Table[RawExecutionRow](tag, Names.executions) {
     def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
     def exitStatus = column[Int]("EXIT_STATUS")
     def * = (id, exitStatus) <> (RawExecutionRow.tupled, RawExecutionRow.unapply)
   }
   
+  lazy val executions = TableQuery[Executions]
+  
   lazy val outputs = TableQuery[Outputs]
   
-  lazy val executions = TableQuery[Executions]
-
-  private lazy val allTables: Seq[(String, SchemaDescription)] = Seq(
+  lazy val failedOutputs = TableQuery[FailedOutputs]
+  
+  private lazy val allTables: Map[String, SchemaDescription] = Map(
     Names.executions -> executions.schema,
-    Names.outputs -> outputs.schema 
+    Names.outputs -> outputs.schema, 
+    Names.failedOutputs -> failedOutputs.schema
   )
   
-  private def allTableNames: Seq[String] = allTables.unzip._1
+  private def allTableNames: Seq[String] = allTables.keys.toSeq
   
-  private def allSchemas: Seq[SchemaDescription] = allTables.unzip._2
+  private def allSchemas: Seq[SchemaDescription] = allTables.values.toSeq
   
   private def ddlForAllTables = allSchemas.reduce(_ ++ _)
   
@@ -87,6 +101,7 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 object Tables {
   object Names {
     val outputs = "OUTPUTS"
+    val failedOutputs = "FAILED_OUTPUTS"
     val executions = "EXECUTIONS"
   }
 }

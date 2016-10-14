@@ -2,27 +2,18 @@ package loamstream.db.slick
 
 import java.nio.file.Path
 
-import scala.concurrent.Await
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContext
 
 import loamstream.db.LoamDao
-import loamstream.util.Hash
-import slick.driver.JdbcProfile
-import java.sql.ResultSet
-import java.sql.Timestamp
-import loamstream.model.jobs.Output.CachedOutput
-import scala.util.Try
-import slick.jdbc.meta.MTable
-import loamstream.util.Futures
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.Output
-import slick.jdbc.GetResult
-import slick.profile.SqlAction
-import loamstream.util.Loggable
-import scala.concurrent.ExecutionContext
 import loamstream.model.jobs.JobState
+import loamstream.model.jobs.Output
+import loamstream.model.jobs.Output.CachedOutput
+import loamstream.model.jobs.Output.PathOutput
+import loamstream.util.Futures
+import loamstream.util.Loggable
 import loamstream.util.PathUtils
+import slick.profile.SqlAction
 
 /**
  * @author clint
@@ -43,6 +34,12 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     
     runBlocking(action).map(_.toCachedOutput)
   }
+  
+  override def findFailedOutput(path: Path): Option[PathOutput] = {
+    val action = findFailedOutputAction(path)
+    
+    runBlocking(action).map(_.toPathOutput)
+  }
 
   override def deleteOutput(paths: Iterable[Path]): Unit = {
     val delete = outputDeleteAction(paths)
@@ -50,8 +47,20 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     runBlocking(delete.transactionally)
   }
   
+  override def deleteFailedOutput(paths: Iterable[Path]): Unit = {
+    val delete = failedOutputDeleteAction(paths)
+    
+    runBlocking(delete.transactionally)
+  }
+  
   override def insertExecutions(executions: Iterable[Execution]): Unit = {
-    assert(executions.forall(isCommandExecution), "We only know how to record command executions")
+    def firstNonCommandExecution: Execution = executions.find(!_.isCommandExecution).get
+    
+    require(
+      executions.forall(_.isCommandExecution), 
+      s"We only know how to record command executions, but we got $firstNonCommandExecution")
+    
+    debug(s"INSERTING: $executions")
     
     import JobState.CommandResult
     
@@ -65,18 +74,31 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       
       val pathBasedOutputs = execution.outputs.collect { case pb: Output.PathBased => pb }
       
-      val outputs = pathBasedOutputs.map(new RawOutputRow(_))
+      val outputs = if(execution.isSuccess) pathBasedOutputs.toSeq.map(new RawOutputRow(_)) else Nil
       
-      val insertExectionQuery = Queries.insertExecution += rawExecutionRow
-
+      val failedOutputs = {
+        if(execution.isFailure) { pathBasedOutputs.toSeq.map(pb => new FailedOutputRow(pb.path.toString, dummyId)) }
+        else { Nil }
+      }
+      
+      def tieOutputsToExecution(outputs: Seq[RawOutputRow], executionId: Int): Seq[RawOutputRow] = {
+        outputs.map(_.withExecutionId(executionId))
+      }
+      
+      def tieFailedOutputsToExecution(failedOutputs: Seq[FailedOutputRow], executionId: Int): Seq[FailedOutputRow] = {
+        failedOutputs.map(_.withExecutionId(executionId))
+      }
+      
       import Implicits._
       
       for {
         newExecution <- (Queries.insertExecution += rawExecutionRow)
-        outputsWithExecutionIds = outputs.map(_.withExecutionId(newExecution.id))
+        outputsWithExecutionIds = tieOutputsToExecution(outputs, newExecution.id)
+        failedOutputsWithExecutionIds = tieFailedOutputsToExecution(failedOutputs, newExecution.id)
         insertedOutputCounts <- insertOrUpdateRawOutputRows(outputsWithExecutionIds)
+        insertedFailedOutputCounts <- insertOrUpdateFailedOutputRows(failedOutputsWithExecutionIds)
       } yield {
-        insertedOutputCounts
+        insertedOutputCounts ++ insertedFailedOutputCounts
       }
     }
     
@@ -97,6 +119,14 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     log(query)
     
     runBlocking(query.transactionally).map(_.toCachedOutput)
+  }
+  
+  override def allFailedOutputs: Seq[PathOutput] = {
+    val query = tables.failedOutputs.result
+    
+    log(query)
+    
+    runBlocking(query.transactionally).map(_.toPathOutput)
   }
   
   override def allExecutions: Seq[Execution] = {
@@ -143,15 +173,6 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   
   override def shutdown(): Unit = waitFor(db.shutdown)
 
-  private def isCommandExecution(e: Execution): Boolean = {
-    import JobState._
-      
-    e.exitState match {
-      case CommandResult(_) => true
-      case _ => false
-    }
-  }
-  
   private object Implicits {
     //TODO: re-evaluate; does this make sense?
     implicit val dbExecutionContext: ExecutionContext = db.executor.executionContext
@@ -161,8 +182,16 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     Queries.outputByPath(path).result.headOption.transactionally
   }
   
+  private def findFailedOutputAction(path: Path): DBIO[Option[FailedOutputRow]] = {
+    Queries.failedOutputByPath(path).result.headOption.transactionally
+  }
+  
   private def outputDeleteAction(pathsToDelete: Iterable[Path]): SqlAction[Int, NoStream, Effect.Write] = {
     Queries.outputsByPaths(pathsToDelete).delete
+  }
+  
+  private def failedOutputDeleteAction(pathsToDelete: Iterable[Path]): SqlAction[Int, NoStream, Effect.Write] = {
+    Queries.failedOutputsByPaths(pathsToDelete).delete
   }
   
   private def outputDeleteActionRaw(pathsToDelete: Iterable[String]): SqlAction[Int,NoStream, Effect.Write] = {
@@ -184,6 +213,12 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     DBIO.sequence(insertActions).transactionally
   }
   
+  private def insertOrUpdateFailedOutputRows(rawRows: Iterable[FailedOutputRow]): DBIO[Iterable[Int]] = {
+    val insertActions = rawRows.map(tables.failedOutputs.insertOrUpdate)
+    
+    DBIO.sequence(insertActions).transactionally
+  }
+  
   private object Queries {
     import PathUtils.normalize
     
@@ -197,14 +232,30 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       tables.outputs.filter(_.path === lookingFor).take(1)
     }
     
+    def failedOutputByPath(path: Path) = { 
+      val lookingFor = normalize(path)
+
+      tables.failedOutputs.filter(_.path === lookingFor).take(1)
+    }
+    
     def outputsByPaths(paths: Iterable[Path]) = {
       val rawPaths = paths.map(normalize).toSet
       
       outputsByRawPaths(rawPaths)
     }
     
+    def failedOutputsByPaths(paths: Iterable[Path]) = {
+      val rawPaths = paths.map(normalize).toSet
+      
+      failedOutputsByRawPaths(rawPaths)
+    }
+    
     def outputsByRawPaths(rawPaths: Iterable[String]) = {
       tables.outputs.filter(_.path.inSetBind(rawPaths))
+    }
+    
+    def failedOutputsByRawPaths(rawPaths: Iterable[String]) = {
+      tables.failedOutputs.filter(_.path.inSetBind(rawPaths))
     }
   }
   

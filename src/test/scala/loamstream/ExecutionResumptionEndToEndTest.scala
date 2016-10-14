@@ -32,11 +32,21 @@ import loamstream.model.jobs.JobState.CommandInvocationFailure
   */
 final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickLoamDao with Loggable {
 
-  private val resumptiveExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
+  private val dbBackedJobFilter = new DbBackedJobFilter(dao)
+  
+  private val resumptiveExecuter = RxExecuter.defaultWith(dbBackedJobFilter)
 
   private val outMessageSink = LoggableOutMessageSink(this)
 
   private val loamEngine = LoamEngine(LoamCompiler(outMessageSink), resumptiveExecuter, outMessageSink)
+  
+  private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
+    val asyncChunkRunner = RxExecuter.AsyncLocalChunkRunner
+        
+    val mockRunner = MockChunkRunner(asyncChunkRunner, asyncChunkRunner.maxNumJobs)
+        
+    (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
+  }
   
   //TODO: These tests won't run on Windows, since they need cp
   
@@ -141,21 +151,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       val executable = loamEngine.compileToExecutable(script).get
         
-/*      println(s"%%%%%%%%%%%% Jobs from second Executable (${executable.jobs.size}): ")
-      executable.jobs.foreach { job =>
-        println(s"%%%%%%%%%%%% $job => ${job.outputs}")
-      }
-      
-      println(s"%%%%%%%%%%%% Trees from second Executable (${executable.jobs.size}): ")
-      executable.jobs.foreach(_.print(doPrint = log))*/
-            
-      val (executer, mockRunner) = {
-        val asyncChunkRunner = RxExecuter.AsyncLocalChunkRunner
-        
-        val mockRunner = MockChunkRunner(asyncChunkRunner, asyncChunkRunner.maxNumJobs)
-        
-        (RxExecuter(mockRunner)(scala.concurrent.ExecutionContext.global), mockRunner)
-      }
+      val (executer, mockRunner) = makeLoggingExecuter
       
       val jobStates: Map[LJob, JobState] = executer.execute(executable)
 
@@ -178,8 +174,10 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val output1 = Output.PathOutput(Paths.get(fileOut1))
       
       println(s"All Outputs: ${dao.allOutputs}")
+      println(s"All FAILED Outputs: ${dao.allFailedOutputs}")
       println(s"All Executions: ${dao.allExecutions}")
-      assert(dao.findOutput(output1.path).get === output1)
+      assert(dao.findOutput(output1.path) === None)
+      assert(dao.findFailedOutput(output1.path).get.path.toAbsolutePath === output1.path.toAbsolutePath)
       assert(dao.findExecution(output1).get.exitState !== 0)
     }
   }

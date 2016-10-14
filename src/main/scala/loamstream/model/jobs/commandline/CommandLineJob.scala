@@ -42,7 +42,7 @@ trait CommandLineJob extends LJob {
     }
   }
 
-  override def toString: String = commandLineString
+  override def toString: String = s"'$commandLineString'"
 }
 
 object CommandLineJob {

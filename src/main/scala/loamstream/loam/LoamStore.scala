@@ -28,7 +28,7 @@ final case class LoamStore private(id: LId, sig: StoreSig)(implicit scriptContex
 
   def from(path: String): LoamStore = from(Paths.get(path))
 
-  def from(path: Path): LoamStore = from(StoreEdge.PathEdge(path))
+  def from(path: Path): LoamStore = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
   def from(source: StoreEdge): LoamStore = {
     graphBox.mutate(_.withStoreSource(this, source))
@@ -37,7 +37,7 @@ final case class LoamStore private(id: LId, sig: StoreSig)(implicit scriptContex
 
   def to(path: String): LoamStore = to(Paths.get(path))
 
-  def to(path: Path): LoamStore = to(StoreEdge.PathEdge(path))
+  def to(path: Path): LoamStore = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
   def to(sink: StoreEdge): LoamStore = {
     graphBox.mutate(_.withStoreSink(this, sink))

@@ -20,7 +20,7 @@ object LoamPredef {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store[T: TypeTag](implicit context: LoamProjectContext): LoamStore = LoamStore.create[T]
+  def store[T: TypeTag](implicit scriptContext: LoamScriptContext): LoamStore = LoamStore.create[T]
 
   def job[T: TypeTag](exp: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool(DefaultStores.empty, exp)

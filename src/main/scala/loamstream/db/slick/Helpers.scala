@@ -12,4 +12,6 @@ object Helpers {
   def timestampFromLong(millisSinceEpoch: Long): Timestamp = {
     Timestamp.from(Instant.ofEpochMilli(millisSinceEpoch))
   }
+  
+  val dummyId: Int = -1
 }

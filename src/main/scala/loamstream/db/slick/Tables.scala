@@ -20,41 +20,27 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   
   final class Outputs(tag: Tag) extends Table[RawOutputRow](tag, Names.outputs) {
     def path = column[String]("PATH", O.PrimaryKey)
-    def lastModified = column[Timestamp]("LAST_MODIFIED")
-    def hash = column[String]("HASH")
-    def hashType = column[String]("HASH_TYPE")
+    def lastModified = column[Option[Timestamp]]("LAST_MODIFIED")
+    def hash = column[Option[String]]("HASH")
+    def hashType = column[Option[String]]("HASH_TYPE")
     def executionId = column[Int]("EXECUTION_ID")
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (path, lastModified, hash, hashType, executionId.?) <> (RawOutputRow.tupled, RawOutputRow.unapply)
   }
   
-  final class FailedOutputs(tag: Tag) extends Table[FailedOutputRow](tag, Names.failedOutputs) {
-    def path = column[String]("PATH", O.PrimaryKey)
-    def executionId = column[Int]("EXECUTION_ID")
-    def execution = foreignKey(
-        "FAILED_EXECUTION_FK", 
-        executionId, 
-        executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-        
-    def * = (path, executionId) <> (FailedOutputRow.tupled, FailedOutputRow.unapply) 
-  }
-  
-  final class Executions(tag: Tag) extends Table[RawExecutionRow](tag, Names.executions) {
+  final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) {
     def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
     def exitStatus = column[Int]("EXIT_STATUS")
-    def * = (id, exitStatus) <> (RawExecutionRow.tupled, RawExecutionRow.unapply)
+    def * = (id, exitStatus) <> (ExecutionRow.tupled, ExecutionRow.unapply)
   }
   
   lazy val executions = TableQuery[Executions]
   
   lazy val outputs = TableQuery[Outputs]
   
-  lazy val failedOutputs = TableQuery[FailedOutputs]
-  
   private lazy val allTables: Map[String, SchemaDescription] = Map(
     Names.executions -> executions.schema,
-    Names.outputs -> outputs.schema, 
-    Names.failedOutputs -> failedOutputs.schema
+    Names.outputs -> outputs.schema
   )
   
   private def allTableNames: Seq[String] = allTables.keys.toSeq
@@ -101,7 +87,6 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 object Tables {
   object Names {
     val outputs = "OUTPUTS"
-    val failedOutputs = "FAILED_OUTPUTS"
     val executions = "EXECUTIONS"
   }
 }

@@ -4,9 +4,9 @@ import java.nio.file.Path
 
 import scala.util.Try
 
+import loamstream.model.jobs.Execution
 import loamstream.model.jobs.Output.CachedOutput
 import loamstream.util.Hash
-import loamstream.model.jobs.Execution
 
 /**
  * @author clint

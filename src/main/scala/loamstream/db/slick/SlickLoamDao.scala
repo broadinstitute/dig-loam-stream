@@ -14,6 +14,7 @@ import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.PathUtils
 import slick.profile.SqlAction
+import loamstream.model.jobs.JobState.CommandInvocationFailure
 
 /**
  * @author clint
@@ -29,16 +30,28 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   
   private lazy val outputsAndExecutions = tables.outputs.join(tables.executions).on(_.executionId === _.id)
   
-  override def findOutput(path: Path): Option[CachedOutput] = {
+  private def doFindOutput[A](path: Path, f: RawOutputRow => A): Option[A] = {
     val action = findOutputAction(path)
     
-    runBlocking(action).map(_.toCachedOutput)
+    runBlocking(action).map(f)
+  }
+  
+  override def findOutput(path: Path): Option[Output.PathBased] = {
+    val action = findOutputAction(path)
+    
+    runBlocking(action).map(toOutput)
+  }
+  
+  override def findHashedOutput(path: Path): Option[CachedOutput] = {
+    val action = findOutputAction(path)
+    
+    runBlocking(action).flatMap(toCachedOutput)
   }
   
   override def findFailedOutput(path: Path): Option[PathOutput] = {
-    val action = findFailedOutputAction(path)
+    val action = findOutputAction(path)
     
-    runBlocking(action).map(_.toPathOutput)
+    runBlocking(action).flatMap(toPathOutput)
   }
 
   override def deleteOutput(paths: Iterable[Path]): Unit = {
@@ -47,10 +60,39 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     runBlocking(delete.transactionally)
   }
   
-  override def deleteFailedOutput(paths: Iterable[Path]): Unit = {
-    val delete = failedOutputDeleteAction(paths)
+  private def insert(executionAndState: (Execution, JobState.CommandResult)): DBIO[Iterable[Int]] = {
+    val (execution, commandResult) = executionAndState
     
-    runBlocking(delete.transactionally)
+    import Helpers.dummyId
+    
+    //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
+    val rawExecutionRow = new ExecutionRow(dummyId, commandResult.exitStatus)
+    
+    val pathBasedOutputs = execution.outputs.collect { case pb: Output.PathBased => pb }
+    
+    def toRawOutputRows(f: Output.PathBased => RawOutputRow): Seq[RawOutputRow] = {
+      pathBasedOutputs.toSeq.map(f)
+    }
+    
+    val outputs = {
+      if(execution.isSuccess) { toRawOutputRows(pb => new RawOutputRow(pb.path, pb.hash)) }
+      else if(execution.isFailure) { toRawOutputRows(pb => new RawOutputRow(pb.path)) }
+      else { Nil }
+    }
+    
+    def tieOutputsToExecution(outputs: Seq[RawOutputRow], executionId: Int): Seq[RawOutputRow] = {
+      outputs.map(_.withExecutionId(executionId))
+    }
+    
+    import Implicits._
+    
+    for {
+      newExecution <- (Queries.insertExecution += rawExecutionRow)
+      outputsWithExecutionIds = tieOutputsToExecution(outputs, newExecution.id)
+      insertedOutputCounts <- insertOrUpdateRawOutputRows(outputsWithExecutionIds)
+    } yield {
+      insertedOutputCounts
+    }
   }
   
   override def insertExecutions(executions: Iterable[Execution]): Unit = {
@@ -64,46 +106,10 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     
     import JobState.CommandResult
     
-    def insert(executionAndState: (Execution, CommandResult)): DBIO[Iterable[Int]] = {
-      val (execution, commandResult) = executionAndState
-      
-      val dummyId = -1
-      
-      //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
-      val rawExecutionRow = new RawExecutionRow(dummyId, commandResult.exitStatus)
-      
-      val pathBasedOutputs = execution.outputs.collect { case pb: Output.PathBased => pb }
-      
-      val outputs = if(execution.isSuccess) pathBasedOutputs.toSeq.map(new RawOutputRow(_)) else Nil
-      
-      val failedOutputs = {
-        if(execution.isFailure) { pathBasedOutputs.toSeq.map(pb => new FailedOutputRow(pb.path.toString, dummyId)) }
-        else { Nil }
-      }
-      
-      def tieOutputsToExecution(outputs: Seq[RawOutputRow], executionId: Int): Seq[RawOutputRow] = {
-        outputs.map(_.withExecutionId(executionId))
-      }
-      
-      def tieFailedOutputsToExecution(failedOutputs: Seq[FailedOutputRow], executionId: Int): Seq[FailedOutputRow] = {
-        failedOutputs.map(_.withExecutionId(executionId))
-      }
-      
-      import Implicits._
-      
-      for {
-        newExecution <- (Queries.insertExecution += rawExecutionRow)
-        outputsWithExecutionIds = tieOutputsToExecution(outputs, newExecution.id)
-        failedOutputsWithExecutionIds = tieFailedOutputsToExecution(failedOutputs, newExecution.id)
-        insertedOutputCounts <- insertOrUpdateRawOutputRows(outputsWithExecutionIds)
-        insertedFailedOutputCounts <- insertOrUpdateFailedOutputRows(failedOutputsWithExecutionIds)
-      } yield {
-        insertedOutputCounts ++ insertedFailedOutputCounts
-      }
-    }
-    
     val insertableExecutions: Iterable[(Execution, CommandResult)] = executions.collect {
-      case e @ Execution(cr: JobState.CommandResult, _) => e -> cr
+      case e @ Execution(cr: CommandResult, _) => e -> cr
+      //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
+      case e @ Execution(cr: CommandInvocationFailure, _) => e -> CommandResult(-1)
     } 
     
     val inserts = insertableExecutions.map(insert)
@@ -113,16 +119,31 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     runBlocking(insertEverything)
   }
   
-  override def allOutputs: Seq[CachedOutput] = {
+  //TODO: Find way to extract common code from the all* methods 
+  override def allOutputs: Seq[Output.PathBased] = {
     val query = tables.outputs.result
+    
+    log(query)
+    
+    runBlocking(query.transactionally).map(toOutput)
+  }
+  
+  //TODO: Find way to extract common code from the all* methods
+  override def allHashedOutputs: Seq[CachedOutput] = {
+    val query = tables.outputs.filter { row =>
+      row.hash.isDefined && row.hashType.isDefined && row.lastModified.isDefined
+    }.result
     
     log(query)
     
     runBlocking(query.transactionally).map(_.toCachedOutput)
   }
   
+  //TODO: Find way to extract common code from the all* methods
   override def allFailedOutputs: Seq[PathOutput] = {
-    val query = tables.failedOutputs.result
+    val query = tables.outputs.filter { row =>
+      row.hash.isEmpty && row.hashType.isEmpty && row.lastModified.isEmpty
+    }.result
     
     log(query)
     
@@ -173,6 +194,19 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   
   override def shutdown(): Unit = waitFor(db.shutdown)
 
+  private def toOutput(row: RawOutputRow): Output.PathBased = row match {
+    case RawOutputRow(_, Some(_), Some(_), Some(_), _) => row.toCachedOutput
+    case _ => row.toPathOutput
+  }
+  
+  private def toCachedOutput(row: RawOutputRow): Option[CachedOutput] = {
+    Option(toOutput(row)).collect  { case co: CachedOutput => co }
+  }
+  
+  private def toPathOutput(row: RawOutputRow): Option[PathOutput] = {
+    Option(toOutput(row)).collect  { case po: PathOutput => po }
+  }
+  
   private object Implicits {
     //TODO: re-evaluate; does this make sense?
     implicit val dbExecutionContext: ExecutionContext = db.executor.executionContext
@@ -182,16 +216,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     Queries.outputByPath(path).result.headOption.transactionally
   }
   
-  private def findFailedOutputAction(path: Path): DBIO[Option[FailedOutputRow]] = {
-    Queries.failedOutputByPath(path).result.headOption.transactionally
-  }
-  
   private def outputDeleteAction(pathsToDelete: Iterable[Path]): SqlAction[Int, NoStream, Effect.Write] = {
     Queries.outputsByPaths(pathsToDelete).delete
-  }
-  
-  private def failedOutputDeleteAction(pathsToDelete: Iterable[Path]): SqlAction[Int, NoStream, Effect.Write] = {
-    Queries.failedOutputsByPaths(pathsToDelete).delete
   }
   
   private def outputDeleteActionRaw(pathsToDelete: Iterable[String]): SqlAction[Int,NoStream, Effect.Write] = {
@@ -213,12 +239,6 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     DBIO.sequence(insertActions).transactionally
   }
   
-  private def insertOrUpdateFailedOutputRows(rawRows: Iterable[FailedOutputRow]): DBIO[Iterable[Int]] = {
-    val insertActions = rawRows.map(tables.failedOutputs.insertOrUpdate)
-    
-    DBIO.sequence(insertActions).transactionally
-  }
-  
   private object Queries {
     import PathUtils.normalize
     
@@ -232,42 +252,26 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       tables.outputs.filter(_.path === lookingFor).take(1)
     }
     
-    def failedOutputByPath(path: Path) = { 
-      val lookingFor = normalize(path)
-
-      tables.failedOutputs.filter(_.path === lookingFor).take(1)
-    }
-    
     def outputsByPaths(paths: Iterable[Path]) = {
       val rawPaths = paths.map(normalize).toSet
       
       outputsByRawPaths(rawPaths)
     }
     
-    def failedOutputsByPaths(paths: Iterable[Path]) = {
-      val rawPaths = paths.map(normalize).toSet
-      
-      failedOutputsByRawPaths(rawPaths)
-    }
-    
     def outputsByRawPaths(rawPaths: Iterable[String]) = {
       tables.outputs.filter(_.path.inSetBind(rawPaths))
     }
-    
-    def failedOutputsByRawPaths(rawPaths: Iterable[String]) = {
-      tables.failedOutputs.filter(_.path.inSetBind(rawPaths))
-    }
   }
   
-  private def reify(executionRow: RawExecutionRow): Execution = {
+  private def reify(executionRow: ExecutionRow): Execution = {
     executionRow.toExecution(outputsFor(executionRow).toSet)
   }
   
   //TODO: There must be a better way than a subquery
-  private def outputsFor(execution: RawExecutionRow): Seq[Output] = {
+  private def outputsFor(execution: ExecutionRow): Seq[Output] = {
     val query = tables.outputs.filter(_.executionId === execution.id).result
     
-    runBlocking(query).map(_.toCachedOutput)
+    runBlocking(query).map(toOutput)
   }
   
   //TODO: Re-evaluate; block all the time?

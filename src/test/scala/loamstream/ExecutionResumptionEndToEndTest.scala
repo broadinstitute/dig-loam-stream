@@ -18,6 +18,7 @@ import loamstream.util.Loggable
 import loamstream.util.Sequence
 import loamstream.util.Shot
 import loamstream.model.jobs.Output
+import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.JobState.CommandResult
 import loamstream.model.jobs.JobState.FailedWithException
 import loamstream.model.jobs.LJob
@@ -25,6 +26,7 @@ import loamstream.model.execute.MockChunkRunner
 import loamstream.model.execute.ExecuterHelpers
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.JobState.CommandInvocationFailure
+import loamstream.util.PathUtils
 
 /**
   * @author kaan
@@ -47,6 +49,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         
     (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
   }
+  
+  def normalize(po: PathOutput): PathOutput = PathOutput(PathUtils.normalizePath(po.path))
   
   //TODO: These tests won't run on Windows, since they need cp
   
@@ -173,11 +177,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         
       val output1 = Output.PathOutput(Paths.get(fileOut1))
       
-      println(s"All Outputs: ${dao.allOutputs}")
-      println(s"All FAILED Outputs: ${dao.allFailedOutputs}")
-      println(s"All Executions: ${dao.allExecutions}")
-      assert(dao.findOutput(output1.path) === None)
-      assert(dao.findFailedOutput(output1.path).get.path.toAbsolutePath === output1.path.toAbsolutePath)
+      assert(dao.findOutput(output1.path) === Some(normalize(output1)))
+      assert(dao.findFailedOutput(output1.path) === Some(normalize(output1)))
+      assert(dao.findHashedOutput(output1.path) === None)
       assert(dao.findExecution(output1).get.exitState !== 0)
     }
   }

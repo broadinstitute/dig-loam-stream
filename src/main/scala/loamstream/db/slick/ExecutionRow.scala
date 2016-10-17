@@ -8,6 +8,6 @@ import loamstream.model.jobs.JobState.CommandResult
  * @author clint
  * date: Sep 22, 2016
  */
-final case class RawExecutionRow(id: Int, exitStatus: Int) {
+final case class ExecutionRow(id: Int, exitStatus: Int) {
   def toExecution(outputs: Set[Output]): Execution = Execution(CommandResult(exitStatus), outputs)
 }

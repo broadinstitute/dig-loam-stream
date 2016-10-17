@@ -1,18 +1,22 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ExecutionContext, Future, blocking}
-import scala.util.control.NonFatal
+import java.nio.file.Path
+
 import loamstream.model.jobs.LJob.Result
 import loamstream.util._
 import rx.lang.scala.subjects.PublishSubject
 
+import scala.concurrent.{ExecutionContext, Future, blocking}
 import scala.reflect.runtime.universe.Type
+import scala.util.control.NonFatal
 
 /**
- * LoamStream
- * Created by oliverr on 12/23/2015.
- */
+  * LoamStream
+  * Created by oliverr on 12/23/2015.
+  */
 trait LJob extends Loggable with DagHelpers[LJob] {
+  def workDirOpt: Option[Path] = None
+
   def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
     val indentString = s"${"-" * indent} >"
 
@@ -24,20 +28,20 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   def name: String = ""
 
   /**
-   * Any jobs this job depends on
-   */
+    * Any jobs this job depends on
+    */
   def inputs: Set[LJob]
 
   /**
-   * Any outputs produced by this job
-   */
+    * Any outputs produced by this job
+    */
   def outputs: Set[Output]
 
   protected val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
 
   /**
-   * This job's current state
-   */
+    * This job's current state
+    */
   final def state: JobState = stateRef.value
 
   final val stateEmitter = PublishSubject[JobState]
@@ -52,28 +56,28 @@ trait LJob extends Loggable with DagHelpers[LJob] {
 
   def dependencies: Set[LJob] = Set.empty
 
-  /**                                                            f
-   * If explicitly specified dependencies are done
-   */
+  /** f
+    * If explicitly specified dependencies are done
+    */
   def dependenciesDone: Boolean = dependencies.isEmpty || dependencies.forall(_.state.isSuccess)
 
   /**
-   * If this job can be executed
-   */
+    * If this job can be executed
+    */
   def isRunnable: Boolean = state == JobState.NotStarted && dependenciesDone && inputsDone
 
   /**
-   * If inputs to this job are available
-   */
+    * If inputs to this job are available
+    */
   def inputsDone: Boolean = inputs.isEmpty || inputs.forall(_.state.isSuccess)
 
   /**
-   * Decorates executeSelf(), updating and emitting the value of 'state' from
-   * Running to Succeeded/Failed.
-   */
+    * Decorates executeSelf(), updating and emitting the value of 'state' from
+    * Running to Succeeded/Failed.
+    */
   final def execute(implicit context: ExecutionContext): Future[Result] = {
-    import JobState._
     import Futures.Implicits._
+    import JobState._
 
     stateRef() = Running
 
@@ -89,15 +93,19 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   }
 
   /**
-   * Implementions of this method will do any actual work to be performed by this job
-   */
+    * Implementions of this method will do any actual work to be performed by this job
+    */
   protected def executeSelf(implicit context: ExecutionContext): Future[Result]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 
   final def withInputs(newInputs: Set[LJob]): LJob = {
-    if (inputs eq newInputs) { this }
-    else { doWithInputs(newInputs) }
+    if (inputs eq newInputs) {
+      this
+    }
+    else {
+      doWithInputs(newInputs)
+    }
   }
 
   protected def runBlocking[R <: Result](f: => R)(implicit context: ExecutionContext): Future[R] = Future(blocking(f))
@@ -162,8 +170,8 @@ object LJob {
   final case class SimpleSuccess(successMessage: String) extends Success
 
   /**
-   * If a job was skipped for various possible reasons (e.g. its outputs were already present)
-   */
+    * If a job was skipped for various possible reasons (e.g. its outputs were already present)
+    */
   final case class SkippedSuccess(successMessage: String) extends Success
 
   final case class ValueSuccess[T](value: T, typeBox: TypeBox[T]) extends Success {
@@ -187,4 +195,5 @@ object LJob {
   final case class FailureFromThrowable(cause: Throwable) extends Failure {
     override def failureMessage: String = cause.getMessage
   }
+
 }

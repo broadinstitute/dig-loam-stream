@@ -1,9 +1,11 @@
 package loamstream.model.jobs.commandline
 
+import java.nio.file.Path
+
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandResult}
-import loamstream.model.jobs.commandline.CommandLineJob.{CommandReturnValueIssue, CommandSuccess}
+import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandResult, CommandReturnValueIssue}
+import loamstream.model.jobs.commandline.CommandLineJob.CommandSuccess
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
@@ -15,6 +17,10 @@ import scala.sys.process.{ProcessBuilder, ProcessLogger}
 
 /** A job based on a command line definition */
 trait CommandLineJob extends LJob {
+  def workDir: Path
+
+  override def workDirOpt: Option[Path] = Some(workDir)
+
   def processBuilder: ProcessBuilder
 
   def commandLineString: String
@@ -22,7 +28,7 @@ trait CommandLineJob extends LJob {
   def logger: ProcessLogger = CommandLineJob.noOpProcessLogger
 
   def exitValueCheck: Int => Boolean
-  
+
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
   type CommandLineResult = Result with CommandResult
@@ -31,7 +37,7 @@ trait CommandLineJob extends LJob {
     runBlocking {
       trace(s"RUNNING: $commandLineString")
       val exitValue = processBuilder.run(logger).exitValue
-  
+
       if (exitValueIsOk(exitValue)) {
         trace(s"SUCCEEDED: $commandLineString")
         CommandSuccess(commandLineString, exitValue)
@@ -50,8 +56,8 @@ trait CommandLineJob extends LJob {
 object CommandLineJob {
 
   val mustBeZero: Int => Boolean = _ == 0
-  val acceptAll : Int => Boolean = i => true
-  
+  val acceptAll: Int => Boolean = i => true
+
   val defaultExitValueChecker = mustBeZero
 
   sealed trait CommandResult

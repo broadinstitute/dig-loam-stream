@@ -30,7 +30,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   
   private lazy val outputsAndExecutions = tables.outputs.join(tables.executions).on(_.executionId === _.id)
   
-  private def doFindOutput[A](path: Path, f: RawOutputRow => A): Option[A] = {
+  private def doFindOutput[A](path: Path, f: OutputRow => A): Option[A] = {
     val action = findOutputAction(path)
     
     runBlocking(action).map(f)
@@ -70,17 +70,17 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     
     val pathBasedOutputs = execution.outputs.collect { case pb: Output.PathBased => pb }
     
-    def toRawOutputRows(f: Output.PathBased => RawOutputRow): Seq[RawOutputRow] = {
+    def toRawOutputRows(f: Output.PathBased => OutputRow): Seq[OutputRow] = {
       pathBasedOutputs.toSeq.map(f)
     }
     
     val outputs = {
-      if(execution.isSuccess) { toRawOutputRows(pb => new RawOutputRow(pb.path, pb.hash)) }
-      else if(execution.isFailure) { toRawOutputRows(pb => new RawOutputRow(pb.path)) }
+      if(execution.isSuccess) { toRawOutputRows(pb => new OutputRow(pb.path, pb.hash)) }
+      else if(execution.isFailure) { toRawOutputRows(pb => new OutputRow(pb.path)) }
       else { Nil }
     }
     
-    def tieOutputsToExecution(outputs: Seq[RawOutputRow], executionId: Int): Seq[RawOutputRow] = {
+    def tieOutputsToExecution(outputs: Seq[OutputRow], executionId: Int): Seq[OutputRow] = {
       outputs.map(_.withExecutionId(executionId))
     }
     
@@ -194,16 +194,16 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   
   override def shutdown(): Unit = waitFor(db.shutdown)
 
-  private def toOutput(row: RawOutputRow): Output.PathBased = row match {
-    case RawOutputRow(_, Some(_), Some(_), Some(_), _) => row.toCachedOutput
+  private def toOutput(row: OutputRow): Output.PathBased = row match {
+    case OutputRow(_, Some(_), Some(_), Some(_), _) => row.toCachedOutput
     case _ => row.toPathOutput
   }
   
-  private def toCachedOutput(row: RawOutputRow): Option[CachedOutput] = {
+  private def toCachedOutput(row: OutputRow): Option[CachedOutput] = {
     Option(toOutput(row)).collect  { case co: CachedOutput => co }
   }
   
-  private def toPathOutput(row: RawOutputRow): Option[PathOutput] = {
+  private def toPathOutput(row: OutputRow): Option[PathOutput] = {
     Option(toOutput(row)).collect  { case po: PathOutput => po }
   }
   
@@ -212,7 +212,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     implicit val dbExecutionContext: ExecutionContext = db.executor.executionContext
   }
   
-  private def findOutputAction(path: Path): DBIO[Option[RawOutputRow]] = {
+  private def findOutputAction(path: Path): DBIO[Option[OutputRow]] = {
     Queries.outputByPath(path).result.headOption.transactionally
   }
   
@@ -226,14 +226,14 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   
   //TODO: Need to allow updating?
   private def insertOrUpdateOutputs(rows: Iterable[Output.PathBased]): Unit = {
-    val rawRows = rows.map(row => new RawOutputRow(row.path, row.hash))
+    val rawRows = rows.map(row => new OutputRow(row.path, row.hash))
 
     val insertOrUpdate = insertOrUpdateRawOutputRows(rawRows)
     
     runBlocking(insertOrUpdate)
   }
   
-  private def insertOrUpdateRawOutputRows(rawRows: Iterable[RawOutputRow]): DBIO[Iterable[Int]] = {
+  private def insertOrUpdateRawOutputRows(rawRows: Iterable[OutputRow]): DBIO[Iterable[Int]] = {
     val insertActions = rawRows.map(tables.outputs.insertOrUpdate)
     
     DBIO.sequence(insertActions).transactionally

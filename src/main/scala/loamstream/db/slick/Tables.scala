@@ -18,14 +18,14 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   import Tables.Names
   import ForeignKeyAction.{Restrict, Cascade}
   
-  final class Outputs(tag: Tag) extends Table[RawOutputRow](tag, Names.outputs) {
+  final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {
     def path = column[String]("PATH", O.PrimaryKey)
     def lastModified = column[Option[Timestamp]]("LAST_MODIFIED")
     def hash = column[Option[String]]("HASH")
     def hashType = column[Option[String]]("HASH_TYPE")
     def executionId = column[Int]("EXECUTION_ID")
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (path, lastModified, hash, hashType, executionId.?) <> (RawOutputRow.tupled, RawOutputRow.unapply)
+    def * = (path, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
   
   final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) {

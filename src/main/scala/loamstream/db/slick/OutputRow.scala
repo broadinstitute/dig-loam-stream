@@ -18,7 +18,7 @@ import loamstream.model.jobs.Output.PathOutput
  * 
  * A class representing a row in the 'Outputs' table. 
  */
-final case class RawOutputRow private (
+final case class OutputRow private (
     pathValue: String, 
     lastModified: Option[Timestamp], 
     hashValue: Option[String], 
@@ -45,7 +45,7 @@ final case class RawOutputRow private (
   
   def this(output: Output.PathBased) = this(output.path, output.hash)
   
-  def withExecutionId(newExecutionId: Int): RawOutputRow = copy(executionId = Some(newExecutionId))
+  def withExecutionId(newExecutionId: Int): OutputRow = copy(executionId = Some(newExecutionId))
   
   def toPath: Path = Paths.get(pathValue)
   

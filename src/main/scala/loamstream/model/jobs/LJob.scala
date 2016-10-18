@@ -69,10 +69,23 @@ trait LJob extends Loggable {
   }
 
   /**
-   * If inputs to this job are available
+   * If inputs to this job are available - that is, all jobs that have to happen before this one succeeded.
    */
   def inputsDone: Boolean = inputs.isEmpty || inputs.forall(_.state.isSuccess)
 
+  /**
+   * If all jobs that have to happen before this one finished one way or another, either by succeeding or failing.
+   */
+  def inputsFinished: Boolean = inputs.isEmpty || inputs.forall(_.state.isFinished) 
+
+  def isFinished: Boolean = {
+    val anyInputPreventsRunning = inputs.exists(_.state.isFailure)
+    
+    def weAreFinished = state.isFinished && inputsFinished
+    
+    anyInputPreventsRunning || weAreFinished
+  }
+  
   /**
    * Decorates executeSelf(), updating and emitting the value of 'state' from
    * Running to Succeeded/Failed.

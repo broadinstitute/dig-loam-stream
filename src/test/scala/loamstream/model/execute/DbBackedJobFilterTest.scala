@@ -133,7 +133,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
       val e = Execution(cr, Set(o0, o1, o2))
       
       val withNormalizedOutputs = e.transformOutputs { outputs => 
-        outputs.collect { case pb: PathBased => pb.normalized.toCachedOutput }
+        outputs.collect { case pb: PathBased => pb.normalized }
       }
       
       filter.record(Seq(e))

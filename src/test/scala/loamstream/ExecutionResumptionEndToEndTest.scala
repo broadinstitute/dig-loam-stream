@@ -11,22 +11,23 @@ import loamstream.compiler.LoamEngine
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.execute.DbBackedJobFilter
+import loamstream.model.execute.Executable
+import loamstream.model.execute.ExecuterHelpers
+import loamstream.model.execute.MockChunkRunner
 import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.JobState
-import loamstream.util.Hit
-import loamstream.util.Loggable
-import loamstream.util.Sequence
-import loamstream.util.Shot
-import loamstream.model.jobs.Output
-import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.JobState.CommandInvocationFailure
 import loamstream.model.jobs.JobState.CommandResult
 import loamstream.model.jobs.JobState.FailedWithException
+import loamstream.model.jobs.JobState.Skipped
 import loamstream.model.jobs.LJob
-import loamstream.model.execute.MockChunkRunner
-import loamstream.model.execute.ExecuterHelpers
+import loamstream.model.jobs.Output
+import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.JobState.CommandInvocationFailure
+import loamstream.util.Loggable
 import loamstream.util.PathUtils
+import loamstream.util.Sequence
+import loamstream.util.Shot
 
 /**
   * @author kaan
@@ -34,24 +35,6 @@ import loamstream.util.PathUtils
   */
 final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickLoamDao with Loggable {
 
-  private val dbBackedJobFilter = new DbBackedJobFilter(dao)
-  
-  private val resumptiveExecuter = RxExecuter.defaultWith(dbBackedJobFilter)
-
-  private val outMessageSink = LoggableOutMessageSink(this)
-
-  private val loamEngine = LoamEngine(LoamCompiler(outMessageSink), resumptiveExecuter, outMessageSink)
-  
-  private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
-    val asyncChunkRunner = RxExecuter.AsyncLocalChunkRunner
-        
-    val mockRunner = MockChunkRunner(asyncChunkRunner, asyncChunkRunner.maxNumJobs)
-        
-    (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
-  }
-  
-  def normalize(po: PathOutput): PathOutput = PathOutput(PathUtils.normalizePath(po.path))
-  
   //TODO: These tests won't run on Windows, since they need cp
   
   test("Jobs are skipped if their outputs were already produced by a previous run") {
@@ -75,20 +58,15 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
             val fileOut1 = store[String].to("$fileOut1")
             cmd"cp $$fileIn $$fileOut1""""
 
-      val firstCompiled = loamEngine.run(firstScript)
-
-      val firstResults = for {
-        (job, result) <- firstCompiled.jobResultsOpt.get
-      } yield result
-
-      val firstResultValues = firstResults.toIndexedSeq
+      val (_, firstResults) = compileAndRun(firstScript)
+            
+      val firstResultValues = firstResults.values.toIndexedSeq
 
       {
         import Matchers._
         
-        val cr @ CommandResult(_) = firstResultValues(0)
-        
-        cr.isSuccess shouldBe true
+        firstResultValues(0) shouldBe a [CommandResult]
+        firstResultValues(0).isSuccess shouldBe true
         
         firstResultValues should have size 1
       
@@ -106,18 +84,17 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
               cmd"cp $$fileIn $$fileOut1"
               cmd"cp $$fileOut1 $$fileOut2""""
   
-        val secondCompiled = loamEngine.run(secondScript)
+        val (secondExecutable, secondResults) = compileAndRun(secondScript)
   
-        val secondResults = for {
-          (job, result) <- secondCompiled.jobResultsOpt.get
-        } yield result
-  
-        val secondResultValues = secondResults.toIndexedSeq
-  
-        secondResultValues should have size 2
-        secondResultValues(0) shouldBe JobState.Skipped
-        secondResultValues(1) shouldBe a [JobState.CommandResult]
-        secondResultValues(1).isSuccess shouldBe true
+        //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
+        val firstJob = jobThatWritesTo(secondExecutable)(fileOut1).get
+        val secondJob = jobThatWritesTo(secondExecutable)(fileOut2).get
+        
+        secondResults(firstJob) shouldBe Skipped
+        secondResults(secondJob) shouldBe a [CommandResult]
+        secondResults(secondJob).isSuccess shouldBe true
+        
+        secondResults should have size 2
 
         // scalastyle:off no.whitespace.before.left.bracket
       }
@@ -140,8 +117,6 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       
       val bogusCommandName = "asdfasdf"
       
-      def log(s: String): Unit = println(s"%%%%%%%%%%%% $s")
-      
       /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
           val fileIn = store[String].from("src/test/resources/a.txt")
           val fileOut1 = store[String].to("$workDir/fileOut1.txt")
@@ -153,24 +128,21 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
             cmd"$bogusCommandName $$fileIn $$fileOut1""""
       }
 
-      val executable = loamEngine.compileToExecutable(script).get
-        
-      val (executer, mockRunner) = makeLoggingExecuter
-      
-      val jobStates: Map[LJob, JobState] = executer.execute(executable)
+      val (executable, jobStates) = compileAndRun(script)
 
-      val allJobs = ExecuterHelpers.flattenTree(executable.jobs).toSeq
+      val allJobs = allJobsFrom(executable)
       
       val allCommandLines = allJobs.collect { case clj: CommandLineJob => clj.commandLineString }
       
       assert(allCommandLines.map(_.take(bogusCommandName.size)) === Seq(bogusCommandName))
-      
-      val f0 @ CommandInvocationFailure(_) = jobStates.values.head
 
       {
         import Matchers._
-          
-        f0.isFailure shouldBe true
+       
+        val onlyResult = jobStates.values.head
+        
+        onlyResult shouldBe a [CommandInvocationFailure]
+        onlyResult.isFailure shouldBe true
   
         jobStates should have size 1
       }
@@ -209,43 +181,31 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
             val fileOut1 = store[String].to("$fileOut1")
             val fileOut2 = store[String].to("$fileOut2")
             cmd"$bogusCommandName $$fileIn $$fileOut1"
-            cmd"${bogusCommandName}2222 $$fileOut1 $$fileOut2""""
+            cmd"$bogusCommandName $$fileOut1 $$fileOut2""""
 
-      val secondExecutable = loamEngine.compileToExecutable(secondScript).get
-        
-      println(s"%%%%%%%%%%%% Jobs from second Executable (${secondExecutable.jobs.size}): ")
-      secondExecutable.jobs.foreach { job =>
-        println(s"%%%%%%%%%%%% $job => ${job.outputs}")
-      }
-      
-      println(s"%%%%%%%%%%%% Trees from second Executable (${secondExecutable.jobs.size}): ")
-      secondExecutable.jobs.foreach(_.print(doPrint = log))
-            
-      val secondCompiled = loamEngine.run(secondScript)
+      val (secondExecutable, secondResults) = compileAndRun(secondScript)
 
-      val secondResults = for {
-        (job, result) <- secondCompiled.jobResultsOpt.get
-      } yield result
-
-      val secondResultValues = secondResults.toIndexedSeq
-
-      val f0 @ FailedWithException(_) = secondResultValues(0)
-      val f1 @ FailedWithException(_) = secondResultValues(1)
+      val firstJob = jobThatWritesTo(secondExecutable)(fileOut1).get
+      val secondJob = jobThatWritesTo(secondExecutable)(fileOut2).get
 
       {
         import Matchers._
-          
-        f0.isFailure shouldBe true
-        f1.isFailure shouldBe true
+
+        secondResults(firstJob) shouldBe a [CommandInvocationFailure]
+        secondResults.contains(secondJob) shouldBe false
+        
+        secondResults(firstJob).isFailure shouldBe true
   
-        secondResultValues should have size 2
+        secondResults should have size 1
       }
         
-      val output1 = Output.PathOutput(Paths.get(fileOut1))
-      val output2 = Output.PathOutput(Paths.get(fileOut2))
+      val output1 = PathOutput(Paths.get(fileOut1))
+      val output2 = PathOutput(Paths.get(fileOut2))
       
-      assert(dao.findExecution(output1).get.exitState === 0)
-      assert(dao.findExecution(output2).get.exitState === 0)
+      assert(dao.findExecution(output1).get.exitState.isFailure)
+      
+      //NB: The job that referenced output2 didn't get run, so its execution should not have been recorded 
+      assert(dao.findExecution(output2) === None)
     }
   }
 
@@ -267,5 +227,45 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     assert(asFile.exists)
 
     result
+  }
+  
+  private val dbBackedJobFilter = new DbBackedJobFilter(dao)
+  
+  private val resumptiveExecuter = RxExecuter.defaultWith(dbBackedJobFilter)
+
+  private val outMessageSink = LoggableOutMessageSink(this)
+
+  private val loamEngine = LoamEngine(LoamCompiler(outMessageSink), resumptiveExecuter, outMessageSink)
+  
+  private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
+    val asyncChunkRunner = RxExecuter.AsyncLocalChunkRunner
+        
+    val mockRunner = MockChunkRunner(asyncChunkRunner, asyncChunkRunner.maxNumJobs)
+        
+    (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
+  }
+  
+  private def normalize(po: PathOutput): PathOutput = PathOutput(PathUtils.normalizePath(po.path))
+  
+  private def compileAndRun(script: String): (Executable, Map[LJob, JobState]) = {
+    val (executer, _) = makeLoggingExecuter
+    
+    val executable = loamEngine.compileToExecutable(script).get
+    
+    val results = executer.execute(executable)
+    
+    (executable, results)
+  }
+  
+  private def allJobsFrom(executable: Executable): Seq[LJob] = ExecuterHelpers.flattenTree(executable.jobs).toSeq
+  
+  private def jobThatWritesTo(executable: Executable)(fileNameSuffix: String): Option[LJob] = {
+    val allJobs = allJobsFrom(executable)
+    
+    def outputMatches(o: Output): Boolean = o.asInstanceOf[Output.PathBased].path.toString.endsWith(fileNameSuffix) 
+    
+    def jobMatches(j: LJob): Boolean = j.outputs.exists(outputMatches)
+    
+    allJobs.find(jobMatches)
   }
 }

@@ -96,14 +96,20 @@ final case class RxExecuter(runner: ChunkRunner,
   }
 
   private def allJobsAreFinished: Boolean = {
-    val notFinishedOption = jobStates().find { case (job, state) => !state.isFinished }
+    val jobsToStates = jobStates()
     
-    notFinishedOption match {
-      case Some((notFinishedJob, state)) => debug(s"All jobs are NOT finished; still running ($state): $notFinishedJob")
-      case None => ()
+    val allFinished = jobsToStates.keys.forall(_.isFinished)
+    
+    if(!allFinished && isDebugEnabled) {
+      val notFinishedOption = jobsToStates.find { case (_, state) => !state.isFinished }
+    
+      notFinishedOption match {
+        case Some((notFinishedJob, state)) => debug(s"All jobs are NOT finished; still running ($state): $notFinishedJob")
+        case None => ()
+      }
     }
     
-    notFinishedOption.isEmpty
+    allFinished
   }
   
   private def executeIter(allJobs: Set[LJob], everythingIsDonePromise: Promise[Unit]): Future[Unit] = {
@@ -140,8 +146,6 @@ final case class RxExecuter(runner: ChunkRunner,
     val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
         
     debug(s"Recording Executions (${executions.size}): $executions")
-    
-    debug(s"JOBFILTER: $jobFilter")
     
     Future.successful(jobFilter.record(executions))
   }

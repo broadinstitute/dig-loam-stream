@@ -10,6 +10,8 @@ import loamstream.util.TypeBox
  * Oct 14, 2015
  */
 final class ExecutionTest extends FunSuite {
+  //scalastyle:off magic.number
+  
   private val p0 = Paths.get("foo/bar/baz") 
   private val p1 = Paths.get("nuh")
   
@@ -66,4 +68,6 @@ final class ExecutionTest extends FunSuite {
     assertIsNOTCommandExecution(FailedWithException(e))
     assertIsNOTCommandExecution(ValueSuccess(123, TypeBox.of[Int]))
   }
+  
+  //scalastyle:on magic.number
 }

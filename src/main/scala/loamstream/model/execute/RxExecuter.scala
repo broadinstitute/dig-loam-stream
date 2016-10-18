@@ -104,7 +104,8 @@ final case class RxExecuter(runner: ChunkRunner,
       val notFinishedOption = jobsToStates.find { case (_, state) => !state.isFinished }
     
       notFinishedOption match {
-        case Some((notFinishedJob, state)) => debug(s"All jobs are NOT finished; still running ($state): $notFinishedJob")
+        case Some((notFinishedJob, state)) => 
+          debug(s"All jobs are NOT finished; still running ($state): $notFinishedJob")
         case None => ()
       }
     }

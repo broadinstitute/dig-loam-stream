@@ -167,8 +167,6 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       
       val bogusCommandName = "asdfasdf"
       
-      def log(s: String): Unit = println(s"%%%%%%%%%%%% $s")
-      
       /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
           val fileIn = store[String].from("src/test/resources/a.txt")
           val fileOut1 = store[String].to("$workDir/fileOut1.txt")

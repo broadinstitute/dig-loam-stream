@@ -21,7 +21,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
   test("Single successful job") {
     /* Single-job pipeline:
      *
-     * 		Job1
+     *  Job1
      * 
      */
 
@@ -50,7 +50,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
   test("Single failed job") {
     /* Single-job pipeline:
      *
-     * 		Job1
+     *  Job1
      * 
      */
     def doTest(jobState: JobState): Unit = {
@@ -84,7 +84,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
   test("Two failed jobs") {
     /* Linear two-job pipeline:
      *
-     * 		Job1 --- Job2
+     *  Job1 --- Job2
      * 
      */
     def doTest(jobState: JobState): Unit = {

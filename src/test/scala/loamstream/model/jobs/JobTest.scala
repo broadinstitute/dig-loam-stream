@@ -11,6 +11,8 @@ import scala.concurrent.ExecutionContext
  */
 final class JobTest extends FunSuite with TestJobs {
   
+  //scalastyle:off magic.number
+  
   import JobState._
   
   test("isRunnable - single job") {
@@ -235,4 +237,6 @@ final class JobTest extends FunSuite with TestJobs {
     
     assert(waitFor(states) === Seq(NotStarted, Running, CommandResult(42)))
   }
+  
+  //scalastyle:on magic.number
 }

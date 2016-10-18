@@ -21,6 +21,8 @@ import loamstream.util.PathUtils
  */
 final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
   
+  //scalastyle:off magic.number
+  
   private val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
   private val path1 = Paths.get("src/test/resources/for-hashing/bigger")
   private val path2 = Paths.get("src/test/resources/for-hashing/empty.txt")
@@ -62,34 +64,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
     
     dao.insertExecutions(execution)
   }
-  
-  /*
-  def findOutput(path: Path): Option[Output.PathBased]
-  def findHashedOutput(path: Path): Option[CachedOutput]
-  def findFailedOutput(path: Path): Option[PathOutput]
-  
-  final def deleteOutput(path: Path, others: Path*): Unit = deleteOutput(path +: others)
-  def deleteOutput(paths: Iterable[Path]): Unit
-  
-  def allOutputs: Seq[Output.PathBased]
-  def allHashedOutputs: Seq[CachedOutput]
-  def allFailedOutputs: Seq[PathOutput]
-  
-  final def insertExecutions(execution: Execution, others: Execution*): Unit = insertExecutions(execution +: others)
-  
-  def insertExecutions(rows: Iterable[Execution]): Unit
-  
-  def allExecutions: Seq[Execution]
-  
-  def findExecution(output: Output.PathBased): Option[Execution]
-  
-  def createTables(): Unit
-  
-  def dropTables(): Unit
-  
-  def shutdown(): Unit
-   */
-  
+
   test("insert/Read Outputs") {
     createTablesAndThen {
       assert(noOutputs)
@@ -341,4 +316,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       assert(dao.findFailedOutput(path1) === Some(normalizedPathOutput(path1)))
     }
   }
+  
+  //scalastyle:on magic.number
 }

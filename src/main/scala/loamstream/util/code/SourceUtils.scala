@@ -1,6 +1,6 @@
 package loamstream.util.code
 
-import scala.reflect.runtime.universe.{Type, TypeTag, typeOf}
+import scala.reflect.runtime.universe.{Constant, Literal, Type, TypeTag, typeOf}
 
 /** Methods for source code creation */
 object SourceUtils {
@@ -15,5 +15,8 @@ object SourceUtils {
 
   /** Returns short type name, such as Set */
   def shortTypeName[T: TypeTag]: String = shortTypeName(typeOf[T])
+
+  /** Escapes a String to be used as String literal */
+  def escapeString(raw: String): String = Literal(Constant(raw)).toString
 
 }

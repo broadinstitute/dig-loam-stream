@@ -3,6 +3,7 @@ package loamstream.loam
 import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.{LoamEngine, LoamPredef}
+import loamstream.util.code.SourceUtils
 import loamstream.util.{Files, PathUtils}
 import org.scalatest.FunSuite
 
@@ -62,7 +63,7 @@ class LoamWorkDirTest extends FunSuite {
     Files.writeTo(file1)("Yo!")
     val code =
       s"""
-        |changeWorkDir("$tempDir1")
+        |changeDir(${SourceUtils.escapeString(tempDir1.toString)})
         |val file1 = store[TXT].from("$fileName1")
         |val file2 = store[TXT].from("file2.txt")
         |cmd"cp $$file1 $$file2"
@@ -70,7 +71,7 @@ class LoamWorkDirTest extends FunSuite {
     val engine = LoamEngine.default()
     val script = LoamScript("LoamWorkDirTestScript", code)
     val results = engine.run(script)
-    assert(results.jobResultsOpt.nonEmpty)
+    assert(results.jobResultsOpt.nonEmpty, results.compileResultOpt)
   }
 }
 

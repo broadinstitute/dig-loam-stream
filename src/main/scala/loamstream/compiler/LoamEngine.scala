@@ -147,7 +147,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     val compileResults = compile(project)
     if (!compileResults.isValid) {
       outMessageSink.send(ErrorOutMessage("Could not compile."))
-      LoamEngine.Result(Hit(project), Miss("Could not compile"), Miss("Could not compile"))
+      LoamEngine.Result(Hit(project), Hit(compileResults), Miss("Could not compile"))
     } else {
       outMessageSink.send(StatusOutMessage(compileResults.summary))
       val context = compileResults.contextOpt.get

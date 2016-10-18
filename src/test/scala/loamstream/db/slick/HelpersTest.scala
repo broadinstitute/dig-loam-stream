@@ -1,8 +1,8 @@
 package loamstream.db.slick
 
-import java.io.File
-import java.nio.file.{FileSystems, Paths}
+import java.nio.file.Paths
 
+import loamstream.util.PathUtils
 import org.scalatest.FunSuite
 
 /**
@@ -13,9 +13,7 @@ final class HelpersTest extends FunSuite {
   test("normalize") {
     val absolute = Paths.get("/x/y/z")
 
-    val rootPath = FileSystems.getDefault.getRootDirectories.iterator().next()
-
-    val absoluteExpected = s"${rootPath}x${File.separator}y${File.separator}z"
+    val absoluteExpected = PathUtils.newAbsolute("x", "y", "z").toString
 
     assert(Helpers.normalize(absolute) == absoluteExpected)
 

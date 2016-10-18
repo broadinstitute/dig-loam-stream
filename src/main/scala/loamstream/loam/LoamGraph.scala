@@ -69,7 +69,9 @@ final case class LoamGraph(stores: Set[LoamStore],
       toolInputs = toolInputs + (tool -> toolInputStores),
       toolOutputs = toolOutputs + (tool -> toolOutputStores),
       storeSources = storeSources ++ outputsWithSource,
-      storeSinks = storeSinks ++ storeSinksNew)
+      storeSinks = storeSinks ++ storeSinksNew,
+      workDirs = workDirs + (tool -> workDir)
+    )
   }
 
   /** Returns graph with store source (tool or file) added */

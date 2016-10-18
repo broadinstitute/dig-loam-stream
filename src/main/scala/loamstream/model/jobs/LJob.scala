@@ -65,19 +65,25 @@ trait LJob extends Loggable {
   def isRunnable: Boolean = {
     val notStarted = state == JobState.NotStarted 
     
-    notStarted && dependenciesDone && inputsDone
+    notStarted && dependenciesDone && inputsSuccessful
   }
 
   /**
    * If inputs to this job are available - that is, all jobs that have to happen before this one succeeded.
    */
-  def inputsDone: Boolean = inputs.isEmpty || inputs.forall(_.state.isSuccess)
+  def inputsSuccessful: Boolean = inputs.isEmpty || inputs.forall(_.state.isSuccess)
 
   /**
    * If all jobs that have to happen before this one finished one way or another, either by succeeding or failing.
    */
-  def inputsFinished: Boolean = inputs.isEmpty || inputs.forall(_.state.isFinished) 
+  def inputsFinished: Boolean = inputs.isEmpty || inputs.forall(_.isFinished) 
 
+  /**
+   * A job is "Finished" if:
+   *   state.isFinished is true and all its inputs' states .isFinisheds are true
+   *   OR
+   *   Any input has failed, which prevents this job from running
+   */
   def isFinished: Boolean = {
     val anyInputPreventsRunning = inputs.exists(_.state.isFailure)
     
@@ -93,6 +99,9 @@ trait LJob extends Loggable {
   final def execute(implicit context: ExecutionContext): Future[JobState] = {
     import Futures.Implicits._
 
+    updateAndEmitJobState(JobState.NotStarted)
+    updateAndEmitJobState(JobState.Running)
+    
     executeSelf.withSideEffect(updateAndEmitJobState)
   }
 

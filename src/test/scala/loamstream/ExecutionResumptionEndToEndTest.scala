@@ -99,8 +99,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         // scalastyle:off no.whitespace.before.left.bracket
       }
       
-      val output1 = Output.PathOutput(Paths.get(fileOut1))
-      val output2 = Output.PathOutput(Paths.get(fileOut2))
+      val output1 = PathOutput(Paths.get(fileOut1))
+      val output2 = PathOutput(Paths.get(fileOut2))
       
       assert(dao.findExecution(output1).get.exitState === CommandResult(0))
       assert(dao.findExecution(output2).get.exitState === CommandResult(0))
@@ -147,7 +147,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         jobStates should have size 1
       }
         
-      val output1 = Output.PathOutput(Paths.get(fileOut1))
+      val output1 = PathOutput(Paths.get(fileOut1))
       
       assert(dao.findOutput(output1.path) === Some(normalize(output1)))
       assert(dao.findFailedOutput(output1.path) === Some(normalize(output1)))
@@ -229,14 +229,12 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     result
   }
   
-  private val dbBackedJobFilter = new DbBackedJobFilter(dao)
-  
-  private val resumptiveExecuter = RxExecuter.defaultWith(dbBackedJobFilter)
+  private val resumptiveExecuter = {
+    val dbBackedJobFilter = new DbBackedJobFilter(dao)
+    
+    RxExecuter.defaultWith(dbBackedJobFilter)
+  }
 
-  private val outMessageSink = LoggableOutMessageSink(this)
-
-  private val loamEngine = LoamEngine(LoamCompiler(outMessageSink), resumptiveExecuter, outMessageSink)
-  
   private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
     val asyncChunkRunner = RxExecuter.AsyncLocalChunkRunner
         
@@ -245,14 +243,22 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
   }
   
-  private def normalize(po: PathOutput): PathOutput = PathOutput(PathUtils.normalizePath(po.path))
+  private def loamEngine = {
+    val outMessageSink = LoggableOutMessageSink(this)
+    
+    val (executer, _) = makeLoggingExecuter 
+    
+    LoamEngine(LoamCompiler(outMessageSink), executer, outMessageSink)
+  }
+  
+  private def normalize(po: PathOutput): PathOutput = PathOutput(po.normalized.path)
   
   private def compileAndRun(script: String): (Executable, Map[LJob, JobState]) = {
-    val (executer, _) = makeLoggingExecuter
+    val engine = loamEngine
     
-    val executable = loamEngine.compileToExecutable(script).get
+    val executable = engine.compileToExecutable(script).get
     
-    val results = executer.execute(executable)
+    val results = engine.executer.execute(executable)
     
     (executable, results)
   }

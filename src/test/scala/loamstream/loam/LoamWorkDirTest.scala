@@ -1,9 +1,9 @@
 package loamstream.loam
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Path, Paths, Files => JFiles}
 
-import loamstream.compiler.LoamPredef
-import loamstream.util.PathUtils
+import loamstream.compiler.{LoamEngine, LoamPredef}
+import loamstream.util.{Files, PathUtils}
 import org.scalatest.FunSuite
 
 /**
@@ -44,7 +44,7 @@ class LoamWorkDirTest extends FunSuite {
     assertPathsEquivalent(tool.workDirOpt.get, workDir)
   }
 
-  test("Check work dirs and file paths are correct") {
+  test("Check work dirs and file paths are correctly set in graph") {
     val workDirs = Seq(Paths.get("."), PathUtils.newRelative("a", "b", "c"), PathUtils.newAbsolute("a", "b", "c"))
     val workDirOpts = workDirs.map(Option(_)) :+ None
     for (workDirOpt1 <- workDirOpts) {
@@ -52,6 +52,25 @@ class LoamWorkDirTest extends FunSuite {
         assertWorkDirIsSet(workDirOpt1, workDirOpt2)
       }
     }
+  }
+
+  test("Run example with changing work directory") {
+    val tempDir1 = JFiles.createTempDirectory("LoamWorkDirTest")
+    val tempDir2 = JFiles.createTempDirectory("LoamWorkDirTest")
+    val fileName1 = "file1.txt"
+    val file1 = tempDir1.resolve(fileName1)
+    Files.writeTo(file1)("Yo!")
+    val code =
+      s"""
+        |changeWorkDir("$tempDir1")
+        |val file1 = store[TXT].from("$fileName1")
+        |val file2 = store[TXT].from("file2.txt")
+        |cmd"cp $$file1 $$file2"
+      """.stripMargin
+    val engine = LoamEngine.default()
+    val script = LoamScript("LoamWorkDirTestScript", code)
+    val results = engine.run(script)
+    assert(results.jobResultsOpt.nonEmpty)
   }
 }
 

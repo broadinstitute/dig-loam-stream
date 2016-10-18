@@ -15,7 +15,8 @@ import loamstream.util.{Hit, Miss, Shot, StringUtils}
   * Created by oliverr on 7/5/2016.
   */
 object LoamEngine {
-  def default(outMessageSink: ClientMessageHandler.OutMessageSink): LoamEngine =
+  def default(outMessageSink: ClientMessageHandler.OutMessageSink
+              = ClientMessageHandler.OutMessageSink.NoOp): LoamEngine =
     LoamEngine(new LoamCompiler(LoamCompiler.Settings.default, outMessageSink),
       ChunkedExecuter.default, outMessageSink)
 

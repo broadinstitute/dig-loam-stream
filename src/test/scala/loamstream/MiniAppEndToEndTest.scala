@@ -2,20 +2,22 @@ package loamstream
 
 import java.nio.file.{Files, Path, Paths}
 
-import loamstream.model.execute.{ChunkedExecuter, LExecutable}
+import scala.io.Source
+
+import org.scalatest.FunSuite
+
+import loamstream.model.execute.Executable
+import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.LToolBox
 import loamstream.tools.core.CoreToolBox
 import loamstream.util.{Hit, LoamFileUtils}
-import org.scalatest.FunSuite
-
-import scala.io.Source
 
 /**
  * Created by kyuksel on 2/29/2016.
  */
 final class MiniAppEndToEndTest extends FunSuite {
 
-  private val executer = ChunkedExecuter.default
+  private val executer = RxExecuter.default
 
   test("Pipeline successfully extracts sample IDs from VCF (via AST)") {
     val (toolbox, pipeline, extractedSamplesFilePath) = makePipelineAndToolbox()
@@ -25,15 +27,12 @@ final class MiniAppEndToEndTest extends FunSuite {
     doTestExecutable(executable, extractedSamplesFilePath)
   }
 
-  private def doTestExecutable(executable: LExecutable, extractedSamplesFilePath: Path): Unit = {
+  private def doTestExecutable(executable: Executable, extractedSamplesFilePath: Path): Unit = {
     val results = executer.execute(executable)
 
     assert(results.size == 2)
 
-    assert(results.values.forall {
-      case Hit(r) => r.isSuccess
-      case _      => false
-    })
+    assert(results.values.forall(_.isSuccess))
 
     val source = Source.fromFile(extractedSamplesFilePath.toFile)
 

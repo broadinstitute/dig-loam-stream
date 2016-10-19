@@ -3,10 +3,10 @@ package loamstream.model.execute
 import java.util.concurrent.{Executors, ThreadFactory}
 
 import scala.annotation.tailrec
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
+import scala.concurrent.{ ExecutionContext, Future }
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
+import loamstream.model.jobs.JobState
+import loamstream.model.jobs.LJob
 import loamstream.util.Hit
 import loamstream.util.Shot
 import loamstream.util.Maps
@@ -16,9 +16,9 @@ import loamstream.util.Maps
  * date: Jun 7, 2016
  */
 object ExecuterHelpers {
-  def consumeUntilFirstFailure(iter: Iterator[Map[LJob, Result]]): IndexedSeq[Map[LJob, Result]] = {
+  def consumeUntilFirstFailure(iter: Iterator[Map[LJob, JobState]]): IndexedSeq[Map[LJob, JobState]] = {
     @tailrec
-    def loop(acc: IndexedSeq[Map[LJob, Result]]): IndexedSeq[Map[LJob, Result]] = {
+    def loop(acc: IndexedSeq[Map[LJob, JobState]]): IndexedSeq[Map[LJob, JobState]] = {
       if (iter.isEmpty) { acc }
       else {
         val m = iter.next()
@@ -35,20 +35,14 @@ object ExecuterHelpers {
     loop(Vector.empty)
   }
 
-  def noFailures[J <: LJob](m: Map[J, Result]): Boolean = m.values.forall(_.isSuccess)
+  def noFailures[J <: LJob](m: Map[J, JobState]): Boolean = m.values.forall(_.isSuccess)
 
-  def executeSingle(job: LJob)(implicit executor: ExecutionContext): Future[Map[LJob, Result]] = {
+  def executeSingle(job: LJob)(implicit executor: ExecutionContext): Future[Map[LJob, JobState]] = {
     for {
       result <- job.execute
     } yield {
       Map(job -> result)
     }
-  }
-  
-  def toShotMap(m: Map[LJob, Result]): Map[LJob, Shot[Result]] = {
-    import Maps.Implicits._
-    
-    m.strictMapValues(Hit(_))
   }
 
   /**
@@ -73,6 +67,12 @@ object ExecuterHelpers {
       val thread = defaultFactory.newThread(r)
       thread.setDaemon(true)
       thread
+    }
+  }
+  
+  def flattenTree(roots: Set[LJob]): Set[LJob] = {
+    roots.foldLeft(roots) { (acc, job) =>
+      job.inputs ++ flattenTree(job.inputs) ++ acc
     }
   }
 }

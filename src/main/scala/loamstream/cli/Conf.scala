@@ -1,42 +1,62 @@
 package loamstream.cli
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
+
+import org.rogach.scallop.exceptions.ScallopException
+import org.rogach.scallop._
 
 import loamstream.util.Loggable
-import org.rogach.scallop._
-import org.rogach.scallop.exceptions.ScallopException
 
 /**
  * Provides a command line interface for LoamStream apps
  * using [[https://github.com/scallop/scallop Scallop]] under the hood
  *
  * @param arguments command line arguments provided by the app user
+ * @param exitTheJvmOnValidationError whether or not to exit the whole JVM on any validation errors; setting this
+ * to false is useful for tests, so that a validation failure doesn't make SBT exit.  If this is false, a 
+ * CliException is thrown instead of invoking 'sys.exit()'.
  */
-final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
+final case class Conf(
+    arguments: Seq[String], 
+    exitTheJvmOnValidationError: Boolean = true) extends ScallopConf(arguments) with Loggable {
+  
   /** Inform the user about expected usage upon erroneous input/behaviour. */
-  override def onError(e: Throwable) = e match {
+  override def onError(e: Throwable): Unit = e match {
     case ScallopException(message) =>
       error(message)
       printHelp
-      sys.exit(1)
+      exitOrThrow(message)
     case ex => super.onError(ex)
   }
 
   /** In the verify stage, check that files with the supplied paths exist. */
-  private def validatePathsExist(paths: ScallopOption[List[Path]]): Unit =
+  private def validatePathsExist(paths: ScallopOption[List[Path]]): Unit = {
     paths.toOption.foreach { paths =>
       paths.foreach { path =>
         if (!path.toFile.exists) {
-          error("File at '" + path + "' not found")
-          sys.exit(1)
+          val msg = s"File at '$path' not found"
+          
+          error(msg)
+          exitOrThrow(msg)
         }
       }
+    }
   }
 
-  private def printHelpIfNoArgsAndExit(): Unit =
+  private def printHelpIfNoArgsAndExit(): Unit = {
     if (arguments.isEmpty) {
-    printHelp()
-    sys.exit(1)
+      printHelp()
+      exitOrThrow("No arguments provided")
+    }
+  }
+  
+  private def exitOrThrow(msg: String): Unit = {
+    if(exitTheJvmOnValidationError) {
+      sys.exit(1)
+    } else {
+      throw new CliException(msg)
+    }
   }
 
   // TODO: Add version info (ideally from build.sbt)?
@@ -47,9 +67,13 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
            |Options:
            |""".stripMargin)
 
-  val listPathConverter = listArgConverter[Path](Paths.get(_))
-  val loam = opt[List[Path]](descr = "Path to loam script", required = true, validate = _.nonEmpty)(listPathConverter)
-  val conf = opt[Path](descr = "Path to config file", required = true)
+  val loam: ScallopOption[List[Path]] = {
+    val listPathConverter: ValueConverter[List[Path]] = listArgConverter[Path](Paths.get(_))
+    
+    opt[List[Path]](descr = "Path to loam script", required = true, validate = _.nonEmpty)(listPathConverter)
+  }
+  
+  val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file", required = true)
 
   validatePathExists(conf)
 

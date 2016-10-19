@@ -32,6 +32,9 @@ object Files {
     * the given prefix and suffix to generate its name.
     */
   def tempFile(suffix: String, directory: File): Path = {
+    require(directory.isDirectory, s"'$directory' must be a directory")
+    require(directory.exists, s"'$directory' must exist")
+    
     File.createTempFile(tempFilePrefix, suffix, directory).toPath.toAbsolutePath
   }
 

@@ -7,10 +7,13 @@ import org.scalatest.FunSuite
  * date: Aug 11, 2016
  */
 final class TraversablesTest extends FunSuite {
+  
   val as = Seq("a", "bb", "asdfghj")
 
   import Traversables.Implicits._
 
+  //scalastyle:off magic.number
+  
   test("mapTo") {
     val map = as.mapTo(_.size)
 
@@ -24,4 +27,17 @@ final class TraversablesTest extends FunSuite {
 
     assert(map == Map("a" -> 1, "asdfghj" -> 7))
   }
+  
+  test("mapBy") {
+    final case class Point(x: Int, y: Int)
+    
+    assert(Seq.empty[Point].mapBy(identity) === Map.empty)
+
+    val points = Seq(Point(42, 2), Point(99, 9))
+    
+    assert(points.mapBy(_.x) === Map(42 -> Point(42, 2), 99 -> Point(99, 9)))
+    
+    assert(points.mapBy(_.y) === Map(2 -> Point(42, 2), 9 -> Point(99, 9)))
+  }
+  //scalastyle:on magic.number
 }

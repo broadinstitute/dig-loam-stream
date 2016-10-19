@@ -7,8 +7,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import loamstream.model.execute.ChunkRunner
 import loamstream.model.jobs.{LJob, NoOpJob}
-import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.LJob.SimpleFailure
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.uger.JobStatus._
 import loamstream.util.Futures
@@ -20,6 +18,8 @@ import java.util.UUID
 
 import loamstream.util.ObservableEnrichments
 import loamstream.model.jobs.JobState.{Failed, Running}
+import loamstream.model.jobs.JobState
+import loamstream.util.Traversables
 
 /**
  * @author clint
@@ -38,14 +38,17 @@ final case class UgerChunkRunner(
 
   override def maxNumJobs = ugerConfig.ugerMaxNumJobs
 
-  override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
+  override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
 
+    debug(s"Running: ")
+    leaves.foreach(job => debug(s"  $job"))
+    
     require(
       leaves.forall(isAcceptableJob),
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
     // Filter out NoOpJob's
-    val leafCommandLineJobs = leaves.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
+    val leafCommandLineJobs = leaves.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
     if (leafCommandLineJobs.nonEmpty) {
       val ugerWorkDir = ugerConfig.ugerWorkDir.toFile
@@ -79,8 +82,8 @@ final case class UgerChunkRunner(
     }
   }
 
-  private[uger] def toResultMap(drmaaClient: DrmaaClient, jobsById: Map[String, LJob])
-                               (implicit context: ExecutionContext): Future[Map[LJob, Result]] = {
+  private[uger] def toResultMap(drmaaClient: DrmaaClient, jobsById: Map[String, CommandLineJob])
+                               (implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
 
     val poller = Poller.drmaa(drmaaClient)(context)
 
@@ -92,10 +95,10 @@ final case class UgerChunkRunner(
     
     val jobsAndStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    val jobsToFutureResults: Iterable[(LJob, Future[Result])] = for {
+    val jobsToFutureResults: Iterable[(LJob, Future[JobState])] = for {
       (jobId, (job, jobStatuses)) <- jobsAndStatusesById
       _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
-      futureResult = jobStatuses.lastAsFuture.map(resultFrom(job))
+      futureResult = jobStatuses.lastAsFuture.map(JobStatus.toJobState)
     } yield {
       job -> futureResult
     }
@@ -117,24 +120,17 @@ object UgerChunkRunner extends Loggable {
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
-  private[uger] def resultFrom(job: LJob)(status: JobStatus): LJob.Result = {
-    //TODO: Anything better; this was purely expedient
-    if (status.isDone) {
-      LJob.SimpleSuccess(s"$job")
-    } else {
-      LJob.SimpleFailure(s"$job")
-    }
-  }
-
-  private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Future[Map[LJob, Result]] = {
-    val msg = cause match {
-      case Some(e) => s"Couldn't submit jobs to UGER: ${e.getMessage}"
-      case None => "Couldn't submit jobs to UGER"
+  private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Future[Map[LJob, JobState]] = {
+    val failure = cause match {
+      case Some(e) => JobState.FailedWithException(e)
+      case None => JobState.Failed
     }
 
-    cause.foreach(e => error(msg, e))
+    cause.foreach(e => error(s"Couldn't submit jobs to UGER: ${e.getMessage}", e))
 
-    Future.successful(jobs.map(j => j -> SimpleFailure(msg)).toMap)
+    import Traversables.Implicits._
+    
+    Future.successful(jobs.mapTo(_ => failure))
   }
 
   private[uger] def createScriptFile(contents: String, file: Path): Path = {

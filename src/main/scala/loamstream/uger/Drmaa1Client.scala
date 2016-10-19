@@ -117,7 +117,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       
     //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
     waitAttempt.recover { case e: ExitTimeoutException => 
-      debug(s"Timed out waiting for job '$jobId' to finish")
+      debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${JobStatus.Running}")
         
       JobStatus.Running
     }

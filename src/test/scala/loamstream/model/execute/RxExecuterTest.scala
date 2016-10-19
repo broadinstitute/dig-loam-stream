@@ -40,7 +40,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     assert(result.size === 1)
 
     // Check if jobs were correctly chunked
-    val jobExecutionSeq = mockRunner.chunks.value
+    val jobExecutionSeq = mockRunner.chunks.value.filter(_.nonEmpty)
 
     assert(jobExecutionSeq === Seq(Set(job1)))
     
@@ -69,7 +69,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
       assert(result.size === 1)
   
       // Check if jobs were correctly chunked
-      val jobExecutionSeq = mockRunner.chunks.value
+      val jobExecutionSeq = mockRunner.chunks.value.filter(_.nonEmpty)
   
       assert(jobExecutionSeq === Seq(Set(job1)))
       
@@ -107,7 +107,9 @@ final class RxExecuterTest extends FunSuite with Loggable {
       assert(result.size === 1)
   
       // Check if jobs were correctly chunked
-      assert(mockRunner.chunks.value === Seq(Set(job1)))
+      val chunks = mockRunner.chunks.value.filter(_.nonEmpty)
+      
+      assert(chunks === Seq(Set(job1)))
       
       assert(result(job1) === jobState)
       assert(result.get(job2).isEmpty)
@@ -147,7 +149,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     assert(result.size === 3)
 
     // Check if jobs were correctly chunked
-    val jobExecutionSeq = mockRunner.chunks.value
+    val jobExecutionSeq = mockRunner.chunks.value.filter(_.nonEmpty)
     
     assert(jobExecutionSeq(0) === Set(job1, job2))
     assert(jobExecutionSeq(1) === Set(job3))
@@ -184,7 +186,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     assert(result.size === 3)
 
     // Check if jobs were correctly chunked
-    val jobExecutionSeq = mockRunner.chunks.value
+    val jobExecutionSeq = mockRunner.chunks.value.filter(_.nonEmpty)
     
     assert(jobExecutionSeq(0) === Set(job1))
     assert(jobExecutionSeq(1) === Set(job2, job3))
@@ -246,7 +248,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     assert(result.size === 9)
 
     // Check if jobs were correctly chunked
-    val jobExecutionSeq = mockRunner.chunks.value
+    val jobExecutionSeq = mockRunner.chunks.value.filter(_.nonEmpty)
     assert(jobExecutionSeq.length === 4, jobExecutionSeq.foreach(seq => debug(seq.toString)))
     assert(jobExecutionSeq(0) === Set(job11, job12))
     assert(jobExecutionSeq(1) === Set(job21, job22, job23, job24))
@@ -309,7 +311,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
     assert(result.size === 9)
 
     // Check if jobs were correctly chunked
-    val jobExecutionSeq = mockRunner.chunks.value
+    val jobExecutionSeq = mockRunner.chunks.value.filter(_.nonEmpty)
     assert(jobExecutionSeq.length === 7)
     assert(jobExecutionSeq(0) === Set(job12))
     assert(jobExecutionSeq(1) === Set(job11, job24))
@@ -355,7 +357,7 @@ final class RxExecuterTest extends FunSuite with Loggable {
 
     executer.execute(executable)
 
-    val chunks = mockRunner.chunks.value
+    val chunks = mockRunner.chunks.value.filter(_.nonEmpty)
     val expectedMaxSimultaneousJobs = 4
     val expectedNumberOfChunks = 5
     assert(chunks.size === expectedNumberOfChunks)

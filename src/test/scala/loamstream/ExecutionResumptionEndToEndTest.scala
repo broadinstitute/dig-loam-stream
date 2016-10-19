@@ -117,7 +117,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       
       val bogusCommandName = "asdfasdf"
       
-      /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
+      /* Loam for a single invocation of a bogus command:
           val fileIn = store[String].from("src/test/resources/a.txt")
           val fileOut1 = store[String].to("$workDir/fileOut1.txt")
           cmd"asdfasdf $$fileIn $$fileOut1"
@@ -167,21 +167,21 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       
       val bogusCommandName = "asdfasdf"
       
-      /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
+      /* Loam for a run with two bogus jobs:
           val fileIn = store[String].from("src/test/resources/a.txt")
           val fileOut1 = store[String].to("$workDir/fileOut1.txt")
           val fileOut2 = store[String].to("$workDir/fileOut2.txt")
           cmd"asdfasdf $$fileIn $$fileOut1"
           cmd"asdfasdf $$fileOut1 $$fileOut2"
        */
-      val secondScript =
+      val script =
         s"""val fileIn = store[String].from("src/test/resources/a.txt")
             val fileOut1 = store[String].to("$fileOut1")
             val fileOut2 = store[String].to("$fileOut2")
             cmd"$bogusCommandName $$fileIn $$fileOut1"
             cmd"$bogusCommandName $$fileOut1 $$fileOut2""""
 
-      val (secondExecutable, secondResults) = compileAndRun(secondScript)
+      val (secondExecutable, secondResults) = compileAndRun(script)
 
       val firstJob = jobThatWritesTo(secondExecutable)(fileOut1).get
       val secondJob = jobThatWritesTo(secondExecutable)(fileOut2).get

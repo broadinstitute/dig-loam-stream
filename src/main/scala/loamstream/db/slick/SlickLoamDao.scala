@@ -20,7 +20,8 @@ import loamstream.model.jobs.JobState.CommandInvocationFailure
  * @author clint
  * date: Aug 8, 2016
  * 
- * Rough-draft LoamDao implementation backed by Slick 
+ * LoamDao implementation backed by Slick
+ * For a schema description, see Tables 
  */
 final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Loggable {
   val driver = descriptor.dbType.driver

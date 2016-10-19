@@ -17,7 +17,7 @@ import slick.jdbc.meta.MTable
  * Tables:
  * 
  *   EXECUTIONS:
- *   	ID: integer, auto-incremented, primary key
+ *    ID: integer, auto-incremented, primary key
  *    EXIT_STATUS: integer - the exit status returned by the command represented by this EXECUTION
  * 
  *   OUTPUTS:
@@ -25,7 +25,7 @@ import slick.jdbc.meta.MTable
  *     LAST_MODIFIED: nullable, datetime or similar - the last modified time of the file/dir at PATH
  *     HASH: nullable, varchar/text - the hex-coded hash of the file/dir at PATH
  *     HASH_TYPE: nullable, varchar/text - the type of hash performed on PATH; 
- *     	see loamstream.util.HashType.fromAlgorithmName
+ *       see loamstream.util.HashType.fromAlgorithmName
  *     EXECUTION_ID: integer, the id of the EXECUTION a row belongs to
  *     EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *     

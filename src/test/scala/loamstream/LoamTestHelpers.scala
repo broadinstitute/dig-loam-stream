@@ -1,16 +1,22 @@
 package loamstream
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
+
+import scala.concurrent.ExecutionContext
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
-import loamstream.loam.{LoamContext, LoamScript, LoamToolBox}
-import loamstream.model.execute.{RxExecuter, LExecutable}
+import loamstream.loam.LoamContext
+import loamstream.loam.LoamScript
+import loamstream.loam.LoamToolBox
+import loamstream.loam.ast.LoamGraphAstMapper
+import loamstream.loam.ast.LoamGraphAstMapping
+import loamstream.model.execute.Executable
+import loamstream.model.execute.RxExecuter
+import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
-import loamstream.util.{Loggable, Shot}
-
-import scala.concurrent.ExecutionContext
+import loamstream.util.Loggable
 
 /**
   * @author clint
@@ -20,9 +26,9 @@ trait LoamTestHelpers extends Loggable {
 
   def compileFile(file: String)(implicit context: ExecutionContext): LoamCompiler.Result = compile(Paths.get(file))
 
-  def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result =
+  def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result = {
     compile(LoamScript.read(path).get)
-
+  }
 
   def compile(script: LoamScript)(implicit context: ExecutionContext): LoamCompiler.Result = {
 
@@ -36,8 +42,8 @@ trait LoamTestHelpers extends Loggable {
 
     compileResults
   }
-
-  def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, LExecutable) = {
+  
+  def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, Executable) = {
     val context: LoamContext = compileResults.contextOpt.get
     val graph = context.graph
 
@@ -50,5 +56,5 @@ trait LoamTestHelpers extends Loggable {
     (mapping, executable)
   }
 
-  def run(executable: LExecutable): Map[LJob, Shot[LJob.Result]] = RxExecuter.default.execute(executable)
+  def run(executable: Executable): Map[LJob, JobState] = RxExecuter.default.execute(executable)
 }

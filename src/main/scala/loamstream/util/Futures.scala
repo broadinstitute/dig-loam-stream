@@ -3,8 +3,8 @@ package loamstream.util
 import scala.concurrent.blocking
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Duration
 import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -13,6 +13,18 @@ import scala.concurrent.Await
  * Useful utility methods for collections of Futures
  */
 object Futures {
+  /**
+   * Wait forever for a Future to complete, and return the result of the Future.
+   */
+  def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
+  
+  /**
+   * Runs a block of code in a Future, marking the code chunk as blocking.
+   * 
+   * @param a the block of code to run
+   */
+  def runBlocking[A](a: => A)(implicit context: ExecutionContext): Future[A] = Future(blocking(a))
+  
   /**
    * Folds a bunch of keys and future-values into a future map of keys to values
    * 
@@ -34,20 +46,6 @@ object Futures {
       }
     }
   }
-  
-  /**
-   * Runs a block of code in a Future, marking the code chunk as blocking.
-   * 
-   * @param a the block of code to run
-   */
-  def runBlocking[A](a: => A)(implicit context: ExecutionContext): Future[A] = Future(blocking(a))
-  
-  /**
-   * Blocks and waits for a Future to complete, indefinitely. Equivalent to Await.result(f, Duration.Inf) 
-   * 
-   * @param f the Future to wait for
-   */
-  def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
   
   object Implicits {
     final implicit class FutureOps[A](val fut: Future[A]) extends AnyVal {

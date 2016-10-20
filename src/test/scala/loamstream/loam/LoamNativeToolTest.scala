@@ -11,12 +11,12 @@ import loamstream.util.Validation
 import org.scalatest.FunSuite
 
 /** Tests of LoamNativeTool */
-class LoamNativeToolTest extends FunSuite {
+final class LoamNativeToolTest extends FunSuite {
 
-  val folder = JFiles.createTempDirectory("loamNativeToolTest")
-  val storePaths = (0 until 5).map(index => folder / s"file$index.txt")
+  private val folder = JFiles.createTempDirectory("loamNativeToolTest")
+  private val storePaths = (0 until 5).map(index => folder / s"file$index.txt")
 
-  def createContext: LoamContext = {
+  private def createContext: LoamContext = {
     implicit val context = LoamContext.empty
     val store0 = store[TXT].from(storePaths(0))
     val store1 = store[TXT].to(storePaths(1))
@@ -34,13 +34,14 @@ class LoamNativeToolTest extends FunSuite {
     context
   }
 
-  def validateGraph(graph: LoamGraph): Seq[Validation.IssueBase[LoamGraph]] =
+  private def validateGraph(graph: LoamGraph): Seq[Validation.IssueBase[LoamGraph]] = {
     LoamGraphValidation.allRules.apply(graph)
+  }
 
 
-  val fileContentString = "Hello World!"
+  private val fileContentString = "Hello World!"
 
-  def assertFile(path: Path): Unit = {
+  private def assertFile(path: Path): Unit = {
     assert(JFiles.exists(path), s"File does not exist: $path")
     assert(new String(JFiles.readAllBytes(path)) === fileContentString)
   }
@@ -53,9 +54,8 @@ class LoamNativeToolTest extends FunSuite {
     JFiles.write(storePaths(0), fileContentString.getBytes)
     val loamEngine = LoamEngine.default(ClientMessageHandler.OutMessageSink.NoOp)
     val jobResults = loamEngine.run(context)
-    assert(jobResults.size === 5, s"Should have gotten 5 results, but got $jobResults")
-    assert(jobResults.values.forall(_.nonEmpty), s"Did not get results for all jobs: $jobResults")
-    assert(jobResults.values.forall(_.get.isSuccess), s"Not all job results were successful: $jobResults")
+    assert(jobResults.size === 4, s"Should have gotten 4 results, but got $jobResults")
+    assert(jobResults.values.forall(_.isSuccess), s"Not all job results were successful: $jobResults")
     storePaths.foreach(assertFile)
   }
 

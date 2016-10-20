@@ -7,13 +7,15 @@ import scala.concurrent.{ ExecutionContext, Future }
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.model.Tool
 import loamstream.model.jobs.{LJob, LToolBox}
-import loamstream.model.jobs.LJob.{Result, SimpleFailure, SimpleSuccess}
 import loamstream.model.jobs.Output
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.commandline.CommandLineBuilderJob
 import loamstream.tools._
 import loamstream.tools.klusta.{KlustaKwikInputWriter, KlustaKwikKonfig, KlustaKwikLineCommand}
 import loamstream.util._
+import loamstream.model.jobs.JobState
+import scala.util.Try
+import scala.util.control.NonFatal
 
 /**
  * LoamStream
@@ -21,17 +23,13 @@ import loamstream.util._
  */
 object CoreToolBox extends LToolBox {
 
-  final case class FileExists(path: Path) extends LJob.Success {
-    override def successMessage: String = s"'$path' exists"
-  }
-
   trait CheckPreexistingFileJob extends LJob {
     def file: Path
 
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Future {
-      Result.attempt {
-        if (Files.exists(file)) { FileExists(file) }
-        else { SimpleFailure(s"$file does not exist.") }
+    override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = Future {
+      attempt {
+        if (Files.exists(file)) { JobState.Succeeded }
+        else { JobState.Failed }
       }
     }
     
@@ -65,15 +63,15 @@ object CoreToolBox extends LToolBox {
     
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Futures.runBlocking {
-      Result.attempt {
+    override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = Futures.runBlocking {
+      attempt {
         val samples = VcfParser(vcfFile).samples
 
         LoamFileUtils.printToFile(samplesFile.toFile) {
           p => samples.foreach(p.println) // scalastyle:ignore
         }
 
-        SimpleSuccess("Extracted sample ids.")
+        JobState.Succeeded
       }
     }
   }
@@ -88,9 +86,9 @@ object CoreToolBox extends LToolBox {
     override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
     override val outputs: Set[Output] = Set(PathOutput(klustaKwikKonfig.workDir))
-    
-    override protected def executeSelf(implicit context: ExecutionContext): Future[Result] = Futures.runBlocking {
-      Result.attempt {
+
+    override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = Futures.runBlocking {
+      attempt {
         val weights = PcaWeightsReader.read(pcaWeightsFile)
         val pcaProjecter = PcaProjecter(weights)
         val vcfParser = VcfParser(vcfFile)
@@ -100,11 +98,18 @@ object CoreToolBox extends LToolBox {
 
         KlustaKwikInputWriter.writeFeatures(klustaKwikKonfig.inputFile, pcaProjections)
 
-        SimpleSuccess(s"Wrote PCA projections to file ${klustaKwikKonfig.inputFile}")
+        JobState.Succeeded
       }
     }
   }
 
+  private def attempt(f: => JobState): JobState = {
+    try { f }
+    catch {
+      case NonFatal(e) => JobState.FailedWithException(e)
+    }
+  }
+  
   def vcfFileJobShot(path: Path): Shot[CheckPreexistingVcfFileJob] = Hit(CheckPreexistingVcfFileJob(path))
 
   def pcaWeightsFileJobShot(path: Path): Shot[CheckPreexistingPcaWeightsFileJob] = {

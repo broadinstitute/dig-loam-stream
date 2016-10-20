@@ -9,6 +9,7 @@ lazy val Versions = new {
   val LogBack = "1.1.6"
   val Scala = "2.11.8"
   val ScalaTest = "3.0.0"
+  val Scallop = "2.0.2"
   val TypesafeConfig = "1.3.0"
   val Slick = "3.1.1"
   val H2 = "1.4.192"
@@ -29,7 +30,8 @@ lazy val mainDeps = Seq(
   "com.typesafe" % "config" % Versions.TypesafeConfig,
   "io.reactivex" %% "rxscala" % Versions.RxScala,
   "com.typesafe.slick" %% "slick" % Versions.Slick,
-  "com.h2database" % "h2" % Versions.H2
+  "com.h2database" % "h2" % Versions.H2,
+  "org.rogach" %% "scallop" % Versions.Scallop
 )
 
 lazy val testDeps = Seq(

@@ -28,4 +28,8 @@ object PathUtils {
     
     Instant.ofEpochMilli(lastModifiedTimeInMillis)
   }
+  
+  def normalizePath(p: Path): Path = p.toAbsolutePath
+  
+  def normalize(p: Path): String = normalizePath(p).toString
 }

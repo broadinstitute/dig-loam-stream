@@ -5,11 +5,11 @@ import scala.concurrent.ExecutionContext
 import org.scalatest.FunSuite
 
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.TestJobs
 import loamstream.util.Hit
 import loamstream.util.Shot
+import loamstream.model.jobs.JobState
 
 
 /**
@@ -18,17 +18,17 @@ import loamstream.util.Shot
  */
 abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends FunSuite with TestJobs { 
 
-  def makeExecuter: LExecuter
+  def makeExecuter: Executer
   
-  def withExecuter(testName: String)(f: LExecuter => Any): Unit = {
+  def withExecuter(testName: String)(f: Executer => Any): Unit = {
     test(testName) {
       f(makeExecuter)
     }
   }
   
   withExecuter("single jobs should work") { executer =>
-    def doTest(job: LJob, expectedResult: Result): Unit = {
-      val executable = LExecutable(Set(job))
+    def doTest(job: LJob, expectedResult: JobState): Unit = {
+      val executable = Executable(Set(job))
   
       val result = executer.execute(executable)
   
@@ -42,7 +42,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   }
   
   withExecuter("Jobs with one level of dependencies should work") { executer =>
-    val executable = LExecutable(Set(twoPlusTwo))
+    val executable = Executable(Set(twoPlusTwo))
   
     val result = executer.execute(executable)
     
@@ -57,7 +57,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   withExecuter("Jobs with one level of dependencies where one dep fails") { executer =>
     val twoPlusTwoWithFailure = twoPlusTwo.copy(inputs = Set(two0, two1Failed), toReturn = twoPlusTwoFailure)
     
-    val executable = LExecutable(Set(twoPlusTwoWithFailure))
+    val executable = Executable(Set(twoPlusTwoWithFailure))
   
     val result = executer.execute(executable)
     
@@ -71,7 +71,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   
   withExecuter("execute() should work if all sub-jobs succeed") { executer =>
 
-    val executable = LExecutable(Set(plusOne))
+    val executable = Executable(Set(plusOne))
 
     val result = executer.execute(executable)
 
@@ -86,7 +86,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   
   withExecuter("execute() should work if no sub-jobs succeed") { executer =>
 
-    val executable = LExecutable(Set(plusOneFailed))
+    val executable = Executable(Set(plusOneFailed))
 
     val result = executer.execute(executable)
 
@@ -106,7 +106,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
 
     val plusOne = MockJob(plusOneFailure, inputs = Set(twoPlusTwo))
     
-    val executable = LExecutable(Set(plusOne))
+    val executable = Executable(Set(plusOne))
 
     val result = executer.execute(executable)
     
@@ -126,7 +126,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
 
     val plusOne = MockJob(plusOneFailure, inputs = Set(twoPlusTwo))
     
-    val executable = LExecutable(Set(plusOne))
+    val executable = Executable(Set(plusOne))
 
     val result = executer.execute(executable)
 

@@ -1,15 +1,21 @@
 package loamstream
 
+import scala.sys.process.stringToProcess
+import scala.util.Try
+
+import org.scalatest.FunSuite
+
 import loamstream.model.execute.RxExecuter
-import loamstream.model.jobs.{LJob, LToolBox}
+import loamstream.model.jobs.JobState
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.LToolBox
 import loamstream.pipelines.qc.ancestry.AncestryInferencePipeline
 import loamstream.tools.PcaWeightsReader
 import loamstream.tools.core.CoreToolBox
-import loamstream.tools.klusta.{KlustaKwikKonfig, KlustaKwikLineCommand}
-import loamstream.util.{Hit, Shot}
-import org.scalatest.FunSuite
-
-import scala.util.Try
+import loamstream.tools.klusta.KlustaKwikKonfig
+import loamstream.tools.klusta.KlustaKwikLineCommand
+import loamstream.util.Hit
+import loamstream.util.Shot
 
 /**
   * LoamStream
@@ -29,18 +35,18 @@ final class AncestryInferenceEndToEndTest extends FunSuite {
     checkResults(jobResults)
   }
 
-  private def checkResults(results: Map[LJob, Shot[LJob.Result]]): Unit = {
+  private def checkResults(results: Map[LJob, JobState]): Unit = {
     // TODO: Should be able to calculate the number of results expected form number of jobs
     val numResultsExpected = 4 //scalastyle:ignore
 
     assert(results.size === numResultsExpected)
 
-    val numSuccesses = results.count { case (_, resultShot) => isSuccessShot(resultShot) }
+    val numSuccesses = results.values.count(_.isSuccess)
     
     assert(numSuccesses === 4)
   }
 
-  private def isSuccessShot(resultShot: Shot[LJob.Result]): Boolean = resultShot match {
+  private def isSuccessShot(resultShot: Shot[JobState]): Boolean = resultShot match {
     case Hit(r) => r.isSuccess
     case _ => false
   }

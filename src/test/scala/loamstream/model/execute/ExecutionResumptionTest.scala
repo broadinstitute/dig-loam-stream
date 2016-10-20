@@ -1,16 +1,28 @@
 package loamstream.model.execute
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
 
-import loamstream.compiler.LoamCompiler
-import loamstream.db.slick.{ProvidesSlickLoamDao, TestDbDescriptors}
-import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.loam.{LoamScript, LoamToolBox}
-import loamstream.model.jobs.{JobState, LJob, MockJob, Output}
-import loamstream.util.{Hashes, PathEnrichments, Sequence}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+
 import org.scalatest.FunSuite
 
-import scala.concurrent.{ExecutionContext, Future}
+import loamstream.compiler.LoamCompiler
+import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
+import loamstream.db.slick.ProvidesSlickLoamDao
+import loamstream.db.slick.TestDbDescriptors
+import loamstream.loam.LoamToolBox
+import loamstream.loam.ast.LoamGraphAstMapper
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobState
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.Output
+import loamstream.util.Hashes
+import loamstream.util.PathEnrichments
+import loamstream.util.Sequence
+import loamstream.loam.LoamScript
 
 /**
   * @author clint
@@ -19,11 +31,15 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
 
-  override val descriptor = TestDbDescriptors.inMemoryH2
-
   private def runsEverythingExecuter = RxExecuter.default
 
-  private def dbBackedExecuter = RxExecuter.defaultWith(new JobFilter.DbBackedJobFilter(dao))
+  private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
+  
+  private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
+    val e = Execution(JobState.CommandResult(exitStatus), Set(cachedOutput(p, Hashes.sha1(p))))
+    
+    store(e)
+  }
 
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
     import JobState._
@@ -31,9 +47,11 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
     doTest(Seq(Skipped, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{Files => JFiles}
 
+      assert(!f1.toFile.exists)
+      
       JFiles.copy(start, f1)
-
-      dao.storeHash(f1, Hashes.sha1(f1))
+      
+      hashAndStore(f1)
 
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))
@@ -50,8 +68,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       JFiles.copy(start, f1)
       JFiles.copy(start, f2)
 
-      dao.storeHash(f1, Hashes.sha1(f1))
-      dao.storeHash(f2, Hashes.sha1(f2))
+      hashAndStore(f1)
+      hashAndStore(f2)
 
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))
@@ -72,9 +90,9 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       JFiles.copy(start, f2)
       JFiles.copy(start, f3)
 
-      dao.storeHash(f1, Hashes.sha1(f1))
-      dao.storeHash(f2, Hashes.sha1(f2))
-      dao.storeHash(f3, Hashes.sha1(f3))
+      hashAndStore(f1)
+      hashAndStore(f2)
+      hashAndStore(f3)
 
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))
@@ -96,10 +114,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   }
 
   private def mockJob(name: String, outputs: Set[Output], inputs: Set[LJob] = Set.empty)(body: => Any): MockJob = {
-    def success(s: String) = LJob.SimpleSuccess(s)
-
-    new MockJob(success(name), name, inputs, outputs, delay = 0) {
-      override protected def executeSelf(implicit context: ExecutionContext): Future[LJob.Result] = {
+    new MockJob(JobState.Succeeded, name, inputs, outputs, delay = 0) {
+      override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
         body
 
         super.executeSelf
@@ -112,6 +128,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   private def doTest(expectations: Seq[JobState])(setup: (Path, Path, Path, Path) => Any): Unit = {
 
     def doTestWithExecuter(executer: RxExecuter): Unit = {
+      import java.nio.file.{ Files => JFiles }
       import PathEnrichments._
       val workDir = makeWorkDir()
 
@@ -121,8 +138,6 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       val f1 = workDir / "fileOut1.txt"
       val f2 = workDir / "fileOut2.txt"
       val f3 = workDir / "fileOut3.txt"
-
-      import java.nio.file.{Files => JFiles}
 
       val startToF1 = mockJob(s"cp $start $f1", Set(Output.PathOutput(f1))) {
         JFiles.copy(start, f1)
@@ -139,9 +154,9 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
       assert(startToF1.state == JobState.NotStarted)
       assert(f1ToF2.state == JobState.NotStarted)
       assert(f2ToF3.state == JobState.NotStarted)
-
-      val executable = LExecutable(Set(f2ToF3))
-
+  
+      val executable = Executable(Set(f2ToF3))
+  
       def runningEverything: Boolean = executer match {
         case RxExecuter(_, _, jobFilter) => jobFilter == JobFilter.RunEverything
         case _ => false
@@ -176,7 +191,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
 
         assert(jobResults.size == expectedNumResults)
 
-        assert(jobResults.values.forall(_.get.isSuccess))
+        assert(jobResults.values.forall(_.isSuccess))
       }
     }
 
@@ -189,7 +204,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
 
   private lazy val compiler = new LoamCompiler
 
-  private def compile(loamCode: String): LExecutable = {
+  private def compile(loamCode: String): Executable = {
 
     val compileResults = compiler.compile(LoamScript.withGeneratedName(loamCode))
 

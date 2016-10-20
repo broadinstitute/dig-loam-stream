@@ -1,31 +1,28 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ ExecutionContext, Future, blocking }
-import scala.reflect.runtime.universe.Type
-import scala.util.control.NonFatal
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 
-import loamstream.model.jobs.LJob.Result
-import loamstream.util.{DagHelpers, Loggable, TypeBox}
 import loamstream.util.Futures
+import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.Subject
 import rx.lang.scala.subjects.ReplaySubject
-import scala.reflect.runtime.universe.Type
-import rx.lang.scala.subjects.PublishSubject
+
 
 /**
  * LoamStream
  * Created by oliverr on 12/23/2015.
  */
-trait LJob extends Loggable with DagHelpers[LJob] {
+trait LJob extends Loggable {
   def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
     val indentString = s"${"-" * indent} >"
 
     doPrint(s"$indentString ${this}")
 
-    inputs.foreach(_.print(indent + 2))
+    inputs.foreach(_.print(indent + 2, doPrint))
   }
 
   def name: String = ""
@@ -63,15 +60,19 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    * If the this job has no dependencies, this job is emitted immediately.  This will fire at most once.
    */
   private lazy val selfRunnable: Observable[LJob] = {
+    def justUs = Observable.just(this)
+    def noMore = Observable.empty 
+    
     if(inputs.isEmpty) { 
-      Observable.just(this)
+      justUs
     } else {
       for {
-        states <- finalInputStates
+        inputStates <- finalInputStates
+        _ = debug(s"$name.selfRunnable: deps finished with states: $inputStates")
+        anyInputFailures = inputStates.exists(_.isFailure)
+        runnable <- if(anyInputFailures) noMore else justUs 
       } yield {
-        debug(s"$name.selfRunnable: deps finished with states: $states")
-        
-        this
+        runnable
       }
     }
   }
@@ -83,14 +84,19 @@ trait LJob extends Loggable with DagHelpers[LJob] {
    */
   final def state: JobState = stateRef.value
 
-  //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val stateEmitter: Subject[JobState] = ReplaySubject[JobState]()
-
   /**
    * An observable stream of states emitted by this job, each one reflecting a state this job transitioned to.
    */
-  final def states: Observable[JobState] = stateEmitter
+  //NB: Needs to be a ReplaySubject for correct operation
+  private[this] val stateEmitter: Subject[JobState] = ReplaySubject[JobState]()
+  
+  lazy val states: Observable[JobState] = stateEmitter
 
+  final protected def emitJobState(): Unit = stateEmitter.onNext(state)
+
+  def dependencies: Set[LJob] = Set.empty
+
+  
   /**
    * The "terminal" state emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time. 
@@ -115,23 +121,22 @@ trait LJob extends Loggable with DagHelpers[LJob] {
   }
 
   /**
-   * Decorates executeSelf, ensuring that job state change events are emitted.
+   * Decorates executeSelf(), updating and emitting the value of 'state' from
+   * Running to Succeeded/Failed.
    */
-  def execute(implicit context: ExecutionContext): Future[Result] = {
+  def execute(implicit context: ExecutionContext): Future[JobState] = {
     import Futures.Implicits._
-    import JobState._
+
+    updateAndEmitJobState(JobState.NotStarted)
+    updateAndEmitJobState(JobState.Running)
     
-    updateAndEmitJobState(Running)
-    
-    executeSelf.withSideEffect { result =>
-      updateAndEmitJobState(if(result.isSuccess) Succeeded else Failed)
-    }
+    executeSelf.withSideEffect(updateAndEmitJobState)
   }
   
   /**
    * Implementions of this method will do any actual work to be performed by this job
    */
-  protected def executeSelf(implicit context: ExecutionContext): Future[Result]
+  protected def executeSelf(implicit context: ExecutionContext): Future[JobState]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 
@@ -139,90 +144,5 @@ trait LJob extends Loggable with DagHelpers[LJob] {
     if (inputs eq newInputs) { this }
     else { doWithInputs(newInputs) }
   }
-
-  final override def isLeaf: Boolean = inputs.isEmpty
-
-  final override def leaves: Set[LJob] = {
-    if (isLeaf) {
-      Set(this)
-    }
-    else {
-      inputs.flatMap(_.leaves)
-    }
-  }
-
-  final def remove(input: LJob): LJob = {
-    if ((input eq this) || isLeaf) {
-      this
-    }
-    else {
-      val newInputs = (inputs - input).map(_.remove(input))
-
-      withInputs(newInputs)
-    }
-  }
-
-  final override def removeAll(toRemove: Iterable[LJob]): LJob = {
-    toRemove.foldLeft(this)(_.remove(_))
-  }
 }
 
-object LJob {
-
-  sealed trait Result {
-    def isSuccess: Boolean
-
-    def isFailure: Boolean
-
-    def message: String
-  }
-
-  object Result {
-    def attempt(f: => Result): Result = {
-      try {
-        f
-      } catch {
-        case NonFatal(ex) => FailureFromThrowable(ex)
-      }
-    }
-  }
-
-  trait Success extends Result {
-    final def isSuccess: Boolean = true
-
-    final def isFailure: Boolean = false
-
-    def successMessage: String
-
-    def message: String = s"Success! $successMessage"
-  }
-
-  final case class SimpleSuccess(successMessage: String) extends Success
-
-  /**
-   * If a job was skipped for various possible reasons (e.g. its outputs were already present)
-   */
-  final case class SkippedSuccess(successMessage: String) extends Success
-
-  final case class ValueSuccess[T](value: T, typeBox: TypeBox[T]) extends Success {
-    def tpe: Type = typeBox.tpe
-
-    override def successMessage: String = s"Got $value"
-  }
-
-  trait Failure extends Result {
-    final def isSuccess: Boolean = false
-
-    final def isFailure: Boolean = true
-
-    def failureMessage: String
-
-    override def message: String = s"Failure! $failureMessage"
-  }
-
-  final case class SimpleFailure(failureMessage: String) extends Failure
-
-  final case class FailureFromThrowable(cause: Throwable) extends Failure {
-    override def failureMessage: String = cause.getMessage
-  }
-}

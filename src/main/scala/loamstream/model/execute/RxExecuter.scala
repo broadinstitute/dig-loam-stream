@@ -1,20 +1,20 @@
 package loamstream.model.execute
 
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.duration.Duration
 
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob._
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.ObservableEnrichments
 import loamstream.util.Observables
-import loamstream.util.Shot
+import loamstream.util.Traversables
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
-import loamstream.util.Traversables
-import loamstream.model.jobs.JobState
 
 /**
  * @author kaan
@@ -24,10 +24,9 @@ import loamstream.model.jobs.JobState
 final case class RxExecuter(
     runner: ChunkRunner,
     windowLength: Duration,
-    jobFilter: JobFilter)(private implicit val executionContext: ExecutionContext) extends LExecuter with Loggable {
+    jobFilter: JobFilter)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
   
-  override def execute(executable: LExecutable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Shot[Result]] = {
-    import Maps.Implicits._
+  override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobState] = {
     import ObservableEnrichments._
     
     //An Observable stream of jobs; each job is emitted when it becomes runnable.
@@ -42,7 +41,7 @@ final case class RxExecuter(
     //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
     val chunks: Observable[Observable[LJob]] = runnables.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
     
-    val chunkResults: Observable[Map[LJob, Result]] = for {
+    val chunkResults: Observable[Map[LJob, JobState]] = for {
       chunk <- chunks
       jobs <- chunk.to[Set]
       (jobsToRun, skippedJobs) = jobs.partition(jobFilter.shouldRun)
@@ -60,11 +59,7 @@ final case class RxExecuter(
     }
     
     //Collect the results from each chunk, and merge them, producing a future holding the merged results
-    val futureMergedResults = for {
-      mergedResults <- chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
-    } yield {
-      mergedResults.strictMapValues(Shot(_))
-    }
+    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
     
     Await.result(futureMergedResults, timeout)
   }
@@ -73,34 +68,43 @@ final case class RxExecuter(
     skippedJobs.foreach(_.updateAndEmitJobState(JobState.Skipped))
   }
   
-  private def toSkippedResultMap(skippedJobs: Set[LJob]): Map[LJob, Result] = {
+  private def toSkippedResultMap(skippedJobs: Set[LJob]): Map[LJob, JobState] = {
     import Traversables.Implicits._
       
-    skippedJobs.mapTo(job => LJob.SkippedSuccess(job.name))
+    skippedJobs.mapTo(job => JobState.Skipped)
   }
   
-  private def record(results: Map[LJob, Result]): Unit = {
-    if(results.nonEmpty) {
-      val outputs = results.keySet.flatMap(_.outputs)
+  private def record(newResultMap: Map[LJob, JobState]): Unit = {
+    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
         
-      jobFilter.record(outputs)
-    }
+    debug(s"Recording Executions (${executions.size}): $executions")
+    
+    jobFilter.record(executions)
   }
 }
 
 object RxExecuter {
   // scalastyle:off magic.number
+  
   val defaultMaxNumConcurrentJobs = 8
+  
+  //NB: Use a short windowLength to speed up tests
+  val defaultWindowLength = 0.25.seconds
+  
   // scalastyle:on magic.number
+  
+  val defaultJobFilter = JobFilter.RunEverything
+  
+  def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {
+    new RxExecuter(runner, defaultWindowLength, defaultJobFilter)
+  }
   
   def default: RxExecuter = {
     implicit val executionContext = ExecutionContext.global
-    val windowLength = 0.25.seconds
+  
     val chunkRunner = asyncLocalChunkRunner(defaultMaxNumConcurrentJobs)
-    val jobFilter = JobFilter.RunEverything
     
-    //NB: Use a short windowLength to speed up tests
-    new RxExecuter(chunkRunner, windowLength, jobFilter)
+    new RxExecuter(chunkRunner, defaultWindowLength, defaultJobFilter)
   }
   
   def defaultWith(newJobFilter: JobFilter): RxExecuter = {
@@ -113,17 +117,19 @@ object RxExecuter {
 
     import ExecuterHelpers._
 
-    override def maxNumJobs = maxJobs
+    override def maxNumJobs: Int = maxJobs
     
-    override def run(jobs: Set[LJob]): Observable[Map[LJob, Result]] = {
+    override def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
       if(jobs.isEmpty) { Observable.just(Map.empty) }
       else {
-        def exec(job: LJob): Observable[Map[LJob, Result]] = Observable.from(executeSingle(job))
+        def exec(job: LJob): Observable[Map[LJob, JobState]] = Observable.from(executeSingle(job))
   
-        val resultObservables: Seq[Observable[Map[LJob, Result]]] = jobs.toSeq.map(exec)
+        val resultObservables: Seq[Observable[Map[LJob, JobState]]] = jobs.toSeq.map(exec)
         
         Observables.sequence(resultObservables).map(Maps.mergeMaps)
       }
     }
   }
 }
+  
+  

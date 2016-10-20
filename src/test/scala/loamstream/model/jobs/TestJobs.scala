@@ -1,26 +1,23 @@
 package loamstream.model.jobs
 
-import loamstream.model.jobs.LJob.SimpleSuccess
-import loamstream.model.jobs.LJob.SimpleFailure
-
 /**
  * @author clint
  * date: Jun 2, 2016
  */
 trait TestJobs {
-  protected val two0Success = SimpleSuccess("2(0)")
-  protected val two1Success = SimpleSuccess("2(1)")
+  protected val two0Success = JobState.Succeeded
+  protected val two1Success = JobState.Succeeded
 
-  protected val twoPlusTwoSuccess = SimpleSuccess("2 + 2")
+  protected val twoPlusTwoSuccess = JobState.Succeeded
 
-  protected val plusOneSuccess = SimpleSuccess("(2 + 2) + 1")
+  protected val plusOneSuccess = JobState.Succeeded
   
-  protected val two0Failure = SimpleFailure("2(0)")
-  protected val two1Failure = SimpleFailure("2(1)")
+  protected val two0Failure = JobState.Failed
+  protected val two1Failure = JobState.Failed
 
-  protected val twoPlusTwoFailure = SimpleFailure("2 + 2")
+  protected val twoPlusTwoFailure = JobState.Failed
 
-  protected val plusOneFailure = SimpleFailure("(2 + 2) + 1")
+  protected val plusOneFailure = JobState.Failed
 
   protected val two0 = MockJob(two0Success)
   protected val two1 = MockJob(two1Success)

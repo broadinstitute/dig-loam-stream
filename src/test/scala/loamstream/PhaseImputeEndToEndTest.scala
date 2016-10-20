@@ -20,10 +20,7 @@ final class PhaseImputeEndToEndTest extends FunSuite with LoamTestHelpers {
     assert(results.size == 2)
 
     //Basically, see that each pipeline step finished with a non-zero status
-    assert(results.values.forall {
-      case Hit(r) => r.isSuccess
-      case _ => false
-    })
+    assert(results.values.forall(_.isSuccess))
 
     //TODO: More; Ideally, we want to know we're computing the expected results 
   }

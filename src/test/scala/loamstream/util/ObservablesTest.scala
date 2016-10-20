@@ -1,18 +1,19 @@
 package loamstream.util
 
+import scala.concurrent.duration.DurationInt
+
 import org.scalatest.FunSuite
+
 import rx.lang.scala.Observable
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 
 /**
  * @author clint
  * date: Aug 26, 2016
  */
 final class ObservablesTest extends FunSuite {
-  import Observables.sequence
-  import ObservableEnrichments._
   import Futures.waitFor
+  import ObservableEnrichments._
+  import Observables.sequence
   
   // scalastyle:off magic.number
   

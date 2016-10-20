@@ -4,26 +4,24 @@ import java.io.File
 import java.nio.file.Path
 import java.util.UUID
 
-import scala.annotation.implicitNotFound
-import scala.annotation.migration
 import scala.concurrent.ExecutionContext
 
 import loamstream.conf.UgerConfig
 import loamstream.model.execute.ChunkRunner
+import loamstream.model.jobs.JobState
 import loamstream.model.jobs.JobState.Failed
 import loamstream.model.jobs.JobState.Running
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.LJob.SimpleFailure
 import loamstream.model.jobs.NoOpJob
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.uger.JobStatus.toJobState
 import loamstream.util.Files
 import loamstream.util.Loggable
-import loamstream.util.ObservableEnrichments
 import loamstream.util.Observables
 import loamstream.util.TimeEnrichments.time
+import loamstream.util.Traversables
 import rx.lang.scala.Observable
+
 
 /**
  * @author clint
@@ -42,14 +40,17 @@ final case class UgerChunkRunner(
 
   override def maxNumJobs = ugerConfig.ugerMaxNumJobs
 
-  override def run(leaves: Set[LJob]): Observable[Map[LJob, Result]] = {
+  override def run(leaves: Set[LJob]): Observable[Map[LJob, JobState]] = {
 
+    debug(s"Running: ")
+    leaves.foreach(job => debug(s"  $job"))
+    
     require(
       leaves.forall(isAcceptableJob),
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
     // Filter out NoOpJob's
-    val leafCommandLineJobs = leaves.filterNot(isNoOpJob).toSeq.collect { case clj: CommandLineJob => clj }
+    val leafCommandLineJobs = leaves.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
     if (leafCommandLineJobs.nonEmpty) {
       val ugerWorkDir = ugerConfig.ugerWorkDir.toFile
@@ -85,26 +86,25 @@ final case class UgerChunkRunner(
   }
 
   private[uger] def toResultMap(drmaaClient: DrmaaClient, jobsById: Map[String, LJob])
-                               (implicit context: ExecutionContext): Observable[Map[LJob, Result]] = {
+                               (implicit context: ExecutionContext): Observable[Map[LJob, JobState]] = {
 
     val poller = Poller.drmaa(drmaaClient)(context)
 
     def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
       Jobs.monitor(poller, pollingFrequencyInHz)(jobIds)
     }
-
     
     val jobsAndStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    val jobsToFutureResults: Iterable[(LJob, Observable[Result])] = for {
+    val jobsToFutureStates: Iterable[(LJob, Observable[JobState])] = for {
       (jobId, (job, jobStatuses)) <- jobsAndStatusesById
       _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
-      futureResult = jobStatuses.last.map(resultFrom(job))
+      futureState = jobStatuses.last.map(JobStatus.toJobState)
     } yield {
-      job -> futureResult
+      job -> futureState
     }
 
-    Observables.toMap(jobsToFutureResults)
+    Observables.toMap(jobsToFutureStates)
   }
 }
 
@@ -121,24 +121,17 @@ object UgerChunkRunner extends Loggable {
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
-  private[uger] def resultFrom(job: LJob)(status: JobStatus): LJob.Result = {
-    //TODO: Anything better; this was purely expedient
-    if (status.isDone) {
-      LJob.SimpleSuccess(s"$job")
-    } else {
-      LJob.SimpleFailure(s"$job")
-    }
-  }
-
-  private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Observable[Map[LJob, Result]] = {
-    val msg = cause match {
-      case Some(e) => s"Couldn't submit jobs to UGER: ${e.getMessage}"
-      case None => "Couldn't submit jobs to UGER"
+  private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Observable[Map[LJob, JobState]] = {
+    val failure = cause match {
+      case Some(e) => JobState.FailedWithException(e)
+      case None => JobState.Failed
     }
 
-    cause.foreach(e => error(msg, e))
+    cause.foreach(e => error(s"Couldn't submit jobs to UGER: ${e.getMessage}", e))
 
-    Observable.just(jobs.map(j => j -> SimpleFailure(msg)).toMap)
+    import Traversables.Implicits._
+    
+    Observable.just(jobs.mapTo(_ => failure))
   }
 
   private[uger] def createScriptFile(contents: String, file: Path): Path = {

@@ -1,21 +1,24 @@
 package loamstream.apps
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.Config
+
+import loamstream.cli.Conf
+import loamstream.compiler.LoamCompiler
+import loamstream.compiler.LoamEngine
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.conf.UgerConfig
+import loamstream.model.execute.JobFilter
 import loamstream.model.execute.RxExecuter
 import loamstream.uger.UgerChunkRunner
 import loamstream.util.Loggable
-import loamstream.model.execute.JobFilter
 
 /** Compiles and runs Loam script provided as argument */
-object UgerRunApp extends App with DrmaaClientHelpers with Loggable {
-  if (args.length < 1) {
-    throw new IllegalArgumentException("No Loam script file name provided")
-  }
+object UgerRunApp extends App with DrmaaClientHelpers with TypesafeConfigHelpers with Loggable {
+  val cli = Conf(args)
+  val conf = cli.conf()
+  val loams = cli.loam()
 
-  val ugerConfig = UgerConfig.fromConfig(ConfigFactory.load("loamstream.conf")).get
+  val ugerConfig = UgerConfig.fromConfig(typesafeConfig(conf)).get
 
   info("Creating reactive executer...")
 
@@ -41,7 +44,7 @@ object UgerRunApp extends App with DrmaaClientHelpers with Loggable {
 
     val loamEngine =
       LoamEngine(new LoamCompiler(LoamCompiler.Settings.default, outMessageSink), executer, outMessageSink)
-    val engineResult = loamEngine.runFilesWithNames(args)
+    val engineResult = loamEngine.runFiles(loams)
 
     for {
       (job, result) <- engineResult.jobResultsOpt.get

@@ -17,6 +17,10 @@ object Traversables {
 
         tuples.toMap
       }
+      
+      def mapBy[K](f: A => K): Map[K, A] = {
+        as.map(a => f(a) -> a).toMap
+      }
     }
   }
 }

@@ -12,8 +12,10 @@ import org.ggf.drmaa.DrmaaException
  * Helper methods for managing the lifecycle of DRMAA Clients
  */
 trait DrmaaClientHelpers extends Loggable {
-  protected def withClient(f: DrmaaClient => Unit): Unit = {
-    val drmaaClient = DrmaaClient.drmaa1(new Drmaa1Client)
+  private[apps] def makeDrmaaClient: DrmaaClient = DrmaaClient.drmaa1(new Drmaa1Client)
+  
+  private[apps] def withClient(f: DrmaaClient => Unit): Unit = {
+    val drmaaClient = makeDrmaaClient
     
     try { f(drmaaClient) }
     catch {

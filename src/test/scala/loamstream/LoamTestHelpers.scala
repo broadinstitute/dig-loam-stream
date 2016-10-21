@@ -4,11 +4,11 @@ import java.nio.file.{Path, Paths}
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
 import loamstream.loam.{LoamProjectContext, LoamScript, LoamToolBox}
-import loamstream.model.execute.{ChunkedExecuter, LExecutable}
-import loamstream.model.jobs.LJob
-import loamstream.util.{Loggable, Shot}
+import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
+import loamstream.model.execute.{Executable, RxExecuter}
+import loamstream.model.jobs.{JobState, LJob}
+import loamstream.util.Loggable
 
 import scala.concurrent.ExecutionContext
 
@@ -20,9 +20,9 @@ trait LoamTestHelpers extends Loggable {
 
   def compileFile(file: String)(implicit context: ExecutionContext): LoamCompiler.Result = compile(Paths.get(file))
 
-  def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result =
+  def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result = {
     compile(LoamScript.read(path).get)
-
+  }
 
   def compile(script: LoamScript)(implicit context: ExecutionContext): LoamCompiler.Result = {
 
@@ -37,7 +37,7 @@ trait LoamTestHelpers extends Loggable {
     compileResults
   }
 
-  def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, LExecutable) = {
+  def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, Executable) = {
     val context: LoamProjectContext = compileResults.contextOpt.get
     val graph = context.graph
 
@@ -50,5 +50,5 @@ trait LoamTestHelpers extends Loggable {
     (mapping, executable)
   }
 
-  def run(executable: LExecutable): Map[LJob, Shot[LJob.Result]] = ChunkedExecuter.default.execute(executable)
+  def run(executable: Executable): Map[LJob, JobState] = RxExecuter.default.execute(executable)
 }

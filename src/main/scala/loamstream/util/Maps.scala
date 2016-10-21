@@ -16,6 +16,8 @@ object Maps {
       def strictMapValues[C](f: B => C): Map[A, C] = m.map { case (a, b) => (a, f(b)) }
       
       def mapKeys[A1](f: A => A1): Map[A1, B] = m.map { case (a, b) => (f(a), b) }
+      
+      def filterValues(p: B => Boolean): Map[A, B] = m.filter { case (_, b) => p(b) }
     }
   }
 }

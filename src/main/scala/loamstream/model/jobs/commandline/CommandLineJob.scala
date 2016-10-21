@@ -2,10 +2,8 @@ package loamstream.model.jobs.commandline
 
 import java.nio.file.Path
 
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
-import loamstream.model.jobs.commandline.CommandLineJob.{CommandException, CommandResult, CommandReturnValueIssue}
-import loamstream.model.jobs.commandline.CommandLineJob.CommandSuccess
+import loamstream.model.jobs.{JobState, LJob}
+import loamstream.util.Futures
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
@@ -31,26 +29,24 @@ trait CommandLineJob extends LJob {
 
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
-  type CommandLineResult = Result with CommandResult
-
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Result with CommandResult] = {
-    runBlocking {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
+    Futures.runBlocking {
       trace(s"RUNNING: $commandLineString")
       val exitValue = processBuilder.run(logger).exitValue
 
       if (exitValueIsOk(exitValue)) {
         trace(s"SUCCEEDED: $commandLineString")
-        CommandSuccess(commandLineString, exitValue)
       } else {
         trace(s"FAILED: $commandLineString")
-        CommandReturnValueIssue(commandLineString, exitValue)
       }
+
+      JobState.CommandResult(exitValue)
     }.recover {
-      case exception: Exception => CommandException(commandLineString, exception)
+      case exception: Exception => JobState.CommandInvocationFailure(exception)
     }
   }
 
-  override def toString: String = commandLineString
+  override def toString: String = s"'$commandLineString'"
 }
 
 object CommandLineJob {
@@ -59,26 +55,6 @@ object CommandLineJob {
   val acceptAll: Int => Boolean = i => true
 
   val defaultExitValueChecker = mustBeZero
-
-  sealed trait CommandResult
-
-  final case class CommandSuccess(commandLine: String, returnValue: Int) extends LJob.Success with CommandResult {
-    override def successMessage: String = s"Successfully completed job '$commandLine'."
-  }
-
-  final case class CommandException(commandLine: String, exception: Exception)
-    extends LJob.Failure with CommandResult {
-    override def failureMessage: String = {
-      s"Failed with exception '${exception.getMessage}' when trying command line '$commandLine'"
-    }
-  }
-
-  final case class CommandReturnValueIssue(commandLine: String, returnValue: Int)
-    extends LJob.Failure with CommandResult {
-    override def failureMessage: String = {
-      s"Undesired return value '$returnValue' when trying command line + '$commandLine'"
-    }
-  }
 
   val noOpProcessLogger = ProcessLogger(line => ())
 

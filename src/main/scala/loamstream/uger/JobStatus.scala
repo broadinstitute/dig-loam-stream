@@ -40,6 +40,8 @@ object JobStatus {
   case object Suspended extends JobStatus
   case object Undetermined extends JobStatus
   
+  final case class CommandResult(exitStatus: Int) extends JobStatus
+  
   import Session._
   
   def fromUgerStatusCode(status: Int): JobStatus = status match {
@@ -54,6 +56,7 @@ object JobStatus {
 
   def toJobState(status: JobStatus): JobState = status match {
     case Done                                                       => JobState.Succeeded
+    case CommandResult(exitStatus)                                  => JobState.CommandResult(exitStatus)
     case DoneUndetermined                                           => JobState.Failed
     case Failed                                                     => JobState.Failed
     case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobState.Running

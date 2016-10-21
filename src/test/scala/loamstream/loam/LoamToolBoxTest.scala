@@ -5,9 +5,8 @@ import java.nio.file.{Paths, Files => JFiles}
 import loamstream.compiler.LoamCompiler
 import loamstream.loam.LoamToolBoxTest.Results
 import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
-import loamstream.model.execute.ChunkedExecuter
+import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.commandline.CommandLineJob.CommandSuccess
 import loamstream.util.{Files, Hit, Shot}
 import org.scalatest.FunSuite
 
@@ -15,6 +14,7 @@ import org.scalatest.FunSuite
 import java.nio.file.Path
 
 import scala.util.Try
+import loamstream.model.jobs.JobState
 
 /**
   * LoamStream
@@ -40,8 +40,8 @@ final class LoamToolBoxTest extends FunSuite {
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
 
-    val jobResults = ChunkedExecuter.default.execute(executable)
-
+    val jobResults = RxExecuter.default.execute(executable)
+    
     Results(graph, mapping, jobResults)
   }
 
@@ -142,12 +142,10 @@ final class LoamToolBoxTest extends FunSuite {
 
 object LoamToolBoxTest {
 
-  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobResults: Map[LJob, Shot[LJob.Result]]) {
-
-    def allJobResultsAreSuccess: Boolean = jobResults.values.forall {
-      case Hit(CommandSuccess(_, _)) => true
-      case _ => false
-    }
+  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobResults: Map[LJob, JobState]) {
+    
+    def allJobResultsAreSuccess: Boolean = jobResults.values.forall(_.isSuccess)
+    
   }
 
   object Sources {

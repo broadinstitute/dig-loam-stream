@@ -5,8 +5,8 @@ import java.nio.file.{Path, Paths, Files => JFiles}
 import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}
 import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.loam.{LoamProjectContext, LoamScript, LoamToolBox}
-import loamstream.model.execute.{ChunkedExecuter, LExecuter}
-import loamstream.model.jobs.LJob
+import loamstream.model.execute.{Executable, Executer, RxExecuter}
+import loamstream.model.jobs.{JobState, LJob}
 import loamstream.util.{Hit, Miss, Shot, StringUtils}
 
 
@@ -18,15 +18,15 @@ object LoamEngine {
   def default(outMessageSink: ClientMessageHandler.OutMessageSink
               = ClientMessageHandler.OutMessageSink.NoOp): LoamEngine =
     LoamEngine(new LoamCompiler(LoamCompiler.Settings.default, outMessageSink),
-      ChunkedExecuter.default, outMessageSink)
+      RxExecuter.default, outMessageSink)
 
   final case class Result(projectOpt: Shot[LoamProject],
                           compileResultOpt: Shot[LoamCompiler.Result],
-                          jobResultsOpt: Shot[Map[LJob, Shot[LJob.Result]]])
+                          jobResultsOpt: Shot[Map[LJob, JobState]])
 
 }
 
-final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
+final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
                             outMessageSink: ClientMessageHandler.OutMessageSink) {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
@@ -42,10 +42,13 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
   }
 
   def loadFile(file: Path): Shot[LoamScript] = {
-    val fileShot = if (JFiles.exists(file)) {
-      Hit(file)
-    } else {
-      Miss(s"Could not find '$file'.")
+    val fileShot = {
+      if (JFiles.exists(file)) {
+        Hit(file)
+      }
+      else {
+        Miss(s"Could not find '$file'.")
+      }
     }
 
     import JFiles.readAllBytes
@@ -85,10 +88,15 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
 
   def compile(script: LoamScript): LoamCompiler.Result = compiler.compile(script)
 
+  def compileToExecutable(code: String): Option[Executable] = {
+    val compilationResult = compile(LoamScript.withGeneratedName(code))
+
+    compilationResult.contextOpt.map(toExecutable)
+  }
+
   def runFilesWithNames(fileNames: Iterable[String]): LoamEngine.Result = {
-    val pathsShot = Shot.sequence(fileNames.map(name => Shot {
-      Paths.get(name)
-    }))
+    val pathsShot = Shot.sequence(fileNames.map(name => Shot(Paths.get(name))))
+
     pathsShot match {
       case Hit(paths) => runFiles(paths)
       case miss: Miss =>
@@ -125,14 +133,23 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
     }
   }
 
-  def run(context: LoamProjectContext): Map[LJob, Shot[LJob.Result]] = {
+  private def toExecutable(context: LoamProjectContext): Executable = {
     val mapping = LoamGraphAstMapper.newMapping(context.graph)
     val toolBox = new LoamToolBox(context)
+
     //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
-    val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJob
+    mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded
+  }
+
+  def run(context: LoamProjectContext): Map[LJob, JobState] = {
+    val executable = toExecutable(context)
+
     outMessageSink.send(StatusOutMessage("Now going to execute."))
+
     val jobResults = executer.execute(executable)
+
     outMessageSink.send(StatusOutMessage(s"Done executing ${StringUtils.soMany(jobResults.size, "job")}."))
+
     jobResults
   }
 
@@ -155,5 +172,4 @@ final case class LoamEngine(compiler: LoamCompiler, executer: LExecuter,
       LoamEngine.Result(Hit(project), Hit(compileResults), Hit(jobResults))
     }
   }
-
 }

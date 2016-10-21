@@ -4,15 +4,37 @@ import org.scalatest.FunSuite
 import scala.concurrent.Await
 import loamstream.model.jobs.TestJobs
 import scala.concurrent.duration.Duration
-import loamstream.model.jobs.LJob.SimpleFailure
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
+import loamstream.model.jobs.JobState
+import loamstream.model.jobs.RxMockJob
 
 /**
  * @author clint
  * date: Jun 7, 2016
  */
 final class ExecuterHelpersTest extends FunSuite with TestJobs {
+  
+  test("flattenTree") {
+    import ExecuterHelpers.flattenTree
+    
+    val noDeps0 = RxMockJob("noDeps")
+    
+    assert(flattenTree(Set(noDeps0)) == Set(noDeps0))
+    
+    val middle0 = RxMockJob("middle", Set(noDeps0))
+    
+    assert(flattenTree(Set(middle0)) == Set(middle0, noDeps0))
+    
+    val root0 = RxMockJob("root", Set(middle0))
+    
+    assert(flattenTree(Set(root0)) == Set(root0, middle0, noDeps0))
+    
+    val noDeps1 = RxMockJob("noDeps1")
+    val middle1 = RxMockJob("middle1", Set(noDeps1))
+    val root1 = RxMockJob("root1", Set(middle1))
+    
+    assert(flattenTree(Set(root0, root1)) == Set(root0, middle0, noDeps0, root1, middle1, noDeps1))
+  }
   
   test("execSingle()") {
     import ExecuterHelpers.executeSingle
@@ -41,18 +63,18 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(noFailures(allSuccesses) === true)
     
     val allFailures = Map(
-      two0 -> SimpleFailure("foo"),
-      two1 -> SimpleFailure("bar"),
-      twoPlusTwo -> SimpleFailure("baz"),
-      plusOne -> SimpleFailure("blerg"))
+      two0 -> JobState.Failed,
+      two1 -> JobState.Failed,
+      twoPlusTwo -> JobState.Failed,
+      plusOne -> JobState.Failed)
       
     assert(noFailures(allFailures) === false)
     
     val someFailures = Map(
       two0 -> two0Success,
-      two1 -> SimpleFailure("bar"),
+      two1 -> JobState.Failed,
       twoPlusTwo -> twoPlusTwoSuccess,
-      plusOne -> SimpleFailure("blerg"))
+      plusOne -> JobState.Failed)
       
     assert(noFailures(someFailures) === false)
   }
@@ -62,11 +84,11 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     
     assert(consumeUntilFirstFailure(Iterator.empty) == Vector.empty)
     
-    val oneSuccess: Map[LJob, Result] = Map(two0 -> two0Success)
-    val anotherSuccess: Map[LJob, Result] = Map(two1 -> two1Success)
+    val oneSuccess: Map[LJob, JobState] = Map(two0 -> JobState.Succeeded)
+    val anotherSuccess: Map[LJob, JobState] = Map(two1 -> JobState.Succeeded)
     
-    val oneFailure: Map[LJob, Result] = Map(two0Failed -> two0Failure)
-    val anotherFailure: Map[LJob, Result] = Map(two1Failed -> two1Failure)
+    val oneFailure: Map[LJob, JobState] = Map(two0Failed -> JobState.Failed)
+    val anotherFailure: Map[LJob, JobState] = Map(two1Failed -> JobState.Failed)
     
     assert(consumeUntilFirstFailure(Iterator(oneSuccess)) == Vector(oneSuccess))
     

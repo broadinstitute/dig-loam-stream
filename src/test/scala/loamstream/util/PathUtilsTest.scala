@@ -1,7 +1,7 @@
 package loamstream.util
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.{FileSystems, Paths}
 import java.util.regex.Matcher
 
 import org.scalatest.FunSuite
@@ -83,5 +83,26 @@ final class PathUtilsTest extends FunSuite {
     val absolute = newAbsolute("a", "b", "c")
     assert(absolute.isAbsolute)
     assert(absolute.toString.split(Matcher.quoteReplacement(File.separator)).drop(1) === Array("a", "b", "c"))
+  }
+
+  test("normalize") {
+    val absolute = Paths.get("/x/y/z")
+
+    val rootPath = FileSystems.getDefault.getRootDirectories.iterator.next
+
+    val absoluteExpected = s"${rootPath}x${File.separator}y${File.separator}z"
+
+    import PathUtils.normalize
+
+    assert(normalize(absolute) == absoluteExpected)
+
+    val relative = Paths.get("x/y/z")
+
+    //NB: Hopefully this is cross-platform
+    val cwd = Paths.get(".").toAbsolutePath.normalize
+
+    val expected = cwd.resolve(relative).toString
+
+    assert(normalize(relative) == expected)
   }
 }

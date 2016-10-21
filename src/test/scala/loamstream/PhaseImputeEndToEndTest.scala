@@ -1,18 +1,8 @@
 package loamstream
 
-import loamstream.model.HasAst
-import loamstream.tools.core.CoreTool
-import java.nio.file.Path
-import java.io.File
-import loamstream.model.{AST, Tool}
 import org.scalatest.FunSuite
-import loamstream.conf.ImputationConfig
-import loamstream.model.jobs.LToolBox
-import loamstream.tools.core.CoreToolBox
-import java.nio.file.Paths
-import loamstream.model.execute.ChunkedExecuter
+
 import loamstream.util.Hit
-import loamstream.model.execute.LExecuter
 
 /**
  * @author clint
@@ -30,10 +20,7 @@ final class PhaseImputeEndToEndTest extends FunSuite with LoamTestHelpers {
     assert(results.size == 2)
 
     //Basically, see that each pipeline step finished with a non-zero status
-    assert(results.values.forall {
-      case Hit(r) => r.isSuccess
-      case _ => false
-    })
+    assert(results.values.forall(_.isSuccess))
 
     //TODO: More; Ideally, we want to know we're computing the expected results 
   }

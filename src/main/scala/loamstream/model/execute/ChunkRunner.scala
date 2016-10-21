@@ -1,10 +1,10 @@
 package loamstream.model.execute
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
+import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LJob.Result
-import scala.concurrent.ExecutionContext
 
 /**
  * @author clint
@@ -13,5 +13,5 @@ import scala.concurrent.ExecutionContext
 trait ChunkRunner {
   def maxNumJobs: Int
   
-  def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, Result]]
+  def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]]
 }

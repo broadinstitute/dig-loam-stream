@@ -1,8 +1,5 @@
 package loamstream.db.slick
 
-import java.nio.file.Paths
-
-import loamstream.util.PathUtils
 import org.scalatest.FunSuite
 
 /**
@@ -10,20 +7,13 @@ import org.scalatest.FunSuite
   *         date: Aug 10, 2016
   */
 final class HelpersTest extends FunSuite {
-  test("normalize") {
-    val absolute = Paths.get("/x/y/z")
+  //scalastyle:off magic.number
+  test("timestampFromLong") {
+    val millis = 123456
 
-    val absoluteExpected = PathUtils.newAbsolute("x", "y", "z").toString
+    val timestamp = Helpers.timestampFromLong(millis)
 
-    assert(Helpers.normalize(absolute) == absoluteExpected)
-
-    val relative = Paths.get("x/y/z")
-
-    //NB: Hopefully this is cross-platform
-    val cwd = Paths.get(".").toAbsolutePath.normalize
-
-    val expected = cwd.resolve(relative).toString
-
-    assert(Helpers.normalize(relative) == expected)
+    assert(timestamp.toInstant.toEpochMilli === millis)
   }
+  //scalastyle:on magic.number
 }

@@ -2,7 +2,7 @@ package loamstream.model.jobs
 
 import loamstream.model.{AST, Tool}
 
-import loamstream.model.execute.LExecutable
+import loamstream.model.execute.Executable
 import loamstream.util.Shot
 
 /**
@@ -12,7 +12,7 @@ import loamstream.util.Shot
 trait LToolBox {
   def toolToJobShot(tool: Tool): Shot[LJob]
 
-  def createExecutable(ast: AST): LExecutable = {
+  def createExecutable(ast: AST): Executable = {
     val noJobs: Set[LJob] = Set.empty
 
     val jobs: Set[LJob] = ast match {
@@ -30,7 +30,7 @@ trait LToolBox {
       case _ => noJobs //TODO: other AST nodes
     }
 
-    LExecutable(jobs)
+    Executable(jobs)
   }
 
   def ++(oBox: LToolBox): LComboToolBox = oBox match {

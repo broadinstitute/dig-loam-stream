@@ -57,6 +57,8 @@ class LoamWorkDirTest extends FunSuite {
 
   test("Run example with changing work directory") {
     val tempDir1 = JFiles.createTempDirectory("LoamWorkDirTest")
+    val tempDir1Subdir = tempDir1.resolve("subdir")
+    JFiles.createDirectory(tempDir1Subdir)
     val tempDir2 = JFiles.createTempDirectory("LoamWorkDirTest")
     val fileName1 = "file1.txt"
     val file1 = tempDir1.resolve(fileName1)

@@ -1,5 +1,7 @@
 package loamstream.util.code
 
+import java.util.regex.Matcher
+
 import scala.reflect.runtime.universe.{Type, TypeTag, typeOf}
 
 /** Methods for source code creation */
@@ -17,6 +19,6 @@ object SourceUtils {
   def shortTypeName[T: TypeTag]: String = shortTypeName(typeOf[T])
 
   /** Turns an object into a String literal */
-  def escapeBackslashes(obj: Any): String = obj.toString.replace("\\", "\\\\")
+  def toStringLiteral(obj: Any): String = "\"" + Matcher.quoteReplacement(obj.toString) + "\""
 
 }

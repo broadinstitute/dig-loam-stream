@@ -57,16 +57,17 @@ class LoamWorkDirTest extends FunSuite {
 
   private def createScript(fileName1: Path, workDir1: Path, workDir2: Path): LoamScript = {
     val props = Map("fileName1" -> fileName1, "workDir1" -> workDir1, "workDir2" -> workDir2).
-      mapValues(path => SourceUtils.escapeBackslashes(path)).view.force
+      mapValues(path => SourceUtils.toStringLiteral(path)).view.force
     val codeTemplate =
       """
-        |changeDir("{{workDir1}}")
-        |val file1 = store[TXT].from("{{fileName1}}")
+        |changeDir({{workDir1}})
+        |val file1 = store[TXT].from({{fileName1}})
         |val file2 = store[TXT].from("file2.txt")
         |cmd"cp $file1 $file2"
       """.stripMargin
     val scriptName = "LoamWorkDirTestScript"
     val code = Templater.moustache.withProps(props).apply(codeTemplate)
+    println(code)
     LoamScript(scriptName, code)
   }
 

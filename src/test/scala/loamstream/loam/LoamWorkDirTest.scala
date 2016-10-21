@@ -4,7 +4,7 @@ import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.{LoamEngine, LoamPredef}
 import loamstream.util.code.SourceUtils
-import loamstream.util.{Files, PathUtils}
+import loamstream.util.{Files, PathUtils, Templater}
 import org.scalatest.FunSuite
 
 /**
@@ -55,23 +55,31 @@ class LoamWorkDirTest extends FunSuite {
     }
   }
 
-  test("Run example with changing work directory") {
-    val tempDir1 = JFiles.createTempDirectory("LoamWorkDirTest")
-    val tempDir1Subdir = tempDir1.resolve("subdir")
-    JFiles.createDirectory(tempDir1Subdir)
-    val tempDir2 = JFiles.createTempDirectory("LoamWorkDirTest")
-    val fileName1 = "file1.txt"
-    val file1 = tempDir1.resolve(fileName1)
-    Files.writeTo(file1)("Yo!")
-    val code =
-      s"""
-        |changeDir(${SourceUtils.escapeString(tempDir1.toString)})
-        |val file1 = store[TXT].from("$fileName1")
+  private def createScript(fileName1: Path, workDir1: Path, workDir2: Path): LoamScript = {
+    val props = Map("fileName1" -> fileName1, "workDir1" -> workDir1, "workDir2" -> workDir2).
+      mapValues(path => SourceUtils.escapeBackslashes(path)).view.force
+    val codeTemplate =
+      """
+        |changeDir("{{workDir1}}")
+        |val file1 = store[TXT].from("{{fileName1}}")
         |val file2 = store[TXT].from("file2.txt")
-        |cmd"cp $$file1 $$file2"
+        |cmd"cp $file1 $file2"
       """.stripMargin
+    val scriptName = "LoamWorkDirTestScript"
+    val code = Templater.moustache.withProps(props).apply(codeTemplate)
+    LoamScript(scriptName, code)
+  }
+
+  test("Run example with changing work directory") {
+    val workDir1 = JFiles.createTempDirectory("LoamWorkDirTest")
+    val tempDir1Subdir = workDir1.resolve("subdir")
+    JFiles.createDirectory(tempDir1Subdir)
+    val workDir2 = JFiles.createTempDirectory("LoamWorkDirTest")
+    val fileName1 = Paths.get("file1.txt")
+    val file1 = workDir1.resolve(fileName1)
+    Files.writeTo(file1)("Yo!")
     val engine = LoamEngine.default()
-    val script = LoamScript("LoamWorkDirTestScript", code)
+    val script = createScript(fileName1, workDir1, workDir2)
     val results = engine.run(script)
     assert(results.jobResultsOpt.nonEmpty, results.compileResultOpt)
   }

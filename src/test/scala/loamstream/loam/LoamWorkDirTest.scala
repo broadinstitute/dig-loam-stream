@@ -55,14 +55,13 @@ class LoamWorkDirTest extends FunSuite {
     }
   }
 
-  private def createScript(fileName1: Path, workDir1: Path, workDir2: Path): LoamScript = {
-    val props = Map("fileName1" -> fileName1, "workDir1" -> workDir1, "workDir2" -> workDir2).
-      mapValues(path => SourceUtils.toStringLiteral(path)).view.force
+  private def createScript(paths: Map[String, Path]): LoamScript = {
+    val props = paths.mapValues(path => SourceUtils.toStringLiteral(path)).view.force
     val codeTemplate =
       """
         |changeDir({{workDir1}})
         |val file1 = store[TXT].from({{fileName1}})
-        |val file2 = store[TXT].from("file2.txt")
+        |val file2 = store[TXT].from({{fileName2}})
         |cmd"cp $file1 $file2"
       """.stripMargin
     val scriptName = "LoamWorkDirTestScript"
@@ -72,17 +71,21 @@ class LoamWorkDirTest extends FunSuite {
   }
 
   test("Run example with changing work directory") {
-    val workDir1 = JFiles.createTempDirectory("LoamWorkDirTest")
-    val tempDir1Subdir = workDir1.resolve("subdir")
-    JFiles.createDirectory(tempDir1Subdir)
-    val workDir2 = JFiles.createTempDirectory("LoamWorkDirTest")
-    val fileName1 = Paths.get("file1.txt")
-    val file1 = workDir1.resolve(fileName1)
-    Files.writeTo(file1)("Yo!")
+    var paths : Map[String, Path] = Map.empty
+    paths += "workDir1" -> JFiles.createTempDirectory("LoamWorkDirTest")
+    paths += "workDir2" -> JFiles.createTempDirectory("LoamWorkDirTest")
+    paths += "workDir1SubDir" -> paths("workDir1").resolve("subdir")
+    paths += "fileName1" -> Paths.get("file1.txt")
+    paths += "filePath1" -> paths("workDir1").resolve(paths("fileName1"))
+    paths += "fileName2" -> Paths.get("file2.txt")
+    paths += "filePath2" -> paths("workDir1").resolve(paths("fileName2"))
+    JFiles.createDirectory(paths("workDir1SubDir"))
+    Files.writeTo(paths("filePath1"))("Yo!")
     val engine = LoamEngine.default()
-    val script = createScript(fileName1, workDir1, workDir2)
+    val script = createScript(paths)
     val results = engine.run(script)
     assert(results.jobResultsOpt.nonEmpty, results.compileResultOpt)
+    assert(JFiles.exists(paths("filePath2")))
   }
 }
 

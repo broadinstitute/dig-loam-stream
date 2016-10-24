@@ -3,8 +3,8 @@ package loamstream.loam
 import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.{LoamEngine, LoamPredef}
-import loamstream.util.code.SourceUtils
-import loamstream.util.{Files, PathUtils, Templater}
+import loamstream.util.code.SourceUtils.AnyToStringLiteral
+import loamstream.util.{Files, PathUtils}
 import org.scalatest.FunSuite
 
 /**
@@ -55,37 +55,51 @@ class LoamWorkDirTest extends FunSuite {
     }
   }
 
-  private def createScript(paths: Map[String, Path]): LoamScript = {
-    val props = paths.mapValues(path => SourceUtils.toStringLiteral(path)).view.force
-    val codeTemplate =
-      """
-        |changeDir({{workDir1}})
-        |val file1 = store[TXT].from({{fileName1}})
-        |val file2 = store[TXT].from({{fileName2}})
-        |cmd"cp $file1 $file2"
+  private case class FilePaths(workDir1: Path, fileName1: String, fileName2: String) {
+    val filePath1 = workDir1.resolve(fileName1)
+    val filePath2 = workDir1.resolve(fileName2)
+  }
+
+  private def createFilePaths: FilePaths =
+    FilePaths(
+      workDir1 = JFiles.createTempDirectory("LoamWorkDirTest"),
+      fileName1 = "file1.txt",
+      fileName2 = "file2.txt"
+    )
+
+  private def createInputFiles(paths: FilePaths): Unit = {
+    Files.writeTo(paths.filePath1)("Yo!")
+  }
+
+  private def createScript(paths: FilePaths): LoamScript = {
+    val code =
+      s"""
+         |changeDir(${paths.workDir1.asStringLiteral})
+         |val file1 = store[TXT].from(${paths.fileName1.asStringLiteral})
+         |val file2 = store[TXT].from(${paths.fileName2.asStringLiteral})
+         |cmd"cp $$file1 $$file2"
       """.stripMargin
     val scriptName = "LoamWorkDirTestScript"
-    val code = Templater.moustache.withProps(props).apply(codeTemplate)
     println(code)
     LoamScript(scriptName, code)
   }
 
+  private def assertOutputFileExists(path: Path): Unit =
+    assert(JFiles.exists(path), s"Output file $path does not exist!")
+
+
+  private def assertOutputFilesExist(paths: FilePaths): Unit = {
+    assertOutputFileExists(paths.filePath2)
+  }
+
   test("Run example with changing work directory") {
-    var paths : Map[String, Path] = Map.empty
-    paths += "workDir1" -> JFiles.createTempDirectory("LoamWorkDirTest")
-    paths += "workDir2" -> JFiles.createTempDirectory("LoamWorkDirTest")
-    paths += "workDir1SubDir" -> paths("workDir1").resolve("subdir")
-    paths += "fileName1" -> Paths.get("file1.txt")
-    paths += "filePath1" -> paths("workDir1").resolve(paths("fileName1"))
-    paths += "fileName2" -> Paths.get("file2.txt")
-    paths += "filePath2" -> paths("workDir1").resolve(paths("fileName2"))
-    JFiles.createDirectory(paths("workDir1SubDir"))
-    Files.writeTo(paths("filePath1"))("Yo!")
+    val filePaths = createFilePaths
+    createInputFiles(filePaths)
     val engine = LoamEngine.default()
-    val script = createScript(paths)
+    val script = createScript(filePaths)
     val results = engine.run(script)
     assert(results.jobResultsOpt.nonEmpty, results.compileResultOpt)
-    assert(JFiles.exists(paths("filePath2")))
+    assertOutputFilesExist(filePaths)
   }
 }
 

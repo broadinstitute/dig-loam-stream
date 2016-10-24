@@ -51,7 +51,7 @@ object Poller {
         jobId -> statusAttempt(jobId)
       }
       
-      info(s"Polled ${sortedJobIds.mkString(",")}")
+      debug(s"Polled ${sortedJobIds.mkString(",")}")
       
       pollResults.toMap
     }

@@ -55,51 +55,120 @@ class LoamWorkDirTest extends FunSuite {
     }
   }
 
-  private case class FilePaths(workDir1: Path, fileName1: String, fileName2: String) {
-    val filePath1 = workDir1.resolve(fileName1)
-    val filePath2 = workDir1.resolve(fileName2)
+  private class FilePaths {
+    val rootDirs: Seq[Path] = Seq.fill(2)(JFiles.createTempDirectory("LoamWorkDirTest"))
+    val subDirName = "subDir"
+    val subDirs: Seq[Path] = rootDirs.map(_.resolve(subDirName))
+    val workDirs = rootDirs ++ subDirs
+    val inFileName = "inFile.txt"
+    val inFilePath = rootDirs(0).resolve(inFileName)
+    val outFileNames: Seq[String] = (0 to 5).map(index => s"outFile$index.txt")
+    val outFileDirs: Seq[Path] = Seq(rootDirs(0), subDirs(0), subDirs(0), rootDirs(1), subDirs(1), subDirs(1))
+    val outFilePaths: Seq[Path] = outFileDirs.zip(outFileNames).map({ case (dir, name) => dir.resolve(name) })
   }
 
-  private def createFilePaths: FilePaths =
-    FilePaths(
-      workDir1 = JFiles.createTempDirectory("LoamWorkDirTest"),
-      fileName1 = "file1.txt",
-      fileName2 = "file2.txt"
-    )
+  private def createFilePaths: FilePaths = new FilePaths
 
   private def createInputFiles(paths: FilePaths): Unit = {
-    Files.writeTo(paths.filePath1)("Yo!")
+    Files.writeTo(paths.inFilePath)("Yo!")
+    for (workDir <- paths.workDirs) {
+      if (!JFiles.exists(workDir)) {
+        JFiles.createDirectory(workDir)
+      }
+    }
   }
 
-  private def createScript(paths: FilePaths): LoamScript = {
+  // scalastyle:off magic.number
+  private def createScriptUsingChangeDir(paths: FilePaths): LoamScript = {
     val code =
       s"""
-         |changeDir(${paths.workDir1.asStringLiteral})
-         |val file1 = store[TXT].from(${paths.fileName1.asStringLiteral})
-         |val file2 = store[TXT].from(${paths.fileName2.asStringLiteral})
-         |cmd"cp $$file1 $$file2"
-      """.stripMargin
-    val scriptName = "LoamWorkDirTestScript"
+         |changeDir(${paths.rootDirs(0).asStringLiteral})
+         |val inFile = store[TXT].from(${paths.inFileName.asStringLiteral})
+         |val outFile0 = store[TXT].to(${paths.outFileNames(0).asStringLiteral})
+         |cmd"cp $$inFile $$outFile0"
+         |changeDir(${paths.subDirName.asStringLiteral})
+         |val outFile1 = store[TXT].to(${paths.outFileNames(1).asStringLiteral})
+         |val outFile2 = store[TXT].to(${paths.outFileNames(2).asStringLiteral})
+         |cmd"cp $$outFile0 $$outFile1"
+         |cmd"cp $$outFile1 $$outFile2"
+         |changeDir(${paths.rootDirs(1).asStringLiteral})
+         |val outFile3 = store[TXT].to(${paths.outFileNames(3).asStringLiteral})
+         |cmd"cp $$outFile2 $$outFile3"
+         |changeDir(${paths.subDirName.asStringLiteral})
+         |val outFile4 = store[TXT].to(${paths.outFileNames(4).asStringLiteral})
+         |val outFile5 = store[TXT].to(${paths.outFileNames(5).asStringLiteral})
+         |cmd"cp $$outFile3 $$outFile4"
+         |cmd"cp $$outFile4 $$outFile5"
+        """.stripMargin
+    val scriptName = "LoamWorkDirTestScriptUsingChangeDir"
     println(code)
     LoamScript(scriptName, code)
   }
+
+  // scalastyle:on magic.number
+
+  // scalastyle:off magic.number
+  private def createScriptUsingInDir(paths: FilePaths): LoamScript = {
+    val code =
+      s"""
+         |val outFile2 = store[TXT]
+         |inDir(${paths.rootDirs(0).asStringLiteral}) {
+         |  val inFile = store[TXT].from(${paths.inFileName.asStringLiteral})
+         |  val outFile0 = store[TXT].to(${paths.outFileNames(0).asStringLiteral})
+         |  cmd"cp $$inFile $$outFile0"
+         |  inDir(${paths.subDirName.asStringLiteral}) {
+         |    val outFile1 = store[TXT].to(${paths.outFileNames(1).asStringLiteral})
+         |    outFile2.to(${paths.outFileNames(2).asStringLiteral})
+         |    cmd"cp $$outFile0 $$outFile1"
+         |    cmd"cp $$outFile1 $$outFile2"
+         |  }
+         |}
+         |inDir(${paths.rootDirs(1).asStringLiteral}) {
+         |  val outFile3 = store[TXT].to(${paths.outFileNames(3).asStringLiteral})
+         |  cmd"cp $$outFile2 $$outFile3"
+         |  inDir(${paths.subDirName.asStringLiteral}) {
+         |    val outFile4 = store[TXT].to(${paths.outFileNames(4).asStringLiteral})
+         |    val outFile5 = store[TXT].to(${paths.outFileNames(5).asStringLiteral})
+         |    cmd"cp $$outFile3 $$outFile4"
+         |    cmd"cp $$outFile4 $$outFile5"
+         |  }
+         |}
+        """.stripMargin
+    val scriptName = "LoamWorkDirTestScriptUsingInDir"
+    println(code)
+    LoamScript(scriptName, code)
+  }
+
+  // scalastyle:on magic.number
 
   private def assertOutputFileExists(path: Path): Unit =
     assert(JFiles.exists(path), s"Output file $path does not exist!")
 
 
   private def assertOutputFilesExist(paths: FilePaths): Unit = {
-    assertOutputFileExists(paths.filePath2)
+    for (outFilePath <- paths.outFilePaths) {
+      assertOutputFileExists(outFilePath)
+    }
   }
 
-  test("Run example with changing work directory") {
-    val filePaths = createFilePaths
+  private def testScript(script: LoamScript, filePaths: FilePaths): Unit = {
     createInputFiles(filePaths)
     val engine = LoamEngine.default()
-    val script = createScript(filePaths)
+    println("Run!")
     val results = engine.run(script)
+    println("Done running!")
     assert(results.jobResultsOpt.nonEmpty, results.compileResultOpt)
     assertOutputFilesExist(filePaths)
+  }
+
+  test("Toy pipeline of cp using changeDir(Path)") {
+    val filePaths = createFilePaths
+    testScript(createScriptUsingChangeDir(filePaths), filePaths)
+  }
+
+  test("Toy pipeline of cp using inDir(Path) {...} ") {
+    val filePaths = createFilePaths
+    testScript(createScriptUsingInDir(filePaths), filePaths)
   }
 }
 

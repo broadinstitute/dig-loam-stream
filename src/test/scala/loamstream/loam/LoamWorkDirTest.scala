@@ -61,9 +61,9 @@ class LoamWorkDirTest extends FunSuite {
     val subDirs: Seq[Path] = rootDirs.map(_.resolve(subDirName))
     val workDirs = rootDirs ++ subDirs
     val inFileName = "inFile.txt"
-    val inFilePath = rootDirs(0).resolve(inFileName)
+    val inFilePath = rootDirs.head.resolve(inFileName)
     val outFileNames: Seq[String] = (0 to 5).map(index => s"outFile$index.txt")
-    val outFileDirs: Seq[Path] = Seq(rootDirs(0), subDirs(0), subDirs(0), rootDirs(1), subDirs(1), subDirs(1))
+    val outFileDirs: Seq[Path] = Seq(rootDirs.head, subDirs.head, subDirs.head, rootDirs(1), subDirs(1), subDirs(1))
     val outFilePaths: Seq[Path] = outFileDirs.zip(outFileNames).map({ case (dir, name) => dir.resolve(name) })
   }
 
@@ -82,9 +82,9 @@ class LoamWorkDirTest extends FunSuite {
   private def createScriptUsingChangeDir(paths: FilePaths): LoamScript = {
     val code =
       s"""
-         |changeDir(${paths.rootDirs(0).asStringLiteral})
+         |changeDir(${paths.rootDirs.head.asStringLiteral})
          |val inFile = store[TXT].from(${paths.inFileName.asStringLiteral})
-         |val outFile0 = store[TXT].to(${paths.outFileNames(0).asStringLiteral})
+         |val outFile0 = store[TXT].to(${paths.outFileNames.head.asStringLiteral})
          |cmd"cp $$inFile $$outFile0"
          |changeDir(${paths.subDirName.asStringLiteral})
          |val outFile1 = store[TXT].to(${paths.outFileNames(1).asStringLiteral})
@@ -101,7 +101,6 @@ class LoamWorkDirTest extends FunSuite {
          |cmd"cp $$outFile4 $$outFile5"
         """.stripMargin
     val scriptName = "LoamWorkDirTestScriptUsingChangeDir"
-    println(code)
     LoamScript(scriptName, code)
   }
 
@@ -112,9 +111,9 @@ class LoamWorkDirTest extends FunSuite {
     val code =
       s"""
          |val outFile2 = store[TXT]
-         |inDir(${paths.rootDirs(0).asStringLiteral}) {
+         |inDir(${paths.rootDirs.head.asStringLiteral}) {
          |  val inFile = store[TXT].from(${paths.inFileName.asStringLiteral})
-         |  val outFile0 = store[TXT].to(${paths.outFileNames(0).asStringLiteral})
+         |  val outFile0 = store[TXT].to(${paths.outFileNames.head.asStringLiteral})
          |  cmd"cp $$inFile $$outFile0"
          |  inDir(${paths.subDirName.asStringLiteral}) {
          |    val outFile1 = store[TXT].to(${paths.outFileNames(1).asStringLiteral})
@@ -135,7 +134,6 @@ class LoamWorkDirTest extends FunSuite {
          |}
         """.stripMargin
     val scriptName = "LoamWorkDirTestScriptUsingInDir"
-    println(code)
     LoamScript(scriptName, code)
   }
 
@@ -154,9 +152,7 @@ class LoamWorkDirTest extends FunSuite {
   private def testScript(script: LoamScript, filePaths: FilePaths): Unit = {
     createInputFiles(filePaths)
     val engine = LoamEngine.default()
-    println("Run!")
     val results = engine.run(script)
-    println("Done running!")
     assert(results.jobResultsOpt.nonEmpty, results.compileResultOpt)
     assertOutputFilesExist(filePaths)
   }

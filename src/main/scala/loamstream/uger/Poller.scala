@@ -42,13 +42,20 @@ object Poller {
         result
       }
       
-      val pollResults = jobIds.map { jobId =>
+      //NB: Sort job ids for better log output
+      val sortedJobIds = jobIds.toSeq.sorted
+      
+      debug(s"Polling status of jobs ${sortedJobIds.mkString(",")}")
+      
+      val pollResults = sortedJobIds.map { jobId =>
         jobId -> statusAttempt(jobId)
       }
+      
+      debug(s"Polled ${sortedJobIds.mkString(",")}")
       
       pollResults.toMap
     }
   }
   
-  def drmaa(client: DrmaaClient)(implicit context: ExecutionContext): Poller = new DrmaaPoller(client)
+  def drmaa(client: DrmaaClient): Poller = new DrmaaPoller(client)
 }

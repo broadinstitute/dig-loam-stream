@@ -10,6 +10,7 @@ import loamstream.model.jobs.LJob
 import loamstream.util.Hit
 import loamstream.util.Shot
 import loamstream.util.Maps
+import loamstream.util.ExecutorServices
 
 /**
  * @author clint
@@ -53,21 +54,9 @@ object ExecuterHelpers {
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
   def threadPool(numThreads: Int): ExecutionContext = {
-    val es = Executors.newFixedThreadPool(numThreads, factoryWithDaemonThreads)
+    val es = ExecutorServices.threadPool(numThreads, ExecutorServices.OnlyDaemonThreads)
+    
     ExecutionContext.fromExecutorService(es)
-  }
-
-  /**
-   * @return Factory of daemon threads
-   */
-  def factoryWithDaemonThreads: ThreadFactory = new ThreadFactory() {
-    val defaultFactory = Executors.defaultThreadFactory()
-
-    override def newThread(r: Runnable): Thread = {
-      val thread = defaultFactory.newThread(r)
-      thread.setDaemon(true)
-      thread
-    }
   }
   
   def flattenTree(roots: Set[LJob]): Set[LJob] = {

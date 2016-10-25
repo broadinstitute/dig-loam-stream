@@ -10,6 +10,8 @@ import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.observables.ConnectableObservable
+import rx.schedulers.Schedulers
+import loamstream.util.ValueBox
 
 /**
  * @author clint
@@ -17,8 +19,21 @@ import rx.lang.scala.observables.ConnectableObservable
  * 
  * Methods for monitoring jobs, returning Streams of JobStatuses
  */
-object Jobs extends Loggable {
-  private lazy val ioScheduler = IOScheduler()
+final class JobMonitor(
+    scheduler: Scheduler = IOScheduler(),
+    poller: Poller, 
+    pollingFrequencyInHz: Double = 1.0) extends Loggable {
+  
+  private[this] val _isStopped: ValueBox[Boolean] = ValueBox(false)
+  
+  private[uger] def isStopped: Boolean = _isStopped.value
+  
+  /**
+   * Stop all polling and prevent further polling by this JobMonitor.  Useful at app-shutdown-time. 
+   */
+  def stop(): Unit = {
+    _isStopped.update(true)
+  }
   
   /**
    * Using the supplied Poller and polling frequency, produce an Observable stream of statuses for each job id
@@ -31,8 +46,7 @@ object Jobs extends Loggable {
    * @return a map of job ids to Observable streams of statuses for each job. The statuses are the result of polling 
    * UGER *synchronously* via the supplied poller at the supplied rate.
    */
-  def monitor(poller: Poller, pollingFrequencyInHz: Double = 1.0, scheduler: Scheduler = ioScheduler)(
-             jobIds: Iterable[String]): Map[String, Observable[JobStatus]] = {
+  def monitor(jobIds: Iterable[String]): Map[String, Observable[JobStatus]] = {
     
     import scala.concurrent.duration._
     
@@ -41,16 +55,28 @@ object Jobs extends Loggable {
     
     val period = (1 / pollingFrequencyInHz).seconds
 
+    //A flag indicating whether or not we should keep polling for the given set of job ids.
+    //TODO: find a better way to stop or shut down `ticks` :\
+    val keepPolling: ValueBox[Boolean] = ValueBox(true)
+    
     val ticks = Observable.interval(period, scheduler).share
     
     def poll(): Map[String, Try[JobStatus]] = poller.poll(jobIds)
-
+    
+    def shouldContinue = !isStopped && keepPolling()
+    
+    import ObservableEnrichments._
+    
     //NB: The call to .replay() is needed to allow us to 'demultiplex' the stream of poll results into
     //several streams, one for each job id, without worrying about missing any emitted values if any 
     //downstream subscribers subscribe "too late".
     //Note that we now need to connect() to pollResults before any ticks start emitting, and any polling
     //is done.
-    val pollResults = ticks.map(_ => poll()).replay
+    //NB: Defensively use until(allFinished) to avoid situation where we keep polling even though all jobs are Done
+    //NB: Defensively filter ticks based on isStopped and keepPolling flags to allow "forcibly" stopping polling, 
+    //preventing cases where the app is shutting down (and releasing Drmaa resources like Sessions, etc) but 
+    //polling, driven by `ticks` keeps going for a little while after.
+    val pollResults = ticks.takeWhile(_ => shouldContinue).map(_ => poll()).until(allFinished(keepPolling)).replay
     
     val byJobId: Map[String, Observable[Try[JobStatus]]] = demultiplex(jobIds, pollResults)
 
@@ -131,5 +157,22 @@ object Jobs extends Loggable {
     }
     
     tuples.toMap
+  }
+
+  private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[JobStatus]]): Boolean = {
+    def unpack(attempt: Try[JobStatus]): JobStatus = attempt.getOrElse(JobStatus.Undetermined)
+    
+    val result = pollResults.values.map(unpack).forall(_.isFinished)
+    
+    if(result) {
+      val idsString = pollResults.keys.toSeq.sorted.mkString(",")
+      
+      info(s"Jobs are all finished: $idsString")
+      
+      //Note side effect :(
+      keepPollingFlag.update(false)
+    }
+    
+    result
   }
 }

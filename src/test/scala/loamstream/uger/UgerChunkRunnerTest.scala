@@ -13,7 +13,8 @@ import com.typesafe.config.ConfigFactory
 import loamstream.conf.UgerConfig
 import loamstream.model.jobs.NoOpJob
 import java.nio.file.Paths
-import loamstream.util.Futures.waitFor
+import rx.lang.scala.schedulers.IOScheduler
+import loamstream.util.Futures
 import loamstream.util.ObservableEnrichments
 
 /**
@@ -22,23 +23,23 @@ import loamstream.util.ObservableEnrichments
 final class UgerChunkRunnerTest extends FunSuite {
   //scalastyle:off magic.number
   
+  private val scheduler = IOScheduler()
+  
   private val config = UgerConfig(Paths.get("target/foo"), Paths.get("target/bar"), 42)
   private val client = MockDrmaaClient(Map.empty)
-  
-  import scala.concurrent.ExecutionContext.Implicits.global
-  
-  private val chunkRunner = UgerChunkRunner(config, client)
-  
+  private val runner = UgerChunkRunner(config, client, new JobMonitor(scheduler, Poller.drmaa(client)))
+
+  import Futures.waitFor
   import ObservableEnrichments._
   
   test("NoOpJob is not attempted to be executed") {
     val noOpJob = NoOpJob(Set.empty)
-    val result = waitFor(chunkRunner.run(Set(noOpJob)).lastAsFuture)
+    val result = waitFor(runner.run(Set(noOpJob)).firstAsFuture)
     assert(result === Map.empty)
   }
 
   test("No failures when empty set of jobs is presented") {
-    val result = waitFor(chunkRunner.run(Set.empty).lastAsFuture)
+    val result = waitFor(runner.run(Set.empty).firstAsFuture)
     assert(result === Map.empty)
   }
   

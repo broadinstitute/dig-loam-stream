@@ -21,9 +21,14 @@ object SourceUtils {
   /** Turns an object into a String literal */
   def toStringLiteral(obj: Any): String = "\"" + Matcher.quoteReplacement(obj.toString) + "\""
 
-  /** Implicit wrapper to provide conversion to StringLiteral */
-  implicit class AnyToStringLiteral(any: Any) {
-    def asStringLiteral: String = toStringLiteral(any)
+  /** Implicit things */
+  object Implicits {
+
+    /** Implicit wrapper to provide conversion to StringLiteral */
+    implicit class AnyToStringLiteral(val any: Any) extends AnyVal {
+      def asStringLiteral: String = toStringLiteral(any)
+    }
+
   }
 
 }

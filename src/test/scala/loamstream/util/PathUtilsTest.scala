@@ -94,7 +94,7 @@ final class PathUtilsTest extends FunSuite {
 
     import PathUtils.normalize
 
-    assert(normalize(absolute) == absoluteExpected)
+    assert(normalize(absolute) === absoluteExpected)
 
     val relative = Paths.get("x/y/z")
 
@@ -103,6 +103,18 @@ final class PathUtilsTest extends FunSuite {
 
     val expected = cwd.resolve(relative).toString
 
-    assert(normalize(relative) == expected)
+    assert(normalize(relative) === expected)
+    
+    val hasDot = Paths.get("/x/y/./z")
+    
+    assert(normalize(hasDot) === absoluteExpected)
+    
+    val hasTwoDots = Paths.get("/x/y/z/foo/..")
+    
+    assert(normalize(hasTwoDots) === absoluteExpected)
+    
+    val hasBoth = Paths.get("/x/./y/./z/foo/..")
+    
+    assert(normalize(hasBoth) === absoluteExpected)
   }
 }

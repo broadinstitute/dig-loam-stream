@@ -1,11 +1,9 @@
 package loamstream.conf
 
-import java.nio.file.{Path, Paths}
-
 import com.typesafe.config.Config
+import loamstream.util.ConfigEnrichments
 
 import scala.util.Try
-import loamstream.util.ConfigEnrichments
 
 /**
   * @author clint
@@ -13,8 +11,8 @@ import loamstream.util.ConfigEnrichments
   */
 final case class TypesafeConfigLproperties(config: Config) extends LProperties {
 
-  import TypesafeConfigLproperties._
   import ConfigEnrichments._
+  import TypesafeConfigLproperties._
 
   override def tryGetString(key: String): Try[String] = {
     for {

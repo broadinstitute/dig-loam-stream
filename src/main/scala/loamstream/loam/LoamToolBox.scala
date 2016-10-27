@@ -4,11 +4,8 @@ import java.nio.file.{Path, Paths}
 
 import loamstream.model.Tool
 import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.model.jobs.{LJob, LToolBox, NativeJob}
+import loamstream.model.jobs.{LJob, LToolBox, NativeJob, Output}
 import loamstream.util.{Hit, Miss, Shot, Snag}
-import loamstream.loam.LoamGraph.StoreEdge.PathEdge
-import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
-import loamstream.model.jobs.Output
 
 /**
   * LoamStream
@@ -24,8 +21,8 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
     val graph = tool.graphBox.value
 
     def pathOutputsFor(tool: LoamTool): Set[Output] = {
-      val loamStores: Set[LoamStore] = graph.toolOutputs(tool) 
-      
+      val loamStores: Set[LoamStore] = graph.toolOutputs(tool)
+
       loamStores.flatMap(_.pathOpt).map(Output.PathOutput)
     }
 
@@ -35,13 +32,13 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
 
     shotsForPrecedingTools.map { inputJobs =>
       val outputs = pathOutputsFor(tool)
-      
+
       tool match {
         case cmdTool: LoamCmdTool =>
           val commandLineString = cmdTool.tokens.map(_.toString(context.fileManager)).mkString
-          
+
           CommandLineStringJob(commandLineString, workDir, inputJobs, outputs)
-          
+
         case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs)
       }
     }
@@ -51,7 +48,7 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
     loamJobs.get(tool) match {
       case Some(job) => Hit(job)
       case _ => newLoamJob(tool) match {
-        case jobHit @ Hit(job) =>
+        case jobHit@Hit(job) =>
           loamJobs += tool -> job
           jobHit
         case miss: Miss => miss

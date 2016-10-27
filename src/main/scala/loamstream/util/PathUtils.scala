@@ -35,7 +35,7 @@ object PathUtils {
 
   def newAbsolute(first: String, more: String*): Path = getRoot.resolve(newRelative(first, more: _*))
 
-  def normalizePath(p: Path): Path = p.toAbsolutePath
+  def normalizePath(p: Path): Path = p.toAbsolutePath.normalize
 
   def normalize(p: Path): String = normalizePath(p).toString
 }

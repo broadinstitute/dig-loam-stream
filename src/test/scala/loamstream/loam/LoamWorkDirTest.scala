@@ -3,7 +3,7 @@ package loamstream.loam
 import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.{LoamEngine, LoamPredef}
-import loamstream.util.code.SourceUtils.AnyToStringLiteral
+import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
 import loamstream.util.{Files, PathUtils}
 import org.scalatest.FunSuite
 

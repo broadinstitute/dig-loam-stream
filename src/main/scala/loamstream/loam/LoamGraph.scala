@@ -1,10 +1,10 @@
 package loamstream.loam
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
-import loamstream.loam.LoamTool.{AllStores, DefaultStores, InputsAndOutputs}
+import loamstream.loam.LoamTool.{AllStores, InputsAndOutputs}
 import loamstream.util.Equivalences
 
 /** The graph of all Loam stores and tools and their relationships */
@@ -26,7 +26,8 @@ object LoamGraph {
 
   /** An empty graph */
   def empty: LoamGraph =
-  LoamGraph(Set.empty, Set.empty, Map.empty, Map.empty, Map.empty, Map.empty, Equivalences.empty, Equivalences.empty)
+  LoamGraph(Set.empty, Set.empty, Map.empty, Map.empty, Map.empty, Map.empty, Equivalences.empty, Equivalences.empty,
+    Map.empty)
 }
 
 /** The graph of all Loam stores and tools and their relationships */
@@ -37,15 +38,20 @@ final case class LoamGraph(stores: Set[LoamStore],
                            storeSources: Map[LoamStore, StoreEdge],
                            storeSinks: Map[LoamStore, Set[StoreEdge]],
                            keysSameSets: Equivalences[LoamStoreKeySlot],
-                           keysSameLists: Equivalences[LoamStoreKeySlot]) {
+                           keysSameLists: Equivalences[LoamStoreKeySlot],
+                           workDirs: Map[LoamTool, Path]) {
 
   /** Returns graph with store added */
   def withStore(store: LoamStore): LoamGraph = copy(stores = stores + store)
 
   /** Returns graph with tool added */
-  def withTool(tool: LoamTool): LoamGraph =
+  def withTool(tool: LoamTool, workDir: Path = Paths.get(".")): LoamGraph =
   if (tools(tool)) {
-    this
+    if (workDirs.contains(tool) && workDirs(tool) == workDir) {
+      this
+    } else {
+      copy(workDirs = workDirs + (tool -> workDir))
+    }
   } else {
     val (toolInputStores, toolOutputStores) = tool.defaultStores match {
       case AllStores(toolStores) =>
@@ -63,7 +69,9 @@ final case class LoamGraph(stores: Set[LoamStore],
       toolInputs = toolInputs + (tool -> toolInputStores),
       toolOutputs = toolOutputs + (tool -> toolOutputStores),
       storeSources = storeSources ++ outputsWithSource,
-      storeSinks = storeSinks ++ storeSinksNew)
+      storeSinks = storeSinks ++ storeSinksNew,
+      workDirs = workDirs + (tool -> workDir)
+    )
   }
 
   /** Returns graph with store source (tool or file) added */

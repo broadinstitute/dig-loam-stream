@@ -1,5 +1,7 @@
 package loamstream.loam
 
+import java.nio.file.Path
+
 import loamstream.loam.LoamTool.DefaultStores
 import loamstream.model.{LId, Store, Tool}
 import loamstream.util.ValueBox
@@ -10,11 +12,14 @@ trait LoamTool extends Tool {
   /** The unique tool id */
   def id: LId
 
-  /** The LoamContext associated with this tool */
-  def context: LoamContext
+  /** The LoamProjectContext associated with this tool */
+  def projectContext: LoamProjectContext = scriptContext.projectContext
+
+  /** The LoamScriptContext associated with this tool */
+  def scriptContext: LoamScriptContext
 
   /** The ValueBox used to store the graph this tool is part of */
-  def graphBox: ValueBox[LoamGraph] = context.graphBox
+  def graphBox: ValueBox[LoamGraph] = projectContext.graphBox
 
   /** The graph this tool is part of */
   def graph: LoamGraph = graphBox.value
@@ -24,11 +29,11 @@ trait LoamTool extends Tool {
 
   /** Input stores of this tool */
   override def inputs: Map[LId, Store] =
-    graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
+  graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
 
   /** Output stores of this tool */
   override def outputs: Map[LId, Store] =
-    graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
+  graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
 
   /** Adds input stores to this tool */
   def in(inStore: LoamStore, inStores: LoamStore*): this.type = in(inStore +: inStores)
@@ -47,6 +52,8 @@ trait LoamTool extends Tool {
     graphBox.mutate(_.withOutputStores(this, outStores.toSet))
     this
   }
+
+  def workDirOpt: Option[Path] = graphBox.get(_.workDirs.get(this))
 }
 
 object LoamTool {

@@ -1,19 +1,16 @@
 package loamstream
 
-import java.nio.file.{ Files, Path, Paths }
-
-import scala.concurrent.ExecutionContext
+import java.nio.file.{Path, Paths}
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import loamstream.loam.{ LoamContext, LoamToolBox }
-import loamstream.loam.ast.{ LoamGraphAstMapper, LoamGraphAstMapping }
-import loamstream.model.execute.Executable
-import loamstream.model.execute.RxExecuter
-import loamstream.model.jobs.LJob
-import loamstream.util.{ Loggable, Shot, StringUtils }
-import loamstream.model.jobs.JobState
-import loamstream.loam.LoamScript
+import loamstream.loam.{LoamProjectContext, LoamScript, LoamToolBox}
+import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
+import loamstream.model.execute.{Executable, RxExecuter}
+import loamstream.model.jobs.{JobState, LJob}
+import loamstream.util.Loggable
+
+import scala.concurrent.ExecutionContext
 
 /**
   * @author clint
@@ -39,9 +36,9 @@ trait LoamTestHelpers extends Loggable {
 
     compileResults
   }
-  
+
   def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, Executable) = {
-    val context: LoamContext = compileResults.contextOpt.get
+    val context: LoamProjectContext = compileResults.contextOpt.get
     val graph = context.graph
 
     val mapping = LoamGraphAstMapper.newMapping(graph)

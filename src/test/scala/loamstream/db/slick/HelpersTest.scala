@@ -1,8 +1,5 @@
 package loamstream.db.slick
 
-import java.io.File
-import java.nio.file.{FileSystems, Paths}
-
 import org.scalatest.FunSuite
 
 /**
@@ -13,9 +10,9 @@ final class HelpersTest extends FunSuite {
   //scalastyle:off magic.number
   test("timestampFromLong") {
     val millis = 123456
-    
+
     val timestamp = Helpers.timestampFromLong(millis)
-    
+
     assert(timestamp.toInstant.toEpochMilli === millis)
   }
   //scalastyle:on magic.number

@@ -2,8 +2,8 @@ package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.loam.LoamTool.{AllStores, DefaultStores}
-import loamstream.model.{LId, Store}
-import loamstream.util.{StringUtils, ValueBox}
+import loamstream.model.LId
+import loamstream.util.StringUtils
 
 /**
   * LoamStream
@@ -14,7 +14,7 @@ object LoamCmdTool {
   def createStringToken(string: String): StringToken = StringToken(StringUtils.unwrapLines(string))
 
   implicit class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
-    def cmd(args: Any*)(implicit context: LoamContext): LoamCmdTool = {
+    def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       //TODO: handle case where there are no parts (can that happen? cmd"" ?)
       val firstPart +: stringParts = stringContext.parts
 
@@ -37,17 +37,17 @@ object LoamCmdTool {
     }
   }
 
-  def create(tokens: Seq[LoamToken])(implicit context: LoamContext): LoamCmdTool = {
+  def create(tokens: Seq[LoamToken])(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
     val tool = LoamCmdTool(LId.newAnonId, tokens)
-    context.graphBox.mutate(_.withTool(tool))
+    scriptContext.projectContext.graphBox.mutate(_.withTool(tool, scriptContext.workDir))
     tool
   }
 }
 
 /** A command line tool specified in a Loam script */
-final case class LoamCmdTool private(id: LId, tokens: Seq[LoamToken])(implicit val context: LoamContext)
+final case class LoamCmdTool private(id: LId, tokens: Seq[LoamToken])(implicit val scriptContext: LoamScriptContext)
   extends LoamTool {
-  
+
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
 }

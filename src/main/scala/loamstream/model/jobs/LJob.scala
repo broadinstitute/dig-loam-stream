@@ -1,5 +1,7 @@
 package loamstream.model.jobs
 
+import java.nio.file.Path
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
@@ -17,6 +19,8 @@ import rx.lang.scala.subjects.ReplaySubject
  * Created by oliverr on 12/23/2015.
  */
 trait LJob extends Loggable {
+  def workDirOpt: Option[Path] = None
+  
   def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
     val indentString = s"${"-" * indent} >"
 

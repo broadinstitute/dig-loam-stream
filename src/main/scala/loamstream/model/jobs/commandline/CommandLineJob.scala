@@ -1,5 +1,7 @@
 package loamstream.model.jobs.commandline
 
+import java.nio.file.Path
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.sys.process.ProcessBuilder
@@ -16,6 +18,10 @@ import loamstream.util.Futures
   * A job based on a command line definition 
   */
 trait CommandLineJob extends LJob {
+  def workDir: Path
+
+  override def workDirOpt: Option[Path] = Some(workDir)
+
   def processBuilder: ProcessBuilder
 
   def commandLineString: String
@@ -23,7 +29,7 @@ trait CommandLineJob extends LJob {
   def logger: ProcessLogger = CommandLineJob.noOpProcessLogger
 
   def exitValueCheck: Int => Boolean
-  
+
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
   override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
@@ -31,13 +37,13 @@ trait CommandLineJob extends LJob {
       trace(s"RUNNING: $commandLineString")
 
       val exitValue = processBuilder.run(logger).exitValue
-  
+
       if (exitValueIsOk(exitValue)) {
         trace(s"SUCCEEDED: $commandLineString")
       } else {
         trace(s"FAILED: $commandLineString")
       }
-      
+
       JobState.CommandResult(exitValue)
     }.recover {
       case exception: Exception => JobState.CommandInvocationFailure(exception)
@@ -50,8 +56,8 @@ trait CommandLineJob extends LJob {
 object CommandLineJob {
 
   val mustBeZero: Int => Boolean = _ == 0
-  val acceptAll : Int => Boolean = i => true
-  
+  val acceptAll: Int => Boolean = i => true
+
   val defaultExitValueChecker = mustBeZero
 
   val noOpProcessLogger = ProcessLogger(line => ())

@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import loamstream.loam.LoamContext
+import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScript
 import loamstream.loam.LoamToolBox
 import loamstream.loam.ast.LoamGraphAstMapper
@@ -42,9 +42,9 @@ trait LoamTestHelpers extends Loggable {
 
     compileResults
   }
-  
+
   def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, Executable) = {
-    val context: LoamContext = compileResults.contextOpt.get
+    val context: LoamProjectContext = compileResults.contextOpt.get
     val graph = context.graph
 
     val mapping = LoamGraphAstMapper.newMapping(graph)

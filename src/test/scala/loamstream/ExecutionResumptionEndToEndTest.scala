@@ -1,33 +1,18 @@
 package loamstream
 
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
-
-import loamstream.compiler.LoamCompiler
-import loamstream.compiler.LoamEngine
+import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.model.execute.DbBackedJobFilter
-import loamstream.model.execute.Executable
-import loamstream.model.execute.ExecuterHelpers
-import loamstream.model.execute.MockChunkRunner
-import loamstream.model.execute.RxExecuter
-import loamstream.model.jobs.JobState
-import loamstream.model.jobs.JobState.CommandInvocationFailure
-import loamstream.model.jobs.JobState.CommandResult
-import loamstream.model.jobs.JobState.FailedWithException
-import loamstream.model.jobs.JobState.Skipped
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Output
+import loamstream.model.execute.{DbBackedJobFilter, Executable, ExecuterHelpers, MockChunkRunner, RxExecuter}
+import loamstream.model.jobs.JobState.{CommandInvocationFailure, CommandResult, Skipped}
+import loamstream.model.jobs.{JobState, LJob, Output}
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.util.Loggable
-import loamstream.util.PathUtils
-import loamstream.util.Sequence
-import loamstream.util.Shot
+import loamstream.util.{Loggable, Sequence}
+import loamstream.util.code.SourceUtils
+import org.scalatest.{FunSuite, Matchers}
 
 /**
   * @author kaan
@@ -36,45 +21,43 @@ import loamstream.util.Shot
 final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickLoamDao with Loggable {
 
   // scalastyle:off no.whitespace.before.left.bracket
-  
-  //TODO: These tests won't run on Windows, since they need cp
-  
+
   test("Jobs are skipped if their outputs were already produced by a previous run") {
     createTablesAndThen {
+      val fileIn = Paths.get("src", "test", "resources", "a.txt")
+
       val workDir = makeWorkDir()
 
-      val workDirInLoam = workDir.toString.replace("\\", "/")
+      val fileOut1 = workDir.resolve("fileOut1.txt")
+      val fileOut2 = workDir.resolve("fileOut2.txt")
 
-      val fileOut1 = s"$workDirInLoam/fileOut1.txt"
-      val fileOut2 = s"$workDirInLoam/fileOut2.txt"
-      
-      val output1 = PathOutput(Paths.get(fileOut1))
-      val output2 = PathOutput(Paths.get(fileOut2))
-      
+      val output1 = PathOutput(fileOut1)
+      val output2 = PathOutput(fileOut2)
+
       /* Loam for the first run that mimics an incomplete pipeline run:
           val fileIn = store[String].from("src/test/resources/a.txt")
           val fileOut1 = store[String].to("$workDir/fileOut1.txt")
           cmd"cp $$fileIn $$fileOut1
        */
       val firstScript =
-        s"""val fileIn = store[String].from("src/test/resources/a.txt")
-            val fileOut1 = store[String].to("$fileOut1")
+      s"""val fileIn = store[String].from(${SourceUtils.toStringLiteral(fileIn)})
+            val fileOut1 = store[String].to(${SourceUtils.toStringLiteral(fileOut1)})
             cmd"cp $$fileIn $$fileOut1""""
 
       val (executable, results) = compileAndRun(firstScript)
-            
+
       //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
       val firstJob = jobThatWritesTo(executable)(fileOut1).get
-        
+
       assert(results(firstJob) === CommandResult(0))
-      
+
       assert(results.size === 1)
-      
+
       assert(dao.findExecution(output1).get.exitState === CommandResult(0))
       assert(dao.findExecution(output1).get.outputs === Set(output1.normalized.toCachedOutput))
-        
+
       assert(dao.findExecution(output2) === None)
-    
+
       /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
           val fileIn = store[String].from("src/test/resources/a.txt")
           val fileOut1 = store[String].to("$workDir/fileOut1.txt")
@@ -83,34 +66,34 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           cmd"cp $$fileOut1 $$fileOut2
        */
       val secondScript =
-        s"""val fileIn = store[String].from("src/test/resources/a.txt")
-            val fileOut1 = store[String].to("$fileOut1")
-            val fileOut2 = store[String].to("$fileOut2")
+      s"""val fileIn = store[String].from(${SourceUtils.toStringLiteral(fileIn)})
+            val fileOut1 = store[String].to(${SourceUtils.toStringLiteral(fileOut1)})
+            val fileOut2 = store[String].to(${SourceUtils.toStringLiteral(fileOut2)})
             cmd"cp $$fileIn $$fileOut1"
             cmd"cp $$fileOut1 $$fileOut2""""
 
       //Run the script and validate the results
       def run(expectedStates: Seq[JobState]): Unit = {
         val (executable, results) = compileAndRun(secondScript)
-  
+
         //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
         val firstJob = jobThatWritesTo(executable)(fileOut1).get
         val secondJob = jobThatWritesTo(executable)(fileOut2).get
-        
+
         assert(results(firstJob) === expectedStates(0))
         assert(results(secondJob) === expectedStates(1))
-        
+
         assert(results.size === 2)
-        
+
         //If the jobs were run or skipped, we should have written an Execution for the job. If the job was skipped,
         //left the one from the previous successful run alone. 
         assert(dao.findExecution(output1).get.exitState === CommandResult(0))
         assert(dao.findExecution(output1).get.outputs === Set(output1.normalized.toCachedOutput))
-        
+
         assert(dao.findExecution(output2).get.exitState === CommandResult(0))
         assert(dao.findExecution(output2).get.outputs === Set(output2.normalized.toCachedOutput))
       }
-      
+
       //Run the second script a few times.  The first time, we expect the first job to be skipped, and the second one
       //to be run.  We expect both jobs to be skipped in all subsequent runs.
       run(Seq(Skipped, CommandResult(0)))
@@ -119,59 +102,59 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       run(Seq(Skipped, Skipped))
     }
   }
-  
+
   test("Single failed job's exit status is recorded properly") {
     createTablesAndThen {
+      val fileIn = Paths.get("src", "test", "resources", "a.txt")
+
       val workDir = makeWorkDir()
 
-      val workDirInLoam = workDir.toString.replace("\\", "/")
+      val fileOut1 = workDir.resolve("fileOut1.txt")
 
-      val fileOut1 = s"$workDirInLoam/fileOut1.txt"
-      
       val bogusCommandName = "asdfasdf"
-      
+
       /* Loam for a single invocation of a bogus command:
           val fileIn = store[String].from("src/test/resources/a.txt")
           val fileOut1 = store[String].to("$workDir/fileOut1.txt")
           cmd"asdfasdf $$fileIn $$fileOut1"
        */
       val script = {
-        s"""val fileIn = store[String].from("src/test/resources/a.txt")
-            val fileOut1 = store[String].to("$fileOut1")
+        s"""val fileIn = store[String].from(${SourceUtils.toStringLiteral(fileIn)})
+            val fileOut1 = store[String].to(${SourceUtils.toStringLiteral(fileOut1)})
             cmd"$bogusCommandName $$fileIn $$fileOut1""""
       }
 
       //Run the script and validate the results
       def run(): Unit = {
         val (executable, jobStates) = compileAndRun(script)
-  
+
         val allJobs = allJobsFrom(executable)
-        
+
         val allCommandLines = allJobs.collect { case clj: CommandLineJob => clj.commandLineString }
-        
-        assert(allCommandLines.map(_.take(bogusCommandName.size)) === Seq(bogusCommandName))
-  
+
+        assert(allCommandLines.map(_.take(bogusCommandName.length)) === Seq(bogusCommandName))
+
         {
           import Matchers._
-         
+
           val onlyResult = jobStates.values.head
-          
-          onlyResult shouldBe a [CommandInvocationFailure]
+
+          onlyResult shouldBe a[CommandInvocationFailure]
           onlyResult.isFailure shouldBe true
-    
+
           jobStates should have size 1
         }
-          
-        val output1 = PathOutput(Paths.get(fileOut1))
-        
+
+        val output1 = PathOutput(fileOut1)
+
         assert(dao.findOutput(output1.path) === Some(output1.normalized))
         assert(dao.findFailedOutput(output1.path) === Some(output1.normalized))
         assert(dao.findHashedOutput(output1.path) === None)
-        
+
         assert(dao.findExecution(output1).get.exitState.isFailure)
         assert(dao.findExecution(output1).get.outputs === Set(output1.normalized))
       }
-      
+
       //Run the script a few times; we expect that the executer will try to run the bogus job every time, 
       //since it never succeeds.
       run()
@@ -179,18 +162,18 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       run()
     }
   }
-  
+
   test("Exit status of failed jobs are recorded properly") {
     createTablesAndThen {
+      val fileIn = Paths.get("src", "test", "resources", "a.txt")
+
       val workDir = makeWorkDir()
 
-      val workDirInLoam = workDir.toString.replace("\\", "/")
+      val fileOut1 = workDir.resolve("fileOut1.txt")
+      val fileOut2 = workDir.resolve("fileOut2.txt")
 
-      val fileOut1 = s"$workDirInLoam/fileOut1.txt"
-      val fileOut2 = s"$workDirInLoam/fileOut2.txt"
-      
       val bogusCommandName = "asdfasdf"
-      
+
       /* Loam for a run with two bogus jobs:
           val fileIn = store[String].from("src/test/resources/a.txt")
           val fileOut1 = store[String].to("$workDir/fileOut1.txt")
@@ -199,40 +182,40 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           cmd"asdfasdf $$fileOut1 $$fileOut2"
        */
       val script =
-        s"""val fileIn = store[String].from("src/test/resources/a.txt")
-            val fileOut1 = store[String].to("$fileOut1")
-            val fileOut2 = store[String].to("$fileOut2")
+      s"""val fileIn = store[String].from(${SourceUtils.toStringLiteral(fileIn)})
+            val fileOut1 = store[String].to(${SourceUtils.toStringLiteral(fileOut1)})
+            val fileOut2 = store[String].to(${SourceUtils.toStringLiteral(fileOut2)})
             cmd"$bogusCommandName $$fileIn $$fileOut1"
             cmd"$bogusCommandName $$fileOut1 $$fileOut2""""
 
       //Run the script and validate the results
       def run(): Unit = {
         val (executable, results) = compileAndRun(script)
-  
+
         val firstJob = jobThatWritesTo(executable)(fileOut1).get
         val secondJob = jobThatWritesTo(executable)(fileOut2).get
-  
+
         {
           import Matchers._
-  
-          results(firstJob) shouldBe a [CommandInvocationFailure]
+
+          results(firstJob) shouldBe a[CommandInvocationFailure]
           results.contains(secondJob) shouldBe false
-          
+
           results(firstJob).isFailure shouldBe true
-    
+
           results should have size 1
         }
-          
-        val output1 = PathOutput(Paths.get(fileOut1))
-        val output2 = PathOutput(Paths.get(fileOut2))
-        
+
+        val output1 = PathOutput(fileOut1)
+        val output2 = PathOutput(fileOut2)
+
         assert(dao.findExecution(output1).get.exitState.isFailure)
         assert(dao.findExecution(output1).get.outputs === Set(output1.normalized))
-        
+
         //NB: The job that referenced output2 didn't get run, so its execution should not have been recorded 
         assert(dao.findExecution(output2) === None)
       }
-      
+
       //Run the script a few times; we expect that the executer will try to run both (bogus) jobs every time, 
       //since they never succeed.
       run()
@@ -248,7 +231,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     val suffixes = sequence.iterator
 
-    val candidates = suffixes.map(i => Paths.get(s"target/resumptive-executer-test$i"))
+    val candidates = suffixes.map(i => Paths.get("target", s"resumptive-executer-test$i"))
 
     val result = candidates.dropWhile(exists).next()
 
@@ -260,10 +243,10 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     result
   }
-  
+
   private val resumptiveExecuter = {
     val dbBackedJobFilter = new DbBackedJobFilter(dao)
-    
+
     RxExecuter.defaultWith(dbBackedJobFilter)
   }
 
@@ -274,38 +257,39 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         
     (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
   }
-  
+
   private def loamEngine = {
     val outMessageSink = LoggableOutMessageSink(this)
-    
-    val (executer, _) = makeLoggingExecuter 
-    
+
+    val (executer, _) = makeLoggingExecuter
+
     LoamEngine(LoamCompiler(outMessageSink), executer, outMessageSink)
   }
-  
+
   private def normalize(po: PathOutput): PathOutput = PathOutput(po.normalized.path)
-  
+
   private def compileAndRun(script: String): (Executable, Map[LJob, JobState]) = {
     val engine = loamEngine
-    
+
     val executable = engine.compileToExecutable(script).get
-    
+
     val results = engine.executer.execute(executable)
-    
+
     (executable, results)
   }
-  
+
   private def allJobsFrom(executable: Executable): Seq[LJob] = ExecuterHelpers.flattenTree(executable.jobs).toSeq
-  
-  private def jobThatWritesTo(executable: Executable)(fileNameSuffix: String): Option[LJob] = {
+
+  private def jobThatWritesTo(executable: Executable)(fileNameSuffix: Path): Option[LJob] = {
     val allJobs = allJobsFrom(executable)
-    
-    def outputMatches(o: Output): Boolean = o.asInstanceOf[Output.PathBased].path.toString.endsWith(fileNameSuffix) 
-    
+
+    def outputMatches(o: Output): Boolean =
+      o.asInstanceOf[Output.PathBased].path.toString.endsWith(fileNameSuffix.toString)
+
     def jobMatches(j: LJob): Boolean = j.outputs.exists(outputMatches)
-    
+
     allJobs.find(jobMatches)
   }
-  
+
   // scalastyle:on no.whitespace.before.left.bracket
 }

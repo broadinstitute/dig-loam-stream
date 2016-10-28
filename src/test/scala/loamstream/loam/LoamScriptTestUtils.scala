@@ -29,12 +29,12 @@ object LoamScriptTestUtils {
   }
 
   def createInputFiles(paths: FilePaths): Unit = {
-    Files.writeTo(paths.inFilePath)("Yo!")
     for (workDir <- paths.workDirs) {
       if (!JFiles.exists(workDir)) {
         JFiles.createDirectory(workDir)
       }
     }
+    Files.writeTo(paths.inFilePath)("Yo!")
   }
 
   def assertOutputFileExists(path: Path): Unit =

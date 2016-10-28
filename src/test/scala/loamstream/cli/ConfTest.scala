@@ -33,6 +33,12 @@ final class ConfTest extends FunSuite with Matchers {
       Conf(Seq.empty, exitTheJvmOnValidationError = false)
     }
   }
+  
+  test("Test that we try to exit if we're passed just --version") {
+    intercept[CliException] {
+      Conf(Seq("--version"), exitTheJvmOnValidationError = false)
+    }
+  }
    
   test("Test that we try to exit if passed nonexistent file names") {
     intercept[CliException] {

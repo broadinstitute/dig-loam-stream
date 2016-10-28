@@ -47,10 +47,12 @@ object LoamScriptTestUtils {
     }
   }
 
-  def testScript(script: LoamScript, filePaths: FilePaths): Unit = {
+  def testScript(script: LoamScript, filePaths: FilePaths): Unit = testScripts(Seq(script), filePaths)
+
+  def testScripts(scripts: Iterable[LoamScript], filePaths: FilePaths): Unit = {
     createInputFiles(filePaths)
     val engine = LoamEngine.default()
-    val results = engine.run(script)
+    val results = engine.run(scripts)
     assert(results.jobResultsOpt.nonEmpty, results.compileResultOpt)
     assertOutputFilesExist(filePaths)
   }

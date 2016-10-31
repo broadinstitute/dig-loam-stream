@@ -61,6 +61,7 @@ class LoamWorkDirTest extends FunSuite {
     override val rootDir: Path = rootDirs.head
     val subDirName = "subDir"
     override val subDirs: Seq[Path] = rootDirs.map(_.resolve(subDirName))
+    override val workDirsToPreCreate: Seq[Path] = Seq.empty
     override val inFileName = "inFile.txt"
     override val outFileNames: Seq[String] = (0 to 5).map(index => s"outFile$index.txt")
     override val outFileDirs: Seq[Path] =

@@ -54,7 +54,7 @@ final case class Conf(
   
   private def printVersionInfoAndExitIfNeeded(): Unit = {
     if (version()) {
-      println(s"${Versions.load().get.toString}")
+      println(s"${Versions.load().get.toString}") //scalastyle:ignore regex
       exitOrThrow("")
     }
   }

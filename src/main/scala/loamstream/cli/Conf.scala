@@ -7,6 +7,7 @@ import org.rogach.scallop.exceptions.ScallopException
 import org.rogach.scallop._
 
 import loamstream.util.Loggable
+import loamstream.util.Versions
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -25,7 +26,7 @@ final case class Conf(
   override def onError(e: Throwable): Unit = e match {
     case ScallopException(message) =>
       error(message)
-      printHelp
+      printHelp()
       exitOrThrow(message)
     case ex => super.onError(ex)
   }
@@ -51,6 +52,13 @@ final case class Conf(
     }
   }
   
+  private def printVersionInfoAndExitIfNeeded(): Unit = {
+    if (version()) {
+      println(s"${Versions.load().get.toString}") //scalastyle:ignore regex
+      exitOrThrow("")
+    }
+  }
+  
   private def exitOrThrow(msg: String): Unit = {
     if(exitTheJvmOnValidationError) {
       sys.exit(1)
@@ -67,19 +75,32 @@ final case class Conf(
            |Options:
            |""".stripMargin)
 
+  //Using all default args for `opt` makes it a flag 
+  val version: ScallopOption[Boolean] = opt[Boolean]()
+           
   val loam: ScallopOption[List[Path]] = {
     val listPathConverter: ValueConverter[List[Path]] = listArgConverter[Path](Paths.get(_))
     
-    opt[List[Path]](descr = "Path to loam script", required = true, validate = _.nonEmpty)(listPathConverter)
+    opt[List[Path]](descr = "Path to loam script", validate = _.nonEmpty)(listPathConverter)
   }
   
-  val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file", required = true)
+  val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
 
+  //NB: Tell Scallop that if --version is supplied, --loam and --conf are not required, and that if --version
+  //is NOT supplied, then BOTH --loam and --conf must be supplied.  These calls replace the `required` param to `opt`
+  //for `loam` and `conf`
+  conflicts(version, List(loam, conf))
+  codependent(loam, conf)
+  
+
+  //NB: This needs to come before the call to verify(), or else we don't fail properly when --conf is omitted. Shrug. 
   validatePathExists(conf)
-
+  
   verify()
-
+  
   // The following checks come after verify() since options are lazily built by Scallop
   printHelpIfNoArgsAndExit()
+  printVersionInfoAndExitIfNeeded()
+  
   validatePathsExist(loam)
 }

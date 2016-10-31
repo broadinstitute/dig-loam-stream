@@ -68,3 +68,23 @@ lazy val webui = (project in file("webui"))
   .settings(
     name := "LoamStream WebUI"
   )
+
+enablePlugins(GitVersioning)
+
+resourceGenerators in Compile <+= {
+  (resourceManaged in Compile, 
+   name, 
+   version, 
+   git.gitCurrentBranch, 
+   git.gitHeadCommit, 
+   git.gitDescribedVersion, 
+   git.gitUncommittedChanges).map { (dir, n, v, branch, lastCommit, describedVersion, anyUncommittedChanges) =>
+
+     val buildDate = java.time.Instant.now
+
+     val file = dir / "versionInfo.properties"
+     val contents = s"name=${n}\nversion=${v}\nbranch=${branch}\nlastCommit=${lastCommit.getOrElse("")}\nuncommittedChanges=${anyUncommittedChanges}\ndescribedVersion=${describedVersion.getOrElse("")}\nbuildDate=${buildDate}\n"
+     IO.write(file, contents)
+     Seq(file)
+  }
+}

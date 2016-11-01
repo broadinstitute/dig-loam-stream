@@ -17,6 +17,8 @@ object LoamScriptTestUtils {
 
     def workDirs: Seq[Path] = rootDirs ++ subDirs
 
+    def workDirsToPreCreate: Seq[Path] = workDirs
+
     def inFileName: String
 
     def inFilePath: Path = rootDir.resolve(inFileName)
@@ -29,7 +31,7 @@ object LoamScriptTestUtils {
   }
 
   def createInputFiles(paths: FilePaths): Unit = {
-    for (workDir <- paths.workDirs) {
+    for (workDir <- paths.workDirsToPreCreate) {
       if (!JFiles.exists(workDir)) {
         JFiles.createDirectory(workDir)
       }

@@ -1,6 +1,6 @@
 package loamstream.model.jobs.commandline
 
-import java.nio.file.Path
+import java.nio.file.{Path, Files => JFiles}
 
 import loamstream.model.jobs.{JobState, LJob}
 import loamstream.util.Futures
@@ -32,6 +32,7 @@ trait CommandLineJob extends LJob {
   override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
     Futures.runBlocking {
       trace(s"RUNNING: $commandLineString")
+      JFiles.createDirectories(workDir)
       val exitValue = processBuilder.run(logger).exitValue
 
       if (exitValueIsOk(exitValue)) {

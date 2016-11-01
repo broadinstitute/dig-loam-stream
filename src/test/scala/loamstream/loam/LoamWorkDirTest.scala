@@ -2,9 +2,10 @@ package loamstream.loam
 
 import java.nio.file.{Path, Paths, Files => JFiles}
 
-import loamstream.compiler.{LoamEngine, LoamPredef}
+import loamstream.compiler.LoamPredef
+import loamstream.loam.LoamScriptTestUtils.FilePaths
+import loamstream.util.PathUtils
 import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
-import loamstream.util.{Files, PathUtils}
 import org.scalatest.FunSuite
 
 /**
@@ -55,31 +56,22 @@ class LoamWorkDirTest extends FunSuite {
     }
   }
 
-  private class FilePaths {
-    val rootDirs: Seq[Path] = Seq.fill(2)(JFiles.createTempDirectory("LoamWorkDirTest"))
+  private class FilePathsLocal extends FilePaths {
+    override val rootDirs: Seq[Path] = Seq.fill(2)(JFiles.createTempDirectory("LoamWorkDirTest"))
+    override val rootDir: Path = rootDirs.head
     val subDirName = "subDir"
-    val subDirs: Seq[Path] = rootDirs.map(_.resolve(subDirName))
-    val workDirs = rootDirs ++ subDirs
-    val inFileName = "inFile.txt"
-    val inFilePath = rootDirs.head.resolve(inFileName)
-    val outFileNames: Seq[String] = (0 to 5).map(index => s"outFile$index.txt")
-    val outFileDirs: Seq[Path] = Seq(rootDirs.head, subDirs.head, subDirs.head, rootDirs(1), subDirs(1), subDirs(1))
-    val outFilePaths: Seq[Path] = outFileDirs.zip(outFileNames).map({ case (dir, name) => dir.resolve(name) })
+    override val subDirs: Seq[Path] = rootDirs.map(_.resolve(subDirName))
+    override val workDirsToPreCreate: Seq[Path] = Seq.empty
+    override val inFileName = "inFile.txt"
+    override val outFileNames: Seq[String] = (0 to 5).map(index => s"outFile$index.txt")
+    override val outFileDirs: Seq[Path] =
+      Seq(rootDirs.head, subDirs.head, subDirs.head, rootDirs(1), subDirs(1), subDirs(1))
   }
 
-  private def createFilePaths: FilePaths = new FilePaths
-
-  private def createInputFiles(paths: FilePaths): Unit = {
-    Files.writeTo(paths.inFilePath)("Yo!")
-    for (workDir <- paths.workDirs) {
-      if (!JFiles.exists(workDir)) {
-        JFiles.createDirectory(workDir)
-      }
-    }
-  }
+  private def createFilePaths: FilePathsLocal = new FilePathsLocal
 
   // scalastyle:off magic.number
-  private def createScriptUsingChangeDir(paths: FilePaths): LoamScript = {
+  private def createScriptUsingChangeDir(paths: FilePathsLocal): LoamScript = {
     val code =
       s"""
          |changeDir(${paths.rootDirs.head.asStringLiteral})
@@ -107,7 +99,7 @@ class LoamWorkDirTest extends FunSuite {
   // scalastyle:on magic.number
 
   // scalastyle:off magic.number
-  private def createScriptUsingInDir(paths: FilePaths): LoamScript = {
+  private def createScriptUsingInDir(paths: FilePathsLocal): LoamScript = {
     val code =
       s"""
          |val outFile2 = store[TXT]
@@ -139,32 +131,14 @@ class LoamWorkDirTest extends FunSuite {
 
   // scalastyle:on magic.number
 
-  private def assertOutputFileExists(path: Path): Unit =
-    assert(JFiles.exists(path), s"Output file $path does not exist!")
-
-
-  private def assertOutputFilesExist(paths: FilePaths): Unit = {
-    for (outFilePath <- paths.outFilePaths) {
-      assertOutputFileExists(outFilePath)
-    }
-  }
-
-  private def testScript(script: LoamScript, filePaths: FilePaths): Unit = {
-    createInputFiles(filePaths)
-    val engine = LoamEngine.default()
-    val results = engine.run(script)
-    assert(results.jobResultsOpt.nonEmpty, results.compileResultOpt)
-    assertOutputFilesExist(filePaths)
-  }
-
   test("Toy pipeline of cp using changeDir(Path)") {
     val filePaths = createFilePaths
-    testScript(createScriptUsingChangeDir(filePaths), filePaths)
+    LoamScriptTestUtils.testScript(createScriptUsingChangeDir(filePaths), filePaths)
   }
 
   test("Toy pipeline of cp using inDir(Path) {...} ") {
     val filePaths = createFilePaths
-    testScript(createScriptUsingInDir(filePaths), filePaths)
+    LoamScriptTestUtils.testScript(createScriptUsingInDir(filePaths), filePaths)
   }
 }
 

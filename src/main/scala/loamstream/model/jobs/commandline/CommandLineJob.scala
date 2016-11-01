@@ -1,6 +1,6 @@
 package loamstream.model.jobs.commandline
 
-import java.nio.file.Path
+import java.nio.file.{Path, Files => JFiles}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -36,6 +36,8 @@ trait CommandLineJob extends LJob {
     Futures.runBlocking {
       trace(s"RUNNING: $commandLineString")
 
+      JFiles.createDirectories(workDir)
+      
       val exitValue = processBuilder.run(logger).exitValue
 
       if (exitValueIsOk(exitValue)) {

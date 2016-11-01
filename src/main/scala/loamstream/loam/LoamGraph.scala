@@ -133,8 +133,8 @@ final case class LoamGraph(stores: Set[LoamStore],
     }
   }
 
-  /** Optionally, the work directory of a tool (currently always none) */
-  def workDirOpt(tool: LoamTool): Option[Path] = None // TODO
+  /** Optionally, the work directory of a tool */
+  def workDirOpt(tool: LoamTool): Option[Path] = workDirs.get(tool)
 
   /** Ranks for all tools: zero for final tools; for all others one plus maximum of rank of succeeding tools */
   def ranks: Map[LoamTool, Int] = {

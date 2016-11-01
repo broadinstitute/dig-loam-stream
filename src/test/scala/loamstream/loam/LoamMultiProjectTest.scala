@@ -41,7 +41,6 @@ class LoamMultiProjectTest extends FunSuite {
       s"""
          |val name = ${projectName.asStringLiteral}
       """.stripMargin)
-    // scalastyle:off regex
     val pipelineScript = LoamScript("pipeline",
       s"""
          |import project.name
@@ -50,12 +49,11 @@ class LoamMultiProjectTest extends FunSuite {
          |  val inFile = store[VCF].from(s"projects/$$name/data/$$name.vcf")
          |  val analysisFile = store[TXT].to(s"projects/$$name/analysis/$$name.analysis.txt")
          |  val resultsFile = store[TXT].to(s"projects/$$name/results/$$name.results.txt")
-         |  println(inFile.path)
+         |
          |  cmd"cp $$inFile $$analysisFile"
          |  cmd"cp $$analysisFile $$resultsFile"
          |}
       """.stripMargin)
-    // scalastyle:on regex
     Seq(projectScript, pipelineScript)
   }
 

@@ -41,6 +41,7 @@ class LoamMultiProjectTest extends FunSuite {
       s"""
          |val name = ${projectName.asStringLiteral}
       """.stripMargin)
+    // scalastyle:off regex
     val pipelineScript = LoamScript("pipeline",
       s"""
          |import project.name
@@ -54,6 +55,7 @@ class LoamMultiProjectTest extends FunSuite {
          |  cmd"cp $$analysisFile $$resultsFile"
          |}
       """.stripMargin)
+    // scalastyle:on regex
     Seq(projectScript, pipelineScript)
   }
 

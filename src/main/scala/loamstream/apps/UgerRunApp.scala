@@ -1,6 +1,5 @@
 package loamstream.apps
 
-import com.typesafe.config.ConfigFactory
 import loamstream.cli.Conf
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.{ LoamCompiler, LoamEngine }
@@ -8,16 +7,13 @@ import loamstream.conf.UgerConfig
 import loamstream.model.execute.RxExecuter
 import loamstream.uger.UgerChunkRunner
 import loamstream.util.Loggable
-import com.typesafe.config.Config
 import loamstream.db.slick.SlickLoamDao
 import loamstream.db.slick.DbDescriptor
 import loamstream.db.slick.DbType
-import loamstream.util.RxSchedulers
 import loamstream.uger.JobMonitor
 import rx.lang.scala.Scheduler
 import loamstream.uger.DrmaaClient
 import loamstream.uger.Poller
-import scala.concurrent.ExecutionContext
 
 /** Compiles and runs Loam script provided as argument */
 object UgerRunApp extends App with DrmaaClientHelpers with TypesafeConfigHelpers with SchedulerHelpers with Loggable {

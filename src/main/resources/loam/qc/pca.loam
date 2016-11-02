@@ -1,6 +1,6 @@
 import camp._
 
-val hail = path("/Users/kyuksel/GitHubClones/hail/build/install/hail/bin/hail")
+val hail = path("/Users/kyuksel/github_repos/hail/build/install/hail/bin/hail")
 val R = path("/usr/local/bin/R")
 
 val m_base = store[TXT].from(s"$base")
@@ -19,6 +19,7 @@ cmd"""$hail importplink
      -t "IID: String, T2D_HEALTH_PROVIDER: Int, AGE_T2D_HEALTH_PROVIDER: Double, SEX: Int, SuperPopulation: String, RACE: String"
      --missing "NA"
      write
+     --overwrite
      -o $m_vds
      count
      -g"""

@@ -1,5 +1,6 @@
 package loamstream.model
 
+import loamstream.util.TypeBox
 import org.scalatest.FunSuite
 
 import scala.reflect.runtime.universe.typeOf
@@ -232,10 +233,10 @@ final class AstTest extends FunSuite {
 
   private object Tools {
 
-    final case class SimpleStore(sig: StoreSig, id: LId = LId.newAnonId) extends Store
+    final case class SimpleStore(sig: TypeBox.Untyped, id: LId = LId.newAnonId) extends Store
 
     final case class SimpleTool(spec: ToolSpec, id: LId = LId.newAnonId) extends Tool {
-      private def toStoreMap(m: Map[LId, StoreSig]): Map[LId, Store] = m.mapValues(SimpleStore(_))
+      private def toStoreMap(m: Map[LId, TypeBox.Untyped]): Map[LId, Store] = m.mapValues(SimpleStore(_))
 
       override val inputs: Map[LId, Store] = toStoreMap(spec.inputs)
 
@@ -245,7 +246,7 @@ final class AstTest extends FunSuite {
     //NB: These specs are all totally bogus, and are basically placeholders just to have a way to make unique nodes.
     //That's fine for now since we don't 'typecheck' ASTs.  This will change in the near future.
 
-    private val hStoreSpec = new StoreSig(typeOf[Map[Int, Double]])
+    private val hStoreSpec = TypeBox.of[Map[Int, Double]]
     private val zStoreSpec = hStoreSpec
     private val storeSpec = hStoreSpec
 

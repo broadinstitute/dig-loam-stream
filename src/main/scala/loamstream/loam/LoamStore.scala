@@ -3,8 +3,8 @@ package loamstream.loam
 import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.model.{LId, Store, StoreSig}
-import loamstream.util.ValueBox
+import loamstream.model.{LId, Store}
+import loamstream.util.{TypeBox, ValueBox}
 
 import scala.reflect.runtime.universe.TypeTag
 
@@ -17,7 +17,7 @@ object LoamStore {
   trait Untyped extends Store {
     def id: LId
 
-    def sig: StoreSig
+    def sig: TypeBox.Untyped
 
     def scriptContext: LoamScriptContext
 
@@ -56,10 +56,10 @@ object LoamStore {
   }
 
   def create[T: TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[T] =
-    LoamStore[T](LId.newAnonId, StoreSig.create[T])
+    LoamStore[T](LId.newAnonId, TypeBox.of[T])
 }
 
-final case class LoamStore[T] private(id: LId, sig: StoreSig)(implicit val scriptContext: LoamScriptContext)
+final case class LoamStore[T] private(id: LId, sig: TypeBox[T])(implicit val scriptContext: LoamScriptContext)
   extends LoamStore.Untyped {
   update()
 

@@ -19,7 +19,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   if (fully) SourceUtils.fullTypeName(tpe) else SourceUtils.shortTypeName(tpe)
 
   /** Prints store */
-  def print(store: LoamStore, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
+  def print(store: LoamStore.Untyped, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
   /** Prints cmd tool */
   def print(tool: LoamTool): String = tool match {
@@ -34,7 +34,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print[T](tool: LoamNativeTool[T]): String = "[native tool]"
 
   /** Prints prefix symbol to distinguish input and output stores */
-  def printIoPrefix(tool: LoamCmdTool, store: LoamStore, graph: LoamGraph): String =
+  def printIoPrefix(tool: LoamCmdTool, store: LoamStore.Untyped, graph: LoamGraph): String =
   graph.storeSources.get(store) match {
     case Some(StoreEdge.ToolEdge(sourceTool)) if sourceTool == tool => ">"
     case _ => "<"

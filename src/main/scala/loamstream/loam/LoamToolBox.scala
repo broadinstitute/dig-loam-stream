@@ -21,7 +21,7 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
     val graph = tool.graphBox.value
 
     def pathOutputsFor(tool: LoamTool): Set[Output] = {
-      val loamStores: Set[LoamStore] = graph.toolOutputs(tool)
+      val loamStores: Set[LoamStore.Untyped] = graph.toolOutputs(tool)
 
       loamStores.flatMap(_.pathOpt).map(Output.PathOutput)
     }

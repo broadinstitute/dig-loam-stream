@@ -3,7 +3,7 @@ package loamstream.model.jobs.commandline
 import java.nio.file.{Path, Files => JFiles}
 
 import loamstream.model.jobs.{JobState, LJob}
-import loamstream.util.Futures
+import loamstream.util.{Futures, Loggable}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process.{ProcessBuilder, ProcessLogger}
@@ -23,7 +23,7 @@ trait CommandLineJob extends LJob {
 
   def commandLineString: String
 
-  def logger: ProcessLogger = CommandLineJob.noOpProcessLogger
+  def logger: ProcessLogger = CommandLineJob.stdErrProcessLogger
 
   def exitValueCheck: Int => Boolean
 
@@ -50,7 +50,7 @@ trait CommandLineJob extends LJob {
   override def toString: String = s"'$commandLineString'"
 }
 
-object CommandLineJob {
+object CommandLineJob extends Loggable {
 
   val mustBeZero: Int => Boolean = _ == 0
   val acceptAll: Int => Boolean = i => true
@@ -58,5 +58,6 @@ object CommandLineJob {
   val defaultExitValueChecker = mustBeZero
 
   val noOpProcessLogger = ProcessLogger(line => ())
+  val stdErrProcessLogger = ProcessLogger(line => (), line => trace(line))
 
 }

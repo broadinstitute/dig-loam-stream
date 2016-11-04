@@ -1,24 +1,23 @@
 package loamstream.apps
 
+import loamstream.cli.Conf
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.util.Loggable
 
 /**
-  * Created by kyuksel on 7/12/16.
-  */
+ * @author kyuksel
+ * date: Jul 5, 2016
+ *
+ * Meant to compile user-specified Loam scripts on the command line for development purposes
+ */
 object CompileLoamFileApp extends App with Loggable {
-  if (args.length < 1) {
-    throw new IllegalArgumentException("No Loam script file name provided")
-  }
+  val cli = Conf(args)
+  val conf = cli.conf()
+  val loams = cli.loam()
 
-  if (args.length > 1) {
-    throw new IllegalArgumentException("This app takes only one argument, the Loam script file name.")
-  }
-
-  val loamFile = args(0)
   val loamEngine = LoamEngine.default(LoggableOutMessageSink(this))
-  val compilationResultShot =  loamEngine.compileFile(loamFile)
+  val compilationResultShot =  loamEngine.compileFiles(loams)
   assert(compilationResultShot.nonEmpty, compilationResultShot.message)
 
   val compilationResult = compilationResultShot.get

@@ -58,6 +58,6 @@ object CommandLineJob extends Loggable {
   val defaultExitValueChecker = mustBeZero
 
   val noOpProcessLogger = ProcessLogger(line => ())
-  val stdErrProcessLogger = ProcessLogger(line => (), line => trace(line))
+  val stdErrProcessLogger = ProcessLogger(line => (), line => info(line))
 
 }

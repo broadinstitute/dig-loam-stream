@@ -1,7 +1,5 @@
 import camp._
-
-val hail = path("/Users/kyuksel/github_repos/hail/build/install/hail/bin/hail")
-val R = path("/usr/local/bin/R")
+import binaries._
 
 val m_base = store[TXT].from(s"$base")
 val m_phenotypes = store[TXT].from(s"$phenotypes")

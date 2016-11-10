@@ -34,7 +34,7 @@ object Files {
   def tempFile(suffix: String, directory: File): Path = {
     require(directory.isDirectory, s"'$directory' must be a directory")
     require(directory.exists, s"'$directory' must exist")
-    
+
     File.createTempFile(tempFilePrefix, suffix, directory).toPath.toAbsolutePath
   }
 
@@ -89,13 +89,13 @@ object Files {
 
   object LineFilter {
     type Factory = () => LineFilter
-    
+
     private object AcceptsAllLineFilter extends LineFilter {
       override def apply(line: String): Boolean = true
     }
-    
+
     val acceptAll: Factory = () => AcceptsAllLineFilter
-    
+
     //TODO: It would be nice to not need a stateful predicate
     val onlyFirstVcfHeader: Factory = () => new LineFilter {
       private var firstVcfHeaderIsPast = false
@@ -116,18 +116,18 @@ object Files {
 
   //TODO: Currently, this always creates the output file, even if sourcePaths is empty.  Is that the right thing to do?
   def mergeLinesGzipped(
-      sourcePaths: Iterable[Path], 
-      targetPath: Path,
-      lineFilterFactory: LineFilter.Factory = LineFilter.acceptAll): Unit = {
-    
+                         sourcePaths: Iterable[Path],
+                         targetPath: Path,
+                         lineFilterFactory: LineFilter.Factory = LineFilter.acceptAll): Unit = {
+
     val lineFilter = lineFilterFactory()
-    
+
     val writer = {
       new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(targetPath.toFile))))
     }
-    
+
     def inputStreamFor(path: Path) = new GZIPInputStream(new FileInputStream(path.toFile))
-    
+
     LoamFileUtils.enclosed(writer) { writer =>
       for (sourcePath <- sourcePaths) {
         val source = Source.createBufferedSource(inputStreamFor(sourcePath))
@@ -137,5 +137,9 @@ object Files {
         }
       }
     }
+  }
+
+  def filterFile(inFile: Path, outFile: Path, filter: String => Boolean): Unit = {
+    // TODO
   }
 }

@@ -20,22 +20,22 @@ object LoamPredef {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store[T: TypeTag](implicit scriptContext: LoamScriptContext): LoamStore = LoamStore.create[T]
+  def store[T: TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[T] = LoamStore.create[T]
 
   def job[T: TypeTag](exp: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool(DefaultStores.empty, exp)
 
-  def job[T: TypeTag](store: LoamStore, stores: LoamStore*)(exp: => T)(
+  def job[T: TypeTag](store: LoamStore.Untyped, stores: LoamStore.Untyped*)(exp: => T)(
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool((store +: stores).toSet, exp)
 
-  def in(store: LoamStore, stores: LoamStore*): LoamTool.In = in(store +: stores)
+  def in(store: LoamStore.Untyped, stores: LoamStore.Untyped*): LoamTool.In = in(store +: stores)
 
-  def in(stores: Iterable[LoamStore]): LoamTool.In = LoamTool.In(stores)
+  def in(stores: Iterable[LoamStore.Untyped]): LoamTool.In = LoamTool.In(stores)
 
-  def out(store: LoamStore, stores: LoamStore*): LoamTool.Out = LoamTool.Out((store +: stores).toSet)
+  def out(store: LoamStore.Untyped, stores: LoamStore.Untyped*): LoamTool.Out = LoamTool.Out((store +: stores).toSet)
 
-  def out(stores: Iterable[LoamStore]): LoamTool.Out = LoamTool.Out(stores)
+  def out(stores: Iterable[LoamStore.Untyped]): LoamTool.Out = LoamTool.Out(stores)
 
   def job[T: TypeTag](in: LoamTool.In, out: LoamTool.Out)(exp: => T)(
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, out, exp)

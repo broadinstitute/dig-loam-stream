@@ -18,11 +18,11 @@ object LoamNativeTool {
     tool
   }
 
-  def apply[T: TypeTag](defaultStores: Set[LoamStore], expr: => T)(
+  def apply[T: TypeTag](defaultStores: Set[LoamStore.Untyped], expr: => T)(
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     apply(AllStores(defaultStores), expr)
 
-  def apply[T: TypeTag](inStores: Set[LoamStore], outStores: Set[LoamStore], expr: => T)(
+  def apply[T: TypeTag](inStores: Set[LoamStore.Untyped], outStores: Set[LoamStore.Untyped], expr: => T)(
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     apply(InputsAndOutputs(inStores, outStores), expr)
 

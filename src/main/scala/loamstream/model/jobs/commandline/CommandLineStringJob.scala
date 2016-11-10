@@ -26,7 +26,7 @@ final case class CommandLineStringJob(
   override def processBuilder: ProcessBuilder = {
     val commandLineEncoded = Matcher.quoteReplacement(commandLineString)
     val commandLineEncodedEncoded = Matcher.quoteReplacement(commandLineEncoded)
-    Process(Seq("bash", "-c", commandLineEncodedEncoded), workDir.toFile)
+    Process(Seq("sh", "-c", commandLineEncodedEncoded), workDir.toFile)
   }
 
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)

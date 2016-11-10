@@ -137,7 +137,7 @@ object Files {
     }
   }
 
-  def filterFile(inFile: Path, outFile: Path, filter: String => Boolean): Unit = {
+  def filterFile(inFile: Path, outFile: Path)(filter: String => Boolean): Unit = {
     LoamFileUtils.enclosed(JFiles.newBufferedReader(inFile, StandardCharsets.UTF_8)) { reader =>
       LoamFileUtils.enclosed(JFiles.newBufferedWriter(outFile, StandardCharsets.UTF_8)) { writer =>
         reader.lines().iterator().asScala.filter(filter).foreach { line =>

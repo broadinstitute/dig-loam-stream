@@ -4,6 +4,7 @@ import loamstream.compiler.repo.LoamRepository
 import loamstream.loam.LoamScript
 import loamstream.util.Files
 import org.scalatest.FunSuite
+import java.nio.file.Paths
 
 /**
   * LoamStream
@@ -11,13 +12,6 @@ import org.scalatest.FunSuite
   */
 final class LoamRepositoryTest extends FunSuite {
   val compiler = new LoamCompiler
-
-  def assertDefaultEntriesPresent(repo: LoamRepository): Unit = {
-    for (entry <- LoamRepository.defaultEntries) {
-      val scriptShot = repo.load(entry)
-      assert(scriptShot.nonEmpty, scriptShot.message)
-    }
-  }
 
   def assertAllEntriesCompile(repo: LoamRepository): Unit = {
     for (entry <- repo.list) {
@@ -93,19 +87,13 @@ final class LoamRepositoryTest extends FunSuite {
     assert(load3.get.code === "content of file3")
   }
 
-  test("Default package repo contains all default entries") {
-    assertDefaultEntriesPresent(LoamRepository.defaultPackageRepo)
-  }
-
-  test("Default repo contains all default entries") {
-    assertDefaultEntriesPresent(LoamRepository.defaultRepo)
-  }
-
-  test("All entries of default package repo compile") {
-    assertAllEntriesCompile(LoamRepository.defaultPackageRepo)
-  }
-
-  test("All entries of default repo compile") {
-    assertAllEntriesCompile(LoamRepository.defaultRepo)
+  test("All examples compile") {
+    val examples = Paths.get("src/main/loam/examples")
+    
+    val exampleRepo = LoamRepository.ofFolder(examples)
+    
+    assert(exampleRepo.list.nonEmpty)
+    
+    assertAllEntriesCompile(exampleRepo)
   }
 }

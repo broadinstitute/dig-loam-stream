@@ -60,7 +60,8 @@ final class LoamNativeToolTest extends FunSuite {
     storePaths.foreach(assertFile)
   }
 
-  def assertInputsAndOutputs(tool: LoamTool, inStores: Set[LoamStore], outStores: Set[LoamStore]): Unit = {
+  def assertInputsAndOutputs(tool: LoamTool, inStores: Set[LoamStore.Untyped],
+                             outStores: Set[LoamStore.Untyped]): Unit = {
     assert(tool.inputs.values.toSet === inStores)
     assert(tool.outputs.values.toSet === outStores)
   }

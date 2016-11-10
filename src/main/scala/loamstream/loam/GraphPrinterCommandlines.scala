@@ -6,7 +6,7 @@ import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
 
   /** Prints a store */
-  def print(store: LoamStore): String = store.pathOpt.map(_.toString).getOrElse("[file]")
+  def print(store: LoamStore.Untyped): String = store.pathOpt.map(_.toString).getOrElse("[file]")
 
   /** Prints a store ref */
   def print(storeRef: LoamStoreRef): String =

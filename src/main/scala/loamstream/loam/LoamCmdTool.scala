@@ -23,7 +23,7 @@ object LoamCmdTool {
       val tokens: Seq[LoamToken] = firstToken +: {
         stringParts.zip(args).flatMap { case (stringPart, arg) =>
           val argToken = arg match {
-            case store: LoamStore => StoreToken(store)
+            case store: LoamStore.Untyped => StoreToken(store)
             case storeRef: LoamStoreRef => StoreRefToken(storeRef)
             case _ => StringToken(arg.toString)
           }

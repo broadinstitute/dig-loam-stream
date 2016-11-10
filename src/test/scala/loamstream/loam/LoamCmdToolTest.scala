@@ -1,7 +1,8 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.StringToken
-import loamstream.model.{LId, StoreSig}
+import loamstream.model.LId
+import loamstream.util.TypeBox
 import org.scalatest.FunSuite
 
 /**
@@ -40,11 +41,11 @@ final class LoamCmdToolTest extends FunSuite {
 
     val tool = cmd"foo bar baz"
 
-    val inStore0 = LoamStore(LId.newAnonId, StoreSig.create[Int])
-    val inStore1 = LoamStore(LId.newAnonId, StoreSig.create[String])
+    val inStore0 = LoamStore(LId.newAnonId, TypeBox.of[Int])
+    val inStore1 = LoamStore(LId.newAnonId, TypeBox.of[String])
 
-    val outStore0 = LoamStore(LId.newAnonId, StoreSig.create[Option[Float]])
-    val outStore1 = LoamStore(LId.newAnonId, StoreSig.create[Short])
+    val outStore0 = LoamStore(LId.newAnonId, TypeBox.of[Option[Float]])
+    val outStore1 = LoamStore(LId.newAnonId, TypeBox.of[Short])
 
     assert(tool.inputs == Map.empty)
     assert(tool.outputs == Map.empty)

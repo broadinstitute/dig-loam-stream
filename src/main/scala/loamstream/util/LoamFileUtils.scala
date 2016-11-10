@@ -7,7 +7,7 @@ import java.nio.file.Paths
 /**
   * Created on: 3/1/16
   *
-  * @author Kaan Yuksel
+  * @author Kaan Yuksfilesel
   */
 object LoamFileUtils {
   def resolveRelativePath(relativePath: String): Path = Paths.get(relativePath)

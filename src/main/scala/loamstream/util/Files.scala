@@ -1,16 +1,14 @@
 package loamstream.util
 
 import java.io._
-import java.nio.file.Path
-import java.nio.file.Paths
-
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Path, Paths, Files => JFiles}
 import java.util.stream.Collectors
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
+import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.io.Source
+import scala.util.{Failure, Success, Try}
 
 /**
   * @author clint
@@ -140,6 +138,13 @@ object Files {
   }
 
   def filterFile(inFile: Path, outFile: Path, filter: String => Boolean): Unit = {
-    // TODO
+    LoamFileUtils.enclosed(JFiles.newBufferedReader(inFile, StandardCharsets.UTF_8)) { reader =>
+      LoamFileUtils.enclosed(JFiles.newBufferedWriter(outFile, StandardCharsets.UTF_8)) { writer =>
+        reader.lines().iterator().asScala.filter(filter).foreach { line =>
+          writer.write(line)
+          writer.newLine()
+        }
+      }
+    }
   }
 }

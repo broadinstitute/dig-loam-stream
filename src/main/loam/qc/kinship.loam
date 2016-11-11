@@ -1,0 +1,48 @@
+import binaries._
+
+val LABEL = "BIOME_AFFY"
+
+//TODO: better name
+val ryansDir = path("/humgen/diabetes/users/ryank/data/biome_revised")
+
+val KINSHIP_CALC_SAMPLE_SHARING_R = ryansDir / "scripts" / "kinship_calc_sample_sharing.r"
+val REGIONS_EXCLUDE = ryansDir / "files" / "regions.exclude"
+
+val data = ryansDir / "data"
+
+//TODO: better name
+val input = store[TXT].from(s"${data}/${LABEL}.qc.bi.chr1-22")
+
+val kinshipFile = store[TXT].to(s"${LABEL}.kinship")
+val kinshipFileBed = store[TXT].to(s"${LABEL}.kinship.bed")
+val kinshipFileBim = store[TXT].to(s"${LABEL}.kinship.bim")
+val kinshipFileFam = store[TXT].to(s"${LABEL}.kinship.fam")
+val kinshipFilePruneIn = store[TXT].to(s"${LABEL}.kinship.prune.in")
+val kinshipFilePruned = store[TXT].to(s"${LABEL}.kinship.pruned")
+val kinshipFilePrunedBed = store[TXT].to(s"${LABEL}.kinship.pruned.bed")
+val kinshipFilePrunedBim = store[TXT].to(s"${LABEL}.kinship.pruned.bim")
+val kinshipFilePrunedFam = store[TXT].to(s"${LABEL}.kinship.pruned.fam")
+val kinshipFilePrunedKing = store[TXT].to(s"${LABEL}.kinship.pruned.king")
+val kinshipFilePrunedKingKin0 = store[TXT].from(s"${LABEL}.kinship.pruned.king.kin0")
+val kinshipFilePrunedKingKin0Related = store[TXT].from(s"${LABEL}.kinship.pruned.king.kin0.related")
+val kinshipFilePrunedKingSharingCounts = store[TXT].to(s"${LABEL}.kinship.pruned.king.sharing_counts.txt")
+
+//dummy stores to order commands :(
+val dummyStore1 = store[Nothing]
+val dummyStore2 = store[Nothing]
+val dummyStore3 = store[Nothing]
+val dummyStore4 = store[Nothing]
+val dummyStore5 = store[Nothing]
+
+cmd"""$plink --bfile $input --geno 0.02 --maf 0.01 --exclude $REGIONS_EXCLUDE --make-bed --out $kinshipFile""".out(dummyStore1)
+
+cmd"""$plink --bfile $kinshipFile --indep-pairwise 1500 150 0.2 --out $kinshipFile""".in(dummyStore1).out(dummyStore2)
+
+cmd"""$plink --bfile $kinshipFile --extract $kinshipFilePruneIn --make-bed --out $kinshipFilePruned""".in(dummyStore2).out(dummyStore3)
+
+cmd"""$KING -b $kinshipFilePrunedBed --kinship --prefix $kinshipFilePrunedKing""".in(dummyStore4).out(dummyStore5)
+
+cmd"""(head -1 ${kinshipFilePrunedKingKin0} ; sed '1d' ${kinshipFilePrunedKingKin0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${kinshipFilePrunedKingKin0Related}""".in(dummyStore5).out(kinshipFilePrunedKingKin0Related)
+
+//NB: Need to 'use R-3.1'
+cmd"""R --vanilla --args $kinshipFilePrunedKingKin0Related $kinshipFilePrunedKingSharingCounts < $KINSHIP_CALC_SAMPLE_SHARING_R""".in(kinshipFilePrunedKingKin0Related)

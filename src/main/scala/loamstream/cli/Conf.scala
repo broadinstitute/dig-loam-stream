@@ -55,7 +55,7 @@ final case class Conf(
   private def printVersionInfoAndExitIfNeeded(): Unit = {
     if (version()) {
       println(s"${Versions.load().get.toString}") //scalastyle:ignore regex
-      exitOrThrow("")
+      exitOrThrow("version")
     }
   }
   
@@ -67,6 +67,8 @@ final case class Conf(
     }
   }
 
+  private val listPathConverter: ValueConverter[List[Path]] = listArgConverter[Path](Paths.get(_))
+  
   // TODO: Add version info (ideally from build.sbt)?
   banner("""LoamStream is a genomic analysis stack featuring a high-level language, compiler and runtime engine.
            |Usage: scala loamstream.jar [Option]...
@@ -74,33 +76,52 @@ final case class Conf(
            |       loamstream [Option]...
            |Options:
            |""".stripMargin)
-
+  
+           
   //Using all default args for `opt` makes it a flag 
   val version: ScallopOption[Boolean] = opt[Boolean]()
-           
-  val loam: ScallopOption[List[Path]] = {
-    val listPathConverter: ValueConverter[List[Path]] = listArgConverter[Path](Paths.get(_))
-    
-    opt[List[Path]](descr = "Path to loam script", validate = _.nonEmpty)(listPathConverter)
-  }
+  
+  //Using all default args for `opt` makes it a flag 
+  val compileOnly: ScallopOption[Boolean] = opt[Boolean]()
   
   val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
-
-  //NB: Tell Scallop that if --version is supplied, --loam and --conf are not required, and that if --version
-  //is NOT supplied, then BOTH --loam and --conf must be supplied.  These calls replace the `required` param to `opt`
-  //for `loam` and `conf`
-  conflicts(version, List(loam, conf))
-  codependent(loam, conf)
   
+  val backend: ScallopOption[BackendType] = {
+    val backendConverter: ValueConverter[BackendType] = singleArgConverter[BackendType](BackendType.byName(_).get)
+    
+    opt[BackendType](descr = s"Backend to use: must be one of ${BackendType.values.mkString(",")}")(backendConverter)
+  }
+  
+  val loams: ScallopOption[List[Path]] = trailArg[List[Path]](
+      descr = "Path(s) to loam script(s)", 
+      required = false,
+      validate = _.nonEmpty)(listPathConverter)
+  
+  //NB: If --version is supplied, no other args are required
+  conflicts(version, List(loams, backend, conf, compileOnly))
+  //NB: If --compile-only is supplied, --loam, --conf, and --backend are not required
+  mutuallyExclusive(compileOnly, backend)
+  //codependent(loams, backend)
+  //codependent(compileOnly, loams)
+  //conflicts(compileOnly, List(backend, conf, version))
+  //If any loam files are specified, we need either --backend or --compile-only
+  dependsOnAny(loams, List(backend, compileOnly))
 
-  //NB: This needs to come before the call to verify(), or else we don't fail properly when --conf is omitted. Shrug. 
+  validateOpt(loams, backend, compileOnly) {
+    case (Some(files), None, Some(_)) if files.nonEmpty => Right(Unit)
+    case (Some(files), Some(_), None) if files.nonEmpty => Right(Unit)
+    case _ => Left(s"Loam files must be specified")
+  }
+  
+  //NB: This needs to come before the call to verify(), or else we don't fail properly when the path 
+  //supplied to --conf doesn't exist. Shrug.
   validatePathExists(conf)
-  
+
   verify()
   
   // The following checks come after verify() since options are lazily built by Scallop
   printHelpIfNoArgsAndExit()
   printVersionInfoAndExitIfNeeded()
   
-  validatePathsExist(loam)
+  validatePathsExist(loams)
 }

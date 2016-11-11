@@ -1,13 +1,12 @@
 package loamstream.util
 
 import java.nio.charset.StandardCharsets
+import java.nio.file.{Path, Paths, Files => JFiles}
 
 import org.scalatest.FunSuite
 
+import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.util.Success
-import java.nio.file.Paths
-import java.util.stream.Collectors
-import java.nio.file.{Path, Files => JFiles}
 
 /**
   * @author clint
@@ -163,13 +162,13 @@ final class FilesTest extends FunSuite {
     doTest(Files.LineFilter.acceptAll)
   }
 
-  def assertEachLine(file:Path)(predicate:String => Boolean): Unit = {
-    LoamFileUtils.enclosed(JFiles.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-      ??? // TODO
+  def assertEachLine(file: Path, predicateDescription: String)(predicate: String => Boolean): Unit = {
+    LoamFileUtils.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
+      assert(reader.lines().iterator().asScala.forall(predicate), s"Not true for every line: $predicateDescription")
     }
   }
 
-  test("filterFile(...)") {
+  test("countLines(...) and filterFile(...)") {
     val dir = JFiles.createTempDirectory("FilesTest")
     val inFile = dir.resolve("inFile.txt")
     val inFileContent =
@@ -210,8 +209,15 @@ final class FilesTest extends FunSuite {
         |And the mome raths outgrabe.
       """.stripMargin
     Files.writeTo(inFile)(inFileContent)
-    val outFile1 = dir.resolve("outFile1.txt")
-    Files.filterFile(inFile, outFile1)(_.contains("Jabberwock"))
-
+    val nLinesInFile = 36
+    assert(Files.countLines(inFile) === nLinesInFile)
+    for((template, nLinesWithTemplateExpected) <- Seq(("Jabberwock", 3), ("monkey", 0), ("e", 27))) {
+      val outFile = dir.resolve(s"outFile$template.txt")
+      Files.filterFile(inFile, outFile)(_.contains(template))
+      assertEachLine(outFile, s"""contains "$template"""")(_.contains(template))
+      val nLinesWithTemplate = Files.countLines(outFile)
+      assert(nLinesWithTemplate === nLinesWithTemplateExpected,
+        s"""Expected $nLinesWithTemplateExpected with "$template", but found $nLinesWithTemplate.""")
+    }
   }
 }

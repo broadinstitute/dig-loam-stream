@@ -147,4 +147,12 @@ object Files {
       }
     }
   }
+
+  def countLines(file: Path): Long = {
+    LoamFileUtils.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
+      var count: Long = 0L
+      reader.lines().iterator().asScala.foreach(line => count += 1)
+      count
+    }
+  }
 }

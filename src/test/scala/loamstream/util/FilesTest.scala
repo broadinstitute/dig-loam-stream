@@ -185,7 +185,7 @@ final class FilesTest extends FunSuite {
         |The frumious Bandersnatch!"
         |
         |He took his vorpal sword in hand:
-        |Long time the manxome foe he sought—
+        |Long time the manxome foe he sought -
         |So rested he by the Tumtum tree,
         |And stood awhile in thought.
         |

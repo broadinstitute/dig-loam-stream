@@ -11,27 +11,36 @@ val REGIONS_EXCLUDE = ryansDir / "files" / "regions.exclude"
 
 val data = ryansDir / "data"
 
-def inputStore(extension: String): Store[TXT] = store[TXT].from(s"${data}/${LABEL}.qc.bi.chr1-22${extension}")
+import loamstream.model.Store
+import loamstream.loam.LoamStore.Untyped
 
-def outputStoreName(name: String)(extension: String): Store[TXT] = s"${LABEL}${name}${extension}"
+def inputStoreName(extension: String): String = s"${data}/${LABEL}.qc.bi.chr1-22${extension}"
 
-def outputStore(name: String)(extension: String): Store[TXT] = store[TXT].to(outputStoreName(name)(extension))
+def inputStore(extension: String): Untyped = store[TXT].from(inputStoreName(extension))
 
-def withExtensions(extensions: String*)(makeStore: String => Store[TXT]): Seq[Store[TXT]] = {
-  extensions.map(ex => makeStore(ex)
+def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}${extension}"
+
+def outputStore(name: String)(extension: String): Untyped = store[TXT].to(outputStoreName(name)(extension))
+
+def withExtensions(extensions: String*)(makeStore: String => Store): Seq[Store] = {
+  extensions.map(ex => makeStore(ex))
 }
 
-def bedBimFam(makeStore: String => Store[TXT]): Seq[Store[TXT]] = withExtensions(".bed", ".bim", ".fam")(makeStore)
+def bedBimFam(makeStore: String => Untyped): Seq[Untyped] = withExtensions(".bed", ".bim", ".fam")(makeStore)
 
-val inputBedBimFam: Seq[Store[TXT]] = bedBimFam(inputStore)
+val inputPrefix: String = inputStoreName("")
 
-val kinshipFileBedBimFam: Seq[Store[TXT]] = bedBimFam(outputStore(".kinship"))
+val inputBedBimFam: Seq[Untyped] = bedBimFam(inputStore)
 
-val kinshipFilePruneIn: Store[TXT] = outputStore(".kinship.prune.in")("")
+val kinshipPrefix: String = outputStoreName(".kinship")("")
+
+val kinshipFileBedBimFam: Seq[Untyped] = bedBimFam(outputStore(".kinship"))
+
+val kinshipFilePruneIn: Untyped = outputStore(".kinship.prune.in")("")
 val kinshipFilePruned: String = outputStoreName(".kinship.pruned")("")
-val kinshipFilePrunedBedBimFam: Seq[Store[TXT]] = bedBimFam(outputStore(".kinship.pruned"))
+val kinshipFilePrunedBedBimFam: Seq[Untyped] = bedBimFam(outputStore(".kinship.pruned"))
 
-val kinshipFilePrunedKingPrefix: String = outputStore(".kinship.pruned")(".king")
+val kinshipFilePrunedKingPrefix: String = outputStoreName(".kinship.pruned")(".king")
 
 val Seq(
 	  kinshipFilePrunedKingKin0, 
@@ -41,13 +50,13 @@ val Seq(
   withExtensions(".king.kin0", ".king.kin0.related", ".king.sharing_counts.txt")(outputStore(".kinship.pruned"))
 }
 
-cmd"""$plink --bfile $input --geno 0.02 --maf 0.01 --exclude $REGIONS_EXCLUDE --make-bed --out $kinshipFile""".in(inputBedBimFam).out(kinshipFileBedBimFam)
+cmd"""$plink --bfile $inputPrefix --geno 0.02 --maf 0.01 --exclude $REGIONS_EXCLUDE --make-bed --out $kinshipPrefix""".in(inputBedBimFam).out(kinshipFileBedBimFam)
 
-cmd"""$plink --bfile $kinshipFile --indep-pairwise 1500 150 0.2 --out $kinshipFile""".in(kinshipFileBedBimFam).out(kinshipFilePruneIn)
+cmd"""$plink --bfile $kinshipPrefix --indep-pairwise 1500 150 0.2 --out $kinshipPrefix""".in(kinshipFileBedBimFam).out(kinshipFilePruneIn)
 
-cmd"""$plink --bfile $kinshipFile --extract $kinshipFilePruneIn --make-bed --out $kinshipFilePruned""".in(kinshipFileBedBimFam :+ kinshipFilePruneIn).out(kinshipFilePrunedBedBimFam)
+cmd"""$plink --bfile $kinshipPrefix --extract $kinshipFilePruneIn --make-bed --out $kinshipFilePruned""".in(kinshipFileBedBimFam :+ kinshipFilePruneIn).out(kinshipFilePrunedBedBimFam)
 
-cmd"""$KING -b $kinshipFilePrunedBed --kinship --prefix $kinshipFilePrunedKing""".in(kinshipFilePrunedBedBimFam).out(kinshipFilePrunedKingKin0)
+cmd"""$KING -b $kinshipFilePrunedBed --kinship --prefix $kinshipFilePrunedKingPrefix""".in(kinshipFilePrunedBedBimFam).out(kinshipFilePrunedKingKin0)
 
 cmd"""(head -1 ${kinshipFilePrunedKingKin0} ; sed '1d' ${kinshipFilePrunedKingKin0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${kinshipFilePrunedKingKin0Related}""".in(kinshipFilePrunedKingKin0).out(kinshipFilePrunedKingKin0Related)
 

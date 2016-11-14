@@ -149,4 +149,42 @@ final class ConfTest extends FunSuite with Matchers {
     doTest("UGER", BackendType.Uger)
     doTest("UgEr", BackendType.Uger)
   }
+  
+  test("--run-everything") {
+    val exampleFile = "src/main/loam/examples/cp.loam"
+    
+    //bogus backend type
+    intercept[CliException] {
+      makeConf(Seq("--run-everything", "--backend", "sldkajalskjd", exampleFile))
+    }
+    
+    //"missing" backend type
+    intercept[CliException] {
+      makeConf(Seq("--run-everything", "--backend", exampleFile))
+    }
+    
+    {
+      val conf = makeConf(Seq("--run-everything", "--backend", "local", exampleFile))
+        
+      assert(conf.runEverything())
+    }
+    
+    {
+      val conf = makeConf(Seq("--run-everything", "--backend", "uger", exampleFile))
+        
+      assert(conf.runEverything())
+    }
+    
+    {
+      val conf = makeConf(Seq("--backend", "local", exampleFile))
+        
+      assert(conf.runEverything() === false)
+    }
+    
+    {
+      val conf = makeConf(Seq("--backend", "uger", exampleFile))
+        
+      assert(conf.runEverything() === false)
+    }
+  }
 }

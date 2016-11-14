@@ -9,7 +9,8 @@ import scala.reflect.internal.util.Position
   * Created by oliverr on 5/20/2016.
   */
 final case class Issue(pos: Position, msg: String, severity: Severity) {
-  def summary: String = s"[$severity] $msg"
+  //NB: Include the position to get at least a little help figuring out where compile errors come from. 
+  def summary: String = s"[$severity] $pos $msg"
 }
 
 object Issue {

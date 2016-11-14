@@ -71,25 +71,28 @@ final case class Conf(
   
   // TODO: Add version info (ideally from build.sbt)?
   banner("""LoamStream is a genomic analysis stack featuring a high-level language, compiler and runtime engine.
-           |Usage: scala loamstream.jar [Option]...
+           |Usage: scala loamstream.jar [options] [loam file(s)]
            |       or if you have an executable produced by SBT Native Packager:
-           |       loamstream [Option]...
+           |       loamstream [options] [loam file(s)]
            |Options:
            |""".stripMargin)
   
            
   //Using all default args for `opt` makes it a flag 
-  val version: ScallopOption[Boolean] = opt[Boolean]()
+  val version: ScallopOption[Boolean] = opt[Boolean](descr = "Print version information and exit")
   
   //Using all default args for `opt` makes it a flag 
-  val compileOnly: ScallopOption[Boolean] = opt[Boolean]()
+  val runEverything: ScallopOption[Boolean] = opt[Boolean](descr = "Run every step in the pipeline, even if they've already been run")
+  
+  //Using all default args for `opt` makes it a flag 
+  val compileOnly: ScallopOption[Boolean] = opt[Boolean](descr = "Only compile the supplied .loam files, don't run them")
   
   val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
   
   val backend: ScallopOption[BackendType] = {
     val backendConverter: ValueConverter[BackendType] = singleArgConverter[BackendType](BackendType.byName(_).get)
     
-    opt[BackendType](descr = s"Backend to use: must be one of ${BackendType.values.mkString(",")}")(backendConverter)
+    opt[BackendType](descr = s"Backend to use: must be one of ${BackendType.values.mkString(", ")}")(backendConverter)
   }
   
   val loams: ScallopOption[List[Path]] = trailArg[List[Path]](
@@ -97,19 +100,20 @@ final case class Conf(
       required = false,
       validate = _.nonEmpty)(listPathConverter)
   
-  //NB: If --version is supplied, no other args are required
-  conflicts(version, List(loams, backend, conf, compileOnly))
-  //NB: If --compile-only is supplied, --loam, --conf, and --backend are not required
-  mutuallyExclusive(compileOnly, backend)
-  //codependent(loams, backend)
-  //codependent(compileOnly, loams)
-  //conflicts(compileOnly, List(backend, conf, version))
-  //If any loam files are specified, we need either --backend or --compile-only
-  dependsOnAny(loams, List(backend, compileOnly))
-
-  validateOpt(loams, backend, compileOnly) {
-    case (Some(files), None, Some(_)) if files.nonEmpty => Right(Unit)
-    case (Some(files), Some(_), None) if files.nonEmpty => Right(Unit)
+  //NB: "manually" validate all combinations of args, since the interactions between Scallop validation methods (conflicts, 
+  //codependent, etc) became unmanageable.
+  //
+  //--conf is always optional
+  //--run-everything is always optional
+  //--version trumps everything - if it's present, everythign else is optional
+  //--backend and --compile-only are mutually exclusive; both require a non-empty list of loam files 
+  validateOpt(version, conf, runEverything, loams, backend, compileOnly) {
+    //If --version is supplied, everything else is unchecked
+    case (Some(true), _, _, _, _, _) => Right(Unit)
+    //--compile-only and a non-empty list of loam files is valid
+    case (_, _, _, Some(files), None, Some(true)) if files.nonEmpty => Right(Unit)
+    //--backend with a valid backend type and a non-empty list of loam files is valid
+    case (_, _, _, Some(files), Some(_), _) if files.nonEmpty => Right(Unit)
     case _ => Left(s"Loam files must be specified")
   }
   

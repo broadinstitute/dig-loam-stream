@@ -39,7 +39,7 @@ object Main extends Loggable {
 
   private def run(cli: Conf): Unit = {
     val wiring = cli.backend() match {
-      case BackendType.Local => AppWiring.forLocal
+      case BackendType.Local => AppWiring.forLocal(cli)
       case BackendType.Uger  => AppWiring.forUger(cli)
     }
 

@@ -123,7 +123,11 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     override lazy val dao: LoamDao = {
       val dbDescriptor = DbDescriptor(DbType.H2, "jdbc:h2:./.loamstream/db")
       
-      new SlickLoamDao(dbDescriptor)
+      val dao = new SlickLoamDao(dbDescriptor)
+      
+      dao.createTables()
+      
+      dao
     }
   }
   

@@ -43,9 +43,6 @@ object Main extends Loggable {
       case BackendType.Uger  => AppWiring.forUger(cli)
     }
 
-    //Create DB tables if they're missing
-    wiring.dao.createTables()
-    
     val loamEngine = {
       val loamCompiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
 

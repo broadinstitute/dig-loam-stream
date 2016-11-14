@@ -1,16 +1,13 @@
 package loamstream.util
 
 import java.io._
-import java.nio.file.Path
-import java.nio.file.Paths
-
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Path, Paths, Files => JFiles}
 import java.util.stream.Collectors
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
-import scala.io.Source
+import scala.io.{Codec, Source}
+import scala.util.{Failure, Success, Try}
 
 /**
   * @author clint
@@ -49,21 +46,23 @@ object Files {
   }
 
   def writeTo(file: Path)(contents: String): Unit = {
-    doWriteTo(new FileWriter(file.toFile), contents)
+    doWriteTo(JFiles.newBufferedWriter(file, StandardCharsets.UTF_8), contents)
   }
 
   def readFrom(file: Path): String = {
-    doReadFrom(new FileReader(file.toFile))
+    doReadFrom(JFiles.newBufferedReader(file, StandardCharsets.UTF_8))
   }
 
   /** Writes to gzipped file */
   def writeToGzipped(file: Path)(contents: String): Unit = {
-    doWriteTo(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file.toFile))), contents)
+    val gZIPOutputStream = new GZIPOutputStream(new FileOutputStream(file.toFile))
+    doWriteTo(new OutputStreamWriter(gZIPOutputStream, StandardCharsets.UTF_8), contents)
   }
 
   /** Read from gzipped file */
   def readFromGzipped(file: Path): String = {
-    doReadFrom(new InputStreamReader(new GZIPInputStream(new FileInputStream(file.toFile))))
+    val gZIPInputStream = new GZIPInputStream(new FileInputStream(file.toFile))
+    doReadFrom(new InputStreamReader(gZIPInputStream, StandardCharsets.UTF_8))
   }
 
   def readFromAsUtf8(file: Path): String = StringUtils.fromUtf8Bytes(java.nio.file.Files.readAllBytes(file))
@@ -123,14 +122,15 @@ object Files {
     val lineFilter = lineFilterFactory()
 
     val writer = {
-      new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(targetPath.toFile))))
+      val gZIPOutputStream = new GZIPOutputStream(new FileOutputStream(targetPath.toFile))
+      new BufferedWriter(new OutputStreamWriter(gZIPOutputStream, StandardCharsets.UTF_8))
     }
 
     def inputStreamFor(path: Path) = new GZIPInputStream(new FileInputStream(path.toFile))
 
     LoamFileUtils.enclosed(writer) { writer =>
       for (sourcePath <- sourcePaths) {
-        val source = Source.createBufferedSource(inputStreamFor(sourcePath))
+        val source = Source.createBufferedSource(inputStreamFor(sourcePath))(Codec.UTF8)
         LoamFileUtils.enclosed(source) { source =>
           //TODO: Use System.lineSeparator for platform-specific line endings, instead of '\n'?
           source.getLines.filter(lineFilter).map(line => s"$line\n").foreach(writer.write)

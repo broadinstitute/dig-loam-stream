@@ -30,7 +30,7 @@ object LoamToken {
   final case class StoreToken(store: LoamStore.Untyped) extends LoamToken {
     override def toString: String = store.toString
 
-    override def toString(fileManager: LoamFileManager): String = fileManager.getPath(store).toString
+    override def toString(fileManager: LoamFileManager): String = fileManager.getStoreString(store)
   }
 
   final case class StoreRefToken(storeRef: LoamStoreRef) extends LoamToken {

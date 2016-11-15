@@ -1,5 +1,6 @@
 package loamstream.loam
 
+import java.net.URI
 import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreEdge
@@ -18,6 +19,9 @@ object LoamGraph {
 
     /** A connection between a store and a path */
     final case class PathEdge(path: Path) extends StoreEdge
+
+    /** A connection between a store and a URI */
+    final case class UriEdge(uri: URI) extends StoreEdge
 
     /** A connection between a store and a tool */
     final case class ToolEdge(tool: LoamTool) extends StoreEdge
@@ -125,11 +129,35 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   /** All tools with no succeeding tools */
   def finalTools: Set[LoamTool] = tools.filter(toolsSucceeding(_).isEmpty)
 
+  /** Whether store has a Path associated with it */
+  def hasPath(store: LoamStore.Untyped): Boolean = {
+    storeSources.get(store) match {
+      case Some(StoreEdge.PathEdge(path)) => true
+      case _ => storeSinks.getOrElse(store, Set.empty).collect({ case StoreEdge.PathEdge(path) => path }).nonEmpty
+    }
+  }
+
   /** Optionally the path associated with a store */
   def pathOpt(store: LoamStore.Untyped): Option[Path] = {
     storeSources.get(store) match {
       case Some(StoreEdge.PathEdge(path)) => Some(path)
       case _ => storeSinks.getOrElse(store, Set.empty).collect({ case StoreEdge.PathEdge(path) => path }).headOption
+    }
+  }
+
+  /** Whether store has a Path associated with it */
+  def hasUri(store: LoamStore.Untyped): Boolean = {
+    storeSources.get(store) match {
+      case Some(StoreEdge.UriEdge(path)) => true
+      case _ => storeSinks.getOrElse(store, Set.empty).collect({ case StoreEdge.UriEdge(uri) => uri }).nonEmpty
+    }
+  }
+
+  /** Optionally the URI associated with a store */
+  def uriOpt(store: LoamStore.Untyped): Option[URI] = {
+    storeSources.get(store) match {
+      case Some(StoreEdge.UriEdge(uri)) => Some(uri)
+      case _ => storeSinks.getOrElse(store, Set.empty).collect({ case StoreEdge.UriEdge(uri) => uri }).headOption
     }
   }
 

@@ -1,6 +1,7 @@
 val hail = path("/Users/kyuksel/github_repos/hail/build/install/hail/bin/hail")
 
-val R = path("/usr/local/bin/R")
+//Requires running 'use R-3.1'
+val R = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/r_3.1.1-bioconductor-3.0/bin/R")
 
 val plink = path("/humgen/diabetes/users/ryank/software/plink1.9/plink")
 

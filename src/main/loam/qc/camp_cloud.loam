@@ -1,0 +1,11 @@
+val main            = uri("gs://loamstream/qc/pca/")
+
+val data            = main / "data/"
+val out             = main / "out/"
+
+val base            = data / "CAMP.base"
+val phenotypes      = data / "camp.phenotypes.all"
+val interval_list   = data / "purcell5k.interval_list"
+
+val vds             = out / "CAMP.base.hail.vds"
+val pca_tsv         = out / "CAMP.base.hail.pca.tsv"

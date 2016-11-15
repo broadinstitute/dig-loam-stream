@@ -1,6 +1,7 @@
 package loamstream.model.jobs.commandline
 
 import java.nio.file.Path
+import java.util.regex.Matcher
 
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.CommandLineJob.stdErrProcessLogger
@@ -22,7 +23,11 @@ final case class CommandLineStringJob(
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
     override val logger: ProcessLogger = stdErrProcessLogger) extends CommandLineJob {
 
-  override def processBuilder: ProcessBuilder = Process(Seq("/bin/bash", "-c", commandLineString), workDir.toFile)
+  override def processBuilder: ProcessBuilder = {
+    val commandLineEncoded = Matcher.quoteReplacement(commandLineString)
+    val commandLineEncodedEncoded = Matcher.quoteReplacement(commandLineEncoded)
+    Process(Seq("sh", "-c", commandLineEncodedEncoded), workDir.toFile)
+  }
 
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 }

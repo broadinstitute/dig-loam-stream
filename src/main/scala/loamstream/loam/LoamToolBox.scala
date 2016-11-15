@@ -34,11 +34,7 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
       val outputs = pathOutputsFor(tool)
 
       tool match {
-        case cmdTool: LoamCmdTool =>
-          val commandLineString = cmdTool.tokens.map(_.toString(context.fileManager)).mkString
-
-          CommandLineStringJob(commandLineString, workDir, inputJobs, outputs)
-
+        case cmdTool: LoamCmdTool => CommandLineStringJob(cmdTool.commandLine, workDir, inputJobs, outputs)
         case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs)
       }
     }

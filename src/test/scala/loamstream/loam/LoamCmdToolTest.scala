@@ -1,6 +1,7 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.StringToken
+import loamstream.loam.files.LoamFileManager
 import loamstream.model.LId
 import loamstream.util.TypeBox
 import org.scalatest.FunSuite
@@ -62,5 +63,21 @@ final class LoamCmdToolTest extends FunSuite {
     assert(toolWithOutputStoresStores.inputs == Map(inStore0.id -> inStore0, inStore1.id -> inStore1))
     assert(toolWithOutputStoresStores.outputs == Map(outStore0.id -> outStore0, outStore1.id -> outStore1))
     assert(toolWithOutputStoresStores.tokens == Seq(StringToken("foo bar baz")))
+  }
+
+  test("to(...) and from(...)") {
+    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty)
+    import loamstream.compiler.LoamPredef._
+    val inStoreWithPath = store[TXT].from("dir/inStoreWithPath.txt")
+    val outStoreWithPath = store[TXT].to("dir/outStoreWithPath.txt")
+    val inStoreWithUri = store[TXT].from(uri("xyz://host/dir/inStoreWithUri"))
+    val outStoreWithUri = store[TXT].from(uri("xyz://host/dir/outStoreWithUri"))
+    val tool = cmd"maker $inStoreWithPath $inStoreWithUri $outStoreWithPath $outStoreWithUri"
+    val inPath = inStoreWithPath.path
+    val outPath = outStoreWithPath.path
+    val inUri = inStoreWithUri.uriOpt.get
+    val outUri = outStoreWithUri.uriOpt.get
+    val commandLineExpected = s"maker $inPath $inUri $outPath $outUri"
+    assert(tool.commandLine === commandLineExpected)
   }
 }

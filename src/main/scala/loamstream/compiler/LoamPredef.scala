@@ -1,5 +1,6 @@
 package loamstream.compiler
 
+import java.net.URI
 import java.nio.file.{Files, Path, Paths}
 
 import htsjdk.variant.variantcontext.Genotype
@@ -15,6 +16,8 @@ object LoamPredef {
   implicit def toConstantFunction[T](item: T): () => T = () => item
 
   def path(pathString: String): Path = Paths.get(pathString)
+
+  def uri(uriString: String): URI = URI.create(uriString)
 
   def tempFile(prefix: String, suffix: String): () => Path = () => Files.createTempFile(prefix, suffix)
 

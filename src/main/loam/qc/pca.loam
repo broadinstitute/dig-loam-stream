@@ -1,0 +1,32 @@
+import camp._
+import binaries._
+
+val m_base = store[TXT].from(s"$base")
+val m_phenotypes = store[TXT].from(s"$phenotypes")
+val m_interval_list = store[TXT].from(s"$interval_list")
+val m_vds = store[TXT].to(s"$vds")
+val m_pca_tsv = store[TXT].to(s"$pca_tsv")
+
+cmd"""$hail importplink
+     --bfile $m_base
+     splitmulti
+     annotatesamples table
+     --root sa.pheno
+     -e IID
+     -i $m_phenotypes
+     -t "IID: String, T2D_HEALTH_PROVIDER: Int, AGE_T2D_HEALTH_PROVIDER: Double, SEX: Int, SuperPopulation: String, RACE: String"
+     --missing "NA"
+     write
+     --overwrite
+     -o $m_vds
+     count
+     -g"""
+
+cmd"""$hail read -i $m_vds
+      filtervariants intervals
+      --keep -i $m_interval_list
+      pca --scores sa.pca
+      exportsamples -c 'Sample = s, SuperPopulation = sa.pheno.SuperPopulation, Population = sa.pheno.RACE, PC1 = sa.pca.PC1, PC2 = sa.pca.PC2, PC3 = sa.pca.PC3, PC4 = sa.pca.PC4, PC5 = sa.pca.PC5, PC6 = sa.pca.PC6, PC7 = sa.pca.PC7, PC8 = sa.pca.PC8, PC9 = sa.pca.PC9, PC10 = sa.pca.PC10'
+      -o $m_pca_tsv"""
+
+cmd"""$R --vanilla --args $m_pca_tsv < $plot_pcs"""

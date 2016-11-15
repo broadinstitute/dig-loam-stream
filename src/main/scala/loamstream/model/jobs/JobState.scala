@@ -2,7 +2,6 @@ package loamstream.model.jobs
 
 import loamstream.util.TypeBox
 import scala.reflect.runtime.universe.Type
-import org.apache.tools.ant.taskdefs.condition.IsFailure
 
 /**
  * @author clint

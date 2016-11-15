@@ -1,16 +1,13 @@
 package loamstream.util
 
 import java.io._
-import java.nio.file.Path
-import java.nio.file.Paths
-
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Path, Paths, Files => JFiles}
 import java.util.stream.Collectors
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
-import scala.io.Source
+import scala.io.{Codec, Source}
+import scala.util.{Failure, Success, Try}
 
 /**
   * @author clint
@@ -34,7 +31,7 @@ object Files {
   def tempFile(suffix: String, directory: File): Path = {
     require(directory.isDirectory, s"'$directory' must be a directory")
     require(directory.exists, s"'$directory' must exist")
-    
+
     File.createTempFile(tempFilePrefix, suffix, directory).toPath.toAbsolutePath
   }
 
@@ -49,21 +46,23 @@ object Files {
   }
 
   def writeTo(file: Path)(contents: String): Unit = {
-    doWriteTo(new FileWriter(file.toFile), contents)
+    doWriteTo(JFiles.newBufferedWriter(file, StandardCharsets.UTF_8), contents)
   }
 
   def readFrom(file: Path): String = {
-    doReadFrom(new FileReader(file.toFile))
+    doReadFrom(JFiles.newBufferedReader(file, StandardCharsets.UTF_8))
   }
 
   /** Writes to gzipped file */
   def writeToGzipped(file: Path)(contents: String): Unit = {
-    doWriteTo(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file.toFile))), contents)
+    val gZIPOutputStream = new GZIPOutputStream(new FileOutputStream(file.toFile))
+    doWriteTo(new OutputStreamWriter(gZIPOutputStream, StandardCharsets.UTF_8), contents)
   }
 
   /** Read from gzipped file */
   def readFromGzipped(file: Path): String = {
-    doReadFrom(new InputStreamReader(new GZIPInputStream(new FileInputStream(file.toFile))))
+    val gZIPInputStream = new GZIPInputStream(new FileInputStream(file.toFile))
+    doReadFrom(new InputStreamReader(gZIPInputStream, StandardCharsets.UTF_8))
   }
 
   def readFromAsUtf8(file: Path): String = StringUtils.fromUtf8Bytes(java.nio.file.Files.readAllBytes(file))
@@ -89,13 +88,13 @@ object Files {
 
   object LineFilter {
     type Factory = () => LineFilter
-    
+
     private object AcceptsAllLineFilter extends LineFilter {
       override def apply(line: String): Boolean = true
     }
-    
+
     val acceptAll: Factory = () => AcceptsAllLineFilter
-    
+
     //TODO: It would be nice to not need a stateful predicate
     val onlyFirstVcfHeader: Factory = () => new LineFilter {
       private var firstVcfHeaderIsPast = false
@@ -116,26 +115,31 @@ object Files {
 
   //TODO: Currently, this always creates the output file, even if sourcePaths is empty.  Is that the right thing to do?
   def mergeLinesGzipped(
-      sourcePaths: Iterable[Path], 
-      targetPath: Path,
-      lineFilterFactory: LineFilter.Factory = LineFilter.acceptAll): Unit = {
-    
+                         sourcePaths: Iterable[Path],
+                         targetPath: Path,
+                         lineFilterFactory: LineFilter.Factory = LineFilter.acceptAll): Unit = {
+
     val lineFilter = lineFilterFactory()
-    
+
     val writer = {
-      new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(targetPath.toFile))))
+      val gZIPOutputStream = new GZIPOutputStream(new FileOutputStream(targetPath.toFile))
+      new BufferedWriter(new OutputStreamWriter(gZIPOutputStream, StandardCharsets.UTF_8))
     }
-    
+
     def inputStreamFor(path: Path) = new GZIPInputStream(new FileInputStream(path.toFile))
-    
+
     LoamFileUtils.enclosed(writer) { writer =>
       for (sourcePath <- sourcePaths) {
-        val source = Source.createBufferedSource(inputStreamFor(sourcePath))
+        val source = Source.createBufferedSource(inputStreamFor(sourcePath))(Codec.UTF8)
         LoamFileUtils.enclosed(source) { source =>
           //TODO: Use System.lineSeparator for platform-specific line endings, instead of '\n'?
           source.getLines.filter(lineFilter).map(line => s"$line\n").foreach(writer.write)
         }
       }
     }
+  }
+
+  def filterFile(inFile: Path, outFile: Path, filter: String => Boolean): Unit = {
+    // TODO
   }
 }

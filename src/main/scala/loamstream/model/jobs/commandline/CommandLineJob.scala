@@ -10,6 +10,8 @@ import scala.sys.process.ProcessLogger
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.util.Futures
+import loamstream.util.Loggable
+
 
 /**
   * LoamStream
@@ -26,7 +28,7 @@ trait CommandLineJob extends LJob {
 
   def commandLineString: String
 
-  def logger: ProcessLogger = CommandLineJob.noOpProcessLogger
+  def logger: ProcessLogger = CommandLineJob.stdErrProcessLogger
 
   def exitValueCheck: Int => Boolean
 
@@ -55,7 +57,7 @@ trait CommandLineJob extends LJob {
   override def toString: String = s"'$commandLineString'"
 }
 
-object CommandLineJob {
+object CommandLineJob extends Loggable {
 
   val mustBeZero: Int => Boolean = _ == 0
   val acceptAll: Int => Boolean = i => true
@@ -63,5 +65,6 @@ object CommandLineJob {
   val defaultExitValueChecker = mustBeZero
 
   val noOpProcessLogger = ProcessLogger(line => ())
+  val stdErrProcessLogger = ProcessLogger(line => (), line => info(line))
 
 }

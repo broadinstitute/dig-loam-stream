@@ -7,6 +7,7 @@ import loamstream.loam.LoamScript
 import loamstream.util.{Hit, Loggable, Miss}
 
 import scala.concurrent.ExecutionContext
+import java.nio.file.Paths
 
 /** The handler responding to messages sent by a client */
 object ClientMessageHandler {
@@ -47,7 +48,13 @@ object ClientMessageHandler {
 
 /** The handler responding to messages sent by a client */
 final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
-  val repo = LoamRepository.defaultRepo
+  
+  val repo = {
+    val exampleDir = Paths.get("src/main/loam/examples")
+    
+    LoamRepository.inMemory ++ LoamRepository.ofFolder(exampleDir)
+  }
+  
   val engine = LoamEngine.default(outMessageSink)
 
   def compile(code: String): Unit = {

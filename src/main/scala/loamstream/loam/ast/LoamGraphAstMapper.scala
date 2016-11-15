@@ -49,7 +49,7 @@ object LoamGraphAstMapper {
   }
 
   private def toConnection(graph: LoamGraph, toolAsts: Map[LoamTool, AST])
-                          (inputStore: LoamStore): Option[Connection] = {
+                          (inputStore: LoamStore.Untyped): Option[Connection] = {
 
     graph.storeSources.get(inputStore) match {
       case Some(StoreEdge.ToolEdge(sourceTool)) =>

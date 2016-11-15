@@ -73,20 +73,26 @@ lazy val webui = (project in file("webui"))
 
 enablePlugins(GitVersioning)
 
-resourceGenerators in Compile <+= {
-  (resourceManaged in Compile, 
-   name, 
-   version, 
-   git.gitCurrentBranch, 
-   git.gitHeadCommit, 
-   git.gitDescribedVersion, 
-   git.gitUncommittedChanges).map { (dir, n, v, branch, lastCommit, describedVersion, anyUncommittedChanges) =>
+val buildInfoTask = taskKey[Seq[File]]("buildInfo")
 
-     val buildDate = java.time.Instant.now
+buildInfoTask := {
+  val dir = (resourceManaged in Compile).value
+  val n = name.value
+  val v = version.value
+  val branch = git.gitCurrentBranch.value
+  val lastCommit = git.gitHeadCommit.value
+  val describedVersion = git.gitDescribedVersion.value
+  val anyUncommittedChanges = git.gitUncommittedChanges.value
 
-     val file = dir / "versionInfo.properties"
-     val contents = s"name=${n}\nversion=${v}\nbranch=${branch}\nlastCommit=${lastCommit.getOrElse("")}\nuncommittedChanges=${anyUncommittedChanges}\ndescribedVersion=${describedVersion.getOrElse("")}\nbuildDate=${buildDate}\n"
-     IO.write(file, contents)
-     Seq(file)
-  }
+  val buildDate = java.time.Instant.now
+
+  val file = dir / "versionInfo.properties"
+
+  val contents = s"name=${n}\nversion=${v}\nbranch=${branch}\nlastCommit=${lastCommit.getOrElse("")}\nuncommittedChanges=${anyUncommittedChanges}\ndescribedVersion=${describedVersion.getOrElse("")}\nbuildDate=${buildDate}\n"
+
+  IO.write(file, contents)
+
+  Seq(file)
 }
+
+(resourceGenerators in Compile) += buildInfoTask.taskValue

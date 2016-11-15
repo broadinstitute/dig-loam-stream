@@ -21,7 +21,7 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
     val graph = tool.graphBox.value
 
     def pathOutputsFor(tool: LoamTool): Set[Output] = {
-      val loamStores: Set[LoamStore] = graph.toolOutputs(tool)
+      val loamStores: Set[LoamStore.Untyped] = graph.toolOutputs(tool)
 
       loamStores.flatMap(_.pathOpt).map(Output.PathOutput)
     }
@@ -34,11 +34,7 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
       val outputs = pathOutputsFor(tool)
 
       tool match {
-        case cmdTool: LoamCmdTool =>
-          val commandLineString = cmdTool.tokens.map(_.toString(context.fileManager)).mkString
-
-          CommandLineStringJob(commandLineString, workDir, inputJobs, outputs)
-
+        case cmdTool: LoamCmdTool => CommandLineStringJob(cmdTool.commandLine, workDir, inputJobs, outputs)
         case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs)
       }
     }

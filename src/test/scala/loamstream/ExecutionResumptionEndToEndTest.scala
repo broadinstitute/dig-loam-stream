@@ -139,7 +139,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
           val onlyResult = jobStates.values.head
 
-          onlyResult shouldBe a[CommandInvocationFailure]
+          val exitCode = 127
+          onlyResult shouldEqual CommandResult(exitCode)
           onlyResult.isFailure shouldBe true
 
           jobStates should have size 1
@@ -198,7 +199,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         {
           import Matchers._
 
-          results(firstJob) shouldBe a[CommandInvocationFailure]
+          val exitCode = 127
+          results(firstJob) shouldEqual CommandResult(exitCode)
           results.contains(secondJob) shouldBe false
 
           results(firstJob).isFailure shouldBe true

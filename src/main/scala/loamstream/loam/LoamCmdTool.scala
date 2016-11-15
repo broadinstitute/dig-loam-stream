@@ -50,4 +50,7 @@ final case class LoamCmdTool private(id: LId, tokens: Seq[LoamToken])(implicit v
 
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
+
+  /** Constructs the command line string */
+  def commandLine: String = tokens.map(_.toString(scriptContext.projectContext.fileManager)).mkString
 }

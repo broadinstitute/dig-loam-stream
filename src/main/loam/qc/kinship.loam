@@ -22,7 +22,7 @@ def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}
 
 def outputStore(name: String)(extension: String): Untyped = store[TXT].to(outputStoreName(name)(extension))
 
-def withExtensions(extensions: String*)(makeStore: String => Store): Seq[Store] = {
+def withExtensions(extensions: String*)(makeStore: String => Untyped): Seq[Untyped] = {
   extensions.map(ex => makeStore(ex))
 }
 
@@ -38,7 +38,7 @@ val kinshipFileBedBimFam: Seq[Untyped] = bedBimFam(outputStore(".kinship"))
 
 val kinshipFilePruneIn: Untyped = outputStore(".kinship.prune.in")("")
 val kinshipFilePruned: String = outputStoreName(".kinship.pruned")("")
-val kinshipFilePrunedBedBimFam: Seq[Untyped] = bedBimFam(outputStore(".kinship.pruned"))
+val kinshipFilePrunedBedBimFam @ Seq(kinshipFilePrunedBed, _, _) = bedBimFam(outputStore(".kinship.pruned"))
 
 val kinshipFilePrunedKingPrefix: String = outputStoreName(".kinship.pruned")(".king")
 

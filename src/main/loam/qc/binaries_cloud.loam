@@ -1,1 +1,1 @@
-val hail_jar = uri("gs://loamstream/hail/hail-all-spark.jar")
+val hail_jar_cloud = uri("gs://loamstream/hail/hail-all-spark.jar")

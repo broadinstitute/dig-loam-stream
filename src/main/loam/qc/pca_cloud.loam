@@ -1,4 +1,5 @@
 import camp_cloud._
+import binaries._
 import binaries_cloud._
 
 val m_base = store[TXT].from(base)
@@ -6,12 +7,13 @@ val m_phenotypes = store[TXT].from(phenotypes)
 val m_interval_list = store[TXT].from(interval_list)
 val m_vds = store[TXT].to(vds)
 val m_pca_tsv = store[TXT].to(pca_tsv)
+val m_pca_tsv_local = store[TXT].to(pca_tsv_local)
 
 val m_cluster = "minimal"
 
 cmd"""gcloud dataproc jobs submit spark
         --cluster $m_cluster
-        --jar $hail_jar
+        --jar $hail_jar_cloud
         --class org.broadinstitute.hail.driver.Main
             importplink
             --bfile $m_base
@@ -30,7 +32,7 @@ cmd"""gcloud dataproc jobs submit spark
 
 cmd"""gcloud dataproc jobs submit spark
         --cluster $m_cluster
-        --jar $hail_jar
+        --jar $hail_jar_cloud
         --class org.broadinstitute.hail.driver.Main
             read -i $m_vds
             filtervariants intervals
@@ -38,4 +40,8 @@ cmd"""gcloud dataproc jobs submit spark
             pca --scores sa.pca
             exportsamples -c 'Sample = s, SuperPopulation = sa.pheno.SuperPopulation, Population = sa.pheno.RACE, PC1 = sa.pca.PC1, PC2 = sa.pca.PC2, PC3 = sa.pca.PC3, PC4 = sa.pca.PC4, PC5 = sa.pca.PC5, PC6 = sa.pca.PC6, PC7 = sa.pca.PC7, PC8 = sa.pca.PC8, PC9 = sa.pca.PC9, PC10 = sa.pca.PC10'
             -o $m_pca_tsv"""
+
+cmd"""gsutil cp $m_pca_tsv $m_pca_tsv_local"""
+
+cmd"""$R --vanilla --args $m_pca_tsv_local < $plot_pcs_local"""
 

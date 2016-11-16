@@ -1,7 +1,7 @@
-val main            = uri("gs://loamstream/qc/pca/")
+val main            = uri("gs://loamstream/qc/pca")
 
-val data            = main / "data/"
-val out             = main / "out/"
+val data            = main / "data"
+val out             = main / "out"
 
 val base            = data / "CAMP.base"
 val phenotypes      = data / "camp.phenotypes.all"

@@ -7,7 +7,7 @@ import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.model.{LId, Store}
 import loamstream.util.{TypeBox, ValueBox}
 
-import scala.reflect.runtime.universe.TypeTag
+import scala.reflect.runtime.universe.{TypeTag, Type}
 
 /**
   * LoamStream
@@ -64,6 +64,9 @@ object LoamStore {
 
   def create[T: TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[T] =
     LoamStore[T](LId.newAnonId, TypeBox.of[T])
+
+  def createOfType[T](tpe: Type)(implicit scriptContext: LoamScriptContext): LoamStore[T] =
+    LoamStore[T](LId.newAnonId, new TypeBox(tpe))
 }
 
 final case class LoamStore[T] private(id: LId, sig: TypeBox[T])(implicit val scriptContext: LoamScriptContext)

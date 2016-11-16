@@ -74,7 +74,7 @@ final case class LoamStore[T] private(id: LId, sig: TypeBox[T])(implicit val scr
 
   def from(path: Path): LoamStore[T] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def from(uri:URI): LoamStore[T] = from(StoreEdge.UriEdge(uri))
+  def from(uri: URI): LoamStore[T] = from(StoreEdge.UriEdge(uri))
 
   def from(source: StoreEdge): LoamStore[T] = {
     graphBox.mutate(_.withStoreSource(this, source))
@@ -85,7 +85,7 @@ final case class LoamStore[T] private(id: LId, sig: TypeBox[T])(implicit val scr
 
   def to(path: Path): LoamStore[T] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def to(uri:URI): LoamStore[T] = to(StoreEdge.UriEdge(uri))
+  def to(uri: URI): LoamStore[T] = to(StoreEdge.UriEdge(uri))
 
   def to(sink: StoreEdge): LoamStore[T] = {
     graphBox.mutate(_.withStoreSink(this, sink))

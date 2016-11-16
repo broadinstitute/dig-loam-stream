@@ -44,7 +44,7 @@ cmd"""gcloud dataproc jobs submit spark
             --overwrite
             -o $m_vds
             count
-            -g""".in(cluster_created)
+            -g""".in(cluster_created).out(m_vds)
 
 // Calculate PCs based on the VDS
 cmd"""gcloud dataproc jobs submit spark
@@ -56,7 +56,7 @@ cmd"""gcloud dataproc jobs submit spark
             --keep -i $m_interval_list
             pca --scores sa.pca
             exportsamples -c 'Sample = s, SuperPopulation = sa.pheno.SuperPopulation, Population = sa.pheno.RACE, PC1 = sa.pca.PC1, PC2 = sa.pca.PC2, PC3 = sa.pca.PC3, PC4 = sa.pca.PC4, PC5 = sa.pca.PC5, PC6 = sa.pca.PC6, PC7 = sa.pca.PC7, PC8 = sa.pca.PC8, PC9 = sa.pca.PC9, PC10 = sa.pca.PC10'
-            -o $m_pca_tsv"""
+            -o $m_pca_tsv""".in(m_vds).out(m_pca_tsv)
 
 // Download PCA results
 cmd"""gsutil cp $m_pca_tsv $m_pca_tsv_local""".out(all_done)

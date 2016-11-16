@@ -6,6 +6,7 @@ import java.nio.file.{Files, Path, Paths}
 import htsjdk.variant.variantcontext.Genotype
 import loamstream.loam.LoamTool.DefaultStores
 import loamstream.loam._
+import loamstream.loam.ops.{StoreRecord, TextStore, TextStoreRecord}
 
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
@@ -64,8 +65,8 @@ object LoamPredef {
   def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T =
     inDir[T](Paths.get(path))(expr)
 
-  trait VCF extends Map[(String, String), Genotype]
+  trait VCF extends TextStore
 
-  trait TXT extends Seq[String]
+  trait TXT extends TextStore
 
 }

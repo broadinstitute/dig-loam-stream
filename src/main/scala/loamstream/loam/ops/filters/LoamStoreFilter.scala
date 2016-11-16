@@ -3,9 +3,7 @@ package loamstream.loam.ops.filters
 import loamstream.loam.{LoamScriptContext, LoamStore}
 
 /** A filter to be applied to records of a store */
-trait LoamStoreFilter[Store] {
-
-  type Record
+trait LoamStoreFilter[Store, Record] {
 
   /** Test a record */
   def test(record: Record): Boolean
@@ -15,7 +13,8 @@ trait LoamStoreFilter[Store] {
   LoamStore.createOfType[Store](inStore.sig.tpe)
 
   /** A new suitable Loam store filter tool */
-  def newTool(inStore: LoamStore[Store])(implicit scriptContext: LoamScriptContext): LoamStoreFilterTool[Store] =
+  def newTool(inStore: LoamStore[Store])(implicit scriptContext: LoamScriptContext):
+  LoamStoreFilterTool[Store, Record] =
   LoamStoreFilterTool(this, inStore, newOutStore(inStore))
 
 }

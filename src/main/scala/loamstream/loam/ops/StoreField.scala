@@ -1,10 +1,7 @@
 package loamstream.loam.ops
 
 /** Describes the field of a record of a Loam store */
-trait StoreField[Value] {
-
-  /** The type of record this field is part of */
-  type Record <: StoreRecord
+trait StoreField[Store, Record <: StoreRecord, Value] {
 
   /** Get Some(value) if defined, None else */
   def get(record: Record): Option[Value]

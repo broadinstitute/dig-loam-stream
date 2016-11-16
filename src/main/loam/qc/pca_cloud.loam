@@ -9,8 +9,24 @@ val m_vds = store[TXT].to(vds)
 val m_pca_tsv = store[TXT].to(pca_tsv)
 val m_pca_tsv_local = store[TXT].to(pca_tsv_local)
 
+val cluster_created = store[Nothing]
+val all_done = store[Nothing]
+
 val m_cluster = "minimal"
 
+// Create a Google Cloud DataProc cluster
+cmd"""gcloud dataproc clusters create $m_cluster
+          --zone us-central1-f
+          --master-machine-type n1-standard-1
+          --master-boot-disk-size 20
+          --num-workers 2
+          --worker-machine-type n1-standard-1
+          --worker-boot-disk-size 20
+          --image-version 1.0
+          --scopes 'https://www.googleapis.com/auth/cloud-platform'
+          --project broadinstitute.com:cmi-gce-01""".out(cluster_created)
+
+// Import input Plink files into Hail's VDS format
 cmd"""gcloud dataproc jobs submit spark
         --cluster $m_cluster
         --jar $hail_jar_cloud
@@ -28,8 +44,9 @@ cmd"""gcloud dataproc jobs submit spark
             --overwrite
             -o $m_vds
             count
-            -g"""
+            -g""".in(cluster_created)
 
+// Calculate PCs based on the VDS
 cmd"""gcloud dataproc jobs submit spark
         --cluster $m_cluster
         --jar $hail_jar_cloud
@@ -41,7 +58,12 @@ cmd"""gcloud dataproc jobs submit spark
             exportsamples -c 'Sample = s, SuperPopulation = sa.pheno.SuperPopulation, Population = sa.pheno.RACE, PC1 = sa.pca.PC1, PC2 = sa.pca.PC2, PC3 = sa.pca.PC3, PC4 = sa.pca.PC4, PC5 = sa.pca.PC5, PC6 = sa.pca.PC6, PC7 = sa.pca.PC7, PC8 = sa.pca.PC8, PC9 = sa.pca.PC9, PC10 = sa.pca.PC10'
             -o $m_pca_tsv"""
 
-cmd"""gsutil cp $m_pca_tsv $m_pca_tsv_local"""
+// Download PCA results
+cmd"""gsutil cp $m_pca_tsv $m_pca_tsv_local""".out(all_done)
 
+// Locally plot PCA results
 cmd"""$R --vanilla --args $m_pca_tsv_local < $plot_pcs_local"""
+
+// Delete the DataProc cluster
+cmd"""gcloud dataproc clusters delete $m_cluster""".in(all_done)
 

@@ -60,4 +60,5 @@ cmd"""$KING -b $kinshipFilePrunedBed --kinship --prefix $kinshipFilePrunedKingPr
 
 cmd"""(head -1 ${kinshipFilePrunedKingKin0} ; sed '1d' ${kinshipFilePrunedKingKin0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${kinshipFilePrunedKingKin0Related}""".in(kinshipFilePrunedKingKin0).out(kinshipFilePrunedKingKin0Related)
 
-cmd"""$R --vanilla --args $kinshipFilePrunedKingKin0Related $kinshipFilePrunedKingSharingCounts < $KINSHIP_CALC_SAMPLE_SHARING_R""".in(kinshipFilePrunedKingKin0Related).out(kinshipFilePrunedKingSharingCounts)
+//Requires 'use'ing 'R-3.1' :\
+cmd"""R --vanilla --args $kinshipFilePrunedKingKin0Related $kinshipFilePrunedKingSharingCounts < $KINSHIP_CALC_SAMPLE_SHARING_R""".in(kinshipFilePrunedKingKin0Related).out(kinshipFilePrunedKingSharingCounts)

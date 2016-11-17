@@ -85,9 +85,9 @@ final case class Conf(
   val runEverything: ScallopOption[Boolean] = opt[Boolean](descr = "Run every step in the pipeline, even if they've already been run")
   
   //Using all default args for `opt` makes it a flag 
-  val compileOnly: ScallopOption[Boolean] = opt[Boolean](descr = "Only compile the supplied .loam files, don't run them")
+  val compileOnly: ScallopOption[Boolean] = opt[Boolean](short = 'c', descr = "Only compile the supplied .loam files, don't run them")
   
-  val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
+  val conf: ScallopOption[Path] = opt[Path](short = 'f', descr = "Path to config file")
   
   val backend: ScallopOption[BackendType] = {
     val backendConverter: ValueConverter[BackendType] = singleArgConverter[BackendType](BackendType.byName(_).get)
@@ -114,7 +114,7 @@ final case class Conf(
     case (_, _, _, Some(files), None, Some(true)) if files.nonEmpty => Right(Unit)
     //--backend with a valid backend type and a non-empty list of loam files is valid
     case (_, _, _, Some(files), Some(_), _) if files.nonEmpty => Right(Unit)
-    case _ => Left(s"Loam files must be specified")
+    case _ => Left("")
   }
   
   //NB: This needs to come before the call to verify(), or else we don't fail properly when the path 

@@ -10,6 +10,7 @@ import scala.sys.process.{Process, ProcessBuilder, ProcessLogger}
 import loamstream.model.jobs.Output
 import loamstream.util.StringUtils
 import loamstream.util.Loggable
+import loamstream.util.PlatformUtil
 
 /**
   * LoamStream
@@ -37,14 +38,15 @@ final case class CommandLineStringJob(
 }
 
 object CommandLineStringJob {
-  private val escape: String => String = {
-    val quoteReplacement = Matcher.quoteReplacement _
-    val escapeDollarSigns = StringUtils.escapeDollarSigns _
-    
-    quoteReplacement.andThen(quoteReplacement).andThen(escapeDollarSigns)
-  }
   
-  private[commandline] def escapeCommandString(s: String): String = escape(s)
+  private[commandline] def escapeCommandString(s: String): String = {
+    if(!PlatformUtil.isWindows) { s }
+    else {
+      import Matcher.quoteReplacement
+      
+      quoteReplacement(quoteReplacement(s))
+    }
+  }
   
   private[commandline] def tokensToRun(commandString: String): Seq[String] = Seq("sh", "-c", escapeCommandString(commandString))
 }

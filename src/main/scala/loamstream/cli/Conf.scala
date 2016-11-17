@@ -115,12 +115,13 @@ final case class Conf(
 
     //--dry-run and a non-empty list of loam files is valid
     case (_, _, _, Some(files), None, Some(true)) if files.nonEmpty => Right(Unit)
-    case (_, _, _, None, None, Some(true)) => Left("Please specify at least one Loam file to compile")
+    case (_, _, _, Some(files), None, Some(true)) if files.isEmpty => Left("Please specify at least one Loam file to compile")
+    case (_, _, _, None, _, Some(true)) => Left("Please specify at least one Loam file to compile")
 
     // --backend with a valid backend type and a non-empty list of loam files is valid
     case (_, _, _, Some(files), Some(_), _) if files.nonEmpty => Right(Unit)
+    case (_, _, _, Some(files), Some(_), _) if files.isEmpty => Left("Please specify at least one Loam file to run")
     case (_, _, _, None, Some(_), _) => Left("Please specify at least one Loam file to run")
-    case (_, _, _, None, _, Some(true)) => Left("Please specify at least one Loam file to compile")
 
     case _ => Left("Invalid option/argument combination")
   }

@@ -139,11 +139,29 @@ final class StringUtilsTest extends FunSuite {
     assert(StringUtils.fromUtf8Bytes(bytes) == s)
   }
 
-  test("leftPadTo"){
+  test("leftPadTo") {
     assert(StringUtils.leftPadTo("", "0", 7) === "0000000")
     assert(StringUtils.leftPadTo("123", "0", 7) === "0000123")
     assert(StringUtils.leftPadTo("1234567", "0", 7) === "1234567")
     assert(StringUtils.leftPadTo("123456789", "0", 7) === "123456789")
+  }
+  
+  test("escapeDollarSigns") {
+    import StringUtils.escapeDollarSigns
+    
+    assert(escapeDollarSigns("") === "")
+    assert(escapeDollarSigns("abc") === "abc")
+    assert(escapeDollarSigns(" abc ") === " abc ")
+    
+    assert(escapeDollarSigns("$") === """\$""")
+    
+    assert(escapeDollarSigns("$ $ $") === """\$ \$ \$""")
+    
+    assert(escapeDollarSigns(" $ $ $ ") === """ \$ \$ \$ """)
+    
+    assert(escapeDollarSigns("foo $bar   $baz $ ") === """foo \$bar   \$baz \$ """)
+    
+    assert(escapeDollarSigns("foo $bar blerg '{$yo == 2}'  $baz $ ") === """foo \$bar blerg '{\$yo == 2}'  \$baz \$ """)
   }
   //scalastyle:on magic.number
 }

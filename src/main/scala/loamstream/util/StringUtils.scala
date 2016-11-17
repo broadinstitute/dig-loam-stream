@@ -50,11 +50,14 @@ object StringUtils {
 
   def fromUtf8Bytes(bytes: Array[Byte]): String = new String(bytes, StandardCharsets.UTF_8)
 
-  def leftPadTo(string: String, pad: String, minLength: Int): String =
+  def leftPadTo(string: String, pad: String, minLength: Int): String = {
     if (string.length < minLength) {
       val padLength = minLength - string.length
       pad * padLength + string
     } else {
       string
     }
+  }
+  
+  def escapeDollarSigns(s: String): String = s.replace("$", """\$""")
 }

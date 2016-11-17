@@ -5,6 +5,7 @@ import java.nio.file.{Files, Path}
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
 import loamstream.loam.ops.StoreType
+import loamstream.loam.ops.filters.StoreFieldFilter
 import loamstream.util._
 import loamstream.util.code.{ObjectId, PackageId, ScalaId, SourceUtils}
 
@@ -50,6 +51,7 @@ object LoamScript {
   trait LoamScriptBox {
     /** LoamScriptContext for this script */
     def scriptContext: LoamScriptContext
+
     /** LoamScriptContext for this project */
     def projectContext: LoamProjectContext
 
@@ -104,6 +106,7 @@ import ${ScalaId.from[DepositBox[_]].inScalaFull}
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamScriptContext].inScalaFull}
 import ${ScalaId.from[StoreType].inScalaFull}._
+import ${ScalaId.from[StoreFieldFilter.type].inScalaFull}
 import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {

@@ -2,16 +2,16 @@ package loamstream
 
 import java.nio.file.{Path, Paths}
 
-import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
+import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.execute.{DbBackedJobFilter, Executable, ExecuterHelpers, MockChunkRunner, RxExecuter}
-import loamstream.model.jobs.JobState.{CommandInvocationFailure, CommandResult, Skipped}
-import loamstream.model.jobs.{JobState, LJob, Output}
+import loamstream.model.jobs.JobState.{CommandResult, Skipped}
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.util.{Loggable, Sequence}
+import loamstream.model.jobs.{JobState, LJob, Output}
 import loamstream.util.code.SourceUtils
+import loamstream.util.{Loggable, Sequence}
 import org.scalatest.{FunSuite, Matchers}
 
 /**

@@ -4,7 +4,8 @@ import java.net.URI
 import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.ops.StoreType
+import loamstream.loam.ops.filters.{LoamStoreFilter, LoamStoreFilterTool, StoreFieldValueFilter}
+import loamstream.loam.ops.{StoreField, StoreType}
 import loamstream.model.{LId, Store}
 import loamstream.util.{TypeBox, ValueBox}
 
@@ -95,6 +96,15 @@ final case class LoamStore[Store <: StoreType] private(id: LId, sig: TypeBox[Sto
   def to(sink: StoreEdge): LoamStore[Store] = {
     graphBox.mutate(_.withStoreSink(this, sink))
     this
+  }
+
+  def filter[Value](field: StoreField[Store, Value])(valueFilter: Value => Boolean): LoamStore[Store] =
+    filter(StoreFieldValueFilter(field, valueFilter))
+
+  def filter(filter: LoamStoreFilter[Store]): LoamStore[Store] = {
+    val outStore = filter.newOutStore(this)
+    LoamStoreFilterTool(filter, this, outStore)
+    outStore
   }
 
 }

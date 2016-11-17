@@ -10,6 +10,9 @@ final case class LoamStoreFilterTool[Store <: StoreType](id: LId, filter: LoamSt
                                                          inStore: LoamStore[Store], outStore: LoamStore[Store])(
                                                           implicit val scriptContext: LoamScriptContext)
   extends LoamTool {
+
+  scriptContext.projectContext.graphBox.mutate(_.withTool(this))
+
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: InputsAndOutputs = InputsAndOutputs(LoamTool.In(inStore), LoamTool.Out(outStore))
 }

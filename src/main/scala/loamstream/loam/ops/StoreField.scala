@@ -9,7 +9,7 @@ trait StoreField[Store <: StoreType, Value] {
   /** Get value if defined, default else */
   def getOrElse(record: Store#Record, default: => Value): Value = get(record).getOrElse(default)
 
-  /** True if value si defined */
+  /** True if value is defined */
   def isDefined(record: Store#Record): Boolean = get(record).nonEmpty
 
 }

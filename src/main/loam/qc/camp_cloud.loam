@@ -1,0 +1,20 @@
+val main            = uri("gs://loamstream/qc/pca")
+
+val data            = main / "data"
+val out             = main / "out"
+
+val base            = data / "CAMP.base"
+val phenotypes      = data / "camp.phenotypes.all"
+val interval_list   = data / "purcell5k.interval_list"
+
+val vds             = out / "CAMP.base.hail.vds"
+val pca_tsv         = out / "CAMP.base.hail.pca.tsv"
+
+val main_local      = path("/Users/kyuksel/hail/hail_pca_example")
+
+val data_local      = main_local / "data"
+val scripts_local   = main_local / "scripts"
+val out_local       = main_local / "out"
+
+val plot_pcs_local  = scripts_local / "plot_pcs.r"
+val pca_tsv_local   = out_local / "CAMP.base.hail.pca.tsv"

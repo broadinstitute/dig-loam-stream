@@ -1,12 +1,13 @@
 package loamstream.loam.ops.filters
 
+import loamstream.loam.ops.StoreType
 import loamstream.loam.{LoamScriptContext, LoamStore}
 
 /** A filter to be applied to records of a store */
-trait LoamStoreFilter[Store, Record] {
+trait LoamStoreFilter[Store <: StoreType] {
 
   /** Test a record */
-  def test(record: Record): Boolean
+  def test(record: Store#Record): Boolean
 
   /** A new suitable output store */
   def newOutStore(inStore: LoamStore[Store])(implicit scriptContext: LoamScriptContext): LoamStore[Store] =
@@ -14,7 +15,7 @@ trait LoamStoreFilter[Store, Record] {
 
   /** A new suitable Loam store filter tool */
   def newTool(inStore: LoamStore[Store])(implicit scriptContext: LoamScriptContext):
-  LoamStoreFilterTool[Store, Record] =
+  LoamStoreFilterTool[Store] =
   LoamStoreFilterTool(this, inStore, newOutStore(inStore))
 
 }

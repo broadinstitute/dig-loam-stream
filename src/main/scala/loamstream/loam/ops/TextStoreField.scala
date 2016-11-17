@@ -3,11 +3,11 @@ package loamstream.loam.ops
 import scala.util.Try
 
 /** A field in a text file */
-final case class TextStoreField[Store, Value](fieldTextExtractor: String => Option[String],
-                                              valueExtractor: String => Option[Value])
-  extends StoreField[Store, TextStoreRecord, Value] {
+final case class TextStoreField[Store <: TextStore, Value](fieldTextExtractor: String => Option[String],
+                                                           valueExtractor: String => Option[Value])
+  extends StoreField[Store, Value] {
 
-  override def get(record: TextStoreRecord): Option[Value] = fieldTextExtractor(record.text).flatMap(valueExtractor)
+  override def get(record: Store#Record): Option[Value] = fieldTextExtractor(record.text).flatMap(valueExtractor)
 }
 
 /** A field in a text file */
@@ -40,8 +40,8 @@ object TextStoreField {
 
   }
 
-  def columnField[Store, Value](sepRegEx: String, iCol: Int,
-                                valueExtractor: String => Value): TextStoreField[Store, Value] =
+  def columnField[Store <: TextStore, Value](sepRegEx: String, iCol: Int,
+                                             valueExtractor: String => Value): TextStoreField[Store, Value] =
     new TextStoreField[Store, Value](SeparatedColumnExtractor(sepRegEx, iCol), ValueExtractors.wrap(valueExtractor))
 
 }

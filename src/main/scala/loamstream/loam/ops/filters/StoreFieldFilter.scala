@@ -1,11 +1,10 @@
 package loamstream.loam.ops.filters
 
-import loamstream.loam.ops.{StoreField, StoreRecord}
+import loamstream.loam.ops.{StoreField, StoreType}
 
 /** A LoamStoreFilter based on a given field */
-class StoreFieldFilter[Store, Record <: StoreRecord, Value](field: StoreField[Store, Record, Value],
-                                                            valueFilter: Value => Boolean)
-  extends LoamStoreFilter[Store, Record] {
+class StoreFieldFilter[Store <: StoreType, Value](field: StoreField[Store, Value], valueFilter: Value => Boolean)
+  extends LoamStoreFilter[Store] {
   /** Test a record */
-  override def test(record: Record): Boolean = field.get(record).exists(valueFilter)
+  override def test(record: Store#Record): Boolean = field.get(record).exists(valueFilter)
 }

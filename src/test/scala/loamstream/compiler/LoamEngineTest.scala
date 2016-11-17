@@ -70,12 +70,12 @@ object LoamEngineTest {
       val fileOut2Unescaped = StringUtils.unescapeBackslashes(fileOut2.toString)
       val fileOut3Unescaped = StringUtils.unescapeBackslashes(fileOut3.toString)
       s"""
-         |val fileIn = store[String].from("$fileInUnescaped")
-         |val fileTmp1 = store[String]
-         |val fileTmp2 = store[String]
-         |val fileOut1 = store[String].to("$fileOut1Unescaped")
-         |val fileOut2 = store[String].to("$fileOut2Unescaped")
-         |val fileOut3 = store[String].to("$fileOut3Unescaped")
+         |val fileIn = store[TXT].from("$fileInUnescaped")
+         |val fileTmp1 = store[TXT]
+         |val fileTmp2 = store[TXT]
+         |val fileOut1 = store[TXT].to("$fileOut1Unescaped")
+         |val fileOut2 = store[TXT].to("$fileOut2Unescaped")
+         |val fileOut3 = store[TXT].to("$fileOut3Unescaped")
          |cmd"cp $$fileIn $$fileTmp1"
          |cmd"cp $$fileTmp1 $$fileTmp2"
          |cmd"cp $$fileTmp2 $$fileOut1"

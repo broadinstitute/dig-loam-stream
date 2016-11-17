@@ -3,10 +3,9 @@ package loamstream.compiler
 import java.net.URI
 import java.nio.file.{Files, Path, Paths}
 
-import htsjdk.variant.variantcontext.Genotype
 import loamstream.loam.LoamTool.DefaultStores
 import loamstream.loam._
-import loamstream.loam.ops.{StoreRecord, TextStore, TextStoreRecord}
+import loamstream.loam.ops.StoreType
 
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
@@ -24,7 +23,8 @@ object LoamPredef {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store[T: TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[T] = LoamStore.create[T]
+  def store[Store <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[Store] =
+    LoamStore.create[Store]
 
   def job[T: TypeTag](exp: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool(DefaultStores.empty, exp)
@@ -64,9 +64,5 @@ object LoamPredef {
 
   def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T =
     inDir[T](Paths.get(path))(expr)
-
-  trait VCF extends TextStore
-
-  trait TXT extends TextStore
 
 }

@@ -6,6 +6,7 @@ import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef._
 import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.loam.LoamCmdTool.StringContextWithCmd
+import loamstream.loam.ops.StoreType.TXT
 import loamstream.util.PathEnrichments._
 import loamstream.util.Validation
 import org.scalatest.FunSuite

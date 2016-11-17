@@ -2,6 +2,7 @@ package loamstream.loam
 
 import loamstream.loam.LoamToken.StringToken
 import loamstream.loam.files.LoamFileManager
+import loamstream.loam.ops.StoreType.{BIM, TXT, VCF}
 import loamstream.model.LId
 import loamstream.util.TypeBox
 import org.scalatest.FunSuite
@@ -42,11 +43,11 @@ final class LoamCmdToolTest extends FunSuite {
 
     val tool = cmd"foo bar baz"
 
-    val inStore0 = LoamStore(LId.newAnonId, TypeBox.of[Int])
-    val inStore1 = LoamStore(LId.newAnonId, TypeBox.of[String])
+    val inStore0 = LoamStore(LId.newAnonId, TypeBox.of[VCF])
+    val inStore1 = LoamStore(LId.newAnonId, TypeBox.of[TXT])
 
-    val outStore0 = LoamStore(LId.newAnonId, TypeBox.of[Option[Float]])
-    val outStore1 = LoamStore(LId.newAnonId, TypeBox.of[Short])
+    val outStore0 = LoamStore(LId.newAnonId, TypeBox.of[VCF])
+    val outStore1 = LoamStore(LId.newAnonId, TypeBox.of[BIM])
 
     assert(tool.inputs == Map.empty)
     assert(tool.outputs == Map.empty)

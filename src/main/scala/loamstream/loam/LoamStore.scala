@@ -4,10 +4,11 @@ import java.net.URI
 import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.ops.StoreType
 import loamstream.model.{LId, Store}
 import loamstream.util.{TypeBox, ValueBox}
 
-import scala.reflect.runtime.universe.{TypeTag, Type}
+import scala.reflect.runtime.universe.{Type, TypeTag}
 
 /**
   * LoamStream
@@ -62,35 +63,36 @@ object LoamStore {
 
   }
 
-  def create[T: TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[T] =
-    LoamStore[T](LId.newAnonId, TypeBox.of[T])
+  def create[Store <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[Store] =
+    LoamStore[Store](LId.newAnonId, TypeBox.of[Store])
 
-  def createOfType[T](tpe: Type)(implicit scriptContext: LoamScriptContext): LoamStore[T] =
-    LoamStore[T](LId.newAnonId, new TypeBox(tpe))
+  def createOfType[Store <: StoreType](tpe: Type)(implicit scriptContext: LoamScriptContext): LoamStore[Store] =
+    LoamStore[Store](LId.newAnonId, new TypeBox(tpe))
 }
 
-final case class LoamStore[T] private(id: LId, sig: TypeBox[T])(implicit val scriptContext: LoamScriptContext)
+final case class LoamStore[Store <: StoreType] private(id: LId, sig: TypeBox[Store])(
+  implicit val scriptContext: LoamScriptContext)
   extends LoamStore.Untyped {
   update()
 
-  def from(path: String): LoamStore[T] = from(Paths.get(path))
+  def from(path: String): LoamStore[Store] = from(Paths.get(path))
 
-  def from(path: Path): LoamStore[T] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
+  def from(path: Path): LoamStore[Store] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def from(uri: URI): LoamStore[T] = from(StoreEdge.UriEdge(uri))
+  def from(uri: URI): LoamStore[Store] = from(StoreEdge.UriEdge(uri))
 
-  def from(source: StoreEdge): LoamStore[T] = {
+  def from(source: StoreEdge): LoamStore[Store] = {
     graphBox.mutate(_.withStoreSource(this, source))
     this
   }
 
-  def to(path: String): LoamStore[T] = to(Paths.get(path))
+  def to(path: String): LoamStore[Store] = to(Paths.get(path))
 
-  def to(path: Path): LoamStore[T] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
+  def to(path: Path): LoamStore[Store] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def to(uri: URI): LoamStore[T] = to(StoreEdge.UriEdge(uri))
+  def to(uri: URI): LoamStore[Store] = to(StoreEdge.UriEdge(uri))
 
-  def to(sink: StoreEdge): LoamStore[T] = {
+  def to(sink: StoreEdge): LoamStore[Store] = {
     graphBox.mutate(_.withStoreSink(this, sink))
     this
   }

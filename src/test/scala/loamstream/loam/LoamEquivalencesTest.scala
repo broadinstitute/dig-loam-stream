@@ -1,6 +1,7 @@
 package loamstream.loam
 
-import loamstream.compiler.LoamPredef.{TXT, VCF, store}
+import loamstream.compiler.LoamPredef.store
+import loamstream.loam.ops.StoreType.{TXT, VCF}
 import org.scalatest.FunSuite
 
 /** Testing key slot equivalences */
@@ -38,8 +39,8 @@ class LoamEquivalencesTest extends FunSuite {
   }
 
   test("Test that list equivalence implies set equivalence") {
-    for(slot1 <- slots) {
-      for(slot2 <- slots) {
+    for (slot1 <- slots) {
+      for (slot2 <- slots) {
         assert(!slot1.isSameListAs(slot2) || slot1.isSameSetAs(slot2))
       }
     }

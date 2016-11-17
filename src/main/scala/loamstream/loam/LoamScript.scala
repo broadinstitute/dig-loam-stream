@@ -4,6 +4,7 @@ import java.nio.file.{Files, Path}
 
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
+import loamstream.loam.ops.StoreType
 import loamstream.util._
 import loamstream.util.code.{ObjectId, PackageId, ScalaId, SourceUtils}
 
@@ -59,8 +60,9 @@ object LoamScript {
   /** ScalaIds required to be loaded  */
   val requiredScalaIds: Set[ScalaId] =
   Set(ScalaId.from[LoamPredef.type],
-    ScalaId.from[LoamPredef.VCF],
-    ScalaId.from[LoamPredef.TXT],
+    ScalaId.from[StoreType.VCF],
+    ScalaId.from[StoreType.TXT],
+    ScalaId.from[StoreType.BIM],
     ScalaId.from[LoamCmdTool.type],
     ScalaId.from[LoamCmdTool.StringContextWithCmd],
     ScalaId.from[PathEnrichments.type],
@@ -101,6 +103,7 @@ import ${ScalaId.from[PathEnrichments.type].inScalaFull}._
 import ${ScalaId.from[DepositBox[_]].inScalaFull}
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamScriptContext].inScalaFull}
+import ${ScalaId.from[StoreType].inScalaFull}._
 import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {

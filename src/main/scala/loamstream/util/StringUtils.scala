@@ -58,6 +58,4 @@ object StringUtils {
       string
     }
   }
-  
-  def escapeDollarSigns(s: String): String = s.replace("$", """\$""")
 }

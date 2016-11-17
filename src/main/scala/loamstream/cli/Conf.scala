@@ -82,7 +82,8 @@ final case class Conf(
   val version: ScallopOption[Boolean] = opt[Boolean](descr = "Print version information and exit")
   
   //Using all default args for `opt` makes it a flag 
-  val runEverything: ScallopOption[Boolean] = opt[Boolean](descr = "Run every step in the pipeline, even if they've already been run")
+  val runEverything: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Run every step in the pipeline, even if they've already been run")
   
   //Using all default args for `opt` makes it a flag 
   val dryRun: ScallopOption[Boolean] = opt[Boolean](descr = "Only compile the supplied .loam files, don't run them")

@@ -85,40 +85,45 @@ final case class Conf(
   val runEverything: ScallopOption[Boolean] = opt[Boolean](descr = "Run every step in the pipeline, even if they've already been run")
   
   //Using all default args for `opt` makes it a flag 
-  val compileOnly: ScallopOption[Boolean] = opt[Boolean](descr = "Only compile the supplied .loam files, don't run them")
-  
+  val dryRun: ScallopOption[Boolean] = opt[Boolean](descr = "Only compile the supplied .loam files, don't run them")
+
   val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
-  
+
   val backend: ScallopOption[BackendType] = {
     val backendConverter: ValueConverter[BackendType] = singleArgConverter[BackendType](BackendType.byName(_).get)
-    
+
     opt[BackendType](descr = s"Backend to use: must be one of ${BackendType.values.mkString(", ")}")(backendConverter)
   }
-  
+
   val loams: ScallopOption[List[Path]] = trailArg[List[Path]](
-      descr = "Path(s) to loam script(s)", 
+      descr = "Path(s) to loam script(s)",
       required = false,
       validate = _.nonEmpty)(listPathConverter)
-  
-  //NB: "manually" validate all combinations of args, since the interactions between Scallop validation methods (conflicts, 
-  //codependent, etc) became unmanageable.
-  //
-  //--conf is always optional
-  //--run-everything is always optional
-  //--version trumps everything - if it's present, everythign else is optional
-  //--backend and --compile-only are mutually exclusive; both require a non-empty list of loam files 
-  validateOpt(version, conf, runEverything, loams, backend, compileOnly) {
+
+  /**
+   * NB: "manually" validate all combinations of args, since the interactions between Scallop validation methods
+   * (conflicts, codependent, etc) became unmanageable.
+   * --conf is always optional
+   * --run-everything is always optional
+   * --version trumps everything - if it's present, everythign else is optional
+   * --backend and --compile-only are mutually exclusive; both require a non-empty list of loam files
+   */
+  validateOpt(version, conf, runEverything, loams, backend, dryRun) {
     //If --version is supplied, everything else is unchecked
     case (Some(true), _, _, _, _, _) => Right(Unit)
-    //--compile-only and a non-empty list of loam files is valid
+    //--dry-run and a non-empty list of loam files is valid
     case (_, _, _, Some(files), None, Some(true)) if files.nonEmpty => Right(Unit)
+    case (_, _, _, None, None, Some(true)) => Left("Please specify at least one Loam file to compile")
     //--backend with a valid backend type and a non-empty list of loam files is valid
     case (_, _, _, Some(files), Some(_), _) if files.nonEmpty => Right(Unit)
-    case _ => Left(s"Loam files must be specified")
+    case (_, _, _, None, Some(_), _) => Left("Please specify at least one Loam file to run")
+    case _ => Right(Unit)
   }
   
-  //NB: This needs to come before the call to verify(), or else we don't fail properly when the path 
-  //supplied to --conf doesn't exist. Shrug.
+  /**
+   * NB: This needs to come before the call to verify(), or else we don't fail properly when the path
+   * supplied to --conf doesn't exist. Shrug.
+   */
   validatePathExists(conf)
 
   verify()

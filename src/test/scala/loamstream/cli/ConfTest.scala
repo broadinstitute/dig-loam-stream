@@ -71,7 +71,7 @@ final class ConfTest extends FunSuite with Matchers {
       
       val conf = makeConf(args)
       
-      assert(conf.compileOnly.isSupplied)
+      assert(conf.dryRun.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === loams.map(Paths.get(_)))

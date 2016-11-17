@@ -98,6 +98,7 @@ import ${ScalaId.from[ValueBox[_]].inScalaFull}
 import ${ScalaId.from[LoamScriptBox].inScalaFull}
 import ${ScalaId.from[LoamCmdTool.type].inScalaFull}._
 import ${ScalaId.from[PathEnrichments.type].inScalaFull}._
+import ${ScalaId.from[UriEnrichments.type].inScalaFull}._
 import ${ScalaId.from[DepositBox[_]].inScalaFull}
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamScriptContext].inScalaFull}

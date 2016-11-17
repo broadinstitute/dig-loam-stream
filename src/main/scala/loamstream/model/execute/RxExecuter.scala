@@ -14,11 +14,8 @@ import loamstream.model.jobs.NoOpJob
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.Maps
-import loamstream.util.Shot
 import loamstream.util.ValueBox
 import rx.lang.scala.subjects.PublishSubject
-import rx.lang.scala.Observable
-import loamstream.util.ObservableEnrichments
 
 /**
  * @author kaan

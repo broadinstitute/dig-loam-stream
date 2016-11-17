@@ -1,22 +1,10 @@
 package loamstream.apps
 
 import loamstream.cli.Conf
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigFactory
-import loamstream.uger.DrmaaClient
-import rx.lang.scala.Scheduler
-import loamstream.uger.JobMonitor
-import loamstream.uger.Poller
 import loamstream.util.Loggable
-import loamstream.conf.UgerConfig
-import loamstream.uger.UgerChunkRunner
-import loamstream.db.slick.DbType
-import loamstream.db.slick.SlickLoamDao
-import loamstream.model.execute.RxExecuter
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
-import loamstream.db.slick.DbDescriptor
 import loamstream.cli.BackendType
 import org.ggf.drmaa.DrmaaException
 
@@ -28,7 +16,7 @@ object Main extends Loggable {
   def main(args: Array[String]): Unit = {
     val cli = Conf(args)
 
-    if (cli.compileOnly.isSupplied) {
+    if (cli.dryRun.isSupplied) {
       compileOnly(cli)
     } else {
       run(cli)

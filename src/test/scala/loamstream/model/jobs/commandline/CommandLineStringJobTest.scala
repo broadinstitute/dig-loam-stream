@@ -89,7 +89,7 @@ final class CommandLineStringJobTest extends FunSuite {
     val outputPath = "target/foo"
     
     val code = """
-      val input = store[TXT].from("src/test/resources/BIOME_AFFY.kinship.pruned.king.kin0")
+      val input = store[TXT].from("src/test/resources/test-data-CommandLineStringJobTest")
       val output = store[TXT].to("""" + outputPath + """")
       
       cmd"(head -1 $input ; sed '1d' $input | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $output"
@@ -113,7 +113,7 @@ final class CommandLineStringJobTest extends FunSuite {
       source.getLines.map(_.trim).filter(_.nonEmpty).size
     }
     
-    assert(numLines === 77) 
+    assert(numLines === 11) 
   }
   //scalastyle:on magic.number
 }

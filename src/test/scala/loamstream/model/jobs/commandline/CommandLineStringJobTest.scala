@@ -37,7 +37,7 @@ final class CommandLineStringJobTest extends FunSuite {
       doTestIsNoOp("""\""")
     }
 
-    //scalastyle:off line.length
+    //scalastyle:off line.size.limit
     val complex = """(head -1 ./BIOME_AFFY.kinship.pruned.king.kin0 ; sed '1d' ./BIOME_AFFY.kinship.pruned.king.kin0 | awk '{if($8 >= 0.0884) print $0}' | sort -rn -k8,8) > ./BIOME_AFFY.kinship.pruned.king.kin0.related"""
 
     if(isWindows) {
@@ -47,7 +47,7 @@ final class CommandLineStringJobTest extends FunSuite {
     } else {
       doTestIsNoOp(complex)
     }
-    //scalastyle:off line.length
+    //scalastyle:on line.size.limit
   }
   
   test("tokensToRun") {
@@ -71,7 +71,7 @@ final class CommandLineStringJobTest extends FunSuite {
        doTestNoEscaping("""\""")
     }
 
-    //scalastyle:off line.length
+    //scalastyle:off line.size.limit
     val complex = """(head -1 ./BIOME_AFFY.kinship.pruned.king.kin0 ; sed '1d' ./BIOME_AFFY.kinship.pruned.king.kin0 | awk '{if($8 >= 0.0884) print $0}' | sort -rn -k8,8) > ./BIOME_AFFY.kinship.pruned.king.kin0.related"""
     
     if(isWindows) {
@@ -82,7 +82,7 @@ final class CommandLineStringJobTest extends FunSuite {
       doTestNoEscaping(complex)
     }
 
-    //scalastyle:off line.length
+    //scalastyle:on line.size.limit
   }
   
   test("Complex command that needs escaping") {

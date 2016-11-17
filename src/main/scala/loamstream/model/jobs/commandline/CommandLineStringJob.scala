@@ -48,5 +48,7 @@ object CommandLineStringJob {
     }
   }
   
-  private[commandline] def tokensToRun(commandString: String): Seq[String] = Seq("sh", "-c", escapeCommandString(commandString))
+  private[commandline] def tokensToRun(commandString: String): Seq[String] = {
+    Seq("sh", "-c", escapeCommandString(commandString))
+  }
 }

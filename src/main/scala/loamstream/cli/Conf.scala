@@ -106,18 +106,22 @@ final case class Conf(
    * --conf is always optional
    * --run-everything is always optional
    * --version trumps everything - if it's present, everythign else is optional
-   * --backend and --compile-only are mutually exclusive; both require a non-empty list of loam files
+   * --backend and --dry-run are mutually exclusive; both require a non-empty list of loam files
    */
   validateOpt(version, conf, runEverything, loams, backend, dryRun) {
-    //If --version is supplied, everything else is unchecked
+    // If --version is supplied, everything else is unchecked
     case (Some(true), _, _, _, _, _) => Right(Unit)
+
     //--dry-run and a non-empty list of loam files is valid
     case (_, _, _, Some(files), None, Some(true)) if files.nonEmpty => Right(Unit)
     case (_, _, _, None, None, Some(true)) => Left("Please specify at least one Loam file to compile")
-    //--backend with a valid backend type and a non-empty list of loam files is valid
+
+    // --backend with a valid backend type and a non-empty list of loam files is valid
     case (_, _, _, Some(files), Some(_), _) if files.nonEmpty => Right(Unit)
     case (_, _, _, None, Some(_), _) => Left("Please specify at least one Loam file to run")
-    case _ => Right(Unit)
+    case (_, _, _, None, _, Some(true)) => Left("Please specify at least one Loam file to compile")
+
+    case _ => Left("Invalid option/argument combination")
   }
   
   /**

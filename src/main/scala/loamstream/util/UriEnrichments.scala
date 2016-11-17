@@ -5,7 +5,7 @@ import java.net.URI
 
 /**
   * @author kyuksel
-  *         date: Nov 15, 2016
+  * date: Nov 15, 2016
   */
 object UriEnrichments {
   /**
@@ -26,7 +26,7 @@ object UriEnrichments {
      * trailing slash depends on the existence of a local file on disk. This method operates like a traditional path
      * append and always preserves all segments of the base path.
      *
-     * @param next URI Segment(s) to be appended
+     * @param next URI segment(s) to be appended
      * @return A new URI with all the same components as the given base URI, but with a path component
      * created by appending the given extension to the base URI's path.
      */

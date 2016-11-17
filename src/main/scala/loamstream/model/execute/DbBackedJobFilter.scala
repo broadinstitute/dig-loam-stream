@@ -18,7 +18,7 @@ import loamstream.util.ValueBox
  * @author clint
  * date: Sep 30, 2016
  */
-final class DbBackedJobFilter(dao: LoamDao) extends JobFilter with Loggable {
+final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable {
   override def shouldRun(dep: LJob): Boolean = {
     def needsToBeRun(output: Output): Boolean = output match {
       case Output.PathBased(p) => {

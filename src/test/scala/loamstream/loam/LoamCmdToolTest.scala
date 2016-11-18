@@ -43,11 +43,11 @@ final class LoamCmdToolTest extends FunSuite {
 
     val tool = cmd"foo bar baz"
 
-    val inStore0 = LoamStore(LId.newAnonId, TypeBox.of[VCF])
-    val inStore1 = LoamStore(LId.newAnonId, TypeBox.of[TXT])
+    val inStore0 = LoamStore[VCF](LId.newAnonId)
+    val inStore1 = LoamStore[TXT](LId.newAnonId)
 
-    val outStore0 = LoamStore(LId.newAnonId, TypeBox.of[VCF])
-    val outStore1 = LoamStore(LId.newAnonId, TypeBox.of[BIM])
+    val outStore0 = LoamStore[VCF](LId.newAnonId)
+    val outStore1 = LoamStore[BIM](LId.newAnonId)
 
     assert(tool.inputs == Map.empty)
     assert(tool.outputs == Map.empty)

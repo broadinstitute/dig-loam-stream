@@ -22,7 +22,7 @@ object TextStoreField {
   case class SeparatedColumnExtractor(sepRegEx: String, iCol: Int) extends (String => Option[String]) {
     override def apply(line: String): Option[String] = {
       val columns = line.split(sepRegEx)
-      if (columns.length < iCol) {
+      if (columns.length <= iCol) {
         None
       } else {
         Some(columns(iCol))

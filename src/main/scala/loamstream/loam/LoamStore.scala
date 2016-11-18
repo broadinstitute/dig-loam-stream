@@ -65,15 +65,16 @@ object LoamStore {
   }
 
   def create[Store <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[Store] =
-    LoamStore[Store](LId.newAnonId, TypeBox.of[Store])
+    LoamStore[Store](LId.newAnonId)
 
-  def createOfType[Store <: StoreType](tpe: Type)(implicit scriptContext: LoamScriptContext): LoamStore[Store] =
-    LoamStore[Store](LId.newAnonId, new TypeBox(tpe))
 }
 
-final case class LoamStore[Store <: StoreType] private(id: LId, sig: TypeBox[Store])(
+final case class LoamStore[Store <: StoreType : TypeTag] private(id: LId)(
   implicit val scriptContext: LoamScriptContext)
   extends LoamStore.Untyped {
+
+  val sig = TypeBox.of[Store]
+
   update()
 
   def from(path: String): LoamStore[Store] = from(Paths.get(path))

@@ -59,8 +59,8 @@ lazy val root = (project in file("."))
     packageDescription := "A high level-language and runtime environment for large-scale omics analysis.",
     maintainer in Windows := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
     maintainer in Debian := "Oliver Ruebenacker, Broad Institute, oliverr@broadinstitute.org",
-    mainClass in assembly := Some("loamstream.apps.UgerRunApp"),
-    mainClass in Compile := Some("loamstream.apps.UgerRunApp")
+    mainClass in assembly := Some("loamstream.apps.Main"),
+    mainClass in Compile := Some("loamstream.apps.Main")
   ).enablePlugins(JavaAppPackaging)
 
 lazy val webui = (project in file("webui"))

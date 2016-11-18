@@ -10,8 +10,5 @@ import com.typesafe.config.ConfigFactory
  * Oct 19, 2016
  */
 trait TypesafeConfigHelpers {
-  def typesafeConfig(confFile: Path): Config = {
-    //Load the file, and fall back to defaults for any keys that aren't present in the file 
-    ConfigFactory.parseFile(confFile.toAbsolutePath.toFile).withFallback(ConfigFactory.load)
-  }
+  def configFromFile(confFile: Path): Config = ConfigFactory.parseFile(confFile.toAbsolutePath.toFile)
 }

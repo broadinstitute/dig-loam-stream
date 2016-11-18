@@ -2,8 +2,11 @@ package loamstream.loam
 
 import java.nio.file.{Path, Paths}
 
+import loamstream.loam.ops.StoreType
+import loamstream.loam.ops.filters.LoamStoreFilterTool
 import loamstream.model.Tool
 import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.model.jobs.ops.StoreFilterJob
 import loamstream.model.jobs.{LJob, LToolBox, NativeJob, Output}
 import loamstream.util.{Hit, Miss, Shot, Snag}
 
@@ -35,6 +38,8 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
 
       tool match {
         case cmdTool: LoamCmdTool => CommandLineStringJob(cmdTool.commandLine, workDir, inputJobs, outputs)
+        case storeFilterTool : LoamStoreFilterTool[_] =>
+          StoreFilterJob(inputJobs.head, outputs.head, storeFilterTool.filter)
         case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs)
       }
     }

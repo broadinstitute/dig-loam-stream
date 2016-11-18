@@ -117,8 +117,8 @@ final case class RxExecuter(runner: ChunkRunner,
 
     val jobsToDispatch = filterOutAndProcessSkippableJobs(runnableJobs, jobFilter)
     
-    trace("Jobs to dispatch now: ")
-    jobsToDispatch.foreach(job => trace(s"\tTo dispatch now: $job"))
+    debug("Now running these jobs: ")
+    jobsToDispatch.foreach(job => debug(s"\tRunning now: $job"))
     
     if (jobsToDispatch.isEmpty && allJobsAreFinished) {
       

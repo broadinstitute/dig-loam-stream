@@ -101,6 +101,9 @@ final case class Conf(
       required = false,
       validate = _.nonEmpty)(listPathConverter)
 
+  private def dryRunNoFilesMessage = "Please specify at least one Loam file to compile"
+  private def runNoFilesMessage = "Please specify at least one Loam file to run"
+
   /**
    * NB: "manually" validate all combinations of args, since the interactions between Scallop validation methods
    * (conflicts, codependent, etc) became unmanageable.
@@ -115,13 +118,13 @@ final case class Conf(
 
     //--dry-run and a non-empty list of loam files is valid
     case (_, _, _, Some(files), None, Some(true)) if files.nonEmpty => Right(Unit)
-    case (_, _, _, Some(files), None, Some(true)) if files.isEmpty => Left("Please specify at least one Loam file to compile")
-    case (_, _, _, None, _, Some(true)) => Left("Please specify at least one Loam file to compile")
+    case (_, _, _, Some(files), None, Some(true)) if files.isEmpty => Left(dryRunNoFilesMessage)
+    case (_, _, _, None, _, Some(true)) => Left(dryRunNoFilesMessage)
 
     // --backend with a valid backend type and a non-empty list of loam files is valid
     case (_, _, _, Some(files), Some(_), _) if files.nonEmpty => Right(Unit)
-    case (_, _, _, Some(files), Some(_), _) if files.isEmpty => Left("Please specify at least one Loam file to run")
-    case (_, _, _, None, Some(_), _) => Left("Please specify at least one Loam file to run")
+    case (_, _, _, Some(files), Some(_), _) if files.isEmpty => Left(runNoFilesMessage)
+    case (_, _, _, None, Some(_), _) => Left(runNoFilesMessage)
 
     case _ => Left("Invalid option/argument combination")
   }

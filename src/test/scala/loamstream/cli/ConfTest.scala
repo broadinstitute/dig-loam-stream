@@ -65,29 +65,29 @@ final class ConfTest extends FunSuite with Matchers {
     }
   }
   
-  test("--compile-only") {
+  test("--dry-run") {
     def doTest(flag: String, loams: Seq[String]): Unit = {
       val args = flag +: loams
       
       val conf = makeConf(args)
       
-      assert(conf.compileOnly.isSupplied)
+      assert(conf.dryRun.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === loams.map(Paths.get(_)))
     }
     
-    doTest("--compile-only", Seq("src/main/loam/examples/cp.loam", "src/main/loam/examples/cp.loam"))
-    doTest("-c", Seq("src/main/loam/examples/cp.loam", "src/main/loam/examples/cp.loam"))
+    doTest("--dry-run", Seq("src/main/loam/examples/cp.loam", "src/main/loam/examples/cp.loam"))
+    doTest("-d", Seq("src/main/loam/examples/cp.loam", "src/main/loam/examples/cp.loam"))
   }
   
-  test("Either --backend or --compile-only must be specified with loam files") {
+  test("Either --backend or --dry-run must be specified with loam files") {
     //Just a loam file
     intercept[CliException] {
       makeConf(Seq("src/main/loam/cp.loam"))
     }
     
-    //loam file, neither --backend nor --compile-only
+    //loam file, neither --backend nor --dry-run
     intercept[CliException] {
       makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam"))
     }
@@ -99,7 +99,7 @@ final class ConfTest extends FunSuite with Matchers {
     
     //No loams
     intercept[CliException] {
-      makeConf(Seq("--compile-only"))
+      makeConf(Seq("--dry-run"))
     }
     
     val exampleFile = "src/main/loam/examples/cp.loam"
@@ -113,7 +113,7 @@ final class ConfTest extends FunSuite with Matchers {
     }
     
     {
-      val conf = makeConf(Seq("--compile-only", exampleFile, exampleFile))
+      val conf = makeConf(Seq("--dry-run", exampleFile, exampleFile))
       
       assert(conf.loams() === Seq(expected, expected))
     }

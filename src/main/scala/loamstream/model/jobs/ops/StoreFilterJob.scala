@@ -1,12 +1,14 @@
 package loamstream.model.jobs.ops
 
+import loamstream.loam.ops.StoreType
 import loamstream.loam.ops.filters.LoamStoreFilter
 import loamstream.model.jobs.{JobState, LJob, Output}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 /** Job which creates a new store by filtering an existing store */
-final case class StoreFilterJob[Store](input: LJob, output: Output, filter: LoamStoreFilter[Store]) extends LJob {
+final case class StoreFilterJob(input: LJob, output: Output,
+                                filter: LoamStoreFilter[_ <: StoreType]) extends LJob {
   /** Any jobs this job depends on */
   override def inputs: Set[LJob] = Set(input)
 

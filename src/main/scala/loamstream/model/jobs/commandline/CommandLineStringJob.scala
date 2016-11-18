@@ -3,12 +3,13 @@ package loamstream.model.jobs.commandline
 import java.nio.file.Path
 import java.util.regex.Matcher
 
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.commandline.CommandLineJob.stdErrProcessLogger
+import scala.sys.process.Process
+import scala.sys.process.ProcessBuilder
+import scala.sys.process.ProcessLogger
 
-import scala.sys.process.{Process, ProcessBuilder, ProcessLogger}
+import loamstream.model.jobs.LJob
 import loamstream.model.jobs.Output
-import loamstream.util.StringUtils
+import loamstream.model.jobs.commandline.CommandLineJob.stdErrProcessLogger
 import loamstream.util.Loggable
 import loamstream.util.PlatformUtil
 

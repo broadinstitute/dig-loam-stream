@@ -53,7 +53,7 @@ object Main extends Loggable {
   }
 
   private def compileOnly(cli: Conf): Unit = {
-    val loamEngine = LoamEngine.default(LoggableOutMessageSink(this))
+    val loamEngine = LoamEngine.default(outMessageSink)
 
     val compilationResultShot = loamEngine.compileFiles(cli.loams())
 

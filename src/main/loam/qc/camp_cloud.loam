@@ -10,12 +10,13 @@ val kg_sample       = data / "1000GP_Phase3.sample"
 val interval_list   = data / "purcell5k.interval_list"
 val phased_gt       = data / "ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes"
 
-val vds             = out / "CAMP.base.hail.vds"
-val kg_vds          = out / "1kg.vds"
-val pca_tsv         = out / "CAMP.base.hail.pca.tsv"
-val kg_allele_freq  = out / "1KG.allele_frequencies.tsv"
-val kg_pca_scores   = out / "1KG.pca.scores.tsv"
-val kg_pca_loadings = out / "1KG.pca.loadings.tsv"
+val vds                 = out / "CAMP.base.hail.vds"
+val kg_vds              = out / "1kg.vds"
+val pca_tsv             = out / "CAMP.base.hail.pca.tsv"
+val kg_allele_freq      = out / "1KG.allele_frequencies.tsv"
+val kg_pca_scores       = out / "1KG.pca.scores.tsv"
+val kg_pca_loadings     = out / "1KG.pca.loadings.tsv"
+val kg_pca_loadings_log = out / "1KG.pca.loadings.log"
 
 val main_local      = path("/Users/kyuksel/hail/hail_pca_example")
 

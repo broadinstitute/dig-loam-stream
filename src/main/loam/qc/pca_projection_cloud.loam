@@ -14,6 +14,7 @@ val m_pca_tsv_local = store[TXT].to(pca_tsv_local)
 val m_kg_allele_freq = store[TXT].to(kg_allele_freq)
 val m_kg_pca_scores = store[TXT].to(kg_pca_scores)
 val m_kg_pca_loadings = store[TXT].to(kg_pca_loadings)
+val m_kg_pca_loadings_log = store[TXT].to(kg_pca_loadings_log)
 
 val m_cluster = "minimal"
 
@@ -64,6 +65,7 @@ cmd"""gcloud dataproc jobs submit spark
         --cluster $m_cluster
         --jar $hail_jar_cloud
         --class org.broadinstitute.hail.driver.Main
+            -l $m_kg_pca_loadings_log
             read -i $m_kg_vds
             variantqc
             exportvariants -c 'Variant = v, refPanelAF = va.qc.AF'

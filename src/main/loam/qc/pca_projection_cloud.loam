@@ -2,19 +2,22 @@ import camp_cloud._
 import binaries._
 import binaries_cloud._
 
-val m_base = store[TXT].from(base)
-val m_phenotypes = store[TXT].from(phenotypes)
-val m_sample = store[TXT].from(sample)
-val m_kg_sample = store[TXT].from(kg_sample)
-val m_interval_list = store[TXT].from(interval_list)
-val m_vds = store[TXT].to(vds)
-val m_kg_vds = store[TXT].to(kg_vds)
-val m_pca_tsv = store[TXT].to(pca_tsv)
-val m_pca_tsv_local = store[TXT].to(pca_tsv_local)
-val m_kg_allele_freq = store[TXT].to(kg_allele_freq)
-val m_kg_pca_scores = store[TXT].to(kg_pca_scores)
-val m_kg_pca_loadings = store[TXT].to(kg_pca_loadings)
-val m_kg_pca_loadings_log = store[TXT].to(kg_pca_loadings_log)
+val m_base                  = store[TXT].from(base)
+val m_phenotypes            = store[TXT].from(phenotypes)
+val m_sample                = store[TXT].from(sample)
+val m_kg_sample             = store[TXT].from(kg_sample)
+val m_interval_list         = store[TXT].from(interval_list)
+val m_pca_tsv               = store[TXT].to(pca_tsv)
+val m_pca_tsv_local         = store[TXT].to(pca_tsv_local)
+val m_pca_scores_tsv        = store[TXT].to(pca_scores_tsv)
+val m_pca_scores_tsv_local  = store[TXT].to(pca_scores_tsv_local)
+
+val m_vds                   = store[TXT].to(vds)
+val m_kg_vds                = store[TXT].to(kg_vds)
+val m_kg_allele_freq        = store[TXT].to(kg_allele_freq)
+val m_kg_pca_scores         = store[TXT].to(kg_pca_scores)
+val m_kg_pca_loadings       = store[TXT].to(kg_pca_loadings)
+val m_kg_pca_loadings_log   = store[TXT].to(kg_pca_loadings_log)
 
 val m_cluster = "minimal"
 
@@ -78,3 +81,28 @@ cmd"""gcloud dataproc jobs submit spark
             -o $m_kg_pca_scores
             exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3'
             -o m_kg_pca_loadings"""
+
+// Step 4/5: Impute CAMP scores based on 1kg
+cmd"""gcloud dataproc jobs submit spark
+        --cluster $m_cluster
+        --jar $hail_jar_cloud
+        --class org.broadinstitute.hail.driver.Main
+            read -i $m_vds \
+            variantqc \
+            annotatevariants table $m_kg_allele_freq \
+            -e Variant \
+            -c 'va.refPanelAF = table.refPanelAF' \
+            --impute \
+            annotatevariants table $m_kg_pca_loadings \
+            -e 'ID' \
+            -c 'va = merge(va, select(table, PC1, PC2, PC3))' \
+            --impute \
+            annotatevariants expr -c 'va.PCs = [va.PC1, va.PC2, va.PC3]' \
+            annotatesamples expr -c 'sa.PCs = gs.map(g => let p = va.refPanelAF in if (p == 0 || p == 1) [0.0, 0.0, 0.0] else (g.gt - 2 * p) / sqrt(2 * p * (1 - p)) * va.PCs).sum()' \
+            exportsamples -c 'IID = sa.pheno.IID, SUPERPOP = sa.pheno.SUPERPOP, PC1 = sa.PCs[0], PC2 = sa.PCs[1], PC3 = sa.PCs[2]' \
+            -o $m_pca_scores_tsv"""
+
+// Step 5/5: Download and locally plot results
+cmd"""gsutil cp $m_pca_scores_tsv $m_pca_scores_tsv_local"""
+cmd"""$R --vanilla --args $m_pca_scores_tsv_local < $plot_pcs_local"""
+

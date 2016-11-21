@@ -3,11 +3,11 @@ package loamstream.loam.ops
 import scala.util.Try
 
 /** A field in a text file */
-final case class TextStoreField[Store <: TextStore, Value](fieldTextExtractor: String => Option[String],
-                                                           valueExtractor: String => Option[Value])
-  extends StoreField[Store, Value] {
+final case class TextStoreField[S <: TextStore, V](fieldTextExtractor: String => Option[String],
+                                                   valueExtractor: String => Option[V])
+  extends StoreField[S, V] {
 
-  override def get(record: Store#Record): Option[Value] = fieldTextExtractor(record.text).flatMap(valueExtractor)
+  override def get(record: S#Record): Option[V] = fieldTextExtractor(record.text).flatMap(valueExtractor)
 }
 
 /** A field in a text file */
@@ -32,17 +32,16 @@ object TextStoreField {
 
   object ValueExtractors {
 
-    class ValueExtractorWrapper[Value](val extractor: String => Value) extends (String => Option[Value]) {
-      override def apply(string: String): Option[Value] = Try(extractor(string)).toOption
+    class ValueExtractorWrapper[V](val extractor: String => V) extends (String => Option[V]) {
+      override def apply(string: String): Option[V] = Try(extractor(string)).toOption
     }
 
-    def wrap[Value](extractor: String => Value): String => Option[Value] = new ValueExtractorWrapper[Value](extractor)
+    def wrap[V](extractor: String => V): String => Option[V] = new ValueExtractorWrapper[V](extractor)
 
   }
 
-  def columnField[Store <: TextStore, Value](sepRegEx: String, iCol: Int,
-                                             valueExtractor: String => Value): TextStoreField[Store, Value] =
-    new TextStoreField[Store, Value](SeparatedColumnExtractor(sepRegEx, iCol), ValueExtractors.wrap(valueExtractor))
+  def columnField[S <: TextStore, V](sepRegEx: String, iCol: Int, valueExtractor: String => V): TextStoreField[S, V] =
+    new TextStoreField[S, V](SeparatedColumnExtractor(sepRegEx, iCol), ValueExtractors.wrap(valueExtractor))
 
 }
 

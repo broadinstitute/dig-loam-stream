@@ -9,7 +9,7 @@ import loamstream.loam.ops.{StoreField, StoreType}
 import loamstream.model.{LId, Store}
 import loamstream.util.{TypeBox, ValueBox}
 
-import scala.reflect.runtime.universe.{Type, TypeTag}
+import scala.reflect.runtime.universe.TypeTag
 
 /**
   * LoamStream
@@ -73,7 +73,7 @@ final case class LoamStore[Store <: StoreType : TypeTag] private(id: LId)(
   implicit val scriptContext: LoamScriptContext)
   extends LoamStore.Untyped {
 
-  val sig = TypeBox.of[Store]
+  val sig: TypeBox[Store] = TypeBox.of[Store]
 
   update()
 

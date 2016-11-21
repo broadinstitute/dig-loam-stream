@@ -6,7 +6,6 @@ import java.nio.file.{Path, Paths, Files => JFiles}
 import java.util.stream.Collectors
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
-import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.io.{Codec, Source}
 import scala.util.{Failure, Success, Try}
 
@@ -141,9 +140,9 @@ object Files {
   }
 
   def filterFile(inFile: Path, outFile: Path)(filter: String => Boolean): Unit = {
-    LoamFileUtils.enclosed(JFiles.newBufferedReader(inFile, StandardCharsets.UTF_8)) { reader =>
+    LoamFileUtils.enclosed(Source.fromFile(inFile.toFile)) { source =>
       LoamFileUtils.enclosed(JFiles.newBufferedWriter(outFile, StandardCharsets.UTF_8)) { writer =>
-        reader.lines().iterator().asScala.filter(filter).foreach { line =>
+        source.getLines().filter(filter).foreach { line =>
           writer.write(line)
           writer.newLine()
         }
@@ -151,11 +150,7 @@ object Files {
     }
   }
 
-  def countLines(file: Path): Long = {
-    LoamFileUtils.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
-      var count: Long = 0L
-      reader.lines().iterator().asScala.foreach(line => count += 1)
-      count
-    }
-  }
+  def countLines(file: Path): Long =
+    LoamFileUtils.enclosed(Source.fromFile(file.toFile))(_.getLines().size)
+
 }

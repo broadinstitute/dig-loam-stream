@@ -8,48 +8,44 @@ import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
   * LoamStream
   * Created by oliverr on 11/17/2016.
   */
-trait StoreFieldFilter[Store <: StoreType, Value]
-  extends LoamStoreFilter[Store] {
+trait StoreFieldFilter[S <: StoreType, V] extends LoamStoreFilter[S] {
 
   def tpe: Type
 
-  def field: StoreField[Store, Value]
+  def field: StoreField[S, V]
 
   /** Test a record, with dynamic type */
   override def testDynamicallyTyped(record: StoreRecord, tpe: Type): Boolean =
-  (tpe <:< this.tpe) && test(record.asInstanceOf[Store#Record])
+  (tpe <:< this.tpe) && test(record.asInstanceOf[S#Record])
 
   /** Test a record */
-  override def test(record: Store#Record): Boolean
+  override def test(record: S#Record): Boolean
 }
 
 object StoreFieldFilter {
 
-  case class IsDefinedFilter[Store <: StoreType : TypeTag, Value](field: StoreField[Store, Value])
-    extends StoreFieldFilter[Store, Value] {
+  case class IsDefinedFilter[S <: StoreType : TypeTag, V](field: StoreField[S, V])
+    extends StoreFieldFilter[S, V] {
 
-    override val tpe: Type = typeTag[Store].tpe
+    override val tpe: Type = typeTag[S].tpe
 
     /** Test a record */
-    override def test(record: Store#Record): Boolean = field.get(record).nonEmpty
+    override def test(record: S#Record): Boolean = field.get(record).nonEmpty
 
   }
 
-  def isDefined[Store <: StoreType : TypeTag, Value](field: StoreField[Store, Value]):
-  StoreFieldFilter.IsDefinedFilter[Store, Value]
+  def isDefined[S <: StoreType : TypeTag, V](field: StoreField[S, V]): StoreFieldFilter.IsDefinedFilter[S, V]
   = IsDefinedFilter(field)
 
-  case class IsUndefinedFilter[Store <: StoreType : TypeTag, Value](field: StoreField[Store, Value])
-    extends StoreFieldFilter[Store, Value] {
+  case class IsUndefinedFilter[S <: StoreType : TypeTag, V](field: StoreField[S, V]) extends StoreFieldFilter[S, V] {
 
-    override val tpe: Type = typeTag[Store].tpe
+    override val tpe: Type = typeTag[S].tpe
 
     /** Test a record */
-    override def test(record: Store#Record): Boolean = field.get(record).isEmpty
+    override def test(record: S#Record): Boolean = field.get(record).isEmpty
   }
 
-  def isUndefined[Store <: StoreType : TypeTag, Value](field: StoreField[Store, Value]):
-  StoreFieldFilter.IsUndefinedFilter[Store, Value]
+  def isUndefined[S <: StoreType : TypeTag, V](field: StoreField[S, V]): StoreFieldFilter.IsUndefinedFilter[S, V]
   = IsUndefinedFilter(field)
 
 }

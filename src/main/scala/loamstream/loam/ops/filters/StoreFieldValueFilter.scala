@@ -6,13 +6,12 @@ import scala.reflect.runtime.universe.{Type, TypeTag, typeTag}
 
 
 /** A LoamStoreFilter based on a given field */
-case class StoreFieldValueFilter[Store <: StoreType : TypeTag, Value](field: StoreField[Store, Value],
-                                                                      valueFilter: Value => Boolean)
-  extends StoreFieldFilter[Store, Value] {
+case class StoreFieldValueFilter[S <: StoreType : TypeTag, V](field: StoreField[S, V], valueFilter: V => Boolean)
+  extends StoreFieldFilter[S, V] {
 
-  override val tpe: Type = typeTag[Store].tpe
+  override val tpe: Type = typeTag[S].tpe
 
   /** Test a record */
-  override def test(record: Store#Record): Boolean = field.get(record).exists(valueFilter)
+  override def test(record: S#Record): Boolean = field.get(record).exists(valueFilter)
 }
 

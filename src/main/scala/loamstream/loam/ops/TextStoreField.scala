@@ -14,25 +14,27 @@ final case class TextStoreField[S <: TextStore, V](fieldTextExtractor: String =>
 object TextStoreField {
 
   object ColumnSeparators {
-    val blank = " "
-    val tab = "\t"
-    val blankOrTab = "[\\t ]"
+    //NB: These are all regexes, but since they're passed to Java APIs as strings, 
+    //we don't make them into Regex objects
+    val blank: String = " "
+    val tab: String = "\t"
+    val blankOrTab: String = "[\\t ]"
   }
 
-  case class SeparatedColumnExtractor(sepRegEx: String, iCol: Int) extends (String => Option[String]) {
+  final case class SeparatedColumnExtractor(sepRegEx: String, columnIndex: Int) extends (String => Option[String]) {
     override def apply(line: String): Option[String] = {
       val columns = line.split(sepRegEx)
-      if (columns.length <= iCol) {
+      if (columns.length <= columnIndex) {
         None
       } else {
-        Some(columns(iCol))
+        Some(columns(columnIndex))
       }
     }
   }
 
   object ValueExtractors {
 
-    class ValueExtractorWrapper[V](val extractor: String => V) extends (String => Option[V]) {
+    final class ValueExtractorWrapper[V](val extractor: String => V) extends (String => Option[V]) {
       override def apply(string: String): Option[V] = Try(extractor(string)).toOption
     }
 
@@ -40,8 +42,13 @@ object TextStoreField {
 
   }
 
-  def columnField[S <: TextStore, V](sepRegEx: String, iCol: Int, valueExtractor: String => V): TextStoreField[S, V] =
-    new TextStoreField[S, V](SeparatedColumnExtractor(sepRegEx, iCol), ValueExtractors.wrap(valueExtractor))
+  def columnField[S <: TextStore, V](
+      sepRegEx: String, 
+      columnIndex: Int, 
+      valueExtractor: String => V): TextStoreField[S, V] = {
+    
+    TextStoreField[S, V](SeparatedColumnExtractor(sepRegEx, columnIndex), ValueExtractors.wrap(valueExtractor))
+  }
 
 }
 

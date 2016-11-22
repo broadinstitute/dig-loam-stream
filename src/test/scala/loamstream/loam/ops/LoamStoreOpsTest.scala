@@ -11,8 +11,8 @@ import org.scalatest.FunSuite
 
 
 /** Test Loam store ops */
-class LoamStoreOpsTest extends FunSuite {
-  def assertFileExists(path: Path): Unit = assert(JFiles.exists(path), s"File $path does not exist.")
+final class LoamStoreOpsTest extends FunSuite {
+  private def assertFileExists(path: Path): Unit = assert(JFiles.exists(path), s"File $path does not exist.")
 
   test("LoamStore.filter()") {
     val dir = JFiles.createTempDirectory("LoamStoreOpsTest")

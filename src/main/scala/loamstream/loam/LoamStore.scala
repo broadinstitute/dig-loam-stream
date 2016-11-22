@@ -64,45 +64,45 @@ object LoamStore {
 
   }
 
-  def create[Store <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[Store] =
-    LoamStore[Store](LId.newAnonId)
-
+  def create[S <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[S] = {
+    LoamStore[S](LId.newAnonId)
+  }
 }
 
-final case class LoamStore[Store <: StoreType : TypeTag] private(id: LId)(
-  implicit val scriptContext: LoamScriptContext)
-  extends LoamStore.Untyped {
+final case class LoamStore[S <: StoreType : TypeTag] private (id: LId)(implicit val scriptContext: LoamScriptContext)
+    extends LoamStore.Untyped {
 
-  val sig: TypeBox[Store] = TypeBox.of[Store]
+  val sig: TypeBox[S] = TypeBox.of[S]
 
   update()
 
-  def from(path: String): LoamStore[Store] = from(Paths.get(path))
+  def from(path: String): LoamStore[S] = from(Paths.get(path))
 
-  def from(path: Path): LoamStore[Store] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
+  def from(path: Path): LoamStore[S] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def from(uri: URI): LoamStore[Store] = from(StoreEdge.UriEdge(uri))
+  def from(uri: URI): LoamStore[S] = from(StoreEdge.UriEdge(uri))
 
-  def from(source: StoreEdge): LoamStore[Store] = {
+  def from(source: StoreEdge): LoamStore[S] = {
     graphBox.mutate(_.withStoreSource(this, source))
     this
   }
 
-  def to(path: String): LoamStore[Store] = to(Paths.get(path))
+  def to(path: String): LoamStore[S] = to(Paths.get(path))
 
-  def to(path: Path): LoamStore[Store] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
+  def to(path: Path): LoamStore[S] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def to(uri: URI): LoamStore[Store] = to(StoreEdge.UriEdge(uri))
+  def to(uri: URI): LoamStore[S] = to(StoreEdge.UriEdge(uri))
 
-  def to(sink: StoreEdge): LoamStore[Store] = {
+  def to(sink: StoreEdge): LoamStore[S] = {
     graphBox.mutate(_.withStoreSink(this, sink))
     this
   }
 
-  def filter[Value](field: StoreField[Store, Value])(valueFilter: Value => Boolean): LoamStore[Store] =
+  def filter[Value](field: StoreField[S, Value])(valueFilter: Value => Boolean): LoamStore[S] = {
     filter(StoreFieldValueFilter(field, valueFilter))
+  }
 
-  def filter(filter: LoamStoreFilter[Store]): LoamStore[Store] = {
+  def filter(filter: LoamStoreFilter[S]): LoamStore[S] = {
     val outStore = filter.newOutStore(this)
     LoamStoreFilterTool(filter, this, outStore)
     outStore

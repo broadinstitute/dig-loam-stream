@@ -6,10 +6,11 @@ import loamstream.loam.{LoamScriptContext, LoamStore, LoamTool}
 import loamstream.model.LId
 
 /** A tool based on store ops */
-final case class LoamStoreFilterTool[S <: StoreType](id: LId, filter: LoamStoreFilter[S],
-                                                     inStore: LoamStore[S], outStore: LoamStore[S])(
-                                                      implicit val scriptContext: LoamScriptContext)
-  extends LoamTool {
+final case class LoamStoreFilterTool[S <: StoreType](
+    id: LId, 
+    filter: LoamStoreFilter[S],
+    inStore: LoamStore[S], 
+    outStore: LoamStore[S])(implicit val scriptContext: LoamScriptContext) extends LoamTool {
 
   scriptContext.projectContext.graphBox.mutate(_.withTool(this))
 
@@ -19,7 +20,11 @@ final case class LoamStoreFilterTool[S <: StoreType](id: LId, filter: LoamStoreF
 
 /** A tool based on store ops */
 object LoamStoreFilterTool {
-  def apply[S <: StoreType](filter: LoamStoreFilter[S], inStore: LoamStore[S], outStore: LoamStore[S])(
-    implicit scriptContext: LoamScriptContext): LoamStoreFilterTool[S]
-  = LoamStoreFilterTool(LId.newAnonId, filter, inStore, outStore)
+  def apply[S <: StoreType](
+      filter: LoamStoreFilter[S], 
+      inStore: LoamStore[S], 
+      outStore: LoamStore[S])(implicit scriptContext: LoamScriptContext): LoamStoreFilterTool[S] = {
+
+    LoamStoreFilterTool(LId.newAnonId, filter, inStore, outStore)
+  }
 }

@@ -15,8 +15,9 @@ trait StoreFieldFilter[S <: StoreType, V] extends LoamStoreFilter[S] {
   def field: StoreField[S, V]
 
   /** Test a record, with dynamic type */
-  override def testDynamicallyTyped(record: StoreRecord, tpe: Type): Boolean =
-  (tpe <:< this.tpe) && test(record.asInstanceOf[S#Record])
+  override def testDynamicallyTyped(record: StoreRecord, tpe: Type): Boolean = {
+    (tpe <:< this.tpe) && test(record.asInstanceOf[S#Record])
+  }
 
   /** Test a record */
   override def test(record: S#Record): Boolean
@@ -24,8 +25,8 @@ trait StoreFieldFilter[S <: StoreType, V] extends LoamStoreFilter[S] {
 
 object StoreFieldFilter {
 
-  case class IsDefinedFilter[S <: StoreType : TypeTag, V](field: StoreField[S, V])
-    extends StoreFieldFilter[S, V] {
+  final case class IsDefinedFilter[S <: StoreType : TypeTag, V](field: StoreField[S, V])
+      extends StoreFieldFilter[S, V] {
 
     override val tpe: Type = typeTag[S].tpe
 
@@ -34,10 +35,10 @@ object StoreFieldFilter {
 
   }
 
-  def isDefined[S <: StoreType : TypeTag, V](field: StoreField[S, V]): StoreFieldFilter.IsDefinedFilter[S, V]
-  = IsDefinedFilter(field)
+  def isDefined[S <: StoreType : TypeTag, V](field: StoreField[S, V]): IsDefinedFilter[S, V] = IsDefinedFilter(field)
 
-  case class IsUndefinedFilter[S <: StoreType : TypeTag, V](field: StoreField[S, V]) extends StoreFieldFilter[S, V] {
+  final case class IsUndefinedFilter[S <: StoreType : TypeTag, V](field: StoreField[S, V]) 
+      extends StoreFieldFilter[S, V] {
 
     override val tpe: Type = typeTag[S].tpe
 
@@ -45,8 +46,9 @@ object StoreFieldFilter {
     override def test(record: S#Record): Boolean = field.get(record).isEmpty
   }
 
-  def isUndefined[S <: StoreType : TypeTag, V](field: StoreField[S, V]): StoreFieldFilter.IsUndefinedFilter[S, V]
-  = IsUndefinedFilter(field)
+  def isUndefined[S <: StoreType : TypeTag, V](field: StoreField[S, V]): IsUndefinedFilter[S, V] = {
+    IsUndefinedFilter(field)
+  }
 
 }
 

@@ -50,12 +50,7 @@ object ScalaId {
   def needsBackticks(name: String): Boolean = !SourceVersion.isName(name)
 
   /** Wraps into backticks if needed to appear in code */
-  def withBackticksIfNeeded(name: String): String =
-  if (needsBackticks(name)) {
-    s"`$name`"
-  } else {
-    name
-  }
+  def withBackticksIfNeeded(name: String): String = if (needsBackticks(name)) s"`$name`" else name
 
   /** Returns ScalaId of this type parameter */
   def from[T: TypeTag]: ScalaId = from(typeOf[T])

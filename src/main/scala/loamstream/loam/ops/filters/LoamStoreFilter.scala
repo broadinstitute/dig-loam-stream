@@ -22,11 +22,11 @@ abstract class LoamStoreFilter[S <: StoreType : TypeTag] extends LoamStoreFilter
   def test(record: S#Record): Boolean
 
   /** A new suitable output store */
-  def newOutStore(inStore: LoamStore[S])(implicit scriptContext: LoamScriptContext): LoamStore[S] =
-  LoamStore.create[S]
+  def newOutStore(inStore: LoamStore[S])(implicit scriptContext: LoamScriptContext): LoamStore[S] = LoamStore.create[S]
 
   /** A new suitable Loam store filter tool */
-  def newTool(inStore: LoamStore[S])(implicit scriptContext: LoamScriptContext): LoamStoreFilterTool[S] =
-  LoamStoreFilterTool(this, inStore, newOutStore(inStore))
+  def newTool(inStore: LoamStore[S])(implicit scriptContext: LoamScriptContext): LoamStoreFilterTool[S] = {
+    LoamStoreFilterTool(this, inStore, newOutStore(inStore))
+  }
 
 }

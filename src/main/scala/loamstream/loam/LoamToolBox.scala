@@ -8,6 +8,7 @@ import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.ops.StoreFilterJob
 import loamstream.model.jobs.{LJob, LToolBox, NativeJob, Output}
 import loamstream.util.{Hit, Miss, Shot, Snag}
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
   * LoamStream
@@ -29,6 +30,8 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
     }
 
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
+    
+    val environment: ExecutionEnvironment = graph.executionEnvironmentOpt(tool).getOrElse(ExecutionEnvironment.Local)
 
     val shotsForPrecedingTools: Shot[Set[LJob]] = Shot.sequence(graph.toolsPreceding(tool).map(getLoamJob))
 
@@ -36,7 +39,8 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
       val outputs = pathOutputsFor(tool)
 
       tool match {
-        case cmdTool: LoamCmdTool => CommandLineStringJob(cmdTool.commandLine, workDir, inputJobs, outputs)
+        case cmdTool: LoamCmdTool =>
+          CommandLineStringJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs)
         case storeFilterTool: LoamStoreFilterTool[_] =>
           val inStore = graph.toolInputs(tool).head
           val outStore = graph.toolOutputs(tool).head

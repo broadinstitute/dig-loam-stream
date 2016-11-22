@@ -13,7 +13,7 @@ import org.scalatest.FunSuite
   * LoamStream
   * Created by oliverr on 10/17/2016.
   */
-class LoamWorkDirTest extends FunSuite {
+final class LoamWorkDirTest extends FunSuite {
 
   def assertPathsEquivalent(path1: Path, path2: Path): Unit = assert(path1.normalize() === path2.normalize())
 

@@ -1,6 +1,7 @@
 package loamstream.model.jobs
 
 import scala.concurrent.{ExecutionContext, Future}
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
  * @author Kaan Yuksel
@@ -10,6 +11,8 @@ final case class NoOpJob(inputs: Set[LJob]) extends LJob {
   override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
     Future.successful(JobState.Succeeded)
   }
+  
+  override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
 
   override val outputs: Set[Output] = Set.empty
     

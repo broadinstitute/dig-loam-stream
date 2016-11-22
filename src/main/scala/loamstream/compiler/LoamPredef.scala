@@ -9,6 +9,7 @@ import loamstream.loam.ops.StoreType
 
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
+import loamstream.model.execute.ExecutionEnvironment
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef {
@@ -23,8 +24,8 @@ object LoamPredef {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store[Store <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[Store] =
-    LoamStore.create[Store]
+  def store[S <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[S] =
+    LoamStore.create[S]
 
   def job[T: TypeTag](exp: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool(DefaultStores.empty, exp)
@@ -56,13 +57,38 @@ object LoamPredef {
 
   def inDir[T](path: Path)(expr: => T)(implicit scriptContext: LoamScriptContext): T = {
     val oldDir = scriptContext.workDir
-    scriptContext.changeWorkDir(path)
-    val value = expr
-    scriptContext.setWorkDir(oldDir)
-    value
+    
+    try {
+      scriptContext.changeWorkDir(path)
+      expr
+    } finally {
+      scriptContext.setWorkDir(oldDir)
+    }
   }
 
   def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T =
     inDir[T](Paths.get(path))(expr)
 
+  private[this] def runIn[A](env: ExecutionEnvironment)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    val oldEnv = scriptContext.executionEnvironment
+    
+    try {
+      scriptContext.executionEnvironment = env
+      expr
+    } finally {
+      scriptContext.executionEnvironment = oldEnv
+    }
+  }
+  
+  def local[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    runIn(ExecutionEnvironment.Local)(expr)(scriptContext)
+  }
+  
+  def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    runIn(ExecutionEnvironment.Uger)(expr)(scriptContext)
+  }
+  
+  def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    runIn(ExecutionEnvironment.Google)(expr)(scriptContext)
+  }
 }

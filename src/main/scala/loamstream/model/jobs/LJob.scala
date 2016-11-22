@@ -7,6 +7,7 @@ import rx.lang.scala.Observable
 import rx.lang.scala.subjects.PublishSubject
 
 import scala.concurrent.{ExecutionContext, Future}
+import loamstream.model.execute.ExecutionEnvironment
 
 
 /**
@@ -14,6 +15,8 @@ import scala.concurrent.{ExecutionContext, Future}
   * Created by oliverr on 12/23/2015.
   */
 trait LJob extends Loggable {
+  def executionEnvironment: ExecutionEnvironment// = ExecutionEnvironment.Local
+  
   def workDirOpt: Option[Path] = None
 
   def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {

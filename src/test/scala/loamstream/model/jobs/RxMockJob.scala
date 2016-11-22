@@ -3,6 +3,7 @@ package loamstream.model.jobs
 import loamstream.util.ValueBox
 
 import scala.concurrent.{ExecutionContext, Future}
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
  * @author kaan
@@ -16,6 +17,8 @@ class RxMockJob(
     delay: Int,
     val toReturn: JobState) extends LJob {
 
+  override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
+  
   private[this] val count = ValueBox(0)
 
   def executionCount = count.value

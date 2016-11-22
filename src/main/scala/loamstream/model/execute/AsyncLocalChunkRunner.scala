@@ -6,11 +6,13 @@ import scala.concurrent.Future
 import loamstream.model.jobs.JobState
 import loamstream.util.Maps
 
+import AsyncLocalChunkRunner.defaultMaxNumJobs
+
 /**
  * @author clint
  * Nov 22, 2016
  */
-final case class AsyncLocalChunkRunner(maxNumJobs: Int = AsyncLocalChunkRunner.defaultMaxNumJobs) extends ChunkRunner {
+final case class AsyncLocalChunkRunner(maxNumJobs: Int = defaultMaxNumJobs) extends LocalChunkRunner {
 
   import ExecuterHelpers._
 

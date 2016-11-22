@@ -9,13 +9,13 @@ import java.net.URI
   */
 object UriEnrichments {
   /**
-   * Append a file separator to the end of a URI if it does not already end with one
+   * Append a slash to the end of a URI if it does not already end with one
    */
-  def appendFileSeparatorIfNoneExists(uri: URI): URI = {
+  def appendSlashIfNoneExists(uri: URI): URI = {
     val uriStr = uri.toString
 
-    if (uriStr.endsWith(File.separator)) { uri }
-    else { URI.create(uriStr + File.separator) }
+    if (uriStr.endsWith("/")) { uri }
+    else { URI.create(uriStr + "/") }
   }
 
   final implicit class UriHelpers(val uri: URI) extends AnyVal {
@@ -30,7 +30,7 @@ object UriEnrichments {
      * @return A new URI with all the same components as the given base URI, but with a path component
      * created by appending the given extension to the base URI's path.
      */
-    def append(next: String): URI = appendFileSeparatorIfNoneExists(uri).resolve(next)
+    def append(next: String): URI = appendSlashIfNoneExists(uri).resolve(next)
 
     def /(next: String): URI = append(next)
   }

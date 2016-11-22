@@ -4,6 +4,8 @@ import java.net.URI
 import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.ops.filters.{LoamStoreFilter, LoamStoreFilterTool, StoreFieldValueFilter}
+import loamstream.loam.ops.{StoreField, StoreType}
 import loamstream.model.{LId, Store}
 import loamstream.util.{TypeBox, ValueBox}
 
@@ -62,34 +64,48 @@ object LoamStore {
 
   }
 
-  def create[T: TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[T] =
-    LoamStore[T](LId.newAnonId, TypeBox.of[T])
+  def create[S <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[S] = {
+    LoamStore[S](LId.newAnonId)
+  }
 }
 
-final case class LoamStore[T] private(id: LId, sig: TypeBox[T])(implicit val scriptContext: LoamScriptContext)
-  extends LoamStore.Untyped {
+final case class LoamStore[S <: StoreType : TypeTag] private (id: LId)(implicit val scriptContext: LoamScriptContext)
+    extends LoamStore.Untyped {
+
+  val sig: TypeBox[S] = TypeBox.of[S]
+
   update()
 
-  def from(path: String): LoamStore[T] = from(Paths.get(path))
+  def from(path: String): LoamStore[S] = from(Paths.get(path))
 
-  def from(path: Path): LoamStore[T] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
+  def from(path: Path): LoamStore[S] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def from(uri:URI): LoamStore[T] = from(StoreEdge.UriEdge(uri))
+  def from(uri: URI): LoamStore[S] = from(StoreEdge.UriEdge(uri))
 
-  def from(source: StoreEdge): LoamStore[T] = {
+  def from(source: StoreEdge): LoamStore[S] = {
     graphBox.mutate(_.withStoreSource(this, source))
     this
   }
 
-  def to(path: String): LoamStore[T] = to(Paths.get(path))
+  def to(path: String): LoamStore[S] = to(Paths.get(path))
 
-  def to(path: Path): LoamStore[T] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
+  def to(path: Path): LoamStore[S] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def to(uri:URI): LoamStore[T] = to(StoreEdge.UriEdge(uri))
+  def to(uri: URI): LoamStore[S] = to(StoreEdge.UriEdge(uri))
 
-  def to(sink: StoreEdge): LoamStore[T] = {
+  def to(sink: StoreEdge): LoamStore[S] = {
     graphBox.mutate(_.withStoreSink(this, sink))
     this
+  }
+
+  def filter[Value](field: StoreField[S, Value])(valueFilter: Value => Boolean): LoamStore[S] = {
+    filter(StoreFieldValueFilter(field, valueFilter))
+  }
+
+  def filter(filter: LoamStoreFilter[S]): LoamStore[S] = {
+    val outStore = filter.newOutStore(this)
+    LoamStoreFilterTool(filter, this, outStore)
+    outStore
   }
 
 }

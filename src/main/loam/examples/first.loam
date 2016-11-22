@@ -1,6 +1,6 @@
 val genotypesId = "myImportantGenotypes"
 val cmdName = "doThis"
-val input1 = store[Set[String]].from(path("input1"))
-val output1 = store[Map[String, Int]].to(path("output1"))
+val input1 = store[TXT].from(path("input1"))
+val output1 = store[TXT].to(path("output1"))
 
 cmd"$cmdName -id $genotypesId -in $input1 -out $output1"

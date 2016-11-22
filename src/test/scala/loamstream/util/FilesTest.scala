@@ -1,10 +1,12 @@
 package loamstream.util
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Path, Paths, Files => JFiles}
+
 import org.scalatest.FunSuite
+
+import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.util.Success
-import java.nio.file.Paths
-import java.util.stream.Collectors
-import java.nio.file.{Path, Files => JFiles}
 
 /**
   * @author clint
@@ -158,5 +160,64 @@ final class FilesTest extends FunSuite {
     doTest(Files.LineFilter.onlyFirstVcfHeader)
 
     doTest(Files.LineFilter.acceptAll)
+  }
+
+  def assertEachLine(file: Path, predicateDescription: String)(predicate: String => Boolean): Unit = {
+    LoamFileUtils.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
+      assert(reader.lines().iterator().asScala.forall(predicate), s"Not true for every line: $predicateDescription")
+    }
+  }
+
+  test("countLines(...) and filterFile(...)") {
+    val dir = JFiles.createTempDirectory("FilesTest")
+    val inFile = dir.resolve("inFile.txt")
+    val inFileContent =
+      """
+        |'Twas brillig, and the slithy toves
+        |Did gyre and gimble in the wabe;
+        |All mimsy were the borogoves,
+        |And the mome raths outgrabe.
+        |
+        |"Beware the Jabberwock, my son!
+        |The jaws that bite, the claws that catch!
+        |Beware the Jubjub bird, and shun
+        |The frumious Bandersnatch!"
+        |
+        |He took his vorpal sword in hand:
+        |Long time the manxome foe he sought -
+        |So rested he by the Tumtum tree,
+        |And stood awhile in thought.
+        |
+        |And as in uffish thought he stood,
+        |The Jabberwock, with eyes of flame,
+        |Came whiffling through the tulgey wood,
+        |And burbled as it came!
+        |
+        |One, two! One, two! and through and through
+        |The vorpal blade went snicker-snack!
+        |He left it dead, and with its head
+        |He went galumphing back.
+        |
+        |"And hast thou slain the Jabberwock?
+        |Come to my arms, my beamish boy!
+        |O frabjous day! Callooh! Callay!"
+        |He chortled in his joy.
+        |
+        |'Twas brillig, and the slithy toves
+        |Did gyre and gimble in the wabe;
+        |All mimsy were the borogoves,
+        |And the mome raths outgrabe.
+      """.stripMargin
+    Files.writeTo(inFile)(inFileContent)
+    val nLinesInFile = 36
+    assert(Files.countLines(inFile) === nLinesInFile)
+    for((template, nLinesWithTemplateExpected) <- Seq(("Jabberwock", 3), ("monkey", 0), ("e", 27))) {
+      val outFile = dir.resolve(s"outFile$template.txt")
+      Files.filterFile(inFile, outFile)(_.contains(template))
+      assertEachLine(outFile, s"""contains "$template"""")(_.contains(template))
+      val nLinesWithTemplate = Files.countLines(outFile)
+      assert(nLinesWithTemplate === nLinesWithTemplateExpected,
+        s"""Expected $nLinesWithTemplateExpected with "$template", but found $nLinesWithTemplate.""")
+    }
   }
 }

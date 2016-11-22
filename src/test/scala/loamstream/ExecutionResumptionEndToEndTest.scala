@@ -2,16 +2,16 @@ package loamstream
 
 import java.nio.file.{Path, Paths}
 
-import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
+import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.execute.{DbBackedJobFilter, Executable, ExecuterHelpers, MockChunkRunner, RxExecuter}
-import loamstream.model.jobs.JobState.{CommandInvocationFailure, CommandResult, Skipped}
-import loamstream.model.jobs.{JobState, LJob, Output}
+import loamstream.model.jobs.JobState.{CommandResult, Skipped}
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.util.{Loggable, Sequence}
+import loamstream.model.jobs.{JobState, LJob, Output}
 import loamstream.util.code.SourceUtils
+import loamstream.util.{Loggable, Sequence}
 import org.scalatest.{FunSuite, Matchers}
 
 /**
@@ -35,13 +35,13 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val output2 = PathOutput(fileOut2)
 
       /* Loam for the first run that mimics an incomplete pipeline run:
-          val fileIn = store[String].from("src/test/resources/a.txt")
-          val fileOut1 = store[String].to("$workDir/fileOut1.txt")
+          val fileIn = store[TXT].from("src/test/resources/a.txt")
+          val fileOut1 = store[TXT].to("$workDir/fileOut1.txt")
           cmd"cp $$fileIn $$fileOut1
        */
       val firstScript =
-      s"""val fileIn = store[String].from(${SourceUtils.toStringLiteral(fileIn)})
-            val fileOut1 = store[String].to(${SourceUtils.toStringLiteral(fileOut1)})
+      s"""val fileIn = store[TXT].from(${SourceUtils.toStringLiteral(fileIn)})
+            val fileOut1 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut1)})
             cmd"cp $$fileIn $$fileOut1""""
 
       val (executable, results) = compileAndRun(firstScript)
@@ -59,16 +59,16 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       assert(dao.findExecution(output2) === None)
 
       /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
-          val fileIn = store[String].from("src/test/resources/a.txt")
-          val fileOut1 = store[String].to("$workDir/fileOut1.txt")
-          val fileOut2 = store[String].to("$workDir/fileOut2.txt")
+          val fileIn = store[TXT].from("src/test/resources/a.txt")
+          val fileOut1 = store[TXT].to("$workDir/fileOut1.txt")
+          val fileOut2 = store[TXT].to("$workDir/fileOut2.txt")
           cmd"cp $$fileIn $$fileOut1"
           cmd"cp $$fileOut1 $$fileOut2
        */
       val secondScript =
-      s"""val fileIn = store[String].from(${SourceUtils.toStringLiteral(fileIn)})
-            val fileOut1 = store[String].to(${SourceUtils.toStringLiteral(fileOut1)})
-            val fileOut2 = store[String].to(${SourceUtils.toStringLiteral(fileOut2)})
+      s"""val fileIn = store[TXT].from(${SourceUtils.toStringLiteral(fileIn)})
+            val fileOut1 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut1)})
+            val fileOut2 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut2)})
             cmd"cp $$fileIn $$fileOut1"
             cmd"cp $$fileOut1 $$fileOut2""""
 
@@ -114,13 +114,13 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val bogusCommandName = "asdfasdf"
 
       /* Loam for a single invocation of a bogus command:
-          val fileIn = store[String].from("src/test/resources/a.txt")
-          val fileOut1 = store[String].to("$workDir/fileOut1.txt")
+          val fileIn = store[TXT].from("src/test/resources/a.txt")
+          val fileOut1 = store[TXT].to("$workDir/fileOut1.txt")
           cmd"asdfasdf $$fileIn $$fileOut1"
        */
       val script = {
-        s"""val fileIn = store[String].from(${SourceUtils.toStringLiteral(fileIn)})
-            val fileOut1 = store[String].to(${SourceUtils.toStringLiteral(fileOut1)})
+        s"""val fileIn = store[TXT].from(${SourceUtils.toStringLiteral(fileIn)})
+            val fileOut1 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut1)})
             cmd"$bogusCommandName $$fileIn $$fileOut1""""
       }
 
@@ -176,16 +176,16 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val bogusCommandName = "asdfasdf"
 
       /* Loam for a run with two bogus jobs:
-          val fileIn = store[String].from("src/test/resources/a.txt")
-          val fileOut1 = store[String].to("$workDir/fileOut1.txt")
-          val fileOut2 = store[String].to("$workDir/fileOut2.txt")
+          val fileIn = store[TXT].from("src/test/resources/a.txt")
+          val fileOut1 = store[TXT].to("$workDir/fileOut1.txt")
+          val fileOut2 = store[TXT].to("$workDir/fileOut2.txt")
           cmd"asdfasdf $$fileIn $$fileOut1"
           cmd"asdfasdf $$fileOut1 $$fileOut2"
        */
       val script =
-      s"""val fileIn = store[String].from(${SourceUtils.toStringLiteral(fileIn)})
-            val fileOut1 = store[String].to(${SourceUtils.toStringLiteral(fileOut1)})
-            val fileOut2 = store[String].to(${SourceUtils.toStringLiteral(fileOut2)})
+      s"""val fileIn = store[TXT].from(${SourceUtils.toStringLiteral(fileIn)})
+            val fileOut1 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut1)})
+            val fileOut2 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut2)})
             cmd"$bogusCommandName $$fileIn $$fileOut1"
             cmd"$bogusCommandName $$fileOut1 $$fileOut2""""
 

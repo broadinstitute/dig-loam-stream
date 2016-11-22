@@ -9,6 +9,7 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.JobFilter
 import loamstream.uger.UgerChunkRunner
+import loamstream.model.execute.AsyncLocalChunkRunner
 
 /**
  * @author clint
@@ -29,7 +30,7 @@ final class AppWiringTest extends FunSuite with Matchers {
     wiring.dao shouldBe a[SlickLoamDao]
     wiring.executer shouldBe a[RxExecuter]
     
-    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe(RxExecuter.AsyncLocalChunkRunner)
+    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe a[AsyncLocalChunkRunner]
     
     wiring.executer.asInstanceOf[RxExecuter].jobFilter shouldBe a[DbBackedJobFilter]
     
@@ -41,7 +42,7 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     wiring.executer shouldBe a[RxExecuter]
     
-    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe(RxExecuter.AsyncLocalChunkRunner)
+    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe a[AsyncLocalChunkRunner]
     
     wiring.executer.asInstanceOf[RxExecuter].jobFilter shouldBe JobFilter.RunEverything
   }

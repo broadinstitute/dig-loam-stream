@@ -13,5 +13,7 @@ import loamstream.model.jobs.LJob
 trait ChunkRunner {
   def maxNumJobs: Int
   
+  def canRun(job: LJob): Boolean = true
+  
   def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]]
 }

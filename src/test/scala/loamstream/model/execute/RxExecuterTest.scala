@@ -4,7 +4,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import org.scalatest.FunSuite
 
-import loamstream.model.execute.RxExecuter.AsyncLocalChunkRunner
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.Loggable
@@ -367,8 +366,8 @@ final class RxExecuterTest extends FunSuite with Loggable {
 }
 
 object RxExecuterTest {
-  private def makeExecuter(maxNumJobs: Int = AsyncLocalChunkRunner.maxNumJobs): (RxExecuter, MockChunkRunner) = {
-    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner, maxNumJobs)
+  private def makeExecuter(maxNumJobs: Int = AsyncLocalChunkRunner.defaultMaxNumJobs): (RxExecuter, MockChunkRunner) = {
+    val mockRunner = MockChunkRunner(AsyncLocalChunkRunner(maxNumJobs))
     val executer = RxExecuter(mockRunner)
     
     (executer, mockRunner)

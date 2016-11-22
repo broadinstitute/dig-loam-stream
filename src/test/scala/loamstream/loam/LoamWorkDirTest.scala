@@ -4,6 +4,7 @@ import java.nio.file.{Path, Paths, Files => JFiles}
 
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScriptTestUtils.FilePaths
+import loamstream.loam.ops.StoreType.VCF
 import loamstream.util.PathUtils
 import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
 import org.scalatest.FunSuite

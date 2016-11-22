@@ -4,7 +4,7 @@ import scala.concurrent.duration.DurationDouble
 
 import org.scalatest.FunSuite
 
-import loamstream.model.execute.RxExecuter.asyncLocalChunkRunner
+import loamstream.model.execute.RxExecuter.AsyncLocalChunkRunner
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.util.ValueBox
@@ -26,7 +26,7 @@ final class RxExecuterTest extends FunSuite {
     
     import scala.concurrent.duration._
     
-    val runner = MockChunkRunner(asyncLocalChunkRunner(maxSimultaneousJobs))
+    val runner = MockChunkRunner(AsyncLocalChunkRunner(maxSimultaneousJobs))
     
     val executer = RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything)
     
@@ -492,7 +492,7 @@ final class RxExecuterTest extends FunSuite {
   
       import scala.concurrent.duration._
       
-      val realRunner = asyncLocalChunkRunner(maxSimultaneousJobs)
+      val realRunner = AsyncLocalChunkRunner(maxSimultaneousJobs)
       
       assert(realRunner.maxNumJobs === maxSimultaneousJobs)
       

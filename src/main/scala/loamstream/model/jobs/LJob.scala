@@ -31,14 +31,10 @@ trait LJob extends Loggable {
 
   def name: String = ""
 
-  /**
-   * Any jobs this job depends on
-   */
+  /** Any jobs this job depends on */
   def inputs: Set[LJob]
 
-  /**
-   * Any outputs produced by this job
-   */
+  /** Any outputs produced by this job */
   def outputs: Set[Output]
   
   /**
@@ -83,9 +79,7 @@ trait LJob extends Loggable {
   
   private[this] val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
 
-  /**
-   * This job's current state.
-   */
+  /** This job's current state */
   final def state: JobState = stateRef.value
 
   /**

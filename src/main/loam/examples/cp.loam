@@ -1,9 +1,9 @@
-val fileIn = store[String].from("fileIn.txt")
-val fileTmp1 = store[String]
-val fileTmp2 = store[String]
-val fileOut1 = store[String].to("fileOut1.txt")
-val fileOut2 = store[String].to("fileOut2.txt")
-val fileOut3 = store[String].to("fileOut3.txt")
+val fileIn = store[TXT].from("fileIn.txt")
+val fileTmp1 = store[TXT]
+val fileTmp2 = store[TXT]
+val fileOut1 = store[TXT].to("fileOut1.txt")
+val fileOut2 = store[TXT].to("fileOut2.txt")
+val fileOut3 = store[TXT].to("fileOut3.txt")
 cmd"cp $fileIn $fileTmp1"
 cmd"cp $fileTmp1 $fileTmp2"
 cmd"cp $fileTmp2 $fileOut1"

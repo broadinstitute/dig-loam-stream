@@ -87,7 +87,11 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       
       val chunkRunner = UgerChunkRunner(ugerConfig, drmaaClient, jobMonitor, pollingFrequencyInHz)
 
-      val executer = RxExecuter(chunkRunner, makeJobFilter(conf))(executionContextWithThreadPool)
+      import scala.concurrent.duration._
+      
+      val windowLength = 30.seconds
+      
+      val executer = RxExecuter(chunkRunner, windowLength, makeJobFilter(conf))(executionContextWithThreadPool)
       
       new TerminableExecuter(executer) {
         

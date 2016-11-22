@@ -102,7 +102,7 @@ object RxExecuter {
   def default: RxExecuter = {
     implicit val executionContext = ExecutionContext.global
   
-    val chunkRunner = asyncLocalChunkRunner(defaultMaxNumConcurrentJobs)
+    val chunkRunner = AsyncLocalChunkRunner(defaultMaxNumConcurrentJobs)
     
     new RxExecuter(chunkRunner, defaultWindowLength, defaultJobFilter)
   }
@@ -112,12 +112,10 @@ object RxExecuter {
     
     d.copy(jobFilter = newJobFilter)(d.executionContext)
   }
-
-  def asyncLocalChunkRunner(maxJobs: Int)(implicit context: ExecutionContext): ChunkRunner = new ChunkRunner {
+  
+  final case class AsyncLocalChunkRunner(maxNumJobs: Int)(implicit context: ExecutionContext) extends ChunkRunner {
 
     import ExecuterHelpers._
-
-    override def maxNumJobs: Int = maxJobs
     
     override def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
       if(jobs.isEmpty) { Observable.just(Map.empty) }
@@ -129,7 +127,7 @@ object RxExecuter {
         Observables.sequence(resultObservables).map(Maps.mergeMaps)
       }
     }
-  }
+  } 
 }
   
   

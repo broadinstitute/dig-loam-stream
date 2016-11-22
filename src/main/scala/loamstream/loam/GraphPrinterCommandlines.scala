@@ -1,6 +1,7 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
+import loamstream.loam.ops.filters.LoamStoreFilterTool
 
 /** Prints file names and command lines in LoamGraph */
 final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
@@ -10,7 +11,7 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
 
   /** Prints a store ref */
   def print(storeRef: LoamStoreRef): String =
-    storeRef.store.pathOpt.map(storeRef.pathModifier).map(_.toString).getOrElse("[file ref]")
+  storeRef.store.pathOpt.map(storeRef.pathModifier).map(_.toString).getOrElse("[file ref]")
 
   /** Prints a token */
   def print(token: LoamToken, graph: LoamGraph): String = token match {
@@ -23,6 +24,7 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
   def print(tool: LoamTool): String = tool match {
     case cmdTool: LoamCmdTool => print(cmdTool)
     case nativeTool: LoamNativeTool[_] => print(nativeTool)
+    case filterTool: LoamStoreFilterTool[_] => print(filterTool)
   }
 
   /** Prints a cmd tool */
@@ -31,8 +33,15 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
   /** Prints a native tool */
   def print[T](tool: LoamNativeTool[T]): String = "[native tool]"
 
+  /** Prints a filter tool */
+  def print(tool: LoamStoreFilterTool[_]): String = "[filter tool]"
+
   /** Prints file names and command lines in LoamGraph */
   override def print(graph: LoamGraph): String =
-    graph.ranks.map { case (tool, rank) => s"$rank: ${print(tool)}" }.mkString("\n")
+  graph.ranks.map {
+    case (tool, rank) => s"$rank: ${
+      print(tool)
+    }"
+  }.mkString("\n")
 
 }

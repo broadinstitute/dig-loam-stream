@@ -139,7 +139,18 @@ object Files {
     }
   }
 
-  def filterFile(inFile: Path, outFile: Path, filter: String => Boolean): Unit = {
-    // TODO
+  def filterFile(inFile: Path, outFile: Path)(filter: String => Boolean): Unit = {
+    LoamFileUtils.enclosed(Source.fromFile(inFile.toFile)) { source =>
+      LoamFileUtils.enclosed(JFiles.newBufferedWriter(outFile, StandardCharsets.UTF_8)) { writer =>
+        source.getLines.filter(filter).foreach { line =>
+          writer.write(line)
+          writer.newLine()
+        }
+      }
+    }
+  }
+
+  def countLines(file: Path): Long = {
+    LoamFileUtils.enclosed(Source.fromFile(file.toFile))(_.getLines.size)
   }
 }

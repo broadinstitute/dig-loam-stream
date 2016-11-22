@@ -73,12 +73,16 @@ object LoamTool {
   final case class In(stores: Iterable[LoamStore.Untyped])
 
   object In {
+    def apply(store: LoamStore.Untyped, stores: LoamStore.Untyped*): In = In(store +: stores)
+
     val empty: In = In(Set.empty)
   }
 
   final case class Out(stores: Iterable[LoamStore.Untyped])
 
   object Out {
+    def apply(store: LoamStore.Untyped, stores: LoamStore.Untyped*): Out = Out(store +: stores)
+
     val empty: Out = Out(Set.empty)
   }
 

@@ -10,7 +10,7 @@ import loamstream.util.Maps
  * @author clint
  * Nov 22, 2016
  */
-final class CompositeChunkRunner(components: Seq[ChunkRunner]) extends ChunkRunner {
+final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends ChunkRunner {
   
   override def maxNumJobs: Int = components.map(_.maxNumJobs).sum
   

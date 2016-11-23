@@ -3,6 +3,7 @@ package loamstream.uger
 import java.nio.file.Path
 import scala.util.Try
 import scala.concurrent.duration.Duration
+import loamstream.util.Terminable
 
 /**
  * @author clint
@@ -11,7 +12,7 @@ import scala.concurrent.duration.Duration
  * A trait to represent operations that can be performed on a Uger cluster.
  * For now, these are just submitting a job and checking a job's status.
  */
-trait DrmaaClient {
+trait DrmaaClient extends Terminable {
   /**
    * Synchronously submit a job to UGER.  
    * @param pathToScript the path to the script that UGER should run
@@ -43,7 +44,7 @@ trait DrmaaClient {
   /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
-  def shutdown(): Unit
+  override def stop(): Unit
 }
 
 object DrmaaClient {

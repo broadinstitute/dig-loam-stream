@@ -90,12 +90,6 @@ final case class Conf(
 
   val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
 
-  val backend: ScallopOption[BackendType] = {
-    val backendConverter: ValueConverter[BackendType] = singleArgConverter[BackendType](BackendType.byName(_).get)
-
-    opt[BackendType](descr = s"Backend to use: must be one of ${BackendType.values.mkString(", ")}")(backendConverter)
-  }
-
   val loams: ScallopOption[List[Path]] = trailArg[List[Path]](
       descr = "Path(s) to loam script(s)",
       required = false,
@@ -112,19 +106,19 @@ final case class Conf(
    * --version trumps everything - if it's present, everythign else is optional
    * --backend and --dry-run are mutually exclusive; both require a non-empty list of loam files
    */
-  validateOpt(version, conf, runEverything, loams, backend, dryRun) {
+  validateOpt(version, conf, runEverything, loams, dryRun) {
     // If --version is supplied, everything else is unchecked
-    case (Some(true), _, _, _, _, _) => Right(Unit)
+    case (Some(true), _, _, _, _) => Right(Unit)
 
     //--dry-run and a non-empty list of loam files is valid
-    case (_, _, _, Some(files), None, Some(true)) if files.nonEmpty => Right(Unit)
-    case (_, _, _, Some(files), None, Some(true)) if files.isEmpty => Left(dryRunNoFilesMessage)
-    case (_, _, _, None, _, Some(true)) => Left(dryRunNoFilesMessage)
+    case (_, _, _, Some(files), Some(true)) if files.nonEmpty => Right(Unit)
+    case (_, _, _, Some(files), Some(true)) if files.isEmpty => Left(dryRunNoFilesMessage)
+    case (_, _, _, None, Some(true)) => Left(dryRunNoFilesMessage)
 
-    // --backend with a valid backend type and a non-empty list of loam files is valid
-    case (_, _, _, Some(files), Some(_), _) if files.nonEmpty => Right(Unit)
-    case (_, _, _, Some(files), Some(_), _) if files.isEmpty => Left(runNoFilesMessage)
-    case (_, _, _, None, Some(_), _) => Left(runNoFilesMessage)
+    // running (no --dry-run) with a non-empty list of loam files is valid
+    case (_, _, _, Some(files), _) if files.nonEmpty => Right(Unit)
+    case (_, _, _, Some(files), _) if files.isEmpty => Left(runNoFilesMessage)
+    case (_, _, _, None, _) => Left(runNoFilesMessage)
 
     case _ => Left("Invalid option/argument combination")
   }

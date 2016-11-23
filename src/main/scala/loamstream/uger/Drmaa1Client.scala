@@ -52,7 +52,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
-  override def shutdown(): Unit = tryShuttingDown(sessionBox.value)
+  override def stop(): Unit = tryShuttingDown(sessionBox.value)
   
   /**
    * Synchronously obtain the status of one running UGER job, given its id.

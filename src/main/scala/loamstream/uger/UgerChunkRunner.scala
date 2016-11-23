@@ -23,6 +23,7 @@ import loamstream.util.Traversables
 import rx.lang.scala.Scheduler
 import rx.schedulers.Schedulers
 import loamstream.util.RxSchedulers
+import loamstream.util.Terminable
 
 /**
  * @author clint
@@ -35,11 +36,13 @@ import loamstream.util.RxSchedulers
 final case class UgerChunkRunner(
     ugerConfig: UgerConfig,
     drmaaClient: DrmaaClient,
-    jobOps: JobMonitor,
-    pollingFrequencyInHz: Double = 1.0) extends ChunkRunner with Loggable {
+    jobMonitor: JobMonitor,
+    pollingFrequencyInHz: Double = 1.0) extends ChunkRunner with Terminable with Loggable {
 
   import UgerChunkRunner._
 
+  override def stop(): Unit = jobMonitor.stop()
+  
   override def canRun(job: LJob): Boolean = job.executionEnvironment.isUger
   
   override def maxNumJobs = ugerConfig.ugerMaxNumJobs
@@ -93,7 +96,7 @@ final case class UgerChunkRunner(
       jobsById: Map[String, CommandLineJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
 
     def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
-      jobOps.monitor(jobIds)
+      jobMonitor.monitor(jobIds)
     }
 
     import ObservableEnrichments._

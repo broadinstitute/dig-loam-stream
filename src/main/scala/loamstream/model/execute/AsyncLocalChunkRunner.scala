@@ -30,5 +30,5 @@ final case class AsyncLocalChunkRunner(maxNumJobs: Int = defaultMaxNumJobs) exte
 }
 
 object AsyncLocalChunkRunner {
-  val defaultMaxNumJobs: Int = 100 // scalastyle:ignore magic.number
+  def defaultMaxNumJobs: Int = Runtime.getRuntime.availableProcessors
 }

@@ -24,6 +24,9 @@ import rx.lang.scala.Scheduler
 import rx.schedulers.Schedulers
 import loamstream.util.RxSchedulers
 import loamstream.util.Terminable
+import java.util.concurrent.ExecutionException
+import loamstream.model.execute.{ExecutionEnvironment => ExecEnv}
+import loamstream.model.execute.ChunkRunnerFor
 
 /**
  * @author clint
@@ -37,13 +40,11 @@ final case class UgerChunkRunner(
     ugerConfig: UgerConfig,
     drmaaClient: DrmaaClient,
     jobMonitor: JobMonitor,
-    pollingFrequencyInHz: Double = 1.0) extends ChunkRunner with Terminable with Loggable {
+    pollingFrequencyInHz: Double = 1.0) extends ChunkRunnerFor(ExecEnv.Uger) with Terminable with Loggable {
 
   import UgerChunkRunner._
 
   override def stop(): Unit = jobMonitor.stop()
-  
-  override def canRun(job: LJob): Boolean = job.executionEnvironment.isUger
   
   override def maxNumJobs = ugerConfig.ugerMaxNumJobs
 

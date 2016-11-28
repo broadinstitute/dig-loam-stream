@@ -12,7 +12,8 @@ import AsyncLocalChunkRunner.defaultMaxNumJobs
  * @author clint
  * Nov 22, 2016
  */
-final case class AsyncLocalChunkRunner(maxNumJobs: Int = defaultMaxNumJobs) extends LocalChunkRunner {
+final case class AsyncLocalChunkRunner(
+    maxNumJobs: Int = defaultMaxNumJobs) extends ChunkRunnerFor(ExecutionEnvironment.Local) {
 
   import ExecuterHelpers._
 

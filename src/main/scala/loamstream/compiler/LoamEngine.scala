@@ -167,6 +167,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
       LoamEngine.Result(Hit(project), Hit(compileResults), Miss("Could not compile"))
     } else {
       outMessageSink.send(StatusOutMessage(compileResults.summary))
+      compileResults.exOpt.foreach(_.printStackTrace())
       val context = compileResults.contextOpt.get
       val jobResults = run(context)
       LoamEngine.Result(Hit(project), Hit(compileResults), Hit(jobResults))

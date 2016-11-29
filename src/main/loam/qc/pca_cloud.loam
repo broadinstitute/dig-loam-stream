@@ -16,15 +16,15 @@ val m_cluster = "minimal"
 
 // Create a Google Cloud DataProc cluster
 cmd"""gcloud dataproc clusters create $m_cluster
-          --zone us-central1-f
-          --master-machine-type n1-standard-1
-          --master-boot-disk-size 20
-          --num-workers 2
-          --worker-machine-type n1-standard-1
-          --worker-boot-disk-size 20
-          --image-version 1.0
-          --scopes 'https://www.googleapis.com/auth/cloud-platform'
-          --project broadinstitute.com:cmi-gce-01""".out(cluster_created)
+      --zone us-central1-f
+      --master-machine-type n1-standard-1
+      --master-boot-disk-size 20
+      --num-workers 2
+      --worker-machine-type n1-standard-1
+      --worker-boot-disk-size 20
+      --image-version 1.0
+      --scopes 'https://www.googleapis.com/auth/cloud-platform'
+      --project broadinstitute.com:cmi-gce-01""".out(cluster_created)
 
 // Import input Plink files into Hail's VDS format
 cmd"""gcloud dataproc jobs submit spark

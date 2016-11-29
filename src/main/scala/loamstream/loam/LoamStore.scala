@@ -5,6 +5,7 @@ import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.ops.filters.{LoamStoreFilter, LoamStoreFilterTool, StoreFieldValueFilter}
+import loamstream.loam.ops.mappers.{LoamStoreMapper, LoamStoreMapperTool}
 import loamstream.loam.ops.{StoreField, StoreType}
 import loamstream.model.{LId, Store}
 import loamstream.util.{TypeBox, ValueBox}
@@ -69,8 +70,8 @@ object LoamStore {
   }
 }
 
-final case class LoamStore[S <: StoreType : TypeTag] private (id: LId)(implicit val scriptContext: LoamScriptContext)
-    extends LoamStore.Untyped {
+final case class LoamStore[S <: StoreType : TypeTag] private(id: LId)(implicit val scriptContext: LoamScriptContext)
+  extends LoamStore.Untyped {
 
   val sig: TypeBox[S] = TypeBox.of[S]
 
@@ -98,13 +99,19 @@ final case class LoamStore[S <: StoreType : TypeTag] private (id: LId)(implicit 
     this
   }
 
-  def filter[Value](field: StoreField[S, Value])(valueFilter: Value => Boolean): LoamStore[S] = {
+  def filter[V](field: StoreField[S, V])(valueFilter: V => Boolean): LoamStore[S] = {
     filter(StoreFieldValueFilter(field, valueFilter))
   }
 
   def filter(filter: LoamStoreFilter[S]): LoamStore[S] = {
-    val outStore = filter.newOutStore(this)
+    val outStore = filter.newOutStore
     LoamStoreFilterTool(filter, this, outStore)
+    outStore
+  }
+
+  def map[SO <: StoreType : TypeTag](mapper: LoamStoreMapper[S, SO]): LoamStore[SO] = {
+    val outStore = mapper.newOutStore
+    LoamStoreMapperTool(mapper, this, outStore)
     outStore
   }
 

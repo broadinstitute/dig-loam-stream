@@ -8,7 +8,9 @@ trait StoreType {
 object StoreType {
   trait VCF extends TextStore
 
-  trait TXT extends TextStore
+  trait TXT extends TextStore {
+    override type Record = TextStoreRecord
+  }
 
   trait BIM extends TextStore
 

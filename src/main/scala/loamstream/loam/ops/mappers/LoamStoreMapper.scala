@@ -9,6 +9,7 @@ import scala.reflect.runtime.universe.{Type, TypeTag}
 object LoamStoreMapper {
 
   trait Untyped {
+    /** Map a record based on runtime type information */
     def mapDynamicallyTyped(record: StoreRecord, tpeIn: Type, tpeOut: Type): StoreRecord
   }
 

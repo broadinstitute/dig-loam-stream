@@ -4,9 +4,10 @@ import java.net.URI
 import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.ops.StoreType.TXT
 import loamstream.loam.ops.filters.{LoamStoreFilter, LoamStoreFilterTool, StoreFieldValueFilter}
-import loamstream.loam.ops.mappers.{LoamStoreMapper, LoamStoreMapperTool}
-import loamstream.loam.ops.{StoreField, StoreType}
+import loamstream.loam.ops.mappers.{LoamStoreMapper, LoamStoreMapperTool, TextStoreFieldExtractor}
+import loamstream.loam.ops.{StoreField, StoreType, TextStore, TextStoreField}
 import loamstream.model.{LId, Store}
 import loamstream.util.{TypeBox, ValueBox}
 
@@ -112,6 +113,13 @@ final case class LoamStore[S <: StoreType : TypeTag] private(id: LId)(implicit v
   def map[SO <: StoreType : TypeTag](mapper: LoamStoreMapper[S, SO]): LoamStore[SO] = {
     val outStore = mapper.newOutStore
     LoamStoreMapperTool(mapper, this, outStore)
+    outStore
+  }
+
+  def extract[V](field: TextStoreField[S with TextStore, V], defaultString: String): LoamStore[TXT] = {
+    val mapper = TextStoreFieldExtractor[S with TextStore, V](field, defaultString)
+    val outStore = mapper.newOutStore
+    LoamStoreMapperTool(mapper, this.asInstanceOf[LoamStore[S with TextStore]], outStore)
     outStore
   }
 

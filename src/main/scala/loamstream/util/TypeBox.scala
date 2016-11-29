@@ -29,6 +29,7 @@ object TypeBox {
   }
 
   def of[A: TypeTag]: TypeBox[A] = new TypeBox[A](typeTag[A].tpe)
+
 }
 
 final class TypeBox[A](val tpe: Type) extends TypeBox.Untyped {

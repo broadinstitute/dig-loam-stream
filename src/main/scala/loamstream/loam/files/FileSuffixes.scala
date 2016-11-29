@@ -1,6 +1,7 @@
 package loamstream.loam.files
 
-import loamstream.compiler.LoamPredef.VCF
+
+import loamstream.loam.ops.StoreType
 
 import scala.reflect.runtime.universe.{Type, typeOf}
 
@@ -11,7 +12,7 @@ import scala.reflect.runtime.universe.{Type, typeOf}
 object FileSuffixes {
 
   def apply(tpe: Type): String = {
-    if (tpe =:= typeOf[VCF]) {
+    if (tpe =:= typeOf[StoreType.VCF]) {
       "vcf"
     } else {
       "txt"

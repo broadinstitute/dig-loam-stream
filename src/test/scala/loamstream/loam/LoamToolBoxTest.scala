@@ -151,12 +151,12 @@ object LoamToolBoxTest {
   object Sources {
     val toyCp = LoamScript("ToyCp", {
       """
-        |val fileIn = store[String].from(path("target/fileIn.txt"))
-        |val fileTmp1 = store[String]
-        |val fileTmp2 = store[String]
-        |val fileOut1 = store[String].to(path("target/fileOut1.txt"))
-        |val fileOut2 = store[String].to(path("target/fileOut2.txt"))
-        |val fileOut3 = store[String].to(path("target/fileOut3.txt"))
+        |val fileIn = store[TXT].from(path("target/fileIn.txt"))
+        |val fileTmp1 = store[TXT]
+        |val fileTmp2 = store[TXT]
+        |val fileOut1 = store[TXT].to(path("target/fileOut1.txt"))
+        |val fileOut2 = store[TXT].to(path("target/fileOut2.txt"))
+        |val fileOut3 = store[TXT].to(path("target/fileOut3.txt"))
         |cmd"cp $fileIn $fileTmp1"
         |cmd"cp $fileTmp1 $fileTmp2"
         |cmd"cp $fileTmp2 $fileOut1"

@@ -61,7 +61,7 @@ final class GoogleCloudConfigTest extends FunSuite {
       assert(config.flatMap(GoogleCloudConfig.fromConfig).isFailure)
     }
     
-    doTest(null)
+    doTest(null) //scalastyle:ignore null
     doTest("")
     doTest("asdsadasd")
     doTest("loamstream { }")

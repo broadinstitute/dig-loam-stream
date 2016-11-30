@@ -7,7 +7,10 @@ import loamstream.util.EvalLaterBox
 import scala.reflect.runtime.universe.TypeTag
 
 /** A native tool specified in a Loam script */
-final case class LoamNativeTool[T] private (id: LId, defaultStores: DefaultStores, expBox: EvalLaterBox[T])(implicit val scriptContext: LoamScriptContext) extends LoamTool
+final case class LoamNativeTool[T] private (
+    id: LId, 
+    defaultStores: DefaultStores, 
+    expBox: EvalLaterBox[T])(implicit val scriptContext: LoamScriptContext) extends LoamTool
 
 object LoamNativeTool {
   def apply[T: TypeTag](defaultStores: DefaultStores,

@@ -11,6 +11,8 @@ import loamstream.googlecloud.DataProcClientTest.MockDataProcClient
 final class DataProcClientTest extends FunSuite {
   import DataProcClientTest.MockDataProcClient
   
+  //scalastyle:off magic.number
+  
   test("doWithCluster") {
     val client = new MockDataProcClient
     
@@ -90,9 +92,11 @@ final class DataProcClientTest extends FunSuite {
     assert(client.isClusterRunningInvocations() === 3)
     assert(client.clusterRunning() === false)
   }
+  //scalastyle:on magic.number
 }
 
 object DataProcClientTest {
+  //scalastyle:off magic.number
   final class MockDataProcClient extends DataProcClient {
     val startClusterInvocations: ValueBox[Int] = ValueBox(0)
     val deleteClusterInvocations: ValueBox[Int] = ValueBox(0)
@@ -125,4 +129,5 @@ object DataProcClientTest {
       clusterRunning.update(true)
     }
   }
+  //scalastyle:on magic.number
 }

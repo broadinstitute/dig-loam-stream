@@ -8,6 +8,7 @@ import java.nio.file.Paths
  * Nov 29, 2016
  */
 final class CloudSdkDataProcClientTest extends FunSuite {
+  //scalastyle:off magic.number
   private val config = GoogleCloudConfig(
       gcloudBinaryPath = Paths.get("/foo/bar/baz"), 
       projectId = "pid",
@@ -72,4 +73,5 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     
     assert(tokens === expected)
   }
+  //scalastyle:on magic.number
 }

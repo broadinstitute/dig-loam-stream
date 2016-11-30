@@ -17,12 +17,12 @@ import loamstream.model.execute.AsyncLocalChunkRunner
  */
 final case class GoogleCloudChunkRunner(
     client: DataProcClient, 
-    maxNumJobs: Int) extends ChunkRunnerFor(ExecutionEnvironment.Google) with Terminable {
+    delegate: ChunkRunner = AsyncLocalChunkRunner()) extends 
+  ChunkRunnerFor(ExecutionEnvironment.Google) with Terminable {
+  
+  override def maxNumJobs: Int = delegate.maxNumJobs
   
   override def stop(): Unit = client.deleteClusterIfRunning()
-  
-  //TODO: For now
-  private lazy val delegate: ChunkRunner = AsyncLocalChunkRunner()
   
   override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
     if(jobs.nonEmpty) {

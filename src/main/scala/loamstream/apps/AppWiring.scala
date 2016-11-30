@@ -28,6 +28,10 @@ import loamstream.util.Terminable
 import loamstream.model.execute.AsyncLocalChunkRunner
 import loamstream.model.execute.CompositeChunkRunner
 import loamstream.util.ExecutionContexts
+import loamstream.googlecloud.GoogleCloudChunkRunner
+import loamstream.googlecloud.GoogleCloudConfig
+import loamstream.googlecloud.CloudSdkDataProcClient
+import loamstream.googlecloud.CloudSdkDataProcClient
 
 /**
  * @author clint
@@ -70,8 +74,18 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
         
         info(msg)
       }
+
+      val googleRunner = googleChunkRunner(cli, localRunner)
       
-      val compositeRunner = new CompositeChunkRunner(localRunner +: ugerRunner.toSeq)
+      //TODO: A better way to enable or disable Google support; for now, this is purely expedient
+      if(googleRunner.isEmpty) {
+        val msg = s"""Google Cloud support NOT enabled; enable it by defining loamstream.googlecloud section 
+                     |in the config file (${cli.conf.toOption}).""".stripMargin
+        
+        info(msg)
+      }
+      
+      val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
 
       import loamstream.model.execute.ExecuterHelpers._
       import ExecutionContexts.threadPool
@@ -80,10 +94,23 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
       val rxExecuter = RxExecuter(compositeRunner, jobFilter)(executionContextWithThreadPool)
 
-      val handles = threadPoolHandle +: ugerRunnerHandles
+      val handles: Seq[Terminable] = threadPoolHandle +: (ugerRunnerHandles ++ googleRunner)
 
       new TerminableExecuter(rxExecuter, handles: _*)
     }
+  }
+  
+  private def googleChunkRunner(cli: Conf, delegate: ChunkRunner): Option[GoogleCloudChunkRunner] = {
+    val config = loadConfig(cli)
+
+    val attempt = for {
+      googleConfig <- GoogleCloudConfig.fromConfig(config)
+      client <- CloudSdkDataProcClient.fromConfig(googleConfig)
+    } yield {
+      GoogleCloudChunkRunner(client, delegate)
+    }
+    
+    attempt.toOption
   }
   
   private def unpack[A,B](o: Option[(A, Seq[B])]): (Option[A], Seq[B]) = o match {

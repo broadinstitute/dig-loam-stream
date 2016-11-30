@@ -38,6 +38,8 @@ final case class CommandLineStringJob(
   }
 
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+  
+  def withCommandLineString(newCmd: String): CommandLineStringJob = copy(commandLineString = newCmd)
 }
 
 object CommandLineStringJob {

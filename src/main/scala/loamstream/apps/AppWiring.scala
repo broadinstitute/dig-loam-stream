@@ -42,8 +42,6 @@ trait AppWiring extends Terminable {
 
   def executer: Executer
 
-  override def stop(): Unit = ()
-
   private[AppWiring] def makeJobFilter(conf: Conf): JobFilter = {
     if (conf.runEverything()) JobFilter.RunEverything else new DbBackedJobFilter(dao)
   }

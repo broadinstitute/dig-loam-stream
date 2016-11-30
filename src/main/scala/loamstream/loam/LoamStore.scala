@@ -116,7 +116,8 @@ final case class LoamStore[S <: StoreType : TypeTag] private(id: LId)(implicit v
     outStore
   }
 
-  def extract[V](field: TextStoreField[S with TextStore, V], defaultString: String): LoamStore[TXT] = {
+  def extract[V](field: TextStoreField[S with TextStore, V],
+                 defaultString: String = TextStoreFieldExtractor.defaultNA): LoamStore[TXT] = {
     val mapper = TextStoreFieldExtractor[S with TextStore, V](field, defaultString)
     val outStore = mapper.newOutStore
     LoamStoreMapperTool(mapper, this.asInstanceOf[LoamStore[S with TextStore]], outStore)

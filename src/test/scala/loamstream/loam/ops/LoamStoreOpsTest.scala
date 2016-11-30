@@ -64,13 +64,35 @@ final class LoamStoreOpsTest extends FunSuite {
     val dir = JFiles.createTempDirectory("LoamStoreOpsTest")
     val inFile = dir.resolve("data.bim")
     Files.writeTo(inFile)(inContent)
-    val chrs = dir.resolve("chrs.txt")
+    val snps = dir.resolve("snps.txt")
     val script = LoamScript("filter",
       s"""
          |val variants = store[BIM].from(${inFile.asStringLiteral})
-         |val chrs = variants.extract(BIM.chr, "yo").to(${chrs.asStringLiteral})
+         |val snps = variants.extract(BIM.id).to(${snps.asStringLiteral})
       """.stripMargin)
     runAndAssertRunsFine(script, 2, 1, 1)
-    assertFileHasNLines(chrs, 9) // scalastyle:ignore magic.number
+    assertFileHasNLines(snps, 9) // scalastyle:ignore magic.number
+    val snpsContent = Files.readFrom(snps)
+    val snpsContentExpected = (1 to 9).map(i => s"SNP$i").mkString(System.lineSeparator)
+    assert(snpsContent === snpsContentExpected)
+  }
+  test("LoamStore.filter(...).extract(...)") {
+    val dir = JFiles.createTempDirectory("LoamStoreOpsTest")
+    val inFile = dir.resolve("data.bim")
+    Files.writeTo(inFile)(inContent)
+    val unplacedSnps = dir.resolve("unplacedSnps.txt")
+    val script = LoamScript("filterMap",
+      s"""
+         |val variants = store[BIM].from(${inFile.asStringLiteral})
+         |val unplacedSnps =
+         |  variants.filter(StoreFieldFilter.isUndefined(BIM.chr)).extract(BIM.id).to(${unplacedSnps.asStringLiteral})
+      """.stripMargin)
+    runAndAssertRunsFine(script, 3, 2, 2)
+    assertFileHasNLines(unplacedSnps, 3) // scalastyle:ignore magic.number
+    val snpsContent = Files.readFrom(unplacedSnps)
+    // scalastyle:off magic.number
+    val snpsContentExpected = Seq(2, 4, 7).map(i => s"SNP$i").mkString(System.lineSeparator)
+    // scalastyle:on magic.number
+    assert(snpsContent === snpsContentExpected)
   }
 }

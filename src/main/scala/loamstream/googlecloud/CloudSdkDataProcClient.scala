@@ -14,14 +14,16 @@ import loamstream.util.Tries
 final class CloudSdkDataProcClient private[googlecloud] (config: GoogleCloudConfig) extends 
     DataProcClient with Loggable {
   
+  import CloudSdkDataProcClient._
+  
   override def deleteCluster(): Unit = {
     debug(s"Deleting cluster '${config.clusterId}'")
     
-    runCommand(deleteClusterTokens)
+    runCommand(deleteClusterTokens(config))
   }
   
   override def isClusterRunning: Boolean = {
-    val result = runCommand(isClusterRunningTokens) == 0
+    val result = runCommand(isClusterRunningTokens(config)) == 0
     
     debug(s"Cluster '${config.clusterId}' running? $result")
     
@@ -31,15 +33,31 @@ final class CloudSdkDataProcClient private[googlecloud] (config: GoogleCloudConf
   override def startCluster(): Unit = {
     debug(s"Starting cluster '${config.clusterId}'")
     
-    runCommand(startClusterTokens)
+    runCommand(startClusterTokens(config))
   }
+}
 
-  private[googlecloud] def deleteClusterTokens: Seq[String] = gcloudTokens("delete", config.clusterId)
+object CloudSdkDataProcClient extends Loggable {
+  def fromConfig(config: GoogleCloudConfig): Try[CloudSdkDataProcClient] = {
+    val gcloudBinary = config.gcloudBinaryPath.toFile
+    
+    if(gcloudBinary.exists && gcloudBinary.canExecute) {
+      Success(new CloudSdkDataProcClient(config))
+    } else {
+      Tries.failure(s"gcloud executable not found at ${config.gcloudBinaryPath} or not executable")
+    }
+  }
   
-  private[googlecloud] def isClusterRunningTokens: Seq[String] = gcloudTokens("describe", config.clusterId)
+  private[googlecloud] def deleteClusterTokens(config: GoogleCloudConfig): Seq[String] = {
+    gcloudTokens(config)("delete", config.clusterId)
+  }
   
-  private[googlecloud] def startClusterTokens: Seq[String] = {
-    gcloudTokens(
+  private[googlecloud] def isClusterRunningTokens(config: GoogleCloudConfig): Seq[String] = {
+    gcloudTokens(config)("describe", config.clusterId)
+  }
+  
+  private[googlecloud] def startClusterTokens(config: GoogleCloudConfig): Seq[String] = {
+    gcloudTokens(config)(
         "create", 
         config.clusterId,
         "--zone",
@@ -62,7 +80,7 @@ final class CloudSdkDataProcClient private[googlecloud] (config: GoogleCloudConf
         config.projectId)
   }
   
-  private[googlecloud] def gcloudTokens(args: String*): Seq[String] = {
+  private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(args: String*): Seq[String] = {
     val gcloud = normalize(config.gcloudBinaryPath)
     
     gcloud +: "dataproc" +: "clusters" +: args
@@ -80,17 +98,5 @@ final class CloudSdkDataProcClient private[googlecloud] (config: GoogleCloudConf
     debug(s"Got status code $result from running '$commandStringApproximation'")
 
     result
-  }
-}
-
-object CloudSdkDataProcClient {
-  def fromConfig(config: GoogleCloudConfig): Try[CloudSdkDataProcClient] = {
-    val gcloudBinary = config.gcloudBinaryPath.toFile
-    
-    if(gcloudBinary.exists && gcloudBinary.canExecute) {
-      Success(new CloudSdkDataProcClient(config))
-    } else {
-      Tries.failure(s"gcloud executable not found at ${config.gcloudBinaryPath} or not executable")
-    }
   }
 }

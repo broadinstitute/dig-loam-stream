@@ -26,25 +26,33 @@ final class CloudSdkDataProcClientTest extends FunSuite {
   private val client = new CloudSdkDataProcClient(config)
       
   test("gcloudTokens") {
-    val tokens = client.gcloudTokens("foo", "--bar", "Baz")
+    import CloudSdkDataProcClient.gcloudTokens
+    
+    val tokens = gcloudTokens(config)("foo", "--bar", "Baz")
     
     assert(tokens === Seq("/foo/bar/baz", "dataproc", "clusters", "foo", "--bar", "Baz"))
   }
   
   test("isClusterRunningTokens") {
-    val tokens = client.isClusterRunningTokens
+    import CloudSdkDataProcClient.isClusterRunningTokens
+    
+    val tokens = isClusterRunningTokens(config)
     
     assert(tokens === Seq("/foo/bar/baz", "dataproc", "clusters", "describe", config.clusterId))
   }
   
   test("deleteClusterTokens") {
-    val tokens = client.deleteClusterTokens
+    import CloudSdkDataProcClient.deleteClusterTokens
+    
+    val tokens = deleteClusterTokens(config)
     
     assert(tokens === Seq("/foo/bar/baz", "dataproc", "clusters", "delete", config.clusterId))
   }
   
   test("startClusterTokens") {
-    val tokens = client.startClusterTokens
+    import CloudSdkDataProcClient.startClusterTokens
+    
+    val tokens = startClusterTokens(config)
     
     val expected = Seq(
         "/foo/bar/baz", 

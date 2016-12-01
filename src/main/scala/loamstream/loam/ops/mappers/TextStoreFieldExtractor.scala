@@ -28,6 +28,7 @@ case class TextStoreFieldExtractor[SI <: TextStore : TypeTag, V](field: TextStor
 
 
   /** Map a record */
-  override def map(record: SI#Record): TextStoreRecord =
-  TextStoreRecord(field.fieldTextExtractor(record.text).getOrElse(defaultString))
+  override def map(record: SI#Record): TextStoreRecord = {
+    TextStoreRecord(field.fieldTextExtractor(record.text).getOrElse(defaultString))
+  }
 }

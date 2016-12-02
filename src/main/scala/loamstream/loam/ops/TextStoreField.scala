@@ -2,7 +2,7 @@ package loamstream.loam.ops
 
 import scala.util.Try
 
-/** A field in a text file */
+/** A field in a text store */
 final case class TextStoreField[S <: TextStore, V](fieldTextExtractor: String => Option[String],
                                                    valueExtractor: String => Option[V])
   extends StoreField[S, V] {
@@ -10,7 +10,7 @@ final case class TextStoreField[S <: TextStore, V](fieldTextExtractor: String =>
   override def get(record: S#Record): Option[V] = fieldTextExtractor(record.text).flatMap(valueExtractor)
 }
 
-/** A field in a text file */
+/** A field in a text store */
 object TextStoreField {
 
   object ColumnSeparators {
@@ -21,6 +21,7 @@ object TextStoreField {
     val blankOrTab: String = "[\\t ]"
   }
 
+  /** An extractor of fields from text records based on column separators */
   final case class SeparatedColumnExtractor(sepRegEx: String, columnIndex: Int) extends (String => Option[String]) {
     override def apply(line: String): Option[String] = {
       val columns = line.split(sepRegEx)
@@ -34,6 +35,7 @@ object TextStoreField {
 
   object ValueExtractors {
 
+    /** Wraps a throwing String => V into a String => Option[V] with None if something is thrown */
     final class ValueExtractorWrapper[V](val extractor: String => V) extends (String => Option[V]) {
       override def apply(string: String): Option[V] = Try(extractor(string)).toOption
     }

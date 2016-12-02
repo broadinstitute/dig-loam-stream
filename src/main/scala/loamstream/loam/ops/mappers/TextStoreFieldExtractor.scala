@@ -8,10 +8,11 @@ import scala.reflect.runtime.universe.{Type, TypeTag, typeOf}
 
 /** Extracting a given field */
 object TextStoreFieldExtractor {
+  /** String to use if the value of the field is undefined, and no other default value is provided */
   val defaultNA = "?"
 }
 
-/** Extracting a given field */
+/** Extracting a given field of type V from a text store of store type SI */
 case class TextStoreFieldExtractor[SI <: TextStore : TypeTag, V](field: TextStoreField[SI, V],
                                                                  defaultString: String = defaultNA)
   extends LoamStoreMapper[SI, TXT] {

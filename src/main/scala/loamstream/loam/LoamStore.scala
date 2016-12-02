@@ -100,22 +100,29 @@ final case class LoamStore[S <: StoreType : TypeTag] private(id: LId)(implicit v
     this
   }
 
+  /** Returns new store which is the result of a new store filtering tool based on a field
+    *
+    * Store records are retained if given field has a value passing the valueFilter.
+    */
   def filter[V](field: StoreField[S, V])(valueFilter: V => Boolean): LoamStore[S] = {
     filter(StoreFieldValueFilter(field, valueFilter))
   }
 
+  /** Returns new store which is the result of a new store filtering tool based on given filter */
   def filter(filter: LoamStoreFilter[S]): LoamStore[S] = {
     val outStore = filter.newOutStore
     LoamStoreFilterTool(filter, this, outStore)
     outStore
   }
 
+  /** Returns new store which is the result of a new store mapping tool based on given mapper */
   def map[SO <: StoreType : TypeTag](mapper: LoamStoreMapper[S, SO]): LoamStore[SO] = {
     val outStore = mapper.newOutStore
     LoamStoreMapperTool(mapper, this, outStore)
     outStore
   }
 
+  /** Returns new store of type TXT based on mapping extracting given field */
   def extract[V](field: TextStoreField[S with TextStore, V],
                  defaultString: String = TextStoreFieldExtractor.defaultNA): LoamStore[TXT] = {
     val mapper = TextStoreFieldExtractor[S with TextStore, V](field, defaultString)

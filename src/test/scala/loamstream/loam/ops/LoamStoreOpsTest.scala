@@ -60,6 +60,23 @@ final class LoamStoreOpsTest extends FunSuite {
     assertFileHasNLines(unplaced, 3)
     assertFileHasNLines(chr7, 3)
   }
+  test("LoamStore.map(...)") {
+    val dir = JFiles.createTempDirectory("LoamStoreOpsTest")
+    val inFile = dir.resolve("data.bim")
+    Files.writeTo(inFile)(inContent)
+    val snps = dir.resolve("snps.txt")
+    val script = LoamScript("filter",
+      s"""
+         |val variants = store[BIM].from(${inFile.asStringLiteral})
+         |val mapper = TextStoreFieldExtractor(BIM.id)
+         |val snps = variants.map(mapper).to(${snps.asStringLiteral})
+      """.stripMargin)
+    runAndAssertRunsFine(script, 2, 1, 1)
+    assertFileHasNLines(snps, 9) // scalastyle:ignore magic.number
+    val snpsContent = Files.readFrom(snps)
+    val snpsContentExpected = (1 to 9).map(i => s"SNP$i").mkString(System.lineSeparator)
+    assert(snpsContent === snpsContentExpected)
+  }
   test("LoamStore.extract(...)") {
     val dir = JFiles.createTempDirectory("LoamStoreOpsTest")
     val inFile = dir.resolve("data.bim")

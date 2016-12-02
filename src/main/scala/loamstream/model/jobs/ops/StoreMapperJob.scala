@@ -11,9 +11,10 @@ import loamstream.util.Files
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.runtime.universe.Type
 
-/** Job which creates a new store by filtering an existing store */
+/** Job which creates a new store by mapping an existing store */
 object StoreMapperJob {
 
+  /** Adapter to get a String => String from a LoamStoreMapper */
   final case class LineMapper(mapper: LoamStoreMapper.Untyped, tpeIn: Type, tpeOut: Type) extends (String => String) {
     override def apply(line: String): String = {
       val record = TextStoreRecord(line)

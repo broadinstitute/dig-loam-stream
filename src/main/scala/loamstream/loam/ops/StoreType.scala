@@ -4,6 +4,7 @@ import TextStoreField.{columnField, ColumnSeparators}
 
 /** Type of a LoamStore */
 trait StoreType {
+  /** The type of records in the store */
   type Record <: StoreRecord
 }
 

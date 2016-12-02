@@ -1,0 +1,11 @@
+import kinship.{wireUp => wireUpKinship, results => kinshipResults}
+
+import pca_cloud.{wireUp => wireUpPca, results => pcaResults}
+
+uger {
+  wireUpKinship()
+}
+
+google {
+  wireUpPca()
+}

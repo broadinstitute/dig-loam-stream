@@ -1,0 +1,68 @@
+import binaries._
+
+val LABEL = "BIOME_AFFY"
+
+//TODO: better name
+val ryansDir = path("/humgen/diabetes/users/ryank/data/biome_revised")
+
+val KINSHIP_CALC_SAMPLE_SHARING_R = ryansDir / "scripts" / "kinship_calc_sample_sharing.r"
+
+val REGIONS_EXCLUDE = ryansDir / "files" / "regions.exclude"
+
+val data = ryansDir / "data"
+
+import loamstream.model.Store
+import loamstream.loam.LoamStore.Untyped
+
+def inputStoreName(extension: String): String = s"${data}/${LABEL}.qc.bi.chr1-22${extension}"
+
+def inputStore(extension: String): Untyped = store[TXT].from(inputStoreName(extension))
+
+def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}${extension}"
+
+def outputStore(name: String)(extension: String): Untyped = store[TXT].to(outputStoreName(name)(extension))
+
+def withExtensions(extensions: String*)(makeStore: String => Untyped): Seq[Untyped] = {
+  extensions.map(ex => makeStore(ex))
+}
+
+def bedBimFam(makeStore: String => Untyped): Seq[Untyped] = withExtensions(".bed", ".bim", ".fam")(makeStore)
+
+val inputPrefix: String = inputStoreName("")
+
+val inputBedBimFam: Seq[Untyped] = bedBimFam(inputStore)
+
+val kinshipPrefix: String = outputStoreName(".kinship")("")
+
+val kinshipFileBedBimFam: Seq[Untyped] = bedBimFam(outputStore(".kinship"))
+
+val kinshipFilePruneIn: Untyped = outputStore(".kinship.prune.in")("")
+val kinshipFilePruned: String = outputStoreName(".kinship.pruned")("")
+val kinshipFilePrunedBedBimFam @ Seq(kinshipFilePrunedBed, _, _) = bedBimFam(outputStore(".kinship.pruned"))
+
+val kinshipFilePrunedKingPrefix: String = outputStoreName(".kinship.pruned")(".king")
+
+val Seq(
+	  kinshipFilePrunedKingKin0, 
+	  kinshipFilePrunedKingKin0Related, 
+	  kinshipFilePrunedKingSharingCounts) = {
+	  
+  withExtensions(".king.kin0", ".king.kin0.related", ".king.sharing_counts.txt")(outputStore(".kinship.pruned"))
+}
+
+val results = Seq(kinshipFilePrunedKingSharingCounts)
+
+def wireUp(): Unit = {
+  cmd"""$plink --bfile $inputPrefix --geno 0.02 --maf 0.01 --exclude $REGIONS_EXCLUDE --make-bed --out $kinshipPrefix""".in(inputBedBimFam).out(kinshipFileBedBimFam)
+
+  cmd"""$plink --bfile $kinshipPrefix --indep-pairwise 1500 150 0.2 --out $kinshipPrefix""".in(kinshipFileBedBimFam).out(kinshipFilePruneIn)
+
+  cmd"""$plink --bfile $kinshipPrefix --extract $kinshipFilePruneIn --make-bed --out $kinshipFilePruned""".in(kinshipFileBedBimFam :+ kinshipFilePruneIn).out(kinshipFilePrunedBedBimFam)
+
+  cmd"""$KING -b $kinshipFilePrunedBed --kinship --prefix $kinshipFilePrunedKingPrefix""".in(kinshipFilePrunedBedBimFam).out(kinshipFilePrunedKingKin0)
+
+  cmd"""(head -1 ${kinshipFilePrunedKingKin0} ; sed '1d' ${kinshipFilePrunedKingKin0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${kinshipFilePrunedKingKin0Related}""".in(kinshipFilePrunedKingKin0).out(kinshipFilePrunedKingKin0Related)
+
+  //Requires 'use'ing 'R-3.1' :\
+  cmd"""R --vanilla --args $kinshipFilePrunedKingKin0Related $kinshipFilePrunedKingSharingCounts < $KINSHIP_CALC_SAMPLE_SHARING_R""".in(kinshipFilePrunedKingKin0Related).out(kinshipFilePrunedKingSharingCounts)
+}

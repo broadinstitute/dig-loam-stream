@@ -27,6 +27,8 @@ final case class GoogleCloudChunkRunner(
   override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
     if(jobs.nonEmpty) {
       client.doWithCluster {
+        //TODO: Enforce a serial-execution contract somehow?  We likely don't want multilpe jobs running on the same 
+        //cluster simultaneously.
         delegate.run(jobs)
       }
     } else {

@@ -89,7 +89,7 @@ object CloudSdkDataProcClient extends Loggable {
   private def runCommand(tokens: Seq[String]): Int = {
     val commandStringApproximation = tokens.mkString(" ")
     
-    debug(s"Running Google Clound SDK command: '$commandStringApproximation'")
+    debug(s"Running Google Cloud SDK command: '$commandStringApproximation'")
     
     import scala.sys.process._
     

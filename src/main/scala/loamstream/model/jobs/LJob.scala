@@ -22,7 +22,7 @@ trait LJob extends Loggable {
   def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
     val indentString = s"${"-" * indent} >"
 
-    doPrint(s"$indentString ${this}")
+    doPrint(s"$indentString ($state)${this}")
 
     inputs.foreach(_.print(indent + 2, doPrint))
   }

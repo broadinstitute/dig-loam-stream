@@ -1,11 +1,139 @@
-import kinship.{wireUp => wireUpKinship, results => kinshipResults}
+// ====================================================
+// ================ BEGIN KINSHIP.LOAM ================
+// ====================================================
 
-import pca_cloud.{wireUp => wireUpPca, results => pcaResults}
+import binaries._
+
+val LABEL = "BIOME_AFFY"
+
+//TODO: better name
+val ryansDir = path("/humgen/diabetes/users/ryank/data/biome_revised")
+
+val KINSHIP_CALC_SAMPLE_SHARING_R = ryansDir / "scripts" / "kinship_calc_sample_sharing.r"
+
+val REGIONS_EXCLUDE = ryansDir / "files" / "regions.exclude"
+
+val data = ryansDir / "data"
+
+import loamstream.model.Store
+import loamstream.loam.LoamStore.Untyped
+
+def inputStoreName(extension: String): String = s"${data}/${LABEL}.qc.bi.chr1-22${extension}"
+
+def inputStore(extension: String): Untyped = store[TXT].from(inputStoreName(extension))
+
+def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}${extension}"
+
+def outputStore(name: String)(extension: String): Untyped = store[TXT].to(outputStoreName(name)(extension))
+
+def withExtensions(extensions: String*)(makeStore: String => Untyped): Seq[Untyped] = {
+  extensions.map(ex => makeStore(ex))
+}
+
+def bedBimFam(makeStore: String => Untyped): Seq[Untyped] = withExtensions(".bed", ".bim", ".fam")(makeStore)
+
+val inputPrefix: String = inputStoreName("")
+
+val inputBedBimFam: Seq[Untyped] = bedBimFam(inputStore)
+
+val kinshipPrefix: String = outputStoreName(".kinship")("")
+
+val kinshipFileBedBimFam: Seq[Untyped] = bedBimFam(outputStore(".kinship"))
+
+val kinshipFilePruneIn: Untyped = outputStore(".kinship.prune.in")("")
+val kinshipFilePruned: String = outputStoreName(".kinship.pruned")("")
+val kinshipFilePrunedBedBimFam @ Seq(kinshipFilePrunedBed, _, _) = bedBimFam(outputStore(".kinship.pruned"))
+
+val kinshipFilePrunedKingPrefix: String = outputStoreName(".kinship.pruned")(".king")
+
+val Seq(
+	  kinshipFilePrunedKingKin0, 
+	  kinshipFilePrunedKingKin0Related, 
+	  kinshipFilePrunedKingSharingCounts) = {
+	  
+  withExtensions(".king.kin0", ".king.kin0.related", ".king.sharing_counts.txt")(outputStore(".kinship.pruned"))
+}
 
 uger {
-  wireUpKinship()
+  cmd"""$plink --bfile $inputPrefix --geno 0.02 --maf 0.01 --exclude $REGIONS_EXCLUDE --make-bed --out $kinshipPrefix""".in(inputBedBimFam).out(kinshipFileBedBimFam)
+
+  cmd"""$plink --bfile $kinshipPrefix --indep-pairwise 1500 150 0.2 --out $kinshipPrefix""".in(kinshipFileBedBimFam).out(kinshipFilePruneIn)
+
+  cmd"""$plink --bfile $kinshipPrefix --extract $kinshipFilePruneIn --make-bed --out $kinshipFilePruned""".in(kinshipFileBedBimFam :+ kinshipFilePruneIn).out(kinshipFilePrunedBedBimFam)
+
+  cmd"""$KING -b $kinshipFilePrunedBed --kinship --prefix $kinshipFilePrunedKingPrefix""".in(kinshipFilePrunedBedBimFam).out(kinshipFilePrunedKingKin0)
+
+  cmd"""(head -1 ${kinshipFilePrunedKingKin0} ; sed '1d' ${kinshipFilePrunedKingKin0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${kinshipFilePrunedKingKin0Related}""".in(kinshipFilePrunedKingKin0).out(kinshipFilePrunedKingKin0Related)
+
+  // Requires 'use'ing 'R-3.1' :\
+  cmd"""R --vanilla --args $kinshipFilePrunedKingKin0Related $kinshipFilePrunedKingSharingCounts < $KINSHIP_CALC_SAMPLE_SHARING_R""".in(kinshipFilePrunedKingKin0Related).out(kinshipFilePrunedKingSharingCounts)
 }
 
+// ====================================================
+// ================ END KINSHIP.LOAM ==================
+// ====================================================
+
+// ====================================================
+// ================ BEGIN PCA_CLOUD.LOAM ==============
+// ====================================================
+
+import camp_cloud._
+import binaries._
+import binaries_cloud._
+
+val m_base = store[TXT].from(base)
+val m_phenotypes = store[TXT].from(phenotypes)
+val m_interval_list = store[TXT].from(interval_list)
+val m_vds = store[TXT].to(vds)
+val m_pca_tsv = store[TXT].to(pca_tsv)
+val m_pca_tsv_local = store[TXT].to(pca_tsv_local)
+val m_plot_pcs_local = store[TXT].to(plot_pcs_local)
+
+val m_cluster = "cg-test"
+
 google {
-  wireUpPca()
+  // Import input Plink files into Hail's VDS format
+  cmd"""$gcloud dataproc jobs submit spark
+          --cluster $m_cluster
+          --jar $hail_jar_cloud
+          --class org.broadinstitute.hail.driver.Main
+              importplink
+              --bfile $m_base
+              splitmulti
+              annotatesamples table
+              --root sa.pheno
+              -e IID
+              -i $m_phenotypes
+              -t "IID: String, T2D_HEALTH_PROVIDER: Int, AGE_T2D_HEALTH_PROVIDER: Double, SEX: Int, SuperPopulation: String, RACE: String"
+              --missing "NA"
+              write
+              --overwrite
+              -o $m_vds
+              count
+              -g""".in(m_phenotypes, m_base).out(m_vds)
+	
+  // Calculate PCs based on the VDS
+  cmd"""$gcloud dataproc jobs submit spark
+          --cluster $m_cluster
+          --jar $hail_jar_cloud
+          --class org.broadinstitute.hail.driver.Main
+              read -i $m_vds
+              filtervariants intervals
+              --keep -i $m_interval_list
+              pca --scores sa.pca
+              exportsamples -c 'Sample = s, SuperPopulation = sa.pheno.SuperPopulation, Population = sa.pheno.RACE, PC1 = sa.pca.PC1, PC2 = sa.pca.PC2, PC3 = sa.pca.PC3, PC4 = sa.pca.PC4, PC5 = sa.pca.PC5, PC6 = sa.pca.PC6, PC7 = sa.pca.PC7, PC8 = sa.pca.PC8, PC9 = sa.pca.PC9, PC10 = sa.pca.PC10'
+              -o $m_pca_tsv""".in(m_vds, m_interval_list).out(m_pca_tsv)
+              
+  // Download PCA results
+  cmd"""$gsutil cp $m_pca_tsv $m_pca_tsv_local""".in(m_pca_tsv).out(m_pca_tsv_local)
 }
+
+uger {
+  // Locally plot PCA results
+  // Requires 'use'ing 'R-3.1' :\
+  cmd"""R --vanilla --args $m_pca_tsv_local < $m_plot_pcs_local""".in(m_pca_tsv_local).out(m_plot_pcs_local)
+}
+
+// ====================================================
+// ================ END PCA_CLOUD.LOAM ================
+// ====================================================

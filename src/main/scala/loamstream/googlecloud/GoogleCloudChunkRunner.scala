@@ -17,7 +17,7 @@ import loamstream.model.execute.AsyncLocalChunkRunner
  */
 final case class GoogleCloudChunkRunner(
     client: DataProcClient, 
-    delegate: ChunkRunner = AsyncLocalChunkRunner()) extends 
+    delegate: ChunkRunner = AsyncLocalChunkRunner(1)) extends 
   ChunkRunnerFor(ExecutionEnvironment.Google) with Terminable {
   
   override def maxNumJobs: Int = delegate.maxNumJobs

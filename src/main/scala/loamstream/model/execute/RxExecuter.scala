@@ -169,9 +169,23 @@ final case class RxExecuter(runner: ChunkRunner,
     val everythingIsDonePromise: Promise[Unit] = Promise()
     val everythingIsDoneFuture: Future[Unit] = everythingIsDonePromise.future
 
+    //TODO: REMOVE
+    def logJobs(): Unit = {
+      def log(s: String) = debug(s)
+      
+      executable.jobs.head.print(doPrint = log)
+    }
+    
     allJobs foreach { job =>
       jobStates.mutate(_ + (job -> NotStarted))
-      job.stateEmitter.subscribe(jobState => updateJobState(job, jobState))
+      job.stateEmitter.subscribe { jobState => 
+        updateJobState(job, jobState)
+
+        //TODO: REMOVE
+        Future {
+          logJobs()
+        }
+      }
     }
 
     //NB: Block waiting for executeIter :(

@@ -1,5 +1,10 @@
 package loamstream.googlecloud
 
+import loamstream.util.Terminable
+import scala.concurrent.Future
+import loamstream.util.Futures
+import scala.concurrent.ExecutionContext
+
 /**
  * @author clint
  * Nov 28, 2016
@@ -17,13 +22,11 @@ trait DataProcClient {
     }
   }
   
-  final def doWithCluster[A](f: => A): A = {
-    try { 
-      startCluster()
+  final def doWithCluster[A](f: => Future[A])(implicit context: ExecutionContext): Future[A] = {
+    startCluster()
       
-      f
-    } finally {
-      deleteClusterIfRunning()
-    }
+    import Futures.Implicits._
+    
+    f.withSideEffect(_ => deleteClusterIfRunning())
   }
 }

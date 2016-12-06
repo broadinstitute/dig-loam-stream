@@ -3,6 +3,8 @@ package loamstream.googlecloud
 import loamstream.util.ValueBox
 import org.scalatest.FunSuite
 import loamstream.googlecloud.DataProcClientTest.MockDataProcClient
+import scala.concurrent.Future
+import loamstream.util.Futures
 
 /**
  * @author clint
@@ -16,12 +18,18 @@ final class DataProcClientTest extends FunSuite {
   test("doWithCluster") {
     val client = new MockDataProcClient
     
+    import scala.concurrent.ExecutionContext.Implicits.global
+    
+    def doDoWithCluster[A](a: => A): A = {
+      Futures.waitFor(client.doWithCluster(Future(a)))
+    }
+    
     assert(client.startClusterInvocations() === 0)
     assert(client.deleteClusterInvocations() === 0)
     assert(client.isClusterRunningInvocations() === 0)
     assert(client.clusterRunning() === false)
     
-    val x = client.doWithCluster {
+    val x = doDoWithCluster {
       assert(client.startClusterInvocations() === 1)
       assert(client.deleteClusterInvocations() === 0)
       assert(client.isClusterRunningInvocations() === 0)
@@ -45,7 +53,7 @@ final class DataProcClientTest extends FunSuite {
     assert(client.clusterRunning() === false)
     
     intercept[Exception] {
-      client.doWithCluster {
+      doDoWithCluster {
         throw new Exception
       }
       

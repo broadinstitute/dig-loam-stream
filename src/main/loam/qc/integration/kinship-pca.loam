@@ -93,10 +93,12 @@ val m_cluster = "cg-test"
 
 google {
   // Import input Plink files into Hail's VDS format
+  //NB: '--' must separate params for gcloud from those for hail
   cmd"""$gcloud dataproc jobs submit spark
           --cluster $m_cluster
           --jar $hail_jar_cloud
           --class org.broadinstitute.hail.driver.Main
+          --
               importplink
               --bfile $m_base
               splitmulti
@@ -113,10 +115,12 @@ google {
               -g""".in(m_phenotypes, m_base).out(m_vds)
 	
   // Calculate PCs based on the VDS
+  //NB: '--' must separate params for gcloud from those for hail
   cmd"""$gcloud dataproc jobs submit spark
           --cluster $m_cluster
           --jar $hail_jar_cloud
           --class org.broadinstitute.hail.driver.Main
+          --
               read -i $m_vds
               filtervariants intervals
               --keep -i $m_interval_list

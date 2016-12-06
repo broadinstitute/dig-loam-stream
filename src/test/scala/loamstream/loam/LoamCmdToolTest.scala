@@ -1,7 +1,7 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreToken, StringToken}
-import loamstream.loam.ops.StoreType.{BIM, TXT, VCF}
+import loamstream.loam.ops.StoreType.TXT
 import loamstream.model.LId
 import org.scalatest.FunSuite
 
@@ -42,72 +42,70 @@ final class LoamCmdToolTest extends FunSuite {
     case store: LoamStore.Untyped => StoreToken(store)
   }
 
-  def assertIOStores(tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
-                     inputsBefore: Set[LoamStore.Untyped], outputsBefore: Set[LoamStore.Untyped],
-                     inStore0: LoamStore.Untyped, inStore1: LoamStore.Untyped,
-                     outStore0: LoamStore.Untyped, outStore1: LoamStore.Untyped): Unit = {
+  def assertTool(tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
+                 expectedInputs: Map[LId, LoamStore.Untyped],
+                 expectedOutputs: Map[LId, LoamStore.Untyped]): Unit = {
+    assert(tool.tokens === expectedTokens)
+    assert(tool.inputs === expectedInputs)
+    assert(tool.outputs === expectedOutputs)
+  }
+
+  def assertAddingIOStores(tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
+                           inputsBefore: Set[LoamStore.Untyped], outputsBefore: Set[LoamStore.Untyped],
+                           stores: Seq[LoamStore.Untyped], addInputsFirst: Boolean = true): Unit = {
     val inputsMapBefore = storeMap(inputsBefore)
     val outputsMapBefore = storeMap(outputsBefore)
-    val inputsMapAfter = storeMap(inputsBefore + inStore0 + inStore1)
-    val outputsMapAfter = storeMap(outputsBefore + outStore0 + outStore1)
+    val inputsMapAfter = storeMap(inputsBefore + stores.head + stores(2))
+    val outputsMapAfter = storeMap(outputsBefore + stores(1) + stores(3))
 
-    assert(tool.inputs == inputsMapBefore)
-    assert(tool.outputs == outputsMapBefore)
-    assert(tool.tokens == expectedTokens)
-
-    val toolWithInputStores = tool.in(inStore0, inStore1)
-
-    assert(toolWithInputStores.inputs == inputsMapAfter)
-    assert(toolWithInputStores.outputs == outputsMapBefore)
-    assert(toolWithInputStores.tokens == expectedTokens)
-
-    val toolWithOutputStoresStores = toolWithInputStores.out(outStore0, outStore1)
-
-    assert(toolWithOutputStoresStores.inputs == inputsMapAfter)
-    assert(toolWithOutputStoresStores.outputs == outputsMapAfter)
-    assert(toolWithOutputStoresStores.tokens == expectedTokens)
-
+    assertTool(tool, expectedTokens, inputsMapBefore, outputsMapBefore)
+    if (addInputsFirst) {
+      tool.in(stores.head, stores(2))
+      assertTool(tool, expectedTokens, inputsMapAfter, outputsMapBefore)
+      tool.out(stores(1), stores(3))
+    } else {
+      tool.out(stores(1), stores(3))
+      assertTool(tool, expectedTokens, inputsMapBefore, outputsMapAfter)
+      tool.in(stores.head, stores(2))
+    }
+    assertTool(tool, expectedTokens, inputsMapAfter, outputsMapAfter)
   }
 
   test("in() and out() with no implicit i/o stores") {
+    for (addInputsFirst <- Seq(true, false)) {
+      implicit val projectContext = LoamProjectContext.empty
+      implicit val scriptContext = new LoamScriptContext(projectContext)
 
-    implicit val projectContext = LoamProjectContext.empty
-    implicit val scriptContext = new LoamScriptContext(projectContext)
+      val nStores = 4
+      val stores = Seq.fill[LoamStore.Untyped](nStores)(LoamStore[TXT](LId.newAnonId))
 
-    val tool = cmd"foo bar baz"
+      val tool = cmd"foo bar baz"
 
-    val inStore0 = LoamStore[VCF](LId.newAnonId)
-    val inStore1 = LoamStore[TXT](LId.newAnonId)
-
-    val outStore0 = LoamStore[VCF](LId.newAnonId)
-    val outStore1 = LoamStore[BIM](LId.newAnonId)
-
-    val expectedTokens = tokens("foo bar baz")
-    val inputsBefore = Set.empty[LoamStore.Untyped]
-    val outputsBefore = Set.empty[LoamStore.Untyped]
-    assertIOStores(tool, expectedTokens, inputsBefore, outputsBefore, inStore0, inStore1, outStore0, outStore1)
+      val expectedTokens = tokens("foo bar baz")
+      val inputsBefore = Set.empty[LoamStore.Untyped]
+      val outputsBefore = Set.empty[LoamStore.Untyped]
+      assertAddingIOStores(tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
+    }
   }
 
   test("in() and out() mixed with implicit i/o stores") {
+    for (addInputsFirst <- Seq(true, false)) {
+      implicit val projectContext = LoamProjectContext.empty
+      implicit val scriptContext = new LoamScriptContext(projectContext)
 
-    implicit val projectContext = LoamProjectContext.empty
-    implicit val scriptContext = new LoamScriptContext(projectContext)
+      val nStores = 6
+      val stores = Seq.fill[LoamStore.Untyped](nStores)(LoamStore[TXT](LId.newAnonId))
 
-    val inStoreImplicit = LoamStore[VCF](LId.newAnonId).from("inputFile.vcf")
-    val outStoreImplicit = LoamStore[TXT](LId.newAnonId).to("outputFile.txt")
+      val inStoreImplicit = stores(4).from("inputFile.vcf") // scalastyle:ignore magic.number
+      val outStoreImplicit = stores(5).to("outputFile.txt") // scalastyle:ignore magic.number
 
-    val tool = cmd"foo $inStoreImplicit $outStoreImplicit"
+      val tool = cmd"foo $inStoreImplicit $outStoreImplicit"
 
-    val inStore0 = LoamStore[VCF](LId.newAnonId)
-    val inStore1 = LoamStore[TXT](LId.newAnonId)
-
-    val outStore0 = LoamStore[VCF](LId.newAnonId)
-    val outStore1 = LoamStore[BIM](LId.newAnonId)
-
-    val expectedTokens = tokens("foo ", inStoreImplicit, " ", outStoreImplicit)
-    val inputsBefore = Set[LoamStore.Untyped](inStoreImplicit)
-    val outputsBefore = Set[LoamStore.Untyped](outStoreImplicit)
-    assertIOStores(tool, expectedTokens, inputsBefore, outputsBefore, inStore0, inStore1, outStore0, outStore1)
+      val expectedTokens = tokens("foo ", inStoreImplicit, " ", outStoreImplicit)
+      val inputsBefore = Set[LoamStore.Untyped](inStoreImplicit)
+      val outputsBefore = Set[LoamStore.Untyped](outStoreImplicit)
+      assertAddingIOStores(tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
+    }
   }
 
   test("to(...) and from(...)") {

@@ -32,6 +32,7 @@ import loamstream.googlecloud.GoogleCloudChunkRunner
 import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.googlecloud.CloudSdkDataProcClient
 import loamstream.googlecloud.CloudSdkDataProcClient
+import loamstream.util.Throwables
 
 /**
  * @author clint
@@ -182,15 +183,14 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     }
 
     final override def stop(): Unit = {
-      def quietly(f: => Any): Unit = {
-        try { f }
-        catch { case NonFatal(e) => error("Error shutting down: ", e) }
-      }
-
+      import Throwables._
+      
       for {
         terminable <- toStop
       } {
-        quietly(terminable.stop())
+        quietly("Error shutting down: ") {
+          terminable.stop()
+        }
       }
     }
   }

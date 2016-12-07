@@ -22,11 +22,5 @@ trait DataProcClient {
     }
   }
   
-  final def doWithCluster[A](f: => Future[A])(implicit context: ExecutionContext): Future[A] = {
-    startCluster()
-      
-    import Futures.Implicits._
-    
-    f.withSideEffect(_ => deleteClusterIfRunning())
-  }
+  
 }

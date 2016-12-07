@@ -15,6 +15,10 @@ import java.util.concurrent.Executors
 import loamstream.util.Loggable
 import scala.util.control.NonFatal
 import java.util.concurrent.ExecutorService
+import loamstream.util.Maps
+import loamstream.model.jobs.LJob
+import loamstream.util.Futures
+import loamstream.util.Throwables
 
 /**
  * @author clint
@@ -34,27 +38,43 @@ final case class GoogleCloudChunkRunner(
   override def maxNumJobs: Int = delegate.maxNumJobs
   
   override def stop(): Unit = {
-    def quietly(f: => Any): Unit = {
-      try { f }
-      catch { case NonFatal(e) => error("Error shutting down: ", e) }
-    }
-    
+    import Throwables._
     import scala.concurrent.duration._
     
-    quietly(client.deleteClusterIfRunning())
-    quietly(ExecutorServices.shutdown(singleThreadedExecutor, 5.seconds))
+    //quietly("Error shutting down DataProc Cluster")(client.deleteClusterIfRunning())
+    quietly("Error shutting down Executor")(ExecutorServices.shutdown(singleThreadedExecutor, 5.seconds))
+  }
+  
+  //TODO: Make one cluster per set of jobs, instead of keeping one around for multiple chunks, over the lifetime
+  //of this whole runner
+  
+  private def withCluster[A](client: DataProcClient)(f: => A): A = {
+    try {
+      client.startCluster()
+      
+      f
+    } finally {
+      client.deleteCluster()
+    }
+  }
+  
+  private def runSingle(job: LJob): Map[LJob, JobState] = {
+    //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
+    //on the same cluster simultaneously
+    Futures.waitFor(delegate.run(Set(job))(singleThreadedExecutionContext))
   }
   
   override def run(jobs: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
-    if(jobs.nonEmpty) {
-      client.doWithCluster {
-        //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
-        //on the same cluster simultaneously
-        //TODO: Make a new cluster for every job?
-        delegate.run(jobs)(singleThreadedExecutionContext)
-      }
-    } else {
+    if(jobs.isEmpty) {
       Future.successful(Map.empty)
+    } else {
+      Future {
+        withCluster(client) {
+          val singleJobResults = jobs.toSeq.map(runSingle)
+          
+          Maps.mergeMaps(singleJobResults)
+        }
+      }
     }
   }
   

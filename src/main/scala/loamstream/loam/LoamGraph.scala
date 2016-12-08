@@ -104,7 +104,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   keysSameLists.theseAreEqual(slot1, slot2)
 
   /** Returns the option of a producer (tool) of a store */
-  def storeProducers(store: LoamStore.Untyped): Option[LoamTool] = storeSources.get(store).collect {
+  def storeProducerOpt(store: LoamStore.Untyped): Option[LoamTool] = storeSources.get(store).collect {
     case StoreEdge.ToolEdge(tool) => tool
   }
 

@@ -91,9 +91,6 @@ trait LJob extends Loggable {
   lazy val states: Observable[JobState] = stateEmitter
 
   final protected def emitJobState(): Unit = stateEmitter.onNext(state)
-
-  def dependencies: Set[LJob] = Set.empty
-
   
   /**
    * The "terminal" state emitted by this job: the one that indicates the job is finished for any reason.

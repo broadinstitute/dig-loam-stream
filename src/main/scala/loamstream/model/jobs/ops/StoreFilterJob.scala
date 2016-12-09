@@ -34,5 +34,4 @@ final case class StoreFilterJob(inPath: Path, outPath: Path, inType: Type, input
     Files.filterFile(inPath, outPath)(LineFilter(filter, inType))
     JobState.Succeeded
   }
-
 }

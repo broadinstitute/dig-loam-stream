@@ -1,9 +1,6 @@
 package loamstream.loam.ops
 
-/**
-  * LoamStream
-  * Created by oliverr on 11/16/2016.
-  */
+/** A store whose records are Strings */
 trait TextStore extends StoreType {
   override type Record <: TextStoreRecord
 }

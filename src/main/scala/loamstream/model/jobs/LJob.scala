@@ -105,7 +105,9 @@ trait LJob extends Loggable {
    * An observable that will emit a sequence containing all our dependencies' "terminal" states.
    * When this fires, our dependencies are finished.
    */
-  protected[jobs] lazy val finalInputStates: Observable[Seq[JobState]] = Observables.sequence(inputs.toSeq.map(_.lastState))
+  protected[jobs] lazy val finalInputStates: Observable[Seq[JobState]] = {
+    Observables.sequence(inputs.toSeq.map(_.lastState))
+  }
   
   /**
    * Sets the state of this job to be newState, and emits the new state to any observers.

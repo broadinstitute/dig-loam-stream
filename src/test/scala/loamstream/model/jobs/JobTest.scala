@@ -281,7 +281,7 @@ final class JobTest extends FunSuite with TestJobs {
      *                +---root
      * gc2 (success) /
      *    \         /
-     *     +---c1 (success)
+     *     +-------c1 (success)
      *    /
      * gc3 (success)
      */

@@ -59,7 +59,7 @@ trait LJob extends Loggable {
    * An observable that will emit this job ONLY when all this job's dependencies are finished.
    * If the this job has no dependencies, this job is emitted immediately.  This will fire at most once.
    */
-  private lazy val selfRunnable: Observable[LJob] = {
+  private[jobs] lazy val selfRunnable: Observable[LJob] = {
     def justUs = Observable.just(this)
     def noMore = Observable.empty 
     
@@ -99,13 +99,13 @@ trait LJob extends Loggable {
    * The "terminal" state emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time. 
    */
-  protected lazy val lastState: Observable[JobState] = states.filter(_.isFinished).first
+  protected[jobs] lazy val lastState: Observable[JobState] = states.filter(_.isFinished).first
   
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" states.
    * When this fires, our dependencies are finished.
    */
-  protected lazy val finalInputStates: Observable[Seq[JobState]] = Observables.sequence(inputs.toSeq.map(_.lastState))
+  protected[jobs] lazy val finalInputStates: Observable[Seq[JobState]] = Observables.sequence(inputs.toSeq.map(_.lastState))
   
   /**
    * Sets the state of this job to be newState, and emits the new state to any observers.

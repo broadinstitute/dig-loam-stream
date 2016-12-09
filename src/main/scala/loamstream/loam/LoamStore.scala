@@ -4,8 +4,10 @@ import java.net.URI
 import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.ops.StoreType.TXT
 import loamstream.loam.ops.filters.{LoamStoreFilter, LoamStoreFilterTool, StoreFieldValueFilter}
-import loamstream.loam.ops.{StoreField, StoreType}
+import loamstream.loam.ops.mappers.{LoamStoreMapper, LoamStoreMapperTool, TextStoreFieldExtractor}
+import loamstream.loam.ops.{StoreField, StoreType, TextStore, TextStoreField}
 import loamstream.model.{LId, Store}
 import loamstream.util.{TypeBox, ValueBox}
 
@@ -69,8 +71,8 @@ object LoamStore {
   }
 }
 
-final case class LoamStore[S <: StoreType : TypeTag] private (id: LId)(implicit val scriptContext: LoamScriptContext)
-    extends LoamStore.Untyped {
+final case class LoamStore[S <: StoreType : TypeTag] private(id: LId)(implicit val scriptContext: LoamScriptContext)
+  extends LoamStore.Untyped {
 
   val sig: TypeBox[S] = TypeBox.of[S]
 
@@ -98,13 +100,34 @@ final case class LoamStore[S <: StoreType : TypeTag] private (id: LId)(implicit 
     this
   }
 
-  def filter[Value](field: StoreField[S, Value])(valueFilter: Value => Boolean): LoamStore[S] = {
+  /** Returns new store which is the result of a new store filtering tool based on a field
+    *
+    * Store records are retained if given field has a value passing the valueFilter.
+    */
+  def filter[V](field: StoreField[S, V])(valueFilter: V => Boolean): LoamStore[S] = {
     filter(StoreFieldValueFilter(field, valueFilter))
   }
 
+  /** Returns new store which is the result of a new store filtering tool based on given filter */
   def filter(filter: LoamStoreFilter[S]): LoamStore[S] = {
-    val outStore = filter.newOutStore(this)
+    val outStore = filter.newOutStore
     LoamStoreFilterTool(filter, this, outStore)
+    outStore
+  }
+
+  /** Returns new store which is the result of a new store mapping tool based on given mapper */
+  def map[SO <: StoreType : TypeTag](mapper: LoamStoreMapper[S, SO]): LoamStore[SO] = {
+    val outStore = mapper.newOutStore
+    LoamStoreMapperTool(mapper, this, outStore)
+    outStore
+  }
+
+  /** Returns new store of type TXT based on mapping extracting given field */
+  def extract[V](field: TextStoreField[S with TextStore, V],
+                 defaultString: String = TextStoreFieldExtractor.defaultNA): LoamStore[TXT] = {
+    val mapper = TextStoreFieldExtractor[S with TextStore, V](field, defaultString)
+    val outStore = mapper.newOutStore
+    LoamStoreMapperTool(mapper, this.asInstanceOf[LoamStore[S with TextStore]], outStore)
     outStore
   }
 

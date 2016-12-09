@@ -15,6 +15,7 @@ import loamstream.util.Observables
 import loamstream.util.Traversables
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import rx.lang.scala.Scheduler
 
 /**
  * @author kaan
@@ -32,9 +33,11 @@ final case class RxExecuter(
     //An Observable stream of jobs; each job is emitted when it becomes runnable.
     //Note the use of 'distinct' to avoid running jobs more than once, if that job is depended on by multiple 'root' 
     //jobs in an LExecutable.  This is a bit brute-force, but allows for simpler logic in LJob.
-    val runnables = executable.jobs.toSeq.map(_.runnables).reduceOption(_ merge _).getOrElse(Observable.empty).distinct
+    val runnables: Observable[LJob] = {
+      executable.jobs.toSeq.map(_.runnables).reduceOption(_ merge _).getOrElse(Observable.empty).distinct
+    }
     
-    val ioScheduler = IOScheduler()
+    val ioScheduler: Scheduler = IOScheduler()
     
     //An observable stream of "chunks" of runnable jobs, with each chunk represented as an observable stream.
     //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'

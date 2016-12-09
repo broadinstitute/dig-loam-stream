@@ -76,7 +76,7 @@ final class LoamCmdToolTest extends FunSuite {
     }
   }
 
-  def assertAddingIOStores(graph: LoamGraph, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
+  def assertAddingIOStores(context: LoamProjectContext, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
                            inputsBefore: Set[LoamStore.Untyped], outputsBefore: Set[LoamStore.Untyped],
                            stores: Seq[LoamStore.Untyped], addInputsFirst: Boolean = true): Unit = {
     val inputsMapBefore = storeMap(inputsBefore)
@@ -84,17 +84,17 @@ final class LoamCmdToolTest extends FunSuite {
     val inputsMapAfter = storeMap(inputsBefore + stores.head + stores(2))
     val outputsMapAfter = storeMap(outputsBefore + stores(1) + stores(3))
 
-    assertGraph(graph, tool, expectedTokens, inputsMapBefore, outputsMapBefore)
+    assertGraph(context.graph, tool, expectedTokens, inputsMapBefore, outputsMapBefore)
     if (addInputsFirst) {
       tool.in(stores.head, stores(2))
-      assertGraph(graph, tool, expectedTokens, inputsMapAfter, outputsMapBefore)
+      assertGraph(context.graph, tool, expectedTokens, inputsMapAfter, outputsMapBefore)
       tool.out(stores(1), stores(3))
     } else {
       tool.out(stores(1), stores(3))
-      assertGraph(graph, tool, expectedTokens, inputsMapBefore, outputsMapAfter)
+      assertGraph(context.graph, tool, expectedTokens, inputsMapBefore, outputsMapAfter)
       tool.in(stores.head, stores(2))
     }
-    assertGraph(graph, tool, expectedTokens, inputsMapAfter, outputsMapAfter)
+    assertGraph(context.graph, tool, expectedTokens, inputsMapAfter, outputsMapAfter)
   }
 
   test("in() and out() with no implicit i/o stores") {
@@ -111,7 +111,7 @@ final class LoamCmdToolTest extends FunSuite {
       val inputsBefore = Set.empty[LoamStore.Untyped]
       val outputsBefore = Set.empty[LoamStore.Untyped]
       val graph = projectContext.graph
-      assertAddingIOStores(graph, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
+      assertAddingIOStores(projectContext, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
     }
   }
 
@@ -132,7 +132,7 @@ final class LoamCmdToolTest extends FunSuite {
       val inputsBefore = Set[LoamStore.Untyped](inStoreImplicit)
       val outputsBefore = Set[LoamStore.Untyped](outStoreImplicit)
       val graph = projectContext.graph
-      assertAddingIOStores(graph, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
+      assertAddingIOStores(projectContext, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
     }
   }
 

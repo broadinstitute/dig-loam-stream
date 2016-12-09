@@ -1,5 +1,7 @@
 package loamstream.loam
 
+import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge, UriEdge}
 import loamstream.loam.LoamToken.{StoreToken, StringToken}
 import loamstream.loam.ops.StoreType.TXT
 import loamstream.model.LId
@@ -53,23 +55,21 @@ final class LoamCmdToolTest extends FunSuite {
       assert(storeProducerOpt === None,
         s"Expected no producer for input store $id, but got tool ${storeProducerOpt.map(_.id).getOrElse("")}")
       val storeConsumers = graph.storeConsumers(store)
-      assert(storeConsumers === Set(tool),
-        {
-          val storeConsumersString = if(storeConsumers.isEmpty) {
-            "none"
-          } else {
-            storeConsumers.map(_.id).mkString(", ")
-          }
-          s"Expected tool ${tool.id} as consumer of input store $id, but got $storeConsumersString."
-        })
+      assert(storeConsumers === Set(tool), {
+        val storeConsumersString = if (storeConsumers.isEmpty) {
+          "none"
+        } else {
+          storeConsumers.map(_.id).mkString(", ")
+        }
+        s"Expected tool ${tool.id} as consumer of input store $id, but got $storeConsumersString."
+      })
     }
     for ((id, store) <- expectedOutputs) {
       val storeProducerOpt = graph.storeProducerOpt(store)
-      assert(storeProducerOpt === Some(tool),
-        {
-          val storeProducerString = storeProducerOpt.map(_.id.toString).getOrElse("none")
-          s"Expected tool ${tool.id} as producer of output store $id, but got $storeProducerString."
-        })
+      assert(storeProducerOpt === Some(tool), {
+        val storeProducerString = storeProducerOpt.map(_.id.toString).getOrElse("none")
+        s"Expected tool ${tool.id} as producer of output store $id, but got $storeProducerString."
+      })
       val storeConsumers = graph.storeConsumers(store)
       assert(storeConsumers === Set.empty,
         s"Expected no consumers of output store $id, but got tools ${storeConsumers.map(_.id).mkString(", ")}")
@@ -110,7 +110,6 @@ final class LoamCmdToolTest extends FunSuite {
       val expectedTokens = tokens("foo bar baz")
       val inputsBefore = Set.empty[LoamStore.Untyped]
       val outputsBefore = Set.empty[LoamStore.Untyped]
-      val graph = projectContext.graph
       assertAddingIOStores(projectContext, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
     }
   }
@@ -131,7 +130,6 @@ final class LoamCmdToolTest extends FunSuite {
       val expectedTokens = tokens("foo ", inStoreImplicit, " ", outStoreImplicit)
       val inputsBefore = Set[LoamStore.Untyped](inStoreImplicit)
       val outputsBefore = Set[LoamStore.Untyped](outStoreImplicit)
-      val graph = projectContext.graph
       assertAddingIOStores(projectContext, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
     }
   }

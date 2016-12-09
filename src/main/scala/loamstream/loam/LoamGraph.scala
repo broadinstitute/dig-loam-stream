@@ -202,7 +202,9 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
     val toolEdge = ToolEdge(tool)
 
-    val storeSourcesNew = storeSources.filter { case (store, edge) => edge != toolEdge }
+    val storeSourcesNew = storeSources.filterNot {
+      case (store, edge) => stores(store) && edge == toolEdge
+    }
 
     val storeSinksNew = storeSinks ++ stores.map(store => (store, storeSinks.getOrElse(store, Set.empty) + toolEdge))
 

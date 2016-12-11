@@ -6,6 +6,7 @@ import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
 import loamstream.loam.ops.StoreType
 import loamstream.loam.ops.filters.StoreFieldFilter
+import loamstream.loam.ops.mappers.TextStoreFieldExtractor
 import loamstream.util._
 import loamstream.util.code.{ObjectId, PackageId, ScalaId, SourceUtils}
 
@@ -108,6 +109,7 @@ import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamScriptContext].inScalaFull}
 import ${ScalaId.from[StoreType].inScalaFull}._
 import ${ScalaId.from[StoreFieldFilter.type].inScalaFull}
+import ${ScalaId.from[TextStoreFieldExtractor[_, _]].inScalaFull}
 import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {

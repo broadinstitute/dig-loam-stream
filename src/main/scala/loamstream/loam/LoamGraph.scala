@@ -104,7 +104,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   keysSameLists.theseAreEqual(slot1, slot2)
 
   /** Returns the option of a producer (tool) of a store */
-  def storeProducers(store: LoamStore.Untyped): Option[LoamTool] = storeSources.get(store).collect {
+  def storeProducerOpt(store: LoamStore.Untyped): Option[LoamTool] = storeSources.get(store).collect {
     case StoreEdge.ToolEdge(tool) => tool
   }
 
@@ -202,7 +202,9 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
     val toolEdge = ToolEdge(tool)
 
-    val storeSourcesNew = storeSources.filter { case (store, edge) => edge != toolEdge }
+    val storeSourcesNew = storeSources.filterNot {
+      case (store, edge) => stores(store) && edge == toolEdge
+    }
 
     val storeSinksNew = storeSinks ++ stores.map(store => (store, storeSinks.getOrElse(store, Set.empty) + toolEdge))
 

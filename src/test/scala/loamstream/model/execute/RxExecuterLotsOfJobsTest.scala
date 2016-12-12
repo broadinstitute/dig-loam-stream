@@ -8,6 +8,8 @@ import loamstream.compiler.messages.ClientMessageHandler
 /**
  * @author clint
  * Dec 9, 2016
+ * 
+ * A test for RxExecuter's handling of "lots" (100s) of jobs. 
  */
 final class RxExecuterLotsOfJobsTest extends FunSuite {
   // scalastyle:off magic.number

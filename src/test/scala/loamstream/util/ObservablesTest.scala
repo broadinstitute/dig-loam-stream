@@ -138,5 +138,63 @@ final class ObservablesTest extends FunSuite {
     }
   }
   
+  test("merge - empty input") {
+    import Observables.merge
+    
+    val shouldBeEmpty = Observables.merge[Int](Nil)
+    
+    assert(waitFor(shouldBeEmpty.isEmpty.firstAsFuture))
+  }
+  
+  test("merge - empty inputs (plural)") {
+    import Observables.merge
+    
+    val os: Seq[Observable[Int]] = Seq(Observable.empty, Observable.empty, Observable.empty)  
+    
+    val shouldBeEmpty = Observables.merge(os)
+    
+    assert(waitFor(shouldBeEmpty.isEmpty.firstAsFuture))
+  }
+  
+  test("merge - non-empty") {
+    import Observables.merge
+    
+    /* 
+     * os is roughly Seq(
+     *   Observable.just(a),
+     *   Observable.just(aa,bb),
+     *   Observable.just(aaa,bbb,ccc),
+     *   Observable.just(aaaa,bbbb,cccc,dddd),
+     *   Observable.just(aaaaa,bbbbb,ccccc,ddddd))
+     */
+    val os: Seq[Observable[String]] = for {
+      i <- (1 to 5)
+      strs = ('a' to 'e').take(i).map(_.toString * i)
+    } yield {
+      Observable.from(strs)
+    }
+    
+    val strs = waitFor(merge(os).to[Seq].firstAsFuture)
+    
+    val expected = Seq(
+        "a", 
+        "aa",
+        "aaa",
+        "aaaa",
+        "aaaaa",
+        "bb", 
+        "bbb", 
+        "bbbb",
+        "bbbbb",
+        "ccc", 
+        "cccc", 
+        "ccccc",
+        "dddd", 
+        "ddddd", 
+        "eeeee")
+    
+    assert(strs.sorted === expected)
+  }
+  
   // scalastyle:on magic.number
 }

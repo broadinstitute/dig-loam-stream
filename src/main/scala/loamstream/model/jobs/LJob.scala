@@ -5,13 +5,13 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.Subject
 import rx.lang.scala.subjects.ReplaySubject
+import loamstream.util.Futures
 
 
 /**
@@ -43,15 +43,16 @@ trait LJob extends Loggable {
    * or if it has no dependencies, it's runnable immediately.  (See selfRunnable)
    */
   final lazy val runnables: Observable[LJob] = {
+    
     //Multiplex the streams of runnable jobs starting from each of our dependencies
     val dependencyRunnables = {
       if(inputs.isEmpty) { Observable.empty }
       //NB: Note the use of merge instead of ++; this ensures that we don't emit jobs from the sub-graph rooted at
       //one dependency before the other dependencies, but rather emit all the streams of runnable jobs "together".
-      else { inputs.toSeq.map(_.runnables).reduce(_ merge _) }
+      else { Observables.merge(inputs.toSeq.map(_.runnables)) }
     }
     
-    //Emit the current job after all our dependencies
+    //Emit the current job *after* all our dependencies
     (dependencyRunnables ++ selfRunnable) 
   }
   

@@ -546,6 +546,7 @@ final class RxExecuterTest extends FunSuite {
     doTest(8)
     doTest(1)
   }
+  
   // scalastyle:on method.length
   // scalastyle:on magic.number
 }

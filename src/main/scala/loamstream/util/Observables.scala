@@ -66,4 +66,35 @@ object Observables extends Loggable {
       }
     }
   }
+  
+  /**
+   * Expose the method rx.Observables.merge in a Scala-friendly way.  Given
+   * 
+   * val os: Iterable[Observable[A]] = ...
+   * 
+   * this is an alternative way to turn os into an Observable[A] that avoids blowing the stack, as something like
+   * 
+   * os.reduce(_ merge _) 
+   * 
+   * will, given enough Observables.
+   * 
+   * @param os A collection of Observables to merge.
+   * @return An Observable that emits the values emitted by the input Observables, interleaved.
+   * @see http://reactivex.io/documentation/operators/merge.html
+   * @see http://reactivex.io/RxJava/javadoc/rx/Observable.html#merge(java.lang.Iterable)
+   */
+  def merge[A](os: Iterable[Observable[A]]): Observable[A] = {
+    import rx.lang.scala.JavaConversions.{toScalaObservable, toJavaObservable}
+    import scala.collection.JavaConverters._
+
+    //NB: Cast 'should be' safe.  It's needed because toJavaObservable, when given an rx.lang.scala.Observable[A],
+    //returns an rx.Observable[_ <: A].  Combined with converting the scala.Iterable to a java.lang.Iterable, this
+    //means we would have a java.lang.Iterable[rx.Observable[_ <: A]], which rx.Observable.merge won't accept. :(
+    //The cast is safe since the Java Observable made from the Scala one is guaranteed to emit the same values.
+    val javaObservables: Iterable[rx.Observable[A]] = os.map(toJavaObservable).map(_.asInstanceOf[rx.Observable[A]])
+    
+    val javaIterableOfJavaObservables: java.lang.Iterable[rx.Observable[A]] = javaObservables.asJava
+    
+    toScalaObservable(rx.Observable.merge(javaIterableOfJavaObservables))
+  }
 }

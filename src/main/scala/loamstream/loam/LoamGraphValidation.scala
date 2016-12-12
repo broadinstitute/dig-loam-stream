@@ -108,7 +108,7 @@ object LoamGraphValidation {
     override def targets(graph: LoamGraph): Seq[LoamTool] = graph.initialTools.toSeq
 
     override def apply(graph: LoamGraph, tool: LoamTool): Seq[BulkIssue[LoamGraph, LoamTool, Set[LoamTool]]] = {
-      val precedingTools = graph.toolInputs.getOrElse(tool, Set.empty).flatMap(graph.storeProducers)
+      val precedingTools = graph.toolInputs.getOrElse(tool, Set.empty).flatMap(graph.storeProducerOpt)
       issueIf(precedingTools.nonEmpty,
         newBulkIssue[LoamTool, Set[LoamTool]](graph, this, tool, precedingTools, Severity.Error,
           s"Tool $tool is considered initial, but the following tools precede it: ${precedingTools.mkString(", ")}.")
@@ -131,7 +131,7 @@ object LoamGraphValidation {
   val eachStoreIsConnectedToATool: LoamStoreRule[Unit] = new LoamStoreRule[Unit] {
     override def apply(graph: LoamGraph, store: LoamStore.Untyped): Seq[LoamStoreIssue[Unit]] = {
       val storeIsInput = graph.storeConsumers(store).nonEmpty
-      val storeIsOutput = graph.storeProducers(store).nonEmpty
+      val storeIsOutput = graph.storeProducerOpt(store).nonEmpty
       issueIf(!(storeIsInput || storeIsOutput),
         newBulkIssue[LoamStore.Untyped, Unit](graph, this, store, (), Severity.Error,
           s"Store $store is neither input nor output of any tool."))

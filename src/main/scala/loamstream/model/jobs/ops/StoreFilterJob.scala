@@ -18,6 +18,7 @@ object StoreFilterJob {
   final case class LineFilter(filter: LoamStoreFilter.Untyped, tpe: Type) extends (String => Boolean) {
     override def apply(line: String): Boolean = {
       val record = TextStoreRecord(line)
+      
       filter.testDynamicallyTyped(record, tpe)
     }
   }

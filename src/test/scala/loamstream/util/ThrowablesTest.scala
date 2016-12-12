@@ -1,6 +1,7 @@
 package loamstream.util
 
 import org.scalatest.FunSuite
+import scala.Vector
 
 /**
  * @author clint

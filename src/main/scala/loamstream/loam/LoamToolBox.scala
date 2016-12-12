@@ -3,9 +3,10 @@ package loamstream.loam
 import java.nio.file.{Path, Paths}
 
 import loamstream.loam.ops.filters.LoamStoreFilterTool
+import loamstream.loam.ops.mappers.LoamStoreMapperTool
 import loamstream.model.Tool
 import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.model.jobs.ops.StoreFilterJob
+import loamstream.model.jobs.ops.{StoreFilterJob, StoreMapperJob}
 import loamstream.model.jobs.{LJob, LToolBox, NativeJob, Output}
 import loamstream.util.{Hit, Miss, Shot, Snag}
 import loamstream.model.execute.ExecutionEnvironment
@@ -45,6 +46,11 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
           val inStore = graph.toolInputs(tool).head
           val outStore = graph.toolOutputs(tool).head
           StoreFilterJob(inStore.path, outStore.path, inStore.sig.tpe, inputJobs, outputs, storeFilterTool.filter)
+        case storeMapperTool: LoamStoreMapperTool[_, _] =>
+          val inStore = graph.toolInputs(tool).head
+          val outStore = graph.toolOutputs(tool).head
+          StoreMapperJob(inStore.path, outStore.path, inStore.sig.tpe, outStore.sig.tpe, inputJobs, outputs,
+            storeMapperTool.mapper)
         case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs)
       }
     }

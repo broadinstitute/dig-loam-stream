@@ -4,15 +4,12 @@ import java.nio.file.Path
 
 import loamstream.db.LoamDao
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobState.CommandResult
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.Output
 import loamstream.model.jobs.Output.CachedOutput
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.Loggable
 import loamstream.util.TimeEnrichments
-import loamstream.util.Traversables
-import loamstream.util.ValueBox
 
 /**
  * @author clint

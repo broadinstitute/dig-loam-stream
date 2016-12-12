@@ -23,6 +23,8 @@ trait Output {
   def hash: Hash
   
   def lastModified: Instant
+
+  def location: String
 }
 
 object Output {
@@ -55,7 +57,9 @@ object Output {
     def normalized: PathBased
     
     final override def isPresent: Boolean = Files.exists(path)
-    
+
+    final override def location: String = PathUtils.normalize(path)
+
     final def toCachedOutput: CachedOutput = this match {
       case co: CachedOutput => co
       case _ => CachedOutput(path, hash, lastModified)

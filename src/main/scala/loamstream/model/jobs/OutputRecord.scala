@@ -9,6 +9,6 @@ import java.time.Instant
  * 
  * A container for job output attributes that are to be recorded and are not system-dependent
  */
-final case class OutputRecord(isPresent: Boolean, hash: Hash, lastModified: Instant) {
+final case class OutputRecord(loc: String, isPresent: Boolean, hash: Hash, lastModified: Instant) {
   final def isMissing: Boolean = !isPresent
 }

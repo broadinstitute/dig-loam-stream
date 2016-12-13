@@ -32,7 +32,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
   private lazy val hash1 = Hashes.sha1(path1)
   private lazy val hash2 = Hashes.sha1(path2)
   
-  private def noOutputs: Boolean = dao.allOutputs.isEmpty
+  private def noOutputs: Boolean = dao.allOutputRecords.isEmpty
   
   private def noExecutions: Boolean = dao.allExecutions.isEmpty
   
@@ -75,7 +75,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       
       assert(dao.allHashedOutputs === expected)
       assert(dao.allFailedOutputs === Nil)
-      assert(dao.allOutputs === expected)
+      assert(dao.allOutputRecords === expected)
     }
   }
 
@@ -89,7 +89,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       val expected = Set(cachedOutput(path0, hash0), cachedOutput(path1, hash1), cachedOutput(path2, hash2))
 
       //Use Sets to ignore order
-      assert(dao.allOutputs.toSet == expected)
+      assert(dao.allOutputRecords.toSet == expected)
       assert(dao.allHashedOutputs.toSet == expected)
       assert(dao.allFailedOutputs === Nil)
     }
@@ -105,7 +105,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       val expected = Set(normalizedPathOutput(path0), normalizedPathOutput(path1), normalizedPathOutput(path2))
 
       //Use Sets to ignore order
-      assert(dao.allOutputs.toSet == expected)
+      assert(dao.allOutputRecords.toSet == expected)
       assert(dao.allHashedOutputs == Nil)
       assert(dao.allFailedOutputs.toSet === expected)
     }
@@ -127,7 +127,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       //Use Sets to ignore order
       assert(dao.allHashedOutputs.toSet == hashedOutputs)
       assert(dao.allFailedOutputs.toSet === failedOutputs)
-      assert(dao.allOutputs.toSet == all)
+      assert(dao.allOutputRecords.toSet == all)
     }
   }
 
@@ -138,7 +138,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
 
       store(path0, path1, path2)
 
-      assert(dao.allOutputs.size == 3)
+      assert(dao.allOutputRecords.size == 3)
 
       dao.deleteOutput(path0, path1, path2)
 
@@ -153,11 +153,11 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
 
       store(path0, path1, path2)
 
-      assert(dao.allOutputs.size == 3)
+      assert(dao.allOutputRecords.size == 3)
 
       dao.deleteOutput(path0, path2)
 
-      assert(dao.allOutputs.map(_.path) == Seq(path1.toAbsolutePath))
+      assert(dao.allOutputRecords.map(_.path) == Seq(path1.toAbsolutePath))
       
       dao.deleteOutput(path0, path1)
       
@@ -269,15 +269,15 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       
       store(path0)
       
-      assert(dao.findOutput(path0) === Some(cachedOutput(path0, hash0)))
+      assert(dao.findOutputRecord(path0) === Some(cachedOutput(path0, hash0)))
       
-      assert(dao.findOutput(path1) === None)
+      assert(dao.findOutputRecord(path1) === None)
       
       storeFailures(path1)
       
-      assert(dao.findOutput(path0) === Some(cachedOutput(path0, hash0)))
+      assert(dao.findOutputRecord(path0) === Some(cachedOutput(path0, hash0)))
       
-      assert(dao.findOutput(path1) === Some(normalizedPathOutput(path1)))
+      assert(dao.findOutputRecord(path1) === Some(normalizedPathOutput(path1)))
     }
   }
   

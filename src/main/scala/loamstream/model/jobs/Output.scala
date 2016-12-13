@@ -2,10 +2,9 @@ package loamstream.model.jobs
 
 import java.nio.file.Files
 import java.nio.file.Path
-import loamstream.util.Hash
-import loamstream.util.Hashes
+
+import loamstream.util.{Hash, HashType, Hashes, PathUtils}
 import java.time.Instant
-import loamstream.util.PathUtils
 import java.nio.file.Paths
 
 /**
@@ -21,7 +20,9 @@ trait Output {
   final def isMissing: Boolean = !isPresent
   
   def hash: Hash
-  
+
+  def hashType: HashType
+
   def lastModified: Instant
 
   def location: String
@@ -36,19 +37,14 @@ object Output {
    */
   final case class PathOutput(path: Path) extends PathBased {
     override def hash: Hash = Hashes.sha1(path)
-    
+
+    override def hashType: HashType = HashType.Sha1
+
     override def normalized: PathBased = copy(path = normalize(path))
     
     override def lastModified: Instant = {
       if(isPresent) PathUtils.lastModifiedTime(path) else Instant.ofEpochMilli(0) 
     }
-  }
-  
-  /**
-   * A handle to cached data about a path-based output.
-   */
-  final case class CachedOutput(path: Path, hash: Hash, lastModified: Instant) extends PathBased {
-    override def normalized: PathBased = copy(path = normalize(path))
   }
   
   sealed trait PathBased extends Output {
@@ -60,11 +56,6 @@ object Output {
 
     final override def location: String = PathUtils.normalize(path)
 
-    final def toCachedOutput: CachedOutput = this match {
-      case co: CachedOutput => co
-      case _ => CachedOutput(path, hash, lastModified)
-    }
-    
     final def toPathOutput: PathOutput = this match {
       case po: PathOutput => po
       case _ => PathOutput(path)

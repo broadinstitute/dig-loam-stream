@@ -1,11 +1,6 @@
 package loamstream.db
 
-import java.nio.file.Path
-
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.Output
-import loamstream.model.jobs.Output.CachedOutput
-import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.{Execution, OutputRecord}
 
 /**
  * @author clint
@@ -13,24 +8,20 @@ import loamstream.model.jobs.Output.PathOutput
  */
 trait LoamDao {
   
-  def findOutput(path: Path): Option[Output.PathBased]
-  def findHashedOutput(path: Path): Option[CachedOutput]
-  def findFailedOutput(path: Path): Option[PathOutput]
+  def findOutputRecord(loc: String): Option[OutputRecord]
+
+  final def deleteOutput(loc: String, others: String*): Unit = deleteOutput(loc +: others)
+  def deleteOutput(locs: Iterable[String]): Unit
   
-  final def deleteOutput(path: Path, others: Path*): Unit = deleteOutput(path +: others)
-  def deleteOutput(paths: Iterable[Path]): Unit
-  
-  def allOutputs: Seq[Output.PathBased]
-  def allHashedOutputs: Seq[CachedOutput]
-  def allFailedOutputs: Seq[PathOutput]
-  
+  def allOutputRecords: Seq[OutputRecord]
+
   final def insertExecutions(execution: Execution, others: Execution*): Unit = insertExecutions(execution +: others)
   
   def insertExecutions(rows: Iterable[Execution]): Unit
   
   def allExecutions: Seq[Execution]
   
-  def findExecution(output: Output.PathBased): Option[Execution]
+  def findExecution(output: OutputRecord): Option[Execution]
   
   def createTables(): Unit
   

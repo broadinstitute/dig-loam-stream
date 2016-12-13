@@ -148,7 +148,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
         val output1 = PathOutput(fileOut1)
 
-        assert(dao.findOutput(output1.path) === Some(output1.normalized))
+        assert(dao.findOutputRecord(output1.path) === Some(output1.normalized))
         assert(dao.findFailedOutput(output1.path) === Some(output1.normalized))
         assert(dao.findHashedOutput(output1.path) === None)
 

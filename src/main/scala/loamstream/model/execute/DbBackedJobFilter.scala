@@ -3,10 +3,7 @@ package loamstream.model.execute
 import java.nio.file.Path
 
 import loamstream.db.LoamDao
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Output
-import loamstream.model.jobs.Output.CachedOutput
+import loamstream.model.jobs.{Execution, LJob, Output, OutputRecord}
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.Loggable
 import loamstream.util.TimeEnrichments
@@ -38,8 +35,6 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     dao.insertExecutions(insertableExecutions)
   }
 
-  private def cachedOutput(path: Path): CachedOutput = PathOutput(path).toCachedOutput
-
   private def hashOutputsOf(e: Execution): Execution = {
     e.transformOutputs { outputs =>
       outputs.collect { case Output.PathBased(path) =>
@@ -52,12 +47,12 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
 
   private def normalize(p: Path) = p.toAbsolutePath
 
-  private def findOutput(path: Path): Option[Output] = {
-    dao.findOutput(normalize(path))
+  private def findOutput(loc: String): Option[OutputRecord] = {
+    dao.findOutputRecord(loc)
   }
   
-  private def isHashed(path: Path): Boolean = {
-    findOutput(path).isDefined
+  private def isHashed(loc: String): Boolean = {
+    findOutput(loc).isDefined
   }
 
   private def notHashed(output: Path): Boolean = !isHashed(output)

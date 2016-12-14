@@ -18,71 +18,19 @@ final class CommandLineStringJobTest extends FunSuite {
   
   private val isWindows = PlatformUtil.isWindows
   
-  test("escapeCommandString") {
-    import CommandLineStringJob.escapeCommandString
-    
-    def doTestIsNoOp(s: String): Unit = {
-      assert(escapeCommandString(s) === s)
-    }
-    
-    doTestIsNoOp("")
-    doTestIsNoOp("abc")
-    doTestIsNoOp(" foo ")
-    
-    if(isWindows) {
-      assert(escapeCommandString("$") === """\\\$""")
-      assert(escapeCommandString("""\""") === """\\\\""")
-    } else {
-      doTestIsNoOp("$")
-      doTestIsNoOp("""\""")
-    }
-
-    //scalastyle:off line.size.limit
-    val complex = """(head -1 ./BIOME_AFFY.kinship.pruned.king.kin0 ; sed '1d' ./BIOME_AFFY.kinship.pruned.king.kin0 | awk '{if($8 >= 0.0884) print $0}' | sort -rn -k8,8) > ./BIOME_AFFY.kinship.pruned.king.kin0.related"""
-
-    if(isWindows) {
-      val expected = """(head -1 ./BIOME_AFFY.kinship.pruned.king.kin0 ; sed '1d' ./BIOME_AFFY.kinship.pruned.king.kin0 | awk '{if(\\\\$8 >= 0.0884) print \\\\$0}' | sort -rn -k8,8) > ./BIOME_AFFY.kinship.pruned.king.kin0.related"""
-      
-      assert(escapeCommandString(complex) === expected)
-    } else {
-      doTestIsNoOp(complex)
-    }
-    //scalastyle:on line.size.limit
-  }
-  
   test("tokensToRun") {
     import CommandLineStringJob.tokensToRun
     
-    def shDashC(s: String): Seq[String] = Seq("sh", "-c", s)
-    
     def doTestNoEscaping(s: String): Unit = {
-      assert(tokensToRun(s) === shDashC(s))
+      val tokens = tokensToRun(s)
+      assert(tokens.head === "sh")
+      assert(tokens.size === 2)
     }
     
     doTestNoEscaping("")
     doTestNoEscaping("abc")
     doTestNoEscaping(" foo ")
-    
-    if(isWindows) {
-      assert(tokensToRun("$") === shDashC("""\\\$"""))
-      assert(tokensToRun("""\""") === shDashC("""\\\\"""))
-    } else {
-       doTestNoEscaping("$")
-       doTestNoEscaping("""\""")
-    }
 
-    //scalastyle:off line.size.limit
-    val complex = """(head -1 ./BIOME_AFFY.kinship.pruned.king.kin0 ; sed '1d' ./BIOME_AFFY.kinship.pruned.king.kin0 | awk '{if($8 >= 0.0884) print $0}' | sort -rn -k8,8) > ./BIOME_AFFY.kinship.pruned.king.kin0.related"""
-    
-    if(isWindows) {
-      val expected = """(head -1 ./BIOME_AFFY.kinship.pruned.king.kin0 ; sed '1d' ./BIOME_AFFY.kinship.pruned.king.kin0 | awk '{if(\\\\$8 >= 0.0884) print \\\\$0}' | sort -rn -k8,8) > ./BIOME_AFFY.kinship.pruned.king.kin0.related"""
-      
-      assert(tokensToRun(complex) === shDashC(expected))
-    } else {
-      doTestNoEscaping(complex)
-    }
-
-    //scalastyle:on line.size.limit
   }
   
   test("Complex command that needs escaping") {
@@ -104,13 +52,13 @@ final class CommandLineStringJobTest extends FunSuite {
     val results = loamEngine.run(code)
     
     val jobResults = results.jobResultsOpt.get
-    
+
     assert(jobResults.values.head.isSuccess)
     
     assert(jobResults.size === 1)
     
     val numLines = LoamFileUtils.enclosed(Source.fromFile(outputPath)) { source =>
-      source.getLines.map(_.trim).filter(_.nonEmpty).size
+      source.getLines.map(_.trim).count(_.nonEmpty)
     }
     
     assert(numLines === 11) 

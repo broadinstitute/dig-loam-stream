@@ -9,6 +9,8 @@ import scala.Vector
  */
 final class ThrowablesTest extends FunSuite {
 
+  //scalastyle:off magic.number
+  
   type ParamTuple = (Loggable.Level.Value, String, Throwable)
   
   private final class MockLogContext extends LogContext {
@@ -97,4 +99,6 @@ final class ThrowablesTest extends FunSuite {
     doTest(Loggable.Level.trace)
     doTest(Loggable.Level.warn)
   }
+  
+  //scalastyle:on magic.number
 }

@@ -67,25 +67,9 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       
       val localRunner = AsyncLocalChunkRunner()(localEC)
 
-      val (ugerRunner, ugerRunnerHandles) = unpack(ugerChunkRunner(cli, threadPoolSize))
-
-      //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
-      if(ugerRunner.isEmpty) {
-        val msg = s"""Uger support NOT enabled; enable it by defining loamstream.uger section 
-                     |in the config file (${cli.conf.toOption}).""".stripMargin
-        
-        info(msg)
-      }
+      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(cli, threadPoolSize)
 
       val googleRunner = googleChunkRunner(cli, localRunner)
-      
-      //TODO: A better way to enable or disable Google support; for now, this is purely expedient
-      if(googleRunner.isEmpty) {
-        val msg = s"""Google Cloud support NOT enabled; enable it by defining loamstream.googlecloud section 
-                     |in the config file (${cli.conf.toOption}).""".stripMargin
-        
-        info(msg)
-      }
       
       val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
 
@@ -118,7 +102,31 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       GoogleCloudChunkRunner(client, delegate)
     }
     
-    attempt.toOption
+    val result = attempt.toOption
+    
+    //TODO: A better way to enable or disable Google support; for now, this is purely expedient
+    if(result.isEmpty) {
+      val msg = s"""Google Cloud support NOT enabled; enable it by defining loamstream.googlecloud section 
+                   |in the config file (${cli.conf.toOption}).""".stripMargin
+        
+      info(msg)
+    }
+    
+    result
+  }
+  
+  private def ugerChunkRunner(cli: Conf, threadPoolSize: Int): (Option[UgerChunkRunner], Seq[Terminable]) = {
+    val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(cli, threadPoolSize))
+
+    //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
+    if(ugerRunnerOption.isEmpty) {
+      val msg = s"""Uger support NOT enabled; enable it by defining loamstream.uger section 
+                   |in the config file (${cli.conf.toOption}).""".stripMargin
+        
+      info(msg)
+    }
+    
+    result
   }
   
   private def unpack[A,B](o: Option[(A, Seq[B])]): (Option[A], Seq[B]) = o match {
@@ -126,7 +134,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     case None => (None, Nil)
   }
 
-  private def ugerChunkRunner(cli: Conf, threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
+  private def makeUgerChunkRunner(cli: Conf, threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
     debug("Parsing Uger config...")
 
     val config = loadConfig(cli)

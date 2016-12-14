@@ -37,7 +37,9 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     executer.runner shouldBe a[CompositeChunkRunner]
     
-    executer.runner.asInstanceOf[CompositeChunkRunner].components shouldBe(Seq(AsyncLocalChunkRunner()))
+    val compositeRunner = executer.runner.asInstanceOf[CompositeChunkRunner]
+    
+    compositeRunner.components.map(_.getClass) shouldBe(Seq(classOf[AsyncLocalChunkRunner]))
     
     executer.jobFilter shouldBe a[DbBackedJobFilter]
     
@@ -55,7 +57,9 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     executer.runner shouldBe a[CompositeChunkRunner]
     
-    executer.runner.asInstanceOf[CompositeChunkRunner].components shouldBe(Seq(AsyncLocalChunkRunner()))
+    val compositeRunner = executer.runner.asInstanceOf[CompositeChunkRunner]
+    
+    compositeRunner.components.map(_.getClass) shouldBe(Seq(classOf[AsyncLocalChunkRunner]))
     
     executer.jobFilter shouldBe JobFilter.RunEverything
   }

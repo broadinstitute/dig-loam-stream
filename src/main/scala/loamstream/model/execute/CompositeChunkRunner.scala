@@ -5,6 +5,8 @@ import loamstream.model.jobs.LJob
 import scala.concurrent.Future
 import loamstream.model.jobs.JobState
 import loamstream.util.Maps
+import rx.lang.scala.Observable
+import loamstream.util.Observables
 
 /**
  * @author clint
@@ -16,20 +18,20 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
   
   override def canRun(job: LJob): Boolean = components.exists(_.canRun(job))
   
-  override def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]] = {
+  override def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
     
-    require(leaves.forall(canRun), s"Don't know how to run ${leaves.filterNot(canRun)}")
+    require(jobs.forall(canRun), s"Don't know how to run ${jobs.filterNot(canRun)}")
     
     val byRunner: Map[ChunkRunner, Set[LJob]] = components.map { runner => 
-      runner -> leaves.filter(runner.canRun) 
+      runner -> jobs.filter(runner.canRun) 
     }.toMap
     
-    val resultFutures = for {
-      (runner, jobs) <- byRunner
+    val resultObservables = for {
+      (runner, jobsForRunner) <- byRunner
     } yield {
-      runner.run(jobs)
+      runner.run(jobsForRunner)
     }
     
-    Future.sequence(resultFutures).map(Maps.mergeMaps)
+    Observables.reduceMaps(resultObservables)
   }
 }

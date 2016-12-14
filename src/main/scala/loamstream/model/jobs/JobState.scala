@@ -15,6 +15,7 @@ sealed trait JobState {
   def isFailure: Boolean
   
   def isFinished: Boolean = isSuccess || isFailure
+  def notFinished: Boolean = !isFinished
 }
 
 object JobState {

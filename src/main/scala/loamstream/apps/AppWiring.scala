@@ -60,9 +60,12 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
       val jobFilter = makeJobFilter(cli)
 
-      val localRunner = AsyncLocalChunkRunner()
-
       val threadPoolSize = 50
+      
+      //TODO: Make the number of threads this configurable
+      val (localEC, localEcHandle) = ExecutionContexts.threadPool(threadPoolSize)
+      
+      val localRunner = AsyncLocalChunkRunner()(localEC)
 
       val (ugerRunner, ugerRunnerHandles) = unpack(ugerChunkRunner(cli, threadPoolSize))
 
@@ -91,9 +94,13 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
       val (executionContextWithThreadPool, threadPoolHandle) = threadPool(threadPoolSize)
 
-      val rxExecuter = RxExecuter(compositeRunner, jobFilter)(executionContextWithThreadPool)
+      import scala.concurrent.duration._
+      
+      val windowLength = 30.seconds
+      
+      val rxExecuter = RxExecuter(compositeRunner, windowLength, jobFilter)(executionContextWithThreadPool)
 
-      val handles: Seq[Terminable] = threadPoolHandle +: (ugerRunnerHandles ++ googleRunner)
+      val handles: Seq[Terminable] = threadPoolHandle +: localEcHandle +: (ugerRunnerHandles ++ googleRunner)
 
       new TerminableExecuter(rxExecuter, handles: _*)
     }
@@ -173,7 +180,6 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       dao
     }
   }
-
   private[apps] final class TerminableExecuter(
       val delegate: Executer,
       toStop: Terminable*) extends Executer with Terminable {

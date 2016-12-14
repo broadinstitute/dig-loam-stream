@@ -14,6 +14,8 @@ import loamstream.conf.UgerConfig
 import loamstream.model.jobs.NoOpJob
 import java.nio.file.Paths
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.util.Futures
+import loamstream.util.ObservableEnrichments
 
 /**
   * Created by kyuksel on 7/25/16.
@@ -27,17 +29,17 @@ final class UgerChunkRunnerTest extends FunSuite {
   private val client = MockDrmaaClient(Map.empty)
   private val runner = UgerChunkRunner(config, client, new JobMonitor(scheduler, Poller.drmaa(client)))
 
-  //TODO: Replace with Futures.waitFor
-  private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
+  import Futures.waitFor
+  import ObservableEnrichments._
   
   test("NoOpJob is not attempted to be executed") {
     val noOpJob = NoOpJob(Set.empty)
-    val result = waitFor(runner.run(Set(noOpJob))(ExecutionContext.global))
+    val result = waitFor(runner.run(Set(noOpJob)).firstAsFuture)
     assert(result === Map.empty)
   }
 
   test("No failures when empty set of jobs is presented") {
-    val result = waitFor(runner.run(Set.empty)(ExecutionContext.global))
+    val result = waitFor(runner.run(Set.empty).firstAsFuture)
     assert(result === Map.empty)
   }
   

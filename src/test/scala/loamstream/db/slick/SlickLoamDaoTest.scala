@@ -3,7 +3,6 @@ package loamstream.db.slick
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import org.scalatest.Finders
 import org.scalatest.FunSuite
 
 import loamstream.model.jobs.Execution

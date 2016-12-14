@@ -1,10 +1,8 @@
 package loamstream.db.slick
 
-import java.nio.file.Path
-
 import scala.concurrent.ExecutionContext
 import loamstream.db.LoamDao
-import loamstream.model.jobs.{Execution, JobState, Output, OutputRecord}
+import loamstream.model.jobs.{Execution, JobState, OutputRecord}
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.PathUtils
@@ -147,7 +145,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     
     runBlocking(query)
   }
-  
+
   override def createTables(): Unit = tables.create(db)
   
   override def dropTables(): Unit = tables.drop(db)

@@ -9,6 +9,7 @@ import java.nio.file.Paths
 
 /**
  * @author clint
+ *         kaan
  * date: Aug 1, 2016
  * 
  * A trait representing a handle to the output of a job; for now, we're primarily concerned with the case where

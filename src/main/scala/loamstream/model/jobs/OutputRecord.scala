@@ -2,6 +2,8 @@ package loamstream.model.jobs
 
 import java.time.Instant
 
+import loamstream.util.TimeEnrichments
+
 /**
  * @author kyuksel
  * date: Dec 12, 2016
@@ -14,7 +16,29 @@ final case class OutputRecord(loc: String,
                               hash: Option[String],
                               lastModified: Option[Instant]) {
 
-  final def isMissing: Boolean = !isPresent
+  def isMissing: Boolean = !isPresent
+
+  def isOlder(other: OutputRecord): Boolean = {
+    import TimeEnrichments.Implicits._
+
+    lastModified match {
+      case Some(timestamp) => other.lastModified match {
+        case Some(otherTimestamp) => timestamp < otherTimestamp
+        case None => false
+      }
+      case None => false
+    }
+  }
+
+  def hasDifferentHash(other: OutputRecord): Boolean = {
+    hash match {
+      case Some(hashValue) => other.hash match {
+        case Some(otherHashValue) => hashValue != otherHashValue
+        case None => false
+      }
+      case None => false
+    }
+  }
 
 }
 

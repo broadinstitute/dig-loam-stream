@@ -10,9 +10,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 
 /**
-  * LoamStream
-  * Created by oliverr on 12/23/2015.
-  */
+ * @author oliverr
+ *         clint
+ *         kyuksel
+ * date: Dec 23, 2015
+ */
 trait LJob extends Loggable {
   def workDirOpt: Option[Path] = None
 

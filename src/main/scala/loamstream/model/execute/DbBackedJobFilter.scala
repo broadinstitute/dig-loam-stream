@@ -4,22 +4,18 @@ import java.nio.file.Path
 
 import loamstream.db.LoamDao
 import loamstream.model.jobs.{Execution, LJob, Output, OutputRecord}
-import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.Loggable
-import loamstream.util.TimeEnrichments
 
 /**
  * @author clint
+ *         kyuksel
  * date: Sep 30, 2016
  */
 final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable {
   override def shouldRun(dep: LJob): Boolean = {
-    def needsToBeRun(output: Output): Boolean = output match {
-      case Output.PathBased(p) => {
-        val path = normalize(p)
-        output.isMissing || isOlder(path) || notHashed(path) || hasDifferentHash(path)
-      }
-      case _ => true
+    def needsToBeRun(output: Output): Boolean = {
+      val rec = output.toOutputRecord
+      rec.isMissing || isOlder(rec) || notHashed(rec) || hasDifferentHash(rec)
     }
 
     dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
@@ -28,21 +24,11 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
   override def record(executions: Iterable[Execution]): Unit = {
     //NB: We can only insert command executions (UGER or command-line jobs, anything with an in exit status code) 
     //for now
-    val insertableExecutions = executions.collect { case e if e.isCommandExecution => hashOutputsOf(e) }
+    val insertableExecutions = executions.filter(_.isCommandExecution)
 
     debug(s"RECORDING $insertableExecutions")
     
     dao.insertExecutions(insertableExecutions)
-  }
-
-  private def hashOutputsOf(e: Execution): Execution = {
-    e.transformOutputs { outputs =>
-      outputs.collect { case Output.PathBased(path) =>
-        val normalized = normalize(path)
-        
-        if(e.isSuccess) cachedOutput(normalized) else Output.PathOutput(normalized)
-      }
-    }
   }
 
   private def normalize(p: Path) = p.toAbsolutePath
@@ -51,34 +37,24 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     dao.findOutputRecord(loc)
   }
   
-  private def isHashed(loc: String): Boolean = {
-    findOutput(loc).isDefined
+  private def isHashed(rec: OutputRecord): Boolean = {
+    findOutput(rec.loc).isDefined
   }
 
-  private def notHashed(output: Path): Boolean = !isHashed(output)
+  private def notHashed(rec: OutputRecord): Boolean = !isHashed(rec)
 
-  private def hasDifferentHash(output: Path): Boolean = {
-    //TODO: Other hash types
-    def hash(p: Path) = PathOutput(p).hash
-
-    val path = normalize(output)
-
-    findOutput(path) match {
-      case Some(cachedOutput) => cachedOutput.hash != hash(path)
-      case None               => true
+  private def hasDifferentHash(rec: OutputRecord): Boolean = {
+    findOutput(rec.loc) match {
+      case Some(matchingRec) => matchingRec.hasDifferentHash(rec)
+      case None => false
     }
   }
 
-  private def isOlder(output: Path): Boolean = {
-    import TimeEnrichments.Implicits._
-
-    def lastModified(p: Path) = PathOutput(p).lastModified
-
-    val path = normalize(output)
-
-    findOutput(path) match {
-      case Some(cachedOutput) => lastModified(path) < cachedOutput.lastModified
-      case None               => false
+  private def isOlder(rec: OutputRecord): Boolean = {
+    findOutput(rec.loc) match {
+      case Some(matchingRec) => matchingRec.isOlder(rec)
+      case None => false
     }
   }
+
 }

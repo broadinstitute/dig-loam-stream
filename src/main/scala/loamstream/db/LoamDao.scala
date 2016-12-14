@@ -4,6 +4,7 @@ import loamstream.model.jobs.{Execution, OutputRecord}
 
 /**
  * @author clint
+ *         kyuksel
  * date: Aug 4, 2016
  */
 trait LoamDao {

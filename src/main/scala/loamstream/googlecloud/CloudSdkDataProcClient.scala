@@ -93,7 +93,9 @@ object CloudSdkDataProcClient extends Loggable {
     
     import scala.sys.process._
     
-    val result = Process(tokens).!(CommandLineJob.stdErrProcessLogger)
+    val processLogger = ProcessLogger(line => info(s"STDOUT: $line"), line => error(s"STDERR: $line"))
+    
+    val result = Process(tokens).!(processLogger)
     
     debug(s"Got status code $result from running '$commandStringApproximation'")
 

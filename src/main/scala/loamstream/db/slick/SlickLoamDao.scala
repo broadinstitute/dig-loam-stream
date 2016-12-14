@@ -57,8 +57,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     }
     
     val outputs = {
-      if(execution.isSuccess) { toRawOutputRows(rec => OutputRow(rec.loc, rec.hash)) }
-      else if(execution.isFailure) { toRawOutputRows(OutputRow(_)) }
+      if(execution.isSuccess) { toRawOutputRows(rec => new OutputRow(rec.loc, rec.hash)) }
+      else if(execution.isFailure) { toRawOutputRows(new OutputRow(_)) }
       else { Nil }
     }
     
@@ -175,7 +175,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   
   //TODO: Need to allow updating?
   private def insertOrUpdateOutputs(rows: Iterable[OutputRecord]): Unit = {
-    val rawRows = rows.map(OutputRow(_))
+    val rawRows = rows.map(new OutputRow(_))
 
     val insertOrUpdate = insertOrUpdateRawOutputRows(rawRows)
     

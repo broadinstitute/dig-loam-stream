@@ -19,6 +19,22 @@ final case class OutputRow( loc: String,
                             hash: Option[String],
                             executionId: Option[Int] = None) {
 
+  def this(loc: String, hash: Option[String]) = {
+    this(
+      loc,
+      None,
+      hash,
+      None)
+  }
+
+  def this(rec: OutputRecord) = {
+    this(
+      rec.loc,
+      rec.lastModified.map(Timestamp.from),
+      rec.hash,
+      None)
+  }
+
   def withExecutionId(newExecutionId: Int): OutputRow = copy(executionId = Some(newExecutionId))
 
   def toOutputRecord: OutputRecord = OutputRecord(loc, hash, lastModified.map(_.toInstant))
@@ -28,14 +44,4 @@ final case class OutputRow( loc: String,
   def toPathOutput: PathOutput = PathOutput(toPath)
 
   def toOutput: Output.PathBased = toPathOutput
-}
-
-object OutputRow {
-  def apply(loc: String): OutputRow = OutputRow(loc, None, None, None)
-
-  def apply(loc: String, hash: String): OutputRow = OutputRow(loc, None, Option(hash), None)
-
-  def apply(loc: String, hash: Option[String]): OutputRow = OutputRow(loc, None, hash, None)
-
-  def apply(rec: OutputRecord): OutputRow = OutputRow(rec.loc, rec.lastModified.map(Timestamp.from), rec.hash, None)
 }

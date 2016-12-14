@@ -94,18 +94,17 @@ final case class UgerChunkRunner(
       jobMonitor.monitor(jobIds)
     }
 
-
     val jobsAndStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    val jobsToFutureResults: Iterable[(LJob, Observable[JobState])] = for {
+    val jobsToResultObservables: Iterable[(LJob, Observable[JobState])] = for {
       (jobId, (job, jobStatuses)) <- jobsAndStatusesById
       _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
-      futureResult = jobStatuses.last.map(JobStatus.toJobState)
+      resultObs = jobStatuses.last.map(toJobState)
     } yield {
-      job -> futureResult
+      job -> resultObs
     }
 
-    Observables.toMap(jobsToFutureResults)
+    Observables.toMap(jobsToResultObservables)
   }
 }
 

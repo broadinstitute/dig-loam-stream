@@ -73,7 +73,7 @@ final case class GoogleCloudChunkRunner(
   
   //TODO: Make one cluster per set of jobs, instead of keeping one around for multiple chunks, over the lifetime
   //of this whole runner
-  
+  //TODO: Avoid this lock 
   private[this] val lock = new AnyRef
   
   private def withCluster[A](client: DataProcClient)(f: => A): A = lock.synchronized {

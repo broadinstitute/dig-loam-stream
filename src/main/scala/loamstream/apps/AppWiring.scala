@@ -113,6 +113,8 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       googleConfig <- GoogleCloudConfig.fromConfig(config)
       client <- CloudSdkDataProcClient.fromConfig(googleConfig)
     } yield {
+      info("Creating Google Cloud ChunkRunner...")
+      
       GoogleCloudChunkRunner(client, delegate)
     }
     
@@ -134,7 +136,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     for {
       ugerConfig <- ugerConfigAttempt.toOption
     } yield {
-      info("Creating executer...")
+      info("Creating Uger ChunkRunner...")
 
       val drmaaClient = makeDrmaaClient
 

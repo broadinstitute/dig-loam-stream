@@ -141,7 +141,7 @@ final case class RxExecuter(runner: ChunkRunner,
         
     result.mutate(_ ++ newResultMap)
         
-    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
+    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs.map(_.toOutputRecord)) }
         
     debug(s"Recording Executions (${executions.size}): $executions")
     

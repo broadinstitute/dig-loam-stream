@@ -26,6 +26,8 @@ trait Output {
   def lastModified: Instant
 
   def location: String
+
+  def toOutputRecord: OutputRecord
 }
 
 object Output {
@@ -44,6 +46,10 @@ object Output {
     
     override def lastModified: Instant = {
       if(isPresent) PathUtils.lastModifiedTime(path) else Instant.ofEpochMilli(0) 
+    }
+
+    override def toOutputRecord: OutputRecord = {
+      OutputRecord(location, Option(hash.valueAsHexString), Option(lastModified))
     }
   }
   

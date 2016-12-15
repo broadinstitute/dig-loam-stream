@@ -9,7 +9,7 @@ import scala.sys.process.ProcessLogger
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.Output
 import loamstream.model.jobs.commandline.CommandLineJob.stdErrProcessLogger
-import loamstream.util.{Files, Loggable, PlatformUtil}
+import loamstream.util.{BashScript, Files, Loggable, PlatformUtil}
 
 /**
   * LoamStream
@@ -25,13 +25,8 @@ final case class CommandLineStringJob(
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
     override val logger: ProcessLogger = stdErrProcessLogger) extends CommandLineJob with Loggable {
 
-  override def processBuilder: ProcessBuilder = {
-    val tokens = CommandLineStringJob.tokensToRun(commandLineString)
-
-    debug(s"Escaped command tokens: $tokens")
-
-    Process(tokens, workDir.toFile)
-  }
+  override def processBuilder: ProcessBuilder =
+    BashScript.fromCommandLineString(commandLineString).processBuilder(workDir)
 
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 }

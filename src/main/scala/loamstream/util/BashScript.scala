@@ -18,7 +18,14 @@ object BashScript {
     BashScript(path)
   }
 
-  def escapeString(string: String): String = string // TODO
+  /** Characters that should be escaped by prefixing with backslash */
+  val charsToBeEscaped: Set[Char] = Set('\\', '$', '\'', '\"', '\n', '\r', '\t', '\b', '\f')
+
+  /** Escapes string for Bash. */
+  def escapeString(string: String): String = string.flatMap {
+    case c if charsToBeEscaped(c) => Seq('\\', c)
+    case c => Seq(c)
+  }
 
 
 }

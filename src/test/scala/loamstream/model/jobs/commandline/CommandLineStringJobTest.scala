@@ -24,7 +24,7 @@ final class CommandLineStringJobTest extends FunSuite {
       val output = store[TXT].to("""" + outputPath +
         """")
 
-      cmd"(head -1 $input ; sed '1d' $input | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $output"
+      cmd"(head -1 $input ; sed '1d' $input | awk '{if($$8 >= 0.0884) print $$0}') > $output"
         """
 
     val logger = new Loggable {}

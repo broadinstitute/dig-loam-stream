@@ -23,9 +23,11 @@ trait LJob extends Loggable {
   
   def workDirOpt: Option[Path] = None
   
-  def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
+  def print(indent: Int = 0, doPrint: String => Unit = debug(_), header: Option[String] = None): Unit = {
     val indentString = s"${"-" * indent} >"
 
+    header.foreach(doPrint)
+    
     doPrint(s"$indentString ($state)${this}")
 
     inputs.foreach(_.print(indent + 2, doPrint))

@@ -44,6 +44,7 @@ final case class RxExecuter(
     
     val chunkResults: Observable[Map[LJob, JobState]] = for {
       chunk <- chunks
+      _ = logJobs(executable)
       jobs <- chunk.to[Set]
       (jobsToRun, skippedJobs) = jobs.partition(jobFilter.shouldRun)
       _ = debug(s"SKIPPING (${skippedJobs.size}) $skippedJobs")
@@ -63,6 +64,12 @@ final case class RxExecuter(
     val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
     
     Await.result(futureMergedResults, timeout)
+  }
+  
+  private def logJobs(executable: Executable): Unit = {
+    def log(s: String) = debug(s)
+      
+    executable.jobs.head.print(doPrint = log, header = Some("Current Job Statuses:"))
   }
   
   private def markJobsSkipped(skippedJobs: Set[LJob]): Unit = {

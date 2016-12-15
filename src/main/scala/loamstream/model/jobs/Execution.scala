@@ -16,7 +16,14 @@ final case class Execution(exitState: JobState, outputs: Set[OutputRecord]) {
     case _ => false
   }
 
-  def withOutputs(newOutputs: Set[OutputRecord]): Execution = copy(outputs = newOutputs)
+  def withOutputRecords(newOutputs: Set[OutputRecord]): Execution = copy(outputs = newOutputs)
+  def withOutputRecords(newOutput: OutputRecord, others: OutputRecord*): Execution =
+    withOutputRecords((newOutput +: others).toSet)
+}
 
-  def withOutputs(newOutput: OutputRecord, others: OutputRecord*): Execution = withOutputs((newOutput +: others).toSet)
+object Execution {
+  def fromOutputs(exitState: JobState, outputs: Set[Output]): Execution =
+    Execution(exitState, outputs.map(_.toOutputRecord))
+  def fromOutputs(exitState: JobState, output: Output, others: Output*): Execution =
+    fromOutputs(exitState, (output +: others).toSet)
 }

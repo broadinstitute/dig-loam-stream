@@ -53,7 +53,8 @@ object Output {
       OutputRecord(location, Option(hash.valueAsHexString), Option(lastModified))
     }
   }
-  
+
+  // TODO: Remove and have PathOutput directly subclass Output
   sealed trait PathBased extends Output {
     def path: Path
     

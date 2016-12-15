@@ -5,23 +5,13 @@ import java.nio.file.Paths
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-
 import org.scalatest.FunSuite
-
 import loamstream.compiler.LoamCompiler
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
 import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.db.slick.TestDbDescriptors
 import loamstream.loam.LoamToolBox
 import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobState
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.Output
-import loamstream.util.Hashes
-import loamstream.util.PathEnrichments
-import loamstream.util.Sequence
+import loamstream.model.jobs._
+import loamstream.util._
 import loamstream.loam.LoamScript
 
 /**
@@ -34,7 +24,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   private def runsEverythingExecuter = RxExecuter.default
 
   private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
-  
+
   private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
     val e = Execution(JobState.CommandResult(exitStatus), Set(cachedOutput(p, Hashes.sha1(p))))
     

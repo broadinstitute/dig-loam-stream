@@ -2,13 +2,12 @@ package loamstream.db.slick
 
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.time.Instant
 
 import org.scalatest.FunSuite
 import loamstream.model.jobs.{Execution, JobState, OutputRecord}
 import loamstream.model.jobs.JobState.CommandResult
 import loamstream.model.jobs.Output.PathOutput
-import loamstream.util.{Hash, Hashes, PathUtils}
+import loamstream.util.{Hashes, PathUtils}
 
 
 /**
@@ -36,11 +35,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
     PathOutput(Paths.get(PathUtils.normalize(p)))
   }
 
-  private def cachedOutput(path: Path, hash: Hash): OutputRecord = {
-    val hashValue = hash.valueAsHexString
-
-    OutputRecord(PathUtils.normalize(path), Option(hashValue), Option(Instant.ofEpochMilli(0)))
-  }
   private def store(paths: Path*): Unit = {
     val outputs = paths.map { path =>
       val hash = Hashes.sha1(path)
@@ -179,7 +173,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
 
       dao.insertExecutions(failed0)
       
-      val expected0 = failed0.withOutputs(output0)
+      val expected0 = failed0.withOutputRecords(output0)
       
       assert(dao.allExecutions.toSet === Set(expected0))
       
@@ -230,7 +224,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
 
       dao.insertExecutions(ex0)
       
-      val expected0 = ex0.withOutputs(output0)
+      val expected0 = ex0.withOutputRecords(output0)
       
       assert(dao.allExecutions.toSet === Set(expected0))
       

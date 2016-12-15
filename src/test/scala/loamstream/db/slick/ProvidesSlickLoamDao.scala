@@ -1,8 +1,11 @@
 package loamstream.db.slick
 
-import scala.util.Try
+import java.nio.file.Path
+import java.time.Instant
 
-import loamstream.model.jobs.Execution
+import scala.util.Try
+import loamstream.model.jobs.{Execution, OutputRecord}
+import loamstream.util.{Hash, PathUtils}
 
 /**
  * @author clint
@@ -14,7 +17,13 @@ trait ProvidesSlickLoamDao {
   protected lazy val dao = new SlickLoamDao(descriptor)
   
   protected def store(execution: Execution): Unit = dao.insertExecutions(Seq(execution))
-  
+
+  protected def cachedOutput(path: Path, hash: Hash): OutputRecord = {
+    val hashValue = hash.valueAsHexString
+
+    OutputRecord(PathUtils.normalize(path), Option(hashValue), Option(Instant.ofEpochMilli(0)))
+  }
+
   protected def createTablesAndThen[A](f: => A): A = {
     //NB: Use Try(...) to succinctly ignore failures
     Try(dao.dropTables()) 

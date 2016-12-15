@@ -30,6 +30,14 @@ final case class OutputRow( loc: String,
       None)
   }
 
+  def this(loc: String) = {
+    this(
+      loc,
+      None,
+      None,
+      None)
+  }
+
   def this(rec: OutputRecord) = {
     this(
       rec.loc,

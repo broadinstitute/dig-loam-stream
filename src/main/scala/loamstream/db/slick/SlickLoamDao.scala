@@ -61,8 +61,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     }
     
     val outputs = {
-      if(execution.isSuccess) { toRawOutputRows(rec => new OutputRow(rec.loc, rec.hash)) }
-      else if(execution.isFailure) { toRawOutputRows(new OutputRow(_)) }
+      if(execution.isSuccess) { toRawOutputRows(new OutputRow(_)) }
+      else if(execution.isFailure) { toRawOutputRows(rec => new OutputRow(rec.loc)) }
       else { Nil }
     }
     

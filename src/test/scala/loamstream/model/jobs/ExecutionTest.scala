@@ -18,22 +18,20 @@ final class ExecutionTest extends FunSuite {
   test("transformOutputs - no outputs") {
     val noOutputs = Execution(JobState.Succeeded, Set.empty)
     
-    val transformed = noOutputs.transformOutputs(os => os.map(_ => PathOutput(p0)))
+    val transformed = noOutputs.transformOutputs(os => os.map(_ => PathOutput(p0).toOutputRecord))
     
     assert(noOutputs === transformed)
   }
   
   test("transformOutputs - some outputs") {
-    val hasOutputs = Execution(JobState.Succeeded, Set(p0, p1).map(PathOutput(_)))
+    val hasOutputs = Execution(JobState.Succeeded, Set(p0, p1).map(PathOutput(_).toOutputRecord))
     
-    val munge: PartialFunction[Output, Output] = {
-      case PathOutput(path) => PathOutput(Paths.get(s"${path}123"))
-    }
-    
+    val munge: OutputRecord => OutputRecord = rec => OutputRecord(s"${rec.loc}123", None, None)
+
     val transformed = hasOutputs.transformOutputs(os => os.map(munge))
     
     assert(hasOutputs.exitState === transformed.exitState)
-    assert(transformed.outputs === Set(p0, p1).map(PathOutput(_)).map(munge))
+    assert(transformed.outputs === Set(p0, p1).map(PathOutput(_).toOutputRecord).map(munge))
   }
   
   test("isCommandExecution") {

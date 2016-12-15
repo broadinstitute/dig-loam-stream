@@ -62,8 +62,10 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
       val threadPoolSize = 50
       
-      //TODO: Make the number of threads this configurable
-      val (localEC, localEcHandle) = ExecutionContexts.threadPool(threadPoolSize)
+      //TODO: Make the number of threads this uses configurable
+      val numberOfCPUs = Runtime.getRuntime.availableProcessors
+      
+      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs)
       
       val localRunner = AsyncLocalChunkRunner()(localEC)
 

@@ -15,12 +15,4 @@ trait DataProcClient {
   def deleteCluster(): Unit
   
   def isClusterRunning: Boolean
-  
-  final def deleteClusterIfRunning(): Unit = {
-    if(isClusterRunning) {
-      deleteCluster()
-    }
-  }
-  
-  
 }

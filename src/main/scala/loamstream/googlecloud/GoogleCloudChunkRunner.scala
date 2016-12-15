@@ -21,6 +21,7 @@ import loamstream.util.Futures
 import loamstream.util.Throwables
 import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
+import loamstream.util.Observables
 
 /**
  * @author clint
@@ -30,53 +31,48 @@ final case class GoogleCloudChunkRunner(
     client: DataProcClient, 
     delegate: ChunkRunner) extends ChunkRunnerFor(ExecutionEnvironment.Google) with Terminable with Loggable {
   
-  private lazy val singleThreadedExecutor: ExecutorService = Executors.newSingleThreadExecutor
+  private[googlecloud] lazy val singleThreadedExecutor: ExecutorService = Executors.newSingleThreadExecutor
   
-  private lazy val singleThreadedExecutionContext: ExecutionContext = {
+  private implicit lazy val singleThreadedExecutionContext: ExecutionContext = {
     ExecutionContext.fromExecutorService(singleThreadedExecutor)
   }
   
   override def maxNumJobs: Int = delegate.maxNumJobs
   
   override def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
-    def emptyResults: Future[Map[LJob, JobState]] = Future.successful(Map.empty)
-    
-    implicit val executionContext = singleThreadedExecutionContext
-    
-    val futureResult: Future[Map[LJob, JobState]] = {
-      if(jobs.isEmpty) { emptyResults }
-      else {
-        runJobsSequentially(jobs)
-      }
-    }
-    
-    Observable.from(futureResult)
+    def emptyResults: Observable[Map[LJob, JobState]] = Observable.just(Map.empty)
+  
+    if(jobs.isEmpty) { emptyResults }
+    else { runJobsSequentially(jobs) }
   }
   
   override def stop(): Unit = {
     import Throwables._
     import scala.concurrent.duration._
     
-    //quietly("Error shutting down DataProc Cluster")(client.deleteClusterIfRunning())
     quietly("Error shutting down Executor")(ExecutorServices.shutdown(singleThreadedExecutor, 5.seconds))
   }
   
-  private def runJobsSequentially(jobs: Set[LJob])(implicit ec: ExecutionContext): Future[Map[LJob, JobState]] = {
-    Future {
+  import GoogleCloudChunkRunner.{withCluster, runSingle}
+  
+  private[googlecloud] def runJobsSequentially(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
+    Observables.observeAsync {
       withCluster(client) {
-        val singleJobResults = jobs.toSeq.map(runSingle)
+        val singleJobResults = jobs.toSeq.map(runSingle(delegate))
           
         Maps.mergeMaps(singleJobResults)
       }
     }
   }
-  
+}
+
+object GoogleCloudChunkRunner {
   //TODO: Make one cluster per set of jobs, instead of keeping one around for multiple chunks, over the lifetime
   //of this whole runner
-  //TODO: Avoid this lock 
+  //TODO: Avoid this lock :(
   private[this] val lock = new AnyRef
   
-  private def withCluster[A](client: DataProcClient)(f: => A): A = lock.synchronized {
+  private[googlecloud] def withCluster[A](client: DataProcClient)(f: => A): A = lock.synchronized {
     try {
       client.startCluster()
       
@@ -86,7 +82,7 @@ final case class GoogleCloudChunkRunner(
     }
   }
   
-  private def runSingle(job: LJob): Map[LJob, JobState] = {
+  private[googlecloud] def runSingle(delegate: ChunkRunner)(job: LJob): Map[LJob, JobState] = {
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     //on the same cluster simultaneously
     import ObservableEnrichments._

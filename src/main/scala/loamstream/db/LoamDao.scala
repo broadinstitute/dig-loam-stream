@@ -1,6 +1,9 @@
 package loamstream.db
 
-import loamstream.model.jobs.{Execution, OutputRecord}
+import java.nio.file.Path
+
+import loamstream.model.jobs.{Execution, Output, OutputRecord}
+import loamstream.util.PathUtils
 
 /**
  * @author clint
@@ -10,9 +13,15 @@ import loamstream.model.jobs.{Execution, OutputRecord}
 trait LoamDao {
   
   def findOutputRecord(loc: String): Option[OutputRecord]
+  final def findOutputRecord(path: Path): Option[OutputRecord] = findOutputRecord(PathUtils.normalize(path))
+  final def findOutputRecord(rec: OutputRecord): Option[OutputRecord] = findOutputRecord(rec.loc)
+  final def findOutputRecord(output: Output): Option[OutputRecord] = findOutputRecord(output.toOutputRecord)
 
   final def deleteOutput(loc: String, others: String*): Unit = deleteOutput(loc +: others)
   def deleteOutput(locs: Iterable[String]): Unit
+
+  final def deletePathOutput(path: Path, others: Path*): Unit = deletePathOutput(path +: others)
+  def deletePathOutput(path: Iterable[Path]): Unit
   
   def allOutputRecords: Seq[OutputRecord]
 

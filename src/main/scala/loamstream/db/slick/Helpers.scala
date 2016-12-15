@@ -1,6 +1,5 @@
 package loamstream.db.slick
 
-import java.nio.file.Path
 import java.sql.Timestamp
 import java.time.Instant
 

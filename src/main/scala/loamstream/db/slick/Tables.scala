@@ -21,7 +21,7 @@ import slick.jdbc.meta.MTable
  *    EXIT_STATUS: integer - the exit status returned by the command represented by this EXECUTION
  * 
  *   OUTPUTS:
- *     PATH: varchar/text, primary key - the fully-qualified path of an output
+ *     PATH: varchar/text, primary key - the fully-qualified path (locator) of an output
  *     LAST_MODIFIED: nullable, datetime or similar - the last modified time of the file/dir at PATH
  *     HASH: nullable, varchar/text - the hex-coded hash of the file/dir at PATH
  *     HASH_TYPE: nullable, varchar/text - the type of hash performed on PATH; 

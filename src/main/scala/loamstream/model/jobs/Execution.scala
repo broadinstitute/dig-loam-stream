@@ -17,4 +17,6 @@ final case class Execution(exitState: JobState, outputs: Set[OutputRecord]) {
   }
 
   def withOutputs(newOutputs: Set[OutputRecord]): Execution = copy(outputs = newOutputs)
+
+  def withOutputs(newOutput: OutputRecord, others: OutputRecord*): Execution = withOutputs((newOutput +: others).toSet)
 }

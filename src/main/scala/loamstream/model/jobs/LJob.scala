@@ -120,4 +120,3 @@ trait LJob extends Loggable {
     }
   }
 }
-

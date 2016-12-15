@@ -1,16 +1,22 @@
 package loamstream
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
+
+import scala.concurrent.ExecutionContext
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import loamstream.loam.{LoamProjectContext, LoamScript, LoamToolBox}
-import loamstream.loam.ast.{LoamGraphAstMapper, LoamGraphAstMapping}
-import loamstream.model.execute.{Executable, RxExecuter}
-import loamstream.model.jobs.{JobState, LJob}
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScript
+import loamstream.loam.LoamToolBox
+import loamstream.loam.ast.LoamGraphAstMapper
+import loamstream.loam.ast.LoamGraphAstMapping
+import loamstream.model.execute.Executable
+import loamstream.model.execute.RxExecuter
+import loamstream.model.jobs.JobState
+import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
-
-import scala.concurrent.ExecutionContext
 
 /**
   * @author clint

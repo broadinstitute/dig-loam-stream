@@ -253,10 +253,10 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   }
 
   private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
-    val asyncChunkRunner = RxExecuter.AsyncLocalChunkRunner
-
-    val mockRunner = MockChunkRunner(asyncChunkRunner, asyncChunkRunner.maxNumJobs)
-
+    val chunkRunner = RxExecuter.default.runner
+        
+    val mockRunner = MockChunkRunner(chunkRunner)
+        
     (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
   }
 

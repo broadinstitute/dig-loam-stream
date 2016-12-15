@@ -29,7 +29,7 @@ final class AppWiringTest extends FunSuite with Matchers {
     wiring.dao shouldBe a[SlickLoamDao]
     wiring.executer shouldBe a[RxExecuter]
     
-    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe(RxExecuter.AsyncLocalChunkRunner)
+    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe a[RxExecuter.AsyncLocalChunkRunner]
     
     wiring.executer.asInstanceOf[RxExecuter].jobFilter shouldBe a[DbBackedJobFilter]
     
@@ -41,7 +41,7 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     wiring.executer shouldBe a[RxExecuter]
     
-    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe(RxExecuter.AsyncLocalChunkRunner)
+    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe a[RxExecuter.AsyncLocalChunkRunner]
     
     wiring.executer.asInstanceOf[RxExecuter].jobFilter shouldBe JobFilter.RunEverything
   }

@@ -14,228 +14,308 @@ final class JobTest extends FunSuite with TestJobs {
   //scalastyle:off magic.number
   
   import JobState._
-  
-  test("isRunnable - single job") {
-    val singleJob  = MockJob(Succeeded, "single job", Set.empty, Set.empty, 0)
-
-    assert(singleJob.state == NotStarted)
-    
-    assert(singleJob.isRunnable)
-  }
-  
-  test("isRunnable - linear 2 job pipeline") {
-    val dep = MockJob(Succeeded, "dep", Set.empty, Set.empty, 0)
-    
-    val root = MockJob(Succeeded, "root", Set(dep), Set.empty, 0)
-
-    assert(dep.state ==NotStarted)
-    assert(root.state == NotStarted)
-    
-    assert(dep.isRunnable)
-    assert(root.isRunnable === false)
-  }
-  
-  private def jobWithState(state: JobState, inputStates: Set[JobState] = Set.empty): MockJob = {
-    val job = MockJob(state, inputs = inputStates.map(jobWithState(_)))
-    
-    job.updateAndEmitJobState(state)
-    
-    job
-  }
-  
-  test("isFinished") {
-    val e = new Exception
-    
-    //No deps, success
-    assert(jobWithState(Succeeded).isFinished)
-    assert(jobWithState(CommandResult(0)).isFinished)
-    //No deps, failure
-    assert(jobWithState(Failed).isFinished)
-    assert(jobWithState(FailedWithException(e)).isFinished)
-    assert(jobWithState(CommandInvocationFailure(e)).isFinished)
-    assert(jobWithState(CommandResult(42)).isFinished)
-    //No deps, not finished
-    assert(jobWithState(NotStarted).isFinished === false)
-    assert(jobWithState(Running).isFinished === false)
-
-    def doTestWithSuccessfulInputStates(successfulInputStates: Set[JobState]): Unit = {
-      //All deps succeeded, success
-      assert(jobWithState(Succeeded, successfulInputStates).isFinished)
-      assert(jobWithState(CommandResult(0), successfulInputStates).isFinished)
-      assert(jobWithState(Succeeded, successfulInputStates).isFinished)
-      assert(jobWithState(CommandResult(0), successfulInputStates).isFinished)
-      //All deps succeeded, failure
-      assert(jobWithState(Failed, successfulInputStates).isFinished)
-      assert(jobWithState(FailedWithException(e), successfulInputStates).isFinished)
-      assert(jobWithState(CommandInvocationFailure(e), successfulInputStates).isFinished)
-      assert(jobWithState(CommandResult(42), successfulInputStates).isFinished)
-      //All deps succeeded, not finished
-      assert(jobWithState(NotStarted, successfulInputStates).isFinished === false)
-      assert(jobWithState(Running, successfulInputStates).isFinished === false)
-    }
-    
-    doTestWithSuccessfulInputStates(Set(Succeeded, CommandResult(0)))
-    doTestWithSuccessfulInputStates(Set(Succeeded, Succeeded, Succeeded))
-    doTestWithSuccessfulInputStates(Set(Succeeded))
-    doTestWithSuccessfulInputStates(Set(Succeeded, Skipped, Succeeded))
-    doTestWithSuccessfulInputStates(Set(Skipped))
-    doTestWithSuccessfulInputStates(Set(Skipped, Skipped, Skipped))
-    doTestWithSuccessfulInputStates(Set(Skipped, CommandResult(0), Skipped))
-    
-    def doTestWithFailedInputStates(failedInputStates: Set[JobState]): Unit = {
-      //All deps succeeded, success
-      assert(jobWithState(Succeeded, failedInputStates).isFinished)
-      assert(jobWithState(CommandResult(0), failedInputStates).isFinished)
-      assert(jobWithState(Succeeded, failedInputStates).isFinished)
-      assert(jobWithState(CommandResult(0), failedInputStates).isFinished)
-      //All deps succeeded, failure
-      assert(jobWithState(Failed, failedInputStates).isFinished)
-      assert(jobWithState(FailedWithException(e), failedInputStates).isFinished)
-      assert(jobWithState(CommandInvocationFailure(e), failedInputStates).isFinished)
-      assert(jobWithState(CommandResult(42), failedInputStates).isFinished)
-      //All deps succeeded, not finished
-      assert(jobWithState(NotStarted, failedInputStates).isFinished)
-      assert(jobWithState(Running, failedInputStates).isFinished)
-    }
-    
-    doTestWithFailedInputStates(Set(Succeeded, CommandResult(42)))
-    doTestWithFailedInputStates(Set(CommandResult(42)))
-    doTestWithFailedInputStates(Set(Failed, Failed))
-    doTestWithFailedInputStates(Set(CommandInvocationFailure(e)))
-    doTestWithFailedInputStates(Set(FailedWithException(e)))
-  }
-  
-  test("inputsFinished") {
-    val e = new Exception
-    
-    //no inputs
-    assert(jobWithState(Succeeded).inputsFinished)
-    assert(jobWithState(Failed).inputsFinished)
-    assert(jobWithState(Skipped).inputsFinished)
-    assert(jobWithState(CommandResult(0)).inputsFinished)
-    assert(jobWithState(CommandResult(42)).inputsFinished)
-    assert(jobWithState(CommandInvocationFailure(e)).inputsFinished)
-    assert(jobWithState(FailedWithException(e)).inputsFinished)
-    assert(jobWithState(NotStarted).inputsFinished)
-    assert(jobWithState(Running).inputsFinished)
-    
-    //some inputs
-    
-    def doTestWithFinishedInputStates(finishedInputStates: Set[JobState]): Unit = {
-      //All deps succeeded, success
-      assert(jobWithState(Succeeded, finishedInputStates).inputsFinished)
-      assert(jobWithState(CommandResult(0), finishedInputStates).inputsFinished)
-      assert(jobWithState(Succeeded, finishedInputStates).inputsFinished)
-      assert(jobWithState(CommandResult(0), finishedInputStates).inputsFinished)
-      //All deps succeeded, failure
-      assert(jobWithState(Failed, finishedInputStates).inputsFinished)
-      assert(jobWithState(FailedWithException(e), finishedInputStates).inputsFinished)
-      assert(jobWithState(CommandInvocationFailure(e), finishedInputStates).inputsFinished)
-      assert(jobWithState(CommandResult(42), finishedInputStates).inputsFinished)
-      //All deps succeeded, not finished
-      assert(jobWithState(NotStarted, finishedInputStates).inputsFinished)
-      assert(jobWithState(Running, finishedInputStates).inputsFinished)
-    }
-    
-    doTestWithFinishedInputStates(Set(Succeeded, Failed))
-    doTestWithFinishedInputStates(Set(Failed))
-    doTestWithFinishedInputStates(Set(Succeeded))
-    doTestWithFinishedInputStates(Set(Skipped, Failed))
-    doTestWithFinishedInputStates(Set(Skipped, CommandResult(0)))
-    
-    def doTestWithUnfinishedInputStates(unfinishedInputStates: Set[JobState]): Unit = {
-      //All deps succeeded, success
-      assert(jobWithState(Succeeded, unfinishedInputStates).inputsFinished === false)
-      assert(jobWithState(CommandResult(0), unfinishedInputStates).inputsFinished === false)
-      assert(jobWithState(Succeeded, unfinishedInputStates).inputsFinished === false)
-      assert(jobWithState(CommandResult(0), unfinishedInputStates).inputsFinished === false)
-      //All deps succeeded, failure
-      assert(jobWithState(Failed, unfinishedInputStates).inputsFinished === false)
-      assert(jobWithState(FailedWithException(e), unfinishedInputStates).inputsFinished === false)
-      assert(jobWithState(CommandInvocationFailure(e), unfinishedInputStates).inputsFinished === false)
-      assert(jobWithState(CommandResult(42), unfinishedInputStates).inputsFinished === false)
-      //All deps succeeded, not finished
-      assert(jobWithState(NotStarted, unfinishedInputStates).inputsFinished === false)
-      assert(jobWithState(Running, unfinishedInputStates).inputsFinished === false)
-    }
-    
-    doTestWithUnfinishedInputStates(Set(Running))
-    doTestWithUnfinishedInputStates(Set(NotStarted))
-    doTestWithUnfinishedInputStates(Set(NotStarted, NotStarted, NotStarted))
-    doTestWithUnfinishedInputStates(Set(Running, Running, Running))
-    doTestWithUnfinishedInputStates(Set(NotStarted, Running, NotStarted))
-  }
-  
-  test("inputsSuccessful") {
-    val e = new Exception
-    
-    //no inputs
-    assert(jobWithState(Succeeded).inputsSuccessful)
-    assert(jobWithState(Failed).inputsSuccessful)
-    assert(jobWithState(Skipped).inputsSuccessful)
-    assert(jobWithState(CommandResult(0)).inputsSuccessful)
-    assert(jobWithState(CommandResult(42)).inputsSuccessful)
-    assert(jobWithState(CommandInvocationFailure(e)).inputsSuccessful)
-    assert(jobWithState(FailedWithException(e)).inputsSuccessful)
-    assert(jobWithState(NotStarted).inputsSuccessful)
-    assert(jobWithState(Running).inputsSuccessful)
-    
-    def doTestWithSuccessfulInputs(inputStates: Set[JobState]): Unit = {
-      assert(jobWithState(Succeeded, inputStates).inputsSuccessful)
-      assert(jobWithState(Failed, inputStates).inputsSuccessful)
-      assert(jobWithState(Skipped, inputStates).inputsSuccessful)
-      assert(jobWithState(CommandResult(0), inputStates).inputsSuccessful)
-      assert(jobWithState(CommandResult(42), inputStates).inputsSuccessful)
-      assert(jobWithState(CommandInvocationFailure(e), inputStates).inputsSuccessful)
-      assert(jobWithState(FailedWithException(e), inputStates).inputsSuccessful)
-      assert(jobWithState(NotStarted, inputStates).inputsSuccessful)
-      assert(jobWithState(Running, inputStates).inputsSuccessful)
-    }
-    
-    doTestWithSuccessfulInputs(Set(Succeeded, Succeeded))
-    doTestWithSuccessfulInputs(Set(Succeeded, Skipped))
-    doTestWithSuccessfulInputs(Set(Skipped, Skipped))
-    doTestWithSuccessfulInputs(Set(CommandResult(0)))
-    
-    def doTestWithFailedInputs(inputStates: Set[JobState]): Unit = {
-      assert(jobWithState(Succeeded, inputStates).inputsSuccessful === false)
-      assert(jobWithState(Failed, inputStates).inputsSuccessful === false)
-      assert(jobWithState(Skipped, inputStates).inputsSuccessful === false)
-      assert(jobWithState(CommandResult(0), inputStates).inputsSuccessful === false)
-      assert(jobWithState(CommandResult(42), inputStates).inputsSuccessful === false)
-      assert(jobWithState(CommandInvocationFailure(e), inputStates).inputsSuccessful === false)
-      assert(jobWithState(FailedWithException(e), inputStates).inputsSuccessful === false)
-      assert(jobWithState(NotStarted, inputStates).inputsSuccessful === false)
-      assert(jobWithState(Running, inputStates).inputsSuccessful === false)
-    }
-    
-    doTestWithFailedInputs(Set(Failed))
-    doTestWithFailedInputs(Set(CommandResult(42)))
-    doTestWithFailedInputs(Set(FailedWithException(e)))
-    doTestWithFailedInputs(Set(CommandInvocationFailure(e)))
-    doTestWithFailedInputs(Set(Failed, Failed))
-    doTestWithFailedInputs(Set(CommandResult(42), Failed))
-    doTestWithFailedInputs(Set(FailedWithException(e), Failed))
-    doTestWithFailedInputs(Set(CommandInvocationFailure(e), Failed))
-
-    //Mix in some successes
-    doTestWithFailedInputs(Set(Succeeded, Failed, Succeeded))
-    doTestWithFailedInputs(Set(Succeeded, CommandResult(42), Succeeded))
-    doTestWithFailedInputs(Set(Succeeded, FailedWithException(e), Succeeded))
-    doTestWithFailedInputs(Set(Succeeded, CommandInvocationFailure(e), Succeeded))
-  }
+  import Futures.waitFor
+  import ObservableEnrichments._
   
   test("execute") {
     val job = MockJob(CommandResult(42))
-    
-    import Futures.waitFor
-    import ObservableEnrichments._
     
     val states = job.states.until(_.isFinished).to[Seq].firstAsFuture
     
     job.execute(ExecutionContext.global)
     
     assert(waitFor(states) === Seq(NotStarted, Running, CommandResult(42)))
+  }
+  
+  /*
+   * /**
+   * An observable producing a stream of all the runnable jobs among this job, its dependencies, their dependencies,
+   * and so on, as soon as those jobs become runnable.  A job becomes runnable when all its dependencies are finished,
+   * or if it has no dependencies, it's runnable immediately.  (See selfRunnable)
+   */
+  final lazy val runnables: Observable[LJob] = {
+    //Multiplex the streams of runnable jobs starting from each of our dependencies
+    val dependencyRunnables = {
+      if(inputs.isEmpty) { Observable.empty }
+      //NB: Note the use of merge instead of ++; this ensures that we don't emit jobs from the sub-graph rooted at
+      //one dependency before the other dependencies, but rather emit all the streams of runnable jobs "together".
+      else { inputs.toSeq.map(_.runnables).reduce(_ merge _) }
+    }
+    
+    //Emit the current job after all our dependencies
+    (dependencyRunnables ++ selfRunnable) 
+  }
+  
+  /**
+   * An observable that will emit this job ONLY when all this job's dependencies are finished.
+   * If the this job has no dependencies, this job is emitted immediately.  This will fire at most once.
+   */
+  private lazy val selfRunnable: Observable[LJob] = {
+    def justUs = Observable.just(this)
+    def noMore = Observable.empty 
+    
+    if(inputs.isEmpty) { 
+      justUs
+    } else {
+      for {
+        inputStates <- finalInputStates
+        _ = debug(s"$name.selfRunnable: deps finished with states: $inputStates")
+        anyInputFailures = inputStates.exists(_.isFailure)
+        runnable <- if(anyInputFailures) noMore else justUs 
+      } yield {
+        runnable
+      }
+    }
+  }
+   */
+  
+  test("lastState - simple") {
+    val job = MockJob(CommandResult(42))
+    
+    val lastStateFuture = job.lastState.firstAsFuture
+    
+    job.execute(ExecutionContext.global)
+    
+    assert(waitFor(lastStateFuture) === CommandResult(42))
+  }
+
+  test("lastState - subsequent 'terminal' states don't count") {
+    val job = MockJob(CommandResult(42))
+    
+    val lastStatesFuture = job.lastState.to[Seq].firstAsFuture
+    
+    job.updateAndEmitJobState(NotStarted)
+    job.updateAndEmitJobState(NotStarted)
+    job.updateAndEmitJobState(Running)
+    job.updateAndEmitJobState(Running)
+    job.updateAndEmitJobState(Failed)
+    job.updateAndEmitJobState(CommandResult(42))
+    
+    assert(waitFor(lastStatesFuture) === Seq(Failed))
+  }
+  
+  test("finalInputStates - no deps") {
+    val noDeps = MockJob(CommandResult(42))
+    
+    val finalInputStatesFuture = noDeps.finalInputStates.firstAsFuture
+    
+    assert(waitFor(finalInputStatesFuture) === Nil)
+  }
+  
+  test("finalInputStates - some deps") {
+    val deps: Set[LJob] = Set(MockJob(Failed), MockJob(CommandResult(0)), MockJob(Succeeded))
+    
+    val noDeps = MockJob(
+        toReturn = CommandResult(42), 
+        inputs = deps)
+    
+    val finalInputStatesFuture = noDeps.finalInputStates.firstAsFuture
+    
+    deps.foreach(_.execute(ExecutionContext.global))
+    
+    //NB: Use Sets to ignore order
+    assert(waitFor(finalInputStatesFuture).toSet === Set(Failed, CommandResult(0), Succeeded))
+  }
+  
+  test("state/states/updateAndEmitJobState") {
+    val job = MockJob(CommandResult(42))
+    
+    val first5States = job.states.take(5).to[Seq].firstAsFuture
+    
+    assert(job.state === NotStarted)
+    
+    job.updateAndEmitJobState(Unknown)
+    
+    assert(job.state === Unknown)
+    
+    job.updateAndEmitJobState(Failed)
+    
+    assert(job.state === Failed)
+    
+    job.updateAndEmitJobState(Running)
+    
+    assert(job.state === Running)
+    
+    job.updateAndEmitJobState(CommandResult(42))
+    
+    assert(job.state === CommandResult(42))
+    
+    job.updateAndEmitJobState(Succeeded)
+    
+    assert(job.state === Succeeded)
+    
+    assert(waitFor(first5States) === Seq(Unknown, Failed, Running, CommandResult(42), Succeeded))
+  }
+  
+  test("selfRunnable - no deps") {
+    def doTest(resultState: JobState): Unit = {
+      val noDeps = MockJob(resultState)
+      
+      assert(waitFor(noDeps.selfRunnable.firstAsFuture) eq noDeps)
+    }
+    
+    doTest(Succeeded)
+    doTest(Failed)
+    doTest(NotStarted)
+    doTest(CommandResult(42))
+    doTest(Unknown)
+  }
+  
+  test("selfRunnable - some deps") {
+    def doTest(resultState: JobState, anyFailures: Boolean): Unit = {
+      def mockJob(toReturn: JobState, startingState: Option[JobState] = None) = {
+        val j = MockJob(toReturn)
+        
+        j.updateAndEmitJobState(startingState.getOrElse(toReturn))
+        
+        j
+      }
+      
+      val notFinished = mockJob(CommandResult(0), startingState = Some(Running))
+      
+      val i0 = mockJob(Succeeded)
+      
+      val i1 = mockJob(if(anyFailures) Failed else Succeeded)
+      
+      val inputs: Set[LJob] = Set(i0, notFinished, i1)
+      
+      val job = MockJob(toReturn = resultState, inputs = inputs)
+
+      notFinished.updateAndEmitJobState(Succeeded)
+      
+      if(anyFailures) {
+        assert(waitFor(job.selfRunnable.isEmpty.firstAsFuture))
+      } else {
+        val selfRunnableFuture = job.selfRunnable.firstAsFuture
+        
+        assert(waitFor(selfRunnableFuture) eq job)
+      }
+    }
+    
+    doTest(Succeeded, anyFailures = true)
+    doTest(Succeeded, anyFailures = false)
+    doTest(Failed, anyFailures = true)
+    doTest(Failed, anyFailures = false)
+    doTest(NotStarted, anyFailures = true)
+    doTest(NotStarted, anyFailures = false)
+    doTest(CommandResult(42), anyFailures = true)
+    doTest(CommandResult(42), anyFailures = false)
+    doTest(Unknown, anyFailures = true)
+    doTest(Unknown, anyFailures = false)
+  }
+  
+  test("runnables - no deps") {
+    def doTest(resultState: JobState): Unit = {
+      val job = MockJob(resultState)
+      
+      val runnables = job.runnables.to[Seq].firstAsFuture
+      
+      assert(waitFor(runnables) === Seq(job))
+      
+      assert(waitFor(runnables).head eq job)
+    }
+    
+    doTest(Succeeded)
+    doTest(Failed)
+    doTest(NotStarted)
+    doTest(CommandResult(42))
+    doTest(Unknown)
+  }
+  
+  test("runnables - some deps, no failures") {
+    
+    /*
+     * gc0
+     *    \    
+     *     +---c0 
+     *    /      \       
+     * gc1        \
+     *             +---root
+     * gc2        /
+     *    \      /
+     *     +---c1
+     *    /
+     * gc3
+     */
+    
+    def execute(jobs: Iterable[LJob]): Unit = jobs.foreach(_.execute(ExecutionContext.global))
+    
+    val gc0 = MockJob(Succeeded)
+    val gc1 = MockJob(CommandResult(0))
+    val gc2 = MockJob(Succeeded)
+    val gc3 = MockJob(CommandResult(0))
+    
+    val c0 = MockJob(toReturn = Succeeded, inputs = Set(gc0, gc1))
+    val c1 = MockJob(toReturn = CommandResult(0), inputs = Set(gc2, gc3))
+    
+    val rootJob = MockJob(Succeeded, inputs = Set(c0,c1))
+    
+    val grandChildren = waitFor(rootJob.runnables.take(4).to[Set].firstAsFuture)
+    
+    assert(grandChildren === Set(gc0, gc1, gc2, gc3))
+    
+    val futureChildren = rootJob.runnables.drop(4).take(2).to[Set].firstAsFuture
+    
+    execute(grandChildren)
+    
+    assert(waitFor(futureChildren) === Set(c0, c1))
+    
+    execute(Seq(c0, c1))
+    
+    val futureRoot = rootJob.runnables.drop(6).to[Set].firstAsFuture
+    
+    val roots = waitFor(futureRoot)
+    
+    assert(roots === Set(rootJob))
+    assert(roots.head eq rootJob)
+  }
+  
+  test("runnables - some deps, some failures") {
+    
+    /*
+     * gc0 (success)
+     *    \    
+     *     +-------c0 (failure)
+     *    /         \       
+     * gc1 (success) \
+     *                +---root
+     * gc2 (success) /
+     *    \         /
+     *     +-------c1 (success)
+     *    /
+     * gc3 (success)
+     */
+    
+    def execute(jobs: Iterable[LJob]): Unit = jobs.foreach(_.execute(ExecutionContext.global))
+    
+    val gc0 = MockJob(Succeeded)
+    val gc1 = MockJob(CommandResult(0))
+    val gc2 = MockJob(Succeeded)
+    val gc3 = MockJob(CommandResult(0))
+    
+    val c0 = MockJob(toReturn = Failed, inputs = Set(gc0, gc1))
+    val c1 = MockJob(toReturn = CommandResult(0), inputs = Set(gc2, gc3))
+    
+    val rootJob = MockJob(Succeeded, inputs = Set(c0,c1))
+    
+    val grandChildren = waitFor(rootJob.runnables.take(4).to[Set].firstAsFuture)
+    
+    //We should get all the grandchildren, since they start out runnable
+    assert(grandChildren === Set(gc0, gc1, gc2, gc3))
+    
+    val futureChildren = rootJob.runnables.drop(4).take(2).to[Set].firstAsFuture
+    
+    execute(grandChildren)
+    
+    //We should get all the children, since their children all succeed
+    assert(waitFor(futureChildren) === Set(c0, c1))
+    
+    execute(Seq(c0, c1))
+    
+    //We shouldn't get the root, since one of its children failed
+    val futureRootMissing = rootJob.runnables.drop(6).isEmpty.firstAsFuture
+    
+    assert(waitFor(futureRootMissing))
   }
   
   //scalastyle:on magic.number

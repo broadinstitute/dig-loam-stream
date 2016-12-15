@@ -87,21 +87,13 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       
       val chunkRunner = UgerChunkRunner(ugerConfig, drmaaClient, jobMonitor, pollingFrequencyInHz)
 
-      val executer = RxExecuter(chunkRunner, makeJobFilter(conf))(executionContextWithThreadPool)
+      import scala.concurrent.duration._
       
-      new TerminableExecuter(executer) {
-        
-        override def shutdown(): Unit = {
-          def quietly(f: => Any): Unit = {
-            try { f }
-            catch { case NonFatal(e) => error("Error shutting down: ", e) }
-          }
-          
-          quietly(shutdownDrmaaClient())
-          quietly(schedulerHandle.shutdown())
-          quietly(shutdownJobMonitor())
-        }
-      }  
+      val windowLength = 30.seconds
+      
+      val executer = RxExecuter(chunkRunner, windowLength, makeJobFilter(conf))(executionContextWithThreadPool)
+      
+      new TerminableExecuter(executer, shutdownDrmaaClient, schedulerHandle.shutdown, shutdownJobMonitor)
     }
   }
   
@@ -131,12 +123,20 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     }
   }
   
-  private[apps] abstract class TerminableExecuter(private[apps] val delegate: Executer) extends Executer {
+  private[apps] class TerminableExecuter(
+      private[apps] val delegate: Executer, shutdownHandles: (() => Any)*) extends Executer {
     
     override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobState] = {
       delegate.execute(executable)(timeout)
     }
      
-    def shutdown(): Unit
+    def shutdown(): Unit = {
+      def quietly(f: => Any): Unit = {
+        try { f }
+        catch { case NonFatal(e) => error("Error shutting down: ", e) }
+      }
+      
+      shutdownHandles.foreach(handle => quietly(handle()))
+    }
   }
 }

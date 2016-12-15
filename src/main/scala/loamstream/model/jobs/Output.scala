@@ -20,9 +20,7 @@ trait Output {
   
   final def isMissing: Boolean = !isPresent
   
-  def hash: Hash
-
-  def hashType: HashType
+  def hash: Option[Hash]
 
   def lastModified: Instant
 
@@ -39,9 +37,7 @@ object Output {
    * each access.
    */
   final case class PathOutput(path: Path) extends PathBased {
-    override def hash: Hash = Hashes.sha1(path)
-
-    override def hashType: HashType = HashType.Sha1
+    override def hash: Option[Hash] = if (Files.exists(path)) Option(Hashes.sha1(path)) else None
 
     override def normalized: PathBased = copy(path = normalize(path))
     
@@ -50,7 +46,7 @@ object Output {
     }
 
     override def toOutputRecord: OutputRecord = {
-      OutputRecord(location, Option(hash.valueAsHexString), Option(lastModified))
+      OutputRecord(location, hash.map(_.valueAsHexString), Option(lastModified))
     }
   }
 

@@ -19,7 +19,7 @@ final class OutputTest extends FunSuite {
     assert(!doesntExist.isPresent)
 
     intercept[Exception] {
-      doesntExist.hash
+      doesntExist.hash.get
     }
 
     assert(exists.isPresent)
@@ -28,6 +28,6 @@ final class OutputTest extends FunSuite {
     } else {
       "cb78b8412adaf7c8b5eecc09dbc9aa4d3cbb3675"
     }
-    assert(exists.hash.valueAsHexString == expectedHash)
+    assert(exists.hash.get.valueAsHexString == expectedHash)
   }
 }

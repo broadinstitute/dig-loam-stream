@@ -16,7 +16,7 @@ final class ExecutionTest extends FunSuite {
   private val p1 = Paths.get("nuh")
   
   test("transformOutputs - no outputs") {
-    val noOutputs = Execution(JobState.Succeeded, Set.empty)
+    val noOutputs = Execution(JobState.Succeeded, Set.empty[OutputRecord])
     
     val transformed = noOutputs.transformOutputs(os => os.map(_ => PathOutput(p0).toOutputRecord))
     
@@ -36,13 +36,13 @@ final class ExecutionTest extends FunSuite {
   
   test("isCommandExecution") {
     def assertIsCommandExecution(state: JobState): Unit = {
-      def execution(state: JobState) = Execution(state, Set.empty)
+      def execution(state: JobState) = Execution(state, Set.empty[OutputRecord])
       
       assert(execution(state).isCommandExecution)
     }
     
     def assertIsNOTCommandExecution(state: JobState): Unit = {
-      def execution(state: JobState) = Execution(state, Set.empty)
+      def execution(state: JobState) = Execution(state, Set.empty[OutputRecord])
       
       assert(!execution(state).isCommandExecution)
     }

@@ -24,6 +24,8 @@ trait ProvidesSlickLoamDao {
     OutputRecord(PathUtils.normalize(path), Option(hashValue), Option(Instant.ofEpochMilli(0)))
   }
 
+  protected def failedOutput(path: Path): OutputRecord = OutputRecord(PathUtils.normalize(path))
+
   protected def createTablesAndThen[A](f: => A): A = {
     //NB: Use Try(...) to succinctly ignore failures
     Try(dao.dropTables()) 

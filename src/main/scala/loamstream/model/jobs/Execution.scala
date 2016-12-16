@@ -22,6 +22,9 @@ final case class Execution(exitState: JobState, outputs: Set[OutputRecord]) {
 }
 
 object Execution {
+  def apply(exitState: JobState, outputs: OutputRecord*): Execution =
+    Execution(exitState, outputs.toSet)
+
   def fromOutputs(exitState: JobState, outputs: Set[Output]): Execution =
     Execution(exitState, outputs.map(_.toOutputRecord))
   def fromOutputs(exitState: JobState, output: Output, others: Output*): Execution =

@@ -1,8 +1,9 @@
 package loamstream.model.jobs
 
+import java.nio.file.Path
 import java.time.Instant
 
-import loamstream.util.TimeEnrichments
+import loamstream.util.{PathUtils, TimeEnrichments}
 
 /**
  * @author kyuksel
@@ -49,4 +50,11 @@ object OutputRecord {
     case Some(_) => OutputRecord(loc, isPresent = true, hash, lastModified)
     case _ => OutputRecord(loc, isPresent = false, hash, lastModified)
   }
+
+  def apply(loc: String): OutputRecord = OutputRecord(loc,
+                                                      isPresent = false,
+                                                      hash = None,
+                                                      lastModified = None)
+
+  def apply(path: Path): OutputRecord = OutputRecord(PathUtils.normalize(path))
 }

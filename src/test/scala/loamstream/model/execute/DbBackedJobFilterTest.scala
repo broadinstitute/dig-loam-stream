@@ -24,7 +24,11 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
   private val cachedOutput0 = o0.toOutputRecord
   private val cachedOutput1 = o1.toOutputRecord
   private val cachedOutput2 = o2.toOutputRecord
-  
+
+  private val failedOutput0 = failedOutput(p0)
+  private val failedOutput1 = failedOutput(p1)
+  private val failedOutput2 = failedOutput(p2)
+
   private def executions = dao.allExecutions.toSet
   
   import JobState._
@@ -124,7 +128,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao {
       
       filter.record(Seq(e))
       
-      assert(executions === Set(Execution(CommandResult(42), Set(cachedOutput0, cachedOutput1, cachedOutput2))))
+      assert(executions === Set(Execution(CommandResult(42), failedOutput0, failedOutput1, failedOutput2)))
     }
   }
   

@@ -1,0 +1,31 @@
+import binaries._
+import config._
+import store_helpers._
+
+//TODO
+val CHROMOSOME = 22
+
+/*
+  Input: Plink binary fileset ${DATA}.bed/bim/fam, $KG_VCF_BASE reference VCF file, $LABEL output file prefix
+  Output: data/${LABEL}.chr${CHROMOSOME}.bed/bim/fam, data/${LABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, data/${LABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
+*/
+
+//TODO: Wire up inputs and outputs
+
+cmd"""${plink} --bfile $inputPrefix --chr ${CHROMOSOME} --keep-allele-order --make-bed 
+      --out ${data}/${LABEL}.chr${CHROMOSOME}"""
+
+cmd"""$GENOTYPE_HARMONIZER
+		--input data/${LABEL}.chr${CHROMOSOME}
+		--inputType PLINK_BED
+		--output data/${LABEL}.chr${CHROMOSOME}.harmonized
+		--outputType PLINK_BED
+		--ref $KG_VCF_BASE
+		--refType VCF
+		--keep
+		--update-id
+		--variants 1000
+		--mafAlign 0.1
+		--update-id
+		--update-reference-allele
+		--debug"""

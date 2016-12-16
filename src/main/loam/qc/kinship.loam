@@ -1,36 +1,9 @@
 import binaries._
-
-val LABEL = "BIOME_AFFY"
-
-//TODO: better name
-val ryansDir = path("/humgen/diabetes/users/ryank/data/biome_revised")
-
-val KINSHIP_CALC_SAMPLE_SHARING_R = ryansDir / "scripts" / "kinship_calc_sample_sharing.r"
-
-val REGIONS_EXCLUDE = ryansDir / "files" / "regions.exclude"
-
-val data = ryansDir / "data"
+import config._
+import store_helpers._
 
 import loamstream.model.Store
 import loamstream.loam.LoamStore.Untyped
-
-def inputStoreName(extension: String): String = s"${data}/${LABEL}.qc.bi.chr1-22${extension}"
-
-def inputStore(extension: String): Untyped = store[TXT].from(inputStoreName(extension))
-
-def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}${extension}"
-
-def outputStore(name: String)(extension: String): Untyped = store[TXT].to(outputStoreName(name)(extension))
-
-def withExtensions(extensions: String*)(makeStore: String => Untyped): Seq[Untyped] = {
-  extensions.map(ex => makeStore(ex))
-}
-
-def bedBimFam(makeStore: String => Untyped): Seq[Untyped] = withExtensions(".bed", ".bim", ".fam")(makeStore)
-
-val inputPrefix: String = inputStoreName("")
-
-val inputBedBimFam: Seq[Untyped] = bedBimFam(inputStore)
 
 val kinshipPrefix: String = outputStoreName(".kinship")("")
 

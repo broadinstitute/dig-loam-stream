@@ -1,6 +1,10 @@
 import config._
 
-def inputStoreName(extension: String): String = s"${data}/${LABEL}.qc.bi.chr1-22${extension}"
+import loamstream.model.Store
+import loamstream.loam.LoamStore.Untyped
+
+//Is this path right?
+def inputStoreName(extension: String): String = s"${datasetDir}/${LABEL}.qc.bi.chr1-22${extension}"
 
 def inputStore(extension: String): Untyped = store[TXT].from(inputStoreName(extension))
 
@@ -13,6 +17,8 @@ def withExtensions(extensions: String*)(makeStore: String => Untyped): Seq[Untyp
 }
 
 def bedBimFam(makeStore: String => Untyped): Seq[Untyped] = withExtensions(".bed", ".bim", ".fam")(makeStore)
+
+def makeBedBimFam(prefix: String): Seq[Untyped] = bedBimFam(extension => store[TXT].from(s"${prefix}.${extension}"))
 
 val inputPrefix: String = inputStoreName("")
 

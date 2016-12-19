@@ -13,9 +13,9 @@
 //TODO
 val CHROMOSOME = 22
 
-# ===================== From CAMP.source =====================
+// ===================== From CAMP.source =====================
 
-# file definitions
+// file definitions
 private val ryansDir = path("/humgen/diabetes/users/ryank")
 private val dataDir = ryansDir / "data"
 private val softwareDir = ryansDir / "software"
@@ -26,13 +26,13 @@ val datasetDir = dataDir / "camp_hail"
 
 val DATA = datasetDir / "data/CAMP.for_qc"
 
-# DATA_TYPE = PLINK or VCF
+// DATA_TYPE = PLINK or VCF
 val DATA_TYPE = "PLINK"
 
-# Output file prefix
+// Output file prefix
 val LABEL = "CAMP"
 
-# Files
+// Files
 val REGIONS_EXCLUDE = datasetDir / "files/regions.exclude"
 
 val KG_V3_5K_AF = dataDir / "1kg_phase3/1000GP_Phase3_vcf_purcell5k/allele_frequencies.tsv"
@@ -43,11 +43,11 @@ val KG_VCF_BASE = dataDir / s"1kg_phase3/1000GP_Phase3_vcf/ALL.chr${CHROMOSOME}.
 val KG_GENETIC_MAP = dataDir / s"1kg_phase3/1000GP_Phase3/genetic_map_chr${CHROMOSOME}_combined_b37.txt"
 val EAGLE_GENETIC_MAP = softwareDir / "Eagle_v2.3/tables/genetic_map_hg19_withX.txt.gz"
 
-# Phenotype file columns
+// Phenotype file columns
 val PHENO_ID_COL = "ID"
 val PHENO_RACE_COL = "RACE"
 
-# Software
+// Software
 val HAIL = softwareDir / "hail/build/install/hail/bin/hail"
 val KING = softwareDir / "king"
 val SMARTPCA = softwareDir / "EIG6.0.1/bin/smartpca"
@@ -58,7 +58,7 @@ val EAGLE = softwareDir / "Eagle_v2.3/eagle"
 val GENOTYPE_HARMONIZER = softwareDir / "GenotypeHarmonizer-1.4.18/GenotypeHarmonizer.sh"
 val EPACTS = softwareDir / "EPACTS-3.2.6/bin/epacts"
 
-# R scripts
+// R scripts
 val PLOT_MISSINGNESS_R = scriptsDir / "data_plot_missingness.r"
 val KEEP_BEST_DUP_R = scriptsDir / "data_keep_best_duplicate.r"
 val KINSHIP_CALC_SAMPLE_SHARING_R = scriptsDir / "kinship_calc_sample_sharing.r"

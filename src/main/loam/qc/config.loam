@@ -10,10 +10,21 @@
 
 //val data = ryansDir / "data"
 
+//TODO
+val CHROMOSOME = 22
+
 # ===================== From CAMP.source =====================
 
 # file definitions
-val DATA = path("data/CAMP")
+private val ryansDir = path("/humgen/diabetes/users/ryank")
+private val dataDir = ryansDir / "data"
+private val softwareDir = ryansDir / "software"
+private val scriptsDir = ryansDir / "pipelines/QCpipeline/scripts"
+
+//TODO
+val datasetDir = dataDir / "camp_hail"
+
+val DATA = datasetDir / "data/CAMP.for_qc"
 
 # DATA_TYPE = PLINK or VCF
 val DATA_TYPE = "PLINK"
@@ -22,48 +33,49 @@ val DATA_TYPE = "PLINK"
 val LABEL = "CAMP"
 
 # Files
-REGIONS_EXCLUDE=data/regions.exclude
-KG_V3_5K_AF=/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/allele_frequencies.tsv
-KG_V3_5K_PCA_LOADINGS=/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/pca.loadings.tsv
-KG_ETHNICITY=/humgen/diabetes/users/ryank/data/biome_revised/files/integrated_call_samples_v2.20130502.ALL.panel
-PHENO=/humgen/diabetes/users/ryank/data/biome_revised/phenotype/AMPT2D-PHENOTYPES_FINAL.txt
-KG_VCF_BASE=/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf/ALL.chr${CHROMOSOME}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes
-KG_GENETIC_MAP=/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3/genetic_map_chr${CHROMOSOME}_combined_b37.txt
-EAGLE_GENETIC_MAP=/humgen/diabetes/users/ryank/software/Eagle_v2.3/tables/genetic_map_hg19_withX.txt.gz
+val REGIONS_EXCLUDE = datasetDir / "files/regions.exclude"
+
+val KG_V3_5K_AF = dataDir / "1kg_phase3/1000GP_Phase3_vcf_purcell5k/allele_frequencies.tsv"
+val KG_V3_5K_PCA_LOADINGS = dataDir / "1kg_phase3/1000GP_Phase3_vcf_purcell5k/pca.loadings.tsv"
+val KG_ETHNICITY = dataDir / "biome_revised/files/integrated_call_samples_v2.20130502.ALL.panel"
+val PHENO = dataDir / "biome_revised/phenotype/AMPT2D-PHENOTYPES_FINAL.txt"
+val KG_VCF_BASE = dataDir / s"1kg_phase3/1000GP_Phase3_vcf/ALL.chr${CHROMOSOME}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes"
+val KG_GENETIC_MAP = dataDir / s"1kg_phase3/1000GP_Phase3/genetic_map_chr${CHROMOSOME}_combined_b37.txt"
+val EAGLE_GENETIC_MAP = softwareDir / "Eagle_v2.3/tables/genetic_map_hg19_withX.txt.gz"
 
 # Phenotype file columns
-PHENO_ID_COL=ID
-PHENO_RACE_COL=RACE
+val PHENO_ID_COL = "ID"
+val PHENO_RACE_COL = "RACE"
 
 # Software
-HAIL=/humgen/diabetes/users/ryank/software/hail/build/install/hail/bin/hail
-KING=/humgen/diabetes/users/ryank/software/king
-SMARTPCA=/humgen/diabetes/users/ryank/software/EIG6.0.1/bin/smartpca
-KLUSTAKWIK=/humgen/diabetes/users/ryank/software/klustakwik-0.3.0.rc3/KlustaKwik
-PRIMUS=/humgen/diabetes/users/ryank/software/PRIMUS_v1.8.0/bin/run_PRIMUS.pl
-SHAPEIT=/humgen/diabetes/users/ryank/software/shapeit/bin/shapeit
-EAGLE=/humgen/diabetes/users/ryank/software/Eagle_v2.3/eagle
-GENOTYPE_HARMONIZER=/humgen/diabetes/users/ryank/software/GenotypeHarmonizer-1.4.18/GenotypeHarmonizer.sh
-EPACTS=/humgen/diabetes/users/ryank/software/EPACTS-3.2.6/bin/epacts
+val HAIL = softwareDir / "hail/build/install/hail/bin/hail"
+val KING = softwareDir / "king"
+val SMARTPCA = softwareDir / "EIG6.0.1/bin/smartpca"
+val KLUSTAKWIK = softwareDir / "klustakwik-0.3.0.rc3/KlustaKwik"
+val PRIMUS = softwareDir / "PRIMUS_v1.8.0/bin/run_PRIMUS.pl"
+val SHAPEIT = softwareDir / "shapeit/bin/shapeit"
+val EAGLE = softwareDir / "Eagle_v2.3/eagle"
+val GENOTYPE_HARMONIZER = softwareDir / "GenotypeHarmonizer-1.4.18/GenotypeHarmonizer.sh"
+val EPACTS = softwareDir / "EPACTS-3.2.6/bin/epacts"
 
 # R scripts
-PLOT_MISSINGNESS_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/data_plot_missingness.r
-KEEP_BEST_DUP_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/data_keep_best_duplicate.r
-KINSHIP_CALC_SAMPLE_SHARING_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/kinship_calc_sample_sharing.r
-GET_COMMON_VARIANTS_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/get_common_variants.r
-ADD_ETHNICITY_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/add_ethnicity.r
-PLOT_ANCESTRY_PCA_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/plot_ancestry_pca.r
-ANCESTRY_CLUSTER_PLOT_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/ancestry_cluster_plot.r
-ANCESTRY_CLUSTER_MERGE_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/ancestry_cluster_merge.r
-GET_DOUBLETONS_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/get_doubletons.r
-ISTATS_COMPILE_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/istats_compile.r
-CALC_ISTATS_ADJ_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/calc_istats_adj.r
-BIN_METRIC_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/bin_metric.r
-ISTATS_ADJ_PCA_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/istats_adj_pca.r
-ISTATS_PCS_GMM_CLUSTER_PLOT_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/istats_pcs_gmm_cluster_plot.r
-ISTATS_PCS_GMM_PLOT_METRICS_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/istats_pcs_gmm_plot_metrics.r
-ISTATS_ADJ_GMM_PLOT_METRICS_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/istats_adj_gmm_plot_metrics.r
-COMPARE_PLINK_KING_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/compare_plink_king.r
-GENERATE_UNREL_FILE_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/generate_unrel_file.r
-COMPILE_PEDIGREE_PY=/humgen/diabetes/users/ryank/pipelines/qc/scripts/compile_pedigree.py
-PLOT_FINAL_PCS_R=/humgen/diabetes/users/ryank/pipelines/qc/scripts/plot_final_pcs.r
+val PLOT_MISSINGNESS_R = scriptsDir / "data_plot_missingness.r"
+val KEEP_BEST_DUP_R = scriptsDir / "data_keep_best_duplicate.r"
+val KINSHIP_CALC_SAMPLE_SHARING_R = scriptsDir / "kinship_calc_sample_sharing.r"
+val GET_COMMON_VARIANTS_R = scriptsDir / "get_common_variants.r"
+val ADD_ETHNICITY_R = scriptsDir / "add_ethnicity.r"
+val PLOT_ANCESTRY_PCA_R = scriptsDir / "plot_ancestry_pca.r"
+val ANCESTRY_CLUSTER_PLOT_R = scriptsDir / "ancestry_cluster_plot.r"
+val ANCESTRY_CLUSTER_MERGE_R = scriptsDir / "ancestry_cluster_merge.r"
+val GET_DOUBLETONS_R = scriptsDir / "get_doubletons.r"
+val ISTATS_COMPILE_R = scriptsDir / "istats_compile.r"
+val CALC_ISTATS_ADJ_R = scriptsDir / "calc_istats_adj.r"
+val BIN_METRIC_R = scriptsDir / "bin_metric.r"
+val ISTATS_ADJ_PCA_R = scriptsDir / "istats_adj_pca.r"
+val ISTATS_PCS_GMM_CLUSTER_PLOT_R = scriptsDir / "istats_pcs_gmm_cluster_plot.r"
+val ISTATS_PCS_GMM_PLOT_METRICS_R = scriptsDir / "istats_pcs_gmm_plot_metrics.r"
+val ISTATS_ADJ_GMM_PLOT_METRICS_R = scriptsDir / "istats_adj_gmm_plot_metrics.r"
+val COMPARE_PLINK_KING_R = scriptsDir / "compare_plink_king.r"
+val GENERATE_UNREL_FILE_R = scriptsDir / "generate_unrel_file.r"
+val COMPILE_PEDIGREE_PY = scriptsDir / "compile_pedigree.py"
+val PLOT_FINAL_PCS_R = scriptsDir / "plot_final_pcs.r"

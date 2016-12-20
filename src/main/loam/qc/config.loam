@@ -22,9 +22,9 @@ private val softwareDir = ryansDir / "software"
 private val scriptsDir = ryansDir / "pipelines/QCpipeline/scripts"
 
 //TODO
-val datasetDir = dataDir / "camp_hail"
+val datasetDir = dataDir / "camp"
 
-val DATA = datasetDir / "data/CAMP.for_qc"
+val DATA = datasetDir / "data/camp"
 
 // DATA_TYPE = PLINK or VCF
 val DATA_TYPE = "PLINK"

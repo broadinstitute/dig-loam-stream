@@ -4,7 +4,7 @@ import store_helpers._
 
 /*
   Input: Plink binary fileset ${DATA}.bed/bim/fam, $KG_VCF_BASE reference VCF file, $LABEL output file prefix
-  Output: data/${LABEL}.chr${CHROMOSOME}.bed/bim/fam, data/${LABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, data/${LABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
+  Output: out/${LABEL}.chr${CHROMOSOME}.bed/bim/fam, out/${LABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, data/${LABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
 */
 
 //TODO: Wire up inputs and outputs
@@ -13,23 +13,23 @@ val inputPrefixStep0 = DATA.toString
 
 val inputFiles = makeBedBimFam(inputPrefixStep0)
 
-val outputPrefixStep0 = s"data/${LABEL}.chr${CHROMOSOME}"
+val outputPrefixStep0 = s"out/${LABEL}.chr${CHROMOSOME}"
 
 val outputFilesStep0 = makeBedBimFam(outputPrefixStep0)
 
-val outputPrefixStep1 = s"data/${LABEL}.chr${CHROMOSOME}.harmonized"
+val outputPrefixStep1 = s"out/${LABEL}.chr${CHROMOSOME}.harmonized"
 
 val outputFilesStep1 = makeBedBimFam(outputPrefixStep1)
   
-cmd"""${plink} --bfile $inputPrefixStep0 --chr ${CHROMOSOME} --keep-allele-order --make-bed 
-      --out $outputPrefixStep0""".in(inputFiles).out(outputFilesStep0)
+cmd"""${plink} --bfile ${inputPrefixStep0} --chr ${CHROMOSOME} --keep-allele-order --make-bed 
+      --out ${outputPrefixStep0}""".in(inputFiles).out(outputFilesStep0)
 
-cmd"""$GENOTYPE_HARMONIZER
-		--input $outputPrefixStep0
+cmd"""${GENOTYPE_HARMONIZER}
+		--input ${outputPrefixStep0}
 		--inputType PLINK_BED
-		--output $outputPrefixStep1
+		--output ${outputPrefixStep1}
 		--outputType PLINK_BED
-		--ref $KG_VCF_BASE
+		--ref ${KG_VCF_BASE}
 		--refType VCF
 		--keep
 		--update-id

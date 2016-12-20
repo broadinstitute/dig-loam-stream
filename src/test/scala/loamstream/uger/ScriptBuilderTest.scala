@@ -84,6 +84,7 @@ final class ScriptBuilderTest extends FunSuite {
 
 source /broad/software/scripts/useuse
 reuse -q UGER
+reuse -q Java-1.8
 
 i=$$SGE_TASK_ID
 $sixSpaces

@@ -18,10 +18,14 @@ trait ProvidesSlickLoamDao {
   
   protected def store(execution: Execution): Unit = dao.insertExecutions(Seq(execution))
 
-  protected def cachedOutput(path: Path, hash: Hash): OutputRecord = {
+  protected def cachedOutput(path: Path, hash: Hash, lastModified: Instant): OutputRecord = {
     val hashValue = hash.valueAsHexString
 
-    OutputRecord(PathUtils.normalize(path), Option(hashValue), Option(Instant.ofEpochMilli(0)))
+    OutputRecord(PathUtils.normalize(path), Option(hashValue), Option(lastModified))
+  }
+
+  protected def cachedOutput(path: Path, hash: Hash): OutputRecord = {
+    cachedOutput(path, hash, Instant.ofEpochMilli(0))
   }
 
   protected def failedOutput(path: Path): OutputRecord = OutputRecord(PathUtils.normalize(path))

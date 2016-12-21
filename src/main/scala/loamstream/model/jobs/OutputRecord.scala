@@ -19,7 +19,7 @@ final case class OutputRecord(loc: String,
 
   def isMissing: Boolean = !isPresent
 
-  def isOlder(other: OutputRecord): Boolean = {
+  def isOlderThan(other: OutputRecord): Boolean = {
     import TimeEnrichments.Implicits._
 
     lastModified match {

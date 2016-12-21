@@ -1,7 +1,6 @@
 package loamstream.model.execute
 
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths, StandardCopyOption}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -26,7 +25,9 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
 
   private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
-    val e = Execution(JobState.CommandResult(exitStatus), Set(cachedOutput(p, Hashes.sha1(p))))
+    val hash = Hashes.sha1(p)
+    val lastModified = PathUtils.lastModifiedTime(p)
+    val e = Execution(JobState.CommandResult(exitStatus), Set(cachedOutput(p, hash, lastModified)))
     
     store(e)
   }
@@ -124,21 +125,25 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
 
       def path(s: String) = Paths.get(s)
 
+      // Setting the option to replace existing files so if a 'cp' job was mistakenly run (instead of being skipped),
+      // the test fails with a more descriptive message instead of a FileAlreadyExistsException
+      def copy(source: Path, target: Path) = JFiles.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
+
       val start = path("src/test/resources/a.txt")
       val f1 = workDir / "fileOut1.txt"
       val f2 = workDir / "fileOut2.txt"
       val f3 = workDir / "fileOut3.txt"
 
       val startToF1 = mockJob(s"cp $start $f1", Set(Output.PathOutput(f1))) {
-        JFiles.copy(start, f1)
+        copy(start, f1)
       }
 
       val f1ToF2 = mockJob(s"cp $f1 $f2", Set(Output.PathOutput(f2)), Set(startToF1)) {
-        JFiles.copy(f1, f2)
+        copy(f1, f2)
       }
 
       val f2ToF3 = mockJob(s"cp $f2 $f3", Set(Output.PathOutput(f3)), Set(f1ToF2)) {
-        JFiles.copy(f2, f3)
+        copy(f2, f3)
       }
 
       assert(startToF1.state == JobState.NotStarted)

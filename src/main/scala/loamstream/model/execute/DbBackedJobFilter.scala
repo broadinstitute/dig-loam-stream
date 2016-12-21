@@ -50,11 +50,10 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     }
   }
 
-  private def isOlder(rec: OutputRecord): Boolean = {
-    findOutput(rec.loc) match {
-      case Some(matchingRec) => matchingRec.isOlder(rec)
+  private def isOlder(currentRec: OutputRecord): Boolean = {
+    findOutput(currentRec.loc) match {
+      case Some(matchingRec) => currentRec.isOlderThan(matchingRec)
       case None => false
     }
   }
-
 }

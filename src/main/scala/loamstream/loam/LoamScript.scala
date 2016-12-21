@@ -40,12 +40,12 @@ object LoamScript {
   }
 
   def read(path: Path): Shot[LoamScript] = {
-    nameFromFilePath(path).flatMap({ name =>
-      Shot.fromTry(Try {
-        val code = StringUtils.fromUtf8Bytes(Files.readAllBytes(path))
-        LoamScript(name, code)
-      })
-    })
+    for {
+      name <- nameFromFilePath(path)
+      code <- Shot(StringUtils.fromUtf8Bytes(Files.readAllBytes(path)))
+    } yield {
+      LoamScript(name, code)
+    }
   }
 
   /** A wrapper type for Loam scripts */

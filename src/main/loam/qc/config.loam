@@ -18,7 +18,7 @@ val CHROMOSOME = 22
 // file definitions
 private val ryansDir = path("/humgen/diabetes/users/ryank")
 private val dataDir = ryansDir / "data"
-private val softwareDir = ryansDir / "software"
+val softwareDir = ryansDir / "software"
 private val scriptsDir = ryansDir / "pipelines/QCpipeline/scripts"
 
 //TODO
@@ -46,17 +46,6 @@ val EAGLE_GENETIC_MAP = softwareDir / "Eagle_v2.3/tables/genetic_map_hg19_withX.
 // Phenotype file columns
 val PHENO_ID_COL = "ID"
 val PHENO_RACE_COL = "RACE"
-
-// Software
-val HAIL = softwareDir / "hail/build/install/hail/bin/hail"
-val KING = softwareDir / "king"
-val SMARTPCA = softwareDir / "EIG6.0.1/bin/smartpca"
-val KLUSTAKWIK = softwareDir / "klustakwik-0.3.0.rc3/KlustaKwik"
-val PRIMUS = softwareDir / "PRIMUS_v1.8.0/bin/run_PRIMUS.pl"
-val SHAPEIT = softwareDir / "shapeit/bin/shapeit"
-val EAGLE = softwareDir / "Eagle_v2.3/eagle"
-val GENOTYPE_HARMONIZER = softwareDir / "GenotypeHarmonizer-1.4.18/GenotypeHarmonizer.sh"
-val EPACTS = softwareDir / "EPACTS-3.2.6/bin/epacts"
 
 // R scripts
 val PLOT_MISSINGNESS_R = scriptsDir / "data_plot_missingness.r"

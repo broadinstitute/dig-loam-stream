@@ -7,19 +7,17 @@ import store_helpers._
   Output: out/${LABEL}.chr${CHROMOSOME}.bed/bim/fam, out/${LABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, data/${LABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
 */
 
-//TODO: Wire up inputs and outputs
-
 val inputPrefixStep0 = DATA.toString
 
-val inputFiles = makeBedBimFam(inputPrefixStep0)
+val inputFiles = bedBimFam(inputPrefixStep0)
 
 val outputPrefixStep0 = s"out/${LABEL}.chr${CHROMOSOME}"
 
-val outputFilesStep0 = makeBedBimFam(outputPrefixStep0)
+val outputFilesStep0 = bedBimFam(outputPrefixStep0)
 
 val outputPrefixStep1 = s"out/${LABEL}.chr${CHROMOSOME}.harmonized"
 
-val outputFilesStep1 = makeBedBimFam(outputPrefixStep1)
+val outputFilesStep1 = bedBimFam(outputPrefixStep1)
   
 cmd"""${plink} --bfile ${inputPrefixStep0} --chr ${CHROMOSOME} --keep-allele-order --make-bed 
       --out ${outputPrefixStep0}""".in(inputFiles).out(outputFilesStep0)

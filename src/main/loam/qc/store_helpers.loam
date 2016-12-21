@@ -1,25 +1,25 @@
 import config._
 
 import loamstream.model.Store
-import loamstream.loam.LoamStore.Untyped
+import loamstream.loam.LoamStore
 
 //Is this path right?
-def inputStoreName(extension: String): String = s"${datasetDir}/${LABEL}.qc.bi.chr1-22${extension}"
+def inputStoreName(extension: String): String = s"${datasetDir}/${LABEL}.qc.bi.chr1-22.${extension}"
 
-def inputStore(extension: String): Untyped = store[TXT].from(inputStoreName(extension))
+def inputStore(extension: String): LoamStore[TXT] = store[TXT].from(inputStoreName(extension))
 
-def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}${extension}"
+def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}.${extension}"
 
-def outputStore(name: String)(extension: String): Untyped = store[TXT].to(outputStoreName(name)(extension))
+def outputStore(name: String): String => LoamStore[TXT] = extension => store[TXT].to(outputStoreName(name)(extension))
 
-def withExtensions(extensions: String*)(makeStore: String => Untyped): Seq[Untyped] = {
+def withExtensions(extensions: String*)(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = {
   extensions.map(ex => makeStore(ex))
 }
 
-def bedBimFam(makeStore: String => Untyped): Seq[Untyped] = withExtensions(".bed", ".bim", ".fam")(makeStore)
+def bedBimFam(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions("bed", "bim", "fam")(makeStore)
 
-def makeBedBimFam(prefix: String): Seq[Untyped] = bedBimFam(extension => store[TXT].from(s"${prefix}.${extension}"))
+def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => store[TXT].from(s"${prefix}.${extension}"))
 
 val inputPrefix: String = inputStoreName("")
 
-val inputBedBimFam: Seq[Untyped] = bedBimFam(inputStore)
+val inputBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(inputStore(_))

@@ -3,15 +3,15 @@ import config._
 import store_helpers._
 
 import loamstream.model.Store
-import loamstream.loam.LoamStore.Untyped
+import loamstream.loam.LoamStore
 
 val kinshipPrefix: String = outputStoreName(".kinship")("")
 
-val kinshipFileBedBimFam: Seq[Untyped] = bedBimFam(outputStore(".kinship"))
+val kinshipFileBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(outputStore(".kinship")(_))
 
-val kinshipFilePruneIn: Untyped = outputStore(".kinship.prune.in")("")
+val kinshipFilePruneIn: LoamStore[TXT] = outputStore(".kinship.prune.in")("")
 val kinshipFilePruned: String = outputStoreName(".kinship.pruned")("")
-val kinshipFilePrunedBedBimFam @ Seq(kinshipFilePrunedBed, _, _) = bedBimFam(outputStore(".kinship.pruned"))
+val kinshipFilePrunedBedBimFam @ Seq(kinshipFilePrunedBed, _, _) = bedBimFam(outputStore(".kinship.pruned")(_))
 
 val kinshipFilePrunedKingPrefix: String = outputStoreName(".kinship.pruned")(".king")
 
@@ -20,7 +20,7 @@ val Seq(
 	  kinshipFilePrunedKingKin0Related, 
 	  kinshipFilePrunedKingSharingCounts) = {
 	  
-  withExtensions(".king.kin0", ".king.kin0.related", ".king.sharing_counts.txt")(outputStore(".kinship.pruned"))
+  withExtensions(".king.kin0", ".king.kin0.related", ".king.sharing_counts.txt")(outputStore(".kinship.pruned")(_))
 }
 
 cmd"""$plink --bfile $inputPrefix --geno 0.02 --maf 0.01 --exclude $REGIONS_EXCLUDE --make-bed --out $kinshipPrefix""".in(inputBedBimFam).out(kinshipFileBedBimFam)

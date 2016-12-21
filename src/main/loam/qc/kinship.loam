@@ -5,31 +5,43 @@ import store_helpers._
 import loamstream.model.Store
 import loamstream.loam.LoamStore
 
-val kinshipPrefix: String = outputStoreName(".kinship")("")
+val inputPrefix: String = s"${dataDir}/camp_hail/data/${LABEL}.for_qc"
 
-val kinshipFileBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(outputStore(".kinship")(_))
+val inputBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(inputPrefix)
 
-val kinshipFilePruneIn: LoamStore[TXT] = outputStore(".kinship.prune.in")("")
-val kinshipFilePruned: String = outputStoreName(".kinship.pruned")("")
-val kinshipFilePrunedBedBimFam @ Seq(kinshipFilePrunedBed, _, _) = bedBimFam(outputStore(".kinship.pruned")(_))
+val kinshipPrefix: String = s"${LABEL}.kinship"
+val kinshipFileBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(kinshipPrefix)
 
-val kinshipFilePrunedKingPrefix: String = outputStoreName(".kinship.pruned")(".king")
+val kinshipFilePruneIn: LoamStore[TXT] = store[TXT].to(s"${kinshipPrefix}.prune.in")
+
+val kinshipFilePrunedPrefix: String = s"${kinshipPrefix}.pruned"
+val kinshipFilePrunedBedBimFam @ Seq(kinshipFilePrunedBed, _, _) = bedBimFam(kinshipFilePrunedPrefix)
+
+val kinshipFilePrunedKingPrefix: String = s"${kinshipFilePrunedPrefix}.king"
 
 val Seq(
 	  kinshipFilePrunedKingKin0, 
 	  kinshipFilePrunedKingKin0Related, 
-	  kinshipFilePrunedKingSharingCounts) = {
-	  
-  withExtensions(".king.kin0", ".king.kin0.related", ".king.sharing_counts.txt")(outputStore(".kinship.pruned")(_))
+	  kinshipFilePrunedKingSharingCounts): Seq[LoamStore[TXT]] = {
+  
+  withExtensions("king.kin0", "king.kin0.related", "king.sharing_counts.txt") { extension =>
+    store[TXT].to(s"${kinshipFilePrunedPrefix}.${extension}")
+  }
 }
 
-cmd"""$plink --bfile $inputPrefix --geno 0.02 --maf 0.01 --exclude $REGIONS_EXCLUDE --make-bed --out $kinshipPrefix""".in(inputBedBimFam).out(kinshipFileBedBimFam)
+/*
+	plink --bfile data/${LABEL}.for_qc --indep-pairwise 1500 150 0.2 --out kinship/${LABEL}.kinship
+	plink --bfile data/${LABEL}.for_qc --extract ${kinshipFilePruneIn} --make-bed --out kinship/${LABEL}.kinship.pruned
+	$KING -b kinship/${LABEL}.kinship.pruned.bed --kinship --prefix kinship/${LABEL}.kinship.pruned.king
+	(head -1 kinship/${LABEL}.kinship.pruned.king.kin0; sed '1d' kinship/${LABEL}.kinship.pruned.king.kin0 | awk '{if($8 >= 0.0884) print $0}' | sort -rn -k8,8) > kinship/${LABEL}.kinship.pruned.king.kin0.related
+	R --vanilla --args kinship/${LABEL}.kinship.pruned.king.kin0.related kinship/${LABEL}.kinship.pruned.king.sharing_counts.txt < $KINSHIP_CALC_SAMPLE_SHARING_R
+*/
 
-cmd"""$plink --bfile $kinshipPrefix --indep-pairwise 1500 150 0.2 --out $kinshipPrefix""".in(kinshipFileBedBimFam).out(kinshipFilePruneIn)
+cmd"""${plink} --bfile ${inputPrefix} --indep-pairwise 1500 150 0.2 --out ${kinshipPrefix}""".in(inputBedBimFam).out(kinshipFileBedBimFam)
 
-cmd"""$plink --bfile $kinshipPrefix --extract $kinshipFilePruneIn --make-bed --out $kinshipFilePruned""".in(kinshipFileBedBimFam :+ kinshipFilePruneIn).out(kinshipFilePrunedBedBimFam)
+cmd"""${plink} --bfile ${inputPrefix} --extract ${kinshipFilePruneIn} --make-bed --out ${kinshipFilePrunedPrefix}""".in(inputBedBimFam :+ kinshipFilePruneIn).out(kinshipFilePrunedBedBimFam)
 
-cmd"""$KING -b $kinshipFilePrunedBed --kinship --prefix $kinshipFilePrunedKingPrefix""".in(kinshipFilePrunedBedBimFam).out(kinshipFilePrunedKingKin0)
+cmd"""${KING} -b $kinshipFilePrunedBed --kinship --prefix $kinshipFilePrunedKingPrefix""".in(kinshipFilePrunedBedBimFam).out(kinshipFilePrunedKingKin0)
 
 cmd"""(head -1 ${kinshipFilePrunedKingKin0} ; sed '1d' ${kinshipFilePrunedKingKin0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${kinshipFilePrunedKingKin0Related}""".in(kinshipFilePrunedKingKin0).out(kinshipFilePrunedKingKin0Related)
 

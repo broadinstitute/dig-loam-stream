@@ -17,13 +17,13 @@ val CHROMOSOME = 22
 
 // file definitions
 private val ryansDir = path("/humgen/diabetes/users/ryank")
-private val dataDir = ryansDir / "data"
+val dataDir = ryansDir / "data"
 val softwareDir = ryansDir / "software"
 private val scriptsDir = ryansDir / "pipelines/QCpipeline/scripts"
 
 //TODO
 val datasetDir = dataDir / "camp"
-
+//TODO
 val DATA = datasetDir / "data/camp"
 
 // DATA_TYPE = PLINK or VCF
@@ -33,6 +33,7 @@ val DATA_TYPE = "PLINK"
 val LABEL = "CAMP"
 
 // Files
+//TODO
 val REGIONS_EXCLUDE = datasetDir / "files/regions.exclude"
 
 val KG_V3_5K_AF = dataDir / "1kg_phase3/1000GP_Phase3_vcf_purcell5k/allele_frequencies.tsv"

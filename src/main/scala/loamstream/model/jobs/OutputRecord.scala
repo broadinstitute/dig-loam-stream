@@ -31,23 +31,14 @@ final case class OutputRecord(loc: String,
     }
   }
 
-  def isHashed: Boolean = {
-    hash match {
-      case Some(hashValue) => true
-      case None => false
-    }
-  }
+  def isHashed: Boolean = hash.isDefined
 
-  def hasDifferentHashThan(other: OutputRecord): Boolean = {
-    hash match {
-      case Some(hashValue) => other.hash match {
-        case Some(otherHashValue) => hashValue != otherHashValue
-        case None => false
-      }
-      case None => false
-    }
-  }
-
+  def hasDifferentHashThan(other: OutputRecord): Boolean =
+    (for {
+        hashValue <- hash
+        otherHashValue <- other.hash
+      } yield hashValue != otherHashValue
+    ).getOrElse(false)
 }
 
 object OutputRecord {

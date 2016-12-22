@@ -135,7 +135,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     val lookingFor = output.loc
     
     val executionForPath = for {
-      output <- tables.outputs.filter(_.path === lookingFor)
+      output <- tables.outputs.filter(_.locator === lookingFor)
       execution <- output.execution
     } yield {
       execution
@@ -200,7 +200,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     }
     
     def outputByLoc(loc: String) = {
-      tables.outputs.filter(_.path === loc).take(1)
+      tables.outputs.filter(_.locator === loc).take(1)
     }
     
     def outputsByPaths(locs: Iterable[String]) = {
@@ -210,7 +210,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     }
     
     def outputsByRawPaths(rawPaths: Iterable[String]) = {
-      tables.outputs.filter(_.path.inSetBind(rawPaths))
+      tables.outputs.filter(_.locator.inSetBind(rawPaths))
     }
   }
   

@@ -1,11 +1,8 @@
 package loamstream.db.slick
 
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.sql.Timestamp
 
-import loamstream.model.jobs.{Output, OutputRecord}
-import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.OutputRecord
 
 /**
  * @author clint
@@ -49,10 +46,4 @@ final case class OutputRow( loc: String,
   def withExecutionId(newExecutionId: Int): OutputRow = copy(executionId = Some(newExecutionId))
 
   def toOutputRecord: OutputRecord = OutputRecord(loc, hash, lastModified.map(_.toInstant))
-
-  def toPath: Path = Paths.get(loc)
-
-  def toPathOutput: PathOutput = PathOutput(toPath)
-
-  def toOutput: Output.PathBased = toPathOutput
 }

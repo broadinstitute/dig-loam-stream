@@ -289,7 +289,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     val allJobs = allJobsFrom(executable)
 
     def outputMatches(o: Output): Boolean =
-      o.asInstanceOf[Output.PathBased].path.toString.endsWith(fileNameSuffix.toString)
+      o.asInstanceOf[Output.PathOutput].path.toString.endsWith(fileNameSuffix.toString)
 
     def jobMatches(j: LJob): Boolean = j.outputs.exists(outputMatches)
 

@@ -3,7 +3,7 @@ package loamstream.model.jobs
 import java.nio.file.Files
 import java.nio.file.Path
 
-import loamstream.util.{Hash, HashType, Hashes, PathUtils}
+import loamstream.util.{Hash, Hashes, PathUtils}
 import java.time.Instant
 import java.nio.file.Paths
 
@@ -30,49 +30,27 @@ trait Output {
 }
 
 object Output {
-  private def normalize(p: Path): Path = Paths.get(PathUtils.normalize(p))
-  
   /**
    * A handle to an output of a job stored at 'path'.  Hashes and modification times are re-computed on
    * each access.
    */
-  final case class PathOutput(path: Path) extends PathBased {
+  final case class PathOutput(path: Path) extends Output {
     override def hash: Option[Hash] = if (Files.exists(path)) Option(Hashes.sha1(path)) else None
 
-    override def normalized: PathBased = copy(path = normalize(path))
-    
     override def lastModified: Instant = {
       if(isPresent) PathUtils.lastModifiedTime(path) else Instant.ofEpochMilli(0) 
     }
 
+    override def isPresent: Boolean = Files.exists(path)
+
+    override def location: String = PathUtils.normalize(path)
+
     override def toOutputRecord: OutputRecord = {
       OutputRecord(location, hash.map(_.valueAsHexString), Option(lastModified))
     }
-  }
 
-  // TODO: Remove and have PathOutput directly subclass Output
-  sealed trait PathBased extends Output {
-    def path: Path
-    
-    def normalized: PathBased
-    
-    final override def isPresent: Boolean = Files.exists(path)
+    def normalized: PathOutput = copy(path = normalize(path))
 
-    final override def location: String = PathUtils.normalize(path)
-
-    final def toPathOutput: PathOutput = this match {
-      case po: PathOutput => po
-      case _ => PathOutput(path)
-    }
-  }
-  
-  object PathBased {
-    /**
-     * Allow pattern matching on and extracting paths from path-based Outputs. 
-     */
-    def unapply(output: Output): Option[Path] = output match {
-      case pb: PathBased => Some(pb.path)
-      case _ => None
-    }
+    private def normalize(p: Path): Path = Paths.get(PathUtils.normalize(p))
   }
 }

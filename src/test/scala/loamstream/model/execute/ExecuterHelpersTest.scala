@@ -49,10 +49,11 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(failure === Map(two0Failed -> two0Failure))
   }
   
-  test("noFailures()") {
-    import ExecuterHelpers.noFailures
+  test("noFailures() and anyFailures()") {
+    import ExecuterHelpers.{noFailures,anyFailures}
 
     assert(noFailures(Map.empty) === true)
+    assert(anyFailures(Map.empty) === false)
 
     val allSuccesses = Map(
       two0 -> two0Success,
@@ -61,6 +62,7 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
       plusOne -> plusOneSuccess)
       
     assert(noFailures(allSuccesses) === true)
+    assert(anyFailures(allSuccesses) === false)
     
     val allFailures = Map(
       two0 -> JobState.Failed,
@@ -69,6 +71,7 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
       plusOne -> JobState.Failed)
       
     assert(noFailures(allFailures) === false)
+    assert(anyFailures(allFailures) === true)
     
     val someFailures = Map(
       two0 -> two0Success,
@@ -77,6 +80,7 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
       plusOne -> JobState.Failed)
       
     assert(noFailures(someFailures) === false)
+    assert(anyFailures(someFailures) === true)
   }
   
   test("consumeUntilFirstFailure()") {

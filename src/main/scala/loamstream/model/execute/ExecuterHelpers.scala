@@ -37,6 +37,8 @@ object ExecuterHelpers {
   }
 
   def noFailures[J <: LJob](m: Map[J, JobState]): Boolean = m.values.forall(_.isSuccess)
+  
+  def anyFailures[J <: LJob](m: Map[J, JobState]): Boolean = !noFailures(m)
 
   def executeSingle(job: LJob)(implicit executor: ExecutionContext): Future[Map[LJob, JobState]] = {
     for {

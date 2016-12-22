@@ -124,7 +124,7 @@ final class RxExecuterTest extends FunSuite {
     doTest(JobState.Failed)
     doTest(JobState.FailedWithException(new Exception))
     doTest(JobState.CommandResult(42))
-}
+  }
   
   test("3-job linear pipeline works") {
     /* A 3-step pipeline:
@@ -162,6 +162,42 @@ final class RxExecuterTest extends FunSuite {
     assert(job1 ranBefore job2)
     assert(job1 ranBefore job3)
     assert(job2 ranBefore job3)
+  }
+  
+  test("3-job linear pipeline works if the middle job fails") {
+    /* A 3-step pipeline:
+     *
+     * Job1 -- Job2 -- Job3
+     * 
+     */
+
+    val job1 = RxMockJob("Job_1")
+    val job2 = RxMockJob("Job_2", Set(job1), toReturn = JobState.CommandResult(2))
+    val job3 = RxMockJob("Job_3", Set(job2))
+
+    assert(job1.executionCount === 0)
+    assert(job2.executionCount === 0)
+    assert(job3.executionCount === 0)
+
+    val executable = Executable(Set(job3))
+    
+    val r @ ExecutionResults(result, chunks) = exec(executable)
+    
+    import r.jobExecutionSeq
+
+    assert(job1.executionCount === 1)
+    assert(job2.executionCount === 1)
+    assert(job3.executionCount === 0)
+
+    assert(result(job1).isSuccess)
+    assert(result(job2).isFailure)
+    assert(result.get(job3).isEmpty)
+    
+    assert(result.size === 2)
+    
+    assert(jobExecutionSeq == Seq(Set(job1), Set(job2)))
+    
+    assert(job1 ranBefore job2)
   }
   
   test("3-job pipeline with multiple dependencies works") {

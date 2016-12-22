@@ -211,14 +211,14 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           results should have size 1
         }
 
-        val output1 = PathOutput(fileOut1)
-        val output2 = PathOutput(fileOut2)
+        val output1 = OutputRecord(fileOut1)
+        val output2 = OutputRecord(fileOut2)
 
-        assert(dao.findExecution(output1.toOutputRecord).get.exitState.isFailure)
-        assert(dao.findExecution(output1.toOutputRecord).get.outputs === Set(output1.normalized))
+        assert(dao.findExecution(output1).get.exitState.isFailure)
+        assert(dao.findExecution(output1).get.outputs === Set(output1))
 
         //NB: The job that referenced output2 didn't get run, so its execution should not have been recorded 
-        assert(dao.findExecution(output2.toOutputRecord) === None)
+        assert(dao.findExecution(output2) === None)
       }
 
       //Run the script a few times; we expect that the executer will try to run both (bogus) jobs every time, 

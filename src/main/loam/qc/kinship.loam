@@ -15,17 +15,18 @@ val kinshipFileBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(kinshipPrefix)
 val kinshipFilePruneIn: LoamStore[TXT] = store[TXT].to(s"${kinshipPrefix}.prune.in")
 
 val kinshipFilePrunedPrefix: String = s"${kinshipPrefix}.pruned"
-val kinshipFilePrunedBedBimFam @ Seq(kinshipFilePrunedBed, _, _) = bedBimFam(kinshipFilePrunedPrefix)
+val kinshipFilePrunedBedBimFam = bedBimFam(kinshipFilePrunedPrefix)
+val kinshipFilePrunedBed = kinshipFilePrunedBedBimFam.head 
 
 val kinshipFilePrunedKingPrefix: String = s"${kinshipFilePrunedPrefix}.king"
 
-val Seq(
+val kingOutputs @ Seq(
 	  kinshipFilePrunedKingKin0, 
 	  kinshipFilePrunedKingKin0Related, 
 	  kinshipFilePrunedKingSharingCounts): Seq[LoamStore[TXT]] = {
   
   withExtensions("king.kin0", "king.kin0.related", "king.sharing_counts.txt") { extension =>
-    store[TXT].to(s"${kinshipFilePrunedPrefix}.${extension}")
+    store[TXT].from(s"${kinshipFilePrunedPrefix}.${extension}")
   }
 }
 
@@ -39,9 +40,9 @@ val Seq(
 
 cmd"""${plink} --bfile ${inputPrefix} --indep-pairwise 1500 150 0.2 --out ${kinshipPrefix}""".in(inputBedBimFam).out(kinshipFileBedBimFam)
 
-cmd"""${plink} --bfile ${inputPrefix} --extract ${kinshipFilePruneIn} --make-bed --out ${kinshipFilePrunedPrefix}""".in(inputBedBimFam :+ kinshipFilePruneIn).out(kinshipFilePrunedBedBimFam)
+cmd"""${plink} --bfile ${inputPrefix} --extract ${kinshipFilePruneIn} --make-bed --out ${kinshipFilePrunedPrefix}""".in(inputBedBimFam ++ kinshipFileBedBimFam :+ kinshipFilePruneIn).out(kinshipFilePrunedBedBimFam)
 
-cmd"""${KING} -b $kinshipFilePrunedBed --kinship --prefix $kinshipFilePrunedKingPrefix""".in(kinshipFilePrunedBedBimFam).out(kinshipFilePrunedKingKin0)
+cmd"""${KING} -b ${kinshipFilePrunedBed} --kinship --prefix ${kinshipFilePrunedKingPrefix}""".in(kinshipFilePrunedBed).out(kingOutputs)
 
 cmd"""(head -1 ${kinshipFilePrunedKingKin0} ; sed '1d' ${kinshipFilePrunedKingKin0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${kinshipFilePrunedKingKin0Related}""".in(kinshipFilePrunedKingKin0).out(kinshipFilePrunedKingKin0Related)
 

@@ -31,7 +31,14 @@ final case class OutputRecord(loc: String,
     }
   }
 
-  def hasDifferentHash(other: OutputRecord): Boolean = {
+  def isHashed: Boolean = {
+    hash match {
+      case Some(hashValue) => true
+      case None => false
+    }
+  }
+
+  def hasDifferentHashThan(other: OutputRecord): Boolean = {
     hash match {
       case Some(hashValue) => other.hash match {
         case Some(otherHashValue) => hashValue != otherHashValue
@@ -57,4 +64,8 @@ object OutputRecord {
                                                       lastModified = None)
 
   def apply(path: Path): OutputRecord = OutputRecord(PathUtils.normalize(path))
+
+  def apply(output: Output): OutputRecord = OutputRecord( loc = output.location,
+                                                          hash = output.hash.map(_.valueAsHexString),
+                                                          lastModified = Option(output.lastModified))
 }

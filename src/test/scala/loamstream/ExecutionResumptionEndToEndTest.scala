@@ -9,7 +9,7 @@ import loamstream.model.execute.{DbBackedJobFilter, Executable, ExecuterHelpers,
 import loamstream.model.jobs.JobState.{CommandResult, Skipped}
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.{JobState, LJob, Output}
+import loamstream.model.jobs.{JobState, LJob, Output, OutputRecord}
 import loamstream.util.code.SourceUtils
 import loamstream.util.{Loggable, Sequence}
 import org.scalatest.{FunSuite, Matchers}
@@ -31,9 +31,6 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val fileOut1 = workDir.resolve("fileOut1.txt")
       val fileOut2 = workDir.resolve("fileOut2.txt")
 
-      val output1 = PathOutput(fileOut1)
-      val output2 = PathOutput(fileOut2)
-
       /* Loam for the first run that mimics an incomplete pipeline run:
           val fileIn = store[TXT].from("src/test/resources/a.txt")
           val fileOut1 = store[TXT].to("$workDir/fileOut1.txt")
@@ -53,10 +50,13 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       assert(results.size === 1)
 
-      assert(dao.findExecution(output1.toOutputRecord).get.exitState === CommandResult(0))
-      assert(dao.findExecution(output1.toOutputRecord).get.outputs === Set(output1))
+      val output1 = OutputRecord(PathOutput(fileOut1))
+      val output2 = OutputRecord(PathOutput(fileOut2))
 
-      assert(dao.findExecution(output2.toOutputRecord) === None)
+      assert(dao.findExecution(output1).get.exitState === CommandResult(0))
+      assert(dao.findExecution(output1).get.outputs === Set(output1))
+
+      assert(dao.findExecution(output2) === None)
 
       /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
           val fileIn = store[TXT].from("src/test/resources/a.txt")
@@ -76,6 +76,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       def run(expectedStates: Seq[JobState]): Unit = {
         val (executable, results) = compileAndRun(secondScript)
 
+        val updatedOutput1 = OutputRecord(PathOutput(fileOut1))
+        val updatedOutput2 = OutputRecord(PathOutput(fileOut2))
+
         //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
         val firstJob = jobThatWritesTo(executable)(fileOut1).get
         val secondJob = jobThatWritesTo(executable)(fileOut2).get
@@ -85,13 +88,13 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
         assert(results.size === 2)
 
-        //If the jobs were run or skipped, we should have written an Execution for the job.
+        //If the jobs were run, we should have written an Execution for the job.
         //If the job was skipped, we should have left the one from the previous successful run alone.
-        assert(dao.findExecution(output1.toOutputRecord).get.exitState === CommandResult(0))
-        assert(dao.findExecution(output1.toOutputRecord).get.outputs === Set(output1))
+        assert(dao.findExecution(updatedOutput1).get.exitState === CommandResult(0))
+        assert(dao.findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
 
-        assert(dao.findExecution(output2.toOutputRecord).get.exitState === CommandResult(0))
-        assert(dao.findExecution(output2.toOutputRecord).get.outputs === Set(output2))
+        assert(dao.findExecution(updatedOutput2).get.exitState === CommandResult(0))
+        assert(dao.findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
       }
 
       //Run the second script a few times.  The first time, we expect the first job to be skipped, and the second one
@@ -146,14 +149,14 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           jobStates should have size 1
         }
 
-        val output1 = PathOutput(fileOut1)
-        val recordOpt = dao.findOutputRecord(fileOut1.toAbsolutePath.toString)
+        val output1 = OutputRecord(fileOut1)
+        val recordOpt = dao.findOutputRecord(output1)
 
-        assert(recordOpt === Some(output1.toOutputRecord))
+        assert(recordOpt === Some(output1))
         assert(recordOpt.get.hash.isEmpty)
 
-        assert(dao.findExecution(output1.toOutputRecord).get.exitState.isFailure)
-        assert(dao.findExecution(output1.toOutputRecord).get.outputs === Set(output1.normalized))
+        assert(dao.findExecution(output1).get.exitState.isFailure)
+        assert(dao.findExecution(output1).get.outputs === Set(output1))
       }
 
       //Run the script a few times; we expect that the executer will try to run the bogus job every time, 

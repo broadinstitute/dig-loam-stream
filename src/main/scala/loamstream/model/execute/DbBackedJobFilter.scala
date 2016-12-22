@@ -38,14 +38,17 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
   }
   
   private def isHashed(rec: OutputRecord): Boolean = {
-    findOutput(rec.loc).isDefined
+    findOutput(rec.loc) match {
+      case Some(matchingRec) => matchingRec.isHashed
+      case None => false
+    }
   }
 
   private def notHashed(rec: OutputRecord): Boolean = !isHashed(rec)
 
   private def hasDifferentHash(rec: OutputRecord): Boolean = {
     findOutput(rec.loc) match {
-      case Some(matchingRec) => matchingRec.hasDifferentHash(rec)
+      case Some(matchingRec) => matchingRec.hasDifferentHashThan(rec)
       case None => false
     }
   }

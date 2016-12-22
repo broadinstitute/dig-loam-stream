@@ -1,31 +1,54 @@
 package loamstream.model.jobs
 
-import loamstream.util.ValueBox
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 
-import scala.concurrent.{ExecutionContext, Future}
+import loamstream.util.Futures
+import loamstream.util.ObservableEnrichments
+import loamstream.util.Observables
+import loamstream.util.ValueBox
 
 /**
  * @author kaan
- *         date: Sep 14, 2016
+ * @author clint
+ * date: Sep 15, 2016
  */
-class RxMockJob(
+final case class RxMockJob(
     override val name: String,
-    val inputs: Set[LJob],
-    val outputs: Set[Output],
-    override val dependencies: Set[LJob],
-    delay: Int,
-    val toReturn: JobState) extends LJob {
+    inputs: Set[LJob] = Set.empty,
+    outputs: Set[Output] = Set.empty,
+    runsAfter: Set[RxMockJob] = Set.empty,
+    fakeExecutionTimeInMs: Int = 0,
+    toReturn: JobState = JobState.Succeeded) extends LJob {
 
   private[this] val count = ValueBox(0)
 
   def executionCount = count.value
 
+  private def waitIfNecessary(): Unit = {
+    if (runsAfter.nonEmpty) {
+      import ObservableEnrichments._
+      val finalDepStates = Observables.sequence(runsAfter.toSeq.map(_.lastState))
+
+      Futures.waitFor(finalDepStates.firstAsFuture)
+    }
+  }
+
+  private def delayIfNecessary(): Unit = {
+    if (fakeExecutionTimeInMs > 0) {
+      Thread.sleep(fakeExecutionTimeInMs)
+    }
+  }
+
+  override def execute(implicit context: ExecutionContext): Future[JobState] = {
+    Future(waitIfNecessary()).flatMap(_ => super.execute)
+  }
+
   override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = Future {
+
     trace(s"\t\tStarting job: $name")
 
-    if (delay > 0) {
-      Thread.sleep(delay)
-    }
+    delayIfNecessary()
 
     trace(s"\t\t\tFinishing job: $name")
 
@@ -34,31 +57,7 @@ class RxMockJob(
     toReturn
   }
 
-  def copy(
-      name: String = this.name,
-      inputs: Set[LJob] = this.inputs,
-      outputs: Set[Output] = this.outputs,
-      dependencies: Set[LJob] = this.dependencies,
-      delay: Int = this.delay,
-      toReturn: JobState = this.toReturn): RxMockJob = {
-    
-    new RxMockJob(name, inputs, outputs, dependencies, delay, toReturn)
-  }
-
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
   override def toString: String = name
-}
-
-object RxMockJob {
-  def apply(
-      name: String,
-      inputs: Set[LJob] = Set.empty,
-      outputs: Set[Output] = Set.empty,
-      dependencies: Set[LJob] = Set.empty,
-      delay: Int = 0,
-      toReturn: JobState = JobState.Succeeded): RxMockJob = {
-    
-    new RxMockJob(name, inputs, outputs, dependencies, delay, toReturn)
-  }
 }

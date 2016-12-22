@@ -1,13 +1,25 @@
 package loamstream.compiler
 
-import java.nio.file.{Path, Paths, Files => JFiles}
+import java.nio.file.{ Files => JFiles }
+import java.nio.file.Path
+import java.nio.file.Paths
 
-import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}
+import loamstream.compiler.messages.ClientMessageHandler
+import loamstream.compiler.messages.ErrorOutMessage
+import loamstream.compiler.messages.StatusOutMessage
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScript
+import loamstream.loam.LoamToolBox
 import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.loam.{LoamProjectContext, LoamScript, LoamToolBox}
-import loamstream.model.execute.{Executable, Executer, RxExecuter}
-import loamstream.model.jobs.{JobState, LJob}
-import loamstream.util.{Hit, Miss, Shot, StringUtils}
+import loamstream.model.execute.Executable
+import loamstream.model.execute.Executer
+import loamstream.model.execute.RxExecuter
+import loamstream.model.jobs.JobState
+import loamstream.model.jobs.LJob
+import loamstream.util.Hit
+import loamstream.util.Miss
+import loamstream.util.Shot
+import loamstream.util.StringUtils
 
 
 /**
@@ -50,9 +62,8 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
         Miss(s"Could not find '$file'.")
       }
     }
-
+    
     import JFiles.readAllBytes
-
     import StringUtils.fromUtf8Bytes
 
     val codeShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))

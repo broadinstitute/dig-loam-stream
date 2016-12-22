@@ -1,19 +1,19 @@
 package loamstream.util
 
+import scala.concurrent.duration.DurationInt
+
 import org.scalatest.FunSuite
+
 import rx.lang.scala.Observable
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import rx.lang.scala.subjects.PublishSubject
 
 /**
  * @author clint
  * date: Aug 26, 2016
  */
 final class ObservablesTest extends FunSuite {
-  import Observables.sequence
-  import ObservableEnrichments._
   import Futures.waitFor
+  import ObservableEnrichments._
+  import Observables.sequence
   
   // scalastyle:off magic.number
   
@@ -136,6 +136,64 @@ final class ObservablesTest extends FunSuite {
       
       assert(waitFor(toMap(tuples).to[Seq].firstAsFuture) == expected)
     }
+  }
+  
+  test("merge - empty input") {
+    import Observables.merge
+    
+    val shouldBeEmpty = Observables.merge[Int](Nil)
+    
+    assert(waitFor(shouldBeEmpty.isEmpty.firstAsFuture))
+  }
+  
+  test("merge - empty inputs (plural)") {
+    import Observables.merge
+    
+    val os: Seq[Observable[Int]] = Seq(Observable.empty, Observable.empty, Observable.empty)  
+    
+    val shouldBeEmpty = Observables.merge(os)
+    
+    assert(waitFor(shouldBeEmpty.isEmpty.firstAsFuture))
+  }
+  
+  test("merge - non-empty") {
+    import Observables.merge
+    
+    /* 
+     * os is roughly Seq(
+     *   Observable.just(a),
+     *   Observable.just(aa,bb),
+     *   Observable.just(aaa,bbb,ccc),
+     *   Observable.just(aaaa,bbbb,cccc,dddd),
+     *   Observable.just(aaaaa,bbbbb,ccccc,ddddd))
+     */
+    val os: Seq[Observable[String]] = for {
+      i <- (1 to 5)
+      strs = ('a' to 'e').take(i).map(_.toString * i)
+    } yield {
+      Observable.from(strs)
+    }
+    
+    val strs = waitFor(merge(os).to[Seq].firstAsFuture)
+    
+    val expected = Seq(
+        "a", 
+        "aa",
+        "aaa",
+        "aaaa",
+        "aaaaa",
+        "bb", 
+        "bbb", 
+        "bbbb",
+        "bbbbb",
+        "ccc", 
+        "cccc", 
+        "ccccc",
+        "dddd", 
+        "ddddd", 
+        "eeeee")
+    
+    assert(strs.sorted === expected)
   }
   
   // scalastyle:on magic.number

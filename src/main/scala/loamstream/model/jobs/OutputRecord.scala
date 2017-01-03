@@ -39,6 +39,8 @@ final case class OutputRecord(loc: String,
         otherHashValue <- other.hash
       } yield hashValue != otherHashValue
     ).getOrElse(false)
+
+  def withLastModified(t: Instant) = copy(lastModified = Option(t))
 }
 
 object OutputRecord {

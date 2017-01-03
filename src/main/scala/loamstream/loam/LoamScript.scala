@@ -14,16 +14,22 @@ import scala.util.Try
 
 /** A named Loam script */
 object LoamScript {
+  /** Package of Scala object corresponding to Loam scripts */
   val scriptsPackage = PackageId("loamstream", "loam", "scripts")
 
+  /** Sequence of indices for auto-generated Loam script names */
   val generatedNameIndices: Sequence[Int] = new Sequence(0, 1)
 
+  /** Base name for auto-generated Loam script names */
   val generatedNameBase = "loamScript"
 
+  /** File suffix for Loam scripts - .loam */
   val fileSuffix = ".loam"
 
+  /** File suffix for Scala source code - .scala */
   val scalaFileSuffix = ".scala"
 
+  /** Extracts Loam script name from file Path with suffix .loam, removing suffix. */
   def nameFromFilePath(path: Path): Shot[String] = {
     val fileName = path.getFileName.toString
     if (fileName.endsWith(fileSuffix)) {
@@ -33,12 +39,14 @@ object LoamScript {
     }
   }
 
+  /** Converts Loam code fragment into Loam script, adding a auto-generated name */
   def withGeneratedName(code: String): LoamScript = {
     val index = generatedNameIndices.next()
     val name = s"$generatedNameBase${StringUtils.leftPadTo(index.toString, "0", 3)}"
     LoamScript(name, code)
   }
 
+  /** Tries to read Loam script from file, deriving script name from file path. */
   def read(path: Path): Shot[LoamScript] = {
     nameFromFilePath(path).flatMap({ name =>
       Shot.fromTry(Try {
@@ -81,18 +89,24 @@ object LoamScript {
 /** A named Loam script */
 case class LoamScript(name: String, code: String) {
 
-  def alphaNumHash = s"${name.##.toHexString}${code.##.toHexString}"
-
+  /** Scala id of object corresponding to this Loam script */
   def scalaId: ObjectId = ObjectId(scriptsPackage, name)
 
+  /** Name of Scala source file corresponding to this Loam script*/
   def scalaFileName: String = s"$name.scala"
 
+  /** Convert to Scala code with own local Loam project context - only use for single Loam script */
   def asScalaCode: String = asScalaCode("new LoamScriptContext(LoamProjectContext.empty)")
 
+  /** Convert to Scala code with Loam project context deposited in DepositBox */
   def asScalaCode(projectContextReceipt: DepositBox.Receipt): String =
     asScalaCode(s"LoamScriptContext.fromDepositedProjectContext(${projectContextReceipt.asScalaCode})")
 
-  def asScalaCode(loamContextInitCode: String): String = {
+  /** Convert to Scala code with Loam project context available via regular Scala reference */
+  def asScalaCode(projectContextId: ScalaId): String = asScalaCode(projectContextId.inScala)
+
+  /** Convert to Scala code, provided code to create or obtain Loam project context */
+  def asScalaCode(loamProjectContextCode: String): String = {
     s"""
 package ${LoamScript.scriptsPackage.inScalaFull}
 
@@ -114,7 +128,7 @@ import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
   object LocalImplicits {
-    implicit val scriptContext : ${ScalaId.from[LoamScriptContext].inScala} = $loamContextInitCode
+    implicit val scriptContext : ${ScalaId.from[LoamScriptContext].inScala} = $loamProjectContextCode
     implicit val projectContext : ${ScalaId.from[LoamProjectContext].inScala} = scriptContext.projectContext
   }
 import LocalImplicits.{scriptContext => scriptContextImplicit, projectContext => projectContextImplicit }

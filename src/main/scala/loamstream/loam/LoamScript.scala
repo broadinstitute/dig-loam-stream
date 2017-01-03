@@ -92,7 +92,7 @@ case class LoamScript(name: String, code: String) {
   /** Scala id of object corresponding to this Loam script */
   def scalaId: ObjectId = ObjectId(scriptsPackage, name)
 
-  /** Name of Scala source file corresponding to this Loam script*/
+  /** Name of Scala source file corresponding to this Loam script */
   def scalaFileName: String = s"$name.scala"
 
   /** Convert to Scala code with own local Loam project context - only use for single Loam script */
@@ -100,13 +100,14 @@ case class LoamScript(name: String, code: String) {
 
   /** Convert to Scala code with Loam project context deposited in DepositBox */
   def asScalaCode(projectContextReceipt: DepositBox.Receipt): String =
-    asScalaCode(s"LoamScriptContext.fromDepositedProjectContext(${projectContextReceipt.asScalaCode})")
+  asScalaCode(s"LoamScriptContext.fromDepositedProjectContext(${projectContextReceipt.asScalaCode})")
 
   /** Convert to Scala code with Loam project context available via regular Scala reference */
-  def asScalaCode(projectContextId: ScalaId): String = asScalaCode(projectContextId.inScala)
+  def asScalaCode(projectContextId: ScalaId): String =
+  asScalaCode(s"new LoamScriptContext(${projectContextId.inScala})")
 
   /** Convert to Scala code, provided code to create or obtain Loam project context */
-  def asScalaCode(loamProjectContextCode: String): String = {
+  def asScalaCode(loamScriptContextCode: String): String = {
     s"""
 package ${LoamScript.scriptsPackage.inScalaFull}
 
@@ -128,7 +129,7 @@ import java.nio.file._
 
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
   object LocalImplicits {
-    implicit val scriptContext : ${ScalaId.from[LoamScriptContext].inScala} = $loamProjectContextCode
+    implicit val scriptContext : ${ScalaId.from[LoamScriptContext].inScala} = $loamScriptContextCode
     implicit val projectContext : ${ScalaId.from[LoamProjectContext].inScala} = scriptContext.projectContext
   }
 import LocalImplicits.{scriptContext => scriptContextImplicit, projectContext => projectContextImplicit }

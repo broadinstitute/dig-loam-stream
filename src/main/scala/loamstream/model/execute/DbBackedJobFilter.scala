@@ -3,7 +3,7 @@ package loamstream.model.execute
 import java.nio.file.Path
 
 import loamstream.db.LoamDao
-import loamstream.model.jobs.{Execution, LJob, Output, OutputRecord}
+import loamstream.model.jobs.{Execution, LJob, OutputRecord}
 import loamstream.util.Loggable
 
 /**
@@ -13,12 +13,7 @@ import loamstream.util.Loggable
  */
 final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable {
   override def shouldRun(dep: LJob): Boolean = {
-    def needsToBeRun(output: Output): Boolean = {
-      val rec = output.toOutputRecord
-      rec.isMissing || isOlder(rec) || notHashed(rec) || hasDifferentHash(rec)
-    }
-
-    dep.outputs.isEmpty || dep.outputs.exists(needsToBeRun)
+    dep.outputs.isEmpty || dep.outputs.exists(o => needsToBeRun(o.toOutputRecord))
   }
 
   override def record(executions: Iterable[Execution]): Unit = {
@@ -29,6 +24,10 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     debug(s"RECORDING $insertableExecutions")
     
     dao.insertExecutions(insertableExecutions)
+  }
+
+  private def needsToBeRun(rec: OutputRecord): Boolean = {
+    rec.isMissing || isOlder(rec) || notHashed(rec) || hasDifferentHash(rec)
   }
 
   private def normalize(p: Path) = p.toAbsolutePath

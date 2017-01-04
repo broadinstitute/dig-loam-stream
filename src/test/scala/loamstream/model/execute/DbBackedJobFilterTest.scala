@@ -136,12 +136,14 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     }
   }
 
-  test("needsToBeRun") {
+  test("needsToBeRun/hasDifferentHash/isOlder") {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
 
-      // Expose a private method for testing purposes
+      // Expose private methods for testing purposes
       val needsToBeRun = PrivateMethod[Boolean]('needsToBeRun)
+      val hasDifferentHash = PrivateMethod[Boolean]('hasDifferentHash)
+      val isOlder = PrivateMethod[Boolean]('isOlder)
 
       assert(executions === Set.empty)
 
@@ -156,32 +158,34 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       filter.record(Seq(failedExecs, successfulExecs))
 
-      // Missing record: 'needsToBeRun' --> true
+      // Missing record:  'hasDifferentHash' --> false
+      //                  'isOlder --> false
+      //                  'needsToBeRun' --> true
       assert(cachedOutput3.isMissing)
+      assert(!(filter invokePrivate hasDifferentHash(cachedOutput3)))
+      assert(!(filter invokePrivate isOlder(cachedOutput3)))
       assert(filter invokePrivate needsToBeRun(cachedOutput3))
 
-      // Older record: 'needsToBeRun' --> true
+      // Older record (than its matching record in DB): 'hasDifferentHash' --> false
+      //                                                'isOlder --> true
+      //                                                'needsToBeRun' --> true
       val olderRec = cachedOutput1.withLastModified(Instant.ofEpochMilli(0))
+      assert(!(filter invokePrivate hasDifferentHash(olderRec)))
+      assert(filter invokePrivate isOlder(olderRec))
       assert(filter invokePrivate needsToBeRun(olderRec))
 
       // Unhashed record: 'needsToBeRun' --> true
       assert(filter invokePrivate needsToBeRun(cachedOutput0))
 
-      // Record with different hash: 'needsToBeRun' --> true
+      // Record with different hash:  'hasDifferentHash' --> true
+      //                              'needsToBeRun' --> true
       val recWithDiffHash = OutputRecord(cachedOutput1.loc, Option("bogus-hash"), cachedOutput1.lastModified)
+      assert(filter invokePrivate hasDifferentHash(recWithDiffHash))
       assert(filter invokePrivate needsToBeRun(recWithDiffHash))
 
       // Otherwise: 'needsToBeRun' --> false
       assert(!(filter invokePrivate needsToBeRun(cachedOutput1)))
     }
-  }
-
-  test("hasDifferentHash") {
-
-  }
-
-  test("isOlder") {
-
   }
 
   //scalastyle:on magic.number

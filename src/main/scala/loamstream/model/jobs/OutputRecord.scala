@@ -58,7 +58,14 @@ object OutputRecord {
 
   def apply(path: Path): OutputRecord = OutputRecord(PathUtils.normalize(path))
 
-  def apply(output: Output): OutputRecord = OutputRecord( loc = output.location,
-                                                          hash = output.hash.map(_.valueAsHexString),
-                                                          lastModified = Option(output.lastModified))
+  def apply(output: Output): OutputRecord = output.lastModified match {
+    case Some(timestamp) => OutputRecord( loc = output.location,
+                                          isPresent = true,
+                                          hash = output.hash.map(_.valueAsHexString),
+                                          lastModified = Option(timestamp))
+    case _ => OutputRecord( loc = output.location,
+                            isPresent = false,
+                            hash = None,
+                            lastModified = None)
+  }
 }

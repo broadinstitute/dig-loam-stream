@@ -172,7 +172,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
       assert(filter invokePrivate needsToBeRun(recWithDiffHash))
 
       // Otherwise: 'needsToBeRun' --> false
-      assert(filter invokePrivate needsToBeRun(cachedOutput1))
+      assert(!(filter invokePrivate needsToBeRun(cachedOutput1)))
     }
   }
 

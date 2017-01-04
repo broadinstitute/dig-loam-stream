@@ -22,7 +22,7 @@ trait Output {
   
   def hash: Option[Hash]
 
-  def lastModified: Instant
+  def lastModified: Option[Instant]
 
   def location: String
 
@@ -37,8 +37,8 @@ object Output {
   final case class PathOutput(path: Path) extends Output {
     override def hash: Option[Hash] = if (Files.exists(path)) Option(Hashes.sha1(path)) else None
 
-    override def lastModified: Instant = {
-      if(isPresent) PathUtils.lastModifiedTime(path) else Instant.ofEpochMilli(0) 
+    override def lastModified: Option[Instant] = {
+      if (isPresent) Option(PathUtils.lastModifiedTime(path)) else None
     }
 
     override def isPresent: Boolean = Files.exists(path)
@@ -46,7 +46,7 @@ object Output {
     override def location: String = PathUtils.normalize(path)
 
     override def toOutputRecord: OutputRecord = {
-      OutputRecord(location, hash.map(_.valueAsHexString), Option(lastModified))
+      OutputRecord(location, hash.map(_.valueAsHexString), lastModified)
     }
 
     def normalized: PathOutput = copy(path = normalize(path))

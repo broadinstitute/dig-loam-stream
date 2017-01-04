@@ -104,12 +104,11 @@ case class LoamScript(name: String, code: String) {
 
   /** Convert to Scala code with Loam project context available via regular Scala reference */
   def asScalaCode(projectContextId: ScalaId): String =
-  asScalaCode(s"new LoamScriptContext(${projectContextId.inScala})")
+  asScalaCode(s"new LoamScriptContext(${projectContextId.inScalaFull})")
 
   /** Convert to Scala code, provided code to create or obtain Loam project context */
-  def asScalaCode(loamScriptContextCode: String): String = {
-    s"""
-package ${LoamScript.scriptsPackage.inScalaFull}
+  def asScalaCode(loamScriptContextCode: String): String =
+  s"""package ${LoamScript.scriptsPackage.inScalaFull}
 
 import ${ScalaId.from[LoamPredef.type].inScalaFull}._
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
@@ -127,20 +126,26 @@ import ${ScalaId.from[StoreFieldFilter.type].inScalaFull}
 import ${ScalaId.from[TextStoreFieldExtractor[_, _]].inScalaFull}
 import java.nio.file._
 
+// scalastyle:off object.name
+
 object ${scalaId.inScala} extends ${SourceUtils.shortTypeName[LoamScriptBox]} {
-  object LocalImplicits {
-    implicit val scriptContext : ${ScalaId.from[LoamScriptContext].inScala} = $loamScriptContextCode
-    implicit val projectContext : ${ScalaId.from[LoamProjectContext].inScala} = scriptContext.projectContext
-  }
+object LocalImplicits {
+  // scalastyle:off line.size.limit
+  implicit val scriptContext : ${ScalaId.from[LoamScriptContext].inScala} = $loamScriptContextCode
+  implicit val projectContext : ${ScalaId.from[LoamProjectContext].inScala} = scriptContext.projectContext
+  // scalastyle:on line.size.limit
+}
 import LocalImplicits.{scriptContext => scriptContextImplicit, projectContext => projectContextImplicit }
 def scriptContext: LoamScriptContext = LocalImplicits.scriptContext
 def projectContext: LoamProjectContext = LocalImplicits.projectContext
 
+//  = = =  Loam code below here  = = =
+
 ${code.trim}
 
+//  = = =  Loam code above here  = = =
 }
 """
-  }
 
 
 }

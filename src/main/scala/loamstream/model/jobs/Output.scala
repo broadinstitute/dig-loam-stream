@@ -26,7 +26,7 @@ trait Output {
 }
 
 object Output {
-  private def normalize(p: Path): Path = Paths.get(PathUtils.normalize(p))
+  import PathUtils.normalizePath
   
   /**
    * A handle to an output of a job stored at 'path'.  Hashes and modification times are re-computed on
@@ -35,7 +35,7 @@ object Output {
   final case class PathOutput(path: Path) extends PathBased {
     override def hash: Hash = Hashes.sha1(path)
     
-    override def normalized: PathBased = copy(path = normalize(path))
+    override def normalized: PathBased = copy(path = normalizePath(path))
     
     override def lastModified: Instant = {
       if(isPresent) PathUtils.lastModifiedTime(path) else Instant.ofEpochMilli(0) 
@@ -46,7 +46,7 @@ object Output {
    * A handle to cached data about a path-based output.
    */
   final case class CachedOutput(path: Path, hash: Hash, lastModified: Instant) extends PathBased {
-    override def normalized: PathBased = copy(path = normalize(path))
+    override def normalized: PathBased = copy(path = normalizePath(path))
   }
   
   sealed trait PathBased extends Output {

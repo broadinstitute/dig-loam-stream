@@ -43,6 +43,7 @@ echo "Performing QC Step ${QC_STEP} on ${DATA}"
 # Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
 # Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
 # Commandline Requirements: -c
+# Directories Required: data
 # Input: Plink binary fileset ${DATA}.bed/bim/fam, $KG_VCF_BASE reference VCF file, $LABEL output file prefix
 # Output: data/${LABEL}.chr${CHROMOSOME}.bed/bim/fam, data/${LABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, data/${LABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
 # Example: ./QCpipeline -s $SOURCE -q harmonize -c 22
@@ -67,12 +68,13 @@ if [ "$QC_STEP" == "harmonize" ]; then
 	--update-reference-allele \
 	--debug
 
-# Description: Compile harmonized data
+# Description: Compile harmonized data and generate sample file used in Hail VDS creation in next step
 # Requires: Plink1.9, Tabix
 # Commandline Requirements: 
+# Directories Required: data
 # Input: data/${LABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam
-# Output: data/${LABEL}.harmonized.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.harmonized.force_a2, data/${LABEL}.harmonized.ref.bed/bim/fam/log(/nosex?/hh?)
-# Example: ./QCpipeline -s CAMP.source -q compile
+# Output: data/${LABEL}.harmonized.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.harmonized.force_a2, data/${LABEL}.harmonized.ref.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.harmonized.sample
+# Example: ./QCpipeline -s $SOURCE -q compile
 # Notes: 
 # Hail?: Possible, but not necessary
 elif [ "$QC_STEP" == "compile" ]; then
@@ -84,13 +86,16 @@ elif [ "$QC_STEP" == "compile" ]; then
 	awk '{print $2,$5}' data/${LABEL}.harmonized.bim > data/${LABEL}.harmonized.force_a2
 	plink --bfile data/${LABEL}.harmonized --recode vcf-iid bgz --real-ref-alleles --a2-allele data/${LABEL}.harmonized.force_a2 --out data/${LABEL}.harmonized.ref
 	tabix -p vcf data/${LABEL}.harmonized.ref.vcf.gz
+	echo "IID POP SUPERPOP SEX" > data/${LABEL}.harmonized.sample
+	awk -v v=${LABEL} '{if($5 == 1) { sex="male" } else { if($5 == 2) { sex="female" } else { sex="NA" } } print $2" "v" "v" "sex}' data/${LABEL}.harmonized.fam >> data/${LABEL}.harmonized.sample
 
-# Description: Generate the Hail VDS from VCF file
+# Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
 # Requires: $HAIL, Java (version under which Hail was compiled)
-# Commandline Requirements: 
-# Input: data/${LABEL}.harmonized.vcf.bgz, data/CAMP.sample
+# Commandline Requirements:
+# Directories Required: data 
+# Input: data/${LABEL}.harmonized.vcf.bgz, data/${LABEL}.harmonized.sample
 # Output: data/${LABEL}.harmonized.vds.log, data/${LABEL}.harmonized.vds/
-# Example: ./QCpipeline -s CAMP.source -q load
+# Example: ./QCpipeline -s $SOURCE -q load
 # Notes: Monomorphic variants are automatically removed during import into Hail
 # Hail?: Yes
 elif [ "$QC_STEP" == "load" ]; then # directory preparations
@@ -100,6 +105,13 @@ elif [ "$QC_STEP" == "load" ]; then # directory preparations
 	importvcf --force-bgz data/${LABEL}.harmonized.ref.vcf.gz \
 	splitmulti \
 	deduplicate \
+	annotatesamples table \
+	--root sa.pheno \
+	-e IID \
+	-i data/${LABEL}.harmonized.sample \
+	-t "IID: String, POP: String, SUPERPOP: String, SEX: String" \
+	--missing "NA" \
+	--delimiter " " \
 	write \
 	-o data/${LABEL}.harmonized.ref.vds \
 	count \
@@ -108,19 +120,20 @@ elif [ "$QC_STEP" == "load" ]; then # directory preparations
 # Description: Generate filtered Plink binary fileset for QC
 # Requires: $HAIL, Java (version under which Hail was compiled)
 # Commandline Requirements: 
+# Directories Required: data
 # Input: data/${LABEL}.harmonized.vds/, $REGIONS_EXCLUDE
 # Output: data/${LABEL}.filter.variantqc.log, data/${LABEL}.filter.for_qc.log, data/${LABEL}.variantqc.tsv, data/${LABEL}.for_qc.bed/bim/fam/log(/nosex?/hh?)
-# Example: ./QCpipeline -s CAMP.source -q filter
+# Example: ./QCpipeline -s $SOURCE -q filter
 # Notes: 
 # Hail?: Yes
 elif [ "$QC_STEP" == "filter" ]; then # data preparations
 	reuse Java-1.8
 	reuse Tabix
 
-	#$HAIL -l data/${LABEL}.filter.variantqc.log \
-	#read -i data/${LABEL}.harmonized.ref.vds \
-	#variantqc \
-	#exportvariants -o data/${LABEL}.variantqc.tsv -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
+	$HAIL -l data/${LABEL}.filter.variantqc.log \
+	read -i data/${LABEL}.harmonized.ref.vds \
+	variantqc \
+	exportvariants -o data/${LABEL}.variantqc.tsv -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
 
 	$HAIL -l data/${LABEL}.filter.for_qc.log \
 	read -i data/${LABEL}.harmonized.ref.vds \
@@ -130,12 +143,13 @@ elif [ "$QC_STEP" == "filter" ]; then # data preparations
 	exportplink -o data/${LABEL}.for_qc
 
 # Description: Generate filtered Plink binary fileset for QC
-# Requires: $KING, R, $KINSHIP_CALC_SAMPLE_SHARING_R
+# Requires: $KING, R, $CALC_KINSHIP_SAMPLE_SHARING_R
 # Commandline Requirements: 
+# Directories Required: data, kinship
 # Input: data/${LABEL}.for_qc.bed/bim/fam
-# Output: 
-# Example: ./QCpipeline -s CAMP.source -q kinship
-# Notes: King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification
+# Output: kinship/${LABEL}.kinship.prune.in, kinship/${LABEL}.kinship.prune.out, kinship/${LABEL}.kinship.nosex, kinship/${LABEL}.kinship.log, kinship/${LABEL}.kinship.pruned.bed, kinship/${LABEL}.kinship.pruned.bim, kinship/${LABEL}.kinship.pruned.fam, kinship/${LABEL}.kinship.pruned.log, kinship/${LABEL}.kinship.pruned.nosex, kinship/${LABEL}.kinship.pruned.kingTMP.dat, kinship/${LABEL}.kinship.pruned.kingTMP.ped, kinship/${LABEL}.kinship.pruned.king.kin, kinship/${LABEL}.kinship.pruned.king.kin0.related, kinship/${LABEL}.kinship.pruned.king.sharing_counts.txt
+# Example: ./QCpipeline -s $SOURCE -q kinship
+# Notes: King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
 # Hail?: No
 elif [ "$QC_STEP" == "kinship" ]; then
 	reuse R-3.1
@@ -143,50 +157,67 @@ elif [ "$QC_STEP" == "kinship" ]; then
 	plink --bfile data/${LABEL}.for_qc --indep-pairwise 1500 150 0.2 --out kinship/${LABEL}.kinship
 	plink --bfile data/${LABEL}.for_qc --extract kinship/${LABEL}.kinship.prune.in --make-bed --out kinship/${LABEL}.kinship.pruned
 	$KING -b kinship/${LABEL}.kinship.pruned.bed --kinship --prefix kinship/${LABEL}.kinship.pruned.king
-	(head -1 kinship/${LABEL}.kinship.pruned.king.kin0; sed '1d' kinship/${LABEL}.kinship.pruned.king.kin0 | awk '{if($8 >= 0.0884) print $0}' | sort -rn -k8,8) > kinship/${LABEL}.kinship.pruned.king.kin0.related
-	R --vanilla --args kinship/${LABEL}.kinship.pruned.king.kin0.related kinship/${LABEL}.kinship.pruned.king.sharing_counts.txt < $KINSHIP_CALC_SAMPLE_SHARING_R
+	if [ -f kinship/${LABEL}.kinship.pruned.king.kin0 ]; then
+		(head -1 kinship/${LABEL}.kinship.pruned.king.kin0; sed '1d' kinship/${LABEL}.kinship.pruned.king.kin0 | awk '{if($8 >= 0.0884) print $0}' | sort -rn -k8,8) > kinship/${LABEL}.kinship.pruned.king.kin0.related
+		R --vanilla --args kinship/${LABEL}.kinship.pruned.king.kin0.related kinship/${LABEL}.kinship.pruned.king.sharing_counts.txt < $CALC_KINSHIP_SAMPLE_SHARING_R
+	else
+		touch kinship/${LABEL}.kinship.pruned.king.kin0.related
+		touch kinship/${LABEL}.kinship.pruned.king.sharing_counts.txt
+	fi
 
-# Description: Calculate PCs by projecting data onto 1KG Phase 3 Purcell 5k PCs using existing PCA loadings
+# Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
 # Requires: $HAIL, R, $PLOT_ANCESTRY_PCA_R
 # Commandline Requirements: 
-# Input: data/${LABEL}.harmonized.vds, $KG_V3_5K_AF, $KG_V3_5K_PCA_LOADINGS
-# Output: ancestry/${LABEL}.pca.scores.log, ancestry/${LABEL}.pca.frequencies.tsv, ancestry/.${LABEL}.pca.frequencies.tsv.crc, ancestry/${LABEL}.pca.scores.tsv, ancestry/.${LABEL}.pca.scores.tsv.crc ancestry/CAMP.pca.scores.tsv.plots.pdf
-# Example: ./QCpipeline -s CAMP.source -q ancestry
-# Notes: Reference PCA loadings are calculated only once, so we import only the loadings and frequencies to do the projection
+# Directories Required: data, ancestry
+# Input: data/${LABEL}.harmonized.ref.vds, $KG_HAIL, $KG_V3_5K_AF
+# Output: ancestry/${LABEL}.KG.pca.scores.log, ancestry/${LABEL}.KG.pca.samples.scores.tsv, ancestry/${LABEL}.KG.pca.variants.loadings.tsv, ancestry/.${LABEL}.KG.pca.samples.scores.tsv.crc, ancestry/${LABEL}.KG.pca.variants.loadings.tsv.crc ancestry/${LABEL}.KG.pca.samples.scores.plots.pdf
+# Example: ./QCpipeline -s $SOURCE -q ancestry_pca
+# Notes: To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
 # Hail?: Yes
-elif [ "$QC_STEP" == "ancestry" ]; then
+elif [ "$QC_STEP" == "ancestry_pca" ]; then
 	reuse Java-1.8
 	reuse R-3.1
 
-	$HAIL -l ancestry/${LABEL}.pca.scores.log \
+	$HAIL -l ancestry/${LABEL}.KG.pca.scores.log \
+	read $KG_HAIL \
+	put -n KG \
 	read -i data/${LABEL}.harmonized.ref.vds \
-	variantqc \
+	join --right KG \
 	annotatevariants table $KG_V3_5K_AF \
 	-e Variant \
 	-c 'va.refPanelAF = table.refPanelAF' \
 	--impute \
-	annotatevariants table $KG_V3_5K_PCA_LOADINGS \
-	-e 'ID' \
-	-c 'va = merge(va, select(table, PC1, PC2, PC3))' \
-	--impute \
-	annotatevariants expr -c 'va.PCs = [va.PC1, va.PC2, va.PC3]' \
-	exportvariants -c "ID = v, refPanelAF = va.refPanelAF, AF = va.qc.AF" \
-	-o ancestry/${LABEL}.pca.frequencies.tsv \
-	annotatesamples expr -c 'sa.PCs = gs.map(g => let p = va.refPanelAF in if (p == 0 || p == 1) [0.0, 0.0, 0.0] else (g.gt - 2 * p) / sqrt(2 * p * (1 - p)) * va.PCs).sum()' \
-	exportsamples -c 'IID = s.id, PC1 = sa.PCs[0], PC2 = sa.PCs[1], PC3 = sa.PCs[2]' \
-	-o ancestry/${LABEL}.pca.scores.tsv
+	pca -k 10 \
+	--scores sa.pca.scores \
+	--eigenvalues global.pca.evals \
+	--loadings va.pca.loadings \
+	exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10' \
+	-o ancestry/${LABEL}.KG.pca.samples.scores.tsv \
+	exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10' \
+	-o ancestry/${LABEL}.KG.pca.variants.loadings.tsv \
 
-	R --vanilla --args ancestry/${LABEL}.pca.scores.tsv < $PLOT_ANCESTRY_PCA_R
+	R --vanilla --args ancestry/${LABEL}.KG.pca.samples.scores.tsv ancestry/${LABEL}.KG.pca.samples.scores.plots.pdf < $PLOT_ANCESTRY_PCA_R
 
-elif [ "$QC_STEP" == "ancestry_cluster" ]; then # ancestry inference GMM clustering
-	cd ancestry_cluster
+# Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
+# Requires: $HAIL, R, $PLOT_ANCESTRY_CLUSTER_R, $LABEL, $PHENO_ID_COL, $PHENO_RACE_COL
+# Commandline Requirements: 
+# Directories Required: ancestry
+# Input: ancestry/${LABEL}.KG.pca.samples.scores.tsv, $PHENO
+# Output: ancestry/${LABEL}.KG.fet.1, ancestry/${LABEL}.KG.temp.clu.1, ancestry/${LABEL}.KG.clu.1, ancestry/${LABEL}.KG.klg.1, ancestry/${LABEL}.KG.cluster_plots.pdf, ancestry/${LABEL}.KG.cluster_xtabs, ancestry/${LABEL}.KG.cluster_plots.centers.pdf, ancestry/${LABEL}.KG.clusters_assigned, ancestry/${LABEL}.ancestry
+# Example: ./QCpipeline -s $SOURCE -q ancestry_cluster
+# Notes: ${LABEL}.ancestry contains the final inferred ancestry for each sample, including OUTLIERS (these assignments might need to be merged with assignments based on other arrays in next step)
+# Hail?: No
+elif [ "$QC_STEP" == "ancestry_cluster" ]; then
 	reuse R-3.1
 
-	echo 10 > ${LABEL}_1kg.ref.fet.1
-	sed '1d' ../ancestry_pca/${LABEL}_1kg.ref.pca.evec | sed 's/^\s\+//' | sed 's/\s\+/\t/g' | cut -f2-11 | sed 's/\t/ /g' >> ${LABEL}_1kg.ref.fet.1
-	$KLUSTAKWIK ${LABEL}_1kg.ref 1 -UseFeatures 1110000000 -UseDistributional 0
-	R --vanilla --args $LABEL $KG_ETHNICITY $PHENO ID RACE < $ANCESTRY_CLUSTER_PLOT_R
-	cd ..
+	echo 10 > ancestry/${LABEL}.KG.fet.1
+	sed '1d' ancestry/${LABEL}.KG.pca.samples.scores.tsv | cut -f5- | sed 's/\t/ /g' >> ancestry/${LABEL}.KG.fet.1
+	$KLUSTAKWIK ancestry/$LABEL.KG 1 -UseFeatures 1110000000 -UseDistributional 0
+	R --vanilla --args ancestry/CAMP.KG.pca.samples.scores.tsv ancestry/CAMP.KG.clu.1 $PHENO $LABEL $PHENO_ID_COL $PHENO_RACE_COL < $PLOT_ANCESTRY_CLUSTER_R
+
+
+
+
 
 elif [ "$QC_STEP" == "ancestry_cluster_merge" ]; then # merge ancestry information hierarchically
 	cd ancestry_cluster

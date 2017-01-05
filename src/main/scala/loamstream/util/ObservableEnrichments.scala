@@ -79,7 +79,7 @@ object ObservableEnrichments {
         obs.foreach(onNext, subscriber.onError, subscriber.onCompleted)
       }
     }
-
+    
     /**
      * Returns a Future that will contain the FIRST value fired from the wrapped Observable.
      *
@@ -108,9 +108,7 @@ object ObservableEnrichments {
 
       def onError(e: Throwable): Unit = p.complete(Failure(e))
 
-      def onCompleted(): Unit = completeDueToNoValue()
-
-      o.first.foreach(onNext, onError/*, onCompleted*/)
+      o.first.foreach(onNext, onError)
 
       p.future
     }

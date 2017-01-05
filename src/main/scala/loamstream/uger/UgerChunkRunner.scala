@@ -2,29 +2,25 @@ package loamstream.uger
 
 import java.io.File
 import java.nio.file.Path
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import loamstream.model.execute.ChunkRunner
-import loamstream.model.jobs.{ LJob, NoOpJob }
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.uger.JobStatus._
-import loamstream.util.Futures
-import loamstream.util.Loggable
-import loamstream.util.Files
-import loamstream.util.TimeEnrichments.time
-import loamstream.conf.UgerConfig
 import java.util.UUID
 
-import loamstream.util.ObservableEnrichments
-import loamstream.model.jobs.JobState.{ Failed, Running }
+import loamstream.conf.UgerConfig
+import loamstream.model.execute.ChunkRunnerFor
+import loamstream.model.execute.{ ExecutionEnvironment => ExecEnv }
 import loamstream.model.jobs.JobState
-import loamstream.util.Traversables
-import rx.lang.scala.Scheduler
-import rx.schedulers.Schedulers
-import loamstream.util.RxSchedulers
-import rx.lang.scala.Observable
+import loamstream.model.jobs.JobState.Failed
+import loamstream.model.jobs.JobState.Running
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.NoOpJob
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.uger.JobStatus.toJobState
+import loamstream.util.Files
+import loamstream.util.Loggable
 import loamstream.util.Observables
+import loamstream.util.Terminable
+import loamstream.util.TimeEnrichments.time
+import rx.lang.scala.Observable
+
 
 /**
  * @author clint
@@ -37,11 +33,13 @@ import loamstream.util.Observables
 final case class UgerChunkRunner(
     ugerConfig: UgerConfig,
     drmaaClient: DrmaaClient,
-    jobOps: JobMonitor,
-    pollingFrequencyInHz: Double = 1.0) extends ChunkRunner with Loggable {
+    jobMonitor: JobMonitor,
+    pollingFrequencyInHz: Double = 1.0) extends ChunkRunnerFor(ExecEnv.Uger) with Terminable with Loggable {
 
   import UgerChunkRunner._
 
+  override def stop(): Unit = jobMonitor.stop()
+  
   override def maxNumJobs = ugerConfig.ugerMaxNumJobs
 
   override def run(leaves: Set[LJob]): Observable[Map[LJob, JobState]] = {
@@ -93,22 +91,20 @@ final case class UgerChunkRunner(
       jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, JobState]] = {
 
     def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
-      jobOps.monitor(jobIds)
+      jobMonitor.monitor(jobIds)
     }
-
-    import ObservableEnrichments._
 
     val jobsAndStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    val jobsToFutureResults: Iterable[(LJob, Observable[JobState])] = for {
+    val jobsToResultObservables: Iterable[(LJob, Observable[JobState])] = for {
       (jobId, (job, jobStatuses)) <- jobsAndStatusesById
       _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobState(status)))
-      futureResult = jobStatuses.last.map(JobStatus.toJobState)
+      resultObs = jobStatuses.last.map(toJobState)
     } yield {
-      job -> futureResult
+      job -> resultObs
     }
 
-    Observables.toMap(jobsToFutureResults)
+    Observables.toMap(jobsToResultObservables)
   }
 }
 
@@ -133,7 +129,7 @@ object UgerChunkRunner extends Loggable {
 
     cause.foreach(e => error(s"Couldn't submit jobs to UGER: ${e.getMessage}", e))
 
-    import Traversables.Implicits._
+    import loamstream.util.Traversables.Implicits._
 
     Observable.just(jobs.mapTo(_ => failure))
   }

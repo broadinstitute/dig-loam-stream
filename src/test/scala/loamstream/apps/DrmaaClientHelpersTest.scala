@@ -82,7 +82,7 @@ object DrmaaClientHelpersTest {
   
     override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = ???
   
-    override def shutdown(): Unit = {
+    override def stop(): Unit = {
       isShutdown = true
     }
   }

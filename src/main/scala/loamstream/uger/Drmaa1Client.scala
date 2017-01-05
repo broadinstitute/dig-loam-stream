@@ -61,11 +61,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @return Success wrapping the JobStatus corresponding to the code obtained from UGER,
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
-  override def statusOf(jobId: String): Try[JobStatus] = {
+  override def statusOf(jobId: String): Try[UgerStatus] = {
     Try {
       withSession { session =>
         val status = session.getJobProgramStatus(jobId)
-        val jobStatus = JobStatus.fromUgerStatusCode(status)
+        val jobStatus = UgerStatus.fromUgerStatusCode(status)
 
         info(s"Job '$jobId' has status $status, mapped to $jobStatus")
         
@@ -108,7 +108,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    *   signal, OR the job dumped core/
    *   JobStatus.Undetermined: The job completed, but none of the above applies.
    */
-  override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
+  override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = {
     val waitAttempt = Try {
       withSession { session =>
         doWait(session, jobId, timeout)
@@ -117,13 +117,13 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       
     //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
     waitAttempt.recover { case e: ExitTimeoutException => 
-      debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${JobStatus.Running}")
+      debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${UgerStatus.Running}")
         
-      JobStatus.Running
+      UgerStatus.Running
     }
   }
   
-  private def doWait(session: Session, jobId: String, timeout: Duration): JobStatus = {
+  private def doWait(session: Session, jobId: String, timeout: Duration): UgerStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
         
     if (jobInfo.hasExited) {
@@ -131,26 +131,26 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       
       //TODO: More flexibility?
       jobInfo.getExitStatus match { 
-        case 0 => JobStatus.Done
-        case _ => JobStatus.Failed
+        case 0 => UgerStatus.Done
+        case _ => UgerStatus.Failed
       }
     } else if (jobInfo.wasAborted) {
       info(s"Job '$jobId' was aborted; job info: $jobInfo")
 
       //TODO: Add JobStatus.Aborted?
-      JobStatus.Failed
+      UgerStatus.Failed
     } else if (jobInfo.hasSignaled) {
       info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
-      JobStatus.Failed
+      UgerStatus.Failed
     } else if (jobInfo.hasCoreDump) {
       info(s"Job '$jobId' dumped core")
       
-      JobStatus.Failed
+      UgerStatus.Failed
     } else {
       info(s"Job '$jobId' finished with unknown status")
 
-      JobStatus.DoneUndetermined
+      UgerStatus.DoneUndetermined
     }
   }
 

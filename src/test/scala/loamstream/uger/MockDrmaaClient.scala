@@ -10,10 +10,10 @@ import loamstream.util.Maps
  * @author clint
  * date: Jul 6, 2016
  */
-final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[JobStatus]]]) extends DrmaaClient {
+final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[UgerStatus]]]) extends DrmaaClient {
   import Maps.Implicits._
   
-  private val remaining: ValueBox[Map[String, Seq[Try[JobStatus]]]] = {
+  private val remaining: ValueBox[Map[String, Seq[Try[UgerStatus]]]] = {
     ValueBox(toReturn.strictMapValues(_.init))
   }
   
@@ -27,9 +27,9 @@ final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[JobSt
       jobName: String,
       numTasks: Int): DrmaaClient.SubmissionResult = ???
 
-  override def statusOf(jobId: String): Try[JobStatus] = waitFor(jobId, Duration.Zero)
+  override def statusOf(jobId: String): Try[UgerStatus] = waitFor(jobId, Duration.Zero)
 
-  override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
+  override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = {
     params.mutate(_ :+ (jobId -> timeout))
     
     remaining.getAndUpdate { leftToReturn => 

@@ -10,9 +10,9 @@ import org.ggf.drmaa.Session
  * An ADT/"Enum" to represent job statuses as reported by UGER.  Values roughly correspond to constants in 
  * org.ggf.drmaa.Session.
  */
-sealed trait JobStatus {
-  import JobStatus._
-  
+sealed trait UgerStatus {
+  import UgerStatus._
+
   def isDone: Boolean = this == Done
   def isFailed: Boolean = this == Failed
   def isQueued: Boolean = this == Queued
@@ -21,30 +21,30 @@ sealed trait JobStatus {
   def isSuspended: Boolean = this == Suspended
   def isUndetermined: Boolean = this == Undetermined
   def isDoneUndetermined: Boolean = this == DoneUndetermined
-  
+
   //TODO: Does Undetermined belong here?
   def notFinished: Boolean = isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
-  
+
   def isFinished: Boolean = !notFinished
 }
 
-object JobStatus {
-  case object Done extends JobStatus
-  case object DoneUndetermined extends JobStatus
-  case object Failed extends JobStatus
-  case object Queued extends JobStatus
-  case object QueuedHeld extends JobStatus
-  case object Requeued extends JobStatus
-  case object RequeuedHeld extends JobStatus
-  case object Running extends JobStatus
-  case object Suspended extends JobStatus
-  case object Undetermined extends JobStatus
-  
-  final case class CommandResult(exitStatus: Int) extends JobStatus
-  
+object UgerStatus {
+  case object Done extends UgerStatus
+  case object DoneUndetermined extends UgerStatus
+  case object Failed extends UgerStatus
+  case object Queued extends UgerStatus
+  case object QueuedHeld extends UgerStatus
+  case object Requeued extends UgerStatus
+  case object RequeuedHeld extends UgerStatus
+  case object Running extends UgerStatus
+  case object Suspended extends UgerStatus
+  case object Undetermined extends UgerStatus
+
+  final case class CommandResult(exitStatus: Int) extends UgerStatus
+
   import Session._
-  
-  def fromUgerStatusCode(status: Int): JobStatus = status match {
+
+  def fromUgerStatusCode(status: Int): UgerStatus = status match {
     case QUEUED_ACTIVE                                              => Queued
     case SYSTEM_ON_HOLD | USER_ON_HOLD | USER_SYSTEM_ON_HOLD        => QueuedHeld
     case RUNNING                                                    => Running
@@ -54,7 +54,7 @@ object JobStatus {
     case UNDETERMINED | _                                           => Undetermined
   }
 
-  def toJobState(status: JobStatus): JobState = status match {
+  def toJobState(status: UgerStatus): JobState = status match {
     case Done                                                       => JobState.Succeeded
     case CommandResult(exitStatus)                                  => JobState.CommandResult(exitStatus)
     case DoneUndetermined                                           => JobState.Failed

@@ -16,17 +16,18 @@ import loamstream.util.Loggable
 trait Poller {
   /**
    * Synchronously inquire about the status of one or more jobs
+ *
    * @param jobIds the ids of the jobs to inquire about
    * @return a map of job ids to attempts at that job's status
    */
-  def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]]
+  def poll(jobIds: Iterable[String]): Map[String, Try[UgerStatus]]
 }
 
 object Poller {
   
   final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
-    override def poll(jobIds: Iterable[String]): Map[String, Try[JobStatus]] = {
-      def statusAttempt(jobId: String): Try[JobStatus] = {
+    override def poll(jobIds: Iterable[String]): Map[String, Try[UgerStatus]] = {
+      def statusAttempt(jobId: String): Try[UgerStatus] = {
         
         val result = client.statusOf(jobId).recoverWith { case e: InvalidJobException => 
           warn(s"Job '$jobId': Got an ${e.getClass.getSimpleName} when calling statusOf(); trying waitFor()", e)

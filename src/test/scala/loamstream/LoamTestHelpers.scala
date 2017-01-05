@@ -26,20 +26,28 @@ trait LoamTestHelpers extends Loggable {
 
   def compileFile(file: String): LoamCompiler.Result = compile(Paths.get(file))
 
-  def compile(path: Path): LoamCompiler.Result = compile(LoamScript.read(path).get)
+  def compile(path: Path, rest: Path*): LoamCompiler.Result = {
+    def toScript(p: Path): LoamScript = LoamScript.read(p).get
+    
+    val paths: Set[Path] = (path +: rest).toSet
+    
+    compile(LoamProject(paths.map(toScript)), throwOnError = false)
+  }
 
   def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(Set(script)))
     
-  def compile(project: LoamProject): LoamCompiler.Result = {
+  def compile(project: LoamProject, throwOnError: Boolean = true): LoamCompiler.Result = {
 
     val compiler = new LoamCompiler(LoamCompiler.Settings.default, LoggableOutMessageSink(this))
 
     val compileResults = compiler.compile(project)
 
-    if (!compileResults.isValid) {
-      throw new IllegalArgumentException(s"Could not compile '$project': ${compileResults.errors}.")
+    if(throwOnError) {
+      if (!compileResults.isValid) {
+        throw new IllegalArgumentException(s"Could not compile '$project': ${compileResults.errors}.")
+      }
     }
-
+    
     compileResults
   }
 

@@ -78,24 +78,24 @@ final case class LoamStore[S <: StoreType : TypeTag] private(id: LId)(implicit v
 
   update()
 
-  def from(path: String): LoamStore[S] = from(Paths.get(path))
+  override def from(path: String): LoamStore[S] = from(Paths.get(path))
 
-  def from(path: Path): LoamStore[S] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
+  override def from(path: Path): LoamStore[S] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def from(uri: URI): LoamStore[S] = from(StoreEdge.UriEdge(uri))
+  override def from(uri: URI): LoamStore[S] = from(StoreEdge.UriEdge(uri))
 
-  def from(source: StoreEdge): LoamStore[S] = {
+  override def from(source: StoreEdge): LoamStore[S] = {
     graphBox.mutate(_.withStoreSource(this, source))
     this
   }
 
-  def to(path: String): LoamStore[S] = to(Paths.get(path))
+  override def to(path: String): LoamStore[S] = to(Paths.get(path))
 
-  def to(path: Path): LoamStore[S] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
+  override def to(path: Path): LoamStore[S] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
 
-  def to(uri: URI): LoamStore[S] = to(StoreEdge.UriEdge(uri))
+  override def to(uri: URI): LoamStore[S] = to(StoreEdge.UriEdge(uri))
 
-  def to(sink: StoreEdge): LoamStore[S] = {
+  override def to(sink: StoreEdge): LoamStore[S] = {
     graphBox.mutate(_.withStoreSink(this, sink))
     this
   }

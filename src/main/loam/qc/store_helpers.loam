@@ -13,5 +13,5 @@ def withExtensions(extensions: String*)(makeStore: String => LoamStore[TXT]): Se
 
 def bedBimFam(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions("bed", "bim", "fam")(makeStore)
 
-def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => store[TXT].from(s"${prefix}.${extension}"))
+def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => store[TXT].to(s"${prefix}.${extension}"))
 

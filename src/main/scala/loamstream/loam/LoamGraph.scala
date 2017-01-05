@@ -12,7 +12,7 @@ import loamstream.util.Equivalences
 object LoamGraph {
 
   /** A connection between a store and a tool or other consumer or producer */
-  trait StoreEdge
+  sealed trait StoreEdge
 
   /** A connection between a store and a tool or other consumer or producer */
   object StoreEdge {
@@ -29,9 +29,18 @@ object LoamGraph {
   }
 
   /** An empty graph */
-  def empty: LoamGraph =
-  LoamGraph(Set.empty, Set.empty, Map.empty, Map.empty, Map.empty, Map.empty, Equivalences.empty, Equivalences.empty,
-    Map.empty)
+  def empty: LoamGraph = {
+    LoamGraph(
+        Set.empty, 
+        Set.empty, 
+        Map.empty, 
+        Map.empty, 
+        Map.empty, 
+        Map.empty, 
+        Equivalences.empty, 
+        Equivalences.empty,
+        Map.empty)
+  }
 }
 
 /** The graph of all Loam stores and tools and their relationships */

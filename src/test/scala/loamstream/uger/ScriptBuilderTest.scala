@@ -4,6 +4,7 @@ import java.nio.file.Paths
 
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import org.scalatest.FunSuite
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -36,7 +37,7 @@ final class ScriptBuilderTest extends FunSuite {
     val shapeItCommandLineString = getShapeItCommandLineString(shapeItExecutable, vcf, map, hap, samples, log,
       numThreads)
 
-    CommandLineStringJob(shapeItCommandLineString, Paths.get(shapeItWorkDir))
+    CommandLineStringJob(shapeItCommandLineString, Paths.get(shapeItWorkDir), ExecutionEnvironment.Local)
   }
 
   private def getShapeItCommandLineTokens(

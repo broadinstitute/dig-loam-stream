@@ -11,5 +11,7 @@ import rx.lang.scala.Observable
 trait ChunkRunner {
   def maxNumJobs: Int
   
+  def canRun(job: LJob): Boolean
+  
   def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]]
 }

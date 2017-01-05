@@ -26,10 +26,7 @@ object Main extends Loggable {
   private def outMessageSink = LoggableOutMessageSink(this)
 
   private def run(cli: Conf): Unit = {
-    val wiring = cli.backend() match {
-      case BackendType.Local => AppWiring.forLocal(cli)
-      case BackendType.Uger  => AppWiring.forUger(cli)
-    }
+    val wiring = AppWiring(cli)
 
     val loamEngine = {
       val loamCompiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
@@ -48,7 +45,7 @@ object Main extends Loggable {
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
     } finally {
-      wiring.shutdown()
+      wiring.stop()
     }
   }
 

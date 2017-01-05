@@ -17,10 +17,12 @@ object Loggable {
 
 }
 
-trait Loggable {
+trait Loggable extends LogContext {
   private[this] lazy val logger: Logger = LoggerFactory.getLogger(this.getClass.getName)
 
   import Loggable.Level
+  
+  protected implicit val logContext: LogContext = this
   
   final def log(level: Level.Value, s: => String): Unit = level match {
     case Level.trace => trace(s)
@@ -30,7 +32,7 @@ trait Loggable {
     case Level.error => error(s)
   }
 
-  final def log(level: Level.Value, s: => String, e: Throwable): Unit = level match {
+  override final def log(level: Level.Value, s: => String, e: Throwable): Unit = level match {
     case Level.trace => trace(s, e)
     case Level.debug => debug(s, e)
     case Level.info => info(s, e)

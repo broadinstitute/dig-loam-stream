@@ -5,13 +5,13 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
+import loamstream.model.execute.ExecutionEnvironment
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.Subject
 import rx.lang.scala.subjects.ReplaySubject
-import loamstream.util.Futures
 
 
 /**
@@ -19,12 +19,16 @@ import loamstream.util.Futures
  * Created by oliverr on 12/23/2015.
  */
 trait LJob extends Loggable {
+  def executionEnvironment: ExecutionEnvironment// = ExecutionEnvironment.Local
+  
   def workDirOpt: Option[Path] = None
   
-  def print(indent: Int = 0, doPrint: String => Unit = debug(_)): Unit = {
+  def print(indent: Int = 0, doPrint: String => Unit = debug(_), header: Option[String] = None): Unit = {
     val indentString = s"${"-" * indent} >"
 
-    doPrint(s"$indentString ${this}")
+    header.foreach(doPrint)
+    
+    doPrint(s"$indentString ($state)${this}")
 
     inputs.foreach(_.print(indent + 2, doPrint))
   }
@@ -123,7 +127,7 @@ trait LJob extends Loggable {
    * Running to Succeeded/Failed.
    */
   def execute(implicit context: ExecutionContext): Future[JobState] = {
-    import Futures.Implicits._
+    import loamstream.util.Futures.Implicits._
 
     updateAndEmitJobState(JobState.NotStarted)
     updateAndEmitJobState(JobState.Running)

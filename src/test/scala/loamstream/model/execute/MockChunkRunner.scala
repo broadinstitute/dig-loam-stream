@@ -16,6 +16,8 @@ import rx.lang.scala.Observable
 final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
   override def maxNumJobs: Int = delegate.maxNumJobs
   
+  override def canRun(job: LJob): Boolean = delegate.canRun(job)
+  
   val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 
   override def run(chunk: Set[LJob]): Observable[Map[LJob, JobState]] = {

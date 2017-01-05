@@ -18,7 +18,6 @@ final class ConfTest extends FunSuite with Matchers {
   
   test("Single loam file along with conf file is parsed correctly") {
     val conf = makeConf(Seq("--conf", "src/test/resources/loamstream-test.conf", 
-                            "--backend", "local", 
                             "src/test/resources/a.txt"))
 
     conf.loams() shouldEqual List(Paths.get("src/test/resources/a.txt"))
@@ -27,7 +26,6 @@ final class ConfTest extends FunSuite with Matchers {
 
   test("Multiple loam files along with conf file are parsed correctly") {
     val conf = makeConf(Seq("--conf", "src/test/resources/loamstream-test.conf",
-                            "--backend", "local",
                             "src/test/resources/a.txt", "src/test/resources/a.txt"))
 
     conf.loams() shouldEqual List(Paths.get("src/test/resources/a.txt"), Paths.get("src/test/resources/a.txt"))
@@ -81,23 +79,23 @@ final class ConfTest extends FunSuite with Matchers {
     doTest("-d", Seq("src/main/loam/examples/cp.loam", "src/main/loam/examples/cp.loam"))
   }
   
-  test("Either --backend or --dry-run must be specified with loam files") {
-    //Just a loam file
-    intercept[CliException] {
-      makeConf(Seq("src/main/loam/cp.loam"))
-    }
-    
-    //loam file, neither --backend nor --dry-run
+  test("Loam files must be specified if running normally or with --dry-run") {
+    //No loam files
     intercept[CliException] {
       makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam"))
     }
     
-    //No loams
+    //No loam files
     intercept[CliException] {
-      makeConf(Seq("--backend", "uger"))
+      makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam", "--dry-run"))
     }
     
-    //No loams
+    //No loam files
+    intercept[CliException] {
+      makeConf(Nil)
+    }
+    
+    //No loam files
     intercept[CliException] {
       makeConf(Seq("--dry-run"))
     }
@@ -106,85 +104,56 @@ final class ConfTest extends FunSuite with Matchers {
     
     val expected = Paths.get(exampleFile)
     
+    //Just a loam file
     {
-      val conf = makeConf(Seq("--backend", "local", exampleFile, exampleFile))
+      val conf = makeConf(Seq(exampleFile))
       
-      assert(conf.loams() === Seq(expected, expected))
+      conf.loams() shouldEqual List(expected)
+      conf.dryRun() shouldBe(false)
+      conf.conf.isSupplied shouldBe(false)
+      conf.runEverything.isSupplied shouldBe(false)
+    }
+    
+    {
+      val conf = makeConf(Seq(exampleFile, exampleFile))
+      
+      conf.loams() shouldEqual List(expected, expected)
+      conf.dryRun() shouldBe(false)
+      conf.conf.isSupplied shouldBe(false)
+      conf.runEverything.isSupplied shouldBe(false)
     }
     
     {
       val conf = makeConf(Seq("--dry-run", exampleFile, exampleFile))
       
-      assert(conf.loams() === Seq(expected, expected))
+      conf.loams() shouldEqual List(expected, expected)
+      conf.dryRun() shouldBe(true)
+      conf.conf.isSupplied shouldBe(false)
+      conf.runEverything.isSupplied shouldBe(false)
     }
   }
-  
-  test("--backend") {
-    
-    val exampleFile = "src/main/loam/examples/cp.loam"
-    
-    //bogus backend type
-    intercept[CliException] {
-      makeConf(Seq("--backend", "sldkajalskjd", exampleFile))
-    }
-    
-    //"missing" backend type
-    intercept[CliException] {
-      makeConf(Seq("--backend", exampleFile))
-    }
-    
-    def doTest(flagValue: String, expected: BackendType): Unit = {
-      val conf = makeConf(Seq("--backend", flagValue, exampleFile))
-      
-      assert(conf.backend() === expected)
-    }
-    
-    doTest("Local", BackendType.Local)
-    doTest("local", BackendType.Local)
-    doTest("LOCAL", BackendType.Local)
-    doTest("LoCaL", BackendType.Local)
-    
-    doTest("Uger", BackendType.Uger)
-    doTest("uger", BackendType.Uger)
-    doTest("UGER", BackendType.Uger)
-    doTest("UgEr", BackendType.Uger)
-  }
-  
+ 
   test("--run-everything") {
     val exampleFile = "src/main/loam/examples/cp.loam"
     
-    //bogus backend type
-    intercept[CliException] {
-      makeConf(Seq("--run-everything", "--backend", "sldkajalskjd", exampleFile))
-    }
+    val expected = Paths.get(exampleFile)
     
-    //"missing" backend type
-    intercept[CliException] {
-      makeConf(Seq("--run-everything", "--backend", exampleFile))
+    {
+      val conf = makeConf(Seq("--run-everything", exampleFile))
+        
+      conf.runEverything() shouldBe(true)
+      conf.loams() shouldEqual List(expected)
+      conf.dryRun() shouldBe(false)
+      conf.conf.isSupplied shouldBe(false)
     }
     
     {
-      val conf = makeConf(Seq("--run-everything", "--backend", "local", exampleFile))
+      val conf = makeConf(Seq(exampleFile))
         
-      assert(conf.runEverything())
-    }
-    
-    {
-      val conf = makeConf(Seq("--run-everything", "--backend", "uger", exampleFile))
-        
-      assert(conf.runEverything())
-    }
-    
-    {
-      val conf = makeConf(Seq("--backend", "local", exampleFile))
-        
-      assert(conf.runEverything() === false)
-    }
-    
-    {
-      val conf = makeConf(Seq("--backend", "uger", exampleFile))
-        
-      assert(conf.runEverything() === false)
+      conf.runEverything() shouldBe(false)
+      conf.loams() shouldEqual List(expected)
+      conf.dryRun() shouldBe(false)
+      conf.conf.isSupplied shouldBe(false)
     }
   }
 }

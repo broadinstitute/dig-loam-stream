@@ -9,6 +9,8 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.JobFilter
 import loamstream.uger.UgerChunkRunner
+import loamstream.model.execute.AsyncLocalChunkRunner
+import loamstream.model.execute.CompositeChunkRunner
 
 /**
  * @author clint
@@ -24,57 +26,89 @@ final class AppWiringTest extends FunSuite with Matchers {
   private def cliConf(argString: String): Conf = Conf(argString.split("\\s+").toSeq)
   
   test("Local execution, db-backed") {
-    val wiring = AppWiring.forLocal(cliConf(s"--backend local $exampleFile"))
+    val wiring = AppWiring(cliConf(s"$exampleFile"))
     
     wiring.dao shouldBe a[SlickLoamDao]
-    wiring.executer shouldBe a[RxExecuter]
+    wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     
-    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe a[RxExecuter.AsyncLocalChunkRunner]
+    wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate shouldBe a[RxExecuter]
     
-    wiring.executer.asInstanceOf[RxExecuter].jobFilter shouldBe a[DbBackedJobFilter]
+    val executer = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
     
-    wiring.executer.asInstanceOf[RxExecuter].jobFilter.asInstanceOf[DbBackedJobFilter].dao shouldBe wiring.dao
+    executer.runner shouldBe a[CompositeChunkRunner]
+    
+    val compositeRunner = executer.runner.asInstanceOf[CompositeChunkRunner]
+    
+    compositeRunner.components.map(_.getClass) shouldBe(Seq(classOf[AsyncLocalChunkRunner]))
+    
+    executer.jobFilter shouldBe a[DbBackedJobFilter]
+    
+    executer.jobFilter.asInstanceOf[DbBackedJobFilter].dao shouldBe wiring.dao
   }
   
   test("Local execution, run everything") {
-    val wiring = AppWiring.forLocal(cliConf(s"--run-everything --backend local $exampleFile"))
+    val wiring = AppWiring(cliConf(s"--run-everything $exampleFile"))
     
-    wiring.executer shouldBe a[RxExecuter]
+    wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     
-    wiring.executer.asInstanceOf[RxExecuter].runner shouldBe a[RxExecuter.AsyncLocalChunkRunner]
+    wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate shouldBe a[RxExecuter]
     
-    wiring.executer.asInstanceOf[RxExecuter].jobFilter shouldBe JobFilter.RunEverything
+    val executer = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
+    
+    executer.runner shouldBe a[CompositeChunkRunner]
+    
+    val compositeRunner = executer.runner.asInstanceOf[CompositeChunkRunner]
+    
+    compositeRunner.components.map(_.getClass) shouldBe(Seq(classOf[AsyncLocalChunkRunner]))
+    
+    executer.jobFilter shouldBe JobFilter.RunEverything
   }
   
-  test("Uger execution, db-backed") {
+  test("Uger execution also, db-backed") {
     
-    val wiring = AppWiring.forUger(cliConf(s"--conf $confFileForUger --backend uger $exampleFile"))
+    val wiring = AppWiring(cliConf(s"--conf $confFileForUger $exampleFile"))
     
     wiring.dao shouldBe a[SlickLoamDao]
 
     wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     
-    val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate
+    wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate shouldBe a[RxExecuter]
     
-    actualExecuter shouldBe a[RxExecuter]
+    val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
     
-    actualExecuter.asInstanceOf[RxExecuter].runner shouldBe a[UgerChunkRunner]
+    actualExecuter.runner shouldBe a[CompositeChunkRunner]
     
-    actualExecuter.asInstanceOf[RxExecuter].jobFilter shouldBe a[DbBackedJobFilter]
+    val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
     
-    actualExecuter.asInstanceOf[RxExecuter].jobFilter.asInstanceOf[DbBackedJobFilter].dao shouldBe wiring.dao
+    //NB: Use asInstanceOf because a[T] doesn't play nice with 'should contain' :\
+    assert(runner.components.exists(_.isInstanceOf[AsyncLocalChunkRunner]))
+    assert(runner.components.exists(_.isInstanceOf[UgerChunkRunner]))
+    assert(runner.components.size === 2)
+    
+    actualExecuter.jobFilter shouldBe a[DbBackedJobFilter]
+    
+    actualExecuter.jobFilter.asInstanceOf[DbBackedJobFilter].dao shouldBe wiring.dao
   }
   
   test("Uger execution, run everything") {
-    val wiring = AppWiring.forUger(cliConf(s"--conf $confFileForUger --run-everything --backend local $exampleFile"))
+    val wiring = AppWiring(cliConf(s"--conf $confFileForUger --run-everything $exampleFile"))
     
     wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     
-    val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate
+    wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     
-    actualExecuter shouldBe a[RxExecuter]
+    wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate shouldBe a[RxExecuter]
     
-    actualExecuter.asInstanceOf[RxExecuter].runner shouldBe a[UgerChunkRunner]
+    val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
+    
+    actualExecuter.runner shouldBe a[CompositeChunkRunner]
+    
+    val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
+    
+    //NB: Use asInstanceOf because a[T] doesn't play nice with 'should contain' :\
+    assert(runner.components.exists(_.isInstanceOf[AsyncLocalChunkRunner]))
+    assert(runner.components.exists(_.isInstanceOf[UgerChunkRunner]))
+    assert(runner.components.size === 2)
     
     actualExecuter.asInstanceOf[RxExecuter].jobFilter shouldBe JobFilter.RunEverything
   }

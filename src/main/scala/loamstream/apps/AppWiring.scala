@@ -24,119 +24,192 @@ import loamstream.model.jobs.JobState
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.JobFilter
 import scala.util.control.NonFatal
+import loamstream.util.Terminable
+import loamstream.model.execute.AsyncLocalChunkRunner
+import loamstream.model.execute.CompositeChunkRunner
+import loamstream.util.ExecutionContexts
+import loamstream.googlecloud.GoogleCloudChunkRunner
+import loamstream.googlecloud.GoogleCloudConfig
+import loamstream.googlecloud.CloudSdkDataProcClient
+import loamstream.googlecloud.CloudSdkDataProcClient
+import loamstream.util.Throwables
 
 /**
  * @author clint
  * Nov 10, 2016
  */
-trait AppWiring {
-  def config: Config = ConfigFactory.empty()
-  
+trait AppWiring extends Terminable {
   def dao: LoamDao
-  
+
   def executer: Executer
-  
-  def shutdown(): Unit = ()
-  
+
   private[AppWiring] def makeJobFilter(conf: Conf): JobFilter = {
-    if(conf.runEverything()) JobFilter.RunEverything else new DbBackedJobFilter(dao)
+    if (conf.runEverything()) JobFilter.RunEverything else new DbBackedJobFilter(dao)
   }
 }
 
 object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Loggable {
-  
-  def forLocal(conf: Conf): AppWiring = new AppWiring with DefaultDb {
-    override val executer: Executer = {
-      info("Creating executer...")
-      
-      RxExecuter.defaultWith(makeJobFilter(conf))
-    }
-  }
-  
-  def forUger(conf: Conf): AppWiring = new AppWiring with LoadsConfig with DefaultDb {
-    override val cli = conf
-    
+
+  def apply(cli: Conf): AppWiring = new AppWiring with DefaultDb {
     override def executer: Executer = terminableExecuter
-      
-    override def shutdown(): Unit = terminableExecuter.shutdown()
-    
-    private val terminableExecuter: TerminableExecuter = {
-      
-      debug("Parsing Uger config")
-      
-      val ugerConfig = UgerConfig.fromConfig(config).get
-      
+
+    override def stop(): Unit = terminableExecuter.stop()
+
+    private val terminableExecuter = {
       info("Creating executer...")
 
-      val (drmaaClient, shutdownDrmaaClient) = getDrmaaClient
-      
-      import loamstream.model.execute.ExecuterHelpers._
-      
-      val threadPoolSize = 50
-      val executionContextWithThreadPool = threadPool(threadPoolSize)
+      val jobFilter = makeJobFilter(cli)
 
-      val pollingFrequencyInHz = 0.1
-    
-      val poller = Poller.drmaa(drmaaClient)
+      val threadPoolSize = 50
       
-      val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
-    
-      val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
-    
-      val shutdownJobMonitor = () => jobMonitor.stop()
+      //TODO: Make the number of threads this uses configurable
+      val numberOfCPUs = Runtime.getRuntime.availableProcessors
       
-      val chunkRunner = UgerChunkRunner(ugerConfig, drmaaClient, jobMonitor, pollingFrequencyInHz)
+      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs)
+      
+      val localRunner = AsyncLocalChunkRunner()(localEC)
+
+      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(cli, threadPoolSize)
+
+      val googleRunner = googleChunkRunner(cli, localRunner)
+      
+      val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
+
+      import loamstream.model.execute.ExecuterHelpers._
+      import ExecutionContexts.threadPool
+
+      val (executionContextWithThreadPool, threadPoolHandle) = threadPool(threadPoolSize)
 
       import scala.concurrent.duration._
       
       val windowLength = 30.seconds
       
-      val executer = RxExecuter(chunkRunner, windowLength, makeJobFilter(conf))(executionContextWithThreadPool)
-      
-      new TerminableExecuter(executer, shutdownDrmaaClient, schedulerHandle.shutdown, shutdownJobMonitor)
+      val rxExecuter = RxExecuter(compositeRunner, windowLength, jobFilter)(executionContextWithThreadPool)
+
+      val handles: Seq[Terminable] = threadPoolHandle +: localEcHandle +: (ugerRunnerHandles ++ googleRunner)
+
+      new TerminableExecuter(rxExecuter, handles: _*)
     }
   }
   
-  private trait LoadsConfig { self: AppWiring =>
-    def cli: Conf
+  private def googleChunkRunner(cli: Conf, delegate: ChunkRunner): Option[GoogleCloudChunkRunner] = {
+    val config = loadConfig(cli)
+
+    val attempt = for {
+      googleConfig <- GoogleCloudConfig.fromConfig(config)
+      client <- CloudSdkDataProcClient.fromConfig(googleConfig)
+    } yield {
+      info("Creating Google Cloud ChunkRunner...")
+      
+      GoogleCloudChunkRunner(client, delegate)
+    }
     
-    //NB: This needs to be lazy to avoid some init-order problems
-    override lazy val config: Config = {
-      def defaults: Config = ConfigFactory.load()
-      
-      cli.conf.toOption match {
-        case Some(confFile) => configFromFile(confFile).withFallback(defaults)
-        case None           => defaults
-      }
+    val result = attempt.toOption
+    
+    //TODO: A better way to enable or disable Google support; for now, this is purely expedient
+    if(result.isEmpty) {
+      val msg = s"""Google Cloud support NOT enabled; enable it by defining loamstream.googlecloud section 
+                   |in the config file (${cli.conf.toOption}).""".stripMargin
+        
+      info(msg)
     }
+    
+    result
   }
   
+  private def ugerChunkRunner(cli: Conf, threadPoolSize: Int): (Option[UgerChunkRunner], Seq[Terminable]) = {
+    val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(cli, threadPoolSize))
+
+    //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
+    if(ugerRunnerOption.isEmpty) {
+      val msg = s"""Uger support NOT enabled; enable it by defining loamstream.uger section 
+                   |in the config file (${cli.conf.toOption}).""".stripMargin
+        
+      info(msg)
+    }
+    
+    result
+  }
+  
+  private def unpack[A,B](o: Option[(A, Seq[B])]): (Option[A], Seq[B]) = o match {
+    case Some((a, b)) => (Some(a), b)
+    case None => (None, Nil)
+  }
+
+  private def makeUgerChunkRunner(cli: Conf, threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
+    debug("Parsing Uger config...")
+
+    val config = loadConfig(cli)
+
+    val ugerConfigAttempt = UgerConfig.fromConfig(config)
+
+    for {
+      ugerConfig <- ugerConfigAttempt.toOption
+    } yield {
+      info("Creating Uger ChunkRunner...")
+
+      val drmaaClient = makeDrmaaClient
+
+      import loamstream.model.execute.ExecuterHelpers._
+
+      val threadPoolSize = 50
+
+      val pollingFrequencyInHz = 0.1
+
+      val poller = Poller.drmaa(drmaaClient)
+
+      val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
+
+      val ugerRunner = {
+        val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
+
+        UgerChunkRunner(ugerConfig, drmaaClient, jobMonitor, pollingFrequencyInHz)
+      }
+
+      val handles = Seq(drmaaClient, schedulerHandle, ugerRunner)
+
+      (ugerRunner, handles)
+    }
+  }
+
+  private def loadConfig(cli: Conf): Config = {
+    def defaults: Config = ConfigFactory.load()
+
+    cli.conf.toOption match {
+      case Some(confFile) => configFromFile(confFile).withFallback(defaults)
+      case None           => defaults
+    }
+  }
+
   private trait DefaultDb { self: AppWiring =>
     override lazy val dao: LoamDao = {
       val dbDescriptor = DbDescriptor(DbType.H2, "jdbc:h2:./.loamstream/db")
-      
+
       val dao = new SlickLoamDao(dbDescriptor)
-      
+
       dao.createTables()
-      
+
       dao
     }
   }
-  
-  private[apps] class TerminableExecuter(
-      private[apps] val delegate: Executer, shutdownHandles: (() => Any)*) extends Executer {
-    
+  private[apps] final class TerminableExecuter(
+      val delegate: Executer,
+      toStop: Terminable*) extends Executer with Terminable {
+
     override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobState] = {
       delegate.execute(executable)(timeout)
     }
-     
-    def shutdown(): Unit = {
-      def quietly(f: => Any): Unit = {
-        try { f }
-        catch { case NonFatal(e) => error("Error shutting down: ", e) }
-      }
+
+    final override def stop(): Unit = {
+      import Throwables._
       
-      shutdownHandles.foreach(handle => quietly(handle()))
+      for {
+        terminable <- toStop
+      } {
+        quietly("Error shutting down: ") {
+          terminable.stop()
+        }
+      }
     }
   }
 }

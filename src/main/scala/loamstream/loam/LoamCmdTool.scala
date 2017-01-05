@@ -4,6 +4,7 @@ import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.loam.LoamTool.{AllStores, DefaultStores}
 import loamstream.model.LId
 import loamstream.util.StringUtils
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
   * LoamStream
@@ -39,14 +40,18 @@ object LoamCmdTool {
 
   def create(tokens: Seq[LoamToken])(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
     val tool = LoamCmdTool(LId.newAnonId, tokens)
-    scriptContext.projectContext.graphBox.mutate(_.withTool(tool, scriptContext.workDir))
+    
+    scriptContext.projectContext.graphBox.mutate { graph =>
+      graph.withTool(tool, scriptContext)
+    }
+    
     tool
   }
 }
 
 /** A command line tool specified in a Loam script */
-final case class LoamCmdTool private(id: LId, tokens: Seq[LoamToken])(implicit val scriptContext: LoamScriptContext)
-  extends LoamTool {
+final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit val scriptContext: LoamScriptContext) 
+    extends LoamTool {
 
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))

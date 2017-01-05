@@ -12,6 +12,7 @@ import loamstream.model.jobs.Output
 import loamstream.model.jobs.commandline.CommandLineJob.stdErrProcessLogger
 import loamstream.util.Loggable
 import loamstream.util.PlatformUtil
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
   * LoamStream
@@ -21,7 +22,8 @@ import loamstream.util.PlatformUtil
   */
 final case class CommandLineStringJob(
     commandLineString: String, 
-    workDir: Path, 
+    workDir: Path,
+    executionEnvironment: ExecutionEnvironment,
     inputs: Set[LJob] = Set.empty,
     outputs: Set[Output] = Set.empty,
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
@@ -36,6 +38,8 @@ final case class CommandLineStringJob(
   }
 
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+  
+  def withCommandLineString(newCmd: String): CommandLineStringJob = copy(commandLineString = newCmd)
 }
 
 object CommandLineStringJob {

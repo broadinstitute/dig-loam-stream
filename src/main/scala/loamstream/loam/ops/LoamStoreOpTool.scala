@@ -6,7 +6,7 @@ import loamstream.loam.{LoamStore, LoamTool}
 /** A tool based on a store op */
 trait LoamStoreOpTool[SI <: StoreType, SO <: StoreType] extends LoamTool {
 
-  scriptContext.projectContext.graphBox.mutate(_.withTool(this))
+  scriptContext.projectContext.graphBox.mutate(_.withTool(this, scriptContext))
 
   /** The store op this tool is based on */
   def op: LoamStoreOp[SI, SO]

@@ -11,6 +11,8 @@ import loamstream.model.jobs.JobState
 final class UgerStatusTest extends FunSuite {
   import UgerStatus._
 
+  //scalastyle:off magic.number
+  
   test("fromUgerStatusCode") {
     import Session._
     
@@ -148,11 +150,17 @@ final class UgerStatusTest extends FunSuite {
     assert(RequeuedHeld.isFinished === true)
   }
   
-  private def doFlagTest(flag: UgerStatus => Boolean, expectedTrueFor: UgerStatus, expectedFalseFor: UgerStatus*): Unit = {
+  private def doFlagTest(
+      flag: UgerStatus => Boolean, 
+      expectedTrueFor: UgerStatus, 
+      expectedFalseFor: UgerStatus*): Unit = {
+    
     assert(flag(expectedTrueFor) === true)
     
     for(ugerStatus <- expectedFalseFor) {
       assert(flag(ugerStatus) === false)
     }
   }
+  
+  //scalastyle:on magic.number
 }

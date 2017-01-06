@@ -4,15 +4,13 @@ import java.nio.file.Path
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
-import scala.util.Try
-
+import scala.util.{Success, Try}
 import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.ExitTimeoutException
 import org.ggf.drmaa.JobTemplate
 import org.ggf.drmaa.NoActiveSessionException
 import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
-
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
 
@@ -62,15 +60,14 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
   override def statusOf(jobId: String): Try[UgerStatus] = {
-    Try {
-      withSession { session =>
-        val status = session.getJobProgramStatus(jobId)
-        val jobStatus = UgerStatus.fromUgerStatusCode(status)
+    withSession { session =>
+      val status = session.getJobProgramStatus(jobId)
+      val jobStatus = UgerStatus.fromUgerStatusCode(status)
 
-        info(s"Job '$jobId' has status $status, mapped to $jobStatus")
-        
-        jobStatus
-      }
+      info(s"Job '$jobId' has status $status, mapped to $jobStatus")
+
+      if (jobStatus.isFinished) { waitFor(jobId, Duration.Zero) }
+      else { Success(jobStatus) }
     }
   }
 

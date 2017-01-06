@@ -42,6 +42,16 @@ final class ValueBoxTest extends FunSuite {
     assert(v() == 99)
   }
   
+  test(":=") {
+    val v: ValueBox[Int] = ValueBox(42)
+    
+    assert(v() == 42)
+    
+    v := 99
+    
+    assert(v() == 99)
+  }
+  
   test("mutate") {
     val v: ValueBox[Int] = ValueBox(42)
     

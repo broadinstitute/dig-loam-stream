@@ -3,9 +3,10 @@ package loamstream.loam
 import java.nio.file.{Path, Paths}
 
 import loamstream.util.{DepositBox, ValueBox}
+import loamstream.model.execute.ExecutionEnvironment
 
 /** Container for compile time and run time context for a script */
-class LoamScriptContext(val projectContext: LoamProjectContext) {
+final class LoamScriptContext(val projectContext: LoamProjectContext) {
 
   val workDirBox: ValueBox[Path] = ValueBox(Paths.get("."))
 
@@ -17,7 +18,14 @@ class LoamScriptContext(val projectContext: LoamProjectContext) {
   }
 
   def changeWorkDir(newDir: Path): Path = workDirBox.mutate(_.resolve(newDir)).value
+  
+  val executionEnvironmentBox: ValueBox[ExecutionEnvironment] = ValueBox(ExecutionEnvironment.Local)
 
+  def executionEnvironment: ExecutionEnvironment = executionEnvironmentBox.value
+
+  def executionEnvironment_=(newEnv: ExecutionEnvironment): Unit = {
+    executionEnvironmentBox.value = newEnv
+  }
 }
 
 /** Container for compile time and run time context for a script */

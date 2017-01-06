@@ -12,6 +12,7 @@ import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.observables.ConnectableObservable
 import rx.schedulers.Schedulers
 import loamstream.util.ValueBox
+import loamstream.util.Terminable
 
 /**
  * @author clint
@@ -22,7 +23,7 @@ import loamstream.util.ValueBox
 final class JobMonitor(
     scheduler: Scheduler = IOScheduler(),
     poller: Poller, 
-    pollingFrequencyInHz: Double = 1.0) extends Loggable {
+    pollingFrequencyInHz: Double = 1.0) extends Terminable with Loggable {
   
   private[this] val _isStopped: ValueBox[Boolean] = ValueBox(false)
   
@@ -31,7 +32,7 @@ final class JobMonitor(
   /**
    * Stop all polling and prevent further polling by this JobMonitor.  Useful at app-shutdown-time. 
    */
-  def stop(): Unit = {
+  override def stop(): Unit = {
     _isStopped.update(true)
   }
   

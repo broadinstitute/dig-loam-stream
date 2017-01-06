@@ -68,6 +68,35 @@ object Observables extends Loggable {
   }
   
   /**
+   * Folds a bunch of Observables producing Maps[A,B] into one Map[A,B].  Individial maps are combined with ++.
+   * 
+   * @param os: a Traversable collection of Observables producing Map[A,B]s.
+   * @return: An Observables producing *a single* Map[A,B], the result of merging all the maps from all the 
+   * Observables.  This is done by successively applying ++ on each map and an accumulator. This result Observbable
+   * will emit *only one* map. 
+   */
+  def reduceMaps[A,B](os: Traversable[Observable[Map[A,B]]]): Observable[Map[A,B]] = {
+    def empty = Map.empty[A,B]
+    
+    def reduce(o: Observable[Map[A,B]]): Observable[Map[A,B]] = o.orElse(empty).reduce(_ ++ _).last
+    
+    //Consume each Observable in os, producing a new bunch of Observable[Map[A,B]]s, where each of the
+    //the new Observable only emits one value - the result of merging/reducing all the maps it emits. 
+    val reducedOs = os.map(reduce)
+    
+    val z: Observable[Map[A,B]] = Observable.just(Map.empty)
+    
+    val mergedMaps = reducedOs.foldLeft(z) { (accObs, o) =>
+      for {
+        acc <- accObs
+        map <- o
+      } yield acc ++ map
+    }
+    
+    mergedMaps.orElse(empty).last
+  }
+  
+  /**
    * Expose the method rx.Observables.merge in a Scala-friendly way.  Given
    * 
    * val os: Iterable[Observable[A]] = ...

@@ -1,0 +1,4 @@
+val hail_jar_cloud = uri("gs://loamstream/hail/hail-all-spark.jar")
+
+val gcloud = path("/humgen/diabetes/users/cgilbert/google-cloud-sdk/bin/gcloud")
+val gsutil = path("/humgen/diabetes/users/cgilbert/google-cloud-sdk/bin/gsutil")

@@ -4,7 +4,6 @@ import scala.concurrent.duration.DurationDouble
 
 import org.scalatest.FunSuite
 
-import loamstream.model.execute.RxExecuter.AsyncLocalChunkRunner
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.util.ValueBox
@@ -575,6 +574,8 @@ object RxExecuterTest {
   
   private final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
     override def maxNumJobs: Int = delegate.maxNumJobs
+    
+    override def canRun(job: LJob): Boolean = delegate.canRun(job)
     
     val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 

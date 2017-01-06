@@ -3,10 +3,11 @@ package loamstream.model.jobs
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
+import loamstream.model.execute.ExecutionEnvironment
 import loamstream.util.Futures
-import loamstream.util.ObservableEnrichments
 import loamstream.util.Observables
 import loamstream.util.ValueBox
+
 
 /**
  * @author kaan
@@ -21,13 +22,15 @@ final case class RxMockJob(
     fakeExecutionTimeInMs: Int = 0,
     toReturn: JobState = JobState.Succeeded) extends LJob {
 
+  override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
+  
   private[this] val count = ValueBox(0)
 
   def executionCount = count.value
 
   private def waitIfNecessary(): Unit = {
     if (runsAfter.nonEmpty) {
-      import ObservableEnrichments._
+      import loamstream.util.ObservableEnrichments._
       val finalDepStates = Observables.sequence(runsAfter.toSeq.map(_.lastState))
 
       Futures.waitFor(finalDepStates.firstAsFuture)

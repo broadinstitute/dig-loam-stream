@@ -5,6 +5,7 @@ import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge, UriEdge}
 import loamstream.loam.LoamToken.{StoreToken, StringToken}
 import loamstream.loam.ops.StoreType.TXT
 import loamstream.model.LId
+import loamstream.util.BashScript
 import org.scalatest.FunSuite
 
 /**
@@ -142,10 +143,10 @@ final class LoamCmdToolTest extends FunSuite {
     val inStoreWithUri = store[TXT].from(uri("xyz://host/dir/inStoreWithUri"))
     val outStoreWithUri = store[TXT].from(uri("xyz://host/dir/outStoreWithUri"))
     val tool = cmd"maker $inStoreWithPath $inStoreWithUri $outStoreWithPath $outStoreWithUri"
-    val inPath = inStoreWithPath.path
-    val outPath = outStoreWithPath.path
-    val inUri = inStoreWithUri.uriOpt.get
-    val outUri = outStoreWithUri.uriOpt.get
+    val inPath = BashScript.escapeString(inStoreWithPath.path.toString)
+    val outPath = BashScript.escapeString(outStoreWithPath.path.toString)
+    val inUri = BashScript.escapeString(inStoreWithUri.uriOpt.get.toString)
+    val outUri = BashScript.escapeString(outStoreWithUri.uriOpt.get.toString)
     val commandLineExpected = s"maker $inPath $inUri $outPath $outUri"
     assert(tool.commandLine === commandLineExpected)
   }

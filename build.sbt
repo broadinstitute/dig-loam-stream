@@ -14,6 +14,7 @@ lazy val Versions = new {
   val Slick = "3.1.1"
   val H2 = "1.4.192"
   val RxScala = "0.26.4"
+  val Scalariform = "0.1.8"
 }
 
 lazy val mainDeps = Seq(
@@ -29,7 +30,8 @@ lazy val mainDeps = Seq(
   "io.reactivex" %% "rxscala" % Versions.RxScala,
   "com.typesafe.slick" %% "slick" % Versions.Slick,
   "com.h2database" % "h2" % Versions.H2,
-  "org.rogach" %% "scallop" % Versions.Scallop
+  "org.rogach" %% "scallop" % Versions.Scallop,
+  "org.scalariform" %% "scalariform" % Versions.Scalariform
 )
 
 lazy val testDeps = Seq(

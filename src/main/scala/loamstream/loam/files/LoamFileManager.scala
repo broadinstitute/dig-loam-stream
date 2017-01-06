@@ -4,6 +4,7 @@ import java.nio.file.{Files, Path}
 
 import loamstream.loam.LoamStore
 import loamstream.util.ValueBox
+import loamstream.util.BashScript
 
 /**
   * LoamStream
@@ -29,7 +30,7 @@ final class LoamFileManager {
   }
 
   def getStoreString(store: LoamStore.Untyped): String = { 
-    pathsBox.getAndUpdate { paths =>
+    val rawString = pathsBox.getAndUpdate { paths =>
       paths.get(store).orElse(store.pathOpt).orElse(store.uriOpt) match {
         case Some(locator) => (paths, locator.toString)
         case None =>
@@ -38,5 +39,7 @@ final class LoamFileManager {
           (paths + (store -> path), path.toString)
       }
     }
+      
+    BashScript.escapeString(rawString)
   }
 }

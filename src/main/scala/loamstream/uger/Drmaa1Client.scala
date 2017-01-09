@@ -5,12 +5,7 @@ import java.nio.file.Path
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.util.{Success, Try}
-import org.ggf.drmaa.DrmaaException
-import org.ggf.drmaa.ExitTimeoutException
-import org.ggf.drmaa.JobTemplate
-import org.ggf.drmaa.NoActiveSessionException
-import org.ggf.drmaa.Session
-import org.ggf.drmaa.SessionFactory
+import org.ggf.drmaa._
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
 
@@ -113,10 +108,15 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }
       
     //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
-    waitAttempt.recover { case e: ExitTimeoutException => 
-      debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${UgerStatus.Running}")
-        
-      UgerStatus.Running
+    waitAttempt.recover {
+      case e: ExitTimeoutException =>
+        debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${UgerStatus.Running}")
+        UgerStatus.Running
+      case e: InvalidJobException =>
+        debug(s"Received InvalidJobException while 'wait'ing for job '$jobId'. " +
+          s"Assuming that the data records of the job was already reaped by a previous call, " +
+          s"and therefore mapping its status to ${UgerStatus.Done}")
+        UgerStatus.Done
     }
   }
   

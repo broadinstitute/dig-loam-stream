@@ -55,14 +55,20 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
   override def statusOf(jobId: String): Try[UgerStatus] = {
-    withSession { session =>
-      val status = session.getJobProgramStatus(jobId)
-      val jobStatus = UgerStatus.fromUgerStatusCode(status)
+    Try {
+      withSession { session =>
+        val status = session.getJobProgramStatus(jobId)
+        val jobStatus = UgerStatus.fromUgerStatusCode(status)
 
-      info(s"Job '$jobId' has status $status, mapped to $jobStatus")
+        info(s"Job '$jobId' has status $status, mapped to $jobStatus")
 
-      if (jobStatus.isFinished) { waitFor(jobId, Duration.Zero) }
-      else { Success(jobStatus) }
+        if (jobStatus.isFinished) {
+          doWait(session, jobId, Duration.Zero)
+        }
+        else {
+          jobStatus
+        }
+      }
     }
   }
 
@@ -160,7 +166,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     sessionBox.get { currentSession =>
       try { f(currentSession) } 
       catch {
-        case e: NoActiveSessionException => {
+        case e: DrmaaException => {
           warn(s"Got ${e.getClass.getSimpleName}; re-throwing", e)
           
           throw e

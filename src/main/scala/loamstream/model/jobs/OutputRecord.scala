@@ -59,10 +59,10 @@ object OutputRecord {
   def apply(path: Path): OutputRecord = OutputRecord(PathUtils.normalize(path))
 
   def apply(output: Output): OutputRecord = output.lastModified match {
-    case Some(timestamp) => OutputRecord( loc = output.location,
+    case tsOpt @ Some(_) => OutputRecord( loc = output.location,
                                           isPresent = true,
                                           hash = output.hash.map(_.valueAsHexString),
-                                          lastModified = Option(timestamp))
+                                          lastModified = tsOpt)
     case _ => OutputRecord( loc = output.location,
                             isPresent = false,
                             hash = None,

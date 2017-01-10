@@ -90,7 +90,7 @@ object LoamToScalaConverter extends Loggable {
     PathUtils.newRelative(first, rest: _*)
   }
   
-  private[util] def makeScalaFile(outputDir: Path, loamFile: Path, loamInfo: LoamFileInfo): Unit = {
+  private[util] def makeScalaFile(outputDir: Path, loamFile: Path, loamInfo: LoamFileInfo): Path = {
     
     val (_, contextValId: ObjectId, _) = makeProjectContextOwnerCode
     val relativeScriptPackageDir = getRelativeScriptPackageDir
@@ -115,15 +115,19 @@ object LoamToScalaConverter extends Loggable {
     Files.writeTo(scalaFile)(scalaCode)
       
     info(s"Created $scalaFile")
+    
+    scalaFile
   }
   
-  def convert(rootDir: Path, outputDir: Path, recursive: Boolean = true): Unit = {
+  def convert(rootDir: Path, outputDir: Path, recursive: Boolean = true): Seq[File] = {
+
+    info(s"Making dir: $outputDir")
+    
+    JFiles.createDirectories(outputDir)
     
     info(s"Looking at $rootDir.")
     
     val loamInfos = locateAndParseLoamFiles(rootDir, recursive)
-    
-    JFiles.createDirectories(outputDir)
 
     val (contextOwnerName, contextValId, contextOwnerCode) = makeProjectContextOwnerCode
     
@@ -141,17 +145,28 @@ object LoamToScalaConverter extends Loggable {
     
     info("Now writing Scala files derived from Loam scripts.")
     
-    for {
+    val scalaFiles = for {
       (loamFile, info) <- loamInfos
-    } {
+    } yield {
       makeScalaFile(outputDir, loamFile, info)
     }
     
+    val filesCreated = contextOwnerFile.toFile +: scalaFiles.toSeq.map(_.toFile)
+    
     info("Done")
+    
+    filesCreated
   }
   
   def main(args: Array[String]): Unit = {
-    //TODO: Don't hard-code output path
-    convert(Paths.get("src/main/loam/"), Paths.get("target/scala-2.11/src_managed/main"), recursive = true)
+    info(s"Running ${getClass.getSimpleName}.main with args ${args.map(s => s"'$s'").mkString(", ")}")
+    
+    val Array(inputDirString, outputDirString) = args
+
+    val inputDir = Paths.get(inputDirString)
+    
+    val outputDir = Paths.get(outputDirString)
+    
+    convert(inputDir, outputDir, recursive = true)
   }
 }

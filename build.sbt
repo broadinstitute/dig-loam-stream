@@ -8,6 +8,7 @@ lazy val Versions = new {
   val Htsjdk = "2.1.0"
   val LogBack = "1.1.6"
   val Scala = "2.11.8"
+  val ScalaMajor = "2.11"
   val ScalaTest = "3.0.0"
   val Scallop = "2.0.2"
   val TypesafeConfig = "1.3.0"
@@ -97,7 +98,10 @@ buildInfoTask := {
 
 (resourceGenerators in Compile) += buildInfoTask.taskValue
 
-val convertLoamsTask = taskKey[Unit]("convertLoams")
+val convertLoams = taskKey[Unit]("convertLoams")
 
 //TODO: Add this to sourceGenerators somehow
-convertLoamsTask := (runMain in Compile).toTask(" loamstream.util.LoamToScalaConverter").value
+//TODO: Don't hard-code output dir; unfortunately, (sourceManaged in Compile) doesn't work :(
+convertLoams := (runMain in Compile).toTask(" loamstream.util.LoamToScalaConverter src/main/loam/ target/scala-${Versions.ScalaMajor}/src_managed/main/").value
+
+

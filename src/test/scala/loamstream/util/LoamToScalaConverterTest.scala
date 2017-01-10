@@ -137,11 +137,13 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val script = LoamScript("a", read(a), None)
     
-    makeScalaFile(outputDir, a, LoamFileInfo(path("a.loam"), script))
+    val expectedScalaFile = path("target/loamstream/loam/scripts/a.scala")
+    
+    val actualScalaFile = makeScalaFile(outputDir, a, LoamFileInfo(path("a.loam"), script))
+    
+    assert(actualScalaFile === expectedScalaFile)
     
     def exists(p: Path) = p.toFile.exists
-    
-    val expectedScalaFile = path("target/loamstream/loam/scripts/a.scala")
     
     assert(exists(expectedScalaFile))
     
@@ -161,11 +163,13 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val script = LoamScript("x", read(x), Some(PackageId("subdir")))
     
-    makeScalaFile(outputDir, x, LoamFileInfo(path("subdir/x.loam"), script))
+    val expectedScalaFile = path("target/loamstream/loam/scripts/subdir/x.scala")
+    
+    val actualScalaFile = makeScalaFile(outputDir, x, LoamFileInfo(path("subdir/x.loam"), script))
+    
+    assert(actualScalaFile === expectedScalaFile)
     
     def exists(p: Path) = p.toFile.exists
-    
-    val expectedScalaFile = path("target/loamstream/loam/scripts/subdir/x.scala")
     
     assert(exists(expectedScalaFile))
     
@@ -174,5 +178,49 @@ final class LoamToScalaConverterTest extends FunSuite {
     val expectedCode = ScalaFormatter.format(script.asScalaCode(contextValId))
     
     assert(read(expectedScalaFile) === expectedCode)
+  }
+  
+  test("convert") {
+    val outputDir = path("target")
+    
+    val xLoam = path("src/test/loam/subdir/x.loam")
+    val yLoam = path("src/test/loam/subdir/y.loam")
+    
+    import Files.{ readFromAsUtf8 => read }
+    
+    val xScript = LoamScript("x", read(xLoam), None)
+    val yScript = LoamScript("y", read(yLoam), None)
+    
+    val expectedScalaFileX = path("target/loamstream/loam/scripts/x.scala")
+    val expectedScalaFileY = path("target/loamstream/loam/scripts/y.scala")
+    val expectedProjectContextOwnerScalaFile = path("target/loamstream/loam/scripts/LoamProjectContextOwner.scala")
+    
+    val filesMade = convert(path("src/test/loam/subdir"), outputDir)
+    
+    val projectContextOwnerFile = filesMade.head.toPath
+    
+    assert(projectContextOwnerFile === expectedProjectContextOwnerScalaFile)
+    
+    val actualScalaFilesMade = filesMade.drop(1).map(_.toPath)
+    
+    assert(actualScalaFilesMade.toSet === Set(expectedScalaFileX, expectedScalaFileY))
+    
+    def exists(p: Path) = p.toFile.exists
+    
+    assert(exists(expectedProjectContextOwnerScalaFile))
+    assert(exists(expectedScalaFileX))
+    assert(exists(expectedScalaFileY))
+    
+    val (_, contextValId: ObjectId, contextOwnerCode) = makeProjectContextOwnerCode
+    
+    val expectedCodeX = ScalaFormatter.format(xScript.asScalaCode(contextValId))
+    val expectedCodeY = ScalaFormatter.format(yScript.asScalaCode(contextValId))
+    
+    assert(read(expectedScalaFileX) === expectedCodeX)
+    assert(read(expectedScalaFileY) === expectedCodeY)
+    
+    val expectedProjectContextOwnerCode = ScalaFormatter.format(contextOwnerCode)
+    
+    assert(read(expectedProjectContextOwnerScalaFile) === expectedProjectContextOwnerCode)
   }
 }

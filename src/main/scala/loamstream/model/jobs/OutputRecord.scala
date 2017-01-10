@@ -46,9 +46,9 @@ final case class OutputRecord(loc: String,
 object OutputRecord {
   def apply(loc: String,
             hash: Option[String],
-            lastModified: Option[Instant]): OutputRecord = lastModified match {
-    case Some(_) => OutputRecord(loc, isPresent = true, hash, lastModified)
-    case _ => OutputRecord(loc, isPresent = false, hash, lastModified)
+            lastModified: Option[Instant]): OutputRecord = {
+
+    OutputRecord(loc, lastModified.isDefined, hash, lastModified)
   }
 
   def apply(loc: String): OutputRecord = OutputRecord(loc,

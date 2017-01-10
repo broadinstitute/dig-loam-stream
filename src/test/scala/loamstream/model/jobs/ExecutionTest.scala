@@ -16,35 +16,33 @@ final class ExecutionTest extends FunSuite {
   private val p1 = Paths.get("nuh")
   
   test("transformOutputs - no outputs") {
-    val noOutputs = Execution(JobState.Succeeded, Set.empty)
+    val noOutputs = Execution(JobState.Succeeded, Set.empty[OutputRecord])
     
-    val transformed = noOutputs.transformOutputs(os => os.map(_ => PathOutput(p0)))
+    val transformed = noOutputs.transformOutputs(os => os.map(_ => PathOutput(p0).toOutputRecord))
     
     assert(noOutputs === transformed)
   }
   
   test("transformOutputs - some outputs") {
-    val hasOutputs = Execution(JobState.Succeeded, Set(p0, p1).map(PathOutput(_)))
+    val hasOutputs = Execution(JobState.Succeeded, Set(p0, p1).map(PathOutput(_).toOutputRecord))
     
-    val munge: PartialFunction[Output, Output] = {
-      case PathOutput(path) => PathOutput(Paths.get(s"${path}123"))
-    }
-    
+    val munge: OutputRecord => OutputRecord = rec => OutputRecord(s"${rec.loc}123", None, None)
+
     val transformed = hasOutputs.transformOutputs(os => os.map(munge))
     
     assert(hasOutputs.exitState === transformed.exitState)
-    assert(transformed.outputs === Set(p0, p1).map(PathOutput(_)).map(munge))
+    assert(transformed.outputs === Set(p0, p1).map(PathOutput(_).toOutputRecord).map(munge))
   }
   
   test("isCommandExecution") {
     def assertIsCommandExecution(state: JobState): Unit = {
-      def execution(state: JobState) = Execution(state, Set.empty)
+      def execution(state: JobState) = Execution(state, Set.empty[OutputRecord])
       
       assert(execution(state).isCommandExecution)
     }
     
     def assertIsNOTCommandExecution(state: JobState): Unit = {
-      def execution(state: JobState) = Execution(state, Set.empty)
+      def execution(state: JobState) = Execution(state, Set.empty[OutputRecord])
       
       assert(!execution(state).isCommandExecution)
     }

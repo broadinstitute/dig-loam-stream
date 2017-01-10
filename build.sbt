@@ -102,6 +102,6 @@ val convertLoams = taskKey[Unit]("convertLoams")
 
 //TODO: Add this to sourceGenerators somehow
 //TODO: Don't hard-code output dir; unfortunately, (sourceManaged in Compile) doesn't work :(
-convertLoams := (runMain in Compile).toTask(" loamstream.util.LoamToScalaConverter src/main/loam/ target/scala-${Versions.ScalaMajor}/src_managed/main/").value
+convertLoams := (runMain in Compile).toTask(s" loamstream.util.LoamToScalaConverter src/main/loam/ target/scala-${Versions.ScalaMajor}/src_managed/main/").value
 
 

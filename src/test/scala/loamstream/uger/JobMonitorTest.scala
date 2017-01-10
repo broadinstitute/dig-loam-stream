@@ -38,7 +38,7 @@ final class JobMonitorTest extends FunSuite {
   }
   
   test("monitor() - happy path") {
-    import JobStatus._
+    import UgerStatus._
     
     val jobId1 = "foo"
     val jobId2 = "bar"
@@ -60,7 +60,7 @@ final class JobMonitorTest extends FunSuite {
     withThreadPoolScheduler(3) { scheduler =>
       val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)
     
-      def futureStatuses(jobId: String): Future[Seq[JobStatus]] = statuses(jobId).to[Seq].firstAsFuture
+      def futureStatuses(jobId: String): Future[Seq[UgerStatus]] = statuses(jobId).to[Seq].firstAsFuture
     
       val fut1 = futureStatuses(jobId1)
       val fut2 = futureStatuses(jobId2)

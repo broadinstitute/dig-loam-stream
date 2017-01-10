@@ -29,7 +29,7 @@ object Poller {
       def statusAttempt(jobId: String): Try[UgerStatus] = {
         
         val result = client.statusOf(jobId).recoverWith { case e: InvalidJobException => 
-          warn(s"Job '$jobId': Got an ${e.getClass.getSimpleName} when calling statusOf(); trying waitFor()", e)
+          debug(s"Job '$jobId': Got an ${e.getClass.getSimpleName} when calling statusOf(); trying waitFor()", e)
           
           client.waitFor(jobId, Duration.Zero)
         }

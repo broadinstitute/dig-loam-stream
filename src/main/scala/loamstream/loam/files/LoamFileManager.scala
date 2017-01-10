@@ -3,6 +3,7 @@ package loamstream.loam.files
 import java.nio.file.{Files, Path}
 
 import loamstream.loam.LoamStore
+import loamstream.util.BashScript
 
 /**
   * LoamStream
@@ -28,7 +29,7 @@ final class LoamFileManager {
   }
 
   def getStoreString(store: LoamStore.Untyped): String = lock.synchronized {
-    paths.get(store).orElse(store.pathOpt).orElse(store.uriOpt) match {
+    val rawString = paths.get(store).orElse(store.pathOpt).orElse(store.uriOpt) match {
       case Some(locator) => locator.toString
       case None =>
         val fileSuffix = FileSuffixes(store.sig.tpe)
@@ -36,5 +37,6 @@ final class LoamFileManager {
         paths += store -> path
         path.toString
     }
+    BashScript.escapeString(rawString)
   }
 }

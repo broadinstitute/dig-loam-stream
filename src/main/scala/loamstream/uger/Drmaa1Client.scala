@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
-import scala.util.{Success, Try}
+import scala.util.Try
 import org.ggf.drmaa._
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
@@ -167,7 +167,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       try { f(currentSession) } 
       catch {
         case e: DrmaaException => {
-          warn(s"Got ${e.getClass.getSimpleName}; re-throwing", e)
+          debug(s"Got ${e.getClass.getSimpleName}; re-throwing", e)
           
           throw e
         }

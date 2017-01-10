@@ -1,6 +1,5 @@
 package loamstream.uger
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 import scala.util.Try
 

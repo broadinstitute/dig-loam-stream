@@ -1,6 +1,5 @@
 package loamstream.util
 
-import scala.collection.mutable.WrappedArray
 import scala.util.Try
 import javax.xml.bind.DatatypeConverter
 

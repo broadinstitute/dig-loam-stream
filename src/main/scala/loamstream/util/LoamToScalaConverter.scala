@@ -30,7 +30,7 @@ object LoamToScalaConverter extends Loggable {
     require(isDir(rootDir))
     
     def list(dir: Path, pred: Path => Boolean): Seq[Path] = {
-      JFiles.list(rootDir).iterator.asScala.filter(_ != null).filter(pred).toIndexedSeq
+      JFiles.list(rootDir).iterator.asScala.filter(pred).toIndexedSeq
     }
     
     val loams: Seq[Path] = list(rootDir, isLoamFile)

@@ -6,7 +6,6 @@ import loamstream.util.Hash
 import loamstream.util.Hashes
 import java.time.Instant
 import loamstream.util.PathUtils
-import java.nio.file.Paths
 
 /**
  * @author clint

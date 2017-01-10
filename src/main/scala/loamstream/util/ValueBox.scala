@@ -30,6 +30,8 @@ final class ValueBox[A](init: A) {
     this
   }
   
+  def :=(a: A): ValueBox[A] = update(a)
+  
   /** Changes the value by applying a function to it */
   def mutate(f: A => A): ValueBox[A] = lock.synchronized {
     update(f(value))

@@ -4,6 +4,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import loamstream.util.Sequence
 import loamstream.util.ValueBox
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
  * @author clint
@@ -15,6 +16,8 @@ class MockJob(
     override val inputs: Set[LJob], 
     val outputs: Set[Output], 
     val delay: Int) extends LJob {
+  
+  override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
   
   val id: Int = MockJob.nextId()
   
@@ -30,6 +33,8 @@ class MockJob(
       Thread.sleep(delay)
     }
 
+    updateAndEmitJobState(toReturn)
+    
     Future.successful(toReturn)
   }
   

@@ -1,10 +1,8 @@
 package loamstream.model.execute
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -13,5 +11,7 @@ import loamstream.model.jobs.LJob
 trait ChunkRunner {
   def maxNumJobs: Int
   
-  def run(leaves: Set[LJob])(implicit context: ExecutionContext): Future[Map[LJob, JobState]]
+  def canRun(job: LJob): Boolean
+  
+  def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]]
 }

@@ -3,9 +3,10 @@ package loamstream.model.jobs
 import java.nio.file.Files
 import java.nio.file.Path
 
-import loamstream.util.{Hash, Hashes, PathUtils}
+import loamstream.util.{Hash, Hashes}
 import java.time.Instant
 import java.nio.file.Paths
+import loamstream.util.PathUtils
 
 /**
  * @author clint

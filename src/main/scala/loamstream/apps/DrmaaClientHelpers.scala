@@ -14,19 +14,13 @@ import org.ggf.drmaa.DrmaaException
 trait DrmaaClientHelpers extends Loggable {
   private[apps] def makeDrmaaClient: DrmaaClient = DrmaaClient.drmaa1(new Drmaa1Client)
   
-  private[apps] def getDrmaaClient: (DrmaaClient, () => Unit) = {
-    val client = makeDrmaaClient
-    
-    (client, () => client.shutdown())
-  }
-  
   private[apps] def withClient(f: DrmaaClient => Unit): Unit = {
-    val (drmaaClient, shutdown) = getDrmaaClient
+    val drmaaClient = makeDrmaaClient
     
     try { f(drmaaClient) }
     catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
     }
-    finally { shutdown() }
+    finally { drmaaClient.stop() }
   }
 }

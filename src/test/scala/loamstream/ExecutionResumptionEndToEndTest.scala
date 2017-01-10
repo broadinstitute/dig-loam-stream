@@ -13,6 +13,8 @@ import loamstream.model.jobs.{JobState, LJob, Output, OutputRecord}
 import loamstream.util.code.SourceUtils
 import loamstream.util.{Loggable, Sequence}
 import org.scalatest.{FunSuite, Matchers}
+import loamstream.model.execute.AsyncLocalChunkRunner
+import scala.concurrent.ExecutionContext
 
 /**
   * @author kaan
@@ -256,9 +258,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   }
 
   private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
-    val asyncChunkRunner = RxExecuter.AsyncLocalChunkRunner
+    val asyncChunkRunner = AsyncLocalChunkRunner()(ExecutionContext.global)
 
-    val mockRunner = MockChunkRunner(asyncChunkRunner, asyncChunkRunner.maxNumJobs)
+    val mockRunner = MockChunkRunner(asyncChunkRunner)
 
     (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
   }

@@ -2,18 +2,23 @@ package loamstream.model.jobs.commandline
 
 import java.nio.file.{Path, Files => JFiles}
 
-import loamstream.model.jobs.{JobState, LJob}
-import loamstream.util.{Futures, Loggable}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.sys.process.ProcessBuilder
+import scala.sys.process.ProcessLogger
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.sys.process.{ProcessBuilder, ProcessLogger}
+import loamstream.model.jobs.JobState
+import loamstream.model.jobs.LJob
+import loamstream.util.Futures
+import loamstream.util.Loggable
+
 
 /**
   * LoamStream
   * Created by oliverr on 6/17/2016.
+  * 
+  * A job based on a command line definition 
   */
-
-/** A job based on a command line definition */
 trait CommandLineJob extends LJob {
   def workDir: Path
 
@@ -32,7 +37,9 @@ trait CommandLineJob extends LJob {
   override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
     Futures.runBlocking {
       trace(s"RUNNING: $commandLineString")
+
       JFiles.createDirectories(workDir)
+      
       val exitValue = processBuilder.run(logger).exitValue
 
       if (exitValueIsOk(exitValue)) {

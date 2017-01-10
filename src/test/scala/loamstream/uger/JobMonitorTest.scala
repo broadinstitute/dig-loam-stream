@@ -10,6 +10,7 @@ import loamstream.util.ObservableEnrichments
 import scala.concurrent.Future
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.RxSchedulers
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
@@ -19,9 +20,7 @@ final class JobMonitorTest extends FunSuite {
   private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf) 
   
   test("stop()") {
-    val (scheduler, handle) = RxSchedulers.backedByThreadPool(1)
-    
-    try {
+    withThreadPoolScheduler(1) { scheduler =>
       val client = MockDrmaaClient(Map.empty)
       
       val jobMonitor = new JobMonitor(scheduler, Poller.drmaa(client))
@@ -35,13 +34,11 @@ final class JobMonitorTest extends FunSuite {
       jobMonitor.stop()
       
       assert(jobMonitor.isStopped)
-    } finally { 
-      handle.shutdown() 
     }
   }
   
   test("monitor() - happy path") {
-    import JobStatus._
+    import UgerStatus._
     
     val jobId1 = "foo"
     val jobId2 = "bar"
@@ -60,12 +57,10 @@ final class JobMonitorTest extends FunSuite {
     
     val poller = Poller.drmaa(client)
     
-    val (scheduler, handle) = RxSchedulers.backedByThreadPool(3)
-    
-    try {
+    withThreadPoolScheduler(3) { scheduler =>
       val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)
     
-      def futureStatuses(jobId: String): Future[Seq[JobStatus]] = statuses(jobId).to[Seq].firstAsFuture
+      def futureStatuses(jobId: String): Future[Seq[UgerStatus]] = statuses(jobId).to[Seq].firstAsFuture
     
       val fut1 = futureStatuses(jobId1)
       val fut2 = futureStatuses(jobId2)
@@ -74,8 +69,13 @@ final class JobMonitorTest extends FunSuite {
       assert(waitFor(fut1) == Seq(Queued, Running, Done))
       assert(waitFor(fut2) == Seq(Running, Done))
       assert(waitFor(fut3) == Seq(Running, Done))
-    } finally {
-      handle.shutdown()
     }
+  }
+  
+  private def withThreadPoolScheduler[A](numThreads: Int)(f: Scheduler => A): A = {
+    val (scheduler, handle) = RxSchedulers.backedByThreadPool(numThreads)
+    
+    try { f(scheduler) }
+    finally { handle.stop() }
   }
 }

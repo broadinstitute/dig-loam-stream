@@ -1,13 +1,26 @@
 package loamstream.compiler
 
-import java.nio.file.{Path, Paths, Files => JFiles}
+import java.nio.file.{ Files => JFiles }
+import java.nio.file.Path
+import java.nio.file.Paths
 
-import loamstream.compiler.messages.{ClientMessageHandler, ErrorOutMessage, StatusOutMessage}
+import loamstream.compiler.messages.ClientMessageHandler
+import loamstream.compiler.messages.ErrorOutMessage
+import loamstream.compiler.messages.StatusOutMessage
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScript
+import loamstream.loam.LoamToolBox
 import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.loam.{LoamProjectContext, LoamScript, LoamToolBox}
-import loamstream.model.execute.{Executable, Executer, RxExecuter}
-import loamstream.model.jobs.{JobState, LJob}
-import loamstream.util.{Hit, Miss, Shot, StringUtils}
+import loamstream.model.execute.Executer
+import loamstream.util.Hit
+import loamstream.model.jobs.LJob
+import loamstream.util.Shot
+import loamstream.util.Miss
+import loamstream.model.jobs.JobState
+import loamstream.util.Loggable
+import loamstream.model.execute.RxExecuter
+import loamstream.model.execute.Executable
+import loamstream.util.StringUtils
 
 
 /**
@@ -27,7 +40,7 @@ object LoamEngine {
 }
 
 final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
-                            outMessageSink: ClientMessageHandler.OutMessageSink) {
+                            outMessageSink: ClientMessageHandler.OutMessageSink) extends Loggable {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
     val message = shot match {
@@ -50,9 +63,8 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
         Miss(s"Could not find '$file'.")
       }
     }
-
+    
     import JFiles.readAllBytes
-
     import StringUtils.fromUtf8Bytes
 
     val codeShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
@@ -141,9 +153,21 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
     mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded
   }
 
+  private def log(executable: Executable): Unit = {
+    val buffer = new StringBuilder
+    
+    def doLog(s: String) = buffer.append(s"\n$s")
+    
+    executable.jobs.headOption.foreach(_.print(doPrint = doLog))
+    
+    debug(s"Job tree: $buffer")
+  }
+  
   def run(context: LoamProjectContext): Map[LJob, JobState] = {
     val executable = toExecutable(context)
 
+    log(executable)
+    
     outMessageSink.send(StatusOutMessage("Now going to execute."))
 
     val jobResults = executer.execute(executable)
@@ -162,14 +186,14 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
   def run(project: LoamProject): LoamEngine.Result = {
     outMessageSink.send(StatusOutMessage(s"Now compiling project with ${project.scripts.size} scripts."))
     val compileResults = compile(project)
-    if (!compileResults.isValid) {
-      outMessageSink.send(ErrorOutMessage("Could not compile."))
-      LoamEngine.Result(Hit(project), Hit(compileResults), Miss("Could not compile"))
-    } else {
+    if (compileResults.isValid) {
       outMessageSink.send(StatusOutMessage(compileResults.summary))
       val context = compileResults.contextOpt.get
       val jobResults = run(context)
       LoamEngine.Result(Hit(project), Hit(compileResults), Hit(jobResults))
+    } else {
+      outMessageSink.send(ErrorOutMessage("Could not compile."))
+      LoamEngine.Result(Hit(project), Hit(compileResults), Miss("Could not compile"))
     }
   }
 }

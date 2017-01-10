@@ -15,7 +15,7 @@ import scala.util.Try
  * date: Jul 6, 2016
  */
 final class PollerTest extends FunSuite {
-  import JobStatus._
+  import UgerStatus._
   import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.duration._
   import ObservableEnrichments._
@@ -61,7 +61,7 @@ final class PollerTest extends FunSuite {
     
     val poller = Poller.drmaa(client)
   
-    def poll: Map[String, Try[JobStatus]] = poller.poll(jobIds)
+    def poll: Map[String, Try[UgerStatus]] = poller.poll(jobIds)
     
     {
       val expected = Map(

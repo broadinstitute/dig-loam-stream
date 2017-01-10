@@ -12,6 +12,7 @@ import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.observables.ConnectableObservable
 import rx.schedulers.Schedulers
 import loamstream.util.ValueBox
+import loamstream.util.Terminable
 
 /**
  * @author clint
@@ -22,7 +23,7 @@ import loamstream.util.ValueBox
 final class JobMonitor(
     scheduler: Scheduler = IOScheduler(),
     poller: Poller, 
-    pollingFrequencyInHz: Double = 1.0) extends Loggable {
+    pollingFrequencyInHz: Double = 1.0) extends Terminable with Loggable {
   
   private[this] val _isStopped: ValueBox[Boolean] = ValueBox(false)
   
@@ -31,7 +32,7 @@ final class JobMonitor(
   /**
    * Stop all polling and prevent further polling by this JobMonitor.  Useful at app-shutdown-time. 
    */
-  def stop(): Unit = {
+  override def stop(): Unit = {
     _isStopped.update(true)
   }
   
@@ -46,7 +47,7 @@ final class JobMonitor(
    * @return a map of job ids to Observable streams of statuses for each job. The statuses are the result of polling 
    * UGER *synchronously* via the supplied poller at the supplied rate.
    */
-  def monitor(jobIds: Iterable[String]): Map[String, Observable[JobStatus]] = {
+  def monitor(jobIds: Iterable[String]): Map[String, Observable[UgerStatus]] = {
     
     import scala.concurrent.duration._
     
@@ -61,7 +62,7 @@ final class JobMonitor(
     
     val ticks = Observable.interval(period, scheduler).share
     
-    def poll(): Map[String, Try[JobStatus]] = poller.poll(jobIds)
+    def poll(): Map[String, Try[UgerStatus]] = poller.poll(jobIds)
     
     def shouldContinue = !isStopped && keepPolling()
     
@@ -78,7 +79,7 @@ final class JobMonitor(
     //polling, driven by `ticks` keeps going for a little while after.
     val pollResults = ticks.takeWhile(_ => shouldContinue).map(_ => poll()).until(allFinished(keepPolling)).replay
     
-    val byJobId: Map[String, Observable[Try[JobStatus]]] = demultiplex(jobIds, pollResults)
+    val byJobId: Map[String, Observable[Try[UgerStatus]]] = demultiplex(jobIds, pollResults)
 
     val result = byJobId.map(unpackThenFilterThenLimit)
     
@@ -100,12 +101,12 @@ final class JobMonitor(
    * JobStatus.isFinished)
    */
   private[uger] def unpackThenFilterThenLimit(
-      jobStatusTuple: (String, Observable[Try[JobStatus]])): (String, Observable[JobStatus]) = {
+      jobStatusTuple: (String, Observable[Try[UgerStatus]])): (String, Observable[UgerStatus]) = {
     
     val (jobId, statusAttempts) = jobStatusTuple
     
     import ObservableEnrichments._
-    import JobStatus.{DoneUndetermined, Undetermined}
+    import UgerStatus.{DoneUndetermined, Undetermined}
     
     val statuses = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
       //NB: DRMAA might not report when jobs are done, say if it hasn't cached the final status of a job, so we 
@@ -146,7 +147,7 @@ final class JobMonitor(
    */
   private[uger] def demultiplex(
       jobIds: Iterable[String],
-      multiplexed: ConnectableObservable[Map[String, Try[JobStatus]]]): Map[String, Observable[Try[JobStatus]]] = {
+      multiplexed: ConnectableObservable[Map[String, Try[UgerStatus]]]): Map[String, Observable[Try[UgerStatus]]] = {
     
     val tuples = for {
       jobId <- jobIds
@@ -159,8 +160,8 @@ final class JobMonitor(
     tuples.toMap
   }
 
-  private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[JobStatus]]): Boolean = {
-    def unpack(attempt: Try[JobStatus]): JobStatus = attempt.getOrElse(JobStatus.Undetermined)
+  private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[UgerStatus]]): Boolean = {
+    def unpack(attempt: Try[UgerStatus]): UgerStatus = attempt.getOrElse(UgerStatus.Undetermined)
     
     val result = pollResults.values.map(unpack).forall(_.isFinished)
     

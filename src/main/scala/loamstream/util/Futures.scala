@@ -18,7 +18,12 @@ object Futures {
    */
   def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
   
-  def runBlocking[A](f: => A)(implicit context: ExecutionContext): Future[A] = Future(blocking(f))
+  /**
+   * Runs a block of code in a Future, marking the code chunk as blocking.
+   * 
+   * @param a the block of code to run
+   */
+  def runBlocking[A](a: => A)(implicit context: ExecutionContext): Future[A] = Future(blocking(a))
   
   /**
    * Folds a bunch of keys and future-values into a future map of keys to values

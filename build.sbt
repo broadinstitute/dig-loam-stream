@@ -1,7 +1,7 @@
 import sbt.project
 
 lazy val Versions = new {
-  val App = "1.0-rc1"
+  val App = "1.2-SNAPSHOT"
   val ApacheCommonsIO = "2.4"
   val DrmaaCommon = "1.0"
   val DrmaaGridEngine = "6.2u5"
@@ -13,7 +13,7 @@ lazy val Versions = new {
   val TypesafeConfig = "1.3.0"
   val Slick = "3.1.1"
   val H2 = "1.4.192"
-  val RxScala = "0.26.2"
+  val RxScala = "0.26.4"
 }
 
 lazy val mainDeps = Seq(

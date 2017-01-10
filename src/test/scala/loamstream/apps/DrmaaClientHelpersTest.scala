@@ -10,7 +10,7 @@ import org.ggf.drmaa.DrmaaException
 import org.scalatest.FunSuite
 
 import loamstream.uger.DrmaaClient
-import loamstream.uger.JobStatus
+import loamstream.uger.UgerStatus
 
 /**
  * @author clint
@@ -78,11 +78,11 @@ object DrmaaClientHelpersTest {
       jobName: String, 
       numTasks: Int = 1): DrmaaClient.SubmissionResult = ???
     
-    override def statusOf(jobId: String): Try[JobStatus] = ???
+    override def statusOf(jobId: String): Try[UgerStatus] = ???
   
-    override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = ???
+    override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = ???
   
-    override def shutdown(): Unit = {
+    override def stop(): Unit = {
       isShutdown = true
     }
   }

@@ -38,22 +38,50 @@ object LoamScript {
       Miss(s"Missing suffix $fileSuffix")
     }
   }
+  
+  def nameAndEnclosingDirFromFilePath(path: Path, rootDir: Path): Shot[(String, Option[Path])] = {
+    val fileName = path.getFileName.toString
+    
+    if (fileName.endsWith(fileSuffix)) {
+      //NB: the result of .getParent might be null
+      val relativeEnclosingDir = Option(rootDir.relativize(path).getParent)
+      
+      Hit(fileName.dropRight(fileSuffix.length) -> relativeEnclosingDir)
+    } else {
+      Miss(s"Missing suffix $fileSuffix")
+    }
+  }
 
   /** Converts Loam code fragment into Loam script, adding a auto-generated name */
   def withGeneratedName(code: String): LoamScript = {
     val index = generatedNameIndices.next()
     val name = s"$generatedNameBase${StringUtils.leftPadTo(index.toString, "0", 3)}"
-    LoamScript(name, code)
+    LoamScript(name, code, None)
   }
 
   /** Tries to read Loam script from file, deriving script name from file path. */
   def read(path: Path): Shot[LoamScript] = {
-    nameFromFilePath(path).flatMap({ name =>
-      Shot.fromTry(Try {
-        val code = StringUtils.fromUtf8Bytes(Files.readAllBytes(path))
-        LoamScript(name, code)
-      })
-    })
+    nameFromFilePath(path).flatMap { name =>
+      Shot {
+        val code = loamstream.util.Files.readFromAsUtf8(path)
+        
+        LoamScript(name, code, None)
+      }
+    }
+  }
+  
+  def read(path: Path, rootDir: Path): Shot[LoamScript] = {
+    nameAndEnclosingDirFromFilePath(path, rootDir).flatMap { case (name, enclosingDir) =>
+      Shot {
+        val code = loamstream.util.Files.readFromAsUtf8(path)
+        
+        import scala.collection.JavaConverters._
+        
+        val optionalPackageParts = enclosingDir.map(_.iterator.asScala.toIndexedSeq.map(_.toString))
+        
+        LoamScript(name, code, optionalPackageParts.map(PackageId(_)))
+      }
+    }
   }
 
   /** A wrapper type for Loam scripts */
@@ -69,25 +97,25 @@ object LoamScript {
   }
 
   /** ScalaIds required to be loaded  */
-  val requiredScalaIds: Set[ScalaId] =
-  Set(ScalaId.from[LoamPredef.type],
-    ScalaId.from[StoreType.VCF],
-    ScalaId.from[StoreType.TXT],
-    ScalaId.from[StoreType.BIM],
-    ScalaId.from[LoamCmdTool.type],
-    ScalaId.from[LoamCmdTool.StringContextWithCmd],
-    ScalaId.from[PathEnrichments.type],
-    ScalaId.from[PathEnrichments.PathHelpers],
-    ScalaId.from[PathEnrichments.PathAttemptHelpers],
-    ScalaId.from[LoamScriptContext],
-    ScalaId.from[LoamProjectContext],
-    ScalaId.from[LoamProjectContext.type]
-  )
-
+  val requiredScalaIds: Set[ScalaId] = {
+    Set(ScalaId.from[LoamPredef.type],
+      ScalaId.from[StoreType.VCF],
+      ScalaId.from[StoreType.TXT],
+      ScalaId.from[StoreType.BIM],
+      ScalaId.from[LoamCmdTool.type],
+      ScalaId.from[LoamCmdTool.StringContextWithCmd],
+      ScalaId.from[PathEnrichments.type],
+      ScalaId.from[PathEnrichments.PathHelpers],
+      ScalaId.from[PathEnrichments.PathAttemptHelpers],
+      ScalaId.from[LoamScriptContext],
+      ScalaId.from[LoamProjectContext],
+      ScalaId.from[LoamProjectContext.type]
+    )
+  }
 }
 
 /** A named Loam script */
-case class LoamScript(name: String, code: String) {
+final case class LoamScript(name: String, code: String, subPackage: Option[PackageId] = None) {
 
   /** Scala id of object corresponding to this Loam script */
   def scalaId: ObjectId = ObjectId(scriptsPackage, name)
@@ -107,8 +135,13 @@ case class LoamScript(name: String, code: String) {
   asScalaCode(s"new LoamScriptContext(${projectContextId.inScalaFull})")
 
   /** Convert to Scala code, provided code to create or obtain Loam project context */
-  def asScalaCode(loamScriptContextCode: String): String =
-  s"""package ${LoamScript.scriptsPackage.inScalaFull}
+  def asScalaCode(loamScriptContextCode: String): String = {
+    val packageForThisScript = subPackage match {
+      case Some(subP) => LoamScript.scriptsPackage.getPackage(subP.inScala)
+      case None => LoamScript.scriptsPackage
+    }
+    
+    s"""package ${packageForThisScript.inScalaFull}
 
 import ${ScalaId.from[LoamPredef.type].inScalaFull}._
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
@@ -145,7 +178,8 @@ ${code.trim}
 
 //  = = =  Loam code above here  = = =
 }
+// scalastyle:on object.name
 """
-
+  }
 
 }

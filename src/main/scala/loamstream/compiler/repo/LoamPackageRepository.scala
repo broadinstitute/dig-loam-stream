@@ -32,7 +32,7 @@ final case class LoamPackageRepository(packageName: String, entries: Seq[String]
     iStreamShot.map { is =>
       val content = Source.fromInputStream(is)(Codec.UTF8).mkString
 
-      LoamScript(name, content)
+      LoamScript(name, content, None)
     }
   }
 

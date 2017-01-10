@@ -96,3 +96,7 @@ buildInfoTask := {
 }
 
 (resourceGenerators in Compile) += buildInfoTask.taskValue
+
+val convertLoamsTask = taskKey[Unit]("convertLoams")
+
+convertLoamsTask := (runMain in Compile).toTask(" loamstream.util.LoamToScalaConverter").value

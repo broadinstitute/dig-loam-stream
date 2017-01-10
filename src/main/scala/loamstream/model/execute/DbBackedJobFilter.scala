@@ -26,7 +26,7 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     dao.insertExecutions(insertableExecutions)
   }
 
-  private def needsToBeRun(rec: OutputRecord): Boolean = {
+  private[execute] def needsToBeRun(rec: OutputRecord): Boolean = {
     rec.isMissing || isOlder(rec) || notHashed(rec) || hasDifferentHash(rec)
   }
 
@@ -45,14 +45,14 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
 
   private def notHashed(rec: OutputRecord): Boolean = !isHashed(rec)
 
-  private def hasDifferentHash(rec: OutputRecord): Boolean = {
+  private[execute] def hasDifferentHash(rec: OutputRecord): Boolean = {
     findOutput(rec.loc) match {
       case Some(matchingRec) => matchingRec.hasDifferentHashThan(rec)
       case None => false
     }
   }
 
-  private def isOlder(currentRec: OutputRecord): Boolean = {
+  private[execute] def isOlder(currentRec: OutputRecord): Boolean = {
     findOutput(currentRec.loc) match {
       case Some(matchingRec) => currentRec.isOlderThan(matchingRec)
       case None => false

@@ -108,8 +108,8 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     
     //TODO: A better way to enable or disable Google support; for now, this is purely expedient
     if(result.isEmpty) {
-      val msg = s"""Google Cloud support NOT enabled; enable it by defining loamstream.googlecloud section 
-                   |in the config file (${cli.conf.toOption}).""".stripMargin
+      val msg = s"""Google Cloud support NOT enabled because ${attempt.failed.get.getMessage}
+                   |in the config file (${cli.conf.toOption.get})""".stripMargin
         
       info(msg)
     }
@@ -122,8 +122,8 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
     if(ugerRunnerOption.isEmpty) {
-      val msg = s"""Uger support NOT enabled; enable it by defining loamstream.uger section 
-                   |in the config file (${cli.conf.toOption}).""".stripMargin
+      val msg = s"""Uger support is NOT enabled. It can be enabled by defining loamstream.uger section
+                   |in the config file (${cli.conf.toOption.get}).""".stripMargin
         
       info(msg)
     }

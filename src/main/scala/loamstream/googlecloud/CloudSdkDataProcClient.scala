@@ -91,8 +91,10 @@ object CloudSdkDataProcClient extends Loggable {
     debug(s"Running Google Cloud SDK command: '$commandStringApproximation'")
     
     import scala.sys.process._
-    
-    val processLogger = ProcessLogger(line => info(s"STDOUT: $line"), line => error(s"STDERR: $line"))
+
+    // STDERR messages aren't logged as 'error' because 'gcloud' appears to write a lot of non-error
+    // messages to STDERR
+    val processLogger = ProcessLogger(line => info(s"STDOUT: $line"), line => info(s"STDERR: $line"))
     
     val result = Process(tokens).!(processLogger)
     

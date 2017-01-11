@@ -12,24 +12,25 @@ import GoogleCloudConfig.Defaults
  */
 final case class GoogleCloudConfig(
     gcloudBinaryPath: Path, 
-    projectId: String, //broadinstitute.com:cmi-gce-01
-    clusterId: String, //"minimal"
-    numWorkers: Int, //min 2
+    projectId: String,
+    clusterId: String,
     zone: String = Defaults.zone,
     masterMachineType: String = Defaults.masterMachineType,
-    masterBootDiskSize: Int = Defaults.masterBootDiskSize, //GB
+    masterBootDiskSize: Int = Defaults.masterBootDiskSize, // in GB
+    numWorkers: Int = Defaults.numWorkers, // minimum 2
     workerMachineType: String = Defaults.workerMachineType,
-    workerBootDiskSize: Int = Defaults.workerBootDiskSize, //GB
-    imageVersion: String = Defaults.imageVersion,
+    workerBootDiskSize: Int = Defaults.workerBootDiskSize, // in GB
+    imageVersion: String = Defaults.imageVersion, // 2.x not supported by Hail
     scopes: String = Defaults.scopes)
     
 object GoogleCloudConfig {
-  object Defaults {
+  object Defaults { // for creating a minimal cluster
     val zone: String = "us-central1-f"
     val masterMachineType: String = "n1-standard-1"
-    val masterBootDiskSize: Int = 20 //GB
+    val masterBootDiskSize: Int = 20
+    val numWorkers: Int = 2
     val workerMachineType: String ="n1-standard-1"
-    val workerBootDiskSize: Int = 20 //GB
+    val workerBootDiskSize: Int = 20
     val imageVersion: String = "1.0"
     val scopes: String = "https://www.googleapis.com/auth/cloud-platform"
   }
@@ -51,10 +52,10 @@ object GoogleCloudConfig {
       gcloudBinaryPath <- tryGetPath("gcloudBinaryPath")
       projectId <- tryGetString("projectId")
       clusterId <- tryGetString("clusterId")
-      numWorkers <- tryGetInt("numWorkers")
       zone = getStringOrElse("zone", Defaults.zone)
       masterMachineType = getStringOrElse("masterMachineType", Defaults.masterMachineType)
       masterBootDiskSize = getIntOrElse("masterBootDiskSize", Defaults.masterBootDiskSize)
+      numWorkers = getIntOrElse("numWorkers", Defaults.numWorkers)
       workerMachineType = getStringOrElse("workerMachineType", Defaults.workerMachineType)
       workerBootDiskSize = getIntOrElse("workerBootDiskSize", Defaults.workerBootDiskSize)
       imageVersion = getStringOrElse("imageVersion", Defaults.imageVersion)
@@ -64,10 +65,10 @@ object GoogleCloudConfig {
         gcloudBinaryPath, 
         projectId,
         clusterId,
-        numWorkers,
         zone,
         masterMachineType,
         masterBootDiskSize,
+        numWorkers,
         workerMachineType,
         workerBootDiskSize,
         imageVersion,

@@ -14,12 +14,12 @@ final case class GoogleCloudConfig(
     gcloudBinaryPath: Path, 
     projectId: String, //broadinstitute.com:cmi-gce-01
     clusterId: String, //"minimal"
-    numWorkers: Int, //2
+    numWorkers: Int, //min 2
     zone: String = Defaults.zone,
     masterMachineType: String = Defaults.masterMachineType,
-    masterBootDiskSize: Int = Defaults.masterBootDiskSize, //gigs?
+    masterBootDiskSize: Int = Defaults.masterBootDiskSize, //GB
     workerMachineType: String = Defaults.workerMachineType,
-    workerBootDiskSize: Int = Defaults.workerBootDiskSize, //gigs?
+    workerBootDiskSize: Int = Defaults.workerBootDiskSize, //GB
     imageVersion: String = Defaults.imageVersion,
     scopes: String = Defaults.scopes)
     
@@ -27,9 +27,9 @@ object GoogleCloudConfig {
   object Defaults {
     val zone: String = "us-central1-f"
     val masterMachineType: String = "n1-standard-1"
-    val masterBootDiskSize: Int = 20 //gigs?
+    val masterBootDiskSize: Int = 20 //GB
     val workerMachineType: String ="n1-standard-1"
-    val workerBootDiskSize: Int = 20 //gigs?
+    val workerBootDiskSize: Int = 20 //GB
     val imageVersion: String = "1.0"
     val scopes: String = "https://www.googleapis.com/auth/cloud-platform"
   }

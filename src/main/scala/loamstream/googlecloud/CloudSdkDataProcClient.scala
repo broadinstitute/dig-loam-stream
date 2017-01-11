@@ -1,6 +1,5 @@
 package loamstream.googlecloud
 
-import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Loggable
 import loamstream.util.PathUtils.normalize
 import scala.util.Try

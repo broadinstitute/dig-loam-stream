@@ -88,8 +88,8 @@ final case class RxExecuter(
   }
   
   private def record(newResultMap: Map[LJob, JobState]): Unit = {
-    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
-        
+    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs.map(_.toOutputRecord)) }
+
     debug(s"Recording Executions (${executions.size}): $executions")
     
     jobFilter.record(executions)

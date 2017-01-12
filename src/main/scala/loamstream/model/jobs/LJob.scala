@@ -15,8 +15,10 @@ import rx.lang.scala.subjects.ReplaySubject
 
 
 /**
- * LoamStream
- * Created by oliverr on 12/23/2015.
+ * @author oliverr
+ *         clint
+ *         kyuksel
+ * date: Dec 23, 2015
  */
 trait LJob extends Loggable {
   def executionEnvironment: ExecutionEnvironment// = ExecutionEnvironment.Local
@@ -147,4 +149,3 @@ trait LJob extends Loggable {
     else { doWithInputs(newInputs) }
   }
 }
-

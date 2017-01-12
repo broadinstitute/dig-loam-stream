@@ -167,7 +167,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     }
   }
 
-  /** Whether store has a Path associated with it */
+  /** Whether store has a URI associated with it */
   def hasUri(store: LoamStore.Untyped): Boolean = {
     storeSources.get(store) match {
       case Some(StoreEdge.UriEdge(path)) => true

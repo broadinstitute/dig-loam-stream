@@ -5,6 +5,8 @@ lazy val Versions = new {
   val ApacheCommonsIO = "2.4"
   val DrmaaCommon = "1.0"
   val DrmaaGridEngine = "6.2u5"
+  val GoogleCloudStorage = "0.7.0"
+  val GoogleAuth = "0.6.0"
   val Htsjdk = "2.1.0"
   val LogBack = "1.1.6"
   val Scala = "2.11.8"
@@ -29,7 +31,9 @@ lazy val mainDeps = Seq(
   "io.reactivex" %% "rxscala" % Versions.RxScala,
   "com.typesafe.slick" %% "slick" % Versions.Slick,
   "com.h2database" % "h2" % Versions.H2,
-  "org.rogach" %% "scallop" % Versions.Scallop
+  "org.rogach" %% "scallop" % Versions.Scallop,
+  "com.google.cloud" % "google-cloud-storage" % Versions.GoogleCloudStorage,
+  "com.google.auth" % "google-auth-library-credentials" % Versions.GoogleAuth
 )
 
 lazy val testDeps = Seq(

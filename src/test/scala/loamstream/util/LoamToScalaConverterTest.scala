@@ -47,6 +47,82 @@ final class LoamToScalaConverterTest extends FunSuite {
     assert(files.toSet === expected) 
   }
   
+  test("locateDirs - non-recursive") {
+    {
+      val root = path("src/test/loam")
+      
+      val dirs = locateDirs(root, recursive = false)
+      
+      val expected = Set(
+        path("src/test/loam/subdir/"),
+        path("src/test/loam/subdir2"))
+        
+      assert(dirs === expected)
+    }
+    
+    {
+      val root = path("src/test/loam/subdir")
+      
+      val dirs = locateDirs(root, recursive = false)
+      
+      val expected = Set.empty
+        
+      assert(dirs === Set.empty)
+    }
+  }
+  
+  test("locateDirs - recursive") {
+    {
+      val root = path("src/test/loam")
+      
+      val dirs = locateDirs(root, recursive = true)
+      
+      val expected = Set(
+        path("src/test/loam/subdir/"),
+        path("src/test/loam/subdir2"),
+        path("src/test/loam/subdir2/subsubdir/"),
+        path("src/test/loam/subdir2/subsubdir2/"))
+        
+      assert(dirs === expected)
+    }
+    
+    {
+      val root = path("src/test/loam/subdir")
+      
+      val dirs = locateDirs(root, recursive = true)
+      
+      val expected = Set.empty
+        
+      assert(dirs === Set.empty)
+    } 
+  }
+  
+  test("pathParts") {
+    val relative = Paths.get("foo/bar/baz")
+    
+    assert(pathParts(relative) === Seq("foo", "bar", "baz"))
+    
+    val absolute = Paths.get("/foo/bar/baz")
+    
+    assert(pathParts(absolute) === Seq("foo", "bar", "baz"))
+    
+    val relativeSingle = Paths.get("foo")
+    
+    assert(pathParts(relativeSingle) === Seq("foo"))
+    
+    val absoluteSingle = Paths.get("/foo")
+    
+    assert(pathParts(absoluteSingle) === Seq("foo"))
+    
+    assert(pathParts(Paths.get(".")) === Nil)
+    
+    val empty = absolute.relativize(absolute)
+    
+    assert(empty.toString === "")
+    
+    assert(pathParts(empty) === Nil)
+  }
+  
   test("locateAndParseLoamFiles - non-recursive") {
      val root = path("src/test/loam")
     
@@ -99,8 +175,10 @@ final class LoamToScalaConverterTest extends FunSuite {
     assert(filesToInfos === expected)
   }
   
-  test("makeProjectContextOwnerCode") {
-    val (name, objectId, code) = makeProjectContextOwnerCode
+  test("makeProjectContextOwnerCode - default package") {
+    val (name, packageId, objectId, code) = makeProjectContextOwnerCode(Nil)
+    
+    assert(packageId === LoamScript.scriptsPackage)
     
     val expectedName = "LoamProjectContextOwner"
     
@@ -124,8 +202,41 @@ final class LoamToScalaConverterTest extends FunSuite {
     assert(code === expectedCode)
   }
   
+  test("makeProjectContextOwnerCode - sub package") {
+    val (name, packageId, objectId, code) = makeProjectContextOwnerCode(Seq("foo", "bar"))
+    
+    val expectedName = "LoamProjectContextOwner"
+    
+    assert(name === expectedName)
+    
+    val expectedPackageId = LoamScript.scriptsPackage.getPackage("foo").getPackage("bar")
+
+    assert(packageId === expectedPackageId)
+    
+    val expectedObjectId = expectedPackageId.getObject(expectedName).getObject("loamProjectContext")
+    
+    assert(objectId === expectedObjectId)
+    
+    val expectedCode = {
+      s"""package loamstream.loam.scripts.foo.bar
+        |
+        |import loamstream.loam.LoamProjectContext
+        |
+        |object LoamProjectContextOwner {
+        |  val loamProjectContext : LoamProjectContext = LoamProjectContext.empty
+        |}
+      """.stripMargin
+    }
+    
+    assert(code === expectedCode)
+  }
+  
   test("getRelativeScriptPackageDir") {
-    assert(getRelativeScriptPackageDir === path("loamstream/loam/scripts"))
+    assert(getRelativeScriptPackageDir(Nil) === path("loamstream/loam/scripts"))
+    
+    assert(getRelativeScriptPackageDir(Seq("foo")) === path("loamstream/loam/scripts/foo"))
+    
+    assert(getRelativeScriptPackageDir(Seq("foo", "bar", "baz")) === path("loamstream/loam/scripts/foo/bar/baz"))
   }
   
   test("makeScalaFile - root dir") {
@@ -147,7 +258,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     assert(exists(expectedScalaFile))
     
-    val (_, contextValId: ObjectId, _) = makeProjectContextOwnerCode
+    val (_, packageId, contextValId: ObjectId, _) = makeProjectContextOwnerCode(Nil)
     
     val expectedCode = ScalaFormatter.format(script.asScalaCode(contextValId))
     
@@ -173,7 +284,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     assert(exists(expectedScalaFile))
     
-    val (_, contextValId: ObjectId, _) = makeProjectContextOwnerCode
+    val (_, packageId, contextValId: ObjectId, _) = makeProjectContextOwnerCode(Seq("subdir"))
     
     val expectedCode = ScalaFormatter.format(script.asScalaCode(contextValId))
     
@@ -181,6 +292,7 @@ final class LoamToScalaConverterTest extends FunSuite {
   }
   
   test("convert") {
+    val inputDir = path("src/test/loam/subdir")
     val outputDir = path("target")
     
     val xLoam = path("src/test/loam/subdir/x.loam")
@@ -193,25 +305,27 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val expectedScalaFileX = path("target/loamstream/loam/scripts/x.scala")
     val expectedScalaFileY = path("target/loamstream/loam/scripts/y.scala")
-    val expectedProjectContextOwnerScalaFile = path("target/loamstream/loam/scripts/LoamProjectContextOwner.scala")
+    val expectedProjectContextOwnerScalaFiles = {
+      Set(path("target/loamstream/loam/scripts/LoamProjectContextOwner.scala"))
+    }
     
-    val filesMade = convert(path("src/test/loam/subdir"), outputDir)
+    val filesMade = convert(inputDir, outputDir)
     
-    val projectContextOwnerFile = filesMade.head.toPath
+    val (actualProjectContextOwnerFiles, actualScalaFilesMade) = {
+      filesMade.map(_.toPath).partition(_.toString.endsWith("LoamProjectContextOwner.scala"))
+    }
     
-    assert(projectContextOwnerFile === expectedProjectContextOwnerScalaFile)
-    
-    val actualScalaFilesMade = filesMade.drop(1).map(_.toPath)
+    assert(actualProjectContextOwnerFiles.toSet === expectedProjectContextOwnerScalaFiles)
     
     assert(actualScalaFilesMade.toSet === Set(expectedScalaFileX, expectedScalaFileY))
     
     def exists(p: Path) = p.toFile.exists
     
-    assert(exists(expectedProjectContextOwnerScalaFile))
+    assert(exists(expectedProjectContextOwnerScalaFiles.head))
     assert(exists(expectedScalaFileX))
     assert(exists(expectedScalaFileY))
     
-    val (_, contextValId: ObjectId, contextOwnerCode) = makeProjectContextOwnerCode
+    val (_, _, contextValId: ObjectId, contextOwnerCode) = makeProjectContextOwnerCode(Nil)
     
     val expectedCodeX = ScalaFormatter.format(xScript.asScalaCode(contextValId))
     val expectedCodeY = ScalaFormatter.format(yScript.asScalaCode(contextValId))
@@ -221,6 +335,13 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val expectedProjectContextOwnerCode = ScalaFormatter.format(contextOwnerCode)
     
-    assert(read(expectedProjectContextOwnerScalaFile) === expectedProjectContextOwnerCode)
+    assert(read(expectedProjectContextOwnerScalaFiles.head) === expectedProjectContextOwnerCode)
+  }
+  
+  test("containsLoamFiles") {
+    assert(containsLoamFiles(path("src/test/loam/")) === true)
+    assert(containsLoamFiles(path("src/test/loam/subdir")) === true)
+    assert(containsLoamFiles(path("src/test/loam/subdir2")) === false)
+    assert(containsLoamFiles(path("src/test/loam/subdir2/subsubdir")) === false)
   }
 }

@@ -1,20 +1,25 @@
 package loamstream.model.jobs
 
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 
-import loamstream.util.{Hash, Hashes}
+import loamstream.util.Hash
+import loamstream.util.Hashes
 import java.time.Instant
-import java.nio.file.Paths
+
 import loamstream.util.PathUtils
+import java.nio.file.Paths
+
+import loamstream.googlecloud.GcsClient
 
 /**
  * @author clint
- *         kaan
+ * @author kaan
  * date: Aug 1, 2016
- * 
+ *
  * A trait representing a handle to the output of a job; for now, we're primarily concerned with the case where
- * that output is a file or directory, but other output types are possible.
+ * that output is a file, directory, or Google Cloud Storage objects but other output types are possible.
  */
 trait Output {
   def isPresent: Boolean
@@ -53,5 +58,16 @@ object Output {
     def normalized: PathOutput = copy(path = normalize(path))
 
     private def normalize(p: Path): Path = Paths.get(PathUtils.normalize(p))
+  }
+
+  final case class GcsUriOutput(uri: URI) extends Output {
+    val credentialFile = "/Users/kyuksel/google_credential.json"
+    private[this] val client = GcsClient(uri, Paths.get(credentialFile))
+
+    override def isPresent = client.isPresent
+
+    def hash: Hash = client.hash
+
+    def lastModified: Instant = client.lastModified
   }
 }

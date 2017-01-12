@@ -3,6 +3,8 @@ package loamstream.util
 import scala.util.Try
 import javax.xml.bind.DatatypeConverter
 
+import loamstream.util.HashType.{Md5, Sha1}
+
 import scala.collection.mutable
 
 /**
@@ -16,12 +18,17 @@ final case class Hash(value: mutable.WrappedArray[Byte], tpe: HashType) {
   override def toString: String = s"$tpe($valueAsHexString)"
   
   def valueAsHexString: String = DatatypeConverter.printHexBinary(value.toArray).toLowerCase
+  def valueAsBase64String: String = DatatypeConverter.printBase64Binary(value.toArray).toLowerCase
 }
 
 object Hash {
   def fromStrings(value: String, tpe: String): Try[Hash] = {
     for {
-      bytes <- Try(DatatypeConverter.parseHexBinary(value))
+      bytes <- tpe match {
+        case _ if tpe == Md5.algorithmName => Try(DatatypeConverter.parseBase64Binary(value))
+        case _ if tpe == Sha1.algorithmName => Try(DatatypeConverter.parseHexBinary(value))
+        case _ => Tries.failure(s"Unknown hash algorithm '$tpe'")
+      }
       hashType <- HashType.fromAlgorithmName(tpe)
     } yield Hash(bytes, hashType)
   }

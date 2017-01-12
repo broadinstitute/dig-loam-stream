@@ -91,13 +91,10 @@ object PackageId {
   def apply(part: String, parts: String*): ChildPackageId = PackageId(part +: parts).asInstanceOf[ChildPackageId]
 
   /** Returns sub-level package id composed of given names */
-  def apply(parts: Seq[String]): PackageId =
-  if (parts.isEmpty) {
-    RootPackageId
-  } else if (parts.size == 1) {
-    ChildPackageId(parts.last)
-  } else {
-    ChildPackageId(PackageId(parts.dropRight(1)), parts.last)
+  def apply(parts: Seq[String]): PackageId = parts match {
+    case Nil => RootPackageId
+    case Seq(part) => ChildPackageId(part)
+    case _ => ChildPackageId(PackageId(parts.init), parts.last)
   }
 
   /** Whether this symbol represents the root package */
@@ -121,6 +118,8 @@ sealed trait PackageId extends ScalaId {
 
   /** Create ChildIdPackageId that is child of this ScalaId */
   def getPackage(name: String): ChildPackageId
+  
+  def parts: Seq[String]
 }
 
 /** An id other than root package, having a parent */
@@ -150,6 +149,8 @@ object RootPackageId extends PackageId with ScalaId {
   override val inJvmFull: String = "_root_"
 
   override val parentOpt: None.type = None
+  
+  override def parts: Seq[String] = Vector(name)
 
   /** Create TopLevelPackageId that is child of this ScalaId */
   override def getPackage(name: String): ChildPackageId = ChildPackageId(name)
@@ -165,11 +166,13 @@ object ChildPackageId {
 }
 
 /** A package id that is not the root package */
-case class ChildPackageId(parent: PackageId, name: String) extends PackageId with ChildId {
+final case class ChildPackageId(parent: PackageId, name: String) extends PackageId with ChildId {
   /** Create SubLevelPackageId that is child of this ChildIdPackageId */
   override def getPackage(name: String): ChildPackageId = ChildPackageId(this, name)
 
   override def childPrefixInJvm: String = s"$inJvmFull."
+  
+  override def parts: Seq[String] = parent.parts :+ name
 }
 
 /** A class or trait id */
@@ -190,8 +193,8 @@ object TypeId {
 }
 
 /** A class or trait id */
-case class TypeId(parent: ScalaId, name: String) extends ChildId {
-  def inJvm: String = NameTransformer.encode(name)
+final case class TypeId(parent: ScalaId, name: String) extends ChildId {
+  override def inJvm: String = NameTransformer.encode(name)
 
   override def childPrefixInJvm: String = s"$inJvmFull$$"
 }
@@ -205,16 +208,17 @@ object ObjectId {
   def apply(part: String, parts: String*): ObjectId = ObjectId(part +: parts)
 
   /** Returns a sub-level object id composed of these names */
-  def apply(parts: Seq[String]): ObjectId =
-  if (parts.size == 1) {
-    ObjectId(parts.last)
-  } else {
-    ObjectId(PackageId(parts.dropRight(1)), parts.last)
+  def apply(parts: Seq[String]): ObjectId = {
+    if (parts.size == 1) {
+      ObjectId(parts.last)
+    } else {
+      ObjectId(PackageId(parts.dropRight(1)), parts.last)
+    }
   }
 }
 
 /** An object id */
-case class ObjectId(parent: ScalaId, name: String) extends ChildId with ScalaId {
+final case class ObjectId(parent: ScalaId, name: String) extends ChildId with ScalaId {
   def inJvm: String = NameTransformer.encode(name) + "$"
 
   override def childPrefixInJvm: String = s"$inJvmFull"

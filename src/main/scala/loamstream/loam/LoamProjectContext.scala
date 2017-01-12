@@ -1,6 +1,5 @@
 package loamstream.loam
 
-import loamstream.compiler.LoamCompiler
 import loamstream.loam.files.LoamFileManager
 import loamstream.util.{DepositBox, ValueBox}
 

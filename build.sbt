@@ -99,13 +99,13 @@ buildInfoTask := {
 (resourceGenerators in Compile) += buildInfoTask.taskValue
 
 /*
- * run 'convertLoams' from the SBT prompt to cross-compile all the .loam files in src/main/loam/
- * to .scala files in target/scala-2.11/src_managed/main/ .  The output dir is the default value
- * for the SBT setting 'sourceManaged', which is treated specially by SBT and IDEs with SBT support.
- * This makes it easier to load the generated .scala files in an IDE and see red squiggles for any
- * compile errors.  In Eclipse, I refresh the project, and target/scala-2.11/src_managed/main/ is
- * automatically picked up as a source of .scala files to be compiled.  IntelliJ can likely do the
- * same.
+ * Command line to run: sbt convertLoams
+ *
+ * Cross-compiles all the .loam files in src/main/loam/ to .scala files in target/scala-2.11/src_managed/main/ .
+ * The output dir is the default value for the SBT setting 'sourceManaged', which is treated specially by SBT and IDEs
+ * with SBT support. This makes it easier to load the generated .scala files in an IDE and see red squiggles for any
+ * compile errors. In Eclipse, I refresh the project, and target/scala-2.11/src_managed/main/ is automatically picked
+ * up as a source of .scala files to be compiled. IntelliJ can likely do the same.
  * 
  * NOTE: This won't run automatically as part of any SBT build steps.  'convertLoams' needs to be
  *       run explicitly.

@@ -74,7 +74,7 @@ final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit e
 
   def list(): Unit = outMessageSink.send(ListResponseMessage(repo.list))
 
-  def save(name: String, content: String): Unit = repo.save(LoamScript(name, content)) match {
+  def save(name: String, content: String): Unit = repo.save(LoamScript(name, content, None)) match {
     case Hit(script) => outMessageSink.send(SaveResponseMessage(repo, script))
     case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not save $name: ${snag.message}"))
   }

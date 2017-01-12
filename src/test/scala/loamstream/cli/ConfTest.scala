@@ -75,8 +75,8 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.loams() === loams.map(Paths.get(_)))
     }
     
-    doTest("--dry-run", Seq("src/main/loam/examples/cp.loam", "src/main/loam/examples/cp.loam"))
-    doTest("-d", Seq("src/main/loam/examples/cp.loam", "src/main/loam/examples/cp.loam"))
+    doTest("--dry-run", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
+    doTest("-d", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
   }
   
   test("Loam files must be specified if running normally or with --dry-run") {
@@ -100,7 +100,7 @@ final class ConfTest extends FunSuite with Matchers {
       makeConf(Seq("--dry-run"))
     }
     
-    val exampleFile = "src/main/loam/examples/cp.loam"
+    val exampleFile = "src/examples/loam/cp.loam"
     
     val expected = Paths.get(exampleFile)
     
@@ -134,7 +134,7 @@ final class ConfTest extends FunSuite with Matchers {
   }
  
   test("--run-everything") {
-    val exampleFile = "src/main/loam/examples/cp.loam"
+    val exampleFile = "src/examples/loam/cp.loam"
     
     val expected = Paths.get(exampleFile)
     

@@ -17,7 +17,7 @@ import loamstream.model.execute.CompositeChunkRunner
  * Nov 14, 2016
  */
 final class AppWiringTest extends FunSuite with Matchers {
-  private val exampleFile = "src/main/loam/examples/cp.loam"
+  private val exampleFile = "src/examples/loam/cp.loam"
   
   private val exampleFilePath = Paths.get(exampleFile)
   

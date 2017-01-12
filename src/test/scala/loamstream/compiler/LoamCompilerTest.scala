@@ -57,7 +57,7 @@ final class LoamCompilerTest extends FunSuite {
   test("Testing sample code toyImpute.loam") {
     val compiler = new LoamCompiler
     
-    val exampleDir = Paths.get("src/main/loam/examples")
+    val exampleDir = Paths.get("src/examples/loam")
     
     val exampleRepo = LoamRepository.ofFolder(exampleDir)
     

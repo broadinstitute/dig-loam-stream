@@ -88,7 +88,7 @@ final class LoamRepositoryTest extends FunSuite {
   }
 
   test("All examples compile") {
-    val examples = Paths.get("src/main/loam/examples")
+    val examples = Paths.get("src/examples/loam")
     
     val exampleRepo = LoamRepository.ofFolder(examples)
     

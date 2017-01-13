@@ -41,19 +41,17 @@ object Output {
    * each access.
    */
   final case class PathOutput(path: Path) extends Output {
+    override def isPresent: Boolean = Files.exists(path)
+
     override def hash: Option[Hash] = if (Files.exists(path)) Option(Hashes.sha1(path)) else None
 
     override def lastModified: Option[Instant] = {
       if (isPresent) Option(PathUtils.lastModifiedTime(path)) else None
     }
 
-    override def isPresent: Boolean = Files.exists(path)
-
     override def location: String = PathUtils.normalize(path)
 
-    override def toOutputRecord: OutputRecord = {
-      OutputRecord(location, hash.map(_.valueAsHexString), lastModified)
-    }
+    override def toOutputRecord: OutputRecord = OutputRecord(location, hash.map(_.valueAsHexString), lastModified)
 
     def normalized: PathOutput = copy(path = normalize(path))
 
@@ -61,13 +59,19 @@ object Output {
   }
 
   final case class GcsUriOutput(uri: URI) extends Output {
+    // TODO: Move into config
     val credentialFile = "/Users/kyuksel/google_credential.json"
+
     private[this] val client = GcsClient(uri, Paths.get(credentialFile))
 
     override def isPresent = client.isPresent
 
-    def hash: Hash = client.hash
+    override def hash: Option[Hash] = client.hash
 
-    def lastModified: Instant = client.lastModified
+    override def lastModified: Option[Instant] = client.lastModified
+
+    override def location: String = uri.toString
+
+    override def toOutputRecord: OutputRecord = OutputRecord(location, hash.map(_.valueAsHexString), lastModified)
   }
 }

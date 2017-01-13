@@ -13,7 +13,7 @@ import loamstream.model.execute.ExecutionEnvironment
 object LoamGraph {
 
   /** A connection between a store and a tool or other consumer or producer */
-  trait StoreEdge
+  sealed trait StoreEdge
 
   /** A connection between a store and a tool or other consumer or producer */
   object StoreEdge {
@@ -61,34 +61,35 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   def withStore(store: LoamStore.Untyped): LoamGraph = copy(stores = stores + store)
 
   /** Returns graph with tool added */
-  def withTool(tool: LoamTool, scriptContext: LoamScriptContext): LoamGraph =
-  if (tools(tool)) {
-    if (workDirs.contains(tool) && workDirs(tool) == scriptContext.workDir) {
-      this
+  def withTool(tool: LoamTool, scriptContext: LoamScriptContext): LoamGraph = {
+    if (tools(tool)) {
+      if (workDirs.contains(tool) && workDirs(tool) == scriptContext.workDir) {
+        this
+      } else {
+        copy(workDirs = workDirs + (tool -> scriptContext.workDir))
+      }
     } else {
-      copy(workDirs = workDirs + (tool -> scriptContext.workDir))
+      val (toolInputStores, toolOutputStores) = tool.defaultStores match {
+        case AllStores(toolStores) =>
+          val inputStores = toolStores.filter(storeSources.contains)
+          val outputStores = toolStores -- inputStores
+          (inputStores, outputStores)
+        case InputsAndOutputs(inputStores, outputStores) => (inputStores.toSet, outputStores.toSet)
+      }
+      val toolEdge = StoreEdge.ToolEdge(tool)
+      val outputsWithSource = toolOutputStores.map(store => store -> toolEdge)
+      val storeSinksNew = toolInputStores.map(store => store -> (storeSinks.getOrElse(store, Set.empty) + toolEdge))
+  
+      copy(
+        tools = tools + tool,
+        toolInputs = toolInputs + (tool -> toolInputStores),
+        toolOutputs = toolOutputs + (tool -> toolOutputStores),
+        storeSources = storeSources ++ outputsWithSource,
+        storeSinks = storeSinks ++ storeSinksNew,
+        workDirs = workDirs + (tool -> scriptContext.workDir),
+        executionEnvironments = executionEnvironments + (tool -> scriptContext.executionEnvironment)
+      )
     }
-  } else {
-    val (toolInputStores, toolOutputStores) = tool.defaultStores match {
-      case AllStores(toolStores) =>
-        val inputStores = toolStores.filter(storeSources.contains)
-        val outputStores = toolStores -- inputStores
-        (inputStores, outputStores)
-      case InputsAndOutputs(inputStores, outputStores) => (inputStores.toSet, outputStores.toSet)
-    }
-    val toolEdge = StoreEdge.ToolEdge(tool)
-    val outputsWithSource = toolOutputStores.map(store => store -> toolEdge)
-    val storeSinksNew = toolInputStores.map(store => store -> (storeSinks.getOrElse(store, Set.empty) + toolEdge))
-
-    copy(
-      tools = tools + tool,
-      toolInputs = toolInputs + (tool -> toolInputStores),
-      toolOutputs = toolOutputs + (tool -> toolOutputStores),
-      storeSources = storeSources ++ outputsWithSource,
-      storeSinks = storeSinks ++ storeSinksNew,
-      workDirs = workDirs + (tool -> scriptContext.workDir),
-      executionEnvironments = executionEnvironments + (tool -> scriptContext.executionEnvironment)
-    )
   }
 
   /** Returns graph with store source (tool or file) added */

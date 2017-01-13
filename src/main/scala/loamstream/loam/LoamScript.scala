@@ -61,25 +61,29 @@ object LoamScript {
 
   /** Tries to read Loam script from file, deriving script name from file path. */
   def read(path: Path): Shot[LoamScript] = {
-    nameFromFilePath(path).flatMap { name =>
-      Shot {
-        val code = loamstream.util.Files.readFromAsUtf8(path)
-        
-        LoamScript(name, code, None)
-      }
+    import loamstream.util.Files.readFromAsUtf8
+    
+    for {
+      name <- nameFromFilePath(path)
+      code <- Shot(readFromAsUtf8(path))
+    } yield {
+      LoamScript(name, code, None)
     }
   }
   
   def read(path: Path, rootDir: Path): Shot[LoamScript] = {
-    nameAndEnclosingDirFromFilePath(path, rootDir).flatMap { case (name, enclosingDir) =>
+    nameAndEnclosingDirFromFilePath(path, rootDir).flatMap { case (name, enclosingDirOpt) =>
       Shot {
         val code = loamstream.util.Files.readFromAsUtf8(path)
         
         import scala.collection.JavaConverters._
         
-        val optionalPackageParts = enclosingDir.map(_.iterator.asScala.toIndexedSeq.map(_.toString))
+        val packageIdOpt = for {
+          enclosingDir <- enclosingDirOpt
+          packageParts = enclosingDir.iterator.asScala.toIndexedSeq.map(_.toString)
+        } yield PackageId(packageParts)
         
-        LoamScript(name, code, optionalPackageParts.map(PackageId(_)))
+        LoamScript(name, code, packageIdOpt)
       }
     }
   }

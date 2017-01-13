@@ -19,12 +19,14 @@ object StoreType {
 
   // scalastyle:off magic.number
   object BIM {
-    val chr = columnField[BIM, Int](ColumnSeparators.blankOrTab, 0, _.toInt)
-    val id = columnField[BIM, String](ColumnSeparators.blankOrTab, 1, identity)
-    val posPhysical = columnField[BIM, Double](ColumnSeparators.blankOrTab, 2, _.toDouble)
-    val pos = columnField[BIM, Int](ColumnSeparators.blankOrTab, 3, _.toInt)
-    val allele1 = columnField[BIM, String](ColumnSeparators.blankOrTab, 4, identity)
-    val allele2 = columnField[BIM, String](ColumnSeparators.blankOrTab, 5, identity)
+    import ColumnSeparators.blankOrTab
+    
+    val chr = columnField[BIM, Int](blankOrTab, 0, _.toInt)
+    val id = columnField[BIM, String](blankOrTab, 1, identity)
+    val posPhysical = columnField[BIM, Double](blankOrTab, 2, _.toDouble)
+    val pos = columnField[BIM, Int](blankOrTab, 3, _.toInt)
+    val allele1 = columnField[BIM, String](blankOrTab, 4, identity)
+    val allele2 = columnField[BIM, String](blankOrTab, 5, identity)
   }
   // scalastyle:on magic.number
 

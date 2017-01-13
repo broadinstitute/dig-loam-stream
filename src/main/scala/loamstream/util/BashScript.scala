@@ -5,15 +5,16 @@ import java.nio.file.{Path, Files => JFiles}
 import scala.sys.process.{Process, ProcessBuilder}
 
 /** A class representing a Bash script */
-case class BashScript(path: Path) {
+final case class BashScript(path: Path) {
   def processBuilder(workDir: Path): ProcessBuilder =
     Process(Seq("sh", BashScript.escapeString(path.toString)), workDir.toFile)
 }
 
 object BashScript {
 
-  def fromCommandLineString(string: String,
-                            path: Path = JFiles.createTempFile("LoamStreamBashScript", ".sh")): BashScript = {
+  private def defaultFileName: Path = JFiles.createTempFile("LoamStreamBashScript", ".sh")  
+  
+  def fromCommandLineString(string: String, path: Path = defaultFileName): BashScript = {
     Files.writeTo(path)(string + "\nexit\n")
     BashScript(path)
   }
@@ -26,6 +27,4 @@ object BashScript {
     case c if charsToBeEscaped(c) => Seq('\\', c)
     case c => Seq(c)
   }
-
-
 }

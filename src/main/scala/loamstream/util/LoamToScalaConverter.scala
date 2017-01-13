@@ -3,11 +3,12 @@ package loamstream.util
 import java.nio.file.{Paths, Files => JFiles}
 import loamstream.loam.LoamScript
 import java.nio.file.Path
-import scalariform.formatter.ScalaFormatter.format
+import scalariform.formatter.ScalaFormatter
 import java.io.File
 import loamstream.util.code.RootPackageId
 import loamstream.util.code.ObjectId
 import loamstream.util.code.PackageId
+import scalariform.parser.ScalaParserException
 
 /** 
  *  @author oliver
@@ -65,6 +66,14 @@ object LoamToScalaConverter extends Loggable {
     val outputDir = Paths.get(outputDirString)
     
     convert(inputDir, outputDir, recursive = true)
+  }
+  
+  private def formatAndWrite(scalaCode: String, fileName: Path): Unit = {
+    try {
+      Files.writeTo(fileName)(ScalaFormatter.format(scalaCode))
+    } catch {
+      case e: ScalaParserException => throw new Exception(s"Error formatting code destined for '$fileName'", e)
+    }
   }
   
   private val loamExtension = ".loam"
@@ -135,9 +144,9 @@ object LoamToScalaConverter extends Loggable {
   
     val contextOwnerFile = scriptPackageDir.resolve(s"$contextOwnerName.scala")
     
-    info(s"Created $contextOwnerFile")
+    formatAndWrite(contextOwnerCode, contextOwnerFile)
     
-    Files.writeTo(contextOwnerFile)(format(contextOwnerCode))
+    info(s"Created $contextOwnerFile")
     
     contextOwnerFile
   }
@@ -202,9 +211,9 @@ object LoamToScalaConverter extends Loggable {
       
     val scalaFile = scalaFileOutputDir.resolve(script.scalaFileName)
       
-    val scalaCode = format(script.asScalaCode(contextValId))
+    val scalaCode = script.asScalaCode(contextValId)
       
-    Files.writeTo(scalaFile)(scalaCode)
+    formatAndWrite(scalaCode, scalaFile)
       
     info(s"Created $scalaFile")
     

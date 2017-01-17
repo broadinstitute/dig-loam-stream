@@ -1,16 +1,30 @@
 package loamstream.loam
 
 import java.net.URI
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 
-import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
+import loamstream.loam.LoamGraph.{StoreEdge, StoreLocation}
 import loamstream.loam.LoamTool.{AllStores, InputsAndOutputs}
-import loamstream.util.Equivalences
 import loamstream.model.execute.ExecutionEnvironment
+import loamstream.util.Equivalences
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
+
+  /** The location of a store */
+  sealed trait StoreLocation
+
+  /** The location of a store */
+  object StoreLocation {
+
+    /** Store location based on a Path */
+    final case class PathLocation(path: Path) extends StoreLocation
+
+    /** Store location based on a URI */
+    final case class UriLocation(uri: URI) extends StoreLocation
+
+  }
 
   /** A connection between a store and a tool or other consumer or producer */
   sealed trait StoreEdge
@@ -32,16 +46,17 @@ object LoamGraph {
   /** An empty graph */
   def empty: LoamGraph = {
     LoamGraph(
-        Set.empty, 
-        Set.empty, 
-        Map.empty, 
-        Map.empty, 
-        Map.empty, 
-        Map.empty, 
-        Equivalences.empty, 
-        Equivalences.empty,
-        Map.empty,
-        Map.empty)
+      Set.empty,
+      Set.empty,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      Equivalences.empty,
+      Equivalences.empty,
+      Map.empty,
+      Map.empty)
   }
 }
 
@@ -50,6 +65,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
                            tools: Set[LoamTool],
                            toolInputs: Map[LoamTool, Set[LoamStore.Untyped]],
                            toolOutputs: Map[LoamTool, Set[LoamStore.Untyped]],
+                           storeLocations: Map[LoamStore.Untyped, StoreLocation],
                            storeSources: Map[LoamStore.Untyped, StoreEdge],
                            storeSinks: Map[LoamStore.Untyped, Set[StoreEdge]],
                            keysSameSets: Equivalences[LoamStoreKeySlot],
@@ -79,7 +95,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
       val toolEdge = StoreEdge.ToolEdge(tool)
       val outputsWithSource = toolOutputStores.map(store => store -> toolEdge)
       val storeSinksNew = toolInputStores.map(store => store -> (storeSinks.getOrElse(store, Set.empty) + toolEdge))
-  
+
       copy(
         tools = tools + tool,
         toolInputs = toolInputs + (tool -> toolInputStores),
@@ -90,6 +106,11 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
         executionEnvironments = executionEnvironments + (tool -> scriptContext.executionEnvironment)
       )
     }
+  }
+
+  /** Returns graph with store location (path or URI) added */
+  def withStoreLocation(store: LoamStore.Untyped, location: StoreLocation): LoamGraph = {
+    copy(storeLocations = storeLocations + (store -> location))
   }
 
   /** Returns graph with store source (tool or file) added */
@@ -110,8 +131,8 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   /** Returns graph with key lists (sets implied) equivalence added */
   def withKeysSameList(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): LoamGraph = {
     copy(
-        keysSameSets = keysSameSets.withTheseEqual(slot1, slot2),
-        keysSameLists = keysSameLists.withTheseEqual(slot1, slot2))
+      keysSameSets = keysSameSets.withTheseEqual(slot1, slot2),
+      keysSameLists = keysSameLists.withTheseEqual(slot1, slot2))
   }
 
   /** True if slots have same key set */
@@ -189,7 +210,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
   /** Optionally, the execution environment of a tool */
   def executionEnvironmentOpt(tool: LoamTool): Option[ExecutionEnvironment] = executionEnvironments.get(tool)
-  
+
   /** Ranks for all tools: zero for final tools; for all others one plus maximum of rank of succeeding tools */
   def ranks: Map[LoamTool, Int] = {
     val initialRanks: Map[LoamTool, Int] = tools.map(tool => (tool, 0)).toMap

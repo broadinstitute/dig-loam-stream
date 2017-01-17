@@ -22,11 +22,11 @@ final case class Hash(value: mutable.WrappedArray[Byte], tpe: HashType) {
 }
 
 object Hash {
-  def fromStrings(value: String, tpe: String): Try[Hash] = {
+  def fromStrings(value: Option[String], tpe: String): Try[Hash] = {
     for {
       bytes <- tpe match {
-        case _ if tpe == Md5.algorithmName => Try(DatatypeConverter.parseBase64Binary(value))
-        case _ if tpe == Sha1.algorithmName => Try(DatatypeConverter.parseHexBinary(value))
+        case _ if tpe == Md5.algorithmName => Try(DatatypeConverter.parseBase64Binary(value.get))
+        case _ if tpe == Sha1.algorithmName => Try(DatatypeConverter.parseHexBinary(value.get))
         case _ => Tries.failure(s"Unknown hash algorithm '$tpe'")
       }
       hashType <- HashType.fromAlgorithmName(tpe)

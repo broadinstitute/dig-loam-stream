@@ -59,16 +59,13 @@ object Output {
   }
 
   final case class GcsUriOutput(uri: URI) extends Output {
-    // TODO: Move into config
-    val credentialFile = "/Users/kyuksel/google_credential.json"
+    private val client = GcsClient.get
 
-    private[this] val client = GcsClient(uri, Paths.get(credentialFile))
+    override def isPresent = client.isPresent(uri)
 
-    override def isPresent = client.isPresent
+    override def hash: Option[Hash] = client.hash(uri)
 
-    override def hash: Option[Hash] = client.hash
-
-    override def lastModified: Option[Instant] = client.lastModified
+    override def lastModified: Option[Instant] = client.lastModified(uri)
 
     override def location: String = uri.toString
 

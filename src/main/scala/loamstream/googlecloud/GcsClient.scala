@@ -1,13 +1,13 @@
 package loamstream.googlecloud
 
 import java.net.URI
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.time.Instant
 
 import com.google.auth.oauth2.ServiceAccountCredentials
-import com.google.cloud.storage._
+import com.google.cloud.storage.{Blob, Storage, StorageOptions}
 import loamstream.util.HashType.Md5
-import loamstream.util.{Hash, Loggable}
+import loamstream.util.Hash
 
 /**
  * @author kaan
@@ -15,45 +15,50 @@ import loamstream.util.{Hash, Loggable}
  *
  * Wrapper around Google Cloud Storage JAVA API to expose methods for job recording purposes
  */
-final case class GcsClient(uri: URI, credentialFile: Path) extends Loggable {
+final case class GcsClient private[googlecloud] (credential: Path) extends CloudStorageClient {
+  import GcsClient._
+
+  // Encapsulated MD5 hash of the storage object
+  override def hash(uri: URI): Option[Hash] = {
+    //require(isPresent, s"Object '${uri.toString}' doesn't exist.")
+    //require(hashStr != null, s"No '${Md5.algorithmName}' hash was available for object '${uri.toString}'")
+    Hash.fromStrings(hashStr(uri), Md5.algorithmName).toOption
+  }
+
+  // If the storage object exists
+  override def isPresent(uri: URI): Boolean = obj(uri).isDefined
+
+  // Last update time of the object
+  override def lastModified(uri: URI): Option[Instant] =
+    if (isPresent(uri)) { obj(uri).map(o => Instant.ofEpochMilli(o.getUpdateTime)) }
+    else { None }
+}
+
+object GcsClient {
+  private val credential = Paths.get("/Users/kyuksel/google_credential.json")
+
+  def get: GcsClient = new GcsClient(credential)
 
   // Instantiate a GCS handle using given credentials.
   // If no credentials provided, attempt to find credentials that might be set in the environment
-  private[this] lazy val storage: Storage =
+  private[googlecloud] lazy val storage: Storage =
     StorageOptions.newBuilder
       //.setCredentials(ServiceAccountCredentials.fromStream(new FileInputStream(credentialFile)))
-      .setCredentials(ServiceAccountCredentials.fromStream(java.nio.file.Files.newInputStream(credentialFile)))
+      .setCredentials(ServiceAccountCredentials.fromStream(java.nio.file.Files.newInputStream(credential)))
       .build
       .getService
 
   // The name for the bucket
-  private[this] lazy val bucketName: String = uri.getHost
+  private[googlecloud] def bucketName(uri: URI): String = uri.getHost
 
   // Path for the storage object
-  private[this] lazy val objPath: String = uri.getPath
-
-  // Storage object
-  private[this] def obj: Blob = storage.get(bucketName, objPath)
+  private[googlecloud] def objPath(uri: URI): String = uri.getPath
 
   // Storage object option
-  private[this] def objOpt: Option[Blob] = Option(storage.get(bucketName, objPath))
+  private[googlecloud] def obj(uri: URI): Option[Blob] = Option(storage.get(bucketName(uri), objPath(uri)))
 
   // MD5 hash of the storage object as String
-  private[this] def hashStr: String = obj.getMd5
-
-  // Encapsulated MD5 hash of the storage object
-  def hash: Option[Hash] = {
-    require(isPresent, s"Object '${uri.toString}' doesn't exist.")
-    require(hashStr != null, s"No '${Md5.algorithmName}' hash was available for object '${uri.toString}'") //scalastyle:ignore
-    Hash.fromStrings(hashStr, Md5.algorithmName).toOption
+  private[googlecloud] def hashStr(uri: URI): Option[String] = {
+    obj(uri).map(_.getMd5)
   }
-
-  // If the storage object exists
-  def isPresent: Boolean = objOpt.isDefined
-
-  // Last update time of the object
-  def lastModified: Option[Instant] =
-    if (isPresent) { Option(Instant.ofEpochMilli(obj.getUpdateTime)) }
-    else { None }
-
 }

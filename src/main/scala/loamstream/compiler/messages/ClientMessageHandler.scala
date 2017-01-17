@@ -50,8 +50,8 @@ object ClientMessageHandler {
 final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
   
   val repo = {
-    //NB: The will never do the expected thing, since src/examples/loam (and src/main/loam/examples before it) won't exist
-    //where the LS jar/executable is deployed.
+    //TODO: NB: The will never do the expected thing, since src/examples/loam (and src/main/loam/examples before it) 
+    //won't exist where the LS jar/executable is deployed.
     val exampleDir = Paths.get("src/examples/loam")
     
     LoamRepository.inMemory ++ LoamRepository.ofFolder(exampleDir)

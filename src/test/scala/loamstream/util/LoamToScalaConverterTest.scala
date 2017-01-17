@@ -199,7 +199,7 @@ final class LoamToScalaConverterTest extends FunSuite {
       """.stripMargin
     }
     
-    assert(code === expectedCode)
+    assert(StringUtils.assimilateLineBreaks(code) === StringUtils.assimilateLineBreaks(expectedCode))
   }
   
   test("makeProjectContextOwnerCode - sub package") {
@@ -227,8 +227,8 @@ final class LoamToScalaConverterTest extends FunSuite {
         |}
       """.stripMargin
     }
-    
-    assert(code === expectedCode)
+
+    assert(StringUtils.assimilateLineBreaks(code) === StringUtils.assimilateLineBreaks(expectedCode))
   }
   
   test("getRelativeScriptPackageDir") {

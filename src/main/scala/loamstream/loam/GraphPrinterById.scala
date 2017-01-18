@@ -1,7 +1,5 @@
 package loamstream.loam
 
-import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge, UriEdge}
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.model.LId
 import loamstream.util.code.SourceUtils
@@ -58,13 +56,6 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
     s"#${print(tool.id)}[$tokenString]"
   }
 
-  /** Prints store edge */
-  def print(source: StoreEdge): String = source match {
-    case PathEdge(path) => path.toString
-    case UriEdge(uri) => uri.toString
-    case ToolEdge(tool) => s"#${print(tool.id)}"
-  }
-
   /** Prints LoamGraph for educational and debugging purposes exposing ids */
   override def print(graph: LoamGraph): String = {
     val delimiter = "\n"
@@ -75,10 +66,14 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
     val toolsString = toString(graph.tools.map(print))
 
-    val storeSourcesString = toString(graph.storeSources.map {
-      case (store, source) => s"${print(store, fully = false)} <- ${print(source)}"
+    val storeLocationsString = toString(graph.storeLocations.map {
+      case (store, location) => s"${print(store, fully = false)} <- ${location.toString}"
     })
 
-    toString(Seq(storesString, toolsString, storeSourcesString))
+    val storeProducersString = toString(graph.storeProducers.map {
+      case (store, producer: LoamCmdTool) => s"${print(store, fully = false)} <- ${print(producer, graph)}"
+    })
+
+    toString(Seq(storesString, toolsString, storeLocationsString, storeProducersString))
   }
 }

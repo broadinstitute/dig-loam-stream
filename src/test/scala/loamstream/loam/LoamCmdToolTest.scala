@@ -1,7 +1,5 @@
 package loamstream.loam
 
-import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge, UriEdge}
 import loamstream.loam.LoamToken.{StoreToken, StringToken}
 import loamstream.loam.ops.StoreType.TXT
 import loamstream.model.LId
@@ -24,8 +22,8 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.graph eq scriptContext.projectContext.graphBox.value)
 
     assert(tool.graph.stores == Set.empty)
-    assert(tool.graph.storeSinks == Map.empty)
-    assert(tool.graph.storeSources == Map.empty)
+    assert(tool.graph.storeProducers === Map.empty)
+    assert(tool.graph.storeConsumers == Map.empty)
 
     assert(tool.graph.toolInputs == Map(tool -> Set.empty))
     assert(tool.graph.toolOutputs == Map(tool -> Set.empty))

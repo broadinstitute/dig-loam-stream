@@ -3,7 +3,6 @@ package loamstream.compiler
 import java.nio.file.Paths
 
 import loamstream.compiler.repo.LoamRepository
-import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
 

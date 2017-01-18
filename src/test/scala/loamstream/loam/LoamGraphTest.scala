@@ -3,7 +3,6 @@ package loamstream.loam
 import java.nio.file.Paths
 
 import loamstream.compiler.LoamCompiler
-import loamstream.loam.LoamGraph.StoreEdge
 import org.scalatest.FunSuite
 
 /**
@@ -36,21 +35,21 @@ final class LoamGraphTest extends FunSuite {
     result.contextOpt.get
   }
   val graph = context.graph
+
   test("Test that valid graph passes all checks.") {
     assert(LoamGraphValidation.allRules(graph).isEmpty)
   }
-  test("Test rule eachStoreHasASource") {
-    val someStore = graph.storeSources.head._1
-    val storeSourcesWithoutSomeStore = graph.storeSources - someStore
-    val graphBroken = graph.copy(storeSources = storeSourcesWithoutSomeStore)
-    assert(LoamGraphValidation.eachStoreHasASource(graphBroken).nonEmpty)
+  test("Test rule eachStoreIsInputOrHasProducer") {
+    val someStore = graph.storeProducers.head._1
+    val storeProducersWithoutSomeStore = graph.storeProducers - someStore
+    val graphBroken = graph.copy(storeProducers = storeProducersWithoutSomeStore)
+    assert(LoamGraphValidation.eachStoreIsInputOrHasProducer(graphBroken).nonEmpty)
   }
-  test("Test rule eachToolSourcedStoreIsOutputOfThatTool") {
-    val someTool = graph.tools.head
-    val storeSourcesAllFromSameTool =
-      graph.storeSources.mapValues(source => StoreEdge.ToolEdge(someTool)).view.force
-    val graphBroken = graph.copy(storeSources = storeSourcesAllFromSameTool)
-    assert(LoamGraphValidation.eachToolSourcedStoreIsOutputOfThatTool(graphBroken).nonEmpty)
+  test("Test rule eachStoresIsOutputOfItsProducer") {
+    val toolOutputsShaved =
+      graph.toolOutputs.mapValues(outputs => if (outputs.nonEmpty) outputs - outputs.head else outputs).view.force
+    val graphBroken = graph.copy(toolOutputs = toolOutputsShaved)
+    assert(LoamGraphValidation.eachStoresIsOutputOfItsProducer(graphBroken).nonEmpty)
   }
   test("Test rule eachStoresIsInputOfItsConsumers") {
     val toolInputsShaved =
@@ -67,7 +66,7 @@ final class LoamGraphTest extends FunSuite {
     assert(LoamGraphValidation.eachToolsOutputStoresArePresent(graphBroken).nonEmpty)
   }
   test("Test rule eachStoreIsConnectedToATool") {
-    val graphBroken = graph.copy(storeSources = Map.empty, storeConsumers = Map.empty)
+    val graphBroken = graph.copy(storeProducers = Map.empty, storeConsumers = Map.empty)
     assert(LoamGraphValidation.eachStoreIsConnectedToATool(graphBroken).nonEmpty)
   }
   test("Test rule eachToolHasEitherInputsOrOutputs") {

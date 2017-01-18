@@ -2,9 +2,8 @@ package loamstream.integration
 
 import java.nio.file.{Path, Paths}
 
-import loamstream.loam.LoamGraph.StoreEdge.PathEdge
 import loamstream.loam.LoamGraph.StoreLocation
-import loamstream.loam.{LoamGraph, LoamProjectContext}
+import loamstream.loam.LoamProjectContext
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript
@@ -34,21 +33,20 @@ final class KinshipStepHasRightStoresTest extends FunSuite with LoamTestHelpers 
 
     def isRight(path: Path): Boolean = path.toString.endsWith("CAMP.kinship.pruned.bed")
 
-    def isRightLocation(location: StoreLocation) : Boolean = {
+    def isRightLocation(location: StoreLocation): Boolean = {
       location match {
         case StoreLocation.PathLocation(path) => isRight(path)
         case _ => false
       }
     }
 
-    def isRightEdge(edges: Set[LoamGraph.StoreEdge]): Boolean = {
-      edges.collect { case p: PathEdge => p }.exists { case PathEdge(p) => isRight(p) }
-    }
-
-    // Does an output store (sink) exist that's connected to a PathEdge representing 
+    // Does an output store (sink) exist that's connected to a PathEdge representing
     // ./CAMP.kinship.pruned.bed?
-    assert(context.graph.storeLocations.values.exists(isRightLocation))
-    assert(context.graph.storeSinks.values.exists(isRightEdge))
+    val outStores =
+    context.graph.stores.filter(store => context.graph.storeLocations.get(store).exists(isRightLocation))
+    assert(outStores.nonEmpty)
+    assert(outStores.forall(!context.graph.inputStores.contains(_)))
+    assert(outStores.forall(context.graph.storeProducers.contains))
 
     // Did we make the expected forest of job trees, and does the king command have its first
     // store param interpolated correctly?

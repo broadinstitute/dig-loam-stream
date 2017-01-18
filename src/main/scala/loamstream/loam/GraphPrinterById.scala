@@ -1,13 +1,12 @@
 package loamstream.loam
 
 import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge}
+import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge, UriEdge}
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.model.LId
 import loamstream.util.code.SourceUtils
 
 import scala.reflect.runtime.universe.Type
-import loamstream.loam.LoamGraph.StoreEdge.UriEdge
 
 /** Prints LoamGraph for educational and debugging purposes exposing ids */
 final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
@@ -36,8 +35,8 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
   /** Prints prefix symbol to distinguish input and output stores */
   def printIoPrefix(tool: LoamCmdTool, store: LoamStore.Untyped, graph: LoamGraph): String = {
-    graph.storeSources.get(store) match {
-      case Some(StoreEdge.ToolEdge(sourceTool)) if sourceTool == tool => ">"
+    graph.storeProducers.get(store) match {
+      case Some(producer) if producer == tool => ">"
       case _ => "<"
     }
   }

@@ -121,8 +121,8 @@ final class LoamCmdToolTest extends FunSuite {
       val nStores = 6
       val stores = Seq.fill[LoamStore.Untyped](nStores)(LoamStore[TXT](LId.newAnonId))
 
-      val inStoreImplicit = stores(4).from("inputFile.vcf") // scalastyle:ignore magic.number
-      val outStoreImplicit = stores(5).to("outputFile.txt") // scalastyle:ignore magic.number
+      val inStoreImplicit = stores(4).at("inputFile.vcf").asInput // scalastyle:ignore magic.number
+      val outStoreImplicit = stores(5).at("outputFile.txt") // scalastyle:ignore magic.number
 
       val tool = cmd"foo $inStoreImplicit $outStoreImplicit"
 
@@ -133,13 +133,13 @@ final class LoamCmdToolTest extends FunSuite {
     }
   }
 
-  test("to(...) and from(...)") {
+  test("at(...) and asInput") {
     implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty)
     import loamstream.compiler.LoamPredef._
-    val inStoreWithPath = store[TXT].from("dir/inStoreWithPath.txt")
-    val outStoreWithPath = store[TXT].to("dir/outStoreWithPath.txt")
-    val inStoreWithUri = store[TXT].from(uri("xyz://host/dir/inStoreWithUri"))
-    val outStoreWithUri = store[TXT].from(uri("xyz://host/dir/outStoreWithUri"))
+    val inStoreWithPath = store[TXT].at("dir/inStoreWithPath.txt").asInput
+    val outStoreWithPath = store[TXT].at("dir/outStoreWithPath.txt")
+    val inStoreWithUri = store[TXT].at(uri("xyz://host/dir/inStoreWithUri")).asInput
+    val outStoreWithUri = store[TXT].at(uri("xyz://host/dir/outStoreWithUri"))
     val tool = cmd"maker $inStoreWithPath $inStoreWithUri $outStoreWithPath $outStoreWithUri"
     val inPath = BashScript.escapeString(inStoreWithPath.path.toString)
     val outPath = BashScript.escapeString(outStoreWithPath.path.toString)

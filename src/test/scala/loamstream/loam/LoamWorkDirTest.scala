@@ -33,8 +33,8 @@ final class LoamWorkDirTest extends FunSuite {
     }
     val fileName1 = "file1.vcf"
     val fileName2 = "file2.vcf"
-    val store1 = store[VCF].from(fileName1)
-    val store2 = store[VCF].from(fileName2)
+    val store1 = store[VCF].at(fileName1).asInput
+    val store2 = store[VCF].at(fileName2).asInput
     val tool = cmd"yo $store1 $store2"
     val workDir = (workDirOpt1, workDirOpt2) match {
       case (Some(workDir1), Some(workDir2)) => workDir1.resolve(workDir2)

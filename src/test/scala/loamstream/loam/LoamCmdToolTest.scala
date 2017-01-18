@@ -52,10 +52,10 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.inputs === expectedInputs)
     assert(tool.outputs === expectedOutputs)
     for ((id, store) <- expectedInputs) {
-      val storeProducerOpt = graph.storeProducerOpt(store)
+      val storeProducerOpt = graph.storeProducers.get(store)
       assert(storeProducerOpt === None,
         s"Expected no producer for input store $id, but got tool ${storeProducerOpt.map(_.id).getOrElse("")}")
-      val storeConsumers = graph.storeConsumers(store)
+      val storeConsumers = graph.storeConsumers.getOrElse(store, Set.empty)
       assert(storeConsumers === Set(tool), {
         val storeConsumersString = if (storeConsumers.isEmpty) {
           "none"
@@ -66,12 +66,12 @@ final class LoamCmdToolTest extends FunSuite {
       })
     }
     for ((id, store) <- expectedOutputs) {
-      val storeProducerOpt = graph.storeProducerOpt(store)
+      val storeProducerOpt = graph.storeProducers.get(store)
       assert(storeProducerOpt === Some(tool), {
         val storeProducerString = storeProducerOpt.map(_.id.toString).getOrElse("none")
         s"Expected tool ${tool.id} as producer of output store $id, but got $storeProducerString."
       })
-      val storeConsumers = graph.storeConsumers(store)
+      val storeConsumers = graph.storeConsumers.getOrElse(store, Set.empty)
       assert(storeConsumers === Set.empty,
         s"Expected no consumers of output store $id, but got tools ${storeConsumers.map(_.id).mkString(", ")}")
     }

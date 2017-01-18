@@ -67,7 +67,7 @@ final class LoamGraphTest extends FunSuite {
     assert(LoamGraphValidation.eachToolsOutputStoresArePresent(graphBroken).nonEmpty)
   }
   test("Test rule eachStoreIsConnectedToATool") {
-    val graphBroken = graph.copy(storeSources = Map.empty, storeSinks = Map.empty)
+    val graphBroken = graph.copy(storeSources = Map.empty, storeConsumers = Map.empty)
     assert(LoamGraphValidation.eachStoreIsConnectedToATool(graphBroken).nonEmpty)
   }
   test("Test rule eachToolHasEitherInputsOrOutputs") {

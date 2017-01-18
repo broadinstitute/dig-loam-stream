@@ -86,29 +86,29 @@ object LoamGraphValidation {
 
   val eachToolsInputStoresArePresent: LoamToolRule[Set[LoamStore.Untyped]] =
     new LoamToolRule[Set[LoamStore.Untyped]] {
-    override def apply(graph: LoamGraph, tool: LoamTool): Seq[LoamToolIssue[Set[LoamStore.Untyped]]] = {
-      val missingInputs = graph.toolInputs.getOrElse(tool, Set.empty) -- graph.stores
-      issueIf(missingInputs.nonEmpty,
-        newBulkIssue[LoamTool, Set[LoamStore.Untyped]](graph, this, tool, missingInputs, Severity.Error,
-          s"The following inputs of tool $tool are missing from the graph: ${missingInputs.mkString(", ")}"))
+      override def apply(graph: LoamGraph, tool: LoamTool): Seq[LoamToolIssue[Set[LoamStore.Untyped]]] = {
+        val missingInputs = graph.toolInputs.getOrElse(tool, Set.empty) -- graph.stores
+        issueIf(missingInputs.nonEmpty,
+          newBulkIssue[LoamTool, Set[LoamStore.Untyped]](graph, this, tool, missingInputs, Severity.Error,
+            s"The following inputs of tool $tool are missing from the graph: ${missingInputs.mkString(", ")}"))
+      }
     }
-  }
 
   val eachToolsOutputStoresArePresent: LoamToolRule[Set[LoamStore.Untyped]] =
     new LoamToolRule[Set[LoamStore.Untyped]] {
-    override def apply(graph: LoamGraph, tool: LoamTool): Seq[LoamToolIssue[Set[LoamStore.Untyped]]] = {
-      val missingOutputs = graph.toolOutputs.getOrElse(tool, Set.empty) -- graph.stores
-      issueIf(missingOutputs.nonEmpty,
-        newBulkIssue[LoamTool, Set[LoamStore.Untyped]](graph, this, tool, missingOutputs, Severity.Error,
-          s"The following outputs of tool $tool are missing from the graph: ${missingOutputs.mkString(", ")}"))
+      override def apply(graph: LoamGraph, tool: LoamTool): Seq[LoamToolIssue[Set[LoamStore.Untyped]]] = {
+        val missingOutputs = graph.toolOutputs.getOrElse(tool, Set.empty) -- graph.stores
+        issueIf(missingOutputs.nonEmpty,
+          newBulkIssue[LoamTool, Set[LoamStore.Untyped]](graph, this, tool, missingOutputs, Severity.Error,
+            s"The following outputs of tool $tool are missing from the graph: ${missingOutputs.mkString(", ")}"))
+      }
     }
-  }
 
   val noToolsPrecedeInitialTool: LoamToolRule[Set[LoamTool]] = new LoamToolRule[Set[LoamTool]] {
     override def targets(graph: LoamGraph): Seq[LoamTool] = graph.initialTools.toSeq
 
     override def apply(graph: LoamGraph, tool: LoamTool): Seq[BulkIssue[LoamGraph, LoamTool, Set[LoamTool]]] = {
-      val precedingTools = graph.toolInputs.getOrElse(tool, Set.empty).flatMap(graph.storeProducerOpt)
+      val precedingTools = graph.toolInputs.getOrElse(tool, Set.empty).flatMap(graph.storeProducers.get)
       issueIf(precedingTools.nonEmpty,
         newBulkIssue[LoamTool, Set[LoamTool]](graph, this, tool, precedingTools, Severity.Error,
           s"Tool $tool is considered initial, but the following tools precede it: ${precedingTools.mkString(", ")}.")
@@ -120,7 +120,8 @@ object LoamGraphValidation {
     override def targets(graph: LoamGraph): Seq[LoamTool] = graph.finalTools.toSeq
 
     override def apply(graph: LoamGraph, tool: LoamTool): Seq[BulkIssue[LoamGraph, LoamTool, Set[LoamTool]]] = {
-      val succeedingTools = graph.toolOutputs.getOrElse(tool, Set.empty).flatMap(graph.storeConsumers)
+      val succeedingTools =
+        graph.toolOutputs.getOrElse(tool, Set.empty).flatMap(graph.storeConsumers.getOrElse(_, Set.empty))
       issueIf(succeedingTools.nonEmpty,
         newBulkIssue[LoamTool, Set[LoamTool]](graph, this, tool, succeedingTools, Severity.Error,
           s"Tool $tool is considered final, but the following tools succeed it: ${succeedingTools.mkString(", ")}.")
@@ -130,8 +131,8 @@ object LoamGraphValidation {
 
   val eachStoreIsConnectedToATool: LoamStoreRule[Unit] = new LoamStoreRule[Unit] {
     override def apply(graph: LoamGraph, store: LoamStore.Untyped): Seq[LoamStoreIssue[Unit]] = {
-      val storeIsInput = graph.storeConsumers(store).nonEmpty
-      val storeIsOutput = graph.storeProducerOpt(store).nonEmpty
+      val storeIsInput = graph.storeConsumers.getOrElse(store, Set.empty).nonEmpty
+      val storeIsOutput = graph.storeProducers.contains(store)
       issueIf(!(storeIsInput || storeIsOutput),
         newBulkIssue[LoamStore.Untyped, Unit](graph, this, store, (), Severity.Error,
           s"Store $store is neither input nor output of any tool."))

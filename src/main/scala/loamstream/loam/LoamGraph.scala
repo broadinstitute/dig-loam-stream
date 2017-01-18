@@ -54,6 +54,7 @@ object LoamGraph {
       Map.empty,
       Map.empty,
       Map.empty,
+      Map.empty,
       Equivalences.empty,
       Equivalences.empty,
       Map.empty,
@@ -68,6 +69,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
                            toolOutputs: Map[LoamTool, Set[LoamStore.Untyped]],
                            storeLocations: Map[LoamStore.Untyped, StoreLocation],
                            storeProducers: Map[LoamStore.Untyped, LoamTool],
+                           storeConsumers: Map[LoamStore.Untyped, Set[LoamTool]],
                            storeSources: Map[LoamStore.Untyped, StoreEdge],
                            storeSinks: Map[LoamStore.Untyped, Set[StoreEdge]],
                            keysSameSets: Equivalences[LoamStoreKeySlot],
@@ -97,6 +99,8 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
       val outputsWithProducer = toolOutputStores.map(store => store -> tool)
       val toolEdge = StoreEdge.ToolEdge(tool)
       val outputsWithSource = toolOutputStores.map(store => store -> toolEdge)
+      val storeConsumersNew =
+        toolInputStores.map(store => store -> (storeConsumers.getOrElse(store, Set.empty) + tool))
       val storeSinksNew = toolInputStores.map(store => store -> (storeSinks.getOrElse(store, Set.empty) + toolEdge))
 
       copy(
@@ -104,6 +108,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
         toolInputs = toolInputs + (tool -> toolInputStores),
         toolOutputs = toolOutputs + (tool -> toolOutputStores),
         storeProducers = storeProducers ++ outputsWithProducer,
+        storeConsumers = storeConsumers ++ storeConsumersNew,
         storeSources = storeSources ++ outputsWithSource,
         storeSinks = storeSinks ++ storeSinksNew,
         workDirs = workDirs + (tool -> scriptContext.workDir),
@@ -153,16 +158,6 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     keysSameLists.theseAreEqual(slot1, slot2)
   }
 
-  /** Returns the option of a producer (tool) of a store */
-  def storeProducerOpt(store: LoamStore.Untyped): Option[LoamTool] = storeSources.get(store).collect {
-    case StoreEdge.ToolEdge(tool) => tool
-  }
-
-  /** Returns the set of consumers (tools) of a store */
-  def storeConsumers(store: LoamStore.Untyped): Set[LoamTool] = storeSinks.getOrElse(store, Set.empty).collect {
-    case StoreEdge.ToolEdge(tool) => tool
-  }
-
   /** Tools that produce a store consumed by this tool */
   def toolsPreceding(tool: LoamTool): Set[LoamTool] = {
     toolInputs.getOrElse(tool, Set.empty).flatMap(storeSources.get).collect {
@@ -172,7 +167,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
   /** Tools that consume a store produced by this tool */
   def toolsSucceeding(tool: LoamTool): Set[LoamTool] = {
-    toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers)
+    toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers.getOrElse(_, Set.empty))
   }
 
   /** All tools with no preceeding tools */
@@ -258,12 +253,16 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
       case (store, edge) => stores(store) && edge == toolEdge
     }
 
+    val storeConsumersNew =
+      storeConsumers ++ stores.map(store => (store, storeConsumers.getOrElse(store, Set.empty) + tool))
+
     val storeSinksNew = storeSinks ++ stores.map(store => (store, storeSinks.getOrElse(store, Set.empty) + toolEdge))
 
     copy(
       toolInputs = toolInputsNew,
       toolOutputs = toolOutputsNew,
       storeProducers = storeProducersNew,
+      storeConsumers = storeConsumersNew,
       storeSources = storeSourcesNew,
       storeSinks = storeSinksNew)
   }
@@ -283,12 +282,16 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
     val storeSourcesNew = storeSources ++ stores.map(store => (store, toolEdge))
 
+    val storeConsumersNew =
+      storeConsumers ++ stores.map(store => (store, storeConsumers.getOrElse(store, Set.empty) - tool))
+
     val storeSinksNew = storeSinks ++ stores.map(store => (store, storeSinks.getOrElse(store, Set.empty) - toolEdge))
 
     copy(
       toolInputs = toolInputsNew,
       toolOutputs = toolOutputsNew,
       storeProducers = storeProducersNew,
+      storeConsumers = storeConsumersNew,
       storeSources = storeSourcesNew,
       storeSinks = storeSinksNew)
   }

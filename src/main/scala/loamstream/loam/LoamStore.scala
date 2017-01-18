@@ -32,6 +32,16 @@ object LoamStore {
 
     def update(): Unit = graphBox.mutate(_.withStore(this))
 
+    def asInput: LoamStore.Untyped
+
+    def at(path: String): LoamStore.Untyped
+
+    def at(path: Path): LoamStore.Untyped
+
+    def at(uri: URI): LoamStore.Untyped
+
+    def at(location: StoreLocation): LoamStore.Untyped
+
     def from(path: String): LoamStore.Untyped
 
     def from(path: Path): LoamStore.Untyped
@@ -78,41 +88,44 @@ final case class LoamStore[S <: StoreType : TypeTag] private(id: LId)(implicit v
 
   update()
 
-  override def from(path: String): LoamStore[S] = from(Paths.get(path))
-
-  override def from(path: Path): LoamStore[S] = {
-    val resolvedPath = scriptContext.workDir.resolve(path)
-    val location = StoreLocation.PathLocation(resolvedPath)
-    from(location)
-  }
-
-  override def from(uri: URI): LoamStore[S] = {
-    val location = StoreLocation.UriLocation(uri)
-    from(location)
-  }
-
-  override def from(location: StoreLocation): LoamStore[S] = {
-    graphBox.mutate(_.withStoreLocation(this, location).withStoreAsInput(this))
+  override def asInput: LoamStore[S] = {
+    graphBox.mutate(_.withStoreAsInput(this))
     this
   }
 
-  override def to(path: String): LoamStore[S] = to(Paths.get(path))
+  override def at(path: String): LoamStore[S] = at(Paths.get(path))
 
-  override def to(path: Path): LoamStore[S] = {
+  override def at(path: Path): LoamStore[S] = {
     val resolvedPath = scriptContext.workDir.resolve(path)
     val location = StoreLocation.PathLocation(resolvedPath)
-    to(location)
+    at(location)
   }
 
-  override def to(uri: URI): LoamStore[S] = {
+  override def at(uri: URI): LoamStore[S] = {
     val location = StoreLocation.UriLocation(uri)
-    to(location)
+    at(location)
   }
 
-  override def to(location: StoreLocation): LoamStore[S] = {
+  override def at(location: StoreLocation): LoamStore[S] = {
     graphBox.mutate(_.withStoreLocation(this, location))
     this
   }
+
+  override def from(path: String): LoamStore[S] = at(path).asInput
+
+  override def from(path: Path): LoamStore[S] = at(path).asInput
+
+  override def from(uri: URI): LoamStore[S] = at(uri).asInput
+
+  override def from(location: StoreLocation): LoamStore[S] = at(location).asInput
+
+  override def to(path: String): LoamStore[S] = at(path)
+
+  override def to(path: Path): LoamStore[S] = at(path)
+
+  override def to(uri: URI): LoamStore[S] = at(uri)
+
+  override def to(location: StoreLocation): LoamStore[S] = at(location)
 
   /** Returns new store which is the result of a new store filtering tool based on a field
     *

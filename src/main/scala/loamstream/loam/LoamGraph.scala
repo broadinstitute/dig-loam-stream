@@ -174,36 +174,29 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   def finalTools: Set[LoamTool] = tools.filter(toolsSucceeding(_).isEmpty)
 
   /** Whether store has a Path associated with it */
-  def hasPath(store: LoamStore.Untyped): Boolean = {
-    storeSources.get(store) match {
-      case Some(StoreEdge.PathEdge(path)) => true
-      case _ => storeSinks.getOrElse(store, Set.empty).collect { case StoreEdge.PathEdge(path) => path }.nonEmpty
-    }
-  }
+  def hasPath(store: LoamStore.Untyped): Boolean =
+  storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.PathLocation])
 
   /** Optionally the path associated with a store */
-  def pathOpt(store: LoamStore.Untyped): Option[Path] = {
-    storeSources.get(store) match {
-      case Some(StoreEdge.PathEdge(path)) => Some(path)
-      case _ => storeSinks.getOrElse(store, Set.empty).collect { case StoreEdge.PathEdge(path) => path }.headOption
-    }
+  def pathOpt(store: LoamStore.Untyped): Option[Path] =
+  storeLocations.get(store) match {
+    case Some(StoreLocation.PathLocation(path)) => Some(path)
+    case _ => None
   }
+
 
   /** Whether store has a Path associated with it */
-  def hasUri(store: LoamStore.Untyped): Boolean = {
-    storeSources.get(store) match {
-      case Some(StoreEdge.UriEdge(path)) => true
-      case _ => storeSinks.getOrElse(store, Set.empty).collect { case StoreEdge.UriEdge(uri) => uri }.nonEmpty
-    }
-  }
+  def hasUri(store: LoamStore.Untyped): Boolean =
+  storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.UriLocation])
+
 
   /** Optionally the URI associated with a store */
-  def uriOpt(store: LoamStore.Untyped): Option[URI] = {
-    storeSources.get(store) match {
-      case Some(StoreEdge.UriEdge(uri)) => Some(uri)
-      case _ => storeSinks.getOrElse(store, Set.empty).collect { case StoreEdge.UriEdge(uri) => uri }.headOption
-    }
+  def uriOpt(store: LoamStore.Untyped): Option[URI] =
+  storeLocations.get(store) match {
+    case Some(StoreLocation.UriLocation(uri)) => Some(uri)
+    case _ => None
   }
+
 
   /** Optionally, the work directory of a tool */
   def workDirOpt(tool: LoamTool): Option[Path] = workDirs.get(tool)

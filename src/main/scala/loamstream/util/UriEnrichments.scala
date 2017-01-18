@@ -43,10 +43,7 @@ object UriEnrichments {
       val path = uri.getPath
       val leadingChar = 1
 
-      if (path.startsWith("/")) {
-        path.drop(leadingChar)
-      }
-      else { path }
+      if (path.startsWith("/")) path.drop(leadingChar) else path
     }
   }
   

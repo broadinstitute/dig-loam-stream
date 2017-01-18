@@ -7,7 +7,7 @@ import loamstream.util.Hash
 
 /**
  * @author kyuksel
- *         date: Jan 13, 2017
+ * Jan 13, 2017
  */
 trait CloudStorageClient {
   def hash(uri: URI): Option[Hash]

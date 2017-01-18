@@ -16,7 +16,7 @@ import loamstream.googlecloud.GcsClient
 /**
  * @author clint
  * @author kaan
- * date: Aug 1, 2016
+ * Aug 1, 2016
  *
  * A trait representing a handle to the output of a job; for now, we're primarily concerned with the case where
  * that output is a file, directory, or Google Cloud Storage objects but other output types are possible.

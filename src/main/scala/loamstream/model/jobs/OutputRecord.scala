@@ -7,7 +7,7 @@ import loamstream.util.{PathUtils, TimeEnrichments}
 
 /**
  * @author kyuksel
- * date: Dec 12, 2016
+ * Dec 12, 2016
  *
  * A container for job output attributes that are to be recorded and are not system-dependent
  * (e.g. in hash type or how resources are identified [URI/Path/etc])

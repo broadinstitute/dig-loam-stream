@@ -11,7 +11,7 @@ import org.scalatest.FunSuite
 
 /**
  * @author kyuksel
- *         date: Jan 17, 2016
+ * Jan 17, 2016
  */
 class GcsClientTest extends FunSuite {
   val credential = Paths.get("/Users/kyuksel/google_credential.json")

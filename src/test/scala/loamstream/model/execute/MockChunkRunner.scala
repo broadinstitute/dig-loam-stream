@@ -1,9 +1,5 @@
 package loamstream.model.execute
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-
-import loamstream.conf.UgerConfig
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.util.ValueBox

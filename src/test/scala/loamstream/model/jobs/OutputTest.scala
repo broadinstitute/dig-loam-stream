@@ -2,20 +2,23 @@ package loamstream.model.jobs
 
 import java.nio.file.Paths
 
-import loamstream.util.PlatformUtil
+import loamstream.util.{PathUtils, PlatformUtil}
 import org.scalatest.FunSuite
 
 /**
   * @author clint
   *         kyuksel
-  *         date: Aug 5, 2016
+  * Aug 5, 2016
   */
 final class OutputTest extends FunSuite {
   test("PathOutput") {
     import Output.PathOutput
 
-    val doesntExist = PathOutput(Paths.get("sjkafhkfhksdjfh"))
-    val exists = PathOutput(Paths.get("src/test/resources/for-hashing/foo.txt"))
+    val nonExistingLocation = "sjkafhkfhksdjfh"
+    val doesntExist = PathOutput(Paths.get(nonExistingLocation))
+
+    val existingPath = Paths.get("src/test/resources/for-hashing/foo.txt")
+    val exists = PathOutput(existingPath)
 
     assert(!doesntExist.isPresent)
 
@@ -29,6 +32,39 @@ final class OutputTest extends FunSuite {
     } else {
       "cb78b8412adaf7c8b5eecc09dbc9aa4d3cbb3675"
     }
-    assert(exists.hash.get.valueAsHexString == expectedHash)
+
+    val hashStr = exists.hash.get.valueAsHexString
+    assert(hashStr == expectedHash)
+
+    val doesntExistRecord = doesntExist.toOutputRecord
+    val expectedDoesntExistRecord = OutputRecord( loc = PathUtils.normalize(Paths.get(nonExistingLocation)),
+                                                  isPresent = false,
+                                                  hash = None,
+                                                  lastModified = None)
+    assert(doesntExistRecord === expectedDoesntExistRecord)
+
+    val existsRecord = exists.toOutputRecord
+    val expectedExistsRecord = OutputRecord(loc = PathUtils.normalize(existingPath),
+                                            isPresent = true,
+                                            hash = Some(hashStr),
+                                            lastModified = Some(PathUtils.lastModifiedTime(existingPath)))
+    assert(existsRecord === expectedExistsRecord)
+  }
+
+  test("GcsUriOutput.location") {
+    import java.net.URI
+    import Output.GcsUriOutput
+
+    val invalidLocation = "sjkafhkfhksdjfh"
+    val invalidUri = URI.create(invalidLocation)
+    val invalidOutput = GcsUriOutput(invalidUri)
+
+    assert(invalidOutput.location === invalidLocation)
+
+    val validLocation = "gs://bucket/folder/file"
+    val validUri = URI.create(validLocation)
+    val validOutput = GcsUriOutput(validUri)
+
+    assert(validOutput.location === validLocation)
   }
 }

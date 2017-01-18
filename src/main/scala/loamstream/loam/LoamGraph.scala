@@ -53,6 +53,7 @@ object LoamGraph {
       Map.empty,
       Map.empty,
       Map.empty,
+      Map.empty,
       Equivalences.empty,
       Equivalences.empty,
       Map.empty,
@@ -66,6 +67,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
                            toolInputs: Map[LoamTool, Set[LoamStore.Untyped]],
                            toolOutputs: Map[LoamTool, Set[LoamStore.Untyped]],
                            storeLocations: Map[LoamStore.Untyped, StoreLocation],
+                           storeProducers: Map[LoamStore.Untyped, LoamTool],
                            storeSources: Map[LoamStore.Untyped, StoreEdge],
                            storeSinks: Map[LoamStore.Untyped, Set[StoreEdge]],
                            keysSameSets: Equivalences[LoamStoreKeySlot],
@@ -92,6 +94,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
           (inputStores, outputStores)
         case InputsAndOutputs(inputStores, outputStores) => (inputStores.toSet, outputStores.toSet)
       }
+      val outputsWithProducer = toolOutputStores.map(store => store -> tool)
       val toolEdge = StoreEdge.ToolEdge(tool)
       val outputsWithSource = toolOutputStores.map(store => store -> toolEdge)
       val storeSinksNew = toolInputStores.map(store => store -> (storeSinks.getOrElse(store, Set.empty) + toolEdge))
@@ -100,6 +103,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
         tools = tools + tool,
         toolInputs = toolInputs + (tool -> toolInputStores),
         toolOutputs = toolOutputs + (tool -> toolOutputStores),
+        storeProducers = storeProducers ++ outputsWithProducer,
         storeSources = storeSources ++ outputsWithSource,
         storeSinks = storeSinks ++ storeSinksNew,
         workDirs = workDirs + (tool -> scriptContext.workDir),
@@ -112,6 +116,10 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   def withStoreLocation(store: LoamStore.Untyped, location: StoreLocation): LoamGraph = {
     copy(storeLocations = storeLocations + (store -> location))
   }
+
+  /** Returns graph with store producer (tool) added */
+  def withStoreProducer(store: LoamStore.Untyped, tool: LoamTool): LoamGraph =
+  copy(storeProducers = storeProducers + (store -> tool))
 
   /** Returns graph with store source (tool or file) added */
   def withStoreSource(store: LoamStore.Untyped, source: StoreEdge): LoamGraph = {
@@ -242,6 +250,10 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
     val toolEdge = ToolEdge(tool)
 
+    val storeProducersNew = storeProducers.filterNot {
+      case (store, producer) => stores(store) && producer == tool
+    }
+
     val storeSourcesNew = storeSources.filterNot {
       case (store, edge) => stores(store) && edge == toolEdge
     }
@@ -251,6 +263,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     copy(
       toolInputs = toolInputsNew,
       toolOutputs = toolOutputsNew,
+      storeProducers = storeProducersNew,
       storeSources = storeSourcesNew,
       storeSinks = storeSinksNew)
   }
@@ -266,6 +279,8 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
     val toolEdge = ToolEdge(tool)
 
+    val storeProducersNew = storeProducers ++ stores.map(store => store -> tool)
+
     val storeSourcesNew = storeSources ++ stores.map(store => (store, toolEdge))
 
     val storeSinksNew = storeSinks ++ stores.map(store => (store, storeSinks.getOrElse(store, Set.empty) - toolEdge))
@@ -273,6 +288,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     copy(
       toolInputs = toolInputsNew,
       toolOutputs = toolOutputsNew,
+      storeProducers = storeProducersNew,
       storeSources = storeSourcesNew,
       storeSinks = storeSinksNew)
   }

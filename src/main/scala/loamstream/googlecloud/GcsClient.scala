@@ -10,8 +10,8 @@ import loamstream.util.HashType.Md5
 import loamstream.util.Hash
 
 /**
- * @author kaan
- * Dec 6, 2016
+ * @author kyuksel
+ *         date: Dec 6, 2016
  *
  * Wrapper around Google Cloud Storage JAVA API to expose methods for job recording purposes
  */
@@ -35,6 +35,8 @@ final case class GcsClient private[googlecloud] (credential: Path) extends Cloud
 }
 
 object GcsClient {
+  import loamstream.util.UriEnrichments._
+
   private val credential = Paths.get("/Users/kyuksel/google_credential.json")
 
   def get: GcsClient = new GcsClient(credential)
@@ -52,7 +54,7 @@ object GcsClient {
   private[googlecloud] def bucketName(uri: URI): String = uri.getHost
 
   // Path for the storage object
-  private[googlecloud] def objPath(uri: URI): String = uri.getPath
+  private[googlecloud] def objPath(uri: URI): String = uri.getPathWithoutLeadingSlash
 
   // Storage object option
   private[googlecloud] def obj(uri: URI): Option[Blob] = Option(storage.get(bucketName(uri), objPath(uri)))

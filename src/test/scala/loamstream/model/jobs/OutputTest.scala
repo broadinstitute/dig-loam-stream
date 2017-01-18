@@ -7,6 +7,7 @@ import org.scalatest.FunSuite
 
 /**
   * @author clint
+  *         kyuksel
   *         date: Aug 5, 2016
   */
 final class OutputTest extends FunSuite {

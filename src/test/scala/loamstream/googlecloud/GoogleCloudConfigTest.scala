@@ -13,6 +13,7 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val binaryPath = "/path/to/gcloud"
   private val projectId = "pid"
   private val clusterId = "cid"
+  private val credential = "/path/to/credential"
   private val numWorkers = 42
   private val zone = "z"
   private val masterMachineType = "mmt"
@@ -25,9 +26,10 @@ final class GoogleCloudConfigTest extends FunSuite {
   test("fromConfig - defaults used") {
     val confString = s"""loamstream {
         googlecloud {
-          gcloudBinaryPath = "$binaryPath"
+          gcloudBinary = "$binaryPath"
           projectId = "$projectId"
           clusterId = "$clusterId"
+          credential = "$credential"
           numWorkers = $numWorkers
         }
       }"""
@@ -36,9 +38,10 @@ final class GoogleCloudConfigTest extends FunSuite {
     
     val gConfig = GoogleCloudConfig.fromConfig(config).get
     
-    assert(gConfig.gcloudBinaryPath === Paths.get(binaryPath))
+    assert(gConfig.gcloudBinary === Paths.get(binaryPath))
     assert(gConfig.projectId === projectId)
     assert(gConfig.clusterId === clusterId)
+    assert(gConfig.credential === Paths.get(credential))
     assert(gConfig.numWorkers === numWorkers)
     
     import GoogleCloudConfig.Defaults
@@ -71,9 +74,10 @@ final class GoogleCloudConfigTest extends FunSuite {
   test("fromConfig - no defaults") {
     val confString = s"""loamstream {
         googlecloud {
-          gcloudBinaryPath = "$binaryPath"
+          gcloudBinary = "$binaryPath"
           projectId = "$projectId"
           clusterId = "$clusterId"
+          credential = "$credential"
           numWorkers = $numWorkers
           zone = "$zone"
           masterMachineType = "$masterMachineType"
@@ -89,7 +93,7 @@ final class GoogleCloudConfigTest extends FunSuite {
     
     val gConfig = GoogleCloudConfig.fromConfig(config).get
     
-    assert(gConfig.gcloudBinaryPath === Paths.get(binaryPath))
+    assert(gConfig.gcloudBinary === Paths.get(binaryPath))
     assert(gConfig.projectId === projectId)
     assert(gConfig.clusterId === clusterId)
     assert(gConfig.numWorkers === numWorkers)

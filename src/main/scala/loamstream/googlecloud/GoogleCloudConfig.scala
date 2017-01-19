@@ -11,17 +11,18 @@ import GoogleCloudConfig.Defaults
  * Nov 28, 2016
  */
 final case class GoogleCloudConfig(
-    gcloudBinaryPath: Path, 
-    projectId: String,
-    clusterId: String,
-    zone: String = Defaults.zone,
-    masterMachineType: String = Defaults.masterMachineType,
-    masterBootDiskSize: Int = Defaults.masterBootDiskSize, // in GB
-    numWorkers: Int = Defaults.numWorkers, // minimum 2
-    workerMachineType: String = Defaults.workerMachineType,
-    workerBootDiskSize: Int = Defaults.workerBootDiskSize, // in GB
-    imageVersion: String = Defaults.imageVersion, // 2.x not supported by Hail
-    scopes: String = Defaults.scopes)
+                                    gcloudBinary: Path,
+                                    projectId: String,
+                                    clusterId: String,
+                                    credential: Path,
+                                    zone: String = Defaults.zone,
+                                    masterMachineType: String = Defaults.masterMachineType,
+                                    masterBootDiskSize: Int = Defaults.masterBootDiskSize, // in GB
+                                    numWorkers: Int = Defaults.numWorkers, // minimum 2
+                                    workerMachineType: String = Defaults.workerMachineType,
+                                    workerBootDiskSize: Int = Defaults.workerBootDiskSize, // in GB
+                                    imageVersion: String = Defaults.imageVersion, // 2.x not supported by Hail
+                                    scopes: String = Defaults.scopes)
     
 object GoogleCloudConfig {
   object Defaults { // for creating a minimal cluster
@@ -49,9 +50,10 @@ object GoogleCloudConfig {
     def getIntOrElse(key: String, default: Int): Int = tryGetInt(key).getOrElse(default)
     
     for {
-      gcloudBinaryPath <- tryGetPath("gcloudBinaryPath")
+      gcloudBinary <- tryGetPath("gcloudBinary")
       projectId <- tryGetString("projectId")
       clusterId <- tryGetString("clusterId")
+      credential <- tryGetPath("credential")
       zone = getStringOrElse("zone", Defaults.zone)
       masterMachineType = getStringOrElse("masterMachineType", Defaults.masterMachineType)
       masterBootDiskSize = getIntOrElse("masterBootDiskSize", Defaults.masterBootDiskSize)
@@ -62,9 +64,10 @@ object GoogleCloudConfig {
       scopes = getStringOrElse("scopes", Defaults.scopes)
     } yield {
       GoogleCloudConfig(
-        gcloudBinaryPath, 
+        gcloudBinary,
         projectId,
         clusterId,
+        credential,
         zone,
         masterMachineType,
         masterBootDiskSize,

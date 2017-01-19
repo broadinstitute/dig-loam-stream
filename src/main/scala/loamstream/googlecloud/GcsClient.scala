@@ -19,11 +19,7 @@ final case class GcsClient private[googlecloud] (credential: Path) extends Cloud
   import GcsClient._
 
   // Encapsulated MD5 hash of the storage object
-  override def hash(uri: URI): Option[Hash] = {
-    //require(isPresent, s"Object '${uri.toString}' doesn't exist.")
-    //require(hashStr != null, s"No '${Md5.algorithmName}' hash was available for object '${uri.toString}'")
-    Hash.fromStrings(hashStr(uri), Md5.algorithmName).toOption
-  }
+  override def hash(uri: URI): Option[Hash] = Hash.fromStrings(hashStr(uri), Md5.algorithmName).toOption
 
   // If the storage object exists
   override def isPresent(uri: URI): Boolean = obj(uri).isDefined
@@ -45,7 +41,6 @@ object GcsClient {
   // If no credentials provided, attempt to find credentials that might be set in the environment
   private[googlecloud] lazy val storage: Storage =
     StorageOptions.newBuilder
-      //.setCredentials(ServiceAccountCredentials.fromStream(new FileInputStream(credentialFile)))
       .setCredentials(ServiceAccountCredentials.fromStream(java.nio.file.Files.newInputStream(credential)))
       .build
       .getService

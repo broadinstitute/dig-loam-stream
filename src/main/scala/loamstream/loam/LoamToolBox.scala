@@ -3,6 +3,7 @@ package loamstream.loam
 import java.net.URI
 import java.nio.file.{Path, Paths}
 
+import loamstream.googlecloud.CloudStorageClient
 import loamstream.loam.ops.filters.LoamStoreFilterTool
 import loamstream.loam.ops.mappers.LoamStoreMapperTool
 import loamstream.model.Tool
@@ -16,7 +17,7 @@ import loamstream.model.execute.ExecutionEnvironment
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
+final class LoamToolBox(context: LoamProjectContext, client: Option[CloudStorageClient] = None) extends LToolBox {
 
   @volatile private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
 
@@ -31,7 +32,7 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
       def pathOrUriToOutput(store: LoamStore.Untyped): Option[Output] = {
         store.pathOpt.orElse(store.uriOpt).map {
           case path: Path => Output.PathOutput(path)
-          case uri: URI => Output.GcsUriOutput(uri)
+          case uri: URI => Output.GcsUriOutput(uri, client)
         }
       }
 

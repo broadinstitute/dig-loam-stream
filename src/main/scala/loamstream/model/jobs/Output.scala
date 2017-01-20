@@ -11,7 +11,7 @@ import java.time.Instant
 import loamstream.util.PathUtils
 import java.nio.file.Paths
 
-import loamstream.googlecloud.GcsClient
+import loamstream.googlecloud.CloudStorageClient
 
 /**
  * @author clint
@@ -58,14 +58,12 @@ object Output {
     private def normalize(p: Path): Path = Paths.get(PathUtils.normalize(p))
   }
 
-  final case class GcsUriOutput(uri: URI) extends Output {
-    private val client = GcsClient.get
+  final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends Output {
+    override def isPresent = client.exists(_.isPresent(uri))
 
-    override def isPresent = client.isPresent(uri)
+    override def hash: Option[Hash] = client.flatMap(_.hash(uri))
 
-    override def hash: Option[Hash] = client.hash(uri)
-
-    override def lastModified: Option[Instant] = client.lastModified(uri)
+    override def lastModified: Option[Instant] = client.flatMap(_.lastModified(uri))
 
     override def location: String = uri.toString
 

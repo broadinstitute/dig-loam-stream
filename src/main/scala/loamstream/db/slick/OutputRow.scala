@@ -17,21 +17,33 @@ import loamstream.model.jobs.OutputRecord
 final case class OutputRow( loc: String,
                             lastModified: Option[Timestamp],
                             hash: Option[String],
+                            hashType: Option[String],
                             executionId: Option[Int] = None) {
-
-  def this(loc: String, hash: Option[String]) = {
-    this(
-      loc,
-      None,
-      hash,
-      None)
-  }
 
   def this(loc: String) = {
     this(
       loc,
       None,
       None,
+      None,
+      None)
+  }
+
+  def this(loc: String, hash: Option[String]) = {
+    this(
+      loc,
+      None,
+      None,
+      None,
+      None)
+  }
+
+  def this(loc: String, hash: Option[String], hashType: Option[String]) = {
+    this(
+      loc,
+      None,
+      hash,
+      hashType,
       None)
   }
 
@@ -40,10 +52,11 @@ final case class OutputRow( loc: String,
       rec.loc,
       rec.lastModified.map(Timestamp.from),
       rec.hash,
+      rec.hashType,
       None)
   }
 
   def withExecutionId(newExecutionId: Int): OutputRow = copy(executionId = Some(newExecutionId))
 
-  def toOutputRecord: OutputRecord = OutputRecord(loc, hash, lastModified.map(_.toInstant))
+  def toOutputRecord: OutputRecord = OutputRecord(loc, hash, hashType, lastModified.map(_.toInstant))
 }

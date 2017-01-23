@@ -7,7 +7,7 @@ import java.time.Instant
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.model.jobs.Output.GcsUriOutput
 import loamstream.model.jobs.OutputTest.MockGcsClient
-import loamstream.util.HashType.Md5
+import loamstream.util.HashType.{Md5, Sha1}
 import loamstream.util.{Hash, HashType, PathUtils, PlatformUtil}
 import org.scalatest.FunSuite
 
@@ -46,6 +46,7 @@ final class OutputTest extends FunSuite {
     val expectedDoesntExistRecord = OutputRecord( loc = PathUtils.normalize(Paths.get(nonExistingLocation)),
                                                   isPresent = false,
                                                   hash = None,
+                                                  hashType = None,
                                                   lastModified = None)
     assert(doesntExistRecord === expectedDoesntExistRecord)
 
@@ -53,6 +54,7 @@ final class OutputTest extends FunSuite {
     val expectedExistsRecord = OutputRecord(loc = PathUtils.normalize(existingPath),
                                             isPresent = true,
                                             hash = Some(hashStr),
+                                            hashType = Some(Sha1.algorithmName),
                                             lastModified = Some(PathUtils.lastModifiedTime(existingPath)))
     assert(existsRecord === expectedExistsRecord)
   }
@@ -82,6 +84,7 @@ final class OutputTest extends FunSuite {
     val expectedOutputRecord = OutputRecord(loc = someLoc,
                                             isPresent = false,
                                             hash = None,
+                                            hashType = None,
                                             lastModified = None)
 
     assert(output.isMissing)
@@ -104,6 +107,7 @@ final class OutputTest extends FunSuite {
     val expectedOutputRecord1 = OutputRecord( loc = someLoc,
                                               isPresent = false,
                                               hash = None,
+                                              hashType = None,
                                               lastModified = None)
     assert(output1.isMissing)
     assert(output1.hash.isEmpty)
@@ -115,6 +119,7 @@ final class OutputTest extends FunSuite {
     val expectedOutputRecord2 = OutputRecord( loc = someLoc,
                                               isPresent = true,
                                               hash = None,
+                                              hashType = None,
                                               lastModified = None)
     assert(output2.isPresent)
     assert(output2.hash.isEmpty)
@@ -126,6 +131,7 @@ final class OutputTest extends FunSuite {
     val expectedOutputRecord3 = OutputRecord( loc = someLoc,
                                               isPresent = true,
                                               hash = someHash.map(_.valueAsBase64String),
+                                              hashType = Some(Md5.algorithmName),
                                               lastModified = None)
     assert(output3.isPresent)
     assert(output3.hash.isDefined)
@@ -137,6 +143,7 @@ final class OutputTest extends FunSuite {
     val expectedOutputRecord4 = OutputRecord( loc = someLoc,
                                               isPresent = true,
                                               hash = someHash.map(_.valueAsBase64String),
+                                              hashType = Some(Md5.algorithmName),
                                               lastModified = Some(Instant.ofEpochMilli(2)))
     assert(output4.isPresent)
     assert(output4.hash.isDefined)

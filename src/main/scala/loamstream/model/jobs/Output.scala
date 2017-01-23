@@ -4,14 +4,12 @@ import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 
-import loamstream.util.Hash
-import loamstream.util.Hashes
+import loamstream.util.{Hash, HashType, Hashes, PathUtils}
 import java.time.Instant
-
-import loamstream.util.PathUtils
 import java.nio.file.Paths
 
 import loamstream.googlecloud.CloudStorageClient
+import loamstream.util.HashType.{Md5, Sha1}
 
 /**
  * @author clint
@@ -27,6 +25,8 @@ trait Output {
   final def isMissing: Boolean = !isPresent
   
   def hash: Option[Hash]
+
+  def hashType: Option[HashType] = hash.map(_.tpe)
 
   def lastModified: Option[Instant]
 
@@ -51,7 +51,12 @@ object Output {
 
     override def location: String = PathUtils.normalize(path)
 
-    override def toOutputRecord: OutputRecord = OutputRecord(location, hash.map(_.valueAsBase64String), lastModified)
+    override def toOutputRecord: OutputRecord =
+      OutputRecord( loc = location,
+                    isPresent = isPresent,
+                    hash = hash.map(_.valueAsBase64String),
+                    hashType = hashType.map(_.algorithmName),
+                    lastModified = lastModified)
 
     def normalized: PathOutput = copy(path = normalize(path))
 
@@ -68,6 +73,10 @@ object Output {
     override def location: String = uri.toString
 
     override def toOutputRecord: OutputRecord =
-      OutputRecord(location, isPresent, hash.map(_.valueAsBase64String), lastModified)
+      OutputRecord( loc = location,
+                    isPresent = isPresent,
+                    hash = hash.map(_.valueAsBase64String),
+                    hashType = hashType.map(_.algorithmName),
+                    lastModified = lastModified)
   }
 }

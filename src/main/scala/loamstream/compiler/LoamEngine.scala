@@ -73,9 +73,13 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
     val codeShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
 
     report(codeShot, s"Loaded '$file'.")
+    
     val nameShot = LoamScript.nameFromFilePath(file)
 
-    for (name <- nameShot; code <- codeShot) yield LoamScript(name, code)
+    for {
+      name <- nameShot 
+      code <- codeShot
+    } yield LoamScript(name, code, None)
   }
 
   def compileFile(fileName: String): Shot[LoamCompiler.Result] = {
@@ -95,7 +99,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
 
   def compile(script: String): LoamCompiler.Result = compiler.compile(LoamScript.withGeneratedName(script))
 
-  def compile(name: String, script: String): LoamCompiler.Result = compiler.compile(LoamScript(name, script))
+  def compile(name: String, script: String): LoamCompiler.Result = compiler.compile(LoamScript(name, script, None))
 
   def compile(scripts: Iterable[LoamScript]): LoamCompiler.Result = compiler.compile(LoamProject(scripts))
 

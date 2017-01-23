@@ -15,6 +15,7 @@ object ScriptBuilder {
   val newLine: String = "\n"
   val unixLineSep: String = " \\"
 
+  //NB: We need to 'use' Java-1.8 to make some steps of the QC pipeline work.  
   val scriptHeader: String =
     s"""#!/bin/bash
 #$$ -cwd
@@ -22,6 +23,7 @@ object ScriptBuilder {
 
 source /broad/software/scripts/useuse
 reuse -q UGER
+reuse -q Java-1.8
 
 i=$$SGE_TASK_ID
       """

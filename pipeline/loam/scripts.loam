@@ -1,0 +1,6 @@
+/** Scripts
+*/
+
+val CALC_KINSHIP_SAMPLE_SHARING_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/calc_kinship_sample_sharing.r")
+val PLOT_ANCESTRY_PCA_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/plot_ancestry_pca.r")
+val PLOT_ANCESTRY_CLUSTER_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/plot_ancestry_cluster.r")

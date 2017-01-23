@@ -19,30 +19,30 @@ final class HashTest extends FunSuite {
 
   private val realWorld = Hashes.sha1(Paths.get("src/test/resources/for-hashing/foo.txt"))
 
-  test("valueAsHexString") {
+  test("valueAsBinary64String") {
 
-    assert(allZeroes.valueAsHexString === "00000000")
+    assert(allZeroes.valueAsBase64String === "aaaaaa==")
 
-    assert(someOnes.valueAsHexString === "00ffff00")
+    assert(someOnes.valueAsBase64String === "ap//aa==")
 
     val expectedRealWorldHash = if (PlatformUtil.isWindows) {
       "91452093e8cb99ff7d958fb17941ff317d026318"
     } else {
-      "cb78b8412adaf7c8b5eecc09dbc9aa4d3cbb3675"
+      "y3i4qsra98i17swj28mqtty7nnu="
     }
-    assert(realWorld.valueAsHexString === expectedRealWorldHash)
+    assert(realWorld.valueAsBase64String === expectedRealWorldHash)
   }
 
   test("toString") {
 
-    assert(allZeroes.toString === "Sha1(00000000)")
+    assert(allZeroes.toString === "Sha1(aaaaaa==)")
 
-    assert(someOnes.toString === "Sha1(00ffff00)")
+    assert(someOnes.toString === "Sha1(ap//aa==)")
 
     val expectedRealWorldHash = if (PlatformUtil.isWindows) {
       "Sha1(91452093e8cb99ff7d958fb17941ff317d026318)"
     } else {
-      "Sha1(cb78b8412adaf7c8b5eecc09dbc9aa4d3cbb3675)"
+      "Sha1(y3i4qsra98i17swj28mqtty7nnu=)"
     }
     assert(realWorld.toString === expectedRealWorldHash)
   }

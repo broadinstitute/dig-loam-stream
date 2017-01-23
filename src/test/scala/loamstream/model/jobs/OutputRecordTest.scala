@@ -14,16 +14,16 @@ import org.scalatest.FunSuite
 class OutputRecordTest extends FunSuite {
   private val fooLoc = normalize("src/test/resources/for-hashing/foo.txt")
   private val fooPath = Paths.get(fooLoc)
-  private val fooHash = Hashes.sha1(fooPath).valueAsHexString
+  private val fooHash = Hashes.sha1(fooPath).valueAsBase64String
   private val fooRec = OutputRecord(fooLoc, Option(fooHash), lastModifiedOptOf(fooPath))
 
   private val fooPathCopy = fooPath
-  private val fooHashCopy = Hashes.sha1(fooPathCopy).valueAsHexString
+  private val fooHashCopy = Hashes.sha1(fooPathCopy).valueAsBase64String
   private val fooRecCopy = OutputRecord(fooLoc, Option(fooHashCopy), lastModifiedOptOf(fooPathCopy))
 
   private val emptyLoc = normalize("src/test/resources/for-hashing/empty.txt")
   private val emptyPath = Paths.get(emptyLoc)
-  private val emptyHash = Hashes.sha1(emptyPath).valueAsHexString
+  private val emptyHash = Hashes.sha1(emptyPath).valueAsBase64String
   private val emptyRec = OutputRecord(emptyLoc, Option(emptyHash), lastModifiedOptOf(emptyPath))
 
   private val nonExistingLoc = normalize("non/existent/path")

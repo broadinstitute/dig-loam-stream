@@ -14,7 +14,7 @@ final case class GoogleCloudConfig(
                                     gcloudBinary: Path,
                                     projectId: String,
                                     clusterId: String,
-                                    credential: Path,
+                                    credentialsFile: Path,
                                     zone: String = Defaults.zone,
                                     masterMachineType: String = Defaults.masterMachineType,
                                     masterBootDiskSize: Int = Defaults.masterBootDiskSize, // in GB
@@ -53,7 +53,7 @@ object GoogleCloudConfig {
       gcloudBinary <- tryGetPath("gcloudBinary")
       projectId <- tryGetString("projectId")
       clusterId <- tryGetString("clusterId")
-      credential <- tryGetPath("credential")
+      credentialsFile <- tryGetPath("credentialsFile")
       zone = getStringOrElse("zone", Defaults.zone)
       masterMachineType = getStringOrElse("masterMachineType", Defaults.masterMachineType)
       masterBootDiskSize = getIntOrElse("masterBootDiskSize", Defaults.masterBootDiskSize)
@@ -67,7 +67,7 @@ object GoogleCloudConfig {
         gcloudBinary,
         projectId,
         clusterId,
-        credential,
+        credentialsFile,
         zone,
         masterMachineType,
         masterBootDiskSize,

@@ -7,7 +7,7 @@ import java.time.Instant
 import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.cloud.storage.{Blob, Storage, StorageOptions}
 import loamstream.util.HashType.Md5
-import loamstream.util.{Hash, Tries}
+import loamstream.util.{Hash, HashType, Tries}
 
 import scala.util.{Success, Try}
 
@@ -17,25 +17,25 @@ import scala.util.{Success, Try}
  *
  * Wrapper around Google Cloud Storage JAVA API to expose methods for job recording purposes
  */
-final case class GcsClient private[googlecloud] (credential: Path) extends CloudStorageClient {
+final case class GcsClient private[googlecloud] (credentialsFile: Path) extends CloudStorageClient {
   import loamstream.util.UriEnrichments._
 
+  override val hashAlgorithm: HashType = Md5
+
   // Encapsulated MD5 hash of the storage object
-  override def hash(uri: URI): Option[Hash] = Hash.fromStrings(hashStr(uri), Md5.algorithmName).toOption
+  override def hash(uri: URI): Option[Hash] = Hash.fromStrings(hashStr(uri), hashAlgorithm.algorithmName)
 
   // If the storage object exists
   override def isPresent(uri: URI): Boolean = obj(uri).isDefined
 
   // Last update time of the object
-  override def lastModified(uri: URI): Option[Instant] =
-    if (isPresent(uri)) { obj(uri).map(o => Instant.ofEpochMilli(o.getUpdateTime)) }
-    else { None }
+  override def lastModified(uri: URI): Option[Instant] = obj(uri).map(o => Instant.ofEpochMilli(o.getUpdateTime))
 
   // Instantiate a GCS handle using given credentials.
   // If no credentials provided, attempt to find credentials that might be set in the environment
   private lazy val storage: Storage =
     StorageOptions.newBuilder
-      .setCredentials(ServiceAccountCredentials.fromStream(java.nio.file.Files.newInputStream(credential)))
+      .setCredentials(ServiceAccountCredentials.fromStream(java.nio.file.Files.newInputStream(credentialsFile)))
       .build
       .getService
 
@@ -55,13 +55,13 @@ final case class GcsClient private[googlecloud] (credential: Path) extends Cloud
 }
 
 object GcsClient {
-  def fromConfig(config: GoogleCloudConfig): Try[GcsClient] = fromCredential(config.credential)
+  def fromConfig(config: GoogleCloudConfig): Try[GcsClient] = fromCredentialsFile(config.credentialsFile)
 
-  def fromCredential(credential: Path): Try[GcsClient] = {
-    if (Files.exists(credential)) {
-      Success(new GcsClient(credential))
+  def fromCredentialsFile(credentialsFile: Path): Try[GcsClient] = {
+    if (Files.exists(credentialsFile)) {
+      Success(new GcsClient(credentialsFile))
     } else {
-      Tries.failure(s"Google Cloud credential not found at $credential")
+      Tries.failure(s"Google Cloud credential not found at $credentialsFile")
     }
   }
 }

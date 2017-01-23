@@ -13,7 +13,7 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val binaryPath = "/path/to/gcloud"
   private val projectId = "pid"
   private val clusterId = "cid"
-  private val credential = "/path/to/credential"
+  private val credentialsFile = "/path/to/credentialsFile"
   private val numWorkers = 42
   private val zone = "z"
   private val masterMachineType = "mmt"
@@ -29,7 +29,7 @@ final class GoogleCloudConfigTest extends FunSuite {
           gcloudBinary = "$binaryPath"
           projectId = "$projectId"
           clusterId = "$clusterId"
-          credential = "$credential"
+          credentialsFile = "$credentialsFile"
           numWorkers = $numWorkers
         }
       }"""
@@ -41,7 +41,7 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.gcloudBinary === Paths.get(binaryPath))
     assert(gConfig.projectId === projectId)
     assert(gConfig.clusterId === clusterId)
-    assert(gConfig.credential === Paths.get(credential))
+    assert(gConfig.credentialsFile === Paths.get(credentialsFile))
     assert(gConfig.numWorkers === numWorkers)
     
     import GoogleCloudConfig.Defaults
@@ -77,7 +77,7 @@ final class GoogleCloudConfigTest extends FunSuite {
           gcloudBinary = "$binaryPath"
           projectId = "$projectId"
           clusterId = "$clusterId"
-          credential = "$credential"
+          credentialsFile = "$credentialsFile"
           numWorkers = $numWorkers
           zone = "$zone"
           masterMachineType = "$masterMachineType"

@@ -8,7 +8,7 @@ import loamstream.googlecloud.CloudStorageClient
 import loamstream.model.jobs.Output.GcsUriOutput
 import loamstream.model.jobs.OutputTest.MockGcsClient
 import loamstream.util.HashType.Md5
-import loamstream.util.{Hash, PathUtils, PlatformUtil}
+import loamstream.util.{Hash, HashType, PathUtils, PlatformUtil}
 import org.scalatest.FunSuite
 
 /**
@@ -36,10 +36,10 @@ final class OutputTest extends FunSuite {
     val expectedHash = if (PlatformUtil.isWindows) {
       "91452093e8cb99ff7d958fb17941ff317d026318"
     } else {
-      "cb78b8412adaf7c8b5eecc09dbc9aa4d3cbb3675"
+      "y3i4qsra98i17swj28mqtty7nnu="
     }
 
-    val hashStr = exists.hash.get.valueAsHexString
+    val hashStr = exists.hash.get.valueAsBase64String
     assert(hashStr == expectedHash)
 
     val doesntExistRecord = doesntExist.toOutputRecord
@@ -97,7 +97,7 @@ final class OutputTest extends FunSuite {
       GcsUriOutput(someURI, Option(MockGcsClient(hash, isPresent, lastModified)))
     }
 
-    val someHash = Hash.fromStrings(Some("hashValue"), Md5.algorithmName).toOption
+    val someHash = Hash.fromStrings(Some("HashValue"), Md5.algorithmName)
 
     // Not present; no hash; no timestamp
     val output1 = gcsUriOutput()
@@ -125,7 +125,7 @@ final class OutputTest extends FunSuite {
     val output3 = gcsUriOutput(isPresent = true, hash = someHash)
     val expectedOutputRecord3 = OutputRecord( loc = someLoc,
                                               isPresent = true,
-                                              hash = someHash.map(_.valueAsHexString),
+                                              hash = someHash.map(_.valueAsBase64String),
                                               lastModified = None)
     assert(output3.isPresent)
     assert(output3.hash.isDefined)
@@ -136,7 +136,7 @@ final class OutputTest extends FunSuite {
     val output4 = gcsUriOutput(isPresent = true, hash = someHash, lastModified = Some(Instant.ofEpochMilli(2)))
     val expectedOutputRecord4 = OutputRecord( loc = someLoc,
                                               isPresent = true,
-                                              hash = someHash.map(_.valueAsHexString),
+                                              hash = someHash.map(_.valueAsBase64String),
                                               lastModified = Some(Instant.ofEpochMilli(2)))
     assert(output4.isPresent)
     assert(output4.hash.isDefined)
@@ -150,6 +150,8 @@ object OutputTest {
                                  isPresent: Boolean = false,
                                  lastModified: Option[Instant] = None)
   extends CloudStorageClient {
+    override val hashAlgorithm: HashType = Md5
+
     override def hash(uri: URI): Option[Hash] = hash
 
     override def isPresent(uri: URI): Boolean = isPresent

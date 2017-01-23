@@ -51,7 +51,7 @@ object Output {
 
     override def location: String = PathUtils.normalize(path)
 
-    override def toOutputRecord: OutputRecord = OutputRecord(location, hash.map(_.valueAsHexString), lastModified)
+    override def toOutputRecord: OutputRecord = OutputRecord(location, hash.map(_.valueAsBase64String), lastModified)
 
     def normalized: PathOutput = copy(path = normalize(path))
 
@@ -68,6 +68,6 @@ object Output {
     override def location: String = uri.toString
 
     override def toOutputRecord: OutputRecord =
-      OutputRecord(location, isPresent, hash.map(_.valueAsHexString), lastModified)
+      OutputRecord(location, isPresent, hash.map(_.valueAsBase64String), lastModified)
   }
 }

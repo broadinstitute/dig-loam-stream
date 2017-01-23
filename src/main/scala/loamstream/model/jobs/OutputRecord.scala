@@ -61,7 +61,7 @@ object OutputRecord {
   def apply(output: Output): OutputRecord = output.lastModified match {
     case tsOpt @ Some(_) => OutputRecord( loc = output.location,
                                           isPresent = true,
-                                          hash = output.hash.map(_.valueAsHexString),
+                                          hash = output.hash.map(_.valueAsBase64String),
                                           lastModified = tsOpt)
     case _ => OutputRecord( loc = output.location,
                             isPresent = false,

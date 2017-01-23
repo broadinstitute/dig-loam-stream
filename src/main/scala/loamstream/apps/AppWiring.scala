@@ -54,7 +54,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
     override def stop(): Unit = terminableExecuter.stop()
 
-    def cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
+    override def cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
 
     private val terminableExecuter = {
       info("Creating executer...")

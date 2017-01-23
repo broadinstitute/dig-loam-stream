@@ -13,7 +13,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       gcloudBinary = Paths.get("/foo/bar/baz"),
       projectId = "pid",
       clusterId = "cid",
-      credential = Paths.get("N/A"),
+      credentialsFile = Paths.get("N/A"),
       numWorkers = 42,
       //non-default values
       zone = "z",

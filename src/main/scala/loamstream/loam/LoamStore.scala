@@ -42,22 +42,6 @@ object LoamStore {
 
     def at(location: StoreLocation): LoamStore.Untyped
 
-    def from(path: String): LoamStore.Untyped
-
-    def from(path: Path): LoamStore.Untyped
-
-    def from(uri: URI): LoamStore.Untyped
-
-    def from(location: StoreLocation): LoamStore.Untyped
-
-    def to(path: String): LoamStore.Untyped
-
-    def to(path: Path): LoamStore.Untyped
-
-    def to(uri: URI): LoamStore.Untyped
-
-    def to(location: StoreLocation): LoamStore.Untyped
-
     def key(name: String): LoamStoreKeySlot = LoamStoreKeySlot(this, name)(projectContext)
 
     override def toString: String = s"store[${sig.tpe}]"
@@ -111,21 +95,6 @@ final case class LoamStore[S <: StoreType : TypeTag] private(id: LId)(implicit v
     this
   }
 
-  override def from(path: String): LoamStore[S] = at(path).asInput
-
-  override def from(path: Path): LoamStore[S] = at(path).asInput
-
-  override def from(uri: URI): LoamStore[S] = at(uri).asInput
-
-  override def from(location: StoreLocation): LoamStore[S] = at(location).asInput
-
-  override def to(path: String): LoamStore[S] = at(path)
-
-  override def to(path: Path): LoamStore[S] = at(path)
-
-  override def to(uri: URI): LoamStore[S] = at(uri)
-
-  override def to(location: StoreLocation): LoamStore[S] = at(location)
 
   /** Returns new store which is the result of a new store filtering tool based on a field
     *

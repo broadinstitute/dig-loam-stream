@@ -52,9 +52,9 @@ final class LoamStoreOpsTest extends FunSuite {
     val chr7 = dir.resolve("chr7.bim")
     val script = LoamScript("filter",
       s"""
-         |val variants = store[BIM].from(${inFile.asStringLiteral})
-         |val variantsUnplaced = variants.filter(StoreFieldFilter.isUndefined(BIM.chr)).to(${unplaced.asStringLiteral})
-         |val variantsOnChr7 = variants.filter(BIM.chr)(_ == 7).to(${chr7.asStringLiteral})
+         |val variants = store[BIM].at(${inFile.asStringLiteral}).asInput
+         |val variantsUnplaced = variants.filter(StoreFieldFilter.isUndefined(BIM.chr)).at(${unplaced.asStringLiteral})
+         |val variantsOnChr7 = variants.filter(BIM.chr)(_ == 7).at(${chr7.asStringLiteral})
       """.stripMargin)
     runAndAssertRunsFine(script, 3, 2, 3)
     assertFileHasNLines(unplaced, 3)
@@ -67,9 +67,9 @@ final class LoamStoreOpsTest extends FunSuite {
     val snps = dir.resolve("snps.txt")
     val script = LoamScript("filter",
       s"""
-         |val variants = store[BIM].from(${inFile.asStringLiteral})
+         |val variants = store[BIM].at(${inFile.asStringLiteral}).asInput
          |val mapper = TextStoreFieldExtractor(BIM.id)
-         |val snps = variants.map(mapper).to(${snps.asStringLiteral})
+         |val snps = variants.map(mapper).at(${snps.asStringLiteral})
       """.stripMargin)
     runAndAssertRunsFine(script, 2, 1, 1)
     assertFileHasNLines(snps, 9) // scalastyle:ignore magic.number
@@ -84,8 +84,8 @@ final class LoamStoreOpsTest extends FunSuite {
     val snps = dir.resolve("snps.txt")
     val script = LoamScript("filter",
       s"""
-         |val variants = store[BIM].from(${inFile.asStringLiteral})
-         |val snps = variants.extract(BIM.id).to(${snps.asStringLiteral})
+         |val variants = store[BIM].at(${inFile.asStringLiteral}).asInput
+         |val snps = variants.extract(BIM.id).at(${snps.asStringLiteral})
       """.stripMargin)
     runAndAssertRunsFine(script, 2, 1, 1)
     assertFileHasNLines(snps, 9) // scalastyle:ignore magic.number
@@ -100,9 +100,9 @@ final class LoamStoreOpsTest extends FunSuite {
     val unplacedSnps = dir.resolve("unplacedSnps.txt")
     val script = LoamScript("filterMap",
       s"""
-         |val variants = store[BIM].from(${inFile.asStringLiteral})
+         |val variants = store[BIM].at(${inFile.asStringLiteral}).asInput
          |val unplacedSnps =
-         |  variants.filter(StoreFieldFilter.isUndefined(BIM.chr)).extract(BIM.id).to(${unplacedSnps.asStringLiteral})
+         |  variants.filter(StoreFieldFilter.isUndefined(BIM.chr)).extract(BIM.id).at(${unplacedSnps.asStringLiteral})
       """.stripMargin)
     runAndAssertRunsFine(script, 3, 2, 2)
     assertFileHasNLines(unplacedSnps, 3) // scalastyle:ignore magic.number

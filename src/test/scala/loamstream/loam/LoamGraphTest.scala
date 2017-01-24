@@ -18,10 +18,10 @@ final class LoamGraphTest extends FunSuite {
       |val phaseCommand = "shapeit"
       |val imputeCommand = "impute2"
       |
-      |val raw = store[VCF].from(inputFile)
+      |val raw = store[VCF].at(inputFile).asInput
       |val phased = store[VCF]
-      |val template = store[VCF].from(path("/home/myself/template.vcf"))
-      |val imputed = store[VCF].to(outputFile)
+      |val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
+      |val imputed = store[VCF].at(outputFile)
       |
       |cmd"$phaseCommand -in $raw -out $phased"
       |cmd"$imputeCommand -in $phased -template $template -out $imputed"

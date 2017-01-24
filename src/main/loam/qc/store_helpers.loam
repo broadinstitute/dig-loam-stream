@@ -5,7 +5,7 @@ import loamstream.loam.LoamStore
 
 def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}.${extension}"
 
-def outputStore(name: String): String => LoamStore[TXT] = extension => store[TXT].to(outputStoreName(name)(extension))
+def outputStore(name: String): String => LoamStore[TXT] = extension => store[TXT].at(outputStoreName(name)(extension))
 
 def withExtensions(extensions: String*)(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = {
   extensions.map(ex => makeStore(ex))
@@ -13,5 +13,5 @@ def withExtensions(extensions: String*)(makeStore: String => LoamStore[TXT]): Se
 
 def bedBimFam(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions("bed", "bim", "fam")(makeStore)
 
-def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => store[TXT].to(s"${prefix}.${extension}"))
+def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => store[TXT].at(s"${prefix}.${extension}"))
 

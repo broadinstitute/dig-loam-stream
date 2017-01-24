@@ -8,17 +8,17 @@ val chr = 22
 val start = 1
 val end = 1000000
 
-val data = store[VCF].from(s"data.chr${chr}.vcf.gz")
-val geneticMap = store[TXT].from(kgpDir / s"genetic_map_chr${chr}_combined_b37.txt")
-val phasedHaps = store[TXT].to(s"phased.data.${chr}.haps.gz")
-val phasedSample = store[TXT].to(s"phased.data.${chr}.sample.gz")
-val log = store[TXT].to(s"phased.data.${chr}.log")
+val data = store[VCF].at(s"data.chr${chr}.vcf.gz").asInput
+val geneticMap = store[TXT].at(kgpDir / s"genetic_map_chr${chr}_combined_b37.txt").asInput
+val phasedHaps = store[TXT].at(s"phased.data.${chr}.haps.gz")
+val phasedSample = store[TXT].at(s"phased.data.${chr}.sample.gz")
+val log = store[TXT].at(s"phased.data.${chr}.log")
 
 cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSample -L $log --thread 8"
 
-val exampleHaps = store[TXT].from(kgpDir / s"1000GP_Phase3_chr${chr}.hap.gz")
-val exampleLegend = store[TXT].from(kgpDir / s"1000GP_Phase3_chr${chr}.legend.gz")
-val imputed = store[TXT].to(s"imputed.data.chr${chr}bp${start}-${end}.gen")
+val exampleHaps = store[TXT].at(kgpDir / s"1000GP_Phase3_chr${chr}.hap.gz").asInput
+val exampleLegend = store[TXT].at(kgpDir / s"1000GP_Phase3_chr${chr}.legend.gz").asInput
+val imputed = store[TXT].at(s"imputed.data.chr${chr}bp${start}-${end}.gen")
 
 cmd"""$impute2 -use_prephased_g -m $geneticMap -h $exampleHaps -l $exampleLegend 
 -known_haps_g $phasedHaps -int ${start} ${end} -Ne 20000 -o imputes $imputed -verbose -o_gz

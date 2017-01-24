@@ -76,20 +76,20 @@ final class LoamWorkDirTest extends FunSuite {
     val code =
       s"""
          |changeDir(${paths.rootDirs.head.asStringLiteral})
-         |val inFile = store[TXT].from(${paths.inFileName.asStringLiteral})
-         |val outFile0 = store[TXT].to(${paths.outFileNames.head.asStringLiteral})
+         |val inFile = store[TXT].at(${paths.inFileName.asStringLiteral}).asInput
+         |val outFile0 = store[TXT].at(${paths.outFileNames.head.asStringLiteral})
          |cmd"cp $$inFile $$outFile0"
          |changeDir(${paths.subDirName.asStringLiteral})
-         |val outFile1 = store[TXT].to(${paths.outFileNames(1).asStringLiteral})
-         |val outFile2 = store[TXT].to(${paths.outFileNames(2).asStringLiteral})
+         |val outFile1 = store[TXT].at(${paths.outFileNames(1).asStringLiteral})
+         |val outFile2 = store[TXT].at(${paths.outFileNames(2).asStringLiteral})
          |cmd"cp $$outFile0 $$outFile1"
          |cmd"cp $$outFile1 $$outFile2"
          |changeDir(${paths.rootDirs(1).asStringLiteral})
-         |val outFile3 = store[TXT].to(${paths.outFileNames(3).asStringLiteral})
+         |val outFile3 = store[TXT].at(${paths.outFileNames(3).asStringLiteral})
          |cmd"cp $$outFile2 $$outFile3"
          |changeDir(${paths.subDirName.asStringLiteral})
-         |val outFile4 = store[TXT].to(${paths.outFileNames(4).asStringLiteral})
-         |val outFile5 = store[TXT].to(${paths.outFileNames(5).asStringLiteral})
+         |val outFile4 = store[TXT].at(${paths.outFileNames(4).asStringLiteral})
+         |val outFile5 = store[TXT].at(${paths.outFileNames(5).asStringLiteral})
          |cmd"cp $$outFile3 $$outFile4"
          |cmd"cp $$outFile4 $$outFile5"
         """.stripMargin
@@ -105,22 +105,22 @@ final class LoamWorkDirTest extends FunSuite {
       s"""
          |val outFile2 = store[TXT]
          |inDir(${paths.rootDirs.head.asStringLiteral}) {
-         |  val inFile = store[TXT].from(${paths.inFileName.asStringLiteral})
-         |  val outFile0 = store[TXT].to(${paths.outFileNames.head.asStringLiteral})
+         |  val inFile = store[TXT].at(${paths.inFileName.asStringLiteral}).asInput
+         |  val outFile0 = store[TXT].at(${paths.outFileNames.head.asStringLiteral})
          |  cmd"cp $$inFile $$outFile0"
          |  inDir(${paths.subDirName.asStringLiteral}) {
-         |    val outFile1 = store[TXT].to(${paths.outFileNames(1).asStringLiteral})
-         |    outFile2.to(${paths.outFileNames(2).asStringLiteral})
+         |    val outFile1 = store[TXT].at(${paths.outFileNames(1).asStringLiteral})
+         |    outFile2.at(${paths.outFileNames(2).asStringLiteral})
          |    cmd"cp $$outFile0 $$outFile1"
          |    cmd"cp $$outFile1 $$outFile2"
          |  }
          |}
          |inDir(${paths.rootDirs(1).asStringLiteral}) {
-         |  val outFile3 = store[TXT].to(${paths.outFileNames(3).asStringLiteral})
+         |  val outFile3 = store[TXT].at(${paths.outFileNames(3).asStringLiteral})
          |  cmd"cp $$outFile2 $$outFile3"
          |  inDir(${paths.subDirName.asStringLiteral}) {
-         |    val outFile4 = store[TXT].to(${paths.outFileNames(4).asStringLiteral})
-         |    val outFile5 = store[TXT].to(${paths.outFileNames(5).asStringLiteral})
+         |    val outFile4 = store[TXT].at(${paths.outFileNames(4).asStringLiteral})
+         |    val outFile5 = store[TXT].at(${paths.outFileNames(5).asStringLiteral})
          |    cmd"cp $$outFile3 $$outFile4"
          |    cmd"cp $$outFile4 $$outFile5"
          |  }

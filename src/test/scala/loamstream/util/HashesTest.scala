@@ -28,7 +28,7 @@ final class HashesTest extends FunSuite {
       "2jmj7l5rsw0yvb/vlwaykk/ybwk=")
 
     doTest("src/test/resources/for-hashing/foo.txt",
-      "91452093e8cb99ff7d958fb17941ff317d026318",
+      "kuugk+jlmf99ly+xeuh/mx0cyxg=",
       "y3i4qsra98i17swj28mqtty7nnu=")
 
     doTest("src/test/resources/for-hashing/bigger",
@@ -46,7 +46,7 @@ final class HashesTest extends FunSuite {
       "fhvcun76jmuwqr7vugqgrdptika=")
 
     doTest("src/test/resources/for-hashing/",
-      "d7c233c5639c52c7319344d5b210fcd25882ff57",
+      "18izxwocuscxk0tvshd80lic/1c=",
       "jcbvwkw0z5la/2lakfmcbn4nlmi=")
   }
 

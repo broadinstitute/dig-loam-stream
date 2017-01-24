@@ -26,7 +26,7 @@ final class HashTest extends FunSuite {
     assert(someOnes.valueAsBase64String === "ap//aa==")
 
     val expectedRealWorldHash = if (PlatformUtil.isWindows) {
-      "91452093e8cb99ff7d958fb17941ff317d026318"
+      "kuugk+jlmf99ly+xeuh/mx0cyxg="
     } else {
       "y3i4qsra98i17swj28mqtty7nnu="
     }
@@ -40,7 +40,7 @@ final class HashTest extends FunSuite {
     assert(someOnes.toString === "Sha1(ap//aa==)")
 
     val expectedRealWorldHash = if (PlatformUtil.isWindows) {
-      "Sha1(91452093e8cb99ff7d958fb17941ff317d026318)"
+      "Sha1(kuugk+jlmf99ly+xeuh/mx0cyxg=)"
     } else {
       "Sha1(y3i4qsra98i17swj28mqtty7nnu=)"
     }

@@ -34,7 +34,7 @@ final class OutputTest extends FunSuite {
 
     assert(exists.isPresent)
     val expectedHash = if (PlatformUtil.isWindows) {
-      "91452093e8cb99ff7d958fb17941ff317d026318"
+      "kuugk+jlmf99ly+xeuh/mx0cyxg="
     } else {
       "y3i4qsra98i17swj28mqtty7nnu="
     }

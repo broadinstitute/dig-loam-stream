@@ -1,12 +1,13 @@
 package loamstream.compiler
 
-import java.nio.file.{ Files => JFiles }
+import java.nio.file.{Files => JFiles}
 import java.nio.file.Path
 import java.nio.file.Paths
 
 import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.compiler.messages.ErrorOutMessage
 import loamstream.compiler.messages.StatusOutMessage
+import loamstream.googlecloud.CloudStorageClient
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScript
 import loamstream.loam.LoamToolBox
@@ -28,10 +29,10 @@ import loamstream.util.StringUtils
   * Created by oliverr on 7/5/2016.
   */
 object LoamEngine {
-  def default(outMessageSink: ClientMessageHandler.OutMessageSink
-              = ClientMessageHandler.OutMessageSink.NoOp): LoamEngine =
+  def default(outMessageSink: ClientMessageHandler.OutMessageSink = ClientMessageHandler.OutMessageSink.NoOp,
+              csClient: Option[CloudStorageClient] = None): LoamEngine =
     LoamEngine(new LoamCompiler(LoamCompiler.Settings.default, outMessageSink),
-      RxExecuter.default, outMessageSink)
+      RxExecuter.default, outMessageSink, csClient)
 
   final case class Result(projectOpt: Shot[LoamProject],
                           compileResultOpt: Shot[LoamCompiler.Result],
@@ -40,7 +41,9 @@ object LoamEngine {
 }
 
 final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
-                            outMessageSink: ClientMessageHandler.OutMessageSink) extends Loggable {
+                            outMessageSink: ClientMessageHandler.OutMessageSink,
+                            csClient: Option[CloudStorageClient] = None)
+  extends Loggable {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
     val message = shot match {
@@ -151,7 +154,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
 
   private def toExecutable(context: LoamProjectContext): Executable = {
     val mapping = LoamGraphAstMapper.newMapping(context.graph)
-    val toolBox = new LoamToolBox(context)
+    val toolBox = new LoamToolBox(context, csClient)
 
     //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
     mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded

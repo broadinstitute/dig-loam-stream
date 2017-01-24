@@ -39,4 +39,26 @@ final class UriEnrichmentsTest extends FunSuite {
 
     assert(fooBarBazTxt == URI.create("/foo/bar/baz.txt/"))
   }
+
+  test("getPathWithoutLeadingSlash") {
+    import UriEnrichments._
+
+    val uri1 = URI.create("gs://bucket/data/object")
+    val path1 = uri1.getPathWithoutLeadingSlash
+    val expectedPath1 = "data/object"
+
+    assert(path1 === expectedPath1)
+
+    val uri2 = URI.create("file://localhost/etc/fstab")
+    val path2 = uri2.getPathWithoutLeadingSlash
+    val expectedPath2 = "etc/fstab"
+
+    assert(path2 === expectedPath2)
+
+    val uri3 = URI.create("file:///localhost/etc/fstab")
+    val path3 = uri3.getPathWithoutLeadingSlash
+    val expectedPath3 = "localhost/etc/fstab"
+
+    assert(path3 === expectedPath3)
+  }
 }

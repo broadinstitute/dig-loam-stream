@@ -12,9 +12,10 @@ import org.scalatest.FunSuite
 final class CloudSdkDataProcClientTest extends FunSuite {
   //scalastyle:off magic.number
   private val config = GoogleCloudConfig(
-      gcloudBinaryPath = Paths.get("/foo/bar/baz"), 
+      gcloudBinary = Paths.get("/foo/bar/baz"),
       projectId = "pid",
-      clusterId = "cid", 
+      clusterId = "cid",
+      credentialsFile = Paths.get("N/A"),
       numWorkers = 42,
       //non-default values
       zone = "z",

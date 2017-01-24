@@ -24,30 +24,30 @@ final class HashesTest extends FunSuite {
 
   test("sha1(File)") {
     doTest("src/test/resources/for-hashing/empty.txt",
-      "da39a3ee5e6b4b0d3255bfef95601890afd80709",
-      "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+      "2jmj7l5rsw0yvb/vlwaykk/ybwk=",
+      "2jmj7l5rsw0yvb/vlwaykk/ybwk=")
 
     doTest("src/test/resources/for-hashing/foo.txt",
-      "91452093e8cb99ff7d958fb17941ff317d026318",
-      "cb78b8412adaf7c8b5eecc09dbc9aa4d3cbb3675")
+      "kuugk+jlmf99ly+xeuh/mx0cyxg=",
+      "y3i4qsra98i17swj28mqtty7nnu=")
 
     doTest("src/test/resources/for-hashing/bigger",
-      "cd6f5ff26203054b2284a169c796200bc75f9db5",
-      "cd6f5ff26203054b2284a169c796200bc75f9db5")
+      "zw9f8midbusihkfpx5ygc8dfnbu=",
+      "zw9f8midbusihkfpx5ygc8dfnbu=")
   }
 
   test("sha1(File) - Directory") {
     doTest("src/test/resources/for-hashing/subdir/",
-      "400a222b7b8a346b95e2db09d6e94c5f09ca1dc5",
-      "400a222b7b8a346b95e2db09d6e94c5f09ca1dc5")
+      "qaoik3uknguv4tsj1ulmxwnkhcu=",
+      "qaoik3uknguv4tsj1ulmxwnkhcu=")
 
     doTest("src/test/resources/for-hashing/subdir/bar.txt",
-      "161542ba7efa24cbb0a91eef5064064433d38a40",
-      "161542ba7efa24cbb0a91eef5064064433d38a40")
+      "fhvcun76jmuwqr7vugqgrdptika=",
+      "fhvcun76jmuwqr7vugqgrdptika=")
 
     doTest("src/test/resources/for-hashing/",
-      "d7c233c5639c52c7319344d5b210fcd25882ff57",
-      "8dc055c24c34679940ff695a285982067e272cc2")
+      "18izxwocuscxk0tvshd80lic/1c=",
+      "jcbvwkw0z5la/2lakfmcbn4nlmi=")
   }
 
   private def doTest(file: String, expectedOnWindows: String, expectedElsewhere: String): Unit = {
@@ -56,9 +56,9 @@ final class HashesTest extends FunSuite {
     assert(hash.tpe == HashType.Sha1)
 
     if (PlatformUtil.isWindows) {
-      assert(hash.valueAsHexString == expectedOnWindows)
+      assert(hash.valueAsBase64String == expectedOnWindows)
     } else {
-      assert(hash.valueAsHexString == expectedElsewhere)
+      assert(hash.valueAsBase64String == expectedElsewhere)
     }
   }
 }

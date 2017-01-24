@@ -6,6 +6,7 @@ import java.time.Instant
 import org.scalatest.{FunSuite, PrivateMethodTester}
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.{Execution, JobState, Output, OutputRecord}
+import loamstream.util.HashType.Sha1
 
 /**
  * @author clint
@@ -159,15 +160,15 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
       //                  'isOlder --> false
       //                  'needsToBeRun' --> true
       assert(cachedOutput3.isMissing)
-      assert(!(filter.hasDifferentHash(cachedOutput3)))
-      assert(!(filter.isOlder(cachedOutput3)))
+      assert(!filter.hasDifferentHash(cachedOutput3))
+      assert(!filter.isOlder(cachedOutput3))
       assert(filter.needsToBeRun(cachedOutput3))
 
       // Older record (than its matching record in DB): 'hasDifferentHash' --> false
       //                                                'isOlder --> true
       //                                                'needsToBeRun' --> true
       val olderRec = cachedOutput1.withLastModified(Instant.ofEpochMilli(0))
-      assert(!(filter.hasDifferentHash(olderRec)))
+      assert(!filter.hasDifferentHash(olderRec))
       assert(filter.isOlder(olderRec))
       assert(filter.needsToBeRun(olderRec))
 
@@ -176,12 +177,15 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       // Record with different hash:  'hasDifferentHash' --> true
       //                              'needsToBeRun' --> true
-      val recWithDiffHash = OutputRecord(cachedOutput1.loc, Option("bogus-hash"), cachedOutput1.lastModified)
+      val recWithDiffHash = OutputRecord( cachedOutput1.loc,
+                                          Option("bogus-hash"),
+                                          Option(Sha1.algorithmName),
+                                          cachedOutput1.lastModified)
       assert(filter.hasDifferentHash(recWithDiffHash))
       assert(filter.needsToBeRun(recWithDiffHash))
 
       // Otherwise: 'needsToBeRun' --> false
-      assert(!(filter.needsToBeRun(cachedOutput1)))
+      assert(!filter.needsToBeRun(cachedOutput1))
     }
   }
 

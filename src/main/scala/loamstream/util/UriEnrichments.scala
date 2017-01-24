@@ -1,6 +1,5 @@
 package loamstream.util
 
-import java.io.File
 import java.net.URI
 
 /**
@@ -33,6 +32,19 @@ object UriEnrichments {
     def append(next: String): URI = appendSlashIfNoneExists(uri).resolve(next)
 
     def /(next: String): URI = append(next)
+
+    /**
+     * Slight variation on java.net.URI.getPath() where the leading forward slash is removed from the return value
+     *
+     * @return The decoded path component of this URI without the leading forward slash,
+     *         or { @code null} if the path is undefined
+     */
+    def getPathWithoutLeadingSlash: String = {
+      val path = uri.getPath
+      val leadingChar = 1
+
+      if (path.startsWith("/")) path.drop(leadingChar) else path
+    }
   }
   
 }

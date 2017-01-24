@@ -1,10 +1,7 @@
 package loamstream.model.execute
 
-import scala.concurrent.ExecutionContext
 import loamstream.model.jobs.LJob
-import scala.concurrent.Future
 import loamstream.model.jobs.JobState
-import loamstream.util.Maps
 import rx.lang.scala.Observable
 import loamstream.util.Observables
 

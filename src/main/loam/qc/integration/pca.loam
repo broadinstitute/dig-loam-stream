@@ -11,7 +11,7 @@ val m_pca_tsv_local = store[TXT].to(pca_tsv_local)
 val m_plot_pcs_local = store[TXT].to(plot_pcs_local)
 
 //TODO: Make this configurable
-val m_cluster = "cg-test"
+val m_cluster = "ky-test-small"
 
 google {
   // Import input Plink files into Hail's VDS format

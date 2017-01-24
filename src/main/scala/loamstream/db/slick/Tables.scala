@@ -42,9 +42,10 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def locator = column[String]("LOCATOR", O.PrimaryKey)
     def lastModified = column[Option[Timestamp]]("LAST_MODIFIED")
     def hash = column[Option[String]]("HASH")
+    def hashType = column[Option[String]]("HASH_TYPE")
     def executionId = column[Int]("EXECUTION_ID")
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (locator, lastModified, hash, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
+    def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
   
   final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) {

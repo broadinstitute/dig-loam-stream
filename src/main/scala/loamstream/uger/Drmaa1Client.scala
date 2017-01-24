@@ -28,18 +28,25 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   private def getNewSession: Session = {
     info("Getting new DRMAA session")
-    
-    val s = SessionFactory.getFactory.getSession
 
-    debug(s"\tVersion: ${s.getVersion}")
-    debug(s"\tDrmSystem: ${s.getDrmSystem}")
-    debug(s"\tDrmaaImplementation: ${s.getDrmaaImplementation}")
+    try {
+      val s = SessionFactory.getFactory.getSession
 
-    //NB: Passing an empty string (or null) means that "the default DRM system is used, provided there is only one 
-    //DRMAA implementation available" according to the DRMAA javadocs. (Whatever that means :\)
-    s.init("")
-    
-    s
+      debug(s"\tVersion: ${s.getVersion}")
+      debug(s"\tDrmSystem: ${s.getDrmSystem}")
+      debug(s"\tDrmaaImplementation: ${s.getDrmaaImplementation}")
+
+      //NB: Passing an empty string (or null) means that "the default DRM system is used, provided there is only one
+      //DRMAA implementation available" according to the DRMAA javadocs. (Whatever that means :\)
+      s.init("")
+
+      s
+    } catch {
+        case e: UnsatisfiedLinkError =>
+          error(s"Please check if you are running on a system with UGER (e.g. Broad VM). " +
+            s"Note that UGER is required if the configuration file specifies a 'uger { ... }' block.")
+          throw e
+    }
   }
   
   /**

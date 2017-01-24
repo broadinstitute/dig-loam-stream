@@ -4,6 +4,7 @@ import java.nio.file.{Path, Paths}
 import java.time.Instant
 
 import loamstream.model.jobs.Output.PathOutput
+import loamstream.util.HashType.Sha1
 import loamstream.util.{Hashes, PathUtils}
 import org.scalatest.FunSuite
 
@@ -14,20 +15,21 @@ import org.scalatest.FunSuite
 class OutputRecordTest extends FunSuite {
   private val fooLoc = normalize("src/test/resources/for-hashing/foo.txt")
   private val fooPath = Paths.get(fooLoc)
-  private val fooHash = Hashes.sha1(fooPath).valueAsHexString
-  private val fooRec = OutputRecord(fooLoc, Option(fooHash), lastModifiedOptOf(fooPath))
+  private val fooHash = Hashes.sha1(fooPath).valueAsBase64String
+  private val fooHashType = Sha1.algorithmName
+  private val fooRec = OutputRecord(fooLoc, Option(fooHash), Option(fooHashType), lastModifiedOptOf(fooPath))
 
   private val fooPathCopy = fooPath
-  private val fooHashCopy = Hashes.sha1(fooPathCopy).valueAsHexString
+  private val fooHashCopy = Hashes.sha1(fooPathCopy).valueAsBase64String
   private val fooRecCopy = OutputRecord(fooLoc, Option(fooHashCopy), lastModifiedOptOf(fooPathCopy))
 
   private val emptyLoc = normalize("src/test/resources/for-hashing/empty.txt")
   private val emptyPath = Paths.get(emptyLoc)
-  private val emptyHash = Hashes.sha1(emptyPath).valueAsHexString
-  private val emptyRec = OutputRecord(emptyLoc, Option(emptyHash), lastModifiedOptOf(emptyPath))
+  private val emptyHash = Hashes.sha1(emptyPath).valueAsBase64String
+  private val emptyHashType = Sha1.algorithmName
+  private val emptyRec = OutputRecord(emptyLoc, Option(emptyHash), Option(emptyHashType), lastModifiedOptOf(emptyPath))
 
   private val nonExistingLoc = normalize("non/existent/path")
-  private val nonExistingPath = Paths.get(nonExistingLoc)
   private val nonExistingRec = OutputRecord(nonExistingLoc)
 
   private def lastModifiedOptOf(p: Path): Option[Instant] = Option(PathUtils.lastModifiedTime(p))
@@ -42,8 +44,7 @@ class OutputRecordTest extends FunSuite {
     val recFromFooOutput = OutputRecord(PathOutput(fooPath).normalized)
     assert(fooRec == recFromFooOutput)
 
-    val recFromNonExistingOutput = OutputRecord(PathOutput(nonExistingPath).normalized)
-    val expectedNonExistingRec = OutputRecord(nonExistingLoc, false, None, None)
+    val expectedNonExistingRec = OutputRecord(nonExistingLoc, false, None, None, None)
     assert(nonExistingRec == expectedNonExistingRec)
   }
 

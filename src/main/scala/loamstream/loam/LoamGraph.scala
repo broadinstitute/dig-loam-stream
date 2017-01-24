@@ -158,11 +158,9 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     case _ => None
   }
 
-
   /** Whether store has a Path associated with it */
   def hasUri(store: LoamStore.Untyped): Boolean =
   storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.UriLocation])
-
 
   /** Optionally the URI associated with a store */
   def uriOpt(store: LoamStore.Untyped): Option[URI] =
@@ -170,7 +168,6 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     case Some(StoreLocation.UriLocation(uri)) => Some(uri)
     case _ => None
   }
-
 
   /** Optionally, the work directory of a tool */
   def workDirOpt(tool: LoamTool): Option[Path] = workDirs.get(tool)

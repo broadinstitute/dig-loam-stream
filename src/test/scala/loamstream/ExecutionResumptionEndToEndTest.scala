@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext
 
 /**
   * @author kaan
-  *         date: Sep 27, 2016
+  * Sep 27, 2016
   */
 final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickLoamDao with Loggable {
 

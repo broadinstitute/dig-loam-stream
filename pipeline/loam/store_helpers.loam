@@ -12,3 +12,7 @@ def withExtensions(extensions: String*)(makeStore: String => LoamStore[TXT]): Se
 def bedBimFam(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions("bed", "bim", "fam")(makeStore)
 
 def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => store[TXT].to(s"${prefix}.${extension}"))
+
+def klustakwikOutput(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions("fet.1", "temp.clu.1", "clu.1", "klg.1")(makeStore)
+
+def klustakwikOutput(prefix: String): Seq[LoamStore[TXT]] = Klustakwik(extension => store[TXT].to(s"${prefix}.${extension}"))

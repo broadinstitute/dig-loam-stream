@@ -4,6 +4,7 @@ import binaries._
 import scripts._
 import loamstream.loam.LoamStore
 import store_helpers._
+import scala.io.Source
 
 
 
@@ -204,7 +205,7 @@ $HAIL -l $ANCESTRYPCA_LOG
 	exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10'
 	-o $ANCESTRYPCA_SCORES_TSV
 	exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10'
-	-o $ANCESTRYPCA_LOADINGS_TSV""".in(KG_HAIL, VDS, KG_V3_5K_AF, ).out(ANCESTRYPCA_LOG, ANCESTRYPCA_SCORES_TSV, ANCESTRYPCA_LOADINGS_TSV)
+	-o $ANCESTRYPCA_LOADINGS_TSV""".in(KG_HAIL, VDS, KG_V3_5K_AF).out(ANCESTRYPCA_LOG, ANCESTRYPCA_SCORES_TSV, ANCESTRYPCA_LOADINGS_TSV)
 
 cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRYPCA_SCORES_PLOTS_PDF < $PLOT_ANCESTRY_PCA_R""".in(ANCESTRYPCA_SCORES_TSV, PLOT_ANCESTRY_PCA_R).out(ANCESTRYPCA_SCORES_PLOTS_PDF)
 
@@ -278,3 +279,137 @@ cmd"""$HAIL -l $NONOUTLIERPCA_LOG
 	-o $NONOUTLIERPCA_LOADINGS_TSV""".in(VDS_FOR_QC_PRUNED, ANCESTRY).out(NONOUTLIERPCA_SCORES_TSV, NONOUTLIERPCA_LOADINGS_TSV)
 
 
+
+/** Sample QC Stats Calculation Step
+ *  Description: Calculate sexcheck and sample by variant statistics for all samples
+ *  Requires: Hail, R
+ *  Input: $VDS_FOR_QC, $ANCESTRY, $NONOUTLIERPCA_SCORES_TSV
+ *  Output: ${outLABEL}.sampleqc.log, ${outLABEL}.sampleqc.sexcheck.tsv, ${outLABEL}.sampleqc.stats.tsv, ${outLABEL}.sampleqc.sexcheck.problems.tsv,
+ *     ${outLABEL}.sampleqc.stats.adj.tsv, ${outLABEL}.sampleqc.stats.adj.corr.pdf, ${outLABEL}.sampleqc.stats.adj.pca.loadings.tsv, ${outLABEL}.sampleqc.stats.adj.pcs.pdf, 
+ *     ${outLABEL}.sampleqc.stats.adj.pca.scores.tsv
+ * Notes: 
+ */
+
+val SAMPLEQC_LOG = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.log")
+val SAMPLEQC_SEXCHECK_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.sexcheck.tsv")
+val SAMPLEQC_STATS_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.tsv")
+val SAMPLEQC_SEXCHECK_PROBLEMS_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.sexcheck.problems.tsv")
+val SAMPLEQC_STATS_ADJ_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.tsv")
+val SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.corr.pdf")
+val SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.pca.loadings.tsv")
+val SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.pca.plots.pdf")
+val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.pca.scores.tsv")
+
+cmd"""$HAIL -l $SAMPLEQC_LOG
+	read $VDS_FOR_QC
+	annotatesamples table
+	-i $ANCESTRY
+	--no-header
+	-e _0
+	--code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
+	filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
+	imputesex
+	annotatesamples expr -c 'sa.sexcheck = if((sa.pheno.SEX == "female" && ! isMissing(sa.imputesex.isFemale) && sa.imputesex.isFemale) || (sa.pheno.SEX == "male" && ! isMissing(sa.imputesex.isFemale) && ! sa.imputesex.isFemale)) "OK" else "PROBLEM"'
+	sampleqc
+	variantqc
+	annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()"
+	exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+	-o $SAMPLEQC_SEXCHECK_TSV
+	exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar"
+	-o $SAMPLEQC_STATS_TSV
+	filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
+	exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+	-o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(VDS_FOR_QC, ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_TSV $NONOUTLIERPCA_SCORES_TSV $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(SAMPLEQC_STATS_TSV, NONOUTLIERPCA_SCORES_TSV, CALC_ISTATS_ADJ_R).out(SAMPLEQC_STATS_ADJ_TSV)
+    
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV $SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV < $ISTATS_ADJ_PCA_R""".in(SAMPLEQC_STATS_ADJ_TSV, ISTATS_ADJ_PCA_R).out(SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV, SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
+
+
+
+/** Sample QC PCA Clustering Step
+ *  Description: Cluster PCs of adjusted sample QC metrics
+ *  Requires: Klustakwik, R
+ *  Input: $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, $SAMPLEQC_STATS_ADJ_TSV
+ *  Output: ${outLABEL}.sampleqc.stats.adj.fet.1, ${outLABEL}.sampleqc.stats.adj.clu.1, ${outLABEL}.sampleqc.stats.adj.temp.clu.1, ${outLABEL}.sampleqc.stats.adj.klg.1, 
+ *     ${outLABEL}.sampleqc.stats.adj.pca.outliers.tsv, ${outLABEL}.sampleqc.stats.adj.pca.clusters.plot.pdf, ${outLABEL}.sampleqc.stats.adj.pca.clusters.xtab, 
+ *     ${outLABEL}.sampleqc.stats.adj.stripchart.pdf
+ * Notes: 
+ */
+
+val SAMPLEQC_STATS_ADJ_BASE = outDIR / s"${outLABEL}.sampleqc.stats.adj"
+val SAMPLEQC_PCA_CLUSTER_LOG = store[TXT].at($SAMPLEQC_STATS_ADJ_BASE + ".klustakwik.log")
+val SAMPLEQC_STATS_ADJ_FET1 = store[TXT].at($SAMPLEQC_STATS_ADJ_BASE + ".fet.1")
+val SAMPLEQC_STATS_ADJ_CLU1 = store[TXT].at($SAMPLEQC_STATS_ADJ_BASE + ".clu.1")
+val SAMPLEQC_STATS_ADJ_TEMP_CLU1 = store[TXT].at($SAMPLEQC_STATS_ADJ_BASE + ".temp.clu.1")
+val SAMPLEQC_STATS_ADJ_KLG = store[TXT].at($SAMPLEQC_STATS_ADJ_BASE + ".klg.1")
+val SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV = store[TXT].at($SAMPLEQC_STATS_ADJ_BASE + ".pca.outliers.tsv")
+val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF = store[TXT].at($SAMPLEQC_STATS_ADJ_BASE + ".pca.clusters.plots.pdf")
+val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB = store[TXT].at($SAMPLEQC_STATS_ADJ_BASE + ".pca.clusters.xtab")
+val SAMPLEQC_STATS_ADJ_STRIPCHART_PDF = store[TXT].at($SAMPLEQC_STATS_ADJ_BASE + ".stripchart.pdf")
+val listLines = Source.fromFile($SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV).getLines.toList
+val N = listLines.lift(0).split(" +").length-1
+val FEATURES = "1"
+for(i <- 1 until N) {
+	FEATURES = ${FEATURES} + "1"
+}
+
+cmd"""echo $N > $SAMPLEQC_STATS_ADJ_FET1; sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> $SAMPLEQC_STATS_ADJ_FET1""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_FET1)
+
+cmd"""$KLUSTAKWIK $SAMPLEQC_STATS_ADJ_FET1_BASE 1 -UseFeatures $FEATURES -UseDistributional 0 > $SAMPLEQC_PCA_CLUSTER_LOG""".in(SAMPLEQC_STATS_ADJ_FET1).out(SAMPLEQC_PCA_CLUSTER_LOG, SAMPLEQC_STATS_ADJ_CLU1, SAMPLEQC_STATS_ADJ_TEMP_CLU1, SAMPLEQC_STATS_ADJ_KLG)
+
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV $SAMPLEQC_STATS_ADJ_CLU1 $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $outLABEL < $ISTATS_PCS_GMM_CLUSTER_PLOT_R""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, SAMPLEQC_STATS_ADJ_CLU1, ISTATS_PCS_GMM_CLUSTER_PLOT_R).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB)
+
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $ISTATS_PCS_GMM_PLOT_METRICS_R""".in(SAMPLEQC_STATS_ADJ_TSV, SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, ISTATS_PCS_GMM_PLOT_METRICS_R).out(SAMPLEQC_STATS_ADJ_STRIPCHART_PDF)
+
+
+
+/** Sample QC Individual Stats Clustering Step
+ *  Description: Cluster PCs of adjusted sample QC metrics
+ *  Requires: Klustakwik, R
+ *  Input: $SAMPLEQC_STATS_TSV, $SAMPLEQC_STATS_ADJ_TSV, $SAMPLEQC_STATS_ADJ_TSV, $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, $ANCESTRY
+ *  Output: ${outLABEL}.sampleqc.stats.adj.*.fet.1, ${outLABEL}.sampleqc.stats.adj.*.clu.1, ${outLABEL}.sampleqc.stats.adj.*.temp.clu.1, ${outLABEL}.sampleqc.stats.adj.*.klg.1, 
+ *     ${outLABEL}.sampleqc.stats.adj.*.klustakwik.log, ${outLABEL}.sampleqc.stats.adj.individual.boxplot.pdf, ${outLABEL}.sampleqc.stats.adj.individual.discreteness, 
+ *     ${outLABEL}.sampleqc.stats.adj.individual.outliers.table, ${outLABEL}.sampleqc.stats.adj.individual.outliers.remove, ${outLABEL}.sampleqc.stats.adj.individual.stripchart.pdf
+ * Notes: 
+ */
+
+val listLines = Source.fromFile($SAMPLEQC_STATS_ADJ_TSV).getLines.toList
+val N = listLines.lift(0).split(" +").length-1
+
+val SAMPLEQC_KLUSTAKWIK_OUTPUT: Array[Seq[LoamStore[TXT]]] = Array.ofDim($N)
+val SAMPLEQC_LOGS: Array[LoamStore[TXT]] = Array.ofDim($N)
+val SAMPLEQC_CLU1_WILD = outDIR / s"${outLABEL}.sampleqc.stats.adj.*.clu.1"
+val SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.boxplot.pdf")
+val SAMPLEQC_STATS_ADJ_IND_DISCRETENESS = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.discreteness")
+val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.table")
+val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.remove")
+val SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.stripchart.pdf")
+val id :String
+val include :String
+
+for(i <- 1 to N) {
+	id = listLines.lift(0).split(" +")(i)
+	SAMPLEQC_KLUSTAKWIK_OUTPUT :+ klustakwikOutput(outDIR / s"${outLABEL}.sampleqc.stats.adj.${id}")
+	SAMPLEQC_LOGS :+ outDIR / s"${outLABEL}.sampleqc.stats.adj.${id}.klustakwik.log"
+
+	cmd"""echo $N > ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i-1)}.fet.1; sed '1d' $SAMPLEQC_STATS_ADJ_TSV | cut -f2- | sed 's/\t/ /g' >> ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i-1)}.fet.1""".in(SAMPLEQC_STATS_ADJ_TSV).out($SAMPLEQC_KLUSTAKWIK_OUTPUT(i-1) + ".fet.1")
+
+	include = "0".toString * N
+	include = include.substring(0,i-1) + "1" + include.substring(i,N))
+
+	cmd"""$KLUSTAKWIK SAMPLEQC_BASES(i-1) 1 -UseFeatures $include -UseDistributional 0 > $SAMPLEQC_LOGS(i-1)""".in($SAMPLEQC_KLUSTAKWIK_OUTPUT(i-1) + ".fet.1").out(SAMPLEQC_LOGS(i-1), SAMPLEQC_KLUSTAKWIK_OUTPUT(i-1))
+}
+
+cmd"""$R --vanilla --args
+	$SAMPLEQC_CLU1_WILD \
+	$SAMPLEQC_STATS_TSV \
+	$SAMPLEQC_STATS_ADJ_TSV \
+	$SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV \
+	$SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF \
+	$SAMPLEQC_STATS_ADJ_IND_DISCRETENESS \
+	$SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE \
+	$SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE \
+	$SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF \
+	$ANCESTRY \
+	< $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT, SAMPLEQC_STATS_TSV, SAMPLEQC_STATS_ADJ_TSV, ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)

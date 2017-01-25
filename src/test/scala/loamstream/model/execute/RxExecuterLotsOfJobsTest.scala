@@ -2,8 +2,10 @@ package loamstream.model.execute
 
 import org.scalatest.FunSuite
 import java.nio.file.Paths
+
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.messages.ClientMessageHandler
+import loamstream.util.PlatformUtil
 
 /**
  * @author clint
@@ -12,9 +14,15 @@ import loamstream.compiler.messages.ClientMessageHandler
  * A test for RxExecuter's handling of "lots" (100s) of jobs. 
  */
 final class RxExecuterLotsOfJobsTest extends FunSuite {
+
+  val cancelOnWindows = true
+
   // scalastyle:off magic.number
   
   test("lots of jobs don't blow the stack") {
+    if(cancelOnWindows && PlatformUtil.isWindows) {
+      cancel("Cancelled on Windows because there it takes too long to run and hogs CPU.")
+    }
     val outputDir = Paths.get("target/many-files").toFile
     
     outputDir.mkdir()

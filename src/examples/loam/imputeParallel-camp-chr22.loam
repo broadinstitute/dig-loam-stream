@@ -12,23 +12,23 @@ val shapeitDataDir =  path("/humgen/diabetes/users/ryank/data/camp/data_clean/sp
 
 val outputDir = path("/humgen/diabetes/users/kyuksel/imputation/run_dir")
 
-val vcfData = store[VCF].from(shapeitDataDir / "camp.biallelic.chr22.clean.vcf.gz")
-val geneticMap = store[TXT].from(kgpDir / "genetic_map_chr22_combined_b37.txt")
-val phasedHaps = store[TXT].to(outputDir / "phased.haps.gz")
-val phasedSamples = store[TXT].to(outputDir / "phased.samples.gz")
-val log = store[TXT].to(outputDir / "shapeit.log")
+val vcfData = store[VCF].at(shapeitDataDir / "camp.biallelic.chr22.clean.vcf.gz").asInput
+val geneticMap = store[TXT].at(kgpDir / "genetic_map_chr22_combined_b37.txt").asInput
+val phasedHaps = store[TXT].at(outputDir / "phased.haps.gz")
+val phasedSamples = store[TXT].at(outputDir / "phased.samples.gz")
+val log = store[TXT].at(outputDir / "shapeit.log")
 
 cmd"$shapeit -V $vcfData -M $geneticMap -O $phasedHaps $phasedSamples -L $log --thread 16"
 
-val mapFile = store[TXT].from(kgpDir / "genetic_map_chr22_combined_b37.txt")
-val legend = store[TXT].from(kgpDir / "1000GP_Phase3_chr22.legend.gz")
-val knownHaps = store[TXT].from(kgpDir / "1000GP_Phase3_chr22.hap.gz")
+val mapFile = store[TXT].at(kgpDir / "genetic_map_chr22_combined_b37.txt").asInput
+val legend = store[TXT].at(kgpDir / "1000GP_Phase3_chr22.legend.gz").asInput
+val knownHaps = store[TXT].at(kgpDir / "1000GP_Phase3_chr22.hap.gz").asInput
 
 for(iShard <- 0 until nShards) {
   val start = offset + iShard*basesPerShard + 1
   val end = start + basesPerShard - 1
 
-  val imputed = store[TXT].to(outputDir / s"imputed.data.bp${start}-${end}.gen")
+  val imputed = store[TXT].at(outputDir / s"imputed.data.bp${start}-${end}.gen")
 
   cmd"""$impute2 -use_prephased_g -m $mapFile -h $knownHaps -l $legend
   -known_haps_g $phasedHaps -int $start $end -Ne 20000 -o $imputed -verbose -o_gz

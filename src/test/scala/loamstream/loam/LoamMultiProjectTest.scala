@@ -46,9 +46,9 @@ class LoamMultiProjectTest extends FunSuite {
          |import project.name
          |
          |inDir(${filePaths.rootDir.asStringLiteral}) {
-         |  val inFile = store[VCF].from(s"projects/$$name/data/$$name.vcf")
-         |  val analysisFile = store[TXT].to(s"projects/$$name/analysis/$$name.analysis.txt")
-         |  val resultsFile = store[TXT].to(s"projects/$$name/results/$$name.results.txt")
+         |  val inFile = store[VCF].at(s"projects/$$name/data/$$name.vcf").asInput
+         |  val analysisFile = store[TXT].at(s"projects/$$name/analysis/$$name.analysis.txt")
+         |  val resultsFile = store[TXT].at(s"projects/$$name/results/$$name.results.txt")
          |
          |  cmd"cp $$inFile $$analysisFile"
          |  cmd"cp $$analysisFile $$resultsFile"

@@ -51,7 +51,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
   //Adapted from camp_chr_12_22.loam
   private val code = """
 // Map: Chrom Number -> (Number of Shards, Offset for Start Position)
-val input = store[TXT].from("src/test/resources/a.txt")
+val input = store[TXT].at("src/test/resources/a.txt").asInput
 
 val outputDir = path("target/many-files")
 
@@ -85,7 +85,7 @@ val chrProps: Map[Int, (Int, Int)] = Map(
 for (chrNum <- 12 to 22) {
   val chr = s"chr${chrNum}"
 
-  val chrFile = store[TXT].to(outputDir / s"a-$chr.txt")
+  val chrFile = store[TXT].at(outputDir / s"a-$chr.txt")
 
   cmd"cp $input $chrFile"
 
@@ -96,7 +96,7 @@ for (chrNum <- 12 to 22) {
     val start = offset + (shard * numBasesPerShard) + 1
     val end = start + numBasesPerShard - 1
 
-    val imputed = store[TXT].to(outputDir / s"imputed_data_${chr}_bp${start}-${end}.txt")
+    val imputed = store[TXT].at(outputDir / s"imputed_data_${chr}_bp${start}-${end}.txt")
 
     cmd"cp $chrFile $imputed"
   }

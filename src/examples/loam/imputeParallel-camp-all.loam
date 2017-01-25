@@ -39,17 +39,17 @@ chr_props += (22 -> (36, 16050074))
 for (chr_num <- 1 to 22) {
   val chr = s"chr${chr_num}"
 
-  val vcf_data = store[VCF].from(shapeit_data_dir / s"camp.biallelic.${chr}.clean.vcf.gz")
-  val genetic_map = store[TXT].from(kgp_dir / s"genetic_map_${chr}_combined_b37.txt")
-  val phased_haps = store[TXT].to(output_dir / s"phased_haps_${chr}.gz")
-  val phased_samples = store[TXT].to(output_dir / s"phased_samples_${chr}.gz")
-  val log = store[TXT].to(output_dir / s"shapeit_${chr}.log")
+  val vcf_data = store[VCF].at(shapeit_data_dir / s"camp.biallelic.${chr}.clean.vcf.gz").asInput
+  val genetic_map = store[TXT].at(kgp_dir / s"genetic_map_${chr}_combined_b37.txt").asInput
+  val phased_haps = store[TXT].at(output_dir / s"phased_haps_${chr}.gz")
+  val phased_samples = store[TXT].at(output_dir / s"phased_samples_${chr}.gz")
+  val log = store[TXT].at(output_dir / s"shapeit_${chr}.log")
 
   cmd"$shapeit -V $vcf_data -M $genetic_map -O $phased_haps $phased_samples -L $log --thread 16"
 
-  val map_file = store[TXT].from(kgp_dir / s"genetic_map_${chr}_combined_b37.txt")
-  val legend = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.legend.gz")
-  val known_haps = store[TXT].from(kgp_dir / s"1000GP_Phase3_${chr}.hap.gz")
+  val map_file = store[TXT].at(kgp_dir / s"genetic_map_${chr}_combined_b37.txt").asInput
+  val legend = store[TXT].at(kgp_dir / s"1000GP_Phase3_${chr}.legend.gz").asInput
+  val known_haps = store[TXT].at(kgp_dir / s"1000GP_Phase3_${chr}.hap.gz").asInput
 
   val (num_shards, offset) = chr_props.get(chr_num).get
 //---------------------------LOOP THROUGH WINDOWS WITHIN CHROMOSOME-----------------------------------------------------
@@ -57,7 +57,7 @@ for (chr_num <- 1 to 22) {
     val start = offset + shard*num_bases_per_shard + 1
     val end = start + num_bases_per_shard - 1
 
-    val imputed = store[TXT].to(output_dir / s"imputed_data_${chr}_bp${start}_${end}.gen")
+    val imputed = store[TXT].at(output_dir / s"imputed_data_${chr}_bp${start}_${end}.gen")
 
     cmd"""$impute2 -use_prephased_g -m $map_file -h $known_haps -l $legend
     -known_haps_g $phased_haps -int $start $end -Ne 20000 -o $imputed -verbose -o_gz

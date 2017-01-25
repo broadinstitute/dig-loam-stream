@@ -1,11 +1,11 @@
 import camp._
 import binaries._
 
-val m_base = store[TXT].from(s"$base")
-val m_phenotypes = store[TXT].from(s"$phenotypes")
-val m_interval_list = store[TXT].from(s"$interval_list")
-val m_vds = store[TXT].to(s"$vds")
-val m_pca_tsv = store[TXT].to(s"$pca_tsv")
+val m_base = store[TXT].at(s"$base").asInput
+val m_phenotypes = store[TXT].at(s"$phenotypes").asInput
+val m_interval_list = store[TXT].at(s"$interval_list").asInput
+val m_vds = store[TXT].at(s"$vds")
+val m_pca_tsv = store[TXT].at(s"$pca_tsv")
 
 cmd"""$hail importplink
      --bfile $m_base

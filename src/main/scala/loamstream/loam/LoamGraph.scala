@@ -105,10 +105,6 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     copy(storeLocations = storeLocations + (store -> location))
   }
 
-  /** Returns graph with store producer (tool) added */
-  def withStoreProducer(store: LoamStore.Untyped, tool: LoamTool): LoamGraph =
-  copy(storeProducers = storeProducers + (store -> tool))
-
   /** Returns graph with key sets equivalence added */
   def withKeysSameSet(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): LoamGraph = {
     copy(keysSameSets = keysSameSets.withTheseEqual(slot1, slot2))
@@ -132,8 +128,9 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   }
 
   /** Tools that produce a store consumed by this tool */
-  def toolsPreceding(tool: LoamTool): Set[LoamTool] =
-  toolInputs.getOrElse(tool, Set.empty).flatMap(storeProducers.get)
+  def toolsPreceding(tool: LoamTool): Set[LoamTool] = {
+    toolInputs.getOrElse(tool, Set.empty).flatMap(storeProducers.get)
+  }
 
 
   /** Tools that consume a store produced by this tool */
@@ -148,8 +145,9 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   def finalTools: Set[LoamTool] = tools.filter(toolsSucceeding(_).isEmpty)
 
   /** Whether store has a Path associated with it */
-  def hasPath(store: LoamStore.Untyped): Boolean =
-  storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.PathLocation])
+  def hasPath(store: LoamStore.Untyped): Boolean = {
+    storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.PathLocation])
+  }
 
   /** Optionally the path associated with a store */
   def pathOpt(store: LoamStore.Untyped): Option[Path] =

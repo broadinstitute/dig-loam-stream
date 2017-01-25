@@ -43,10 +43,10 @@ final class LoamGraphAstTest extends FunSuite {
         |val phaseCommand = "shapeit"
         |val imputeCommand = "impute2"
         |
-        |val raw = store[VCF].from(inputFile)
+        |val raw = store[VCF].at(inputFile).asInput
         |val phased = store[VCF]
-        |val template = store[VCF].from(path("/home/myself/template.vcf"))
-        |val imputed = store[VCF].to(outputFile)
+        |val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
+        |val imputed = store[VCF].at(outputFile)
         |
         |cmd"$phaseCommand -in $raw -out $phased"
         |cmd"$imputeCommand -in $phased -template $template -out $imputed"
@@ -56,14 +56,14 @@ final class LoamGraphAstTest extends FunSuite {
   test("Validate AST for example with multiple final tools, i.e. roots") {
     val code =
       """
-        |val in1 = store[VCF].from(path("/home/myself/in1.vcf"))
-        |val in2 = store[VCF].from(path("/home/myself/in2.vcf"))
-        |val in3 = store[VCF].from(path("/home/myself/in3.vcf"))
+        |val in1 = store[VCF].at(path("/home/myself/in1.vcf")).asInput
+        |val in2 = store[VCF].at(path("/home/myself/in2.vcf")).asInput
+        |val in3 = store[VCF].at(path("/home/myself/in3.vcf")).asInput
         |val temp1 = store[VCF]
         |val temp2 = store[VCF]
         |val temp3 = store[VCF]
-        |val out1 = store[VCF].to(path("/home/myself/out1.vcf"))
-        |val out2 = store[VCF].to(path("/home/myself/out2.vcf"))
+        |val out1 = store[VCF].at(path("/home/myself/out1.vcf"))
+        |val out2 = store[VCF].at(path("/home/myself/out2.vcf"))
         |
         |cmd"command1 -in $in1 $in2 -out $temp1"
         |cmd"command2 -in $in2 $in3 -out $temp2"
@@ -75,12 +75,12 @@ final class LoamGraphAstTest extends FunSuite {
   test("Validate AST for diamond example (branch and remerge)") {
     val code =
       """
-        |val in = store[VCF].from(path("/home/myself/in.vcf"))
+        |val in = store[VCF].at(path("/home/myself/in.vcf")).asInput
         |val tempA1 = store[VCF]
         |val tempB1 = store[VCF]
         |val tempA2 = store[VCF]
         |val tempB2 = store[VCF]
-        |val out = store[VCF].to(path("/home/myself/out.vcf"))
+        |val out = store[VCF].at(path("/home/myself/out.vcf"))
         |
         |cmd"command1 -in $in -out $tempA1"
         |cmd"command2 -in $in -out $tempB1"

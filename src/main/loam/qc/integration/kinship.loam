@@ -17,11 +17,11 @@ import loamstream.loam.LoamStore
 
 def inputStoreName(extension: String): String = s"${data}/${LABEL}.qc.bi.chr1-22${extension}"
 
-def inputStore(extension: String): LoamStore[TXT] = store[TXT].from(inputStoreName(extension))
+def inputStore(extension: String): LoamStore[TXT] = store[TXT].at(inputStoreName(extension)).asInput
 
 def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}${extension}"
 
-def outputStore(name: String)(extension: String): LoamStore[TXT] = store[TXT].to(outputStoreName(name)(extension))
+def outputStore(name: String)(extension: String): LoamStore[TXT] = store[TXT].at(outputStoreName(name)(extension))
 
 def withExtensions(extensions: String*)(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = {
   extensions.map(ex => makeStore(ex))

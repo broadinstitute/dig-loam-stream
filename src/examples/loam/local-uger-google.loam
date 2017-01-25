@@ -4,9 +4,9 @@
 //   2) Copy b.txt to c.txt on Uger 
 //   3) Run Hail on the google cloud
 
-val a = store[TXT].from("a.txt")
-val b = store[TXT].to("b.txt")
-val c = store[TXT].to("c.txt")
+val a = store[TXT].at("a.txt").asInput
+val b = store[TXT].at("b.txt")
+val c = store[TXT].at("c.txt")
 val d = store[Nothing]
 
 //TODO: Get this from loamstream.conf somehow

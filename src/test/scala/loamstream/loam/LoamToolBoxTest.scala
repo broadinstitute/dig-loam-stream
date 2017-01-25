@@ -152,12 +152,12 @@ object LoamToolBoxTest {
   object Sources {
     val toyCp = LoamScript("ToyCp", {
       """
-        |val fileIn = store[TXT].from(path("target/fileIn.txt"))
+        |val fileIn = store[TXT].at(path("target/fileIn.txt")).asInput
         |val fileTmp1 = store[TXT]
         |val fileTmp2 = store[TXT]
-        |val fileOut1 = store[TXT].to(path("target/fileOut1.txt"))
-        |val fileOut2 = store[TXT].to(path("target/fileOut2.txt"))
-        |val fileOut3 = store[TXT].to(path("target/fileOut3.txt"))
+        |val fileOut1 = store[TXT].at(path("target/fileOut1.txt"))
+        |val fileOut2 = store[TXT].at(path("target/fileOut2.txt"))
+        |val fileOut3 = store[TXT].at(path("target/fileOut3.txt"))
         |cmd"cp $fileIn $fileTmp1"
         |cmd"cp $fileTmp1 $fileTmp2"
         |cmd"cp $fileTmp2 $fileOut1"
@@ -187,23 +187,23 @@ val impute2DataDir = dataDir / "impute2_example"
 
 val outputDir = homeDir / "output"
 
-val data = store[VCF].from(shapeitDataDir / "gwas.vcf.gz")
-val geneticMap = store[TXT].from(shapeitDataDir / "genetic_map.txt.gz")
-val phasedHaps = store[TXT].to(outputDir / "phased.haps.gz")
-val phasedSamples = store[TXT].to(outputDir / "phased.samples.gz")
-val log = store[TXT].to(outputDir / "shapeit.log")
+val data = store[VCF].at(shapeitDataDir / "gwas.vcf.gz").asInput
+val geneticMap = store[TXT].at(shapeitDataDir / "genetic_map.txt.gz").asInput
+val phasedHaps = store[TXT].at(outputDir / "phased.haps.gz")
+val phasedSamples = store[TXT].at(outputDir / "phased.samples.gz")
+val log = store[TXT].at(outputDir / "shapeit.log")
 
 cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSamples -L $log --thread 16"
 
-val mapFile = store[TXT].from(impute2DataDir / "example.chr22.map")
-val legend = store[TXT].from(impute2DataDir / "example.chr22.1kG.legend.gz")
-val knownHaps = store[TXT].from(impute2DataDir / "example.chr22.prephasing.impute2_haps.gz")
+val mapFile = store[TXT].at(impute2DataDir / "example.chr22.map").asInput
+val legend = store[TXT].at(impute2DataDir / "example.chr22.1kG.legend.gz").asInput
+val knownHaps = store[TXT].at(impute2DataDir / "example.chr22.prephasing.impute2_haps.gz").asInput
 
 for(iShard <- 0 until nShards) {
   val start = offset + iShard*basesPerShard + 1
   val end = start + basesPerShard - 1
 
-  val imputed = store[TXT].to(outputDir / s"imputed.data.bp${start}-${end}.gen")
+  val imputed = store[TXT].at(outputDir / s"imputed.data.bp${start}-${end}.gen")
 
   //NB: Bogus inpute2 command; doesn't need wrapping to appease ScalaStyle, and the content doesn't matter 
   cmd"$impute2 -use_prephased_g -m $mapFile -h $phasedHaps -l $legend -known_haps_g $knownHaps -int $start $end" 

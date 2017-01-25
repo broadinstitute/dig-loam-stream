@@ -3,7 +3,7 @@ package loamstream.loam
 import java.net.URI
 import java.nio.file.{Path, Paths}
 
-import loamstream.loam.LoamGraph.StoreEdge
+import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.ops.StoreType.TXT
 import loamstream.loam.ops.filters.{LoamStoreFilter, LoamStoreFilterTool, StoreFieldValueFilter}
 import loamstream.loam.ops.mappers.{LoamStoreMapper, LoamStoreMapperTool, TextStoreFieldExtractor}
@@ -32,21 +32,15 @@ object LoamStore {
 
     def update(): Unit = graphBox.mutate(_.withStore(this))
 
-    def from(path: String): LoamStore.Untyped
+    def asInput: LoamStore.Untyped
 
-    def from(path: Path): LoamStore.Untyped
+    def at(path: String): LoamStore.Untyped
 
-    def from(uri: URI): LoamStore.Untyped
+    def at(path: Path): LoamStore.Untyped
 
-    def from(source: StoreEdge): LoamStore.Untyped
+    def at(uri: URI): LoamStore.Untyped
 
-    def to(path: String): LoamStore.Untyped
-
-    def to(path: Path): LoamStore.Untyped
-
-    def to(uri: URI): LoamStore.Untyped
-
-    def to(sink: StoreEdge): LoamStore.Untyped
+    def at(location: StoreLocation): LoamStore.Untyped
 
     def key(name: String): LoamStoreKeySlot = LoamStoreKeySlot(this, name)(projectContext)
 
@@ -78,27 +72,29 @@ final case class LoamStore[S <: StoreType : TypeTag] private(id: LId)(implicit v
 
   update()
 
-  override def from(path: String): LoamStore[S] = from(Paths.get(path))
-
-  override def from(path: Path): LoamStore[S] = from(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
-
-  override def from(uri: URI): LoamStore[S] = from(StoreEdge.UriEdge(uri))
-
-  override def from(source: StoreEdge): LoamStore[S] = {
-    graphBox.mutate(_.withStoreSource(this, source))
+  override def asInput: LoamStore[S] = {
+    graphBox.mutate(_.withStoreAsInput(this))
     this
   }
 
-  override def to(path: String): LoamStore[S] = to(Paths.get(path))
+  override def at(path: String): LoamStore[S] = at(Paths.get(path))
 
-  override def to(path: Path): LoamStore[S] = to(StoreEdge.PathEdge(scriptContext.workDir.resolve(path)))
+  override def at(path: Path): LoamStore[S] = {
+    val resolvedPath = scriptContext.workDir.resolve(path)
+    val location = StoreLocation.PathLocation(resolvedPath)
+    at(location)
+  }
 
-  override def to(uri: URI): LoamStore[S] = to(StoreEdge.UriEdge(uri))
+  override def at(uri: URI): LoamStore[S] = {
+    val location = StoreLocation.UriLocation(uri)
+    at(location)
+  }
 
-  override def to(sink: StoreEdge): LoamStore[S] = {
-    graphBox.mutate(_.withStoreSink(this, sink))
+  override def at(location: StoreLocation): LoamStore[S] = {
+    graphBox.mutate(_.withStoreLocation(this, location))
     this
   }
+
 
   /** Returns new store which is the result of a new store filtering tool based on a field
     *

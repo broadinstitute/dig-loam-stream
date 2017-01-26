@@ -1,10 +1,10 @@
 package loamstream.compiler
 
+import java.nio.file.Paths
+
 import loamstream.compiler.repo.LoamRepository
-import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
-import java.nio.file.Paths
 
 /**
   * LoamStream
@@ -56,11 +56,11 @@ final class LoamCompilerTest extends FunSuite {
   }
   test("Testing sample code toyImpute.loam") {
     val compiler = new LoamCompiler
-    
-    val exampleDir = Paths.get("src/main/loam/examples")
-    
+
+    val exampleDir = Paths.get("src/examples/loam")
+
     val exampleRepo = LoamRepository.ofFolder(exampleDir)
-    
+
     val codeShot = exampleRepo.load("toyImpute").map(_.code)
     assert(codeShot.nonEmpty)
     val result = compiler.compile(LoamScript("LoamCompilerTestScript1", codeShot.get))
@@ -69,9 +69,12 @@ final class LoamCompilerTest extends FunSuite {
     val graph = result.contextOpt.get.graph
     assert(graph.tools.size === 2)
     assert(graph.stores.size === 4)
-    val sources = graph.storeSources.values.toSet
-    assert(!sources.forall(_.isInstanceOf[StoreEdge.ToolEdge]))
-    assert(sources.collect({ case StoreEdge.ToolEdge(tool) => tool }) == graph.tools)
+    assert(graph.stores.exists { store =>
+      graph.storeLocations.contains(store) && !graph.storeProducers.contains(store)
+    })
+    assert(graph.stores.forall { store =>
+      graph.storeLocations.contains(store) || graph.storeProducers.contains(store)
+    })
     val validationIssues = LoamGraphValidation.allRules(graph)
     assert(validationIssues.isEmpty)
   }

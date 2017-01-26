@@ -1,6 +1,5 @@
 package loamstream.loam.ast
 
-import loamstream.loam.LoamGraph.StoreEdge
 import loamstream.loam.{LoamGraph, LoamStore, LoamTool}
 import loamstream.model.AST
 import loamstream.model.AST.{Connection, ToolNode}
@@ -51,8 +50,8 @@ object LoamGraphAstMapper {
   private def toConnection(graph: LoamGraph, toolAsts: Map[LoamTool, AST])
                           (inputStore: LoamStore.Untyped): Option[Connection] = {
 
-    graph.storeSources.get(inputStore) match {
-      case Some(StoreEdge.ToolEdge(sourceTool)) =>
+    graph.storeProducers.get(inputStore) match {
+      case Some(sourceTool) =>
         val id = inputStore.id
 
         toolAsts.get(sourceTool).map(ast => Connection(id, id, ast))

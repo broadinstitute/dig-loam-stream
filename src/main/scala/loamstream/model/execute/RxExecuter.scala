@@ -46,22 +46,27 @@ final case class RxExecuter(
       chunk <- chunks
       _ = logJobs(executable)
       jobs <- chunk.to[Set]
+      if jobs.nonEmpty
       (jobsToRun, skippedJobs) = jobs.partition(jobFilter.shouldRun)
       _ = debug(s"SKIPPING (${skippedJobs.size}) $skippedJobs")
       _ = debug(s"RUNNING (${jobsToRun.size}) $jobsToRun")
       _ = debug(s"Dispatching jobs to ChunkRunner: $jobsToRun")
       _ = markJobsSkipped(skippedJobs)
       resultMap <- runner.run(jobsToRun)
+      _ = record(resultMap)
+      skippedResultMap = toSkippedResultMap(skippedJobs)
     } yield {
-      record(resultMap)
-      
-      val skippedResultMap = toSkippedResultMap(skippedJobs)
-      
       resultMap ++ skippedResultMap
     }
+   
+    import ExecuterHelpers.anyFailures
+    
+    //NB: Sanity check, which fixes failures with the kinship step.
+    //Emit result maps up to - and including! - the first one that contains a failure, then stop. 
+    val chunkResultsUpToFirstFailure = chunkResults.takeUntil(anyFailures(_))
     
     //Collect the results from each chunk, and merge them, producing a future holding the merged results
-    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
+    val futureMergedResults = chunkResultsUpToFirstFailure.to[Seq].map(Maps.mergeMaps).firstAsFuture
     
     Await.result(futureMergedResults, timeout)
   }
@@ -83,8 +88,8 @@ final case class RxExecuter(
   }
   
   private def record(newResultMap: Map[LJob, JobState]): Unit = {
-    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs) }
-        
+    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs.map(_.toOutputRecord)) }
+
     debug(s"Recording Executions (${executions.size}): $executions")
     
     jobFilter.record(executions)

@@ -1,7 +1,5 @@
 package loamstream.util
 
-import scala.collection.mutable.WrappedArray
-import scala.util.Try
 import javax.xml.bind.DatatypeConverter
 
 import scala.collection.mutable
@@ -14,15 +12,15 @@ import scala.collection.mutable
 final case class Hash(value: mutable.WrappedArray[Byte], tpe: HashType) {
   //TODO: Stub
   
-  override def toString: String = s"$tpe($valueAsHexString)"
+  override def toString: String = s"$tpe($valueAsBase64String)"
   
-  def valueAsHexString: String = DatatypeConverter.printHexBinary(value.toArray).toLowerCase
+  def valueAsBase64String: String = DatatypeConverter.printBase64Binary(value.toArray).toLowerCase
 }
 
 object Hash {
-  def fromStrings(value: String, tpe: String): Try[Hash] = {
+  def fromStrings(value: Option[String], tpe: String): Option[Hash] = {
     for {
-      bytes <- Try(DatatypeConverter.parseHexBinary(value))
+      bytes <- value.map(DatatypeConverter.parseBase64Binary)
       hashType <- HashType.fromAlgorithmName(tpe)
     } yield Hash(bytes, hashType)
   }

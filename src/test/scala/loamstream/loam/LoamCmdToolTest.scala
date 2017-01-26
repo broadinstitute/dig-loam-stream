@@ -1,7 +1,5 @@
 package loamstream.loam
 
-import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.LoamGraph.StoreEdge.{PathEdge, ToolEdge, UriEdge}
 import loamstream.loam.LoamToken.{StoreToken, StringToken}
 import loamstream.loam.ops.StoreType.TXT
 import loamstream.model.LId
@@ -24,8 +22,8 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.graph eq scriptContext.projectContext.graphBox.value)
 
     assert(tool.graph.stores == Set.empty)
-    assert(tool.graph.storeSinks == Map.empty)
-    assert(tool.graph.storeSources == Map.empty)
+    assert(tool.graph.storeProducers === Map.empty)
+    assert(tool.graph.storeConsumers == Map.empty)
 
     assert(tool.graph.toolInputs == Map(tool -> Set.empty))
     assert(tool.graph.toolOutputs == Map(tool -> Set.empty))
@@ -52,10 +50,10 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.inputs === expectedInputs)
     assert(tool.outputs === expectedOutputs)
     for ((id, store) <- expectedInputs) {
-      val storeProducerOpt = graph.storeProducerOpt(store)
+      val storeProducerOpt = graph.storeProducers.get(store)
       assert(storeProducerOpt === None,
         s"Expected no producer for input store $id, but got tool ${storeProducerOpt.map(_.id).getOrElse("")}")
-      val storeConsumers = graph.storeConsumers(store)
+      val storeConsumers = graph.storeConsumers.getOrElse(store, Set.empty)
       assert(storeConsumers === Set(tool), {
         val storeConsumersString = if (storeConsumers.isEmpty) {
           "none"
@@ -66,12 +64,12 @@ final class LoamCmdToolTest extends FunSuite {
       })
     }
     for ((id, store) <- expectedOutputs) {
-      val storeProducerOpt = graph.storeProducerOpt(store)
+      val storeProducerOpt = graph.storeProducers.get(store)
       assert(storeProducerOpt === Some(tool), {
         val storeProducerString = storeProducerOpt.map(_.id.toString).getOrElse("none")
         s"Expected tool ${tool.id} as producer of output store $id, but got $storeProducerString."
       })
-      val storeConsumers = graph.storeConsumers(store)
+      val storeConsumers = graph.storeConsumers.getOrElse(store, Set.empty)
       assert(storeConsumers === Set.empty,
         s"Expected no consumers of output store $id, but got tools ${storeConsumers.map(_.id).mkString(", ")}")
     }
@@ -123,8 +121,8 @@ final class LoamCmdToolTest extends FunSuite {
       val nStores = 6
       val stores = Seq.fill[LoamStore.Untyped](nStores)(LoamStore[TXT](LId.newAnonId))
 
-      val inStoreImplicit = stores(4).from("inputFile.vcf") // scalastyle:ignore magic.number
-      val outStoreImplicit = stores(5).to("outputFile.txt") // scalastyle:ignore magic.number
+      val inStoreImplicit = stores(4).at("inputFile.vcf").asInput // scalastyle:ignore magic.number
+      val outStoreImplicit = stores(5).at("outputFile.txt") // scalastyle:ignore magic.number
 
       val tool = cmd"foo $inStoreImplicit $outStoreImplicit"
 
@@ -135,13 +133,13 @@ final class LoamCmdToolTest extends FunSuite {
     }
   }
 
-  test("to(...) and from(...)") {
+  test("at(...) and asInput") {
     implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty)
     import loamstream.compiler.LoamPredef._
-    val inStoreWithPath = store[TXT].from("dir/inStoreWithPath.txt")
-    val outStoreWithPath = store[TXT].to("dir/outStoreWithPath.txt")
-    val inStoreWithUri = store[TXT].from(uri("xyz://host/dir/inStoreWithUri"))
-    val outStoreWithUri = store[TXT].from(uri("xyz://host/dir/outStoreWithUri"))
+    val inStoreWithPath = store[TXT].at("dir/inStoreWithPath.txt").asInput
+    val outStoreWithPath = store[TXT].at("dir/outStoreWithPath.txt")
+    val inStoreWithUri = store[TXT].at(uri("xyz://host/dir/inStoreWithUri")).asInput
+    val outStoreWithUri = store[TXT].at(uri("xyz://host/dir/outStoreWithUri"))
     val tool = cmd"maker $inStoreWithPath $inStoreWithUri $outStoreWithPath $outStoreWithUri"
     val inPath = BashScript.escapeString(inStoreWithPath.path.toString)
     val outPath = BashScript.escapeString(outStoreWithPath.path.toString)

@@ -11,21 +11,21 @@ final class LoamStoreRefTest extends FunSuite {
   test("Adding a suffix to the path of a store.") {
     val path = "a/b/c/myfile.txt"
     val suffix = ".gz"
-    val store = LoamStore.create[VCF].from(path)
+    val store = LoamStore.create[VCF].at(path).asInput
     val storeRef = store + suffix
     assert(storeRef.path(fileManager).toString === store.pathOpt.get.toString + suffix)
   }
   test("Removing a suffix from the path of a store.") {
     val path = "a/b/c/myfile.txt"
     val suffix = ".txt"
-    val store = LoamStore.create[VCF].from(path)
+    val store = LoamStore.create[VCF].at(path).asInput
     val storeRef = store - suffix
     assert(storeRef.path(fileManager).toString + suffix === store.pathOpt.get.toString)
   }
   test("Try removing a non-existing suffix from the path of a store, having no effect.") {
     val path = "a/b/c/myfile.txt"
     val suffix = ".gz"
-    val store = LoamStore.create[VCF].from(path)
+    val store = LoamStore.create[VCF].at(path).asInput
     val storeRef = store - suffix
     assert(storeRef.path(fileManager).toString === store.pathOpt.get.toString)
   }

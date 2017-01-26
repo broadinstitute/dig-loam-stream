@@ -5,14 +5,7 @@ import java.nio.file.Path
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.util.Try
-
-import org.ggf.drmaa.DrmaaException
-import org.ggf.drmaa.ExitTimeoutException
-import org.ggf.drmaa.JobTemplate
-import org.ggf.drmaa.NoActiveSessionException
-import org.ggf.drmaa.Session
-import org.ggf.drmaa.SessionFactory
-
+import org.ggf.drmaa._
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
 
@@ -35,18 +28,25 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   private def getNewSession: Session = {
     info("Getting new DRMAA session")
-    
-    val s = SessionFactory.getFactory.getSession
 
-    debug(s"\tVersion: ${s.getVersion}")
-    debug(s"\tDrmSystem: ${s.getDrmSystem}")
-    debug(s"\tDrmaaImplementation: ${s.getDrmaaImplementation}")
+    try {
+      val s = SessionFactory.getFactory.getSession
 
-    //NB: Passing an empty string (or null) means that "the default DRM system is used, provided there is only one 
-    //DRMAA implementation available" according to the DRMAA javadocs. (Whatever that means :\)
-    s.init("")
-    
-    s
+      debug(s"\tVersion: ${s.getVersion}")
+      debug(s"\tDrmSystem: ${s.getDrmSystem}")
+      debug(s"\tDrmaaImplementation: ${s.getDrmaaImplementation}")
+
+      //NB: Passing an empty string (or null) means that "the default DRM system is used, provided there is only one
+      //DRMAA implementation available" according to the DRMAA javadocs. (Whatever that means :\)
+      s.init("")
+
+      s
+    } catch {
+        case e: UnsatisfiedLinkError =>
+          error(s"Please check if you are running on a system with UGER (e.g. Broad VM). " +
+            s"Note that UGER is required if the configuration file specifies a 'uger { ... }' block.")
+          throw e
+    }
   }
   
   /**
@@ -61,15 +61,20 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @return Success wrapping the JobStatus corresponding to the code obtained from UGER,
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
-  override def statusOf(jobId: String): Try[JobStatus] = {
+  override def statusOf(jobId: String): Try[UgerStatus] = {
     Try {
       withSession { session =>
         val status = session.getJobProgramStatus(jobId)
-        val jobStatus = JobStatus.fromUgerStatusCode(status)
+        val jobStatus = UgerStatus.fromUgerStatusCode(status)
 
         info(s"Job '$jobId' has status $status, mapped to $jobStatus")
-        
-        jobStatus
+
+        if (jobStatus.isFinished) {
+          doWait(session, jobId, Duration.Zero)
+        }
+        else {
+          jobStatus
+        }
       }
     }
   }
@@ -108,7 +113,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    *   signal, OR the job dumped core/
    *   JobStatus.Undetermined: The job completed, but none of the above applies.
    */
-  override def waitFor(jobId: String, timeout: Duration): Try[JobStatus] = {
+  override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = {
     val waitAttempt = Try {
       withSession { session =>
         doWait(session, jobId, timeout)
@@ -116,41 +121,42 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }
       
     //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
-    waitAttempt.recover { case e: ExitTimeoutException => 
-      debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${JobStatus.Running}")
-        
-      JobStatus.Running
+    waitAttempt.recover {
+      case e: ExitTimeoutException =>
+        debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${UgerStatus.Running}")
+        UgerStatus.Running
+      case e: InvalidJobException =>
+        debug(s"Received InvalidJobException while 'wait'ing for job '$jobId'. " +
+          s"Assuming that the data records of the job was already reaped by a previous call, " +
+          s"and therefore mapping its status to ${UgerStatus.Done}")
+        UgerStatus.Done
     }
   }
   
-  private def doWait(session: Session, jobId: String, timeout: Duration): JobStatus = {
+  private def doWait(session: Session, jobId: String, timeout: Duration): UgerStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
         
     if (jobInfo.hasExited) {
       info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
       
-      //TODO: More flexibility?
-      jobInfo.getExitStatus match { 
-        case 0 => JobStatus.Done
-        case _ => JobStatus.Failed
-      }
+      UgerStatus.CommandResult(jobInfo.getExitStatus)
     } else if (jobInfo.wasAborted) {
       info(s"Job '$jobId' was aborted; job info: $jobInfo")
 
       //TODO: Add JobStatus.Aborted?
-      JobStatus.Failed
+      UgerStatus.Failed
     } else if (jobInfo.hasSignaled) {
       info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
-      JobStatus.Failed
+      UgerStatus.Failed
     } else if (jobInfo.hasCoreDump) {
       info(s"Job '$jobId' dumped core")
       
-      JobStatus.Failed
+      UgerStatus.Failed
     } else {
       info(s"Job '$jobId' finished with unknown status")
 
-      JobStatus.DoneUndetermined
+      UgerStatus.DoneUndetermined
     }
   }
 
@@ -167,8 +173,8 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     sessionBox.get { currentSession =>
       try { f(currentSession) } 
       catch {
-        case e: NoActiveSessionException => {
-          warn(s"Got ${e.getClass.getSimpleName}; re-throwing", e)
+        case e: DrmaaException => {
+          debug(s"Got ${e.getClass.getSimpleName}; re-throwing", e)
           
           throw e
         }

@@ -13,7 +13,7 @@ import loamstream.model.jobs.JobState.Running
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.NoOpJob
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.uger.JobStatus.toJobState
+import loamstream.uger.UgerStatus.toJobState
 import loamstream.util.Files
 import loamstream.util.Loggable
 import loamstream.util.Observables

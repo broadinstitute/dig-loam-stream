@@ -1,17 +1,17 @@
 import input._
-import files._
 import binaries._
 import scripts._
-import loamstream.loam.LoamStore
 import store_helpers._
+import loamstream.loam.LoamStore
 import scala.io.Source
 
 
+// CHUNK 1
 
 /** Alignment Step
  *  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
  *  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
- *  Input: VCF file, 1000 Genomes reference VCF file
+ *  Input: $inVCF, $KG_VCF_BASE (VCF files, all chromosomes)
  *  Output Needed: ${outLABEL}.chr${CHROMOSOME}.bed/bim/fam, ${outLABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), merge.txt, force_a2.txt, 
  *     ${outLABEL}.harmonized.sample, ${outLABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, ${outLABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
  *  Notes:
@@ -150,7 +150,7 @@ cmd"""$HAIL -l $FILTERPRUNED_LOG
 /** Kinship Step
  *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
  *  Requires: King, R, $CALC_KINSHIP_SAMPLE_SHARING_R
- *  Input: $PLINK_FOR_QC
+ *  Input: $PLINK_FOR_QC_PRUNED
  *  Output: ${outLABEL}.kinshipTMP.dat, ${outLABEL}.kinshipTMP.ped, ${outLABEL}.kinship.kin, ${outLABEL}.kinship.kin0, ${outLABEL}.kinship.kin0.related, ${outLABEL}.kinship.sharing_counts.txt
  *  Notes: 
  *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
@@ -174,10 +174,12 @@ cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_S
 
 
 
+// CHUNK 2
+
 /** Ancestry PCA Step
  *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
  *  Requires: Hail, R, $PLOT_ANCESTRY_PCA_R
- *  Input: $VDS, $KG_HAIL, $KG_V3_5K_AF
+ *  Input: $VDS, $inKG_HAIL, $inKG_V3_5K_AF
  *  Output: ${outLABEL}.ancestry.pca.log, ${outLABEL}.ancestry.pca.scores.tsv, ${outLABEL}.ancestry.pca.loadings.tsv, .${outLABEL}.ancestry.pca.scores.tsv.crc, 
  *     ${outLABEL}.ancestry.pca.loadings.tsv.crc ${outLABEL}.ancestry.pca.scores.plots.pdf
  *  Notes: 
@@ -190,11 +192,11 @@ val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca
 val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.plots.pdf")
 
 $HAIL -l $ANCESTRYPCA_LOG
-	read $KG_HAIL
+	read $inKG_HAIL
 	put -n KG
 	read -i $VDS
 	join --right KG
-	annotatevariants table $KG_V3_5K_AF
+	annotatevariants table $inKG_V3_5K_AF
 	-e Variant
 	-c 'va.refPanelAF = table.refPanelAF'
 	--impute
@@ -205,7 +207,7 @@ $HAIL -l $ANCESTRYPCA_LOG
 	exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10'
 	-o $ANCESTRYPCA_SCORES_TSV
 	exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10'
-	-o $ANCESTRYPCA_LOADINGS_TSV""".in(KG_HAIL, VDS, KG_V3_5K_AF).out(ANCESTRYPCA_LOG, ANCESTRYPCA_SCORES_TSV, ANCESTRYPCA_LOADINGS_TSV)
+	-o $ANCESTRYPCA_LOADINGS_TSV""".in(inKG_HAIL, VDS, inKG_V3_5K_AF).out(ANCESTRYPCA_LOG, ANCESTRYPCA_SCORES_TSV, ANCESTRYPCA_LOADINGS_TSV)
 
 cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRYPCA_SCORES_PLOTS_PDF < $PLOT_ANCESTRY_PCA_R""".in(ANCESTRYPCA_SCORES_TSV, PLOT_ANCESTRY_PCA_R).out(ANCESTRYPCA_SCORES_PLOTS_PDF)
 
@@ -214,7 +216,7 @@ cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRYPCA_SCORES_PLOTS_PDF 
 /** Ancestry Cluster Step
  *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
  *  Requires: Hail, R, $PLOT_ANCESTRY_CLUSTER_R, $outLABEL, $PHENO_ID, $PHENO_SR_RACE
- *  Input: ${outLABEL}.ancestry.pca.samples.scores.tsv, $PHENO
+ *  Input: ${outLABEL}.ancestry.pca.scores.tsv, $PHENO
  *  Output: ${outLABEL}.ancestry.fet.1, ${outLABEL}.ancestry.temp.clu.1, ${outLABEL}.ancestry.clu.1, ${outLABEL}.ancestry.klg.1, ${outLABEL}.ancestry.cluster_plots.pdf, 
  *     ${outLABEL}.ancestry.cluster_xtabs, ${outLABEL}.ancestry.cluster_plots.centers.pdf, ${outLABEL}.ancestry.clusters_assigned, ${outLABEL}.ancestry
  *  Notes: 
@@ -279,6 +281,7 @@ cmd"""$HAIL -l $NONOUTLIERPCA_LOG
 	-o $NONOUTLIERPCA_LOADINGS_TSV""".in(VDS_FOR_QC_PRUNED, ANCESTRY).out(NONOUTLIERPCA_SCORES_TSV, NONOUTLIERPCA_LOADINGS_TSV)
 
 
+// CHUNK 3
 
 /** Sample QC Stats Calculation Step
  *  Description: Calculate sexcheck and sample by variant statistics for all samples
@@ -402,14 +405,14 @@ for(i <- 1 to N) {
 }
 
 cmd"""$R --vanilla --args
-	$SAMPLEQC_CLU1_WILD \
-	$SAMPLEQC_STATS_TSV \
-	$SAMPLEQC_STATS_ADJ_TSV \
-	$SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV \
-	$SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF \
-	$SAMPLEQC_STATS_ADJ_IND_DISCRETENESS \
-	$SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE \
-	$SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE \
-	$SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF \
-	$ANCESTRY \
+	$SAMPLEQC_CLU1_WILD
+	$SAMPLEQC_STATS_TSV
+	$SAMPLEQC_STATS_ADJ_TSV
+	$SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
+	$SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
+	$SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
+	$SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
+	$SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
+	$SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
+	$ANCESTRY
 	< $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT, SAMPLEQC_STATS_TSV, SAMPLEQC_STATS_ADJ_TSV, ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)

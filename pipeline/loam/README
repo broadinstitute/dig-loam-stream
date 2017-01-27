@@ -1,0 +1,23 @@
+CHUNK 1
+-------
+
+Plink1.9, Genotype Harmonizer >= v1.4.18, Hail, King, R, CALC_KINSHIP_SAMPLE_SHARING_R
+
+* All files related to this base filename are required
+val KG_VCF_BASE = "/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf/ALL.chr[CHROMOSOME].phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes"
+
+val inVCF = store[VCF].at("/humgen/diabetes/users/ryank/pipelines/QCpipeline/example/bash/data/CAMP.vcf.gz").asInput
+val inREGIONS_EXCLUDE = store[TXT].at("/humgen/diabetes/users/ryank/pipelines/QCpipeline/example/bash/files/regions.exclude").asInput
+
+
+
+CHUNK 2
+-------
+
+Hail, R, PLOT_ANCESTRY_PCA_R, PLOT_ANCESTRY_CLUSTER_R
+
+val VDS = path(outDIR / s"${outLABEL}.harmonized.ref.vds")
+val inKG_HAIL = path("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vds")
+val inKG_V3_5K_AF = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/allele_frequencies.tsv").asInput
+val inPHENO = store[TXT].at("/humgen/diabetes/users/ryank/data/camp/phenotype/AMP_T2DGENES_PhenotypeData_CAMP-MGH_8May2016.tsv").asInput
+val VDS_FOR_QC_PRUNED = path(outDIR / s"${outLABEL}.for_qc.pruned.vds")

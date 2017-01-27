@@ -64,12 +64,10 @@ echo "Performing QC Step ${QC_STEP} on ${DATA}"
 # Hail?: No
 if [ "$QC_STEP" == "harmonize" ]; then
 
-	if [[ "$CHROMOSOME" == "X" || "$CHROMOSOME" == "23" || "$CHROMOSOME" == "25" ]]; then
+	if [[ "$CHROMOSOME" == "X" || "$CHROMOSOME" == "23" ]]; then
 		KG_VCF_BASE=$KG_VCF_BASE_X
 	elif [[ "$CHROMOSOME" == "Y" || "$CHROMOSOME" == "24" ]]; then
 		KG_VCF_BASE=$KG_VCF_BASE_Y
-	elif [[ "$CHROMOSOME" == "MT" || "$CHROMOSOME" == "26" ]]; then
-		KG_VCF_BASE=$KG_VCF_BASE_MT
 	else
 		KG_VCF_BASE=$KG_VCF_BASE_AUTO
 	fi
@@ -103,7 +101,7 @@ if [ "$QC_STEP" == "harmonize" ]; then
 elif [ "$QC_STEP" == "compile" ]; then
 
 	echo "data/${LABEL}.chr2.harmonized.bed data/${LABEL}.chr2.harmonized.bim data/${LABEL}.chr2.harmonized.fam" > data/${LABEL}.harmonized.merge.txt
-	for i in {3..22} X Y MT; do echo "data/${LABEL}.chr${i}.harmonized.bed data/${LABEL}.chr${i}.harmonized.bim data/${LABEL}.chr${i}.harmonized.fam" >> data/${LABEL}.harmonized.merge.txt; done
+	for i in {3..22} X Y; do if [ -f data/${LABEL}.chr${i}.harmonized.bim ]; then echo "data/${LABEL}.chr${i}.harmonized.bed data/${LABEL}.chr${i}.harmonized.bim data/${LABEL}.chr${i}.harmonized.fam" >> data/${LABEL}.harmonized.merge.txt; fi; done
 	$PLINK --bfile data/${LABEL}.chr1.harmonized --merge-list data/${LABEL}.harmonized.merge.txt --make-bed --keep-allele-order --out data/${LABEL}.harmonized
 	awk '{print $2,$5}' data/${LABEL}.harmonized.bim > data/${LABEL}.harmonized.force_a2
 	$PLINK --bfile data/${LABEL}.harmonized --recode vcf-iid bgz --real-ref-alleles --a2-allele data/${LABEL}.harmonized.force_a2 --out data/${LABEL}.harmonized.ref

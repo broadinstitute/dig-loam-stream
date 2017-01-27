@@ -15,4 +15,4 @@ def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => stor
 
 def klustakwikOutput(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions("fet.1", "temp.clu.1", "clu.1", "klg.1")(makeStore)
 
-def klustakwikOutput(prefix: String): Seq[LoamStore[TXT]] = Klustakwik(extension => store[TXT].to(s"${prefix}.${extension}"))
+def klustakwikOutput(prefix: String): Seq[LoamStore[TXT]] = klustakwikOutput(extension => store[TXT].to(s"${prefix}.${extension}"))

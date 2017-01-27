@@ -3,9 +3,8 @@ package loamstream
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import scala.concurrent.ExecutionContext
-
 import loamstream.compiler.LoamCompiler
+import loamstream.compiler.LoamProject
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScript
@@ -18,28 +17,37 @@ import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 
+
 /**
   * @author clint
   *         date: Jul 8, 2016
   */
 trait LoamTestHelpers extends Loggable {
 
-  def compileFile(file: String)(implicit context: ExecutionContext): LoamCompiler.Result = compile(Paths.get(file))
+  def compileFile(file: String): LoamCompiler.Result = compile(Paths.get(file))
 
-  def compile(path: Path)(implicit context: ExecutionContext): LoamCompiler.Result = {
-    compile(LoamScript.read(path).get)
+  def compile(path: Path, rest: Path*): LoamCompiler.Result = {
+    def toScript(p: Path): LoamScript = LoamScript.read(p).get
+    
+    val paths: Set[Path] = (path +: rest).toSet
+    
+    compile(LoamProject(paths.map(toScript)), throwOnError = false)
   }
 
-  def compile(script: LoamScript)(implicit context: ExecutionContext): LoamCompiler.Result = {
+  def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(Set(script)))
+    
+  def compile(project: LoamProject, throwOnError: Boolean = true): LoamCompiler.Result = {
 
     val compiler = new LoamCompiler(LoamCompiler.Settings.default, LoggableOutMessageSink(this))
 
-    val compileResults = compiler.compile(script)
+    val compileResults = compiler.compile(project)
 
-    if (!compileResults.isValid) {
-      throw new IllegalArgumentException(s"Could not compile '$script': ${compileResults.errors}.")
+    if(throwOnError) {
+      if (!compileResults.isValid) {
+        throw new IllegalArgumentException(s"Could not compile '$project': ${compileResults.errors}.")
+      }
     }
-
+    
     compileResults
   }
 

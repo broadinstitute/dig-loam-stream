@@ -30,21 +30,17 @@ final case class LoamFolderRepository(folder: Path) extends LoamRepository.Mutab
 
   private def nameToPath(name: String): Path = folder.resolve(s"$name${LoamRepository.fileSuffix}")
 
-  override def save(script: LoamScript): Shot[LoamScript] =
-    Shot {
-      LSFiles.writeTo(nameToPath(script.name))(script.code)
-      script
-    }
-
-  /** Loads Loam script of given name from repository  */
-  override def load(name: String): Shot[LoamScript] =
-  Shot {
-    val content = LSFiles.readFromAsUtf8(nameToPath(name))
-
-    LoamScript(name, content)
+  override def save(script: LoamScript): Shot[LoamScript] = Shot {
+    LSFiles.writeTo(nameToPath(script.name))(script.code)
+    script
   }
 
+  /** Loads Loam script of given name from repository  */
+  override def load(name: String): Shot[LoamScript] = Shot {
+    val content = LSFiles.readFromAsUtf8(nameToPath(name))
 
+    LoamScript(name, content, None)
+  }
 }
 
 object LoamFolderRepository {

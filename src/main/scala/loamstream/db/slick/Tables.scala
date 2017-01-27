@@ -21,7 +21,7 @@ import slick.jdbc.meta.MTable
  *    EXIT_STATUS: integer - the exit status returned by the command represented by this EXECUTION
  * 
  *   OUTPUTS:
- *     PATH: varchar/text, primary key - the fully-qualified path of an output
+ *     LOCATOR: varchar/text, primary key - the fully-qualified locator of an output
  *     LAST_MODIFIED: nullable, datetime or similar - the last modified time of the file/dir at PATH
  *     HASH: nullable, varchar/text - the hex-coded hash of the file/dir at PATH
  *     HASH_TYPE: nullable, varchar/text - the type of hash performed on PATH; 
@@ -39,13 +39,13 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   import ForeignKeyAction.{Restrict, Cascade}
   
   final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {
-    def path = column[String]("PATH", O.PrimaryKey)
+    def locator = column[String]("LOCATOR", O.PrimaryKey)
     def lastModified = column[Option[Timestamp]]("LAST_MODIFIED")
     def hash = column[Option[String]]("HASH")
     def hashType = column[Option[String]]("HASH_TYPE")
     def executionId = column[Int]("EXECUTION_ID")
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (path, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
+    def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
   
   final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) {

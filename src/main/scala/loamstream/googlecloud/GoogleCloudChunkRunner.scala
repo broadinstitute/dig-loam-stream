@@ -1,19 +1,15 @@
 package loamstream.googlecloud
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 
-import loamstream.model.execute.AsyncLocalChunkRunner
 import loamstream.model.execute.ChunkRunner
 import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.ExecutionEnvironment
 import loamstream.model.jobs.JobState
-import loamstream.model.jobs.LJob
 import loamstream.util.Terminable
 import loamstream.util.ExecutorServices
 import java.util.concurrent.Executors
 import loamstream.util.Loggable
-import scala.util.control.NonFatal
 import java.util.concurrent.ExecutorService
 import loamstream.util.Maps
 import loamstream.model.jobs.LJob

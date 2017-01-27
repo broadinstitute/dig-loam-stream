@@ -31,7 +31,7 @@ object Main extends Loggable {
     val loamEngine = {
       val loamCompiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
 
-      LoamEngine(loamCompiler, wiring.executer, outMessageSink)
+      LoamEngine(loamCompiler, wiring.executer, outMessageSink, wiring.cloudStorageClient)
     }
 
     try {

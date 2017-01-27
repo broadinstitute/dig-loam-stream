@@ -1,7 +1,9 @@
 package loamstream.loam
 
+import java.net.URI
 import java.nio.file.{Path, Paths}
 
+import loamstream.googlecloud.CloudStorageClient
 import loamstream.loam.ops.filters.LoamStoreFilterTool
 import loamstream.loam.ops.mappers.LoamStoreMapperTool
 import loamstream.model.Tool
@@ -15,7 +17,7 @@ import loamstream.model.execute.ExecutionEnvironment
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
+final class LoamToolBox(context: LoamProjectContext, client: Option[CloudStorageClient] = None) extends LToolBox {
 
   @volatile private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
 
@@ -24,10 +26,17 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
   private[loam] def newLoamJob(tool: LoamTool): Shot[LJob] = {
     val graph = tool.graphBox.value
 
-    def pathOutputsFor(tool: LoamTool): Set[Output] = {
+    def outputsFor(tool: LoamTool): Set[Output] = {
       val loamStores: Set[LoamStore.Untyped] = graph.toolOutputs(tool)
 
-      loamStores.flatMap(_.pathOpt).map(Output.PathOutput)
+      def pathOrUriToOutput(store: LoamStore.Untyped): Option[Output] = {
+        store.pathOpt.orElse(store.uriOpt).map {
+          case path: Path => Output.PathOutput(path)
+          case uri: URI => Output.GcsUriOutput(uri, client)
+        }
+      }
+
+      loamStores.flatMap(pathOrUriToOutput(_))
     }
 
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
@@ -37,7 +46,7 @@ final class LoamToolBox(context: LoamProjectContext) extends LToolBox {
     val shotsForPrecedingTools: Shot[Set[LJob]] = Shot.sequence(graph.toolsPreceding(tool).map(getLoamJob))
 
     shotsForPrecedingTools.map { inputJobs =>
-      val outputs = pathOutputsFor(tool)
+      val outputs = outputsFor(tool)
 
       tool match {
         case cmdTool: LoamCmdTool =>

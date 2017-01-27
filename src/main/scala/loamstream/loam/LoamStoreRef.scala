@@ -17,10 +17,9 @@ object LoamStoreRef {
 
   def suffixAdder(suffix: String): Path => Path = PathUtils.getFileNameTransformation(_ + suffix)
 
-  def suffixRemover(suffix: String): Path => Path = PathUtils.getFileNameTransformation {
-    fileName =>
-      if (fileName.endsWith(suffix)) { fileName.dropRight(suffix.length) } 
-      else { fileName }
+  def suffixRemover(suffix: String): Path => Path = PathUtils.getFileNameTransformation { fileName =>
+    if (fileName.endsWith(suffix)) { fileName.dropRight(suffix.length) } 
+    else { fileName }
   }
 
 }

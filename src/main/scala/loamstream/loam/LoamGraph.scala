@@ -1,47 +1,49 @@
 package loamstream.loam
 
 import java.net.URI
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 
-import loamstream.loam.LoamGraph.StoreEdge
-import loamstream.loam.LoamGraph.StoreEdge.ToolEdge
+import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamTool.{AllStores, InputsAndOutputs}
-import loamstream.util.Equivalences
 import loamstream.model.execute.ExecutionEnvironment
+import loamstream.util.Equivalences
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
 
-  /** A connection between a store and a tool or other consumer or producer */
-  trait StoreEdge
+  /** The location of a store */
+  sealed trait StoreLocation
 
-  /** A connection between a store and a tool or other consumer or producer */
-  object StoreEdge {
+  /** The location of a store */
+  object StoreLocation {
 
-    /** A connection between a store and a path */
-    final case class PathEdge(path: Path) extends StoreEdge
+    /** Store location based on a Path */
+    final case class PathLocation(path: Path) extends StoreLocation {
+      override def toString: String = path.toString
+    }
 
-    /** A connection between a store and a URI */
-    final case class UriEdge(uri: URI) extends StoreEdge
-
-    /** A connection between a store and a tool */
-    final case class ToolEdge(tool: LoamTool) extends StoreEdge
+    /** Store location based on a URI */
+    final case class UriLocation(uri: URI) extends StoreLocation {
+      override def toString: String = uri.toString
+    }
 
   }
 
   /** An empty graph */
   def empty: LoamGraph = {
     LoamGraph(
-        Set.empty, 
-        Set.empty, 
-        Map.empty, 
-        Map.empty, 
-        Map.empty, 
-        Map.empty, 
-        Equivalences.empty, 
-        Equivalences.empty,
-        Map.empty,
-        Map.empty)
+      Set.empty,
+      Set.empty,
+      Map.empty,
+      Map.empty,
+      Set.empty,
+      Map.empty,
+      Map.empty,
+      Map.empty,
+      Equivalences.empty,
+      Equivalences.empty,
+      Map.empty,
+      Map.empty)
   }
 }
 
@@ -50,8 +52,10 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
                            tools: Set[LoamTool],
                            toolInputs: Map[LoamTool, Set[LoamStore.Untyped]],
                            toolOutputs: Map[LoamTool, Set[LoamStore.Untyped]],
-                           storeSources: Map[LoamStore.Untyped, StoreEdge],
-                           storeSinks: Map[LoamStore.Untyped, Set[StoreEdge]],
+                           inputStores: Set[LoamStore.Untyped],
+                           storeLocations: Map[LoamStore.Untyped, StoreLocation],
+                           storeProducers: Map[LoamStore.Untyped, LoamTool],
+                           storeConsumers: Map[LoamStore.Untyped, Set[LoamTool]],
                            keysSameSets: Equivalences[LoamStoreKeySlot],
                            keysSameLists: Equivalences[LoamStoreKeySlot],
                            workDirs: Map[LoamTool, Path],
@@ -61,44 +65,44 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   def withStore(store: LoamStore.Untyped): LoamGraph = copy(stores = stores + store)
 
   /** Returns graph with tool added */
-  def withTool(tool: LoamTool, scriptContext: LoamScriptContext): LoamGraph =
-  if (tools(tool)) {
-    if (workDirs.contains(tool) && workDirs(tool) == scriptContext.workDir) {
-      this
+  def withTool(tool: LoamTool, scriptContext: LoamScriptContext): LoamGraph = {
+    if (tools(tool)) {
+      if (workDirs.contains(tool) && workDirs(tool) == scriptContext.workDir) {
+        this
+      } else {
+        copy(workDirs = workDirs + (tool -> scriptContext.workDir))
+      }
     } else {
-      copy(workDirs = workDirs + (tool -> scriptContext.workDir))
-    }
-  } else {
-    val (toolInputStores, toolOutputStores) = tool.defaultStores match {
-      case AllStores(toolStores) =>
-        val inputStores = toolStores.filter(storeSources.contains)
-        val outputStores = toolStores -- inputStores
-        (inputStores, outputStores)
-      case InputsAndOutputs(inputStores, outputStores) => (inputStores.toSet, outputStores.toSet)
-    }
-    val toolEdge = StoreEdge.ToolEdge(tool)
-    val outputsWithSource = toolOutputStores.map(store => store -> toolEdge)
-    val storeSinksNew = toolInputStores.map(store => store -> (storeSinks.getOrElse(store, Set.empty) + toolEdge))
+      val (toolInputStores, toolOutputStores) = tool.defaultStores match {
+        case AllStores(toolStores) =>
+          val toolInputStores =
+            toolStores.filter(store => inputStores.contains(store) || storeProducers.contains(store))
+          val toolOutputStores = toolStores -- toolInputStores
+          (toolInputStores, toolOutputStores)
+        case InputsAndOutputs(inputs, outputs) => (inputs.toSet, outputs.toSet)
+      }
+      val outputsWithProducer = toolOutputStores.map(store => store -> tool)
+      val storeConsumersNew =
+        toolInputStores.map(store => store -> (storeConsumers.getOrElse(store, Set.empty) + tool))
 
-    copy(
-      tools = tools + tool,
-      toolInputs = toolInputs + (tool -> toolInputStores),
-      toolOutputs = toolOutputs + (tool -> toolOutputStores),
-      storeSources = storeSources ++ outputsWithSource,
-      storeSinks = storeSinks ++ storeSinksNew,
-      workDirs = workDirs + (tool -> scriptContext.workDir),
-      executionEnvironments = executionEnvironments + (tool -> scriptContext.executionEnvironment)
-    )
+      copy(
+        tools = tools + tool,
+        toolInputs = toolInputs + (tool -> toolInputStores),
+        toolOutputs = toolOutputs + (tool -> toolOutputStores),
+        storeProducers = storeProducers ++ outputsWithProducer,
+        storeConsumers = storeConsumers ++ storeConsumersNew,
+        workDirs = workDirs + (tool -> scriptContext.workDir),
+        executionEnvironments = executionEnvironments + (tool -> scriptContext.executionEnvironment)
+      )
+    }
   }
 
-  /** Returns graph with store source (tool or file) added */
-  def withStoreSource(store: LoamStore.Untyped, source: StoreEdge): LoamGraph = {
-    copy(storeSources = storeSources + (store -> source))
-  }
+  /** Returns graph with store marked as input store */
+  def withStoreAsInput(store: LoamStore.Untyped): LoamGraph = copy(inputStores = inputStores + store)
 
-  /** Returns graph with store sink (tool or file) added */
-  def withStoreSink(store: LoamStore.Untyped, sink: StoreEdge): LoamGraph = {
-    copy(storeSinks = storeSinks + (store -> (storeSinks.getOrElse(store, Set.empty) + sink)))
+  /** Returns graph with store location (path or URI) added */
+  def withStoreLocation(store: LoamStore.Untyped, location: StoreLocation): LoamGraph = {
+    copy(storeLocations = storeLocations + (store -> location))
   }
 
   /** Returns graph with key sets equivalence added */
@@ -109,8 +113,8 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   /** Returns graph with key lists (sets implied) equivalence added */
   def withKeysSameList(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): LoamGraph = {
     copy(
-        keysSameSets = keysSameSets.withTheseEqual(slot1, slot2),
-        keysSameLists = keysSameLists.withTheseEqual(slot1, slot2))
+      keysSameSets = keysSameSets.withTheseEqual(slot1, slot2),
+      keysSameLists = keysSameLists.withTheseEqual(slot1, slot2))
   }
 
   /** True if slots have same key set */
@@ -123,26 +127,15 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     keysSameLists.theseAreEqual(slot1, slot2)
   }
 
-  /** Returns the option of a producer (tool) of a store */
-  def storeProducerOpt(store: LoamStore.Untyped): Option[LoamTool] = storeSources.get(store).collect {
-    case StoreEdge.ToolEdge(tool) => tool
-  }
-
-  /** Returns the set of consumers (tools) of a store */
-  def storeConsumers(store: LoamStore.Untyped): Set[LoamTool] = storeSinks.getOrElse(store, Set.empty).collect {
-    case StoreEdge.ToolEdge(tool) => tool
-  }
-
   /** Tools that produce a store consumed by this tool */
   def toolsPreceding(tool: LoamTool): Set[LoamTool] = {
-    toolInputs.getOrElse(tool, Set.empty).flatMap(storeSources.get).collect {
-      case StoreEdge.ToolEdge(toolPreceding) => toolPreceding
-    }
+    toolInputs.getOrElse(tool, Set.empty).flatMap(storeProducers.get)
   }
+
 
   /** Tools that consume a store produced by this tool */
   def toolsSucceeding(tool: LoamTool): Set[LoamTool] = {
-    toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers)
+    toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers.getOrElse(_, Set.empty))
   }
 
   /** All tools with no preceeding tools */
@@ -153,42 +146,35 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
   /** Whether store has a Path associated with it */
   def hasPath(store: LoamStore.Untyped): Boolean = {
-    storeSources.get(store) match {
-      case Some(StoreEdge.PathEdge(path)) => true
-      case _ => storeSinks.getOrElse(store, Set.empty).collect { case StoreEdge.PathEdge(path) => path }.nonEmpty
-    }
+    storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.PathLocation])
   }
 
   /** Optionally the path associated with a store */
-  def pathOpt(store: LoamStore.Untyped): Option[Path] = {
-    storeSources.get(store) match {
-      case Some(StoreEdge.PathEdge(path)) => Some(path)
-      case _ => storeSinks.getOrElse(store, Set.empty).collect { case StoreEdge.PathEdge(path) => path }.headOption
-    }
+  def pathOpt(store: LoamStore.Untyped): Option[Path] =
+  storeLocations.get(store) match {
+    case Some(StoreLocation.PathLocation(path)) => Some(path)
+    case _ => None
   }
 
   /** Whether store has a Path associated with it */
   def hasUri(store: LoamStore.Untyped): Boolean = {
-    storeSources.get(store) match {
-      case Some(StoreEdge.UriEdge(path)) => true
-      case _ => storeSinks.getOrElse(store, Set.empty).collect { case StoreEdge.UriEdge(uri) => uri }.nonEmpty
-    }
+    storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.UriLocation])
   }
 
   /** Optionally the URI associated with a store */
   def uriOpt(store: LoamStore.Untyped): Option[URI] = {
-    storeSources.get(store) match {
-      case Some(StoreEdge.UriEdge(uri)) => Some(uri)
-      case _ => storeSinks.getOrElse(store, Set.empty).collect { case StoreEdge.UriEdge(uri) => uri }.headOption
+    storeLocations.get(store).collect {
+      case StoreLocation.UriLocation(uri) => uri
     }
   }
+
 
   /** Optionally, the work directory of a tool */
   def workDirOpt(tool: LoamTool): Option[Path] = workDirs.get(tool)
 
   /** Optionally, the execution environment of a tool */
   def executionEnvironmentOpt(tool: LoamTool): Option[ExecutionEnvironment] = executionEnvironments.get(tool)
-  
+
   /** Ranks for all tools: zero for final tools; for all others one plus maximum of rank of succeeding tools */
   def ranks: Map[LoamTool, Int] = {
     val initialRanks: Map[LoamTool, Int] = tools.map(tool => (tool, 0)).toMap
@@ -225,19 +211,18 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
     val toolOutputsNew = toolOutputs + (tool -> (outputsFor(tool) -- stores))
 
-    val toolEdge = ToolEdge(tool)
-
-    val storeSourcesNew = storeSources.filterNot {
-      case (store, edge) => stores(store) && edge == toolEdge
+    val storeProducersNew = storeProducers.filterNot {
+      case (store, producer) => stores(store) && producer == tool
     }
 
-    val storeSinksNew = storeSinks ++ stores.map(store => (store, storeSinks.getOrElse(store, Set.empty) + toolEdge))
+    val storeConsumersNew =
+      storeConsumers ++ stores.map(store => (store, storeConsumers.getOrElse(store, Set.empty) + tool))
 
     copy(
       toolInputs = toolInputsNew,
       toolOutputs = toolOutputsNew,
-      storeSources = storeSourcesNew,
-      storeSinks = storeSinksNew)
+      storeProducers = storeProducersNew,
+      storeConsumers = storeConsumersNew)
   }
 
   /** Adds output stores to tool
@@ -249,17 +234,16 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
 
     val toolOutputsNew = toolOutputs + (tool -> (outputsFor(tool) ++ stores))
 
-    val toolEdge = ToolEdge(tool)
+    val storeProducersNew = storeProducers ++ stores.map(store => store -> tool)
 
-    val storeSourcesNew = storeSources ++ stores.map(store => (store, toolEdge))
-
-    val storeSinksNew = storeSinks ++ stores.map(store => (store, storeSinks.getOrElse(store, Set.empty) - toolEdge))
+    val storeConsumersNew =
+      storeConsumers ++ stores.map(store => (store, storeConsumers.getOrElse(store, Set.empty) - tool))
 
     copy(
       toolInputs = toolInputsNew,
       toolOutputs = toolOutputsNew,
-      storeSources = storeSourcesNew,
-      storeSinks = storeSinksNew)
+      storeProducers = storeProducersNew,
+      storeConsumers = storeConsumersNew)
   }
 
 }

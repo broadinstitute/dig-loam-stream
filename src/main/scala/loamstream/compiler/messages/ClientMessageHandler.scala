@@ -50,7 +50,9 @@ object ClientMessageHandler {
 final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
   
   val repo = {
-    val exampleDir = Paths.get("src/main/loam/examples")
+    //TODO: NB: The will never do the expected thing, since src/examples/loam (and src/main/loam/examples before it) 
+    //won't exist where the LS jar/executable is deployed.
+    val exampleDir = Paths.get("src/examples/loam")
     
     LoamRepository.inMemory ++ LoamRepository.ofFolder(exampleDir)
   }
@@ -74,7 +76,7 @@ final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit e
 
   def list(): Unit = outMessageSink.send(ListResponseMessage(repo.list))
 
-  def save(name: String, content: String): Unit = repo.save(LoamScript(name, content)) match {
+  def save(name: String, content: String): Unit = repo.save(LoamScript(name, content, None)) match {
     case Hit(script) => outMessageSink.send(SaveResponseMessage(repo, script))
     case Miss(snag) => outMessageSink.send(ErrorOutMessage(s"Could not save $name: ${snag.message}"))
   }

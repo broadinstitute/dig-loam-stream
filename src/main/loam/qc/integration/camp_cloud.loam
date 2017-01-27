@@ -19,7 +19,7 @@ val kg_pca_scores       = out / "1KG.pca.scores.tsv"
 val kg_pca_loadings     = out / "1KG.pca.loadings.tsv"
 val kg_pca_loadings_log = out / "1KG.pca.loadings.log"
 
-val main_local          = path("/Users/kyuksel/hail/hail_pca_projection_example")
+val main_local          = path("/Users/kyuksel/hail/hail_pca_example")
 
 val data_local          = main_local / "data"
 val scripts_local       = main_local / "scripts"

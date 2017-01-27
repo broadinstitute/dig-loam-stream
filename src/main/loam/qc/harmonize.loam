@@ -1,0 +1,38 @@
+import binaries._
+import config._
+import store_helpers._
+
+/*
+  Input: Plink binary fileset ${DATA}.bed/bim/fam, $KG_VCF_BASE reference VCF file, $LABEL output file prefix
+  Output: out/${LABEL}.chr${CHROMOSOME}.bed/bim/fam, out/${LABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, data/${LABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
+*/
+
+val inputPrefixStep0 = DATA.toString
+
+val inputFiles = bedBimFam(inputPrefixStep0)
+
+val outputPrefixStep0 = s"out/${LABEL}.chr${CHROMOSOME}"
+
+val outputFilesStep0 = bedBimFam(outputPrefixStep0)
+
+val outputPrefixStep1 = s"out/${LABEL}.chr${CHROMOSOME}.harmonized"
+
+val outputFilesStep1 = bedBimFam(outputPrefixStep1)
+  
+cmd"""${plink} --bfile ${inputPrefixStep0} --chr ${CHROMOSOME} --keep-allele-order --make-bed 
+      --out ${outputPrefixStep0}""".in(inputFiles).out(outputFilesStep0)
+
+cmd"""${GENOTYPE_HARMONIZER}
+		--input ${outputPrefixStep0}
+		--inputType PLINK_BED
+		--output ${outputPrefixStep1}
+		--outputType PLINK_BED
+		--ref ${KG_VCF_BASE}
+		--refType VCF
+		--keep
+		--update-id
+		--variants 1000
+		--mafAlign 0.1
+		--update-id
+		--update-reference-allele
+		--debug""".in(outputFilesStep0).out(outputFilesStep1)

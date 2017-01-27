@@ -2,16 +2,16 @@ import camp_cloud._
 import binaries._
 import binaries_cloud._
 
-val m_base = store[TXT].from(base)
-val m_phenotypes = store[TXT].from(phenotypes)
-val m_interval_list = store[TXT].from(interval_list)
-val m_vds = store[TXT].to(vds)
-val m_pca_tsv = store[TXT].to(pca_tsv)
-val m_pca_tsv_local = store[TXT].to(pca_tsv_local)
-val m_plot_pcs_local = store[TXT].to(plot_pcs_local)
+val m_base = store[TXT].at(base).asInput
+val m_phenotypes = store[TXT].at(phenotypes).asInput
+val m_interval_list = store[TXT].at(interval_list).asInput
+val m_vds = store[TXT].at(vds)
+val m_pca_tsv = store[TXT].at(pca_tsv)
+val m_pca_tsv_local = store[TXT].at(pca_tsv_local)
+val m_plot_pcs_local = store[TXT].at(plot_pcs_local)
 
 //TODO: Make this configurable
-val m_cluster = "cg-test"
+val m_cluster = "ky-test-small"
 
 google {
   // Import input Plink files into Hail's VDS format

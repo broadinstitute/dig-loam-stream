@@ -1,6 +1,5 @@
 package loamstream.googlecloud
 
-import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Loggable
 import loamstream.util.PathUtils.normalize
 import scala.util.Try
@@ -39,12 +38,12 @@ final class CloudSdkDataProcClient private[googlecloud] (config: GoogleCloudConf
 
 object CloudSdkDataProcClient extends Loggable {
   def fromConfig(config: GoogleCloudConfig): Try[CloudSdkDataProcClient] = {
-    val gcloudBinary = config.gcloudBinaryPath.toFile
+    val gcloudBinary = config.gcloudBinary.toFile
     
     if(gcloudBinary.exists && gcloudBinary.canExecute) {
       Success(new CloudSdkDataProcClient(config))
     } else {
-      Tries.failure(s"gcloud executable not found at ${config.gcloudBinaryPath} or not executable")
+      Tries.failure(s"gcloud executable not found at ${config.gcloudBinary} or not executable")
     }
   }
   
@@ -81,7 +80,7 @@ object CloudSdkDataProcClient extends Loggable {
   }
   
   private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(args: String*): Seq[String] = {
-    val gcloud = normalize(config.gcloudBinaryPath)
+    val gcloud = normalize(config.gcloudBinary)
     
     gcloud +: "dataproc" +: "clusters" +: args
   }
@@ -92,8 +91,10 @@ object CloudSdkDataProcClient extends Loggable {
     debug(s"Running Google Cloud SDK command: '$commandStringApproximation'")
     
     import scala.sys.process._
-    
-    val processLogger = ProcessLogger(line => info(s"STDOUT: $line"), line => error(s"STDERR: $line"))
+
+    // STDERR messages aren't logged as 'error' because 'gcloud' appears to write a lot of non-error
+    // messages to STDERR
+    val processLogger = ProcessLogger(line => info(s"STDOUT: $line"), line => info(s"STDERR: $line"))
     
     val result = Process(tokens).!(processLogger)
     

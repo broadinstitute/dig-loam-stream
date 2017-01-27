@@ -11,8 +11,8 @@ val outLABEL = "CAMP"
 val inPHENO = store[TXT].at("/humgen/diabetes/users/ryank/data/camp/phenotype/AMP_T2DGENES_PhenotypeData_CAMP-MGH_8May2016.tsv").asInput
 
 /** Column names for sample ID and self reported race */
-val PHENO_ID=IID
-val PHENO_SR_RACE=RACE
+val PHENO_ID = "IID"
+val PHENO_SR_RACE = "RACE"
 
 /** Regions to exclude from QC (high LD / associated with T2D) */
 val inREGIONS_EXCLUDE = store[TXT].at("/humgen/diabetes/users/ryank/pipelines/QCpipeline/example/bash/files/regions.exclude").asInput

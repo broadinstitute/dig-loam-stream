@@ -7,3 +7,4 @@ val R = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/r_3.1.1-bioconduct
 val PLINK = path("/humgen/diabetes/users/ryank/software/plink1.9/plink")
 val KING = path("/humgen/diabetes/users/ryank/software/king")
 val TABIX = path("/humgen/diabetes/users/ryank/software/htslib-1.3/bin/tabix")
+val KLUSTAKWIK = path("/humgen/diabetes/users/ryank/software/klustakwik-0.3.0.rc3/KlustaKwik")

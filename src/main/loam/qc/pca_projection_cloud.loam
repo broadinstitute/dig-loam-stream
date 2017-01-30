@@ -2,22 +2,22 @@ import camp_cloud._
 import binaries._
 import binaries_cloud._
 
-val m_base                  = store[TXT].from(base)
-val m_phenotypes            = store[TXT].from(phenotypes)
-val m_sample                = store[TXT].from(sample)
-val m_kg_sample             = store[TXT].from(kg_sample)
-val m_interval_list         = store[TXT].from(interval_list)
-val m_pca_tsv               = store[TXT].to(pca_tsv)
-val m_pca_tsv_local         = store[TXT].to(pca_tsv_local)
-val m_pca_scores            = store[TXT].to(pca_scores)
-val m_pca_scores_local      = store[TXT].to(pca_scores_local)
+val m_base                  = store[TXT].at(base).asInput
+val m_phenotypes            = store[TXT].at(phenotypes).asInput
+val m_sample                = store[TXT].at(sample).asInput
+val m_kg_sample             = store[TXT].at(kg_sample).asInput
+val m_interval_list         = store[TXT].at(interval_list).asInput
+val m_pca_tsv               = store[TXT].at(pca_tsv)
+val m_pca_tsv_local         = store[TXT].at(pca_tsv_local)
+val m_pca_scores            = store[TXT].at(pca_scores)
+val m_pca_scores_local      = store[TXT].at(pca_scores_local)
 
-val m_vds                   = store[TXT].to(vds)
-val m_kg_vds                = store[TXT].to(kg_vds)
-val m_kg_allele_freq        = store[TXT].to(kg_allele_freq)
-val m_kg_pca_scores         = store[TXT].to(kg_pca_scores)
-val m_kg_pca_loadings       = store[TXT].to(kg_pca_loadings)
-val m_kg_pca_loadings_log   = store[TXT].to(kg_pca_loadings_log)
+val m_vds                   = store[TXT].at(vds)
+val m_kg_vds                = store[TXT].at(kg_vds)
+val m_kg_allele_freq        = store[TXT].at(kg_allele_freq)
+val m_kg_pca_scores         = store[TXT].at(kg_pca_scores)
+val m_kg_pca_loadings       = store[TXT].at(kg_pca_loadings)
+val m_kg_pca_loadings_log   = store[TXT].at(kg_pca_loadings_log)
 
 val m_cluster = "large"
 

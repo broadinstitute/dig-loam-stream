@@ -17,8 +17,11 @@ hail.log
 /src/target
 tmp/
 test-result
+uger.conf
+googlecloud.conf
 server.pid
 *.eml
+*.swp
 *~
 /dist/
 .cache

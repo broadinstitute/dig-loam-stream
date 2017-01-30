@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext
 
 /**
   * @author kaan
-  *         date: Sep 27, 2016
+  * Sep 27, 2016
   */
 final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickLoamDao with Loggable {
 
@@ -34,14 +34,14 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val fileOut2 = workDir.resolve("fileOut2.txt")
 
       /* Loam for the first run that mimics an incomplete pipeline run:
-          val fileIn = store[TXT].from("src/test/resources/a.txt")
-          val fileOut1 = store[TXT].to("$workDir/fileOut1.txt")
+          val fileIn = store[TXT].at("src/test/resources/a.txt").asInput
+          val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
           cmd"cp $$fileIn $$fileOut1
        */
       val firstScript =
-      s"""val fileIn = store[TXT].from(${SourceUtils.toStringLiteral(fileIn)})
-            val fileOut1 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut1)})
-            cmd"cp $$fileIn $$fileOut1""""
+      s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
+          val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
+          cmd"cp $$fileIn $$fileOut1""""
 
       val (executable, results) = compileAndRun(firstScript)
 
@@ -61,16 +61,16 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       assert(dao.findExecution(output2) === None)
 
       /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
-          val fileIn = store[TXT].from("src/test/resources/a.txt")
-          val fileOut1 = store[TXT].to("$workDir/fileOut1.txt")
-          val fileOut2 = store[TXT].to("$workDir/fileOut2.txt")
+          val fileIn = store[TXT].at("src/test/resources/a.txt").asInput
+          val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
+          val fileOut2 = store[TXT].at("$workDir/fileOut2.txt")
           cmd"cp $$fileIn $$fileOut1"
           cmd"cp $$fileOut1 $$fileOut2
        */
       val secondScript =
-      s"""val fileIn = store[TXT].from(${SourceUtils.toStringLiteral(fileIn)})
-            val fileOut1 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut1)})
-            val fileOut2 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut2)})
+      s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
+            val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
+            val fileOut2 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut2)})
             cmd"cp $$fileIn $$fileOut1"
             cmd"cp $$fileOut1 $$fileOut2""""
 
@@ -119,13 +119,13 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val bogusCommandName = "asdfasdf"
 
       /* Loam for a single invocation of a bogus command:
-          val fileIn = store[TXT].from("src/test/resources/a.txt")
-          val fileOut1 = store[TXT].to("$workDir/fileOut1.txt")
+          val fileIn = store[TXT].at("src/test/resources/a.txt").asInput
+          val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
           cmd"asdfasdf $$fileIn $$fileOut1"
        */
       val script = {
-        s"""val fileIn = store[TXT].from(${SourceUtils.toStringLiteral(fileIn)})
-            val fileOut1 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut1)})
+        s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
+            val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
             cmd"$bogusCommandName $$fileIn $$fileOut1""""
       }
 
@@ -181,16 +181,16 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val bogusCommandName = "asdfasdf"
 
       /* Loam for a run with two bogus jobs:
-          val fileIn = store[TXT].from("src/test/resources/a.txt")
-          val fileOut1 = store[TXT].to("$workDir/fileOut1.txt")
-          val fileOut2 = store[TXT].to("$workDir/fileOut2.txt")
+          val fileIn = store[TXT].at("src/test/resources/a.txt").asInput
+          val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
+          val fileOut2 = store[TXT].at("$workDir/fileOut2.txt")
           cmd"asdfasdf $$fileIn $$fileOut1"
           cmd"asdfasdf $$fileOut1 $$fileOut2"
        */
       val script =
-      s"""val fileIn = store[TXT].from(${SourceUtils.toStringLiteral(fileIn)})
-            val fileOut1 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut1)})
-            val fileOut2 = store[TXT].to(${SourceUtils.toStringLiteral(fileOut2)})
+      s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
+            val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
+            val fileOut2 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut2)})
             cmd"$bogusCommandName $$fileIn $$fileOut1"
             cmd"$bogusCommandName $$fileOut1 $$fileOut2""""
 

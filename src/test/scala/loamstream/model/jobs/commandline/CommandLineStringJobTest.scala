@@ -20,8 +20,8 @@ final class CommandLineStringJobTest extends FunSuite {
 
     val code =
       """
-      val input = store[TXT].from("src/test/resources/test-data-CommandLineStringJobTest")
-      val output = store[TXT].to("""" + outputPath +
+      val input = store[TXT].at("src/test/resources/test-data-CommandLineStringJobTest").asInput
+      val output = store[TXT].at("""" + outputPath +
         """")
 
       cmd"(head -1 $input ; sed '1d' $input | awk '{if($$8 >= 0.0884) print $$0}') > $output"

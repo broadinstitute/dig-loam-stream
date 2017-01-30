@@ -12,7 +12,7 @@ val inputBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(inputPrefix)
 val kinshipPrefix: String = s"${LABEL}.kinship"
 val kinshipFileBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(kinshipPrefix)
 
-val kinshipFilePruneIn: LoamStore[TXT] = store[TXT].to(s"${kinshipPrefix}.prune.in")
+val kinshipFilePruneIn: LoamStore[TXT] = store[TXT].at(s"${kinshipPrefix}.prune.in")
 
 val kinshipFilePrunedPrefix: String = s"${kinshipPrefix}.pruned"
 val kinshipFilePrunedBedBimFam = bedBimFam(kinshipFilePrunedPrefix)
@@ -26,7 +26,7 @@ val Seq(
   kinshipFilePrunedKingSharingCounts): Seq[LoamStore[TXT]] = {
   
   withExtensions("king.kin", "king.kin.related", "king.sharing_counts.txt") { extension =>
-    store[TXT].to(s"${kinshipFilePrunedPrefix}.${extension}")
+    store[TXT].at(s"${kinshipFilePrunedPrefix}.${extension}")
   }
 }
 

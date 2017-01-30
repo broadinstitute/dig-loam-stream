@@ -1,13 +1,16 @@
 import sbt.project
 
 lazy val Versions = new {
-  val App = "1.2-SNAPSHOT"
+  val App = "1.3-SNAPSHOT"
   val ApacheCommonsIO = "2.4"
   val DrmaaCommon = "1.0"
   val DrmaaGridEngine = "6.2u5"
+  val GoogleCloudStorage = "0.7.0"
+  val GoogleAuth = "0.6.0"
   val Htsjdk = "2.1.0"
   val LogBack = "1.1.6"
   val Scala = "2.11.8"
+  val Scalariform = "0.1.8"
   val ScalaMajor = "2.11"
   val ScalaTest = "3.0.0"
   val Scallop = "2.0.2"
@@ -15,13 +18,13 @@ lazy val Versions = new {
   val Slick = "3.1.1"
   val H2 = "1.4.192"
   val RxScala = "0.26.4"
-  val Scalariform = "0.1.8"
 }
 
 lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-library" % Versions.Scala,
   "org.scala-lang" % "scala-compiler" % Versions.Scala,
   "org.scala-lang" % "scala-reflect" % Versions.Scala,
+  "org.scalariform" %% "scalariform" % Versions.Scalariform,
   "com.github.samtools" % "htsjdk" % Versions.Htsjdk,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
   "us.levk" % "drmaa-common" % Versions.DrmaaCommon,
@@ -32,7 +35,8 @@ lazy val mainDeps = Seq(
   "com.typesafe.slick" %% "slick" % Versions.Slick,
   "com.h2database" % "h2" % Versions.H2,
   "org.rogach" %% "scallop" % Versions.Scallop,
-  "org.scalariform" %% "scalariform" % Versions.Scalariform
+  "com.google.cloud" % "google-cloud-storage" % Versions.GoogleCloudStorage,
+  "com.google.auth" % "google-auth-library-credentials" % Versions.GoogleAuth
 )
 
 lazy val testDeps = Seq(

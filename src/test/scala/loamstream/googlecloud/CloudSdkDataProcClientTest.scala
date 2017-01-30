@@ -1,7 +1,9 @@
 package loamstream.googlecloud
 
-import org.scalatest.FunSuite
 import java.nio.file.Paths
+
+import loamstream.util.PathUtils
+import org.scalatest.FunSuite
 
 /**
  * @author clint
@@ -10,9 +12,10 @@ import java.nio.file.Paths
 final class CloudSdkDataProcClientTest extends FunSuite {
   //scalastyle:off magic.number
   private val config = GoogleCloudConfig(
-      gcloudBinaryPath = Paths.get("/foo/bar/baz"), 
+      gcloudBinary = Paths.get("/foo/bar/baz"),
       projectId = "pid",
-      clusterId = "cid", 
+      clusterId = "cid",
+      credentialsFile = Paths.get("N/A"),
       numWorkers = 42,
       //non-default values
       zone = "z",
@@ -24,13 +27,15 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       scopes = "ses")
   
   private val client = new CloudSdkDataProcClient(config)
+
+  private val examplePath = PathUtils.newAbsolute("foo", "bar", "baz")
       
   test("gcloudTokens") {
     import CloudSdkDataProcClient.gcloudTokens
     
     val tokens = gcloudTokens(config)("foo", "--bar", "Baz")
     
-    assert(tokens === Seq("/foo/bar/baz", "dataproc", "clusters", "foo", "--bar", "Baz"))
+    assert(tokens === Seq(examplePath.toString, "dataproc", "clusters", "foo", "--bar", "Baz"))
   }
   
   test("isClusterRunningTokens") {
@@ -38,7 +43,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     
     val tokens = isClusterRunningTokens(config)
     
-    assert(tokens === Seq("/foo/bar/baz", "dataproc", "clusters", "describe", config.clusterId))
+    assert(tokens === Seq(examplePath.toString, "dataproc", "clusters", "describe", config.clusterId))
   }
   
   test("deleteClusterTokens") {
@@ -46,7 +51,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     
     val tokens = deleteClusterTokens(config)
     
-    assert(tokens === Seq("/foo/bar/baz", "dataproc", "clusters", "delete", config.clusterId))
+    assert(tokens === Seq(examplePath.toString, "dataproc", "clusters", "delete", config.clusterId))
   }
   
   test("startClusterTokens") {
@@ -55,29 +60,29 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     val tokens = startClusterTokens(config)
     
     val expected = Seq(
-        "/foo/bar/baz", 
-        "dataproc",
-        "clusters", 
-        "create", 
-        config.clusterId,
-        "--zone",
-        config.zone,
-        "--master-machine-type",
-        config.masterMachineType,
-        "--master-boot-disk-size",
-        config.masterBootDiskSize.toString,
-        "--num-workers",
-        config.numWorkers.toString,
-        "--worker-machine-type",
-        config.workerMachineType,
-        "--worker-boot-disk-size",
-        config.workerBootDiskSize.toString,
-        "--image-version",
-        config.imageVersion,
-        "--scopes",
-        config.scopes,
-        "--project",
-        config.projectId)
+      examplePath.toString,
+      "dataproc",
+      "clusters",
+      "create",
+      config.clusterId,
+      "--zone",
+      config.zone,
+      "--master-machine-type",
+      config.masterMachineType,
+      "--master-boot-disk-size",
+      config.masterBootDiskSize.toString,
+      "--num-workers",
+      config.numWorkers.toString,
+      "--worker-machine-type",
+      config.workerMachineType,
+      "--worker-boot-disk-size",
+      config.workerBootDiskSize.toString,
+      "--image-version",
+      config.imageVersion,
+      "--scopes",
+      config.scopes,
+      "--project",
+      config.projectId)
     
     assert(tokens === expected)
   }

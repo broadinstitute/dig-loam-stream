@@ -18,7 +18,7 @@ gg_color_hue <- function(n) {
 }
 color<-gg_color_hue(max(dat$CLUSTER))
 
-pdf(paste(outfile,".KG.cluster_plots.pdf",sep=""),width=7, height=7)
+pdf(args[7],width=7, height=7)
 for(i in grep("^PC",names(dat))) {
 	p<-ggplot(dat, aes(dat[,i],dat[,i+1])) +
 		geom_point(aes(color=factor(CLUSTER),shape=factor(SUPERPOP))) +
@@ -116,12 +116,12 @@ for(i in 1:nrow(centers_unknown)) {
 		}
 	}
 }
-sink(file=paste(outfile,".KG.cluster_xtabs",sep=""))
+sink(file=args[8])
 print(centers_unknown)
 sink()
 
 centers_unknown_included<-centers_unknown[! centers_unknown$cluster %in% c(clusters_exclude,1),]
-pdf(paste(outfile,".KG.cluster_plots.centers.pdf",sep=""),width=7, height=7)
+pdf(args[9],width=7, height=7)
 for(i in seq(1,2)) {
 	p<-ggplot(dat, aes(dat[,paste("PC",i,sep="")],dat[,paste("PC",i+1,sep="")])) +
 		geom_point(aes(color=factor(CLUSTER),shape=factor(SUPERPOP))) +
@@ -152,7 +152,7 @@ for(i in 1:nrow(centers_unknown)) {
 		}
 	}
 }
-write.table(a,paste(outfile,".KG.clusters_assigned",sep=""),row.names=F,col.names=F,sep="\t",append=F,quote=F)
+write.table(a,args[10],row.names=F,col.names=F,sep="\t",append=F,quote=F)
 
 dat$ASSIGNED<-"OUTLIERS"
 for(i in 1:nrow(a)) {
@@ -170,7 +170,7 @@ for(i in 1:nrow(a)) {
 #write.table(ids_all,paste(outfile,".CLUSTERED",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
 #write.table(paste(ids_out,ids_out),paste(outfile,".OUTLIERS.plink",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
 #write.table(ids_out,paste(outfile,".OUTLIERS",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-write.table(dat[which(dat$SUPERPOP == args[4]),c("IID","ASSIGNED")],paste(outfile,".ancestry",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
+write.table(dat[which(dat$SUPERPOP == args[4]),c("IID","ASSIGNED")],args[11],col.names=F,row.names=F,quote=F,append=F,sep="\t")
 
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length=n+1)
@@ -179,7 +179,7 @@ gg_color_hue <- function(n) {
 color<-gg_color_hue(max(dat$CLUSTER))
 
 dat<-dat[which(dat$SUPERPOP == args[4] & dat$ASSIGNED != "OUTLIERS"),]
-pdf(paste(outfile,".cluster_plots.pdf",sep=""),width=7, height=7)
+pdf(args[12],width=7, height=7)
 for(i in seq(1,9)) {
 	p<-ggplot(dat, aes(dat[,paste("PC",i,sep="")],dat[,paste("PC",i+1,sep="")])) +
 		geom_point(aes(color=factor(CLUSTER),shape=factor(ASSIGNED))) +

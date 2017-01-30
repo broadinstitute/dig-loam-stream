@@ -3,10 +3,13 @@
 ANCESTRY=NA
 CHROMOSOME=NA
 REPLACE=false
-while getopts "s:q:c:p:r" opt; do
+while getopts "s:q:c:p:r:l:" opt; do
 	case $opt in
 		s)
 			SOURCE=$OPTARG
+			;;
+		l)
+			LABEL=$OPTARG
 			;;
 		q)
 			QC_STEP=$OPTARG
@@ -29,11 +32,21 @@ while getopts "s:q:c:p:r" opt; do
 			exit 1
 			;;
 	esac
-done	
+done
+
+echo "SOURCE=${SOURCE}"
+echo "LABEL=${LABEL}"
+echo "QC_STEP=${QC_STEP}"
+echo "ANCESTRY=${ANCESTRY}"
+echo "REPLACE=${REPLACE}"
+echo "CHROMOSOME=${CHROMOSOME}"
+
 
 # Pipeline source file
 # Contains input file and external software/script definitions
 source $SOURCE
+
+DATA=${LABEL}
 
 echo ""
 echo "Performing QC Step ${QC_STEP} on ${DATA}"
@@ -42,7 +55,7 @@ echo "Performing QC Step ${QC_STEP} on ${DATA}"
 # Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
 # Commandline Requirements: -c
 # Directories Required: data
-# Input: Plink binary fileset ${DATA}.bed/bim/fam, $KG_VCF_BASE reference VCF file, $LABEL output file prefix
+# Input: Plink binary fileset ${DATA}.bed/bim/fam, $KG_VCF_BASE_* reference VCF file, $LABEL output file prefix
 # Output: data/${LABEL}.chr${CHROMOSOME}.bed/bim/fam, data/${LABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), data/${LABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, data/${LABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
 # Example: ./QCpipeline -s $SOURCE -q harmonize -c 22
 # Notes: 
@@ -51,7 +64,15 @@ echo "Performing QC Step ${QC_STEP} on ${DATA}"
 # Hail?: No
 if [ "$QC_STEP" == "harmonize" ]; then
 
-	$PLINK --bfile $DATA --chr $CHROMOSOME --keep-allele-order --make-bed --out data/${LABEL}.chr${CHROMOSOME}
+	if [[ "$CHROMOSOME" == "X" || "$CHROMOSOME" == "23" ]]; then
+		KG_VCF_BASE=$KG_VCF_BASE_X
+	elif [[ "$CHROMOSOME" == "Y" || "$CHROMOSOME" == "24" ]]; then
+		KG_VCF_BASE=$KG_VCF_BASE_Y
+	else
+		KG_VCF_BASE=$KG_VCF_BASE_AUTO
+	fi
+
+	$PLINK --bfile ${!DATA} --chr $CHROMOSOME --keep-allele-order --output-chr MT --make-bed --out data/${LABEL}.chr${CHROMOSOME}
 
 	$GENOTYPE_HARMONIZER \
 	--input data/${LABEL}.chr${CHROMOSOME} \
@@ -80,7 +101,7 @@ if [ "$QC_STEP" == "harmonize" ]; then
 elif [ "$QC_STEP" == "compile" ]; then
 
 	echo "data/${LABEL}.chr2.harmonized.bed data/${LABEL}.chr2.harmonized.bim data/${LABEL}.chr2.harmonized.fam" > data/${LABEL}.harmonized.merge.txt
-	for i in {3..22}; do echo "data/${LABEL}.chr${i}.harmonized.bed data/${LABEL}.chr${i}.harmonized.bim data/${LABEL}.chr${i}.harmonized.fam" >> data/${LABEL}.harmonized.merge.txt; done
+	for i in {3..22} X Y; do if [ -f data/${LABEL}.chr${i}.harmonized.bim ]; then echo "data/${LABEL}.chr${i}.harmonized.bed data/${LABEL}.chr${i}.harmonized.bim data/${LABEL}.chr${i}.harmonized.fam" >> data/${LABEL}.harmonized.merge.txt; fi; done
 	$PLINK --bfile data/${LABEL}.chr1.harmonized --merge-list data/${LABEL}.harmonized.merge.txt --make-bed --keep-allele-order --out data/${LABEL}.harmonized
 	awk '{print $2,$5}' data/${LABEL}.harmonized.bim > data/${LABEL}.harmonized.force_a2
 	$PLINK --bfile data/${LABEL}.harmonized --recode vcf-iid bgz --real-ref-alleles --a2-allele data/${LABEL}.harmonized.force_a2 --out data/${LABEL}.harmonized.ref
@@ -132,7 +153,7 @@ elif [ "$QC_STEP" == "filter" ]; then # data preparations
 	variantqc \
 	exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*" \
 	-o data/${LABEL}.variantqc.tsv \
-	filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep \
+	filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep \
 	filtervariants intervals -i $REGIONS_EXCLUDE --remove \
 	write \
 	-o data/${LABEL}.for_qc.vds \
@@ -185,7 +206,7 @@ elif [ "$QC_STEP" == "ancestry_pca" ]; then
 	$HAIL -l ancestry/${LABEL}.KG.pca.scores.log \
 	read $KG_HAIL \
 	put -n KG \
-	read -i data/${LABEL}.harmonized.ref.vds \
+	read -i data/${LABEL}.for_qc.vds \
 	join --right KG \
 	annotatevariants table $KG_V3_5K_AF \
 	-e Variant \
@@ -218,7 +239,9 @@ elif [ "$QC_STEP" == "ancestry_cluster" ]; then
 	echo 10 > ancestry/${LABEL}.KG.fet.1
 	sed '1d' ancestry/${LABEL}.KG.pca.samples.scores.tsv | cut -f5- | sed 's/\t/ /g' >> ancestry/${LABEL}.KG.fet.1
 	$KLUSTAKWIK ancestry/$LABEL.KG 1 -UseFeatures 1110000000 -UseDistributional 0
-	$R --vanilla --args ancestry/CAMP.KG.pca.samples.scores.tsv ancestry/CAMP.KG.clu.1 $PHENO $LABEL $PHENO_ID_COL $PHENO_RACE_COL < $PLOT_ANCESTRY_CLUSTER_R
+	$R --vanilla --args ancestry/CAMP.KG.pca.samples.scores.tsv ancestry/CAMP.KG.clu.1 $PHENO $LABEL $PHENO_ID_COL $PHENO_RACE_COL \
+		ancestry/${LABEL}.KG.cluster_plots.pdf ancestry/${LABEL}.KG.cluster_xtabs ancestry/${LABEL}.KG.cluster_plots.centers.pdf \
+		ancestry/${LABEL}.KG.clusters_assigned ancestry/${LABEL}.ancestry ancestry/${LABEL}.cluster_plots.pdf < $PLOT_ANCESTRY_CLUSTER_R
 
 ## (REMOVED) This step will be done manually for the time being
 ## elif [ "$QC_STEP" == "ancestry_cluster_merge" ]; then # merge ancestry information hierarchically
@@ -257,104 +280,126 @@ elif [ "$QC_STEP" == "ancestry_cluster_pca" ]; then
 	exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10' \
 	-o ancestry/${LABEL}.CLUSTERED.pca.samples.scores.tsv \
 	exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10' \
-	-o ancestry/${LABEL}.CLUSTERED.pca.variants.loadings.tsv \
+	-o ancestry/${LABEL}.CLUSTERED.pca.variants.loadings.tsv
 
+#elif [ "$QC_STEP" == "plinkseq" ]; then # prepare Plink/Seq project
+#	reuse PSEQ
+#	reuse Tabix
+#
+#	# run Plink/Seq i-stats
+#	cd data
+#	if [ ! -f ../data/${LABEL}.qc.bi.chr1-22.bed ]; then
+#		$PLINK --bfile ${LABEL}.qc.bi --chr 1-22 --make-bed --out ${LABEL}.qc.bi.chr1-22
+#	fi
+#	if [ ! -f ../data/${LABEL}.qc.bi.chr1-22.vcf.gz ]; then
+#		$PLINK --bfile ${LABEL}.qc.bi.chr1-22 --recode vcf-iid bgz --out ${LABEL}.qc.bi.chr1-22.temp
+#		tabix -p vcf ${LABEL}.qc.bi.chr1-22.temp.vcf.gz
+#		tabix -H ${LABEL}.qc.bi.chr1-22.temp.vcf.gz > ${LABEL}.qc.bi.chr1-22.temp.header
+#		sed -i 's/VCFv4\.2/VCFv4\.0/g' ${LABEL}.qc.bi.chr1-22.temp.header
+#		tabix -r ${LABEL}.qc.bi.chr1-22.temp.header ${LABEL}.qc.bi.chr1-22.temp.vcf.gz > ${LABEL}.qc.bi.chr1-22.vcf.gz
+#		tabix -p vcf ${LABEL}.qc.bi.chr1-22.vcf.gz
+#		rm ${LABEL}.qc.bi.chr1-22.temp*
+#	fi
+#	cd ../istats
+#	if [ ! -f ${LABEL}.pseq ]; then
+#		pseq ${LABEL} new-project
+#		pseq ${LABEL} index-vcf --vcf ../data/${LABEL}.qc.bi.chr1-22.vcf.gz --id ${LABEL}
+#	fi
+#	cd ..
+#
+#elif [ "$QC_STEP" == "sexcheck" ]; then # calculate sample stats for each 1kg population and all together
+#	cd istats
+#	$PLINK --bfile ../data/${LABEL}.base --check-sex --out ${LABEL}.sexcheck
+#	sed '1d' ${LABEL}.sexcheck.sexcheck | awk '{if($5 == "PROBLEM") print $2}' > ../samples_flagged/${LABEL}.failed_sexcheck.remove
+#	cd ..
+#
+#elif [ "$QC_STEP" == "istats" ]; then # calculate sample stats for each 1kg population and all together
+#	reuse R-3.1
+#	reuse PSEQ
+#
+#	cd istats
+#	if [ ! -s ${LABEL}.istats ]; then
+#		pseq ${LABEL} i-stats > ${LABEL}.istats
+#	fi
+#    
+#	$PLINK --bfile ../data/${LABEL}.qc.bi.chr1-22 --het --out ${LABEL}.het
+#	$PLINK --bfile ../data/${LABEL}.qc.bi.chr1-22 --het --maf 0.03 --out ${LABEL}.het.high
+#	$PLINK --bfile ../data/${LABEL}.qc.bi.chr1-22 --het --max-maf 0.03 --out ${LABEL}.het.low
+#    
+#	# compile all sample stats into single file
+#	$R --vanilla --args ${LABEL}.istats ${LABEL}.het.het ${LABEL}.het.high.het ${LABEL}.het.low.het ${LABEL}.istats.all < $ISTATS_COMPILE_R
+#
+#	# calculate PC adjusted istats
+#	$R --vanilla --args ${LABEL}.istats.all ../ancestry_pca_clustered/${LABEL}_1kg.ref.CLUSTERED.pca.evec ${LABEL}.CLUSTERED.istats.all.adj < $CALC_ISTATS_ADJ_R
+#    
+#	# calculate PCs for PC adjusted istats metrics
+#	$R --vanilla --args ${LABEL}.CLUSTERED.istats.all.adj ${LABEL}.CLUSTERED.istats.all.adj.corr.pdf ${LABEL}.CLUSTERED.istats.all.adj.pca.loadings ${LABEL}.CLUSTERED.istats.all.adj.pcs.pdf ${LABEL}.CLUSTERED.istats.all.adj.pcs < $ISTATS_ADJ_PCA_R
+#	cd ..
 
-	
-	
-	
+# Description: Calculate sexcheck and sample by variant statistics for all samples
+# Requires: $HAIL
+# Commandline Requirements: 
+# Directories Required: data, istats
+# Input: 
+# Output: 
+# Example: ./QCpipeline -s $SOURCE -q sample_stats
+# Notes: 
+# Hail?: Yes
+elif [ "$QC_STEP" == "sample_qc" ]; then
 
-elif [ "$QC_STEP" == "plinkseq" ]; then # prepare Plink/Seq project
-	reuse PSEQ
-	reuse Tabix
+	$HAIL -l istats/${LABEL}.sampleqc.log \
+	read data/${LABEL}.for_qc.vds \
+	annotatesamples table \
+	-i ancestry/${LABEL}.ancestry \
+	--no-header \
+	-e _0 \
+	--code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1" \
+	filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep \
+	imputesex \
+	annotatesamples expr -c 'sa.sexcheck = if((sa.pheno.SEX == "female" && ! isMissing(sa.imputesex.isFemale) && sa.imputesex.isFemale) || (sa.pheno.SEX == "male" && ! isMissing(sa.imputesex.isFemale) && ! sa.imputesex.isFemale)) "OK" else "PROBLEM"' \
+	sampleqc \
+	variantqc \
+	annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()" \
+	exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck" \
+	-o istats/${LABEL}.sampleqc.sexcheck.tsv \
+	exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar" \
+	-o istats/${LABEL}.sampleqc.stats.tsv \
+	filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep \
+	exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck" \
+	-o istats/${LABEL}.sampleqc.sexcheck.problems.tsv \
 
-	# run Plink/Seq i-stats
-	cd data
-	if [ ! -f ../data/${LABEL}.qc.bi.chr1-22.bed ]; then
-		$PLINK --bfile ${LABEL}.qc.bi --chr 1-22 --make-bed --out ${LABEL}.qc.bi.chr1-22
-	fi
-	if [ ! -f ../data/${LABEL}.qc.bi.chr1-22.vcf.gz ]; then
-		$PLINK --bfile ${LABEL}.qc.bi.chr1-22 --recode vcf-iid bgz --out ${LABEL}.qc.bi.chr1-22.temp
-		tabix -p vcf ${LABEL}.qc.bi.chr1-22.temp.vcf.gz
-		tabix -H ${LABEL}.qc.bi.chr1-22.temp.vcf.gz > ${LABEL}.qc.bi.chr1-22.temp.header
-		sed -i 's/VCFv4\.2/VCFv4\.0/g' ${LABEL}.qc.bi.chr1-22.temp.header
-		tabix -r ${LABEL}.qc.bi.chr1-22.temp.header ${LABEL}.qc.bi.chr1-22.temp.vcf.gz > ${LABEL}.qc.bi.chr1-22.vcf.gz
-		tabix -p vcf ${LABEL}.qc.bi.chr1-22.vcf.gz
-		rm ${LABEL}.qc.bi.chr1-22.temp*
-	fi
-	cd ../istats
-	if [ ! -f ${LABEL}.pseq ]; then
-		pseq ${LABEL} new-project
-		pseq ${LABEL} index-vcf --vcf ../data/${LABEL}.qc.bi.chr1-22.vcf.gz --id ${LABEL}
-	fi
-	cd ..
-	
-elif [ "$QC_STEP" == "sexcheck" ]; then # calculate sample stats for each 1kg population and all together
-	cd istats
-	$PLINK --bfile ../data/${LABEL}.base --check-sex --out ${LABEL}.sexcheck
-	sed '1d' ${LABEL}.sexcheck.sexcheck | awk '{if($5 == "PROBLEM") print $2}' > ../samples_flagged/${LABEL}.failed_sexcheck.remove
-	cd ..
-
-elif [ "$QC_STEP" == "istats" ]; then # calculate sample stats for each 1kg population and all together
-	reuse R-3.1
-	reuse PSEQ
-
-	cd istats
-	if [ ! -s ${LABEL}.istats ]; then
-		pseq ${LABEL} i-stats > ${LABEL}.istats
-	fi
-    
-	$PLINK --bfile ../data/${LABEL}.qc.bi.chr1-22 --het --out ${LABEL}.het
-	$PLINK --bfile ../data/${LABEL}.qc.bi.chr1-22 --het --maf 0.03 --out ${LABEL}.het.high
-	$PLINK --bfile ../data/${LABEL}.qc.bi.chr1-22 --het --max-maf 0.03 --out ${LABEL}.het.low
-    
-	# compile all sample stats into single file
-	$R --vanilla --args ${LABEL}.istats ${LABEL}.het.het ${LABEL}.het.high.het ${LABEL}.het.low.het ${LABEL}.istats.all < $ISTATS_COMPILE_R
-
-	# calculate PC adjusted istats
-	$R --vanilla --args ${LABEL}.istats.all ../ancestry_pca_clustered/${LABEL}_1kg.ref.CLUSTERED.pca.evec ${LABEL}.CLUSTERED.istats.all.adj < $CALC_ISTATS_ADJ_R
+	$R --vanilla --args istats/${LABEL}.sampleqc.stats.tsv ancestry/${LABEL}.CLUSTERED.pca.samples.scores.tsv istats/${LABEL}.sampleqc.stats.adj.tsv < $CALC_ISTATS_ADJ_R
     
 	# calculate PCs for PC adjusted istats metrics
-	$R --vanilla --args ${LABEL}.CLUSTERED.istats.all.adj ${LABEL}.CLUSTERED.istats.all.adj.corr.pdf ${LABEL}.CLUSTERED.istats.all.adj.pca.loadings ${LABEL}.CLUSTERED.istats.all.adj.pcs.pdf ${LABEL}.CLUSTERED.istats.all.adj.pcs < $ISTATS_ADJ_PCA_R
-	cd ..
+	$R --vanilla --args istats/${LABEL}.sampleqc.stats.adj.tsv istats/${LABEL}.sampleqc.stats.adj.corr.pdf istats/${LABEL}.sampleqc.stats.adj.pca.loadings istats/${LABEL}.sampleqc.stats.adj.pcs.pdf istats/${LABEL}.sampleqc.stats.adj.pcs < $ISTATS_ADJ_PCA_R
 
 elif [ "$QC_STEP" == "istats_cluster_pca" ]; then # cluster PCs of adjusted istats metrics
 	reuse R-3.1
 
-	cd istats_cluster_pca
-	cp ../istats/${LABEL}.CLUSTERED.istats.all.adj.pcs .
-	cp ../istats/${LABEL}.CLUSTERED.istats.all.adj .
-
 	# run klustakwik
-	n=`head -1 ${LABEL}.CLUSTERED.istats.all.adj.pcs | wc | awk '{print $2-1}'`
-	echo $n > ${LABEL}.CLUSTERED.istats.all.adj.fet.1
-	sed '1d' ${LABEL}.CLUSTERED.istats.all.adj.pcs | cut -f2- | sed 's/\t/ /g' >> ${LABEL}.CLUSTERED.istats.all.adj.fet.1
+	n=`head -1 istats/${LABEL}.sampleqc.stats.adj.pcs | wc | awk '{print $2-1}'`
+	echo $n > istats/${LABEL}.sampleqc.stats.adj.fet.1
+	sed '1d' istats/${LABEL}.sampleqc.stats.adj.pcs | cut -f2- | sed 's/\t/ /g' >> istats/${LABEL}.sampleqc.stats.adj.fet.1
 	features=1
 	for i in `seq 2 $n`; do
 		features=${features}1
 	done
 	echo -e "${LABEL}\t${features}"
-	$KLUSTAKWIK ${LABEL}.CLUSTERED.istats.all.adj 1 -UseFeatures $features -UseDistributional 0
+	$KLUSTAKWIK istats/${LABEL}.sampleqc.stats.adj 1 -UseFeatures $features -UseDistributional 0
 
-	$R --vanilla --args ${LABEL}.CLUSTERED.istats.all.adj.pcs ${LABEL}.CLUSTERED.istats.all.adj.clu.1 ${LABEL}.CLUSTERED.istats.all.adj.pcs.outliers ${LABEL}.CLUSTERED.istats.all.adj.pcs.clusters.pdf ${LABEL}.CLUSTERED.istats.all.adj.pcs.clusters_xtab $LABEL < $ISTATS_PCS_GMM_CLUSTER_PLOT_R
+	$R --vanilla --args istats/${LABEL}.sampleqc.stats.adj.pcs istats/${LABEL}.sampleqc.stats.adj.clu.1 istats/${LABEL}.sampleqc.stats.adj.pcs.outliers istats/${LABEL}.sampleqc.stats.adj.pcs.clusters.pdf istats/${LABEL}.sampleqc.stats.adj.pcs.clusters_xtab $LABEL < $ISTATS_PCS_GMM_CLUSTER_PLOT_R
 
-	$R --vanilla --args ${LABEL}.CLUSTERED.istats.all.adj ${LABEL}.CLUSTERED.istats.all.adj.pcs.outliers ${LABEL}.CLUSTERED.istats.all.adj.stripchart.pdf < $ISTATS_PCS_GMM_PLOT_METRICS_R
-	cd ..
+	$R --vanilla --args istats/${LABEL}.sampleqc.stats.adj.tsv istats/${LABEL}.sampleqc.stats.adj.pcs.outliers istats/${LABEL}.sampleqc.stats.adj.stripchart.pdf < $ISTATS_PCS_GMM_PLOT_METRICS_R
 
 elif [ "$QC_STEP" == "istats_cluster_individual" ]; then # cluster adjusted istats metrics and list all outliers
 	reuse R-3.1
 
-	cd istats_cluster_individual
-
-	cp ../istats/${LABEL}.CLUSTERED.istats.all.adj.pcs .
-	cp ../istats/${LABEL}.CLUSTERED.istats.all.adj .
-    
 	# run klustakwik
-	n=`head -1 ${LABEL}.CLUSTERED.istats.all.adj | wc | awk '{print $2-1}'`
+	n=`head -1 istats/${LABEL}.sampleqc.stats.adj.tsv | wc | awk '{print $2-1}'`
 	for feature in `seq 2 $((n+1))`; do
-		id=`head -1 ${LABEL}.CLUSTERED.istats.all.adj | awk -v c=$feature '{print $c}'`
-		echo $n > ${LABEL}.CLUSTERED.${id}.istats.all.adj.fet.1
-		sed '1d' ${LABEL}.CLUSTERED.istats.all.adj | cut -f2- | sed 's/\t/ /g' >> ${LABEL}.CLUSTERED.${id}.istats.all.adj.fet.1
+		id=`head -1 istats/${LABEL}.sampleqc.stats.adj.tsv | awk -v c=$feature '{print $c}'`
+		echo $n > istats/${LABEL}.sampleqc.stats.adj.${id}.fet.1
+		sed '1d' istats/${LABEL}.sampleqc.stats.adj.tsv | cut -f2- | sed 's/\t/ /g' >> istats/${LABEL}.sampleqc.stats.adj.${id}.fet.1
 		include=''
 		for i in `seq 2 $((n+1))`; do
 			if [ $feature -eq $i ]; then
@@ -366,11 +411,25 @@ elif [ "$QC_STEP" == "istats_cluster_individual" ]; then # cluster adjusted ista
 		echo -e "${LABEL}\t${include}"
 		#R --vanilla --args ../istats/${LABEL}.CLUSTERED.istats.all.adj $id ../ancestry_cluster/ancestry.table ${LABEL}.CLUSTERED.${id}.istats.all.adj.bins < $BIN_METRIC_R
 		#$KLUSTAKWIK ${LABEL}.CLUSTERED.${id}.istats.all.adj 1 -UseFeatures $include -UseDistributional 0 -StartCluFile ${LABEL}.CLUSTERED.${id}.istats.all.adj.bins > ${LABEL}.CLUSTERED.${id}.istats.all.adj.fet.1.klustakwik.log
-		$KLUSTAKWIK ${LABEL}.CLUSTERED.${id}.istats.all.adj 1 -UseFeatures $include -UseDistributional 0 > ${LABEL}.CLUSTERED.${id}.istats.all.adj.fet.1.klustakwik.log
+		$KLUSTAKWIK istats/${LABEL}.sampleqc.stats.adj.${id} 1 -UseFeatures $include -UseDistributional 0 > istats/${LABEL}.sampleqc.stats.adj.${id}.fet.1.klustakwik.log
 	done
     
-	$R --vanilla --args ${LABEL} < $ISTATS_ADJ_GMM_PLOT_METRICS_R
-	cd ..
+	$R --vanilla --args \
+		"istats/${LABEL}.sampleqc.stats.adj.*.clu.1" \
+		istats/${LABEL}.sampleqc.stats.tsv \
+		istats/${LABEL}.sampleqc.stats.adj.tsv \
+		istats/${LABEL}.sampleqc.stats.adj.pcs.outliers \
+		istats/${LABEL}.sampleqc.stats.adj.individual.boxplot.pdf \
+		istats/${LABEL}.sampleqc.stats.adj.individual.discreteness \
+		istats/${LABEL}.sampleqc.stats.adj.individual.outliers.table \
+		samples_flagged/${LABEL}.sampleqc.stats.outliers.remove \
+		istats/${LABEL}.sampleqc.stats.adj.individual.stripchart.pdf \
+		ancestry/${LABEL}.ancestry \
+		< $ISTATS_ADJ_GMM_PLOT_METRICS_R
+
+
+
+
 
 elif [ "$QC_STEP" == "make_master_remove_lists" ]; then
 	cd samples_flagged

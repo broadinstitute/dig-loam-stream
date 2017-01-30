@@ -1,0 +1,31 @@
+/** Input VCF file */
+val inVCF = store[VCF].at("/humgen/diabetes/users/ryank/pipelines/QCpipeline/example/bash/data/CAMP.vcf.gz").asInput
+
+/** Output directory path */
+val outDIR = path("qc")
+
+/** Label for output prefix */
+val outLABEL = "CAMP"
+
+/** Phenotype file */
+val inPHENO = store[TXT].at("/humgen/diabetes/users/ryank/data/camp/phenotype/AMP_T2DGENES_PhenotypeData_CAMP-MGH_8May2016.tsv").asInput
+
+/** Column names for sample ID and self reported race */
+val PHENO_ID = "IID"
+val PHENO_SR_RACE = "RACE"
+
+/** Regions to exclude from QC (high LD / associated with T2D) */
+val inREGIONS_EXCLUDE = store[TXT].at("/humgen/diabetes/users/ryank/pipelines/QCpipeline/example/bash/files/regions.exclude").asInput
+
+/** 1KG PCA input */
+val inKG_V3_5K_AF = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/allele_frequencies.tsv").asInput
+val inKG_V3_5K_PCA_SCORES = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/pca.scores.tsv").asInput
+val inKG_V3_5K_PCA_LOADINGS = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/pca.loadings.tsv").asInput
+
+/** Hail VDS input */
+val inKG_HAIL = path("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vds")
+
+/** 1KG VCF base name (excluding .vcf.gz)
+ *  [CHROMOSOME] is later replaced by the chromosome number
+ */
+val KG_VCF_BASE = "/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf/ALL.chr[CHROMOSOME].phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes"

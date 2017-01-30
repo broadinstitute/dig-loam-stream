@@ -1,0 +1,17 @@
+import loamstream.model.Store
+import loamstream.loam.LoamStore
+
+def outputStoreName(name: String)(extension: String): String = s"${name}.${extension}"
+def outputStore(name: String): String => LoamStore[TXT] = extension => store[TXT].at(outputStoreName(name)(extension))
+
+def withExtensions(extensions: String*)(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = {
+  extensions.map(ex => makeStore(ex))
+}
+
+def bedBimFam(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions("bed", "bim", "fam")(makeStore)
+def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => store[TXT].at(s"${prefix}.${extension}"))
+def bedBimFam(prefix: Path): Seq[LoamStore[TXT]] = bedBimFam(prefix.toString)
+
+def klustakwikOutput(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions("fet.1", "temp.clu.1", "clu.1", "klg.1")(makeStore)
+def klustakwikOutput(prefix: String): Seq[LoamStore[TXT]] = klustakwikOutput(extension => store[TXT].at(s"${prefix}.${extension}"))
+def klustakwikOutput(prefix: Path): Seq[LoamStore[TXT]] = klustakwikOutput(prefix.toString)

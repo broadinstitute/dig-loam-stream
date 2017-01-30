@@ -173,8 +173,8 @@ object LocalImplicits {
   // scalastyle:on line.size.limit
 }
 import LocalImplicits.{scriptContext => scriptContextImplicit, projectContext => projectContextImplicit }
-def scriptContext: LoamScriptContext = LocalImplicits.scriptContext
-def projectContext: LoamProjectContext = LocalImplicits.projectContext
+override def scriptContext: LoamScriptContext = LocalImplicits.scriptContext
+override def projectContext: LoamProjectContext = LocalImplicits.projectContext
 
 //  = = =  Loam code below here  = = =
 

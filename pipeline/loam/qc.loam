@@ -33,20 +33,21 @@ val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
 val SAMPLE_FILE = store[TXT].at(outDIR / s"${outLABEL}.harmonized.sample")
 
 for(i <- 1 to 22) {
+
 	PLINK_CHRS :+ bedBimFam(outDIR / s"${outLABEL}.chr${i}")
 	PLINK_CHRS_HARMONIZED :+ bedBimFam(outDIR / s"${outLABEL}.chr${i}.harmonized")
 	KG_VCFS :+ store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
 	IDUPDATES :+ store[TXT].at(outDIR / s"${outLABEL}.chr${i}.harmonized_idUpdates.txt")
 	SNPLOGS :+ store[TXT].at(outDIR / s"${outLABEL}.chr${i}.harmonized_snpLog.log")
 
-	cmd"""$PLINK --bfile $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS(i-1)""".in(inVCF).out(PLINK_CHRS(i-1))
+	cmd"""$PLINK --bfile $inVCF --chr $i --keep-allele-order --make-bed --out ${PLINK_CHRS(i-1)}""".in(inVCF).out(PLINK_CHRS(i-1))
 
 	cmd"""$GENOTYPE_HARMONIZER 
-		--input PLINK_CHRS(i-1)
+		--input ${PLINK_CHRS(i-1)}
 		--inputType PLINK_BED
-		--output PLINK_CHRS_HARMONIZED(i-1)
+		--output ${PLINK_CHRS_HARMONIZED(i-1)}
 		--outputType PLINK_BED
-		--ref KG_VCFS(i-1)
+		--ref ${KG_VCFS(i-1)}
 		--refType VCF
 		--keep
 		--update-id
@@ -54,25 +55,26 @@ for(i <- 1 to 22) {
 		--mafAlign 0.1
 		--update-id
 		--update-reference-allele
-		--debug""".in(PLINK_CHRS(i-1),KG_VCFS(i-1)).out(PLINK_CHRS_HARMONIZED(i-1),IDUPDATES(i-1),SNPLOGS(i-1))
+		--debug""".in(PLINK_CHRS(i-1) :+ KG_VCFS(i-1)).out(PLINK_CHRS_HARMONIZED(i-1) :+ IDUPDATES(i-1) :+ SNPLOGS(i-1))
 }
 
 cmd"""echo "${PLINK_CHRS_HARMONIZED(1)}.bed ${PLINK_CHRS_HARMONIZED(1)}.bim ${PLINK_CHRS_HARMONIZED(1)}.fam" > $MERGE_LIST""".out(MERGE_LIST) 
-for(i <- 3 until 22) {
+
+for(i <- 3 to 22) {
 	cmd"""echo "${PLINK_CHRS_HARMONIZED(i-1)}.bed ${PLINK_CHRS_HARMONIZED(i-1)}.bim ${PLINK_CHRS_HARMONIZED(i-1)}.fam" >> $MERGE_LIST""".in(MERGE_LIST).out(MERGE_LIST)
 }
 
-cmd"""$PLINK --bfile $PLINK_CHRS_HARMONIZED(0) --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED""".in(PLINK_CHRS_HARMONIZED, MERGE_LIST).out(PLINK_HARMONIZED)
+cmd"""$PLINK --bfile $PLINK_CHRS_HARMONIZED(0) --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
 
 cmd"""awk '{print $$2,$$5}' ${PLINK_HARMONIZED}.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
 
-cmd"""$PLINK --bfile $PLINK_HARMONIZED --recode vcf-iid bgz --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED, FORCE_A2).out(VCF)
+cmd"""$PLINK --bfile $PLINK_HARMONIZED --recode vcf-iid bgz --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
 
 cmd"""$TABIX -p vcf $VCF""".in(VCF)
 
 cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)
 
-cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED, SAMPLE_FILE).out(SAMPLE_FILE)
+cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
 
 
 
@@ -172,7 +174,7 @@ cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sor
 
 cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(KIN0_RELATED, CALC_KINSHIP_SAMPLE_SHARING_R).out(SHARING_COUNTS)
 
-
+/*
 
 // CHUNK 2
 
@@ -416,3 +418,5 @@ cmd"""$R --vanilla --args
 	$SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
 	$ANCESTRY
 	< $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT, SAMPLEQC_STATS_TSV, SAMPLEQC_STATS_ADJ_TSV, ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
+
+*/

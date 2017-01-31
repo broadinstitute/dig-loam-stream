@@ -22,23 +22,23 @@ import scala.io.Source
 val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
 val PLINK_CHRS_LOGS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
 val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
-val PLINK_HARMONIZED = bedBimFam(outDIR / s"${outLABEL}.harmonized")
-val VCF_BASE = outDIR / s"${outLABEL}.harmonized.ref"
-val VCF = store[VCF].at(outDIR / s"${outLABEL}.harmonized.ref.vcf.gz")
+val PLINK_HARMONIZED = bedBimFam(outDIR / s"$outLABEL.harmonized")
+val VCF_BASE = outDIR / s"$outLABEL.harmonized.ref"
+val VCF = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vcf.gz")
 val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(22)
 val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(22)
 val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(22)
 val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
 val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
-val SAMPLE_FILE = store[TXT].at(outDIR / s"${outLABEL}.harmonized.sample")
+val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
 
 for(i <- 1 to 22) {
 
-	PLINK_CHRS :+ bedBimFam(outDIR / s"${outLABEL}.chr${i}")
-	PLINK_CHRS_HARMONIZED :+ bedBimFam(outDIR / s"${outLABEL}.chr${i}.harmonized")
+	PLINK_CHRS :+ bedBimFam(outDIR / s"$outLABEL.chr$i")
+	PLINK_CHRS_HARMONIZED :+ bedBimFam(outDIR / s"$outLABEL.chr$i.harmonized")
 	KG_VCFS :+ store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
-	IDUPDATES :+ store[TXT].at(outDIR / s"${outLABEL}.chr${i}.harmonized_idUpdates.txt")
-	SNPLOGS :+ store[TXT].at(outDIR / s"${outLABEL}.chr${i}.harmonized_snpLog.log")
+	IDUPDATES :+ store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
+	SNPLOGS :+ store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
 
 	cmd"""$PLINK --bfile $inVCF --chr $i --keep-allele-order --make-bed --out ${PLINK_CHRS(i-1)}""".in(inVCF).out(PLINK_CHRS(i-1))
 
@@ -66,7 +66,7 @@ for(i <- 3 to 22) {
 
 cmd"""$PLINK --bfile $PLINK_CHRS_HARMONIZED(0) --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
 
-cmd"""awk '{print $$2,$$5}' ${PLINK_HARMONIZED}.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
+cmd"""awk '{print $$2,$$5}' $PLINK_HARMONIZED.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
 
 cmd"""$PLINK --bfile $PLINK_HARMONIZED --recode vcf-iid bgz --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
 
@@ -87,8 +87,8 @@ cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { s
  *     Monomorphic variants are automatically removed during import into Hail
  */
 
-val VDS = store[VCF].at(outDIR / s"${outLABEL}.harmonized.ref.vds")
-val LOAD_LOG = store[TXT].at(outDIR / s"${outLABEL}.harmonized.ref.vds.log")
+val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
+val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
 
 cmd"""$HAIL -l $LOAD_LOG
 	importvcf --force-bgz $VCF
@@ -106,7 +106,7 @@ cmd"""$HAIL -l $LOAD_LOG
 	count
 	-g""".in(VCF,SAMPLE_FILE).out(LOAD_LOG, VDS)
 
-/*
+
 
 /** Filter Step
  *  Description: Generate filtered and filtered/pruned filesets for QC
@@ -116,15 +116,15 @@ cmd"""$HAIL -l $LOAD_LOG
  *  Notes: 
  */
 
-val VDS_FOR_QC = path(outDIR / s"${outLABEL}.for_qc.vds")
-val VDS_FOR_QC_PRUNED = path(outDIR / s"${outLABEL}.for_qc.pruned.vds")
-val PLINK_FOR_QC: bedBimFam(outDIR / s"${outLABEL}.for_qc")
-val PLINK_FOR_QC_PRUNED: bedBimFam(outDIR / s"${outLABEL}.for_qc.pruned")
-val FILTER_LOG = store[TXT].at(outDIR / s"${outLABEL}.filter.log")
-val FILTERPRUNED_LOG = store[TXT].at(outDIR / s"${outLABEL}.filter.pruned.log")
-val VARIANTQC_TSV = store[TXT].at(outDIR / s"${outLABEL}.variantqc.tsv")
-val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"${outLABEL}.for_qc.prune.in")
-val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"${outLABEL}.for_qc.prune.out")
+val VDS_FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc.vds")
+val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$outLABEL.for_qc.pruned.vds")
+val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc")
+val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc.pruned")
+val FILTER_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.log")
+val FILTERPRUNED_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.pruned.log")
+val VARIANTQC_TSV = store[TXT].at(outDIR / s"$outLABEL.variantqc.tsv")
+val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.in")
+val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.out")
 
 cmd"""$HAIL -l $FILTER_LOG
 	read -i $VDS
@@ -136,9 +136,9 @@ cmd"""$HAIL -l $FILTER_LOG
 	write
 	-o $VDS_FOR_QC
 	exportplink
-	-o $PLINK_FOR_QC""".in(VDS,inREGIONS_EXCLUDE).out(FILTER_LOG,VDS_FOR_QC,PLINK_FOR_QC)
+	-o $PLINK_FOR_QC""".in(VDS,inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
 	
-cmd"""$PLINK --bfile $PLINK_FOR_QC --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN,FOR_QC_PRUNE_OUT)
+cmd"""$PLINK --bfile $PLINK_FOR_QC --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN, FOR_QC_PRUNE_OUT)
 
 cmd"""$HAIL -l $FILTERPRUNED_LOG
 	read -i $VDS_FOR_QC
@@ -146,9 +146,9 @@ cmd"""$HAIL -l $FILTERPRUNED_LOG
 	write
 	-o $VDS_FOR_QC_PRUNED
 	exportplink
-	-o $PLINK_FOR_QC_PRUNED""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG, VDS_FOR_QC_PRUNED, PLINK_FOR_QC_PRUNED)
+	-o $PLINK_FOR_QC_PRUNED""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
 
-
+/*
 /** Kinship Step
  *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
  *  Requires: King, R, $CALC_KINSHIP_SAMPLE_SHARING_R

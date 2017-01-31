@@ -33,7 +33,7 @@ val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
 val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
 
 for(i <- 1 to 22) {
-
+    // TODO Ensure that the resulting collections below are properly 'Store'd
 	PLINK_CHRS :+ bedBimFam(outDIR / s"$outLABEL.chr$i")
 	PLINK_CHRS_HARMONIZED :+ bedBimFam(outDIR / s"$outLABEL.chr$i.harmonized")
 	KG_VCFS :+ store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
@@ -118,6 +118,7 @@ cmd"""$HAIL -l $LOAD_LOG
 
 val VDS_FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc.vds")
 val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$outLABEL.for_qc.pruned.vds")
+// TODO Possible to remove explicity typing on the two lines below?
 val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc")
 val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc.pruned")
 val FILTER_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.log")

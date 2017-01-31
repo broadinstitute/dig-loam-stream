@@ -87,7 +87,7 @@ cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { s
  *     Monomorphic variants are automatically removed during import into Hail
  */
 
-val VDS = path(outDIR / s"${outLABEL}.harmonized.ref.vds")
+val VDS = store[VCF].at(outDIR / s"${outLABEL}.harmonized.ref.vds")
 val LOAD_LOG = store[TXT].at(outDIR / s"${outLABEL}.harmonized.ref.vds.log")
 
 cmd"""$HAIL -l $LOAD_LOG
@@ -106,7 +106,7 @@ cmd"""$HAIL -l $LOAD_LOG
 	count
 	-g""".in(VCF,SAMPLE_FILE).out(LOAD_LOG, VDS)
 
-
+/*
 
 /** Filter Step
  *  Description: Generate filtered and filtered/pruned filesets for QC
@@ -174,7 +174,7 @@ cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sor
 
 cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(KIN0_RELATED, CALC_KINSHIP_SAMPLE_SHARING_R).out(SHARING_COUNTS)
 
-/*
+
 
 // CHUNK 2
 
@@ -418,5 +418,4 @@ cmd"""$R --vanilla --args
 	$SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
 	$ANCESTRY
 	< $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT, SAMPLEQC_STATS_TSV, SAMPLEQC_STATS_ADJ_TSV, ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
-
 */

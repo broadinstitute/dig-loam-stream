@@ -191,6 +191,11 @@ val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.s
 val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.loadings.tsv")
 val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.plots.pdf")
 
+//TODO
+val VDS = store[TXT].at(???.asInstanceOf[Path])
+//TODO
+val inKG_HAIL = store[TXT].at(???.asInstanceOf[Path])
+
 cmd"""$HAIL -l $ANCESTRYPCA_LOG
 	read $inKG_HAIL
 	put -n KG
@@ -235,6 +240,11 @@ val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
 val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
 val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
 
+//TODO
+val PHENO = store[TXT].at(???.asInstanceOf[Path])
+//TODO
+val PLOT_ANCESTRY_CLUSTER_R: Path = ???
+
 cmd"""echo 10 > $ANCESTRY_FET""".out(ANCESTRY_FET)
 
 cmd"""sed '1d' $ANCESTRYPCA_SCORES_TSV | cut -f5- | sed 's/\t/ /g' >> $ANCESTRY_FET""".in(ANCESTRYPCA_SCORES_TSV).out(ANCESTRY_FET)
@@ -244,7 +254,7 @@ cmd"""$KLUSTAKWIK $ANCESTRY_PREFIX 1 -UseFeatures 1110000000 -UseDistributional 
 cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRY_CLU $PHENO $outLABEL $PHENO_ID $PHENO_SR_RACE 
 	$ANCESTRY_CLUSTER_PLOTS_PDF $ANCESTRY_CLUSTER_XTABS $ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF
 	$ANCESTRY_CLUSTERS_ASSIGNED $ANCESTRY $ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF 
-	< $PLOT_ANCESTRY_CLUSTER_R""".in(ANCESTRYPCA_SCORES_TSV, ANCESTRY_CLU, PHENO, PLOT_ANCESTRY_CLUSTER_R).out(ANCESTRY_CLUSTER_PLOTS_PDF, ANCESTRY_CLUSTER_XTABS, ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF, ANCESTRY_CLUSTERS_ASSIGNED, ANCESTRY, ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
+	< $PLOT_ANCESTRY_CLUSTER_R""".in(ANCESTRYPCA_SCORES_TSV, ANCESTRY_CLU, PHENO).out(ANCESTRY_CLUSTER_PLOTS_PDF, ANCESTRY_CLUSTER_XTABS, ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF, ANCESTRY_CLUSTERS_ASSIGNED, ANCESTRY, ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
 
 
 
@@ -260,6 +270,9 @@ cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRY_CLU $PHENO $outLABEL
 val NONOUTLIERPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.pca.log")
 val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.scores.tsv")
 val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.loadings.tsv")
+
+//TODO
+val VDS_FOR_QC_PRUNED = store[TXT].at(???.asInstanceOf[Path])
 
 cmd"""$HAIL -l $NONOUTLIERPCA_LOG
 	read $VDS_FOR_QC_PRUNED
@@ -277,7 +290,6 @@ cmd"""$HAIL -l $NONOUTLIERPCA_LOG
 	-o $NONOUTLIERPCA_SCORES_TSV
 	exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10'
 	-o $NONOUTLIERPCA_LOADINGS_TSV""".in(VDS_FOR_QC_PRUNED, ANCESTRY).out(NONOUTLIERPCA_SCORES_TSV, NONOUTLIERPCA_LOADINGS_TSV)
-
 
 // CHUNK 3
 

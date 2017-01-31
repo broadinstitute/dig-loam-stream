@@ -220,7 +220,7 @@ cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRYPCA_SCORES_PLOTS_PDF 
 /** Ancestry Cluster Step
  *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
  *  Requires: Hail, R, $PLOT_ANCESTRY_CLUSTER_R, $outLABEL, $PHENO_ID, $PHENO_SR_RACE
- *  Input: ${outLABEL}.ancestry.pca.scores.tsv, $PHENO
+ *  Input: ${outLABEL}.ancestry.pca.scores.tsv, $inPHENO
  *  Output: ${outLABEL}.ancestry.fet.1, ${outLABEL}.ancestry.temp.clu.1, ${outLABEL}.ancestry.clu.1, ${outLABEL}.ancestry.klg.1, ${outLABEL}.ancestry.cluster_plots.pdf, 
  *     ${outLABEL}.ancestry.cluster_xtabs, ${outLABEL}.ancestry.cluster_plots.centers.pdf, ${outLABEL}.ancestry.clusters_assigned, ${outLABEL}.ancestry
  *  Notes: 
@@ -241,21 +241,16 @@ val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
 val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
 val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
 
-//TODO
-val PHENO = store[TXT].at(???.asInstanceOf[Path])
-//TODO
-val PLOT_ANCESTRY_CLUSTER_R: Path = ???
-
 cmd"""echo 10 > $ANCESTRY_FET""".out(ANCESTRY_FET)
 
 cmd"""sed '1d' $ANCESTRYPCA_SCORES_TSV | cut -f5- | sed 's/\t/ /g' >> $ANCESTRY_FET""".in(ANCESTRYPCA_SCORES_TSV).out(ANCESTRY_FET)
 
 cmd"""$KLUSTAKWIK $ANCESTRY_PREFIX 1 -UseFeatures 1110000000 -UseDistributional 0 > $ANCESTRYCLUSTER_LOG""".in(ANCESTRY_FET).out(ANCESTRY_TEMP_CLU, ANCESTRY_CLU, ANCESTRY_KLG)
 
-cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRY_CLU $PHENO $outLABEL $PHENO_ID $PHENO_SR_RACE 
+cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRY_CLU $inPHENO $outLABEL $PHENO_ID $PHENO_SR_RACE 
 	$ANCESTRY_CLUSTER_PLOTS_PDF $ANCESTRY_CLUSTER_XTABS $ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF
 	$ANCESTRY_CLUSTERS_ASSIGNED $ANCESTRY $ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF 
-	< $PLOT_ANCESTRY_CLUSTER_R""".in(ANCESTRYPCA_SCORES_TSV, ANCESTRY_CLU, PHENO).out(ANCESTRY_CLUSTER_PLOTS_PDF, ANCESTRY_CLUSTER_XTABS, ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF, ANCESTRY_CLUSTERS_ASSIGNED, ANCESTRY, ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
+	< $PLOT_ANCESTRY_CLUSTER_R""".in(ANCESTRYPCA_SCORES_TSV, ANCESTRY_CLU, inPHENO).out(ANCESTRY_CLUSTER_PLOTS_PDF, ANCESTRY_CLUSTER_XTABS, ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF, ANCESTRY_CLUSTERS_ASSIGNED, ANCESTRY, ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
 
 
 
@@ -321,10 +316,6 @@ val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_PCA_SCO
 
 //TODO
 val VDS_FOR_QC = store[TXT].at(???.asInstanceOf[Path])
-//TODO
-val CALC_ISTATS_ADJ_R: Path = ???
-//TODO
-val ISTATS_ADJ_PCA_R: Path = ???
 
 cmd"""$HAIL -l $SAMPLEQC_LOG
 	read $VDS_FOR_QC
@@ -378,8 +369,9 @@ val SAMPLEQC_STATS_ADJ_STRIPCHART_PDF = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + 
 val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
 
 {
-  //TODO: Will fail at runtime
-  val N = countDelimitersIn(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH)
+  //TODO
+  //NB: Intent was to count the delimiters in the first line of SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH ? 
+  val N: Int = ???
   val FEATURES = "1" * N
   
   cmd"""echo $N > $SAMPLEQC_STATS_ADJ_FET1; sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> $SAMPLEQC_STATS_ADJ_FET1""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_FET1)
@@ -402,10 +394,12 @@ val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
  * Notes: 
  */
 {
-  //TODO: Will fail at runtime
-  val N = countDelimitersIn(SAMPLEQC_STATS_ADJ_TSV_PATH)
-  //TODO: Will fail at runtime
-  val headers = headersFrom(SAMPLEQC_STATS_ADJ_TSV_PATH)
+  //TODO
+  //NB: Intent was to count the delimiters in the first line of SAMPLEQC_STATS_ADJ_TSV_PATH?
+  val N: Int = ???
+  //TODO
+  //NB: Intent was to get the first line of SAMPLEQC_STATS_ADJ_TSV_PATH, split on whitespace?
+  val headers: IndexedSeq[String] = ???
   
   val SAMPLEQC_KLUSTAKWIK_OUTPUT: Array[Seq[LoamStore[TXT]]] = Array.empty
   val SAMPLEQC_LOGS: Array[LoamStore[TXT]] = Array.ofDim(N)
@@ -424,8 +418,9 @@ val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
   	cmd"""echo $N > ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0)}; sed '1d' $SAMPLEQC_STATS_ADJ_TSV | cut -f2- | sed 's/\t/ /g' >> ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0)}""".in(SAMPLEQC_STATS_ADJ_TSV).out(SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0))
   
   	val include: String = {
-  		//NB: int arrays are guaranteed to be initialized with zeroes on the JVM.
   		//Make an array of flags and turn it into a string to avoid verbose substring manipulation.
+  		//NB: int arrays are guaranteed to be initialized with zeroes on the JVM.
+  		
   		val flags = Array.ofDim[Int](N)  
   		flags(i) = 1
   		flags.mkString

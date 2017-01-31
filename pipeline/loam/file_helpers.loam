@@ -1,3 +1,6 @@
+import scala.io.Source
+import loamstream.util.LoamFileUtils
+
 private[this] val spacesRegex: scala.util.matching.Regex = "\\s+".r
   
 private[this] def withLinesFrom[A](path: Path)(f: Iterator[String] => A): A = {

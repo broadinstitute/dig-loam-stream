@@ -148,7 +148,7 @@ cmd"""$HAIL -l $FILTERPRUNED_LOG
 	exportplink
 	-o $PLINK_FOR_QC_PRUNED""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
 
-/*
+
 /** Kinship Step
  *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
  *  Requires: King, R, $CALC_KINSHIP_SAMPLE_SHARING_R
@@ -159,20 +159,20 @@ cmd"""$HAIL -l $FILTERPRUNED_LOG
        King only writes the '.kin0' file if families are found, so there needs to be a way to skip the second and third command if it doesn't get created
  */
 
-val KIN_PREFIX = outDIR / s"${outLABEL}.kinship"
-val KIN_LOG = store[TXT].at(KIN_PREFIX + ".log")
-val KINTMP_DAT = store[TXT].at(KIN_PREFIX + "TMP.dat")
-val KINTMP_PED = store[TXT].at(KIN_PREFIX + "TMP.ped")
-val KIN = store[TXT].at(KIN_PREFIX + ".kin")
-val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
-val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
-val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
+val KIN_PREFIX = outDIR / s"$outLABEL.kinship"
+val KIN_LOG = store[TXT].at(KIN_PREFIX ++ ".log")
+val KINTMP_DAT = store[TXT].at(KIN_PREFIX ++ "TMP.dat")
+val KINTMP_PED = store[TXT].at(KIN_PREFIX ++ "TMP.ped")
+val KIN = store[TXT].at(KIN_PREFIX ++ ".kin")
+val KIN0 = store[TXT].at(KIN_PREFIX ++ ".kin0")
+val KIN0_RELATED = store[TXT].at(KIN_PREFIX ++ ".kin0.related")
+val SHARING_COUNTS = store[TXT].at(KIN_PREFIX ++ ".sharing_counts.txt")
 	
-cmd"""$KING -b ${PLINK_FOR_QC_PRUNED}.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG,KIN,KIN0,KINTMP_DAT,KINTMP_PED)
+cmd"""$KING -b $PLINK_FOR_QC_PRUNED.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
 
 cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $KIN0_RELATED""".in(KIN0).out(KIN0_RELATED)
 
-cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(KIN0_RELATED, CALC_KINSHIP_SAMPLE_SHARING_R).out(SHARING_COUNTS)
+cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(KIN0_RELATED).out(SHARING_COUNTS)
 
 
 
@@ -418,4 +418,3 @@ cmd"""$R --vanilla --args
 	$SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
 	$ANCESTRY
 	< $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT, SAMPLEQC_STATS_TSV, SAMPLEQC_STATS_ADJ_TSV, ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
-*/

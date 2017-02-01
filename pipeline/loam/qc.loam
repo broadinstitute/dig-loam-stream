@@ -161,13 +161,13 @@ cmd"""$HAIL -l $FILTERPRUNED_LOG
  */
 
 val KIN_PREFIX = outDIR / s"$outLABEL.kinship"
-val KIN_LOG = store[TXT].at(KIN_PREFIX ++ ".log")
-val KINTMP_DAT = store[TXT].at(KIN_PREFIX ++ "TMP.dat")
-val KINTMP_PED = store[TXT].at(KIN_PREFIX ++ "TMP.ped")
-val KIN = store[TXT].at(KIN_PREFIX ++ ".kin")
-val KIN0 = store[TXT].at(KIN_PREFIX ++ ".kin0")
-val KIN0_RELATED = store[TXT].at(KIN_PREFIX ++ ".kin0.related")
-val SHARING_COUNTS = store[TXT].at(KIN_PREFIX ++ ".sharing_counts.txt")
+val KIN_LOG = store[TXT].at(KIN_PREFIX + ".log")
+val KINTMP_DAT = store[TXT].at(KIN_PREFIX + "TMP.dat")
+val KINTMP_PED = store[TXT].at(KIN_PREFIX + "TMP.ped")
+val KIN = store[TXT].at(KIN_PREFIX + ".kin")
+val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
+val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
+val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
 	
 cmd"""$KING -b $PLINK_FOR_QC_PRUNED.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
 

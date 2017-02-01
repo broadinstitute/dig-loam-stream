@@ -69,11 +69,16 @@ object LoamToScalaConverter extends Loggable {
   }
   
   private def formatAndWrite(scalaCode: String, fileName: Path): Unit = {
-    try {
-      Files.writeTo(fileName)(ScalaFormatter.format(scalaCode))
+    val codeToWrite = try {
+      ScalaFormatter.format(scalaCode)
     } catch {
-      case e: ScalaParserException => throw new Exception(s"Error formatting code destined for '$fileName'", e)
+      case e: ScalaParserException => 
+        warn(s"Forging onward after error formatting code destined for '$fileName': $e", e)
+        
+        scalaCode
     }
+    
+    Files.writeTo(fileName)(codeToWrite)
   }
   
   private val loamExtension = ".loam"

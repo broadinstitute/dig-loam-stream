@@ -1,8 +1,5 @@
 package loamstream.model
 
-import scala.util.Try
-import loamstream.util.Tries
-import loamstream.util.Maps
 import loamstream.util.Loggable
 
 /**

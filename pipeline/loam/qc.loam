@@ -41,19 +41,19 @@ for (i <- 1 to 22) {
   cmd"""$PLINK --bfile $inVCF --chr $i --keep-allele-order --make-bed --out ${PLINK_CHRS(i - 1)}""".in(inVCF).out(PLINK_CHRS(i - 1))
 
   cmd"""$GENOTYPE_HARMONIZER 
-		--input ${PLINK_CHRS(i - 1)}
-		--inputType PLINK_BED
-		--output ${PLINK_CHRS_HARMONIZED(i - 1)}
-		--outputType PLINK_BED
-		--ref ${KG_VCFS(i - 1)}
-		--refType VCF
-		--keep
-		--update-id
-		--variants 1000
-		--mafAlign 0.1
-		--update-id
-		--update-reference-allele
-		--debug""".in(PLINK_CHRS(i - 1) :+ KG_VCFS(i - 1)).out(PLINK_CHRS_HARMONIZED(i - 1) :+ IDUPDATES(i - 1) :+ SNPLOGS(i - 1))
+    --input ${PLINK_CHRS(i - 1)}
+    --inputType PLINK_BED
+    --output ${PLINK_CHRS_HARMONIZED(i - 1)}
+    --outputType PLINK_BED
+    --ref ${KG_VCFS(i - 1)}
+    --refType VCF
+    --keep
+    --update-id
+    --variants 1000
+    --mafAlign 0.1
+    --update-id
+    --update-reference-allele
+    --debug""".in(PLINK_CHRS(i - 1) :+ KG_VCFS(i - 1)).out(PLINK_CHRS_HARMONIZED(i - 1) :+ IDUPDATES(i - 1) :+ SNPLOGS(i - 1))
 }
 
 cmd"""echo "${PLINK_CHRS_HARMONIZED(1)}.bed ${PLINK_CHRS_HARMONIZED(1)}.bim ${PLINK_CHRS_HARMONIZED(1)}.fam" > $MERGE_LIST""".out(MERGE_LIST)
@@ -88,20 +88,20 @@ val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
 val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
 
 cmd"""$HAIL -l $LOAD_LOG
-	importvcf --force-bgz $VCF
-	splitmulti
-	deduplicate
-	annotatesamples table
-	--root sa.pheno
-	-e IID
-	-i $SAMPLE_FILE
-	-t "IID: String, POP: String, SUPERPOP: String, SEX: String"
-	--missing "NA"
-	--delimiter " "
-	write
-	-o $VDS
-	count
-	-g""".in(VCF, SAMPLE_FILE).out(LOAD_LOG, VDS)
+  importvcf --force-bgz $VCF
+  splitmulti
+  deduplicate
+  annotatesamples table
+  --root sa.pheno
+  -e IID
+  -i $SAMPLE_FILE
+  -t "IID: String, POP: String, SUPERPOP: String, SEX: String"
+  --missing "NA"
+  --delimiter " "
+  write
+  -o $VDS
+  count
+  -g""".in(VCF, SAMPLE_FILE).out(LOAD_LOG, VDS)
 
 /**
  * Filter Step
@@ -124,26 +124,26 @@ val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.in")
 val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.out")
 
 cmd"""$HAIL -l $FILTER_LOG
-	read -i $VDS
-	variantqc
-	exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
-	-o $VARIANTQC_TSV
-	filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
-	filtervariants intervals -i $inREGIONS_EXCLUDE --remove
-	write
-	-o $VDS_FOR_QC
-	exportplink
-	-o $PLINK_FOR_QC""".in(VDS, inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
+  read -i $VDS
+  variantqc
+  exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
+  -o $VARIANTQC_TSV
+  filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
+  filtervariants intervals -i $inREGIONS_EXCLUDE --remove
+  write
+  -o $VDS_FOR_QC
+  exportplink
+  -o $PLINK_FOR_QC""".in(VDS, inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
 
 cmd"""$PLINK --bfile $PLINK_FOR_QC --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN, FOR_QC_PRUNE_OUT)
 
 cmd"""$HAIL -l $FILTERPRUNED_LOG
-	read -i $VDS_FOR_QC
-	filtervariants list -i $FOR_QC_PRUNE_IN --keep
-	write
-	-o $VDS_FOR_QC_PRUNED
-	exportplink
-	-o $PLINK_FOR_QC_PRUNED""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
+  read -i $VDS_FOR_QC
+  filtervariants list -i $FOR_QC_PRUNE_IN --keep
+  write
+  -o $VDS_FOR_QC_PRUNED
+  exportplink
+  -o $PLINK_FOR_QC_PRUNED""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
 
 /**
  * Kinship Step
@@ -190,22 +190,22 @@ val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca
 val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.plots.pdf")
 
 cmd"""$HAIL -l $ANCESTRYPCA_LOG
-	read $inKG_HAIL
-	put -n KG
-	read -i $VDS
-	join --right KG
-	annotatevariants table $inKG_V3_5K_AF
-	-e Variant
-	-c 'va.refPanelAF = table.refPanelAF'
-	--impute
-	pca -k 10
-	--scores sa.pca.scores
-	--eigenvalues global.pca.evals
-	--loadings va.pca.loadings
-	exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10'
-	-o $ANCESTRYPCA_SCORES_TSV
-	exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10'
-	-o $ANCESTRYPCA_LOADINGS_TSV""".in(inKG_HAIL, VDS, inKG_V3_5K_AF).out(ANCESTRYPCA_LOG, ANCESTRYPCA_SCORES_TSV, ANCESTRYPCA_LOADINGS_TSV)
+  read $inKG_HAIL
+  put -n KG
+  read -i $VDS
+  join --right KG
+  annotatevariants table $inKG_V3_5K_AF
+  -e Variant
+  -c 'va.refPanelAF = table.refPanelAF'
+  --impute
+  pca -k 10
+  --scores sa.pca.scores
+  --eigenvalues global.pca.evals
+  --loadings va.pca.loadings
+  exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10'
+  -o $ANCESTRYPCA_SCORES_TSV
+  exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10'
+  -o $ANCESTRYPCA_LOADINGS_TSV""".in(inKG_HAIL, VDS, inKG_V3_5K_AF).out(ANCESTRYPCA_LOG, ANCESTRYPCA_SCORES_TSV, ANCESTRYPCA_LOADINGS_TSV)
 
 cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRYPCA_SCORES_PLOTS_PDF < $PLOT_ANCESTRY_PCA_R""".in(ANCESTRYPCA_SCORES_TSV).out(ANCESTRYPCA_SCORES_PLOTS_PDF)
 
@@ -241,9 +241,9 @@ cmd"""sed '1d' $ANCESTRYPCA_SCORES_TSV | cut -f5- | sed 's/\t/ /g' >> $ANCESTRY_
 cmd"""$KLUSTAKWIK $ANCESTRY_PREFIX 1 -UseFeatures 1110000000 -UseDistributional 0 > $ANCESTRYCLUSTER_LOG""".in(ANCESTRY_FET).out(ANCESTRY_TEMP_CLU, ANCESTRY_CLU, ANCESTRY_KLG)
 
 cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRY_CLU $inPHENO $outLABEL $PHENO_ID $PHENO_SR_RACE 
-	$ANCESTRY_CLUSTER_PLOTS_PDF $ANCESTRY_CLUSTER_XTABS $ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF
-	$ANCESTRY_CLUSTERS_ASSIGNED $ANCESTRY $ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF 
-	< $PLOT_ANCESTRY_CLUSTER_R""".in(ANCESTRYPCA_SCORES_TSV, ANCESTRY_CLU, inPHENO).out(ANCESTRY_CLUSTER_PLOTS_PDF, ANCESTRY_CLUSTER_XTABS, ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF, ANCESTRY_CLUSTERS_ASSIGNED, ANCESTRY, ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
+  $ANCESTRY_CLUSTER_PLOTS_PDF $ANCESTRY_CLUSTER_XTABS $ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF
+  $ANCESTRY_CLUSTERS_ASSIGNED $ANCESTRY $ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF 
+  < $PLOT_ANCESTRY_CLUSTER_R""".in(ANCESTRYPCA_SCORES_TSV, ANCESTRY_CLU, inPHENO).out(ANCESTRY_CLUSTER_PLOTS_PDF, ANCESTRY_CLUSTER_XTABS, ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF, ANCESTRY_CLUSTERS_ASSIGNED, ANCESTRY, ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
 
 /**
  * Non-Outlier PCA Step
@@ -260,21 +260,21 @@ val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.scores.t
 val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.loadings.tsv")
 
 cmd"""$HAIL -l $NONOUTLIERPCA_LOG
-	read $VDS_FOR_QC_PRUNED
-	annotatesamples table
-	-i $ANCESTRY
-	--no-header
-	-e _0
-	--code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
-	filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
-	pca -k 10
-	--scores sa.pca.scores
-	--eigenvalues global.pca.evals
-	--loadings va.pca.loadings
-	exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10'
-	-o $NONOUTLIERPCA_SCORES_TSV
-	exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10'
-	-o $NONOUTLIERPCA_LOADINGS_TSV""".in(VDS_FOR_QC_PRUNED, ANCESTRY).out(NONOUTLIERPCA_SCORES_TSV, NONOUTLIERPCA_LOADINGS_TSV)
+  read $VDS_FOR_QC_PRUNED
+  annotatesamples table
+  -i $ANCESTRY
+  --no-header
+  -e _0
+  --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
+  filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
+  pca -k 10
+  --scores sa.pca.scores
+  --eigenvalues global.pca.evals
+  --loadings va.pca.loadings
+  exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10'
+  -o $NONOUTLIERPCA_SCORES_TSV
+  exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10'
+  -o $NONOUTLIERPCA_LOADINGS_TSV""".in(VDS_FOR_QC_PRUNED, ANCESTRY).out(NONOUTLIERPCA_SCORES_TSV, NONOUTLIERPCA_LOADINGS_TSV)
 
 // CHUNK 3
 
@@ -305,25 +305,25 @@ val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH: Path = outDIR / s"${outLABEL}.sample
 val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH)
 
 cmd"""$HAIL -l $SAMPLEQC_LOG
-	read $VDS_FOR_QC
-	annotatesamples table
-	-i $ANCESTRY
-	--no-header
-	-e _0
-	--code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
-	filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
-	imputesex
-	annotatesamples expr -c 'sa.sexcheck = if((sa.pheno.SEX == "female" && ! isMissing(sa.imputesex.isFemale) && sa.imputesex.isFemale) || (sa.pheno.SEX == "male" && ! isMissing(sa.imputesex.isFemale) && ! sa.imputesex.isFemale)) "OK" else "PROBLEM"'
-	sampleqc
-	variantqc
-	annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()"
-	exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-	-o $SAMPLEQC_SEXCHECK_TSV
-	exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar"
-	-o $SAMPLEQC_STATS_TSV
-	filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
-	exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-	-o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(VDS_FOR_QC, ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+  read $VDS_FOR_QC
+  annotatesamples table
+  -i $ANCESTRY
+  --no-header
+  -e _0
+  --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
+  filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
+  imputesex
+  annotatesamples expr -c 'sa.sexcheck = if((sa.pheno.SEX == "female" && ! isMissing(sa.imputesex.isFemale) && sa.imputesex.isFemale) || (sa.pheno.SEX == "male" && ! isMissing(sa.imputesex.isFemale) && ! sa.imputesex.isFemale)) "OK" else "PROBLEM"'
+  sampleqc
+  variantqc
+  annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()"
+  exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+  -o $SAMPLEQC_SEXCHECK_TSV
+  exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar"
+  -o $SAMPLEQC_STATS_TSV
+  filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
+  exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+  -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(VDS_FOR_QC, ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
 
 cmd"""$R --vanilla --args $SAMPLEQC_STATS_TSV $NONOUTLIERPCA_SCORES_TSV $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(SAMPLEQC_STATS_TSV, NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
 
@@ -419,17 +419,17 @@ val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
   }
 
   cmd"""$R --vanilla --args
-  $SAMPLEQC_CLU1_WILD
-  $SAMPLEQC_STATS_TSV
-  $SAMPLEQC_STATS_ADJ_TSV
-  $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
-  $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
-  $SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
-  $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
-  $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
-  $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
-  $ANCESTRY
-  < $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
+    $SAMPLEQC_CLU1_WILD
+    $SAMPLEQC_STATS_TSV
+    $SAMPLEQC_STATS_ADJ_TSV
+    $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
+    $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
+    $SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
+    $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
+    $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
+    $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
+    $ANCESTRY
+    < $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
 
   //TODO: Is `SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten` correct here?
 }

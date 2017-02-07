@@ -1,7 +1,7 @@
 import sbt.project
 
 lazy val Versions = new {
-  val App = "1.2-SNAPSHOT"
+  val App = "1.3-SNAPSHOT"
   val ApacheCommonsIO = "2.4"
   val DrmaaCommon = "1.0"
   val DrmaaGridEngine = "6.2u5"
@@ -18,6 +18,7 @@ lazy val Versions = new {
   val Slick = "3.1.1"
   val H2 = "1.4.192"
   val RxScala = "0.26.4"
+  val Ficus = "1.4.0"
 }
 
 lazy val mainDeps = Seq(
@@ -36,7 +37,8 @@ lazy val mainDeps = Seq(
   "com.h2database" % "h2" % Versions.H2,
   "org.rogach" %% "scallop" % Versions.Scallop,
   "com.google.cloud" % "google-cloud-storage" % Versions.GoogleCloudStorage,
-  "com.google.auth" % "google-auth-library-credentials" % Versions.GoogleAuth
+  "com.google.auth" % "google-auth-library-credentials" % Versions.GoogleAuth,
+  "com.iheart" %% "ficus" % Versions.Ficus
 )
 
 lazy val testDeps = Seq(

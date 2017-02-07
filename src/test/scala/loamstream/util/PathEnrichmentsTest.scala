@@ -45,4 +45,22 @@ final class PathEnrichmentsTest extends FunSuite {
     assert((foo / failure("bar") / Success("baz.txt")).isFailure)
     assert((foo / failure("bar") / failure("baz.txt")).isFailure)
   }
+
+  test("appending to paths with + and Tries") {
+    import PathEnrichments._
+    import Tries._
+
+    val locator = "someDir/someFile"
+    val root = Paths.get(locator)
+    val ext = ".someExt"
+
+    assert(root + ext === Paths.get(s"$locator.someExt"))
+
+    val foo = Paths.get("foo")
+    val fooWithGoodExt = foo + Success(".txt")
+    val fooWithBadExt = foo + failure(".txt")
+
+    assert(fooWithGoodExt.get === Paths.get("foo.txt"))
+    assert(fooWithBadExt.isFailure)
+  }
 }

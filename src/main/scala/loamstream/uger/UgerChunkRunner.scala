@@ -40,7 +40,7 @@ final case class UgerChunkRunner(
 
   override def stop(): Unit = jobMonitor.stop()
   
-  override def maxNumJobs = ugerConfig.ugerMaxNumJobs
+  override def maxNumJobs = ugerConfig.maxNumJobs
 
   override def run(leaves: Set[LJob]): Observable[Map[LJob, JobState]] = {
 
@@ -55,12 +55,12 @@ final case class UgerChunkRunner(
     val leafCommandLineJobs = leaves.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
     if (leafCommandLineJobs.nonEmpty) {
-      val ugerWorkDir = ugerConfig.ugerWorkDir.toFile
+      val ugerWorkDir = ugerConfig.workDir.toFile
       val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs), ugerWorkDir)
 
       info(s"Made script '$ugerScript' from $leafCommandLineJobs")
 
-      val ugerLogFile: Path = ugerConfig.ugerLogFile
+      val ugerLogFile: Path = ugerConfig.logFile
 
       //TODO: do we need this?  Should it be something better?
       val jobName: String = s"LoamStream-${UUID.randomUUID}"

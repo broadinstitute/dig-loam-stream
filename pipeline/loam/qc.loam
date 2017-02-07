@@ -21,6 +21,7 @@ import scala.io.Source
 
 val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
 val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
+val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(22)
 val PLINK_HARMONIZED = bedBimFam(outDIR / s"$outLABEL.harmonized")
 val VCF_BASE = outDIR / s"$outLABEL.harmonized.ref"
 val VCF = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vcf.gz")
@@ -34,7 +35,8 @@ val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
 for (i <- 1 to 22) {
   val PLINK_CHRS_BASE = outDIR / s"$outLABEL.chr$i"
   PLINK_CHRS(i - 1) = bedBimFam(PLINK_CHRS_BASE)
-  PLINK_CHRS_HARMONIZED(i - 1) = bedBimFam(outDIR / s"$outLABEL.chr$i.harmonized")
+  PLINK_CHRS_HARMONIZED_NAME(i - 1) = outDIR / s"$outLABEL.chr$i.harmonized"
+  PLINK_CHRS_HARMONIZED(i - 1) = bedBimFam(PLINK_CHRS_HARMONIZED_NAME(i - 1))
   KG_VCFS(i - 1) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
   IDUPDATES(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
   SNPLOGS(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
@@ -57,10 +59,8 @@ for (i <- 1 to 22) {
     --debug""".in(PLINK_CHRS(i - 1) :+ KG_VCFS(i - 1)).out(PLINK_CHRS_HARMONIZED(i - 1) :+ IDUPDATES(i - 1) :+ SNPLOGS(i - 1))
 }
 
-cmd"""echo "${PLINK_CHRS_HARMONIZED(1)}.bed ${PLINK_CHRS_HARMONIZED(1)}.bim ${PLINK_CHRS_HARMONIZED(1)}.fam" > $MERGE_LIST""".out(MERGE_LIST)
-
-for (i <- 3 to 22) {
-  cmd"""echo "${PLINK_CHRS_HARMONIZED(i - 1)}.bed ${PLINK_CHRS_HARMONIZED(i - 1)}.bim ${PLINK_CHRS_HARMONIZED(i - 1)}.fam" >> $MERGE_LIST""".in(MERGE_LIST).out(MERGE_LIST)
+for (i <- 2 to 22) {
+  cmd"""echo "${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$bed ${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$bim ${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$fam" >> $MERGE_LIST""".out(MERGE_LIST)
 }
 
 cmd"""$PLINK --bfile $PLINK_CHRS_HARMONIZED(0) --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)

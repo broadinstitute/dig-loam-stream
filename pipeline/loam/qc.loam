@@ -32,13 +32,14 @@ val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
 val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
 
 for (i <- 1 to 22) {
-  PLINK_CHRS(i - 1) = bedBimFam(outDIR / s"$outLABEL.chr$i")
+  val PLINK_CHRS_BASE = outDIR / s"$outLABEL.chr$i"
+  PLINK_CHRS(i - 1) = bedBimFam(PLINK_CHRS_BASE)
   PLINK_CHRS_HARMONIZED(i - 1) = bedBimFam(outDIR / s"$outLABEL.chr$i.harmonized")
   KG_VCFS(i - 1) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
   IDUPDATES(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
   SNPLOGS(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
 
-  cmd"""$PLINK --bfile $inVCF --chr $i --keep-allele-order --make-bed --out ${PLINK_CHRS(i - 1)}""".in(inVCF).out(PLINK_CHRS(i - 1))
+  cmd"""$PLINK --bfile $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_BASE""".in(inVCF).out(PLINK_CHRS(i - 1))
 
   cmd"""$GENOTYPE_HARMONIZER 
     --input ${PLINK_CHRS(i - 1)}
@@ -73,6 +74,9 @@ cmd"""$TABIX -p vcf $VCF""".in(VCF)
 cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)
 
 cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
+
+/*KAAN
+
 
 /**
  * Load Step
@@ -433,3 +437,4 @@ val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
 
   //TODO: Is `SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten` correct here?
 }
+*/

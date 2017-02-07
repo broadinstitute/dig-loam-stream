@@ -11,27 +11,17 @@ import scala.util.Try
   *
   * @author Kaan Yuksel
   */
-final case class UgerConfig(ugerWorkDir: Path, ugerLogFile: Path, ugerMaxNumJobs: Int)
+final case class UgerConfig(workDir: Path, logFile: Path, maxNumJobs: Int)
 
-object UgerConfig extends ConfigCompanion[UgerConfig] {
+object UgerConfig {
 
-  object Keys extends TypesafeConfig.KeyHolder("uger") {
-    val ugerWorkDirKey = key("workDir")
-    val ugerLogFileKey = key("logFile")
-    val ugerMaxNumJobsKey = key("maxNumJobs")
-  }
-
-  override def fromConfig(config: Config): Try[UgerConfig] = {
-    val ugerProps = TypesafeConfigLproperties(config)
-
-    import Keys._
-
-    for {
-      ugerWorkDir <- ugerProps.tryGetPath(ugerWorkDirKey)
-      ugerLogFile <- ugerProps.tryGetPath(ugerLogFileKey)
-      ugerMaxNumJobs <- ugerProps.tryGetInt(ugerMaxNumJobsKey)
-    } yield {
-      UgerConfig(ugerWorkDir, ugerLogFile, ugerMaxNumJobs)
-    }
+  def fromConfig(config: Config): Try[UgerConfig] = {
+    import net.ceedubs.ficus.Ficus._
+    import net.ceedubs.ficus.readers.ArbitraryTypeReader._
+    import ValueReaders.PathReader
+    
+    //NB: Ficus now marshals the contents of loamstream.uger into a UgerConfig instance.
+    //Names of fields in UgerConfig and keys under loamstream.uger must match.
+    Try(config.as[UgerConfig]("loamstream.uger"))
   }
 }

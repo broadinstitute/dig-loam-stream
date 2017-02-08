@@ -9,6 +9,6 @@ val ISTATS_PCS_GMM_PLOT_METRICS_R = path("/humgen/diabetes/users/ryank/software/
 val ISTATS_ADJ_GMM_PLOT_METRICS_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/istats_adj_gmm_plot_metrics.r")
 
 //TODO
-val CALC_ISTATS_ADJ_R: Path = ???
+//val CALC_ISTATS_ADJ_R: Path = ???
 //TODO
-val ISTATS_ADJ_PCA_R: Path = ???
+//val ISTATS_ADJ_PCA_R: Path = ???

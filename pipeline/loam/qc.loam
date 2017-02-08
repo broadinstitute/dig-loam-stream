@@ -21,7 +21,6 @@ import scala.io.Source
 
 val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
 val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
-val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(22)
 val PLINK_HARMONIZED = bedBimFam(outDIR / s"$outLABEL.harmonized")
 val VCF_BASE = outDIR / s"$outLABEL.harmonized.ref"
 val VCF = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vcf.gz")
@@ -34,20 +33,20 @@ val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
 val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
 
 for (i <- 1 to 22) {
-  val PLINK_CHRS_BASE = outDIR / s"$outLABEL.chr$i"
-  PLINK_CHRS(i - 1) = bedBimFam(PLINK_CHRS_BASE)
-  PLINK_CHRS_HARMONIZED_NAME(i - 1) = outDIR / s"$outLABEL.chr$i.harmonized"
-  PLINK_CHRS_HARMONIZED(i - 1) = bedBimFam(PLINK_CHRS_HARMONIZED_NAME(i - 1))
+  val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
+  val PLINK_CHRS_HARMONIZED_NAME = outDIR / s"$outLABEL.chr$i.harmonized"
+  PLINK_CHRS(i - 1) = bedBimFam(PLINK_CHRS_NAME)
+  PLINK_CHRS_HARMONIZED(i - 1) = bedBimFam(PLINK_CHRS_HARMONIZED_NAME)
   KG_VCFS(i - 1) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
   IDUPDATES(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
   SNPLOGS(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
 
-  cmd"""$PLINK --bfile $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_BASE""".in(inVCF).out(PLINK_CHRS(i - 1))
+  cmd"""$PLINK --vcf $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_NAME""".in(inVCF).out(PLINK_CHRS(i - 1))
 
   cmd"""$GENOTYPE_HARMONIZER 
-    --input ${PLINK_CHRS(i - 1)}
+    --input $PLINK_CHRS_NAME
     --inputType PLINK_BED
-    --output ${PLINK_CHRS_HARMONIZED(i - 1)}
+    --output $PLINK_CHRS_HARMONIZED_NAME
     --outputType PLINK_BED
     --ref ${KG_VCFS(i - 1)}
     --refType VCF
@@ -59,12 +58,12 @@ for (i <- 1 to 22) {
     --update-reference-allele
     --debug""".in(PLINK_CHRS(i - 1) :+ KG_VCFS(i - 1)).out(PLINK_CHRS_HARMONIZED(i - 1) :+ IDUPDATES(i - 1) :+ SNPLOGS(i - 1))
 
-  MERGE_LINE(i - 1) = s"${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$bed ${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$bim ${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$fam"
+  MERGE_LINE(i - 1) = s"$PLINK_CHRS_HARMONIZED_NAME.$bed $PLINK_CHRS_HARMONIZED_NAME.$bim $PLINK_CHRS_HARMONIZED_NAME.$fam"
 }
 
 val MERGE_LINES: String = MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
 cmd"""echo "$MERGE_LINES" > $MERGE_LIST""".out(MERGE_LIST)
-
+/*KAAN
 cmd"""$PLINK --bfile $PLINK_CHRS_HARMONIZED(0) --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
 
 cmd"""awk '{print $$2,$$5}' $PLINK_HARMONIZED.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
@@ -77,7 +76,7 @@ cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)
 
 cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
 
-/*KAAN
+
 
 
 /**

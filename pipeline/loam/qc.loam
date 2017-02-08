@@ -28,6 +28,7 @@ val VCF = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vcf.gz")
 val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(22)
 val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(22)
 val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(22)
+val MERGE_LINE: Array[String] = Array.ofDim(22)
 val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
 val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
 val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
@@ -57,11 +58,12 @@ for (i <- 1 to 22) {
     --update-id
     --update-reference-allele
     --debug""".in(PLINK_CHRS(i - 1) :+ KG_VCFS(i - 1)).out(PLINK_CHRS_HARMONIZED(i - 1) :+ IDUPDATES(i - 1) :+ SNPLOGS(i - 1))
+
+  MERGE_LINE(i - 1) = s"${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$bed ${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$bim ${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$fam"
 }
 
-for (i <- 2 to 22) {
-  cmd"""echo "${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$bed ${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$bim ${PLINK_CHRS_HARMONIZED_NAME(i - 1)}.$fam" >> $MERGE_LIST""".out(MERGE_LIST)
-}
+val MERGE_LINES: String = MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
+cmd"""echo "$MERGE_LINES" > $MERGE_LIST""".out(MERGE_LIST)
 
 cmd"""$PLINK --bfile $PLINK_CHRS_HARMONIZED(0) --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
 

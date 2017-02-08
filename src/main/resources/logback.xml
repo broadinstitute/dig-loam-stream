@@ -16,12 +16,12 @@
     </appender>
 
     <!-- Logging levels in the order of increasing significance are: TRACE < DEBUG < INFO <  WARN < ERROR -->
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>
     </root>
 
-    <logger name="LoamStream" level="INFO"/>
+    <logger name="LoamStream" level="DEBUG"/>
 
     <!-- Without this, Slick spews tons and tons of stuff to the console -->
     <logger name="slick" level="INFO" />

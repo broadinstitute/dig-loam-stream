@@ -74,9 +74,9 @@ cmd"""echo "$MERGE_LINES" > $MERGE_LIST""".out(MERGE_LIST)
 cmd"""$PLINK --bfile ${PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED_NAME""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
 
 cmd"""awk '{print $$2,$$5}' $PLINK_HARMONIZED_NAME.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
-/*KAAN
-cmd"""$PLINK --bfile $PLINK_HARMONIZED --recode vcf-iid bgz --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
 
+cmd"""$PLINK --bfile $PLINK_HARMONIZED_NAME --recode vcf-iid bgz --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE | gzip > $VCF""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
+/*KAAN
 cmd"""$TABIX -p vcf $VCF""".in(VCF)
 
 cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)

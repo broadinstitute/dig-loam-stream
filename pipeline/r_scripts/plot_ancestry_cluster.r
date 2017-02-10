@@ -2,6 +2,7 @@ library(Hmisc)
 library(reshape2)
 library(ggplot2)
 args<-commandArgs(trailingOnly=T)
+print(args)
 
 dat<-read.table(args[1], header=T, as.is=T, stringsAsFactors=F)
 cl<-read.table(args[2], as.is=T, skip=1, stringsAsFactors=F)
@@ -9,6 +10,7 @@ names(cl)[1]<-"CLUSTER"
 dat<-cbind(dat,cl)
 pheno<-read.table(args[3], header=T, as.is=T, stringsAsFactors=F, sep="\t")
 pheno<-pheno[,c(args[5],args[6])]
+names(pheno)[1]<-"IID"
 dat<-merge(dat,pheno,all.x=T)
 
 outfile<-paste(unlist(strsplit(args[1],"/"))[1:(length(unlist(strsplit(args[1],"/")))-1)],args[4],sep="/")
@@ -19,10 +21,10 @@ gg_color_hue <- function(n) {
 color<-gg_color_hue(max(dat$CLUSTER))
 
 pdf(args[7],width=7, height=7)
-for(i in grep("^PC",names(dat))) {
+for(i in grep("^PC",names(dat))[-length(grep("^PC",names(dat)))]) {
 	p<-ggplot(dat, aes(dat[,i],dat[,i+1])) +
 		geom_point(aes(color=factor(CLUSTER),shape=factor(SUPERPOP))) +
-		labs(x=paste("PC",i-1,sep=""),y=paste("PC",i,sep=""),shape="COHORT",colour="CLUSTER") +
+		labs(x=paste("PC",i-grep("^PC",names(dat))[1]+1,sep=""),y=paste("PC",i-grep("^PC",names(dat))[1]+2,sep=""),shape="COHORT",colour="CLUSTER") +
 		theme_bw() +
 		guides(col = guide_legend(override.aes = list(shape = 15, size = 10))) +
 		theme(axis.line = element_line(colour = "black"), 
@@ -101,7 +103,7 @@ for(i in 1:(nrow(centers_unknown)-(1+length(clusters_exclude)))) {
 # centers_unknown$ASSIGNED[! as.integer(row.names(centers_unknown)) %in% c(clusters_exclude,1) & centers_unknown$ratio < 1.5]<-centers_unknown$closest1[! as.integer(row.names(centers_unknown)) %in% c(clusters_exclude,1) & centers_unknown$ratio < 1.5]
 
 bd<-as.data.frame.matrix(table(dat[,c("CLUSTER","SUPERPOP")]))
-bd<-cbind(bd,as.data.frame.matrix(table(dat[,c("CLUSTER",args[5])])))
+bd<-cbind(bd,as.data.frame.matrix(table(dat[,c("CLUSTER",args[6])])))
 bd$cluster<-as.integer(row.names(bd))
 centers_unknown$ASSIGNED<-"OUTLIERS"
 centers_unknown$cluster<-as.integer(row.names(centers_unknown))

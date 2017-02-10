@@ -16,8 +16,6 @@ final class UgerConfigTest extends FunSuite {
     assert(UgerConfig.fromConfig(ConfigFactory.load()).isFailure)
     
     assert(UgerConfig.fromConfig(ConfigFactory.parseString("{}")).isFailure)
-    
-    assert(UgerConfig.fromFile("asjdghjasdgjhasdg").isFailure)
   }
   
   test("Parsing a UgerConfig should work") {
@@ -33,8 +31,8 @@ final class UgerConfigTest extends FunSuite {
       
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
-    assert(ugerConfig.ugerWorkDir === Paths.get("/foo/bar/baz"))
-    assert(ugerConfig.ugerLogFile === Paths.get("nuh/zuh.log"))
-    assert(ugerConfig.ugerMaxNumJobs === 44)
+    assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
+    assert(ugerConfig.logFile === Paths.get("nuh/zuh.log"))
+    assert(ugerConfig.maxNumJobs === 44)
   }
 }

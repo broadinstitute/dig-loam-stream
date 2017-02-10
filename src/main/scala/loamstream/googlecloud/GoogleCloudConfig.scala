@@ -1,9 +1,12 @@
 package loamstream.googlecloud
 
 import java.nio.file.Path
-import com.typesafe.config.Config
+
 import scala.util.Try
-import loamstream.util.ConfigEnrichments
+
+import com.typesafe.config.Config
+import loamstream.conf.ValueReaders
+
 import GoogleCloudConfig.Defaults
 
 /**
@@ -11,18 +14,18 @@ import GoogleCloudConfig.Defaults
  * Nov 28, 2016
  */
 final case class GoogleCloudConfig(
-                                    gcloudBinary: Path,
-                                    projectId: String,
-                                    clusterId: String,
-                                    credentialsFile: Path,
-                                    zone: String = Defaults.zone,
-                                    masterMachineType: String = Defaults.masterMachineType,
-                                    masterBootDiskSize: Int = Defaults.masterBootDiskSize, // in GB
-                                    numWorkers: Int = Defaults.numWorkers, // minimum 2
-                                    workerMachineType: String = Defaults.workerMachineType,
-                                    workerBootDiskSize: Int = Defaults.workerBootDiskSize, // in GB
-                                    imageVersion: String = Defaults.imageVersion, // 2.x not supported by Hail
-                                    scopes: String = Defaults.scopes)
+    gcloudBinary: Path,
+    projectId: String,
+    clusterId: String,
+    credentialsFile: Path,
+    zone: String = Defaults.zone,
+    masterMachineType: String = Defaults.masterMachineType,
+    masterBootDiskSize: Int = Defaults.masterBootDiskSize, // in GB
+    numWorkers: Int = Defaults.numWorkers, // minimum 2
+    workerMachineType: String = Defaults.workerMachineType,
+    workerBootDiskSize: Int = Defaults.workerBootDiskSize, // in GB
+    imageVersion: String = Defaults.imageVersion, // 2.x not supported by Hail
+    scopes: String = Defaults.scopes)
     
 object GoogleCloudConfig {
   object Defaults { // for creating a minimal cluster
@@ -37,45 +40,12 @@ object GoogleCloudConfig {
   }
   
   def fromConfig(config: Config): Try[GoogleCloudConfig] = {
-    import ConfigEnrichments._
+    import net.ceedubs.ficus.Ficus._
+    import net.ceedubs.ficus.readers.ArbitraryTypeReader._
+    import ValueReaders.PathReader
     
-    def path(s: String): String = s"loamstream.googlecloud.$s"
-    
-    def tryGetPath(key: String): Try[Path] = config.tryGetPath(path(key))
-    def tryGetString(key: String): Try[String] = config.tryGetString(path(key))
-    def tryGetInt(key: String): Try[Int] = config.tryGetInt(path(key))
-    
-    def getStringOrElse(key: String, default: String): String = tryGetString(key).getOrElse(default)
-    
-    def getIntOrElse(key: String, default: Int): Int = tryGetInt(key).getOrElse(default)
-    
-    for {
-      gcloudBinary <- tryGetPath("gcloudBinary")
-      projectId <- tryGetString("projectId")
-      clusterId <- tryGetString("clusterId")
-      credentialsFile <- tryGetPath("credentialsFile")
-      zone = getStringOrElse("zone", Defaults.zone)
-      masterMachineType = getStringOrElse("masterMachineType", Defaults.masterMachineType)
-      masterBootDiskSize = getIntOrElse("masterBootDiskSize", Defaults.masterBootDiskSize)
-      numWorkers = getIntOrElse("numWorkers", Defaults.numWorkers)
-      workerMachineType = getStringOrElse("workerMachineType", Defaults.workerMachineType)
-      workerBootDiskSize = getIntOrElse("workerBootDiskSize", Defaults.workerBootDiskSize)
-      imageVersion = getStringOrElse("imageVersion", Defaults.imageVersion)
-      scopes = getStringOrElse("scopes", Defaults.scopes)
-    } yield {
-      GoogleCloudConfig(
-        gcloudBinary,
-        projectId,
-        clusterId,
-        credentialsFile,
-        zone,
-        masterMachineType,
-        masterBootDiskSize,
-        numWorkers,
-        workerMachineType,
-        workerBootDiskSize,
-        imageVersion,
-        scopes)
-    }
+    //NB: Ficus now marshals the contents of loamstream.googlecloud into a GoogleCloudConfig instance.
+    //Names of fields in GoogleCloudConfig and keys under loamstream.googlecloud must match.
+    Try(config.as[GoogleCloudConfig]("loamstream.googlecloud"))
   }
 }

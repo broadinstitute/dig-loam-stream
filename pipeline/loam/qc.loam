@@ -359,33 +359,22 @@ cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS
  */
 
 val SAMPLEQC_STATS_ADJ_BASE = outDIR / s"${outLABEL}.sampleqc.stats.adj"
-val SAMPLEQC_PCA_CLUSTER_LOG = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".klustakwik.log")
-val SAMPLEQC_STATS_ADJ_FET1 = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".fet.1")
-val SAMPLEQC_STATS_ADJ_CLU1 = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".clu.1")
-val SAMPLEQC_STATS_ADJ_TEMP_CLU1 = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".temp.clu.1")
-val SAMPLEQC_STATS_ADJ_KLG = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".klg.1")
+val SAMPLEQC_PCA_KLUSTAKWIK_OUTPUT = klustakwikOutput(SAMPLEQC_STATS_ADJ_BASE)
+val SAMPLEQC_PCA_LOG = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".klustakwik.log")
 val SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.outliers.tsv")
 val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.clusters.plots.pdf")
 val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.clusters.xtab")
 val SAMPLEQC_STATS_ADJ_STRIPCHART_PDF = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".stripchart.pdf")
 
-//TODO
-val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
+cmd"""N=$$(head -1 $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | wc | awk '{print $$2-1}');
+  echo $$N > ${SAMPLEQC_PCA_KLUSTAKWIK_OUTPUT(0)};
+  sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> ${SAMPLEQC_PCA_KLUSTAKWIK_OUTPUT(0)};
+  FEATURES=1; for i in $$(seq 2 $$n); do FEATURES=$${FEATURES}1; done;
+  $KLUSTAKWIK $SAMPLEQC_PCA_KLUSTAKWIK_OUTPUT 1 -UseFeatures $$FEATURES -UseDistributional 0 > $SAMPLEQC_PCA_LOG""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV +: SAMPLEQC_PCA_KLUSTAKWIK_OUTPUT).out(SAMPLEQC_PCA_LOG)
 
-{
-  //TODO
-  //NB: Intent was to count the delimiters in the first line of SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH ? 
-  val N: Int = ???
-  val FEATURES = "1" * N
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV ${SAMPLEQC_PCA_KLUSTAKWIK_OUTPUT(2)} $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $outLABEL < $ISTATS_PCS_GMM_CLUSTER_PLOT_R""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, SAMPLEQC_PCA_KLUSTAKWIK_OUTPUT(2)).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB)
 
-  cmd"""echo $N > $SAMPLEQC_STATS_ADJ_FET1; sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> $SAMPLEQC_STATS_ADJ_FET1""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_FET1)
-
-  cmd"""$KLUSTAKWIK $SAMPLEQC_STATS_ADJ_FET1_BASE 1 -UseFeatures $FEATURES -UseDistributional 0 > $SAMPLEQC_PCA_CLUSTER_LOG""".in(SAMPLEQC_STATS_ADJ_FET1).out(SAMPLEQC_PCA_CLUSTER_LOG, SAMPLEQC_STATS_ADJ_CLU1, SAMPLEQC_STATS_ADJ_TEMP_CLU1, SAMPLEQC_STATS_ADJ_KLG)
-
-  cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV $SAMPLEQC_STATS_ADJ_CLU1 $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $outLABEL < $ISTATS_PCS_GMM_CLUSTER_PLOT_R""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, SAMPLEQC_STATS_ADJ_CLU1).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB)
-
-  cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $ISTATS_PCS_GMM_PLOT_METRICS_R""".in(SAMPLEQC_STATS_ADJ_TSV, SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV).out(SAMPLEQC_STATS_ADJ_STRIPCHART_PDF)
-}
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $ISTATS_PCS_GMM_PLOT_METRICS_R""".in(SAMPLEQC_STATS_ADJ_TSV, SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV).out(SAMPLEQC_STATS_ADJ_STRIPCHART_PDF)
 
 /**
  * Sample QC Individual Stats Clustering Step
@@ -397,57 +386,38 @@ val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
  *     ${outLABEL}.sampleqc.stats.adj.individual.outliers.table, ${outLABEL}.sampleqc.stats.adj.individual.outliers.remove, ${outLABEL}.sampleqc.stats.adj.individual.stripchart.pdf
  * Notes:
  */
-{
-  //TODO
-  //NB: Intent was to count the delimiters in the first line of SAMPLEQC_STATS_ADJ_TSV_PATH?
-  val N: Int = ???
-  //TODO
-  //NB: Intent was to get the first line of SAMPLEQC_STATS_ADJ_TSV_PATH, split on whitespace?
-  val headers: IndexedSeq[String] = ???
 
-  val SAMPLEQC_KLUSTAKWIK_OUTPUT: Array[Seq[LoamStore[TXT]]] = Array.empty
-  val SAMPLEQC_LOGS: Array[LoamStore[TXT]] = Array.ofDim(N)
-  val SAMPLEQC_CLU1_WILD = outDIR / s"${outLABEL}.sampleqc.stats.adj.*.clu.1"
-  val SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.boxplot.pdf")
-  val SAMPLEQC_STATS_ADJ_IND_DISCRETENESS = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.discreteness")
-  val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.table")
-  val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.remove")
-  val SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.stripchart.pdf")
+val SAMPLEQC_KLUSTAKWIK_OUTPUT: Array[Seq[LoamStore[TXT]]] = Array.empty
+val SAMPLEQC_LOGS: Array[LoamStore[TXT]] = Array.empty
+val SAMPLEQC_CLU1_WILD = outDIR / s"${outLABEL}.sampleqc.stats.adj.*.clu.1"
+val SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.boxplot.pdf")
+val SAMPLEQC_STATS_ADJ_IND_DISCRETENESS = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.discreteness")
+val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.table")
+val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.remove")
+val SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.stripchart.pdf")
 
-  for (i <- 0 until N) {
-    val id: String = headers(i + 1)
-    SAMPLEQC_KLUSTAKWIK_OUTPUT(i) = klustakwikOutput(outDIR / s"${outLABEL}.sampleqc.stats.adj.${id}")
-    SAMPLEQC_LOGS(i) = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.${id}.klustakwik.log")
+for (i <- 0 until 11) {
+  SAMPLEQC_KLUSTAKWIK_OUTPUT(i) = klustakwikOutput(outDIR / s"${outLABEL}.sampleqc.stats.adj.${i}")
+  SAMPLEQC_LOGS(i) = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.${i}.klustakwik.log")
 
-    cmd"""echo $N > ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0)}; sed '1d' $SAMPLEQC_STATS_ADJ_TSV | cut -f2- | sed 's/\t/ /g' >> ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0)}""".in(SAMPLEQC_STATS_ADJ_TSV).out(SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0))
+  cmd"""echo 1 > ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0)}; 
+    sed '1d' $SAMPLEQC_STATS_ADJ_TSV | awk -v col=${i+1} '{print $$col}' >> ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0)};
+    ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${i+1}); echo $$ID
+    > ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(4)}""".in(SAMPLEQC_STATS_ADJ_TSV).out(SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0), SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(4))
 
-    val include: String = {
-      //Make an array of flags and turn it into a string to avoid verbose substring manipulation.
-      //NB: int arrays are guaranteed to be initialized with zeroes on the JVM.
-
-      val flags = Array.ofDim[Int](N)
-      flags(i) = 1
-      flags.mkString
-    }
-
-    //TODO
-    val KLUSTAKWIK_SAMPLEQC_BASES: IndexedSeq[Path] = ???
-
-    cmd"""${KLUSTAKWIK_SAMPLEQC_BASES(i)} 1 -UseFeatures $include -UseDistributional 0 > ${SAMPLEQC_LOGS(i)}""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT(i)).out(SAMPLEQC_LOGS(i) +: SAMPLEQC_KLUSTAKWIK_OUTPUT(i))
-  }
-
-  cmd"""$R --vanilla --args
-    $SAMPLEQC_CLU1_WILD
-    $SAMPLEQC_STATS_TSV
-    $SAMPLEQC_STATS_ADJ_TSV
-    $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
-    $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
-    $SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
-    $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
-    $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
-    $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
-    $ANCESTRY
-    < $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
-
-  //TODO: Is `SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten` correct here?
+  cmd"""$KLUSTAKWIK ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)} 1 -UseFeatures 1 -UseDistributional 0 > ${SAMPLEQC_LOGS(i)}""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT(i)).out(SAMPLEQC_LOGS(i) +: SAMPLEQC_KLUSTAKWIK_OUTPUT(i))
 }
+
+cmd"""$R --vanilla --args
+  $SAMPLEQC_CLU1_WILD
+  $SAMPLEQC_STATS_TSV
+  $SAMPLEQC_STATS_ADJ_TSV
+  $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
+  $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
+  $SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
+  $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
+  $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
+  $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
+  $ANCESTRY
+  < $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
+

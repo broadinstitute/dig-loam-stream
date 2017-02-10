@@ -1,5 +1,4 @@
-/** Scripts
-*/
+// Scripts
 
 val rScriptsDir = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts")
 

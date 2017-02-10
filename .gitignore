@@ -8,6 +8,7 @@ projectFilesBackup/
 /lib/
 /logs/
 hail.log
+plink.log
 /modules
 /out
 /project/project

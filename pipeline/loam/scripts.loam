@@ -1,14 +1,12 @@
-/** Scripts
-*/
+// Scripts
 
-val CALC_KINSHIP_SAMPLE_SHARING_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/calc_kinship_sample_sharing.r")
-val PLOT_ANCESTRY_PCA_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/plot_ancestry_pca.r")
-val PLOT_ANCESTRY_CLUSTER_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/plot_ancestry_cluster.r")
-val ISTATS_PCS_GMM_CLUSTER_PLOT_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/istats_pcs_gmm_cluster_plot.r")
-val ISTATS_PCS_GMM_PLOT_METRICS_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/istats_pcs_gmm_plot_metrics.r")
-val ISTATS_ADJ_GMM_PLOT_METRICS_R = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts/istats_adj_gmm_plot_metrics.r")
+val rScriptsDir = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts")
 
-//TODO
-//val CALC_ISTATS_ADJ_R: Path = ???
-//TODO
-//val ISTATS_ADJ_PCA_R: Path = ???
+val CALC_KINSHIP_SAMPLE_SHARING_R = rScriptsDir / "calc_kinship_sample_sharing.r"
+val PLOT_ANCESTRY_PCA_R = rScriptsDir / "plot_ancestry_pca.r"
+val PLOT_ANCESTRY_CLUSTER_R = rScriptsDir / "plot_ancestry_cluster.r"
+val ISTATS_PCS_GMM_CLUSTER_PLOT_R = rScriptsDir / "istats_pcs_gmm_cluster_plot.r"
+val ISTATS_PCS_GMM_PLOT_METRICS_R = rScriptsDir / "istats_pcs_gmm_plot_metrics.r"
+val ISTATS_ADJ_GMM_PLOT_METRICS_R = rScriptsDir / "istats_adj_gmm_plot_metrics.r"
+val CALC_ISTATS_ADJ_R: Path = rScriptsDir / "calc_istats_adj.r"
+val ISTATS_ADJ_PCA_R: Path = rScriptsDir / "istats_adj_pca.r"

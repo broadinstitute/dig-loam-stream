@@ -28,8 +28,11 @@ val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(NUM_CHR)
 val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(NUM_CHR)
 val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
 val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
-val VCF_BASE = outDIR / s"$outLABEL.harmonized.ref"
-val VCF = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vcf.gz")
+val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
+val VCF_BASE = outDIR / VCF_BASE_NAME
+val VCF = store[VCF].at(outDIR / s"$VCF_BASE_NAME.vcf")
+val VCF_GZ = store[VCF].at(outDIR / s"$VCF_BASE_NAME.vcf.gz")
+val VCF_GZ_TBI = store[VCF].at(outDIR / s"$VCF_BASE_NAME.vcf.gz.tbi")
 val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(NUM_CHR)
 val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(NUM_CHR)
 val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(NUM_CHR)
@@ -53,7 +56,7 @@ for (i <- START_CHR to END_CHR) {
   cmd"""$GENOTYPE_HARMONIZER 
     --input $PLINK_CHRS_NAME
     --inputType PLINK_BED
-    --output $PLINK_CHRS_HARMONIZED_NAME
+    --output ${PLINK_CHRS_HARMONIZED_NAME(j)}
     --outputType PLINK_BED
     --ref ${KG_VCFS(j)}
     --refType VCF
@@ -75,16 +78,17 @@ cmd"""$PLINK --bfile ${PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list $MERGE_LIST -
 
 cmd"""awk '{print $$2,$$5}' $PLINK_HARMONIZED_NAME.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
 
-cmd"""$PLINK --bfile $PLINK_HARMONIZED_NAME --recode vcf-iid bgz --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE | gzip > $VCF""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
-/*KAAN
-cmd"""$TABIX -p vcf $VCF""".in(VCF)
+cmd"""$PLINK --bfile $PLINK_HARMONIZED_NAME --recode vcf-iid --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
+
+cmd"""bgzip --stdout $VCF > $VCF_GZ""".in(VCF).out(VCF_GZ)
+
+cmd"""$TABIX -f -p vcf $VCF_GZ""".in(VCF_GZ).out(VCF_GZ_TBI)
 
 cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)
 
-cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
+cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED_NAME}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
 
-
-
+/*KAAN
 
 /**
  * Load Step
@@ -126,7 +130,7 @@ cmd"""$HAIL -l $LOAD_LOG
 
 val VDS_FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc.vds")
 val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$outLABEL.for_qc.pruned.vds")
-// TODO Possible to remove explicity typing on the two lines below?
+// TODO Possible to remove explicit typing on the two lines below?
 val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc")
 val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc.pruned")
 val FILTER_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.log")

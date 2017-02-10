@@ -2,7 +2,8 @@
 val inVCF = store[VCF].at("/humgen/diabetes/users/ryank/pipelines/QCpipeline/example/bash/data/CAMP.vcf.gz").asInput
 
 /** Output directory path */
-val outDIR = path("qc")
+val outDirLoc = "qc"
+val outDIR = path(outDirLoc)
 
 /** Label for output prefix */
 val outLABEL = "CAMP"

@@ -19,33 +19,46 @@ import scala.io.Source
  *     Ideally, this will be run in parallel by chromosome number
  */
 
-val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
-val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
-val PLINK_HARMONIZED = bedBimFam(outDIR / s"$outLABEL.harmonized")
-val VCF_BASE = outDIR / s"$outLABEL.harmonized.ref"
-val VCF = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vcf.gz")
-val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(22)
-val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(22)
-val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(22)
+val START_CHR = 21
+val END_CHR = 22
+val NUM_CHR = END_CHR - START_CHR + 1
+
+val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(NUM_CHR)
+val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(NUM_CHR)
+val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(NUM_CHR)
+val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
+val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
+val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
+val VCF_BASE = outDIR / VCF_BASE_NAME
+val VCF = store[VCF].at(outDIR / s"$VCF_BASE_NAME.vcf")
+val VCF_GZ = store[VCF].at(outDIR / s"$VCF_BASE_NAME.vcf.gz")
+val VCF_GZ_TBI = store[VCF].at(outDIR / s"$VCF_BASE_NAME.vcf.gz.tbi")
+val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(NUM_CHR)
+val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(NUM_CHR)
+val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(NUM_CHR)
+val MERGE_LINE: Array[String] = Array.ofDim(NUM_CHR)
 val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
 val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
 val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
 
-for (i <- 1 to 22) {
-  PLINK_CHRS(i - 1) = bedBimFam(outDIR / s"$outLABEL.chr$i")
-  PLINK_CHRS_HARMONIZED(i - 1) = bedBimFam(outDIR / s"$outLABEL.chr$i.harmonized")
-  KG_VCFS(i - 1) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
-  IDUPDATES(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
-  SNPLOGS(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
+for (i <- START_CHR to END_CHR) {
+  val j = i - START_CHR
+  val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
+  PLINK_CHRS(j) = bedBimFam(PLINK_CHRS_NAME)
+  PLINK_CHRS_HARMONIZED_NAME(j) = outDIR / s"$outLABEL.chr$i.harmonized"
+  PLINK_CHRS_HARMONIZED(j) = bedBimFam(PLINK_CHRS_HARMONIZED_NAME(j))
+  KG_VCFS(j) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
+  IDUPDATES(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
+  SNPLOGS(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
 
-  cmd"""$PLINK --bfile $inVCF --chr $i --keep-allele-order --make-bed --out ${PLINK_CHRS(i - 1)}""".in(inVCF).out(PLINK_CHRS(i - 1))
+  cmd"""$PLINK --vcf $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_NAME""".in(inVCF).out(PLINK_CHRS(j))
 
   cmd"""$GENOTYPE_HARMONIZER 
-    --input ${PLINK_CHRS(i - 1)}
+    --input $PLINK_CHRS_NAME
     --inputType PLINK_BED
-    --output ${PLINK_CHRS_HARMONIZED(i - 1)}
+    --output ${PLINK_CHRS_HARMONIZED_NAME(j)}
     --outputType PLINK_BED
-    --ref ${KG_VCFS(i - 1)}
+    --ref ${KG_VCFS(j)}
     --refType VCF
     --keep
     --update-id
@@ -53,26 +66,27 @@ for (i <- 1 to 22) {
     --mafAlign 0.1
     --update-id
     --update-reference-allele
-    --debug""".in(PLINK_CHRS(i - 1) :+ KG_VCFS(i - 1)).out(PLINK_CHRS_HARMONIZED(i - 1) :+ IDUPDATES(i - 1) :+ SNPLOGS(i - 1))
+    --debug""".in(PLINK_CHRS(j) :+ KG_VCFS(j)).out(PLINK_CHRS_HARMONIZED(j) :+ IDUPDATES(j) :+ SNPLOGS(j))
+
+  MERGE_LINE(j) = s"${PLINK_CHRS_HARMONIZED_NAME(j) + s".$bed"} ${PLINK_CHRS_HARMONIZED_NAME(j) + s".$bim"} ${PLINK_CHRS_HARMONIZED_NAME(j) + s".$fam"}"
 }
 
-cmd"""echo "${PLINK_CHRS_HARMONIZED(1)}.bed ${PLINK_CHRS_HARMONIZED(1)}.bim ${PLINK_CHRS_HARMONIZED(1)}.fam" > $MERGE_LIST""".out(MERGE_LIST)
+val MERGE_LINES: String = MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
+cmd"""echo "$MERGE_LINES" > $MERGE_LIST""".out(MERGE_LIST)
 
-for (i <- 3 to 22) {
-  cmd"""echo "${PLINK_CHRS_HARMONIZED(i - 1)}.bed ${PLINK_CHRS_HARMONIZED(i - 1)}.bim ${PLINK_CHRS_HARMONIZED(i - 1)}.fam" >> $MERGE_LIST""".in(MERGE_LIST).out(MERGE_LIST)
-}
+cmd"""$PLINK --bfile ${PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED_NAME""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
 
-cmd"""$PLINK --bfile $PLINK_CHRS_HARMONIZED(0) --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
+cmd"""awk '{print $$2,$$5}' $PLINK_HARMONIZED_NAME.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
 
-cmd"""awk '{print $$2,$$5}' $PLINK_HARMONIZED.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
+cmd"""$PLINK --bfile $PLINK_HARMONIZED_NAME --recode vcf-iid --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
 
-cmd"""$PLINK --bfile $PLINK_HARMONIZED --recode vcf-iid bgz --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
+cmd"""bgzip --stdout $VCF > $VCF_GZ""".in(VCF).out(VCF_GZ)
 
-cmd"""$TABIX -p vcf $VCF""".in(VCF)
+cmd"""$TABIX -f -p vcf $VCF_GZ""".in(VCF_GZ).out(VCF_GZ_TBI)
 
 cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)
 
-cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
+cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED_NAME}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
 
 /**
  * Load Step
@@ -101,7 +115,7 @@ cmd"""$HAIL -l $LOAD_LOG
   write
   -o $VDS
   count
-  -g""".in(VCF, SAMPLE_FILE).out(LOAD_LOG, VDS)
+  -g""".in(VCF_GZ, VCF_GZ_TBI, SAMPLE_FILE).out(LOAD_LOG, VDS)
 
 /**
  * Filter Step
@@ -112,16 +126,20 @@ cmd"""$HAIL -l $LOAD_LOG
  *  Notes:
  */
 
-val VDS_FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc.vds")
-val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$outLABEL.for_qc.pruned.vds")
-// TODO Possible to remove explicity typing on the two lines below?
-val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc")
-val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc.pruned")
+val FOR_QC_NAME = s"$outLABEL.for_qc"
+val FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc")
+val VDS_FOR_QC = store[VCF].at(outDIR / s"$FOR_QC_NAME.vds")
+val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$FOR_QC_NAME.pruned.vds")
+// TODO Possible to remove explicit typing on the two lines below?
+val PLINK_FOR_QC_NAME = outDIR / FOR_QC_NAME
+val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
+val PLINK_FOR_QC_PRUNED_NAME = outDIR / s"$FOR_QC_NAME.pruned"
+val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_PRUNED_NAME)
 val FILTER_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.log")
 val FILTERPRUNED_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.pruned.log")
 val VARIANTQC_TSV = store[TXT].at(outDIR / s"$outLABEL.variantqc.tsv")
-val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.in")
-val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.out")
+val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"$FOR_QC_NAME.prune.in")
+val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"$FOR_QC_NAME.prune.out")
 
 cmd"""$HAIL -l $FILTER_LOG
   read -i $VDS
@@ -131,11 +149,11 @@ cmd"""$HAIL -l $FILTER_LOG
   filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
   filtervariants intervals -i $inREGIONS_EXCLUDE --remove
   write
-  -o $VDS_FOR_QC
+  --overwrite -o $VDS_FOR_QC
   exportplink
-  -o $PLINK_FOR_QC""".in(VDS, inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
+  -o $FOR_QC""".in(VDS, inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
 
-cmd"""$PLINK --bfile $PLINK_FOR_QC --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN, FOR_QC_PRUNE_OUT)
+cmd"""$PLINK --bfile $PLINK_FOR_QC_NAME --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC_NAME""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN, FOR_QC_PRUNE_OUT)
 
 cmd"""$HAIL -l $FILTERPRUNED_LOG
   read -i $VDS_FOR_QC
@@ -143,7 +161,7 @@ cmd"""$HAIL -l $FILTERPRUNED_LOG
   write
   -o $VDS_FOR_QC_PRUNED
   exportplink
-  -o $PLINK_FOR_QC_PRUNED""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
+  -o $PLINK_FOR_QC_PRUNED_NAME""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
 
 /**
  * Kinship Step
@@ -165,7 +183,7 @@ val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
 val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
 val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
 
-cmd"""$KING -b $PLINK_FOR_QC_PRUNED.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
+cmd"""$KING -b $PLINK_FOR_QC_PRUNED_NAME.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
 
 cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $KIN0_RELATED""".in(KIN0).out(KIN0_RELATED)
 

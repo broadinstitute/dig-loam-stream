@@ -88,8 +88,6 @@ cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)
 
 cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED_NAME}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
 
-/*KAAN
-
 /**
  * Load Step
  *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
@@ -117,7 +115,7 @@ cmd"""$HAIL -l $LOAD_LOG
   write
   -o $VDS
   count
-  -g""".in(VCF, SAMPLE_FILE).out(LOAD_LOG, VDS)
+  -g""".in(VCF_GZ, VCF_GZ_TBI, SAMPLE_FILE).out(LOAD_LOG, VDS)
 
 /**
  * Filter Step
@@ -128,16 +126,19 @@ cmd"""$HAIL -l $LOAD_LOG
  *  Notes:
  */
 
-val VDS_FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc.vds")
-val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$outLABEL.for_qc.pruned.vds")
+val FOR_QC_NAME = s"$outLABEL.for_qc"
+val FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc")
+val VDS_FOR_QC = store[VCF].at(outDIR / s"$FOR_QC_NAME.vds")
+val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$FOR_QC_NAME.pruned.vds")
 // TODO Possible to remove explicit typing on the two lines below?
-val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc")
-val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc.pruned")
+val PLINK_FOR_QC_NAME: Path = outDIR / FOR_QC_NAME
+val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
+val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$FOR_QC_NAME.pruned")
 val FILTER_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.log")
 val FILTERPRUNED_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.pruned.log")
 val VARIANTQC_TSV = store[TXT].at(outDIR / s"$outLABEL.variantqc.tsv")
-val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.in")
-val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.out")
+val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"$FOR_QC_NAME.prune.in")
+val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"$FOR_QC_NAME.prune.out")
 
 cmd"""$HAIL -l $FILTER_LOG
   read -i $VDS
@@ -147,12 +148,12 @@ cmd"""$HAIL -l $FILTER_LOG
   filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
   filtervariants intervals -i $inREGIONS_EXCLUDE --remove
   write
-  -o $VDS_FOR_QC
+  --overwrite -o $VDS_FOR_QC
   exportplink
-  -o $PLINK_FOR_QC""".in(VDS, inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
+  -o $FOR_QC""".in(VDS, inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
 
-cmd"""$PLINK --bfile $PLINK_FOR_QC --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN, FOR_QC_PRUNE_OUT)
-
+cmd"""$PLINK --bfile $PLINK_FOR_QC_NAME --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC_NAME""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN, FOR_QC_PRUNE_OUT)
+/*KAAN
 cmd"""$HAIL -l $FILTERPRUNED_LOG
   read -i $VDS_FOR_QC
   filtervariants list -i $FOR_QC_PRUNE_IN --keep

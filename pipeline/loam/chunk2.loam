@@ -1,0 +1,188 @@
+import input._
+import binaries._
+import binaries_cloud._
+import cloud_helpers._
+import scripts._
+import store_helpers._
+import loamstream.loam.LoamStore
+import scala.io.Source
+
+//TODO: Make this configurable
+val clusterId = "cg-test"
+
+object Local {
+  private val chunk2InputDir = path("/home/unix/cgilbert/humgen/inputs/chunk2/qc/")
+    
+  val VDS = store[TXT].at(chunk2InputDir / s"$outLABEL.harmonized.ref.vds")
+  val VDS_FOR_QC_PRUNED = store[TXT].at(chunk2InputDir / s"$outLABEL.for_qc.pruned.vds")
+  
+  val ANCESTRYPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.log")
+  val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.tsv")
+  val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.loadings.tsv")
+  val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.plots.pdf")
+  
+  val NONOUTLIERPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.pca.log")
+  val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.scores.tsv")
+  val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.loadings.tsv")
+  
+  val ANCESTRY_PREFIX = outDIR / s"${outLABEL}.ancestry"
+  val ANCESTRYCLUSTER_LOG = store[TXT].at(ANCESTRY_PREFIX + ".cluster.log")
+  val ANCESTRY_FET = store[TXT].at(ANCESTRY_PREFIX + ".fet.1")
+  val ANCESTRY_TEMP_CLU = store[TXT].at(ANCESTRY_PREFIX + ".temp.clu.1")
+  val ANCESTRY_CLU = store[TXT].at(ANCESTRY_PREFIX + ".clu.1")
+  val ANCESTRY_KLG = store[TXT].at(ANCESTRY_PREFIX + ".klg.1")
+  val ANCESTRY_CLUSTER_PLOTS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.pdf")
+  val ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.centers.pdf")
+  val ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.no_1kg.pdf")
+  val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
+  val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
+  val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
+}
+
+object GoogleCloud {
+  private val root = uri("gs://loamstream/qc/chunk2")
+  private val data = root / "data"
+  private val out = root / "out"
+  
+  val inKG_HAIL = store[TXT].at(data / "inkg_hail.vds")
+  val VDS = store[TXT].at(data / s"$outLABEL.harmonized.ref.vds")
+  val inKG_V3_5K_AF = store[TXT].at(data / "allele_frequencies.tsv")
+  
+  val VDS_FOR_QC_PRUNED = store[TXT].at(data / s"$outLABEL.for_qc.pruned.vds")
+  
+  val ANCESTRYPCA_LOG = store[TXT].at(out / s"${outLABEL}.ancestry.pca.log")
+  val ANCESTRYPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.scores.tsv") 
+  val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.loadings.tsv")
+  
+  val NONOUTLIERPCA_LOG = store[TXT].at(out / s"${outLABEL}.pca.log")
+  val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.pca.scores.tsv")
+  val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(out / s"${outLABEL}.pca.loadings.tsv")
+  
+  val ANCESTRY_PREFIX = out / s"${outLABEL}.ancestry"
+  val ANCESTRYCLUSTER_LOG = store[TXT].at(ANCESTRY_PREFIX + ".cluster.log")
+  val ANCESTRY_FET = store[TXT].at(ANCESTRY_PREFIX + ".fet.1")
+  val ANCESTRY_TEMP_CLU = store[TXT].at(ANCESTRY_PREFIX + ".temp.clu.1")
+  val ANCESTRY_CLU = store[TXT].at(ANCESTRY_PREFIX + ".clu.1")
+  val ANCESTRY_KLG = store[TXT].at(ANCESTRY_PREFIX + ".klg.1")
+  val ANCESTRY_CLUSTER_PLOTS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.pdf")
+  val ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.centers.pdf")
+  val ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.no_1kg.pdf")
+  val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
+  val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
+  val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
+}
+
+// CHUNK 2
+
+/**
+  * Ancestry PCA Step
+  *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
+  *  Requires: Hail, R, $PLOT_ANCESTRY_PCA_R
+  *  Input: $VDS, $inKG_HAIL, $inKG_V3_5K_AF
+  *  Output: ${outLABEL}.ancestry.pca.log, ${outLABEL}.ancestry.pca.scores.tsv, ${outLABEL}.ancestry.pca.loadings.tsv, .${outLABEL}.ancestry.pca.scores.tsv.crc,
+  *     ${outLABEL}.ancestry.pca.loadings.tsv.crc ${outLABEL}.ancestry.pca.scores.plots.pdf
+  *  Notes:
+  *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
+  */
+
+
+
+google {
+  googleCopy(input.inKG_HAIL, GoogleCloud.inKG_HAIL)
+  googleCopy(Local.VDS, GoogleCloud.VDS)
+  googleCopy(input.inKG_V3_5K_AF, GoogleCloud.inKG_V3_5K_AF)
+
+  //NB: '--' must separate params for gcloud from those for hail
+  cmd"""$gcloud dataproc jobs submit spark
+    --cluster $clusterId
+    --jar $hailJarCloud
+    --class org.broadinstitute.hail.driver.Main
+    --
+      -l ${GoogleCloud.ANCESTRYPCA_LOG}
+      read ${GoogleCloud.inKG_HAIL}
+      put -n KG
+      read -i ${GoogleCloud.VDS}
+      join --right KG
+      annotatevariants table ${GoogleCloud.inKG_V3_5K_AF}
+      -e Variant
+      -c "va.refPanelAF = table.refPanelAF"
+      --impute
+      pca -k 10
+      --scores sa.pca.scores
+      --eigenvalues global.pca.evals
+      --loadings va.pca.loadings
+      exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10"
+      -o ${GoogleCloud.ANCESTRYPCA_SCORES_TSV}
+      exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
+      -o ${GoogleCloud.ANCESTRYPCA_LOADINGS_TSV}
+    """.in(GoogleCloud.inKG_HAIL, GoogleCloud.VDS, GoogleCloud.inKG_V3_5K_AF).out(GoogleCloud.ANCESTRYPCA_LOG, GoogleCloud.ANCESTRYPCA_SCORES_TSV, GoogleCloud.ANCESTRYPCA_LOADINGS_TSV)
+  
+  googleCopy(GoogleCloud.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRYPCA_SCORES_TSV)
+}
+
+uger {
+  cmd"""$R --vanilla --args ${Local.ANCESTRYPCA_SCORES_TSV} ${Local.ANCESTRYPCA_SCORES_PLOTS_PDF} < $PLOT_ANCESTRY_PCA_R""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRYPCA_SCORES_PLOTS_PDF)
+
+  /**
+   * Ancestry Cluster Step
+   *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
+   *  Requires: Hail, R, $PLOT_ANCESTRY_CLUSTER_R, $outLABEL, $PHENO_ID, $PHENO_SR_RACE
+   *  Input: ${outLABEL}.ancestry.pca.scores.tsv, $inPHENO
+   *  Output: ${outLABEL}.ancestry.fet.1, ${outLABEL}.ancestry.temp.clu.1, ${outLABEL}.ancestry.clu.1, ${outLABEL}.ancestry.klg.1, ${outLABEL}.ancestry.cluster_plots.pdf,
+   *     ${outLABEL}.ancestry.cluster_xtabs, ${outLABEL}.ancestry.cluster_plots.centers.pdf, ${outLABEL}.ancestry.clusters_assigned, ${outLABEL}.ancestry
+   *  Notes:
+   *     ${outLABEL}.ancestry contains the final inferred ancestry for each sample, including OUTLIERS
+   *     This file may be updated after reconciling with other arrays
+   */
+
+  cmd"""(echo 10 ; sed '1d' ${Local.ANCESTRYPCA_SCORES_TSV} | cut -f5- | sed 's/\t/ /g') > ${Local.ANCESTRY_FET}""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRY_FET)
+
+  cmd"""${KLUSTAKWIK} ${Local.ANCESTRY_PREFIX} 1 -UseFeatures 1110000000 -UseDistributional 0 > ${Local.ANCESTRYCLUSTER_LOG}""".in(Local.ANCESTRY_FET).out(Local.ANCESTRY_TEMP_CLU, Local.ANCESTRY_CLU, Local.ANCESTRY_KLG)
+
+  cmd"""$R --vanilla --args ${Local.ANCESTRYPCA_SCORES_TSV} ${Local.ANCESTRY_CLU} $inPHENO $outLABEL $PHENO_ID $PHENO_SR_RACE 
+    ${Local.ANCESTRY_CLUSTER_PLOTS_PDF} ${Local.ANCESTRY_CLUSTER_XTABS} ${Local.ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF}
+    ${Local.ANCESTRY_CLUSTERS_ASSIGNED} ${Local.ANCESTRY} ${Local.ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF} 
+    < $PLOT_ANCESTRY_CLUSTER_R""".in(Local.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRY_CLU, inPHENO).out(Local.ANCESTRY_CLUSTER_PLOTS_PDF, Local.ANCESTRY_CLUSTER_XTABS, Local.ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF, Local.ANCESTRY_CLUSTERS_ASSIGNED, Local.ANCESTRY, Local.ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
+}
+
+/**
+ * Non-Outlier PCA Step
+ *  Description: Calculate PCs for all non-outlier samples combined (to be used for adjustment during sample outlier removal)
+ *  Requires: Hail
+ *  Input: $VDS_FOR_QC_PRUNED, $ANCESTRY
+ *  Output: ${outLABEL}.pca.log, ${outLABEL}.pca.scores.tsv, ${outLABEL}.pca.loadings.tsv, .${outLABEL}.pca.scores.tsv.crc,
+ *     ${outLABEL}.pca.loadings.tsv.crc
+ *  Notes:
+ */
+
+google {
+  googleCopy(Local.VDS_FOR_QC_PRUNED, GoogleCloud.VDS_FOR_QC_PRUNED)
+  googleCopy(Local.ANCESTRY, GoogleCloud.ANCESTRY)
+
+  //NB: '--' must separate params for gcloud from those for hail
+  cmd"""$gcloud dataproc jobs submit spark
+    --cluster $clusterId
+    --jar $hailJarCloud
+    --class org.broadinstitute.hail.driver.Main
+    -- 
+      -l ${GoogleCloud.NONOUTLIERPCA_LOG}
+      read ${GoogleCloud.VDS_FOR_QC_PRUNED}
+      annotatesamples table
+      -i ${GoogleCloud.ANCESTRY}
+      --no-header
+      -e _0
+      --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
+      filtersamples expr -c "sa.pheno.SUPERPOP != \"OUTLIERS\"" --keep
+      pca -k 10
+      --scores sa.pca.scores
+      --eigenvalues global.pca.evals
+      --loadings va.pca.loadings
+      exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10"
+      -o ${GoogleCloud.NONOUTLIERPCA_SCORES_TSV}
+      exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
+      -o ${GoogleCloud.NONOUTLIERPCA_LOADINGS_TSV}
+    """.in(GoogleCloud.VDS_FOR_QC_PRUNED, GoogleCloud.ANCESTRY).out(GoogleCloud.NONOUTLIERPCA_SCORES_TSV, GoogleCloud.NONOUTLIERPCA_LOADINGS_TSV)
+  
+  googleCopy(GoogleCloud.NONOUTLIERPCA_SCORES_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
+  googleCopy(GoogleCloud.NONOUTLIERPCA_LOADINGS_TSV, Local.NONOUTLIERPCA_LOADINGS_TSV)
+}

@@ -1,0 +1,7 @@
+val hailJarCloud = uri("gs://loamstream/hail/hail-all-spark.jar")
+
+val (gcloud, gsutil) = {
+  val binDir = path("/home/unix/cgilbert/humgen/google-cloud-sdk/bin/")
+
+  (binDir / "gcloud", binDir / "gsutil")
+}

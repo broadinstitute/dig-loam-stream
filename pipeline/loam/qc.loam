@@ -162,7 +162,7 @@ cmd"""$HAIL -l $FILTERPRUNED_LOG
   -o $VDS_FOR_QC_PRUNED
   exportplink
   -o $PLINK_FOR_QC_PRUNED_NAME""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
-/*KAAN
+
 /**
  * Kinship Step
  *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
@@ -183,7 +183,7 @@ val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
 val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
 val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
 
-cmd"""$KING -b $PLINK_FOR_QC_PRUNED.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
+cmd"""$KING -b $PLINK_FOR_QC_PRUNED_NAME.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
 
 cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $KIN0_RELATED""".in(KIN0).out(KIN0_RELATED)
 
@@ -451,4 +451,3 @@ val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
 
   //TODO: Is `SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten` correct here?
 }
-*/

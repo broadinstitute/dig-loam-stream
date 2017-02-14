@@ -2,6 +2,7 @@ import loamstream.loam.LoamStore
 
 import binaries_cloud._
 
-def googleCopy(src: LoamStore[_], dest: LoamStore[_]): Unit = {
-  cmd"""${gsutil} cp ${src} ${dest}""".in(src).out(dest)
+def googleCopy(src: LoamStore[_], dest: LoamStore[_], params: String*): Unit = {
+  cmd"""${gsutil} cp ${params.mkString(" ")} ${src} ${dest}""".in(srcgit diff
+  ).out(dest)
 }

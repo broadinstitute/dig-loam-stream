@@ -84,12 +84,9 @@ object GoogleCloud {
   *  Notes:
   *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
   */
-
-
-
 google {
-  googleCopy(input.inKG_HAIL, GoogleCloud.inKG_HAIL)
-  googleCopy(Local.VDS, GoogleCloud.VDS)
+  googleCopy(input.inKG_HAIL, GoogleCloud.inKG_HAIL, "-r")
+  googleCopy(Local.VDS, GoogleCloud.VDS, "-r")
   googleCopy(input.inKG_V3_5K_AF, GoogleCloud.inKG_V3_5K_AF)
 
   //NB: '--' must separate params for gcloud from those for hail
@@ -156,7 +153,7 @@ uger {
  */
 
 google {
-  googleCopy(Local.VDS_FOR_QC_PRUNED, GoogleCloud.VDS_FOR_QC_PRUNED)
+  googleCopy(Local.VDS_FOR_QC_PRUNED, GoogleCloud.VDS_FOR_QC_PRUNED, "-r")
   googleCopy(Local.ANCESTRY, GoogleCloud.ANCESTRY)
 
   //NB: '--' must separate params for gcloud from those for hail

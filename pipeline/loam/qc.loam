@@ -80,7 +80,7 @@ cmd"""awk '{print $$2,$$5}' $PLINK_HARMONIZED_NAME.bim > $FORCE_A2""".in(PLINK_H
 
 cmd"""$PLINK --bfile $PLINK_HARMONIZED_NAME --recode vcf-iid --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
 
-cmd"""bgzip --stdout $VCF > $VCF_GZ""".in(VCF).out(VCF_GZ)
+cmd"""bgzip --force --stdout $VCF > $VCF_GZ""".in(VCF).out(VCF_GZ)
 
 cmd"""$TABIX -f -p vcf $VCF_GZ""".in(VCF_GZ).out(VCF_GZ_TBI)
 
@@ -188,7 +188,7 @@ cmd"""$KING -b $PLINK_FOR_QC_PRUNED_NAME.bed --kinship --prefix $KIN_PREFIX > $K
 cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $KIN0_RELATED""".in(KIN0).out(KIN0_RELATED)
 
 cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(KIN0_RELATED).out(SHARING_COUNTS)
-
+/* Kaan
 // CHUNK 2
 
 /**
@@ -418,4 +418,4 @@ cmd"""$R --vanilla --args
   $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
   $ANCESTRY
   < $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
-
+*/

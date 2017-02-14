@@ -387,7 +387,7 @@ cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIE
 
 val SAMPLEQC_KLUSTAKWIK_OUTPUT: Array[Seq[LoamStore[TXT]]] = Array.empty
 val SAMPLEQC_LOGS: Array[LoamStore[TXT]] = Array.empty
-val SAMPLEQC_CLU1_WILD = outDIR / s"${outLABEL}.sampleqc.stats.adj.*.clu.1"
+val SAMPLEQC_CLU1_WILD = (outDIR / s"${outLABEL}.sampleqc.stats.adj.[[STAR]].clu.1").toString.replace("[[STAR]]", "*")
 val SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.boxplot.pdf")
 val SAMPLEQC_STATS_ADJ_IND_DISCRETENESS = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.discreteness")
 val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.table")

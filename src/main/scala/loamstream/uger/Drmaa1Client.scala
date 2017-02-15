@@ -194,7 +194,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
       // TODO Make native specification controllable from Loam (DSL)
       // Request 2g memory to reduce the odds of getting queued forever. 
-      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=8g")
+      jt.setNativeSpecification("-clear -cwd -shell y -b n -q short -l h_vmem=2g")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")

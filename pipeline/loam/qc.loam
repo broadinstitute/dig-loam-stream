@@ -1,9 +1,23 @@
 import input._
 import binaries._
+import cloud_helpers._
 import scripts._
 import store_helpers._
 import loamstream.loam.LoamStore
 import scala.io.Source
+
+object GoogleCloud {
+    val clusterId = "ky-test-small"
+   
+    private val root = uri("gs://loamstream/qc/chunk1")
+    private val data = root / "data"
+    private val out = root / "out"
+    
+    val VDS = store[VCF].at(out / s"$outLABEL.harmonized.ref.vds")
+    val LOAD_LOG = store[TXT].at(out / s"$outLABEL.harmonized.ref.vds.log")
+
+
+}
 
 // CHUNK 1
 
@@ -72,6 +86,9 @@ for (i <- START_CHR to END_CHR) {
 }
 
 val MERGE_LINES: String = MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
+
+uger {
+
 cmd"""echo "$MERGE_LINES" > $MERGE_LIST""".out(MERGE_LIST)
 
 cmd"""$PLINK --bfile ${PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED_NAME""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
@@ -88,6 +105,8 @@ cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)
 
 cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED_NAME}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
 
+}
+
 /**
  * Load Step
  *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
@@ -100,6 +119,8 @@ cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { s
 
 val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
 val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
+
+google {
 
 cmd"""$HAIL -l $LOAD_LOG
   importvcf --force-bgz $VCF
@@ -117,6 +138,8 @@ cmd"""$HAIL -l $LOAD_LOG
   count
   -g""".in(VCF_GZ, VCF_GZ_TBI, SAMPLE_FILE).out(LOAD_LOG, VDS)
 
+}
+/*Kaan
 /**
  * Filter Step
  *  Description: Generate filtered and filtered/pruned filesets for QC
@@ -188,7 +211,7 @@ cmd"""$KING -b $PLINK_FOR_QC_PRUNED_NAME.bed --kinship --prefix $KIN_PREFIX > $K
 cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $KIN0_RELATED""".in(KIN0).out(KIN0_RELATED)
 
 cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(KIN0_RELATED).out(SHARING_COUNTS)
-/* Kaan
+
 // CHUNK 2
 
 /**

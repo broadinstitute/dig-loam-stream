@@ -15,7 +15,15 @@
         </encoder>
     </appender>
 
-    <!-- Logging levels in the order of increasing significance are: TRACE < DEBUG < INFO <  WARN < ERROR -->
+    <!-- 
+         Logging levels in the order of increasing significance are: TRACE < DEBUG < INFO <  WARN < ERROR
+
+         Default log level is INFO.  This can be overridden by setting the 'loamstream-log-level' JVM system property:
+           Switch logging off entirely:   scala -Dloamstream-log-level=OFF some.main.Class ...
+           Switch logging to DEBUG level: scala -Dloamstream-log-level=DEBUG some.main.Class ...
+           Switch logging to WARN level:  scala -Dloamstream-log-level=WARN some.main.Class ...
+           etc
+    -->
     <root level="${loamstream-log-level:-INFO}">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>

@@ -7,52 +7,52 @@ import loamstream.loam.LoamStore
 import scala.io.Source
 
 object Common {
-    // Alignment Step
-    val START_CHR = 21
-    val END_CHR = 22
-    val NUM_CHR = END_CHR - START_CHR + 1
-    
-    val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
+  // Alignment Step
+  val START_CHR = 21
+  val END_CHR = 22
+  val NUM_CHR = END_CHR - START_CHR + 1
+  
+  val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
 }
 
 object Local {
-    // Alignment Step
-    val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
-    val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(Common.NUM_CHR)
-    val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
-    val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
-    val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
-    val VCF_BASE = outDIR / Common.VCF_BASE_NAME
-    val VCF = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf")
-    val VCF_GZ = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz")
-    val VCF_GZ_TBI = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
-    val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(Common.NUM_CHR)
-    val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
-    val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
-    val MERGE_LINE: Array[String] = Array.ofDim(Common.NUM_CHR)
-    val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
-    val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
-    val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
+  // Alignment Step
+  val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
+  val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
+  val VCF_BASE = outDIR / Common.VCF_BASE_NAME
+  val VCF = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf")
+  val VCF_GZ = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz")
+  val VCF_GZ_TBI = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
+  val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(Common.NUM_CHR)
+  val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
+  val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
+  val MERGE_LINE: Array[String] = Array.ofDim(Common.NUM_CHR)
+  val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
+  val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
+  val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
 
-    // Load Step
-    val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
-    val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
+  // Load Step
+  val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
+  val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
 }
 
 object Google {
-    val clusterId = "ky-test-small"
+  val clusterId = "ky-test-small"
 
-    private val root = uri("gs://loamstream/qc/chunk1")
-    private val data = root / "data"
-    private val out = root / "out"
+  private val root = uri("gs://loamstream/qc/chunk1")
+  private val data = root / "data"
+  private val out = root / "out"
 
-    // Load Step
-    val VCF_GZ = store[VCF].at(out / s"${Common.VCF_BASE_NAME}.vcf.gz")
-    val VCF_GZ_TBI = store[VCF].at(out / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
-    val SAMPLE_FILE = store[TXT].at(out / s"$outLABEL.harmonized.sample")
+  // Load Step
+  val VCF_GZ = store[VCF].at(out / s"${Common.VCF_BASE_NAME}.vcf.gz")
+  val VCF_GZ_TBI = store[VCF].at(out / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
+  val SAMPLE_FILE = store[TXT].at(out / s"$outLABEL.harmonized.sample")
 
-    val VDS = store[VCF].at(out / s"$outLABEL.harmonized.ref.vds")
-    val LOAD_LOG = store[TXT].at(out / s"$outLABEL.harmonized.ref.vds.log")
+  val VDS = store[VCF].at(out / s"$outLABEL.harmonized.ref.vds")
+  val LOAD_LOG = store[TXT].at(out / s"$outLABEL.harmonized.ref.vds.log")
 }
 
 // CHUNK 1
@@ -70,53 +70,53 @@ object Google {
  */
 
 local {
-    for (i <- Common.START_CHR to Common.END_CHR) {
-      val j = i - Common.START_CHR
-      val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
-      Local.PLINK_CHRS(j) = bedBimFam(PLINK_CHRS_NAME)
-      Local.PLINK_CHRS_HARMONIZED_NAME(j) = outDIR / s"$outLABEL.chr$i.harmonized"
-      Local.PLINK_CHRS_HARMONIZED(j) = bedBimFam(Local.PLINK_CHRS_HARMONIZED_NAME(j))
-      Local.KG_VCFS(j) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
-      Local.IDUPDATES(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
-      Local.SNPLOGS(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
+  for (i <- Common.START_CHR to Common.END_CHR) {
+    val j = i - Common.START_CHR
+    val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
+    Local.PLINK_CHRS(j) = bedBimFam(PLINK_CHRS_NAME)
+    Local.PLINK_CHRS_HARMONIZED_NAME(j) = outDIR / s"$outLABEL.chr$i.harmonized"
+    Local.PLINK_CHRS_HARMONIZED(j) = bedBimFam(Local.PLINK_CHRS_HARMONIZED_NAME(j))
+    Local.KG_VCFS(j) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
+    Local.IDUPDATES(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
+    Local.SNPLOGS(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
 
-      cmd"""$PLINK --vcf $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_NAME""".in(inVCF).out(Local.PLINK_CHRS(j))
+    cmd"""$PLINK --vcf $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_NAME""".in(inVCF).out(Local.PLINK_CHRS(j))
 
-      cmd"""$GENOTYPE_HARMONIZER
-        --input $PLINK_CHRS_NAME
-        --inputType PLINK_BED
-        --output ${Local.PLINK_CHRS_HARMONIZED_NAME(j)}
-        --outputType PLINK_BED
-        --ref ${Local.KG_VCFS(j)}
-        --refType VCF
-        --keep
-        --update-id
-        --variants 1000
-        --mafAlign 0.1
-        --update-id
-        --update-reference-allele
-        --debug""".in(Local.PLINK_CHRS(j) :+ Local.KG_VCFS(j)).out(Local.PLINK_CHRS_HARMONIZED(j) :+ Local.IDUPDATES(j) :+ Local.SNPLOGS(j))
+    cmd"""$GENOTYPE_HARMONIZER
+      --input $PLINK_CHRS_NAME
+      --inputType PLINK_BED
+      --output ${Local.PLINK_CHRS_HARMONIZED_NAME(j)}
+      --outputType PLINK_BED
+      --ref ${Local.KG_VCFS(j)}
+      --refType VCF
+      --keep
+      --update-id
+      --variants 1000
+      --mafAlign 0.1
+      --update-id
+      --update-reference-allele
+      --debug""".in(Local.PLINK_CHRS(j) :+ Local.KG_VCFS(j)).out(Local.PLINK_CHRS_HARMONIZED(j) :+ Local.IDUPDATES(j) :+ Local.SNPLOGS(j))
 
-      Local.MERGE_LINE(j) = s"${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bed"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bim"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$fam"}"
-    }
+    Local.MERGE_LINE(j) = s"${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bed"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bim"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$fam"}"
+  }
 
-    val MERGE_LINES: String = Local.MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
+  val MERGE_LINES: String = Local.MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
 
-    cmd"""echo "$MERGE_LINES" > ${Local.MERGE_LIST}""".out(Local.MERGE_LIST)
+  cmd"""echo "$MERGE_LINES" > ${Local.MERGE_LIST}""".out(Local.MERGE_LIST)
 
-    cmd"""$PLINK --bfile ${Local.PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list ${Local.MERGE_LIST} --make-bed --keep-allele-order --out ${Local.PLINK_HARMONIZED_NAME}""".in(Local.PLINK_CHRS_HARMONIZED.flatten :+ Local.MERGE_LIST).out(Local.PLINK_HARMONIZED)
+  cmd"""$PLINK --bfile ${Local.PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list ${Local.MERGE_LIST} --make-bed --keep-allele-order --out ${Local.PLINK_HARMONIZED_NAME}""".in(Local.PLINK_CHRS_HARMONIZED.flatten :+ Local.MERGE_LIST).out(Local.PLINK_HARMONIZED)
 
-    cmd"""awk '{print $$2,$$5}' ${Local.PLINK_HARMONIZED_NAME}.bim > ${Local.FORCE_A2}""".in(Local.PLINK_HARMONIZED).out(Local.FORCE_A2)
+  cmd"""awk '{print $$2,$$5}' ${Local.PLINK_HARMONIZED_NAME}.bim > ${Local.FORCE_A2}""".in(Local.PLINK_HARMONIZED).out(Local.FORCE_A2)
 
-    cmd"""$PLINK --bfile ${Local.PLINK_HARMONIZED_NAME} --recode vcf-iid --real-ref-alleles --a2-allele ${Local.FORCE_A2} --out ${Local.VCF_BASE}""".in(Local.PLINK_HARMONIZED :+ Local.FORCE_A2).out(Local.VCF)
+  cmd"""$PLINK --bfile ${Local.PLINK_HARMONIZED_NAME} --recode vcf-iid --real-ref-alleles --a2-allele ${Local.FORCE_A2} --out ${Local.VCF_BASE}""".in(Local.PLINK_HARMONIZED :+ Local.FORCE_A2).out(Local.VCF)
 
-    cmd"""bgzip --force --stdout ${Local.VCF} > ${Local.VCF_GZ}""".in(Local.VCF).out(Local.VCF_GZ)
+  cmd"""bgzip --force --stdout ${Local.VCF} > ${Local.VCF_GZ}""".in(Local.VCF).out(Local.VCF_GZ)
 
-    cmd"""$TABIX -f -p vcf ${Local.VCF_GZ}""".in(Local.VCF_GZ).out(Local.VCF_GZ_TBI)
+  cmd"""$TABIX -f -p vcf ${Local.VCF_GZ}""".in(Local.VCF_GZ).out(Local.VCF_GZ_TBI)
 
-    cmd"""echo "IID POP SUPERPOP SEX" > ${Local.SAMPLE_FILE}""".out(Local.SAMPLE_FILE)
+  cmd"""echo "IID POP SUPERPOP SEX" > ${Local.SAMPLE_FILE}""".out(Local.SAMPLE_FILE)
 
-    cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam >> ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED :+ Local.SAMPLE_FILE).out(Local.SAMPLE_FILE)
+  cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam >> ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED :+ Local.SAMPLE_FILE).out(Local.SAMPLE_FILE)
 }
 
 /**
@@ -126,17 +126,23 @@ local {
  *  Input: $VCF, $SAMPLE_FILE
  *  Output Needed: ${outLABEL}.harmonized.ref.vds/, ${outLABEL}.harmonized.ref.vds.log
  *  Notes:
- *     Monomorphic variants are automatically removed during import into Hail
+ *   Monomorphic variants are automatically removed during import into Hail
  */
 
 local {
-    googleCopy(Local.VCF_GZ, Google.VCF_GZ)
-    googleCopy(Local.VCF_GZ_TBI, Google.VCF_GZ_TBI)
-    googleCopy(Local.SAMPLE_FILE, Google.SAMPLE_FILE)
+  googleCopy(Local.VCF_GZ, Google.VCF_GZ)
+  googleCopy(Local.VCF_GZ_TBI, Google.VCF_GZ_TBI)
+  googleCopy(Local.SAMPLE_FILE, Google.SAMPLE_FILE)
 }
 
 google {
-    cmd"""$HAIL -l ${Google.LOAD_LOG}
+  //'--' must separate params for gcloud from those for hail
+  cmd"""$gcloud dataproc jobs submit spark
+    --cluster ${Google.clusterId}
+    --jar $hailJarCloud
+    --class org.broadinstitute.hail.driver.Main
+    --
+      -l ${Google.LOAD_LOG}
       importvcf --force-bgz ${Google.VCF_GZ}
       splitmulti
       deduplicate

@@ -69,39 +69,39 @@ object Google {
  *     Ideally, this will be run in parallel by chromosome number
  */
 
-for (i <- Common.START_CHR to Common.END_CHR) {
-  val j = i - Common.START_CHR
-  val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
-  Local.PLINK_CHRS(j) = bedBimFam(PLINK_CHRS_NAME)
-  Local.PLINK_CHRS_HARMONIZED_NAME(j) = outDIR / s"$outLABEL.chr$i.harmonized"
-  Local.PLINK_CHRS_HARMONIZED(j) = bedBimFam(Local.PLINK_CHRS_HARMONIZED_NAME(j))
-  Local.KG_VCFS(j) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
-  Local.IDUPDATES(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
-  Local.SNPLOGS(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
-
-  cmd"""$PLINK --vcf $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_NAME""".in(inVCF).out(Local.PLINK_CHRS(j))
-
-  cmd"""$GENOTYPE_HARMONIZER 
-    --input $PLINK_CHRS_NAME
-    --inputType PLINK_BED
-    --output ${Local.PLINK_CHRS_HARMONIZED_NAME(j)}
-    --outputType PLINK_BED
-    --ref ${Local.KG_VCFS(j)}
-    --refType VCF
-    --keep
-    --update-id
-    --variants 1000
-    --mafAlign 0.1
-    --update-id
-    --update-reference-allele
-    --debug""".in(Local.PLINK_CHRS(j) :+ Local.KG_VCFS(j)).out(Local.PLINK_CHRS_HARMONIZED(j) :+ Local.IDUPDATES(j) :+ Local.SNPLOGS(j))
-
-  Local.MERGE_LINE(j) = s"${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bed"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bim"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$fam"}"
-}
-
-val MERGE_LINES: String = Local.MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
-
 local {
+    for (i <- Common.START_CHR to Common.END_CHR) {
+      val j = i - Common.START_CHR
+      val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
+      Local.PLINK_CHRS(j) = bedBimFam(PLINK_CHRS_NAME)
+      Local.PLINK_CHRS_HARMONIZED_NAME(j) = outDIR / s"$outLABEL.chr$i.harmonized"
+      Local.PLINK_CHRS_HARMONIZED(j) = bedBimFam(Local.PLINK_CHRS_HARMONIZED_NAME(j))
+      Local.KG_VCFS(j) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
+      Local.IDUPDATES(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
+      Local.SNPLOGS(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
+
+      cmd"""$PLINK --vcf $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_NAME""".in(inVCF).out(Local.PLINK_CHRS(j))
+
+      cmd"""$GENOTYPE_HARMONIZER
+        --input $PLINK_CHRS_NAME
+        --inputType PLINK_BED
+        --output ${Local.PLINK_CHRS_HARMONIZED_NAME(j)}
+        --outputType PLINK_BED
+        --ref ${Local.KG_VCFS(j)}
+        --refType VCF
+        --keep
+        --update-id
+        --variants 1000
+        --mafAlign 0.1
+        --update-id
+        --update-reference-allele
+        --debug""".in(Local.PLINK_CHRS(j) :+ Local.KG_VCFS(j)).out(Local.PLINK_CHRS_HARMONIZED(j) :+ Local.IDUPDATES(j) :+ Local.SNPLOGS(j))
+
+      Local.MERGE_LINE(j) = s"${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bed"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bim"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$fam"}"
+    }
+
+    val MERGE_LINES: String = Local.MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
+
     cmd"""echo "$MERGE_LINES" > ${Local.MERGE_LIST}""".out(Local.MERGE_LIST)
 
     cmd"""$PLINK --bfile ${Local.PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list ${Local.MERGE_LIST} --make-bed --keep-allele-order --out ${Local.PLINK_HARMONIZED_NAME}""".in(Local.PLINK_CHRS_HARMONIZED.flatten :+ Local.MERGE_LIST).out(Local.PLINK_HARMONIZED)

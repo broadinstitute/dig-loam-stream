@@ -1,7 +1,7 @@
 //Software Tools
 val hailJarCloud = uri("gs://loamstream/hail/hail-all-spark.jar")
 
-val gcloudSdkBin = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/google-cloud-sdk/bin")
+val gcloudSdkBin = path("/humgen/diabetes/users/cgilbert/google-cloud-sdk/bin")
 val gcloud = gcloudSdkBin / "gcloud"
 val gsutil = gcloudSdkBin / "gsutil"
 

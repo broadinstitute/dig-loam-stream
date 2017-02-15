@@ -1,5 +1,10 @@
-/** Binaries
-*/
+//Software Tools
+val hailJarCloud = uri("gs://loamstream/hail/hail-all-spark.jar")
+
+val (gcloud, gsutil) = {
+  val sdkBin = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/google-cloud-sdk/bin/gcloud")
+  (sdkBin / "gcloud", sdkBin / "gsutil")
+}
 
 val GENOTYPE_HARMONIZER = path("/humgen/diabetes/users/ryank/software/GenotypeHarmonizer-1.4.18/GenotypeHarmonizer.sh")
 val HAIL = path("/humgen/diabetes/users/kyuksel/github_repos/hail/build/install/hail/bin/hail")

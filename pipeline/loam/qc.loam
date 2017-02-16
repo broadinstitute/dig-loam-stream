@@ -391,8 +391,8 @@ val sampleQcKlustakwikStores: Seq[KlustakwikStores] = (0 until 11).map { i =>
     ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${i+1}); echo $$ID
     > ${stores.metricIds}""".in(SAMPLEQC_STATS_ADJ_TSV).out(stores.fet, stores.metricIds)
 
-  cmd"""$KLUSTAKWIK ${sampleQcKlustakwikStores(i)} 1 -UseFeatures 1 -UseDistributional 0
-    > ${sampleQcKlustakwikStores(i).klustakwikLog}""".in(stores.inputs).out(stores.outputs)
+  cmd"""$KLUSTAKWIK ${stores.base} 1 -UseFeatures 1 -UseDistributional 0
+    > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
 
   stores
 }

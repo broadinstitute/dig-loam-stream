@@ -11,8 +11,10 @@ object Common {
   val START_CHR = 21
   val END_CHR = 22
   val NUM_CHR = END_CHR - START_CHR + 1
-  
   val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
+
+  // Filter Step
+  val FOR_QC_NAME = s"$outLABEL.for_qc"
 }
 
 object Local {
@@ -37,6 +39,16 @@ object Local {
   // Load Step
   val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
   val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
+
+  // Filter Step
+  val FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc")
+  val PLINK_FOR_QC_NAME = outDIR / Common.FOR_QC_NAME
+  // TODO Possible to remove explicit typing
+  val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
+  val PLINK_FOR_QC_PRUNED_NAME = outDIR / s"${Common.FOR_QC_NAME}.pruned"
+  val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_PRUNED_NAME)
+  val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"${Common.FOR_QC_NAME}.prune.in")
+  val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"${Common.FOR_QC_NAME}.prune.out")
 }
 
 object Google {
@@ -53,6 +65,28 @@ object Google {
 
   val VDS = store[VCF].at(out / s"$outLABEL.harmonized.ref.vds")
   val LOAD_LOG = store[TXT].at(out / s"$outLABEL.harmonized.ref.vds.log")
+
+  // Filter Step
+  val inREGIONS_EXCLUDE = store[TXT].at(out / s"regions.exclude")
+  val FOR_QC = store[VCF].at(out / s"$outLABEL.for_qc")
+  val VDS_FOR_QC = store[VCF].at(out / s"${Common.FOR_QC_NAME}.vds")
+  val VDS_FOR_QC_PRUNED = store[VCF].at(out / s"${Common.FOR_QC_NAME}.pruned.vds")
+  val FILTER_LOG = store[TXT].at(out / s"$outLABEL.filter.log")
+  val FILTERPRUNED_LOG = store[TXT].at(out / s"$outLABEL.filter.pruned.log")
+  val VARIANTQC_TSV = store[TXT].at(out / s"$outLABEL.variantqc.tsv")
+  val PLINK_FOR_QC_NAME = out / Common.FOR_QC_NAME
+  // TODO Possible to remove explicit typing
+  // TODO Fix bedBimFam for URIs and use below
+  val PLINK_FOR_QC: Seq[LoamStore[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_NAME + s".$bed"),
+                                              store[TXT].at(PLINK_FOR_QC_NAME + s".$bim"),
+                                              store[TXT].at(PLINK_FOR_QC_NAME + s".$fam"))
+  val PLINK_FOR_QC_PRUNED_NAME = out / s"${Common.FOR_QC_NAME}.pruned"
+  // TODO Fix bedBimFam for URIs and use below
+  val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$bed"),
+                                                     store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$bim"),
+                                                     store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$fam"))
+  val FOR_QC_PRUNE_IN = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.in")
+  val FOR_QC_PRUNE_OUT = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.out")
 }
 
 // CHUNK 1
@@ -159,7 +193,6 @@ google {
       -g""".in(Google.VCF_GZ, Google.VCF_GZ_TBI, Google.SAMPLE_FILE).out(Google.LOAD_LOG, Google.VDS)
 }
 
-/*Kaan
 /**
  * Filter Step
  *  Description: Generate filtered and filtered/pruned filesets for QC
@@ -169,43 +202,54 @@ google {
  *  Notes:
  */
 
-val FOR_QC_NAME = s"$outLABEL.for_qc"
-val FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc")
-val VDS_FOR_QC = store[VCF].at(outDIR / s"$FOR_QC_NAME.vds")
-val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$FOR_QC_NAME.pruned.vds")
-// TODO Possible to remove explicit typing on the two lines below?
-val PLINK_FOR_QC_NAME = outDIR / FOR_QC_NAME
-val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
-val PLINK_FOR_QC_PRUNED_NAME = outDIR / s"$FOR_QC_NAME.pruned"
-val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_PRUNED_NAME)
-val FILTER_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.log")
-val FILTERPRUNED_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.pruned.log")
-val VARIANTQC_TSV = store[TXT].at(outDIR / s"$outLABEL.variantqc.tsv")
-val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"$FOR_QC_NAME.prune.in")
-val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"$FOR_QC_NAME.prune.out")
+local {
+  googleCopy(inREGIONS_EXCLUDE, Google.inREGIONS_EXCLUDE)
+}
 
-cmd"""$HAIL -l $FILTER_LOG
-  read -i $VDS
-  variantqc
-  exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
-  -o $VARIANTQC_TSV
-  filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
-  filtervariants intervals -i $inREGIONS_EXCLUDE --remove
-  write
-  --overwrite -o $VDS_FOR_QC
-  exportplink
-  -o $FOR_QC""".in(VDS, inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
+google {
+  //'--' must separate params for gcloud from those for hail
+  cmd"""$gcloud dataproc jobs submit spark
+    --cluster ${Google.clusterId}
+    --jar $hailJarCloud
+    --class org.broadinstitute.hail.driver.Main
+    --
+      -l ${Google.FILTER_LOG}
+      read -i ${Google.VDS}
+      variantqc
+      exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
+      -o ${Google.VARIANTQC_TSV}
+      filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
+      filtervariants intervals -i ${Google.inREGIONS_EXCLUDE} --remove
+      write
+      --overwrite -o ${Google.VDS_FOR_QC}
+      exportplink
+      -o ${Google.FOR_QC}""".in(Google.VDS, Google.inREGIONS_EXCLUDE).out(Google.FILTER_LOG +: Google.PLINK_FOR_QC :+ Google.VDS_FOR_QC)
+}
 
-cmd"""$PLINK --bfile $PLINK_FOR_QC_NAME --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC_NAME""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN, FOR_QC_PRUNE_OUT)
+local {
+  googleCopy(Google.PLINK_FOR_QC, Local.PLINK_FOR_QC)
 
-cmd"""$HAIL -l $FILTERPRUNED_LOG
-  read -i $VDS_FOR_QC
-  filtervariants list -i $FOR_QC_PRUNE_IN --keep
-  write
-  -o $VDS_FOR_QC_PRUNED
-  exportplink
-  -o $PLINK_FOR_QC_PRUNED_NAME""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
+  cmd"""$PLINK --bfile ${Local.PLINK_FOR_QC_NAME} --indep-pairwise 1500 150 0.2 --out ${Local.PLINK_FOR_QC_NAME}""".in(Local.PLINK_FOR_QC).out(Local.FOR_QC_PRUNE_IN, Local.FOR_QC_PRUNE_OUT)
 
+  googleCopy(Local.FOR_QC_PRUNE_IN, Google.FOR_QC_PRUNE_IN)
+}
+
+google {
+  //'--' must separate params for gcloud from those for hail
+  cmd"""$gcloud dataproc jobs submit spark
+    --cluster ${Google.clusterId}
+    --jar $hailJarCloud
+    --class org.broadinstitute.hail.driver.Main
+    --
+      -l ${Google.FILTERPRUNED_LOG}
+      read -i ${Google.VDS_FOR_QC}
+      filtervariants list -i ${Google.FOR_QC_PRUNE_IN} --keep
+      write
+      --overwrite -o ${Google.VDS_FOR_QC_PRUNED}
+      exportplink
+      -o ${Google.PLINK_FOR_QC_PRUNED_NAME}""".in(Google.VDS_FOR_QC, Google.FOR_QC_PRUNE_IN).out(Google.FILTERPRUNED_LOG +: Google.PLINK_FOR_QC_PRUNED :+ Google.VDS_FOR_QC_PRUNED)
+}
+/*Kaan
 /**
  * Kinship Step
  *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
@@ -226,7 +270,7 @@ val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
 val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
 val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
 
-cmd"""$KING -b $PLINK_FOR_QC_PRUNED_NAME.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
+cmd"""$KING -b ${Local.PLINK_FOR_QC_PRUNED_NAME}.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(Local.PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
 
 cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $KIN0_RELATED""".in(KIN0).out(KIN0_RELATED)
 

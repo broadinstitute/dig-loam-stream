@@ -1,3 +1,5 @@
+import java.net.URI
+
 import loamstream.model.Store
 import loamstream.loam.LoamStore
 
@@ -12,6 +14,7 @@ val (bed, bim, fam) = ("bed", "bim", "fam")
 def bedBimFam(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions(bed, bim, fam)(makeStore)
 def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => store[TXT].at(s"${prefix}.${extension}"))
 def bedBimFam(prefix: Path): Seq[LoamStore[TXT]] = bedBimFam(prefix.toString)
+def bedBimFam(prefix: URI): Seq[LoamStore[TXT]] = bedBimFam(prefix.toString)
 
 def klustakwikOutput(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions("fet.1", "temp.clu.1", "clu.1", "klg.1","metric.ids",".klustakwik.log")(makeStore)
 def klustakwikOutput(prefix: String): Seq[LoamStore[TXT]] = klustakwikOutput(extension => store[TXT].at(s"${prefix}.${extension}"))

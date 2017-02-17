@@ -1,6 +1,5 @@
 import input._
 import binaries._
-import binaries_cloud._
 import cloud_helpers._
 import scripts._
 import store_helpers._
@@ -197,9 +196,6 @@ cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_S
 val clusterId = "cg-test"
 
 object Local {
-  val VDS = input.VDS
-  val VDS_FOR_QC_PRUNED = input.VDS_FOR_QC_PRUNED
-  
   val ANCESTRYPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.log")
   val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.tsv")
   val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.loadings.tsv")
@@ -268,7 +264,7 @@ object GoogleCloud {
   */
 google {
   googleCopy(input.inKG_HAIL, GoogleCloud.inKG_HAIL, "-r")
-  googleCopy(Local.VDS, GoogleCloud.VDS, "-r")
+  googleCopy(VDS, GoogleCloud.VDS, "-r")
   googleCopy(input.inKG_V3_5K_AF, GoogleCloud.inKG_V3_5K_AF)
 
   //NB: '--' must separate params for gcloud from those for hail
@@ -335,7 +331,7 @@ uger {
  */
 
 google {
-  googleCopy(Local.VDS_FOR_QC_PRUNED, GoogleCloud.VDS_FOR_QC_PRUNED, "-r")
+  googleCopy(VDS_FOR_QC_PRUNED, GoogleCloud.VDS_FOR_QC_PRUNED, "-r")
   googleCopy(Local.ANCESTRY, GoogleCloud.ANCESTRY)
 
   //NB: '--' must separate params for gcloud from those for hail
@@ -397,7 +393,7 @@ val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_PCA_SCO
 cmd"""$HAIL -l $SAMPLEQC_LOG
   read $VDS_FOR_QC
   annotatesamples table
-  -i $ANCESTRY
+  -i ${Local.ANCESTRY}
   --no-header
   -e _0
   --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
@@ -413,9 +409,9 @@ cmd"""$HAIL -l $SAMPLEQC_LOG
   -o $SAMPLEQC_STATS_TSV
   filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
   exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-  -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(VDS_FOR_QC, ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+  -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(VDS_FOR_QC, Local.ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
 
-cmd"""$R --vanilla --args $SAMPLEQC_STATS_TSV $NONOUTLIERPCA_SCORES_TSV $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(SAMPLEQC_STATS_TSV, NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_TSV ${Local.NONOUTLIERPCA_SCORES_TSV} $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
 
 cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV $SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV < $ISTATS_ADJ_PCA_R""".in(SAMPLEQC_STATS_ADJ_TSV).out(SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV, SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
 
@@ -489,8 +485,8 @@ cmd"""$R --vanilla --args
   $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
   $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
   $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
-  $ANCESTRY
+  ${Local.ANCESTRY}
   < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
-  .in(sampleQcKlustakwikStores.map(_.clu) :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ ANCESTRY)
+  .in(sampleQcKlustakwikStores.map(_.clu) :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY)
   .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
 

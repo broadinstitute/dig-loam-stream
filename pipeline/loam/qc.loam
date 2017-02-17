@@ -113,7 +113,7 @@ object Google {
  *     Ideally, this will be run in parallel by chromosome number
  */
 
-local {
+uger {
   for (i <- Common.START_CHR to Common.END_CHR) {
     val j = i - Common.START_CHR
     val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"

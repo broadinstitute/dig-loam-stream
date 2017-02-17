@@ -12,6 +12,7 @@ val PLINK = software / "plink1.9/plink"
 val TABIX = software / "htslib-1.3/bin/tabix"
 val KLUSTAKWIK = software / "klustakwik-0.3.0.rc3/KlustaKwik"
 
+val BGZIP = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/tabix/tabix_0.2.6/bin/bgzip")
 val R = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/r_3.1.1-bioconductor-3.0/bin/R")
 
 val HAIL = path("/humgen/diabetes/users/kyuksel/github_repos/hail/build/install/hail/bin/hail")

@@ -154,7 +154,7 @@ uger {
 
   cmd"""$PLINK --bfile ${Local.PLINK_HARMONIZED_NAME} --recode vcf-iid --real-ref-alleles --a2-allele ${Local.FORCE_A2} --out ${Local.VCF_BASE}""".in(Local.PLINK_HARMONIZED :+ Local.FORCE_A2).out(Local.VCF)
 
-  cmd"""bgzip --force --stdout ${Local.VCF} > ${Local.VCF_GZ}""".in(Local.VCF).out(Local.VCF_GZ)
+  cmd"""$BGZIP --force --stdout ${Local.VCF} > ${Local.VCF_GZ}""".in(Local.VCF).out(Local.VCF_GZ)
 
   cmd"""$TABIX -f -p vcf ${Local.VCF_GZ}""".in(Local.VCF_GZ).out(Local.VCF_GZ_TBI)
 

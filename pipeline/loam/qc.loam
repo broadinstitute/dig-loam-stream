@@ -207,9 +207,7 @@ uger {
 
   cmd"""$TABIX -f -p vcf ${Local.VCF_GZ}""".in(Local.VCF_GZ).out(Local.VCF_GZ_TBI)
 
-  cmd"""echo 'IID POP SUPERPOP SEX' > ${Local.SAMPLE_FILE}""".out(Local.SAMPLE_FILE)
-
-  cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam >> ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED :+ Local.SAMPLE_FILE).out(Local.SAMPLE_FILE)
+  cmd"""echo 'IID POP SUPERPOP SEX' > ${Local.SAMPLE_FILE} ; awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam >> ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED :+ Local.SAMPLE_FILE).out(Local.SAMPLE_FILE)
 }
 
 /**

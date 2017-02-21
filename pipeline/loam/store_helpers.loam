@@ -14,7 +14,6 @@ val (bed, bim, fam) = ("bed", "bim", "fam")
 def bedBimFam(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions(bed, bim, fam)(makeStore)
 def bedBimFam(prefix: String): Seq[LoamStore[TXT]] = bedBimFam(extension => store[TXT].at(s"${prefix}.${extension}"))
 def bedBimFam(prefix: Path): Seq[LoamStore[TXT]] = bedBimFam(prefix.toString)
-def bedBimFam(prefix: URI): Seq[LoamStore[TXT]] = bedBimFam(prefix.toString)
 
 case class KlustakwikStores(base: String, fet: LoamStore[TXT], tempClu: LoamStore[TXT], clu: LoamStore[TXT],
                             klg: LoamStore[TXT], metricIds: LoamStore[TXT], klustakwikLog: LoamStore[TXT]) {

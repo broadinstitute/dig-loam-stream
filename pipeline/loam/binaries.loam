@@ -15,7 +15,7 @@ val HAIL = path("/humgen/diabetes/users/kyuksel/github_repos/hail/build/install/
 //Google Cloud-Facing
 val hailJarCloud = uri("gs://loamstream/hail/hail-all-spark.jar")
 
-val gcloudSdkBin = path("/humgen/diabetes/users/cgilbert/google-cloud-sdk/bin")
-val gcloud = gcloudSdkBin / "gcloud"
-val gsutil = gcloudSdkBin / "gsutil"
-
+val (gcloud, gsutil) = {
+  val gcloudSdkBin = path("/home/unix/cgilbert/humgen/google-cloud-sdk/bin/")
+  (gcloudSdkBin / "gcloud", gcloudSdkBin / "gsutil")
+}

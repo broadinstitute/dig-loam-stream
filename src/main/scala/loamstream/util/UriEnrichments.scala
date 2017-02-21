@@ -33,6 +33,8 @@ object UriEnrichments {
 
     def /(next: String): URI = append(next)
 
+    def +(next: String): URI = URI.create(uri.toString + next)
+
     /**
      * Slight variation on java.net.URI.getPath() where the leading forward slash is removed from the return value
      *

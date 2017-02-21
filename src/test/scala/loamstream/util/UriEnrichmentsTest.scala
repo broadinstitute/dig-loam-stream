@@ -40,6 +40,17 @@ final class UriEnrichmentsTest extends FunSuite {
     assert(fooBarBazTxt == URI.create("/foo/bar/baz.txt/"))
   }
 
+  test("appending strings using + to URIs without trailing file separators") {
+    import UriEnrichments._
+
+    val uriStr = "gs://bucket/data/object"
+    val uri = URI.create(uriStr)
+    val ext = "txt"
+    val expectedUri = URI.create(uriStr + s".$ext")
+
+    assert(uri + s".$ext" === expectedUri)
+  }
+
   test("getPathWithoutLeadingSlash") {
     import UriEnrichments._
 

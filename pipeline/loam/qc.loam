@@ -6,205 +6,70 @@ import store_helpers._
 import loamstream.loam.LoamStore
 import scala.io.Source
 
-// CHUNK 1
+object Common {
+  // Alignment Step
+  val START_CHR = 21
+  val END_CHR = 22
+  val NUM_CHR = END_CHR - START_CHR + 1
+  val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
 
-/**
- * Alignment Step
- *  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
- *  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
- *  Input: $inVCF, $KG_VCF_BASE (VCF files, all chromosomes)
- *  Output Needed: ${outLABEL}.chr${CHROMOSOME}.bed/bim/fam, ${outLABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), merge.txt, force_a2.txt,
- *     ${outLABEL}.harmonized.sample, ${outLABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, ${outLABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
- *  Notes:
- *     Could also add --variants and --mafAlign as pipeline options, but for now these are static
- *     Ideally, this will be run in parallel by chromosome number
- */
-
-val START_CHR = 21
-val END_CHR = 22
-val NUM_CHR = END_CHR - START_CHR + 1
-
-val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(NUM_CHR)
-val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(NUM_CHR)
-val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(NUM_CHR)
-val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
-val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
-val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
-val VCF_BASE = outDIR / VCF_BASE_NAME
-val VCF = store[VCF].at(outDIR / s"$VCF_BASE_NAME.vcf")
-val VCF_GZ = store[VCF].at(outDIR / s"$VCF_BASE_NAME.vcf.gz")
-val VCF_GZ_TBI = store[VCF].at(outDIR / s"$VCF_BASE_NAME.vcf.gz.tbi")
-val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(NUM_CHR)
-val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(NUM_CHR)
-val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(NUM_CHR)
-val MERGE_LINE: Array[String] = Array.ofDim(NUM_CHR)
-val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
-val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
-val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
-
-for (i <- START_CHR to END_CHR) {
-  val j = i - START_CHR
-  val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
-  PLINK_CHRS(j) = bedBimFam(PLINK_CHRS_NAME)
-  PLINK_CHRS_HARMONIZED_NAME(j) = outDIR / s"$outLABEL.chr$i.harmonized"
-  PLINK_CHRS_HARMONIZED(j) = bedBimFam(PLINK_CHRS_HARMONIZED_NAME(j))
-  KG_VCFS(j) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
-  IDUPDATES(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
-  SNPLOGS(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
-
-  cmd"""$PLINK --vcf $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_NAME""".in(inVCF).out(PLINK_CHRS(j))
-
-  cmd"""$GENOTYPE_HARMONIZER 
-    --input $PLINK_CHRS_NAME
-    --inputType PLINK_BED
-    --output ${PLINK_CHRS_HARMONIZED_NAME(j)}
-    --outputType PLINK_BED
-    --ref ${KG_VCFS(j)}
-    --refType VCF
-    --keep
-    --update-id
-    --variants 1000
-    --mafAlign 0.1
-    --update-id
-    --update-reference-allele
-    --debug""".in(PLINK_CHRS(j) :+ KG_VCFS(j)).out(PLINK_CHRS_HARMONIZED(j) :+ IDUPDATES(j) :+ SNPLOGS(j))
-
-  MERGE_LINE(j) = s"${PLINK_CHRS_HARMONIZED_NAME(j) + s".$bed"} ${PLINK_CHRS_HARMONIZED_NAME(j) + s".$bim"} ${PLINK_CHRS_HARMONIZED_NAME(j) + s".$fam"}"
+  // Filter Step
+  val FOR_QC_NAME = s"$outLABEL.for_qc"
 }
 
-val MERGE_LINES: String = MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
-cmd"""echo "$MERGE_LINES" > $MERGE_LIST""".out(MERGE_LIST)
-
-cmd"""$PLINK --bfile ${PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED_NAME""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
-
-cmd"""awk '{print $$2,$$5}' $PLINK_HARMONIZED_NAME.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
-
-cmd"""$PLINK --bfile $PLINK_HARMONIZED_NAME --recode vcf-iid --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
-
-cmd"""bgzip --stdout $VCF > $VCF_GZ""".in(VCF).out(VCF_GZ)
-
-cmd"""$TABIX -f -p vcf $VCF_GZ""".in(VCF_GZ).out(VCF_GZ_TBI)
-
-cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)
-
-cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED_NAME}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
-
-/**
- * Load Step
- *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
- *  Requires: Hail, Java (version under which Hail was compiled)
- *  Input: $VCF, $SAMPLE_FILE
- *  Output Needed: ${outLABEL}.harmonized.ref.vds/, ${outLABEL}.harmonized.ref.vds.log
- *  Notes:
- *     Monomorphic variants are automatically removed during import into Hail
- */
-
-val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
-val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
-
-cmd"""$HAIL -l $LOAD_LOG
-  importvcf --force-bgz $VCF
-  splitmulti
-  deduplicate
-  annotatesamples table
-  --root sa.pheno
-  -e IID
-  -i $SAMPLE_FILE
-  -t "IID: String, POP: String, SUPERPOP: String, SEX: String"
-  --missing "NA"
-  --delimiter " "
-  write
-  -o $VDS
-  count
-  -g""".in(VCF_GZ, VCF_GZ_TBI, SAMPLE_FILE).out(LOAD_LOG, VDS)
-
-/**
- * Filter Step
- *  Description: Generate filtered and filtered/pruned filesets for QC
- *  Requires: Hail, Plink, Java (version under which Hail was compiled)
- *  Input: $VDS, $inREGIONS_EXCLUDE
- *  Output: ${outLABEL}.filter.log, ${outLABEL}.variantqc.tsv, ${outLABEL}.for_qc.vds, ${outLABEL}.for_qc.pruned.vds, ${outLABEL}.for_qc.bed/bim/fam, ${outLABEL}.for_qc.prune.in, ${outLABEL}.for_qc.prune.out
- *  Notes:
- */
-
-val FOR_QC_NAME = s"$outLABEL.for_qc"
-val FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc")
-val VDS_FOR_QC = store[VCF].at(outDIR / s"$FOR_QC_NAME.vds")
-val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$FOR_QC_NAME.pruned.vds")
-// TODO Possible to remove explicit typing on the two lines below?
-val PLINK_FOR_QC_NAME = outDIR / FOR_QC_NAME
-val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
-val PLINK_FOR_QC_PRUNED_NAME = outDIR / s"$FOR_QC_NAME.pruned"
-val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_PRUNED_NAME)
-val FILTER_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.log")
-val FILTERPRUNED_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.pruned.log")
-val VARIANTQC_TSV = store[TXT].at(outDIR / s"$outLABEL.variantqc.tsv")
-val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"$FOR_QC_NAME.prune.in")
-val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"$FOR_QC_NAME.prune.out")
-
-cmd"""$HAIL -l $FILTER_LOG
-  read -i $VDS
-  variantqc
-  exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
-  -o $VARIANTQC_TSV
-  filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
-  filtervariants intervals -i $inREGIONS_EXCLUDE --remove
-  write
-  --overwrite -o $VDS_FOR_QC
-  exportplink
-  -o $FOR_QC""".in(VDS, inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
-
-cmd"""$PLINK --bfile $PLINK_FOR_QC_NAME --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC_NAME""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN, FOR_QC_PRUNE_OUT)
-
-cmd"""$HAIL -l $FILTERPRUNED_LOG
-  read -i $VDS_FOR_QC
-  filtervariants list -i $FOR_QC_PRUNE_IN --keep
-  write
-  -o $VDS_FOR_QC_PRUNED
-  exportplink
-  -o $PLINK_FOR_QC_PRUNED_NAME""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
-
-/**
- * Kinship Step
- *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
- *  Requires: King, R, $CALC_KINSHIP_SAMPLE_SHARING_R
- *  Input: $PLINK_FOR_QC_PRUNED
- *  Output: ${outLABEL}.kinshipTMP.dat, ${outLABEL}.kinshipTMP.ped, ${outLABEL}.kinship.kin, ${outLABEL}.kinship.kin0, ${outLABEL}.kinship.kin0.related, ${outLABEL}.kinship.sharing_counts.txt
- *  Notes:
- *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
- * King only writes the '.kin0' file if families are found, so there needs to be a way to skip the second and third command if it doesn't get created
- */
-
-val KIN_PREFIX = outDIR / s"$outLABEL.kinship"
-val KIN_LOG = store[TXT].at(KIN_PREFIX + ".log")
-val KINTMP_DAT = store[TXT].at(KIN_PREFIX + "TMP.dat")
-val KINTMP_PED = store[TXT].at(KIN_PREFIX + "TMP.ped")
-val KIN = store[TXT].at(KIN_PREFIX + ".kin")
-val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
-val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
-val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
-
-cmd"""$KING -b $PLINK_FOR_QC_PRUNED_NAME.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
-
-cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $KIN0_RELATED""".in(KIN0).out(KIN0_RELATED)
-
-cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(KIN0_RELATED).out(SHARING_COUNTS)
-
-// CHUNK 2
-
-//TODO: Make this configurable
-val clusterId = "cg-test"
-
 object Local {
+  // Alignment Step
+  val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
+  val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
+  val VCF_BASE = outDIR / Common.VCF_BASE_NAME
+  val VCF = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf")
+  val VCF_GZ = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz")
+  val VCF_GZ_TBI = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
+  val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(Common.NUM_CHR)
+  val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
+  val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
+  val MERGE_LINE: Array[String] = Array.ofDim(Common.NUM_CHR)
+  val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
+  val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
+  val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
+
+  // Load Step
+  val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
+  val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
+
+  // Filter Step
+  val FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc")
+  val PLINK_FOR_QC_NAME = outDIR / Common.FOR_QC_NAME
+  // TODO Possible to remove explicit typing
+  val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
+  val PLINK_FOR_QC_PRUNED_NAME = outDIR / s"${Common.FOR_QC_NAME}.pruned"
+  val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_PRUNED_NAME)
+  val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"${Common.FOR_QC_NAME}.prune.in")
+  val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"${Common.FOR_QC_NAME}.prune.out")
+
+  // Kinship Step
+  val KIN_PREFIX = outDIR / s"$outLABEL.kinship"
+  val KIN_LOG = store[TXT].at(KIN_PREFIX + ".log")
+  val KINTMP_DAT = store[TXT].at(KIN_PREFIX + "TMP.dat")
+  val KINTMP_PED = store[TXT].at(KIN_PREFIX + "TMP.ped")
+  val KIN = store[TXT].at(KIN_PREFIX + ".kin")
+  val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
+  val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
+  val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
+
+  //Chunk #2
   val ANCESTRYPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.log")
   val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.tsv")
   val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.loadings.tsv")
   val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.plots.pdf")
-  
+
   val NONOUTLIERPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.pca.log")
   val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.scores.tsv")
   val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.loadings.tsv")
-  
+
   val ANCESTRY_PREFIX = outDIR / s"${outLABEL}.ancestry"
   val ANCESTRYCLUSTER_LOG = store[TXT].at(ANCESTRY_PREFIX + ".cluster.log")
   val ANCESTRY_FET = store[TXT].at(ANCESTRY_PREFIX + ".fet.1")
@@ -219,25 +84,56 @@ object Local {
   val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
 }
 
-object GoogleCloud {
-  private val root = uri("gs://loamstream/qc/chunk2")
+object Google {
+  //TODO: Make this configurable
+  val clusterId = "ky-test-small"
+
+  private val root = uri("gs://loamstream/qc/all")
   private val data = root / "data"
   private val out = root / "out"
-  
+
+  // Load Step
+  val VCF_GZ = store[VCF].at(out / s"${Common.VCF_BASE_NAME}.vcf.gz")
+  val VCF_GZ_TBI = store[VCF].at(out / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
+  val SAMPLE_FILE = store[TXT].at(out / s"$outLABEL.harmonized.sample")
+
+  val VDS = store[VCF].at(out / s"$outLABEL.harmonized.ref.vds")
+  val LOAD_LOG = store[TXT].at(out / s"$outLABEL.harmonized.ref.vds.log")
+
+  // Filter Step
+  val inREGIONS_EXCLUDE = store[TXT].at(out / s"regions.exclude")
+  val FOR_QC = store[VCF].at(out / s"$outLABEL.for_qc")
+  val VDS_FOR_QC = store[VCF].at(out / s"${Common.FOR_QC_NAME}.vds")
+  val VDS_FOR_QC_PRUNED = store[VCF].at(out / s"${Common.FOR_QC_NAME}.pruned.vds")
+  val FILTER_LOG = store[TXT].at(out / s"$outLABEL.filter.log")
+  val FILTERPRUNED_LOG = store[TXT].at(out / s"$outLABEL.filter.pruned.log")
+  val VARIANTQC_TSV = store[TXT].at(out / s"$outLABEL.variantqc.tsv")
+  val PLINK_FOR_QC_NAME = out / Common.FOR_QC_NAME
+  // TODO Possible to remove explicit typing
+  // TODO Fix bedBimFam for URIs and use below
+  val PLINK_FOR_QC: Seq[LoamStore[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_NAME + s".$bed"),
+                                              store[TXT].at(PLINK_FOR_QC_NAME + s".$bim"),
+                                              store[TXT].at(PLINK_FOR_QC_NAME + s".$fam"))
+  val PLINK_FOR_QC_PRUNED_NAME = out / s"${Common.FOR_QC_NAME}.pruned"
+  // TODO Fix bedBimFam for URIs and use below
+  val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$bed"),
+                                                     store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$bim"),
+                                                     store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$fam"))
+  val FOR_QC_PRUNE_IN = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.in")
+  val FOR_QC_PRUNE_OUT = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.out")
+
+  // Chunk #2
   val inKG_HAIL = store[TXT].at(data / "inkg_hail.vds")
-  val VDS = store[TXT].at(data / s"$outLABEL.harmonized.ref.vds")
   val inKG_V3_5K_AF = store[TXT].at(data / "allele_frequencies.tsv")
-  
-  val VDS_FOR_QC_PRUNED = store[TXT].at(data / s"$outLABEL.for_qc.pruned.vds")
-  
+
   val ANCESTRYPCA_LOG = store[TXT].at(out / s"${outLABEL}.ancestry.pca.log")
-  val ANCESTRYPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.scores.tsv") 
+  val ANCESTRYPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.scores.tsv")
   val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.loadings.tsv")
-  
+
   val NONOUTLIERPCA_LOG = store[TXT].at(out / s"${outLABEL}.pca.log")
   val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.pca.scores.tsv")
   val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(out / s"${outLABEL}.pca.loadings.tsv")
-  
+
   val ANCESTRY_PREFIX = out / s"${outLABEL}.ancestry"
   val ANCESTRYCLUSTER_LOG = store[TXT].at(ANCESTRY_PREFIX + ".cluster.log")
   val ANCESTRY_FET = store[TXT].at(ANCESTRY_PREFIX + ".fet.1")
@@ -252,6 +148,194 @@ object GoogleCloud {
   val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
 }
 
+// CHUNK 1
+
+/**
+ * Alignment Step
+ *  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
+ *  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
+ *  Input: $inVCF, $KG_VCF_BASE (VCF files, all chromosomes)
+ *  Output Needed: ${outLABEL}.chr${CHROMOSOME}.bed/bim/fam, ${outLABEL}.chr${CHROMOSOME}.harmonized.bed/bim/fam/log(/nosex?/hh?), merge.txt, force_a2.txt,
+ *     ${outLABEL}.harmonized.sample, ${outLABEL}.chr${CHROMOSOME}.harmonized_idUpdates.txt, ${outLABEL}.chr${CHROMOSOME}.harmonized_snpLog.log
+ *  Notes:
+ *     Could also add --variants and --mafAlign as pipeline options, but for now these are static
+ *     Ideally, this will be run in parallel by chromosome number
+ */
+
+uger {
+  for (i <- Common.START_CHR to Common.END_CHR) {
+    val j = i - Common.START_CHR
+    val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
+    Local.PLINK_CHRS(j) = bedBimFam(PLINK_CHRS_NAME)
+    Local.PLINK_CHRS_HARMONIZED_NAME(j) = outDIR / s"$outLABEL.chr$i.harmonized"
+    Local.PLINK_CHRS_HARMONIZED(j) = bedBimFam(Local.PLINK_CHRS_HARMONIZED_NAME(j))
+    Local.KG_VCFS(j) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
+    Local.IDUPDATES(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
+    Local.SNPLOGS(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
+
+    cmd"""$PLINK --vcf $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_NAME""".in(inVCF).out(Local.PLINK_CHRS(j))
+
+    cmd"""$GENOTYPE_HARMONIZER
+      --input $PLINK_CHRS_NAME
+      --inputType PLINK_BED
+      --output ${Local.PLINK_CHRS_HARMONIZED_NAME(j)}
+      --outputType PLINK_BED
+      --ref ${Local.KG_VCFS(j)}
+      --refType VCF
+      --keep
+      --update-id
+      --variants 1000
+      --mafAlign 0.1
+      --update-id
+      --update-reference-allele
+      --debug""".in(Local.PLINK_CHRS(j) :+ Local.KG_VCFS(j)).out(Local.PLINK_CHRS_HARMONIZED(j) :+ Local.IDUPDATES(j) :+ Local.SNPLOGS(j))
+
+    Local.MERGE_LINE(j) = s"${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bed"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bim"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$fam"}"
+  }
+
+  val MERGE_LINES: String = Local.MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
+
+  cmd"""echo "$MERGE_LINES" > ${Local.MERGE_LIST}""".out(Local.MERGE_LIST)
+
+  cmd"""$PLINK --bfile ${Local.PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list ${Local.MERGE_LIST} --make-bed --keep-allele-order --out ${Local.PLINK_HARMONIZED_NAME}""".in(Local.PLINK_CHRS_HARMONIZED.flatten :+ Local.MERGE_LIST).out(Local.PLINK_HARMONIZED)
+
+  cmd"""awk '{print $$2,$$5}' ${Local.PLINK_HARMONIZED_NAME}.bim > ${Local.FORCE_A2}""".in(Local.PLINK_HARMONIZED).out(Local.FORCE_A2)
+
+  cmd"""$PLINK --bfile ${Local.PLINK_HARMONIZED_NAME} --recode vcf-iid --real-ref-alleles --a2-allele ${Local.FORCE_A2} --out ${Local.VCF_BASE}""".in(Local.PLINK_HARMONIZED :+ Local.FORCE_A2).out(Local.VCF)
+
+  cmd"""$BGZIP --force --stdout ${Local.VCF} > ${Local.VCF_GZ}""".in(Local.VCF).out(Local.VCF_GZ)
+
+  cmd"""$TABIX -f -p vcf ${Local.VCF_GZ}""".in(Local.VCF_GZ).out(Local.VCF_GZ_TBI)
+
+  cmd"""echo 'IID POP SUPERPOP SEX' > ${Local.SAMPLE_FILE} ; awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam >> ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED :+ Local.SAMPLE_FILE).out(Local.SAMPLE_FILE)
+}
+
+/**
+ * Load Step
+ *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
+ *  Requires: Hail, Java (version under which Hail was compiled)
+ *  Input: $VCF, $SAMPLE_FILE
+ *  Output Needed: ${outLABEL}.harmonized.ref.vds/, ${outLABEL}.harmonized.ref.vds.log
+ *  Notes:
+ *   Monomorphic variants are automatically removed during import into Hail
+ */
+
+local {
+  googleCopy(Local.VCF_GZ, Google.VCF_GZ)
+  googleCopy(Local.VCF_GZ_TBI, Google.VCF_GZ_TBI)
+  googleCopy(Local.SAMPLE_FILE, Google.SAMPLE_FILE)
+}
+
+google {
+  //'--' must separate params for gcloud from those for hail
+  cmd"""$gcloud dataproc jobs submit spark
+    --cluster ${Google.clusterId}
+    --jar $hailJarCloud
+    --class org.broadinstitute.hail.driver.Main
+    --
+      -l ${Google.LOAD_LOG}
+      importvcf --force-bgz ${Google.VCF_GZ}
+      splitmulti
+      deduplicate
+      annotatesamples table
+      --root sa.pheno
+      -e IID
+      -i ${Google.SAMPLE_FILE}
+      -t "IID: String, POP: String, SUPERPOP: String, SEX: String"
+      --missing "NA"
+      --delimiter " "
+      write
+      --overwrite -o ${Google.VDS}
+      count
+      -g""".in(Google.VCF_GZ, Google.VCF_GZ_TBI, Google.SAMPLE_FILE).out(Google.LOAD_LOG, Google.VDS)
+}
+
+/**
+ * Filter Step
+ *  Description: Generate filtered and filtered/pruned filesets for QC
+ *  Requires: Hail, Plink, Java (version under which Hail was compiled)
+ *  Input: $VDS, $inREGIONS_EXCLUDE
+ *  Output: ${outLABEL}.filter.log, ${outLABEL}.variantqc.tsv, ${outLABEL}.for_qc.vds, ${outLABEL}.for_qc.pruned.vds, ${outLABEL}.for_qc.bed/bim/fam, ${outLABEL}.for_qc.prune.in, ${outLABEL}.for_qc.prune.out
+ *  Notes:
+ */
+
+local {
+  googleCopy(inREGIONS_EXCLUDE, Google.inREGIONS_EXCLUDE)
+}
+
+google {
+  //'--' must separate params for gcloud from those for hail
+  cmd"""$gcloud dataproc jobs submit spark
+    --cluster ${Google.clusterId}
+    --jar $hailJarCloud
+    --class org.broadinstitute.hail.driver.Main
+    --
+      -l ${Google.FILTER_LOG}
+      read -i ${Google.VDS}
+      variantqc
+      exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
+      -o ${Google.VARIANTQC_TSV}
+      filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
+      filtervariants intervals -i ${Google.inREGIONS_EXCLUDE} --remove
+      write
+      --overwrite -o ${Google.VDS_FOR_QC}
+      exportplink
+      -o ${Google.FOR_QC}""".in(Google.VDS, Google.inREGIONS_EXCLUDE).out(Google.FILTER_LOG +: Google.PLINK_FOR_QC :+ Google.VDS_FOR_QC)
+}
+
+local {
+  googleCopy(Google.PLINK_FOR_QC, Local.PLINK_FOR_QC)
+}
+
+uger {
+  cmd"""$PLINK --bfile ${Local.PLINK_FOR_QC_NAME} --indep-pairwise 1500 150 0.2 --out ${Local.PLINK_FOR_QC_NAME}""".in(Local.PLINK_FOR_QC).out(Local.FOR_QC_PRUNE_IN, Local.FOR_QC_PRUNE_OUT)
+}
+
+local {
+  googleCopy(Local.FOR_QC_PRUNE_IN, Google.FOR_QC_PRUNE_IN)
+}
+
+google {
+  //'--' must separate params for gcloud from those for hail
+  cmd"""$gcloud dataproc jobs submit spark
+    --cluster ${Google.clusterId}
+    --jar $hailJarCloud
+    --class org.broadinstitute.hail.driver.Main
+    --
+      -l ${Google.FILTERPRUNED_LOG}
+      read -i ${Google.VDS_FOR_QC}
+      filtervariants list -i ${Google.FOR_QC_PRUNE_IN} --keep
+      write
+      --overwrite -o ${Google.VDS_FOR_QC_PRUNED}
+      exportplink
+      -o ${Google.PLINK_FOR_QC_PRUNED_NAME}""".in(Google.VDS_FOR_QC, Google.FOR_QC_PRUNE_IN).out(Google.FILTERPRUNED_LOG +: Google.PLINK_FOR_QC_PRUNED :+ Google.VDS_FOR_QC_PRUNED)
+}
+
+/**
+ * Kinship Step
+ *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
+ *  Requires: King, R, $CALC_KINSHIP_SAMPLE_SHARING_R
+ *  Input: $PLINK_FOR_QC_PRUNED
+ *  Output: ${outLABEL}.kinshipTMP.dat, ${outLABEL}.kinshipTMP.ped, ${outLABEL}.kinship.kin, ${outLABEL}.kinship.kin0, ${outLABEL}.kinship.kin0.related, ${outLABEL}.kinship.sharing_counts.txt
+ *  Notes:
+ *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
+ * King only writes the '.kin0' file if families are found, so there needs to be a way to skip the second and third command if it doesn't get created
+ */
+
+local {
+  googleCopy(Google.PLINK_FOR_QC_PRUNED, Local.PLINK_FOR_QC_PRUNED)
+}
+
+uger {
+  cmd"""$KING -b ${Local.PLINK_FOR_QC_PRUNED_NAME}.bed --kinship --prefix ${Local.KIN_PREFIX} > ${Local.KIN_LOG}""".in(Local.PLINK_FOR_QC_PRUNED).out(Local.KIN_LOG, Local.KIN, Local.KIN0, Local.KINTMP_DAT, Local.KINTMP_PED)
+
+  cmd"""(head -1 ${Local.KIN0}; sed '1d' ${Local.KIN0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${Local.KIN0_RELATED}""".in(Local.KIN0).out(Local.KIN0_RELATED)
+
+  cmd"""$R --vanilla --args ${Local.KIN0_RELATED} ${Local.SHARING_COUNTS} < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(Local.KIN0_RELATED).out(Local.SHARING_COUNTS)
+}
+
+// CHUNK 2
+
 /**
   * Ancestry PCA Step
   *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
@@ -263,22 +347,21 @@ object GoogleCloud {
   *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
   */
 google {
-  googleCopy(input.inKG_HAIL, GoogleCloud.inKG_HAIL, "-r")
-  googleCopy(VDS, GoogleCloud.VDS, "-r")
-  googleCopy(input.inKG_V3_5K_AF, GoogleCloud.inKG_V3_5K_AF)
+  googleCopy(input.inKG_HAIL, Google.inKG_HAIL, "-r")
+  googleCopy(input.inKG_V3_5K_AF, Google.inKG_V3_5K_AF)
 
   //NB: '--' must separate params for gcloud from those for hail
   cmd"""$gcloud dataproc jobs submit spark
-    --cluster $clusterId
+    --cluster ${Google.clusterId}
     --jar $hailJarCloud
     --class org.broadinstitute.hail.driver.Main
     --
-      -l ${GoogleCloud.ANCESTRYPCA_LOG}
-      read ${GoogleCloud.inKG_HAIL}
+      -l ${Google.ANCESTRYPCA_LOG}
+      read ${Google.inKG_HAIL}
       put -n KG
-      read -i ${GoogleCloud.VDS}
+      read -i ${Google.VDS}
       join --right KG
-      annotatevariants table ${GoogleCloud.inKG_V3_5K_AF}
+      annotatevariants table ${Google.inKG_V3_5K_AF}
       -e Variant
       -c "va.refPanelAF = table.refPanelAF"
       --impute
@@ -287,12 +370,12 @@ google {
       --eigenvalues global.pca.evals
       --loadings va.pca.loadings
       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10"
-      -o ${GoogleCloud.ANCESTRYPCA_SCORES_TSV}
+      -o ${Google.ANCESTRYPCA_SCORES_TSV}
       exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
-      -o ${GoogleCloud.ANCESTRYPCA_LOADINGS_TSV}
-    """.in(GoogleCloud.inKG_HAIL, GoogleCloud.VDS, GoogleCloud.inKG_V3_5K_AF).out(GoogleCloud.ANCESTRYPCA_LOG, GoogleCloud.ANCESTRYPCA_SCORES_TSV, GoogleCloud.ANCESTRYPCA_LOADINGS_TSV)
+      -o ${Google.ANCESTRYPCA_LOADINGS_TSV}
+    """.in(Google.inKG_HAIL, Google.VDS, Google.inKG_V3_5K_AF).out(Google.ANCESTRYPCA_LOG, Google.ANCESTRYPCA_SCORES_TSV, Google.ANCESTRYPCA_LOADINGS_TSV)
   
-  googleCopy(GoogleCloud.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRYPCA_SCORES_TSV)
+  googleCopy(Google.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRYPCA_SCORES_TSV)
 }
 
 uger {
@@ -331,19 +414,18 @@ uger {
  */
 
 google {
-  googleCopy(VDS_FOR_QC_PRUNED, GoogleCloud.VDS_FOR_QC_PRUNED, "-r")
-  googleCopy(Local.ANCESTRY, GoogleCloud.ANCESTRY)
+  googleCopy(Local.ANCESTRY, Google.ANCESTRY)
 
   //NB: '--' must separate params for gcloud from those for hail
   cmd"""$gcloud dataproc jobs submit spark
-    --cluster $clusterId
+    --cluster ${Google.clusterId}
     --jar $hailJarCloud
     --class org.broadinstitute.hail.driver.Main
     -- 
-      -l ${GoogleCloud.NONOUTLIERPCA_LOG}
-      read ${GoogleCloud.VDS_FOR_QC_PRUNED}
+      -l ${Google.NONOUTLIERPCA_LOG}
+      read ${Google.VDS_FOR_QC_PRUNED}
       annotatesamples table
-      -i ${GoogleCloud.ANCESTRY}
+      -i ${Google.ANCESTRY}
       --no-header
       -e _0
       --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
@@ -353,13 +435,13 @@ google {
       --eigenvalues global.pca.evals
       --loadings va.pca.loadings
       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10"
-      -o ${GoogleCloud.NONOUTLIERPCA_SCORES_TSV}
+      -o ${Google.NONOUTLIERPCA_SCORES_TSV}
       exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
-      -o ${GoogleCloud.NONOUTLIERPCA_LOADINGS_TSV}
-    """.in(GoogleCloud.VDS_FOR_QC_PRUNED, GoogleCloud.ANCESTRY).out(GoogleCloud.NONOUTLIERPCA_SCORES_TSV, GoogleCloud.NONOUTLIERPCA_LOADINGS_TSV)
+      -o ${Google.NONOUTLIERPCA_LOADINGS_TSV}
+    """.in(Google.VDS_FOR_QC_PRUNED, Google.ANCESTRY).out(Google.NONOUTLIERPCA_SCORES_TSV, Google.NONOUTLIERPCA_LOADINGS_TSV)
   
-  googleCopy(GoogleCloud.NONOUTLIERPCA_SCORES_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
-  googleCopy(GoogleCloud.NONOUTLIERPCA_LOADINGS_TSV, Local.NONOUTLIERPCA_LOADINGS_TSV)
+  googleCopy(Google.NONOUTLIERPCA_SCORES_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
+  googleCopy(Google.NONOUTLIERPCA_LOADINGS_TSV, Local.NONOUTLIERPCA_LOADINGS_TSV)
 }
 
 // CHUNK 3
@@ -391,7 +473,7 @@ val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH: Path = outDIR / s"${outLABEL}.sample
 val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH)
 
 cmd"""$HAIL -l $SAMPLEQC_LOG
-  read $VDS_FOR_QC
+  read ${Google.VDS_FOR_QC}
   annotatesamples table
   -i ${Local.ANCESTRY}
   --no-header
@@ -409,7 +491,7 @@ cmd"""$HAIL -l $SAMPLEQC_LOG
   -o $SAMPLEQC_STATS_TSV
   filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
   exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-  -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(VDS_FOR_QC, Local.ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+  -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(Google.VDS_FOR_QC, Local.ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
 
 cmd"""$R --vanilla --args $SAMPLEQC_STATS_TSV ${Local.NONOUTLIERPCA_SCORES_TSV} $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
 

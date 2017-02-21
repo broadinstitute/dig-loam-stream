@@ -194,8 +194,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
       // TODO Make native specification controllable from Loam (DSL)
       // Request 16g memory to allow Klustakwik to run in QC chunk 2. :(
+      // Request short queue for faster integration testing
       // TODO: This sort of thing really, really, needs to be configurable. :(
-      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=16g")
+      jt.setNativeSpecification("-clear -cwd -shell y -b n -q short -l h_vmem=16g")
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")

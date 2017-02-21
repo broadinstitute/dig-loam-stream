@@ -2,6 +2,12 @@ import loamstream.loam.LoamStore
 
 import binaries._
 
+def googleCopy(srcs: Iterable[LoamStore[_]], dests: Iterable[LoamStore[_]], params: String*): Unit = {
+  for((src, dest) <- srcs zip dests) {
+    googleCopy(src, dest, params: _*)
+  }
+}
+
 def googleCopy(src: LoamStore[_], dest: LoamStore[_], params: String*): Unit = {
   cmd"""${gsutil} cp ${params.mkString(" ")} ${src} ${dest}""".in(src).out(dest)
 }

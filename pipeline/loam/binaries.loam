@@ -1,10 +1,6 @@
-//Software Tools
-val hailJarCloud = uri("gs://loamstream/hail/hail-all-spark.jar")
+// Software Tools
 
-val gcloudSdkBin = path("/humgen/diabetes/users/cgilbert/google-cloud-sdk/bin")
-val gcloud = gcloudSdkBin / "gcloud"
-val gsutil = gcloudSdkBin / "gsutil"
-
+// UNIX
 val software = path("/humgen/diabetes/users/ryank/software")
 val GENOTYPE_HARMONIZER = software / "GenotypeHarmonizer-1.4.18/GenotypeHarmonizer.sh"
 val KING = software / "king"
@@ -14,5 +10,12 @@ val KLUSTAKWIK = software / "klustakwik-0.3.0.rc3/KlustaKwik"
 
 val BGZIP = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/tabix/tabix_0.2.6/bin/bgzip")
 val R = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/r_3.1.1-bioconductor-3.0/bin/R")
-
 val HAIL = path("/humgen/diabetes/users/kyuksel/github_repos/hail/build/install/hail/bin/hail")
+
+//Google Cloud-Facing
+val hailJarCloud = uri("gs://loamstream/hail/hail-all-spark.jar")
+
+val gcloudSdkBin = path("/humgen/diabetes/users/cgilbert/google-cloud-sdk/bin")
+val gcloud = gcloudSdkBin / "gcloud"
+val gsutil = gcloudSdkBin / "gsutil"
+

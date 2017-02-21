@@ -9,7 +9,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
   * Used to facilitate generation of bash scripts to submit task arrays to UGER
   * For an example of such scripts, see src/test/resources/imputation/shapeItUgerSubmissionScript.sh
   */
-object ScriptBuilder {
+private[uger] object ScriptBuilder {
   val space: String = " "
   val tab: String = "\t"
   val newLine: String = "\n"
@@ -34,7 +34,7 @@ i=$$SGE_TASK_ID
     val firstIfBlock = getFirstIfBlock(commandLineJobs.head, taskIndexStartValue)
 
     val elseIfBlocks = commandLineJobs.tail.zipWithIndex.map { case (job, index) =>
-      s"${getElseIfHeader(index + 2)}${getBody(job, s"$newLine$tab")}"
+      s"${getElseIfHeader(index + 2)}${getBody(job)}"
     }.mkString(newLine)
 
     s"$scriptHeader$newLine$firstIfBlock$newLine$elseIfBlocks$endIf"
@@ -42,21 +42,16 @@ i=$$SGE_TASK_ID
 
   def getFirstIfBlock(commandLineJob: CommandLineJob, indexStartValue: Int): String = {
     val ifHeader = getIfHeader(indexStartValue)
-    val ifBody = getBody(commandLineJob, s"$newLine$tab")
+    val ifBody = getBody(commandLineJob)
 
     s"$ifHeader$ifBody"
   }
 
-  def getBody(commandLineJob: CommandLineJob, sep: String): String = {
-    val tokens = commandLineJob.commandLineString.split(space)
-    s"""$newLine$tab${tokens.mkString(s"$unixLineSep$sep")}"""
+  def getBody(commandLineJob: CommandLineJob): String = {
+    s"""$newLine$tab${commandLineJob.commandLineString}"""
   }
 
-  def getIfHeader(index: Int): String = {
-    s"""if [ $$i -eq $index ]${newLine}then"""
-  }
+  def getIfHeader(index: Int): String = s"""if [ $$i -eq $index ]${newLine}then"""
 
-  def getElseIfHeader(index: Int): String = {
-    s"""elif [ $$i -eq $index ]${newLine}then"""
-  }
+  def getElseIfHeader(index: Int): String = s"""elif [ $$i -eq $index ]${newLine}then"""
 }

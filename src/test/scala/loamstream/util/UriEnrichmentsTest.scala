@@ -1,29 +1,30 @@
 package loamstream.util
 
 import java.net.URI
+
 import org.scalatest.FunSuite
 
 /**
- * @author kyuksel
- * date: Nov 17, 2016
- */
+  * @author kyuksel
+  *         date: Nov 17, 2016
+  */
 final class UriEnrichmentsTest extends FunSuite {
   test("appending segments using / to base URIs WITHOUT trailing file separators") {
     import UriEnrichments._
-    
+
     val root = URI.create("/")
-    
+
     val opt = root / "opt"
-    
+
     assert(opt == URI.create("/opt"))
-    
+
     val foo = URI.create("foo")
-    
+
     val fooBarBazTxt = foo / "bar" / "baz.txt"
-    
+
     assert(fooBarBazTxt == URI.create("foo/bar/baz.txt"))
   }
-  
+
   test("appending segments using / to base URIs WITH trailing file separators") {
     import UriEnrichments._
 
@@ -38,6 +39,14 @@ final class UriEnrichmentsTest extends FunSuite {
     val fooBarBazTxt = foo / "bar/" / "baz.txt/"
 
     assert(fooBarBazTxt == URI.create("/foo/bar/baz.txt/"))
+  }
+
+  test("appending suffix using + (only expected to work without trailing file separator)") {
+    import UriEnrichments._
+    val uri = URI.create("gs:a/b/c")
+    val uri2 = uri + "2"
+    val uri2Expected = URI.create("gs:a/b/c2")
+    assert(uri2 === uri2Expected)
   }
 
   test("getPathWithoutLeadingSlash") {

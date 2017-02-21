@@ -207,9 +207,9 @@ uger {
 
   cmd"""$TABIX -f -p vcf ${Local.VCF_GZ}""".in(Local.VCF_GZ).out(Local.VCF_GZ_TBI)
 
-  cmd"""echo "IID POP SUPERPOP SEX" > ${Local.SAMPLE_FILE}""".out(Local.SAMPLE_FILE)
+  cmd"""echo 'IID POP SUPERPOP SEX' > ${Local.SAMPLE_FILE}""".out(Local.SAMPLE_FILE)
 
-  cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam > ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED :+ Local.SAMPLE_FILE).out(Local.SAMPLE_FILE)
+  cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam >> ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED :+ Local.SAMPLE_FILE).out(Local.SAMPLE_FILE)
 }
 
 /**
@@ -445,7 +445,7 @@ google {
   googleCopy(Google.NONOUTLIERPCA_SCORES_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
   googleCopy(Google.NONOUTLIERPCA_LOADINGS_TSV, Local.NONOUTLIERPCA_LOADINGS_TSV)
 }
-/*
+
 // CHUNK 3
 
 /**
@@ -573,4 +573,4 @@ cmd"""$R --vanilla --args
   < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
   .in(sampleQcKlustakwikStores.map(_.clu) :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY)
   .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
-*/
+

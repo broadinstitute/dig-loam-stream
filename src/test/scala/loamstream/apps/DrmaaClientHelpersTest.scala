@@ -2,13 +2,13 @@ package loamstream.apps
 
 import java.nio.file.Path
 
+import loamstream.conf.UgerConfig
+
 import scala.concurrent.duration.Duration
 import scala.util.Try
 import scala.util.control.NoStackTrace
-
 import org.ggf.drmaa.DrmaaException
 import org.scalatest.FunSuite
-
 import loamstream.uger.DrmaaClient
 import loamstream.uger.UgerStatus
 
@@ -73,10 +73,10 @@ object DrmaaClientHelpersTest {
     var isShutdown = false
       
     override def submitJob(
-      pathToScript: Path, 
-      pathToUgerOutput: Path, 
-      jobName: String, 
-      numTasks: Int = 1): DrmaaClient.SubmissionResult = ???
+                            ugerConfig: UgerConfig,
+                            pathToScript: Path,
+                            jobName: String,
+                            numTasks: Int = 1): DrmaaClient.SubmissionResult = ???
     
     override def statusOf(jobId: String): Try[UgerStatus] = ???
   

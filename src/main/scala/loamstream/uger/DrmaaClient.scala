@@ -1,6 +1,9 @@
 package loamstream.uger
 
 import java.nio.file.Path
+
+import loamstream.conf.UgerConfig
+
 import scala.util.Try
 import scala.concurrent.duration.Duration
 import loamstream.util.Terminable
@@ -15,17 +18,17 @@ import loamstream.util.Terminable
 trait DrmaaClient extends Terminable {
   /**
    * Synchronously submit a job to UGER.
- *
+   *
+   * @param ugerConfig contains the parameters to configure a job
    * @param pathToScript the path to the script that UGER should run
-   * @param pathToUgerOutput the path to the log file UGER should write to
    * @param jobName a descriptive prefix used to identify the job.  Has no impact on how the job runs.
    * @param numTasks length of task array to be submitted as a single UGER job
    */
   def submitJob(
-    pathToScript: Path,
-    pathToUgerOutput: Path,
-    jobName: String,
-    numTasks: Int = 1): DrmaaClient.SubmissionResult
+                 ugerConfig: UgerConfig,
+                 pathToScript: Path,
+                 jobName: String,
+                 numTasks: Int = 1): DrmaaClient.SubmissionResult
     
   /**
    * Synchronously inspect the status of a job with the given ID

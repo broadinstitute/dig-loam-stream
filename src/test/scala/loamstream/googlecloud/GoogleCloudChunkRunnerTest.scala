@@ -42,27 +42,39 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   }
   
   test("withCluster") {
-    import GoogleCloudChunkRunner.withCluster
-    
-    withMockClient { client =>
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === 0)
-      assert(client.deleteClusterInvocations() === 0)
+    withMockRunner { (_, googleRunner, mockClient) =>
+      assert(googleRunner.singleThreadedExecutor.isShutdown === false)
+      assert(mockClient.clusterRunning() === false)
+      assert(mockClient.startClusterInvocations() === 0)
+      assert(mockClient.deleteClusterInvocations() === 0)
+
+      googleRunner.withCluster(mockClient) {
+        assert(mockClient.clusterRunning() === true)
+        assert(mockClient.startClusterInvocations() === 1)
+        assert(mockClient.deleteClusterInvocations() === 0)
+      }
       
-      val result = withCluster(client) {
-        assert(client.clusterRunning() === true)
-        assert(client.startClusterInvocations() === 1)
-        assert(client.deleteClusterInvocations() === 0)
+      googleRunner.withCluster(mockClient) {
+        assert(mockClient.clusterRunning() === true)
+        assert(mockClient.startClusterInvocations() === 1)
+        assert(mockClient.deleteClusterInvocations() === 0)
+      }
+      
+      val result = googleRunner.withCluster(mockClient) {
+        assert(mockClient.clusterRunning() === true)
+        assert(mockClient.startClusterInvocations() === 1)
+        assert(mockClient.deleteClusterInvocations() === 0)
         
         42
       }
-    
-      assert(client.clusterRunning() === false)
-      assert(client.startClusterInvocations() === 1)
-      assert(client.deleteClusterInvocations() === 1)
       
       assert(result === 42)
-    }
+      
+      assert(googleRunner.singleThreadedExecutor.isShutdown === false)
+      assert(mockClient.clusterRunning() === true)
+      assert(mockClient.startClusterInvocations() === 1)
+      assert(mockClient.deleteClusterInvocations() === 0)
+    } 
   }
   
   test("runJobsSequentially") {
@@ -81,21 +93,28 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
       
       val result = waitFor(resultObs.lastAsFuture)
       
-      assert(client.clusterRunning() === false)
+      assert(client.clusterRunning() === true)
       assert(client.startClusterInvocations() === 1)
-      assert(client.deleteClusterInvocations() === 1)
+      assert(client.deleteClusterInvocations() === 0)
       
       assert(result === expected)
     }
   }
   
   test("stop()") {
-    withMockRunner { (_, googleRunner, _) =>
+    withMockRunner { (_, googleRunner, mockClient) =>
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
+      assert(mockClient.clusterRunning() === false)
+          
+      googleRunner.withCluster(mockClient)(42)
+      
+      assert(googleRunner.singleThreadedExecutor.isShutdown === false)
+      assert(mockClient.clusterRunning() === true)
       
       googleRunner.stop()
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === true)
+      assert(mockClient.clusterRunning() === false)
     }
   }
   
@@ -129,9 +148,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
       
       val result = waitFor(googleRunner.run(Set(job1, job2, job3)).lastAsFuture)
       
-      assert(client.clusterRunning() === false)
+      assert(client.clusterRunning() === true)
       assert(client.startClusterInvocations() === 1)
-      assert(client.deleteClusterInvocations() === 1)
+      assert(client.deleteClusterInvocations() === 0)
       
       assert(result === expected)
     }

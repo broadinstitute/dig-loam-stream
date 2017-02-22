@@ -35,7 +35,7 @@ import loamstream.util.Throwables
  *         kyuksel
  * Nov 10, 2016
  */
-trait AppWiring extends Terminable {
+trait AppWiring {
   def dao: LoamDao
 
   def executer: Executer
@@ -45,6 +45,8 @@ trait AppWiring extends Terminable {
   private[AppWiring] def makeJobFilter(conf: Conf): JobFilter = {
     if (conf.runEverything()) JobFilter.RunEverything else new DbBackedJobFilter(dao)
   }
+  
+  def shutdown(): Seq[Throwable]
 }
 
 object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Loggable {
@@ -52,11 +54,11 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
   def apply(cli: Conf): AppWiring = new AppWiring with DefaultDb {
     override def executer: Executer = terminableExecuter
 
-    override def stop(): Unit = terminableExecuter.stop()
+    override def shutdown(): Seq[Throwable] = terminableExecuter.shutdown()
 
     override def cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
 
-    private val terminableExecuter = {
+    private val terminableExecuter: TerminableExecuter = {
       info("Creating executer...")
 
       val jobFilter = makeJobFilter(cli)
@@ -215,24 +217,22 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       dao
     }
   }
+  
   private[apps] final class TerminableExecuter(
       val delegate: Executer,
-      toStop: Terminable*) extends Executer with Terminable {
+      toStop: Terminable*) extends Executer {
 
     override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobState] = {
       delegate.execute(executable)(timeout)
     }
 
-    final override def stop(): Unit = {
+    def shutdown(): Seq[Throwable] = {
       import Throwables._
       
       for {
         terminable <- toStop
-      } {
-        quietly("Error shutting down: ") {
-          terminable.stop()
-        }
-      }
+        e <- quietly("Error shutting down: ")(terminable.stop()) 
+      } yield e
     }
   }
 }

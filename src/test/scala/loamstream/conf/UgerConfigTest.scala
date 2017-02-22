@@ -25,6 +25,7 @@ final class UgerConfigTest extends FunSuite {
           workDir = "/foo/bar/baz"
           logFile = "nuh/zuh.log"
           maxNumJobs=44
+          nativeSpecification="-clear -cwd -shell y -b n -q short -l h_vmem=16g"
         }
       }
       """)
@@ -34,5 +35,6 @@ final class UgerConfigTest extends FunSuite {
     assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
     assert(ugerConfig.logFile === Paths.get("nuh/zuh.log"))
     assert(ugerConfig.maxNumJobs === 44)
+    assert(ugerConfig.nativeSpecification === "-clear -cwd -shell y -b n -q short -l h_vmem=16g")
   }
 }

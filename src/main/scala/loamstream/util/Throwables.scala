@@ -11,9 +11,18 @@ object Throwables {
       message: String, 
       level: Loggable.Level.Value = Loggable.Level.error)
       (f: => Any)
-      (implicit logContext: LogContext): Unit = {
+      (implicit logContext: LogContext): Option[Throwable] = {
     
-      try { f }
-      catch { case NonFatal(e) => logContext.log(level, message, e) }
+    try { 
+      f 
+      
+      None
+    } catch { 
+      case NonFatal(e) => {
+        logContext.log(level, message, e)
+        
+        Some(e)
+      }
     }
+  }
 }

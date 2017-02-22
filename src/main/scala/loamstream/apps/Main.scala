@@ -45,7 +45,20 @@ object Main extends Loggable {
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
     } finally {
-      wiring.stop()
+      shutdown(wiring)
+    }
+  }
+  
+  private def shutdown(wiring: AppWiring): Unit = {
+    wiring.shutdown() match {
+      case Nil => info("LoamStream shut down successfully")
+      case exceptions => {
+        error(s"LoamStream shut down with ${exceptions.size} errors: ")
+
+        exceptions.foreach { e =>
+          error(s"Error shuting down: ${e.getClass.getName}", e)
+        }
+      }
     }
   }
 

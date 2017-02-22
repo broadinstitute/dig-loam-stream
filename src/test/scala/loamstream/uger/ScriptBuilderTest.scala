@@ -76,6 +76,7 @@ final class ScriptBuilderTest extends FunSuite {
     getShapeItCommandLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads).mkString(" ")
   }
 // scalastyle:off method.length
+// scalastyle:off line.size.limit
   def expectedScriptAsString: String = {
     val sixSpaces = "      "
 
@@ -101,5 +102,6 @@ then
 fi
 """
   }
+  // scalastyle:on line.size.limit
   // scalastyle:on method.length
 }

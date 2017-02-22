@@ -11,7 +11,7 @@ import scala.util.Try
   *
   * @author Kaan Yuksel
   */
-final case class UgerConfig(workDir: Path, logFile: Path, maxNumJobs: Int)
+final case class UgerConfig(workDir: Path, logFile: Path, nativeSpecification: String, maxNumJobs: Int)
 
 object UgerConfig {
 
@@ -19,7 +19,7 @@ object UgerConfig {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.PathReader
-    
+
     //NB: Ficus now marshals the contents of loamstream.uger into a UgerConfig instance.
     //Names of fields in UgerConfig and keys under loamstream.uger must match.
     Try(config.as[UgerConfig]("loamstream.uger"))

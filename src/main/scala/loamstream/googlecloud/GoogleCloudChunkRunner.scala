@@ -33,6 +33,9 @@ final case class GoogleCloudChunkRunner(
     ExecutionContext.fromExecutorService(singleThreadedExecutor)
   }
   
+  //NB: Ensure that we only start the cluster once from this Runner
+  private lazy val init: Unit = client.startCluster()
+  
   override def maxNumJobs: Int = delegate.maxNumJobs
   
   override def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
@@ -47,9 +50,11 @@ final case class GoogleCloudChunkRunner(
     import scala.concurrent.duration._
     
     quietly("Error shutting down Executor")(ExecutorServices.shutdown(singleThreadedExecutor, 5.seconds))
+    
+    quietly("Error stopping cluster")(client.deleteCluster())
   }
   
-  import GoogleCloudChunkRunner.{withCluster, runSingle}
+  import GoogleCloudChunkRunner.runSingle
   
   private[googlecloud] def runJobsSequentially(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
     Observables.observeAsync {
@@ -60,24 +65,15 @@ final case class GoogleCloudChunkRunner(
       }
     }
   }
+  
+  private[googlecloud] def withCluster[A](client: DataProcClient)(f: => A): A = {
+    init
+      
+    f
+  }
 }
 
 object GoogleCloudChunkRunner {
-  //TODO: Make one cluster per set of jobs, instead of keeping one around for multiple chunks, over the lifetime
-  //of this whole runner
-  //TODO: Avoid this lock :(
-  private[this] val lock = new AnyRef
-  
-  private[googlecloud] def withCluster[A](client: DataProcClient)(f: => A): A = lock.synchronized {
-    try {
-      client.startCluster()
-      
-      f
-    } finally {
-      client.deleteCluster()
-    }
-  }
-  
   private[googlecloud] def runSingle(delegate: ChunkRunner)(job: LJob): Map[LJob, JobState] = {
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     //on the same cluster simultaneously

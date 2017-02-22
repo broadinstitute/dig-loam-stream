@@ -207,7 +207,7 @@ uger {
 
   cmd"""$TABIX -f -p vcf ${Local.VCF_GZ}""".in(Local.VCF_GZ).out(Local.VCF_GZ_TBI)
 
-  cmd"""echo 'IID POP SUPERPOP SEX' > ${Local.SAMPLE_FILE} ; awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam >> ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED :+ Local.SAMPLE_FILE).out(Local.SAMPLE_FILE)
+  cmd"""(echo 'IID POP SUPERPOP SEX' ; awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam) > ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED).out(Local.SAMPLE_FILE)
 }
 
 /**
@@ -346,10 +346,13 @@ uger {
   *  Notes:
   *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
   */
-google {
+
+local {
   googleCopy(input.inKG_HAIL, Google.inKG_HAIL, "-r")
   googleCopy(input.inKG_V3_5K_AF, Google.inKG_V3_5K_AF)
+}
 
+google {
   //NB: '--' must separate params for gcloud from those for hail
   cmd"""$gcloud dataproc jobs submit spark
     --cluster ${Google.clusterId}
@@ -374,7 +377,9 @@ google {
       exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
       -o ${Google.ANCESTRYPCA_LOADINGS_TSV}
     """.in(Google.inKG_HAIL, Google.VDS, Google.inKG_V3_5K_AF).out(Google.ANCESTRYPCA_LOG, Google.ANCESTRYPCA_SCORES_TSV, Google.ANCESTRYPCA_LOADINGS_TSV)
-  
+}
+
+local {
   googleCopy(Google.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRYPCA_SCORES_TSV)
 }
 
@@ -413,9 +418,11 @@ uger {
  *  Notes:
  */
 
-google {
+local {
   googleCopy(Local.ANCESTRY, Google.ANCESTRY)
+}
 
+google {
   //NB: '--' must separate params for gcloud from those for hail
   cmd"""$gcloud dataproc jobs submit spark
     --cluster ${Google.clusterId}
@@ -439,7 +446,9 @@ google {
       exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
       -o ${Google.NONOUTLIERPCA_LOADINGS_TSV}
     """.in(Google.VDS_FOR_QC_PRUNED, Google.ANCESTRY).out(Google.NONOUTLIERPCA_SCORES_TSV, Google.NONOUTLIERPCA_LOADINGS_TSV)
-  
+}
+
+local {
   googleCopy(Google.NONOUTLIERPCA_SCORES_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
   googleCopy(Google.NONOUTLIERPCA_LOADINGS_TSV, Local.NONOUTLIERPCA_LOADINGS_TSV)
 }
@@ -571,4 +580,3 @@ cmd"""$R --vanilla --args
   < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
   .in(sampleQcKlustakwikStores.map(_.clu) :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY)
   .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
-

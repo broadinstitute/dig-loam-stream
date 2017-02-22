@@ -1,21 +1,12 @@
 package loamstream.uger
 
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
-import scala.util.Success
-
-import org.scalatest.FunSuite
-
-import com.typesafe.config.ConfigFactory
-
+import java.nio.file.Paths
 import loamstream.conf.UgerConfig
 import loamstream.model.jobs.NoOpJob
-import java.nio.file.Paths
-import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.Futures
 import loamstream.util.ObservableEnrichments
+import org.scalatest.FunSuite
+import rx.lang.scala.schedulers.IOScheduler
 
 /**
   * Created by kyuksel on 7/25/16.
@@ -25,7 +16,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   
   private val scheduler = IOScheduler()
   
-  private val config = UgerConfig(Paths.get("target/foo"), Paths.get("target/bar"), 42)
+  private val config = UgerConfig(Paths.get("target/foo"), Paths.get("target/bar"), "some job parameters", 42)
   private val client = MockDrmaaClient(Map.empty)
   private val runner = UgerChunkRunner(config, client, new JobMonitor(scheduler, Poller.drmaa(client)))
 

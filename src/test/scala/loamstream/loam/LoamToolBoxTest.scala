@@ -49,7 +49,7 @@ final class LoamToolBoxTest extends FunSuite {
     Results(graph, mapping, jobResults)
   }
 
-  ignore("Simple toy pipeline using cp.") {
+  test("Simple toy pipeline using cp.") {
     //Make files in target/ so we don't risk cluttering up the project root directory if anything goes wrong.
     withFiles("target/fileIn.txt", "target/fileOut1.txt", "target/fileOut2.txt", "target/fileOut3.txt") { paths =>
       val Seq(fileIn, fileOut1, fileOut2, fileOut3) = paths

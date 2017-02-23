@@ -3,6 +3,7 @@ package loamstream.util
 import java.nio.charset.StandardCharsets
 
 import scala.util.Try
+import scala.annotation.tailrec
 
 /**
   * Created on: 3/1/16
@@ -57,5 +58,22 @@ object StringUtils {
     } else {
       string
     }
+  }
+  
+  /** Collapse sequences of whitepace in a string into single spaces */
+  def collapseWhitespace(s: String): String = {
+    def toSpace(c: Char): Char = if(c.isWhitespace) ' ' else c
+    
+    @tailrec
+    def loop(remaining: Seq[Char], onWsStreak: Boolean, acc: String): String = {
+      (remaining, onWsStreak) match {
+        case (Nil, _) => acc
+        case (first +: rest, false) => loop(rest, first.isWhitespace, acc :+ toSpace(first))
+        case (first +: rest, true) if first.isWhitespace => loop(rest, onWsStreak = true, acc)
+        case (first +: rest, true) => loop(rest, onWsStreak = false, acc :+ toSpace(first))
+      }
+    }
+    
+    loop(s.toSeq, onWsStreak = false, "")
   }
 }

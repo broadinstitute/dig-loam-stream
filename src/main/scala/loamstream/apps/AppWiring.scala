@@ -55,7 +55,9 @@ trait AppWiring {
 
 object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Loggable {
 
-  def apply(cli: Conf): AppWiring = new AppWiring with DefaultDb {
+  def apply(cli: Conf): AppWiring = new DefaultAppWiring(cli)
+  
+  private final class DefaultAppWiring(cli: Conf) extends AppWiring with DefaultDb {
     private[this] lazy val typesafeConfig = loadConfig(cli)
     private[this] lazy val ugerConfigAttempt = UgerConfig.fromConfig(typesafeConfig)
     private[this] lazy val googleConfigAttempt = GoogleCloudConfig.fromConfig(typesafeConfig)

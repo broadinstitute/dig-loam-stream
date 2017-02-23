@@ -38,7 +38,6 @@ object Local {
 
   // Load Step
   val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
-  val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
 
   // Filter Step
   val FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc")
@@ -61,12 +60,10 @@ object Local {
   val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
 
   //Chunk #2
-  val ANCESTRYPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.log")
   val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.tsv")
   val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.loadings.tsv")
   val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.plots.pdf")
 
-  val NONOUTLIERPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.pca.log")
   val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.scores.tsv")
   val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.loadings.tsv")
 
@@ -98,15 +95,12 @@ object Google {
   val SAMPLE_FILE = store[TXT].at(out / s"$outLABEL.harmonized.sample")
 
   val VDS = store[VCF].at(out / s"$outLABEL.harmonized.ref.vds")
-  val LOAD_LOG = store[TXT].at(out / s"$outLABEL.harmonized.ref.vds.log")
 
   // Filter Step
   val inREGIONS_EXCLUDE = store[TXT].at(out / s"regions.exclude")
   val FOR_QC = store[VCF].at(out / s"$outLABEL.for_qc")
   val VDS_FOR_QC = store[VCF].at(out / s"${Common.FOR_QC_NAME}.vds")
   val VDS_FOR_QC_PRUNED = store[VCF].at(out / s"${Common.FOR_QC_NAME}.pruned.vds")
-  val FILTER_LOG = store[TXT].at(out / s"$outLABEL.filter.log")
-  val FILTERPRUNED_LOG = store[TXT].at(out / s"$outLABEL.filter.pruned.log")
   val VARIANTQC_TSV = store[TXT].at(out / s"$outLABEL.variantqc.tsv")
   val PLINK_FOR_QC_NAME = out / Common.FOR_QC_NAME
   // TODO Possible to remove explicit typing
@@ -126,11 +120,9 @@ object Google {
   val inKG_HAIL = store[TXT].at(data / "inkg_hail.vds")
   val inKG_V3_5K_AF = store[TXT].at(data / "allele_frequencies.tsv")
 
-  val ANCESTRYPCA_LOG = store[TXT].at(out / s"${outLABEL}.ancestry.pca.log")
   val ANCESTRYPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.scores.tsv")
   val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.loadings.tsv")
 
-  val NONOUTLIERPCA_LOG = store[TXT].at(out / s"${outLABEL}.pca.log")
   val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.pca.scores.tsv")
   val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(out / s"${outLABEL}.pca.loadings.tsv")
 
@@ -233,7 +225,6 @@ google {
     --jar $hailJarCloud
     --class org.broadinstitute.hail.driver.Main
     --
-      -l ${Google.LOAD_LOG}
       importvcf --force-bgz ${Google.VCF_GZ}
       splitmulti
       deduplicate
@@ -247,7 +238,7 @@ google {
       write
       --overwrite -o ${Google.VDS}
       count
-      -g""".in(Google.VCF_GZ, Google.VCF_GZ_TBI, Google.SAMPLE_FILE).out(Google.LOAD_LOG, Google.VDS)
+      -g""".in(Google.VCF_GZ, Google.VCF_GZ_TBI, Google.SAMPLE_FILE).out(Google.VDS)
 }
 
 /**
@@ -270,7 +261,6 @@ google {
     --jar $hailJarCloud
     --class org.broadinstitute.hail.driver.Main
     --
-      -l ${Google.FILTER_LOG}
       read -i ${Google.VDS}
       variantqc
       exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
@@ -280,7 +270,7 @@ google {
       write
       --overwrite -o ${Google.VDS_FOR_QC}
       exportplink
-      -o ${Google.FOR_QC}""".in(Google.VDS, Google.inREGIONS_EXCLUDE).out(Google.FILTER_LOG +: Google.PLINK_FOR_QC :+ Google.VDS_FOR_QC)
+      -o ${Google.FOR_QC}""".in(Google.VDS, Google.inREGIONS_EXCLUDE).out(Google.PLINK_FOR_QC :+ Google.VDS_FOR_QC)
 }
 
 local {
@@ -302,13 +292,12 @@ google {
     --jar $hailJarCloud
     --class org.broadinstitute.hail.driver.Main
     --
-      -l ${Google.FILTERPRUNED_LOG}
       read -i ${Google.VDS_FOR_QC}
       filtervariants list -i ${Google.FOR_QC_PRUNE_IN} --keep
       write
       --overwrite -o ${Google.VDS_FOR_QC_PRUNED}
       exportplink
-      -o ${Google.PLINK_FOR_QC_PRUNED_NAME}""".in(Google.VDS_FOR_QC, Google.FOR_QC_PRUNE_IN).out(Google.FILTERPRUNED_LOG +: Google.PLINK_FOR_QC_PRUNED :+ Google.VDS_FOR_QC_PRUNED)
+      -o ${Google.PLINK_FOR_QC_PRUNED_NAME}""".in(Google.VDS_FOR_QC, Google.FOR_QC_PRUNE_IN).out(Google.PLINK_FOR_QC_PRUNED :+ Google.VDS_FOR_QC_PRUNED)
 }
 
 /**
@@ -359,7 +348,6 @@ google {
     --jar $hailJarCloud
     --class org.broadinstitute.hail.driver.Main
     --
-      -l ${Google.ANCESTRYPCA_LOG}
       read ${Google.inKG_HAIL}
       put -n KG
       read -i ${Google.VDS}
@@ -376,7 +364,7 @@ google {
       -o ${Google.ANCESTRYPCA_SCORES_TSV}
       exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
       -o ${Google.ANCESTRYPCA_LOADINGS_TSV}
-    """.in(Google.inKG_HAIL, Google.VDS, Google.inKG_V3_5K_AF).out(Google.ANCESTRYPCA_LOG, Google.ANCESTRYPCA_SCORES_TSV, Google.ANCESTRYPCA_LOADINGS_TSV)
+    """.in(Google.inKG_HAIL, Google.VDS, Google.inKG_V3_5K_AF).out(Google.ANCESTRYPCA_SCORES_TSV, Google.ANCESTRYPCA_LOADINGS_TSV)
 }
 
 local {
@@ -429,7 +417,6 @@ google {
     --jar $hailJarCloud
     --class org.broadinstitute.hail.driver.Main
     -- 
-      -l ${Google.NONOUTLIERPCA_LOG}
       read ${Google.VDS_FOR_QC_PRUNED}
       annotatesamples table
       -i ${Google.ANCESTRY}

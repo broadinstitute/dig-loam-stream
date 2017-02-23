@@ -6,6 +6,7 @@ import java.nio.file.Paths
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.util.PlatformUtil
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -15,7 +16,7 @@ import loamstream.util.PlatformUtil
  */
 final class RxExecuterLotsOfJobsTest extends FunSuite {
 
-  val cancelOnWindows = true
+  private val cancelOnWindows = true
 
   // scalastyle:off magic.number
   
@@ -31,7 +32,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
     
     val executer = RxExecuter.defaultWith(JobFilter.RunEverything)
     
-    val engine = LoamEngine.default(ClientMessageHandler.OutMessageSink.NoOp).copy(executer = executer)
+    val engine = LoamEngine.default(TestHelpers.config).copy(executer = executer)
     
     val executable = engine.compileToExecutable(code).get
     

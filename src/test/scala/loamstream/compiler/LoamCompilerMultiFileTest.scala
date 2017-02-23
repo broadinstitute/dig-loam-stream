@@ -2,13 +2,14 @@ package loamstream.compiler
 
 import loamstream.loam.{LoamCmdTool, LoamScript}
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 /**
   * LoamStream
   * Created by oliverr on 9/19/2016.
   */
 final class LoamCompilerMultiFileTest extends FunSuite {
-  def assertCompiledFine(results: LoamCompiler.Result, nStores: Int, nTools: Int): Unit = {
+  private def assertCompiledFine(results: LoamCompiler.Result, nStores: Int, nTools: Int): Unit = {
     assert(results.isSuccess, results.report)
     assert(results.isClean, results.report)
     assert(results.contextOpt.nonEmpty, results.report)
@@ -17,7 +18,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     assert(graph.tools.size === nTools)
   }
 
-  def assertEchoCommand(results: LoamCompiler.Result): Unit = {
+  private def assertEchoCommand(results: LoamCompiler.Result): Unit = {
     assert(results.contextOpt.nonEmpty)
     val graph = results.contextOpt.get.graph
     assert(graph.tools.size === 1)
@@ -28,9 +29,9 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     assert(cmdTool.tokens.head.toString() === "echo Hello the answer is 42")
   }
 
-  def createNewCompiler: LoamCompiler = new LoamCompiler
+  private def createNewCompiler: LoamCompiler = new LoamCompiler
 
-  val scriptValues = LoamScript("values",
+  private val scriptValues = LoamScript("values",
     """
       |val greeting = "Hello"
       |val answer = 42
@@ -41,7 +42,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
       """
         |cmd"echo ${values.greeting} the answer is ${values.answer}"
       """.stripMargin)
-    val project = LoamProject(scriptValues, scriptIndividualImport)
+    val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
     val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
@@ -54,7 +55,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         |import values.{answer, greeting}
         |cmd"echo $greeting the answer is $answer"
       """.stripMargin)
-    val project = LoamProject(scriptValues, scriptIndividualImport)
+    val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
     val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
@@ -67,7 +68,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         |import values.{answer => answerToTheGreatQuestion, greeting => casualGreeting}
         |cmd"echo $casualGreeting the answer is $answerToTheGreatQuestion"
       """.stripMargin)
-    val project = LoamProject(scriptValues, scriptIndividualImport)
+    val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
     val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
@@ -80,7 +81,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         |import values._
         |cmd"echo $greeting the answer is $answer"
       """.stripMargin)
-    val project = LoamProject(scriptValues, scriptWildcardImport)
+    val project = LoamProject(TestHelpers.config, scriptValues, scriptWildcardImport)
     val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
@@ -105,11 +106,10 @@ final class LoamCompilerMultiFileTest extends FunSuite {
           |import answerForwarder.copyOfAnswer
           |cmd"echo $copyOfGreeting the answer is $copyOfAnswer"
         """.stripMargin))
-    val project = LoamProject(scripts)
+    val project = LoamProject(TestHelpers.config, scripts)
     val compiler = createNewCompiler
     val compileResults = compiler.compile(project)
     assertCompiledFine(compileResults, 0, 1)
     assertEchoCommand(compileResults)
   }
-
 }

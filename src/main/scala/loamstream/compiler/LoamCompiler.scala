@@ -14,6 +14,7 @@ import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.nsc.{Settings => ScalaCompilerSettings}
 import scala.tools.reflect.ReflectGlobal
+import loamstream.conf.LoamConfig
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -170,16 +171,15 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
   }
 
   /** Compiles Loam script into execution plan */
-  def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(script))
+  def compile(config: LoamConfig, script: LoamScript): LoamCompiler.Result = compile(LoamProject(config, script))
 
   /** Compiles Loam script into execution plan */
   def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
-    val projectContextReceipt = LoamProjectContext.depositBox.deposit(LoamProjectContext.empty)
+    val projectContextReceipt = LoamProjectContext.depositBox.deposit(LoamProjectContext.empty(project.config))
     try {
-      val sourceFiles = project.scripts.map({
-        script =>
-          new BatchSourceFile(script.scalaFileName, script.asScalaCode(projectContextReceipt))
-      })
+      val sourceFiles = project.scripts.map { script =>
+        new BatchSourceFile(script.scalaFileName, script.asScalaCode(projectContextReceipt))
+      }
       reporter.reset()
       targetDirectory.clear()
       val run = new compiler.Run
@@ -187,10 +187,9 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
       if (targetDirectory.nonEmpty) {
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-        val scriptBoxes = project.scripts.map({
-          script =>
+        val scriptBoxes = project.scripts.map { script =>
             ReflectionUtil.getObject[LoamScriptBox](classLoader, script.scalaId)
-        })
+        }
         val scriptBox = scriptBoxes.head
         val graph = scriptBox.graph
         reportCompilation(project, graph, projectContextReceipt)

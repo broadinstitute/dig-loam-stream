@@ -10,44 +10,53 @@ import loamstream.loam.LoamToken.StoreRefToken
 import loamstream.loam.LoamToken.StoreToken
 import java.nio.file.Path
 import java.net.URI
+import java.nio.file.Paths
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamToolBox
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.conf.LoamConfig
 
 /**
  * @author clint
  * Feb 17, 2017
  */
-final case class HailSupport(gcloudBinary: Path, clusterId: String, hailJar: URI) {
-  
-   implicit final class StringContextWithHail(val stringContext: StringContext) {
-    
-    def hail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-      val oldParts = stringContext.parts
-        
-      val googleCloudHailPrefixParts = Seq(
-          /* $gcloud, */
-          " dataproc jobs submit spark --cluster ", /* $clusterId */
-          "--jar ", /* $hailCloudJar */
-          "--class org.broadinstitute.hail.driver.Main -- ")
+object HailSupport extends App {
+  def hail(hailParams: String)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+    val googleCloudHailPrefix = {
+      require(scriptContext.projectContext.config.googleConfig.isDefined) //TODO
+      require(scriptContext.projectContext.config.hailConfig.isDefined) //TODO
       
-      val newParts: Seq[String] = {
-        if(oldParts.isEmpty) { googleCloudHailPrefixParts }
-        else { googleCloudHailPrefixParts ++ stringContext.parts }
-      }
+      val googleConfig = scriptContext.projectContext.config.googleConfig.get
+      val hailConfig = scriptContext.projectContext.config.hailConfig.get
       
-      val newArgs = Seq(gcloudBinary, clusterId, hailJar) +: args
-        
-      LoamCmdTool.StringContextWithCmd(StringContext(newParts: _*)).cmd(newArgs: _*)
+      s"""${googleConfig.gcloudBinary} dataproc jobs submit spark --cluster ${googleConfig.clusterId} 
+          | --jar ${hailConfig.hailJar} --class org.broadinstitute.hail.driver.Main -- """.stripMargin
     }
+    
+    import LoamCmdTool._
+    
+    cmd"$googleCloudHailPrefix $hailParams"
   }
   
+  private implicit val googleConfig = {
+    GoogleCloudConfig(
+        gcloudBinary = Paths.get("./gcloud"),
+        projectId = "some-project",
+        clusterId = "some-cluster",
+        credentialsFile = Paths.get("./cred-file"))
+  }
   
-}
-
-object HailSupport extends App {
-  val hailSupport = HailSupport(???, ???, ???)
+  private implicit val hailConfig = HailConfig(new URI("gs:/foo/bar/baz.jar"))
   
-  import hailSupport._
+  private val loamConfig = LoamConfig(None, Some(googleConfig), Some(hailConfig))
   
-  private implicit val scriptContext: LoamScriptContext = ???
+  private implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(loamConfig))
   
-  hail""
+  println(hail("foo.py"))
+  
+  private val toolBox = new LoamToolBox(scriptContext.projectContext)
+  
+  private val job = toolBox.toolToJobShot(hail("foo.py")).get.asInstanceOf[CommandLineJob]
+  
+  println(job)
 }

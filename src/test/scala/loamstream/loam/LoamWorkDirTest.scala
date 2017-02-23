@@ -8,6 +8,7 @@ import loamstream.loam.ops.StoreType.VCF
 import loamstream.util.PathUtils
 import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 /**
   * LoamStream
@@ -15,14 +16,14 @@ import org.scalatest.FunSuite
   */
 final class LoamWorkDirTest extends FunSuite {
 
-  def assertPathsEquivalent(path1: Path, path2: Path): Unit = assert(path1.normalize() === path2.normalize())
+  private def assertPathsEquivalent(path1: Path, path2: Path): Unit = assert(path1.normalize() === path2.normalize())
 
-  def assertPathsEquivalent(path1: Path, path2: String): Unit = assertPathsEquivalent(path1, Paths.get(path2))
+  private def assertPathsEquivalent(path1: Path, path2: String): Unit = assertPathsEquivalent(path1, Paths.get(path2))
 
-  def assertWorkDirIsSet(workDirOpt1: Option[Path], workDirOpt2: Option[Path]): Unit = {
+  private def assertWorkDirIsSet(workDirOpt1: Option[Path], workDirOpt2: Option[Path]): Unit = {
     import LoamCmdTool._
     import LoamPredef._
-    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty)
+    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config))
     workDirOpt1 match {
       case Some(workDir1) => changeDir(workDir1)
       case None => ()

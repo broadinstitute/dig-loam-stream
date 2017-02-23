@@ -51,6 +51,16 @@ final class ValueBox[A](init: A) {
     item
   }
   
+  def getAndMaybeUpdate[B](c: A => (Option[A], B)): B = lock.synchronized {
+    val (valueNewOption, item) = c(_value)
+    
+    if(valueNewOption.isDefined) {
+      _value = valueNewOption.get
+    }
+    
+    item
+  }
+  
   def foreach(f: A => Any): Unit = lock.synchronized {
     f(value)
   }

@@ -31,7 +31,7 @@ object Main extends Loggable {
     val loamEngine = {
       val loamCompiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
 
-      LoamEngine(loamCompiler, wiring.executer, outMessageSink, wiring.cloudStorageClient)
+      LoamEngine(wiring.config, loamCompiler, wiring.executer, outMessageSink, wiring.cloudStorageClient)
     }
 
     try {
@@ -63,7 +63,9 @@ object Main extends Loggable {
   }
 
   private def compileOnly(cli: Conf): Unit = {
-    val loamEngine = LoamEngine.default(outMessageSink)
+    val wiring = AppWiring(cli)
+    
+    val loamEngine = LoamEngine.default(wiring.config, outMessageSink)
 
     val compilationResultShot = loamEngine.compileFiles(cli.loams())
 

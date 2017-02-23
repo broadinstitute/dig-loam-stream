@@ -270,7 +270,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     val (executer, _) = makeLoggingExecuter
 
-    LoamEngine(LoamCompiler(outMessageSink), executer, outMessageSink)
+    LoamEngine(TestHelpers.config, LoamCompiler(outMessageSink), executer, outMessageSink)
   }
 
   private def normalize(po: PathOutput): PathOutput = PathOutput(po.normalized.path)

@@ -12,6 +12,7 @@ import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.model.jobs._
 import loamstream.util._
 import loamstream.loam.LoamScript
+import loamstream.TestHelpers
 
 /**
   * @author clint
@@ -201,7 +202,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
 
   private def compile(loamCode: String): Executable = {
 
-    val compileResults = compiler.compile(LoamScript.withGeneratedName(loamCode))
+    val compileResults = compiler.compile(TestHelpers.config, LoamScript.withGeneratedName(loamCode))
 
     assert(compileResults.errors == Nil)
 

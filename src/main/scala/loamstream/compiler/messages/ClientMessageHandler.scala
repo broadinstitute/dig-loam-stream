@@ -21,7 +21,7 @@ object ClientMessageHandler {
     }
 
     /** A receiver of messages that logs messages */
-    case class LoggableOutMessageSink(loggable: Loggable) extends OutMessageSink {
+    final case class LoggableOutMessageSink(loggable: Loggable) extends OutMessageSink {
       /** Accepts messages and logs them */
       override def send(outMessage: ClientOutMessage): Unit = {
         outMessage match {
@@ -47,7 +47,9 @@ object ClientMessageHandler {
 }
 
 /** The handler responding to messages sent by a client */
-final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
+final case class ClientMessageHandler(
+    engine: LoamEngine, 
+    outMessageSink: OutMessageSink)(implicit executionContext: ExecutionContext) {
   
   val repo = {
     //TODO: NB: The will never do the expected thing, since src/examples/loam (and src/main/loam/examples before it) 
@@ -57,14 +59,15 @@ final case class ClientMessageHandler(outMessageSink: OutMessageSink)(implicit e
     LoamRepository.inMemory ++ LoamRepository.ofFolder(exampleDir)
   }
   
-  val engine = LoamEngine.default(outMessageSink)
+  //TODO
+  //val engine = LoamEngine.default(outMessageSink)
 
-  def compile(code: String): Unit = {
+  private def compile(code: String): Unit = {
     outMessageSink.send(ReceiptOutMessage(code))
     engine.compile(code)
   }
 
-  def run(code: String): Unit = {
+  private def run(code: String): Unit = {
     outMessageSink.send(ReceiptOutMessage(code))
     engine.run(code)
   }

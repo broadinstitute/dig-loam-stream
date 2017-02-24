@@ -65,15 +65,21 @@ object StringUtils {
     def toSpace(c: Char): Char = if(c.isWhitespace) ' ' else c
     
     @tailrec
-    def loop(remaining: Seq[Char], onWsStreak: Boolean, acc: String): String = {
-      (remaining, onWsStreak) match {
-        case (Nil, _) => acc
-        case (first +: rest, false) => loop(rest, first.isWhitespace, acc :+ toSpace(first))
-        case (first +: rest, true) if first.isWhitespace => loop(rest, onWsStreak = true, acc)
-        case (first +: rest, true) => loop(rest, onWsStreak = false, acc :+ toSpace(first))
+    def loop(remaining: Seq[Char], onWsStreak: Boolean, acc: StringBuilder): String = {
+      remaining match {
+        //No more chars to process, return the accumulator
+        case Nil => acc.toString
+        case first +: rest => onWsStreak match {
+          //We're not on a ws streak
+          case false => loop(rest, first.isWhitespace, acc += toSpace(first))
+          //Skip subsequent ws (don't add it to acc) if we're on a streak
+          case true if first.isWhitespace => loop(rest, onWsStreak = true, acc)
+          //Seeing non-ws after ws means the streak is broken
+          case true => loop(rest, onWsStreak = false, acc += toSpace(first))
+        }
       }
     }
     
-    loop(s.toSeq, onWsStreak = false, "")
+    loop(s.toSeq, onWsStreak = false, new StringBuilder)
   }
 }

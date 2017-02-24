@@ -19,7 +19,13 @@ object ValueReaders {
     override def read(config: Config, path: String): Path = Paths.get(config.getString(path))
   }
   
-  implicit val UriReader: ValueReader[URI] = new ValueReader[URI] {
-    override def read(config: Config, path: String): URI = new URI(config.getString(path))
+  implicit val GcsUriReader: ValueReader[URI] = new ValueReader[URI] {
+    override def read(config: Config, path: String): URI = {
+      val result = new URI(config.getString(path))
+      
+      require(result.getScheme == "gs")
+      
+      result
+    }
   }
 }

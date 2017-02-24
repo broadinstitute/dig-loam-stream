@@ -59,9 +59,6 @@ final case class ClientMessageHandler(
     LoamRepository.inMemory ++ LoamRepository.ofFolder(exampleDir)
   }
   
-  //TODO
-  //val engine = LoamEngine.default(outMessageSink)
-
   private def compile(code: String): Unit = {
     outMessageSink.send(ReceiptOutMessage(code))
     engine.compile(code)

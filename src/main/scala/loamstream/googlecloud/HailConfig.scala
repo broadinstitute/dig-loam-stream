@@ -15,10 +15,10 @@ object HailConfig {
   def fromConfig(config: Config): Try[HailConfig] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
-    import ValueReaders.UriReader
+    import ValueReaders.GcsUriReader
     
-    //NB: Ficus now marshals the contents of loamstream.googlecloud into a GoogleCloudConfig instance.
-    //Names of fields in GoogleCloudConfig and keys under loamstream.googlecloud must match.
+    //NB: Ficus now marshals the contents of loamstream.googlecloud.hail into a HailConfig instance.
+    //Names of fields in HailConfig and keys under loamstream.googlecloud.hail must match.
     Try(config.as[HailConfig]("loamstream.googlecloud.hail"))
   }
 }

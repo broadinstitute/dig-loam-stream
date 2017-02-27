@@ -439,12 +439,7 @@ val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH: Path = outDIR / s"${outLABEL}.sample
 val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH)
 
 google {
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    --
-      read ${Google.VDS_FOR_QC}
+  hail"""read ${Google.VDS_FOR_QC}
       annotatesamples table
       -i ${Local.ANCESTRY}
       --no-header

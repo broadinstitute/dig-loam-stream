@@ -8,6 +8,7 @@ import loamstream.LoamTestHelpers
 import loamstream.compiler.LoamProject
 import loamstream.loam.LoamScript
 import loamstream.util.Shot
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -25,7 +26,7 @@ final class CompileQcStepsTest extends FunSuite with LoamTestHelpers {
 
     val scripts: Set[LoamScript] = Shot.sequence(loams.map(LoamScript.read)).get    
 
-    val results = compile(LoamProject(scripts))
+    val results = compile(LoamProject(TestHelpers.config, scripts))
     
     assert(results.errors === Nil)
   }

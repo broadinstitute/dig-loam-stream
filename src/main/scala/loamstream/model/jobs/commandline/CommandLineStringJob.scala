@@ -32,11 +32,3 @@ final case class CommandLineStringJob(
   def withCommandLineString(newCmd: String): CommandLineStringJob = copy(commandLineString = newCmd)
 }
 
-object CommandLineStringJob {
-
-  private[commandline] def tokensToRun(commandString: String): Seq[String] = {
-    val scriptFile = JFiles.createTempFile("cmd", "sh")
-    Files.writeTo(scriptFile)(commandString.replace("\\", "\\\\\\\\") + "\nexit\n")
-    Seq("sh", scriptFile.toString.replace("\\", "\\\\"))
-  }
-}

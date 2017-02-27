@@ -31,10 +31,10 @@ trait LoamTestHelpers extends Loggable {
     
     val paths: Set[Path] = (path +: rest).toSet
     
-    compile(LoamProject(paths.map(toScript)), throwOnError = false)
+    compile(LoamProject(TestHelpers.config, paths.map(toScript)), throwOnError = false)
   }
 
-  def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(Set(script)))
+  def compile(script: LoamScript): LoamCompiler.Result = compile(LoamProject(TestHelpers.config, Set(script)))
     
   def compile(project: LoamProject, throwOnError: Boolean = true): LoamCompiler.Result = {
 

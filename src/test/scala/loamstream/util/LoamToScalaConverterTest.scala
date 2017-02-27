@@ -194,7 +194,7 @@ final class LoamToScalaConverterTest extends FunSuite {
         |import loamstream.loam.LoamProjectContext
         |
         |object LoamProjectContextOwner {
-        |  val loamProjectContext : LoamProjectContext = LoamProjectContext.empty
+        |  val loamProjectContext : LoamProjectContext = LoamProjectContext.empty(???) //TODO
         |}
       """.stripMargin
     }
@@ -223,7 +223,7 @@ final class LoamToScalaConverterTest extends FunSuite {
         |import loamstream.loam.LoamProjectContext
         |
         |object LoamProjectContextOwner {
-        |  val loamProjectContext : LoamProjectContext = LoamProjectContext.empty
+        |  val loamProjectContext : LoamProjectContext = LoamProjectContext.empty(???) //TODO
         |}
       """.stripMargin
     }

@@ -22,6 +22,7 @@ import loamstream.util.Loggable
 import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.Executable
 import loamstream.util.StringUtils
+import loamstream.conf.LoamConfig
 
 
 /**
@@ -29,21 +30,29 @@ import loamstream.util.StringUtils
   * Created by oliverr on 7/5/2016.
   */
 object LoamEngine {
-  def default(outMessageSink: ClientMessageHandler.OutMessageSink = ClientMessageHandler.OutMessageSink.NoOp,
-              csClient: Option[CloudStorageClient] = None): LoamEngine =
-    LoamEngine(new LoamCompiler(LoamCompiler.Settings.default, outMessageSink),
-      RxExecuter.default, outMessageSink, csClient)
+  def default(
+      config: LoamConfig,
+      outMessageSink: ClientMessageHandler.OutMessageSink = ClientMessageHandler.OutMessageSink.NoOp,
+      csClient: Option[CloudStorageClient] = None): LoamEngine = {
+    
+    val compiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
+    
+    LoamEngine(config, compiler, RxExecuter.default, outMessageSink, csClient)
+  }
 
-  final case class Result(projectOpt: Shot[LoamProject],
-                          compileResultOpt: Shot[LoamCompiler.Result],
-                          jobResultsOpt: Shot[Map[LJob, JobState]])
+  final case class Result(
+      projectOpt: Shot[LoamProject],
+      compileResultOpt: Shot[LoamCompiler.Result],
+      jobResultsOpt: Shot[Map[LJob, JobState]])
 
 }
 
-final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
-                            outMessageSink: ClientMessageHandler.OutMessageSink,
-                            csClient: Option[CloudStorageClient] = None)
-  extends Loggable {
+final case class LoamEngine(
+    config: LoamConfig,
+    compiler: LoamCompiler, 
+    executer: Executer,
+    outMessageSink: ClientMessageHandler.OutMessageSink,
+    csClient: Option[CloudStorageClient] = None) extends Loggable {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
     val message = shot match {
@@ -53,9 +62,7 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
     outMessageSink.send(message)
   }
 
-  def loadFileWithName(fileName: String): Shot[LoamScript] = {
-    loadFile(Paths.get(fileName))
-  }
+  def loadFileWithName(fileName: String): Shot[LoamScript] = loadFile(Paths.get(fileName))
 
   def loadFile(file: Path): Shot[LoamScript] = {
     val fileShot = {
@@ -97,15 +104,17 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
 
   def compile(file: Path): Shot[LoamCompiler.Result] = loadFile(file).map(compile)
 
-  def compile(script: String): LoamCompiler.Result = compiler.compile(LoamScript.withGeneratedName(script))
+  def compile(script: String): LoamCompiler.Result = compiler.compile(config, LoamScript.withGeneratedName(script))
 
-  def compile(name: String, script: String): LoamCompiler.Result = compiler.compile(LoamScript(name, script, None))
+  def compile(name: String, script: String): LoamCompiler.Result = {
+    compiler.compile(config, LoamScript(name, script, None))
+  }
 
-  def compile(scripts: Iterable[LoamScript]): LoamCompiler.Result = compiler.compile(LoamProject(scripts))
+  def compile(scripts: Iterable[LoamScript]): LoamCompiler.Result = compiler.compile(LoamProject(config, scripts))
 
   def compile(project: LoamProject): LoamCompiler.Result = compiler.compile(project)
 
-  def compile(script: LoamScript): LoamCompiler.Result = compiler.compile(script)
+  def compile(script: LoamScript): LoamCompiler.Result = compiler.compile(config, script)
 
   def compileToExecutable(code: String): Option[Executable] = {
     val compilationResult = compile(LoamScript.withGeneratedName(code))
@@ -186,15 +195,16 @@ final case class LoamEngine(compiler: LoamCompiler, executer: Executer,
 
   def run(code: String): LoamEngine.Result = run(LoamScript.withGeneratedName(code))
 
-  def run(scripts: Iterable[LoamScript]): LoamEngine.Result = run(LoamProject(scripts))
+  def run(scripts: Iterable[LoamScript]): LoamEngine.Result = run(LoamProject(config, scripts))
 
-  def run(script: LoamScript): LoamEngine.Result = run(LoamProject(script))
+  def run(script: LoamScript): LoamEngine.Result = run(LoamProject(config, script))
 
   def run(project: LoamProject): LoamEngine.Result = {
     outMessageSink.send(StatusOutMessage(s"Now compiling project with ${project.scripts.size} scripts."))
     val compileResults = compile(project)
     if (compileResults.isValid) {
       outMessageSink.send(StatusOutMessage(compileResults.summary))
+      //TODO: What if compileResults.contextOpt is None?
       val context = compileResults.contextOpt.get
       val jobResults = run(context)
       LoamEngine.Result(Hit(project), Hit(compileResults), Hit(jobResults))

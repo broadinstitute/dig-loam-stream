@@ -2,9 +2,12 @@ package loamstream.googlecloud
 
 import java.net.URI
 import java.nio.file.{Files, Path}
+import java.security.MessageDigest
 import java.time.Instant
+import javax.xml.bind.DatatypeConverter
 
 import com.google.auth.oauth2.ServiceAccountCredentials
+import com.google.cloud.storage.Storage.{BlobField, BlobListOption}
 import com.google.cloud.storage.{Blob, Storage, StorageOptions}
 import loamstream.util.HashType.Md5
 import loamstream.util.{Hash, HashType, Tries}
@@ -22,14 +25,29 @@ final case class GcsClient private[googlecloud] (credentialsFile: Path) extends 
 
   override val hashAlgorithm: HashType = Md5
 
-  // Encapsulated MD5 hash of the storage object
-  override def hash(uri: URI): Option[Hash] = Hash.fromStrings(hashStr(uri), hashAlgorithm.algorithmName)
+  // Encapsulated MD5 hash of the storage object/directory
+  override def hash(uri: URI): Option[Hash] = {
+    val msgDigest = MessageDigest.getInstance(hashAlgorithm.algorithmName)
 
-  // If the storage object exists
-  override def isPresent(uri: URI): Boolean = obj(uri).isDefined
+    for {
+        blobs <- blobsOpt(uri)
+        hash <- blobs.map(_.getMd5)
+      } msgDigest.update(DatatypeConverter.parseBase64Binary(hash))
+
+    Option(Hash(msgDigest.digest, hashAlgorithm))
+  }
+
+  // If the storage object/directory exists
+  override def isPresent(uri: URI): Boolean = blobsOpt(uri).isDefined
 
   // Last update time of the object
-  override def lastModified(uri: URI): Option[Instant] = obj(uri).map(o => Instant.ofEpochMilli(o.getUpdateTime))
+  // If 'uri' points to a directory, last update time of the most recently modified object within that directory
+  override def lastModified(uri: URI): Option[Instant] = {
+    blobsOpt(uri) match {
+      case Some(blobs) => Some(Instant.ofEpochMilli(blobs.map(_.getUpdateTime).max))
+      case _ =>  None
+    }
+  }
 
   // Instantiate a GCS handle using given credentials.
   // If no credentials provided, attempt to find credentials that might be set in the environment
@@ -42,15 +60,19 @@ final case class GcsClient private[googlecloud] (credentialsFile: Path) extends 
   // The name for the bucket
   private[googlecloud] def bucketName(uri: URI): String = uri.getHost
 
-  // Path for the storage object
-  private[googlecloud] def objPath(uri: URI): String = uri.getPathWithoutLeadingSlash
+  // If 'uri' is a directory, (optionally) return the list of all objects underneath it (directly or recursively)
+  // Else (optionally) return 'uri'
+  private[googlecloud] def blobsOpt(uri:URI): Option[Iterable[Blob]] = {
+    import scala.collection.JavaConverters._
 
-  // Storage object option
-  private[googlecloud] def obj(uri: URI): Option[Blob] = Option(storage.get(bucketName(uri), objPath(uri)))
+    val withPrefix = BlobListOption.prefix(uri.getPathWithoutLeadingSlash)
+    val withRelevantFields = BlobListOption.fields(BlobField.NAME, BlobField.UPDATED, BlobField.MD5HASH)
 
-  // MD5 hash of the storage object as String
-  private[googlecloud] def hashStr(uri: URI): Option[String] = {
-    obj(uri).map(_.getMd5)
+    Option(
+      storage.list(bucketName(uri), withPrefix, withRelevantFields)
+        .getValues.asScala
+        .filterNot(_.getName.endsWith("/")) // eliminate directories
+    )
   }
 }
 

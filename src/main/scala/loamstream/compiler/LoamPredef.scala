@@ -15,7 +15,7 @@ import loamstream.model.execute.ExecutionEnvironment
 object LoamPredef {
 
   implicit def toConstantFunction[T](item: T): () => T = () => item
-
+  
   def path(pathString: String): Path = Paths.get(pathString)
 
   def uri(uriString: String): URI = URI.create(uriString)

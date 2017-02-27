@@ -5,6 +5,7 @@ import scripts._
 import store_helpers._
 import loamstream.loam.LoamStore
 import scala.io.Source
+import loamstream.googlecloud.HailSupport._
 
 object Common {
   // Alignment Step
@@ -82,8 +83,6 @@ object Local {
 }
 
 object Google {
-  //TODO: Make this configurable
-  val clusterId = "ky-test-small"
 
   private val root = uri("gs://loamstream/qc/all")
   private val data = root / "data"
@@ -220,12 +219,7 @@ local {
 
 google {
   //'--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    --
-      importvcf --force-bgz ${Google.VCF_GZ}
+  hail"""importvcf --force-bgz ${Google.VCF_GZ}
       splitmulti
       deduplicate
       annotatesamples table
@@ -255,13 +249,7 @@ local {
 }
 
 google {
-  //'--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    --
-      read -i ${Google.VDS}
+  hail"""read -i ${Google.VDS}
       variantqc
       exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
       -o ${Google.VARIANTQC_TSV}
@@ -286,13 +274,7 @@ local {
 }
 
 google {
-  //'--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    --
-      read -i ${Google.VDS_FOR_QC}
+  hail"""read -i ${Google.VDS_FOR_QC}
       filtervariants list -i ${Google.FOR_QC_PRUNE_IN} --keep
       write
       --overwrite -o ${Google.VDS_FOR_QC_PRUNED}
@@ -342,13 +324,7 @@ local {
 }
 
 google {
-  //NB: '--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    --
-      read ${Google.inKG_HAIL}
+  hail"""read ${Google.inKG_HAIL}
       put -n KG
       read -i ${Google.VDS}
       join --right KG
@@ -411,13 +387,7 @@ local {
 }
 
 google {
-  //NB: '--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    -- 
-      read ${Google.VDS_FOR_QC_PRUNED}
+  hail"""read ${Google.VDS_FOR_QC_PRUNED}
       annotatesamples table
       -i ${Google.ANCESTRY}
       --no-header

@@ -20,22 +20,22 @@ final case class GoogleCloudConfig(
     credentialsFile: Path,
     zone: String = Defaults.zone,
     masterMachineType: String = Defaults.masterMachineType,
-    masterBootDiskSize: Int = Defaults.masterBootDiskSize, // in GB
-    numWorkers: Int = Defaults.numWorkers, // minimum 2
+    masterBootDiskSize: Int = Defaults.masterBootDiskSize, 
+    numWorkers: Int = Defaults.numWorkers, 
     workerMachineType: String = Defaults.workerMachineType,
-    workerBootDiskSize: Int = Defaults.workerBootDiskSize, // in GB
-    imageVersion: String = Defaults.imageVersion, // 2.x not supported by Hail
+    workerBootDiskSize: Int = Defaults.workerBootDiskSize, 
+    imageVersion: String = Defaults.imageVersion, 
     scopes: String = Defaults.scopes)
     
 object GoogleCloudConfig {
   object Defaults { // for creating a minimal cluster
     val zone: String = "us-central1-f"
     val masterMachineType: String = "n1-standard-1"
-    val masterBootDiskSize: Int = 20
+    val masterBootDiskSize: Int = 20 // in GB
     val numWorkers: Int = 2
-    val workerMachineType: String ="n1-standard-1"
-    val workerBootDiskSize: Int = 20
-    val imageVersion: String = "1.0"
+    val workerMachineType: String = "n1-standard-1"
+    val workerBootDiskSize: Int = 20 // in GB
+    val imageVersion: String = "1.0" // 2.x not supported by Hail
     val scopes: String = "https://www.googleapis.com/auth/cloud-platform"
   }
   

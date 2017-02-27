@@ -12,6 +12,7 @@ import loamstream.model.jobs.ops.{StoreFilterJob, StoreMapperJob}
 import loamstream.model.jobs.{LJob, LToolBox, NativeJob, Output}
 import loamstream.util.{Hit, Miss, Shot, Snag}
 import loamstream.model.execute.ExecutionEnvironment
+import loamstream.util.ValueBox
 
 /**
   * LoamStream
@@ -20,9 +21,9 @@ import loamstream.model.execute.ExecutionEnvironment
 final class LoamToolBox(context: LoamProjectContext, client: Option[CloudStorageClient] = None) extends LToolBox {
 
   @volatile private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
-
+  
   private[this] val lock = new AnyRef
-
+  
   private[loam] def newLoamJob(tool: LoamTool): Shot[LJob] = {
     val graph = tool.graphBox.value
 

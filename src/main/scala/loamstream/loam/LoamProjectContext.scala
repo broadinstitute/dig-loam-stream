@@ -2,9 +2,10 @@ package loamstream.loam
 
 import loamstream.loam.files.LoamFileManager
 import loamstream.util.{DepositBox, ValueBox}
+import loamstream.conf.LoamConfig
 
 /** Container for compile time and run time context for a project */
-final class LoamProjectContext(val graphBox: ValueBox[LoamGraph]) {
+final class LoamProjectContext(val config: LoamConfig, val graphBox: ValueBox[LoamGraph]) {
 
   def graph: LoamGraph = graphBox.value
 
@@ -16,6 +17,6 @@ object LoamProjectContext {
 
   val depositBox = DepositBox.empty[LoamProjectContext]
 
-  def empty: LoamProjectContext = new LoamProjectContext(ValueBox(LoamGraph.empty))
+  def empty(config: LoamConfig): LoamProjectContext = new LoamProjectContext(config, ValueBox(LoamGraph.empty))
 
 }

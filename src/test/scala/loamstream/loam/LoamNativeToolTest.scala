@@ -10,6 +10,7 @@ import loamstream.loam.ops.StoreType.TXT
 import loamstream.util.PathEnrichments._
 import loamstream.util.Validation
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 /** Tests of LoamNativeTool */
 final class LoamNativeToolTest extends FunSuite {
@@ -18,7 +19,7 @@ final class LoamNativeToolTest extends FunSuite {
   private val storePaths = (0 until 5).map(index => folder / s"file$index.txt")
 
   private def createProjectContext: LoamProjectContext = {
-    implicit val projectContext = LoamProjectContext.empty
+    implicit val projectContext = LoamProjectContext.empty(TestHelpers.config)
     implicit val scriptContext = new LoamScriptContext(projectContext)
     val store0 = store[TXT].at(storePaths(0)).asInput
     val store1 = store[TXT].at(storePaths(1))
@@ -54,14 +55,14 @@ final class LoamNativeToolTest extends FunSuite {
     assert(graphValidationIssues.isEmpty,
       s"There were some graph validation issues: ${graphValidationIssues.mkString("\n")}")
     JFiles.write(storePaths(0), fileContentString.getBytes)
-    val loamEngine = LoamEngine.default(ClientMessageHandler.OutMessageSink.NoOp)
+    val loamEngine = LoamEngine.default(TestHelpers.config)
     val jobResults = loamEngine.run(context)
     assert(jobResults.size === 4, s"Should have gotten 4 results, but got $jobResults")
     assert(jobResults.values.forall(_.isSuccess), s"Not all job results were successful: $jobResults")
     storePaths.foreach(assertFile)
   }
 
-  def assertInputsAndOutputs(tool: LoamTool, inStores: Set[LoamStore.Untyped],
+  private def assertInputsAndOutputs(tool: LoamTool, inStores: Set[LoamStore.Untyped],
                              outStores: Set[LoamStore.Untyped]): Unit = {
     assert(tool.inputs.values.toSet === inStores)
     assert(tool.outputs.values.toSet === outStores)
@@ -69,7 +70,7 @@ final class LoamNativeToolTest extends FunSuite {
 
   test("Loam native tool I/O API") {
     import loamstream.compiler.LoamPredef._
-    implicit val projectContext = LoamProjectContext.empty
+    implicit val projectContext = LoamProjectContext.empty(TestHelpers.config)
     implicit val scriptContext = new LoamScriptContext(projectContext)
     val store0 = store[TXT].at(storePaths(0)).asInput
     val store1 = store[TXT].at(storePaths(1))

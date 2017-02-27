@@ -15,8 +15,15 @@ object HailSupport {
   implicit final class StringContextWithHail(val stringContext: StringContext) extends AnyVal {
     def hail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       
-      require(scriptContext.projectContext.config.googleConfig.isDefined) //TODO
-      require(scriptContext.projectContext.config.hailConfig.isDefined) //TODO
+      def config = scriptContext.projectContext.config
+      
+      require(
+          config.googleConfig.isDefined, 
+          s"Hail support requires a valid 'loamstream.googlecloud' section in the config file")
+          
+      require(
+          config.hailConfig.isDefined,
+          s"Hail support requires a valid 'loamstream.googlecloud.hail' section in the config file")
       
       val googleConfig = scriptContext.projectContext.config.googleConfig.get
       val hailConfig = scriptContext.projectContext.config.hailConfig.get

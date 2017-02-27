@@ -145,50 +145,6 @@ final class StringUtilsTest extends FunSuite {
     assert(StringUtils.leftPadTo("1234567", "0", 7) === "1234567")
     assert(StringUtils.leftPadTo("123456789", "0", 7) === "123456789")
   }
-  
-  test("collapseWhitespace") {
-    import StringUtils.collapseWhitespace
-    
-    assert(collapseWhitespace(" foo  bar   baz    ") === " foo bar baz ")
-    
-    assert(collapseWhitespace("") === "")
-    assert(collapseWhitespace(" ") === " ")
-    assert(collapseWhitespace("  ") === " ")
-    assert(collapseWhitespace("foo ") === "foo ")
-    assert(collapseWhitespace(" foo") === " foo")
-    assert(collapseWhitespace("  foo") === " foo")
-    assert(collapseWhitespace("foo  ") === "foo ")
-    assert(collapseWhitespace("  foo  ") === " foo ")
-    assert(collapseWhitespace(" foo ") === " foo ")
-    assert(collapseWhitespace("   foo ") === " foo ")
-    assert(collapseWhitespace(" foo   ") === " foo ")
-    
-    assert(collapseWhitespace("\t") === " ")
-    assert(collapseWhitespace(" \t") === " ")
-    assert(collapseWhitespace("\t  ") === " ")
-    assert(collapseWhitespace(" \t  ") === " ")
-    assert(collapseWhitespace("foo\t") === "foo ")
-    assert(collapseWhitespace("\tfoo") === " foo")
-    assert(collapseWhitespace(" \tfoo") === " foo")
-    assert(collapseWhitespace("foo\t ") === "foo ")
-    assert(collapseWhitespace("\t foo\t ") === " foo ")
-    assert(collapseWhitespace("\tfoo\t") === " foo ")
-    assert(collapseWhitespace(" \t foo ") === " foo ")
-    assert(collapseWhitespace(" foo \t ") === " foo ")
-    
-    assert(collapseWhitespace("\n") === " ")
-    assert(collapseWhitespace(" \n") === " ")
-    assert(collapseWhitespace("\n  ") === " ")
-    assert(collapseWhitespace(" \n  ") === " ")
-    assert(collapseWhitespace("foo\n") === "foo ")
-    assert(collapseWhitespace("\nfoo") === " foo")
-    assert(collapseWhitespace(" \nfoo") === " foo")
-    assert(collapseWhitespace("foo\n ") === "foo ")
-    assert(collapseWhitespace("\n foo\n ") === " foo ")
-    assert(collapseWhitespace("\nfoo\n") === " foo ")
-    assert(collapseWhitespace(" \n foo ") === " foo ")
-    assert(collapseWhitespace(" foo \n ") === " foo ")
-  }
 
   //scalastyle:on magic.number
 }

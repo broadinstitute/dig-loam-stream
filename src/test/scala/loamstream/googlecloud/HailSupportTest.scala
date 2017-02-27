@@ -103,7 +103,7 @@ final class HailSupportTest extends FunSuite {
   
     val job = toolBox.toolToJobShot(actual).get.asInstanceOf[CommandLineJob]
   
-    import StringUtils.collapseWhitespace
+    def collapseWhitespace(s: String) = s.replaceAll("\\s+", " ")
     
     assert(collapseWhitespace(job.commandLineString) === collapseWhitespace(expectedCommandLine))
   }

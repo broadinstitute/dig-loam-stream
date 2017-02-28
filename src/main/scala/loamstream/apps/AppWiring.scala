@@ -146,7 +146,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       googleConfig <- GoogleCloudConfig.fromConfig(config)
       gcsClient <- GcsClient.fromConfig(googleConfig)
     } yield {
-      debug("Creating Google Cloud Storage Client...")
+      info("Creating Google Cloud Storage Client...")
       gcsClient
     }
 

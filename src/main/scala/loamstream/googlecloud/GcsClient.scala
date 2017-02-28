@@ -10,7 +10,7 @@ import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.cloud.storage.Storage.{BlobField, BlobListOption}
 import com.google.cloud.storage.{Blob, Storage, StorageOptions}
 import loamstream.util.HashType.Md5
-import loamstream.util.{Hash, HashType, Tries}
+import loamstream.util.{Hash, HashType, Loggable, Tries}
 
 import scala.util.{Success, Try}
 
@@ -20,7 +20,7 @@ import scala.util.{Success, Try}
  *
  * Wrapper around Google Cloud Storage JAVA API to expose methods for job recording purposes
  */
-final case class GcsClient private[googlecloud] (credentialsFile: Path) extends CloudStorageClient {
+final case class GcsClient private[googlecloud] (credentialsFile: Path) extends CloudStorageClient with Loggable {
   import loamstream.util.UriEnrichments._
 
   override val hashAlgorithm: HashType = Md5
@@ -28,23 +28,34 @@ final case class GcsClient private[googlecloud] (credentialsFile: Path) extends 
   // Encapsulated MD5 hash of the storage object/directory
   override def hash(uri: URI): Option[Hash] = {
     val msgDigest = MessageDigest.getInstance(hashAlgorithm.algorithmName)
-
+    trace(s"URI: $uri")
     for {
         blobs <- blobsOpt(uri)
         hash <- blobs.map(_.getMd5)
+        _ = trace(s"\thash = $hash")
       } msgDigest.update(DatatypeConverter.parseBase64Binary(hash))
 
+    trace(s"\tdigest = ${msgDigest.digest}")
     Option(Hash(msgDigest.digest, hashAlgorithm))
   }
 
   // If the storage object/directory exists
-  override def isPresent(uri: URI): Boolean = blobsOpt(uri).isDefined
+  override def isPresent(uri: URI): Boolean = {
+    trace(s"URI: $uri")
+    val blobs = blobsOpt(uri)
+    trace(s"\tisPresent = ${blobs.isDefined && blobs.get.nonEmpty}")
+    blobs.isDefined && blobs.get.nonEmpty
+  }
 
   // Last update time of the object
   // If 'uri' points to a directory, last update time of the most recently modified object within that directory
   override def lastModified(uri: URI): Option[Instant] = {
     blobsOpt(uri) match {
-      case Some(blobs) => Some(Instant.ofEpochMilli(blobs.map(_.getUpdateTime).max))
+      case Some(blobs) if blobs.nonEmpty => {
+        trace(s"URI: $uri")
+        trace(s"\tlastModified = ${Option(Instant.ofEpochMilli(blobs.map(_.getUpdateTime).max))}")
+        Option(Instant.ofEpochMilli(blobs.map(_.getUpdateTime).max))
+      }
       case _ =>  None
     }
   }

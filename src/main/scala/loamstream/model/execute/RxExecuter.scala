@@ -44,15 +44,12 @@ final case class RxExecuter(
     
     val chunkResults: Observable[Map[LJob, JobState]] = for {
       chunk <- chunks
-      _ = logJobs(executable)
+      _ = logJobForest(executable)
       jobs <- chunk.to[Set]
       if jobs.nonEmpty
       (jobsToRun, skippedJobs) = jobs.partition(jobFilter.shouldRun)
-      _ = debug(s"SKIPPING (${skippedJobs.size}) $skippedJobs")
-      _ = debug(s"RUNNING (${jobsToRun.size}) $jobsToRun")
-      _ = debug(s"Dispatching jobs to ChunkRunner: $jobsToRun")
-      _ = markJobsSkipped(skippedJobs)
-      resultMap <- runner.run(jobsToRun)
+      _ = handleSkippedJobs(skippedJobs)
+      resultMap <- runJobs(jobsToRun)
       _ = record(resultMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
     } yield {
@@ -71,10 +68,34 @@ final case class RxExecuter(
     Await.result(futureMergedResults, timeout)
   }
   
-  private def logJobs(executable: Executable): Unit = {
+  def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, JobState]] = {
+    logJobsToBeRun(jobsToRun)
+    
+    runner.run(jobsToRun)
+  }
+  
+  private def handleSkippedJobs(skippedJobs: Set[LJob]): Unit = {
+    logSkippedJobs(skippedJobs)
+    
+    markJobsSkipped(skippedJobs)
+  }
+  
+  private def logJobForest(executable: Executable): Unit = {
     def log(s: String) = debug(s)
       
     executable.jobs.head.print(doPrint = log, header = Some("Current Job Statuses:"))
+  }
+  
+  private def logJobsToBeRun(jobsToRun: Set[LJob]): Unit = {
+    debug(s"Dispatching (${jobsToRun.size}) jobs to ChunkRunner:")
+    
+    jobsToRun.foreach(job => debug(s"Dispatching job to ChunkRunner: $job"))
+  }
+  
+  private def logSkippedJobs(skippedJobs: Set[LJob]): Unit = {
+    info(s"Skipping (${skippedJobs.size} jobs:)")
+    
+    skippedJobs.foreach(job => info(s"Skipped: $job"))
   }
   
   private def markJobsSkipped(skippedJobs: Set[LJob]): Unit = {

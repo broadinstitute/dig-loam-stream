@@ -93,7 +93,7 @@ final case class RxExecuter(
   }
   
   private def logSkippedJobs(skippedJobs: Set[LJob]): Unit = {
-    info(s"Skipping (${skippedJobs.size} jobs:)")
+    info(s"Skipping (${skippedJobs.size}) jobs:")
     
     skippedJobs.foreach(job => info(s"Skipped: $job"))
   }

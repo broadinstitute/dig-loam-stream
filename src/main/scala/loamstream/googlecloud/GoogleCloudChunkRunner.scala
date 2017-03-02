@@ -60,14 +60,13 @@ final case class GoogleCloudChunkRunner(
   import GoogleCloudChunkRunner.runSingle
   
   private[googlecloud] def deleteClusterIfNecessary(): Unit = {
-    
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
     Try(client.isClusterRunning) match {
       case Success(true) => client.deleteCluster()
       case Success(false) => info("Cluster not running, not attempting to shut it down")
       case Failure(e) => {
-        warn(s"Error determinging cluster status, attempting to shut down cluster anyway")
+        warn(s"Error determining cluster status, attempting to shut down cluster anyway")
         
         client.deleteCluster()
       }

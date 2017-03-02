@@ -81,6 +81,7 @@ final case class GcsClient private[googlecloud] (credentialsFile: Path) extends 
     storage.list(bucketName(uri), withPrefix, withRelevantFields)
         .getValues.asScala
         .filterNot(_.getName.endsWith("/")) // eliminate directories
+        .filter(_.getName.split("/").contains(uri.lastSegment)) // match exactly (to distinguish `x.gz` from `x.gz.tbi`)
   }
 }
 

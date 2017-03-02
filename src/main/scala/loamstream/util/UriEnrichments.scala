@@ -1,5 +1,6 @@
 package loamstream.util
 
+import java.io.File
 import java.net.URI
 
 /**
@@ -47,6 +48,16 @@ object UriEnrichments {
 
       if (path.startsWith("/")) path.drop(leadingChar) else path
     }
+
+    /**
+     * Useful to extract the last segment of a URI
+     * e.g. uri = URI.create("gs://bucket/dir/file")
+     *      uri.lastSegment ==> file
+     *      whereas
+     *      uri.getPath ==> /dir/file
+     *
+     * @return The path component of a given URI
+     */
+    def lastSegment: String = new File(uri.getPath).getName
   }
-  
 }

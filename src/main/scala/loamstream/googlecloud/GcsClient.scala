@@ -35,36 +35,28 @@ final case class GcsClient private[googlecloud] (credentialsFile: Path) extends 
     else {
       val msgDigest = MessageDigest.getInstance(hashAlgorithm.algorithmName)
 
-      // Side effect
-      bs.map(_.getMd5).foreach { hash =>
-        msgDigest.update(DatatypeConverter.parseBase64Binary(hash))
-        trace(s"\thash = $hash")
-        trace(s"\tHash = ${Hash(msgDigest.digest, hashAlgorithm)}")
-      }
+      val hashesConcated = bs.map(_.getMd5).toArray.sorted.mkString
+      trace(s"\tHashes Concated = $hashesConcated")
+      val hashesConcatedBase64ParsedBin = DatatypeConverter.parseBase64Binary(hashesConcated)
+      trace(s"\tHashes Concated Binary = $hashesConcatedBase64ParsedBin")
 
-      Option(Hash(msgDigest.digest, hashAlgorithm))
+      msgDigest.update(hashesConcatedBase64ParsedBin)
+
+      val finalDigest = msgDigest.digest
+      trace(s"\tFinal Digest = $finalDigest")
+      trace(s"\tFinal Hash = ${Option(Hash(finalDigest, hashAlgorithm))}\n")
+
+      Option(Hash(finalDigest, hashAlgorithm))
     }
   }
 
   // If the storage object/directory exists
-  override def isPresent(uri: URI): Boolean = {
-    trace(s"isPresent() called for URI: $uri")
-    trace(s"\tisPresent = ${blobs(uri).nonEmpty}")
-    blobs(uri).nonEmpty
-  }
+  override def isPresent(uri: URI): Boolean = blobs(uri).nonEmpty
 
   // Last update time of the object
   // If 'uri' points to a directory, last update time of the most recently modified object within that directory
   override def lastModified(uri: URI): Option[Instant] = {
-    trace(s"lastModified() called for URI: $uri")
-
-    Try {
-      val bs = blobs(uri)
-
-      trace(s"\tlastModified = ${Instant.ofEpochMilli(bs.map(_.getUpdateTime).max)}")
-
-      Instant.ofEpochMilli(bs.map(_.getUpdateTime).max)
-    }.toOption
+    Try(Instant.ofEpochMilli(blobs(uri).map(_.getUpdateTime).max)).toOption
   }
 
   // Instantiate a GCS handle using given credentials.

@@ -139,7 +139,7 @@ object Google {
   val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
   val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
 }
-
+/*
 // CHUNK 1
 
 /**
@@ -201,7 +201,7 @@ local {
 
   cmd"""(echo 'IID POP SUPERPOP SEX' ; awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam) > ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED).out(Local.SAMPLE_FILE)
 }
-
+*/
 /**
  * Load Step
  *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information

@@ -27,37 +27,44 @@ final case class GcsClient private[googlecloud] (credentialsFile: Path) extends 
 
   // Encapsulated MD5 hash of the storage object/directory
   override def hash(uri: URI): Option[Hash] = {
-    val msgDigest = MessageDigest.getInstance(hashAlgorithm.algorithmName)
-    trace(s"URI: $uri")
-    for {
-        blobs <- blobsOpt(uri)
-        hash <- blobs.map(_.getMd5)
-        _ = trace(s"\thash = $hash")
-      } msgDigest.update(DatatypeConverter.parseBase64Binary(hash))
+    trace(s"hash() called for URI: $uri")
 
-    trace(s"\tdigest = ${msgDigest.digest}")
-    Option(Hash(msgDigest.digest, hashAlgorithm))
+    val bs = blobs(uri)
+
+    if (bs.isEmpty) { None }
+    else {
+      val msgDigest = MessageDigest.getInstance(hashAlgorithm.algorithmName)
+
+      // Side effect
+      bs.map(_.getMd5).foreach { hash =>
+        msgDigest.update(DatatypeConverter.parseBase64Binary(hash))
+        trace(s"\thash = $hash")
+        trace(s"\tHash = ${Hash(msgDigest.digest, hashAlgorithm)}")
+      }
+
+      Option(Hash(msgDigest.digest, hashAlgorithm))
+    }
   }
 
   // If the storage object/directory exists
   override def isPresent(uri: URI): Boolean = {
-    trace(s"URI: $uri")
-    val blobs = blobsOpt(uri)
-    trace(s"\tisPresent = ${blobs.isDefined && blobs.get.nonEmpty}")
-    blobs.isDefined && blobs.get.nonEmpty
+    trace(s"isPresent() called for URI: $uri")
+    trace(s"\tisPresent = ${blobs(uri).nonEmpty}")
+    blobs(uri).nonEmpty
   }
 
   // Last update time of the object
   // If 'uri' points to a directory, last update time of the most recently modified object within that directory
   override def lastModified(uri: URI): Option[Instant] = {
-    blobsOpt(uri) match {
-      case Some(blobs) if blobs.nonEmpty => {
-        trace(s"URI: $uri")
-        trace(s"\tlastModified = ${Option(Instant.ofEpochMilli(blobs.map(_.getUpdateTime).max))}")
-        Option(Instant.ofEpochMilli(blobs.map(_.getUpdateTime).max))
-      }
-      case _ =>  None
-    }
+    trace(s"lastModified() called for URI: $uri")
+
+    Try {
+      val bs = blobs(uri)
+
+      trace(s"\tlastModified = ${Instant.ofEpochMilli(bs.map(_.getUpdateTime).max)}")
+
+      Instant.ofEpochMilli(bs.map(_.getUpdateTime).max)
+    }.toOption
   }
 
   // Instantiate a GCS handle using given credentials.
@@ -71,19 +78,17 @@ final case class GcsClient private[googlecloud] (credentialsFile: Path) extends 
   // The name for the bucket
   private[googlecloud] def bucketName(uri: URI): String = uri.getHost
 
-  // If 'uri' is a directory, (optionally) return the list of all objects underneath it (directly or recursively)
-  // Else (optionally) return 'uri'
-  private[googlecloud] def blobsOpt(uri:URI): Option[Iterable[Blob]] = {
+  // If 'uri' is a directory, return the list of all objects (Blob's) underneath it (directly or recursively), if any
+  // Else return the object (Blob) 'uri' identifies, if any
+  private[googlecloud] def blobs(uri:URI): Iterable[Blob] = {
     import scala.collection.JavaConverters._
 
     val withPrefix = BlobListOption.prefix(uri.getPathWithoutLeadingSlash)
     val withRelevantFields = BlobListOption.fields(BlobField.NAME, BlobField.UPDATED, BlobField.MD5HASH)
 
-    Option(
-      storage.list(bucketName(uri), withPrefix, withRelevantFields)
+    storage.list(bucketName(uri), withPrefix, withRelevantFields)
         .getValues.asScala
         .filterNot(_.getName.endsWith("/")) // eliminate directories
-    )
   }
 }
 

@@ -10,6 +10,7 @@ import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
 import org.scalatest.FunSuite
 
 import scala.io.{Codec, Source}
+import loamstream.TestHelpers
 
 
 /** Test Loam store ops */
@@ -20,7 +21,7 @@ final class LoamStoreOpsTest extends FunSuite {
   }
 
   private def runAndAssertRunsFine(script: LoamScript, nStores: Int, nTools: Int, nJobs: Int): Unit = {
-    val engine = LoamEngine.default()
+    val engine = LoamEngine.default(TestHelpers.config)
     val result = engine.run(script)
     val graph = result.compileResultOpt.get.contextOpt.get.graph
     assert(graph.stores.size === nStores)
@@ -31,7 +32,7 @@ final class LoamStoreOpsTest extends FunSuite {
     assert(jobResults.values.forall(_.isInstanceOf[JobState.SuccessState]))
   }
 
-  val inContent =
+  private val inContent = {
     """
       |3 SNP1 0 123 A G
       | SNP2 0 456 T C
@@ -43,6 +44,7 @@ final class LoamStoreOpsTest extends FunSuite {
       |3 SNP8 0 456 T C
       |7 SNP9 0 789 A T
     """.stripMargin.trim
+  }
 
   test("LoamStore.filter(...)") {
     val dir = JFiles.createTempDirectory("LoamStoreOpsTest")
@@ -60,6 +62,7 @@ final class LoamStoreOpsTest extends FunSuite {
     assertFileHasNLines(unplaced, 3)
     assertFileHasNLines(chr7, 3)
   }
+  
   test("LoamStore.map(...)") {
     val dir = JFiles.createTempDirectory("LoamStoreOpsTest")
     val inFile = dir.resolve("data.bim")
@@ -77,6 +80,7 @@ final class LoamStoreOpsTest extends FunSuite {
     val snpsContentExpected = (1 to 9).map(i => s"SNP$i").mkString(System.lineSeparator)
     assert(snpsContent === snpsContentExpected)
   }
+  
   test("LoamStore.extract(...)") {
     val dir = JFiles.createTempDirectory("LoamStoreOpsTest")
     val inFile = dir.resolve("data.bim")
@@ -93,6 +97,7 @@ final class LoamStoreOpsTest extends FunSuite {
     val snpsContentExpected = (1 to 9).map(i => s"SNP$i").mkString(System.lineSeparator)
     assert(snpsContent === snpsContentExpected)
   }
+  
   test("LoamStore.filter(...).extract(...)") {
     val dir = JFiles.createTempDirectory("LoamStoreOpsTest")
     val inFile = dir.resolve("data.bim")

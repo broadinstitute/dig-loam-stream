@@ -14,7 +14,7 @@ object LoamCmdTool {
 
   def createStringToken(string: String): StringToken = StringToken(StringUtils.unwrapLines(string))
 
-  implicit class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
+  implicit final class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
     def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       //TODO: handle case where there are no parts (can that happen? cmd"" ?)
       val firstPart +: stringParts = stringContext.parts

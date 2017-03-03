@@ -4,6 +4,7 @@ import java.nio.file.{Path, Files => JFiles}
 
 import loamstream.compiler.LoamEngine
 import loamstream.util.Files
+import loamstream.TestHelpers
 
 /** Utils for testing specific LoamScripts */
 object LoamScriptTestUtils {
@@ -53,7 +54,7 @@ object LoamScriptTestUtils {
 
   def testScripts(scripts: Iterable[LoamScript], filePaths: FilePaths): Unit = {
     createInputFiles(filePaths)
-    val engine = LoamEngine.default()
+    val engine = LoamEngine.default(TestHelpers.config)
     val results = engine.run(scripts)
     assert(results.jobResultsOpt.nonEmpty, results.compileResultOpt)
     assertOutputFilesExist(filePaths)

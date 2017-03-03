@@ -6,10 +6,11 @@ import loamstream.compiler.LoamEngineTest.Fixture
 import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.util.{Files, StringUtils}
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 
 final class LoamEngineTest extends FunSuite {
-  val engine = LoamEngine.default(ClientMessageHandler.OutMessageSink.NoOp)
+  private val engine = LoamEngine.default(TestHelpers.config)
 
   test("Compile string") {
     val fixture = Fixture.default
@@ -42,7 +43,6 @@ final class LoamEngineTest extends FunSuite {
     engine.runFile(file)
     fixture.assertOutputFilesArePresent()
   }
-
 }
 
 /**
@@ -51,7 +51,7 @@ final class LoamEngineTest extends FunSuite {
   */
 object LoamEngineTest {
 
-  object Fixture {
+  private object Fixture {
     def default: Fixture = {
       val folder = JFiles.createTempDirectory("LoamEngineTest")
       val fileIn = folder.resolve("fileIn.txt")
@@ -63,7 +63,7 @@ object LoamEngineTest {
     }
   }
 
-  final case class Fixture(fileIn: Path, fileOut1: Path, fileOut2: Path, fileOut3: Path) {
+  private final case class Fixture(fileIn: Path, fileOut1: Path, fileOut2: Path, fileOut3: Path) {
     def code = {
       val fileInUnescaped = StringUtils.unescapeBackslashes(fileIn.toString)
       val fileOut1Unescaped = StringUtils.unescapeBackslashes(fileOut1.toString)

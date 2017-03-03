@@ -4,6 +4,7 @@ import loamstream.compiler.LoamCompiler
 import loamstream.loam.{LoamGraphValidation, LoamScript}
 import loamstream.model.AST.ToolNode
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 
 /**
@@ -11,10 +12,10 @@ import org.scalatest.FunSuite
   * Created by oliverr on 6/20/2016.
   */
 final class LoamGraphAstTest extends FunSuite {
-  val compiler = new LoamCompiler
+  private val compiler = new LoamCompiler
 
   def validate(script: LoamScript): Unit = {
-    val result = compiler.compile(script)
+    val result = compiler.compile(TestHelpers.config, script)
     assert(result.contextOpt.nonEmpty)
     val context = result.contextOpt.get
     val graph = context.graph

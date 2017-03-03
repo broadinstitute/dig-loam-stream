@@ -5,6 +5,7 @@ import scripts._
 import store_helpers._
 import loamstream.loam.LoamStore
 import scala.io.Source
+import loamstream.googlecloud.HailSupport._
 
 object Common {
   // Alignment Step
@@ -82,8 +83,6 @@ object Local {
 }
 
 object Google {
-  //TODO: Make this configurable
-  val clusterId = "ky-test-small"
 
   private val root = uri("gs://loamstream/qc/all")
   private val data = root / "data"
@@ -220,12 +219,7 @@ local {
 
 google {
   //'--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    --
-      importvcf --force-bgz ${Google.VCF_GZ}
+  hail"""importvcf --force-bgz ${Google.VCF_GZ}
       splitmulti
       deduplicate
       annotatesamples table
@@ -255,13 +249,7 @@ local {
 }
 
 google {
-  //'--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    --
-      read -i ${Google.VDS}
+  hail"""read -i ${Google.VDS}
       variantqc
       exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
       -o ${Google.VARIANTQC_TSV}
@@ -286,13 +274,7 @@ local {
 }
 
 google {
-  //'--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    --
-      read -i ${Google.VDS_FOR_QC}
+  hail"""read -i ${Google.VDS_FOR_QC}
       filtervariants list -i ${Google.FOR_QC_PRUNE_IN} --keep
       write
       --overwrite -o ${Google.VDS_FOR_QC_PRUNED}
@@ -342,13 +324,7 @@ local {
 }
 
 google {
-  //NB: '--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    --
-      read ${Google.inKG_HAIL}
+  hail"""read ${Google.inKG_HAIL}
       put -n KG
       read -i ${Google.VDS}
       join --right KG
@@ -411,13 +387,7 @@ local {
 }
 
 google {
-  //NB: '--' must separate params for gcloud from those for hail
-  cmd"""$gcloud dataproc jobs submit spark
-    --cluster ${Google.clusterId}
-    --jar $hailJarCloud
-    --class org.broadinstitute.hail.driver.Main
-    -- 
-      read ${Google.VDS_FOR_QC_PRUNED}
+  hail"""read ${Google.VDS_FOR_QC_PRUNED}
       annotatesamples table
       -i ${Google.ANCESTRY}
       --no-header
@@ -468,26 +438,27 @@ val SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.samp
 val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH: Path = outDIR / s"${outLABEL}.sampleqc.stats.adj.pca.scores.tsv"
 val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH)
 
-cmd"""$HAIL -l $SAMPLEQC_LOG
-  read ${Google.VDS_FOR_QC}
-  annotatesamples table
-  -i ${Local.ANCESTRY}
-  --no-header
-  -e _0
-  --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
-  filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
-  imputesex
-  annotatesamples expr -c 'sa.sexcheck = if((sa.pheno.SEX == "female" && ! isMissing(sa.imputesex.isFemale) && sa.imputesex.isFemale) || (sa.pheno.SEX == "male" && ! isMissing(sa.imputesex.isFemale) && ! sa.imputesex.isFemale)) "OK" else "PROBLEM"'
-  sampleqc
-  variantqc
-  annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()"
-  exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-  -o $SAMPLEQC_SEXCHECK_TSV
-  exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar"
-  -o $SAMPLEQC_STATS_TSV
-  filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
-  exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-  -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(Google.VDS_FOR_QC, Local.ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+google {
+  hail"""read ${Google.VDS_FOR_QC}
+      annotatesamples table
+      -i ${Local.ANCESTRY}
+      --no-header
+      -e _0
+      --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
+      filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
+      imputesex
+      annotatesamples expr -c 'sa.sexcheck = if((sa.pheno.SEX == "female" && ! isMissing(sa.imputesex.isFemale) && sa.imputesex.isFemale) || (sa.pheno.SEX == "male" && ! isMissing(sa.imputesex.isFemale) && ! sa.imputesex.isFemale)) "OK" else "PROBLEM"'
+      sampleqc
+      variantqc
+      annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()"
+      exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+      -o $SAMPLEQC_SEXCHECK_TSV
+      exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar"
+      -o $SAMPLEQC_STATS_TSV
+      filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
+      exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+      -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(Google.VDS_FOR_QC, Local.ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+}
 
 cmd"""$R --vanilla --args $SAMPLEQC_STATS_TSV ${Local.NONOUTLIERPCA_SCORES_TSV} $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
 

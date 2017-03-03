@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import loamstream.compiler.repo.LoamRepository
 import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 /**
   * LoamStream
@@ -14,7 +15,7 @@ object LoamCompilerTest {
 
   object SomeObject
 
-  def classIsLoaded(classLoader: ClassLoader, className: String): Boolean = {
+  private def classIsLoaded(classLoader: ClassLoader, className: String): Boolean = {
     classLoader.loadClass(className).getName == className
   }
 }
@@ -38,10 +39,11 @@ final class LoamCompilerTest extends FunSuite {
       """
       // scalastyle:on regex
     }
-    val result = compiler.compile(LoamScript("LoamCompilerTestScript1", code))
+    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript1", code))
     assert(result.errors === Nil)
     assert(result.warnings === Nil)
   }
+  
   test("Testing that compilation of illegal code fragment causes compile errors.") {
     val settingsWithNoCodeLoggingOnError = LoamCompiler.Settings.default.copy(logCodeOnError = false)
     val compiler = new LoamCompiler(settingsWithNoCodeLoggingOnError)
@@ -51,9 +53,10 @@ final class LoamCompilerTest extends FunSuite {
     and social setting, and whose awareness inevitably and necessarily gives him a sense of social responsibility.
       """
     }
-    val result = compiler.compile(LoamScript("LoamCompilerTestScript2", code))
+    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript2", code))
     assert(result.errors.nonEmpty)
   }
+  
   test("Testing sample code toyImpute.loam") {
     val compiler = new LoamCompiler
 
@@ -63,7 +66,7 @@ final class LoamCompilerTest extends FunSuite {
 
     val codeShot = exampleRepo.load("toyImpute").map(_.code)
     assert(codeShot.nonEmpty)
-    val result = compiler.compile(LoamScript("LoamCompilerTestScript1", codeShot.get))
+    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript1", codeShot.get))
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)
     val graph = result.contextOpt.get.graph

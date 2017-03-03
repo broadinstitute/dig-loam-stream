@@ -10,6 +10,7 @@ import loamstream.model.jobs.JobState
 import loamstream.util.Futures
 import loamstream.util.ObservableEnrichments
 
+
 /**
  * @author clint
  * Dec 15, 2016
@@ -18,6 +19,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   //scalastyle:off magic.number
   
   import GoogleCloudChunkRunnerTest.MockDataProcClient
+  import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
   import Futures.waitFor
   import ObservableEnrichments._
 
@@ -118,6 +120,34 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
     }
   }
   
+  test("stop() - error checking cluster status") {
+    withMockClient { delegateClient =>
+      
+      val client = new LiteralMockDataProcClient(delegateClient, ???)
+      
+      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      
+      val googleRunner = GoogleCloudChunkRunner(client, localRunner)
+      
+      assert(googleRunner.singleThreadedExecutor.isShutdown === false)
+      assert(client.delegate.clusterRunning() === false)
+          
+      googleRunner.withCluster(client)(42)
+      
+      assert(googleRunner.singleThreadedExecutor.isShutdown === false)
+      assert(client.delegate.clusterRunning() === true)
+      
+      //Make sure the cluster is still shut down, even if the client throws when checking whether the
+      //cluster is running.
+      
+      googleRunner.stop()
+      
+      assert(googleRunner.singleThreadedExecutor.isShutdown === true)
+      assert(client.delegate.deleteClusterInvocations() == 1)
+      assert(client.delegate.clusterRunning() === false)
+    }
+  }
+  
   test("run - empty input") {
     withMockRunner { (_, googleRunner, client) =>
       assert(client.clusterRunning() === false)
@@ -156,6 +186,112 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
     }
   }
   
+  test("deleteClusterIfNecessary - no errors") {
+    withMockRunner { (_, googleRunner, client) =>
+      assert(client.clusterRunning() === false)
+      assert(client.startClusterInvocations() === 0)
+      assert(client.deleteClusterInvocations() === 0)
+      
+      googleRunner.deleteClusterIfNecessary()
+      
+      assert(client.clusterRunning() === false)
+      assert(client.startClusterInvocations() === 0)
+      assert(client.deleteClusterInvocations() === 0)
+      assert(client.isClusterRunningInvocations() === 1)
+      
+      val job1 = MockJob(JobState.Succeeded)
+      
+      waitFor(googleRunner.run(Set(job1)).lastAsFuture)
+      
+      assert(client.clusterRunning() === true)
+      
+      googleRunner.deleteClusterIfNecessary()
+      
+      assert(client.clusterRunning() === false)
+      assert(client.startClusterInvocations() === 1)
+      assert(client.deleteClusterInvocations() === 1)
+      assert(client.isClusterRunningInvocations() === 2)
+    }
+  }
+  
+  test("deleteClusterIfNecessary - error checking cluster status") {
+    withMockClient { delegateClient =>
+      val client = new LiteralMockDataProcClient(delegateClient, ???)
+      
+      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      
+      val googleRunner = GoogleCloudChunkRunner(client, localRunner)
+      
+      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.startClusterInvocations() === 0)
+      assert(client.delegate.deleteClusterInvocations() === 0)
+      assert(client.delegate.isClusterRunningInvocations() === 0)
+      
+      googleRunner.deleteClusterIfNecessary()
+      
+      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.startClusterInvocations() === 0)
+      assert(client.delegate.deleteClusterInvocations() === 1)
+      assert(client.delegate.isClusterRunningInvocations() === 1)
+      
+      val job1 = MockJob(JobState.Succeeded)
+      
+      waitFor(googleRunner.run(Set(job1)).lastAsFuture)
+      
+      assert(client.delegate.clusterRunning() === true)
+      
+      googleRunner.deleteClusterIfNecessary()
+      
+      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.startClusterInvocations() === 1)
+      assert(client.delegate.deleteClusterInvocations() === 2)
+      assert(client.delegate.isClusterRunningInvocations() === 2)
+    }
+  }
+  
+  test("deleteClusterIfNecessary - error deleting cluster") {
+    import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
+    
+    withMockClient { delegateClient =>
+      val client = new LiteralMockDataProcClient(
+          delegateClient, 
+          delegateClient.clusterRunning(),
+          (),
+          throw new Exception)
+      
+      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      
+      val googleRunner = GoogleCloudChunkRunner(client, localRunner)
+      
+      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.startClusterInvocations() === 0)
+      assert(client.delegate.deleteClusterInvocations() === 0)
+      assert(client.delegate.isClusterRunningInvocations() === 0)
+      
+      googleRunner.deleteClusterIfNecessary()
+      
+      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.startClusterInvocations() === 0)
+      assert(client.delegate.deleteClusterInvocations() === 0)
+      assert(client.delegate.isClusterRunningInvocations() === 1)
+      
+      val job1 = MockJob(JobState.Succeeded)
+      
+      waitFor(googleRunner.run(Set(job1)).lastAsFuture)
+      
+      assert(client.delegate.clusterRunning() === true)
+      
+      intercept[Exception] {
+        googleRunner.deleteClusterIfNecessary()
+      }
+      
+      assert(client.delegate.clusterRunning() === false)
+      assert(client.delegate.startClusterInvocations() === 1)
+      assert(client.delegate.deleteClusterInvocations() === 1)
+      assert(client.delegate.isClusterRunningInvocations() === 2)
+    }
+  }
+  
   private def withMockClient[A](f: MockDataProcClient => A): A = f(new MockDataProcClient)
   
   private def withMockRunner[A](f: (MockChunkRunner, GoogleCloudChunkRunner, MockDataProcClient) => A): A = {
@@ -179,6 +315,31 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
 
 object GoogleCloudChunkRunnerTest {
   //scalastyle:off magic.number
+  
+  final class LiteralMockDataProcClient(
+      val delegate: MockDataProcClient,
+      isClusterRunningBody: => Boolean,
+      startClusterBody: => Any = (),
+      deleteClusterBody: => Any = ()) extends DataProcClient {
+    
+    override def isClusterRunning: Boolean = {
+      delegate.isClusterRunning
+      
+      isClusterRunningBody
+    }
+    
+    override def startCluster(): Unit = {
+      delegate.startCluster()
+      
+      startClusterBody
+    }
+    
+    override def deleteCluster(): Unit = {
+      delegate.deleteCluster()
+      
+      deleteClusterBody
+    }
+  }
   
   final class MockDataProcClient extends DataProcClient {
     val startClusterInvocations: ValueBox[Int] = ValueBox(0)

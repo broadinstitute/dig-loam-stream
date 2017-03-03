@@ -5,20 +5,21 @@ import loamstream.loam.LoamScript
 import loamstream.util.Files
 import org.scalatest.FunSuite
 import java.nio.file.Paths
+import loamstream.TestHelpers
 
 /**
   * LoamStream
   * Created by oliverr on 6/27/2016.
   */
 final class LoamRepositoryTest extends FunSuite {
-  val compiler = new LoamCompiler
+  private val compiler = new LoamCompiler
 
-  def assertAllEntriesCompile(repo: LoamRepository): Unit = {
+  private def assertAllEntriesCompile(repo: LoamRepository): Unit = {
     for (entry <- repo.list) {
       val scriptShot = repo.load(entry)
       assert(scriptShot.nonEmpty, scriptShot.message)
       val script = scriptShot.get
-      val compileResult = compiler.compile(script)
+      val compileResult = compiler.compile(TestHelpers.config, script)
       assert(compileResult.isSuccess, script + "\n" + compileResult.report)
       assert(compileResult.isClean, script + "\n" + compileResult.report)
     }

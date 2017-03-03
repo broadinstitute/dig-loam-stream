@@ -131,12 +131,14 @@ final case class LoamScript(name: String, code: String, subPackage: Option[Packa
   def asScalaCode: String = asScalaCode("new LoamScriptContext(LoamProjectContext.empty)")
 
   /** Convert to Scala code with Loam project context deposited in DepositBox */
-  def asScalaCode(projectContextReceipt: DepositBox.Receipt): String =
-  asScalaCode(s"LoamScriptContext.fromDepositedProjectContext(${projectContextReceipt.asScalaCode})")
+  def asScalaCode(projectContextReceipt: DepositBox.Receipt): String = {
+    asScalaCode(s"LoamScriptContext.fromDepositedProjectContext(${projectContextReceipt.asScalaCode})")
+  }
 
   /** Convert to Scala code with Loam project context available via regular Scala reference */
-  def asScalaCode(projectContextId: ScalaId): String =
-  asScalaCode(s"new LoamScriptContext(${projectContextId.inScalaFull})")
+  def asScalaCode(projectContextId: ScalaId): String = {
+    asScalaCode(s"new LoamScriptContext(${projectContextId.inScalaFull})")
+  }
 
   /** Convert to Scala code, provided code to create or obtain Loam project context */
   def asScalaCode(loamScriptContextCode: String): String = {

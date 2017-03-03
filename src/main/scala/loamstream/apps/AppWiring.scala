@@ -29,6 +29,8 @@ import loamstream.model.execute.CompositeChunkRunner
 import loamstream.util.ExecutionContexts
 import loamstream.googlecloud._
 import loamstream.util.Throwables
+import loamstream.conf.LoamConfig
+import scala.util.Try
 
 /**
  * @author clint
@@ -36,6 +38,8 @@ import loamstream.util.Throwables
  * Nov 10, 2016
  */
 trait AppWiring {
+  def config: LoamConfig
+  
   def dao: LoamDao
 
   def executer: Executer
@@ -51,14 +55,25 @@ trait AppWiring {
 
 object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Loggable {
 
-  def apply(cli: Conf): AppWiring = new AppWiring with DefaultDb {
+  def apply(cli: Conf): AppWiring = new DefaultAppWiring(cli)
+  
+  private final class DefaultAppWiring(cli: Conf) extends AppWiring with DefaultDb {
+    private[this] lazy val typesafeConfig = loadConfig(cli)
+    private[this] lazy val ugerConfigAttempt = UgerConfig.fromConfig(typesafeConfig)
+    private[this] lazy val googleConfigAttempt = GoogleCloudConfig.fromConfig(typesafeConfig)
+    private[this] lazy val hailConfigAttempt = HailConfig.fromConfig(typesafeConfig)
+    
+    override lazy val config: LoamConfig = {
+      LoamConfig(ugerConfigAttempt.toOption, googleConfigAttempt.toOption, hailConfigAttempt.toOption)
+    }
+    
     override def executer: Executer = terminableExecuter
 
     override def shutdown(): Seq[Throwable] = terminableExecuter.shutdown()
 
-    override def cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
+    override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
 
-    private val terminableExecuter: TerminableExecuter = {
+    private lazy val terminableExecuter: TerminableExecuter = {
       info("Creating executer...")
 
       val jobFilter = makeJobFilter(cli)
@@ -74,7 +89,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
       val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(cli, threadPoolSize)
 
-      val googleRunner = googleChunkRunner(cli, localRunner)
+      val googleRunner = googleChunkRunner(cli, googleConfigAttempt, localRunner)
       
       val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
 
@@ -95,11 +110,13 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     }
   }
 
-  private def googleChunkRunner(cli: Conf, delegate: ChunkRunner): Option[GoogleCloudChunkRunner] = {
-    val config = loadConfig(cli)
-
+  private def googleChunkRunner(
+      cli: Conf,
+      googleConfigAttempt: Try[GoogleCloudConfig], 
+      delegate: ChunkRunner): Option[GoogleCloudChunkRunner] = {
+    
     val attempt = for {
-      googleConfig <- GoogleCloudConfig.fromConfig(config)
+      googleConfig <- googleConfigAttempt
       client <- CloudSdkDataProcClient.fromConfig(googleConfig)
     } yield {
       info("Creating Google Cloud ChunkRunner...")

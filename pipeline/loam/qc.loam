@@ -138,7 +138,7 @@ object Google {
   val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
   val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
 }
-/*
+
 // CHUNK 1
 
 /**
@@ -153,7 +153,7 @@ object Google {
  *     Ideally, this will be run in parallel by chromosome number
  */
 
-local {
+uger {
   for (i <- Common.START_CHR to Common.END_CHR) {
     val j = i - Common.START_CHR
     val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
@@ -200,7 +200,7 @@ local {
 
   cmd"""(echo 'IID POP SUPERPOP SEX' ; awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam) > ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED).out(Local.SAMPLE_FILE)
 }
-*/
+
 /**
  * Load Step
  *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
@@ -234,7 +234,7 @@ google {
       count
       -g""".in(Google.VCF_GZ, Google.VCF_GZ_TBI, Google.SAMPLE_FILE).out(Google.VDS)
 }
-/*
+
 /**
  * Filter Step
  *  Description: Generate filtered and filtered/pruned filesets for QC
@@ -538,4 +538,3 @@ cmd"""$R --vanilla --args
   < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
   .in(sampleQcKlustakwikStores.map(_.clu) :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY)
   .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
-*/

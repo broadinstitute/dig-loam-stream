@@ -3,7 +3,7 @@ package loamstream.model.jobs
 import java.nio.file.Path
 import java.time.Instant
 
-import loamstream.util.{Loggable, PathUtils, TimeEnrichments}
+import loamstream.util.{PathUtils, TimeEnrichments}
 
 /**
  * @author kyuksel
@@ -16,7 +16,7 @@ final case class OutputRecord(loc: String,
                               isPresent: Boolean,
                               hash: Option[String],
                               hashType: Option[String],
-                              lastModified: Option[Instant]) extends Loggable {
+                              lastModified: Option[Instant]) {
 
   def isMissing: Boolean = !isPresent
 
@@ -34,20 +34,14 @@ final case class OutputRecord(loc: String,
 
   def isHashed: Boolean = hash.isDefined
 
-  def hasDifferentHashThan(other: OutputRecord): Boolean = {
-    trace(s"hasDifferentHashThan() called for OutputRecord: $other")
-
-    (for {
+  def hasDifferentHashThan(other: OutputRecord): Boolean = (
+    for {
       hashValue <- hash
       hashKind <- hashType
       otherHashValue <- other.hash
       otherHashKind <- other.hashType
-    } yield {
-      trace(s"\thashValue = $hashValue; otherHashValue = $otherHashValue")
-      hashKind != otherHashKind || hashValue != otherHashValue
-    }
-      ).getOrElse(false)
-  }
+    } yield hashKind != otherHashKind || hashValue != otherHashValue
+    ).getOrElse(false)
 
   def withLastModified(t: Instant) = copy(lastModified = Option(t))
 }

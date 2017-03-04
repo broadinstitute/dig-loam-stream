@@ -8,9 +8,9 @@ import javax.xml.bind.DatatypeConverter
 
 import com.google.auth.oauth2.ServiceAccountCredentials
 import com.google.cloud.storage.Storage.{BlobField, BlobListOption}
-import com.google.cloud.storage.{Blob, Storage, StorageOptions}
+import com.google.cloud.storage.{Blob, Storage, StorageException, StorageOptions}
 import loamstream.util.HashType.Md5
-import loamstream.util.{Hash, HashType, Tries}
+import loamstream.util.{Hash, HashType, Loggable, Tries}
 
 import scala.util.{Success, Try}
 
@@ -20,7 +20,7 @@ import scala.util.{Success, Try}
  *
  * Wrapper around Google Cloud Storage JAVA API to expose methods for job recording purposes
  */
-final case class GcsClient private[googlecloud] (credentialsFile: Path) extends CloudStorageClient {
+final case class GcsClient private[googlecloud] (credentialsFile: Path) extends CloudStorageClient with Loggable {
   import loamstream.util.UriEnrichments._
 
   override val hashAlgorithm: HashType = Md5
@@ -68,12 +68,18 @@ final case class GcsClient private[googlecloud] (credentialsFile: Path) extends 
   private[googlecloud] def blobsAt(uri:URI): Iterable[Blob] = {
     import scala.collection.JavaConverters._
 
-    val withPrefix = BlobListOption.prefix(uri.getPathWithoutLeadingSlash)
-    val withRelevantFields = BlobListOption.fields(BlobField.NAME, BlobField.UPDATED, BlobField.MD5HASH)
+    try {
+      val withPrefix = BlobListOption.prefix(uri.getPathWithoutLeadingSlash)
+      val withRelevantFields = BlobListOption.fields(BlobField.NAME, BlobField.UPDATED, BlobField.MD5HASH)
 
-    storage.list(bucketName(uri), withPrefix, withRelevantFields).getValues.asScala
-      .filterNot(_.getName.endsWith("/")) // eliminate directories
-      .filter(_.getName.split("/").contains(uri.lastSegment)) // match exactly (to distinguish `x.gz` from `x.gz.tbi`)
+      storage.list(bucketName(uri), withPrefix, withRelevantFields).getValues.asScala
+        .filterNot(_.getName.endsWith("/")) // eliminate directories
+        .filter(_.getName.split("/").contains(uri.lastSegment)) // match exactly (to distinguish `x.gz` from `x.gz.tbi`)
+    } catch {
+        case e: StorageException =>
+          warn(s"URI $uri is invalid because ${e.getMessage.toLowerCase()}")
+          Iterable.empty[Blob]
+    }
   }
 }
 
@@ -88,3 +94,5 @@ object GcsClient {
     }
   }
 }
+
+final case class BlobMetadata(name: String, md5: String, updateTime: Long)

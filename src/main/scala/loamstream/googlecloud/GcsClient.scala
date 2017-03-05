@@ -1,17 +1,13 @@
 package loamstream.googlecloud
 
 import java.net.URI
-import java.nio.file.{Files, Path}
-import java.security.MessageDigest
 import java.time.Instant
 import javax.xml.bind.DatatypeConverter
 
-import com.google.cloud.storage.Storage.{BlobField, BlobListOption}
-import com.google.cloud.storage.{Blob, StorageException}
 import loamstream.util.HashType.Md5
-import loamstream.util.{Hash, HashType, Loggable, Tries}
+import loamstream.util._
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
 /**
  * @author kyuksel
@@ -30,15 +26,10 @@ final case class GcsClient(driver: CloudStorageDriver) extends CloudStorageClien
 
     if (bs.isEmpty) { None }
     else {
-      val hashes = bs.map(_.hash).toArray.sorted.mkString
-      val binaryHashes = DatatypeConverter.parseBase64Binary(hashes)
+      val hashStrings: Iterator[String] = bs.map(_.hash).toArray.sorted.toIterator
+      val hashBytes = hashStrings.map(DatatypeConverter.parseBase64Binary)
 
-      val msgDigest = MessageDigest.getInstance(hashAlgorithm.algorithmName)
-      msgDigest.update(binaryHashes)
-
-      val digest = msgDigest.digest
-
-      Option(Hash(digest, hashAlgorithm))
+      Option(Hashes.digest(hashAlgorithm)(hashBytes))
     }
   }
 

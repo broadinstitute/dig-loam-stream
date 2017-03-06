@@ -56,7 +56,8 @@ final case class GcsDriver(credentialsFile: Path) extends CloudStorageDriver wit
     } catch {
       case e: StorageException =>
         warn(s"URI $uri is invalid because ${e.getMessage.toLowerCase()}")
-        Iterable.empty[BlobMetadata]
+        
+        Iterable.empty
     }
   }
 }

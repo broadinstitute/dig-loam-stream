@@ -34,7 +34,7 @@ final class GcsClientTest extends FunSuite {
     val vcfBlobs = Iterable(
       BlobMetadata("qc/all/out/CAMP.harmonized.ref.vcf.gz", "Ye0AXWFZA9RPtsBzFxN5Mg==", 1488559084788L),
       BlobMetadata("qc/all/out/CAMP.harmonized.ref.vcf.gz.tbi", "E5RH0kG3hZPHjaCA484p4g==", 1488559113817L))
-    val vcfHash = Some("f7ts9u2zjfw4h3iabpak2q==")
+    val vcfHash = Some("Ye0AXWFZA9RPtsBzFxN5Mg==")
     val vcfLastModified = Some(1488559084788L)
 
     testWith(vcfUri, vcfBlobs, vcfHash, vcfLastModified)
@@ -42,7 +42,7 @@ final class GcsClientTest extends FunSuite {
     val vcfIndexUri = URI.create("gs://loamstream/qc/all/out/CAMP.harmonized.ref.vcf.gz.tbi")
     val vcfIndexBlobs = Iterable(
       BlobMetadata("qc/all/out/CAMP.harmonized.ref.vcf.gz.tbi", "E5RH0kG3hZPHjaCA484p4g==", 1488559113817L))
-    val vcfIndexHash = Some("zu7ecyn/3t9uxkxesjqpmq==")
+    val vcfIndexHash = Some("E5RH0kG3hZPHjaCA484p4g==")
     val vcfIndexLastModified = Some(1488559113817L)
 
     testWith(vcfIndexUri, vcfIndexBlobs, vcfIndexHash, vcfIndexLastModified)
@@ -57,7 +57,7 @@ final class GcsClientTest extends FunSuite {
       BlobMetadata("qc/all/out/CAMP.harmonized.ref.vds/rdd.parquet/_common_metadata", "Hhx9zWmOk0pIeF9FVPYrrA==", 1488559298507L),
       BlobMetadata("qc/all/out/CAMP.harmonized.ref.vds/rdd.parquet/_metadata", "G3S4lTwr09vTIHSszonoIQ==", 1488559297934L),
       BlobMetadata("qc/all/out/CAMP.harmonized.ref.vds/rdd.parquet/part-r-00000-92f95503-6af7-4f5f-9b7e-b6c8ecefb455.gz.parquet", "7YDjw5xbxd9X8EXNqfUjKg==", 1488559296001L))
-    val vdsHash = Some("zec0isi7m3skj/lzufg/pa==")
+    val vdsHash = Some("ZEC0iSi7m3skj/Lzufg/PA==")
     val vdsLastModified = Some(1488559298507L)
 
     testWith(vdsUri, vdsBlobs, vdsHash, vdsLastModified)

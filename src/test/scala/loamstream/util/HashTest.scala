@@ -11,38 +11,47 @@ import scala.collection.mutable
   *         date: Aug 4, 2016
   */
 final class HashTest extends FunSuite {
-  private val allZeroes =
-    Hash(mutable.WrappedArray.make(Array(0.toByte, 0.toByte, 0.toByte, 0.toByte)), HashType.Sha1)
+  private val allZeroesArray: Array[Byte] = Array(0.toByte, 0.toByte, 0.toByte, 0.toByte)
+  
+  private val allZeroes = Hash(mutable.WrappedArray.make(allZeroesArray), HashType.Sha1)
 
-  private val someOnes =
-    Hash(mutable.WrappedArray.make(Array(0.toByte, 255.toByte, 255.toByte, 0.toByte)), HashType.Sha1)
+  private val someOnesArray: Array[Byte] = Array(0.toByte, 255.toByte, 255.toByte, 0.toByte)
+  
+  private val someOnes = Hash(mutable.WrappedArray.make(someOnesArray), HashType.Sha1)
 
   private val realWorld = Hashes.sha1(Paths.get("src/test/resources/for-hashing/foo.txt"))
 
   test("valueAsBinary64String") {
 
-    assert(allZeroes.valueAsBase64String === "aaaaaa==")
+    assert(allZeroes.valueAsBase64String === "AAAAAA==")
 
-    assert(someOnes.valueAsBase64String === "ap//aa==")
+    assert(someOnes.valueAsBase64String === "AP//AA==")
 
     val expectedRealWorldHash = if (PlatformUtil.isWindows) {
       "kuugk+jlmf99ly+xeuh/mx0cyxg="
     } else {
-      "y3i4qsra98i17swj28mqtty7nnu="
+      "y3i4QSra98i17swJ28mqTTy7NnU="
     }
     assert(realWorld.valueAsBase64String === expectedRealWorldHash)
   }
 
+  test("valueAsBase64String round trip") {
+    val deserialized = Hash.fromStrings(Some(someOnes.valueAsBase64String), someOnes.tpe.algorithmName).get
+    
+    assert(deserialized === someOnes)
+    assert(someOnes === deserialized)
+  }
+  
   test("toString") {
 
-    assert(allZeroes.toString === "Sha1(aaaaaa==)")
+    assert(allZeroes.toString === "Sha1(AAAAAA==)")
 
-    assert(someOnes.toString === "Sha1(ap//aa==)")
+    assert(someOnes.toString === "Sha1(AP//AA==)")
 
     val expectedRealWorldHash = if (PlatformUtil.isWindows) {
       "Sha1(kuugk+jlmf99ly+xeuh/mx0cyxg=)"
     } else {
-      "Sha1(y3i4qsra98i17swj28mqtty7nnu=)"
+      "Sha1(y3i4QSra98i17swJ28mqTTy7NnU=)"
     }
     assert(realWorld.toString === expectedRealWorldHash)
   }

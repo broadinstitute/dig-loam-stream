@@ -24,12 +24,17 @@ final case class GcsClient(driver: CloudStorageDriver) extends CloudStorageClien
   override def hash(uri: URI): Option[Hash] = {
     val bs = blobs(uri)
 
-    if (bs.isEmpty) { None }
-    else {
-      val hashStrings: Iterator[String] = bs.map(_.hash).toArray.sorted.toIterator
-      val hashBytes = hashStrings.map(DatatypeConverter.parseBase64Binary)
+    bs.toSeq match {
+      case Nil => None
+      //For a single blob, use the hash computed by Google
+      case only +: Nil => Hash.fromStrings(Some(only.hash), hashAlgorithm.algorithmName)
+      //For multiple blobs, as will be the case for a 'directory', hash their (Google-supplied) hashes
+      case _ => {
+        val hashStrings: Iterator[String] = bs.map(_.hash).toArray.sorted.toIterator
+        val hashBytes = hashStrings.map(DatatypeConverter.parseBase64Binary)
 
-      Option(Hashes.digest(hashAlgorithm)(hashBytes))
+        Option(Hashes.digest(hashAlgorithm)(hashBytes))
+      }
     }
   }
 

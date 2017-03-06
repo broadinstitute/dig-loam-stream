@@ -161,10 +161,10 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
     val attempt = for {
       googleConfig <- GoogleCloudConfig.fromConfig(config)
-      gcsClient <- GcsClient.fromConfig(googleConfig)
+      gcsDriver <- GcsDriver.fromConfig(googleConfig)
     } yield {
-      debug("Creating Google Cloud Storage Client...")
-      gcsClient
+      info("Creating Google Cloud Storage Client...")
+      GcsClient(gcsDriver)
     }
 
     val result = attempt.toOption

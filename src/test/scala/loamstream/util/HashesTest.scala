@@ -24,30 +24,30 @@ final class HashesTest extends FunSuite {
 
   test("sha1(File)") {
     doTest("src/test/resources/for-hashing/empty.txt",
-      "2jmj7l5rsw0yvb/vlwaykk/ybwk=",
-      "2jmj7l5rsw0yvb/vlwaykk/ybwk=")
+      "2jmj7l5rSw0yVb/vlWAYkK/YBwk=",
+      "2jmj7l5rSw0yVb/vlWAYkK/YBwk=")
 
     doTest("src/test/resources/for-hashing/foo.txt",
       "kuugk+jlmf99ly+xeuh/mx0cyxg=",
-      "y3i4qsra98i17swj28mqtty7nnu=")
+      "y3i4QSra98i17swJ28mqTTy7NnU=")
 
     doTest("src/test/resources/for-hashing/bigger",
-      "zw9f8midbusihkfpx5ygc8dfnbu=",
-      "zw9f8midbusihkfpx5ygc8dfnbu=")
+      "zW9f8mIDBUsihKFpx5YgC8dfnbU=",
+      "zW9f8mIDBUsihKFpx5YgC8dfnbU=")
   }
 
   test("sha1(File) - Directory") {
     doTest("src/test/resources/for-hashing/subdir/",
-      "qaoik3uknguv4tsj1ulmxwnkhcu=",
-      "qaoik3uknguv4tsj1ulmxwnkhcu=")
+      "QAoiK3uKNGuV4tsJ1ulMXwnKHcU=",
+      "QAoiK3uKNGuV4tsJ1ulMXwnKHcU=")
 
     doTest("src/test/resources/for-hashing/subdir/bar.txt",
-      "fhvcun76jmuwqr7vugqgrdptika=",
-      "fhvcun76jmuwqr7vugqgrdptika=")
+      "FhVCun76JMuwqR7vUGQGRDPTikA=",
+      "FhVCun76JMuwqR7vUGQGRDPTikA=")
 
     doTest("src/test/resources/for-hashing/",
       "18izxwocuscxk0tvshd80lic/1c=",
-      "jcbvwkw0z5la/2lakfmcbn4nlmi=")
+      "jcBVwkw0Z5lA/2laKFmCBn4nLMI=")
   }
 
   private def doTest(file: String, expectedOnWindows: String, expectedElsewhere: String): Unit = {

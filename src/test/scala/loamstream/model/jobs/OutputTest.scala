@@ -36,7 +36,7 @@ final class OutputTest extends FunSuite {
     val expectedHash = if (PlatformUtil.isWindows) {
       "kuugk+jlmf99ly+xeuh/mx0cyxg="
     } else {
-      "y3i4qsra98i17swj28mqtty7nnu="
+      "y3i4QSra98i17swJ28mqTTy7NnU="
     }
 
     val hashStr = exists.hash.get.valueAsBase64String

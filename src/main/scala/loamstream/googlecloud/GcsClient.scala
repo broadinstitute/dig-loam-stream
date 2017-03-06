@@ -1,15 +1,13 @@
 package loamstream.googlecloud
 
 import java.net.URI
-import java.nio.file.{Files, Path}
 import java.time.Instant
+import javax.xml.bind.DatatypeConverter
 
-import com.google.auth.oauth2.ServiceAccountCredentials
-import com.google.cloud.storage.{Blob, Storage, StorageOptions}
 import loamstream.util.HashType.Md5
-import loamstream.util.{Hash, HashType, Tries}
+import loamstream.util._
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
 /**
  * @author kyuksel
@@ -17,51 +15,48 @@ import scala.util.{Success, Try}
  *
  * Wrapper around Google Cloud Storage JAVA API to expose methods for job recording purposes
  */
-final case class GcsClient private[googlecloud] (credentialsFile: Path) extends CloudStorageClient {
+final case class GcsClient(driver: CloudStorageDriver) extends CloudStorageClient with Loggable {
   import loamstream.util.UriEnrichments._
 
   override val hashAlgorithm: HashType = Md5
 
-  // Encapsulated MD5 hash of the storage object
-  override def hash(uri: URI): Option[Hash] = Hash.fromStrings(hashStr(uri), hashAlgorithm.algorithmName)
+  // Encapsulated MD5 hash of the storage object/directory
+  override def hash(uri: URI): Option[Hash] = {
+    val bs = blobs(uri)
 
-  // If the storage object exists
-  override def isPresent(uri: URI): Boolean = obj(uri).isDefined
+    bs.toSeq match {
+      case Nil => None
+      //For a single blob, use the hash computed by Google
+      case Seq(only) => Hash.fromStrings(Some(only.hash), hashAlgorithm.algorithmName)
+      //For multiple blobs, as will be the case for a 'directory', hash their (Google-supplied) hashes
+      case _ => {
+        val hashStrings: Iterator[String] = bs.map(_.hash).toArray.sorted.toIterator
+        val hashBytes = hashStrings.map(DatatypeConverter.parseBase64Binary)
+
+        Option(Hashes.digest(hashAlgorithm)(hashBytes))
+      }
+    }
+  }
+
+  // If the storage object/directory exists
+  override def isPresent(uri: URI): Boolean = blobs(uri).nonEmpty
 
   // Last update time of the object
-  override def lastModified(uri: URI): Option[Instant] = obj(uri).map(o => Instant.ofEpochMilli(o.getUpdateTime))
-
-  // Instantiate a GCS handle using given credentials.
-  // If no credentials provided, attempt to find credentials that might be set in the environment
-  private lazy val storage: Storage =
-    StorageOptions.newBuilder
-      .setCredentials(ServiceAccountCredentials.fromStream(java.nio.file.Files.newInputStream(credentialsFile)))
-      .build
-      .getService
-
-  // The name for the bucket
-  private[googlecloud] def bucketName(uri: URI): String = uri.getHost
-
-  // Path for the storage object
-  private[googlecloud] def objPath(uri: URI): String = uri.getPathWithoutLeadingSlash
-
-  // Storage object option
-  private[googlecloud] def obj(uri: URI): Option[Blob] = Option(storage.get(bucketName(uri), objPath(uri)))
-
-  // MD5 hash of the storage object as String
-  private[googlecloud] def hashStr(uri: URI): Option[String] = {
-    obj(uri).map(_.getMd5)
+  // If 'uri' points to a directory, last update time of the most recently modified object within that directory
+  override def lastModified(uri: URI): Option[Instant] = {
+    Try(Instant.ofEpochMilli(blobs(uri).map(_.updateTime).max)).toOption
   }
-}
 
-object GcsClient {
-  def fromConfig(config: GoogleCloudConfig): Try[GcsClient] = fromCredentialsFile(config.credentialsFile)
+  private[googlecloud] def isDirectory(blob: BlobMetadata): Boolean = blob.name.endsWith("/")
 
-  def fromCredentialsFile(credentialsFile: Path): Try[GcsClient] = {
-    if (Files.exists(credentialsFile)) {
-      Success(new GcsClient(credentialsFile))
-    } else {
-      Tries.failure(s"Google Cloud credential not found at $credentialsFile")
-    }
+  // Useful to distinguish, for instance, `x.gz` from `x.gz.tbi`
+  private[googlecloud] def matchesSegment(segment: String)(blob: BlobMetadata): Boolean = {
+    blob.name.split("/").contains(segment)
+  }
+
+  private[googlecloud] def blobs(uri:URI): Iterable[BlobMetadata] = {
+    driver.blobsAt(uri)
+      .filterNot(isDirectory)
+      .filter(matchesSegment(uri.lastSegment))
   }
 }

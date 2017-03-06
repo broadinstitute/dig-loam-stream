@@ -21,7 +21,7 @@ import rx.lang.scala.subjects.ReplaySubject
  * date: Dec 23, 2015
  */
 trait LJob extends Loggable {
-  def executionEnvironment: ExecutionEnvironment// = ExecutionEnvironment.Local
+  def executionEnvironment: ExecutionEnvironment
   
   def workDirOpt: Option[Path] = None
   

@@ -27,7 +27,7 @@ final case class GcsClient(driver: CloudStorageDriver) extends CloudStorageClien
     bs.toSeq match {
       case Nil => None
       //For a single blob, use the hash computed by Google
-      case only +: Nil => Hash.fromStrings(Some(only.hash), hashAlgorithm.algorithmName)
+      case Seq(only) => Hash.fromStrings(Some(only.hash), hashAlgorithm.algorithmName)
       //For multiple blobs, as will be the case for a 'directory', hash their (Google-supplied) hashes
       case _ => {
         val hashStrings: Iterator[String] = bs.map(_.hash).toArray.sorted.toIterator

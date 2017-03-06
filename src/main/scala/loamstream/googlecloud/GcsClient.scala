@@ -50,13 +50,13 @@ final case class GcsClient(driver: CloudStorageDriver) extends CloudStorageClien
   private[googlecloud] def isDirectory(blob: BlobMetadata): Boolean = blob.name.endsWith("/")
 
   // Useful to distinguish, for instance, `x.gz` from `x.gz.tbi`
-  private[googlecloud] def matchesSegment(blob: BlobMetadata, segment: String): Boolean = {
+  private[googlecloud] def matchesSegment(segment: String)(blob: BlobMetadata): Boolean = {
     blob.name.split("/").contains(segment)
   }
 
   private[googlecloud] def blobs(uri:URI): Iterable[BlobMetadata] = {
     driver.blobsAt(uri)
       .filterNot(isDirectory)
-      .filter(matchesSegment(_, uri.lastSegment))
+      .filter(matchesSegment(uri.lastSegment))
   }
 }

@@ -80,6 +80,12 @@ object Local {
   val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
   val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
   val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
+
+  // Chunk 3
+  val SAMPLEQC_LOG = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.log")
+  val SAMPLEQC_SEXCHECK_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.sexcheck.tsv")
+  val SAMPLEQC_STATS_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.tsv")
+  val SAMPLEQC_SEXCHECK_PROBLEMS_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.sexcheck.problems.tsv")
 }
 
 object Google {
@@ -137,6 +143,12 @@ object Google {
   val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
   val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
   val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
+
+  // Chunk 3
+  val SAMPLEQC_LOG = store[TXT].at(out / s"${outLABEL}.sampleqc.log")
+  val SAMPLEQC_SEXCHECK_TSV = store[TXT].at(out / s"${outLABEL}.sampleqc.sexcheck.tsv")
+  val SAMPLEQC_STATS_TSV = store[TXT].at(out / s"${outLABEL}.sampleqc.stats.tsv")
+  val SAMPLEQC_SEXCHECK_PROBLEMS_TSV = store[TXT].at(out / s"${outLABEL}.sampleqc.sexcheck.problems.tsv")
 }
 
 // CHUNK 1
@@ -423,11 +435,6 @@ local {
  * Notes:
  */
 
-val SAMPLEQC_LOG = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.log")
-val SAMPLEQC_SEXCHECK_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.sexcheck.tsv")
-val SAMPLEQC_STATS_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.tsv")
-val SAMPLEQC_SEXCHECK_PROBLEMS_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.sexcheck.problems.tsv")
-
 val SAMPLEQC_STATS_ADJ_TSV_PATH = outDIR / s"${outLABEL}.sampleqc.stats.adj.tsv"
 val SAMPLEQC_STATS_ADJ_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_TSV_PATH)
 
@@ -452,15 +459,26 @@ google {
       variantqc
       annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()"
       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-      -o $SAMPLEQC_SEXCHECK_TSV
+      -o ${Google.SAMPLEQC_SEXCHECK_TSV}
       exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar"
-      -o $SAMPLEQC_STATS_TSV
+      -o ${Google.SAMPLEQC_STATS_TSV}
       filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-      -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(Google.VDS_FOR_QC, Local.ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+      -o ${Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV}""".in(Google.VDS_FOR_QC, Local.ANCESTRY)
+      .out(Google.SAMPLEQC_LOG, Google.SAMPLEQC_SEXCHECK_TSV, Google.SAMPLEQC_STATS_TSV,
+           Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
 }
 
-cmd"""$R --vanilla --args $SAMPLEQC_STATS_TSV ${Local.NONOUTLIERPCA_SCORES_TSV} $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
+local {
+  googleCopy(Google.SAMPLEQC_LOG, Local.SAMPLEQC_LOG)
+  googleCopy(Google.SAMPLEQC_SEXCHECK_TSV, Local.SAMPLEQC_SEXCHECK_TSV)
+  googleCopy(Google.SAMPLEQC_STATS_TSV, Local.SAMPLEQC_STATS_TSV)
+  googleCopy(Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV, Local.SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+}
+
+
+cmd"""$R --vanilla --args ${Local.SAMPLEQC_STATS_TSV} ${Local.NONOUTLIERPCA_SCORES_TSV}
+$SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(Local.SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
 
 cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV $SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV < $ISTATS_ADJ_PCA_R""".in(SAMPLEQC_STATS_ADJ_TSV).out(SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV, SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
 
@@ -526,7 +544,7 @@ val SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF = store[TXT].at(outDIR / s"${outLABEL}
 
 cmd"""$R --vanilla --args
   $SAMPLEQC_CLU1_WILD
-  $SAMPLEQC_STATS_TSV
+  ${Local.SAMPLEQC_STATS_TSV}
   $SAMPLEQC_STATS_ADJ_TSV
   $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
   $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
@@ -536,5 +554,5 @@ cmd"""$R --vanilla --args
   $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
   ${Local.ANCESTRY}
   < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
-  .in(sampleQcKlustakwikStores.map(_.clu) :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY)
+  .in(sampleQcKlustakwikStores.map(_.clu) :+ Local.SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY)
   .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)

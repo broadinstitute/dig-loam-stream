@@ -1,10 +1,13 @@
 package loamstream.model.jobs
 
+import loamstream.model.execute.Settings
+
 /**
  * @author clint
+ *         kyuksel
  * date: Sep 22, 2016
  */
-final case class Execution(exitState: JobState, outputs: Set[OutputRecord]) {
+final case class Execution(settings: Settings, exitState: JobState, outputs: Set[OutputRecord]) {
   def isSuccess: Boolean = exitState.isSuccess
   def isFailure: Boolean = exitState.isFailure
 
@@ -22,11 +25,11 @@ final case class Execution(exitState: JobState, outputs: Set[OutputRecord]) {
 }
 
 object Execution {
-  def apply(exitState: JobState, outputs: OutputRecord*): Execution =
-    Execution(exitState, outputs.toSet)
+  def apply(settings: Settings, exitState: JobState, outputs: OutputRecord*): Execution =
+    Execution(settings, exitState, outputs.toSet)
 
-  def fromOutputs(exitState: JobState, outputs: Set[Output]): Execution =
-    Execution(exitState, outputs.map(_.toOutputRecord))
-  def fromOutputs(exitState: JobState, output: Output, others: Output*): Execution =
-    fromOutputs(exitState, (output +: others).toSet)
+  def fromOutputs(settings: Settings, exitState: JobState, outputs: Set[Output]): Execution =
+    Execution(settings, exitState, outputs.map(_.toOutputRecord))
+  def fromOutputs(settings: Settings, exitState: JobState, output: Output, others: Output*): Execution =
+    fromOutputs(settings, exitState, (output +: others).toSet)
 }

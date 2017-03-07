@@ -82,7 +82,6 @@ object Local {
   val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
 
   // Chunk 3
-  val SAMPLEQC_LOG = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.log")
   val SAMPLEQC_SEXCHECK_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.sexcheck.tsv")
   val SAMPLEQC_STATS_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.tsv")
   val SAMPLEQC_SEXCHECK_PROBLEMS_TSV = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.sexcheck.problems.tsv")
@@ -145,7 +144,6 @@ object Google {
   val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
 
   // Chunk 3
-  val SAMPLEQC_LOG = store[TXT].at(out / s"${outLABEL}.sampleqc.log")
   val SAMPLEQC_SEXCHECK_TSV = store[TXT].at(out / s"${outLABEL}.sampleqc.sexcheck.tsv")
   val SAMPLEQC_STATS_TSV = store[TXT].at(out / s"${outLABEL}.sampleqc.stats.tsv")
   val SAMPLEQC_SEXCHECK_PROBLEMS_TSV = store[TXT].at(out / s"${outLABEL}.sampleqc.sexcheck.problems.tsv")
@@ -465,12 +463,10 @@ google {
       filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
       -o ${Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV}""".in(Google.VDS_FOR_QC, Local.ANCESTRY)
-      .out(Google.SAMPLEQC_LOG, Google.SAMPLEQC_SEXCHECK_TSV, Google.SAMPLEQC_STATS_TSV,
-           Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+      .out(Google.SAMPLEQC_SEXCHECK_TSV, Google.SAMPLEQC_STATS_TSV, Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
 }
 
 local {
-  googleCopy(Google.SAMPLEQC_LOG, Local.SAMPLEQC_LOG)
   googleCopy(Google.SAMPLEQC_SEXCHECK_TSV, Local.SAMPLEQC_SEXCHECK_TSV)
   googleCopy(Google.SAMPLEQC_STATS_TSV, Local.SAMPLEQC_STATS_TSV)
   googleCopy(Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV, Local.SAMPLEQC_SEXCHECK_PROBLEMS_TSV)

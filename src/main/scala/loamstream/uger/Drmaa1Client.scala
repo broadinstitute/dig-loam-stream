@@ -89,7 +89,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @param jobName a descriptive prefix used to identify the job.  Has no impact on how the job runs.
    * @param numTasks length of task array to be submitted as a single UGER job
    */
-  def submitJob(
+  override def submitJob(
                  ugerConfig: UgerConfig,
                  pathToScript: Path,
                  jobName: String,
@@ -139,7 +139,26 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   private def doWait(session: Session, jobId: String, timeout: Duration): UgerStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
+    
+    //TODO
+    {
+      import scala.collection.JavaConverters._
+      
+      val ugerKVs: Map[Any, Any] = jobInfo.getResourceUsage.asScala.toMap
+      
+      val keys = ugerKVs.keysIterator.toSeq
+      
+      info(s"Uger Resource Usage: (${ugerKVs.size}) values:")
+      
+      for {
+        (keyName, key) <- keys.map(_.toString).zip(keys).sortBy { case (s, _) => s }
+      } {
+        val value = ugerKVs.get(key)
         
+        info(s"'$keyName'\t=> $value")
+      }
+    }
+    
     if (jobInfo.hasExited) {
       info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
       

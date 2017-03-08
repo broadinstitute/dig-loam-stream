@@ -472,11 +472,17 @@ local {
   googleCopy(Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV, Local.SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
 }
 
+uger {
+  cmd"""$R --vanilla --args ${Local.SAMPLEQC_STATS_TSV} ${Local.NONOUTLIERPCA_SCORES_TSV}
+    $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(Local.SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
+  .out(SAMPLEQC_STATS_ADJ_TSV)
 
-cmd"""$R --vanilla --args ${Local.SAMPLEQC_STATS_TSV} ${Local.NONOUTLIERPCA_SCORES_TSV}
-$SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(Local.SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
-
-cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV $SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV < $ISTATS_ADJ_PCA_R""".in(SAMPLEQC_STATS_ADJ_TSV).out(SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV, SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
+  cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF
+    $SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV $SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF
+    $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV < $ISTATS_ADJ_PCA_R""".in(SAMPLEQC_STATS_ADJ_TSV)
+  .out(SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV, SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF,
+    SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
+}
 
 /**
  * Sample QC PCA Clustering Step
@@ -496,15 +502,27 @@ val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF = store[TXT].at(SAMPLEQC_STATS_ADJ
 val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.clusters.xtab")
 val SAMPLEQC_STATS_ADJ_STRIPCHART_PDF = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".stripchart.pdf")
 
-cmd"""N=$$(head -1 $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | wc | awk '{print $$2-1}');
-  echo $$N > ${sampleQcPcaKlustakwikStores.fet};
-  sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> ${sampleQcPcaKlustakwikStores.fet};
-  FEATURES=1; for i in $$(seq 2 $$n); do FEATURES=$${FEATURES}1; done;
-  $KLUSTAKWIK ${sampleQcPcaKlustakwikStores.base} 1 -UseFeatures $$FEATURES -UseDistributional 0 > ${sampleQcPcaKlustakwikStores.klustakwikLog}""".in(sampleQcPcaKlustakwikStores.inputs + SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV).out(sampleQcPcaKlustakwikStores.outputs)
+uger {
+  cmd"""N=$$(head -1 $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | wc | awk '{print $$2-1}');
+    echo $$N > ${sampleQcPcaKlustakwikStores.fet};
+    sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> ${sampleQcPcaKlustakwikStores.fet};
+    FEATURES=1; for i in $$(seq 2 $$n); do FEATURES=$${FEATURES}1; done;
+    $KLUSTAKWIK ${sampleQcPcaKlustakwikStores.base} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
+    ${sampleQcPcaKlustakwikStores.klustakwikLog}"""
+  .in(sampleQcPcaKlustakwikStores.inputs + SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
+  .out(sampleQcPcaKlustakwikStores.outputs)
 
-cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV ${sampleQcPcaKlustakwikStores.clu} $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $outLABEL < $ISTATS_PCS_GMM_CLUSTER_PLOT_R""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, sampleQcPcaKlustakwikStores.clu).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB)
+  cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV ${sampleQcPcaKlustakwikStores.clu}
+    $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF
+    $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $outLABEL < $ISTATS_PCS_GMM_CLUSTER_PLOT_R"""
+  .in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, sampleQcPcaKlustakwikStores.clu)
+  .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF,
+    SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB)
 
-cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $ISTATS_PCS_GMM_PLOT_METRICS_R""".in(SAMPLEQC_STATS_ADJ_TSV, SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV).out(SAMPLEQC_STATS_ADJ_STRIPCHART_PDF)
+  cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
+    $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $ISTATS_PCS_GMM_PLOT_METRICS_R"""
+  .in(SAMPLEQC_STATS_ADJ_TSV, SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV).out(SAMPLEQC_STATS_ADJ_STRIPCHART_PDF)
+}
 
 /**
  * Sample QC Individual Stats Clustering Step
@@ -517,19 +535,21 @@ cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIE
  * Notes:
  */
 
-val sampleQcKlustakwikStores: Seq[KlustakwikStores] = (0 until 11).map { i =>
-  val stores = KlustakwikStores(outDIR / s"${outLABEL}.sampleqc.stats.adj.${i}")
-  cmd"""echo 1 > ${stores.fet};
-    sed '1d' $SAMPLEQC_STATS_ADJ_TSV | awk -v col=${i+1} '{print $$col}' >> ${stores.fet};
-    ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${i+1}); echo $$ID
-    > ${stores.metricIds}""".in(SAMPLEQC_STATS_ADJ_TSV).out(stores.fet, stores.metricIds)
+val sampleQcKlustakwikStores: Seq[KlustakwikStores] =
+  uger {
+    (0 until 11).map { i =>
+      val stores = KlustakwikStores(outDIR / s"${outLABEL}.sampleqc.stats.adj.${i}")
+      cmd"""echo 1 > ${stores.fet};
+        sed '1d' $SAMPLEQC_STATS_ADJ_TSV | awk -v col=${i+1} '{print $$col}' >> ${stores.fet};
+        ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${i+1}); echo $$ID
+        > ${stores.metricIds}""".in(SAMPLEQC_STATS_ADJ_TSV).out(stores.fet, stores.metricIds)
 
-  cmd"""$KLUSTAKWIK ${stores.base} 1 -UseFeatures 1 -UseDistributional 0
-    > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
+      cmd"""$KLUSTAKWIK ${stores.base} 1 -UseFeatures 1 -UseDistributional 0
+        > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
 
-  stores
-}
-
+      stores
+    }
+  }
 
 val SAMPLEQC_CLU1_WILD = (outDIR / s"${outLABEL}.sampleqc.stats.adj.[[STAR]].clu.1").toString.replace("[[STAR]]", "*")
 val SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.boxplot.pdf")
@@ -538,17 +558,21 @@ val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE = store[TXT].at(outDIR / s"${outLABEL}
 val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.remove")
 val SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.stripchart.pdf")
 
-cmd"""$R --vanilla --args
-  $SAMPLEQC_CLU1_WILD
-  ${Local.SAMPLEQC_STATS_TSV}
-  $SAMPLEQC_STATS_ADJ_TSV
-  $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
-  $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
-  $SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
-  $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
-  $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
-  $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
-  ${Local.ANCESTRY}
-  < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
+uger {
+  cmd"""$R --vanilla --args
+    $SAMPLEQC_CLU1_WILD
+    ${Local.SAMPLEQC_STATS_TSV}
+    $SAMPLEQC_STATS_ADJ_TSV
+    $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
+    $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
+    $SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
+    $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
+    $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
+    $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
+    ${Local.ANCESTRY}
+    < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
   .in(sampleQcKlustakwikStores.map(_.clu) :+ Local.SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY)
-  .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
+  .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS,
+    SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE,
+    SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
+}

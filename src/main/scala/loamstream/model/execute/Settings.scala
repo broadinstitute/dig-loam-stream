@@ -9,9 +9,13 @@ import loamstream.uger.Queue
  *         date: 3/7/17
  */
 trait Settings {
-  def mem: Option[Float] = None
+  def memReq: Option[Float] = None
 
-  def cpu: Option[Float] = None
+  def memAct: Option[Float] = None
+
+  def cpuReq: Option[Float] = None
+
+  def cpuAct: Option[Float] = None
 
   def startTime: Option[Instant] = None
 

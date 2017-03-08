@@ -23,8 +23,10 @@ import slick.jdbc.meta.MTable
  *
  *   SETTINGS:
  *    ENV: varchar/text - name of the execution environment (e.g. Uger, Google)
- *    MEM: nullable, float - memory consumption by the job
- *    CPU: nullable, float - cpu usage by the job
+ *    MEM_REQ: nullable, float - memory requested when submitting the job
+ *    MEM_ACT: nullable, float - actual memory consumption by the job
+ *    CPU_REQ: nullable, float - number of cpu's requested when submitting the job
+ *    CPU_ACT: nullable, float - actual cpu usage by the job
  *    START_TIME: nullable, timestamp - when a job started being executed
  *    END_TIME: nullable, timestamp - when a job finished being executed
  *    NODE: nullable, varchar/text - name of the host that has run the job
@@ -59,14 +61,17 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   final class Settings(tag: Tag) extends Table[SettingRow](tag, Names.settings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def env = column[String]("ENV")
-    def mem = column[Option[Float]]("MEM")
-    def cpu = column[Option[Float]]("CPU")
+    def memReq = column[Option[Float]]("MEM_REQ")
+    def memAct = column[Option[Float]]("MEM_ACT")
+    def cpuReq = column[Option[Float]]("CPU_REQ")
+    def cpuAct = column[Option[Float]]("CPU_ACT")
     def startTime = column[Option[Timestamp]]("START_TIME")
     def endTime = column[Option[Timestamp]]("END_TIME")
     def node = column[Option[String]]("END_TIME")
     def queue = column[Option[String]]("END_TIME")
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, env, mem, cpu, startTime, endTime, node, queue) <> (SettingRow.tupled, SettingRow.unapply)
+    def * = (executionId, env, memReq, memAct, cpuReq, cpuAct, startTime, endTime, node, queue) <>
+      (SettingRow.tupled, SettingRow.unapply)
   }
 
   final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {

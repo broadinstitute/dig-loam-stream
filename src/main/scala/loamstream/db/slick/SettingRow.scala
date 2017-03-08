@@ -13,8 +13,10 @@ import loamstream.uger.{Queue, UgerSettings}
  */
 final case class SettingRow(executionId: Int,
                             env: String,
-                            mem: Option[Float],
-                            cpu: Option[Float],
+                            memReq: Option[Float],
+                            memAct: Option[Float],
+                            cpuReq: Option[Float],
+                            cpuAct: Option[Float],
                             startTime: Option[Timestamp],
                             endTime: Option[Timestamp],
                             node: Option[String],
@@ -24,8 +26,10 @@ final case class SettingRow(executionId: Int,
     this(
       executionId,
       env,
-      settings.mem,
-      settings.cpu,
+      settings.memReq,
+      settings.memAct,
+      settings.cpuReq,
+      settings.cpuAct,
       settings.startTime.map(Timestamp.from),
       settings.endTime.map(Timestamp.from),
       settings.node,
@@ -34,10 +38,12 @@ final case class SettingRow(executionId: Int,
 
   def toSettings: Settings = {
     ExecutionEnvironment.fromString(env) match {
-      case Local => LocalSettings(mem, cpu, startTime.map(_.toInstant), endTime.map(_.toInstant))
-      case Uger => UgerSettings(mem, cpu, startTime.map(_.toInstant), endTime.map(_.toInstant),
-        node, queue.flatMap(Queue.fromString))
-      case Google => GoogleSettings(mem, cpu, startTime.map(_.toInstant), endTime.map(_.toInstant), node)
+      case Local => LocalSettings(memReq, memAct, cpuReq, cpuAct,
+        startTime.map(_.toInstant), endTime.map(_.toInstant))
+      case Uger => UgerSettings(memReq, memAct, cpuReq, cpuAct,
+        startTime.map(_.toInstant), endTime.map(_.toInstant), node, queue.flatMap(Queue.fromString))
+      case Google => GoogleSettings(memReq, memAct, cpuReq, cpuAct,
+        startTime.map(_.toInstant), endTime.map(_.toInstant), node)
     }
   }
 }

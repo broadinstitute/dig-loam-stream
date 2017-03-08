@@ -14,4 +14,9 @@ sealed trait Queue {
 object Queue {
   case object Short extends Queue
   case object Long extends Queue
+
+  def fromString(name: String): Option[Queue] =
+    if (name == Short.toString) { Some(Short) }
+    else if (name == Long.toString) { Some(Long) }
+    else { None }
 }

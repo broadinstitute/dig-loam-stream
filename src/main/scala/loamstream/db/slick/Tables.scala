@@ -22,6 +22,7 @@ import slick.jdbc.meta.MTable
  *    EXIT_STATUS: integer - the exit status returned by the command represented by this EXECUTION
  *
  *   SETTINGS:
+ *    ENV: varchar/text - name of the execution environment (e.g. Uger, Google)
  *    MEM: nullable, float - memory consumption by the job
  *    CPU: nullable, float - cpu usage by the job
  *    START_TIME: nullable, timestamp - when a job started being executed
@@ -35,7 +36,7 @@ import slick.jdbc.meta.MTable
  *     LOCATOR: varchar/text, primary key - the fully-qualified locator of an output
  *     LAST_MODIFIED: nullable, datetime or similar - the last modified time of the file/dir at PATH
  *     HASH: nullable, varchar/text - the hex-coded hash of the file/dir at PATH
- *     HASH_TYPE: nullable, varchar/text - the type of hash performed on PATH; 
+ *     HASH_TYPE: nullable, varchar/text - the type of hash performed on PATH;
  *       see loamstream.util.HashType.fromAlgorithmName
  *     EXECUTION_ID: integer - the id of the EXECUTION a row belongs to
  *     EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
@@ -57,6 +58,7 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   final class Settings(tag: Tag) extends Table[SettingRow](tag, Names.settings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def env = column[String]("ENV")
     def mem = column[Option[Float]]("MEM")
     def cpu = column[Option[Float]]("CPU")
     def startTime = column[Option[Timestamp]]("START_TIME")
@@ -64,7 +66,7 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def node = column[Option[String]]("END_TIME")
     def queue = column[Option[String]]("END_TIME")
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, mem, cpu, startTime, endTime, node, queue) <> (SettingRow.tupled, SettingRow.unapply)
+    def * = (executionId, env, mem, cpu, startTime, endTime, node, queue) <> (SettingRow.tupled, SettingRow.unapply)
   }
 
   final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {

@@ -1,13 +1,17 @@
 package loamstream.model.jobs
 
-import loamstream.model.execute.Settings
+import loamstream.model.execute.{ExecutionEnvironment, Settings}
 
 /**
  * @author clint
  *         kyuksel
  * date: Sep 22, 2016
  */
-final case class Execution(settings: Settings, exitState: JobState, outputs: Set[OutputRecord]) {
+final case class Execution(env: ExecutionEnvironment,
+                           settings: Settings,
+                           exitState: JobState,
+                           outputs: Set[OutputRecord]) {
+
   def isSuccess: Boolean = exitState.isSuccess
   def isFailure: Boolean = exitState.isFailure
 
@@ -25,11 +29,22 @@ final case class Execution(settings: Settings, exitState: JobState, outputs: Set
 }
 
 object Execution {
-  def apply(settings: Settings, exitState: JobState, outputs: OutputRecord*): Execution =
-    Execution(settings, exitState, outputs.toSet)
+  def apply(env: ExecutionEnvironment,
+            settings: Settings,
+            exitState: JobState,
+            outputs: OutputRecord*): Execution =
+    Execution(env, settings, exitState, outputs.toSet)
 
-  def fromOutputs(settings: Settings, exitState: JobState, outputs: Set[Output]): Execution =
-    Execution(settings, exitState, outputs.map(_.toOutputRecord))
-  def fromOutputs(settings: Settings, exitState: JobState, output: Output, others: Output*): Execution =
-    fromOutputs(settings, exitState, (output +: others).toSet)
+  def fromOutputs(env: ExecutionEnvironment,
+                  settings: Settings,
+                  exitState: JobState,
+                  outputs: Set[Output]): Execution =
+    Execution(env, settings, exitState, outputs.map(_.toOutputRecord))
+
+  def fromOutputs(env: ExecutionEnvironment,
+                  settings: Settings,
+                  exitState: JobState,
+                  output: Output,
+                  others: Output*): Execution =
+    fromOutputs(env, settings, exitState, (output +: others).toSet)
 }

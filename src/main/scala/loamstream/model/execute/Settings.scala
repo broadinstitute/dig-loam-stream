@@ -1,32 +1,20 @@
 package loamstream.model.execute
 
-import java.time.Instant
-
 import loamstream.uger.Queue
 
 /**
  * @author kyuksel
  *         date: 3/7/17
  */
-trait Settings {
-  def memReq: Option[Float] = None
 
-  def memAct: Option[Float] = None
+sealed trait Settings
 
-  def cpuReq: Option[Float] = None
+final case class UgerSettings(mem: Int,
+                              cpu: Int,
+                              queue: Queue) extends Settings
 
-  def cpuAct: Option[Float] = None
+final case class GoogleSettings(mem: Float,
+                                cpu: Float,
+                                cluster: String) extends Settings
 
-  def startTime: Option[Instant] = None
-
-  def endTime: Option[Instant] = None
-
-  def node: Option[String] = None
-
-  def queue: Option[Queue] = None
-
-  def elapsedTime: Option[Instant] = for {
-    st: Instant <- startTime
-    et: Instant <- endTime
-  } yield et.minusMillis(st.toEpochMilli)
-}
+final class LocalSettings extends Settings

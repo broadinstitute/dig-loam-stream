@@ -75,8 +75,9 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) {
     def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
+    def env = column[String]("ENV")
     def exitStatus = column[Int]("EXIT_STATUS")
-    def * = (id, exitStatus) <> (ExecutionRow.tupled, ExecutionRow.unapply)
+    def * = (id, env, exitStatus) <> (ExecutionRow.tupled, ExecutionRow.unapply)
   }
 
   final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {
@@ -89,68 +90,61 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
 
-  final class Settings(tag: Tag) extends Table[SettingRow](tag, Names.settings) {
+  final class UgerSettings(tag: Tag) extends Table[UgerSettingRow](tag, Names.ugerSettings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def env = column[String]("ENV")
-    def memReq = column[Option[Float]]("MEM_REQ")
-    def memAct = column[Option[Float]]("MEM_ACT")
-    def cpuReq = column[Option[Float]]("CPU_REQ")
-    def cpuAct = column[Option[Float]]("CPU_ACT")
-    def startTime = column[Option[Timestamp]]("START_TIME")
-    def endTime = column[Option[Timestamp]]("END_TIME")
-    def node = column[Option[String]]("END_TIME")
-    def queue = column[Option[String]]("END_TIME")
+    def mem = column[Int]("MEM")
+    def cpu = column[Int]("CPU")
+    def queue = column[String]("QUEUE")
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, env, memReq, memAct, cpuReq, cpuAct, startTime, endTime, node, queue) <>
-      (SettingRow.tupled, SettingRow.unapply)
+    def * = (executionId, mem, cpu, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
   }
 
   lazy val executions = TableQuery[Executions]
   lazy val outputs = TableQuery[Outputs]
-  lazy val settings = TableQuery[Settings]
+  lazy val ugerSettings = TableQuery[UgerSettings]
 
   private lazy val allTables: Map[String, SchemaDescription] = Map(
     Names.executions -> executions.schema,
     Names.outputs -> outputs.schema,
-    Names.settings -> settings.schema
+    Names.ugerSettings -> ugerSettings.schema
   )
-  
+
   private def allTableNames: Seq[String] = allTables.keys.toSeq
-  
+
   private def allSchemas: Seq[SchemaDescription] = allTables.values.toSeq
-  
+
   private def ddlForAllTables = allSchemas.reduce(_ ++ _)
-  
+
   def create(database: Database): Unit = {
     //TODO: Is this appropriate?
     implicit val executionContext = database.executor.executionContext
-    
+
     val existingTableNames = for {
       tables <- MTable.getTables
     } yield tables.map(_.name.name).toSet
-    
+
     val existing = perform(database)(existingTableNames)
-    
+
     val createActions = for {
       (tableName, schema) <- allTables
       if !existing.contains(tableName)
     } yield {
       log(schema)
-      
+
       schema.create
     }
-    
+
     val createEverythingAction = DBIO.sequence(createActions).transactionally
-    
+
     perform(database)(createEverythingAction)
   }
-  
+
   def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)
 
   private def log(schema: SchemaDescription): Unit = {
     schema.createStatements.foreach(s => debug(s"DDL: $s"))
   }
-  
+
   private def perform[A](database: Database)(action: DBIO[A]): A = {
     Futures.waitFor(database.run(action))
   }
@@ -160,6 +154,6 @@ object Tables {
   object Names {
     val executions = "EXECUTIONS"
     val outputs = "OUTPUTS"
-    val settings = "SETTINGS"
+    val ugerSettings = "SETTINGS_UGER"
   }
 }

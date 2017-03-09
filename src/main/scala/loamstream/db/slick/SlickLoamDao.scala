@@ -55,15 +55,15 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     import Helpers.dummyId
 
     //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
-    val rawExecutionRow = new ExecutionRow(dummyId, commandResult.exitStatus)
+    val executionRow = new ExecutionRow(dummyId, execution.env.name, commandResult.exitStatus)
 
-    def toRawOutputRows(f: OutputRecord => OutputRow): Seq[OutputRow] = {
+    def toOutputRows(f: OutputRecord => OutputRow): Seq[OutputRow] = {
       execution.outputs.toSeq.map(f)
     }
 
     val outputs = {
-      if(execution.isSuccess) { toRawOutputRows(new OutputRow(_)) }
-      else if(execution.isFailure) { toRawOutputRows(rec => new OutputRow(rec.loc)) }
+      if(execution.isSuccess) { toOutputRows(new OutputRow(_)) }
+      else if(execution.isFailure) { toOutputRows(rec => new OutputRow(rec.loc)) }
       else { Nil }
     }
 
@@ -74,7 +74,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     import Implicits._
 
     for {
-      newExecution <- (Queries.insertExecution += rawExecutionRow)
+      newExecution <- (Queries.insertExecution += executionRow)
       outputsWithExecutionIds = tieOutputsToExecution(outputs, newExecution.id)
       insertedOutputCounts <- insertOrUpdateRawOutputRows(outputsWithExecutionIds)
     } yield {
@@ -94,9 +94,9 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     import JobState.CommandResult
 
     val insertableExecutions: Iterable[(Execution, CommandResult)] = executions.collect {
-      case e @ Execution(_, cr: CommandResult, _) => e -> cr
+      case e @ Execution(_, _, cr: CommandResult, _) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
-      case e @ Execution(_, cr: CommandInvocationFailure, _) => e -> CommandResult(-1)
+      case e @ Execution(_, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1)
     }
 
     val inserts = insertableExecutions.map(insert)
@@ -161,7 +161,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def toOutputRecord(row: OutputRow): OutputRecord = row.toOutputRecord
 
-  private def toSettings(row: SettingRow): Settings = row.toSettings
+  private def toSettings(row: UgerSettingRow): Settings = row.toSettings
 
   private object Implicits {
     //TODO: re-evaluate; does this make sense?
@@ -229,7 +229,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   private def settingsFor(execution: ExecutionRow): Settings = {
-    val query = tables.settings.filter(_.executionId === execution.id).result
+    val query = tables.ugerSettings.filter(_.executionId === execution.id).result
 
     val results = runBlocking(query).map(toSettings)
 

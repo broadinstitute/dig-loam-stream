@@ -3,10 +3,10 @@ package loamstream.model.execute
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
+import loamstream.uger.Queue
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Observables
@@ -110,8 +110,9 @@ final case class RxExecuter(
   
   private def record(newResultMap: Map[LJob, JobState]): Unit = {
     val executions = newResultMap.map { case (job, jobState) =>
-      // TODO Replace the LocalSettings object put in place to get the code to compile
-      Execution(LocalSettings(None, None, None, None, None, None), jobState, job.outputs.map(_.toOutputRecord)) }
+      // TODO Replace the placeholders for `env` and `settings` objects put in place to get the code to compile
+      Execution(ExecutionEnvironment.Uger, UgerSettings(0, 0, Queue.Short),
+        jobState, job.outputs.map(_.toOutputRecord)) }
 
     debug(s"Recording Executions (${executions.size}): $executions")
     

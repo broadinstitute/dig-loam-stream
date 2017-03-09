@@ -4,19 +4,18 @@ package loamstream.uger
  * @author kyuksel
  *         date: 3/7/17
  */
-sealed trait Queue {
-  def name: String = toString
-
+sealed abstract class Queue(val name: String) {
   final def isShort: Boolean = this == Queue.Short
   final def isLong: Boolean = this == Queue.Long
 }
 
 object Queue {
-  case object Short extends Queue
-  case object Long extends Queue
+  case object Short extends Queue("Short")
+  case object Long extends Queue("Long")
 
-  def fromString(name: String): Option[Queue] =
-    if (name == Short.toString) { Some(Short) }
-    else if (name == Long.toString) { Some(Long) }
-    else { None }
+  def fromString(s: String): Queue = s match {
+    case Short.name => Short
+    case Long.name => Long
+    case _ => throw new RuntimeException(s"Queue type $s must be ${Short.name} or ${Long.name}")
+  }
 }

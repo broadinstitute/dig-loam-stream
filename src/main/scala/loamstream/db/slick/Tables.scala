@@ -19,32 +19,53 @@ import slick.jdbc.meta.MTable
  * 
  *   EXECUTIONS:
  *    ID: integer, auto-incremented, primary key
- *    EXIT_STATUS: integer - the exit status returned by the command represented by this EXECUTION
+ *    ENV: varchar/text - the platform where this execution took place (e.g. Uger, Google, Local)
+ *    EXIT_STATUS: integer - the exit status returned by the command represented by this execution
  *
- *   SETTINGS:
- *    ENV: varchar/text - name of the execution environment (e.g. Uger, Google)
- *    MEM_REQ: nullable, float - memory requested when submitting the job
- *    MEM_ACT: nullable, float - actual memory consumption by the job
- *    CPU_REQ: nullable, float - number of cpu's requested when submitting the job
- *    CPU_ACT: nullable, float - actual cpu usage by the job
- *    START_TIME: nullable, timestamp - when a job started being executed
- *    END_TIME: nullable, timestamp - when a job finished being executed
- *    NODE: nullable, varchar/text - name of the host that has run the job
- *    QUEUE: nullable, varchar/text - name of the cluster queue in which the job has run
- *    EXECUTION_ID: integer, the id of the EXECUTION a row belongs to
+ *
+ *   OUTPUTS: The Outputs of failed Executions aren't hashed; in those cases,
+ *            OUTPUT.{LAST_MODIFIED,HASH,HASH_TYPE} will be NULL.
+ *    LOCATOR: varchar/text, primary key - the fully-qualified locator of an output
+ *    LAST_MODIFIED: timestamp, nullable - the last modified time of the file/dir at PATH
+ *    HASH: varchar/text, nullable - the hex-coded hash of the file/dir at PATH
+ *    HASH_TYPE: varchar/text, nullable - the type of hash performed on PATH;
+ *                                        see loamstream.util.HashType.fromAlgorithmName
+ *    EXECUTION_ID: integer, primary key - ID of the EXECUTION a row belongs to
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
- *   OUTPUTS:
- *     LOCATOR: varchar/text, primary key - the fully-qualified locator of an output
- *     LAST_MODIFIED: nullable, datetime or similar - the last modified time of the file/dir at PATH
- *     HASH: nullable, varchar/text - the hex-coded hash of the file/dir at PATH
- *     HASH_TYPE: nullable, varchar/text - the type of hash performed on PATH;
- *       see loamstream.util.HashType.fromAlgorithmName
- *     EXECUTION_ID: integer - the id of the EXECUTION a row belongs to
- *     EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
- *     
- *   The Outputs of failed Executions aren't hashed; in those cases, 
- *   OUTPUT.{LAST_MODIFIED,HASH,HASH_TYPE} will be NULL.
+ *
+ *   SETTINGS_UGER: Environment settings requested during Uger job submissions
+ *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
+ *    MEM: integer - memory requested when submitting the job
+ *    CPU: integer - number of cpu's requested when submitting the job
+ *    QUEUE: varchar/text - name of the cluster queue in which the job has run
+ *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
+ *
+ *
+ *   SETTINGS_GOOGLE: Environment settings requested during Google Cloud job submissions
+ *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
+ *    MEM: integer - memory requested when submitting the job
+ *    CPU: integer - number of cpu's requested when submitting the job
+ *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
+ *
+ *
+ *   SETTINGS_LOCAL: Environment settings requested during local job submissions
+ *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
+ *    MEM: integer - memory requested when submitting the job
+ *    CPU: integer - number of cpu's requested when submitting the job
+ *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
+ *
+ *
+ *   RESOURCES: Resources used during the job's execution
+ *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
+ *    MEM: float, nullable - memory requested when submitting the job
+ *    CPU: float, nullable - number of cpu's requested when submitting the job
+ *    START_TIME: timestamp, nullable - when a job started being executed
+ *    END_TIME: timestamp, nullable - when a job finished being executed
+ *    NODE: varchar/text, nullable - name of the host that has run the job
+ *    QUEUE: varchar/text, nullable - name of the cluster queue in which the job has run
+ *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
+ *
  */
 final class Tables(val driver: JdbcProfile) extends Loggable {
   import driver.api._
@@ -56,6 +77,16 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
     def exitStatus = column[Int]("EXIT_STATUS")
     def * = (id, exitStatus) <> (ExecutionRow.tupled, ExecutionRow.unapply)
+  }
+
+  final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {
+    def locator = column[String]("LOCATOR", O.PrimaryKey)
+    def lastModified = column[Option[Timestamp]]("LAST_MODIFIED")
+    def hash = column[Option[String]]("HASH")
+    def hashType = column[Option[String]]("HASH_TYPE")
+    def executionId = column[Int]("EXECUTION_ID")
+    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
 
   final class Settings(tag: Tag) extends Table[SettingRow](tag, Names.settings) {
@@ -74,24 +105,14 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
       (SettingRow.tupled, SettingRow.unapply)
   }
 
-  final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {
-    def locator = column[String]("LOCATOR", O.PrimaryKey)
-    def lastModified = column[Option[Timestamp]]("LAST_MODIFIED")
-    def hash = column[Option[String]]("HASH")
-    def hashType = column[Option[String]]("HASH_TYPE")
-    def executionId = column[Int]("EXECUTION_ID")
-    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
-  }
-
   lazy val executions = TableQuery[Executions]
-  lazy val settings = TableQuery[Settings]
   lazy val outputs = TableQuery[Outputs]
+  lazy val settings = TableQuery[Settings]
 
   private lazy val allTables: Map[String, SchemaDescription] = Map(
     Names.executions -> executions.schema,
-    Names.settings -> settings.schema,
-    Names.outputs -> outputs.schema
+    Names.outputs -> outputs.schema,
+    Names.settings -> settings.schema
   )
   
   private def allTableNames: Seq[String] = allTables.keys.toSeq
@@ -138,7 +159,7 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 object Tables {
   object Names {
     val executions = "EXECUTIONS"
-    val settings = "SETTINGS"
     val outputs = "OUTPUTS"
+    val settings = "SETTINGS"
   }
 }

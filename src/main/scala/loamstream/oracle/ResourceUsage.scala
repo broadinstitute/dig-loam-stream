@@ -5,6 +5,7 @@ import scala.concurrent.duration.Duration
 import scala.util.Try
 import loamstream.util.Tries
 import loamstream.util.Options
+import loamstream.oracle.uger.Queue
 
 /**
  * @author clint
@@ -17,6 +18,7 @@ object ResourceUsage {
       memory: Memory,
       cpuTime: CpuTime,
       node: Option[String],
+      queue: Option[Queue],
       startTime: Instant,
       endTime: Instant) extends ResourceUsage {
     
@@ -71,7 +73,9 @@ object ResourceUsage {
           startTime <- tryGet(Keys.startTime)(toInstant)
           endTime <- tryGet(Keys.endTime)(toInstant)
         } yield {
-          UgerResourceUsage(mem, cpu, None, startTime, endTime)
+          //TODO: Get node somehow (qacct?)
+          //TODO: Get queue somehow (pass it in, qacct?)
+          UgerResourceUsage(mem, cpu, node = None, queue = None, startTime, endTime)
         }
       }
     }

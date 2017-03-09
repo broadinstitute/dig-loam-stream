@@ -23,6 +23,4 @@ object Memory {
   
   def inGb(howMany: Int): Memory = Memory(howMany * bytesPerGB)
   def inGb(howMany: Double): Memory = Memory((howMany * bytesPerGB.toDouble).toLong)
-  def inMb(howMany: Int): Memory = Memory(howMany * bytesPerMB)
-  def inKb(howMany: Int): Memory = Memory(howMany * bytesPerKB)
 }

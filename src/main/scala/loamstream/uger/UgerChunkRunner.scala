@@ -52,40 +52,41 @@ final case class UgerChunkRunner(
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
     // Filter out NoOpJob's
-    val leafCommandLineJobs = leaves.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
+    val commandLineJobs = leaves.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
-    if (leafCommandLineJobs.nonEmpty) {
-      val ugerWorkDir = ugerConfig.workDir.toFile
-      val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs), ugerWorkDir)
-
-      info(s"Made script '$ugerScript' from $leafCommandLineJobs")
-
-      val ugerLogFile: Path = ugerConfig.logFile
+    if (commandLineJobs.nonEmpty) {
+      val ugerScript = writeUgerScriptFile(commandLineJobs)
 
       //TODO: do we need this?  Should it be something better?
       val jobName: String = s"LoamStream-${UUID.randomUUID}"
 
-      val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, leafCommandLineJobs.size)
+      val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, commandLineJobs.size)
 
-      submissionResult match {
-        case DrmaaClient.SubmissionSuccess(rawJobIds) => {
-          leafCommandLineJobs.foreach(_.updateAndEmitJobState(Running))
-
-          val jobsById = rawJobIds.zip(leafCommandLineJobs).toMap
-
-          toResultMap(drmaaClient, jobsById)
-        }
-        case DrmaaClient.SubmissionFailure(e) => {
-          leafCommandLineJobs.foreach(_.updateAndEmitJobState(Failed))
-          makeAllFailureMap(leafCommandLineJobs, Some(e))
-        }
-      }
+      toJobStateStream(commandLineJobs, submissionResult)
     } else {
       // Handle NoOp case or a case when no jobs were presented for some reason
       Observable.just(Map.empty)
     }
   }
+  
+  private def toJobStateStream(
+      commandLineJobs: Seq[CommandLineJob], 
+      submissionResult: DrmaaClient.SubmissionResult): Observable[Map[LJob, JobState]] = submissionResult match {
 
+    case DrmaaClient.SubmissionSuccess(rawJobIds) => {
+      commandLineJobs.foreach(_.updateAndEmitJobState(Running))
+
+      val jobsById = rawJobIds.zip(commandLineJobs).toMap
+
+      toResultMap(drmaaClient, jobsById)
+    }
+    case DrmaaClient.SubmissionFailure(e) => {
+      commandLineJobs.foreach(_.updateAndEmitJobState(Failed))
+      
+      makeAllFailureMap(commandLineJobs, Some(e))
+    }
+  }
+  
   private[uger] def toResultMap(
       drmaaClient: DrmaaClient, 
       jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, JobState]] = {
@@ -105,6 +106,16 @@ final case class UgerChunkRunner(
     }
 
     Observables.toMap(jobsToResultObservables)
+  }
+  
+  private def writeUgerScriptFile(commandLineJobs: Seq[CommandLineJob]): Path = {
+    val ugerWorkDir = ugerConfig.workDir.toFile
+    
+    val ugerScript = createScriptFile(ScriptBuilder.buildFrom(commandLineJobs), ugerWorkDir)
+    
+    info(s"Made script '$ugerScript' from $commandLineJobs")
+    
+    ugerScript
   }
 }
 

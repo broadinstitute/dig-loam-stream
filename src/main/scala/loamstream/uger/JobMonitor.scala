@@ -13,6 +13,9 @@ import rx.lang.scala.observables.ConnectableObservable
 import rx.schedulers.Schedulers
 import loamstream.util.ValueBox
 import loamstream.util.Terminable
+import rx.lang.scala.subjects.PublishSubject
+import rx.lang.scala.Subject
+import rx.lang.scala.subjects.PublishSubject
 
 /**
  * @author clint
@@ -29,11 +32,15 @@ final class JobMonitor(
   
   private[uger] def isStopped: Boolean = _isStopped.value
   
+  private[this] val stopSignal: Subject[Any] = PublishSubject()
+  
   /**
    * Stop all polling and prevent further polling by this JobMonitor.  Useful at app-shutdown-time. 
    */
   override def stop(): Unit = {
     _isStopped.update(true)
+    
+    stopSignal.onNext(())
   }
   
   /**
@@ -60,11 +67,11 @@ final class JobMonitor(
     //TODO: find a better way to stop or shut down `ticks` :\
     val keepPolling: ValueBox[Boolean] = ValueBox(true)
     
-    val ticks = Observable.interval(period, scheduler).share
+    val ticks = Observable.interval(period, scheduler).takeUntil(stopSignal).share
     
     def poll(): Map[String, Try[UgerStatus]] = poller.poll(jobIds)
     
-    def shouldContinue = !isStopped && keepPolling()
+    def shouldContinue = keepPolling()
     
     import ObservableEnrichments._
     

@@ -2,9 +2,9 @@ package loamstream.db.slick
 
 import java.sql.Timestamp
 
+import loamstream.model.execute.LocalSettings
 import loamstream.util.Futures
 import loamstream.util.Loggable
-
 import slick.driver.JdbcProfile
 import slick.jdbc.meta.MTable
 
@@ -46,6 +46,7 @@ import slick.jdbc.meta.MTable
  *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
  *    MEM: integer - memory requested when submitting the job
  *    CPU: integer - number of cpu's requested when submitting the job
+ *    CLUSTER: varchar/text - name of the cluster where the job has been submitted to
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
  *
@@ -90,6 +91,12 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
 
+  final class LocalSettings(tag: Tag) extends Table[LocalSettingRow](tag, Names.googleSettings) {
+    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    def * = executionId <> (LocalSettingRow, LocalSettingRow.unapply)
+  }
+
   final class UgerSettings(tag: Tag) extends Table[UgerSettingRow](tag, Names.ugerSettings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def mem = column[Int]("MEM")
@@ -99,14 +106,28 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def * = (executionId, mem, cpu, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
   }
 
+  final class GoogleSettings(tag: Tag) extends Table[GoogleSettingRow](tag, Names.googleSettings) {
+    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def mem = column[Int]("MEM")
+    def cpu = column[Int]("CPU")
+    def cluster = column[String]("CLUSTER")
+    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    def * = (executionId, mem, cpu, cluster) <> (GoogleSettingRow.tupled, GoogleSettingRow.unapply)
+  }
+
   lazy val executions = TableQuery[Executions]
   lazy val outputs = TableQuery[Outputs]
+  lazy val localSettings = TableQuery[LocalSettings]
   lazy val ugerSettings = TableQuery[UgerSettings]
+  lazy val googleSettings = TableQuery[GoogleSettings]
+
 
   private lazy val allTables: Map[String, SchemaDescription] = Map(
     Names.executions -> executions.schema,
     Names.outputs -> outputs.schema,
-    Names.ugerSettings -> ugerSettings.schema
+    Names.localSettings -> ugerSettings.schema,
+    Names.ugerSettings -> localSettings.schema,
+    Names.googleSettings -> googleSettings.schema
   )
 
   private def allTableNames: Seq[String] = allTables.keys.toSeq
@@ -154,6 +175,8 @@ object Tables {
   object Names {
     val executions = "EXECUTIONS"
     val outputs = "OUTPUTS"
+    val localSettings = "SETTINGS_LOCAL"
     val ugerSettings = "SETTINGS_UGER"
+    val googleSettings = "SETTINGS_GOOGLE"
   }
 }

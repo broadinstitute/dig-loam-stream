@@ -1,7 +1,7 @@
+args<-commandArgs(trailingOnly=T)
 library(reshape2)
 library(ggplot2)
 library(gridExtra)
-args<-commandArgs(trailingOnly=T)
 files = list.files(unlist(strsplit(args[1],"/"))[1], glob2rx(unlist(strsplit(args[1],"/"))[2]))
 files <- files[grep("temp",files,invert=T)]
 files.df<-colsplit(files,"\\.",names=c("x1","x2","x3","x4","NUM","x6","x7"))
@@ -28,7 +28,6 @@ data$OUTLIER_PCA<-0
 if( length(oliers) > 0) {
 	data$OUTLIER_PCA[data$IID %in% oliers]<-1
 }
-print(files.df)
 pdf(args[5],width=ceiling(length(data_names)/10)*7, height=7)
 #for(f in data_names) {
 for(i in 1:nrow(files.df)) {

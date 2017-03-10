@@ -13,8 +13,6 @@ final case class UgerSettings(mem: Int,
                               cpu: Int,
                               queue: Queue) extends Settings
 
-final case class GoogleSettings(mem: Float,
-                                cpu: Float,
-                                cluster: String) extends Settings
+final case class GoogleSettings(cluster: String) extends Settings
 
 final class LocalSettings extends Settings

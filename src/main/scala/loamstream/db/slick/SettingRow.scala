@@ -24,9 +24,7 @@ final case class UgerSettingRow(executionId: Int,
 }
 
 final case class GoogleSettingRow(executionId: Int,
-                                  mem: Int,
-                                  cpu: Int,
                                   cluster: String) {
 
-  def toSettings: Settings = GoogleSettings(mem, cpu, cluster)
+  def toSettings: Settings = GoogleSettings(cluster)
 }

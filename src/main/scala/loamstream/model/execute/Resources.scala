@@ -8,21 +8,27 @@ import loamstream.uger.Queue
  * @author kyuksel
  *         date: 3/9/17
  */
-trait Resources {
-  def mem: Option[Int] = None
+sealed trait Resources {
+  def startTime: Option[Instant]
 
-  def cpu: Option[Int] = None
-
-  def node: Option[String] = None
-
-  def queue: Option[Queue] = None
-
-  def startTime: Option[Instant] = None
-
-  def endTime: Option[Instant] = None
+  def endTime: Option[Instant]
 
   def elapsedTime: Option[Instant] = for {
     st: Instant <- startTime
     et: Instant <- endTime
   } yield et.minusMillis(st.toEpochMilli)
 }
+
+final case class LocalResources(startTime: Option[Instant],
+                                endTime: Option[Instant]) extends Resources
+
+final case class UgerResources(mem: Option[Float],
+                               cpu: Option[Float],
+                               node: Option[String],
+                               queue: Option[Queue],
+                               startTime: Option[Instant],
+                               endTime: Option[Instant]) extends Resources
+
+final case class GoogleResources(cluster: Option[String],
+                                 startTime: Option[Instant],
+                                 endTime: Option[Instant]) extends Resources

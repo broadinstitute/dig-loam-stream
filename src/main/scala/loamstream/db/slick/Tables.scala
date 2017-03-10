@@ -2,7 +2,7 @@ package loamstream.db.slick
 
 import java.sql.Timestamp
 
-import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.{GoogleResources, LocalResources, LocalSettings, UgerResources}
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import slick.driver.JdbcProfile
@@ -34,6 +34,11 @@ import slick.jdbc.meta.MTable
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
  *
+ *   SETTINGS_LOCAL: Environment settings requested during local job submissions
+ *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
+ *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
+ *
+ *
  *   SETTINGS_UGER: Environment settings requested during Uger job submissions
  *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
  *    MEM: integer - memory requested when submitting the job
@@ -44,27 +49,33 @@ import slick.jdbc.meta.MTable
  *
  *   SETTINGS_GOOGLE: Environment settings requested during Google Cloud job submissions
  *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    MEM: integer - memory requested when submitting the job
- *    CPU: integer - number of cpu's requested when submitting the job
  *    CLUSTER: varchar/text - name of the cluster where the job has been submitted to
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
  *
- *   SETTINGS_LOCAL: Environment settings requested during local job submissions
+ *   RESOURCES_LOCAL: Resources used during a local job's execution
  *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    MEM: integer - memory requested when submitting the job
- *    CPU: integer - number of cpu's requested when submitting the job
+ *    START_TIME: timestamp, nullable - when a job started being executed
+ *    END_TIME: timestamp, nullable - when a job finished being executed
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
  *
- *   RESOURCES: Resources used during the job's execution
+ *   RESOURCES_UGER: Resources used during a UGER job's execution
  *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
- *    MEM: float, nullable - memory requested when submitting the job
- *    CPU: float, nullable - number of cpu's requested when submitting the job
+ *    MEM: float, nullable - memory used by the job
+ *    CPU: float, nullable - cpu time taken by the job
  *    START_TIME: timestamp, nullable - when a job started being executed
  *    END_TIME: timestamp, nullable - when a job finished being executed
  *    NODE: varchar/text, nullable - name of the host that has run the job
  *    QUEUE: varchar/text, nullable - name of the cluster queue in which the job has run
+ *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
+ *
+ *
+ *   RESOURCES_GOOGLE: Resources used during a Google Cloud job's execution
+ *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
+ *    CLUSTER: varchar/text, nullable - name of the cluster that has run the job
+ *    START_TIME: timestamp, nullable - when a job started being executed
+ *    END_TIME: timestamp, nullable - when a job finished being executed
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
  */
@@ -91,7 +102,7 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
 
-  final class LocalSettings(tag: Tag) extends Table[LocalSettingRow](tag, Names.googleSettings) {
+  final class LocalSettings(tag: Tag) extends Table[LocalSettingRow](tag, Names.localSettings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = executionId <> (LocalSettingRow, LocalSettingRow.unapply)
@@ -108,26 +119,59 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   final class GoogleSettings(tag: Tag) extends Table[GoogleSettingRow](tag, Names.googleSettings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def mem = column[Int]("MEM")
-    def cpu = column[Int]("CPU")
     def cluster = column[String]("CLUSTER")
     def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, mem, cpu, cluster) <> (GoogleSettingRow.tupled, GoogleSettingRow.unapply)
+    def * = (executionId, cluster) <> (GoogleSettingRow.tupled, GoogleSettingRow.unapply)
   }
 
+  final class LocalResources(tag: Tag) extends Table[LocalResourceRow](tag, Names.localResources) {
+    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def startTime = column[Option[Timestamp]]("START_TIME")
+    def endTime = column[Option[Timestamp]]("END_TIME")
+    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    def * = (executionId, startTime, endTime) <> (LocalResourceRow.tupled, LocalResourceRow.unapply)
+  }
+
+  final class UgerResources(tag: Tag) extends Table[UgerResourceRow](tag, Names.ugerResources) {
+    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def mem = column[Option[Float]]("MEM")
+    def cpu = column[Option[Float]]("CPU")
+    def node = column[Option[String]]("NODE")
+    def queue = column[Option[String]]("QUEUE")
+    def startTime = column[Option[Timestamp]]("START_TIME")
+    def endTime = column[Option[Timestamp]]("END_TIME")
+    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    def * = (executionId, mem, cpu, node, queue, startTime, endTime) <>
+      (UgerResourceRow.tupled, UgerResourceRow.unapply)
+  }
+
+  final class GoogleResources(tag: Tag) extends Table[GoogleResourceRow](tag, Names.googleResources) {
+    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def cluster = column[Option[String]]("CLUSTER")
+    def startTime = column[Option[Timestamp]]("START_TIME")
+    def endTime = column[Option[Timestamp]]("END_TIME")
+    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    def * = (executionId, cluster, startTime, endTime) <> (GoogleResourceRow.tupled, GoogleResourceRow.unapply)
+  }
+  
   lazy val executions = TableQuery[Executions]
   lazy val outputs = TableQuery[Outputs]
   lazy val localSettings = TableQuery[LocalSettings]
   lazy val ugerSettings = TableQuery[UgerSettings]
   lazy val googleSettings = TableQuery[GoogleSettings]
-
+  lazy val localResources = TableQuery[LocalResources]
+  lazy val ugerResources = TableQuery[UgerResources]
+  lazy val googleResources = TableQuery[GoogleResources]
 
   private lazy val allTables: Map[String, SchemaDescription] = Map(
     Names.executions -> executions.schema,
     Names.outputs -> outputs.schema,
-    Names.localSettings -> ugerSettings.schema,
-    Names.ugerSettings -> localSettings.schema,
-    Names.googleSettings -> googleSettings.schema
+    Names.localSettings -> localSettings.schema,
+    Names.ugerSettings -> ugerSettings.schema,
+    Names.googleSettings -> googleSettings.schema,
+    Names.localResources -> localResources.schema,
+    Names.ugerSettings -> ugerResources.schema,
+    Names.googleSettings -> googleResources.schema
   )
 
   private def allTableNames: Seq[String] = allTables.keys.toSeq
@@ -178,5 +222,8 @@ object Tables {
     val localSettings = "SETTINGS_LOCAL"
     val ugerSettings = "SETTINGS_UGER"
     val googleSettings = "SETTINGS_GOOGLE"
+    val localResources = "RESOURCES_LOCAL"
+    val ugerResources = "RESOURCES_UGER"
+    val googleResources = "RESOURCES_GOOGLE"
   }
 }

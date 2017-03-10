@@ -4,7 +4,7 @@ import java.nio.file.Path
 
 import scala.concurrent.ExecutionContext
 import loamstream.db.LoamDao
-import loamstream.model.execute.Settings
+import loamstream.model.execute._
 import loamstream.model.jobs.{Execution, JobState, OutputRecord}
 import loamstream.util.Futures
 import loamstream.util.Loggable
@@ -94,9 +94,9 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     import JobState.CommandResult
 
     val insertableExecutions: Iterable[(Execution, CommandResult)] = executions.collect {
-      case e @ Execution(_, _, cr: CommandResult, _) => e -> cr
+      case e @ Execution(_, _, _, cr: CommandResult, _) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
-      case e @ Execution(_, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1)
+      case e @ Execution(_, _, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1)
     }
 
     val inserts = insertableExecutions.map(insert)
@@ -127,7 +127,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     } yield {
       val outputs = outputsFor(execution)
       val settings = settingsFor(execution)
-      execution.toExecution(settings, outputs.toSet)
+      val resources = resourcesFor(execution)
+      execution.toExecution(settings, resources, outputs.toSet)
     }
   }
 
@@ -160,8 +161,6 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   override def shutdown(): Unit = waitFor(db.shutdown)
 
   private def toOutputRecord(row: OutputRow): OutputRecord = row.toOutputRecord
-
-  private def toSettings(row: UgerSettingRow): Settings = row.toSettings
 
   private object Implicits {
     //TODO: re-evaluate; does this make sense?
@@ -218,7 +217,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   private def reify(executionRow: ExecutionRow): Execution = {
-    executionRow.toExecution(settingsFor(executionRow), outputsFor(executionRow).toSet)
+    executionRow.toExecution(settingsFor(executionRow), resourcesFor(executionRow), outputsFor(executionRow).toSet)
   }
 
   //TODO: There must be a better way than a subquery
@@ -229,15 +228,37 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   private def settingsFor(execution: ExecutionRow): Settings = {
-    val query = tables.ugerSettings.filter(_.executionId === execution.id).result
+      val queryResults = ExecutionEnvironment.fromString(execution.env) match {
+        case ExecutionEnvironment.Local =>
+          runBlocking(tables.localSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
+        case ExecutionEnvironment.Uger =>
+          runBlocking(tables.ugerSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
+        case ExecutionEnvironment.Google =>
+          runBlocking(tables.googleSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
+    }
 
-    val results = runBlocking(query).map(toSettings)
-
-    require(results.size == 1,
+    require(queryResults.size == 1,
       s"There must be a single set of settings per execution. " +
         s"Found more than one for the execution with ID '${execution.id}'")
 
-    results.head
+    queryResults.head
+  }
+
+  private def resourcesFor(execution: ExecutionRow): Resources = {
+    val queryResults = ExecutionEnvironment.fromString(execution.env) match {
+      case ExecutionEnvironment.Local =>
+        runBlocking(tables.localResources.filter(_.executionId === execution.id).result).map(_.toResources)
+      case ExecutionEnvironment.Uger =>
+        runBlocking(tables.ugerResources.filter(_.executionId === execution.id).result).map(_.toResources)
+      case ExecutionEnvironment.Google =>
+        runBlocking(tables.googleResources.filter(_.executionId === execution.id).result).map(_.toResources)
+    }
+
+    require(queryResults.size == 1,
+      s"There must be a single set of resource (usages) per execution. " +
+        s"Found more than one for the execution with ID '${execution.id}'")
+
+    queryResults.head
   }
 
   //TODO: Re-evaluate; block all the time?

@@ -110,8 +110,8 @@ final case class RxExecuter(
   
   private def record(newResultMap: Map[LJob, JobState]): Unit = {
     val executions = newResultMap.map { case (job, jobState) =>
-      // TODO Replace the placeholders for `env` and `settings` objects put in place to get the code to compile
-      Execution(ExecutionEnvironment.Uger, UgerSettings(0, 0, Queue.Short),
+      // TODO Replace the placeholders for `env/settings/resources` objects put in place to get the code to compile
+      Execution(ExecutionEnvironment.Local, new LocalSettings, LocalResources(None, None),
         jobState, job.outputs.map(_.toOutputRecord)) }
 
     debug(s"Recording Executions (${executions.size}): $executions")

@@ -1,6 +1,6 @@
 package loamstream.db.slick
 
-import loamstream.model.execute.{ExecutionEnvironment, Settings}
+import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
 import loamstream.model.jobs.{Execution, OutputRecord}
 import loamstream.model.jobs.JobState.CommandResult
 
@@ -9,6 +9,6 @@ import loamstream.model.jobs.JobState.CommandResult
  * date: Sep 22, 2016
  */
 final case class ExecutionRow(id: Int, env: String, exitStatus: Int) {
-  def toExecution(settings: Settings, outputs: Set[OutputRecord]): Execution =
-    Execution(ExecutionEnvironment.fromString(env), settings, CommandResult(exitStatus), outputs)
+  def toExecution(settings: Settings, resources: Resources, outputs: Set[OutputRecord]): Execution =
+    Execution(ExecutionEnvironment.fromString(env), settings, resources, CommandResult(exitStatus), outputs)
 }

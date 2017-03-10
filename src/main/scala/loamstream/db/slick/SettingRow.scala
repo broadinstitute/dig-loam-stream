@@ -20,11 +20,11 @@ final case class UgerSettingRow(executionId: Int,
                       cpu: Int,
                       queue: String) {
 
-  def toSettings: Settings = UgerSettings(mem, cpu, Queue.fromString(queue))
+  def toSettings = UgerSettings(mem, cpu, Queue.fromString(queue))
 }
 
 final case class GoogleSettingRow(executionId: Int,
                                   cluster: String) {
 
-  def toSettings: Settings = GoogleSettings(cluster)
+  def toSettings = GoogleSettings(cluster)
 }

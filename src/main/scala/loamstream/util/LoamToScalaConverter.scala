@@ -175,7 +175,7 @@ object LoamToScalaConverter extends Loggable {
         |import loamstream.loam.LoamProjectContext
         |
         |object ${contextOwnerId.name} {
-        |  val $contextValName : LoamProjectContext = LoamProjectContext.empty
+        |  val $contextValName : LoamProjectContext = LoamProjectContext.empty(???) //TODO
         |}
       """.stripMargin
     }

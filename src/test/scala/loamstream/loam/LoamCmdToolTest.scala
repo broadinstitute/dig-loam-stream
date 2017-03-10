@@ -5,6 +5,7 @@ import loamstream.loam.ops.StoreType.TXT
 import loamstream.model.LId
 import loamstream.util.BashScript
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 /**
   * @author clint
@@ -13,9 +14,12 @@ import org.scalatest.FunSuite
 final class LoamCmdToolTest extends FunSuite {
 
   import LoamCmdTool._
+  import TestHelpers.config
 
+  private def emptyProjectContext = LoamProjectContext.empty(config)
+  
   test("string interpolation (trivial)") {
-    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty)
+    implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
     val tool = cmd"foo bar baz"
 
@@ -35,20 +39,22 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.tokens == Seq(StringToken("foo bar baz")))
   }
 
-  def storeMap(stores: Iterable[LoamStore.Untyped]): Map[LId, LoamStore.Untyped] =
+  private def storeMap(stores: Iterable[LoamStore.Untyped]): Map[LId, LoamStore.Untyped] = {
     stores.map(store => store.id -> store).toMap
+  }
 
-  def tokens(values: AnyRef*): Seq[LoamToken] = values.map {
+  private def tokens(values: AnyRef*): Seq[LoamToken] = values.map {
     case string: String => StringToken(string)
     case store: LoamStore.Untyped => StoreToken(store)
   }
 
-  def assertGraph(graph: LoamGraph, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
+  private def assertGraph(graph: LoamGraph, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
                   expectedInputs: Map[LId, LoamStore.Untyped],
                   expectedOutputs: Map[LId, LoamStore.Untyped]): Unit = {
     assert(tool.tokens === expectedTokens)
     assert(tool.inputs === expectedInputs)
     assert(tool.outputs === expectedOutputs)
+    
     for ((id, store) <- expectedInputs) {
       val storeProducerOpt = graph.storeProducers.get(store)
       assert(storeProducerOpt === None,
@@ -63,6 +69,7 @@ final class LoamCmdToolTest extends FunSuite {
         s"Expected tool ${tool.id} as consumer of input store $id, but got $storeConsumersString."
       })
     }
+    
     for ((id, store) <- expectedOutputs) {
       val storeProducerOpt = graph.storeProducers.get(store)
       assert(storeProducerOpt === Some(tool), {
@@ -75,7 +82,7 @@ final class LoamCmdToolTest extends FunSuite {
     }
   }
 
-  def assertAddingIOStores(context: LoamProjectContext, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
+  private def assertAddingIOStores(context: LoamProjectContext, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
                            inputsBefore: Set[LoamStore.Untyped], outputsBefore: Set[LoamStore.Untyped],
                            stores: Seq[LoamStore.Untyped], addInputsFirst: Boolean = true): Unit = {
     val inputsMapBefore = storeMap(inputsBefore)
@@ -98,7 +105,7 @@ final class LoamCmdToolTest extends FunSuite {
 
   test("in() and out() with no implicit i/o stores") {
     for (addInputsFirst <- Seq(true, false)) {
-      implicit val projectContext = LoamProjectContext.empty
+      implicit val projectContext = emptyProjectContext
       implicit val scriptContext = new LoamScriptContext(projectContext)
 
       val nStores = 4
@@ -115,7 +122,7 @@ final class LoamCmdToolTest extends FunSuite {
 
   test("in() and out() mixed with implicit i/o stores") {
     for (addInputsFirst <- Seq(true, false)) {
-      implicit val projectContext = LoamProjectContext.empty
+      implicit val projectContext = emptyProjectContext
       implicit val scriptContext = new LoamScriptContext(projectContext)
 
       val nStores = 6
@@ -134,7 +141,7 @@ final class LoamCmdToolTest extends FunSuite {
   }
 
   test("at(...) and asInput") {
-    implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty)
+    implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
     import loamstream.compiler.LoamPredef._
     val inStoreWithPath = store[TXT].at("dir/inStoreWithPath.txt").asInput
     val outStoreWithPath = store[TXT].at("dir/outStoreWithPath.txt")

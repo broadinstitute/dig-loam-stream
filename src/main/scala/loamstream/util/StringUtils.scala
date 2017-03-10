@@ -3,6 +3,7 @@ package loamstream.util
 import java.nio.charset.StandardCharsets
 
 import scala.util.Try
+import scala.annotation.tailrec
 
 /**
   * Created on: 3/1/16

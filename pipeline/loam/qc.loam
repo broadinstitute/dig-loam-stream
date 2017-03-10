@@ -1,9 +1,143 @@
 import input._
 import binaries._
+import cloud_helpers._
 import scripts._
 import store_helpers._
 import loamstream.loam.LoamStore
 import scala.io.Source
+import loamstream.googlecloud.HailSupport._
+
+object Common {
+  // Alignment Step
+  val START_CHR = 21
+  val END_CHR = 22
+  val NUM_CHR = END_CHR - START_CHR + 1
+  val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
+
+  // Filter Step
+  val FOR_QC_NAME = s"$outLABEL.for_qc"
+}
+
+object Local {
+  // Alignment Step
+  val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
+  val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
+  val VCF_BASE = outDIR / Common.VCF_BASE_NAME
+  val VCF = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf")
+  val VCF_GZ = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz")
+  val VCF_GZ_TBI = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
+  val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(Common.NUM_CHR)
+  val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
+  val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
+  val MERGE_LINE: Array[String] = Array.ofDim(Common.NUM_CHR)
+  val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
+  val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
+  val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
+
+  // Load Step
+  val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
+
+  // Filter Step
+  val FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc")
+  val PLINK_FOR_QC_NAME = outDIR / Common.FOR_QC_NAME
+  // TODO Possible to remove explicit typing
+  val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
+  val PLINK_FOR_QC_PRUNED_NAME = outDIR / s"${Common.FOR_QC_NAME}.pruned"
+  val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_PRUNED_NAME)
+  val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"${Common.FOR_QC_NAME}.prune.in")
+  val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"${Common.FOR_QC_NAME}.prune.out")
+
+  // Kinship Step
+  val KIN_PREFIX = outDIR / s"$outLABEL.kinship"
+  val KIN_LOG = store[TXT].at(KIN_PREFIX + ".log")
+  val KINTMP_DAT = store[TXT].at(KIN_PREFIX + "TMP.dat")
+  val KINTMP_PED = store[TXT].at(KIN_PREFIX + "TMP.ped")
+  val KIN = store[TXT].at(KIN_PREFIX + ".kin")
+  val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
+  val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
+  val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
+
+  //Chunk #2
+  val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.tsv")
+  val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.loadings.tsv")
+  val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.plots.pdf")
+
+  val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.scores.tsv")
+  val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.loadings.tsv")
+
+  val ANCESTRY_PREFIX = outDIR / s"${outLABEL}.ancestry"
+  val ANCESTRYCLUSTER_LOG = store[TXT].at(ANCESTRY_PREFIX + ".cluster.log")
+  val ANCESTRY_FET = store[TXT].at(ANCESTRY_PREFIX + ".fet.1")
+  val ANCESTRY_TEMP_CLU = store[TXT].at(ANCESTRY_PREFIX + ".temp.clu.1")
+  val ANCESTRY_CLU = store[TXT].at(ANCESTRY_PREFIX + ".clu.1")
+  val ANCESTRY_KLG = store[TXT].at(ANCESTRY_PREFIX + ".klg.1")
+  val ANCESTRY_CLUSTER_PLOTS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.pdf")
+  val ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.centers.pdf")
+  val ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.no_1kg.pdf")
+  val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
+  val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
+  val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
+}
+
+object Google {
+
+  private val root = uri("gs://loamstream/qc/all")
+  private val data = root / "data"
+  private val out = root / "out"
+
+  // Load Step
+  val VCF_GZ = store[VCF].at(out / s"${Common.VCF_BASE_NAME}.vcf.gz")
+  val VCF_GZ_TBI = store[VCF].at(out / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
+  val SAMPLE_FILE = store[TXT].at(out / s"$outLABEL.harmonized.sample")
+
+  val VDS = store[VCF].at(out / s"$outLABEL.harmonized.ref.vds")
+
+  // Filter Step
+  val inREGIONS_EXCLUDE = store[TXT].at(out / s"regions.exclude")
+  val FOR_QC = store[VCF].at(out / s"$outLABEL.for_qc")
+  val VDS_FOR_QC = store[VCF].at(out / s"${Common.FOR_QC_NAME}.vds")
+  val VDS_FOR_QC_PRUNED = store[VCF].at(out / s"${Common.FOR_QC_NAME}.pruned.vds")
+  val VARIANTQC_TSV = store[TXT].at(out / s"$outLABEL.variantqc.tsv")
+  val PLINK_FOR_QC_NAME = out / Common.FOR_QC_NAME
+  // TODO Possible to remove explicit typing
+  // TODO Fix bedBimFam for URIs and use below
+  val PLINK_FOR_QC: Seq[LoamStore[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_NAME + s".$bed"),
+                                              store[TXT].at(PLINK_FOR_QC_NAME + s".$bim"),
+                                              store[TXT].at(PLINK_FOR_QC_NAME + s".$fam"))
+  val PLINK_FOR_QC_PRUNED_NAME = out / s"${Common.FOR_QC_NAME}.pruned"
+  // TODO Fix bedBimFam for URIs and use below
+  val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$bed"),
+                                                     store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$bim"),
+                                                     store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$fam"))
+  val FOR_QC_PRUNE_IN = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.in")
+  val FOR_QC_PRUNE_OUT = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.out")
+
+  // Chunk #2
+  val inKG_HAIL = store[TXT].at(data / "inkg_hail.vds")
+  val inKG_V3_5K_AF = store[TXT].at(data / "allele_frequencies.tsv")
+
+  val ANCESTRYPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.scores.tsv")
+  val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.loadings.tsv")
+
+  val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.pca.scores.tsv")
+  val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(out / s"${outLABEL}.pca.loadings.tsv")
+
+  val ANCESTRY_PREFIX = out / s"${outLABEL}.ancestry"
+  val ANCESTRYCLUSTER_LOG = store[TXT].at(ANCESTRY_PREFIX + ".cluster.log")
+  val ANCESTRY_FET = store[TXT].at(ANCESTRY_PREFIX + ".fet.1")
+  val ANCESTRY_TEMP_CLU = store[TXT].at(ANCESTRY_PREFIX + ".temp.clu.1")
+  val ANCESTRY_CLU = store[TXT].at(ANCESTRY_PREFIX + ".clu.1")
+  val ANCESTRY_KLG = store[TXT].at(ANCESTRY_PREFIX + ".klg.1")
+  val ANCESTRY_CLUSTER_PLOTS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.pdf")
+  val ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.centers.pdf")
+  val ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.no_1kg.pdf")
+  val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
+  val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
+  val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
+}
 
 // CHUNK 1
 
@@ -19,60 +153,53 @@ import scala.io.Source
  *     Ideally, this will be run in parallel by chromosome number
  */
 
-val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
-val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(22)
-val PLINK_HARMONIZED = bedBimFam(outDIR / s"$outLABEL.harmonized")
-val VCF_BASE = outDIR / s"$outLABEL.harmonized.ref"
-val VCF = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vcf.gz")
-val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(22)
-val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(22)
-val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(22)
-val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
-val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
-val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
+uger {
+  for (i <- Common.START_CHR to Common.END_CHR) {
+    val j = i - Common.START_CHR
+    val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
+    Local.PLINK_CHRS(j) = bedBimFam(PLINK_CHRS_NAME)
+    Local.PLINK_CHRS_HARMONIZED_NAME(j) = outDIR / s"$outLABEL.chr$i.harmonized"
+    Local.PLINK_CHRS_HARMONIZED(j) = bedBimFam(Local.PLINK_CHRS_HARMONIZED_NAME(j))
+    Local.KG_VCFS(j) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
+    Local.IDUPDATES(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
+    Local.SNPLOGS(j) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
 
-for (i <- 1 to 22) {
-  PLINK_CHRS(i - 1) = bedBimFam(outDIR / s"$outLABEL.chr$i")
-  PLINK_CHRS_HARMONIZED(i - 1) = bedBimFam(outDIR / s"$outLABEL.chr$i.harmonized")
-  KG_VCFS(i - 1) = store[VCF].at(KG_VCF_BASE.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
-  IDUPDATES(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_idUpdates.txt")
-  SNPLOGS(i - 1) = store[TXT].at(outDIR / s"$outLABEL.chr$i.harmonized_snpLog.log")
+    cmd"""$PLINK --vcf $inVCF --chr $i --keep-allele-order --make-bed --out $PLINK_CHRS_NAME""".in(inVCF).out(Local.PLINK_CHRS(j))
 
-  cmd"""$PLINK --bfile $inVCF --chr $i --keep-allele-order --make-bed --out ${PLINK_CHRS(i - 1)}""".in(inVCF).out(PLINK_CHRS(i - 1))
+    cmd"""$GENOTYPE_HARMONIZER
+      --input $PLINK_CHRS_NAME
+      --inputType PLINK_BED
+      --output ${Local.PLINK_CHRS_HARMONIZED_NAME(j)}
+      --outputType PLINK_BED
+      --ref ${Local.KG_VCFS(j)}
+      --refType VCF
+      --keep
+      --update-id
+      --variants 1000
+      --mafAlign 0.1
+      --update-id
+      --update-reference-allele
+      --debug""".in(Local.PLINK_CHRS(j) :+ Local.KG_VCFS(j)).out(Local.PLINK_CHRS_HARMONIZED(j) :+ Local.IDUPDATES(j) :+ Local.SNPLOGS(j))
 
-  cmd"""$GENOTYPE_HARMONIZER 
-    --input ${PLINK_CHRS(i - 1)}
-    --inputType PLINK_BED
-    --output ${PLINK_CHRS_HARMONIZED(i - 1)}
-    --outputType PLINK_BED
-    --ref ${KG_VCFS(i - 1)}
-    --refType VCF
-    --keep
-    --update-id
-    --variants 1000
-    --mafAlign 0.1
-    --update-id
-    --update-reference-allele
-    --debug""".in(PLINK_CHRS(i - 1) :+ KG_VCFS(i - 1)).out(PLINK_CHRS_HARMONIZED(i - 1) :+ IDUPDATES(i - 1) :+ SNPLOGS(i - 1))
+    Local.MERGE_LINE(j) = s"${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bed"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$bim"} ${Local.PLINK_CHRS_HARMONIZED_NAME(j) + s".$fam"}"
+  }
+
+  val MERGE_LINES: String = Local.MERGE_LINE.drop(1).mkString("\n") // Exclude first chrom
+
+  cmd"""echo "$MERGE_LINES" > ${Local.MERGE_LIST}""".out(Local.MERGE_LIST)
+
+  cmd"""$PLINK --bfile ${Local.PLINK_CHRS_HARMONIZED_NAME(0)} --merge-list ${Local.MERGE_LIST} --make-bed --keep-allele-order --out ${Local.PLINK_HARMONIZED_NAME}""".in(Local.PLINK_CHRS_HARMONIZED.flatten :+ Local.MERGE_LIST).out(Local.PLINK_HARMONIZED)
+
+  cmd"""awk '{print $$2,$$5}' ${Local.PLINK_HARMONIZED_NAME}.bim > ${Local.FORCE_A2}""".in(Local.PLINK_HARMONIZED).out(Local.FORCE_A2)
+
+  cmd"""$PLINK --bfile ${Local.PLINK_HARMONIZED_NAME} --recode vcf-iid --real-ref-alleles --a2-allele ${Local.FORCE_A2} --out ${Local.VCF_BASE}""".in(Local.PLINK_HARMONIZED :+ Local.FORCE_A2).out(Local.VCF)
+
+  cmd"""$BGZIP --force --stdout ${Local.VCF} > ${Local.VCF_GZ}""".in(Local.VCF).out(Local.VCF_GZ)
+
+  cmd"""$TABIX -f -p vcf ${Local.VCF_GZ}""".in(Local.VCF_GZ).out(Local.VCF_GZ_TBI)
+
+  cmd"""(echo 'IID POP SUPERPOP SEX' ; awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.PLINK_HARMONIZED_NAME}.fam) > ${Local.SAMPLE_FILE}""".in(Local.PLINK_HARMONIZED).out(Local.SAMPLE_FILE)
 }
-
-cmd"""echo "${PLINK_CHRS_HARMONIZED(1)}.bed ${PLINK_CHRS_HARMONIZED(1)}.bim ${PLINK_CHRS_HARMONIZED(1)}.fam" > $MERGE_LIST""".out(MERGE_LIST)
-
-for (i <- 3 to 22) {
-  cmd"""echo "${PLINK_CHRS_HARMONIZED(i - 1)}.bed ${PLINK_CHRS_HARMONIZED(i - 1)}.bim ${PLINK_CHRS_HARMONIZED(i - 1)}.fam" >> $MERGE_LIST""".in(MERGE_LIST).out(MERGE_LIST)
-}
-
-cmd"""$PLINK --bfile $PLINK_CHRS_HARMONIZED(0) --merge-list $MERGE_LIST --make-bed --keep-allele-order --out $PLINK_HARMONIZED""".in(PLINK_CHRS_HARMONIZED.flatten :+ MERGE_LIST).out(PLINK_HARMONIZED)
-
-cmd"""awk '{print $$2,$$5}' $PLINK_HARMONIZED.bim > $FORCE_A2""".in(PLINK_HARMONIZED).out(FORCE_A2)
-
-cmd"""$PLINK --bfile $PLINK_HARMONIZED --recode vcf-iid bgz --real-ref-alleles --a2-allele $FORCE_A2 --out $VCF_BASE""".in(PLINK_HARMONIZED :+ FORCE_A2).out(VCF)
-
-cmd"""$TABIX -p vcf $VCF""".in(VCF)
-
-cmd"""echo "IID POP SUPERPOP SEX" > $SAMPLE_FILE""".out(SAMPLE_FILE)
-
-cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${PLINK_HARMONIZED}.fam >> $SAMPLE_FILE""".in(PLINK_HARMONIZED :+ SAMPLE_FILE).out(SAMPLE_FILE)
 
 /**
  * Load Step
@@ -81,27 +208,32 @@ cmd"""awk -v v=${outLABEL} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { s
  *  Input: $VCF, $SAMPLE_FILE
  *  Output Needed: ${outLABEL}.harmonized.ref.vds/, ${outLABEL}.harmonized.ref.vds.log
  *  Notes:
- *     Monomorphic variants are automatically removed during import into Hail
+ *   Monomorphic variants are automatically removed during import into Hail
  */
 
-val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
-val LOAD_LOG = store[TXT].at(outDIR / s"$outLABEL.harmonized.ref.vds.log")
+local {
+  googleCopy(Local.VCF_GZ, Google.VCF_GZ)
+  googleCopy(Local.VCF_GZ_TBI, Google.VCF_GZ_TBI)
+  googleCopy(Local.SAMPLE_FILE, Google.SAMPLE_FILE)
+}
 
-cmd"""$HAIL -l $LOAD_LOG
-  importvcf --force-bgz $VCF
-  splitmulti
-  deduplicate
-  annotatesamples table
-  --root sa.pheno
-  -e IID
-  -i $SAMPLE_FILE
-  -t "IID: String, POP: String, SUPERPOP: String, SEX: String"
-  --missing "NA"
-  --delimiter " "
-  write
-  -o $VDS
-  count
-  -g""".in(VCF, SAMPLE_FILE).out(LOAD_LOG, VDS)
+google {
+  //'--' must separate params for gcloud from those for hail
+  hail"""importvcf --force-bgz ${Google.VCF_GZ}
+      splitmulti
+      deduplicate
+      annotatesamples table
+      --root sa.pheno
+      -e IID
+      -i ${Google.SAMPLE_FILE}
+      -t "IID: String, POP: String, SUPERPOP: String, SEX: String"
+      --missing "NA"
+      --delimiter " "
+      write
+      --overwrite -o ${Google.VDS}
+      count
+      -g""".in(Google.VCF_GZ, Google.VCF_GZ_TBI, Google.SAMPLE_FILE).out(Google.VDS)
+}
 
 /**
  * Filter Step
@@ -112,38 +244,43 @@ cmd"""$HAIL -l $LOAD_LOG
  *  Notes:
  */
 
-val VDS_FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc.vds")
-val VDS_FOR_QC_PRUNED = store[VCF].at(outDIR / s"$outLABEL.for_qc.pruned.vds")
-// TODO Possible to remove explicity typing on the two lines below?
-val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc")
-val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(outDIR / s"$outLABEL.for_qc.pruned")
-val FILTER_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.log")
-val FILTERPRUNED_LOG = store[TXT].at(outDIR / s"$outLABEL.filter.pruned.log")
-val VARIANTQC_TSV = store[TXT].at(outDIR / s"$outLABEL.variantqc.tsv")
-val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.in")
-val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"$outLABEL.for_qc.prune.out")
+local {
+  googleCopy(inREGIONS_EXCLUDE, Google.inREGIONS_EXCLUDE)
+}
 
-cmd"""$HAIL -l $FILTER_LOG
-  read -i $VDS
-  variantqc
-  exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
-  -o $VARIANTQC_TSV
-  filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
-  filtervariants intervals -i $inREGIONS_EXCLUDE --remove
-  write
-  -o $VDS_FOR_QC
-  exportplink
-  -o $PLINK_FOR_QC""".in(VDS, inREGIONS_EXCLUDE).out(FILTER_LOG +: PLINK_FOR_QC :+ VDS_FOR_QC)
+google {
+  hail"""read -i ${Google.VDS}
+      variantqc
+      exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
+      -o ${Google.VARIANTQC_TSV}
+      filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
+      filtervariants intervals -i ${Google.inREGIONS_EXCLUDE} --remove
+      write
+      --overwrite -o ${Google.VDS_FOR_QC}
+      exportplink
+      -o ${Google.FOR_QC}""".in(Google.VDS, Google.inREGIONS_EXCLUDE).out(Google.PLINK_FOR_QC :+ Google.VDS_FOR_QC)
+}
 
-cmd"""$PLINK --bfile $PLINK_FOR_QC --indep-pairwise 1500 150 0.2 --out $PLINK_FOR_QC""".in(PLINK_FOR_QC).out(FOR_QC_PRUNE_IN, FOR_QC_PRUNE_OUT)
+local {
+  googleCopy(Google.PLINK_FOR_QC, Local.PLINK_FOR_QC)
+}
 
-cmd"""$HAIL -l $FILTERPRUNED_LOG
-  read -i $VDS_FOR_QC
-  filtervariants list -i $FOR_QC_PRUNE_IN --keep
-  write
-  -o $VDS_FOR_QC_PRUNED
-  exportplink
-  -o $PLINK_FOR_QC_PRUNED""".in(VDS_FOR_QC, FOR_QC_PRUNE_IN).out(FILTERPRUNED_LOG +: PLINK_FOR_QC_PRUNED :+ VDS_FOR_QC_PRUNED)
+uger {
+  cmd"""$PLINK --bfile ${Local.PLINK_FOR_QC_NAME} --indep-pairwise 1500 150 0.2 --out ${Local.PLINK_FOR_QC_NAME}""".in(Local.PLINK_FOR_QC).out(Local.FOR_QC_PRUNE_IN, Local.FOR_QC_PRUNE_OUT)
+}
+
+local {
+  googleCopy(Local.FOR_QC_PRUNE_IN, Google.FOR_QC_PRUNE_IN)
+}
+
+google {
+  hail"""read -i ${Google.VDS_FOR_QC}
+      filtervariants list -i ${Google.FOR_QC_PRUNE_IN} --keep
+      write
+      --overwrite -o ${Google.VDS_FOR_QC_PRUNED}
+      exportplink
+      -o ${Google.PLINK_FOR_QC_PRUNED_NAME}""".in(Google.VDS_FOR_QC, Google.FOR_QC_PRUNE_IN).out(Google.PLINK_FOR_QC_PRUNED :+ Google.VDS_FOR_QC_PRUNED)
+}
 
 /**
  * Kinship Step
@@ -156,94 +293,84 @@ cmd"""$HAIL -l $FILTERPRUNED_LOG
  * King only writes the '.kin0' file if families are found, so there needs to be a way to skip the second and third command if it doesn't get created
  */
 
-val KIN_PREFIX = outDIR / s"$outLABEL.kinship"
-val KIN_LOG = store[TXT].at(KIN_PREFIX + ".log")
-val KINTMP_DAT = store[TXT].at(KIN_PREFIX + "TMP.dat")
-val KINTMP_PED = store[TXT].at(KIN_PREFIX + "TMP.ped")
-val KIN = store[TXT].at(KIN_PREFIX + ".kin")
-val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
-val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
-val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
+local {
+  googleCopy(Google.PLINK_FOR_QC_PRUNED, Local.PLINK_FOR_QC_PRUNED)
+}
 
-cmd"""$KING -b $PLINK_FOR_QC_PRUNED.bed --kinship --prefix $KIN_PREFIX > $KIN_LOG""".in(PLINK_FOR_QC_PRUNED).out(KIN_LOG, KIN, KIN0, KINTMP_DAT, KINTMP_PED)
+uger {
+  cmd"""$KING -b ${Local.PLINK_FOR_QC_PRUNED_NAME}.bed --kinship --prefix ${Local.KIN_PREFIX} > ${Local.KIN_LOG}""".in(Local.PLINK_FOR_QC_PRUNED).out(Local.KIN_LOG, Local.KIN, Local.KIN0, Local.KINTMP_DAT, Local.KINTMP_PED)
 
-cmd"""(head -1 $KIN0; sed '1d' $KIN0 | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > $KIN0_RELATED""".in(KIN0).out(KIN0_RELATED)
+  cmd"""(head -1 ${Local.KIN0}; sed '1d' ${Local.KIN0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${Local.KIN0_RELATED}""".in(Local.KIN0).out(Local.KIN0_RELATED)
 
-cmd"""$R --vanilla --args $KIN0_RELATED $SHARING_COUNTS < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(KIN0_RELATED).out(SHARING_COUNTS)
+  cmd"""$R --vanilla --args ${Local.KIN0_RELATED} ${Local.SHARING_COUNTS} < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(Local.KIN0_RELATED).out(Local.SHARING_COUNTS)
+}
 
 // CHUNK 2
 
 /**
- * Ancestry PCA Step
- *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
- *  Requires: Hail, R, $PLOT_ANCESTRY_PCA_R
- *  Input: $VDS, $inKG_HAIL, $inKG_V3_5K_AF
- *  Output: ${outLABEL}.ancestry.pca.log, ${outLABEL}.ancestry.pca.scores.tsv, ${outLABEL}.ancestry.pca.loadings.tsv, .${outLABEL}.ancestry.pca.scores.tsv.crc,
- *     ${outLABEL}.ancestry.pca.loadings.tsv.crc ${outLABEL}.ancestry.pca.scores.plots.pdf
- *  Notes:
- *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
- */
+  * Ancestry PCA Step
+  *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
+  *  Requires: Hail, R, $PLOT_ANCESTRY_PCA_R
+  *  Input: $VDS, $inKG_HAIL, $inKG_V3_5K_AF
+  *  Output: ${outLABEL}.ancestry.pca.log, ${outLABEL}.ancestry.pca.scores.tsv, ${outLABEL}.ancestry.pca.loadings.tsv, .${outLABEL}.ancestry.pca.scores.tsv.crc,
+  *     ${outLABEL}.ancestry.pca.loadings.tsv.crc ${outLABEL}.ancestry.pca.scores.plots.pdf
+  *  Notes:
+  *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
+  */
 
-val ANCESTRYPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.log")
-val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.tsv")
-val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.loadings.tsv")
-val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.plots.pdf")
+local {
+  googleCopy(input.inKG_HAIL, Google.inKG_HAIL, "-r")
+  googleCopy(input.inKG_V3_5K_AF, Google.inKG_V3_5K_AF)
+}
 
-cmd"""$HAIL -l $ANCESTRYPCA_LOG
-  read $inKG_HAIL
-  put -n KG
-  read -i $VDS
-  join --right KG
-  annotatevariants table $inKG_V3_5K_AF
-  -e Variant
-  -c 'va.refPanelAF = table.refPanelAF'
-  --impute
-  pca -k 10
-  --scores sa.pca.scores
-  --eigenvalues global.pca.evals
-  --loadings va.pca.loadings
-  exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10'
-  -o $ANCESTRYPCA_SCORES_TSV
-  exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10'
-  -o $ANCESTRYPCA_LOADINGS_TSV""".in(inKG_HAIL, VDS, inKG_V3_5K_AF).out(ANCESTRYPCA_LOG, ANCESTRYPCA_SCORES_TSV, ANCESTRYPCA_LOADINGS_TSV)
+google {
+  hail"""read ${Google.inKG_HAIL}
+      put -n KG
+      read -i ${Google.VDS}
+      join --right KG
+      annotatevariants table ${Google.inKG_V3_5K_AF}
+      -e Variant
+      -c "va.refPanelAF = table.refPanelAF"
+      --impute
+      pca -k 10
+      --scores sa.pca.scores
+      --eigenvalues global.pca.evals
+      --loadings va.pca.loadings
+      exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10"
+      -o ${Google.ANCESTRYPCA_SCORES_TSV}
+      exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
+      -o ${Google.ANCESTRYPCA_LOADINGS_TSV}
+    """.in(Google.inKG_HAIL, Google.VDS, Google.inKG_V3_5K_AF).out(Google.ANCESTRYPCA_SCORES_TSV, Google.ANCESTRYPCA_LOADINGS_TSV)
+}
 
-cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRYPCA_SCORES_PLOTS_PDF < $PLOT_ANCESTRY_PCA_R""".in(ANCESTRYPCA_SCORES_TSV).out(ANCESTRYPCA_SCORES_PLOTS_PDF)
+local {
+  googleCopy(Google.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRYPCA_SCORES_TSV)
+}
 
-/**
- * Ancestry Cluster Step
- *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
- *  Requires: Hail, R, $PLOT_ANCESTRY_CLUSTER_R, $outLABEL, $PHENO_ID, $PHENO_SR_RACE
- *  Input: ${outLABEL}.ancestry.pca.scores.tsv, $inPHENO
- *  Output: ${outLABEL}.ancestry.fet.1, ${outLABEL}.ancestry.temp.clu.1, ${outLABEL}.ancestry.clu.1, ${outLABEL}.ancestry.klg.1, ${outLABEL}.ancestry.cluster_plots.pdf,
- *     ${outLABEL}.ancestry.cluster_xtabs, ${outLABEL}.ancestry.cluster_plots.centers.pdf, ${outLABEL}.ancestry.clusters_assigned, ${outLABEL}.ancestry
- *  Notes:
- *     ${outLABEL}.ancestry contains the final inferred ancestry for each sample, including OUTLIERS
- *     This file may be updated after reconciling with other arrays
- */
+uger {
+  cmd"""$R --vanilla --args ${Local.ANCESTRYPCA_SCORES_TSV} ${Local.ANCESTRYPCA_SCORES_PLOTS_PDF} < $PLOT_ANCESTRY_PCA_R""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRYPCA_SCORES_PLOTS_PDF)
 
-val ANCESTRY_PREFIX = outDIR / s"${outLABEL}.ancestry"
-val ANCESTRYCLUSTER_LOG = store[TXT].at(ANCESTRY_PREFIX + ".cluster.log")
-val ANCESTRY_FET = store[TXT].at(ANCESTRY_PREFIX + ".fet.1")
-val ANCESTRY_TEMP_CLU = store[TXT].at(ANCESTRY_PREFIX + ".temp.clu.1")
-val ANCESTRY_CLU = store[TXT].at(ANCESTRY_PREFIX + ".clu.1")
-val ANCESTRY_KLG = store[TXT].at(ANCESTRY_PREFIX + ".klg.1")
-val ANCESTRY_CLUSTER_PLOTS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.pdf")
-val ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.centers.pdf")
-val ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.no_1kg.pdf")
-val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
-val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
-val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
+  /**
+   * Ancestry Cluster Step
+   *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
+   *  Requires: Hail, R, $PLOT_ANCESTRY_CLUSTER_R, $outLABEL, $PHENO_ID, $PHENO_SR_RACE
+   *  Input: ${outLABEL}.ancestry.pca.scores.tsv, $inPHENO
+   *  Output: ${outLABEL}.ancestry.fet.1, ${outLABEL}.ancestry.temp.clu.1, ${outLABEL}.ancestry.clu.1, ${outLABEL}.ancestry.klg.1, ${outLABEL}.ancestry.cluster_plots.pdf,
+   *     ${outLABEL}.ancestry.cluster_xtabs, ${outLABEL}.ancestry.cluster_plots.centers.pdf, ${outLABEL}.ancestry.clusters_assigned, ${outLABEL}.ancestry
+   *  Notes:
+   *     ${outLABEL}.ancestry contains the final inferred ancestry for each sample, including OUTLIERS
+   *     This file may be updated after reconciling with other arrays
+   */
 
-cmd"""echo 10 > $ANCESTRY_FET""".out(ANCESTRY_FET)
+  cmd"""(echo 10 ; sed '1d' ${Local.ANCESTRYPCA_SCORES_TSV} | cut -f5- | sed 's/\t/ /g') > ${Local.ANCESTRY_FET}""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRY_FET)
 
-cmd"""sed '1d' $ANCESTRYPCA_SCORES_TSV | cut -f5- | sed 's/\t/ /g' >> $ANCESTRY_FET""".in(ANCESTRYPCA_SCORES_TSV).out(ANCESTRY_FET)
+  cmd"""${KLUSTAKWIK} ${Local.ANCESTRY_PREFIX} 1 -UseFeatures 1110000000 -UseDistributional 0 > ${Local.ANCESTRYCLUSTER_LOG}""".in(Local.ANCESTRY_FET).out(Local.ANCESTRY_TEMP_CLU, Local.ANCESTRY_CLU, Local.ANCESTRY_KLG)
 
-cmd"""$KLUSTAKWIK $ANCESTRY_PREFIX 1 -UseFeatures 1110000000 -UseDistributional 0 > $ANCESTRYCLUSTER_LOG""".in(ANCESTRY_FET).out(ANCESTRY_TEMP_CLU, ANCESTRY_CLU, ANCESTRY_KLG)
-
-cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRY_CLU $inPHENO $outLABEL $PHENO_ID $PHENO_SR_RACE 
-  $ANCESTRY_CLUSTER_PLOTS_PDF $ANCESTRY_CLUSTER_XTABS $ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF
-  $ANCESTRY_CLUSTERS_ASSIGNED $ANCESTRY $ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF 
-  < $PLOT_ANCESTRY_CLUSTER_R""".in(ANCESTRYPCA_SCORES_TSV, ANCESTRY_CLU, inPHENO).out(ANCESTRY_CLUSTER_PLOTS_PDF, ANCESTRY_CLUSTER_XTABS, ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF, ANCESTRY_CLUSTERS_ASSIGNED, ANCESTRY, ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
+  cmd"""$R --vanilla --args ${Local.ANCESTRYPCA_SCORES_TSV} ${Local.ANCESTRY_CLU} $inPHENO $outLABEL $PHENO_ID $PHENO_SR_RACE 
+    ${Local.ANCESTRY_CLUSTER_PLOTS_PDF} ${Local.ANCESTRY_CLUSTER_XTABS} ${Local.ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF}
+    ${Local.ANCESTRY_CLUSTERS_ASSIGNED} ${Local.ANCESTRY} ${Local.ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF} 
+    < $PLOT_ANCESTRY_CLUSTER_R""".in(Local.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRY_CLU, inPHENO).out(Local.ANCESTRY_CLUSTER_PLOTS_PDF, Local.ANCESTRY_CLUSTER_XTABS, Local.ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF, Local.ANCESTRY_CLUSTERS_ASSIGNED, Local.ANCESTRY, Local.ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
+}
 
 /**
  * Non-Outlier PCA Step
@@ -255,26 +382,33 @@ cmd"""$R --vanilla --args $ANCESTRYPCA_SCORES_TSV $ANCESTRY_CLU $inPHENO $outLAB
  *  Notes:
  */
 
-val NONOUTLIERPCA_LOG = store[TXT].at(outDIR / s"${outLABEL}.pca.log")
-val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.scores.tsv")
-val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.pca.loadings.tsv")
+local {
+  googleCopy(Local.ANCESTRY, Google.ANCESTRY)
+}
 
-cmd"""$HAIL -l $NONOUTLIERPCA_LOG
-  read $VDS_FOR_QC_PRUNED
-  annotatesamples table
-  -i $ANCESTRY
-  --no-header
-  -e _0
-  --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
-  filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
-  pca -k 10
-  --scores sa.pca.scores
-  --eigenvalues global.pca.evals
-  --loadings va.pca.loadings
-  exportsamples -c 'IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10'
-  -o $NONOUTLIERPCA_SCORES_TSV
-  exportvariants -c 'ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10'
-  -o $NONOUTLIERPCA_LOADINGS_TSV""".in(VDS_FOR_QC_PRUNED, ANCESTRY).out(NONOUTLIERPCA_SCORES_TSV, NONOUTLIERPCA_LOADINGS_TSV)
+google {
+  hail"""read ${Google.VDS_FOR_QC_PRUNED}
+      annotatesamples table
+      -i ${Google.ANCESTRY}
+      --no-header
+      -e _0
+      --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
+      filtersamples expr -c "sa.pheno.SUPERPOP != \"OUTLIERS\"" --keep
+      pca -k 10
+      --scores sa.pca.scores
+      --eigenvalues global.pca.evals
+      --loadings va.pca.loadings
+      exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10"
+      -o ${Google.NONOUTLIERPCA_SCORES_TSV}
+      exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
+      -o ${Google.NONOUTLIERPCA_LOADINGS_TSV}
+    """.in(Google.VDS_FOR_QC_PRUNED, Google.ANCESTRY).out(Google.NONOUTLIERPCA_SCORES_TSV, Google.NONOUTLIERPCA_LOADINGS_TSV)
+}
+
+local {
+  googleCopy(Google.NONOUTLIERPCA_SCORES_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
+  googleCopy(Google.NONOUTLIERPCA_LOADINGS_TSV, Local.NONOUTLIERPCA_LOADINGS_TSV)
+}
 
 // CHUNK 3
 
@@ -304,28 +438,29 @@ val SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.samp
 val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH: Path = outDIR / s"${outLABEL}.sampleqc.stats.adj.pca.scores.tsv"
 val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH)
 
-cmd"""$HAIL -l $SAMPLEQC_LOG
-  read $VDS_FOR_QC
-  annotatesamples table
-  -i $ANCESTRY
-  --no-header
-  -e _0
-  --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
-  filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
-  imputesex
-  annotatesamples expr -c 'sa.sexcheck = if((sa.pheno.SEX == "female" && ! isMissing(sa.imputesex.isFemale) && sa.imputesex.isFemale) || (sa.pheno.SEX == "male" && ! isMissing(sa.imputesex.isFemale) && ! sa.imputesex.isFemale)) "OK" else "PROBLEM"'
-  sampleqc
-  variantqc
-  annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()"
-  exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-  -o $SAMPLEQC_SEXCHECK_TSV
-  exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar"
-  -o $SAMPLEQC_STATS_TSV
-  filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
-  exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-  -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(VDS_FOR_QC, ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+google {
+  hail"""read ${Google.VDS_FOR_QC}
+      annotatesamples table
+      -i ${Local.ANCESTRY}
+      --no-header
+      -e _0
+      --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
+      filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
+      imputesex
+      annotatesamples expr -c 'sa.sexcheck = if((sa.pheno.SEX == "female" && ! isMissing(sa.imputesex.isFemale) && sa.imputesex.isFemale) || (sa.pheno.SEX == "male" && ! isMissing(sa.imputesex.isFemale) && ! sa.imputesex.isFemale)) "OK" else "PROBLEM"'
+      sampleqc
+      variantqc
+      annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()"
+      exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+      -o $SAMPLEQC_SEXCHECK_TSV
+      exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar"
+      -o $SAMPLEQC_STATS_TSV
+      filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
+      exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+      -o $SAMPLEQC_SEXCHECK_PROBLEMS_TSV""".in(Google.VDS_FOR_QC, Local.ANCESTRY).out(SAMPLEQC_LOG, SAMPLEQC_SEXCHECK_TSV, SAMPLEQC_STATS_TSV, SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+}
 
-cmd"""$R --vanilla --args $SAMPLEQC_STATS_TSV $NONOUTLIERPCA_SCORES_TSV $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(SAMPLEQC_STATS_TSV, NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_TSV ${Local.NONOUTLIERPCA_SCORES_TSV} $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_TSV)
 
 cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV $SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV < $ISTATS_ADJ_PCA_R""".in(SAMPLEQC_STATS_ADJ_TSV).out(SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV, SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
 
@@ -341,33 +476,21 @@ cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS
  */
 
 val SAMPLEQC_STATS_ADJ_BASE = outDIR / s"${outLABEL}.sampleqc.stats.adj"
-val SAMPLEQC_PCA_CLUSTER_LOG = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".klustakwik.log")
-val SAMPLEQC_STATS_ADJ_FET1 = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".fet.1")
-val SAMPLEQC_STATS_ADJ_CLU1 = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".clu.1")
-val SAMPLEQC_STATS_ADJ_TEMP_CLU1 = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".temp.clu.1")
-val SAMPLEQC_STATS_ADJ_KLG = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".klg.1")
+val sampleQcPcaKlustakwikStores = KlustakwikStores(SAMPLEQC_STATS_ADJ_BASE)
 val SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.outliers.tsv")
 val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.clusters.plots.pdf")
 val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.clusters.xtab")
 val SAMPLEQC_STATS_ADJ_STRIPCHART_PDF = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".stripchart.pdf")
 
-//TODO
-val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
+cmd"""N=$$(head -1 $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | wc | awk '{print $$2-1}');
+  echo $$N > ${sampleQcPcaKlustakwikStores.fet};
+  sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> ${sampleQcPcaKlustakwikStores.fet};
+  FEATURES=1; for i in $$(seq 2 $$n); do FEATURES=$${FEATURES}1; done;
+  $KLUSTAKWIK ${sampleQcPcaKlustakwikStores.base} 1 -UseFeatures $$FEATURES -UseDistributional 0 > ${sampleQcPcaKlustakwikStores.klustakwikLog}""".in(sampleQcPcaKlustakwikStores.inputs + SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV).out(sampleQcPcaKlustakwikStores.outputs)
 
-{
-  //TODO
-  //NB: Intent was to count the delimiters in the first line of SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH ? 
-  val N: Int = ???
-  val FEATURES = "1" * N
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV ${sampleQcPcaKlustakwikStores.clu} $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $outLABEL < $ISTATS_PCS_GMM_CLUSTER_PLOT_R""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, sampleQcPcaKlustakwikStores.clu).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB)
 
-  cmd"""echo $N > $SAMPLEQC_STATS_ADJ_FET1; sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> $SAMPLEQC_STATS_ADJ_FET1""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV).out(SAMPLEQC_STATS_ADJ_FET1)
-
-  cmd"""$KLUSTAKWIK $SAMPLEQC_STATS_ADJ_FET1_BASE 1 -UseFeatures $FEATURES -UseDistributional 0 > $SAMPLEQC_PCA_CLUSTER_LOG""".in(SAMPLEQC_STATS_ADJ_FET1).out(SAMPLEQC_PCA_CLUSTER_LOG, SAMPLEQC_STATS_ADJ_CLU1, SAMPLEQC_STATS_ADJ_TEMP_CLU1, SAMPLEQC_STATS_ADJ_KLG)
-
-  cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV $SAMPLEQC_STATS_ADJ_CLU1 $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $outLABEL < $ISTATS_PCS_GMM_CLUSTER_PLOT_R""".in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, SAMPLEQC_STATS_ADJ_CLU1).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB)
-
-  cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $ISTATS_PCS_GMM_PLOT_METRICS_R""".in(SAMPLEQC_STATS_ADJ_TSV, SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV).out(SAMPLEQC_STATS_ADJ_STRIPCHART_PDF)
-}
+cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $ISTATS_PCS_GMM_PLOT_METRICS_R""".in(SAMPLEQC_STATS_ADJ_TSV, SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV).out(SAMPLEQC_STATS_ADJ_STRIPCHART_PDF)
 
 /**
  * Sample QC Individual Stats Clustering Step
@@ -379,57 +502,39 @@ val SAMPLEQC_STATS_ADJ_FET1_BASE: String = ???
  *     ${outLABEL}.sampleqc.stats.adj.individual.outliers.table, ${outLABEL}.sampleqc.stats.adj.individual.outliers.remove, ${outLABEL}.sampleqc.stats.adj.individual.stripchart.pdf
  * Notes:
  */
-{
-  //TODO
-  //NB: Intent was to count the delimiters in the first line of SAMPLEQC_STATS_ADJ_TSV_PATH?
-  val N: Int = ???
-  //TODO
-  //NB: Intent was to get the first line of SAMPLEQC_STATS_ADJ_TSV_PATH, split on whitespace?
-  val headers: IndexedSeq[String] = ???
 
-  val SAMPLEQC_KLUSTAKWIK_OUTPUT: Array[Seq[LoamStore[TXT]]] = Array.empty
-  val SAMPLEQC_LOGS: Array[LoamStore[TXT]] = Array.ofDim(N)
-  val SAMPLEQC_CLU1_WILD = outDIR / s"${outLABEL}.sampleqc.stats.adj.*.clu.1"
-  val SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.boxplot.pdf")
-  val SAMPLEQC_STATS_ADJ_IND_DISCRETENESS = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.discreteness")
-  val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.table")
-  val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.remove")
-  val SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.stripchart.pdf")
+val sampleQcKlustakwikStores: Seq[KlustakwikStores] = (0 until 11).map { i =>
+  val stores = KlustakwikStores(outDIR / s"${outLABEL}.sampleqc.stats.adj.${i}")
+  cmd"""echo 1 > ${stores.fet};
+    sed '1d' $SAMPLEQC_STATS_ADJ_TSV | awk -v col=${i+1} '{print $$col}' >> ${stores.fet};
+    ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${i+1}); echo $$ID
+    > ${stores.metricIds}""".in(SAMPLEQC_STATS_ADJ_TSV).out(stores.fet, stores.metricIds)
 
-  for (i <- 0 until N) {
-    val id: String = headers(i + 1)
-    SAMPLEQC_KLUSTAKWIK_OUTPUT(i) = klustakwikOutput(outDIR / s"${outLABEL}.sampleqc.stats.adj.${id}")
-    SAMPLEQC_LOGS(i) = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.${id}.klustakwik.log")
+  cmd"""$KLUSTAKWIK ${stores.base} 1 -UseFeatures 1 -UseDistributional 0
+    > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
 
-    cmd"""echo $N > ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0)}; sed '1d' $SAMPLEQC_STATS_ADJ_TSV | cut -f2- | sed 's/\t/ /g' >> ${SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0)}""".in(SAMPLEQC_STATS_ADJ_TSV).out(SAMPLEQC_KLUSTAKWIK_OUTPUT(i)(0))
-
-    val include: String = {
-      //Make an array of flags and turn it into a string to avoid verbose substring manipulation.
-      //NB: int arrays are guaranteed to be initialized with zeroes on the JVM.
-
-      val flags = Array.ofDim[Int](N)
-      flags(i) = 1
-      flags.mkString
-    }
-
-    //TODO
-    val KLUSTAKWIK_SAMPLEQC_BASES: IndexedSeq[Path] = ???
-
-    cmd"""${KLUSTAKWIK_SAMPLEQC_BASES(i)} 1 -UseFeatures $include -UseDistributional 0 > ${SAMPLEQC_LOGS(i)}""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT(i)).out(SAMPLEQC_LOGS(i) +: SAMPLEQC_KLUSTAKWIK_OUTPUT(i))
-  }
-
-  cmd"""$R --vanilla --args
-    $SAMPLEQC_CLU1_WILD
-    $SAMPLEQC_STATS_TSV
-    $SAMPLEQC_STATS_ADJ_TSV
-    $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
-    $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
-    $SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
-    $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
-    $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
-    $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
-    $ANCESTRY
-    < $ISTATS_ADJ_GMM_PLOT_METRICS_R""".in(SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ ANCESTRY).out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
-
-  //TODO: Is `SAMPLEQC_KLUSTAKWIK_OUTPUT.flatten` correct here?
+  stores
 }
+
+
+val SAMPLEQC_CLU1_WILD = (outDIR / s"${outLABEL}.sampleqc.stats.adj.[[STAR]].clu.1").toString.replace("[[STAR]]", "*")
+val SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.boxplot.pdf")
+val SAMPLEQC_STATS_ADJ_IND_DISCRETENESS = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.discreteness")
+val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.table")
+val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.outliers.remove")
+val SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.stripchart.pdf")
+
+cmd"""$R --vanilla --args
+  $SAMPLEQC_CLU1_WILD
+  $SAMPLEQC_STATS_TSV
+  $SAMPLEQC_STATS_ADJ_TSV
+  $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
+  $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
+  $SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
+  $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
+  $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
+  $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
+  ${Local.ANCESTRY}
+  < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
+  .in(sampleQcKlustakwikStores.map(_.clu) :+ SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY)
+  .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)

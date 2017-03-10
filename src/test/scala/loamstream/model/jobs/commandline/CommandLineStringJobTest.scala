@@ -6,6 +6,7 @@ import loamstream.util.{LoamFileUtils, Loggable}
 import org.scalatest.FunSuite
 
 import scala.io.Source
+import loamstream.TestHelpers
 
 /**
   * @author clint
@@ -31,7 +32,7 @@ final class CommandLineStringJobTest extends FunSuite {
 
     val outMessageSink = LoggableOutMessageSink(logger)
 
-    val loamEngine = LoamEngine.default(outMessageSink)
+    val loamEngine = LoamEngine.default(TestHelpers.config, outMessageSink)
 
     val results = loamEngine.run(code)
 

@@ -76,6 +76,7 @@ final class ScriptBuilderTest extends FunSuite {
     getShapeItCommandLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads).mkString(" ")
   }
 // scalastyle:off method.length
+// scalastyle:off line.size.limit
   def expectedScriptAsString: String = {
     val sixSpaces = "      "
 
@@ -91,48 +92,16 @@ i=$$SGE_TASK_ID
 $sixSpaces
 if [ $$i -eq 1 ]
 then
-\t/some/shapeit/executable \\
-\t-V \\
-\t/some/vcf/file \\
-\t-M \\
-\t/some/map/file \\
-\t-O \\
-\t/some/haplotype/file \\
-\t/some/sample/file \\
-\t-L \\
-\t/some/log/file \\
-\t--thread \\
-\t2
+\t/some/shapeit/executable -V /some/vcf/file -M /some/map/file -O /some/haplotype/file /some/sample/file -L /some/log/file --thread 2
 elif [ $$i -eq 2 ]
 then
-\t/some/shapeit/executable \\
-\t-V \\
-\t/some/vcf/file \\
-\t-M \\
-\t/some/map/file \\
-\t-O \\
-\t/some/haplotype/file \\
-\t/some/sample/file \\
-\t-L \\
-\t/some/log/file \\
-\t--thread \\
-\t2
+\t/some/shapeit/executable -V /some/vcf/file -M /some/map/file -O /some/haplotype/file /some/sample/file -L /some/log/file --thread 2
 elif [ $$i -eq 3 ]
 then
-\t/some/shapeit/executable \\
-\t-V \\
-\t/some/vcf/file \\
-\t-M \\
-\t/some/map/file \\
-\t-O \\
-\t/some/haplotype/file \\
-\t/some/sample/file \\
-\t-L \\
-\t/some/log/file \\
-\t--thread \\
-\t2
+\t/some/shapeit/executable -V /some/vcf/file -M /some/map/file -O /some/haplotype/file /some/sample/file -L /some/log/file --thread 2
 fi
 """
   }
+  // scalastyle:on line.size.limit
   // scalastyle:on method.length
 }

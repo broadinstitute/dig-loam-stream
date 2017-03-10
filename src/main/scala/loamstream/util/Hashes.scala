@@ -22,7 +22,7 @@ object Hashes {
 
   def sha1(data: Array[Byte]): Hash = sha1(Iterator(data))
 
-  def sha1(data: Iterator[Array[Byte]]): Hash = hash(HashType.Sha1)(data)
+  def sha1(data: Iterator[Array[Byte]]): Hash = digest(HashType.Sha1)(data)
   
   /**
    * If the path is a file, hash its bytes and return the result; if the path is a dir,
@@ -40,7 +40,7 @@ object Hashes {
       else { fileChunks(hashType, file) }
     }
     
-    hash(hashType)(chunks)
+    digest(hashType)(chunks)
   }
   
   private def dirChunks(hashType: HashType, dir: File): Iterator[Array[Byte]] = {
@@ -79,7 +79,7 @@ object Hashes {
     TakesEndingActionIterator(chunks)(in.close())
   }
   
-  private def hash(hashType: HashType)(data: Iterator[Array[Byte]]): Hash = {
+  def digest(hashType: HashType)(data: Iterator[Array[Byte]]): Hash = {
     val messageDigest = MessageDigest.getInstance(hashType.algorithmName)
 
     data.foreach(messageDigest.update)

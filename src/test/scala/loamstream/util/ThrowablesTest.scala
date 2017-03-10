@@ -31,7 +31,9 @@ final class ThrowablesTest extends FunSuite {
     
     assert(x === 42)
     
-    quietly("foo")(x += 1)
+    val result = quietly("foo")(x += 1)
+    
+    assert(result === None)
     
     assert(x === 43)
     
@@ -47,7 +49,9 @@ final class ThrowablesTest extends FunSuite {
     
     val e = new Exception
     
-    quietly("foo")(throw e)
+    val result = quietly("foo")(throw e)
+    
+    assert(result === Some(e))
     
     assert(x === 42)
     
@@ -62,8 +66,10 @@ final class ThrowablesTest extends FunSuite {
     
       assert(x === 42)
     
-      quietly("foo", level)(x += 1)
+      val result = quietly("foo", level)(x += 1)
     
+      assert(result === None)
+      
       assert(x === 43)
     
       assert(logContext.params() === Vector.empty)
@@ -86,8 +92,10 @@ final class ThrowablesTest extends FunSuite {
     
       val e = new Exception
     
-      quietly("foo", level)(throw e)
+      val result = quietly("foo", level)(throw e)
     
+      assert(result === Some(e))
+      
       assert(x === 42)
     
       assert(logContext.params() === Vector((level, "foo", e)))

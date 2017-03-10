@@ -10,6 +10,7 @@ import loamstream.model.execute.ExecutionEnvironment
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.NoOpJob
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -21,7 +22,7 @@ final class LoamExecutionEnvironmentTest extends FunSuite with Loggable {
   
   private val loamCompiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
   
-  private val loamEngine = LoamEngine(loamCompiler, RxExecuter.default, outMessageSink)
+  private val loamEngine = LoamEngine(TestHelpers.config, loamCompiler, RxExecuter.default, outMessageSink)
   
   test("Default EE") {
     val code = """

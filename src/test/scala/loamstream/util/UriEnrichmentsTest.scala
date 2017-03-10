@@ -8,9 +8,9 @@ import org.scalatest.FunSuite
  * date: Nov 17, 2016
  */
 final class UriEnrichmentsTest extends FunSuite {
+  import UriEnrichments._
+
   test("appending segments using / to base URIs WITHOUT trailing file separators") {
-    import UriEnrichments._
-    
     val root = URI.create("/")
     
     val opt = root / "opt"
@@ -25,8 +25,6 @@ final class UriEnrichmentsTest extends FunSuite {
   }
   
   test("appending segments using / to base URIs WITH trailing file separators") {
-    import UriEnrichments._
-
     val root = URI.create("/")
 
     val opt = root / "opt/"
@@ -40,9 +38,16 @@ final class UriEnrichmentsTest extends FunSuite {
     assert(fooBarBazTxt == URI.create("/foo/bar/baz.txt/"))
   }
 
-  test("getPathWithoutLeadingSlash") {
-    import UriEnrichments._
+  test("appending strings using + to URIs without trailing file separators") {
+    val uriStr = "gs://bucket/data/object"
+    val uri = URI.create(uriStr)
+    val ext = "txt"
+    val expectedUri = URI.create(uriStr + s".$ext")
 
+    assert(uri + s".$ext" === expectedUri)
+  }
+
+  test("getPathWithoutLeadingSlash") {
     val uri1 = URI.create("gs://bucket/data/object")
     val path1 = uri1.getPathWithoutLeadingSlash
     val expectedPath1 = "data/object"
@@ -60,5 +65,31 @@ final class UriEnrichmentsTest extends FunSuite {
     val expectedPath3 = "localhost/etc/fstab"
 
     assert(path3 === expectedPath3)
+  }
+
+  test("lastSegment") {
+    val uri1 = URI.create("gs://bucket/data/object")
+    val lastSegment1 = uri1.lastSegment
+    val expectedLastSegment1 = "object"
+
+    assert(lastSegment1 === expectedLastSegment1)
+
+    val uri2 = URI.create("file://localhost/etc/fstab")
+    val lastSegment2 = uri2.lastSegment
+    val expectedlastSegment2 = "fstab"
+
+    assert(lastSegment2 === expectedlastSegment2)
+
+    val uri3 = URI.create("gs://bucket/dir/.object")
+    val lastSegment3 = uri3.lastSegment
+    val expectedlastSegment3 = ".object"
+
+    assert(lastSegment3 === expectedlastSegment3)
+
+    val uri4 = URI.create("gs://bucket/dir/.object?x=5#blah")
+    val lastSegment4 = uri4.lastSegment
+    val expectedlastSegment4 = ".object"
+
+    assert(lastSegment4 === expectedlastSegment4)
   }
 }

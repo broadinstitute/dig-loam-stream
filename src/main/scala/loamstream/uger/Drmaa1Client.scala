@@ -2,6 +2,8 @@ package loamstream.uger
 
 import java.nio.file.Path
 
+import loamstream.conf.UgerConfig
+
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.util.Try
@@ -82,18 +84,20 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   /**
    * Synchronously submit a job, in the form of a UGER wrapper shell script.
    *
-   * @param pathToScript the wrapper script to submit
-   * @param pathToUgerOutput a path pointing to the desired location of log output from UGER
-   * @param jobName a descriptive, human-readable name for the submitted work
+   * @param ugerConfig contains the parameters to configure a job
+   * @param pathToScript the path to the script that UGER should run
+   * @param jobName a descriptive prefix used to identify the job.  Has no impact on how the job runs.
    * @param numTasks length of task array to be submitted as a single UGER job
    */
-  override def submitJob(
-      pathToScript: Path,
-      pathToUgerOutput: Path,
-      jobName: String,
-      numTasks: Int = 1): DrmaaClient.SubmissionResult = {
+  def submitJob(
+                 ugerConfig: UgerConfig,
+                 pathToScript: Path,
+                 jobName: String,
+                 numTasks: Int = 1): DrmaaClient.SubmissionResult = {
 
-    runJob(pathToScript, pathToUgerOutput, jobName, numTasks)
+    val pathToUgerOutput = ugerConfig.logFile
+    val nativeSpecification = ugerConfig.nativeSpecification
+    runJob(pathToScript, pathToUgerOutput, nativeSpecification, jobName, numTasks)
   }
   
   /**
@@ -184,6 +188,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   private def runJob(pathToScript: Path,
                      pathToUgerOutput: Path,
+                     nativeSpecification: String,
                      jobName: String,
                      numTasks: Int = 1): SubmissionResult = {
 
@@ -193,8 +198,10 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskIndexIncr = 1
 
       // TODO Make native specification controllable from Loam (DSL)
-      // Request 2g memory to reduce the odds of getting queued forever. 
-      jt.setNativeSpecification("-clear -cwd -shell y -b n -q long -l h_vmem=8g")
+      // Request 16g memory to allow Klustakwik to run in QC chunk 2. :(
+      // Request short queue for faster integration testing
+      // TODO: This sort of thing really, really, needs to be configurable. :(
+      jt.setNativeSpecification(nativeSpecification)
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")

@@ -29,13 +29,17 @@ import loamstream.model.execute.CompositeChunkRunner
 import loamstream.util.ExecutionContexts
 import loamstream.googlecloud._
 import loamstream.util.Throwables
+import loamstream.conf.LoamConfig
+import scala.util.Try
 
 /**
  * @author clint
  *         kyuksel
  * Nov 10, 2016
  */
-trait AppWiring extends Terminable {
+trait AppWiring {
+  def config: LoamConfig
+  
   def dao: LoamDao
 
   def executer: Executer
@@ -45,18 +49,31 @@ trait AppWiring extends Terminable {
   private[AppWiring] def makeJobFilter(conf: Conf): JobFilter = {
     if (conf.runEverything()) JobFilter.RunEverything else new DbBackedJobFilter(dao)
   }
+  
+  def shutdown(): Seq[Throwable]
 }
 
 object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Loggable {
 
-  def apply(cli: Conf): AppWiring = new AppWiring with DefaultDb {
+  def apply(cli: Conf): AppWiring = new DefaultAppWiring(cli)
+  
+  private final class DefaultAppWiring(cli: Conf) extends AppWiring with DefaultDb {
+    private[this] lazy val typesafeConfig = loadConfig(cli)
+    private[this] lazy val ugerConfigAttempt = UgerConfig.fromConfig(typesafeConfig)
+    private[this] lazy val googleConfigAttempt = GoogleCloudConfig.fromConfig(typesafeConfig)
+    private[this] lazy val hailConfigAttempt = HailConfig.fromConfig(typesafeConfig)
+    
+    override lazy val config: LoamConfig = {
+      LoamConfig(ugerConfigAttempt.toOption, googleConfigAttempt.toOption, hailConfigAttempt.toOption)
+    }
+    
     override def executer: Executer = terminableExecuter
 
-    override def stop(): Unit = terminableExecuter.stop()
+    override def shutdown(): Seq[Throwable] = terminableExecuter.shutdown()
 
-    override def cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
+    override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
 
-    private val terminableExecuter = {
+    private lazy val terminableExecuter: TerminableExecuter = {
       info("Creating executer...")
 
       val jobFilter = makeJobFilter(cli)
@@ -72,7 +89,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
       val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(cli, threadPoolSize)
 
-      val googleRunner = googleChunkRunner(cli, localRunner)
+      val googleRunner = googleChunkRunner(cli, googleConfigAttempt, localRunner)
       
       val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
 
@@ -87,17 +104,19 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       
       val rxExecuter = RxExecuter(compositeRunner, windowLength, jobFilter)(executionContextWithThreadPool)
 
-      val handles: Seq[Terminable] = threadPoolHandle +: localEcHandle +: (ugerRunnerHandles ++ googleRunner)
+      val handles: Seq[Terminable] = (ugerRunnerHandles ++ googleRunner) :+ threadPoolHandle :+ localEcHandle
 
       new TerminableExecuter(rxExecuter, handles: _*)
     }
   }
 
-  private def googleChunkRunner(cli: Conf, delegate: ChunkRunner): Option[GoogleCloudChunkRunner] = {
-    val config = loadConfig(cli)
-
+  private def googleChunkRunner(
+      cli: Conf,
+      googleConfigAttempt: Try[GoogleCloudConfig], 
+      delegate: ChunkRunner): Option[GoogleCloudChunkRunner] = {
+    
     val attempt = for {
-      googleConfig <- GoogleCloudConfig.fromConfig(config)
+      googleConfig <- googleConfigAttempt
       client <- CloudSdkDataProcClient.fromConfig(googleConfig)
     } yield {
       info("Creating Google Cloud ChunkRunner...")
@@ -142,10 +161,10 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
     val attempt = for {
       googleConfig <- GoogleCloudConfig.fromConfig(config)
-      gcsClient <- GcsClient.fromConfig(googleConfig)
+      gcsDriver <- GcsDriver.fromConfig(googleConfig)
     } yield {
-      debug("Creating Google Cloud Storage Client...")
-      gcsClient
+      info("Creating Google Cloud Storage Client...")
+      GcsClient(gcsDriver)
     }
 
     val result = attempt.toOption
@@ -215,24 +234,22 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       dao
     }
   }
+  
   private[apps] final class TerminableExecuter(
       val delegate: Executer,
-      toStop: Terminable*) extends Executer with Terminable {
+      toStop: Terminable*) extends Executer {
 
     override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobState] = {
       delegate.execute(executable)(timeout)
     }
 
-    final override def stop(): Unit = {
+    def shutdown(): Seq[Throwable] = {
       import Throwables._
       
       for {
         terminable <- toStop
-      } {
-        quietly("Error shutting down: ") {
-          terminable.stop()
-        }
-      }
+        e <- quietly("Error shutting down: ")(terminable.stop()) 
+      } yield e
     }
   }
 }

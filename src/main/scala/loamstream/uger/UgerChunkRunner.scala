@@ -65,7 +65,7 @@ final case class UgerChunkRunner(
       //TODO: do we need this?  Should it be something better?
       val jobName: String = s"LoamStream-${UUID.randomUUID}"
 
-      val submissionResult = drmaaClient.submitJob(ugerScript, ugerLogFile, jobName, leafCommandLineJobs.size)
+      val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, leafCommandLineJobs.size)
 
       submissionResult match {
         case DrmaaClient.SubmissionSuccess(rawJobIds) => {

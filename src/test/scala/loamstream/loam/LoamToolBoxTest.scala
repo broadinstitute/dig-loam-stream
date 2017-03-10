@@ -16,6 +16,9 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.util.Files
+import loamstream.TestHelpers
+import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
   * LoamStream
@@ -27,7 +30,7 @@ final class LoamToolBoxTest extends FunSuite {
 
     val compiler = new LoamCompiler
 
-    val compileResults = compiler.compile(script)
+    val compileResults = compiler.compile(TestHelpers.config, script)
 
     assert(compileResults.errors == Nil)
 
@@ -76,7 +79,7 @@ final class LoamToolBoxTest extends FunSuite {
 
     val compiler = new LoamCompiler
 
-    val compileResults = compiler.compile(source)
+    val compileResults = compiler.compile(TestHelpers.config, source)
 
     assert(compileResults.errors === Nil)
 
@@ -107,18 +110,31 @@ final class LoamToolBoxTest extends FunSuite {
     assert(dep1 eq dep2)
     assert(dep0 eq dep2)
 
-    assert(executable.jobs.size == 3)
+    assert(executable.jobs.size === 3)
 
-    def getJob(i: Int) = executable.jobs.toSeq.apply(i)
+    val Seq(job0, job1, job2) = executable.jobs.toSeq.map(_.asInstanceOf[CommandLineJob])
 
-    assert(getJob(0).inputs.size === 1)
-    assert(getJob(1).inputs.size === 1)
-    assert(getJob(2).inputs.size === 1)
+    assert(job0.commandLineString.contains("impute2"))
+    assert(job1.commandLineString.contains("impute2"))
+    assert(job2.commandLineString.contains("impute2"))
+    
+    assert(job0.inputs.size === 1)
+    assert(job1.inputs.size === 1)
+    assert(job2.inputs.size === 1)
 
-    val depJob0 = getJob(0).inputs.head
-    val depJob1 = getJob(1).inputs.head
-    val depJob2 = getJob(2).inputs.head
+    val depJob0 = job0.inputs.head.asInstanceOf[CommandLineJob]
+    val depJob1 = job1.inputs.head.asInstanceOf[CommandLineJob]
+    val depJob2 = job2.inputs.head.asInstanceOf[CommandLineJob]
 
+    assert(depJob0.commandLineString.contains("shapeit"))
+    assert(depJob1.commandLineString.contains("shapeit"))
+    assert(depJob2.commandLineString.contains("shapeit"))
+    
+    assert(depJob0.inputs === Set.empty)
+    assert(depJob1.inputs === Set.empty)
+    assert(depJob2.inputs === Set.empty)
+    
+    //All 3 dependency jobs (shapeit jobs) should be the same
     assert(depJob0 eq depJob1)
     assert(depJob1 eq depJob2)
     assert(depJob0 eq depJob2)

@@ -34,13 +34,13 @@ final case class OutputRecord(loc: String,
 
   def isHashed: Boolean = hash.isDefined
 
-  def hasDifferentHashThan(other: OutputRecord): Boolean =
-    (for {
-        hashValue <- hash
-        hashKind <- hashType
-        otherHashValue <- other.hash
-        otherHashKind <- other.hashType
-      } yield hashKind != otherHashKind || hashValue != otherHashValue
+  def hasDifferentHashThan(other: OutputRecord): Boolean = (
+    for {
+      hashValue <- hash
+      hashKind <- hashType
+      otherHashValue <- other.hash
+      otherHashKind <- other.hashType
+    } yield hashKind != otherHashKind || hashValue != otherHashValue
     ).getOrElse(false)
 
   def withLastModified(t: Instant) = copy(lastModified = Option(t))

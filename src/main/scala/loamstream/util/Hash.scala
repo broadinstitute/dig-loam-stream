@@ -14,7 +14,7 @@ final case class Hash(value: mutable.WrappedArray[Byte], tpe: HashType) {
   
   override def toString: String = s"$tpe($valueAsBase64String)"
   
-  def valueAsBase64String: String = DatatypeConverter.printBase64Binary(value.toArray).toLowerCase
+  def valueAsBase64String: String = DatatypeConverter.printBase64Binary(value.toArray)
 }
 
 object Hash {

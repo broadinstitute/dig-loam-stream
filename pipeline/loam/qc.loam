@@ -537,7 +537,7 @@ uger {
 
 val sampleQcKlustakwikStores: Seq[KlustakwikStores] =
   uger {
-    (0 until 11).map { i =>
+    (1 until 12).map { i =>
       val stores = KlustakwikStores(outDIR / s"${outLABEL}.sampleqc.stats.adj.${i}")
       cmd"""echo 1 > ${stores.fet};
         sed '1d' $SAMPLEQC_STATS_ADJ_TSV | awk -v col=${i+1} '{print $$col}' >> ${stores.fet};

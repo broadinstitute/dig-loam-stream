@@ -9,6 +9,7 @@ import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.JobState
 import loamstream.util.Futures
 import loamstream.util.ObservableEnrichments
+import loamstream.oracle.Resources.LocalResources
 
 
 /**
@@ -26,7 +27,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   test("runSingle") {
     import GoogleCloudChunkRunner.runSingle
     
-    val jobResult =  JobState.CommandResult(42)
+    val jobResult =  JobState.CommandResult(42, LocalResources)
     
     val job = MockJob(jobResult)
     
@@ -81,8 +82,8 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   
   test("runJobsSequentially") {
     val job1 = MockJob(JobState.Succeeded)
-    val job2 = MockJob(JobState.Failed)
-    val job3 = MockJob(JobState.CommandResult(0))
+    val job2 = MockJob(JobState.Failed())
+    val job3 = MockJob(JobState.CommandResult(0, LocalResources))
     
     val expected = Map(job1 -> job1.toReturn, job2 -> job2.toReturn, job3 -> job3.toReturn)
     
@@ -167,8 +168,8 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   test("run - non-empty input") {
     withMockRunner { (_, googleRunner, client) =>
       val job1 = MockJob(JobState.Succeeded)
-      val job2 = MockJob(JobState.Failed)
-      val job3 = MockJob(JobState.CommandResult(0))
+      val job2 = MockJob(JobState.Failed())
+      val job3 = MockJob(JobState.CommandResult(0, LocalResources))
       
       val expected = Map(job1 -> job1.toReturn, job2 -> job2.toReturn, job3 -> job3.toReturn)
       

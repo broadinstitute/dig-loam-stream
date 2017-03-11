@@ -10,6 +10,7 @@ import loamstream.util.Loggable
 import loamstream.util.PathUtils
 import slick.profile.SqlAction
 import loamstream.model.jobs.JobState.CommandInvocationFailure
+import loamstream.oracle.Resources.LocalResources
 
 /**
  * @author clint
@@ -95,7 +96,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     val insertableExecutions: Iterable[(Execution, CommandResult)] = executions.collect {
       case e @ Execution(cr: CommandResult, _) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
-      case e @ Execution(cr: CommandInvocationFailure, _) => e -> CommandResult(-1)
+      //TODO: `LocalResources` is just a dummy transitional value
+      case e @ Execution(cr: CommandInvocationFailure, _) => e -> CommandResult(-1, LocalResources)
     } 
     
     val inserts = insertableExecutions.map(insert)

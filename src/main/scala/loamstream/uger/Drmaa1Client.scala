@@ -10,6 +10,7 @@ import scala.util.Try
 import org.ggf.drmaa._
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
+import loamstream.oracle.uger.Queue
 
 /**
  * Created on: 5/19/16
@@ -97,6 +98,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
     val pathToUgerOutput = ugerConfig.logFile
     val nativeSpecification = ugerConfig.nativeSpecification
+    
     runJob(pathToScript, pathToUgerOutput, nativeSpecification, jobName, numTasks)
   }
   
@@ -140,47 +142,43 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   private def doWait(session: Session, jobId: String, timeout: Duration): UgerStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
     
-    //TODO
-    {
-      import scala.collection.JavaConverters._
-      
-      val ugerKVs: Map[Any, Any] = jobInfo.getResourceUsage.asScala.toMap
-      
-      val keys = ugerKVs.keysIterator.toSeq
-      
-      info(s"Uger Resource Usage: (${ugerKVs.size}) values:")
-      
-      for {
-        (keyName, key) <- keys.map(_.toString).zip(keys).sortBy { case (s, _) => s }
-      } {
-        val value = ugerKVs.get(key)
-        
-        info(s"'$keyName'\t=> $value")
-      }
-    }
+    import JobInfoEnrichments._
     
-    if (jobInfo.hasExited) {
+    val resources = jobInfo.toUgerResources
+      
+    //TODO .get :(
+    val mungedResources = resources.get.withQueue(Queue.Short)
+    
+    val result = if (jobInfo.hasExited) {
       info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
       
-      UgerStatus.CommandResult(jobInfo.getExitStatus)
+      import JobInfoEnrichments._
+      
+      val exitCode = jobInfo.getExitStatus
+      
+      UgerStatus.CommandResult(exitCode, mungedResources)
     } else if (jobInfo.wasAborted) {
       info(s"Job '$jobId' was aborted; job info: $jobInfo")
 
       //TODO: Add JobStatus.Aborted?
-      UgerStatus.Failed
+      UgerStatus.Failed(Option(mungedResources))
     } else if (jobInfo.hasSignaled) {
       info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
-      UgerStatus.Failed
+      UgerStatus.Failed(Option(mungedResources))
     } else if (jobInfo.hasCoreDump) {
       info(s"Job '$jobId' dumped core")
       
-      UgerStatus.Failed
+      UgerStatus.Failed(Option(mungedResources))
     } else {
       info(s"Job '$jobId' finished with unknown status")
 
-      UgerStatus.DoneUndetermined
+      UgerStatus.DoneUndetermined(Option(mungedResources))
     }
+    
+    debug(s"Job '$jobId' finished, returning status $result")
+    
+    result
   }
 
   private def tryShuttingDown(s: Session): Unit = {

@@ -8,6 +8,7 @@ import loamstream.model.jobs.{Execution, JobState, OutputRecord}
 import loamstream.model.jobs.JobState.CommandResult
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.Hashes
+import loamstream.oracle.Resources.LocalResources
 
 
 /**
@@ -38,7 +39,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       cachedOutput(path, hash)
     }
     
-    val execution = Execution(JobState.CommandResult(0), outputs.toSet)
+    val execution = Execution(JobState.CommandResult(0, LocalResources), outputs.toSet)
     
     dao.insertExecutions(execution)
   }
@@ -47,7 +48,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
     val outputs = paths.map(OutputRecord(_))
     
     //NB: Failure
-    val state = JobState.CommandResult(42)
+    val state = JobState.CommandResult(42, LocalResources)
     
     assert(state.isFailure)
     
@@ -156,9 +157,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
       
-      val failed0 = Execution(CommandResult(42), Set(output0))
-      val failed1 = Execution(CommandResult(1), Set.empty[OutputRecord])
-      val succeeded = Execution(CommandResult(0), Set(output1, output2))
+      val failed0 = Execution(CommandResult(42, LocalResources), Set(output0))
+      val failed1 = Execution(CommandResult(1, LocalResources), Set.empty[OutputRecord])
+      val succeeded = Execution(CommandResult(0, LocalResources), Set(output1, output2))
 
       assert(failed0.isFailure)
       assert(failed1.isFailure)
@@ -168,7 +169,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       assert(noExecutions)
 
       dao.insertExecutions(failed0)
-      val expected0 = Execution(CommandResult(42), OutputRecord(output0.loc))
+      val expected0 = Execution(CommandResult(42, LocalResources), OutputRecord(output0.loc))
       assert(dao.allExecutions.toSet === Set(expected0))
       
       dao.insertExecutions(succeeded, failed1)
@@ -191,7 +192,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
 
       dao.insertExecutions(failed)
       
-      val expected0 = Execution(CommandResult(-1), failedOutput(path0))
+      val expected0 = Execution(CommandResult(-1, LocalResources), failedOutput(path0))
       
       assert(dao.allExecutions.toSet === Set(expected0))
     }
@@ -203,9 +204,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
       
-      val ex0 = Execution(CommandResult(42), output0)
-      val ex1 = Execution(CommandResult(0), output1, output2)
-      val ex2 = Execution(CommandResult(1), Set.empty[OutputRecord])
+      val ex0 = Execution(CommandResult(42, LocalResources), output0)
+      val ex1 = Execution(CommandResult(0, LocalResources), output1, output2)
+      val ex2 = Execution(CommandResult(1, LocalResources), Set.empty[OutputRecord])
       
       assert(ex0.isFailure)
       assert(ex1.isSuccess)
@@ -216,7 +217,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao {
 
       dao.insertExecutions(ex0)
       
-      val expected0 = Execution(CommandResult(42), failedOutput(path0))
+      val expected0 = Execution(CommandResult(42, LocalResources), failedOutput(path0))
       
       assert(dao.allExecutions.toSet === Set(expected0))
       

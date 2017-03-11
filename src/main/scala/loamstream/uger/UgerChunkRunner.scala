@@ -81,7 +81,7 @@ final case class UgerChunkRunner(
       toResultMap(drmaaClient, jobsById)
     }
     case DrmaaClient.SubmissionFailure(e) => {
-      commandLineJobs.foreach(_.updateAndEmitJobState(Failed))
+      commandLineJobs.foreach(_.updateAndEmitJobState(Failed()))
       
       makeAllFailureMap(commandLineJobs, Some(e))
     }
@@ -133,9 +133,9 @@ object UgerChunkRunner extends Loggable {
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
   private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Observable[Map[LJob, JobState]] = {
-    val failure = cause match {
+    val failure: JobState = cause match {
       case Some(e) => JobState.FailedWithException(e)
-      case None    => JobState.Failed
+      case None    => JobState.Failed()
     }
 
     cause.foreach(e => error(s"Couldn't submit jobs to UGER: ${e.getMessage}", e))

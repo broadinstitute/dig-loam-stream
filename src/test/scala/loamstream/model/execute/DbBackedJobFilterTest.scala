@@ -7,6 +7,7 @@ import org.scalatest.{FunSuite, PrivateMethodTester}
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.{Execution, JobState, Output, OutputRecord}
 import loamstream.util.HashType.Sha1
+import loamstream.oracle.Resources.LocalResources
 
 /**
  * @author clint
@@ -70,7 +71,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(0)
+      val cr = CommandResult(0, LocalResources)
 
       assert(cr.isSuccess)
 
@@ -88,7 +89,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(42)
+      val cr = CommandResult(42, LocalResources)
 
       assert(cr.isFailure)
 
@@ -106,7 +107,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(0)
+      val cr = CommandResult(0, LocalResources)
 
       assert(cr.isSuccess)
 
@@ -125,7 +126,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(42)
+      val cr = CommandResult(42, LocalResources)
 
       assert(cr.isFailure)
 
@@ -133,7 +134,9 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       filter.record(Seq(e))
 
-      assert(executions === Set(Execution(CommandResult(42), failedOutput0, failedOutput1, failedOutput2)))
+      val expected = Set(Execution(CommandResult(42, LocalResources), failedOutput0, failedOutput1, failedOutput2))
+      
+      assert(executions === expected)
     }
   }
 
@@ -145,10 +148,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val failure = CommandResult(42)
+      val failure = CommandResult(42, LocalResources)
       assert(failure.isFailure)
 
-      val success = CommandResult(0)
+      val success = CommandResult(0, LocalResources)
       assert(success.isSuccess)
 
       val failedExecs = Execution.fromOutputs(failure, Set[Output](o0))

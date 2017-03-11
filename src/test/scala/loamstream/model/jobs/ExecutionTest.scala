@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 import java.nio.file.Paths
 import Output.PathOutput
 import loamstream.util.TypeBox
+import loamstream.oracle.Resources.LocalResources
 
 /**
  * @author clint
@@ -51,15 +52,15 @@ final class ExecutionTest extends FunSuite {
     
     import JobState._
     
-    assertIsCommandExecution(CommandResult(0))
-    assertIsCommandExecution(CommandResult(1))
-    assertIsCommandExecution(CommandResult(-1))
-    assertIsCommandExecution(CommandResult(42))
+    assertIsCommandExecution(CommandResult(0, LocalResources))
+    assertIsCommandExecution(CommandResult(1, LocalResources))
+    assertIsCommandExecution(CommandResult(-1, LocalResources))
+    assertIsCommandExecution(CommandResult(42, LocalResources))
     assertIsCommandExecution(CommandInvocationFailure(e))
     
     assertIsNOTCommandExecution(NotStarted)
     assertIsNOTCommandExecution(Running)
-    assertIsNOTCommandExecution(Failed)
+    assertIsNOTCommandExecution(Failed())
     assertIsNOTCommandExecution(Succeeded)
     assertIsNOTCommandExecution(Skipped)
     assertIsNOTCommandExecution(Unknown)

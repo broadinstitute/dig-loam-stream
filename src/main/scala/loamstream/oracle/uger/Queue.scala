@@ -22,7 +22,7 @@ object Queue {
     override def longer: Queue = this
   }
   
-  def fromString(s: String): Option[Queue] = s match {
+  def fromString(s: String): Option[Queue] = s.toLowerCase.trim match {
     case Short.name => Some(Short)
     case Long.name => Some(Long)
     case _ => None

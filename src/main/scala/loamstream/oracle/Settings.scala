@@ -29,8 +29,8 @@ object Settings {
     }
   }
   
-  final class LocalSettings extends Settings //TODO: What goes here?
+  case object LocalSettings extends Settings //TODO: What goes here?
   
-  final class GoogleSettings extends Settings //TODO: What goes here? 
+  case object GoogleSettings extends Settings //TODO: What goes here? 
 }
 

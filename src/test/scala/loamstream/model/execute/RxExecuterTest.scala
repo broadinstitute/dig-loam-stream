@@ -9,6 +9,7 @@ import loamstream.model.jobs.LJob
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import loamstream.model.jobs.RxMockJob
+import loamstream.oracle.Resources.LocalResources
 
 /**
  * @author kyuksel
@@ -84,9 +85,9 @@ final class RxExecuterTest extends FunSuite {
       assert(results.values.head === jobState)
     }
     
-    doTest(JobState.Failed)
+    doTest(JobState.Failed())
     doTest(JobState.FailedWithException(new Exception))
-    doTest(JobState.CommandResult(42))
+    doTest(JobState.CommandResult(42, LocalResources))
   }
   
   test("Two failed jobs") {
@@ -120,9 +121,9 @@ final class RxExecuterTest extends FunSuite {
       assert(results.get(job2).isEmpty)
     }
     
-    doTest(JobState.Failed)
+    doTest(JobState.Failed())
     doTest(JobState.FailedWithException(new Exception))
-    doTest(JobState.CommandResult(42))
+    doTest(JobState.CommandResult(42, LocalResources))
   }
   
   test("3-job linear pipeline works") {
@@ -171,7 +172,7 @@ final class RxExecuterTest extends FunSuite {
      */
 
     val job1 = RxMockJob("Job_1")
-    val job2 = RxMockJob("Job_2", Set(job1), toReturn = JobState.CommandResult(2))
+    val job2 = RxMockJob("Job_2", Set(job1), toReturn = JobState.CommandResult(2, LocalResources))
     val job3 = RxMockJob("Job_3", Set(job2))
 
     assert(job1.executionCount === 0)

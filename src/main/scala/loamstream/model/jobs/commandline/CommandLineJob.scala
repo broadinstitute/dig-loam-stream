@@ -11,6 +11,7 @@ import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.util.Futures
 import loamstream.util.Loggable
+import loamstream.oracle.Resources.LocalResources
 
 
 /**
@@ -48,7 +49,7 @@ trait CommandLineJob extends LJob {
         trace(s"FAILED: $commandLineString")
       }
 
-      JobState.CommandResult(exitValue)
+      JobState.CommandResult(exitValue, LocalResources /* TODO */)
     }.recover {
       case exception: Exception => JobState.CommandInvocationFailure(exception)
     }

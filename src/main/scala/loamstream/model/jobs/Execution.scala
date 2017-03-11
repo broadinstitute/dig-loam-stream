@@ -12,7 +12,7 @@ final case class Execution(exitState: JobState, outputs: Set[OutputRecord]) {
 
   //NB :(
   def isCommandExecution: Boolean = exitState match {
-    case JobState.CommandResult(_) | JobState.CommandInvocationFailure(_) => true
+    case _: JobState.CommandResult | _: JobState.CommandInvocationFailure => true
     case _ => false
   }
 

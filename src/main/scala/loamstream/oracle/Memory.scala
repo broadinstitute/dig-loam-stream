@@ -21,6 +21,5 @@ object Memory {
   private val bytesPerMB: Long = 1024L * bytesPerKB
   private val bytesPerGB: Long = 1024L * bytesPerMB
   
-  def inGb(howMany: Int): Memory = Memory(howMany * bytesPerGB)
   def inGb(howMany: Double): Memory = Memory((howMany * bytesPerGB.toDouble).toLong)
 }

@@ -115,7 +115,7 @@ final class JobMonitor(
     import ObservableEnrichments._
     import UgerStatus.{DoneUndetermined, Undetermined}
     
-    val statuses = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
+    val statuses: Observable[UgerStatus] = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
       //NB: DRMAA might not report when jobs are done, say if it hasn't cached the final status of a job, so we 
       //assume that an 'unknown job' failure for a job we've previously inquired about successfully means the job 
       //is done, though we can't determine how such a job ended. :(
@@ -127,13 +127,13 @@ final class JobMonitor(
         
         warn(s"Job '$jobId': $msg")
         
-        DoneUndetermined
+        DoneUndetermined()
       }
       //Any other polling failure leaves us unable to know the job's status
       case (Failure(e), _) => {
         warn(s"Job '$jobId': polling failed with a(n) ${e.getClass.getName}; mapping to $Undetermined", e)
         
-        Undetermined
+        Undetermined()
       }
       case (Success(status), _) => status
     }
@@ -168,7 +168,7 @@ final class JobMonitor(
   }
 
   private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[UgerStatus]]): Boolean = {
-    def unpack(attempt: Try[UgerStatus]): UgerStatus = attempt.getOrElse(UgerStatus.Undetermined)
+    def unpack(attempt: Try[UgerStatus]): UgerStatus = attempt.getOrElse(UgerStatus.Undetermined())
     
     val result = pollResults.values.map(unpack).forall(_.isFinished)
     

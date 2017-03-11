@@ -11,16 +11,21 @@ import loamstream.oracle.uger.Queue
  * @author clint
  * Mar 8, 2017
  */
-sealed trait ResourceUsage
+sealed trait Resources
 
-object ResourceUsage {
-  final case class UgerResourceUsage(
+object Resources {
+  //TODO
+  case object LocalResources extends Resources 
+  //TODO
+  case object GoogleResources extends Resources
+  
+  final case class UgerResources(
       memory: Memory,
       cpuTime: CpuTime,
       node: Option[String],
       queue: Option[Queue],
       startTime: Instant,
-      endTime: Instant) extends ResourceUsage {
+      endTime: Instant) extends Resources {
     
     def runTime: Duration = {
       import java.time.{ Duration => JDuration }
@@ -28,9 +33,13 @@ object ResourceUsage {
       
       JDuration.between(startTime, endTime).toMillis.milliseconds
     }
+    
+    def withNode(newNode: String): UgerResources = copy(node = Option(newNode))
+    
+    def withQueue(newQueue: Queue): UgerResources = copy(queue = Option(newQueue))
   }
   
-  object UgerResourceUsage {
+  object UgerResources {
     object Keys {
       val cpu = "cpu"
       val mem = "mem"
@@ -41,7 +50,7 @@ object ResourceUsage {
     /**
      * Parse an untyped map, like the one returned by org.ggf.drmaa.JobInfo.getResourceUsage()
      */
-    def fromMap(m: Map[Any, Any]): Try[UgerResourceUsage] = {
+    def fromMap(m: Map[Any, Any]): Try[UgerResources] = {
       def tryGet[A](key: String)(convert: String => A): Try[A] = {
         import Options.toTry
         
@@ -65,7 +74,9 @@ object ResourceUsage {
       //TODO: Maybe use a regex here to drop the '.nnnn' bit, if this 2-step conversion loses data.
       def toInstant(s: String) = Instant.ofEpochMilli(s.toDouble.toLong)
       
-      if(m == null) { Tries.failure(s"Null map passed in") }
+      //NB: JobInfo.getResourceUsage, the method one will most likely call to get a map to pass to
+      //this method, can return null.  :( 
+      if(m == null) { Tries.failure(s"Null map passed in") } //scalastyle:ignore null
       else {
         for {
           cpu <- tryGet(Keys.cpu)(toCpuTime)
@@ -75,7 +86,7 @@ object ResourceUsage {
         } yield {
           //TODO: Get node somehow (qacct?)
           //TODO: Get queue somehow (pass it in, qacct?)
-          UgerResourceUsage(mem, cpu, node = None, queue = None, startTime, endTime)
+          UgerResources(mem, cpu, node = None, queue = None, startTime, endTime)
         }
       }
     }

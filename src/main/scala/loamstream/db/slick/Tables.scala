@@ -98,13 +98,15 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def hash = column[Option[String]]("HASH")
     def hashType = column[Option[String]]("HASH_TYPE")
     def executionId = column[Int]("EXECUTION_ID")
-    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    val foreignKey = s"$foreignKeyPrefix${Names.outputs}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
 
   final class LocalSettings(tag: Tag) extends Table[LocalSettingRow](tag, Names.localSettings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    val foreignKey = s"$foreignKeyPrefix${Names.localSettings}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = executionId <> (LocalSettingRow, LocalSettingRow.unapply)
   }
 
@@ -113,14 +115,16 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def mem = column[Int]("MEM")
     def cpu = column[Int]("CPU")
     def queue = column[String]("QUEUE")
-    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    val foreignKey = s"$foreignKeyPrefix${Names.ugerSettings}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, mem, cpu, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
   }
 
   final class GoogleSettings(tag: Tag) extends Table[GoogleSettingRow](tag, Names.googleSettings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def cluster = column[String]("CLUSTER")
-    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    val foreignKey = s"$foreignKeyPrefix${Names.googleSettings}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, cluster) <> (GoogleSettingRow.tupled, GoogleSettingRow.unapply)
   }
 
@@ -128,7 +132,8 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def startTime = column[Option[Timestamp]]("START_TIME")
     def endTime = column[Option[Timestamp]]("END_TIME")
-    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    val foreignKey = s"$foreignKeyPrefix${Names.localResources}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, startTime, endTime) <> (LocalResourceRow.tupled, LocalResourceRow.unapply)
   }
 
@@ -140,7 +145,8 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def queue = column[Option[String]]("QUEUE")
     def startTime = column[Option[Timestamp]]("START_TIME")
     def endTime = column[Option[Timestamp]]("END_TIME")
-    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    val foreignKey = s"$foreignKeyPrefix${Names.ugerResources}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, mem, cpu, node, queue, startTime, endTime) <>
       (UgerResourceRow.tupled, UgerResourceRow.unapply)
   }
@@ -150,10 +156,13 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def cluster = column[Option[String]]("CLUSTER")
     def startTime = column[Option[Timestamp]]("START_TIME")
     def endTime = column[Option[Timestamp]]("END_TIME")
-    def execution = foreignKey("EXECUTION_FK", executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    val foreignKey = s"$foreignKeyPrefix${Names.googleResources}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, cluster, startTime, endTime) <> (GoogleResourceRow.tupled, GoogleResourceRow.unapply)
   }
-  
+
+  val foreignKeyPrefix = s"FK_ID_EXECUTIONS_"
+
   lazy val executions = TableQuery[Executions]
   lazy val outputs = TableQuery[Outputs]
   lazy val localSettings = TableQuery[LocalSettings]
@@ -170,8 +179,8 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     Names.ugerSettings -> ugerSettings.schema,
     Names.googleSettings -> googleSettings.schema,
     Names.localResources -> localResources.schema,
-    Names.ugerSettings -> ugerResources.schema,
-    Names.googleSettings -> googleResources.schema
+    Names.ugerResources -> ugerResources.schema,
+    Names.googleResources -> googleResources.schema
   )
 
   private def allTableNames: Seq[String] = allTables.keys.toSeq
@@ -184,24 +193,32 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     //TODO: Is this appropriate?
     implicit val executionContext = database.executor.executionContext
 
-    val existingTableNames = for {
-      tables <- MTable.getTables
-    } yield tables.map(_.name.name).toSet
+    def existing = {
+      val existingTableNames = for {
+        tables <- MTable.getTables
+      } yield tables.map(_.name.name).toSet
 
-    val existing = perform(database)(existingTableNames)
-
-    val createActions = for {
-      (tableName, schema) <- allTables
-      if !existing.contains(tableName)
-    } yield {
-      log(schema)
-
-      schema.create
+      perform(database)(existingTableNames)
     }
 
-    val createEverythingAction = DBIO.sequence(createActions).transactionally
+    def createActions(tables: Map[String, SchemaDescription]) = {
+      val actions = for {
+        (tableName, schema) <- tables
+        if !existing.contains(tableName)
+      } yield {
+        log(schema)
 
-    perform(database)(createEverythingAction)
+        schema.create
+      }
+
+      DBIO.sequence(actions).transactionally
+    }
+
+    // Make sure 'Executions' table is created first
+    val executionsTable = Map(Names.executions -> allTables(Names.executions))
+    perform(database)(createActions(executionsTable))
+    // Then create the others that depend on 'Executions'
+    perform(database)(createActions(allTables - Names.executions))
   }
 
   def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)

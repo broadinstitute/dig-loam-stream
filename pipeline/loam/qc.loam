@@ -446,7 +446,7 @@ val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_PCA_SCO
 google {
   hail"""read ${Google.VDS_FOR_QC}
       annotatesamples table
-      -i ${Local.ANCESTRY}
+      -i ${Google.ANCESTRY}
       --no-header
       -e _0
       --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
@@ -462,7 +462,7 @@ google {
       -o ${Google.SAMPLEQC_STATS_TSV}
       filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
-      -o ${Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV}""".in(Google.VDS_FOR_QC, Local.ANCESTRY)
+      -o ${Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV}""".in(Google.VDS_FOR_QC, Google.ANCESTRY)
       .out(Google.SAMPLEQC_SEXCHECK_TSV, Google.SAMPLEQC_STATS_TSV, Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
 }
 

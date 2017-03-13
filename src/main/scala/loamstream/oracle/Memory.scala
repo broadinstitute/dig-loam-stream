@@ -1,25 +1,37 @@
 package loamstream.oracle
 
+import squants.information._
 
 /**
  * @author clint
  * Mar 7, 2017
+ * 
+ * A class representing some quantity of RAM.
+ * 
+ * TODO: Use Gibibytes, Mebibytes, etc?
  */
-final case class Memory(bytes: Long) {
-  def gb: Long = bytes / Memory.bytesPerGB
-  def mb: Long = bytes / Memory.bytesPerMB
-  def kb: Long = bytes / Memory.bytesPerKB
+final case class Memory private (value: Information) {
+  require(value.toBytes >= 0)
   
-  def *(factor: Long): Memory = if(factor == 1) this else Memory(bytes * factor)
-  def /(factor: Long): Memory = if(factor == 1) this else Memory(bytes / factor)
+  def gb: Double = value.toGigabytes
+  def mb: Double = value.toMegabytes
+  def kb: Double = value.toKilobytes 
+  
+  def *(factor: Double): Memory = if(factor == 1) this else Memory(value * factor)
+  
+  def /(factor: Double): Memory = {
+    require(factor != 0.0)
+    
+    if(factor == 1) this else Memory(value / factor)
+  }
   
   def double: Memory = this * 2
 }
 
 object Memory {
-  private val bytesPerKB: Long = 1024L
-  private val bytesPerMB: Long = 1024L * bytesPerKB
-  private val bytesPerGB: Long = 1024L * bytesPerMB
+  import squants.information.InformationConversions._
   
-  def inGb(howMany: Double): Memory = Memory((howMany * bytesPerGB.toDouble).toLong)
+  def inBytes(howMany: Long): Memory = Memory(byte * howMany)
+  
+  def inGb(howMany: Double): Memory = Memory(gigabyte * howMany)
 }

@@ -1,6 +1,7 @@
 package loamstream.oracle
 
 import scala.concurrent.duration.Duration
+import java.util.concurrent.TimeUnit
 
 
 /**
@@ -8,5 +9,5 @@ import scala.concurrent.duration.Duration
  * Mar 7, 2017
  */
 final case class CpuTime(duration: Duration) {
-  def seconds: Long = duration.toSeconds
+  def seconds: Double = duration.toUnit(TimeUnit.SECONDS)
 }

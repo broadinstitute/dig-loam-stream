@@ -38,6 +38,16 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
   private def executions = dao.allExecutions.toSet
 
+  private def assertEqualJobStateAndOutputRecords(actual: Set[Execution], expected: Set[Execution]): Unit = {
+    assert(actual.map(_.exitState) === expected.map(_.exitState))
+    assert(actual.map(_.outputs) === expected.map(_.outputs))
+  }
+
+  private def assertEqualJobStateAndOutputRecords(actual: Option[Execution], expected: Option[Execution]): Unit = {
+    assert(actual.map(_.exitState) === expected.map(_.exitState))
+    assert(actual.map(_.outputs) === expected.map(_.outputs))
+  }
+
   import JobState._
 
   test("record() - no Executions") {
@@ -80,7 +90,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       filter.record(Seq(e))
 
-      assert(executions === Set(e))
+      assertEqualJobStateAndOutputRecords(executions, Set(e))
     }
   }
 
@@ -98,7 +108,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       filter.record(Seq(e))
 
-      assert(executions === Set(e))
+      assertEqualJobStateAndOutputRecords(executions, Set(e))
     }
   }
 
@@ -117,7 +127,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       filter.record(Seq(e))
 
-      assert(executions === Set(withHashedOutputs))
+      assertEqualJobStateAndOutputRecords(executions, Set(withHashedOutputs))
     }
   }
 
@@ -135,7 +145,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       filter.record(Seq(e))
 
-      assert(executions === Set(Execution(mockEnv, mockSettings, mockResources,
+      assertEqualJobStateAndOutputRecords(executions, Set(Execution(mockEnv, mockSettings, mockResources,
         CommandResult(42), failedOutput0, failedOutput1, failedOutput2)))
     }
   }

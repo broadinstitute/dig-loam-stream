@@ -7,7 +7,7 @@ import loamstream.model.execute.ExecutionEnvironment.Local
  *         date: 3/11/17
  */
 trait ProvidesEnvAndResources {
-  val mockEnv: ExecutionEnvironment = Local
-  val mockSettings: Settings = new LocalSettings
-  val mockResources: Resources = LocalResources(None, None)
+  protected val mockEnv: ExecutionEnvironment = Local
+  protected val mockSettings: Settings = new LocalSettings
+  protected val mockResources: Resources = LocalResources(None, None)
 }

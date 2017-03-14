@@ -237,11 +237,12 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
           runBlocking(tables.googleSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
     }
 
-    require(queryResults.size == 1,
-      s"There must be a single set of settings per execution. " +
+    require(queryResults.size <= 1,
+      s"There must be at most a single set of settings per execution. " +
         s"Found more than one for the execution with ID '${execution.id}'")
 
-    queryResults.head
+    if (queryResults.nonEmpty) { queryResults.head }
+    else { new LocalSettings }
   }
 
   private def resourcesFor(execution: ExecutionRow): Resources = {
@@ -254,11 +255,12 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
         runBlocking(tables.googleResources.filter(_.executionId === execution.id).result).map(_.toResources)
     }
 
-    require(queryResults.size == 1,
-      s"There must be a single set of resource (usages) per execution. " +
+    require(queryResults.size <= 1,
+      s"There must be at most a single set of resource usages per execution. " +
         s"Found more than one for the execution with ID '${execution.id}'")
 
-    queryResults.head
+    if (queryResults.nonEmpty) { queryResults.head }
+    else { LocalResources(None, None) }
   }
 
   //TODO: Re-evaluate; block all the time?

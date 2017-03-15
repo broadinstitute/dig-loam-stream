@@ -10,7 +10,7 @@ import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.PathUtils
 import slick.profile.SqlAction
-import loamstream.model.jobs.JobState.CommandInvocationFailure
+import loamstream.model.jobs.JobState.{CommandInvocationFailure, CommandResult}
 
 /**
  * @author clint
@@ -57,49 +57,21 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
     val executionRow = new ExecutionRow(dummyId, execution.env.name, commandResult.exitStatus)
 
-    def toOutputRows(f: OutputRecord => OutputRow): Seq[OutputRow] = {
-      execution.outputs.toSeq.map(f)
-    }
-
-    val outputs = {
-      if(execution.isSuccess) { toOutputRows(new OutputRow(_)) }
-      else if(execution.isFailure) { toOutputRows(rec => new OutputRow(rec.loc)) }
-      else { Nil }
-    }
-
-    def tieOutputsToExecution(outputs: Seq[OutputRow], executionId: Int): Seq[OutputRow] = {
-      outputs.map(_.withExecutionId(executionId))
-    }
-
     import Implicits._
 
     for {
       newExecution <- (Queries.insertExecution += executionRow)
-      outputsWithExecutionIds = tieOutputsToExecution(outputs, newExecution.id)
-      insertedOutputCounts <- insertOrUpdateRawOutputRows(outputsWithExecutionIds)
+      outputsWithExecutionIds = tieOutputsToExecution(execution, newExecution.id)
+      insertedOutputCounts <- insertOrUpdateOutputRows(outputsWithExecutionIds)
     } yield {
       insertedOutputCounts
     }
   }
 
   override def insertExecutions(executions: Iterable[Execution]): Unit = {
-    def firstNonCommandExecution: Execution = executions.find(!_.isCommandExecution).get
+    requireCommandExecution(executions)
 
-    require(
-      executions.forall(_.isCommandExecution),
-      s"We only know how to record command executions, but we got $firstNonCommandExecution")
-
-    debug(s"INSERTING: $executions")
-
-    import JobState.CommandResult
-
-    val insertableExecutions: Iterable[(Execution, CommandResult)] = executions.collect {
-      case e @ Execution(_, _, _, cr: CommandResult, _) => e -> cr
-      //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
-      case e @ Execution(_, _, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1)
-    }
-
-    val inserts = insertableExecutions.map(insert)
+    val inserts = insertableExecutions(executions).map(insert)
 
     val insertEverything = DBIO.sequence(inserts).transactionally
 
@@ -179,19 +151,28 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     Queries.outputsByRawPaths(pathsToDelete).delete
   }
 
-  //TODO: Need to allow updating?
-  private def insertOrUpdateOutputs(rows: Iterable[OutputRecord]): Unit = {
-    val rawRows = rows.map(new OutputRow(_))
-
-    val insertOrUpdate = insertOrUpdateRawOutputRows(rawRows)
-
-    runBlocking(insertOrUpdate)
-  }
-
-  private def insertOrUpdateRawOutputRows(rawRows: Iterable[OutputRow]): DBIO[Iterable[Int]] = {
-    val insertActions = rawRows.map(tables.outputs.insertOrUpdate)
+  private def insertOrUpdateOutputRows(rows: Iterable[OutputRow]): DBIO[Iterable[Int]] = {
+    val insertActions = rows.map(tables.outputs.insertOrUpdate)
 
     DBIO.sequence(insertActions).transactionally
+  }
+
+  private def tieOutputsToExecution(execution: Execution, executionId: Int): Seq[OutputRow] = {
+    def toOutputRows(f: OutputRecord => OutputRow): Seq[OutputRow] = {
+      execution.outputs.toSeq.map(f)
+    }
+
+    val outputs = {
+      if(execution.isSuccess) { toOutputRows(new OutputRow(_)) }
+      else if(execution.isFailure) { toOutputRows(rec => new OutputRow(rec.loc)) }
+      else { Nil }
+    }
+
+    outputs.map(_.withExecutionId(executionId))
+  }
+
+  private def tieSettingsToExecution(execution: Execution, executionId: Int): SettingRow = {
+      SettingRow.fromSettings(execution.settings, executionId)
   }
 
   private object Queries {
@@ -268,6 +249,24 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def log(sqlAction: SqlAction[_, _, _]): Unit = {
     sqlAction.statements.foreach(s => debug(s"SQL: $s"))
+  }
+
+  private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
+    executions.collect {
+      case e @ Execution(_, _, _, cr: CommandResult, _) => e -> cr
+      //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
+      case e @ Execution(_, _, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1)
+    }
+  }
+
+  private def requireCommandExecution(executions: Iterable[Execution]): Unit = {
+    def firstNonCommandExecution: Execution = executions.find(!_.isCommandExecution).get
+
+    require(
+      executions.forall(_.isCommandExecution),
+      s"We only know how to record command executions, but we got $firstNonCommandExecution")
+
+    debug(s"INSERTING: $executions")
   }
 
   private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.dbType.jdbcDriverClass)

@@ -11,20 +11,28 @@ sealed trait SettingRow {
   def toSettings: Settings
 }
 
-final case class LocalSettingRow(executionId: Int) {
+object SettingRow {
+  def fromSettings(settings: Settings, executionId: Int): SettingRow = settings match {
+    case LocalSettings(_) => LocalSettingRow(executionId)
+    case UgerSettings(mem, cpu, queue) => UgerSettingRow(executionId, mem, cpu, queue.name)
+    case GoogleSettings(cluster) => GoogleSettingRow(executionId, cluster)
+  }
+}
+
+final case class LocalSettingRow(executionId: Int) extends SettingRow {
   def toSettings = new LocalSettings
 }
 
 final case class UgerSettingRow(executionId: Int,
                       mem: Int,
                       cpu: Int,
-                      queue: String) {
+                      queue: String) extends SettingRow {
 
   def toSettings = UgerSettings(mem, cpu, Queue.fromString(queue))
 }
 
 final case class GoogleSettingRow(executionId: Int,
-                                  cluster: String) {
+                                  cluster: String) extends SettingRow {
 
   def toSettings = GoogleSettings(cluster)
 }

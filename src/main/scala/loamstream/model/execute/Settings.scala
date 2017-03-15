@@ -15,4 +15,4 @@ final case class UgerSettings(mem: Int,
 
 final case class GoogleSettings(cluster: String) extends Settings
 
-final class LocalSettings extends Settings
+final case class LocalSettings(mem: Option[Int] = None) extends Settings

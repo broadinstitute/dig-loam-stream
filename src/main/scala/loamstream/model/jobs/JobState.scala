@@ -27,7 +27,7 @@ object JobState {
   case object Skipped extends SuccessState
   case object Unknown extends NeitherSuccessNorFailure
   
-  final case class CommandResult(exitStatus: Int, resources: Resources) extends JobState {
+  final case class CommandResult(exitStatus: Int, resources: Option[Resources]) extends JobState {
     override def isSuccess: Boolean = isSuccessStatusCode(exitStatus)
     
     override def isFailure: Boolean = isFailureStatusCode(exitStatus)

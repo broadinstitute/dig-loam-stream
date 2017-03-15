@@ -4,13 +4,13 @@ import java.nio.file.Path
 
 import loamstream.conf.UgerConfig
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.util.Try
 import org.ggf.drmaa._
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
 import loamstream.oracle.uger.Queue
+import loamstream.oracle.Resources.UgerResources
 
 /**
  * Created on: 5/19/16
@@ -20,7 +20,7 @@ import loamstream.oracle.uger.Queue
  * 
  * A DRMAAv1 implementation of DrmaaClient; can submit work to UGER and monitor it.
  */
-final class Drmaa1Client extends DrmaaClient with Loggable {
+final class Drmaa1Client(ugerClient: UgerClient) extends DrmaaClient with Loggable {
   
   import DrmaaClient._
 
@@ -142,38 +142,38 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   private def doWait(session: Session, jobId: String, timeout: Duration): UgerStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
     
-    import JobInfoEnrichments._
-    
-    val resources = jobInfo.toUgerResources
+    val resources = Drmaa1Client.toResources(ugerClient)(jobInfo)
       
-    //TODO .get :(
-    val mungedResources = resources.get.withQueue(Queue.Short)
+    //Use recover for side-effect only
+    resources.recover {
+      case e: Exception => warn(s"Error parsing resource usage data for Job '$jobId'", e)
+    }
+    
+    val resourcesOption = resources.toOption
     
     val result = if (jobInfo.hasExited) {
       info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
       
-      import JobInfoEnrichments._
-      
       val exitCode = jobInfo.getExitStatus
-      
-      UgerStatus.CommandResult(exitCode, mungedResources)
+
+      UgerStatus.CommandResult(exitCode, resourcesOption)
     } else if (jobInfo.wasAborted) {
       info(s"Job '$jobId' was aborted; job info: $jobInfo")
 
       //TODO: Add JobStatus.Aborted?
-      UgerStatus.Failed(Option(mungedResources))
+      UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasSignaled) {
       info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
-      UgerStatus.Failed(Option(mungedResources))
+      UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasCoreDump) {
       info(s"Job '$jobId' dumped core")
       
-      UgerStatus.Failed(Option(mungedResources))
+      UgerStatus.Failed(resourcesOption)
     } else {
       info(s"Job '$jobId' finished with unknown status")
 
-      UgerStatus.DoneUndetermined(Option(mungedResources))
+      UgerStatus.DoneUndetermined(resourcesOption)
     }
     
     debug(s"Job '$jobId' finished, returning status $result")
@@ -223,6 +223,8 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")
 
+      import scala.collection.JavaConverters._
+      
       val jobIds = session.runBulkJobs(jt, taskStartIndex, taskEndIndex, taskIndexIncr).asScala.map(_.toString)
     
       info(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
@@ -244,6 +246,21 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         }
       }
       finally { session.deleteJobTemplate(jt) }
+    }
+  }
+}
+
+object Drmaa1Client {
+  private[uger] def toResources(ugerClient: UgerClient)(jobInfo: JobInfo): Try[UgerResources] = {
+    import scala.collection.JavaConverters._
+    
+    for {
+      resources <- UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
+      jobId = jobInfo.getJobId
+    } yield {
+      resources.copy(
+          node = ugerClient.getExecutionNode(jobId), 
+          queue = ugerClient.getQueue(jobId))
     }
   }
 }

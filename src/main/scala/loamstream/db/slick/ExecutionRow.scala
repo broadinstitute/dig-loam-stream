@@ -11,7 +11,7 @@ import loamstream.oracle.Resources.LocalResources
 final case class ExecutionRow(id: Int, exitStatus: Int) {
   def toExecution(outputs: Set[OutputRecord]): Execution = {
     //TODO: `LocalResources` is just a dummy transitional value
-    Execution(CommandResult(exitStatus, LocalResources), outputs)
+    Execution(CommandResult(exitStatus, Option(LocalResources)), outputs)
   }
   
 }

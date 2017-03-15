@@ -49,14 +49,14 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
       val firstJob = jobThatWritesTo(executable)(fileOut1).get
 
-      assert(results(firstJob) === CommandResult(0, LocalResources))
+      assert(results(firstJob) === CommandResult(0, Some(LocalResources)))
 
       assert(results.size === 1)
 
       val output1 = OutputRecord(PathOutput(fileOut1))
       val output2 = OutputRecord(PathOutput(fileOut2))
 
-      assert(dao.findExecution(output1).get.exitState === CommandResult(0, LocalResources))
+      assert(dao.findExecution(output1).get.exitState === CommandResult(0, Some(LocalResources)))
       assert(dao.findExecution(output1).get.outputs === Set(output1))
 
       assert(dao.findExecution(output2) === None)
@@ -93,16 +93,16 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
         //If the jobs were run, we should have written an Execution for the job.
         //If the job was skipped, we should have left the one from the previous successful run alone.
-        assert(dao.findExecution(updatedOutput1).get.exitState === CommandResult(0, LocalResources))
+        assert(dao.findExecution(updatedOutput1).get.exitState === CommandResult(0, Some(LocalResources)))
         assert(dao.findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
 
-        assert(dao.findExecution(updatedOutput2).get.exitState === CommandResult(0, LocalResources))
+        assert(dao.findExecution(updatedOutput2).get.exitState === CommandResult(0, Some(LocalResources)))
         assert(dao.findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
       }
 
       //Run the second script a few times.  The first time, we expect the first job to be skipped, and the second one
       //to be run.  We expect both jobs to be skipped in all subsequent runs.
-      run(Seq(Skipped, CommandResult(0, LocalResources)))
+      run(Seq(Skipped, CommandResult(0, Some(LocalResources))))
       run(Seq(Skipped, Skipped))
       run(Seq(Skipped, Skipped))
       run(Seq(Skipped, Skipped))
@@ -146,7 +146,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           val onlyResult = jobStates.values.head
 
           val exitCode = 127
-          onlyResult shouldEqual CommandResult(exitCode, LocalResources)
+          onlyResult shouldEqual CommandResult(exitCode, Some(LocalResources))
           onlyResult.isFailure shouldBe true
 
           jobStates should have size 1
@@ -189,11 +189,11 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           cmd"asdfasdf $$fileOut1 $$fileOut2"
        */
       val script =
-      s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
-            val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
-            val fileOut2 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut2)})
-            cmd"$bogusCommandName $$fileIn $$fileOut1"
-            cmd"$bogusCommandName $$fileOut1 $$fileOut2""""
+        s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
+              val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
+              val fileOut2 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut2)})
+              cmd"$bogusCommandName $$fileIn $$fileOut1"
+              cmd"$bogusCommandName $$fileOut1 $$fileOut2""""
 
       //Run the script and validate the results
       def run(): Unit = {
@@ -206,7 +206,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           import Matchers._
 
           val exitCode = 127
-          results(firstJob) shouldEqual CommandResult(exitCode, LocalResources)
+          results(firstJob) shouldEqual CommandResult(exitCode, Some(LocalResources))
           results.contains(secondJob) shouldBe false
 
           results(firstJob).isFailure shouldBe true

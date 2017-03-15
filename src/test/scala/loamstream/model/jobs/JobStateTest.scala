@@ -22,11 +22,11 @@ final class JobStateTest extends FunSuite {
     assert(Skipped.isSuccess === true)
     assert(Unknown.isSuccess === false)
   
-    assert(CommandResult(0, LocalResources).isSuccess === true)
+    assert(CommandResult(0, Some(LocalResources)).isSuccess === true)
     
-    assert(CommandResult(1, LocalResources).isSuccess === false)
-    assert(CommandResult(-1, LocalResources).isSuccess === false)
-    assert(CommandResult(42, LocalResources).isSuccess === false)
+    assert(CommandResult(1, Some(LocalResources)).isSuccess === false)
+    assert(CommandResult(-1, Some(LocalResources)).isSuccess === false)
+    assert(CommandResult(42, Some(LocalResources)).isSuccess === false)
 
     assert(FailedWithException(new Exception).isSuccess === false)
   
@@ -42,11 +42,11 @@ final class JobStateTest extends FunSuite {
     assert(Skipped.isFailure === false)
     assert(Unknown.isFailure === false)
   
-    assert(CommandResult(0, LocalResources).isFailure === false)
+    assert(CommandResult(0, Some(LocalResources)).isFailure === false)
     
-    assert(CommandResult(1, LocalResources).isFailure === true)
-    assert(CommandResult(-1, LocalResources).isFailure === true)
-    assert(CommandResult(42, LocalResources).isFailure === true)
+    assert(CommandResult(1, Some(LocalResources)).isFailure === true)
+    assert(CommandResult(-1, Some(LocalResources)).isFailure === true)
+    assert(CommandResult(42, Some(LocalResources)).isFailure === true)
 
     assert(FailedWithException(new Exception).isFailure === true)
   
@@ -62,11 +62,11 @@ final class JobStateTest extends FunSuite {
     assert(Skipped.isFinished === true)
     assert(Unknown.isFinished === false)
   
-    assert(CommandResult(0, LocalResources).isFinished === true)
+    assert(CommandResult(0, Some(LocalResources)).isFinished === true)
     
-    assert(CommandResult(1, LocalResources).isFinished === true)
-    assert(CommandResult(-1, LocalResources).isFinished === true)
-    assert(CommandResult(42, LocalResources).isFinished === true)
+    assert(CommandResult(1, Some(LocalResources)).isFinished === true)
+    assert(CommandResult(-1, Some(LocalResources)).isFinished === true)
+    assert(CommandResult(42, Some(LocalResources)).isFinished === true)
 
     assert(FailedWithException(new Exception).isFinished === true)
   

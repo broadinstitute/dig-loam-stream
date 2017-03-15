@@ -6,15 +6,18 @@ package loamstream.util
  */
 object Functions {
   def memoize[A, B](f: A => B): A => B = {  
-    var memo: Map[A, B] = Map.empty
+    val cache: ValueBox[Map[A, B]] = ValueBox(Map.empty)
     
     a => {
-      memo.get(a) match {
-        case Some(result) => result
-        case None =>
-          val result = f(a)
-          memo += (a -> result)
-          result
+      cache.getAndUpdate { memo =>
+        memo.get(a) match {
+          case Some(result) => (memo, result)
+          case None => {
+            val result = f(a)
+            val newMemo = memo + (a -> result)
+            (newMemo, result)
+          }
+        }
       }
     }
   }

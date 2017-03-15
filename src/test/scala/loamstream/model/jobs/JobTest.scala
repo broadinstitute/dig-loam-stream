@@ -19,27 +19,27 @@ final class JobTest extends FunSuite with TestJobs {
   import ObservableEnrichments._
   
   test("execute") {
-    val job = MockJob(CommandResult(42, LocalResources))
+    val job = MockJob(CommandResult(42, Some(LocalResources)))
     
     val states = job.states.until(_.isFinished).to[Seq].firstAsFuture
     
     job.execute(ExecutionContext.global)
     
-    assert(waitFor(states) === Seq(NotStarted, Running, CommandResult(42, LocalResources)))
+    assert(waitFor(states) === Seq(NotStarted, Running, CommandResult(42, Some(LocalResources))))
   }
   
   test("lastState - simple") {
-    val job = MockJob(CommandResult(42, LocalResources))
+    val job = MockJob(CommandResult(42, Some(LocalResources)))
     
     val lastStateFuture = job.lastState.firstAsFuture
     
     job.execute(ExecutionContext.global)
     
-    assert(waitFor(lastStateFuture) === CommandResult(42, LocalResources))
+    assert(waitFor(lastStateFuture) === CommandResult(42, Some(LocalResources)))
   }
 
   test("lastState - subsequent 'terminal' states don't count") {
-    val job = MockJob(CommandResult(42, LocalResources))
+    val job = MockJob(CommandResult(42, Some(LocalResources)))
     
     val lastStatesFuture = job.lastState.to[Seq].firstAsFuture
     
@@ -48,13 +48,13 @@ final class JobTest extends FunSuite with TestJobs {
     job.updateAndEmitJobState(Running)
     job.updateAndEmitJobState(Running)
     job.updateAndEmitJobState(Failed())
-    job.updateAndEmitJobState(CommandResult(42, LocalResources))
+    job.updateAndEmitJobState(CommandResult(42, Some(LocalResources)))
     
     assert(waitFor(lastStatesFuture) === Seq(Failed()))
   }
   
   test("finalInputStates - no deps") {
-    val noDeps = MockJob(CommandResult(42, LocalResources))
+    val noDeps = MockJob(CommandResult(42, Some(LocalResources)))
     
     val finalInputStatesFuture = noDeps.finalInputStates.firstAsFuture
     
@@ -62,10 +62,13 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("finalInputStates - some deps") {
-    val deps: Set[LJob] = Set(MockJob(Failed()), MockJob(CommandResult(0, LocalResources)), MockJob(Succeeded))
+    val deps: Set[LJob] = Set(
+        MockJob(Failed()), 
+        MockJob(CommandResult(0, Some(LocalResources))), 
+        MockJob(Succeeded))
     
     val noDeps = MockJob(
-        toReturn = CommandResult(42, LocalResources), 
+        toReturn = CommandResult(42, Some(LocalResources)), 
         inputs = deps)
     
     val finalInputStatesFuture = noDeps.finalInputStates.firstAsFuture
@@ -73,11 +76,13 @@ final class JobTest extends FunSuite with TestJobs {
     deps.foreach(_.execute(ExecutionContext.global))
     
     //NB: Use Sets to ignore order
-    assert(waitFor(finalInputStatesFuture).toSet === Set(Failed(), CommandResult(0, LocalResources), Succeeded))
+    val expected = Set(Failed(), CommandResult(0, Some(LocalResources)), Succeeded)
+    
+    assert(waitFor(finalInputStatesFuture).toSet === expected)
   }
   
   test("state/states/updateAndEmitJobState") {
-    val job = MockJob(CommandResult(42, LocalResources))
+    val job = MockJob(CommandResult(42, Some(LocalResources)))
     
     val first5States = job.states.take(5).to[Seq].firstAsFuture
     
@@ -95,15 +100,20 @@ final class JobTest extends FunSuite with TestJobs {
     
     assert(job.state === Running)
     
-    job.updateAndEmitJobState(CommandResult(42, LocalResources))
+    job.updateAndEmitJobState(CommandResult(42, Some(LocalResources)))
     
-    assert(job.state === CommandResult(42, LocalResources))
+    assert(job.state === CommandResult(42, Some(LocalResources)))
     
     job.updateAndEmitJobState(Succeeded)
     
     assert(job.state === Succeeded)
     
-    val expected = Seq(Unknown, Failed(Some(LocalResources)), Running, CommandResult(42, LocalResources), Succeeded)
+    val expected = Seq(
+        Unknown, 
+        Failed(Some(LocalResources)), 
+        Running, 
+        CommandResult(42, Some(LocalResources)), 
+        Succeeded)
     
     assert(waitFor(first5States) === expected)
   }
@@ -118,7 +128,7 @@ final class JobTest extends FunSuite with TestJobs {
     doTest(Succeeded)
     doTest(Failed(Some(LocalResources)))
     doTest(NotStarted)
-    doTest(CommandResult(42, LocalResources))
+    doTest(CommandResult(42, Some(LocalResources)))
     doTest(Unknown)
   }
   
@@ -132,7 +142,7 @@ final class JobTest extends FunSuite with TestJobs {
         j
       }
       
-      val notFinished = mockJob(CommandResult(0, LocalResources), startingState = Some(Running))
+      val notFinished = mockJob(CommandResult(0, Some(LocalResources)), startingState = Some(Running))
       
       val i0 = mockJob(Succeeded)
       
@@ -159,8 +169,8 @@ final class JobTest extends FunSuite with TestJobs {
     doTest(Failed(), anyFailures = false)
     doTest(NotStarted, anyFailures = true)
     doTest(NotStarted, anyFailures = false)
-    doTest(CommandResult(42, LocalResources), anyFailures = true)
-    doTest(CommandResult(42, LocalResources), anyFailures = false)
+    doTest(CommandResult(42, Some(LocalResources)), anyFailures = true)
+    doTest(CommandResult(42, Some(LocalResources)), anyFailures = false)
     doTest(Unknown, anyFailures = true)
     doTest(Unknown, anyFailures = false)
   }
@@ -179,7 +189,7 @@ final class JobTest extends FunSuite with TestJobs {
     doTest(Succeeded)
     doTest(Failed(Some(LocalResources)))
     doTest(NotStarted)
-    doTest(CommandResult(42, LocalResources))
+    doTest(CommandResult(42, Some(LocalResources)))
     doTest(Unknown)
   }
   
@@ -202,12 +212,12 @@ final class JobTest extends FunSuite with TestJobs {
     def execute(jobs: Iterable[LJob]): Unit = jobs.foreach(_.execute(ExecutionContext.global))
     
     val gc0 = MockJob(Succeeded)
-    val gc1 = MockJob(CommandResult(0, LocalResources))
+    val gc1 = MockJob(CommandResult(0, Some(LocalResources)))
     val gc2 = MockJob(Succeeded)
-    val gc3 = MockJob(CommandResult(0, LocalResources))
+    val gc3 = MockJob(CommandResult(0, Some(LocalResources)))
     
     val c0 = MockJob(toReturn = Succeeded, inputs = Set(gc0, gc1))
-    val c1 = MockJob(toReturn = CommandResult(0, LocalResources), inputs = Set(gc2, gc3))
+    val c1 = MockJob(toReturn = CommandResult(0, Some(LocalResources)), inputs = Set(gc2, gc3))
     
     val rootJob = MockJob(Succeeded, inputs = Set(c0,c1))
     
@@ -250,12 +260,12 @@ final class JobTest extends FunSuite with TestJobs {
     def execute(jobs: Iterable[LJob]): Unit = jobs.foreach(_.execute(ExecutionContext.global))
     
     val gc0 = MockJob(Succeeded)
-    val gc1 = MockJob(CommandResult(0, LocalResources))
+    val gc1 = MockJob(CommandResult(0, Some(LocalResources)))
     val gc2 = MockJob(Succeeded)
-    val gc3 = MockJob(CommandResult(0, LocalResources))
+    val gc3 = MockJob(CommandResult(0, Some(LocalResources)))
     
     val c0 = MockJob(toReturn = Failed(), inputs = Set(gc0, gc1))
-    val c1 = MockJob(toReturn = CommandResult(0, LocalResources), inputs = Set(gc2, gc3))
+    val c1 = MockJob(toReturn = CommandResult(0, Some(LocalResources)), inputs = Set(gc2, gc3))
     
     val rootJob = MockJob(Succeeded, inputs = Set(c0,c1))
     

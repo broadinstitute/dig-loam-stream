@@ -6,6 +6,8 @@ import scala.util.Try
 import loamstream.util.Tries
 import loamstream.util.Options
 import loamstream.oracle.uger.Queue
+import loamstream.uger.UgerException
+import scala.util.Failure
 
 /**
  * @author clint
@@ -51,14 +53,14 @@ object Resources {
      * Parse an untyped map, like the one returned by org.ggf.drmaa.JobInfo.getResourceUsage()
      */
     def fromMap(m: Map[Any, Any]): Try[UgerResources] = {
-      def tryGet[A](key: String)(convert: String => A): Try[A] = {
+      def tryGet[A](key: String): Try[String] = {
         import Options.toTry
         
         for {
-          valueMaybeNull <- toTry(m.get(key))(s"Resource usage field '$key' not found")
-          value <- toTry(Option(valueMaybeNull))(s"Null value for field '$key'")
+          valueMaybeNull <- toTry(m.get(key))(s"Resource usage field '$key' not found", UgerException)
+          value <- toTry(Option(valueMaybeNull))(s"Null value for field '$key'", UgerException)
         } yield {
-          convert(value.toString.trim)
+          value.toString.trim
         }
       }
       
@@ -76,17 +78,23 @@ object Resources {
       
       //NB: JobInfo.getResourceUsage, the method one will most likely call to get a map to pass to
       //this method, can return null.  :( 
-      if(m == null) { Tries.failure(s"Null map passed in") } //scalastyle:ignore null
+      if(m == null) { Tries.failure(s"Null map passed in", UgerException) } //scalastyle:ignore null
       else {
-        for {
-          cpu <- tryGet(Keys.cpu)(toCpuTime)
-          mem <- tryGet(Keys.mem)(toMemory)
-          startTime <- tryGet(Keys.startTime)(toInstant)
-          endTime <- tryGet(Keys.endTime)(toInstant)
+        val attempt = for {
+          cpu <- tryGet(Keys.cpu).map(toCpuTime)
+          mem <- tryGet(Keys.mem).map(toMemory)
+          startTime <- tryGet(Keys.startTime).map(toInstant)
+          endTime <- tryGet(Keys.endTime).map(toInstant)
         } yield {
           //TODO: Get node somehow (qacct?)
           //TODO: Get queue somehow (pass it in, qacct?)
           UgerResources(mem, cpu, node = None, queue = None, startTime, endTime)
+        }
+        
+        //Wrap any exceptions in UgerException, so we can check for that in Drmaa1Client
+        attempt.recoverWith {
+          case ue: UgerException => attempt
+          case e: Exception => Failure(new UgerException(e))
         }
       }
     }

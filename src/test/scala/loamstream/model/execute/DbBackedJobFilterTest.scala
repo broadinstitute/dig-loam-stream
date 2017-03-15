@@ -71,7 +71,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(0, LocalResources)
+      val cr = CommandResult(0, Some(LocalResources))
 
       assert(cr.isSuccess)
 
@@ -89,7 +89,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(42, LocalResources)
+      val cr = CommandResult(42, Some(LocalResources))
 
       assert(cr.isFailure)
 
@@ -107,7 +107,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(0, LocalResources)
+      val cr = CommandResult(0, Some(LocalResources))
 
       assert(cr.isSuccess)
 
@@ -126,7 +126,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(42, LocalResources)
+      val cr = CommandResult(42, Some(LocalResources))
 
       assert(cr.isFailure)
 
@@ -134,7 +134,8 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       filter.record(Seq(e))
 
-      val expected = Set(Execution(CommandResult(42, LocalResources), failedOutput0, failedOutput1, failedOutput2))
+      val expected = Set(
+          Execution(CommandResult(42, Some(LocalResources)), failedOutput0, failedOutput1, failedOutput2))
       
       assert(executions === expected)
     }
@@ -148,12 +149,12 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val failure = CommandResult(42, LocalResources)
+      val failure = CommandResult(42, Some(LocalResources))
       assert(failure.isFailure)
 
-      val success = CommandResult(0, LocalResources)
+      val success = CommandResult(0, Some(LocalResources))
       assert(success.isSuccess)
-
+      
       val failedExecs = Execution.fromOutputs(failure, Set[Output](o0))
       val successfulExecs = Execution.fromOutputs(success, Set[Output](o1, o3))
 

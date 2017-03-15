@@ -31,6 +31,7 @@ import loamstream.googlecloud._
 import loamstream.util.Throwables
 import loamstream.conf.LoamConfig
 import scala.util.Try
+import loamstream.uger.UgerClient
 
 /**
  * @author clint
@@ -190,7 +191,9 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     } yield {
       info("Creating Uger ChunkRunner...")
 
-      val drmaaClient = makeDrmaaClient
+      val ugerClient: UgerClient = UgerClient.useActualBinary()
+      
+      val drmaaClient = makeDrmaaClient(ugerClient)
 
       import loamstream.model.execute.ExecuterHelpers._
 

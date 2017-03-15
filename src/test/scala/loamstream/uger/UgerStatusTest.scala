@@ -52,9 +52,9 @@ final class UgerStatusTest extends FunSuite {
   test("toJobState") {
     assert(toJobState(Done) === JobState.Succeeded)
     
-    assert(toJobState(CommandResult(-1, resources)) === JobState.CommandResult(-1, resources))
-    assert(toJobState(CommandResult(0, resources)) === JobState.CommandResult(0, resources))
-    assert(toJobState(CommandResult(42, resources)) === JobState.CommandResult(42, resources))
+    assert(toJobState(CommandResult(-1, Some(resources))) === JobState.CommandResult(-1, Some(resources)))
+    assert(toJobState(CommandResult(0, Some(resources))) === JobState.CommandResult(0, Some(resources)))
+    assert(toJobState(CommandResult(42, Some(resources))) === JobState.CommandResult(42, Some(resources)))
     
     assert(toJobState(DoneUndetermined(Some(resources))) === JobState.Failed(Some(resources)))
     assert(toJobState(Failed()) === JobState.Failed())

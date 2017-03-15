@@ -41,7 +41,7 @@ object UgerStatus {
   //case object Suspended extends UgerStatus
   //case object Undetermined extends UgerStatus
 
-  final case class CommandResult(exitStatus: Int, resources: UgerResources) extends UgerStatus
+  final case class CommandResult(exitStatus: Int, resources: Option[UgerResources]) extends UgerStatus
   
   final case class Failed(resourcesOpt: Option[UgerResources] = None) extends UgerStatus
   

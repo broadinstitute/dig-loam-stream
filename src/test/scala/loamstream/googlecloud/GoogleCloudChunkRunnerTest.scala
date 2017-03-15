@@ -27,7 +27,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   test("runSingle") {
     import GoogleCloudChunkRunner.runSingle
     
-    val jobResult =  JobState.CommandResult(42, LocalResources)
+    val jobResult =  JobState.CommandResult(42, Some(LocalResources))
     
     val job = MockJob(jobResult)
     
@@ -83,7 +83,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   test("runJobsSequentially") {
     val job1 = MockJob(JobState.Succeeded)
     val job2 = MockJob(JobState.Failed())
-    val job3 = MockJob(JobState.CommandResult(0, LocalResources))
+    val job3 = MockJob(JobState.CommandResult(0, Some(LocalResources)))
     
     val expected = Map(job1 -> job1.toReturn, job2 -> job2.toReturn, job3 -> job3.toReturn)
     
@@ -169,7 +169,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
     withMockRunner { (_, googleRunner, client) =>
       val job1 = MockJob(JobState.Succeeded)
       val job2 = MockJob(JobState.Failed())
-      val job3 = MockJob(JobState.CommandResult(0, LocalResources))
+      val job3 = MockJob(JobState.CommandResult(0, Some(LocalResources)))
       
       val expected = Map(job1 -> job1.toReturn, job2 -> job2.toReturn, job3 -> job3.toReturn)
       

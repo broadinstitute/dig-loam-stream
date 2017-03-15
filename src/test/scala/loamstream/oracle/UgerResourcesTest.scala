@@ -3,6 +3,9 @@ package loamstream.oracle
 import org.scalatest.FunSuite
 import java.time.Instant
 import loamstream.oracle.uger.Queue
+import scala.util.Failure
+import loamstream.uger.UgerException
+import loamstream.uger.UgerException
 
 /**
  * @author clint
@@ -81,7 +84,16 @@ final class UgerResourcesTest extends FunSuite {
     import UgerResources.fromMap
 
     assert(fromMap(null).isFailure)
+      
+    intercept[UgerException] {
+      fromMap(null).get
+    }
+      
     assert(fromMap(Map.empty).isFailure)
+    
+    intercept[UgerException] {
+      fromMap(Map.empty).get
+    }
 
     val r = fromMap(realWorldMap).get
     
@@ -101,6 +113,22 @@ final class UgerResourcesTest extends FunSuite {
     assert(fromMap(realWorldMap - Keys.mem).isFailure)
     assert(fromMap(realWorldMap - Keys.startTime).isFailure)
     assert(fromMap(realWorldMap - Keys.endTime).isFailure)
+    
+    intercept[UgerException] {
+      fromMap(realWorldMap - Keys.cpu).get
+    }
+    
+    intercept[UgerException] {
+      fromMap(realWorldMap - Keys.mem).get
+    }
+    
+    intercept[UgerException] {
+      fromMap(realWorldMap - Keys.startTime).get
+    }
+    
+    intercept[UgerException] {
+      fromMap(realWorldMap - Keys.endTime).get
+    }
   }
   
   test("fromMap - some malformed fields") {
@@ -109,6 +137,10 @@ final class UgerResourcesTest extends FunSuite {
 
     def doTestWithBorkedKey(key: String): Unit = {
       assert(fromMap(realWorldMap + (key -> "asdf")).isFailure)
+      
+      intercept[UgerException] {
+        fromMap(realWorldMap + (key -> "asdf")).get
+      }
     }
     
     doTestWithBorkedKey(Keys.cpu)

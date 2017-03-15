@@ -52,10 +52,16 @@ final class ExecutionTest extends FunSuite {
     
     import JobState._
     
-    assertIsCommandExecution(CommandResult(0, LocalResources))
-    assertIsCommandExecution(CommandResult(1, LocalResources))
-    assertIsCommandExecution(CommandResult(-1, LocalResources))
-    assertIsCommandExecution(CommandResult(42, LocalResources))
+    assertIsCommandExecution(CommandResult(0, Some(LocalResources)))
+    assertIsCommandExecution(CommandResult(1, Some(LocalResources)))
+    assertIsCommandExecution(CommandResult(-1, Some(LocalResources)))
+    assertIsCommandExecution(CommandResult(42, Some(LocalResources)))
+    
+    assertIsCommandExecution(CommandResult(0, None))
+    assertIsCommandExecution(CommandResult(1, None))
+    assertIsCommandExecution(CommandResult(-1, None))
+    assertIsCommandExecution(CommandResult(42, None))
+    
     assertIsCommandExecution(CommandInvocationFailure(e))
     
     assertIsNOTCommandExecution(NotStarted)

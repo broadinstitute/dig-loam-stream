@@ -49,7 +49,7 @@ trait CommandLineJob extends LJob {
         trace(s"FAILED: $commandLineString")
       }
 
-      JobState.CommandResult(exitValue, LocalResources /* TODO */)
+      JobState.CommandResult(exitValue, Option(LocalResources) /* TODO */)
     }.recover {
       case exception: Exception => JobState.CommandInvocationFailure(exception)
     }

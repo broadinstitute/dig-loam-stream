@@ -51,6 +51,7 @@ final case class RxExecuter(
       _ = handleSkippedJobs(skippedJobs)
       resultMap <- runJobs(jobsToRun)
       _ = record(resultMap)
+      _ = logFinishedJobs(resultMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
     } yield {
       resultMap ++ skippedResultMap
@@ -66,6 +67,14 @@ final case class RxExecuter(
     val futureMergedResults = chunkResultsUpToFirstFailure.to[Seq].map(Maps.mergeMaps).firstAsFuture
     
     Await.result(futureMergedResults, timeout)
+  }
+  
+  def logFinishedJobs(jobs: Map[LJob, JobState]): Unit = {
+    for {
+      (job, state) <- jobs
+    } {
+      info(s"Finished with $state when running $job")
+    }
   }
   
   def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, JobState]] = {

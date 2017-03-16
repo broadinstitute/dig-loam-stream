@@ -13,14 +13,14 @@ sealed trait SettingRow {
 
 object SettingRow {
   def fromSettings(settings: Settings, executionId: Int): SettingRow = settings match {
-    case LocalSettings(_) => LocalSettingRow(executionId)
+    case LocalSettings(mem) => LocalSettingRow(executionId, mem)
     case UgerSettings(mem, cpu, queue) => UgerSettingRow(executionId, mem, cpu, queue.name)
     case GoogleSettings(cluster) => GoogleSettingRow(executionId, cluster)
   }
 }
 
-final case class LocalSettingRow(executionId: Int) extends SettingRow {
-  def toSettings = new LocalSettings
+final case class LocalSettingRow(executionId: Int, mem: Option[Int]) extends SettingRow {
+  def toSettings = new LocalSettings(mem)
 }
 
 final case class UgerSettingRow(executionId: Int,

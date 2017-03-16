@@ -36,6 +36,7 @@ import slick.jdbc.meta.MTable
  *
  *   SETTINGS_LOCAL: Environment settings requested during local job submissions
  *    EXECUTION_ID: integer, primary key - ID of the execution a row belongs to
+ *    MEM: integer, nullable - memory requested when submitting the job
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
  *
@@ -105,9 +106,10 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   final class LocalSettings(tag: Tag) extends Table[LocalSettingRow](tag, Names.localSettings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def mem = column[Option[Int]]("MEM")
     val foreignKey = s"$foreignKeyPrefix${Names.localSettings}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = executionId <> (LocalSettingRow, LocalSettingRow.unapply)
+    def * = (executionId, mem) <> (LocalSettingRow.tupled, LocalSettingRow.unapply)
   }
 
   final class UgerSettings(tag: Tag) extends Table[UgerSettingRow](tag, Names.ugerSettings) {

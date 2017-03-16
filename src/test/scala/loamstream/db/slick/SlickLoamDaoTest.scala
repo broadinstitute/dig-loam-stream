@@ -3,12 +3,12 @@ package loamstream.db.slick
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import loamstream.model.execute.ExecutionEnvironment.Local
 import loamstream.model.execute._
 import org.scalatest.FunSuite
 import loamstream.model.jobs.{Execution, JobState, OutputRecord}
 import loamstream.model.jobs.JobState.CommandResult
 import loamstream.model.jobs.Output.PathOutput
+import loamstream.uger.Queue
 import loamstream.util.Hashes
 
 
@@ -168,10 +168,14 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val output0 = cachedOutput(path0, hash0)
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
-      
-      val failed0 = Execution(mockEnv, mockSettings, mockResources, CommandResult(42), Set(output0))
-      val failed1 = Execution(mockEnv, mockSettings, mockResources, CommandResult(1), Set.empty[OutputRecord])
-      val succeeded = Execution(mockEnv, mockSettings, mockResources, CommandResult(0), Set(output1, output2))
+
+      val localSettings = LocalSettings(Some(16))
+      val ugerSettings = UgerSettings(8, 4, Queue.Short)
+      val googleSettings = GoogleSettings("some-cluster")
+
+      val failed0 = Execution(mockEnv, localSettings, mockResources, CommandResult(42), Set(output0))
+      val failed1 = Execution(mockEnv, ugerSettings, mockResources, CommandResult(1), Set.empty[OutputRecord])
+      val succeeded = Execution(mockEnv, googleSettings, mockResources, CommandResult(0), Set(output1, output2))
 
       assert(failed0.isFailure)
       assert(failed1.isFailure)
@@ -181,9 +185,10 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(noExecutions)
 
       dao.insertExecutions(failed0)
-      val expected0 = Execution(mockEnv, mockSettings, mockResources, CommandResult(42), OutputRecord(output0.loc))
+      val expected0 = Execution(mockEnv, localSettings, mockResources, CommandResult(42), OutputRecord(output0.loc))
       assertEqualJobStateAndOutputRecords(dao.allExecutions.toSet, Set(expected0))
-      
+      assert(dao.allExecutions.toSet === Set(expected0))
+
       dao.insertExecutions(succeeded, failed1)
       val expected1 = failed1
       val expected2 = succeeded

@@ -62,9 +62,11 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     for {
       newExecution <- (Queries.insertExecution += executionRow)
       outputsWithExecutionIds = tieOutputsToExecution(execution, newExecution.id)
+      settingsWithExecutionId = tieSettingsToExecution(execution, newExecution.id)
       insertedOutputCounts <- insertOrUpdateOutputRows(outputsWithExecutionIds)
+      insertedSettingCounts <- insertOrUpdateSettingRow(settingsWithExecutionId)
     } yield {
-      insertedOutputCounts
+      insertedOutputCounts ++ Iterable(insertedSettingCounts)
     }
   }
 
@@ -155,6 +157,14 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     val insertActions = rows.map(tables.outputs.insertOrUpdate)
 
     DBIO.sequence(insertActions).transactionally
+  }
+
+  private def insertOrUpdateSettingRow(row: SettingRow): DBIO[Int] = {
+    row match {
+      case s @ LocalSettingRow(_, _) => tables.localSettings.insertOrUpdate(s)
+      case s @ UgerSettingRow(_, _, _, _) => tables.ugerSettings.insertOrUpdate(s)
+      case s @ GoogleSettingRow(_, _) => tables.googleSettings.insertOrUpdate(s)
+    }
   }
 
   private def tieOutputsToExecution(execution: Execution, executionId: Int): Seq[OutputRow] = {

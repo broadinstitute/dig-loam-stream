@@ -21,6 +21,9 @@ import loamstream.util.Observables
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
+import loamstream.oracle.Resources.LocalResources
+import loamstream.model.jobs.JobState.CommandResult
+import loamstream.oracle.Resources.GoogleResources
 
 /**
  * @author clint
@@ -28,6 +31,7 @@ import scala.util.Failure
  */
 final case class GoogleCloudChunkRunner(
     client: DataProcClient, 
+    googleConfig: GoogleCloudConfig,
     delegate: ChunkRunner) extends ChunkRunnerFor(ExecutionEnvironment.Google) with Terminable with Loggable {
   
   private[googlecloud] lazy val singleThreadedExecutor: ExecutorService = Executors.newSingleThreadExecutor
@@ -57,8 +61,6 @@ final case class GoogleCloudChunkRunner(
     quietly("Error stopping cluster")(deleteClusterIfNecessary())
   }
   
-  import GoogleCloudChunkRunner.runSingle
-  
   private[googlecloud] def deleteClusterIfNecessary(): Unit = {
     //NB: If anything goes wrong determining whether or not the cluster is up, try to shut it down
     //anyway, to be safe.
@@ -82,6 +84,18 @@ final case class GoogleCloudChunkRunner(
       }
     }
   }
+
+  private[googlecloud] def runSingle(delegate: ChunkRunner)(job: LJob): Map[LJob, JobState] = {
+    //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
+    //on the same cluster simultaneously
+    import ObservableEnrichments._
+    import GoogleCloudChunkRunner.addCluster
+    
+
+    val futureResult = delegate.run(Set(job)).map(addCluster(googleConfig.clusterId)).firstAsFuture
+    
+    Futures.waitFor(futureResult)
+  }
   
   private[googlecloud] def withCluster[A](client: DataProcClient)(f: => A): A = {
     init
@@ -91,13 +105,14 @@ final case class GoogleCloudChunkRunner(
 }
 
 object GoogleCloudChunkRunner {
-  private[googlecloud] def runSingle(delegate: ChunkRunner)(job: LJob): Map[LJob, JobState] = {
-    //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
-    //on the same cluster simultaneously
-    import ObservableEnrichments._
-    
-    val futureResult = delegate.run(Set(job)).firstAsFuture
-    
-    Futures.waitFor(futureResult)
+  private[googlecloud] def addCluster(cluster: String)(jobStates: Map[LJob, JobState]): Map[LJob, JobState] = {
+    jobStates.map { 
+      case (job, state @ CommandResult(exitStatus, Some(localResources: LocalResources))) => {
+        val googleResources = GoogleResources.fromClusterAndLocalResources(cluster, localResources)
+        
+        job -> state.withResources(googleResources)
+      }
+      case tuple => tuple
+    }
   }
 }

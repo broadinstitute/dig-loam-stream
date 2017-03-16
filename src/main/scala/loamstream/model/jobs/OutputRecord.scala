@@ -3,7 +3,7 @@ package loamstream.model.jobs
 import java.nio.file.Path
 import java.time.Instant
 
-import loamstream.util.{PathUtils, TimeEnrichments}
+import loamstream.util.{PathUtils, TimeUtils}
 
 /**
  * @author kyuksel
@@ -21,7 +21,7 @@ final case class OutputRecord(loc: String,
   def isMissing: Boolean = !isPresent
 
   def isOlderThan(other: OutputRecord): Boolean = {
-    import TimeEnrichments.Implicits._
+    import TimeUtils.Implicits._
 
     lastModified match {
       case Some(timestamp) => other.lastModified match {

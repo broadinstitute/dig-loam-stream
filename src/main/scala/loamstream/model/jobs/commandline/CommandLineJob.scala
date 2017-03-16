@@ -12,6 +12,7 @@ import loamstream.model.jobs.LJob
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.oracle.Resources.LocalResources
+import loamstream.util.TimeUtils
 
 
 /**
@@ -39,20 +40,30 @@ trait CommandLineJob extends LJob {
     Futures.runBlocking {
       trace(s"RUNNING: $commandLineString")
 
-      JFiles.createDirectories(workDir)
-      
-      val exitValue = processBuilder.run(logger).exitValue
-
-      if (exitValueIsOk(exitValue)) {
-        trace(s"SUCCEEDED: $commandLineString")
-      } else {
-        trace(s"FAILED: $commandLineString")
+      val (exitValue, (start, end)) = TimeUtils.startAndEndTime {
+        createWorkDirAndRun()
       }
 
-      JobState.CommandResult(exitValue, Option(LocalResources) /* TODO */)
+      val resources = LocalResources(start, end)
+      
+      JobState.CommandResult(exitValue, Option(resources))
     }.recover {
       case exception: Exception => JobState.CommandInvocationFailure(exception)
     }
+  }
+  
+  private def createWorkDirAndRun(): Int = {
+    JFiles.createDirectories(workDir)
+      
+    val exitValue = processBuilder.run(logger).exitValue
+
+    if (exitValueIsOk(exitValue)) {
+      trace(s"SUCCEEDED: $commandLineString")
+    } else {
+      trace(s"FAILED: $commandLineString")
+    }
+        
+    exitValue
   }
 
   override def toString: String = s"'$commandLineString'"

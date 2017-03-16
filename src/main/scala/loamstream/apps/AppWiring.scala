@@ -122,7 +122,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     } yield {
       info("Creating Google Cloud ChunkRunner...")
       
-      GoogleCloudChunkRunner(client, delegate)
+      GoogleCloudChunkRunner(client, googleConfig, delegate)
     }
     
     val result = attempt.toOption

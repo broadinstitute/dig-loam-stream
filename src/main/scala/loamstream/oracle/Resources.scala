@@ -13,14 +13,37 @@ import scala.util.Failure
  * @author clint
  * Mar 8, 2017
  */
-sealed trait Resources
+sealed trait Resources {
+  def startTime: Instant
+  
+  def endTime: Instant
+
+  //TODO: Maybe java.time.Duration instead?
+  final def runTime: Duration = {
+    import java.time.{ Duration => JDuration }
+    import scala.concurrent.duration._
+    
+    JDuration.between(startTime, endTime).toMillis.milliseconds
+  }
+}
 
 object Resources {
-  //TODO
-  case object LocalResources extends Resources 
-  //TODO
-  case object GoogleResources extends Resources
   
+  final case class LocalResources(
+      startTime: Instant,
+      endTime: Instant) extends Resources
+  
+  final case class GoogleResources(
+      cluster: String,
+      startTime: Instant,
+      endTime: Instant) extends Resources
+  
+  object GoogleResources {
+    def fromClusterAndLocalResources(cluster: String, localResources: LocalResources): GoogleResources = {
+      GoogleResources(cluster, localResources.startTime, localResources.endTime)
+    }
+  }
+      
   final case class UgerResources(
       memory: Memory,
       cpuTime: CpuTime,
@@ -28,13 +51,6 @@ object Resources {
       queue: Option[Queue],
       startTime: Instant,
       endTime: Instant) extends Resources {
-    
-    def runTime: Duration = {
-      import java.time.{ Duration => JDuration }
-      import scala.concurrent.duration._
-      
-      JDuration.between(startTime, endTime).toMillis.milliseconds
-    }
     
     def withNode(newNode: String): UgerResources = copy(node = Option(newNode))
     

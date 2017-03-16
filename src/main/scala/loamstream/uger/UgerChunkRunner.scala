@@ -18,7 +18,7 @@ import loamstream.util.Files
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
-import loamstream.util.TimeEnrichments.time
+import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
 
 

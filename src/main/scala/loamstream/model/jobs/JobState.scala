@@ -30,6 +30,8 @@ object JobState {
     override def isSuccess: Boolean = isSuccessStatusCode(exitStatus)
     
     override def isFailure: Boolean = isFailureStatusCode(exitStatus)
+    
+    def withResources(rs: Resources): CommandResult = copy(resources = Option(rs))
   }
   
   final case class Failed(resourcesOpt: Option[Resources] = None) extends FailureState

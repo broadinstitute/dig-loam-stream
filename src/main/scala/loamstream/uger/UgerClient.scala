@@ -1,6 +1,5 @@
 package loamstream.uger
 
-import loamstream.oracle.uger.Queue
 import loamstream.util.ValueBox
 import loamstream.util.Functions
 import scala.util.control.NonFatal

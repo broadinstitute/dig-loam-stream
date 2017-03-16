@@ -1,4 +1,4 @@
-package loamstream.oracle
+package loamstream.model.execute
 
 import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit

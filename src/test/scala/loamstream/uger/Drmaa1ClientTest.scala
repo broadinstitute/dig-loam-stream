@@ -2,10 +2,9 @@ package loamstream.uger
 
 import org.scalatest.FunSuite
 import org.ggf.drmaa.JobInfo
-import loamstream.oracle.CpuTime
-import loamstream.oracle.Memory
+import loamstream.model.execute.CpuTime
+import loamstream.model.execute.Memory
 import java.time.Instant
-import loamstream.oracle.uger.Queue
 
 /**
  * @author clint

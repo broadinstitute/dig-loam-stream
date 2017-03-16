@@ -1,37 +1,52 @@
-package loamstream.oracle
+package loamstream.model.execute
 
 import java.time.Instant
+
+import loamstream.uger.Queue
 import scala.concurrent.duration.Duration
-import scala.util.Try
-import loamstream.util.Tries
 import loamstream.util.Options
-import loamstream.oracle.uger.Queue
+import scala.util.Try
 import loamstream.uger.UgerException
 import scala.util.Failure
+import loamstream.util.Tries
 
 /**
+ * @author kyuksel
  * @author clint
- * Mar 8, 2017
+ *         date: 3/9/17
  */
 sealed trait Resources {
-  def startTime: Instant
-  
-  def endTime: Instant
+  def startTime: Option[Instant]
+
+  def endTime: Option[Instant]
 
   //TODO: Maybe java.time.Duration instead?
-  final def runTime: Duration = {
+  final def elapsedTime: Option[Duration] = {
     import java.time.{ Duration => JDuration }
     import scala.concurrent.duration._
-    
-    JDuration.between(startTime, endTime).toMillis.milliseconds
+  
+    for {
+      st <- startTime
+      et <- endTime
+    } yield {
+      JDuration.between(st, et).toMillis.milliseconds
+    }
   }
 }
 
 object Resources {
-  
   final case class LocalResources(
       startTime: Instant,
       endTime: Instant) extends Resources
+      
+  object LocalResources {
+    //TODO: remove
+    def DUMMY: LocalResources = {
+      val now = Instant.now
+      
+      LocalResources(now, now)
+    }
+  }
   
   final case class GoogleResources(
       cluster: String,
@@ -43,7 +58,7 @@ object Resources {
       GoogleResources(cluster, localResources.startTime, localResources.endTime)
     }
   }
-      
+  
   final case class UgerResources(
       memory: Memory,
       cpuTime: CpuTime,

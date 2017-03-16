@@ -2,7 +2,7 @@ package loamstream.model.jobs
 
 import loamstream.util.TypeBox
 import scala.reflect.runtime.universe.Type
-import loamstream.oracle.Resources
+import loamstream.model.execute.Resources
 
 /**
  * @author clint

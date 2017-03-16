@@ -1,4 +1,4 @@
-package loamstream.oracle.uger
+package loamstream.uger
 
 import org.scalatest.FunSuite
 

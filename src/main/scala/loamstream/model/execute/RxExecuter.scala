@@ -3,10 +3,10 @@ package loamstream.model.execute
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
+import loamstream.uger.Queue
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Observables
@@ -14,6 +14,7 @@ import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.Traversables
+import loamstream.model.execute.Resources.LocalResources
 
 /**
  * @author kaan
@@ -118,7 +119,10 @@ final case class RxExecuter(
   }
   
   private def record(newResultMap: Map[LJob, JobState]): Unit = {
-    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs.map(_.toOutputRecord)) }
+    val executions = newResultMap.map { case (job, jobState) =>
+      // TODO Replace the placeholders for `env/settings/resources` objects put in place to get the code to compile
+      Execution(ExecutionEnvironment.Local, LocalSettings(), LocalResources.DUMMY,
+        jobState, job.outputs.map(_.toOutputRecord)) }
 
     debug(s"Recording Executions (${executions.size}): $executions")
     

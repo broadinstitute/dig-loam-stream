@@ -2,7 +2,6 @@ package loamstream.uger
 
 import org.scalatest.FunSuite
 import loamstream.util.ValueBox
-import loamstream.oracle.uger.Queue
 
 /**
  * @author clint

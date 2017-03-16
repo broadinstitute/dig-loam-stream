@@ -1,7 +1,8 @@
-package loamstream.oracle.uger
+package loamstream.uger
 
 /**
  * @author clint
+ * @author kyuksel
  * Mar 7, 2017
  */
 sealed abstract class Queue(val name: String) {

@@ -1,4 +1,4 @@
-package loamstream.oracle
+package loamstream.model.execute
 
 import org.scalatest.FunSuite
 

@@ -1,7 +1,5 @@
 package loamstream.uger
 
-import loamstream.oracle.uger.Queue
-
 /**
  * @author clint
  * Mar 15, 2017

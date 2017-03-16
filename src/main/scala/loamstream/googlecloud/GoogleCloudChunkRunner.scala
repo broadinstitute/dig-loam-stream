@@ -21,9 +21,9 @@ import loamstream.util.Observables
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
-import loamstream.oracle.Resources.LocalResources
 import loamstream.model.jobs.JobState.CommandResult
-import loamstream.oracle.Resources.GoogleResources
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.GoogleResources
 
 /**
  * @author clint

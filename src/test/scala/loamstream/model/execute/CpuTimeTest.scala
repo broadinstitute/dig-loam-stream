@@ -1,6 +1,8 @@
-package loamstream.oracle
+package loamstream.model.execute
 
 import org.scalatest.FunSuite
+import scala.concurrent.duration.DurationDouble
+import scala.concurrent.duration.DurationInt
 
 /**
  * @author clint

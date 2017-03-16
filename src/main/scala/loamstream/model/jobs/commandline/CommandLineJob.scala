@@ -11,8 +11,8 @@ import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
 import loamstream.util.Futures
 import loamstream.util.Loggable
-import loamstream.oracle.Resources.LocalResources
 import loamstream.util.TimeUtils
+import loamstream.model.execute.Resources.LocalResources
 
 
 /**

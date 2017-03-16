@@ -2,7 +2,7 @@ package loamstream.uger
 
 import loamstream.model.jobs.JobState
 import org.ggf.drmaa.Session
-import loamstream.oracle.Resources.UgerResources
+import loamstream.model.execute.Resources.UgerResources
 
 /**
  * @author clint

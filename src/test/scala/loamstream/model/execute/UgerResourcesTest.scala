@@ -1,9 +1,8 @@
-package loamstream.oracle
+package loamstream.model.execute
 
 import org.scalatest.FunSuite
 import java.time.Instant
-import loamstream.oracle.uger.Queue
-import scala.util.Failure
+import loamstream.uger.Queue
 import loamstream.uger.UgerException
 import loamstream.uger.UgerException
 

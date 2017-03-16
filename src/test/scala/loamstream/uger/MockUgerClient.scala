@@ -1,7 +1,6 @@
 package loamstream.uger
 
 import loamstream.util.ValueBox
-import loamstream.oracle.uger.Queue
 
 /**
  * @author clint

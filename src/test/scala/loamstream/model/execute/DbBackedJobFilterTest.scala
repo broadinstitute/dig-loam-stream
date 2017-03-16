@@ -5,6 +5,7 @@ import java.time.Instant
 
 import org.scalatest.{FunSuite, PrivateMethodTester}
 import loamstream.db.slick.ProvidesSlickLoamDao
+import loamstream.model.execute.ExecutionEnvironment.Local
 import loamstream.model.jobs.{Execution, JobState, Output, OutputRecord}
 import loamstream.util.HashType.Sha1
 import loamstream.oracle.Resources.LocalResources
@@ -13,7 +14,8 @@ import loamstream.oracle.Resources.LocalResources
  * @author clint
  *         date: Sep 30, 2016
  */
-final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao with PrivateMethodTester {
+final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
+  with PrivateMethodTester with ProvidesEnvAndResources {
   //scalastyle:off magic.number
 
   private val p0 = Paths.get("src/test/resources/for-hashing/foo.txt")
@@ -37,6 +39,16 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
   private def executions = dao.allExecutions.toSet
 
+  private def assertEqualJobStateAndOutputRecords(actual: Set[Execution], expected: Set[Execution]): Unit = {
+    assert(actual.map(_.exitState) === expected.map(_.exitState))
+    assert(actual.map(_.outputs) === expected.map(_.outputs))
+  }
+
+  private def assertEqualJobStateAndOutputRecords(actual: Option[Execution], expected: Option[Execution]): Unit = {
+    assert(actual.map(_.exitState) === expected.map(_.exitState))
+    assert(actual.map(_.outputs) === expected.map(_.outputs))
+  }
+
   import JobState._
 
   test("record() - no Executions") {
@@ -57,7 +69,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val e = Execution(Succeeded)
+      val e = Execution(mockEnv, mockSettings, mockResources, Succeeded)
 
       filter.record(Seq(e))
 
@@ -75,11 +87,11 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(cr.isSuccess)
 
-      val e = Execution(cr)
+      val e = Execution(mockEnv, mockSettings, mockResources, cr)
 
       filter.record(Seq(e))
 
-      assert(executions === Set(e))
+      assertEqualJobStateAndOutputRecords(executions, Set(e))
     }
   }
 
@@ -93,11 +105,11 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(cr.isFailure)
 
-      val e = Execution(cr)
+      val e = Execution(mockEnv, mockSettings, mockResources, cr)
 
       filter.record(Seq(e))
 
-      assert(executions === Set(e))
+      assertEqualJobStateAndOutputRecords(executions, Set(e))
     }
   }
 
@@ -111,12 +123,12 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(cr.isSuccess)
 
-      val e = Execution.fromOutputs(cr, Set[Output](o0, o1, o2))
+      val e = Execution.fromOutputs(mockEnv, mockSettings, mockResources, cr, Set[Output](o0, o1, o2))
       val withHashedOutputs = e.withOutputRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
 
       filter.record(Seq(e))
 
-      assert(executions === Set(withHashedOutputs))
+      assertEqualJobStateAndOutputRecords(executions, Set(withHashedOutputs))
     }
   }
 
@@ -130,14 +142,19 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(cr.isFailure)
 
-      val e = Execution.fromOutputs(cr, Set[Output](o0, o1, o2))
+      val e = Execution.fromOutputs(mockEnv, mockSettings, mockResources, cr, Set[Output](o0, o1, o2))
 
       filter.record(Seq(e))
 
+<<<<<<< HEAD
       val expected = Set(
           Execution(CommandResult(42, Some(LocalResources)), failedOutput0, failedOutput1, failedOutput2))
       
       assert(executions === expected)
+=======
+      assertEqualJobStateAndOutputRecords(executions, Set(Execution(mockEnv, mockSettings, mockResources,
+        CommandResult(42), failedOutput0, failedOutput1, failedOutput2)))
+>>>>>>> origin/ky_oracle_api
     }
   }
 
@@ -154,9 +171,15 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       val success = CommandResult(0, Some(LocalResources))
       assert(success.isSuccess)
+<<<<<<< HEAD
       
       val failedExecs = Execution.fromOutputs(failure, Set[Output](o0))
       val successfulExecs = Execution.fromOutputs(success, Set[Output](o1, o3))
+=======
+
+      val failedExecs = Execution.fromOutputs(mockEnv, mockSettings, mockResources, failure, Set[Output](o0))
+      val successfulExecs = Execution.fromOutputs(mockEnv, mockSettings, mockResources, success, Set[Output](o1, o3))
+>>>>>>> origin/ky_oracle_api
 
       filter.record(Seq(failedExecs, successfulExecs))
 

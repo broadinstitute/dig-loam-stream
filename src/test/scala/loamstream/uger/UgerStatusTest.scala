@@ -5,9 +5,8 @@ import org.ggf.drmaa.Session
 import loamstream.model.jobs.JobState
 import loamstream.oracle.Resources.LocalResources
 import loamstream.oracle.Resources.UgerResources
-import loamstream.oracle.Memory
-import loamstream.oracle.CpuTime
-import loamstream.oracle.uger.Queue
+import loamstream.model.execute.Memory
+import loammodel.executm.oracle.CpuTime
 import java.time.Instant
 
 /**

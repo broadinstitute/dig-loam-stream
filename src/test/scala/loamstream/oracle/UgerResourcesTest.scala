@@ -12,6 +12,8 @@ import loamstream.uger.UgerException
  * Mar 13, 2017
  */
 final class UgerResourcesTest extends FunSuite {
+  //scalastyle:off magic.number
+  
   import Resources.UgerResources
   import scala.concurrent.duration._
 
@@ -83,10 +85,10 @@ final class UgerResourcesTest extends FunSuite {
   test("fromMap - real-world data") {
     import UgerResources.fromMap
 
-    assert(fromMap(null).isFailure)
+    assert(fromMap(null).isFailure) //scalastyle:ignore null
       
     intercept[UgerException] {
-      fromMap(null).get
+      fromMap(null).get //scalastyle:ignore null
     }
       
     assert(fromMap(Map.empty).isFailure)
@@ -188,4 +190,6 @@ final class UgerResourcesTest extends FunSuite {
     "submission_time" -> "1488840615805.0000",
     "vmem" -> "0.0000",
     "wallclock" -> "2.7110")
+    
+  //scalastyle:on magic.number
 }

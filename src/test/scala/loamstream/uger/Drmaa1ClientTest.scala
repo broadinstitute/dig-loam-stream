@@ -12,6 +12,7 @@ import loamstream.oracle.uger.Queue
  * Mar 15, 2017
  */
 final class Drmaa1ClientTest extends FunSuite {
+  //scalastyle:off magic.number
   test("toResources - valid resource-usage data in JobInfo") {
     def doTest(expectedQueue: Option[Queue], expectedNode: Option[String]): Unit = {
       import QacctTestHelpers.actualQacctOutput
@@ -127,4 +128,6 @@ final class Drmaa1ClientTest extends FunSuite {
       "submission_time" -> "1488840615805.0000",
       "vmem" -> "0.0000",
       "wallclock" -> "2.7110")
+      
+  //scalastyle:on magic.number
 }

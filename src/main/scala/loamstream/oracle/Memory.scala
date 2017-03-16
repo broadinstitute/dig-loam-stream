@@ -17,7 +17,7 @@ final case class Memory private (value: Information) {
   def mb: Double = value.toMegabytes
   def kb: Double = value.toKilobytes 
   
-  def *(factor: Double): Memory = if(factor == 1) this else Memory(value * factor)
+  def *(factor: Double): Memory = if(factor == 1.0) this else Memory(value * factor)
   
   def /(factor: Double): Memory = {
     require(factor != 0.0)

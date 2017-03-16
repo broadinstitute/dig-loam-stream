@@ -7,6 +7,8 @@ import org.scalatest.FunSuite
  * Mar 13, 2017
  */
 final class CpusTest extends FunSuite {
+  //scalastyle:off magic.number
+  
   test("Guards") {
     intercept[Exception] {
       Cpus(0)
@@ -26,4 +28,5 @@ final class CpusTest extends FunSuite {
     
     assert(Cpus(42).isSingle === false)
   }
+  //scalastyle:on magic.number
 }

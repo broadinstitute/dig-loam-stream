@@ -7,6 +7,8 @@ import org.scalatest.FunSuite
  * Mar 13, 2017
  */
 final class MemoryTest extends FunSuite {
+  //scalastyle:off magic.number
+  
   import Memory.inGb
   import Memory.inBytes
   
@@ -98,4 +100,6 @@ final class MemoryTest extends FunSuite {
     
     assert(inGb(4).double === inGb(8))
   }
+  
+  //scalastyle:on magic.number
 }

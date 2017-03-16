@@ -7,6 +7,7 @@ import loamstream.oracle.uger.Queue
  * Mar 15, 2017
  */
 object QacctTestHelpers {
+  //scalastyle:off method.length
   def actualQacctOutput(queue: Option[Queue], node: Option[String]): Seq[String] = s"""
 qname        ${queue.map(_.name).getOrElse("")}
 hostname     ${node.getOrElse("")}
@@ -60,4 +61,5 @@ maxpss       0.000
 arid         undefined
 jc_name      NONE
     """.trim.split("\\n")
+  //scalastyle:on method.length
 }

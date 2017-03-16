@@ -18,7 +18,7 @@ def bedBimFam(prefix: Path): Seq[LoamStore[TXT]] = bedBimFam(prefix.toString)
 case class KlustakwikStores(base: String, fet: LoamStore[TXT], tempClu: LoamStore[TXT], clu: LoamStore[TXT],
                             klg: LoamStore[TXT], metricIds: LoamStore[TXT], klustakwikLog: LoamStore[TXT]) {
   val inputs: Set[LoamStore[TXT]] = Set(fet)
-  val outputs: Set[LoamStore[TXT]] = Set(tempClu, clu, klg, klustakwikLog)
+  val outputs: Set[LoamStore[TXT]] = Set(clu, klg, klustakwikLog)
 }
 
 object KlustakwikStores {

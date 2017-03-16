@@ -60,17 +60,15 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     dao.insertExecutions(execution)
   }
 
-  private def assertEqualJobStateAndOutputRecords(actual: Set[Execution], expected: Set[Execution]): Unit = {
+  private def assertEqualFieldsFor(actual: Set[Execution], expected: Set[Execution]): Unit = {
+    assert(actual.map(_.env) === expected.map(_.env))
     assert(actual.map(_.exitState) === expected.map(_.exitState))
+    assert(actual.map(_.settings) === expected.map(_.settings))
+    assert(actual.map(_.resources) === expected.map(_.resources))
     assert(actual.map(_.outputs) === expected.map(_.outputs))
   }
 
-  private def assertEqualJobStateAndOutputRecords(actual: Option[Execution], expected: Option[Execution]): Unit = {
-    assert(actual.map(_.exitState) === expected.map(_.exitState))
-    assert(actual.map(_.outputs) === expected.map(_.outputs))
-  }
-
-  private def assertEqualFieldsOf(actual: Set[Execution], expected: Set[Execution]): Unit = {
+  private def assertEqualFieldsFor(actual: Option[Execution], expected: Option[Execution]): Unit = {
     assert(actual.map(_.env) === expected.map(_.env))
     assert(actual.map(_.exitState) === expected.map(_.exitState))
     assert(actual.map(_.settings) === expected.map(_.settings))
@@ -205,12 +203,12 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       dao.insertExecutions(failed0)
       val expected0 = Execution(localEnv, localSettings, localResources, CommandResult(42), OutputRecord(output0.loc))
-      assertEqualFieldsOf(dao.allExecutions.toSet, Set(expected0))
+      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
 
       dao.insertExecutions(succeeded, failed1)
       val expected1 = failed1
       val expected2 = succeeded
-      assertEqualFieldsOf(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
+      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
     }
   }
   
@@ -230,7 +228,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       
       val expected0 = Execution(mockEnv, mockSettings, mockResources, CommandResult(-1), failedOutput(path0))
 
-      assertEqualFieldsOf(dao.allExecutions.toSet, Set(expected0))
+      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
     }
   }
   
@@ -255,9 +253,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       
       val expected0 = Execution(mockEnv, mockSettings, mockResources, CommandResult(42), failedOutput(path0))
 
-      assertEqualJobStateAndOutputRecords(dao.allExecutions.toSet, Set(expected0))
-
-      assertEqualJobStateAndOutputRecords(dao.findExecution(output0), Some(expected0))
+      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+      assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
 
       assert(dao.findExecution(output1) === None)
       assert(dao.findExecution(output2) === None)
@@ -267,11 +264,11 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val expected1 = ex1
       val expected2 = ex2
 
-      assertEqualJobStateAndOutputRecords(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
+      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
 
-      assertEqualJobStateAndOutputRecords(dao.findExecution(output0), Some(expected0))
-      assertEqualJobStateAndOutputRecords(dao.findExecution(output1), Some(expected1))
-      assertEqualJobStateAndOutputRecords(dao.findExecution(output2), Some(expected1))
+      assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
+      assertEqualFieldsFor(dao.findExecution(output1), Some(expected1))
+      assertEqualFieldsFor(dao.findExecution(output2), Some(expected1))
     }
   }
   

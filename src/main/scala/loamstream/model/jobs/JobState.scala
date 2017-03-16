@@ -22,7 +22,6 @@ sealed trait JobState {
 object JobState {
   case object NotStarted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
-  //case object Failed extends FailureState
   case object Succeeded extends SuccessState
   case object Skipped extends SuccessState
   case object Unknown extends NeitherSuccessNorFailure

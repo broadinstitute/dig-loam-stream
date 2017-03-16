@@ -31,15 +31,11 @@ sealed trait UgerStatus {
 
 object UgerStatus {
   case object Done extends UgerStatus
-  //case object DoneUndetermined extends UgerStatus
-  //case object Failed extends UgerStatus
   case object Queued extends UgerStatus
   case object QueuedHeld extends UgerStatus
   case object Requeued extends UgerStatus
   case object RequeuedHeld extends UgerStatus
   case object Running extends UgerStatus
-  //case object Suspended extends UgerStatus
-  //case object Undetermined extends UgerStatus
 
   final case class CommandResult(exitStatus: Int, resources: Option[UgerResources]) extends UgerStatus
   

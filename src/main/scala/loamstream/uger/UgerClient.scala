@@ -48,7 +48,7 @@ object UgerClient extends Loggable {
       }.flatten)
     }
     
-    private def firstOption[A](iter: Iterator[A]): Option[A] = iter.toStream.headOption
+    private def firstOption[A](iter: Iterator[A]): Option[A] = if(iter.hasNext) Some(iter.next()) else None
   }
   
   object QacctUgerClient {

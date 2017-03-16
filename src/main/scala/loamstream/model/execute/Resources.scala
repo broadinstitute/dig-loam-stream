@@ -14,8 +14,8 @@ sealed trait Resources {
   def endTime: Option[Instant]
 
   def elapsedTime: Option[Instant] = for {
-    st: Instant <- startTime
-    et: Instant <- endTime
+    st <- startTime
+    et <- endTime
   } yield et.minusMillis(st.toEpochMilli)
 }
 

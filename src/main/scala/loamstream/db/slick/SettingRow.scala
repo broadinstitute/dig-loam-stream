@@ -19,7 +19,9 @@ object SettingRow {
   }
 }
 
-final case class LocalSettingRow(executionId: Int, mem: Option[Int]) extends SettingRow {
+final case class LocalSettingRow(executionId: Int,
+                                 mem: Option[Int]) extends SettingRow {
+
   def toSettings = new LocalSettings(mem)
 }
 

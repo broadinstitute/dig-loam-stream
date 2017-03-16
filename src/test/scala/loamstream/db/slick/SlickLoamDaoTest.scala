@@ -2,6 +2,7 @@ package loamstream.db.slick
 
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.time.Instant
 
 import loamstream.model.execute._
 import org.scalatest.FunSuite
@@ -66,6 +67,14 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   private def assertEqualJobStateAndOutputRecords(actual: Option[Execution], expected: Option[Execution]): Unit = {
     assert(actual.map(_.exitState) === expected.map(_.exitState))
+    assert(actual.map(_.outputs) === expected.map(_.outputs))
+  }
+
+  private def assertEqualFieldsOf(actual: Set[Execution], expected: Set[Execution]): Unit = {
+    assert(actual.map(_.env) === expected.map(_.env))
+    assert(actual.map(_.exitState) === expected.map(_.exitState))
+    assert(actual.map(_.settings) === expected.map(_.settings))
+    assert(actual.map(_.resources) === expected.map(_.resources))
     assert(actual.map(_.outputs) === expected.map(_.outputs))
   }
 
@@ -169,13 +178,23 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
 
+      val localEnv = ExecutionEnvironment.Local
+      val ugerEnv = ExecutionEnvironment.Uger
+      val googleEnv = ExecutionEnvironment.Google
+
       val localSettings = LocalSettings(Some(16))
       val ugerSettings = UgerSettings(8, 4, Queue.Short)
       val googleSettings = GoogleSettings("some-cluster")
 
-      val failed0 = Execution(mockEnv, localSettings, mockResources, CommandResult(42), Set(output0))
-      val failed1 = Execution(mockEnv, ugerSettings, mockResources, CommandResult(1), Set.empty[OutputRecord])
-      val succeeded = Execution(mockEnv, googleSettings, mockResources, CommandResult(0), Set(output1, output2))
+      val localResources = LocalResources(Some(Instant.ofEpochMilli(123)), Some(Instant.ofEpochMilli(456)))
+      val ugerResources = UgerResources(Some(2.1F), Some(12.34F), Some("nodeName"), Some(Queue.Long),
+        Some(Instant.ofEpochMilli(64532)), Some(Instant.ofEpochMilli(9345345)))
+      val googleResources = GoogleResources(Some("clusterName"),
+        Some(Instant.ofEpochMilli(1)), Some(Instant.ofEpochMilli(72345)))
+
+      val failed0 = Execution(localEnv, localSettings, localResources, CommandResult(42), Set(output0))
+      val failed1 = Execution(ugerEnv, ugerSettings, ugerResources, CommandResult(1), Set.empty[OutputRecord])
+      val succeeded = Execution(googleEnv, googleSettings, googleResources, CommandResult(0), Set(output1, output2))
 
       assert(failed0.isFailure)
       assert(failed1.isFailure)
@@ -185,14 +204,13 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(noExecutions)
 
       dao.insertExecutions(failed0)
-      val expected0 = Execution(mockEnv, localSettings, mockResources, CommandResult(42), OutputRecord(output0.loc))
-      assertEqualJobStateAndOutputRecords(dao.allExecutions.toSet, Set(expected0))
-      assert(dao.allExecutions.toSet === Set(expected0))
+      val expected0 = Execution(localEnv, localSettings, localResources, CommandResult(42), OutputRecord(output0.loc))
+      assertEqualFieldsOf(dao.allExecutions.toSet, Set(expected0))
 
       dao.insertExecutions(succeeded, failed1)
       val expected1 = failed1
       val expected2 = succeeded
-      assertEqualJobStateAndOutputRecords(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
+      assertEqualFieldsOf(dao.allExecutions.toSet, Set(expected0, expected1, expected2))
     }
   }
   

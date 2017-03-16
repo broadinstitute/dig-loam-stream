@@ -14,18 +14,18 @@ import loamstream.model.jobs.JobState.{CommandInvocationFailure, CommandResult}
 
 /**
  * @author clint
+ *         kyuksel
  * date: Aug 8, 2016
  *
  * LoamDao implementation backed by Slick
  * For a schema description, see Tables
  */
+// scalastyle:off number.of.methods
 final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Loggable {
   val driver = descriptor.dbType.driver
 
   import driver.api._
   import Futures.waitFor
-
-  private lazy val outputsAndExecutions = tables.outputs.join(tables.executions).on(_.executionId === _.id)
 
   private def doFindOutput[A](loc: String, f: OutputRow => A): Option[A] = {
     val action = findOutputAction(loc)
@@ -61,12 +61,14 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
     for {
       newExecution <- (Queries.insertExecution += executionRow)
-      outputsWithExecutionIds = tieOutputsToExecution(execution, newExecution.id)
+      outputsWithExecutionId = tieOutputsToExecution(execution, newExecution.id)
       settingsWithExecutionId = tieSettingsToExecution(execution, newExecution.id)
-      insertedOutputCounts <- insertOrUpdateOutputRows(outputsWithExecutionIds)
+      resourcesWithExecutionId = tieResourcesToExecution(execution, newExecution.id)
+      insertedOutputCounts <- insertOrUpdateOutputRows(outputsWithExecutionId)
       insertedSettingCounts <- insertOrUpdateSettingRow(settingsWithExecutionId)
+      insertedResourceCounts <- insertOrUpdateResourceRow(resourcesWithExecutionId)
     } yield {
-      insertedOutputCounts ++ Iterable(insertedSettingCounts)
+      insertedOutputCounts ++ Iterable(insertedSettingCounts) ++ Iterable(insertedResourceCounts)
     }
   }
 
@@ -161,9 +163,17 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def insertOrUpdateSettingRow(row: SettingRow): DBIO[Int] = {
     row match {
-      case s @ LocalSettingRow(_, _) => tables.localSettings.insertOrUpdate(s)
-      case s @ UgerSettingRow(_, _, _, _) => tables.ugerSettings.insertOrUpdate(s)
-      case s @ GoogleSettingRow(_, _) => tables.googleSettings.insertOrUpdate(s)
+      case r @ LocalSettingRow(_, _) => tables.localSettings.insertOrUpdate(r)
+      case r @ UgerSettingRow(_, _, _, _) => tables.ugerSettings.insertOrUpdate(r)
+      case r @ GoogleSettingRow(_, _) => tables.googleSettings.insertOrUpdate(r)
+    }
+  }
+
+  private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = {
+    row match {
+      case r @ LocalResourceRow(_, _, _) => tables.localResources.insertOrUpdate(r)
+      case r @ UgerResourceRow(_, _, _, _, _, _, _) => tables.ugerResources.insertOrUpdate(r)
+      case r @ GoogleResourceRow(_, _, _, _) => tables.googleResources.insertOrUpdate(r)
     }
   }
 
@@ -183,6 +193,10 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def tieSettingsToExecution(execution: Execution, executionId: Int): SettingRow = {
       SettingRow.fromSettings(execution.settings, executionId)
+  }
+
+  private def tieResourcesToExecution(execution: Execution, executionId: Int): ResourceRow = {
+    ResourceRow.fromResources(execution.resources, executionId)
   }
 
   private object Queries {
@@ -283,3 +297,4 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private[slick] lazy val tables = new Tables(driver)
 }
+// scalastyle:on number.of.methods

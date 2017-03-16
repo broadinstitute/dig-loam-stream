@@ -3,6 +3,8 @@ package loamstream.uger
 import loamstream.oracle.uger.Queue
 import loamstream.util.ValueBox
 import loamstream.util.Functions
+import scala.util.control.NonFatal
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -16,7 +18,7 @@ trait UgerClient {
   def getQueue(jobId: String): Option[Queue]
 }
 
-object UgerClient {
+object UgerClient extends Loggable {
   /**
    * A UgerClient that retrieves metadata from whitespace-seperated key-value output, like what's
    * produced by `qacct`.  Parameterized on the actual method of retrieving this output given a 
@@ -65,8 +67,16 @@ object UgerClient {
     def getQacctOutputFor(jobId: String): Seq[String] = {
       val tokens = makeTokens(binaryName, jobId)
          
-      //Return all output lines
-      tokens.lineStream.toIndexedSeq
+      try {
+        //Return all output lines
+        tokens.lineStream.toIndexedSeq
+      } catch {
+        case NonFatal(e) => {
+          warn(s"Error invoking '$binaryName'; execution node and queue won't be available.", e)
+          
+          Seq.empty
+        }
+      }
     }
     
     new QacctUgerClient(getQacctOutputFor)

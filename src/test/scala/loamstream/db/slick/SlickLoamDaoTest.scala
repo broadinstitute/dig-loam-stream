@@ -60,22 +60,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     dao.insertExecutions(execution)
   }
 
-  private def assertEqualFieldsFor(actual: Set[Execution], expected: Set[Execution]): Unit = {
-    assert(actual.map(_.env) === expected.map(_.env))
-    assert(actual.map(_.exitState) === expected.map(_.exitState))
-    assert(actual.map(_.settings) === expected.map(_.settings))
-    assert(actual.map(_.resources) === expected.map(_.resources))
-    assert(actual.map(_.outputs) === expected.map(_.outputs))
-  }
-
-  private def assertEqualFieldsFor(actual: Option[Execution], expected: Option[Execution]): Unit = {
-    assert(actual.map(_.env) === expected.map(_.env))
-    assert(actual.map(_.exitState) === expected.map(_.exitState))
-    assert(actual.map(_.settings) === expected.map(_.settings))
-    assert(actual.map(_.resources) === expected.map(_.resources))
-    assert(actual.map(_.outputs) === expected.map(_.outputs))
-  }
-
   test("insert/Read Outputs") {
     createTablesAndThen {
       assert(noOutputs)

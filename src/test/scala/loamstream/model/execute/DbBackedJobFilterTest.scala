@@ -5,7 +5,6 @@ import java.time.Instant
 
 import org.scalatest.{FunSuite, PrivateMethodTester}
 import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.model.execute.ExecutionEnvironment.Local
 import loamstream.model.jobs.{Execution, JobState, Output, OutputRecord}
 import loamstream.util.HashType.Sha1
 
@@ -37,16 +36,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   private val failedOutput2 = failedOutput(p2)
 
   private def executions = dao.allExecutions.toSet
-
-  private def assertEqualJobStateAndOutputRecords(actual: Set[Execution], expected: Set[Execution]): Unit = {
-    assert(actual.map(_.exitState) === expected.map(_.exitState))
-    assert(actual.map(_.outputs) === expected.map(_.outputs))
-  }
-
-  private def assertEqualJobStateAndOutputRecords(actual: Option[Execution], expected: Option[Execution]): Unit = {
-    assert(actual.map(_.exitState) === expected.map(_.exitState))
-    assert(actual.map(_.outputs) === expected.map(_.outputs))
-  }
 
   import JobState._
 
@@ -90,7 +79,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       filter.record(Seq(e))
 
-      assertEqualJobStateAndOutputRecords(executions, Set(e))
+      assertEqualFieldsFor(executions, Set(e))
     }
   }
 
@@ -108,7 +97,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       filter.record(Seq(e))
 
-      assertEqualJobStateAndOutputRecords(executions, Set(e))
+      assertEqualFieldsFor(executions, Set(e))
     }
   }
 
@@ -127,7 +116,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       filter.record(Seq(e))
 
-      assertEqualJobStateAndOutputRecords(executions, Set(withHashedOutputs))
+      assertEqualFieldsFor(executions, Set(withHashedOutputs))
     }
   }
 
@@ -145,7 +134,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       filter.record(Seq(e))
 
-      assertEqualJobStateAndOutputRecords(executions, Set(Execution(mockEnv, mockSettings, mockResources,
+      assertEqualFieldsFor(executions, Set(Execution(mockEnv, mockSettings, mockResources,
         CommandResult(42), failedOutput0, failedOutput1, failedOutput2)))
     }
   }

@@ -15,7 +15,7 @@ import loamstream.model.jobs.JobState.{CommandInvocationFailure, CommandResult}
 /**
  * @author clint
  *         kyuksel
- * date: Aug 8, 2016
+ *         date: 8/8/2016
  *
  * LoamDao implementation backed by Slick
  * For a schema description, see Tables

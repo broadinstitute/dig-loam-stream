@@ -3,6 +3,7 @@ package loamstream.model.execute
 import org.scalatest.FunSuite
 import scala.concurrent.duration.DurationDouble
 import scala.concurrent.duration.DurationInt
+import org.scalactic.TripleEqualsSupport
 
 /**
  * @author clint
@@ -27,13 +28,16 @@ final class CpuTimeTest extends FunSuite {
   }
   
   test("inSeconds") {
-    def doRoundTrip(d: Double): Unit = assert(CpuTime.inSeconds(d).seconds === d)
+    def doRoundTrip(d: Double): Unit = {
+      import TripleEqualsSupport.Spread
+      
+      assert(CpuTime.inSeconds(d).seconds === Spread(d, 0.0001))
+    }
     
     doRoundTrip(0.0)
     doRoundTrip(0.1)
     doRoundTrip(42.0)
     doRoundTrip(Double.MinPositiveValue)
-    doRoundTrip(Double.MaxValue)
     
     intercept[Exception] {
       CpuTime.inSeconds(-0.1)
@@ -41,10 +45,6 @@ final class CpuTimeTest extends FunSuite {
     
     intercept[Exception] {
       CpuTime.inSeconds(-42.0)
-    }
-    
-    intercept[Exception] {
-      CpuTime.inSeconds(Double.MinValue)
     }
   }
 }

@@ -7,20 +7,27 @@ import loamstream.model.jobs.Execution
 import loamstream.uger.Queue
 import org.scalatest.FunSuite
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.TestHelpers
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.GoogleResources
 
 /**
  * @author kyuksel
  *         date: 3/11/17
  */
 trait ProvidesEnvAndResources extends FunSuite {
-  protected val mockEnv: ExecutionEnvironment = Uger
-  protected val mockSettings: Settings = {
+  val mockEnv: ExecutionEnvironment = Uger
+  
+  val mockSettings: Settings = {
     val mem = 8
     val cpu = 4
 
     UgerSettings(mem, cpu, Queue.Short)
   }
-  protected val mockResources: Resources = {
+  
+  val mockLocalResources: LocalResources = TestHelpers.localResources
+  
+  val mockUgerResources: UgerResources = {
     val mem = Memory.inGb(2.1)
     val cpu = CpuTime.inSeconds(12.34)
     // scalastyle:off magic.number
@@ -29,20 +36,21 @@ trait ProvidesEnvAndResources extends FunSuite {
     // scalastyle:on magic.number
     UgerResources(mem, cpu, Some("nodeName"), Some(Queue.Long), startTime, endTime)
   }
+  
+  val mockGoogleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)
+  
+  val mockResources: Resources = mockUgerResources
 
-  protected def assertEqualFieldsFor(actual: Set[Execution], expected: Set[Execution]): Unit = {
+  protected def assertEqualFieldsFor(actual: Iterable[Execution], expected: Iterable[Execution]): Unit = {
     assert(actual.map(_.env) === expected.map(_.env))
+    
     assert(actual.map(_.exitState) === expected.map(_.exitState))
-    assert(actual.map(_.settings) === expected.map(_.settings))
-    assert(actual.map(_.resources) === expected.map(_.resources))
-    assert(actual.map(_.outputs) === expected.map(_.outputs))
-  }
-
-  protected def assertEqualFieldsFor(actual: Option[Execution], expected: Option[Execution]): Unit = {
-    assert(actual.map(_.env) === expected.map(_.env))
-    assert(actual.map(_.exitState) === expected.map(_.exitState))
+    
     assert(actual.map(_.settings) === expected.map(_.settings))
     assert(actual.map(_.resources) === expected.map(_.resources))
     assert(actual.map(_.outputs) === expected.map(_.outputs))
   }
 }
+
+//NB: Make fields from the trait available "statically" 
+object ProvidesEnvAndResources extends ProvidesEnvAndResources

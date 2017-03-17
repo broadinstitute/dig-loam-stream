@@ -28,7 +28,13 @@ object UgerClient extends Loggable {
     
     //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
     //qacct in the production case, more than necessary.
-    private val qacctOutputForJobId: String => Seq[String] = Functions.memoize(qacctOutputForJobIdFn)
+    //NB: Don't cache empty results, since this likely indicates a failure when invoking qaact, and we'd like to
+    //be able to try again in that case.
+    private val qacctOutputForJobId: String => Seq[String] = {
+      val shouldCache: Seq[String] => Boolean = _.nonEmpty
+      
+      Functions.memoize(qacctOutputForJobIdFn, shouldCache)
+    }
     
     protected def getQacctOutputFor(jobId: String): Seq[String] = qacctOutputForJobId(jobId)
     

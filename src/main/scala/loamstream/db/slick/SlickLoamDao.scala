@@ -67,9 +67,9 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       resourcesWithExecutionId = tieResourcesToExecution(execution, newExecution.id)
       insertedOutputCounts <- insertOrUpdateOutputRows(outputsWithExecutionId)
       insertedSettingCounts <- insertOrUpdateSettingRow(settingsWithExecutionId)
-      insertedResourceCounts <- insertOrUpdateResourceRow(resourcesWithExecutionId)
+      insertedResourceCounts <- insertOrUpdateResourceRows(resourcesWithExecutionId.toSeq)
     } yield {
-      insertedOutputCounts ++ Iterable(insertedSettingCounts) ++ Iterable(insertedResourceCounts)
+      insertedOutputCounts ++ Iterable(insertedSettingCounts) ++ insertedResourceCounts
     }
   }
 
@@ -163,21 +163,11 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     DBIO.sequence(insertActions).transactionally
   }
 
-  private def insertOrUpdateSettingRow(row: SettingRow): DBIO[Int] = {
-    row match {
-      case r @ LocalSettingRow(_, _) => tables.localSettings.insertOrUpdate(r)
-      case r @ UgerSettingRow(_, _, _, _) => tables.ugerSettings.insertOrUpdate(r)
-      case r @ GoogleSettingRow(_, _) => tables.googleSettings.insertOrUpdate(r)
-    }
-  }
+  private def insertOrUpdateSettingRow(row: SettingRow): DBIO[Int] = row.insertOrUpdate(tables)
 
-  private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = {
-    row match {
-      case r @ LocalResourceRow(_, _, _) => tables.localResources.insertOrUpdate(r)
-      case r @ UgerResourceRow(_, _, _, _, _, _, _) => tables.ugerResources.insertOrUpdate(r)
-      case r @ GoogleResourceRow(_, _, _, _) => tables.googleResources.insertOrUpdate(r)
-    }
-  }
+  private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = row.insertOrUpdate(tables)
+  
+  private def insertOrUpdateResourceRows(rows: Seq[ResourceRow]): DBIO[Seq[Int]] = DBIO.sequence(rows.map(insertOrUpdateResourceRow))
 
   private def tieOutputsToExecution(execution: Execution, executionId: Int): Seq[OutputRow] = {
     def toOutputRows(f: OutputRecord => OutputRow): Seq[OutputRow] = {
@@ -197,8 +187,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       SettingRow.fromSettings(execution.settings, executionId)
   }
 
-  private def tieResourcesToExecution(execution: Execution, executionId: Int): ResourceRow = {
-    ResourceRow.fromResources(execution.resources, executionId)
+  private def tieResourcesToExecution(execution: Execution, executionId: Int): Option[ResourceRow] = {
+    execution.resources.map(rs => ResourceRow.fromResources(rs, executionId))
   }
 
   private object Queries {
@@ -224,6 +214,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   private def reify(executionRow: ExecutionRow): Execution = {
+    //def toExecution(settings: Settings, resources: Resources, outputs: Set[OutputRecord]): Execution = {
+    
     executionRow.toExecution(settingsFor(executionRow), resourcesFor(executionRow), outputsFor(executionRow).toSet)
   }
 
@@ -235,24 +227,27 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   private def settingsFor(execution: ExecutionRow): Settings = {
-      val queryResults = ExecutionEnvironment.fromString(execution.env) match {
-        case ExecutionEnvironment.Local =>
-          runBlocking(tables.localSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
-        case ExecutionEnvironment.Uger =>
-          runBlocking(tables.ugerSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
-        case ExecutionEnvironment.Google =>
-          runBlocking(tables.googleSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
+    val queryResults = ExecutionEnvironment.fromString(execution.env) match {
+      case ExecutionEnvironment.Local =>
+        runBlocking(tables.localSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
+      case ExecutionEnvironment.Uger =>
+        runBlocking(tables.ugerSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
+      case ExecutionEnvironment.Google =>
+        runBlocking(tables.googleSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
     }
 
-    require(queryResults.size <= 1,
-      s"There must be at most a single set of settings per execution. " +
+    require(queryResults.size != 0,
+      s"There must be a single set of settings per execution. " +
+        s"Found 0 for the execution with ID '${execution.id}'")
+    
+    require(queryResults.size == 1,
+      s"There must be a single set of settings per execution. " +
         s"Found more than one for the execution with ID '${execution.id}'")
 
-    if (queryResults.nonEmpty) { queryResults.head }
-    else { new LocalSettings }
+    queryResults.head
   }
 
-  private def resourcesFor(execution: ExecutionRow): Resources = {
+  private def resourcesFor(execution: ExecutionRow): Option[Resources] = {
     val queryResults = ExecutionEnvironment.fromString(execution.env) match {
       case ExecutionEnvironment.Local =>
         runBlocking(tables.localResources.filter(_.executionId === execution.id).result).map(_.toResources)
@@ -261,13 +256,12 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       case ExecutionEnvironment.Google =>
         runBlocking(tables.googleResources.filter(_.executionId === execution.id).result).map(_.toResources)
     }
-
+    
     require(queryResults.size <= 1,
-      s"There must be at most a single set of resource usages per execution. " +
-        s"Found more than one for the execution with ID '${execution.id}'")
+      s"There must be at most 1 sets of resource usages per execution. " +
+        s"Found ${queryResults.size} for the execution with ID '${execution.id}'")
 
-    if (queryResults.nonEmpty) { queryResults.head }
-    else { LocalResources.DUMMY }
+    queryResults.headOption
   }
 
   //TODO: Re-evaluate; block all the time?
@@ -279,10 +273,10 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution(_, _, _, cr: CommandResult, _) => e -> cr
+      case e @ Execution(_, _, cr: CommandResult, _) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
       //TODO: Dummy value
-      case e @ Execution(_, _, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1, Option(LocalResources.DUMMY))
+      case e @ Execution(_, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1, None)
     }
   }
 

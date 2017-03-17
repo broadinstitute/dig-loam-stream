@@ -9,7 +9,6 @@ import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
  */
 final case class Execution(env: ExecutionEnvironment,
                            settings: Settings,
-                           resources: Resources,
                            exitState: JobState,
                            outputs: Set[OutputRecord]) {
 
@@ -25,30 +24,33 @@ final case class Execution(env: ExecutionEnvironment,
   }
 
   def withOutputRecords(newOutputs: Set[OutputRecord]): Execution = copy(outputs = newOutputs)
-  def withOutputRecords(newOutput: OutputRecord, others: OutputRecord*): Execution =
+  def withOutputRecords(newOutput: OutputRecord, others: OutputRecord*): Execution = {
     withOutputRecords((newOutput +: others).toSet)
+  }
+  
+  def resources: Option[Resources] = exitState.resources
 }
 
 object Execution {
   def apply(env: ExecutionEnvironment,
             settings: Settings,
-            resources: Resources,
             exitState: JobState,
-            outputs: OutputRecord*): Execution =
-    Execution(env, settings, resources, exitState, outputs.toSet)
+            outputs: OutputRecord*): Execution = {
+    Execution(env, settings, exitState, outputs.toSet)
+  }
 
   def fromOutputs(env: ExecutionEnvironment,
                   settings: Settings,
-                  resources: Resources,
                   exitState: JobState,
-                  outputs: Set[Output]): Execution =
-    Execution(env, settings, resources, exitState, outputs.map(_.toOutputRecord))
+                  outputs: Set[Output]): Execution = {
+    Execution(env, settings, exitState, outputs.map(_.toOutputRecord))
+  }
 
   def fromOutputs(env: ExecutionEnvironment,
                   settings: Settings,
-                  resources: Resources,
                   exitState: JobState,
                   output: Output,
-                  others: Output*): Execution =
-    fromOutputs(env, settings, resources, exitState, (output +: others).toSet)
+                  others: Output*): Execution = {
+    fromOutputs(env, settings, exitState, (output +: others).toSet)
+  }
 }

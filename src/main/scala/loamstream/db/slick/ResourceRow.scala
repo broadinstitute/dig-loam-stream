@@ -14,6 +14,9 @@ import loamstream.model.execute.CpuTime
  */
 sealed trait ResourceRow {
   def toResources: Resources
+  
+  //NB: Double-dispatch pattern, to avoid repeated pattern-matches in SlickLoamDao.
+  def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int]
 }
 
 object ResourceRow {
@@ -39,6 +42,12 @@ final case class LocalResourceRow(executionId: Int,
                                   endTime: Timestamp) extends ResourceRow {
   
   override def toResources: Resources = LocalResources(startTime.toInstant, endTime.toInstant)
+  
+  override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
+    import tables.driver.api._
+    
+    tables.localResources.insertOrUpdate(this)
+  }
 }
 
 final case class UgerResourceRow(executionId: Int,
@@ -56,6 +65,12 @@ final case class UgerResourceRow(executionId: Int,
         Memory.inGb(mem), CpuTime(cpu.seconds), node, 
         queue.flatMap(Queue.fromString), startTime.toInstant, endTime.toInstant)
   }
+  
+  override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
+    import tables.driver.api._
+    
+    tables.ugerResources.insertOrUpdate(this)
+  }
 }
 
 final case class GoogleResourceRow(executionId: Int,
@@ -64,4 +79,10 @@ final case class GoogleResourceRow(executionId: Int,
                                    endTime: Timestamp) extends ResourceRow {
 
   override def toResources: Resources = GoogleResources(cluster, startTime.toInstant, endTime.toInstant)
+  
+  override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
+    import tables.driver.api._
+    
+    tables.googleResources.insertOrUpdate(this)
+  }
 }

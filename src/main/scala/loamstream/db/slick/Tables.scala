@@ -107,10 +107,9 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   final class LocalSettings(tag: Tag) extends Table[LocalSettingRow](tag, Names.localSettings) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def mem = column[Option[Int]]("MEM")
     val foreignKey = s"$foreignKeyPrefix${Names.localSettings}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, mem) <> (LocalSettingRow.tupled, LocalSettingRow.unapply)
+    def * = (executionId) <> (LocalSettingRow.tupled, LocalSettingRow.unapply)
   }
 
   final class UgerSettings(tag: Tag) extends Table[UgerSettingRow](tag, Names.ugerSettings) {

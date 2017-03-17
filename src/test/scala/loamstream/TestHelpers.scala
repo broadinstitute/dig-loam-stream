@@ -6,6 +6,8 @@ import com.typesafe.config.ConfigFactory
 import loamstream.conf.UgerConfig
 import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.googlecloud.HailConfig
+import loamstream.model.execute.Resources.LocalResources
+import java.time.Instant
 
 /**
   * @author clint
@@ -28,5 +30,11 @@ object TestHelpers {
     val hailConfig = HailConfig.fromConfig(config)
     
     LoamConfig(ugerConfig.toOption, googleConfig.toOption, hailConfig.toOption)
+  }
+  
+  lazy val localResources: LocalResources = { 
+    val now = Instant.now
+      
+    LocalResources(now, now)
   }
 }

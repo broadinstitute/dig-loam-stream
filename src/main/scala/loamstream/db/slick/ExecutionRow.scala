@@ -10,10 +10,9 @@ import loamstream.model.execute.Resources.LocalResources
  * date: Sep 22, 2016
  */
 final case class ExecutionRow(id: Int, env: String, exitStatus: Int) {
-  def toExecution(settings: Settings, resources: Resources, outputs: Set[OutputRecord]): Execution = {
-    //TODO: `LocalResources` is just a dummy transitional value
-    val commandResult = CommandResult(exitStatus, Option(LocalResources.DUMMY))
+  def toExecution(settings: Settings, resources: Option[Resources], outputs: Set[OutputRecord]): Execution = {
+    val commandResult = CommandResult(exitStatus, resources)
     
-    Execution(ExecutionEnvironment.fromString(env), settings, resources, commandResult, outputs)
+    Execution(ExecutionEnvironment.fromString(env), settings, commandResult, outputs)
   }
 }

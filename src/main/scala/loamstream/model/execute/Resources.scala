@@ -34,16 +34,6 @@ object Resources {
       startTime: Instant,
       endTime: Instant) extends Resources
       
-  object LocalResources {
-    //TODO: remove
-    @deprecated("", "")
-    def DUMMY: LocalResources = {
-      val now = Instant.now
-      
-      LocalResources(now, now)
-    }
-  }
-  
   final case class GoogleResources(
       cluster: String,
       startTime: Instant,

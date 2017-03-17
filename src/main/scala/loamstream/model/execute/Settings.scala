@@ -10,7 +10,7 @@ import loamstream.uger.Queue
 sealed trait Settings
 
 //TODO: Can we require an amount of ram for local jobs?  LocalSettings should be empty if we can't. 
-final case class LocalSettings(mem: Option[Int] = None) extends Settings
+final case class LocalSettings() extends Settings
 
 final case class UgerSettings(mem: Int,
                               cpu: Int,

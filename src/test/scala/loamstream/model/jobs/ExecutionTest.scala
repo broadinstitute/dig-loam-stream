@@ -8,6 +8,7 @@ import loamstream.model.execute._
 import loamstream.model.execute.ExecutionEnvironment.Local
 import loamstream.util.TypeBox
 import loamstream.model.execute.Resources.LocalResources
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -20,7 +21,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   private val p1 = Paths.get("nuh")
   
   test("transformOutputs - no outputs") {
-    val noOutputs = Execution(mockEnv, mockSettings, mockResources, JobState.Succeeded, Set.empty[OutputRecord])
+    val noOutputs = Execution(mockEnv, mockSettings, JobState.Succeeded, Set.empty[OutputRecord])
     
     val transformed = noOutputs.transformOutputs(os => os.map(_ => PathOutput(p0).toOutputRecord))
     
@@ -28,8 +29,8 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   }
   
   test("transformOutputs - some outputs") {
-    val hasOutputs = Execution(mockEnv, mockSettings, mockResources,
-      JobState.Succeeded, Set(p0, p1).map(PathOutput(_).toOutputRecord))
+    val hasOutputs = Execution(mockEnv, mockSettings, 
+        JobState.Succeeded, Set(p0, p1).map(PathOutput(_).toOutputRecord))
     
     val munge: OutputRecord => OutputRecord = rec => OutputRecord(s"${rec.loc}123", None, None)
 
@@ -41,13 +42,13 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   
   test("isCommandExecution") {
     def assertIsCommandExecution(state: JobState): Unit = {
-      def execution(state: JobState) = Execution(mockEnv, mockSettings, mockResources, state, Set.empty[OutputRecord])
+      def execution(state: JobState) = Execution(mockEnv, mockSettings, state, Set.empty[OutputRecord])
       
       assert(execution(state).isCommandExecution)
     }
     
     def assertIsNOTCommandExecution(state: JobState): Unit = {
-      def execution(state: JobState) = Execution(mockEnv, mockSettings, mockResources, state, Set.empty[OutputRecord])
+      def execution(state: JobState) = Execution(mockEnv, mockSettings, state, Set.empty[OutputRecord])
       
       assert(!execution(state).isCommandExecution)
     }
@@ -56,10 +57,10 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     
     import JobState._
     
-    assertIsCommandExecution(CommandResult(0, Some(LocalResources.DUMMY)))
-    assertIsCommandExecution(CommandResult(1, Some(LocalResources.DUMMY)))
-    assertIsCommandExecution(CommandResult(-1, Some(LocalResources.DUMMY)))
-    assertIsCommandExecution(CommandResult(42, Some(LocalResources.DUMMY)))
+    assertIsCommandExecution(CommandResult(0, Some(TestHelpers.localResources)))
+    assertIsCommandExecution(CommandResult(1, Some(TestHelpers.localResources)))
+    assertIsCommandExecution(CommandResult(-1, Some(TestHelpers.localResources)))
+    assertIsCommandExecution(CommandResult(42, Some(TestHelpers.localResources)))
     
     assertIsCommandExecution(CommandResult(0, None))
     assertIsCommandExecution(CommandResult(1, None))

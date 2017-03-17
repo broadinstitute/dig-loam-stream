@@ -16,21 +16,16 @@ import loamstream.util.Tries
  *         date: 3/9/17
  */
 sealed trait Resources {
-  def startTime: Option[Instant]
+  def startTime: Instant
 
-  def endTime: Option[Instant]
+  def endTime: Instant
 
   //TODO: Maybe java.time.Duration instead?
-  final def elapsedTime: Option[Duration] = {
+  final def elapsedTime: Duration = {
     import java.time.{ Duration => JDuration }
     import scala.concurrent.duration._
   
-    for {
-      st <- startTime
-      et <- endTime
-    } yield {
-      JDuration.between(st, et).toMillis.milliseconds
-    }
+    JDuration.between(startTime, endTime).toMillis.milliseconds
   }
 }
 

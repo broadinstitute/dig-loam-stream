@@ -133,8 +133,8 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   final class LocalResources(tag: Tag) extends Table[LocalResourceRow](tag, Names.localResources) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def startTime = column[Option[Timestamp]]("START_TIME")
-    def endTime = column[Option[Timestamp]]("END_TIME")
+    def startTime = column[Timestamp]("START_TIME")
+    def endTime = column[Timestamp]("END_TIME")
     val foreignKey = s"$foreignKeyPrefix${Names.localResources}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, startTime, endTime) <> (LocalResourceRow.tupled, LocalResourceRow.unapply)
@@ -142,12 +142,12 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   final class UgerResources(tag: Tag) extends Table[UgerResourceRow](tag, Names.ugerResources) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def mem = column[Option[Float]]("MEM")
-    def cpu = column[Option[Float]]("CPU")
+    def mem = column[Double]("MEM")
+    def cpu = column[Double]("CPU")
     def node = column[Option[String]]("NODE")
     def queue = column[Option[String]]("QUEUE")
-    def startTime = column[Option[Timestamp]]("START_TIME")
-    def endTime = column[Option[Timestamp]]("END_TIME")
+    def startTime = column[Timestamp]("START_TIME")
+    def endTime = column[Timestamp]("END_TIME")
     val foreignKey = s"$foreignKeyPrefix${Names.ugerResources}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, mem, cpu, node, queue, startTime, endTime) <>
@@ -156,15 +156,15 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   final class GoogleResources(tag: Tag) extends Table[GoogleResourceRow](tag, Names.googleResources) {
     def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def cluster = column[Option[String]]("CLUSTER")
-    def startTime = column[Option[Timestamp]]("START_TIME")
-    def endTime = column[Option[Timestamp]]("END_TIME")
+    def cluster = column[String]("CLUSTER")
+    def startTime = column[Timestamp]("START_TIME")
+    def endTime = column[Timestamp]("END_TIME")
     val foreignKey = s"$foreignKeyPrefix${Names.googleResources}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, cluster, startTime, endTime) <> (GoogleResourceRow.tupled, GoogleResourceRow.unapply)
   }
 
-  val foreignKeyPrefix = s"FK_ID_EXECUTIONS_"
+  private val foreignKeyPrefix = s"FK_ID_EXECUTIONS_"
 
   lazy val executions = TableQuery[Executions]
   lazy val outputs = TableQuery[Outputs]

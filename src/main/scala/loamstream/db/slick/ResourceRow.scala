@@ -5,6 +5,8 @@ import java.sql.Timestamp
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Resources.{GoogleResources, LocalResources, UgerResources}
 import loamstream.uger.Queue
+import loamstream.model.execute.Memory
+import loamstream.model.execute.CpuTime
 
 /**
  * @author kyuksel
@@ -18,45 +20,48 @@ object ResourceRow {
   def fromResources(resources: Resources, executionId: Int): ResourceRow = resources match {
     //TODO
     case LocalResources(startTime, endTime) => {
-      LocalResourceRow(executionId, Option(startTime).map(Timestamp.from), Option(endTime).map(Timestamp.from))
+      LocalResourceRow(executionId, Timestamp.from(startTime), Timestamp.from(endTime))
     }
     case UgerResources(mem, cpu, node, queue, startTime, endTime) => {
       //TODO
-      UgerResourceRow(executionId, mem, cpu, node, queue.map(_.name),
-        Option(startTime).map(Timestamp.from), Option(endTime).map(Timestamp.from))
+      UgerResourceRow(executionId, mem.gb, cpu.seconds, node, queue.map(_.name),
+        Timestamp.from(startTime), Timestamp.from(endTime))
     }
     case GoogleResources(cluster, startTime, endTime) => {
       //TODO
-      GoogleResourceRow(executionId, cluster, Option(startTime).map(Timestamp.from), Option(endTime).map(Timestamp.from))
+      GoogleResourceRow(executionId, cluster, Timestamp.from(startTime), Timestamp.from(endTime))
     }
   }
 }
 
 final case class LocalResourceRow(executionId: Int,
-                                  startTime: Option[Timestamp],
-                                  endTime: Option[Timestamp]) extends ResourceRow {
+                                  startTime: Timestamp,
+                                  endTime: Timestamp) extends ResourceRow {
   
-  override def toResources: Resources = {
-    LocalResources(startTime.map(_.toInstant), endTime.map(_.toInstant))
-  }
+  override def toResources: Resources = LocalResources(startTime.toInstant, endTime.toInstant)
 }
 
 final case class UgerResourceRow(executionId: Int,
-                                 mem: Option[Float],
-                                 cpu: Option[Float],
+                                 mem: Double,
+                                 cpu: Double,
                                  node: Option[String],
                                  queue: Option[String],
-                                 startTime: Option[Timestamp],
-                                 endTime: Option[Timestamp]) extends ResourceRow {
+                                 startTime: Timestamp,
+                                 endTime: Timestamp) extends ResourceRow {
 
-  override def toResources: Resources = UgerResources(mem, cpu, node, queue.map(Queue.fromString),
-    startTime.map(_.toInstant), endTime.map(_.toInstant))
+  override def toResources: Resources = {
+    import scala.concurrent.duration._
+    
+    UgerResources(
+        Memory.inGb(mem), CpuTime(cpu.seconds), node, 
+        queue.flatMap(Queue.fromString), startTime.toInstant, endTime.toInstant)
+  }
 }
 
 final case class GoogleResourceRow(executionId: Int,
-                                   cluster: Option[String],
-                                   startTime: Option[Timestamp],
-                                   endTime: Option[Timestamp]) extends ResourceRow {
+                                   cluster: String,
+                                   startTime: Timestamp,
+                                   endTime: Timestamp) extends ResourceRow {
 
-  override def toResources: Resources = GoogleResources(cluster, startTime.map(_.toInstant), endTime.map(_.toInstant))
+  override def toResources: Resources = GoogleResources(cluster, startTime.toInstant, endTime.toInstant)
 }

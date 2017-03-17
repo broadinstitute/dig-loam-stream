@@ -16,8 +16,9 @@ import loamstream.model.execute.Resources.GoogleResources
  *         date: 3/11/17
  */
 trait ProvidesEnvAndResources extends FunSuite {
+
   val mockEnv: ExecutionEnvironment = Uger
-  
+  val mockCmd: String = "R --vanilla --args ancestry_pca_scores.tsv < plot_ancestry_pca.r"
   val mockSettings: Settings = {
     val mem = 8
     val cpu = 4
@@ -30,10 +31,9 @@ trait ProvidesEnvAndResources extends FunSuite {
   val mockUgerResources: UgerResources = {
     val mem = Memory.inGb(2.1)
     val cpu = CpuTime.inSeconds(12.34)
-    // scalastyle:off magic.number
-    val startTime = Instant.ofEpochMilli(64532)
-    val endTime = Instant.ofEpochMilli(9345345)
-    // scalastyle:on magic.number
+    val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
+    val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
+
     UgerResources(mem, cpu, Some("nodeName"), Some(Queue.Long), startTime, endTime)
   }
   
@@ -43,9 +43,8 @@ trait ProvidesEnvAndResources extends FunSuite {
 
   protected def assertEqualFieldsFor(actual: Iterable[Execution], expected: Iterable[Execution]): Unit = {
     assert(actual.map(_.env) === expected.map(_.env))
-    
+    assert(actual.map(_.cmd) === expected.map(_.cmd))
     assert(actual.map(_.exitState) === expected.map(_.exitState))
-    
     assert(actual.map(_.settings) === expected.map(_.settings))
     assert(actual.map(_.resources) === expected.map(_.resources))
     assert(actual.map(_.outputs) === expected.map(_.outputs))

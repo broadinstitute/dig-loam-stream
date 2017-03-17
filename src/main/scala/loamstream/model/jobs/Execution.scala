@@ -8,6 +8,7 @@ import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
  * date: Sep 22, 2016
  */
 final case class Execution(env: ExecutionEnvironment,
+                           cmd: String, //TODO: Should be optional
                            settings: Settings,
                            exitState: JobState,
                            outputs: Set[OutputRecord]) {
@@ -33,24 +34,27 @@ final case class Execution(env: ExecutionEnvironment,
 
 object Execution {
   def apply(env: ExecutionEnvironment,
+            cmd: String,
             settings: Settings,
             exitState: JobState,
             outputs: OutputRecord*): Execution = {
-    Execution(env, settings, exitState, outputs.toSet)
+    Execution(env, cmd, settings, exitState, outputs.toSet)
   }
 
   def fromOutputs(env: ExecutionEnvironment,
+                  cmd: String,
                   settings: Settings,
                   exitState: JobState,
                   outputs: Set[Output]): Execution = {
-    Execution(env, settings, exitState, outputs.map(_.toOutputRecord))
+    Execution(env, cmd, settings, exitState, outputs.map(_.toOutputRecord))
   }
 
   def fromOutputs(env: ExecutionEnvironment,
+                  cmd: String,
                   settings: Settings,
                   exitState: JobState,
                   output: Output,
                   others: Output*): Execution = {
-    fromOutputs(env, settings, exitState, (output +: others).toSet)
+    fromOutputs(env, cmd, settings, exitState, (output +: others).toSet)
   }
 }

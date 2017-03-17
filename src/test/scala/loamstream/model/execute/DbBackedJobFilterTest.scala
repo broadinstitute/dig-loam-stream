@@ -59,7 +59,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       assert(executions === Set.empty)
 
-      val e = Execution(mockEnv, mockSettings, Succeeded)
+      val e = Execution(mockEnv, mockCmd, mockSettings, Succeeded)
 
       filter.record(Seq(e))
 
@@ -77,7 +77,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       assert(cr.isSuccess)
 
-      val e = Execution(mockEnv, mockSettings, cr)
+      val e = Execution(mockEnv, mockCmd, mockSettings, cr)
 
       filter.record(Seq(e))
 
@@ -95,7 +95,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       assert(cr.isFailure)
 
-      val e = Execution(mockEnv, mockSettings, cr)
+      val e = Execution(mockEnv, mockCmd, mockSettings, cr)
 
       filter.record(Seq(e))
 
@@ -113,7 +113,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       assert(cr.isSuccess)
 
-      val e = Execution.fromOutputs(mockEnv, mockSettings, cr, Set[Output](o0, o1, o2))
+      val e = Execution.fromOutputs(mockEnv, mockCmd, mockSettings, cr, Set[Output](o0, o1, o2))
       val withHashedOutputs = e.withOutputRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
 
       filter.record(Seq(e))
@@ -132,12 +132,12 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       assert(cr.isFailure)
 
-      val e = Execution.fromOutputs(mockEnv, mockSettings, cr, Set[Output](o0, o1, o2))
+      val e = Execution.fromOutputs(mockEnv, mockCmd, mockSettings, cr, Set[Output](o0, o1, o2))
 
       filter.record(Seq(e))
 
       val expected = Set(
-          Execution(mockEnv, mockSettings, CommandResult(42, Some(mockResources)), 
+          Execution(mockEnv, mockCmd, mockSettings, CommandResult(42, Some(mockResources)), 
                     failedOutput0, failedOutput1, failedOutput2))
       
       assertEqualFieldsFor(executions, expected)
@@ -158,8 +158,8 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       val success = CommandResult(0, Some(mockResources))
       assert(success.isSuccess)
 
-      val failedExecs = Execution.fromOutputs(mockEnv, mockSettings, failure, Set[Output](o0))
-      val successfulExecs = Execution.fromOutputs(mockEnv, mockSettings, success, Set[Output](o1, o3))
+      val failedExecs = Execution.fromOutputs(mockEnv, mockCmd, mockSettings, failure, Set[Output](o0))
+      val successfulExecs = Execution.fromOutputs(mockEnv, mockCmd, mockSettings, success, Set[Output](o1, o3))
 
       filter.record(Seq(failedExecs, successfulExecs))
 

@@ -121,9 +121,6 @@ object Google {
   val FOR_QC_PRUNE_OUT = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.out")
 
   // Chunk #2
-  val inKG_HAIL = store[TXT].at(data / "inkg_hail.vds")
-  val inKG_V3_5K_AF = store[TXT].at(data / "allele_frequencies.tsv")
-
   val ANCESTRYPCA_SCORES_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.scores.tsv")
   val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(out / s"${outLABEL}.ancestry.pca.loadings.tsv")
 
@@ -329,8 +326,8 @@ uger {
   */
 
 local {
-  googleCopy(input.inKG_HAIL, Google.inKG_HAIL, "-r")
-  googleCopy(input.inKG_V3_5K_AF, Google.inKG_V3_5K_AF)
+  googleCopy(inKG_HAIL, Google.inKG_HAIL, "-r")
+  googleCopy(inKG_V3_5K_AF, Google.inKG_V3_5K_AF)
 }
 
 google {

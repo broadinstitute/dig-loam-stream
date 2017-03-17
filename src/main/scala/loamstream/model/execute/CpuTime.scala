@@ -11,3 +11,13 @@ import java.util.concurrent.TimeUnit
 final case class CpuTime(duration: Duration) {
   def seconds: Double = duration.toUnit(TimeUnit.SECONDS)
 }
+
+object CpuTime {
+  def inSeconds(secs: Double): CpuTime = {
+    require(secs >= 0.0)
+    
+    import scala.concurrent.duration._
+    
+    CpuTime(secs.seconds)
+  }
+}

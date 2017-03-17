@@ -18,7 +18,7 @@ final class UgerResourcesTest extends FunSuite {
 
   private val now = Instant.now
 
-  test("runTime") {
+  test("elapsedTime") {
     //Elapsed time is zero
     val tookNoTime = UgerResources(
       Memory.inGb(1),
@@ -28,7 +28,7 @@ final class UgerResourcesTest extends FunSuite {
       startTime = now,
       endTime = now)
 
-    assert(tookNoTime.runTime === 0.seconds)
+    assert(tookNoTime.elapsedTime === 0.seconds)
 
     def doTestWithOffset(offsetInMillis: Long): Unit = {
       val resources = UgerResources(
@@ -39,7 +39,7 @@ final class UgerResourcesTest extends FunSuite {
         startTime = now,
         endTime = now.plusMillis(offsetInMillis))
 
-      assert(resources.runTime === offsetInMillis.milliseconds)
+      assert(resources.elapsedTime === offsetInMillis.milliseconds)
     }
 
     doTestWithOffset(0)

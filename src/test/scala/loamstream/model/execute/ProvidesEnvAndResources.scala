@@ -6,6 +6,7 @@ import loamstream.model.execute.ExecutionEnvironment.Uger
 import loamstream.model.jobs.Execution
 import loamstream.uger.Queue
 import org.scalatest.FunSuite
+import loamstream.model.execute.Resources.UgerResources
 
 /**
  * @author kyuksel
@@ -20,11 +21,11 @@ trait ProvidesEnvAndResources extends FunSuite {
     UgerSettings(mem, cpu, Queue.Short)
   }
   protected val mockResources: Resources = {
-    val mem = Some(2.1F)
-    val cpu = Some(12.34F)
+    val mem = Memory.inGb(2.1)
+    val cpu = CpuTime.inSeconds(12.34)
     // scalastyle:off magic.number
-    val startTime = Some(Instant.ofEpochMilli(64532))
-    val endTime = Some(Instant.ofEpochMilli(9345345))
+    val startTime = Instant.ofEpochMilli(64532)
+    val endTime = Instant.ofEpochMilli(9345345)
     // scalastyle:on magic.number
     UgerResources(mem, cpu, Some("nodeName"), Some(Queue.Long), startTime, endTime)
   }

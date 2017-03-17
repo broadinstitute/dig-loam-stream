@@ -36,6 +36,7 @@ object Resources {
       
   object LocalResources {
     //TODO: remove
+    @deprecated("", "")
     def DUMMY: LocalResources = {
       val now = Instant.now
       

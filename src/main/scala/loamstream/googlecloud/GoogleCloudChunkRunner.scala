@@ -90,7 +90,6 @@ final case class GoogleCloudChunkRunner(
     //on the same cluster simultaneously
     import ObservableEnrichments._
     import GoogleCloudChunkRunner.addCluster
-    
 
     val futureResult = delegate.run(Set(job)).map(addCluster(googleConfig.clusterId)).firstAsFuture
     

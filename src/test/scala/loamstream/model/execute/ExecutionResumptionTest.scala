@@ -13,11 +13,8 @@ import loamstream.model.jobs._
 import loamstream.util._
 import loamstream.loam.LoamScript
 import loamstream.TestHelpers
-<<<<<<< HEAD
-import loamstream.oracle.Resources.LocalResources
-=======
 import loamstream.model.execute.ExecutionEnvironment.Local
->>>>>>> origin/ky_oracle_api
+import loamstream.model.execute.Resources.LocalResources
 
 /**
   * @author clint
@@ -32,14 +29,10 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
     val hash = Hashes.sha1(p)
     val lastModified = PathUtils.lastModifiedTime(p)
-<<<<<<< HEAD
+
     val e = Execution(
-        JobState.CommandResult(exitStatus, Some(LocalResources)), 
-        Set(cachedOutput(p, hash, lastModified)))
-=======
-    val e = Execution(mockEnv, mockSettings, mockResources,
-      JobState.CommandResult(exitStatus), Set(cachedOutput(p, hash, lastModified)))
->>>>>>> origin/ky_oracle_api
+        mockEnv, mockSettings, mockResources,
+        JobState.CommandResult(exitStatus, Some(LocalResources.DUMMY)), Set(cachedOutput(p, hash, lastModified)))
     
     store(e)
   }

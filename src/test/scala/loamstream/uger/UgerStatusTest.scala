@@ -3,11 +3,10 @@ package loamstream.uger
 import org.scalatest.FunSuite
 import org.ggf.drmaa.Session
 import loamstream.model.jobs.JobState
-import loamstream.oracle.Resources.LocalResources
-import loamstream.oracle.Resources.UgerResources
 import loamstream.model.execute.Memory
-import loammodel.executm.oracle.CpuTime
 import java.time.Instant
+import loamstream.model.execute.CpuTime
+import loamstream.model.execute.Resources.UgerResources
 
 /**
  * @author clint

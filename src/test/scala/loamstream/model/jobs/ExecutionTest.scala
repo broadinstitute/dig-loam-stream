@@ -7,7 +7,7 @@ import Output.PathOutput
 import loamstream.model.execute._
 import loamstream.model.execute.ExecutionEnvironment.Local
 import loamstream.util.TypeBox
-import loamstream.oracle.Resources.LocalResources
+import loamstream.model.execute.Resources.LocalResources
 
 /**
  * @author clint
@@ -56,10 +56,10 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     
     import JobState._
     
-    assertIsCommandExecution(CommandResult(0, Some(LocalResources)))
-    assertIsCommandExecution(CommandResult(1, Some(LocalResources)))
-    assertIsCommandExecution(CommandResult(-1, Some(LocalResources)))
-    assertIsCommandExecution(CommandResult(42, Some(LocalResources)))
+    assertIsCommandExecution(CommandResult(0, Some(LocalResources.DUMMY)))
+    assertIsCommandExecution(CommandResult(1, Some(LocalResources.DUMMY)))
+    assertIsCommandExecution(CommandResult(-1, Some(LocalResources.DUMMY)))
+    assertIsCommandExecution(CommandResult(42, Some(LocalResources.DUMMY)))
     
     assertIsCommandExecution(CommandResult(0, None))
     assertIsCommandExecution(CommandResult(1, None))

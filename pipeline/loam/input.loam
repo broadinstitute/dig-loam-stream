@@ -24,7 +24,10 @@ val inKG_V3_5K_PCA_SCORES = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg
 val inKG_V3_5K_PCA_LOADINGS = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/pca.loadings.tsv").asInput
 
 /** Hail VDS input */
-val inKG_HAIL = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vds")
+val inKG_HAIL =
+  store[TXT]
+  .at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vds")
+  .asInput
 
 /**
  * 1KG VCF base name (excluding .vcf.gz)

@@ -87,6 +87,10 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   import Tables.Names
   import ForeignKeyAction.{Restrict, Cascade}
 
+  trait HasExecutionId { self: Table[_] =>
+    def executionId: Rep[Int]
+  }
+  
   final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) {
     def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
     def env = column[String]("ENV")
@@ -106,15 +110,15 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
 
-  final class LocalSettings(tag: Tag) extends Table[LocalSettingRow](tag, Names.localSettings) {
-    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+  final class LocalSettings(tag: Tag) extends Table[LocalSettingRow](tag, Names.localSettings) with HasExecutionId {
+    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     val foreignKey = s"$foreignKeyPrefix${Names.localSettings}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId) <> (LocalSettingRow.tupled, LocalSettingRow.unapply)
   }
 
-  final class UgerSettings(tag: Tag) extends Table[UgerSettingRow](tag, Names.ugerSettings) {
-    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+  final class UgerSettings(tag: Tag) extends Table[UgerSettingRow](tag, Names.ugerSettings) with HasExecutionId {
+    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def mem = column[Int]("MEM")
     def cpu = column[Int]("CPU")
     def queue = column[String]("QUEUE")
@@ -123,16 +127,16 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def * = (executionId, mem, cpu, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
   }
 
-  final class GoogleSettings(tag: Tag) extends Table[GoogleSettingRow](tag, Names.googleSettings) {
-    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+  final class GoogleSettings(tag: Tag) extends Table[GoogleSettingRow](tag, Names.googleSettings) with HasExecutionId {
+    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def cluster = column[String]("CLUSTER")
     val foreignKey = s"$foreignKeyPrefix${Names.googleSettings}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, cluster) <> (GoogleSettingRow.tupled, GoogleSettingRow.unapply)
   }
 
-  final class LocalResources(tag: Tag) extends Table[LocalResourceRow](tag, Names.localResources) {
-    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+  final class LocalResources(tag: Tag) extends Table[LocalResourceRow](tag, Names.localResources) with HasExecutionId {
+    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def startTime = column[Timestamp]("START_TIME")
     def endTime = column[Timestamp]("END_TIME")
     val foreignKey = s"$foreignKeyPrefix${Names.localResources}"
@@ -140,8 +144,8 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     def * = (executionId, startTime, endTime) <> (LocalResourceRow.tupled, LocalResourceRow.unapply)
   }
 
-  final class UgerResources(tag: Tag) extends Table[UgerResourceRow](tag, Names.ugerResources) {
-    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+  final class UgerResources(tag: Tag) extends Table[UgerResourceRow](tag, Names.ugerResources) with HasExecutionId {
+    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def mem = column[Double]("MEM")
     def cpu = column[Double]("CPU")
     def node = column[Option[String]]("NODE")
@@ -154,8 +158,10 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
       (UgerResourceRow.tupled, UgerResourceRow.unapply)
   }
 
-  final class GoogleResources(tag: Tag) extends Table[GoogleResourceRow](tag, Names.googleResources) {
-    def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+  final class GoogleResources(tag: Tag) extends 
+      Table[GoogleResourceRow](tag, Names.googleResources) with HasExecutionId {
+    
+    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def cluster = column[String]("CLUSTER")
     def startTime = column[Timestamp]("START_TIME")
     def endTime = column[Timestamp]("END_TIME")

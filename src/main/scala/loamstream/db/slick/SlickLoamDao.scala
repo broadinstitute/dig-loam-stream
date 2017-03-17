@@ -22,6 +22,7 @@ import loamstream.model.execute.Resources.LocalResources
  * For a schema description, see Tables
  */
 // scalastyle:off number.of.methods
+//TODO: Re-enable `number.of.methods` - it's a good indicator that a class should be broken up.
 final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Loggable {
   val driver = descriptor.dbType.driver
 
@@ -67,7 +68,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       resourcesWithExecutionId = tieResourcesToExecution(execution, newExecution.id)
       insertedOutputCounts <- insertOrUpdateOutputRows(outputsWithExecutionId)
       insertedSettingCounts <- insertOrUpdateSettingRow(settingsWithExecutionId)
-      insertedResourceCounts <- insertOrUpdateResourceRows(resourcesWithExecutionId.toSeq)
+      insertedResourceCounts <- insertOrUpdateResourceRows(resourcesWithExecutionId)
     } yield {
       insertedOutputCounts ++ Iterable(insertedSettingCounts) ++ insertedResourceCounts
     }
@@ -167,7 +168,9 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = row.insertOrUpdate(tables)
   
-  private def insertOrUpdateResourceRows(rows: Seq[ResourceRow]): DBIO[Seq[Int]] = DBIO.sequence(rows.map(insertOrUpdateResourceRow))
+  private def insertOrUpdateResourceRows(rows: Iterable[ResourceRow]): DBIO[Seq[Int]] = {
+    DBIO.sequence(rows.toSeq.map(insertOrUpdateResourceRow))
+  }
 
   private def tieOutputsToExecution(execution: Execution, executionId: Int): Seq[OutputRow] = {
     def toOutputRows(f: OutputRecord => OutputRow): Seq[OutputRow] = {
@@ -198,9 +201,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       (execution, newId) => execution.copy(id = newId)
     }
 
-    def outputByLoc(loc: String) = {
-      tables.outputs.filter(_.locator === loc).take(1)
-    }
+    def outputByLoc(loc: String) = tables.outputs.filter(_.locator === loc).take(1)
 
     def outputsByPaths(locs: Iterable[String]) = {
       val rawPaths = locs.toSet
@@ -208,14 +209,10 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       outputsByRawPaths(rawPaths)
     }
 
-    def outputsByRawPaths(rawPaths: Iterable[String]) = {
-      tables.outputs.filter(_.locator.inSetBind(rawPaths))
-    }
+    def outputsByRawPaths(rawPaths: Iterable[String]) = tables.outputs.filter(_.locator.inSetBind(rawPaths))
   }
 
   private def reify(executionRow: ExecutionRow): Execution = {
-    //def toExecution(settings: Settings, resources: Resources, outputs: Set[OutputRecord]): Execution = {
-    
     executionRow.toExecution(settingsFor(executionRow), resourcesFor(executionRow), outputsFor(executionRow).toSet)
   }
 
@@ -227,35 +224,43 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   private def settingsFor(execution: ExecutionRow): Settings = {
-    val queryResults = ExecutionEnvironment.fromString(execution.env) match {
-      case ExecutionEnvironment.Local =>
-        runBlocking(tables.localSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
-      case ExecutionEnvironment.Uger =>
-        runBlocking(tables.ugerSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
-      case ExecutionEnvironment.Google =>
-        runBlocking(tables.googleSettings.filter(_.executionId === execution.id).result).map(_.toSettings)
-    }
-
-    require(queryResults.size != 0,
-      s"There must be a single set of settings per execution. " +
-        s"Found 0 for the execution with ID '${execution.id}'")
+    //Oh, Slick ... yow :\
+    type SettingTable = TableQuery[_ <: tables.driver.api.Table[_ <: SettingRow] with tables.HasExecutionId]
     
+    def settingsFrom(table: SettingTable): Seq[Settings] = {
+      runBlocking(table.filter(_.executionId === execution.id).result).map(_.toSettings)
+    }
+    
+    val table: SettingTable = ExecutionEnvironment.fromString(execution.env) match {
+      case ExecutionEnvironment.Local => tables.localSettings
+      case ExecutionEnvironment.Uger => tables.ugerSettings
+      case ExecutionEnvironment.Google => tables.googleSettings
+    }
+    
+    val queryResults: Seq[Settings] = settingsFrom(table)
+
     require(queryResults.size == 1,
       s"There must be a single set of settings per execution. " +
-        s"Found more than one for the execution with ID '${execution.id}'")
+        s"Found ${queryResults.size} for the execution with ID '${execution.id}'")
 
     queryResults.head
   }
 
   private def resourcesFor(execution: ExecutionRow): Option[Resources] = {
-    val queryResults = ExecutionEnvironment.fromString(execution.env) match {
-      case ExecutionEnvironment.Local =>
-        runBlocking(tables.localResources.filter(_.executionId === execution.id).result).map(_.toResources)
-      case ExecutionEnvironment.Uger =>
-        runBlocking(tables.ugerResources.filter(_.executionId === execution.id).result).map(_.toResources)
-      case ExecutionEnvironment.Google =>
-        runBlocking(tables.googleResources.filter(_.executionId === execution.id).result).map(_.toResources)
+    //Oh, Slick ... yow :\
+    type ResourceTable = TableQuery[_ <: tables.driver.api.Table[_ <: ResourceRow] with tables.HasExecutionId]
+    
+    def resourcesFrom(table: ResourceTable): Seq[Resources] = {
+      runBlocking(table.filter(_.executionId === execution.id).result).map(_.toResources)
     }
+    
+    val table: ResourceTable = ExecutionEnvironment.fromString(execution.env) match {
+      case ExecutionEnvironment.Local => tables.localResources
+      case ExecutionEnvironment.Uger => tables.ugerResources
+      case ExecutionEnvironment.Google => tables.googleResources
+    }
+    
+    val queryResults: Seq[Resources] = resourcesFrom(table)
     
     require(queryResults.size <= 1,
       s"There must be at most 1 sets of resource usages per execution. " +

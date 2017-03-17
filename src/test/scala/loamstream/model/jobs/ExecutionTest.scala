@@ -20,7 +20,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   private val p1 = Paths.get("nuh")
   
   test("transformOutputs - no outputs") {
-    val noOutputs = Execution(mockEnv, mockSettings, mockResources, JobState.Succeeded, Set.empty[OutputRecord])
+    val noOutputs = Execution(mockEnv, mockCmd, mockSettings, mockResources, JobState.Succeeded, Set.empty[OutputRecord])
     
     val transformed = noOutputs.transformOutputs(os => os.map(_ => PathOutput(p0).toOutputRecord))
     
@@ -28,7 +28,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   }
   
   test("transformOutputs - some outputs") {
-    val hasOutputs = Execution(mockEnv, mockSettings, mockResources,
+    val hasOutputs = Execution(mockEnv, mockCmd, mockSettings, mockResources,
       JobState.Succeeded, Set(p0, p1).map(PathOutput(_).toOutputRecord))
     
     val munge: OutputRecord => OutputRecord = rec => OutputRecord(s"${rec.loc}123", None, None)
@@ -41,13 +41,13 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   
   test("isCommandExecution") {
     def assertIsCommandExecution(state: JobState): Unit = {
-      def execution(state: JobState) = Execution(mockEnv, mockSettings, mockResources, state, Set.empty[OutputRecord])
+      def execution(state: JobState) = Execution(mockEnv, mockCmd, mockSettings, mockResources, state, Set.empty[OutputRecord])
       
       assert(execution(state).isCommandExecution)
     }
     
     def assertIsNOTCommandExecution(state: JobState): Unit = {
-      def execution(state: JobState) = Execution(mockEnv, mockSettings, mockResources, state, Set.empty[OutputRecord])
+      def execution(state: JobState) = Execution(mockEnv, mockCmd, mockSettings, mockResources, state, Set.empty[OutputRecord])
       
       assert(!execution(state).isCommandExecution)
     }

@@ -45,7 +45,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       cachedOutput(path, hash)
     }
     
-    val execution = Execution(mockEnv, mockSettings, mockResources, JobState.CommandResult(0, Some(LocalResources.DUMMY)), outputs.toSet)
+    val execution = Execution(mockEnv, mockCmd, mockSettings, mockResources, JobState.CommandResult(0, Some(LocalResources.DUMMY)), outputs.toSet)
     
     dao.insertExecutions(execution)
   }
@@ -58,7 +58,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     
     assert(state.isFailure)
     
-    val execution = Execution(mockEnv, mockSettings, mockResources, state, outputs.toSet)
+    val execution = Execution(mockEnv, mockCmd, mockSettings, mockResources, state, outputs.toSet)
     
     dao.insertExecutions(execution)
   }
@@ -176,9 +176,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val googleResources = GoogleResources("clusterName",
         Instant.ofEpochMilli(1), Instant.ofEpochMilli(72345))
 
-      val failed0 = Execution(localEnv, localSettings, localResources, CommandResult(42, Some(LocalResources.DUMMY)), Set(output0))
-      val failed1 = Execution(ugerEnv, ugerSettings, ugerResources, CommandResult(1, Some(LocalResources.DUMMY)), Set.empty[OutputRecord])
-      val succeeded = Execution(googleEnv, googleSettings, googleResources, CommandResult(0, Some(LocalResources.DUMMY)), Set(output1, output2))
+      val failed0 = Execution(localEnv, mockCmd, localSettings, localResources, CommandResult(42, Some(LocalResources.DUMMY)), Set(output0))
+      val failed1 = Execution(ugerEnv, mockCmd, ugerSettings, ugerResources, CommandResult(1, Some(LocalResources.DUMMY)), Set.empty[OutputRecord])
+      val succeeded = Execution(googleEnv, mockCmd, googleSettings, googleResources, CommandResult(0, Some(LocalResources.DUMMY)), Set(output1, output2))
 
       assert(failed0.isFailure)
       assert(failed1.isFailure)
@@ -189,7 +189,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       dao.insertExecutions(failed0)
 
-      val expected0 = Execution(localEnv, localSettings, localResources, CommandResult(42, Some(LocalResources.DUMMY)), OutputRecord(output0.loc))
+      val expected0 = Execution(localEnv, mockCmd, localSettings, localResources, CommandResult(42, Some(LocalResources.DUMMY)), OutputRecord(output0.loc))
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
 
@@ -204,7 +204,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     createTablesAndThen {
       val output0 = PathOutput(path0)
       
-      val failed = Execution(mockEnv, mockSettings, mockResources,
+      val failed = Execution(mockEnv, mockCmd, mockSettings, mockResources,
         JobState.CommandInvocationFailure(new Exception), output0.toOutputRecord)
 
       assert(failed.isFailure)
@@ -214,7 +214,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       dao.insertExecutions(failed)
       
-      val expected0 = Execution(mockEnv, mockSettings, mockResources, CommandResult(-1, Some(LocalResources.DUMMY)), failedOutput(path0))
+      val expected0 = Execution(mockEnv, mockCmd, mockSettings, mockResources, CommandResult(-1, Some(LocalResources.DUMMY)), failedOutput(path0))
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
     }
@@ -226,9 +226,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
       
-      val ex0 = Execution(mockEnv, mockSettings, mockResources, CommandResult(42, Some(LocalResources.DUMMY)), output0)
-      val ex1 = Execution(mockEnv, mockSettings, mockResources, CommandResult(0, Some(LocalResources.DUMMY)), output1, output2)
-      val ex2 = Execution(mockEnv, mockSettings, mockResources, CommandResult(1, Some(LocalResources.DUMMY)), Set.empty[OutputRecord])
+      val ex0 = Execution(mockEnv, mockCmd, mockSettings, mockResources, CommandResult(42, Some(LocalResources.DUMMY)), output0)
+      val ex1 = Execution(mockEnv, mockCmd, mockSettings, mockResources, CommandResult(0, Some(LocalResources.DUMMY)), output1, output2)
+      val ex2 = Execution(mockEnv, mockCmd, mockSettings, mockResources, CommandResult(1, Some(LocalResources.DUMMY)), Set.empty[OutputRecord])
       
       assert(ex0.isFailure)
       assert(ex1.isSuccess)
@@ -239,7 +239,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       dao.insertExecutions(ex0)
       
-      val expected0 = Execution(mockEnv, mockSettings, mockResources, CommandResult(42, Some(LocalResources.DUMMY)), failedOutput(path0))
+      val expected0 = Execution(mockEnv, mockCmd, mockSettings, mockResources, CommandResult(42, Some(LocalResources.DUMMY)), failedOutput(path0))
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
       assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))

@@ -56,7 +56,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     import Helpers.dummyId
 
     //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
-    val executionRow = new ExecutionRow(dummyId, execution.env.name, commandResult.exitStatus)
+    val executionRow = new ExecutionRow(dummyId, execution.env.name, execution.cmd, commandResult.exitStatus)
 
     import Implicits._
 
@@ -279,10 +279,10 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution(_, _, _, cr: CommandResult, _) => e -> cr
+      case e @ Execution(_, _, _, _, cr: CommandResult, _) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
       //TODO: Dummy value
-      case e @ Execution(_, _, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1, Option(LocalResources.DUMMY))
+      case e @ Execution(_, _, _, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1, Option(LocalResources.DUMMY))
     }
   }
 

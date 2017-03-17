@@ -2,12 +2,11 @@ package loamstream.db.slick
 
 import java.sql.Timestamp
 
-import loamstream.model.execute.Resources.{GoogleResources, LocalResources, UgerResources}
-import loamstream.model.execute.Settings
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import slick.driver.JdbcProfile
 import slick.jdbc.meta.MTable
+import slick.profile.SqlProfile.ColumnOption.SqlType
 
 /**
  * @author clint
@@ -21,6 +20,7 @@ import slick.jdbc.meta.MTable
  *   EXECUTIONS:
  *    ID: integer, auto-incremented, primary key
  *    ENV: varchar/text - the platform where this execution took place (e.g. Uger, Google, Local)
+ *    CMD: clob - the command line string -- may be 4000 characters or longer
  *    EXIT_STATUS: integer - the exit status returned by the command represented by this execution
  *
  *
@@ -90,8 +90,9 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) {
     def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
     def env = column[String]("ENV")
+    def cmd = column[String]("CMD", SqlType("CLOB"))
     def exitStatus = column[Int]("EXIT_STATUS")
-    def * = (id, env, exitStatus) <> (ExecutionRow.tupled, ExecutionRow.unapply)
+    def * = (id, env, cmd, exitStatus) <> (ExecutionRow.tupled, ExecutionRow.unapply)
   }
 
   final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {

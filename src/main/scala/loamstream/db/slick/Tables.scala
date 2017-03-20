@@ -90,11 +90,17 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   trait HasExecutionId { self: Table[_] =>
     def executionId: Rep[Int]
   }
+
+  //Use Int.MaxValue as an approximation of maximum String length, since Strings are represented as
+  //char arrays indexed by integers on the JVM, and String.length() returns an int.
+  private[this] val maxStringColumnLength = Int.MaxValue
   
   final class Executions(tag: Tag) extends Table[ExecutionRow](tag, Names.executions) {
     def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
     def env = column[String]("ENV")
-    def cmd = column[String]("CMD", SqlType("CLOB"))
+    //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
+    //and instead some DB-specific column type appropriate for strings thousands of chars long.
+    def cmd = column[String]("CMD", O.Length(maxStringColumnLength))
     def exitStatus = column[Int]("EXIT_STATUS")
     def * = (id, env, cmd, exitStatus) <> (ExecutionRow.tupled, ExecutionRow.unapply)
   }

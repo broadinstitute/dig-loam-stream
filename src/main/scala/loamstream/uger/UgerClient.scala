@@ -13,7 +13,7 @@ import scala.util.Success
  */
 final class UgerClient(
     drmaaClient: DrmaaClient, 
-    accountingClient: AccountingClient) extends DrmaaClient with AccountingClient with Loggable {
+    accountingClient: AccountingClient) extends DrmaaClient with AccountingClient {
   
   import UgerClient.fillInAccountingFieldsIfNecessary
   
@@ -44,7 +44,7 @@ final class UgerClient(
 
   /**
    * Wait (synchronously) for a job to complete.
- *
+   *
    * @param jobId the job ID, assigned by UGER, of the job to wait for
    * @param timeout how long to wait.  If timeout elapses and the job doesn't finish, try to determine the job's
    * status using statusOf()

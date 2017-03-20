@@ -30,11 +30,18 @@ object Poller {
     override def poll(jobIds: Iterable[String]): Map[String, Try[UgerStatus]] = {
       
       def statusAttempt(jobId: String): Try[UgerStatus] = {
-        client.statusOf(jobId).recoverWith { case e: InvalidJobException =>
+        val result = client.statusOf(jobId).recoverWith { case e: InvalidJobException =>
           debug(s"Job '$jobId': Got an ${e.getClass.getSimpleName} when calling statusOf(); trying waitFor()", e)
         
           client.waitFor(jobId, Duration.Zero)
         }
+        
+        //Ignore the result of recover, we just want the logging side-effect
+        result.recover {
+          case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
+        }
+        
+        result
       }
       
       //NB: Sort job ids for better log output

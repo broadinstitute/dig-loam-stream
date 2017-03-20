@@ -6,7 +6,7 @@ import loamstream.util.ValueBox
  * @author clint
  * Mar 15, 2017
  */
-final class MockUgerClient(delegateFn: String => Seq[String]) extends AccountingClient {
+final class MockAccountingClient(delegateFn: String => Seq[String]) extends AccountingClient {
   val timesGetQacctOutputForInvoked: ValueBox[Int] = ValueBox(0)
 
   val timesGetExecutionNodeInvoked: ValueBox[Int] = ValueBox(0)

@@ -193,9 +193,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     } yield {
       info("Creating Uger ChunkRunner...")
 
-      val accountingClient: AccountingClient = AccountingClient.useActualBinary()
-      
-      val ugerClient = makeUgerClient(accountingClient)
+      val ugerClient = makeUgerClient
 
       import loamstream.model.execute.ExecuterHelpers._
 
@@ -219,9 +217,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     }
   }
   
-  private def makeUgerClient(accountingClient: AccountingClient): UgerClient = {
-    new UgerClient(new Drmaa1Client, accountingClient)
-  }
+  private def makeUgerClient: UgerClient = new UgerClient(new Drmaa1Client, AccountingClient.useActualBinary())
 
   private def loadConfig(cli: Conf): Config = {
     def defaults: Config = ConfigFactory.load()

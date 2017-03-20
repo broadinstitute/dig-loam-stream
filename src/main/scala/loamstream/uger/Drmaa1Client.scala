@@ -71,8 +71,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
         if (jobStatus.isFinished) {
           doWait(session, jobId, Duration.Zero)
-        }
-        else {
+        } else {
           jobStatus
         }
       }
@@ -106,15 +105,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * 
    * @param jobId the job id to wait for
    * @param timeout how long to wait (note that this method can be called many times)
-   * @return Success with a JobStatus reflecting the completion status of the job, or the result of statusOf()
-   * if the timeout elapses without the job finishing.  Otherwise, return a Failure if the job's status can't be 
-   * determined. 
-   * 
-   * Specifically: 
-   *   JobStatus.Done: Job finishes with status code 0
-   *   JobStatus.Failed: Job exited with a non-zero return code, OR the job was aborted, OR the job ended due to a 
-   *   signal, OR the job dumped core/
-   *   JobStatus.Undetermined: The job completed, but none of the above applies.
+   * @return Success with a JobStatus reflecting the completion status of the job, or a Failure.
+   * If the timeout elapses without the job finishing, return Success(Running).  If an InvalidJobException
+   * is thrown while waiting, return Success(Done).
    */
   override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = {
     val waitAttempt = Try {
@@ -149,9 +142,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     val resourcesOption = resources.toOption
     
     val result = if (jobInfo.hasExited) {
-      info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
-      
       val exitCode = jobInfo.getExitStatus
+      
+      info(s"Job '$jobId' exited with status code '${exitCode}'")
 
       UgerStatus.CommandResult(exitCode, resourcesOption)
     } else if (jobInfo.wasAborted) {

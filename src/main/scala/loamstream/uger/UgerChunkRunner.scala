@@ -78,7 +78,7 @@ final case class UgerChunkRunner(
 
       val jobsById = rawJobIds.zip(commandLineJobs).toMap
 
-      toResultMap(drmaaClient, jobsById)
+      toResultMap(jobsById)
     }
     case DrmaaClient.SubmissionFailure(e) => {
       commandLineJobs.foreach(_.updateAndEmitJobState(Failed()))
@@ -87,9 +87,7 @@ final case class UgerChunkRunner(
     }
   }
   
-  private[uger] def toResultMap(
-      drmaaClient: DrmaaClient, 
-      jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, JobState]] = {
+  private[uger] def toResultMap(jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, JobState]] = {
 
     def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
       jobMonitor.monitor(jobIds)

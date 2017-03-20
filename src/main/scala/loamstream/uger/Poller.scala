@@ -7,6 +7,8 @@ import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.InvalidJobException
 
 import loamstream.util.Loggable
+import scala.util.Success
+import loamstream.util.Options
 
 /**
  * @author clint
@@ -26,20 +28,13 @@ object Poller {
   
   final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
     override def poll(jobIds: Iterable[String]): Map[String, Try[UgerStatus]] = {
+      
       def statusAttempt(jobId: String): Try[UgerStatus] = {
-        
-        val result = client.statusOf(jobId).recoverWith { case e: InvalidJobException => 
+        client.statusOf(jobId).recoverWith { case e: InvalidJobException =>
           debug(s"Job '$jobId': Got an ${e.getClass.getSimpleName} when calling statusOf(); trying waitFor()", e)
-          
+        
           client.waitFor(jobId, Duration.Zero)
         }
-        
-        //Ignore the result of recover, we just want the logging side-effect
-        result.recover {
-          case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
-        }
-        
-        result
       }
       
       //NB: Sort job ids for better log output

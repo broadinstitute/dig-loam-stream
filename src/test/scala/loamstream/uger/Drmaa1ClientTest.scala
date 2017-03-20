@@ -15,7 +15,7 @@ final class Drmaa1ClientTest extends FunSuite {
   
   //scalastyle:off magic.number
   test("toResources - valid resource-usage data in JobInfo") {
-    val mockUgerClient = new MockUgerClient(_ => actualQacctOutput)
+    val mockUgerClient = new MockAccountingClient(_ => actualQacctOutput)
     
     val jobId = "12345"
     
@@ -34,7 +34,7 @@ final class Drmaa1ClientTest extends FunSuite {
   }
   
   test("toResources - incomplete resource-usage data in JobInfo") {
-    val mockUgerClient = new MockUgerClient(_ => actualQacctOutput)
+    val mockUgerClient = new MockAccountingClient(_ => actualQacctOutput)
     
     val jobId = "12345"
     

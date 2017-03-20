@@ -27,6 +27,52 @@ final class UgerStatusTest extends FunSuite {
       Instant.now,
       Instant.now)
   
+  test("transformResources") {
+    def doTestWithExistingResources(makeInitialStatus: Option[UgerResources] => UgerStatus): Unit = {
+      val initialStatus = makeInitialStatus(Some(resources))
+      
+      assert(initialStatus.resourcesOpt !== None)
+      assert(initialStatus.resourcesOpt.get.queue === Some(Queue.Long))
+      
+      val transformed = initialStatus.transformResources(_.withQueue(Queue.Short))
+      
+      assert(transformed.getClass === initialStatus.getClass)
+      
+      assert(initialStatus.resourcesOpt !== None)
+      assert(initialStatus.resourcesOpt.get.queue === Some(Queue.Long))
+      
+      assert(transformed.resourcesOpt.get.queue === Some(Queue.Short))
+    }
+    
+    doTestWithExistingResources(CommandResult(0, _))
+    doTestWithExistingResources(CommandResult(1, _))
+    doTestWithExistingResources(CommandResult(42, _))
+    doTestWithExistingResources(Failed( _))
+    doTestWithExistingResources(DoneUndetermined(_))
+    doTestWithExistingResources(Suspended(_))
+    doTestWithExistingResources(Undetermined(_))
+    
+    def doTestWithoutResources(initialStatus: UgerStatus): Unit = {
+      assert(initialStatus.resourcesOpt === None)
+      
+      val transformed = initialStatus.transformResources(_.withQueue(Queue.Short))
+      
+      assert(initialStatus.resourcesOpt === None)
+      
+      assert(transformed.resourcesOpt === None)
+      
+      assert(transformed.getClass === initialStatus.getClass)
+      assert(transformed eq initialStatus)
+    }
+   
+    doTestWithoutResources(Done)
+    doTestWithoutResources(Queued)
+    doTestWithoutResources(QueuedHeld)
+    doTestWithoutResources(Requeued)
+    doTestWithoutResources(RequeuedHeld)
+    doTestWithoutResources(Running)
+  }
+      
   test("fromUgerStatusCode") {
     import Session._
     
@@ -141,10 +187,19 @@ final class UgerStatusTest extends FunSuite {
     assert(Running.notFinished === true)
     assert(Suspended().notFinished === true)
     assert(Undetermined().notFinished === true)
+    assert(Suspended(Some(resources)).notFinished === true)
+    assert(Undetermined(Some(resources)).notFinished === true)
     
+    assert(CommandResult(42, None).notFinished === false)
+    assert(CommandResult(42, Some(resources)).notFinished === false)
+    assert(CommandResult(0, None).notFinished === false)
+    assert(CommandResult(0, Some(resources)).notFinished === false)
     assert(Done.notFinished === false)
     assert(DoneUndetermined().notFinished === false)
     assert(Failed().notFinished === false)
+    assert(DoneUndetermined(Some(resources)).notFinished === false)
+    assert(Failed(Some(resources)).notFinished === false)
+    
     //TODO: ???
     assert(Requeued.notFinished === false)
     //TODO: ???
@@ -157,10 +212,19 @@ final class UgerStatusTest extends FunSuite {
     assert(Running.isFinished === false)
     assert(Suspended().isFinished === false)
     assert(Undetermined().isFinished === false)
+    assert(Suspended(Some(resources)).isFinished === false)
+    assert(Undetermined(Some(resources)).isFinished === false)
     
+    assert(CommandResult(42, None).isFinished === true)
+    assert(CommandResult(42, Some(resources)).isFinished === true)
+    assert(CommandResult(0, None).isFinished === true)
+    assert(CommandResult(0, Some(resources)).isFinished === true)
     assert(Done.isFinished === true)
     assert(DoneUndetermined().isFinished === true)
     assert(Failed().isFinished === true)
+    assert(DoneUndetermined(Some(resources)).isFinished === true)
+    assert(Failed(Some(resources)).isFinished === true)
+    
     //TODO: ???
     assert(Requeued.isFinished === true)
     //TODO: ???

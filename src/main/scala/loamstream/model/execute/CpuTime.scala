@@ -10,6 +10,10 @@ import java.util.concurrent.TimeUnit
  */
 final case class CpuTime(duration: Duration) {
   def seconds: Double = duration.toUnit(TimeUnit.SECONDS)
+  
+  //NB: override toString since Duration's toString uses different units at different times,
+  //and I'm not sure why.
+  override def toString: String = s"${getClass.getSimpleName}($seconds seconds)"
 }
 
 object CpuTime {

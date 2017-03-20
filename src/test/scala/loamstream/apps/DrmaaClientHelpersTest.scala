@@ -11,7 +11,7 @@ import org.ggf.drmaa.DrmaaException
 import org.scalatest.FunSuite
 import loamstream.uger.DrmaaClient
 import loamstream.uger.UgerStatus
-import loamstream.uger.UgerClient
+import loamstream.uger.AccountingClient
 
 /**
  * @author clint
@@ -21,14 +21,12 @@ final class DrmaaClientHelpersTest extends FunSuite {
   test("Drmaa client is properly shut down") {
     import DrmaaClientHelpersTest._
     
-    val ugerClient: UgerClient = UgerClient.useActualBinary()
-    
     {
       val helpers = new MockHelpers
       
       assert(helpers.mockClient.isShutdown === false)
       
-      helpers.withClient(ugerClient)(client => ())
+      helpers.withClient(client => ())
       
       assert(helpers.mockClient.isShutdown === true)
     }
@@ -39,7 +37,7 @@ final class DrmaaClientHelpersTest extends FunSuite {
       assert(helpers.mockClient.isShutdown === false)
       
       try {
-        helpers.withClient(ugerClient)(client => throw new Exception)
+        helpers.withClient(client => throw new Exception)
       } catch {
         case e: Exception => ()
       }
@@ -53,7 +51,7 @@ final class DrmaaClientHelpersTest extends FunSuite {
       assert(helpers.mockClient.isShutdown === false)
       
       try {
-        helpers.withClient(ugerClient)(client => throw new MockDrmaaException(""))
+        helpers.withClient(client => throw new MockDrmaaException(""))
       } catch {
         case e: Exception => ()
       }
@@ -69,7 +67,7 @@ object DrmaaClientHelpersTest {
   final class MockHelpers extends DrmaaClientHelpers {
     val mockClient = new MockDrmaaClient
       
-    override private[apps] def makeDrmaaClient(ignored: UgerClient): DrmaaClient = mockClient
+    override private[apps] def makeDrmaaClient: DrmaaClient = mockClient
   }
 
   final class MockDrmaaClient extends DrmaaClient {

@@ -20,7 +20,7 @@ import slick.profile.SqlProfile.ColumnOption.SqlType
  *   EXECUTIONS:
  *    ID: integer, auto-incremented, primary key
  *    ENV: varchar/text - the platform where this execution took place (e.g. Uger, Google, Local)
- *    CMD: clob - the command line string -- may be 4000 characters or longer
+ *    CMD: varchar/text/etc - the command line string -- may be 4000 characters or longer
  *    EXIT_STATUS: integer - the exit status returned by the command represented by this execution
  *
  *

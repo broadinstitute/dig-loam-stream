@@ -8,7 +8,7 @@ import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
  * date: Sep 22, 2016
  */
 final case class Execution(env: ExecutionEnvironment,
-                           cmd: String, //TODO: Should be optional
+                           cmd: String,
                            settings: Settings,
                            exitState: JobState,
                            outputs: Set[OutputRecord]) {

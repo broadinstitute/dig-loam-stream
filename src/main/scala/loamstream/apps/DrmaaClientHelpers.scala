@@ -4,7 +4,7 @@ import loamstream.uger.DrmaaClient
 import loamstream.uger.Drmaa1Client
 import loamstream.util.Loggable
 import org.ggf.drmaa.DrmaaException
-import loamstream.uger.UgerClient
+import loamstream.uger.AccountingClient
 
 /**
  * @author clint
@@ -13,10 +13,10 @@ import loamstream.uger.UgerClient
  * Helper methods for managing the lifecycle of DRMAA Clients
  */
 trait DrmaaClientHelpers extends Loggable {
-  private[apps] def makeDrmaaClient(ugerClient: UgerClient): DrmaaClient = new Drmaa1Client(ugerClient)
+  private[apps] def makeDrmaaClient: DrmaaClient = new Drmaa1Client
   
-  private[apps] def withClient(ugerClient: UgerClient)(f: DrmaaClient => Unit): Unit = {
-    val drmaaClient = makeDrmaaClient(ugerClient)
+  private[apps] def withClient(f: DrmaaClient => Unit): Unit = {
+    val drmaaClient = makeDrmaaClient
     
     try { f(drmaaClient) }
     catch {

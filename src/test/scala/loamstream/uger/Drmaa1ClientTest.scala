@@ -11,64 +11,40 @@ import java.time.Instant
  * Mar 15, 2017
  */
 final class Drmaa1ClientTest extends FunSuite {
+  private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue.Short), Some("foo.example.com"))
+  
   //scalastyle:off magic.number
   test("toResources - valid resource-usage data in JobInfo") {
-    def doTest(expectedQueue: Option[Queue], expectedNode: Option[String]): Unit = {
-      import QacctTestHelpers.actualQacctOutput
-      
-      val mockUgerClient = new MockUgerClient(_ => actualQacctOutput(expectedQueue, expectedNode))
-      
-      val jobId = "12345"
-      
-      val jobInfo = LiteralJobInfo(jobId, realWorldResourceUsageMap)
-      
-      val r = Drmaa1Client.toResources(mockUgerClient)(jobInfo).get
-      
-      import scala.concurrent.duration._
-      
-      assert(r.cpuTime === CpuTime(1.9867.seconds))
-      assert(r.memory === Memory.inGb(0.0141))
-      assert(r.node === expectedNode)
-      assert(r.queue === expectedQueue)
-      assert(r.startTime === Instant.ofEpochMilli(1488840619845L))
-      assert(r.endTime === Instant.ofEpochMilli(1488840622397L))
-    }
+    val mockUgerClient = new MockUgerClient(_ => actualQacctOutput)
     
-    //Qacct gives incomplete data
-    doTest(None, None)
-    doTest(Some(Queue.Short), None)
-    doTest(Some(Queue.Long), None)
-    doTest(None, Some("foo.example.com"))
-    //Qacct gives complete data
-    doTest(Some(Queue.Short), Some("foo.example.com"))
-    doTest(Some(Queue.Long), Some("foo.example.com"))
+    val jobId = "12345"
+    
+    val jobInfo = LiteralJobInfo(jobId, realWorldResourceUsageMap)
+    
+    val r = Drmaa1Client.toResources(jobInfo).get
+    
+    import scala.concurrent.duration._
+    
+    assert(r.cpuTime === CpuTime(1.9867.seconds))
+    assert(r.memory === Memory.inGb(0.0141))
+    assert(r.node === None)
+    assert(r.queue === None)
+    assert(r.startTime === Instant.ofEpochMilli(1488840619845L))
+    assert(r.endTime === Instant.ofEpochMilli(1488840622397L))
   }
   
   test("toResources - incomplete resource-usage data in JobInfo") {
-    def doTest(expectedQueue: Option[Queue], expectedNode: Option[String]): Unit = {
-      import QacctTestHelpers.actualQacctOutput
-      
-      val mockUgerClient = new MockUgerClient(_ => actualQacctOutput(expectedQueue, expectedNode))
-      
-      val jobId = "12345"
-      
-      val jobInfo = LiteralJobInfo(jobId, realWorldResourceUsageMap - "cpu")
-      
-      //Should fail; incomplete info from JobInfo
-      assert(Drmaa1Client.toResources(mockUgerClient)(jobInfo).isFailure)
-      
-      assert(mockUgerClient.timesGetExecutionNodeInvoked() == 0)
-      assert(mockUgerClient.timesGetQueueInvoked() == 0)
-    }
+    val mockUgerClient = new MockUgerClient(_ => actualQacctOutput)
     
-    //Qacct gives incomplete data
-    doTest(None, None)
-    doTest(Some(Queue.Short), None)
-    doTest(Some(Queue.Long), None)
-    doTest(None, Some("foo.example.com"))
-    //Qacct gives complete data
-    doTest(Some(Queue.Short), Some("foo.example.com"))
-    doTest(Some(Queue.Long), Some("foo.example.com"))
+    val jobId = "12345"
+    
+    val jobInfo = LiteralJobInfo(jobId, realWorldResourceUsageMap - "cpu")
+    
+    //Should fail; incomplete info from JobInfo
+    assert(Drmaa1Client.toResources(jobInfo).isFailure)
+    
+    assert(mockUgerClient.timesGetExecutionNodeInvoked() == 0)
+    assert(mockUgerClient.timesGetQueueInvoked() == 0)
   }
   
   private final case class LiteralJobInfo(

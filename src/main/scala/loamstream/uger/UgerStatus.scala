@@ -27,9 +27,19 @@ sealed trait UgerStatus {
   def notFinished: Boolean = isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
 
   def isFinished: Boolean = !notFinished
+  
+  def resourcesOpt: Option[UgerResources] = None
+  
+  def withResources(rs: UgerResources): UgerStatus = this
+  
+  def transformResources(f: UgerResources => UgerResources): UgerStatus = resourcesOpt match {
+    case None => this
+    case Some(rs) => withResources(f(rs))
+  }
 }
 
 object UgerStatus {
+  
   case object Done extends UgerStatus
   case object Queued extends UgerStatus
   case object QueuedHeld extends UgerStatus
@@ -37,15 +47,28 @@ object UgerStatus {
   case object RequeuedHeld extends UgerStatus
   case object Running extends UgerStatus
 
-  final case class CommandResult(exitStatus: Int, resources: Option[UgerResources]) extends UgerStatus
+  final case class CommandResult(
+      exitStatus: Int, 
+      override val resourcesOpt: Option[UgerResources]) extends UgerStatus {
+    
+    override def withResources(rs: UgerResources): UgerStatus = copy(resourcesOpt = Option(rs))
+  }
   
-  final case class Failed(resourcesOpt: Option[UgerResources] = None) extends UgerStatus
+  final case class Failed(override val resourcesOpt: Option[UgerResources] = None) extends UgerStatus {
+    override def withResources(rs: UgerResources): UgerStatus = copy(resourcesOpt = Option(rs))
+  }
   
-  final case class DoneUndetermined(resourcesOpt: Option[UgerResources] = None) extends UgerStatus
+  final case class DoneUndetermined(override val resourcesOpt: Option[UgerResources] = None) extends UgerStatus {
+    override def withResources(rs: UgerResources): UgerStatus = copy(resourcesOpt = Option(rs))
+  }
   
-  final case class Suspended(resourcesOpt: Option[UgerResources] = None) extends UgerStatus
+  final case class Suspended(override val resourcesOpt: Option[UgerResources] = None) extends UgerStatus {
+    override def withResources(rs: UgerResources): UgerStatus = copy(resourcesOpt = Option(rs))
+  }
   
-  final case class Undetermined(resourcesOpt: Option[UgerResources] = None) extends UgerStatus
+  final case class Undetermined(override val resourcesOpt: Option[UgerResources] = None) extends UgerStatus {
+    override def withResources(rs: UgerResources): UgerStatus = copy(resourcesOpt = Option(rs))
+  }
 
   import Session._
 

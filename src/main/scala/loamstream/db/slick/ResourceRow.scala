@@ -21,17 +21,14 @@ sealed trait ResourceRow {
 
 object ResourceRow {
   def fromResources(resources: Resources, executionId: Int): ResourceRow = resources match {
-    //TODO
     case LocalResources(startTime, endTime) => {
       LocalResourceRow(executionId, Timestamp.from(startTime), Timestamp.from(endTime))
     }
     case UgerResources(mem, cpu, node, queue, startTime, endTime) => {
-      //TODO
       UgerResourceRow(executionId, mem.gb, cpu.seconds, node, queue.map(_.name),
         Timestamp.from(startTime), Timestamp.from(endTime))
     }
     case GoogleResources(cluster, startTime, endTime) => {
-      //TODO
       GoogleResourceRow(executionId, cluster, Timestamp.from(startTime), Timestamp.from(endTime))
     }
   }

@@ -17,7 +17,7 @@ import loamstream.model.execute.Resources.UgerResources
  * 
  * A DRMAAv1 implementation of DrmaaClient; can submit work to UGER and monitor it.
  */
-final class Drmaa1Client(ugerClient: UgerClient) extends DrmaaClient with Loggable {
+final class Drmaa1Client extends DrmaaClient with Loggable {
   
   import DrmaaClient._
 
@@ -139,7 +139,7 @@ final class Drmaa1Client(ugerClient: UgerClient) extends DrmaaClient with Loggab
   private def doWait(session: Session, jobId: String, timeout: Duration): UgerStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
     
-    val resources = Drmaa1Client.toResources(ugerClient)(jobInfo)
+    val resources = Drmaa1Client.toResources(jobInfo)
       
     //Use recover for side-effect only
     resources.recover {
@@ -248,16 +248,9 @@ final class Drmaa1Client(ugerClient: UgerClient) extends DrmaaClient with Loggab
 }
 
 object Drmaa1Client {
-  private[uger] def toResources(ugerClient: UgerClient)(jobInfo: JobInfo): Try[UgerResources] = {
+  private[uger] def toResources(jobInfo: JobInfo): Try[UgerResources] = {
     import scala.collection.JavaConverters._
     
-    for {
-      resources <- UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
-      jobId = jobInfo.getJobId
-    } yield {
-      resources.copy(
-          node = ugerClient.getExecutionNode(jobId), 
-          queue = ugerClient.getQueue(jobId))
-    }
+    UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
   }
 }

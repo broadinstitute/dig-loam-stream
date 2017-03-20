@@ -137,6 +137,6 @@ final class UgerClientTest extends FunSuite {
   }
   
   test("makeTokens") {
-    assert(UgerClient.makeTokens("foo", "bar") === Seq("foo", "-j", "bar"))
+    assert(AccountingClient.makeTokens("foo", "bar") === Seq("foo", "-j", "bar"))
   }
 }

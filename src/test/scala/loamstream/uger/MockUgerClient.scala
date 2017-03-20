@@ -6,7 +6,7 @@ import loamstream.util.ValueBox
  * @author clint
  * Mar 15, 2017
  */
-final class MockUgerClient(delegateFn: String => Seq[String]) extends UgerClient {
+final class MockUgerClient(delegateFn: String => Seq[String]) extends AccountingClient {
   val timesGetQacctOutputForInvoked: ValueBox[Int] = ValueBox(0)
 
   val timesGetExecutionNodeInvoked: ValueBox[Int] = ValueBox(0)
@@ -20,7 +20,7 @@ final class MockUgerClient(delegateFn: String => Seq[String]) extends UgerClient
       delegateFn(jobId)
     }
 
-    new UgerClient.QacctUgerClient(wrappedDelegateFn)
+    new AccountingClient.QacctUgerClient(wrappedDelegateFn)
   }
 
   override def getExecutionNode(jobId: String): Option[String] = {

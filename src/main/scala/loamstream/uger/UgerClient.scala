@@ -1,92 +1,61 @@
 package loamstream.uger
 
-import loamstream.util.ValueBox
-import loamstream.util.Functions
-import scala.util.control.NonFatal
-import loamstream.util.Loggable
+import loamstream.conf.UgerConfig
+import java.nio.file.Path
+import scala.util.Try
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
- * Mar 9, 2017
- * 
- * An abstraction for getting some uger-specific metadata that can't currently be accessed via DRMAA 
+ * Mar 20, 2017
  */
-trait UgerClient {
-  def getExecutionNode(jobId: String): Option[String]
+final class UgerClient(
+    drmaaClient: DrmaaClient, 
+    accountingClient: AccountingClient) extends DrmaaClient with AccountingClient {
   
-  def getQueue(jobId: String): Option[Queue]
-}
-
-object UgerClient extends Loggable {
-  /**
-   * A UgerClient that retrieves metadata from whitespace-seperated key-value output, like what's
-   * produced by `qacct`.  Parameterized on the actual method of retrieving this output given a 
-   * job id, to facilitate unit testing.
-   */
-  final class QacctUgerClient(val qacctOutputForJobIdFn: String => Seq[String]) extends UgerClient {
-    import QacctUgerClient._
-    
-    //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
-    //qacct in the production case, more than necessary.
-    //NB: Don't cache empty results, since this likely indicates a failure when invoking qaact, and we'd like to
-    //be able to try again in that case.
-    private val qacctOutputForJobId: String => Seq[String] = {
-      val shouldCache: Seq[String] => Boolean = _.nonEmpty
-      
-      Functions.memoize(qacctOutputForJobIdFn, shouldCache)
-    }
-    
-    protected def getQacctOutputFor(jobId: String): Seq[String] = qacctOutputForJobId(jobId)
-    
-    override def getExecutionNode(jobId: String): Option[String] = {
-      val output = getQacctOutputFor(jobId)
-      
-      //NB: Empty hostname strings are considered invalid
-      firstOption(output.iterator.collect { case Regexes.hostname(node) => node.trim }.filter(_.nonEmpty))
-    }
+  override def getExecutionNode(jobId: String): Option[String] = accountingClient.getExecutionNode(jobId)
   
-    override def getQueue(jobId: String): Option[Queue] = {
-      val output = getQacctOutputFor(jobId)
-      
-      firstOption(output.iterator.collect {
-        case Regexes.qname(queueName) => Queue.fromString(queueName)
-      }.flatten)
-    }
+  override def getQueue(jobId: String): Option[Queue] = accountingClient.getQueue(jobId)
+  
+  override def submitJob(
+      ugerConfig: UgerConfig,
+      pathToScript: Path,
+      jobName: String,
+      numTasks: Int = 1): DrmaaClient.SubmissionResult = {
     
-    private def firstOption[A](iter: Iterator[A]): Option[A] = if(iter.hasNext) Some(iter.next()) else None
+    drmaaClient.submitJob(ugerConfig, pathToScript, jobName, numTasks)
   }
-  
-  object QacctUgerClient {
-    private object Regexes {
-      val qname = "qname\\s+(.+?)$".r
-      val hostname = "hostname\\s+(.+?)$".r
+    
+  /**
+   * Synchronously inspect the status of a job with the given ID
+ *
+   * @param jobId the job ID, assigned by UGER, to inquire about
+   * @return a Try, since inquiring might fail
+   */
+  override def statusOf(jobId: String): Try[UgerStatus] = drmaaClient.statusOf(jobId)
+
+  /**
+   * Wait (synchronously) for a job to complete.
+ *
+   * @param jobId the job ID, assigned by UGER, of the job to wait for
+   * @param timeout how long to wait.  If timeout elapses and the job doesn't finish, try to determine the job's
+   * status using statusOf()
+   */
+  override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = {
+    for {
+      ugerStatus <- drmaaClient.waitFor(jobId, timeout)
+    } yield {
+      if(ugerStatus.isFinished) {
+        val executionNode = accountingClient.getExecutionNode(jobId)
+        val executionQueue = accountingClient.getQueue(jobId)
+        
+        ugerStatus.transformResources(_.copy(node = executionNode, queue = executionQueue))
+      } else { ugerStatus }
     }
   }
   
   /**
-   * Make a UgerAcct that will retrieve job metadata by running some executable, by default, `qacct`.
+   * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
-  def useActualBinary(binaryName: String = "qacct"): QacctUgerClient = {
-    import scala.sys.process._
-    
-    def getQacctOutputFor(jobId: String): Seq[String] = {
-      val tokens = makeTokens(binaryName, jobId)
-         
-      try {
-        //Return all output lines
-        tokens.lineStream.toIndexedSeq
-      } catch {
-        case NonFatal(e) => {
-          warn(s"Error invoking '$binaryName'; execution node and queue won't be available.", e)
-          
-          Seq.empty
-        }
-      }
-    }
-    
-    new QacctUgerClient(getQacctOutputFor)
-  }
-
-  private[uger] def makeTokens(binaryName: String, jobId: String): Seq[String] = Seq(binaryName, "-j", jobId)
+  override def stop(): Unit = drmaaClient.stop()
 }
- 

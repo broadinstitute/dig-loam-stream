@@ -1,5 +1,5 @@
 /** Input VCF file */
-val inVCF = store[VCF].at("/humgen/diabetes/users/dig/pipeline/QCpipeline/example/bash/data/CAMP.vcf.gz").asInput
+val inVCF = store[VCF].at("/humgen/diabetes/users/dig/loamstream/pipeline/QCpipeline/example/bash/data/CAMP.vcf.gz").asInput
 
 /** Output directory path */
 val outDirLoc = "qc"
@@ -16,7 +16,7 @@ val PHENO_ID = "IID"
 val PHENO_SR_RACE = "RACE"
 
 /** Regions to exclude from QC (high LD / associated with T2D) */
-val inREGIONS_EXCLUDE = store[TXT].at("/humgen/diabetes/users/dig/pipeline/QCpipeline/example/bash/files/regions.exclude").asInput
+val inREGIONS_EXCLUDE = store[TXT].at("/humgen/diabetes/users/dig/loamstream/pipeline/QCpipeline/example/bash/files/regions.exclude").asInput
 
 /** 1KG PCA input */
 val inKG_V3_5K_AF = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/allele_frequencies.tsv").asInput

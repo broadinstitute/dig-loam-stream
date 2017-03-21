@@ -13,6 +13,6 @@ final case class ExecutionRow(id: Int, env: String, cmd: String, exitStatus: Int
   def toExecution(settings: Settings, resources: Option[Resources], outputs: Set[OutputRecord]): Execution = {
     val commandResult = CommandResult(exitStatus, resources)
     
-    Execution(ExecutionEnvironment.fromString(env), cmd, settings, commandResult, outputs)
+    Execution(ExecutionEnvironment.fromString(env), Option(cmd), settings, commandResult, outputs)
   }
 }

@@ -1,6 +1,8 @@
 package loamstream.model.jobs
 
 import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.execute.LocalSettings
 
 /**
  * @author clint
@@ -8,7 +10,7 @@ import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
  * date: Sep 22, 2016
  */
 final case class Execution(env: ExecutionEnvironment,
-                           cmd: String,
+                           cmd: Option[String],
                            settings: Settings,
                            exitState: JobState,
                            outputs: Set[OutputRecord]) {
@@ -19,8 +21,10 @@ final case class Execution(env: ExecutionEnvironment,
   def transformOutputs(f: Set[OutputRecord] => Set[OutputRecord]): Execution = copy(outputs = f(outputs))
 
   //NB :(
+  //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a 
+  //command-line string is defined. 
   def isCommandExecution: Boolean = exitState match {
-    case _: JobState.CommandResult | _: JobState.CommandInvocationFailure => true
+    case _: JobState.CommandResult | _: JobState.CommandInvocationFailure => cmd.isDefined
     case _ => false
   }
 
@@ -38,7 +42,7 @@ object Execution {
             settings: Settings,
             exitState: JobState,
             outputs: OutputRecord*): Execution = {
-    Execution(env, cmd, settings, exitState, outputs.toSet)
+    Execution(env, Option(cmd), settings, exitState, outputs.toSet)
   }
 
   def fromOutputs(env: ExecutionEnvironment,
@@ -46,7 +50,7 @@ object Execution {
                   settings: Settings,
                   exitState: JobState,
                   outputs: Set[Output]): Execution = {
-    Execution(env, cmd, settings, exitState, outputs.map(_.toOutputRecord))
+    Execution(env, Option(cmd), settings, exitState, outputs.map(_.toOutputRecord))
   }
 
   def fromOutputs(env: ExecutionEnvironment,
@@ -56,5 +60,20 @@ object Execution {
                   output: Output,
                   others: Output*): Execution = {
     fromOutputs(env, cmd, settings, exitState, (output +: others).toSet)
+  }
+  
+  def from(job: LJob, jobState: JobState): Execution = {
+    val commandLine: Option[String] = job match {
+      case clj: CommandLineJob => Option(clj.commandLineString)
+      case _ => None
+    }
+    
+    // TODO Replace the placeholders for `settings` objects put in place to get the code to compile
+    Execution(
+      job.executionEnvironment, 
+      commandLine, 
+      LocalSettings(), // TODO
+      jobState, 
+      job.outputs.map(_.toOutputRecord)) 
   }
 }

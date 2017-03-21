@@ -46,7 +46,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       cachedOutput(path, hash)
     }
     
-    val execution = Execution(mockEnv, mockCmd, mockSettings, 
+    val execution = Execution(mockEnv, Option(mockCmd), mockSettings, 
                               JobState.CommandResult(0, Some(mockResources)), outputs.toSet)
     
     dao.insertExecutions(execution)
@@ -60,7 +60,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     
     assert(state.isFailure)
     
-    val execution = Execution(mockEnv, mockCmd, mockSettings, state, outputs.toSet)
+    val execution = Execution(mockEnv, Option(mockCmd), mockSettings, state, outputs.toSet)
     
     dao.insertExecutions(execution)
   }
@@ -185,13 +185,13 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val googleResources = GoogleResources("clusterName",
         Instant.ofEpochMilli(1), Instant.ofEpochMilli(72345))
 
-      val failed0 = Execution(localEnv, mockCmd, localSettings, 
+      val failed0 = Execution(localEnv, Option(mockCmd), localSettings, 
                               CommandResult(42, Some(localResources)), Set(output0))
                               
-      val failed1 = Execution(ugerEnv, mockCmd, ugerSettings, 
+      val failed1 = Execution(ugerEnv, Option(mockCmd), ugerSettings, 
                               CommandResult(1, Some(ugerResources)), Set.empty[OutputRecord])
                               
-      val succeeded = Execution(googleEnv, mockCmd, googleSettings, 
+      val succeeded = Execution(googleEnv, Option(mockCmd), googleSettings, 
                                 CommandResult(0, Some(googleResources)), Set(output1, output2))
 
       assert(failed0.isFailure)
@@ -235,6 +235,35 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     }
   }
   
+  test("insertExecutions - should throw") {
+    def doTest(command: Option[String], jobState: JobState): Unit = {
+      createTablesAndThen {
+        val output0 = PathOutput(path0)
+        
+        val failed = Execution(mockEnv, command, mockSettings, 
+                               JobState.Failed(), Set(output0.toOutputRecord))
+  
+        assert(failed.isFailure)
+        
+        assert(noOutputs)
+        assert(noExecutions)
+  
+        intercept[Exception] {
+          dao.insertExecutions(failed)
+        }
+        
+        assert(noOutputs)
+        assert(noExecutions)
+      }
+    }
+    
+    doTest(Some(mockCmd), JobState.Failed())
+    doTest(None, JobState.Failed())
+    doTest(Some(mockCmd), JobState.CommandResult(1, Some(mockResources)))
+    doTest(Some(mockCmd), JobState.CommandResult(1, None))
+    doTest(None, JobState.CommandResult(0, Some(mockResources)))
+  }
+  
   test("findExecution") {
     createTablesAndThen {
       val output0 = cachedOutput(path0, hash0)
@@ -243,7 +272,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       
       val ex0 = Execution(mockEnv, mockCmd, mockSettings, CommandResult(42, Some(mockResources)), output0)
       val ex1 = Execution(mockEnv, mockCmd, mockSettings, CommandResult(0, Some(mockResources)), output1, output2)
-      val ex2 = Execution(mockEnv, mockCmd, mockSettings, 
+      val ex2 = Execution(mockEnv, Option(mockCmd), mockSettings, 
                           CommandResult(1, Some(mockResources)), Set.empty[OutputRecord])
       
       assert(ex0.isFailure)

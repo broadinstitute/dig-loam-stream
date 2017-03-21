@@ -56,9 +56,13 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
     import Helpers.dummyId
 
+    require(execution.cmd.isDefined, s"An Execution with a command line defined is required, but got $execution")
+    
     //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
-    val executionRow = new ExecutionRow(dummyId, execution.env.name, execution.cmd, commandResult.exitStatus)
-
+    //NB: Also note unsafe .get, which is "ok" here since we executions without command lines will have been
+    //filtered out before we get here.  
+    val executionRow = new ExecutionRow(dummyId, execution.env.name, execution.cmd.get, commandResult.exitStatus)
+    
     import Implicits._
 
     for {

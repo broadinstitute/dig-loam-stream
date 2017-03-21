@@ -15,6 +15,7 @@ import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.Traversables
 import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
  * @author kaan
@@ -118,25 +119,21 @@ final case class RxExecuter(
     skippedJobs.mapTo(job => JobState.Skipped)
   }
   
-  private def record(newResultMap: Map[LJob, JobState]): Unit = {
-    val executions = newResultMap.map { case (job, jobState) =>
-      // TODO Replace the placeholders for `env/settings/resources` objects put in place to get the code to compile
-      Execution(
-        job.executionEnvironment, 
-        "REPLACE_ME", //TODO 
-        LocalSettings(), // TODO
-        jobState, 
-        job.outputs.map(_.toOutputRecord)) 
-    }
+  private def record(resultMap: Map[LJob, JobState]): Unit = RxExecuter.record(jobFilter)(resultMap)
+}
+
+object RxExecuter extends Loggable {
+  // scalastyle:off magic.number
+  
+  private[execute] def record(jobFilter: JobFilter)(resultMap: Map[LJob, JobState]): Unit = {
+    val toExecution = Execution.from _
+    
+    val executions = resultMap.map(toExecution.tupled) 
 
     debug(s"Recording Executions (${executions.size}): $executions")
     
     jobFilter.record(executions)
   }
-}
-
-object RxExecuter {
-  // scalastyle:off magic.number
   
   val defaultMaxNumConcurrentJobs = 8
   

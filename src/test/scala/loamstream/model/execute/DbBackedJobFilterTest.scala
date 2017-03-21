@@ -54,17 +54,27 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   }
 
   test("record() - non-command-Execution") {
-    createTablesAndThen {
-      val filter = new DbBackedJobFilter(dao)
+    def doTest(command: Option[String], jobState: JobState): Unit = {
+      createTablesAndThen {
+        val filter = new DbBackedJobFilter(dao)
+  
+        assert(executions === Set.empty)
+  
+        val e = Execution(mockEnv, command, mockSettings, jobState, Set.empty[OutputRecord])
 
-      assert(executions === Set.empty)
-
-      val e = Execution(mockEnv, mockCmd, mockSettings, Succeeded)
-
-      filter.record(Seq(e))
-
-      assert(executions === Set.empty)
+        assert(e.isCommandExecution === false)
+        
+        filter.record(Seq(e))
+  
+        assert(executions === Set.empty)
+      }
     }
+    
+    doTest(None, CommandResult(0, Some(mockResources)))
+    doTest(None, Failed())
+    doTest(None, Succeeded)
+    doTest(Some(mockCmd), Failed())
+    doTest(Some(mockCmd), Succeeded)
   }
 
   test("record() - successful command-Execution, no outputs") {

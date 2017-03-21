@@ -41,7 +41,6 @@ object Local {
   val VDS = store[VCF].at(outDIR / s"$outLABEL.harmonized.ref.vds")
 
   // Filter Step
-  val FOR_QC = store[VCF].at(outDIR / s"$outLABEL.for_qc")
   val PLINK_FOR_QC_NAME = outDIR / Common.FOR_QC_NAME
   // TODO Possible to remove explicit typing
   val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
@@ -102,7 +101,6 @@ object Google {
 
   // Filter Step
   val inREGIONS_EXCLUDE = store[TXT].at(out / s"regions.exclude")
-  val FOR_QC = store[VCF].at(out / s"$outLABEL.for_qc")
   val VDS_FOR_QC = store[VCF].at(out / s"${Common.FOR_QC_NAME}.vds")
   val VDS_FOR_QC_PRUNED = store[VCF].at(out / s"${Common.FOR_QC_NAME}.pruned.vds")
   val VARIANTQC_TSV = store[TXT].at(out / s"$outLABEL.variantqc.tsv")
@@ -268,7 +266,7 @@ google {
       write
       --overwrite -o ${Google.VDS_FOR_QC}
       exportplink
-      -o ${Google.FOR_QC}""".in(Google.VDS, Google.inREGIONS_EXCLUDE).out(Google.PLINK_FOR_QC :+ Google.VDS_FOR_QC)
+      -o ${Google.PLINK_FOR_QC_NAME }""".in(Google.VDS, Google.inREGIONS_EXCLUDE).out(Google.PLINK_FOR_QC :+ Google.VDS_FOR_QC)
 }
 
 local {

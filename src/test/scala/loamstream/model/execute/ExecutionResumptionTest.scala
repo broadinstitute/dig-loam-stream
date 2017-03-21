@@ -13,14 +13,15 @@ import loamstream.model.jobs._
 import loamstream.util._
 import loamstream.loam.LoamScript
 import loamstream.TestHelpers
+import loamstream.model.execute.ExecutionEnvironment.Local
+import loamstream.model.execute.Resources.LocalResources
 
 /**
   * @author clint
   *         kaan
   *         date: Aug 12, 2016
   */
-final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
-
+final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao with ProvidesEnvAndResources {
   private def runsEverythingExecuter = RxExecuter.default
 
   private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
@@ -28,7 +29,10 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao {
   private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
     val hash = Hashes.sha1(p)
     val lastModified = PathUtils.lastModifiedTime(p)
-    val e = Execution(JobState.CommandResult(exitStatus), Set(cachedOutput(p, hash, lastModified)))
+
+    val e = Execution(
+        mockEnv, mockCmd, mockSettings,
+        JobState.CommandResult(exitStatus, Some(mockResources)), Set(cachedOutput(p, hash, lastModified)))
     
     store(e)
   }

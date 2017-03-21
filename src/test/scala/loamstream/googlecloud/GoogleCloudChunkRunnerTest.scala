@@ -9,6 +9,12 @@ import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.JobState
 import loamstream.util.Futures
 import loamstream.util.ObservableEnrichments
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.TestHelpers
+import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.execute.ProvidesEnvAndResources
+import loamstream.model.jobs.JobState.CommandResult
+import loamstream.model.jobs.LJob
 
 
 /**
@@ -23,24 +29,39 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   import Futures.waitFor
   import ObservableEnrichments._
 
-  test("runSingle") {
-    import GoogleCloudChunkRunner.runSingle
+  private val clusterId = "some-cluster-id"
+  
+  private val googleConfig = {
+    import TestHelpers.path
     
-    val jobResult =  JobState.CommandResult(42)
+    GoogleCloudConfig(path("gcloud"), "some-project-id", clusterId, path("creds-file"))
+  }
+  
+  test("addCluster") {
+    import GoogleCloudChunkRunner.addCluster
     
-    val job = MockJob(jobResult)
+    val clusterId = "foo"
     
-    val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+    val localResources = TestHelpers.localResources
     
-    val mockRunner = MockChunkRunner(localRunner)
+    val ugerResources = ProvidesEnvAndResources.mockUgerResources
+    val googleResources = ProvidesEnvAndResources.mockGoogleResources
     
-    assert(mockRunner.chunks() === Nil)
+    val job1 = MockJob(CommandResult(0, Some(localResources)))
+    val job2 = MockJob(CommandResult(1, Some(ugerResources)))
+    val job3 = MockJob(CommandResult(2, Some(googleResources)))
     
-    val result = runSingle(mockRunner)(job)
+    val input: Map[LJob, JobState] = Map(job1 -> job1.toReturn, job2 -> job2.toReturn, job3 -> job3.toReturn)
     
-    assert(mockRunner.chunks() === Seq(Set(job)))
+    val result = addCluster(clusterId)(input)
     
-    assert(result === Map(job -> jobResult))
+    val job1Result = result(job1).asInstanceOf[CommandResult]
+    
+    assert(job1Result.exitStatus === 0)
+    assert(job1Result.resources.get === GoogleResources(clusterId, localResources.startTime, localResources.endTime))
+    
+    assert(result(job2) === input(job2))
+    assert(result(job3) === input(job3))
   }
   
   test("withCluster") {
@@ -80,9 +101,11 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   }
   
   test("runJobsSequentially") {
+    val localResources = TestHelpers.localResources
+    
     val job1 = MockJob(JobState.Succeeded)
-    val job2 = MockJob(JobState.Failed)
-    val job3 = MockJob(JobState.CommandResult(0))
+    val job2 = MockJob(JobState.Failed())
+    val job3 = MockJob(JobState.CommandResult(0, Some(localResources)))
     
     val expected = Map(job1 -> job1.toReturn, job2 -> job2.toReturn, job3 -> job3.toReturn)
     
@@ -95,11 +118,20 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
       
       val result = waitFor(resultObs.lastAsFuture)
       
-      assert(client.clusterRunning() === true)
-      assert(client.startClusterInvocations() === 1)
-      assert(client.deleteClusterInvocations() === 0)
+      assert(result(job1) === job1.toReturn)
+      assert(result(job2) === job2.toReturn)
       
-      assert(result === expected)
+      val job3Result = result(job3).asInstanceOf[JobState.CommandResult]
+      
+      assert(job3Result.exitStatus === 0)
+
+      val job3Resources = job3Result.resources.get.asInstanceOf[GoogleResources]
+      
+      assert(job3Resources.cluster === clusterId)
+      assert(job3Resources.startTime === localResources.startTime)
+      assert(job3Resources.endTime === localResources.endTime)
+      
+      assert(result.size === 3)
     }
   }
   
@@ -127,7 +159,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
       
       val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
       
-      val googleRunner = GoogleCloudChunkRunner(client, localRunner)
+      val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
       assert(googleRunner.singleThreadedExecutor.isShutdown === false)
       assert(client.delegate.clusterRunning() === false)
@@ -166,9 +198,11 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
   
   test("run - non-empty input") {
     withMockRunner { (_, googleRunner, client) =>
+      val localResources = TestHelpers.localResources
+      
       val job1 = MockJob(JobState.Succeeded)
-      val job2 = MockJob(JobState.Failed)
-      val job3 = MockJob(JobState.CommandResult(0))
+      val job2 = MockJob(JobState.Failed())
+      val job3 = MockJob(JobState.CommandResult(0, Some(localResources)))
       
       val expected = Map(job1 -> job1.toReturn, job2 -> job2.toReturn, job3 -> job3.toReturn)
       
@@ -182,7 +216,20 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
       assert(client.startClusterInvocations() === 1)
       assert(client.deleteClusterInvocations() === 0)
       
-      assert(result === expected)
+      assert(result(job1) === job1.toReturn)
+      assert(result(job2) === job2.toReturn)
+      
+      val job3Result = result(job3).asInstanceOf[JobState.CommandResult]
+      
+      assert(job3Result.exitStatus === 0)
+
+      val job3Resources = job3Result.resources.get.asInstanceOf[GoogleResources]
+
+      assert(job3Resources.cluster === clusterId)
+      assert(job3Resources.startTime === localResources.startTime)
+      assert(job3Resources.endTime === localResources.endTime)
+      
+      assert(result.size === 3)
     }
   }
   
@@ -220,7 +267,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
       
       val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
       
-      val googleRunner = GoogleCloudChunkRunner(client, localRunner)
+      val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
       assert(client.delegate.clusterRunning() === false)
       assert(client.delegate.startClusterInvocations() === 0)
@@ -261,7 +308,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
       
       val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
       
-      val googleRunner = GoogleCloudChunkRunner(client, localRunner)
+      val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
       assert(client.delegate.clusterRunning() === false)
       assert(client.delegate.startClusterInvocations() === 0)
@@ -298,7 +345,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
     withMockClient { client => 
       val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
       
-      val googleRunner = GoogleCloudChunkRunner(client, localRunner)
+      val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
       val mockRunner = MockChunkRunner(googleRunner)
       

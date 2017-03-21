@@ -5,19 +5,19 @@ package loamstream.model.jobs
  * date: Jun 2, 2016
  */
 trait TestJobs {
-  protected val two0Success = JobState.Succeeded
-  protected val two1Success = JobState.Succeeded
+  protected val two0Success: JobState = JobState.Succeeded
+  protected val two1Success: JobState = JobState.Succeeded
 
-  protected val twoPlusTwoSuccess = JobState.Succeeded
+  protected val twoPlusTwoSuccess: JobState = JobState.Succeeded
 
-  protected val plusOneSuccess = JobState.Succeeded
+  protected val plusOneSuccess: JobState = JobState.Succeeded
   
-  protected val two0Failure = JobState.Failed
-  protected val two1Failure = JobState.Failed
+  protected val two0Failure: JobState = JobState.Failed()
+  protected val two1Failure: JobState = JobState.Failed()
 
-  protected val twoPlusTwoFailure = JobState.Failed
+  protected val twoPlusTwoFailure: JobState = JobState.Failed()
 
-  protected val plusOneFailure = JobState.Failed
+  protected val plusOneFailure: JobState = JobState.Failed()
 
   protected val two0 = MockJob(two0Success)
   protected val two1 = MockJob(two1Success)

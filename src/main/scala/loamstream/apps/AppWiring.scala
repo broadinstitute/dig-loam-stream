@@ -31,6 +31,9 @@ import loamstream.googlecloud._
 import loamstream.util.Throwables
 import loamstream.conf.LoamConfig
 import scala.util.Try
+import loamstream.uger.AccountingClient
+import loamstream.uger.Drmaa1Client
+import loamstream.uger.UgerClient
 
 /**
  * @author clint
@@ -121,7 +124,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     } yield {
       info("Creating Google Cloud ChunkRunner...")
       
-      GoogleCloudChunkRunner(client, delegate)
+      GoogleCloudChunkRunner(client, googleConfig, delegate)
     }
     
     val result = attempt.toOption
@@ -190,7 +193,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     } yield {
       info("Creating Uger ChunkRunner...")
 
-      val drmaaClient = makeDrmaaClient
+      val ugerClient = makeUgerClient
 
       import loamstream.model.execute.ExecuterHelpers._
 
@@ -198,21 +201,23 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
 
       val pollingFrequencyInHz = 0.1
 
-      val poller = Poller.drmaa(drmaaClient)
+      val poller = Poller.drmaa(ugerClient)
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
       val ugerRunner = {
         val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-        UgerChunkRunner(ugerConfig, drmaaClient, jobMonitor, pollingFrequencyInHz)
+        UgerChunkRunner(ugerConfig, ugerClient, jobMonitor, pollingFrequencyInHz)
       }
 
-      val handles = Seq(drmaaClient, schedulerHandle, ugerRunner)
+      val handles = Seq(ugerClient, schedulerHandle, ugerRunner)
 
       (ugerRunner, handles)
     }
   }
+  
+  private def makeUgerClient: UgerClient = new UgerClient(new Drmaa1Client, AccountingClient.useActualBinary())
 
   private def loadConfig(cli: Conf): Config = {
     def defaults: Config = ConfigFactory.load()

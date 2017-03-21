@@ -2,6 +2,7 @@ package loamstream.model.jobs
 
 import loamstream.util.TypeBox
 import scala.reflect.runtime.universe.Type
+import loamstream.model.execute.Resources
 
 /**
  * @author clint
@@ -16,21 +17,26 @@ sealed trait JobState {
   
   def isFinished: Boolean = isSuccess || isFailure
   def notFinished: Boolean = !isFinished
+  
+  def resources: Option[Resources] = None
 }
 
 object JobState {
   case object NotStarted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
-  case object Failed extends FailureState
   case object Succeeded extends SuccessState
   case object Skipped extends SuccessState
   case object Unknown extends NeitherSuccessNorFailure
   
-  final case class CommandResult(exitStatus: Int) extends JobState {
+  final case class CommandResult(exitStatus: Int, override val resources: Option[Resources]) extends JobState {
     override def isSuccess: Boolean = isSuccessStatusCode(exitStatus)
     
     override def isFailure: Boolean = isFailureStatusCode(exitStatus)
+    
+    def withResources(rs: Resources): CommandResult = copy(resources = Option(rs))
   }
+  
+  final case class Failed(override val resources: Option[Resources] = None) extends FailureState
   
   final case class CommandInvocationFailure(e: Throwable) extends FailureState
   

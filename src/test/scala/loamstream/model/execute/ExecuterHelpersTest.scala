@@ -65,19 +65,19 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(anyFailures(allSuccesses) === false)
     
     val allFailures = Map(
-      two0 -> JobState.Failed,
-      two1 -> JobState.Failed,
-      twoPlusTwo -> JobState.Failed,
-      plusOne -> JobState.Failed)
+      two0 -> JobState.Failed(),
+      two1 -> JobState.Failed(),
+      twoPlusTwo -> JobState.Failed(),
+      plusOne -> JobState.Failed())
       
     assert(noFailures(allFailures) === false)
     assert(anyFailures(allFailures) === true)
     
     val someFailures = Map(
       two0 -> two0Success,
-      two1 -> JobState.Failed,
+      two1 -> JobState.Failed(),
       twoPlusTwo -> twoPlusTwoSuccess,
-      plusOne -> JobState.Failed)
+      plusOne -> JobState.Failed())
       
     assert(noFailures(someFailures) === false)
     assert(anyFailures(someFailures) === true)
@@ -91,8 +91,8 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     val oneSuccess: Map[LJob, JobState] = Map(two0 -> JobState.Succeeded)
     val anotherSuccess: Map[LJob, JobState] = Map(two1 -> JobState.Succeeded)
     
-    val oneFailure: Map[LJob, JobState] = Map(two0Failed -> JobState.Failed)
-    val anotherFailure: Map[LJob, JobState] = Map(two1Failed -> JobState.Failed)
+    val oneFailure: Map[LJob, JobState] = Map(two0Failed -> JobState.Failed())
+    val anotherFailure: Map[LJob, JobState] = Map(two1Failed -> JobState.Failed())
     
     assert(consumeUntilFirstFailure(Iterator(oneSuccess)) == Vector(oneSuccess))
     

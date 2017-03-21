@@ -28,6 +28,8 @@ object Main extends Loggable {
   private def run(cli: Conf): Unit = {
     val wiring = AppWiring(cli)
 
+    def shutdownAfter[A](f: => A): A = try { f } finally { shutdown(wiring) }
+    
     val loamEngine = {
       val loamCompiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
 
@@ -35,8 +37,12 @@ object Main extends Loggable {
     }
 
     try {
-      val engineResult = loamEngine.runFiles(cli.loams())
-
+      //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
+      //before final job statuses.
+      val engineResult = shutdownAfter {
+        loamEngine.runFiles(cli.loams())
+      }
+      
       for {
         (job, result) <- engineResult.jobResultsOpt.get
       } {
@@ -44,9 +50,7 @@ object Main extends Loggable {
       }
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
-    } finally {
-      shutdown(wiring)
-    }
+    } 
   }
   
   private def shutdown(wiring: AppWiring): Unit = {

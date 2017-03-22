@@ -5,7 +5,7 @@ import scala.concurrent.Await
 import loamstream.model.jobs.TestJobs
 import scala.concurrent.duration.Duration
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.RxMockJob
 
 /**
@@ -65,19 +65,19 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(anyFailures(allSuccesses) === false)
     
     val allFailures = Map(
-      two0 -> JobState.Failed(),
-      two1 -> JobState.Failed(),
-      twoPlusTwo -> JobState.Failed(),
-      plusOne -> JobState.Failed())
+      two0 -> JobResult.Failed(),
+      two1 -> JobResult.Failed(),
+      twoPlusTwo -> JobResult.Failed(),
+      plusOne -> JobResult.Failed())
       
     assert(noFailures(allFailures) === false)
     assert(anyFailures(allFailures) === true)
     
     val someFailures = Map(
       two0 -> two0Success,
-      two1 -> JobState.Failed(),
+      two1 -> JobResult.Failed(),
       twoPlusTwo -> twoPlusTwoSuccess,
-      plusOne -> JobState.Failed())
+      plusOne -> JobResult.Failed())
       
     assert(noFailures(someFailures) === false)
     assert(anyFailures(someFailures) === true)
@@ -88,11 +88,11 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     
     assert(consumeUntilFirstFailure(Iterator.empty) == Vector.empty)
     
-    val oneSuccess: Map[LJob, JobState] = Map(two0 -> JobState.Succeeded)
-    val anotherSuccess: Map[LJob, JobState] = Map(two1 -> JobState.Succeeded)
+    val oneSuccess: Map[LJob, JobResult] = Map(two0 -> JobResult.Succeeded)
+    val anotherSuccess: Map[LJob, JobResult] = Map(two1 -> JobResult.Succeeded)
     
-    val oneFailure: Map[LJob, JobState] = Map(two0Failed -> JobState.Failed())
-    val anotherFailure: Map[LJob, JobState] = Map(two1Failed -> JobState.Failed())
+    val oneFailure: Map[LJob, JobResult] = Map(two0Failed -> JobResult.Failed())
+    val anotherFailure: Map[LJob, JobResult] = Map(two1Failed -> JobResult.Failed())
     
     assert(consumeUntilFirstFailure(Iterator(oneSuccess)) == Vector(oneSuccess))
     

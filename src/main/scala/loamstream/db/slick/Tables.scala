@@ -2,7 +2,7 @@ package loamstream.db.slick
 
 import java.sql.Timestamp
 
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import slick.driver.JdbcProfile

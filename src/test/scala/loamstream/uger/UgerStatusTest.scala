@@ -2,7 +2,7 @@ package loamstream.uger
 
 import org.scalatest.FunSuite
 import org.ggf.drmaa.Session
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import loamstream.model.execute.Memory
 import java.time.Instant
 import loamstream.model.execute.CpuTime
@@ -94,26 +94,26 @@ final class UgerStatusTest extends FunSuite {
   }
 
   test("toJobState") {
-    assert(toJobState(Done) === JobState.Succeeded)
+    assert(toJobResult(Done) === JobResult.Succeeded)
     
-    assert(toJobState(CommandResult(-1, Some(resources))) === JobState.CommandResult(-1, Some(resources)))
-    assert(toJobState(CommandResult(0, Some(resources))) === JobState.CommandResult(0, Some(resources)))
-    assert(toJobState(CommandResult(42, Some(resources))) === JobState.CommandResult(42, Some(resources)))
+    assert(toJobResult(CommandResult(-1, Some(resources))) === JobResult.CommandResult(-1, Some(resources)))
+    assert(toJobResult(CommandResult(0, Some(resources))) === JobResult.CommandResult(0, Some(resources)))
+    assert(toJobResult(CommandResult(42, Some(resources))) === JobResult.CommandResult(42, Some(resources)))
     
-    assert(toJobState(DoneUndetermined(Some(resources))) === JobState.Failed(Some(resources)))
-    assert(toJobState(Failed()) === JobState.Failed())
-    assert(toJobState(Failed(Some(resources))) === JobState.Failed(Some(resources)))
+    assert(toJobResult(DoneUndetermined(Some(resources))) === JobResult.Failed(Some(resources)))
+    assert(toJobResult(Failed()) === JobResult.Failed())
+    assert(toJobResult(Failed(Some(resources))) === JobResult.Failed(Some(resources)))
     
-    assert(toJobState(Queued) === JobState.Running)
-    assert(toJobState(QueuedHeld) === JobState.Running)
-    assert(toJobState(Requeued) === JobState.Running)
-    assert(toJobState(RequeuedHeld) === JobState.Running)
-    assert(toJobState(Running) === JobState.Running)
+    assert(toJobResult(Queued) === JobResult.Running)
+    assert(toJobResult(QueuedHeld) === JobResult.Running)
+    assert(toJobResult(Requeued) === JobResult.Running)
+    assert(toJobResult(RequeuedHeld) === JobResult.Running)
+    assert(toJobResult(Running) === JobResult.Running)
     
-    assert(toJobState(Suspended()) === JobState.Failed())
-    assert(toJobState(Undetermined()) === JobState.Failed())
-    assert(toJobState(Suspended(Some(resources))) === JobState.Failed(Some(resources)))
-    assert(toJobState(Undetermined(Some(resources))) === JobState.Failed(Some(resources)))
+    assert(toJobResult(Suspended()) === JobResult.Failed())
+    assert(toJobResult(Undetermined()) === JobResult.Failed())
+    assert(toJobResult(Suspended(Some(resources))) === JobResult.Failed(Some(resources)))
+    assert(toJobResult(Undetermined(Some(resources))) === JobResult.Failed(Some(resources)))
   }
   
   

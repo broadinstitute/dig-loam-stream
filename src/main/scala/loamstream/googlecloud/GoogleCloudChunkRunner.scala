@@ -5,7 +5,7 @@ import scala.concurrent.ExecutionContext
 import loamstream.model.execute.ChunkRunner
 import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.ExecutionEnvironment
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import loamstream.util.Terminable
 import loamstream.util.ExecutorServices
 import java.util.concurrent.Executors
@@ -21,7 +21,7 @@ import loamstream.util.Observables
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
-import loamstream.model.jobs.JobState.CommandResult
+import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.GoogleResources
 
@@ -45,8 +45,8 @@ final case class GoogleCloudChunkRunner(
   
   override def maxNumJobs: Int = delegate.maxNumJobs
   
-  override def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
-    def emptyResults: Observable[Map[LJob, JobState]] = Observable.just(Map.empty)
+  override def run(jobs: Set[LJob]): Observable[Map[LJob, JobResult]] = {
+    def emptyResults: Observable[Map[LJob, JobResult]] = Observable.just(Map.empty)
   
     if(jobs.isEmpty) { emptyResults }
     else { runJobsSequentially(jobs) }
@@ -75,7 +75,7 @@ final case class GoogleCloudChunkRunner(
     }
   }
   
-  private[googlecloud] def runJobsSequentially(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
+  private[googlecloud] def runJobsSequentially(jobs: Set[LJob]): Observable[Map[LJob, JobResult]] = {
     Observables.observeAsync {
       withCluster(client) {
         val singleJobResults = jobs.toSeq.map(runSingle(delegate))
@@ -85,7 +85,7 @@ final case class GoogleCloudChunkRunner(
     }
   }
 
-  private[googlecloud] def runSingle(delegate: ChunkRunner)(job: LJob): Map[LJob, JobState] = {
+  private[googlecloud] def runSingle(delegate: ChunkRunner)(job: LJob): Map[LJob, JobResult] = {
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     //on the same cluster simultaneously
     import ObservableEnrichments._
@@ -104,7 +104,7 @@ final case class GoogleCloudChunkRunner(
 }
 
 object GoogleCloudChunkRunner {
-  private[googlecloud] def addCluster(cluster: String)(jobStates: Map[LJob, JobState]): Map[LJob, JobState] = {
+  private[googlecloud] def addCluster(cluster: String)(jobStates: Map[LJob, JobResult]): Map[LJob, JobResult] = {
     jobStates.map { 
       case (job, state @ CommandResult(exitStatus, Some(localResources: LocalResources))) => {
         val googleResources = GoogleResources.fromClusterAndLocalResources(cluster, localResources)

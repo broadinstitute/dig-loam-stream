@@ -14,10 +14,9 @@ import loamstream.loam.LoamToolBox
 import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.model.execute.Executer
 import loamstream.util.Hit
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{JobResult, LJob}
 import loamstream.util.Shot
 import loamstream.util.Miss
-import loamstream.model.jobs.JobState
 import loamstream.util.Loggable
 import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.Executable
@@ -43,7 +42,7 @@ object LoamEngine {
   final case class Result(
       projectOpt: Shot[LoamProject],
       compileResultOpt: Shot[LoamCompiler.Result],
-      jobResultsOpt: Shot[Map[LJob, JobState]])
+      jobResultsOpt: Shot[Map[LJob, JobResult]])
 
 }
 
@@ -179,7 +178,7 @@ final case class LoamEngine(
     debug(s"Job tree: $buffer")
   }
   
-  def run(context: LoamProjectContext): Map[LJob, JobState] = {
+  def run(context: LoamProjectContext): Map[LJob, JobResult] = {
     val executable = toExecutable(context)
 
     log(executable)

@@ -5,13 +5,12 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import loamstream.db.LoamDao
 import loamstream.model.execute._
-import loamstream.model.jobs.{Execution, JobState, OutputRecord}
+import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.PathUtils
 import slick.profile.SqlAction
-import loamstream.model.jobs.JobState.{CommandInvocationFailure, CommandResult}
-import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.jobs.JobResult.{CommandInvocationFailure, CommandResult}
 
 /**
  * @author clint
@@ -51,7 +50,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     deleteOutput(paths.map(PathUtils.normalize))
   }
 
-  private def insert(executionAndState: (Execution, JobState.CommandResult)): DBIO[Iterable[Int]] = {
+  private def insert(executionAndState: (Execution, JobResult.CommandResult)): DBIO[Iterable[Int]] = {
     val (execution, commandResult) = executionAndState
 
     import Helpers.dummyId

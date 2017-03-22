@@ -10,8 +10,8 @@ import loamstream.util.TypeBox
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.TestHelpers
 import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.model.jobs.JobState.CommandResult
-import loamstream.model.jobs.JobState.Succeeded
+import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.JobResult.Succeeded
 
 /**
  * @author clint
@@ -37,19 +37,19 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     
     assert(e0.cmd === Some("foo"))
     assert(e0.env.isUger)
-    assert(e0.exitState === state0)
+    assert(e0.result === state0)
     assert(e0.outputs.isEmpty)
     //TODO: Check settings field once it's no longer a placeholder 
     
     assert(e1.cmd === None)
     assert(e1.env.isLocal)
-    assert(e1.exitState === state1)
+    assert(e1.result === state1)
     assert(e1.outputs.isEmpty)
     //TODO: Check settings field once it's no longer a placeholder
   }
   
   test("transformOutputs - no outputs") {
-    val noOutputs = Execution(mockEnv, Option(mockCmd), mockSettings, JobState.Succeeded, Set.empty[OutputRecord])
+    val noOutputs = Execution(mockEnv, Option(mockCmd), mockSettings, JobResult.Succeeded, Set.empty[OutputRecord])
     
     val transformed = noOutputs.transformOutputs(os => os.map(_ => PathOutput(p0).toOutputRecord))
     
@@ -58,24 +58,24 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   
   test("transformOutputs - some outputs") {
     val hasOutputs = Execution(mockEnv, Option(mockCmd), mockSettings, 
-        JobState.Succeeded, Set(p0, p1).map(PathOutput(_).toOutputRecord))
+        JobResult.Succeeded, Set(p0, p1).map(PathOutput(_).toOutputRecord))
     
     val munge: OutputRecord => OutputRecord = rec => OutputRecord(s"${rec.loc}123", None, None)
 
     val transformed = hasOutputs.transformOutputs(os => os.map(munge))
     
-    assert(hasOutputs.exitState === transformed.exitState)
+    assert(hasOutputs.result === transformed.result)
     assert(transformed.outputs === Set(p0, p1).map(PathOutput(_).toOutputRecord).map(munge))
   }
   
   test("isCommandExecution") {
-    def assertIsCommandExecution(state: JobState, cmd: Option[String] = Option(mockCmd)): Unit = {
+    def assertIsCommandExecution(state: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(mockEnv, cmd, mockSettings, state, Set.empty[OutputRecord])
       
       assert(execution.isCommandExecution)
     }
     
-    def assertIsNOTCommandExecution(state: JobState, cmd: Option[String] = Option(mockCmd)): Unit = {
+    def assertIsNOTCommandExecution(state: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(mockEnv, cmd, mockSettings, state, Set.empty[OutputRecord])
       
       assert(!execution.isCommandExecution)
@@ -83,7 +83,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
 
     val e = new Exception
     
-    import JobState._
+    import JobResult._
     
     assertIsCommandExecution(CommandResult(0, Some(TestHelpers.localResources)) )
     assertIsCommandExecution(CommandResult(1, Some(TestHelpers.localResources)))

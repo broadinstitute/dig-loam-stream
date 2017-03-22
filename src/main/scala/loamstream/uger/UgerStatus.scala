@@ -1,6 +1,6 @@
 package loamstream.uger
 
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import org.ggf.drmaa.Session
 import loamstream.model.execute.Resources.UgerResources
 
@@ -86,17 +86,17 @@ object UgerStatus {
     case UNDETERMINED | _                                           => Undetermined()
   }
 
-  def toJobState(status: UgerStatus): JobState = status match {
-    case Done                                                       => JobState.Succeeded
-    case CommandResult(exitStatus, resources)                       => JobState.CommandResult(exitStatus, resources)
-    case DoneUndetermined(resources)                                => JobState.Failed(resources)
-    case Failed(resources)                                          => JobState.Failed(resources)
+  def toJobResult(status: UgerStatus): JobResult = status match {
+    case Done                                                       => JobResult.Succeeded
+    case CommandResult(exitStatus, resources)                       => JobResult.CommandResult(exitStatus, resources)
+    case DoneUndetermined(resources)                                => JobResult.Failed(resources)
+    case Failed(resources)                                          => JobResult.Failed(resources)
     //TODO: Perhaps these should be something like JobState.NotStarted?
-    case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobState.Running
-    case Running                                                    => JobState.Running
+    case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobResult.Running
+    case Running                                                    => JobResult.Running
     //TODO: Is this right?
-    case Suspended(resources)                                       => JobState.Failed(resources)
+    case Suspended(resources)                                       => JobResult.Failed(resources)
     //TODO: Is this right?
-    case Undetermined(resources)                                    => JobState.Failed(resources)
+    case Undetermined(resources)                                    => JobResult.Failed(resources)
   }
 }

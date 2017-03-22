@@ -1,7 +1,7 @@
 package loamstream.model.execute
 
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import rx.lang.scala.Observable
 import loamstream.util.Observables
 
@@ -15,7 +15,7 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
   
   override def canRun(job: LJob): Boolean = components.exists(_.canRun(job))
   
-  override def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
+  override def run(jobs: Set[LJob]): Observable[Map[LJob, JobResult]] = {
     
     require(jobs.forall(canRun), s"Don't know how to run ${jobs.filterNot(canRun)}")
     

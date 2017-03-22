@@ -1,26 +1,20 @@
 package loamstream.model.execute
 
-import java.util.concurrent.{Executors, ThreadFactory}
 
 import scala.annotation.tailrec
 import scala.concurrent.{ ExecutionContext, Future }
 
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.LJob
-import loamstream.util.Hit
-import loamstream.util.Shot
-import loamstream.util.Maps
-import loamstream.util.ExecutorServices
-import loamstream.util.Terminable
 
 /**
  * @author clint
  * date: Jun 7, 2016
  */
 object ExecuterHelpers {
-  def consumeUntilFirstFailure(iter: Iterator[Map[LJob, JobState]]): IndexedSeq[Map[LJob, JobState]] = {
+  def consumeUntilFirstFailure(iter: Iterator[Map[LJob, JobResult]]): IndexedSeq[Map[LJob, JobResult]] = {
     @tailrec
-    def loop(acc: IndexedSeq[Map[LJob, JobState]]): IndexedSeq[Map[LJob, JobState]] = {
+    def loop(acc: IndexedSeq[Map[LJob, JobResult]]): IndexedSeq[Map[LJob, JobResult]] = {
       if (iter.isEmpty) { acc }
       else {
         val m = iter.next()
@@ -37,11 +31,11 @@ object ExecuterHelpers {
     loop(Vector.empty)
   }
 
-  def noFailures[J <: LJob](m: Map[J, JobState]): Boolean = m.values.forall(_.isSuccess)
+  def noFailures[J <: LJob](m: Map[J, JobResult]): Boolean = m.values.forall(_.isSuccess)
   
-  def anyFailures[J <: LJob](m: Map[J, JobState]): Boolean = !noFailures(m)
+  def anyFailures[J <: LJob](m: Map[J, JobResult]): Boolean = !noFailures(m)
 
-  def executeSingle(job: LJob)(implicit executor: ExecutionContext): Future[Map[LJob, JobState]] = {
+  def executeSingle(job: LJob)(implicit executor: ExecutionContext): Future[Map[LJob, JobResult]] = {
     for {
       result <- job.execute
     } yield {

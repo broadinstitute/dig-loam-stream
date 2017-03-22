@@ -6,14 +6,15 @@ import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.Loggable
 import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.execute.{DbBackedJobFilter, Executable, ExecuterHelpers, MockChunkRunner, RxExecuter}
-import loamstream.model.jobs.JobState.{CommandResult, Skipped}
+import loamstream.model.jobs.JobResult.{CommandResult, Skipped}
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.{JobState, LJob, Output, OutputRecord}
+import loamstream.model.jobs.{JobResult, LJob, Output, OutputRecord}
 import loamstream.util.code.SourceUtils
 import loamstream.util.{Loggable, Sequence}
 import org.scalatest.{FunSuite, Matchers}
 import loamstream.model.execute.AsyncLocalChunkRunner
+
 import scala.concurrent.ExecutionContext
 import loamstream.model.execute.Resources.LocalResources
 
@@ -62,7 +63,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       val executionFromOutput1 = dao.findExecution(output1).get
       
-      val output1Result = executionFromOutput1.exitState.asInstanceOf[CommandResult]
+      val output1Result = executionFromOutput1.result.asInstanceOf[CommandResult]
       
       assert(output1Result.exitStatus === 0)
       assert(output1Result.resources === firstResult.resources)
@@ -85,7 +86,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
             cmd"cp $$fileOut1 $$fileOut2""""
 
       //Run the script and validate the results
-      def run(expectedStates: Seq[JobState]): Unit = {
+      def run(expectedStates: Seq[JobResult]): Unit = {
         val (executable, results) = compileAndRun(secondScript)
 
         val updatedOutput1 = OutputRecord(PathOutput(fileOut1))
@@ -98,7 +99,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         val firstResult = results(firstJob)
         val secondResult = results(secondJob)
         
-        def compareResults(result: JobState, expected: JobState): Unit = {
+        def compareResults(result: JobResult, expected: JobResult): Unit = {
           (result, expected) match {
             case (r: CommandResult, e: CommandResult) => {
               assert(r.exitStatus === e.exitStatus)
@@ -119,13 +120,13 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         //If the job was skipped, we should have left the one from the previous successful run alone.
         
         compareResults(
-            dao.findExecution(updatedOutput1).get.exitState, 
+            dao.findExecution(updatedOutput1).get.result,
             CommandResult(0, Some(TestHelpers.localResources)))
         
         assert(dao.findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
 
         compareResults(
-            dao.findExecution(updatedOutput2).get.exitState, 
+            dao.findExecution(updatedOutput2).get.result,
             CommandResult(0, Some(TestHelpers.localResources)))
         
         assert(dao.findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
@@ -190,7 +191,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         assert(recordOpt === Some(output1))
         assert(recordOpt.get.hash.isEmpty)
 
-        assert(dao.findExecution(output1).get.exitState.isFailure)
+        assert(dao.findExecution(output1).get.result.isFailure)
         assert(dao.findExecution(output1).get.outputs === Set(output1))
       }
 
@@ -250,7 +251,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         val output1 = OutputRecord(fileOut1)
         val output2 = OutputRecord(fileOut2)
 
-        assert(dao.findExecution(output1).get.exitState.isFailure)
+        assert(dao.findExecution(output1).get.result.isFailure)
         assert(dao.findExecution(output1).get.outputs === Set(output1))
 
         //NB: The job that referenced output2 didn't get run, so its execution should not have been recorded 
@@ -309,7 +310,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
   private def normalize(po: PathOutput): PathOutput = PathOutput(po.normalized.path)
 
-  private def compileAndRun(script: String): (Executable, Map[LJob, JobState]) = {
+  private def compileAndRun(script: String): (Executable, Map[LJob, JobResult]) = {
     val engine = loamEngine
 
     val executable = engine.compileToExecutable(script).get

@@ -20,7 +20,7 @@ final case class RxMockJob(
     outputs: Set[Output] = Set.empty,
     runsAfter: Set[RxMockJob] = Set.empty,
     fakeExecutionTimeInMs: Int = 0,
-    toReturn: JobState = JobState.Succeeded) extends LJob {
+    toReturn: JobResult = JobResult.Succeeded) extends LJob {
 
   override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
   
@@ -43,11 +43,11 @@ final case class RxMockJob(
     }
   }
 
-  override def execute(implicit context: ExecutionContext): Future[JobState] = {
+  override def execute(implicit context: ExecutionContext): Future[JobResult] = {
     Future(waitIfNecessary()).flatMap(_ => super.execute)
   }
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = Future {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = Future {
 
     trace(s"\t\tStarting job: $name")
 

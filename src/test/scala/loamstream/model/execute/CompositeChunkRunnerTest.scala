@@ -2,14 +2,12 @@ package loamstream.model.execute
 
 import org.scalatest.FunSuite
 import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.LJob
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import loamstream.util.Futures
 import rx.lang.scala.Observable
 import loamstream.util.ObservableEnrichments
-import loamstream.model.execute.Resources.LocalResources
 import loamstream.TestHelpers
 
 /**
@@ -39,11 +37,11 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     private val delegate = local(1)
     
-    override def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = delegate.run(jobs)
+    override def run(jobs: Set[LJob]): Observable[Map[LJob, JobResult]] = delegate.run(jobs)
   }
   
   test("canRun") {
-    import JobState.Succeeded
+    import JobResult.Succeeded
     
     val job1 = MockJob(Succeeded)
     val job2 = MockJob(Succeeded)
@@ -61,7 +59,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
   }
   
   test("run") {
-    import JobState.{Succeeded,Failed}
+    import JobResult.{Succeeded,Failed}
     
     val job1 = MockJob(Succeeded)
     val job2 = MockJob(Failed(Some(TestHelpers.localResources)))

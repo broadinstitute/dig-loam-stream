@@ -7,7 +7,7 @@ import scala.concurrent.Future
 import scala.sys.process.ProcessBuilder
 import scala.sys.process.ProcessLogger
 
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.LJob
 import loamstream.util.Futures
 import loamstream.util.Loggable
@@ -36,7 +36,7 @@ trait CommandLineJob extends LJob {
 
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = {
     Futures.runBlocking {
       trace(s"RUNNING: $commandLineString")
 
@@ -46,9 +46,9 @@ trait CommandLineJob extends LJob {
 
       val resources = LocalResources(start, end)
       
-      JobState.CommandResult(exitValue, Option(resources))
+      JobResult.CommandResult(exitValue, Option(resources))
     }.recover {
-      case exception: Exception => JobState.CommandInvocationFailure(exception)
+      case exception: Exception => JobResult.CommandInvocationFailure(exception)
     }
   }
   

@@ -2,7 +2,7 @@ package loamstream.db.slick
 
 import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
 import loamstream.model.jobs.{Execution, OutputRecord}
-import loamstream.model.jobs.JobState.CommandResult
+import loamstream.model.jobs.JobResult.CommandResult
 
 /**
  * @author clint

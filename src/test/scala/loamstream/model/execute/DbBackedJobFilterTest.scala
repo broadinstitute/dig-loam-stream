@@ -5,7 +5,7 @@ import java.time.Instant
 
 import org.scalatest.{FunSuite, PrivateMethodTester}
 import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.model.jobs.{Execution, JobState, Output, OutputRecord}
+import loamstream.model.jobs.{Execution, JobResult, Output, OutputRecord}
 import loamstream.util.HashType.Sha1
 
 /**
@@ -37,7 +37,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
   private def executions = dao.allExecutions.toSet
 
-  import JobState._
+  import JobResult._
 
   test("record() - no Executions") {
     createTablesAndThen {
@@ -52,7 +52,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   }
 
   test("record() - non-command-Execution") {
-    def doTest(command: Option[String], jobState: JobState): Unit = {
+    def doTest(command: Option[String], jobState: JobResult): Unit = {
       createTablesAndThen {
         val filter = new DbBackedJobFilter(dao)
   

@@ -83,18 +83,18 @@ trait LJob extends Loggable {
     }
   }
   
-  private[this] val stateRef: ValueBox[JobState] = ValueBox(JobState.NotStarted)
+  private[this] val stateRef: ValueBox[JobResult] = ValueBox(JobResult.NotStarted)
 
   /** This job's current state */
-  final def state: JobState = stateRef.value
+  final def state: JobResult = stateRef.value
 
   /**
    * An observable stream of states emitted by this job, each one reflecting a state this job transitioned to.
    */
   //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val stateEmitter: Subject[JobState] = ReplaySubject[JobState]()
+  private[this] val stateEmitter: Subject[JobResult] = ReplaySubject[JobResult]()
   
-  lazy val states: Observable[JobState] = stateEmitter
+  lazy val states: Observable[JobResult] = stateEmitter
 
   final protected def emitJobState(): Unit = stateEmitter.onNext(state)
   
@@ -102,22 +102,23 @@ trait LJob extends Loggable {
    * The "terminal" state emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time. 
    */
-  protected[jobs] lazy val lastState: Observable[JobState] = states.filter(_.isFinished).first
+  protected[jobs] lazy val lastState: Observable[JobResult] = states.filter(_.isFinished).first
   
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" states.
    * When this fires, our dependencies are finished.
    */
-  protected[jobs] lazy val finalInputStates: Observable[Seq[JobState]] = {
+  protected[jobs] lazy val finalInputStates: Observable[Seq[JobResult]] = {
     Observables.sequence(inputs.toSeq.map(_.lastState))
   }
   
   /**
    * Sets the state of this job to be newState, and emits the new state to any observers.
+ *
    * @param newState the new state to set for this job 
    */
   //NB: Currently needs to be public for use in UgerChunkRunner :\
-  final def updateAndEmitJobState(newState: JobState): Unit = {
+  final def updateAndEmitJobState(newState: JobResult): Unit = {
     debug(s"Status change to $newState for job: ${this}")
     stateRef() = newState
     stateEmitter.onNext(newState)
@@ -127,11 +128,11 @@ trait LJob extends Loggable {
    * Decorates executeSelf(), updating and emitting the value of 'state' from
    * Running to Succeeded/Failed.
    */
-  def execute(implicit context: ExecutionContext): Future[JobState] = {
+  def execute(implicit context: ExecutionContext): Future[JobResult] = {
     import loamstream.util.Futures.Implicits._
 
-    updateAndEmitJobState(JobState.NotStarted)
-    updateAndEmitJobState(JobState.Running)
+    updateAndEmitJobState(JobResult.NotStarted)
+    updateAndEmitJobState(JobResult.Running)
     
     executeSelf.withSideEffect(updateAndEmitJobState)
   }
@@ -139,7 +140,7 @@ trait LJob extends Loggable {
   /**
    * Implementions of this method will do any actual work to be performed by this job
    */
-  protected def executeSelf(implicit context: ExecutionContext): Future[JobState]
+  protected def executeSelf(implicit context: ExecutionContext): Future[JobResult]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 

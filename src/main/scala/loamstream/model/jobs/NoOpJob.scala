@@ -8,8 +8,8 @@ import loamstream.model.execute.ExecutionEnvironment
  * date: Jun 2, 2016
  */
 final case class NoOpJob(inputs: Set[LJob]) extends LJob {
-  override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
-    Future.successful(JobState.Succeeded)
+  override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = {
+    Future.successful(JobResult.Succeeded)
   }
   
   override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local

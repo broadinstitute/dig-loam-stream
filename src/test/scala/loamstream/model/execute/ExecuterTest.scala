@@ -8,8 +8,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.TestJobs
 import loamstream.util.Hit
-import loamstream.util.Shot
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 
 
 /**
@@ -27,7 +26,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   }
   
   withExecuter("single jobs should work") { executer =>
-    def doTest(job: LJob, expectedResult: JobState): Unit = {
+    def doTest(job: LJob, expectedResult: JobResult): Unit = {
       val executable = Executable(Set(job))
   
       val result = executer.execute(executable)

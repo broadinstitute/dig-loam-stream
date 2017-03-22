@@ -9,8 +9,8 @@ import loamstream.TestHelpers
  * @author clint
  * date: Sep 30, 2016
  */
-final class JobStateTest extends FunSuite {
-  import JobState._
+final class JobResultTest extends FunSuite {
+  import JobResult._
   
   //scalastyle:off magic.number
   

@@ -15,7 +15,7 @@ final class JobTest extends FunSuite with TestJobs {
   
   //scalastyle:off magic.number
   
-  import JobState._
+  import JobResult._
   import Futures.waitFor
   import ObservableEnrichments._
   
@@ -120,7 +120,7 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("selfRunnable - no deps") {
-    def doTest(resultState: JobState): Unit = {
+    def doTest(resultState: JobResult): Unit = {
       val noDeps = MockJob(resultState)
       
       assert(waitFor(noDeps.selfRunnable.firstAsFuture) eq noDeps)
@@ -134,8 +134,8 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("selfRunnable - some deps") {
-    def doTest(resultState: JobState, anyFailures: Boolean): Unit = {
-      def mockJob(toReturn: JobState, startingState: Option[JobState] = None) = {
+    def doTest(resultState: JobResult, anyFailures: Boolean): Unit = {
+      def mockJob(toReturn: JobResult, startingState: Option[JobResult] = None) = {
         val j = MockJob(toReturn)
         
         j.updateAndEmitJobState(startingState.getOrElse(toReturn))
@@ -177,7 +177,7 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("runnables - no deps") {
-    def doTest(resultState: JobState): Unit = {
+    def doTest(resultState: JobResult): Unit = {
       val job = MockJob(resultState)
       
       val runnables = job.runnables.to[Seq].firstAsFuture

@@ -2,7 +2,7 @@ package loamstream.model.execute
 
 import scala.concurrent.duration.Duration
 
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.LJob
 
 /**
@@ -11,6 +11,6 @@ import loamstream.model.jobs.LJob
  */
 trait Executer {
 
-  def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobState]
+  def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobResult]
   
 }

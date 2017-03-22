@@ -5,7 +5,7 @@ import java.nio.file.Path
 import loamstream.loam.ops.TextStoreRecord
 import loamstream.loam.ops.mappers.LoamStoreMapper
 import loamstream.model.jobs.ops.StoreMapperJob.LineMapper
-import loamstream.model.jobs.{JobState, LJob, Output}
+import loamstream.model.jobs.{JobResult, LJob, Output}
 import loamstream.util.Files
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,9 +41,9 @@ final case class StoreMapperJob(
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
   /** Implementations of this method will do any actual work to be performed by this job */
-  override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = Future {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = Future {
     Files.mapFile(inPath, outPath)(LineMapper(mapper, inType, outType))
-    JobState.Succeeded
+    JobResult.Succeeded
   }
 
 }

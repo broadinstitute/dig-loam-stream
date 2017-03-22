@@ -1,11 +1,8 @@
 package loamstream.model.execute
 
 import scala.concurrent.ExecutionContext
-import loamstream.model.jobs.LJob
-import scala.concurrent.Future
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.{JobResult, LJob}
 import loamstream.util.Maps
-
 import AsyncLocalChunkRunner.defaultMaxNumJobs
 import rx.lang.scala.Observable
 import loamstream.util.Observables
@@ -20,12 +17,12 @@ final case class AsyncLocalChunkRunner(
 
   import ExecuterHelpers._
 
-  override def run(jobs: Set[LJob]): Observable[Map[LJob, JobState]] = {
+  override def run(jobs: Set[LJob]): Observable[Map[LJob, JobResult]] = {
     if(jobs.isEmpty) { Observable.just(Map.empty) }
     else {
-      def exec(job: LJob): Observable[Map[LJob, JobState]] = Observable.from(executeSingle(job))
+      def exec(job: LJob): Observable[Map[LJob, JobResult]] = Observable.from(executeSingle(job))
 
-      val resultObservables: Seq[Observable[Map[LJob, JobState]]] = jobs.toSeq.map(exec)
+      val resultObservables: Seq[Observable[Map[LJob, JobResult]]] = jobs.toSeq.map(exec)
         
       Observables.sequence(resultObservables).map(Maps.mergeMaps)
     }

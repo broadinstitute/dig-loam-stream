@@ -32,13 +32,13 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
     val e = Execution(
         mockEnv, Option(mockCmd), mockSettings,
-        JobState.CommandResult(exitStatus, Some(mockResources)), Set(cachedOutput(p, hash, lastModified)))
+        JobResult.CommandResult(exitStatus, Some(mockResources)), Set(cachedOutput(p, hash, lastModified)))
     
     store(e)
   }
 
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
-    import JobState._
+    import JobResult._
 
     doTest(Seq(Skipped, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{Files => JFiles}
@@ -56,7 +56,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   test("Pipelines can be resumed after stopping 2/3rds of the way through") {
 
-    import JobState._
+    import JobResult._
 
     doTest(Seq(Skipped, Skipped, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{Files => JFiles}
@@ -77,7 +77,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   test("Re-running a finished pipelines does nothing") {
 
-    import JobState._
+    import JobResult._
 
     doTest(Seq(Skipped, Skipped, Skipped)) { (start, f1, f2, f3) =>
       import java.nio.file.{Files => JFiles}
@@ -102,7 +102,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
 
   test("Every job is run for Pipelines with no existing outputs") {
-    import JobState._
+    import JobResult._
 
     doTest(Seq(Succeeded, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
       //No setup
@@ -110,8 +110,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
 
   private def mockJob(name: String, outputs: Set[Output], inputs: Set[LJob] = Set.empty)(body: => Any): MockJob = {
-    new MockJob(JobState.Succeeded, name, inputs, outputs, delay = 0) {
-      override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
+    new MockJob(JobResult.Succeeded, name, inputs, outputs, delay = 0) {
+      override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = {
         body
 
         super.executeSelf
@@ -121,7 +121,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   // scalastyle:off method.length
   //NB: Tests with the 'run-everything' JobFilter as well as a DB-backed one.
-  private def doTest(expectations: Seq[JobState])(setup: (Path, Path, Path, Path) => Any): Unit = {
+  private def doTest(expectations: Seq[JobResult])(setup: (Path, Path, Path, Path) => Any): Unit = {
 
     def doTestWithExecuter(executer: RxExecuter): Unit = {
       import java.nio.file.{ Files => JFiles }
@@ -151,9 +151,9 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
         copy(f2, f3)
       }
 
-      assert(startToF1.state == JobState.NotStarted)
-      assert(f1ToF2.state == JobState.NotStarted)
-      assert(f2ToF3.state == JobState.NotStarted)
+      assert(startToF1.state == JobResult.NotStarted)
+      assert(f1ToF2.state == JobResult.NotStarted)
+      assert(f2ToF3.state == JobResult.NotStarted)
   
       val executable = Executable(Set(f2ToF3))
   
@@ -178,7 +178,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
         val expectedStates = {
           if (runningEverything) {
-            Seq(JobState.Succeeded, JobState.Succeeded, JobState.Succeeded)
+            Seq(JobResult.Succeeded, JobResult.Succeeded, JobResult.Succeeded)
           }
           else {
             expectations

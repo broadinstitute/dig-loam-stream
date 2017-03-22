@@ -1,23 +1,19 @@
 package loamstream.loam
 
-import java.nio.file.{ Files => JFiles }
+import java.nio.file.{Files => JFiles}
 import java.nio.file.Path
 import java.nio.file.Paths
 
 import scala.util.Try
-
 import org.scalatest.FunSuite
-
 import loamstream.compiler.LoamCompiler
 import loamstream.loam.LoamToolBoxTest.Results
 import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.loam.ast.LoamGraphAstMapping
 import loamstream.model.execute.RxExecuter
-import loamstream.model.jobs.JobState
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{JobResult, LJob}
 import loamstream.util.Files
 import loamstream.TestHelpers
-import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
@@ -159,7 +155,7 @@ final class LoamToolBoxTest extends FunSuite {
 
 object LoamToolBoxTest {
 
-  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobResults: Map[LJob, JobState]) {
+  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobResults: Map[LJob, JobResult]) {
     
     def allJobResultsAreSuccess: Boolean = jobResults.values.forall(_.isSuccess)
     

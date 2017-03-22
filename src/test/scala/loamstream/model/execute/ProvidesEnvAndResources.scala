@@ -44,7 +44,7 @@ trait ProvidesEnvAndResources extends FunSuite {
   protected def assertEqualFieldsFor(actual: Iterable[Execution], expected: Iterable[Execution]): Unit = {
     assert(actual.map(_.env) === expected.map(_.env))
     assert(actual.map(_.cmd) === expected.map(_.cmd))
-    assert(actual.map(_.exitState) === expected.map(_.exitState))
+    assert(actual.map(_.result) === expected.map(_.result))
     assert(actual.map(_.settings) === expected.map(_.settings))
     assert(actual.map(_.resources) === expected.map(_.resources))
     assert(actual.map(_.outputs) === expected.map(_.outputs))

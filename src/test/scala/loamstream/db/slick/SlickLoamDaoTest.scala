@@ -6,16 +6,14 @@ import java.time.Instant
 
 import loamstream.model.execute._
 import org.scalatest.FunSuite
-import loamstream.model.jobs.{Execution, JobState, OutputRecord}
-import loamstream.model.jobs.JobState.CommandResult
+import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
+import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.uger.Queue
 import loamstream.util.Hashes
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.GoogleResources
-import loamstream.TestHelpers
-
 
 /**
  * @author clint
@@ -47,7 +45,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     }
     
     val execution = Execution(mockEnv, Option(mockCmd), mockSettings, 
-                              JobState.CommandResult(0, Some(mockResources)), outputs.toSet)
+                              JobResult.CommandResult(0, Some(mockResources)), outputs.toSet)
     
     dao.insertExecutions(execution)
   }
@@ -56,7 +54,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     val outputs = paths.map(OutputRecord(_))
     
     //NB: Failure
-    val state = JobState.CommandResult(42, Some(mockResources))
+    val state = JobResult.CommandResult(42, Some(mockResources))
     
     assert(state.isFailure)
     
@@ -220,7 +218,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val output0 = PathOutput(path0)
       
       val failed = Execution(mockEnv, mockCmd, mockSettings, 
-                             JobState.CommandInvocationFailure(new Exception), output0.toOutputRecord)
+                             JobResult.CommandInvocationFailure(new Exception), output0.toOutputRecord)
 
       assert(failed.isFailure)
       
@@ -236,12 +234,12 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
   
   test("insertExecutions - should throw") {
-    def doTest(command: Option[String], jobState: JobState): Unit = {
+    def doTest(command: Option[String], jobState: JobResult): Unit = {
       createTablesAndThen {
         val output0 = PathOutput(path0)
         
         val failed = Execution(mockEnv, command, mockSettings, 
-                               JobState.Failed(), Set(output0.toOutputRecord))
+                               JobResult.Failed(), Set(output0.toOutputRecord))
   
         assert(failed.isFailure)
         
@@ -257,11 +255,11 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       }
     }
     
-    doTest(Some(mockCmd), JobState.Failed())
-    doTest(None, JobState.Failed())
-    doTest(Some(mockCmd), JobState.CommandResult(1, Some(mockResources)))
-    doTest(Some(mockCmd), JobState.CommandResult(1, None))
-    doTest(None, JobState.CommandResult(0, Some(mockResources)))
+    doTest(Some(mockCmd), JobResult.Failed())
+    doTest(None, JobResult.Failed())
+    doTest(Some(mockCmd), JobResult.CommandResult(1, Some(mockResources)))
+    doTest(Some(mockCmd), JobResult.CommandResult(1, None))
+    doTest(None, JobResult.CommandResult(0, Some(mockResources)))
   }
   
   test("findExecution") {

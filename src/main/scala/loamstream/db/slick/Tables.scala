@@ -2,11 +2,11 @@ package loamstream.db.slick
 
 import java.sql.Timestamp
 
+import loamstream.model.jobs.JobState
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import slick.driver.JdbcProfile
 import slick.jdbc.meta.MTable
-import slick.profile.SqlProfile.ColumnOption.SqlType
 
 /**
  * @author clint

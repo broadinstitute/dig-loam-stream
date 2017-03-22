@@ -7,8 +7,6 @@ import org.scalatest.{FunSuite, PrivateMethodTester}
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.{Execution, JobState, Output, OutputRecord}
 import loamstream.util.HashType.Sha1
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.TestHelpers
 
 /**
  * @author clint

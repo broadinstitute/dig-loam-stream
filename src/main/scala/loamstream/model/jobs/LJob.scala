@@ -13,7 +13,6 @@ import rx.lang.scala.Observable
 import rx.lang.scala.Subject
 import rx.lang.scala.subjects.ReplaySubject
 
-
 /**
  * @author oliverr
  *         clint

@@ -5,7 +5,6 @@ import java.sql.Timestamp
 import loamstream.model.jobs.JobStatus
 import loamstream.util.Futures
 import loamstream.util.Loggable
-import slick.driver
 import slick.driver.JdbcProfile
 import slick.jdbc.meta.MTable
 
@@ -89,7 +88,8 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   import Tables.Names
   import ForeignKeyAction.{Restrict, Cascade}
 
-  implicit val statusColumnType = MappedColumnType.base[JobStatus, String](_.toString, JobStatus.withName)
+  private implicit val statusColumnType: BaseColumnType[JobStatus] =
+    MappedColumnType.base[JobStatus, String](_.toString, jobStatusfromString _)
 
   trait HasExecutionId { self: Table[_] =>
     def executionId: Rep[Int]
@@ -249,6 +249,11 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   private def perform[A](database: Database)(action: DBIO[A]): A = {
     Futures.waitFor(database.run(action))
+  }
+
+  private def jobStatusfromString(str: String): JobStatus = JobStatus.fromString(str).getOrElse {
+    warn(s"$str is not one of known JobStatus'es; mapping to ${JobStatus.Unknown}")
+    JobStatus.Unknown
   }
 }
 

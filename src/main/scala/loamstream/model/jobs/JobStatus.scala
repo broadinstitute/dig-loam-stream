@@ -35,20 +35,19 @@ object JobStatus extends Loggable {
   case object Failed extends Failure
   case object NotStarted extends NeitherSuccessNorFailure
   case object Submitted extends NeitherSuccessNorFailure
-  case object Terminated extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
+  case object Terminated extends NeitherSuccessNorFailure
   case object Unknown extends NeitherSuccessNorFailure
 
-  def withName(name: String): JobStatus = name match {
-    case "Succeeded" => Succeeded
-    case "Skipped" => Skipped
-    case "Failed" => Failed
-    case "NotStarted" => NotStarted
-    case "Submitted" => Submitted
-    case "Terminated" => Terminated
-    case "Running" => Running
-    case "Unknown" => Unknown
-    case _ => warn(s"$name is not one of known JobStatus'es; mapping to ${JobStatus.Unknown}")
-              Unknown
+  def fromString(s: String): Option[JobStatus] = s match {
+    case "Succeeded" => Some(Succeeded)
+    case "Skipped" => Some(Skipped)
+    case "Failed" => Some(Failed)
+    case "NotStarted" => Some(NotStarted)
+    case "Submitted" => Some(Submitted)
+    case "Terminated" => Some(Terminated)
+    case "Running" => Some(Running)
+    case "Unknown" => Some(Unknown)
+    case _ => None
   }
 }

@@ -3,9 +3,7 @@ package loamstream.model.execute
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobResult
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{Execution, JobResult, JobStatus, LJob}
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Observables
@@ -115,7 +113,7 @@ final case class RxExecuter(
       
     skippedJobs.mapTo(job => JobResult.Skipped)
   }
-  
+
   private def record(resultMap: Map[LJob, JobResult]): Unit = RxExecuter.record(jobFilter)(resultMap)
 }
 
@@ -124,8 +122,8 @@ object RxExecuter extends Loggable {
   
   private[execute] def record(jobFilter: JobFilter)(resultMap: Map[LJob, JobResult]): Unit = {
     val toExecution = Execution.from _
-    
-    val executions = resultMap.map(toExecution.tupled) 
+
+    val executions = resultMap.map(toExecution.tupled)
 
     debug(s"Recording Executions (${executions.size}): $executions")
     

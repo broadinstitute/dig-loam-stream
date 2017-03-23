@@ -1,10 +1,12 @@
 package loamstream.model.jobs
 
+import loamstream.util.Loggable
+
 /**
  * @author kyuksel
  *         date: 3/22/17
  */
-trait JobStatus {
+sealed trait JobStatus {
   def isSuccess: Boolean
 
   def isFailure: Boolean
@@ -14,7 +16,7 @@ trait JobStatus {
   def notFinished: Boolean = !isFinished
 }
 
-object JobStatus {
+object JobStatus extends Loggable {
 
   sealed abstract class Success(
                       override val isSuccess: Boolean = true,
@@ -36,4 +38,17 @@ object JobStatus {
   case object Terminated extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
   case object Unknown extends NeitherSuccessNorFailure
+
+  def withName(name: String): JobStatus = name match {
+    case "Succeeded" => Succeeded
+    case "Skipped" => Skipped
+    case "Failed" => Failed
+    case "NotStarted" => NotStarted
+    case "Submitted" => Submitted
+    case "Terminated" => Terminated
+    case "Running" => Running
+    case "Unknown" => Unknown
+    case _ => warn(s"$name is not one of known JobStatus'es; mapping to ${JobStatus.Unknown}")
+              Unknown
+  }
 }

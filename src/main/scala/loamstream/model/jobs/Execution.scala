@@ -12,6 +12,7 @@ import loamstream.model.execute.LocalSettings
 final case class Execution(env: ExecutionEnvironment,
                            cmd: Option[String],
                            settings: Settings,
+                           status: JobStatus,
                            result: JobResult,
                            outputs: Set[OutputRecord]) {
 
@@ -37,43 +38,71 @@ final case class Execution(env: ExecutionEnvironment,
 }
 
 object Execution {
+  // TODO Remove when dynamic statuses flow in
+  def apply(env: ExecutionEnvironment,
+            cmd: Option[String],
+            settings: Settings,
+            result: JobResult,
+            outputs: Set[OutputRecord]): Execution = {
+    Execution(env, cmd, settings, JobStatus.Unknown, result, outputs)
+  }
+
+  // TODO Remove when dynamic statuses flow in
+  def apply(env: ExecutionEnvironment,
+            cmd: Option[String],
+            settings: Settings,
+            result: JobResult,
+            outputs: OutputRecord*): Execution = {
+    Execution(env, cmd, settings, JobStatus.Unknown, result, outputs.toSet)
+  }
+
+  // TODO Remove when dynamic statuses flow in
   def apply(env: ExecutionEnvironment,
             cmd: String,
             settings: Settings,
-            exitState: JobResult,
+            result: JobResult,
             outputs: OutputRecord*): Execution = {
-    Execution(env, Option(cmd), settings, exitState, outputs.toSet)
+    Execution(env, Option(cmd), settings, JobStatus.Unknown, result, outputs.toSet)
+  }
+
+  def apply(env: ExecutionEnvironment,
+            cmd: String,
+            settings: Settings,
+            status: JobStatus,
+            result: JobResult,
+            outputs: OutputRecord*): Execution = {
+    Execution(env, Option(cmd), settings, status, result, outputs.toSet)
   }
 
   def fromOutputs(env: ExecutionEnvironment,
                   cmd: String,
                   settings: Settings,
-                  exitState: JobResult,
+                  result: JobResult,
                   outputs: Set[Output]): Execution = {
-    Execution(env, Option(cmd), settings, exitState, outputs.map(_.toOutputRecord))
+    Execution(env, Option(cmd), settings, result, outputs.map(_.toOutputRecord))
   }
 
   def fromOutputs(env: ExecutionEnvironment,
                   cmd: String,
                   settings: Settings,
-                  exitState: JobResult,
+                  result: JobResult,
                   output: Output,
                   others: Output*): Execution = {
-    fromOutputs(env, cmd, settings, exitState, (output +: others).toSet)
+    fromOutputs(env, cmd, settings, result, (output +: others).toSet)
   }
   
-  def from(job: LJob, jobState: JobResult): Execution = {
+  def from(job: LJob, jobResult: JobResult): Execution = {
     val commandLine: Option[String] = job match {
       case clj: CommandLineJob => Option(clj.commandLineString)
       case _ => None
     }
-    
+
     // TODO Replace the placeholders for `settings` objects put in place to get the code to compile
     Execution(
-      job.executionEnvironment, 
-      commandLine, 
+      job.executionEnvironment,
+      commandLine,
       LocalSettings(), // TODO
-      jobState, 
+      jobResult,
       job.outputs.map(_.toOutputRecord)) 
   }
 }

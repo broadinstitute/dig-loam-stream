@@ -227,7 +227,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       dao.insertExecutions(failed)
       
-      val expected0 = Execution(mockEnv, mockCmd, mockSettings, CommandResult(-1, None), failedOutput(path0))
+      val expected0 = Execution(mockEnv, mockCmd, mockSettings,
+        CommandResult(JobResult.DummyExitCode, None), failedOutput(path0))
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
     }

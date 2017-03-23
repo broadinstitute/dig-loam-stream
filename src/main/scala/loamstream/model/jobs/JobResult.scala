@@ -56,4 +56,6 @@ object JobResult {
   private def isFailureStatusCode(i: Int): Boolean = !isSuccessStatusCode(i)
   
   private def isSuccessStatusCode(i: Int): Boolean = i == 0
+
+  val DummyExitCode: Int = -1
 }

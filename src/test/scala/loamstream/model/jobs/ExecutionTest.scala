@@ -5,9 +5,7 @@ import java.nio.file.Paths
 
 import Output.PathOutput
 import loamstream.model.execute._
-import loamstream.model.execute.ExecutionEnvironment.Local
 import loamstream.util.TypeBox
-import loamstream.model.execute.Resources.LocalResources
 import loamstream.TestHelpers
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.JobResult.CommandResult

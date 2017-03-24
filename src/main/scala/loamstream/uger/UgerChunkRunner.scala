@@ -7,9 +7,8 @@ import java.util.UUID
 import loamstream.conf.UgerConfig
 import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.{ExecutionEnvironment => ExecEnv}
-import loamstream.model.jobs.{JobResult, LJob, NoOpJob}
-import loamstream.model.jobs.JobResult.Failed
-import loamstream.model.jobs.JobResult.Running
+import loamstream.model.jobs.JobStatus.{Failed, Running}
+import loamstream.model.jobs.{JobStatus, LJob, NoOpJob}
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.uger.UgerStatus.toJobResult
 import loamstream.util.Files
@@ -40,7 +39,7 @@ final case class UgerChunkRunner(
   
   override def maxNumJobs = ugerConfig.maxNumJobs
 
-  override def run(leaves: Set[LJob]): Observable[Map[LJob, JobResult]] = {
+  override def run(leaves: Set[LJob]): Observable[Map[LJob, JobStatus]] = {
 
     debug(s"Running: ")
     leaves.foreach(job => debug(s"  $job"))
@@ -69,7 +68,7 @@ final case class UgerChunkRunner(
   
   private def toJobStateStream(
       commandLineJobs: Seq[CommandLineJob], 
-      submissionResult: DrmaaClient.SubmissionResult): Observable[Map[LJob, JobResult]] = submissionResult match {
+      submissionResult: DrmaaClient.SubmissionResult): Observable[Map[LJob, JobStatus]] = submissionResult match {
 
     case DrmaaClient.SubmissionSuccess(rawJobIds) => {
       commandLineJobs.foreach(_.updateAndEmitJobState(Running))
@@ -79,13 +78,13 @@ final case class UgerChunkRunner(
       toResultMap(jobsById)
     }
     case DrmaaClient.SubmissionFailure(e) => {
-      commandLineJobs.foreach(_.updateAndEmitJobState(Failed()))
-      
+      commandLineJobs.foreach(_.updateAndEmitJobState(Failed))
+
       makeAllFailureMap(commandLineJobs, Some(e))
     }
   }
   
-  private[uger] def toResultMap(jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, JobResult]] = {
+  private[uger] def toResultMap(jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, JobStatus]] = {
 
     def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
       jobMonitor.monitor(jobIds)
@@ -93,7 +92,7 @@ final case class UgerChunkRunner(
 
     val jobsAndStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    val jobsToResultObservables: Iterable[(LJob, Observable[JobResult])] = for {
+    val jobsToResultObservables: Iterable[(LJob, Observable[JobStatus])] = for {
       (jobId, (job, jobStatuses)) <- jobsAndStatusesById
       _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobResult(status)))
       resultObs = jobStatuses.last.map(toJobResult)
@@ -128,10 +127,10 @@ object UgerChunkRunner extends Loggable {
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
-  private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Observable[Map[LJob, JobResult]] = {
-    val failure: JobResult = cause match {
-      case Some(e) => JobResult.FailedWithException(e)
-      case None    => JobResult.Failed()
+  private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Observable[Map[LJob, JobStatus]] = {
+    val failure: JobStatus = cause match {
+      case Some(e) => JobStatus.FailedWithException
+      case None    => JobStatus.Failed
     }
 
     cause.foreach(e => error(s"Couldn't submit jobs to UGER: ${e.getMessage}", e))

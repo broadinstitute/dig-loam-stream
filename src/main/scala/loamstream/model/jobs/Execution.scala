@@ -16,8 +16,8 @@ final case class Execution(env: ExecutionEnvironment,
                            result: JobResult,
                            outputs: Set[OutputRecord]) {
 
-  def isSuccess: Boolean = result.isSuccess
-  def isFailure: Boolean = result.isFailure
+  def isSuccess: Boolean = status.isSuccess
+  def isFailure: Boolean = status.isFailure
 
   def transformOutputs(f: Set[OutputRecord] => Set[OutputRecord]): Execution = copy(outputs = f(outputs))
 
@@ -90,8 +90,8 @@ object Execution {
                   others: Output*): Execution = {
     fromOutputs(env, cmd, settings, result, (output +: others).toSet)
   }
-  
-  def from(job: LJob, jobResult: JobResult): Execution = {
+
+  def from(job: LJob, jobStatus: JobStatus): Execution = {
     val commandLine: Option[String] = job match {
       case clj: CommandLineJob => Option(clj.commandLineString)
       case _ => None
@@ -102,7 +102,8 @@ object Execution {
       job.executionEnvironment,
       commandLine,
       LocalSettings(), // TODO
-      jobResult,
+      jobStatus,
+      JobResult.NoResult, // TODO
       job.outputs.map(_.toOutputRecord)) 
   }
 }

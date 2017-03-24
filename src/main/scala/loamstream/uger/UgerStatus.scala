@@ -1,6 +1,6 @@
 package loamstream.uger
 
-import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.{JobResult, JobStatus}
 import org.ggf.drmaa.Session
 import loamstream.model.execute.Resources.UgerResources
 
@@ -86,7 +86,7 @@ object UgerStatus {
     case UNDETERMINED | _                                           => Undetermined()
   }
 
-  def toJobResult(status: UgerStatus): JobResult = status match {
+  def toJobResult(status: UgerStatus): JobStatus = status match {
     case Done                                                       => JobResult.Succeeded
     case CommandResult(exitStatus, resources)                       => JobResult.CommandResult(exitStatus, resources)
     case DoneUndetermined(resources)                                => JobResult.Failed(resources)

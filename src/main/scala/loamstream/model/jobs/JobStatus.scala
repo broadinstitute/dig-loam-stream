@@ -33,6 +33,7 @@ object JobStatus extends Loggable {
   case object Succeeded extends Success
   case object Skipped extends Success
   case object Failed extends Failure
+  case object FailedWithException extends Failure
   case object NotStarted extends NeitherSuccessNorFailure
   case object Submitted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure

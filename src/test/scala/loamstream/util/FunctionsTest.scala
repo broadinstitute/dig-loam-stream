@@ -48,4 +48,53 @@ final class FunctionsTest extends FunSuite {
     
     assert(invocations === 3)
   }
+  
+  test("memoize() with shouldCache filter should work") {
+    import Functions.memoize
+    
+    var invocations = 0
+    
+    val f: Int => String = { i =>
+      invocations += 1
+      
+      i.toString
+    }
+    
+    def isEven(i: Int): Boolean = i % 2 == 0
+    
+    //Only cache "even" results
+    val shouldCache: String => Boolean = s => isEven(s.toInt)  
+    
+    val memoized = memoize(f, shouldCache)
+    
+    assert(invocations === 0)
+    
+    assert(memoized(1) === "1")
+    
+    assert(invocations === 1)
+    
+    assert(memoized(1) === "1")
+    assert(memoized(1) === "1")
+    assert(memoized(1) === "1")
+    
+    assert(invocations === 4)
+    
+    assert(memoized(3) === "3")
+    
+    assert(invocations === 5)
+    
+    assert(memoized(2) === "2")
+    
+    assert(invocations === 6)
+    
+    assert(memoized(2) === "2")
+    assert(memoized(2) === "2")
+    assert(memoized(2) === "2")
+    
+    assert(invocations === 6)
+    
+    assert(memoized(3) === "3")
+    
+    assert(invocations === 7)
+  }
 }

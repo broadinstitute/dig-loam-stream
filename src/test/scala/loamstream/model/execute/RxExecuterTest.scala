@@ -9,6 +9,12 @@ import loamstream.model.jobs.LJob
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import loamstream.model.jobs.RxMockJob
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.TestHelpers
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.MockJob
 
 /**
  * @author kyuksel
@@ -30,6 +36,76 @@ final class RxExecuterTest extends FunSuite {
     val executer = RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything)
     
     ExecutionResults(executer.execute(executable), runner.chunks.value.filter(_.nonEmpty))
+  }
+  
+  test("record - all commands") {
+    import RxExecuter.record
+    import TestHelpers.path
+    import ProvidesEnvAndResources.mockResources
+    
+    //Check that a given bunch of jobs and terminal states results in the expected 
+    //Executions being sent to the JobFilter
+    
+    val state0 = JobState.CommandResult(0, Some(mockResources))
+    val state1 = JobState.CommandResult(1, Some(mockResources))
+    val state2 = JobState.CommandResult(42, Some(mockResources))
+    val state3 = JobState.Succeeded
+    val state4 = JobState.Failed()
+    val state5 = JobState.Skipped
+
+    val job0 = CommandLineStringJob("foo", path("."), ExecutionEnvironment.Local)
+    val job1 = CommandLineStringJob("bar", path("."), ExecutionEnvironment.Google)
+    val job2 = CommandLineStringJob("baz", path("."), ExecutionEnvironment.Uger)
+    val job3 = CommandLineStringJob("nuh", path("."), ExecutionEnvironment.Uger)
+    val job4 = CommandLineStringJob("zuh", path("."), ExecutionEnvironment.Uger)
+    val job5 = MockJob(state5)
+    
+    val resultMap: Map[LJob, JobState] = Map(
+        job0 -> state0, 
+        job1 -> state1, 
+        job2 -> state2, 
+        job3 -> state3,
+        job4 -> state4,
+        job5 -> state5)
+    
+    val mockJobFilter = new MockJobFilter()
+        
+    assert(mockJobFilter.recordedExecutions().isEmpty)
+    
+    record(mockJobFilter)(resultMap)
+        
+    def execution(cmdString: Option[String]): Execution = {
+      mockJobFilter.recordedExecutions().find(_.cmd == cmdString).get
+    }
+    
+    val execution0 = execution(Some(job0.commandLineString))
+    val execution1 = execution(Some(job1.commandLineString))
+    val execution2 = execution(Some(job2.commandLineString))
+    val execution3 = execution(Some(job3.commandLineString))
+    val execution4 = execution(Some(job4.commandLineString))
+    val execution5 = execution(None)
+
+    assert(mockJobFilter.recordedExecutions().size === 6)
+    
+    def doAssertions(e: Execution, job: LJob, state: JobState): Unit = {
+      val jobCommandLine: Option[String] = job match {
+        case clj: CommandLineJob => Option(clj.commandLineString)
+        case _ => None
+      }
+      
+      assert(e.cmd === jobCommandLine)
+      assert(e.env === job.executionEnvironment)
+      assert(e.exitState === state)
+      assert(e.outputs === job.outputs)
+      //TODO: check e.settings, once that field is no longer a placeholder.
+    }
+    
+    doAssertions(execution0, job0, state0)
+    doAssertions(execution1, job1, state1)
+    doAssertions(execution2, job2, state2)
+    doAssertions(execution3, job3, state3)
+    doAssertions(execution4, job4, state4)
+    doAssertions(execution5, job5, state5)
   }
   
   import RxExecuterTest.JobOrderOps
@@ -84,9 +160,9 @@ final class RxExecuterTest extends FunSuite {
       assert(results.values.head === jobState)
     }
     
-    doTest(JobState.Failed)
+    doTest(JobState.Failed())
     doTest(JobState.FailedWithException(new Exception))
-    doTest(JobState.CommandResult(42))
+    doTest(JobState.CommandResult(42, Some(TestHelpers.localResources)))
   }
   
   test("Two failed jobs") {
@@ -120,9 +196,9 @@ final class RxExecuterTest extends FunSuite {
       assert(results.get(job2).isEmpty)
     }
     
-    doTest(JobState.Failed)
+    doTest(JobState.Failed())
     doTest(JobState.FailedWithException(new Exception))
-    doTest(JobState.CommandResult(42))
+    doTest(JobState.CommandResult(42, Some(TestHelpers.localResources)))
   }
   
   test("3-job linear pipeline works") {
@@ -171,7 +247,7 @@ final class RxExecuterTest extends FunSuite {
      */
 
     val job1 = RxMockJob("Job_1")
-    val job2 = RxMockJob("Job_2", Set(job1), toReturn = JobState.CommandResult(2))
+    val job2 = RxMockJob("Job_2", Set(job1), toReturn = JobState.CommandResult(2, Some(TestHelpers.localResources)))
     val job3 = RxMockJob("Job_3", Set(job2))
 
     assert(job1.executionCount === 0)

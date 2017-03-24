@@ -1,15 +1,13 @@
 package loamstream.uger
 
 import java.nio.file.Path
-
 import loamstream.conf.UgerConfig
-
-import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.util.Try
 import org.ggf.drmaa._
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
+import loamstream.model.execute.Resources.UgerResources
 
 /**
  * Created on: 5/19/16
@@ -73,8 +71,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
         if (jobStatus.isFinished) {
           doWait(session, jobId, Duration.Zero)
-        }
-        else {
+        } else {
           jobStatus
         }
       }
@@ -89,7 +86,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @param jobName a descriptive prefix used to identify the job.  Has no impact on how the job runs.
    * @param numTasks length of task array to be submitted as a single UGER job
    */
-  def submitJob(
+  override def submitJob(
                  ugerConfig: UgerConfig,
                  pathToScript: Path,
                  jobName: String,
@@ -97,6 +94,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
     val pathToUgerOutput = ugerConfig.logFile
     val nativeSpecification = ugerConfig.nativeSpecification
+    
     runJob(pathToScript, pathToUgerOutput, nativeSpecification, jobName, numTasks)
   }
   
@@ -107,15 +105,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * 
    * @param jobId the job id to wait for
    * @param timeout how long to wait (note that this method can be called many times)
-   * @return Success with a JobStatus reflecting the completion status of the job, or the result of statusOf()
-   * if the timeout elapses without the job finishing.  Otherwise, return a Failure if the job's status can't be 
-   * determined. 
-   * 
-   * Specifically: 
-   *   JobStatus.Done: Job finishes with status code 0
-   *   JobStatus.Failed: Job exited with a non-zero return code, OR the job was aborted, OR the job ended due to a 
-   *   signal, OR the job dumped core/
-   *   JobStatus.Undetermined: The job completed, but none of the above applies.
+   * @return Success with a JobStatus reflecting the completion status of the job, or a Failure.
+   * If the timeout elapses without the job finishing, return Success(Running).  If an InvalidJobException
+   * is thrown while waiting, return Success(Done).
    */
   override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = {
     val waitAttempt = Try {
@@ -139,29 +131,44 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   
   private def doWait(session: Session, jobId: String, timeout: Duration): UgerStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
-        
-    if (jobInfo.hasExited) {
-      info(s"Job '$jobId' exited with status code '${jobInfo.getExitStatus}'")
+    
+    val resources = Drmaa1Client.toResources(jobInfo)
       
-      UgerStatus.CommandResult(jobInfo.getExitStatus)
+    //Use recover for side-effect only
+    resources.recover {
+      case e: Exception => warn(s"Error parsing resource usage data for Job '$jobId'", e)
+    }
+    
+    val resourcesOption = resources.toOption
+    
+    val result = if (jobInfo.hasExited) {
+      val exitCode = jobInfo.getExitStatus
+      
+      info(s"Job '$jobId' exited with status code '${exitCode}'")
+
+      UgerStatus.CommandResult(exitCode, resourcesOption)
     } else if (jobInfo.wasAborted) {
       info(s"Job '$jobId' was aborted; job info: $jobInfo")
 
       //TODO: Add JobStatus.Aborted?
-      UgerStatus.Failed
+      UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasSignaled) {
       info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
-      UgerStatus.Failed
+      UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasCoreDump) {
       info(s"Job '$jobId' dumped core")
       
-      UgerStatus.Failed
+      UgerStatus.Failed(resourcesOption)
     } else {
       info(s"Job '$jobId' finished with unknown status")
 
-      UgerStatus.DoneUndetermined
+      UgerStatus.DoneUndetermined(resourcesOption)
     }
+    
+    debug(s"Job '$jobId' finished, returning status $result")
+    
+    result
   }
 
   private def tryShuttingDown(s: Session): Unit = {
@@ -206,6 +213,8 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       jt.setJobName(jobName)
       jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")
 
+      import scala.collection.JavaConverters._
+      
       val jobIds = session.runBulkJobs(jt, taskStartIndex, taskEndIndex, taskIndexIncr).asScala.map(_.toString)
     
       info(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
@@ -228,5 +237,13 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       }
       finally { session.deleteJobTemplate(jt) }
     }
+  }
+}
+
+object Drmaa1Client {
+  private[uger] def toResources(jobInfo: JobInfo): Try[UgerResources] = {
+    import scala.collection.JavaConverters._
+    
+    UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
   }
 }

@@ -3,10 +3,10 @@ package loamstream.model.execute
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobState
 import loamstream.model.jobs.LJob
+import loamstream.uger.Queue
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Observables
@@ -14,6 +14,8 @@ import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.Traversables
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
  * @author kaan
@@ -51,6 +53,7 @@ final case class RxExecuter(
       _ = handleSkippedJobs(skippedJobs)
       resultMap <- runJobs(jobsToRun)
       _ = record(resultMap)
+      _ = logFinishedJobs(resultMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
     } yield {
       resultMap ++ skippedResultMap
@@ -66,6 +69,14 @@ final case class RxExecuter(
     val futureMergedResults = chunkResultsUpToFirstFailure.to[Seq].map(Maps.mergeMaps).firstAsFuture
     
     Await.result(futureMergedResults, timeout)
+  }
+  
+  def logFinishedJobs(jobs: Map[LJob, JobState]): Unit = {
+    for {
+      (job, state) <- jobs
+    } {
+      info(s"Finished with $state when running $job")
+    }
   }
   
   def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, JobState]] = {
@@ -108,17 +119,21 @@ final case class RxExecuter(
     skippedJobs.mapTo(job => JobState.Skipped)
   }
   
-  private def record(newResultMap: Map[LJob, JobState]): Unit = {
-    val executions = newResultMap.map { case (job, jobState) => Execution(jobState, job.outputs.map(_.toOutputRecord)) }
+  private def record(resultMap: Map[LJob, JobState]): Unit = RxExecuter.record(jobFilter)(resultMap)
+}
+
+object RxExecuter extends Loggable {
+  // scalastyle:off magic.number
+  
+  private[execute] def record(jobFilter: JobFilter)(resultMap: Map[LJob, JobState]): Unit = {
+    val toExecution = Execution.from _
+    
+    val executions = resultMap.map(toExecution.tupled) 
 
     debug(s"Recording Executions (${executions.size}): $executions")
     
     jobFilter.record(executions)
   }
-}
-
-object RxExecuter {
-  // scalastyle:off magic.number
   
   val defaultMaxNumConcurrentJobs = 8
   

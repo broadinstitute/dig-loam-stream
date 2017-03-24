@@ -18,7 +18,7 @@ import loamstream.util.Files
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
-import loamstream.util.TimeEnrichments.time
+import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
 
 
@@ -52,43 +52,42 @@ final case class UgerChunkRunner(
       s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
 
     // Filter out NoOpJob's
-    val leafCommandLineJobs = leaves.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
+    val commandLineJobs = leaves.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
-    if (leafCommandLineJobs.nonEmpty) {
-      val ugerWorkDir = ugerConfig.workDir.toFile
-      val ugerScript = createScriptFile(ScriptBuilder.buildFrom(leafCommandLineJobs), ugerWorkDir)
-
-      info(s"Made script '$ugerScript' from $leafCommandLineJobs")
-
-      val ugerLogFile: Path = ugerConfig.logFile
+    if (commandLineJobs.nonEmpty) {
+      val ugerScript = writeUgerScriptFile(commandLineJobs)
 
       //TODO: do we need this?  Should it be something better?
       val jobName: String = s"LoamStream-${UUID.randomUUID}"
 
-      val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, leafCommandLineJobs.size)
+      val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, commandLineJobs.size)
 
-      submissionResult match {
-        case DrmaaClient.SubmissionSuccess(rawJobIds) => {
-          leafCommandLineJobs.foreach(_.updateAndEmitJobState(Running))
-
-          val jobsById = rawJobIds.zip(leafCommandLineJobs).toMap
-
-          toResultMap(drmaaClient, jobsById)
-        }
-        case DrmaaClient.SubmissionFailure(e) => {
-          leafCommandLineJobs.foreach(_.updateAndEmitJobState(Failed))
-          makeAllFailureMap(leafCommandLineJobs, Some(e))
-        }
-      }
+      toJobStateStream(commandLineJobs, submissionResult)
     } else {
       // Handle NoOp case or a case when no jobs were presented for some reason
       Observable.just(Map.empty)
     }
   }
+  
+  private def toJobStateStream(
+      commandLineJobs: Seq[CommandLineJob], 
+      submissionResult: DrmaaClient.SubmissionResult): Observable[Map[LJob, JobState]] = submissionResult match {
 
-  private[uger] def toResultMap(
-      drmaaClient: DrmaaClient, 
-      jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, JobState]] = {
+    case DrmaaClient.SubmissionSuccess(rawJobIds) => {
+      commandLineJobs.foreach(_.updateAndEmitJobState(Running))
+
+      val jobsById = rawJobIds.zip(commandLineJobs).toMap
+
+      toResultMap(jobsById)
+    }
+    case DrmaaClient.SubmissionFailure(e) => {
+      commandLineJobs.foreach(_.updateAndEmitJobState(Failed()))
+      
+      makeAllFailureMap(commandLineJobs, Some(e))
+    }
+  }
+  
+  private[uger] def toResultMap(jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, JobState]] = {
 
     def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
       jobMonitor.monitor(jobIds)
@@ -106,6 +105,16 @@ final case class UgerChunkRunner(
 
     Observables.toMap(jobsToResultObservables)
   }
+  
+  private def writeUgerScriptFile(commandLineJobs: Seq[CommandLineJob]): Path = {
+    val ugerWorkDir = ugerConfig.workDir.toFile
+    
+    val ugerScript = createScriptFile(ScriptBuilder.buildFrom(commandLineJobs), ugerWorkDir)
+    
+    info(s"Made script '$ugerScript' from $commandLineJobs")
+    
+    ugerScript
+  }
 }
 
 object UgerChunkRunner extends Loggable {
@@ -122,9 +131,9 @@ object UgerChunkRunner extends Loggable {
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
   private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Observable[Map[LJob, JobState]] = {
-    val failure = cause match {
+    val failure: JobState = cause match {
       case Some(e) => JobState.FailedWithException(e)
-      case None    => JobState.Failed
+      case None    => JobState.Failed()
     }
 
     cause.foreach(e => error(s"Couldn't submit jobs to UGER: ${e.getMessage}", e))

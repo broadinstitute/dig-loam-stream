@@ -13,6 +13,9 @@ import rx.lang.scala.observables.ConnectableObservable
 import rx.schedulers.Schedulers
 import loamstream.util.ValueBox
 import loamstream.util.Terminable
+import rx.lang.scala.subjects.PublishSubject
+import rx.lang.scala.Subject
+import rx.lang.scala.subjects.PublishSubject
 
 /**
  * @author clint
@@ -29,11 +32,15 @@ final class JobMonitor(
   
   private[uger] def isStopped: Boolean = _isStopped.value
   
+  private[this] val stopSignal: Subject[Any] = PublishSubject()
+  
   /**
    * Stop all polling and prevent further polling by this JobMonitor.  Useful at app-shutdown-time. 
    */
   override def stop(): Unit = {
     _isStopped.update(true)
+    
+    stopSignal.onNext(())
   }
   
   /**
@@ -60,11 +67,11 @@ final class JobMonitor(
     //TODO: find a better way to stop or shut down `ticks` :\
     val keepPolling: ValueBox[Boolean] = ValueBox(true)
     
-    val ticks = Observable.interval(period, scheduler).share
+    val ticks = Observable.interval(period, scheduler).takeUntil(stopSignal).share
     
     def poll(): Map[String, Try[UgerStatus]] = poller.poll(jobIds)
     
-    def shouldContinue = !isStopped && keepPolling()
+    def shouldContinue = keepPolling()
     
     import ObservableEnrichments._
     
@@ -108,7 +115,7 @@ final class JobMonitor(
     import ObservableEnrichments._
     import UgerStatus.{DoneUndetermined, Undetermined}
     
-    val statuses = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
+    val statuses: Observable[UgerStatus] = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
       //NB: DRMAA might not report when jobs are done, say if it hasn't cached the final status of a job, so we 
       //assume that an 'unknown job' failure for a job we've previously inquired about successfully means the job 
       //is done, though we can't determine how such a job ended. :(
@@ -120,13 +127,13 @@ final class JobMonitor(
         
         warn(s"Job '$jobId': $msg")
         
-        DoneUndetermined
+        DoneUndetermined()
       }
       //Any other polling failure leaves us unable to know the job's status
       case (Failure(e), _) => {
         warn(s"Job '$jobId': polling failed with a(n) ${e.getClass.getName}; mapping to $Undetermined", e)
         
-        Undetermined
+        Undetermined()
       }
       case (Success(status), _) => status
     }
@@ -161,7 +168,7 @@ final class JobMonitor(
   }
 
   private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[UgerStatus]]): Boolean = {
-    def unpack(attempt: Try[UgerStatus]): UgerStatus = attempt.getOrElse(UgerStatus.Undetermined)
+    def unpack(attempt: Try[UgerStatus]): UgerStatus = attempt.getOrElse(UgerStatus.Undetermined())
     
     val result = pollResults.values.map(unpack).forall(_.isFinished)
     

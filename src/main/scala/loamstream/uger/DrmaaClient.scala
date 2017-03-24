@@ -54,7 +54,6 @@ trait DrmaaClient extends Terminable {
 }
 
 object DrmaaClient {
-  def drmaa1(drmaa: Drmaa1Client): DrmaaClient = new Drmaa1Client
 
   sealed trait SubmissionResult {
     def isFailure: Boolean

@@ -7,12 +7,15 @@ import org.scalatest.{FunSuite, PrivateMethodTester}
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.{Execution, JobState, Output, OutputRecord}
 import loamstream.util.HashType.Sha1
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.TestHelpers
 
 /**
  * @author clint
  *         date: Sep 30, 2016
  */
-final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao with PrivateMethodTester {
+final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
+  with PrivateMethodTester with ProvidesEnvAndResources {
   //scalastyle:off magic.number
 
   private val p0 = Paths.get("src/test/resources/for-hashing/foo.txt")
@@ -51,17 +54,27 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
   }
 
   test("record() - non-command-Execution") {
-    createTablesAndThen {
-      val filter = new DbBackedJobFilter(dao)
+    def doTest(command: Option[String], jobState: JobState): Unit = {
+      createTablesAndThen {
+        val filter = new DbBackedJobFilter(dao)
+  
+        assert(executions === Set.empty)
+  
+        val e = Execution(mockEnv, command, mockSettings, jobState, Set.empty[OutputRecord])
 
-      assert(executions === Set.empty)
-
-      val e = Execution(Succeeded)
-
-      filter.record(Seq(e))
-
-      assert(executions === Set.empty)
+        assert(e.isCommandExecution === false)
+        
+        filter.record(Seq(e))
+  
+        assert(executions === Set.empty)
+      }
     }
+    
+    doTest(None, CommandResult(0, Some(mockResources)))
+    doTest(None, Failed())
+    doTest(None, Succeeded)
+    doTest(Some(mockCmd), Failed())
+    doTest(Some(mockCmd), Succeeded)
   }
 
   test("record() - successful command-Execution, no outputs") {
@@ -70,15 +83,15 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(0)
+      val cr = CommandResult(0, Some(mockResources))
 
       assert(cr.isSuccess)
 
-      val e = Execution(cr)
+      val e = Execution(mockEnv, mockCmd, mockSettings, cr)
 
       filter.record(Seq(e))
 
-      assert(executions === Set(e))
+      assertEqualFieldsFor(executions, Set(e))
     }
   }
 
@@ -88,15 +101,15 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(42)
+      val cr = CommandResult(42, Some(mockResources))
 
       assert(cr.isFailure)
 
-      val e = Execution(cr)
+      val e = Execution(mockEnv, mockCmd, mockSettings, cr)
 
       filter.record(Seq(e))
 
-      assert(executions === Set(e))
+      assertEqualFieldsFor(executions, Set(e))
     }
   }
 
@@ -106,16 +119,16 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(0)
+      val cr = CommandResult(0, Some(mockResources))
 
       assert(cr.isSuccess)
 
-      val e = Execution.fromOutputs(cr, Set[Output](o0, o1, o2))
+      val e = Execution.fromOutputs(mockEnv, mockCmd, mockSettings, cr, Set[Output](o0, o1, o2))
       val withHashedOutputs = e.withOutputRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
 
       filter.record(Seq(e))
 
-      assert(executions === Set(withHashedOutputs))
+      assertEqualFieldsFor(executions, Set(withHashedOutputs))
     }
   }
 
@@ -125,15 +138,19 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val cr = CommandResult(42)
+      val cr = CommandResult(42, Some(mockResources))
 
       assert(cr.isFailure)
 
-      val e = Execution.fromOutputs(cr, Set[Output](o0, o1, o2))
+      val e = Execution.fromOutputs(mockEnv, mockCmd, mockSettings, cr, Set[Output](o0, o1, o2))
 
       filter.record(Seq(e))
 
-      assert(executions === Set(Execution(CommandResult(42), failedOutput0, failedOutput1, failedOutput2)))
+      val expected = Set(
+          Execution(mockEnv, mockCmd, mockSettings, CommandResult(42, Some(mockResources)), 
+                    failedOutput0, failedOutput1, failedOutput2))
+      
+      assertEqualFieldsFor(executions, expected)
     }
   }
 
@@ -145,14 +162,14 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
-      val failure = CommandResult(42)
+      val failure = CommandResult(42, Some(mockResources))
       assert(failure.isFailure)
 
-      val success = CommandResult(0)
+      val success = CommandResult(0, Some(mockResources))
       assert(success.isSuccess)
 
-      val failedExecs = Execution.fromOutputs(failure, Set[Output](o0))
-      val successfulExecs = Execution.fromOutputs(success, Set[Output](o1, o3))
+      val failedExecs = Execution.fromOutputs(mockEnv, mockCmd, mockSettings, failure, Set[Output](o0))
+      val successfulExecs = Execution.fromOutputs(mockEnv, mockCmd, mockSettings, success, Set[Output](o1, o3))
 
       filter.record(Seq(failedExecs, successfulExecs))
 

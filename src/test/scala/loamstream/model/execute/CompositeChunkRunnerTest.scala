@@ -9,6 +9,8 @@ import scala.concurrent.ExecutionContext
 import loamstream.util.Futures
 import rx.lang.scala.Observable
 import loamstream.util.ObservableEnrichments
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -62,7 +64,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
     import JobState.{Succeeded,Failed}
     
     val job1 = MockJob(Succeeded)
-    val job2 = MockJob(Failed)
+    val job2 = MockJob(Failed(Some(TestHelpers.localResources)))
     val job3 = MockJob(Succeeded)
     val job4 = MockJob(Succeeded)
     
@@ -83,7 +85,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     val futureResults = runner.run(Set(job1, job2)).firstAsFuture
     
-    val expected = Map(job1 -> Succeeded, job2 -> Failed) 
+    val expected = Map(job1 -> Succeeded, job2 -> Failed(Some(TestHelpers.localResources))) 
     
     assert(Futures.waitFor(futureResults) === expected)
   }

@@ -8,8 +8,11 @@ import scala.util.Try
  * Oct 17, 2016
  */
 object Options {
-  def toTry[A](o: Option[A])(ifNoneMessage: => String): Try[A] = o match {
+  def toTry[A](o: Option[A])(
+      ifNoneMessage: => String, 
+      makeException: String => Exception = Tries.defaultExceptionMaker): Try[A] = o match {
+    
     case Some(a) => Success(a)
-    case None => Tries.failure(ifNoneMessage)
+    case None => Tries.failure(ifNoneMessage, makeException)
   }
 }

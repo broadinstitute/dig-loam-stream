@@ -11,6 +11,7 @@ import org.ggf.drmaa.DrmaaException
 import org.scalatest.FunSuite
 import loamstream.uger.DrmaaClient
 import loamstream.uger.UgerStatus
+import loamstream.uger.AccountingClient
 
 /**
  * @author clint
@@ -66,7 +67,7 @@ object DrmaaClientHelpersTest {
   final class MockHelpers extends DrmaaClientHelpers {
     val mockClient = new MockDrmaaClient
       
-    override private[apps] val makeDrmaaClient: DrmaaClient = mockClient
+    override private[apps] def makeDrmaaClient: DrmaaClient = mockClient
   }
 
   final class MockDrmaaClient extends DrmaaClient {

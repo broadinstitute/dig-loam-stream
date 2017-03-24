@@ -12,7 +12,7 @@ import org.scalatest.Matchers
  * Oct 17, 2016
  */
 final class OptionsTest extends FunSuite with Matchers {
-  test("toTry") {
+  test("toTry - default failure") {
     val msg = "foo!"
     
     import Options.toTry
@@ -25,5 +25,23 @@ final class OptionsTest extends FunSuite with Matchers {
     val Failure(e) = toTry(None)(msg)
     
     e.getMessage shouldEqual(msg)
+  }
+  
+  test("toTry - specific failure") {
+    val msg = "foo!"
+    
+    import Options.toTry
+    
+    def makeException(message: String) = new IllegalArgumentException(message)
+    
+    //test that Some => Success, and that failure messages are evaluated lazily
+    toTry(Some("asdf"))(???, makeException) shouldEqual Success("asdf")
+    
+    toTry(None)(msg, makeException) shouldBe a[Failure[_]]
+    
+    val Failure(e) = toTry(None)(msg, makeException)
+    
+    e.getMessage shouldEqual(msg)
+    e.getClass shouldEqual(classOf[IllegalArgumentException])
   }
 }

@@ -7,5 +7,9 @@ import scala.util.Failure
  * date: Mar 10, 2016
  */
 object Tries {
-  def failure[T](message: String): Failure[T] = Failure(new Exception(message))
+  val defaultExceptionMaker: String => Exception = new Exception(_)
+  
+  def failure[T](message: String, makeException: String => Exception = defaultExceptionMaker): Failure[T] = {
+    Failure(makeException(message))
+  }
 }

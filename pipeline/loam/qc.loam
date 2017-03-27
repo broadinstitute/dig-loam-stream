@@ -9,7 +9,7 @@ import loamstream.googlecloud.HailSupport._
 
 object Common {
   // Alignment Step
-  val START_CHR = 21
+  val START_CHR = 1
   val END_CHR = 22
   val NUM_CHR = END_CHR - START_CHR + 1
   val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"

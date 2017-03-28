@@ -94,26 +94,26 @@ final class UgerStatusTest extends FunSuite {
   }
 
   test("toJobState") {
-    assert(toJobResult(Done) === JobResult.Succeeded)
+    assert(toJobStatus(Done) === JobResult.Succeeded)
     
-    assert(toJobResult(CommandResult(-1, Some(resources))) === JobResult.CommandResult(-1, Some(resources)))
-    assert(toJobResult(CommandResult(0, Some(resources))) === JobResult.CommandResult(0, Some(resources)))
-    assert(toJobResult(CommandResult(42, Some(resources))) === JobResult.CommandResult(42, Some(resources)))
+    assert(toJobStatus(CommandResult(-1, Some(resources))) === JobResult.CommandResult(-1, Some(resources)))
+    assert(toJobStatus(CommandResult(0, Some(resources))) === JobResult.CommandResult(0, Some(resources)))
+    assert(toJobStatus(CommandResult(42, Some(resources))) === JobResult.CommandResult(42, Some(resources)))
     
-    assert(toJobResult(DoneUndetermined(Some(resources))) === JobResult.Failed(Some(resources)))
-    assert(toJobResult(Failed()) === JobResult.Failed())
-    assert(toJobResult(Failed(Some(resources))) === JobResult.Failed(Some(resources)))
+    assert(toJobStatus(DoneUndetermined(Some(resources))) === JobResult.Failed(Some(resources)))
+    assert(toJobStatus(Failed()) === JobResult.Failed())
+    assert(toJobStatus(Failed(Some(resources))) === JobResult.Failed(Some(resources)))
     
-    assert(toJobResult(Queued) === JobResult.Running)
-    assert(toJobResult(QueuedHeld) === JobResult.Running)
-    assert(toJobResult(Requeued) === JobResult.Running)
-    assert(toJobResult(RequeuedHeld) === JobResult.Running)
-    assert(toJobResult(Running) === JobResult.Running)
+    assert(toJobStatus(Queued) === JobResult.Running)
+    assert(toJobStatus(QueuedHeld) === JobResult.Running)
+    assert(toJobStatus(Requeued) === JobResult.Running)
+    assert(toJobStatus(RequeuedHeld) === JobResult.Running)
+    assert(toJobStatus(Running) === JobResult.Running)
     
-    assert(toJobResult(Suspended()) === JobResult.Failed())
-    assert(toJobResult(Undetermined()) === JobResult.Failed())
-    assert(toJobResult(Suspended(Some(resources))) === JobResult.Failed(Some(resources)))
-    assert(toJobResult(Undetermined(Some(resources))) === JobResult.Failed(Some(resources)))
+    assert(toJobStatus(Suspended()) === JobResult.Failed())
+    assert(toJobStatus(Undetermined()) === JobResult.Failed())
+    assert(toJobStatus(Suspended(Some(resources))) === JobResult.Failed(Some(resources)))
+    assert(toJobStatus(Undetermined(Some(resources))) === JobResult.Failed(Some(resources)))
   }
   
   

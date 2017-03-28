@@ -8,9 +8,9 @@ import loamstream.conf.UgerConfig
 import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.{ExecutionEnvironment => ExecEnv}
 import loamstream.model.jobs.JobStatus.{Failed, Running}
-import loamstream.model.jobs.{JobStatus, LJob, NoOpJob}
+import loamstream.model.jobs._
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.uger.UgerStatus.toJobResult
+import loamstream.uger.UgerStatus.{toJobResult, toJobStatus}
 import loamstream.util.Files
 import loamstream.util.Loggable
 import loamstream.util.Observables
@@ -39,7 +39,7 @@ final case class UgerChunkRunner(
   
   override def maxNumJobs = ugerConfig.maxNumJobs
 
-  override def run(leaves: Set[LJob]): Observable[Map[LJob, JobStatus]] = {
+  override def run(leaves: Set[LJob]): Observable[Map[LJob, Execution]] = {
 
     debug(s"Running: ")
     leaves.foreach(job => debug(s"  $job"))
@@ -59,23 +59,23 @@ final case class UgerChunkRunner(
 
       val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, commandLineJobs.size)
 
-      toJobStateStream(commandLineJobs, submissionResult)
+      toExecutionStream(commandLineJobs, submissionResult)
     } else {
       // Handle NoOp case or a case when no jobs were presented for some reason
       Observable.just(Map.empty)
     }
   }
   
-  private def toJobStateStream(
+  private def toExecutionStream(
       commandLineJobs: Seq[CommandLineJob], 
-      submissionResult: DrmaaClient.SubmissionResult): Observable[Map[LJob, JobStatus]] = submissionResult match {
+      submissionResult: DrmaaClient.SubmissionResult): Observable[Map[LJob, Execution]] = submissionResult match {
 
     case DrmaaClient.SubmissionSuccess(rawJobIds) => {
       commandLineJobs.foreach(_.updateAndEmitJobState(Running))
 
       val jobsById = rawJobIds.zip(commandLineJobs).toMap
 
-      toResultMap(jobsById)
+      toExecutionMap(jobsById)
     }
     case DrmaaClient.SubmissionFailure(e) => {
       commandLineJobs.foreach(_.updateAndEmitJobState(Failed))
@@ -83,8 +83,8 @@ final case class UgerChunkRunner(
       makeAllFailureMap(commandLineJobs, Some(e))
     }
   }
-  
-  private[uger] def toResultMap(jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, JobStatus]] = {
+
+  private[uger] def toExecutionMap(jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, Execution]] = {
 
     def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
       jobMonitor.monitor(jobIds)
@@ -92,12 +92,12 @@ final case class UgerChunkRunner(
 
     val jobsAndStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    val jobsToResultObservables: Iterable[(LJob, Observable[JobStatus])] = for {
+    val jobsToResultObservables: Iterable[(LJob, Observable[Execution])] = for {
       (jobId, (job, jobStatuses)) <- jobsAndStatusesById
-      _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobResult(status)))
-      resultObs = jobStatuses.last.map(toJobResult)
+      _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobStatus(status)))
+      executionObs = jobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
     } yield {
-      job -> resultObs
+      job -> executionObs
     }
 
     Observables.toMap(jobsToResultObservables)
@@ -127,17 +127,19 @@ object UgerChunkRunner extends Loggable {
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
-  private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Observable[Map[LJob, JobStatus]] = {
-    val failure: JobStatus = cause match {
-      case Some(e) => JobStatus.FailedWithException
-      case None    => JobStatus.Failed
+  private[uger] def makeAllFailureMap(jobs: Seq[LJob], cause: Option[Exception]): Observable[Map[LJob, Execution]] = {
+    cause.foreach(e => error(s"Couldn't submit jobs to UGER: ${e.getMessage}", e))
+
+    val (result, status) = cause match {
+      case Some(e) => (JobResult.FailureWithException(e), JobStatus.FailedWithException)
+      case None    => (JobResult.Failure, JobStatus.Failed)
     }
 
-    cause.foreach(e => error(s"Couldn't submit jobs to UGER: ${e.getMessage}", e))
+    val execution: LJob => Execution = job => Execution.from(job, status, Some(result))
 
     import loamstream.util.Traversables.Implicits._
 
-    Observable.just(jobs.mapTo(_ => failure))
+    Observable.just(jobs.mapTo(execution))
   }
 
   private[uger] def createScriptFile(contents: String, file: Path): Path = {

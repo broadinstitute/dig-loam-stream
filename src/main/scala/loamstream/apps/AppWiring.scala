@@ -19,7 +19,7 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.Executable
 
 import scala.concurrent.duration.Duration
-import loamstream.model.jobs.{JobResult, LJob}
+import loamstream.model.jobs.{Execution, LJob}
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.JobFilter
 import loamstream.util.Terminable
@@ -244,7 +244,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       val delegate: Executer,
       toStop: Terminable*) extends Executer {
 
-    override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobResult] = {
+    override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
       delegate.execute(executable)(timeout)
     }
 

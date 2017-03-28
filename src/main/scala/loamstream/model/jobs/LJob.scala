@@ -128,19 +128,19 @@ trait LJob extends Loggable {
    * Decorates executeSelf(), updating and emitting the value of 'state' from
    * Running to Succeeded/Failed.
    */
-  def execute(implicit context: ExecutionContext): Future[JobStatus] = {
+  def execute(implicit context: ExecutionContext): Future[Execution] = {
     import loamstream.util.Futures.Implicits._
 
     updateAndEmitJobState(JobStatus.NotStarted)
     updateAndEmitJobState(JobStatus.Running)
-    
-    executeSelf.withSideEffect(updateAndEmitJobState)
+
+    executeSelf.withSideEffect(execution => updateAndEmitJobState(execution.status))
   }
   
   /**
    * Implementions of this method will do any actual work to be performed by this job
    */
-  protected def executeSelf(implicit context: ExecutionContext): Future[JobStatus]
+  protected def executeSelf(implicit context: ExecutionContext): Future[Execution]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 

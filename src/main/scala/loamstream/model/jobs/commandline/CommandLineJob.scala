@@ -2,18 +2,18 @@ package loamstream.model.jobs.commandline
 
 import java.nio.file.{Path, Files => JFiles}
 
+import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.sys.process.ProcessBuilder
 import scala.sys.process.ProcessLogger
-
-import loamstream.model.jobs.JobResult
-import loamstream.model.jobs.LJob
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
 import loamstream.model.execute.Resources.LocalResources
-
+import loamstream.model.jobs.JobResult.{CommandInvocationFailure, CommandResult}
+import loamstream.model.jobs.{Execution, JobStatus, LJob, OutputRecord}
 
 /**
   * LoamStream
@@ -36,7 +36,7 @@ trait CommandLineJob extends LJob {
 
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
     Futures.runBlocking {
       trace(s"RUNNING: $commandLineString")
 
@@ -46,9 +46,21 @@ trait CommandLineJob extends LJob {
 
       val resources = LocalResources(start, end)
       
-      JobResult.CommandResult(exitValue, Option(resources))
+      Execution(ExecutionEnvironment.Local,
+                Some(commandLineString),
+                LocalSettings(),
+                JobStatus.fromExitCode(exitValue),
+                Some(CommandResult(exitValue)),
+                Option(resources),
+                Set.empty[OutputRecord])
     }.recover {
-      case exception: Exception => JobResult.CommandInvocationFailure(exception)
+      case exception: Exception => Execution( executionEnvironment,
+                                              Some(commandLineString),
+                                              LocalSettings(),
+                                              JobStatus.FailedWithException,
+                                              Some(CommandInvocationFailure(exception)),
+                                              None,
+                                              Set.empty[OutputRecord])
     }
   }
   

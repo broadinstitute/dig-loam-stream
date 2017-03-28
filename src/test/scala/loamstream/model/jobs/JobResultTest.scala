@@ -29,7 +29,7 @@ final class JobResultTest extends FunSuite {
     assert(CommandResult(-1, Some(TestHelpers.localResources)).isSuccess === false)
     assert(CommandResult(42, Some(TestHelpers.localResources)).isSuccess === false)
 
-    assert(FailedWithException(new Exception).isSuccess === false)
+    assert(FailureWithException(new Exception).isSuccess === false)
   
     assert(ValueSuccess(42, TypeBox.of[Int]).isSuccess === true)
   }
@@ -49,7 +49,7 @@ final class JobResultTest extends FunSuite {
     assert(CommandResult(-1, Some(TestHelpers.localResources)).isFailure === true)
     assert(CommandResult(42, Some(TestHelpers.localResources)).isFailure === true)
 
-    assert(FailedWithException(new Exception).isFailure === true)
+    assert(FailureWithException(new Exception).isFailure === true)
   
     assert(ValueSuccess(42, TypeBox.of[Int]).isFailure === false)
   }
@@ -69,7 +69,7 @@ final class JobResultTest extends FunSuite {
     assert(CommandResult(-1, Some(TestHelpers.localResources)).isFinished === true)
     assert(CommandResult(42, Some(TestHelpers.localResources)).isFinished === true)
 
-    assert(FailedWithException(new Exception).isFinished === true)
+    assert(FailureWithException(new Exception).isFinished === true)
   
     assert(ValueSuccess(42, TypeBox.of[Int]).isFinished === true)
   }

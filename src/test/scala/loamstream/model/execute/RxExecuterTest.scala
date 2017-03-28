@@ -161,7 +161,7 @@ final class RxExecuterTest extends FunSuite {
     }
     
     doTest(JobResult.Failed())
-    doTest(JobResult.FailedWithException(new Exception))
+    doTest(JobResult.FailureWithException(new Exception))
     doTest(JobResult.CommandResult(42, Some(TestHelpers.localResources)))
   }
   
@@ -197,7 +197,7 @@ final class RxExecuterTest extends FunSuite {
     }
     
     doTest(JobResult.Failed())
-    doTest(JobResult.FailedWithException(new Exception))
+    doTest(JobResult.FailureWithException(new Exception))
     doTest(JobResult.CommandResult(42, Some(TestHelpers.localResources)))
   }
   

@@ -22,7 +22,7 @@ final case class RxExecuter(
     windowLength: Duration,
     jobFilter: JobFilter)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
   
-  override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobStatus] = {
+  override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.ObservableEnrichments._
     
     //An Observable stream of jobs; each job is emitted when it becomes runnable.
@@ -39,19 +39,19 @@ final case class RxExecuter(
     //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
     val chunks: Observable[Observable[LJob]] = runnables.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
     
-    val chunkResults: Observable[Map[LJob, JobStatus]] = for {
+    val chunkResults: Observable[Map[LJob, Execution]] = for {
       chunk <- chunks
       _ = logJobForest(executable)
       jobs <- chunk.to[Set]
       if jobs.nonEmpty
       (jobsToRun, skippedJobs) = jobs.partition(jobFilter.shouldRun)
       _ = handleSkippedJobs(skippedJobs)
-      resultMap <- runJobs(jobsToRun)
-      _ = record(resultMap)
-      _ = logFinishedJobs(resultMap)
+      executionMap <- runJobs(jobsToRun)
+      _ = record(executionMap)
+      _ = logFinishedJobs(executionMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
     } yield {
-      resultMap ++ skippedResultMap
+      executionMap ++ skippedResultMap
     }
    
     import ExecuterHelpers.anyFailures
@@ -66,15 +66,16 @@ final case class RxExecuter(
     Await.result(futureMergedResults, timeout)
   }
   
-  def logFinishedJobs(jobs: Map[LJob, JobStatus]): Unit = {
+  def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {
     for {
-      (job, state) <- jobs
+      (job, execution) <- jobs
+      status = execution.status
     } {
-      info(s"Finished with $state when running $job")
+      info(s"Finished with $status when running $job")
     }
   }
   
-  def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, JobStatus]] = {
+  def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, Execution]] = {
     logJobsToBeRun(jobsToRun)
     
     runner.run(jobsToRun)
@@ -108,47 +109,34 @@ final case class RxExecuter(
     skippedJobs.foreach(_.updateAndEmitJobState(JobStatus.Skipped))
   }
   
-  private def toSkippedResultMap(skippedJobs: Set[LJob]): Map[LJob, JobStatus] = {
+  private def toSkippedResultMap(skippedJobs: Set[LJob]): Map[LJob, Execution] = {
     import Traversables.Implicits._
       
-    skippedJobs.mapTo(job => JobStatus.Skipped)
+    skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped))
   }
 
-  private def record(resultMap: Map[LJob, JobStatus]): Unit = RxExecuter.record(jobFilter)(resultMap)
+  private def record(executionMap: Map[LJob, Execution]): Unit = jobFilter.record(executionMap.values)
 }
 
 object RxExecuter extends Loggable {
-  // scalastyle:off magic.number
-  
-  private[execute] def record(jobFilter: JobFilter)(resultMap: Map[LJob, JobStatus]): Unit = {
-    val toExecution = Execution.from _
-
-    val executions = resultMap.map(toExecution.tupled)
-
-    debug(s"Recording Executions (${executions.size}): $executions")
-    
-    jobFilter.record(executions)
-  }
-  
   val defaultMaxNumConcurrentJobs = 8
   
   //NB: Use a short windowLength to speed up tests
-  val defaultWindowLength = 0.25.seconds
-  
-  // scalastyle:on magic.number
-  
+  val defaultWindowLength = 0.25
+  val defaultWindowLengthInSec = defaultWindowLength.seconds
+
   val defaultJobFilter = JobFilter.RunEverything
-  
+
   def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {
-    new RxExecuter(runner, defaultWindowLength, defaultJobFilter)
+    new RxExecuter(runner, defaultWindowLengthInSec, defaultJobFilter)
   }
-  
+
   def default: RxExecuter = {
     implicit val executionContext = ExecutionContext.global
-  
+
     val chunkRunner = AsyncLocalChunkRunner(defaultMaxNumConcurrentJobs)
-    
-    new RxExecuter(chunkRunner, defaultWindowLength, defaultJobFilter)
+
+    new RxExecuter(chunkRunner, defaultWindowLengthInSec, defaultJobFilter)
   }
   
   def defaultWith(newJobFilter: JobFilter): RxExecuter = {

@@ -1,8 +1,7 @@
 package loamstream.model.jobs
 
-import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
+import loamstream.model.execute.{ExecutionEnvironment, LocalSettings, Resources, Settings}
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.execute.LocalSettings
 
 /**
  * @author clint
@@ -13,7 +12,8 @@ final case class Execution(env: ExecutionEnvironment,
                            cmd: Option[String],
                            settings: Settings,
                            status: JobStatus,
-                           result: JobResult,
+                           result: Option[JobResult],
+                           resources: Option[Resources],
                            outputs: Set[OutputRecord]) {
 
   def isSuccess: Boolean = status.isSuccess
@@ -24,9 +24,11 @@ final case class Execution(env: ExecutionEnvironment,
   //NB :(
   //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a
   //command-line string is defined.
-  def isCommandExecution: Boolean = result match {
-    case _: JobResult.CommandResult | _: JobResult.CommandInvocationFailure => cmd.isDefined
-    case _ => false
+  def isCommandExecution: Boolean = result.exists {
+    _ match {
+        case _: JobResult.CommandResult | _: JobResult.CommandInvocationFailure => cmd.isDefined
+        case _ => false
+    }
   }
 
   def withOutputRecords(newOutputs: Set[OutputRecord]): Execution = copy(outputs = newOutputs)
@@ -34,7 +36,7 @@ final case class Execution(env: ExecutionEnvironment,
     withOutputRecords((newOutput +: others).toSet)
   }
 
-  def resources: Option[Resources] = result.resources
+  def withResources(rs: Resources): Execution = copy(resources = Some(rs))
 }
 
 object Execution {
@@ -44,7 +46,7 @@ object Execution {
             settings: Settings,
             result: JobResult,
             outputs: Set[OutputRecord]): Execution = {
-    Execution(env, cmd, settings, JobStatus.Unknown, result, outputs)
+    Execution(env, cmd, settings, JobStatus.Unknown, Some(result), None, outputs)
   }
 
   // TODO Remove when dynamic statuses flow in
@@ -53,7 +55,7 @@ object Execution {
             settings: Settings,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
-    Execution(env, cmd, settings, JobStatus.Unknown, result, outputs.toSet)
+    Execution(env, cmd, settings, JobStatus.Unknown, Some(result), None, outputs.toSet)
   }
 
   // TODO Remove when dynamic statuses flow in
@@ -62,7 +64,7 @@ object Execution {
             settings: Settings,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
-    Execution(env, Option(cmd), settings, JobStatus.Unknown, result, outputs.toSet)
+    Execution(env, Option(cmd), settings, JobStatus.Unknown, Some(result), None, outputs.toSet)
   }
 
   def apply(env: ExecutionEnvironment,
@@ -71,7 +73,7 @@ object Execution {
             status: JobStatus,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
-    Execution(env, Option(cmd), settings, status, result, outputs.toSet)
+    Execution(env, Option(cmd), settings, status, Some(result), None, outputs.toSet)
   }
 
   def fromOutputs(env: ExecutionEnvironment,
@@ -92,6 +94,10 @@ object Execution {
   }
 
   def from(job: LJob, jobStatus: JobStatus): Execution = {
+    from(job, jobStatus, result = None)
+  }
+
+  def from(job: LJob, status: JobStatus, result: Option[JobResult]): Execution = {
     val commandLine: Option[String] = job match {
       case clj: CommandLineJob => Option(clj.commandLineString)
       case _ => None
@@ -102,8 +108,9 @@ object Execution {
       job.executionEnvironment,
       commandLine,
       LocalSettings(), // TODO
-      jobStatus,
-      JobResult.NoResult, // TODO
+      status,
+      result,
+      None,
       job.outputs.map(_.toOutputRecord)) 
   }
 }

@@ -86,17 +86,23 @@ object UgerStatus {
     case UNDETERMINED | _                                           => Undetermined()
   }
 
-  def toJobResult(status: UgerStatus): JobStatus = status match {
-    case Done                                                       => JobResult.Succeeded
-    case CommandResult(exitStatus, resources)                       => JobResult.CommandResult(exitStatus, resources)
-    case DoneUndetermined(resources)                                => JobResult.Failed(resources)
-    case Failed(resources)                                          => JobResult.Failed(resources)
-    //TODO: Perhaps these should be something like JobState.NotStarted?
-    case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobResult.Running
-    case Running                                                    => JobResult.Running
-    //TODO: Is this right?
-    case Suspended(resources)                                       => JobResult.Failed(resources)
-    //TODO: Is this right?
-    case Undetermined(resources)                                    => JobResult.Failed(resources)
+  def toJobStatus(status: UgerStatus): JobStatus = status match {
+    case Done                                                       => JobStatus.Succeeded
+    case CommandResult(exitStatus, _)                               => JobResult.toJobStatus(exitStatus)
+    case DoneUndetermined(resources)                                => JobStatus.Failed
+    case Failed(resources)                                          => JobStatus.Failed
+    case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobStatus.Submitted
+    case Running                                                    => JobStatus.Running
+    case Suspended(resources)                                       => JobStatus.Failed
+    case Undetermined(resources)                                    => JobStatus.Failed
+  }
+
+  def toJobResult(status: UgerStatus): Option[JobResult] = status match {
+    case CommandResult(exitStatus, resources)      => Some(JobResult.CommandResult(exitStatus))
+    case DoneUndetermined(resources)               => Some(JobResult.Failure)
+    case Failed(resources)                         => Some(JobResult.Failure)
+    case Suspended(resources)                      => Some(JobResult.Failure)
+    case Undetermined(resources)                   => Some(JobResult.Failure)
+    case _                                         => None
   }
 }

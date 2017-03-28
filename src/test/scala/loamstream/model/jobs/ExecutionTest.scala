@@ -113,7 +113,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     assertIsNOTCommandExecution(Succeeded)
     assertIsNOTCommandExecution(Skipped)
     assertIsNOTCommandExecution(Unknown)
-    assertIsNOTCommandExecution(FailedWithException(e))
+    assertIsNOTCommandExecution(FailureWithException(e))
     assertIsNOTCommandExecution(ValueSuccess(123, TypeBox.of[Int]))
     
     assertIsNOTCommandExecution(NotStarted, None)
@@ -122,7 +122,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     assertIsNOTCommandExecution(Succeeded, None)
     assertIsNOTCommandExecution(Skipped, None)
     assertIsNOTCommandExecution(Unknown, None)
-    assertIsNOTCommandExecution(FailedWithException(e), None)
+    assertIsNOTCommandExecution(FailureWithException(e), None)
     assertIsNOTCommandExecution(ValueSuccess(123, TypeBox.of[Int]), None)
   }
   

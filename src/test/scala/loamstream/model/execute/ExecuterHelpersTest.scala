@@ -4,7 +4,6 @@ import org.scalatest.FunSuite
 import scala.concurrent.Await
 import loamstream.model.jobs.TestJobs
 import scala.concurrent.duration.Duration
-import loamstream.model.jobs.LJob
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.RxMockJob
 
@@ -81,33 +80,5 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
       
     assert(noFailures(someFailures) === false)
     assert(anyFailures(someFailures) === true)
-  }
-  
-  test("consumeUntilFirstFailure()") {
-    import ExecuterHelpers.consumeUntilFirstFailure
-    
-    assert(consumeUntilFirstFailure(Iterator.empty) == Vector.empty)
-    
-    val oneSuccess: Map[LJob, JobResult] = Map(two0 -> JobResult.Succeeded)
-    val anotherSuccess: Map[LJob, JobResult] = Map(two1 -> JobResult.Succeeded)
-    
-    val oneFailure: Map[LJob, JobResult] = Map(two0Failed -> JobResult.Failed())
-    val anotherFailure: Map[LJob, JobResult] = Map(two1Failed -> JobResult.Failed())
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess)) == Vector(oneSuccess))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess, anotherSuccess)) == Vector(oneSuccess, anotherSuccess))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneFailure)) == Vector(oneFailure))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneFailure, anotherFailure)) == Vector(oneFailure))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess, oneFailure)) == Vector(oneSuccess, oneFailure))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess, anotherSuccess, oneFailure)) == 
-      Vector(oneSuccess, anotherSuccess, oneFailure))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess, anotherSuccess, oneFailure, anotherFailure)) == 
-      Vector(oneSuccess, anotherSuccess, oneFailure))
   }
 }

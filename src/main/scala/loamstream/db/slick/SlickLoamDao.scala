@@ -1,10 +1,12 @@
 package loamstream.db.slick
 
 import java.nio.file.Path
+import java.time.Instant
 
 import scala.concurrent.ExecutionContext
 import loamstream.db.LoamDao
-import loamstream.model.execute._
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
 import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
 import loamstream.util.Futures
 import loamstream.util.Loggable
@@ -195,7 +197,9 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   private def tieResourcesToExecution(execution: Execution, executionId: Int): Option[ResourceRow] = {
-    execution.resources.map(rs => ResourceRow.fromResources(rs, executionId))
+    //execution.resources.map(rs => ResourceRow.fromResources(rs, executionId))
+    // TODO Resources should come from Execution
+    Some(ResourceRow.fromResources(LocalResources(Instant.now, Instant.now),  executionId))
   }
 
   private object Queries {
@@ -282,11 +286,11 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution(_, _, _, _, cr: CommandResult, _) => e -> cr
-      //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
-      //TODO: Dummy value
-      case e @ Execution(_, _, _, _, cr: CommandInvocationFailure, _) =>
-        e -> CommandResult(JobResult.DummyExitCode, None)
+      case e @ Execution(_, _, _, _, Some(cr: CommandResult), _, _) => e -> cr
+      //NB: Allow storing the failure to invoke a command; give this case DummyExitCode
+      case e @ Execution(_, _, _, _, Some(cr: CommandInvocationFailure), _, _) =>
+        // TODO: Better assign e -> JobResult.Failure?
+        e -> CommandResult(JobResult.DummyExitCode)
     }
   }
 

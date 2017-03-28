@@ -51,4 +51,9 @@ object JobStatus extends Loggable {
     case "Unknown" => Some(Unknown)
     case _ => None
   }
+
+  def fromExitCode(code: Int): JobStatus = {
+    if (JobResult.isSuccessExitCode(code)) { Succeeded }
+    else { Failed }
+  }
 }

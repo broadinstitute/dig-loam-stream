@@ -5,12 +5,12 @@ import java.nio.file.Path
 import loamstream.loam.ops.TextStoreRecord
 import loamstream.loam.ops.filters.LoamStoreFilter
 import loamstream.model.jobs.ops.StoreFilterJob.LineFilter
-import loamstream.model.jobs.{JobResult, LJob, Output}
+import loamstream.model.jobs.{Execution, JobStatus, LJob, Output}
 import loamstream.util.Files
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.runtime.universe.Type
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
 
 /** Job which creates a new store by filtering an existing store */
 object StoreFilterJob {
@@ -40,8 +40,14 @@ final case class StoreFilterJob(
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
   /** Implementations of this method will do any actual work to be performed by this job */
-  override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = Future {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = Future {
     Files.filterFile(inPath, outPath)(LineFilter(filter, inType))
-    JobResult.Succeeded
+    Execution(executionEnvironment,
+              None,
+              LocalSettings(),
+              JobStatus.Succeeded,
+              None, // TODO: Is this right?
+              None,
+              outputs.map(_.toOutputRecord))
   }
 }

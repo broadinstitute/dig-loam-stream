@@ -5,12 +5,12 @@ import java.nio.file.Path
 import loamstream.loam.ops.TextStoreRecord
 import loamstream.loam.ops.mappers.LoamStoreMapper
 import loamstream.model.jobs.ops.StoreMapperJob.LineMapper
-import loamstream.model.jobs.{JobResult, LJob, Output}
 import loamstream.util.Files
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.runtime.universe.Type
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
+import loamstream.model.jobs.{Execution, JobStatus, LJob, Output}
 
 /** Job which creates a new store by mapping an existing store */
 object StoreMapperJob {
@@ -41,9 +41,14 @@ final case class StoreMapperJob(
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
   /** Implementations of this method will do any actual work to be performed by this job */
-  override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = Future {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = Future {
     Files.mapFile(inPath, outPath)(LineMapper(mapper, inType, outType))
-    JobResult.Succeeded
+    Execution(executionEnvironment,
+              None,
+              LocalSettings(),
+              JobStatus.Succeeded,
+              None, // TODO: Is this right?
+              None,
+              outputs.map(_.toOutputRecord))
   }
-
 }

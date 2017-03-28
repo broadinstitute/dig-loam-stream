@@ -2,7 +2,7 @@ package loamstream.model.jobs.commandline
 
 import java.nio.file.{Path, Files => JFiles}
 
-import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
+import loamstream.model.execute.LocalSettings
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future

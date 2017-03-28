@@ -2,16 +2,17 @@ package loamstream.util
 
 import java.time.temporal.Temporal
 import java.time.Instant
+import scala.util.Try
 
 /**
  * @author clint
  * date: Aug 11, 2016
  */
 object TimeUtils extends Loggable {
-  def startAndEndTime[A](block: => A): (A, (Instant, Instant)) = {
+  def startAndEndTime[A](block: => A): (Try[A], (Instant, Instant)) = {
     val start = Instant.now
     
-    val result = block
+    val result = Try(block)
       
     val end = Instant.now
 

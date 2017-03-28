@@ -14,6 +14,8 @@ import loamstream.util.TimeUtils
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobResult.{CommandInvocationFailure, CommandResult}
 import loamstream.model.jobs.{Execution, JobStatus, LJob, OutputRecord}
+import scala.util.Success
+import scala.util.Failure
 
 /**
   * LoamStream
@@ -38,29 +40,27 @@ trait CommandLineJob extends LJob {
 
   override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
     Futures.runBlocking {
-      trace(s"RUNNING: $commandLineString")
-
-      val (exitValue, (start, end)) = TimeUtils.startAndEndTime {
+      
+      val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
+        trace(s"RUNNING: $commandLineString")
+        
         createWorkDirAndRun()
       }
 
       val resources = LocalResources(start, end)
       
-      Execution(ExecutionEnvironment.Local,
+      val (jobStatus, jobResult) = exitValueAttempt match {
+        case Success(exitValue) => (JobStatus.fromExitCode(exitValue), CommandResult(exitValue))
+        case Failure(e) => (JobStatus.FailedWithException, CommandInvocationFailure(e))
+      }
+      
+      Execution(executionEnvironment,
                 Some(commandLineString),
                 LocalSettings(),
-                JobStatus.fromExitCode(exitValue),
-                Some(CommandResult(exitValue)),
+                jobStatus,
+                Option(jobResult),
                 Option(resources),
                 Set.empty[OutputRecord])
-    }.recover {
-      case exception: Exception => Execution( executionEnvironment,
-                                              Some(commandLineString),
-                                              LocalSettings(),
-                                              JobStatus.FailedWithException,
-                                              Some(CommandInvocationFailure(exception)),
-                                              None,
-                                              Set.empty[OutputRecord])
     }
   }
   

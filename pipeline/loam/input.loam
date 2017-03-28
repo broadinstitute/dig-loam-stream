@@ -1,5 +1,5 @@
 /** Input VCF file */
-val inVCF = store[VCF].at("/humgen/diabetes/users/dig/loamstream/pipeline/QCpipeline/example/bash/data/CAMP.vcf.gz").asInput
+val inVCF = store[VCF].at("/humgen/diabetes/users/ryank/data/camp/data/camp.vcf.gz").asInput
 
 /** Output directory path */
 val outDirLoc = "qc"

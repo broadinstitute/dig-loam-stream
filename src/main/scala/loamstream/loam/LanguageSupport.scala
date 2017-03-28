@@ -9,42 +9,6 @@ import java.nio.file.Path
  * @author clint
  * Mar 28, 2017
  */
-trait LanguageSupport {
-  protected[this] val fileNums: Sequence[Int] = Sequence[Int]()
-  
-  protected[this] def config(implicit scriptContext: LoamScriptContext) = scriptContext.projectContext.config
-  
-  protected[this] def piecesToString(args: Seq[Any])(implicit scriptContext: LoamScriptContext): String = {
-    val tokens = args.map(LoamCmdTool.toToken) 
-    
-    LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
-  }
-  
-  protected[this] def determineScriptFile(
-      prefix: String, 
-      extension: String)(implicit scriptContext: LoamScriptContext): Path = {
-    
-    val executionId = scriptContext.executionId
-    val filename = s"${prefix}-${fileNums.next()}.${extension}"
-        
-    Paths.get(".loamstream", "executions", executionId, filename).toAbsolutePath
-  }
-  
-  protected[this] def writeToFile(
-      args: Seq[Any], 
-      prefix: String, 
-      extension: String)(implicit scriptContext: LoamScriptContext): Path = {
-    
-    val scriptContents = piecesToString(args)
-      
-    val scriptFile = determineScriptFile("bash", "sh")
-      
-    Files.writeTo(scriptFile)(scriptContents)
-    
-    scriptFile
-  }
-}
-
 object LanguageSupport  {
   
   object Bash extends LanguageSupport {
@@ -108,5 +72,41 @@ object LanguageSupport  {
         cmd"${pythonConfig.binary} $scriptFile"
       }
     }
+  }
+}
+
+trait LanguageSupport {
+  protected[this] val fileNums: Sequence[Int] = Sequence[Int]()
+  
+  protected[this] def config(implicit scriptContext: LoamScriptContext) = scriptContext.projectContext.config
+  
+  protected[this] def piecesToString(args: Seq[Any])(implicit scriptContext: LoamScriptContext): String = {
+    val tokens = args.map(LoamCmdTool.toToken) 
+    
+    LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
+  }
+  
+  protected[this] def determineScriptFile(
+      prefix: String, 
+      extension: String)(implicit scriptContext: LoamScriptContext): Path = {
+    
+    val executionId = scriptContext.executionId
+    val filename = s"${prefix}-${fileNums.next()}.${extension}"
+        
+    Paths.get(".loamstream", "executions", executionId, filename).toAbsolutePath
+  }
+  
+  protected[this] def writeToFile(
+      args: Seq[Any], 
+      prefix: String, 
+      extension: String)(implicit scriptContext: LoamScriptContext): Path = {
+    
+    val scriptContents = piecesToString(args)
+      
+    val scriptFile = determineScriptFile("bash", "sh")
+      
+    Files.writeTo(scriptFile)(scriptContents)
+    
+    scriptFile
   }
 }

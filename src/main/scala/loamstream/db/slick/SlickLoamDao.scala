@@ -197,9 +197,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   private def tieResourcesToExecution(execution: Execution, executionId: Int): Option[ResourceRow] = {
-    //execution.resources.map(rs => ResourceRow.fromResources(rs, executionId))
-    // TODO Resources should come from Execution
-    Some(ResourceRow.fromResources(LocalResources(Instant.now, Instant.now),  executionId))
+    execution.resources.map(rs => ResourceRow.fromResources(rs, executionId))
   }
 
   private object Queries {

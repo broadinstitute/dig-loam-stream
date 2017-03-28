@@ -1,7 +1,7 @@
 package loamstream.model.execute
 
 import scala.concurrent.ExecutionContext
-import loamstream.model.jobs.{Execution, JobResult, LJob}
+import loamstream.model.jobs.{Execution, LJob}
 import loamstream.util.Maps
 import AsyncLocalChunkRunner.defaultMaxNumJobs
 import rx.lang.scala.Observable

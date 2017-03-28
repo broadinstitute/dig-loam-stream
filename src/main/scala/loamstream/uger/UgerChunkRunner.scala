@@ -90,17 +90,17 @@ final case class UgerChunkRunner(
       jobMonitor.monitor(jobIds)
     }
 
-    val jobsAndStatusesById = combine(jobsById, statuses(jobsById.keys))
+    val jobsAndUgerStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    val jobsToResultObservables: Iterable[(LJob, Observable[Execution])] = for {
-      (jobId, (job, jobStatuses)) <- jobsAndStatusesById
-      _ = jobStatuses.foreach(status => job.updateAndEmitJobState(toJobStatus(status)))
-      executionObs = jobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
+    val ugerJobsToExecutionObservables: Iterable[(LJob, Observable[Execution])] = for {
+      (jobId, (job, ugerJobStatuses)) <- jobsAndUgerStatusesById
+      _ = ugerJobStatuses.foreach(ugerStatus => job.updateAndEmitJobState(toJobStatus(ugerStatus)))
+      executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
     } yield {
       job -> executionObs
     }
 
-    Observables.toMap(jobsToResultObservables)
+    Observables.toMap(ugerJobsToExecutionObservables)
   }
   
   private def writeUgerScriptFile(commandLineJobs: Seq[CommandLineJob]): Path = {

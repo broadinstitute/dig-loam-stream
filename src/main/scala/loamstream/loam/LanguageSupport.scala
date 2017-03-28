@@ -17,7 +17,7 @@ object LanguageSupport  {
       /*
        * Supports a Bash string interpolator for .loam files:
        * 
-       * import LanguageSupport.Python._
+       * import LanguageSupport.Bash._
        * 
        * val someStore = store[TXT].at("/foo/bar/baz")
        * 

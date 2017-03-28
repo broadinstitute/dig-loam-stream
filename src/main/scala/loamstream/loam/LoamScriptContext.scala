@@ -4,6 +4,7 @@ import java.nio.file.{Path, Paths}
 
 import loamstream.util.{DepositBox, ValueBox}
 import loamstream.model.execute.ExecutionEnvironment
+import java.time.Instant
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -26,6 +27,9 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
   def executionEnvironment_=(newEnv: ExecutionEnvironment): Unit = {
     executionEnvironmentBox.value = newEnv
   }
+  
+  //TODO
+  lazy val executionId: String = s"${Instant.now.toString.replaceAll(":",".")}-${java.util.UUID.randomUUID}"
 }
 
 /** Container for compile time and run time context for a script */

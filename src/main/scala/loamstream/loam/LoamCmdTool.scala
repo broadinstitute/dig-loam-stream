@@ -5,6 +5,7 @@ import loamstream.loam.LoamTool.{AllStores, DefaultStores}
 import loamstream.model.LId
 import loamstream.util.StringUtils
 import loamstream.model.execute.ExecutionEnvironment
+import loamstream.loam.files.LoamFileManager
 
 /**
   * LoamStream
@@ -23,12 +24,7 @@ object LoamCmdTool {
 
       val tokens: Seq[LoamToken] = firstToken +: {
         stringParts.zip(args).flatMap { case (stringPart, arg) =>
-          val argToken = arg match {
-            case store: LoamStore.Untyped => StoreToken(store)
-            case storeRef: LoamStoreRef => StoreRefToken(storeRef)
-            case _ => StringToken(arg.toString)
-          }
-          Seq(argToken, createStringToken(stringPart))
+          Seq(toToken(arg), createStringToken(stringPart))
         }
       }
 
@@ -47,6 +43,16 @@ object LoamCmdTool {
     
     tool
   }
+  
+  def toToken(arg: Any): LoamToken = arg match {
+    case store: LoamStore.Untyped => StoreToken(store)
+    case storeRef: LoamStoreRef => StoreRefToken(storeRef)
+    case arg => StringToken(arg.toString)
+  }
+  
+  def toString(fileManager: LoamFileManager, tokens: Seq[LoamToken]): String = {
+    tokens.map(_.toString(fileManager)).mkString
+  }
 }
 
 /** A command line tool specified in a Loam script */
@@ -57,5 +63,5 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
 
   /** Constructs the command line string */
-  def commandLine: String = tokens.map(_.toString(scriptContext.projectContext.fileManager)).mkString
+  def commandLine: String = LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
 }

@@ -3,7 +3,7 @@ package loamstream.model.execute
 import java.time.Instant
 
 import loamstream.model.execute.ExecutionEnvironment.Uger
-import loamstream.model.jobs.Execution
+import loamstream.model.jobs.{Execution, JobResult, JobStatus}
 import loamstream.uger.Queue
 import org.scalatest.FunSuite
 import loamstream.model.execute.Resources.UgerResources
@@ -25,7 +25,12 @@ trait ProvidesEnvAndResources extends FunSuite {
 
     UgerSettings(mem, cpu, Queue.Short)
   }
-  
+  val mockStatus: JobStatus = JobStatus.Unknown
+  val mockResult: JobResult = {
+    val exitCode = 0
+    JobResult.CommandResult(exitCode)
+  }
+
   val mockLocalResources: LocalResources = TestHelpers.localResources
   
   val mockUgerResources: UgerResources = {

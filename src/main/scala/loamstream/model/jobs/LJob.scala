@@ -29,7 +29,7 @@ trait LJob extends Loggable {
 
     header.foreach(doPrint)
     
-    doPrint(s"$indentString ($state)${this}")
+    doPrint(s"$indentString ($status)${this}")
 
     inputs.foreach(_.print(indent + 2, doPrint))
   }
@@ -41,14 +41,14 @@ trait LJob extends Loggable {
 
   /** Any outputs produced by this job */
   def outputs: Set[Output]
-  
+
   /**
    * An observable producing a stream of all the runnable jobs among this job, its dependencies, their dependencies,
    * and so on, as soon as those jobs become runnable.  A job becomes runnable when all its dependencies are finished,
    * or if it has no dependencies, it's runnable immediately.  (See selfRunnable)
    */
   final lazy val runnables: Observable[LJob] = {
-    
+
     //Multiplex the streams of runnable jobs starting from each of our dependencies
     val dependencyRunnables = {
       if(inputs.isEmpty) { Observable.empty }
@@ -56,85 +56,85 @@ trait LJob extends Loggable {
       //one dependency before the other dependencies, but rather emit all the streams of runnable jobs "together".
       else { Observables.merge(inputs.toSeq.map(_.runnables)) }
     }
-    
+
     //Emit the current job *after* all our dependencies
-    (dependencyRunnables ++ selfRunnable) 
+    (dependencyRunnables ++ selfRunnable)
   }
-  
+
   /**
    * An observable that will emit this job ONLY when all this job's dependencies are finished.
    * If the this job has no dependencies, this job is emitted immediately.  This will fire at most once.
    */
   private[jobs] lazy val selfRunnable: Observable[LJob] = {
     def justUs = Observable.just(this)
-    def noMore = Observable.empty 
-    
-    if(inputs.isEmpty) { 
+    def noMore = Observable.empty
+
+    if(inputs.isEmpty) {
       justUs
     } else {
       for {
-        inputStates <- finalInputStates
-        _ = debug(s"$name.selfRunnable: deps finished with states: $inputStates")
-        anyInputFailures = inputStates.exists(_.isFailure)
-        runnable <- if(anyInputFailures) noMore else justUs 
+        inputStatuses <- finalInputStatuses
+        _ = debug(s"$name.selfRunnable: deps finished with statuses: $inputStatuses")
+        anyInputFailures = inputStatuses.exists(_.isFailure)
+        runnable <- if(anyInputFailures) noMore else justUs
       } yield {
         runnable
       }
     }
   }
-  
-  private[this] val stateRef: ValueBox[JobStatus] = ValueBox(JobStatus.NotStarted)
 
-  /** This job's current state */
-  final def state: JobStatus = stateRef.value
+  private[this] val statusRef: ValueBox[JobStatus] = ValueBox(JobStatus.NotStarted)
+
+  /** This job's current status */
+  final def status: JobStatus = statusRef.value
 
   /**
-   * An observable stream of states emitted by this job, each one reflecting a state this job transitioned to.
+   * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
    */
   //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val stateEmitter: Subject[JobStatus] = ReplaySubject[JobStatus]()
-  
-  lazy val states: Observable[JobStatus] = stateEmitter
+  private[this] val statusEmitter: Subject[JobStatus] = ReplaySubject[JobStatus]()
 
-  final protected def emitJobState(): Unit = stateEmitter.onNext(state)
-  
+  lazy val statuses: Observable[JobStatus] = statusEmitter
+
+  final protected def emitJobStatus(): Unit = statusEmitter.onNext(status)
+
   /**
-   * The "terminal" state emitted by this job: the one that indicates the job is finished for any reason.
-   * Will fire at most one time. 
+   * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
+   * Will fire at most one time.
    */
-  protected[jobs] lazy val lastState: Observable[JobStatus] = states.filter(_.isFinished).first
-  
+  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isFinished).first
+
   /**
-   * An observable that will emit a sequence containing all our dependencies' "terminal" states.
+   * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.
    * When this fires, our dependencies are finished.
    */
-  protected[jobs] lazy val finalInputStates: Observable[Seq[JobStatus]] = {
-    Observables.sequence(inputs.toSeq.map(_.lastState))
+  protected[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
+    Observables.sequence(inputs.toSeq.map(_.lastStatus))
   }
   
   /**
-   * Sets the state of this job to be newState, and emits the new state to any observers.
+   * Sets the status of this job to be newStatus, and emits the new status to any observers.
  *
-   * @param newState the new state to set for this job 
+   * @param newStatus the new status to set for this job
    */
   //NB: Currently needs to be public for use in UgerChunkRunner :\
-  final def updateAndEmitJobState(newState: JobStatus): Unit = {
-    debug(s"Status change to $newState for job: ${this}")
-    stateRef() = newState
-    stateEmitter.onNext(newState)
+  final def updateAndEmitJobStatus(newStatus: JobStatus): Unit = {
+    debug(s"Status change to $newStatus for job: ${this}")
+    statusRef() = newStatus
+    statusEmitter.onNext(newStatus)
   }
 
   /**
-   * Decorates executeSelf(), updating and emitting the value of 'state' from
+   * Decorates executeSelf(), updating and emitting the value of 'status' from
    * Running to Succeeded/Failed.
    */
   def execute(implicit context: ExecutionContext): Future[Execution] = {
     import loamstream.util.Futures.Implicits._
 
-    updateAndEmitJobState(JobStatus.NotStarted)
-    updateAndEmitJobState(JobStatus.Running)
+    updateAndEmitJobStatus(JobStatus.NotStarted)
+    updateAndEmitJobStatus(JobStatus.Running)
 
-    executeSelf.withSideEffect(execution => updateAndEmitJobState(execution.status))
+    executeSelf.withSideEffect(execution => updateAndEmitJobStatus(execution.status))
   }
   
   /**

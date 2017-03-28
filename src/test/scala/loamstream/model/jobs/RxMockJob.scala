@@ -31,7 +31,7 @@ final case class RxMockJob(
   private def waitIfNecessary(): Unit = {
     if (runsAfter.nonEmpty) {
       import loamstream.util.ObservableEnrichments._
-      val finalDepStates = Observables.sequence(runsAfter.toSeq.map(_.lastState))
+      val finalDepStates = Observables.sequence(runsAfter.toSeq.map(_.lastStatus))
 
       Futures.waitFor(finalDepStates.firstAsFuture)
     }

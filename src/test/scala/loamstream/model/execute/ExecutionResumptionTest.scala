@@ -13,8 +13,7 @@ import loamstream.model.jobs._
 import loamstream.util._
 import loamstream.loam.LoamScript
 import loamstream.TestHelpers
-import loamstream.model.execute.ExecutionEnvironment.Local
-import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.jobs.JobStatus.{Skipped, Succeeded}
 
 /**
   * @author clint
@@ -26,20 +25,22 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
 
-  private def hashAndStore(p: Path, exitStatus: Int = 0): Unit = {
+  private def hashAndStore(p: Path, exitCode: Int = 0): Unit = {
     val hash = Hashes.sha1(p)
     val lastModified = PathUtils.lastModifiedTime(p)
 
-    val e = Execution(
-        mockEnv, Option(mockCmd), mockSettings,
-        JobResult.CommandResult(exitStatus, Some(mockResources)), Set(cachedOutput(p, hash, lastModified)))
+    val e = Execution(mockEnv,
+                      Option(mockCmd),
+                      mockSettings,
+                      mockStatus,
+                      Option(JobResult.CommandResult(exitCode)),
+                      Some(mockResources),
+                      Set(cachedOutput(p, hash, lastModified)))
     
     store(e)
   }
 
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
-    import JobResult._
-
     doTest(Seq(Skipped, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{Files => JFiles}
 
@@ -55,9 +56,6 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
 
   test("Pipelines can be resumed after stopping 2/3rds of the way through") {
-
-    import JobResult._
-
     doTest(Seq(Skipped, Skipped, Succeeded)) { (start, f1, f2, f3) =>
       import java.nio.file.{Files => JFiles}
 
@@ -76,9 +74,6 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
 
   test("Re-running a finished pipelines does nothing") {
-
-    import JobResult._
-
     doTest(Seq(Skipped, Skipped, Skipped)) { (start, f1, f2, f3) =>
       import java.nio.file.{Files => JFiles}
 
@@ -102,15 +97,13 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
 
   test("Every job is run for Pipelines with no existing outputs") {
-    import JobResult._
-
     doTest(Seq(Succeeded, Succeeded, Succeeded)) { (start, f1, f2, f3) =>
       //No setup
     }
   }
 
   private def mockJob(name: String, outputs: Set[Output], inputs: Set[LJob] = Set.empty)(body: => Any): MockJob = {
-    new MockJob(JobResult.Succeeded, name, inputs, outputs, delay = 0) {
+    new MockJob(JobStatus.Succeeded, name, inputs, outputs, delay = 0) {
       override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = {
         body
 
@@ -121,7 +114,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   // scalastyle:off method.length
   //NB: Tests with the 'run-everything' JobFilter as well as a DB-backed one.
-  private def doTest(expectations: Seq[JobResult])(setup: (Path, Path, Path, Path) => Any): Unit = {
+  private def doTest(expectations: Seq[JobStatus])(setup: (Path, Path, Path, Path) => Any): Unit = {
 
     def doTestWithExecuter(executer: RxExecuter): Unit = {
       import java.nio.file.{ Files => JFiles }
@@ -151,9 +144,9 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
         copy(f2, f3)
       }
 
-      assert(startToF1.state == JobResult.NotStarted)
-      assert(f1ToF2.state == JobResult.NotStarted)
-      assert(f2ToF3.state == JobResult.NotStarted)
+      assert(startToF1.status == JobStatus.NotStarted)
+      assert(f1ToF2.status == JobStatus.NotStarted)
+      assert(f2ToF3.status == JobStatus.NotStarted)
   
       val executable = Executable(Set(f2ToF3))
   
@@ -174,18 +167,18 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
         val jobResults = executer.execute(executable)
 
-        val jobStates = Seq(startToF1.state, f1ToF2.state, f2ToF3.state)
+        val jobStatuses = Seq(startToF1.status, f1ToF2.status, f2ToF3.status)
 
         val expectedStates = {
           if (runningEverything) {
-            Seq(JobResult.Succeeded, JobResult.Succeeded, JobResult.Succeeded)
+            Seq(Succeeded, Succeeded, Succeeded)
           }
           else {
             expectations
           }
         }
 
-        assert(jobStates == expectedStates)
+        assert(jobStatuses == expectedStates)
 
         val expectedNumResults = if (runningEverything) 3 else expectations.count(_.isSuccess)
 

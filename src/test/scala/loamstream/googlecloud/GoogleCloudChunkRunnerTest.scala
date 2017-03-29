@@ -57,7 +57,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
     
     val job1Result = result(job1).asInstanceOf[CommandResult]
     
-    assert(job1Result.exitStatus === 0)
+    assert(job1Result.exitCode === 0)
     assert(job1Result.resources.get === GoogleResources(clusterId, localResources.startTime, localResources.endTime))
     
     assert(result(job2) === input(job2))
@@ -123,7 +123,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
       
       val job3Result = result(job3).asInstanceOf[JobResult.CommandResult]
       
-      assert(job3Result.exitStatus === 0)
+      assert(job3Result.exitCode === 0)
 
       val job3Resources = job3Result.resources.get.asInstanceOf[GoogleResources]
       
@@ -221,7 +221,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite {
       
       val job3Result = result(job3).asInstanceOf[JobResult.CommandResult]
       
-      assert(job3Result.exitStatus === 0)
+      assert(job3Result.exitCode === 0)
 
       val job3Resources = job3Result.resources.get.asInstanceOf[GoogleResources]
 

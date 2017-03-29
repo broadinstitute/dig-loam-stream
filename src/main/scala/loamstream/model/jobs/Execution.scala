@@ -19,8 +19,6 @@ final case class Execution(env: ExecutionEnvironment,
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
 
-  def transformOutputs(f: Set[OutputRecord] => Set[OutputRecord]): Execution = copy(outputs = f(outputs))
-
   //NB :(
   //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a
   //command-line string is defined.

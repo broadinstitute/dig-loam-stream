@@ -52,7 +52,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       val firstResult = results(firstJob).asInstanceOf[CommandResult]
       
-      assert(firstResult.exitStatus === 0)
+      assert(firstResult.exitCode === 0)
       //Ignore run-dependent start and end times
       assert(firstResult.resources.get.isInstanceOf[LocalResources] === true)
 
@@ -65,7 +65,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       
       val output1Result = executionFromOutput1.result.asInstanceOf[CommandResult]
       
-      assert(output1Result.exitStatus === 0)
+      assert(output1Result.exitCode === 0)
       assert(output1Result.resources === firstResult.resources)
       assert(executionFromOutput1.outputs === Set(output1))
 
@@ -102,7 +102,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         def compareResults(result: JobResult, expected: JobResult): Unit = {
           (result, expected) match {
             case (r: CommandResult, e: CommandResult) => {
-              assert(r.exitStatus === e.exitStatus)
+              assert(r.exitCode === e.exitCode)
               //Just assert these CommandResults contain the same kinds of Resources. :\
               //Don't compare start-and-end times, since we can't know them ahead of time.
               assert(r.resources.get.getClass === e.resources.get.getClass)
@@ -178,7 +178,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           val onlyResult = jobStates.values.head
 
           val exitCode = 127
-          onlyResult.asInstanceOf[CommandResult].exitStatus shouldEqual exitCode
+          onlyResult.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
           onlyResult.asInstanceOf[CommandResult].resources.get.isInstanceOf[LocalResources] shouldBe true
           onlyResult.isFailure shouldBe true
 
@@ -239,7 +239,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           import Matchers._
 
           val exitCode = 127
-          results(firstJob).asInstanceOf[CommandResult].exitStatus shouldEqual exitCode
+          results(firstJob).asInstanceOf[CommandResult].exitCode shouldEqual exitCode
           results(firstJob).asInstanceOf[CommandResult].resources.get.isInstanceOf[LocalResources] shouldBe true
           results.contains(secondJob) shouldBe false
 

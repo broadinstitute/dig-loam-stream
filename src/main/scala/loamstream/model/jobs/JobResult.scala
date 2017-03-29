@@ -3,7 +3,7 @@ package loamstream.model.jobs
 import loamstream.util.TypeBox
 
 import scala.reflect.runtime.universe.Type
-import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.JobResult.{CommandResult, Success}
 
 /**
  * @author clint
@@ -12,6 +12,7 @@ import loamstream.model.jobs.JobResult.CommandResult
 sealed trait JobResult {
   def isSuccess: Boolean = this match {
     case CommandResult(exitCode) => JobResult.isSuccessExitCode(exitCode)
+    case Success => true
     case _ => false
   }
 
@@ -21,11 +22,11 @@ sealed trait JobResult {
 object JobResult {
   val DummyExitCode: Int = -1
 
-  case object NoResult extends JobResult
+  case object Success extends JobResult
 
   case object Failure extends JobResult
 
-  final case class CommandResult(exitStatus: Int) extends JobResult
+  final case class CommandResult(exitCode: Int) extends JobResult
 
   final case class CommandInvocationFailure(e: Throwable) extends JobResult
 

@@ -13,5 +13,5 @@ final case class LoamConfig(
     ugerConfig: Option[UgerConfig],
     googleConfig: Option[GoogleCloudConfig],
     hailConfig: Option[HailConfig],
-    bashConfig: Option[BashConfig] = Some(BashConfig()) /* TODO */,
+    rConfig: Option[RConfig] = Some(RConfig()) /* TODO */,
     pythonConfig: Option[PythonConfig] = Some(PythonConfig()) /* TODO */)

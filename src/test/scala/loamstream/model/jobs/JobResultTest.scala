@@ -2,8 +2,6 @@ package loamstream.model.jobs
 
 import org.scalatest.FunSuite
 import loamstream.util.TypeBox
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -12,7 +10,7 @@ import loamstream.TestHelpers
 final class JobResultTest extends FunSuite {
   import JobResult._
   
-  //scalastyle:off magic.number
+  // scalastyle:off magic.number
   
   test("isSuccess") {
     assert(Success.isSuccess === true)
@@ -60,5 +58,5 @@ final class JobResultTest extends FunSuite {
     assert(toJobStatus(42) === JobStatus.Failed)
   }
 
-  //scalastyle:on magic.number
+  // scalastyle:on magic.number
 }

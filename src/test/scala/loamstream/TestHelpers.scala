@@ -1,6 +1,7 @@
 package loamstream
 
 import java.nio.file.{Path, Paths}
+
 import loamstream.conf.LoamConfig
 import com.typesafe.config.ConfigFactory
 import loamstream.conf.UgerConfig
@@ -8,6 +9,8 @@ import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.googlecloud.HailConfig
 import loamstream.model.execute.Resources.LocalResources
 import java.time.Instant
+
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
   * @author clint
@@ -37,4 +40,6 @@ object TestHelpers {
       
     LocalResources(now, now)
   }
+
+  val env = ExecutionEnvironment.Local
 }

@@ -115,7 +115,10 @@ final case class RxExecuter(
     skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped))
   }
 
-  private def record(executionMap: Map[LJob, Execution]): Unit = jobFilter.record(executionMap.values)
+  private def record(executionMap: Map[LJob, Execution]): Unit = {
+    debug(s"Recording ${executionMap.size} Execution(s): $executionMap")
+    jobFilter.record(executionMap.values)
+  }
 }
 
 object RxExecuter extends Loggable {

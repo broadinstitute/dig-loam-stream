@@ -216,10 +216,10 @@ final class JobTest extends FunSuite with TestJobs {
     val gc2 = MockJob(Succeeded)
     val gc3 = MockJob(Skipped)
     
-    val c0 = MockJob(Succeeded, inputs = Set(gc0, gc1))
-    val c1 = MockJob(Succeeded, inputs = Set(gc2, gc3))
+    val c0 = MockJob(Succeeded, inputs = Set[LJob](gc0, gc1))
+    val c1 = MockJob(Succeeded, inputs = Set[LJob](gc2, gc3))
     
-    val rootJob = MockJob(Succeeded, inputs = Set(c0,c1))
+    val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1))
     
     val grandChildren = waitFor(rootJob.runnables.take(4).to[Set].firstAsFuture)
     
@@ -264,10 +264,10 @@ final class JobTest extends FunSuite with TestJobs {
     val gc2 = MockJob(Succeeded)
     val gc3 = MockJob(Skipped)
     
-    val c0 = MockJob(toReturn = Failed, inputs = Set(gc0, gc1))
-    val c1 = MockJob(toReturn = Succeeded, inputs = Set(gc2, gc3))
+    val c0 = MockJob(toReturn = Failed, inputs = Set[LJob](gc0, gc1))
+    val c1 = MockJob(toReturn = Succeeded, inputs = Set[LJob](gc2, gc3))
     
-    val rootJob = MockJob(Succeeded, inputs = Set(c0,c1))
+    val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1))
     
     val grandChildren = waitFor(rootJob.runnables.take(4).to[Set].firstAsFuture)
     

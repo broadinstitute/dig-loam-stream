@@ -28,7 +28,7 @@ class MockJob(
   //NB: Previous versions defined equals() and hashCode() only in terms of 'toReturn', which caused problems;
   //switched back to reference equality.
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
     count.mutate(_ + 1)
 
     if (delay > 0) {

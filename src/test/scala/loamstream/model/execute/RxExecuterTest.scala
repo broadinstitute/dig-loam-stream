@@ -1,20 +1,9 @@
 package loamstream.model.execute
 
-import scala.concurrent.duration.DurationDouble
-
 import org.scalatest.FunSuite
-
-import loamstream.model.jobs.JobResult
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs._
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
-import loamstream.model.jobs.RxMockJob
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.TestHelpers
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.MockJob
 
 /**
  * @author kyuksel
@@ -36,76 +25,6 @@ final class RxExecuterTest extends FunSuite {
     val executer = RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything)
     
     ExecutionResults(executer.execute(executable), runner.chunks.value.filter(_.nonEmpty))
-  }
-  
-  test("record - all commands") {
-    import RxExecuter.record
-    import TestHelpers.path
-    import ProvidesEnvAndResources.mockResources
-    
-    //Check that a given bunch of jobs and terminal states results in the expected 
-    //Executions being sent to the JobFilter
-    
-    val state0 = JobResult.CommandResult(0, Some(mockResources))
-    val state1 = JobResult.CommandResult(1, Some(mockResources))
-    val state2 = JobResult.CommandResult(42, Some(mockResources))
-    val state3 = JobResult.Succeeded
-    val state4 = JobResult.Failed()
-    val state5 = JobResult.Skipped
-
-    val job0 = CommandLineStringJob("foo", path("."), ExecutionEnvironment.Local)
-    val job1 = CommandLineStringJob("bar", path("."), ExecutionEnvironment.Google)
-    val job2 = CommandLineStringJob("baz", path("."), ExecutionEnvironment.Uger)
-    val job3 = CommandLineStringJob("nuh", path("."), ExecutionEnvironment.Uger)
-    val job4 = CommandLineStringJob("zuh", path("."), ExecutionEnvironment.Uger)
-    val job5 = MockJob(state5)
-    
-    val resultMap: Map[LJob, JobResult] = Map(
-        job0 -> state0, 
-        job1 -> state1, 
-        job2 -> state2, 
-        job3 -> state3,
-        job4 -> state4,
-        job5 -> state5)
-    
-    val mockJobFilter = new MockJobFilter()
-        
-    assert(mockJobFilter.recordedExecutions().isEmpty)
-    
-    record(mockJobFilter)(resultMap)
-        
-    def execution(cmdString: Option[String]): Execution = {
-      mockJobFilter.recordedExecutions().find(_.cmd == cmdString).get
-    }
-    
-    val execution0 = execution(Some(job0.commandLineString))
-    val execution1 = execution(Some(job1.commandLineString))
-    val execution2 = execution(Some(job2.commandLineString))
-    val execution3 = execution(Some(job3.commandLineString))
-    val execution4 = execution(Some(job4.commandLineString))
-    val execution5 = execution(None)
-
-    assert(mockJobFilter.recordedExecutions().size === 6)
-    
-    def doAssertions(e: Execution, job: LJob, state: JobResult): Unit = {
-      val jobCommandLine: Option[String] = job match {
-        case clj: CommandLineJob => Option(clj.commandLineString)
-        case _ => None
-      }
-      
-      assert(e.cmd === jobCommandLine)
-      assert(e.env === job.executionEnvironment)
-      assert(e.result === state)
-      assert(e.outputs === job.outputs)
-      //TODO: check e.settings, once that field is no longer a placeholder.
-    }
-    
-    doAssertions(execution0, job0, state0)
-    doAssertions(execution1, job1, state1)
-    doAssertions(execution2, job2, state2)
-    doAssertions(execution3, job3, state3)
-    doAssertions(execution4, job4, state4)
-    doAssertions(execution5, job5, state5)
   }
   
   import RxExecuterTest.JobOrderOps
@@ -132,7 +51,7 @@ final class RxExecuterTest extends FunSuite {
     // Check if jobs were correctly chunked
     assert(chunks === Seq(Set(job1)))
     
-    assert(results.values.head === JobResult.Succeeded)
+    assert(results.values.head.status === JobStatus.Succeeded)
   }
   
   test("Single failed job") {
@@ -141,71 +60,71 @@ final class RxExecuterTest extends FunSuite {
      *  Job1
      * 
      */
-    def doTest(jobState: JobResult): Unit = {
-      val job1 = RxMockJob("Job_1", toReturn = jobState)
-  
+    def doTest(jobResult: JobResult): Unit = {
+      val job1 = RxMockJob("Job_1", toReturn = jobResult)
+
       assert(job1.executionCount === 0)
-  
+
       val executable = Executable(Set(job1))
-      
+
       val ExecutionResults(results, chunks) = exec(executable)
-  
+
       assert(job1.executionCount === 1)
-  
+
       assert(results.size === 1)
-  
+
       // Check if jobs were correctly chunked
       assert(chunks === Seq(Set(job1)))
-      
-      assert(results.values.head === jobState)
+
+      assert(results.values.head.status === jobResult)
     }
-    
-    doTest(JobResult.Failed())
+
+    doTest(JobResult.Failure)
     doTest(JobResult.FailureWithException(new Exception))
-    doTest(JobResult.CommandResult(42, Some(TestHelpers.localResources)))
+    doTest(JobResult.CommandResult(42))
   }
-  
+
   test("Two failed jobs") {
     /* Linear two-job pipeline:
      *
      *  Job1 --- Job2
-     * 
+     *
      */
     def doTest(jobState: JobResult): Unit = {
 
       val job1 = RxMockJob("Job_1", toReturn = jobState)
       val job2 = RxMockJob("Job_2", inputs = Set(job1), toReturn = jobState)
-  
+
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)
-  
+
       val executable = Executable(Set(job1))
-      
+
       val ExecutionResults(results, chunks) = exec(executable)
-  
+
       //We expect that job wasn't run, since the preceding job failed
       assert(job1.executionCount === 1)
       assert(job2.executionCount === 0)
-  
+
       assert(results.size === 1)
-  
+
       // Check if jobs were correctly chunked
       assert(chunks === Seq(Set(job1)))
-      
+
       assert(results(job1) === jobState)
       assert(results.get(job2).isEmpty)
     }
-    
-    doTest(JobResult.Failed())
+
+    doTest(JobResult.Failure)
     doTest(JobResult.FailureWithException(new Exception))
-    doTest(JobResult.CommandResult(42, Some(TestHelpers.localResources)))
+    doTest(JobResult.CommandResult(42))
   }
-  
+
   test("3-job linear pipeline works") {
     /* A 3-step pipeline:
      *
      * Job1 -- Job2 -- Job3
-     * 
+     *
      */
 
     val job1 = RxMockJob("Job_1")
@@ -217,9 +136,9 @@ final class RxExecuterTest extends FunSuite {
     assert(job3.executionCount === 0)
 
     val executable = Executable(Set(job3))
-    
+
     val r @ ExecutionResults(result, chunks) = exec(executable)
-    
+
     import r.jobExecutionSeq
 
     assert(job1.executionCount === 1)
@@ -229,25 +148,25 @@ final class RxExecuterTest extends FunSuite {
     assert(result(job1).isSuccess)
     assert(result(job2).isSuccess)
     assert(result(job3).isSuccess)
-    
+
     assert(result.size === 3)
-    
+
     assert(jobExecutionSeq == Seq(Set(job1), Set(job2), Set(job3)))
-    
+
     assert(job1 ranBefore job2)
     assert(job1 ranBefore job3)
     assert(job2 ranBefore job3)
   }
-  
+
   test("3-job linear pipeline works if the middle job fails") {
     /* A 3-step pipeline:
      *
      * Job1 -- Job2 -- Job3
-     * 
+     *
      */
 
     val job1 = RxMockJob("Job_1")
-    val job2 = RxMockJob("Job_2", Set(job1), toReturn = JobResult.CommandResult(2, Some(TestHelpers.localResources)))
+    val job2 = RxMockJob("Job_2", Set(job1), toReturn = JobResult.CommandResult(2))
     val job3 = RxMockJob("Job_3", Set(job2))
 
     assert(job1.executionCount === 0)
@@ -663,7 +582,7 @@ final class RxExecuterTest extends FunSuite {
 }
 
 object RxExecuterTest {
-  private final case class ExecutionResults(byJob: Map[LJob, JobResult], chunks: Seq[Set[LJob]]) {
+  private final case class ExecutionResults(byJob: Map[LJob, Execution], chunks: Seq[Set[LJob]]) {
     implicit val jobExecutionSeq: Seq[Set[LJob]] = chunks
   }
   
@@ -691,7 +610,7 @@ object RxExecuterTest {
     
     val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 
-    override def run(jobs: Set[LJob]): Observable[Map[LJob, JobResult]] = {
+    override def run(jobs: Set[LJob]): Observable[Map[LJob, Execution]] = {
       chunks.mutate(_ :+ jobs)
 
       delegate.run(jobs)

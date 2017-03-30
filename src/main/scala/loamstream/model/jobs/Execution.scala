@@ -9,12 +9,12 @@ import loamstream.model.jobs.commandline.CommandLineJob
  * date: Sep 22, 2016
  */
 final case class Execution(env: ExecutionEnvironment,
-                           cmd: Option[String],
+                           cmd: Option[String] = None,
                            settings: Settings,
                            status: JobStatus,
-                           result: Option[JobResult],
-                           resources: Option[Resources],
-                           outputs: Set[OutputRecord]) {
+                           result: Option[JobResult] = None,
+                           resources: Option[Resources] = None,
+                           outputs: Set[OutputRecord] = Set.empty) {
 
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
@@ -49,15 +49,6 @@ object Execution {
 
   // TODO Remove when dynamic statuses flow in
   def apply(env: ExecutionEnvironment,
-            cmd: Option[String],
-            settings: Settings,
-            result: JobResult,
-            outputs: OutputRecord*): Execution = {
-    Execution(env, cmd, settings, JobStatus.Unknown, Some(result), None, outputs.toSet)
-  }
-
-  // TODO Remove when dynamic statuses flow in
-  def apply(env: ExecutionEnvironment,
             cmd: String,
             settings: Settings,
             result: JobResult,
@@ -80,15 +71,6 @@ object Execution {
                   result: JobResult,
                   outputs: Set[Output]): Execution = {
     Execution(env, Option(cmd), settings, result, outputs.map(_.toOutputRecord))
-  }
-
-  def fromOutputs(env: ExecutionEnvironment,
-                  cmd: String,
-                  settings: Settings,
-                  result: JobResult,
-                  output: Output,
-                  others: Output*): Execution = {
-    fromOutputs(env, cmd, settings, result, (output +: others).toSet)
   }
 
   def from(job: LJob, jobStatus: JobStatus): Execution = {

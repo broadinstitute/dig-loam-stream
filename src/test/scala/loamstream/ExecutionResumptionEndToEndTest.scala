@@ -175,11 +175,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       //Run the script and validate the results
       def run(): Unit = {
-        import Matchers._
-
         val (executable, executions) = compileAndRun(script)
-
-        executions should have size 1
 
         val allJobs = allJobsFrom(executable)
 
@@ -189,8 +185,6 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
         val onlyExecution = executions.values.head
 
-        onlyExecution.resources.get.isInstanceOf[LocalResources] shouldBe true
-
         val exitCode = 127
         val onlyResultOpt = onlyExecution.result
 
@@ -198,8 +192,14 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
         val onlyResult = onlyResultOpt.get
 
-        onlyResult.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
-        onlyResult.isFailure shouldBe true
+        {
+          import Matchers._
+
+          executions should have size 1
+          onlyExecution.resources.get.isInstanceOf[LocalResources] shouldBe true
+          onlyResult.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
+          onlyResult.isFailure shouldBe true
+        }
 
         val output1 = OutputRecord(fileOut1)
         val recordOpt = dao.findOutputRecord(output1)

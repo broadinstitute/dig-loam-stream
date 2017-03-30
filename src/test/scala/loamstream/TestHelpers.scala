@@ -46,7 +46,7 @@ object TestHelpers {
 
   def executionFrom(status: JobStatus,
                     result: Option[JobResult] = None,
-                    resources: Option[Resources] = None) = {
+                    resources: Option[Resources] = None): Execution = {
     Execution(env,
       cmd = None,
       settings = LocalSettings(),
@@ -56,11 +56,11 @@ object TestHelpers {
       Set.empty[OutputRecord])
   }
 
-  def executionFrom(status: JobStatus, result: JobResult, resources: Option[Resources] = None) = {
+  def executionFrom(status: JobStatus, result: JobResult, resources: Option[Resources] = None): Execution = {
     executionFrom(status, Option(result), resources)
   }
 
-  def executionFrom(result: JobResult, resources: Option[Resources] = None) = {
+  def executionFrom(result: JobResult, resources: Option[Resources] = None): Execution = {
     executionFrom(result.toJobStatus, Option(result), resources)
   }
 }

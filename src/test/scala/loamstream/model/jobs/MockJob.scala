@@ -18,7 +18,7 @@ class MockJob(
                override val inputs: Set[LJob],
                val outputs: Set[Output],
                val delay: Int) extends LJob {
-  
+
   override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
   
   val id: Int = MockJob.nextId()
@@ -71,12 +71,16 @@ object MockJob {
                                                   delay = 0)
   }
 
-  def apply(toReturn: JobStatus, inputs: Set[LJob] = Set.empty): MockJob = {
+  def apply(toReturn: JobStatus,
+            name: String = nextId().toString,
+            inputs: Set[LJob] = Set.empty,
+            outputs: Set[Output] = Set.empty,
+            delay: Int = 0): MockJob = {
                                               new MockJob(executionFrom(jobStatus = toReturn),
-                                                                        name = nextId().toString,
+                                                                        name,
                                                                         inputs,
-                                                                        outputs = Set.empty,
-                                                                        delay = 0)
+                                                                        outputs,
+                                                                        delay)
   }
 
   def unapply(job: LJob): Option[(Execution, String, Set[LJob], Set[Output], Int)] = job match {
@@ -84,7 +88,7 @@ object MockJob {
     case _ => None
   }
 
-  private[this] def executionFrom(jobStatus: JobStatus = JobStatus.Succeeded,
+  def executionFrom(jobStatus: JobStatus = JobStatus.Succeeded,
                                   jobResult: JobResult = JobResult.CommandResult(0)) = {
     Execution(TestHelpers.env,
               cmd = None,

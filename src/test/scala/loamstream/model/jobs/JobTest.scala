@@ -57,9 +57,7 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("finalInputStatuses - some deps") {
-    val deps: Set[LJob] = Set(
-        MockJob(Failed),
-        MockJob(Succeeded))
+    val deps: Set[LJob] = Set(MockJob(Failed), MockJob(Succeeded))
     
     val noDeps = MockJob(toReturn = Failed, inputs = deps)
     

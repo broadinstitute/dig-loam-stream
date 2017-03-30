@@ -55,26 +55,29 @@ class MockJob(
 }
 
 object MockJob {
-  def apply(
-             toReturn: Execution,
-             name: String = nextId().toString,
-             inputs: Set[LJob] = Set.empty,
-             outputs: Set[Output] = Set.empty,
-             delay: Int = 0): MockJob = new MockJob(toReturn, name, inputs, outputs, delay)
+  def apply(toReturn: Execution): MockJob = {
+                                              new MockJob(toReturn,
+                                                          name = nextId().toString,
+                                                          inputs = Set.empty,
+                                                          outputs = Set.empty,
+                                                          delay = 0)
+  }
 
-  def apply(
-             toReturn: JobResult,
-             name: String = nextId().toString,
-             inputs: Set[LJob] = Set.empty,
-             outputs: Set[Output] = Set.empty,
-             delay: Int = 0): MockJob = new MockJob(executionFrom(jobResult = toReturn), name, inputs, outputs, delay)
+  def apply(toReturn: JobResult): MockJob = {
+                                              new MockJob(executionFrom(jobResult = toReturn),
+                                                  name = nextId().toString,
+                                                  inputs = Set.empty,
+                                                  outputs = Set.empty,
+                                                  delay = 0)
+  }
 
-  def apply(
-             toReturn: JobStatus,
-             name: String = nextId().toString,
-             inputs: Set[LJob] = Set.empty,
-             outputs: Set[Output] = Set.empty,
-             delay: Int = 0): MockJob = new MockJob(executionFrom(jobStatus = toReturn), name, inputs, outputs, delay)
+  def apply(toReturn: JobStatus, inputs: Set[LJob] = Set.empty): MockJob = {
+                                              new MockJob(executionFrom(jobStatus = toReturn),
+                                                                        name = nextId().toString,
+                                                                        inputs,
+                                                                        outputs = Set.empty,
+                                                                        delay = 0)
+  }
 
   def unapply(job: LJob): Option[(Execution, String, Set[LJob], Set[Output], Int)] = job match {
     case mj: MockJob => Some((mj.toReturn, mj.name, mj.inputs, mj.outputs, mj.delay))

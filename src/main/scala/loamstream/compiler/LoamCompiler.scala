@@ -3,9 +3,11 @@ package loamstream.compiler
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage}
+import loamstream.compiler.messages.{CompilerIssueMessage, ErrorOutMessage, StatusOutMessage}
+import loamstream.conf.LoamConfig
 import loamstream.loam.LoamScript.LoamScriptBox
-import loamstream.loam.{GraphPrinter, LoamGraph, LoamProjectContext, LoamScript}
+import loamstream.loam.{GraphPrinter, LoamGraph, LoamGraphValidation, LoamProjectContext, LoamScript}
+import loamstream.util.Validation.IssueBase
 import loamstream.util.code.ReflectionUtil
 import loamstream.util.{DepositBox, Loggable, NonFatalInitializer, StringUtils}
 
@@ -14,7 +16,6 @@ import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.nsc.{Settings => ScalaCompilerSettings}
 import scala.tools.reflect.ReflectGlobal
-import loamstream.conf.LoamConfig
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -146,6 +147,21 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
     }
   }
 
+  def validateGraph(graph: LoamGraph): Seq[IssueBase[LoamGraph]] = {
+    val graphIssues = LoamGraphValidation.allRules(graph)
+    if (graphIssues.isEmpty) {
+      outMessageSink.send(StatusOutMessage("Execution graph successfully validated."))
+    } else {
+      outMessageSink.send(
+        ErrorOutMessage(s"Execution graph validation found ${StringUtils.soMany(graphIssues.size, "issue")}")
+      )
+      for(graphIssue <- graphIssues) {
+        outMessageSink.send(ErrorOutMessage(graphIssue.message))
+      }
+    }
+    graphIssues
+  }
+
   def reportCompilation(project: LoamProject, graph: LoamGraph, graphBoxReceipt: DepositBox.Receipt): Unit = {
     val soManyStores = StringUtils.soMany(graph.stores.size, "store")
     val soManyTools = StringUtils.soMany(graph.tools.size, "tool")
@@ -188,10 +204,11 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
         outMessageSink.send(StatusOutMessage(s"Completed compilation and there were $soManyIssues."))
         val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
         val scriptBoxes = project.scripts.map { script =>
-            ReflectionUtil.getObject[LoamScriptBox](classLoader, script.scalaId)
+          ReflectionUtil.getObject[LoamScriptBox](classLoader, script.scalaId)
         }
         val scriptBox = scriptBoxes.head
         val graph = scriptBox.graph
+        validateGraph(graph)
         reportCompilation(project, graph, projectContextReceipt)
         LoamCompiler.Result.success(reporter, scriptBox.projectContext)
       } else {

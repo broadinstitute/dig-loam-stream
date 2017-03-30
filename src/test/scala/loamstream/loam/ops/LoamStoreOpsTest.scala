@@ -25,9 +25,9 @@ final class LoamStoreOpsTest extends FunSuite {
     assert(graph.stores.size === nStores)
     assert(graph.tools.size === nTools)
     assert(result.jobExecutionsOpt.nonEmpty, result.jobExecutionsOpt.message)
-    val jobResults = result.jobExecutionsOpt.get
-    assert(jobResults.size === nJobs)
-    assert(jobResults.values.forall(_.isInstanceOf[JobResult.SuccessResult]))
+    val jobExecutions = result.jobExecutionsOpt.get
+    assert(jobExecutions.size === nJobs)
+    assert(jobExecutions.values.forall(_.result.get.isInstanceOf[JobResult.Success.type]))
   }
 
   private val inContent = {

@@ -55,6 +55,8 @@ class MockJob(
 }
 
 object MockJob {
+  import TestHelpers.executionFrom
+
   def apply(toReturn: Execution): MockJob = {
                                               new MockJob(toReturn,
                                                           name = nextId().toString,
@@ -64,7 +66,7 @@ object MockJob {
   }
 
   def apply(toReturn: JobResult): MockJob = {
-                                              new MockJob(TestHelpers.executionFrom(jobResult = toReturn),
+                                              new MockJob(executionFrom(result = toReturn),
                                                           name = nextId().toString,
                                                           inputs = Set.empty,
                                                           outputs = Set.empty,
@@ -76,7 +78,7 @@ object MockJob {
             inputs: Set[LJob] = Set.empty,
             outputs: Set[Output] = Set.empty,
             delay: Int = 0): MockJob = {
-                                              new MockJob(TestHelpers.executionFrom(jobStatus = toReturn),
+                                              new MockJob(executionFrom(status = toReturn),
                                                           name,
                                                           inputs,
                                                           outputs,

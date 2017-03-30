@@ -10,7 +10,7 @@ import loamstream.googlecloud.HailConfig
 import loamstream.model.execute.Resources.LocalResources
 import java.time.Instant
 
-import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
+import loamstream.model.execute.{ExecutionEnvironment, LocalSettings, Resources}
 import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
 
 /**
@@ -44,14 +44,23 @@ object TestHelpers {
 
   val env = ExecutionEnvironment.Local
 
-  def executionFrom(jobStatus: JobStatus = JobStatus.Succeeded,
-                    jobResult: JobResult = JobResult.CommandResult(0)) = {
+  def executionFrom(status: JobStatus,
+                    result: Option[JobResult] = None,
+                    resources: Option[Resources] = None) = {
     Execution(env,
       cmd = None,
       settings = LocalSettings(),
-      jobStatus,
-      Option(jobResult),
-      resources = None,
+      status,
+      result,
+      resources,
       Set.empty[OutputRecord])
+  }
+
+  def executionFrom(status: JobStatus, result: JobResult, resources: Option[Resources] = None) = {
+    executionFrom(status, Option(result), resources)
+  }
+
+  def executionFrom(result: JobResult, resources: Option[Resources] = None) = {
+    executionFrom(result.toJobStatus, Option(result), resources)
   }
 }

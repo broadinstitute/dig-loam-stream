@@ -2,14 +2,16 @@ package loamstream
 
 import java.nio.file.{Path, Paths}
 
+import TestHelpers.executionFrom
+
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.execute.{DbBackedJobFilter, Executable, ExecuterHelpers, MockChunkRunner, RxExecuter}
-import loamstream.model.jobs.JobResult.{CommandResult, Skipped}
+import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.{JobResult, LJob, Output, OutputRecord}
+import loamstream.model.jobs.{Execution, LJob, Output, OutputRecord}
 import loamstream.util.code.SourceUtils
 import loamstream.util.{Loggable, Sequence}
 import org.scalatest.{FunSuite, Matchers}
@@ -17,6 +19,7 @@ import loamstream.model.execute.AsyncLocalChunkRunner
 
 import scala.concurrent.ExecutionContext
 import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.jobs.JobStatus.{Skipped, Succeeded}
 
 /**
   * @author kaan
@@ -45,18 +48,29 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
           cmd"cp $$fileIn $$fileOut1""""
 
-      val (executable, results) = compileAndRun(firstScript)
+      val (executable, executions) = compileAndRun(firstScript)
 
       //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
       val firstJob = jobThatWritesTo(executable)(fileOut1).get
+      val firstExecution = executions(firstJob)
+      val firstResultOpt = firstExecution.result
 
-      val firstResult = results(firstJob).asInstanceOf[CommandResult]
+      assert(firstResultOpt.nonEmpty)
+
+      val firstResult = firstResultOpt.get.asInstanceOf[CommandResult]
       
       assert(firstResult.exitCode === 0)
-      //Ignore run-dependent start and end times
-      assert(firstResult.resources.get.isInstanceOf[LocalResources] === true)
 
-      assert(results.size === 1)
+      val firstResourcesOpt = firstExecution.resources
+
+      assert(firstResourcesOpt.nonEmpty)
+
+      val firstResources = firstResourcesOpt.get
+
+      //Ignore run-dependent start and end times
+      assert(firstResources.isInstanceOf[LocalResources] === true)
+
+      assert(executions.size === 1)
 
       val output1 = OutputRecord(PathOutput(fileOut1))
       val output2 = OutputRecord(PathOutput(fileOut2))
@@ -66,7 +80,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val output1Result = executionFromOutput1.result.asInstanceOf[CommandResult]
       
       assert(output1Result.exitCode === 0)
-      assert(output1Result.resources === firstResult.resources)
+      assert(executionFromOutput1.resources === firstResources)
       assert(executionFromOutput1.outputs === Set(output1))
 
       assert(dao.findExecution(output2) === None)
@@ -86,8 +100,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
             cmd"cp $$fileOut1 $$fileOut2""""
 
       //Run the script and validate the results
-      def run(expectedStates: Seq[JobResult]): Unit = {
-        val (executable, results) = compileAndRun(secondScript)
+      def run(expectedStates: Seq[Execution]): Unit = {
+        val (executable, executions) = compileAndRun(secondScript)
 
         val updatedOutput1 = OutputRecord(PathOutput(fileOut1))
         val updatedOutput2 = OutputRecord(PathOutput(fileOut2))
@@ -96,48 +110,45 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         val firstJob = jobThatWritesTo(executable)(fileOut1).get
         val secondJob = jobThatWritesTo(executable)(fileOut2).get
 
-        val firstResult = results(firstJob)
-        val secondResult = results(secondJob)
+        val firstExecution = executions(firstJob)
+        val secondExecution = executions(secondJob)
         
-        def compareResults(result: JobResult, expected: JobResult): Unit = {
-          (result, expected) match {
-            case (r: CommandResult, e: CommandResult) => {
-              assert(r.exitCode === e.exitCode)
-              //Just assert these CommandResults contain the same kinds of Resources. :\
-              //Don't compare start-and-end times, since we can't know them ahead of time.
-              assert(r.resources.get.getClass === e.resources.get.getClass)
-            }
-            case _ => assert(result === expected)
+        def compareResultsAndStatuses(actual: Execution, expected: Execution): Unit = {
+          assert(actual.status === expected.status)
+
+          (actual.result, expected.result) match {
+            case (Some(a: CommandResult), Some(e: CommandResult)) => assert(a.exitCode === e.exitCode)
+            case _ => assert(actual === expected)
           }
         }
         
-        compareResults(firstResult, expectedStates(0))
-        compareResults(secondResult, expectedStates(1))
+        compareResultsAndStatuses(firstExecution, expectedStates(0))
+        compareResultsAndStatuses(secondExecution, expectedStates(1))
         
-        assert(results.size === 2)
+        assert(executions.size === 2)
 
         //If the jobs were run, we should have written an Execution for the job.
         //If the job was skipped, we should have left the one from the previous successful run alone.
         
-        compareResults(
-            dao.findExecution(updatedOutput1).get.result,
-            CommandResult(0, Some(TestHelpers.localResources)))
+        compareResultsAndStatuses(
+            dao.findExecution(updatedOutput1).get,
+            executionFrom(CommandResult(0)))
         
         assert(dao.findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
 
-        compareResults(
-            dao.findExecution(updatedOutput2).get.result,
-            CommandResult(0, Some(TestHelpers.localResources)))
+        compareResultsAndStatuses(
+            dao.findExecution(updatedOutput2).get,
+          executionFrom(CommandResult(0)))
         
         assert(dao.findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
       }
 
       //Run the second script a few times.  The first time, we expect the first job to be skipped, and the second one
       //to be run.  We expect both jobs to be skipped in all subsequent runs.
-      run(Seq(Skipped, CommandResult(0, Some(TestHelpers.localResources))))
-      run(Seq(Skipped, Skipped))
-      run(Seq(Skipped, Skipped))
-      run(Seq(Skipped, Skipped))
+      run(Seq(executionFrom(Skipped), executionFrom(Succeeded, CommandResult(0))))
+      run(Seq(Skipped, Skipped).map(executionFrom(_)))
+      run(Seq(Skipped, Skipped).map(executionFrom(_)))
+      run(Seq(Skipped, Skipped).map(executionFrom(_)))
     }
   }
 
@@ -164,7 +175,11 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       //Run the script and validate the results
       def run(): Unit = {
-        val (executable, jobStates) = compileAndRun(script)
+        import Matchers._
+
+        val (executable, executions) = compileAndRun(script)
+
+        executions should have size 1
 
         val allJobs = allJobsFrom(executable)
 
@@ -172,18 +187,19 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
         assert(allCommandLines.map(_.take(bogusCommandName.length)) === Seq(bogusCommandName))
 
-        {
-          import Matchers._
+        val onlyExecution = executions.values.head
 
-          val onlyResult = jobStates.values.head
+        onlyExecution.resources.get.isInstanceOf[LocalResources] shouldBe true
 
-          val exitCode = 127
-          onlyResult.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
-          onlyResult.asInstanceOf[CommandResult].resources.get.isInstanceOf[LocalResources] shouldBe true
-          onlyResult.isFailure shouldBe true
+        val exitCode = 127
+        val onlyResultOpt = onlyExecution.result
 
-          jobStates should have size 1
-        }
+        assert(onlyResultOpt.nonEmpty)
+
+        val onlyResult = onlyResultOpt.get
+
+        onlyResult.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
+        onlyResult.isFailure shouldBe true
 
         val output1 = OutputRecord(fileOut1)
         val recordOpt = dao.findOutputRecord(output1)
@@ -191,7 +207,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         assert(recordOpt === Some(output1))
         assert(recordOpt.get.hash.isEmpty)
 
-        assert(dao.findExecution(output1).get.result.isFailure)
+        assert(dao.findExecution(output1).get.result.get.isFailure)
         assert(dao.findExecution(output1).get.outputs === Set(output1))
       }
 
@@ -230,7 +246,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       //Run the script and validate the results
       def run(): Unit = {
-        val (executable, results) = compileAndRun(script)
+        val (executable, executions) = compileAndRun(script)
 
         val firstJob = jobThatWritesTo(executable)(fileOut1).get
         val secondJob = jobThatWritesTo(executable)(fileOut2).get
@@ -239,19 +255,19 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           import Matchers._
 
           val exitCode = 127
-          results(firstJob).asInstanceOf[CommandResult].exitCode shouldEqual exitCode
-          results(firstJob).asInstanceOf[CommandResult].resources.get.isInstanceOf[LocalResources] shouldBe true
-          results.contains(secondJob) shouldBe false
+          executions(firstJob).result.get.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
+          executions(firstJob).resources.get.isInstanceOf[LocalResources] shouldBe true
+          executions.contains(secondJob) shouldBe false
 
-          results(firstJob).isFailure shouldBe true
+          executions(firstJob).result.get.isFailure shouldBe true
 
-          results should have size 1
+          executions should have size 1
         }
 
         val output1 = OutputRecord(fileOut1)
         val output2 = OutputRecord(fileOut2)
 
-        assert(dao.findExecution(output1).get.result.isFailure)
+        assert(dao.findExecution(output1).get.result.get.isFailure)
         assert(dao.findExecution(output1).get.outputs === Set(output1))
 
         //NB: The job that referenced output2 didn't get run, so its execution should not have been recorded 
@@ -308,16 +324,14 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     LoamEngine(TestHelpers.config, LoamCompiler(outMessageSink), executer, outMessageSink)
   }
 
-  private def normalize(po: PathOutput): PathOutput = PathOutput(po.normalized.path)
-
-  private def compileAndRun(script: String): (Executable, Map[LJob, JobResult]) = {
+  private def compileAndRun(script: String): (Executable, Map[LJob, Execution]) = {
     val engine = loamEngine
 
     val executable = engine.compileToExecutable(script).get
 
-    val results = engine.executer.execute(executable)
+    val executions = engine.executer.execute(executable)
 
-    (executable, results)
+    (executable, executions)
   }
 
   private def allJobsFrom(executable: Executable): Seq[LJob] = ExecuterHelpers.flattenTree(executable.jobs).toSeq

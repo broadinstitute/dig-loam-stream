@@ -17,6 +17,11 @@ sealed trait JobResult {
   }
 
   def isFailure: Boolean = !isSuccess
+
+  def toJobStatus: JobStatus = {
+    if (isSuccess) { JobStatus.Succeeded }
+    else { JobStatus.Failed }
+  }
 }
 
 object JobResult {

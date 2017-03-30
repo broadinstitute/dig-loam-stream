@@ -58,7 +58,8 @@ final case class GoogleCloudChunkRunner(
     
     quietly("Error shutting down Executor")(ExecutorServices.shutdown(singleThreadedExecutor, 5.seconds))
     
-    quietly("Error stopping cluster")(deleteClusterIfNecessary())
+    //Fail loudly here, since this could cost money
+    deleteClusterIfNecessary()
   }
   
   private[googlecloud] def deleteClusterIfNecessary(): Unit = {

@@ -3,6 +3,7 @@ package loamstream.model.jobs
 import loamstream.util.TypeBox
 import scala.reflect.runtime.universe.Type
 import loamstream.model.execute.Resources
+import loamstream.util.ExitCodes
 
 /**
  * @author clint
@@ -59,5 +60,5 @@ object JobState {
   private def isFailureStatusCode(i: Int): Boolean = !isSuccessStatusCode(i)
   
   //TODO: Make this more flexible?
-  private def isSuccessStatusCode(i: Int): Boolean = i == 0
+  private def isSuccessStatusCode(i: Int): Boolean = ExitCodes.isSuccess(i)
 }

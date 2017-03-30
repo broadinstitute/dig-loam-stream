@@ -2,8 +2,6 @@ package loamstream
 
 import java.nio.file.{Path, Paths}
 
-import TestHelpers.executionFrom
-
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.db.slick.ProvidesSlickLoamDao
@@ -19,7 +17,7 @@ import loamstream.model.execute.AsyncLocalChunkRunner
 
 import scala.concurrent.ExecutionContext
 import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.jobs.JobStatus.{Skipped, Succeeded}
+import loamstream.model.jobs.JobStatus.Skipped
 
 /**
   * @author kaan
@@ -31,6 +29,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
   test("Jobs are skipped if their outputs were already produced by a previous run") {
     createTablesAndThen {
+      import TestHelpers._
+
       val fileIn = Paths.get("src", "test", "resources", "a.txt")
 
       val workDir = makeWorkDir()
@@ -129,23 +129,23 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
         //If the jobs were run, we should have written an Execution for the job.
         //If the job was skipped, we should have left the one from the previous successful run alone.
-        
+
         compareResultsAndStatuses(
             dao.findExecution(updatedOutput1).get,
-            executionFrom(CommandResult(0)))
+            executionFromResult(CommandResult(0)))
         
         assert(dao.findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
 
         compareResultsAndStatuses(
             dao.findExecution(updatedOutput2).get,
-          executionFrom(CommandResult(0)))
+          executionFromResult(CommandResult(0)))
         
         assert(dao.findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
       }
 
       //Run the second script a few times.  The first time, we expect the first job to be skipped, and the second one
       //to be run.  We expect both jobs to be skipped in all subsequent runs.
-      run(Seq(executionFrom(Skipped), executionFrom(Succeeded, CommandResult(0))))
+      run(Seq(executionFromStatus(Skipped), executionFromResult(CommandResult(0))))
       run(Seq(Skipped, Skipped).map(executionFrom(_)))
       run(Seq(Skipped, Skipped).map(executionFrom(_)))
       run(Seq(Skipped, Skipped).map(executionFrom(_)))

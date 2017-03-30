@@ -6,7 +6,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import loamstream.util.Sequence
 import loamstream.util.ValueBox
-import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
  * @author clint
@@ -19,7 +19,7 @@ class MockJob(
                val outputs: Set[Output],
                val delay: Int) extends LJob {
 
-  override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
+  override def executionEnvironment: ExecutionEnvironment = TestHelpers.env
   
   val id: Int = MockJob.nextId()
   
@@ -64,11 +64,11 @@ object MockJob {
   }
 
   def apply(toReturn: JobResult): MockJob = {
-                                              new MockJob(executionFrom(jobResult = toReturn),
-                                                  name = nextId().toString,
-                                                  inputs = Set.empty,
-                                                  outputs = Set.empty,
-                                                  delay = 0)
+                                              new MockJob(TestHelpers.executionFrom(jobResult = toReturn),
+                                                          name = nextId().toString,
+                                                          inputs = Set.empty,
+                                                          outputs = Set.empty,
+                                                          delay = 0)
   }
 
   def apply(toReturn: JobStatus,
@@ -76,27 +76,16 @@ object MockJob {
             inputs: Set[LJob] = Set.empty,
             outputs: Set[Output] = Set.empty,
             delay: Int = 0): MockJob = {
-                                              new MockJob(executionFrom(jobStatus = toReturn),
-                                                                        name,
-                                                                        inputs,
-                                                                        outputs,
-                                                                        delay)
+                                              new MockJob(TestHelpers.executionFrom(jobStatus = toReturn),
+                                                          name,
+                                                          inputs,
+                                                          outputs,
+                                                          delay)
   }
 
   def unapply(job: LJob): Option[(Execution, String, Set[LJob], Set[Output], Int)] = job match {
     case mj: MockJob => Some((mj.toReturn, mj.name, mj.inputs, mj.outputs, mj.delay))
     case _ => None
-  }
-
-  def executionFrom(jobStatus: JobStatus = JobStatus.Succeeded,
-                                  jobResult: JobResult = JobResult.CommandResult(0)) = {
-    Execution(TestHelpers.env,
-              cmd = None,
-              settings = LocalSettings(),
-              jobStatus,
-              Option(jobResult),
-              resources = None,
-              Set.empty[OutputRecord])
   }
 
   private[this] val ids: Sequence[Int] = Sequence()

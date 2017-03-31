@@ -34,16 +34,18 @@ object JobStatus extends Loggable {
   case object Skipped extends Success
   case object Failed extends Failure
   case object FailedWithException extends Failure
+  case object Terminated extends Failure
   case object NotStarted extends NeitherSuccessNorFailure
   case object Submitted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
-  case object Terminated extends NeitherSuccessNorFailure
   case object Unknown extends NeitherSuccessNorFailure
 
+  // scalastyle:off cyclomatic.complexity
   def fromString(s: String): Option[JobStatus] = s match {
     case "Succeeded" => Some(Succeeded)
     case "Skipped" => Some(Skipped)
     case "Failed" => Some(Failed)
+    case "FailedWithException" => Some(FailedWithException)
     case "NotStarted" => Some(NotStarted)
     case "Submitted" => Some(Submitted)
     case "Terminated" => Some(Terminated)
@@ -51,6 +53,7 @@ object JobStatus extends Loggable {
     case "Unknown" => Some(Unknown)
     case _ => None
   }
+  // scalastyle:on cyclomatic.complexity
 
   def fromExitCode(code: Int): JobStatus = {
     if (JobResult.isSuccessExitCode(code)) { Succeeded }

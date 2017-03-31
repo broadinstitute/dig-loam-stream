@@ -6,7 +6,7 @@ import org.scalatest.FunSuite
  * @author kyuksel
  *         date: 3/29/17
  */
-class JobStatusTest extends FunSuite {
+final class JobStatusTest extends FunSuite {
   import JobStatus._
   
   test("isSuccess") {
@@ -26,11 +26,11 @@ class JobStatusTest extends FunSuite {
     assert(Skipped.isFailure === false)
     assert(Failed.isFailure === true)
     assert(FailedWithException.isFailure === true)
-    assert(NotStarted.isFailure === true)
-    assert(Submitted.isFailure === true)
-    assert(Running.isFailure === true)
+    assert(NotStarted.isFailure === false)
+    assert(Submitted.isFailure === false)
+    assert(Running.isFailure === false)
     assert(Terminated.isFailure === true)
-    assert(Unknown.isFailure === true)
+    assert(Unknown.isFailure === false)
   }
 
   test("isFinished") {
@@ -54,7 +54,7 @@ class JobStatusTest extends FunSuite {
     assert(Submitted.notFinished === true)
     assert(Running.notFinished === true)
     assert(Terminated.notFinished === false)
-    assert(Unknown.notFinished === false)
+    assert(Unknown.notFinished === true)
   }
   
   test("fromString") {

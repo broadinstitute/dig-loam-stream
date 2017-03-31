@@ -81,14 +81,12 @@ object RxMockJob {
               executionFrom(outputs, jobResult = toReturn))
   }
 
-  private[this] def executionFrom(outputs: Set[Output],
-                            jobStatus: JobStatus = JobStatus.Succeeded,
-                            jobResult: JobResult = JobResult.CommandResult(0)) = {
+  private[this] def executionFrom(outputs: Set[Output], jobResult: JobResult) = {
     Execution(TestHelpers.env,
               cmd = None,
               settings = LocalSettings(),
-              jobStatus,
-              result = None,
+              jobResult.toJobStatus,
+              Option(jobResult),
               resources = None,
               outputs.map(_.toOutputRecord))
   }

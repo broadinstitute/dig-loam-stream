@@ -103,8 +103,10 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
 
   private def mockJob(name: String, outputs: Set[Output], inputs: Set[LJob] = Set.empty)(body: => Any): MockJob = {
-    new MockJob(JobStatus.Succeeded, name, inputs, outputs, delay = 0) {
-      override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = {
+    val successfulExecution = TestHelpers.executionFrom(JobStatus.Succeeded)
+
+    new MockJob(successfulExecution, name, inputs, outputs, delay = 0) {
+      override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
         body
 
         super.executeSelf

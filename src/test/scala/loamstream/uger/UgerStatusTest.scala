@@ -2,9 +2,10 @@ package loamstream.uger
 
 import org.scalatest.FunSuite
 import org.ggf.drmaa.Session
-import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.{JobResult, JobStatus}
 import loamstream.model.execute.Memory
 import java.time.Instant
+
 import loamstream.model.execute.CpuTime
 import loamstream.model.execute.Resources.UgerResources
 
@@ -93,29 +94,55 @@ final class UgerStatusTest extends FunSuite {
     assert(fromUgerStatusCode(Int.MaxValue) === Undetermined())
   }
 
-  test("toJobState") {
-    assert(toJobStatus(Done) === JobResult.Succeeded)
+  test("toJobStatus") {
+    assert(toJobStatus(Done) === JobStatus.Succeeded)
     
-    assert(toJobStatus(CommandResult(-1, Some(resources))) === JobResult.CommandResult(-1, Some(resources)))
-    assert(toJobStatus(CommandResult(0, Some(resources))) === JobResult.CommandResult(0, Some(resources)))
-    assert(toJobStatus(CommandResult(42, Some(resources))) === JobResult.CommandResult(42, Some(resources)))
+    assert(toJobStatus(CommandResult(-1, Some(resources))) === JobStatus.Failed)
+    assert(toJobStatus(CommandResult(0, Some(resources))) === JobStatus.Succeeded)
+    assert(toJobStatus(CommandResult(42, Some(resources))) === JobStatus.Failed)
     
-    assert(toJobStatus(DoneUndetermined(Some(resources))) === JobResult.Failed(Some(resources)))
-    assert(toJobStatus(Failed()) === JobResult.Failed())
-    assert(toJobStatus(Failed(Some(resources))) === JobResult.Failed(Some(resources)))
+    assert(toJobStatus(DoneUndetermined(Some(resources))) === JobStatus.Failed)
+    assert(toJobStatus(Failed()) === JobStatus.Failed)
+    assert(toJobStatus(Failed(Some(resources))) === JobStatus.Failed)
     
-    assert(toJobStatus(Queued) === JobResult.Running)
-    assert(toJobStatus(QueuedHeld) === JobResult.Running)
-    assert(toJobStatus(Requeued) === JobResult.Running)
-    assert(toJobStatus(RequeuedHeld) === JobResult.Running)
-    assert(toJobStatus(Running) === JobResult.Running)
+    assert(toJobStatus(Queued) === JobStatus.Submitted)
+    assert(toJobStatus(QueuedHeld) === JobStatus.Submitted)
+    assert(toJobStatus(Requeued) === JobStatus.Submitted)
+    assert(toJobStatus(RequeuedHeld) === JobStatus.Submitted)
+    assert(toJobStatus(Running) === JobStatus.Running)
     
-    assert(toJobStatus(Suspended()) === JobResult.Failed())
-    assert(toJobStatus(Undetermined()) === JobResult.Failed())
-    assert(toJobStatus(Suspended(Some(resources))) === JobResult.Failed(Some(resources)))
-    assert(toJobStatus(Undetermined(Some(resources))) === JobResult.Failed(Some(resources)))
+    assert(toJobStatus(Suspended()) === JobStatus.Failed)
+    assert(toJobStatus(Undetermined()) === JobStatus.Failed)
+    assert(toJobStatus(Suspended(Some(resources))) === JobStatus.Failed)
+    assert(toJobStatus(Undetermined(Some(resources))) === JobStatus.Failed)
   }
-  
+
+  test("toJobResult") {
+    assert(toJobResult(Done) === JobResult.Success)
+
+    assert(toJobResult(CommandResult(-1, Some(resources))) === JobResult.CommandResult(-1))
+    assert(toJobResult(CommandResult(-1, None)) === JobResult.CommandResult(-1))
+    assert(toJobResult(CommandResult(0, Some(resources))) === JobResult.CommandResult(0))
+    assert(toJobResult(CommandResult(0, None)) === JobResult.CommandResult(0))
+    assert(toJobResult(CommandResult(42, Some(resources))) === JobResult.CommandResult(42))
+    assert(toJobResult(CommandResult(42, None)) === JobResult.CommandResult(42))
+
+    assert(toJobResult(DoneUndetermined(Some(resources))) === JobResult.Failure)
+    assert(toJobResult(DoneUndetermined(None)) === JobResult.Failure)
+    assert(toJobResult(Undetermined()) === JobResult.Failure)
+    assert(toJobResult(Failed(Some(resources))) === JobResult.Failure)
+    assert(toJobResult(Failed(None)) === JobResult.Failure)
+    assert(toJobResult(Failed()) === JobResult.Failure)
+    assert(toJobResult(Suspended(Some(resources))) === JobResult.Failure)
+    assert(toJobResult(Suspended(None)) === JobResult.Failure)
+    assert(toJobResult(Suspended()) === JobResult.Failure)
+
+    assert(toJobResult(Queued) === None)
+    assert(toJobResult(QueuedHeld) === None)
+    assert(toJobResult(Requeued) === None)
+    assert(toJobResult(RequeuedHeld) === None)
+    assert(toJobResult(Running) === None)
+  }
   
   test("isDone") {
     doFlagTest(
@@ -182,53 +209,49 @@ final class UgerStatusTest extends FunSuite {
   }
 
   test("notFinished") {
+    assert(Requeued.notFinished === true)
+    assert(RequeuedHeld.notFinished === true)
     assert(Queued.notFinished === true)
     assert(QueuedHeld.notFinished === true)
     assert(Running.notFinished === true)
     assert(Suspended().notFinished === true)
-    assert(Undetermined().notFinished === true)
     assert(Suspended(Some(resources)).notFinished === true)
+    assert(Undetermined().notFinished === true)
     assert(Undetermined(Some(resources)).notFinished === true)
     
     assert(CommandResult(42, None).notFinished === false)
     assert(CommandResult(42, Some(resources)).notFinished === false)
     assert(CommandResult(0, None).notFinished === false)
     assert(CommandResult(0, Some(resources)).notFinished === false)
+
     assert(Done.notFinished === false)
     assert(DoneUndetermined().notFinished === false)
-    assert(Failed().notFinished === false)
     assert(DoneUndetermined(Some(resources)).notFinished === false)
+    assert(Failed().notFinished === false)
     assert(Failed(Some(resources)).notFinished === false)
-    
-    //TODO: ???
-    assert(Requeued.notFinished === false)
-    //TODO: ???
-    assert(RequeuedHeld.notFinished === false)
   }
   
   test("isFinished") {
     assert(Queued.isFinished === false)
     assert(QueuedHeld.isFinished === false)
+    assert(Requeued.isFinished === false)
+    assert(RequeuedHeld.isFinished === false)
     assert(Running.isFinished === false)
     assert(Suspended().isFinished === false)
-    assert(Undetermined().isFinished === false)
     assert(Suspended(Some(resources)).isFinished === false)
+    assert(Undetermined().isFinished === false)
     assert(Undetermined(Some(resources)).isFinished === false)
-    
-    assert(CommandResult(42, None).isFinished === true)
-    assert(CommandResult(42, Some(resources)).isFinished === true)
+
     assert(CommandResult(0, None).isFinished === true)
     assert(CommandResult(0, Some(resources)).isFinished === true)
+    assert(CommandResult(42, None).isFinished === true)
+    assert(CommandResult(42, Some(resources)).isFinished === true)
+
     assert(Done.isFinished === true)
     assert(DoneUndetermined().isFinished === true)
-    assert(Failed().isFinished === true)
     assert(DoneUndetermined(Some(resources)).isFinished === true)
+    assert(Failed().isFinished === true)
     assert(Failed(Some(resources)).isFinished === true)
-    
-    //TODO: ???
-    assert(Requeued.isFinished === true)
-    //TODO: ???
-    assert(RequeuedHeld.isFinished === true)
   }
   
   private def doFlagTest(

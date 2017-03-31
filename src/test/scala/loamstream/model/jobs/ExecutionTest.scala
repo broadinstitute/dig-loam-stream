@@ -34,13 +34,14 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     
     assert(e0.cmd === Some("foo"))
     assert(e0.env.isUger)
-    assert(e0.result === result0)
+    assert(e0.result === Some(result0))
     assert(e0.outputs.isEmpty)
     //TODO: Check settings field once it's no longer a placeholder 
     
     assert(e1.cmd === None)
     assert(e1.env.isLocal)
-    assert(e1.result === status1)
+    assert(e1.status === status1)
+    assert(e1.result === None)
     assert(e1.outputs.isEmpty)
     //TODO: Check settings field once it's no longer a placeholder
   }

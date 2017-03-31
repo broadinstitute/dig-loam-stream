@@ -25,9 +25,8 @@ sealed trait UgerStatus {
   def isUndetermined: Boolean = this.isInstanceOf[Undetermined]
   def isDoneUndetermined: Boolean = this.isInstanceOf[DoneUndetermined]
 
-  //TODO: Does Undetermined belong here?
   def notFinished: Boolean = {
-    isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
+    isRequeued || isRequeuedHeld || isQueued || isQueuedHeld || isRunning || isSuspended
   }
 
   def isFinished: Boolean = !notFinished

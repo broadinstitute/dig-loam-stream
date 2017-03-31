@@ -1,11 +1,12 @@
 package loamstream.model.execute
 
+import loamstream.TestHelpers
 import org.scalatest.FunSuite
+
 import scala.concurrent.Await
-import loamstream.model.jobs.TestJobs
+import loamstream.model.jobs.{JobStatus, RxMockJob, TestJobs}
+
 import scala.concurrent.duration.Duration
-import loamstream.model.jobs.JobResult
-import loamstream.model.jobs.RxMockJob
 
 /**
  * @author clint
@@ -54,29 +55,28 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(noFailures(Map.empty) === true)
     assert(anyFailures(Map.empty) === false)
 
-    val allSuccesses = Map(
-      two0 -> two0Success,
-      two1 -> two1Success,
-      twoPlusTwo -> twoPlusTwoSuccess,
-      plusOne -> plusOneSuccess)
+    val allSuccesses = Map( two0 -> two0Success,
+                            two1 -> two1Success,
+                            twoPlusTwo -> twoPlusTwoSuccess,
+                            plusOne -> plusOneSuccess).mapValues(TestHelpers.executionFrom(_))
       
     assert(noFailures(allSuccesses) === true)
     assert(anyFailures(allSuccesses) === false)
     
     val allFailures = Map(
-      two0 -> JobResult.Failed(),
-      two1 -> JobResult.Failed(),
-      twoPlusTwo -> JobResult.Failed(),
-      plusOne -> JobResult.Failed())
+                          two0 -> JobStatus.Failed,
+                          two1 -> JobStatus.Failed,
+                          twoPlusTwo -> JobStatus.Failed,
+                          plusOne -> JobStatus.Failed).mapValues(TestHelpers.executionFrom(_))
       
     assert(noFailures(allFailures) === false)
     assert(anyFailures(allFailures) === true)
     
     val someFailures = Map(
-      two0 -> two0Success,
-      two1 -> JobResult.Failed(),
-      twoPlusTwo -> twoPlusTwoSuccess,
-      plusOne -> JobResult.Failed())
+                            two0 -> two0Success,
+                            two1 -> JobStatus.Failed,
+                            twoPlusTwo -> twoPlusTwoSuccess,
+                            plusOne -> JobStatus.Failed).mapValues(TestHelpers.executionFrom(_))
       
     assert(noFailures(someFailures) === false)
     assert(anyFailures(someFailures) === true)

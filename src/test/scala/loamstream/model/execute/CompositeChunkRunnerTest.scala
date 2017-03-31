@@ -1,14 +1,12 @@
 package loamstream.model.execute
 
 import org.scalatest.FunSuite
-import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.JobResult
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{Execution, JobStatus, LJob, MockJob}
+
 import scala.concurrent.ExecutionContext
 import loamstream.util.Futures
 import rx.lang.scala.Observable
 import loamstream.util.ObservableEnrichments
-import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -37,16 +35,15 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     private val delegate = local(1)
     
-    override def run(jobs: Set[LJob]): Observable[Map[LJob, JobResult]] = delegate.run(jobs)
+    override def run(jobs: Set[LJob]): Observable[Map[LJob, Execution]] = delegate.run(jobs)
   }
   
   test("canRun") {
-    import JobResult.Succeeded
-    
-    val job1 = MockJob(Succeeded)
-    val job2 = MockJob(Succeeded)
-    val job3 = MockJob(Succeeded)
-    val job4 = MockJob(Succeeded)
+
+    val job1 = MockJob(JobStatus.Succeeded)
+    val job2 = MockJob(JobStatus.Succeeded)
+    val job3 = MockJob(JobStatus.Succeeded)
+    val job4 = MockJob(JobStatus.Succeeded)
     
     {
       val runner = CompositeChunkRunner(Seq(MockRunner(job1), MockRunner(job2), MockRunner(job3)))
@@ -59,12 +56,10 @@ final class CompositeChunkRunnerTest extends FunSuite {
   }
   
   test("run") {
-    import JobResult.{Succeeded,Failed}
-    
-    val job1 = MockJob(Succeeded)
-    val job2 = MockJob(Failed(Some(TestHelpers.localResources)))
-    val job3 = MockJob(Succeeded)
-    val job4 = MockJob(Succeeded)
+    val job1 = MockJob(JobStatus.Succeeded)
+    val job2 = MockJob(JobStatus.Failed)
+    val job3 = MockJob(JobStatus.Succeeded)
+    val job4 = MockJob(JobStatus.Succeeded)
     
     val runner = CompositeChunkRunner(Seq(MockRunner(job1), MockRunner(job2)))
     
@@ -83,9 +78,9 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     val futureResults = runner.run(Set(job1, job2)).firstAsFuture
     
-    val expected = Map(job1 -> Succeeded, job2 -> Failed(Some(TestHelpers.localResources))) 
+    val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     
-    assert(Futures.waitFor(futureResults) === expected)
+    assert(Futures.waitFor(futureResults).mapValues(_.status) === expected)
   }
   
   //scalastyle:on magic.number

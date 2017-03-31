@@ -39,9 +39,9 @@ final class JobResultTest extends FunSuite {
     assert(CommandResult(-1).isFailure === true)
     assert(CommandResult(42).isFailure === true)
 
-    assert(FailureWithException(new Exception).isFailure === false)
+    assert(FailureWithException(new Exception).isFailure === true)
 
-    assert(ValueSuccess(42, TypeBox.of[Int]).isFailure === true)
+    assert(ValueSuccess(42, TypeBox.of[Int]).isFailure === false)
   }
   
   test("isSuccessExitCode") {

@@ -7,6 +7,7 @@ import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.cli.BackendType
 import org.ggf.drmaa.DrmaaException
+import loamstream.util.OneTimeLatch
 
 /**
  * @author clint
@@ -22,14 +23,24 @@ object Main extends Loggable {
       run(cli)
     }
   }
-  
+
+  private def addShutdownHook(wiring: AppWiring): Unit = {
+    def toThread(block: => Any): Thread = new Thread(new Runnable { override def run: Unit = block })
+    
+    Runtime.getRuntime.addShutdownHook(toThread {
+      shutdown(wiring)
+    })
+  }
+
   private def outMessageSink = LoggableOutMessageSink(this)
 
   private def run(cli: Conf): Unit = {
     val wiring = AppWiring(cli)
+    
+    addShutdownHook(wiring)
 
     def shutdownAfter[A](f: => A): A = try { f } finally { shutdown(wiring) }
-    
+
     val loamEngine = {
       val loamCompiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
 
@@ -42,7 +53,7 @@ object Main extends Loggable {
       val engineResult = shutdownAfter {
         loamEngine.runFiles(cli.loams())
       }
-      
+
       for {
         (job, result) <- engineResult.jobExecutionsOpt.get
       } {
@@ -50,17 +61,21 @@ object Main extends Loggable {
       }
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
-    } 
+    }
   }
-  
-  private def shutdown(wiring: AppWiring): Unit = {
-    wiring.shutdown() match {
-      case Nil => info("LoamStream shut down successfully")
-      case exceptions => {
-        error(s"LoamStream shut down with ${exceptions.size} errors: ")
 
-        exceptions.foreach { e =>
-          error(s"Error shuting down: ${e.getClass.getName}", e)
+  private[this] val shutdownLatch: OneTimeLatch = new OneTimeLatch
+
+  private[apps] def shutdown(wiring: AppWiring): Unit = {
+    shutdownLatch.doOnce {
+      wiring.shutdown() match {
+        case Nil => info("LoamStream shut down successfully")
+        case exceptions => {
+          error(s"LoamStream shut down with ${exceptions.size} errors: ")
+
+          exceptions.foreach { e =>
+            error(s"Error shuting down: ${e.getClass.getName}", e)
+          }
         }
       }
     }
@@ -68,7 +83,7 @@ object Main extends Loggable {
 
   private def compileOnly(cli: Conf): Unit = {
     val wiring = AppWiring(cli)
-    
+
     val loamEngine = LoamEngine.default(wiring.config, outMessageSink)
 
     val compilationResultShot = loamEngine.compileFiles(cli.loams())

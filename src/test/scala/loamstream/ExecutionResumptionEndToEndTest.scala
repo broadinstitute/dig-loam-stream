@@ -18,6 +18,7 @@ import loamstream.model.execute.AsyncLocalChunkRunner
 import scala.concurrent.ExecutionContext
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobStatus.Skipped
+import loamstream.model.jobs.JobStatus
 
 /**
   * @author kaan
@@ -43,10 +44,11 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
           cmd"cp $$fileIn $$fileOut1
        */
-      val firstScript =
-      s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
-          val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
-          cmd"cp $$fileIn $$fileOut1""""
+      val firstScript = {
+        s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
+            val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
+            cmd"cp $$fileIn $$fileOut1""""
+      }
 
       val (executable, executions) = compileAndRun(firstScript)
 
@@ -77,10 +79,10 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       val executionFromOutput1 = dao.findExecution(output1).get
       
-      val output1Result = executionFromOutput1.result.asInstanceOf[CommandResult]
+      val output1Result = executionFromOutput1.result.get.asInstanceOf[CommandResult]
       
       assert(output1Result.exitCode === 0)
-      assert(executionFromOutput1.resources === firstResources)
+      assert(executionFromOutput1.resources.get === firstResources)
       assert(executionFromOutput1.outputs === Set(output1))
 
       assert(dao.findExecution(output2) === None)
@@ -116,10 +118,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         def compareResultsAndStatuses(actual: Execution, expected: Execution): Unit = {
           assert(actual.status === expected.status)
 
-          (actual.result, expected.result) match {
-            case (Some(a: CommandResult), Some(e: CommandResult)) => assert(a.exitCode === e.exitCode)
-            case _ => assert(actual === expected)
-          }
+          assert(actual.result === expected.result)
         }
         
         compareResultsAndStatuses(firstExecution, expectedStates(0))
@@ -145,7 +144,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       //Run the second script a few times.  The first time, we expect the first job to be skipped, and the second one
       //to be run.  We expect both jobs to be skipped in all subsequent runs.
-      run(Seq(executionFromStatus(Skipped), executionFromResult(CommandResult(0))))
+      run(Seq(executionFrom(Skipped), executionFromResult(CommandResult(0))))
+      
       run(Seq(Skipped, Skipped).map(executionFrom(_)))
       run(Seq(Skipped, Skipped).map(executionFrom(_)))
       run(Seq(Skipped, Skipped).map(executionFrom(_)))

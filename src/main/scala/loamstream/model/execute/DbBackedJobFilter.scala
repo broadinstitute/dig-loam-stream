@@ -13,7 +13,11 @@ import loamstream.util.Loggable
  */
 final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable {
   override def shouldRun(dep: LJob): Boolean = {
-    dep.outputs.isEmpty || dep.outputs.exists(o => needsToBeRun(o.toOutputRecord))
+    val noOutputs = dep.outputs.isEmpty
+    
+    def anyOutputNeedsToBeRun = dep.outputs.exists(o => needsToBeRun(o.toOutputRecord))
+    
+    noOutputs || anyOutputNeedsToBeRun
   }
 
   override def record(executions: Iterable[Execution]): Unit = {

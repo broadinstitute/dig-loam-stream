@@ -26,7 +26,7 @@ sealed trait UgerStatus {
   def isDoneUndetermined: Boolean = this.isInstanceOf[DoneUndetermined]
 
   def notFinished: Boolean = {
-    isRequeued || isRequeuedHeld || isQueued || isQueuedHeld || isRunning || isSuspended
+    isRequeued || isRequeuedHeld || isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
   }
 
   def isFinished: Boolean = !notFinished
@@ -93,7 +93,7 @@ object UgerStatus {
     case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobStatus.Submitted
     case Running                                                    => JobStatus.Running
     case Suspended(resources)                                       => JobStatus.Failed
-    case Undetermined(resources)                                    => JobStatus.Failed
+    case Undetermined(resources)                                    => JobStatus.Unknown
   }
 
   def toJobResult(status: UgerStatus): Option[JobResult] = status match {
@@ -101,7 +101,6 @@ object UgerStatus {
     case DoneUndetermined(resources)               => Some(JobResult.Failure)
     case Failed(resources)                         => Some(JobResult.Failure)
     case Suspended(resources)                      => Some(JobResult.Failure)
-    case Undetermined(resources)                   => Some(JobResult.Failure)
     case _                                         => None
   }
 }

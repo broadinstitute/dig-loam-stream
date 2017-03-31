@@ -6,7 +6,7 @@ import loamstream.loam.ops.TextStoreRecord
 import loamstream.loam.ops.filters.LoamStoreFilter
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.ops.StoreFilterJob.LineFilter
-import loamstream.model.jobs.{Execution, JobStatus, LJob, Output}
+import loamstream.model.jobs.{Execution, JobResult, JobStatus, LJob, Output}
 import loamstream.util.{Files, Futures, TimeUtils}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -54,7 +54,7 @@ final case class StoreFilterJob(
       val resources = LocalResources(start, end)
 
       val (jobStatus, jobResultOpt) = exitValueAttempt match {
-        case Success(_) => (JobStatus.Succeeded, None) // TODO Any JobResult to report here?
+        case Success(_) => (JobStatus.Succeeded, Option(JobResult.Success))
         case Failure(e) => (JobStatus.FailedWithException, Option(CommandInvocationFailure(e)))
       }
 

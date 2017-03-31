@@ -37,7 +37,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
   private def noExecutions: Boolean = dao.allExecutions.isEmpty
 
-  private def store(paths: Path*): Unit = {
+  private def store(paths: Path*): Execution = {
     val outputs = paths.map { path =>
       val hash = Hashes.sha1(path)
       
@@ -48,6 +48,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
                               JobResult.CommandResult(0), outputs.toSet)
     
     dao.insertExecutions(execution)
+    
+    execution
   }
   
   private def storeFailures(paths: Path*): Unit = {
@@ -63,6 +65,20 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     dao.insertExecutions(execution)
   }
 
+  test("insert/allExecutions") {
+    createTablesAndThen {
+      val stored = store(path0)
+      
+      assert(stored.outputs.nonEmpty)
+      
+      val Seq(retrieved) = dao.allExecutions
+      
+      assert(dao.allOutputRecords.toSet === stored.outputs)
+      
+      assert(stored === retrieved)
+    }
+  }
+  
   test("insert/Read Outputs") {
     createTablesAndThen {
       assert(noOutputs)

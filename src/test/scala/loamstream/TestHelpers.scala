@@ -62,6 +62,6 @@ object TestHelpers {
   }
 
   def executionFromResult(result: JobResult, resources: Option[Resources] = None): Execution = {
-    executionFrom(result.toJobStatus, Option(result), resources = None)
+    executionFrom(result.toJobStatus, Option(result), resources)
   }
 }

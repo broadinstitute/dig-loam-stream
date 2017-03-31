@@ -60,7 +60,7 @@ trait CommandLineJob extends LJob {
                 jobStatus,
                 Option(jobResult),
                 Option(resources),
-                Set.empty[OutputRecord])
+                outputs.map(_.toOutputRecord))
     }
   }
   

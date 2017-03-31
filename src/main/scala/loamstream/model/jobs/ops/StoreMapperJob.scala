@@ -12,7 +12,7 @@ import scala.reflect.runtime.universe.Type
 import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
 import loamstream.model.jobs.JobResult.CommandInvocationFailure
 import loamstream.model.jobs.ops.StoreMapperJob.LineMapper
-import loamstream.model.jobs.{Execution, JobStatus, LJob, Output}
+import loamstream.model.jobs.{Execution, JobResult, JobStatus, LJob, Output}
 
 import scala.util.{Failure, Success}
 
@@ -55,7 +55,7 @@ final case class StoreMapperJob(
       val resources = LocalResources(start, end)
 
       val (jobStatus, jobResultOpt) = exitValueAttempt match {
-        case Success(_) => (JobStatus.Succeeded, None) // TODO Any JobResult to report here?
+        case Success(_) => (JobStatus.Succeeded, Option(JobResult.Success))
         case Failure(e) => (JobStatus.FailedWithException, Option(CommandInvocationFailure(e)))
       }
 

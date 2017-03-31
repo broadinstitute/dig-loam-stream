@@ -15,9 +15,9 @@ object ExecuterHelpers {
 
   def executeSingle(job: LJob)(implicit executor: ExecutionContext): Future[Map[LJob, Execution]] = {
     for {
-      result <- job.execute
+      execution <- job.execute
     } yield {
-      Map(job -> result)
+      Map(job -> execution)
     }
   }
   

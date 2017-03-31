@@ -55,9 +55,9 @@ object Main extends Loggable {
       }
 
       for {
-        (job, result) <- engineResult.jobExecutionsOpt.get
+        (job, execution) <- engineResult.jobExecutionsOpt.get
       } {
-        info(s"Got $result when running $job")
+        info(s"${execution.status}\t(${execution.result}):\tRan $job got $execution")
       }
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)

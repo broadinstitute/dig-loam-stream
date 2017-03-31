@@ -18,9 +18,9 @@ final class JobTest extends FunSuite with TestJobs {
   import Futures.waitFor
   import ObservableEnrichments._
 
-  val failedJob = MockJob(Failed)
-
   test("execute") {
+    val failedJob = MockJob(Failed)
+    
     val statuses = failedJob.statuses.until(_.isFinished).to[Seq].firstAsFuture
 
     failedJob.execute(ExecutionContext.global)
@@ -29,6 +29,8 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("lastStatus - simple") {
+    val failedJob = MockJob(Failed)
+    
     val lastStatusFuture = failedJob.lastStatus.firstAsFuture
 
     failedJob.execute(ExecutionContext.global)
@@ -37,6 +39,8 @@ final class JobTest extends FunSuite with TestJobs {
   }
 
   test("lastStatus - subsequent 'terminal' Statuses don't count") {
+    val failedJob = MockJob(Failed)
+    
     val lastStatusesFuture = failedJob.lastStatus.to[Seq].firstAsFuture
 
     failedJob.updateAndEmitJobStatus(NotStarted)
@@ -49,6 +53,8 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("finalInputStatuses - no deps") {
+    val failedJob = MockJob(Failed)
+    
     val noDeps = failedJob
     
     val finalInputStatusesFuture = noDeps.finalInputStatuses.firstAsFuture
@@ -72,6 +78,8 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("state/statuses/updateAndEmitJobState") {
+    val failedJob = MockJob(Failed)
+    
     val first5Statuses = failedJob.statuses.take(5).to[Seq].firstAsFuture
     
     assert(failedJob.status === NotStarted)

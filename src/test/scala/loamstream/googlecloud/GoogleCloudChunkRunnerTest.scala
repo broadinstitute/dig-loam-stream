@@ -330,9 +330,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val localResources = TestHelpers.localResources
       
-      val job1 = MockJob(JobState.Succeeded)
-      val job2 = MockJob(JobState.Failed())
-      val job3 = MockJob(JobState.CommandResult(0, Some(localResources)))
+      val job1 = MockJob(JobResult.Success)
+      val job2 = MockJob(JobResult.Failure)
+      val job3 = MockJob(JobResult.CommandResult(0))
       
       assert(client.delegate.clusterRunning() === false)
       assert(client.delegate.startClusterInvocations() === 0)

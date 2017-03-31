@@ -8,6 +8,7 @@ import org.ggf.drmaa._
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.util.CompositeException
 
 /**
  * Created on: 5/19/16
@@ -50,9 +51,38 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   }
   
   /**
+   * Kill the job with the specified id, if the job is running.
+   */
+  override def killJob(jobId: String): Unit = {
+    debug(s"Killing Job '$jobId'")
+    
+    withSession(_.control(jobId, Session.TERMINATE))
+  }
+  
+  /**
+   * Kill all jobs.
+   */
+  override def killAllJobs(): Unit = {
+    debug(s"Killing all jobs...")
+    
+    killJob(Session.JOB_IDS_SESSION_ALL)
+  }
+  
+  /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
-  override def stop(): Unit = tryShuttingDown(sessionBox.value)
+  override def stop(): Unit = withSession { session =>
+    def failureAsOption(block: => Any): Option[Throwable] = Try(block).failed.toOption
+    
+    val killAllFailureOpt = failureAsOption(killAllJobs())
+    val shutdownFailureOpt = failureAsOption(tryShuttingDown(session))
+    
+    val failures = killAllFailureOpt.toSeq ++ shutdownFailureOpt
+    
+    if(failures.nonEmpty) {
+      throw new CompositeException(failures)
+    }
+  }
   
   /**
    * Synchronously obtain the status of one running UGER job, given its id.

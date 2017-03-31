@@ -51,6 +51,16 @@ trait DrmaaClient extends Terminable {
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
   override def stop(): Unit
+  
+  /**
+   * Kill the job with the specified id, if the job is running.
+   */
+  def killJob(jobId: String): Unit
+  
+  /**
+   * Kill all jobs.
+   */
+  def killAllJobs(): Unit
 }
 
 object DrmaaClient {

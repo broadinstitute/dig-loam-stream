@@ -44,7 +44,7 @@ object Execution {
             settings: Settings,
             result: JobResult,
             outputs: Set[OutputRecord]): Execution = {
-    Execution(env, cmd, settings, JobStatus.Unknown, Some(result), None, outputs)
+    Execution(env, cmd, settings, result.toJobStatus, Some(result), None, outputs)
   }
 
   // TODO Remove when dynamic statuses flow in
@@ -53,7 +53,7 @@ object Execution {
             settings: Settings,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
-    Execution(env, Option(cmd), settings, JobStatus.Unknown, Some(result), None, outputs.toSet)
+    Execution(env, Option(cmd), settings, result.toJobStatus, Some(result), None, outputs.toSet)
   }
 
   def apply(env: ExecutionEnvironment,

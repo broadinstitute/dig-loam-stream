@@ -306,12 +306,7 @@ local {
 }
 
 uger {
-//  cmd"""$KING -b ${Local.PLINK_FOR_QC_PRUNED_NAME}.bed --kinship --prefix ${Local.KIN_PREFIX} > ${Local.KIN_LOG}""".in(Local.PLINK_FOR_QC_PRUNED).out(Local.KIN_LOG, Local.KIN, Local.KIN0, Local.KINTMP_DAT, Local.KINTMP_PED)
   cmd"""$KING -b ${Local.PLINK_FOR_QC_PRUNED_NAME}.bed --kinship --prefix ${Local.KIN_PREFIX} > ${Local.KIN_LOG}""".in(Local.PLINK_FOR_QC_PRUNED).out(Local.KIN_LOG, Local.KIN, Local.KINTMP_DAT, Local.KINTMP_PED)
-
-//  cmd"""(head -1 ${Local.KIN0}; sed '1d' ${Local.KIN0} | awk '{if($$8 >= 0.0884) print $$0}' | sort -rn -k8,8) > ${Local.KIN0_RELATED}""".in(Local.KIN0).out(Local.KIN0_RELATED)
-
-//  cmd"""$R --vanilla --args ${Local.KIN0_RELATED} ${Local.SHARING_COUNTS} < $CALC_KINSHIP_SAMPLE_SHARING_R""".in(Local.KIN0_RELATED).out(Local.SHARING_COUNTS)
 }
 
 // CHUNK 2

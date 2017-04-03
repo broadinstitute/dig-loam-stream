@@ -217,8 +217,8 @@ final class JobTest extends FunSuite with TestJobs {
     
     def execute(jobs: Iterable[LJob]): Unit = jobs.foreach(_.execute(ExecutionContext.global))
 
-    val gc0 = MockJob(Succeeded)
-    val gc1 = MockJob(Skipped)
+    val gc0: LJob = MockJob(Succeeded)
+    val gc1: LJob = MockJob(Skipped)
     val gc2 = MockJob(Succeeded)
     val gc3 = MockJob(Skipped)
     

@@ -23,16 +23,14 @@ object ClientMessageHandler {
     /** A receiver of messages that logs messages */
     final case class LoggableOutMessageSink(loggable: Loggable) extends OutMessageSink {
       /** Accepts messages and logs them */
-      override def send(outMessage: ClientOutMessage): Unit = {
-        outMessage match {
-          case ErrorOutMessage(message) => loggable.error(message)
-          case CompilerIssueMessage(issue) => issue.severity match {
-            case Issue.Severity.Info => loggable.info(issue.msg)
-            case Issue.Severity.Warning => loggable.warn(issue.msg)
-            case Issue.Severity.Error => loggable.error(issue.msg)
-          }
-          case _ => loggable.info(outMessage.message)
+      override def send(outMessage: ClientOutMessage): Unit = outMessage match {
+        case ErrorOutMessage(message) => loggable.error(message)
+        case CompilerIssueMessage(issue) => issue.severity match {
+          case Issue.Severity.Info => loggable.info(issue.msg)
+          case Issue.Severity.Warning => loggable.warn(issue.msg)
+          case Issue.Severity.Error => loggable.error(issue.msg)
         }
+        case _ => loggable.info(outMessage.message)
       }
     }
 

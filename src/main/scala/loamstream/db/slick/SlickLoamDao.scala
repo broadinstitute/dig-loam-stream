@@ -52,8 +52,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     deleteOutput(paths.map(PathUtils.normalize))
   }
 
-  private def insert(executionAndState: (Execution, JobResult.CommandResult)): DBIO[Iterable[Int]] = {
-    val (execution, commandResult) = executionAndState
+  private def insert(executionAndResult: (Execution, JobResult.CommandResult)): DBIO[Iterable[Int]] = {
+    val (execution, commandResult) = executionAndResult
 
     import Helpers.dummyId
 

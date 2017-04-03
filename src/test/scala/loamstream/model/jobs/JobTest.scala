@@ -77,7 +77,7 @@ final class JobTest extends FunSuite with TestJobs {
     assert(waitFor(finalInputStatusesFuture).toSet === expected)
   }
   
-  test("state/statuses/updateAndEmitJobState") {
+  test("statuses/updateAndEmitJobStatus") {
     val failedJob = MockJob(Failed)
     
     val first5Statuses = failedJob.statuses.take(5).to[Seq].firstAsFuture

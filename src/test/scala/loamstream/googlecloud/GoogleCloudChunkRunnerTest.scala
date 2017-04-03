@@ -112,8 +112,6 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
     val job2 = mockJob(JobResult.Failure)
     val job3 = mockJob(JobResult.CommandResult(0), Some(localResources))
     
-    val expected = Map(job1 -> job1.toReturn, job2 -> job2.toReturn, job3 -> job3.toReturn)
-    
     withMockRunner { (mockRunner, actualGoogleRunner, client) =>
       assert(client.clusterRunning() === false)
       assert(client.startClusterInvocations() === 0)
@@ -285,8 +283,6 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       val job2 = mockJob(JobResult.Failure)
       val job3 = mockJob(JobResult.CommandResult(0), Some(localResources))
       
-      val expected = Map(job1 -> job1.toReturn, job2 -> job2.toReturn, job3 -> job3.toReturn)
-      
       assert(client.clusterRunning() === false)
       assert(client.startClusterInvocations() === 0)
       assert(client.deleteClusterInvocations() === 0)
@@ -330,9 +326,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val localResources = TestHelpers.localResources
       
-      val job1 = MockJob(JobResult.Success)
-      val job2 = MockJob(JobResult.Failure)
-      val job3 = MockJob(JobResult.CommandResult(0))
+      val job1 = mockJob(JobResult.Success)
+      val job2 = mockJob(JobResult.Failure)
+      val job3 = mockJob(JobResult.CommandResult(0), Some(localResources))
       
       assert(client.delegate.clusterRunning() === false)
       assert(client.delegate.startClusterInvocations() === 0)

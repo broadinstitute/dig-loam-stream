@@ -18,7 +18,6 @@ import loamstream.model.execute.AsyncLocalChunkRunner
 import scala.concurrent.ExecutionContext
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobStatus.Skipped
-import loamstream.model.jobs.JobStatus
 
 /**
   * @author kaan
@@ -102,7 +101,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
             cmd"cp $$fileOut1 $$fileOut2""""
 
       //Run the script and validate the results
-      def run(expectedStates: Seq[Execution]): Unit = {
+      def run(expectedStatuses: Seq[Execution]): Unit = {
         val (executable, executions) = compileAndRun(secondScript)
 
         val updatedOutput1 = OutputRecord(PathOutput(fileOut1))
@@ -121,8 +120,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           assert(actual.result === expected.result)
         }
         
-        compareResultsAndStatuses(firstExecution, expectedStates(0))
-        compareResultsAndStatuses(secondExecution, expectedStates(1))
+        compareResultsAndStatuses(firstExecution, expectedStatuses(0))
+        compareResultsAndStatuses(secondExecution, expectedStatuses(1))
         
         assert(executions.size === 2)
 

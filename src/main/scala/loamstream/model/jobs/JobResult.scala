@@ -1,6 +1,6 @@
 package loamstream.model.jobs
 
-import loamstream.util.TypeBox
+import loamstream.util.{ExitCodes, TypeBox}
 
 import scala.reflect.runtime.universe.Type
 import loamstream.model.jobs.JobResult.{CommandResult, Success, ValueSuccess}
@@ -46,5 +46,5 @@ object JobResult {
     if (isSuccessExitCode(exitCode)) { JobStatus.Succeeded }
     else { JobStatus.Failed }
 
-  def isSuccessExitCode(code: Int): Boolean = code == 0
+  def isSuccessExitCode(code: Int): Boolean = ExitCodes.isSuccess(code)
 }

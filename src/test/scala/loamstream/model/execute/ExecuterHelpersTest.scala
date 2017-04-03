@@ -1,12 +1,12 @@
 package loamstream.model.execute
 
+import loamstream.TestHelpers
 import org.scalatest.FunSuite
+
 import scala.concurrent.Await
-import loamstream.model.jobs.TestJobs
+import loamstream.model.jobs.{JobStatus, RxMockJob, TestJobs}
+
 import scala.concurrent.duration.Duration
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.JobState
-import loamstream.model.jobs.RxMockJob
 
 /**
  * @author clint
@@ -38,15 +38,16 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
   
   test("execSingle()") {
     import ExecuterHelpers.executeSingle
+    import TestHelpers.executionFromStatus
     import scala.concurrent.ExecutionContext.Implicits.global
     
     val success = Await.result(executeSingle(two0), Duration.Inf)
     
-    assert(success === Map(two0 -> two0Success))
+    assert(success === Map(two0 -> executionFromStatus(two0Success)))
     
     val failure = Await.result(executeSingle(two0Failed), Duration.Inf)
     
-    assert(failure === Map(two0Failed -> two0Failure))
+    assert(failure === Map(two0Failed -> executionFromStatus(two0Failure)))
   }
   
   test("noFailures() and anyFailures()") {
@@ -55,59 +56,30 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(noFailures(Map.empty) === true)
     assert(anyFailures(Map.empty) === false)
 
-    val allSuccesses = Map(
-      two0 -> two0Success,
-      two1 -> two1Success,
-      twoPlusTwo -> twoPlusTwoSuccess,
-      plusOne -> plusOneSuccess)
+    val allSuccesses = Map( two0 -> two0Success,
+                            two1 -> two1Success,
+                            twoPlusTwo -> twoPlusTwoSuccess,
+                            plusOne -> plusOneSuccess).mapValues(TestHelpers.executionFrom(_))
       
     assert(noFailures(allSuccesses) === true)
     assert(anyFailures(allSuccesses) === false)
     
     val allFailures = Map(
-      two0 -> JobState.Failed(),
-      two1 -> JobState.Failed(),
-      twoPlusTwo -> JobState.Failed(),
-      plusOne -> JobState.Failed())
+                          two0 -> JobStatus.Failed,
+                          two1 -> JobStatus.Failed,
+                          twoPlusTwo -> JobStatus.Failed,
+                          plusOne -> JobStatus.Failed).mapValues(TestHelpers.executionFrom(_))
       
     assert(noFailures(allFailures) === false)
     assert(anyFailures(allFailures) === true)
     
     val someFailures = Map(
-      two0 -> two0Success,
-      two1 -> JobState.Failed(),
-      twoPlusTwo -> twoPlusTwoSuccess,
-      plusOne -> JobState.Failed())
+                            two0 -> two0Success,
+                            two1 -> JobStatus.Failed,
+                            twoPlusTwo -> twoPlusTwoSuccess,
+                            plusOne -> JobStatus.Failed).mapValues(TestHelpers.executionFrom(_))
       
     assert(noFailures(someFailures) === false)
     assert(anyFailures(someFailures) === true)
-  }
-  
-  test("consumeUntilFirstFailure()") {
-    import ExecuterHelpers.consumeUntilFirstFailure
-    
-    assert(consumeUntilFirstFailure(Iterator.empty) == Vector.empty)
-    
-    val oneSuccess: Map[LJob, JobState] = Map(two0 -> JobState.Succeeded)
-    val anotherSuccess: Map[LJob, JobState] = Map(two1 -> JobState.Succeeded)
-    
-    val oneFailure: Map[LJob, JobState] = Map(two0Failed -> JobState.Failed())
-    val anotherFailure: Map[LJob, JobState] = Map(two1Failed -> JobState.Failed())
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess)) == Vector(oneSuccess))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess, anotherSuccess)) == Vector(oneSuccess, anotherSuccess))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneFailure)) == Vector(oneFailure))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneFailure, anotherFailure)) == Vector(oneFailure))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess, oneFailure)) == Vector(oneSuccess, oneFailure))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess, anotherSuccess, oneFailure)) == 
-      Vector(oneSuccess, anotherSuccess, oneFailure))
-    
-    assert(consumeUntilFirstFailure(Iterator(oneSuccess, anotherSuccess, oneFailure, anotherFailure)) == 
-      Vector(oneSuccess, anotherSuccess, oneFailure))
   }
 }

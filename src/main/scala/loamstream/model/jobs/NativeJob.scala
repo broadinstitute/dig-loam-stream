@@ -1,9 +1,8 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ ExecutionContext, Future }
-
+import scala.concurrent.{ExecutionContext, Future}
 import loamstream.util.EvalLaterBox
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
 
 /** Job defined by Loam code */
 final case class NativeJob[T](
@@ -16,6 +15,15 @@ final case class NativeJob[T](
   
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
-  override protected def executeSelf(implicit executionContext: ExecutionContext): Future[JobState] =
-    exprBox.evalFuture.map(JobState.ValueSuccess(_, exprBox.typeBox))
+  override protected def executeSelf(implicit executionContext: ExecutionContext): Future[Execution] = {
+    exprBox.evalFuture.map { value =>
+      Execution(executionEnvironment,
+        None,
+        LocalSettings(),
+        JobStatus.Succeeded,
+        Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
+        None,
+        outputs.map(_.toOutputRecord))
+    }
+  }
 }

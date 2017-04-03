@@ -1,6 +1,6 @@
 package loamstream.uger
 
-import loamstream.model.jobs.JobState
+import loamstream.model.jobs.{JobResult, JobStatus}
 import org.ggf.drmaa.Session
 import loamstream.model.execute.Resources.UgerResources
 
@@ -25,9 +25,8 @@ sealed trait UgerStatus {
   def isUndetermined: Boolean = this.isInstanceOf[Undetermined]
   def isDoneUndetermined: Boolean = this.isInstanceOf[DoneUndetermined]
 
-  //TODO: Does Undetermined belong here?
   def notFinished: Boolean = {
-    isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
+    isRequeued || isRequeuedHeld || isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
   }
 
   def isFinished: Boolean = !notFinished
@@ -86,17 +85,22 @@ object UgerStatus {
     case UNDETERMINED | _                                           => Undetermined()
   }
 
-  def toJobState(status: UgerStatus): JobState = status match {
-    case Done                                                       => JobState.Succeeded
-    case CommandResult(exitStatus, resources)                       => JobState.CommandResult(exitStatus, resources)
-    case DoneUndetermined(resources)                                => JobState.Failed(resources)
-    case Failed(resources)                                          => JobState.Failed(resources)
-    //TODO: Perhaps these should be something like JobState.NotStarted?
-    case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobState.Running
-    case Running                                                    => JobState.Running
-    //TODO: Is this right?
-    case Suspended(resources)                                       => JobState.Failed(resources)
-    //TODO: Is this right?
-    case Undetermined(resources)                                    => JobState.Failed(resources)
+  def toJobStatus(status: UgerStatus): JobStatus = status match {
+    case Done                                                       => JobStatus.Succeeded
+    case CommandResult(exitStatus, _)                               => JobResult.toJobStatus(exitStatus)
+    case DoneUndetermined(resources)                                => JobStatus.Failed
+    case Failed(resources)                                          => JobStatus.Failed
+    case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobStatus.Submitted
+    case Running                                                    => JobStatus.Running
+    case Suspended(resources)                                       => JobStatus.Failed
+    case Undetermined(resources)                                    => JobStatus.Unknown
+  }
+
+  def toJobResult(status: UgerStatus): Option[JobResult] = status match {
+    case CommandResult(exitStatus, resources)      => Some(JobResult.CommandResult(exitStatus))
+    case DoneUndetermined(resources)               => Some(JobResult.Failure)
+    case Failed(resources)                         => Some(JobResult.Failure)
+    case Suspended(resources)                      => Some(JobResult.Failure)
+    case _                                         => None
   }
 }

@@ -4,13 +4,11 @@ import java.nio.file.{Path, Files => JFiles}
 
 import loamstream.compiler.LoamEngine
 import loamstream.loam.LoamScript
-import loamstream.model.jobs.JobState
 import loamstream.util.Files
 import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
 import org.scalatest.FunSuite
-
-import scala.io.{Codec, Source}
 import loamstream.TestHelpers
+import loamstream.model.jobs.{JobResult, JobStatus, NoOpJob}
 
 
 /** Test Loam store ops */
@@ -26,10 +24,13 @@ final class LoamStoreOpsTest extends FunSuite {
     val graph = result.compileResultOpt.get.contextOpt.get.graph
     assert(graph.stores.size === nStores)
     assert(graph.tools.size === nTools)
-    assert(result.jobResultsOpt.nonEmpty, result.jobResultsOpt.message)
-    val jobResults = result.jobResultsOpt.get
-    assert(jobResults.size === nJobs)
-    assert(jobResults.values.forall(_.isInstanceOf[JobState.SuccessState]))
+    assert(result.jobExecutionsOpt.nonEmpty, result.jobExecutionsOpt.message)
+    val jobExecutions = result.jobExecutionsOpt.get
+    assert(jobExecutions.size === nJobs)
+    val jobStatuses = jobExecutions.values.map(_.status)
+    assert(jobStatuses.forall(_.isInstanceOf[JobStatus.Succeeded.type]))
+    val nonNoOpJobResults = jobExecutions.filterKeys(!_.isInstanceOf[NoOpJob]).values.map(_.result)
+    assert(nonNoOpJobResults.forall(_.get.isInstanceOf[JobResult.Success.type]))
   }
 
   private val inContent = {

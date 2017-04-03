@@ -44,7 +44,7 @@ object Main extends Loggable {
       }
       
       for {
-        (job, result) <- engineResult.jobResultsOpt.get
+        (job, result) <- engineResult.jobExecutionsOpt.get
       } {
         info(s"Got $result when running $job")
       }

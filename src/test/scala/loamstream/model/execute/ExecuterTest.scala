@@ -1,16 +1,10 @@
 package loamstream.model.execute
 
+import loamstream.TestHelpers
+
 import scala.concurrent.ExecutionContext
-
 import org.scalatest.FunSuite
-
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.TestJobs
-import loamstream.util.Hit
-import loamstream.util.Shot
-import loamstream.model.jobs.JobState
-
+import loamstream.model.jobs.{JobStatus, LJob, MockJob, TestJobs}
 
 /**
  * @author clint
@@ -19,123 +13,117 @@ import loamstream.model.jobs.JobState
 abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends FunSuite with TestJobs { 
 
   def makeExecuter: Executer
-  
-  def withExecuter(testName: String)(f: Executer => Any): Unit = {
+
+  def withExecuter(testName: String)(body: => Any): Unit = {
     test(testName) {
-      f(makeExecuter)
+      body
     }
   }
+
+  def executeJobsAndMapToStatuses(jobs: Set[LJob]) = {
+    val executer = makeExecuter
+    val executable = Executable(jobs)
+
+    executer.execute(executable).mapValues(_.status)
+  }
   
-  withExecuter("single jobs should work") { executer =>
-    def doTest(job: LJob, expectedResult: JobState): Unit = {
-      val executable = Executable(Set(job))
+  withExecuter("single jobs should work") {
+    def doTest(job: LJob, expectedStatus: JobStatus): Unit = {
+      val status = executeJobsAndMapToStatuses(Set(job))
   
-      val result = executer.execute(executable)
+      val expected = Map(job -> expectedStatus)
   
-      val expected = Map(job -> Hit(expectedResult))
-  
-      assert(result === expected)
+      assert(status === expected)
     }
     
     doTest(two0, two0Success)
     doTest(two1, two1Success)
   }
   
-  withExecuter("Jobs with one level of dependencies should work") { executer =>
-    val executable = Executable(Set(twoPlusTwo))
-  
-    val result = executer.execute(executable)
-    
+  withExecuter("Jobs with one level of dependencies should work") {
+    val status = executeJobsAndMapToStatuses(Set(twoPlusTwo))
+
     val expected = Map(
-      two0 -> Hit(two0Success),
-      two1 -> Hit(two1Success),
-      twoPlusTwo -> Hit(twoPlusTwoSuccess))
+      two0 -> two0Success,
+      two1 -> two1Success,
+      twoPlusTwo -> twoPlusTwoSuccess)
       
-    assert(result == expected)
+    assert(status === expected)
   }
   
-  withExecuter("Jobs with one level of dependencies where one dep fails") { executer =>
-    val twoPlusTwoWithFailure = twoPlusTwo.copy(inputs = Set(two0, two1Failed), toReturn = twoPlusTwoFailure)
-    
-    val executable = Executable(Set(twoPlusTwoWithFailure))
+  withExecuter("Jobs with one level of dependencies where one dep fails") {
+    val twoPlusTwoWithFailure = twoPlusTwo.copy(inputs = Set(two0, two1Failed),
+                                                toReturn = TestHelpers.executionFrom(twoPlusTwoFailure))
+
+    val status = executeJobsAndMapToStatuses(Set(twoPlusTwoWithFailure))
   
-    val result = executer.execute(executable)
-    
     val expected0 = Map(
-      two0 -> Hit(two0Success),
-      two1Failed -> Hit(two1Failure),
-      twoPlusTwoWithFailure -> Hit(twoPlusTwoFailure))
+      two0 -> two0Success,
+      two1Failed -> two1Failure,
+      twoPlusTwoWithFailure -> twoPlusTwoFailure)
       
-    assert(result == expected0)
+    assert(status == expected0)
   }
   
-  withExecuter("execute() should work if all sub-jobs succeed") { executer =>
+  withExecuter("execute() should work if all sub-jobs succeed") {
 
-    val executable = Executable(Set(plusOne))
-
-    val result = executer.execute(executable)
+    val status = executeJobsAndMapToStatuses(Set(plusOne))
 
     val expected = Map(
-      two0 -> Hit(two0Success),
-      two1 -> Hit(two1Success),
-      twoPlusTwo -> Hit(twoPlusTwoSuccess),
-      plusOne -> Hit(plusOneSuccess))
+      two0 -> two0Success,
+      two1 -> two1Success,
+      twoPlusTwo -> twoPlusTwoSuccess,
+      plusOne -> plusOneSuccess)
 
-    assert(result === expected)
+    assert(status === expected)
   }
   
-  withExecuter("execute() should work if no sub-jobs succeed") { executer =>
+  withExecuter("execute() should work if no sub-jobs succeed") {
 
-    val executable = Executable(Set(plusOneFailed))
-
-    val result = executer.execute(executable)
+    val status = executeJobsAndMapToStatuses(Set(plusOneFailed))
 
     val alwaysExpected = Map(
-      twoPlusTwoFailed -> Hit(twoPlusTwoFailure),
-      plusOneFailed -> Hit(plusOneFailure))
+      twoPlusTwoFailed -> twoPlusTwoFailure,
+      plusOneFailed -> plusOneFailure)
     
-    val expected0 = alwaysExpected + (two0Failed -> Hit(two0Failure))
-    val expected1 = alwaysExpected + (two1Failed -> Hit(two1Failure))
+    val expected0 = alwaysExpected + (two0Failed -> two0Failure)
+    val expected1 = alwaysExpected + (two1Failed -> two1Failure)
     
-    assert(result == expected0 || result == expected1)
+    assert(status == expected0 || status == expected1)
   }
   
-  withExecuter("execute() should work if some (early) sub-jobs fail") { executer =>
+  withExecuter("execute() should work if some (early) sub-jobs fail") {
 
     val twoPlusTwo = MockJob(twoPlusTwoFailure, inputs = Set(two0Failed, two1Failed))
 
     val plusOne = MockJob(plusOneFailure, inputs = Set(twoPlusTwo))
-    
-    val executable = Executable(Set(plusOne))
 
-    val result = executer.execute(executable)
-    
+    val status = executeJobsAndMapToStatuses(Set(plusOne))
+
     val alwaysExpected = Map(
-      twoPlusTwo -> Hit(twoPlusTwoFailure),
-      plusOne -> Hit(plusOneFailure))
+      twoPlusTwo -> twoPlusTwoFailure,
+      plusOne -> plusOneFailure)
     
-    val expected0 = alwaysExpected + (two0Failed -> Hit(two0Failure))
-    val expected1 = alwaysExpected + (two1Failed -> Hit(two1Failure))
+    val expected0 = alwaysExpected + (two0Failed -> two0Failure)
+    val expected1 = alwaysExpected + (two1Failed -> two1Failure)
 
-    assert(result == expected0 || result == expected1)
+    assert(status == expected0 || status == expected1)
   }
   
-  withExecuter("execute() should work if some (late) sub-jobs fail") { executer =>
+  withExecuter("execute() should work if some (late) sub-jobs fail") {
 
     val twoPlusTwo = MockJob(twoPlusTwoFailure, inputs = Set(two0, two1))
 
     val plusOne = MockJob(plusOneFailure, inputs = Set(twoPlusTwo))
-    
-    val executable = Executable(Set(plusOne))
 
-    val result = executer.execute(executable)
+    val status = executeJobsAndMapToStatuses(Set(plusOne))
 
     val expected = Map(
-        two0 -> Hit(two0Success),
-        two1 -> Hit(two1Success),
-        twoPlusTwo -> Hit(twoPlusTwoFailure),
-        plusOne -> Hit(plusOneFailure))
+        two0 -> two0Success,
+        two1 -> two1Success,
+        twoPlusTwo -> twoPlusTwoFailure,
+        plusOne -> plusOneFailure)
 
-    assert(result === expected)
+    assert(status === expected)
   }
 }

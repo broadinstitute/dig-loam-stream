@@ -36,7 +36,7 @@ final class CommandLineStringJobTest extends FunSuite {
 
     val results = loamEngine.run(code)
 
-    val jobResults = results.jobResultsOpt.get
+    val jobResults = results.jobExecutionsOpt.get
 
     assert(jobResults.values.head.isSuccess)
 

@@ -2,11 +2,11 @@ package loamstream.db.slick
 
 import java.sql.Timestamp
 
+import loamstream.model.jobs.JobStatus
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import slick.driver.JdbcProfile
 import slick.jdbc.meta.MTable
-import slick.profile.SqlProfile.ColumnOption.SqlType
 
 /**
  * @author clint
@@ -21,7 +21,8 @@ import slick.profile.SqlProfile.ColumnOption.SqlType
  *    ID: integer, auto-incremented, primary key
  *    ENV: varchar/text - the platform where this execution took place (e.g. Uger, Google, Local)
  *    CMD: varchar/text/etc - the command line string -- may be 4000 characters or longer
- *    EXIT_STATUS: integer - the exit status returned by the command represented by this execution
+ *    EXIT_CODE: integer - the exit code returned by the command represented by this execution
+ *    STATUS: JobStatus - the state of this execution
  *
  *
  *   OUTPUTS: The Outputs of failed Executions aren't hashed; in those cases,
@@ -87,6 +88,9 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   import Tables.Names
   import ForeignKeyAction.{Restrict, Cascade}
 
+  private implicit val statusColumnType: BaseColumnType[JobStatus] =
+    MappedColumnType.base[JobStatus, String](_.toString, jobStatusfromString _)
+
   trait HasExecutionId { self: Table[_] =>
     def executionId: Rep[Int]
   }
@@ -101,8 +105,9 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
     //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
     //and instead some DB-specific column type appropriate for strings thousands of chars long.
     def cmd = column[String]("CMD", O.Length(maxStringColumnLength))
-    def exitStatus = column[Int]("EXIT_STATUS")
-    def * = (id, env, cmd, exitStatus) <> (ExecutionRow.tupled, ExecutionRow.unapply)
+    def exitCode = column[Int]("EXIT_CODE")
+    def status = column[JobStatus]("STATUS")
+    def * = (id, env, cmd, status, exitCode) <> (ExecutionRow.tupled, ExecutionRow.unapply)
   }
 
   final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {
@@ -244,6 +249,11 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   private def perform[A](database: Database)(action: DBIO[A]): A = {
     Futures.waitFor(database.run(action))
+  }
+
+  private def jobStatusfromString(str: String): JobStatus = JobStatus.fromString(str).getOrElse {
+    warn(s"$str is not one of known JobStatus'es; mapping to ${JobStatus.Unknown}")
+    JobStatus.Unknown
   }
 }
 

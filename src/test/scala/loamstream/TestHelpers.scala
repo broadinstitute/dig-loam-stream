@@ -1,6 +1,7 @@
 package loamstream
 
 import java.nio.file.{Path, Paths}
+
 import loamstream.conf.LoamConfig
 import com.typesafe.config.ConfigFactory
 import loamstream.conf.UgerConfig
@@ -8,6 +9,9 @@ import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.googlecloud.HailConfig
 import loamstream.model.execute.Resources.LocalResources
 import java.time.Instant
+
+import loamstream.model.execute.{ExecutionEnvironment, LocalSettings, Resources}
+import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
 
 /**
   * @author clint
@@ -36,5 +40,28 @@ object TestHelpers {
     val now = Instant.now
       
     LocalResources(now, now)
+  }
+
+  val env = ExecutionEnvironment.Local
+
+  def executionFrom(status: JobStatus,
+                    result: Option[JobResult] = None,
+                    resources: Option[Resources] = None): Execution = {
+
+    Execution(env,
+      cmd = None,
+      settings = LocalSettings(),
+      status,
+      result,
+      resources,
+      Set.empty[OutputRecord])
+  }
+
+  def executionFromStatus(status: JobStatus, resources: Option[Resources] = None): Execution = {
+    executionFrom(status, result = None, resources)
+  }
+
+  def executionFromResult(result: JobResult, resources: Option[Resources] = None): Execution = {
+    executionFrom(result.toJobStatus, Option(result), resources)
   }
 }

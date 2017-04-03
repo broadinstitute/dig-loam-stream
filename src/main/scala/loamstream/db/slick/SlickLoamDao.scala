@@ -1,17 +1,18 @@
 package loamstream.db.slick
 
 import java.nio.file.Path
+import java.time.Instant
 
 import scala.concurrent.ExecutionContext
 import loamstream.db.LoamDao
-import loamstream.model.execute._
-import loamstream.model.jobs.{Execution, JobState, OutputRecord}
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
+import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.PathUtils
 import slick.profile.SqlAction
-import loamstream.model.jobs.JobState.{CommandInvocationFailure, CommandResult}
-import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.jobs.JobResult.{CommandInvocationFailure, CommandResult}
 
 /**
  * @author clint
@@ -51,8 +52,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     deleteOutput(paths.map(PathUtils.normalize))
   }
 
-  private def insert(executionAndState: (Execution, JobState.CommandResult)): DBIO[Iterable[Int]] = {
-    val (execution, commandResult) = executionAndState
+  private def insert(executionAndResult: (Execution, JobResult.CommandResult)): DBIO[Iterable[Int]] = {
+    val (execution, commandResult) = executionAndResult
 
     import Helpers.dummyId
 
@@ -61,7 +62,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
     //NB: Also note unsafe .get, which is "ok" here since we executions without command lines will have been
     //filtered out before we get here.  
-    val executionRow = new ExecutionRow(dummyId, execution.env.name, execution.cmd.get, commandResult.exitStatus)
+    val executionRow = new ExecutionRow(dummyId, execution.env.name, execution.cmd.get,
+      execution.status, commandResult.exitCode)
     
     import Implicits._
 
@@ -282,10 +284,11 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution(_, _, _, cr: CommandResult, _) => e -> cr
-      //NB: Allow storing the failure to invoke a command; give this case the dummy "exit code" -1
-      //TODO: Dummy value
-      case e @ Execution(_, _, _, cr: CommandInvocationFailure, _) => e -> CommandResult(-1, None)
+      case e @ Execution(_, _, _, _, Some(cr: CommandResult), _, _) => e -> cr
+      //NB: Allow storing the failure to invoke a command; give this case DummyExitCode
+      case e @ Execution(_, _, _, _, Some(cr: CommandInvocationFailure), _, _) =>
+        // TODO: Better assign e -> JobResult.Failure?
+        e -> CommandResult(JobResult.DummyExitCode)
     }
   }
 

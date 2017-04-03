@@ -1,23 +1,19 @@
 package loamstream.loam
 
-import java.nio.file.{ Files => JFiles }
+import java.nio.file.{Files => JFiles}
 import java.nio.file.Path
 import java.nio.file.Paths
 
 import scala.util.Try
-
 import org.scalatest.FunSuite
-
 import loamstream.compiler.LoamCompiler
 import loamstream.loam.LoamToolBoxTest.Results
 import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.loam.ast.LoamGraphAstMapping
 import loamstream.model.execute.RxExecuter
-import loamstream.model.jobs.JobState
-import loamstream.model.jobs.LJob
+import loamstream.model.jobs.{Execution, LJob}
 import loamstream.util.Files
 import loamstream.TestHelpers
-import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
@@ -44,9 +40,9 @@ final class LoamToolBoxTest extends FunSuite {
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
 
-    val jobResults = RxExecuter.default.execute(executable)
+    val jobExecutions = RxExecuter.default.execute(executable)
     
-    Results(graph, mapping, jobResults)
+    Results(graph, mapping, jobExecutions)
   }
 
   test("Simple toy pipeline using cp.") {
@@ -60,7 +56,7 @@ final class LoamToolBoxTest extends FunSuite {
 
       val results = run(code)
 
-      assert(results.jobResults.size === 5, s"${results.jobResults}")
+      assert(results.jobExecutions.size === 5, s"${results.jobExecutions}")
       assert(results.mapping.rootAsts.size === 3)
       assert(results.mapping.rootTools.size === 3)
       assert(results.allJobResultsAreSuccess)
@@ -117,7 +113,7 @@ final class LoamToolBoxTest extends FunSuite {
     assert(job0.commandLineString.contains("impute2"))
     assert(job1.commandLineString.contains("impute2"))
     assert(job2.commandLineString.contains("impute2"))
-    
+
     assert(job0.inputs.size === 1)
     assert(job1.inputs.size === 1)
     assert(job2.inputs.size === 1)
@@ -129,11 +125,11 @@ final class LoamToolBoxTest extends FunSuite {
     assert(depJob0.commandLineString.contains("shapeit"))
     assert(depJob1.commandLineString.contains("shapeit"))
     assert(depJob2.commandLineString.contains("shapeit"))
-    
+
     assert(depJob0.inputs === Set.empty)
     assert(depJob1.inputs === Set.empty)
     assert(depJob2.inputs === Set.empty)
-    
+
     //All 3 dependency jobs (shapeit jobs) should be the same
     assert(depJob0 eq depJob1)
     assert(depJob1 eq depJob2)
@@ -141,7 +137,7 @@ final class LoamToolBoxTest extends FunSuite {
   }
 
   private def withFiles[A](names: String*)(f: Seq[Path] => A): A = {
-    //TODO: use Commons-IO, like elsewhere 
+    //TODO: use Commons-IO, like elsewhere
     def deleteQuietly(p: Path): Unit = Try(JFiles.delete(p))
 
     val paths = names.map(Paths.get(_))
@@ -159,10 +155,11 @@ final class LoamToolBoxTest extends FunSuite {
 
 object LoamToolBoxTest {
 
-  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobResults: Map[LJob, JobState]) {
-    
-    def allJobResultsAreSuccess: Boolean = jobResults.values.forall(_.isSuccess)
-    
+  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobExecutions: Map[LJob, Execution]) {
+    def allJobResultsAreSuccess: Boolean = {
+      val resultOpts = jobExecutions.values.map(_.result)
+      resultOpts.forall(result => result.nonEmpty && result.get.isSuccess)
+    }
   }
 
   object Sources {

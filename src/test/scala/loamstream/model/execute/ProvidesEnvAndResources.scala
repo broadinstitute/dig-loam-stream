@@ -3,7 +3,7 @@ package loamstream.model.execute
 import java.time.Instant
 
 import loamstream.model.execute.ExecutionEnvironment.Uger
-import loamstream.model.jobs.Execution
+import loamstream.model.jobs.{Execution, JobResult, JobStatus}
 import loamstream.uger.Queue
 import org.scalatest.FunSuite
 import loamstream.model.execute.Resources.UgerResources
@@ -25,7 +25,12 @@ trait ProvidesEnvAndResources extends FunSuite {
 
     UgerSettings(mem, cpu, Queue.Short)
   }
-  
+  val mockStatus: JobStatus = JobStatus.Unknown
+  val mockResult: JobResult = {
+    val exitCode = 0
+    JobResult.CommandResult(exitCode)
+  }
+
   val mockLocalResources: LocalResources = TestHelpers.localResources
   
   val mockUgerResources: UgerResources = {
@@ -44,7 +49,7 @@ trait ProvidesEnvAndResources extends FunSuite {
   protected def assertEqualFieldsFor(actual: Iterable[Execution], expected: Iterable[Execution]): Unit = {
     assert(actual.map(_.env) === expected.map(_.env))
     assert(actual.map(_.cmd) === expected.map(_.cmd))
-    assert(actual.map(_.exitState) === expected.map(_.exitState))
+    assert(actual.map(_.result) === expected.map(_.result))
     assert(actual.map(_.settings) === expected.map(_.settings))
     assert(actual.map(_.resources) === expected.map(_.resources))
     assert(actual.map(_.outputs) === expected.map(_.outputs))

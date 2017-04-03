@@ -3,10 +3,7 @@ package loamstream.model.execute
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobState
-import loamstream.model.jobs.LJob
-import loamstream.uger.Queue
+import loamstream.model.jobs.{Execution, JobStatus, LJob}
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Observables
@@ -14,8 +11,6 @@ import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.Traversables
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
  * @author kaan
@@ -27,7 +22,7 @@ final case class RxExecuter(
     windowLength: Duration,
     jobFilter: JobFilter)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
   
-  override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, JobState] = {
+  override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.ObservableEnrichments._
     
     //An Observable stream of jobs; each job is emitted when it becomes runnable.
@@ -44,19 +39,19 @@ final case class RxExecuter(
     //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
     val chunks: Observable[Observable[LJob]] = runnables.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
     
-    val chunkResults: Observable[Map[LJob, JobState]] = for {
+    val chunkResults: Observable[Map[LJob, Execution]] = for {
       chunk <- chunks
       _ = logJobForest(executable)
       jobs <- chunk.to[Set]
       if jobs.nonEmpty
       (jobsToRun, skippedJobs) = jobs.partition(jobFilter.shouldRun)
       _ = handleSkippedJobs(skippedJobs)
-      resultMap <- runJobs(jobsToRun)
-      _ = record(resultMap)
-      _ = logFinishedJobs(resultMap)
+      executionMap <- runJobs(jobsToRun)
+      _ = record(executionMap)
+      _ = logFinishedJobs(executionMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
     } yield {
-      resultMap ++ skippedResultMap
+      executionMap ++ skippedResultMap
     }
    
     import ExecuterHelpers.anyFailures
@@ -71,15 +66,16 @@ final case class RxExecuter(
     Await.result(futureMergedResults, timeout)
   }
   
-  def logFinishedJobs(jobs: Map[LJob, JobState]): Unit = {
+  def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {
     for {
-      (job, state) <- jobs
+      (job, execution) <- jobs
+      status = execution.status
     } {
-      info(s"Finished with $state when running $job")
+      info(s"Finished with $status when running $job")
     }
   }
   
-  def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, JobState]] = {
+  def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, Execution]] = {
     logJobsToBeRun(jobsToRun)
     
     runner.run(jobsToRun)
@@ -110,50 +106,40 @@ final case class RxExecuter(
   }
   
   private def markJobsSkipped(skippedJobs: Set[LJob]): Unit = {
-    skippedJobs.foreach(_.updateAndEmitJobState(JobState.Skipped))
+    skippedJobs.foreach(_.updateAndEmitJobStatus(JobStatus.Skipped))
   }
   
-  private def toSkippedResultMap(skippedJobs: Set[LJob]): Map[LJob, JobState] = {
+  private def toSkippedResultMap(skippedJobs: Set[LJob]): Map[LJob, Execution] = {
     import Traversables.Implicits._
       
-    skippedJobs.mapTo(job => JobState.Skipped)
+    skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped))
   }
-  
-  private def record(resultMap: Map[LJob, JobState]): Unit = RxExecuter.record(jobFilter)(resultMap)
+
+  private def record(executionMap: Map[LJob, Execution]): Unit = {
+    debug(s"Recording ${executionMap.size} Execution(s): $executionMap")
+    jobFilter.record(executionMap.values)
+  }
 }
 
 object RxExecuter extends Loggable {
-  // scalastyle:off magic.number
-  
-  private[execute] def record(jobFilter: JobFilter)(resultMap: Map[LJob, JobState]): Unit = {
-    val toExecution = Execution.from _
-    
-    val executions = resultMap.map(toExecution.tupled) 
-
-    debug(s"Recording Executions (${executions.size}): $executions")
-    
-    jobFilter.record(executions)
-  }
-  
   val defaultMaxNumConcurrentJobs = 8
   
   //NB: Use a short windowLength to speed up tests
-  val defaultWindowLength = 0.25.seconds
-  
-  // scalastyle:on magic.number
-  
+  val defaultWindowLength = 0.25
+  val defaultWindowLengthInSec = defaultWindowLength.seconds
+
   val defaultJobFilter = JobFilter.RunEverything
-  
+
   def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {
-    new RxExecuter(runner, defaultWindowLength, defaultJobFilter)
+    new RxExecuter(runner, defaultWindowLengthInSec, defaultJobFilter)
   }
-  
+
   def default: RxExecuter = {
     implicit val executionContext = ExecutionContext.global
-  
+
     val chunkRunner = AsyncLocalChunkRunner(defaultMaxNumConcurrentJobs)
-    
-    new RxExecuter(chunkRunner, defaultWindowLength, defaultJobFilter)
+
+    new RxExecuter(chunkRunner, defaultWindowLengthInSec, defaultJobFilter)
   }
   
   def defaultWith(newJobFilter: JobFilter): RxExecuter = {

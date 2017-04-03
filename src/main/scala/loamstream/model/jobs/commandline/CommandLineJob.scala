@@ -2,18 +2,20 @@ package loamstream.model.jobs.commandline
 
 import java.nio.file.{Path, Files => JFiles}
 
+import loamstream.model.execute.LocalSettings
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.sys.process.ProcessBuilder
 import scala.sys.process.ProcessLogger
-
-import loamstream.model.jobs.JobState
-import loamstream.model.jobs.LJob
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
 import loamstream.model.execute.Resources.LocalResources
-
+import loamstream.model.jobs.JobResult.{CommandInvocationFailure, CommandResult}
+import loamstream.model.jobs.{Execution, JobStatus, LJob, OutputRecord}
+import scala.util.Success
+import scala.util.Failure
 
 /**
   * LoamStream
@@ -36,19 +38,29 @@ trait CommandLineJob extends LJob {
 
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[JobState] = {
+  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
     Futures.runBlocking {
-      trace(s"RUNNING: $commandLineString")
-
-      val (exitValue, (start, end)) = TimeUtils.startAndEndTime {
+      
+      val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
+        trace(s"RUNNING: $commandLineString")
+        
         createWorkDirAndRun()
       }
 
       val resources = LocalResources(start, end)
       
-      JobState.CommandResult(exitValue, Option(resources))
-    }.recover {
-      case exception: Exception => JobState.CommandInvocationFailure(exception)
+      val (jobStatus, jobResult) = exitValueAttempt match {
+        case Success(exitValue) => (JobStatus.fromExitCode(exitValue), CommandResult(exitValue))
+        case Failure(e) => (JobStatus.FailedWithException, CommandInvocationFailure(e))
+      }
+      
+      Execution(executionEnvironment,
+                Some(commandLineString),
+                LocalSettings(),
+                jobStatus,
+                Option(jobResult),
+                Option(resources),
+                outputs.map(_.toOutputRecord))
     }
   }
   

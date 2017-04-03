@@ -1,14 +1,23 @@
 package loamstream.uger
 
 import java.nio.file.Path
-import loamstream.conf.UgerConfig
+
 import scala.concurrent.duration.Duration
 import scala.util.Try
-import org.ggf.drmaa._
-import loamstream.util.Loggable
-import loamstream.util.ValueBox
+
+import org.ggf.drmaa.DrmaaException
+import org.ggf.drmaa.ExitTimeoutException
+import org.ggf.drmaa.InvalidJobException
+import org.ggf.drmaa.JobInfo
+import org.ggf.drmaa.JobTemplate
+import org.ggf.drmaa.Session
+import org.ggf.drmaa.SessionFactory
+
+import loamstream.conf.UgerConfig
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.util.CompositeException
+import loamstream.util.Loggable
+import loamstream.util.ValueBox
 
 /**
  * Created on: 5/19/16

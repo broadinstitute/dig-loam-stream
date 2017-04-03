@@ -9,6 +9,7 @@ import scala.util.Failure
  * Mar 28, 2017
  */
 final class TimeUtilsTest extends FunSuite {
+  //scalastyle:off magic.number
   test("startAndEndTime") {
     val (attempt, (start, end)) = TimeUtils.startAndEndTime { 42 }
     
@@ -24,4 +25,5 @@ final class TimeUtilsTest extends FunSuite {
     assert(attempt === Failure(e))
     assert(start.toEpochMilli <= end.toEpochMilli)
   }
+  //scalastyle:on magic.number
 }

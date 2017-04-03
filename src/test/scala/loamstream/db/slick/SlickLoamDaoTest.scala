@@ -37,7 +37,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
   private def noExecutions: Boolean = dao.allExecutions.isEmpty
 
-  private def store(paths: Path*): Unit = {
+  private def store(paths: Path*): Execution = {
     val outputs = paths.map { path =>
       val hash = Hashes.sha1(path)
       
@@ -45,24 +45,40 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     }
     
     val execution = Execution(mockEnv, Option(mockCmd), mockSettings, 
-                              JobResult.CommandResult(0, Some(mockResources)), outputs.toSet)
+                              JobResult.CommandResult(0), outputs.toSet)
     
     dao.insertExecutions(execution)
+    
+    execution
   }
   
   private def storeFailures(paths: Path*): Unit = {
     val outputs = paths.map(OutputRecord(_))
     
     //NB: Failure
-    val state = JobResult.CommandResult(42, Some(mockResources))
+    val result = JobResult.CommandResult(42)
     
-    assert(state.isFailure)
+    assert(result.isFailure)
     
-    val execution = Execution(mockEnv, Option(mockCmd), mockSettings, state, outputs.toSet)
+    val execution = Execution(mockEnv, Option(mockCmd), mockSettings, result, outputs.toSet)
     
     dao.insertExecutions(execution)
   }
 
+  test("insert/allExecutions") {
+    createTablesAndThen {
+      val stored = store(path0)
+      
+      assert(stored.outputs.nonEmpty)
+      
+      val Seq(retrieved) = dao.allExecutions
+      
+      assert(dao.allOutputRecords.toSet === stored.outputs)
+      
+      assert(stored === retrieved)
+    }
+  }
+  
   test("insert/Read Outputs") {
     createTablesAndThen {
       assert(noOutputs)
@@ -184,13 +200,13 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         Instant.ofEpochMilli(1), Instant.ofEpochMilli(72345))
 
       val failed0 = Execution(localEnv, Option(mockCmd), localSettings, 
-                              CommandResult(42, Some(localResources)), Set(output0))
+                              CommandResult(42), Set(output0))
                               
       val failed1 = Execution(ugerEnv, Option(mockCmd), ugerSettings, 
-                              CommandResult(1, Some(ugerResources)), Set.empty[OutputRecord])
+                              CommandResult(1), Set.empty[OutputRecord])
                               
       val succeeded = Execution(googleEnv, Option(mockCmd), googleSettings, 
-                                CommandResult(0, Some(googleResources)), Set(output1, output2))
+                                CommandResult(0), Set(output1, output2))
 
       assert(failed0.isFailure)
       assert(failed1.isFailure)
@@ -202,7 +218,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       dao.insertExecutions(failed0)
 
       val expected0 = Execution(localEnv, mockCmd, localSettings, 
-                                CommandResult(42, Some(localResources)), OutputRecord(output0.loc))
+                                CommandResult(42), OutputRecord(output0.loc))
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
 
@@ -228,19 +244,19 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       dao.insertExecutions(failed)
       
       val expected0 = Execution(mockEnv, mockCmd, mockSettings,
-        CommandResult(JobResult.DummyExitCode, None), failedOutput(path0))
+        CommandResult(JobResult.DummyExitCode), failedOutput(path0))
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
     }
   }
   
   test("insertExecutions - should throw") {
-    def doTest(command: Option[String], jobState: JobResult): Unit = {
+    def doTest(command: Option[String], jobResult: JobResult): Unit = {
       createTablesAndThen {
         val output0 = PathOutput(path0)
         
         val failed = Execution(mockEnv, command, mockSettings, 
-                               JobResult.Failed(), Set(output0.toOutputRecord))
+                               JobResult.Failure, Set(output0.toOutputRecord))
   
         assert(failed.isFailure)
         
@@ -256,11 +272,11 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       }
     }
     
-    doTest(Some(mockCmd), JobResult.Failed())
-    doTest(None, JobResult.Failed())
-    doTest(Some(mockCmd), JobResult.CommandResult(1, Some(mockResources)))
-    doTest(Some(mockCmd), JobResult.CommandResult(1, None))
-    doTest(None, JobResult.CommandResult(0, Some(mockResources)))
+    doTest(Some(mockCmd), JobResult.Failure)
+    doTest(None, JobResult.Failure)
+    doTest(Some(mockCmd), JobResult.CommandResult(1))
+    doTest(Some(mockCmd), JobResult.CommandResult(1))
+    doTest(None, JobResult.CommandResult(0))
   }
   
   test("findExecution") {
@@ -269,10 +285,10 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
       
-      val ex0 = Execution(mockEnv, mockCmd, mockSettings, CommandResult(42, Some(mockResources)), output0)
-      val ex1 = Execution(mockEnv, mockCmd, mockSettings, CommandResult(0, Some(mockResources)), output1, output2)
+      val ex0 = Execution(mockEnv, mockCmd, mockSettings, CommandResult(42), output0)
+      val ex1 = Execution(mockEnv, mockCmd, mockSettings, CommandResult(0), output1, output2)
       val ex2 = Execution(mockEnv, Option(mockCmd), mockSettings, 
-                          CommandResult(1, Some(mockResources)), Set.empty[OutputRecord])
+                          CommandResult(1), Set.empty[OutputRecord])
       
       assert(ex0.isFailure)
       assert(ex1.isSuccess)
@@ -283,7 +299,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       dao.insertExecutions(ex0)
       
       val expected0 = Execution(mockEnv, mockCmd, mockSettings, 
-                                CommandResult(42, Some(mockResources)), failedOutput(path0))
+                                CommandResult(42), failedOutput(path0))
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
       assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))

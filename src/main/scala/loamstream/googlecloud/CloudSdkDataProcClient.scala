@@ -5,24 +5,30 @@ import loamstream.util.PathUtils.normalize
 import scala.util.Try
 import scala.util.Success
 import loamstream.util.Tries
+import loamstream.util.ExitCodes
 
 /**
  * @author clint
  * Nov 28, 2016
  */
-final class CloudSdkDataProcClient private[googlecloud] (config: GoogleCloudConfig) extends 
-    DataProcClient with Loggable {
+final class CloudSdkDataProcClient private[googlecloud] (
+    config: GoogleCloudConfig,
+    runCommand: Seq[String] => Int = CloudSdkDataProcClient.runCommand) extends DataProcClient with Loggable {
   
-  import CloudSdkDataProcClient._
+  import CloudSdkDataProcClient.{startClusterTokens, deleteClusterTokens, isClusterRunningTokens}
   
   override def deleteCluster(): Unit = {
     debug(s"Deleting cluster '${config.clusterId}'")
     
-    runCommand(deleteClusterTokens(config))
+    val exitCode = runCommand(deleteClusterTokens(config))
+    
+    ExitCodes.throwIfFailure(exitCode)
   }
   
   override def isClusterRunning: Boolean = {
-    val result = runCommand(isClusterRunningTokens(config)) == 0
+    val exitCode = runCommand(isClusterRunningTokens(config))
+    
+    val result = ExitCodes.isSuccess(exitCode)
     
     debug(s"Cluster '${config.clusterId}' running? $result")
     
@@ -32,7 +38,9 @@ final class CloudSdkDataProcClient private[googlecloud] (config: GoogleCloudConf
   override def startCluster(): Unit = {
     debug(s"Starting cluster '${config.clusterId}'")
     
-    runCommand(startClusterTokens(config))
+    val exitCode = runCommand(startClusterTokens(config))
+    
+    ExitCodes.throwIfFailure(exitCode)
   }
 }
 

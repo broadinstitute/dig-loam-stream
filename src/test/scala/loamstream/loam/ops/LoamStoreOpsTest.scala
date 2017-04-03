@@ -8,7 +8,7 @@ import loamstream.util.Files
 import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
-import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.{JobResult, JobStatus, NoOpJob}
 
 
 /** Test Loam store ops */
@@ -25,9 +25,12 @@ final class LoamStoreOpsTest extends FunSuite {
     assert(graph.stores.size === nStores)
     assert(graph.tools.size === nTools)
     assert(result.jobExecutionsOpt.nonEmpty, result.jobExecutionsOpt.message)
-    val jobResults = result.jobExecutionsOpt.get
-    assert(jobResults.size === nJobs)
-    assert(jobResults.values.forall(_.isInstanceOf[JobResult.SuccessResult]))
+    val jobExecutions = result.jobExecutionsOpt.get
+    assert(jobExecutions.size === nJobs)
+    val jobStatuses = jobExecutions.values.map(_.status)
+    assert(jobStatuses.forall(_.isInstanceOf[JobStatus.Succeeded.type]))
+    val nonNoOpJobResults = jobExecutions.filterKeys(!_.isInstanceOf[NoOpJob]).values.map(_.result)
+    assert(nonNoOpJobResults.forall(_.get.isInstanceOf[JobResult.Success.type]))
   }
 
   private val inContent = {

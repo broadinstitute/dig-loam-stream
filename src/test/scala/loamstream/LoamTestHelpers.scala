@@ -13,7 +13,7 @@ import loamstream.loam.ast.LoamGraphAstMapper
 import loamstream.loam.ast.LoamGraphAstMapping
 import loamstream.model.execute.Executable
 import loamstream.model.execute.RxExecuter
-import loamstream.model.jobs.{JobResult, LJob}
+import loamstream.model.jobs.{Execution, LJob}
 import loamstream.util.Loggable
 
 
@@ -63,5 +63,5 @@ trait LoamTestHelpers extends Loggable {
     (mapping, executable)
   }
 
-  def run(executable: Executable): Map[LJob, JobResult] = RxExecuter.default.execute(executable)
+  def run(executable: Executable): Map[LJob, Execution] = RxExecuter.default.execute(executable)
 }

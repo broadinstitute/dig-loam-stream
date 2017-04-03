@@ -1,13 +1,23 @@
 package loamstream.uger
 
 import java.nio.file.Path
-import loamstream.conf.UgerConfig
+
 import scala.concurrent.duration.Duration
 import scala.util.Try
-import org.ggf.drmaa._
+
+import org.ggf.drmaa.DrmaaException
+import org.ggf.drmaa.ExitTimeoutException
+import org.ggf.drmaa.InvalidJobException
+import org.ggf.drmaa.JobInfo
+import org.ggf.drmaa.JobTemplate
+import org.ggf.drmaa.Session
+import org.ggf.drmaa.SessionFactory
+
+import loamstream.conf.UgerConfig
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.util.CompositeException
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
-import loamstream.model.execute.Resources.UgerResources
 
 /**
  * Created on: 5/19/16
@@ -16,14 +26,25 @@ import loamstream.model.execute.Resources.UgerResources
  * @author clint
  * 
  * A DRMAAv1 implementation of DrmaaClient; can submit work to UGER and monitor it.
+ * 
  */
 final class Drmaa1Client extends DrmaaClient with Loggable {
+
+  /*
+   * NOTE: BEWARE: DRMAAv1 is not thread-safe.  All operations on org.ggf.drmaa.Sessions that change the number
+   * of remote jobs - either by submitting them, killing them, or otherwise altering them with Session.control() -
+   * need to be synchronized; they can't happen concurrently.
+   * 
+   * Currently, this is handled by doing all operations that need a Session inside a call to withSession().
+   */
   
   import DrmaaClient._
 
-  //NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
-  //We use one Session per client to ensure that all operations performed by this instance use the same Session.  
-  //We wrap the Session in a ValueBox to make it easier to synchronize access to it.
+  /*
+   * NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
+   * We use one Session per client to ensure that all operations performed by this instance use the same Session.
+   * We wrap the Session in a ValueBox to make it easier to synchronize access to it.   
+   */
   private[this] lazy val sessionBox: ValueBox[Session] = ValueBox(getNewSession)
   
   private def getNewSession: Session = {
@@ -50,9 +71,38 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   }
   
   /**
+   * Kill the job with the specified id, if the job is running.
+   */
+  override def killJob(jobId: String): Unit = {
+    debug(s"Killing Job '$jobId'")
+    
+    withSession(_.control(jobId, Session.TERMINATE))
+  }
+  
+  /**
+   * Kill all jobs.
+   */
+  override def killAllJobs(): Unit = {
+    debug(s"Killing all jobs...")
+    
+    killJob(Session.JOB_IDS_SESSION_ALL)
+  }
+  
+  /**
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
-  override def stop(): Unit = tryShuttingDown(sessionBox.value)
+  override def stop(): Unit = withSession { session =>
+    def failureAsOption(block: => Any): Option[Throwable] = Try(block).failed.toOption
+    
+    val killAllFailureOpt = failureAsOption(killAllJobs())
+    val shutdownFailureOpt = failureAsOption(tryShuttingDown(session))
+    
+    val failures = killAllFailureOpt.toSeq ++ shutdownFailureOpt
+    
+    if(failures.nonEmpty) {
+      throw new CompositeException(failures)
+    }
+  }
   
   /**
    * Synchronously obtain the status of one running UGER job, given its id.

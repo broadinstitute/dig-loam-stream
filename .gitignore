@@ -40,3 +40,4 @@ model/.settings
 /webui/target/
 pipelines/
 .loamstream
+src/main/loam/loam

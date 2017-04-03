@@ -66,21 +66,6 @@ final case class RxMockJob( override val name: String,
 }
 
 object RxMockJob {
-/*  def apply(name: String,
-            inputs: Set[LJob] = Set.empty,
-            outputs: Set[Output] = Set.empty,
-            runsAfter: Set[RxMockJob] = Set.empty,
-            fakeExecutionTimeInMs: Int = 0,
-            status: JobStatus = JobStatus.Succeeded): RxMockJob = {
-
-    RxMockJob(name,
-              inputs,
-              outputs,
-              runsAfter,
-              fakeExecutionTimeInMs,
-              executionFrom(outputs, jobStatus = status))
-  }
-*/
   def apply(name: String,
             inputs: Set[LJob] = Set.empty,
             outputs: Set[Output] = Set.empty,
@@ -96,14 +81,12 @@ object RxMockJob {
               executionFrom(outputs, jobResult = toReturn))
   }
 
-  private def executionFrom(outputs: Set[Output],
-                            jobStatus: JobStatus = JobStatus.Succeeded,
-                            jobResult: JobResult = JobResult.CommandResult(0)) = {
+  private[this] def executionFrom(outputs: Set[Output], jobResult: JobResult) = {
     Execution(TestHelpers.env,
               cmd = None,
               settings = LocalSettings(),
-              jobStatus,
-              result = None,
+              jobResult.toJobStatus,
+              Option(jobResult),
               resources = None,
               outputs.map(_.toOutputRecord))
   }

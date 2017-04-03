@@ -86,5 +86,9 @@ object DrmaaClientHelpersTest {
     override def stop(): Unit = {
       isShutdown = true
     }
+    
+    override def killJob(jobId: String): Unit = ???
+  
+    override def killAllJobs(): Unit = ???
   }
 }

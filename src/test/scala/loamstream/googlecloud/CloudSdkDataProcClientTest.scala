@@ -4,6 +4,8 @@ import java.nio.file.Paths
 
 import loamstream.util.PathUtils
 import org.scalatest.FunSuite
+import loamstream.util.ExitCodes
+import loamstream.util.ExitCodeException
 
 /**
  * @author clint
@@ -26,10 +28,54 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       imageVersion = "42.2.1.0",
       scopes = "ses")
   
-  private val client = new CloudSdkDataProcClient(config)
-
   private val examplePath = PathUtils.newAbsolute("foo", "bar", "baz")
       
+  private def alwaysFails(tokens: Seq[String]): Int = 42
+  
+  private def alwaysSucceeds(tokens: Seq[String]): Int = ExitCodes.success
+  
+  test("startCluster") {
+    val client = new CloudSdkDataProcClient(config, alwaysSucceeds)
+    
+    //Shouldn't throw
+    client.startCluster()
+  }
+  
+  test("startCluster - should throw") {
+    val client = new CloudSdkDataProcClient(config, alwaysFails)
+    
+    intercept[ExitCodeException] {
+      client.startCluster()
+    }
+  }
+  
+  test("deleteCluster") {
+    val client = new CloudSdkDataProcClient(config, alwaysSucceeds)
+    
+    //Shouldn't throw
+    client.deleteCluster()
+  }
+  
+  test("deleteCluster - should throw") {
+    val client = new CloudSdkDataProcClient(config, alwaysFails)
+    
+    intercept[ExitCodeException] {
+      client.deleteCluster()
+    }
+  }
+  
+  test("isClusterRunning") {
+    val client = new CloudSdkDataProcClient(config, alwaysSucceeds)
+    
+    assert(client.isClusterRunning)
+  }
+  
+  test("isClusterRunning - not running") {
+    val client = new CloudSdkDataProcClient(config, alwaysFails)
+    
+    assert(client.isClusterRunning === false)
+  }
+  
   test("gcloudTokens") {
     import CloudSdkDataProcClient.gcloudTokens
     

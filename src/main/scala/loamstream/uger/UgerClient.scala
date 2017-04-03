@@ -59,6 +59,16 @@ final class UgerClient(
    * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
    */
   override def stop(): Unit = drmaaClient.stop()
+  
+  /**
+   * Kill the job with the specified id, if the job is running.
+   */
+  override def killJob(jobId: String): Unit = drmaaClient.killJob(jobId)
+  
+  /**
+   * Kill all jobs.
+   */
+  override def killAllJobs(): Unit = drmaaClient.killAllJobs()
 }
 
 object UgerClient extends Loggable {

@@ -1,5 +1,6 @@
 package loamstream.model.execute
 
+import loamstream.TestHelpers
 import org.scalatest.FunSuite
 import loamstream.model.jobs._
 import loamstream.util.ValueBox
@@ -67,16 +68,16 @@ final class RxExecuterTest extends FunSuite {
 
       val executable = Executable(Set(job1))
 
-      val ExecutionResults(results, chunks) = exec(executable)
+      val ExecutionResults(executions, chunks) = exec(executable)
 
       assert(job1.executionCount === 1)
 
-      assert(results.size === 1)
+      assert(executions.size === 1)
 
       // Check if jobs were correctly chunked
       assert(chunks === Seq(Set(job1)))
 
-      assert(results.values.head.status === jobResult)
+      assert(executions.values.head.result === Some(jobResult))
     }
 
     doTest(JobResult.Failure)
@@ -90,29 +91,29 @@ final class RxExecuterTest extends FunSuite {
      *  Job1 --- Job2
      *
      */
-    def doTest(jobState: JobResult): Unit = {
+    def doTest(jobResult: JobResult): Unit = {
 
-      val job1 = RxMockJob("Job_1", toReturn = jobState)
-      val job2 = RxMockJob("Job_2", inputs = Set(job1), toReturn = jobState)
+      val job1 = RxMockJob("Job_1", toReturn = jobResult)
+      val job2 = RxMockJob("Job_2", inputs = Set(job1), toReturn = jobResult)
 
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)
 
       val executable = Executable(Set(job1))
 
-      val ExecutionResults(results, chunks) = exec(executable)
+      val ExecutionResults(executions, chunks) = exec(executable)
 
       //We expect that job wasn't run, since the preceding job failed
       assert(job1.executionCount === 1)
       assert(job2.executionCount === 0)
 
-      assert(results.size === 1)
+      assert(executions.size === 1)
 
       // Check if jobs were correctly chunked
       assert(chunks === Seq(Set(job1)))
 
-      assert(results(job1) === jobState)
-      assert(results.get(job2).isEmpty)
+      assert(executions(job1) === TestHelpers.executionFromResult(jobResult))
+      assert(executions.get(job2).isEmpty)
     }
 
     doTest(JobResult.Failure)

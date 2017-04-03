@@ -52,8 +52,8 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     deleteOutput(paths.map(PathUtils.normalize))
   }
 
-  private def insert(executionAndState: (Execution, JobResult.CommandResult)): DBIO[Iterable[Int]] = {
-    val (execution, commandResult) = executionAndState
+  private def insert(executionAndResult: (Execution, JobResult.CommandResult)): DBIO[Iterable[Int]] = {
+    val (execution, commandResult) = executionAndResult
 
     import Helpers.dummyId
 
@@ -63,7 +63,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     //NB: Also note unsafe .get, which is "ok" here since we executions without command lines will have been
     //filtered out before we get here.  
     val executionRow = new ExecutionRow(dummyId, execution.env.name, execution.cmd.get,
-      execution.status, commandResult.exitStatus)
+      execution.status, commandResult.exitCode)
     
     import Implicits._
 

@@ -25,19 +25,21 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
 
-  private def hashAndStore(p: Path, exitCode: Int = 0): Unit = {
+  private def hashAndStore(p: Path, exitCode: Int = 0): Execution = {
     val hash = Hashes.sha1(p)
     val lastModified = PathUtils.lastModifiedTime(p)
 
     val e = Execution(mockEnv,
                       Option(mockCmd),
                       mockSettings,
-                      mockStatus,
+                      JobStatus.fromExitCode(exitCode),
                       Option(JobResult.CommandResult(exitCode)),
                       Some(mockResources),
                       Set(cachedOutput(p, hash, lastModified)))
     
     store(e)
+    
+    e
   }
 
   test("Pipelines can be resumed after stopping 1/3rd of the way through") {
@@ -49,7 +51,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       JFiles.copy(start, f1)
       
       hashAndStore(f1)
-
+      
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))
     }
@@ -103,8 +105,12 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
 
   private def mockJob(name: String, outputs: Set[Output], inputs: Set[LJob] = Set.empty)(body: => Any): MockJob = {
-    new MockJob(JobStatus.Succeeded, name, inputs, outputs, delay = 0) {
-      override protected def executeSelf(implicit context: ExecutionContext): Future[JobResult] = {
+    val successfulExecution = TestHelpers.executionFromResult(JobResult.CommandResult(0))
+
+    val successfulExecutionWithOutputs = successfulExecution.copy(outputs = outputs.map(_.toOutputRecord))
+    
+    new MockJob(successfulExecutionWithOutputs, name, inputs, outputs, delay = 0) {
+      override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
         body
 
         super.executeSelf
@@ -169,7 +175,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
         val jobStatuses = Seq(startToF1.status, f1ToF2.status, f2ToF3.status)
 
-        val expectedStates = {
+        val expectedStatuses = {
           if (runningEverything) {
             Seq(Succeeded, Succeeded, Succeeded)
           }
@@ -178,7 +184,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
           }
         }
 
-        assert(jobStatuses == expectedStates)
+        assert(jobStatuses == expectedStatuses)
 
         val expectedNumResults = if (runningEverything) 3 else expectations.count(_.isSuccess)
 

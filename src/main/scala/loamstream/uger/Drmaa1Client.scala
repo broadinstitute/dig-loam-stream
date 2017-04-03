@@ -26,14 +26,25 @@ import loamstream.util.ValueBox
  * @author clint
  * 
  * A DRMAAv1 implementation of DrmaaClient; can submit work to UGER and monitor it.
+ * 
  */
 final class Drmaa1Client extends DrmaaClient with Loggable {
+
+  /*
+   * NOTE: BEWARE: DRMAAv1 is not thread-safe.  All operations on org.ggf.drmaa.Sessions that change the number
+   * of remote jobs - either by submitting them, killing them, or otherwise altering them with Session.control() -
+   * need to be synchronized; they can't happen concurrently.
+   * 
+   * Currently, this is handled by doing all operations that need a Session inside a call to withSession().
+   */
   
   import DrmaaClient._
 
-  //NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
-  //We use one Session per client to ensure that all operations performed by this instance use the same Session.  
-  //We wrap the Session in a ValueBox to make it easier to synchronize access to it.
+  /*
+   * NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
+   * We use one Session per client to ensure that all operations performed by this instance use the same Session.
+   * We wrap the Session in a ValueBox to make it easier to synchronize access to it.   
+   */
   private[this] lazy val sessionBox: ValueBox[Session] = ValueBox(getNewSession)
   
   private def getNewSession: Session = {

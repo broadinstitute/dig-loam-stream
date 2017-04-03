@@ -10,6 +10,9 @@ import org.ggf.drmaa.DrmaaException
 import loamstream.util.OneTimeLatch
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
+import loamstream.util.Versions
+import scala.util.Success
+import scala.util.Failure
 
 /**
  * @author clint
@@ -19,6 +22,8 @@ object Main extends Loggable {
   def main(args: Array[String]): Unit = {
     val cli = Conf(args)
 
+    describeLoamstream()
+    
     if (cli.dryRun.isSupplied) {
       compileOnly(cli)
     } else {
@@ -64,6 +69,11 @@ object Main extends Loggable {
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
     }
+  }
+  
+  private def describeLoamstream(): Unit = Versions.load match {
+    case Success(versions) => info(versions.toString)
+    case Failure(e) => warn("Unable to determine version info: ", e)
   }
 
   private def listResults(jobsToExecutions: Map[LJob, Execution]): Unit = {

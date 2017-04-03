@@ -20,6 +20,18 @@ final class JobStatusTest extends FunSuite {
     assert(Terminated.isSuccess === false)
     assert(Unknown.isSuccess === false)
   }
+  
+  test("isSkipped") {
+    assert(Succeeded.isSkipped === false)
+    assert(Skipped.isSkipped === true)
+    assert(Failed.isSkipped === false)
+    assert(FailedWithException.isSkipped === false)
+    assert(NotStarted.isSkipped === false)
+    assert(Submitted.isSkipped === false)
+    assert(Running.isSkipped === false)
+    assert(Terminated.isSkipped === false)
+    assert(Unknown.isSkipped === false)
+  }
 
   test("isFailure") {
     assert(Succeeded.isFailure === false)
@@ -70,6 +82,32 @@ final class JobStatusTest extends FunSuite {
     assert(fromString("") === None)
     assert(fromString("Undefined") === None)
     assert(fromString("blah") === None)
+    
+    
+    assert(fromString("SUCCEEDED") === Some(Succeeded))
+    assert(fromString("SKIPPED") === Some(Skipped))
+    assert(fromString("FAILED") === Some(Failed))
+    assert(fromString("FAILEDWITHEXCEPTION") === Some(FailedWithException))
+    assert(fromString("NOTSTARTED") === Some(NotStarted))
+    assert(fromString("SUBMITTED") === Some(Submitted))
+    assert(fromString("RUNNING") === Some(Running))
+    assert(fromString("TERMINATED") === Some(Terminated))
+    assert(fromString("UNKNOWN") === Some(Unknown))
+    assert(fromString("   ") === None)
+    assert(fromString("UNDEFINED") === None)
+    assert(fromString("BLAH") === None)
+    
+    assert(fromString("SuCcEeDeD") === Some(Succeeded))
+    assert(fromString("SkIpPeD") === Some(Skipped))
+    assert(fromString("FaIlEd") === Some(Failed))
+    assert(fromString("FaIlEdWiThExCePtIoN") === Some(FailedWithException))
+    assert(fromString("NoTsTaRtEd") === Some(NotStarted))
+    assert(fromString("SuBmItTeD") === Some(Submitted))
+    assert(fromString("RuNnInG") === Some(Running))
+    assert(fromString("TeRmInAtEd") === Some(Terminated))
+    assert(fromString("UnKnOwN") === Some(Unknown))
+    assert(fromString("UnDeFiNeD") === None)
+    assert(fromString("bLaH") === None)
   }
 
   test("fromExitCode") {

@@ -8,6 +8,8 @@ import loamstream.compiler.LoamEngine
 import loamstream.cli.BackendType
 import org.ggf.drmaa.DrmaaException
 import loamstream.util.OneTimeLatch
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.LJob
 
 /**
  * @author clint
@@ -54,16 +56,44 @@ object Main extends Loggable {
         loamEngine.runFiles(cli.loams())
       }
 
-      for {
-        (job, execution) <- engineResult.jobExecutionsOpt.get
-      } {
-        info(s"${execution.status}\t(${execution.result}):\tRan $job got $execution")
-      }
+      val jobsToExecutions = engineResult.jobExecutionsOpt.get
+      
+      listResults(jobsToExecutions)
+      
+      describeExecutions(jobsToExecutions.values)
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
     }
   }
 
+  private def listResults(jobsToExecutions: Map[LJob, Execution]): Unit = {
+    for {
+      (job, execution) <- jobsToExecutions
+    } {
+      info(s"${execution.status}\t(${execution.result}):\tRan $job got $execution")
+    }
+  }
+  
+  private def describeExecutions(executions: Iterable[Execution]): Unit = {
+    def isSkipped(e: Execution) = e.status.isSkipped
+      
+    def allSkipped = executions.forall(isSkipped)
+    
+    def allSucceededOrSkipped = executions.forall(_.isSuccess) && executions.exists(isSkipped)
+    
+    def allSucceeded = executions.forall(_.isSuccess)
+    
+    def allFailed = executions.forall(_.isFailure)
+    
+    def someDidntFinish = executions.exists(_.status.notFinished)
+    
+    if(allSkipped) { info("All jobs were skipped.") } 
+    else if(allSucceededOrSkipped) { info("All jobs succeeded or were skipped.") } 
+    else if(allSucceeded) { info("All jobs succeeded.") } 
+    else if(allFailed) { info("All jobs failed.") } 
+    else if(someDidntFinish) { info("Not all jobs finished.") }
+  }
+  
   private[this] val shutdownLatch: OneTimeLatch = new OneTimeLatch
 
   private[apps] def shutdown(wiring: AppWiring): Unit = {
@@ -74,7 +104,7 @@ object Main extends Loggable {
           error(s"LoamStream shut down with ${exceptions.size} errors: ")
 
           exceptions.foreach { e =>
-            error(s"Error shuting down: ${e.getClass.getName}", e)
+            error(s"Error shutting down: ${e.getClass.getName}", e)
           }
         }
       }

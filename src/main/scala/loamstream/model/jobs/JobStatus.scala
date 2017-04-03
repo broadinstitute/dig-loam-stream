@@ -14,21 +14,11 @@ sealed trait JobStatus {
   def isFinished: Boolean = isSuccess || isFailure
 
   def notFinished: Boolean = !isFinished
+  
+  def isSkipped: Boolean = this == JobStatus.Skipped
 }
 
 object JobStatus extends Loggable {
-
-  sealed abstract class Success(
-                      override val isSuccess: Boolean = true,
-                      override val isFailure: Boolean = false) extends JobStatus
-
-  sealed abstract class Failure(
-                      override val isSuccess: Boolean = false,
-                      override val isFailure: Boolean = true) extends JobStatus
-
-  sealed abstract class NeitherSuccessNorFailure(
-                                       override val isSuccess: Boolean = false,
-                                       override val isFailure: Boolean = false) extends JobStatus
 
   case object Succeeded extends Success
   case object Skipped extends Success
@@ -40,23 +30,33 @@ object JobStatus extends Loggable {
   case object Running extends NeitherSuccessNorFailure
   case object Unknown extends NeitherSuccessNorFailure
 
-  // scalastyle:off cyclomatic.complexity
-  def fromString(s: String): Option[JobStatus] = s match {
-    case "Succeeded" => Some(Succeeded)
-    case "Skipped" => Some(Skipped)
-    case "Failed" => Some(Failed)
-    case "FailedWithException" => Some(FailedWithException)
-    case "NotStarted" => Some(NotStarted)
-    case "Submitted" => Some(Submitted)
-    case "Terminated" => Some(Terminated)
-    case "Running" => Some(Running)
-    case "Unknown" => Some(Unknown)
-    case _ => None
-  }
-  // scalastyle:on cyclomatic.complexity
+  def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
 
   def fromExitCode(code: Int): JobStatus = {
     if (JobResult.isSuccessExitCode(code)) { Succeeded }
     else { Failed }
   }
+  
+  sealed abstract class Success(
+                      override val isSuccess: Boolean = true,
+                      override val isFailure: Boolean = false) extends JobStatus
+
+  sealed abstract class Failure(
+                      override val isSuccess: Boolean = false,
+                      override val isFailure: Boolean = true) extends JobStatus
+
+  sealed abstract class NeitherSuccessNorFailure(
+                                       override val isSuccess: Boolean = false,
+                                       override val isFailure: Boolean = false) extends JobStatus
+  
+  private lazy val namesToInstances: Map[String, JobStatus] = Map(
+    "succeeded" -> Succeeded,
+    "skipped" -> Skipped,
+    "failed" -> Failed,
+    "failedwithexception" -> FailedWithException,
+    "notstarted" -> NotStarted,
+    "submitted" -> Submitted,
+    "terminated" -> Terminated,
+    "running" -> Running,
+    "unknown" -> Unknown)
 }

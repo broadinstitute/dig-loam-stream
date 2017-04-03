@@ -23,10 +23,8 @@ final case class Execution(env: ExecutionEnvironment,
   //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a
   //command-line string is defined.
   def isCommandExecution: Boolean = result.exists {
-    _ match {
-        case _: JobResult.CommandResult | _: JobResult.CommandInvocationFailure => cmd.isDefined
-        case _ => false
-    }
+    case _: JobResult.CommandResult | _: JobResult.CommandInvocationFailure => cmd.isDefined
+    case _ => false
   }
 
   def withOutputRecords(newOutputs: Set[OutputRecord]): Execution = copy(outputs = newOutputs)

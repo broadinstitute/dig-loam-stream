@@ -48,13 +48,14 @@ object TestHelpers {
                     result: Option[JobResult] = None,
                     resources: Option[Resources] = None): Execution = {
 
-    Execution(env,
-      cmd = None,
-      settings = LocalSettings(),
-      status,
-      result,
-      resources,
-      Set.empty[OutputRecord])
+    Execution(id = None,
+              env,
+              cmd = None,
+              settings = LocalSettings(),
+              status,
+              result,
+              resources,
+              Set.empty[OutputRecord])
   }
 
   def executionFromStatus(status: JobStatus, resources: Option[Resources] = None): Execution = {

@@ -8,7 +8,8 @@ import loamstream.model.jobs.commandline.CommandLineJob
  *         kyuksel
  * date: Sep 22, 2016
  */
-final case class Execution(env: ExecutionEnvironment,
+final case class Execution(id: Option[Int] = None,
+                           env: ExecutionEnvironment,
                            cmd: Option[String] = None,
                            settings: Settings,
                            status: JobStatus,
@@ -33,6 +34,9 @@ final case class Execution(env: ExecutionEnvironment,
   }
 
   def withResources(rs: Resources): Execution = copy(resources = Some(rs))
+
+  def withId(newId: Int): Execution = withId(Option(newId))
+  def withId(newId: Option[Int]): Execution = copy(id = newId)
 }
 
 object Execution {
@@ -42,7 +46,7 @@ object Execution {
             settings: Settings,
             result: JobResult,
             outputs: Set[OutputRecord]): Execution = {
-    Execution(env, cmd, settings, result.toJobStatus, Some(result), None, outputs)
+    Execution(id = None, env, cmd, settings, result.toJobStatus, Some(result), None, outputs)
   }
 
   // TODO Remove when dynamic statuses flow in
@@ -51,7 +55,7 @@ object Execution {
             settings: Settings,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
-    Execution(env, Option(cmd), settings, result.toJobStatus, Some(result), None, outputs.toSet)
+    Execution(id = None, env, Option(cmd), settings, result.toJobStatus, Some(result), None, outputs.toSet)
   }
 
   def apply(env: ExecutionEnvironment,
@@ -60,7 +64,7 @@ object Execution {
             status: JobStatus,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
-    Execution(env, Option(cmd), settings, status, Some(result), None, outputs.toSet)
+    Execution(id = None, env, Option(cmd), settings, status, Some(result), None, outputs.toSet)
   }
 
   def fromOutputs(env: ExecutionEnvironment,
@@ -83,6 +87,7 @@ object Execution {
 
     // TODO Replace the placeholders for `settings` objects put in place to get the code to compile
     Execution(
+      id = None,
       job.executionEnvironment,
       commandLine,
       LocalSettings(), // TODO

@@ -6,7 +6,7 @@ import java.time.Instant
 
 import loamstream.model.execute._
 import org.scalatest.FunSuite
-import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
+import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.uger.Queue
@@ -79,7 +79,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(stored.withId(None) === retrieved.withId(None))
     }
   }
-  
+
   test("insert/Read Outputs") {
     createTablesAndThen {
       assert(noOutputs)
@@ -173,7 +173,26 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(noOutputs)
     }
   }
-  
+
+  test("insertExecutionRow") {
+    import Helpers.dummyId
+
+    createTablesAndThen {
+      assert(noOutputs)
+
+      val toInsert = new ExecutionRow(dummyId, mockEnv.toString, mockCmd, mockStatus, mockExitCode)
+
+      val recorded = dao.insertExecutionRow(toInsert)
+
+      // The DB must assign an auto-incremented 'id' upon insertion
+      assert(recorded.id != dummyId)
+      assert(recorded.env === mockEnv.toString)
+      assert(recorded.cmd === mockCmd)
+      assert(recorded.status === mockStatus)
+      assert(recorded.exitCode === mockExitCode)
+    }
+  }
+
   test("insertExecutions/allExecutionRows") {
     createTablesAndThen {
       val output0 = cachedOutput(path0, hash0)

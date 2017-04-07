@@ -26,10 +26,8 @@ trait ProvidesEnvAndResources extends FunSuite {
     UgerSettings(mem, cpu, Queue.Short)
   }
   val mockStatus: JobStatus = JobStatus.Unknown
-  val mockResult: JobResult = {
-    val exitCode = 0
-    JobResult.CommandResult(exitCode)
-  }
+  val mockExitCode: Int = 999
+  val mockResult: JobResult = JobResult.CommandResult(mockExitCode)
 
   val mockLocalResources: LocalResources = TestHelpers.localResources
   

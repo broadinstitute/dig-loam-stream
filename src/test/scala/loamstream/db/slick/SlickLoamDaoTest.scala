@@ -181,8 +181,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(noOutputs)
 
       val toInsert = new ExecutionRow(dummyId, mockEnv.toString, mockCmd, mockStatus, mockExitCode)
-
-      val recorded = dao.insertExecutionRow(toInsert)
+      val insertAction = dao.insertExecutionRow(toInsert)
+      val recorded = dao.runBlocking(insertAction)
 
       // The DB must assign an auto-incremented 'id' upon insertion
       assert(recorded.id != dummyId)

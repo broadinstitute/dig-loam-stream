@@ -55,16 +55,10 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   /**
    * Insert the given ExecutionRow and return what is recorded with the updated (auto-incremented) id
    */
-  def insertExecutionRow(executionToRecord: ExecutionRow): ExecutionRow = {
+  def insertExecutionRow(executionToRecord: ExecutionRow): DBIO[ExecutionRow] = {
     import Implicits._
 
-    val newExecution: DBIO[ExecutionRow] = for {
-      newExecution <- (Queries.insertExecution += executionToRecord)
-    } yield {
-      newExecution
-    }
-
-    runBlocking(newExecution)
+    (Queries.insertExecution += executionToRecord).map(identity)
   }
 
   // TODO Input no longer needs to be a (Execution, JobResult) since Execution contains JobResult now
@@ -84,7 +78,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     import Implicits._
 
     for {
-      newExecution <- (Queries.insertExecution += executionRow)
+      newExecution <- insertExecutionRow(executionRow)
       outputsWithExecutionId = tieOutputsToExecution(execution, newExecution.id)
       settingsWithExecutionId = tieSettingsToExecution(execution, newExecution.id)
       resourcesWithExecutionId = tieResourcesToExecution(execution, newExecution.id)
@@ -292,7 +286,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   //TODO: Re-evaluate; block all the time?
-  private def runBlocking[A](action: DBIO[A]): A = waitFor(db.run(action))
+  private[slick] def runBlocking[A](action: DBIO[A]): A = waitFor(db.run(action))
 
   private def log(sqlAction: SqlAction[_, _, _]): Unit = {
     sqlAction.statements.foreach(s => debug(s"SQL: $s"))

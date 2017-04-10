@@ -56,9 +56,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
    * Insert the given ExecutionRow and return what is recorded with the updated (auto-incremented) id
    */
   def insertExecutionRow(executionToRecord: ExecutionRow): DBIO[ExecutionRow] = {
-    import Implicits._
-
-    (Queries.insertExecution += executionToRecord).map(identity)
+    Queries.insertExecution += executionToRecord
   }
 
   // TODO Input no longer needs to be a (Execution, JobResult) since Execution contains JobResult now

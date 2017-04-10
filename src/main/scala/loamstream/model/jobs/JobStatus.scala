@@ -11,13 +11,15 @@ sealed trait JobStatus {
 
   def isFailure: Boolean
 
-  def isFinished: Boolean = isSuccess || isFailure
+  def isFinished: Boolean = isSuccess || isFailure || isTerminal
 
   def notFinished: Boolean = !isFinished
   
   def isSkipped: Boolean = this == JobStatus.Skipped
   
   def isTooManyRestarts: Boolean = this == JobStatus.TooManyRestarts
+
+  def isTerminal: Boolean = false
 }
 
 object JobStatus extends Loggable {
@@ -31,13 +33,17 @@ object JobStatus extends Loggable {
   case object Submitted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
   case object Unknown extends NeitherSuccessNorFailure
-  case object TooManyRestarts extends NeitherSuccessNorFailure
+  case object TooManyRestarts extends NeitherSuccessNorFailure with IsTerminal
 
   def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
 
   def fromExitCode(code: Int): JobStatus = {
     if (JobResult.isSuccessExitCode(code)) { Succeeded }
     else { Failed }
+  }
+  
+  sealed trait IsTerminal { self: JobStatus =>
+    override val isTerminal: Boolean = true
   }
   
   sealed abstract class Success(
@@ -61,5 +67,6 @@ object JobStatus extends Loggable {
     "submitted" -> Submitted,
     "terminated" -> Terminated,
     "running" -> Running,
-    "unknown" -> Unknown)
+    "unknown" -> Unknown,
+    "toomanyrestarts" -> TooManyRestarts)
 }

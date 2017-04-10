@@ -130,6 +130,7 @@ trait LJob extends Loggable {
     import JobStatus._
 
     statusRef.mutate { oldStatus =>
+      //TODO: TEST
       //TODO: Side effect, overlapping locks
       newStatus match {
         case Running if oldStatus != Running => incrementRunCount()

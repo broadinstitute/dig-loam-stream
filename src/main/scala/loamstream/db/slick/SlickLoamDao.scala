@@ -52,23 +52,31 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     deleteOutput(paths.map(PathUtils.normalize))
   }
 
+  /**
+   * Insert the given ExecutionRow and return what is recorded with the updated (auto-incremented) id
+   */
+  def insertExecutionRow(executionToRecord: ExecutionRow): DBIO[ExecutionRow] = {
+    Queries.insertExecution += executionToRecord
+  }
+
+  // TODO Input no longer needs to be a (Execution, JobResult) since Execution contains JobResult now
   private def insert(executionAndResult: (Execution, JobResult.CommandResult)): DBIO[Iterable[Int]] = {
     val (execution, commandResult) = executionAndResult
 
     import Helpers.dummyId
 
     require(execution.cmd.isDefined, s"An Execution with a command line defined is required, but got $execution")
-    
+
     //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
-    //NB: Also note unsafe .get, which is "ok" here since we executions without command lines will have been
-    //filtered out before we get here.  
+    //NB: Also note unsafe .get, which is "ok" here since the executions without command lines will have been
+    //filtered out before we get here.
     val executionRow = new ExecutionRow(dummyId, execution.env.name, execution.cmd.get,
       execution.status, commandResult.exitCode)
-    
+
     import Implicits._
 
     for {
-      newExecution <- (Queries.insertExecution += executionRow)
+      newExecution <- insertExecutionRow(executionRow)
       outputsWithExecutionId = tieOutputsToExecution(execution, newExecution.id)
       settingsWithExecutionId = tieSettingsToExecution(execution, newExecution.id)
       resourcesWithExecutionId = tieResourcesToExecution(execution, newExecution.id)
@@ -91,7 +99,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     runBlocking(insertEverything)
   }
 
-  //TODO: Find way to extract common code from the all* methods 
+  //TODO: Find way to extract common code from the all* methods
   override def allOutputRecords: Seq[OutputRecord] = {
     val query = tables.outputs.result
 
@@ -173,7 +181,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   private def insertOrUpdateSettingRow(row: SettingRow): DBIO[Int] = row.insertOrUpdate(tables)
 
   private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = row.insertOrUpdate(tables)
-  
+
   private def insertOrUpdateResourceRows(rows: Iterable[ResourceRow]): DBIO[Seq[Int]] = {
     DBIO.sequence(rows.toSeq.map(insertOrUpdateResourceRow))
   }
@@ -232,17 +240,17 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   private def settingsFor(execution: ExecutionRow): Settings = {
     //Oh, Slick ... yow :\
     type SettingTable = TableQuery[_ <: tables.driver.api.Table[_ <: SettingRow] with tables.HasExecutionId]
-    
+
     def settingsFrom(table: SettingTable): Seq[Settings] = {
       runBlocking(table.filter(_.executionId === execution.id).result).map(_.toSettings)
     }
-    
+
     val table: SettingTable = ExecutionEnvironment.fromString(execution.env) match {
       case ExecutionEnvironment.Local => tables.localSettings
       case ExecutionEnvironment.Uger => tables.ugerSettings
       case ExecutionEnvironment.Google => tables.googleSettings
     }
-    
+
     val queryResults: Seq[Settings] = settingsFrom(table)
 
     require(queryResults.size == 1,
@@ -276,7 +284,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   //TODO: Re-evaluate; block all the time?
-  private def runBlocking[A](action: DBIO[A]): A = waitFor(db.run(action))
+  private[slick] def runBlocking[A](action: DBIO[A]): A = waitFor(db.run(action))
 
   private def log(sqlAction: SqlAction[_, _, _]): Unit = {
     sqlAction.statements.foreach(s => debug(s"SQL: $s"))
@@ -284,9 +292,9 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution(_, _, _, _, Some(cr: CommandResult), _, _) => e -> cr
+      case e @ Execution(_, _, _, _, _, Some(cr: CommandResult), _, _) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case DummyExitCode
-      case e @ Execution(_, _, _, _, Some(cr: CommandInvocationFailure), _, _) =>
+      case e @ Execution(_, _, _, _, _, Some(cr: CommandInvocationFailure), _, _) =>
         // TODO: Better assign e -> JobResult.Failure?
         e -> CommandResult(JobResult.DummyExitCode)
     }

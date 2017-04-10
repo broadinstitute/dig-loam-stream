@@ -6,7 +6,7 @@ import java.time.Instant
 
 import loamstream.model.execute._
 import org.scalatest.FunSuite
-import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
+import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.uger.Queue
@@ -44,7 +44,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       cachedOutput(path, hash)
     }
     
-    val execution = Execution(mockEnv, Option(mockCmd), mockSettings, 
+    val execution = Execution(mockEnv, Option(mockCmd), mockSettings,
                               JobResult.CommandResult(0), outputs.toSet)
     
     dao.insertExecutions(execution)
@@ -74,11 +74,12 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val Seq(retrieved) = dao.allExecutions
       
       assert(dao.allOutputRecords.toSet === stored.outputs)
-      
-      assert(stored === retrieved)
+
+      // TODO Stop ignoring the ID field
+      assert(stored.withId(None) === retrieved.withId(None))
     }
   }
-  
+
   test("insert/Read Outputs") {
     createTablesAndThen {
       assert(noOutputs)
@@ -172,7 +173,26 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(noOutputs)
     }
   }
-  
+
+  test("insertExecutionRow") {
+    import Helpers.dummyId
+
+    createTablesAndThen {
+      assert(noOutputs)
+
+      val toInsert = new ExecutionRow(dummyId, mockEnv.toString, mockCmd, mockStatus, mockExitCode)
+      val insertAction = dao.insertExecutionRow(toInsert)
+      val recorded = dao.runBlocking(insertAction)
+
+      // The DB must assign an auto-incremented 'id' upon insertion
+      assert(recorded.id != dummyId)
+      assert(recorded.env === mockEnv.toString)
+      assert(recorded.cmd === mockCmd)
+      assert(recorded.status === mockStatus)
+      assert(recorded.exitCode === mockExitCode)
+    }
+  }
+
   test("insertExecutions/allExecutionRows") {
     createTablesAndThen {
       val output0 = cachedOutput(path0, hash0)

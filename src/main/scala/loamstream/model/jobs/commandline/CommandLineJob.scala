@@ -54,7 +54,8 @@ trait CommandLineJob extends LJob {
         case Failure(e) => (JobStatus.FailedWithException, CommandInvocationFailure(e))
       }
       
-      Execution(executionEnvironment,
+      Execution(id = None,
+                executionEnvironment,
                 Some(commandLineString),
                 LocalSettings(),
                 jobStatus,

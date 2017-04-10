@@ -108,7 +108,7 @@ trait LJob extends Loggable {
    * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time.
    */
-  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isFinished).first
+  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first
 
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.

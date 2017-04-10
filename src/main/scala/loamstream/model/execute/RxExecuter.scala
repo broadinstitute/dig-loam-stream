@@ -20,7 +20,8 @@ import loamstream.util.Traversables
 final case class RxExecuter(
     runner: ChunkRunner,
     windowLength: Duration,
-    jobFilter: JobFilter)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
+    jobFilter: JobFilter,
+    maxRunsPerJob: Int = 4)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.ObservableEnrichments._

@@ -43,11 +43,11 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     
     val success = Await.result(executeSingle(two0), Duration.Inf)
     
-    assert(success === Map(two0 -> executionFromStatus(two0Success)))
+    assert(success === (two0 -> executionFromStatus(two0Success)))
     
     val failure = Await.result(executeSingle(two0Failed), Duration.Inf)
     
-    assert(failure === Map(two0Failed -> executionFromStatus(two0Failure)))
+    assert(failure === (two0Failed -> executionFromStatus(two0Failure)))
   }
   
   test("noFailures() and anyFailures()") {

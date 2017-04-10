@@ -43,11 +43,11 @@ final class JobTest extends FunSuite with TestJobs {
     
     val lastStatusesFuture = failedJob.lastStatus.to[Seq].firstAsFuture
 
-    failedJob.updateAndEmitJobStatus(NotStarted)
-    failedJob.updateAndEmitJobStatus(NotStarted)
-    failedJob.updateAndEmitJobStatus(Running)
-    failedJob.updateAndEmitJobStatus(Running)
-    failedJob.updateAndEmitJobStatus(Failed)
+    failedJob.transitionTo(NotStarted)
+    failedJob.transitionTo(NotStarted)
+    failedJob.transitionTo(Running)
+    failedJob.transitionTo(Running)
+    failedJob.transitionTo(Failed)
 
     assert(waitFor(lastStatusesFuture) === Seq(Failed))
   }
@@ -84,23 +84,23 @@ final class JobTest extends FunSuite with TestJobs {
     
     assert(failedJob.status === NotStarted)
     
-    failedJob.updateAndEmitJobStatus(Unknown)
+    failedJob.transitionTo(Unknown)
     
     assert(failedJob.status === Unknown)
     
-    failedJob.updateAndEmitJobStatus(Failed)
+    failedJob.transitionTo(Failed)
     
     assert(failedJob.status === Failed)
     
-    failedJob.updateAndEmitJobStatus(Running)
+    failedJob.transitionTo(Running)
     
     assert(failedJob.status === Running)
     
-    failedJob.updateAndEmitJobStatus(FailedWithException)
+    failedJob.transitionTo(FailedWithException)
     
     assert(failedJob.status === FailedWithException)
     
-    failedJob.updateAndEmitJobStatus(Succeeded)
+    failedJob.transitionTo(Succeeded)
     
     assert(failedJob.status === Succeeded)
     
@@ -138,7 +138,7 @@ final class JobTest extends FunSuite with TestJobs {
       def mockJob(toReturn: JobStatus, startingStatus: Option[JobStatus] = None) = {
         val j = MockJob(toReturn)
         
-        j.updateAndEmitJobStatus(startingStatus.getOrElse(toReturn))
+        j.transitionTo(startingStatus.getOrElse(toReturn))
         
         j
       }
@@ -153,7 +153,7 @@ final class JobTest extends FunSuite with TestJobs {
       
       val job = MockJob(toReturn = resultStatus, inputs = inputs)
 
-      notFinished.updateAndEmitJobStatus(Succeeded)
+      notFinished.transitionTo(Succeeded)
       
       if(anyFailures) {
         assert(waitFor(job.selfRunnable.isEmpty.firstAsFuture))

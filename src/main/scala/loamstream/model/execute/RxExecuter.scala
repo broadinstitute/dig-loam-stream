@@ -106,7 +106,7 @@ final case class RxExecuter(
   }
   
   private def markJobsSkipped(skippedJobs: Set[LJob]): Unit = {
-    skippedJobs.foreach(_.updateAndEmitJobStatus(JobStatus.Skipped))
+    skippedJobs.foreach(_.transitionTo(JobStatus.Skipped))
   }
   
   private def toSkippedResultMap(skippedJobs: Set[LJob]): Map[LJob, Execution] = {

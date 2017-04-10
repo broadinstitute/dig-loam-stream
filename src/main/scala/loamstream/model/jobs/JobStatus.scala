@@ -16,6 +16,8 @@ sealed trait JobStatus {
   def notFinished: Boolean = !isFinished
   
   def isSkipped: Boolean = this == JobStatus.Skipped
+  
+  def isTooManyRestarts: Boolean = this == JobStatus.TooManyRestarts
 }
 
 object JobStatus extends Loggable {
@@ -29,6 +31,7 @@ object JobStatus extends Loggable {
   case object Submitted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
   case object Unknown extends NeitherSuccessNorFailure
+  case object TooManyRestarts extends NeitherSuccessNorFailure
 
   def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
 

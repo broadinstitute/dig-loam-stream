@@ -71,14 +71,14 @@ final case class UgerChunkRunner(
       submissionResult: DrmaaClient.SubmissionResult): Observable[Map[LJob, Execution]] = submissionResult match {
 
     case DrmaaClient.SubmissionSuccess(rawJobIds) => {
-      commandLineJobs.foreach(_.updateAndEmitJobStatus(Running))
+      commandLineJobs.foreach(_.transitionTo(Running))
 
       val jobsById = rawJobIds.zip(commandLineJobs).toMap
 
       toExecutionMap(jobsById)
     }
     case DrmaaClient.SubmissionFailure(e) => {
-      commandLineJobs.foreach(_.updateAndEmitJobStatus(Failed))
+      commandLineJobs.foreach(_.transitionTo(Failed))
 
       makeAllFailureMap(commandLineJobs, Some(e))
     }
@@ -94,7 +94,7 @@ final case class UgerChunkRunner(
 
     val ugerJobsToExecutionObservables: Iterable[(LJob, Observable[Execution])] = for {
       (jobId, (job, ugerJobStatuses)) <- jobsAndUgerStatusesById
-      _ = ugerJobStatuses.foreach(ugerStatus => job.updateAndEmitJobStatus(toJobStatus(ugerStatus)))
+      _ = ugerJobStatuses.foreach(ugerStatus => job.transitionTo(toJobStatus(ugerStatus)))
       executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
     } yield {
       job -> executionObs

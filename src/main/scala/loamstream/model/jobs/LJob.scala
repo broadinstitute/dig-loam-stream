@@ -24,6 +24,12 @@ trait LJob extends Loggable {
   
   def workDirOpt: Option[Path] = None
   
+  def runCount: Int = runCountRef()
+  
+  private[this] val runCountRef: ValueBox[Int] = ValueBox(0)
+  
+  private def incrementRunCount(): Unit = runCountRef.mutate(_ + 1)
+  
   def print(indent: Int = 0, doPrint: String => Unit = debug(_), header: Option[String] = None): Unit = {
     val indentString = s"${"-" * indent} >"
 
@@ -114,12 +120,18 @@ trait LJob extends Loggable {
   
   /**
    * Sets the status of this job to be newStatus, and emits the new status to any observers.
- *
+   *
    * @param newStatus the new status to set for this job
    */
   //NB: Currently needs to be public for use in UgerChunkRunner :\
-  final def updateAndEmitJobStatus(newStatus: JobStatus): Unit = {
+  final def transitionTo(newStatus: JobStatus): Unit = {
     debug(s"Status change to $newStatus for job: ${this}")
+    
+    /*newStatus match {
+      case JobStatus.TooManyRestarts => ()
+      case _ => ()
+    }*/
+    
     statusRef() = newStatus
     statusEmitter.onNext(newStatus)
   }
@@ -131,10 +143,10 @@ trait LJob extends Loggable {
   def execute(implicit context: ExecutionContext): Future[Execution] = {
     import loamstream.util.Futures.Implicits._
 
-    updateAndEmitJobStatus(JobStatus.NotStarted)
-    updateAndEmitJobStatus(JobStatus.Running)
+    transitionTo(JobStatus.NotStarted)
+    transitionTo(JobStatus.Running)
 
-    executeSelf.withSideEffect(execution => updateAndEmitJobStatus(execution.status))
+    executeSelf.withSideEffect(execution => transitionTo(execution.status))
   }
   
   /**

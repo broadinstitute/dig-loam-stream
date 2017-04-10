@@ -3,6 +3,7 @@ package loamstream.model.execute
 
 import scala.concurrent.{ExecutionContext, Future}
 import loamstream.model.jobs.{Execution, LJob}
+import loamstream.model.jobs.JobStatus
 
 /**
  * @author clint
@@ -13,11 +14,16 @@ object ExecuterHelpers {
   
   def anyFailures[J <: LJob](m: Map[J, Execution]): Boolean = !noFailures(m)
 
-  def executeSingle(job: LJob)(implicit executor: ExecutionContext): Future[Map[LJob, Execution]] = {
+  def executeSingle(job: LJob)(implicit executor: ExecutionContext): Future[(LJob, Execution)] = {
+    job.transitionTo(JobStatus.NotStarted)
+    job.transitionTo(JobStatus.Running)
+    
     for {
       execution <- job.execute
     } yield {
-      Map(job -> execution)
+      job.transitionTo(execution.status)
+      
+      job -> execution
     }
   }
   

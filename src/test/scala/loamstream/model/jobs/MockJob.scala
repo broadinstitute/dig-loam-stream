@@ -35,7 +35,7 @@ class MockJob(
       Thread.sleep(delay)
     }
 
-    updateAndEmitJobStatus(toReturn.status)
+    transitionTo(toReturn.status)
     
     Future.successful(toReturn)
   }

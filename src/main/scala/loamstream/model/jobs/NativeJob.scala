@@ -17,13 +17,14 @@ final case class NativeJob[T](
 
   override protected def executeSelf(implicit executionContext: ExecutionContext): Future[Execution] = {
     exprBox.evalFuture.map { value =>
-      Execution(executionEnvironment,
-        None,
-        LocalSettings(),
-        JobStatus.Succeeded,
-        Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
-        None,
-        outputs.map(_.toOutputRecord))
+      Execution(id = None,
+                executionEnvironment,
+                cmd = None,
+                LocalSettings(),
+                JobStatus.Succeeded,
+                Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
+                resources = None,
+                outputs.map(_.toOutputRecord))
     }
   }
 }

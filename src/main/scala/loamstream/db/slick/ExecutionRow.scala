@@ -12,7 +12,8 @@ final case class ExecutionRow(id: Int, env: String, cmd: String, status: JobStat
   def toExecution(settings: Settings, resourcesOpt: Option[Resources], outputs: Set[OutputRecord]): Execution = {
     val commandResult = CommandResult(exitCode)
 
-    Execution(ExecutionEnvironment.fromString(env),
+    Execution(Option(mapId(identity)),
+              ExecutionEnvironment.fromString(env),
               Option(cmd),
               settings,
               status,
@@ -20,4 +21,10 @@ final case class ExecutionRow(id: Int, env: String, cmd: String, status: JobStat
               resourcesOpt,
               outputs)
   }
+
+  /**
+   * Meant to abstract out Execution.id from ExecutionRow.id
+   * to prevent database-level information from leaking up
+   */
+  private def mapId[A](f: Int => A): A = f(id)
 }

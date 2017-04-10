@@ -59,13 +59,14 @@ final case class StoreMapperJob(
         case Failure(e) => (JobStatus.FailedWithException, Option(CommandInvocationFailure(e)))
       }
 
-      Execution(executionEnvironment,
-        None,
-        LocalSettings(),
-        jobStatus,
-        jobResultOpt,
-        Option(resources),
-        outputs.map(_.toOutputRecord))
+      Execution(id = None,
+                executionEnvironment,
+                cmd = None,
+                LocalSettings(),
+                jobStatus,
+                jobResultOpt,
+                Option(resources),
+                outputs.map(_.toOutputRecord))
     }
   }
 }

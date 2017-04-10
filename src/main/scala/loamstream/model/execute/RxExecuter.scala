@@ -27,7 +27,7 @@ final case class RxExecuter(
     
     //An Observable stream of jobs; each job is emitted when it becomes runnable.
     //Note the use of 'distinct' to avoid running jobs more than once, if that job is depended on by multiple 'root' 
-    //jobs in an LExecutable.  This is a bit brute-force, but allows for simpler logic in LJob.
+    //jobs in an Executable.  This is a bit brute-force, but allows for simpler logic in LJob.
     val runnables: Observable[LJob] = {
       Observables.merge(executable.jobs.toSeq.map(_.runnables)).distinct
     }

@@ -30,13 +30,12 @@ object StoreFilterJob {
 }
 
 /** Job which creates a new store by filtering an existing store */
-final case class StoreFilterJob(
-    inPath: Path, 
-    outPath: Path, 
-    inType: Type, 
-    inputs: Set[LJob], 
-    outputs: Set[Output],
-    filter: LoamStoreFilter.Untyped) extends LJob {
+final case class StoreFilterJob(inPath: Path,
+                                outPath: Path,
+                                inType: Type,
+                                inputs: Set[LJob],
+                                outputs: Set[Output],
+                                filter: LoamStoreFilter.Untyped) extends LJob {
 
   //TODO: See if this is always the case
   override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
@@ -58,13 +57,14 @@ final case class StoreFilterJob(
         case Failure(e) => (JobStatus.FailedWithException, Option(CommandInvocationFailure(e)))
       }
 
-      Execution(executionEnvironment,
-        None,
-        LocalSettings(),
-        jobStatus,
-        jobResultOpt,
-        Option(resources),
-        outputs.map(_.toOutputRecord))
+      Execution(id = None,
+                executionEnvironment,
+                cmd = None,
+                LocalSettings(),
+                jobStatus,
+                jobResultOpt,
+                Option(resources),
+                outputs.map(_.toOutputRecord))
     }
   }
 }

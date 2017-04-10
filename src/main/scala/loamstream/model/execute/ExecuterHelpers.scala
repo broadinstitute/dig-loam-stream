@@ -4,6 +4,7 @@ package loamstream.model.execute
 import scala.concurrent.{ExecutionContext, Future}
 import loamstream.model.jobs.{Execution, LJob}
 import loamstream.model.jobs.JobStatus
+import loamstream.util.Futures
 
 /**
  * @author clint
@@ -18,13 +19,15 @@ object ExecuterHelpers {
     job.transitionTo(JobStatus.NotStarted)
     job.transitionTo(JobStatus.Running)
     
-    for {
+    val result = for {
       execution <- job.execute
     } yield {
-      job.transitionTo(execution.status)
-      
       job -> execution
     }
+
+    import Futures.Implicits._
+    
+    result.withSideEffect { case (job, execution) => job.transitionTo(execution.status) }
   }
   
   def flattenTree(roots: Set[LJob]): Set[LJob] = {

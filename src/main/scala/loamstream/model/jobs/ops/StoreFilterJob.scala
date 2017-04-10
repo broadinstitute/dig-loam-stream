@@ -43,7 +43,7 @@ final case class StoreFilterJob(inPath: Path,
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
   /** Implementations of this method will do any actual work to be performed by this job */
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
+  override def execute(implicit context: ExecutionContext): Future[Execution] = {
     Futures.runBlocking {
       val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
         trace(s"RUNNING: StoreFilterJob")

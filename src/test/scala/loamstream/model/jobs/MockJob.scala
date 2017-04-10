@@ -28,7 +28,7 @@ class MockJob(
   //NB: Previous versions defined equals() and hashCode() only in terms of 'toReturn', which caused problems;
   //switched back to reference equality.
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
+  override def execute(implicit context: ExecutionContext): Future[Execution] = {
     count.mutate(_ + 1)
 
     if (delay > 0) {
@@ -58,31 +58,33 @@ object MockJob {
   import TestHelpers._
 
   def apply(toReturn: Execution): MockJob = {
-                                              new MockJob(toReturn,
-                                                          name = nextId().toString,
-                                                          inputs = Set.empty,
-                                                          outputs = Set.empty,
-                                                          delay = 0)
+    new MockJob(toReturn,
+                name = nextId().toString,
+                inputs = Set.empty,
+                outputs = Set.empty,
+                delay = 0)
   }
 
   def apply(toReturn: JobResult): MockJob = {
-                                              new MockJob(executionFromResult(toReturn),
-                                                          name = nextId().toString,
-                                                          inputs = Set.empty,
-                                                          outputs = Set.empty,
-                                                          delay = 0)
+    new MockJob(executionFromResult(toReturn),
+                name = nextId().toString,
+                inputs = Set.empty,
+                outputs = Set.empty,
+                delay = 0)
   }
 
-  def apply(toReturn: JobStatus,
-            name: String = nextId().toString,
-            inputs: Set[LJob] = Set.empty,
-            outputs: Set[Output] = Set.empty,
-            delay: Int = 0): MockJob = {
-                                              new MockJob(executionFromStatus(toReturn),
-                                                          name,
-                                                          inputs,
-                                                          outputs,
-                                                          delay)
+  def apply(
+      toReturn: JobStatus,
+      name: String = nextId().toString,
+      inputs: Set[LJob] = Set.empty,
+      outputs: Set[Output] = Set.empty,
+      delay: Int = 0): MockJob = {
+    
+  new MockJob(executionFromStatus(toReturn),
+              name,
+              inputs,
+              outputs,
+              delay)
   }
 
   def unapply(job: LJob): Option[(Execution, String, Set[LJob], Set[Output], Int)] = job match {

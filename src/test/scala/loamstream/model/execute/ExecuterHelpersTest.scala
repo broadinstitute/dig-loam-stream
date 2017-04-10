@@ -7,6 +7,8 @@ import scala.concurrent.Await
 import loamstream.model.jobs.{JobStatus, RxMockJob, TestJobs}
 
 import scala.concurrent.duration.Duration
+import loamstream.util.ObservableEnrichments
+import loamstream.util.Futures
 
 /**
  * @author clint
@@ -48,6 +50,15 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     val failure = Await.result(executeSingle(two0Failed), Duration.Inf)
     
     assert(failure === (two0Failed -> executionFromStatus(two0Failure)))
+    
+    import ObservableEnrichments._
+    
+    val two0StatusesFuture = two0.statuses.take(4).to[Seq].firstAsFuture
+    
+    import JobStatus._
+    
+    //NB: One 'Succeeded' emitted in MockJob.executeSelf, the last one emitted in executeSingle
+    assert(Futures.waitFor(two0StatusesFuture) === Seq(NotStarted, Running, Succeeded, Succeeded))
   }
   
   test("noFailures() and anyFailures()") {

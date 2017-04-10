@@ -127,32 +127,25 @@ trait LJob extends Loggable {
   final def transitionTo(newStatus: JobStatus): Unit = {
     debug(s"Status change to $newStatus for job: ${this}")
     
-    /*newStatus match {
-      case JobStatus.TooManyRestarts => ()
-      case _ => ()
-    }*/
+    import JobStatus._
+
+    statusRef.mutate { oldStatus =>
+      //TODO: Side effect, overlapping locks
+      newStatus match {
+        case Running if oldStatus != Running => incrementRunCount()
+        case _ => ()
+      }
+      
+      newStatus
+    }
     
-    statusRef() = newStatus
     statusEmitter.onNext(newStatus)
   }
 
   /**
-   * Decorates executeSelf(), updating and emitting the value of 'status' from
-   * Running to Succeeded/Failed.
-   */
-  def execute(implicit context: ExecutionContext): Future[Execution] = {
-    import loamstream.util.Futures.Implicits._
-
-    transitionTo(JobStatus.NotStarted)
-    transitionTo(JobStatus.Running)
-
-    executeSelf.withSideEffect(execution => transitionTo(execution.status))
-  }
-  
-  /**
    * Implementions of this method will do any actual work to be performed by this job
    */
-  protected def executeSelf(implicit context: ExecutionContext): Future[Execution]
+  def execute(implicit context: ExecutionContext): Future[Execution]
 
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 

@@ -44,20 +44,19 @@ final case class RxMockJob( override val name: String,
   }
 
   override def execute(implicit context: ExecutionContext): Future[Execution] = {
-    Future(waitIfNecessary()).flatMap(_ => super.execute)
-  }
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = Future {
+    Future(waitIfNecessary()).map { _ => 
+    
+      trace(s"\t\tStarting job: $name")
 
-    trace(s"\t\tStarting job: $name")
+      delayIfNecessary()
 
-    delayIfNecessary()
+      trace(s"\t\t\tFinishing job: $name")
 
-    trace(s"\t\t\tFinishing job: $name")
+      count.mutate(_ + 1)
 
-    count.mutate(_ + 1)
-
-    toReturn
+      toReturn
+    }
   }
 
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)

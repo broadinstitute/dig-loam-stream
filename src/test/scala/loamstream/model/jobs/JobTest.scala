@@ -19,13 +19,18 @@ final class JobTest extends FunSuite with TestJobs {
   import ObservableEnrichments._
 
   test("execute") {
-    val failedJob = MockJob(Failed)
+    def doTest(status: JobStatus): Unit = {
+      val failedJob = MockJob(status)
     
-    val statuses = failedJob.statuses.until(_.isFinished).to[Seq].firstAsFuture
-
-    failedJob.execute(ExecutionContext.global)
+      val executionFuture = failedJob.execute(ExecutionContext.global)
     
-    assert(waitFor(statuses) === Seq(NotStarted, Running, Failed))
+      assert(waitFor(executionFuture).status === status)
+    }
+    
+    doTest(JobStatus.Failed)
+    doTest(JobStatus.FailedWithException)
+    doTest(JobStatus.Skipped)
+    doTest(JobStatus.Succeeded)
   }
   
   test("lastStatus - simple") {
@@ -77,7 +82,7 @@ final class JobTest extends FunSuite with TestJobs {
     assert(waitFor(finalInputStatusesFuture).toSet === expected)
   }
   
-  test("statuses/updateAndEmitJobStatus") {
+  test("statuses/transitionTo") {
     val failedJob = MockJob(Failed)
     
     val first5Statuses = failedJob.statuses.take(5).to[Seq].firstAsFuture

@@ -9,17 +9,17 @@ import org.scalatest.FunSuite
 final class JobStatusTest extends FunSuite {
   import JobStatus._
   
-  test("isTooManyRestarts") {
-    assert(Succeeded.isTooManyRestarts === false)
-    assert(Skipped.isTooManyRestarts === false)
-    assert(Failed.isTooManyRestarts === false)
-    assert(FailedWithException.isTooManyRestarts === false)
-    assert(NotStarted.isTooManyRestarts === false)
-    assert(Submitted.isTooManyRestarts === false)
-    assert(Running.isTooManyRestarts === false)
-    assert(Terminated.isTooManyRestarts === false)
-    assert(Unknown.isTooManyRestarts === false)
-    assert(TooManyRestarts.isTooManyRestarts === true)
+  test("isPermanentFailure") {
+    assert(Succeeded.isPermanentFailure === false)
+    assert(Skipped.isPermanentFailure === false)
+    assert(Failed.isPermanentFailure === false)
+    assert(FailedWithException.isPermanentFailure === false)
+    assert(NotStarted.isPermanentFailure === false)
+    assert(Submitted.isPermanentFailure === false)
+    assert(Running.isPermanentFailure === false)
+    assert(Terminated.isPermanentFailure === false)
+    assert(Unknown.isPermanentFailure === false)
+    assert(PermanentFailure.isPermanentFailure === true)
   }
   
   test("isSuccess") {
@@ -32,7 +32,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isSuccess === false)
     assert(Terminated.isSuccess === false)
     assert(Unknown.isSuccess === false)
-    assert(TooManyRestarts.isSuccess === false)
+    assert(PermanentFailure.isSuccess === false)
   }
   
   test("isSkipped") {
@@ -45,7 +45,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isSkipped === false)
     assert(Terminated.isSkipped === false)
     assert(Unknown.isSkipped === false)
-    assert(TooManyRestarts.isSkipped === false)
+    assert(PermanentFailure.isSkipped === false)
   }
 
   test("isFailure") {
@@ -58,7 +58,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isFailure === false)
     assert(Terminated.isFailure === true)
     assert(Unknown.isFailure === false)
-    assert(TooManyRestarts.isFailure === false)
+    assert(PermanentFailure.isFailure === true)
   }
 
   test("isFinished") {
@@ -71,7 +71,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isFinished === false)
     assert(Terminated.isFinished === true)
     assert(Unknown.isFinished === false)
-    assert(TooManyRestarts.isFinished === true)
+    assert(PermanentFailure.isFinished === true)
   }
 
   test("notFinished") {
@@ -84,7 +84,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.notFinished === true)
     assert(Terminated.notFinished === false)
     assert(Unknown.notFinished === true)
-    assert(TooManyRestarts.notFinished === false)
+    assert(PermanentFailure.notFinished === false)
   }
   
   test("fromString") {
@@ -97,7 +97,7 @@ final class JobStatusTest extends FunSuite {
     assert(fromString("Running") === Some(Running))
     assert(fromString("Terminated") === Some(Terminated))
     assert(fromString("Unknown") === Some(Unknown))
-    assert(fromString("TooManyRestarts") === Some(TooManyRestarts))
+    assert(fromString("PermanentFailure") === Some(PermanentFailure))
     assert(fromString("") === None)
     assert(fromString("Undefined") === None)
     assert(fromString("blah") === None)
@@ -112,7 +112,7 @@ final class JobStatusTest extends FunSuite {
     assert(fromString("RUNNING") === Some(Running))
     assert(fromString("TERMINATED") === Some(Terminated))
     assert(fromString("UNKNOWN") === Some(Unknown))
-    assert(fromString("TOOMANYRESTARTS") === Some(TooManyRestarts))
+    assert(fromString("PERMANENTFAILURE") === Some(PermanentFailure))
     assert(fromString("   ") === None)
     assert(fromString("UNDEFINED") === None)
     assert(fromString("BLAH") === None)
@@ -126,7 +126,7 @@ final class JobStatusTest extends FunSuite {
     assert(fromString("RuNnInG") === Some(Running))
     assert(fromString("TeRmInAtEd") === Some(Terminated))
     assert(fromString("UnKnOwN") === Some(Unknown))
-    assert(fromString("ToOmAnYrEsTaRtS") === Some(TooManyRestarts))
+    assert(fromString("PeRmAnEnTfAiLuRe") === Some(PermanentFailure))
     assert(fromString("UnDeFiNeD") === None)
     assert(fromString("bLaH") === None)
   }

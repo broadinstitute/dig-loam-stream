@@ -312,7 +312,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     val mockRunner = MockChunkRunner(asyncChunkRunner)
 
-    (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
+    val resultExecuter = resumptiveExecuter.copy(runner = mockRunner, maxRunsPerJob = 0)(resumptiveExecuter.executionContext)
+    
+    (resultExecuter, mockRunner)
   }
 
   private def loamEngine = {
@@ -328,7 +330,12 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     val executable = engine.compileToExecutable(script).get
 
-    val executions = engine.executer.execute(executable)
+    import scala.concurrent.duration._
+    
+    //TODO
+    val timeout = 10.seconds
+    
+    val executions = engine.executer.execute(executable)(timeout)
 
     (executable, executions)
   }

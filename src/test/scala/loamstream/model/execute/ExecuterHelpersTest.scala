@@ -42,12 +42,13 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     import ExecuterHelpers.executeSingle
     import TestHelpers.executionFromStatus
     import scala.concurrent.ExecutionContext.Implicits.global
+    import TestHelpers.neverRestart
     
-    val success = Await.result(executeSingle(two0), Duration.Inf)
+    val success = Await.result(executeSingle(two0, neverRestart), Duration.Inf)
     
     assert(success === (two0 -> executionFromStatus(two0Success)))
     
-    val failure = Await.result(executeSingle(two0Failed), Duration.Inf)
+    val failure = Await.result(executeSingle(two0Failed, neverRestart), Duration.Inf)
     
     assert(failure === (two0Failed -> executionFromStatus(two0Failure)))
     

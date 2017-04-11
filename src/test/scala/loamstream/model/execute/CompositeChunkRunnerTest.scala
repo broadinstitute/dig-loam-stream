@@ -7,6 +7,7 @@ import scala.concurrent.ExecutionContext
 import loamstream.util.Futures
 import rx.lang.scala.Observable
 import loamstream.util.ObservableEnrichments
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -17,6 +18,8 @@ final class CompositeChunkRunnerTest extends FunSuite {
   //scalastyle:off magic.number
   
   private def local(n: Int) = AsyncLocalChunkRunner(n)(ExecutionContext.global)
+  
+  import TestHelpers.neverRestart
   
   test("maxNumJobs") {
     val n1 = 3
@@ -35,7 +38,9 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     private val delegate = local(1)
     
-    override def run(jobs: Set[LJob]): Observable[Map[LJob, Execution]] = delegate.run(jobs)
+    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+      delegate.run(jobs, shouldRestart)
+    }
   }
   
   test("canRun") {
@@ -67,16 +72,16 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     //Should throw if we can't run all the given jobs
     intercept[Exception] {
-      runner.run(Set(job2, job3))
+      runner.run(Set(job2, job3), neverRestart)
     }
     
     intercept[Exception] {
-      runner.run(Set(job1, job4))
+      runner.run(Set(job1, job4), neverRestart)
     }
     
     import ObservableEnrichments._
     
-    val futureResults = runner.run(Set(job1, job2)).firstAsFuture
+    val futureResults = runner.run(Set(job1, job2), neverRestart).firstAsFuture
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     

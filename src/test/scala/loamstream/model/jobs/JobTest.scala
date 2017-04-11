@@ -34,13 +34,21 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("lastStatus - simple") {
-    val failedJob = MockJob(Failed)
+    def doTest(terminalStatus: JobStatus): Unit = {
+      assert(terminalStatus.isTerminal)
     
-    val lastStatusFuture = failedJob.lastStatus.firstAsFuture
+      val terminalJob = MockJob(terminalStatus)
+    
+      val lastStatusFuture = terminalJob.lastStatus.firstAsFuture
 
-    failedJob.execute(ExecutionContext.global)
+      terminalJob.execute(ExecutionContext.global)
     
-    assert(waitFor(lastStatusFuture) === Failed)
+      assert(waitFor(lastStatusFuture) === terminalStatus)
+    }
+    
+    doTest(Succeeded)
+    doTest(PermanentFailure)
+    doTest(Skipped)
   }
 
   test("lastStatus - subsequent 'terminal' Statuses don't count") {
@@ -53,8 +61,10 @@ final class JobTest extends FunSuite with TestJobs {
     failedJob.transitionTo(Running)
     failedJob.transitionTo(Running)
     failedJob.transitionTo(Failed)
+    failedJob.transitionTo(PermanentFailure)
+    failedJob.transitionTo(Succeeded)
 
-    assert(waitFor(lastStatusesFuture) === Seq(Failed))
+    assert(waitFor(lastStatusesFuture) === Seq(PermanentFailure))
   }
   
   test("finalInputStatuses - no deps") {
@@ -68,7 +78,7 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("finalInputStatuses - some deps") {
-    val deps: Set[LJob] = Set(MockJob(Failed), MockJob(Succeeded))
+    val deps: Set[LJob] = Set(MockJob(PermanentFailure), MockJob(Succeeded))
     
     val noDeps = MockJob(toReturn = Failed, inputs = deps)
     
@@ -77,7 +87,7 @@ final class JobTest extends FunSuite with TestJobs {
     deps.foreach(_.execute(ExecutionContext.global))
     
     //NB: Use Sets to ignore order
-    val expected = Set(Failed, Succeeded)
+    val expected = Set(PermanentFailure, Succeeded)
     
     assert(waitFor(finalInputStatusesFuture).toSet === expected)
   }
@@ -152,7 +162,7 @@ final class JobTest extends FunSuite with TestJobs {
       
       val i0 = mockJob(Succeeded)
       
-      val i1 = mockJob(if(anyFailures) Failed else Succeeded)
+      val i1 = mockJob(if(anyFailures) PermanentFailure else Succeeded)
       
       val inputs: Set[LJob] = Set(i0, notFinished, i1)
       
@@ -171,10 +181,12 @@ final class JobTest extends FunSuite with TestJobs {
     
     doTest(Succeeded, anyFailures = true)
     doTest(Succeeded, anyFailures = false)
-    doTest(Failed, anyFailures = true)
-    doTest(Failed, anyFailures = false)
+    doTest(PermanentFailure, anyFailures = true)
+    doTest(PermanentFailure, anyFailures = false)
     doTest(NotStarted, anyFailures = true)
     doTest(NotStarted, anyFailures = false)
+    doTest(Failed, anyFailures = true)
+    doTest(Failed, anyFailures = false)
     doTest(FailedWithException, anyFailures = true)
     doTest(FailedWithException, anyFailures = false)
     doTest(Unknown, anyFailures = true)
@@ -275,7 +287,7 @@ final class JobTest extends FunSuite with TestJobs {
     val gc2 = MockJob(Succeeded)
     val gc3 = MockJob(Skipped)
     
-    val c0 = MockJob(toReturn = Failed, inputs = Set[LJob](gc0, gc1))
+    val c0 = MockJob(toReturn = PermanentFailure, inputs = Set[LJob](gc0, gc1))
     val c1 = MockJob(toReturn = Succeeded, inputs = Set[LJob](gc2, gc3))
     
     val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1))

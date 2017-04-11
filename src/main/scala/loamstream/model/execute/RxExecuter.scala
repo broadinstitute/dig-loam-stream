@@ -21,7 +21,9 @@ final case class RxExecuter(
     runner: ChunkRunner,
     windowLength: Duration,
     jobFilter: JobFilter,
-    maxRunsPerJob: Int = 4)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
+    maxRunsPerJob: Int)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
+  
+  require(maxRunsPerJob >= 0, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.ObservableEnrichments._
@@ -59,10 +61,12 @@ final case class RxExecuter(
     
     //NB: Sanity check, which fixes failures with the kinship step.
     //Emit result maps up to - and including! - the first one that contains a failure, then stop. 
-    val chunkResultsUpToFirstFailure = chunkResults.takeUntil(anyFailures(_))
+    //val chunkResultsUpToFirstFailure = chunkResults.takeUntil(anyFailures(_))
     
     //Collect the results from each chunk, and merge them, producing a future holding the merged results
-    val futureMergedResults = chunkResultsUpToFirstFailure.to[Seq].map(Maps.mergeMaps).firstAsFuture
+    //val futureMergedResults = chunkResultsUpToFirstFailure.to[Seq].map(Maps.mergeMaps).firstAsFuture
+    
+    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
     
     Await.result(futureMergedResults, timeout)
   }
@@ -76,10 +80,18 @@ final case class RxExecuter(
     }
   }
   
+  private def shouldRestart(job: LJob): Boolean = {
+    val result = job.runCount < maxRunsPerJob
+    
+    println(s"RX EXECUTER.shouldRestart(): Should restart? ${result} - for $job")
+    
+    result
+  }
+  
   def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, Execution]] = {
     logJobsToBeRun(jobsToRun)
     
-    runner.run(jobsToRun)
+    runner.run(jobsToRun, shouldRestart)
   }
   
   private def handleSkippedJobs(skippedJobs: Set[LJob]): Unit = {
@@ -123,24 +135,28 @@ final case class RxExecuter(
 }
 
 object RxExecuter extends Loggable {
-  val defaultMaxNumConcurrentJobs = 8
+  object Defaults {
+    val maxNumConcurrentJobs: Int = 8
+    
+    //NB: Use a short windowLength to speed up tests
+    val windowLength: Double = 0.25
+    val windowLengthInSec: Duration = windowLength.seconds
   
-  //NB: Use a short windowLength to speed up tests
-  val defaultWindowLength = 0.25
-  val defaultWindowLengthInSec = defaultWindowLength.seconds
-
-  val defaultJobFilter = JobFilter.RunEverything
-
+    val jobFilter = JobFilter.RunEverything
+  
+    val maxRunsPerJob: Int = 4
+  }
+  
   def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {
-    new RxExecuter(runner, defaultWindowLengthInSec, defaultJobFilter)
+    new RxExecuter(runner, Defaults.windowLengthInSec, Defaults.jobFilter, Defaults.maxRunsPerJob)
   }
 
   def default: RxExecuter = {
     implicit val executionContext = ExecutionContext.global
 
-    val chunkRunner = AsyncLocalChunkRunner(defaultMaxNumConcurrentJobs)
+    val chunkRunner = AsyncLocalChunkRunner(Defaults.maxNumConcurrentJobs)
 
-    new RxExecuter(chunkRunner, defaultWindowLengthInSec, defaultJobFilter)
+    new RxExecuter(chunkRunner, Defaults.windowLengthInSec, Defaults.jobFilter, Defaults.maxRunsPerJob)
   }
   
   def defaultWith(newJobFilter: JobFilter): RxExecuter = {

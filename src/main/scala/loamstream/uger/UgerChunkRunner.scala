@@ -17,6 +17,8 @@ import loamstream.util.Observables
 import loamstream.util.Terminable
 import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
+import loamstream.model.jobs.JobStatus.PermanentFailure
+import loamstream.model.execute.ExecuterHelpers
 
 
 /**
@@ -39,7 +41,7 @@ final case class UgerChunkRunner(
   
   override def maxNumJobs = ugerConfig.maxNumJobs
 
-  override def run(leaves: Set[LJob]): Observable[Map[LJob, Execution]] = {
+  override def run(leaves: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
 
     debug(s"Running: ")
     leaves.foreach(job => debug(s"  $job"))
@@ -59,7 +61,7 @@ final case class UgerChunkRunner(
 
       val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, commandLineJobs.size)
 
-      toExecutionStream(commandLineJobs, submissionResult)
+      toExecutionStream(commandLineJobs, submissionResult, shouldRestart)
     } else {
       // Handle NoOp case or a case when no jobs were presented for some reason
       Observable.just(Map.empty)
@@ -68,7 +70,8 @@ final case class UgerChunkRunner(
   
   private def toExecutionStream(
       commandLineJobs: Seq[CommandLineJob], 
-      submissionResult: DrmaaClient.SubmissionResult): Observable[Map[LJob, Execution]] = submissionResult match {
+      submissionResult: DrmaaClient.SubmissionResult,
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = submissionResult match {
 
     case DrmaaClient.SubmissionSuccess(rawJobIds) => {
       commandLineJobs.foreach(_.transitionTo(Running))
@@ -78,12 +81,14 @@ final case class UgerChunkRunner(
       toExecutionMap(jobsById)
     }
     case DrmaaClient.SubmissionFailure(e) => {
-      commandLineJobs.foreach(_.transitionTo(Failed))
+      import ExecuterHelpers.handleFailure
+      
+      commandLineJobs.foreach(handleFailure(shouldRestart))
 
       makeAllFailureMap(commandLineJobs, Some(e))
     }
   }
-
+  
   private[uger] def toExecutionMap(jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, Execution]] = {
 
     def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {

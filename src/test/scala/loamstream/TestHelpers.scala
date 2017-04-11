@@ -12,6 +12,7 @@ import java.time.Instant
 
 import loamstream.model.execute.{ExecutionEnvironment, LocalSettings, Resources}
 import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
+import loamstream.model.jobs.LJob
 
 /**
   * @author clint
@@ -24,6 +25,8 @@ object TestHelpers {
   val graceFactor = 20
   val tolerance = graceFactor * approxDoublePrecision
 
+  val neverRestart: LJob => Boolean = _ => false
+  
   def areWithinExpectedError(x: Double, y: Double): Boolean = (x - y) / Math.max(x.abs, y.abs) < tolerance
   
   lazy val config: LoamConfig = {

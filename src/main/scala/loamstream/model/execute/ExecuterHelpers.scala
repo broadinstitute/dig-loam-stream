@@ -15,7 +15,7 @@ object ExecuterHelpers {
   
   def anyFailures[J <: LJob](m: Map[J, Execution]): Boolean = !noFailures(m)
 
-  def executeSingle(job: LJob)(implicit executor: ExecutionContext): Future[(LJob, Execution)] = {
+  def executeSingle(job: LJob, shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[(LJob, Execution)] = {
     job.transitionTo(JobStatus.NotStarted)
     job.transitionTo(JobStatus.Running)
     
@@ -26,8 +26,33 @@ object ExecuterHelpers {
     }
 
     import Futures.Implicits._
+  
+    //TODO TEST
+    result.withSideEffect(handleResultOfExecution(shouldRestart))
+  }
+  
+  //TODO TEST
+  private def handleResultOfExecution(shouldRestart: LJob => Boolean)(tuple: (LJob, Execution)): Unit = {
+    val (job, execution) = tuple
     
-    result.withSideEffect { case (job, execution) => job.transitionTo(execution.status) }
+    println(s"EXECUTERHELPERS.handleResultOfExecution: $job => $execution")
+    
+    if(execution.status.isFailure) {
+      handleFailure(shouldRestart)(job)
+    } else {
+      job.transitionTo(execution.status)
+    }
+  }
+  
+  //TODO: TEST
+  def handleFailure(shouldRestart: LJob => Boolean)(job: LJob): Unit = {
+    job.transitionTo(JobStatus.Failed)
+    
+    val status = if(shouldRestart(job)) JobStatus.NotStarted else JobStatus.PermanentFailure
+    
+    println(s"EXECUTERHELPERS.handleFailure: $job transitioning to: $status")
+    
+    job.transitionTo(status)
   }
   
   def flattenTree(roots: Set[LJob]): Set[LJob] = {

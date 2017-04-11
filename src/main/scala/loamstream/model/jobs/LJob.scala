@@ -28,7 +28,11 @@ trait LJob extends Loggable {
   
   private[this] val runCountRef: ValueBox[Int] = ValueBox(0)
   
-  private def incrementRunCount(): Unit = runCountRef.mutate(_ + 1)
+  private def incrementRunCount(): Int = runCountRef.getAndUpdate { oldCount =>
+    val incremented = oldCount + 1
+    
+    (incremented, incremented) 
+  }
   
   def print(indent: Int = 0, doPrint: String => Unit = debug(_), header: Option[String] = None): Unit = {
     val indentString = s"${"-" * indent} >"
@@ -127,20 +131,28 @@ trait LJob extends Loggable {
   final def transitionTo(newStatus: JobStatus): Unit = {
     debug(s"Status change to $newStatus for job: ${this}")
     
-    import JobStatus._
-
-    statusRef.mutate { oldStatus =>
+    val newRunCount = statusRef.mutate { oldStatus =>
       //TODO: TEST
-      //TODO: Side effect, overlapping locks
-      newStatus match {
-        case Running if oldStatus != Running => incrementRunCount()
-        case _ => ()
-      }
+      //TODO: BEWARE: Side effect, overlapping locks
+
+      incrementRunCountIfNeeded(oldStatus, newStatus)
       
       newStatus
     }
     
     statusEmitter.onNext(newStatus)
+  }
+  
+  private def incrementRunCountIfNeeded(oldStatus: JobStatus, newStatus: JobStatus): Int = {
+    import JobStatus._
+    
+    runCountRef.getAndUpdate { oldRunCount =>
+      val startedRunning = newStatus.isRunning && oldStatus.notRunning
+      
+      val newCount = if(startedRunning) oldRunCount + 1 else oldRunCount
+      
+      (newCount, newCount)
+    }
   }
 
   /**

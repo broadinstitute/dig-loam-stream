@@ -32,10 +32,11 @@ object LanguageSupport  {
             s"R support requires a valid 'loamstream.R' section in the config file")
             
         val rConfig = config.rConfig.get
-        
-        val scriptFile = writeToFile(args, "R", "r")
-        
+
         import LoamCmdTool._
+        val rScriptContent = stringContext.cmd(args : _*).commandLine
+        val scriptFile = determineScriptFile("r", "r")
+        Files.writeTo(scriptFile)(rScriptContent)
 
         cmd"${rConfig.binary} $scriptFile"
       }
@@ -58,17 +59,19 @@ object LanguageSupport  {
        *       """
        */
       def python(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-        
+        implicit val sc = stringContext
+
         require(
             config.pythonConfig.isDefined, 
             s"Python support requires a valid 'loamstream.python' section in the config file")
             
         val pythonConfig = config.pythonConfig.get
-        
-        val scriptFile = writeToFile(args, "python", "py")
-        
+
         import LoamCmdTool._
-        
+        val pythonScriptContent = stringContext.cmd(args : _*).commandLine
+        val scriptFile = determineScriptFile("python", "py")
+        Files.writeTo(scriptFile)(pythonScriptContent)
+
         cmd"${pythonConfig.binary} $scriptFile"
       }
     }
@@ -79,35 +82,13 @@ trait LanguageSupport {
   protected[this] val fileNums: Sequence[Int] = Sequence[Int]()
   
   protected[this] def config(implicit scriptContext: LoamScriptContext) = scriptContext.projectContext.config
-  
-  protected[this] def piecesToString(args: Seq[Any])(implicit scriptContext: LoamScriptContext): String = {
-    val tokens = args.map(LoamCmdTool.toToken) 
-    
-    LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
-  }
-  
-  protected[this] def determineScriptFile(
-      prefix: String, 
-      extension: String)(implicit scriptContext: LoamScriptContext): Path = {
-    
-    val executionId = scriptContext.executionId
-    val filename = s"${prefix}-${fileNums.next()}.${extension}"
-        
-    Paths.get(".loamstream", "executions", executionId, filename).toAbsolutePath
-  }
-  
-  protected[this] def writeToFile(
-      args: Seq[Any], 
-      prefix: String, 
-      extension: String)(implicit scriptContext: LoamScriptContext): Path = {
-    
-    val scriptContents = piecesToString(args)
 
-    // TODO: Bash?
-    val scriptFile = determineScriptFile("bash", "sh")
-      
-    Files.writeTo(scriptFile)(scriptContents)
-    
-    scriptFile
+  protected[this] def determineScriptFile(prefix: String, extension: String)
+                                         (implicit scriptContext: LoamScriptContext): Path = {
+    val executionId = scriptContext.executionId
+    val filename = s"$prefix-$executionId-${fileNums.next()}.$extension"
+
+    // TODO: Allow specifying folder to produce the script file in via the conf file
+    Paths.get(".loamstream", filename).toAbsolutePath
   }
 }

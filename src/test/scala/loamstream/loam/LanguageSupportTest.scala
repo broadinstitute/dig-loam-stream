@@ -17,6 +17,11 @@ final class LanguageSupportTest extends FunSuite {
   test("string interpolation for Python snippets") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
-    //val tool = python"foo bar baz"
+    val someVal1 = 123
+    val someVal2 = "ABC"
+
+    val tool = python"$someVal2 foo bar $someVal1 baz"
+
+    assert(true)
   }
 }

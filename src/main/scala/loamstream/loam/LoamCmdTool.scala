@@ -4,7 +4,6 @@ import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.loam.LoamTool.{AllStores, DefaultStores}
 import loamstream.model.LId
 import loamstream.util.StringUtils
-import loamstream.model.execute.ExecutionEnvironment
 import loamstream.loam.files.LoamFileManager
 
 /**

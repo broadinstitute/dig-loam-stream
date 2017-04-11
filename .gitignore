@@ -20,6 +20,7 @@ tmp/
 test-result
 uger.conf
 googlecloud.conf
+python_R.conf
 server.pid
 *.eml
 *.swp

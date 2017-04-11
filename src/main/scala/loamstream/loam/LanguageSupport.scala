@@ -21,22 +21,22 @@ object LanguageSupport  {
        * 
        * val someStore = store[TXT].at("/foo/bar/baz")
        * 
-       * R"""
+       * r"""
        *     sprintf("Hello world! Here's a store: %s", ${someStore} );
        *  """
        */
-      def R(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+      def r(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
         
         require(
             config.rConfig.isDefined, 
-            s"Bash support requires a valid 'loamstream.R' section in the config file")
+            s"R support requires a valid 'loamstream.R' section in the config file")
             
         val rConfig = config.rConfig.get
         
         val scriptFile = writeToFile(args, "R", "r")
         
         import LoamCmdTool._
-        
+
         cmd"${rConfig.binary} $scriptFile"
       }
     }
@@ -44,7 +44,7 @@ object LanguageSupport  {
   
   object Python extends LanguageSupport {
     
-    implicit final class StringContextWithBash(val stringContext: StringContext) extends AnyVal {
+    implicit final class StringContextWithPython(val stringContext: StringContext) extends AnyVal {
       
       /*
        * Supports a Python string interpolator for .loam files:
@@ -61,7 +61,7 @@ object LanguageSupport  {
         
         require(
             config.pythonConfig.isDefined, 
-            s"Bash support requires a valid 'loamstream.python' section in the config file")
+            s"Python support requires a valid 'loamstream.python' section in the config file")
             
         val pythonConfig = config.pythonConfig.get
         
@@ -102,7 +102,8 @@ trait LanguageSupport {
       extension: String)(implicit scriptContext: LoamScriptContext): Path = {
     
     val scriptContents = piecesToString(args)
-      
+
+    // TODO: Bash?
     val scriptFile = determineScriptFile("bash", "sh")
       
     Files.writeTo(scriptFile)(scriptContents)

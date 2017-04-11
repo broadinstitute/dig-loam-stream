@@ -11,7 +11,7 @@ import java.nio.file.Paths
  * @author clint
  * Mar 28, 2017
  */
-final case class PythonConfig(binary: Path = Paths.get("python"))
+final case class PythonConfig(binary: Path)
 
 object PythonConfig {
 

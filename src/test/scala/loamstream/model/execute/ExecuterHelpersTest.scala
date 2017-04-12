@@ -14,6 +14,7 @@ import loamstream.util.Futures
  * @author clint
  * date: Jun 7, 2016
  */
+// scalastyle:off magic.number
 final class ExecuterHelpersTest extends FunSuite with TestJobs {
   
   test("flattenTree") {
@@ -95,3 +96,4 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(anyFailures(someFailures) === true)
   }
 }
+// scalastyle:on magic.number

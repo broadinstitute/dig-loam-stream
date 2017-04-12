@@ -15,6 +15,7 @@ import loamstream.util.ValueBox
  * @author clint
  *         date: Sep 15, 2016
  */
+// scalastyle:off magic.number
 final case class RxMockJob( override val name: String,
                             inputs: Set[LJob],
                             outputs: Set[Output],
@@ -92,3 +93,4 @@ object RxMockJob {
               outputs.map(_.toOutputRecord))
   }
 }
+// scalastyle:on magic.number

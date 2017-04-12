@@ -6,6 +6,7 @@ import org.scalatest.FunSuite
  * @author clint
  * Apr 12, 2017
  */
+// scalastyle:off magic.number
 final class JobSnapshotTest extends FunSuite {
   import JobStatus._
   
@@ -51,3 +52,4 @@ final class JobSnapshotTest extends FunSuite {
     doTest(FailedPermanently)
   }
 }
+// scalastyle:on magic.number

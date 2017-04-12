@@ -16,7 +16,10 @@ object ExecuterHelpers extends Loggable {
   
   def anyFailures[J <: LJob](m: Map[J, Execution]): Boolean = !noFailures(m)
 
-  def executeSingle(job: LJob, shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[(LJob, Execution)] = {
+  def executeSingle(
+      job: LJob, 
+      shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[(LJob, Execution)] = {
+    
     job.transitionTo(JobStatus.NotStarted)
     job.transitionTo(JobStatus.Running)
     

@@ -108,7 +108,9 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       //TODO
       val maxNumRestarts = 3
       
-      val rxExecuter = RxExecuter(compositeRunner, windowLength, jobFilter, maxNumRestarts + 1)(executionContextWithThreadPool)
+      val rxExecuter = {
+        RxExecuter(compositeRunner, windowLength, jobFilter, maxNumRestarts + 1)(executionContextWithThreadPool)
+      }
 
       val handles: Seq[Terminable] = (ugerRunnerHandles ++ googleRunner) :+ threadPoolHandle :+ localEcHandle
 

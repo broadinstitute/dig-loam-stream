@@ -53,6 +53,10 @@ object Files {
     doReadFrom(JFiles.newBufferedReader(file, StandardCharsets.UTF_8))
   }
 
+  def readFrom(file: String): String = {
+    readFrom(Paths.get(file))
+  }
+
   /** Writes to gzipped file */
   def writeToGzipped(file: Path)(contents: String): Unit = {
     val gZIPOutputStream = new GZIPOutputStream(new FileOutputStream(file.toFile))

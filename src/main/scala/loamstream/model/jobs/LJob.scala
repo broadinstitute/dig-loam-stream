@@ -76,7 +76,13 @@ trait LJob extends Loggable {
    * If the this job has no dependencies, this job is emitted immediately.  This will fire at most once.
    */
   private[jobs] lazy val selfRunnable: Observable[LJob] = {
-    def justUs = Observable.just(this)
+    //lazy val failures = statuses.filter(_.isFailure).takeUntil(_.isTerminal)
+    lazy val failures = statuses.filter(s => s.isFailure && !s.isTerminal)
+    
+    //def justUs = Observable.just(this)
+    //NB: We run once, and then once per failure, until we fail permanently; ChunkRunners are responsible for
+    //setting our status to PermanentFailure if they will no longer restart us.
+    def justUs = Observable.just(this) ++ failures.map(_ => this)
     def noMore = Observable.empty
 
     if(inputs.isEmpty) {
@@ -84,7 +90,7 @@ trait LJob extends Loggable {
     } else {
       for {
         inputStatuses <- finalInputStatuses
-        _ = debug(s"$name.selfRunnable: deps finished with statuses: $inputStatuses")
+        _ = debug(s"'$name'.selfRunnable: deps finished with statuses: $inputStatuses")
         anyInputFailures = inputStatuses.exists(_.isFailure)
         runnable <- if(anyInputFailures) noMore else justUs
       } yield {
@@ -127,23 +133,29 @@ trait LJob extends Loggable {
    *
    * @param newStatus the new status to set for this job
    */
-  //NB: Currently needs to be public for use in UgerChunkRunner :\
+  //TODO: TEST
   final def transitionTo(newStatus: JobStatus): Unit = {
     debug(s"Status change to $newStatus for job: ${this}")
     
     val newRunCount = statusRef.mutate { oldStatus =>
-      //TODO: TEST
-      //TODO: BEWARE: Side effect, overlapping locks
 
+      //TODO: BEWARE: Side effect, overlapping locks
       incrementRunCountIfNeeded(oldStatus, newStatus)
       
       newStatus
     }
     
     statusEmitter.onNext(newStatus)
+    
+    if(newStatus.isTerminal) {
+      debug(s"$newStatus is terminal; emitting no more statuses from job: ${this}")
+      
+      statusEmitter.onCompleted()
+    }
   }
   
-  private def incrementRunCountIfNeeded(oldStatus: JobStatus, newStatus: JobStatus): Int = {
+  //TODO: TEST
+  private[jobs] def incrementRunCountIfNeeded(oldStatus: JobStatus, newStatus: JobStatus): Int = {
     import JobStatus._
     
     runCountRef.getAndUpdate { oldRunCount =>

@@ -18,6 +18,10 @@ final class JobTest extends FunSuite with TestJobs {
   import Futures.waitFor
   import ObservableEnrichments._
 
+  private def execute(jobs: LJob*): Unit = jobs.foreach(_.execute(ExecutionContext.global))
+
+  private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
+  
   test("execute") {
     def doTest(status: JobStatus): Unit = {
       val failedJob = MockJob(status)
@@ -197,7 +201,12 @@ final class JobTest extends FunSuite with TestJobs {
     def doTest(resultStatus: JobStatus): Unit = {
       val job = MockJob(resultStatus)
       
-      val runnables = job.runnables.to[Seq].firstAsFuture
+      val runnables = {
+        if(resultStatus.isTerminal) { job.runnables.to[Seq].firstAsFuture }
+        else { job.runnables.take(1).to[Seq].firstAsFuture }
+      }
+      
+      job.execute(ExecutionContext.global)
       
       assert(waitFor(runnables) === Seq(job))
       
@@ -231,9 +240,6 @@ final class JobTest extends FunSuite with TestJobs {
      *    /
      * gc3
      */
-    
-    def execute(jobs: Iterable[LJob]): Unit = jobs.foreach(_.execute(ExecutionContext.global))
-
     val gc0: LJob = MockJob(Succeeded)
     val gc1: LJob = MockJob(Skipped)
     val gc2 = MockJob(Succeeded)
@@ -250,11 +256,13 @@ final class JobTest extends FunSuite with TestJobs {
     
     val futureChildren = rootJob.runnables.drop(4).take(2).to[Set].firstAsFuture
     
-    execute(grandChildren)
+    execute(grandChildren.toSeq: _*)
+    
+    execute(c0, c1)
+    
+    execute(rootJob)
     
     assert(waitFor(futureChildren) === Set(c0, c1))
-    
-    execute(Seq(c0, c1))
     
     val futureRoot = rootJob.runnables.drop(6).to[Set].firstAsFuture
     
@@ -279,37 +287,127 @@ final class JobTest extends FunSuite with TestJobs {
      *    /
      * gc3 (success)
      */
+    val gc0 = MockJob(Succeeded, "gc0")
+    val gc1 = MockJob(Skipped, "gc1")
+    val gc2 = MockJob(Succeeded, "gc2")
+    val gc3 = MockJob(Skipped, "gc3")
     
-    def execute(jobs: Iterable[LJob]): Unit = jobs.foreach(_.execute(ExecutionContext.global))
+    val c0 = MockJob(toReturn = Failed, inputs = Set[LJob](gc0, gc1), name = "c0")
+    val c1 = MockJob(toReturn = Succeeded, inputs = Set[LJob](gc2, gc3), name = "c1")
     
-    val gc0 = MockJob(Succeeded)
-    val gc1 = MockJob(Skipped)
-    val gc2 = MockJob(Succeeded)
-    val gc3 = MockJob(Skipped)
+    val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1), name = "root")
     
-    val c0 = MockJob(toReturn = PermanentFailure, inputs = Set[LJob](gc0, gc1))
-    val c1 = MockJob(toReturn = Succeeded, inputs = Set[LJob](gc2, gc3))
-    
-    val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1))
-    
-    val grandChildren = waitFor(rootJob.runnables.take(4).to[Set].firstAsFuture)
+    val grandChildren = waitFor(rootJob.runnables.take(4).to[Seq].firstAsFuture)
     
     //We should get all the grandchildren, since they start out runnable
-    assert(grandChildren === Set(gc0, gc1, gc2, gc3))
+    assert(grandChildren.toSet === Set(gc0, gc1, gc2, gc3))
     
-    val futureChildren = rootJob.runnables.drop(4).take(2).to[Set].firstAsFuture
+    val futureChildren = rootJob.runnables.drop(4).take(2).to[Seq].firstAsFuture
     
-    execute(grandChildren)
+    execute(grandChildren: _*)
     
     //We should get all the children, since their children all succeed
-    assert(waitFor(futureChildren) === Set(c0, c1))
+    //NB: We should get c0 once here, since it won't become runnable until we execute it, and it fails
+    assert(waitFor(futureChildren) === Seq(c0, c1))
     
-    execute(Seq(c0, c1))
+    execute(c0, c1)
+    
+    val futureNonRootRunnables = rootJob.runnables.take(7).to[Seq].firstAsFuture
+    
+    val nonRootRunnables = waitFor(futureNonRootRunnables)
+    
+    val counts = count(nonRootRunnables)
+    
+    assert(counts(gc0) === 1)
+    assert(counts(gc1) === 1)
+    assert(counts(gc2) === 1)
+    assert(counts(gc3) === 1)
+    //We expect to see c0 twice: once when it became runnable because its grandchildren finished, once when it 
+    //became eligible for restarting after it failed.
+    assert(counts(c0) === 2)
+    assert(counts(c1) === 1)
+    //We should not have seen the root, since one of its children failed
+    assert(counts.get(rootJob) === None) 
     
     //We shouldn't get the root, since one of its children failed
-    val futureRootMissing = rootJob.runnables.drop(6).isEmpty.firstAsFuture
+    
+    val futureRootMissing = rootJob.runnables.drop(7).isEmpty.firstAsFuture
+    
+    //Make c0 fail permanently, simulating a ChunkRunner/Executer deciding not to restart it.
+    //We need to do this so c0.runnables completes, so that rootJob.selfRunnable will be computed.
+    c0.transitionTo(PermanentFailure)
     
     assert(waitFor(futureRootMissing))
+  }
+  
+  test("One job, multiple failures, ultimately succeeds") {
+    val job = MockJob(Failed, "job")
+    
+    val firstRunnable = job.runnables.take(1).firstAsFuture
+    
+    //The job should be runnable right away, since it has no deps
+    assert(waitFor(firstRunnable) === job)
+    
+    val firstAndSecond = job.runnables.take(2).to[Seq].firstAsFuture
+    
+    execute(job)
+    
+    //After the job runs (and fails), we expect 2 runnables: once for the job initially (since it had no deps)
+    //and once for the failure
+    assert(waitFor(firstAndSecond) === Seq(job, job))
+    
+    val firstSecondAndThird = job.runnables.take(3).to[Seq].firstAsFuture
+    
+    execute(job)
+    
+    //After the job runs twice (and fails twice), we expect 3 runnables: once for the job initially (since it had 
+    //no deps) and once for each of the two failures.
+    assert(waitFor(firstSecondAndThird) === Seq(job, job, job))
+    
+    val futureRunnables = job.runnables.to[Seq].firstAsFuture
+    
+    //Make the job complete successfully
+    job.transitionTo(Succeeded)
+    
+    //Now, we should be able to get all the runnables from this job, without limiting with take(), since 
+    //runnables will have completed due to the terminal status.  Note that no more jobs are emitted from
+    //runnables due to the terminal status.
+    assert(waitFor(futureRunnables) === Seq(job, job, job))
+  }
+  
+  test("One job, multiple failures, ultimately fails") {
+    val job = MockJob(Failed, "job")
+    
+    val firstRunnable = job.runnables.take(1).firstAsFuture
+    
+    //The job should be runnable right away, since it has no deps
+    assert(waitFor(firstRunnable) === job)
+    
+    val firstAndSecond = job.runnables.take(2).to[Seq].firstAsFuture
+    
+    execute(job)
+    
+    //After the job runs (and fails), we expect 2 runnables: once for the job initially (since it had no deps)
+    //and once for the failure
+    assert(waitFor(firstAndSecond) === Seq(job, job))
+    
+    val firstSecondAndThird = job.runnables.take(3).to[Seq].firstAsFuture
+    
+    execute(job)
+    
+    //After the job runs twice (and fails twice), we expect 3 runnables: once for the job initially (since it had 
+    //no deps) and once for each of the two failures.
+    assert(waitFor(firstSecondAndThird) === Seq(job, job, job))
+    
+    val futureRunnables = job.runnables.to[Seq].firstAsFuture
+    
+    //Make the job complete successfully
+    job.transitionTo(PermanentFailure)
+    
+    //Now, we should be able to get all the runnables from this job, without limiting with take(), since 
+    //runnables will have completed due to the terminal status.  Note that no more jobs are emitted from
+    //runnables due to the terminal status.
+    assert(waitFor(futureRunnables) === Seq(job, job, job))
   }
   
   //scalastyle:on magic.number

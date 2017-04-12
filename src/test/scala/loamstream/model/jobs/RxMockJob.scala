@@ -20,7 +20,7 @@ final case class RxMockJob( override val name: String,
                             outputs: Set[Output],
                             runsAfter: Set[RxMockJob],
                             fakeExecutionTimeInMs: Int,
-                            toReturn: Execution) extends LJob {
+                            toReturn: () => Execution) extends LJob {
 
   override def executionEnvironment: ExecutionEnvironment = TestHelpers.env
 
@@ -45,6 +45,8 @@ final case class RxMockJob( override val name: String,
 
   override def execute(implicit context: ExecutionContext): Future[Execution] = {
 
+    println("RX MOCK JOB.execute()")
+    
     Future(waitIfNecessary()).map { _ => 
     
       trace(s"\t\tStarting job: $name")
@@ -55,7 +57,7 @@ final case class RxMockJob( override val name: String,
 
       count.mutate(_ + 1)
 
-      toReturn
+      toReturn()
     }
   }
 
@@ -70,14 +72,15 @@ object RxMockJob {
             outputs: Set[Output] = Set.empty,
             runsAfter: Set[RxMockJob] = Set.empty,
             fakeExecutionTimeInMs: Int = 0,
-            toReturn: JobResult = JobResult.CommandResult(0)): RxMockJob = {
+            toReturn: () => JobResult = () => JobResult.CommandResult(0))
+            (implicit discriminator: Int = 42): RxMockJob = {
 
     RxMockJob(name,
               inputs,
               outputs,
               runsAfter,
               fakeExecutionTimeInMs,
-              executionFrom(outputs, jobResult = toReturn))
+              () => executionFrom(outputs, jobResult = toReturn()))
   }
 
   private[this] def executionFrom(outputs: Set[Output], jobResult: JobResult) = {

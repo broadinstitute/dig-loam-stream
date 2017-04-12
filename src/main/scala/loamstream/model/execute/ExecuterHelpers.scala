@@ -37,20 +37,21 @@ object ExecuterHelpers {
     
     println(s"EXECUTERHELPERS.handleResultOfExecution: $job => $execution")
     
-    if(execution.status.isFailure) {
-      handleFailure(shouldRestart)(job)
+    val newStatus = execution.status
+    
+    if(newStatus.isFailure) {
+      handleFailure(shouldRestart)(job, newStatus)
     } else {
-      job.transitionTo(execution.status)
+      job.transitionTo(newStatus)
     }
   }
   
   //TODO: TEST
-  def handleFailure(shouldRestart: LJob => Boolean)(job: LJob): Unit = {
-    job.transitionTo(JobStatus.Failed)
+  def handleFailure(shouldRestart: LJob => Boolean)(job: LJob, failureStatus: JobStatus): Unit = {
     
-    val status = if(shouldRestart(job)) JobStatus.NotStarted else JobStatus.PermanentFailure
+    val status = if(shouldRestart(job)) failureStatus else JobStatus.PermanentFailure
     
-    println(s"EXECUTERHELPERS.handleFailure: $job transitioning to: $status")
+    println(s"EXECUTERHELPERS.handleFailure: failure status: $failureStatus ; $job transitioning to: $status")
     
     job.transitionTo(status)
   }

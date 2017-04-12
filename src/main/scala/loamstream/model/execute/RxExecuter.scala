@@ -32,7 +32,7 @@ final case class RxExecuter(
     //Note the use of 'distinct' to avoid running jobs more than once, if that job is depended on by multiple 'root' 
     //jobs in an Executable.  This is a bit brute-force, but allows for simpler logic in LJob.
     val runnables: Observable[LJob] = {
-      Observables.merge(executable.jobs.toSeq.map(_.runnables)).distinct
+      Observables.merge(executable.jobs.toSeq.map(_.runnables))
     }
     
     val ioScheduler: Scheduler = IOScheduler()
@@ -54,7 +54,11 @@ final case class RxExecuter(
       _ = logFinishedJobs(executionMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
     } yield {
-      executionMap ++ skippedResultMap
+      val r = executionMap ++ skippedResultMap
+      
+      println(s"RX EXECUTER EXECUTE: $r")
+      
+      r
     }
    
     import ExecuterHelpers.anyFailures

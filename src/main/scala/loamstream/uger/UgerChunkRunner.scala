@@ -82,8 +82,10 @@ final case class UgerChunkRunner(
     }
     case DrmaaClient.SubmissionFailure(e) => {
       import ExecuterHelpers.handleFailure
+
       
-      commandLineJobs.foreach(handleFailure(shouldRestart))
+      
+      commandLineJobs.foreach(j => handleFailure(shouldRestart)(j, j.status))
 
       makeAllFailureMap(commandLineJobs, Some(e))
     }

@@ -3,17 +3,22 @@ package loamstream.conf
 import java.nio.file.Path
 
 import com.typesafe.config.Config
+import loamstream.conf.PythonConfig.Defaults
 
 import scala.util.Try
-import java.nio.file.Paths
+import loamstream.util.PathUtils
 
 /**
- * @author clint
- * Mar 28, 2017
+ * @author kyuksel
+ *         4/11/2017
  */
-final case class PythonConfig(binary: Path)
+final case class PythonConfig(binary: Path, scriptDir: Path = Defaults.scriptDir)
 
 object PythonConfig {
+
+  object Defaults {
+    val scriptDir: Path = PathUtils.getCurrentDirectory
+  }
 
   def fromConfig(config: Config): Try[PythonConfig] = {
     import net.ceedubs.ficus.Ficus._

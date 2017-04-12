@@ -10,32 +10,32 @@ import scala.util.Try
 
 /**
  * @author kyuksel
- *         date: 4/11/17
+ *         date: 4/12/17
  */
-final class PythonConfigTest extends FunSuite {
-  private val binaryPath = Paths.get("path/to/python/binary")
+final class RConfigTest extends FunSuite {
+  private val binaryPath = Paths.get("path/to/R/binary")
   private val scriptDirPath = Paths.get("path/to/script/location")
 
   test("fromConfig - defaults") {
     val confString =
       s"""loamstream {
-            python {
+            r {
               binary = "$binaryPath"
             }
           }"""
 
     val config = ConfigFactory.parseString(confString)
 
-    val pythonConfig = PythonConfig.fromConfig(config).get
+    val rConfig = RConfig.fromConfig(config).get
 
-    assert(pythonConfig.binary === binaryPath)
-    assert(pythonConfig.scriptDir === PathUtils.getCurrentDirectory)
+    assert(rConfig.binary === binaryPath)
+    assert(rConfig.scriptDir === PathUtils.getCurrentDirectory)
   }
 
   test("fromConfig - defaults overridden") {
     val confString =
       s"""loamstream {
-            python {
+            r {
               binary = "$binaryPath"
               scriptDir = "$scriptDirPath"
             }
@@ -43,14 +43,14 @@ final class PythonConfigTest extends FunSuite {
 
     val config = ConfigFactory.parseString(confString)
 
-    val pythonConfig = PythonConfig.fromConfig(config).get
+    val rConfig = RConfig.fromConfig(config).get
 
-    assert(pythonConfig.binary === binaryPath)
-    assert(pythonConfig.scriptDir === scriptDirPath)
+    assert(rConfig.binary === binaryPath)
+    assert(rConfig.scriptDir === scriptDirPath)
   }
 
   test("fromConfig - bad input") {
-    assert(PythonConfig.fromConfig(ConfigFactory.empty).isFailure)
+    assert(RConfig.fromConfig(ConfigFactory.empty).isFailure)
 
     def doTest(s: String): Unit = {
       val config = Try(ConfigFactory.parseString(s))
@@ -62,6 +62,6 @@ final class PythonConfigTest extends FunSuite {
     doTest("")
     doTest("asdsadasd")
     doTest("loamstream { }")
-    doTest("loamstream { python { } }")
+    doTest("loamstream { r { } }")
   }
 }

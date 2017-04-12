@@ -17,7 +17,7 @@ import loamstream.util.Observables
 import loamstream.util.Terminable
 import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
-import loamstream.model.jobs.JobStatus.PermanentFailure
+import loamstream.model.jobs.JobStatus.FailedPermanently
 import loamstream.model.execute.ExecuterHelpers
 
 
@@ -83,9 +83,7 @@ final case class UgerChunkRunner(
     case DrmaaClient.SubmissionFailure(e) => {
       import ExecuterHelpers.handleFailure
 
-      
-      
-      commandLineJobs.foreach(j => handleFailure(shouldRestart)(j, j.status))
+      commandLineJobs.foreach(handleFailure(shouldRestart, Failed))
 
       makeAllFailureMap(commandLineJobs, Some(e))
     }

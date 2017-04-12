@@ -23,16 +23,14 @@ trait LJob extends Loggable {
   def executionEnvironment: ExecutionEnvironment
   
   def workDirOpt: Option[Path] = None
+
+  private[this] val snapshotRef: ValueBox[JobSnapshot] = ValueBox(JobSnapshot(JobStatus.NotStarted, 0))
+
+  /** This job's current status */
+  final def status: JobStatus = snapshotRef().status
   
-  def runCount: Int = runCountRef()
-  
-  private[this] val runCountRef: ValueBox[Int] = ValueBox(0)
-  
-  private def incrementRunCount(): Int = runCountRef.getAndUpdate { oldCount =>
-    val incremented = oldCount + 1
-    
-    (incremented, incremented) 
-  }
+  /** The number of times this job has transitioned to `Running` status */
+  def runCount: Int = snapshotRef().runCount
   
   def print(indent: Int = 0, doPrint: String => Unit = debug(_), header: Option[String] = None): Unit = {
     val indentString = s"${"-" * indent} >"
@@ -76,13 +74,12 @@ trait LJob extends Loggable {
    * If the this job has no dependencies, this job is emitted immediately.  This will fire at most once.
    */
   private[jobs] lazy val selfRunnable: Observable[LJob] = {
-    //lazy val failures = statuses.filter(_.isFailure).takeUntil(_.isTerminal)
-    lazy val failures = statuses.filter(s => s.isFailure && !s.isTerminal)
+    lazy val nonTerminalFailures = statuses.filter(s => s.isFailure && !s.isTerminal)
     
-    //def justUs = Observable.just(this)
-    //NB: We run once, and then once per failure, until we fail permanently; ChunkRunners are responsible for
-    //setting our status to PermanentFailure if they will no longer restart us.
-    def justUs = Observable.just(this) ++ failures.map(_ => this)
+    //NB: We run once, and then once per failure, until we transition to a terminal status. 
+    //ChunkRunners/Executers are responsible for setting our status to PermanentFailure if they will no 
+    //longer run us.
+    def justUs = Observable.just(this) ++ nonTerminalFailures.map(_ => this)
     def noMore = Observable.empty
 
     if(inputs.isEmpty) {
@@ -98,11 +95,6 @@ trait LJob extends Loggable {
       }
     }
   }
-
-  private[this] val statusRef: ValueBox[JobStatus] = ValueBox(JobStatus.NotStarted)
-
-  /** This job's current status */
-  final def status: JobStatus = statusRef.value
 
   /**
    * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
@@ -133,17 +125,10 @@ trait LJob extends Loggable {
    *
    * @param newStatus the new status to set for this job
    */
-  //TODO: TEST
   final def transitionTo(newStatus: JobStatus): Unit = {
     debug(s"Status change to $newStatus for job: ${this}")
     
-    val newRunCount = statusRef.mutate { oldStatus =>
-
-      //TODO: BEWARE: Side effect, overlapping locks
-      incrementRunCountIfNeeded(oldStatus, newStatus)
-      
-      newStatus
-    }
+    snapshotRef.mutate(_.transitionTo(newStatus))
     
     statusEmitter.onNext(newStatus)
     
@@ -151,19 +136,6 @@ trait LJob extends Loggable {
       debug(s"$newStatus is terminal; emitting no more statuses from job: ${this}")
       
       statusEmitter.onCompleted()
-    }
-  }
-  
-  //TODO: TEST
-  private[jobs] def incrementRunCountIfNeeded(oldStatus: JobStatus, newStatus: JobStatus): Int = {
-    import JobStatus._
-    
-    runCountRef.getAndUpdate { oldRunCount =>
-      val startedRunning = newStatus.isRunning && oldStatus.notRunning
-      
-      val newCount = if(startedRunning) oldRunCount + 1 else oldRunCount
-      
-      (newCount, newCount)
     }
   }
 

@@ -22,6 +22,46 @@ final class JobTest extends FunSuite with TestJobs {
 
   private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
   
+  test("transitionTo") {
+    val job = MockJob(NotStarted)
+    
+    def statuses(howMany: Int): Seq[JobStatus] = waitFor(job.statuses.take(howMany).to[Seq].firstAsFuture)
+    
+    job.transitionTo(NotStarted)
+    
+    assert(job.status === NotStarted)
+    assert(statuses(1) === Seq(NotStarted))
+    assert(job.runCount === 0)    
+    
+    job.transitionTo(Running)
+    
+    assert(job.status === Running)
+    assert(statuses(2) === Seq(NotStarted, Running))
+    assert(job.runCount === 1)
+    
+    job.transitionTo(Failed)
+    assert(job.status === Failed)
+    job.transitionTo(Running)
+    
+    assert(job.status === Running)
+    assert(statuses(4) === Seq(NotStarted, Running, Failed, Running))
+    assert(job.runCount === 2)
+    
+    job.transitionTo(Running)
+    
+    assert(job.status === Running)
+    assert(statuses(5) === Seq(NotStarted, Running, Failed, Running, Running))
+    assert(job.runCount === 2)
+    
+    job.transitionTo(Failed)
+    assert(job.status === Failed)
+    job.transitionTo(Running)
+    
+    assert(job.status === Running)
+    assert(statuses(7) === Seq(NotStarted, Running, Failed, Running, Running, Failed, Running))
+    assert(job.runCount === 3)
+  }
+  
   test("execute") {
     def doTest(status: JobStatus): Unit = {
       val failedJob = MockJob(status)
@@ -51,7 +91,7 @@ final class JobTest extends FunSuite with TestJobs {
     }
     
     doTest(Succeeded)
-    doTest(PermanentFailure)
+    doTest(FailedPermanently)
     doTest(Skipped)
   }
 
@@ -65,10 +105,10 @@ final class JobTest extends FunSuite with TestJobs {
     failedJob.transitionTo(Running)
     failedJob.transitionTo(Running)
     failedJob.transitionTo(Failed)
-    failedJob.transitionTo(PermanentFailure)
+    failedJob.transitionTo(FailedPermanently)
     failedJob.transitionTo(Succeeded)
 
-    assert(waitFor(lastStatusesFuture) === Seq(PermanentFailure))
+    assert(waitFor(lastStatusesFuture) === Seq(FailedPermanently))
   }
   
   test("finalInputStatuses - no deps") {
@@ -82,7 +122,7 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("finalInputStatuses - some deps") {
-    val deps: Set[LJob] = Set(MockJob(PermanentFailure), MockJob(Succeeded))
+    val deps: Set[LJob] = Set(MockJob(FailedPermanently), MockJob(Succeeded))
     
     val noDeps = MockJob(toReturn = Failed, inputs = deps)
     
@@ -91,7 +131,7 @@ final class JobTest extends FunSuite with TestJobs {
     deps.foreach(_.execute(ExecutionContext.global))
     
     //NB: Use Sets to ignore order
-    val expected = Set(PermanentFailure, Succeeded)
+    val expected = Set(FailedPermanently, Succeeded)
     
     assert(waitFor(finalInputStatusesFuture).toSet === expected)
   }
@@ -166,7 +206,7 @@ final class JobTest extends FunSuite with TestJobs {
       
       val i0 = mockJob(Succeeded)
       
-      val i1 = mockJob(if(anyFailures) PermanentFailure else Succeeded)
+      val i1 = mockJob(if(anyFailures) FailedPermanently else Succeeded)
       
       val inputs: Set[LJob] = Set(i0, notFinished, i1)
       
@@ -185,8 +225,8 @@ final class JobTest extends FunSuite with TestJobs {
     
     doTest(Succeeded, anyFailures = true)
     doTest(Succeeded, anyFailures = false)
-    doTest(PermanentFailure, anyFailures = true)
-    doTest(PermanentFailure, anyFailures = false)
+    doTest(FailedPermanently, anyFailures = true)
+    doTest(FailedPermanently, anyFailures = false)
     doTest(NotStarted, anyFailures = true)
     doTest(NotStarted, anyFailures = false)
     doTest(Failed, anyFailures = true)
@@ -335,7 +375,7 @@ final class JobTest extends FunSuite with TestJobs {
     
     //Make c0 fail permanently, simulating a ChunkRunner/Executer deciding not to restart it.
     //We need to do this so c0.runnables completes, so that rootJob.selfRunnable will be computed.
-    c0.transitionTo(PermanentFailure)
+    c0.transitionTo(FailedPermanently)
     
     assert(waitFor(futureRootMissing))
   }
@@ -402,7 +442,7 @@ final class JobTest extends FunSuite with TestJobs {
     val futureRunnables = job.runnables.to[Seq].firstAsFuture
     
     //Make the job complete successfully
-    job.transitionTo(PermanentFailure)
+    job.transitionTo(FailedPermanently)
     
     //Now, we should be able to get all the runnables from this job, without limiting with take(), since 
     //runnables will have completed due to the terminal status.  Note that no more jobs are emitted from

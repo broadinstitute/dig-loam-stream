@@ -21,9 +21,9 @@ object LanguageSupport  {
        * 
        * val someStore = store[TXT].at("/foo/bar/baz")
        * 
-       * r"""
+       * r"
        *     sprintf("Hello world! Here's a store: %s", ${someStore} );
-       *  """
+       *  "
        */
       def r(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
         
@@ -54,9 +54,9 @@ object LanguageSupport  {
        * 
        * val someStore = store[TXT].at("/foo/bar/baz")
        * 
-       * python"""
-       *       print("Hello world! here's a store: ${someStore}")
-       *       """
+       * python"
+       *          print("Hello world! here's a store: ${someStore}")
+       *       "
        */
       def python(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
         implicit val sc = stringContext

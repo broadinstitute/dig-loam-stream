@@ -2,7 +2,6 @@ package loamstream.loam
 
 import loamstream.compiler.LoamPredef.store
 import loamstream.TestHelpers
-import loamstream.loam.ops.StoreType
 import loamstream.loam.ops.StoreType.TXT
 import loamstream.util.Files
 import org.scalatest.FunSuite
@@ -39,10 +38,20 @@ final class LanguageSupportTest extends FunSuite {
     val someVal = 123
     val someStore = store[TXT].at("/someStorePath")
 
-    val loamLine = python"$someTool --foo $someVal --bar $someStore baz"
+    val loamLine = python"""$someTool --foo $someVal --bar $someStore baz"""
 
     val expectedBinary = "/path/to/python/binary"
     val expectedScriptContent = "someToolPath --foo 123 --bar /someStorePath baz"
+
+    doTest(loamLine, expectedBinary, expectedScriptContent)
+  }
+
+  test("empty Python snippet") {
+    import LanguageSupport.Python._
+
+    val loamLine = python""
+    val expectedBinary = "/path/to/python/binary"
+    val expectedScriptContent = ""
 
     doTest(loamLine, expectedBinary, expectedScriptContent)
   }
@@ -58,6 +67,16 @@ final class LanguageSupportTest extends FunSuite {
 
     val expectedBinary = "/path/to/R/binary"
     val expectedScriptContent = "someToooolPath --foo 456 --bar /someStooorePath baz"
+
+    doTest(loamLine, expectedBinary, expectedScriptContent)
+  }
+
+  test("empty R snippet") {
+    import LanguageSupport.R._
+
+    val loamLine = r""""""
+    val expectedBinary = "/path/to/R/binary"
+    val expectedScriptContent = ""
 
     doTest(loamLine, expectedBinary, expectedScriptContent)
   }

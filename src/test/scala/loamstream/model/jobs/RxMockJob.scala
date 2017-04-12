@@ -44,8 +44,6 @@ final case class RxMockJob( override val name: String,
   }
 
   override def execute(implicit context: ExecutionContext): Future[Execution] = {
-
-    println("RX MOCK JOB.execute()")
     
     Future(waitIfNecessary()).map { _ => 
     

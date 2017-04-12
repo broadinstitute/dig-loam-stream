@@ -122,6 +122,7 @@ trait LJob extends Loggable {
   
   /**
    * Sets the status of this job to be newStatus, and emits the new status to any observers.
+   * Also bumps this job's run count if the current status *is not* `Running` and the new status *is* `Running`.  
    *
    * @param newStatus the new status to set for this job
    */

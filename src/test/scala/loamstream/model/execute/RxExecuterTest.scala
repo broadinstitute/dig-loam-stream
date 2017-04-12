@@ -131,11 +131,7 @@ final class RxExecuterTest extends FunSuite {
       val job1 = RxMockJob("Job_1", toReturn = { () =>
         runs += 1
         
-        val result = if(runs >= 3) JobResult.Success else JobResult.Failure
-        
-        println(s"DO TEST: returning $result")
-        
-        result
+        if(runs >= 3) JobResult.Success else JobResult.Failure
       })
 
       assert(job1.executionCount === 0)
@@ -257,7 +253,7 @@ final class RxExecuterTest extends FunSuite {
      * Job1 -- Job2 -- Job3
      *
      */
-    def doTest(maxRestartsAllowed: Int): Unit = {
+    def doTest(maxRestartsAllowed: Int, expectedRuns: Seq[Int]): Unit = {
       val job1 = RxMockJob("Job_1")
       val job2 = RxMockJob("Job_2", Set(job1), toReturn = () => JobResult.CommandResult(2))
       val job3 = RxMockJob("Job_3", Set(job2))
@@ -272,9 +268,11 @@ final class RxExecuterTest extends FunSuite {
       
       import r.jobExecutionSeq
   
-      assert(job1.executionCount === 1)
-      assert(job2.executionCount === 1)
-      assert(job3.executionCount === 0)
+      val Seq(expectedRuns1, expectedRuns2, expectedRuns3) = expectedRuns
+      
+      assert(job1.executionCount === expectedRuns1)
+      assert(job2.executionCount === expectedRuns2)
+      assert(job3.executionCount === expectedRuns3)
   
       assert(result(job1).isSuccess)
       assert(result(job2).isFailure)
@@ -282,13 +280,85 @@ final class RxExecuterTest extends FunSuite {
       
       assert(result.size === 2)
       
-      assert(jobExecutionSeq == Seq(Set(job1), Set(job2)))
+      val expectedChunks: Seq[Set[RxMockJob]] = Set(job1) +: (0 until expectedRuns2).toSeq.map(_ => Set(job2))
+      
+      assert(jobExecutionSeq === expectedChunks)
       
       assert(job1 ranBefore job2)
     }
     
-    doTest(0)
-    //doTest(2)
+    doTest(maxRestartsAllowed = 0, expectedRuns = Seq(1,1,0))
+    doTest(maxRestartsAllowed = 2, expectedRuns = Seq(1,3,0))
+  }
+  
+  test("3-job linear pipeline works if the middle job fails but then succeeds after a restart") {
+    /* A 3-step pipeline:
+     *
+     * Job1 -- Job2 -- Job3
+     *
+     */
+    def doTest(maxRestartsAllowed: Int, expectedRuns: Seq[Int]): Unit = {
+      
+      @volatile var runs = 0
+      
+      val job1 = RxMockJob("Job_1")
+      val job2 = RxMockJob("Job_2", Set(job1), toReturn = { () =>
+        runs += 1
+        
+        if(runs >= 3) JobResult.CommandResult(0) else JobResult.CommandResult(2)
+      })
+      val job3 = RxMockJob("Job_3", Set(job2))
+  
+      assert(job1.executionCount === 0)
+      assert(job2.executionCount === 0)
+      assert(job3.executionCount === 0)
+  
+      val executable = Executable(Set(job3))
+      
+      val r @ ExecutionResults(result, chunks) = exec(executable, maxRestartsAllowed)
+      
+      import r.jobExecutionSeq
+
+      val Seq(expectedRuns1, expectedRuns2, expectedRuns3) = expectedRuns  
+      
+      assert(job1.executionCount === expectedRuns1)
+      assert(job2.executionCount === expectedRuns2)
+      assert(job3.executionCount === expectedRuns3)
+  
+      assert(result(job1).isSuccess)
+      
+      val job3ShouldFail = expectedRuns3 == 0
+      
+      if(job3ShouldFail) {
+        //If we expect job3 not to have run, in other words, we expect job2 to fail 
+        assert(result(job2).isFailure)
+        assert(result.get(job3).isEmpty)
+      } else {
+        //Otherwise, we expect job2 and job3 to work
+        assert(result(job2).isSuccess)
+        assert(result(job3).isSuccess)
+      }
+      
+      val expectedNumResults = if(job3ShouldFail) 2 else 3
+        
+      assert(result.size === expectedNumResults)
+      
+      val expectedChunks = {
+        val expectedChunksForJob2 = (0 until expectedRuns2).toSeq.map(_ => Set(job2))
+      
+        val expectedChunksForJobs1And2 = Set(job1) +: expectedChunksForJob2
+        
+        if(job3ShouldFail) { expectedChunksForJobs1And2 } 
+        else { expectedChunksForJobs1And2 :+ Set(job3) }
+      }
+
+      assert(jobExecutionSeq === expectedChunks)  
+      
+      assert(job1 ranBefore job2)
+    }
+    
+    doTest(maxRestartsAllowed = 0, expectedRuns = Seq(1,1,0))
+    doTest(maxRestartsAllowed = 2, expectedRuns = Seq(1,3,1))
   }
   
   test("3-job pipeline with multiple dependencies works") {

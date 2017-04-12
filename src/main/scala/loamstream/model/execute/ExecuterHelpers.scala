@@ -5,12 +5,13 @@ import scala.concurrent.{ExecutionContext, Future}
 import loamstream.model.jobs.{Execution, LJob}
 import loamstream.model.jobs.JobStatus
 import loamstream.util.Futures
+import loamstream.util.Loggable
 
 /**
  * @author clint
  * date: Jun 7, 2016
  */
-object ExecuterHelpers {
+object ExecuterHelpers extends Loggable {
   def noFailures[J <: LJob](m: Map[J, Execution]): Boolean = m.values.forall(_.status.isSuccess)
   
   def anyFailures[J <: LJob](m: Map[J, Execution]): Boolean = !noFailures(m)
@@ -32,10 +33,10 @@ object ExecuterHelpers {
   }
   
   //TODO TEST
-  private def handleResultOfExecution(shouldRestart: LJob => Boolean)(tuple: (LJob, Execution)): Unit = {
+  private[execute] def handleResultOfExecution(shouldRestart: LJob => Boolean)(tuple: (LJob, Execution)): Unit = {
     val (job, execution) = tuple
     
-    println(s"EXECUTERHELPERS.handleResultOfExecution: $job => $execution")
+    trace(s"Handling result of execution: $job => $execution")
     
     val newStatus = execution.status
     
@@ -47,11 +48,19 @@ object ExecuterHelpers {
   }
   
   //TODO: TEST
+  private[execute] def determineFinalStatus(
+      shouldRestart: LJob => Boolean, 
+      failureStatus: JobStatus, 
+      job: LJob): JobStatus = if(shouldRestart(job)) failureStatus else JobStatus.FailedPermanently
+  
+  //TODO: TEST, 
+  //TODO: Refactor; this signature is convenient for UgerChunkRunner, but weird for anything else.  
+  //TODO: Seperate computation of final status from side effect of munging job
   def handleFailure(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {
     
-    val status = if(shouldRestart(job)) failureStatus else JobStatus.FailedPermanently
+    val status = determineFinalStatus(shouldRestart, failureStatus, job)
     
-    println(s"EXECUTERHELPERS.handleFailure: failure status: $failureStatus ; $job transitioning to: $status")
+    debug(s"$job transitioning to: $status (Non-terminal failure status: $failureStatus)")
     
     job.transitionTo(status)
   }

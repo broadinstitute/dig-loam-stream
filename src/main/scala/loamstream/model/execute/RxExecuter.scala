@@ -54,11 +54,7 @@ final case class RxExecuter(
       _ = logFinishedJobs(executionMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
     } yield {
-      val r = executionMap ++ skippedResultMap
-      
-      println(s"RX EXECUTER EXECUTE: $r")
-      
-      r
+      executionMap ++ skippedResultMap
     }
    
     import ExecuterHelpers.anyFailures
@@ -84,13 +80,7 @@ final case class RxExecuter(
     }
   }
   
-  private def shouldRestart(job: LJob): Boolean = {
-    val result = job.runCount < maxRunsPerJob
-    
-    println(s"RX EXECUTER.shouldRestart(): Should restart? ${result} - for $job")
-    
-    result
-  }
+  private def shouldRestart(job: LJob): Boolean = RxExecuter.shouldRestart(job, maxRunsPerJob)
   
   def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, Execution]] = {
     logJobsToBeRun(jobsToRun)
@@ -168,6 +158,9 @@ object RxExecuter extends Loggable {
     
     d.copy(jobFilter = newJobFilter)(d.executionContext)
   }
+  
+  //TODO: TEST
+  private[execute] def shouldRestart(job: LJob, maxRunsPerJob: Int): Boolean = job.runCount < maxRunsPerJob
 }
   
   

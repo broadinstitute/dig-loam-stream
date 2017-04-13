@@ -30,6 +30,16 @@ final class FilesTest extends FunSuite {
     assert(path.toFile.exists)
   }
 
+  test("createDirsIfNecessary") {
+    val dummy = Paths.get("target/dummy1/dummy2")
+    assert(!dummy.toFile.exists)
+
+    Files.createDirsIfNecessary(dummy)
+    assert(dummy.toFile.exists)
+
+    assert(dummy.toFile.delete)
+  }
+
   test("tryFile(String)") {
     assert(Files.tryFile("foo").isFailure)
 

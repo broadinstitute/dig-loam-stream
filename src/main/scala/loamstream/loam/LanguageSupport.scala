@@ -24,17 +24,9 @@ trait LanguageSupport {
     val executionId = scriptContext.executionId
     val filename = s"$prefix-$executionId-${fileNums.next()}.$extension"
 
-    createIfNecessary(dir)
+    Files.createDirsIfNecessary(dir)
 
     dir/filename
-  }
-
-  private def createIfNecessary(directory: Path): Unit = {
-    val dir = directory.toFile
-
-    if (! dir.exists) dir.mkdirs()
-
-    assert(dir.exists)
   }
 }
 
@@ -45,7 +37,7 @@ object LanguageSupport {
         super.config.rConfig.isDefined,
         s"R support requires a valid 'loamstream.r' section in the config file")
 
-      super.config.rConfig.get
+      config.rConfig.get
     }
 
     implicit final class StringContextWithR(val stringContext: StringContext) extends AnyVal {
@@ -78,7 +70,7 @@ object LanguageSupport {
         super.config.pythonConfig.isDefined,
         s"Python support requires a valid 'loamstream.python' section in the config file")
 
-      super.config.pythonConfig.get
+      config.pythonConfig.get
     }
 
     implicit final class StringContextWithPython(val stringContext: StringContext) extends AnyVal {

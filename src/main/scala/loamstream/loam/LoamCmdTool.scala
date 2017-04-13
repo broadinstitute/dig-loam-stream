@@ -12,8 +12,8 @@ import loamstream.loam.files.LoamFileManager
   */
 object LoamCmdTool {
 
-  private def createStringToken(string: String)(f: String => String): StringToken = {
-    StringToken(f(string))
+  private def createStringToken(string: String)(transform: String => String): StringToken = {
+    StringToken(transform(string))
   }
 
   implicit final class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
@@ -30,16 +30,21 @@ object LoamCmdTool {
     }
   }
 
-  def create(args: Any*)(f: String => String)
+  /**
+   * @param transform allows for manipulating white space,
+   *                  system-dependent markers (e.g. line breaks), etc.
+   *                  within a commandline or a block of embedded code
+   */
+  def create(args: Any*)(transform: String => String)
             (implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
     //TODO: handle case where there are no parts (can that happen? cmd"" ?)
     val firstPart +: stringParts = stringContext.parts
 
-    val firstToken: LoamToken = createStringToken(firstPart)(f)
+    val firstToken: LoamToken = createStringToken(firstPart)(transform)
 
     val tokens: Seq[LoamToken] = firstToken +: {
       stringParts.zip(args).flatMap { case (stringPart, arg) =>
-        Seq(toToken(arg), createStringToken(stringPart)(f))
+        Seq(toToken(arg), createStringToken(stringPart)(transform))
       }
     }
 

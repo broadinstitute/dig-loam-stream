@@ -15,32 +15,41 @@ object LoamCmdTool {
   def createStringToken(string: String): StringToken = StringToken(StringUtils.unwrapLines(string))
 
   implicit final class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
+    /** BEWARE: This method has the implicit side-effect of modifying the graph
+     *          within scriptContext via the call to addToGraph()
+     */
     def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-      //TODO: handle case where there are no parts (can that happen? cmd"" ?)
-      val firstPart +: stringParts = stringContext.parts
+      val tool = create(args : _*)(scriptContext, stringContext)
 
-      val firstToken: LoamToken = createStringToken(firstPart)
+      LoamCmdTool.addToGraph(tool)
 
-      val tokens: Seq[LoamToken] = firstToken +: {
-        stringParts.zip(args).flatMap { case (stringPart, arg) =>
-          Seq(toToken(arg), createStringToken(stringPart))
-        }
-      }
-
-      val merged = LoamToken.mergeStringTokens(tokens)
-
-      LoamCmdTool.create(merged)
+      // TODO: Necessary to return anything?
+      tool
     }
   }
 
-  def create(tokens: Seq[LoamToken])(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-    val tool = LoamCmdTool(LId.newAnonId, tokens)
-    
+  def create(args: Any*)(implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
+    //TODO: handle case where there are no parts (can that happen? cmd"" ?)
+    val firstPart +: stringParts = stringContext.parts
+
+    val firstToken: LoamToken = createStringToken(firstPart)
+
+    val tokens: Seq[LoamToken] = firstToken +: {
+      stringParts.zip(args).flatMap { case (stringPart, arg) =>
+        Seq(toToken(arg), createStringToken(stringPart))
+      }
+    }
+
+    val merged = LoamToken.mergeStringTokens(tokens)
+
+    LoamCmdTool(LId.newAnonId, merged)
+  }
+
+  /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
+  def addToGraph(tool: LoamCmdTool)(implicit scriptContext: LoamScriptContext): Unit = {
     scriptContext.projectContext.graphBox.mutate { graph =>
       graph.withTool(tool, scriptContext)
     }
-    
-    tool
   }
   
   def toToken(arg: Any): LoamToken = arg match {

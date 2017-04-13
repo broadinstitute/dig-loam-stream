@@ -55,8 +55,8 @@ object LanguageSupport {
       def r(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
         import LoamCmdTool._
 
-        val rScriptContent = stringContext.cmd(args : _*).commandLine
-        val rScriptFile = determineScriptFile("r", "r", rConfig.scriptDir)
+        val rScriptContent = LoamCmdTool.create(args : _*)(scriptContext, stringContext).commandLine
+        val rScriptFile = determineScriptFile("R", "r", rConfig.scriptDir)
         Files.writeTo(rScriptFile)(rScriptContent)
 
         cmd"${rConfig.binary} $rScriptFile"
@@ -88,7 +88,7 @@ object LanguageSupport {
       def python(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
         import LoamCmdTool._
 
-        val pythonScriptContent = stringContext.cmd(args : _*).commandLine
+        val pythonScriptContent = LoamCmdTool.create(args : _*)(scriptContext, stringContext).commandLine
         val pythonScriptFile = determineScriptFile("python", "py", pythonConfig.scriptDir)
         Files.writeTo(pythonScriptFile)(pythonScriptContent)
 

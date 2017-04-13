@@ -4,7 +4,7 @@ import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.loam.LoamTool.{AllStores, DefaultStores}
 import loamstream.model.LId
 import loamstream.util.StringUtils
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.loam.files.LoamFileManager
 
 /**
   * LoamStream
@@ -12,40 +12,62 @@ import loamstream.model.execute.ExecutionEnvironment
   */
 object LoamCmdTool {
 
-  def createStringToken(string: String): StringToken = StringToken(StringUtils.unwrapLines(string))
+  private def createStringToken(string: String)(transform: String => String): StringToken = {
+    StringToken(transform(string))
+  }
 
   implicit final class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
+    /** BEWARE: This method has the implicit side-effect of modifying the graph
+     *          within scriptContext via the call to addToGraph()
+     */
     def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-      //TODO: handle case where there are no parts (can that happen? cmd"" ?)
-      val firstPart +: stringParts = stringContext.parts
+      val tool = create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
 
-      val firstToken: LoamToken = createStringToken(firstPart)
+      LoamCmdTool.addToGraph(tool)
 
-      val tokens: Seq[LoamToken] = firstToken +: {
-        stringParts.zip(args).flatMap { case (stringPart, arg) =>
-          val argToken = arg match {
-            case store: LoamStore.Untyped => StoreToken(store)
-            case storeRef: LoamStoreRef => StoreRefToken(storeRef)
-            case _ => StringToken(arg.toString)
-          }
-          Seq(argToken, createStringToken(stringPart))
-        }
-      }
-
-      val merged = LoamToken.mergeStringTokens(tokens)
-
-      LoamCmdTool.create(merged)
+      // TODO: Necessary to return anything?
+      tool
     }
   }
 
-  def create(tokens: Seq[LoamToken])(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-    val tool = LoamCmdTool(LId.newAnonId, tokens)
-    
+  /**
+   * @param transform allows for manipulating white space,
+   *                  system-dependent markers (e.g. line breaks), etc.
+   *                  within a commandline or a block of embedded code
+   */
+  def create(args: Any*)(transform: String => String)
+            (implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
+    //TODO: handle case where there are no parts (can that happen? cmd"" ?)
+    val firstPart +: stringParts = stringContext.parts
+
+    val firstToken: LoamToken = createStringToken(firstPart)(transform)
+
+    val tokens: Seq[LoamToken] = firstToken +: {
+      stringParts.zip(args).flatMap { case (stringPart, arg) =>
+        Seq(toToken(arg), createStringToken(stringPart)(transform))
+      }
+    }
+
+    val merged = LoamToken.mergeStringTokens(tokens)
+
+    LoamCmdTool(LId.newAnonId, merged)
+  }
+
+  /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
+  def addToGraph(tool: LoamCmdTool)(implicit scriptContext: LoamScriptContext): Unit = {
     scriptContext.projectContext.graphBox.mutate { graph =>
       graph.withTool(tool, scriptContext)
     }
-    
-    tool
+  }
+  
+  def toToken(arg: Any): LoamToken = arg match {
+    case store: LoamStore.Untyped => StoreToken(store)
+    case storeRef: LoamStoreRef => StoreRefToken(storeRef)
+    case arg => StringToken(arg.toString)
+  }
+  
+  def toString(fileManager: LoamFileManager, tokens: Seq[LoamToken]): String = {
+    tokens.map(_.toString(fileManager)).mkString
   }
 }
 
@@ -57,5 +79,5 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
 
   /** Constructs the command line string */
-  def commandLine: String = tokens.map(_.toString(scriptContext.projectContext.fileManager)).mkString
+  def commandLine: String = LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
 }

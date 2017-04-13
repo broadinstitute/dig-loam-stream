@@ -26,6 +26,8 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
   def executionEnvironment_=(newEnv: ExecutionEnvironment): Unit = {
     executionEnvironmentBox.value = newEnv
   }
+
+  lazy val executionId: String = s"${java.util.UUID.randomUUID}"
 }
 
 /** Container for compile time and run time context for a script */

@@ -10,7 +10,7 @@ import com.typesafe.config.ConfigFactory
 import loamstream.db.slick.SlickLoamDao
 import loamstream.db.slick.DbType
 import loamstream.uger.UgerChunkRunner
-import loamstream.conf.UgerConfig
+import loamstream.conf.{LoamConfig, PythonConfig, RConfig, UgerConfig}
 import loamstream.util.Loggable
 import loamstream.uger.Poller
 import loamstream.util.RxSchedulers
@@ -28,7 +28,6 @@ import loamstream.model.execute.CompositeChunkRunner
 import loamstream.util.ExecutionContexts
 import loamstream.googlecloud._
 import loamstream.util.Throwables
-import loamstream.conf.LoamConfig
 
 import scala.util.Try
 import loamstream.uger.AccountingClient
@@ -65,9 +64,15 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     private[this] lazy val ugerConfigAttempt = UgerConfig.fromConfig(typesafeConfig)
     private[this] lazy val googleConfigAttempt = GoogleCloudConfig.fromConfig(typesafeConfig)
     private[this] lazy val hailConfigAttempt = HailConfig.fromConfig(typesafeConfig)
-    
+    private[this] lazy val pythonConfigAttempt = PythonConfig.fromConfig(typesafeConfig)
+    private[this] lazy val rConfigAttempt = RConfig.fromConfig(typesafeConfig)
+
     override lazy val config: LoamConfig = {
-      LoamConfig(ugerConfigAttempt.toOption, googleConfigAttempt.toOption, hailConfigAttempt.toOption)
+      LoamConfig( ugerConfigAttempt.toOption,
+                  googleConfigAttempt.toOption,
+                  hailConfigAttempt.toOption,
+                  pythonConfigAttempt.toOption,
+                  rConfigAttempt.toOption)
     }
     
     override def executer: Executer = terminableExecuter

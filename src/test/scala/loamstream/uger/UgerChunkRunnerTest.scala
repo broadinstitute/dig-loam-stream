@@ -8,6 +8,8 @@ import loamstream.util.ObservableEnrichments
 import org.scalatest.FunSuite
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.TestHelpers
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.MockJob
 
 /**
   * Created by kyuksel on 7/25/16.
@@ -53,6 +55,30 @@ final class UgerChunkRunnerTest extends FunSuite {
     assert(combine(m1, m2) == Map("a" -> (1, 42.0), "c" -> (3, 99.0)))
     
     assert(combine(m2, m1) == Map("a" -> (42.0, 1), "c" -> (99.0, 3)))
+  }
+  
+  test("handleFailure") {
+    import UgerChunkRunner.handleFailure
+    import JobStatus._
+    import TestHelpers.{alwaysRestart, neverRestart}
+    
+    def doTest(failureStatus: JobStatus): Unit = {
+      val job = MockJob(NotStarted)
+      
+      assert(job.status === NotStarted)
+      
+      handleFailure(alwaysRestart, failureStatus)(job)
+      
+      assert(job.status === failureStatus)
+      
+      handleFailure(neverRestart, failureStatus)(job)
+      
+      assert(job.status === FailedPermanently)
+    }
+    
+    doTest(Failed)
+    doTest(FailedWithException)
+    doTest(Terminated)
   }
   
   //scalastyle:on magic.number

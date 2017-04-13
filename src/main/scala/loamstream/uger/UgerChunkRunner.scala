@@ -81,7 +81,7 @@ final case class UgerChunkRunner(
       toExecutionMap(jobsById)
     }
     case DrmaaClient.SubmissionFailure(e) => {
-      import ExecuterHelpers.handleFailure
+      import UgerChunkRunner.handleFailure
 
       commandLineJobs.foreach(handleFailure(shouldRestart, Failed))
 
@@ -128,6 +128,16 @@ object UgerChunkRunner extends Loggable {
   private[uger] def isNoOpJob(job: LJob): Boolean = job match {
     case noj: NoOpJob => true
     case _            => false
+  }
+  
+  //TODO: TEST, 
+  private[uger] def handleFailure(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {
+    
+    val status = ExecuterHelpers.determineFailureStatus(shouldRestart, failureStatus, job)
+    
+    debug(s"$job transitioning to: $status (Non-terminal failure status: $failureStatus)")
+    
+    job.transitionTo(status)
   }
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)

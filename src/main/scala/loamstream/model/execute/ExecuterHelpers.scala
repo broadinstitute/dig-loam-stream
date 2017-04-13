@@ -31,42 +31,31 @@ object ExecuterHelpers extends Loggable {
 
     import Futures.Implicits._
   
-    //TODO TEST
     result.withSideEffect(handleResultOfExecution(shouldRestart))
   }
   
-  //TODO TEST
   private[execute] def handleResultOfExecution(shouldRestart: LJob => Boolean)(tuple: (LJob, Execution)): Unit = {
     val (job, execution) = tuple
     
     trace(s"Handling result of execution: $job => $execution")
     
-    val newStatus = execution.status
+    val newStatus = determineFinalStatus(shouldRestart, execution.status, job)
     
-    if(newStatus.isFailure) {
-      handleFailure(shouldRestart, newStatus)(job)
-    } else {
-      job.transitionTo(newStatus)
-    }
+    job.transitionTo(newStatus)
   }
   
-  //TODO: TEST
   private[execute] def determineFinalStatus(
+      shouldRestart: LJob => Boolean,
+      newStatus: JobStatus,
+      job: LJob): JobStatus = {
+    
+    if(newStatus.isFailure) determineFailureStatus(shouldRestart, newStatus, job) else newStatus
+  }
+  
+  def determineFailureStatus(
       shouldRestart: LJob => Boolean, 
       failureStatus: JobStatus, 
       job: LJob): JobStatus = if(shouldRestart(job)) failureStatus else JobStatus.FailedPermanently
-  
-  //TODO: TEST, 
-  //TODO: Refactor; this signature is convenient for UgerChunkRunner, but weird for anything else.  
-  //TODO: Seperate computation of final status from side effect of munging job
-  def handleFailure(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {
-    
-    val status = determineFinalStatus(shouldRestart, failureStatus, job)
-    
-    debug(s"$job transitioning to: $status (Non-terminal failure status: $failureStatus)")
-    
-    job.transitionTo(status)
-  }
   
   def flattenTree(roots: Set[LJob]): Set[LJob] = {
     roots.foldLeft(roots) { (acc, job) =>

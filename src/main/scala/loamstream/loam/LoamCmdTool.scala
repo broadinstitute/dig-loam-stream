@@ -12,14 +12,16 @@ import loamstream.loam.files.LoamFileManager
   */
 object LoamCmdTool {
 
-  def createStringToken(string: String): StringToken = StringToken(StringUtils.unwrapLines(string))
+  private def createStringToken(string: String)(f: String => String): StringToken = {
+    StringToken(f(string))
+  }
 
   implicit final class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
     /** BEWARE: This method has the implicit side-effect of modifying the graph
      *          within scriptContext via the call to addToGraph()
      */
     def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-      val tool = create(args : _*)(scriptContext, stringContext)
+      val tool = create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
 
       LoamCmdTool.addToGraph(tool)
 
@@ -28,15 +30,16 @@ object LoamCmdTool {
     }
   }
 
-  def create(args: Any*)(implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
+  def create(args: Any*)(f: String => String)
+            (implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
     //TODO: handle case where there are no parts (can that happen? cmd"" ?)
     val firstPart +: stringParts = stringContext.parts
 
-    val firstToken: LoamToken = createStringToken(firstPart)
+    val firstToken: LoamToken = createStringToken(firstPart)(f)
 
     val tokens: Seq[LoamToken] = firstToken +: {
       stringParts.zip(args).flatMap { case (stringPart, arg) =>
-        Seq(toToken(arg), createStringToken(stringPart))
+        Seq(toToken(arg), createStringToken(stringPart)(f))
       }
     }
 

@@ -31,7 +31,17 @@ final class LanguageSupportTest extends FunSuite {
     assert(scriptContent === expectedScriptContent)
   }
 
-  test("embedding of Python snippets") {
+  test("Python - empty snippet") {
+    import LanguageSupport.Python._
+
+    val loamLine = python""
+    val expectedBinary = "/path/to/python/binary"
+    val expectedScriptContent = ""
+
+    doTest(loamLine, expectedBinary, expectedScriptContent)
+  }
+
+  test("Python - one-liner") {
     import LanguageSupport.Python._
 
     val someTool = "someToolPath"
@@ -46,17 +56,43 @@ final class LanguageSupportTest extends FunSuite {
     doTest(loamLine, expectedBinary, expectedScriptContent)
   }
 
-  test("empty Python snippet") {
+  test("Python - multi-liner") {
     import LanguageSupport.Python._
+    val Alice = "Alice"
+    val Bob = "Bob"
 
-    val loamLine = python""
+    val loamLines =
+python"""
+def greet(name):
+  print 'Hello', name
+
+greet('$Alice')
+greet('$Bob')
+"""
+
     val expectedBinary = "/path/to/python/binary"
+    val expectedScriptContent =
+"""
+def greet(name):
+  print 'Hello', name
+
+greet('Alice')
+greet('Bob')"""
+
+    doTest(loamLines, expectedBinary, expectedScriptContent)
+  }
+
+  test("R - empty snippet") {
+    import LanguageSupport.R._
+
+    val loamLine = r""""""
+    val expectedBinary = "/path/to/R/binary"
     val expectedScriptContent = ""
 
     doTest(loamLine, expectedBinary, expectedScriptContent)
   }
 
-  test("embedding of R snippets") {
+  test("R - one-liner") {
     import LanguageSupport.R._
 
     val someTool = "someToooolPath"
@@ -71,13 +107,39 @@ final class LanguageSupportTest extends FunSuite {
     doTest(loamLine, expectedBinary, expectedScriptContent)
   }
 
-  test("empty R snippet") {
+  test("R - multi-liner") {
     import LanguageSupport.R._
 
-    val loamLine = r""""""
-    val expectedBinary = "/path/to/R/binary"
-    val expectedScriptContent = ""
+    val loamLines =
+r"""
+args<-commandArgs(trailingOnly=T)
+x<-try(read.table(args[1],header=T,as.is=T,stringsAsFactors=F), silent=TRUE)
 
-    doTest(loamLine, expectedBinary, expectedScriptContent)
+if(inherits(x, "try-error")) {
+  file.create(args[2])
+} else {
+  ids<-c(x$$ID1,x$$ID2)
+  out<-as.data.frame(sort(table(ids),decreasing=T))
+  names(out)[1]<-"ibd_pairs"
+  write.table(out,args[2],row.names=T,col.names=F,quote=F,append=F,sep="\t")
+}
+"""
+
+    val expectedBinary = "/path/to/R/binary"
+    val expectedScriptContent =
+"""
+args<-commandArgs(trailingOnly=T)
+x<-try(read.table(args[1],header=T,as.is=T,stringsAsFactors=F), silent=TRUE)
+
+if(inherits(x, "try-error")) {
+  file.create(args[2])
+} else {
+  ids<-c(x$ID1,x$ID2)
+  out<-as.data.frame(sort(table(ids),decreasing=T))
+  names(out)[1]<-"ibd_pairs"
+  write.table(out,args[2],row.names=T,col.names=F,quote=F,append=F,sep="\t")
+}"""
+
+    doTest(loamLines, expectedBinary, expectedScriptContent)
   }
 }

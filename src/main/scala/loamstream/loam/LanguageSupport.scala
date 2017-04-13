@@ -1,6 +1,6 @@
 package loamstream.loam
 
-import loamstream.util.{Files, PathEnrichments, Sequence}
+import loamstream.util.{Files, PathEnrichments, Sequence, StringUtils}
 import java.nio.file.Path
 
 import loamstream.conf.{LoamConfig, PythonConfig, RConfig}
@@ -48,18 +48,21 @@ object LanguageSupport {
        * 
        * val someStore = store[TXT].at("/foo/bar/baz")
        * 
-       * r"
-       *     sprintf("Hello world! Here's a store: %s", ${someStore} );
-       *  "
+       *   r"
+       * sprintf("Hello world! Here's a store: %s", ${someStore} );
+       *   "
+       *
+       * NOTE: The body of the code must be left-aligned
        */
       def r(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
         import LoamCmdTool._
 
-        val rScriptContent = LoamCmdTool.create(args : _*)(scriptContext, stringContext).commandLine
-        val rScriptFile = determineScriptFile("R", "r", rConfig.scriptDir)
-        Files.writeTo(rScriptFile)(rScriptContent)
+        val scriptContent = LoamCmdTool.create(args: _*)(StringUtils.assimilateLineBreaks)(scriptContext, stringContext)
+                                       .commandLine
+        val scriptFile = determineScriptFile("R", "r", rConfig.scriptDir)
+        Files.writeTo(scriptFile)(scriptContent)
 
-        cmd"${rConfig.binary} $rScriptFile"
+        cmd"${rConfig.binary} $scriptFile"
       }
     }
   }
@@ -81,18 +84,21 @@ object LanguageSupport {
        * 
        * val someStore = store[TXT].at("/foo/bar/baz")
        * 
-       * python"
-       *          print("Hello world! here's a store: ${someStore}")
-       *       "
+       *  python"
+       * print("Hello world! here's a store: ${someStore}")
+       *  "
+       *
+       * NOTE: The body of the code must be left-aligned
        */
       def python(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
         import LoamCmdTool._
 
-        val pythonScriptContent = LoamCmdTool.create(args : _*)(scriptContext, stringContext).commandLine
-        val pythonScriptFile = determineScriptFile("python", "py", pythonConfig.scriptDir)
-        Files.writeTo(pythonScriptFile)(pythonScriptContent)
+        val scriptContent = LoamCmdTool.create(args: _*)(StringUtils.assimilateLineBreaks)(scriptContext, stringContext)
+                                       .commandLine
+        val scriptFile = determineScriptFile("python", "py", pythonConfig.scriptDir)
+        Files.writeTo(scriptFile)(scriptContent)
 
-        cmd"${pythonConfig.binary} $pythonScriptFile"
+        cmd"${pythonConfig.binary} $scriptFile"
       }
     }
   }

@@ -16,7 +16,7 @@ final class RxExecuterTest extends FunSuite {
   
   // scalastyle:off magic.number  
   private def exec(
-      executable: Executable,
+      jobs: Set[LJob],
       maxRestarts: Int,
       maxSimultaneousJobs: Int = 8): ExecutionResults = {
     
@@ -26,7 +26,7 @@ final class RxExecuterTest extends FunSuite {
     
     val executer = RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
     
-    ExecutionResults(executer.execute(executable), runner.chunks.value.filter(_.nonEmpty))
+    ExecutionResults(executer.execute(Executable(jobs)), runner.chunks.value.filter(_.nonEmpty))
   }
   
   import RxExecuterTest.JobOrderOps
@@ -58,11 +58,9 @@ final class RxExecuterTest extends FunSuite {
     def doTest(maxRestartsAllowed: Int): Unit = {
       val job1 = RxMockJob("Job_1")
   
-      val executable = Executable(Set(job1))
-  
       assert(job1.executionCount === 0)
       
-      val ExecutionResults(results, chunks) = exec(executable, maxRestartsAllowed)
+      val ExecutionResults(results, chunks) = exec(Set(job1), maxRestartsAllowed)
   
       assert(job1.executionCount === 1)
   
@@ -90,9 +88,7 @@ final class RxExecuterTest extends FunSuite {
 
       assert(job1.executionCount === 0)
 
-      val executable = Executable(Set(job1))
-
-      val ExecutionResults(executions, chunks) = exec(executable, maxRestartsAllowed)
+      val ExecutionResults(executions, chunks) = exec(Set(job1), maxRestartsAllowed)
 
       assert(job1.executionCount === expectedRuns)
 
@@ -136,9 +132,7 @@ final class RxExecuterTest extends FunSuite {
 
       assert(job1.executionCount === 0)
 
-      val executable = Executable(Set(job1))
-
-      val ExecutionResults(executions, chunks) = exec(executable, maxRestartsAllowed)
+      val ExecutionResults(executions, chunks) = exec(Set(job1), maxRestartsAllowed)
 
       assert(job1.executionCount === expectedRuns)
 
@@ -174,9 +168,7 @@ final class RxExecuterTest extends FunSuite {
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)
 
-      val executable = Executable(Set(job1))
-
-      val ExecutionResults(executions, chunks) = exec(executable, maxRestartsAllowed)
+      val ExecutionResults(executions, chunks) = exec(Set(job1), maxRestartsAllowed)
 
       //We expect that job wasn't run, since the preceding job failed
       val Seq(expectedRuns1, expectedRuns2) = expectedRuns
@@ -220,9 +212,7 @@ final class RxExecuterTest extends FunSuite {
       assert(job2.executionCount === 0)
       assert(job3.executionCount === 0)
   
-      val executable = Executable(Set(job3))
-  
-      val r @ ExecutionResults(result, chunks) = exec(executable, maxRestartsAllowed)
+      val r @ ExecutionResults(result, chunks) = exec(Set(job3), maxRestartsAllowed)
   
       import r.jobExecutionSeq
   
@@ -262,9 +252,7 @@ final class RxExecuterTest extends FunSuite {
       assert(job2.executionCount === 0)
       assert(job3.executionCount === 0)
   
-      val executable = Executable(Set(job3))
-      
-      val r @ ExecutionResults(result, chunks) = exec(executable, maxRestartsAllowed)
+      val r @ ExecutionResults(result, chunks) = exec(Set(job3), maxRestartsAllowed)
       
       import r.jobExecutionSeq
   
@@ -312,10 +300,8 @@ final class RxExecuterTest extends FunSuite {
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)
       assert(job3.executionCount === 0)
-  
-      val executable = Executable(Set(job3))
       
-      val r @ ExecutionResults(result, chunks) = exec(executable, maxRestartsAllowed)
+      val r @ ExecutionResults(result, chunks) = exec(Set(job3), maxRestartsAllowed)
       
       import r.jobExecutionSeq
 
@@ -379,9 +365,7 @@ final class RxExecuterTest extends FunSuite {
       assert(job2.executionCount === 0)
       assert(job3.executionCount === 0)
   
-      val executable = Executable(Set(job3))
-      
-      val r @ ExecutionResults(result, chunks) = exec(executable, maxRestartsAllowed)
+      val r @ ExecutionResults(result, chunks) = exec(Set(job3), maxRestartsAllowed)
       
       import r.jobExecutionSeq
   
@@ -424,9 +408,7 @@ final class RxExecuterTest extends FunSuite {
       assert(job2.executionCount === 0)
       assert(job3.executionCount === 0)
   
-      val executable = Executable(Set(job2, job3))
-      
-      val r @ ExecutionResults(results, chunks) = exec(executable, maxRestartsAllowed)
+      val r @ ExecutionResults(results, chunks) = exec(Set(job2, job3), maxRestartsAllowed)
       
       import r.jobExecutionSeq
   
@@ -471,9 +453,7 @@ final class RxExecuterTest extends FunSuite {
       assert(job3.executionCount === 0)
       assert(job4.executionCount === 0)
   
-      val executable = Executable(Set(job4))
-      
-      val r @ ExecutionResults(results, _) = exec(executable, maxRestartsAllowed)
+      val r @ ExecutionResults(results, _) = exec(Set(job4), maxRestartsAllowed)
       
       import r.jobExecutionSeq
   
@@ -536,9 +516,7 @@ final class RxExecuterTest extends FunSuite {
       assert(job32.executionCount === 0)
       assert(job4.executionCount === 0)
   
-      val executable = Executable(Set(job4))
-      
-      val r @ ExecutionResults(result, _) = exec(executable, maxRestartsAllowed)
+      val r @ ExecutionResults(result, _) = exec(Set(job4), maxRestartsAllowed)
       
       import r.jobExecutionSeq
   
@@ -613,10 +591,8 @@ final class RxExecuterTest extends FunSuite {
       assert(job31.executionCount === 0)
       assert(job32.executionCount === 0)
       assert(job4.executionCount === 0)
-  
-      val executable = Executable(Set(job4))
       
-      val r @ ExecutionResults(result, _) = exec(executable, maxRestartsAllowed)
+      val r @ ExecutionResults(result, _) = exec(Set(job4), maxRestartsAllowed)
       
       //NB: Chunks can be empty if no jobs became runnable during a certain period (RxExecuter.windowLength)
       //This can happen non-deterministically since the precise timing of when jobs will be run can't be known.
@@ -760,8 +736,6 @@ final class RxExecuterTest extends FunSuite {
     doTest(maxRestartsAllowed = 2, maxSimultaneousJobs = 8)
     doTest(maxRestartsAllowed = 2, maxSimultaneousJobs = 1)
   }
-  
-  // scalastyle:on magic.number
 }
 
 object RxExecuterTest {
@@ -800,3 +774,4 @@ object RxExecuterTest {
     }
   }
 }
+// scalastyle:on magic.number

@@ -55,7 +55,18 @@ object ExecuterHelpers extends Loggable {
   def determineFailureStatus(
       shouldRestart: LJob => Boolean, 
       failureStatus: JobStatus, 
-      job: LJob): JobStatus = if(shouldRestart(job)) failureStatus else JobStatus.FailedPermanently
+      job: LJob): JobStatus = {
+    
+    val restarting = shouldRestart(job)
+    
+    if(restarting) {
+      info(s"Restarting job $job")
+      
+      failureStatus
+    } else {
+       JobStatus.FailedPermanently
+    }
+  }
   
   def flattenTree(roots: Set[LJob]): Set[LJob] = {
     roots.foldLeft(roots) { (acc, job) =>

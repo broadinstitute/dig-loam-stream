@@ -110,11 +110,11 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       
       val windowLength = 30.seconds
       
-      //TODO
-      val maxNumRestarts = 3
+      //Run each job at most 4 times, allowing up to 3 restarts
+      val maxNumRunsPerJob = 4
       
       val rxExecuter = {
-        RxExecuter(compositeRunner, windowLength, jobFilter, maxNumRestarts + 1)(executionContextWithThreadPool)
+        RxExecuter(compositeRunner, windowLength, jobFilter, maxNumRunsPerJob)(executionContextWithThreadPool)
       }
 
       val handles: Seq[Terminable] = (ugerRunnerHandles ++ googleRunner) :+ threadPoolHandle :+ localEcHandle

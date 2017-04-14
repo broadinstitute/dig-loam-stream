@@ -19,7 +19,7 @@ sealed trait JobStatus {
   
   def isPermanentFailure: Boolean = this == JobStatus.FailedPermanently
 
-  def isTerminal: Boolean = false
+  def isTerminal: Boolean// = false
   
   def isRunning: Boolean = this == JobStatus.Running
   
@@ -28,8 +28,8 @@ sealed trait JobStatus {
 
 object JobStatus extends Loggable {
 
-  case object Succeeded extends Success with IsTerminal
-  case object Skipped extends Success with IsTerminal
+  case object Succeeded extends Success(isTerminal = true)
+  case object Skipped extends Success(isTerminal = true)
   case object Failed extends Failure
   case object FailedWithException extends Failure
   case object Terminated extends Failure
@@ -37,7 +37,7 @@ object JobStatus extends Loggable {
   case object Submitted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
   case object Unknown extends NeitherSuccessNorFailure
-  case object FailedPermanently extends Failure with IsTerminal
+  case object FailedPermanently extends Failure(isTerminal = true)
 
   def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
 
@@ -46,21 +46,20 @@ object JobStatus extends Loggable {
     else { Failed }
   }
   
-  sealed trait IsTerminal { self: JobStatus =>
-    override val isTerminal: Boolean = true
-  }
-  
   sealed abstract class Success(
-                      override val isSuccess: Boolean = true,
-                      override val isFailure: Boolean = false) extends JobStatus 
+      override val isTerminal: Boolean = false,
+      override val isSuccess: Boolean = true,
+      override val isFailure: Boolean = false) extends JobStatus
 
   sealed abstract class Failure(
-                      override val isSuccess: Boolean = false,
-                      override val isFailure: Boolean = true) extends JobStatus
+      override val isTerminal: Boolean = false,
+      override val isSuccess: Boolean = false,
+      override val isFailure: Boolean = true) extends JobStatus
 
   sealed abstract class NeitherSuccessNorFailure(
-                                       override val isSuccess: Boolean = false,
-                                       override val isFailure: Boolean = false) extends JobStatus
+      override val isTerminal: Boolean = false,
+      override val isSuccess: Boolean = false,
+      override val isFailure: Boolean = false) extends JobStatus
   
   private lazy val namesToInstances: Map[String, JobStatus] = Map(
     "succeeded" -> Succeeded,

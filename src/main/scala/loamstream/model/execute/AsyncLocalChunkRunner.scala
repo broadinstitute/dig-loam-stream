@@ -19,7 +19,6 @@ final case class AsyncLocalChunkRunner(
 
   import ExecuterHelpers._
 
-  //TODO
   override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
     if(jobs.isEmpty) { Observable.just(Map.empty) }
     else {
@@ -29,9 +28,7 @@ final case class AsyncLocalChunkRunner(
         
       val sequenceObservable: Observable[Seq[(LJob, Execution)]] = Observables.sequence(executionObservables)
       
-      sequenceObservable.foldLeft(Map.empty[LJob, Execution]) { (acc, tuples) =>
-        acc ++ tuples
-      }
+      sequenceObservable.foldLeft(Map.empty[LJob, Execution]) { _ ++ _ }
     }
   }
 }

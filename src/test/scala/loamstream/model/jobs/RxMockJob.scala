@@ -8,6 +8,7 @@ import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
 import loamstream.util.Futures
 import loamstream.util.Observables
 import loamstream.util.ValueBox
+import java.time.Instant
 
 
 /**
@@ -29,6 +30,10 @@ final case class RxMockJob( override val name: String,
 
   def executionCount = count.value
 
+  private[this] val lastRunTimeRef: ValueBox[Option[Instant]] = ValueBox(None)
+  
+  def lastRunTime: Option[Instant] = lastRunTimeRef()
+  
   private def waitIfNecessary(): Unit = {
     if (runsAfter.nonEmpty) {
       import loamstream.util.ObservableEnrichments._
@@ -46,15 +51,17 @@ final case class RxMockJob( override val name: String,
 
   override def execute(implicit context: ExecutionContext): Future[Execution] = {
     
+    count.mutate(_ + 1)
+    
     Future(waitIfNecessary()).map { _ => 
     
       trace(s"\t\tStarting job: $name")
 
+      lastRunTimeRef := Some(Instant.now)
+      
       delayIfNecessary()
 
       trace(s"\t\t\tFinishing job: $name")
-
-      count.mutate(_ + 1)
 
       toReturn()
     }

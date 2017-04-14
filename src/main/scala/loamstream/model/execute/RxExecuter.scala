@@ -11,6 +11,9 @@ import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.Traversables
+import loamstream.util.ValueBox
+import loamstream.model.jobs.JobStatus.IsTerminal
+import loamstream.model.jobs.JobRun
 
 /**
  * @author kaan
@@ -28,26 +31,33 @@ final case class RxExecuter(
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.ObservableEnrichments._
     
-    //An Observable stream of jobs; each job is emitted when it becomes runnable.
-    //Note the use of 'distinct' to avoid running jobs more than once, if that job is depended on by multiple 'root' 
-    //jobs in an Executable.  This is a bit brute-force, but allows for simpler logic in LJob.
-    val runnables: Observable[LJob] = {
-      Observables.merge(executable.jobs.toSeq.map(_.runnables))
-    }
-    
     val ioScheduler: Scheduler = IOScheduler()
+
+    //An Observable stream of jobs runs; each job is emitted when it becomes runnable.  This can be because the
+    //job's dependencies finished successfully, or because the job failed and we've decided to restart it.
+    //Note the use of `distinct`.  It's brute force, but simplifies the logic here and in LJob for the case where
+    //multiple 'root' jobs depend on the same upstream job.  In this case, without `distinct`, the upstream job
+    //would be run twice.
+    val runnables: Observable[JobRun] = Observables.merge(executable.jobs.toSeq.map(_.runnables)).distinct
     
     //An observable stream of "chunks" of runnable jobs, with each chunk represented as an observable stream.
     //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
     //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
-    val chunks: Observable[Observable[LJob]] = runnables.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
+    val chunks: Observable[Observable[JobRun]] = runnables.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
     
     val chunkResults: Observable[Map[LJob, Execution]] = for {
       chunk <- chunks
       _ = logJobForest(executable)
+      //NB: .to[Set] is important: jobs in a chunk should be distinct, 
+      //so they're not run more than once before transitioning to a terminal state.
       jobs <- chunk.to[Set]
-      if jobs.nonEmpty
-      (jobsToRun, skippedJobs) = jobs.partition(jobFilter.shouldRun)
+      //NB: Filter out jobs from this chunk that finished when run as part of another chunk, so we don't run them
+      //more times than necessary.  This helps in the face of job-restarting, since we can't call `distinct()` 
+      //on `runnables` and declare victory like we did before, since that would filter out restarting jobs that 
+      //already ran 
+      (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
+      if notFinishedJobs.nonEmpty
+      (jobsToRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
       _ = handleSkippedJobs(skippedJobs)
       executionMap <- runJobs(jobsToRun)
       _ = record(executionMap)
@@ -59,19 +69,14 @@ final case class RxExecuter(
    
     import ExecuterHelpers.anyFailures
     
-    //NB: Sanity check, which fixes failures with the kinship step.
-    //Emit result maps up to - and including! - the first one that contains a failure, then stop. 
-    //val chunkResultsUpToFirstFailure = chunkResults.takeUntil(anyFailures(_))
-    
-    //Collect the results from each chunk, and merge them, producing a future holding the merged results
-    //val futureMergedResults = chunkResultsUpToFirstFailure.to[Seq].map(Maps.mergeMaps).firstAsFuture
-    
+    //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
+    //TODO: Make this configurable
     val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
     
     Await.result(futureMergedResults, timeout)
   }
   
-  def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {
+  private def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {
     for {
       (job, execution) <- jobs
       status = execution.status
@@ -80,9 +85,10 @@ final case class RxExecuter(
     }
   }
   
+  //NB: shouldRestart() mostly factored out to the companion object for simpler testing
   private def shouldRestart(job: LJob): Boolean = RxExecuter.shouldRestart(job, maxRunsPerJob)
   
-  def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, Execution]] = {
+  private def runJobs(jobsToRun: Set[LJob]): Observable[Map[LJob, Execution]] = {
     logJobsToBeRun(jobsToRun)
     
     runner.run(jobsToRun, shouldRestart)
@@ -133,7 +139,7 @@ object RxExecuter extends Loggable {
     val maxNumConcurrentJobs: Int = 8
     
     //NB: Use a short windowLength to speed up tests
-    val windowLength: Double = 0.25
+    val windowLength: Double = 0.1
     val windowLengthInSec: Duration = windowLength.seconds
   
     val jobFilter = JobFilter.RunEverything
@@ -159,8 +165,13 @@ object RxExecuter extends Loggable {
     d.copy(jobFilter = newJobFilter)(d.executionContext)
   }
   
-  //TODO: TEST
-  private[execute] def shouldRestart(job: LJob, maxRunsPerJob: Int): Boolean = job.runCount < maxRunsPerJob
+  private[execute] def shouldRestart(job: LJob, maxRunsPerJob: Int): Boolean = {
+    val runCount = job.runCount
+    
+    val result = runCount < maxRunsPerJob
+    
+    debug(s"Retarting $job ? $result (job has run $runCount times, max is $maxRunsPerJob)")
+    
+    result
+  }
 }
-  
-  

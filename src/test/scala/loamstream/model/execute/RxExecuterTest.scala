@@ -16,7 +16,7 @@ final class RxExecuterTest extends FunSuite {
   
   // scalastyle:off magic.number  
   private def exec(
-      jobs: Set[LJob],
+      jobs: Set[RxMockJob],
       maxRestarts: Int,
       maxSimultaneousJobs: Int = 8): ExecutionResults = {
     
@@ -24,12 +24,33 @@ final class RxExecuterTest extends FunSuite {
     
     val runner = MockChunkRunner(AsyncLocalChunkRunner(maxSimultaneousJobs))
     
-    val executer = RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
+    val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
     
-    ExecutionResults(executer.execute(Executable(jobs)), runner.chunks.value.filter(_.nonEmpty))
+    ExecutionResults(
+        executer.execute(Executable(jobs.asInstanceOf[Set[LJob]])), 
+        runner.chunks.value.filter(_.nonEmpty).map(_.asInstanceOf[Set[RxMockJob]]))
   }
   
-  import RxExecuterTest.JobOrderOps
+  test("shouldRestart") {
+    val job = MockJob(JobStatus.NotStarted)
+    
+    import RxExecuter.shouldRestart
+    
+    assert(job.runCount === 0)
+    
+    assert(shouldRestart(job, 0) === false)
+    assert(shouldRestart(job, 1) === true)
+    assert(shouldRestart(job, 42) === true)
+    
+    job.transitionTo(JobStatus.Running)
+    
+    assert(job.runCount === 1)
+    
+    assert(shouldRestart(job, 0) === false)
+    assert(shouldRestart(job, 1) === false)
+    assert(shouldRestart(job, 2) === true)
+    assert(shouldRestart(job, 42) === true)
+  }
   
   test("Guards") {
     import scala.concurrent.duration._
@@ -48,6 +69,8 @@ final class RxExecuterTest extends FunSuite {
     RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, 1)
     RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, 42)
   }
+
+  import RxExecuterTest.JobOrderOps
   
   test("Single successful job") {
     /* Single-job pipeline:
@@ -222,9 +245,9 @@ final class RxExecuterTest extends FunSuite {
   
       assert(jobExecutionSeq == Seq(Set(job1), Set(job2), Set(job3)))
   
-      assert(job1 ranBefore job2)
-      assert(job1 ranBefore job3)
-      assert(job2 ranBefore job3)
+      job1 assertRanBefore job2
+      job1 assertRanBefore job3
+      job2 assertRanBefore job3
     }
     
     doTest(0)
@@ -266,7 +289,7 @@ final class RxExecuterTest extends FunSuite {
       
       assert(jobExecutionSeq === expectedChunks)
       
-      assert(job1 ranBefore job2)
+      job1 assertRanBefore job2
     }
     
     doTest(maxRestartsAllowed = 0, expectedRuns = Seq(1,1,0))
@@ -328,7 +351,7 @@ final class RxExecuterTest extends FunSuite {
 
       assert(jobExecutionSeq === expectedChunks)  
       
-      assert(job1 ranBefore job2)
+      job1 assertRanBefore job2
     }
     
     doTest(maxRestartsAllowed = 0, expectedRuns = Seq(1,1,0))
@@ -368,10 +391,10 @@ final class RxExecuterTest extends FunSuite {
       assert(result.size === 3)
       
       // check that relationships are maintained 
-      assert(job1 ranBefore job3)
-      assert(job2 ranBefore job3)
+      job1 assertRanBefore job3
+      job2 assertRanBefore job3
       
-      assert(chunks === Seq(Set(job1, job2), Set(job3)))
+      //NB: Don't check for specific chunks, since those are non-deterministic.
     }
     
     doTest(0)
@@ -395,7 +418,7 @@ final class RxExecuterTest extends FunSuite {
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)
       assert(job3.executionCount === 0)
-  
+
       val r @ ExecutionResults(results, chunks) = exec(Set(job2, job3), maxRestartsAllowed)
       
       import r.jobExecutionSeq
@@ -411,14 +434,16 @@ final class RxExecuterTest extends FunSuite {
       assert(results.size === 3)
       
       // check that relationships are maintained
-      assert(job1 ranBefore job2)
-      assert(job1 ranBefore job3)
+      job1 assertRanBefore job2
+      job1 assertRanBefore job3
       
       assert(chunks === Seq(Set(job1), Set(job2, job3)))
     }
     
     doTest(0)
-    doTest(2)
+    //doTest(2)
+    
+    
   }
   
   test("Diamond-shaped pipeline works") {
@@ -436,10 +461,7 @@ final class RxExecuterTest extends FunSuite {
       val job3 = RxMockJob("Job_3", Set(job1))
       val job4 = RxMockJob("Job_4", Set(job2, job3))
   
-      assert(job1.executionCount === 0)
-      assert(job2.executionCount === 0)
-      assert(job3.executionCount === 0)
-      assert(job4.executionCount === 0)
+      assert(Seq(job1, job2, job3, job4).map(_.executionCount) == Seq(0,0,0,0))
   
       val r @ ExecutionResults(results, _) = exec(Set(job4), maxRestartsAllowed)
       
@@ -456,11 +478,11 @@ final class RxExecuterTest extends FunSuite {
       
       // Only check that relationships are maintained, 
       // not for a literal sequence of chunks, since the latter is non-deterministic.
-      assert(job1 ranBefore job2)
-      assert(job1 ranBefore job3)
+      job1 assertRanBefore job2
+      job1 assertRanBefore job3
       
-      assert(job2 ranBefore job4)
-      assert(job3 ranBefore job4)
+      job2 assertRanBefore job4
+      job3 assertRanBefore job4
     }
     
     doTest(0)
@@ -519,20 +541,20 @@ final class RxExecuterTest extends FunSuite {
       // Check if jobs were correctly chunked
       // Only check that relationships are maintained, 
       // not for a literal sequence of chunks, since the latter is non-deterministic.
-      assert(job11 ranBefore job21)
-      assert(job11 ranBefore job22)
+      job11 assertRanBefore job21
+      job11 assertRanBefore job22
       
-      assert(job12 ranBefore job23)
-      assert(job12 ranBefore job24)
+      job12 assertRanBefore job23
+      job12 assertRanBefore job24
       
-      assert(job21 ranBefore job31)
-      assert(job22 ranBefore job31)
+      job21 assertRanBefore job31
+      job22 assertRanBefore job31
       
-      assert(job23 ranBefore job32)
-      assert(job24 ranBefore job32)
+      job23 assertRanBefore job32
+      job24 assertRanBefore job32
   
-      assert(job31 ranBefore job4)
-      assert(job32 ranBefore job4)
+      job31 assertRanBefore job4
+      job32 assertRanBefore job4
     }
     
     doTest(0)
@@ -579,31 +601,25 @@ final class RxExecuterTest extends FunSuite {
       //NB: Chunks can be empty if no jobs became runnable during a certain period (RxExecuter.windowLength)
       //This can happen non-deterministically since the precise timing of when jobs will be run can't be known.
       //Filter out empty chunks here; we can still test that jobs were chunked properly and in the right order.  
-      implicit val jobExecutionSeq = r.jobExecutionSeq.filterNot(_.isEmpty)
+      implicit val jobExecutionSeq: Seq[Set[RxMockJob]] = r.jobExecutionSeq.filterNot(_.isEmpty)
   
       assertExecutionCounts(1)
   
       assert(result.size === 9)
   
-      // Check if jobs were correctly chunked
-      assert(jobExecutionSeq(0) === Set(job11, job12))
-      assert(jobExecutionSeq(1) === Set(job23, job24))
-      assert(jobExecutionSeq(2) === Set(job21, job22))
-      assert(jobExecutionSeq(3) === Set(job31))
-      assert(jobExecutionSeq(4) === Set(job32))
-      assert(jobExecutionSeq(5) === Set(job4))
-      assert(jobExecutionSeq.length === 6)
+      // NB: Don't check for specific chunks, since this is non-deterministic now that RxExecuter samples
+      // The stream of runnables with Observable.tumbling.
   
       // Also check that relationships are maintained,
-      assert(job11 ranBefore job21) ; assert(job11 ranBefore job22)
+      job11 assertRanBefore job21 ; job11 assertRanBefore job22
       
-      assert(job12 ranBefore job23) ; assert(job12 ranBefore job24)
+      job12 assertRanBefore job23 ; job12 assertRanBefore job24
       
-      assert(job21 ranBefore job31) ; assert(job22 ranBefore job31)
+      job21 assertRanBefore job31 ; job22 assertRanBefore job31
       
-      assert(job23 ranBefore job32) ; assert(job24 ranBefore job32)
+      job23 assertRanBefore job32 ; job24 assertRanBefore job32
   
-      assert(job31 ranBefore job4) ; assert(job32 ranBefore job4)
+      job31 assertRanBefore job4 ; job32 assertRanBefore job4
     }
     
     doTest(0)
@@ -625,7 +641,7 @@ final class RxExecuterTest extends FunSuite {
       
     assert(runner.maxNumJobs === maxSimultaneousJobs)
     
-    val executer = RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, maxRestartsAllowed)
+    val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed)
     
     (runner, executer.execute(Executable(jobs)))
   }
@@ -667,27 +683,27 @@ final class RxExecuterTest extends FunSuite {
       
       val (runner, result) = executeWithMockRunner(maxSimultaneousJobs, maxRestartsAllowed, Set(job4))
       
-      implicit val jobExecutionSeq = runner.chunks.value
+      implicit val jobExecutionSeq = runner.chunks.value.map(_.asInstanceOf[Set[RxMockJob]])
   
       assertExecutionCount(1)
       
       // Only check that relationships are maintained, 
       // not for a literal sequence of chunks, since the latter is non-deterministic.
-      assert(job11 ranBefore job21)
-      assert(job11 ranBefore job22)
+      job11 assertRanBefore job21
+      job11 assertRanBefore job22
     
-      assert(job12 ranBefore job23)
-      assert(job12 ranBefore job24)
+      job12 assertRanBefore job23
+      job12 assertRanBefore job24
       
-      assert(job21 ranBefore job31)
-      assert(job22 ranBefore job31)
+      job21 assertRanBefore job31
+      job22 assertRanBefore job31
       
-      assert(job23 ranBefore job32)
-      assert(job24 ranBefore job32)
-      assert(job25 ranBefore job32)
+      job23 assertRanBefore job32
+      job24 assertRanBefore job32
+      job25 assertRanBefore job32
   
-      assert(job31 ranBefore job4)
-      assert(job32 ranBefore job4)
+      job31 assertRanBefore job4
+      job32 assertRanBefore job4
       
       val allChunksWereRightSize = jobExecutionSeq.forall(_.size <= maxSimultaneousJobs)
       
@@ -713,19 +729,19 @@ object RxExecuterTest {
     () => {
       runs += 1
         
-      if(runs >= 3) JobResult.CommandResult(0) else JobResult.CommandResult(2)
+      if(runs >= n) JobResult.Success else JobResult.Failure
     }
   }
   
-  private final case class ExecutionResults(byJob: Map[LJob, Execution], chunks: Seq[Set[LJob]]) {
-    implicit val jobExecutionSeq: Seq[Set[LJob]] = chunks
+  private final case class ExecutionResults(byJob: Map[LJob, Execution], chunks: Seq[Set[RxMockJob]]) {
+    implicit val jobExecutionSeq: Seq[Set[RxMockJob]] = chunks
   }
   
-  private final implicit class JobOrderOps(lhs: LJob)(implicit executionSeq: Seq[Set[LJob]]) {
-    def ranBefore(rhs: LJob): Boolean = {
+  private final implicit class JobOrderOps(lhs: RxMockJob)(implicit executionSeq: Seq[Set[RxMockJob]]) {
+    def assertRanBefore(rhs: RxMockJob): Unit = {
       val withIndices = executionSeq.zipWithIndex
       
-      def indexOf(j: LJob): Int = {
+      def indexOf(j: RxMockJob): Int = {
         require(executionSeq.exists(_.contains(j)), s"Can't find job ${j.name} in $executionSeq")
         
         executionSeq.iterator.zipWithIndex.collect { case (jobs, i) if jobs.contains(j) => i }.next()
@@ -734,7 +750,18 @@ object RxExecuterTest {
       val lhsIndex = indexOf(lhs)
       val rhsIndex = indexOf(rhs)
       
-      lhsIndex < rhsIndex
+      val chunkedBefore = lhsIndex < rhsIndex
+      
+      val startedBefore = (for {
+        lrt <- lhs.lastRunTime
+        rrt <- rhs.lastRunTime
+      } yield lrt.toEpochMilli < rrt.toEpochMilli).getOrElse(false)
+      
+      val result = chunkedBefore && startedBefore
+      
+      assert(
+        result, 
+        s"lhs index ($lhsIndex) not < rhs index ($rhsIndex) and/or ${lhs.lastRunTime} not < ${rhs.lastRunTime}")
     }
   }
   

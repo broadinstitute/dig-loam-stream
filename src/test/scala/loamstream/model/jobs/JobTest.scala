@@ -18,7 +18,7 @@ final class JobTest extends FunSuite with TestJobs {
   import Futures.waitFor
   import ObservableEnrichments._
 
-  private def execute(jobs: LJob*): Unit = jobs.foreach(_.execute(ExecutionContext.global))
+  private def exec(jobs: LJob*): Unit = jobs.foreach(_.execute(ExecutionContext.global))
 
   private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
   
@@ -177,7 +177,7 @@ final class JobTest extends FunSuite with TestJobs {
     def doTest(resultStatus: JobStatus): Unit = {
       val noDeps = MockJob(resultStatus)
       
-      assert(waitFor(noDeps.selfRunnable.firstAsFuture) eq noDeps)
+      assert(waitFor(noDeps.selfRunnables.map(_.job).firstAsFuture) eq noDeps)
     }
     
     doTest(Succeeded)
@@ -215,9 +215,9 @@ final class JobTest extends FunSuite with TestJobs {
       notFinished.transitionTo(Succeeded)
       
       if(anyFailures) {
-        assert(waitFor(job.selfRunnable.isEmpty.firstAsFuture))
+        assert(waitFor(job.selfRunnables.isEmpty.firstAsFuture))
       } else {
-        val selfRunnableFuture = job.selfRunnable.firstAsFuture
+        val selfRunnableFuture = job.selfRunnables.map(_.job).firstAsFuture
         
         assert(waitFor(selfRunnableFuture) eq job)
       }
@@ -248,9 +248,9 @@ final class JobTest extends FunSuite with TestJobs {
       
       job.execute(ExecutionContext.global)
       
-      assert(waitFor(runnables) === Seq(job))
+      assert(waitFor(runnables).map(_.job) === Seq(job))
       
-      assert(waitFor(runnables).head eq job)
+      assert(waitFor(runnables).head.job eq job)
     }
     
     doTest(Succeeded)
@@ -290,21 +290,21 @@ final class JobTest extends FunSuite with TestJobs {
     
     val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1))
     
-    val grandChildren = waitFor(rootJob.runnables.take(4).to[Set].firstAsFuture)
+    val grandChildren = waitFor(rootJob.runnables.map(_.job).take(4).to[Set].firstAsFuture)
     
     assert(grandChildren === Set(gc0, gc1, gc2, gc3))
     
-    val futureChildren = rootJob.runnables.drop(4).take(2).to[Set].firstAsFuture
+    val futureChildren = rootJob.runnables.map(_.job).drop(4).take(2).to[Set].firstAsFuture
     
-    execute(grandChildren.toSeq: _*)
+    exec(grandChildren.toSeq: _*)
     
-    execute(c0, c1)
+    exec(c0, c1)
     
-    execute(rootJob)
+    exec(rootJob)
     
     assert(waitFor(futureChildren) === Set(c0, c1))
     
-    val futureRoot = rootJob.runnables.drop(6).to[Set].firstAsFuture
+    val futureRoot = rootJob.runnables.map(_.job).drop(6).to[Set].firstAsFuture
     
     val roots = waitFor(futureRoot)
     
@@ -337,22 +337,22 @@ final class JobTest extends FunSuite with TestJobs {
     
     val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1), name = "root")
     
-    val grandChildren = waitFor(rootJob.runnables.take(4).to[Seq].firstAsFuture)
+    val grandChildren = waitFor(rootJob.runnables.map(_.job).take(4).to[Seq].firstAsFuture)
     
     //We should get all the grandchildren, since they start out runnable
     assert(grandChildren.toSet === Set(gc0, gc1, gc2, gc3))
     
-    val futureChildren = rootJob.runnables.drop(4).take(2).to[Seq].firstAsFuture
+    val futureChildren = rootJob.runnables.map(_.job).drop(4).take(2).to[Seq].firstAsFuture
     
-    execute(grandChildren: _*)
+    exec(grandChildren: _*)
     
     //We should get all the children, since their children all succeed
     //NB: We should get c0 once here, since it won't become runnable until we execute it, and it fails
     assert(waitFor(futureChildren) === Seq(c0, c1))
     
-    execute(c0, c1)
+    exec(c0, c1)
     
-    val futureNonRootRunnables = rootJob.runnables.take(7).to[Seq].firstAsFuture
+    val futureNonRootRunnables = rootJob.runnables.map(_.job).take(7).to[Seq].firstAsFuture
     
     val nonRootRunnables = waitFor(futureNonRootRunnables)
     
@@ -383,28 +383,28 @@ final class JobTest extends FunSuite with TestJobs {
   test("One job, multiple failures, ultimately succeeds") {
     val job = MockJob(Failed, "job")
     
-    val firstRunnable = job.runnables.take(1).firstAsFuture
+    val firstRunnable = job.runnables.map(_.job).take(1).firstAsFuture
     
     //The job should be runnable right away, since it has no deps
     assert(waitFor(firstRunnable) === job)
     
-    val firstAndSecond = job.runnables.take(2).to[Seq].firstAsFuture
+    val firstAndSecond = job.runnables.map(_.job).take(2).to[Seq].firstAsFuture
     
-    execute(job)
+    exec(job)
     
     //After the job runs (and fails), we expect 2 runnables: once for the job initially (since it had no deps)
     //and once for the failure
     assert(waitFor(firstAndSecond) === Seq(job, job))
     
-    val firstSecondAndThird = job.runnables.take(3).to[Seq].firstAsFuture
+    val firstSecondAndThird = job.runnables.map(_.job).take(3).to[Seq].firstAsFuture
     
-    execute(job)
+    exec(job)
     
     //After the job runs twice (and fails twice), we expect 3 runnables: once for the job initially (since it had 
     //no deps) and once for each of the two failures.
     assert(waitFor(firstSecondAndThird) === Seq(job, job, job))
     
-    val futureRunnables = job.runnables.to[Seq].firstAsFuture
+    val futureRunnables = job.runnables.map(_.job).to[Seq].firstAsFuture
     
     //Make the job complete successfully
     job.transitionTo(Succeeded)
@@ -418,28 +418,28 @@ final class JobTest extends FunSuite with TestJobs {
   test("One job, multiple failures, ultimately fails") {
     val job = MockJob(Failed, "job")
     
-    val firstRunnable = job.runnables.take(1).firstAsFuture
+    val firstRunnable = job.runnables.map(_.job).take(1).firstAsFuture
     
     //The job should be runnable right away, since it has no deps
     assert(waitFor(firstRunnable) === job)
     
-    val firstAndSecond = job.runnables.take(2).to[Seq].firstAsFuture
+    val firstAndSecond = job.runnables.map(_.job).take(2).to[Seq].firstAsFuture
     
-    execute(job)
+    exec(job)
     
     //After the job runs (and fails), we expect 2 runnables: once for the job initially (since it had no deps)
     //and once for the failure
     assert(waitFor(firstAndSecond) === Seq(job, job))
     
-    val firstSecondAndThird = job.runnables.take(3).to[Seq].firstAsFuture
+    val firstSecondAndThird = job.runnables.map(_.job).take(3).to[Seq].firstAsFuture
     
-    execute(job)
+    exec(job)
     
     //After the job runs twice (and fails twice), we expect 3 runnables: once for the job initially (since it had 
     //no deps) and once for each of the two failures.
     assert(waitFor(firstSecondAndThird) === Seq(job, job, job))
     
-    val futureRunnables = job.runnables.to[Seq].firstAsFuture
+    val futureRunnables = job.runnables.map(_.job).to[Seq].firstAsFuture
     
     //Make the job complete successfully
     job.transitionTo(FailedPermanently)

@@ -26,6 +26,20 @@ trait LJob extends Loggable {
 
   private[this] val snapshotRef: ValueBox[JobSnapshot] = ValueBox(JobSnapshot(JobStatus.NotStarted, 0))
 
+  /** This job's 'state' (status and run count) at this instant. */ 
+  private def snapshot: JobSnapshot = snapshotRef()
+  
+  //NB: Needs to be a ReplaySubject for correct operation
+  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject[JobRun]()
+  
+  /**
+   * An Observable that emits JobRuns of this job.  These are (effectively) tuples of (job, status, runCount), 
+   * which allows using .distinct this and derived Observables, solving the problem where multiple jobs with 
+   * the same upstream dependency would cause the dependency to be run more than necessary under certain 
+   * conditions.
+   */
+  protected final lazy val runs: Observable[JobRun] = runsEmitter
+  
   /** This job's current status */
   final def status: JobStatus = snapshotRef().status
   
@@ -42,6 +56,7 @@ trait LJob extends Loggable {
     inputs.foreach(_.print(indent + 2, doPrint))
   }
 
+  //TODO: Make this abstract, so it must be provided?
   def name: String = ""
 
   /** Any jobs this job depends on */
@@ -51,11 +66,12 @@ trait LJob extends Loggable {
   def outputs: Set[Output]
 
   /**
-   * An observable producing a stream of all the runnable jobs among this job, its dependencies, their dependencies,
-   * and so on, as soon as those jobs become runnable.  A job becomes runnable when all its dependencies are finished,
-   * or if it has no dependencies, it's runnable immediately.  (See selfRunnable)
+   * An Observable producing a all the runnable jobs among this job, its dependencies, their dependencies,
+   * and so on, as soon as those jobs become runnable.  A job becomes runnable when all its dependencies are finished
+   * - either successfully or with JobStatus.FailedPermanently - or if it fails (to facilitate restarting).  
+   * If a job has no dependencies, it's runnable immediately. (See selfRunnables)
    */
-  final lazy val runnables: Observable[LJob] = {
+  final lazy val runnables: Observable[JobRun] = {
 
     //Multiplex the streams of runnable jobs starting from each of our dependencies
     val dependencyRunnables = {
@@ -66,20 +82,22 @@ trait LJob extends Loggable {
     }
 
     //Emit the current job *after* all our dependencies
-    (dependencyRunnables ++ selfRunnable)
+    (dependencyRunnables ++ selfRunnables)
   }
-
+  
   /**
-   * An observable that will emit this job ONLY when all this job's dependencies are finished.
-   * If the this job has no dependencies, this job is emitted immediately.  This will fire at most once.
+   * An observable that will emit this job when all this job's dependencies are finished, and then once for every
+   * time this job fails with a non-Terminal status.
+   * If the this job has no dependencies, this job is emitted immediately.  
    */
-  private[jobs] lazy val selfRunnable: Observable[LJob] = {
-    lazy val nonTerminalFailures = statuses.filter(s => s.isFailure && !s.isTerminal)
+  private[jobs] lazy val selfRunnables: Observable[JobRun] = {
+    lazy val nonTerminalFailures = runs.filter(s => s.status.isFailure && !s.status.isTerminal)
     
     //NB: We run once, and then once per failure, until we transition to a terminal status. 
-    //ChunkRunners/Executers are responsible for setting our status to PermanentFailure if they will no 
+    //ChunkRunners/Executers are responsible for setting our status to FailedPermanently if they will no 
     //longer run us.
-    def justUs = Observable.just(this) ++ nonTerminalFailures.map(_ => this)
+    def selfJobRun = jobRunFrom(snapshot)
+    def justUs = Observable.just(selfJobRun) ++ nonTerminalFailures
     def noMore = Observable.empty
 
     if(inputs.isEmpty) {
@@ -99,12 +117,7 @@ trait LJob extends Loggable {
   /**
    * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
    */
-  //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val statusEmitter: Subject[JobStatus] = ReplaySubject[JobStatus]()
-
-  lazy val statuses: Observable[JobStatus] = statusEmitter
-
-  final protected def emitJobStatus(): Unit = statusEmitter.onNext(status)
+  lazy val statuses: Observable[JobStatus] = runsEmitter.map(_.status)
 
   /**
    * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
@@ -121,24 +134,28 @@ trait LJob extends Loggable {
   }
   
   /**
-   * Sets the status of this job to be newStatus, and emits the new status to any observers.
-   * Also bumps this job's run count if the current status *is not* `Running` and the new status *is* `Running`.  
+   * Sets the status of this job to be newStatus, and emits a JobRun with the new status to any observers.
+   * Also bumps this job's run count if the current status *is not* `Running` and the new status *is* `Running`.
+   * If `newStatus` is a terminal status, all Observables derived from this job will be shut down.   
    *
    * @param newStatus the new status to set for this job
    */
   final def transitionTo(newStatus: JobStatus): Unit = {
     debug(s"Status change to $newStatus for job: ${this}")
     
-    snapshotRef.mutate(_.transitionTo(newStatus))
+    val newSnapshot = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
     
-    statusEmitter.onNext(newStatus)
+    runsEmitter.onNext(jobRunFrom(newSnapshot))
     
+    //Shut down all Observables derived from this job when we will no longer emit any events.
     if(newStatus.isTerminal) {
-      debug(s"$newStatus is terminal; emitting no more statuses from job: ${this}")
+      debug(s"$newStatus is terminal; emitting no more JobRuns from job: ${this}")
       
-      statusEmitter.onCompleted()
+      runsEmitter.onCompleted()
     }
   }
+  
+  private def jobRunFrom(snapshot: JobSnapshot): JobRun = JobRun(this, snapshot.status, snapshot.runCount)
 
   /**
    * Implementions of this method will do any actual work to be performed by this job

@@ -1,11 +1,16 @@
 package loamstream.model.execute
 
-import loamstream.TestHelpers
 import org.scalatest.FunSuite
-import loamstream.model.jobs._
+
+import loamstream.TestHelpers
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
-import java.time.Instant
 
 /**
  * @author kyuksel

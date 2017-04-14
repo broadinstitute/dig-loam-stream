@@ -2,18 +2,19 @@ package loamstream.model.execute
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import loamstream.model.jobs.{Execution, JobStatus, LJob}
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationDouble
+
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobRun
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Observables
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
-import loamstream.util.Traversables
-import loamstream.util.ValueBox
-import loamstream.model.jobs.JobStatus.IsTerminal
-import loamstream.model.jobs.JobRun
 
 /**
  * @author kaan
@@ -67,7 +68,6 @@ final case class RxExecuter(
       executionMap ++ skippedResultMap
     }
    
-    import ExecuterHelpers.anyFailures
     
     //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
     //TODO: Make this configurable
@@ -123,7 +123,7 @@ final case class RxExecuter(
   }
   
   private def toSkippedResultMap(skippedJobs: Set[LJob]): Map[LJob, Execution] = {
-    import Traversables.Implicits._
+    import loamstream.util.Traversables.Implicits._
       
     skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped))
   }

@@ -7,6 +7,7 @@ import org.scalatest.FunSuite
  * Apr 14, 2017
  */
 final class JobRunTest extends FunSuite {
+  //scalastyle:off magic.number
   import JobStatus._
   
   test("toString") {
@@ -67,4 +68,5 @@ final class JobRunTest extends FunSuite {
     assert(run0 == run1)
     assert(run0.hashCode == run1.hashCode)
   }
+  //scalastyle:on magic.number
 }

@@ -332,12 +332,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     val executable = engine.compileToExecutable(script).get
 
-    import scala.concurrent.duration._
-    
-    //TODO
-    val timeout = 10.seconds
-    
-    val executions = engine.executer.execute(executable)(timeout)
+    val executions = engine.executer.execute(executable)
 
     (executable, executions)
   }

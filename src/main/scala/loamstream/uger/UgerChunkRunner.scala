@@ -130,7 +130,6 @@ object UgerChunkRunner extends Loggable {
     case _            => false
   }
   
-  //TODO: TEST, 
   private[uger] def handleFailure(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {
     
     val status = ExecuterHelpers.determineFailureStatus(shouldRestart, failureStatus, job)

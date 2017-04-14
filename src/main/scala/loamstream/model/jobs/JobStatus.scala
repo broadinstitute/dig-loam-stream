@@ -28,8 +28,8 @@ sealed trait JobStatus {
 
 object JobStatus extends Loggable {
 
-  case object Succeeded extends Success(isTerminal = true)
-  case object Skipped extends Success(isTerminal = true)
+  case object Succeeded extends Success
+  case object Skipped extends Success
   case object Failed extends Failure
   case object FailedWithException extends Failure
   case object Terminated extends Failure
@@ -47,7 +47,7 @@ object JobStatus extends Loggable {
   }
   
   sealed abstract class Success(
-      override val isTerminal: Boolean = false,
+      override val isTerminal: Boolean = true,
       override val isSuccess: Boolean = true,
       override val isFailure: Boolean = false) extends JobStatus
 

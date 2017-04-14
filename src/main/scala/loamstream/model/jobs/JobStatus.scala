@@ -19,7 +19,7 @@ sealed trait JobStatus {
   
   def isPermanentFailure: Boolean = this == JobStatus.FailedPermanently
 
-  def isTerminal: Boolean// = false
+  def isTerminal: Boolean
   
   def isRunning: Boolean = this == JobStatus.Running
   

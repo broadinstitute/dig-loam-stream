@@ -129,6 +129,6 @@ final class HailSupportTest extends FunSuite {
     
     val hailConfig = HailConfig.fromConfig(typesafeConfig)
     
-    LoamConfig(ugerConfig = None, googleConfig.toOption, hailConfig.toOption)
+    LoamConfig(ugerConfig = None, googleConfig.toOption, hailConfig.toOption, pythonConfig = None, rConfig = None)
   }
 }

@@ -2,9 +2,8 @@ package loamstream
 
 import java.nio.file.{Path, Paths}
 
-import loamstream.conf.LoamConfig
+import loamstream.conf.{LoamConfig, PythonConfig, RConfig, UgerConfig}
 import com.typesafe.config.ConfigFactory
-import loamstream.conf.UgerConfig
 import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.googlecloud.HailConfig
 import loamstream.model.execute.Resources.LocalResources
@@ -36,8 +35,14 @@ object TestHelpers {
     val ugerConfig = UgerConfig.fromConfig(config)
     val googleConfig = GoogleCloudConfig.fromConfig(config)
     val hailConfig = HailConfig.fromConfig(config)
-    
-    LoamConfig(ugerConfig.toOption, googleConfig.toOption, hailConfig.toOption)
+    val pythonConfig = PythonConfig.fromConfig(config)
+    val rConfig = RConfig.fromConfig(config)
+
+    LoamConfig( ugerConfig.toOption,
+                googleConfig.toOption,
+                hailConfig.toOption,
+                pythonConfig.toOption,
+                rConfig.toOption)
   }
   
   lazy val localResources: LocalResources = { 

@@ -12,4 +12,6 @@ import scala.util.Try
 final case class LoamConfig(
     ugerConfig: Option[UgerConfig],
     googleConfig: Option[GoogleCloudConfig],
-    hailConfig: Option[HailConfig])
+    hailConfig: Option[HailConfig],
+    pythonConfig: Option[PythonConfig],
+    rConfig: Option[RConfig])

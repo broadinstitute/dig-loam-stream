@@ -31,6 +31,8 @@ object PathUtils {
 
   def getRoot: Path = FileSystems.getDefault.getRootDirectories.iterator().next()
 
+  def getCurrentDirectory: Path = Paths.get(new java.io.File(".").getCanonicalPath)
+
   def newRelative(first: String, more: String*): Path = Paths.get(first, more.toArray: _*)
   
   def newAbsolute(first: String, more: String*): Path = getRoot.resolve(newRelative(first, more: _*))

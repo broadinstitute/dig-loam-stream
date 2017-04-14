@@ -35,6 +35,20 @@ object Files {
     File.createTempFile(tempFilePrefix, suffix, directory).toPath.toAbsolutePath
   }
 
+  /**
+    * Creates the specified directory if it doesn't exist, including any
+    * necessary but nonexistent parent directories.  Note that if this
+    * operation fails it may have succeeded in creating some of the necessary
+    * parent directories.
+    */
+  def createDirsIfNecessary(directory: Path): Unit = {
+    val dir = directory.toFile
+
+    if (! dir.exists) dir.mkdirs()
+
+    assert(dir.exists)
+  }
+
   def tryFile(fileName: String): Try[Path] = tryFile(Paths.get(fileName))
 
   def tryFile(path: Path): Try[Path] = {
@@ -51,6 +65,10 @@ object Files {
 
   def readFrom(file: Path): String = {
     doReadFrom(JFiles.newBufferedReader(file, StandardCharsets.UTF_8))
+  }
+
+  def readFrom(file: String): String = {
+    readFrom(Paths.get(file))
   }
 
   /** Writes to gzipped file */

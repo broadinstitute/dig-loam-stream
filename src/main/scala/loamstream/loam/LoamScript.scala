@@ -1,6 +1,6 @@
 package loamstream.loam
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScript.{LoamScriptBox, scriptsPackage}
@@ -9,8 +9,6 @@ import loamstream.loam.ops.filters.StoreFieldFilter
 import loamstream.loam.ops.mappers.TextStoreFieldExtractor
 import loamstream.util._
 import loamstream.util.code.{ObjectId, PackageId, ScalaId, SourceUtils}
-
-import scala.util.Try
 
 /** A named Loam script */
 object LoamScript {

@@ -5,6 +5,7 @@ import org.scalatest.FunSuite
 import loamstream.model.jobs._
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
+import java.time.Instant
 
 /**
  * @author kyuksel
@@ -759,9 +760,11 @@ object RxExecuterTest {
       
       val result = chunkedBefore && startedBefore
       
+      def timeString(job: RxMockJob): Option[String] = job.lastRunTime.map(_.toEpochMilli.toString)
+      
       assert(
         result, 
-        s"lhs index ($lhsIndex) not < rhs index ($rhsIndex) and/or ${lhs.lastRunTime} not < ${rhs.lastRunTime}")
+        s"lhs index ($lhsIndex) not < rhs index ($rhsIndex) and/or ${timeString(lhs)} not < ${timeString(rhs)}")
     }
   }
   

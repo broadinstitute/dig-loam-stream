@@ -10,10 +10,12 @@ package loamstream.model.jobs
  * de-duping) and allows distinguishing between the 1st, 2nd, ..., and Nth runs of a job, so those subsequent
  * runs are not removed by de-duping.  (See RxExecuter.execute, in particular, `runnables`.) 
  */
+//NB: Not a case class so we can have a custom equals() method 
 final class JobRun(val job: LJob, val status: JobStatus, val runCount: Int) {
   override def toString: String = s"${getClass.getSimpleName}($job,$status,$runCount)"
   
   override def equals(other: Any): Boolean = other match {
+    //compare jobs by reference, status and runCount by 'value'
     case that: JobRun => (this.job eq that.job) && (this.status == that.status) && (this.runCount == that.runCount)
     case _ => false
   }

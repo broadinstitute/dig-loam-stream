@@ -19,7 +19,6 @@ final case class Execution(id: Option[Int] = None,
 
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
-  def isTerminal: Boolean = status.isTerminal
 
   //NB :(
   //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a

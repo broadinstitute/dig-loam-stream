@@ -45,7 +45,6 @@ final case class GoogleCloudChunkRunner(
   
   override def maxNumJobs: Int = delegate.maxNumJobs
   
-  //TODO
   override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
     def emptyResults: Observable[Map[LJob, Execution]] = Observable.just(Map.empty)
   

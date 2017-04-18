@@ -54,7 +54,7 @@ trait LJob extends Loggable {
     
     var visited: Set[LJob] = Set.empty 
     
-    def foo(
+    def loop(
         job: LJob,
         indent: Int = 0, 
         doPrint: LJob => String => Unit = _ => debug(_), 
@@ -68,10 +68,10 @@ trait LJob extends Loggable {
       
       visited += job
       
-      job.inputs.filterNot(visited.contains).foreach(foo(_, indent + 2, doPrint))
+      job.inputs.filterNot(visited.contains).foreach(loop(_, indent + 2, doPrint))
     }
     
-    foo(this, indent, doPrint, header)
+    loop(this, indent, doPrint, header)
   }
 
   /** A descriptive name for this job */

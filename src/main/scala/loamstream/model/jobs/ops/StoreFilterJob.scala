@@ -37,6 +37,8 @@ final case class StoreFilterJob(inPath: Path,
                                 outputs: Set[Output],
                                 filter: LoamStoreFilter.Untyped) extends LJob {
 
+  override def name: String = s"${getClass.getSimpleName}#${id}(?,?,?,?,?,?)"
+  
   //TODO: See if this is always the case
   override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
 

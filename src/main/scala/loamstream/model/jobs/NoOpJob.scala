@@ -21,6 +21,8 @@ final case class NoOpJob(inputs: Set[LJob]) extends LJob {
     Future.successful(noOpExecution)
   }
   
+  override def name: String = s"${getClass.getSimpleName}#${id}(${inputs.size} dependencies)"
+  
   override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
 
   override val outputs: Set[Output] = Set.empty

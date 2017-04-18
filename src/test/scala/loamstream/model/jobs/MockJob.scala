@@ -21,8 +21,6 @@ class MockJob(
 
   override def executionEnvironment: ExecutionEnvironment = TestHelpers.env
   
-  val id: Int = MockJob.nextId()
-  
   override def toString: String = s"'$name'(#$id, returning $toReturn, ${inputs.size} dependencies)"
  
   //NB: Previous versions defined equals() and hashCode() only in terms of 'toReturn', which caused problems;
@@ -59,7 +57,7 @@ object MockJob {
 
   def apply(toReturn: Execution): MockJob = {
     new MockJob(toReturn,
-                name = nextId().toString,
+                name = LJob.nextId().toString,
                 inputs = Set.empty,
                 outputs = Set.empty,
                 delay = 0)
@@ -67,7 +65,7 @@ object MockJob {
 
   def apply(toReturn: JobResult): MockJob = {
     new MockJob(executionFromResult(toReturn),
-                name = nextId().toString,
+                name = LJob.nextId().toString,
                 inputs = Set.empty,
                 outputs = Set.empty,
                 delay = 0)
@@ -75,7 +73,7 @@ object MockJob {
 
   def apply(
       toReturn: JobStatus,
-      name: String = nextId().toString,
+      name: String = LJob.nextId().toString,
       inputs: Set[LJob] = Set.empty,
       outputs: Set[Output] = Set.empty,
       delay: Int = 0): MockJob = {
@@ -91,8 +89,4 @@ object MockJob {
     case mj: MockJob => Some((mj.toReturn, mj.name, mj.inputs, mj.outputs, mj.delay))
     case _ => None
   }
-
-  private[this] val ids: Sequence[Int] = Sequence()
-  
-  def nextId(): Int = ids.next()
 }

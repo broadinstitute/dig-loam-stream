@@ -12,6 +12,7 @@ import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.Subject
 import rx.lang.scala.subjects.ReplaySubject
+import loamstream.util.Sequence
 
 /**
  * @author oliverr
@@ -46,18 +47,37 @@ trait LJob extends Loggable {
   /** The number of times this job has transitioned to `Running` status */
   def runCount: Int = snapshotRef().runCount
   
-  def print(indent: Int = 0, doPrint: String => Unit = debug(_), header: Option[String] = None): Unit = {
-    val indentString = s"${"-" * indent} >"
-
-    header.foreach(doPrint)
+  def print(
+      indent: Int = 0, 
+      doPrint: LJob => String => Unit = _ => debug(_), 
+      header: Option[String] = None): Unit = {
     
-    doPrint(s"$indentString ($status)${this}")
-
-    inputs.foreach(_.print(indent + 2, doPrint))
+    var visited: Set[LJob] = Set.empty 
+    
+    def foo(
+        job: LJob,
+        indent: Int = 0, 
+        doPrint: LJob => String => Unit = _ => debug(_), 
+        header: Option[String] = None): Unit = {
+      
+      val indentString = s"${"-" * indent} >"
+  
+      header.foreach(doPrint(job))
+      
+      doPrint(job)(s"$indentString (${job.status})${job}")
+      
+      visited += job
+      
+      job.inputs.filterNot(visited.contains).foreach(foo(_, indent + 2, doPrint))
+    }
+    
+    foo(this, indent, doPrint, header)
   }
 
-  //TODO: Make this abstract, so it must be provided?
-  def name: String = ""
+  /** A descriptive name for this job */
+  def name: String
+  
+  val id: String = LJob.nextId()
 
   /** Any jobs this job depends on */
   def inputs: Set[LJob]
@@ -168,4 +188,10 @@ trait LJob extends Loggable {
     if (inputs eq newInputs) { this }
     else { doWithInputs(newInputs) }
   }
+}
+
+object LJob {
+  private[this] val idSequence: Sequence[Int] = Sequence()
+  
+  def nextId(): String = idSequence.next().toString 
 }

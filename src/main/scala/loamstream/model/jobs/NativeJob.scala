@@ -10,6 +10,8 @@ final case class NativeJob[T](
     inputs: Set[LJob] = Set.empty,
     outputs: Set[Output] = Set.empty) extends LJob {
   
+  override def name: String = s"${getClass.getSimpleName}#${id}(?,?,?)" 
+  
   //TODO: Can we say this for all NativeJobs?
   override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
   

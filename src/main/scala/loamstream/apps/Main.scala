@@ -108,6 +108,8 @@ object Main extends Loggable {
 
   private[apps] def shutdown(wiring: AppWiring): Unit = {
     shutdownLatch.doOnce {
+      info("LoamStream shutting down...")
+      
       wiring.shutdown() match {
         case Nil => info("LoamStream shut down successfully")
         case exceptions => {

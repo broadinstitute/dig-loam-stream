@@ -39,6 +39,8 @@ final case class StoreMapperJob(
     inputs: Set[LJob],
     outputs: Set[Output], mapper: LoamStoreMapper.Untyped) extends LJob {
   
+  override def name: String = s"${getClass.getSimpleName}#${id}(?,?,?,?,?,?)"
+  
   //TODO: See if this is always the case
   override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
   

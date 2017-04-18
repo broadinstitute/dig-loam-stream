@@ -101,7 +101,7 @@ final case class RxExecuter(
   }
   
   private def logJobForest(executable: Executable): Unit = {
-    def log(s: String) = debug(s)
+    def log(printingJob: LJob)(s: String) = debug(s)
       
     executable.jobs.head.print(doPrint = log, header = Some("Current Job Statuses:"))
   }

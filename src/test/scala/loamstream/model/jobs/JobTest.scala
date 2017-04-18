@@ -5,6 +5,7 @@ import loamstream.util.Futures
 import loamstream.util.ObservableEnrichments
 
 import scala.concurrent.ExecutionContext
+import loamstream.util.Maps
 
 /**
  * @author clint
@@ -21,6 +22,98 @@ final class JobTest extends FunSuite with TestJobs {
   private def exec(jobs: LJob*): Unit = jobs.foreach(_.execute(ExecutionContext.global))
 
   private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
+  
+  test("print - job tree with one root") {
+    var visited: Map[LJob, Int] = Map.empty
+    
+    def incFor(job: LJob): Unit = {
+      visited += (job -> (visited.getOrElse(job, 0) + 1))
+    }
+    
+    val doPrint: LJob => String => Unit = job => _ => incFor(job)
+    
+    /*
+     * gc0
+     *    \    
+     *     +---c0 
+     *    /      \       
+     * gc1        \
+     *             +---root
+     * gc2        /
+     *    \      /
+     *     +---c1
+     *    /
+     * gc3
+     */
+    val gc0: LJob = MockJob(Succeeded)
+    val gc1: LJob = MockJob(Succeeded)
+    val gc2 = MockJob(Succeeded)
+    val gc3 = MockJob(Succeeded)
+    
+    val c0 = MockJob(Succeeded, inputs = Set[LJob](gc0, gc1))
+    val c1 = MockJob(Succeeded, inputs = Set[LJob](gc2, gc3))
+    
+    val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1))
+    
+    assert(visited.isEmpty)
+    
+    rootJob.print(doPrint = doPrint)
+    
+    assert(visited === Map(gc0 -> 1, gc1 -> 1, gc2 -> 1, gc3 -> 1, c0 -> 1, c1 -> 1, rootJob -> 1))
+  }
+  
+  test("print - job tree with diamond") {
+    var visited: Map[LJob, Int] = Map.empty
+    
+    def incFor(job: LJob): Unit = {
+      visited += (job -> (visited.getOrElse(job, 0) + 1))
+    }
+    
+    val doPrint: LJob => String => Unit = job => _ => incFor(job)
+    
+    /*
+     * ggc0
+     *     \    
+     *      +---gc0   c0
+     *     /       \ /  \
+     * ggc1         +    +---root
+     *     \       / \  /
+     *      +---gc1   c1
+     *     /
+     * ggc2
+     */
+    val ggc0: LJob = MockJob(Succeeded, "ggc0")
+    val ggc1: LJob = MockJob(Succeeded, "ggc1")
+    val ggc2: LJob = MockJob(Succeeded, "ggc2")
+    
+    val gc0: LJob = MockJob(Succeeded, "gc0", inputs = Set(ggc0, ggc1))
+    val gc1: LJob = MockJob(Succeeded, "gc1", inputs = Set(ggc1, ggc2))
+    
+    val c0: LJob = MockJob(Succeeded, "c0", inputs = Set(gc0, gc1))
+    val c1: LJob = MockJob(Succeeded, "c1", inputs = Set(gc0, gc1))
+    
+    val root = MockJob(Succeeded, "root", inputs = Set(c0,c1))
+    
+    assert(visited.isEmpty)
+    
+    root.print(doPrint = doPrint)
+    
+    val expected = Map(
+        ggc0.name -> 1, 
+        ggc1.name -> 1, 
+        ggc2.name -> 1, 
+        gc0.name -> 1, 
+        gc1.name -> 1, 
+        c0.name -> 1, 
+        c1.name -> 1, 
+        root.name -> 1)
+
+    import Maps.Implicits._
+        
+    assert(visited.mapKeys(_.name) === expected)
+    
+    root.print(doPrint = _ => println(_))
+  }
   
   test("transitionTo") {
     val job = MockJob(NotStarted)

@@ -86,22 +86,15 @@ object Main extends Loggable {
   
   private def describeExecutions(executions: Iterable[Execution]): Unit = {
     def isSkipped(e: Execution) = e.status.isSkipped
+    def neitherSuccessNorFailure(e: Execution) = !e.isSuccess && !e.isFailure
       
-    def allSkipped = executions.forall(isSkipped)
+    val numSucceeded = executions.count(_.isSuccess)
+    val numFailed = executions.count(_.isFailure)
+    val numSkipped = executions.count(isSkipped)
+    val numOther = executions.count(neitherSuccessNorFailure)
+    val numRan = executions.size
     
-    def allSucceededOrSkipped = executions.forall(_.isSuccess) && executions.exists(isSkipped)
-    
-    def allSucceeded = executions.forall(_.isSuccess)
-    
-    def allFailed = executions.forall(_.isFailure)
-    
-    def someDidntFinish = executions.exists(_.status.notFinished)
-    
-    if(allSkipped) { info("All jobs were skipped.") } 
-    else if(allSucceededOrSkipped) { info("All jobs succeeded or were skipped.") } 
-    else if(allSucceeded) { info("All jobs succeeded.") } 
-    else if(allFailed) { info("All jobs failed.") } 
-    else if(someDidntFinish) { info("Not all jobs finished.") }
+    info(s"$numRan jobs ran. $numSucceeded succeeded, $numFailed failed, $numSkipped skipped, $numOther other.")
   }
   
   private[this] val shutdownLatch: OneTimeLatch = new OneTimeLatch

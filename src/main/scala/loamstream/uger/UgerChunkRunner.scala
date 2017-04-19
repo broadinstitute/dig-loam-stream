@@ -78,7 +78,7 @@ final case class UgerChunkRunner(
 
       val jobsById = rawJobIds.zip(commandLineJobs).toMap
 
-      toExecutionMap(jobsById, shouldRestart)
+      jobsToExecutions(shouldRestart, jobsById)
     }
     case DrmaaClient.SubmissionFailure(e) => {
       commandLineJobs.foreach(handleFailureStatus(shouldRestart, Failed))
@@ -87,9 +87,9 @@ final case class UgerChunkRunner(
     }
   }
   
-  private[uger] def toExecutionMap(
-      jobsById: Map[String, CommandLineJob],
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+  private[uger] def jobsToExecutions(
+      shouldRestart: LJob => Boolean,
+      jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, Execution]] = {
 
     def statuses(jobIds: Iterable[String]): Map[String, Observable[UgerStatus]] = {
       time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
@@ -99,17 +99,7 @@ final case class UgerChunkRunner(
 
     val jobsAndUgerStatusesById = combine(jobsById, statuses(jobsById.keys))
     
-    val ugerJobsToExecutionObservables: Iterable[(LJob, Observable[Execution])] = for {
-      (jobId, (job, ugerJobStatuses)) <- jobsAndUgerStatusesById
-    } yield {
-      ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, job))
-      
-      val executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
-      
-      job -> executionObs
-    }
-
-    Observables.toMap(ugerJobsToExecutionObservables)
+    toExecutions(shouldRestart, jobsAndUgerStatusesById)
   }
   
   private def writeUgerScriptFile(commandLineJobs: Seq[CommandLineJob]): Path = {
@@ -132,6 +122,26 @@ object UgerChunkRunner extends Loggable {
   private[uger] def isNoOpJob(job: LJob): Boolean = job match {
     case noj: NoOpJob => true
     case _            => false
+  }
+  
+  type JobAndStatuses = (LJob, Observable[UgerStatus])
+  
+  private[uger] def toExecutions(
+      shouldRestart: LJob => Boolean, 
+      jobsAndUgerStatusesById: Map[String, JobAndStatuses]): Observable[Map[LJob, Execution]] = {
+    
+    val ugerJobsToExecutionObservables: Iterable[(LJob, Observable[Execution])] = for {
+      (jobId, (job, ugerJobStatuses)) <- jobsAndUgerStatusesById
+    } yield {
+      //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
+      ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, job))
+      
+      val executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
+      
+      job -> executionObs
+    }
+
+    Observables.toMap(ugerJobsToExecutionObservables)
   }
   
   private[uger] def handleUgerStatus(shouldRestart: LJob => Boolean, job: LJob)(us: UgerStatus): Unit = {

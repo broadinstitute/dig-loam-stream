@@ -161,7 +161,7 @@ trait LJob extends Loggable {
    * @param newStatus the new status to set for this job
    */
   final def transitionTo(newStatus: JobStatus): Unit = {
-    debug(s"Status change to $newStatus for job: ${this}")
+    debug(s"Status change to $newStatus (run count ${runCount}) for job: ${this}")
     
     val newSnapshot = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
     

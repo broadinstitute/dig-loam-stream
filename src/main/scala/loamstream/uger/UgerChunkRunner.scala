@@ -78,30 +78,34 @@ final case class UgerChunkRunner(
 
       val jobsById = rawJobIds.zip(commandLineJobs).toMap
 
-      toExecutionMap(jobsById)
+      toExecutionMap(jobsById, shouldRestart)
     }
     case DrmaaClient.SubmissionFailure(e) => {
-      import UgerChunkRunner.handleFailure
-
-      commandLineJobs.foreach(handleFailure(shouldRestart, Failed))
+      commandLineJobs.foreach(handleFailureStatus(shouldRestart, Failed))
 
       makeAllFailureMap(commandLineJobs, Some(e))
     }
   }
   
-  private[uger] def toExecutionMap(jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, Execution]] = {
+  private[uger] def toExecutionMap(
+      jobsById: Map[String, CommandLineJob],
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
 
-    def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
-      jobMonitor.monitor(jobIds)
+    def statuses(jobIds: Iterable[String]): Map[String, Observable[UgerStatus]] = {
+      time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
+        jobMonitor.monitor(jobIds)
+      }
     }
 
     val jobsAndUgerStatusesById = combine(jobsById, statuses(jobsById.keys))
-
+    
     val ugerJobsToExecutionObservables: Iterable[(LJob, Observable[Execution])] = for {
       (jobId, (job, ugerJobStatuses)) <- jobsAndUgerStatusesById
-      _ = ugerJobStatuses.foreach(ugerStatus => job.transitionTo(toJobStatus(ugerStatus)))
-      executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
     } yield {
+      ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, job))
+      
+      val executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
+      
       job -> executionObs
     }
 
@@ -130,7 +134,14 @@ object UgerChunkRunner extends Loggable {
     case _            => false
   }
   
-  private[uger] def handleFailure(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {
+  private[uger] def handleUgerStatus(shouldRestart: LJob => Boolean, job: LJob)(us: UgerStatus): Unit = {
+    val jobStatus = toJobStatus(us)
+    
+    if(jobStatus.isFailure) { handleFailureStatus(shouldRestart, jobStatus)(job) }
+    else { job.transitionTo(jobStatus) }
+  }
+  
+  private[uger] def handleFailureStatus(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {
     
     val status = ExecuterHelpers.determineFailureStatus(shouldRestart, failureStatus, job)
     

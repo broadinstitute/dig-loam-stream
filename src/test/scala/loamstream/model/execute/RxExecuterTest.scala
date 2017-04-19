@@ -68,10 +68,13 @@ final class RxExecuterTest extends FunSuite {
     }
     
     intercept[Exception] {
+      RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, 0)
+    }
+    
+    intercept[Exception] {
       RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, -100)
     }
     
-    RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, 0)
     RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, 1)
     RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, 42)
   }
@@ -647,7 +650,7 @@ final class RxExecuterTest extends FunSuite {
       
     assert(runner.maxNumJobs === maxSimultaneousJobs)
     
-    val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed)
+    val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
     
     (runner, executer.execute(Executable(jobs)))
   }

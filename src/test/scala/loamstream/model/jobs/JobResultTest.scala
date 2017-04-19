@@ -44,19 +44,5 @@ final class JobResultTest extends FunSuite {
     assert(ValueSuccess(42, TypeBox.of[Int]).isFailure === false)
   }
   
-  test("isSuccessExitCode") {
-    assert(isSuccessExitCode(0))
-    assert(!isSuccessExitCode(1))
-    assert(!isSuccessExitCode(-1))
-    assert(!isSuccessExitCode(42))
-  }
-
-  test("toJobStatus") {
-    assert(toJobStatus(0) === JobStatus.Succeeded)
-    assert(toJobStatus(1) === JobStatus.Failed)
-    assert(toJobStatus(-1) === JobStatus.Failed)
-    assert(toJobStatus(42) === JobStatus.Failed)
-  }
-
   // scalastyle:on magic.number
 }

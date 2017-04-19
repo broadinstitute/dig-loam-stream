@@ -1,6 +1,7 @@
 package loamstream.model.jobs
 
 import loamstream.util.Loggable
+import loamstream.util.ExitCodes
 
 /**
  * @author kyuksel
@@ -42,7 +43,7 @@ object JobStatus extends Loggable {
   def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
 
   def fromExitCode(code: Int): JobStatus = {
-    if (JobResult.isSuccessExitCode(code)) { Succeeded }
+    if (ExitCodes.isSuccess(code)) { Succeeded }
     else { Failed }
   }
   

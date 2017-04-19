@@ -27,7 +27,7 @@ final case class RxExecuter(
     jobFilter: JobFilter,
     maxRunsPerJob: Int)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
   
-  require(maxRunsPerJob >= 0, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
+  require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.ObservableEnrichments._
@@ -170,7 +170,7 @@ object RxExecuter extends Loggable {
     
     val result = runCount < maxRunsPerJob
     
-    debug(s"Retarting $job ? $result (job has run $runCount times, max is $maxRunsPerJob)")
+    debug(s"Restarting $job ? $result (job has run $runCount times, max is $maxRunsPerJob)")
     
     result
   }

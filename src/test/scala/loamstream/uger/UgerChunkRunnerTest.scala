@@ -57,8 +57,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     assert(combine(m2, m1) == Map("a" -> (42.0, 1), "c" -> (99.0, 3)))
   }
   
-  test("handleFailure") {
-    import UgerChunkRunner.handleFailure
+  test("handleFailureStatus") {
+    import UgerChunkRunner.handleFailureStatus
     import JobStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     
@@ -67,11 +67,11 @@ final class UgerChunkRunnerTest extends FunSuite {
       
       assert(job.status === NotStarted)
       
-      handleFailure(alwaysRestart, failureStatus)(job)
+      handleFailureStatus(alwaysRestart, failureStatus)(job)
       
       assert(job.status === failureStatus)
       
-      handleFailure(neverRestart, failureStatus)(job)
+      handleFailureStatus(neverRestart, failureStatus)(job)
       
       assert(job.status === FailedPermanently)
     }
@@ -79,6 +79,45 @@ final class UgerChunkRunnerTest extends FunSuite {
     doTest(Failed)
     doTest(FailedWithException)
     doTest(Terminated)
+  }
+
+  test("handleUgerStatus") {
+    import UgerChunkRunner.handleUgerStatus
+    import JobStatus._
+    import TestHelpers.{alwaysRestart, neverRestart}
+    
+    def doTest(ugerStatus: UgerStatus, isFailure: Boolean): Unit = {
+      val job = MockJob(NotStarted)
+      
+      val jobStatus = UgerStatus.toJobStatus(ugerStatus)
+      
+      assert(job.status === NotStarted)
+      
+      handleUgerStatus(alwaysRestart, job)(ugerStatus)
+      
+      assert(job.status === jobStatus)
+      
+      handleUgerStatus(neverRestart, job)(ugerStatus)
+      
+      val expected = if(isFailure) FailedPermanently else jobStatus
+      
+      assert(job.status === expected)
+    }
+    
+    
+    doTest(UgerStatus.Failed(), isFailure = true)
+    doTest(UgerStatus.CommandResult(1, None), isFailure = true)
+    doTest(UgerStatus.DoneUndetermined(), isFailure = true)
+    doTest(UgerStatus.Suspended(), isFailure = true)
+    
+    doTest(UgerStatus.Done, isFailure = false)
+    doTest(UgerStatus.Queued, isFailure = false)
+    doTest(UgerStatus.QueuedHeld, isFailure = false)
+    doTest(UgerStatus.Requeued, isFailure = false)
+    doTest(UgerStatus.RequeuedHeld, isFailure = false)
+    doTest(UgerStatus.Running, isFailure = false)
+    doTest(UgerStatus.Undetermined(), isFailure = false)
+    doTest(UgerStatus.CommandResult(0, None), isFailure = false)
   }
   
   //scalastyle:on magic.number

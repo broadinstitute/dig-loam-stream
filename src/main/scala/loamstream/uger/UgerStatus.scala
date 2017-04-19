@@ -87,7 +87,7 @@ object UgerStatus {
 
   def toJobStatus(status: UgerStatus): JobStatus = status match {
     case Done                                                       => JobStatus.Succeeded
-    case CommandResult(exitStatus, _)                               => JobResult.toJobStatus(exitStatus)
+    case CommandResult(exitStatus, _)                               => JobStatus.fromExitCode(exitStatus)
     case DoneUndetermined(resources)                                => JobStatus.Failed
     case Failed(resources)                                          => JobStatus.Failed
     case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobStatus.Submitted
@@ -97,6 +97,7 @@ object UgerStatus {
   }
 
   def toJobResult(status: UgerStatus): Option[JobResult] = status match {
+    //Done => JobResult.Success?
     case CommandResult(exitStatus, resources)      => Some(JobResult.CommandResult(exitStatus))
     case DoneUndetermined(resources)               => Some(JobResult.Failure)
     case Failed(resources)                         => Some(JobResult.Failure)

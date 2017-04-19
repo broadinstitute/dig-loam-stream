@@ -536,13 +536,13 @@ val sampleQcKlustakwikStores: Seq[KlustakwikStores] =
   uger {
     (1 until 12).map { i =>
       val stores = KlustakwikStores(outDIR / s"${outLABEL}.sampleqc.stats.adj.${i}")
+      
       cmd"""echo 1 > ${stores.fet};
         sed '1d' $SAMPLEQC_STATS_ADJ_TSV | awk -v col=${i+1} '{print $$col}' >> ${stores.fet};
         ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${i+1}); echo $$ID
         > ${stores.metricIds}""".in(SAMPLEQC_STATS_ADJ_TSV).out(stores.fet, stores.metricIds)
 
-      cmd"""$KLUSTAKWIK ${stores.base} 1 -UseFeatures 1 -UseDistributional 0
-        > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
+      cmd"""$KLUSTAKWIK ${stores.base} 1 -UseFeatures 1 -UseDistributional 0 > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
 
       stores
     }
@@ -568,7 +568,7 @@ uger {
     $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
     ${Local.ANCESTRY}
     < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
-  .in(sampleQcKlustakwikStores.map(_.clu) :+ Local.SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY
+  .in(sampleQcKlustakwikStores.map(_.clu) ++ sampleQcKlustakwikStores.map(_.metricIds) :+ Local.SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY
       :+ SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV)
   .out(SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE,
      SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)

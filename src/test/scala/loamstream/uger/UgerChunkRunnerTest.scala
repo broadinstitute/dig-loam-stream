@@ -126,26 +126,6 @@ final class UgerChunkRunnerTest extends FunSuite {
     doTest(UgerStatus.CommandResult(0, None), isFailure = false)
   }
   
-  /*
-   * type JobAndStatuses = (LJob, Observable[UgerStatus])
-  
-  private[uger] def toExecutions(
-      shouldRestart: LJob => Boolean, 
-      jobsAndUgerStatusesById: Map[String, JobAndStatuses]): Observable[Map[LJob, Execution]] = {
-    
-    val ugerJobsToExecutionObservables: Iterable[(LJob, Observable[Execution])] = for {
-      (jobId, (job, ugerJobStatuses)) <- jobsAndUgerStatusesById
-    } yield {
-      ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, job))
-      
-      val executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
-      
-      job -> executionObs
-    }
-
-    Observables.toMap(ugerJobsToExecutionObservables)
-  }
-   */
   private def toTuple(job: UgerChunkRunnerTest.MockUgerJob): (LJob, Observable[UgerStatus]) = {
     job -> Observable.from(job.statusesToReturn)
   }

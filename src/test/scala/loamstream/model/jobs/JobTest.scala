@@ -62,7 +62,7 @@ final class JobTest extends FunSuite with TestJobs {
     assert(visited === Map(gc0 -> 1, gc1 -> 1, gc2 -> 1, gc3 -> 1, c0 -> 1, c1 -> 1, rootJob -> 1))
   }
   
-  test("print - job tree with diamond") {
+  test("print - job graph with diamonds") {
     var visited: Map[LJob, Int] = Map.empty
     
     def incFor(job: LJob): Unit = {
@@ -111,8 +111,6 @@ final class JobTest extends FunSuite with TestJobs {
     import Maps.Implicits._
         
     assert(visited.mapKeys(_.name) === expected)
-    
-    root.print(doPrint = _ => println(_))
   }
   
   test("transitionTo") {

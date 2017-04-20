@@ -12,6 +12,7 @@ import java.time.Instant
 import loamstream.model.execute.{ExecutionEnvironment, LocalSettings, Resources}
 import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
 import loamstream.model.jobs.LJob
+import loamstream.conf.ExecutionConfig
 
 /**
   * @author clint
@@ -37,12 +38,15 @@ object TestHelpers {
     val hailConfig = HailConfig.fromConfig(config)
     val pythonConfig = PythonConfig.fromConfig(config)
     val rConfig = RConfig.fromConfig(config)
+    val executionConfig = ExecutionConfig.fromConfig(config)
 
-    LoamConfig( ugerConfig.toOption,
-                googleConfig.toOption,
-                hailConfig.toOption,
-                pythonConfig.toOption,
-                rConfig.toOption)
+    LoamConfig( 
+      ugerConfig.toOption,
+      googleConfig.toOption,
+      hailConfig.toOption,
+      pythonConfig.toOption,
+      rConfig.toOption,
+      executionConfig.getOrElse(ExecutionConfig.default))
   }
   
   lazy val localResources: LocalResources = { 

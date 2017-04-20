@@ -16,6 +16,9 @@ object Common {
 
   // Filter Step
   val FOR_QC_NAME = s"$outLABEL.for_qc"
+  
+  //Chunk 3
+  val numSampleQcMetrics = 10
 }
 
 object Local {
@@ -532,14 +535,14 @@ uger {
  * Notes:
  */
 
-val sampleQcKlustakwikStores: Seq[KlustakwikStores] =
+val sampleQcKlustakwikStores: Seq[KlustakwikStores] = {
   uger {
-    (1 until 12).map { i =>
-      val stores = KlustakwikStores(outDIR / s"${outLABEL}.sampleqc.stats.adj.${i}")
+    (1 to Common.numSampleQcMetrics).map { metricIndex =>
+      val stores = KlustakwikStores(outDIR / s"${outLABEL}.sampleqc.stats.adj.${metricIndex}")
       
       cmd"""echo 1 > ${stores.fet};
-        sed '1d' $SAMPLEQC_STATS_ADJ_TSV | awk -v col=${i+1} '{print $$col}' >> ${stores.fet};
-        ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${i+1}); echo $$ID
+        sed '1d' $SAMPLEQC_STATS_ADJ_TSV | awk -v col=${metricIndex+1} '{print $$col}' >> ${stores.fet};
+        ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${metricIndex+1}); echo $$ID
         > ${stores.metricIds}""".in(SAMPLEQC_STATS_ADJ_TSV).out(stores.fet, stores.metricIds)
 
       cmd"""$KLUSTAKWIK ${stores.base} 1 -UseFeatures 1 -UseDistributional 0 > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
@@ -547,6 +550,7 @@ val sampleQcKlustakwikStores: Seq[KlustakwikStores] =
       stores
     }
   }
+}
 
 val SAMPLEQC_CLU1_WILD = (outDIR / s"${outLABEL}.sampleqc.stats.adj.[[STAR]].clu.1").toString.replace("[[STAR]]", "*")
 val SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF = store[TXT].at(outDIR / s"${outLABEL}.sampleqc.stats.adj.individual.boxplot.pdf")

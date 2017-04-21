@@ -72,8 +72,13 @@ final class QcPipelineEndToEndTest extends FunSuite {
   private def path(s: String): Path = Paths.get(s)
 
   private def run(): Unit = {
-    Files.createDirectory(path("./qc"))
-    Files.createDirectory(path("./uger-scripts"))
+    if(!exists(outputDir)) {
+      Files.createDirectory(outputDir)
+    }
+    
+    if(!exists(path("./uger-scripts"))) {
+      Files.createDirectory(path("./uger-scripts"))
+    }
 
     val args: Array[String] = {
       Array(

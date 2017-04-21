@@ -83,7 +83,7 @@ final class QcPipelineEndToEndTest extends FunSuite {
     }
     
     if(!exists(path("./uger-scripts"))) {
-      Files.createDirectory(path("./uger-scripts"))
+      Files.createDirectory(path("./uger"))
     }
 
     val args: Array[String] = {

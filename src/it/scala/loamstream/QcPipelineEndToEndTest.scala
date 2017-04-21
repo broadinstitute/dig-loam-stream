@@ -82,7 +82,7 @@ final class QcPipelineEndToEndTest extends FunSuite {
       Files.createDirectory(outputDir)
     }
     
-    if(!exists(path("./uger-scripts"))) {
+    if(!exists(path("./uger"))) {
       Files.createDirectory(path("./uger"))
     }
 

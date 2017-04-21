@@ -17,7 +17,13 @@ final class QcPipelineEndToEndTest extends FunSuite {
   private val outputDir = path("./qc")
 
   test("Run the QC pipeline end-to-end on real data") {
-    run()
+    try {
+      run()
+    } catch {
+      //NB: SBT drastically truncates stack traces. so print them manually to get more info.  
+      //This workaround is lame, but gives us a chance at debugging failures.
+      case e: Throwable => e.printStackTrace() ; throw e
+    }
 
     //NB: Outputs from the penultimate Klustaskwik jobs
     //TODO: Better or different set of outputs to compare

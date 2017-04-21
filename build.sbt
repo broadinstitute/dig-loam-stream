@@ -44,7 +44,7 @@ lazy val mainDeps = Seq(
 )
 
 lazy val testDeps = Seq(
-  "org.scalatest" %% "scalatest" % Versions.ScalaTest % Test
+  "org.scalatest" %% "scalatest" % Versions.ScalaTest % "it,test"
 )
 
 lazy val commonSettings = Seq(
@@ -60,7 +60,9 @@ lazy val commonSettings = Seq(
 )
 
 lazy val root = (project in file("."))
+  .configs(IntegrationTest)
   .settings(commonSettings: _*)
+  .settings(Defaults.itSettings : _*)
   .settings(
     name := "LoamStream",
     packageSummary in Linux := "LoamStream - Language for Omics Analysis Management",

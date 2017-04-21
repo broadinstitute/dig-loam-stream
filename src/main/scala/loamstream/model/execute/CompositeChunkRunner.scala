@@ -14,7 +14,8 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
   
   override def canRun(job: LJob): Boolean = components.exists(_.canRun(job))
   
-  override def run(jobs: Set[LJob]): Observable[Map[LJob, Execution]] = {
+  //TODO
+  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
     
     require(jobs.forall(canRun), s"Don't know how to run ${jobs.filterNot(canRun)}")
     
@@ -25,7 +26,7 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
     val resultObservables = for {
       (runner, jobsForRunner) <- byRunner
     } yield {
-      runner.run(jobsForRunner)
+      runner.run(jobsForRunner, shouldRestart)
     }
     
     Observables.reduceMaps(resultObservables)

@@ -11,6 +11,7 @@ import loamstream.loam.LoamToolBox
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.StringUtils
 import loamstream.loam.LoamCmdTool
+import loamstream.conf.ExecutionConfig
 
 /**
  * @author clint
@@ -129,6 +130,12 @@ final class HailSupportTest extends FunSuite {
     
     val hailConfig = HailConfig.fromConfig(typesafeConfig)
     
-    LoamConfig(ugerConfig = None, googleConfig.toOption, hailConfig.toOption, pythonConfig = None, rConfig = None)
+    LoamConfig(
+        ugerConfig = None, 
+        googleConfig.toOption, 
+        hailConfig.toOption, 
+        pythonConfig = None, 
+        rConfig = None,
+        executionConfig = ExecutionConfig.default)
   }
 }

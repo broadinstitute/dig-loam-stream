@@ -1,6 +1,7 @@
 package loamstream.model.jobs
 
 import loamstream.util.Loggable
+import loamstream.util.ExitCodes
 
 /**
  * @author kyuksel
@@ -11,11 +12,19 @@ sealed trait JobStatus {
 
   def isFailure: Boolean
 
-  def isFinished: Boolean = isSuccess || isFailure
+  def isFinished: Boolean = isSuccess || isFailure || isTerminal
 
   def notFinished: Boolean = !isFinished
   
   def isSkipped: Boolean = this == JobStatus.Skipped
+  
+  def isPermanentFailure: Boolean = this == JobStatus.FailedPermanently
+
+  def isTerminal: Boolean
+  
+  def isRunning: Boolean = this == JobStatus.Running
+  
+  def notRunning: Boolean = !isRunning
 }
 
 object JobStatus extends Loggable {
@@ -29,25 +38,29 @@ object JobStatus extends Loggable {
   case object Submitted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
   case object Unknown extends NeitherSuccessNorFailure
+  case object FailedPermanently extends Failure(isTerminal = true)
 
   def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
 
   def fromExitCode(code: Int): JobStatus = {
-    if (JobResult.isSuccessExitCode(code)) { Succeeded }
+    if (ExitCodes.isSuccess(code)) { Succeeded }
     else { Failed }
   }
   
   sealed abstract class Success(
-                      override val isSuccess: Boolean = true,
-                      override val isFailure: Boolean = false) extends JobStatus
+      override val isTerminal: Boolean = true,
+      override val isSuccess: Boolean = true,
+      override val isFailure: Boolean = false) extends JobStatus
 
   sealed abstract class Failure(
-                      override val isSuccess: Boolean = false,
-                      override val isFailure: Boolean = true) extends JobStatus
+      override val isTerminal: Boolean = false,
+      override val isSuccess: Boolean = false,
+      override val isFailure: Boolean = true) extends JobStatus
 
   sealed abstract class NeitherSuccessNorFailure(
-                                       override val isSuccess: Boolean = false,
-                                       override val isFailure: Boolean = false) extends JobStatus
+      override val isTerminal: Boolean = false,
+      override val isSuccess: Boolean = false,
+      override val isFailure: Boolean = false) extends JobStatus
   
   private lazy val namesToInstances: Map[String, JobStatus] = Map(
     "succeeded" -> Succeeded,
@@ -58,5 +71,6 @@ object JobStatus extends Loggable {
     "submitted" -> Submitted,
     "terminated" -> Terminated,
     "running" -> Running,
-    "unknown" -> Unknown)
+    "unknown" -> Unknown,
+    "permanentfailure" -> FailedPermanently)
 }

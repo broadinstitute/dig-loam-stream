@@ -24,8 +24,11 @@ final case class CommandLineStringJob(
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
     override val logger: ProcessLogger = stdErrProcessLogger) extends CommandLineJob with Loggable {
 
-  override def processBuilder: ProcessBuilder =
+  override def name: String = s"${getClass.getSimpleName}#${id}('${commandLineString}', ...)"
+  
+  override def processBuilder: ProcessBuilder = {
     BashScript.fromCommandLineString(commandLineString).processBuilder(workDir)
+  }
 
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 

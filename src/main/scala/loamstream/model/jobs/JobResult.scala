@@ -11,7 +11,7 @@ import loamstream.model.jobs.JobResult.{CommandResult, Success, ValueSuccess}
  */
 sealed trait JobResult {
   def isSuccess: Boolean = this match {
-    case CommandResult(exitCode) => JobResult.isSuccessExitCode(exitCode)
+    case CommandResult(exitCode) => ExitCodes.isSuccess(exitCode)
     case Success | ValueSuccess(_, _) => true
     case _ => false
   }
@@ -41,10 +41,4 @@ object JobResult {
   final case class ValueSuccess[A](value: A, typeBox: TypeBox[A]) extends JobResult {
     def tpe: Type = typeBox.tpe
   }
-
-  def toJobStatus(exitCode: Int): JobStatus =
-    if (isSuccessExitCode(exitCode)) { JobStatus.Succeeded }
-    else { JobStatus.Failed }
-
-  def isSuccessExitCode(code: Int): Boolean = ExitCodes.isSuccess(code)
 }

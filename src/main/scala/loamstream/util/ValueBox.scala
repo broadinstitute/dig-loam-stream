@@ -36,6 +36,17 @@ final class ValueBox[A](init: A) {
   def mutate(f: A => A): ValueBox[A] = lock.synchronized {
     update(f(value))
   }
+  
+  /**
+   * Changes the value by applying a function to it.  The new value is returned.  
+   */
+  def mutateAndGet(f: A => A): A = lock.synchronized {
+    val newValue = f(value)
+    
+    update(newValue)
+    
+    newValue
+  }
 
   /** Get a property of the contained value by applying a function to it */
   def get[B](g: A => B): B = lock.synchronized {

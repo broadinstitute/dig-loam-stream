@@ -8,8 +8,9 @@ import loamstream.model.jobs.JobStatus.Succeeded
  * @author Kaan Yuksel
  * date: Jun 2, 2016
  */
+//TODO: Get rid of this
 final case class NoOpJob(inputs: Set[LJob]) extends LJob {
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
+  override def execute(implicit context: ExecutionContext): Future[Execution] = {
     val noOpExecution = Execution(env = ExecutionEnvironment.Local,
                                   cmd = None,
                                   settings = LocalSettings(),
@@ -19,6 +20,8 @@ final case class NoOpJob(inputs: Set[LJob]) extends LJob {
                                   outputs = Set.empty[OutputRecord])
     Future.successful(noOpExecution)
   }
+  
+  override def name: String = s"${getClass.getSimpleName}#${id}(${inputs.size} dependencies)"
   
   override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
 

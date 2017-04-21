@@ -77,8 +77,24 @@ object Main extends Loggable {
   }
 
   private def listResults(jobsToExecutions: Map[LJob, Execution]): Unit = {
+    //NB: Order (LJob, Execution) tuples based on the Executions' start times (if any).
+    //If no start time is present (for jobs where Resources couldn't be - or weren't - 
+    //determined, like Skipped jobs, those jobs/Executions come first. 
+    def ordering(a: (LJob, Execution), b: (LJob, Execution)): Boolean = {
+      val (_, executionA) = a
+      val (_, executionB) = b
+      
+      (executionA.resources, executionB.resources) match {
+        case (Some(resourcesA), Some(resourcesB)) => {
+          resourcesA.startTime.toEpochMilli < resourcesB.startTime.toEpochMilli
+        }
+        case (_, None) => false
+        case _ => true
+      }
+    }
+    
     for {
-      (job, execution) <- jobsToExecutions
+      (job, execution) <- jobsToExecutions.toSeq.sortWith(ordering)
     } {
       info(s"${execution.status}\t(${execution.result}):\tRan $job got $execution")
     }
@@ -86,28 +102,23 @@ object Main extends Loggable {
   
   private def describeExecutions(executions: Iterable[Execution]): Unit = {
     def isSkipped(e: Execution) = e.status.isSkipped
+    def neitherSuccessNorFailure(e: Execution) = !e.isSuccess && !e.isFailure
       
-    def allSkipped = executions.forall(isSkipped)
+    val numSucceeded = executions.count(_.isSuccess)
+    val numFailed = executions.count(_.isFailure)
+    val numSkipped = executions.count(isSkipped)
+    val numOther = executions.count(neitherSuccessNorFailure)
+    val numRan = executions.size
     
-    def allSucceededOrSkipped = executions.forall(_.isSuccess) && executions.exists(isSkipped)
-    
-    def allSucceeded = executions.forall(_.isSuccess)
-    
-    def allFailed = executions.forall(_.isFailure)
-    
-    def someDidntFinish = executions.exists(_.status.notFinished)
-    
-    if(allSkipped) { info("All jobs were skipped.") } 
-    else if(allSucceededOrSkipped) { info("All jobs succeeded or were skipped.") } 
-    else if(allSucceeded) { info("All jobs succeeded.") } 
-    else if(allFailed) { info("All jobs failed.") } 
-    else if(someDidntFinish) { info("Not all jobs finished.") }
+    info(s"$numRan jobs ran. $numSucceeded succeeded, $numFailed failed, $numSkipped skipped, $numOther other.")
   }
   
   private[this] val shutdownLatch: OneTimeLatch = new OneTimeLatch
 
   private[apps] def shutdown(wiring: AppWiring): Unit = {
     shutdownLatch.doOnce {
+      info("LoamStream shutting down...")
+      
       wiring.shutdown() match {
         case Nil => info("LoamStream shut down successfully")
         case exceptions => {

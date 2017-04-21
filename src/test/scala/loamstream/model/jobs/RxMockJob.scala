@@ -8,6 +8,7 @@ import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
 import loamstream.util.Futures
 import loamstream.util.Observables
 import loamstream.util.ValueBox
+import java.time.Instant
 
 
 /**
@@ -15,12 +16,13 @@ import loamstream.util.ValueBox
  * @author clint
  *         date: Sep 15, 2016
  */
+// scalastyle:off magic.number
 final case class RxMockJob( override val name: String,
                             inputs: Set[LJob],
                             outputs: Set[Output],
                             runsAfter: Set[RxMockJob],
                             fakeExecutionTimeInMs: Int,
-                            toReturn: Execution) extends LJob {
+                            toReturn: () => Execution) extends LJob {
 
   override def executionEnvironment: ExecutionEnvironment = TestHelpers.env
 
@@ -28,6 +30,10 @@ final case class RxMockJob( override val name: String,
 
   def executionCount = count.value
 
+  private[this] val lastRunTimeRef: ValueBox[Option[Instant]] = ValueBox(None)
+  
+  def lastRunTime: Option[Instant] = lastRunTimeRef()
+  
   private def waitIfNecessary(): Unit = {
     if (runsAfter.nonEmpty) {
       import loamstream.util.ObservableEnrichments._
@@ -44,20 +50,21 @@ final case class RxMockJob( override val name: String,
   }
 
   override def execute(implicit context: ExecutionContext): Future[Execution] = {
-    Future(waitIfNecessary()).flatMap(_ => super.execute)
-  }
-
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = Future {
-
-    trace(s"\t\tStarting job: $name")
-
-    delayIfNecessary()
-
-    trace(s"\t\t\tFinishing job: $name")
-
+    
     count.mutate(_ + 1)
+    
+    Future(waitIfNecessary()).map { _ => 
+    
+      trace(s"\t\tStarting job: $name")
 
-    toReturn
+      lastRunTimeRef := Some(Instant.now)
+      
+      delayIfNecessary()
+
+      trace(s"\t\t\tFinishing job: $name")
+
+      toReturn()
+    }
   }
 
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
@@ -71,14 +78,15 @@ object RxMockJob {
             outputs: Set[Output] = Set.empty,
             runsAfter: Set[RxMockJob] = Set.empty,
             fakeExecutionTimeInMs: Int = 0,
-            toReturn: JobResult = JobResult.CommandResult(0)): RxMockJob = {
+            toReturn: () => JobResult = () => JobResult.CommandResult(0))
+            (implicit discriminator: Int = 42): RxMockJob = {
 
     RxMockJob(name,
               inputs,
               outputs,
               runsAfter,
               fakeExecutionTimeInMs,
-              executionFrom(outputs, jobResult = toReturn))
+              () => executionFrom(outputs, jobResult = toReturn()))
   }
 
   private[this] def executionFrom(outputs: Set[Output], jobResult: JobResult) = {
@@ -92,3 +100,4 @@ object RxMockJob {
               outputs.map(_.toOutputRecord))
   }
 }
+// scalastyle:on magic.number

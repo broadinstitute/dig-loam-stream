@@ -17,7 +17,7 @@ lazy val Versions = new {
   val TypesafeConfig = "1.3.0"
   val Slick = "3.1.1"
   val H2 = "1.4.192"
-  val RxScala = "0.26.4"
+  val RxScala = "0.26.5"
   val Ficus = "1.4.0"
   val Squants = "1.2.0"
 }

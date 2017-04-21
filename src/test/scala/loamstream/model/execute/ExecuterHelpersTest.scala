@@ -7,12 +7,98 @@ import scala.concurrent.Await
 import loamstream.model.jobs.{JobStatus, RxMockJob, TestJobs}
 
 import scala.concurrent.duration.Duration
+import loamstream.util.ObservableEnrichments
+import loamstream.util.Futures
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.Execution
 
 /**
  * @author clint
  * date: Jun 7, 2016
  */
+// scalastyle:off magic.number
 final class ExecuterHelpersTest extends FunSuite with TestJobs {
+  
+  import TestHelpers.alwaysRestart
+  import TestHelpers.neverRestart
+  
+  test("handleResultOfExecution") {
+    import ExecuterHelpers.handleResultOfExecution
+    import JobStatus._
+    
+    def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
+      val job = MockJob(NotStarted)
+    
+      val execution = Execution.from(job, status)
+      
+      assert(job.status === NotStarted)
+      
+      handleResultOfExecution(alwaysRestart)(job -> execution) 
+      
+      assert(job.status === status)
+      
+      handleResultOfExecution(neverRestart)(job -> execution)
+      
+      assert(job.status === expectedNoRestart)
+    }
+    
+    doTest(Failed, FailedPermanently)
+    doTest(FailedWithException, FailedPermanently)
+    doTest(Terminated, FailedPermanently)
+    doTest(NotStarted, NotStarted)
+    doTest(Running, Running)
+    doTest(Skipped, Skipped)
+    doTest(Submitted, Submitted)
+    doTest(Succeeded, Succeeded)
+  }
+  
+  test("determineFinalStatus") {
+    import ExecuterHelpers.determineFinalStatus
+    import JobStatus._
+    
+    def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
+      val job = MockJob(NotStarted)
+      
+      assert(job.status === NotStarted)
+      
+      assert(determineFinalStatus(alwaysRestart, status, job) === status)
+      
+      assert(determineFinalStatus(neverRestart, status, job) === expectedNoRestart)
+      
+      assert(job.status === NotStarted)
+    }
+    
+    doTest(Failed, FailedPermanently)
+    doTest(FailedWithException, FailedPermanently)
+    doTest(Terminated, FailedPermanently)
+    doTest(NotStarted, NotStarted)
+    doTest(Running, Running)
+    doTest(Skipped, Skipped)
+    doTest(Submitted, Submitted)
+    doTest(Succeeded, Succeeded)
+  }
+  
+  test("determineFailureStatus") {
+    import ExecuterHelpers.determineFailureStatus
+    import JobStatus._
+    
+    def doTest(failureStatus: JobStatus): Unit = {
+      val job = MockJob(NotStarted)
+      
+      assert(job.status === NotStarted)
+      
+      assert(determineFailureStatus(alwaysRestart, failureStatus, job) === failureStatus)
+      
+      assert(determineFailureStatus(neverRestart, failureStatus, job) === FailedPermanently)
+      
+      assert(job.status === NotStarted)
+    }
+    
+    doTest(Failed)
+    doTest(FailedWithException)
+    doTest(Terminated)
+  }
   
   test("flattenTree") {
     import ExecuterHelpers.flattenTree
@@ -36,18 +122,65 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(flattenTree(Set(root0, root1)) == Set(root0, middle0, noDeps0, root1, middle1, noDeps1))
   }
   
-  test("execSingle()") {
+  test("executeSingle()") {
     import ExecuterHelpers.executeSingle
     import TestHelpers.executionFromStatus
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val success = Await.result(executeSingle(two0), Duration.Inf)
+    val success = Await.result(executeSingle(two0, neverRestart), Duration.Inf)
     
-    assert(success === Map(two0 -> executionFromStatus(two0Success)))
+    assert(success === (two0 -> executionFromStatus(two0Success)))
     
-    val failure = Await.result(executeSingle(two0Failed), Duration.Inf)
+    val failure = Await.result(executeSingle(two0Failed, neverRestart), Duration.Inf)
     
-    assert(failure === Map(two0Failed -> executionFromStatus(two0Failure)))
+    assert(failure === (two0Failed -> executionFromStatus(two0Failure)))
+    
+    import ObservableEnrichments._
+    
+    val two0StatusesFuture = two0.statuses.take(4).to[Seq].firstAsFuture
+    
+    import JobStatus._
+    
+    //NB: One 'Succeeded' emitted in MockJob.executeSelf, the last one emitted in executeSingle
+    assert(Futures.waitFor(two0StatusesFuture) === Seq(NotStarted, Running, Succeeded))
+  }
+  
+  test("executeSingle() - job transitioned to right state") {
+    import ExecuterHelpers.executeSingle
+    import JobStatus._
+    import Futures.waitFor
+    import scala.concurrent.ExecutionContext.Implicits.global
+    
+    def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
+      val job = MockJob(status)
+    
+      job.transitionTo(NotStarted)
+      
+      assert(job.executionCount === 0)
+      
+      assert(job.status === NotStarted)
+      
+      waitFor(executeSingle(job, alwaysRestart))
+      
+      assert(job.executionCount === 1)
+          
+      assert(job.status === status)
+      
+      waitFor(executeSingle(job, neverRestart))
+      
+      assert(job.executionCount === 2)
+          
+      assert(job.status === expectedNoRestart)
+    }
+    
+    doTest(Failed, FailedPermanently)
+    doTest(FailedWithException, FailedPermanently)
+    doTest(Terminated, FailedPermanently)
+    doTest(NotStarted, NotStarted)
+    doTest(Running, Running)
+    doTest(Skipped, Skipped)
+    doTest(Submitted, Submitted)
+    doTest(Succeeded, Succeeded)
   }
   
   test("noFailures() and anyFailures()") {
@@ -83,3 +216,4 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(anyFailures(someFailures) === true)
   }
 }
+// scalastyle:on magic.number

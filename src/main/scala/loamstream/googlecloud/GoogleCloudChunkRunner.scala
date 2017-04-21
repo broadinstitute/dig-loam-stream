@@ -45,11 +45,11 @@ final case class GoogleCloudChunkRunner(
   
   override def maxNumJobs: Int = delegate.maxNumJobs
   
-  override def run(jobs: Set[LJob]): Observable[Map[LJob, Execution]] = {
+  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
     def emptyResults: Observable[Map[LJob, Execution]] = Observable.just(Map.empty)
   
     if(jobs.isEmpty) { emptyResults }
-    else { runJobsSequentially(jobs) }
+    else { runJobsSequentially(jobs, shouldRestart) }
   }
   
   override def stop(): Unit = {
@@ -76,23 +76,29 @@ final case class GoogleCloudChunkRunner(
     }
   }
   
-  private[googlecloud] def runJobsSequentially(jobs: Set[LJob]): Observable[Map[LJob, Execution]] = {
+  private[googlecloud] def runJobsSequentially(
+      jobs: Set[LJob], 
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+    
     Observables.observeAsync {
       withCluster(client) {
-        val singleJobResults = jobs.toSeq.map(runSingle(delegate))
+        val singleJobResults = jobs.toSeq.map(runSingle(delegate, shouldRestart))
           
         Maps.mergeMaps(singleJobResults)
       }
     }
   }
 
-  private[googlecloud] def runSingle(delegate: ChunkRunner)(job: LJob): Map[LJob, Execution] = {
+  private[googlecloud] def runSingle(
+      delegate: ChunkRunner, 
+      shouldRestart: LJob => Boolean)(job: LJob): Map[LJob, Execution] = {
+    
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     //on the same cluster simultaneously
     import ObservableEnrichments._
     import GoogleCloudChunkRunner.addCluster
 
-    val futureResult = delegate.run(Set(job)).map(addCluster(googleConfig.clusterId)).firstAsFuture
+    val futureResult = delegate.run(Set(job), shouldRestart).map(addCluster(googleConfig.clusterId)).firstAsFuture
     
     Futures.waitFor(futureResult)
   }

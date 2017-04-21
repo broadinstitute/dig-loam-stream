@@ -8,6 +8,18 @@ import org.scalatest.FunSuite
  */
 final class ValueBoxTest extends FunSuite {
   //scalastyle:off magic.number
+  
+  test("mutateAndGet") {
+    val v: ValueBox[Int] = ValueBox(42)
+    
+    assert(v() === 42)
+    
+    val newValue = v.mutateAndGet(_ + 1)
+    
+    assert(newValue === 43)
+    assert(v() === 43)
+  }
+  
   test("Companion object apply with initial value") {
     val v: ValueBox[Int] = ValueBox(42)
     

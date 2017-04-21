@@ -33,6 +33,7 @@ import scala.util.Try
 import loamstream.uger.AccountingClient
 import loamstream.uger.Drmaa1Client
 import loamstream.uger.UgerClient
+import loamstream.conf.ExecutionConfig
 
 /**
  * @author clint
@@ -66,13 +67,20 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     private[this] lazy val hailConfigAttempt = HailConfig.fromConfig(typesafeConfig)
     private[this] lazy val pythonConfigAttempt = PythonConfig.fromConfig(typesafeConfig)
     private[this] lazy val rConfigAttempt = RConfig.fromConfig(typesafeConfig)
+    private[this] lazy val executionConfigAttempt = ExecutionConfig.fromConfig(typesafeConfig)
 
     override lazy val config: LoamConfig = {
-      LoamConfig( ugerConfigAttempt.toOption,
-                  googleConfigAttempt.toOption,
-                  hailConfigAttempt.toOption,
-                  pythonConfigAttempt.toOption,
-                  rConfigAttempt.toOption)
+      if(executionConfigAttempt.isFailure) {
+        info(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
+      }
+      
+      LoamConfig(
+        ugerConfigAttempt.toOption,
+        googleConfigAttempt.toOption,
+        hailConfigAttempt.toOption,
+        pythonConfigAttempt.toOption,
+        rConfigAttempt.toOption,
+        executionConfigAttempt.getOrElse(ExecutionConfig.default))
     }
     
     override def executer: Executer = terminableExecuter
@@ -110,7 +118,11 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
       
       val windowLength = 30.seconds
       
-      val rxExecuter = RxExecuter(compositeRunner, windowLength, jobFilter)(executionContextWithThreadPool)
+      val maxNumRunsPerJob = config.executionConfig.maxRunsPerJob
+      
+      val rxExecuter = {
+        RxExecuter(compositeRunner, windowLength, jobFilter, maxNumRunsPerJob)(executionContextWithThreadPool)
+      }
 
       val handles: Seq[Terminable] = (ugerRunnerHandles ++ googleRunner) :+ threadPoolHandle :+ localEcHandle
 

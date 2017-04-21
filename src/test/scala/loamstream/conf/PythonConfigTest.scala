@@ -16,6 +16,8 @@ final class PythonConfigTest extends FunSuite {
   private val binaryPath = Paths.get("path/to/python/binary")
   private val scriptDirPath = Paths.get("path/to/script/location")
 
+  import PythonConfig.fromConfig
+  
   test("fromConfig - defaults") {
     val confString =
       s"""loamstream {
@@ -26,7 +28,7 @@ final class PythonConfigTest extends FunSuite {
 
     val config = ConfigFactory.parseString(confString)
 
-    val pythonConfig = PythonConfig.fromConfig(config).get
+    val pythonConfig = fromConfig(config).get
 
     assert(pythonConfig.binary === binaryPath)
     assert(pythonConfig.scriptDir === PathUtils.getCurrentDirectory)
@@ -43,19 +45,19 @@ final class PythonConfigTest extends FunSuite {
 
     val config = ConfigFactory.parseString(confString)
 
-    val pythonConfig = PythonConfig.fromConfig(config).get
+    val pythonConfig = fromConfig(config).get
 
     assert(pythonConfig.binary === binaryPath)
     assert(pythonConfig.scriptDir === scriptDirPath)
   }
 
   test("fromConfig - bad input") {
-    assert(PythonConfig.fromConfig(ConfigFactory.empty).isFailure)
+    assert(fromConfig(ConfigFactory.empty).isFailure)
 
     def doTest(s: String): Unit = {
       val config = Try(ConfigFactory.parseString(s))
 
-      assert(config.flatMap(PythonConfig.fromConfig).isFailure)
+      assert(config.flatMap(fromConfig).isFailure)
     }
 
     doTest(null) //scalastyle:ignore null

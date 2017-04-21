@@ -17,6 +17,8 @@ import loamstream.util.Observables
 import loamstream.util.Terminable
 import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
+import loamstream.model.jobs.JobStatus.FailedPermanently
+import loamstream.model.execute.ExecuterHelpers
 
 
 /**
@@ -39,7 +41,7 @@ final case class UgerChunkRunner(
   
   override def maxNumJobs = ugerConfig.maxNumJobs
 
-  override def run(leaves: Set[LJob]): Observable[Map[LJob, Execution]] = {
+  override def run(leaves: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
 
     debug(s"Running: ")
     leaves.foreach(job => debug(s"  $job"))
@@ -59,7 +61,7 @@ final case class UgerChunkRunner(
 
       val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, commandLineJobs.size)
 
-      toExecutionStream(commandLineJobs, submissionResult)
+      toExecutionStream(commandLineJobs, submissionResult, shouldRestart)
     } else {
       // Handle NoOp case or a case when no jobs were presented for some reason
       Observable.just(Map.empty)
@@ -68,39 +70,36 @@ final case class UgerChunkRunner(
   
   private def toExecutionStream(
       commandLineJobs: Seq[CommandLineJob], 
-      submissionResult: DrmaaClient.SubmissionResult): Observable[Map[LJob, Execution]] = submissionResult match {
+      submissionResult: DrmaaClient.SubmissionResult,
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = submissionResult match {
 
     case DrmaaClient.SubmissionSuccess(rawJobIds) => {
-      commandLineJobs.foreach(_.updateAndEmitJobStatus(Running))
+      commandLineJobs.foreach(_.transitionTo(Running))
 
       val jobsById = rawJobIds.zip(commandLineJobs).toMap
 
-      toExecutionMap(jobsById)
+      jobsToExecutions(shouldRestart, jobsById)
     }
     case DrmaaClient.SubmissionFailure(e) => {
-      commandLineJobs.foreach(_.updateAndEmitJobStatus(Failed))
+      commandLineJobs.foreach(handleFailureStatus(shouldRestart, Failed))
 
       makeAllFailureMap(commandLineJobs, Some(e))
     }
   }
+  
+  private[uger] def jobsToExecutions(
+      shouldRestart: LJob => Boolean,
+      jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, Execution]] = {
 
-  private[uger] def toExecutionMap(jobsById: Map[String, CommandLineJob]): Observable[Map[LJob, Execution]] = {
-
-    def statuses(jobIds: Iterable[String]) = time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
-      jobMonitor.monitor(jobIds)
+    def statuses(jobIds: Iterable[String]): Map[String, Observable[UgerStatus]] = {
+      time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
+        jobMonitor.monitor(jobIds)
+      }
     }
 
     val jobsAndUgerStatusesById = combine(jobsById, statuses(jobsById.keys))
-
-    val ugerJobsToExecutionObservables: Iterable[(LJob, Observable[Execution])] = for {
-      (jobId, (job, ugerJobStatuses)) <- jobsAndUgerStatusesById
-      _ = ugerJobStatuses.foreach(ugerStatus => job.updateAndEmitJobStatus(toJobStatus(ugerStatus)))
-      executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
-    } yield {
-      job -> executionObs
-    }
-
-    Observables.toMap(ugerJobsToExecutionObservables)
+    
+    toExecutions(shouldRestart, jobsAndUgerStatusesById)
   }
   
   private def writeUgerScriptFile(commandLineJobs: Seq[CommandLineJob]): Path = {
@@ -123,6 +122,42 @@ object UgerChunkRunner extends Loggable {
   private[uger] def isNoOpJob(job: LJob): Boolean = job match {
     case noj: NoOpJob => true
     case _            => false
+  }
+  
+  type JobAndStatuses = (LJob, Observable[UgerStatus])
+  
+  private[uger] def toExecutions(
+      shouldRestart: LJob => Boolean, 
+      jobsAndUgerStatusesById: Map[String, JobAndStatuses]): Observable[Map[LJob, Execution]] = {
+    
+    val ugerJobsToExecutionObservables: Iterable[(LJob, Observable[Execution])] = for {
+      (jobId, (job, ugerJobStatuses)) <- jobsAndUgerStatusesById
+    } yield {
+      //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
+      ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, job))
+      
+      val executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
+      
+      job -> executionObs
+    }
+
+    Observables.toMap(ugerJobsToExecutionObservables)
+  }
+  
+  private[uger] def handleUgerStatus(shouldRestart: LJob => Boolean, job: LJob)(us: UgerStatus): Unit = {
+    val jobStatus = toJobStatus(us)
+    
+    if(jobStatus.isFailure) { handleFailureStatus(shouldRestart, jobStatus)(job) }
+    else { job.transitionTo(jobStatus) }
+  }
+  
+  private[uger] def handleFailureStatus(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {
+    
+    val status = ExecuterHelpers.determineFailureStatus(shouldRestart, failureStatus, job)
+    
+    debug(s"$job transitioning to: $status (Non-terminal failure status: $failureStatus)")
+    
+    job.transitionTo(status)
   }
 
   private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)

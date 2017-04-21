@@ -9,6 +9,19 @@ import org.scalatest.FunSuite
 final class JobStatusTest extends FunSuite {
   import JobStatus._
   
+  test("isPermanentFailure") {
+    assert(Succeeded.isPermanentFailure === false)
+    assert(Skipped.isPermanentFailure === false)
+    assert(Failed.isPermanentFailure === false)
+    assert(FailedWithException.isPermanentFailure === false)
+    assert(NotStarted.isPermanentFailure === false)
+    assert(Submitted.isPermanentFailure === false)
+    assert(Running.isPermanentFailure === false)
+    assert(Terminated.isPermanentFailure === false)
+    assert(Unknown.isPermanentFailure === false)
+    assert(FailedPermanently.isPermanentFailure === true)
+  }
+  
   test("isSuccess") {
     assert(Succeeded.isSuccess === true)
     assert(Skipped.isSuccess === true)
@@ -19,6 +32,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isSuccess === false)
     assert(Terminated.isSuccess === false)
     assert(Unknown.isSuccess === false)
+    assert(FailedPermanently.isSuccess === false)
   }
   
   test("isSkipped") {
@@ -31,6 +45,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isSkipped === false)
     assert(Terminated.isSkipped === false)
     assert(Unknown.isSkipped === false)
+    assert(FailedPermanently.isSkipped === false)
   }
 
   test("isFailure") {
@@ -43,6 +58,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isFailure === false)
     assert(Terminated.isFailure === true)
     assert(Unknown.isFailure === false)
+    assert(FailedPermanently.isFailure === true)
   }
 
   test("isFinished") {
@@ -55,6 +71,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isFinished === false)
     assert(Terminated.isFinished === true)
     assert(Unknown.isFinished === false)
+    assert(FailedPermanently.isFinished === true)
   }
 
   test("notFinished") {
@@ -67,6 +84,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.notFinished === true)
     assert(Terminated.notFinished === false)
     assert(Unknown.notFinished === true)
+    assert(FailedPermanently.notFinished === false)
   }
   
   test("fromString") {
@@ -79,6 +97,7 @@ final class JobStatusTest extends FunSuite {
     assert(fromString("Running") === Some(Running))
     assert(fromString("Terminated") === Some(Terminated))
     assert(fromString("Unknown") === Some(Unknown))
+    assert(fromString("PermanentFailure") === Some(FailedPermanently))
     assert(fromString("") === None)
     assert(fromString("Undefined") === None)
     assert(fromString("blah") === None)
@@ -93,6 +112,7 @@ final class JobStatusTest extends FunSuite {
     assert(fromString("RUNNING") === Some(Running))
     assert(fromString("TERMINATED") === Some(Terminated))
     assert(fromString("UNKNOWN") === Some(Unknown))
+    assert(fromString("PERMANENTFAILURE") === Some(FailedPermanently))
     assert(fromString("   ") === None)
     assert(fromString("UNDEFINED") === None)
     assert(fromString("BLAH") === None)
@@ -106,6 +126,7 @@ final class JobStatusTest extends FunSuite {
     assert(fromString("RuNnInG") === Some(Running))
     assert(fromString("TeRmInAtEd") === Some(Terminated))
     assert(fromString("UnKnOwN") === Some(Unknown))
+    assert(fromString("PeRmAnEnTfAiLuRe") === Some(FailedPermanently))
     assert(fromString("UnDeFiNeD") === None)
     assert(fromString("bLaH") === None)
   }

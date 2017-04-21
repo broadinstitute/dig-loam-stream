@@ -312,7 +312,11 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     val mockRunner = MockChunkRunner(asyncChunkRunner)
 
-    (resumptiveExecuter.copy(runner = mockRunner)(resumptiveExecuter.executionContext), mockRunner)
+    val resultExecuter = {
+      resumptiveExecuter.copy(runner = mockRunner, maxRunsPerJob = 1)(resumptiveExecuter.executionContext)
+    }
+    
+    (resultExecuter, mockRunner)
   }
 
   private def loamEngine = {

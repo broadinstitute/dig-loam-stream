@@ -23,7 +23,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     import TestHelpers.path
     
     val result0 = CommandResult(0)
-    val status0 = JobResult.toJobStatus(result0.exitCode)
+    val status0 = JobStatus.fromExitCode(result0.exitCode)
     val status1 = JobStatus.Succeeded
     
     val job0 = CommandLineStringJob("foo", path("."), ExecutionEnvironment.Uger)

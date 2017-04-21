@@ -38,7 +38,7 @@ trait CommandLineJob extends LJob {
 
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
-  override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
+  override def execute(implicit context: ExecutionContext): Future[Execution] = {
     Futures.runBlocking {
       
       val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {

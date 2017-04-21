@@ -111,10 +111,10 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
     val successfulExecutionWithOutputs = successfulExecution.copy(outputs = outputs.map(_.toOutputRecord))
     
     new MockJob(successfulExecutionWithOutputs, name, inputs, outputs, delay = 0) {
-      override protected def executeSelf(implicit context: ExecutionContext): Future[Execution] = {
+      override def execute(implicit context: ExecutionContext): Future[Execution] = {
         body
-
-        super.executeSelf
+        
+        super.execute
       }
     }
   }
@@ -158,7 +158,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       val executable = Executable(Set(f2ToF3))
   
       def runningEverything: Boolean = executer match {
-        case RxExecuter(_, _, jobFilter) => jobFilter == JobFilter.RunEverything
+        case RxExecuter(_, _, jobFilter, _) => jobFilter == JobFilter.RunEverything
         case _ => false
       }
 

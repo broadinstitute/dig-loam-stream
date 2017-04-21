@@ -14,4 +14,5 @@ final case class LoamConfig(
     googleConfig: Option[GoogleCloudConfig],
     hailConfig: Option[HailConfig],
     pythonConfig: Option[PythonConfig],
-    rConfig: Option[RConfig])
+    rConfig: Option[RConfig],
+    executionConfig: ExecutionConfig)

@@ -12,5 +12,5 @@ trait ChunkRunner {
   
   def canRun(job: LJob): Boolean
   
-  def run(jobs: Set[LJob]): Observable[Map[LJob, Execution]]
+  def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]]
 }

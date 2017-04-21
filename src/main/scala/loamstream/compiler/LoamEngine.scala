@@ -171,7 +171,7 @@ final case class LoamEngine(
   private def log(executable: Executable): Unit = {
     val buffer = new StringBuilder
     
-    def doLog(s: String) = buffer.append(s"\n$s")
+    def doLog(ignored: LJob)(s: String) = buffer.append(s"\n$s")
     
     executable.jobs.headOption.foreach(_.print(doPrint = doLog))
     

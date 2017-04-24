@@ -26,7 +26,7 @@ final class QcPipelineEndToEndTest extends FunSuite {
       case e: Throwable => e.printStackTrace() ; throw e
     }
 
-    //NB: Outputs from the penultimate Klustaskwik jobs
+    //NB: Deterministic outputs from the penultimate Klustaskwik jobs
     //TODO: Better or different set of outputs to compare
     val filesToCheck: Seq[Path] = Seq(
       path("CAMP.sampleqc.stats.adj.1.fet.1"),
@@ -59,19 +59,7 @@ final class QcPipelineEndToEndTest extends FunSuite {
       path("CAMP.sampleqc.stats.adj.8.temp.clu.1"),
       path("CAMP.sampleqc.stats.adj.9.clu.1"),
       path("CAMP.sampleqc.stats.adj.9.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.temp.clu.1")//,
-      //TODO: Testing without .klg.* files, which appear to be non-deterministic
-      /*path("CAMP.sampleqc.stats.adj.1.klg.1"),
-      path("CAMP.sampleqc.stats.adj.10.klg.1"),
-      path("CAMP.sampleqc.stats.adj.2.klg.1"),
-      path("CAMP.sampleqc.stats.adj.3.klg.1"),
-      path("CAMP.sampleqc.stats.adj.4.klg.1"),
-      path("CAMP.sampleqc.stats.adj.5.klg.1"),
-      path("CAMP.sampleqc.stats.adj.6.klg.1"),
-      path("CAMP.sampleqc.stats.adj.7.klg.1"),
-      path("CAMP.sampleqc.stats.adj.8.klg.1"),
-      path("CAMP.sampleqc.stats.adj.9.klg.1"))*/
-      )
+      path("CAMP.sampleqc.stats.adj.temp.clu.1"))
 
     val pairsToCompare: Seq[(Path, Path)] = filesToCheck.map(p => (referenceDir.resolve(p), outputDir.resolve(p)))
 

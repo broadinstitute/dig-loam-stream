@@ -2,6 +2,7 @@
 LoamStream is a genomic analysis stack featuring a high-level language, compiler and runtime engine.
 
 ## Jenkins:
+  - URL: http://dig-ae-dev-01:8080/
   - `$CI_ROOT`: `/humgen/diabetes/users/dig/loamstream/ci/`
   - `$JENKINS_ROOT`: `${CI_ROOT}/jenkins/`
   - War: `${JENKINS_ROOT}/jenkins-2.32.1-LTS.war`
@@ -56,7 +57,7 @@ LoamStream is a genomic analysis stack featuring a high-level language, compiler
     - `name: `SBT 0.13.13`
     - sbt launch arguments: `-XX:ReservedCodeCacheSize=256m -XX:MaxMetaspaceSize=512m -Xms1G -Xmx2G -XX:+AggressiveOpts -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC`
 ### Creating a first job
-- Dashboard => 'Create New Job'
+- Jenkins Dashboard (http://dig-ae-dev-01:8080/) => 'New Item'
   - name: LoamStream
   - type: 'Freestyle project'
   - General tab:

@@ -52,7 +52,7 @@ object QcParams {
     override def numChromosomes = endChromosome - startChromosome + 1
 
     /** Input VCF file */
-   override val inVCF = store[VCF].at("/humgen/diabetes/users/ryank/data/camp/data/camp.vcf.gz").asInput
+    override val inVCF = store[VCF].at("/humgen/diabetes/users/ryank/data/camp/data/camp.vcf.gz").asInput
  
     /** Output directory path */
     override val outDirLoc = "qc"

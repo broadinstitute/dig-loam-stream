@@ -1,4 +1,4 @@
-import input._
+import input.Params._
 import binaries._
 import cloud_helpers._
 import scripts._
@@ -9,9 +9,6 @@ import loamstream.googlecloud.HailSupport._
 
 object Common {
   // Alignment Step
-  val START_CHR = 1
-  val END_CHR = 22
-  val NUM_CHR = END_CHR - START_CHR + 1
   val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
 
   // Filter Step
@@ -23,19 +20,19 @@ object Common {
 
 object Local {
   // Alignment Step
-  val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
-  val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(Common.NUM_CHR)
-  val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.NUM_CHR)
+  val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(numChromosomes)
+  val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(numChromosomes)
+  val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(numChromosomes)
   val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
   val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
   val VCF_BASE = outDIR / Common.VCF_BASE_NAME
   val VCF = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf")
   val VCF_GZ = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz")
   val VCF_GZ_TBI = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
-  val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(Common.NUM_CHR)
-  val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
-  val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(Common.NUM_CHR)
-  val MERGE_LINE: Array[String] = Array.ofDim(Common.NUM_CHR)
+  val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(numChromosomes)
+  val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(numChromosomes)
+  val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(numChromosomes)
+  val MERGE_LINE: Array[String] = Array.ofDim(numChromosomes)
   val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
   val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
   val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")
@@ -165,8 +162,8 @@ object Google {
  */
 
 uger {
-  for (i <- Common.START_CHR to Common.END_CHR) {
-    val j = i - Common.START_CHR
+  for (i <- startChromosome to endChromosome) {
+    val j = i - startChromosome
     val PLINK_CHRS_NAME = outDIR / s"$outLABEL.chr$i"
     Local.PLINK_CHRS(j) = bedBimFam(PLINK_CHRS_NAME)
     Local.PLINK_CHRS_HARMONIZED_NAME(j) = outDIR / s"$outLABEL.chr$i.harmonized"

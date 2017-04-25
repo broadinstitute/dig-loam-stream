@@ -79,7 +79,9 @@ final class QcPipelineEndToEndTest extends FunSuite {
           "pipeline/loam/qc.conf",
           "pipeline/loam/binaries.loam",
           "pipeline/loam/cloud_helpers.loam",
-          "pipeline/loam/input.loam",
+          "pipeline/loam/conf_helpers.loam",
+          //NB: This is the CI input.loam, that will make us run over fewer chromosomes.
+          "pipeline/loam/ci/input.loam",
           "pipeline/loam/qc.loam",
           "pipeline/loam/scripts.loam",
           "pipeline/loam/store_helpers.loam")

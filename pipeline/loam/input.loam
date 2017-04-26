@@ -1,6 +1,6 @@
 /** Input VCF file */
 val inVCF = store[VCF].at("/humgen/diabetes/users/ryank/data/camp/data/camp.vcf.gz").asInput
-
+ 
 /** Output directory path */
 val outDirLoc = "qc"
 val outDIR = path(outDirLoc)
@@ -25,9 +25,9 @@ val inKG_V3_5K_PCA_LOADINGS = store[TXT].at("/humgen/diabetes/users/ryank/data/1
 
 /** Hail VDS input */
 val inKG_HAIL =
-  store[TXT]
-  .at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vds")
-  .asInput
+      store[TXT]
+        .at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vds")
+        .asInput
 
 /**
  * 1KG VCF base name (excluding .vcf.gz)

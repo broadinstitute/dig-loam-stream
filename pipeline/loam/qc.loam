@@ -10,6 +10,7 @@ import loamstream.googlecloud.HailSupport._
 
 object Common {
   // Alignment Step
+  val numChromosomes = endChromosome - startChromosome + 1
   val VCF_BASE_NAME = s"$outLABEL.harmonized.ref"
 
   // Filter Step
@@ -17,8 +18,6 @@ object Common {
   
   //Chunk 3
   val numSampleQcMetrics = 10
-  
-  val numChromosomes = endChromosome - startChromosome + 1
 }
 
 object Local {

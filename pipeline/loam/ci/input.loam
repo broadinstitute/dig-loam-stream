@@ -1,6 +1,0 @@
-import conf_helpers._ 
-
-object Params extends QcParams.Defaults {
-  override val startChromosome = 10
-  override val endChromosome = 11
-}

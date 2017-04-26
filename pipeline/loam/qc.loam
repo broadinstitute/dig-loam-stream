@@ -1,4 +1,5 @@
-import input.Params._
+import input._
+import qc_params._
 import binaries._
 import cloud_helpers._
 import scripts._
@@ -16,23 +17,25 @@ object Common {
   
   //Chunk 3
   val numSampleQcMetrics = 10
+  
+  val numChromosomes = endChromosome - startChromosome + 1
 }
 
 object Local {
   // Alignment Step
-  val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(numChromosomes)
-  val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(numChromosomes)
-  val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(numChromosomes)
+  val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.numChromosomes)
+  val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(Common.numChromosomes)
+  val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.numChromosomes)
   val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
   val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
   val VCF_BASE = outDIR / Common.VCF_BASE_NAME
   val VCF = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf")
   val VCF_GZ = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz")
   val VCF_GZ_TBI = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
-  val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(numChromosomes)
-  val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(numChromosomes)
-  val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(numChromosomes)
-  val MERGE_LINE: Array[String] = Array.ofDim(numChromosomes)
+  val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(Common.numChromosomes)
+  val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(Common.numChromosomes)
+  val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(Common.numChromosomes)
+  val MERGE_LINE: Array[String] = Array.ofDim(Common.numChromosomes)
   val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
   val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
   val SAMPLE_FILE = store[TXT].at(outDIR / s"$outLABEL.harmonized.sample")

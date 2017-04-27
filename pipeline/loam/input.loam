@@ -1,15 +1,7 @@
-/** Input VCF file */
-val inVCF = store[VCF].at("/humgen/diabetes/users/ryank/data/camp/data/camp.vcf.gz").asInput
  
 /** Output directory path */
 val outDirLoc = "qc"
 val outDIR = path(outDirLoc)
-
-/** Label for output prefix */
-val outLABEL = "CAMP"
-
-/** Phenotype file */
-val inPHENO = store[TXT].at("/humgen/diabetes/users/ryank/data/camp/phenotype/AMP_T2DGENES_PhenotypeData_CAMP-MGH_8May2016.tsv").asInput
 
 /** Column names for sample ID and self reported race */
 val PHENO_ID = "IID"

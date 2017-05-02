@@ -21,7 +21,11 @@ object LoamCmdTool {
      *          within scriptContext via the call to addToGraph()
      */
     def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-      create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
+      val tool = create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
+
+      LoamCmdTool.addToGraph(tool)
+
+      tool
     }
   }
 
@@ -76,10 +80,14 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
   /** Constructs the command line string */
   def commandLine: String = LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
 
-  def use(dotkit: String): LoamCmdTool = {
+  def using(dotkit: String): LoamCmdTool = {
     val prefix = s"reuse -q $dotkit && "
-    copy(tokens = StringToken(prefix) +: tokens)
-  }
+    val updatedTool = copy(tokens = StringToken(prefix) +: tokens)
 
-  def build: Unit = LoamCmdTool.addToGraph(this)
+    scriptContext.projectContext.graphBox.mutate { graph =>
+      graph.updateTool(this, updatedTool)
+    }
+
+    updatedTool
+  }
 }

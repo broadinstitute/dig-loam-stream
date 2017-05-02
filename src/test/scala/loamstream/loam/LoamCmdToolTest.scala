@@ -39,11 +39,10 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.tokens == Seq(StringToken("foo bar baz")))
   }
 
-  test("use") {
+  test("using") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
-    val tool = cmd"foo bar baz".use("R-3.1")
-    tool.build
+    val tool = cmd"foo bar baz".using("R-3.1")
 
     assert(tool.graph eq scriptContext.projectContext.graphBox.value)
 

@@ -1,6 +1,5 @@
 package loamstream.model
 
-import scala.util.Random
 import loamstream.util.Sequence
 
 /**

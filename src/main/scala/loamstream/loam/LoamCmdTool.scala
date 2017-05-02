@@ -21,12 +21,7 @@ object LoamCmdTool {
      *          within scriptContext via the call to addToGraph()
      */
     def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-      val tool = create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
-
-      LoamCmdTool.addToGraph(tool)
-
-      // TODO: Necessary to return anything?
-      tool
+      create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
     }
   }
 
@@ -54,13 +49,13 @@ object LoamCmdTool {
   }
 
   /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
-  def addToGraph(tool: LoamCmdTool)(implicit scriptContext: LoamScriptContext): Unit = {
+  private def addToGraph(tool: LoamCmdTool)(implicit scriptContext: LoamScriptContext): Unit = {
     scriptContext.projectContext.graphBox.mutate { graph =>
       graph.withTool(tool, scriptContext)
     }
   }
   
-  def toToken(arg: Any): LoamToken = arg match {
+  private def toToken(arg: Any): LoamToken = arg match {
     case store: LoamStore.Untyped => StoreToken(store)
     case storeRef: LoamStoreRef => StoreRefToken(storeRef)
     case arg => StringToken(arg.toString)
@@ -80,4 +75,11 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
 
   /** Constructs the command line string */
   def commandLine: String = LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
+
+  def use(dotkit: String): LoamCmdTool = {
+    val prefix = s"reuse -q $dotkit && "
+    copy(tokens = StringToken(prefix) +: tokens)
+  }
+
+  def build: Unit = LoamCmdTool.addToGraph(this)
 }

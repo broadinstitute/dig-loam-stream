@@ -39,6 +39,31 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.tokens == Seq(StringToken("foo bar baz")))
   }
 
+  test("use") {
+    implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
+
+    val tool = cmd"foo bar baz".use("R-3.1")
+    tool.build
+
+    assert(tool.graph eq scriptContext.projectContext.graphBox.value)
+
+    assert(tool.graph.stores == Set.empty)
+    assert(tool.graph.storeProducers === Map.empty)
+    assert(tool.graph.storeConsumers == Map.empty)
+
+    assert(tool.graph.toolInputs == Map(tool -> Set.empty))
+    assert(tool.graph.toolOutputs == Map(tool -> Set.empty))
+
+    assert(tool.graph.tools == Set(tool))
+
+    assert(tool.inputs == Map.empty)
+    assert(tool.outputs == Map.empty)
+
+    assert(tool.tokens == Seq(StringToken("reuse -q R-3.1 && "), StringToken("foo bar baz")))
+
+    assert(tool.commandLine === "reuse -q R-3.1 && foo bar baz")
+  }
+
   private def storeMap(stores: Iterable[LoamStore.Untyped]): Map[LId, LoamStore.Untyped] = {
     stores.map(store => store.id -> store).toMap
   }

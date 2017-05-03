@@ -1,11 +1,12 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreToken, StringToken}
-import loamstream.loam.ops.StoreType.TXT
+import loamstream.loam.ops.StoreType.{TXT, VCF}
 import loamstream.model.LId
 import loamstream.util.BashScript
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import loamstream.compiler.LoamPredef._
 
 /**
   * @author clint
@@ -42,25 +43,31 @@ final class LoamCmdToolTest extends FunSuite {
   test("using") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
-    val tool = cmd"foo bar baz".using("R-3.1")
+    val input1 = 42
+    val input2 = "input2"
+    val input3 = store[TXT].at("/inputStore").asInput
+    val output = store[VCF].at("/outputStore")
+
+    val tool = cmd"someTool --in $input1 --in $input2 --in $input3 --out $output"
+                    .using("R-3.1")
+                    .in(input3)
+                    .out(output)
 
     assert(tool.graph eq scriptContext.projectContext.graphBox.value)
 
-    assert(tool.graph.stores == Set.empty)
-    assert(tool.graph.storeProducers === Map.empty)
-    assert(tool.graph.storeConsumers == Map.empty)
+    assert(tool.graph.stores.size === 2)
+    assert(tool.graph.storeProducers.size === 1)
+    assert(tool.graph.storeConsumers.size === 2)
 
-    assert(tool.graph.toolInputs == Map(tool -> Set.empty))
-    assert(tool.graph.toolOutputs == Map(tool -> Set.empty))
+    assert(tool.graph.toolInputs.size === 1)
+    assert(tool.graph.toolOutputs.size === 1)
 
-    assert(tool.graph.tools == Set(tool))
+    assert(tool.graph.tools === Set(tool))
 
-    assert(tool.inputs == Map.empty)
-    assert(tool.outputs == Map.empty)
+    assert(tool.inputs.size === 1)
+    assert(tool.outputs.size === 1)
 
-    assert(tool.tokens == Seq(StringToken("reuse -q R-3.1 && "), StringToken("foo bar baz")))
-
-    assert(tool.commandLine === "reuse -q R-3.1 && foo bar baz")
+    assert(tool.commandLine === "reuse -q R-3.1 && someTool --in 42 --in input2 --in /inputStore --out /outputStore")
   }
 
   private def storeMap(stores: Iterable[LoamStore.Untyped]): Map[LId, LoamStore.Untyped] = {

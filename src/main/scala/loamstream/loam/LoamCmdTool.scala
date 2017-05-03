@@ -80,9 +80,18 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
   /** Constructs the command line string */
   def commandLine: String = LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
 
-  def using(dotkit: String): LoamCmdTool = {
-    val prefix = s"reuse -q $dotkit && "
-    val updatedTool = copy(tokens = StringToken(prefix) +: tokens)
+  def using(dotkits: String*): LoamCmdTool = {
+    val prefix = {
+      val useuse = "source /broad/software/scripts/useuse"
+      val and = "&&"
+      val reuse = "reuse -q"
+      val reuses = dotkits.mkString(s"$reuse ", s" $reuse $and ", "")
+      s"$useuse $and $reuses $and "
+    }
+
+    val useToken = StringToken(prefix)
+
+    val updatedTool = copy(tokens = useToken +: tokens)
 
     scriptContext.projectContext.graphBox.mutate { graph =>
       graph.updateTool(this, updatedTool)

@@ -93,6 +93,17 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.commandLine === expected)
   }
 
+  test("using() with multiple tools to be 'use'd") {
+    implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
+
+    val tool = cmd"someTool".using("otherTool1", "otherTool2", "otherTool3")
+
+    val useuse = "source /broad/software/scripts/useuse"
+    val expected = s"$useuse && reuse -q otherTool1 && reuse -q otherTool2 && reuse -q otherTool3 && someTool"
+
+    assert(tool.commandLine === expected)
+  }
+
   private def storeMap(stores: Iterable[LoamStore.Untyped]): Map[LId, LoamStore.Untyped] = {
     stores.map(store => store.id -> store).toMap
   }

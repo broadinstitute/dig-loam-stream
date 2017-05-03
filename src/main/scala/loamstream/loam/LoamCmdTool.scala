@@ -85,8 +85,8 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
       val useuse = "source /broad/software/scripts/useuse"
       val and = "&&"
       val reuse = "reuse -q"
-      val reuses = dotkits.mkString(s"$reuse ", s" $reuse $and ", "")
-      s"$useuse $and $reuses $and "
+      val reuses = dotkits.mkString(s"$reuse ", s" $and $reuse ", s" $and ")
+      s"$useuse $and $reuses"
     }
 
     val useToken = StringToken(prefix)

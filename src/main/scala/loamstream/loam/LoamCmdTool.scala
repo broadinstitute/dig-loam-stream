@@ -85,13 +85,15 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
       val useuse = "source /broad/software/scripts/useuse"
       val and = "&&"
       val reuse = "reuse -q"
-      val reuses = dotkits.mkString(s"$reuse ", s" $and $reuse ", s" $and ")
-      s"$useuse $and $reuses"
+      val reuses = dotkits.mkString(s"$reuse ", s" $and $reuse ", s" $and")
+      val openParen = "("
+      s"$useuse $and $reuses $openParen"
     }
 
     val useToken = StringToken(prefix)
+    val closeParenToken = StringToken(")")
 
-    val updatedTool = copy(tokens = useToken +: tokens)
+    val updatedTool = copy(tokens = useToken +: tokens :+ closeParenToken)
 
     scriptContext.projectContext.graphBox.mutate { graph =>
       graph.updateTool(this, updatedTool)

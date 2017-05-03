@@ -49,8 +49,9 @@ final class LoamCmdToolTest extends FunSuite {
     val output = store[VCF].at("/outputStore")
 
     val useuse = "source /broad/software/scripts/useuse"
-    val expectedCmdLineString = s"$useuse && reuse -q R-3.1 && someTool --in 42 --in input2 --in /inputStore --out " +
-      s"/outputStore"
+    val expectedCmdLineString =
+      s"$useuse && reuse -q R-3.1 && " +
+      s"(someTool --in 42 --in input2 --in /inputStore --out /outputStore)"
 
     val baseTool = cmd"someTool --in $input1 --in $input2 --in $input3 --out $output"
 
@@ -88,7 +89,7 @@ final class LoamCmdToolTest extends FunSuite {
 
     val useuse = "source /broad/software/scripts/useuse"
     val expected = s"$useuse && reuse -q someOtherTool && " +
-      "(echo 10 ; sed '1d' /inputStore | cut -f5- | sed 's/\\t/ /g') > /outputStore"
+      "((echo 10 ; sed '1d' /inputStore | cut -f5- | sed 's/\\t/ /g') > /outputStore)"
 
     assert(tool.commandLine === expected)
   }
@@ -99,7 +100,7 @@ final class LoamCmdToolTest extends FunSuite {
     val tool = cmd"someTool".using("otherTool1", "otherTool2", "otherTool3")
 
     val useuse = "source /broad/software/scripts/useuse"
-    val expected = s"$useuse && reuse -q otherTool1 && reuse -q otherTool2 && reuse -q otherTool3 && someTool"
+    val expected = s"$useuse && reuse -q otherTool1 && reuse -q otherTool2 && reuse -q otherTool3 && (someTool)"
 
     assert(tool.commandLine === expected)
   }

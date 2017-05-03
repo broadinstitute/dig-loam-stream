@@ -97,6 +97,9 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     }
   }
 
+  /** Returns a new graph with a given tool replaced by another specified tool
+   *  along with its dependencies
+   */
   def updateTool(existing: LoamTool, replacement: LoamTool): LoamGraph = {
     val replace: LoamTool => LoamTool = {
       tool =>

@@ -84,7 +84,9 @@ final class QcPipelineEndToEndTest extends FunSuite {
           "pipeline/loam/ci/qc_params.loam",
           "pipeline/loam/qc.loam",
           "pipeline/loam/scripts.loam",
-          "pipeline/loam/store_helpers.loam")
+          "pipeline/loam/store_helpers.loam",
+          "pipeline/loam/camp/runs.loam",
+          "pipeline/loam/run_helpers.loam")
     }
     
     loamstream.apps.Main.main(args)

@@ -383,7 +383,7 @@ def allQcSteps(runConfig: RunConfig): Unit = {
      *     This file may be updated after reconciling with other arrays
      */
   
-    cmd"""(echo 10 ; sed '1d' ${Local.ANCESTRYPCA_SCORES_TSV} | cut -f5- | sed 's/\t/ /g') > ${Local.ANCESTRY_FET}""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRY_FET)
+    cmd"""(echo 10 ; sed '1d' ${Local.ANCESTRYPCA_SCORES_TSV} | cut -f5- | sed 's/\t/ /g') > ${Local.ANCESTRY_FET}""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRY_FET).using("GCC-5.2")
   
     cmd"""${KLUSTAKWIK} ${Local.ANCESTRY_PREFIX} 1 -UseFeatures 1110000000 -UseDistributional 0 > ${Local.ANCESTRYCLUSTER_LOG}""".in(Local.ANCESTRY_FET).out(Local.ANCESTRY_TEMP_CLU, Local.ANCESTRY_CLU, Local.ANCESTRY_KLG)
   

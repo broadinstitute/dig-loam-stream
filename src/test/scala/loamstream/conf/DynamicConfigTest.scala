@@ -8,6 +8,8 @@ import com.typesafe.config.ConfigFactory
  * May 4, 2017
  */
 final class DynamicConfigTest extends FunSuite {
+  //scalastyle:off magic.number
+  
   import DynamicConfigTest._  
   
   private def parse(s: String) = ConfigFactory.parseString(s)
@@ -64,6 +66,8 @@ final class DynamicConfigTest extends FunSuite {
       conf.foo.nuh.unpack
     }
   }
+  
+  //scalastyle:on magic.number
 }
 
 object DynamicConfigTest {

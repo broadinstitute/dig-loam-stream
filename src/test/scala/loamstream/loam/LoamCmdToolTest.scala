@@ -19,7 +19,8 @@ import loamstream.conf.DynamicConfig
   *         date: Jul 21, 2016
   */
 final class LoamCmdToolTest extends FunSuite {
-
+  //scalastyle:off magic.number
+  
   import LoamCmdTool._
   import TestHelpers.config
 
@@ -203,4 +204,6 @@ final class LoamCmdToolTest extends FunSuite {
     val commandLineExpected = s"maker $inPath $inUri $outPath $outUri"
     assert(tool.commandLine === commandLineExpected)
   }
+  
+  //scalastyle:on magic.number
 }

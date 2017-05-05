@@ -70,12 +70,12 @@ final class QcPipelineEndToEndTest extends FunSuite {
 
   private def run(): Unit = {
     Files.createDirsIfNecessary(outputDir)
-    
+
     Files.createDirsIfNecessary(path("./uger"))
 
     val args: Array[String] = {
       Array(
-          "--conf", 
+          "--conf",
           "pipeline/loam/qc.conf",
           "pipeline/loam/binaries.loam",
           "pipeline/loam/cloud_helpers.loam",
@@ -88,7 +88,7 @@ final class QcPipelineEndToEndTest extends FunSuite {
           "pipeline/loam/camp/runs.loam",
           "pipeline/loam/run_helpers.loam")
     }
-    
+
     loamstream.apps.Main.main(args)
   }
 

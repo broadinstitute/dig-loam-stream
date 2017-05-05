@@ -6,6 +6,13 @@ import loamstream.model.LId
 import loamstream.util.BashScript
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import loamstream.compiler.LoamPredef
+import loamstream.loam.ops.StoreType
+import loamstream.conf.LoamConfig
+import loamstream.conf.ExecutionConfig
+import loamstream.loam.LoamToken.StoreRefToken
+import com.typesafe.config.ConfigFactory
+import loamstream.conf.DynamicConfig
 
 /**
   * @author clint
@@ -103,6 +110,47 @@ final class LoamCmdToolTest extends FunSuite {
     assertGraph(context.graph, tool, expectedTokens, inputsMapAfter, outputsMapAfter)
   }
 
+  test("toToken") {
+
+    //Needed to allow making stores
+    implicit def newScriptContext: LoamScriptContext = {
+      val loamConfig = LoamConfig(None, None, None, None, None, ExecutionConfig.default)
+      
+      val projectContext = LoamProjectContext.empty(loamConfig)
+    
+      new LoamScriptContext(projectContext)
+    }
+    
+    import LoamCmdTool.toToken
+    
+    //Store
+    val store = LoamStore[StoreType.TXT](LId.newAnonId) 
+    
+    assert(toToken(store) === StoreToken(store))
+    
+    //StoreRef:
+    val storeRef = LoamStoreRef(store, identity)
+    
+    assert(toToken(storeRef) === StoreRefToken(storeRef))
+    
+    //DynamicConfig
+    
+    val config = DynamicConfig(ConfigFactory.parseString("foo { bar { baz = 42 } }"), Some("foo.bar.baz"))
+    
+    assert(toToken(config) === StringToken("42"))
+    
+    val configThatShouldBlowUp = config.copy(pathOption = Some("blerg.zerg"))
+    
+    intercept[Exception] {
+      toToken(configThatShouldBlowUp)
+    }
+    
+    //arbitrary type
+    final case class Foo(x: Int)
+    
+    assert(toToken(Foo(42)) === StringToken("Foo(42)"))
+  }
+  
   test("in() and out() with no implicit i/o stores") {
     for (addInputsFirst <- Seq(true, false)) {
       implicit val projectContext = emptyProjectContext

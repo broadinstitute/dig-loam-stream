@@ -34,6 +34,7 @@ import loamstream.uger.AccountingClient
 import loamstream.uger.Drmaa1Client
 import loamstream.uger.UgerClient
 import loamstream.conf.ExecutionConfig
+import loamstream.util.ConfigUtils
 
 /**
  * @author clint

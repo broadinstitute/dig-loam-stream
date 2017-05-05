@@ -51,8 +51,8 @@ final class DynamicConfigTest extends FunSuite {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     
-    assert(conf.foo.bar.baz.unpack === Some(42))
-    assert(conf.foo.zuh.unpack === Some("hello"))
+    assert(conf.foo.bar.baz.unpack === 42)
+    assert(conf.foo.zuh.unpack === "hello")
     
     //unsupported
     intercept[Exception] {

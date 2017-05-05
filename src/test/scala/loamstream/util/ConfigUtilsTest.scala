@@ -1,18 +1,16 @@
-package loamstream.apps
+package loamstream.util
 
 import java.nio.file.Paths
-
 import org.scalatest.FunSuite
+import loamstream.apps.TypesafeConfigHelpers
 
 /**
  * @author clint
  * Oct 19, 2016
  */
-final class TypesafeConfigHelpersTest extends FunSuite {
+final class ConfigUtilsTest extends FunSuite {
   test("Loading a config file works") {
-    object Helpers extends TypesafeConfigHelpers
-    
-    val config = Helpers.configFromFile(Paths.get("src/test/resources/foo.config"))
+    val config = ConfigUtils.configFromFile(Paths.get("src/test/resources/foo.config"))
     
     //Config file should have been loaded BUT NOT merged with defaults
     

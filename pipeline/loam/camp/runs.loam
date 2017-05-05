@@ -3,6 +3,6 @@ import run_helpers.paramMap
 val paramsByName: Map[String, Map[String,String]] = Map(
   "CAMP" -> paramMap(
     outLabel = "CAMP",
-    vcfPath = "/humgen/diabetes/users/ryank/data/biome/data_clean/BIOME_AFFY.CLUSTERED.clean.chr1-22.epacts.vcf.gz",
+    vcfPath = "/humgen/diabetes/users/ryank/data/camp/data/camp.vcf.gz",
     phenotypeFilePath = "/humgen/diabetes/users/ryank/data/camp/phenotype/AMP_T2DGENES_PhenotypeData_CAMP-MGH_8May2016.tsv")
 )

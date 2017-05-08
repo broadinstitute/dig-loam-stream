@@ -34,6 +34,7 @@ import loamstream.uger.AccountingClient
 import loamstream.uger.Drmaa1Client
 import loamstream.uger.UgerClient
 import loamstream.conf.ExecutionConfig
+import loamstream.util.ConfigUtils
 
 /**
  * @author clint
@@ -56,7 +57,7 @@ trait AppWiring {
   def shutdown(): Seq[Throwable]
 }
 
-object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Loggable {
+object AppWiring extends DrmaaClientHelpers with Loggable {
 
   def apply(cli: Conf): AppWiring = new DefaultAppWiring(cli)
   
@@ -240,7 +241,7 @@ object AppWiring extends TypesafeConfigHelpers with DrmaaClientHelpers with Logg
     def defaults: Config = ConfigFactory.load()
 
     cli.conf.toOption match {
-      case Some(confFile) => configFromFile(confFile).withFallback(defaults)
+      case Some(confFile) => ConfigUtils.configFromFile(confFile).withFallback(defaults)
       case None           => defaults
     }
   }

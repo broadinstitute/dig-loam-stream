@@ -161,6 +161,10 @@ import ${ScalaId.from[LoamScriptContext].inScalaFull}
 import ${ScalaId.from[StoreType].inScalaFull}._
 import ${ScalaId.from[StoreFieldFilter.type].inScalaFull}
 import ${ScalaId.from[TextStoreFieldExtractor[_, _]].inScalaFull}
+import ${ScalaId.from[net.ceedubs.ficus.Ficus.type].inScalaFull}._
+import ${ScalaId.from[net.ceedubs.ficus.readers.ArbitraryTypeReader.type].inScalaFull}._
+import loamstream.conf.ValueReaders.PathReader
+import loamstream.conf.ValueReaders.GcsUriReader
 import java.nio.file._
 
 // scalastyle:off object.name

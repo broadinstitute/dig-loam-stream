@@ -10,6 +10,8 @@ import loamstream.loam.ops.StoreType
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
 import loamstream.model.execute.ExecutionEnvironment
+import loamstream.conf.DynamicConfig
+import loamstream.util.ConfigUtils
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef {
@@ -90,5 +92,11 @@ object LoamPredef {
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     runIn(ExecutionEnvironment.Google)(expr)(scriptContext)
+  }
+  
+  def loadConfig(path: String): DynamicConfig = {
+    val config = ConfigUtils.configFromFile(Paths.get(path))
+    
+    DynamicConfig(config)
   }
 }

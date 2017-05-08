@@ -6,6 +6,12 @@ import loamstream.model.LId
 import loamstream.util.BashScript
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import loamstream.loam.ops.StoreType
+import loamstream.conf.LoamConfig
+import loamstream.conf.ExecutionConfig
+import loamstream.loam.LoamToken.StoreRefToken
+import com.typesafe.config.ConfigFactory
+import loamstream.conf.DynamicConfig
 import loamstream.compiler.LoamPredef._
 
 /**
@@ -13,7 +19,8 @@ import loamstream.compiler.LoamPredef._
   *         date: Jul 21, 2016
   */
 final class LoamCmdToolTest extends FunSuite {
-
+  //scalastyle:off magic.number
+  
   import LoamCmdTool._
   import TestHelpers.config
 
@@ -169,6 +176,47 @@ final class LoamCmdToolTest extends FunSuite {
     assertGraph(context.graph, tool, expectedTokens, inputsMapAfter, outputsMapAfter)
   }
 
+  test("toToken") {
+
+    //Needed to allow making stores
+    implicit def newScriptContext: LoamScriptContext = {
+      val loamConfig = LoamConfig(None, None, None, None, None, ExecutionConfig.default)
+      
+      val projectContext = LoamProjectContext.empty(loamConfig)
+    
+      new LoamScriptContext(projectContext)
+    }
+    
+    import LoamCmdTool.toToken
+    
+    //Store
+    val store = LoamStore[StoreType.TXT](LId.newAnonId) 
+    
+    assert(toToken(store) === StoreToken(store))
+    
+    //StoreRef:
+    val storeRef = LoamStoreRef(store, identity)
+    
+    assert(toToken(storeRef) === StoreRefToken(storeRef))
+    
+    //DynamicConfig
+    
+    val config = DynamicConfig(ConfigFactory.parseString("foo { bar { baz = 42 } }"), Some("foo.bar.baz"))
+    
+    assert(toToken(config) === StringToken("42"))
+    
+    val configThatShouldBlowUp = config.copy(pathOption = Some("blerg.zerg"))
+    
+    intercept[Exception] {
+      toToken(configThatShouldBlowUp)
+    }
+    
+    //arbitrary type
+    final case class Foo(x: Int)
+    
+    assert(toToken(Foo(42)) === StringToken("Foo(42)"))
+  }
+  
   test("in() and out() with no implicit i/o stores") {
     for (addInputsFirst <- Seq(true, false)) {
       implicit val projectContext = emptyProjectContext
@@ -221,4 +269,6 @@ final class LoamCmdToolTest extends FunSuite {
     val commandLineExpected = s"maker $inPath $inUri $outPath $outUri"
     assert(tool.commandLine === commandLineExpected)
   }
+  
+  //scalastyle:on magic.number
 }

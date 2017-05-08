@@ -6,7 +6,6 @@ import loamstream.model.LId
 import loamstream.util.BashScript
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
-import loamstream.compiler.LoamPredef
 import loamstream.loam.ops.StoreType
 import loamstream.conf.LoamConfig
 import loamstream.conf.ExecutionConfig

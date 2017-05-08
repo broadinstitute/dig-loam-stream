@@ -4,11 +4,6 @@ import com.typesafe.config.Config
 
 import scala.language.dynamics
 
-import com.typesafe.config.ConfigFactory
-import com.typesafe.config.ConfigValue
-import com.typesafe.config.ConfigObject
-import com.typesafe.config.impl.ConfigInt
-import com.typesafe.config.ConfigValueType
 import net.ceedubs.ficus.readers.ValueReader
 
 /**

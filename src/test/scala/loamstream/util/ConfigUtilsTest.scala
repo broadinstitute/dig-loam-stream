@@ -2,7 +2,6 @@ package loamstream.util
 
 import java.nio.file.Paths
 import org.scalatest.FunSuite
-import loamstream.apps.TypesafeConfigHelpers
 
 /**
  * @author clint

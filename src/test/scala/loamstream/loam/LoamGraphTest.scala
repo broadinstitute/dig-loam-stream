@@ -25,7 +25,7 @@ final class LoamGraphTest extends FunSuite {
       |val imputed = store[VCF].at(outputFile)
       |
       |cmd"$phaseCommand -in $raw -out $phased"
-      |cmd"$imputeCommand -in $phased -template $template -out $imputed"
+      |cmd"$imputeCommand -in $phased -template $template -out $imputed".using("R-3.1")
       | """.stripMargin
 
   private implicit val context = {
@@ -39,7 +39,8 @@ final class LoamGraphTest extends FunSuite {
   private val graph = context.graph
 
   test("Test that valid graph passes all checks.") {
-    assert(LoamGraphValidation.allRules(graph).isEmpty)
+    val errors = LoamGraphValidation.allRules(graph)
+    assert(errors.isEmpty, s"${errors.size} errors:\n${errors.map(_.message).mkString("\n")}")
   }
   
   test("Test rule eachStoreIsInputOrHasProducer") {

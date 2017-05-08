@@ -6,7 +6,7 @@ import java.nio.file.Path
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamTool.{AllStores, InputsAndOutputs}
 import loamstream.model.execute.ExecutionEnvironment
-import loamstream.util.Equivalences
+import loamstream.util.{Equivalences, Maps}
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
@@ -95,6 +95,29 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
         executionEnvironments = executionEnvironments + (tool -> scriptContext.executionEnvironment)
       )
     }
+  }
+
+  /** Returns a new graph with a given tool replaced by another specified tool
+   *  along with its dependencies
+   */
+  def updateTool(existing: LoamTool, replacement: LoamTool): LoamGraph = {
+    val replace: LoamTool => LoamTool = {
+      tool =>
+        if (tool.id == existing.id) { replacement }
+        else { tool }
+    }
+
+    import Maps.Implicits._
+
+    copy(
+      tools = tools.map(replace),
+      toolInputs = toolInputs.mapKeys(replace),
+      toolOutputs = toolOutputs.mapKeys(replace),
+      storeProducers = storeProducers.mapValues(replace).view.force,
+      storeConsumers = storeConsumers.mapValues(_.map(replace)).view.force,
+      workDirs = workDirs.mapKeys(replace),
+      executionEnvironments = executionEnvironments.mapKeys(replace)
+    )
   }
 
   /** Returns graph with store marked as input store */

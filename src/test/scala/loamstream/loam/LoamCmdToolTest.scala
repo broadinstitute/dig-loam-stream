@@ -1,11 +1,12 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreToken, StringToken}
-import loamstream.loam.ops.StoreType.TXT
+import loamstream.loam.ops.StoreType.{TXT, VCF}
 import loamstream.model.LId
 import loamstream.util.BashScript
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import loamstream.compiler.LoamPredef._
 
 /**
   * @author clint
@@ -37,6 +38,71 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.inputs == Map.empty)
     assert(tool.outputs == Map.empty)
     assert(tool.tokens == Seq(StringToken("foo bar baz")))
+  }
+
+  test("using() in any order with in() and out()") {
+    implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
+
+    val input1 = 42
+    val input2 = "input2"
+    val input3 = store[TXT].at("/inputStore").asInput
+    val output = store[VCF].at("/outputStore")
+
+    val useuse = "source /broad/software/scripts/useuse"
+    val expectedCmdLineString =
+      s"$useuse && reuse -q R-3.1 && " +
+      s"(someTool --in 42 --in input2 --in /inputStore --out /outputStore)"
+
+    val baseTool = cmd"someTool --in $input1 --in $input2 --in $input3 --out $output"
+
+    val toolv1 = baseTool.in(input3).out(output).using("R-3.1")
+
+    assert(toolv1.graph eq scriptContext.projectContext.graphBox.value)
+    assert(toolv1.graph.stores.size === 2)
+    assert(toolv1.graph.storeProducers.size === 1)
+    assert(toolv1.graph.storeConsumers.size === 2)
+    assert(toolv1.graph.toolInputs.size === 1)
+    assert(toolv1.graph.toolOutputs.size === 1)
+    assert(toolv1.graph.tools === Set(toolv1))
+    assert(toolv1.inputs.size === 1)
+    assert(toolv1.outputs.size === 1)
+
+    assert(toolv1.commandLine === expectedCmdLineString)
+
+    val toolv2 = baseTool.in(input3).using("R-3.1").out(output)
+
+    assert(toolv2.commandLine === expectedCmdLineString)
+
+    val toolv3 = baseTool.using("R-3.1").in(input3).out(output)
+
+    assert(toolv2.commandLine === expectedCmdLineString)
+  }
+
+  test("using() in a more complex cmd") {
+    implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
+
+    val input = store[TXT].at("/inputStore").asInput
+    val output = store[VCF].at("/outputStore")
+    val someOtherTool = "someOtherTool"
+
+    val tool = cmd"(echo 10 ; sed '1d' $input | cut -f5- | sed 's/\t/ /g') > $output".using(someOtherTool)
+
+    val useuse = "source /broad/software/scripts/useuse"
+    val expected = s"$useuse && reuse -q someOtherTool && " +
+      "((echo 10 ; sed '1d' /inputStore | cut -f5- | sed 's/\\t/ /g') > /outputStore)"
+
+    assert(tool.commandLine === expected)
+  }
+
+  test("using() with multiple tools to be 'use'd") {
+    implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
+
+    val tool = cmd"someTool".using("otherTool1", "otherTool2", "otherTool3")
+
+    val useuse = "source /broad/software/scripts/useuse"
+    val expected = s"$useuse && reuse -q otherTool1 && reuse -q otherTool2 && reuse -q otherTool3 && (someTool)"
+
+    assert(tool.commandLine === expected)
   }
 
   private def storeMap(stores: Iterable[LoamStore.Untyped]): Map[LId, LoamStore.Untyped] = {

@@ -58,7 +58,7 @@ object LoamGraphValidation {
     override def apply(graph: LoamGraph, store: LoamStore.Untyped): Seq[LoamStoreIssue[Unit]] =
       issueIfElseIf(!graph.inputStores(store) && graph.storeProducers.get(store).isEmpty,
         newBulkIssue[LoamStore.Untyped, Unit](graph, this, store, (), Severity.Error,
-          s"Store $store is neither input store nor has a producer"),
+          s"Store ${store} is neither input store nor has a producer"),
         graph.inputStores(store) && graph.storeProducers.get(store).nonEmpty,
         newBulkIssue[LoamStore.Untyped, Unit](graph, this, store, (), Severity.Error,
           s"Store $store is both input store and has a producer"))

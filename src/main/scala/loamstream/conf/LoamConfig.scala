@@ -2,8 +2,6 @@ package loamstream.conf
 
 import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.googlecloud.HailConfig
-import com.typesafe.config.Config
-import scala.util.Try
 
 /**
  * @author clint

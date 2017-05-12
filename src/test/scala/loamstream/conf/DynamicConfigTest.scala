@@ -46,46 +46,6 @@ final class DynamicConfigTest extends FunSuite {
       conf.foo.asdf.as[String]
     }
   }
-
-  test("Parsing array of objects") {
-    val configString =
-      s"""biome {
-         |  common {
-         |    phenoFile = "pheno.txt"
-         |  }
-         |
-         |  chips = [
-         |      {
-         |        label = "BIOME_AFFY"
-         |        vcf = "biome.affy.vcf.gz"
-         |        phenoFile = $${biome.common.phenoFile}
-         |      }
-         |
-         |      {
-         |        label = "BIOME_ILL"
-         |        vcf = "biome.ill.vcf.gz"
-         |        phenoFile = $${biome.common.phenoFile}
-         |      }
-         |  ]
-         |}
-       """.stripMargin
-
-    val conf = DynamicConfig(parse(configString).resolve)
-
-    import net.ceedubs.ficus.Ficus._
-    import net.ceedubs.ficus.readers.ArbitraryTypeReader._
-
-    //val chips = conf.biome.chips.as[List[Chip]]
-    val chips = conf.biome.chips
-
-    for (chip <- chips) {
-      println(chip.vcf.as[String])
-    }
-
-    val pheno = conf.biome.common.phenoFile
-
-    assert(true)
-  }
   
   test("selectDynamic/unpack") {
     val conf = DynamicConfig(parse("foo { bar { baz = 42 }, nuh = [4,5,6], zuh = hello }"))

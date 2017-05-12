@@ -70,6 +70,14 @@ final case class DynamicConfig(
     }
   }
 
+  /**
+   * Allows syntax such as
+   *
+   * for (bar <- conf.foo.bars) {
+   *    cmd"$doSomethingWith $bar"
+   * }
+   *
+   */
   def foreach(f: DynamicConfig => Any): Unit = {
     require(
       pathOption.isDefined,

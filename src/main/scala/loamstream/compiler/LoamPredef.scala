@@ -10,7 +10,7 @@ import loamstream.loam.ops.StoreType
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
 import loamstream.model.execute.ExecutionEnvironment
-import loamstream.conf.DynamicConfig
+import loamstream.conf.{DataConfig, DynamicConfig}
 import loamstream.util.ConfigUtils
 
 /** Predefined symbols in Loam scripts */
@@ -99,4 +99,6 @@ object LoamPredef {
     
     DynamicConfig(config)
   }
+
+  def dataConfig(path: String): DataConfig = DataConfig.fromFile(path)
 }

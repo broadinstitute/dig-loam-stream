@@ -8,9 +8,7 @@ import org.scalatest.FunSuite
  *         date: 5/11/17
  */
 final class DataConfigTest extends FunSuite {
-  val conf = DataConfig.fromFile("src/test/resources/data.conf")
-
-  private def parse(s: String): DataConfig = DataConfig(ConfigFactory.parseString(s))
+  private val conf = DataConfig.fromFile("src/test/resources/data.conf")
 
   test("getStr") {
     assert(conf.getStr("project.id") === "METSIM")
@@ -66,4 +64,6 @@ final class DataConfigTest extends FunSuite {
 
     // scalastyle:on magic.number
   }
+
+  private def parse(s: String): DataConfig = DataConfig(ConfigFactory.parseString(s))
 }

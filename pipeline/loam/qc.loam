@@ -4,24 +4,21 @@ import binaries._
 import cloud_helpers._
 import scripts._
 import store_helpers._
-import run_helpers._
 import loamstream.loam.LoamStore
+import loamstream.conf.DataConfig
 import scala.io.Source
 import loamstream.googlecloud.HailSupport._
 
+val config = dataConfig("pipeline/loam/camp/data.conf")
 
-for {
-  params <- runs.paramsByName.values
-} {
-  val runConfig = RunConfig.fromMap(params).get
-
-  allQcSteps(runConfig)
+for (params <- config.getObjList("project")) {
+  allQcSteps(params)
 }
 
-def allQcSteps(runConfig: RunConfig): Unit = {
-  val outLABEL = runConfig.outLabel
-  val inVCF = store[VCF].at(runConfig.inputVcfPath).asInput
-  val inPHENO = store[TXT].at(runConfig.phenotypeFile).asInput
+def allQcSteps(params: DataConfig): Unit = {
+  val outLABEL = params.getStr("outLabel")
+  val inVCF = store[VCF].at(params.getStr("inputVcfPath")).asInput
+  val inPHENO = store[TXT].at(params.getStr("phenotypeFile")).asInput
   
   object Common {
     // Alignment Step

@@ -69,7 +69,28 @@ final case class DynamicConfig(
       case _ => throw new Exception(s"Only unpacking primitives (ints, doubles, strings, and booleans) is supported.")
     }
   }
-  
+
+  /**
+   * Allows syntax such as
+   *
+   * for (bar <- conf.foo.bars) {
+   *    cmd"$doSomethingWith $bar"
+   * }
+   *
+   */
+  def foreach(f: DynamicConfig => Any): Unit = {
+    require(
+      pathOption.isDefined,
+      s"Can't unpack config objects or lists, only numbers, strings, and booleans, tried to unpack $rootConfig")
+
+    val path = pathOption.get
+
+    require(rootConfig.hasPath(path), s"Couldn't find path $path in $rootConfig ")
+
+    import scala.collection.JavaConverters._
+    rootConfig.getConfigList(path).asScala.foreach(config => f(DynamicConfig(config)))
+  }
+
   /**
    * Return the value obtained by following the path contained by pathOption (if any) into rootConfig, and
    * unmarshalling it into an A, if possible.

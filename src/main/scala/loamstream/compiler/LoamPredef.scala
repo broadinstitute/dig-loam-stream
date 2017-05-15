@@ -100,5 +100,5 @@ object LoamPredef {
     DynamicConfig(config)
   }
 
-  def dataConfig(path: String): DataConfig = DataConfig.fromFile(path)
+  def loadDataConfig(path: String): DataConfig = DataConfig.fromFile(path)
 }

@@ -9,7 +9,7 @@ import loamstream.conf.DataConfig
 import scala.io.Source
 import loamstream.googlecloud.HailSupport._
 
-val config = dataConfig("pipeline/loam/camp/data.conf")
+val config = loadDataConfig(dataConfigFile)
 
 for (params <- config.getObjList("project")) {
   allQcSteps(params)

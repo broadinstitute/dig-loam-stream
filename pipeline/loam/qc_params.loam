@@ -1,3 +1,4 @@
-val startChromosome = 1
+val dataConfigFile = "pipeline/loam/camp/data.conf"
 
+val startChromosome = 1
 val endChromosome = 22

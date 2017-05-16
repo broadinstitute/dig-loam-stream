@@ -1,5 +1,7 @@
 package loamstream.loam
 
+import java.io.File
+
 import loamstream.loam.LoamToken.{StoreToken, StringToken}
 import loamstream.loam.ops.StoreType.{TXT, VCF}
 import loamstream.model.LId
@@ -25,6 +27,8 @@ final class LoamCmdToolTest extends FunSuite {
   import TestHelpers.config
 
   private def emptyProjectContext = LoamProjectContext.empty(config)
+
+  private val fileSepForBash = BashScript.escapeString(File.separator)
   
   test("string interpolation (trivial)") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
@@ -58,7 +62,7 @@ final class LoamCmdToolTest extends FunSuite {
     val useuse = "source /broad/software/scripts/useuse"
     val expectedCmdLineString =
       s"$useuse && reuse -q R-3.1 && " +
-      s"(someTool --in 42 --in input2 --in /inputStore --out /outputStore)"
+      s"(someTool --in 42 --in input2 --in ${fileSepForBash}inputStore --out ${fileSepForBash}outputStore)"
 
     val baseTool = cmd"someTool --in $input1 --in $input2 --in $input3 --out $output"
 
@@ -96,7 +100,7 @@ final class LoamCmdToolTest extends FunSuite {
 
     val useuse = "source /broad/software/scripts/useuse"
     val expected = s"$useuse && reuse -q someOtherTool && " +
-      "((echo 10 ; sed '1d' /inputStore | cut -f5- | sed 's/\\t/ /g') > /outputStore)"
+      s"((echo 10 ; sed '1d' ${fileSepForBash}inputStore | cut -f5- | sed 's/\\t/ /g') > ${fileSepForBash}outputStore)"
 
     assert(tool.commandLine === expected)
   }

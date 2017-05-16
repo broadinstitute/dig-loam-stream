@@ -1,9 +1,12 @@
 package loamstream.loam
 
+import java.io.File
+import java.nio.file.{Path, Paths}
+
 import loamstream.compiler.LoamPredef.store
 import loamstream.TestHelpers
 import loamstream.loam.ops.StoreType.TXT
-import loamstream.util.Files
+import loamstream.util.{BashScript, Files}
 import org.scalatest.FunSuite
 
 /**
@@ -13,12 +16,14 @@ import org.scalatest.FunSuite
 final class LanguageSupportTest extends FunSuite {
   import TestHelpers.config
 
+  private val bashFileSep = BashScript.escapeString(File.separator)
+
   private implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
   private def emptyProjectContext = LoamProjectContext.empty(config)
 
   private def doTest(loamLine: LoamCmdTool,
-                     expectedBinary: String,
+                     expectedBinary: Path,
                      expectedScriptContent: String): Unit = {
 
     val commandLine = LoamCmdTool.toString(scriptContext.projectContext.fileManager, loamLine.tokens)
@@ -27,7 +32,7 @@ final class LanguageSupportTest extends FunSuite {
     val file = pieces.last
     val scriptContent = Files.readFrom(file)
 
-    assert(binary === expectedBinary)
+    assert(binary === expectedBinary.toString)
     assert(scriptContent === expectedScriptContent)
   }
 
@@ -35,7 +40,7 @@ final class LanguageSupportTest extends FunSuite {
     import LanguageSupport.Python._
 
     val loamLine = python""
-    val expectedBinary = "/path/to/python/binary"
+    val expectedBinary = Paths.get("/path/to/python/binary")
     val expectedScriptContent = ""
 
     doTest(loamLine, expectedBinary, expectedScriptContent)
@@ -50,8 +55,8 @@ final class LanguageSupportTest extends FunSuite {
 
     val loamLine = python"""$someTool --foo $someVal --bar $someStore baz"""
 
-    val expectedBinary = "/path/to/python/binary"
-    val expectedScriptContent = "someToolPath --foo 123 --bar /someStorePath baz"
+    val expectedBinary = Paths.get("/path/to/python/binary")
+    val expectedScriptContent = s"someToolPath --foo 123 --bar ${bashFileSep}someStorePath baz"
 
     doTest(loamLine, expectedBinary, expectedScriptContent)
   }
@@ -70,7 +75,7 @@ greet('$Alice')
 greet('$Bob')
 """
 
-    val expectedBinary = "/path/to/python/binary"
+    val expectedBinary = Paths.get("/path/to/python/binary")
     val expectedScriptContent =
 """
 def greet(name):
@@ -86,7 +91,7 @@ greet('Bob')"""
     import LanguageSupport.R._
 
     val loamLine = r""""""
-    val expectedBinary = "/path/to/R/binary"
+    val expectedBinary = Paths.get("/path/to/R/binary")
     val expectedScriptContent = ""
 
     doTest(loamLine, expectedBinary, expectedScriptContent)
@@ -101,8 +106,8 @@ greet('Bob')"""
 
     val loamLine = r"$someTool --foo $someVal --bar $someStore baz"
 
-    val expectedBinary = "/path/to/R/binary"
-    val expectedScriptContent = "someToooolPath --foo 456 --bar /someStooorePath baz"
+    val expectedBinary = Paths.get("/path/to/R/binary")
+    val expectedScriptContent = s"someToooolPath --foo 456 --bar ${bashFileSep}someStooorePath baz"
 
     doTest(loamLine, expectedBinary, expectedScriptContent)
   }
@@ -125,7 +130,7 @@ if(inherits(x, "try-error")) {
 }
 """
 
-    val expectedBinary = "/path/to/R/binary"
+    val expectedBinary = Paths.get("/path/to/R/binary")
     val expectedScriptContent =
 """
 args<-commandArgs(trailingOnly=T)

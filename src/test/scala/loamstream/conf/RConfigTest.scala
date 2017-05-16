@@ -3,7 +3,7 @@ package loamstream.conf
 import java.nio.file.Paths
 
 import com.typesafe.config.ConfigFactory
-import loamstream.util.PathUtils
+import loamstream.util.{BashScript, PathUtils}
 import org.scalatest.FunSuite
 
 import scala.util.Try
@@ -22,7 +22,7 @@ final class RConfigTest extends FunSuite {
     val confString =
       s"""loamstream {
             r {
-              binary = "$binaryPath"
+              binary = "${BashScript.escapeString(binaryPath.toString)}"
             }
           }"""
 
@@ -38,8 +38,8 @@ final class RConfigTest extends FunSuite {
     val confString =
       s"""loamstream {
             r {
-              binary = "$binaryPath"
-              scriptDir = "$scriptDirPath"
+              binary = "${BashScript.escapeString(binaryPath.toString)}"
+              scriptDir = "${BashScript.escapeString(scriptDirPath.toString)}"
             }
           }"""
 

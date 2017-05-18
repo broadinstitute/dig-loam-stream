@@ -1,7 +1,12 @@
 package loamstream.model
 
+import loamstream.TestHelpers.config
+import loamstream.loam.{LoamProjectContext, LoamScriptContext}
 import loamstream.util.TypeBox
 import org.scalatest.FunSuite
+import loamstream.loam.LoamCmdTool.StringContextWithCmd
+import loamstream.loam.ops.StoreType.TXT
+import loamstream.compiler.LoamPredef.store
 
 import scala.reflect.runtime.universe.typeOf
 
@@ -16,6 +21,14 @@ final class AstTest extends FunSuite {
   import Ids._
   import Nodes._
   import Tools._
+
+  private implicit val projectContext = LoamProjectContext.empty(config)
+  private implicit val scriptContext = new LoamScriptContext(projectContext)
+
+  private val aStore = store[TXT]
+//  prontln("aStore is " + aStore.id)
+  private val aTool = cmd"a".out(aStore)
+//  prontln("aTool is " + aTool.id)
 
   test("leaves()") {
     assert(a.leaves == Set(a))
@@ -51,7 +64,7 @@ final class AstTest extends FunSuite {
 
       val visited = idsFrom(iteratorFrom(a))
 
-      assert(visited == Seq(A))
+      assert(visited == Seq(aTool.id))
     }
 
     val visited = idsFrom(iteratorFrom(ast))
@@ -63,7 +76,7 @@ final class AstTest extends FunSuite {
     doTraversalTest(Trees.abcd, _.postOrder, visited => {
       assert(visited.take(2).toSet == Set(C, D))
 
-      assert(visited.drop(2) == Seq(B, A))
+      assert(visited.drop(2) == Seq(B, aTool.id))
     })
   }
 
@@ -71,13 +84,13 @@ final class AstTest extends FunSuite {
     doTraversalTest(Trees.abcd, _.iterator, visited => {
       assert(visited.take(2).toSet == Set(C, D))
 
-      assert(visited.drop(2) == Seq(B, A))
+      assert(visited.drop(2) == Seq(B, aTool.id))
     })
   }
 
   test("preOrder()") {
     doTraversalTest(Trees.abcd, _.preOrder, visited => {
-      assert(visited.take(2) == Seq(A, B))
+      assert(visited.take(2) == Seq(aTool.id, B))
 
       assert(visited.drop(2).toSet == Set(C, D))
     })
@@ -86,7 +99,7 @@ final class AstTest extends FunSuite {
   test(s"1 node dependsOn 1 other node (${classOf[NamedOutput].getSimpleName}) => AST") {
     val ast = a dependsOn (b(Z) as Q)
 
-    val expected = ToolNode(A, a.tool, Set(Connection(Q, Z, b)))
+    val expected = ToolNode(aTool.id, a.tool, Set(Connection(Q, Z, b)))
 
     assert(ast == expected)
   }
@@ -94,17 +107,17 @@ final class AstTest extends FunSuite {
   test("1 node dependsOn 1 other node (id, ast) => AST") {
     val ast = a.dependsOn(Q, Z, b)
 
-    val expected = ToolNode(A, a.tool, Set(Connection(Q, Z, b)))
+    val expected = ToolNode(aTool.id, a.tool, Set(Connection(Q, Z, b)))
 
     assert(ast == expected)
   }
 
   test("1 node dependsOn 1 other node (connection) => AST") {
-    val connection = Connection(A, B, b)
+    val connection = Connection(aStore.id, B, b)
 
     val ast = a.dependsOn(connection)
 
-    val expected = ToolNode(A, a.tool, Set(connection))
+    val expected = ToolNode(aTool.id, a.tool, Set(connection))
 
     assert(ast == expected)
   }
@@ -112,7 +125,7 @@ final class AstTest extends FunSuite {
   test("1 node dependsOn 1 other node get(id).from(named dep)") {
     val ast = a.get(Z).from(b(X))
 
-    val expected = ToolNode(A, a.tool, Set(Connection(Z, X, b)))
+    val expected = ToolNode(aTool.id, a.tool, Set(Connection(Z, X, b)))
 
     assert(ast == expected)
   }
@@ -120,7 +133,7 @@ final class AstTest extends FunSuite {
   test("1 node dependsOn 1 other node get(iid).from(oid).from(producer)") {
     val ast = a.get(Z).from(X).from(b)
 
-    val expected = ToolNode(A, a.tool, Set(Connection(Z, X, b)))
+    val expected = ToolNode(aTool.id, a.tool, Set(Connection(Z, X, b)))
 
     assert(ast == expected)
   }
@@ -187,7 +200,7 @@ final class AstTest extends FunSuite {
     }
 
     val expectedCounts = Map(
-      A -> 1,
+      aTool.id -> 1,
       X -> 1,
       B -> 1,
       C -> 1,
@@ -207,13 +220,13 @@ final class AstTest extends FunSuite {
   private object Trees {
     //a -> b -> (c, d)
 
-    lazy val bcd = b.dependsOn(c(C).as(I)).dependsOn(d(D).as(J))
+    lazy val bcd: AST = b.dependsOn(c(C).as(I)).dependsOn(d(D).as(J))
 
-    lazy val abcd = a.get(B).from(I).from(bcd)
+    lazy val abcd: AST = a.get(B).from(I).from(bcd)
   }
 
   private object Nodes {
-    val a = ToolNode(SimpleTool(aSpec, A))
+    val a = ToolNode(aTool)
 
     val b = ToolNode(SimpleTool(bSpec, B))
     val c = ToolNode(SimpleTool(cSpec, C))
@@ -262,10 +275,8 @@ final class AstTest extends FunSuite {
     val fSpec = ToolSpec(inputs = Map(Y -> storeSpec), outputs = Map(F -> storeSpec))
     val gSpec = ToolSpec(inputs = Map(Y -> storeSpec), outputs = Map(G -> storeSpec))
 
-    val xSpec = ToolSpec(inputs = Map(A -> storeSpec), outputs = Map(X -> storeSpec))
+    val xSpec = ToolSpec(inputs = Map(aStore.id -> storeSpec), outputs = Map(X -> storeSpec))
     val ySpec = ToolSpec(inputs = Map(), outputs = Map(E -> storeSpec, F -> storeSpec, G -> storeSpec))
-
-    val aSpec = ToolSpec(inputs = Map(), outputs = Map(A -> storeSpec))
 
     val bSpec = ToolSpec(inputs = Map(X -> storeSpec), outputs = Map(B -> storeSpec))
     val cSpec = ToolSpec(inputs = Map(X -> storeSpec), outputs = Map(C -> storeSpec))

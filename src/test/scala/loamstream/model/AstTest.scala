@@ -3,9 +3,8 @@ package loamstream.model
 import loamstream.TestHelpers.config
 import loamstream.compiler.LoamPredef.store
 import loamstream.loam.LoamCmdTool.StringContextWithCmd
-import loamstream.loam.ops.StoreType.TXT
 import loamstream.loam._
-import loamstream.util.TypeBox
+import loamstream.loam.ops.StoreType.TXT
 import org.scalatest.FunSuite
 
 
@@ -27,7 +26,7 @@ final class AstTest extends FunSuite {
   test("leaves()") {
     assert(nodeA.leaves == Set(nodeA))
 
-    assert(nodeA.dependsOn(nodeB.apply(storeB.id).as(storeX.id)).leaves == Set(nodeB))
+    assert(nodeA.dependsOn(nodeB(storeB.id).as(storeX.id)).leaves == Set(nodeB))
 
     assert(
       nodeA.dependsOn(nodeB(storeB.id).as(storeX.id)).dependsOn(nodeC(storeC.id).as(storeY.id)).leaves
@@ -42,7 +41,7 @@ final class AstTest extends FunSuite {
   test("isLeaf") {
     assert(nodeA.isLeaf === true)
 
-    assert(nodeA.dependsOn(nodeA.apply(storeB.id).as(storeX.id)).isLeaf === false)
+    assert(nodeA.dependsOn(nodeA(storeB.id).as(storeX.id)).isLeaf === false)
 
     assert(Trees.abcd.isLeaf === false)
     assert(Trees.bcd.isLeaf === false)
@@ -120,7 +119,7 @@ final class AstTest extends FunSuite {
   }
 
   test("1 node dependsOn 1 other node get(id).from(named dep)") {
-    val ast = nodeA.get(storeZ.id).from(nodeB.apply(storeX.id))
+    val ast = nodeA.get(storeZ.id).from(nodeB(storeX.id))
 
     val expected = ToolNode(toolA.id, nodeA.tool, Set(Connection(storeZ.id, storeX.id, nodeB)))
 
@@ -220,7 +219,7 @@ final class AstTest extends FunSuite {
     //a -> b -> (c, d)
 
     lazy val bcd: AST =
-      nodeB.dependsOn(nodeC.apply(storeC.id).as(storeI.id)).dependsOn(nodeD.apply(storeD.id).as(storeJ.id))
+      nodeB.dependsOn(nodeC(storeC.id).as(storeI.id)).dependsOn(nodeD(storeD.id).as(storeJ.id))
 
     lazy val abcd: AST = nodeA.get(storeB.id).from(storeI.id).from(bcd)
   }
@@ -230,9 +229,6 @@ final class AstTest extends FunSuite {
     val nodeB: ToolNode = ToolNode(toolB)
     val nodeC: ToolNode = ToolNode(toolC)
     val nodeD: ToolNode = ToolNode(toolD)
-    val nodeE: ToolNode = ToolNode(toolE)
-    val nodeF: ToolNode = ToolNode(toolF)
-    val nodeG: ToolNode = ToolNode(toolG)
     val nodeX: ToolNode = ToolNode(toolX)
     val nodeY: ToolNode = ToolNode(toolY)
   }
@@ -245,22 +241,9 @@ final class AstTest extends FunSuite {
     val storeE: LoamStore[TXT] = store[TXT]
     val storeF: LoamStore[TXT] = store[TXT]
     val storeG: LoamStore[TXT] = store[TXT]
-    val storeH: LoamStore[TXT] = store[TXT]
     val storeI: LoamStore[TXT] = store[TXT]
     val storeJ: LoamStore[TXT] = store[TXT]
-    val storeK: LoamStore[TXT] = store[TXT]
-    val storeL: LoamStore[TXT] = store[TXT]
-    val storeM: LoamStore[TXT] = store[TXT]
-    val storeN: LoamStore[TXT] = store[TXT]
-    val storeO: LoamStore[TXT] = store[TXT]
-    val storeP: LoamStore[TXT] = store[TXT]
     val storeQ: LoamStore[TXT] = store[TXT]
-    val storeR: LoamStore[TXT] = store[TXT]
-    val storeS: LoamStore[TXT] = store[TXT]
-    val storeT: LoamStore[TXT] = store[TXT]
-    val storeU: LoamStore[TXT] = store[TXT]
-    val storeV: LoamStore[TXT] = store[TXT]
-    val storeW: LoamStore[TXT] = store[TXT]
     val storeX: LoamStore[TXT] = store[TXT]
     val storeY: LoamStore[TXT] = store[TXT]
     val storeZ: LoamStore[TXT] = store[TXT]
@@ -272,14 +255,8 @@ final class AstTest extends FunSuite {
     val toolB: LoamCmdTool = cmd"b".in(storeX).out(storeB)
     val toolC: LoamCmdTool = cmd"c".in(storeX).out(storeC)
     val toolD: LoamCmdTool = cmd"d".in(storeX).out(storeD)
-    val toolE: LoamCmdTool = cmd"e".in(storeY).out(storeE)
-    val toolF: LoamCmdTool = cmd"f".in(storeY).out(storeF)
-    val toolG: LoamCmdTool = cmd"g".in(storeY).out(storeG)
-    val toolT: LoamCmdTool = cmd"t".in(storeE).out(storeT)
-    val toolU: LoamCmdTool = cmd"u".in(storeF).out(storeU)
-    val toolV: LoamCmdTool = cmd"v".in(storeG).out(storeV)
     val toolX: LoamCmdTool = cmd"x".in(storeA).out(storeX)
     val toolY: LoamCmdTool = cmd"y".out(storeE, storeF, storeG)
-    val toolZ: LoamCmdTool = cmd"z".in(storeH).out(storeZ)
   }
+
 }

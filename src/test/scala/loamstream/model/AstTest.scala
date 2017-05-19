@@ -234,13 +234,8 @@ final class AstTest extends FunSuite {
     val nodeF: ToolNode = ToolNode(toolF)
     val nodeG: ToolNode = ToolNode(toolG)
 
-    val hNode = ToolNode(SimpleTool(hSpec, H))
-    val tNode = ToolNode(SimpleTool(tSpec, T))
-    val uNode = ToolNode(SimpleTool(uSpec, U))
-    val vNode = ToolNode(SimpleTool(vSpec, V))
     val xNode = ToolNode(SimpleTool(xSpec, X))
     val yNode = ToolNode(SimpleTool(ySpec, Y))
-    val zNode = ToolNode(SimpleTool(zSpec, Z))
   }
 
   private object Stores {
@@ -299,14 +294,6 @@ final class AstTest extends FunSuite {
     private val zStoreSpec = hStoreSpec
     private val storeSpec = hStoreSpec
 
-    val zSpec = ToolSpec(inputs = Map(H -> hStoreSpec), outputs = Map(Z -> zStoreSpec))
-
-    val hSpec = ToolSpec(inputs = Map(T -> storeSpec, U -> storeSpec, V -> storeSpec), outputs = Map(H -> hStoreSpec))
-
-    val tSpec = ToolSpec(inputs = Map(E -> storeSpec), outputs = Map(T -> storeSpec))
-    val uSpec = ToolSpec(inputs = Map(F -> storeSpec), outputs = Map(U -> storeSpec))
-    val vSpec = ToolSpec(inputs = Map(G -> storeSpec), outputs = Map(V -> storeSpec))
-
     val xSpec = ToolSpec(inputs = Map(storeA.id -> storeSpec), outputs = Map(X -> storeSpec))
     val ySpec = ToolSpec(inputs = Map(), outputs = Map(E -> storeSpec, F -> storeSpec, G -> storeSpec))
   }
@@ -315,7 +302,6 @@ final class AstTest extends FunSuite {
     val E = LId.LNamedId("E")
     val F = LId.LNamedId("F")
     val G = LId.LNamedId("G")
-    val H = LId.LNamedId("H")
     val I = LId.LNamedId("I")
     val J = LId.LNamedId("J")
     val K = LId.LNamedId("K")

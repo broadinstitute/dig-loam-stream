@@ -17,7 +17,6 @@ final class AstTest extends FunSuite {
 
   // scalastyle:off magic.number
   import AST._
-  import Ids._
   import Nodes._
   import Stores._
   import Tools._
@@ -28,10 +27,11 @@ final class AstTest extends FunSuite {
   test("leaves()") {
     assert(nodeA.leaves == Set(nodeA))
 
-    assert(nodeA.dependsOn(nodeB.apply(storeB.id).as(X)).leaves == Set(nodeB))
+    assert(nodeA.dependsOn(nodeB.apply(storeB.id).as(storeX.id)).leaves == Set(nodeB))
 
     assert(
-      nodeA.dependsOn(nodeB.apply(storeB.id).as(X)).dependsOn(nodeC.apply(storeC.id).as(Y)).leaves == Set(nodeB, nodeC)
+      nodeA.dependsOn(nodeB(storeB.id).as(storeX.id)).dependsOn(nodeC(storeC.id).as(storeY.id)).leaves
+        == Set(nodeB, nodeC)
     )
 
     //a -> b -> (c, d)
@@ -42,7 +42,7 @@ final class AstTest extends FunSuite {
   test("isLeaf") {
     assert(nodeA.isLeaf === true)
 
-    assert(nodeA.dependsOn(nodeA.apply(storeB.id).as(X)).isLeaf === false)
+    assert(nodeA.dependsOn(nodeA.apply(storeB.id).as(storeX.id)).isLeaf === false)
 
     assert(Trees.abcd.isLeaf === false)
     assert(Trees.bcd.isLeaf === false)
@@ -94,17 +94,17 @@ final class AstTest extends FunSuite {
   }
 
   test(s"1 node dependsOn 1 other node (${classOf[NamedOutput].getSimpleName}) => AST") {
-    val ast = nodeA dependsOn (nodeB.apply(Z) as Q)
+    val ast = nodeA dependsOn nodeB(storeZ.id).as(storeQ.id)
 
-    val expected = ToolNode(toolA.id, nodeA.tool, Set(Connection(Q, Z, nodeB)))
+    val expected = ToolNode(toolA.id, nodeA.tool, Set(Connection(storeQ.id, storeZ.id, nodeB)))
 
     assert(ast == expected)
   }
 
   test("1 node dependsOn 1 other node (id, ast) => AST") {
-    val ast = nodeA.dependsOn(Q, Z, nodeB)
+    val ast = nodeA.dependsOn(storeQ.id, storeZ.id, nodeB)
 
-    val expected = ToolNode(toolA.id, nodeA.tool, Set(Connection(Q, Z, nodeB)))
+    val expected = ToolNode(toolA.id, nodeA.tool, Set(Connection(storeQ.id, storeZ.id, nodeB)))
 
     assert(ast == expected)
   }
@@ -120,25 +120,25 @@ final class AstTest extends FunSuite {
   }
 
   test("1 node dependsOn 1 other node get(id).from(named dep)") {
-    val ast = nodeA.get(Z).from(nodeB.apply(X))
+    val ast = nodeA.get(storeZ.id).from(nodeB.apply(storeX.id))
 
-    val expected = ToolNode(toolA.id, nodeA.tool, Set(Connection(Z, X, nodeB)))
+    val expected = ToolNode(toolA.id, nodeA.tool, Set(Connection(storeZ.id, storeX.id, nodeB)))
 
     assert(ast == expected)
   }
 
   test("1 node dependsOn 1 other node get(iid).from(oid).from(producer)") {
-    val ast = nodeA.get(Z).from(X).from(nodeB)
+    val ast = nodeA.get(storeZ.id).from(storeX.id).from(nodeB)
 
-    val expected = ToolNode(toolA.id, nodeA.tool, Set(Connection(Z, X, nodeB)))
+    val expected = ToolNode(toolA.id, nodeA.tool, Set(Connection(storeZ.id, storeX.id, nodeB)))
 
     assert(ast == expected)
   }
 
   test("output(LId) and apply(LId)") {
-    assert(nodeA.output(Z) == NamedOutput(Z, nodeA))
+    assert(nodeA.output(storeZ.id) == NamedOutput(storeZ.id, nodeA))
 
-    assert(nodeA(Z) == NamedOutput(Z, nodeA))
+    assert(nodeA(storeZ.id) == NamedOutput(storeZ.id, nodeA))
   }
 
   test("'Complex' pipeline") {
@@ -150,24 +150,24 @@ final class AstTest extends FunSuite {
      *            d
      */
 
-    val b2y = nodeB.dependsOn(yNode(Y).as(I))
-    val c2y = nodeC.dependsOn(yNode(Y).as(I))
-    val d2y = nodeD.dependsOn(yNode(Y).as(I))
+    val b2y = nodeB.dependsOn(nodeY(storeY.id).as(storeI.id))
+    val c2y = nodeC.dependsOn(nodeY(storeY.id).as(storeI.id))
+    val d2y = nodeD.dependsOn(nodeY(storeY.id).as(storeI.id))
 
     val bcd =
       Set(b2y.output(storeB.id).as(storeB.id),
         c2y.output(storeC.id).as(storeC.id), d2y.output(storeD.id).as(storeD.id))
 
-    val x2bcd = xNode.withDependencies(bcd)
+    val x2bcd = nodeX.withDependencies(bcd)
 
-    val a2y = nodeA.dependsOn(x2bcd(X).as(I))
+    val a2y = nodeA.dependsOn(x2bcd(storeX.id).as(storeI.id))
 
     val expected = {
-      nodeA.dependsOn(I, X, xNode.withDependencies {
+      nodeA.dependsOn(storeI.id, storeX.id, nodeX.withDependencies {
         Set(
-          nodeB.dependsOn(yNode(Y).as(I)).output(storeB.id).as(storeB.id),
-          nodeC.dependsOn(yNode(Y).as(I)).output(storeC.id).as(storeC.id),
-          nodeD.dependsOn(yNode(Y).as(I)).output(storeD.id).as(storeD.id))
+          nodeB.dependsOn(nodeY(storeY.id).as(storeI.id)).output(storeB.id).as(storeB.id),
+          nodeC.dependsOn(nodeY(storeY.id).as(storeI.id)).output(storeC.id).as(storeC.id),
+          nodeD.dependsOn(nodeY(storeY.id).as(storeI.id)).output(storeD.id).as(storeD.id))
       })
     }
 
@@ -185,14 +185,14 @@ final class AstTest extends FunSuite {
 
     assert(a2y.dependencies.size == 1)
 
-    assert(getChildOf(a2y, X).dependencies.size == 3)
-    assert(getChildOf(a2y, X, storeB.id).dependencies.size == 1)
-    assert(getChildOf(a2y, X, storeC.id).dependencies.size == 1)
-    assert(getChildOf(a2y, X, storeD.id).dependencies.size == 1)
+    assert(getChildOf(a2y, storeX.id).dependencies.size == 3)
+    assert(getChildOf(a2y, storeX.id, storeB.id).dependencies.size == 1)
+    assert(getChildOf(a2y, storeX.id, storeC.id).dependencies.size == 1)
+    assert(getChildOf(a2y, storeX.id, storeD.id).dependencies.size == 1)
 
-    assert(getChildOf(a2y, X, storeB.id, Y).dependencies.size === 0)
-    assert(getChildOf(a2y, X, storeC.id, Y).dependencies.size === 0)
-    assert(getChildOf(a2y, X, storeD.id, Y).dependencies.size === 0)
+    assert(getChildOf(a2y, storeX.id, storeB.id, storeY.id).dependencies.size === 0)
+    assert(getChildOf(a2y, storeX.id, storeC.id, storeY.id).dependencies.size === 0)
+    assert(getChildOf(a2y, storeX.id, storeD.id, storeY.id).dependencies.size === 0)
 
     val visitCounts: Map[LId, Int] = {
       a2y.iterator.map(_.id).toIndexedSeq.groupBy(identity).mapValues(_.size)
@@ -200,11 +200,11 @@ final class AstTest extends FunSuite {
 
     val expectedCounts = Map(
       toolA.id -> 1,
-      X -> 1,
+      toolX.id -> 1,
       toolB.id -> 1,
       toolC.id -> 1,
       toolD.id -> 1,
-      Y -> 3)
+      toolY.id -> 3)
 
     assert(visitCounts == expectedCounts)
   }
@@ -220,9 +220,9 @@ final class AstTest extends FunSuite {
     //a -> b -> (c, d)
 
     lazy val bcd: AST =
-      nodeB.dependsOn(nodeC.apply(storeC.id).as(I)).dependsOn(nodeD.apply(storeD.id).as(J))
+      nodeB.dependsOn(nodeC.apply(storeC.id).as(storeI.id)).dependsOn(nodeD.apply(storeD.id).as(storeJ.id))
 
-    lazy val abcd: AST = nodeA.get(storeB.id).from(I).from(bcd)
+    lazy val abcd: AST = nodeA.get(storeB.id).from(storeI.id).from(bcd)
   }
 
   private object Nodes {
@@ -233,9 +233,8 @@ final class AstTest extends FunSuite {
     val nodeE: ToolNode = ToolNode(toolE)
     val nodeF: ToolNode = ToolNode(toolF)
     val nodeG: ToolNode = ToolNode(toolG)
-
-    val xNode = ToolNode(SimpleTool(xSpec, X))
-    val yNode = ToolNode(SimpleTool(ySpec, Y))
+    val nodeX: ToolNode = ToolNode(toolX)
+    val nodeY: ToolNode = ToolNode(toolY)
   }
 
   private object Stores {
@@ -276,50 +275,11 @@ final class AstTest extends FunSuite {
     val toolE: LoamCmdTool = cmd"e".in(storeY).out(storeE)
     val toolF: LoamCmdTool = cmd"f".in(storeY).out(storeF)
     val toolG: LoamCmdTool = cmd"g".in(storeY).out(storeG)
-
-    final case class SimpleStore(sig: TypeBox.Untyped, id: LId = LId.newAnonId) extends Store
-
-    final case class SimpleTool(spec: ToolSpec, id: LId = LId.newAnonId) extends Tool {
-      private def toStoreMap(m: Map[LId, TypeBox.Untyped]): Map[LId, Store] = m.mapValues(SimpleStore(_))
-
-      override val inputs: Map[LId, Store] = toStoreMap(spec.inputs)
-
-      override val outputs: Map[LId, Store] = toStoreMap(spec.outputs)
-    }
-
-    //NB: These specs are all totally bogus, and are basically placeholders just to have a way to make unique nodes.
-    //That's fine for now since we don't 'typecheck' ASTs.  This will change in the near future.
-
-    private val hStoreSpec = TypeBox.of[Map[Int, Double]]
-    private val zStoreSpec = hStoreSpec
-    private val storeSpec = hStoreSpec
-
-    val xSpec = ToolSpec(inputs = Map(storeA.id -> storeSpec), outputs = Map(X -> storeSpec))
-    val ySpec = ToolSpec(inputs = Map(), outputs = Map(E -> storeSpec, F -> storeSpec, G -> storeSpec))
+    val toolT: LoamCmdTool = cmd"t".in(storeE).out(storeT)
+    val toolU: LoamCmdTool = cmd"u".in(storeF).out(storeU)
+    val toolV: LoamCmdTool = cmd"v".in(storeG).out(storeV)
+    val toolX: LoamCmdTool = cmd"x".in(storeA).out(storeX)
+    val toolY: LoamCmdTool = cmd"y".out(storeE, storeF, storeG)
+    val toolZ: LoamCmdTool = cmd"z".in(storeH).out(storeZ)
   }
-
-  private object Ids {
-    val E = LId.LNamedId("E")
-    val F = LId.LNamedId("F")
-    val G = LId.LNamedId("G")
-    val I = LId.LNamedId("I")
-    val J = LId.LNamedId("J")
-    val K = LId.LNamedId("K")
-    val L = LId.LNamedId("L")
-    val M = LId.LNamedId("M")
-    val N = LId.LNamedId("N")
-    val O = LId.LNamedId("O")
-    val P = LId.LNamedId("P")
-    val Q = LId.LNamedId("Q")
-    val R = LId.LNamedId("R")
-    val S = LId.LNamedId("S")
-    val T = LId.LNamedId("T")
-    val U = LId.LNamedId("U")
-    val V = LId.LNamedId("V")
-    val W = LId.LNamedId("W")
-    val X = LId.LNamedId("X")
-    val Y = LId.LNamedId("Y")
-    val Z = LId.LNamedId("Z")
-  }
-
 }

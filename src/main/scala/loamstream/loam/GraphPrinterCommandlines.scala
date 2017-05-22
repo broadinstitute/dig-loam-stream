@@ -3,12 +3,13 @@ package loamstream.loam
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.loam.ops.filters.LoamStoreFilterTool
 import loamstream.loam.ops.mappers.LoamStoreMapperTool
+import loamstream.model.Store
 
 /** Prints file names and command lines in LoamGraph */
 final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
 
   /** Prints a store */
-  def print(store: LoamStore.Untyped): String = store.pathOpt.map(_.toString).getOrElse("[file]")
+  def print(store: Store.Untyped): String = store.pathOpt.map(_.toString).getOrElse("[file]")
 
   /** Prints a store ref */
   def print(storeRef: LoamStoreRef): String =

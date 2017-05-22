@@ -3,10 +3,11 @@ package loamstream.loam
 import java.nio.file.Path
 
 import loamstream.loam.files.LoamFileManager
+import loamstream.model.Store
 import loamstream.util.PathUtils
 
 /** A reference to a Loam store and a path modifier to be used in command line tools */
-final case class LoamStoreRef(store: LoamStore.Untyped, pathModifier: Path => Path) {
+final case class LoamStoreRef(store: Store.Untyped, pathModifier: Path => Path) {
 
   /** The path to be used in command line tools */
   def path(fileManager: LoamFileManager): Path = pathModifier(fileManager.getPath(store))

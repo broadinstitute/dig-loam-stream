@@ -1,7 +1,7 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
-import loamstream.model.LId
+import loamstream.model.{LId, Store}
 import loamstream.util.code.SourceUtils
 
 import scala.reflect.runtime.universe.Type
@@ -17,7 +17,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   if (fully) SourceUtils.fullTypeName(tpe) else SourceUtils.shortTypeName(tpe)
 
   /** Prints store */
-  def print(store: LoamStore.Untyped, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
+  def print(store: Store.Untyped, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
   /** Prints cmd tool */
   def print(tool: LoamTool): String = tool match {
@@ -32,7 +32,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print[T](tool: LoamNativeTool[T]): String = "[native tool]"
 
   /** Prints prefix symbol to distinguish input and output stores */
-  def printIoPrefix(tool: LoamCmdTool, store: LoamStore.Untyped, graph: LoamGraph): String = {
+  def printIoPrefix(tool: LoamCmdTool, store: Store.Untyped, graph: LoamGraph): String = {
     graph.storeProducers.get(store) match {
       case Some(producer) if producer == tool => ">"
       case _ => "<"

@@ -1,7 +1,7 @@
 package loamstream.loam.ast
 
-import loamstream.loam.{LoamGraph, LoamStore, LoamTool}
-import loamstream.model.AST
+import loamstream.loam.{LoamGraph, LoamTool}
+import loamstream.model.{AST, Store}
 import loamstream.model.AST.{Connection, ToolNode}
 
 /**
@@ -48,7 +48,7 @@ object LoamGraphAstMapper {
   }
 
   private def toConnection(graph: LoamGraph, toolAsts: Map[LoamTool, AST])
-                          (inputStore: LoamStore.Untyped): Option[Connection] = {
+                          (inputStore: Store.Untyped): Option[Connection] = {
 
     graph.storeProducers.get(inputStore) match {
       case Some(sourceTool) =>

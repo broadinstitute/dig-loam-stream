@@ -2,7 +2,7 @@ package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.loam.LoamTool.{AllStores, DefaultStores}
-import loamstream.model.LId
+import loamstream.model.{LId, Store}
 import loamstream.util.StringUtils
 import loamstream.loam.files.LoamFileManager
 import loamstream.conf.DynamicConfig
@@ -61,7 +61,7 @@ object LoamCmdTool {
   }
   
   def toToken(arg: Any): LoamToken = arg match {
-    case store: LoamStore.Untyped => StoreToken(store)
+    case store: Store.Untyped => StoreToken(store)
     case storeRef: LoamStoreRef => StoreRefToken(storeRef)
     //NB: Will throw if the DynamicConf represents a config key that's not present,
     //or a key that points to a sub-config (ie NOT a string or number)

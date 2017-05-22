@@ -10,7 +10,7 @@ import loamstream.model.execute.{Executable, ExecutionEnvironment}
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.ops.{StoreFilterJob, StoreMapperJob}
 import loamstream.model.jobs.{LJob, NativeJob, Output}
-import loamstream.model.{AST, Tool}
+import loamstream.model.{AST, Store, Tool}
 import loamstream.util.{Hit, Miss, Shot, Snag}
 
 /**
@@ -27,9 +27,9 @@ final class LoamToolBox(context: LoamProjectContext, client: Option[CloudStorage
     val graph = tool.graphBox.value
 
     def outputsFor(tool: LoamTool): Set[Output] = {
-      val loamStores: Set[LoamStore.Untyped] = graph.toolOutputs(tool)
+      val loamStores: Set[Store.Untyped] = graph.toolOutputs(tool)
 
-      def pathOrUriToOutput(store: LoamStore.Untyped): Option[Output] = {
+      def pathOrUriToOutput(store: Store.Untyped): Option[Output] = {
         store.pathOpt.orElse(store.uriOpt).map {
           case path: Path => Output.PathOutput(path)
           case uri: URI => Output.GcsUriOutput(uri, client)

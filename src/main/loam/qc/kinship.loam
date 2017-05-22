@@ -3,16 +3,15 @@ import config._
 import store_helpers._
 
 import loamstream.model.Store
-import loamstream.loam.LoamStore
 
 val inputPrefix: String = s"${dataDir}/camp_hail/data/${LABEL}.for_qc"
 
-val inputBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(inputPrefix)
+val inputBedBimFam: Seq[Store[TXT]] = bedBimFam(inputPrefix)
 
 val kinshipPrefix: String = s"${LABEL}.kinship"
-val kinshipFileBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(kinshipPrefix)
+val kinshipFileBedBimFam: Seq[Store[TXT]] = bedBimFam(kinshipPrefix)
 
-val kinshipFilePruneIn: LoamStore[TXT] = store[TXT].at(s"${kinshipPrefix}.prune.in")
+val kinshipFilePruneIn: Store[TXT] = store[TXT].at(s"${kinshipPrefix}.prune.in")
 
 val kinshipFilePrunedPrefix: String = s"${kinshipPrefix}.pruned"
 val kinshipFilePrunedBedBimFam = bedBimFam(kinshipFilePrunedPrefix)
@@ -23,7 +22,7 @@ val kinshipFilePrunedKingPrefix: String = s"${kinshipFilePrunedPrefix}.king"
 val Seq(
   kinshipFilePrunedKingKin, 
   kinshipFilePrunedKingKinRelated, 
-  kinshipFilePrunedKingSharingCounts): Seq[LoamStore[TXT]] = {
+  kinshipFilePrunedKingSharingCounts): Seq[Store[TXT]] = {
   
   withExtensions("king.kin", "king.kin.related", "king.sharing_counts.txt") { extension =>
     store[TXT].at(s"${kinshipFilePrunedPrefix}.${extension}")

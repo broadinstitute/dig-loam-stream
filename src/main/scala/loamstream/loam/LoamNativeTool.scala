@@ -1,7 +1,7 @@
 package loamstream.loam
 
-import loamstream.loam.LoamTool.{ AllStores, DefaultStores, InputsAndOutputs }
-import loamstream.model.LId
+import loamstream.loam.LoamTool.{AllStores, DefaultStores, InputsAndOutputs}
+import loamstream.model.{LId, Store}
 import loamstream.util.EvalLaterBox
 
 import scala.reflect.runtime.universe.TypeTag
@@ -24,12 +24,12 @@ object LoamNativeTool {
   }
 
   def apply[T: TypeTag](
-      defaultStores: Set[LoamStore.Untyped], 
+      defaultStores: Set[Store.Untyped],
       expr: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = apply(AllStores(defaultStores), expr)
 
   def apply[T: TypeTag](
-      inStores: Set[LoamStore.Untyped], 
-      outStores: Set[LoamStore.Untyped], 
+      inStores: Set[Store.Untyped],
+      outStores: Set[Store.Untyped],
       expr: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
     
     apply(InputsAndOutputs(inStores, outStores), expr)

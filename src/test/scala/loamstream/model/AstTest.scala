@@ -234,19 +234,19 @@ final class AstTest extends FunSuite {
   }
 
   private object Stores {
-    val storeA: LoamStore[TXT] = store[TXT]
-    val storeB: LoamStore[TXT] = store[TXT]
-    val storeC: LoamStore[TXT] = store[TXT]
-    val storeD: LoamStore[TXT] = store[TXT]
-    val storeE: LoamStore[TXT] = store[TXT]
-    val storeF: LoamStore[TXT] = store[TXT]
-    val storeG: LoamStore[TXT] = store[TXT]
-    val storeI: LoamStore[TXT] = store[TXT]
-    val storeJ: LoamStore[TXT] = store[TXT]
-    val storeQ: LoamStore[TXT] = store[TXT]
-    val storeX: LoamStore[TXT] = store[TXT]
-    val storeY: LoamStore[TXT] = store[TXT]
-    val storeZ: LoamStore[TXT] = store[TXT]
+    val storeA: Store[TXT] = store[TXT]
+    val storeB: Store[TXT] = store[TXT]
+    val storeC: Store[TXT] = store[TXT]
+    val storeD: Store[TXT] = store[TXT]
+    val storeE: Store[TXT] = store[TXT]
+    val storeF: Store[TXT] = store[TXT]
+    val storeG: Store[TXT] = store[TXT]
+    val storeI: Store[TXT] = store[TXT]
+    val storeJ: Store[TXT] = store[TXT]
+    val storeQ: Store[TXT] = store[TXT]
+    val storeX: Store[TXT] = store[TXT]
+    val storeY: Store[TXT] = store[TXT]
+    val storeZ: Store[TXT] = store[TXT]
   }
 
   private object Tools {

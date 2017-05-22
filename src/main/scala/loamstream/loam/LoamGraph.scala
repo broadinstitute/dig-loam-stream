@@ -5,6 +5,7 @@ import java.nio.file.Path
 
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamTool.{AllStores, InputsAndOutputs}
+import loamstream.model.Store
 import loamstream.model.execute.ExecutionEnvironment
 import loamstream.util.{Equivalences, Maps}
 
@@ -48,21 +49,21 @@ object LoamGraph {
 }
 
 /** The graph of all Loam stores and tools and their relationships */
-final case class LoamGraph(stores: Set[LoamStore.Untyped],
+final case class LoamGraph(stores: Set[Store.Untyped],
                            tools: Set[LoamTool],
-                           toolInputs: Map[LoamTool, Set[LoamStore.Untyped]],
-                           toolOutputs: Map[LoamTool, Set[LoamStore.Untyped]],
-                           inputStores: Set[LoamStore.Untyped],
-                           storeLocations: Map[LoamStore.Untyped, StoreLocation],
-                           storeProducers: Map[LoamStore.Untyped, LoamTool],
-                           storeConsumers: Map[LoamStore.Untyped, Set[LoamTool]],
+                           toolInputs: Map[LoamTool, Set[Store.Untyped]],
+                           toolOutputs: Map[LoamTool, Set[Store.Untyped]],
+                           inputStores: Set[Store.Untyped],
+                           storeLocations: Map[Store.Untyped, StoreLocation],
+                           storeProducers: Map[Store.Untyped, LoamTool],
+                           storeConsumers: Map[Store.Untyped, Set[LoamTool]],
                            keysSameSets: Equivalences[LoamStoreKeySlot],
                            keysSameLists: Equivalences[LoamStoreKeySlot],
                            workDirs: Map[LoamTool, Path],
                            executionEnvironments: Map[LoamTool, ExecutionEnvironment]) {
 
   /** Returns graph with store added */
-  def withStore(store: LoamStore.Untyped): LoamGraph = copy(stores = stores + store)
+  def withStore(store: Store.Untyped): LoamGraph = copy(stores = stores + store)
 
   /** Returns graph with tool added */
   def withTool(tool: LoamTool, scriptContext: LoamScriptContext): LoamGraph = {
@@ -121,10 +122,10 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   }
 
   /** Returns graph with store marked as input store */
-  def withStoreAsInput(store: LoamStore.Untyped): LoamGraph = copy(inputStores = inputStores + store)
+  def withStoreAsInput(store: Store.Untyped): LoamGraph = copy(inputStores = inputStores + store)
 
   /** Returns graph with store location (path or URI) added */
-  def withStoreLocation(store: LoamStore.Untyped, location: StoreLocation): LoamGraph = {
+  def withStoreLocation(store: Store.Untyped, location: StoreLocation): LoamGraph = {
     copy(storeLocations = storeLocations + (store -> location))
   }
 
@@ -168,24 +169,24 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
   def finalTools: Set[LoamTool] = tools.filter(toolsSucceeding(_).isEmpty)
 
   /** Whether store has a Path associated with it */
-  def hasPath(store: LoamStore.Untyped): Boolean = {
+  def hasPath(store: Store.Untyped): Boolean = {
     storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.PathLocation])
   }
 
   /** Optionally the path associated with a store */
-  def pathOpt(store: LoamStore.Untyped): Option[Path] =
+  def pathOpt(store: Store.Untyped): Option[Path] =
   storeLocations.get(store) match {
     case Some(StoreLocation.PathLocation(path)) => Some(path)
     case _ => None
   }
 
   /** Whether store has a Path associated with it */
-  def hasUri(store: LoamStore.Untyped): Boolean = {
+  def hasUri(store: Store.Untyped): Boolean = {
     storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.UriLocation])
   }
 
   /** Optionally the URI associated with a store */
-  def uriOpt(store: LoamStore.Untyped): Option[URI] = {
+  def uriOpt(store: Store.Untyped): Option[URI] = {
     storeLocations.get(store).collect {
       case StoreLocation.UriLocation(uri) => uri
     }
@@ -217,19 +218,19 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     }
   }
 
-  private def storesFor(tool: LoamTool)(storeMap: Map[LoamTool, Set[LoamStore.Untyped]]): Set[LoamStore.Untyped] = {
+  private def storesFor(tool: LoamTool)(storeMap: Map[LoamTool, Set[Store.Untyped]]): Set[Store.Untyped] = {
     storeMap.getOrElse(tool, Set.empty)
   }
 
-  private def inputsFor(tool: LoamTool): Set[LoamStore.Untyped] = storesFor(tool)(toolInputs)
+  private def inputsFor(tool: LoamTool): Set[Store.Untyped] = storesFor(tool)(toolInputs)
 
-  private def outputsFor(tool: LoamTool): Set[LoamStore.Untyped] = storesFor(tool)(toolOutputs)
+  private def outputsFor(tool: LoamTool): Set[Store.Untyped] = storesFor(tool)(toolOutputs)
 
   /** Adds input stores to tool
     *
     * Assuming tool and stores are already part of the graph. If stores were output stores, they will no longer be.
     */
-  def withInputStores(tool: LoamTool, stores: Set[LoamStore.Untyped]): LoamGraph = {
+  def withInputStores(tool: LoamTool, stores: Set[Store.Untyped]): LoamGraph = {
     val toolInputsNew = toolInputs + (tool -> (inputsFor(tool) ++ stores))
 
     val toolOutputsNew = toolOutputs + (tool -> (outputsFor(tool) -- stores))
@@ -252,7 +253,7 @@ final case class LoamGraph(stores: Set[LoamStore.Untyped],
     *
     * Assuming tool and stores are already part of the graph. If stores were input stores, they will no longer be.
     */
-  def withOutputStores(tool: LoamTool, stores: Set[LoamStore.Untyped]): LoamGraph = {
+  def withOutputStores(tool: LoamTool, stores: Set[Store.Untyped]): LoamGraph = {
     val toolInputsNew = toolInputs + (tool -> (inputsFor(tool) -- stores))
 
     val toolOutputsNew = toolOutputs + (tool -> (outputsFor(tool) ++ stores))

@@ -1,7 +1,8 @@
 package loamstream.loam.ops
 
 import loamstream.loam.LoamTool.InputsAndOutputs
-import loamstream.loam.{LoamStore, LoamTool}
+import loamstream.loam.LoamTool
+import loamstream.model.Store
 
 /** A tool based on a store op */
 trait LoamStoreOpTool[SI <: StoreType, SO <: StoreType] extends LoamTool {
@@ -12,10 +13,10 @@ trait LoamStoreOpTool[SI <: StoreType, SO <: StoreType] extends LoamTool {
   def op: LoamStoreOp[SI, SO]
 
   /** The input store */
-  def inStore: LoamStore[SI]
+  def inStore: Store[SI]
 
   /** The output store */
-  def outStore: LoamStore[SO]
+  def outStore: Store[SO]
 
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: InputsAndOutputs = InputsAndOutputs(LoamTool.In(inStore), LoamTool.Out(outStore))

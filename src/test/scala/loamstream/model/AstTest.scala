@@ -41,7 +41,7 @@ final class AstTest extends FunSuite {
   test("isLeaf") {
     assert(nodeA.isLeaf === true)
 
-    assert(nodeA.dependsOn(nodeA(storeB.id).as(storeX.id)).isLeaf === false)
+    assert(nodeA.dependsOn(nodeB(storeB.id).as(storeX.id)).isLeaf === false)
 
     assert(Trees.abcd.isLeaf === false)
     assert(Trees.bcd.isLeaf === false)

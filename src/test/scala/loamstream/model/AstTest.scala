@@ -258,5 +258,4 @@ final class AstTest extends FunSuite {
     val toolX: LoamCmdTool = cmd"x".in(storeA).out(storeX)
     val toolY: LoamCmdTool = cmd"y".out(storeE, storeF, storeG)
   }
-
 }

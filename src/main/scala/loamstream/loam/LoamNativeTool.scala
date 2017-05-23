@@ -1,7 +1,7 @@
 package loamstream.loam
 
-import loamstream.loam.LoamTool.{AllStores, DefaultStores, InputsAndOutputs}
-import loamstream.model.{LId, Store}
+import loamstream.model.Tool.{AllStores, DefaultStores, InputsAndOutputs}
+import loamstream.model.{LId, Store, Tool}
 import loamstream.util.EvalLaterBox
 
 import scala.reflect.runtime.universe.TypeTag
@@ -10,7 +10,7 @@ import scala.reflect.runtime.universe.TypeTag
 final case class LoamNativeTool[T] private (
     id: LId, 
     defaultStores: DefaultStores, 
-    expBox: EvalLaterBox[T])(implicit val scriptContext: LoamScriptContext) extends LoamTool
+    expBox: EvalLaterBox[T])(implicit val scriptContext: LoamScriptContext) extends Tool
 
 object LoamNativeTool {
   def apply[T: TypeTag](defaultStores: DefaultStores,
@@ -36,18 +36,18 @@ object LoamNativeTool {
   }
 
   def apply[T: TypeTag](
-      in: LoamTool.In, 
-      out: LoamTool.Out, expr: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
+      in: Tool.In,
+      out: Tool.Out, expr: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
     
     apply(InputsAndOutputs(in, out), expr)
   }
 
   def apply[T: TypeTag](
-      in: LoamTool.In, 
+      in: Tool.In,
       expr: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = apply(InputsAndOutputs(in), expr)
 
   def apply[T: TypeTag](
-      out: LoamTool.Out, 
+      out: Tool.Out,
       expr: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = apply(InputsAndOutputs(out), expr)
 }
 

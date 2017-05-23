@@ -3,7 +3,7 @@ package loamstream.loam
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
 import loamstream.loam.ops.filters.LoamStoreFilterTool
 import loamstream.loam.ops.mappers.LoamStoreMapperTool
-import loamstream.model.Store
+import loamstream.model.{Store, Tool}
 
 /** Prints file names and command lines in LoamGraph */
 final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
@@ -23,7 +23,7 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
   }
 
   /** Prints a tool */
-  def print(tool: LoamTool): String = tool match {
+  def print(tool: Tool): String = tool match {
     case cmdTool: LoamCmdTool => print(cmdTool)
     case nativeTool: LoamNativeTool[_] => print(nativeTool)
     case filterTool: LoamStoreFilterTool[_] => print(filterTool)

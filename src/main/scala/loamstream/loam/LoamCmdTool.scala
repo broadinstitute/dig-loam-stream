@@ -1,8 +1,8 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
-import loamstream.loam.LoamTool.{AllStores, DefaultStores}
-import loamstream.model.{LId, Store}
+import loamstream.model.Tool.{AllStores, DefaultStores}
+import loamstream.model.{LId, Store, Tool}
 import loamstream.util.StringUtils
 import loamstream.loam.files.LoamFileManager
 import loamstream.conf.DynamicConfig
@@ -76,7 +76,7 @@ object LoamCmdTool {
 
 /** A command line tool specified in a Loam script */
 final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit val scriptContext: LoamScriptContext) 
-    extends LoamTool {
+    extends Tool {
 
   /** Input and output stores before any are specified using in or out */
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))

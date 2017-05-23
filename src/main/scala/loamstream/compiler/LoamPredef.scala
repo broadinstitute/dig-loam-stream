@@ -3,7 +3,7 @@ package loamstream.compiler
 import java.net.URI
 import java.nio.file.{Files, Path, Paths}
 
-import loamstream.loam.LoamTool.DefaultStores
+import loamstream.model.Tool.DefaultStores
 import loamstream.loam._
 import loamstream.loam.ops.StoreType
 
@@ -11,7 +11,7 @@ import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
 import loamstream.model.execute.ExecutionEnvironment
 import loamstream.conf.{DataConfig, DynamicConfig}
-import loamstream.model.Store
+import loamstream.model.{Store, Tool}
 import loamstream.util.ConfigUtils
 
 /** Predefined symbols in Loam scripts */
@@ -36,21 +36,21 @@ object LoamPredef {
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool((store +: stores).toSet, exp)
 
-  def in(store: Store.Untyped, stores: Store.Untyped*): LoamTool.In = in(store +: stores)
+  def in(store: Store.Untyped, stores: Store.Untyped*): Tool.In = in(store +: stores)
 
-  def in(stores: Iterable[Store.Untyped]): LoamTool.In = LoamTool.In(stores)
+  def in(stores: Iterable[Store.Untyped]): Tool.In = Tool.In(stores)
 
-  def out(store: Store.Untyped, stores: Store.Untyped*): LoamTool.Out = LoamTool.Out((store +: stores).toSet)
+  def out(store: Store.Untyped, stores: Store.Untyped*): Tool.Out = Tool.Out((store +: stores).toSet)
 
-  def out(stores: Iterable[Store.Untyped]): LoamTool.Out = LoamTool.Out(stores)
+  def out(stores: Iterable[Store.Untyped]): Tool.Out = Tool.Out(stores)
 
-  def job[T: TypeTag](in: LoamTool.In, out: LoamTool.Out)(exp: => T)(
+  def job[T: TypeTag](in: Tool.In, out: Tool.Out)(exp: => T)(
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, out, exp)
 
-  def job[T: TypeTag](in: LoamTool.In)(exp: => T)(
+  def job[T: TypeTag](in: Tool.In)(exp: => T)(
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, exp)
 
-  def job[T: TypeTag](out: LoamTool.Out)(exp: => T)(
+  def job[T: TypeTag](out: Tool.Out)(exp: => T)(
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(out, exp)
 
   def changeDir(newPath: Path)(implicit scriptContext: LoamScriptContext): Path = scriptContext.changeWorkDir(newPath)

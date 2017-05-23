@@ -1,7 +1,7 @@
 package loamstream.loam
 
 import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
-import loamstream.model.{LId, Store}
+import loamstream.model.{LId, Store, Tool}
 import loamstream.util.code.SourceUtils
 
 import scala.reflect.runtime.universe.Type
@@ -20,7 +20,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print(store: Store.Untyped, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
   /** Prints cmd tool */
-  def print(tool: LoamTool): String = tool match {
+  def print(tool: Tool): String = tool match {
     case cmdTool: LoamCmdTool => print(cmdTool)
     case nativeTool: LoamNativeTool[_] => print(nativeTool)
   }

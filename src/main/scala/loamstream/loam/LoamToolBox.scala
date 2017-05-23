@@ -19,14 +19,14 @@ import loamstream.util.{Hit, Miss, Shot, Snag}
   */
 final class LoamToolBox(context: LoamProjectContext, client: Option[CloudStorageClient] = None) {
 
-  @volatile private[this] var loamJobs: Map[LoamTool, LJob] = Map.empty
+  @volatile private[this] var loamJobs: Map[Tool, LJob] = Map.empty
 
   private[this] val lock = new AnyRef
 
-  private[loam] def newLoamJob(tool: LoamTool): Shot[LJob] = {
+  private[loam] def newLoamJob(tool: Tool): Shot[LJob] = {
     val graph = tool.graphBox.value
 
-    def outputsFor(tool: LoamTool): Set[Output] = {
+    def outputsFor(tool: Tool): Set[Output] = {
       val loamStores: Set[Store.Untyped] = graph.toolOutputs(tool)
 
       def pathOrUriToOutput(store: Store.Untyped): Option[Output] = {
@@ -36,7 +36,7 @@ final class LoamToolBox(context: LoamProjectContext, client: Option[CloudStorage
         }
       }
 
-      loamStores.flatMap(pathOrUriToOutput(_))
+      loamStores.flatMap(pathOrUriToOutput)
     }
 
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
@@ -65,7 +65,7 @@ final class LoamToolBox(context: LoamProjectContext, client: Option[CloudStorage
     }
   }
 
-  private[loam] def getLoamJob(tool: LoamTool): Shot[LJob] = lock.synchronized {
+  private[loam] def getLoamJob(tool: Tool): Shot[LJob] = lock.synchronized {
     loamJobs.get(tool) match {
       case Some(job) => Hit(job)
       case _ => newLoamJob(tool) match {
@@ -98,8 +98,5 @@ final class LoamToolBox(context: LoamProjectContext, client: Option[CloudStorage
     Executable(jobs)
   }
 
-  def toolToJobShot(tool: Tool): Shot[LJob] = tool match {
-    case loamTool: LoamTool => getLoamJob(loamTool)
-    case _ => Miss(Snag(s"LoamToolBox only knows Loam tools; it doesn't know about $tool."))
-  }
+  def toolToJobShot(tool: Tool): Shot[LJob] = getLoamJob(tool)
 }

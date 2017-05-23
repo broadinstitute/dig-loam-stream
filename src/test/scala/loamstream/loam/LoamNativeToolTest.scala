@@ -11,7 +11,7 @@ import loamstream.util.PathEnrichments._
 import loamstream.util.Validation
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
-import loamstream.model.Store
+import loamstream.model.{Store, Tool}
 
 /** Tests of LoamNativeTool */
 final class LoamNativeToolTest extends FunSuite {
@@ -63,7 +63,7 @@ final class LoamNativeToolTest extends FunSuite {
     storePaths.foreach(assertFile)
   }
 
-  private def assertInputsAndOutputs(tool: LoamTool, inStores: Set[Store.Untyped],
+  private def assertInputsAndOutputs(tool: Tool, inStores: Set[Store.Untyped],
                              outStores: Set[Store.Untyped]): Unit = {
     assert(tool.inputs.values.toSet === inStores)
     assert(tool.outputs.values.toSet === outStores)

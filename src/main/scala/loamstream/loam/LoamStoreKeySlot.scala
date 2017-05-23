@@ -1,7 +1,9 @@
 package loamstream.loam
 
+import loamstream.model.Store
+
 /** A key slot of a Loam store, defined by store and slot name */
-final case class LoamStoreKeySlot(store: LoamStore.Untyped, name: String)(implicit context: LoamProjectContext) {
+final case class LoamStoreKeySlot(store: Store.Untyped, name: String)(implicit context: LoamProjectContext) {
   /** Specifies that this key slot has the same set of keys as that key slot (order may be different) */
   def setSameSetAs(oSlot: LoamStoreKeySlot): LoamStoreKeySlot = {
     context.graphBox.mutate(_.withKeysSameSet(this, oSlot))

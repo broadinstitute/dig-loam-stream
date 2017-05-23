@@ -11,6 +11,7 @@ import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
 import loamstream.model.execute.ExecutionEnvironment
 import loamstream.conf.{DataConfig, DynamicConfig}
+import loamstream.model.Store
 import loamstream.util.ConfigUtils
 
 /** Predefined symbols in Loam scripts */
@@ -26,23 +27,22 @@ object LoamPredef {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store[S <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): LoamStore[S] =
-    LoamStore.create[S]
+  def store[S <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): Store[S] = Store.create[S]
 
   def job[T: TypeTag](exp: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool(DefaultStores.empty, exp)
 
-  def job[T: TypeTag](store: LoamStore.Untyped, stores: LoamStore.Untyped*)(exp: => T)(
+  def job[T: TypeTag](store: Store.Untyped, stores: Store.Untyped*)(exp: => T)(
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
     LoamNativeTool((store +: stores).toSet, exp)
 
-  def in(store: LoamStore.Untyped, stores: LoamStore.Untyped*): LoamTool.In = in(store +: stores)
+  def in(store: Store.Untyped, stores: Store.Untyped*): LoamTool.In = in(store +: stores)
 
-  def in(stores: Iterable[LoamStore.Untyped]): LoamTool.In = LoamTool.In(stores)
+  def in(stores: Iterable[Store.Untyped]): LoamTool.In = LoamTool.In(stores)
 
-  def out(store: LoamStore.Untyped, stores: LoamStore.Untyped*): LoamTool.Out = LoamTool.Out((store +: stores).toSet)
+  def out(store: Store.Untyped, stores: Store.Untyped*): LoamTool.Out = LoamTool.Out((store +: stores).toSet)
 
-  def out(stores: Iterable[LoamStore.Untyped]): LoamTool.Out = LoamTool.Out(stores)
+  def out(stores: Iterable[Store.Untyped]): LoamTool.Out = LoamTool.Out(stores)
 
   def job[T: TypeTag](in: LoamTool.In, out: LoamTool.Out)(exp: => T)(
     implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, out, exp)

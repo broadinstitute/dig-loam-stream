@@ -6,7 +6,7 @@ package loamstream.model
   *         date: Apr 26, 2016
   */
 trait Tool extends LId.Owner {
-  def inputs: Map[LId, Store]
+  def inputs: Map[LId, Store.Untyped]
 
-  def outputs: Map[LId, Store]
+  def outputs: Map[LId, Store.Untyped]
 }

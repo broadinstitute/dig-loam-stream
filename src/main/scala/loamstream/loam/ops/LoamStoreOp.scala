@@ -1,6 +1,7 @@
 package loamstream.loam.ops
 
-import loamstream.loam.{LoamScriptContext, LoamStore}
+import loamstream.loam.LoamScriptContext
+import loamstream.model.Store
 
 import scala.reflect.runtime.universe.TypeTag
 
@@ -9,7 +10,7 @@ object LoamStoreOp {
 
   trait Untyped {
     /** A new suitable output store */
-    def newOutStore(implicit scriptContext: LoamScriptContext): LoamStore.Untyped
+    def newOutStore(implicit scriptContext: LoamScriptContext): Store.Untyped
   }
 
 }
@@ -18,6 +19,6 @@ object LoamStoreOp {
 class LoamStoreOp[SI <: StoreType : TypeTag, SO <: StoreType : TypeTag] extends LoamStoreOp.Untyped {
 
   /** A new suitable output store */
-  def newOutStore(implicit scriptContext: LoamScriptContext): LoamStore[SO] = LoamStore.create[SO]
+  def newOutStore(implicit scriptContext: LoamScriptContext): Store[SO] = Store.create[SO]
 
 }

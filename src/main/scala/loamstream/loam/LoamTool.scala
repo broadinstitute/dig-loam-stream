@@ -28,27 +28,27 @@ trait LoamTool extends Tool {
   def defaultStores: DefaultStores
 
   /** Input stores of this tool */
-  override def inputs: Map[LId, Store] =
+  override def inputs: Map[LId, Store.Untyped] =
   graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
 
   /** Output stores of this tool */
-  override def outputs: Map[LId, Store] =
+  override def outputs: Map[LId, Store.Untyped] =
   graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
 
   /** Adds input stores to this tool */
-  def in(inStore: LoamStore.Untyped, inStores: LoamStore.Untyped*): this.type = in(inStore +: inStores)
+  def in(inStore: Store.Untyped, inStores: Store.Untyped*): this.type = in(inStore +: inStores)
 
   /** Adds input stores to this tool */
-  def in(inStores: Iterable[LoamStore.Untyped]): this.type = {
+  def in(inStores: Iterable[Store.Untyped]): this.type = {
     graphBox.mutate(_.withInputStores(this, inStores.toSet))
     this
   }
 
   /** Adds output stores to this tool */
-  def out(outStore: LoamStore.Untyped, outStores: LoamStore.Untyped*): this.type = out(outStore +: outStores)
+  def out(outStore: Store.Untyped, outStores: Store.Untyped*): this.type = out(outStore +: outStores)
 
   /** Adds output stores to this tool */
-  def out(outStores: Iterable[LoamStore.Untyped]): this.type = {
+  def out(outStores: Iterable[Store.Untyped]): this.type = {
     graphBox.mutate(_.withOutputStores(this, outStores.toSet))
     this
   }
@@ -59,36 +59,36 @@ trait LoamTool extends Tool {
 object LoamTool {
 
   sealed trait DefaultStores {
-    def all: Set[LoamStore.Untyped]
+    def all: Set[Store.Untyped]
   }
 
   object DefaultStores {
     val empty: AllStores = AllStores(Set.empty)
   }
 
-  final case class AllStores(stores: Set[LoamStore.Untyped]) extends DefaultStores {
-    def all: Set[LoamStore.Untyped] = stores
+  final case class AllStores(stores: Set[Store.Untyped]) extends DefaultStores {
+    def all: Set[Store.Untyped] = stores
   }
 
-  final case class In(stores: Iterable[LoamStore.Untyped])
+  final case class In(stores: Iterable[Store.Untyped])
 
   object In {
-    def apply(store: LoamStore.Untyped, stores: LoamStore.Untyped*): In = In(store +: stores)
+    def apply(store: Store.Untyped, stores: Store.Untyped*): In = In(store +: stores)
 
     val empty: In = In(Set.empty)
   }
 
-  final case class Out(stores: Iterable[LoamStore.Untyped])
+  final case class Out(stores: Iterable[Store.Untyped])
 
   object Out {
-    def apply(store: LoamStore.Untyped, stores: LoamStore.Untyped*): Out = Out(store +: stores)
+    def apply(store: Store.Untyped, stores: Store.Untyped*): Out = Out(store +: stores)
 
     val empty: Out = Out(Set.empty)
   }
 
-  final case class InputsAndOutputs(inputs: Iterable[LoamStore.Untyped],
-                                    outputs: Iterable[LoamStore.Untyped]) extends DefaultStores {
-    override def all: Set[LoamStore.Untyped] = (inputs ++ outputs).toSet
+  final case class InputsAndOutputs(inputs: Iterable[Store.Untyped],
+                                    outputs: Iterable[Store.Untyped]) extends DefaultStores {
+    override def all: Set[Store.Untyped] = (inputs ++ outputs).toSet
   }
 
   object InputsAndOutputs {

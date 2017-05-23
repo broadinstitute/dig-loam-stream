@@ -1,15 +1,15 @@
 package loamstream.loam.ops.filters
 
+import loamstream.loam.LoamScriptContext
 import loamstream.loam.ops.{LoamStoreOpTool, StoreType}
-import loamstream.loam.{LoamScriptContext, LoamStore}
-import loamstream.model.LId
+import loamstream.model.{LId, Store}
 
 /** A tool based on a store filter */
 final case class LoamStoreFilterTool[S <: StoreType](
     id: LId,
     filter: LoamStoreFilter[S],
-    inStore: LoamStore[S],
-    outStore: LoamStore[S])(implicit val scriptContext: LoamScriptContext) extends LoamStoreOpTool[S, S] {
+    inStore: Store[S],
+    outStore: Store[S])(implicit val scriptContext: LoamScriptContext) extends LoamStoreOpTool[S, S] {
 
   override def op: LoamStoreFilter[S] = filter
 
@@ -19,8 +19,8 @@ final case class LoamStoreFilterTool[S <: StoreType](
 object LoamStoreFilterTool {
   def apply[S <: StoreType](
       filter: LoamStoreFilter[S],
-      inStore: LoamStore[S],
-      outStore: LoamStore[S])(implicit scriptContext: LoamScriptContext): LoamStoreFilterTool[S] = {
+      inStore: Store[S],
+      outStore: Store[S])(implicit scriptContext: LoamScriptContext): LoamStoreFilterTool[S] = {
 
     LoamStoreFilterTool(LId.newAnonId, filter, inStore, outStore)
   }

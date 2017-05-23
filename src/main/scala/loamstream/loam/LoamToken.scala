@@ -3,6 +3,7 @@ package loamstream.loam
 import java.nio.file.Paths
 
 import loamstream.loam.files.LoamFileManager
+import loamstream.model.Store
 
 /**
   * LoamStream
@@ -13,7 +14,7 @@ sealed trait LoamToken {
 }
 
 object LoamToken {
-  def storesFromTokens(tokens: Seq[LoamToken]): Set[LoamStore.Untyped] =
+  def storesFromTokens(tokens: Seq[LoamToken]): Set[Store.Untyped] =
     tokens.collect {
       case StoreToken(store) => store
       case StoreRefToken(storeRef) => storeRef.store
@@ -27,7 +28,7 @@ object LoamToken {
     override def toString(fileManager: LoamFileManager): String = toString
   }
 
-  final case class StoreToken(store: LoamStore.Untyped) extends LoamToken {
+  final case class StoreToken(store: Store.Untyped) extends LoamToken {
     override def toString: String = store.toString
 
     override def toString(fileManager: LoamFileManager): String = fileManager.getStoreString(store)

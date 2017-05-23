@@ -2,9 +2,8 @@ package loamstream.loam.files
 
 import java.nio.file.{Files, Path}
 
-import loamstream.loam.LoamStore
-import loamstream.util.ValueBox
-import loamstream.util.BashScript
+import loamstream.model.Store
+import loamstream.util.{BashScript, ValueBox}
 
 /**
   * LoamStream
@@ -12,11 +11,11 @@ import loamstream.util.BashScript
   */
 final class LoamFileManager {
 
-  private[this] val pathsBox: ValueBox[Map[LoamStore.Untyped, Path]] = ValueBox(Map.empty)
+  private[this] val pathsBox: ValueBox[Map[Store.Untyped, Path]] = ValueBox(Map.empty)
 
   val filePrefix = "loam"
 
-  def getPath(store: LoamStore.Untyped): Path = {
+  def getPath(store: Store.Untyped): Path = {
     pathsBox.getAndUpdate { paths =>
       paths.get(store).orElse(store.pathOpt) match {
         case Some(path) => (paths, path)
@@ -29,7 +28,7 @@ final class LoamFileManager {
     }
   }
 
-  def getStoreString(store: LoamStore.Untyped): String = { 
+  def getStoreString(store: Store.Untyped): String = {
     val rawString = pathsBox.getAndUpdate { paths =>
       paths.get(store).orElse(store.pathOpt).orElse(store.uriOpt) match {
         case Some(locator) => (paths, locator.toString)

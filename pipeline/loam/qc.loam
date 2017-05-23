@@ -4,7 +4,7 @@ import binaries._
 import cloud_helpers._
 import scripts._
 import store_helpers._
-import loamstream.loam.LoamStore
+import loamstream.model.Store
 import loamstream.conf.DataConfig
 import scala.io.Source
 import loamstream.googlecloud.HailSupport._
@@ -34,18 +34,18 @@ def allQcSteps(params: DataConfig): Unit = {
   
   object Local {
     // Alignment Step
-    val PLINK_CHRS: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.numChromosomes)
+    val PLINK_CHRS: Array[Seq[Store[TXT]]] = Array.ofDim(Common.numChromosomes)
     val PLINK_CHRS_HARMONIZED_NAME: Array[Path] = Array.ofDim(Common.numChromosomes)
-    val PLINK_CHRS_HARMONIZED: Array[Seq[LoamStore[TXT]]] = Array.ofDim(Common.numChromosomes)
+    val PLINK_CHRS_HARMONIZED: Array[Seq[Store[TXT]]] = Array.ofDim(Common.numChromosomes)
     val PLINK_HARMONIZED_NAME = outDIR / s"$outLABEL.harmonized"
     val PLINK_HARMONIZED = bedBimFam(PLINK_HARMONIZED_NAME)
     val VCF_BASE = outDIR / Common.VCF_BASE_NAME
     val VCF = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf")
     val VCF_GZ = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz")
     val VCF_GZ_TBI = store[VCF].at(outDIR / s"${Common.VCF_BASE_NAME}.vcf.gz.tbi")
-    val KG_VCFS: Array[LoamStore[VCF]] = Array.ofDim(Common.numChromosomes)
-    val IDUPDATES: Array[LoamStore[TXT]] = Array.ofDim(Common.numChromosomes)
-    val SNPLOGS: Array[LoamStore[TXT]] = Array.ofDim(Common.numChromosomes)
+    val KG_VCFS: Array[Store[VCF]] = Array.ofDim(Common.numChromosomes)
+    val IDUPDATES: Array[Store[TXT]] = Array.ofDim(Common.numChromosomes)
+    val SNPLOGS: Array[Store[TXT]] = Array.ofDim(Common.numChromosomes)
     val MERGE_LINE: Array[String] = Array.ofDim(Common.numChromosomes)
     val MERGE_LIST = store[TXT].at(outDIR / "merge.txt")
     val FORCE_A2 = store[TXT].at(outDIR / "force_a2.txt")
@@ -57,9 +57,9 @@ def allQcSteps(params: DataConfig): Unit = {
     // Filter Step
     val PLINK_FOR_QC_NAME = outDIR / Common.FOR_QC_NAME
     // TODO Possible to remove explicit typing
-    val PLINK_FOR_QC: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
+    val PLINK_FOR_QC: Seq[Store[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
     val PLINK_FOR_QC_PRUNED_NAME = outDIR / s"${Common.FOR_QC_NAME}.pruned"
-    val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = bedBimFam(PLINK_FOR_QC_PRUNED_NAME)
+    val PLINK_FOR_QC_PRUNED: Seq[Store[TXT]] = bedBimFam(PLINK_FOR_QC_PRUNED_NAME)
     val FOR_QC_PRUNE_IN = store[TXT].at(outDIR / s"${Common.FOR_QC_NAME}.prune.in")
     val FOR_QC_PRUNE_OUT = store[TXT].at(outDIR / s"${Common.FOR_QC_NAME}.prune.out")
   
@@ -121,12 +121,12 @@ def allQcSteps(params: DataConfig): Unit = {
     val PLINK_FOR_QC_NAME = out / Common.FOR_QC_NAME
     // TODO Possible to remove explicit typing
     // TODO Fix bedBimFam for URIs and use below
-    val PLINK_FOR_QC: Seq[LoamStore[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_NAME + s".$bed"),
+    val PLINK_FOR_QC: Seq[Store[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_NAME + s".$bed"),
                                                 store[TXT].at(PLINK_FOR_QC_NAME + s".$bim"),
                                                 store[TXT].at(PLINK_FOR_QC_NAME + s".$fam"))
     val PLINK_FOR_QC_PRUNED_NAME = out / s"${Common.FOR_QC_NAME}.pruned"
     // TODO Fix bedBimFam for URIs and use below
-    val PLINK_FOR_QC_PRUNED: Seq[LoamStore[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$bed"),
+    val PLINK_FOR_QC_PRUNED: Seq[Store[TXT]] = Seq(store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$bed"),
                                                        store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$bim"),
                                                        store[TXT].at(PLINK_FOR_QC_PRUNED_NAME + s".$fam"))
     val FOR_QC_PRUNE_IN = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.in")

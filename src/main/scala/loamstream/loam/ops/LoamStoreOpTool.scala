@@ -1,11 +1,10 @@
 package loamstream.loam.ops
 
-import loamstream.loam.LoamTool.InputsAndOutputs
-import loamstream.loam.LoamTool
-import loamstream.model.Store
+import loamstream.model.{Store, Tool}
+import loamstream.model.Tool.InputsAndOutputs
 
 /** A tool based on a store op */
-trait LoamStoreOpTool[SI <: StoreType, SO <: StoreType] extends LoamTool {
+trait LoamStoreOpTool[SI <: StoreType, SO <: StoreType] extends Tool {
 
   scriptContext.projectContext.graphBox.mutate(_.withTool(this, scriptContext))
 
@@ -19,6 +18,6 @@ trait LoamStoreOpTool[SI <: StoreType, SO <: StoreType] extends LoamTool {
   def outStore: Store[SO]
 
   /** Input and output stores before any are specified using in or out */
-  override def defaultStores: InputsAndOutputs = InputsAndOutputs(LoamTool.In(inStore), LoamTool.Out(outStore))
+  override def defaultStores: InputsAndOutputs = InputsAndOutputs(Tool.In(inStore), Tool.Out(outStore))
 
 }

@@ -1,8 +1,8 @@
 package loamstream.loam.ast
 
-import loamstream.loam.{LoamGraph, LoamTool}
-import loamstream.model.{AST, Store}
+import loamstream.loam.LoamGraph
 import loamstream.model.AST.{Connection, ToolNode}
+import loamstream.model.{AST, Store, Tool}
 
 /**
   * LoamStream
@@ -13,9 +13,9 @@ object LoamGraphAstMapper {
   val tempFilePrefix = "loam"
 
   def newMapping(graph: LoamGraph): LoamGraphAstMapping = {
-    var toolsUnmapped: Set[LoamTool] = graph.tools
-    var toolAsts: Map[LoamTool, AST] = Map.empty
-    var rootTools: Set[LoamTool] = Set.empty
+    var toolsUnmapped: Set[Tool] = graph.tools
+    var toolAsts: Map[Tool, AST] = Map.empty
+    var rootTools: Set[Tool] = Set.empty
     var rootAsts: Set[AST] = Set.empty
     var makingProgress: Boolean = true
 
@@ -47,7 +47,7 @@ object LoamGraphAstMapper {
     LoamGraphAstMapping(graph, toolAsts, rootTools, rootAsts, toolsUnmapped)
   }
 
-  private def toConnection(graph: LoamGraph, toolAsts: Map[LoamTool, AST])
+  private def toConnection(graph: LoamGraph, toolAsts: Map[Tool, AST])
                           (inputStore: Store.Untyped): Option[Connection] = {
 
     graph.storeProducers.get(inputStore) match {
@@ -59,7 +59,7 @@ object LoamGraphAstMapper {
     }
   }
 
-  private def toAst(graph: LoamGraph, toolAsts: Map[LoamTool, AST])(tool: LoamTool): AST = {
+  private def toAst(graph: LoamGraph, toolAsts: Map[Tool, AST])(tool: Tool): AST = {
     val inputStores = graph.toolInputs.getOrElse(tool, Set.empty)
 
     val inputConnections = inputStores.flatMap(toConnection(graph, toolAsts))
@@ -67,9 +67,9 @@ object LoamGraphAstMapper {
     ToolNode(tool, inputConnections)
   }
 
-  private def isRoot(graph: LoamGraph)(tool: LoamTool): Boolean = graph.toolsSucceeding(tool).isEmpty
+  private def isRoot(graph: LoamGraph)(tool: Tool): Boolean = graph.toolsSucceeding(tool).isEmpty
 
-  private def precedingToolsArePresent(graph: LoamGraph, toolAsts: Map[LoamTool, AST])(tool: LoamTool): Boolean = {
+  private def precedingToolsArePresent(graph: LoamGraph, toolAsts: Map[Tool, AST])(tool: Tool): Boolean = {
     graph.toolsPreceding(tool).forall(toolAsts.contains)
   }
 }

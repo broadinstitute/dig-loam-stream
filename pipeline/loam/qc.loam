@@ -73,7 +73,7 @@ def allQcSteps(params: DataConfig): Unit = {
     val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
     val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
   
-    //Chunk #2
+    //Chunk 2
     val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.tsv")
     val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.loadings.tsv")
     val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDIR / s"${outLABEL}.ancestry.pca.scores.plots.pdf")
@@ -132,7 +132,7 @@ def allQcSteps(params: DataConfig): Unit = {
     val FOR_QC_PRUNE_IN = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.in")
     val FOR_QC_PRUNE_OUT = store[TXT].at(out / s"${Common.FOR_QC_NAME}.prune.out")
   
-    // Chunk #2
+    // Chunk 2
     val inKG_HAIL = store[TXT].at(data / "inkg_hail.vds")
     val inKG_V3_5K_AF = store[TXT].at(data / "allele_frequencies.tsv")
   
@@ -244,6 +244,7 @@ def allQcSteps(params: DataConfig): Unit = {
     hail"""importvcf --force-bgz ${Google.VCF_GZ}
         splitmulti
         deduplicate
+		annotatesamples expr -c "sa.famID = s"
         annotatesamples table
         --root sa.pheno
         -e IID

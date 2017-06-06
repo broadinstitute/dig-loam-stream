@@ -24,7 +24,7 @@ object KlustakwikStores {
   def apply(base: String): KlustakwikStores = {
     val makeStore: String => Store[TXT] = extension => store[TXT].at(s"${base}.${extension}")
     val Seq(fet, tempClu, clu, klg, metricIds, klustakwikLog) =
-      withExtensions("fet.1", "temp.clu.1", "clu.1", "klg.1", "metric.ids",".klustakwik.log")(makeStore)
+      withExtensions("fet.1", "temp.clu.1", "clu.1", "klg.1", "metric.ids","klustakwik.log")(makeStore)
     KlustakwikStores(base, fet, tempClu, clu, klg, metricIds, klustakwikLog)
   }
 

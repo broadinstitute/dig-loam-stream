@@ -1,0 +1,518 @@
+import input._
+import qc_params._
+import binaries._
+import cloud_helpers._
+import scripts._
+import store_helpers._
+import loamstream.model.Store
+import loamstream.conf.DataConfig
+import scala.io.Source
+import loamstream.googlecloud.HailSupport._
+
+val config = loadDataConfig(dataConfigFile)
+
+for (params <- config.getObjList("project")) {
+  allQcSteps(params)
+}
+
+def allQcSteps(params: DataConfig): Unit = {
+  val id = params.getStr("id")
+  val vcf = store[VCF].at(params.getStr("vcf")).asInput
+  val pheno = store[TXT].at(params.getStr("pheno")).asInput
+  val phenoId = params.getStr("phenoId")
+  val phenoSrRace = params.getStr("phenoSrRace")
+
+  // TODO make these values work with dynamic execution
+  val nChr = endChr - startChr + 1
+  val nSampleQcMetrics = 10
+
+  object Local {
+    // Alignment Step
+    val rawChrs: Array[Seq[Store[TXT]]] = Array.ofDim(nChr)
+    val harmChrsName: Array[Path] = Array.ofDim(nChr)
+    val harmChrs: Array[Seq[Store[TXT]]] = Array.ofDim(nChr)
+    val harmName = outDir / s"$id.harm"
+    val harm = bedBimFam(harmName)
+    val harmRefVcfName = outDir / s"$id.harm.ref"
+    val harmRefVcfUnzipped = store[VCF].at(outDir / s"$id.harm.ref.vcf")
+    val harmRefVcfGz = store[VCF].at(outDir / s"$id.harm.ref.vcf.gz")
+    val harmRefVcfGzTbi = store[VCF].at(outDir / s"$id.harm.ref.vcf.gz.tbi")
+    val kgVcfGzChrs: Array[Store[VCF]] = Array.ofDim(nChr)
+    val harmVarIdUpdates: Array[Store[TXT]] = Array.ofDim(nChr)
+    val harmVarSnpLogs: Array[Store[TXT]] = Array.ofDim(nChr)
+    val harmMergeLines: Array[String] = Array.ofDim(nChr)
+    val harmMergeList = store[TXT].at(outDir / s"$id.harm.merge.txt")
+    val harmForceA2 = store[TXT].at(outDir / s"$id.harm.force_a2.txt")
+    val harmSample = store[TXT].at(outDir / s"$id.harm.sample")
+  
+    // // Load/Filter/Chunk2 Steps
+    // val harmRefVds = store[VCF].at(outDir / s"$id.harm.ref.vds")
+    // 
+    // // Filter Step
+	// val VDS_FOR_QC = store[VCF].at(outDir / s"$id.for_qc.vds")
+    // val VDS_FOR_QC_PRUNED = store[VCF].at(outDir / s"$id.for_qc.pruned.vds")
+    // val VARIANTQC_TSV = store[TXT].at(outDir / s"$id.variantqc.tsv")
+    // val PLINK_FOR_QC_NAME = outDir / s"$id.for_qc"
+    // // TODO Possible to remove explicit typing
+    // val PLINK_FOR_QC: Seq[Store[TXT]] = bedBimFam(PLINK_FOR_QC_NAME)
+    // val PLINK_FOR_QC_PRUNED_NAME = outDir / s"$id.for_qc.pruned"
+    // val PLINK_FOR_QC_PRUNED: Seq[Store[TXT]] = bedBimFam(PLINK_FOR_QC_PRUNED_NAME)
+    // val FOR_QC_PRUNE_IN = store[TXT].at(outDir / s"$id.for_qc.prune.in")
+    // val FOR_QC_PRUNE_OUT = store[TXT].at(outDir / s"$id.for_qc.prune.out")
+    // 
+    // // Kinship Step
+    // val KIN_PREFIX = outDir / s"$id.kinship"
+    // val KIN_LOG = store[TXT].at(KIN_PREFIX + ".log")
+    // val KINTMP_DAT = store[TXT].at(KIN_PREFIX + "TMP.dat")
+    // val KINTMP_PED = store[TXT].at(KIN_PREFIX + "TMP.ped")
+    // val KIN = store[TXT].at(KIN_PREFIX + ".kin")
+    // val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
+    // val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
+    // val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
+    // 
+    // //Chunk 2
+	// val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDir / s"${id}.ancestry.pca.scores.tsv")
+    // val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDir / s"${id}.ancestry.pca.loadings.tsv")
+    // val ANCESTRYPCA_SCORES_PLOTS_PDF = store[TXT].at(outDir / s"${id}.ancestry.pca.scores.plots.pdf")
+    // val NONOUTLIERPCA_SCORES_TSV = store[TXT].at(outDir / s"${id}.pca.scores.tsv")
+    // val NONOUTLIERPCA_LOADINGS_TSV = store[TXT].at(outDir / s"${id}.pca.loadings.tsv")
+    // val ANCESTRY_PREFIX = outDir / s"${id}.ancestry"
+    // val ANCESTRYCLUSTER_LOG = store[TXT].at(ANCESTRY_PREFIX + ".cluster.log")
+    // val ANCESTRY_FET = store[TXT].at(ANCESTRY_PREFIX + ".fet.1")
+    // val ANCESTRY_TEMP_CLU = store[TXT].at(ANCESTRY_PREFIX + ".temp.clu.1")
+    // val ANCESTRY_CLU = store[TXT].at(ANCESTRY_PREFIX + ".clu.1")
+    // val ANCESTRY_KLG = store[TXT].at(ANCESTRY_PREFIX + ".klg.1")
+    // val ANCESTRY_CLUSTER_PLOTS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.pdf")
+    // val ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.centers.pdf")
+    // val ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF = store[TXT].at(ANCESTRY_PREFIX + ".cluster_plots.no_1kg.pdf")
+    // val ANCESTRY_CLUSTER_XTABS = store[TXT].at(ANCESTRY_PREFIX + ".cluster_xtabs")
+    // val ANCESTRY_CLUSTERS_ASSIGNED = store[TXT].at(ANCESTRY_PREFIX + ".clusters_assigned")
+    // val ANCESTRY = store[TXT].at(ANCESTRY_PREFIX)
+    // 
+    // // Chunk 3
+    // val SAMPLEQC_SEXCHECK_TSV = store[TXT].at(outDir / s"${id}.sampleqc.sexcheck.tsv")
+    // val SAMPLEQC_STATS_TSV = store[TXT].at(outDir / s"${id}.sampleqc.stats.tsv")
+    // val SAMPLEQC_SEXCHECK_PROBLEMS_TSV = store[TXT].at(outDir / s"${id}.sampleqc.sexcheck.problems.tsv")
+  }
+
+  // CHUNK 1
+  
+  /**
+   * Alignment Step
+   *  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
+   *  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
+   *  Input: $vcf, $kgVcfBaseWild (VCF files, all chromosomes)
+   *  Output Needed: ${id}.chr${CHROMOSOME}.bed/bim/fam, ${id}.chr${CHROMOSOME}.harm.bed/bim/fam/log(/nosex?/hh?), merge.txt, force_a2.txt,
+   *     ${id}.harm.sample, ${id}.chr${CHROMOSOME}.harm_idUpdates.txt, ${id}.chr${CHROMOSOME}.harm_snpLog.log
+   *  Notes:
+   *     Could also add --variants and --mafAlign as pipeline options, but for now these are static
+   *     Ideally, this will be run in parallel by chromosome number
+   */
+  
+  uger {
+    for (i <- startChr to endChr) {
+      val j = i - startChr
+      val rawChrsName = outDir / s"$id.chr$i"
+      Local.rawChrs(j) = bedBimFam(rawChrsName)
+      Local.harmChrsName(j) = outDir / s"$id.chr$i.harm"
+      Local.harmChrs(j) = bedBimFam(Local.harmChrsName(j))
+      Local.kgVcfGzChrs(j) = store[VCF].at(kgVcfBaseWild.replace("[CHROMOSOME]", s"$i") + ".vcf.gz").asInput
+      Local.harmVarIdUpdates(j) = store[TXT].at(outDir / s"$id.chr$i.harm_idUpdates.txt")
+      Local.harmVarSnpLogs(j) = store[TXT].at(outDir / s"$id.chr$i.harm_snpLog.log")
+  
+      cmd"""$PLINK --vcf $vcf --chr $i --keep-allele-order --make-bed --out $rawChrsName""".in(vcf).out(Local.rawChrs(j))
+  
+      cmd"""$GENOTYPE_HARMONIZER
+        --input $rawChrsName
+        --inputType PLINK_BED
+        --output ${Local.harmChrsName(j)}
+        --outputType PLINK_BED
+        --ref ${Local.kgVcfGzChrs(j)}
+        --refType VCF
+        --keep
+        --update-id
+        --variants 1000
+        --mafAlign 0.1
+        --update-id
+        --update-reference-allele
+        --debug""".in(Local.rawChrs(j) :+ Local.kgVcfGzChrs(j)).out(Local.harmChrs(j) :+ Local.harmVarIdUpdates(j) :+ Local.harmVarSnpLogs(j))
+  
+      Local.harmMergeLines(j) = s"${Local.harmChrsName(j) + s".$bed"} ${Local.harmChrsName(j) + s".$bim"} ${Local.harmChrsName(j) + s".$fam"}"
+    }
+  
+    val harmMergeLinesConcat: String = Local.harmMergeLines.drop(1).mkString("\n") // Exclude first chrom
+  
+    cmd"""echo "$harmMergeLinesConcat" > ${Local.harmMergeList}""".out(Local.harmMergeList)
+  
+    cmd"""$PLINK --bfile ${Local.harmChrsName(0)} --merge-list ${Local.harmMergeList} --make-bed --keep-allele-order --out ${Local.harmName}""".in(Local.harmChrs.flatten :+ Local.harmMergeList).out(Local.harm)
+  
+    cmd"""awk '{print $$2,$$5}' ${Local.harmName}.bim > ${Local.harmForceA2}""".in(Local.harm).out(Local.harmForceA2)
+  
+    cmd"""$PLINK --bfile ${Local.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${Local.harmForceA2} --out ${Local.harmRefVcfName}""".in(Local.harm :+ Local.harmForceA2).out(Local.harmRefVcfGz)
+
+    cmd"""$TABIX -f -p vcf ${Local.harmRefVcfGz}""".in(Local.harmRefVcfGz).out(Local.harmRefVcfGzTbi)
+  
+    cmd"""(echo 'IID POP SUPERPOP SEX' ; awk -v v=${id} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.harmName}.fam) > ${Local.harmSample}""".in(Local.harm).out(Local.harmSample)
+  }
+  
+  // /**
+  //  * Load Step
+  //  *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
+  //  *  Requires: Hail, Java (version under which Hail was compiled)
+  //  *  Input: $harmRefVcfGz, $harmSample
+  //  *  Output Needed: ${id}.harm.ref.vds/, ${id}.harm.ref.vds.log
+  //  *  Notes:
+  //  *   Monomorphic variants are automatically removed during import into Hail
+  //  */
+  // 
+  // google {
+  //   //'--' must separate params for gcloud from those for hail
+  //   hail"""importvcf --force-bgz ${Google.harmRefVcfGz}
+  //       splitmulti
+  //       deduplicate
+	 //	annotatesamples expr -c "sa.famID = s"
+  //       annotatesamples table
+  //       --root sa.pheno
+  //       -e IID
+  //       -i ${Google.harmSample}
+  //       -t "IID: String, POP: String, SUPERPOP: String, SEX: String"
+  //       --missing "NA"
+  //       --delimiter " "
+  //       write
+  //       --overwrite -o ${Google.harmRefVds}
+  //       count
+  //       -g""".in(Google.harmRefVcfGz, Google.harmRefVcfGzTbi, Google.harmSample).out(Google.harmRefVds)
+  // }
+  // 
+  // /**
+  //  * Filter Step
+  //  *  Description: Generate filtered and filtered/pruned filesets for QC
+  //  *  Requires: Hail, Plink, Java (version under which Hail was compiled)
+  //  *  Input: $harmRefVds, $regionsExclude
+  //  *  Output: ${id}.filter.log, ${id}.variantqc.tsv, ${id}.for_qc.vds, ${id}.for_qc.pruned.vds, ${id}.for_qc.bed/bim/fam, ${id}.for_qc.prune.in, ${id}.for_qc.prune.out
+  //  *  Notes:
+  //  */
+  // 
+  // local {
+  //   googleCopy(regionsExclude, Google.regionsExclude)
+  // }
+  // 
+  // google {
+  //   hail"""read -i ${Google.harmRefVds}
+  //       variantqc
+  //       exportvariants -c "ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*"
+  //       -o ${Google.VARIANTQC_TSV}
+  //       filtervariants expr -c 'v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98' --keep
+  //       filtervariants intervals -i ${Google.regionsExclude} --remove
+  //       write
+  //       --overwrite -o ${Google.VDS_FOR_QC}
+  //       exportplink
+  //       -o ${Google.PLINK_FOR_QC_NAME }""".in(Google.harmRefVds, Google.regionsExclude).out(Google.PLINK_FOR_QC :+ Google.VDS_FOR_QC)
+  // }
+  // 
+  // local {
+  //   googleCopy(Google.PLINK_FOR_QC, Local.PLINK_FOR_QC)
+  // }
+  // 
+  // uger {
+  //   cmd"""$PLINK --bfile ${Local.PLINK_FOR_QC_NAME} --indep-pairwise 1500 150 0.2 --out ${Local.PLINK_FOR_QC_NAME}""".in(Local.PLINK_FOR_QC).out(Local.FOR_QC_PRUNE_IN, Local.FOR_QC_PRUNE_OUT)
+  // }
+  // 
+  // local {
+  //   googleCopy(Local.FOR_QC_PRUNE_IN, Google.FOR_QC_PRUNE_IN)
+  // }
+  // 
+  // google {
+  //   hail"""read -i ${Google.VDS_FOR_QC}
+  //       filtervariants list -i ${Google.FOR_QC_PRUNE_IN} --keep
+  //       write
+  //       --overwrite -o ${Google.VDS_FOR_QC_PRUNED}
+  //       exportplink
+  //       -o ${Google.PLINK_FOR_QC_PRUNED_NAME}""".in(Google.VDS_FOR_QC, Google.FOR_QC_PRUNE_IN).out(Google.PLINK_FOR_QC_PRUNED :+ Google.VDS_FOR_QC_PRUNED)
+  // }
+  // 
+  // /**
+  //  * Kinship Step
+  //  *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
+  //  *  Requires: King, R, $CALC_KINSHIP_SAMPLE_SHARING_R
+  //  *  Input: $PLINK_FOR_QC_PRUNED
+  //  *  Output: ${id}.kinshipTMP.dat, ${id}.kinshipTMP.ped, ${id}.kinship.kin, ${id}.kinship.kin0, ${id}.kinship.kin0.related, ${id}.kinship.sharing_counts.txt
+  //  *  Notes:
+  //  *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
+  //  * King only writes the '.kin0' file if families are found, so there needs to be a way to skip the second and third command if it doesn't get created
+  //  */
+  // 
+  // local {
+  //   googleCopy(Google.PLINK_FOR_QC_PRUNED, Local.PLINK_FOR_QC_PRUNED)
+  // }
+  // 
+  // uger {
+  //   cmd"""$KING -b ${Local.PLINK_FOR_QC_PRUNED_NAME}.bed --kinship --prefix ${Local.KIN_PREFIX} > ${Local.KIN_LOG}""".in(Local.PLINK_FOR_QC_PRUNED).out(Local.KIN_LOG, Local.KIN, Local.KINTMP_DAT, Local.KINTMP_PED)
+  // }
+  // 
+  // // CHUNK 2
+  // 
+  // /**
+  //   * Ancestry PCA Step
+  //   *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
+  //   *  Requires: Hail, R, $PLOT_ANCESTRY_PCA_R
+  //   *  Input: $harmRefVds, $kgVds, $kgV3purcell5kAlleleFreqs
+  //   *  Output: ${id}.ancestry.pca.log, ${id}.ancestry.pca.scores.tsv, ${id}.ancestry.pca.loadings.tsv, .${id}.ancestry.pca.scores.tsv.crc,
+  //   *     ${id}.ancestry.pca.loadings.tsv.crc ${id}.ancestry.pca.scores.plots.pdf
+  //   *  Notes:
+  //   *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
+  //   */
+  // 
+  // local {
+  //   googleCopy(kgVds, Google.kgVds, "-r")
+  //   googleCopy(kgV3purcell5kAlleleFreqs, Google.kgV3purcell5kAlleleFreqs)
+  // }
+  // 
+  // google {
+  //   hail"""read ${Google.kgVds}
+  //       put -n KG
+  //       read -i ${Google.harmRefVds}
+  //       join --right KG
+  //       annotatevariants table ${Google.kgV3purcell5kAlleleFreqs}
+  //       -e Variant
+  //       -c "va.refPanelAF = table.refPanelAF"
+  //       --impute
+  //       pca -k 10
+  //       --scores sa.pca.scores
+  //       --eigenvalues global.pca.evals
+  //       --loadings va.pca.loadings
+  //       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10"
+  //       -o ${Google.ANCESTRYPCA_SCORES_TSV}
+  //       exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
+  //       -o ${Google.ANCESTRYPCA_LOADINGS_TSV}
+  //     """.in(Google.kgVds, Google.harmRefVds, Google.kgV3purcell5kAlleleFreqs).out(Google.ANCESTRYPCA_SCORES_TSV, Google.ANCESTRYPCA_LOADINGS_TSV)
+  // }
+  // 
+  // local {
+  //   googleCopy(Google.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRYPCA_SCORES_TSV)
+  // }
+  // 
+  // uger {
+  //   cmd"""$R --vanilla --args ${Local.ANCESTRYPCA_SCORES_TSV} ${Local.ANCESTRYPCA_SCORES_PLOTS_PDF} < $PLOT_ANCESTRY_PCA_R""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRYPCA_SCORES_PLOTS_PDF)
+  // 
+  //   /**
+  //    * Ancestry Cluster Step
+  //    *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
+  //    *  Requires: Hail, R, $PLOT_ANCESTRY_CLUSTER_R, $id, $phenoId, $phenoSrRace
+  //    *  Input: ${id}.ancestry.pca.scores.tsv, $pheno
+  //    *  Output: ${id}.ancestry.fet.1, ${id}.ancestry.temp.clu.1, ${id}.ancestry.clu.1, ${id}.ancestry.klg.1, ${id}.ancestry.cluster_plots.pdf,
+  //    *     ${id}.ancestry.cluster_xtabs, ${id}.ancestry.cluster_plots.centers.pdf, ${id}.ancestry.clusters_assigned, ${id}.ancestry
+  //    *  Notes:
+  //    *     ${id}.ancestry contains the final inferred ancestry for each sample, including OUTLIERS
+  //    *     This file may be updated after reconciling with other arrays
+  //    */
+  // 
+  //   cmd"""(echo 10 ; sed '1d' ${Local.ANCESTRYPCA_SCORES_TSV} | cut -f5- | sed 's/\t/ /g') > ${Local.ANCESTRY_FET}""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRY_FET).using("GCC-5.2")
+  // 
+  //   cmd"""${KLUSTAKWIK} ${Local.ANCESTRY_PREFIX} 1 -UseFeatures 1110000000 -UseDistributional 0 > ${Local.ANCESTRYCLUSTER_LOG}""".in(Local.ANCESTRY_FET).out(Local.ANCESTRY_TEMP_CLU, Local.ANCESTRY_CLU, Local.ANCESTRY_KLG)
+  // 
+  //   cmd"""$R --vanilla --args ${Local.ANCESTRYPCA_SCORES_TSV} ${Local.ANCESTRY_CLU} $pheno $id $phenoId $phenoSrRace 
+  //     ${Local.ANCESTRY_CLUSTER_PLOTS_PDF} ${Local.ANCESTRY_CLUSTER_XTABS} ${Local.ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF}
+  //     ${Local.ANCESTRY_CLUSTERS_ASSIGNED} ${Local.ANCESTRY} ${Local.ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF} 
+  //     < $PLOT_ANCESTRY_CLUSTER_R"""
+  //     .in(Local.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRY_CLU, pheno)
+  //     .out(Local.ANCESTRY_CLUSTER_PLOTS_PDF, Local.ANCESTRY_CLUSTER_XTABS, Local.ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF,
+  //     Local.ANCESTRY_CLUSTERS_ASSIGNED, Local.ANCESTRY, Local.ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
+  // }
+  // 
+  // /**
+  //  * Non-Outlier PCA Step
+  //  *  Description: Calculate PCs for all non-outlier samples combined (to be used for adjustment during sample outlier removal)
+  //  *  Requires: Hail
+  //  *  Input: $VDS_FOR_QC_PRUNED, $ANCESTRY
+  //  *  Output: ${id}.pca.log, ${id}.pca.scores.tsv, ${id}.pca.loadings.tsv, .${id}.pca.scores.tsv.crc,
+  //  *     ${id}.pca.loadings.tsv.crc
+  //  *  Notes:
+  //  */
+  // 
+  // local {
+  //   googleCopy(Local.ANCESTRY, Google.ANCESTRY)
+  // }
+  // 
+  // google {
+  //   hail"""read ${Google.VDS_FOR_QC_PRUNED}
+  //       annotatesamples table
+  //       -i ${Google.ANCESTRY}
+  //       --no-header
+  //       -e _0
+  //       --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
+  //       filtersamples expr -c "sa.pheno.SUPERPOP != \"OUTLIERS\"" --keep
+  //       pca -k 10
+  //       --scores sa.pca.scores
+  //       --eigenvalues global.pca.evals
+  //       --loadings va.pca.loadings
+  //       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10"
+  //       -o ${Google.NONOUTLIERPCA_SCORES_TSV}
+  //       exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
+  //       -o ${Google.NONOUTLIERPCA_LOADINGS_TSV}
+  //     """.in(Google.VDS_FOR_QC_PRUNED, Google.ANCESTRY).out(Google.NONOUTLIERPCA_SCORES_TSV, Google.NONOUTLIERPCA_LOADINGS_TSV)
+  // }
+  // 
+  // local {
+  //   googleCopy(Google.NONOUTLIERPCA_SCORES_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
+  //   googleCopy(Google.NONOUTLIERPCA_LOADINGS_TSV, Local.NONOUTLIERPCA_LOADINGS_TSV)
+  // }
+  // 
+  // // CHUNK 3
+  // 
+  // /**
+  //  * Sample QC Stats Calculation Step
+  //  *  Description: Calculate sexcheck and sample by variant statistics for all samples
+  //  *  Requires: Hail, R
+  //  *  Input: $VDS_FOR_QC, $ANCESTRY, $NONOUTLIERPCA_SCORES_TSV
+  //  *  Output: ${id}.sampleqc.log, ${id}.sampleqc.sexcheck.tsv, ${id}.sampleqc.stats.tsv, ${id}.sampleqc.sexcheck.problems.tsv,
+  //  *     ${id}.sampleqc.stats.adj.tsv, ${id}.sampleqc.stats.adj.corr.pdf, ${id}.sampleqc.stats.adj.pca.loadings.tsv, ${id}.sampleqc.stats.adj.pcs.pdf,
+  //  *     ${id}.sampleqc.stats.adj.pca.scores.tsv
+  //  * Notes:
+  //  */
+  // 
+  // val SAMPLEQC_STATS_ADJ_TSV_PATH = outDir / s"${id}.sampleqc.stats.adj.tsv"
+  // val SAMPLEQC_STATS_ADJ_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_TSV_PATH)
+  // 
+  // val SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF = store[TXT].at(outDir / s"${id}.sampleqc.stats.adj.corr.pdf")
+  // val SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV = store[TXT].at(outDir / s"${id}.sampleqc.stats.adj.pca.loadings.tsv")
+  // val SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF = store[TXT].at(outDir / s"${id}.sampleqc.stats.adj.pca.plots.pdf")
+  // 
+  // val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH: Path = outDir / s"${id}.sampleqc.stats.adj.pca.scores.tsv"
+  // val SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV_PATH)
+  // 
+  // google {
+  //   hail"""read ${Google.VDS_FOR_QC}
+  //       annotatesamples table
+  //       -i ${Google.ANCESTRY}
+  //       --no-header
+  //       -e _0
+  //       --code "sa.pheno.IID = table._0, sa.pheno.POP = table._1, sa.pheno.SUPERPOP = table._1"
+  //       filtersamples expr -c 'sa.pheno.SUPERPOP != "OUTLIERS"' --keep
+  //       imputesex
+  //       annotatesamples expr -c 'sa.sexcheck = if((sa.pheno.SEX == "female" && ! isMissing(sa.imputesex.isFemale) && sa.imputesex.isFemale) || (sa.pheno.SEX == "male" && ! isMissing(sa.imputesex.isFemale) && ! sa.imputesex.isFemale)) "OK" else "PROBLEM"'
+  //       sampleqc
+  //       variantqc
+  //       annotatesamples expr -c "sa.qc.nHetLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isHet).count(), sa.qc.nHetHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isHet).count(), sa.qc.nCalledLow = gs.filter(v => va.qc.AF < 0.03).filter(g => g.isCalled).count(), sa.qc.nCalledHigh = gs.filter(v => va.qc.AF >= 0.03).filter(g => g.isCalled).count()"
+  //       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+  //       -o ${Google.SAMPLEQC_SEXCHECK_TSV}
+  //       exportsamples -c "IID = sa.pheno.IID, nNonRef = sa.qc.nNonRef, nHet = sa.qc.nHet, nCalled = sa.qc.nCalled, callRate = sa.qc.callRate, nSingleton = sa.qc.nSingleton, rTiTv = sa.qc.rTiTv, het = sa.qc.nHet / sa.qc.nCalled, hetLow = sa.qc.nHetLow / sa.qc.nCalledLow, hetHigh = sa.qc.nHetHigh / sa.qc.nCalledHigh, nHomVar = sa.qc.nHomVar, rHetHomVar = sa.qc.rHetHomVar"
+  //       -o ${Google.SAMPLEQC_STATS_TSV}
+  //       filtersamples expr -c 'sa.sexcheck == "PROBLEM"' --keep
+  //       exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, sa.imputesex.*, sexCheck = sa.sexcheck"
+  //       -o ${Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV}""".in(Google.VDS_FOR_QC, Google.ANCESTRY)
+  //       .out(Google.SAMPLEQC_SEXCHECK_TSV, Google.SAMPLEQC_STATS_TSV, Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+  // }
+  // 
+  // local {
+  //   googleCopy(Google.SAMPLEQC_SEXCHECK_TSV, Local.SAMPLEQC_SEXCHECK_TSV)
+  //   googleCopy(Google.SAMPLEQC_STATS_TSV, Local.SAMPLEQC_STATS_TSV)
+  //   googleCopy(Google.SAMPLEQC_SEXCHECK_PROBLEMS_TSV, Local.SAMPLEQC_SEXCHECK_PROBLEMS_TSV)
+  // }
+  // 
+  // uger {
+  //   cmd"""$R --vanilla --args ${Local.SAMPLEQC_STATS_TSV} ${Local.NONOUTLIERPCA_SCORES_TSV}
+  //     $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(Local.SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
+  //   .out(SAMPLEQC_STATS_ADJ_TSV)
+  // 
+  //   cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF
+  //     $SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV $SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF
+  //     $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV < $ISTATS_ADJ_PCA_R""".in(SAMPLEQC_STATS_ADJ_TSV)
+  //   .out(SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV, SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF,
+  //     SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
+  // }
+  // 
+  // /**
+  //  * Sample QC PCA Clustering Step
+  //  *  Description: Cluster PCs of adjusted sample QC metrics
+  //  *  Requires: Klustakwik, R
+  //  *  Input: $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, $SAMPLEQC_STATS_ADJ_TSV
+  //  *  Output: ${id}.sampleqc.stats.adj.fet.1, ${id}.sampleqc.stats.adj.clu.1, ${id}.sampleqc.stats.adj.temp.clu.1, ${id}.sampleqc.stats.adj.klg.1,
+  //  *     ${id}.sampleqc.stats.adj.pca.outliers.tsv, ${id}.sampleqc.stats.adj.pca.clusters.plot.pdf, ${id}.sampleqc.stats.adj.pca.clusters.xtab,
+  //  *     ${id}.sampleqc.stats.adj.stripchart.pdf
+  //  * Notes:
+  //  */
+  // 
+  // val SAMPLEQC_STATS_ADJ_BASE = outDir / s"${id}.sampleqc.stats.adj"
+  // val sampleQcPcaKlustakwikStores = KlustakwikStores(SAMPLEQC_STATS_ADJ_BASE)
+  // val SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.outliers.tsv")
+  // val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.clusters.plots.pdf")
+  // val SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".pca.clusters.xtab")
+  // val SAMPLEQC_STATS_ADJ_STRIPCHART_PDF = store[TXT].at(SAMPLEQC_STATS_ADJ_BASE + ".stripchart.pdf")
+  // 
+  // uger {
+  //   cmd"""N=$$(head -1 $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | wc | awk '{print $$2-1}');
+  //     echo $$N > ${sampleQcPcaKlustakwikStores.fet};
+  //     sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> ${sampleQcPcaKlustakwikStores.fet};
+  //     FEATURES=1; for i in $$(seq 2 $$n); do FEATURES=$${FEATURES}1; done;
+  //     $KLUSTAKWIK ${sampleQcPcaKlustakwikStores.base} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
+  //     ${sampleQcPcaKlustakwikStores.klustakwikLog}"""
+  //   .in(sampleQcPcaKlustakwikStores.inputs + SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
+  //   .out(sampleQcPcaKlustakwikStores.outputs)
+  // 
+  //   cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV ${sampleQcPcaKlustakwikStores.clu}
+  //     $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF
+  //     $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $id < $ISTATS_PCS_GMM_CLUSTER_PLOT_R"""
+  //   .in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, sampleQcPcaKlustakwikStores.clu)
+  //   .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF,
+  //     SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB)
+  // 
+  //   cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
+  //     $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $ISTATS_PCS_GMM_PLOT_METRICS_R"""
+  //   .in(SAMPLEQC_STATS_ADJ_TSV, SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV).out(SAMPLEQC_STATS_ADJ_STRIPCHART_PDF)
+  // }
+  // 
+  // /**
+  //  * Sample QC Individual Stats Clustering Step
+  //  *  Description: Cluster PCs of adjusted sample QC metrics
+  //  *  Requires: Klustakwik, R
+  //  *  Input: $SAMPLEQC_STATS_TSV, $SAMPLEQC_STATS_ADJ_TSV, $SAMPLEQC_STATS_ADJ_TSV, $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, $ANCESTRY
+  //  *  Output: ${id}.sampleqc.stats.adj.*.fet.1, ${id}.sampleqc.stats.adj.*.clu.1, ${id}.sampleqc.stats.adj.*.temp.clu.1, ${id}.sampleqc.stats.adj.*.klg.1,
+  //  *     ${id}.sampleqc.stats.adj.*.klustakwik.log, ${id}.sampleqc.stats.adj.individual.boxplot.pdf, ${id}.sampleqc.stats.adj.individual.discreteness,
+  //  *     ${id}.sampleqc.stats.adj.individual.outliers.table, ${id}.sampleqc.stats.adj.individual.outliers.remove, ${id}.sampleqc.stats.adj.individual.stripchart.pdf
+  //  * Notes:
+  //  */
+  // 
+  // val sampleQcKlustakwikStores: Seq[KlustakwikStores] = {
+  //   uger {
+  //     (1 to Common.nSampleQcMetrics).map { metricIndex =>
+  //       val stores = KlustakwikStores(outDir / s"${id}.sampleqc.stats.adj.${metricIndex}")
+  //       
+  //       cmd"""echo 1 > ${stores.fet};
+  //         sed '1d' $SAMPLEQC_STATS_ADJ_TSV | awk -v col=${metricIndex+1} '{print $$col}' >> ${stores.fet};
+  //         ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${metricIndex+1}); echo $$ID
+  //         > ${stores.metricIds}""".in(SAMPLEQC_STATS_ADJ_TSV).out(stores.fet, stores.metricIds)
+  // 
+  //       cmd"""$KLUSTAKWIK ${stores.base} 1 -UseFeatures 1 -UseDistributional 0 > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
+  // 
+  //       stores
+  //     }
+  //   }
+  // }
+  // 
+  // val SAMPLEQC_CLU1_WILD = (outDir / s"${id}.sampleqc.stats.adj.[[STAR]].clu.1").toString.replace("[[STAR]]", "*")
+  // val SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF = store[TXT].at(outDir / s"${id}.sampleqc.stats.adj.individual.boxplot.pdf")
+  // val SAMPLEQC_STATS_ADJ_IND_DISCRETENESS = store[TXT].at(outDir / s"${id}.sampleqc.stats.adj.individual.discreteness")
+  // val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE = store[TXT].at(outDir / s"${id}.sampleqc.stats.adj.individual.outliers.table")
+  // val SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE = store[TXT].at(outDir / s"${id}.sampleqc.stats.adj.individual.outliers.remove")
+  // val SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF = store[TXT].at(outDir / s"${id}.sampleqc.stats.adj.individual.stripchart.pdf")
+  // 
+  // uger {
+  //   cmd"""$R --vanilla --args
+  //     "$SAMPLEQC_CLU1_WILD"
+  //     ${Local.SAMPLEQC_STATS_TSV}
+  //     $SAMPLEQC_STATS_ADJ_TSV
+  //     $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
+  //     $SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF
+  //     $SAMPLEQC_STATS_ADJ_IND_DISCRETENESS
+  //     $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE
+  //     $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
+  //     $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
+  //     ${Local.ANCESTRY}
+  //     < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
+  //   .in(sampleQcKlustakwikStores.map(_.clu) ++ sampleQcKlustakwikStores.map(_.metricIds) :+ Local.SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY
+  //       :+ SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV)
+  //   .out(SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE,
+  //      SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE, SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF)
+  // }
+}

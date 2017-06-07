@@ -1,5 +1,5 @@
  /** Regions to exclude from QC (high LD / associated with T2D) */
-val regionsExclude = store[TXT].at("/humgen/diabetes/users/dig/loamstream/pipeline/QCpipeline/example/bash/files/regions.exclude").asInput
+val regionsExclude = store[TXT].at("/humgen/diabetes/users/ryank/pipeline/regions_exclude/regions.exclude").asInput
 
 /** 1KG PCA input */
 val kgV3purcell5kAlleleFreqs = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/allele_frequencies.tsv").asInput

@@ -20,6 +20,7 @@ lazy val Versions = new {
   val RxScala = "0.26.5"
   val Ficus = "1.4.0"
   val Squants = "1.2.0"
+  val wdl4s = "0.13-4804734-SNAP"
 }
 
 lazy val mainDeps = Seq(
@@ -40,7 +41,8 @@ lazy val mainDeps = Seq(
   "com.google.cloud" % "google-cloud-storage" % Versions.GoogleCloudStorage,
   "com.google.auth" % "google-auth-library-credentials" % Versions.GoogleAuth,
   "com.iheart" %% "ficus" % Versions.Ficus,
-  "org.typelevel"  %% "squants"  % Versions.Squants 
+  "org.typelevel"  %% "squants"  % Versions.Squants,
+  "org.broadinstitute" % "wdl4s_2.11" % Versions.wdl4s
 )
 
 lazy val testDeps = Seq(
@@ -53,7 +55,9 @@ lazy val commonSettings = Seq(
   scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
-    Resolver.sonatypeRepo("snapshots")
+    Resolver.sonatypeRepo("snapshots"),
+    "Broad Artifactory Releases" at "https://broadinstitute.jfrog.io/broadinstitute/libs-release/",
+    "Broad Artifactory Snapshots" at "https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot/"
   ),
   libraryDependencies ++= (mainDeps ++ testDeps),
   scalastyleFailOnError := true

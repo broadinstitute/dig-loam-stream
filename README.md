@@ -1,13 +1,17 @@
 # LoamStream
 LoamStream is a genomic analysis stack featuring a high-level language, compiler and runtime engine.
 
-## Build
-
-  - Clone repository at https://github.com/broadinstitute/dig-loam-stream
-  - In LoamStream directory, built with `sbt universal:packageBin`.
-    This creates target/universal/loamstream-1.2.zip which contains the launch script bin/loamstream.
+## Building
+### Requirements
+  - Git
+  - Java 8
+  - SBT 0.13.13+
+### To build a runnable LoamStream binary from the master branch:
+  - Clone the repository at https://github.com/broadinstitute/dig-loam-stream
+  - In the directory created by the clone operation (dig-loam-stream by default), run `sbt universal:packageBin`.
+    This creates target/universal/loamstream-<version>.zip which contains the launch script bin/loamstream.
     (There's also bin/loamstream.bat for Windows, but since most analysis tools are written for Unix-like systems, 
-    this is typically less usefull)
+    this is typically less useful.)
 
 ## Jenkins:
   - URL: http://dig-ae-dev-01:8080/

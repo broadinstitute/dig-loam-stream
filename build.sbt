@@ -79,6 +79,7 @@ lazy val root = (project in file("."))
   ).enablePlugins(JavaAppPackaging)
 
 lazy val webui = (project in file("webui"))
+  .configs(IntegrationTest)
   .dependsOn(root)
   .enablePlugins(PlayScala)
   .settings(commonSettings: _*)

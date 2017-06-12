@@ -7,6 +7,7 @@ import loamstream.conf.{ExecutionConfig, LoamConfig}
 import loamstream.loam.{LoamCmdTool, LoamProjectContext, LoamScriptContext, LoamToolBox}
 import loamstream.model.jobs.commandline.CommandLineJob
 import org.scalatest.FunSuite
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
   * @author clint
@@ -18,16 +19,69 @@ final class HailSupportTest extends FunSuite {
 
   private val projectContext = LoamProjectContext.empty(config)
 
-  private[this] implicit val scriptContext = new LoamScriptContext(projectContext)
+  private[this] implicit val scriptContext = {
+    val sc = new LoamScriptContext(projectContext)
+    
+    sc.executionEnvironment = ExecutionEnvironment.Google
+    
+    sc
+  }
 
   // scalastyle:off line.size.limit
   private val sep = File.separator
   private val gCloudPath = s"${sep}path${sep}to${sep}gcloud"
-  private val googlePrefix = s"$gCloudPath dataproc jobs submit spark --cluster some-cluster-id --jar gs://some-bucket/hail-all-spark.jar --class org.broadinstitute.hail.driver.Main -- "
+  private val googlePrefix = s"""$gCloudPath dataproc jobs submit pyspark --cluster=some-cluster-id --files=gs://some-bucket/hail-all-spark.jar --py-files=gs://some-bucket/hail-all.zip --properties="spark.driver.extraClassPath=./hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar" """
   // scalastyle:on line.size.limit
 
   import HailSupport._
 
+  test("Guards: executionEnvironment") {
+    withScriptContext(LoamProjectContext.empty(config)) { implicit scriptContext => 
+    
+      scriptContext.executionEnvironment = ExecutionEnvironment.Google
+      
+      hail""
+      
+      scriptContext.executionEnvironment = ExecutionEnvironment.Local
+      
+      intercept[Exception] {
+        hail""
+      }
+      
+      scriptContext.executionEnvironment = ExecutionEnvironment.Uger
+      
+      intercept[Exception] {
+        hail""
+      }
+    
+      scriptContext.executionEnvironment = ExecutionEnvironment.Google
+      
+      hail""
+    }
+  }
+  
+  test("Guards: config sections") {
+    withScriptContext(LoamProjectContext.empty(config)) { implicit scriptContext =>
+      hail""
+    }
+    
+    val noGoogleConfig = config.copy(googleConfig = None)
+    
+    withScriptContext(LoamProjectContext.empty(noGoogleConfig)) { implicit scriptContext =>
+      intercept[Exception] {
+        hail""
+      }
+    }
+    
+    val noHailConfig = config.copy(hailConfig = None)
+    
+    withScriptContext(LoamProjectContext.empty(noHailConfig)) { implicit scriptContext =>
+      intercept[Exception] {
+        hail""
+      }
+    }
+  }
+  
   test("Hail interpolator works with an empty command") {
     val expectedCommandLine = googlePrefix
 
@@ -106,6 +160,19 @@ final class HailSupportTest extends FunSuite {
 
     assert(collapseWhitespace(job.commandLineString) === collapseWhitespace(expectedCommandLine))
   }
+  
+  import ExecutionEnvironment.Google
+  
+  private def withScriptContext[A](
+      projectContext: LoamProjectContext,
+      initialExecutionEnvironment: ExecutionEnvironment = Google)(f: LoamScriptContext => A): A = {
+    
+    val scriptContext = new LoamScriptContext(projectContext)
+    
+    scriptContext.executionEnvironment = initialExecutionEnvironment
+    
+    f(scriptContext)
+  }
 
   private lazy val config: LoamConfig = {
     val configString =
@@ -119,6 +186,7 @@ final class HailSupportTest extends FunSuite {
 
           hail {
             jar = "gs://some-bucket/hail-all-spark.jar"
+            zip = "gs://some-bucket/hail-all.zip"
           }
         }
       }"""

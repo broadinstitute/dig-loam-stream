@@ -84,7 +84,11 @@ object CloudSdkDataProcClient extends Loggable {
         "--scopes",
         config.scopes,
         "--project",
-        config.projectId)
+        config.projectId,
+        "--properties",
+        config.properties,
+        "--initialization-actions",
+        config.initializationActions)
   }
   
   private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(args: String*): Seq[String] = {
@@ -100,9 +104,10 @@ object CloudSdkDataProcClient extends Loggable {
     
     import scala.sys.process._
 
-    // STDERR messages aren't logged as 'error' because 'gcloud' appears to write a lot of non-error
-    // messages to STDERR
-    val processLogger = ProcessLogger(line => info(s"STDOUT: $line"), line => info(s"STDERR: $line"))
+    // STDERR messages aren't logged as 'error' because 'gcloud' writes a lot of non-error messages to STDERR
+    val processLogger = ProcessLogger(
+        line => info(s"Google Cloud SDK: $line"), 
+        line => info(s"Google Cloud SDK (via stderr): $line"))
     
     val result = Process(tokens).!(processLogger)
     

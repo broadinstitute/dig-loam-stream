@@ -26,7 +26,9 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       workerMachineType = "wmt",
       workerBootDiskSize = 17,
       imageVersion = "42.2.1.0",
-      scopes = "ses")
+      scopes = "ses",
+      properties = "p,r,o,p,s",
+      initializationActions = "gs://example.com/blah/foo.sh")
   
   private val examplePath = PathUtils.newAbsolute("foo", "bar", "baz")
       
@@ -128,7 +130,11 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       "--scopes",
       config.scopes,
       "--project",
-      config.projectId)
+      config.projectId,
+      "--properties",
+      config.properties,
+      "--initialization-actions",
+      config.initializationActions)
     
     assert(tokens === expected)
   }

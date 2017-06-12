@@ -9,21 +9,30 @@ import com.typesafe.config.ConfigFactory
  * Feb 24, 2017
  */
 final class HailConfigTest extends FunSuite {
+  test("jarFile") {
+    val jar = new URI("gs://foo/bar/baz")
+    val zip = new URI("gs://blerg/zerg/flerg")
+    
+    assert(HailConfig(jar, zip).jarFile === "baz")
+  }
+  
   test("fromConfig - good input") {
-    val uri = new URI("gs://foo/bar/baz")
+    val jar = new URI("gs://foo/bar/baz")
+    val zip = new URI("gs://blerg/zerg/flerg")
     
     val configString = s"""
       loamstream {
         googlecloud {
           hail {
-            jar = "$uri"
+            jar = "$jar"
+            zip = "$zip"
           }
         }
       }"""
             
     val actual = HailConfig.fromConfig(ConfigFactory.parseString(configString)).get
     
-    assert(actual === HailConfig(uri))
+    assert(actual === HailConfig(jar, zip))
   }
   
   test("fromConfig - bad input") {
@@ -41,12 +50,50 @@ final class HailConfigTest extends FunSuite {
             }
           }
         }""")
+    
+    doTest(s"""
+        loamstream {
+          googlecloud {
+            hail {
+              zip = "kasjdhkajsdh"
+            }
+          }
+        }""")
+        
+    doTest(s"""
+        loamstream {
+          googlecloud {
+            hail {
+              jar = "kasjdhkajsdh"
+              zip = "kasjdhkajsdh"
+            }
+          }
+        }""")
         
     doTest(s"""
         loamstream {
           googlecloud {
             hail {
               jar = ""
+            }
+          }
+        }""")
+        
+    doTest(s"""
+        loamstream {
+          googlecloud {
+            hail {
+              zip = ""
+            }
+          }
+        }""")
+    
+    doTest(s"""
+        loamstream {
+          googlecloud {
+            hail {
+              jar = ""
+              zip = ""
             }
           }
         }""")

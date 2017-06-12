@@ -9,7 +9,9 @@ import loamstream.conf.ValueReaders
  * @author clint
  * Feb 22, 2017
  */
-final case class HailConfig(jar: URI) 
+final case class HailConfig(jar: URI, zip: URI) {
+  def jarFile: String = jar.getPath.split("/").last
+}
 
 object HailConfig {
   def fromConfig(config: Config): Try[HailConfig] = {

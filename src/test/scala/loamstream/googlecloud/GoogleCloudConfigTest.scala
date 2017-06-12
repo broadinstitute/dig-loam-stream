@@ -22,6 +22,8 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val workerBootDiskSize = 17
   private val imageVersion = "iv"
   private val scopes = "ses"
+  private val properties = "p,r,o,p,s"
+  private val initializationActions = "gs://example.com/foo.sh"
   
   test("fromConfig - defaults used") {
     val confString = s"""loamstream {
@@ -53,6 +55,8 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.workerBootDiskSize === Defaults.workerBootDiskSize)
     assert(gConfig.imageVersion === Defaults.imageVersion)
     assert(gConfig.scopes === Defaults.scopes)
+    assert(gConfig.properties === Defaults.properties)
+    assert(gConfig.initializationActions === Defaults.initializationActions)
   }
   
   test("fromConfig - bad input") {
@@ -86,6 +90,8 @@ final class GoogleCloudConfigTest extends FunSuite {
           workerBootDiskSize = $workerBootDiskSize
           imageVersion = "$imageVersion"
           scopes = "$scopes"
+          properties = "$properties"
+          initializationActions = "$initializationActions"
         }
       }"""
           
@@ -104,5 +110,7 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.workerBootDiskSize === workerBootDiskSize)
     assert(gConfig.imageVersion === imageVersion)
     assert(gConfig.scopes === scopes)
+    assert(gConfig.properties === properties)
+    assert(gConfig.initializationActions === initializationActions)
   }
 }

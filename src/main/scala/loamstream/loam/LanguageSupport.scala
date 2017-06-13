@@ -34,7 +34,7 @@ object LanguageSupport {
   object R extends LanguageSupport {
     private def rConfig(implicit scriptContext: LoamScriptContext): RConfig = {
       require(
-        super.config.rConfig.isDefined,
+        config.rConfig.isDefined,
         s"R support requires a valid 'loamstream.r' section in the config file")
 
       config.rConfig.get
@@ -57,9 +57,12 @@ object LanguageSupport {
       def r(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
         import LoamCmdTool._
 
-        val scriptContent = LoamCmdTool.create(args: _*)(StringUtils.assimilateLineBreaks)(scriptContext, stringContext)
-                                       .commandLine
+        val scriptContent = {
+          LoamCmdTool.create(args: _*)(StringUtils.assimilateLineBreaks)(scriptContext, stringContext).commandLine
+        }
+        
         val scriptFile = determineScriptFile("R", "r", rConfig.scriptDir)
+        
         Files.writeTo(scriptFile)(scriptContent)
 
         cmd"${rConfig.binary} $scriptFile"
@@ -70,7 +73,7 @@ object LanguageSupport {
   object Python extends LanguageSupport {
     private def pythonConfig(implicit scriptContext: LoamScriptContext): PythonConfig = {
       require(
-        super.config.pythonConfig.isDefined,
+        config.pythonConfig.isDefined,
         s"Python support requires a valid 'loamstream.python' section in the config file")
 
       config.pythonConfig.get
@@ -93,9 +96,12 @@ object LanguageSupport {
       def python(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
         import LoamCmdTool._
 
-        val scriptContent = LoamCmdTool.create(args: _*)(StringUtils.assimilateLineBreaks)(scriptContext, stringContext)
-                                       .commandLine
+        val scriptContent = {
+          LoamCmdTool.create(args: _*)(StringUtils.assimilateLineBreaks)(scriptContext, stringContext).commandLine
+        }
+        
         val scriptFile = determineScriptFile("python", "py", pythonConfig.scriptDir)
+        
         Files.writeTo(scriptFile)(scriptContent)
 
         cmd"${pythonConfig.binary} $scriptFile"

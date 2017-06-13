@@ -37,7 +37,7 @@ object GoogleCloudConfig {
     val numWorkers: Int = 2
     val workerMachineType: String = "n1-standard-1"
     val workerBootDiskSize: Int = 20 // in GB
-    val imageVersion: String = "1.0" // 2.x not supported by Hail
+    val imageVersion: String = "1.1" // 2.x not supported by Hail, 1.1 needed for new Python API
     val scopes: String = "https://www.googleapis.com/auth/cloud-platform"
     val properties: String = {
       "spark:spark.driver.extraJavaOptions=-Xss4M,spark:spark.executor.extraJavaOptions=-Xss4M," +

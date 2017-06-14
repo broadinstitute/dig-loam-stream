@@ -3,6 +3,7 @@ package loamstream.googlecloud
 import org.scalatest.FunSuite
 import java.net.URI
 import com.typesafe.config.ConfigFactory
+import java.nio.file.Paths
 
 /**
  * @author clint
@@ -16,7 +17,7 @@ final class HailConfigTest extends FunSuite {
     assert(HailConfig(jar, zip).jarFile === "baz")
   }
   
-  test("fromConfig - good input") {
+  test("fromConfig - good input, defaults used") {
     val jar = new URI("gs://foo/bar/baz")
     val zip = new URI("gs://blerg/zerg/flerg")
     
@@ -32,7 +33,28 @@ final class HailConfigTest extends FunSuite {
             
     val actual = HailConfig.fromConfig(ConfigFactory.parseString(configString)).get
     
-    assert(actual === HailConfig(jar, zip))
+    assert(actual === HailConfig(jar, zip, HailConfig.Defaults.scriptDir))
+  }
+  
+  test("fromConfig - good input, NO defaults used") {
+    val jar = new URI("gs://foo/bar/baz")
+    val zip = new URI("gs://blerg/zerg/flerg")
+    val scriptDir = Paths.get("/foo/bar/baz")
+    
+    val configString = s"""
+      loamstream {
+        googlecloud {
+          hail {
+            jar = "$jar"
+            zip = "$zip"
+            scriptDir = "$scriptDir"
+          }
+        }
+      }"""
+            
+    val actual = HailConfig.fromConfig(ConfigFactory.parseString(configString)).get
+    
+    assert(actual === HailConfig(jar, zip, scriptDir))
   }
   
   test("fromConfig - bad input") {

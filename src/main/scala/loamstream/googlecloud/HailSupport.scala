@@ -2,6 +2,9 @@ package loamstream.googlecloud
 
 import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamScriptContext
+import loamstream.util.StringUtils
+import loamstream.loam.LanguageSupport
+import loamstream.util.Files
 
 /**
  * @author clint
@@ -13,24 +16,19 @@ object HailSupport {
    * Gets Google Cloud and Hail config info from scriptContext.projectContext.config .
    */
   implicit final class StringContextWithHail(val stringContext: StringContext) extends AnyVal {
-    def hail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+    def pyhail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+      import LanguageSupport.{determineScriptFile, makeScriptContent, makeScript, GeneratedScriptParams}
       
-      def config = scriptContext.projectContext.config
+      val scriptFile = makeScript(stringContext, GeneratedScriptParams("pyhail", "py", hailConfig.scriptDir), args: _*)
+      
+      hail"$scriptFile"
+    }
+    
+    def hail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       
       require(
           scriptContext.executionEnvironment.isGoogle, 
           """hail"..." interpolators must be in google { ... } blocks""")
-      
-      require(
-          config.googleConfig.isDefined, 
-          s"Hail support requires a valid 'loamstream.googlecloud' section in the config file")
-          
-      require(
-          config.hailConfig.isDefined,
-          s"Hail support requires a valid 'loamstream.googlecloud.hail' section in the config file")
-      
-      val googleConfig = scriptContext.projectContext.config.googleConfig.get
-      val hailConfig = scriptContext.projectContext.config.hailConfig.get
       
       val jarFile = hailConfig.jarFile
       
@@ -64,5 +62,23 @@ object HailSupport {
       
       LoamCmdTool.StringContextWithCmd(StringContext(newParts: _*)).cmd(newArgs: _*)
     }
+  }
+  
+  import LanguageSupport.config  
+    
+  private def hailConfig(implicit scriptContext: LoamScriptContext) = {
+    require(
+        config.hailConfig.isDefined,
+        s"Hail support requires a valid 'loamstream.googlecloud.hail' section in the config file")
+    
+    config.hailConfig.get
+  }
+  
+  private def googleConfig(implicit scriptContext: LoamScriptContext) = {
+    require(
+        config.googleConfig.isDefined, 
+        s"Hail support requires a valid 'loamstream.googlecloud' section in the config file")
+    
+    config.googleConfig.get
   }
 }

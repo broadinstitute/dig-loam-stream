@@ -1,6 +1,6 @@
 package loamstream.db.slick
 
-import slick.driver.JdbcProfile
+import slick.jdbc.JdbcProfile
 
 /**
  * @author clint
@@ -14,7 +14,7 @@ trait DbType {
 
 object DbType {
   object H2 extends DbType {
-    override val driver: JdbcProfile = slick.driver.H2Driver
+    override val driver: JdbcProfile = slick.jdbc.H2Profile
   
     override val jdbcDriverClass: String = "org.h2.Driver"
   }

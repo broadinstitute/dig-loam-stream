@@ -10,7 +10,8 @@ lazy val Versions = new {
   val Htsjdk = "2.1.0"
   val LogBack = "1.1.6"
   val Scala = "2.11.11"
-  val Scalariform = "0.1.8"
+  val ScalaFmt = "1.0.0-RC3"
+
   val ScalaMajor = "2.11"
   val ScalaTest = "3.0.0"
   val Scallop = "2.1.3"
@@ -26,7 +27,7 @@ lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-library" % Versions.Scala,
   "org.scala-lang" % "scala-compiler" % Versions.Scala,
   "org.scala-lang" % "scala-reflect" % Versions.Scala,
-  "org.scalariform" %% "scalariform" % Versions.Scalariform,
+  "com.geirsson" %% "scalafmt-core" % Versions.ScalaFmt,
   "com.github.samtools" % "htsjdk" % Versions.Htsjdk,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
   "us.levk" % "drmaa-common" % Versions.DrmaaCommon,

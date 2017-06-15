@@ -3,12 +3,12 @@ package loamstream.util
 import java.nio.file.{Paths, Files => JFiles}
 import loamstream.loam.LoamScript
 import java.nio.file.Path
-import scalariform.formatter.ScalaFormatter
 import java.io.File
 import loamstream.util.code.RootPackageId
 import loamstream.util.code.ObjectId
 import loamstream.util.code.PackageId
-import scalariform.parser.ScalaParserException
+import org.scalafmt.Scalafmt
+import scala.util.control.NonFatal
 
 /** 
  *  @author oliver
@@ -70,12 +70,13 @@ object LoamToScalaConverter extends Loggable {
   
   private def formatAndWrite(scalaCode: String, fileName: Path): Unit = {
     val codeToWrite = try {
-      ScalaFormatter.format(scalaCode)
+      Scalafmt.format(scalaCode).get
     } catch {
-      case e: ScalaParserException => 
+      case NonFatal(e) => { 
         warn(s"Forging onward after error formatting code destined for '$fileName': $e", e)
         
         scalaCode
+      }
     }
     
     Files.writeTo(fileName)(codeToWrite)

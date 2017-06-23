@@ -59,16 +59,16 @@ def allQcSteps(params: DataConfig): Unit = {
     val forQcPrunedName = outDir / s"$id.for_qc.pruned"
     val forQcPruned: Seq[Store[TXT]] = bedBimFam(forQcPrunedName)
  
-    // // Kinship Step
-    // val KIN_PREFIX = outDir / s"$id.kinship"
-    // val KIN_LOG = store[TXT].at(KIN_PREFIX + ".log")
-    // val KINTMP_DAT = store[TXT].at(KIN_PREFIX + "TMP.dat")
-    // val KINTMP_PED = store[TXT].at(KIN_PREFIX + "TMP.ped")
-    // val KIN = store[TXT].at(KIN_PREFIX + ".kin")
-    // val KIN0 = store[TXT].at(KIN_PREFIX + ".kin0")
-    // val KIN0_RELATED = store[TXT].at(KIN_PREFIX + ".kin0.related")
-    // val SHARING_COUNTS = store[TXT].at(KIN_PREFIX + ".sharing_counts.txt")
-    // 
+    // Kinship Step
+    val kin = outDir / s"$id.kinship"
+    val kinLog = store[TXT].at(kin + ".log")
+    val kinTmpDat = store[TXT].at(kin + "TMP.dat")
+    val kinTmpPed = store[TXT].at(kin + "TMP.ped")
+    val kinKin = store[TXT].at(kin + ".kin")
+    val kinKin0 = store[TXT].at(kin + ".kin0")
+    val kinKin0Related = store[TXT].at(kin + ".kin0.related")
+    val kinSharingCounts = store[TXT].at(kin + ".sharing_counts.txt")
+
     // //Chunk 2
 	// val ANCESTRYPCA_SCORES_TSV = store[TXT].at(outDir / s"${id}.ancestry.pca.scores.tsv")
     // val ANCESTRYPCA_LOADINGS_TSV = store[TXT].at(outDir / s"${id}.ancestry.pca.loadings.tsv")
@@ -119,9 +119,9 @@ def allQcSteps(params: DataConfig): Unit = {
       Local.harmVarIdUpdates(j) = store[TXT].at(outDir / s"$id.chr$i.harm_idUpdates.txt")
       Local.harmVarSnpLogs(j) = store[TXT].at(outDir / s"$id.chr$i.harm_snpLog.log")
   
-      cmd"""$PLINK --vcf $vcf --chr $i --keep-allele-order --make-bed --out $rawChrsName""".in(vcf).out(Local.rawChrs(j))
+      cmd"""$binPlink --vcf $vcf --chr $i --keep-allele-order --make-bed --out $rawChrsName""".in(vcf).out(Local.rawChrs(j))
   
-      cmd"""$GENOTYPE_HARMONIZER
+      cmd"""$binGenotypeHarmonizer
         --input $rawChrsName
         --inputType PLINK_BED
         --output ${Local.harmChrsName(j)}
@@ -143,13 +143,13 @@ def allQcSteps(params: DataConfig): Unit = {
   
     cmd"""echo "$harmMergeLinesConcat" > ${Local.harmMergeList}""".out(Local.harmMergeList)
   
-    cmd"""$PLINK --bfile ${Local.harmChrsName(0)} --merge-list ${Local.harmMergeList} --make-bed --keep-allele-order --out ${Local.harmName}""".in(Local.harmChrs.flatten :+ Local.harmMergeList).out(Local.harm)
+    cmd"""$binPlink --bfile ${Local.harmChrsName(0)} --merge-list ${Local.harmMergeList} --make-bed --keep-allele-order --out ${Local.harmName}""".in(Local.harmChrs.flatten :+ Local.harmMergeList).out(Local.harm)
   
     cmd"""awk '{print $$2,$$5}' ${Local.harmName}.bim > ${Local.harmForceA2}""".in(Local.harm).out(Local.harmForceA2)
   
-    cmd"""$PLINK --bfile ${Local.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${Local.harmForceA2} --out ${Local.harmRefVcfName}""".in(Local.harm :+ Local.harmForceA2).out(Local.harmRefVcfGz)
+    cmd"""$binPlink --bfile ${Local.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${Local.harmForceA2} --out ${Local.harmRefVcfName}""".in(Local.harm :+ Local.harmForceA2).out(Local.harmRefVcfGz)
 
-    cmd"""$TABIX -f -p vcf ${Local.harmRefVcfGz}""".in(Local.harmRefVcfGz).out(Local.harmRefVcfGzTbi)
+    cmd"""$binTabix -f -p vcf ${Local.harmRefVcfGz}""".in(Local.harmRefVcfGz).out(Local.harmRefVcfGzTbi)
   
     cmd"""(echo 'IID POP SUPERPOP SEX' ; awk -v v=${id} '{if($$5 == 1) { sex="male" } else { if($$5 == 2) { sex="female" } else { sex="NA" } } print $$2" "v" "v" "sex}' ${Local.harmName}.fam) > ${Local.harmSample}""".in(Local.harm).out(Local.harmSample)
   }
@@ -165,7 +165,7 @@ def allQcSteps(params: DataConfig): Unit = {
    */
 
   local {
-    cmd"""python ${hail_load}
+    cmd"""python ${pyHailLoad}
       --vcf ${Local.harmRefVcfGz}
 	  --sample ${Local.harmSample}
 	  --vds ${Local.harmRefVds}""".in(Local.harmRefVcfGz, Local.harmRefVcfGzTbi, Local.harmSample).out(Local.harmRefVds)
@@ -182,7 +182,7 @@ def allQcSteps(params: DataConfig): Unit = {
 
   // TODO this step may use multiple cores - need to add numCores option to each local / uger / google - currently set to multiprocessing.cpu_count()
   local {
-    cmd"""python ${hail_filter}
+    cmd"""python ${pyHailFilter}
       --vds-in ${Local.harmRefVds}
       --regions-exclude ${regionsExclude}
       --variant-qc-out ${Local.variantQcTsv}
@@ -193,31 +193,32 @@ def allQcSteps(params: DataConfig): Unit = {
       --forqc-pruned-plink-out ${Local.forQcPrunedName}""".in(Local.harmRefVds, regionsExclude).out(((Local.forQc :+ Local.forQcVds) ++ (Local.forQcPruned :+ Local.forQcPrunedVds)) :+ Local.variantQcTsv :+ Local.variantsPrunedInTsv)
   }
 
-  // /**
-  //  * Kinship Step
-  //  *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
-  //  *  Requires: King, R, $CALC_KINSHIP_SAMPLE_SHARING_R
-  //  *  Input: $forQcPruned
-  //  *  Output: ${id}.kinshipTMP.dat, ${id}.kinshipTMP.ped, ${id}.kinship.kin, ${id}.kinship.kin0, ${id}.kinship.kin0.related, ${id}.kinship.sharing_counts.txt
-  //  *  Notes:
-  //  *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
-  //  * King only writes the '.kin0' file if families are found, so there needs to be a way to skip the second and third command if it doesn't get created
-  //  */
-  // 
-  // local {
-  //   googleCopy(Google.forQcPruned, Local.forQcPruned)
-  // }
-  // 
-  // uger {
-  //   cmd"""$KING -b ${Local.forQcPrunedName}.bed --kinship --prefix ${Local.KIN_PREFIX} > ${Local.KIN_LOG}""".in(Local.forQcPruned).out(Local.KIN_LOG, Local.KIN, Local.KINTMP_DAT, Local.KINTMP_PED)
-  // }
-  // 
+  /**
+   * Kinship Step
+   *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
+   *  Requires: King, R, $rCalcKinshipSampleSharing
+   *  Input: $forQcPruned
+   *  Output: ${id}.kinshipTMP.dat, ${id}.kinshipTMP.ped, ${id}.kinship.kin, ${id}.kinship.kin0, ${id}.kinship.kin0.related, ${id}.kinship.sharing_counts.txt
+   *  Notes:
+   *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
+   * King only writes the '.kin0' file if families are found, so there needs to be a way to skip the second and third command if it doesn't get created
+   */
+
+   /**
+   cmd"""$binKing -b ${Local.forQcPrunedName}.bed --kinship --prefix ${Local.kin} > ${Local.kinLog}; if [ -f ${Local.kinKin0} ]; then (head -1 ${Local.kinKin0}; sed '1d' ${Local.kinKin0} | awk '{if($8 >= 0.0884) print $0}' | sort -rn -k8,8) > ${Local.kinKin0Related}; else head -1 ${Local.kinKin} > ${Local.kinKin0}; cp ${Local.kinKin0} ${Local.kinKin0Related}; fi""".in(Local.forQcPruned).out(Local.kinLog, Local.kinKin, Local.kinTmpDat, Local.kinTmpPed, Local.kinKin0, Local.kinKin0Related)
+   */
+   
+  local {
+    cmd"""$shKing $binKing ${Local.forQcPrunedName}.bed ${Local.kin} ${Local.kinLog} ${Local.kinKin0} ${Local.kinKin0Related}""".in(Local.forQcPruned).out(Local.kinLog, Local.kinKin, Local.kinTmpDat, Local.kinTmpPed, Local.kinKin0, Local.kinKin0Related)
+	cmd"""$R --vanilla --args ${Local.kinKin0Related} ${Local.kinSharingCounts} < ${rCalcKinshipSampleSharing}""".in(Local.kinKin0Related).out(Local.kinSharingCounts)
+  }
+  
   // // CHUNK 2
   // 
   // /**
   //   * Ancestry PCA Step
   //   *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
-  //   *  Requires: Hail, R, $PLOT_ANCESTRY_PCA_R
+  //   *  Requires: Hail, R, $rPlotAncestryPca
   //   *  Input: $harmRefVds, $kgVds, $kgV3purcell5kAlleleFreqs
   //   *  Output: ${id}.ancestry.pca.log, ${id}.ancestry.pca.scores.tsv, ${id}.ancestry.pca.loadings.tsv, .${id}.ancestry.pca.scores.tsv.crc,
   //   *     ${id}.ancestry.pca.loadings.tsv.crc ${id}.ancestry.pca.scores.plots.pdf
@@ -255,12 +256,12 @@ def allQcSteps(params: DataConfig): Unit = {
   // }
   // 
   // uger {
-  //   cmd"""$R --vanilla --args ${Local.ANCESTRYPCA_SCORES_TSV} ${Local.ANCESTRYPCA_SCORES_PLOTS_PDF} < $PLOT_ANCESTRY_PCA_R""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRYPCA_SCORES_PLOTS_PDF)
+  //   cmd"""$R --vanilla --args ${Local.ANCESTRYPCA_SCORES_TSV} ${Local.ANCESTRYPCA_SCORES_PLOTS_PDF} < $rPlotAncestryPca""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRYPCA_SCORES_PLOTS_PDF)
   // 
   //   /**
   //    * Ancestry Cluster Step
   //    *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
-  //    *  Requires: Hail, R, $PLOT_ANCESTRY_CLUSTER_R, $id, $phenoId, $phenoSrRace
+  //    *  Requires: Hail, R, $rPlotAncestryCluster, $id, $phenoId, $phenoSrRace
   //    *  Input: ${id}.ancestry.pca.scores.tsv, $pheno
   //    *  Output: ${id}.ancestry.fet.1, ${id}.ancestry.temp.clu.1, ${id}.ancestry.clu.1, ${id}.ancestry.klg.1, ${id}.ancestry.cluster_plots.pdf,
   //    *     ${id}.ancestry.cluster_xtabs, ${id}.ancestry.cluster_plots.centers.pdf, ${id}.ancestry.clusters_assigned, ${id}.ancestry
@@ -271,12 +272,12 @@ def allQcSteps(params: DataConfig): Unit = {
   // 
   //   cmd"""(echo 10 ; sed '1d' ${Local.ANCESTRYPCA_SCORES_TSV} | cut -f5- | sed 's/\t/ /g') > ${Local.ANCESTRY_FET}""".in(Local.ANCESTRYPCA_SCORES_TSV).out(Local.ANCESTRY_FET).using("GCC-5.2")
   // 
-  //   cmd"""${KLUSTAKWIK} ${Local.ANCESTRY_PREFIX} 1 -UseFeatures 1110000000 -UseDistributional 0 > ${Local.ANCESTRYCLUSTER_LOG}""".in(Local.ANCESTRY_FET).out(Local.ANCESTRY_TEMP_CLU, Local.ANCESTRY_CLU, Local.ANCESTRY_KLG)
+  //   cmd"""${binKlustakwik} ${Local.ANCESTRY_PREFIX} 1 -UseFeatures 1110000000 -UseDistributional 0 > ${Local.ANCESTRYCLUSTER_LOG}""".in(Local.ANCESTRY_FET).out(Local.ANCESTRY_TEMP_CLU, Local.ANCESTRY_CLU, Local.ANCESTRY_KLG)
   // 
   //   cmd"""$R --vanilla --args ${Local.ANCESTRYPCA_SCORES_TSV} ${Local.ANCESTRY_CLU} $pheno $id $phenoId $phenoSrRace 
   //     ${Local.ANCESTRY_CLUSTER_PLOTS_PDF} ${Local.ANCESTRY_CLUSTER_XTABS} ${Local.ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF}
   //     ${Local.ANCESTRY_CLUSTERS_ASSIGNED} ${Local.ANCESTRY} ${Local.ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF} 
-  //     < $PLOT_ANCESTRY_CLUSTER_R"""
+  //     < $rPlotAncestryCluster"""
   //     .in(Local.ANCESTRYPCA_SCORES_TSV, Local.ANCESTRY_CLU, pheno)
   //     .out(Local.ANCESTRY_CLUSTER_PLOTS_PDF, Local.ANCESTRY_CLUSTER_XTABS, Local.ANCESTRY_CLUSTER_PLOTS_CENTERS_PDF,
   //     Local.ANCESTRY_CLUSTERS_ASSIGNED, Local.ANCESTRY, Local.ANCESTRY_CLUSTER_PLOTS_NO1KG_PDF)
@@ -374,12 +375,12 @@ def allQcSteps(params: DataConfig): Unit = {
   // 
   // uger {
   //   cmd"""$R --vanilla --args ${Local.SAMPLEQC_STATS_TSV} ${Local.NONOUTLIERPCA_SCORES_TSV}
-  //     $SAMPLEQC_STATS_ADJ_TSV < $CALC_ISTATS_ADJ_R""".in(Local.SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
+  //     $SAMPLEQC_STATS_ADJ_TSV < $rCalcIstatsAdj""".in(Local.SAMPLEQC_STATS_TSV, Local.NONOUTLIERPCA_SCORES_TSV)
   //   .out(SAMPLEQC_STATS_ADJ_TSV)
   // 
   //   cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF
   //     $SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV $SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF
-  //     $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV < $ISTATS_ADJ_PCA_R""".in(SAMPLEQC_STATS_ADJ_TSV)
+  //     $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV < $rIstatsAdjPca""".in(SAMPLEQC_STATS_ADJ_TSV)
   //   .out(SAMPLEQC_STATS_ADJ_CORR_PLOTS_PDF, SAMPLEQC_STATS_ADJ_PCA_LOADINGS_TSV, SAMPLEQC_STATS_ADJ_PCA_PLOTS_PDF,
   //     SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
   // }
@@ -407,20 +408,20 @@ def allQcSteps(params: DataConfig): Unit = {
   //     echo $$N > ${sampleQcPcaKlustakwikStores.fet};
   //     sed '1d' $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV | cut -f2- | sed 's/\t/ /g' >> ${sampleQcPcaKlustakwikStores.fet};
   //     FEATURES=1; for i in $$(seq 2 $$n); do FEATURES=$${FEATURES}1; done;
-  //     $KLUSTAKWIK ${sampleQcPcaKlustakwikStores.base} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
+  //     $binKlustakwik ${sampleQcPcaKlustakwikStores.base} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
   //     ${sampleQcPcaKlustakwikStores.klustakwikLog}"""
   //   .in(sampleQcPcaKlustakwikStores.inputs + SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV)
   //   .out(sampleQcPcaKlustakwikStores.outputs)
   // 
   //   cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV ${sampleQcPcaKlustakwikStores.clu}
   //     $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF
-  //     $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $id < $ISTATS_PCS_GMM_CLUSTER_PLOT_R"""
+  //     $SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB $id < $rIstatsPcsGmmClusterPlot"""
   //   .in(SAMPLEQC_STATS_ADJ_PCA_SCORES_TSV, sampleQcPcaKlustakwikStores.clu)
   //   .out(SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV, SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_PLOTS_PDF,
   //     SAMPLEQC_STATS_ADJ_PCA_CLUSTERS_XTAB)
   // 
   //   cmd"""$R --vanilla --args $SAMPLEQC_STATS_ADJ_TSV $SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV
-  //     $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $ISTATS_PCS_GMM_PLOT_METRICS_R"""
+  //     $SAMPLEQC_STATS_ADJ_STRIPCHART_PDF < $rIstatsPcsGmmPlotMetrics"""
   //   .in(SAMPLEQC_STATS_ADJ_TSV, SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV).out(SAMPLEQC_STATS_ADJ_STRIPCHART_PDF)
   // }
   // 
@@ -445,7 +446,7 @@ def allQcSteps(params: DataConfig): Unit = {
   //         ID=$$(head -1 $SAMPLEQC_STATS_ADJ_TSV | cut -f ${metricIndex+1}); echo $$ID
   //         > ${stores.metricIds}""".in(SAMPLEQC_STATS_ADJ_TSV).out(stores.fet, stores.metricIds)
   // 
-  //       cmd"""$KLUSTAKWIK ${stores.base} 1 -UseFeatures 1 -UseDistributional 0 > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
+  //       cmd"""$binKlustakwik ${stores.base} 1 -UseFeatures 1 -UseDistributional 0 > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
   // 
   //       stores
   //     }
@@ -471,7 +472,7 @@ def allQcSteps(params: DataConfig): Unit = {
   //     $SAMPLEQC_STATS_ADJ_IND_OUTLIERS_REMOVE
   //     $SAMPLEQC_STATS_ADJ_IND_STRIPCHART_PDF
   //     ${Local.ANCESTRY}
-  //     < $ISTATS_ADJ_GMM_PLOT_METRICS_R"""
+  //     < $rIstatsAdjGmmPlotMetrics"""
   //   .in(sampleQcKlustakwikStores.map(_.clu) ++ sampleQcKlustakwikStores.map(_.metricIds) :+ Local.SAMPLEQC_STATS_TSV :+ SAMPLEQC_STATS_ADJ_TSV :+ Local.ANCESTRY
   //       :+ SAMPLEQC_STATS_ADJ_PCA_OUTLIERS_TSV)
   //   .out(SAMPLEQC_STATS_ADJ_IND_BOXPLOT_PDF, SAMPLEQC_STATS_ADJ_IND_DISCRETENESS, SAMPLEQC_STATS_ADJ_IND_OUTLIERS_TABLE,

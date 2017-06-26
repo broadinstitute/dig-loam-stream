@@ -5,7 +5,6 @@ import loamstream.util.Loggable
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
-import loamstream.cli.BackendType
 import org.ggf.drmaa.DrmaaException
 import loamstream.util.OneTimeLatch
 import loamstream.model.jobs.Execution

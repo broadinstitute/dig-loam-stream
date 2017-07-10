@@ -7,12 +7,13 @@ import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamGraph
 import loamstream.model.Tool
 import loamstream.model.Store
+import loamstream.util.Loggable
 
 /**
  * @author clint
  * Jul 5, 2017
  */
-final class GraphSplitterTest extends FunSuite {
+final class GraphSplittingTest extends FunSuite with Loggable {
   import TestHelpers.config
   
   test("split simple loam file") {
@@ -60,7 +61,7 @@ final class GraphSplitterTest extends FunSuite {
     
     assert(chunkThunks.size === 2)
     
-    val Seq(thunk0, thunk1) = chunkThunks
+    val Seq(thunk0, thunk1) = chunkThunks.toSeq
     
     assert(thunk0() eq thunk0())
     assert(thunk1() eq thunk1())
@@ -135,18 +136,25 @@ final class GraphSplitterTest extends FunSuite {
     }
   }
   
-  private def chunksFrom(code: String): Seq[() => LoamGraph] = {
+  private def chunksFrom(code: String): GraphSource = {
     val project = LoamProject(config, LoamScript("foo", code))
     
     val compiler = LoamCompiler(LoamCompiler.Settings.default)
     
-    val splitter = new GraphSplitter(compiler)
-            
-    val chunkThunks = splitter.chunks(project)
+    val result = compiler.compile(project)
     
-    assert(chunkThunks.nonEmpty)
+    //TODO
+    if(!result.isValid) {
+      result.errors.map(_.toString).foreach(error(_))
+    }
     
-    chunkThunks
+    require(result.isValid, "Compilation failed")
+    
+    val graphQueue = result.graphQueue
+    
+    assert(graphQueue.nonEmpty)
+    
+    graphQueue
   }
 
   private def toCommandLine(g: LoamGraph)(tool: Tool): String = tool.asInstanceOf[LoamCmdTool].commandLine

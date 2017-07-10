@@ -7,37 +7,34 @@ import loamstream.util.Functions
 import loamstream.compiler.GraphQueue
 
 /** Container for compile time and run time context for a project */
-final class LoamProjectContext(val config: LoamConfig, private val stateBox: ValueBox[LoamProjectState]) {
+final class LoamProjectContext(
+    val config: LoamConfig, 
+    private val graphBox: ValueBox[LoamGraph],
+    val graphQueue: GraphQueue) {
 
-  def state: LoamProjectState = stateBox.value
-  
-  def graphsSoFar: GraphQueue = state.graphsSoFar
-  
-  def graph: LoamGraph = state.graph
+  def graph: LoamGraph = graphBox.value
 
   val fileManager: LoamFileManager = new LoamFileManager
   
-  def updateGraph(f: LoamGraph => LoamGraph): Unit = stateBox.mutate(_.mapGraph(f))
+  def updateGraph(f: LoamGraph => LoamGraph): Unit = graphBox.mutate(f)
   
   def registerGraphSoFar(): Unit = {
     val g = graph
     
-    enqueueThunk(() => g)
+    graphQueue.enqueue(() => g)
   }
   
   def registerLoamThunk(loamCodeBlock: => Any): Unit = {
     val thunk: () => LoamGraph = Functions.memoize { () =>
-      stateBox.get { state =>
+      graphBox.get { _ =>
         loamCodeBlock
         
         graph
       }
     }
     
-    enqueueThunk(thunk)
+    graphQueue.enqueue(thunk)
   }
-  
-  private def enqueueThunk(thunk: () => LoamGraph): Unit = stateBox.mutate(_.mapGraphsSoFar(_.enqueue(thunk)))
 }
 
 /** Container for compile time and run time context for a project */
@@ -45,8 +42,8 @@ object LoamProjectContext {
 
   val depositBox = DepositBox.empty[LoamProjectContext]
 
-  import LoamProjectState.{ initial => initialProjectState }
-  
-  def empty(config: LoamConfig): LoamProjectContext = new LoamProjectContext(config, ValueBox(initialProjectState))
+  def empty(config: LoamConfig): LoamProjectContext = {
+    new LoamProjectContext(config, ValueBox(LoamGraph.empty), GraphQueue.empty)
+  }
 
 }

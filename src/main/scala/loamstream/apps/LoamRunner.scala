@@ -1,6 +1,5 @@
 package loamstream.apps
 
-import loamstream.compiler.GraphSplitter
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamProject
@@ -10,6 +9,7 @@ import loamstream.util.Hit
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Miss
+import loamstream.loam.LoamGraph
 
 /**
  * @author clint
@@ -39,21 +39,20 @@ object LoamRunner {
       //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
       //before final job statuses.
       val engineResult = shutdownAfter {
-        val splitter = new GraphSplitter(loamEngine.compiler)
+        val chunkSource = compile(project).graphQueue
         
-        val chunks = splitter.chunks(project)
+        var jobResults: Map[LJob, Execution] = Map.empty
         
-        val chunkResults = for {
-          chunk <- chunks
-        } yield {
+        while(chunkSource.nonEmpty) {
+          val chunk = chunkSource.get()
+
           val chunkGraph = chunk()
           
-          loamEngine.run(chunkGraph)
+          val chunkResults = loamEngine.run(chunkGraph)
+          
+          jobResults ++= chunkResults
         }
         
-        val jobResults = Maps.mergeMaps(chunkResults)
-        
-        //val jobResults = loop(project, Map.empty)
         // TODO Obviate need for insertion of LoamCompiler.Result
         LoamEngine.Result(Hit(project), Miss(""), Hit(jobResults))
       }

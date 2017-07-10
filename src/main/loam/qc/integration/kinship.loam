@@ -12,32 +12,30 @@ val REGIONS_EXCLUDE = ryansDir / "files" / "regions.exclude"
 val data = ryansDir / "data"
 
 import loamstream.model.Store
-import loamstream.loam.LoamStore
-import loamstream.loam.LoamStore
 
 def inputStoreName(extension: String): String = s"${data}/${LABEL}.qc.bi.chr1-22${extension}"
 
-def inputStore(extension: String): LoamStore[TXT] = store[TXT].at(inputStoreName(extension)).asInput
+def inputStore(extension: String): Store[TXT] = store[TXT].at(inputStoreName(extension)).asInput
 
 def outputStoreName(name: String)(extension: String): String = s"${LABEL}${name}${extension}"
 
-def outputStore(name: String)(extension: String): LoamStore[TXT] = store[TXT].at(outputStoreName(name)(extension))
+def outputStore(name: String)(extension: String): Store[TXT] = store[TXT].at(outputStoreName(name)(extension))
 
-def withExtensions(extensions: String*)(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = {
+def withExtensions(extensions: String*)(makeStore: String => Store[TXT]): Seq[Store[TXT]] = {
   extensions.map(ex => makeStore(ex))
 }
 
-def bedBimFam(makeStore: String => LoamStore[TXT]): Seq[LoamStore[TXT]] = withExtensions(".bed", ".bim", ".fam")(makeStore)
+def bedBimFam(makeStore: String => Store[TXT]): Seq[Store[TXT]] = withExtensions(".bed", ".bim", ".fam")(makeStore)
 
 val inputPrefix: String = inputStoreName("")
 
-val inputBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(inputStore)
+val inputBedBimFam: Seq[Store[TXT]] = bedBimFam(inputStore)
 
 val kinshipPrefix: String = outputStoreName(".kinship")("")
 
-val kinshipFileBedBimFam: Seq[LoamStore[TXT]] = bedBimFam(outputStore(".kinship"))
+val kinshipFileBedBimFam: Seq[Store[TXT]] = bedBimFam(outputStore(".kinship"))
 
-val kinshipFilePruneIn: LoamStore[TXT] = outputStore(".kinship.prune.in")("")
+val kinshipFilePruneIn: Store[TXT] = outputStore(".kinship.prune.in")("")
 val kinshipFilePruned: String = outputStoreName(".kinship.pruned")("")
 val kinshipFilePrunedBedBimFam @ Seq(kinshipFilePrunedBed, _, _) = bedBimFam(outputStore(".kinship.pruned"))
 

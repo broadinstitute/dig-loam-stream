@@ -7,6 +7,34 @@ import org.scalatest.FunSuite
  * date: Apr 26, 2016
  */
 final class FunctionsTest extends FunSuite {
+  test("memoize() should work for functions with no args") {
+    import Functions.memoize
+    
+    var invocations = 0
+    
+    val f: () => Int = { () =>
+      try 42 + invocations finally invocations += 1
+    }
+    
+    assert(invocations === 0)
+    
+    val memoized = memoize(f)
+    
+    assert(invocations === 0)
+    
+    assert(memoized() === 42)
+    
+    assert(invocations === 1)
+    
+    assert(memoized() === 42)
+    
+    assert(invocations === 1)
+    
+    assert(memoized() === 42)
+    
+    assert(invocations === 1)
+  }
+  
   test("memoize() should work") {
     import Functions.memoize
     

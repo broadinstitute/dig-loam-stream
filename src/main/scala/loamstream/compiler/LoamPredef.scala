@@ -17,6 +17,8 @@ import loamstream.util.ConfigUtils
 /** Predefined symbols in Loam scripts */
 object LoamPredef {
 
+  type Store[A <: StoreType] = loamstream.model.Store[A]
+  
   implicit def toConstantFunction[T](item: T): () => T = () => item
   
   def path(pathString: String): Path = Paths.get(pathString)
@@ -27,15 +29,47 @@ object LoamPredef {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store[S <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): Store[S] = Store.create[S]
+  def store[S <: StoreType : TypeTag](implicit context: LoamScriptContext): Store[S] = {
+    Store.create[S]
+  }
 
-  def job[T: TypeTag](exp: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
+  def job[T: TypeTag](exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
     LoamNativeTool(DefaultStores.empty, exp)
+  }
 
-  def job[T: TypeTag](store: Store.Untyped, stores: Store.Untyped*)(exp: => T)(
-    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
+  def job[T: TypeTag](store: Store.Untyped, stores: Store.Untyped*)
+                     (exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
     LoamNativeTool((store +: stores).toSet, exp)
+  }
 
+  def job[T: TypeTag](in: Tool.In, out: Tool.Out)
+                     (exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
+    LoamNativeTool(in, out, exp)
+  }
+
+  def job[T: TypeTag](in: Tool.In)
+                     (exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
+    LoamNativeTool(in, exp)
+  }
+
+  def job[T: TypeTag](out: Tool.Out)
+                     (exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
+    LoamNativeTool(out, exp)
+  }
+
+  // TODO: try-catch to print a friendlier message in case 'exp' throws exception
+  // TODO: makes sense to asynchronously evaluate 'exp'?
+  def andThen(exp: => Any)(implicit scriptContext: LoamScriptContext): Unit = {
+    scriptContext.projectContext.registerGraphSoFar()
+    
+    scriptContext.projectContext.registerLoamThunk(exp)
+  }
+  
   def in(store: Store.Untyped, stores: Store.Untyped*): Tool.In = in(store +: stores)
 
   def in(stores: Iterable[Store.Untyped]): Tool.In = Tool.In(stores)
@@ -43,15 +77,6 @@ object LoamPredef {
   def out(store: Store.Untyped, stores: Store.Untyped*): Tool.Out = Tool.Out((store +: stores).toSet)
 
   def out(stores: Iterable[Store.Untyped]): Tool.Out = Tool.Out(stores)
-
-  def job[T: TypeTag](in: Tool.In, out: Tool.Out)(exp: => T)(
-    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, out, exp)
-
-  def job[T: TypeTag](in: Tool.In)(exp: => T)(
-    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, exp)
-
-  def job[T: TypeTag](out: Tool.Out)(exp: => T)(
-    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(out, exp)
 
   def changeDir(newPath: Path)(implicit scriptContext: LoamScriptContext): Path = scriptContext.changeWorkDir(newPath)
 

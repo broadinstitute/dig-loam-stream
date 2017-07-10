@@ -62,7 +62,7 @@ Files.createDirsIfNecessary(workDir)
 
 val storeInitial = store[TXT].at(workDir / "storeInitial.txt")
 val storeFinal = store[TXT].at(workDir / "storeFinal.txt")
-val stores: Buffer[Store[TXT]] = new ArrayBuffer()
+val stores: Buffer[Store[TXT]] = new ArrayBuffer
 
 def createStore(i: Int): Store[TXT] = store[TXT].at(workDir / s"store$i.txt")
 
@@ -72,7 +72,6 @@ andThen {
   val numLines = Files.countLines(storeInitial.path).toInt
 
   for (i <- 1 to numLines) {
-    println(s"This is line $i")
     val newStore = createStore(i)
     stores += newStore
     cmd"printf 'This is line $i\n' > $newStore".in(storeInitial).out(newStore)

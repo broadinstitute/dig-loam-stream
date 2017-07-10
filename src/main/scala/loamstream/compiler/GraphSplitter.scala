@@ -1,6 +1,7 @@
 package loamstream.compiler
 
 import loamstream.loam.LoamGraph
+import loamstream.loam.LoamProjectState
 
 /**
  * @author clint
@@ -19,9 +20,9 @@ final class GraphSplitter(compiler: LoamCompiler) {
     
     val projectContext = result.contextOpt.get
     
-    projectContext.graphsSoFar.get {
-      case Nil => Seq(() => projectContext.graph)
-      case thunks => thunks
+    projectContext.state match {
+      case LoamProjectState(graph, GraphQueue.Empty) => Seq(() => graph)
+      case s => s.graphsSoFar.toSeq
     }
   }
 }

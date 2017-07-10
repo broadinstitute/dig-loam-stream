@@ -35,7 +35,7 @@ final class LoamCmdToolTest extends FunSuite {
 
     val tool = cmd"foo bar baz"
 
-    assert(tool.graph eq scriptContext.projectContext.graphBox.value)
+    assert(tool.graph eq scriptContext.projectContext.graph)
 
     assert(tool.graph.stores == Set.empty)
     assert(tool.graph.storeProducers === Map.empty)
@@ -68,7 +68,7 @@ final class LoamCmdToolTest extends FunSuite {
 
     val toolv1 = baseTool.in(input3).out(output).using("R-3.1")
 
-    assert(toolv1.graph eq scriptContext.projectContext.graphBox.value)
+    assert(toolv1.graph eq scriptContext.projectContext.graph)
     assert(toolv1.graph.stores.size === 2)
     assert(toolv1.graph.storeProducers.size === 1)
     assert(toolv1.graph.storeConsumers.size === 2)

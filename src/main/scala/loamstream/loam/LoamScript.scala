@@ -95,7 +95,7 @@ object LoamScript {
     def projectContext: LoamProjectContext
 
     /** The graph of stores and tools defined by this Loam script */
-    def graph: LoamGraph = projectContext.graphBox.value
+    def graph: LoamGraph = projectContext.graph
   }
 
   /** ScalaIds required to be loaded  */

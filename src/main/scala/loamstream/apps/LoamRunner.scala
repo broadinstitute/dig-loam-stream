@@ -40,13 +40,12 @@ object LoamRunner {
       shutdownAfter: (=> Map[LJob, Execution]) => Map[LJob, Execution]) extends LoamRunner with Loggable {
 
     override def run(project: LoamProject): Map[LJob, Execution] = {
-
       //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
       //before final job statuses.
       shutdownAfter {
         val compilationResults = compile(project)
 
-        if (compilationResults.isValid) { process(compilationResults.graphQueue) }
+        if (compilationResults.isValid) { process(compilationResults.graphSource) }
         else { emptyJobResults }
       }
     }

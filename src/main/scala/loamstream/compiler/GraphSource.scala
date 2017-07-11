@@ -9,7 +9,9 @@ import loamstream.loam.LoamGraph
 trait GraphSource extends Iterable[GraphThunk]
 
 object GraphSource {
-  lazy val Empty: GraphSource = fromQueue(GraphQueue.empty)
+  object Empty extends GraphSource {
+    override def iterator: Iterator[GraphThunk] = Iterator.empty
+  }
   
   def fromQueue(graphQueue: GraphQueue): GraphSource = new GraphSource {
     override def iterator: Iterator[GraphThunk] = new Iterator[GraphThunk] {

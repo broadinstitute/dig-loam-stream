@@ -85,7 +85,7 @@ object LoamCompiler extends Loggable {
       contextOpt: Option[LoamProjectContext], 
       exOpt: Option[Throwable] = None) {
     
-    val graphQueue: GraphSource = {
+    val graphSource: GraphSource = {
       def toQueueToUse(ctx: LoamProjectContext): GraphQueue = ctx.graphQueue.orElseJust(ctx.graph)
       
       contextOpt.map(toQueueToUse).map(GraphSource.fromQueue).getOrElse(GraphSource.Empty)

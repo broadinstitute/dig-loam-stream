@@ -19,7 +19,7 @@ final class GraphSplittingTest extends FunSuite with Loggable {
   test("split simple loam file") {
     val code = """cmd"foo -i bar -o baz""""
     
-    val chunkThunks = chunksFrom(code)
+    val chunkThunks = chunksFrom(code).toVector
     
     assert(chunkThunks.size === 1)
     
@@ -57,11 +57,11 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       }
       """
     
-    val chunkThunks = chunksFrom(code)
+    val chunkThunks = chunksFrom(code).toVector
     
     assert(chunkThunks.size === 2)
     
-    val Seq(thunk0, thunk1) = chunkThunks.toSeq
+    val Seq(thunk0, thunk1) = chunkThunks
     
     assert(thunk0() eq thunk0())
     assert(thunk1() eq thunk1())
@@ -136,7 +136,7 @@ final class GraphSplittingTest extends FunSuite with Loggable {
     }
   }
   
-  private def chunksFrom(code: String): GraphSource = {
+  private def chunksFrom(code: String): Iterator[GraphThunk] = {
     val project = LoamProject(config, LoamScript("foo", code))
     
     val compiler = LoamCompiler(LoamCompiler.Settings.default)
@@ -150,11 +150,11 @@ final class GraphSplittingTest extends FunSuite with Loggable {
     
     require(result.isValid, "Compilation failed")
     
-    val graphQueue = result.graphQueue
+    val graphs = result.graphSource.iterator
     
-    assert(graphQueue.nonEmpty)
+    assert(graphs.hasNext)
     
-    graphQueue
+    graphs
   }
 
   private def toCommandLine(g: LoamGraph)(tool: Tool): String = tool.asInstanceOf[LoamCmdTool].commandLine

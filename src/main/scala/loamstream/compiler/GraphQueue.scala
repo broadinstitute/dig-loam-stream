@@ -1,8 +1,8 @@
 package loamstream.compiler
 
-import loamstream.loam.LoamGraph
 import scala.collection.mutable.Queue
-import loamstream.util.ValueBox
+
+import loamstream.loam.LoamGraph
 
 /**
  * @author clint
@@ -11,17 +11,17 @@ import loamstream.util.ValueBox
 final class GraphQueue {
   private[this] val lock = new AnyRef
   
-  private[this] val queue: Queue[() => LoamGraph] = Queue.empty
+  private[this] val queue: Queue[GraphThunk] = Queue.empty
   
-  def enqueue(graphHandle: () => LoamGraph): this.type = lock.synchronized {
+  def enqueue(graphHandle: GraphThunk): this.type = lock.synchronized {
     queue.enqueue(graphHandle)
     
     this
   }
   
-  def dequeue(): () => LoamGraph = lock.synchronized { queue.dequeue() }
+  def dequeue(): GraphThunk = lock.synchronized { queue.dequeue() }
   
-  def freeze: Iterable[() => LoamGraph] = lock.synchronized { queue.toVector }
+  def freeze: Iterable[GraphThunk] = lock.synchronized { queue.toVector }
   
   def isEmpty: Boolean = lock.synchronized { queue.isEmpty }
   
@@ -35,7 +35,7 @@ final class GraphQueue {
 object GraphQueue {
   def empty: GraphQueue = new GraphQueue
   
-  def apply(thunks: (() => LoamGraph)*): GraphQueue = {
+  def apply(thunks: GraphThunk*): GraphQueue = {
     val q = empty
     
     thunks.foreach(q.enqueue)

@@ -10,6 +10,9 @@ import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Miss
 import loamstream.loam.LoamGraph
+import loamstream.model.jobs.JobResult
+import loamstream.compiler.GraphQueue
+import loamstream.compiler.GraphSource
 
 /**
  * @author clint
@@ -22,42 +25,38 @@ trait LoamRunner {
 
 object LoamRunner {
   def apply(
-      loamEngine: LoamEngine, 
-      compile: LoamProject => LoamCompiler.Result,
-      shutdownAfter: (=> LoamEngine.Result) => LoamEngine.Result): LoamRunner = {
+    loamEngine: LoamEngine,
+    compile: LoamProject => LoamCompiler.Result,
+    shutdownAfter: (=> Map[LJob, Execution]) => Map[LJob, Execution]): LoamRunner = {
 
     new Default(loamEngine, compile, shutdownAfter)
   }
-  
+
+  private val emptyJobResults: Map[LJob, Execution] = Map.empty
+
   final class Default(
-      loamEngine: LoamEngine, 
+      loamEngine: LoamEngine,
       compile: LoamProject => LoamCompiler.Result,
-      shutdownAfter: (=> LoamEngine.Result) => LoamEngine.Result) extends LoamRunner with Loggable {
-    
+      shutdownAfter: (=> Map[LJob, Execution]) => Map[LJob, Execution]) extends LoamRunner with Loggable {
+
     override def run(project: LoamProject): Map[LJob, Execution] = {
-      
+
       //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
       //before final job statuses.
-      val engineResult = shutdownAfter {
-        val chunkSource = compile(project).graphQueue
-        
-        var jobResults: Map[LJob, Execution] = Map.empty
-        
-        while(chunkSource.nonEmpty) {
-          val chunk = chunkSource.get()
+      shutdownAfter {
+        val compilationResults = compile(project)
 
-          val chunkGraph = chunk()
-          
-          val chunkResults = loamEngine.run(chunkGraph)
-          
-          jobResults ++= chunkResults
-        }
-        
-        // TODO Obviate need for insertion of LoamCompiler.Result
-        LoamEngine.Result(Hit(project), Miss(""), Hit(jobResults))
+        if (compilationResults.isValid) { process(compilationResults.graphQueue) }
+        else { emptyJobResults }
       }
-  
-      engineResult.jobExecutionsOpt.get
+    }
+
+    private def process(graphSource: GraphSource): Map[LJob, Execution] = {
+      graphSource.iterator.foldLeft(emptyJobResults) { (acc, chunk) =>
+        val chunkGraph = chunk()
+
+        acc ++ loamEngine.run(chunkGraph)
+      }
     }
   }
 }

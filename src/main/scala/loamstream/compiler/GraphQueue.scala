@@ -21,8 +21,6 @@ final class GraphQueue {
   
   def dequeue(): GraphThunk = lock.synchronized { queue.dequeue() }
   
-  def freeze: Iterable[GraphThunk] = lock.synchronized { queue.toVector }
-  
   def isEmpty: Boolean = lock.synchronized { queue.isEmpty }
   
   def nonEmpty: Boolean = !isEmpty

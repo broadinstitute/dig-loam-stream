@@ -6,7 +6,9 @@ import loamstream.loam.LoamGraph
  * @author clint
  * Jul 10, 2017
  */
-trait GraphSource extends Iterable[GraphThunk]
+trait GraphSource {
+  def iterator: Iterator[GraphThunk]
+}
 
 object GraphSource {
   object Empty extends GraphSource {

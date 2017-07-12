@@ -8,7 +8,7 @@ val epacts = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/epacts_3.2.6/
 val python = "python"
 
 // Scripts
-val getBins = "get_bins.py"
+val getBins = "/humgen/diabetes/users/kyuksel/pipeline/analysis/workingexampleofvcfmapping/get_bins.py"
 
 // Inputs
 val vcf = store[TXT].at("/humgen/diabetes2/users/ryank/data/metsim/data/METSIM_EX.final.chr1-22.vcf.bgz")
@@ -28,7 +28,7 @@ val epactsOutputFilesBaseName = "METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.c
 
 // Pipeline Definition
 local {
-  cmd"""zcat $vcf | grep -v "^#" | awk -v chr=$chr '{if($1 == chr) print $0}' | cut -f-5 | bgzip -c > $variants""".in(vcf).out(variants)
+  cmd"""zcat $vcf | grep -v "^#" | awk -v chr=$chr '{if($$1 == chr) print $$0}' | cut -f-5 | bgzip -c > $variants""".in(vcf).out(variants)
   cmd"""$tabix -b 2 -e 2 $variants""".in(variants).out(variantsIndex)
   cmd"""$python $getBins --vcf $variants --out $regions --n $numVars""".in(variants).out(regions)
 

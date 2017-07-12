@@ -51,11 +51,19 @@ object LoamRunner {
     }
 
     private def process(graphSource: GraphSource): Map[LJob, Execution] = {
-      graphSource.iterator.foldLeft(emptyJobResults) { (acc, chunk) =>
-        val chunkGraph = chunk()
+      val z: (Map[LJob, Execution], LoamGraph) = (emptyJobResults, LoamGraph.empty)
+      
+      val (jobResults, _) = graphSource.iterator.foldLeft(z) { (state, chunk) =>
+        val (jobResultsAcc, lastGraph) = state
+        
+        val chunkGraph = chunk().without(lastGraph.tools)
 
-        acc ++ loamEngine.run(chunkGraph)
+        val jobResults = jobResultsAcc ++ loamEngine.run(chunkGraph)
+        
+        (jobResults, chunkGraph)
       }
+      
+      jobResults
     }
   }
 }

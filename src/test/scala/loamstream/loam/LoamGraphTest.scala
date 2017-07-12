@@ -5,6 +5,10 @@ import java.nio.file.Paths
 import loamstream.compiler.LoamCompiler
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import loamstream.model.Tool
+import loamstream.model.Store
+import loamstream.loam.LoamGraph.StoreLocation
+import loamstream.model.execute.ExecutionEnvironment
 
 /**
   * LoamStream
@@ -12,23 +16,25 @@ import loamstream.TestHelpers
   */
 final class LoamGraphTest extends FunSuite {
 
-  private val code =
-    """
+  private val phaseCommand = "shapeit"
+  private val imputeCommand = "impute2"
+  
+  private val code = {
+    s"""
       |val inputFile = path("/user/home/someone/data.vcf")
       |val outputFile = path("/user/home/someone/dataImputed.vcf")
-      |val phaseCommand = "shapeit"
-      |val imputeCommand = "impute2"
       |
       |val raw = store[VCF].at(inputFile).asInput
       |val phased = store[VCF]
       |val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
       |val imputed = store[VCF].at(outputFile)
       |
-      |cmd"$phaseCommand -in $raw -out $phased"
-      |cmd"$imputeCommand -in $phased -template $template -out $imputed".using("R-3.1")
+      |cmd"$phaseCommand -in $$raw -out $$phased"
+      |cmd"$imputeCommand -in $$phased -template $$template -out $$imputed".using("R-3.1")
       | """.stripMargin
+  }
 
-  private implicit val context = {
+  private val context = {
     val compiler = new LoamCompiler
 
     val result = compiler.compile(TestHelpers.config, LoamScript("LoamGraphTestScript1", code))
@@ -37,6 +43,15 @@ final class LoamGraphTest extends FunSuite {
   }
   
   private val graph = context.graph
+  
+  private lazy val (phaseTool, imputeTool) = {
+    def commandLine(t: Tool) = t.asInstanceOf[LoamCmdTool].commandLine
+    
+    val phaseCmd = graph.tools.collect { case t if commandLine(t).trim.startsWith(phaseCommand) => t }.head
+    val imputeCmd = graph.tools.collect { case t if commandLine(t).contains(imputeCommand) => t }.head
+    
+    (phaseCmd, imputeCmd)
+  }
 
   test("Test that valid graph passes all checks.") {
     val errors = LoamGraphValidation.allRules(graph)
@@ -112,5 +127,49 @@ final class LoamGraphTest extends FunSuite {
       assert(path === store.path)
       assert(pathLastPart.toString.startsWith(fileManager.filePrefix) || store.pathOpt.contains(path))
     }
+  }
+  
+  test("without") {
+    
+    def findStore(fragment: String)(matches: String => String => Boolean): Store.Untyped = {
+      graph.stores.collect { case s if matches(s.path.toString)(fragment) => s }.head
+    }
+    
+    def findStoreBySuffix(fileName: String): Store.Untyped = findStore(fileName)(_.endsWith)
+    
+    def findStoreByPrefix(prefix: String): Store.Untyped = findStore(prefix)(_.startsWith)
+    
+    val raw = findStoreBySuffix("data.vcf")
+    val phased = findStoreByPrefix("/tmp")
+    val template = findStoreBySuffix("template.vcf")
+    val imputed = findStoreBySuffix("dataImputed.vcf")
+    
+    import TestHelpers.path
+    import LoamGraph.StoreLocation.PathLocation
+    
+    assert(graph.tools === Set(phaseTool, imputeTool))
+    
+    val filtered = graph.without(Set(imputeTool))
+    
+    assert(graph.tools === Set(phaseTool, imputeTool))
+    
+    assert(filtered.tools === Set(phaseTool))
+    assert(filtered.stores === Set(raw, phased))
+    assert(filtered.toolInputs === Map(phaseTool -> Set(raw)))
+    assert(filtered.toolOutputs === Map(phaseTool -> Set(phased)))
+    assert(filtered.inputStores === Set(raw))
+    
+    //NB: location of phased is not specified
+    assert(filtered.storeLocations === Map(raw -> PathLocation(path("/user/home/someone/data.vcf"))))
+    
+    assert(filtered.storeProducers === Map(phased -> phaseTool))
+    assert(filtered.storeConsumers === Map(raw -> Set(phaseTool)))
+    
+    assert(filtered.keysSameLists === graph.keysSameLists)
+    assert(filtered.keysSameSets === graph.keysSameSets)
+    
+    assert(filtered.workDirs === Map(phaseTool -> path(".")))
+    
+    assert(filtered.executionEnvironments === Map(phaseTool -> ExecutionEnvironment.Local))
   }
 }

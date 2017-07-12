@@ -4,7 +4,6 @@ import java.nio.file.Path
 
 import loamstream.loam.{LoamGraph, LoamProjectContext, LoamScriptContext}
 import loamstream.model.Tool.DefaultStores
-import loamstream.util.ValueBox
 
 /**
   * @author Clint

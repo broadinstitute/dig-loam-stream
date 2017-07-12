@@ -7,9 +7,7 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.util.Hit
 import loamstream.util.Loggable
-import loamstream.util.Maps
 import loamstream.util.Miss
-import loamstream.loam.LoamGraph
 
 /**
  * @author clint

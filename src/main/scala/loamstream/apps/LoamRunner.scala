@@ -51,14 +51,18 @@ object LoamRunner {
     }
 
     private def process(graphSource: GraphSource): Map[LJob, Execution] = {
+      //Keep track of job-execution results and the currently-built-up graph "so far"
       val z: (Map[LJob, Execution], LoamGraph) = (emptyJobResults, LoamGraph.empty)
       
+      //Fold over the "stream" of graph chunks, producing job-execution results
       val (jobResults, _) = graphSource.iterator.foldLeft(z) { (state, chunk) =>
-        val (jobResultsAcc, lastGraph) = state
+        val (jobResultsSoFar, graphSoFar) = state
         
-        val chunkGraph = chunk().without(lastGraph.tools)
+        //Filter out tools from previous chunks, so we don't run jobs more than necessary, saving
+        //the expense of calculating if a job can be skipped.
+        val chunkGraph = chunk().without(graphSoFar.tools)
 
-        val jobResults = jobResultsAcc ++ loamEngine.run(chunkGraph)
+        val jobResults = jobResultsSoFar ++ loamEngine.run(chunkGraph)
         
         (jobResults, chunkGraph)
       }

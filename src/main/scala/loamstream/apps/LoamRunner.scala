@@ -47,7 +47,11 @@ object LoamRunner {
         val compilationResults = compile(project)
 
         if (compilationResults.isValid) { process(compilationResults.graphSource) }
-        else { emptyJobResults }
+        else {
+          compilationResults.errors.foreach(e => error(s"Compilation error: $e"))
+          
+          emptyJobResults 
+        }
       }
     }
 

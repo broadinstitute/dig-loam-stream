@@ -70,9 +70,7 @@ object LoamCompiler extends Loggable {
     }
     
     private[compiler] def toGraphSource(contextOption: Option[LoamProjectContext]): GraphSource = {
-      def toQueueToUse(ctx: LoamProjectContext): GraphQueue = ctx.graphQueue.orElseJust(ctx.graph)
-      
-      contextOption.map(toQueueToUse).map(GraphSource.fromQueue).getOrElse(GraphSource.Empty)
+      contextOption.map(_.graphQueue).map(GraphSource.fromQueue).getOrElse(GraphSource.Empty)
     }
   }
 
@@ -225,6 +223,8 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
         reportCompilation(project, graph, projectContextReceipt)
         
         val projectContext = scriptBox.projectContext
+        
+        projectContext.registerGraphSoFar()
         
         LoamCompiler.Result.success(reporter, projectContext)
       } else {

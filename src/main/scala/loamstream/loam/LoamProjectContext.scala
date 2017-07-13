@@ -31,6 +31,8 @@ final class LoamProjectContext(
    * Enqueue a graph thunk that returns the graph as of immediately after running `loamCodeBlock`
    */
   def registerLoamThunk(loamCodeBlock: => Any): Unit = {
+    //NB: Memoize the thunk, so the loam code block is only run once, 
+    //not every time .apply() is called on the thunk.
     val thunk: () => LoamGraph = Functions.memoize { () =>
       //NB: Lock on graphBox, to ensure that no one mutates graphBox between running `loamCodeBlock` and
       //getting the latest graph 

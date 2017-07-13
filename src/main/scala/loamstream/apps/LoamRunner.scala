@@ -61,8 +61,12 @@ object LoamRunner {
         //Filter out tools from previous chunks, so we don't run jobs more than necessary, saving
         //the expense of calculating if a job can be skipped.
         val chunkGraph = chunk().without(graphSoFar.tools)
-
-        val jobResults = jobResultsSoFar ++ loamEngine.run(chunkGraph)
+        
+        //Skip running if there are no new tools
+        val jobResults = {
+          if(chunkGraph.tools.isEmpty) { jobResultsSoFar }
+          else { jobResultsSoFar ++ loamEngine.run(chunkGraph) }
+        }
         
         (jobResults, chunkGraph)
       }

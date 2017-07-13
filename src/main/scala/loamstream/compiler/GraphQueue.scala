@@ -24,10 +24,6 @@ final class GraphQueue {
   def isEmpty: Boolean = lock.synchronized { queue.isEmpty }
   
   def nonEmpty: Boolean = !isEmpty
-  
-  def orElseJust(g: LoamGraph): GraphQueue = lock.synchronized {
-    if(isEmpty) GraphQueue(() => g) else this
-  }
 }
 
 object GraphQueue {

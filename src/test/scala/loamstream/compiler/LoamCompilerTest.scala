@@ -101,7 +101,7 @@ final class LoamCompilerTest extends FunSuite {
       
       val source = toGraphSource(Some(ctx))
       
-      assert(source.iterator.toSeq.map(_.apply()) === Seq(g1))
+      assert(source.iterator.hasNext === false)
     }
     
     //LoamProjectContext exists with non-empty graph queue

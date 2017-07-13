@@ -64,37 +64,18 @@ final class GraphQueueTest extends FunSuite {
     assert(actual2() === g2)
   }
   
-  test("orElseJust/GraphQueue.apply") {
+  test("GraphQueue.apply") {
     val (g0, g1, g2) = makeTestGraphs()
     
-    //Empty case 
-    {
-      val emptyQueue = GraphQueue.empty
+    val queue = GraphQueue(() => g0, () => g1, () => g2)
       
-      assert(emptyQueue.isEmpty === true)
+    assert(queue.isEmpty === false)
       
-      val q = emptyQueue.orElseJust(g0)
+    assert(queue.dequeue().apply() === g0)
+    assert(queue.dequeue().apply() === g1)
+    assert(queue.dequeue().apply() === g2)
       
-      assert(emptyQueue.isEmpty === true)
-      assert(q.isEmpty === false)
-      assert(q.dequeue().apply() === g0)
-      assert(q.isEmpty === true)
-    }
-    //Non-empty case
-    {
-      val queue = GraphQueue(() => g0, () => g1)
-      
-      assert(queue.isEmpty === false)
-      
-      val q = queue.orElseJust(g2)
-      
-      assert(q.isEmpty === false)
-      
-      assert(q.dequeue().apply() === g0)
-      assert(q.dequeue().apply() === g1)
-      
-      assert(q.isEmpty === true)
-    }
+    assert(queue.isEmpty === true)
   }
   
   test("empty") {

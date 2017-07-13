@@ -13,6 +13,7 @@ import loamstream.loam.LoamGraph
 import loamstream.model.jobs.JobResult
 import loamstream.compiler.GraphQueue
 import loamstream.compiler.GraphSource
+import loamstream.model.Tool
 
 /**
  * @author clint
@@ -51,16 +52,16 @@ object LoamRunner {
     }
 
     private def process(graphSource: GraphSource): Map[LJob, Execution] = {
-      //Keep track of job-execution results and the currently-built-up graph "so far"
-      val z: (Map[LJob, Execution], LoamGraph) = (emptyJobResults, LoamGraph.empty)
+      //Keep track of job-execution results and the tools we've run "so far"
+      val z: (Map[LJob, Execution], Set[Tool]) = (emptyJobResults, Set.empty)
       
       //Fold over the "stream" of graph chunks, producing job-execution results
       val (jobResults, _) = graphSource.iterator.foldLeft(z) { (state, chunk) =>
-        val (jobResultsSoFar, graphSoFar) = state
+        val (jobResultsSoFar, toolsRunSoFar) = state
         
         //Filter out tools from previous chunks, so we don't run jobs more than necessary, saving
         //the expense of calculating if a job can be skipped.
-        val chunkGraph = chunk().without(graphSoFar.tools)
+        val chunkGraph = chunk().without(toolsRunSoFar)
         
         //Skip running if there are no new tools
         val jobResults = {
@@ -68,7 +69,7 @@ object LoamRunner {
           else { jobResultsSoFar ++ loamEngine.run(chunkGraph) }
         }
         
-        (jobResults, chunkGraph)
+        (jobResults, toolsRunSoFar ++ chunkGraph.tools)
       }
       
       jobResults

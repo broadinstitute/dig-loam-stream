@@ -33,7 +33,7 @@ uger {
     // Generate regions file
     cmd"""zcat $vcf | grep -v "^#" | awk -v chr=$chr '{if($$1 == chr) print $$0}' | cut -f-5 | bgzip -c > $variants""".in(vcf).out(variants)
     cmd"""$tabix -f -b 2 -e 2 $variants""".in(variants).out(variantsIndex)
-    cmd"""$python $getBins --vcf $variants --out $regionsStore --n $numVars""".in(variants).out(regionsStore)
+    cmd"""$python $getBins --vcf $variants --out $regionsStore --n $numVars""".in(variants, variantsIndex).out(regionsStore)
 
     // Run analysis for each region
     andThen {

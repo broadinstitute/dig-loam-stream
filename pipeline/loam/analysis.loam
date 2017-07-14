@@ -17,40 +17,43 @@ val ped = store[TXT].at("/humgen/diabetes2/users/ryank/data/metsim/pheno/phase1/
 
 // Conf
 val pheno = "FG_trans_adj_Age_raw_resid_invn"
-val chr = 1
+val startChromosome = 1
+val endChromosome = 3
 val numVars = 100
-
-// Variables
-val variantsFileName = s"chr${chr}.variants.gz"
-val variants = store[TXT].at(variantsFileName)
-val variantsIndex = store[TXT].at(s"${variantsFileName}.tbi")
-
-val regionsFileName = s"chr${chr}.${numVars}pos.regions"
-val regionsStore = store[TXT].at(regionsFileName)
 
 // Pipeline Definition
 uger {
-  cmd"""zcat $vcf | grep -v "^#" | awk -v chr=$chr '{if($$1 == chr) print $$0}' | cut -f-5 | bgzip -c > $variants""".in(vcf).out(variants)
-  cmd"""$tabix -f -b 2 -e 2 $variants""".in(variants).out(variantsIndex)
-  cmd"""$python $getBins --vcf $variants --out $regionsStore --n $numVars""".in(variants).out(regionsStore)
+  for (chr <- startChromosome to endChromosome) {
+    val variantsFileName = s"chr${chr}.variants.gz"
+    val variants = store[TXT].at(variantsFileName)
+    val variantsIndex = store[TXT].at(s"${variantsFileName}.tbi")
+    val regionsFileName = s"chr${chr}.${numVars}pos.regions"
+    val regionsStore = store[TXT].at(regionsFileName)
 
-  andThen {
-    val regions = Files.readFrom(regionsFileName).split(System.lineSeparator)
+    // Generate regions file
+    cmd"""zcat $vcf | grep -v "^#" | awk -v chr=$chr '{if($$1 == chr) print $$0}' | cut -f-5 | bgzip -c > $variants""".in(vcf).out(variants)
+    cmd"""$tabix -f -b 2 -e 2 $variants""".in(variants).out(variantsIndex)
+    cmd"""$python $getBins --vcf $variants --out $regionsStore --n $numVars""".in(variants).out(regionsStore)
 
-    for (region <- regions) {
-      val epactsOutputFilesBaseName = s"METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.chr$region".replace(':', '.')
-      cmd"""$epacts single
-        --vcf /humgen/diabetes2/users/ryank/data/metsim/data/METSIM_EX.final.chr1-22.vcf.bgz
-        --ped /humgen/diabetes2/users/ryank/data/metsim/pheno/phase1/METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.unrel.epacts.ped
-        --pheno $pheno
-        --cov PC1
-        --cov PC2
-        --cov PC3
-        --region $region
-        --test q.linear
-        --out $epactsOutputFilesBaseName
-        --no-plot
-        --run 1""".using("GCC-5.2", "R-3.1", "Gnuplot").in(vcf, ped)
+    // Run analysis for each region
+    andThen {
+      val regions = Files.readFrom(regionsFileName).split(System.lineSeparator)
+
+      for (region <- regions) {
+        val epactsOutputFilesBaseName = s"METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.chr$region".replace(':', '.')
+        cmd"""$epacts single
+          --vcf /humgen/diabetes2/users/ryank/data/metsim/data/METSIM_EX.final.chr1-22.vcf.bgz
+          --ped /humgen/diabetes2/users/ryank/data/metsim/pheno/phase1/METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.unrel.epacts.ped
+          --pheno $pheno
+          --cov PC1
+          --cov PC2
+          --cov PC3
+          --region $region
+          --test q.linear
+          --out $epactsOutputFilesBaseName
+          --no-plot
+          --run 1""".using("GCC-5.2", "R-3.1", "Gnuplot").in(vcf, ped)
+      }
     }
   }
 }

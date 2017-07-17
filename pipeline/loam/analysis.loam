@@ -12,13 +12,13 @@ val python = "python"
 val getBins = "/humgen/diabetes/users/kyuksel/pipeline/analysis/workingexampleofvcfmapping/get_bins.py"
 
 // Inputs
-val vcf = store[TXT].at("/humgen/diabetes2/users/ryank/data/metsim/data/METSIM_EX.final.chr1-22.vcf.bgz")
-val ped = store[TXT].at("/humgen/diabetes2/users/ryank/data/metsim/pheno/phase1/METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.unrel.epacts.ped")
+val vcf = store[TXT].at("/humgen/diabetes2/users/ryank/data/camp/data_clean/camp.biallelic.chr1-22.clean.vcf.gz")
+val ped = store[TXT].at("/humgen/diabetes2/users/ryank/data/camp/phenotype/camp.phenotypes.epacts.unrelated.ped")
 
 // Conf
-val pheno = "FG_trans_adj_Age_raw_resid_invn"
+val pheno = "GLU_FAST_RIN"
 val startChromosome = 1
-val endChromosome = 3
+val endChromosome = 2
 val numVars = 100
 
 // Pipeline Definition
@@ -46,6 +46,8 @@ uger {
             --vcf /humgen/diabetes2/users/ryank/data/metsim/data/METSIM_EX.final.chr1-22.vcf.bgz
             --ped /humgen/diabetes2/users/ryank/data/metsim/pheno/phase1/METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.unrel.epacts.ped
             --pheno $pheno
+            --cov AGE_T2D_HEALTH_PROVIDER
+            --cov SEX
             --cov PC1
             --cov PC2
             --cov PC3

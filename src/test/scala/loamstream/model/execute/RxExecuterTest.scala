@@ -702,21 +702,15 @@ final class RxExecuterTest extends FunSuite {
       
       // Only check that relationships are maintained, 
       // not for a literal sequence of chunks, since the latter is non-deterministic.
-      job11 assertRanBefore job21
-      job11 assertRanBefore job22
+      job11 assertRanBefore job21 ; job11 assertRanBefore job22
     
-      job12 assertRanBefore job23
-      job12 assertRanBefore job24
+      job12 assertRanBefore job23 ; job12 assertRanBefore job24
       
-      job21 assertRanBefore job31
-      job22 assertRanBefore job31
+      job21 assertRanBefore job31 ; job22 assertRanBefore job31
       
-      job23 assertRanBefore job32
-      job24 assertRanBefore job32
-      job25 assertRanBefore job32
+      job23 assertRanBefore job32 ; job24 assertRanBefore job32 ; job25 assertRanBefore job32
   
-      job31 assertRanBefore job4
-      job32 assertRanBefore job4
+      job31 assertRanBefore job4 ; job32 assertRanBefore job4
       
       val allChunksWereRightSize = jobExecutionSeq.forall(_.size <= maxSimultaneousJobs)
       

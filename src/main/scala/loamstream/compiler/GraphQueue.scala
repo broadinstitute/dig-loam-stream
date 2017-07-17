@@ -2,8 +2,6 @@ package loamstream.compiler
 
 import scala.collection.mutable.Queue
 
-import loamstream.loam.LoamGraph
-
 /**
  * @author clint
  * Jul 10, 2017

@@ -1,7 +1,5 @@
 package loamstream.compiler
 
-import loamstream.loam.LoamGraph
-
 /**
  * @author clint
  * Jul 10, 2017

@@ -5,13 +5,7 @@ import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamProject
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
-import loamstream.util.Hit
 import loamstream.util.Loggable
-import loamstream.util.Maps
-import loamstream.util.Miss
-import loamstream.loam.LoamGraph
-import loamstream.model.jobs.JobResult
-import loamstream.compiler.GraphQueue
 import loamstream.compiler.GraphSource
 import loamstream.model.Tool
 

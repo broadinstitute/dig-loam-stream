@@ -126,7 +126,7 @@ andThen {
   cmd"cat ${workDir}/store?.txt > ${storeFinal}".in(stores).out(storeFinal)
 }
 """
-    
+
     def twoAndThens(dir: Path) = """
 import scala.collection.mutable.{Buffer, ArrayBuffer}
 import loamstream.model.Store
@@ -151,7 +151,8 @@ andThen {
     cmd"printf 'This is line $i\n' > $newStore".in(storeInitial).out(newStore)
   }
   
-  cmd"cat ${workDir}/mid-?.txt > ${storeMiddle} && cat ${workDir}/mid-?.txt >> ${storeMiddle}".in(stores).out(storeMiddle)
+  cmd"cat ${workDir}/mid-?.txt > ${storeMiddle} && cat ${workDir}/mid-?.txt >> ${storeMiddle}"
+  .in(stores).out(storeMiddle)
 }
 
 andThen {
@@ -168,6 +169,6 @@ andThen {
   cmd"cat ${workDir}/store-?.txt > ${storeFinal}".in(stores).out(storeFinal)
 }
 """
-    
+
   }
 }

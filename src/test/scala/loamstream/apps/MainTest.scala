@@ -5,10 +5,6 @@ import loamstream.conf.LoamConfig
 import loamstream.db.LoamDao
 import loamstream.model.execute.Executer
 import loamstream.googlecloud.CloudStorageClient
-import org.apache.commons.io.FileUtils
-import loamstream.TestHelpers
-import scala.io.Source
-import loamstream.util.Files
 
 /**
  * @author clint

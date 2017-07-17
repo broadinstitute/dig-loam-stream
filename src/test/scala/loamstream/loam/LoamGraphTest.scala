@@ -7,7 +7,6 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.model.Tool
 import loamstream.model.Store
-import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.model.execute.ExecutionEnvironment
 
 /**

@@ -23,7 +23,7 @@ object LId {
   final case class LAnonId(id: Long) extends LId {
     require(id >= 0)
     
-    override def name: String = "anon$" + id
+    override def name: String = "$" + id
 
     override def toString = name 
   }

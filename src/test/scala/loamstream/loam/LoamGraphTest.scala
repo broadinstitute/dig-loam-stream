@@ -5,6 +5,11 @@ import java.nio.file.Paths
 import loamstream.compiler.LoamCompiler
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import loamstream.model.Tool
+import loamstream.model.Store
+import loamstream.model.execute.ExecutionEnvironment
+import loamstream.compiler.LoamPredef
+import loamstream.loam.ops.StoreType
 
 /**
   * LoamStream
@@ -12,23 +17,22 @@ import loamstream.TestHelpers
   */
 final class LoamGraphTest extends FunSuite {
 
-  private val code =
-    """
+  private val code = {
+    s"""
       |val inputFile = path("/user/home/someone/data.vcf")
       |val outputFile = path("/user/home/someone/dataImputed.vcf")
-      |val phaseCommand = "shapeit"
-      |val imputeCommand = "impute2"
       |
       |val raw = store[VCF].at(inputFile).asInput
       |val phased = store[VCF]
       |val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
       |val imputed = store[VCF].at(outputFile)
       |
-      |cmd"$phaseCommand -in $raw -out $phased"
-      |cmd"$imputeCommand -in $phased -template $template -out $imputed".using("R-3.1")
+      |cmd"shapeit -in $$raw -out $$phased"
+      |cmd"impute2 -in $$phased -template $$template -out $$imputed".using("R-3.1")
       | """.stripMargin
+  }
 
-  private implicit val context = {
+  private val context = {
     val compiler = new LoamCompiler
 
     val result = compiler.compile(TestHelpers.config, LoamScript("LoamGraphTestScript1", code))
@@ -37,7 +41,7 @@ final class LoamGraphTest extends FunSuite {
   }
   
   private val graph = context.graph
-
+  
   test("Test that valid graph passes all checks.") {
     val errors = LoamGraphValidation.allRules(graph)
     assert(errors.isEmpty, s"${errors.size} errors:\n${errors.map(_.message).mkString("\n")}")
@@ -112,5 +116,56 @@ final class LoamGraphTest extends FunSuite {
       assert(path === store.path)
       assert(pathLastPart.toString.startsWith(fileManager.filePrefix) || store.pathOpt.contains(path))
     }
+  }
+  
+  test("without") {
+    
+    import TestHelpers.config
+    
+    implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(config))
+    
+    import LoamPredef._
+    import StoreType._
+    import LoamCmdTool._
+    
+    val inputFile = path("/user/home/someone/data.vcf")
+    val outputFile = path("/user/home/someone/dataImputed.vcf")
+    
+    val raw = store[VCF].at(inputFile).asInput
+    val phased = store[VCF]
+    val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
+    val imputed = store[VCF].at(outputFile)
+    
+    val phaseTool = cmd"shapeit -in $raw -out $phased"
+    val imputeTool = cmd"impute -in $phased -template $template -out $imputed".using("R-3.1")
+    
+    import LoamGraph.StoreLocation.PathLocation
+    
+    val graph = scriptContext.projectContext.graph 
+    
+    assert(graph.tools === Set(phaseTool, imputeTool))
+    
+    val filtered = graph.without(Set(imputeTool))
+    
+    assert(graph.tools === Set(phaseTool, imputeTool))
+    
+    assert(filtered.tools === Set(phaseTool))
+    assert(filtered.stores === Set(raw, phased))
+    assert(filtered.toolInputs === Map(phaseTool -> Set(raw)))
+    assert(filtered.toolOutputs === Map(phaseTool -> Set(phased)))
+    assert(filtered.inputStores === Set(raw))
+    
+    //NB: location of phased is not specified
+    assert(filtered.storeLocations === Map(raw -> PathLocation(path("/user/home/someone/data.vcf"))))
+    
+    assert(filtered.storeProducers === Map(phased -> phaseTool))
+    assert(filtered.storeConsumers === Map(raw -> Set(phaseTool)))
+    
+    assert(filtered.keysSameLists === graph.keysSameLists)
+    assert(filtered.keysSameSets === graph.keysSameSets)
+    
+    assert(filtered.workDirs === Map(phaseTool -> path(".")))
+    
+    assert(filtered.executionEnvironments === Map(phaseTool -> ExecutionEnvironment.Local))
   }
 }

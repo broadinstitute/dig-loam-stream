@@ -95,7 +95,7 @@ object LoamScript {
     def projectContext: LoamProjectContext
 
     /** The graph of stores and tools defined by this Loam script */
-    def graph: LoamGraph = projectContext.graphBox.value
+    def graph: LoamGraph = projectContext.graph
   }
 
   /** ScalaIds required to be loaded  */
@@ -161,10 +161,6 @@ import ${ScalaId.from[LoamScriptContext].inScalaFull}
 import ${ScalaId.from[StoreType].inScalaFull}._
 import ${ScalaId.from[StoreFieldFilter.type].inScalaFull}
 import ${ScalaId.from[TextStoreFieldExtractor[_, _]].inScalaFull}
-import ${ScalaId.from[net.ceedubs.ficus.Ficus.type].inScalaFull}._
-import ${ScalaId.from[net.ceedubs.ficus.readers.ArbitraryTypeReader.type].inScalaFull}._
-import loamstream.conf.ValueReaders.PathReader
-import loamstream.conf.ValueReaders.GcsUriReader
 import java.nio.file._
 
 // scalastyle:off object.name

@@ -36,7 +36,7 @@ final class LoamToolBoxTest extends FunSuite {
 
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
-    val toolBox = new LoamToolBox(context)
+    val toolBox = new LoamToolBox(graph)
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
 
@@ -85,7 +85,7 @@ final class LoamToolBoxTest extends FunSuite {
 
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
-    val toolBox = new LoamToolBox(context)
+    val toolBox = new LoamToolBox(graph)
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
 

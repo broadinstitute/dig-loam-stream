@@ -43,8 +43,8 @@ uger {
         for (region <- regions) {
           val epactsOutputFilesBaseName = s"CAMP.${pheno}.chr${region}".replace(':', '.')
           cmd"""$epacts single
-            --vcf /humgen/diabetes2/users/ryank/data/metsim/data/METSIM_EX.final.chr1-22.vcf.bgz
-            --ped /humgen/diabetes2/users/ryank/data/metsim/pheno/phase1/METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.unrel.epacts.ped
+            --vcf $vcf
+            --ped $ped
             --pheno $pheno
             --cov AGE_T2D_HEALTH_PROVIDER
             --cov SEX

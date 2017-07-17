@@ -1,6 +1,6 @@
 // Scripts
 
-val rScriptsDir = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts")
+val rScriptsDir = path("pipeline/scripts")
 
 val CALC_KINSHIP_SAMPLE_SHARING_R = rScriptsDir / "calc_kinship_sample_sharing.r"
 val PLOT_ANCESTRY_PCA_R = rScriptsDir / "plot_ancestry_pca.r"

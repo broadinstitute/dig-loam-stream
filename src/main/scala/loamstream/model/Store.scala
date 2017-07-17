@@ -42,8 +42,14 @@ object Store {
 
     def key(name: String): LoamStoreKeySlot = LoamStoreKeySlot(this, name)(projectContext)
 
-    override def toString: String = s"store[${sig.tpe}]"
-
+    override def toString: String = {
+      val simpleTypeName = sig.tpe.toString.split("\\.").lastOption.getOrElse("?")
+      
+      val location = (pathOpt orElse uriOpt).map(_.toString).getOrElse(path)
+      
+      s"store[${simpleTypeName}]($id)@$location"
+    }
+    
     def graph: LoamGraph = projectContext.graph
 
     def pathOpt: Option[Path] = graph.pathOpt(this)

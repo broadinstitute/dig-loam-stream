@@ -44,7 +44,7 @@ final class LIdTest extends FunSuite {
     assert(LNamedId("foo").name == "foo")
     assert(LNamedId("").name == "") //TODO: Should we allow empty-string ids?
     
-    assert(LAnonId(123).name == "anon$123") // scalastyle:ignore magic.number
+    assert(LAnonId(123).name == "$123") // scalastyle:ignore magic.number
   }
   
   test("Anon ID Invariants") {

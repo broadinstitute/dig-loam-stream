@@ -41,10 +41,9 @@ object LoamEngine {
   }
 
   final case class Result(
-                           projectOpt: Shot[LoamProject],
-                           compileResultOpt: Shot[LoamCompiler.Result],
-                           jobExecutionsOpt: Shot[Map[LJob, Execution]])
-
+      projectOpt: Shot[LoamProject],
+      compileResultOpt: Shot[LoamCompiler.Result],
+      jobExecutionsOpt: Shot[Map[LJob, Execution]])
 }
 
 final case class LoamEngine(

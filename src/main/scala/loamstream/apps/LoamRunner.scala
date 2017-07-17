@@ -5,9 +5,9 @@ import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamProject
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
-import loamstream.util.Hit
 import loamstream.util.Loggable
-import loamstream.util.Miss
+import loamstream.compiler.GraphSource
+import loamstream.model.Tool
 
 /**
  * @author clint
@@ -20,42 +20,57 @@ trait LoamRunner {
 
 object LoamRunner {
   def apply(
-      loamEngine: LoamEngine, 
-      compile: LoamProject => LoamCompiler.Result,
-      shutdownAfter: (=> LoamEngine.Result) => LoamEngine.Result): LoamRunner = {
+    loamEngine: LoamEngine,
+    compile: LoamProject => LoamCompiler.Result,
+    shutdownAfter: (=> Map[LJob, Execution]) => Map[LJob, Execution]): LoamRunner = {
 
     new Default(loamEngine, compile, shutdownAfter)
   }
-  
+
+  private val emptyJobResults: Map[LJob, Execution] = Map.empty
+
   final class Default(
-      loamEngine: LoamEngine, 
+      loamEngine: LoamEngine,
       compile: LoamProject => LoamCompiler.Result,
-      shutdownAfter: (=> LoamEngine.Result) => LoamEngine.Result) extends LoamRunner with Loggable {
-    
+      shutdownAfter: (=> Map[LJob, Execution]) => Map[LJob, Execution]) extends LoamRunner with Loggable {
+
     override def run(project: LoamProject): Map[LJob, Execution] = {
-      
       //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
       //before final job statuses.
-      val engineResult = shutdownAfter {
-        val chunkSource = compile(project).graphQueue
-        
-        var jobResults: Map[LJob, Execution] = Map.empty
-        
-        while(chunkSource.nonEmpty) {
-          val chunk = chunkSource.get()
+      shutdownAfter {
+        val compilationResults = compile(project)
 
-          val chunkGraph = chunk()
+        if (compilationResults.isValid) { process(compilationResults.graphSource) }
+        else {
+          compilationResults.errors.foreach(e => error(s"Compilation error: $e"))
           
-          val chunkResults = loamEngine.run(chunkGraph)
-          
-          jobResults ++= chunkResults
+          emptyJobResults 
+        }
+      }
+    }
+
+    private def process(graphSource: GraphSource): Map[LJob, Execution] = {
+      //Keep track of job-execution results and the tools we've run "so far"
+      val z: (Map[LJob, Execution], Set[Tool]) = (emptyJobResults, Set.empty)
+      
+      //Fold over the "stream" of graph chunks, producing job-execution results
+      val (jobResults, _) = graphSource.iterator.foldLeft(z) { (state, chunk) =>
+        val (jobResultsSoFar, toolsRunSoFar) = state
+        
+        //Filter out tools from previous chunks, so we don't run jobs more than necessary, saving
+        //the expense of calculating if a job can be skipped.
+        val chunkGraph = chunk().without(toolsRunSoFar)
+        
+        //Skip running if there are no new tools
+        val jobResults = {
+          if(chunkGraph.tools.isEmpty) { jobResultsSoFar }
+          else { jobResultsSoFar ++ loamEngine.run(chunkGraph) }
         }
         
-        // TODO Obviate need for insertion of LoamCompiler.Result
-        LoamEngine.Result(Hit(project), Miss(""), Hit(jobResults))
+        (jobResults, toolsRunSoFar ++ chunkGraph.tools)
       }
-  
-      engineResult.jobExecutionsOpt.get
+      
+      jobResults
     }
   }
 }

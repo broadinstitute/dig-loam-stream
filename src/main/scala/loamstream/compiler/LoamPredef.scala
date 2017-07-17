@@ -63,7 +63,7 @@ object LoamPredef {
   }
 
   /**
-   * Indicate that jobs derived from tools/stores created by `exp` should run
+   * Indicate that jobs derived from tools/stores created by `loamCode` should run
    * AFTER jobs derived from tools/stores defined BEFORE the `andThen`, in evaluation order.
    * Enables code like:
    * 
@@ -83,13 +83,13 @@ object LoamPredef {
    *    }
    *  }
    */
-  def andThen(exp: => Any)(implicit scriptContext: LoamScriptContext): Unit = {
-    // TODO: try-catch to print a friendlier message in case 'exp' throws exception
-    // TODO: makes sense to asynchronously evaluate 'exp'?
+  def andThen(loamCode: => Any)(implicit scriptContext: LoamScriptContext): Unit = {
+    // TODO: try-catch to print a friendlier message in case 'loamCode' throws exception
+    // TODO: makes sense to asynchronously evaluate 'loamCode'?
     
     scriptContext.projectContext.registerGraphSoFar()
     
-    scriptContext.projectContext.registerLoamThunk(exp)
+    scriptContext.projectContext.registerLoamThunk(loamCode)
   }
   
   def in(store: Store.Untyped, stores: Store.Untyped*): Tool.In = in(store +: stores)

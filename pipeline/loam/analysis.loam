@@ -37,22 +37,24 @@ uger {
 
     // Run analysis for each region
     andThen {
-      val regions = Files.readFrom(regionsFileName).split(System.lineSeparator)
-
-      for (region <- regions) {
-        val epactsOutputFilesBaseName = s"METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.chr$region".replace(':', '.')
-        cmd"""$epacts single
-          --vcf /humgen/diabetes2/users/ryank/data/metsim/data/METSIM_EX.final.chr1-22.vcf.bgz
-          --ped /humgen/diabetes2/users/ryank/data/metsim/pheno/phase1/METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.unrel.epacts.ped
-          --pheno $pheno
-          --cov PC1
-          --cov PC2
-          --cov PC3
-          --region $region
-          --test q.linear
-          --out $epactsOutputFilesBaseName
-          --no-plot
-          --run 1""".using("GCC-5.2", "R-3.1", "Gnuplot").in(vcf, ped)
+      uger {
+        val regions = Files.readFrom(regionsFileName).split(System.lineSeparator)
+  
+        for (region <- regions) {
+          val epactsOutputFilesBaseName = s"METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.chr$region".replace(':', '.')
+          cmd"""$epacts single
+            --vcf /humgen/diabetes2/users/ryank/data/metsim/data/METSIM_EX.final.chr1-22.vcf.bgz
+            --ped /humgen/diabetes2/users/ryank/data/metsim/pheno/phase1/METSIM_EX.EUR.FG_trans_adj_Age_raw_resid_invn.unrel.epacts.ped
+            --pheno $pheno
+            --cov PC1
+            --cov PC2
+            --cov PC3
+            --region $region
+            --test q.linear
+            --out $epactsOutputFilesBaseName
+            --no-plot
+            --run 1""".using("GCC-5.2", "R-3.1", "Gnuplot").in(vcf, ped)
+        }
       }
     }
   }

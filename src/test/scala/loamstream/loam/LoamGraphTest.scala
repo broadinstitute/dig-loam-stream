@@ -8,6 +8,8 @@ import loamstream.TestHelpers
 import loamstream.model.Tool
 import loamstream.model.Store
 import loamstream.model.execute.ExecutionEnvironment
+import loamstream.compiler.LoamPredef
+import loamstream.loam.ops.StoreType
 
 /**
   * LoamStream
@@ -15,9 +17,6 @@ import loamstream.model.execute.ExecutionEnvironment
   */
 final class LoamGraphTest extends FunSuite {
 
-  private val phaseCommand = "shapeit"
-  private val imputeCommand = "impute2"
-  
   private val code = {
     s"""
       |val inputFile = path("/user/home/someone/data.vcf")
@@ -28,8 +27,8 @@ final class LoamGraphTest extends FunSuite {
       |val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
       |val imputed = store[VCF].at(outputFile)
       |
-      |cmd"$phaseCommand -in $$raw -out $$phased"
-      |cmd"$imputeCommand -in $$phased -template $$template -out $$imputed".using("R-3.1")
+      |cmd"shapeit -in $$raw -out $$phased"
+      |cmd"impute2 -in $$phased -template $$template -out $$imputed".using("R-3.1")
       | """.stripMargin
   }
 
@@ -43,15 +42,6 @@ final class LoamGraphTest extends FunSuite {
   
   private val graph = context.graph
   
-  private lazy val (phaseTool, imputeTool) = {
-    def commandLine(t: Tool) = t.asInstanceOf[LoamCmdTool].commandLine
-    
-    val phaseCmd = graph.tools.collect { case t if commandLine(t).trim.startsWith(phaseCommand) => t }.head
-    val imputeCmd = graph.tools.collect { case t if commandLine(t).contains(imputeCommand) => t }.head
-    
-    (phaseCmd, imputeCmd)
-  }
-
   test("Test that valid graph passes all checks.") {
     val errors = LoamGraphValidation.allRules(graph)
     assert(errors.isEmpty, s"${errors.size} errors:\n${errors.map(_.message).mkString("\n")}")
@@ -130,21 +120,28 @@ final class LoamGraphTest extends FunSuite {
   
   test("without") {
     
-    def findStore(fragment: String)(matches: String => String => Boolean): Store.Untyped = {
-      graph.stores.collect { case s if matches(s.path.toString)(fragment) => s }.head
-    }
+    import TestHelpers.config
     
-    def findStoreBySuffix(fileName: String): Store.Untyped = findStore(fileName)(_.endsWith)
+    implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(config))
     
-    def findStoreByPrefix(prefix: String): Store.Untyped = findStore(prefix)(_.startsWith)
+    import LoamPredef._
+    import StoreType._
+    import LoamCmdTool._
     
-    val raw = findStoreBySuffix("data.vcf")
-    val phased = findStoreByPrefix("/tmp")
-    val template = findStoreBySuffix("template.vcf")
-    val imputed = findStoreBySuffix("dataImputed.vcf")
+    val inputFile = path("/user/home/someone/data.vcf")
+    val outputFile = path("/user/home/someone/dataImputed.vcf")
     
-    import TestHelpers.path
+    val raw = store[VCF].at(inputFile).asInput
+    val phased = store[VCF]
+    val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
+    val imputed = store[VCF].at(outputFile)
+    
+    val phaseTool = cmd"shapeit -in $raw -out $phased"
+    val imputeTool = cmd"impute -in $phased -template $template -out $imputed".using("R-3.1")
+    
     import LoamGraph.StoreLocation.PathLocation
+    
+    val graph = scriptContext.projectContext.graph 
     
     assert(graph.tools === Set(phaseTool, imputeTool))
     

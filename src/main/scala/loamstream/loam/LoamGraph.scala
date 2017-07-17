@@ -285,7 +285,7 @@ final case class LoamGraph(
       val retainedToolsToInputs: Map[Tool, Set[UStore]] = toolsToKeep.mapTo(toolInputs(_))
       val retainedToolsToOutputs: Map[Tool, Set[UStore]] = toolsToKeep.mapTo(toolOutputs(_))
   
-      val retainedInputStores: Set[UStore] = inputStores.filter(retainedInputs.contains)
+      val retainedInputStores: Set[UStore] = inputStores.filter(retainedInputs)
       
       val retainedStores = retainedInputStores ++ retainedInputs ++ retainedOutputs
       

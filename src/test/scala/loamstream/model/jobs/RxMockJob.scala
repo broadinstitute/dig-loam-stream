@@ -17,12 +17,13 @@ import java.time.Instant
  *         date: Sep 15, 2016
  */
 // scalastyle:off magic.number
-final case class RxMockJob( override val name: String,
-                            inputs: Set[LJob],
-                            outputs: Set[Output],
-                            runsAfter: Set[RxMockJob],
-                            fakeExecutionTimeInMs: Int,
-                            toReturn: () => Execution) extends LJob {
+final case class RxMockJob( 
+  override val name: String,
+  inputs: Set[LJob],
+  outputs: Set[Output],
+  runsAfter: Set[RxMockJob],
+  fakeExecutionTimeInMs: Int,
+  toReturn: () => Execution)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LJob {
 
   override def executionEnvironment: ExecutionEnvironment = TestHelpers.env
 
@@ -50,8 +51,16 @@ final case class RxMockJob( override val name: String,
   }
 
   override def execute(implicit context: ExecutionContext): Future[Execution] = {
-    
-    count.mutate(_ + 1)
+
+    executions.mutate { oldExecutions =>
+      
+      val newExecutions = oldExecutions :+ this
+
+      // :(
+      count.mutate(_ + 1)  
+      
+      newExecutions
+    }
     
     Future(waitIfNecessary()).map { _ => 
     
@@ -79,7 +88,9 @@ object RxMockJob {
             runsAfter: Set[RxMockJob] = Set.empty,
             fakeExecutionTimeInMs: Int = 0,
             toReturn: () => JobResult = () => JobResult.CommandResult(0))
-            (implicit discriminator: Int = 42): RxMockJob = {
+            (implicit 
+                  executions: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty), 
+                  discriminator: Int = 42): RxMockJob = {
 
     RxMockJob(name,
               inputs,

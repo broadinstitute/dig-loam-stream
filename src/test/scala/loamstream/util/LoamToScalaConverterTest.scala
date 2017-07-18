@@ -7,8 +7,8 @@ import loamstream.loam.LoamScript
 import java.nio.file.Path
 import loamstream.util.code.RootPackageId
 import loamstream.util.code.ObjectId
-import scalariform.formatter.ScalaFormatter
 import loamstream.util.code.PackageId
+import org.scalafmt.Scalafmt
 
 /**
  * @author clint
@@ -18,6 +18,8 @@ final class LoamToScalaConverterTest extends FunSuite {
   import LoamToScalaConverter._
   
   import TestHelpers.path
+  
+  private def format(scalaCode: String): String = Scalafmt.format(scalaCode).get
   
   test("listLoamFiles - non-recursive") {
     val root = path("src/test/loam")
@@ -260,7 +262,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val (_, packageId, contextValId: ObjectId, _) = makeProjectContextOwnerCode(Nil)
     
-    val expectedCode = ScalaFormatter.format(script.asScalaCode(contextValId))
+    val expectedCode = format(script.asScalaCode(contextValId))
     
     assert(read(expectedScalaFile) === expectedCode)
   }
@@ -286,7 +288,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val (_, packageId, contextValId: ObjectId, _) = makeProjectContextOwnerCode(Seq("subdir"))
     
-    val expectedCode = ScalaFormatter.format(script.asScalaCode(contextValId))
+    val expectedCode = format(script.asScalaCode(contextValId))
     
     assert(read(expectedScalaFile) === expectedCode)
   }
@@ -327,13 +329,13 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val (_, _, contextValId: ObjectId, contextOwnerCode) = makeProjectContextOwnerCode(Nil)
     
-    val expectedCodeX = ScalaFormatter.format(xScript.asScalaCode(contextValId))
-    val expectedCodeY = ScalaFormatter.format(yScript.asScalaCode(contextValId))
+    val expectedCodeX = format(xScript.asScalaCode(contextValId))
+    val expectedCodeY = format(yScript.asScalaCode(contextValId))
     
     assert(read(expectedScalaFileX) === expectedCodeX)
     assert(read(expectedScalaFileY) === expectedCodeY)
     
-    val expectedProjectContextOwnerCode = ScalaFormatter.format(contextOwnerCode)
+    val expectedProjectContextOwnerCode = format(contextOwnerCode)
     
     assert(read(expectedProjectContextOwnerScalaFiles.head) === expectedProjectContextOwnerCode)
   }

@@ -75,8 +75,10 @@ object ObservableEnrichments {
             subscriber.onCompleted()
           }
         }
+        
+        val onCompleted = () => subscriber.onCompleted()
 
-        obs.foreach(onNext, subscriber.onError, subscriber.onCompleted)
+        obs.foreach(onNext, subscriber.onError, onCompleted)
       }
     }
     

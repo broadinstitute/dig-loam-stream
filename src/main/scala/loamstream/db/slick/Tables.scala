@@ -5,7 +5,7 @@ import java.sql.Timestamp
 import loamstream.model.jobs.JobStatus
 import loamstream.util.Futures
 import loamstream.util.Loggable
-import slick.driver.JdbcProfile
+import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MTable
 
 /**

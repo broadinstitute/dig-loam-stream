@@ -9,13 +9,13 @@ lazy val Versions = new {
   val GoogleAuth = "0.6.0"
   val Htsjdk = "2.1.0"
   val LogBack = "1.1.6"
-  val Scala = "2.11.8"
-  val Scalariform = "0.1.8"
-  val ScalaMajor = "2.11"
+  val Scala = "2.12.2"
+  val ScalaFmt = "1.0.0-RC3"
+  val ScalaMajor = "2.12"
   val ScalaTest = "3.0.0"
-  val Scallop = "2.0.2"
+  val Scallop = "2.1.3"
   val TypesafeConfig = "1.3.0"
-  val Slick = "3.1.1"
+  val Slick = "3.2.0"
   val H2 = "1.4.192"
   val RxScala = "0.26.5"
   val Ficus = "1.4.0"
@@ -26,7 +26,7 @@ lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-library" % Versions.Scala,
   "org.scala-lang" % "scala-compiler" % Versions.Scala,
   "org.scala-lang" % "scala-reflect" % Versions.Scala,
-  "org.scalariform" %% "scalariform" % Versions.Scalariform,
+  "com.geirsson" %% "scalafmt-core" % Versions.ScalaFmt,
   "com.github.samtools" % "htsjdk" % Versions.Htsjdk,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
   "us.levk" % "drmaa-common" % Versions.DrmaaCommon,

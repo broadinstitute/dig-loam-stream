@@ -212,9 +212,11 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
     val context = compileResults.contextOpt.get
 
-    val mapping = LoamGraphAstMapper.newMapping(context.graph)
+    val graph = context.graph
+    
+    val mapping = LoamGraphAstMapper.newMapping(graph)
 
-    val toolBox = new LoamToolBox(context)
+    val toolBox = new LoamToolBox(graph)
 
     mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJob
   }

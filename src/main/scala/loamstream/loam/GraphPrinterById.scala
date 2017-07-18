@@ -26,7 +26,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   }
 
   /** Prints cmd tool */
-  def print(tool: LoamCmdTool): String = print(tool, tool.graphBox.value)
+  def print(tool: LoamCmdTool): String = print(tool, tool.graph)
 
   /** Prints cmd tool */
   def print[T](tool: LoamNativeTool[T]): String = "[native tool]"

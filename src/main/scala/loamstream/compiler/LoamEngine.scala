@@ -22,6 +22,7 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.Executable
 import loamstream.util.StringUtils
 import loamstream.conf.LoamConfig
+import loamstream.loam.LoamGraph
 
 
 /**
@@ -40,10 +41,9 @@ object LoamEngine {
   }
 
   final case class Result(
-                           projectOpt: Shot[LoamProject],
-                           compileResultOpt: Shot[LoamCompiler.Result],
-                           jobExecutionsOpt: Shot[Map[LJob, Execution]])
-
+      projectOpt: Shot[LoamProject],
+      compileResultOpt: Shot[LoamCompiler.Result],
+      jobExecutionsOpt: Shot[Map[LJob, Execution]])
 }
 
 final case class LoamEngine(
@@ -118,7 +118,7 @@ final case class LoamEngine(
   def compileToExecutable(code: String): Option[Executable] = {
     val compilationResult = compile(LoamScript.withGeneratedName(code))
 
-    compilationResult.contextOpt.map(toExecutable)
+    compilationResult.contextOpt.map(_.graph).map(toExecutable)
   }
 
   def runFilesWithNames(fileNames: Iterable[String]): LoamEngine.Result = {
@@ -160,9 +160,9 @@ final case class LoamEngine(
     }
   }
 
-  private def toExecutable(context: LoamProjectContext): Executable = {
-    val mapping = LoamGraphAstMapper.newMapping(context.graph)
-    val toolBox = new LoamToolBox(context, csClient)
+  private def toExecutable(graph: LoamGraph): Executable = {
+    val mapping = LoamGraphAstMapper.newMapping(graph)
+    val toolBox = new LoamToolBox(graph, csClient)
 
     //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
     mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded
@@ -178,8 +178,8 @@ final case class LoamEngine(
     debug(s"Job tree: $buffer")
   }
   
-  def run(context: LoamProjectContext): Map[LJob, Execution] = {
-    val executable = toExecutable(context)
+  def run(graph: LoamGraph): Map[LJob, Execution] = {
+    val executable = toExecutable(graph)
 
     log(executable)
     
@@ -205,11 +205,13 @@ final case class LoamEngine(
       outMessageSink.send(StatusOutMessage(compileResults.summary))
       //TODO: What if compileResults.contextOpt is None?
       val context = compileResults.contextOpt.get
-      val jobResults = run(context)
+      val jobResults = run(context.graph)
       LoamEngine.Result(Hit(project), Hit(compileResults), Hit(jobResults))
     } else {
       outMessageSink.send(ErrorOutMessage("Could not compile."))
       LoamEngine.Result(Hit(project), Hit(compileResults), Miss("Could not compile"))
     }
   }
+  
+  def scriptsFrom(files: Iterable[Path]): Shot[Iterable[LoamScript]] = Shot.sequence(files.map(loadFile))
 }

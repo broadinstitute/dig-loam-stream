@@ -98,9 +98,11 @@ final class HailSupportTest extends FunSuite {
   }
 
   private def doTest(expectedCommandLine: String)(actual: => LoamCmdTool)(implicit sc: LoamScriptContext): Unit = {
-    val toolBox = new LoamToolBox(sc.projectContext)
+    val tool = actual
+    
+    val toolBox = new LoamToolBox(sc.projectContext.graph)
 
-    val job = toolBox.toolToJobShot(actual).get.asInstanceOf[CommandLineJob]
+    val job = toolBox.toolToJobShot(tool).get.asInstanceOf[CommandLineJob]
 
     def collapseWhitespace(s: String) = s.replaceAll("\\s+", " ")
 

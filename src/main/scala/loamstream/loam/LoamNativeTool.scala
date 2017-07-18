@@ -18,7 +18,7 @@ object LoamNativeTool {
 
     val tool = LoamNativeTool(LId.newAnonId, defaultStores, EvalLaterBox(expr))
     
-    scriptContext.projectContext.graphBox.mutate(_.withTool(tool, scriptContext))
+    scriptContext.projectContext.updateGraph(_.withTool(tool, scriptContext))
     
     tool
   }

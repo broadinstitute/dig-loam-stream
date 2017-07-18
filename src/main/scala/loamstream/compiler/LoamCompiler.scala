@@ -68,6 +68,10 @@ object LoamCompiler extends Loggable {
     def throwable(reporter: CompilerReporter, throwable: Throwable): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, None, Some(throwable))
     }
+    
+    private[compiler] def toGraphSource(contextOption: Option[LoamProjectContext]): GraphSource = {
+      contextOption.map(_.graphQueue).map(GraphSource.fromQueue).getOrElse(GraphSource.Empty)
+    }
   }
 
   /** The result of the compilation of a Loam script
@@ -78,8 +82,15 @@ object LoamCompiler extends Loggable {
     * @param contextOpt Option of a context with graph of stores and tools
     * @param exOpt      Option of an exception if thrown
     */
-  final case class Result(errors: Seq[Issue], warnings: Seq[Issue], infos: Seq[Issue],
-                          contextOpt: Option[LoamProjectContext], exOpt: Option[Throwable] = None) {
+  final case class Result(
+      errors: Seq[Issue], 
+      warnings: Seq[Issue], 
+      infos: Seq[Issue],
+      contextOpt: Option[LoamProjectContext], 
+      exOpt: Option[Throwable] = None) {
+    
+    val graphSource: GraphSource = Result.toGraphSource(contextOpt)
+    
     /** Returns true if no errors */
     def isValid: Boolean = errors.isEmpty
 
@@ -210,7 +221,12 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
         val graph = scriptBox.graph
         validateGraph(graph)
         reportCompilation(project, graph, projectContextReceipt)
-        LoamCompiler.Result.success(reporter, scriptBox.projectContext)
+        
+        val projectContext = scriptBox.projectContext
+        
+        projectContext.registerGraphSoFar()
+        
+        LoamCompiler.Result.success(reporter, projectContext)
       } else {
         logScripts(Loggable.Level.error, project, projectContextReceipt)
         outMessageSink.send(StatusOutMessage(s"Compilation failed. There were $soManyIssues."))

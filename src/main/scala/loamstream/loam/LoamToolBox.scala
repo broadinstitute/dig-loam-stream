@@ -17,15 +17,13 @@ import loamstream.util.{Hit, Miss, Shot, Snag}
   * LoamStream
   * Created by oliverr on 6/21/2016.
   */
-final class LoamToolBox(context: LoamProjectContext, client: Option[CloudStorageClient] = None) {
+final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = None) {
 
   @volatile private[this] var loamJobs: Map[Tool, LJob] = Map.empty
 
   private[this] val lock = new AnyRef
 
   private[loam] def newLoamJob(tool: Tool): Shot[LJob] = {
-    val graph = tool.graphBox.value
-
     def outputsFor(tool: Tool): Set[Output] = {
       val loamStores: Set[Store.Untyped] = graph.toolOutputs(tool)
 

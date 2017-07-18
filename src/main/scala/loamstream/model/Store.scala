@@ -28,9 +28,7 @@ object Store {
 
     def projectContext: LoamProjectContext = scriptContext.projectContext
 
-    def graphBox: ValueBox[LoamGraph] = projectContext.graphBox
-
-    def update(): Unit = graphBox.mutate(_.withStore(this))
+    def update(): Unit = projectContext.updateGraph(_.withStore(this))
 
     def asInput: Store.Untyped
 
@@ -44,9 +42,15 @@ object Store {
 
     def key(name: String): LoamStoreKeySlot = LoamStoreKeySlot(this, name)(projectContext)
 
-    override def toString: String = s"store[${sig.tpe}]"
-
-    def graph: LoamGraph = graphBox.value
+    override def toString: String = {
+      val simpleTypeName = sig.tpe.toString.split("\\.").lastOption.getOrElse("?")
+      
+      val location = (pathOpt orElse uriOpt).map(_.toString).getOrElse(path)
+      
+      s"store[${simpleTypeName}]($id)@$location"
+    }
+    
+    def graph: LoamGraph = projectContext.graph
 
     def pathOpt: Option[Path] = graph.pathOpt(this)
 
@@ -73,7 +77,8 @@ final case class Store[S <: StoreType : TypeTag] private(id: LId)(implicit val s
   update()
 
   override def asInput: Store[S] = {
-    graphBox.mutate(_.withStoreAsInput(this))
+    projectContext.updateGraph(_.withStoreAsInput(this))
+    
     this
   }
 
@@ -91,7 +96,8 @@ final case class Store[S <: StoreType : TypeTag] private(id: LId)(implicit val s
   }
 
   override def at(location: StoreLocation): Store[S] = {
-    graphBox.mutate(_.withStoreLocation(this, location))
+    projectContext.updateGraph(_.withStoreLocation(this, location))
+    
     this
   }
 

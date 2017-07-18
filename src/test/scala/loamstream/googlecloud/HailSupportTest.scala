@@ -194,54 +194,55 @@ foo"""
       exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
       -o ${ancestryPcaLoadingsTsv}"""
     }
+    // scalastyle:on line.size.limit
+  }
 
+  test("PyHail interpolator works with a real-world inline script") {
+    // scalastyle:off line.size.limit
+    val tool = pyhail"""from hail import *
+hc = HailContext()
+
+vds = hc.import_vcf('/some/really/long/path/to/a/file/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.bgz')
+vds = vds.split_multi()
+vds.write('1kg_purcell.vds',overwrite=True)
+
+vds = hc.read('1kg_purcell.vds')
+vds.summarize().report()
+
+vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
+
+    val commandLine = tool.commandLine
+
+    val scriptFile = commandLine.split("\\s+").last
+
+    val expectedCommandLine = s"${googlePrefix}${scriptFile}"
+
+    assert(commandLine === expectedCommandLine)
+
+    val scriptContents = Files.readFrom(scriptFile)
+
+    val expectedScriptContents = """from hail import *
+hc = HailContext()
+
+vds = hc.import_vcf('/some/really/long/path/to/a/file/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.bgz')
+vds = vds.split_multi()
+vds.write('1kg_purcell.vds',overwrite=True)
+
+vds = hc.read('1kg_purcell.vds')
+vds.summarize().report()
+
+vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
     // scalastyle:on line.size.limit
 
-    test("PyHail interpolator works with a real-world inline script") {
-      // scalastyle:off line.size.limit
-      val tool = pyhail"""from hail import *
-hc = HailContext()
-
-vds = hc.import_vcf('/some/really/long/path/to/a/file/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.bgz')
-vds = vds.split_multi()
-vds.write('1kg_purcell.vds',overwrite=True)
-
-vds = hc.read('1kg_purcell.vds')
-vds.summarize().report()
-
-vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
-
-      val commandLine = tool.commandLine
-
-      val scriptFile = commandLine.split("\\s+").last
-
-      val expectedCommandLine = s"${googlePrefix}${scriptFile}"
-
-      assert(commandLine === expectedCommandLine)
-
-      val scriptContents = Files.readFrom(scriptFile)
-
-      val expectedScriptContents = """from hail import *
-hc = HailContext()
-
-vds = hc.import_vcf('/some/really/long/path/to/a/file/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.bgz')
-vds = vds.split_multi()
-vds.write('1kg_purcell.vds',overwrite=True)
-
-vds = hc.read('1kg_purcell.vds')
-vds.summarize().report()
-
-vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
-      // scalastyle:on line.size.limit
-
-      assert(scriptContents === expectedScriptContents)
-    }
+    assert(scriptContents === expectedScriptContents)
   }
 
   private def doTest(expectedCommandLine: String)(actual: => LoamCmdTool)(implicit sc: LoamScriptContext): Unit = {
-    val toolBox = new LoamToolBox(sc.projectContext)
+    val tool = actual
+    
+    val toolBox = new LoamToolBox(sc.projectContext.graph)
 
-    val job = toolBox.toolToJobShot(actual).get.asInstanceOf[CommandLineJob]
+    val job = toolBox.toolToJobShot(tool).get.asInstanceOf[CommandLineJob]
 
     def collapseWhitespace(s: String) = s.replaceAll("\\s+", " ")
 
@@ -262,7 +263,7 @@ vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
   }
 
   private lazy val config: LoamConfig = {
-    val configString =
+    val configString = {
       """
       loamstream {
         googlecloud {
@@ -278,6 +279,7 @@ vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
           }
         }
       }"""
+    }
 
     val typesafeConfig = ConfigFactory.parseString(configString)
 

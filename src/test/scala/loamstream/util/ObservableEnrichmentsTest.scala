@@ -15,6 +15,8 @@ import rx.lang.scala.Subject
  * date: Jul 1, 2016
  */
 final class ObservableEnrichmentsTest extends FunSuite {
+  //scalastyle:off magic.number
+  
   private def isEven(i: Int): Boolean = i % 2 == 0
   private def isOdd(i: Int): Boolean = !isEven(i)
   
@@ -23,14 +25,14 @@ final class ObservableEnrichmentsTest extends FunSuite {
   import ObservableEnrichments._
   
   test("until") {
-    def observable = Observable.just(2, 4, 6, 7, 8, 9, 10) // scalastyle:ignore magic.number
+    def observable = Observable.just(2, 4, 6, 7, 8, 9, 10) 
 
     def toFuture[A](o: Observable[A]): Future[Seq[A]] = o.to[Seq].firstAsFuture
     
     {
       val fut = toFuture(observable.until(isOdd))
 
-      assert(waitFor(fut) == Seq(2, 4, 6, 7)) // scalastyle:ignore magic.number
+      assert(waitFor(fut) == Seq(2, 4, 6, 7)) 
     }
 
     {
@@ -42,13 +44,13 @@ final class ObservableEnrichmentsTest extends FunSuite {
     {
       val fut = toFuture(observable.until(_ == 8))
 
-      assert(waitFor(fut) == Seq(2, 4, 6, 7, 8)) // scalastyle:ignore magic.number
+      assert(waitFor(fut) == Seq(2, 4, 6, 7, 8)) 
     }
 
     {
       val fut = toFuture(observable.until(_ == 42))
 
-      assert(waitFor(fut) == Seq(2, 4, 6, 7, 8, 9, 10)) // scalastyle:ignore magic.number
+      assert(waitFor(fut) == Seq(2, 4, 6, 7, 8, 9, 10)) 
     }
   }
   
@@ -69,8 +71,6 @@ final class ObservableEnrichmentsTest extends FunSuite {
       def onNext(i: Int): Unit = current := i
       
       def onError(t: Throwable): Unit = {
-        println(s"onError: $t")
-        
         if(t.getMessage == "blarg") { currentException := Some(t) } else { currentException := None }
       }
       
@@ -136,4 +136,6 @@ final class ObservableEnrichmentsTest extends FunSuite {
 
     assert(waitFor(f) == "d")
   }
+  
+  // scalastyle:on magic.number
 }

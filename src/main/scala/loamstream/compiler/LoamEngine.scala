@@ -44,6 +44,15 @@ object LoamEngine {
       projectOpt: Shot[LoamProject],
       compileResultOpt: Shot[LoamCompiler.Result],
       jobExecutionsOpt: Shot[Map[LJob, Execution]])
+      
+  def toExecutable(graph: LoamGraph, csClient: Option[CloudStorageClient] = None): Executable = {
+    
+    val mapping = LoamGraphAstMapper.newMapping(graph)
+    val toolBox = new LoamToolBox(graph, csClient)
+
+    //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
+    mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded
+  }
 }
 
 final case class LoamEngine(
@@ -160,13 +169,7 @@ final case class LoamEngine(
     }
   }
 
-  private def toExecutable(graph: LoamGraph): Executable = {
-    val mapping = LoamGraphAstMapper.newMapping(graph)
-    val toolBox = new LoamToolBox(graph, csClient)
-
-    //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
-    mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded
-  }
+  private def toExecutable(graph: LoamGraph): Executable = LoamEngine.toExecutable(graph, csClient)
 
   private def log(executable: Executable): Unit = {
     val buffer = new StringBuilder

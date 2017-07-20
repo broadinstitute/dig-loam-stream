@@ -18,8 +18,8 @@ val ped = store[TXT].at("/humgen/diabetes2/users/ryank/data/camp/phenotype/camp.
 // Conf
 val pheno = "GLU_FAST_RIN"
 val startChromosome = 1
-val endChromosome = 11
-val numVars = 600
+val endChromosome = 22
+val numVars = 5000
 
 // Pipeline Definition
 local {

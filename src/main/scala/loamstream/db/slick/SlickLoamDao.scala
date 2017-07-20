@@ -1,11 +1,9 @@
 package loamstream.db.slick
 
 import java.nio.file.Path
-import java.time.Instant
 
 import scala.concurrent.ExecutionContext
 import loamstream.db.LoamDao
-import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
 import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
 import loamstream.util.Futures

@@ -85,6 +85,8 @@ lazy val webui = (project in file("webui"))
 
 enablePlugins(GitVersioning)
 
+scalastyleConfig in Test := file("scalastyle-config-for-tests.xml")
+
 val buildInfoTask = taskKey[Seq[File]]("buildInfo")
 
 buildInfoTask := {

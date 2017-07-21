@@ -15,6 +15,10 @@ import loamstream.model.jobs.{Execution, LJob}
 import loamstream.util.Files
 import loamstream.TestHelpers
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.loam.ops.StoreType
+import loamstream.compiler.LoamPredef
+import loamstream.util.PathEnrichments
+import loamstream.model.execute.Executable
 
 /**
   * LoamStream
@@ -22,17 +26,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
   */
 final class LoamToolBoxTest extends FunSuite {
 
-  private def run(script: LoamScript): Results = {
-
-    val compiler = new LoamCompiler
-
-    val compileResults = compiler.compile(TestHelpers.config, script)
-
-    assert(compileResults.errors == Nil)
-
-    val context = compileResults.contextOpt.get
-
-    val graph = context.graph
+  private def run(graph: LoamGraph): Results = {
 
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
@@ -42,7 +36,7 @@ final class LoamToolBoxTest extends FunSuite {
 
     val jobExecutions = RxExecuter.default.execute(executable)
     
-    Results(graph, mapping, jobExecutions)
+    Results(graph, executable, mapping, jobExecutions)
   }
 
   test("Simple toy pipeline using cp.") {
@@ -52,9 +46,7 @@ final class LoamToolBoxTest extends FunSuite {
 
       Files.writeTo(fileIn)("Hello World!")
 
-      val code = LoamToolBoxTest.Sources.toyCp
-
-      val results = run(code)
+      val results = run(LoamToolBoxTest.Graphs.toyCp)
 
       assert(results.jobExecutions.size === 5, s"${results.jobExecutions}")
       assert(results.mapping.rootAsts.size === 3)
@@ -71,23 +63,10 @@ final class LoamToolBoxTest extends FunSuite {
   test("'real' pipeline: 3 impute2 invocations that all depend on the same shapeit invocation should produce " +
     "expected ASTs and job graph") {
 
-    val source = LoamToolBoxTest.Sources.imputeParallel
+    val results = run(LoamToolBoxTest.Graphs.imputeParallel)
 
-    val compiler = new LoamCompiler
-
-    val compileResults = compiler.compile(TestHelpers.config, source)
-
-    assert(compileResults.errors === Nil)
-
-    val context = compileResults.contextOpt.get
-
-    val graph = context.graph
-
-    val mapping = LoamGraphAstMapper.newMapping(graph)
-
-    val toolBox = new LoamToolBox(graph)
-
-    val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
+    import results.mapping
+    import results.executable
 
     assert(mapping.toolAsts.size === 4)
     assert(mapping.rootAsts.size === 3)
@@ -155,74 +134,84 @@ final class LoamToolBoxTest extends FunSuite {
 
 object LoamToolBoxTest {
 
-  final case class Results(graph: LoamGraph, mapping: LoamGraphAstMapping, jobExecutions: Map[LJob, Execution]) {
+  final case class Results(
+      graph: LoamGraph, 
+      executable: Executable, 
+      mapping: LoamGraphAstMapping, 
+      jobExecutions: Map[LJob, Execution]) {
+    
     def allJobResultsAreSuccess: Boolean = {
       val resultOpts = jobExecutions.values.map(_.result)
       resultOpts.forall(result => result.nonEmpty && result.get.isSuccess)
     }
   }
 
-  object Sources {
-    val toyCp = LoamScript("ToyCp", {
-      """
-        |val fileIn = store[TXT].at(path("target/fileIn.txt")).asInput
-        |val fileTmp1 = store[TXT]
-        |val fileTmp2 = store[TXT]
-        |val fileOut1 = store[TXT].at(path("target/fileOut1.txt"))
-        |val fileOut2 = store[TXT].at(path("target/fileOut2.txt"))
-        |val fileOut3 = store[TXT].at(path("target/fileOut3.txt"))
-        |cmd"cp $fileIn $fileTmp1"
-        |cmd"cp $fileTmp1 $fileTmp2"
-        |cmd"cp $fileTmp2 $fileOut1"
-        |cmd"cp $fileTmp2 $fileOut2"
-        |cmd"cp $fileTmp2 $fileOut3"
-      """.stripMargin
-    })
+  object Graphs {
+    val toyCp = TestHelpers.makeGraph { implicit sc =>
+      import LoamPredef._
+      import LoamCmdTool._
+      import StoreType._
+      
+      val fileIn = store[TXT].at(path("target/fileIn.txt")).asInput
+      val fileTmp1 = store[TXT]
+      val fileTmp2 = store[TXT]
+      val fileOut1 = store[TXT].at(path("target/fileOut1.txt"))
+      val fileOut2 = store[TXT].at(path("target/fileOut2.txt"))
+      val fileOut3 = store[TXT].at(path("target/fileOut3.txt"))
+      cmd"cp $fileIn $fileTmp1"
+      cmd"cp $fileTmp1 $fileTmp2"
+      cmd"cp $fileTmp2 $fileOut1"
+      cmd"cp $fileTmp2 $fileOut2"
+      cmd"cp $fileTmp2 $fileOut3"
+    }
 
     // scalastyle:off line.size.limit
-    val imputeParallel = LoamScript("ImputeParallel", {
-      """
-val kgpDir = path("/humgen/diabetes/users/ryank/internal_qc/1kg_phase3/1000GP_Phase3")
-val softDir = path("/humgen/diabetes/users/ryank/software")
-
-val shapeit = softDir / "shapeit/bin/shapeit"
-val impute2 = softDir / "impute_v2.3.2_x86_64_static/impute2"
-
-val chr = 22
-val nShards = 3
-val offset = 20400000
-val basesPerShard = 100000
-
-val homeDir = path("/home/unix/cgilbert")
-val dataDir = homeDir / "imputation"
-val shapeitDataDir = dataDir / "shapeit_example"
-val impute2DataDir = dataDir / "impute2_example"
-
-val outputDir = homeDir / "output"
-
-val data = store[VCF].at(shapeitDataDir / "gwas.vcf.gz").asInput
-val geneticMap = store[TXT].at(shapeitDataDir / "genetic_map.txt.gz").asInput
-val phasedHaps = store[TXT].at(outputDir / "phased.haps.gz")
-val phasedSamples = store[TXT].at(outputDir / "phased.samples.gz")
-val log = store[TXT].at(outputDir / "shapeit.log")
-
-cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSamples -L $log --thread 16"
-
-val mapFile = store[TXT].at(impute2DataDir / "example.chr22.map").asInput
-val legend = store[TXT].at(impute2DataDir / "example.chr22.1kG.legend.gz").asInput
-val knownHaps = store[TXT].at(impute2DataDir / "example.chr22.prephasing.impute2_haps.gz").asInput
-
-for(iShard <- 0 until nShards) {
-  val start = offset + iShard*basesPerShard + 1
-  val end = start + basesPerShard - 1
-
-  val imputed = store[TXT].at(outputDir / s"imputed.data.bp${start}-${end}.gen")
-
-  //NB: Bogus inpute2 command; doesn't need wrapping to appease ScalaStyle, and the content doesn't matter 
-  cmd"$impute2 -use_prephased_g -m $mapFile -h $phasedHaps -l $legend -known_haps_g $knownHaps -int $start $end" 
-}
-      """
-    })
+    val imputeParallel = TestHelpers.makeGraph { implicit sc =>
+      import LoamPredef._
+      import LoamCmdTool._
+      import StoreType._
+      import PathEnrichments._
+      
+      val kgpDir = path("/humgen/diabetes/users/ryank/internal_qc/1kg_phase3/1000GP_Phase3")
+      val softDir = path("/humgen/diabetes/users/ryank/software")
+      
+      val shapeit = softDir / "shapeit/bin/shapeit"
+      val impute2 = softDir / "impute_v2.3.2_x86_64_static/impute2"
+      
+      val chr = 22
+      val nShards = 3
+      val offset = 20400000
+      val basesPerShard = 100000
+      
+      val homeDir = path("/home/unix/cgilbert")
+      val dataDir = homeDir / "imputation"
+      val shapeitDataDir = dataDir / "shapeit_example"
+      val impute2DataDir = dataDir / "impute2_example"
+      
+      val outputDir = homeDir / "output"
+      
+      val data = store[VCF].at(shapeitDataDir / "gwas.vcf.gz").asInput
+      val geneticMap = store[TXT].at(shapeitDataDir / "genetic_map.txt.gz").asInput
+      val phasedHaps = store[TXT].at(outputDir / "phased.haps.gz")
+      val phasedSamples = store[TXT].at(outputDir / "phased.samples.gz")
+      val log = store[TXT].at(outputDir / "shapeit.log")
+      
+      cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSamples -L $log --thread 16"
+      
+      val mapFile = store[TXT].at(impute2DataDir / "example.chr22.map").asInput
+      val legend = store[TXT].at(impute2DataDir / "example.chr22.1kG.legend.gz").asInput
+      val knownHaps = store[TXT].at(impute2DataDir / "example.chr22.prephasing.impute2_haps.gz").asInput
+      
+      for(iShard <- 0 until nShards) {
+        val start = offset + iShard*basesPerShard + 1
+        val end = start + basesPerShard - 1
+      
+        val imputed = store[TXT].at(outputDir / s"imputed.data.bp${start}-${end}.gen")
+      
+        //NB: Bogus inpute2 command; doesn't need wrapping to appease ScalaStyle, and the content doesn't matter 
+        cmd"$impute2 -use_prephased_g -m $mapFile -h $phasedHaps -l $legend -known_haps_g $knownHaps -int $start $end" 
+      }
+    }
     // scalastyle:on line.size.limit
   }
 

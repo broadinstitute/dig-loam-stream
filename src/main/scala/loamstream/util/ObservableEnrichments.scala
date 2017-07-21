@@ -76,7 +76,7 @@ object ObservableEnrichments {
           }
         }
 
-        obs.foreach(onNext, subscriber.onError, subscriber.onCompleted)
+        obs.foreach(onNext, subscriber.onError, () => subscriber.onCompleted())
       }
     }
     

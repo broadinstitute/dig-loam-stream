@@ -5,6 +5,18 @@ package loamstream.util
  * date: Apr 26, 2016
  */
 object Functions {
+  def memoize[A](f: () => A): () => A = {
+    val cached: ValueBox[Option[A]] = ValueBox(None)
+    
+    () => {
+      val newValue = cached.mutateAndGet { oldValue =>
+        if(oldValue.isDefined) oldValue else Some(f())
+      }
+      
+      newValue.get
+    }
+  }
+  
   def memoize[A, B](f: A => B, shouldCache: B => Boolean = (_ :B) => true): A => B = {
     val cache: ValueBox[Map[A, B]] = ValueBox(Map.empty)
     

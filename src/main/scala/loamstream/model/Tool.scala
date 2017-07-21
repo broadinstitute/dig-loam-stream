@@ -4,7 +4,6 @@ import java.nio.file.Path
 
 import loamstream.loam.{LoamGraph, LoamProjectContext, LoamScriptContext}
 import loamstream.model.Tool.DefaultStores
-import loamstream.util.ValueBox
 
 /**
   * @author Clint
@@ -22,29 +21,29 @@ trait Tool extends LId.Owner {
   /** The LoamScriptContext associated with this tool */
   def scriptContext: LoamScriptContext
 
-  /** The ValueBox used to store the graph this tool is part of */
-  def graphBox: ValueBox[LoamGraph] = projectContext.graphBox
-
   /** The graph this tool is part of */
-  def graph: LoamGraph = graphBox.value
+  def graph: LoamGraph = projectContext.graph
 
   /** Input and output stores before any are specified using in or out */
   def defaultStores: DefaultStores
 
   /** Input stores of this tool */
-  def inputs: Map[LId, Store.Untyped] =
+  def inputs: Map[LId, Store.Untyped] = {
     graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
+  }
 
   /** Output stores of this tool */
-  def outputs: Map[LId, Store.Untyped] =
+  def outputs: Map[LId, Store.Untyped] = {
     graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
+  }
 
   /** Adds input stores to this tool */
   def in(inStore: Store.Untyped, inStores: Store.Untyped*): this.type = in(inStore +: inStores)
 
   /** Adds input stores to this tool */
   def in(inStores: Iterable[Store.Untyped]): this.type = {
-    graphBox.mutate(_.withInputStores(this, inStores.toSet))
+    projectContext.updateGraph(_.withInputStores(this, inStores.toSet))
+    
     this
   }
 
@@ -53,11 +52,12 @@ trait Tool extends LId.Owner {
 
   /** Adds output stores to this tool */
   def out(outStores: Iterable[Store.Untyped]): this.type = {
-    graphBox.mutate(_.withOutputStores(this, outStores.toSet))
+    projectContext.updateGraph(_.withOutputStores(this, outStores.toSet))
+    
     this
   }
 
-  def workDirOpt: Option[Path] = graphBox.get(_.workDirs.get(this))
+  def workDirOpt: Option[Path] = graph.workDirs.get(this)
 }
 
 object Tool {

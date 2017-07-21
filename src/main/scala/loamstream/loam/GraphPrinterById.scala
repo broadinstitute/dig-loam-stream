@@ -26,7 +26,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   }
 
   /** Prints cmd tool */
-  def print(tool: LoamCmdTool): String = print(tool, tool.graphBox.value)
+  def print(tool: LoamCmdTool): String = print(tool, tool.graph)
 
   /** Prints cmd tool */
   def print[T](tool: LoamNativeTool[T]): String = "[native tool]"
@@ -72,6 +72,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
     val storeProducersString = toString(graph.storeProducers.map {
       case (store, producer: LoamCmdTool) => s"${print(store, fully = false)} <- ${print(producer, graph)}"
+      case tuple => throw new Exception(s"We don't know how to stringify non-LoamCmdTools: $tuple")
     })
 
     toString(Seq(storesString, toolsString, storeLocationsString, storeProducersString))

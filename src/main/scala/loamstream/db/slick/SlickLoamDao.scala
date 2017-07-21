@@ -1,17 +1,14 @@
 package loamstream.db.slick
 
 import java.nio.file.Path
-import java.time.Instant
 
 import scala.concurrent.ExecutionContext
 import loamstream.db.LoamDao
-import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
 import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.PathUtils
-import slick.profile.SqlAction
 import loamstream.model.jobs.JobResult.{CommandInvocationFailure, CommandResult}
 
 /**
@@ -164,11 +161,13 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     Queries.outputByLoc(loc).result.headOption.transactionally
   }
 
-  private def outputDeleteAction(locsToDelete: Iterable[String]): SqlAction[Int, NoStream, Effect.Write] = {
+  private type WriteAction[A] =  driver.ProfileAction[A, NoStream, Effect.Write]
+  
+  private def outputDeleteAction(locsToDelete: Iterable[String]): WriteAction[Int] = {
     Queries.outputsByPaths(locsToDelete).delete
   }
 
-  private def outputDeleteActionRaw(pathsToDelete: Iterable[String]): SqlAction[Int, NoStream, Effect.Write] = {
+  private def outputDeleteActionRaw(pathsToDelete: Iterable[String]): WriteAction[Int] = {
     Queries.outputsByRawPaths(pathsToDelete).delete
   }
 
@@ -286,7 +285,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   //TODO: Re-evaluate; block all the time?
   private[slick] def runBlocking[A](action: DBIO[A]): A = waitFor(db.run(action))
 
-  private def log(sqlAction: SqlAction[_, _, _]): Unit = {
+  private def log(sqlAction: driver.ProfileAction[_, _, _]): Unit = {
     sqlAction.statements.foreach(s => debug(s"SQL: $s"))
   }
 

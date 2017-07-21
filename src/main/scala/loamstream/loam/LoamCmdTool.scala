@@ -55,7 +55,7 @@ object LoamCmdTool {
 
   /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
   private def addToGraph(tool: LoamCmdTool)(implicit scriptContext: LoamScriptContext): Unit = {
-    scriptContext.projectContext.graphBox.mutate { graph =>
+    scriptContext.projectContext.updateGraph { graph =>
       graph.withTool(tool, scriptContext)
     }
   }
@@ -99,7 +99,7 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
 
     val updatedTool = copy(tokens = useToken +: tokens :+ closeParenToken)
 
-    scriptContext.projectContext.graphBox.mutate { graph =>
+    scriptContext.projectContext.updateGraph { graph =>
       graph.updateTool(this, updatedTool)
     }
 

@@ -25,6 +25,10 @@ source /broad/software/scripts/useuse
 reuse -q UGER
 reuse -q Java-1.8
 
+export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$$PATH
+conda env create -f /humgen/diabetes/users/dig/hail/environment.yml
+source activate hail
+
 i=$$SGE_TASK_ID
       """
   val endIf: String = s"""${newLine}fi$newLine"""

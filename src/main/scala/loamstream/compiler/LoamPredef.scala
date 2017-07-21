@@ -17,6 +17,8 @@ import loamstream.util.ConfigUtils
 /** Predefined symbols in Loam scripts */
 object LoamPredef {
 
+  type Store[A <: StoreType] = loamstream.model.Store[A]
+  
   implicit def toConstantFunction[T](item: T): () => T = () => item
   
   def path(pathString: String): Path = Paths.get(pathString)
@@ -27,15 +29,69 @@ object LoamPredef {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store[S <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): Store[S] = Store.create[S]
+  def store[S <: StoreType : TypeTag](implicit context: LoamScriptContext): Store[S] = {
+    Store.create[S]
+  }
 
-  def job[T: TypeTag](exp: => T)(implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
+  def job[T: TypeTag](exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
     LoamNativeTool(DefaultStores.empty, exp)
+  }
 
-  def job[T: TypeTag](store: Store.Untyped, stores: Store.Untyped*)(exp: => T)(
-    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] =
+  def job[T: TypeTag](store: Store.Untyped, stores: Store.Untyped*)
+                     (exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
     LoamNativeTool((store +: stores).toSet, exp)
+  }
 
+  def job[T: TypeTag](in: Tool.In, out: Tool.Out)
+                     (exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
+    LoamNativeTool(in, out, exp)
+  }
+
+  def job[T: TypeTag](in: Tool.In)
+                     (exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
+    LoamNativeTool(in, exp)
+  }
+
+  def job[T: TypeTag](out: Tool.Out)
+                     (exp: => T)
+                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
+    LoamNativeTool(out, exp)
+  }
+
+  /**
+   * Indicate that jobs derived from tools/stores created by `loamCode` should run
+   * AFTER jobs derived from tools/stores defined BEFORE the `andThen`, in evaluation order.
+   * Enables code like:
+   * 
+   *  val in = store[TXT].at("input-file").asInput
+   *  val computed = store[TXT].at("computed")
+   *  
+   *  cmd"compute-something -i $in -o $computed".in(in).out(computed)
+   *  
+   *  andThen {
+   *    //needs to wait for 'compute-something' command to finish
+   *    val n = countLinesIn(computed) 
+   *    
+   *    for(i <- 1 to n) {
+   *      val fooOut = store[TXT].at(s"foo-out-$i.txt")
+   *    
+   *      cmd"foo -i $computed -n $i".in(computed).out(fooOut)
+   *    }
+   *  }
+   */
+  def andThen(loamCode: => Any)(implicit scriptContext: LoamScriptContext): Unit = {
+    // TODO: try-catch to print a friendlier message in case 'loamCode' throws exception
+    // TODO: makes sense to asynchronously evaluate 'loamCode'?
+    
+    scriptContext.projectContext.registerGraphSoFar()
+    
+    scriptContext.projectContext.registerLoamThunk(loamCode)
+  }
+  
   def in(store: Store.Untyped, stores: Store.Untyped*): Tool.In = in(store +: stores)
 
   def in(stores: Iterable[Store.Untyped]): Tool.In = Tool.In(stores)
@@ -43,15 +99,6 @@ object LoamPredef {
   def out(store: Store.Untyped, stores: Store.Untyped*): Tool.Out = Tool.Out((store +: stores).toSet)
 
   def out(stores: Iterable[Store.Untyped]): Tool.Out = Tool.Out(stores)
-
-  def job[T: TypeTag](in: Tool.In, out: Tool.Out)(exp: => T)(
-    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, out, exp)
-
-  def job[T: TypeTag](in: Tool.In)(exp: => T)(
-    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(in, exp)
-
-  def job[T: TypeTag](out: Tool.Out)(exp: => T)(
-    implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = LoamNativeTool(out, exp)
 
   def changeDir(newPath: Path)(implicit scriptContext: LoamScriptContext): Path = scriptContext.changeWorkDir(newPath)
 

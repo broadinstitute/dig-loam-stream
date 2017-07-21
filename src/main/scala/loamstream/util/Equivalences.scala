@@ -31,5 +31,4 @@ object Equivalences {
     /** Returns set of all elements equal to e, including e. */
     override def equalsOf(e: E): Set[E] = equals.getOrElse(e, Set(e))
   }
-
 }

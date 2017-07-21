@@ -1,6 +1,6 @@
 // Scripts
 
-val scriptsDir = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/scripts")
+val scriptsDir = path("pipeline/scripts")
 
 val pyHailLoad = scriptsDir / "hail_load.py"
 val pyHailFilter = scriptsDir / "hail_filter.py"

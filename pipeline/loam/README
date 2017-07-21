@@ -21,3 +21,6 @@ val inKG_HAIL = path("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3
 val inKG_V3_5K_AF = store[TXT].at("/humgen/diabetes/users/ryank/data/1kg_phase3/1000GP_Phase3_vcf_purcell5k/allele_frequencies.tsv").asInput
 val inPHENO = store[TXT].at("/humgen/diabetes/users/ryank/data/camp/phenotype/AMP_T2DGENES_PhenotypeData_CAMP-MGH_8May2016.tsv").asInput
 val VDS_FOR_QC_PRUNED = path(outDIR / s"${outLABEL}.for_qc.pruned.vds")
+
+
+***

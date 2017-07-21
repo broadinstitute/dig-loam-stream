@@ -3,8 +3,7 @@ args<-commandArgs(trailingOnly=T)
 data<-read.table(args[1],header=T,as.is=T,stringsAsFactors=F)
 pcs<-read.table(args[2],header=T,as.is=T,stringsAsFactors=F)
 pcs$POP<-NULL
-pcs$SUPERPOP<-NULL
-pcs$SEX<-NULL
+pcs$GROUP<-NULL
 out<-merge(data,pcs,all.y=T)
 for(x in names(out)[2:12]) {
 	print(paste("var(",x,") = ",var(out[,x])),sep="")

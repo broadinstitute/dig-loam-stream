@@ -4,6 +4,10 @@ val scriptsDir = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pip
 
 val pyHailLoad = scriptsDir / "hail_load.py"
 val pyHailFilter = scriptsDir / "hail_filter.py"
+val pyHailAncestryPca = scriptsDir / "hail_ancestry_pca.py"
+val pyHailPca = scriptsDir / "hail_pca.py"
+val pyHailSampleqc = scriptsDir / "hail_sampleqc.py"
+val pyHailSexcheck = scriptsDir / "hail_sexcheck.py"
 val shKing = scriptsDir / "king.sh"
 val rCalcKinshipSampleSharing = scriptsDir / "calc_kinship_sample_sharing.r"
 val rPlotAncestryPca = scriptsDir / "plot_ancestry_pca.r"

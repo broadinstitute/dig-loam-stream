@@ -1,4 +1,4 @@
- /** Regions to exclude from QC (high LD / associated with T2D) */
+/** Regions to exclude from QC (high LD / associated with T2D) */
 val regionsExclude = store[TXT].at("/humgen/diabetes/users/ryank/pipeline/regions_exclude/regions.exclude").asInput
 
 /** 1KG PCA input */

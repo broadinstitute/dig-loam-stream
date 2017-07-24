@@ -47,7 +47,7 @@ andThen {
       val regions = Files.readFrom(outDir / s"$regionsFileName").split(System.lineSeparator)
 
       for (region <- regions) {
-        val epactsOutputFilesBaseName = s"CAMP.${pheno}.chr${region}".replace(':', '.')
+        val epactsOutputFilesBaseName = s"$outDirName/CAMP.${pheno}.chr${region}".replace(':', '.')
 
         cmd"""$epacts single
           --vcf $vcf

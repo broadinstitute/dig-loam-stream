@@ -13,7 +13,7 @@ import java.time.Instant
 final class Drmaa1ClientTest extends FunSuite {
   private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue.Short), Some("foo.example.com"))
   
-  import Drmaa1ClientTest._
+  import Drmaa1ClientTest.LiteralJobInfo
   
   //scalastyle:off magic.number
   test("toResources - valid resource-usage data in JobInfo") {
@@ -28,7 +28,7 @@ final class Drmaa1ClientTest extends FunSuite {
     import scala.concurrent.duration._
     
     assert(r.cpuTime === CpuTime(1.9867.seconds))
-    assert(r.memory === Memory.inGb(0.0141))
+    assert(r.memory === Memory.inKb(54328))
     assert(r.node === None)
     assert(r.queue === None)
     assert(r.startTime === Instant.ofEpochMilli(1488840619845L))

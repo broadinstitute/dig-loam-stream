@@ -13,6 +13,11 @@ import loamstream.model.execute.{ExecutionEnvironment, LocalSettings, Resources}
 import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
 import loamstream.model.jobs.LJob
 import loamstream.conf.ExecutionConfig
+import loamstream.loam.LoamScriptContext
+import loamstream.loam.LoamGraph
+import loamstream.loam.LoamProjectContext
+import loamstream.model.execute.RxExecuter
+import loamstream.compiler.LoamEngine
 
 /**
   * @author clint
@@ -77,5 +82,20 @@ object TestHelpers {
 
   def executionFromResult(result: JobResult, resources: Option[Resources] = None): Execution = {
     executionFrom(result.toJobStatus, Option(result), resources)
+  }
+  
+  def makeGraph(loamCode: LoamScriptContext => Any): LoamGraph = {
+      
+    val sc = new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config))
+      
+    loamCode(sc)
+      
+    sc.projectContext.graph
+  }
+  
+  def run(graph: LoamGraph): Map[LJob, Execution] = {
+    val executable = LoamEngine.toExecutable(graph)
+    
+    RxExecuter.default.execute(executable)
   }
 }

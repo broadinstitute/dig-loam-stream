@@ -18,7 +18,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
   //scalastyle:off magic.number
   
   import TestHelpers.neverRestart
-  import CompositeChunkRunnerTest._
+  import CompositeChunkRunnerTest.{local, MockRunner}
   
   test("maxNumJobs") {
     val n1 = 3
@@ -29,7 +29,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     assert(runner.maxNumJobs === (n1 + n2 + n3))
   }
-  
+
   test("canRun") {
 
     val job1 = MockJob(JobStatus.Succeeded)

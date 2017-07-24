@@ -99,7 +99,7 @@ final class UgerResourcesTest extends FunSuite {
     val r = fromMap(realWorldMap).get
     
     assert(r.cpuTime === CpuTime(1.9867.seconds))
-    assert(r.memory === Memory.inGb(0.0141))
+    assert(r.memory === Memory.inKb(54328))
     assert(r.node === None)
     assert(r.queue === None)
     assert(r.startTime === Instant.ofEpochMilli(1488840619845L))

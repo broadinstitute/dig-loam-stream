@@ -2,37 +2,25 @@ args<-commandArgs(trailingOnly=T)
 library(reshape2)
 library(ggplot2)
 library(gridExtra)
-files = list.files(unlist(strsplit(args[1],"/"))[1], glob2rx(unlist(strsplit(args[1],"/"))[2]))
-files <- files[grep("temp",files,invert=T)]
-files.df<-colsplit(files,"\\.",names=c("x1","x2","x3","x4","NUM","x6","x7"))
-metric_files = list.files(unlist(strsplit(gsub(".clu.1",".metric.ids",args[1]),"/"))[1], glob2rx(unlist(strsplit(gsub(".clu.1",".metric.ids",args[1]),"/"))[2]))
-metric_files.df<-colsplit(metric_files,"\\.",names=c("x1","x2","x3","x4","NUM","x6","x7"))
-metric_files.df$FEATURE<-NA
-for(i in 1:nrow(metric_files.df)) {
-	metric<-scan(paste("qc/",paste(metric_files.df[i,1:(ncol(metric_files.df)-1)],collapse="."),sep=""),what="character")
-	metric_files.df$FEATURE[i]<-metric
-}
-metric_files.df<-metric_files.df[,c("NUM","FEATURE")]
-files.df<-merge(files.df,metric_files.df,all=T)
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length=n+1)
   hcl(h=hues, l=65, c=100)[1:n]
 }
+metrics<-unlist(strsplit(args[1],","))
 np<-0
 np<-np+1
 data_orig<-read.table(args[2],header=T,as.is=T,stringsAsFactors=F)
 data<-read.table(args[3],header=T,as.is=T,stringsAsFactors=F)
-data_names<-names(data)[names(data) %in% unique(files.df$FEATURE)]
+data_names<-names(data)[names(data) %in% metrics]
 oliers<-readLines(args[4])
 data$OUTLIER_PCA<-0
 if( length(oliers) > 0) {
 	data$OUTLIER_PCA[data$IID %in% oliers]<-1
 }
 pdf(args[5],width=ceiling(length(data_names)/10)*7, height=7)
-#for(f in data_names) {
-for(i in 1:nrow(files.df)) {
-	print(files.df$FEATURE[i])
-	cl<-read.table(gsub("\\*",files.df$NUM[i],args[1]), as.is=T, skip=1)
+for(m in metrics) {
+	print(m)
+	cl<-read.table(gsub("tsv",paste(m,".clu.1",sep=""),args[3]), as.is=T, skip=1)
 	cl_levels<-c()
 	cl_names<-c()
 	if(1 %in% cl$V1) {
@@ -44,15 +32,15 @@ for(i in 1:nrow(files.df)) {
 		cl_levels<-c(cl_levels,c)
 	}
 	cl$V1<-factor(cl$V1, levels=cl_levels, labels=cl_names, ordered = TRUE)
-	names(cl)[1]<-paste(files.df$FEATURE[i],"_CLUSTER",sep="")
+	names(cl)[1]<-paste(m,"_CLUSTER",sep="")
 	data<-cbind(data,cl)
-	color<-gg_color_hue(max(as.numeric(data[,c(paste(files.df$FEATURE[i],"_CLUSTER",sep=""))])))
+	color<-gg_color_hue(max(as.numeric(data[,c(paste(m,"_CLUSTER",sep=""))])))
 	if("X" %in% cl_names) {
 		color[1]<-"#808080"
 	}
-	pl<-ggplot(data,aes_string(paste(files.df$FEATURE[i],"_CLUSTER",sep=""), y=files.df$FEATURE[i])) +
-		geom_boxplot(data=data[data[,c(paste(files.df$FEATURE[i],"_CLUSTER",sep=""))] != "X",],aes_string(colour=paste(files.df$FEATURE[i],"_CLUSTER",sep=""))) +
-		geom_point(aes_string(colour=paste(files.df$FEATURE[i],"_CLUSTER",sep=""))) +
+	pl<-ggplot(data,aes_string(paste(m,"_CLUSTER",sep=""), y=m)) +
+		geom_boxplot(data=data[data[,c(paste(m,"_CLUSTER",sep=""))] != "X",],aes_string(colour=paste(m,"_CLUSTER",sep=""))) +
+		geom_point(aes_string(colour=paste(m,"_CLUSTER",sep=""))) +
 		geom_rug(sides="l") +
 		scale_x_discrete(limits=cl_names) +
 		scale_colour_manual(breaks=cl_names,limits=cl_names,values=color) +
@@ -66,7 +54,7 @@ for(i in 1:nrow(files.df)) {
 		panel.background = element_blank(),
 		legend.key = element_blank())
 	plot(pl)
-	cat(file=args[6],paste("   ",files.df$FEATURE[i],": ",nrow(data)," total, ",length(unique(data[,c(files.df$FEATURE[i])]))," unique, ",(length(unique(data[,c(files.df$FEATURE[i])])) / nrow(data))*100,"%\n",sep=""),append=T)
+	cat(file=args[6],paste("   ",m,": ",nrow(data)," total, ",length(unique(data[,c(m)]))," unique, ",(length(unique(data[,c(m)])) / nrow(data))*100,"%\n",sep=""),append=T)
 }
 dev.off()
 data<-merge(data,data_orig,all=T)
@@ -75,7 +63,7 @@ for(cl in names(data)[grep("_CLUSTER",names(data))]) {
 	print(cl)
 	i<-i+1
 	f<-gsub("_CLUSTER","",cl)
-	f_orig<-gsub("_ADJ","",f)
+	f_orig<-gsub("_res","",f)
 	temp<-data[,c(f,cl,f_orig,"OUTLIER_PCA","IID")]
 	names(temp)[1]<-"VALUE"
 	names(temp)[2]<-"CLUSTER"

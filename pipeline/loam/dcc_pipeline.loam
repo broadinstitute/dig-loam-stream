@@ -385,24 +385,23 @@ def allQcSteps(params: DataConfig): Unit = {
   
   val sampleQcKlustakwikStores: Seq[KlustakwikStores] = {
     uger {
-      (1 to nSampleQcMetrics).map { metricIndex =>
-        val stores = KlustakwikStores(s"${Local.sampleqcStatsAdjPrefix}.${metricIndex}")
+      sampleQcMetrics.map { metricId =>
+        val stores = KlustakwikStores(s"${Local.sampleqcStatsAdjPrefix}.${metricId}")
 
         cmd"""echo 1 > ${stores.fet};
-          sed '1d' ${Local.sampleqcStatsAdj} | awk -v col=${metricIndex+1} '{print $$col}' >> ${stores.fet};
-          ID=$$(head -1 ${Local.sampleqcStatsAdj} | cut -f ${metricIndex+1}); echo $$ID
-          > ${stores.metricIds}""".in(Local.sampleqcStatsAdj).out(stores.fet, stores.metricIds)
+          metricIdx=`head -1 ${Local.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${metricId} | awk '{print $$1}'`;
+          sed '1d' ${Local.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${stores.fet}""".in(Local.sampleqcStatsAdj).out(stores.fet)
 
         cmd"""$binKlustakwik ${stores.base} 1 -UseFeatures 1 -UseDistributional 0 > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
-  
+
         stores
       }
     }
   }
 
   local {
-    cmd"""$R --vanilla --args
-      "${Local.sampleqcStatsAdjIndWildcard}"
+    cmd"""$binR --vanilla --args
+      ${sampleQcMetrics.mkString(",")}
       ${Local.sampleqcStats}
       ${Local.sampleqcStatsAdj}
       ${Local.sampleqcStatsAdjClusterOutliers}
@@ -412,11 +411,7 @@ def allQcSteps(params: DataConfig): Unit = {
       ${Local.sampleqcStatsAdjIndOutliersRemove}
       ${Local.sampleqcStatsAdjIndStripchart}
       ${Local.ancestryCluster}
-      < $rIstatsAdjGmmPlotMetrics""".in(sampleQcKlustakwikStores.map(_.clu) ++ sampleQcKlustakwikStores.map(_.metricIds) :+ Local.sampleqcStats :+ Local.sampleqcStatsAdj :+ Local.ancestryCluster :+ Local.sampleqcStatsAdjClusterOutliers).out(Local.sampleqcStatsAdjIndBoxplots, Local.sampleqcStatsAdjIndDiscreteness, Local.sampleqcStatsAdjIndOutliersTable, sampleqcStatsAdjIndOutliersRemove, sampleqcStatsAdjIndStripchart)
+      < $rIstatsAdjGmmPlotMetrics""".in(sampleQcKlustakwikStores.map(_.clu) :+ Local.sampleqcStats :+ Local.sampleqcStatsAdj :+ Local.ancestryCluster :+ Local.sampleqcStatsAdjClusterOutliers).out(Local.sampleqcStatsAdjIndBoxplots, Local.sampleqcStatsAdjIndDiscreteness, Local.sampleqcStatsAdjIndOutliersTable, Local.sampleqcStatsAdjIndOutliersRemove, Local.sampleqcStatsAdjIndStripchart)
   }
-
-  /**
-   * Generate Phenotype Master File
-   */
 
 }

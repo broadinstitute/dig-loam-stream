@@ -1,6 +1,6 @@
-// Scripts
+import qc_params._
 
-val scriptsDir = path("pipeline/scripts")
+val scriptsDir = loamstreamDir / "pipeline/scripts"
 
 val pyHailLoad = scriptsDir / "hail_load.py"
 val pyHailFilter = scriptsDir / "hail_filter.py"

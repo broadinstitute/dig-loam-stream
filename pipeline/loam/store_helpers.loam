@@ -15,7 +15,7 @@ def bedBimFam(prefix: String): Seq[Store[TXT]] = bedBimFam(extension => store[TX
 def bedBimFam(prefix: Path): Seq[Store[TXT]] = bedBimFam(prefix.toString)
 
 case class KlustakwikStores(base: String, fet: Store[TXT], tempClu: Store[TXT], clu: Store[TXT],
-                            klg: Store[TXT], metricIds: Store[TXT], klustakwikLog: Store[TXT]) {
+                            klg: Store[TXT], klustakwikLog: Store[TXT]) {
   val inputs: Set[Store[TXT]] = Set(fet)
   val outputs: Set[Store[TXT]] = Set(clu, klg, klustakwikLog)
 }
@@ -23,9 +23,9 @@ case class KlustakwikStores(base: String, fet: Store[TXT], tempClu: Store[TXT], 
 object KlustakwikStores {
   def apply(base: String): KlustakwikStores = {
     val makeStore: String => Store[TXT] = extension => store[TXT].at(s"${base}.${extension}")
-    val Seq(fet, tempClu, clu, klg, metricIds, klustakwikLog) =
-      withExtensions("fet.1", "temp.clu.1", "clu.1", "klg.1", "metric.ids","klustakwik.log")(makeStore)
-    KlustakwikStores(base, fet, tempClu, clu, klg, metricIds, klustakwikLog)
+    val Seq(fet, tempClu, clu, klg, klustakwikLog) =
+      withExtensions("fet.1", "temp.clu.1", "clu.1", "klg.1", "klustakwik.log")(makeStore)
+    KlustakwikStores(base, fet, tempClu, clu, klg, klustakwikLog)
   }
 
   def apply(base: Path): KlustakwikStores = apply(base.toString)

@@ -17,7 +17,7 @@ final class QcPipelineEndToEndTest extends FunSuite {
   private val referenceDir = path("/humgen/diabetes/users/dig/loamstream/ci/test-data/qc/camp/results")
   private val outputDir = path("./qc")
 
-  test("Run the QC pipeline end-to-end on real data") {
+  ignore("Run the QC pipeline end-to-end on real data") {
     try {
       run()
     } catch {

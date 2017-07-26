@@ -41,8 +41,11 @@ final class AnalysisPipelineEndToEndTest extends FunSuite {
 
     Files.createDirsIfNecessary(path("./uger"))
 
+    // Turn off job skipping to prevent race conditions with database generation,
+    // and also because CI builds are created from scratch each run anyway
     val args: Array[String] = {
       Array(
+          "--run-everything",
           "--conf",
           "pipeline/loam/qc.conf",
           "pipeline/loam/analysis.loam")

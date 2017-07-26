@@ -4,7 +4,6 @@ import org.scalatest.FunSuite
 import java.nio.file.Path
 import loamstream.util.ExitCodes
 import java.nio.file.Paths
-import java.nio.file.{Files => JFiles}
 import loamstream.util.Files
 
 /**
@@ -12,12 +11,10 @@ import loamstream.util.Files
  * Apr 21, 2017
  */
 final class QcPipelineEndToEndTest extends FunSuite {
-  import JFiles.exists
-
   private val referenceDir = path("/humgen/diabetes/users/dig/loamstream/ci/test-data/qc/camp/results")
   private val outputDir = path("./qc")
 
-  ignore("Run the QC pipeline end-to-end on real data") {
+  test("Run the QC pipeline end-to-end on real data") {
     try {
       run()
     } catch {

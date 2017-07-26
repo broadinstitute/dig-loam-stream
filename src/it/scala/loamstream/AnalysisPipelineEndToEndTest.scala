@@ -10,8 +10,6 @@ import org.scalatest.FunSuite
  *         date: 7/24/17
  */
 final class AnalysisPipelineEndToEndTest extends FunSuite {
-
-  private val referenceDir = path("/humgen/diabetes/users/dig/loamstream/ci/test-data/analysis/camp/results")
   private val outputDir = path("./analysis")
 
   test("Run the analysis pipeline end-to-end on CAMP data") {
@@ -45,7 +43,6 @@ final class AnalysisPipelineEndToEndTest extends FunSuite {
     // and also because CI builds are created from scratch each run anyway
     val args: Array[String] = {
       Array(
-          "--run-everything",
           "--conf",
           "pipeline/loam/qc.conf",
           "pipeline/loam/analysis.loam")

@@ -49,6 +49,23 @@ object Files {
     assert(dir.exists)
   }
 
+  /**
+   * @param directory Directory to search in
+   * @param regex Assumed to be a valid regular expression
+   *
+   * @return List of files that match specified regex within
+   * the specified directory
+   */
+  def listFiles(directory: Path, regex: String): List[File] = {
+    val dir = directory.toFile
+
+    if (dir.exists) {
+      dir.listFiles.filter(_.getName.matches(regex)).toList
+    } else {
+      List.empty
+    }
+  }
+
   def tryFile(fileName: String): Try[Path] = tryFile(Paths.get(fileName))
 
   def tryFile(path: Path): Try[Path] = {

@@ -21,12 +21,12 @@ final class AnalysisPipelineEndToEndTest extends FunSuite {
       case e: Throwable => e.printStackTrace() ; throw e
     }
 
-    val regionsFileNameRegex = "CAMP.GLU_FAST_RIN.chr*.OK"
+    val regionsFileNameRegex = "chr.*regions"
     val expectedNumberOfRegionsFiles = 22
 
     assert(countFiles(regionsFileNameRegex, outputDir) === expectedNumberOfRegionsFiles)
 
-    val epactsOkFileNameRegex = "chr*.regions"
+    val epactsOkFileNameRegex = "CAMP.GLU_FAST_RIN.chr.*epacts.OK"
     val expectedNumberOfEpactsOkFiles = 93
 
     assert(countFiles(epactsOkFileNameRegex, outputDir) === expectedNumberOfEpactsOkFiles)
@@ -51,9 +51,5 @@ final class AnalysisPipelineEndToEndTest extends FunSuite {
     loamstream.apps.Main.main(args)
   }
 
-  def countFiles(regex: String, dir: Path): Int = {
-    import scala.sys.process._
-
-    (s"ls $dir/$regex" #| "wc -l").!!.trim.toInt
-  }
+  private def countFiles(regex: String, dir: Path): Int = Files.listFiles(dir, regex).size
 }

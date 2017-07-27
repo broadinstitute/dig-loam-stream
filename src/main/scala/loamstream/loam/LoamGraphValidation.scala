@@ -58,10 +58,10 @@ object LoamGraphValidation {
   val eachStoreIsInputOrHasProducer: LoamStoreRule[Unit] = new LoamStoreRule[Unit] {
     override def apply(graph: LoamGraph, store: Store.Untyped): Seq[LoamStoreIssue[Unit]] =
       issueIfElseIf(!graph.inputStores(store) && graph.storeProducers.get(store).isEmpty,
-        newBulkIssue[Store.Untyped, Unit](graph, this, store, (), Severity.Error,
+        newBulkIssue[Store.Untyped, Unit](graph, this, store, (), Severity.Warning,
           s"Store $store is neither input store nor has a producer"),
         graph.inputStores(store) && graph.storeProducers.get(store).nonEmpty,
-        newBulkIssue[Store.Untyped, Unit](graph, this, store, (), Severity.Error,
+        newBulkIssue[Store.Untyped, Unit](graph, this, store, (), Severity.Warning,
           s"Store $store is both input store and has a producer"))
   }
 
@@ -70,7 +70,7 @@ object LoamGraphValidation {
     Seq[LoamProducerIssue[Unit]] = {
       val (store, tool) = producerEntry
       issueIf(!graph.toolOutputs.getOrElse(tool, Set.empty).contains(store),
-        newBulkIssue[(Store.Untyped, Tool), Unit](graph, this, producerEntry, (), Severity.Error,
+        newBulkIssue[(Store.Untyped, Tool), Unit](graph, this, producerEntry, (), Severity.Warning,
           s"Tool $tool is producer of store $store, but the store is not among its outputs."))
     }
   }
@@ -80,7 +80,7 @@ object LoamGraphValidation {
     Seq[LoamConsumerIssue[Unit]] = {
       val (store, tool) = consumerEntry
       issueIf(!graph.toolInputs.getOrElse(tool, Set.empty).contains(store),
-        newBulkIssue[(Store.Untyped, Tool), Unit](graph, this, consumerEntry, (), Severity.Error,
+        newBulkIssue[(Store.Untyped, Tool), Unit](graph, this, consumerEntry, (), Severity.Warning,
           s"Tool $tool is consumer of store $store, but the store is not among its inputs."))
     }
   }
@@ -90,7 +90,7 @@ object LoamGraphValidation {
       override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store.Untyped]]] = {
         val missingInputs = graph.toolInputs.getOrElse(tool, Set.empty) -- graph.stores
         issueIf(missingInputs.nonEmpty,
-          newBulkIssue[Tool, Set[Store.Untyped]](graph, this, tool, missingInputs, Severity.Error,
+          newBulkIssue[Tool, Set[Store.Untyped]](graph, this, tool, missingInputs, Severity.Warning,
             s"The following inputs of tool $tool are missing from the graph: ${missingInputs.mkString(", ")}"))
       }
     }
@@ -100,7 +100,7 @@ object LoamGraphValidation {
       override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store.Untyped]]] = {
         val missingOutputs = graph.toolOutputs.getOrElse(tool, Set.empty) -- graph.stores
         issueIf(missingOutputs.nonEmpty,
-          newBulkIssue[Tool, Set[Store.Untyped]](graph, this, tool, missingOutputs, Severity.Error,
+          newBulkIssue[Tool, Set[Store.Untyped]](graph, this, tool, missingOutputs, Severity.Warning,
             s"The following outputs of tool $tool are missing from the graph: ${missingOutputs.mkString(", ")}"))
       }
     }
@@ -111,7 +111,7 @@ object LoamGraphValidation {
     override def apply(graph: LoamGraph, tool: Tool): Seq[BulkIssue[LoamGraph, Tool, Set[Tool]]] = {
       val precedingTools = graph.toolInputs.getOrElse(tool, Set.empty).flatMap(graph.storeProducers.get)
       issueIf(precedingTools.nonEmpty,
-        newBulkIssue[Tool, Set[Tool]](graph, this, tool, precedingTools, Severity.Error,
+        newBulkIssue[Tool, Set[Tool]](graph, this, tool, precedingTools, Severity.Warning,
           s"Tool $tool is considered initial, but the following tools precede it: ${precedingTools.mkString(", ")}.")
       )
     }
@@ -124,7 +124,7 @@ object LoamGraphValidation {
       val succeedingTools =
         graph.toolOutputs.getOrElse(tool, Set.empty).flatMap(graph.storeConsumers.getOrElse(_, Set.empty))
       issueIf(succeedingTools.nonEmpty,
-        newBulkIssue[Tool, Set[Tool]](graph, this, tool, succeedingTools, Severity.Error,
+        newBulkIssue[Tool, Set[Tool]](graph, this, tool, succeedingTools, Severity.Warning,
           s"Tool $tool is considered final, but the following tools succeed it: ${succeedingTools.mkString(", ")}.")
       )
     }
@@ -135,7 +135,7 @@ object LoamGraphValidation {
       val storeIsInput = graph.storeConsumers.getOrElse(store, Set.empty).nonEmpty
       val storeIsOutput = graph.storeProducers.contains(store)
       issueIf(!(storeIsInput || storeIsOutput),
-        newBulkIssue[Store.Untyped, Unit](graph, this, store, (), Severity.Error,
+        newBulkIssue[Store.Untyped, Unit](graph, this, store, (), Severity.Warning,
           s"Store $store is neither input nor output of any tool."))
     }
   }
@@ -145,7 +145,7 @@ object LoamGraphValidation {
       val hasNoInputs = graph.toolInputs.getOrElse(tool, Set.empty).isEmpty
       val hasNoOutputs = graph.toolOutputs.getOrElse(tool, Set.empty).isEmpty
       issueIf(hasNoInputs && hasNoOutputs,
-        newBulkIssue[Tool, Unit](graph, this, tool, (), Severity.Error,
+        newBulkIssue[Tool, Unit](graph, this, tool, (), Severity.Warning,
           s"Tool $tool has neither inputs nor outputs."))
     }
   }
@@ -168,7 +168,7 @@ object LoamGraphValidation {
           if (disconnectedTools.nonEmpty) {
             val tool2 = disconnectedTools.head
             val issue =
-              newIssue[(Tool, Tool)](graph, this, (tool1, tool2), Severity.Error,
+              newIssue[(Tool, Tool)](graph, this, (tool1, tool2), Severity.Warning,
                 s"Tools $tool1 and $tool2 are not connected.")
             Seq(issue)
           } else {
@@ -191,7 +191,7 @@ object LoamGraphValidation {
         tools = toolsNew
       }
       issueIf(tools.nonEmpty,
-        newIssue[Set[Tool]](graph, this, tools, Severity.Error,
+        newIssue[Set[Tool]](graph, this, tools, Severity.Warning,
           s"Graph contains one or more cycles including tools ${tools.mkString(", ")}"))
     }
   }

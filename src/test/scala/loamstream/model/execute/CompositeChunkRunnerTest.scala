@@ -17,9 +17,8 @@ final class CompositeChunkRunnerTest extends FunSuite {
   
   //scalastyle:off magic.number
   
-  private def local(n: Int) = AsyncLocalChunkRunner(n)(ExecutionContext.global)
-  
   import TestHelpers.neverRestart
+  import CompositeChunkRunnerTest.{local, MockRunner}
   
   test("maxNumJobs") {
     val n1 = 3
@@ -31,18 +30,6 @@ final class CompositeChunkRunnerTest extends FunSuite {
     assert(runner.maxNumJobs === (n1 + n2 + n3))
   }
 
-  private final case class MockRunner(allowed: MockJob) extends ChunkRunner {
-    override def maxNumJobs: Int = ???
-    
-    override def canRun(job: LJob): Boolean = job eq allowed
-    
-    private val delegate = local(1)
-    
-    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
-      delegate.run(jobs, shouldRestart)
-    }
-  }
-  
   test("canRun") {
 
     val job1 = MockJob(JobStatus.Succeeded)
@@ -89,4 +76,20 @@ final class CompositeChunkRunnerTest extends FunSuite {
   }
   
   //scalastyle:on magic.number
+}
+
+object CompositeChunkRunnerTest {
+  private def local(n: Int) = AsyncLocalChunkRunner(n)(ExecutionContext.global)
+  
+  private final case class MockRunner(allowed: MockJob) extends ChunkRunner {
+    override def maxNumJobs: Int = ???
+    
+    override def canRun(job: LJob): Boolean = job eq allowed
+    
+    private val delegate = local(1)
+    
+    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+      delegate.run(jobs, shouldRestart)
+    }
+  }
 }

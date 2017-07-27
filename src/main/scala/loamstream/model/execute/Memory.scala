@@ -33,5 +33,7 @@ object Memory {
   
   def inBytes(howMany: Long): Memory = Memory(byte * howMany)
   
+  def inKb(howMany: Double): Memory = Memory(kilobyte * howMany)
+
   def inGb(howMany: Double): Memory = Memory(gigabyte * howMany)
 }

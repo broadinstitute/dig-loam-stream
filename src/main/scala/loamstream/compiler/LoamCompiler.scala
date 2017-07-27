@@ -3,7 +3,7 @@ package loamstream.compiler
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink
-import loamstream.compiler.messages.{CompilerIssueMessage, ErrorOutMessage, StatusOutMessage}
+import loamstream.compiler.messages.{CompilerIssueMessage, StatusOutMessage, WarningOutMessage}
 import loamstream.conf.LoamConfig
 import loamstream.loam.LoamScript.LoamScriptBox
 import loamstream.loam.{GraphPrinter, LoamGraph, LoamGraphValidation, LoamProjectContext, LoamScript}
@@ -164,10 +164,10 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
       outMessageSink.send(StatusOutMessage("Execution graph successfully validated."))
     } else {
       outMessageSink.send(
-        ErrorOutMessage(s"Execution graph validation found ${StringUtils.soMany(graphIssues.size, "issue")}")
+        WarningOutMessage(s"Execution graph validation found ${StringUtils.soMany(graphIssues.size, "issue")}")
       )
       for(graphIssue <- graphIssues) {
-        outMessageSink.send(ErrorOutMessage(graphIssue.message))
+        outMessageSink.send(WarningOutMessage(graphIssue.message))
       }
     }
     graphIssues

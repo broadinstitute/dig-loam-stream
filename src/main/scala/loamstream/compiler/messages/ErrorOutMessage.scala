@@ -4,3 +4,8 @@ package loamstream.compiler.messages
 final case class ErrorOutMessage(message: String) extends ClientOutMessage {
   override def typeName: String = "error"
 }
+
+/** A warning message to the client */
+final case class WarningOutMessage(message: String) extends ClientOutMessage {
+  override def typeName: String = "warn"
+}

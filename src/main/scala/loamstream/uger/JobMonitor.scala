@@ -10,10 +10,8 @@ import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.observables.ConnectableObservable
-import rx.schedulers.Schedulers
 import loamstream.util.ValueBox
 import loamstream.util.Terminable
-import rx.lang.scala.subjects.PublishSubject
 import rx.lang.scala.Subject
 import rx.lang.scala.subjects.PublishSubject
 

@@ -9,6 +9,8 @@ import loamstream.util.PathUtils
 import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
+import org.testng.internal.Graph
+import loamstream.loam.ops.StoreType
 
 /**
   * LoamStream
@@ -73,74 +75,84 @@ final class LoamWorkDirTest extends FunSuite {
   private def createFilePaths: FilePathsLocal = new FilePathsLocal
 
   // scalastyle:off magic.number
-  private def createScriptUsingChangeDir(paths: FilePathsLocal): LoamScript = {
-    val code =
-      s"""
-         |changeDir(${paths.rootDirs.head.asStringLiteral})
-         |val inFile = store[TXT].at(${paths.inFileName.asStringLiteral}).asInput
-         |val outFile0 = store[TXT].at(${paths.outFileNames.head.asStringLiteral})
-         |cmd"cp $$inFile $$outFile0"
-         |changeDir(${paths.subDirName.asStringLiteral})
-         |val outFile1 = store[TXT].at(${paths.outFileNames(1).asStringLiteral})
-         |val outFile2 = store[TXT].at(${paths.outFileNames(2).asStringLiteral})
-         |cmd"cp $$outFile0 $$outFile1"
-         |cmd"cp $$outFile1 $$outFile2"
-         |changeDir(${paths.rootDirs(1).asStringLiteral})
-         |val outFile3 = store[TXT].at(${paths.outFileNames(3).asStringLiteral})
-         |cmd"cp $$outFile2 $$outFile3"
-         |changeDir(${paths.subDirName.asStringLiteral})
-         |val outFile4 = store[TXT].at(${paths.outFileNames(4).asStringLiteral})
-         |val outFile5 = store[TXT].at(${paths.outFileNames(5).asStringLiteral})
-         |cmd"cp $$outFile3 $$outFile4"
-         |cmd"cp $$outFile4 $$outFile5"
-        """.stripMargin
-    val scriptName = "LoamWorkDirTestScriptUsingChangeDir"
-    LoamScript(scriptName, code)
+  private def createGraphUsingChangeDir(paths: FilePathsLocal): LoamGraph = TestHelpers.makeGraph { implicit sc =>
+    import LoamPredef._
+    import LoamCmdTool._
+    import StoreType._
+    
+    changeDir(paths.rootDirs.head)
+    val inFile = store[TXT].at(paths.inFileName).asInput
+    val outFile0 = store[TXT].at(paths.outFileNames.head)
+    cmd"cp $inFile $outFile0"
+    changeDir(paths.subDirName)
+    val outFile1 = store[TXT].at(paths.outFileNames(1))
+    val outFile2 = store[TXT].at(paths.outFileNames(2))
+    cmd"cp $outFile0 $outFile1"
+    cmd"cp $outFile1 $outFile2"
+    changeDir(paths.rootDirs(1))
+    val outFile3 = store[TXT].at(paths.outFileNames(3))
+    cmd"cp $outFile2 $outFile3"
+    changeDir(paths.subDirName)
+    val outFile4 = store[TXT].at(paths.outFileNames(4))
+    val outFile5 = store[TXT].at(paths.outFileNames(5))
+    cmd"cp $outFile3 $outFile4"
+    cmd"cp $outFile4 $outFile5"
   }
 
   // scalastyle:on magic.number
 
   // scalastyle:off magic.number
-  private def createScriptUsingInDir(paths: FilePathsLocal): LoamScript = {
-    val code =
-      s"""
-         |val outFile2 = store[TXT]
-         |inDir(${paths.rootDirs.head.asStringLiteral}) {
-         |  val inFile = store[TXT].at(${paths.inFileName.asStringLiteral}).asInput
-         |  val outFile0 = store[TXT].at(${paths.outFileNames.head.asStringLiteral})
-         |  cmd"cp $$inFile $$outFile0"
-         |  inDir(${paths.subDirName.asStringLiteral}) {
-         |    val outFile1 = store[TXT].at(${paths.outFileNames(1).asStringLiteral})
-         |    outFile2.at(${paths.outFileNames(2).asStringLiteral})
-         |    cmd"cp $$outFile0 $$outFile1"
-         |    cmd"cp $$outFile1 $$outFile2"
-         |  }
-         |}
-         |inDir(${paths.rootDirs(1).asStringLiteral}) {
-         |  val outFile3 = store[TXT].at(${paths.outFileNames(3).asStringLiteral})
-         |  cmd"cp $$outFile2 $$outFile3"
-         |  inDir(${paths.subDirName.asStringLiteral}) {
-         |    val outFile4 = store[TXT].at(${paths.outFileNames(4).asStringLiteral})
-         |    val outFile5 = store[TXT].at(${paths.outFileNames(5).asStringLiteral})
-         |    cmd"cp $$outFile3 $$outFile4"
-         |    cmd"cp $$outFile4 $$outFile5"
-         |  }
-         |}
-        """.stripMargin
-    val scriptName = "LoamWorkDirTestScriptUsingInDir"
-    LoamScript(scriptName, code)
+  private def createGraphUsingInDir(paths: FilePathsLocal): LoamGraph = TestHelpers.makeGraph { implicit sc =>
+    import LoamPredef._
+    import LoamCmdTool._
+    import StoreType._
+
+    val outFile2 = store[TXT]
+    inDir(paths.rootDirs.head) {
+      val inFile = store[TXT].at(paths.inFileName).asInput
+      val outFile0 = store[TXT].at(paths.outFileNames.head)
+      cmd"cp $inFile $outFile0"
+      inDir(paths.subDirName) {
+        val outFile1 = store[TXT].at(paths.outFileNames(1))
+        outFile2.at(paths.outFileNames(2))
+        cmd"cp $outFile0 $outFile1"
+        cmd"cp $outFile1 $outFile2"
+      }
+    }
+    inDir(paths.rootDirs(1)) {
+      val outFile3 = store[TXT].at(paths.outFileNames(3))
+      cmd"cp $outFile2 $outFile3"
+      inDir(paths.subDirName) {
+        val outFile4 = store[TXT].at(paths.outFileNames(4))
+        val outFile5 = store[TXT].at(paths.outFileNames(5))
+        cmd"cp $outFile3 $outFile4"
+        cmd"cp $outFile4 $outFile5"
+      }
+    }
   }
 
+  private def doTest(graph: LoamGraph, filePaths: FilePathsLocal): Unit = {
+    LoamScriptTestUtils.createInputFiles(filePaths)
+    
+    val results = TestHelpers.run(graph)
+    
+    assert(results.nonEmpty, "No jobs were executed")
+    
+    LoamScriptTestUtils.assertOutputFilesExist(filePaths)
+  }
+  
   // scalastyle:on magic.number
 
   test("Toy pipeline of cp using changeDir(Path)") {
     val filePaths = createFilePaths
-    LoamScriptTestUtils.testScript(createScriptUsingChangeDir(filePaths), filePaths)
+    
+    doTest(createGraphUsingChangeDir(filePaths), filePaths)
   }
 
   test("Toy pipeline of cp using inDir(Path) {...} ") {
     val filePaths = createFilePaths
-    LoamScriptTestUtils.testScript(createScriptUsingInDir(filePaths), filePaths)
+    
+    doTest(createGraphUsingInDir(filePaths), filePaths)
   }
 }
 

@@ -2,23 +2,22 @@ package loamstream
 
 import java.nio.file.Path
 
-import loamstream.util.Files
 import org.scalatest.FunSuite
+
+import loamstream.util.Files
 
 /**
  * @author kyuksel
  *         date: 7/24/17
  */
 final class AnalysisPipelineEndToEndTest extends FunSuite {
-  private val outputDir = TestHelpers.path("./analysis")
+  import IntegrationTestHelpers.{ path, withLoudStackTraces }
+  
+  private val outputDir = path("./analysis")
 
   test("Run the analysis pipeline end-to-end on CAMP data") {
-    try {
+    withLoudStackTraces {
       run()
-    } catch {
-      //NB: SBT drastically truncates stack traces. so print them manually to get more info.  
-      //This workaround is lame, but gives us a chance at debugging failures.
-      case e: Throwable => e.printStackTrace() ; throw e
     }
 
     val regionsFileNameRegex = "chr.*regions"
@@ -35,7 +34,7 @@ final class AnalysisPipelineEndToEndTest extends FunSuite {
   private def run(): Unit = {
     Files.createDirsIfNecessary(outputDir)
 
-    Files.createDirsIfNecessary(TestHelpers.path("./uger"))
+    Files.createDirsIfNecessary(path("./uger"))
 
     val args: Array[String] = {
       Array(

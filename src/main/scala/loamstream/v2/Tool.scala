@@ -56,14 +56,18 @@ trait Tool extends LId.Owner {
   
   def referencedStores: Set[LId]
   
-  def in(store: Store): Tool = {
-    context.addInput(this)(store.id)
+  def in(store: Store, rest: Store*): Tool = in(store +: rest)
+  
+  def in(stores: Seq[Store]): Tool = {
+    stores.foreach(s => context.addInput(this)(s.id))
     
     this
   }
   
-  def out(store: Store): Tool = {
-    context.addOutput(this)(store.id)
+  def out(store: Store, rest: Store*): Tool = out(store +: rest)
+  
+  def out(stores: Seq[Store]): Tool = {
+    stores.foreach(s => context.addOutput(this)(s.id))
     
     this
   }

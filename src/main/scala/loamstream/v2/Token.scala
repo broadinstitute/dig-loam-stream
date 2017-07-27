@@ -14,4 +14,12 @@ object Token {
   final case class StoreToken(storeId: LId) extends Token {
     override def render(implicit symbols: SymbolTable): String = symbols.resolveStore(storeId).render 
   }
+  
+  final case class MultiStoreToken(storeIds: Traversable[LId]) extends Token {
+    override def render(implicit symbols: SymbolTable): String = {
+      def storeToString(sid: LId): String = symbols.resolveStore(sid).render 
+      
+      storeIds.map(storeToString).mkString(" ")
+    }
+  }
 }

@@ -18,6 +18,7 @@ object V2Predef {
       
       def toToken(arg: Any): Token = arg match {
         case store: Store => Token.StoreToken(store.id)
+        case stores: Traversable[Store] => Token.MultiStoreToken(stores.map(_.id))
         case arg => stringToken(arg.toString)
       }
       
@@ -31,7 +32,11 @@ object V2Predef {
         }
       }
       
-      val storeDeps = tokens.collect { case Token.StoreToken(id) => id }.toSet
+      val storeDeps = tokens.flatMap { 
+        case Token.MultiStoreToken(ids) => ids
+        case Token.StoreToken(id) => Seq(id) 
+        case _ => Nil
+      }.toSet
       
       val command = Command(tokens: _*)(storeDeps)
       
@@ -49,7 +54,7 @@ object V2Predef {
   
   def store(p: Path)(implicit context: Context): Store = context.register(FileStore(LId.newAnonId, p))
   
-  def value[A](v: => A): ValueStore[A] = ValueStore(v)
+  def value[A](v: => A)(implicit context: Context): ValueStore[A] = context.register(ValueStore(v))
   
   //TODO: ???
   def lift[A](f: Path => A): Store => A = {

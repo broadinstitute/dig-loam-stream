@@ -31,7 +31,7 @@ final class Context {
   
   def addOutput(tool: Tool)(output: LId): Unit = state.mutate(_.addOutput(tool, output))
   
-  def register(s: Store): Store = {
+  def register[S <: Store](s: S): S = {
     state.mutate(_.addStore(s))
     
     s

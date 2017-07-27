@@ -15,8 +15,8 @@ object Store {
   
   import Functions.memoize
   
-  final case class ValueStore[+A] private (id: LId, value: () => A) extends Store {
-    override def render: String = value.toString
+  final case class ValueStore[+A] private (id: LId, value: () => A)(implicit context: Context) extends Store {
+    override def render: String = value().toString
     
     def map[B](f: A => B): ValueStore[B] = ValueStore(f(value()))
     
@@ -24,8 +24,12 @@ object Store {
   }
   
   object ValueStore {
-    def apply[A](value: => A): ValueStore[A] = {
-      new ValueStore(LId.newAnonId, memoize(() => value))
+    def apply[A](value: => A)(implicit context: Context): ValueStore[A] = {
+      val newStore = new ValueStore(LId.newAnonId, memoize(() => value))
+      
+      context.register(newStore)
+      
+      newStore
     }
   }
   

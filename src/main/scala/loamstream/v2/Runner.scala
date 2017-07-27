@@ -1,6 +1,8 @@
 package loamstream.v2
 
 import rx.lang.scala.Observable
+import java.io.File
+import loamstream.util.Files
 
 class Runner {
   def run(context: Context): Observable[Tool.Snapshot] = {
@@ -12,9 +14,16 @@ class Runner {
       case c: Command => {
         val commandLine = c.commandLine(context.state().symbols)
         
-        println(s"Running: '$commandLine'")
+        val tempFile = File.createTempFile("loamstream", ".sh")
         
-        val result = Seq("sh", "-c", commandLine).!
+        Files.writeTo(tempFile.toPath)(commandLine)
+        
+        val parts = Seq("bash", tempFile.toPath.toAbsolutePath.toString)
+        
+        println(s"Running: '$commandLine'")
+        println(s"Actually Running: '${parts.mkString(" ")}'")
+        
+        val result = parts.!
         
         println(s"Got '$result' from running '$commandLine'")
         

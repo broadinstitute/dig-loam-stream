@@ -43,20 +43,15 @@ object V2Predef {
   
   def path(s: String): Path = Paths.get(s)
   
-  private[this] def register(s: Store)(implicit context: Context): Store = {
-    context.register(s)
-    
-    s
-  }
-  
-  def store(implicit context: Context): Store = register(FileStore(LId.newAnonId))
+  def store(implicit context: Context): Store = context.register(FileStore(LId.newAnonId))
   
   def store(fileName: String)(implicit context: Context): Store = store(path(fileName))
   
-  def store(p: Path)(implicit context: Context): Store = register(FileStore(LId.newAnonId, p))
+  def store(p: Path)(implicit context: Context): Store = context.register(FileStore(LId.newAnonId, p))
   
   def value[A](v: => A): ValueStore[A] = ValueStore(v)
   
+  //TODO: ???
   def lift[A](f: Path => A): Store => A = {
     case FileStore(_, path) => f(path)
     case _ => ???

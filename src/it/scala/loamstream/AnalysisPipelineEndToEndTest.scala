@@ -1,6 +1,6 @@
 package loamstream
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 
 import loamstream.util.Files
 import org.scalatest.FunSuite
@@ -10,7 +10,7 @@ import org.scalatest.FunSuite
  *         date: 7/24/17
  */
 final class AnalysisPipelineEndToEndTest extends FunSuite {
-  private val outputDir = path("./analysis")
+  private val outputDir = TestHelpers.path("./analysis")
 
   test("Run the analysis pipeline end-to-end on CAMP data") {
     try {
@@ -32,12 +32,10 @@ final class AnalysisPipelineEndToEndTest extends FunSuite {
     assert(countFiles(epactsOkFileNameRegex, outputDir) === expectedNumberOfEpactsOkFiles)
   }
 
-  private def path(s: String): Path = Paths.get(s)
-
   private def run(): Unit = {
     Files.createDirsIfNecessary(outputDir)
 
-    Files.createDirsIfNecessary(path("./uger"))
+    Files.createDirsIfNecessary(TestHelpers.path("./uger"))
 
     val args: Array[String] = {
       Array(

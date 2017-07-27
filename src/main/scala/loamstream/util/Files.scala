@@ -56,13 +56,13 @@ object Files {
    * @return List of files that match specified regex within
    * the specified directory
    */
-  def listFiles(directory: Path, regex: String): List[File] = {
+  def listFiles(directory: Path, regex: String): Iterable[File] = {
     val dir = directory.toFile
 
     if (dir.exists) {
-      dir.listFiles.filter(_.getName.matches(regex)).toList
+      dir.listFiles.filter(_.getName.matches(regex))
     } else {
-      List.empty
+      Iterable.empty
     }
   }
 

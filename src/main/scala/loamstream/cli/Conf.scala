@@ -103,7 +103,7 @@ final case class Conf(
    * (conflicts, codependent, etc) became unmanageable.
    * --conf is always optional
    * --run-everything is always optional
-   * --version trumps everything - if it's present, everythign else is optional
+   * --version trumps everything - if it's present, everything else is optional
    * --backend and --dry-run are mutually exclusive; both require a non-empty list of loam files
    */
   validateOpt(version, conf, runEverything, loams, dryRun) {

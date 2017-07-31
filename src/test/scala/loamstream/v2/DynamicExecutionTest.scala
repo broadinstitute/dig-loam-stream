@@ -265,14 +265,14 @@ object DynamicExecutionTest {
             do 
               str="$${str}bar-$${i}\n" 
             done  
-            echo -e "$${str}" > $bar""".in(foo, fooCount).out(bar)
+            echo -e "$${str}" > $bar""".in(fooCount).out(bar)
             
       cmd"""str=""
             for i in {1..$barCountTimesTwo} 
             do 
               str="$${str}baz-$${i}\n" 
             done  
-            echo -e "$${str}" > $baz""".in(bar, barCount).out(baz)
+            echo -e "$${str}" > $baz""".in(barCount).out(baz)
       
       context
     }

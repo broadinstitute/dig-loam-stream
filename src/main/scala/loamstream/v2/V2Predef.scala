@@ -18,6 +18,7 @@ object V2Predef {
       
       def toToken(arg: Any): Token = arg match {
         case store: Store => Token.StoreToken(store.id)
+        //TODO: Address unchecked warning 
         case stores: Traversable[Store] => Token.MultiStoreToken(stores.map(_.id))
         case arg => stringToken(arg.toString)
       }

@@ -158,6 +158,70 @@ final class DynamicExecutionTest extends FunSuite { self =>
       assert(Files.readFrom(baz).trim === expectedBazContents)
     }
   }
+  
+  test("Just plain linear") {
+    
+    withOutputDir("linear") { outputDir =>
+      val fooPath = outputDir / "foo.txt" 
+      val barPath = outputDir / "bar.txt"
+      val bazPath = outputDir / "baz.txt"
+      val blergPath = outputDir / "blerg.txt"
+  
+      import V2Predef._
+      
+      implicit val context: Context = new Context
+      
+      val foo = store(fooPath)
+      
+      val bar = store(barPath)
+      
+      val baz = store(bazPath)
+      
+      val blerg = store(blergPath)
+      
+      val foo2Bar = cmd"cp $foo $bar".in(foo).out(bar).asInstanceOf[Command]
+      val bar2Baz = cmd"cp $bar $baz".in(bar).out(baz).asInstanceOf[Command]
+      val baz2Blerg = cmd"cp $baz $blerg".in(baz).out(blerg).asInstanceOf[Command]
+      
+      assert(!fooPath.toFile.exists)
+      assert(!barPath.toFile.exists)
+      assert(!bazPath.toFile.exists)
+      assert(!blergPath.toFile.exists)
+      
+      val fooContents = """| blah1
+                           | blah2""".stripMargin
+      
+      Files.writeTo(fooPath)(fooContents)
+      
+      assert(fooPath.toFile.exists)
+      assert(!barPath.toFile.exists)
+      assert(!bazPath.toFile.exists)
+      assert(!blergPath.toFile.exists)
+      
+      val runner = new Runner
+    
+      val resultsObservable = runner.run(context)
+    
+      import ObservableEnrichments._
+    
+      val results = Futures.waitFor(resultsObservable.to[Seq].firstAsFuture)
+      
+      assert(Files.readFrom(fooPath) === fooContents)
+      assert(Files.readFrom(barPath) === fooContents)
+      assert(Files.readFrom(bazPath) === fooContents)
+      assert(Files.readFrom(blergPath) === fooContents)
+      
+      assert(results.forall(_.state.isFinished))
+      
+      {
+        implicit val symbols = context.state().symbols
+      
+        def commandLine(t: Tool) = t.asInstanceOf[Command].commandLine(symbols)
+      
+        assert(results.map(_.tool).map(commandLine) === Seq(foo2Bar.commandLine, bar2Baz.commandLine, baz2Blerg.commandLine))
+      }
+    }
+  }
 }
 
 object DynamicExecutionTest {
@@ -165,10 +229,8 @@ object DynamicExecutionTest {
     import TestHelpers.path
     import PathEnrichments.PathHelpers
     
-    def simpleScatter(outputDir: Path): Context = { 
+    def simpleScatter(outputDir: Path): Context = withContext { implicit context => 
       import V2Predef._
-      
-      implicit val context = new Context
       
       val foo = store(outputDir / "foo.txt")
       
@@ -191,14 +253,10 @@ object DynamicExecutionTest {
       }
       
       bazes.in(count)
-      
-      context
     }
     
-    def scatterGather(outputDir: Path): Context = { 
+    def scatterGather(outputDir: Path): Context = withContext { implicit context => 
       import V2Predef._
-      
-      implicit val context = new Context
       
       val foo = store(outputDir / "foo.txt")
       
@@ -227,14 +285,10 @@ object DynamicExecutionTest {
       val gatherStep = bazes.map { stores => 
         cmd"cat $stores > $blerg".in(stores).out(blerg)
       }
-      
-      context
     }
     
-    def linearWithDataDeps(outputDir: Path): Context = { 
+    def linearWithDataDeps(outputDir: Path): Context = withContext { implicit context =>
       import V2Predef._
-      
-      implicit val context = new Context
       
       val foo = store(outputDir / "foo.txt")
       
@@ -247,11 +301,7 @@ object DynamicExecutionTest {
         
         def count(p: Path) = java.nio.file.Files.lines(p).iterator.asScala.filter(_.trim.nonEmpty).size
         
-        val result = lift(count)(s)
-        
-        println(s"$result lines in ${s.render}")
-        
-        result
+        lift(count)(s)
       }
       
       val fooCount = value(countLines(foo).toInt)
@@ -273,6 +323,28 @@ object DynamicExecutionTest {
               str="$${str}baz-$${i}\n" 
             done  
             echo -e "$${str}" > $baz""".in(barCount).out(baz)
+    }
+    
+    def linear(outputDir: Path): Context = withContext { implicit context =>
+      import V2Predef._
+      
+      val foo = store(outputDir / "foo.txt")
+      
+      val bar = store(outputDir / "bar.txt")
+      
+      val baz = store(outputDir / "baz.txt")
+      
+      val blerg = store(outputDir / "blerg.txt")
+      
+      cmd"cp $foo $bar".in(foo).out(bar)
+      cmd"cp $bar $baz".in(bar).out(baz)
+      cmd"cp $baz $blerg".in(baz).out(blerg)
+    }
+    
+    private def withContext(f: Context => Any): Context = {
+      val context = new Context
+      
+      f(context)
       
       context
     }

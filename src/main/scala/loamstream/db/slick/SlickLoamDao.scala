@@ -286,7 +286,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   private[slick] def runBlocking[A](action: DBIO[A]): A = waitFor(db.run(action))
 
   private def log(sqlAction: driver.ProfileAction[_, _, _]): Unit = {
-    sqlAction.statements.foreach(s => debug(s"SQL: $s"))
+    sqlAction.statements.foreach(s => trace(s"SQL: $s"))
   }
 
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {

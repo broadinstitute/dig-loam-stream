@@ -158,6 +158,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   test("needsToBeRun/hasDifferentHash/isOlder") {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
+      val jobName = "dummyJob"
 
       // Expose private methods for testing purposes
 
@@ -180,7 +181,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       assert(cachedOutput3.isMissing)
       assert(!filter.hasDifferentHash(cachedOutput3))
       assert(!filter.isOlder(cachedOutput3))
-      assert(filter.needsToBeRun(cachedOutput3))
+      assert(filter.needsToBeRun(jobName, cachedOutput3))
 
       // Older record (than its matching record in DB): 'hasDifferentHash' --> false
       //                                                'isOlder --> true
@@ -188,10 +189,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       val olderRec = cachedOutput1.withLastModified(Instant.ofEpochMilli(0))
       assert(!filter.hasDifferentHash(olderRec))
       assert(filter.isOlder(olderRec))
-      assert(filter.needsToBeRun(olderRec))
+      assert(filter.needsToBeRun(jobName, olderRec))
 
       // Unhashed record: 'needsToBeRun' --> true
-      assert(filter.needsToBeRun(cachedOutput0))
+      assert(filter.needsToBeRun(jobName, cachedOutput0))
 
       // Record with different hash:  'hasDifferentHash' --> true
       //                              'needsToBeRun' --> true
@@ -200,10 +201,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
                                           Option(Sha1.algorithmName),
                                           cachedOutput1.lastModified)
       assert(filter.hasDifferentHash(recWithDiffHash))
-      assert(filter.needsToBeRun(recWithDiffHash))
+      assert(filter.needsToBeRun(jobName, recWithDiffHash))
 
       // Otherwise: 'needsToBeRun' --> false
-      assert(!filter.needsToBeRun(cachedOutput1))
+      assert(!filter.needsToBeRun(jobName, cachedOutput1))
     }
   }
 

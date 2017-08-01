@@ -44,6 +44,8 @@ final case class OutputRecord(loc: String,
     ).getOrElse(false)
 
   def withLastModified(t: Instant) = copy(lastModified = Option(t))
+
+  override def toString: String = s"$loc"
 }
 
 object OutputRecord {

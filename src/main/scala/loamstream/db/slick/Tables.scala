@@ -244,7 +244,7 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)
 
   private def log(schema: SchemaDescription): Unit = {
-    schema.createStatements.foreach(s => debug(s"DDL: $s"))
+    schema.createStatements.foreach(s => trace(s"DDL: $s"))
   }
 
   private def perform[A](database: Database)(action: DBIO[A]): A = {

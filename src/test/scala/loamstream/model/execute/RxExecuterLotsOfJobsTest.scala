@@ -7,6 +7,11 @@ import loamstream.compiler.LoamEngine
 import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.util.PlatformUtil
 import loamstream.TestHelpers
+import loamstream.compiler.LoamPredef
+import loamstream.loam.ops.StoreType
+import loamstream.util.PathEnrichments
+import loamstream.loam.LoamCmdTool
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -32,15 +37,13 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
     
     val executer = RxExecuter.defaultWith(JobFilter.RunEverything)
     
-    val engine = LoamEngine.default(TestHelpers.config).copy(executer = executer)
-    
-    val executable = engine.compileToExecutable(code).get
+    val jobs = LoamEngine.toExecutable(graph).jobs
     
     val expectedNumberOfJobs = 867
     
-    assert(ExecuterHelpers.flattenTree(executable.jobs).size === expectedNumberOfJobs)
+    assert(ExecuterHelpers.flattenTree(jobs).size === expectedNumberOfJobs)
     
-    val results = executer.execute(executable)
+    val results = executer.execute(Observable.from(jobs))
     
     assert(results.size === expectedNumberOfJobs)
     
@@ -50,58 +53,63 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
   }
   
   //Adapted from camp_chr_12_22.loam
-  private val code = """
-// Map: Chrom Number -> (Number of Shards, Offset for Start Position)
-val input = store[TXT].at("src/test/resources/a.txt").asInput
-
-val outputDir = path("target/many-files")
-
-val numBasesPerShard = 1000000
-
-val chrProps: Map[Int, (Int, Int)] = Map(
-1 -> (250, 10176),
-2 -> (244, 10178),
-3 -> (198, 60068),
-4 -> (192, 10004),
-5 -> (182, 10042),
-6 -> (172, 63853),
-7 -> (160, 14807),
-8 -> (147, 11739),
-9 -> (142, 10162),
-10 -> (137, 60493),
-11 -> (136, 61394),
-12 -> (135, 60180),
-13 -> (97, 19020046),
-14 -> (89, 19000016),
-15 -> (83, 20000040),
-16 -> (91, 60085),
-17 -> (82, 51),
-18 -> (79, 10082),
-19 -> (60, 60841),
-20 -> (64, 60342),
-21 -> (39, 9411238),
-22 -> (36, 16050074))
-
-//---------------------------LOOP THROUGH CHROMOSOMES-----------------------------------------------------------------
-for (chrNum <- 12 to 22) {
-  val chr = s"chr${chrNum}"
-
-  val chrFile = store[TXT].at(outputDir / s"a-$chr.txt")
-
-  cmd"cp $input $chrFile"
-
-  val (numShards, offset) = chrProps(chrNum)
-
-  //---------------------------LOOP THROUGH WINDOWS WITHIN CHROMOSOME-------------------------------------------------
-  for(shard <- 0 until numShards) {
-    val start = offset + (shard * numBasesPerShard) + 1
-    val end = start + numBasesPerShard - 1
-
-    val imputed = store[TXT].at(outputDir / s"imputed_data_${chr}_bp${start}-${end}.txt")
-
-    cmd"cp $chrFile $imputed"
+  private val graph = TestHelpers.makeGraph { implicit scriptContext =>
+    import LoamPredef._
+    import StoreType._
+    import PathEnrichments._
+    import LoamCmdTool._
+    
+    // Map: Chrom Number -> (Number of Shards, Offset for Start Position)
+    val input = store[TXT].at("src/test/resources/a.txt").asInput
+    
+    val outputDir = path("target/many-files")
+    
+    val numBasesPerShard = 1000000
+    
+    val chrProps: Map[Int, (Int, Int)] = Map(
+    1 -> (250, 10176),
+    2 -> (244, 10178),
+    3 -> (198, 60068),
+    4 -> (192, 10004),
+    5 -> (182, 10042),
+    6 -> (172, 63853),
+    7 -> (160, 14807),
+    8 -> (147, 11739),
+    9 -> (142, 10162),
+    10 -> (137, 60493),
+    11 -> (136, 61394),
+    12 -> (135, 60180),
+    13 -> (97, 19020046),
+    14 -> (89, 19000016),
+    15 -> (83, 20000040),
+    16 -> (91, 60085),
+    17 -> (82, 51),
+    18 -> (79, 10082),
+    19 -> (60, 60841),
+    20 -> (64, 60342),
+    21 -> (39, 9411238),
+    22 -> (36, 16050074))
+    
+    //---------------------------LOOP THROUGH CHROMOSOMES-----------------------------------------------------------------
+    for (chrNum <- 12 to 22) {
+      val chr = s"chr${chrNum}"
+    
+      val chrFile = store[TXT].at(outputDir / s"a-$chr.txt")
+    
+      cmd"cp $input $chrFile"
+    
+      val (numShards, offset) = chrProps(chrNum)
+    
+      //---------------------------LOOP THROUGH WINDOWS WITHIN CHROMOSOME-------------------------------------------------
+      for(shard <- 0 until numShards) {
+        val start = offset + (shard * numBasesPerShard) + 1
+        val end = start + numBasesPerShard - 1
+    
+        val imputed = store[TXT].at(outputDir / s"imputed_data_${chr}_bp${start}-${end}.txt")
+    
+        cmd"cp $chrFile $imputed"
+      }
+    }
   }
-}
-"""
   // scalastyle:on magic.number
 }

@@ -35,6 +35,7 @@ import loamstream.uger.Drmaa1Client
 import loamstream.uger.UgerClient
 import loamstream.conf.ExecutionConfig
 import loamstream.util.ConfigUtils
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -262,8 +263,8 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val delegate: Executer,
       toStop: Terminable*) extends Executer {
 
-    override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
-      delegate.execute(executable)(timeout)
+    override def execute(jobs: Observable[LJob])(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+      delegate.execute(jobs)(timeout)
     }
 
     def shutdown(): Seq[Throwable] = {

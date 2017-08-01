@@ -5,6 +5,7 @@ import loamstream.TestHelpers
 import scala.concurrent.ExecutionContext
 import org.scalatest.FunSuite
 import loamstream.model.jobs.{JobStatus, LJob, MockJob, TestJobs}
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -22,9 +23,8 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
 
   def executeJobsAndMapToStatuses(jobs: Set[LJob]) = {
     val executer = makeExecuter
-    val executable = Executable(jobs)
 
-    executer.execute(executable).mapValues(_.status)
+    executer.execute(Observable.from(jobs)).mapValues(_.status)
   }
   
   withExecuter("single jobs should work") {

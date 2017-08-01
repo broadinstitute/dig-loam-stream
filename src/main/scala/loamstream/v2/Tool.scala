@@ -11,8 +11,6 @@ trait Tool extends LId.Owner {
   
   private[this] val stateBox: ValueBox[ToolState] = ValueBox(ToolState.NotStarted)
   
-  def state: ToolState = stateBox.value
-  
   private[this] val snapshotSubject: Subject[Tool.Snapshot] = ReplaySubject()
   
   def snapshots: Observable[Tool.Snapshot] = snapshotSubject

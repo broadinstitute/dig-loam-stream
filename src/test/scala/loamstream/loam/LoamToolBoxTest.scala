@@ -19,6 +19,7 @@ import loamstream.loam.ops.StoreType
 import loamstream.compiler.LoamPredef
 import loamstream.util.PathEnrichments
 import loamstream.model.execute.Executable
+import rx.lang.scala.Observable
 
 /**
   * LoamStream
@@ -34,7 +35,9 @@ final class LoamToolBoxTest extends FunSuite {
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
 
-    val jobExecutions = RxExecuter.default.execute(executable)
+    val jobs = executable.jobs
+    
+    val jobExecutions = RxExecuter.default.execute(Observable.from(jobs))
     
     Results(graph, executable, mapping, jobExecutions)
   }

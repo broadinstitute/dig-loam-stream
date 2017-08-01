@@ -18,6 +18,7 @@ import loamstream.model.execute.AsyncLocalChunkRunner
 import scala.concurrent.ExecutionContext
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobStatus.Skipped
+import rx.lang.scala.Observable
 
 /**
   * @author kaan
@@ -332,7 +333,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     val executable = engine.compileToExecutable(script).get
 
-    val executions = engine.executer.execute(executable)
+    val executions = engine.executer.execute(Observable.from(executable.jobs))
 
     (executable, executions)
   }

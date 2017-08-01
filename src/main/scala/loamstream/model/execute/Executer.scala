@@ -3,6 +3,7 @@ package loamstream.model.execute
 import scala.concurrent.duration.Duration
 
 import loamstream.model.jobs.{Execution, LJob}
+import rx.lang.scala.Observable
 
 /**
  * @author oliverr
@@ -10,6 +11,6 @@ import loamstream.model.jobs.{Execution, LJob}
  */
 trait Executer {
 
-  def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution]
+  def execute(jobs: Observable[LJob])(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution]
   
 }

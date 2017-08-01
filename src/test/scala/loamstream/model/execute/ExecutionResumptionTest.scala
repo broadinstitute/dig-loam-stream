@@ -14,6 +14,7 @@ import loamstream.util._
 import loamstream.loam.LoamScript
 import loamstream.TestHelpers
 import loamstream.model.jobs.JobStatus.{Skipped, Succeeded}
+import rx.lang.scala.Observable
 
 /**
   * @author clint
@@ -155,7 +156,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       assert(f1ToF2.status == JobStatus.NotStarted)
       assert(f2ToF3.status == JobStatus.NotStarted)
   
-      val executable = Executable(Set(f2ToF3))
+      val jobsToRun = Observable.from(Set(f2ToF3))
   
       def runningEverything: Boolean = executer match {
         case RxExecuter(_, _, jobFilter, _) => jobFilter == JobFilter.RunEverything
@@ -172,7 +173,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
           setup(start, f1, f2, f3)
         }
 
-        val jobResults = executer.execute(executable)
+        val jobResults = executer.execute(jobsToRun)
 
         val jobStatuses = Seq(startToF1.status, f1ToF2.status, f2ToF3.status)
 

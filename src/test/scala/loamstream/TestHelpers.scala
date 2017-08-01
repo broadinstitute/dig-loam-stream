@@ -18,6 +18,7 @@ import loamstream.loam.LoamGraph
 import loamstream.loam.LoamProjectContext
 import loamstream.model.execute.RxExecuter
 import loamstream.compiler.LoamEngine
+import rx.lang.scala.Observable
 
 /**
   * @author clint
@@ -96,6 +97,6 @@ object TestHelpers {
   def run(graph: LoamGraph): Map[LJob, Execution] = {
     val executable = LoamEngine.toExecutable(graph)
     
-    RxExecuter.default.execute(executable)
+    RxExecuter.default.execute(Observable.from(executable.jobs))
   }
 }

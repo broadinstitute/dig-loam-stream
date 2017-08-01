@@ -29,7 +29,7 @@ final case class RxExecuter(
   
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
-  override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
+  override def execute(jobs: Observable[LJob])(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.ObservableEnrichments._
     
     val ioScheduler: Scheduler = IOScheduler()
@@ -39,7 +39,7 @@ final case class RxExecuter(
     //Note the use of `distinct`.  It's brute force, but simplifies the logic here and in LJob for the case where
     //multiple 'root' jobs depend on the same upstream job.  In this case, without `distinct`, the upstream job
     //would be run twice.
-    val runnables: Observable[JobRun] = Observables.merge(executable.jobs.toSeq.map(_.runnables)).distinct
+    val runnables: Observable[JobRun] = jobs.flatMap(_.runnables).distinct
     
     //An observable stream of "chunks" of runnable jobs, with each chunk represented as an observable stream.
     //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
@@ -48,7 +48,7 @@ final case class RxExecuter(
     
     val chunkResults: Observable[Map[LJob, Execution]] = for {
       chunk <- chunks
-      _ = logJobForest(executable)
+      _ = logJobForest(chunk)
       //NB: .to[Set] is important: jobs in a chunk should be distinct, 
       //so they're not run more than once before transitioning to a terminal state.
       jobs <- chunk.to[Set]
@@ -100,10 +100,8 @@ final case class RxExecuter(
     markJobsSkipped(skippedJobs)
   }
   
-  private def logJobForest(executable: Executable): Unit = {
-    def log(printingJob: LJob)(s: String) = debug(s)
-      
-    executable.jobs.head.print(doPrint = log, header = Some("Current Job Statuses:"))
+  private def logJobForest(jobs: Observable[JobRun]): Unit = {
+    //TODO
   }
   
   private def logJobsToBeRun(jobsToRun: Set[LJob]): Unit = {

@@ -33,7 +33,7 @@ final class RxExecuterTest extends FunSuite {
     val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
     
     ExecutionResults(
-        executer.execute(Executable(jobs.asInstanceOf[Set[LJob]])), 
+        executer.execute(Observable.from(jobs)), 
         runner.chunks.value.filter(_.nonEmpty).map(_.asInstanceOf[Set[RxMockJob]]))
   }
   
@@ -654,7 +654,7 @@ final class RxExecuterTest extends FunSuite {
     
     val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
     
-    (runner, executer.execute(Executable(jobs)))
+    (runner, executer.execute(Observable.from(jobs)))
   }
 
   test("maxNumJobs is taken into account") {

@@ -23,6 +23,7 @@ import loamstream.model.execute.Executable
 import loamstream.util.StringUtils
 import loamstream.conf.LoamConfig
 import loamstream.loam.LoamGraph
+import rx.lang.scala.Observable
 
 
 /**
@@ -182,7 +183,11 @@ final case class LoamEngine(
   }
   
   def run(graph: LoamGraph): Map[LJob, Execution] = {
-    val executable = toExecutable(graph)
+    val jobs: Observable[LJob] = ???
+    
+    ???
+    
+    /*val executable = toExecutable(graph)
 
     log(executable)
     
@@ -192,7 +197,7 @@ final case class LoamEngine(
 
     outMessageSink.send(StatusOutMessage(s"Done executing ${StringUtils.soMany(executions.size, "job")}."))
 
-    executions
+    executions*/
   }
 
   def run(code: String): LoamEngine.Result = run(LoamScript.withGeneratedName(code))

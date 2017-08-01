@@ -13,13 +13,13 @@ import loamstream.util.Loggable
  */
 final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable {
   override def shouldRun(dep: LJob): Boolean = {
-    val noOutputs = dep.outputs.isEmpty
+    lazy val noOutputs = dep.outputs.isEmpty
     
     def anyOutputNeedsToBeRun = dep.outputs.exists(o => needsToBeRun(dep.toString, o.toOutputRecord))
 
-    if (noOutputs) { debug(s"Job $dep will be run because it has no known outputs."); true }
-    else if (anyOutputNeedsToBeRun) { true }
-    else { false }
+    if (noOutputs) { debug(s"Job $dep will be run because it has no known outputs.") }
+
+    noOutputs || anyOutputNeedsToBeRun
   }
 
   override def record(executions: Iterable[Execution]): Unit = {
@@ -35,11 +35,17 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
   private[execute] def needsToBeRun(jobStr: String, rec: OutputRecord): Boolean = {
     val msg = s"Job $jobStr will be run because its output"
 
-    if (rec.isMissing) { debug(s"$msg $rec is missing."); true }
-    else if (isOlder(rec)) { debug(s"$msg $rec is older."); true }
-    else if (notHashed(rec)) { debug(s"$msg $rec does not have a hash value."); true }
-    else if (hasDifferentHash(rec)) { debug(s"$msg $rec has a different hash."); true }
-    else { false }
+    lazy val missing = rec.isMissing
+    lazy val older = isOlder(rec)
+    lazy val noHash = notHashed(rec)
+    lazy val differentHash = hasDifferentHash(rec)
+
+    if (missing) { debug(s"$msg $rec is missing.") }
+    else if (older) { debug(s"$msg $rec is older.") }
+    else if (noHash) { debug(s"$msg $rec does not have a hash value.") }
+    else if (differentHash) { debug(s"$msg $rec has a different hash.") }
+
+    missing || older || noHash || differentHash
   }
 
   private def normalize(p: Path) = p.toAbsolutePath

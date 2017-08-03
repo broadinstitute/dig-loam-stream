@@ -3,6 +3,7 @@ package loamstream.model.execute
 import java.nio.file.Path
 
 import loamstream.db.LoamDao
+import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.{Execution, LJob, OutputRecord}
 import loamstream.util.Loggable
 
@@ -12,26 +13,28 @@ import loamstream.util.Loggable
  * date: Sep 30, 2016
  */
 final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable {
-  override def shouldRun(dep: LJob): Boolean = {
-    lazy val noOutputs = dep.outputs.isEmpty
-    
-    def anyOutputNeedsToBeRun = dep.outputs.exists(o => needsToBeRun(dep.toString, o.toOutputRecord))
+  override def shouldRun(job: LJob): Boolean = {
+    lazy val noOutputs = job.outputs.isEmpty
 
-    if (noOutputs) { debug(s"Job $dep will be run because it has no known outputs.") }
+    def anyOutputNeedsToBeRun = job.outputs.exists(o => needsToBeRun(job.toString, o.toOutputRecord))
 
-    noOutputs || anyOutputNeedsToBeRun
+    if (noOutputs) { debug(s"Job $job will be run because it has no known outputs.") }
+
+    noOutputs || anyOutputNeedsToBeRun || hasDistinctCommand(job)
   }
 
   override def record(executions: Iterable[Execution]): Unit = {
-    //NB: We can only insert command executions (UGER or command-line jobs, anything with an in exit status code) 
+    //NB: We can only insert command executions (UGER or command-line jobs, anything with an in exit status code)
     //for now
     val insertableExecutions = executions.filter(_.isCommandExecution)
 
     debug(s"RECORDING $insertableExecutions")
-    
+
     dao.insertExecutions(insertableExecutions)
   }
 
+  // If performance becomes an issue, not 'findOutput()'ing multiple times
+  // for a given OutputRecord should help
   private[execute] def needsToBeRun(jobStr: String, rec: OutputRecord): Boolean = {
     val msg = s"Job $jobStr will be run because its output"
 
@@ -53,7 +56,11 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
   private def findOutput(loc: String): Option[OutputRecord] = {
     dao.findOutputRecord(loc)
   }
-  
+  private def findCommand(loc: String): Option[String] = {
+    dao.findCommand(loc)
+  }
+
+
   private def isHashed(rec: OutputRecord): Boolean = {
     findOutput(rec.loc) match {
       case Some(matchingRec) => matchingRec.isHashed
@@ -76,4 +83,38 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
       case None => false
     }
   }
+
+  private[execute] def hasDistinctCommand(job: LJob): Boolean = !hasSameCommand(job)
+
+  private[execute] def hasSameCommand(job: LJob): Boolean = {
+    isCommandLineJob(job) && hasAtLeastOneOutput(job) && matchesRecordedCommand(job)
+  }
+
+  /**
+   * Requires job to be a CommandLineJob with at least one output
+   */
+  private[execute] def matchesRecordedCommand(job: LJob): Boolean = {
+    assert(
+      isCommandLineJob(job),
+      s"We only know how to look up ${classOf[CommandLineJob].getSimpleName}s but found: $job")
+
+    assert(
+      hasAtLeastOneOutput(job),
+      s"We only know how to look up commands for jobs with at least one output.")
+
+    val cmdLineJob = job.asInstanceOf[CommandLineJob]
+    val outputLocation = cmdLineJob.outputs.head.toOutputRecord.loc
+    val cmd = cmdLineJob.commandLineString
+
+    val recordedCommandOpt = findCommand(outputLocation)
+
+    recordedCommandOpt.contains(cmd)
+  }
+
+  private[execute] def isCommandLineJob(job: LJob): Boolean = job match {
+    case j: CommandLineJob => true
+    case _ => false
+  }
+
+  private[execute] def hasAtLeastOneOutput(job: LJob): Boolean = job.outputs.nonEmpty
 }

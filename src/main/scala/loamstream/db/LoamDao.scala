@@ -28,6 +28,9 @@ trait LoamDao {
   final def findOutputRecord(rec: OutputRecord): Option[OutputRecord] = findOutputRecord(rec.loc)
   final def findOutputRecord(output: Output): Option[OutputRecord] = findOutputRecord(output.toOutputRecord)
 
+  def findCommand(loc: String): Option[String]
+  final def findCommand(path: Path): Option[String] = findCommand(PathUtils.normalize(path))
+
   def allOutputRecords: Seq[OutputRecord]
   
   def createTables(): Unit

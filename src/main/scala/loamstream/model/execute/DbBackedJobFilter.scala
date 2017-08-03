@@ -14,13 +14,15 @@ import loamstream.util.Loggable
  */
 final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable {
   override def shouldRun(job: LJob): Boolean = {
-    lazy val noOutputs = job.outputs.isEmpty
-
     def anyOutputNeedsToBeRun = job.outputs.exists(o => needsToBeRun(job.toString, o.toOutputRecord))
 
-    if (noOutputs) { debug(s"Job $job will be run because it has no known outputs.") }
+    val noOutputs = job.outputs.isEmpty
+    val distinctCommand = hasDistinctCommand(job)
 
-    noOutputs || anyOutputNeedsToBeRun || hasDistinctCommand(job)
+    if (noOutputs) { debug(s"Job $job will be run because it has no known outputs.") }
+    if (distinctCommand) { debug(s"Job $job will be run because its command changed.") }
+
+    noOutputs || anyOutputNeedsToBeRun || distinctCommand
   }
 
   override def record(executions: Iterable[Execution]): Unit = {
@@ -56,10 +58,9 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
   private def findOutput(loc: String): Option[OutputRecord] = {
     dao.findOutputRecord(loc)
   }
-  private def findCommand(loc: String): Option[String] = {
+  private[execute] def findCommand(loc: String): Option[String] = {
     dao.findCommand(loc)
   }
-
 
   private def isHashed(rec: OutputRecord): Boolean = {
     findOutput(rec.loc) match {

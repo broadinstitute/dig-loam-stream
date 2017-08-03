@@ -25,13 +25,13 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
 
-  private def hashAndStore(p: Path, exitCode: Int = 0): Execution = {
+  private def hashAndStore(p: Path, exitCode: Int = 0, cmd: String = mockCmd): Execution = {
     val hash = Hashes.sha1(p)
     val lastModified = PathUtils.lastModifiedTime(p)
 
     val e = Execution(id = None,
                       mockEnv,
-                      Option(mockCmd),
+                      Option(cmd),
                       mockSettings,
                       JobStatus.fromExitCode(exitCode),
                       Option(JobResult.CommandResult(exitCode)),
@@ -51,7 +51,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       
       JFiles.copy(start, f1)
       
-      hashAndStore(f1)
+      hashAndStore(f1, cmd = copyCmd(start, f1))
       
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))
@@ -139,15 +139,15 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       val f2 = workDir / "fileOut2.txt"
       val f3 = workDir / "fileOut3.txt"
 
-      val startToF1 = mockJob(s"cp $start $f1", Set(Output.PathOutput(f1))) {
+      val startToF1 = mockJob(copyCmd(start, f1), Set(Output.PathOutput(f1))) {
         copy(start, f1)
       }
 
-      val f1ToF2 = mockJob(s"cp $f1 $f2", Set(Output.PathOutput(f2)), Set(startToF1)) {
+      val f1ToF2 = mockJob(copyCmd(f1, f2), Set(Output.PathOutput(f2)), Set(startToF1)) {
         copy(f1, f2)
       }
 
-      val f2ToF3 = mockJob(s"cp $f2 $f3", Set(Output.PathOutput(f3)), Set(f1ToF2)) {
+      val f2ToF3 = mockJob(copyCmd(f2, f3), Set(Output.PathOutput(f3)), Set(f1ToF2)) {
         copy(f2, f3)
       }
 
@@ -202,26 +202,9 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   // scalastyle:on method.length
 
+  private def copyCmd(file1: Path, file2: Path): String = s"cp $file1 $file2"
+
   private lazy val compiler = new LoamCompiler
-
-  private def compile(loamCode: String): Executable = {
-
-    val compileResults = compiler.compile(TestHelpers.config, LoamScript.withGeneratedName(loamCode))
-
-    assert(compileResults.errors == Nil)
-
-    val context = compileResults.contextOpt.get
-
-    val graph = context.graph
-    
-    val mapping = LoamGraphAstMapper.newMapping(graph)
-
-    val toolBox = new LoamToolBox(graph)
-
-    mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJob
-  }
-
-  private def executionCount(job: LJob): Int = job.asInstanceOf[MockJob].executionCount
 
   private val sequence: Sequence[Int] = Sequence()
 

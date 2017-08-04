@@ -1,7 +1,5 @@
 package loamstream.model.execute
 
-import java.nio.file.Path
-
 import loamstream.db.LoamDao
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.{Execution, LJob, OutputRecord}
@@ -53,8 +51,6 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     missing || older || noHash || differentHash
   }
 
-  private def normalize(p: Path) = p.toAbsolutePath
-
   private def findOutput(loc: String): Option[OutputRecord] = {
     dao.findOutputRecord(loc)
   }
@@ -85,37 +81,11 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     }
   }
 
-  private[execute] def hasDistinctCommand(job: LJob): Boolean = !hasSameCommand(job)
-
-  private[execute] def hasSameCommand(job: LJob): Boolean = {
-    isCommandLineJob(job) && hasAtLeastOneOutput(job) && matchesRecordedCommand(job)
-  }
-
-  /**
-   * Requires job to be a CommandLineJob with at least one output
-   */
-  private[execute] def matchesRecordedCommand(job: LJob): Boolean = {
-    assert(
-      isCommandLineJob(job),
-      s"We only know how to look up ${classOf[CommandLineJob].getSimpleName}s but found: $job")
-
-    assert(
-      hasAtLeastOneOutput(job),
-      s"We only know how to look up commands for jobs with at least one output.")
-
-    val cmdLineJob = job.asInstanceOf[CommandLineJob]
-    val outputLocation = cmdLineJob.outputs.head.toOutputRecord.loc
-    val cmd = cmdLineJob.commandLineString
-
-    val recordedCommandOpt = findCommand(outputLocation)
-
-    recordedCommandOpt.contains(cmd)
-  }
-
-  private[execute] def isCommandLineJob(job: LJob): Boolean = job match {
-    case j: CommandLineJob => true
+  private[execute] def hasDistinctCommand(job: LJob): Boolean = job match {
+    case clj: CommandLineJob if job.outputs.nonEmpty =>
+      !findCommand(clj.outputs.head.location).contains(clj.commandLineString)
     case _ => false
   }
 
-  private[execute] def hasAtLeastOneOutput(job: LJob): Boolean = job.outputs.nonEmpty
+  private[execute] def hasSameCommandIfAny(job: LJob): Boolean = !hasDistinctCommand(job)
 }

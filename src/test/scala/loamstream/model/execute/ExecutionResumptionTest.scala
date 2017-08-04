@@ -25,13 +25,13 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   private def dbBackedExecuter = RxExecuter.defaultWith(new DbBackedJobFilter(dao))
 
-  private def hashAndStore(p: Path, exitCode: Int = 0, cmd: String = mockCmd): Execution = {
+  private def hashAndStore(p: Path, exitCode: Int = 0): Execution = {
     val hash = Hashes.sha1(p)
     val lastModified = PathUtils.lastModifiedTime(p)
 
     val e = Execution(id = None,
                       mockEnv,
-                      Option(cmd),
+                      Option(mockCmd),
                       mockSettings,
                       JobStatus.fromExitCode(exitCode),
                       Option(JobResult.CommandResult(exitCode)),
@@ -51,7 +51,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       
       JFiles.copy(start, f1)
       
-      hashAndStore(f1, cmd = copyCmd(start, f1))
+      hashAndStore(f1)
       
       assert(f1.toFile.exists)
       assert(Hashes.sha1(start) == Hashes.sha1(f1))

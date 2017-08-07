@@ -5,8 +5,10 @@ import java.time.Instant
 
 import org.scalatest.{FunSuite, PrivateMethodTester}
 import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.model.jobs.{Execution, JobResult, JobStatus, Output, OutputRecord}
+import loamstream.model.jobs.commandline.{CommandLineJob, CommandLineStringJob}
+import loamstream.model.jobs.{Execution, JobResult, JobStatus, MockJob, Output, OutputRecord}
 import loamstream.util.HashType.Sha1
+import loamstream.util.PathUtils
 
 /**
  * @author clint
@@ -14,7 +16,6 @@ import loamstream.util.HashType.Sha1
  */
 final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   with PrivateMethodTester with ProvidesEnvAndResources {
-  //scalastyle:off magic.number
 
   private val p0 = Paths.get("src/test/resources/for-hashing/foo.txt")
   private val p1 = Paths.get("src/test/resources/for-hashing/empty.txt")
@@ -160,8 +161,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       val filter = new DbBackedJobFilter(dao)
       val jobName = "dummyJob"
 
-      // Expose private methods for testing purposes
-
       assert(executions === Set.empty)
 
       val failure = CommandResult(42)
@@ -208,5 +207,62 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
 
-  //scalastyle:on magic.number
+  test("command string comparison") {
+    def cmdLineJob(cmd: String, outputs: Set[Output]): CommandLineJob = {
+      CommandLineStringJob(
+        commandLineString = cmd,
+        workDir = PathUtils.getCurrentDirectory,
+        executionEnvironment = mockEnv,
+        outputs = outputs)
+    }
+
+    def mockJob(cmd: String, outputs: Set[Output]): MockJob = {
+      new MockJob(
+        toReturn = mockExecution,
+        name = "mock job",
+        inputs = Set.empty,
+        outputs = outputs,
+        delay = 0
+      )
+    }
+
+    def execution(cmd: String, outputs: Set[Output]): Execution = {
+      Execution.fromOutputs(mockEnv, cmd, mockSettings, CommandResult(0), outputs)
+    }
+
+    val cmd0 = "cmd0"
+    val cmd1 = "cmd1"
+
+    createTablesAndThen {
+      val filter = new DbBackedJobFilter(dao)
+      val o0o1 = Set[Output](o0, o1)
+
+      filter.record(Iterable(execution(cmd0, o0o1)))
+
+      assert(filter.findCommandLine(o0.location) === Some(cmd0))
+      assert(filter.findCommandLine(o1.location) === Some(cmd0))
+
+      val cmdLineJob0 = cmdLineJob(cmd0, o0o1)
+
+      assert(!filter.hasNewCommandLine(cmdLineJob0))
+      assert(filter.hasSameCommandLineIfAny(cmdLineJob0))
+
+      filter.record(Iterable(execution(cmd1, Set[Output](o2))))
+      val cmdLineJob1 = cmdLineJob("cmd1-altered", Set(o2))
+
+      assert(filter.hasNewCommandLine(cmdLineJob1))
+      assert(!filter.hasSameCommandLineIfAny(cmdLineJob1))
+
+      // Non-CommandLineJob's shouldn't be affected by cmd string checks
+      val nonCmdLineJob0 = mockJob(cmd0, o0o1)
+
+      assert(!filter.hasNewCommandLine(nonCmdLineJob0))
+      assert(filter.hasSameCommandLineIfAny(nonCmdLineJob0))
+
+      val nonCmdLineJob1 = mockJob("cmd1-altered", Set(o2))
+
+      assert(!filter.hasNewCommandLine(nonCmdLineJob1))
+      assert(filter.hasSameCommandLineIfAny(nonCmdLineJob1))
+    }
+  }
 }

@@ -6,7 +6,7 @@ import java.time.Instant
 
 import loamstream.model.execute._
 import org.scalatest.FunSuite
-import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
+import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.uger.Queue
@@ -21,35 +21,39 @@ import loamstream.model.execute.Resources.GoogleResources
  *         date: 8/9/16
  */
 final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with ProvidesEnvAndResources {
-  
-  //scalastyle:off magic.number
-  
   private val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
   private val path1 = Paths.get("src/test/resources/for-hashing/bigger")
   private val path2 = Paths.get("src/test/resources/for-hashing/empty.txt")
   private val path3 = Paths.get("src/test/resources/blarg")
-  
+
   private lazy val hash0 = Hashes.sha1(path0)
   private lazy val hash1 = Hashes.sha1(path1)
   private lazy val hash2 = Hashes.sha1(path2)
+
+  private val cmd0 = "(echo 10 ; sed '1d' ancestry.txt | cut -f5- | sed 's/\t/ /g') > ancestry.fet"
+  private val cmd1 = "R --vanilla --args pca_scores.tsv < plot_pca.r"
 
   private def noOutputs: Boolean = dao.allOutputRecords.isEmpty
   
   private def noExecutions: Boolean = dao.allExecutions.isEmpty
 
-  private def store(paths: Path*): Execution = {
+  private def store(cmd: String, paths: Path*): Execution = {
     val outputs = paths.map { path =>
       val hash = Hashes.sha1(path)
       
       cachedOutput(path, hash)
     }
     
-    val execution = Execution(mockEnv, Option(mockCmd), mockSettings,
+    val execution = Execution(mockEnv, Option(cmd), mockSettings,
                               JobResult.CommandResult(0), outputs.toSet)
     
     dao.insertExecutions(execution)
     
     execution
+  }
+
+  private def store(paths: Path*): Execution = {
+    store(mockCmd, paths:_*)
   }
   
   private def storeFailures(paths: Path*): Unit = {
@@ -357,5 +361,23 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(dao.findOutputRecord(path1) === Some(failedOutput(path1)))
     }
   }
-  //scalastyle:on magic.number
+
+  test("findCommand") {
+    createTablesAndThen {
+      assert(noOutputs)
+
+      store(cmd0, path0)
+
+      assert(dao.findCommand(path0) === Some(cmd0))
+
+      assert(dao.findCommand(path1) === None)
+
+      store(cmd1, path1, path2)
+
+      assert(dao.findCommand(path0) === Some(cmd0))
+
+      assert(dao.findCommand(path1) === Some(cmd1))
+      assert(dao.findCommand(path2) === Some(cmd1))
+    }
+  }
 }

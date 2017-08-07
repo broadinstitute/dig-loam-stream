@@ -13,7 +13,8 @@ import loamstream.util.Loggable
 import loamstream.util.TimeUtils
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobResult.{CommandInvocationFailure, CommandResult}
-import loamstream.model.jobs.{Execution, JobStatus, LJob, OutputRecord}
+import loamstream.model.jobs.{Execution, JobStatus, LJob, Output}
+
 import scala.util.Success
 import scala.util.Failure
 
@@ -92,4 +93,8 @@ object CommandLineJob extends Loggable {
   val noOpProcessLogger = ProcessLogger(line => ())
   val stdErrProcessLogger = ProcessLogger(line => (), line => info(line))
 
+  def unapply(job: LJob): Option[(String, Set[Output])] = job match {
+    case clj: CommandLineJob => Some((clj.commandLineString, clj.outputs))
+    case _ => None
+  }
 }

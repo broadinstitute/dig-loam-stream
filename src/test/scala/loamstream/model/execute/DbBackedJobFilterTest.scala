@@ -239,30 +239,30 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       filter.record(Iterable(execution(cmd0, o0o1)))
 
-      assert(filter.findCommand(o0.location) === Some(cmd0))
-      assert(filter.findCommand(o1.location) === Some(cmd0))
+      assert(filter.findCommandLine(o0.location) === Some(cmd0))
+      assert(filter.findCommandLine(o1.location) === Some(cmd0))
 
       val cmdLineJob0 = cmdLineJob(cmd0, o0o1)
 
-      assert(!filter.hasDistinctCommand(cmdLineJob0))
-      assert(filter.hasSameCommandIfAny(cmdLineJob0))
+      assert(!filter.hasNewCommandLine(cmdLineJob0))
+      assert(filter.hasSameCommandLineIfAny(cmdLineJob0))
 
       filter.record(Iterable(execution(cmd1, Set[Output](o2))))
       val cmdLineJob1 = cmdLineJob("cmd1-altered", Set(o2))
 
-      assert(filter.hasDistinctCommand(cmdLineJob1))
-      assert(!filter.hasSameCommandIfAny(cmdLineJob1))
+      assert(filter.hasNewCommandLine(cmdLineJob1))
+      assert(!filter.hasSameCommandLineIfAny(cmdLineJob1))
 
       // Non-CommandLineJob's shouldn't be affected by cmd string checks
       val nonCmdLineJob0 = mockJob(cmd0, o0o1)
 
-      assert(!filter.hasDistinctCommand(nonCmdLineJob0))
-      assert(filter.hasSameCommandIfAny(nonCmdLineJob0))
+      assert(!filter.hasNewCommandLine(nonCmdLineJob0))
+      assert(filter.hasSameCommandLineIfAny(nonCmdLineJob0))
 
       val nonCmdLineJob1 = mockJob("cmd1-altered", Set(o2))
 
-      assert(!filter.hasDistinctCommand(nonCmdLineJob1))
-      assert(filter.hasSameCommandIfAny(nonCmdLineJob1))
+      assert(!filter.hasNewCommandLine(nonCmdLineJob1))
+      assert(filter.hasSameCommandLineIfAny(nonCmdLineJob1))
     }
   }
 }

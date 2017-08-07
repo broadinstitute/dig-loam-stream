@@ -362,7 +362,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     }
   }
 
-  test("findCmd") {
+  test("findCommand") {
     createTablesAndThen {
       assert(noOutputs)
 

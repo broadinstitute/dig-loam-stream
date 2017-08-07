@@ -15,7 +15,7 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     def anyOutputNeedsToBeRun = job.outputs.exists(o => needsToBeRun(job.toString, o.toOutputRecord))
 
     val noOutputs = job.outputs.isEmpty
-    val distinctCommand = hasDistinctCommand(job)
+    val distinctCommand = hasNewCommandLine(job)
 
     if (noOutputs) { debug(s"Job $job will be run because it has no known outputs.") }
     if (distinctCommand) { debug(s"Job $job will be run because its command changed.") }
@@ -54,7 +54,7 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
   private def findOutput(loc: String): Option[OutputRecord] = {
     dao.findOutputRecord(loc)
   }
-  private[execute] def findCommand(loc: String): Option[String] = {
+  private[execute] def findCommandLine(loc: String): Option[String] = {
     dao.findCommand(loc)
   }
 
@@ -81,11 +81,12 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     }
   }
 
-  private[execute] def hasDistinctCommand(job: LJob): Boolean = job match {
-    case clj: CommandLineJob if job.outputs.nonEmpty =>
-      !findCommand(clj.outputs.head.location).contains(clj.commandLineString)
+  private[execute] def hasNewCommandLine(job: LJob): Boolean = job match {
+    case CommandLineJob(newCommandLine, outputs) if outputs.nonEmpty =>
+      val recordedCommandLine = findCommandLine(outputs.head.location)
+      recordedCommandLine != Some(newCommandLine)
     case _ => false
   }
 
-  private[execute] def hasSameCommandIfAny(job: LJob): Boolean = !hasDistinctCommand(job)
+  private[execute] def hasSameCommandLineIfAny(job: LJob): Boolean = !hasNewCommandLine(job)
 }

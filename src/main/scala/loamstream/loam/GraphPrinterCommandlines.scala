@@ -1,6 +1,6 @@
 package loamstream.loam
 
-import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
+import loamstream.loam.LoamToken.{MultiStoreToken, StoreRefToken, StoreToken, StringToken}
 import loamstream.loam.ops.filters.LoamStoreFilterTool
 import loamstream.loam.ops.mappers.LoamStoreMapperTool
 import loamstream.model.{Store, Tool}
@@ -15,11 +15,20 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
   def print(storeRef: LoamStoreRef): String =
   storeRef.store.pathOpt.map(storeRef.pathModifier).map(_.toString).getOrElse("[file ref]")
 
+  def print(hasLocation: HasLocation): String = hasLocation match {
+    case store: Store.Untyped => print(store)
+    case storeRef: LoamStoreRef => print(storeRef)
+  }
+
+  def print[H <: HasLocation](hasLocations: Iterable[H]): String =
+    hasLocations.map(print(_: HasLocation)).mkString(" ")
+
   /** Prints a token */
   def print(token: LoamToken, graph: LoamGraph): String = token match {
     case StringToken(string) => string
     case StoreToken(store) => print(store)
     case StoreRefToken(storeRef) => print(storeRef)
+    case MultiStoreToken(stores) => print(stores)
   }
 
   /** Prints a tool */

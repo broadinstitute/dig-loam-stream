@@ -4,9 +4,6 @@ import java.nio.file.{Files => JFiles}
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import loamstream.compiler.messages.ClientMessageHandler
-import loamstream.compiler.messages.ErrorOutMessage
-import loamstream.compiler.messages.StatusOutMessage
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScript
@@ -32,12 +29,11 @@ import loamstream.loam.LoamGraph
 object LoamEngine {
   def default(
       config: LoamConfig,
-      outMessageSink: ClientMessageHandler.OutMessageSink = ClientMessageHandler.OutMessageSink.NoOp,
       csClient: Option[CloudStorageClient] = None): LoamEngine = {
     
-    val compiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
+    val compiler = LoamCompiler.default
     
-    LoamEngine(config, compiler, RxExecuter.default, outMessageSink, csClient)
+    LoamEngine(config, compiler, RxExecuter.default, csClient)
   }
 
   final case class Result(
@@ -59,15 +55,13 @@ final case class LoamEngine(
     config: LoamConfig,
     compiler: LoamCompiler, 
     executer: Executer,
-    outMessageSink: ClientMessageHandler.OutMessageSink,
     csClient: Option[CloudStorageClient] = None) extends Loggable {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
-    val message = shot match {
-      case Hit(item) => StatusOutMessage(statusMsg)
-      case miss: Miss => ErrorOutMessage(miss.toString)
+    shot match {
+      case Hit(item) => info(statusMsg)
+      case miss: Miss => error(miss.toString)
     }
-    outMessageSink.send(message)
   }
 
   def loadFileWithName(fileName: String): Shot[LoamScript] = loadFile(Paths.get(fileName))
@@ -102,9 +96,10 @@ final case class LoamEngine(
 
     pathShot match {
       case Hit(path) => compile(path)
-      case miss: Miss =>
-        outMessageSink.send(ErrorOutMessage(miss.toString))
+      case miss: Miss => {
+        error(miss.toString)
         miss
+      }
     }
   }
 
@@ -135,21 +130,22 @@ final case class LoamEngine(
 
     pathsShot match {
       case Hit(paths) => runFiles(paths)
-      case miss: Miss =>
-        outMessageSink.send(ErrorOutMessage(miss.toString))
+      case miss: Miss => {
+        error(miss.toString)
         LoamEngine.Result(miss, miss, miss)
+      }
     }
   }
 
   def runFileWithName(fileName: String): LoamEngine.Result = {
-    val pathShot = Shot {
-      Paths.get(fileName)
-    }
+    val pathShot = Shot(Paths.get(fileName))
+
     pathShot match {
       case Hit(path) => runFile(path)
-      case miss: Miss =>
-        outMessageSink.send(ErrorOutMessage(miss.toString))
+      case miss: Miss => {
+        error(miss.toString)
         LoamEngine.Result(miss, miss, miss)
+      }
     }
   }
 
@@ -186,11 +182,11 @@ final case class LoamEngine(
 
     log(executable)
     
-    outMessageSink.send(StatusOutMessage("Now going to execute."))
+    info("Now going to execute.")
 
     val executions = executer.execute(executable)
 
-    outMessageSink.send(StatusOutMessage(s"Done executing ${StringUtils.soMany(executions.size, "job")}."))
+    info(s"Done executing ${StringUtils.soMany(executions.size, "job")}.")
 
     executions
   }
@@ -202,16 +198,18 @@ final case class LoamEngine(
   def run(script: LoamScript): LoamEngine.Result = run(LoamProject(config, script))
 
   def run(project: LoamProject): LoamEngine.Result = {
-    outMessageSink.send(StatusOutMessage(s"Now compiling project with ${project.scripts.size} scripts."))
+    info(s"Now compiling project with ${project.scripts.size} scripts.")
+    
     val compileResults = compile(project)
+    
     if (compileResults.isValid) {
-      outMessageSink.send(StatusOutMessage(compileResults.summary))
+      info(compileResults.summary)
       //TODO: What if compileResults.contextOpt is None?
       val context = compileResults.contextOpt.get
       val jobResults = run(context.graph)
       LoamEngine.Result(Hit(project), Hit(compileResults), Hit(jobResults))
     } else {
-      outMessageSink.send(ErrorOutMessage("Could not compile."))
+      error("Could not compile.")
       LoamEngine.Result(Hit(project), Hit(compileResults), Miss("Could not compile"))
     }
   }

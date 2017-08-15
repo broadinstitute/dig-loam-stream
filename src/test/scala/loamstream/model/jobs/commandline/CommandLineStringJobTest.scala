@@ -1,7 +1,6 @@
 package loamstream.model.jobs.commandline
 
 import loamstream.compiler.LoamEngine
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.util.{LoamFileUtils, Loggable}
 import org.scalatest.FunSuite
 

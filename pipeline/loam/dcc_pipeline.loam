@@ -226,7 +226,7 @@ def allQcSteps(params: DataConfig): Unit = {
   local {
     cmd"""python $pyHailLoad
       --vcf-in $id ${Local.harmRefVcf}
-	//  --vds-out ${Local.harmRefVds}""".in(Local.harmRefVcf, Local.harmRefVcfTbi).out(Local.harmRefVds)
+	  --vds-out ${Local.harmRefVds}""".in(Local.harmRefVcf, Local.harmRefVcfTbi).out(Local.harmRefVds)
   }
   
   /**
@@ -406,8 +406,6 @@ def allQcSteps(params: DataConfig): Unit = {
       ${Local.sampleqcStatsAdjClusterOutliers} ${Local.sampleqcStatsAdjClusterPlots}
       ${Local.sampleqcStatsAdjClusterXtabs} $id < $rIstatsPcsGmmClusterPlot""".in(Local.sampleqcStatsAdjPcaScores,  Local.sampleqcStatsAdjClusterKlustakwikStores.clu).out(Local.sampleqcStatsAdjClusterOutliers, Local.sampleqcStatsAdjClusterPlots, Local.sampleqcStatsAdjClusterXtabs)
   
-    // Removed because redundant 
-    //cmd"""$binR --vanilla --args ${Local.sampleqcStatsAdj} ${Local.sampleqcStatsAdjClusterOutliers} ${Local.sampleqcStatsAdjClusterStripchart} < $rIstatsPcsGmmPlotMetrics""".in(Local.sampleqcStatsAdj, Local.sampleqcStatsAdjClusterOutliers).out(Local.sampleqcStatsAdjClusterStripchart)
   }
   
   /**

@@ -5,7 +5,6 @@ import java.nio.file.Paths
 
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamProject
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScript
 import loamstream.loam.LoamToolBox
@@ -37,7 +36,7 @@ trait LoamTestHelpers extends Loggable {
     
   def compile(project: LoamProject, throwOnError: Boolean = true): LoamCompiler.Result = {
 
-    val compiler = new LoamCompiler(LoamCompiler.Settings.default, LoggableOutMessageSink(this))
+    val compiler = LoamCompiler.default
 
     val compileResults = compiler.compile(project)
 

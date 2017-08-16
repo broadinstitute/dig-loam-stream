@@ -3,7 +3,6 @@ package loamstream.compiler
 import java.nio.file.{Path, Files => JFiles}
 
 import loamstream.compiler.LoamEngineTest.Fixture
-import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.util.{Files, StringUtils}
 import org.scalatest.FunSuite
 import loamstream.TestHelpers

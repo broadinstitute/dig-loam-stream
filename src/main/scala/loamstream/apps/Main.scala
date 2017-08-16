@@ -9,14 +9,13 @@ import loamstream.cli.Conf
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamProject
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
-import loamstream.compiler.messages.StatusOutMessage
 import loamstream.loam.LoamScript
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.OneTimeLatch
 import loamstream.util.Versions
+
 
 /**
  * @author clint
@@ -43,17 +42,15 @@ object Main extends Loggable {
     })
   }
 
-  private def outMessageSink = LoggableOutMessageSink(this)
-
   private[apps] def run(cli: Conf): Unit = {
     val wiring = AppWiring(cli)
     
     addShutdownHook(wiring)
 
     val loamEngine = {
-      val loamCompiler = LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
+      val loamCompiler = LoamCompiler.default
       
-      LoamEngine(wiring.config, loamCompiler, wiring.executer, outMessageSink, wiring.cloudStorageClient)
+      LoamEngine(wiring.config, loamCompiler, wiring.executer, wiring.cloudStorageClient)
     }
 
     try {
@@ -151,13 +148,13 @@ object Main extends Loggable {
 
   private def compile(loamEngine: LoamEngine, project: LoamProject): LoamCompiler.Result = {
     
-    outMessageSink.send(StatusOutMessage(s"Now compiling project with ${project.scripts.size} scripts."))
+    info(s"Now compiling project with ${project.scripts.size} scripts.")
 
     val compilationResult = loamEngine.compile(project)
     
     assert(compilationResult.isValid, "Loam compilation result is not valid.")
     
-    outMessageSink.send(StatusOutMessage(compilationResult.summary))
+    info(compilationResult.summary)
 
     compilationResult
   }
@@ -165,7 +162,7 @@ object Main extends Loggable {
   private def compile(cli: Conf): Unit = {
     val wiring = AppWiring(cli)
 
-    val loamEngine = LoamEngine.default(wiring.config, outMessageSink)
+    val loamEngine = LoamEngine.default(wiring.config)
 
     val compilationResultShot = loamEngine.compileFiles(cli.loams())
 

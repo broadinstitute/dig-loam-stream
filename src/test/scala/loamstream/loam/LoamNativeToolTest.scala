@@ -4,7 +4,6 @@ import java.nio.file.{Path, Files => JFiles}
 
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef._
-import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.loam.LoamCmdTool.StringContextWithCmd
 import loamstream.loam.ops.StoreType.TXT
 import loamstream.util.PathEnrichments._

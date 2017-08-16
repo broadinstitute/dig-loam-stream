@@ -84,9 +84,11 @@ object TestHelpers {
     executionFrom(result.toJobStatus, Option(result), resources)
   }
   
+  def emptyProjectContext = LoamProjectContext.empty(config)
+  
   def makeGraph(loamCode: LoamScriptContext => Any): LoamGraph = {
       
-    val sc = new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config))
+    val sc = new LoamScriptContext(emptyProjectContext)
       
     loamCode(sc)
       

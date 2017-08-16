@@ -14,11 +14,12 @@ sealed trait LoamToken {
 }
 
 object LoamToken {
-  def storesFromTokens(tokens: Seq[LoamToken]): Set[Store.Untyped] =
+  def storesFromTokens(tokens: Seq[LoamToken]): Set[Store.Untyped] = {
     tokens.collect {
       case StoreToken(store) => store
       case StoreRefToken(storeRef) => storeRef.store
     }.toSet
+  }
 
   final case class StringToken(string: String) extends LoamToken {
     def +(oStringToken: StringToken): StringToken = StringToken(string + oStringToken.string)
@@ -31,14 +32,27 @@ object LoamToken {
   final case class StoreToken(store: Store.Untyped) extends LoamToken {
     override def toString: String = store.toString
 
-    override def toString(fileManager: LoamFileManager): String = fileManager.getStoreString(store)
+    override def toString(fileManager: LoamFileManager): String = store.render(fileManager)
   }
-
+  
   final case class StoreRefToken(storeRef: LoamStoreRef) extends LoamToken {
-    override def toString: String = storeRef.pathModifier(Paths.get("file")).toString
+    override def toString: String = storeRef.pathModifier(storeRef.store.path).toString
 
-    override def toString(fileManager: LoamFileManager): String = storeRef.path(fileManager).toString
+    override def toString(fileManager: LoamFileManager): String = storeRef.render(fileManager)
+  }
+  
+  final case class MultiStoreToken(stores: Iterable[HasLocation]) extends LoamToken {
+    override def toString: String = stores.map(_.path).mkString(" ")
 
+    override def toString(fileManager: LoamFileManager): String = {
+      stores.map(_.render(fileManager)).mkString(" ")
+    }
+  }
+  
+  final case class MultiToken[A](as: Iterable[A]) extends LoamToken {
+    override def toString: String = as.mkString(" ")
+
+    override def toString(fileManager: LoamFileManager): String = toString
   }
 
   def mergeStringTokens(tokens: Seq[LoamToken]): Seq[LoamToken] = {

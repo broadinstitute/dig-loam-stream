@@ -16,9 +16,20 @@ import loamstream.util.ConfigUtils
  * want the pipeline to proceed in such cases.
  */
 final case class DataConfig private(config: Config) {
+  /**
+   * @param path key in config (x.y.z)
+   * @return true unless path has value 'null' or is missing entirely
+   *
+   * Empty array and object values (e.g. 'path = []') return true
+   */
+  def isDefined(path: String): Boolean = config.hasPath(path)
+
   def getStr(path: String): String = config.getString(path)
 
   def getInt(path: String): Int = config.getInt(path)
+
+  /** Value must be one of {true, false} and is case-sensitive */
+  def getBool(path: String): Boolean = config.getBoolean(path)
 
   import scala.collection.JavaConverters._
 

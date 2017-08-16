@@ -33,10 +33,14 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     runBlocking(action).map(f)
   }
 
-  override def findOutputRecord(loc: String): Option[OutputRecord] = {
-    val action = findOutputAction(loc)
+  override def findOutputRecord(loc: String): Option[OutputRecord] = findOutputRow(loc).map(toOutputRecord)
 
-    runBlocking(action).map(toOutputRecord)
+  override def findCommand(loc: String): Option[String] = {
+    for {
+      outputRow <- findOutputRow(loc)
+      executionId <- outputRow.executionId
+      executionRow <- findExecutionRow(executionId)
+    } yield executionRow.cmd
   }
 
   override def deleteOutput(locs: Iterable[String]): Unit = {
@@ -157,6 +161,21 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     implicit val dbExecutionContext: ExecutionContext = db.executor.executionContext
   }
 
+  private def findOutputRow(loc: String): Option[OutputRow] = {
+    val action = findOutputAction(loc)
+
+    runBlocking(action)
+  }
+
+  private def findExecutionRow(executionId: Int): Option[ExecutionRow] = {
+    val action = findExecutionAction(executionId)
+
+    runBlocking(action)
+  }
+
+  private def findExecutionAction(executionId: Int): DBIO[Option[ExecutionRow]] =
+    Queries.executionById(executionId).result.headOption.transactionally
+
   private def findOutputAction(loc: String): DBIO[Option[OutputRow]] = {
     Queries.outputByLoc(loc).result.headOption.transactionally
   }
@@ -208,21 +227,28 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   }
 
   private object Queries {
-    import PathUtils.normalize
-
-    lazy val insertExecution = (tables.executions returning tables.executions.map(_.id)).into {
+    lazy val insertExecution: driver.IntoInsertActionComposer[ExecutionRow, ExecutionRow] =
+      (tables.executions returning tables.executions.map(_.id)).into {
       (execution, newId) => execution.copy(id = newId)
     }
 
-    def outputByLoc(loc: String) = tables.outputs.filter(_.locator === loc).take(1)
+    def outputByLoc(loc: String): Query[tables.Outputs, OutputRow, Seq] = {
+      tables.outputs.filter(_.locator === loc).take(1)
+    }
 
-    def outputsByPaths(locs: Iterable[String]) = {
+    def outputsByPaths(locs: Iterable[String]): Query[tables.Outputs, OutputRow, Seq] = {
       val rawPaths = locs.toSet
 
       outputsByRawPaths(rawPaths)
     }
 
-    def outputsByRawPaths(rawPaths: Iterable[String]) = tables.outputs.filter(_.locator.inSetBind(rawPaths))
+    def outputsByRawPaths(rawPaths: Iterable[String]): Query[tables.Outputs, OutputRow, Seq] = {
+      tables.outputs.filter(_.locator.inSetBind(rawPaths))
+    }
+
+    def executionById(executionId: Int): Query[tables.Executions, ExecutionRow, Seq] = {
+      tables.executions.filter(_.id === executionId).take(1)
+    }
   }
 
   private def reify(executionRow: ExecutionRow): Execution = {
@@ -286,7 +312,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   private[slick] def runBlocking[A](action: DBIO[A]): A = waitFor(db.run(action))
 
   private def log(sqlAction: driver.ProfileAction[_, _, _]): Unit = {
-    sqlAction.statements.foreach(s => debug(s"SQL: $s"))
+    sqlAction.statements.foreach(s => trace(s"SQL: $s"))
   }
 
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {

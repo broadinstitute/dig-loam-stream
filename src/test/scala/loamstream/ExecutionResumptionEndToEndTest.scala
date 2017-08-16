@@ -2,7 +2,6 @@ package loamstream
 
 import java.nio.file.{Path, Paths}
 
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.{LoamCompiler, LoamEngine}
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.execute.{DbBackedJobFilter, Executable, ExecuterHelpers, MockChunkRunner, RxExecuter}
@@ -320,11 +319,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   }
 
   private def loamEngine = {
-    val outMessageSink = LoggableOutMessageSink(this)
-
     val (executer, _) = makeLoggingExecuter
 
-    LoamEngine(TestHelpers.config, LoamCompiler(outMessageSink), executer, outMessageSink)
+    LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
   }
 
   private def compileAndRun(script: String): (Executable, Map[LJob, Execution]) = {

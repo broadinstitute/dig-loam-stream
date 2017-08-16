@@ -19,6 +19,12 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   /** Prints store */
   def print(store: Store.Untyped, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
 
+  /** Prints HasLocation **/
+  def print(hasLocation: HasLocation, fully: Boolean): String = hasLocation match {
+    case store: Store.Untyped => print(store, fully)
+    case storeRef: LoamStoreRef => print(storeRef.store, fully)
+  }
+
   /** Prints cmd tool */
   def print(tool: Tool): String = tool match {
     case cmdTool: LoamCmdTool => print(cmdTool)
@@ -32,7 +38,11 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print[T](tool: LoamNativeTool[T]): String = "[native tool]"
 
   /** Prints prefix symbol to distinguish input and output stores */
-  def printIoPrefix(tool: LoamCmdTool, store: Store.Untyped, graph: LoamGraph): String = {
+  def printIoPrefix(tool: LoamCmdTool, hasLocation: HasLocation, graph: LoamGraph): String = {
+    val store = hasLocation match {
+      case store: Store.Untyped => store
+      case storeRef: LoamStoreRef => storeRef.store
+    }
     graph.storeProducers.get(store) match {
       case Some(producer) if producer == tool => ">"
       case _ => "<"
@@ -41,17 +51,17 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
   /** Prints tool */
   def print(tool: LoamCmdTool, graph: LoamGraph): String = {
-    def toString(token: LoamToken): String = token match {
+    def hasLocationToString(hasLocation: HasLocation): String = {
+      val ioPrefix = printIoPrefix(tool, hasLocation, graph)
+      s"$ioPrefix${print(hasLocation, fully = false)}"
+    }
+    def tokenToString(token: LoamToken): String = token match {
       case StringToken(string) => string
-      case StoreToken(store) =>
-        val ioPrefix = printIoPrefix(tool, store, graph)
-        s"$ioPrefix${print(store, fully = false)}"
-      case StoreRefToken(storeRef) =>
-        val ioPrefix = printIoPrefix(tool, storeRef.store, graph)
-        s"$ioPrefix${print(storeRef.store, fully = false)}"
+      case hasLocation: HasLocation => hasLocationToString(hasLocation)
+      case hasLocations: Iterable[HasLocation] => hasLocations.map(hasLocationToString).mkString(" ")
     }
 
-    val tokenString = tool.tokens.map(toString).mkString
+    val tokenString = tool.tokens.map(tokenToString).mkString
 
     s"#${print(tool.id)}[$tokenString]"
   }

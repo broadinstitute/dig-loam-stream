@@ -2,7 +2,6 @@ package loamstream.loam
 
 import org.scalatest.FunSuite
 import loamstream.compiler.LoamCompiler
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.util.Loggable
 import loamstream.model.execute.RxExecuter
 import loamstream.compiler.LoamEngine
@@ -18,11 +17,9 @@ import loamstream.TestHelpers
  */
 final class LoamExecutionEnvironmentTest extends FunSuite with Loggable {
   
-  private def outMessageSink = LoggableOutMessageSink(this)
+  private val loamCompiler = LoamCompiler.default
   
-  private val loamCompiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
-  
-  private val loamEngine = LoamEngine(TestHelpers.config, loamCompiler, RxExecuter.default, outMessageSink)
+  private val loamEngine = LoamEngine(TestHelpers.config, loamCompiler, RxExecuter.default)
   
   test("Default EE") {
     val code = """

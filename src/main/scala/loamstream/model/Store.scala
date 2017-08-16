@@ -12,6 +12,8 @@ import loamstream.loam.ops.{StoreField, StoreType, TextStore, TextStoreField}
 import loamstream.util.{TypeBox, ValueBox}
 
 import scala.reflect.runtime.universe.TypeTag
+import loamstream.loam.HasLocation
+import loamstream.loam.files.LoamFileManager
 
 /**
   * LoamStream
@@ -19,7 +21,7 @@ import scala.reflect.runtime.universe.TypeTag
   */
 object Store {
 
-  trait Untyped {
+  trait Untyped extends HasLocation {
     def id: LId
 
     def sig: TypeBox.Untyped
@@ -52,16 +54,15 @@ object Store {
     
     def graph: LoamGraph = projectContext.graph
 
-    def pathOpt: Option[Path] = graph.pathOpt(this)
+    override def pathOpt: Option[Path] = graph.pathOpt(this)
 
-    def path: Path = projectContext.fileManager.getPath(this)
+    override def path: Path = projectContext.fileManager.getPath(this)
 
-    def uriOpt: Option[URI] = graph.uriOpt(this)
+    override def uriOpt: Option[URI] = graph.uriOpt(this)
 
     def +(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixAdder(suffix))
 
     def -(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixRemover(suffix))
-
   }
 
   def create[S <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): Store[S] = {
@@ -72,7 +73,7 @@ object Store {
 final case class Store[S <: StoreType : TypeTag] private(id: LId)(implicit val scriptContext: LoamScriptContext)
   extends Store.Untyped {
 
-  val sig: TypeBox[S] = TypeBox.of[S]
+  override val sig: TypeBox[S] = TypeBox.of[S]
 
   update()
 

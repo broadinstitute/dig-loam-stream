@@ -18,7 +18,8 @@ object NonFatalInitializer {
   def apply(throwable: Throwable): Boolean = fold[Boolean](throwable, true, true, false)
 
   /** Some if NonFatal or ExceptionInInitializer with NonFatal cause */
-  def unapply(throwable: Throwable): Option[Throwable] =
+  def unapply(throwable: Throwable): Option[Throwable] = {
     fold[Option[Throwable]](throwable, Some(throwable), Some(throwable.getCause), None)
+  }
 
 }

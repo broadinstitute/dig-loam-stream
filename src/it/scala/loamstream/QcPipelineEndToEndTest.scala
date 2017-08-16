@@ -1,10 +1,10 @@
 package loamstream
 
-import org.scalatest.FunSuite
 import java.nio.file.Path
+
+import org.scalatest.FunSuite
+
 import loamstream.util.ExitCodes
-import java.nio.file.Paths
-import java.nio.file.{Files => JFiles}
 import loamstream.util.Files
 
 /**
@@ -12,18 +12,14 @@ import loamstream.util.Files
  * Apr 21, 2017
  */
 final class QcPipelineEndToEndTest extends FunSuite {
-  import JFiles.exists
-
+  import IntegrationTestHelpers.{ path, withLoudStackTraces }
+  
   private val referenceDir = path("/humgen/diabetes/users/dig/loamstream/ci/test-data/qc/camp/results")
   private val outputDir = path("./qc")
 
   test("Run the QC pipeline end-to-end on real data") {
-    try {
+    withLoudStackTraces {
       run()
-    } catch {
-      //NB: SBT drastically truncates stack traces. so print them manually to get more info.  
-      //This workaround is lame, but gives us a chance at debugging failures.
-      case e: Throwable => e.printStackTrace() ; throw e
     }
 
     //NB: Deterministic outputs from the penultimate Klustaskwik jobs
@@ -65,8 +61,6 @@ final class QcPipelineEndToEndTest extends FunSuite {
 
     pairsToCompare.foreach(diff.tupled)
   }
-
-  private def path(s: String): Path = Paths.get(s)
 
   private def run(): Unit = {
     Files.createDirsIfNecessary(outputDir)

@@ -15,11 +15,7 @@ final case class Issue(pos: Position, msg: String, severity: Severity) {
 
 object Issue {
 
-  sealed trait Severity {
-    def level: Int
-
-    def isProblem: Boolean
-  }
+  sealed abstract class Severity(val level: Int, val isProblem: Boolean)
   
   object Severity {
     def apply(level: Int): Severity = {
@@ -32,22 +28,10 @@ object Issue {
       }
     }
 
-    case object Info extends Severity {
-      override val level = 0
+    case object Info extends Severity(level = 0, isProblem = false)
     
-      override def isProblem: Boolean = false
-    }
+    case object Warning extends Severity(level = 1, isProblem = true)
     
-    case object Warning extends Severity {
-      override val level = 1
-    
-      override def isProblem: Boolean = true
-    }
-    
-    case object Error extends Severity {
-      override val level = 2
-    
-      override def isProblem: Boolean = true
-    }
+    case object Error extends Severity(level = 2, isProblem = true)
   }
 }

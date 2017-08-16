@@ -348,7 +348,7 @@ def allQcSteps(params: DataConfig): Unit = {
       > ${Local.pcaLog}""".in(Local.harmRefFiltPruned :+ Local.ancestryInferred :+ Local.ancestryOutliers).out(Local.harmRefFiltPrunedPcaGds, Local.pcaLog, Local.pcaScores).using("R-3.4")
   }
   
-   CHUNK 3
+  // CHUNK 3
   
   /**
    * Sample QC Stats Calculation Step

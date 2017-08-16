@@ -81,8 +81,7 @@ sdata$DECISION[sdata$CLUSTER == "X" & sdata$OUTLIER_PCA == 1]<-"OUTLIER_IND_PCA"
 sdata$DECISION[sdata$CLUSTER != "X" & sdata$OUTLIER_PCA == 1]<-"OUTLIER_PCA"
 sdata$DECISION<-factor(sdata$DECISION)
 write.table(sdata[sdata$DECISION != "KEEP",],args[7],row.names=F,col.names=T,quote=F,sep="\t",append=F)
-write.table(unique(sdata$IID[sdata$DECISION != "KEEP"]),args[8],row.names=F,col.names=F,quote=F,sep="\t",append=F)
-ancestry<-read.table(args[10],header=F,as.is=T,stringsAsFactors=F)
+ancestry<-read.table(args[9],header=F,as.is=T,stringsAsFactors=F)
 names(ancestry)[1]<-"IID"
 names(ancestry)[2]<-"ANCESTRY"
 id_list<-list(all=unique(sdata$IID))
@@ -93,7 +92,7 @@ id_list[['EUR']]<-ancestry$IID[ancestry$ANCESTRY == "EUR"]
 id_list[['SAS']]<-ancestry$IID[ancestry$ANCESTRY == "SAS"]
 
 oliers_plot<-unique(sdata$IID[sdata$DECISION %in% c("OUTLIER_PCA","OUTLIER_IND","OUTLIER_IND_PCA")])
-pdf(args[9],width=20, height=5)
+pdf(args[8],width=20, height=5)
 for(p in names(id_list)) {
 	i<-0
 	sdata_temp<-sdata[sdata$IID %in% id_list[[p]],]

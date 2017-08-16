@@ -1,7 +1,7 @@
 // Software Tools
 
 // UNIX
-val software = path("/humgen/diabetes/users/ryank/software")
+val software = path("/humgen/diabetes2/users/ryank/software")
 val binGenotypeHarmonizer = software / "GenotypeHarmonizer-1.4.18/GenotypeHarmonizer.sh"
 val binKing = software / "king"
 val binPlink = software / "plink1.9/plink"
@@ -10,7 +10,8 @@ val binKlustakwik = software / "KlustaKwik-2.0.1/KlustaKwik"
 
 val binBgzip = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/tabix/tabix_0.2.6/bin/bgzip")
 val binR = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/r_3.1.1-bioconductor-3.0/bin/R")
-val binHail = path("/humgen/diabetes/users/kyuksel/github_repos/hail/build/install/hail/bin/hail")
+val binRscript = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/r_3.4.0/bin/Rscript")
+val binHail = path("/humgen/diabetes2/users/kyuksel/github_repos/hail/build/install/hail/bin/hail")
 
 //Google Cloud-Facing
 val hailJarCloud = uri("gs://loamstream/hail/hail-all-spark.jar")

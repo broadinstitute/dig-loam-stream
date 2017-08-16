@@ -1,4 +1,4 @@
-library(Hmisc)
+#library(Hmisc)
 library(reshape2)
 library(ggplot2)
 args<-commandArgs(trailingOnly=T)
@@ -162,16 +162,6 @@ for(i in 1:nrow(a)) {
 }
 
 ### WRITE ASSIGMENTS TO FILES
-#for(r in unique(dat$ASSIGNED)) {
-#	write.table(paste(dat$IID[which(dat$GROUP == args[4] & dat$ASSIGNED == r)],dat$IID[which(dat$GROUP == args[4] & dat$ASSIGNED == r)],sep=" "),paste(outfile,".",r,".plink",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#	write.table(dat$IID[which(dat$GROUP == args[4] & dat$ASSIGNED == r)],paste(outfile,".",r,sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#}
-#ids_all<-dat$IID[which(dat$GROUP == args[4] & dat$ASSIGNED != "OUTLIERS")]
-#ids_out<-dat$IID[which(dat$GROUP == args[4] & dat$ASSIGNED == "OUTLIERS")]
-#write.table(paste(ids_all,ids_all),paste(outfile,".CLUSTERED.plink",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#write.table(ids_all,paste(outfile,".CLUSTERED",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#write.table(paste(ids_out,ids_out),paste(outfile,".OUTLIERS.plink",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#write.table(ids_out,paste(outfile,".OUTLIERS",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
 write.table(dat[which(dat$GROUP == args[4]),c("IID","ASSIGNED")],args[11],col.names=F,row.names=F,quote=F,append=F,sep="\t")
 
 gg_color_hue <- function(n) {

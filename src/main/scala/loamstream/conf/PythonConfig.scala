@@ -12,7 +12,7 @@ import loamstream.util.PathUtils
  * @author kyuksel
  *         4/11/2017
  */
-final case class PythonConfig(binary: Path, scriptDir: Path = Defaults.scriptDir)
+final case class PythonConfig(binary: Path, scriptDir: Path = Defaults.scriptDir) extends HasScriptDir
 
 object PythonConfig {
 

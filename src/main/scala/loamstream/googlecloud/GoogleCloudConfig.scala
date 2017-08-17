@@ -31,7 +31,7 @@ final case class GoogleCloudConfig(
     
 object GoogleCloudConfig {
   object Defaults { // for creating a minimal cluster
-    val zone: String = "us-central1-f"
+    val zone: String = "us-central1-b"
     val masterMachineType: String = "n1-standard-1"
     val masterBootDiskSize: Int = 20 // in GB
     val numWorkers: Int = 2

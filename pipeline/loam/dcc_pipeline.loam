@@ -225,7 +225,7 @@ def allQcSteps(params: DataConfig): Unit = {
    */
   
   google {
-    hail"""python $pyHailLoad
+    hail"""$pyHailLoad
       --vcf-in $id ${Local.harmRefVcf}
 	  --vds-out ${Local.harmRefVds}""".in(Local.harmRefVcf, Local.harmRefVcfTbi).out(Local.harmRefVds)
   }

@@ -2,9 +2,7 @@ package loamstream.googlecloud
 
 import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamScriptContext
-import loamstream.util.StringUtils
 import loamstream.loam.LanguageSupport
-import loamstream.util.Files
 
 /**
  * @author clint

@@ -224,8 +224,8 @@ def allQcSteps(params: DataConfig): Unit = {
    *   Monomorphic variants are automatically removed during import into Hail
    */
   
-  local {
-    cmd"""python $pyHailLoad
+  google {
+    hail"""python $pyHailLoad
       --vcf-in $id ${Local.harmRefVcf}
 	  --vds-out ${Local.harmRefVds}""".in(Local.harmRefVcf, Local.harmRefVcfTbi).out(Local.harmRefVds)
   }

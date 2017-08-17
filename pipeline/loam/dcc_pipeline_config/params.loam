@@ -1,8 +1,9 @@
 // Loamstream repository path
 val loamstreamDir = path("/humgen/diabetes2/users/ryank/software/dig-loam-stream")
 
-// Output directory path
-val outDir = path("qc")
+// Local output directory path
+val localOutDir = path("qc")
+val googleOutDir = uri("gs://loamstream/qc")
 
 val startChr = 1
 val endChr = 23

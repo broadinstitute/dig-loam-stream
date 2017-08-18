@@ -16,13 +16,16 @@ for (params <- config.getObjList("project")) {
 }
 
 def allQcSteps(params: DataConfig): Unit = {
-  val kgPurcellVcf = store[VCF].at(params.getStr("kgPurcellVcf")).asInput
-  val kgSample = store[TXT].at(params.getStr("kgSample")).asInput
+  val kgPurcellVcfName = params.getStr("kgPurcellVcfName")
+  val kgPurcellVcfDir = params.getStr("kgPurcellVcfDir")
+  val kgSampleName = params.getStr("kgSampleName")
+  val kgSampleDir = params.getStr("kgSampleDir")
   val kgSampleId = params.getStr("kgSampleId")
   val kgSamplePop = params.getStr("kgSamplePop")
   val kgSampleGroup = params.getStr("kgSampleGroup")
   val kgVcfBaseWild = params.getStr("kgVcfBaseWild")
-  val regionsExcludeName = params.getStr("regionsExclude")
+  val regionsExcludeName = params.getStr("regionsExcludeName")
+  val regionsExcludeDir = params.getStr("regionsExcludeDir")
 
   // Project Settings
   val id = params.getStr("id")
@@ -44,7 +47,15 @@ def allQcSteps(params: DataConfig): Unit = {
   val harmRefFiltPrefixName = s"${id}.harm.ref.filt"
   val harmRefFiltPrunedPrefixName = s"${harmRefFiltPrefixName}.pruned"
 
+  // Ancestry PCA Step
+  val harmRef1kgPrefixName = s"${id}.harm.ref.1kg"
+
   object Local {
+    // Inputs
+    val kgPurcellVcf = store[VCF].at(path(kgPurcellVcfDir) / kgPurcellVcfName).asInput
+    val kgSample = store[TXT].at(path(kgSampleDir) / kgSampleName).asInput
+    val regionsExclude = store[TXT].at(path(regionsExcludeDir) / regionsExcludeName).asInput
+
     // Alignment Step
     val rawChrs: Array[Seq[Store[TXT]]] = Array.ofDim(nChr)
     val harmChrsPrefix: Array[Path] = Array.ofDim(nChr)
@@ -82,7 +93,7 @@ def allQcSteps(params: DataConfig): Unit = {
 
     // Ancestry PCA Step
     val ancestryPcaPrefix = localOutDir / s"${id}.ancestry.pca"
-    val harmRef1kgPrefix = localOutDir / s"${id}.harm.ref.1kg"
+    val harmRef1kgPrefix = localOutDir / harmRef1kgPrefixName
     val harmRef1kg = bedBimFam(harmRef1kgPrefix)
     val harmRef1kgGds = store[TXT].at(s"$harmRef1kgPrefix.gds")
     val ancestryPcaLog = store[TXT].at(s"$ancestryPcaPrefix.log")
@@ -156,7 +167,7 @@ def allQcSteps(params: DataConfig): Unit = {
 
     // Load Step
     val harmRefVds = store[VCF].at(googleOutDir / s"${id}.harm.ref.vds")
-    val regionsExclude = store[TXT].at(regionsExcludeName).asInput
+    val regionsExclude = store[TXT].at(googleOutDir / regionsExcludeName)
 
     // Filter Step
     val harmRefFiltPrefix = googleOutDir / harmRefFiltPrefixName
@@ -167,6 +178,12 @@ def allQcSteps(params: DataConfig): Unit = {
     val harmRefFiltPrunedVds = store[VCF].at(googleOutDir / s"${harmRefFiltPrunedPrefixName}.vds")
     val harmRefFiltPrunedPrefix = googleOutDir / harmRefFiltPrunedPrefixName
     val harmRefFiltPruned = bedBimFam(harmRefFiltPrunedPrefix)
+
+    // Ancestry PCA Step
+    val kgPurcellVcf = store[VCF].at(googleOutDir / kgPurcellVcfName)
+    val kgSample = store[TXT].at(googleOutDir / kgSampleName)
+    val harmRef1kgPrefix = googleOutDir / harmRef1kgPrefixName
+    val harmRef1kg = bedBimFam(harmRef1kgPrefix)
   }
 
   /**
@@ -255,6 +272,10 @@ def allQcSteps(params: DataConfig): Unit = {
    *  Notes:
    */
 
+  local {
+    googleCopy(Local.regionsExclude, Google.regionsExclude)
+  }
+
   // TODO this step may use multiple cores - need to add numCores option to each local / uger / google - currently set to multiprocessing.cpu_count()
   google {
     hail"""$pyHailFilter
@@ -299,12 +320,20 @@ def allQcSteps(params: DataConfig): Unit = {
     */
 
   local {
+    googleCopy(Local.kgPurcellVcf, Google.kgPurcellVcf)
+    googleCopy(Local.kgSample, Google.kgSample)
+  }
 
-    cmd"""python $pyHailAncestryPcaMerge1kg
+  google {
+    hail"""$pyHailAncestryPcaMerge1kg
       --vds-in ${Google.harmRefVds}
-      --kg-vcf-in ${kgPurcellVcf}
-      --kg-sample ${kgSample}
-      --plink-out ${Local.harmRef1kgPrefix}""".in(Google.harmRefVds, kgPurcellVcf, kgSample).out(Local.harmRef1kg)
+      --kg-vcf-in ${Google.kgPurcellVcf}
+      --kg-sample ${Google.kgSample}
+      --plink-out ${Google.harmRef1kgPrefix}""".in(Google.harmRefVds, Google.kgPurcellVcf, Google.kgSample).out(Google.harmRef1kg)
+  }
+
+  local {
+    googleCopy(Google.harmRef1kg, Local.harmRef1kg)
 
     cmd"""$binRscript --vanilla --verbose
       $rPcair
@@ -312,9 +341,9 @@ def allQcSteps(params: DataConfig): Unit = {
       --gds-out ${Local.harmRef1kgGds}
       --scores ${Local.ancestryPcaScores}
       --id $id
-      --update-pop $kgSampleId $kgSamplePop $kgSample
-      --update-group $kgSampleId $kgSampleGroup $kgSample
-      > ${Local.ancestryPcaLog}""".in(Local.harmRef1kg :+ kgSample).out(Local.harmRef1kgGds, Local.ancestryPcaLog, Local.ancestryPcaScores).using("R-3.4")
+      --update-pop $kgSampleId $kgSamplePop ${Local.kgSample}
+      --update-group $kgSampleId $kgSampleGroup ${Local.kgSample}
+      > ${Local.ancestryPcaLog}""".in(Local.harmRef1kg :+ Local.kgSample).out(Local.harmRef1kgGds, Local.ancestryPcaLog, Local.ancestryPcaScores).using("R-3.4")
 
     cmd"""$binR --vanilla --args $id ${Local.ancestryPcaScores} ${Local.ancestryPcaScoresPlots} < $rPlotAncestryPca""".in(Local.ancestryPcaScores).out(Local.ancestryPcaScoresPlots)
 

@@ -15,7 +15,7 @@ object HailSupport {
    */
   implicit final class StringContextWithHail(val stringContext: StringContext) extends AnyVal {
     def pyhail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
-      import LanguageSupport.{determineScriptFile, makeScriptContent, makeScript, GeneratedScriptParams}
+      import LanguageSupport.{makeScript, GeneratedScriptParams}
       
       val scriptFile = makeScript(stringContext, GeneratedScriptParams("pyhail", "py", hailConfig.scriptDir), args: _*)
       

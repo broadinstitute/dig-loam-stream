@@ -13,6 +13,7 @@ val (bed, bim, fam) = ("bed", "bim", "fam")
 def bedBimFam(makeStore: String => Store[TXT]): Seq[Store[TXT]] = withExtensions(bed, bim, fam)(makeStore)
 def bedBimFam(prefix: String): Seq[Store[TXT]] = bedBimFam(extension => store[TXT].at(s"${prefix}.${extension}"))
 def bedBimFam(prefix: Path): Seq[Store[TXT]] = bedBimFam(prefix.toString)
+def bedBimFam(prefix: URI): Seq[Store[TXT]] = bedBimFam(prefix.toString)
 
 case class KlustakwikStores(base: String, fet: Store[TXT], tempClu: Store[TXT], clu: Store[TXT],
                             klg: Store[TXT], klustakwikLog: Store[TXT]) {

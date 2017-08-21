@@ -50,6 +50,12 @@ def allQcSteps(params: DataConfig): Unit = {
   // Ancestry PCA Step
   val harmRef1kgPrefixName = s"${id}.harm.ref.1kg"
 
+  // Ancestry Cluster Step
+  val ancestryInferredName = s"${id}.ancestry.inferred.tsv"
+
+  // Sample QC Stats Calculation Step
+  val sampleqcStatsName = s"${id}.sampleqc.stats.tsv"
+
   object Local {
     // Inputs
     val kgPurcellVcf = store[VCF].at(path(kgPurcellVcfDir) / kgPurcellVcfName).asInput
@@ -111,7 +117,7 @@ def allQcSteps(params: DataConfig): Unit = {
     val ancestryClusterPlotsNo1kg = store[TXT].at(ancestryClusterPrefix + ".plots.no_1kg.pdf")
     val ancestryClusterXtabs = store[TXT].at(ancestryClusterPrefix + ".xtabs")
     val ancestryClusterGroups = store[TXT].at(ancestryClusterPrefix + ".groups.tsv")
-    val ancestryInferred = store[TXT].at(localOutDir / s"${id}.ancestry.inferred.tsv")
+    val ancestryInferred = store[TXT].at(localOutDir / ancestryInferredName)
 
     // PCA Step
     val harmRefFiltPrunedPcaGds = store[TXT].at(s"$harmRefFiltPrunedPrefix.pca.gds")
@@ -121,9 +127,7 @@ def allQcSteps(params: DataConfig): Unit = {
     val pcaLoadings = store[TXT].at(localOutDir / s"${id}.pca.loadings.tsv")
 
     // Sample QC Stats Calculation Step
-    val sampleqcSexcheck = store[TXT].at(localOutDir / s"${id}.sampleqc.sexcheck.tsv")
-    val sampleqcSexcheckProblems = store[TXT].at(localOutDir / s"${id}.sampleqc.sexcheck.problems.tsv")
-    val sampleqcStats = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.tsv")
+    val sampleqcStats = store[TXT].at(localOutDir / sampleqcStatsName)
     val sampleqcStatsAdj = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.tsv")
     val sampleqcStatsAdjCorrPlots = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.corr.pdf")
     val sampleqcStatsAdjPcaLoadings = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.pca.loadings.tsv")
@@ -184,6 +188,16 @@ def allQcSteps(params: DataConfig): Unit = {
     val kgSample = store[TXT].at(googleOutDir / kgSampleName)
     val harmRef1kgPrefix = googleOutDir / harmRef1kgPrefixName
     val harmRef1kg = bedBimFam(harmRef1kgPrefix)
+
+    // Sample QC Stats Calculation Step
+    val sampleqcSexcheck = store[TXT].at(googleOutDir / s"${id}.sampleqc.sexcheck.tsv")
+    val sampleqcSexcheckProblems = store[TXT].at(googleOutDir / s"${id}.sampleqc.sexcheck.problems.tsv")
+
+    // Ancestry Cluster Step
+    val ancestryInferred = store[TXT].at(googleOutDir / ancestryInferredName)
+
+    // Sample QC Stats Calculation Step
+    val sampleqcStats = store[TXT].at(googleOutDir / sampleqcStatsName)
   }
 
   /**
@@ -440,6 +454,10 @@ def allQcSteps(params: DataConfig): Unit = {
    * Notes:
    */
 
+  local {
+    googleCopy(Local.ancestryInferred, Google.ancestryInferred)
+  }
+
   google {
     hail"""$pyHailSexcheck
       --vds-in ${Google.harmRefVds}
@@ -447,17 +465,21 @@ def allQcSteps(params: DataConfig): Unit = {
       --pheno-in $pheno
       --id-col $phenoId
       --sex-col $phenoSrSex
-      --sexcheck-out ${Local.sampleqcSexcheck}
-      --sexcheck-problems-out ${Local.sampleqcSexcheckProblems}"""
+      --sexcheck-out ${Google.sampleqcSexcheck}
+      --sexcheck-problems-out ${Google.sampleqcSexcheckProblems}"""
       .in(pheno, Google.harmRefVds, Google.regionsExclude)
-      .out(Local.sampleqcSexcheck, Local.sampleqcSexcheckProblems)
+      .out(Google.sampleqcSexcheck, Google.sampleqcSexcheckProblems)
 
-    cmd"""python $pyHailSampleqc
+    hail"""$pyHailSampleqc
       --vds-in ${Google.harmRefFiltPrunedVds}
-      --clusters-in ${Local.ancestryInferred}
-      --qc-out ${Local.sampleqcStats}"""
-      .in(Google.harmRefFiltPrunedVds, Local.ancestryInferred)
-      .out(Local.sampleqcStats)
+      --clusters-in ${Google.ancestryInferred}
+      --qc-out ${Google.sampleqcStats}"""
+      .in(Google.harmRefFiltPrunedVds, Google.ancestryInferred)
+      .out(Google.sampleqcStats)
+  }
+
+  local {
+    googleCopy(Google.sampleqcStats, Local.sampleqcStats)
   }
 
   uger {
@@ -556,14 +578,14 @@ def allQcSteps(params: DataConfig): Unit = {
       --kinship-related ${Local.kinKin0Related}
       --kinship-famsizes ${Local.kinFamsizes}
       --sampleqc-outliers ${Local.sampleqcStatsAdjOutliersTable}
-      --sexcheck-problems ${Local.sampleqcSexcheckProblems}
+      --sexcheck-problems ${Google.sampleqcSexcheckProblems}
       --ancestry-keep ${ancestryKeep.mkString(",")}
       --duplicates-keep ${duplicatesKeep.mkString(",")}
       --famsize-keep ${famsizeKeep.mkString(",")}
       --sampleqc-keep ${sampleqcKeep.mkString(",")}
       --sexcheck-keep ${sexcheckKeep.mkString(",")}
       --out ${Local.finalSampleExclusions}"""
-      .in(Local.ancestryInferred, Local.kinKin0Related, Local.kinFamsizes, Local.sampleqcStatsAdjOutliersTable, Local.sampleqcSexcheckProblems)
+      .in(Local.ancestryInferred, Local.kinKin0Related, Local.kinFamsizes, Local.sampleqcStatsAdjOutliersTable, Google.sampleqcSexcheckProblems)
       .out(Local.finalSampleExclusions)
   }
   
@@ -577,12 +599,12 @@ def allQcSteps(params: DataConfig): Unit = {
     cmd"""python $pyHailFilterFinal
       --vds-in ${Google.harmRefVds}
       --ancestry-in ${Local.ancestryInferred}
-      --sexcheck-in ${Local.sampleqcSexcheck}
+      --sexcheck-in ${Google.sampleqcSexcheck}
       --pheno-in $pheno
       --case-ctrl-col $phenoStatus
       --samples-remove ${Local.finalSampleExclusions}
       --plink-out ${Local.cleanPrefix}"""
-      .in(Google.harmRefVds, Local.ancestryInferred, Local.sampleqcSexcheck, pheno, Local.finalSampleExclusions)
+      .in(Google.harmRefVds, Local.ancestryInferred, Google.sampleqcSexcheck, pheno, Local.finalSampleExclusions)
       .out(Local.clean)
     
     cmd"""$binRscript --vanilla --verbose

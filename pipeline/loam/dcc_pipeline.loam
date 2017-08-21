@@ -47,6 +47,9 @@ def allQcSteps(params: DataConfig): Unit = {
   val harmRefFiltPrefixName = s"${id}.harm.ref.filt"
   val harmRefFiltPrunedPrefixName = s"${harmRefFiltPrefixName}.pruned"
 
+  // Kinship Step
+  val kinPrefixName = s"${id}.kinship"
+
   // Ancestry PCA Step
   val harmRef1kgPrefixName = s"${id}.harm.ref.1kg"
 
@@ -55,6 +58,12 @@ def allQcSteps(params: DataConfig): Unit = {
 
   // Sample QC Stats Calculation Step
   val sampleqcStatsName = s"${id}.sampleqc.stats.tsv"
+
+  // Sample QC Individual Stats Clustering Step
+  val sampleqcStatsAdjOutliersTableName = s"${id}.sampleqc.outliers.tsv"
+
+  // Filter Clean Step
+  val cleanPrefixName = s"${id}.clean"
 
   object Local {
     // Inputs
@@ -88,7 +97,7 @@ def allQcSteps(params: DataConfig): Unit = {
     val harmRefFiltPruned = bedBimFam(harmRefFiltPrunedPrefix)
 
     // Kinship Step
-    val kinPrefix = localOutDir / s"${id}.kinship"
+    val kinPrefix = localOutDir / kinPrefixName
     val kinLog = store[TXT].at(kinPrefix + ".log")
     val kinTmpDat = store[TXT].at(kinPrefix + "TMP.dat")
     val kinTmpPed = store[TXT].at(kinPrefix + "TMP.ped")
@@ -146,14 +155,11 @@ def allQcSteps(params: DataConfig): Unit = {
     val sampleqcStatsAdjIndWildcard = (localOutDir / s"${id}.sampleqc.stats.adj.[[STAR]].clu.1").toString.replace("[[STAR]]", "*")
     val sampleqcStatsAdjIndBoxplots = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.ind.boxplots.pdf")
     val sampleqcStatsAdjIndDiscreteness = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.ind.discreteness")
-    val sampleqcStatsAdjOutliersTable = store[TXT].at(localOutDir / s"${id}.sampleqc.outliers.tsv")
+    val sampleqcStatsAdjOutliersTable = store[TXT].at(localOutDir / sampleqcStatsAdjOutliersTableName)
     val sampleqcStatsAdjStripchart = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.stripchart.pdf")
 
-    // Compile Sample Exclusions Step
-    val finalSampleExclusions = store[TXT].at(localOutDir / s"${id}.final.sample.exclusions")
-
     // Filter Clean Step
-    val cleanPrefix = localOutDir / s"${id}.clean"
+    val cleanPrefix = localOutDir / cleanPrefixName
     val clean = bedBimFam(cleanPrefix)
     val cleanPcaGds = store[TXT].at(cleanPrefix + ".pca.gds")
     val cleanPcaScores = store[TXT].at(cleanPrefix + ".pca.scores.tsv")
@@ -183,6 +189,11 @@ def allQcSteps(params: DataConfig): Unit = {
     val harmRefFiltPrunedPrefix = googleOutDir / harmRefFiltPrunedPrefixName
     val harmRefFiltPruned = bedBimFam(harmRefFiltPrunedPrefix)
 
+    // Kinship Step
+    val kinPrefix = googleOutDir / kinPrefixName
+    val kinKin0Related = store[TXT].at(kinPrefix + ".kin0.related")
+    val kinFamsizes = store[TXT].at(kinPrefix + ".famsizes.tsv")
+
     // Ancestry PCA Step
     val kgPurcellVcf = store[VCF].at(googleOutDir / kgPurcellVcfName)
     val kgSample = store[TXT].at(googleOutDir / kgSampleName)
@@ -198,6 +209,16 @@ def allQcSteps(params: DataConfig): Unit = {
 
     // Sample QC Stats Calculation Step
     val sampleqcStats = store[TXT].at(googleOutDir / sampleqcStatsName)
+
+    // Sample QC Individual Stats Clustering Step
+    val sampleqcStatsAdjOutliersTable = store[TXT].at(googleOutDir / sampleqcStatsAdjOutliersTableName)
+
+    // Compile Sample Exclusions Step
+    val finalSampleExclusions = store[TXT].at(googleOutDir / s"${id}.final.sample.exclusions")
+
+    // Filter Clean Step
+    val cleanPrefix = googleOutDir / s"${id}.clean"
+    val clean = bedBimFam(cleanPrefix)
   }
 
   /**
@@ -573,40 +594,49 @@ def allQcSteps(params: DataConfig): Unit = {
    */
   
   local {
-    cmd"""python $pyCompileExclusions
-      --ancestry-inferred ${Local.ancestryInferred}
-      --kinship-related ${Local.kinKin0Related}
-      --kinship-famsizes ${Local.kinFamsizes}
-      --sampleqc-outliers ${Local.sampleqcStatsAdjOutliersTable}
+    googleCopy(Local.kinKin0Related, Google.kinKin0Related)
+    googleCopy(Local.kinFamsizes, Google.kinFamsizes)
+    googleCopy(Local.sampleqcStatsAdjOutliersTable, Google.sampleqcStatsAdjOutliersTable)
+  }
+
+  google {
+    hail"""$pyCompileExclusions
+      --ancestry-inferred ${Google.ancestryInferred}
+      --kinship-related ${Google.kinKin0Related}
+      --kinship-famsizes ${Google.kinFamsizes}
+      --sampleqc-outliers ${Google.sampleqcStatsAdjOutliersTable}
       --sexcheck-problems ${Google.sampleqcSexcheckProblems}
       --ancestry-keep ${ancestryKeep.mkString(",")}
       --duplicates-keep ${duplicatesKeep.mkString(",")}
       --famsize-keep ${famsizeKeep.mkString(",")}
       --sampleqc-keep ${sampleqcKeep.mkString(",")}
       --sexcheck-keep ${sexcheckKeep.mkString(",")}
-      --out ${Local.finalSampleExclusions}"""
-      .in(Local.ancestryInferred, Local.kinKin0Related, Local.kinFamsizes, Local.sampleqcStatsAdjOutliersTable, Google.sampleqcSexcheckProblems)
-      .out(Local.finalSampleExclusions)
+      --out ${Google.finalSampleExclusions}"""
+      .in(Google.ancestryInferred, Google.kinKin0Related, Google.kinFamsizes, Google.sampleqcStatsAdjOutliersTable, Google.sampleqcSexcheckProblems)
+      .out(Google.finalSampleExclusions)
   }
   
   /**
    * Filter Clean Step
    * filter variants and generate final clean dataset
-   * 
    */
-  
-  local{
-    cmd"""python $pyHailFilterFinal
+
+  google {
+    hail"""$pyHailFilterFinal
       --vds-in ${Google.harmRefVds}
       --ancestry-in ${Local.ancestryInferred}
       --sexcheck-in ${Google.sampleqcSexcheck}
       --pheno-in $pheno
       --case-ctrl-col $phenoStatus
-      --samples-remove ${Local.finalSampleExclusions}
+      --samples-remove ${Google.finalSampleExclusions}
       --plink-out ${Local.cleanPrefix}"""
-      .in(Google.harmRefVds, Local.ancestryInferred, Google.sampleqcSexcheck, pheno, Local.finalSampleExclusions)
-      .out(Local.clean)
-    
+      .in(Google.harmRefVds, Google.ancestryInferred, Google.sampleqcSexcheck, pheno, Google.finalSampleExclusions)
+      .out(Google.clean)
+  }
+
+  local {
+    googleCopy(Google.clean, Local.clean)
+
     cmd"""$binRscript --vanilla --verbose
       $rPcair
       --plink-in ${Local.cleanPrefix}
@@ -626,6 +656,7 @@ def allQcSteps(params: DataConfig): Unit = {
       --ibd-out ${Local.cleanRelateScores}
       > ${Local.cleanRelateLog}"""
       .in(Local.cleanPcaGds, Local.cleanPcaScoresRdata)
-      .out(Local.cleanRelateScores, Local.cleanRelateLog).using("R-3.4")
+      .out(Local.cleanRelateScores, Local.cleanRelateLog)
+      .using("R-3.4")
   }
 }

@@ -209,7 +209,9 @@ def allQcSteps(params: DataConfig): Unit = {
       Local.harmVarIdUpdates(j) = store[TXT].at(localOutDir / s"${id}.chr$i.harm_idUpdates.txt")
       Local.harmVarSnpLogs(j) = store[TXT].at(localOutDir / s"${id}.chr$i.harm_snpLog.log")
   
-      cmd"""$binPlink --vcf $vcf --chr $i --keep-allele-order --make-bed --output-chr MT --out $rawChrsName""".in(vcf).out(Local.rawChrs(j))
+      cmd"""$binPlink --vcf $vcf --chr $i --keep-allele-order --make-bed --output-chr MT --out $rawChrsName"""
+      .in(vcf)
+      .out(Local.rawChrs(j))
   
       cmd"""$binGenotypeHarmonizer
         --input $rawChrsName
@@ -224,7 +226,9 @@ def allQcSteps(params: DataConfig): Unit = {
         --mafAlign 0.1
         --update-id
         --update-reference-allele
-        --debug""".in(Local.rawChrs(j) :+ Local.kgVcfChrs(j)).out(Local.harmChrs(j) :+ Local.harmVarIdUpdates(j) :+ Local.harmVarSnpLogs(j))
+        --debug"""
+        .in(Local.rawChrs(j) :+ Local.kgVcfChrs(j))
+        .out(Local.harmChrs(j) :+ Local.harmVarIdUpdates(j) :+ Local.harmVarSnpLogs(j))
   
       Local.harmMergeLines(j) = s"${Local.harmChrsPrefix(j) + s".$bed"} ${Local.harmChrsPrefix(j) + s".$bim"} ${Local.harmChrsPrefix(j) + s".$fam"}"
     }
@@ -233,13 +237,21 @@ def allQcSteps(params: DataConfig): Unit = {
   
     cmd"""echo "$harmMergeLinesConcat" > ${Local.harmMergeList}""".out(Local.harmMergeList)
   
-    cmd"""$binPlink --bfile ${Local.harmChrsPrefix(0)} --merge-list ${Local.harmMergeList} --make-bed --keep-allele-order --out ${Local.harmPrefix}""".in(Local.harmChrs.flatten :+ Local.harmMergeList).out(Local.harm)
+    cmd"""$binPlink --bfile ${Local.harmChrsPrefix(0)} --merge-list ${Local.harmMergeList} --make-bed --keep-allele-order --out ${Local.harmPrefix}"""
+    .in(Local.harmChrs.flatten :+ Local.harmMergeList)
+    .out(Local.harm)
   
-    cmd"""awk '{print $$2,$$5}' ${Local.harmPrefix}.bim > ${Local.harmForceA2}""".in(Local.harm).out(Local.harmForceA2)
+    cmd"""awk '{print $$2,$$5}' ${Local.harmPrefix}.bim > ${Local.harmForceA2}"""
+    .in(Local.harm)
+    .out(Local.harmForceA2)
   
-    cmd"""$binPlink --bfile ${Local.harmPrefix} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${Local.harmForceA2} --out ${Local.harmRefPrefix}""".in(Local.harm :+ Local.harmForceA2).out(Local.harmRefVcf)
+    cmd"""$binPlink --bfile ${Local.harmPrefix} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${Local.harmForceA2} --out ${Local.harmRefPrefix}"""
+    .in(Local.harm :+ Local.harmForceA2)
+    .out(Local.harmRefVcf)
   
-    cmd"""$binTabix -f -p vcf ${Local.harmRefVcf}""".in(Local.harmRefVcf).out(Local.harmRefVcfTbi)
+    cmd"""$binTabix -f -p vcf ${Local.harmRefVcf}"""
+    .in(Local.harmRefVcf)
+    .out(Local.harmRefVcfTbi)
   }
   
   /**
@@ -260,7 +272,9 @@ def allQcSteps(params: DataConfig): Unit = {
   google {
     hail"""$pyHailLoad
       --vcf-in $id ${Google.harmRefVcf}
-	  --vds-out ${Google.harmRefVds}""".in(Google.harmRefVcf, Google.harmRefVcfTbi).out(Google.harmRefVds)
+	  --vds-out ${Google.harmRefVds}"""
+	  .in(Google.harmRefVcf, Google.harmRefVcfTbi)
+	  .out(Google.harmRefVds)
   }
   
   /**
@@ -286,7 +300,9 @@ def allQcSteps(params: DataConfig): Unit = {
       --filt-vds-out ${Google.harmRefFiltVds}
       --filt-plink-out ${Google.harmRefFiltPrefix}
       --filt-pruned-vds-out ${Google.harmRefFiltPrunedVds}
-      --filt-pruned-plink-out ${Google.harmRefFiltPrunedPrefix}""".in(Google.harmRefVds, Google.regionsExclude).out(((Google.harmRefFilt :+ Google.harmRefFiltVds) ++ (Google.harmRefFiltPruned :+ Google.harmRefFiltPrunedVds)) :+ Google.harmRefFiltVariantQc :+ Google.harmRefFiltVariantsPrunedIn)
+      --filt-pruned-plink-out ${Google.harmRefFiltPrunedPrefix}"""
+      .in(Google.harmRefVds, Google.regionsExclude)
+      .out(((Google.harmRefFilt :+ Google.harmRefFiltVds) ++ (Google.harmRefFiltPruned :+ Google.harmRefFiltPrunedVds)) :+ Google.harmRefFiltVariantQc :+ Google.harmRefFiltVariantsPrunedIn)
   }
 
   /**
@@ -303,9 +319,13 @@ def allQcSteps(params: DataConfig): Unit = {
   local {
     googleCopy(Google.harmRefFiltPruned, Local.harmRefFiltPruned)
 
-    cmd"""$shKing $binKing ${Local.harmRefFiltPrunedPrefix}.bed ${Local.kinPrefix} ${Local.kinLog} ${Local.kinKin0} ${Local.kinKin0Related}""".in(Local.harmRefFiltPruned).out(Local.kinLog, Local.kinKin, Local.kinTmpDat, Local.kinTmpPed, Local.kinKin0, Local.kinKin0Related)
+    cmd"""$shKing $binKing ${Local.harmRefFiltPrunedPrefix}.bed ${Local.kinPrefix} ${Local.kinLog} ${Local.kinKin0} ${Local.kinKin0Related}"""
+    .in(Local.harmRefFiltPruned)
+    .out(Local.kinLog, Local.kinKin, Local.kinTmpDat, Local.kinTmpPed, Local.kinKin0, Local.kinKin0Related)
 
-    cmd"""$binR --vanilla --args ${Local.kinKin0Related} ${Local.kinFamsizes} < ${rCalcKinshipFamSizes}""".in(Local.kinKin0Related).out(Local.kinFamsizes)
+    cmd"""$binR --vanilla --args ${Local.kinKin0Related} ${Local.kinFamsizes} < ${rCalcKinshipFamSizes}"""
+    .in(Local.kinKin0Related)
+    .out(Local.kinFamsizes)
   }
 
   /**
@@ -329,7 +349,9 @@ def allQcSteps(params: DataConfig): Unit = {
       --vds-in ${Google.harmRefVds}
       --kg-vcf-in ${Google.kgPurcellVcf}
       --kg-sample ${Google.kgSample}
-      --plink-out ${Google.harmRef1kgPrefix}""".in(Google.harmRefVds, Google.kgPurcellVcf, Google.kgSample).out(Google.harmRef1kg)
+      --plink-out ${Google.harmRef1kgPrefix}"""
+      .in(Google.harmRefVds, Google.kgPurcellVcf, Google.kgSample)
+      .out(Google.harmRef1kg)
   }
 
   local {
@@ -343,9 +365,14 @@ def allQcSteps(params: DataConfig): Unit = {
       --id $id
       --update-pop $kgSampleId $kgSamplePop ${Local.kgSample}
       --update-group $kgSampleId $kgSampleGroup ${Local.kgSample}
-      > ${Local.ancestryPcaLog}""".in(Local.harmRef1kg :+ Local.kgSample).out(Local.harmRef1kgGds, Local.ancestryPcaLog, Local.ancestryPcaScores).using("R-3.4")
+      > ${Local.ancestryPcaLog}"""
+      .in(Local.harmRef1kg :+ Local.kgSample)
+      .out(Local.harmRef1kgGds, Local.ancestryPcaLog, Local.ancestryPcaScores)
+      .using("R-3.4")
 
-    cmd"""$binR --vanilla --args $id ${Local.ancestryPcaScores} ${Local.ancestryPcaScoresPlots} < $rPlotAncestryPca""".in(Local.ancestryPcaScores).out(Local.ancestryPcaScoresPlots)
+    cmd"""$binR --vanilla --args $id ${Local.ancestryPcaScores} ${Local.ancestryPcaScoresPlots} < $rPlotAncestryPca"""
+    .in(Local.ancestryPcaScores)
+    .out(Local.ancestryPcaScoresPlots)
 
     /**
      * Ancestry Cluster Step
@@ -359,9 +386,13 @@ def allQcSteps(params: DataConfig): Unit = {
      *     This file may be updated after reconciling with other arrays
      */
 
-    cmd"""(echo 3; sed '1d' ${Local.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${Local.ancestryClusterFet}""".in(Local.ancestryPcaScores).out(Local.ancestryClusterFet)
+    cmd"""(echo 3; sed '1d' ${Local.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${Local.ancestryClusterFet}"""
+    .in(Local.ancestryPcaScores)
+    .out(Local.ancestryClusterFet)
 
-    cmd"""$binKlustakwik ${Local.ancestryClusterPrefix} 1 -UseFeatures 111 -UseDistributional 0 > ${Local.ancestryClusterLog}""".in(Local.ancestryClusterFet).out(Local.ancestryClusterClu, Local.ancestryClusterKlg, Local.ancestryClusterLog)
+    cmd"""$binKlustakwik ${Local.ancestryClusterPrefix} 1 -UseFeatures 111 -UseDistributional 0 > ${Local.ancestryClusterLog}"""
+    .in(Local.ancestryClusterFet)
+    .out(Local.ancestryClusterClu, Local.ancestryClusterKlg, Local.ancestryClusterLog)
 
     cmd"""$binR --vanilla --args ${Local.ancestryPcaScores} ${Local.ancestryClusterClu} $pheno $id $phenoId $phenoSrRace
       ${Local.ancestryClusterPlots} ${Local.ancestryClusterXtabs} ${Local.ancestryClusterPlotsCenters}
@@ -392,7 +423,10 @@ def allQcSteps(params: DataConfig): Unit = {
       --ancestry ${Local.ancestryInferred}
       --id $id
       --scores ${Local.pcaScores}
-      > ${Local.pcaLog}""".in(Local.harmRefFiltPruned :+ Local.ancestryInferred :+ Local.ancestryOutliers).out(Local.harmRefFiltPrunedPcaGds, Local.pcaLog, Local.pcaScores).using("R-3.4")
+      > ${Local.pcaLog}"""
+      .in(Local.harmRefFiltPruned :+ Local.ancestryInferred :+ Local.ancestryOutliers)
+      .out(Local.harmRefFiltPrunedPcaGds, Local.pcaLog, Local.pcaScores)
+      .using("R-3.4")
   }
 
   /**
@@ -414,19 +448,26 @@ def allQcSteps(params: DataConfig): Unit = {
       --id-col $phenoId
       --sex-col $phenoSrSex
       --sexcheck-out ${Local.sampleqcSexcheck}
-      --sexcheck-problems-out ${Local.sampleqcSexcheckProblems}""".in(pheno, Google.harmRefVds, Google.regionsExclude).out(Local.sampleqcSexcheck, Local.sampleqcSexcheckProblems)
+      --sexcheck-problems-out ${Local.sampleqcSexcheckProblems}"""
+      .in(pheno, Google.harmRefVds, Google.regionsExclude)
+      .out(Local.sampleqcSexcheck, Local.sampleqcSexcheckProblems)
 
     cmd"""python $pyHailSampleqc
       --vds-in ${Google.harmRefFiltPrunedVds}
       --clusters-in ${Local.ancestryInferred}
-      --qc-out ${Local.sampleqcStats}""".in(Google.harmRefFiltPrunedVds, Local.ancestryInferred).out(Local
-      .sampleqcStats)
+      --qc-out ${Local.sampleqcStats}"""
+      .in(Google.harmRefFiltPrunedVds, Local.ancestryInferred)
+      .out(Local.sampleqcStats)
   }
 
   uger {
-    cmd"""$binR --vanilla --args ${Local.sampleqcStats} ${Local.pcaScores} ${Local.sampleqcStatsAdj} < $rCalcIstatsAdj""".in(Local.sampleqcStats, Local.pcaScores).out(Local.sampleqcStatsAdj)
+    cmd"""$binR --vanilla --args ${Local.sampleqcStats} ${Local.pcaScores} ${Local.sampleqcStatsAdj} < $rCalcIstatsAdj"""
+    .in(Local.sampleqcStats, Local.pcaScores)
+    .out(Local.sampleqcStatsAdj)
 
-    cmd"""$binR --vanilla --args ${Local.sampleqcStatsAdj} ${Local.sampleqcStatsAdjCorrPlots} ${Local.sampleqcStatsAdjPcaLoadings} ${Local.sampleqcStatsAdjPcaScoresPlots} ${Local.sampleqcStatsAdjPcaScores} < $rIstatsAdjPca""".in(Local.sampleqcStatsAdj).out(Local.sampleqcStatsAdjCorrPlots, Local.sampleqcStatsAdjPcaLoadings, Local.sampleqcStatsAdjPcaScoresPlots, Local.sampleqcStatsAdjPcaScores)
+    cmd"""$binR --vanilla --args ${Local.sampleqcStatsAdj} ${Local.sampleqcStatsAdjCorrPlots} ${Local.sampleqcStatsAdjPcaLoadings} ${Local.sampleqcStatsAdjPcaScoresPlots} ${Local.sampleqcStatsAdjPcaScores} < $rIstatsAdjPca"""
+    .in(Local.sampleqcStatsAdj)
+    .out(Local.sampleqcStatsAdjCorrPlots, Local.sampleqcStatsAdjPcaLoadings, Local.sampleqcStatsAdjPcaScoresPlots, Local.sampleqcStatsAdjPcaScores)
   }
 
   /**
@@ -446,11 +487,15 @@ def allQcSteps(params: DataConfig): Unit = {
       sed '1d' ${Local.sampleqcStatsAdjPcaScores} | cut -f2- | sed 's/\t/ /g' >> ${Local.sampleqcStatsAdjClusterKlustakwikStores.fet};
       FEATURES=1; for i in $$(seq 2 $$n); do FEATURES=$${FEATURES}1; done;
       $binKlustakwik ${Local.sampleqcStatsAdjClusterKlustakwikStores.base} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
-      ${Local.sampleqcStatsAdjClusterKlustakwikStores.klustakwikLog}""".in(Local.sampleqcStatsAdjClusterKlustakwikStores.inputs + Local.sampleqcStatsAdjPcaScores).out(Local.sampleqcStatsAdjClusterKlustakwikStores.outputs)
+      ${Local.sampleqcStatsAdjClusterKlustakwikStores.klustakwikLog}"""
+      .in(Local.sampleqcStatsAdjClusterKlustakwikStores.inputs + Local.sampleqcStatsAdjPcaScores)
+      .out(Local.sampleqcStatsAdjClusterKlustakwikStores.outputs)
 
     cmd"""$binR --vanilla --args ${Local.sampleqcStatsAdjPcaScores} ${Local.sampleqcStatsAdjClusterKlustakwikStores.clu}
       ${Local.sampleqcStatsAdjClusterOutliers} ${Local.sampleqcStatsAdjClusterPlots}
-      ${Local.sampleqcStatsAdjClusterXtabs} $id < $rIstatsPcsGmmClusterPlot""".in(Local.sampleqcStatsAdjPcaScores,  Local.sampleqcStatsAdjClusterKlustakwikStores.clu).out(Local.sampleqcStatsAdjClusterOutliers, Local.sampleqcStatsAdjClusterPlots, Local.sampleqcStatsAdjClusterXtabs)
+      ${Local.sampleqcStatsAdjClusterXtabs} $id < $rIstatsPcsGmmClusterPlot"""
+      .in(Local.sampleqcStatsAdjPcaScores,  Local.sampleqcStatsAdjClusterKlustakwikStores.clu)
+      .out(Local.sampleqcStatsAdjClusterOutliers, Local.sampleqcStatsAdjClusterPlots, Local.sampleqcStatsAdjClusterXtabs)
 
   }
 
@@ -472,9 +517,13 @@ def allQcSteps(params: DataConfig): Unit = {
   
         cmd"""echo 1 > ${stores.fet};
           metricIdx=`head -1 ${Local.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${metricId} | awk '{print $$1}'`;
-          sed '1d' ${Local.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${stores.fet}""".in(Local.sampleqcStatsAdj).out(stores.fet)
+          sed '1d' ${Local.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${stores.fet}"""
+          .in(Local.sampleqcStatsAdj)
+          .out(stores.fet)
   
-        cmd"""$binKlustakwik ${stores.base} 1 -UseFeatures 1 -UseDistributional 0 > ${stores.klustakwikLog}""".in(stores.inputs).out(stores.outputs)
+        cmd"""$binKlustakwik ${stores.base} 1 -UseFeatures 1 -UseDistributional 0 > ${stores.klustakwikLog}"""
+        .in(stores.inputs)
+        .out(stores.outputs)
   
         stores
       }
@@ -492,7 +541,9 @@ def allQcSteps(params: DataConfig): Unit = {
       ${Local.sampleqcStatsAdjOutliersTable}
       ${Local.sampleqcStatsAdjStripchart}
       ${Local.ancestryInferred}
-      < $rIstatsAdjGmmPlotMetrics""".in(sampleQcKlustakwikStores.map(_.clu) :+ Local.sampleqcStats :+ Local.sampleqcStatsAdj :+ Local.ancestryInferred :+ Local.sampleqcStatsAdjClusterOutliers).out(Local.sampleqcStatsAdjIndBoxplots, Local.sampleqcStatsAdjIndDiscreteness, Local.sampleqcStatsAdjOutliersTable, Local.sampleqcStatsAdjStripchart)
+      < $rIstatsAdjGmmPlotMetrics"""
+      .in(sampleQcKlustakwikStores.map(_.clu) :+ Local.sampleqcStats :+ Local.sampleqcStatsAdj :+ Local.ancestryInferred :+ Local.sampleqcStatsAdjClusterOutliers)
+      .out(Local.sampleqcStatsAdjIndBoxplots, Local.sampleqcStatsAdjIndDiscreteness, Local.sampleqcStatsAdjOutliersTable, Local.sampleqcStatsAdjStripchart)
   }
   
   /**
@@ -511,7 +562,9 @@ def allQcSteps(params: DataConfig): Unit = {
       --famsize-keep ${famsizeKeep.mkString(",")}
       --sampleqc-keep ${sampleqcKeep.mkString(",")}
       --sexcheck-keep ${sexcheckKeep.mkString(",")}
-      --out ${Local.finalSampleExclusions}""".in(Local.ancestryInferred, Local.kinKin0Related, Local.kinFamsizes, Local.sampleqcStatsAdjOutliersTable, Local.sampleqcSexcheckProblems).out(Local.finalSampleExclusions)
+      --out ${Local.finalSampleExclusions}"""
+      .in(Local.ancestryInferred, Local.kinKin0Related, Local.kinFamsizes, Local.sampleqcStatsAdjOutliersTable, Local.sampleqcSexcheckProblems)
+      .out(Local.finalSampleExclusions)
   }
   
   /**
@@ -521,7 +574,6 @@ def allQcSteps(params: DataConfig): Unit = {
    */
   
   local{
-
     cmd"""python $pyHailFilterFinal
       --vds-in ${Google.harmRefVds}
       --ancestry-in ${Local.ancestryInferred}
@@ -529,7 +581,9 @@ def allQcSteps(params: DataConfig): Unit = {
       --pheno-in $pheno
       --case-ctrl-col $phenoStatus
       --samples-remove ${Local.finalSampleExclusions}
-      --plink-out ${Local.cleanPrefix}""".in(Google.harmRefVds, Local.ancestryInferred, Local.sampleqcSexcheck, pheno, Local.finalSampleExclusions).out(Local.clean)
+      --plink-out ${Local.cleanPrefix}"""
+      .in(Google.harmRefVds, Local.ancestryInferred, Local.sampleqcSexcheck, pheno, Local.finalSampleExclusions)
+      .out(Local.clean)
     
     cmd"""$binRscript --vanilla --verbose
       $rPcair
@@ -539,14 +593,17 @@ def allQcSteps(params: DataConfig): Unit = {
       --ancestry ${Local.ancestryInferred}
       --id $id
       --scores ${Local.cleanPcaScores}
-      > ${Local.cleanPcaLog} """.in(Local.clean :+ Local.ancestryInferred).out(Local.cleanPcaGds, Local.cleanPcaScores, Local.cleanPcaScoresRdata, Local.cleanPcaLog).using("R-3.4")
+      > ${Local.cleanPcaLog} """
+      .in(Local.clean :+ Local.ancestryInferred).out(Local.cleanPcaGds, Local.cleanPcaScores, Local.cleanPcaScoresRdata, Local.cleanPcaLog)
+      .using("R-3.4")
   
     cmd"""$binRscript --vanilla --verbose
       $rPcrelate
       --gds-in ${Local.cleanPcaGds}
       --rdata-in ${Local.cleanPcaScoresRdata}
       --ibd-out ${Local.cleanRelateScores}
-      > ${Local.cleanRelateLog}""".in(Local.cleanPcaGds, Local.cleanPcaScoresRdata).out(Local.cleanRelateScores, Local.cleanRelateLog).using("R-3.4")
-
+      > ${Local.cleanRelateLog}"""
+      .in(Local.cleanPcaGds, Local.cleanPcaScoresRdata)
+      .out(Local.cleanRelateScores, Local.cleanRelateLog).using("R-3.4")
   }
 }

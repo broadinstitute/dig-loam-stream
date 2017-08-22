@@ -12,42 +12,58 @@ def main(args=None):
 	final=exc
 
 	print "reading kinship related file"
-	x=pd.read_table(args.kinship_related)
-	x=x[x['Kinship'] >= 0.4]
-	if x.shape[0] > 0:
-		exc=x['ID1'].tolist()
-		exc=exc.extend(x['ID2'].tolist())
-		if not args.duplicates_keep is None:
-			print "reinstating samples in duplicates keep list"
-			exc=[a for a in exc if a not in args.duplicates_keep.split(",")]
-		final.extend(exc)
+	try:
+		x=pd.read_table(args.kinship_related)
+	except EmptyDataError:
+        pass
+	else:
+		x=x[x['Kinship'] >= 0.4]
+		if x.shape[0] > 0:
+			exc=x['ID1'].tolist()
+			exc=exc.extend(x['ID2'].tolist())
+			if not args.duplicates_keep is None:
+				print "reinstating samples in duplicates keep list"
+				exc=[a for a in exc if a not in args.duplicates_keep.split(",")]
+			final.extend(exc)
 
 	print "reading kinship famsizes file"
-	x=pd.read_table(args.kinship_famsizes,header=None)
-	exc=x[0][x[1] >= 10].tolist()
-	if len(exc) > 0:
-		if not args.famsize_keep is None:
-			print "reinstating samples in famsize keep list"
-			exc=[a for a in exc if a not in args.famsize_keep.split(",")]
-		final.extend(exc)
+	try:
+		x=pd.read_table(args.kinship_famsizes,header=None)
+	except EmptyDataError:
+        pass
+	else:
+		exc=x[0][x[1] >= 10].tolist()
+		if len(exc) > 0:
+			if not args.famsize_keep is None:
+				print "reinstating samples in famsize keep list"
+				exc=[a for a in exc if a not in args.famsize_keep.split(",")]
+			final.extend(exc)
 
 	print "reading sampleqc outliers file"
-	x=pd.read_table(args.sampleqc_outliers)
-	exc=x['IID'].tolist()
-	if len(exc) > 0:
-		if not args.sampleqc_keep is None:
-			print "reinstating samples in sampleqc keep list"
-			exc=[a for a in exc if a not in args.sampleqc_keep.split(",")]
-		final.extend(exc)
+	try:
+		x=pd.read_table(args.sampleqc_outliers)
+	except EmptyDataError:
+        pass
+	else:
+		exc=x['IID'].tolist()
+		if len(exc) > 0:
+			if not args.sampleqc_keep is None:
+				print "reinstating samples in sampleqc keep list"
+				exc=[a for a in exc if a not in args.sampleqc_keep.split(",")]
+			final.extend(exc)
 
 	print "reading sexcheck problems file"
-	x=pd.read_table(args.sexcheck_problems)
-	exc=x['IID'].tolist()
-	if len(exc) > 0:
-		if not args.sexcheck_keep is None:
-			print "reinstating samples in sexcheck keep list"
-			exc=[a for a in exc if a not in args.sexcheck_keep.split(",")]
-		final.extend(exc)
+	try:
+		x=pd.read_table(args.sexcheck_problems)
+	except EmptyDataError:
+        pass
+	else:
+		exc=x['IID'].tolist()
+		if len(exc) > 0:
+			if not args.sexcheck_keep is None:
+				print "reinstating samples in sexcheck keep list"
+				exc=[a for a in exc if a not in args.sexcheck_keep.split(",")]
+			final.extend(exc)
 
 	print "writing final sample exclusions to file"
 	final=list(set(final))

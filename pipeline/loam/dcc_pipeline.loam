@@ -81,7 +81,7 @@ def allQcSteps(params: DataConfig): Unit = {
     val harm = bedBimFam(harmPrefix)
     val harmRefPrefix = localOutDir / s"${id}.harm.ref"
     val harmRefVcf = store[VCF].at(localOutDir / harmRefVcfName)
-    val harmRefVcfTbi = store[VCF].at(localOutDir / harmRefVcfName)
+    val harmRefVcfTbi = store[VCF].at(localOutDir / harmRefVcfTbiName)
     val kgVcfChrs: Array[Store[VCF]] = Array.ofDim(nChr)
     val harmVarIdUpdates: Array[Store[TXT]] = Array.ofDim(nChr)
     val harmVarSnpLogs: Array[Store[TXT]] = Array.ofDim(nChr)
@@ -174,8 +174,8 @@ def allQcSteps(params: DataConfig): Unit = {
 
   object Google {
     // Alignment Step
-    val harmRefVcf = store[VCF].at(googleOutDir / s"${id}.harm.ref.vcf.gz")
-    val harmRefVcfTbi = store[VCF].at(googleOutDir / s"${id}.harm.ref.vcf.gz.tbi")
+    val harmRefVcf = store[VCF].at(googleOutDir / harmRefVcfName)
+    val harmRefVcfTbi = store[VCF].at(googleOutDir / harmRefVcfTbiName)
 
     // Load Step
     val harmRefVds = store[VCF].at(googleOutDir / s"${id}.harm.ref.vds")

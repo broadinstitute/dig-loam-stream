@@ -59,9 +59,13 @@ def allQcSteps(params: DataConfig): Unit = {
 
   // Sample QC Stats Calculation Step
   val sampleqcStatsName = s"${id}.sampleqc.stats.tsv"
+  val sampleqcSexcheckProblemsName = s"${id}.sampleqc.sexcheck.problems.tsv"
 
   // Sample QC Individual Stats Clustering Step
   val sampleqcStatsAdjOutliersTableName = s"${id}.sampleqc.outliers.tsv"
+
+  // Compile Sample Exclusions Step
+  val finalSampleExclusionsName = s"${id}.final.sample.exclusions"
 
   // Filter Clean Step
   val cleanPrefixName = s"${id}.clean"
@@ -144,6 +148,7 @@ def allQcSteps(params: DataConfig): Unit = {
     val sampleqcStatsAdjPcaLoadings = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.pca.loadings.tsv")
     val sampleqcStatsAdjPcaScoresPlots = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.pca.plots.pdf")
     val sampleqcStatsAdjPcaScores = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.pca.scores.tsv")
+    val sampleqcSexcheckProblems = store[TXT].at(localOutDir / sampleqcSexcheckProblemsName)
 
     // Sample QC PCA Clustering Step
     val sampleqcStatsAdjClusterKlustakwikStores = KlustakwikStores(localOutDir / s"${id}.sampleqc.stats.adj.cluster")
@@ -159,6 +164,9 @@ def allQcSteps(params: DataConfig): Unit = {
     val sampleqcStatsAdjIndDiscreteness = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.ind.discreteness")
     val sampleqcStatsAdjOutliersTable = store[TXT].at(localOutDir / sampleqcStatsAdjOutliersTableName)
     val sampleqcStatsAdjStripchart = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.stripchart.pdf")
+
+    // Compile Sample Exclusions Step
+    val finalSampleExclusions = store[TXT].at(localOutDir / finalSampleExclusionsName)
 
     // Filter Clean Step
     val cleanPrefix = localOutDir / cleanPrefixName
@@ -204,7 +212,7 @@ def allQcSteps(params: DataConfig): Unit = {
 
     // Sample QC Stats Calculation Step
     val sampleqcSexcheck = store[TXT].at(googleOutDir / s"${id}.sampleqc.sexcheck.tsv")
-    val sampleqcSexcheckProblems = store[TXT].at(googleOutDir / s"${id}.sampleqc.sexcheck.problems.tsv")
+    val sampleqcSexcheckProblems = store[TXT].at(googleOutDir / sampleqcSexcheckProblemsName)
 
     // Ancestry Cluster Step
     val ancestryInferred = store[TXT].at(googleOutDir / ancestryInferredName)
@@ -217,7 +225,7 @@ def allQcSteps(params: DataConfig): Unit = {
     val sampleqcStatsAdjOutliersTable = store[TXT].at(googleOutDir / sampleqcStatsAdjOutliersTableName)
 
     // Compile Sample Exclusions Step
-    val finalSampleExclusions = store[TXT].at(googleOutDir / s"${id}.final.sample.exclusions")
+    val finalSampleExclusions = store[TXT].at(googleOutDir / finalSampleExclusionsName)
 
     // Filter Clean Step
     val cleanPrefix = googleOutDir / s"${id}.clean"
@@ -598,32 +606,30 @@ def allQcSteps(params: DataConfig): Unit = {
    */
   
   local {
-    googleCopy(Local.kinKin0Related, Google.kinKin0Related)
-    googleCopy(Local.kinFamsizes, Google.kinFamsizes)
-    googleCopy(Local.sampleqcStatsAdjOutliersTable, Google.sampleqcStatsAdjOutliersTable)
-  }
-
-  google {
-    hail"""$pyCompileExclusions
-      --ancestry-inferred ${Google.ancestryInferred}
-      --kinship-related ${Google.kinKin0Related}
-      --kinship-famsizes ${Google.kinFamsizes}
-      --sampleqc-outliers ${Google.sampleqcStatsAdjOutliersTable}
-      --sexcheck-problems ${Google.sampleqcSexcheckProblems}
+    cmd"""python $pyCompileExclusions
+      --ancestry-inferred ${Local.ancestryInferred}
+      --kinship-related ${Local.kinKin0Related}
+      --kinship-famsizes ${Local.kinFamsizes}
+      --sampleqc-outliers ${Local.sampleqcStatsAdjOutliersTable}
+      --sexcheck-problems ${Local.sampleqcSexcheckProblems}
       --ancestry-keep ${ancestryKeep.mkString(",")}
       --duplicates-keep ${duplicatesKeep.mkString(",")}
       --famsize-keep ${famsizeKeep.mkString(",")}
       --sampleqc-keep ${sampleqcKeep.mkString(",")}
       --sexcheck-keep ${sexcheckKeep.mkString(",")}
       --out ${Google.finalSampleExclusions}"""
-      .in(Google.ancestryInferred, Google.kinKin0Related, Google.kinFamsizes, Google.sampleqcStatsAdjOutliersTable, Google.sampleqcSexcheckProblems)
-      .out(Google.finalSampleExclusions)
+      .in(Local.ancestryInferred, Local.kinKin0Related, Local.kinFamsizes, Local.sampleqcStatsAdjOutliersTable, Local.sampleqcSexcheckProblems)
+      .out(Local.finalSampleExclusions)
   }
   
-  /**
-   * Filter Clean Step
-   * filter variants and generate final clean dataset
-   */
+ /**
+  * Filter Clean Step
+  * filter variants and generate final clean dataset
+  */
+
+  local {
+    googleCopy(Local.finalSampleExclusions, Google.finalSampleExclusions)
+  }
 
   google {
     hail"""$pyHailFilterFinal

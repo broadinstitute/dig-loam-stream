@@ -30,7 +30,8 @@ def allQcSteps(params: DataConfig): Unit = {
   // Project Settings
   val id = params.getStr("id")
   val vcf = store[VCF].at(params.getStr("vcf")).asInput
-  val pheno = store[TXT].at(params.getStr("pheno")).asInput
+  val phenoName = params.getStr("phenoName")
+  val phenoDir = params.getStr("phenoDir")
   val phenoId = params.getStr("phenoId")
   val phenoSrSex = params.getStr("phenoSrSex")
   val phenoSrRace = params.getStr("phenoSrRace")
@@ -70,6 +71,7 @@ def allQcSteps(params: DataConfig): Unit = {
     val kgPurcellVcf = store[VCF].at(path(kgPurcellVcfDir) / kgPurcellVcfName).asInput
     val kgSample = store[TXT].at(path(kgSampleDir) / kgSampleName).asInput
     val regionsExclude = store[TXT].at(path(regionsExcludeDir) / regionsExcludeName).asInput
+    val pheno = store[TXT].at(path(phenoDir) / phenoName).asInput
 
     // Alignment Step
     val rawChrs: Array[Seq[Store[TXT]]] = Array.ofDim(nChr)
@@ -209,6 +211,7 @@ def allQcSteps(params: DataConfig): Unit = {
 
     // Sample QC Stats Calculation Step
     val sampleqcStats = store[TXT].at(googleOutDir / sampleqcStatsName)
+    val pheno = store[TXT].at(googleOutDir / phenoName)
 
     // Sample QC Individual Stats Clustering Step
     val sampleqcStatsAdjOutliersTable = store[TXT].at(googleOutDir / sampleqcStatsAdjOutliersTableName)
@@ -429,11 +432,11 @@ def allQcSteps(params: DataConfig): Unit = {
     .in(Local.ancestryClusterFet)
     .out(Local.ancestryClusterClu, Local.ancestryClusterKlg, Local.ancestryClusterLog)
 
-    cmd"""$binR --vanilla --args ${Local.ancestryPcaScores} ${Local.ancestryClusterClu} $pheno $id $phenoId $phenoSrRace
+    cmd"""$binR --vanilla --args ${Local.ancestryPcaScores} ${Local.ancestryClusterClu} ${Local.pheno} $id $phenoId $phenoSrRace
       ${Local.ancestryClusterPlots} ${Local.ancestryClusterXtabs} ${Local.ancestryClusterPlotsCenters}
       ${Local.ancestryClusterGroups} ${Local.ancestryInferred}
       ${Local.ancestryClusterPlotsNo1kg} < $rPlotAncestryCluster"""
-      .in(Local.ancestryPcaScores, Local.ancestryClusterClu, pheno)
+      .in(Local.ancestryPcaScores, Local.ancestryClusterClu, Local.pheno)
       .out(Local.ancestryClusterPlots, Local.ancestryClusterXtabs, Local.ancestryClusterPlotsCenters, Local.ancestryClusterGroups, Local.ancestryInferred, Local.ancestryClusterPlotsNo1kg)
   }
 
@@ -477,18 +480,20 @@ def allQcSteps(params: DataConfig): Unit = {
 
   local {
     googleCopy(Local.ancestryInferred, Google.ancestryInferred)
+    googleCopy(Local.ancestryInferred, Google.ancestryInferred)
+    googleCopy(Local.pheno, Google.pheno)
   }
 
   google {
     hail"""$pyHailSexcheck
       --vds-in ${Google.harmRefVds}
       --regions-exclude ${Google.regionsExclude}
-      --pheno-in $pheno
+      --pheno-in ${Google.pheno}
       --id-col $phenoId
       --sex-col $phenoSrSex
       --sexcheck-out ${Google.sampleqcSexcheck}
       --sexcheck-problems-out ${Google.sampleqcSexcheckProblems}"""
-      .in(pheno, Google.harmRefVds, Google.regionsExclude)
+      .in(Google.pheno, Google.harmRefVds, Google.regionsExclude)
       .out(Google.sampleqcSexcheck, Google.sampleqcSexcheckProblems)
 
     hail"""$pyHailSampleqc
@@ -626,11 +631,11 @@ def allQcSteps(params: DataConfig): Unit = {
       --vds-in ${Google.harmRefVds}
       --ancestry-in ${Local.ancestryInferred}
       --sexcheck-in ${Google.sampleqcSexcheck}
-      --pheno-in $pheno
+      --pheno-in ${Google.pheno}
       --case-ctrl-col $phenoStatus
       --samples-remove ${Google.finalSampleExclusions}
       --plink-out ${Local.cleanPrefix}"""
-      .in(Google.harmRefVds, Google.ancestryInferred, Google.sampleqcSexcheck, pheno, Google.finalSampleExclusions)
+      .in(Google.harmRefVds, Google.ancestryInferred, Google.sampleqcSexcheck, Google.pheno, Google.finalSampleExclusions)
       .out(Google.clean)
   }
 

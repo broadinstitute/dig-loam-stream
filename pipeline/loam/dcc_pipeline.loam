@@ -245,8 +245,7 @@ def allQcSteps(params: DataConfig): Unit = {
    */
   
   uger {
-    for (i <- startChr to endChr) {
-      val j = i - startChr
+    for ((i, j) <- (startChr to endChr).zipWithIndex) {
       val rawChrsName = localOutDir / s"${id}.chr$i"
       Local.rawChrs(j) = bedBimFam(rawChrsName)
       Local.harmChrsPrefix(j) = localOutDir / s"${id}.chr$i.harm"

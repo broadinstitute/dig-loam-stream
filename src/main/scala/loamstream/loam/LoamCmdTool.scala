@@ -1,9 +1,9 @@
 package loamstream.loam
 
-import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken, MultiStoreToken, MultiToken}
+import loamstream.loam.LoamToken.{MultiStoreToken, MultiToken, StoreRefToken, StoreToken, StringToken}
 import loamstream.model.Tool.{AllStores, DefaultStores}
 import loamstream.model.{LId, Store, Tool}
-import loamstream.util.StringUtils
+import loamstream.util.{StringUtils, TypedIterableExtractor}
 import loamstream.loam.files.LoamFileManager
 import loamstream.conf.DynamicConfig
 
@@ -61,13 +61,15 @@ object LoamCmdTool {
   }
   
   private[loam] def isHasLocationIterable(xs: Iterable[_]): Boolean = xs.nonEmpty && xs.head.isInstanceOf[HasLocation]
-  
+
+  private val storesIterableExtractor = TypedIterableExtractor.newFor[HasLocation]
+
   def toToken(arg: Any): LoamToken = arg match {
     case store: Store.Untyped => StoreToken(store)
     case storeRef: LoamStoreRef => StoreRefToken(storeRef)
     //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
     //the isHasLocationIterable() guard
-    case stores: Iterable[HasLocation] @unchecked if isHasLocationIterable(stores) => MultiStoreToken(stores)
+    case storesIterableExtractor(stores) if(stores.nonEmpty) => MultiStoreToken(stores)
     case args: Iterable[_] => MultiToken(args)
     //NB: Will throw if the DynamicConf represents a config key that's not present,
     //or a key that points to a sub-config (ie NOT a string or number)

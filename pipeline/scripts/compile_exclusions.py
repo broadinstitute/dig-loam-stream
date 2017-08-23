@@ -1,5 +1,6 @@
 import pandas as pd
 import argparse
+from pandas.io.common import EmptyDataError
 
 def main(args=None):
 

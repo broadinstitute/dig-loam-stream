@@ -606,6 +606,8 @@ def allQcSteps(params: DataConfig): Unit = {
    */
   
   local {
+    googleCopy(Google.sampleqcSexcheckProblems, Local.sampleqcSexcheckProblems)
+
     cmd"""python $pyCompileExclusions
       --ancestry-inferred ${Local.ancestryInferred}
       --kinship-related ${Local.kinKin0Related}

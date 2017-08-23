@@ -617,7 +617,7 @@ def allQcSteps(params: DataConfig): Unit = {
       --famsize-keep ${famsizeKeep.mkString(",")}
       --sampleqc-keep ${sampleqcKeep.mkString(",")}
       --sexcheck-keep ${sexcheckKeep.mkString(",")}
-      --out ${Google.finalSampleExclusions}"""
+      --out ${Local.finalSampleExclusions}"""
       .in(Local.ancestryInferred, Local.kinKin0Related, Local.kinFamsizes, Local.sampleqcStatsAdjOutliersTable, Local.sampleqcSexcheckProblems)
       .out(Local.finalSampleExclusions)
   }
@@ -634,12 +634,12 @@ def allQcSteps(params: DataConfig): Unit = {
   google {
     hail"""$pyHailFilterFinal
       --vds-in ${Google.harmRefVds}
-      --ancestry-in ${Local.ancestryInferred}
+      --ancestry-in ${Google.ancestryInferred}
       --sexcheck-in ${Google.sampleqcSexcheck}
       --pheno-in ${Google.pheno}
       --case-ctrl-col $phenoStatus
       --samples-remove ${Google.finalSampleExclusions}
-      --plink-out ${Local.cleanPrefix}"""
+      --plink-out ${Google.cleanPrefix}"""
       .in(Google.harmRefVds, Google.ancestryInferred, Google.sampleqcSexcheck, Google.pheno, Google.finalSampleExclusions)
       .out(Google.clean)
   }

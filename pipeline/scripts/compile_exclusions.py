@@ -15,7 +15,7 @@ def main(args=None):
 	try:
 		x=pd.read_table(args.kinship_related)
 	except EmptyDataError:
-        pass
+		pass
 	else:
 		x=x[x['Kinship'] >= 0.4]
 		if x.shape[0] > 0:
@@ -30,7 +30,7 @@ def main(args=None):
 	try:
 		x=pd.read_table(args.kinship_famsizes,header=None)
 	except EmptyDataError:
-        pass
+		pass
 	else:
 		exc=x[0][x[1] >= 10].tolist()
 		if len(exc) > 0:
@@ -43,7 +43,7 @@ def main(args=None):
 	try:
 		x=pd.read_table(args.sampleqc_outliers)
 	except EmptyDataError:
-        pass
+		pass
 	else:
 		exc=x['IID'].tolist()
 		if len(exc) > 0:
@@ -56,7 +56,7 @@ def main(args=None):
 	try:
 		x=pd.read_table(args.sexcheck_problems)
 	except EmptyDataError:
-        pass
+		pass
 	else:
 		exc=x['IID'].tolist()
 		if len(exc) > 0:

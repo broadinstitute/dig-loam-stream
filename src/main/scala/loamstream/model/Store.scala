@@ -9,11 +9,10 @@ import loamstream.loam.ops.StoreType.TXT
 import loamstream.loam.ops.filters.{LoamStoreFilter, LoamStoreFilterTool, StoreFieldValueFilter}
 import loamstream.loam.ops.mappers.{LoamStoreMapper, LoamStoreMapperTool, TextStoreFieldExtractor}
 import loamstream.loam.ops.{StoreField, StoreType, TextStore, TextStoreField}
-import loamstream.util.{TypeBox, ValueBox}
+import loamstream.util.TypeBox
 
 import scala.reflect.runtime.universe.TypeTag
 import loamstream.loam.HasLocation
-import loamstream.loam.files.LoamFileManager
 
 /**
   * LoamStream
@@ -101,7 +100,6 @@ final case class Store[S <: StoreType : TypeTag] private(id: LId)(implicit val s
     
     this
   }
-
 
   /** Returns new store which is the result of a new store filtering tool based on a field
     *

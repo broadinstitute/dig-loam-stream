@@ -4,42 +4,23 @@ import loamstream.util.{Files, PathEnrichments, Sequence, StringUtils}
 import java.nio.file.Path
 
 import loamstream.conf.{LoamConfig, PythonConfig, RConfig}
+import loamstream.conf.HasScriptDir
 
 /**
  * @author clint
  *         kyuksel
  *         3/28/2017
  */
-trait LanguageSupport {
-  protected[this] val fileNums: Sequence[Int] = Sequence[Int]()
-
-  protected[this] def config(implicit scriptContext: LoamScriptContext): LoamConfig = {
-    scriptContext.projectContext.config
-  }
-
-  protected[this] def determineScriptFile(prefix: String, extension: String, dir: Path)
-                                         (implicit scriptContext: LoamScriptContext): Path = {
-    import PathEnrichments._
-
-    val executionId = scriptContext.executionId
-    val filename = s"$prefix-$executionId-${fileNums.next()}.$extension"
-
-    Files.createDirsIfNecessary(dir)
-
-    dir/filename
-  }
-}
-
 object LanguageSupport {
-  object R extends LanguageSupport {
+  object R {
     private def rConfig(implicit scriptContext: LoamScriptContext): RConfig = {
       require(
-        super.config.rConfig.isDefined,
+        config.rConfig.isDefined,
         s"R support requires a valid 'loamstream.r' section in the config file")
 
       config.rConfig.get
     }
-
+    
     implicit final class StringContextWithR(val stringContext: StringContext) extends AnyVal {
       /*
        * Supports a R string interpolator for .loam files:
@@ -55,27 +36,24 @@ object LanguageSupport {
        * NOTE: The body of the code must be left-aligned
        */
       def r(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+        val scriptFile = makeScript(stringContext, GeneratedScriptParams.r(rConfig), args: _*)
+        
         import LoamCmdTool._
-
-        val scriptContent = LoamCmdTool.create(args: _*)(StringUtils.assimilateLineBreaks)(scriptContext, stringContext)
-                                       .commandLine
-        val scriptFile = determineScriptFile("R", "r", rConfig.scriptDir)
-        Files.writeTo(scriptFile)(scriptContent)
 
         cmd"${rConfig.binary} $scriptFile"
       }
     }
   }
   
-  object Python extends LanguageSupport {
+  object Python {
     private def pythonConfig(implicit scriptContext: LoamScriptContext): PythonConfig = {
       require(
-        super.config.pythonConfig.isDefined,
+        config.pythonConfig.isDefined,
         s"Python support requires a valid 'loamstream.python' section in the config file")
 
       config.pythonConfig.get
     }
-
+    
     implicit final class StringContextWithPython(val stringContext: StringContext) extends AnyVal {
       /*
        * Supports a Python string interpolator for .loam files:
@@ -91,15 +69,65 @@ object LanguageSupport {
        * NOTE: The body of the code must be left-aligned
        */
       def python(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+        val scriptFile = makeScript(stringContext, GeneratedScriptParams.python(pythonConfig), args: _*)
+        
         import LoamCmdTool._
-
-        val scriptContent = LoamCmdTool.create(args: _*)(StringUtils.assimilateLineBreaks)(scriptContext, stringContext)
-                                       .commandLine
-        val scriptFile = determineScriptFile("python", "py", pythonConfig.scriptDir)
-        Files.writeTo(scriptFile)(scriptContent)
 
         cmd"${pythonConfig.binary} $scriptFile"
       }
     }
+  }
+  
+  private[this] val fileNums: Sequence[Int] = Sequence[Int]()
+  
+  def config(implicit scriptContext: LoamScriptContext): LoamConfig = {
+    scriptContext.projectContext.config
+  }
+  
+  def determineScriptFile(prefix: String, extension: String, dir: Path)
+                                         (implicit scriptContext: LoamScriptContext): Path = {
+    import PathEnrichments._
+
+    val executionId = scriptContext.executionId
+    val filename = s"$prefix-$executionId-${fileNums.next()}.$extension"
+
+    Files.createDirsIfNecessary(dir)
+
+    dir/filename
+  }
+  
+  def makeScriptContent(
+      stringContext: StringContext, 
+      args: Any*)(implicit scriptContext: LoamScriptContext): String = {
+    
+    LoamCmdTool.create(args: _*)(StringUtils.assimilateLineBreaks)(scriptContext, stringContext).commandLine
+  }
+  
+  final class GeneratedScriptParams(val prefix: String, val extension: String, val outputDir: Path) {
+    def this(prefix: String, extension: String, config: HasScriptDir) = this(prefix, extension, config.scriptDir)
+  }
+  
+  object GeneratedScriptParams {
+    def apply(prefix: String, extension: String, outputDir: Path): GeneratedScriptParams = {
+      new GeneratedScriptParams(prefix, extension, outputDir)
+    }
+    
+    def python(config: PythonConfig): GeneratedScriptParams = new GeneratedScriptParams("python", "py", config)
+    
+    def r(config: RConfig): GeneratedScriptParams = new GeneratedScriptParams("R", "r", config)
+  }
+  
+  def makeScript(
+      stringContext: StringContext, 
+      params: GeneratedScriptParams,
+      args: Any*)(implicit scriptContext: LoamScriptContext): Path = {
+    
+    val scriptContent = makeScriptContent(stringContext, args: _*)
+        
+    val scriptFile = determineScriptFile(params.prefix, params.extension, params.outputDir)
+        
+    Files.writeTo(scriptFile)(scriptContent)
+    
+    scriptFile
   }
 }

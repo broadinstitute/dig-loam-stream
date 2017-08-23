@@ -1,4 +1,4 @@
-library(Hmisc)
+#library(Hmisc)
 library(reshape2)
 library(ggplot2)
 args<-commandArgs(trailingOnly=T)
@@ -23,7 +23,7 @@ color<-gg_color_hue(max(dat$CLUSTER))
 pdf(args[7],width=7, height=7)
 for(i in grep("^PC",names(dat))[-length(grep("^PC",names(dat)))]) {
 	p<-ggplot(dat, aes(dat[,i],dat[,i+1])) +
-		geom_point(aes(color=factor(CLUSTER),shape=factor(SUPERPOP))) +
+		geom_point(aes(color=factor(CLUSTER),shape=factor(GROUP))) +
 		labs(x=paste("PC",i-grep("^PC",names(dat))[1]+1,sep=""),y=paste("PC",i-grep("^PC",names(dat))[1]+2,sep=""),shape="COHORT",colour="CLUSTER") +
 		theme_bw() +
 		guides(col = guide_legend(override.aes = list(shape = 15, size = 10))) +
@@ -41,7 +41,7 @@ dev.off()
 clusters_unknown<-c()
 clusters_exclude<-c()
 for(i in unique(dat$CLUSTER)[unique(dat$CLUSTER) != 1]) {
-	if(nrow(dat[dat$CLUSTER == i & dat$SUPERPOP == args[4],]) > 0) {
+	if(nrow(dat[dat$CLUSTER == i & dat$GROUP == args[4],]) > 0) {
 		clusters_unknown<-c(clusters_unknown,i)
 	} else {
 		clusters_exclude<-c(clusters_exclude,i)
@@ -49,13 +49,13 @@ for(i in unique(dat$CLUSTER)[unique(dat$CLUSTER) != 1]) {
 }
 
 i<-0
-cohorts_1kg<-unique(dat$SUPERPOP)[unique(dat$SUPERPOP) != args[4]]
+cohorts_1kg<-unique(dat$GROUP)[unique(dat$GROUP) != args[4]]
 for(c in cohorts_1kg) {
 	i<-i+1
 	if(i == 1) {
-		centers_1kg<-colMeans(dat[,c("PC1","PC2","PC3")][dat$SUPERPOP == c,])
+		centers_1kg<-colMeans(dat[,c("PC1","PC2","PC3")][dat$GROUP == c,])
 	} else {
-		centers_1kg<-rbind(centers_1kg,colMeans(dat[,c("PC1","PC2","PC3")][dat$SUPERPOP == c,]))
+		centers_1kg<-rbind(centers_1kg,colMeans(dat[,c("PC1","PC2","PC3")][dat$GROUP == c,]))
 	}
 }
 row.names(centers_1kg)<-cohorts_1kg
@@ -65,9 +65,9 @@ i<-0
 for(c in clusters_unknown) {
 	i<-i+1
 	if(i == 1) {
-		centers_unknown<-colMeans(dat[,c("PC1","PC2","PC3")][dat$CLUSTER == c & dat$SUPERPOP == args[4],])
+		centers_unknown<-colMeans(dat[,c("PC1","PC2","PC3")][dat$CLUSTER == c & dat$GROUP == args[4],])
 	} else {
-		centers_unknown<-rbind(centers_unknown,colMeans(dat[,c("PC1","PC2","PC3")][dat$CLUSTER == c & dat$SUPERPOP == args[4],]))
+		centers_unknown<-rbind(centers_unknown,colMeans(dat[,c("PC1","PC2","PC3")][dat$CLUSTER == c & dat$GROUP == args[4],]))
 	}
 }
 for(c in clusters_exclude) {
@@ -102,7 +102,7 @@ for(i in 1:(nrow(centers_unknown)-(1+length(clusters_exclude)))) {
 # centers_unknown$ASSIGNED[! as.integer(row.names(centers_unknown)) %in% c(clusters_exclude,1) & centers_unknown$ratio >= 1.5]<-centers_unknown$closest1[! as.integer(row.names(centers_unknown)) %in% c(clusters_exclude,1) & centers_unknown$ratio >= 1.5]
 # centers_unknown$ASSIGNED[! as.integer(row.names(centers_unknown)) %in% c(clusters_exclude,1) & centers_unknown$ratio < 1.5]<-centers_unknown$closest1[! as.integer(row.names(centers_unknown)) %in% c(clusters_exclude,1) & centers_unknown$ratio < 1.5]
 
-bd<-as.data.frame.matrix(table(dat[,c("CLUSTER","SUPERPOP")]))
+bd<-as.data.frame.matrix(table(dat[,c("CLUSTER","GROUP")]))
 bd<-cbind(bd,as.data.frame.matrix(table(dat[,c("CLUSTER",args[6])])))
 bd$cluster<-as.integer(row.names(bd))
 centers_unknown$ASSIGNED<-"OUTLIERS"
@@ -126,7 +126,7 @@ centers_unknown_included<-centers_unknown[! centers_unknown$cluster %in% c(clust
 pdf(args[9],width=7, height=7)
 for(i in seq(1,2)) {
 	p<-ggplot(dat, aes(dat[,paste("PC",i,sep="")],dat[,paste("PC",i+1,sep="")])) +
-		geom_point(aes(color=factor(CLUSTER),shape=factor(SUPERPOP))) +
+		geom_point(aes(color=factor(CLUSTER),shape=factor(GROUP))) +
 		geom_point(dat=centers_1kg, aes(centers_1kg[,paste("PC",i,sep="")],centers_1kg[,paste("PC",i+1,sep="")], shape=row.names(centers_1kg)), size=4, colour="black") +
 		geom_text(dat=centers_unknown_included, aes(centers_unknown_included[,paste("PC",i,sep="")],centers_unknown_included[,paste("PC",i+1,sep="")], label=cluster), colour="black") +
 		labs(x=paste("PC",i,sep=""),y=paste("PC",i+1,sep=""),shape="COHORT",colour="CLUSTER") +
@@ -162,17 +162,7 @@ for(i in 1:nrow(a)) {
 }
 
 ### WRITE ASSIGMENTS TO FILES
-#for(r in unique(dat$ASSIGNED)) {
-#	write.table(paste(dat$IID[which(dat$SUPERPOP == args[4] & dat$ASSIGNED == r)],dat$IID[which(dat$SUPERPOP == args[4] & dat$ASSIGNED == r)],sep=" "),paste(outfile,".",r,".plink",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#	write.table(dat$IID[which(dat$SUPERPOP == args[4] & dat$ASSIGNED == r)],paste(outfile,".",r,sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#}
-#ids_all<-dat$IID[which(dat$SUPERPOP == args[4] & dat$ASSIGNED != "OUTLIERS")]
-#ids_out<-dat$IID[which(dat$SUPERPOP == args[4] & dat$ASSIGNED == "OUTLIERS")]
-#write.table(paste(ids_all,ids_all),paste(outfile,".CLUSTERED.plink",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#write.table(ids_all,paste(outfile,".CLUSTERED",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#write.table(paste(ids_out,ids_out),paste(outfile,".OUTLIERS.plink",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-#write.table(ids_out,paste(outfile,".OUTLIERS",sep=""),col.names=F,row.names=F,quote=F,append=F,sep="\t")
-write.table(dat[which(dat$SUPERPOP == args[4]),c("IID","ASSIGNED")],args[11],col.names=F,row.names=F,quote=F,append=F,sep="\t")
+write.table(dat[which(dat$GROUP == args[4]),c("IID","ASSIGNED")],args[11],col.names=F,row.names=F,quote=F,append=F,sep="\t")
 
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length=n+1)
@@ -180,7 +170,7 @@ gg_color_hue <- function(n) {
 }
 color<-gg_color_hue(max(dat$CLUSTER))
 
-dat<-dat[which(dat$SUPERPOP == args[4] & dat$ASSIGNED != "OUTLIERS"),]
+dat<-dat[which(dat$GROUP == args[4] & dat$ASSIGNED != "OUTLIERS"),]
 pdf(args[12],width=7, height=7)
 for(i in seq(1,9)) {
 	p<-ggplot(dat, aes(dat[,paste("PC",i,sep="")],dat[,paste("PC",i+1,sep="")])) +

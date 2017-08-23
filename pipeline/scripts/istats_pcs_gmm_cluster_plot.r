@@ -1,5 +1,5 @@
-library(scatterplot3d)
-library(Hmisc)
+#library(scatterplot3d)
+#library(Hmisc)
 library(reshape2)
 library(ggplot2)
 args<-commandArgs(trailingOnly=T)

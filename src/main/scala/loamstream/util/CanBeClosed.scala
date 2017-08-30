@@ -19,4 +19,14 @@ object CanBeClosed {
   implicit def scalaSourcesCanBeClosed[S <: Source]: CanBeClosed[S] = new CanBeClosed[S] {
     override def close(s: S): Unit = s.close()
   }
+
+  def enclosed[A, C: CanBeClosed](c: C)(f: C => A): A = {
+    try {
+      f(c)
+    } finally {
+      val closer = implicitly[CanBeClosed[C]]
+
+      closer.close(c)
+    }
+  }
 }

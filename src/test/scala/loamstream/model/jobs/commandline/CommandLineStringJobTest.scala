@@ -1,7 +1,6 @@
 package loamstream.model.jobs.commandline
 
-import loamstream.compiler.LoamEngine
-import loamstream.util.{LoamFileUtils, Loggable}
+import loamstream.util.CanBeClosed
 import org.scalatest.FunSuite
 
 import scala.io.Source
@@ -10,17 +9,12 @@ import loamstream.loam.LoamGraph
 import loamstream.loam.LoamCmdTool
 import loamstream.compiler.LoamPredef
 import loamstream.loam.ops.StoreType
-import loamstream.loam.LoamScriptContext
-import loamstream.loam.LoamProjectContext
 
 /**
   * @author clint
   *         Nov 16, 2016
   */
 final class CommandLineStringJobTest extends FunSuite {
-
-  //scalastyle:off magic.number
-
   test("Complex command that needs escaping") {
     val outputPath = "target/foo"
     
@@ -41,11 +35,10 @@ final class CommandLineStringJobTest extends FunSuite {
 
     assert(jobResults.size === 1)
 
-    val numLines = LoamFileUtils.enclosed(Source.fromFile(outputPath)) { source =>
+    val numLines = CanBeClosed.enclosed(Source.fromFile(outputPath)) { source =>
       source.getLines.map(_.trim).count(_.nonEmpty)
     }
 
     assert(numLines === 11)
   }
-  //scalastyle:on magic.number
 }

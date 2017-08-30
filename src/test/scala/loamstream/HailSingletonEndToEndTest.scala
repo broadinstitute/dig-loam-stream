@@ -4,12 +4,9 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import scala.io.Source
-
 import org.apache.commons.io.FileUtils
 import org.scalatest.FunSuite
-
-import loamstream.util.Hit
-import loamstream.util.LoamFileUtils
+import loamstream.util.CanBeClosed
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -35,7 +32,7 @@ final class HailSingletonEndToEndTest extends FunSuite with LoamTestHelpers {
 
       val source = Source.fromFile(hailSingletonFilePath.toFile)
 
-      val singletonCounts = LoamFileUtils.enclosed(source)(_.getLines.toList)
+      val singletonCounts = CanBeClosed.enclosed(source)(_.getLines.toList)
 
       assert(singletonCounts.size == 101)
       assert(singletonCounts.head == "SAMPLE\tSINGLETONS")

@@ -89,7 +89,6 @@ final class StringUtilsTest extends FunSuite {
 
   test("soMany(count, singular, plural)") {
     import StringUtils.soMany
-    //scalastyle:off magic.number
     assert(soMany(0, "foo", "Foos") == "no Foos")
     assert(soMany(1, "foo", "Foos") == "one foo")
     
@@ -145,6 +144,4 @@ final class StringUtilsTest extends FunSuite {
     assert(StringUtils.leftPadTo("1234567", "0", 7) === "1234567")
     assert(StringUtils.leftPadTo("123456789", "0", 7) === "123456789")
   }
-
-  //scalastyle:on magic.number
 }

@@ -16,18 +16,18 @@ for (params <- config.getObjList("project")) {
 }
 
 def allQcSteps(params: DataConfig): Unit = {
-  val kgPurcellVcfFile = params.getStr("kgPurcellVcf")
-  val kgSampleFile = params.getStr("kgSample")
+  val kgPurcellVcfFile = path(params.getStr("kgPurcellVcf"))
+  val kgSampleFile = path(params.getStr("kgSample"))
   val kgSampleId = params.getStr("kgSampleId")
   val kgSamplePop = params.getStr("kgSamplePop")
   val kgSampleGroup = params.getStr("kgSampleGroup")
   val kgVcfBaseWild = params.getStr("kgVcfBaseWild")
-  val regionsExcludeFile = params.getStr("regionsExclude")
+  val regionsExcludeFile = path(params.getStr("regionsExclude"))
 
   // Project Settings
   val id = params.getStr("id")
   val vcf = store[VCF].at(params.getStr("vcf")).asInput
-  val phenoFile = params.getStr("pheno")
+  val phenoFile = path(params.getStr("pheno"))
   val phenoId = params.getStr("phenoId")
   val phenoSrSex = params.getStr("phenoSrSex")
   val phenoSrRace = params.getStr("phenoSrRace")

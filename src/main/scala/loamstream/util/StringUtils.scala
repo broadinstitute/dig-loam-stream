@@ -59,8 +59,4 @@ object StringUtils {
       string
     }
   }
-
-  def lastSegment(string: String, delimiter: Char = '/'): String = {
-    string.split(delimiter).takeRight(1).head
-  }
 }

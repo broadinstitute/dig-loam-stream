@@ -1,8 +1,10 @@
 import java.net.URI
 
 import loamstream.model.Store
-import loamstream.util.StringUtils.lastSegment
 import loamstream.util.UriEnrichments._
+import loamstream.util.HasPath._
+import PathsArePaths._
+import URIsHavePaths._
 
 def outputStoreName(name: String)(extension: String): String = s"${name}.${extension}"
 def outputStore(name: String): String => Store[TXT] = extension => store[TXT].at(outputStoreName(name)(extension))
@@ -17,7 +19,8 @@ def bedBimFam(prefix: String): Seq[Store[TXT]] = bedBimFam(extension => store[TX
 def bedBimFam(prefix: Path): Seq[Store[TXT]] = bedBimFam(prefix.toString)
 def bedBimFam(prefix: URI): Seq[Store[TXT]] = bedBimFam(extension => store[TXT].at(prefix + s".${extension}"))
 
-def basename(string: String): String = lastSegment(string)
+def basename(path: Path): String = base(path)
+def basename(uri: URI): String = base(uri)
 
 case class KlustakwikStores(base: String, fet: Store[TXT], tempClu: Store[TXT], clu: Store[TXT],
                             klg: Store[TXT], klustakwikLog: Store[TXT]) {

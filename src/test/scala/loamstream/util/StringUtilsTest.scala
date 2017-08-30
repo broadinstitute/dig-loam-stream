@@ -144,20 +144,4 @@ final class StringUtilsTest extends FunSuite {
     assert(StringUtils.leftPadTo("1234567", "0", 7) === "1234567")
     assert(StringUtils.leftPadTo("123456789", "0", 7) === "123456789")
   }
-
-  test("lastSegment") {
-    import StringUtils.lastSegment
-
-    assert(lastSegment("/my/folder/myFile.txt") === "myFile.txt")
-    assert(lastSegment("gs://my/bucket/myFile.txt") === "myFile.txt")
-    assert(lastSegment("/foo/bar/baz/") === "baz")
-    assert(lastSegment("/foo/bar/baz//") === "baz")
-    assert(lastSegment("/foo/bar/baz//fuz") === "fuz")
-    assert(lastSegment("/foo/bar/baz///") === "baz")
-
-    assert(lastSegment("") === "")
-    assert(lastSegment("myFile.txt") === "myFile.txt")
-
-    assert(lastSegment("my-folder-myFile.txt", '-') === "myFile.txt")
-  }
 }

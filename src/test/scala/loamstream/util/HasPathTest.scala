@@ -1,5 +1,8 @@
 package loamstream.util
 
+import java.net.URI
+import java.nio.file.Paths
+
 import org.scalatest.FunSuite
 import HasPath._
 
@@ -12,16 +15,14 @@ final class HasPathTest extends FunSuite {
     import PathsArePaths._
     import URIsHavePaths._
 
-    assert(basename("/my/folder/myFile.txt") === "myFile.txt")
-    assert(basename("gs://my/bucket/myFile.txt") === "myFile.txt")
-    assert(basename("/foo/bar/baz/") === "baz")
-    assert(basename("/foo/bar/baz//") === "baz")
-    assert(basename("/foo/bar/baz//fuz") === "fuz")
-    assert(basename("/foo/bar/baz///") === "baz")
+    assert(base(Paths.get("/my/folder/myFile.txt")) === "myFile.txt")
+    assert(base(URI.create("gs://my/bucket/myFile.txt")) === "myFile.txt")
+    assert(base(Paths.get("/foo/bar/baz/")) === "baz")
+    assert(base(Paths.get("/foo/bar/baz//")) === "baz")
+    assert(base(Paths.get("/foo/bar/baz//fuz")) === "fuz")
+    assert(base(Paths.get("/foo/bar/baz///")) === "baz")
 
-    assert(basename("") === "")
-    assert(basename("myFile.txt") === "myFile.txt")
-
-    assert(basename("my-folder-myFile.txt", '-') === "myFile.txt")
+    assert(base(Paths.get("")) === "")
+    assert(base(Paths.get("myFile.txt")) === "myFile.txt")
   }
 }

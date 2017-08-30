@@ -150,6 +150,11 @@ final class StringUtilsTest extends FunSuite {
 
     assert(lastSegment("/my/folder/myFile.txt") === "myFile.txt")
     assert(lastSegment("gs://my/bucket/myFile.txt") === "myFile.txt")
+    assert(lastSegment("/foo/bar/baz/") === "baz")
+    assert(lastSegment("/foo/bar/baz//") === "baz")
+    assert(lastSegment("/foo/bar/baz//fuz") === "fuz")
+    assert(lastSegment("/foo/bar/baz///") === "baz")
+
     assert(lastSegment("") === "")
     assert(lastSegment("myFile.txt") === "myFile.txt")
 

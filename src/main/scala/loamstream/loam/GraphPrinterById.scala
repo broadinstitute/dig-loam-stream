@@ -5,6 +5,8 @@ import loamstream.model.{LId, Store, Tool}
 import loamstream.util.code.SourceUtils
 
 import scala.reflect.runtime.universe.Type
+import loamstream.loam.LoamToken.MultiStoreToken
+import loamstream.loam.LoamToken.MultiToken
 
 /** Prints LoamGraph for educational and debugging purposes exposing ids */
 final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
@@ -53,12 +55,16 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print(tool: LoamCmdTool, graph: LoamGraph): String = {
     def hasLocationToString(hasLocation: HasLocation): String = {
       val ioPrefix = printIoPrefix(tool, hasLocation, graph)
+      
       s"$ioPrefix${print(hasLocation, fully = false)}"
     }
+    
     def tokenToString(token: LoamToken): String = token match {
       case StringToken(string) => string
-      case hasLocation: HasLocation => hasLocationToString(hasLocation)
-      case hasLocations: Iterable[HasLocation] => hasLocations.map(hasLocationToString).mkString(" ")
+      case StoreRefToken(ref) => hasLocationToString(ref)
+      case StoreToken(store) => hasLocationToString(store)
+      case MultiStoreToken(stores) => stores.map(hasLocationToString).mkString(" ")
+      case MultiToken(things) => things.map(_.toString).mkString(" ")
     }
 
     val tokenString = tool.tokens.map(tokenToString).mkString

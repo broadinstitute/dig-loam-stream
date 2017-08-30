@@ -1,5 +1,6 @@
 package loamstream.util
 
+import java.io.File
 import java.nio.charset.StandardCharsets
 
 import scala.util.Try
@@ -57,5 +58,9 @@ object StringUtils {
     } else {
       string
     }
+  }
+
+  def lastSegment(string: String, delimiter: Char = '/'): String = {
+    string.split(delimiter).takeRight(1).head
   }
 }

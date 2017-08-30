@@ -15,7 +15,7 @@ final class LoamFolderRepositoryTest extends FunSuite {
     val repo = LoamFolderRepository(Paths.get("src/test/resources/loam"))
 
     //NB: Use Sets to ignore order
-    assert(repo.list.toSet == Set("impute", "singletons-via-hail"))
+    assert(repo.list.toSet == Set("impute"))
   }
 
   test("load") {

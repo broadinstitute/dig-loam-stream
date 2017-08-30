@@ -16,22 +16,18 @@ for (params <- config.getObjList("project")) {
 }
 
 def allQcSteps(params: DataConfig): Unit = {
-  val kgPurcellVcfName = params.getStr("kgPurcellVcfName")
-  val kgPurcellVcfDir = params.getStr("kgPurcellVcfDir")
-  val kgSampleName = params.getStr("kgSampleName")
-  val kgSampleDir = params.getStr("kgSampleDir")
+  val kgPurcellVcfFile = params.getStr("kgPurcellVcf")
+  val kgSampleFile = params.getStr("kgSample")
   val kgSampleId = params.getStr("kgSampleId")
   val kgSamplePop = params.getStr("kgSamplePop")
   val kgSampleGroup = params.getStr("kgSampleGroup")
   val kgVcfBaseWild = params.getStr("kgVcfBaseWild")
-  val regionsExcludeName = params.getStr("regionsExcludeName")
-  val regionsExcludeDir = params.getStr("regionsExcludeDir")
+  val regionsExcludeFile = params.getStr("regionsExclude")
 
   // Project Settings
   val id = params.getStr("id")
   val vcf = store[VCF].at(params.getStr("vcf")).asInput
-  val phenoName = params.getStr("phenoName")
-  val phenoDir = params.getStr("phenoDir")
+  val phenoFile = params.getStr("pheno")
   val phenoId = params.getStr("phenoId")
   val phenoSrSex = params.getStr("phenoSrSex")
   val phenoSrRace = params.getStr("phenoSrRace")
@@ -72,10 +68,10 @@ def allQcSteps(params: DataConfig): Unit = {
 
   object Local {
     // Inputs
-    val kgPurcellVcf = store[VCF].at(path(kgPurcellVcfDir) / kgPurcellVcfName).asInput
-    val kgSample = store[TXT].at(path(kgSampleDir) / kgSampleName).asInput
-    val regionsExclude = store[TXT].at(path(regionsExcludeDir) / regionsExcludeName).asInput
-    val pheno = store[TXT].at(path(phenoDir) / phenoName).asInput
+    val kgPurcellVcf = store[VCF].at(kgPurcellVcfFile).asInput
+    val kgSample = store[TXT].at(kgSampleFile).asInput
+    val regionsExclude = store[TXT].at(regionsExcludeFile).asInput
+    val pheno = store[TXT].at(phenoFile).asInput
 
     // Alignment Step
     val rawChrs: Array[Seq[Store[TXT]]] = Array.ofDim(nChr)
@@ -187,7 +183,7 @@ def allQcSteps(params: DataConfig): Unit = {
 
     // Load Step
     val harmRefVds = store[VCF].at(googleOutDir / s"${id}.harm.ref.vds")
-    val regionsExclude = store[TXT].at(googleOutDir / regionsExcludeName)
+    val regionsExclude = store[TXT].at(googleOutDir / basename(regionsExcludeFile))
 
     // Filter Step
     val harmRefFiltPrefix = googleOutDir / harmRefFiltPrefixName
@@ -205,8 +201,8 @@ def allQcSteps(params: DataConfig): Unit = {
     val kinFamsizes = store[TXT].at(kinPrefix + ".famsizes.tsv")
 
     // Ancestry PCA Step
-    val kgPurcellVcf = store[VCF].at(googleOutDir / kgPurcellVcfName)
-    val kgSample = store[TXT].at(googleOutDir / kgSampleName)
+    val kgPurcellVcf = store[VCF].at(googleOutDir / basename(kgPurcellVcfFile))
+    val kgSample = store[TXT].at(googleOutDir / basename(kgSampleFile))
     val harmRef1kgPrefix = googleOutDir / harmRef1kgPrefixName
     val harmRef1kg = bedBimFam(harmRef1kgPrefix)
 
@@ -219,7 +215,7 @@ def allQcSteps(params: DataConfig): Unit = {
 
     // Sample QC Stats Calculation Step
     val sampleqcStats = store[TXT].at(googleOutDir / sampleqcStatsName)
-    val pheno = store[TXT].at(googleOutDir / phenoName)
+    val pheno = store[TXT].at(googleOutDir / basename(phenoFile))
 
     // Sample QC Individual Stats Clustering Step
     val sampleqcStatsAdjOutliersTable = store[TXT].at(googleOutDir / sampleqcStatsAdjOutliersTableName)

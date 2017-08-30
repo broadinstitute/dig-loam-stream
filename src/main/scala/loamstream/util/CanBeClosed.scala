@@ -12,9 +12,9 @@ trait CanBeClosed[C] {
 }
 
 object CanBeClosed {
-  implicit def javaCloseablesCanBeClosed[C <: Closeable]: CanBeClosed[C] = (c: C) => c.close()
+  implicit def javaCloseablesCanBeClosed[C <: Closeable]: CanBeClosed[C] = _.close()
 
-  implicit def scalaSourcesCanBeClosed[S <: Source]: CanBeClosed[S] = (s: S) => s.close()
+  implicit def scalaSourcesCanBeClosed[S <: Source]: CanBeClosed[S] = _.close()
 
   def enclosed[A, C: CanBeClosed](c: C)(f: C => A): A = {
     try {

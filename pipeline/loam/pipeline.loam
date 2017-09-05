@@ -1,17 +1,16 @@
-import qc_params._
-import params._
 import binaries._
 import cloud_helpers._
+import config._
 import scripts._
 import store_helpers._
-import loamstream.model.Store
+
 import loamstream.conf.DataConfig
-import scala.io.Source
 import loamstream.googlecloud.HailSupport._
+import loamstream.model.Store
 
-val config = loadDataConfig(dataConfigFile)
+import scala.io.Source
 
-for (params <- config.getObjList("project")) {
+for (params <- dataConfig.getObjList("chips")) {
   allQcSteps(params)
 }
 
@@ -33,7 +32,6 @@ def allQcSteps(params: DataConfig): Unit = {
   val phenoSrRace = params.getStr("phenoSrRace")
   val phenoStatus = params.getStr("phenoStatus")
 
-  // TODO make these values work with dynamic execution
   val nChr = endChr - startChr + 1
 
   // Alignment Step

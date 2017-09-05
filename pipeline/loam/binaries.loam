@@ -1,21 +1,15 @@
-// Software Tools
-
 // UNIX
-val software = path("/humgen/diabetes2/users/ryank/software")
-val binGenotypeHarmonizer = software / "GenotypeHarmonizer-1.4.18/GenotypeHarmonizer.sh"
-val binKing = software / "king"
-val binPlink = software / "plink1.9/plink"
-val binTabix = software / "htslib-1.3/bin/tabix"
-val binKlustakwik = software / "KlustaKwik-2.0.1/KlustaKwik"
+val binGenotypeHarmonizer   = path(pipelineConfig.getStr("binaries.binGenotypeHarmonizer"))
+val binKing                 = path(pipelineConfig.getStr("binaries.binKing"))
+val binPlink                = path(pipelineConfig.getStr("binaries.binPlink"))
+val binTabix                = path(pipelineConfig.getStr("binaries.binTabix"))
+val binKlustakwik           = path(pipelineConfig.getStr("binaries.binKlustakwik"))
 
-val binBgzip = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/tabix/tabix_0.2.6/bin/bgzip")
-val binR = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/r_3.1.1-bioconductor-3.0/bin/R")
-val binRscript = path("/broad/software/free/Linux/redhat_6_x86_64/pkgs/r_3.4.0/bin/Rscript")
-val binHail = path("/humgen/diabetes2/users/kyuksel/github_repos/hail/build/install/hail/bin/hail")
+val binBgzip                = path(pipelineConfig.getStr("binaries.binBgzip"))
+val binR                    = path(pipelineConfig.getStr("binaries.binR"))
+val binRscript              = path(pipelineConfig.getStr("binaries.binRscript"))
 
 //Google Cloud-Facing
-val hailJarCloud = uri("gs://loamstream/hail/hail-all-spark.jar")
-
 val (gcloud, gsutil) = {
   val gcloudSdkBin = path("/home/unix/cgilbert/humgen/google-cloud-sdk/bin/")
   (gcloudSdkBin / "gcloud", gcloudSdkBin / "gsutil")

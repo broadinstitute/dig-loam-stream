@@ -166,13 +166,13 @@ object LoamToolBoxTest {
     }
 
     // scalastyle:off line.size.limit
+    // TODO: Clean up local paths
     val imputeParallel = TestHelpers.makeGraph { implicit sc =>
       import LoamPredef._
       import LoamCmdTool._
       import StoreType._
       import PathEnrichments._
-      
-      val kgpDir = path("/humgen/diabetes/users/ryank/internal_qc/1kg_phase3/1000GP_Phase3")
+
       val softDir = path("/humgen/diabetes/users/ryank/software")
       
       val shapeit = softDir / "shapeit/bin/shapeit"

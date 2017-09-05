@@ -140,12 +140,6 @@ object LoamPredef {
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     runIn(ExecutionEnvironment.Google)(expr)(scriptContext)
   }
-  
-  def loadConfig(path: String): DynamicConfig = {
-    val config = ConfigUtils.configFromFile(Paths.get(path))
-    
-    DynamicConfig(config)
-  }
 
-  def loadDataConfig(path: String): DataConfig = DataConfig.fromFile(path)
+  def loadConfig(path: String): DataConfig = DataConfig.fromFile(path)
 }

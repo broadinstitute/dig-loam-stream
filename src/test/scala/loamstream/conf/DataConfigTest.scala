@@ -23,6 +23,9 @@ final class DataConfigTest extends FunSuite {
   test("getStr") {
     assert(conf.getStr("project.id") === "METSIM")
 
+    assert(conf.getStr("binaries.local") === "/humgen/diabetes2/users/someone/software")
+    assert(conf.getStr("binaries.binKing") === "/humgen/diabetes2/users/someone/software/king")
+
     intercept[ConfigException.Missing] {
       conf.getStr("id.invalidKey")
     }

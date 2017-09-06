@@ -7,7 +7,7 @@ val googleOutDir    = uri(pipelineConfig.getStr("outputDirs.google"))
 val startChr        = pipelineConfig.getInt("startChr")
 val endChr          = pipelineConfig.getInt("endChr")
 
-val sampleQcMetrics = pipelineConfig.getStrList("sampleQcMetric")
+val sampleQcMetrics = pipelineConfig.getStrList("sampleQcMetrics")
 val ancestryKeep    = pipelineConfig.getStrList("ancestryKeep")
 val duplicatesKeep  = pipelineConfig.getStrList("duplicatesKeep")
 val famsizeKeep     = pipelineConfig.getStrList("famsizeKeep")

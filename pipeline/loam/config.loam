@@ -1,5 +1,3 @@
-import loamstream.conf.DataConfig
-
 val dataConfig      = loadConfig("pipeline/conf/camp/data.conf")
 val pipelineConfig  = loadConfig("pipeline/conf/pipeline.conf")
 

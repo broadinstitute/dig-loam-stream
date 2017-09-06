@@ -1,3 +1,5 @@
+import config._
+
 // UNIX
 val binGenotypeHarmonizer   = path(pipelineConfig.getStr("binaries.binGenotypeHarmonizer"))
 val binKing                 = path(pipelineConfig.getStr("binaries.binKing"))

@@ -8,8 +8,6 @@ import loamstream.conf.DataConfig
 import loamstream.googlecloud.HailSupport._
 import loamstream.model.Store
 
-import scala.io.Source
-
 for (params <- dataConfig.getObjList("chips")) {
   allQcSteps(params)
 }

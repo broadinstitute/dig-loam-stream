@@ -12,7 +12,5 @@ val binR                    = path(pipelineConfig.getStr("binaries.binR"))
 val binRscript              = path(pipelineConfig.getStr("binaries.binRscript"))
 
 //Google Cloud-Facing
-val (gcloud, gsutil) = {
-  val gcloudSdkBin = path("/home/unix/cgilbert/humgen/google-cloud-sdk/bin/")
-  (gcloudSdkBin / "gcloud", gcloudSdkBin / "gsutil")
-}
+val gcloud                  = path(loamstreamConfig.getStr("loamstream.googlecloud.gcloudBinary"))
+val gsutil                  = path(loamstreamConfig.getStr("loamstream.googlecloud.gsutilBinary"))

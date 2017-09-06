@@ -114,7 +114,7 @@ buildInfoTask := {
 /*
  * Command line to run: sbt convertLoams
  *
- * Cross-compiles all the .loam files in src/main/loam/ to .scala files in target/scala-2.11/src_managed/main/ .
+ * Cross-compiles all the .loam files in pipeline/loam/ to .scala files in target/scala-2.12/src_managed/main/ .
  * The output dir is the default value for the SBT setting 'sourceManaged', which is treated specially by SBT and IDEs
  * with SBT support. This makes it easier to load the generated .scala files in an IDE and see red squiggles for any
  * compile errors. In Eclipse, I refresh the project, and target/scala-2.11/src_managed/main/ is automatically picked
@@ -127,6 +127,6 @@ val convertLoams = taskKey[Unit]("convertLoams")
 
 //TODO: Add this to sourceGenerators somehow
 //TODO: Don't hard-code output dir; unfortunately, (sourceManaged in Compile) doesn't work :(
-convertLoams := (runMain in Compile).toTask(s" loamstream.util.LoamToScalaConverter src/main/loam/ target/scala-${Versions.ScalaMajor}/src_managed/main/").value
+convertLoams := (runMain in Compile).toTask(s" loamstream.util.LoamToScalaConverter pipeline/loam/ target/scala-${Versions.ScalaMajor}/src_managed/main/").value
 
 

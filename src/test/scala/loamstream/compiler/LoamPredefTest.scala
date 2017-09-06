@@ -74,29 +74,7 @@ final class LoamPredefTest extends FunSuite {
     
     assert(queue.isEmpty === true)
   }
-  
-  test("configFromFile") {
-    val config = LoamPredef.loadConfig("src/test/resources/foo.config")
-    
-    //Config file should have been loaded BUT NOT merged with defaults
-    
-    import net.ceedubs.ficus.Ficus._
-    
-    //default from reference.conf, shouldn't have been loaded
-    intercept[Exception] {
-      config.loamstream.uger.logFile.as[String]
-    }
-    
-    //new key
-    assert(config.loamstream.uger.maxNumJobs.as[Int] === 42)
-    
-    //new key
-    assert(config.loamstream.uger.foo.as[String] === "bar")
-    
-    //new key
-    assert(config.loamstream.nuh.as[String] === "zuh")
-  }
-  
+
   import ExecutionEnvironment._
   
   test("google") {

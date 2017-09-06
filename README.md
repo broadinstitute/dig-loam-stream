@@ -29,10 +29,14 @@ LoamStream is a genomic analysis stack featuring a high-level language, compiler
 - Run with `it:test`, either from the SBT prompt or when starting SBT (`sbt it:test`)
 
 `loamstream.QcPipelineEndToEndTest`:
- - Runs `qc.loam` through LS, equivalent to running 
+ - Runs `pipeline.loam` through LS, equivalent to running
   ```
-  scala -jar loamstream.jar --conf pipeline/loam/qc.conf pipeline/loam/binaries.loam pipeline/loam/cloud_helpers.loam \
-                                   pipeline/loam/input.loam pipeline/loam/qc.loam pipeline/loam/scripts.loam \
+  scala -jar loamstream.jar --conf pipeline/loam/loamstream.conf \
+                                   pipeline/loam/pipeline.loam \
+                                   pipeline/loam/params.loam \
+                                   pipeline/loam/binaries.loam \
+                                   pipeline/loam/scripts.loam \
+                                   pipeline/loam/cloud_helpers.loam \
                                    pipeline/loam/store_helpers.loam
   ```
   from the command line.

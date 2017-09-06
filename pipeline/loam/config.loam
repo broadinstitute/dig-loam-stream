@@ -1,5 +1,5 @@
 val dataConfig       = loadConfig("pipeline/conf/camp/data.conf")
-val pipelineConfig   = loadConfig("pipeline/conf/pipeline.conf")
+val pipelineConfig   = loadConfig("pipeline/conf/qc.conf")
 val loamstreamConfig = loadConfig("pipeline/conf/loamstream.conf")
 
 val localOutDir     = path(pipelineConfig.getStr("outputDirs.local"))

@@ -68,7 +68,7 @@ final class QcPipelineEndToEndTest extends FunSuite {
       Array(
           "--conf",
           "pipeline/conf/loamstream.conf",
-          "pipeline/loam/pipeline.loam",
+          "pipeline/loam/qc.loam",
           "pipeline/loam/config.loam",
           "pipeline/loam/binaries.loam",
           "pipeline/loam/scripts.loam",

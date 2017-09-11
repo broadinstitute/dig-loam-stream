@@ -13,10 +13,13 @@ parser$add_argument("--update-group", nargs=3, dest="update_group", default=NULL
 parser$add_argument("--rdata", dest="rdata", type="character", help="An output filename for PC-AiR Rdata file (to be read in for pcrelate)")
 args<-parser$parse_args()
 
+print(args)
+
 library(GENESIS)
 library(SNPRelate)
 library(GWASTools)
 library(gdsfmt)
+library(pryr)
 
 print("converting binary Plink data to GDS format")
 if(! is.null(args$exclude)) {
@@ -33,6 +36,8 @@ if(! is.null(args$exclude)) {
 	snpgdsBED2GDS(bed.fn = paste(args$plink_in,".bed",sep=""), bim.fn = paste(args$plink_in,".bim",sep=""), fam.fn = paste(args$plink_in,".fam",sep=""), out.gdsfn = args$gds_out)
 }
 
+print(paste("memory before running king: ",mem_used() / (1024^2),sep=""))
+
 print("running King robust to get kinship matrix")
 genofile <- snpgdsOpen(args$gds_out)
 king<-snpgdsIBDKING(genofile, sample.id=NULL, snp.id=NULL, autosome.only=TRUE, remove.monosnp=TRUE, maf=NaN, missing.rate=NaN, type="KING-robust", family.id=NULL, num.thread=NaN, verbose=TRUE)
@@ -40,6 +45,8 @@ kinship <- king$kinship
 rownames(kinship)<-king$sample.id
 colnames(kinship)<-king$sample.id
 snpgdsClose(genofile)
+
+print(paste("memory after running king and before running pcair: ",mem_used() / (1024^2),sep=""))
 
 print("load genotype data from GDS file")
 geno <- GdsGenotypeReader(filename = args$gds_out)
@@ -54,7 +61,9 @@ if(! is.null(args$force_unrel)) {
 }
 
 print("running pcair")
-mypcair <- pcair(genoData = genoData, kinMat = kinship, divMat = kinship, unrel.set = unrel_iids)
+mypcair <- pcair(genoData = genoData, kinMat = kinship, divMat = kinship, unrel.set = unrel_iids, snp.block.size = 10000)
+
+print(paste("memory after running pcair: ",mem_used() / (1024^2),sep=""))
 
 if(! is.null(args$rdata)) {
 	print("saving pcair results to rdata file")

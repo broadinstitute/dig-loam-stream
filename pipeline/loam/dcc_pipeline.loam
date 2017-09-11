@@ -13,26 +13,22 @@ val cfg = loadDataConfig(dataConfigFile)
 
 val projectId = cfg.getStr("projectId")
 
-// Initialize Map to hold output stores
-val storeMap = collection.mutable.Map[String, collection.mutable.Map[String, Store[TXT]]]()
-for(i <- 0 until cfg.getObjList("arrays").size()) {
-    storeMap(cfg.getObjList("arrays")(i).getStr("arrayId")) = collection.mutable.Map[String, Store[TXT]]()
-}
+val nArrays = cfg.getObjList("arrays").size()
 
 // Perform qc1, adding relevent (inter-array) stores to the map
-for(i <- 0 until cfg.getObjList("arrays").size()) {
-    storeMap(cfg.getObjList("arrays")(i).getStr("arrayId"))("ancestryInferred") = qc1(cfg, i, projectId, startChr, endChr)
+val ancestryInferredStores : Array[Store[TXT]] = Array.ofDim(nArrays)
+for(i <- 0 until nArrays) {
+  ancestryInferredStores(i) = qc1(cfg, i, projectId, startChr, endChr)
 }
 
 // ***Reconcile inferred ancestry step
-val ancestryInferredStores = collection.mutable.Set[Store[TXT]]()
-val ancestryInferredList = collection.mutable.Set[String]()
-val testLog = store[TXT].at(localOutDir / s"${projectId}.ancestry.inferred.log")
-storeMap.keys.foreach{ key => ancestryInferredStores += storeMap(key)("ancestryInferred") }
-storeMap.keys.foreach{ key => ancestryInferredList += storeMap(key)("ancestryInferred").toString() }
-val ancestryInferredString = ancestryInferredList.mkString(",")
+val ancestryInferredPathList = ancestryInferredStores.map(_.path).mkString(",")
+val ancestryInferredMerged = store[TXT].at(localOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
 local {
-  cmd"""echo ${ancestryInferredString} > ${testLog}""".in(ancestryInferredStores).out(testLog)
+  cmd"""$binRscript --vanilla --verbose
+    $rAncestryClusterMerge
+    --in $ancestryInferredPathList
+    --out ${ancestryInferredMerged}""".in(ancestryInferredStores).out(ancestryInferredMerged).using("R-3.4")
 }
 
 // Perform qc2, adding relevent (inter-array) stores to the map
@@ -329,6 +325,7 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
       --gds-out ${AncestryPcaLocal.harmRef1kgGds}
       --scores ${AncestryPcaLocal.ancestryPcaScores}
       --id $projectId
+      --force-unrel $kgSampleId ${InputLocal.kgSample}
       --update-pop $kgSampleId $kgSamplePop ${InputLocal.kgSample}
       --update-group $kgSampleId $kgSampleGroup ${InputLocal.kgSample}
       > ${AncestryPcaLocal.ancestryPcaLog}"""

@@ -10,20 +10,24 @@ import loamstream.googlecloud.HailSupport._
 
 // load configuration
 val cfg = loadDataConfig(dataConfigFile)
-
 val projectId = cfg.getStr("projectId")
 
 val nArrays = cfg.getObjList("arrays").size()
 
 // Perform qc1, adding relevent (inter-array) stores to the map
-val ancestryInferredStores : Array[Store[TXT]] = Array.ofDim(nArrays)
-for(i <- 0 until nArrays) {
-  ancestryInferredStores(i) = qc1(cfg, i, projectId, startChr, endChr)
+val ancestryInferredStores: Seq[Store[TXT]] = {
+  for(i <- 0 until nArrays) yield qc1(cfg, i, projectId, startChr, endChr)
 }
 
 // ***Reconcile inferred ancestry step
-val ancestryInferredPathList = ancestryInferredStores.map(_.path).mkString(",")
-val ancestryInferredMerged = store[TXT].at(localOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
+val ancestryInferredPathList = {
+  ancestryInferredStores.map(_.path).mkString(",")
+}
+  
+val ancestryInferredMerged = {
+  store[TXT].at(localOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
+}
+  
 local {
   cmd"""$binRscript --vanilla --verbose
     $rAncestryClusterMerge
@@ -35,11 +39,8 @@ local {
 //for(i <- 0 until cfg.getObjList("arrays").size()) {
 //    (storeMap(cfg.getObjList("arrays")(i).getStr("arrayId"))("ancestryInferred"), storeMap(cfg.getObjList("arrays")(i).getStr("arrayId"))("?")) = qc1(cfg, i)
 //}
-
-
-
 def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int): Store[TXT] = {
-
+  
   // Global parameters
   val nChr = endChr - startChr + 1
   val kgSampleId = cfg.getStr("kgSampleId")
@@ -50,14 +51,17 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
   val phenoSrSex = cfg.getStr("phenoSrSex")
   val phenoSrRace = cfg.getStr("phenoSrRace")
   val phenoStatus = cfg.getStr("phenoStatus")
-
   val arrayId = cfg.getObjList("arrays")(i).getStr("arrayId")
   val dataPath = cfg.getObjList("arrays")(i).getStr("dataPath")
   val dataType = cfg.getObjList("arrays")(i).getStr("dataType")
-
+  
   // Input Stores
   object InputLocal {
-    val data = if (dataType == "vcf") store[VCF].at(dataPath).asInput else store[TXT].at(s"${dataPath}.bed").asInput
+    val data = {
+      if (dataType == "vcf") { store[VCF].at(dataPath).asInput }
+      else { store[TXT].at(s"${dataPath}.bed").asInput }
+    }
+    
     val kgPurcellVcf = store[VCF].at(cfg.getStr("kgPurcellVcf")).asInput
     val kgSample = store[TXT].at(cfg.getStr("kgSample")).asInput
     val regionsExclude = store[TXT].at(cfg.getStr("regionsExclude")).asInput
@@ -75,82 +79,107 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
   *     Could also add --variants and --mafAlign as pipeline options, but for now these are static
   *     To save time, this will be run in parallel by chromosome number
   */
-
   val harmRefVcfName = s"${projectId}.${arrayId}.harm.ref.vcf.gz"
   val harmRefVcfTbiName = s"${projectId}.${arrayId}.harm.ref.vcf.gz.tbi"
 
+  def rawChrsName(chr: Int) = localOutDir / s"${projectId}.${arrayId}.chr$chr"
+  
   object AlignmentLocal {
-    val rawChrs: Array[Seq[Store[TXT]]] = Array.ofDim(nChr)
-    val harmChrsPrefix: Array[Path] = Array.ofDim(nChr)
-    val harmChrs: Array[Seq[Store[TXT]]] = Array.ofDim(nChr)
+    final case class Params(
+        rawChr: Seq[Store[TXT]],
+        harmChrsPrefix: Path,
+        harmChr: Seq[Store[TXT]],
+        kgVcfChr: Store[VCF],
+        harmVarIdUpdate: Store[TXT],
+        harmVarSnpLog: Store[TXT],
+        harmMergeLine: String)
+          
+    val paramsByChr: Seq[(Int, Params)] = (startChr to endChr).map { chr =>
+      val prefix = localOutDir / s"${projectId}.${arrayId}.chr$chr.harm"
+      val kgVcfChr = store[VCF].at(
+          kgVcfBaseWild
+            .replace("[CHROMOSOME]", s"$chr")
+            .replace("23.phase3_shapeit2_mvncall_integrated_v5a",
+                     "X.phase3_shapeit2_mvncall_integrated_v1b") + ".vcf.gz").asInput
+                       
+      chr -> Params(
+        rawChr = bedBimFam(rawChrsName(chr)),
+        harmChrsPrefix = prefix,
+        harmChr = bedBimFam(prefix),
+        kgVcfChr = kgVcfChr,
+        harmVarIdUpdate = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.chr$chr.harm_idUpdates.txt"),
+        harmVarSnpLog = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.chr$chr.harm_snpLog.log"),
+        harmMergeLine = s"$prefix.$bed $prefix.$bim $prefix.$fam")
+    }
+      
     val harmPrefix = localOutDir / s"${projectId}.${arrayId}.harm"
     val harm = bedBimFam(harmPrefix)
     val harmRefPrefix = localOutDir / s"${projectId}.${arrayId}.harm.ref"
     val harmRefVcf = store[VCF].at(localOutDir / harmRefVcfName)
     val harmRefVcfTbi = store[VCF].at(localOutDir / harmRefVcfTbiName)
-    val kgVcfChrs: Array[Store[VCF]] = Array.ofDim(nChr)
-    val harmVarIdUpdates: Array[Store[TXT]] = Array.ofDim(nChr)
-    val harmVarSnpLogs: Array[Store[TXT]] = Array.ofDim(nChr)
-    val harmMergeLines: Array[String] = Array.ofDim(nChr)
-    val harmMergeList = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.harm.merge.txt")
-    val harmForceA2 = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.harm.force_a2.txt")
+
+    val (_, paramsSortedByChr: Seq[Params]) = paramsByChr.unzip 
+      
+    val harmMergeLines: Seq[String] = paramsSortedByChr.map(_.harmChrsPrefix.toString)
+
+    val harmMergeList = {
+      store[TXT].at(localOutDir / s"${projectId}.${arrayId}.harm.merge.txt")
+    }
+    val harmForceA2 = {
+      store[TXT].at(localOutDir / s"${projectId}.${arrayId}.harm.force_a2.txt")
+    }
   }
 
   uger {
-    for ((i, j) <- (startChr to endChr).zipWithIndex) {
-      val rawChrsName = localOutDir / s"${projectId}.${arrayId}.chr$i"
-      AlignmentLocal.rawChrs(j) = bedBimFam(rawChrsName)
-      AlignmentLocal.harmChrsPrefix(j) = localOutDir / s"${projectId}.${arrayId}.chr$i.harm"
-      AlignmentLocal.harmChrs(j) = bedBimFam(AlignmentLocal.harmChrsPrefix(j))
-      AlignmentLocal.kgVcfChrs(j) = store[VCF].at(kgVcfBaseWild.replace("[CHROMOSOME]", s"$i").replace("23.phase3_shapeit2_mvncall_integrated_v5a","X.phase3_shapeit2_mvncall_integrated_v1b") + ".vcf.gz").asInput
-      AlignmentLocal.harmVarIdUpdates(j) = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.chr$i.harm_idUpdates.txt")
-      AlignmentLocal.harmVarSnpLogs(j) = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.chr$i.harm_snpLog.log")
-  
-      cmd"""$binPlink --$dataType $dataPath --chr $i --keep-allele-order --make-bed --output-chr MT --out $rawChrsName"""
-      .in(InputLocal.data)
-      .out(AlignmentLocal.rawChrs(j))
-  
-      cmd"""$binGenotypeHarmonizer
-        --input $rawChrsName
-        --inputType PLINK_BED
-        --output ${AlignmentLocal.harmChrsPrefix(j)}
-        --outputType PLINK_BED
-        --ref ${AlignmentLocal.kgVcfChrs(j)}
-        --refType VCF
-        --keep
-        --update-id
-        --variants 1000
-        --mafAlign 0.1
-        --update-id
-        --update-reference-allele
-        --debug"""
-        .in(AlignmentLocal.rawChrs(j) :+ AlignmentLocal.kgVcfChrs(j))
-        .out(AlignmentLocal.harmChrs(j) :+ AlignmentLocal.harmVarIdUpdates(j) :+ AlignmentLocal.harmVarSnpLogs(j))
-  
-      AlignmentLocal.harmMergeLines(j) = s"${AlignmentLocal.harmChrsPrefix(j) + s".$bed"} ${AlignmentLocal.harmChrsPrefix(j) + s".$bim"} ${AlignmentLocal.harmChrsPrefix(j) + s".$fam"}"
-    }
-  
-    val harmMergeLinesConcat: String = AlignmentLocal.harmMergeLines.drop(1).mkString("\n") // Exclude first chrom
-  
-    cmd"""echo "$harmMergeLinesConcat" > ${AlignmentLocal.harmMergeList}""".out(AlignmentLocal.harmMergeList)
-  
-    cmd"""$binPlink --bfile ${AlignmentLocal.harmChrsPrefix(0)} --merge-list ${AlignmentLocal.harmMergeList} --make-bed --keep-allele-order --out ${AlignmentLocal.harmPrefix}"""
-    .in(AlignmentLocal.harmChrs.flatten :+ AlignmentLocal.harmMergeList)
-    .out(AlignmentLocal.harm)
-  
-    cmd"""awk '{print $$2,$$5}' ${AlignmentLocal.harmPrefix}.bim > ${AlignmentLocal.harmForceA2}"""
-    .in(AlignmentLocal.harm)
-    .out(AlignmentLocal.harmForceA2)
-  
-    cmd"""$binPlink --bfile ${AlignmentLocal.harmPrefix} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${AlignmentLocal.harmForceA2} --out ${AlignmentLocal.harmRefPrefix}"""
-    .in(AlignmentLocal.harm :+ AlignmentLocal.harmForceA2)
-    .out(AlignmentLocal.harmRefVcf)
-  
-    cmd"""$binTabix -f -p vcf ${AlignmentLocal.harmRefVcf}"""
-    .in(AlignmentLocal.harmRefVcf)
-    .out(AlignmentLocal.harmRefVcfTbi)
-  }
+    for {
+      (chr, params) <- AlignmentLocal.paramsByChr
+    } {
+      cmd"""$binPlink --$dataType $dataPath --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${rawChrsName(chr)}"""
+        .in(InputLocal.data)
+        .out(params.rawChr)
 
+      cmd"""$binGenotypeHarmonizer
+      --input ${rawChrsName(chr)}
+      --inputType PLINK_BED
+      --output ${params.harmChrsPrefix}
+      --outputType PLINK_BED
+      --ref ${params.kgVcfChr}
+      --refType VCF
+      --keep
+      --update-id
+      --variants 1000
+      --mafAlign 0.1
+      --update-id
+      --update-reference-allele
+      --debug"""
+        .in(params.rawChr :+ params.kgVcfChr)
+        .out(params.harmChr :+ params.harmVarIdUpdate :+ params.harmVarSnpLog)
+    }
+
+    val harmMergeLinesConcat: String = AlignmentLocal.harmMergeLines
+      .drop(1)
+      .mkString("\n") // Exclude first chrom
+
+    cmd"""echo "$harmMergeLinesConcat" > ${AlignmentLocal.harmMergeList}"""
+      .out(AlignmentLocal.harmMergeList)
+
+    cmd"""$binPlink --bfile ${AlignmentLocal.paramsSortedByChr.head.harmChrsPrefix} --merge-list ${AlignmentLocal.harmMergeList} --make-bed --keep-allele-order --out ${AlignmentLocal.harmPrefix}"""
+      .in(AlignmentLocal.paramsSortedByChr.flatMap(_.harmChr) :+ AlignmentLocal.harmMergeList)
+      .out(AlignmentLocal.harm)
+
+    cmd"""awk '{print $$2,$$5}' ${AlignmentLocal.harmPrefix}.bim > ${AlignmentLocal.harmForceA2}"""
+      .in(AlignmentLocal.harm)
+      .out(AlignmentLocal.harmForceA2)
+
+    cmd"""$binPlink --bfile ${AlignmentLocal.harmPrefix} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${AlignmentLocal.harmForceA2} --out ${AlignmentLocal.harmRefPrefix}"""
+      .in(AlignmentLocal.harm :+ AlignmentLocal.harmForceA2)
+      .out(AlignmentLocal.harmRefVcf)
+
+    cmd"""$binTabix -f -p vcf ${AlignmentLocal.harmRefVcf}"""
+      .in(AlignmentLocal.harmRefVcf)
+      .out(AlignmentLocal.harmRefVcfTbi)
+  }
+  
   /**
    * Load Step
    *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
@@ -162,8 +191,8 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
    */
 
   object LoadGoogle {
-    val harmRefVcf = store[VCF].at(googleOutDir / s"${AlignmentLocal.harmRefVcf}".split("/").takeRight(1)(0))
-    val harmRefVcfTbi = store[VCF].at(googleOutDir / s"${AlignmentLocal.harmRefVcfTbi}".split("/").takeRight(1)(0))
+    val harmRefVcf = store[VCF].at(googleOutDir / s"${AlignmentLocal.harmRefVcf}".split("/").last)
+    val harmRefVcfTbi = store[VCF].at(googleOutDir / s"${AlignmentLocal.harmRefVcfTbi}".split("/").last)
     val harmRefVds = store[VCF].at(googleOutDir / s"${projectId}.${arrayId}.harm.ref.vds")
   }
   
@@ -201,7 +230,7 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
   }
 
   object FilterGoogle {
-    val regionsExclude = store[TXT].at(googleOutDir / s"${InputLocal.regionsExclude}".split("/").takeRight(1)(0))
+    val regionsExclude = store[TXT].at(googleOutDir / s"${InputLocal.regionsExclude}".split("/").last)
     val harmRefFiltPrefix = googleOutDir / harmRefFiltPrefixName
     val harmRefFilt = bedBimFam(harmRefFiltPrefix)
     val harmRefFiltVariantQc = store[TXT].at(googleOutDir / s"${harmRefFiltPrefixName}.variantqc.tsv")
@@ -293,8 +322,8 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
   }
 
   object AncestryPcaGoogle {
-    val kgPurcellVcf = store[VCF].at(googleOutDir / s"${InputLocal.kgPurcellVcf}".split("/").takeRight(1)(0))
-    val kgSample = store[TXT].at(googleOutDir / s"${InputLocal.kgSample}".split("/").takeRight(1)(0))
+    val kgPurcellVcf = store[VCF].at(googleOutDir / s"${InputLocal.kgPurcellVcf}".split("/").last)
+    val kgSample = store[TXT].at(googleOutDir / s"${InputLocal.kgSample}".split("/").last)
     val harmRef1kgPrefix = googleOutDir / harmRef1kgPrefixName
     val harmRef1kg = bedBimFam(harmRef1kgPrefix)
   }

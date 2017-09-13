@@ -4,6 +4,7 @@ import java.nio.file.{Files, Path}
 
 import loamstream.model.Store
 import loamstream.util.{BashScript, ValueBox}
+import loamstream.loam.HasLocation
 
 /**
   * LoamStream
@@ -11,11 +12,11 @@ import loamstream.util.{BashScript, ValueBox}
   */
 final class LoamFileManager {
 
-  private[this] val pathsBox: ValueBox[Map[Store.Untyped, Path]] = ValueBox(Map.empty)
+  private val pathsBox: ValueBox[Map[HasLocation, Path]] = ValueBox(Map.empty)
 
   val filePrefix = "loam"
 
-  def getPath(store: Store.Untyped): Path = {
+  def getPath(store: HasLocation): Path = {
     pathsBox.getAndUpdate { paths =>
       paths.get(store).orElse(store.pathOpt) match {
         case Some(path) => (paths, path)
@@ -28,7 +29,7 @@ final class LoamFileManager {
     }
   }
 
-  def getStoreString(store: Store.Untyped): String = {
+  def getStoreString(store: HasLocation): String = {
     val rawString = pathsBox.getAndUpdate { paths =>
       paths.get(store).orElse(store.pathOpt).orElse(store.uriOpt) match {
         case Some(locator) => (paths, locator.toString)
@@ -40,5 +41,15 @@ final class LoamFileManager {
     }
       
     BashScript.escapeString(rawString)
+  }
+}
+
+object LoamFileManager {
+  def apply(initial: Map[HasLocation, Path] = Map.empty): LoamFileManager = {
+    val result = new LoamFileManager
+    
+    result.pathsBox := initial
+    
+    result
   }
 }

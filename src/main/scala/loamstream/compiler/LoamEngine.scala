@@ -4,9 +4,6 @@ import java.nio.file.{Files => JFiles}
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import loamstream.compiler.messages.ClientMessageHandler
-import loamstream.compiler.messages.ErrorOutMessage
-import loamstream.compiler.messages.StatusOutMessage
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScript
@@ -22,6 +19,7 @@ import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.Executable
 import loamstream.util.StringUtils
 import loamstream.conf.LoamConfig
+import loamstream.loam.LoamGraph
 
 
 /**
@@ -31,34 +29,39 @@ import loamstream.conf.LoamConfig
 object LoamEngine {
   def default(
       config: LoamConfig,
-      outMessageSink: ClientMessageHandler.OutMessageSink = ClientMessageHandler.OutMessageSink.NoOp,
       csClient: Option[CloudStorageClient] = None): LoamEngine = {
     
-    val compiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
+    val compiler = LoamCompiler.default
     
-    LoamEngine(config, compiler, RxExecuter.default, outMessageSink, csClient)
+    LoamEngine(config, compiler, RxExecuter.default, csClient)
   }
 
   final case class Result(
-                           projectOpt: Shot[LoamProject],
-                           compileResultOpt: Shot[LoamCompiler.Result],
-                           jobExecutionsOpt: Shot[Map[LJob, Execution]])
+      projectOpt: Shot[LoamProject],
+      compileResultOpt: Shot[LoamCompiler.Result],
+      jobExecutionsOpt: Shot[Map[LJob, Execution]])
+      
+  def toExecutable(graph: LoamGraph, csClient: Option[CloudStorageClient] = None): Executable = {
+    
+    val mapping = LoamGraphAstMapper.newMapping(graph)
+    val toolBox = new LoamToolBox(graph, csClient)
 
+    //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
+    mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded
+  }
 }
 
 final case class LoamEngine(
     config: LoamConfig,
     compiler: LoamCompiler, 
     executer: Executer,
-    outMessageSink: ClientMessageHandler.OutMessageSink,
     csClient: Option[CloudStorageClient] = None) extends Loggable {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
-    val message = shot match {
-      case Hit(item) => StatusOutMessage(statusMsg)
-      case miss: Miss => ErrorOutMessage(miss.toString)
+    shot match {
+      case Hit(item) => info(statusMsg)
+      case miss: Miss => error(miss.toString)
     }
-    outMessageSink.send(message)
   }
 
   def loadFileWithName(fileName: String): Shot[LoamScript] = loadFile(Paths.get(fileName))
@@ -93,9 +96,10 @@ final case class LoamEngine(
 
     pathShot match {
       case Hit(path) => compile(path)
-      case miss: Miss =>
-        outMessageSink.send(ErrorOutMessage(miss.toString))
+      case miss: Miss => {
+        error(miss.toString)
         miss
+      }
     }
   }
 
@@ -118,7 +122,7 @@ final case class LoamEngine(
   def compileToExecutable(code: String): Option[Executable] = {
     val compilationResult = compile(LoamScript.withGeneratedName(code))
 
-    compilationResult.contextOpt.map(toExecutable)
+    compilationResult.contextOpt.map(_.graph).map(toExecutable)
   }
 
   def runFilesWithNames(fileNames: Iterable[String]): LoamEngine.Result = {
@@ -126,21 +130,22 @@ final case class LoamEngine(
 
     pathsShot match {
       case Hit(paths) => runFiles(paths)
-      case miss: Miss =>
-        outMessageSink.send(ErrorOutMessage(miss.toString))
+      case miss: Miss => {
+        error(miss.toString)
         LoamEngine.Result(miss, miss, miss)
+      }
     }
   }
 
   def runFileWithName(fileName: String): LoamEngine.Result = {
-    val pathShot = Shot {
-      Paths.get(fileName)
-    }
+    val pathShot = Shot(Paths.get(fileName))
+
     pathShot match {
       case Hit(path) => runFile(path)
-      case miss: Miss =>
-        outMessageSink.send(ErrorOutMessage(miss.toString))
+      case miss: Miss => {
+        error(miss.toString)
         LoamEngine.Result(miss, miss, miss)
+      }
     }
   }
 
@@ -160,13 +165,7 @@ final case class LoamEngine(
     }
   }
 
-  private def toExecutable(context: LoamProjectContext): Executable = {
-    val mapping = LoamGraphAstMapper.newMapping(context.graph)
-    val toolBox = new LoamToolBox(context, csClient)
-
-    //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
-    mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded
-  }
+  private def toExecutable(graph: LoamGraph): Executable = LoamEngine.toExecutable(graph, csClient)
 
   private def log(executable: Executable): Unit = {
     val buffer = new StringBuilder
@@ -178,16 +177,16 @@ final case class LoamEngine(
     debug(s"Job tree: $buffer")
   }
   
-  def run(context: LoamProjectContext): Map[LJob, Execution] = {
-    val executable = toExecutable(context)
+  def run(graph: LoamGraph): Map[LJob, Execution] = {
+    val executable = toExecutable(graph)
 
     log(executable)
     
-    outMessageSink.send(StatusOutMessage("Now going to execute."))
+    info("Now going to execute.")
 
     val executions = executer.execute(executable)
 
-    outMessageSink.send(StatusOutMessage(s"Done executing ${StringUtils.soMany(executions.size, "job")}."))
+    info(s"Done executing ${StringUtils.soMany(executions.size, "job")}.")
 
     executions
   }
@@ -199,17 +198,21 @@ final case class LoamEngine(
   def run(script: LoamScript): LoamEngine.Result = run(LoamProject(config, script))
 
   def run(project: LoamProject): LoamEngine.Result = {
-    outMessageSink.send(StatusOutMessage(s"Now compiling project with ${project.scripts.size} scripts."))
+    info(s"Now compiling project with ${project.scripts.size} scripts.")
+    
     val compileResults = compile(project)
+    
     if (compileResults.isValid) {
-      outMessageSink.send(StatusOutMessage(compileResults.summary))
+      info(compileResults.summary)
       //TODO: What if compileResults.contextOpt is None?
       val context = compileResults.contextOpt.get
-      val jobResults = run(context)
+      val jobResults = run(context.graph)
       LoamEngine.Result(Hit(project), Hit(compileResults), Hit(jobResults))
     } else {
-      outMessageSink.send(ErrorOutMessage("Could not compile."))
+      error("Could not compile.")
       LoamEngine.Result(Hit(project), Hit(compileResults), Miss("Could not compile"))
     }
   }
+  
+  def scriptsFrom(files: Iterable[Path]): Shot[Iterable[LoamScript]] = Shot.sequence(files.map(loadFile))
 }

@@ -10,8 +10,21 @@ import org.scalatest.FunSuite
 final class DataConfigTest extends FunSuite {
   private val conf = DataConfig.fromFile("src/test/resources/data.conf")
 
+  test("isDefined") {
+    val data = conf.getObjList("data")
+    assert(data(0).isDefined("pops"))
+    assert(data(1).isDefined("pops"))
+
+    assert(conf.isDefined("arrays.ex"))
+    assert(!conf.isDefined("arrays.dummy"))
+    assert(!conf.isDefined("arrays.doesNotExist"))
+  }
+
   test("getStr") {
     assert(conf.getStr("project.id") === "METSIM")
+
+    assert(conf.getStr("binaries.local") === "/humgen/diabetes2/users/someone/software")
+    assert(conf.getStr("binaries.binKing") === "/humgen/diabetes2/users/someone/software/king")
 
     intercept[ConfigException.Missing] {
       conf.getStr("id.invalidKey")
@@ -36,6 +49,13 @@ final class DataConfigTest extends FunSuite {
     intercept[ConfigException] {
       conf.getInt("invalidPath")
     }
+  }
+
+  test("getBool") {
+    val phenotypes = conf.getObjList("phenotypes")
+
+    assert(phenotypes(0).getBool("dichotomous"))
+    assert(!phenotypes(1).getBool("dichotomous"))
   }
 
   test("get{Obj,Str}List") {

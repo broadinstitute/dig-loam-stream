@@ -1,10 +1,10 @@
 package loamstream
 
-import org.scalatest.FunSuite
 import java.nio.file.Path
+
+import org.scalatest.FunSuite
+
 import loamstream.util.ExitCodes
-import java.nio.file.Paths
-import java.nio.file.{Files => JFiles}
 import loamstream.util.Files
 
 /**
@@ -12,61 +12,52 @@ import loamstream.util.Files
  * Apr 21, 2017
  */
 final class QcPipelineEndToEndTest extends FunSuite {
-  import JFiles.exists
-
+  import IntegrationTestHelpers.{ path, withLoudStackTraces }
+  
   private val referenceDir = path("/humgen/diabetes/users/dig/loamstream/ci/test-data/qc/camp/results")
   private val outputDir = path("./qc")
 
   test("Run the QC pipeline end-to-end on real data") {
-    try {
+    withLoudStackTraces {
       run()
-    } catch {
-      //NB: SBT drastically truncates stack traces. so print them manually to get more info.  
-      //This workaround is lame, but gives us a chance at debugging failures.
-      case e: Throwable => e.printStackTrace() ; throw e
     }
 
     //NB: Deterministic outputs from the penultimate Klustaskwik jobs
     //TODO: Better or different set of outputs to compare
     val filesToCheck: Seq[Path] = Seq(
-      path("CAMP.sampleqc.stats.adj.1.fet.1"),
-      path("CAMP.sampleqc.stats.adj.10.fet.1"),
-      path("CAMP.sampleqc.stats.adj.2.fet.1"),
-      path("CAMP.sampleqc.stats.adj.3.fet.1"),
-      path("CAMP.sampleqc.stats.adj.4.fet.1"),
-      path("CAMP.sampleqc.stats.adj.5.fet.1"),
-      path("CAMP.sampleqc.stats.adj.6.fet.1"),
-      path("CAMP.sampleqc.stats.adj.7.fet.1"),
-      path("CAMP.sampleqc.stats.adj.8.fet.1"),
-      path("CAMP.sampleqc.stats.adj.9.fet.1"),
-      path("CAMP.sampleqc.stats.adj.1.clu.1"),
-      path("CAMP.sampleqc.stats.adj.1.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.10.clu.1"),
-      path("CAMP.sampleqc.stats.adj.10.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.2.clu.1"),
-      path("CAMP.sampleqc.stats.adj.2.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.3.clu.1"),
-      path("CAMP.sampleqc.stats.adj.3.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.4.clu.1"),
-      path("CAMP.sampleqc.stats.adj.4.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.5.clu.1"),
-      path("CAMP.sampleqc.stats.adj.5.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.6.clu.1"),
-      path("CAMP.sampleqc.stats.adj.6.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.7.clu.1"),
-      path("CAMP.sampleqc.stats.adj.7.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.8.clu.1"),
-      path("CAMP.sampleqc.stats.adj.8.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.9.clu.1"),
-      path("CAMP.sampleqc.stats.adj.9.temp.clu.1"),
-      path("CAMP.sampleqc.stats.adj.temp.clu.1"))
+      path("CAMP.sampleqc.stats.adj.callRate_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.callRate_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.cluster.clu.1"),
+      path("CAMP.sampleqc.stats.adj.cluster.fet.1"),
+      path("CAMP.sampleqc.stats.adj.cluster.outliers"),
+      path("CAMP.sampleqc.stats.adj.cluster.xtabs"),
+      path("CAMP.sampleqc.stats.adj.hetHigh_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.hetHigh_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.hetLow_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.hetLow_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.het_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.het_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.ind.discreteness"),
+      path("CAMP.sampleqc.stats.adj.nCalled_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.nCalled_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.nHet_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.nHet_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.nHomVar_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.nHomVar_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.nNonRef_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.nNonRef_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.pca.loadings.tsv"),
+      path("CAMP.sampleqc.stats.adj.pca.scores.tsv"),
+      path("CAMP.sampleqc.stats.adj.rHetHomVar_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.rHetHomVar_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.rTiTv_res.clu.1"),
+      path("CAMP.sampleqc.stats.adj.rTiTv_res.fet.1"),
+      path("CAMP.sampleqc.stats.adj.tsv"))
 
     val pairsToCompare: Seq[(Path, Path)] = filesToCheck.map(p => (referenceDir.resolve(p), outputDir.resolve(p)))
 
     pairsToCompare.foreach(diff.tupled)
   }
-
-  private def path(s: String): Path = Paths.get(s)
 
   private def run(): Unit = {
     Files.createDirsIfNecessary(outputDir)
@@ -76,14 +67,12 @@ final class QcPipelineEndToEndTest extends FunSuite {
     val args: Array[String] = {
       Array(
           "--conf",
-          "pipeline/loam/qc.conf",
-          "pipeline/loam/binaries.loam",
-          "pipeline/loam/cloud_helpers.loam",
-          "pipeline/loam/input.loam",
-          //NB: This is the CI qc_params.loam, that will make us run over fewer chromosomes.
-          "pipeline/loam/ci/qc_params.loam",
+          "pipeline/conf/loamstream.conf",
           "pipeline/loam/qc.loam",
+          "pipeline/loam/config.loam",
+          "pipeline/loam/binaries.loam",
           "pipeline/loam/scripts.loam",
+          "pipeline/loam/cloud_helpers.loam",
           "pipeline/loam/store_helpers.loam")
     }
 

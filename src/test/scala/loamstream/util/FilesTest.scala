@@ -40,6 +40,29 @@ final class FilesTest extends FunSuite {
     assert(dummy.toFile.delete)
   }
 
+  test("listFiles") {
+    val dummy = Paths.get("target/dummy-listFiles").toAbsolutePath
+    val dummyFileSuffix = ".dummy.txt"
+
+    assert(!dummy.toFile.exists)
+    assert(Files.listFiles(dummy, ".*") === List.empty)
+
+    Files.createDirsIfNecessary(dummy)
+    assert(Files.listFiles(dummy, ".*") === List.empty)
+
+    val dummyFile1 = Files.tempFile(dummyFileSuffix, dummy.toFile).toFile
+    assert(Files.listFiles(dummy, ".*") === List(dummyFile1))
+
+    val dummyFile2 = Files.tempFile(dummyFileSuffix, dummy.toFile).toFile
+    assert(Files.listFiles(dummy, ".*").toSet === Set(dummyFile1, dummyFile2))
+    assert(Files.listFiles(dummy, ".*dummy.*").toSet === Set(dummyFile1, dummyFile2))
+    assert(Files.listFiles(dummy, ".*duMMy.*").toSet === Set.empty)
+
+    assert(dummyFile1.delete)
+    assert(dummyFile2.delete)
+    assert(dummy.toFile.delete)
+  }
+
   test("tryFile(String)") {
     assert(Files.tryFile("foo").isFailure)
 
@@ -173,7 +196,7 @@ final class FilesTest extends FunSuite {
   }
 
   def assertEachLine(file: Path, predicateDescription: String)(predicate: String => Boolean): Unit = {
-    LoamFileUtils.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
+    CanBeClosed.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
       assert(reader.lines().iterator().asScala.forall(predicate), s"Not true for every line: $predicateDescription")
     }
   }

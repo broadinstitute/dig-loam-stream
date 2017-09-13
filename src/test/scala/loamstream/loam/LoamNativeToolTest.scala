@@ -4,7 +4,6 @@ import java.nio.file.{Path, Files => JFiles}
 
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef._
-import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.loam.LoamCmdTool.StringContextWithCmd
 import loamstream.loam.ops.StoreType.TXT
 import loamstream.util.PathEnrichments._
@@ -57,7 +56,7 @@ final class LoamNativeToolTest extends FunSuite {
       s"There were some graph validation issues: ${graphValidationIssues.mkString("\n")}")
     JFiles.write(storePaths(0), fileContentString.getBytes)
     val loamEngine = LoamEngine.default(TestHelpers.config)
-    val jobResults = loamEngine.run(context)
+    val jobResults = loamEngine.run(context.graph)
     assert(jobResults.size === 4, s"Should have gotten 4 results, but got $jobResults")
     assert(jobResults.values.forall(_.isSuccess), s"Not all job results were successful: $jobResults")
     storePaths.foreach(assertFile)

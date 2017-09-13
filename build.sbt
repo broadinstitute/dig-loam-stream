@@ -9,13 +9,13 @@ lazy val Versions = new {
   val GoogleAuth = "0.6.0"
   val Htsjdk = "2.1.0"
   val LogBack = "1.1.6"
-  val Scala = "2.11.8"
-  val Scalariform = "0.1.8"
-  val ScalaMajor = "2.11"
+  val Scala = "2.12.3"
+  val ScalaFmt = "1.0.0-RC3"
+  val ScalaMajor = "2.12"
   val ScalaTest = "3.0.0"
-  val Scallop = "2.0.2"
+  val Scallop = "2.1.3"
   val TypesafeConfig = "1.3.0"
-  val Slick = "3.1.1"
+  val Slick = "3.2.0"
   val H2 = "1.4.192"
   val RxScala = "0.26.5"
   val Ficus = "1.4.0"
@@ -27,7 +27,7 @@ lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-library" % Versions.Scala,
   "org.scala-lang" % "scala-compiler" % Versions.Scala,
   "org.scala-lang" % "scala-reflect" % Versions.Scala,
-  "org.scalariform" %% "scalariform" % Versions.Scalariform,
+  "com.geirsson" %% "scalafmt-core" % Versions.ScalaFmt,
   "com.github.samtools" % "htsjdk" % Versions.Htsjdk,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
   "us.levk" % "drmaa-common" % Versions.DrmaaCommon,
@@ -90,6 +90,8 @@ lazy val webui = (project in file("webui"))
 
 enablePlugins(GitVersioning)
 
+scalastyleConfig in Test := file("scalastyle-config-for-tests.xml")
+
 val buildInfoTask = taskKey[Seq[File]]("buildInfo")
 
 buildInfoTask := {
@@ -117,7 +119,7 @@ buildInfoTask := {
 /*
  * Command line to run: sbt convertLoams
  *
- * Cross-compiles all the .loam files in src/main/loam/ to .scala files in target/scala-2.11/src_managed/main/ .
+ * Cross-compiles all the .loam files in pipeline/loam/ to .scala files in target/scala-2.12/src_managed/main/ .
  * The output dir is the default value for the SBT setting 'sourceManaged', which is treated specially by SBT and IDEs
  * with SBT support. This makes it easier to load the generated .scala files in an IDE and see red squiggles for any
  * compile errors. In Eclipse, I refresh the project, and target/scala-2.11/src_managed/main/ is automatically picked
@@ -130,6 +132,6 @@ val convertLoams = taskKey[Unit]("convertLoams")
 
 //TODO: Add this to sourceGenerators somehow
 //TODO: Don't hard-code output dir; unfortunately, (sourceManaged in Compile) doesn't work :(
-convertLoams := (runMain in Compile).toTask(s" loamstream.util.LoamToScalaConverter src/main/loam/ target/scala-${Versions.ScalaMajor}/src_managed/main/").value
+convertLoams := (runMain in Compile).toTask(s" loamstream.util.LoamToScalaConverter pipeline/loam/ target/scala-${Versions.ScalaMajor}/src_managed/main/").value
 
 

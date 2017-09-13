@@ -4,7 +4,6 @@ import org.scalatest.FunSuite
 import java.nio.file.Paths
 
 import loamstream.compiler.LoamEngine
-import loamstream.compiler.messages.ClientMessageHandler
 import loamstream.util.PlatformUtil
 import loamstream.TestHelpers
 

@@ -61,7 +61,7 @@ object Resources {
   object UgerResources {
     object Keys {
       val cpu = "cpu"
-      val mem = "mem"
+      val mem = "ru_maxrss"
       val startTime = "start_time"
       val endTime = "end_time"
     }
@@ -85,8 +85,11 @@ object Resources {
       
       //NB: Uger reports cpu time as a floating-point number of cpu-seconds. 
       def toCpuTime(s: String) = CpuTime(s.toDouble.seconds)
-      //NB: Uger reports memory used as a floating-point number of gigabytes.
-      def toMemory(s: String) = Memory.inGb(s.toDouble)
+
+      //NB: The value of qacct's ru_maxrss field (in kilobytes) is the closest approximation of
+      //a Uger job's memory utilization
+      def toMemory(s: String) = Memory.inKb(s.toDouble)
+
       //NB: Uger returns times as floating-point numbers of milliseconds since the epoch, but the values
       //always represent integers, like '1488840586288.0000'. (Note the trailing .0000)
       //So we convert to a double first, then to a long, to drop the superfluous fractional part.

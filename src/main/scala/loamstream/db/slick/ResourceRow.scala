@@ -25,7 +25,7 @@ object ResourceRow {
       LocalResourceRow(executionId, Timestamp.from(startTime), Timestamp.from(endTime))
     }
     case UgerResources(mem, cpu, node, queue, startTime, endTime) => {
-      UgerResourceRow(executionId, mem.gb, cpu.seconds, node, queue.map(_.name),
+      UgerResourceRow(executionId, mem.kb, cpu.seconds, node, queue.map(_.name),
         Timestamp.from(startTime), Timestamp.from(endTime))
     }
     case GoogleResources(cluster, startTime, endTime) => {
@@ -59,7 +59,7 @@ final case class UgerResourceRow(executionId: Int,
     import scala.concurrent.duration._
     
     UgerResources(
-        Memory.inGb(mem), CpuTime(cpu.seconds), node, 
+        Memory.inKb(mem), CpuTime(cpu.seconds), node,
         queue.flatMap(Queue.fromString), startTime.toInstant, endTime.toInstant)
   }
   

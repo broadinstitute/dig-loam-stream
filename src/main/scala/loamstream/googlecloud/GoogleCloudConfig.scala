@@ -25,18 +25,26 @@ final case class GoogleCloudConfig(
     workerMachineType: String = Defaults.workerMachineType,
     workerBootDiskSize: Int = Defaults.workerBootDiskSize, 
     imageVersion: String = Defaults.imageVersion, 
-    scopes: String = Defaults.scopes)
+    scopes: String = Defaults.scopes,
+    properties: String = Defaults.properties,
+    initializationActions: String = Defaults.initializationActions)
     
 object GoogleCloudConfig {
   object Defaults { // for creating a minimal cluster
-    val zone: String = "us-central1-f"
+    val zone: String = "us-central1-b"
     val masterMachineType: String = "n1-standard-1"
     val masterBootDiskSize: Int = 20 // in GB
     val numWorkers: Int = 2
     val workerMachineType: String = "n1-standard-1"
     val workerBootDiskSize: Int = 20 // in GB
-    val imageVersion: String = "1.0" // 2.x not supported by Hail
+    val imageVersion: String = "1.1" // 2.x not supported by Hail, 1.1 needed for new Python API
     val scopes: String = "https://www.googleapis.com/auth/cloud-platform"
+    val properties: String = {
+      "spark:spark.driver.extraJavaOptions=-Xss4M,spark:spark.executor.extraJavaOptions=-Xss4M," +
+      "spark:spark.driver.memory=45g,spark:spark.driver.maxResultSize=30g,spark:spark.task.maxFailures=20," +
+      "spark:spark.kryoserializer.buffer.max=1g,hdfs:dfs.replication=1"
+    }
+    val initializationActions: String = "gs://loamstream/hail/hail-init.sh"
   }
   
   def fromConfig(config: Config): Try[GoogleCloudConfig] = {

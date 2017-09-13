@@ -1,6 +1,6 @@
 package loamstream.loam
 
-import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
+import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken, MultiStoreToken, MultiToken}
 import loamstream.model.Tool.{AllStores, DefaultStores}
 import loamstream.model.{LId, Store, Tool}
 import loamstream.util.StringUtils
@@ -55,14 +55,22 @@ object LoamCmdTool {
 
   /** BEWARE: This method has the side-effect of modifying the graph within scriptContext */
   private def addToGraph(tool: LoamCmdTool)(implicit scriptContext: LoamScriptContext): Unit = {
-    scriptContext.projectContext.graphBox.mutate { graph =>
+    scriptContext.projectContext.updateGraph { graph =>
       graph.withTool(tool, scriptContext)
     }
+  }
+  
+  private[loam] def isHasLocationIterable(xs: Iterable[_]): Boolean = {
+    xs.nonEmpty && xs.forall(_.isInstanceOf[HasLocation])
   }
   
   def toToken(arg: Any): LoamToken = arg match {
     case store: Store.Untyped => StoreToken(store)
     case storeRef: LoamStoreRef => StoreRefToken(storeRef)
+    //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
+    //the isHasLocationIterable() guard
+    case stores: Iterable[HasLocation] @unchecked if isHasLocationIterable(stores) => MultiStoreToken(stores)
+    case args: Iterable[_] => MultiToken(args)
     //NB: Will throw if the DynamicConf represents a config key that's not present,
     //or a key that points to a sub-config (ie NOT a string or number)
     case conf: DynamicConfig => StringToken(conf.unpack.toString)
@@ -99,7 +107,7 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
 
     val updatedTool = copy(tokens = useToken +: tokens :+ closeParenToken)
 
-    scriptContext.projectContext.graphBox.mutate { graph =>
+    scriptContext.projectContext.updateGraph { graph =>
       graph.updateTool(this, updatedTool)
     }
 

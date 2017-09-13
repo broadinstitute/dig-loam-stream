@@ -1,12 +1,23 @@
-// Scripts
+import config._
 
-val rScriptsDir = path("/humgen/diabetes/users/ryank/software/dig-loam-stream/pipeline/r_scripts")
+val scriptsDir = path(pipelineConfig.getStr("scripts"))
 
-val CALC_KINSHIP_SAMPLE_SHARING_R = rScriptsDir / "calc_kinship_sample_sharing.r"
-val PLOT_ANCESTRY_PCA_R = rScriptsDir / "plot_ancestry_pca.r"
-val PLOT_ANCESTRY_CLUSTER_R = rScriptsDir / "plot_ancestry_cluster.r"
-val ISTATS_PCS_GMM_CLUSTER_PLOT_R = rScriptsDir / "istats_pcs_gmm_cluster_plot.r"
-val ISTATS_PCS_GMM_PLOT_METRICS_R = rScriptsDir / "istats_pcs_gmm_plot_metrics.r"
-val ISTATS_ADJ_GMM_PLOT_METRICS_R = rScriptsDir / "istats_adj_gmm_plot_metrics.r"
-val CALC_ISTATS_ADJ_R: Path = rScriptsDir / "calc_istats_adj.r"
-val ISTATS_ADJ_PCA_R: Path = rScriptsDir / "istats_adj_pca.r"
+val pyHailLoad                  = scriptsDir / "hail_load.py"
+val pyHailFilter                = scriptsDir / "hail_filter.py"
+val pyHailAncestryPcaMerge1kg   = scriptsDir / "hail_ancestry_pca_merge_1kg.py"
+val pyHailPcaMerge1kg           = scriptsDir / "hail_pca_merge_1kg.py"
+val pyHailSampleqc              = scriptsDir / "hail_sampleqc.py"
+val pyHailSexcheck              = scriptsDir / "hail_sexcheck.py"
+val pyHailFilterFinal           = scriptsDir / "hail_filter_final.py"
+val shKing                      = scriptsDir / "king.sh"
+val rCalcKinshipFamSizes        = scriptsDir / "calc_kinship_fam_sizes.r"
+val rPcair                      = scriptsDir / "pcair.r"
+val rPcrelate                   = scriptsDir / "pcrelate.r"
+val rPlotAncestryPca            = scriptsDir / "plot_ancestry_pca.r"
+val rPlotAncestryCluster        = scriptsDir / "plot_ancestry_cluster.r"
+val rIstatsPcsGmmClusterPlot    = scriptsDir / "istats_pcs_gmm_cluster_plot.r"
+val rIstatsPcsGmmPlotMetrics    = scriptsDir / "istats_pcs_gmm_plot_metrics.r"
+val rIstatsAdjGmmPlotMetrics    = scriptsDir / "istats_adj_gmm_plot_metrics.r"
+val rCalcIstatsAdj              = scriptsDir / "calc_istats_adj.r"
+val rIstatsAdjPca               = scriptsDir / "istats_adj_pca.r"
+val pyCompileExclusions         = scriptsDir / "compile_exclusions.py"

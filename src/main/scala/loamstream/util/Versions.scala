@@ -2,7 +2,6 @@ package loamstream.util
 
 import scala.util.Try
 import java.util.Properties
-import java.io.InputStream
 import java.time.Instant
 import java.io.Reader
 import java.io.InputStreamReader
@@ -80,7 +79,7 @@ object Versions {
   }
   
   private def toProps(reader: Reader): Try[Properties] = Try {
-    LoamFileUtils.enclosed(reader) { _ =>
+    CanBeClosed.enclosed(reader) { _ =>
       val props = new Properties
           
       props.load(reader)

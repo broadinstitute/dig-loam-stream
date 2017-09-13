@@ -5,7 +5,7 @@ import java.sql.Timestamp
 import loamstream.model.jobs.JobStatus
 import loamstream.util.Futures
 import loamstream.util.Loggable
-import slick.driver.JdbcProfile
+import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MTable
 
 /**
@@ -244,7 +244,7 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
   def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)
 
   private def log(schema: SchemaDescription): Unit = {
-    schema.createStatements.foreach(s => debug(s"DDL: $s"))
+    schema.createStatements.foreach(s => trace(s"DDL: $s"))
   }
 
   private def perform[A](database: Database)(action: DBIO[A]): A = {

@@ -1,18 +1,21 @@
 package loamstream.apps
 
+import scala.util.Failure
+import scala.util.Success
+
+import org.ggf.drmaa.DrmaaException
+
 import loamstream.cli.Conf
-import loamstream.util.Loggable
-import loamstream.compiler.messages.ClientMessageHandler.OutMessageSink.LoggableOutMessageSink
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
-import loamstream.cli.BackendType
-import org.ggf.drmaa.DrmaaException
-import loamstream.util.OneTimeLatch
+import loamstream.compiler.LoamProject
+import loamstream.loam.LoamScript
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
+import loamstream.util.Loggable
+import loamstream.util.OneTimeLatch
 import loamstream.util.Versions
-import scala.util.Success
-import scala.util.Failure
+
 
 /**
  * @author clint
@@ -25,7 +28,7 @@ object Main extends Loggable {
     describeLoamstream()
     
     if (cli.dryRun.isSupplied) {
-      compileOnly(cli)
+      compile(cli)
     } else {
       run(cli)
     }
@@ -39,29 +42,24 @@ object Main extends Loggable {
     })
   }
 
-  private def outMessageSink = LoggableOutMessageSink(this)
-
-  private def run(cli: Conf): Unit = {
+  private[apps] def run(cli: Conf): Unit = {
     val wiring = AppWiring(cli)
     
     addShutdownHook(wiring)
 
-    def shutdownAfter[A](f: => A): A = try { f } finally { shutdown(wiring) }
-
     val loamEngine = {
-      val loamCompiler = new LoamCompiler(LoamCompiler.Settings.default, outMessageSink)
-
-      LoamEngine(wiring.config, loamCompiler, wiring.executer, outMessageSink, wiring.cloudStorageClient)
+      val loamCompiler = LoamCompiler.default
+      
+      LoamEngine(wiring.config, loamCompiler, wiring.executer, wiring.cloudStorageClient)
     }
 
     try {
-      //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
-      //before final job statuses.
-      val engineResult = shutdownAfter {
-        loamEngine.runFiles(cli.loams())
-      }
+      val project = LoamProject(loamEngine.config, loamScripts)
 
-      val jobsToExecutions = engineResult.jobExecutionsOpt.get
+      //TODO: Move to AppWiring?
+      val runner = LoamRunner(loamEngine, prj => compile(loamEngine, prj), shutdownAfter(wiring))
+      
+      val jobsToExecutions = runner.run(project)
       
       listResults(jobsToExecutions)
       
@@ -69,8 +67,18 @@ object Main extends Loggable {
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
     }
+
+    def loamScripts: Iterable[LoamScript] = {
+      val loamFiles = cli.loams()
+      val loamScriptsShot = loamEngine.scriptsFrom(loamFiles)
+      assert(loamScriptsShot.isHit, "Could not load loam scripts")
+
+      loamScriptsShot.get
+    }
   }
-  
+
+  private def shutdownAfter[A](execution: AppWiring)(f: => A): A = try { f } finally { shutdown(execution) }
+
   private def describeLoamstream(): Unit = Versions.load match {
     case Success(versions) => info(versions.toString)
     case Failure(e) => warn("Unable to determine version info: ", e)
@@ -132,10 +140,29 @@ object Main extends Loggable {
     }
   }
 
-  private def compileOnly(cli: Conf): Unit = {
+  private def contextFrom(compilationResult: LoamCompiler.Result) = {
+    assert(compilationResult.contextOpt.nonEmpty, "Loam compilation results do not have context.")
+
+    compilationResult.contextOpt.get
+  }
+
+  private def compile(loamEngine: LoamEngine, project: LoamProject): LoamCompiler.Result = {
+    
+    info(s"Now compiling project with ${project.scripts.size} scripts.")
+
+    val compilationResult = loamEngine.compile(project)
+    
+    assert(compilationResult.isValid, "Loam compilation result is not valid.")
+    
+    info(compilationResult.summary)
+
+    compilationResult
+  }
+
+  private def compile(cli: Conf): Unit = {
     val wiring = AppWiring(cli)
 
-    val loamEngine = LoamEngine.default(wiring.config, outMessageSink)
+    val loamEngine = LoamEngine.default(wiring.config)
 
     val compilationResultShot = loamEngine.compileFiles(cli.loams())
 

@@ -1,9 +1,0 @@
-val hail = path("/Users/kyuksel/GitHubClones/hail/build/install/hail/bin/hail")
-
-val vcfFile = store[VCF].from("src/test/resources/hail.vcf.gz")
-val vdsDir = store[TXT].to("target/hail.vds")
-val singletonsFile = store[TXT].to("target/singletons.tsv")
-
-cmd"""$hail importvcf -f $vcfFile splitmulti write -o $vdsDir"""
-
-cmd"""$hail read -i $vdsDir sampleqc exportsamples -o $singletonsFile -c SAMPLE=s.id,SINGLETONS=sa.qc.nSingleton"""

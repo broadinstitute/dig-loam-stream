@@ -9,5 +9,5 @@ import com.typesafe.config.ConfigFactory
  * Oct 19, 2016
  */
 object ConfigUtils {
-  def configFromFile(confFile: Path): Config = ConfigFactory.parseFile(confFile.toAbsolutePath.toFile)
+  def configFromFile(confFile: Path): Config = ConfigFactory.parseFile(confFile.toAbsolutePath.toFile).resolve()
 }

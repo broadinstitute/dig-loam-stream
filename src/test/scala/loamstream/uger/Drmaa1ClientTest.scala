@@ -13,6 +13,8 @@ import java.time.Instant
 final class Drmaa1ClientTest extends FunSuite {
   private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue.Short), Some("foo.example.com"))
   
+  import Drmaa1ClientTest.LiteralJobInfo
+  
   //scalastyle:off magic.number
   test("toResources - valid resource-usage data in JobInfo") {
     val mockUgerClient = new MockAccountingClient(_ => actualQacctOutput)
@@ -26,7 +28,7 @@ final class Drmaa1ClientTest extends FunSuite {
     import scala.concurrent.duration._
     
     assert(r.cpuTime === CpuTime(1.9867.seconds))
-    assert(r.memory === Memory.inGb(0.0141))
+    assert(r.memory === Memory.inKb(54328))
     assert(r.node === None)
     assert(r.queue === None)
     assert(r.startTime === Instant.ofEpochMilli(1488840619845L))
@@ -47,23 +49,6 @@ final class Drmaa1ClientTest extends FunSuite {
     assert(mockUgerClient.timesGetQueueInvoked() == 0)
   }
   
-  private final case class LiteralJobInfo(
-      getJobId: String,
-      resourceUsage: Map[Any, Any],
-      hasExited: Boolean = true,
-      getExitStatus: Int = 0,
-      hasSignaled: Boolean = false,
-      getTerminatingSignal: String = "",
-      hasCoreDump: Boolean = false,
-      wasAborted: Boolean = false) extends JobInfo {
-    
-    override def getResourceUsage: java.util.Map[_, _] = {
-      import scala.collection.JavaConverters._
-      
-      resourceUsage.asJava
-    }
-  }
-      
   private val realWorldResourceUsageMap: Map[Any,Any] = Map(
       "acct_cpu" -> "1.9867",
       "acct_io" -> "0.0047",
@@ -105,4 +90,23 @@ final class Drmaa1ClientTest extends FunSuite {
       "wallclock" -> "2.7110")
       
   //scalastyle:on magic.number
+}
+
+object Drmaa1ClientTest {
+  private final case class LiteralJobInfo(
+      getJobId: String,
+      resourceUsage: Map[Any, Any],
+      hasExited: Boolean = true,
+      getExitStatus: Int = 0,
+      hasSignaled: Boolean = false,
+      getTerminatingSignal: String = "",
+      hasCoreDump: Boolean = false,
+      wasAborted: Boolean = false) extends JobInfo {
+    
+    override def getResourceUsage: java.util.Map[_, _] = {
+      import scala.collection.JavaConverters._
+      
+      resourceUsage.asJava
+    }
+  }
 }

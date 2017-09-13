@@ -9,6 +9,11 @@ import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.model.jobs.{JobResult, JobStatus, NoOpJob}
+import loamstream.loam.LoamGraph
+import loamstream.compiler.LoamPredef
+import loamstream.loam.LoamCmdTool
+import loamstream.loam.ops.filters.StoreFieldFilter
+import loamstream.loam.ops.mappers.TextStoreFieldExtractor
 
 
 /** Test Loam store ops */
@@ -18,19 +23,17 @@ final class LoamStoreOpsTest extends FunSuite {
     assert(Files.countLines(path) === nLines)
   }
 
-  private def runAndAssertRunsFine(script: LoamScript, nStores: Int, nTools: Int, nJobs: Int): Unit = {
-    val engine = LoamEngine.default(TestHelpers.config)
-    val result = engine.run(script)
-    val graph = result.compileResultOpt.get.contextOpt.get.graph
+  private def runAndAssertRunsFine(graph: LoamGraph, nStores: Int, nTools: Int, nJobs: Int): Unit = {
+    val jobExecutions = TestHelpers.run(graph)
+    
     assert(graph.stores.size === nStores)
     assert(graph.tools.size === nTools)
-    assert(result.jobExecutionsOpt.nonEmpty, result.jobExecutionsOpt.message)
-    val jobExecutions = result.jobExecutionsOpt.get
+    
     assert(jobExecutions.size === nJobs)
     val jobStatuses = jobExecutions.values.map(_.status)
-    assert(jobStatuses.forall(_.isInstanceOf[JobStatus.Succeeded.type]))
+    assert(jobStatuses.forall(_ == JobStatus.Succeeded))
     val nonNoOpJobResults = jobExecutions.filterKeys(!_.isInstanceOf[NoOpJob]).values.map(_.result)
-    assert(nonNoOpJobResults.forall(_.get.isInstanceOf[JobResult.Success.type]))
+    assert(nonNoOpJobResults.forall(_.get == JobResult.Success))
   }
 
   private val inContent = {
@@ -53,13 +56,16 @@ final class LoamStoreOpsTest extends FunSuite {
     Files.writeTo(inFile)(inContent)
     val unplaced = dir.resolve("unplaced.bim")
     val chr7 = dir.resolve("chr7.bim")
-    val script = LoamScript("filter",
-      s"""
-         |val variants = store[BIM].at(${inFile.asStringLiteral}).asInput
-         |val variantsUnplaced = variants.filter(StoreFieldFilter.isUndefined(BIM.chr)).at(${unplaced.asStringLiteral})
-         |val variantsOnChr7 = variants.filter(BIM.chr)(_ == 7).at(${chr7.asStringLiteral})
-      """.stripMargin)
-    runAndAssertRunsFine(script, 3, 2, 3)
+    val graph = TestHelpers.makeGraph { implicit sc =>
+      import LoamPredef._
+      import LoamCmdTool._
+      import StoreType._
+      
+      val variants = store[BIM].at(inFile).asInput
+      val variantsUnplaced = variants.filter(StoreFieldFilter.isUndefined(BIM.chr)).at(unplaced)
+      val variantsOnChr7 = variants.filter(BIM.chr)(_ == 7).at(chr7)
+    }
+    runAndAssertRunsFine(graph, 3, 2, 3)
     assertFileHasNLines(unplaced, 3)
     assertFileHasNLines(chr7, 3)
   }
@@ -68,14 +74,19 @@ final class LoamStoreOpsTest extends FunSuite {
     val dir = JFiles.createTempDirectory("LoamStoreOpsTest")
     val inFile = dir.resolve("data.bim")
     Files.writeTo(inFile)(inContent)
-    val snps = dir.resolve("snps.txt")
-    val script = LoamScript("filter",
-      s"""
-         |val variants = store[BIM].at(${inFile.asStringLiteral}).asInput
-         |val mapper = TextStoreFieldExtractor(BIM.id)
-         |val snps = variants.map(mapper).at(${snps.asStringLiteral})
-      """.stripMargin)
-    runAndAssertRunsFine(script, 2, 1, 1)
+    val snps: Path = dir.resolve("snps.txt")
+    
+    val graph = TestHelpers.makeGraph { implicit sc =>
+      import LoamPredef._
+      import LoamCmdTool._
+      import StoreType._
+      
+      val variants = store[BIM].at(inFile).asInput
+      val mapper = TextStoreFieldExtractor(BIM.id)
+      val mapped = variants.map(mapper).at(snps)
+    }
+    
+    runAndAssertRunsFine(graph, 2, 1, 1)
     assertFileHasNLines(snps, 9) // scalastyle:ignore magic.number
     val snpsContent = Files.readFrom(snps)
     val snpsContentExpected = (1 to 9).map(i => s"SNP$i").mkString(System.lineSeparator)
@@ -87,12 +98,16 @@ final class LoamStoreOpsTest extends FunSuite {
     val inFile = dir.resolve("data.bim")
     Files.writeTo(inFile)(inContent)
     val snps = dir.resolve("snps.txt")
-    val script = LoamScript("filter",
-      s"""
-         |val variants = store[BIM].at(${inFile.asStringLiteral}).asInput
-         |val snps = variants.extract(BIM.id).at(${snps.asStringLiteral})
-      """.stripMargin)
-    runAndAssertRunsFine(script, 2, 1, 1)
+    val graph = TestHelpers.makeGraph { implicit sc =>
+      import LoamPredef._
+      import LoamCmdTool._
+      import StoreType._
+
+      val variants = store[BIM].at(inFile).asInput
+      val extracted = variants.extract(BIM.id).at(snps)
+    }
+      
+    runAndAssertRunsFine(graph, 2, 1, 1)
     assertFileHasNLines(snps, 9) // scalastyle:ignore magic.number
     val snpsContent = Files.readFrom(snps)
     val snpsContentExpected = (1 to 9).map(i => s"SNP$i").mkString(System.lineSeparator)
@@ -104,13 +119,17 @@ final class LoamStoreOpsTest extends FunSuite {
     val inFile = dir.resolve("data.bim")
     Files.writeTo(inFile)(inContent)
     val unplacedSnps = dir.resolve("unplacedSnps.txt")
-    val script = LoamScript("filterMap",
-      s"""
-         |val variants = store[BIM].at(${inFile.asStringLiteral}).asInput
-         |val unplacedSnps =
-         |  variants.filter(StoreFieldFilter.isUndefined(BIM.chr)).extract(BIM.id).at(${unplacedSnps.asStringLiteral})
-      """.stripMargin)
-    runAndAssertRunsFine(script, 3, 2, 2)
+    
+    val graph = TestHelpers.makeGraph { implicit sc =>
+      import LoamPredef._
+      import LoamCmdTool._
+      import StoreType._
+
+      val variants = store[BIM].at(inFile).asInput
+      val filtered = variants.filter(StoreFieldFilter.isUndefined(BIM.chr)).extract(BIM.id).at(unplacedSnps)
+    }
+    
+    runAndAssertRunsFine(graph, 3, 2, 2)
     assertFileHasNLines(unplacedSnps, 3) // scalastyle:ignore magic.number
     val snpsContent = Files.readFrom(unplacedSnps)
     // scalastyle:off magic.number

@@ -21,15 +21,8 @@ class Wdl4sTest extends FunSuite with Loggable {
 
     val ns = WdlNamespaceWithWorkflow.load(wdl, Seq.empty).get
 
-    info(s"Workflow: ${ns.workflow.unqualifiedName}")
-    ns.workflow.calls foreach {call =>
-      info(s"Call: ${call.unqualifiedName}")
-    }
+    info("\n\n" + Wdl4sInspecter.inspectNameSpace(ns) + "\n")
 
-    ns.tasks foreach {task =>
-      info(s"Task: ${task.name}")
-      info(s"Command: ${task.commandTemplate}")
-    }
   }
 
 }

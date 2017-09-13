@@ -1,6 +1,6 @@
 package loamstream.wdl4s
 
-import wdl4s.{WdlNamespace, WdlNamespaceWithWorkflow}
+import wdl4s.wdl.{WdlNamespace, WdlNamespaceWithWorkflow}
 
 /**
   * LoamStream

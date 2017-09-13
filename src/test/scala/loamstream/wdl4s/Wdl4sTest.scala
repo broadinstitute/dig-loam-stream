@@ -2,7 +2,7 @@ package loamstream.wdl4s
 
 import loamstream.util.Loggable
 import org.scalatest.FunSuite
-import wdl4s.WdlNamespaceWithWorkflow
+import wdl4s.wdl.WdlNamespaceWithWorkflow
 
 /**
   * LoamStream

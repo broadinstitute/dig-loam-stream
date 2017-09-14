@@ -76,6 +76,7 @@ object WomToCwl {
           )
       }.toArray
       CommandLineTool(
+        `class` = "CommandLineTool".asInstanceOf[Nothing],  //  TODO: remove if no longer needed
         inputs = inputs,
         baseCommand = baseCommand,
         arguments = arguments

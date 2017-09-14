@@ -1,4 +1,4 @@
-val dataConfig       = loadConfig("pipeline/conf/camp/data.conf")
+val dataConfig       = loadConfig("pipeline/conf/metsim/data.conf")
 val pipelineConfig   = loadConfig("pipeline/conf/qc.conf")
 val loamstreamConfig = loadConfig("pipeline/conf/loamstream.conf")
 
@@ -14,3 +14,5 @@ val duplicatesKeep  = pipelineConfig.getStrList("duplicatesKeep")
 val famsizeKeep     = pipelineConfig.getStrList("famsizeKeep")
 val sampleqcKeep    = pipelineConfig.getStrList("sampleqcKeep")
 val sexcheckKeep    = pipelineConfig.getStrList("sexcheckKeep")
+
+val projectId       = dataConfig.getStr("projectId")

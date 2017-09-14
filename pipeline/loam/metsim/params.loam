@@ -1,5 +1,3 @@
-val dataConfigFile = "data.conf"
-
 // Loamstream repository path
 val loamstreamDir = path("/humgen/diabetes2/users/ryank/software/dig-loam-stream")
 

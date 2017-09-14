@@ -8,23 +8,23 @@ import loamstream.conf.DataConfig
 import loamstream.googlecloud.HailSupport._
 import loamstream.model.Store
 
-// load configuration
-val cfg = loadDataConfig(dataConfigFile)
-val projectId = cfg.getStr("projectId")
-
-val nArrays = cfg.getObjList("arrays").size
+val nArrays = dataConfig.getObjList("arrays").size
 
 object GlobalInputLocal {
-  val pheno = store[TXT].at(path(cfg.getStr("pheno"))).asInput
+  val pheno = store[TXT].at(path(dataConfig.getStr("pheno"))).asInput
 }
 
 object GlobalInputGoogle {
-  val pheno = store[TXT].at(googleOutDir / s"${GlobalInputLocal.pheno}".split("/").takeRight(1)(0))
+  val pheno = store[TXT].at(googleOutDir / s"${GlobalInputLocal.pheno}".split("/").last)
 }
 
 // Perform qc1, adding relevent (inter-array) stores to the map
 val ancestryInferredStores: Seq[Store[TXT]] = {
-  for(i <- 0 until nArrays) yield qc1(cfg, i, projectId, startChr, endChr, GlobalInputLocal.pheno, GlobalInputGoogle.pheno)
+  for {
+    i <- 0 until nArrays
+  } yield { 
+    qc1(dataConfig, i, projectId, startChr, endChr, GlobalInputLocal.pheno, GlobalInputGoogle.pheno)
+  }
 }
 
 // ***Reconcile inferred ancestry step

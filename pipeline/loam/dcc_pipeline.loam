@@ -15,10 +15,18 @@ val projectId = cfg.getStr("projectId")
 
 val nArrays = cfg.getObjList("arrays").size()
 
+object GlobalInputLocal {
+  val pheno = store[TXT].at(path(cfg.getStr("pheno"))).asInput
+}
+
+object GlobalInputGoogle {
+  val pheno = store[TXT].at(googleOutDir / s"${GlobalInputLocal.pheno}".split("/").takeRight(1)(0))
+}
+
 // Perform qc1, adding relevent (inter-array) stores to the map
 val ancestryInferredStores : Array[Store[TXT]] = Array.ofDim(nArrays)
 for(i <- 0 until nArrays) {
-  ancestryInferredStores(i) = qc1(cfg, i, projectId, startChr, endChr)
+  ancestryInferredStores(i) = qc1(cfg, i, projectId, startChr, endChr, GlobalInputLocal.pheno, GlobalInputGoogle.pheno)
 }
 
 // ***Reconcile inferred ancestry step
@@ -27,7 +35,7 @@ val ancestryInferredMerged = store[TXT].at(localOutDir / s"${projectId}.ancestry
 local {
   cmd"""$binRscript --vanilla --verbose
     $rAncestryClusterMerge
-    --in $ancestryInferredPathList
+    --ancestry-in $ancestryInferredPathList
     --out ${ancestryInferredMerged}""".in(ancestryInferredStores).out(ancestryInferredMerged).using("R-3.4")
 }
 
@@ -38,7 +46,7 @@ local {
 
 
 
-def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int): Store[TXT] = {
+def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int, phenoLocal: Store[TXT], phenoGoogle: Store[TXT]): Store[TXT] = {
 
   // Global parameters
   val nChr = endChr - startChr + 1
@@ -57,11 +65,16 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
 
   // Input Stores
   object InputLocal {
-    val data = if (dataType == "vcf") store[VCF].at(dataPath).asInput else store[TXT].at(s"${dataPath}.bed").asInput
-    val kgPurcellVcf = store[VCF].at(cfg.getStr("kgPurcellVcf")).asInput
-    val kgSample = store[TXT].at(cfg.getStr("kgSample")).asInput
-    val regionsExclude = store[TXT].at(cfg.getStr("regionsExclude")).asInput
-    val pheno = store[TXT].at(cfg.getStr("pheno")).asInput
+    val data = if (dataType == "vcf") store[VCF].at(path(dataPath)).asInput else store[TXT].at(path(s"${dataPath}.bed")).asInput
+    val kgPurcellVcf = store[VCF].at(path(cfg.getStr("kgPurcellVcf"))).asInput
+    val kgSample = store[TXT].at(path(cfg.getStr("kgSample"))).asInput
+    val regionsExclude = store[TXT].at(path(cfg.getStr("regionsExclude"))).asInput
+  }
+  
+  object InputGoogle {
+    val kgPurcellVcf = store[VCF].at(uri(cfg.getStr("kgPurcellVcfGoogle"))).asInput
+    val kgSample = store[TXT].at(uri(cfg.getStr("kgSampleGoogle"))).asInput
+    val regionsExclude = store[TXT].at(uri(cfg.getStr("regionsExcludeGoogle"))).asInput
   }
 
   /**
@@ -201,7 +214,6 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
   }
 
   object FilterGoogle {
-    val regionsExclude = store[TXT].at(googleOutDir / s"${InputLocal.regionsExclude}".split("/").takeRight(1)(0))
     val harmRefFiltPrefix = googleOutDir / harmRefFiltPrefixName
     val harmRefFilt = bedBimFam(harmRefFiltPrefix)
     val harmRefFiltVariantQc = store[TXT].at(googleOutDir / s"${harmRefFiltPrefixName}.variantqc.tsv")
@@ -211,23 +223,19 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
     val harmRefFiltPrunedPrefix = googleOutDir / harmRefFiltPrunedPrefixName
     val harmRefFiltPruned = bedBimFam(harmRefFiltPrunedPrefix)
   }
-
-  local {
-    googleCopy(InputLocal.regionsExclude, FilterGoogle.regionsExclude)
-  }
   
   // TODO this step may use multiple cores - need to add numCores option to each local / uger / google - currently set to multiprocessing.cpu_count()
   google {
     hail"""$pyHailFilter
       --vds-in ${LoadGoogle.harmRefVds}
-      --regions-exclude ${FilterGoogle.regionsExclude}
+      --regions-exclude ${InputGoogle.regionsExclude}
       --variant-qc-out ${FilterGoogle.harmRefFiltVariantQc}
       --variants-prunedin-out ${FilterGoogle.harmRefFiltVariantsPrunedIn}
       --filt-vds-out ${FilterGoogle.harmRefFiltVds}
       --filt-plink-out ${FilterGoogle.harmRefFiltPrefix}
       --filt-pruned-vds-out ${FilterGoogle.harmRefFiltPrunedVds}
       --filt-pruned-plink-out ${FilterGoogle.harmRefFiltPrunedPrefix}"""
-      .in(LoadGoogle.harmRefVds, FilterGoogle.regionsExclude)
+      .in(LoadGoogle.harmRefVds, InputGoogle.regionsExclude)
       .out(((FilterGoogle.harmRefFilt :+ FilterGoogle.harmRefFiltVds) ++ (FilterGoogle.harmRefFiltPruned :+ FilterGoogle.harmRefFiltPrunedVds)) :+ FilterGoogle.harmRefFiltVariantQc :+ FilterGoogle.harmRefFiltVariantsPrunedIn)
   }
 
@@ -293,24 +301,17 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
   }
 
   object AncestryPcaGoogle {
-    val kgPurcellVcf = store[VCF].at(googleOutDir / s"${InputLocal.kgPurcellVcf}".split("/").takeRight(1)(0))
-    val kgSample = store[TXT].at(googleOutDir / s"${InputLocal.kgSample}".split("/").takeRight(1)(0))
     val harmRef1kgPrefix = googleOutDir / harmRef1kgPrefixName
     val harmRef1kg = bedBimFam(harmRef1kgPrefix)
   }
 
-  local {
-    googleCopy(InputLocal.kgPurcellVcf, AncestryPcaGoogle.kgPurcellVcf)
-    googleCopy(InputLocal.kgSample, AncestryPcaGoogle.kgSample)
-  }
-  
   google {
     hail"""$pyHailAncestryPcaMerge1kg
       --vds-in ${LoadGoogle.harmRefVds}
-      --kg-vcf-in ${AncestryPcaGoogle.kgPurcellVcf}
-      --kg-sample ${AncestryPcaGoogle.kgSample}
+      --kg-vcf-in ${InputGoogle.kgPurcellVcf}
+      --kg-sample ${InputGoogle.kgSample}
       --plink-out ${AncestryPcaGoogle.harmRef1kgPrefix}"""
-      .in(LoadGoogle.harmRefVds, AncestryPcaGoogle.kgPurcellVcf, AncestryPcaGoogle.kgSample)
+      .in(LoadGoogle.harmRefVds, InputGoogle.kgPurcellVcf, InputGoogle.kgSample)
       .out(AncestryPcaGoogle.harmRef1kg)
   }
   
@@ -374,11 +375,11 @@ def qc1(cfg: DataConfig, i: Int, projectId: String, startChr: Int, endChr: Int):
     .in(AncestryClusterLocal.ancestryClusterFet)
     .out(AncestryClusterLocal.ancestryClusterClu, AncestryClusterLocal.ancestryClusterKlg, AncestryClusterLocal.ancestryClusterLog)
   
-    cmd"""$binR --vanilla --args ${AncestryPcaLocal.ancestryPcaScores} ${AncestryClusterLocal.ancestryClusterClu} ${InputLocal.pheno} $projectId $phenoId $phenoSrRace
+    cmd"""$binR --vanilla --args ${AncestryPcaLocal.ancestryPcaScores} ${AncestryClusterLocal.ancestryClusterClu} ${phenoLocal} $projectId $phenoId $phenoSrRace
       ${AncestryClusterLocal.ancestryClusterPlots} ${AncestryClusterLocal.ancestryClusterXtabs} ${AncestryClusterLocal.ancestryClusterPlotsCenters}
       ${AncestryClusterLocal.ancestryClusterGroups} ${AncestryClusterLocal.ancestryInferred}
       ${AncestryClusterLocal.ancestryClusterPlotsNo1kg} < $rPlotAncestryCluster"""
-      .in(AncestryPcaLocal.ancestryPcaScores, AncestryClusterLocal.ancestryClusterClu, InputLocal.pheno)
+      .in(AncestryPcaLocal.ancestryPcaScores, AncestryClusterLocal.ancestryClusterClu, phenoLocal)
       .out(AncestryClusterLocal.ancestryClusterPlots, AncestryClusterLocal.ancestryClusterXtabs, AncestryClusterLocal.ancestryClusterPlotsCenters, AncestryClusterLocal.ancestryClusterGroups, AncestryClusterLocal.ancestryInferred, AncestryClusterLocal.ancestryClusterPlotsNo1kg)
   }
 

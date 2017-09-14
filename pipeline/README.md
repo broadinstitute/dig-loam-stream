@@ -1,6 +1,0 @@
-- Ryan runs the steps in `qc.sh` by running that script with different params.
-- He does that by hand; there's no driver script.
-- He runs the steps in the order they're declared in conditional branches in `qc.sh`.
-- Some steps are parameterized on certain things, and need to be run more than once.
-- In general, any step parameterized on chromosome number needs to be run once for numbers 1-22 (inclusive).
-- The other param Ryan knew of offhand was `$ANCESTRY`, which is a result (one way or another) of the ancestry-inference step.

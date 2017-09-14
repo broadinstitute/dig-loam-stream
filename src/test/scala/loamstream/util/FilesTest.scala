@@ -196,7 +196,7 @@ final class FilesTest extends FunSuite {
   }
 
   def assertEachLine(file: Path, predicateDescription: String)(predicate: String => Boolean): Unit = {
-    LoamFileUtils.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
+    CanBeClosed.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
       assert(reader.lines().iterator().asScala.forall(predicate), s"Not true for every line: $predicateDescription")
     }
   }

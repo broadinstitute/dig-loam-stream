@@ -103,7 +103,7 @@ object Files {
   def readFromAsUtf8(file: Path): String = StringUtils.fromUtf8Bytes(java.nio.file.Files.readAllBytes(file))
 
   private def doWriteTo(writer: Writer, contents: String): Unit = {
-    LoamFileUtils.enclosed(writer)(_.write(contents))
+    CanBeClosed.enclosed(writer)(_.write(contents))
   }
 
   private def doReadFrom(reader: Reader): String = {
@@ -112,7 +112,7 @@ object Files {
       case _ => new BufferedReader(reader)
     }
 
-    LoamFileUtils.enclosed(toBufferedReader) { bufferedReader =>
+    CanBeClosed.enclosed(toBufferedReader) { bufferedReader =>
       import scala.collection.JavaConverters._
 
       bufferedReader.lines.collect(Collectors.toList()).asScala.mkString(System.lineSeparator)
@@ -163,10 +163,10 @@ object Files {
 
     def inputStreamFor(path: Path) = new GZIPInputStream(new FileInputStream(path.toFile))
 
-    LoamFileUtils.enclosed(writer) { writer =>
+    CanBeClosed.enclosed(writer) { writer =>
       for (sourcePath <- sourcePaths) {
         val source = Source.createBufferedSource(inputStreamFor(sourcePath))(Codec.UTF8)
-        LoamFileUtils.enclosed(source) { source =>
+        CanBeClosed.enclosed(source) { source =>
           //TODO: Use System.lineSeparator for platform-specific line endings, instead of '\n'?
           source.getLines.filter(lineFilter).map(line => s"$line\n").foreach(writer.write)
         }
@@ -175,8 +175,8 @@ object Files {
   }
 
   def filterFile(inFile: Path, outFile: Path)(filter: String => Boolean): Unit = {
-    LoamFileUtils.enclosed(Source.fromFile(inFile.toFile)) { source =>
-      LoamFileUtils.enclosed(JFiles.newBufferedWriter(outFile, StandardCharsets.UTF_8)) { writer =>
+    CanBeClosed.enclosed(Source.fromFile(inFile.toFile)) { source =>
+      CanBeClosed.enclosed(JFiles.newBufferedWriter(outFile, StandardCharsets.UTF_8)) { writer =>
         source.getLines.filter(filter).foreach { line =>
           writer.write(line)
           writer.newLine()
@@ -186,8 +186,8 @@ object Files {
   }
 
   def mapFile(inFile: Path, outFile: Path)(mapper: String => String): Unit = {
-    LoamFileUtils.enclosed(Source.fromFile(inFile.toFile)) { source =>
-      LoamFileUtils.enclosed(JFiles.newBufferedWriter(outFile, StandardCharsets.UTF_8)) { writer =>
+    CanBeClosed.enclosed(Source.fromFile(inFile.toFile)) { source =>
+      CanBeClosed.enclosed(JFiles.newBufferedWriter(outFile, StandardCharsets.UTF_8)) { writer =>
         source.getLines.map(mapper).foreach { line =>
           writer.write(line)
           writer.newLine()
@@ -197,6 +197,6 @@ object Files {
   }
 
   def countLines(file: Path): Long = {
-    LoamFileUtils.enclosed(Source.fromFile(file.toFile))(_.getLines.size)
+    CanBeClosed.enclosed(Source.fromFile(file.toFile))(_.getLines.size)
   }
 }

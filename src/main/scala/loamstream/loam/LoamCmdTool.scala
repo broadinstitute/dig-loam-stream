@@ -60,7 +60,9 @@ object LoamCmdTool {
     }
   }
   
-  private[loam] def isHasLocationIterable(xs: Iterable[_]): Boolean = xs.nonEmpty && xs.head.isInstanceOf[HasLocation]
+  private[loam] def isHasLocationIterable(xs: Iterable[_]): Boolean = {
+    xs.nonEmpty && xs.forall(_.isInstanceOf[HasLocation])
+  }
   
   def toToken(arg: Any): LoamToken = arg match {
     case store: Store.Untyped => StoreToken(store)

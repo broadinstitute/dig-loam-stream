@@ -67,14 +67,12 @@ final class QcPipelineEndToEndTest extends FunSuite {
     val args: Array[String] = {
       Array(
           "--conf",
-          "pipeline/loam/dcc_pipeline_config/loamstream.conf",
+          "pipeline/conf/loamstream.conf",
+          "pipeline/loam/qc.loam",
+          "pipeline/loam/config.loam",
           "pipeline/loam/binaries.loam",
-          "pipeline/loam/cloud_helpers.loam",
-          //NB: This is the CI qc_params.loam, that will make us run over fewer chromosomes.
-          "pipeline/loam/ci/qc_params.loam",
-          "pipeline/loam/dcc_pipeline.loam",
-          "pipeline/loam/dcc_pipeline_config/params.loam",
           "pipeline/loam/scripts.loam",
+          "pipeline/loam/cloud_helpers.loam",
           "pipeline/loam/store_helpers.loam")
     }
 

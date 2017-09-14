@@ -1,5 +1,6 @@
 package loamstream.util
 
+import java.io.File
 import java.nio.charset.StandardCharsets
 
 import scala.util.Try

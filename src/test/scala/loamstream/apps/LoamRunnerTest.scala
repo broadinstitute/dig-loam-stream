@@ -5,15 +5,12 @@ import scala.io.Source
 import org.apache.commons.io.FileUtils
 import org.scalatest.FunSuite
 
-import loamstream.util.Files
-import loamstream.util.LoamFileUtils
+import loamstream.util.CanBeClosed
 
 import loamstream.TestHelpers
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamProject
 import loamstream.compiler.LoamEngine
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.LJob
 import loamstream.loam.LoamScript
 import java.nio.file.Path
 import loamstream.util.PathEnrichments
@@ -74,7 +71,7 @@ final class LoamRunnerTest extends FunSuite {
     
     assert(results.nonEmpty)
     
-    val contents = LoamFileUtils.enclosed(Source.fromFile(finalOutputFile.toFile)) { source =>
+    val contents = CanBeClosed.enclosed(Source.fromFile(finalOutputFile.toFile)) { source =>
       source.getLines.map(_.trim).filter(_.nonEmpty).mkString(" ")
     }
     

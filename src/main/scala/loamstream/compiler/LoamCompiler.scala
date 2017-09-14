@@ -14,8 +14,6 @@ import scala.tools.nsc.io.VirtualDirectory
 import scala.tools.nsc.reporters.Reporter
 import scala.tools.nsc.{Settings => ScalaCompilerSettings}
 import scala.tools.reflect.ReflectGlobal
-import scala.collection.mutable.WrappedArray
-import scala.reflect.ClassTag
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {

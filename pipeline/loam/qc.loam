@@ -1,18 +1,18 @@
-import params._
 import binaries._
 import cloud_helpers._
+import config._
 import scripts._
 import store_helpers._
-import loamstream.model.Store
+
 import loamstream.conf.DataConfig
-import scala.io.Source
 import loamstream.googlecloud.HailSupport._
+import loamstream.model.Store
 
 // load configuration
 val cfg = loadDataConfig(dataConfigFile)
 val projectId = cfg.getStr("projectId")
 
-val nArrays = cfg.getObjList("arrays").size()
+val nArrays = cfg.getObjList("arrays").size
 
 object GlobalInputLocal {
   val pheno = store[TXT].at(path(cfg.getStr("pheno"))).asInput

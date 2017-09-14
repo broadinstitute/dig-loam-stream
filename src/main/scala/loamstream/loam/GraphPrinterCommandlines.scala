@@ -4,6 +4,7 @@ import loamstream.loam.LoamToken.{MultiStoreToken, StoreRefToken, StoreToken, St
 import loamstream.loam.ops.filters.LoamStoreFilterTool
 import loamstream.loam.ops.mappers.LoamStoreMapperTool
 import loamstream.model.{Store, Tool}
+import loamstream.loam.LoamToken.MultiToken
 
 /** Prints file names and command lines in LoamGraph */
 final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
@@ -29,6 +30,7 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
     case StoreToken(store) => print(store)
     case StoreRefToken(storeRef) => print(storeRef)
     case MultiStoreToken(stores) => print(stores)
+    case MultiToken(tokens) => tokens.mkString(",")
   }
 
   /** Prints a tool */

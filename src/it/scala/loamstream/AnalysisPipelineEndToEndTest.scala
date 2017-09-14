@@ -39,7 +39,7 @@ final class AnalysisPipelineEndToEndTest extends FunSuite {
     val args: Array[String] = {
       Array(
           "--conf",
-          "pipeline/loam/qc.conf",
+          "pipeline/conf/loamstream.conf",
           "pipeline/loam/analysis.loam")
     }
 

@@ -81,6 +81,15 @@ final class DataConfigTest extends FunSuite {
 
     // scalastyle:on magic.number
   }
+  
+  test("fromFile() fails fast if file doesn't exist") {
+    //Shouldn't throw
+    DataConfig.fromFile("src/test/resources/data.conf")
+    
+    intercept[Exception] {
+      DataConfig.fromFile("foo/bar/baz/blerg")
+    }
+  }
 
   private def parse(s: String): DataConfig = DataConfig(ConfigFactory.parseString(s))
 }

@@ -18,6 +18,9 @@ import loamstream.loam.LoamGraph
 import loamstream.loam.LoamProjectContext
 import loamstream.model.execute.RxExecuter
 import loamstream.compiler.LoamEngine
+import loamstream.util.Sequence
+import java.nio.file.Files
+import scala.concurrent.duration.Duration
 
 /**
   * @author clint
@@ -95,9 +98,19 @@ object TestHelpers {
     sc.projectContext.graph
   }
   
-  def run(graph: LoamGraph): Map[LJob, Execution] = {
+  def run(graph: LoamGraph, timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     val executable = LoamEngine.toExecutable(graph)
     
-    RxExecuter.default.execute(executable)
+    RxExecuter.default.execute(executable)(timeout)
+  }
+  
+  def getWorkDir(basename: String): Path = {
+    val suffixes = Sequence[Int]()
+    
+    val candidates = suffixes.iterator.map(i => path(s"target/$basename-$i"))
+    
+    val exists: Path => Boolean = Files.exists(_)
+    
+    candidates.dropWhile(exists).next()
   }
 }

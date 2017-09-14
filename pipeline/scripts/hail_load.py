@@ -14,6 +14,10 @@ def main(args=None):
 	print "splitting multiallelic variants and removing duplicates"
 	vds = vds.split_multi().deduplicate()
 
+	print "remove monomorphic variants"
+	vds = vds.filter_variants_expr('v.nAlleles > 1', keep=True)
+	vds.summarize().report()
+
 	print "assigning family ID to match sample ID"
 	vds = vds.annotate_samples_expr("sa.famID = s")
 

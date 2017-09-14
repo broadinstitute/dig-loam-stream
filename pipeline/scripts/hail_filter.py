@@ -18,7 +18,7 @@ def main(args=None):
 	print "write variant qc metrics to file"
 	vds.export_variants(args.variant_qc_out, expr="ID = v, Chrom = v.contig, Pos = v.start, Ref = v.ref, Alt = v.alt, va.qc.*", types=False)
 
-	print "filtering variants"
+	print "filtering variants for QC"
 	vds = vds.filter_variants_expr('v.altAllele.isSNP && ! v.altAllele.isComplex && v.isAutosomal && ["A","C","G","T"].toSet.contains(v.altAllele.ref) && ["A","C","G","T"].toSet.contains(v.altAllele.alt) && va.qc.AF >= 0.01 && va.qc.callRate >= 0.98', keep=True)
 	vds.summarize().report()
 

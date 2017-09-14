@@ -60,6 +60,7 @@ object WomToCwlExamples {
     }.toArray
     CommandLineTool(
       baseCommand = baseCommand,
+      `class` = "CommandLineTool".narrow,
       arguments = arguments,
       inputs = inputs
     )

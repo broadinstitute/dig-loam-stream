@@ -8,7 +8,8 @@ import wdl4s.cwl.CommandLineTool.{Argument, BaseCommand, StringOrExpression}
 import loamstream.cwl.CwlCmdTokenGrouper.Group
 import loamstream.cwl.ParametrizedBashParser.Token
 import wdl4s.cwl.{CommandInputParameter, CommandLineBinding, CommandLineTool}
-import wdl4s.wdl.command.{CommandPart, ParameterCommandPart, StringCommandPart}
+import wdl4s.wdl.command.{ParameterCommandPart, StringCommandPart}
+import wdl4s.wom.CommandPart
 import wdl4s.wom.callable.TaskDefinition
 
 object WomToCwl {
@@ -76,7 +77,6 @@ object WomToCwl {
           )
       }.toArray
       CommandLineTool(
-        `class` = "CommandLineTool".asInstanceOf[Nothing],  //  TODO: remove if no longer needed
         inputs = inputs,
         baseCommand = baseCommand,
         arguments = arguments

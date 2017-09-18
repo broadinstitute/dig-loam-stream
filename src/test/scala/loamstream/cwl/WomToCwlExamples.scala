@@ -1,12 +1,13 @@
 package loamstream.cwl
 
 import shapeless.Coproduct
-import wdl4s.cwl.{CommandInputParameter, CommandLineBinding, CommandLineTool}
 import wdl4s.cwl.CommandLineTool.{Argument, BaseCommand, StringOrExpression}
-import wdl4s.wdl.{RuntimeAttributes, WdlExpression}
-import wdl4s.wdl.command.{CommandPart, ParameterCommandPart, StringCommandPart}
+import wdl4s.cwl.{CommandInputParameter, CommandLineBinding, CommandLineTool}
+import wdl4s.wdl.WdlExpression
+import wdl4s.wdl.command.{ParameterCommandPart, StringCommandPart}
 import wdl4s.wom.callable.{Callable, TaskDefinition}
 import wdl4s.wom.expression.WomExpression
+import wdl4s.wom.{CommandPart, RuntimeAttributes}
 
 object WomToCwlExamples {
 
@@ -22,12 +23,11 @@ object WomToCwlExamples {
     TaskDefinition(
       name = name,
       commandTemplate = commandTemplate,
-      runtimeAttributes = RuntimeAttributes(Map.empty[String, WdlExpression]),
+      runtimeAttributes = RuntimeAttributes(Map.empty[String, WomExpression]),
       meta = Map.empty[String, String],
       parameterMeta = Map.empty[String, String],
       outputs = Set.empty[Callable.OutputDefinition],
-      inputs = Set.empty[Callable.InputDefinition],
-      declarations = List.empty[(String, WomExpression)]
+      inputs = List.empty[Callable.InputDefinition]
     )
 
   private def bind(pos: Int, value: String): CommandLineBinding = {
@@ -50,7 +50,7 @@ object WomToCwlExamples {
       val binding = CommandLineBinding(
         position = Option(input.pos),
         prefix = input.prefixOption,
-        separate = Option(if(input.separate) "true" else "false"),
+        separate = Option(if (input.separate) "true" else "false"),
         valueFrom = Option(Coproduct[StringOrExpression](input.value))
       )
       CommandInputParameter(
@@ -59,7 +59,6 @@ object WomToCwlExamples {
       )
     }.toArray
     CommandLineTool(
-      `class` = "CommandLineTool".asInstanceOf[Nothing],  //  TODO: remove if no longer needed
       baseCommand = baseCommand,
       arguments = arguments,
       inputs = inputs
@@ -95,7 +94,7 @@ object WomToCwlExamples {
     )
   )
 
-  val clayc : Example = Example(
+  val clayc: Example = Example(
     womTask("clayc")(scp("clayc -v -f -i "), pcp("infile"), scp(" -o "), pcp("outfile")),
     cwlCmd("clayc")(bind(0, "-v"), bind(1, "-f"))(
       Input(3, Some("-i"), separate = true, "infile"),

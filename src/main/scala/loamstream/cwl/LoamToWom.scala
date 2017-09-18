@@ -2,7 +2,8 @@ package loamstream.cwl
 
 import lenthall.validation.ErrorOr.ErrorOr
 import loamstream.loam.LoamGraph
-import loamstream.model.Tool
+import loamstream.model.{Store, Tool}
+import wdl4s.wdl.types.WdlFileType
 import wdl4s.wom.callable.{TaskDefinition, WorkflowDefinition}
 import wdl4s.wom.expression.WomExpression
 import wdl4s.wom.graph.{Graph, GraphNode, RequiredGraphInputNode, TaskCallNode}
@@ -18,7 +19,11 @@ object LoamToWom {
   }
 
   def toWom(name: String, loam: LoamGraph): ErrorOr[WorkflowDefinition] = {
-    val inputNodes: Set[RequiredGraphInputNode] = ???
+    val inputStoresToNodes: Map[Store.Untyped, RequiredGraphInputNode] = loam.inputStores.map { store =>
+      val inputNode = RequiredGraphInputNode(store.id.name, WdlFileType)
+      (store, inputNode)
+    }.toMap
+    val inputNodes: Set[RequiredGraphInputNode] = inputStoresToNodes.values.toSet
     val toolNodes: Set[TaskCallNode] = ???
     val nodes: Set[GraphNode] = inputNodes ++ toolNodes
     val errorOrGraph = Graph.validateAndConstruct(nodes)

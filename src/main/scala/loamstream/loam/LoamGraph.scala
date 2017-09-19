@@ -7,8 +7,7 @@ import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.model.Tool.{AllStores, InputsAndOutputs}
 import loamstream.model.{Store, Tool}
 import loamstream.model.execute.ExecutionEnvironment
-import loamstream.util.{Equivalences, Maps}
-import loamstream.util.Traversables
+import loamstream.util.{Equivalences, Hit, Maps, Miss, Shot, Traversables}
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
@@ -267,6 +266,32 @@ final case class LoamGraph(
       toolOutputs = toolOutputsNew,
       storeProducers = storeProducersNew,
       storeConsumers = storeConsumersNew)
+  }
+
+  /** Sort tools topologically
+    *
+    * Divides tools into a sequence of sets such that for each tool, the tools required to run before it
+    * (because they produce some of the inputs) are in a set earlier in the sequence. This fails if
+    * there are cycles (which should not be there).
+    */
+  def dagSortedTools: Shot[Seq[Set[Tool]]] = {
+    var toolsRemaining: Set[Tool] = tools
+    var sorted: Seq[Set[Tool]] = Seq.empty
+    var keepGoing: Boolean = true
+    while(keepGoing) {
+      val toolsNext = toolsRemaining.filter(toolsPreceding(_).forall(!toolsRemaining(_)))
+      if(toolsNext.nonEmpty) {
+        sorted :+= toolsNext
+        toolsRemaining --= toolsNext
+      } else {
+        keepGoing = false
+      }
+    }
+    if(toolsRemaining.isEmpty) {
+      Hit(sorted)
+    } else {
+      Miss(s"There must be a cycle involving tools ${toolsRemaining.mkString(", ")}.")
+    }
   }
 
   def without(toolsToExclude: Set[Tool]): LoamGraph = containingOnly(tools -- toolsToExclude)

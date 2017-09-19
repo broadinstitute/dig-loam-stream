@@ -11,6 +11,8 @@ import loamstream.model.execute.ExecutionEnvironment
 import loamstream.compiler.LoamPredef
 import loamstream.loam.ops.StoreType
 import java.nio.file.Path
+
+import loamstream.TestHelpers.config
 import loamstream.loam.files.LoamFileManager
 import loamstream.util.Maps
 
@@ -140,6 +142,14 @@ final class LoamGraphTest extends FunSuite {
       assert(pathLastPart.toString.startsWith(fileManager.filePrefix) || store.pathOpt.contains(path))
     }
   }
+
+  test("LoamGraph.dagSortedTools") {
+    val graph = makeTestComponents.graph
+    val sortedShot = graph.dagSortedTools
+    assert(sortedShot.isHit)
+    val sorted = sortedShot.get
+    assert(sorted.map(_.size) === Seq(1, 1))
+  }
   
   test("without") {
     
@@ -223,4 +233,10 @@ object LoamGraphTest {
     imputed: Store[VCF],
     phaseTool: LoamCmdTool,
     imputeTool: LoamCmdTool)
+
+  private def makeComplexGraph: LoamGraph = {
+    implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(config))
+    ???
+    scriptContext.projectContext.graph
+  }
 }

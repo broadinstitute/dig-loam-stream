@@ -14,7 +14,7 @@ import java.nio.file.Path
 
 import loamstream.TestHelpers.config
 import loamstream.loam.files.LoamFileManager
-import loamstream.util.Maps
+import loamstream.util.{Hit, Maps, Shot}
 
 /**
   * LoamStream
@@ -143,12 +143,12 @@ final class LoamGraphTest extends FunSuite {
     }
   }
 
+  private def assertDagSorted(graph: LoamGraph, expected: Shot[Seq[Int]]): Unit = {
+    assert(graph.dagSortedTools.map(_.map(_.size)) === expected)
+  }
+
   test("LoamGraph.dagSortedTools") {
-    val graph = makeTestComponents.graph
-    val sortedShot = graph.dagSortedTools
-    assert(sortedShot.isHit)
-    val sorted = sortedShot.get
-    assert(sorted.map(_.size) === Seq(1, 1))
+    assertDagSorted(makeTestComponents.graph, Hit(Seq(1, 1)))
   }
   
   test("without") {

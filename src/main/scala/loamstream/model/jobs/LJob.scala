@@ -39,7 +39,7 @@ trait LJob extends Loggable {
    * the same upstream dependency would cause the dependency to be run more than necessary under certain 
    * conditions.
    */
-  protected final lazy val runs: Observable[JobRun] = runsEmitter
+  protected final def runs: Observable[JobRun] = runsEmitter
   
   /** This job's current status */
   final def status: JobStatus = snapshotRef().status
@@ -105,29 +105,60 @@ trait LJob extends Loggable {
     (dependencyRunnables ++ selfRunnables)
   }
   
+  private def replayAndConnect[A](o: Observable[A]): Observable[A] = {
+    val result = o.replay 
+    
+    try { result }
+    finally { result.connect }
+  }
+  
   /**
    * An observable that will emit this job when all this job's dependencies are finished, and then once for every
    * time this job fails with a non-Terminal status.
    * If the this job has no dependencies, this job is emitted immediately.  
    */
-  private[jobs] lazy val selfRunnables: Observable[JobRun] = {
-    lazy val nonTerminalFailures = runs.filter(s => s.status.isFailure && !s.status.isTerminal)
+  private[jobs] lazy val selfRunnables: Observable[JobRun] = /*replayAndConnect*/ {
+    def isNonTerminalFailure(jobRun: JobRun): Boolean = jobRun.status.isFailure && !jobRun.status.isTerminal
+    
+    //NB: We can just filter here, instead of using something like 
+    //runs.filter(isFailure).takeUntil(isTerminal)
+    //Since transitioning to a terminal status will shut down runsEmitter (aliased as "run") and observables
+    //derived from it.
+    lazy val nonTerminalFailures = runs.filter(isNonTerminalFailure)
     
     //NB: We run once, and then once per failure, until we transition to a terminal status. 
     //ChunkRunners/Executers are responsible for setting our status to FailedPermanently if they will no 
     //longer run us.
     def selfJobRun = jobRunFrom(snapshot)
-    def justUs = Observable.just(selfJobRun) ++ nonTerminalFailures
-    def noMore = Observable.empty
+
+    def justUs: Observable[JobRun] = {
+      debug(s"selfRunnables '$id': justUs() ('$name')")
+      
+      Observable.just(selfJobRun) ++ nonTerminalFailures
+    }
+
+    //Return an observable that will ONLY produce a JobRun for this job with the status 'FailedPermanently'.
+    //NB: As a side effect, transition this job to the state 'FailedPermanently'. :/
+    def stopDueToDependencyFailure(): Observable[JobRun] = {
+      debug(s"selfRunnables '$id': weFailed() ('$name')")
+      
+      transitionTo(JobStatus.FailedPermanently)
+      
+      val permanentFailureSnapshot = snapshot.withStatus(JobStatus.FailedPermanently)
+      
+      Observable.just(jobRunFrom(permanentFailureSnapshot))
+    }
 
     if(inputs.isEmpty) {
+      debug(s"selfRunnables '$id': no deps, just us ('$name')")
+      
       justUs
     } else {
       for {
         inputStatuses <- finalInputStatuses
-        _ = debug(s"'$name'.selfRunnable: deps finished with statuses: $inputStatuses")
+        _ = debug(s"selfRunnables '$id': deps finished with statuses: $inputStatuses ('$name')")
         anyInputFailures = inputStatuses.exists(_.isFailure)
-        runnable <- if(anyInputFailures) noMore else justUs
+        runnable <- if(anyInputFailures) stopDueToDependencyFailure() else justUs
       } yield {
         runnable
       }

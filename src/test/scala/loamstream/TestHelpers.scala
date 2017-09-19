@@ -111,6 +111,9 @@ object TestHelpers {
     
     val exists: Path => Boolean = Files.exists(_)
     
-    candidates.dropWhile(exists).next()
+    val result = candidates.dropWhile(exists).next()
+    
+    try { result }
+    finally { result.toFile.mkdirs() }
   }
 }

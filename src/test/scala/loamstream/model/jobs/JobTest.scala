@@ -306,7 +306,9 @@ final class JobTest extends FunSuite with TestJobs {
       notFinished.transitionTo(Succeeded)
       
       if(anyFailures) {
-        assert(waitFor(job.selfRunnables.isEmpty.firstAsFuture))
+        val jobRun = waitFor(job.selfRunnables.firstAsFuture)
+        assert(jobRun.job eq job)
+        assert(jobRun.status === FailedPermanently)
       } else {
         val selfRunnableFuture = job.selfRunnables.map(_.job).firstAsFuture
         
@@ -462,13 +464,16 @@ final class JobTest extends FunSuite with TestJobs {
     
     //We shouldn't get the root, since one of its children failed
     
-    val futureRootMissing = rootJob.runnables.drop(7).isEmpty.firstAsFuture
+    val futureRoot = rootJob.runnables.drop(7).firstAsFuture
     
     //Make c0 fail permanently, simulating a ChunkRunner/Executer deciding not to restart it.
     //We need to do this so c0.runnables completes, so that rootJob.selfRunnable will be computed.
     c0.transitionTo(FailedPermanently)
     
-    assert(waitFor(futureRootMissing))
+    val jobRun = waitFor(futureRoot)
+    
+    assert(jobRun.job eq rootJob)
+    assert(jobRun.status === FailedPermanently)
   }
   
   test("One job, multiple failures, ultimately succeeds") {

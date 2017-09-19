@@ -142,9 +142,9 @@ trait LJob extends Loggable {
     def stopDueToDependencyFailure(): Observable[JobRun] = {
       debug(s"selfRunnables '$id': weFailed() ('$name')")
       
-      transitionTo(JobStatus.FailedPermanently)
+      transitionTo(JobStatus.CouldNotStart)
       
-      val permanentFailureSnapshot = snapshot.withStatus(JobStatus.FailedPermanently)
+      val permanentFailureSnapshot = snapshot.withStatus(JobStatus.CouldNotStart)
       
       Observable.just(jobRunFrom(permanentFailureSnapshot))
     }

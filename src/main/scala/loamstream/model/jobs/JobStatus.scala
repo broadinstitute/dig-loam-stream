@@ -11,8 +11,10 @@ sealed trait JobStatus {
   def isSuccess: Boolean
 
   def isFailure: Boolean
+  
+  def isTerminal: Boolean
 
-  def isFinished: Boolean = isSuccess || isFailure || isTerminal
+  def isFinished: Boolean = isSuccess || isFailure || isTerminal || isCouldNotStart
 
   def notFinished: Boolean = !isFinished
   
@@ -20,7 +22,7 @@ sealed trait JobStatus {
   
   def isPermanentFailure: Boolean = this == JobStatus.FailedPermanently
 
-  def isTerminal: Boolean
+  def isCouldNotStart: Boolean = this == JobStatus.CouldNotStart
   
   def isRunning: Boolean = this == JobStatus.Running
   
@@ -38,6 +40,7 @@ object JobStatus extends Loggable {
   case object Submitted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
   case object Unknown extends NeitherSuccessNorFailure
+  case object CouldNotStart extends NeitherSuccessNorFailure(isTerminal = true)
   case object FailedPermanently extends Failure(isTerminal = true)
 
   def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
@@ -72,5 +75,6 @@ object JobStatus extends Loggable {
     "terminated" -> Terminated,
     "running" -> Running,
     "unknown" -> Unknown,
-    "permanentfailure" -> FailedPermanently)
+    "permanentfailure" -> FailedPermanently,
+    "couldnotstart" -> CouldNotStart)
 }

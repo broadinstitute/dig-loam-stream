@@ -12,6 +12,9 @@ import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.compiler.LoamEngine
 import loamstream.model.jobs.Execution
 import scala.concurrent.duration.Duration
+import loamstream.model.jobs.NoOpJob
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.JobResult
 
 /**
  * @author clint
@@ -20,7 +23,10 @@ import scala.concurrent.duration.Duration
 final class LoamstreamShouldntHangTest extends FunSuite {
   
   private def getJobFor(results: Map[LJob, Execution])(tool: LoamCmdTool): LJob = {
-    results.keys.find(_.asInstanceOf[CommandLineStringJob].commandLineString == tool.commandLine).get
+    def notNoOp(j: LJob): Boolean = !j.isInstanceOf[NoOpJob]
+    def asCLSJ(j: LJob): CommandLineStringJob = j.asInstanceOf[CommandLineStringJob]
+    
+    results.keys.filter(notNoOp).map(asCLSJ).find(_.commandLineString == tool.commandLine).get
   }
   
   private def doTest(descriptor: Pipelines.Descriptor, timeout: Duration = Duration.Inf): Unit = {
@@ -32,9 +38,14 @@ final class LoamstreamShouldntHangTest extends FunSuite {
     
     assert(results(shouldHaveFailed).isFailure === true)
     
-    assert((results - shouldHaveFailed).values.forall(_.result.get.isSuccess))
+    def isAcceptable(e: Execution): Boolean = e.status.isSuccess || e.status.isCouldNotStart
+    
+    val shouldHaveWorkedExecutions = (results - shouldHaveFailed).values
+    
+    assert(shouldHaveWorkedExecutions.forall(isAcceptable))
   }
   
+  //NB: This reliably triggered the hanging bug
   test("LS Shouldn't hang, even in the face of failed jobs") {
     doTest(Pipelines.someEarlyFailures)
   }
@@ -51,6 +62,7 @@ final class LoamstreamShouldntHangTest extends FunSuite {
     doTest(Pipelines.twoStepsSecondFails)
   }
   
+  //NB: This reliably triggered the hanging bug, and is the most minimal way to do so
   test("LS Shouldn't hang when running a 3-step pipeline where 2 jobs that should work share a dep that fails") {
     doTest(Pipelines.threeStepsMutualDepFails)
   }

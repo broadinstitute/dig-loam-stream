@@ -19,6 +19,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isPermanentFailure === false)
     assert(Terminated.isPermanentFailure === false)
     assert(Unknown.isPermanentFailure === false)
+    assert(CouldNotStart.isPermanentFailure === false)
     assert(FailedPermanently.isPermanentFailure === true)
   }
   
@@ -32,6 +33,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isSuccess === false)
     assert(Terminated.isSuccess === false)
     assert(Unknown.isSuccess === false)
+    assert(CouldNotStart.isSuccess === false)
     assert(FailedPermanently.isSuccess === false)
   }
   
@@ -45,6 +47,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isSkipped === false)
     assert(Terminated.isSkipped === false)
     assert(Unknown.isSkipped === false)
+    assert(CouldNotStart.isSkipped === false)
     assert(FailedPermanently.isSkipped === false)
   }
 
@@ -58,6 +61,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isFailure === false)
     assert(Terminated.isFailure === true)
     assert(Unknown.isFailure === false)
+    assert(CouldNotStart.isFailure === false)
     assert(FailedPermanently.isFailure === true)
   }
 
@@ -71,6 +75,7 @@ final class JobStatusTest extends FunSuite {
     assert(Running.isFinished === false)
     assert(Terminated.isFinished === true)
     assert(Unknown.isFinished === false)
+    assert(CouldNotStart.isFinished === true)
     assert(FailedPermanently.isFinished === true)
   }
 
@@ -84,51 +89,50 @@ final class JobStatusTest extends FunSuite {
     assert(Running.notFinished === true)
     assert(Terminated.notFinished === false)
     assert(Unknown.notFinished === true)
+    assert(CouldNotStart.notFinished === false)
     assert(FailedPermanently.notFinished === false)
   }
   
   test("fromString") {
-    assert(fromString("Succeeded") === Some(Succeeded))
-    assert(fromString("Skipped") === Some(Skipped))
-    assert(fromString("Failed") === Some(Failed))
-    assert(fromString("FailedWithException") === Some(FailedWithException))
-    assert(fromString("NotStarted") === Some(NotStarted))
-    assert(fromString("Submitted") === Some(Submitted))
-    assert(fromString("Running") === Some(Running))
-    assert(fromString("Terminated") === Some(Terminated))
-    assert(fromString("Unknown") === Some(Unknown))
-    assert(fromString("PermanentFailure") === Some(FailedPermanently))
-    assert(fromString("") === None)
-    assert(fromString("Undefined") === None)
-    assert(fromString("blah") === None)
+    //foobar => FoObAr, etc
+    def to1337Speak(s: String): String = {
+      val pairs = s.toUpperCase.zip(s.toLowerCase)
+      val z: (String, Boolean) = ("", true)
+      
+      val (result, _) = pairs.foldLeft(z) { (accTuple, pair) =>
+        val (acc, upper) = accTuple
+        val (uc, lc) = pair
+        val newLetter = if(upper) uc else lc
+        val newAcc = acc :+ newLetter
+        newAcc -> !upper
+      }
+      
+      result
+    }
     
+    def doTest(baseString: String, expected: Option[JobStatus]): Unit = {
+      def actuallyDoTest(s: String): Unit = assert(fromString(s) === expected)
+
+      actuallyDoTest(baseString)
+      actuallyDoTest(baseString.toUpperCase)
+      actuallyDoTest(baseString.toLowerCase)
+      actuallyDoTest(to1337Speak(baseString))
+    }
     
-    assert(fromString("SUCCEEDED") === Some(Succeeded))
-    assert(fromString("SKIPPED") === Some(Skipped))
-    assert(fromString("FAILED") === Some(Failed))
-    assert(fromString("FAILEDWITHEXCEPTION") === Some(FailedWithException))
-    assert(fromString("NOTSTARTED") === Some(NotStarted))
-    assert(fromString("SUBMITTED") === Some(Submitted))
-    assert(fromString("RUNNING") === Some(Running))
-    assert(fromString("TERMINATED") === Some(Terminated))
-    assert(fromString("UNKNOWN") === Some(Unknown))
-    assert(fromString("PERMANENTFAILURE") === Some(FailedPermanently))
-    assert(fromString("   ") === None)
-    assert(fromString("UNDEFINED") === None)
-    assert(fromString("BLAH") === None)
-    
-    assert(fromString("SuCcEeDeD") === Some(Succeeded))
-    assert(fromString("SkIpPeD") === Some(Skipped))
-    assert(fromString("FaIlEd") === Some(Failed))
-    assert(fromString("FaIlEdWiThExCePtIoN") === Some(FailedWithException))
-    assert(fromString("NoTsTaRtEd") === Some(NotStarted))
-    assert(fromString("SuBmItTeD") === Some(Submitted))
-    assert(fromString("RuNnInG") === Some(Running))
-    assert(fromString("TeRmInAtEd") === Some(Terminated))
-    assert(fromString("UnKnOwN") === Some(Unknown))
-    assert(fromString("PeRmAnEnTfAiLuRe") === Some(FailedPermanently))
-    assert(fromString("UnDeFiNeD") === None)
-    assert(fromString("bLaH") === None)
+    doTest("Succeeded", Some(Succeeded))
+    doTest("Skipped", Some(Skipped))
+    doTest("Failed", Some(Failed))
+    doTest("FailedWithException", Some(FailedWithException))
+    doTest("NotStarted", Some(NotStarted))
+    doTest("Submitted", Some(Submitted))
+    doTest("Running", Some(Running))
+    doTest("Terminated", Some(Terminated))
+    doTest("Unknown", Some(Unknown))
+    doTest("PermanentFailure", Some(FailedPermanently))
+    doTest("CouldNotStart", Some(CouldNotStart))
+    doTest("", None)
+    doTest("Undefined", None)
+    doTest("blah", None)
   }
 
   test("fromExitCode") {

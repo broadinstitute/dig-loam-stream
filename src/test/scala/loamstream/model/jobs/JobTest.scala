@@ -308,7 +308,7 @@ final class JobTest extends FunSuite with TestJobs {
       if(anyFailures) {
         val jobRun = waitFor(job.selfRunnables.firstAsFuture)
         assert(jobRun.job eq job)
-        assert(jobRun.status === FailedPermanently)
+        assert(jobRun.status === CouldNotStart)
       } else {
         val selfRunnableFuture = job.selfRunnables.map(_.job).firstAsFuture
         
@@ -473,7 +473,7 @@ final class JobTest extends FunSuite with TestJobs {
     val jobRun = waitFor(futureRoot)
     
     assert(jobRun.job eq rootJob)
-    assert(jobRun.status === FailedPermanently)
+    assert(jobRun.status === CouldNotStart)
   }
   
   test("One job, multiple failures, ultimately succeeds") {

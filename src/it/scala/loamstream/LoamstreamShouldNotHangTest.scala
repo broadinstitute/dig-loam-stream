@@ -11,22 +11,38 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
   import IntegrationTestHelpers.path
   import java.nio.file.Files.exists
 
+  
+   /*
+    * As stores:
+    *                          +--> storeY 
+    *                         /
+    *   nonexistent --> storeX
+    *                         \
+    *                          +--> storeZ
+    *           
+    * As jobs:
+    *            +--> shouldWork0
+    *           /     
+    *   willFail
+    *           \
+    *            +--> shouldWork1
+    */
   test("Loamstream should not hang - minimal version") {
     
-    val nonexistenPath = path("/foo/bar/baz/blerg/zerg/glerg")
+    val nonexistentPath = path("/foo/bar/baz/blerg/zerg/glerg")
 
-    val className = getClass.getSimpleName
-    val xPath = path(s"target/$className-x.txt")
-    val yPath = path(s"target/$className-y.txt")
-    val zPath = path(s"target/$className-z.txt")
+    val baseName = s"${getClass.getSimpleName}-minimal"
+    val xPath = path(s"target/$baseName-x.txt")
+    val yPath = path(s"target/$baseName-y.txt")
+    val zPath = path(s"target/$baseName-z.txt")
     
-    assert(!exists(nonexistenPath))
+    assert(!exists(nonexistentPath))
     assert(!exists(xPath))
     assert(!exists(yPath))
     assert(!exists(zPath))
     
     val loamCode = s"""|
-                       |val nonexistent = store[TXT].at("$nonexistenPath")
+                       |val nonexistent = store[TXT].at("$nonexistentPath").asInput
                        |val storeX = store[TXT].at("$xPath")
                        |val storeY = store[TXT].at("$yPath")
                        |val storeZ = store[TXT].at("$zPath")
@@ -41,9 +57,96 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
                        |}
                        |""".stripMargin
     
+    run(baseName, loamCode)
+    
+    assert(!exists(nonexistentPath))
+    assert(!exists(xPath))
+    assert(!exists(yPath))
+    assert(!exists(zPath))
+  }
+  
+  /*
+   * As stores:
+   *   storeA --> storeB -->  storeC --> storeD
+   *                 \
+   *                  +--> storeX --> storeY
+   *                 /
+   *            nonexistent 
+   *            
+   * As jobs:
+   *   
+   *   a2b --> b2c --> c2d
+   *      \
+   *       +- willFail --> x2y           
+   */
+  test("Loamstream should not hang - more-complex version") {
+    
+    val nonexistenPath = path("/foo/bar/baz/blerg/zerg/glerg")
+
+    val baseName = s"${getClass.getSimpleName}-complex"
+    val aPath = path(s"src/test/resources/a.txt")
+    val bPath = path(s"target/$baseName-b.txt")
+    val cPath = path(s"target/$baseName-c.txt")
+    val dPath = path(s"target/$baseName-d.txt")
+    val xPath = path(s"target/$baseName-x.txt")
+    val yPath = path(s"target/$baseName-y.txt")
+    
+    assert(!exists(nonexistenPath))
+    assert(exists(aPath))
+    assert(!exists(bPath))
+    assert(!exists(cPath))
+    assert(!exists(dPath))
+    assert(!exists(xPath))
+    assert(!exists(yPath))
+    
+    val loamCode = s"""|
+                       |val nonexistent = store[TXT].at("$nonexistenPath").asInput
+                       |val storeX = store[TXT].at(s"$xPath")
+                       |val storeY = store[TXT].at(s"$yPath")
+                       |
+                       |val storeA = store[TXT].at("$aPath").asInput
+                       |val storeB = store[TXT].at(s"$bPath")
+                       |val storeC = store[TXT].at(s"$cPath")
+                       |val storeD = store[TXT].at(s"$dPath")
+                       |
+                       |uger {
+                       |  //Should work
+                       |  cmd"cp $$storeA $$storeB".in(storeA).out(storeB)
+                       |  cmd"cp $$storeB $$storeC".in(storeB).out(storeC)
+                       |  cmd"cp $$storeC $$storeD".in(storeC).out(storeD)
+                       |  //Will fail
+                       |  cmd"cat $$nonexistent $$storeB > $$storeX".in(nonexistent, storeB).out(storeX)
+                       |  //Shouldn't run
+                       |  cmd"cp $$storeX $$storeY".in(storeX).out(storeY)
+                       |}
+                       |""".stripMargin
+    
+    run(baseName, loamCode)
+    
+    assert(!exists(nonexistenPath))
+    assert(exists(aPath))
+    assert(exists(bPath))
+    assert(exists(cPath))
+    assert(exists(dPath))
+    assert(!exists(xPath))
+    assert(!exists(yPath))
+    
+    //Assert that commands we expect to have worked actually copied things
+    assertSameContents(aPath, bPath)
+    assertSameContents(aPath, cPath)
+    assertSameContents(aPath, dPath)
+  }
+  
+  private def assertSameContents(p0: Path, p1: Path): Unit = {
+    import loamstream.util.Files.readFrom
+    
+    assert(readFrom(p0) === readFrom(p1))
+  }
+  
+  private def run(baseFileName: String, loamCode: String): Unit = {
     import loamstream.util.Files
                       
-    val loamFile = path("target/$className-minimal.loam")
+    val loamFile = path(s"target/$baseFileName.loam")
     
     Files.writeTo(loamFile)(loamCode)
     
@@ -57,10 +160,5 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     }
     
     loamstream.apps.Main.main(args)
-    
-    assert(!exists(nonexistenPath))
-    assert(!exists(xPath))
-    assert(!exists(yPath))
-    assert(!exists(zPath))
   }
 }

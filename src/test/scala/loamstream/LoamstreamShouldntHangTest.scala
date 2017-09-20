@@ -94,6 +94,15 @@ object LoamstreamShouldntHangTest {
         shouldWork0: LoamCmdTool,
         shouldWork1: LoamCmdTool) extends Descriptor
         
+    /*
+     * As stores: 
+     * 
+     *   nonexistent --> storeX
+     *   
+     * As jobs:
+     * 
+     *   willFail
+     */
     val onlyOneFailure: OnlyOneFailure = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
       import LoamPredef._
@@ -112,6 +121,15 @@ object LoamstreamShouldntHangTest {
       }
     }
     
+    /*
+     * As stores: 
+     * 
+     *   nonexistent --> storeX --> storeY
+     *   
+     * As jobs:
+     * 
+     *   willFail --> wouldOtherwiseWork 
+     */
     val twoStepsFirstFails: TwoStepsOneFails = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
       import LoamPredef._
@@ -132,6 +150,15 @@ object LoamstreamShouldntHangTest {
       }
     }
     
+    /*
+     * As stores: 
+     * 
+     *   storeA --> storeB --> cantBeWrittenTo
+     *   
+     * As jobs:
+     * 
+     *   shouldWork --> willFail  
+     */
     val twoStepsSecondFails: TwoStepsOneFails = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
       import LoamPredef._
@@ -153,6 +180,20 @@ object LoamstreamShouldntHangTest {
       }
     }
     
+    /*
+     * As stores:
+     *                          +--> storeY
+     *                         /
+     *   nonexistent --> storeX
+     *                         \
+     *                          +--> storeZ
+     * As jobs:   
+     *            +--> shouldWork0                      
+     *           /
+     *   willFail 
+     *           \
+     *            +--> shouldWork1
+     */
     val threeStepsMutualDepFails: ThreeStepsMutualDepFails = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
       import LoamPredef._
@@ -175,7 +216,21 @@ object LoamstreamShouldntHangTest {
         ThreeStepsMutualDepFails(scriptContext.projectContext.graph, fails = failingDep, shouldWork0, shouldWork1)
       }
     }
-        
+    
+    /*
+     * As stores:
+     *   storeA --> storeB -->  storeC --> storeD
+     *                 \
+     *                  +--> storeX --> storeY
+     *                 /
+     *            nonexistent 
+     *            
+     * As jobs:
+     *   
+     *   a2b --> b2c --> c2d
+     *      \
+     *       +- willFail --> x2y           
+     */
     val someEarlyFailures: SomeFailures = {
       implicit val scriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
       import LoamPredef._
@@ -193,29 +248,6 @@ object LoamstreamShouldntHangTest {
       val storeC = store[TXT].at(s"$workDir/c.txt")      
       val storeD = store[TXT].at(s"$workDir/d.txt")
       
-      /*
-       *   a.txt -> b.txt ->  c.txt -> d.txt
-       *                 \
-       *                  +-> x.txt -> y.txt
-       *                 /
-       *            nonexistent 
-       *            
-       *   
-       *   
-       *   a2b <-- b2c <-- c2d
-       *      \
-       *       \
-       *        +- fails <-- x2y           
-       */
-      /*
-      -  > (NotStarted)NoOpJob#5(2 dependencies)
-			- -- > (NotStarted)'cp ./target/LoamstreamShouldntHangTest-0/c.txt ./target/LoamstreamShouldntHangTest-0/d.txt'
-			- ---- > (NotStarted)'cp ./target/LoamstreamShouldntHangTest-0/b.txt ./target/LoamstreamShouldntHangTest-0/c.txt'
-			- ------ > (FailedPermanently)'cp ./src/test/resources/a.txt ./target/LoamstreamShouldntHangTest-0/b.txt'
-			- -- > (NotStarted)'cp ./target/LoamstreamShouldntHangTest-0/x.txt ./target/LoamstreamShouldntHangTest-0/y.txt'
-			- ---- > (NotStarted)'cat ./target/LoamstreamShouldntHangTest-0/foo/bar/baz ./target/LoamstreamShouldntHangTest-0/b.txt > ./target/LoamstreamShouldntHangTest-0/x.txt'
-			*/
-      
       local {
         val aToB = cmd"cp $storeA $storeB".in(storeA).out(storeB)
         val fails = cmd"cat $nonexistent $storeB > $storeX".in(nonexistent, storeB).out(storeX)
@@ -223,8 +255,6 @@ object LoamstreamShouldntHangTest {
         val bToC = cmd"cp $storeB $storeC".in(storeB).out(storeC)
         val cToD = cmd"cp $storeC $storeD".in(storeC).out(storeD)
         val graph = scriptContext.projectContext.graph
-       
-        val executable = LoamEngine.toExecutable(graph)
         
         SomeFailures(graph, fails, xToY, aToB, bToC, cToD)
       }

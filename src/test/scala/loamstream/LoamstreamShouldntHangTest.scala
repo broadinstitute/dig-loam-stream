@@ -29,7 +29,16 @@ final class LoamstreamShouldntHangTest extends FunSuite {
     results.keys.filter(notNoOp).map(asCLSJ).find(_.commandLineString == tool.commandLine).get
   }
   
-  private def doTest(descriptor: Pipelines.Descriptor, timeout: Duration = Duration.Inf): Unit = {
+  private def doTest(descriptor: Pipelines.Descriptor): Unit = {
+    //NB: Hard-wired timeouts like this always increase the risk of spurious failures, if
+    //tests take too long due to, say, the Jenkins server being under load.  However, this
+    //timeout is long enough, and these pipelines simple enough, that that risk is very low.
+    val timeout: Duration = {
+      import scala.concurrent.duration._
+      
+      60.seconds
+    }
+    
     val results = TestHelpers.run(descriptor.graph, timeout)
     
     def jobFor(tool: LoamCmdTool): LJob = getJobFor(results)(tool)

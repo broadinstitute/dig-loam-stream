@@ -23,6 +23,20 @@ final class JobStatusTest extends FunSuite {
     assert(FailedPermanently.isPermanentFailure === true)
   }
   
+  test("isCouldNotStart") {
+    assert(Succeeded.isCouldNotStart === false)
+    assert(Skipped.isCouldNotStart === false)
+    assert(Failed.isCouldNotStart === false)
+    assert(FailedWithException.isCouldNotStart === false)
+    assert(NotStarted.isCouldNotStart === false)
+    assert(Submitted.isCouldNotStart === false)
+    assert(Running.isCouldNotStart === false)
+    assert(Terminated.isCouldNotStart === false)
+    assert(Unknown.isCouldNotStart === false)
+    assert(CouldNotStart.isCouldNotStart === true)
+    assert(FailedPermanently.isCouldNotStart === false)
+  }
+  
   test("isSuccess") {
     assert(Succeeded.isSuccess === true)
     assert(Skipped.isSuccess === true)

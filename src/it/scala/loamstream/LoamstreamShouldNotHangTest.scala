@@ -11,6 +11,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
   import IntegrationTestHelpers.path
   import java.nio.file.Files.exists
 
+  private val nonexistentPath = path("/foo/bar/baz/blerg/zerg/glerg")
   
    /*
     * As stores:
@@ -28,8 +29,6 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     *            +--> shouldWork1
     */
   test("Loamstream should not hang - minimal version") {
-    
-    val nonexistentPath = path("/foo/bar/baz/blerg/zerg/glerg")
 
     val baseName = s"${getClass.getSimpleName}-minimal"
     val xPath = path(s"target/$baseName-x.txt")
@@ -81,8 +80,6 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
    */
   test("Loamstream should not hang - more-complex version") {
     
-    val nonexistenPath = path("/foo/bar/baz/blerg/zerg/glerg")
-
     val baseName = s"${getClass.getSimpleName}-complex"
     val aPath = path(s"src/test/resources/a.txt")
     val bPath = path(s"target/$baseName-b.txt")
@@ -91,7 +88,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     val xPath = path(s"target/$baseName-x.txt")
     val yPath = path(s"target/$baseName-y.txt")
     
-    assert(!exists(nonexistenPath))
+    assert(!exists(nonexistentPath))
     assert(exists(aPath))
     assert(!exists(bPath))
     assert(!exists(cPath))
@@ -100,7 +97,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     assert(!exists(yPath))
     
     val loamCode = s"""|
-                       |val nonexistent = store[TXT].at("$nonexistenPath").asInput
+                       |val nonexistent = store[TXT].at("$nonexistentPath").asInput
                        |val storeX = store[TXT].at(s"$xPath")
                        |val storeY = store[TXT].at(s"$yPath")
                        |
@@ -123,7 +120,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     
     run(baseName, loamCode)
     
-    assert(!exists(nonexistenPath))
+    assert(!exists(nonexistentPath))
     assert(exists(aPath))
     assert(exists(bPath))
     assert(exists(cPath))

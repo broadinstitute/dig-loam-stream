@@ -114,6 +114,6 @@ object TestHelpers {
     val result = candidates.dropWhile(exists).next()
     
     try { result }
-    finally { result.toFile.mkdirs() }
+    finally { loamstream.util.Files.createDirsIfNecessary(result) }
   }
 }

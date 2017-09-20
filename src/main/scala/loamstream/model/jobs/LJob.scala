@@ -105,19 +105,12 @@ trait LJob extends Loggable {
     (dependencyRunnables ++ selfRunnables)
   }
   
-  private def replayAndConnect[A](o: Observable[A]): Observable[A] = {
-    val result = o.replay 
-    
-    try { result }
-    finally { result.connect }
-  }
-  
   /**
    * An observable that will emit this job when all this job's dependencies are finished, and then once for every
    * time this job fails with a non-Terminal status.
    * If the this job has no dependencies, this job is emitted immediately.  
    */
-  private[jobs] lazy val selfRunnables: Observable[JobRun] = /*replayAndConnect*/ {
+  private[jobs] lazy val selfRunnables: Observable[JobRun] = {
     def isNonTerminalFailure(jobRun: JobRun): Boolean = jobRun.status.isFailure && !jobRun.status.isTerminal
     
     //NB: We can just filter here, instead of using something like 
@@ -144,9 +137,9 @@ trait LJob extends Loggable {
       
       transitionTo(JobStatus.CouldNotStart)
       
-      val permanentFailureSnapshot = snapshot.withStatus(JobStatus.CouldNotStart)
+      val couldNotStartSnapshot = snapshot.withStatus(JobStatus.CouldNotStart)
       
-      Observable.just(jobRunFrom(permanentFailureSnapshot))
+      Observable.just(jobRunFrom(couldNotStartSnapshot))
     }
 
     if(inputs.isEmpty) {

@@ -250,7 +250,7 @@ object LoamstreamShouldntHangTest {
       
       local {
         val aToB = cmd"cp $storeA $storeB".in(storeA).out(storeB)
-        val fails = cmd"cat $nonexistent $storeB > $storeX".in(nonexistent, storeB).out(storeX)
+        val fails = cmd"cp $nonexistent $storeX && cp $storeB $storeX".in(nonexistent, storeB).out(storeX)
         val xToY = cmd"cp $storeX $storeY".in(storeX).out(storeY)
         val bToC = cmd"cp $storeB $storeC".in(storeB).out(storeC)
         val cToD = cmd"cp $storeC $storeD".in(storeC).out(storeD)

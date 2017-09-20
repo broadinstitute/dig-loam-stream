@@ -133,7 +133,7 @@ trait LJob extends Loggable {
     //Return an observable that will ONLY produce a JobRun for this job with the status 'FailedPermanently'.
     //NB: As a side effect, transition this job to the state 'FailedPermanently'. :/
     def stopDueToDependencyFailure(): Observable[JobRun] = {
-      debug(s"selfRunnables '$id': weFailed() ('$name')")
+      debug(s"selfRunnables '$id': stopDueToDependencyFailure() ('$name')")
       
       transitionTo(JobStatus.CouldNotStart)
       

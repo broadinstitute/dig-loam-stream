@@ -50,7 +50,7 @@ object LoamToWom {
           case StoreToken(store) => Seq(storeToParameterCommandPart(store))
           case StoreRefToken(storeRef) => Seq(storeToParameterCommandPart(storeRef.store))
           case MultiStoreToken(stores) => addSpaces(stores.toSeq.map(storeToParameterCommandPart))
-          case MultiToken(as) => addSpaces(as.toSeq.map(thing => StringCommandPart(thing.toString)))
+          case MultiToken(as) => Seq(StringCommandPart(as.mkString(" ")))
         }
         Valid(parts)
       case _ =>

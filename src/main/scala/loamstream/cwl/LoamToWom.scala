@@ -30,20 +30,27 @@ object LoamToWom {
     }.toMap
 
   def storeToParameterCommandPart(hasLocation: HasLocation): ParameterCommandPart = {
-    val expression : WdlExpression = ???
+    val expression: WdlExpression = ???
     val attributes: Map[String, String] = ???
     ParameterCommandPart(attributes, expression)
   }
 
+  def addSpaces(parts: Seq[CommandPart]): Seq[CommandPart] =
+    if (parts.size < 2) {
+      parts
+    } else {
+      parts.head +: parts.tail.flatMap(part => Seq(StringCommandPart(" "), part))
+    }
+
   def getCommandTemplate(tool: Tool): ErrorOr[Seq[CommandPart]] = {
     tool match {
-      case cmdTool : LoamCmdTool =>
+      case cmdTool: LoamCmdTool =>
         val parts = cmdTool.tokens.flatMap {
           case StringToken(string) => Seq(StringCommandPart(string))
           case StoreToken(store) => Seq(storeToParameterCommandPart(store))
           case StoreRefToken(storeRef) => Seq(storeToParameterCommandPart(storeRef.store))
-          case MultiStoreToken(stores) => stores.map(storeToParameterCommandPart)
-          case MultiToken(as) => as.map(thing => StringCommandPart(thing.toString))
+          case MultiStoreToken(stores) => addSpaces(stores.toSeq.map(storeToParameterCommandPart))
+          case MultiToken(as) => addSpaces(as.toSeq.map(thing => StringCommandPart(thing.toString)))
         }
         Valid(parts)
       case _ =>

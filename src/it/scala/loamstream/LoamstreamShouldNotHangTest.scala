@@ -115,7 +115,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
                        |  cmd"cp $$storeB $$storeC".in(storeB).out(storeC)
                        |  cmd"cp $$storeC $$storeD".in(storeC).out(storeD)
                        |  //Will fail
-                       |  cmd"cat $$nonexistent $$storeB > $$storeX".in(nonexistent, storeB).out(storeX)
+                       |  cmd"cp $$nonexistent $$storeX && cp $$storeB $$storeX".in(nonexistent, storeB).out(storeX)
                        |  //Shouldn't run
                        |  cmd"cp $$storeX $$storeY".in(storeX).out(storeY)
                        |}
@@ -150,15 +150,37 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     
     Files.writeTo(loamFile)(loamCode)
     
+    val confFile = path(s"target/$baseFileName.conf")
+    
+    Files.writeTo(confFile)(confFileContents)
+    
     Files.createDirsIfNecessary(path("./uger"))
 
     val args: Array[String] = {
       Array(
           "--conf",
-          "pipeline/conf/loamstream.conf",
+          confFile.toString,
           loamFile.toString)
     }
     
     loamstream.apps.Main.main(args)
+  }
+  
+  private val confFileContents: String = {
+    //NB: Don't configure Google support, allow only 2 restarts, and ask Uger for 1g of ram.
+    //This makes for less-noisy logs and less queueing.
+    s"""|loamstream {
+        |  execution {
+        |    maxRunsPerJob = 3
+        |  }
+        |  
+        |  uger {
+        |    logFile = "uger.log"
+        |    maxNumJobs = 2400
+        |    workDir = "uger"
+        |    nativeSpecification = "-clear -cwd -shell y -b n -q short -l h_vmem=1g"
+        |  }
+        |}
+        |""".stripMargin.trim
   }
 }

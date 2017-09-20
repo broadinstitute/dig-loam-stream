@@ -1,12 +1,18 @@
 package loamstream.cwl
 
+import cats.data.NonEmptyList
+import cats.data.Validated.{Invalid, Valid}
 import lenthall.validation.ErrorOr.{ErrorOr, MapErrorOrRhs, ShortCircuitingFlatMap}
-import loamstream.loam.LoamGraph
+import loamstream.loam.LoamToken.{MultiStoreToken, MultiToken, StoreRefToken, StoreToken, StringToken}
+import loamstream.loam.{HasLocation, LoamCmdTool, LoamGraph}
 import loamstream.model.{Store, Tool}
+import wdl4s.wdl.WdlExpression
+import wdl4s.wdl.command.{ParameterCommandPart, StringCommandPart}
 import wdl4s.wdl.types.WdlFileType
-import wdl4s.wom.callable.{Callable, WorkflowDefinition}
+import wdl4s.wom.callable.{Callable, TaskDefinition, WorkflowDefinition}
 import wdl4s.wom.expression.WomExpression
 import wdl4s.wom.graph.{CallNode, Graph, GraphNode, GraphNodeInputExpression, GraphNodePort, RequiredGraphInputNode, TaskCallNode}
+import wdl4s.wom.{CommandPart, RuntimeAttributes}
 
 /**
   * LoamStream
@@ -23,14 +29,49 @@ object LoamToWom {
       (store, inputNode)
     }.toMap
 
+  def storeToParameterCommandPart(hasLocation: HasLocation): ParameterCommandPart = {
+    val expression : WdlExpression = ???
+    val attributes: Map[String, String] = ???
+    ParameterCommandPart(attributes, expression)
+  }
+
+  def getCommandTemplate(tool: Tool): ErrorOr[Seq[CommandPart]] = {
+    tool match {
+      case cmdTool : LoamCmdTool =>
+        val parts = cmdTool.tokens.flatMap {
+          case StringToken(string) => Seq(StringCommandPart(string))
+          case StoreToken(store) => Seq(storeToParameterCommandPart(store))
+          case StoreRefToken(storeRef) => Seq(storeToParameterCommandPart(storeRef.store))
+          case MultiStoreToken(stores) => stores.map(storeToParameterCommandPart)
+          case MultiToken(as) => as.map(thing => StringCommandPart(thing.toString))
+        }
+        Valid(parts)
+      case _ =>
+        val toolClassName = tool.getClass.getCanonicalName
+        Invalid(NonEmptyList.of(s"Can only convert command line tools to WOM, but not $tool, which is $toolClassName."))
+    }
+  }
+
+  def getTaskDefinition(tool: Tool): ErrorOr[TaskDefinition] = {
+    getCommandTemplate(tool).map { commandTemplate =>
+      val name = tool.id.name
+      val runtimeAttributes: RuntimeAttributes = ???
+      val meta: Map[String, String] = ???
+      val parameterMeta: Map[String, String] = ???
+      val outputs: Set[Callable.OutputDefinition] = ???
+      val inputs: List[_ <: Callable.InputDefinition] = ???
+      TaskDefinition(name, commandTemplate, runtimeAttributes, meta, parameterMeta, outputs, inputs)
+    }
+  }
+
   def getNode(tool: Tool): ErrorOr[TaskCallNode] = {
-    val errorOrNodeAndInputs = CallNode.callWithInputs(
-      name = ??? : String,
-      callable = ??? : Callable,
-      portInputs = ??? : Map[String, GraphNodePort.OutputPort],
-      expressionInputs = ??? : Set[GraphNodeInputExpression]
-    )
-    errorOrNodeAndInputs.map(_.node.asInstanceOf[TaskCallNode])
+    val name = tool.id.name
+    val taskDefinition = getTaskDefinition(tool)
+    val portInputs: Map[String, GraphNodePort.OutputPort] = ???
+    val expressionInputs: Set[GraphNodeInputExpression] = ???
+    getTaskDefinition(tool).flatMap { taskDefinition =>
+      CallNode.callWithInputs(name, taskDefinition, portInputs, expressionInputs)
+    }.map(_.node.asInstanceOf[TaskCallNode])
   }
 
   def mapToolsToNodes(tools: Set[Tool]): ErrorOr[Map[Tool, TaskCallNode]] =

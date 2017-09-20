@@ -1,4 +1,0 @@
-val hail_jar_cloud = uri("gs://loamstream/hail/hail-all-spark.jar")
-
-val gcloud = path("/Users/kyuksel/google_cloud_sdk/bin/gcloud")
-val gsutil = path("/Users/kyuksel/google_cloud_sdk/bin/gsutil")

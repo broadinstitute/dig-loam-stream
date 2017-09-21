@@ -4,8 +4,9 @@ import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import lenthall.validation.ErrorOr.{ErrorOr, MapErrorOrRhs, ShortCircuitingFlatMap}
 import loamstream.loam.LoamToken.{MultiStoreToken, MultiToken, StoreRefToken, StoreToken, StringToken}
-import loamstream.loam.{HasLocation, LoamCmdTool, LoamGraph}
+import loamstream.loam.{HasLocation, LoamCmdTool, LoamGraph, LoamStoreRef}
 import loamstream.model.{Store, Tool}
+import wdl4s.parser.WdlParser.Terminal
 import wdl4s.wdl.WdlExpression
 import wdl4s.wdl.command.{ParameterCommandPart, StringCommandPart}
 import wdl4s.wdl.types.WdlFileType
@@ -29,9 +30,23 @@ object LoamToWom {
       (store, inputNode)
     }.toMap
 
+  private def hasLocationToStore(hasLocation: HasLocation): Store.Untyped = hasLocation match {
+    case store: Store.Untyped => store
+    case LoamStoreRef(store, _) => store
+  }
+
+  def getWdlExpression(store: Store.Untyped): WdlExpression = {
+    val name = store.id.name
+    val astId = name.##
+    val ast = new Terminal(astId, name, name, name, 0, 0)
+    WdlExpression(ast)
+  }
+
   def storeToParameterCommandPart(hasLocation: HasLocation): ParameterCommandPart = {
-    val expression: WdlExpression = ???
-    val attributes: Map[String, String] = ???
+    val store = hasLocationToStore(hasLocation)
+    val name = store.id.name
+    val expression: WdlExpression = getWdlExpression(store)
+    val attributes: Map[String, String] = Map("default" -> name)
     ParameterCommandPart(attributes, expression)
   }
 

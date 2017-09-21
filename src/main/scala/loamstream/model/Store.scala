@@ -6,8 +6,6 @@ import java.nio.file.{Path, Paths}
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.{LoamGraph, LoamProjectContext, LoamScriptContext, LoamStoreKeySlot, LoamStoreRef}
 import loamstream.loam.ops.StoreType.TXT
-import loamstream.loam.ops.filters.{LoamStoreFilter, LoamStoreFilterTool, StoreFieldValueFilter}
-import loamstream.loam.ops.mappers.{LoamStoreMapper, LoamStoreMapperTool, TextStoreFieldExtractor}
 import loamstream.loam.ops.{StoreField, StoreType, TextStore, TextStoreField}
 import loamstream.util.TypeBox
 
@@ -100,38 +98,6 @@ final case class Store[S <: StoreType : TypeTag] private(id: LId)(implicit val s
     
     this
   }
-
-  /** Returns new store which is the result of a new store filtering tool based on a field
-    *
-    * Store records are retained if given field has a value passing the valueFilter.
-    */
-  def filter[V](field: StoreField[S, V])(valueFilter: V => Boolean): Store[S] = {
-    filter(StoreFieldValueFilter(field, valueFilter))
-  }
-
-  /** Returns new store which is the result of a new store filtering tool based on given filter */
-  def filter(filter: LoamStoreFilter[S]): Store[S] = {
-    val outStore = filter.newOutStore
-    LoamStoreFilterTool(filter, this, outStore)
-    outStore
-  }
-
-  /** Returns new store which is the result of a new store mapping tool based on given mapper */
-  def map[SO <: StoreType : TypeTag](mapper: LoamStoreMapper[S, SO]): Store[SO] = {
-    val outStore = mapper.newOutStore
-    LoamStoreMapperTool(mapper, this, outStore)
-    outStore
-  }
-
-  /** Returns new store of type TXT based on mapping extracting given field */
-  def extract[V](field: TextStoreField[S with TextStore, V],
-                 defaultString: String = TextStoreFieldExtractor.defaultNA): Store[TXT] = {
-    val mapper = TextStoreFieldExtractor[S with TextStore, V](field, defaultString)
-    val outStore = mapper.newOutStore
-    LoamStoreMapperTool(mapper, this.asInstanceOf[Store[S with TextStore]], outStore)
-    outStore
-  }
-
 }
 
 

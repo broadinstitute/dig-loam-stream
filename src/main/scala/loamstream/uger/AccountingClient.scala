@@ -77,7 +77,8 @@ object AccountingClient extends Loggable {
         tokens.lineStream.toIndexedSeq
       } catch {
         case NonFatal(e) => {
-          warn(s"Error invoking '$binaryName'; execution node and queue won't be available.", e)
+          warn(s"Error invoking '$binaryName'; execution node and queue won't be available: $e")
+          trace(s"'$binaryName' invocation failure stack trace:", e) 
           
           Seq.empty
         }

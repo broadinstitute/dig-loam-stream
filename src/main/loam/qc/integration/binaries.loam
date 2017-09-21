@@ -1,8 +1,0 @@
-val hail = path("/Users/kyuksel/github_repos/hail/build/install/hail/bin/hail")
-
-//Requires running 'use R-3.1'
-val R = path("/usr/local/bin/R")
-
-val plink = path("/humgen/diabetes/users/ryank/software/plink1.9/plink")
-
-val KING = path("/humgen/diabetes/users/ryank/software/king")

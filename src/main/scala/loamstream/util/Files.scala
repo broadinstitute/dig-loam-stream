@@ -46,7 +46,7 @@ object Files {
 
     if (! dir.exists) dir.mkdirs()
 
-    assert(dir.exists)
+    require(dir.exists)
   }
 
   /**

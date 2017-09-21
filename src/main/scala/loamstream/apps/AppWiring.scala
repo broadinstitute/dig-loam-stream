@@ -72,7 +72,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
     override lazy val config: LoamConfig = {
       if(executionConfigAttempt.isFailure) {
-        info(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
+        debug(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
       }
       
       LoamConfig(
@@ -152,7 +152,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val msg = s"""Google Cloud support NOT enabled because ${attempt.failed.get.getMessage}
                    |in the config file (${cli.conf.toOption})""".stripMargin
         
-      info(msg)
+      debug(msg)
     }
     
     result
@@ -166,7 +166,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val msg = s"""Uger support is NOT enabled. It can be enabled by defining loamstream.uger section
                    |in the config file (${cli.conf.toOption}).""".stripMargin
         
-      info(msg)
+      debug(msg)
     }
     
     result
@@ -194,7 +194,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val msg = s"""Job recording is turned off for outputs identified by URIs because
                     |Google Cloud Storage Client could not be created due to ${attempt.failed.get.getMessage}
                     |in the config file (${cli.conf.toOption})""".stripMargin
-      warn(msg)
+      debug(msg)
     }
 
     result

@@ -246,7 +246,7 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
           run.compileSources(sourceFiles.toList)
           
           if (targetDirectory.nonEmpty) {
-            info(s"Completed compilation and there were $soManyIssues.")
+            debug(s"Completed compilation and there were $soManyIssues.")
             
             val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
             

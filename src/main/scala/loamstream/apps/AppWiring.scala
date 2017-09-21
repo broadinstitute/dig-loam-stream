@@ -91,7 +91,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
 
     private lazy val terminableExecuter: TerminableExecuter = {
-      debug("Creating executer...")
+      trace("Creating executer...")
 
       val jobFilter = makeJobFilter(cli)
 
@@ -140,7 +140,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       googleConfig <- googleConfigAttempt
       client <- CloudSdkDataProcClient.fromConfig(googleConfig)
     } yield {
-      debug("Creating Google Cloud ChunkRunner...")
+      trace("Creating Google Cloud ChunkRunner...")
       
       GoogleCloudChunkRunner(client, googleConfig, delegate)
     }
@@ -184,11 +184,12 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       googleConfig <- GoogleCloudConfig.fromConfig(config)
       gcsDriver <- GcsDriver.fromConfig(googleConfig)
     } yield {
-      debug("Creating Google Cloud Storage Client...")
+      trace("Creating Google Cloud Storage Client...")
       GcsClient(gcsDriver)
     }
 
     val result = attempt.toOption
+    
     if(result.isEmpty) {
       val msg = s"""Job recording is turned off for outputs identified by URIs because
                     |Google Cloud Storage Client could not be created due to ${attempt.failed.get.getMessage}
@@ -200,7 +201,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
   }
 
   private def makeUgerChunkRunner(cli: Conf, threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
-    debug("Parsing Uger config...")
+    trace("Parsing Uger config...")
 
     val config = loadConfig(cli)
 

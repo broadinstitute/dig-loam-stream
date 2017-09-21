@@ -109,7 +109,7 @@ final case class UgerChunkRunner(
     
     val ugerScript = createScriptFile(ScriptBuilder.buildFrom(commandLineJobs), ugerWorkDir)
     
-    debug(s"Made script '$ugerScript' from $commandLineJobs")
+    trace(s"Made script '$ugerScript' from $commandLineJobs")
     
     ugerScript
   }
@@ -157,7 +157,7 @@ object UgerChunkRunner extends Loggable {
     
     val status = ExecuterHelpers.determineFailureStatus(shouldRestart, failureStatus, job)
     
-    debug(s"$job transitioning to: $status (Non-terminal failure status: $failureStatus)")
+    trace(s"$job transitioning to: $status (Non-terminal failure status: $failureStatus)")
     
     job.transitionTo(status)
   }

@@ -129,7 +129,6 @@ final case class RxExecuter(
   }
 
   private def record(executionMap: Map[LJob, Execution]): Unit = {
-    debug(s"Recording ${executionMap.size} Execution(s): $executionMap")
     jobFilter.record(executionMap.values)
   }
 }

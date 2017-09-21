@@ -212,7 +212,7 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
     
     logScripts(Loggable.Level.trace, project, graphBoxReceipt)
     
-    debug(s"""|[Start Graph]
+    trace(s"""|[Start Graph]
               |${graphPrinter.print(graph)}
               |[End Graph]""".stripMargin)
   }

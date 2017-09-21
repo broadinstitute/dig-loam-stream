@@ -9,20 +9,24 @@ import loamstream.compiler.LoamProject
 import loamstream.loam.LoamScript
 import loamstream.util.Shot
 import loamstream.TestHelpers
+import loamstream.util.Loggable
 
 /**
  * @author clint
  * Dec 21, 2016
  */
-final class CompileQcStepsTest extends FunSuite with LoamTestHelpers {
-  private val qcDir = Paths.get("src/main/loam/qc/")
+final class CompileLoamsTest extends FunSuite with LoamTestHelpers with Loggable {
+  private val loamDir = Paths.get("pipeline/loam/")
   
-  test(s"Compile all files in $qcDir") {
+  test(s"Compile all files in $loamDir") {
     val loams: Set[Path] = {
       import scala.collection.JavaConverters._
       
-      Files.list(qcDir).iterator.asScala.filter(_.toString.endsWith(".loam")).toSet
+      Files.list(loamDir).iterator.asScala.filter(_.toString.endsWith(".loam")).toSet
     }
+    
+    info(s"Compiling ${loams.size} files:")
+    loams.toSeq.sortBy(_.toString).foreach(loam => info(s"  $loam"))
 
     val scripts: Set[LoamScript] = Shot.sequence(loams.map(LoamScript.read)).get    
 

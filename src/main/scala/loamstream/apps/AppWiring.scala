@@ -91,7 +91,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
 
     private lazy val terminableExecuter: TerminableExecuter = {
-      info("Creating executer...")
+      debug("Creating executer...")
 
       val jobFilter = makeJobFilter(cli)
 
@@ -140,7 +140,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       googleConfig <- googleConfigAttempt
       client <- CloudSdkDataProcClient.fromConfig(googleConfig)
     } yield {
-      info("Creating Google Cloud ChunkRunner...")
+      debug("Creating Google Cloud ChunkRunner...")
       
       GoogleCloudChunkRunner(client, googleConfig, delegate)
     }
@@ -184,7 +184,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       googleConfig <- GoogleCloudConfig.fromConfig(config)
       gcsDriver <- GcsDriver.fromConfig(googleConfig)
     } yield {
-      info("Creating Google Cloud Storage Client...")
+      debug("Creating Google Cloud Storage Client...")
       GcsClient(gcsDriver)
     }
 
@@ -209,7 +209,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     for {
       ugerConfig <- ugerConfigAttempt.toOption
     } yield {
-      info("Creating Uger ChunkRunner...")
+      debug("Creating Uger ChunkRunner...")
 
       val ugerClient = makeUgerClient
 

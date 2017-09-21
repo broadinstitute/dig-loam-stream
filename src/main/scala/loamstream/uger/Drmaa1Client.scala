@@ -15,6 +15,7 @@ import org.ggf.drmaa.SessionFactory
 
 import loamstream.conf.UgerConfig
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.util.Classes.simpleNameOf
 import loamstream.util.CompositeException
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
@@ -48,7 +49,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   private[this] lazy val sessionBox: ValueBox[Session] = ValueBox(getNewSession)
   
   private def getNewSession: Session = {
-    info("Getting new DRMAA session")
+    debug("Getting new DRMAA session")
 
     try {
       val s = SessionFactory.getFactory.getSession
@@ -117,7 +118,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         val status = session.getJobProgramStatus(jobId)
         val jobStatus = UgerStatus.fromUgerStatusCode(status)
 
-        info(s"Job '$jobId' has status $status, mapped to $jobStatus")
+        debug(s"Job '$jobId' has status $status, mapped to $jobStatus")
 
         if (jobStatus.isFinished) {
           doWait(session, jobId, Duration.Zero)
@@ -194,7 +195,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     val result = if (jobInfo.hasExited) {
       val exitCode = jobInfo.getExitStatus
       
-      info(s"Job '$jobId' exited with status code '${exitCode}'")
+      debug(s"Job '$jobId' exited with status code '${exitCode}'")
 
       UgerStatus.CommandResult(exitCode, resourcesOption)
     } else if (jobInfo.wasAborted) {
@@ -203,15 +204,15 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       //TODO: Add JobStatus.Aborted?
       UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasSignaled) {
-      info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
+      debug(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
       UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasCoreDump) {
-      info(s"Job '$jobId' dumped core")
+      debug(s"Job '$jobId' dumped core")
       
       UgerStatus.Failed(resourcesOption)
     } else {
-      info(s"Job '$jobId' finished with unknown status")
+      debug(s"Job '$jobId' finished with unknown status")
 
       UgerStatus.DoneUndetermined(resourcesOption)
     }
@@ -235,7 +236,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       try { f(currentSession) } 
       catch {
         case e: DrmaaException => {
-          debug(s"Got ${e.getClass.getSimpleName}; re-throwing", e)
+          debug(s"Got ${simpleNameOf(e)}; re-throwing", e)
           
           throw e
         }
@@ -267,7 +268,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       
       val jobIds = session.runBulkJobs(jt, taskStartIndex, taskEndIndex, taskIndexIncr).asScala.map(_.toString)
     
-      info(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
+      debug(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
 
       SubmissionSuccess(jobIds)
     }

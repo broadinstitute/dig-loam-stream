@@ -189,6 +189,10 @@ trait LJob extends Loggable {
     
     val newSnapshot = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
     
+    if(newSnapshot.status.isRunning) {
+      info(s"Now running: ${this}")
+    }
+    
     runsEmitter.onNext(jobRunFrom(newSnapshot))
     
     //Shut down all Observables derived from this job when we will no longer emit any events.

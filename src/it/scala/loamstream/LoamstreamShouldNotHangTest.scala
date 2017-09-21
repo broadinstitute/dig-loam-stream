@@ -2,6 +2,8 @@ package loamstream
 
 import org.scalatest.FunSuite
 import java.nio.file.Path
+import loamstream.util.Files
+import loamstream.util.PathEnrichments
 
 /**
  * @author clint
@@ -12,6 +14,10 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
   import java.nio.file.Files.exists
 
   private val nonexistentPath = path("/foo/bar/baz/blerg/zerg/glerg")
+  
+  private val className = getClass.getSimpleName
+  
+  private val outDir = path(s"target/$className")
   
    /*
     * As stores:
@@ -30,10 +36,13 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     */
   test("Loamstream should not hang - minimal version") {
 
-    val baseName = s"${getClass.getSimpleName}-minimal"
-    val xPath = path(s"target/$baseName-x.txt")
-    val yPath = path(s"target/$baseName-y.txt")
-    val zPath = path(s"target/$baseName-z.txt")
+    import PathEnrichments.PathHelpers
+    
+    Files.createDirsIfNecessary(outDir)
+    
+    val xPath = outDir / "minimal-x.txt"
+    val yPath = outDir / "minimal-y.txt"
+    val zPath = outDir / "minimal-z.txt"
     
     assert(!exists(nonexistentPath))
     assert(!exists(xPath))
@@ -56,7 +65,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
                        |}
                        |""".stripMargin
     
-    run(baseName, loamCode)
+    run(s"$className-minimal", loamCode)
     
     assert(!exists(nonexistentPath))
     assert(!exists(xPath))
@@ -80,13 +89,16 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
    */
   test("Loamstream should not hang - more-complex version") {
     
-    val baseName = s"${getClass.getSimpleName}-complex"
-    val aPath = path(s"src/test/resources/a.txt")
-    val bPath = path(s"target/$baseName-b.txt")
-    val cPath = path(s"target/$baseName-c.txt")
-    val dPath = path(s"target/$baseName-d.txt")
-    val xPath = path(s"target/$baseName-x.txt")
-    val yPath = path(s"target/$baseName-y.txt")
+    import PathEnrichments.PathHelpers
+    
+    Files.createDirsIfNecessary(outDir)
+    
+    val aPath = path("src/test/resources/a.txt")
+    val bPath = outDir / "b.txt"
+    val cPath = outDir / "c.txt"
+    val dPath = outDir / "d.txt"
+    val xPath = outDir / "x.txt"
+    val yPath = outDir / "y.txt"
     
     assert(!exists(nonexistentPath))
     assert(exists(aPath))
@@ -118,7 +130,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
                        |}
                        |""".stripMargin
     
-    run(baseName, loamCode)
+    run(s"$className-complex", loamCode)
     
     assert(!exists(nonexistentPath))
     assert(exists(aPath))
@@ -141,13 +153,15 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
   }
   
   private def run(baseFileName: String, loamCode: String): Unit = {
-    import loamstream.util.Files
-                      
-    val loamFile = path(s"target/$baseFileName.loam")
+    import PathEnrichments.PathHelpers
+    
+    Files.createDirsIfNecessary(outDir)                  
+    
+    val loamFile = outDir / s"$baseFileName.loam"
     
     Files.writeTo(loamFile)(loamCode)
     
-    val confFile = path(s"target/$baseFileName.conf")
+    val confFile = outDir / s"$baseFileName.conf"
     
     Files.writeTo(confFile)(confFileContents)
     

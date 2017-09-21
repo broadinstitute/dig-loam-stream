@@ -7,6 +7,7 @@ import org.scalatest.FunSuite
 
 import scala.collection.JavaConverters.asScalaIteratorConverter
 import scala.util.Success
+import loamstream.TestHelpers
 
 /**
   * @author clint
@@ -64,23 +65,42 @@ final class FilesTest extends FunSuite {
   }
 
   test("tryFile(String)") {
-    assert(Files.tryFile("foo").isFailure)
+    
+    import TestHelpers.path
+    import java.nio.file.Files.exists
+    
+    val nonexistentPath = "target/foo/bar/baz/asdfasdasdasd"
+    
+    assert(exists(path(nonexistentPath)) === false)
+    
+    assert(Files.tryFile(nonexistentPath).isFailure)
 
     val tempFile = Files.tempFile("bar")
+    
+    assert(exists(tempFile))    
 
-    val Success(path) = Files.tryFile(tempFile.toString)
+    val Success(p) = Files.tryFile(tempFile.toString)
 
-    assert(path == tempFile)
+    assert(p == tempFile)
   }
 
   test("tryFile(Path)") {
-    assert(Files.tryFile(Paths.get("foo")).isFailure)
+    import TestHelpers.path
+    import java.nio.file.Files.exists
+    
+    val nonexistentPath = "target/foo/bar/baz/asdfasdasdasd"
+    
+    assert(exists(path(nonexistentPath)) === false)
+    
+    assert(Files.tryFile(path(nonexistentPath)).isFailure)
 
     val tempFile = Files.tempFile("bar")
+    
+    assert(exists(tempFile))
 
-    val Success(path) = Files.tryFile(tempFile)
+    val Success(p) = Files.tryFile(tempFile)
 
-    assert(path == tempFile)
+    assert(p == tempFile)
   }
 
   test("writeTo()() and readFrom()") {

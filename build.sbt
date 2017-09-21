@@ -20,7 +20,7 @@ lazy val Versions = new {
   val RxScala = "0.26.5"
   val Ficus = "1.4.0"
   val Squants = "1.2.0"
-  val wdl4s = "0.16-1696b1e-SNAP"
+  val wdl4s = "0.16-8fd5c63-SNAP"
 }
 
 lazy val mainDeps = Seq(

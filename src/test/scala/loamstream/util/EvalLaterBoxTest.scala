@@ -20,8 +20,7 @@ final class EvalLaterBoxTest extends FunSuite {
     assert(stringBox.tpe =:= typeOf[String])
   }
 
-  val futureAwaitTimeInMillis = 100L
-  val futureAwaitTime = Duration(futureAwaitTimeInMillis, TimeUnit.MILLISECONDS)
+  private val futureAwaitTime = Duration(100L, TimeUnit.MILLISECONDS)
 
   test("Expression evaluates successfully, with side effect.") {
     @volatile var counter: Int = 0
@@ -45,9 +44,9 @@ final class EvalLaterBoxTest extends FunSuite {
     assert(counter === 4)
   }
 
-  val myException = new Exception("Oops, I threw it again!")
-
   test("Expression throws exception") {
+    val myException = new Exception("Oops, I threw it again!")
+    
     val box = EvalLaterBox[Int] {
       throw myException
     }

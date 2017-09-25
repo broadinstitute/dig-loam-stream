@@ -20,28 +20,29 @@ final class EvalLaterBoxTest extends FunSuite {
     assert(stringBox.tpe =:= typeOf[String])
   }
 
-  var counter: Int = 0
-  var counterCompare: Int = 0
-
   val futureAwaitTimeInMillis = 100L
   val futureAwaitTime = Duration(futureAwaitTimeInMillis, TimeUnit.MILLISECONDS)
 
-  def assertCounter(value: Int): Unit = {
-    counterCompare += 1
-    assert(value === counterCompare)
-    assert(counter === counterCompare)
-  }
-
   test("Expression evaluates successfully, with side effect.") {
+    @volatile var counter: Int = 0
+    
     val box = EvalLaterBox {
       counter += 1
       counter
     }
     assert(counter === 0)
-    assertCounter(box.eval)
-    assertCounter(box.evalTry.get)
-    assertCounter(box.evalShot.get)
-    assertCounter(Await.result(box.evalFuture, futureAwaitTime))
+    
+    assert(box.eval === 1)
+    assert(counter === 1)
+
+    assert(box.evalTry.get === 2)
+    assert(counter === 2)
+    
+    assert(box.evalShot.get === 3)
+    assert(counter === 3)
+    
+    assert(Await.result(box.evalFuture, futureAwaitTime) === 4)
+    assert(counter === 4)
   }
 
   val myException = new Exception("Oops, I threw it again!")
@@ -50,13 +51,19 @@ final class EvalLaterBoxTest extends FunSuite {
     val box = EvalLaterBox[Int] {
       throw myException
     }
-    assert((try {
-      box.eval
-    } catch {
-      case NonFatal(throwable) => throwable
-    }) === myException)
-    assert(box.evalTry.asInstanceOf[Failure[Int]].exception === myException)
-    assert(box.evalShot.asInstanceOf[Miss].snag.asInstanceOf[SnagThrowable].throwable === myException)
-    assert(Await.ready(box.evalFuture, futureAwaitTime).value.get.asInstanceOf[Failure[Int]].exception === myException)
+    
+    def assertThrewRightException(block: => Any): Unit = {
+      val caught = intercept[Exception] { block }
+      
+      assert(caught === myException)
+    }
+    
+    assertThrewRightException { box.eval }
+
+    assert(box.evalTry === Failure(myException))
+    
+    assert(box.evalShot === Miss(Snag(myException)))
+    
+    assertThrewRightException { Await.result(box.evalFuture, futureAwaitTime) }
   }
 }

@@ -13,7 +13,7 @@ import wdl4s.wdl.types.{WdlFileType, WdlType}
 import wdl4s.wdl.values.{WdlFile, WdlValue}
 import wdl4s.wom.callable.{Callable, TaskDefinition, WorkflowDefinition}
 import wdl4s.wom.expression.{IoFunctionSet, WomExpression}
-import wdl4s.wom.graph.{CallNode, Graph, GraphNode, GraphNodeInputExpression, GraphNodePort, RequiredGraphInputNode, TaskCallNode}
+import wdl4s.wom.graph.{CallNode, Graph, GraphNode, GraphNodeInputExpression, GraphNodePort, RequiredGraphInputNode, TaskCall, TaskCallNode}
 import wdl4s.wom.{CommandPart, RuntimeAttributes}
 
 /**
@@ -101,10 +101,10 @@ object LoamToWom {
       val runtimeAttributes: RuntimeAttributes = RuntimeAttributes(Map.empty)
       val meta: Map[String, String] = Map.empty
       val parameterMeta: Map[String, String] = Map.empty
-      val outputs: Set[Callable.OutputDefinition] = tool.outputs.values.map { store =>
+      val outputs: List[Callable.OutputDefinition] = tool.outputs.values.map { store =>
         val name = store.id.name
         Callable.OutputDefinition(name, WdlFileType, WomFileVariable(name))
-      }.toSet
+      }.toList
       val inputs: List[_ <: Callable.InputDefinition] = tool.inputs.values.map{ store =>
         Callable.RequiredInputDefinition(store.id.name, WdlFileType)
       }.toList
@@ -112,22 +112,15 @@ object LoamToWom {
     }
   }
 
-  def getNode(tool: Tool, graph: LoamGraph): ErrorOr[TaskCallNode] = {
-    val name = tool.id.name
-    val (inputStores, producedStores) = tool.inputs.values.partition(graph.inputStores)
-    val portInputs: Map[String, GraphNodePort.OutputPort] = producedStores.map { store =>
-      val producer = graph.storeProducers(store)
-      ???
-    }.toMap
-    val expressionInputs: Set[GraphNodeInputExpression] = ???
-    getTaskDefinition(tool).flatMap { taskDefinition =>
-      CallNode.callWithInputs(name, taskDefinition, portInputs, expressionInputs)
-    }.map(_.node.asInstanceOf[TaskCallNode])
+  def getToolGraph(tool: Tool, graph: LoamGraph): ErrorOr[Graph] = {
+    val errorOrTaskDefinition = getTaskDefinition(tool)
+    val errorOrToolGraph = errorOrTaskDefinition.flatMap(TaskCall.graphFromDefinition)
+    errorOrToolGraph
   }
 
-  def mapToolsToNodes(graph: LoamGraph): ErrorOr[Map[Tool, TaskCallNode]] =
+  def mapToolsToGraphs(graph: LoamGraph): ErrorOr[Map[Tool, Graph]] =
     graph.tools.map { tool =>
-      val toolNode = getNode(tool, graph)
+      val toolNode = getToolGraph(tool, graph)
       (tool, toolNode)
     }.toMap.sequence
 
@@ -135,10 +128,10 @@ object LoamToWom {
   def toWom(name: String, loam: LoamGraph): ErrorOr[WorkflowDefinition] = {
     val inputStoresToNodes = mapInputsToNodes(loam.inputStores)
     val inputNodes: Set[RequiredGraphInputNode] = inputStoresToNodes.values.toSet
-    val errorOrToolsToNodes = mapToolsToNodes(loam)
-    errorOrToolsToNodes.flatMap { toolsToNodes =>
-      val toolNodes: Set[TaskCallNode] = toolsToNodes.values.toSet
-      val nodes: Set[GraphNode] = inputNodes ++ toolNodes
+    val errorOrToolsGraphs = mapToolsToGraphs(loam)
+    errorOrToolsGraphs.flatMap { toolsToGraphs =>
+      val toolGraphs: Set[Graph] = toolsToGraphs.values.toSet
+      val nodes: Set[GraphNode] = inputNodes ++ toolGraphs.map(_.nodes).fold(Set.empty)(_++_)
       val errorOrGraph = Graph.validateAndConstruct(nodes)
       errorOrGraph.map { graph =>
         val meta: Map[String, String] = ???

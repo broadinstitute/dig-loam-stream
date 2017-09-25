@@ -134,9 +134,11 @@ object LoamToWom {
       val nodes: Set[GraphNode] = inputNodes ++ toolGraphs.map(_.nodes).fold(Set.empty)(_++_)
       val errorOrGraph = Graph.validateAndConstruct(nodes)
       errorOrGraph.map { graph =>
-        val meta: Map[String, String] = ???
-        val parameterMeta: Map[String, String] = ???
-        val declarations: List[(String, WomExpression)] = ???
+        val meta: Map[String, String] = Map.empty
+        val parameterMeta: Map[String, String] = Map.empty
+        val declarations: List[(String, WomExpression)] = inputNodes.map { node =>
+          (node.name, WomFileVariable(node.name))
+        }.toList
         WorkflowDefinition(name, graph, meta, parameterMeta, declarations)
       }
     }

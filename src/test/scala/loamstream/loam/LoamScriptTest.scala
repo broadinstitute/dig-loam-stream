@@ -48,4 +48,10 @@ final class LoamScriptTest extends FunSuite {
     
     assert(nameFromFilePath(aScala).isMiss)
   }
+  
+  test(".loam files import java.net.URI") {
+    val loamCode = "val u: URI = ???"
+    
+    assert(TestHelpers.compile(loamCode).isValid)
+  }
 }

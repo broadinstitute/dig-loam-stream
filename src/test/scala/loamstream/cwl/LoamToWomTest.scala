@@ -1,5 +1,7 @@
 package loamstream.cwl
 
+import cats.data.NonEmptyList
+import cats.data.Validated.Invalid
 import loamstream.TestHelpers
 import loamstream.TestHelpers.config
 import loamstream.compiler.LoamPredef
@@ -37,7 +39,8 @@ final class LoamToWomTest extends FunSuite {
 
   test("Loam to WOM") {
     val errorOrWorkflow = LoamToWom.toWom("daGraph", loamGraph)
-    assert(errorOrWorkflow.isValid)
+    assert(errorOrWorkflow.isValid,
+      errorOrWorkflow.asInstanceOf[Invalid[NonEmptyList[String]]].e.toList.mkString("\n", "\n", "\n"))
   }
 
 

@@ -773,7 +773,7 @@ def qc2(i: Int): Unit = {
       --case-ctrl-col $phenoStatus
       --samples-remove ${paramsArr.finalSampleExclusionsCloud}
       --plink-out ${paramsArr.cleanNameCloud}"""
-      .in(Google.harmRefVdsCloud, ancestryInferredMergedCloud, paramsArr.sampleqcSexcheckCloud, Input.Google.pheno, paramsArr.finalSampleExclusionsCloud)
+      .in(paramsArr.harmRefVdsCloud, ancestryInferredMergedCloud, paramsArr.sampleqcSexcheckCloud, Input.Google.pheno, paramsArr.finalSampleExclusionsCloud)
       .out(paramsArr.cleanCloud)
   }
 

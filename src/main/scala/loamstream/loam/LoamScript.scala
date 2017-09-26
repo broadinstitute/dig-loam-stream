@@ -158,6 +158,7 @@ import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamScriptContext].inScalaFull}
 import ${ScalaId.from[StoreType].inScalaFull}._
 import java.nio.file._
+import java.net.URI
 
 // scalastyle:off object.name
 

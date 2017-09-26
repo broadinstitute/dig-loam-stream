@@ -112,10 +112,13 @@ final case class RxExecuter(
     jobsToRun.foreach(job => debug(s"Dispatching job to ChunkRunner: $job"))
   }
   
-  private def logSkippedJobs(skippedJobs: Set[LJob]): Unit = {
-    info(s"Skipping (${skippedJobs.size}) jobs:")
+  private def logSkippedJobs(skippedJobs: Set[LJob]): Unit = skippedJobs.size match {
+    case 0 => debug("Skipped 0 jobs")
+    case numSkipped => {
+      info(s"Skipped ($numSkipped) jobs:")
     
-    skippedJobs.foreach(job => info(s"Skipped: $job"))
+      skippedJobs.foreach(job => info(s"Skipped: $job"))
+    }
   }
   
   private def markJobsSkipped(skippedJobs: Set[LJob]): Unit = {

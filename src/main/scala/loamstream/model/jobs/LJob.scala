@@ -187,9 +187,13 @@ trait LJob extends Loggable {
   final def transitionTo(newStatus: JobStatus): Unit = {
     debug(s"Status change to $newStatus (run count ${runCount}) for job: ${this}")
     
-    val newSnapshot = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
+    val oldSnapshot = snapshot
     
-    if(newSnapshot.status.isRunning) {
+    val (newSnapshot, isChanged) = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
+    
+    val isRunning = newSnapshot.status.isRunning
+    
+    if(isChanged && isRunning) {
       info(s"Now running: ${this}")
     }
     

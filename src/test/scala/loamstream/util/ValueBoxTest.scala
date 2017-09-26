@@ -12,10 +12,23 @@ final class ValueBoxTest extends FunSuite {
     
     assert(v() === 42)
     
-    val newValue = v.mutateAndGet(_ + 1)
+    val (newValue, changed) = v.mutateAndGet(_ + 1)
     
+    assert(changed)
     assert(newValue === 43)
     assert(v() === 43)
+  }
+  
+  test("mutateAndGet - no change") {
+    val v: ValueBox[Int] = ValueBox(42)
+    
+    assert(v() === 42)
+    
+    val (newValue, changed) = v.mutateAndGet(_ + 0)
+    
+    assert(changed === false)
+    assert(newValue === 42)
+    assert(v() === 42)
   }
   
   test("Companion object apply with initial value") {

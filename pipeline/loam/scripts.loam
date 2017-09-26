@@ -2,6 +2,7 @@ import config._
 
 val scriptsDir = path(pipelineConfig.getStr("scripts"))
 
+val pyAlignNon1kgVariants     = scriptsDir / "align_non1kg_variants.py"
 val pyHailLoad                = scriptsDir / "hail_load.py"
 val pyHailFilter              = scriptsDir / "hail_filter.py"
 val pyHailAncestryPcaMerge1kg = scriptsDir / "hail_ancestry_pca_merge_1kg.py"

@@ -40,7 +40,7 @@ print(paste("memory before running king: ",mem_used() / (1024^2),sep=""))
 
 print("running King robust to get kinship matrix")
 genofile <- snpgdsOpen(args$gds_out)
-king<-snpgdsIBDKING(genofile, sample.id=NULL, snp.id=NULL, autosome.only=TRUE, remove.monosnp=TRUE, maf=NaN, missing.rate=NaN, type="KING-robust", family.id=NULL, num.thread=NaN, verbose=TRUE)
+king<-snpgdsIBDKING(genofile, sample.id=NULL, snp.id=NULL, autosome.only=TRUE, remove.monosnp=TRUE, maf=NaN, missing.rate=NaN, type="KING-robust", family.id=NULL, num.thread=4, verbose=TRUE)
 kinship <- king$kinship
 rownames(kinship)<-king$sample.id
 colnames(kinship)<-king$sample.id

@@ -132,7 +132,7 @@ object LoamCompiler extends Loggable {
   def apply(settings: Settings): LoamCompiler = new LoamCompiler(settings)
   
   private def makeScalaCompilerSettings(targetDir: VirtualDirectory): ScalaCompilerSettings = {
-    val scalaCompilerSettings = new ScalaCompilerSettings(s => ()/*throw new Exception(s)*/)
+    val scalaCompilerSettings = new ScalaCompilerSettings
     
     scalaCompilerSettings.outputDirs.setSingleOutput(targetDir)
     

@@ -33,13 +33,13 @@ trait SnagLeaf extends Snag {
   override def children: Seq[Snag] = Seq.empty[Snag]
 }
 
-case class SnagMessage(message: String) extends SnagLeaf
+final case class SnagMessage(message: String) extends SnagLeaf
 
-case class SnagThrowable(throwable: Throwable) extends SnagLeaf {
+final case class SnagThrowable(throwable: Throwable) extends SnagLeaf {
   override def message: String = throwable.toString
 }
 
-case class SnagSeq(children: Seq[Snag]) extends Snag {
+final case class SnagSeq(children: Seq[Snag]) extends Snag {
   override def message: String = "" + children.size + " snags."
 
   override def ++(snag: Snag): SnagSeq = {
@@ -50,6 +50,4 @@ case class SnagSeq(children: Seq[Snag]) extends Snag {
   }
 }
 
-case class SnagTree(message: String, children: Seq[Snag]) extends Snag {
-
-}
+final case class SnagTree(message: String, children: Seq[Snag]) extends Snag

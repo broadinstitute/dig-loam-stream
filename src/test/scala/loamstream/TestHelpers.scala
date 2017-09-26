@@ -21,6 +21,7 @@ import loamstream.compiler.LoamEngine
 import loamstream.util.Sequence
 import java.nio.file.Files
 import scala.concurrent.duration.Duration
+import loamstream.compiler.LoamCompiler
 
 /**
   * @author clint
@@ -116,4 +117,6 @@ object TestHelpers {
     try { result }
     finally { loamstream.util.Files.createDirsIfNecessary(result) }
   }
+  
+  def compile(loamCode: String): LoamCompiler.Result = LoamEngine.default(config).compile(loamCode)
 }

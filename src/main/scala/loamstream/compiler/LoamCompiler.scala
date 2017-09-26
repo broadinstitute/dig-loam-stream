@@ -252,22 +252,6 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
     logCompilationErrors(LoamCompiler.Result.throwable(reporter, e))
   }
   
-  /**
-   * In some cases, scalac will write directly to stderr (sigh).  This pollutes the console with long stack traces
-   * due to MatchErrors (etc) from deep in the guts of scalac when compiling some loam code with errors.  For 
-   * example, a .loam file containing   
-   */
-  private def suppressStdErr[A](f: => A): A = {
-    val oldErr = System.err
-    try {
-      System.setErr(new PrintStream(new FileOutputStream(".scalac-errors")))
-      
-      f 
-    } finally {
-      System.setErr(oldErr)
-    }
-  }
-  
   /** Compiles Loam script into execution plan */
   def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
     depositProjectContextAndThen(project) { projectContextReceipt =>

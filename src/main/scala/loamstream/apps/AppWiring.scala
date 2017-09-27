@@ -72,7 +72,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
     override lazy val config: LoamConfig = {
       if(executionConfigAttempt.isFailure) {
-        info(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
+        debug(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
       }
       
       LoamConfig(
@@ -91,7 +91,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
 
     private lazy val terminableExecuter: TerminableExecuter = {
-      info("Creating executer...")
+      trace("Creating executer...")
 
       val jobFilter = makeJobFilter(cli)
 
@@ -140,7 +140,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       googleConfig <- googleConfigAttempt
       client <- CloudSdkDataProcClient.fromConfig(googleConfig)
     } yield {
-      info("Creating Google Cloud ChunkRunner...")
+      trace("Creating Google Cloud ChunkRunner...")
       
       GoogleCloudChunkRunner(client, googleConfig, delegate)
     }
@@ -152,7 +152,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val msg = s"""Google Cloud support NOT enabled because ${attempt.failed.get.getMessage}
                    |in the config file (${cli.conf.toOption})""".stripMargin
         
-      info(msg)
+      debug(msg)
     }
     
     result
@@ -166,7 +166,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val msg = s"""Uger support is NOT enabled. It can be enabled by defining loamstream.uger section
                    |in the config file (${cli.conf.toOption}).""".stripMargin
         
-      info(msg)
+      debug(msg)
     }
     
     result
@@ -184,23 +184,24 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       googleConfig <- GoogleCloudConfig.fromConfig(config)
       gcsDriver <- GcsDriver.fromConfig(googleConfig)
     } yield {
-      info("Creating Google Cloud Storage Client...")
+      trace("Creating Google Cloud Storage Client...")
       GcsClient(gcsDriver)
     }
 
     val result = attempt.toOption
+    
     if(result.isEmpty) {
       val msg = s"""Job recording is turned off for outputs identified by URIs because
                     |Google Cloud Storage Client could not be created due to ${attempt.failed.get.getMessage}
                     |in the config file (${cli.conf.toOption})""".stripMargin
-      warn(msg)
+      debug(msg)
     }
 
     result
   }
 
   private def makeUgerChunkRunner(cli: Conf, threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
-    debug("Parsing Uger config...")
+    trace("Parsing Uger config...")
 
     val config = loadConfig(cli)
 
@@ -209,7 +210,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     for {
       ugerConfig <- ugerConfigAttempt.toOption
     } yield {
-      info("Creating Uger ChunkRunner...")
+      debug("Creating Uger ChunkRunner...")
 
       val ugerClient = makeUgerClient
 

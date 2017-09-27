@@ -9,7 +9,7 @@ object Functions {
     val cached: ValueBox[Option[A]] = ValueBox(None)
     
     () => {
-      val newValue = cached.mutateAndGet { oldValue =>
+      val (newValue, _) = cached.mutateAndGet { oldValue =>
         if(oldValue.isDefined) oldValue else Some(f())
       }
       

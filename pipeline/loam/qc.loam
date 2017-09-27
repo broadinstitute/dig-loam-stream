@@ -62,10 +62,10 @@ object Params {
 
   final case class Metric(
     sampleqcStatsAdjIndClusterName: Path,
-    sampleqcStatsAdjIndClusterFet: store[TXT],
-    sampleqcStatsAdjIndClusterClu: store[TXT],
-    sampleqcStatsAdjIndClusterKlg: store[TXT],
-    sampleqcStatsAdjIndClusterKlustakwikLog: store[TXT])
+    sampleqcStatsAdjIndClusterFet: Store[TXT],
+    sampleqcStatsAdjIndClusterClu: Store[TXT],
+    sampleqcStatsAdjIndClusterKlg: Store[TXT],
+    sampleqcStatsAdjIndClusterKlustakwikLog: Store[TXT])
 
   final case class Arr(
     arrayId: String,
@@ -92,6 +92,7 @@ object Params {
     paramsByChr: Seq[(Int, Chr)],
     paramsByMetric: Seq[(Int, Metric)],
     paramsSortedByChr: Seq[Chr],
+    paramsSortedByMetric: Seq[Metric],
     harmMergeLines: Seq[String],
     harmMergeList: Store[TXT],
     sampleqcStatsAdjIndClusterCluList: Seq[String],
@@ -138,24 +139,24 @@ object Params {
     sampleqcSexcheckCloud: Store[TXT],
     sampleqcSexcheckProblemsCloud: Store[TXT],
     sampleqcStatsCloud: Store[TXT],
-    sampleqcStatsAdjClusterFet: store[TXT],
-    sampleqcStatsAdjClusterClu: store[TXT],
-    sampleqcStatsAdjClusterKlg: store[TXT],
-    sampleqcStatsAdjClusterKlustakwikLog: store[TXT],
-    sampleqcStatsAdjClusterOutliers: store[TXT],
-    sampleqcStatsAdjClusterPlots: store[TXT],
-    sampleqcStatsAdjClusterXtabs: store[TXT],
-    sampleqcStatsAdjClusterStripchart: store[TXT],
+    sampleqcStatsAdjClusterFet: Store[TXT],
+    sampleqcStatsAdjClusterClu: Store[TXT],
+    sampleqcStatsAdjClusterKlg: Store[TXT],
+    sampleqcStatsAdjClusterKlustakwikLog: Store[TXT],
+    sampleqcStatsAdjClusterOutliers: Store[TXT],
+    sampleqcStatsAdjClusterPlots: Store[TXT],
+    sampleqcStatsAdjClusterXtabs: Store[TXT],
+    sampleqcStatsAdjClusterStripchart: Store[TXT],
     sampleqcStatsAdjBase: String,
-    sampleqcStatsAdjIndBoxplots: store[TXT],
-    sampleqcStatsAdjIndDiscreteness: store[TXT],
-    sampleqcStatsAdjOutliersTable: store[TXT],
-    sampleqcStatsAdjStripchart: store[TXT],
-    finalSampleExclusionsBase: String,
-    finalSampleExclusions: store[TXT],
-    cleanName: Path,
+    sampleqcStatsAdjClusterBase: String,
+    sampleqcStatsAdjIndBoxplots: Store[TXT],
+    sampleqcStatsAdjIndDiscreteness: Store[TXT],
+    sampleqcStatsAdjOutliersTable: Store[TXT],
+    sampleqcStatsAdjStripchart: Store[TXT],
+    finalBase: String,
+    finalSampleExclusions: Store[TXT],
     clean: Seq[Store[TXT]],
-    finalSampleExclusionsCloud: store[TXT],
+    finalSampleExclusionsCloud: Store[TXT],
     cleanNameCloud: URI,
     cleanCloud: Seq[Store[TXT]])
 
@@ -204,9 +205,12 @@ object Params {
         harmMergeLine = s"${localOutDir}/${harmKgChrBase}")
     }
 
+    val sampleqcBase = s"${projectId}.${arrayId}.sampleqc"
+    val sampleqcStatsAdjBase = s"${sampleqcBase}.stats.adj"
+
     val paramsByMetric: Seq[(Int, Metric)] = (0 until nMetrics).map { metric =>
 
-      val sampleqcStatsAdjIndClusterBase = s"${paramsArr.sampleqcStatsAdjBase}.${metric}"
+      val sampleqcStatsAdjIndClusterBase = s"${sampleqcStatsAdjBase}.${metric}"
 
       metric -> Metric(
         sampleqcStatsAdjIndClusterName = localOutDir / sampleqcStatsAdjIndClusterBase,
@@ -214,6 +218,7 @@ object Params {
         sampleqcStatsAdjIndClusterClu = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.clu.1"),
         sampleqcStatsAdjIndClusterKlg = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.klg.1"),
         sampleqcStatsAdjIndClusterKlustakwikLog = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.klustakwik.log"))
+    }
 
     val harmBase = s"${projectId}.${arrayId}.harm"
     val harmName = localOutDir / harmBase
@@ -231,13 +236,12 @@ object Params {
     val ancestryBase = s"${projectId}.${arrayId}.ancestry"
     val ancestryPcaBase = s"${ancestryBase}.pca"
     val ancestryClusterBase = s"${projectId}.${arrayId}.ancestry.cluster"
-    val sampleqcBase = s"${projectId}.${arrayId}.sampleqc"
     val sampleqcSexcheckBase = s"${projectId}.${arrayId}.sampleqc.sexcheck"
-    val sampleqcStatsAdjBase = s"${sampleqcBase}.stats.adj"
     val sampleqcStatsAdjOutliersTableBase = s"${sampleqcBase}.outliers.tsv"
     val finalBase = s"${projectId}.${arrayId}.final"
     val cleanBase = s"${projectId}.${arrayId}.clean"
     val cleanName = localOutDir / cleanBase
+    val cleanNameCloud = googleOutDir / cleanBase
     val sampleqcStatsAdjClusterBase = s"${sampleqcBase}.stats.adj.cluster"
 
     val (_, paramsSortedByChr) = paramsByChr.unzip
@@ -259,6 +263,7 @@ object Params {
     harmRefVcfTbiCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vcf.gz.tbi"),
     harmRefVdsCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vds"),
     paramsSortedByChr = paramsSortedByChr,
+    paramsSortedByMetric = paramsSortedByMetric,
     harmMergeLines = harmMergeLines,
     sampleqcStatsAdjIndClusterCluList = sampleqcStatsAdjIndClusterCluList,
     harmMergeList = store[TXT].at(localOutDir / s"${harmBase}.merge.txt"),
@@ -317,14 +322,15 @@ object Params {
     sampleqcSexcheckCloud = store[TXT].at(googleOutDir / s"${sampleqcSexcheckBase}.tsv"),
     sampleqcSexcheckProblemsCloud = store[TXT].at(googleOutDir / s"${sampleqcSexcheckBase}.problems.tsv"),
     sampleqcStatsCloud = store[TXT].at(googleOutDir / s"${sampleqcBase}.stats.tsv"),
+    sampleqcStatsAdjClusterBase = sampleqcStatsAdjClusterBase,
     sampleqcStatsAdjClusterFet = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.fet.1"),
     sampleqcStatsAdjClusterClu = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.clu.1"),
     sampleqcStatsAdjClusterKlg = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klg.1"),
-    sampleqcStatsAdjClusterKlustakwikLog = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klustakwik.log"))
-    sampleqcStatsAdjClusterOutliers = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.outliers")
-    sampleqcStatsAdjClusterPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.plots.pdf")
-    sampleqcStatsAdjClusterXtabs = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.xtabs")
-    sampleqcStatsAdjClusterStripchart = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.stripchart.pdf")
+    sampleqcStatsAdjClusterKlustakwikLog = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klustakwik.log"),
+    sampleqcStatsAdjClusterOutliers = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.outliers"),
+    sampleqcStatsAdjClusterPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.plots.pdf"),
+    sampleqcStatsAdjClusterXtabs = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.xtabs"),
+    sampleqcStatsAdjClusterStripchart = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.stripchart.pdf"),
     sampleqcStatsAdjBase = sampleqcStatsAdjBase,
     sampleqcStatsAdjIndBoxplots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.ind.boxplots.pdf"),
     sampleqcStatsAdjIndDiscreteness = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.ind.discreteness"),
@@ -334,9 +340,9 @@ object Params {
     finalSampleExclusions = store[TXT].at(localOutDir / s"${finalBase}.sample.exclusions"),
     clean = bedBimFam(cleanName),
     finalSampleExclusionsCloud = store[TXT].at(googleOutDir / s"${finalBase}.sample.exclusions"),
-    cleanNameCloud = googleOutDir / cleanBase,
+    cleanNameCloud = cleanNameCloud,
     cleanCloud = bedBimFam(cleanNameCloud))
-  }
+    }
 
 }
 
@@ -682,7 +688,7 @@ def qc2(i: Int): Unit = {
       $binKlustakwik ${paramsArr.sampleqcStatsAdjClusterBase} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
       ${paramsArr.sampleqcStatsAdjClusterKlustakwikLog}"""
       .in(paramsArr.sampleqcStatsAdjClusterFet, paramsArr.sampleqcStatsAdjPcaScores)
-      .out(paramsMetric.sampleqcStatsAdjClusterClu, paramsMetric.sampleqcStatsAdjClusterKlg, paramsMetric.sampleqcStatsAdjClusterKlustakwikLog)
+      .out(paramsArr.sampleqcStatsAdjClusterClu, paramsArr.sampleqcStatsAdjClusterKlg, paramsArr.sampleqcStatsAdjClusterKlustakwikLog)
   
     cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdjPcaScores} ${paramsArr.sampleqcStatsAdjClusterClu}
       ${paramsArr.sampleqcStatsAdjClusterOutliers} ${paramsArr.sampleqcStatsAdjClusterPlots}
@@ -728,7 +734,7 @@ def qc2(i: Int): Unit = {
       ${paramsArr.sampleqcStatsAdjStripchart}
       ${paramsArr.ancestryInferred}
       < $rIstatsAdjGmmPlotMetrics"""
-      .in(paramsArr.paramsSortedByMetric.flatMap(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ paramsArr.ancestryInferred :+ paramsArr.sampleqcStatsAdjClusterOutliers)
+      .in(paramsArr.paramsSortedByMetric.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ paramsArr.ancestryInferred :+ paramsArr.sampleqcStatsAdjClusterOutliers)
       .out(paramsArr.sampleqcStatsAdjIndBoxplots, paramsArr.sampleqcStatsAdjIndDiscreteness, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcStatsAdjStripchart)
   }
   
@@ -768,8 +774,8 @@ def qc2(i: Int): Unit = {
     hail"""$pyHailFilterFinal
       --vds-in ${paramsArr.harmRefVdsCloud}
       --ancestry-in ${ancestryInferredMergedCloud}
-      --sexcheck-in ${paramsArr.sampleqcSexcheck}
-      --pheno-in ${paramsArr.pheno}
+      --sexcheck-in ${paramsArr.sampleqcSexcheckCloud}
+      --pheno-in ${Input.Google.pheno}
       --case-ctrl-col $phenoStatus
       --samples-remove ${paramsArr.finalSampleExclusionsCloud}
       --plink-out ${paramsArr.cleanNameCloud}"""

@@ -62,7 +62,7 @@ object LoamToWom {
   def getWdlExpression(store: Store.Untyped): WdlExpression = {
     val name = store.id.name
     val astId = name.##
-    val ast = new Terminal(astId, name, name, name, 0, 0)
+    val ast = new Terminal(astId, "identifier", name, name, 0, 0)
     WdlExpression(ast)
   }
 

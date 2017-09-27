@@ -8,7 +8,7 @@ case class Lines(lines: Seq[String]) {
 
   import Lines._
 
-  def indented: Lines = Lines(lines.map(_ + indentation))
+  def indented: Lines = Lines(lines.map(indentation + _))
 
   def asString: String = lines.mkString("\n", "\n", "\n")
 
@@ -36,11 +36,12 @@ object Lines {
   case class IterablePrinter[E](elementPrinter: Printer[E]) extends Printer[Iterable[E]] {
     override def toLines(iterable: Iterable[E]): Lines = {
       val elementLines = iterable.map(elementPrinter.toLines).fold(empty)(_ ++ _)
-      s"${iterable.getClass.getName}(" +: elementLines :+ ")"
+      s"${iterable.getClass.getName}(" +: elementLines.indented :+ ")"
     }
   }
 
   implicit def iterablePrinter[E](implicit elementPrinter: Printer[E]): IterablePrinter[E] =
     IterablePrinter[E](elementPrinter)
 
+  implicit val anyPrinter: Printer[Any] = (thing: Any) => Lines(thing.toString)
 }

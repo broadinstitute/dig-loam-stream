@@ -78,16 +78,6 @@ lazy val root = (project in file("."))
     mainClass in Compile := Some("loamstream.apps.Main")
   ).enablePlugins(JavaAppPackaging)
 
-lazy val webui = (project in file("webui"))
-  .configs(IntegrationTest)
-  .dependsOn(root)
-  .configs(IntegrationTest)
-  .enablePlugins(PlayScala)
-  .settings(commonSettings: _*)
-  .settings(
-    name := "LoamStream WebUI"
-  )
-
 enablePlugins(GitVersioning)
 
 scalastyleConfig in Test := file("scalastyle-config-for-tests.xml")

@@ -16,7 +16,7 @@ import loamstream.util.Loggable
 trait Poller {
   /**
    * Synchronously inquire about the status of one or more jobs
- *
+   *
    * @param jobIds the ids of the jobs to inquire about
    * @return a map of job ids to attempts at that job's status
    */

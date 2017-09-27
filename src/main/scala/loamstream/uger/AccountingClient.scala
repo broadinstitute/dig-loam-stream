@@ -78,9 +78,13 @@ object AccountingClient extends Loggable {
     def getQacctOutputFor(jobId: String): Seq[String] = {
       val tokens = makeTokens(binaryName, jobId)
          
+      val noopProcessLogger = ProcessLogger(_ => ())
+      
       try {
-        //Return all output lines
-        tokens.lineStream.toIndexedSeq
+        //NB: Use noopProcessLogger to suppress stderr output that would otherwise go to the console.
+        //NB: Even with noopProcessLogger, all lines written to stdout will be available via lineStream.
+        //NB: Use toIndexedSeq to eagerly consume stdout, effectively running the command synchronously.
+        tokens.lineStream(noopProcessLogger).toIndexedSeq
       } catch {
         case NonFatal(e) => {
           debug(s"Error invoking '$binaryName'; execution node and queue won't be available: $e")

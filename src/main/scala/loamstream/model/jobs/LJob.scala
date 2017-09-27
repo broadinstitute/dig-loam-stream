@@ -191,8 +191,14 @@ trait LJob extends Loggable {
     
     val isRunning = newSnapshot.status.isRunning
     
+    val isCouldNotStart = newSnapshot.status.isCouldNotStart
+    
     if(isChanged && isRunning) {
       info(s"Now running: ${this}")
+    }
+    
+    if(isChanged && isCouldNotStart) {
+      info(s"Could not start due to dependency failures: ${this}")
     }
     
     runsEmitter.onNext(jobRunFrom(newSnapshot))

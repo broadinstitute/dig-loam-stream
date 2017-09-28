@@ -332,7 +332,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       executions.forall(_.isCommandExecution),
       s"We only know how to record command executions, but we got $firstNonCommandExecution")
 
-    debug(s"INSERTING: $executions")
+    trace(s"INSERTING: $executions")
   }
 
   private[slick] lazy val db = Database.forURL(descriptor.url, driver = descriptor.dbType.jdbcDriverClass)

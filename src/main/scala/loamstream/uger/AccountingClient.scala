@@ -4,6 +4,8 @@ import loamstream.util.ValueBox
 import loamstream.util.Functions
 import scala.util.control.NonFatal
 import loamstream.util.Loggable
+import scala.util.matching.Regex
+import loamstream.util.Iterators
 
 /**
  * @author clint
@@ -38,22 +40,26 @@ object AccountingClient extends Loggable {
     
     protected def getQacctOutputFor(jobId: String): Seq[String] = qacctOutputForJobId(jobId)
     
+    import Regexes.{hostname, qname}
+    
     override def getExecutionNode(jobId: String): Option[String] = {
       val output = getQacctOutputFor(jobId)
       
       //NB: Empty hostname strings are considered invalid
-      firstOption(output.iterator.collect { case Regexes.hostname(node) => node.trim }.filter(_.nonEmpty))
+      findField(output, hostname).map(_.trim).filter(_.nonEmpty)
     }
   
     override def getQueue(jobId: String): Option[Queue] = {
       val output = getQacctOutputFor(jobId)
       
-      firstOption(output.iterator.collect {
-        case Regexes.qname(queueName) => Queue.fromString(queueName)
-      }.flatten)
+      findField(output, qname).flatMap(Queue.fromString)
     }
     
-    private def firstOption[A](iter: Iterator[A]): Option[A] = if(iter.hasNext) Some(iter.next()) else None
+    private def findField(fields: Seq[String], regex: Regex): Option[String] = {
+      import Iterators.Implicits._
+      
+      fields.iterator.collect { case regex(value) => value }.nextOption
+    }
   }
   
   object QacctUgerClient {
@@ -72,12 +78,17 @@ object AccountingClient extends Loggable {
     def getQacctOutputFor(jobId: String): Seq[String] = {
       val tokens = makeTokens(binaryName, jobId)
          
+      val noopProcessLogger = ProcessLogger(_ => ())
+      
       try {
-        //Return all output lines
-        tokens.lineStream.toIndexedSeq
+        //NB: Use noopProcessLogger to suppress stderr output that would otherwise go to the console.
+        //NB: Even with noopProcessLogger, all lines written to stdout will be available via lineStream.
+        //NB: Use toIndexedSeq to eagerly consume stdout, effectively running the command synchronously.
+        tokens.lineStream(noopProcessLogger).toIndexedSeq
       } catch {
         case NonFatal(e) => {
-          warn(s"Error invoking '$binaryName'; execution node and queue won't be available.", e)
+          debug(s"Error invoking '$binaryName'; execution node and queue won't be available: $e")
+          trace(s"'$binaryName' invocation failure stack trace:", e) 
           
           Seq.empty
         }

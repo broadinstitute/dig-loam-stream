@@ -125,7 +125,7 @@ trait LJob extends Loggable {
     def selfJobRun = jobRunFrom(snapshot)
 
     def justUs: Observable[JobRun] = {
-      debug(s"selfRunnables '$id': justUs() ('$name')")
+      trace(s"selfRunnables '$id': justUs() ('$name')")
       
       Observable.just(selfJobRun) ++ nonTerminalFailures
     }
@@ -133,7 +133,7 @@ trait LJob extends Loggable {
     //Return an observable that will ONLY produce a JobRun for this job with the status 'FailedPermanently'.
     //NB: As a side effect, transition this job to the state 'FailedPermanently'. :/
     def stopDueToDependencyFailure(): Observable[JobRun] = {
-      debug(s"selfRunnables '$id': stopDueToDependencyFailure() ('$name')")
+      trace(s"selfRunnables '$id': stopDueToDependencyFailure() ('$name')")
       
       transitionTo(JobStatus.CouldNotStart)
       
@@ -143,7 +143,7 @@ trait LJob extends Loggable {
     }
 
     if(inputs.isEmpty) {
-      debug(s"selfRunnables '$id': no deps, just us ('$name')")
+      trace(s"selfRunnables '$id': no deps, just us ('$name')")
       
       justUs
     } else {
@@ -187,13 +187,25 @@ trait LJob extends Loggable {
   final def transitionTo(newStatus: JobStatus): Unit = {
     debug(s"Status change to $newStatus (run count ${runCount}) for job: ${this}")
     
-    val newSnapshot = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
+    val (newSnapshot, isChanged) = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
+    
+    val isRunning = newSnapshot.status.isRunning
+    
+    val isCouldNotStart = newSnapshot.status.isCouldNotStart
+    
+    if(isChanged && isRunning) {
+      info(s"Now running: ${this}")
+    }
+    
+    if(isChanged && isCouldNotStart) {
+      info(s"Could not start due to dependency failures: ${this}")
+    }
     
     runsEmitter.onNext(jobRunFrom(newSnapshot))
     
     //Shut down all Observables derived from this job when we will no longer emit any events.
     if(newStatus.isTerminal) {
-      debug(s"$newStatus is terminal; emitting no more JobRuns from job: ${this}")
+      trace(s"$newStatus is terminal; emitting no more JobRuns from job: ${this}")
       
       runsEmitter.onCompleted()
     }

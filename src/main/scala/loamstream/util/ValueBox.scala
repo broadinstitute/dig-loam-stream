@@ -38,14 +38,17 @@ final class ValueBox[A](init: A) {
   }
   
   /**
-   * Changes the value by applying a function to it.  The new value is returned.  
+   * Changes the value by applying a function to it.  The new value is returned, along with a flag indicating if
+   * This box's value changed as a result of applying f.  
    */
-  def mutateAndGet(f: A => A): A = lock.synchronized {
-    val newValue = f(value)
+  def mutateAndGet(f: A => A): (A, Boolean) = lock.synchronized {
+    val oldValue = value
+    
+    val newValue = f(oldValue)
     
     update(newValue)
     
-    newValue
+    (newValue, oldValue != newValue)
   }
 
   /** Get a property of the contained value by applying a function to it */

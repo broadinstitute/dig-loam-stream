@@ -28,8 +28,6 @@ final class DbBackedJobFilter(val dao: LoamDao) extends JobFilter with Loggable 
     //for now
     val insertableExecutions = executions.filter(_.isCommandExecution)
 
-    debug(s"RECORDING $insertableExecutions")
-
     dao.insertExecutions(insertableExecutions)
   }
 

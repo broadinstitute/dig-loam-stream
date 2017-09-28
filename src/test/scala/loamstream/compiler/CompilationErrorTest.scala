@@ -15,48 +15,63 @@ final class CompilationErrorTest extends FunSuite {
   
   private def issue(pos: Position, msg: String = "foo") = Issue(pos, msg, Severity.Info)
   
-  test("hasSourcePosition") {
-    import CompilationError.hasSourcePosition
+  test("hasSourceAndPosition") {
+    import CompilationError.hasSourceAndPosition
     import Positions._
     
-    assert(hasSourcePosition(issue(notDefinedWithContent)) === false)
+    assert(hasSourceAndPosition(issue(notDefinedWithContent)) === false)
     
-    assert(hasSourcePosition(issue(notDefinedNoContent)) === false)
+    assert(hasSourceAndPosition(issue(notDefinedNoContent)) === false)
     
-    assert(hasSourcePosition(issue(isDefinedWithContent)) === true)
+    assert(hasSourceAndPosition(issue(isDefinedWithContent)) === true)
     
-    assert(hasSourcePosition(issue(isDefinedNoContent)) === false)
+    assert(hasSourceAndPosition(issue(isDefinedNoContent)) === false)
   }
   
-  test("from") {
+  test("from - HasPosition") {
     import CompilationError.from
     import Positions._
-    
-    assert(from(issue(notDefinedWithContent)) === None)
-    
-    assert(from(issue(notDefinedNoContent)) === None)
-    
-    assert(from(issue(isDefinedNoContent)) === None)
     
     val message = "asldjaslkdjlkasdj"
     val line = "askldjlkasdjklasdj"
     val column = 42
     val sourceFile = "foo.scala"
     
-    val expected = CompilationError(line, "foo.loam", 41, message)
+    val expected = CompilationError.HasPosition(line, "foo.loam", 41, message)
     
-    assert(from(issue(Positions.from(line, column, sourceFile), message)) === Some(expected))
+    assert(from(issue(Positions.from(line, column, sourceFile), message)) === expected)
   }
   
-  test("toHumanReadableString") {
+  test("from - NoPosition") {
+    import CompilationError.from
+    import Positions._
+    
+    val message = "asdjklalsdkjlasdjlaskdjlka"
+    
+    assert(from(issue(notDefinedWithContent, message)) === CompilationError.NoPosition(message))
+    
+    assert(from(issue(notDefinedNoContent, message)) === CompilationError.NoPosition(message))
+    
+    assert(from(issue(isDefinedNoContent, message)) === CompilationError.NoPosition(message))
+  }
+  
+  test("toHumanReadableString - HasPosition") {
     val message = "asldjaslkdjlkasdj"
     val line = "askldjlkasdjklasdj"
     
-    val error = CompilationError(line, "foo.loam", 5, message)
+    val error = CompilationError.HasPosition(line, "foo.loam", 5, message)
     
     val newLine = System.lineSeparator
     
     val expected = s"foo.loam: 'asldjaslkdjlkasdj'${newLine}askldjlkasdjklasdj${newLine}     ^"
+    
+    assert(error.toHumanReadableString === expected)
+  }
+  
+  test("toHumanReadableString - NoPosition") {
+    val error = CompilationError.NoPosition("asldjaslkdjlkasdj")
+    
+    val expected = s"(unknown source file): 'asldjaslkdjlkasdj'"
     
     assert(error.toHumanReadableString === expected)
   }

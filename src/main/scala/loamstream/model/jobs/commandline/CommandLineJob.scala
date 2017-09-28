@@ -33,7 +33,7 @@ trait CommandLineJob extends LJob {
 
   def commandLineString: String
 
-  def logger: ProcessLogger = CommandLineJob.stdErrProcessLogger
+  def logger: ProcessLogger
 
   def exitValueCheck: Int => Boolean
 
@@ -85,13 +85,11 @@ trait CommandLineJob extends LJob {
 
 object CommandLineJob extends Loggable {
 
-  val mustBeZero: Int => Boolean = _ == 0
-  val acceptAll: Int => Boolean = i => true
+  private val mustBeZero: Int => Boolean = _ == 0
 
   val defaultExitValueChecker = mustBeZero
 
-  val noOpProcessLogger = ProcessLogger(line => ())
-  val stdErrProcessLogger = ProcessLogger(line => (), line => info(line))
+  val stdErrProcessLogger = ProcessLogger(line => (), line => info(s"(via stderr) $line"))
 
   def unapply(job: LJob): Option[(String, Set[Output])] = job match {
     case clj: CommandLineJob => Some((clj.commandLineString, clj.outputs))

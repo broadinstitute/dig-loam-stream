@@ -1,19 +1,29 @@
 package loamstream.compiler
 
+import scala.reflect.internal.util.AbstractFileClassLoader
+import scala.reflect.internal.util.BatchSourceFile
+import scala.reflect.internal.util.Position
+import scala.tools.nsc.{ Settings => ScalaCompilerSettings }
+import scala.tools.nsc.io.VirtualDirectory
+import scala.tools.nsc.reporters.Reporter
+import scala.tools.reflect.ReflectGlobal
+
 import loamstream.compiler.Issue.Severity
 import loamstream.compiler.LoamCompiler.CompilerReporter
 import loamstream.conf.LoamConfig
+import loamstream.loam.GraphPrinter
+import loamstream.loam.LoamGraph
+import loamstream.loam.LoamGraphValidation
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScript
 import loamstream.loam.LoamScript.LoamScriptBox
-import loamstream.loam.{GraphPrinter, LoamGraph, LoamGraphValidation, LoamProjectContext, LoamScript}
+import loamstream.util.DepositBox
+import loamstream.util.Loggable
+import loamstream.util.StringUtils
 import loamstream.util.Validation.IssueBase
 import loamstream.util.code.ReflectionUtil
-import loamstream.util.{DepositBox, Loggable, NonFatalInitializer, StringUtils}
-
-import scala.reflect.internal.util.{AbstractFileClassLoader, BatchSourceFile, Position}
-import scala.tools.nsc.io.VirtualDirectory
-import scala.tools.nsc.reporters.Reporter
-import scala.tools.nsc.{Settings => ScalaCompilerSettings}
-import scala.tools.reflect.ReflectGlobal
+import java.io.FileOutputStream
+import java.io.PrintStream
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -22,7 +32,7 @@ object LoamCompiler extends Loggable {
     val default: Settings = Settings(logCode = false, logCodeOnError = true)
   }
 
-  case class Settings(logCode: Boolean, logCodeOnError: Boolean) {
+  final case class Settings(logCode: Boolean, logCodeOnError: Boolean) {
     def logCodeForLevel(level: Loggable.Level.Value): Boolean =
       logCode || (logCodeOnError && (level >= Loggable.Level.warn))
   }
@@ -91,7 +101,7 @@ object LoamCompiler extends Loggable {
     
     val graphSource: GraphSource = Result.toGraphSource(contextOpt)
     
-    def humanReadableErrors: Seq[CompilationError] = errors.flatMap(CompilationError.from)
+    def humanReadableErrors: Seq[CompilationError] = errors.map(CompilationError.from)
     
     /** Returns true if no errors */
     def isValid: Boolean = errors.isEmpty
@@ -212,7 +222,7 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
     
     logScripts(Loggable.Level.trace, project, graphBoxReceipt)
     
-    debug(s"""|[Start Graph]
+    trace(s"""|[Start Graph]
               |${graphPrinter.print(graph)}
               |[End Graph]""".stripMargin)
   }
@@ -236,46 +246,48 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
   /** Compiles Loam script into execution plan */
   def compile(config: LoamConfig, script: LoamScript): LoamCompiler.Result = compile(LoamProject(config, script))
   
+  private def failureDueToException(e: Throwable): LoamCompiler.Result = {
+    error(s"${e.getClass.getName} while trying to compile: ${e.getMessage}")
+          
+    logCompilationErrors(LoamCompiler.Result.throwable(reporter, e))
+  }
+  
   /** Compiles Loam script into execution plan */
   def compile(project: LoamProject): LoamCompiler.Result = compileLock.synchronized {
     depositProjectContextAndThen(project) { projectContextReceipt =>
       try {
         val sourceFiles = project.scripts.map(LoamCompiler.toBatchSourceFile(projectContextReceipt))
-  
+        
         withRun { run =>
           run.compileSources(sourceFiles.toList)
+        }
+        
+        if (targetDirectory.nonEmpty) {
+          debug(s"Completed compilation and there were $soManyIssues.")
           
-          if (targetDirectory.nonEmpty) {
-            info(s"Completed compilation and there were $soManyIssues.")
-            
-            val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
-            
-            val scriptBoxes = project.scripts.map(LoamCompiler.evaluateLoamScript(classLoader))
-            
-            val scriptBox = scriptBoxes.head
-            val graph = scriptBox.graph
-            
-            validateGraph(graph)
-            
-            reportCompilation(project, graph, projectContextReceipt)
-            
-            val projectContext = scriptBox.projectContext
-            
-            projectContext.registerGraphSoFar()
-            
-            LoamCompiler.Result.success(reporter, projectContext)
-          } else {
-            error(s"Compilation failed. There were $soManyIssues.")
-            
-            logCompilationErrors(LoamCompiler.Result.failure(reporter))
-          }
+          val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
+          
+          val scriptBoxes = project.scripts.map(LoamCompiler.evaluateLoamScript(classLoader))
+          
+          val scriptBox = scriptBoxes.head
+          val graph = scriptBox.graph
+          
+          validateGraph(graph)
+          
+          reportCompilation(project, graph, projectContextReceipt)
+          
+          val projectContext = scriptBox.projectContext
+          
+          projectContext.registerGraphSoFar()
+          
+          LoamCompiler.Result.success(reporter, projectContext)
+        } else {
+          error(s"Compilation failed. There were $soManyIssues.")
+          
+          logCompilationErrors(LoamCompiler.Result.failure(reporter))
         }
       } catch {
-        case NonFatalInitializer(throwable) => {
-          error(s"${throwable.getClass.getName} while trying to compile: ${throwable.getMessage}")
-          
-          logCompilationErrors(LoamCompiler.Result.throwable(reporter, throwable))
-        }
+        case ReportableCompilationError(e) => failureDueToException(e)
       }
     }
   }

@@ -38,7 +38,7 @@ final class LoamToWomTest extends FunSuite {
   }
 
   test("Loam to WOM") {
-    val errorOrWorkflow = LoamToWom.toWom("daGraph", loamGraph)
+    val errorOrWorkflow = LoamToWom..loamToWom("daGraph", loamGraph)
     assert(errorOrWorkflow.isValid,
       errorOrWorkflow.asInstanceOf[Invalid[NonEmptyList[String]]].e.toList.mkString("\n", "\n", "\n"))
   }

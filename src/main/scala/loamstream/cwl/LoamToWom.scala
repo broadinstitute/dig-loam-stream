@@ -3,21 +3,25 @@ package loamstream.cwl
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, Validated}
 import lenthall.validation.ErrorOr.{ErrorOr, MapErrorOrRhs, ShortCircuitingFlatMap}
+import loamstream.cwl.WomDebug.{graphNodePrinter, graphPrinter}
 import loamstream.loam.LoamToken.{MultiStoreToken, MultiToken, StoreRefToken, StoreToken, StringToken}
 import loamstream.loam.{HasLocation, LoamCmdTool, LoamGraph, LoamStoreRef}
-import loamstream.model.{Store, Tool}
+import loamstream.model.{LId, Store, Tool}
 import loamstream.util.lines.Lines
 import loamstream.util.lines.Lines.iterablePrinter
+import shapeless.Coproduct
 import wdl4s.parser.WdlParser.Terminal
 import wdl4s.wdl.WdlExpression
 import wdl4s.wdl.command.{ParameterCommandPart, StringCommandPart}
 import wdl4s.wdl.types.{WdlFileType, WdlType}
 import wdl4s.wdl.values.{WdlFile, WdlValue}
+import wdl4s.wom.callable.Callable.RequiredInputDefinition
 import wdl4s.wom.callable.{Callable, TaskDefinition, WorkflowDefinition}
 import wdl4s.wom.expression.{IoFunctionSet, WomExpression}
-import wdl4s.wom.graph.{Graph, GraphNode, RequiredGraphInputNode, TaskCall}
+import wdl4s.wom.graph.CallNode.{InputDefinitionFold, InputDefinitionPointer}
+import wdl4s.wom.graph.GraphNodePort.{GraphNodeOutputPort, InputPort}
+import wdl4s.wom.graph.{CallNode, Graph, GraphInputNode, GraphNode, RequiredGraphInputNode, TaskCall, TaskCallNode}
 import wdl4s.wom.{CommandPart, RuntimeAttributes}
-import WomDebug.{graphNodePrinter, graphPrinter}
 
 /**
   * LoamStream
@@ -43,6 +47,22 @@ object LoamToWom {
     override def evaluateFiles(inputTypes: Map[String, WdlValue], ioFunctionSet: IoFunctionSet,
                                coerceTo: WdlType): ErrorOr[Set[WdlFile]] =
       evaluateValue(inputTypes, ioFunctionSet).map(Set(_))
+  }
+
+  case class LoamToNodes(inputsToNodes: Map[LId, RequiredGraphInputNode], toolsToNodes: Map[LId, TaskCallNode]) {
+    def plusToolsToNodes(toolsToNodesNew: Map[LId, TaskCallNode]): LoamToNodes =
+      copy(toolsToNodes = toolsToNodes ++ toolsToNodesNew)
+  }
+
+  object LoamToNodes {
+    val empty: LoamToNodes = LoamToNodes(Map.empty, Map.empty)
+
+    def fromInputStores(inputs: Set[Store.Untyped]): LoamToNodes = {
+      val inputsToNodes = inputs.map { input =>
+        (input.id, RequiredGraphInputNode(input.id.name, WdlFileType))
+      }.toMap
+      LoamToNodes(inputsToNodes, Map.empty)
+    }
   }
 
   def getNode(inputStore: Store.Untyped): RequiredGraphInputNode =
@@ -127,8 +147,46 @@ object LoamToWom {
       (tool, toolNode)
     }.toMap.sequence
 
+
+  def toolToWomNodes(tool: Tool, loam: LoamGraph): ErrorOr[TaskCallNode] = {
+    val errorOrTaskDefinition = getTaskDefinition(tool)
+    errorOrTaskDefinition.map { taskDefinition =>
+      val callNodeBuilder = new CallNode.CallNodeBuilder
+      val name = tool.id.name
+      val (producedInputs, providedInputs) =
+        tool.inputs.partition({ case (_, toolInputStore) => loam.storeProducers.contains(toolInputStore) })
+      val mappings: CallNode.InputDefinitionMappings = producedInputs.map { case (inputId, toolInputStore) =>
+        val name = inputId.name
+        val producerGraphNode: GraphNode = ???
+        val inputDefinition = RequiredInputDefinition(name, WdlFileType)
+        val outputPort = GraphNodeOutputPort(name, WdlFileType, producerGraphNode)
+        val inputDefinitionPointer = Coproduct[InputDefinitionPointer](outputPort)
+        (inputDefinition, inputDefinitionPointer)
+      }
+      val callInputPorts: Set[InputPort] = ???
+      val newGraphInputNodes: Set[GraphInputNode] = ???
+      val inputDefinitionFold = InputDefinitionFold(mappings, callInputPorts, newGraphInputNodes)
+      callNodeBuilder.build(name, taskDefinition, inputDefinitionFold).node.asInstanceOf[TaskCallNode]
+    }
+  }
+
+  def loamToWom(graphName: String, loam: LoamGraph): ErrorOr[WorkflowDefinition] = {
+    val inputStoresToNodes = mapInputsToNodes(loam.inputStores)
+    val inputNodes: Set[RequiredGraphInputNode] = inputStoresToNodes.values.toSet
+    val nodes: Set[GraphNode] = ???
+    val errorOrGraph = Graph.validateAndConstruct(nodes)
+    errorOrGraph.map { graph =>
+      val meta: Map[String, String] = Map.empty
+      val parameterMeta: Map[String, String] = Map.empty
+      val declarations: List[(String, WomExpression)] = inputNodes.map { node =>
+        (node.name, WomFileVariable(node.name))
+      }.toList
+      WorkflowDefinition(graphName, graph, meta, parameterMeta, declarations)
+    }
+  }
+
   // scalastyle:off regex
-  def toWom(name: String, loam: LoamGraph): ErrorOr[WorkflowDefinition] = {
+  def toWomOldDoesntWork(name: String, loam: LoamGraph): ErrorOr[WorkflowDefinition] = {
     val inputStoresToNodes = mapInputsToNodes(loam.inputStores)
     val inputNodes: Set[RequiredGraphInputNode] = inputStoresToNodes.values.toSet
     println(s"Input nodes: ${Lines.toLines(inputNodes).asString}")

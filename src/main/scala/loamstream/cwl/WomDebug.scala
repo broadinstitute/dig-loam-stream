@@ -13,6 +13,6 @@ object WomDebug {
     (node: GraphNode) => Lines(node.toString)
 
   implicit val graphPrinter: Lines.Printer[Graph] =
-    (graph: Graph) => Lines(graph.toString)
+    (graph: Graph) => Lines.toLines(graph.nodes).enclose("Graph(", ")")
 
 }

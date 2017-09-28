@@ -18,6 +18,8 @@ case class Lines(lines: Seq[String]) {
 
   def +:(line: String): Lines = Lines(line +: lines)
 
+  def enclose(prefix: String, postfix: String): Lines = Lines(prefix +: indented.lines :+ postfix)
+
 }
 
 object Lines {
@@ -43,5 +45,4 @@ object Lines {
   implicit def iterablePrinter[E](implicit elementPrinter: Printer[E]): IterablePrinter[E] =
     IterablePrinter[E](elementPrinter)
 
-  implicit val anyPrinter: Printer[Any] = (thing: Any) => Lines(thing.toString)
 }

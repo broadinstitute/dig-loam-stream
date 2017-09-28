@@ -1,8 +1,8 @@
 package loamstream.cwl
 
 import shapeless.Coproduct
-import wdl4s.cwl.CommandLineTool.{Argument, BaseCommand, StringOrExpression}
-import wdl4s.cwl.{CommandInputParameter, CommandLineBinding, CommandLineTool}
+import wdl4s.cwl.CommandLineTool.{Argument, BaseCommand}
+import wdl4s.cwl.{CommandInputParameter, CommandLineBinding, CommandLineTool, StringOrExpression}
 import wdl4s.wdl.WdlExpression
 import wdl4s.wdl.command.{ParameterCommandPart, StringCommandPart}
 import wdl4s.wom.callable.{Callable, TaskDefinition}

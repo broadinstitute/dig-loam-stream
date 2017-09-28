@@ -4,10 +4,10 @@ import cats.data.Validated.Valid
 import cats.syntax.option.catsSyntaxOption
 import lenthall.validation.ErrorOr.{ErrorOr, ShortCircuitingFlatMap}
 import shapeless.Coproduct
-import wdl4s.cwl.CommandLineTool.{Argument, BaseCommand, StringOrExpression}
+import wdl4s.cwl.CommandLineTool.{Argument, BaseCommand}
 import loamstream.cwl.CwlCmdTokenGrouper.Group
 import loamstream.cwl.ParametrizedBashParser.Token
-import wdl4s.cwl.{CommandInputParameter, CommandLineBinding, CommandLineTool}
+import wdl4s.cwl.{CommandInputParameter, CommandLineBinding, CommandLineTool, StringOrExpression}
 import wdl4s.wdl.command.{ParameterCommandPart, StringCommandPart}
 import wdl4s.wom.CommandPart
 import wdl4s.wom.callable.TaskDefinition

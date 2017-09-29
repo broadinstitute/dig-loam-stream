@@ -19,7 +19,7 @@ import wdl4s.wom.callable.Callable.RequiredInputDefinition
 import wdl4s.wom.callable.{Callable, TaskDefinition, WorkflowDefinition}
 import wdl4s.wom.expression.{IoFunctionSet, WomExpression}
 import wdl4s.wom.graph.CallNode.{InputDefinitionFold, InputDefinitionPointer}
-import wdl4s.wom.graph.GraphNodePort.{GraphNodeOutputPort, InputPort}
+import wdl4s.wom.graph.GraphNodePort.{GraphNodeOutputPort, InputPort, OutputPort}
 import wdl4s.wom.graph.{CallNode, Graph, GraphInputNode, GraphNode, RequiredGraphInputNode, TaskCall, TaskCallNode}
 import wdl4s.wom.{CommandPart, RuntimeAttributes}
 
@@ -160,7 +160,7 @@ object LoamToWom {
         val producerGraphNode: GraphNode = ???
         val inputDefinition = RequiredInputDefinition(name, WdlFileType)
         val outputPort = GraphNodeOutputPort(name, WdlFileType, producerGraphNode)
-        val inputDefinitionPointer = Coproduct[InputDefinitionPointer](outputPort)
+        val inputDefinitionPointer = Coproduct[InputDefinitionPointer](outputPort: OutputPort)
         (inputDefinition, inputDefinitionPointer)
       }
       val callInputPorts: Set[InputPort] = ???

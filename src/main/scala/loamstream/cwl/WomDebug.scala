@@ -1,7 +1,7 @@
 package loamstream.cwl
 
 import loamstream.util.lines.Lines
-import wdl4s.wom.graph.{Graph, GraphNode}
+import wom.graph.{Graph, GraphNode}
 
 /**
   * LoamStream

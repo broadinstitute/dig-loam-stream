@@ -1,5 +1,9 @@
 package loamstream.util
 
+import cats.data.NonEmptyList
+import cats.data.Validated.{Invalid, Valid}
+import lenthall.validation.ErrorOr.ErrorOr
+
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}
 
@@ -28,6 +32,8 @@ sealed trait Shot[+A] {
   
   def isHit: Boolean
   def isMiss: Boolean
+
+  def toErrorOr[AA >: A]: ErrorOr[AA]
 }
 
 /** A container of an object or an error description */
@@ -119,6 +125,8 @@ final case class Hit[+A](value: A) extends Shot[A] {
   override val isHit: Boolean = true
   
   override val isMiss: Boolean = false
+
+  override def toErrorOr[AA >: A]: Valid[AA] = Valid(value)
 }
 
 object Miss {
@@ -132,7 +140,7 @@ final case class Miss(snag: Snag) extends Shot[Nothing] {
 
   override def map[B](f: (Nothing) => B): Shot[B] = Miss(snag)
 
-  override val asOpt = None
+  override val asOpt: None.type = None
 
   override def flatMap[B](f: (Nothing) => Shot[B]): Shot[B] = this
 
@@ -148,4 +156,7 @@ final case class Miss(snag: Snag) extends Shot[Nothing] {
   override val isHit: Boolean = false
   
   override val isMiss: Boolean = true
+
+  override def toErrorOr[AA]: Invalid[NonEmptyList[String]] =
+    Invalid(NonEmptyList(snag.toString, snag.children.map(_.toString).toList))
 }

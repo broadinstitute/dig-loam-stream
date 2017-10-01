@@ -38,7 +38,7 @@ object LoamToWom {
         NonEmptyList.of(s"Missing input $name")).flatMap { (value: WdlValue) =>
         value match {
           case file: WdlFile => Valid(file)
-          case _ => Invalid(NonEmptyList.of(s"Type of $name should be file, but is ${value}."))
+          case _ => Invalid(NonEmptyList.of(s"Type of $name should be file, but is $value."))
         }
       }
 
@@ -68,6 +68,8 @@ object LoamToWom {
         case (storeId, _) => toolInputStoresIds(storeId)
       }.values.toSet
     }
+
+    def getAllNodes: Set[GraphNode] = (inputsToNodes.values ++ toolsToNodes.values).toSet
   }
 
   object LoamToNodes {
@@ -181,7 +183,7 @@ object LoamToWom {
       errorOrInputDefinitionsToOutputPorts.map { inputDefinitionsToOutputPorts =>
         val mappings = inputDefinitionsToOutputPorts.mapValues(Coproduct[InputDefinitionPointer](_))
         val callInputPorts = inputDefinitionsToOutputPorts.map { case (inputDefinition, outputPort) =>
-            callNodeBuilder.makeInputPort(inputDefinition, outputPort): InputPort
+          callNodeBuilder.makeInputPort(inputDefinition, outputPort): InputPort
         }.toSet
         val inputDefinitionFold = InputDefinitionFold(mappings, callInputPorts, newGraphInputNodes)
         callNodeBuilder.build(name, taskDefinition, inputDefinitionFold).node.asInstanceOf[TaskCallNode]
@@ -190,19 +192,33 @@ object LoamToWom {
   }
 
   def loamToWom(graphName: String, loam: LoamGraph): ErrorOr[WorkflowDefinition] = {
-    val inputStoresToNodes = mapInputsToNodes(loam.inputStores)
-    val inputNodes: Set[RequiredGraphInputNode] = inputStoresToNodes.values.toSet
-    var loamToWom: LoamToNodes = LoamToNodes.fromInputStores(loam)
-    val dagSortedTools = loam.dagSortedTools
-    val nodes: Set[GraphNode] = ???
-    val errorOrGraph = Graph.validateAndConstruct(nodes)
-    errorOrGraph.map { graph =>
-      val meta: Map[String, String] = Map.empty
-      val parameterMeta: Map[String, String] = Map.empty
-      val declarations: List[(String, WomExpression)] = inputNodes.map { node =>
-        (node.name, WomFileVariable(node.name))
-      }.toList
-      WorkflowDefinition(graphName, graph, meta, parameterMeta, declarations)
+    loam.dagSortedTools.toErrorOr.flatMap { dagSortedTools =>
+      val inputStoresToNodes = mapInputsToNodes(loam.inputStores)
+      val inputNodes: Set[RequiredGraphInputNode] = inputStoresToNodes.values.toSet
+      var errorOrLoamToNodes: ErrorOr[LoamToNodes] = Valid(LoamToNodes.fromInputStores(loam))
+      for (toolsNext <- dagSortedTools) {
+        errorOrLoamToNodes = errorOrLoamToNodes.flatMap { loamToNodes =>
+          val errorOrToolsToNodesNew: ErrorOr[Map[LId, TaskCallNode]] = toolsNext.map { tool =>
+            val errorOrTaskNode = toolToNode(tool, loam, loamToNodes)
+            (tool.id, errorOrTaskNode)
+          }.toMap.sequence
+          errorOrToolsToNodesNew.map { toolsToNodesNew =>
+            loamToNodes.plusToolsToNodes(toolsToNodesNew)
+          }
+        }
+      }
+      errorOrLoamToNodes.flatMap { loamToNodes =>
+        val nodes: Set[GraphNode] = loamToNodes.getAllNodes
+        val errorOrGraph = Graph.validateAndConstruct(nodes)
+        errorOrGraph.map { graph =>
+          val meta: Map[String, String] = Map.empty
+          val parameterMeta: Map[String, String] = Map.empty
+          val declarations: List[(String, WomExpression)] = inputNodes.map { node =>
+            (node.name, WomFileVariable(node.name))
+          }.toList
+          WorkflowDefinition(graphName, graph, meta, parameterMeta, declarations)
+        }
+      }
     }
   }
 

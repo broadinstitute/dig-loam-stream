@@ -50,6 +50,10 @@ object LoamToWom {
       evaluateValue(inputTypes, ioFunctionSet).map(Set(_))
   }
 
+  def getInputNodeName(id: LId): String = "store" + id.name
+  def getTaskNodeName(id: LId): String = "task" + id.name
+  def getPortName(id: LId): String = "store" + id.name
+
   case class LoamToNodes(loam: LoamGraph, inputsToNodes: Map[LId, RequiredGraphInputNode],
                          toolsToNodes: Map[LId, TaskCallNode]) {
     def plusToolsToNodes(toolsToNodesNew: Map[LId, TaskCallNode]): LoamToNodes =
@@ -59,7 +63,7 @@ object LoamToWom {
       val inputNodeOption: Option[RequiredGraphInputNode] = inputsToNodes.get(store.id)
       inputNodeOption.orElse {
         loam.storeProducers.get(store).map(_.id).flatMap(toolsToNodes.get)
-      }.toValidNel(s"No WOM node found for ${store.id.name}")
+      }.toValidNel(s"No WOM node found for store $store.id.name}")
     }
 
     def getInputNodesFor(tool: Tool): Set[RequiredGraphInputNode] = {
@@ -76,14 +80,14 @@ object LoamToWom {
 
     def fromInputStores(loam: LoamGraph): LoamToNodes = {
       val inputsToNodes = loam.inputStores.map { input =>
-        (input.id, RequiredGraphInputNode(input.id.name, WdlFileType))
+        (input.id, RequiredGraphInputNode(getInputNodeName(input.id), WdlFileType))
       }.toMap
       LoamToNodes(loam, inputsToNodes, Map.empty)
     }
   }
 
   def getInputNode(inputStore: Store.Untyped): RequiredGraphInputNode =
-    RequiredGraphInputNode(inputStore.id.name, WdlFileType)
+    RequiredGraphInputNode(getInputNodeName(inputStore.id), WdlFileType)
 
   def mapInputsToNodes(inputStores: Set[Store.Untyped]): Map[Store.Untyped, RequiredGraphInputNode] =
     inputStores.map { store =>
@@ -97,7 +101,7 @@ object LoamToWom {
   }
 
   def getWdlExpression(store: Store.Untyped): WdlExpression = {
-    val name = store.id.name
+    val name = getPortName(store.id)
     val astId = name.##
     val ast = new Terminal(astId, "identifier", name, name, 0, 0)
     WdlExpression(ast)
@@ -105,7 +109,7 @@ object LoamToWom {
 
   def storeToParameterCommandPart(hasLocation: HasLocation): ParameterCommandPart = {
     val store = hasLocationToStore(hasLocation)
-    val name = store.id.name
+    val name = getPortName(store.id)
     val expression: WdlExpression = getWdlExpression(store)
     val attributes: Map[String, String] = Map("default" -> name)
     ParameterCommandPart(attributes, expression)
@@ -137,16 +141,16 @@ object LoamToWom {
 
   def getTaskDefinition(tool: Tool): ErrorOr[TaskDefinition] = {
     getCommandTemplate(tool).map { commandTemplate =>
-      val name = tool.id.name
+      val name = getTaskNodeName(tool.id)
       val runtimeAttributes: RuntimeAttributes = RuntimeAttributes(Map.empty)
       val meta: Map[String, String] = Map.empty
       val parameterMeta: Map[String, String] = Map.empty
       val outputs: List[Callable.OutputDefinition] = tool.outputs.values.map { store =>
-        val name = store.id.name
+        val name = getPortName(store.id)
         Callable.OutputDefinition(name, WdlFileType, WomFileVariable(name))
       }.toList
       val inputs: List[_ <: Callable.InputDefinition] = tool.inputs.values.map { store =>
-        Callable.RequiredInputDefinition(store.id.name, WdlFileType)
+        Callable.RequiredInputDefinition(getPortName(store.id), WdlFileType)
       }.toList
       TaskDefinition(name, commandTemplate, runtimeAttributes, meta, parameterMeta, outputs, inputs)
     }
@@ -169,13 +173,13 @@ object LoamToWom {
     val errorOrTaskDefinition = getTaskDefinition(tool)
     errorOrTaskDefinition.flatMap { taskDefinition =>
       val callNodeBuilder = new CallNode.CallNodeBuilder
-      val name = tool.id.name
+      val name = getTaskNodeName(tool.id)
       val errorOrInputDefinitionsToOutputPorts: ErrorOr[Map[InputDefinition, OutputPort]] =
-        tool.inputs.map { case (inputId, toolInputStore) =>
-          val inputName = inputId.name
+        tool.inputs.map { case (_, toolInputStore) =>
+          val inputName = getPortName(toolInputStore.id)
           val inputDefinition = RequiredInputDefinition(inputName, WdlFileType)
           val errorOrOutputPort = loamToNodes.getNodeProvidingStore(toolInputStore).map { providingNode =>
-            GraphNodeOutputPort(inputName, WdlFileType, providingNode)
+            providingNode.outputPorts.find(_.name ==inputName).get // TODO Replace Option.get
           }
           (inputDefinition: InputDefinition, errorOrOutputPort)
         }.sequence

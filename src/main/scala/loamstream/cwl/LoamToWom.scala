@@ -1,5 +1,7 @@
 package loamstream.cwl
 
+import java.util.Date
+
 import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, Validated}
 import cats.syntax.option.catsSyntaxOption
@@ -195,22 +197,34 @@ object LoamToWom {
     }
   }
 
+  def mark(i: Int): Unit = {
+    val rt = Runtime.getRuntime
+    println(s"### [$i] ${new Date(System.currentTimeMillis())} ${rt.freeMemory()}/${rt.totalMemory()}")
+  }
+
   def loamToWom(graphName: String, loam: LoamGraph): ErrorOr[WorkflowDefinition] = {
     loam.dagSortedTools.toErrorOr.flatMap { dagSortedTools =>
       val inputStoresToNodes = mapInputsToNodes(loam.inputStores)
       val inputNodes: Set[RequiredGraphInputNode] = inputStoresToNodes.values.toSet
       var errorOrLoamToNodes: ErrorOr[LoamToNodes] = Valid(LoamToNodes.fromInputStores(loam))
+      mark(1)
       for (toolsNext <- dagSortedTools) {
+        mark(2)
         errorOrLoamToNodes = errorOrLoamToNodes.flatMap { loamToNodes =>
           val errorOrToolsToNodesNew: ErrorOr[Map[LId, TaskCallNode]] = toolsNext.map { tool =>
+            mark(3)
             val errorOrTaskNode = toolToNode(tool, loam, loamToNodes)
+            mark(4)
             (tool.id, errorOrTaskNode)
           }.toMap.sequence
+          mark(5)
           errorOrToolsToNodesNew.map { toolsToNodesNew =>
             loamToNodes.plusToolsToNodes(toolsToNodesNew)
           }
         }
+        mark(6)
       }
+      mark(7)
       errorOrLoamToNodes.flatMap { loamToNodes =>
         val nodes: Set[GraphNode] = loamToNodes.getAllNodes
         val errorOrGraph = Graph.validateAndConstruct(nodes)

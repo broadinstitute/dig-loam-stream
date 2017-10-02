@@ -12,8 +12,8 @@ val python = "python"
 val getBins = "/humgen/diabetes/users/kyuksel/pipeline/analysis/workingexampleofvcfmapping/get_bins.py"
 
 // Inputs
-val vcf = store[TXT].at("/humgen/diabetes2/users/ryank/data/camp/data_clean/camp.biallelic.chr1-22.clean.vcf.gz")
-val ped = store[TXT].at("/humgen/diabetes2/users/ryank/data/camp/phenotype/camp.phenotypes.epacts.unrelated.ped")
+val vcf = store[TXT].at("/humgen/diabetes2/users/ryank/data/camp/data_clean/camp.biallelic.chr1-22.clean.vcf.gz").asInput
+val ped = store[TXT].at("/humgen/diabetes2/users/ryank/data/camp/phenotype/camp.phenotypes.epacts.unrelated.ped").asInput
 
 // Conf
 val outDirName = "analysis"

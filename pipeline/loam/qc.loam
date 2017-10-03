@@ -61,6 +61,7 @@ object Params {
     harmMergeLine: String)
 
   final case class Metric(
+    sampleqcStatsAdjIndMetric: String,
     sampleqcStatsAdjIndClusterName: Path,
     sampleqcStatsAdjIndClusterFet: Store[TXT],
     sampleqcStatsAdjIndClusterClu: Store[TXT],
@@ -135,6 +136,7 @@ object Params {
     sampleqcStatsAdjPcaLoadings: Store[TXT],
     sampleqcStatsAdjPcaScoresPlots: Store[TXT],
     sampleqcStatsAdjPcaScores: Store[TXT],
+	sampleqcSexcheck: Store[TXT],
     sampleqcSexcheckProblems: Store[TXT],
     sampleqcSexcheckCloud: Store[TXT],
     sampleqcSexcheckProblemsCloud: Store[TXT],
@@ -147,18 +149,23 @@ object Params {
     sampleqcStatsAdjClusterPlots: Store[TXT],
     sampleqcStatsAdjClusterXtabs: Store[TXT],
     sampleqcStatsAdjClusterStripchart: Store[TXT],
-    sampleqcStatsAdjBase: String,
-    sampleqcStatsAdjClusterBase: String,
+    sampleqcStatsAdjClusterName: Path,
     sampleqcStatsAdjIndBoxplots: Store[TXT],
     sampleqcStatsAdjIndDiscreteness: Store[TXT],
     sampleqcStatsAdjOutliersTable: Store[TXT],
     sampleqcStatsAdjStripchart: Store[TXT],
-    finalBase: String,
     finalSampleExclusions: Store[TXT],
-    clean: Seq[Store[TXT]],
     finalSampleExclusionsCloud: Store[TXT],
+    variantqcStats: Store[TXT],
+    variantqcStatsCloud: Store[TXT],
+    finalVariantExclusions: Store[TXT],
+    finalVariantExclusionsCloud: Store[TXT],
+    clean: Seq[Store[TXT]],
     cleanNameCloud: URI,
-    cleanCloud: Seq[Store[TXT]])
+    cleanCloud: Seq[Store[TXT]],
+    cleanVcf: Store[VCF],
+    cleanVcfCloud: Store[VCF],
+    cleanVcfTbi: Store[TXT])
 
   val paramsByArr: Seq[(Int, Arr)] = (0 until nArrays).map { arr =>
 
@@ -208,11 +215,13 @@ object Params {
     val sampleqcBase = s"${projectId}.${arrayId}.sampleqc"
     val sampleqcStatsAdjBase = s"${sampleqcBase}.stats.adj"
 
-    val paramsByMetric: Seq[(Int, Metric)] = (0 until nMetrics).map { metric =>
+    val paramsByMetric: Seq[(Int, Metric)] = (0 until nMetrics).map { metricIdx =>
 
-      val sampleqcStatsAdjIndClusterBase = s"${sampleqcStatsAdjBase}.${metric}"
+      val sampleqcStatsAdjIndMetric = sampleQcMetrics(metricIdx)
+      val sampleqcStatsAdjIndClusterBase = s"${sampleqcStatsAdjBase}.${sampleqcStatsAdjIndMetric}"
 
-      metric -> Metric(
+      metricIdx -> Metric(
+        sampleqcStatsAdjIndMetric = sampleqcStatsAdjIndMetric,
         sampleqcStatsAdjIndClusterName = localOutDir / sampleqcStatsAdjIndClusterBase,
         sampleqcStatsAdjIndClusterFet = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.fet.1"),
         sampleqcStatsAdjIndClusterClu = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.clu.1"),
@@ -243,6 +252,8 @@ object Params {
     val cleanName = localOutDir / cleanBase
     val cleanNameCloud = googleOutDir / cleanBase
     val sampleqcStatsAdjClusterBase = s"${sampleqcBase}.stats.adj.cluster"
+    val sampleqcStatsAdjClusterName = localOutDir / sampleqcStatsAdjClusterBase
+    val variantqcBase = s"${projectId}.${arrayId}.variantqc"
 
     val (_, paramsSortedByChr) = paramsByChr.unzip
     val harmMergeLines = paramsSortedByChr.map(_.harmKgHuRefChrName.toString)
@@ -318,11 +329,12 @@ object Params {
     sampleqcStatsAdjPcaLoadings = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.pca.loadings.tsv"),
     sampleqcStatsAdjPcaScoresPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.pca.plots.pdf"),
     sampleqcStatsAdjPcaScores = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.pca.scores.tsv"),
+	sampleqcSexcheck = store[TXT].at(localOutDir / s"${sampleqcSexcheckBase}.tsv"),
     sampleqcSexcheckProblems = store[TXT].at(localOutDir / s"${sampleqcSexcheckBase}.problems.tsv"),
     sampleqcSexcheckCloud = store[TXT].at(googleOutDir / s"${sampleqcSexcheckBase}.tsv"),
     sampleqcSexcheckProblemsCloud = store[TXT].at(googleOutDir / s"${sampleqcSexcheckBase}.problems.tsv"),
     sampleqcStatsCloud = store[TXT].at(googleOutDir / s"${sampleqcBase}.stats.tsv"),
-    sampleqcStatsAdjClusterBase = sampleqcStatsAdjClusterBase,
+    sampleqcStatsAdjClusterName = sampleqcStatsAdjClusterName,
     sampleqcStatsAdjClusterFet = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.fet.1"),
     sampleqcStatsAdjClusterClu = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.clu.1"),
     sampleqcStatsAdjClusterKlg = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klg.1"),
@@ -331,17 +343,22 @@ object Params {
     sampleqcStatsAdjClusterPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.plots.pdf"),
     sampleqcStatsAdjClusterXtabs = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.xtabs"),
     sampleqcStatsAdjClusterStripchart = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.stripchart.pdf"),
-    sampleqcStatsAdjBase = sampleqcStatsAdjBase,
     sampleqcStatsAdjIndBoxplots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.ind.boxplots.pdf"),
     sampleqcStatsAdjIndDiscreteness = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.ind.discreteness"),
     sampleqcStatsAdjOutliersTable = store[TXT].at(localOutDir / sampleqcStatsAdjOutliersTableBase),
     sampleqcStatsAdjStripchart = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.stripchart.pdf"),
-    finalBase = finalBase,
     finalSampleExclusions = store[TXT].at(localOutDir / s"${finalBase}.sample.exclusions"),
-    clean = bedBimFam(cleanName),
     finalSampleExclusionsCloud = store[TXT].at(googleOutDir / s"${finalBase}.sample.exclusions"),
+    variantqcStats = store[TXT].at(localOutDir / s"${variantqcBase}.stats.tsv"),
+    variantqcStatsCloud = store[TXT].at(googleOutDir / s"${variantqcBase}.stats.tsv"),
+	finalVariantExclusions = store[TXT].at(localOutDir / s"${finalBase}.variant.exclusions"),
+	finalVariantExclusionsCloud = store[TXT].at(googleOutDir / s"${finalBase}.variant.exclusions"),
+    clean = bedBimFam(cleanName),
     cleanNameCloud = cleanNameCloud,
-    cleanCloud = bedBimFam(cleanNameCloud))
+    cleanCloud = bedBimFam(cleanNameCloud),
+    cleanVcf = store[VCF].at(localOutDir / s"${cleanBase}.vcf.bgz"),
+    cleanVcfTbi = store[TXT].at(localOutDir / s"${cleanBase}.vcf.bgz.tbi"),
+    cleanVcfCloud = store[VCF].at(googleOutDir / s"${cleanBase}.vcf.bgz"))
     }
 
 }
@@ -390,210 +407,210 @@ def qc1(i: Int): Store[TXT] = {
 
   val (_, paramsArr) = Params.paramsByArr(i)
 
-  /**
-  * Params Step
-  *  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
-  *  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
-  *  Notes:
-  *     Could also add --variants and --mafAlign as pipeline options, but for now these are static
-  *     To save time, this will be run in parallel by chromosome number
-  */
-  
-  uger {
-    for {
-      (chr, paramsChr) <- paramsArr.paramsByChr
-    } {
-      cmd"""$binPlink --$dataType $dataPath --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName}"""
-        .in(data)
-        .out(paramsChr.rawChr)
-      
-      cmd"""$binGenotypeHarmonizer
-      --input ${paramsChr.rawChrName}
-      --inputType PLINK_BED
-      --output ${paramsChr.harmKgChrName}
-      --outputType PLINK_BED
-      --ref ${paramsChr.kgVcfChr}
-      --refType VCF
-      --keep
-      --update-id
-      --variants 1000
-      --mafAlign 0.1
-      --update-id
-      --update-reference-allele
-      --debug"""
-        .in(paramsChr.rawChr :+ paramsChr.kgVcfChr)
-        .out(paramsChr.harmKgChr :+ paramsChr.harmKgChrVarIdUpdate :+ paramsChr.harmKgChrVarSnpLog)
-  
-      cmd"""python $pyAlignNon1kgVariants
-      --legend ${paramsChr.kgLegendChr}
-      --bim ${paramsChr.harmKgChrName}.bim
-      --ref ${paramsChr.humanReference}
-      --out-remove ${paramsChr.harmKgChrRemove}
-      --out-flip ${paramsChr.harmKgChrNonKgFlip}
-      --out-force-a1 ${paramsChr.harmKgChrForceA1}"""
-        .in(paramsChr.harmKgChr :+ paramsChr.kgLegendChr)
-        .out(paramsChr.harmKgChrNonKgFlip, paramsChr.harmKgChrForceA1)
-  
-      cmd"""$binPlink --bfile ${paramsChr.harmKgChrName} --exclude ${paramsChr.harmKgChrRemove} --flip ${paramsChr.harmKgChrNonKgFlip} --a1-allele ${paramsChr.harmKgChrForceA1} --make-bed --out ${paramsChr.harmKgHuRefChrName}"""
-        .in(paramsChr.harmKgChr :+ paramsChr.harmKgChrRemove :+ paramsChr.harmKgChrNonKgFlip :+ paramsChr.harmKgChrForceA1)
-        .out(paramsChr.harmKgHuRefChr)
-  
-    }
-  
-    val harmMergeLinesConcat: String = paramsArr.harmMergeLines
-      .drop(1)
-      .mkString("\n") // Exclude first chrom
-    
-    cmd"""echo "$harmMergeLinesConcat" > ${paramsArr.harmMergeList}"""
-      .out(paramsArr.harmMergeList)
-    
-    cmd"""$binPlink --bfile ${paramsArr.paramsSortedByChr.head.harmKgHuRefChrName} --merge-list ${paramsArr.harmMergeList} --make-bed --keep-allele-order --out ${paramsArr.harmName}"""
-      .in(paramsArr.paramsSortedByChr.flatMap(_.harmKgHuRefChr) :+ paramsArr.harmMergeList)
-      .out(paramsArr.harm)
-    
-    cmd"""awk '{print $$2,$$5}' ${paramsArr.harmName}.bim > ${paramsArr.harmForceA2}"""
-      .in(paramsArr.harm)
-      .out(paramsArr.harmForceA2)
-    
-    cmd"""$binPlink --bfile ${paramsArr.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --out ${paramsArr.harmRefName}"""
-      .in(paramsArr.harm :+ paramsArr.harmForceA2)
-      .out(paramsArr.harmRefVcf)
-    
-    cmd"""$binTabix -f -p vcf ${paramsArr.harmRefVcf}"""
-      .in(paramsArr.harmRefVcf)
-      .out(paramsArr.harmRefVcfTbi)
-  }
-  
-  /**
-   * Load Step
-   *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
-   *  Requires: Hail
-   */
-  
-  local {
-    googleCopy(paramsArr.harmRefVcf, paramsArr.harmRefVcfCloud)
-    googleCopy(paramsArr.harmRefVcfTbi, paramsArr.harmRefVcfTbiCloud)
-  }
-  
-  google {
-    hail"""$pyHailLoad
-      --vcf-in $projectId ${paramsArr.harmRefVcfCloud}
-      --vds-out ${paramsArr.harmRefVdsCloud}"""
-      .in(paramsArr.harmRefVcfCloud, paramsArr.harmRefVcfTbiCloud)
-      .out(paramsArr.harmRefVdsCloud)
-  }
-  
-  /**
-   * Filter Step
-   *  Description: Generate filtered and filtered/pruned filesets for QC
-   *  Requires: Hail
-   */
-  
-  // TODO this step may use multiple cores - need to add numCores option to each local / uger / google - currently set to multiprocessing.cpu_count()
-  google {
-    hail"""$pyHailFilter
-      --vds-in ${paramsArr.harmRefVdsCloud}
-      --regions-exclude ${Input.Google.regionsExclude}
-      --variant-qc-out ${paramsArr.harmRefFiltVariantQcCloud}
-      --variants-prunedin-out ${paramsArr.harmRefFiltVariantsPrunedInCloud}
-      --filt-vds-out ${paramsArr.harmRefFiltVdsCloud}
-      --filt-plink-out ${paramsArr.harmRefFiltNameCloud}
-      --filt-pruned-vds-out ${paramsArr.harmRefFiltPrunedVdsCloud}
-      --filt-pruned-plink-out ${paramsArr.harmRefFiltPrunedNameCloud}"""
-      .in(paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
-      .out(((paramsArr.harmRefFiltCloud :+ paramsArr.harmRefFiltVdsCloud) ++ (paramsArr.harmRefFiltPrunedCloud :+ paramsArr.harmRefFiltPrunedVdsCloud)) :+ paramsArr.harmRefFiltVariantQcCloud :+ paramsArr.harmRefFiltVariantsPrunedInCloud)
-  }
-  
-  local {
-    googleCopy(paramsArr.harmRefFiltPrunedCloud, paramsArr.harmRefFiltPruned)
-  }
-  
-  /**
-   * Kinship Step
-   *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
-   *  Requires: King, R
-   *  Notes:
-   *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
-   * King only writes the '.kin0' file if families are found, so a bash script is used to write an empty file in that case
-   */
-  
-  uger {
-    cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related}"""
-    .in(paramsArr.harmRefFiltPruned)
-    .out(paramsArr.kinLog, paramsArr.kinKin, paramsArr.kinTmpDat, paramsArr.kinTmpPed, paramsArr.kinKin0, paramsArr.kinKin0Related)
-  
-    cmd"""$binR --vanilla --args ${paramsArr.kinKin0Related} ${paramsArr.kinFamsizes} < ${rCalcKinshipFamSizes}"""
-    .in(paramsArr.kinKin0Related)
-    .out(paramsArr.kinFamsizes)
-  }
-  
-  /**
-    * Ancestry PCA Step
-    *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
-    *  Requires: Hail, R, $rPlotAncestryPca
-    *  Notes:
-    *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
-    */
-  
-  google {
-    hail"""$pyHailAncestryPcaMerge1kg
-      --vds-in ${paramsArr.harmRefVdsCloud}
-      --kg-vcf-in ${Input.Google.kgPurcellVcf}
-      --kg-sample ${Input.Google.kgSample}
-      --plink-out ${paramsArr.harmRef1kgNameCloud}"""
-      .in(paramsArr.harmRefVdsCloud, Input.Google.kgPurcellVcf, Input.Google.kgSample)
-      .out(paramsArr.harmRef1kgCloud)
-  }
-  
-  local {
-    googleCopy(paramsArr.harmRef1kgCloud, paramsArr.harmRef1kg)
-  }
-  
-  uger {
-    cmd"""$binRscript --vanilla --verbose
-      $rPcair
-      --plink-in ${paramsArr.harmRef1kgName}
-      --gds-out ${paramsArr.harmRef1kgGds}
-      --scores ${paramsArr.ancestryPcaScores}
-      --id $projectId
-      --force-unrel $kgSampleId ${Input.Local.kgSample}
-      --update-pop $kgSampleId $kgSamplePop ${Input.Local.kgSample}
-      --update-group $kgSampleId $kgSampleGroup ${Input.Local.kgSample}
-      > ${paramsArr.ancestryPcaLog}"""
-      .in(paramsArr.harmRef1kg :+ Input.Local.kgSample)
-      .out(paramsArr.harmRef1kgGds, paramsArr.ancestryPcaLog, paramsArr.ancestryPcaScores)
-      .using("R-3.4")
-  
-    cmd"""$binR --vanilla --args $projectId ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryPcaScoresPlots} < $rPlotAncestryPca"""
-    .in(paramsArr.ancestryPcaScores)
-    .out(paramsArr.ancestryPcaScoresPlots)
-  }
-  
-  /**
-   * Ancestry Cluster Step
-   *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
-   *  Requires: Hail, R
-   *  Notes:
-   *     *.ancestry.inferred.tsv contains the final inferred ancestry for each sample, including OUTLIERS
-   *     This file is array specific
-   */
-  
-  uger {
-    cmd"""(echo 3; sed '1d' ${paramsArr.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${paramsArr.ancestryClusterFet}"""
-    .in(paramsArr.ancestryPcaScores)
-    .out(paramsArr.ancestryClusterFet)
-  
-    cmd"""$binKlustakwik ${paramsArr.ancestryClusterName} 1 -UseFeatures 111 -UseDistributional 0 > ${paramsArr.ancestryClusterLog}"""
-    .in(paramsArr.ancestryClusterFet)
-    .out(paramsArr.ancestryClusterClu, paramsArr.ancestryClusterKlg, paramsArr.ancestryClusterLog)
-  
-    cmd"""$binR --vanilla --args ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryClusterClu} ${Input.Local.pheno} $projectId $phenoId $phenoSrRace
-      ${paramsArr.ancestryClusterPlots} ${paramsArr.ancestryClusterXtabs} ${paramsArr.ancestryClusterPlotsCenters}
-      ${paramsArr.ancestryClusterGroups} ${paramsArr.ancestryInferred}
-      ${paramsArr.ancestryClusterPlotsNo1kg} < $rPlotAncestryCluster"""
-      .in(paramsArr.ancestryPcaScores, paramsArr.ancestryClusterClu, Input.Local.pheno)
-      .out(paramsArr.ancestryClusterPlots, paramsArr.ancestryClusterXtabs, paramsArr.ancestryClusterPlotsCenters, paramsArr.ancestryClusterGroups, paramsArr.ancestryInferred, paramsArr.ancestryClusterPlotsNo1kg)
-  }
+  ///**
+  //* Params Step
+  //*  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
+  //*  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
+  //*  Notes:
+  //*     Could also add --variants and --mafAlign as pipeline options, but for now these are static
+  //*     To save time, this will be run in parallel by chromosome number
+  //*/
+  //
+  //uger {
+  //  for {
+  //    (chr, paramsChr) <- paramsArr.paramsByChr
+  //  } {
+  //    cmd"""$binPlink --$dataType $dataPath --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName}"""
+  //      .in(data)
+  //      .out(paramsChr.rawChr)
+  //    
+  //    cmd"""$binGenotypeHarmonizer
+  //    --input ${paramsChr.rawChrName}
+  //    --inputType PLINK_BED
+  //    --output ${paramsChr.harmKgChrName}
+  //    --outputType PLINK_BED
+  //    --ref ${paramsChr.kgVcfChr}
+  //    --refType VCF
+  //    --keep
+  //    --update-id
+  //    --variants 1000
+  //    --mafAlign 0.1
+  //    --update-id
+  //    --update-reference-allele
+  //    --debug"""
+  //      .in(paramsChr.rawChr :+ paramsChr.kgVcfChr)
+  //      .out(paramsChr.harmKgChr :+ paramsChr.harmKgChrVarIdUpdate :+ paramsChr.harmKgChrVarSnpLog)
+  //
+  //    cmd"""python $pyAlignNon1kgVariants
+  //    --legend ${paramsChr.kgLegendChr}
+  //    --bim ${paramsChr.harmKgChrName}.bim
+  //    --ref ${paramsChr.humanReference}
+  //    --out-remove ${paramsChr.harmKgChrRemove}
+  //    --out-flip ${paramsChr.harmKgChrNonKgFlip}
+  //    --out-force-a1 ${paramsChr.harmKgChrForceA1}"""
+  //      .in(paramsChr.harmKgChr :+ paramsChr.kgLegendChr)
+  //      .out(paramsChr.harmKgChrNonKgFlip, paramsChr.harmKgChrForceA1)
+  //
+  //    cmd"""$binPlink --bfile ${paramsChr.harmKgChrName} --exclude ${paramsChr.harmKgChrRemove} --flip ${paramsChr.harmKgChrNonKgFlip} --a1-allele ${paramsChr.harmKgChrForceA1} --make-bed --out ${paramsChr.harmKgHuRefChrName}"""
+  //      .in(paramsChr.harmKgChr :+ paramsChr.harmKgChrRemove :+ paramsChr.harmKgChrNonKgFlip :+ paramsChr.harmKgChrForceA1)
+  //      .out(paramsChr.harmKgHuRefChr)
+  //
+  //  }
+  //
+  //  val harmMergeLinesConcat: String = paramsArr.harmMergeLines
+  //    .drop(1)
+  //    .mkString("\n") // Exclude first chrom
+  //  
+  //  cmd"""echo "$harmMergeLinesConcat" > ${paramsArr.harmMergeList}"""
+  //    .out(paramsArr.harmMergeList)
+  //  
+  //  cmd"""$binPlink --bfile ${paramsArr.paramsSortedByChr.head.harmKgHuRefChrName} --merge-list ${paramsArr.harmMergeList} --make-bed --keep-allele-order --out ${paramsArr.harmName}"""
+  //    .in(paramsArr.paramsSortedByChr.flatMap(_.harmKgHuRefChr) :+ paramsArr.harmMergeList)
+  //    .out(paramsArr.harm)
+  //  
+  //  cmd"""awk '{print $$2,$$5}' ${paramsArr.harmName}.bim > ${paramsArr.harmForceA2}"""
+  //    .in(paramsArr.harm)
+  //    .out(paramsArr.harmForceA2)
+  //  
+  //  cmd"""$binPlink --bfile ${paramsArr.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --out ${paramsArr.harmRefName}"""
+  //    .in(paramsArr.harm :+ paramsArr.harmForceA2)
+  //    .out(paramsArr.harmRefVcf)
+  //  
+  //  cmd"""$binTabix -f -p vcf ${paramsArr.harmRefVcf}"""
+  //    .in(paramsArr.harmRefVcf)
+  //    .out(paramsArr.harmRefVcfTbi)
+  //}
+  //
+  ///**
+  // * Load Step
+  // *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
+  // *  Requires: Hail
+  // */
+  //
+  //local {
+  //  googleCopy(paramsArr.harmRefVcf, paramsArr.harmRefVcfCloud)
+  //  googleCopy(paramsArr.harmRefVcfTbi, paramsArr.harmRefVcfTbiCloud)
+  //}
+  //
+  //google {
+  //  hail"""$pyHailLoad
+  //    --vcf-in $projectId ${paramsArr.harmRefVcfCloud}
+  //    --vds-out ${paramsArr.harmRefVdsCloud}"""
+  //    .in(paramsArr.harmRefVcfCloud, paramsArr.harmRefVcfTbiCloud)
+  //    .out(paramsArr.harmRefVdsCloud)
+  //}
+  //
+  ///**
+  // * Filter Step
+  // *  Description: Generate filtered and filtered/pruned filesets for QC
+  // *  Requires: Hail
+  // */
+  //
+  //// TODO this step may use multiple cores - need to add numCores option to each local / uger / google - currently set to multiprocessing.cpu_count()
+  //google {
+  //  hail"""$pyHailFilter
+  //    --vds-in ${paramsArr.harmRefVdsCloud}
+  //    --regions-exclude ${Input.Google.regionsExclude}
+  //    --variant-qc-out ${paramsArr.harmRefFiltVariantQcCloud}
+  //    --variants-prunedin-out ${paramsArr.harmRefFiltVariantsPrunedInCloud}
+  //    --filt-vds-out ${paramsArr.harmRefFiltVdsCloud}
+  //    --filt-plink-out ${paramsArr.harmRefFiltNameCloud}
+  //    --filt-pruned-vds-out ${paramsArr.harmRefFiltPrunedVdsCloud}
+  //    --filt-pruned-plink-out ${paramsArr.harmRefFiltPrunedNameCloud}"""
+  //    .in(paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
+  //    .out(((paramsArr.harmRefFiltCloud :+ paramsArr.harmRefFiltVdsCloud) ++ (paramsArr.harmRefFiltPrunedCloud :+ paramsArr.harmRefFiltPrunedVdsCloud)) :+ paramsArr.harmRefFiltVariantQcCloud :+ paramsArr.harmRefFiltVariantsPrunedInCloud)
+  //}
+  //
+  //local {
+  //  googleCopy(paramsArr.harmRefFiltPrunedCloud, paramsArr.harmRefFiltPruned)
+  //}
+  //
+  ///**
+  // * Kinship Step
+  // *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
+  // *  Requires: King, R
+  // *  Notes:
+  // *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
+  // * King only writes the '.kin0' file if families are found, so a bash script is used to write an empty file in that case
+  // */
+  //
+  ////uger {
+  ////  cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related}"""
+  ////  .in(paramsArr.harmRefFiltPruned)
+  ////  .out(paramsArr.kinLog, paramsArr.kinKin, paramsArr.kinTmpDat, paramsArr.kinTmpPed, paramsArr.kinKin0, paramsArr.kinKin0Related)
+  ////
+  ////  cmd"""$binR --vanilla --args ${paramsArr.kinKin0Related} ${paramsArr.kinFamsizes} < ${rCalcKinshipFamSizes}"""
+  ////  .in(paramsArr.kinKin0Related)
+  ////  .out(paramsArr.kinFamsizes)
+  ////}
+  //
+  ///**
+  //  * Ancestry PCA Step
+  //  *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
+  //  *  Requires: Hail, R, $rPlotAncestryPca
+  //  *  Notes:
+  //  *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
+  //  */
+  //
+  //google {
+  //  hail"""$pyHailAncestryPcaMerge1kg
+  //    --vds-in ${paramsArr.harmRefVdsCloud}
+  //    --kg-vcf-in ${Input.Google.kgPurcellVcf}
+  //    --kg-sample ${Input.Google.kgSample}
+  //    --plink-out ${paramsArr.harmRef1kgNameCloud}"""
+  //    .in(paramsArr.harmRefVdsCloud, Input.Google.kgPurcellVcf, Input.Google.kgSample)
+  //    .out(paramsArr.harmRef1kgCloud)
+  //}
+  //
+  //local {
+  //  googleCopy(paramsArr.harmRef1kgCloud, paramsArr.harmRef1kg)
+  //}
+  //
+  //uger {
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rPcair
+  //    --plink-in ${paramsArr.harmRef1kgName}
+  //    --gds-out ${paramsArr.harmRef1kgGds}
+  //    --scores ${paramsArr.ancestryPcaScores}
+  //    --id $projectId
+  //    --force-unrel $kgSampleId ${Input.Local.kgSample}
+  //    --update-pop $kgSampleId $kgSamplePop ${Input.Local.kgSample}
+  //    --update-group $kgSampleId $kgSampleGroup ${Input.Local.kgSample}
+  //    > ${paramsArr.ancestryPcaLog}"""
+  //    .in(paramsArr.harmRef1kg :+ Input.Local.kgSample)
+  //    .out(paramsArr.harmRef1kgGds, paramsArr.ancestryPcaLog, paramsArr.ancestryPcaScores)
+  //    .using("R-3.4")
+  //
+  //  cmd"""$binR --vanilla --args $projectId ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryPcaScoresPlots} < $rPlotAncestryPca"""
+  //  .in(paramsArr.ancestryPcaScores)
+  //  .out(paramsArr.ancestryPcaScoresPlots)
+  //}
+  //
+  ///**
+  // * Ancestry Cluster Step
+  // *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
+  // *  Requires: Hail, R
+  // *  Notes:
+  // *     *.ancestry.inferred.tsv contains the final inferred ancestry for each sample, including OUTLIERS
+  // *     This file is array specific
+  // */
+  //
+  //uger {
+  //  cmd"""(echo 3; sed '1d' ${paramsArr.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${paramsArr.ancestryClusterFet}"""
+  //  .in(paramsArr.ancestryPcaScores)
+  //  .out(paramsArr.ancestryClusterFet)
+  //
+  //  cmd"""$binKlustakwik ${paramsArr.ancestryClusterName} 1 -UseFeatures 111 -UseDistributional 0 > ${paramsArr.ancestryClusterLog}"""
+  //  .in(paramsArr.ancestryClusterFet)
+  //  .out(paramsArr.ancestryClusterClu, paramsArr.ancestryClusterKlg, paramsArr.ancestryClusterLog)
+  //
+  //  cmd"""$binR --vanilla --args ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryClusterClu} ${Input.Local.pheno} $projectId $phenoId $phenoSrRace
+  //    ${paramsArr.ancestryClusterPlots} ${paramsArr.ancestryClusterXtabs} ${paramsArr.ancestryClusterPlotsCenters}
+  //    ${paramsArr.ancestryClusterGroups} ${paramsArr.ancestryInferred}
+  //    ${paramsArr.ancestryClusterPlotsNo1kg} < $rPlotAncestryCluster"""
+  //    .in(paramsArr.ancestryPcaScores, paramsArr.ancestryClusterClu, Input.Local.pheno)
+  //    .out(paramsArr.ancestryClusterPlots, paramsArr.ancestryClusterXtabs, paramsArr.ancestryClusterPlotsCenters, paramsArr.ancestryClusterGroups, paramsArr.ancestryInferred, paramsArr.ancestryClusterPlotsNo1kg)
+  //}
 
   paramsArr.ancestryInferred
 
@@ -603,172 +620,173 @@ def qc2(i: Int): Unit = {
 
   val (_, paramsArr) = Params.paramsByArr(i)
 
-  /**
-   * PCA Step
-   *  Description: Calculate PCs for all non-outlier samples combined (to be used for adjustment during sample outlier removal)
-   *  Requires: R
-   */
-
-  local {
-  
-    cmd"""$binRscript --vanilla --verbose
-      $rPcair
-      --plink-in ${paramsArr.harmRefFiltPrunedName}
-      --gds-out ${paramsArr.harmRefFiltPrunedPcaGds}
-      --exclude ${ancestryInferredMergedOutliers}
-      --ancestry ${ancestryInferredMerged}
-      --id $projectId
-      --scores ${paramsArr.pcaScores}
-      > ${paramsArr.pcaLog}"""
-      .in(paramsArr.harmRefFiltPruned :+ ancestryInferredMerged :+ ancestryInferredMergedOutliers)
-      .out(paramsArr.harmRefFiltPrunedPcaGds, paramsArr.pcaLog, paramsArr.pcaScores)
-      .using("R-3.4")
-  }
-
-  /**
-   * Sample QC Stats Calculation Step
-   *  Description: Calculate sexcheck and sample by variant statistics for all samples
-   *  Requires: Hail, R
-   */
-
-  local {
-    googleCopy(ancestryInferredMerged, ancestryInferredMergedCloud)
-    googleCopy(Input.Local.pheno, Input.Google.pheno)
-  }
-  
-  google {
-    hail"""$pyHailSexcheck
-      --vds-in ${paramsArr.harmRefVdsCloud}
-      --regions-exclude ${Input.Google.regionsExclude}
-      --pheno-in ${Input.Google.pheno}
-      --id-col $phenoId
-      --sex-col $phenoSrSex
-      --sexcheck-out ${paramsArr.sampleqcSexcheckCloud}
-      --sexcheck-problems-out ${paramsArr.sampleqcSexcheckProblemsCloud}"""
-      .in(Input.Google.pheno, paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
-      .out(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheckProblemsCloud)
-  
-    hail"""$pyHailSampleqc
-      --vds-in ${paramsArr.harmRefFiltPrunedVdsCloud}
-      --clusters-in ${ancestryInferredMergedCloud}
-      --qc-out ${paramsArr.sampleqcStatsCloud}"""
-      .in(paramsArr.harmRefFiltPrunedVdsCloud, ancestryInferredMergedCloud)
-      .out(paramsArr.sampleqcStatsCloud)
-  }
-  
-  local {
-    googleCopy(paramsArr.sampleqcStatsCloud, paramsArr.sampleqcStats)
-  }
-  
-  uger {
-    cmd"""$binR --vanilla --args ${paramsArr.sampleqcStats} ${paramsArr.pcaScores} ${paramsArr.sampleqcStatsAdj} < $rCalcIstatsAdj"""
-    .in(paramsArr.sampleqcStats, paramsArr.pcaScores)
-    .out(paramsArr.sampleqcStatsAdj)
-  
-    cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdj} ${paramsArr.sampleqcStatsAdjCorrPlots} ${paramsArr.sampleqcStatsAdjPcaLoadings} ${paramsArr.sampleqcStatsAdjPcaScoresPlots} ${paramsArr.sampleqcStatsAdjPcaScores} < $rIstatsAdjPca"""
-    .in(paramsArr.sampleqcStatsAdj)
-    .out(paramsArr.sampleqcStatsAdjCorrPlots, paramsArr.sampleqcStatsAdjPcaLoadings, paramsArr.sampleqcStatsAdjPcaScoresPlots, paramsArr.sampleqcStatsAdjPcaScores)
-  }
-
-  local {
-    googleCopy(paramsArr.sampleqcSexcheckProblemsCloud, paramsArr.sampleqcSexcheckProblems)
-  }
-
-  /**
-   * Sample QC PCA Clustering Step
-   *  Description: Cluster PCs of adjusted sample QC metrics
-   *  Requires: Klustakwik, R
-   */
-
-  uger {
-    cmd"""N=$$(head -1 ${paramsArr.sampleqcStatsAdjPcaScores} | wc | awk '{print $$2-1}');
-      echo $$N > ${paramsArr.sampleqcStatsAdjClusterFet};
-      sed '1d' ${paramsArr.sampleqcStatsAdjPcaScores} | cut -f2- | sed 's/\t/ /g' >> ${paramsArr.sampleqcStatsAdjClusterFet};
-      FEATURES=1; for i in $$(seq 2 $$n); do FEATURES=$${FEATURES}1; done;
-      $binKlustakwik ${paramsArr.sampleqcStatsAdjClusterBase} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
-      ${paramsArr.sampleqcStatsAdjClusterKlustakwikLog}"""
-      .in(paramsArr.sampleqcStatsAdjClusterFet, paramsArr.sampleqcStatsAdjPcaScores)
-      .out(paramsArr.sampleqcStatsAdjClusterClu, paramsArr.sampleqcStatsAdjClusterKlg, paramsArr.sampleqcStatsAdjClusterKlustakwikLog)
-  
-    cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdjPcaScores} ${paramsArr.sampleqcStatsAdjClusterClu}
-      ${paramsArr.sampleqcStatsAdjClusterOutliers} ${paramsArr.sampleqcStatsAdjClusterPlots}
-      ${paramsArr.sampleqcStatsAdjClusterXtabs} $projectId < $rIstatsPcsGmmClusterPlot"""
-      .in(paramsArr.sampleqcStatsAdjPcaScores, paramsArr.sampleqcStatsAdjClusterClu)
-      .out(paramsArr.sampleqcStatsAdjClusterOutliers, paramsArr.sampleqcStatsAdjClusterPlots, paramsArr.sampleqcStatsAdjClusterXtabs)
-
-  }
-  
-  /**
-   * Sample QC Individual Stats Clustering Step
-   *  Description: Cluster PCs of adjusted sample QC metrics
-   *  Requires: Klustakwik, R
-   */
-
-  for {
-    (metric, paramsMetric) <- paramsArr.paramsByMetric
-  } {
-
-    uger {
-      cmd"""echo 1 > ${paramsMetric.sampleqcStatsAdjIndClusterFet};
-        metricIdx=`head -1 ${paramsArr.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${metric} | awk '{print $$1}'`;
-        sed '1d' ${paramsArr.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${paramsMetric.sampleqcStatsAdjIndClusterFet}"""
-        .in(paramsArr.sampleqcStatsAdj)
-        .out(paramsMetric.sampleqcStatsAdjIndClusterFet)
-
-      cmd"""$binKlustakwik ${paramsMetric.sampleqcStatsAdjIndClusterName} 1 -UseFeatures 1 -UseDistributional 0 > ${paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog}"""
-        .in(paramsMetric.sampleqcStatsAdjIndClusterFet)
-        .out(paramsMetric.sampleqcStatsAdjIndClusterClu, paramsMetric.sampleqcStatsAdjIndClusterKlg, paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog)
-    }
-
-  }
-  
-  local {
-    cmd"""$binR --vanilla --args
-      ${sampleQcMetrics.mkString(",")}
-      ${paramsArr.sampleqcStats}
-      ${paramsArr.sampleqcStatsAdj}
-      ${paramsArr.sampleqcStatsAdjClusterOutliers}
-      ${paramsArr.sampleqcStatsAdjIndBoxplots}
-      ${paramsArr.sampleqcStatsAdjIndDiscreteness}
-      ${paramsArr.sampleqcStatsAdjOutliersTable}
-      ${paramsArr.sampleqcStatsAdjStripchart}
-      ${paramsArr.ancestryInferred}
-      < $rIstatsAdjGmmPlotMetrics"""
-      .in(paramsArr.paramsSortedByMetric.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ paramsArr.ancestryInferred :+ paramsArr.sampleqcStatsAdjClusterOutliers)
-      .out(paramsArr.sampleqcStatsAdjIndBoxplots, paramsArr.sampleqcStatsAdjIndDiscreteness, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcStatsAdjStripchart)
-  }
-  
-  /**
-   * Compile Sample Exclusions Step
-   * Requires: Python
-   */
-
-  local {
-
-    cmd"""python $pyCompileExclusions
-      --ancestry-inferred ${paramsArr.ancestryInferred}
-      --kinship-related ${paramsArr.kinKin0Related}
-      --kinship-famsizes ${paramsArr.kinFamsizes}
-      --sampleqc-outliers ${paramsArr.sampleqcStatsAdjOutliersTable}
-      --sexcheck-problems ${paramsArr.sampleqcSexcheckProblems}
-      --ancestry-keep ${ancestryKeep.mkString(",")}
-      --duplicates-keep ${duplicatesKeep.mkString(",")}
-      --famsize-keep ${famsizeKeep.mkString(",")}
-      --sampleqc-keep ${sampleqcKeep.mkString(",")}
-      --sexcheck-keep ${sexcheckKeep.mkString(",")}
-      --out ${paramsArr.finalSampleExclusions}"""
-      .in(paramsArr.ancestryInferred, paramsArr.kinKin0Related, paramsArr.kinFamsizes, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcSexcheckProblems)
-      .out(paramsArr.finalSampleExclusions)
-  }
+  ///**
+  // * PCA Step
+  // *  Description: Calculate PCs for all non-outlier samples combined (to be used for adjustment during sample outlier removal)
+  // *  Requires: R
+  // */
+  //
+  //uger {
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rPcair
+  //    --plink-in ${paramsArr.harmRefFiltPrunedName}
+  //    --gds-out ${paramsArr.harmRefFiltPrunedPcaGds}
+  //    --exclude ${ancestryInferredMergedOutliers}
+  //    --ancestry ${ancestryInferredMerged}
+  //    --id $projectId
+  //    --scores ${paramsArr.pcaScores}
+  //    > ${paramsArr.pcaLog}"""
+  //    .in(paramsArr.harmRefFiltPruned :+ ancestryInferredMerged :+ ancestryInferredMergedOutliers)
+  //    .out(paramsArr.harmRefFiltPrunedPcaGds, paramsArr.pcaLog, paramsArr.pcaScores)
+  //    .using("R-3.4")
+  //}
+  //
+  ///**
+  // * Sample QC Stats Calculation Step
+  // *  Description: Calculate sexcheck and sample by variant statistics for all samples
+  // *  Requires: Hail, R
+  // */
+  //
+  //local {
+  //  googleCopy(ancestryInferredMerged, ancestryInferredMergedCloud)
+  //  googleCopy(Input.Local.pheno, Input.Google.pheno)
+  //}
+  //
+  //google {
+  //  hail"""$pyHailSexcheck
+  //    --vds-in ${paramsArr.harmRefVdsCloud}
+  //    --regions-exclude ${Input.Google.regionsExclude}
+  //    --pheno-in ${Input.Google.pheno}
+  //    --id-col $phenoId
+  //    --sex-col $phenoSrSex
+  //    --sexcheck-out ${paramsArr.sampleqcSexcheckCloud}
+  //    --sexcheck-problems-out ${paramsArr.sampleqcSexcheckProblemsCloud}"""
+  //    .in(Input.Google.pheno, paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
+  //    .out(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheckProblemsCloud)
+  //
+  //  hail"""$pyHailSampleqc
+  //    --vds-in ${paramsArr.harmRefFiltPrunedVdsCloud}
+  //    --clusters-in ${ancestryInferredMergedCloud}
+  //    --qc-out ${paramsArr.sampleqcStatsCloud}"""
+  //    .in(paramsArr.harmRefFiltPrunedVdsCloud, ancestryInferredMergedCloud)
+  //    .out(paramsArr.sampleqcStatsCloud)
+  //}
+  //
+  //local {
+  //  googleCopy(paramsArr.sampleqcStatsCloud, paramsArr.sampleqcStats)
+  //}
+  //
+  //uger {
+  //  cmd"""$binR --vanilla --args ${paramsArr.sampleqcStats} ${paramsArr.pcaScores} ${paramsArr.sampleqcStatsAdj} < $rCalcIstatsAdj"""
+  //  .in(paramsArr.sampleqcStats, paramsArr.pcaScores)
+  //  .out(paramsArr.sampleqcStatsAdj)
+  //
+  //  cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdj} ${paramsArr.sampleqcStatsAdjCorrPlots} ${paramsArr.sampleqcStatsAdjPcaLoadings} ${paramsArr.sampleqcStatsAdjPcaScoresPlots} ${paramsArr.sampleqcStatsAdjPcaScores} < $rIstatsAdjPca"""
+  //  .in(paramsArr.sampleqcStatsAdj)
+  //  .out(paramsArr.sampleqcStatsAdjCorrPlots, paramsArr.sampleqcStatsAdjPcaLoadings, paramsArr.sampleqcStatsAdjPcaScoresPlots, paramsArr.sampleqcStatsAdjPcaScores)
+  //}
+  //
+  //local {
+	//googleCopy(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheck)
+  //  googleCopy(paramsArr.sampleqcSexcheckProblemsCloud, paramsArr.sampleqcSexcheckProblems)
+  //}
+  //
+  ///**
+  // * Sample QC PCA Clustering Step
+  // *  Description: Cluster PCs of adjusted sample QC metrics
+  // *  Requires: Klustakwik, R
+  // */
+  //
+  //uger {
+  //  cmd"""N=$$(head -1 ${paramsArr.sampleqcStatsAdjPcaScores} | wc | awk '{print $$2-1}');
+  //    echo $$N > ${paramsArr.sampleqcStatsAdjClusterFet};
+  //    sed '1d' ${paramsArr.sampleqcStatsAdjPcaScores} | cut -f2- | sed 's/\t/ /g' >> ${paramsArr.sampleqcStatsAdjClusterFet};
+  //    FEATURES=1; for i in $$(seq 2 $$N); do FEATURES=$${FEATURES}1; done;
+  //    $binKlustakwik ${paramsArr.sampleqcStatsAdjClusterName} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
+  //    ${paramsArr.sampleqcStatsAdjClusterKlustakwikLog}"""
+  //    .in(paramsArr.sampleqcStatsAdjClusterFet, paramsArr.sampleqcStatsAdjPcaScores)
+  //    .out(paramsArr.sampleqcStatsAdjClusterClu, paramsArr.sampleqcStatsAdjClusterKlg, paramsArr.sampleqcStatsAdjClusterKlustakwikLog)
+  //
+  //  cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdjPcaScores} ${paramsArr.sampleqcStatsAdjClusterClu}
+  //    ${paramsArr.sampleqcStatsAdjClusterOutliers} ${paramsArr.sampleqcStatsAdjClusterPlots}
+  //    ${paramsArr.sampleqcStatsAdjClusterXtabs} $projectId < $rIstatsPcsGmmClusterPlot"""
+  //    .in(paramsArr.sampleqcStatsAdjPcaScores, paramsArr.sampleqcStatsAdjClusterClu)
+  //    .out(paramsArr.sampleqcStatsAdjClusterOutliers, paramsArr.sampleqcStatsAdjClusterPlots, paramsArr.sampleqcStatsAdjClusterXtabs)
+  //
+  //}
+  //
+  ///**
+  // * Sample QC Individual Stats Clustering Step
+  // *  Description: Cluster PCs of adjusted sample QC metrics
+  // *  Requires: Klustakwik, R
+  // */
+  //
+  //for {
+  //  (metric, paramsMetric) <- paramsArr.paramsByMetric
+  //} {
+  //
+  //  uger {
+  //    cmd"""echo 1 > ${paramsMetric.sampleqcStatsAdjIndClusterFet};
+  //      metricIdx=`head -1 ${paramsArr.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${paramsMetric.sampleqcStatsAdjIndMetric} | awk '{print $$1}'`;
+  //      sed '1d' ${paramsArr.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${paramsMetric.sampleqcStatsAdjIndClusterFet}"""
+  //      .in(paramsArr.sampleqcStatsAdj)
+  //      .out(paramsMetric.sampleqcStatsAdjIndClusterFet)
+  //
+  //    cmd"""$binKlustakwik ${paramsMetric.sampleqcStatsAdjIndClusterName} 1 -UseFeatures 1 -UseDistributional 0 > ${paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog}"""
+  //      .in(paramsMetric.sampleqcStatsAdjIndClusterFet)
+  //      .out(paramsMetric.sampleqcStatsAdjIndClusterClu, paramsMetric.sampleqcStatsAdjIndClusterKlg, paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog)
+  //  }
+  //
+  //}
+  //
+  //uger {
+  //  cmd"""$binR --vanilla --args
+  //    ${sampleQcMetrics.mkString(",")}
+  //    ${paramsArr.sampleqcStats}
+  //    ${paramsArr.sampleqcStatsAdj}
+  //    ${paramsArr.sampleqcStatsAdjClusterOutliers}
+  //    ${paramsArr.sampleqcStatsAdjIndBoxplots}
+  //    ${paramsArr.sampleqcStatsAdjIndDiscreteness}
+  //    ${paramsArr.sampleqcStatsAdjOutliersTable}
+  //    ${paramsArr.sampleqcStatsAdjStripchart}
+  //    ${ancestryInferredMerged}
+  //    < $rIstatsAdjGmmPlotMetrics"""
+  //    .in(paramsArr.paramsSortedByMetric.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ ancestryInferredMerged :+ paramsArr.sampleqcStatsAdjClusterOutliers)
+  //    .out(paramsArr.sampleqcStatsAdjIndBoxplots, paramsArr.sampleqcStatsAdjIndDiscreteness, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcStatsAdjStripchart)
+  //}
+  //
+  ///**
+  // * Compile Sample Exclusions Step
+  // * Requires: Python
+  // */
+  //
+  //uger {
+  //
+  //  cmd"""python $pyCompileExclusions
+  //    --ancestry-inferred ${ancestryInferredMerged}
+  //    --kinship-related ${paramsArr.kinKin0Related}
+  //    --kinship-famsizes ${paramsArr.kinFamsizes}
+  //    --sampleqc-outliers ${paramsArr.sampleqcStatsAdjOutliersTable}
+  //    --sexcheck-problems ${paramsArr.sampleqcSexcheckProblems}
+  //    --ancestry-keep ${ancestryKeep.mkString(",")}
+  //    --duplicates-keep ${duplicatesKeep.mkString(",")}
+  //    --famsize-keep ${famsizeKeep.mkString(",")}
+  //    --sampleqc-keep ${sampleqcKeep.mkString(",")}
+  //    --sexcheck-keep ${sexcheckKeep.mkString(",")}
+  //    --out ${paramsArr.finalSampleExclusions}"""
+  //    .in(ancestryInferredMerged, paramsArr.kinKin0Related, paramsArr.kinFamsizes, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcSexcheckProblems)
+  //    .out(paramsArr.finalSampleExclusions)
+  //}
 
   /**
   * Filter Clean Step
   * filter variants and generate final clean dataset
   */
 
-  local {
-    googleCopy(paramsArr.finalSampleExclusions, paramsArr.finalSampleExclusionsCloud)
-  }
+  //local {
+  //  googleCopy(paramsArr.finalSampleExclusions, paramsArr.finalSampleExclusionsCloud)
+  //}
   
   google {
     hail"""$pyHailFilterFinal
@@ -776,15 +794,28 @@ def qc2(i: Int): Unit = {
       --ancestry-in ${ancestryInferredMergedCloud}
       --sexcheck-in ${paramsArr.sampleqcSexcheckCloud}
       --pheno-in ${Input.Google.pheno}
+      --iid-col $phenoId
       --case-ctrl-col $phenoStatus
       --samples-remove ${paramsArr.finalSampleExclusionsCloud}
-      --plink-out ${paramsArr.cleanNameCloud}"""
+      --variantqc-out ${paramsArr.variantqcStatsCloud}
+      --variants-exclude-out ${paramsArr.finalVariantExclusionsCloud}
+      --plink-out ${paramsArr.cleanNameCloud}
+      --vcf-out ${paramsArr.cleanVcfCloud}"""
       .in(paramsArr.harmRefVdsCloud, ancestryInferredMergedCloud, paramsArr.sampleqcSexcheckCloud, Input.Google.pheno, paramsArr.finalSampleExclusionsCloud)
-      .out(paramsArr.cleanCloud)
+      .out(paramsArr.cleanCloud :+ paramsArr.cleanVcfCloud :+ paramsArr.variantqcStatsCloud :+ paramsArr.finalVariantExclusionsCloud)
   }
 
   local {
     googleCopy(paramsArr.cleanCloud, paramsArr.clean)
+    googleCopy(paramsArr.cleanVcfCloud, paramsArr.cleanVcf)
+    googleCopy(paramsArr.variantqcStatsCloud, paramsArr.variantqcStats)
+	googleCopy(paramsArr.finalVariantExclusionsCloud, paramsArr.finalVariantExclusions)
+  }
+
+  local {
+    cmd"""$binTabix -f -p vcf ${paramsArr.cleanVcf}"""
+      .in(paramsArr.cleanVcf)
+      .out(paramsArr.cleanVcfTbi)
   }
 
   // WITH HAIL BEING USED FOR ASSOC TESTING THIS PART WILL NO LONGER BE NEEDED (CAN USE ibd_prune FXN)

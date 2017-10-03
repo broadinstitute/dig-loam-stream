@@ -11,6 +11,7 @@ import loamstream.model.jobs.JobStatus.{Failed, Running}
 import loamstream.model.jobs._
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.uger.UgerStatus.{toJobResult, toJobStatus}
+import loamstream.util.Classes.simpleNameOf
 import loamstream.util.Files
 import loamstream.util.Loggable
 import loamstream.util.Observables
@@ -19,6 +20,7 @@ import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
 import loamstream.model.jobs.JobStatus.FailedPermanently
 import loamstream.model.execute.ExecuterHelpers
+
 
 
 /**
@@ -41,17 +43,17 @@ final case class UgerChunkRunner(
   
   override def maxNumJobs = ugerConfig.maxNumJobs
 
-  override def run(leaves: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
 
     debug(s"Running: ")
-    leaves.foreach(job => debug(s"  $job"))
+    jobs.foreach(job => debug(s"  $job"))
 
     require(
-      leaves.forall(isAcceptableJob),
-      s"For now, we only know how to run ${classOf[CommandLineJob].getSimpleName}s on UGER")
+      jobs.forall(isAcceptableJob),
+      s"For now, we only know how to run ${simpleNameOf[CommandLineJob]}s on UGER")
 
     // Filter out NoOpJob's
-    val commandLineJobs = leaves.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
+    val commandLineJobs = jobs.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
     if (commandLineJobs.nonEmpty) {
       val ugerScript = writeUgerScriptFile(commandLineJobs)
@@ -107,7 +109,7 @@ final case class UgerChunkRunner(
     
     val ugerScript = createScriptFile(ScriptBuilder.buildFrom(commandLineJobs), ugerWorkDir)
     
-    info(s"Made script '$ugerScript' from $commandLineJobs")
+    trace(s"Made script '$ugerScript' from $commandLineJobs")
     
     ugerScript
   }
@@ -155,7 +157,7 @@ object UgerChunkRunner extends Loggable {
     
     val status = ExecuterHelpers.determineFailureStatus(shouldRestart, failureStatus, job)
     
-    debug(s"$job transitioning to: $status (Non-terminal failure status: $failureStatus)")
+    trace(s"$job transitioning to: $status (Non-terminal failure status: $failureStatus)")
     
     job.transitionTo(status)
   }

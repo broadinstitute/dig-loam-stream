@@ -16,4 +16,6 @@ final case class JobSnapshot(status: JobStatus, runCount: Int) {
       
     JobSnapshot(newStatus, newRunCount)
   }
+  
+  def withStatus(newStatus: JobStatus): JobSnapshot = copy(status = newStatus)
 }

@@ -41,7 +41,11 @@ final case class DataConfig private(config: Config) {
 }
 
 object DataConfig {
-  def fromFile(file: Path): DataConfig = DataConfig(ConfigUtils.configFromFile(file))
+  def fromFile(file: Path): DataConfig = {
+    require(file.toFile.exists, s"Couldn't load config from non-existent file '$file'")
+    
+    DataConfig(ConfigUtils.configFromFile(file))
+  }
 
   def fromFile(file: String): DataConfig = fromFile(Paths.get(file))
 }

@@ -173,7 +173,7 @@ final class JobMonitor(
     if(result) {
       val idsString = pollResults.keys.toSeq.sorted.mkString(",")
       
-      info(s"Jobs are all finished: $idsString")
+      debug(s"Jobs are all finished: $idsString")
       
       //Note side effect :(
       keepPollingFlag.update(false)

@@ -30,7 +30,7 @@ final class JobResultTest extends FunSuite {
   
   test("isFailure") {
     assert(Success.isFailure === false)
-
+    
     assert(CommandResult(0).isFailure === false)
 
     assert(Failure.isFailure === true)
@@ -42,6 +42,22 @@ final class JobResultTest extends FunSuite {
     assert(FailureWithException(new Exception).isFailure === true)
 
     assert(ValueSuccess(42, TypeBox.of[Int]).isFailure === false)
+  }
+  
+  test("toJobStatus") {
+    assert(Success.toJobStatus === JobStatus.Succeeded)
+    
+    assert(CommandResult(0).toJobStatus === JobStatus.Succeeded)
+    
+    assert(Failure.toJobStatus === JobStatus.Failed)
+    
+    assert(CommandResult(1).toJobStatus === JobStatus.Failed)
+    assert(CommandResult(-1).toJobStatus === JobStatus.Failed)
+    assert(CommandResult(42).toJobStatus === JobStatus.Failed)
+
+    assert(FailureWithException(new Exception).toJobStatus === JobStatus.Failed)
+  
+    assert(ValueSuccess(42, TypeBox.of[Int]).toJobStatus === JobStatus.Succeeded)
   }
   
   // scalastyle:on magic.number

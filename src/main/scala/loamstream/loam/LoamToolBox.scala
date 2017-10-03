@@ -4,11 +4,8 @@ import java.net.URI
 import java.nio.file.{Path, Paths}
 
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.loam.ops.filters.LoamStoreFilterTool
-import loamstream.loam.ops.mappers.LoamStoreMapperTool
 import loamstream.model.execute.{Executable, ExecutionEnvironment}
 import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.model.jobs.ops.{StoreFilterJob, StoreMapperJob}
 import loamstream.model.jobs.{LJob, NativeJob, Output}
 import loamstream.model.{AST, Store, Tool}
 import loamstream.util.{Hit, Miss, Shot, Snag}
@@ -47,17 +44,9 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
       val outputs = outputsFor(tool)
 
       tool match {
-        case cmdTool: LoamCmdTool =>
+        case cmdTool: LoamCmdTool => {
           CommandLineStringJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs)
-        case storeFilterTool: LoamStoreFilterTool[_] =>
-          val inStore = graph.toolInputs(tool).head
-          val outStore = graph.toolOutputs(tool).head
-          StoreFilterJob(inStore.path, outStore.path, inStore.sig.tpe, inputJobs, outputs, storeFilterTool.filter)
-        case storeMapperTool: LoamStoreMapperTool[_, _] =>
-          val inStore = graph.toolInputs(tool).head
-          val outStore = graph.toolOutputs(tool).head
-          StoreMapperJob(inStore.path, outStore.path, inStore.sig.tpe, outStore.sig.tpe, inputJobs, outputs,
-            storeMapperTool.mapper)
+        }
         case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs)
       }
     }

@@ -77,8 +77,15 @@ object LoamToWom {
 
   object LoamToNodes {
 
-    def fromInputStores(loam: LoamGraph): LoamToNodes = {
-      val inputsToNodes = loam.inputStores.map { input =>
+    def fromInputStores(loam: LoamGraph, includeAllWithNoProvider: Boolean = false): LoamToNodes = {
+      val inputStores = loam.inputStores
+      val addedStores = if(includeAllWithNoProvider) {
+        loam.stores.filterNot(loam.storeProducers.contains)
+      } else {
+        Set.empty[Store.Untyped]
+      }
+      val stores = inputStores ++ addedStores
+      val inputsToNodes = stores.map { input =>
         (input.id, RequiredGraphInputNode(getInputNodeName(input.id), WdlFileType))
       }.toMap
       LoamToNodes(loam, inputsToNodes, Map.empty)
@@ -213,7 +220,8 @@ object LoamToWom {
     loam.dagSortedTools.toErrorOr.flatMap { dagSortedTools =>
       val inputStoresToNodes = mapInputsToNodes(loam.inputStores)
       val inputNodes: Set[RequiredGraphInputNode] = inputStoresToNodes.values.toSet
-      var errorOrLoamToNodes: ErrorOr[LoamToNodes] = Valid(LoamToNodes.fromInputStores(loam))
+      var errorOrLoamToNodes: ErrorOr[LoamToNodes] =
+        Valid(LoamToNodes.fromInputStores(loam, includeAllWithNoProvider = true))
       for (toolsNext <- dagSortedTools) {
         errorOrLoamToNodes = errorOrLoamToNodes.flatMap { loamToNodes =>
           val errorOrToolsToNodesNew: ErrorOr[Map[LId, TaskCallNode]] = toolsNext.map { tool =>

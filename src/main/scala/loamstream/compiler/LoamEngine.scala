@@ -180,9 +180,9 @@ final case class LoamEngine(
   }
   
   def run(graph: LoamGraph): Map[LJob, Execution] = {
+    info("Making Executable from LoamGraph")
+    
     val executable = toExecutable(graph)
-
-    log(executable)
     
     info("Now going to execute.")
 

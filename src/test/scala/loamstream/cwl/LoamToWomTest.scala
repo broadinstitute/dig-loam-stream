@@ -54,18 +54,19 @@ final class LoamToWomTest extends FunSuite {
   def getAnalysisPipelineFiles: Iterable[Path] =
     Files.newDirectoryStream(pipelineDirectory, "*.loam").asScala.toSeq
 
-  test("Convert analysis pipeline from Loam to WOM") {
+  def getAnalysisGraph: LoamGraph = {
     val engine = LoamEngine.default(TestHelpers.config)
     val files: Iterable[Path] = getAnalysisPipelineFiles
     assert(files.nonEmpty, s"Could not find any *.loam files in $pipelineDirectory.")
-    println("Now going to compile Loam files.")
     val resultsShot = engine.compileFiles(files)
     if (resultsShot.isMiss) fail("Failed to compile files: " + resultsShot.message)
     val result = resultsShot.get
-    val graph = result.contextOpt.get.graph
-    println("Now going to convert to WOM.")
+    result.contextOpt.get.graph
+  }
+
+  test("Convert analysis pipeline from Loam to WOM") {
+    val graph = getAnalysisGraph
     val errorOrWorkflow = LoamToWom.loamToWom("analysis pipeline", graph)
-    println("Done converting to WOM.")
     assert(errorOrWorkflow.isValid, errorOrToMessage(errorOrWorkflow))
   }
 

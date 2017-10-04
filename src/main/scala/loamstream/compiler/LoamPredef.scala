@@ -144,8 +144,8 @@ object LoamPredef extends Loggable {
 
   def loadConfig(path: String): DataConfig = DataConfig.fromFile(path)
   
-  def loadConfig(key: String)(path: String): DataConfig = {
-    val pathToLoad = System.getProperty(key, path)
+  def loadConfig(key: String, defaultPath: String): DataConfig = {
+    val pathToLoad = System.getProperty(key, defaultPath)
     
     debug(s"Loading config file: '${pathToLoad}'")
     

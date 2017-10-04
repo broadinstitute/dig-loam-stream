@@ -9,5 +9,11 @@ import com.typesafe.config.ConfigFactory
  * Oct 19, 2016
  */
 object ConfigUtils {
-  def configFromFile(confFile: Path): Config = ConfigFactory.parseFile(confFile.toAbsolutePath.toFile).resolve()
+  def configFromFile(confFile: Path): Config = {
+    val fromFile = ConfigFactory.parseFile(confFile.toAbsolutePath.toFile)
+    
+    val withSystemProps = ConfigFactory.defaultOverrides() 
+    
+    fromFile.withFallback(withSystemProps).resolve
+  }
 }

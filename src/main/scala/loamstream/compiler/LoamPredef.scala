@@ -13,9 +13,10 @@ import loamstream.model.execute.ExecutionEnvironment
 import loamstream.conf.{DataConfig, DynamicConfig}
 import loamstream.model.{Store, Tool}
 import loamstream.util.ConfigUtils
+import loamstream.util.Loggable
 
 /** Predefined symbols in Loam scripts */
-object LoamPredef {
+object LoamPredef extends Loggable {
 
   type Store[A <: StoreType] = loamstream.model.Store[A]
   
@@ -142,4 +143,12 @@ object LoamPredef {
   }
 
   def loadConfig(path: String): DataConfig = DataConfig.fromFile(path)
+  
+  def loadConfig(key: String)(path: String): DataConfig = {
+    val pathToLoad = System.getProperty(key, path)
+    
+    debug(s"Loading config file: '${pathToLoad}'")
+    
+    loadConfig(pathToLoad)
+  }
 }

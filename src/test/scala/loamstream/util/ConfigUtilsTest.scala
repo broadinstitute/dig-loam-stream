@@ -9,6 +9,13 @@ import org.scalatest.FunSuite
  */
 final class ConfigUtilsTest extends FunSuite {
   test("Loading a config file works") {
+    //ake sure we can access JVM system props
+    val sysPropValue = "skaldjalskdjklasdjlas"
+    val sysPropKey = "some.system.property"
+    System.setProperty(sysPropKey, sysPropValue)
+    
+    assert(System.getProperty(sysPropKey) === sysPropValue)
+    
     val config = ConfigUtils.configFromFile(Paths.get("src/test/resources/foo.config"))
     
     //Config file should have been loaded BUT NOT merged with defaults
@@ -26,5 +33,8 @@ final class ConfigUtilsTest extends FunSuite {
     
     //new key
     assert(config.getString("loamstream.nuh") === "zuh")
+    
+    //system prop    
+    assert(config.getString(sysPropKey) === sysPropValue)
   }
 }

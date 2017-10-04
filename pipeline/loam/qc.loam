@@ -7,7 +7,6 @@ import store_helpers._
 import loamstream.conf.DataConfig
 import loamstream.googlecloud.HailSupport._
 import loamstream.model.Store
-import java.net.URI
 
 val nChr = endChr - startChr + 1
 val kgSampleId = dataConfig.getStr("kgSampleId")

@@ -18,10 +18,7 @@ import loamstream.util.Observables
 import loamstream.util.Terminable
 import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
-import loamstream.model.jobs.JobStatus.FailedPermanently
 import loamstream.model.execute.ExecuterHelpers
-
-
 
 /**
  * @author clint
@@ -35,7 +32,12 @@ final case class UgerChunkRunner(
     ugerConfig: UgerConfig,
     drmaaClient: DrmaaClient,
     jobMonitor: JobMonitor,
-    pollingFrequencyInHz: Double = 1.0) extends ChunkRunnerFor(ExecEnv.Uger) with Terminable with Loggable {
+    pollingFrequencyInHz: Double = 1.0)
+  // TODO: Passing in an ExecEnv into ChunkRunnerFor may no longer make sense.
+  // It may be better to instead have a Factory method or such
+  // to create various Runners since the user-specified Uger parameters are
+  // per cmd block and are not known at the creation of ChunkRunners
+  extends ChunkRunnerFor(ExecEnv.Uger()) with Terminable with Loggable {
 
   import UgerChunkRunner._
 
@@ -54,6 +56,12 @@ final case class UgerChunkRunner(
 
     // Filter out NoOpJob's
     val commandLineJobs = jobs.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
+
+    // TODO: We may need to chunk/group commandLineJobs by their Uger resource (mem, core, runTime)
+    // parameter via something like commandLineJobs.groupBy(_.executionEnvironment) since there will
+    // be one set of configurations per Uger bash script used by DrmaaClient.submitJob().
+    // While chunking, Uger resource parameters need to be extracted and passed into
+    // drmaaClient.submitJob()
 
     if (commandLineJobs.nonEmpty) {
       val ugerScript = writeUgerScriptFile(commandLineJobs)

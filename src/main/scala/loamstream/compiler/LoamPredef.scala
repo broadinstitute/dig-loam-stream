@@ -3,13 +3,14 @@ package loamstream.compiler
 import java.net.URI
 import java.nio.file.{Files, Path, Paths}
 
+import com.google.protobuf.duration.Duration
 import loamstream.model.Tool.DefaultStores
 import loamstream.loam._
 import loamstream.loam.ops.StoreType
 
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.{ExecutionEnvironment, Memory}
 import loamstream.conf.{DataConfig, DynamicConfig}
 import loamstream.model.{Store, Tool}
 import loamstream.util.ConfigUtils
@@ -132,9 +133,20 @@ object LoamPredef {
   def local[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     runIn(ExecutionEnvironment.Local)(expr)(scriptContext)
   }
-  
-  def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    runIn(ExecutionEnvironment.Uger)(expr)(scriptContext)
+
+  /**
+   * @param mem Memory requested per job submission in Gb's
+   * @param cores Number of cores requested per job submission
+   * @param maxRunTime Time limit after which a job may get killed
+   * @param expr Block of cmd's and native code
+   * @param scriptContext Container for compile time and run time context for a script
+   */
+  def uger[A](mem: Double = 1, cores: Int = 1, maxRunTime: Double = 2)
+             (expr: => A)
+             (implicit scriptContext: LoamScriptContext): A = {
+    import scala.concurrent.duration._
+
+    runIn(ExecutionEnvironment.Uger(Memory.inGb(mem), cores, maxRunTime.hours))(expr)(scriptContext)
   }
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {

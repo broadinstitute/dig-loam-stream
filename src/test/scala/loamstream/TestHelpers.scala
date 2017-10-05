@@ -117,6 +117,8 @@ object TestHelpers {
     try { result }
     finally { loamstream.util.Files.createDirsIfNecessary(result) }
   }
-  
-  def compile(loamCode: String): LoamCompiler.Result = LoamEngine.default(config).compile(loamCode)
+
+  def loamEngine: LoamEngine = LoamEngine.default(config)
+
+  def compile(loamCode: String): LoamCompiler.Result = loamEngine.compile(loamCode)
 }

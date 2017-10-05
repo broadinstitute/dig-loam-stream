@@ -138,15 +138,18 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @param numTasks length of task array to be submitted as a single UGER job
    */
   override def submitJob(
+                          // TODO: Add user-specified Uger parameters
                  ugerConfig: UgerConfig,
                  pathToScript: Path,
                  jobName: String,
                  numTasks: Int = 1): DrmaaClient.SubmissionResult = {
 
     val pathToUgerOutput = ugerConfig.logFile
-    val nativeSpecification = ugerConfig.nativeSpecification
+    val staticNativeSpecification = ugerConfig.nativeSpecification
+
+    // TODO: Append the user-specified Uger parameters to staticNativeSpecification
     
-    runJob(pathToScript, pathToUgerOutput, nativeSpecification, jobName, numTasks)
+    runJob(pathToScript, pathToUgerOutput, staticNativeSpecification, jobName, numTasks)
   }
   
   /**
@@ -296,5 +299,13 @@ object Drmaa1Client {
     import scala.collection.JavaConverters._
     
     UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
+  }
+
+  /** Namespace for native specification argument strings */
+  object JobSubmissionOption {
+    // N is to be replaced by the desired number of cores when native specification string is constructed
+    val Cores: String = "-binding linear:N -pe smp N"
+    val Mem: String = "h_vmem="
+    val MaxRunTime: String = "h_rt="
   }
 }

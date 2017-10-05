@@ -272,7 +272,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
     val table: SettingTable = ExecutionEnvironment.fromString(execution.env) match {
       case ExecutionEnvironment.Local => tables.localSettings
-      case ExecutionEnvironment.Uger => tables.ugerSettings
+      case ExecutionEnvironment.Uger(_, _, _) => tables.ugerSettings
       case ExecutionEnvironment.Google => tables.googleSettings
     }
 
@@ -295,7 +295,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     
     val table: ResourceTable = ExecutionEnvironment.fromString(execution.env) match {
       case ExecutionEnvironment.Local => tables.localResources
-      case ExecutionEnvironment.Uger => tables.ugerResources
+      case ExecutionEnvironment.Uger(_, _, _) => tables.ugerResources
       case ExecutionEnvironment.Google => tables.googleResources
     }
     

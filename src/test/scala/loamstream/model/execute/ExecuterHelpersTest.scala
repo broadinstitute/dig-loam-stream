@@ -142,7 +142,7 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     import JobStatus._
     
     //NB: One 'Succeeded' emitted in MockJob.executeSelf, the last one emitted in executeSingle
-    assert(Futures.waitFor(two0StatusesFuture) === Seq(NotStarted, Running, Succeeded))
+    assert(Futures.waitFor(two0StatusesFuture) === Seq(NotStarted, Running, Succeeded, Succeeded))
   }
   
   test("executeSingle() - job transitioned to right state") {

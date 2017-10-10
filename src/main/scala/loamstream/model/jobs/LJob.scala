@@ -31,7 +31,7 @@ trait LJob extends Loggable {
   private def snapshot: JobSnapshot = snapshotRef()
   
   //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject[JobRun]()
+  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject.withSize(15)
   
   /**
    * An Observable that emits JobRuns of this job.  These are (effectively) tuples of (job, status, runCount), 
@@ -39,7 +39,7 @@ trait LJob extends Loggable {
    * the same upstream dependency would cause the dependency to be run more than necessary under certain 
    * conditions.
    */
-  protected final def runs: Observable[JobRun] = runsEmitter
+  protected final val runs: Observable[JobRun] = runsEmitter.share
   
   /** This job's current status */
   final def status: JobStatus = snapshotRef().status
@@ -102,7 +102,7 @@ trait LJob extends Loggable {
     }
 
     //Emit the current job *after* all our dependencies
-    (dependencyRunnables ++ selfRunnables)
+    (dependencyRunnables ++ selfRunnables).share
   }
   
   /**
@@ -142,39 +142,43 @@ trait LJob extends Loggable {
       Observable.just(jobRunFrom(couldNotStartSnapshot))
     }
 
-    if(inputs.isEmpty) {
-      trace(s"selfRunnables '$id': no deps, just us ('$name')")
-      
-      justUs
-    } else {
-      for {
-        inputStatuses <- finalInputStatuses
-        _ = debug(s"selfRunnables '$id': deps finished with statuses: $inputStatuses ('$name')")
-        anyInputFailures = inputStatuses.exists(_.isFailure)
-        runnable <- if(anyInputFailures) stopDueToDependencyFailure() else justUs
-      } yield {
-        runnable
+    val result = {
+      if(inputs.isEmpty) {
+        trace(s"selfRunnables '$id': no deps, just us ('$name')")
+        
+        justUs
+      } else {
+        for {
+          inputStatuses <- finalInputStatuses
+          _ = debug(s"selfRunnables '$id': deps finished with statuses: $inputStatuses ('$name')")
+          anyInputFailures = inputStatuses.exists(_.isFailure)
+          runnable <- if(anyInputFailures) stopDueToDependencyFailure() else justUs
+        } yield {
+          runnable
+        }
       }
     }
+    
+    result.share
   }
 
   /**
    * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
    */
-  lazy val statuses: Observable[JobStatus] = runsEmitter.map(_.status)
+  lazy val statuses: Observable[JobStatus] = runs.map(_.status).share
 
   /**
    * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time.
    */
-  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first
+  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first.share
 
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.
    * When this fires, our dependencies are finished.
    */
   protected[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
-    Observables.sequence(inputs.toSeq.map(_.lastStatus))
+    Observables.sequence(inputs.toSeq.map(_.lastStatus)).share
   }
   
   /**

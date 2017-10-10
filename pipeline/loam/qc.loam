@@ -415,7 +415,7 @@ def qc1(i: Int): Store[TXT] = {
   *     To save time, this will be run in parallel by chromosome number
   */
   
-  uger {
+  local {
     for {
       (chr, paramsChr) <- paramsArr.paramsByChr
     } {
@@ -532,7 +532,7 @@ def qc1(i: Int): Store[TXT] = {
    * King only writes the '.kin0' file if families are found, so a bash script is used to write an empty file in that case
    */
   
-  uger {
+  local {
     cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related}"""
     .in(paramsArr.harmRefFiltPruned)
     .out(paramsArr.kinLog, paramsArr.kinKin, paramsArr.kinTmpDat, paramsArr.kinTmpPed, paramsArr.kinKin0, paramsArr.kinKin0Related)
@@ -564,7 +564,7 @@ def qc1(i: Int): Store[TXT] = {
     googleCopy(paramsArr.harmRef1kgCloud, paramsArr.harmRef1kg)
   }
   
-  uger {
+  local {
     cmd"""$binRscript --vanilla --verbose
       $rPcair
       --plink-in ${paramsArr.harmRef1kgName}
@@ -593,7 +593,7 @@ def qc1(i: Int): Store[TXT] = {
    *     This file is array specific
    */
   
-  uger {
+  local {
     cmd"""(echo 3; sed '1d' ${paramsArr.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${paramsArr.ancestryClusterFet}"""
     .in(paramsArr.ancestryPcaScores)
     .out(paramsArr.ancestryClusterFet)
@@ -624,7 +624,7 @@ def qc2(i: Int): Unit = {
    *  Requires: R
    */
   
-  uger {
+  local {
   
     cmd"""$binRscript --vanilla --verbose
       $rPcair
@@ -675,7 +675,7 @@ def qc2(i: Int): Unit = {
     googleCopy(paramsArr.sampleqcStatsCloud, paramsArr.sampleqcStats)
   }
   
-  uger {
+  local {
     cmd"""$binR --vanilla --args ${paramsArr.sampleqcStats} ${paramsArr.pcaScores} ${paramsArr.sampleqcStatsAdj} < $rCalcIstatsAdj"""
     .in(paramsArr.sampleqcStats, paramsArr.pcaScores)
     .out(paramsArr.sampleqcStatsAdj)
@@ -696,7 +696,7 @@ def qc2(i: Int): Unit = {
    *  Requires: Klustakwik, R
    */
   
-  uger {
+  local {
     cmd"""N=$$(head -1 ${paramsArr.sampleqcStatsAdjPcaScores} | wc | awk '{print $$2-1}');
       echo $$N > ${paramsArr.sampleqcStatsAdjClusterFet};
       sed '1d' ${paramsArr.sampleqcStatsAdjPcaScores} | cut -f2- | sed 's/\t/ /g' >> ${paramsArr.sampleqcStatsAdjClusterFet};
@@ -724,7 +724,7 @@ def qc2(i: Int): Unit = {
     (metric, paramsMetric) <- paramsArr.paramsByMetric
   } {
   
-    uger {
+    local {
       cmd"""echo 1 > ${paramsMetric.sampleqcStatsAdjIndClusterFet};
         metricIdx=`head -1 ${paramsArr.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${paramsMetric.sampleqcStatsAdjIndMetric} | awk '{print $$1}'`;
         sed '1d' ${paramsArr.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${paramsMetric.sampleqcStatsAdjIndClusterFet}"""
@@ -738,7 +738,7 @@ def qc2(i: Int): Unit = {
   
   }
   
-  uger {
+  local {
     cmd"""$binR --vanilla --args
       ${sampleQcMetrics.mkString(",")}
       ${paramsArr.sampleqcStats}
@@ -759,7 +759,7 @@ def qc2(i: Int): Unit = {
    * Requires: Python
    */
   
-  uger {
+  local {
   
     cmd"""python $pyCompileExclusions
       --ancestry-inferred ${ancestryInferredMerged}

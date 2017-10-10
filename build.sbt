@@ -1,5 +1,7 @@
 import sbt.project
 
+test in assembly := {}
+
 lazy val Versions = new {
   val App = "1.3-SNAPSHOT"
   val ApacheCommonsIO = "2.4"

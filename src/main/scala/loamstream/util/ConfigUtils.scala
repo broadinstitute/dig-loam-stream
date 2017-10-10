@@ -10,7 +10,8 @@ import com.typesafe.config.ConfigFactory
  */
 object ConfigUtils {
   /**
-   * Create a Config with values from `confFile` as well as JVM system properties.
+   * Create a Config with values from `confFile` as well as JVM system properties.  System properties override
+   * values defined in `confFile`.
    * @param confFile the path of the file to parse
    * @return a Config object values from `confFile` as well as JVM system properties.
    */
@@ -25,6 +26,6 @@ object ConfigUtils {
     //system properties.
     val withSystemProps = ConfigFactory.defaultOverrides() 
     
-    fromFile.withFallback(withSystemProps).resolve
+    withSystemProps.withFallback(fromFile).resolve
   }
 }

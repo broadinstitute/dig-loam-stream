@@ -1,12 +1,8 @@
 package loamstream.util
 
-import rx.lang.scala.Observable
 import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.util.Failure
-import scala.util.Success
-import rx.lang.scala.Subject
-import rx.lang.scala.subjects.ReplaySubject
+
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -113,7 +109,7 @@ object Observables extends Loggable {
    * @see http://reactivex.io/RxJava/javadoc/rx/Observable.html#merge(java.lang.Iterable)
    */
   def merge[A](os: Iterable[Observable[A]]): Observable[A] = {
-    import rx.lang.scala.JavaConversions.{toScalaObservable, toJavaObservable}
+    import rx.lang.scala.JavaConversions.{ toJavaObservable, toScalaObservable }
     import scala.collection.JavaConverters._
 
     //NB: Cast 'should be' safe.  It's needed because toJavaObservable, when given an rx.lang.scala.Observable[A],

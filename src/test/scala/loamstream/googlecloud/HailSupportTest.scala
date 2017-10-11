@@ -2,12 +2,19 @@ package loamstream.googlecloud
 
 import java.io.File
 
-import com.typesafe.config.ConfigFactory
-import loamstream.conf.{ ExecutionConfig, LoamConfig }
-import loamstream.loam.{ LoamCmdTool, LoamProjectContext, LoamScriptContext, LoamToolBox }
-import loamstream.model.jobs.commandline.CommandLineJob
 import org.scalatest.FunSuite
-import loamstream.model.execute.ExecutionEnvironment
+
+import com.typesafe.config.ConfigFactory
+
+import loamstream.conf.ExecutionConfig
+import loamstream.conf.LoamConfig
+import loamstream.conf.UgerSettings
+import loamstream.loam.LoamCmdTool
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScriptContext
+import loamstream.loam.LoamToolBox
+import loamstream.model.execute.Environment
+import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Files
 
 /**
@@ -23,7 +30,7 @@ final class HailSupportTest extends FunSuite {
   private[this] implicit val scriptContext = {
     val sc = new LoamScriptContext(projectContext)
 
-    sc.executionEnvironment = ExecutionEnvironment.Google
+    sc.executionEnvironment = Environment.Google
 
     sc
   }
@@ -39,13 +46,13 @@ final class HailSupportTest extends FunSuite {
   test("Guards: executionEnvironment") {
     withScriptContext(LoamProjectContext.empty(config)) { implicit scriptContext =>
 
-      scriptContext.executionEnvironment = ExecutionEnvironment.Google
+      scriptContext.executionEnvironment = Environment.Google
 
       hail""
 
       pyhail""
 
-      scriptContext.executionEnvironment = ExecutionEnvironment.Local
+      scriptContext.executionEnvironment = Environment.Local
 
       intercept[Exception] {
         hail""
@@ -55,7 +62,7 @@ final class HailSupportTest extends FunSuite {
         pyhail""
       }
 
-      scriptContext.executionEnvironment = ExecutionEnvironment.Uger
+      scriptContext.executionEnvironment = Environment.Uger(UgerSettings.Defaults)
 
       intercept[Exception] {
         hail""
@@ -65,7 +72,7 @@ final class HailSupportTest extends FunSuite {
         pyhail""
       }
 
-      scriptContext.executionEnvironment = ExecutionEnvironment.Google
+      scriptContext.executionEnvironment = Environment.Google
 
       hail""
 
@@ -249,11 +256,11 @@ vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
     assert(collapseWhitespace(job.commandLineString) === collapseWhitespace(expectedCommandLine))
   }
 
-  import ExecutionEnvironment.Google
+  import loamstream.model.execute.Environment.Google
 
   private def withScriptContext[A](
     projectContext: LoamProjectContext,
-    initialExecutionEnvironment: ExecutionEnvironment = Google)(f: LoamScriptContext => A): A = {
+    initialExecutionEnvironment: Environment = Google)(f: LoamScriptContext => A): A = {
 
     val scriptContext = new LoamScriptContext(projectContext)
 

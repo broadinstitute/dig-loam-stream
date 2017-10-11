@@ -14,6 +14,8 @@ import loamstream.util.Hashes
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 
 /**
  * @author clint
@@ -202,12 +204,12 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val output0 = cachedOutput(path0, hash0)
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
-      val localEnv = ExecutionEnvironment.Local
-      val ugerEnv = ExecutionEnvironment.Uger
-      val googleEnv = ExecutionEnvironment.Google
+      val localEnv = Environment.Local
+      val ugerEnv = Environment.Uger
+      val googleEnv = Environment.Google
 
-      val localSettings = LocalSettings()
-      val ugerSettings = UgerSettings(8, 4, Queue.Short)
+      val localSettings = LocalSettings
+      val ugerSettings = UgerSettings(Cpus(8, 4, Queue.Short)
       val googleSettings = GoogleSettings("some-cluster")
 
       val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))

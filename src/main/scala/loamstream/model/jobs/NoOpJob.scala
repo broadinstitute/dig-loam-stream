@@ -1,8 +1,12 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ExecutionContext, Future}
-import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+
+import loamstream.conf.LocalSettings
+import loamstream.model.execute.Environment
 import loamstream.model.jobs.JobStatus.Succeeded
+import loamstream.model.execute.EnvironmentType
 
 /**
  * @author Kaan Yuksel
@@ -11,9 +15,9 @@ import loamstream.model.jobs.JobStatus.Succeeded
 //TODO: Get rid of this
 final case class NoOpJob(inputs: Set[LJob]) extends LJob {
   override def execute(implicit context: ExecutionContext): Future[Execution] = {
-    val noOpExecution = Execution(env = ExecutionEnvironment.Local,
+    val noOpExecution = Execution(envType = EnvironmentType.Local,
                                   cmd = None,
-                                  settings = LocalSettings(),
+                                  settings = LocalSettings,
                                   status = Succeeded,
                                   result = None,
                                   resources = None,
@@ -25,7 +29,7 @@ final case class NoOpJob(inputs: Set[LJob]) extends LJob {
   
   override def name: String = s"${getClass.getSimpleName}#${id}(${inputs.size} dependencies)"
   
-  override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
+  override def executionEnvironment: Environment = Environment.Local
 
   override val outputs: Set[Output] = Set.empty
     

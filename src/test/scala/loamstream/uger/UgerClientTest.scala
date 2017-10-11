@@ -4,8 +4,8 @@ import org.scalatest.FunSuite
 import loamstream.util.Tries
 import scala.util.Try
 import loamstream.model.execute.Resources.UgerResources
-import loamstream.model.execute.Memory
-import loamstream.model.execute.CpuTime
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 import java.time.Instant
 
 /**

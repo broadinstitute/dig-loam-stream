@@ -1,27 +1,37 @@
 package loamstream
 
-import java.nio.file.{Path, Paths}
-
-import loamstream.conf.{LoamConfig, PythonConfig, RConfig, UgerConfig}
-import com.typesafe.config.ConfigFactory
-import loamstream.googlecloud.GoogleCloudConfig
-import loamstream.googlecloud.HailConfig
-import loamstream.model.execute.Resources.LocalResources
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.Instant
 
-import loamstream.model.execute.{ExecutionEnvironment, LocalSettings, Resources}
-import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
-import loamstream.model.jobs.LJob
+import scala.concurrent.duration.Duration
+
+import com.typesafe.config.ConfigFactory
+
+import loamstream.compiler.LoamCompiler
+import loamstream.compiler.LoamEngine
 import loamstream.conf.ExecutionConfig
-import loamstream.loam.LoamScriptContext
+import loamstream.conf.LoamConfig
+import loamstream.conf.LocalSettings
+import loamstream.conf.PythonConfig
+import loamstream.conf.RConfig
+import loamstream.conf.UgerConfig
+import loamstream.googlecloud.GoogleCloudConfig
+import loamstream.googlecloud.HailConfig
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScriptContext
+import loamstream.model.execute.Environment
+import loamstream.model.execute.Resources
+import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.RxExecuter
-import loamstream.compiler.LoamEngine
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.OutputRecord
 import loamstream.util.Sequence
-import java.nio.file.Files
-import scala.concurrent.duration.Duration
-import loamstream.compiler.LoamCompiler
 
 /**
   * @author clint
@@ -64,16 +74,16 @@ object TestHelpers {
     LocalResources(now, now)
   }
 
-  val env = ExecutionEnvironment.Local
+  val env: Environment = Environment.Local
 
   def executionFrom(status: JobStatus,
                     result: Option[JobResult] = None,
                     resources: Option[Resources] = None): Execution = {
 
     Execution(id = None,
-              env,
+              envType = env.tpe,
               cmd = None,
-              settings = LocalSettings(),
+              settings = LocalSettings,
               status,
               result,
               resources,

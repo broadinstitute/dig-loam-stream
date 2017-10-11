@@ -1,9 +1,11 @@
 package loamstream.loam
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
 
-import loamstream.util.{DepositBox, ValueBox}
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.util.DepositBox
+import loamstream.util.ValueBox
+import loamstream.model.execute.Environment
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -19,12 +21,12 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
 
   def changeWorkDir(newDir: Path): Path = workDirBox.mutate(_.resolve(newDir)).value
   
-  val executionEnvironmentBox: ValueBox[ExecutionEnvironment] = ValueBox(ExecutionEnvironment.Local)
+  val environmentBox: ValueBox[Environment] = ValueBox(Environment.Local)
 
-  def executionEnvironment: ExecutionEnvironment = executionEnvironmentBox.value
+  def executionEnvironment: Environment = environmentBox.value
 
-  def executionEnvironment_=(newEnv: ExecutionEnvironment): Unit = {
-    executionEnvironmentBox.value = newEnv
+  def executionEnvironment_=(newEnv: Environment): Unit = {
+    environmentBox.value = newEnv
   }
 
   lazy val executionId: String = s"${java.util.UUID.randomUUID}"
@@ -32,6 +34,7 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
 
 /** Container for compile time and run time context for a script */
 object LoamScriptContext {
-  def fromDepositedProjectContext(receipt: DepositBox.Receipt): LoamScriptContext =
+  def fromDepositedProjectContext(receipt: DepositBox.Receipt): LoamScriptContext = {
     new LoamScriptContext(LoamProjectContext.depositBox(receipt))
+  }
 }

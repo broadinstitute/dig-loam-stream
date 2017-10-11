@@ -6,7 +6,6 @@ import java.util.UUID
 
 import loamstream.conf.UgerConfig
 import loamstream.model.execute.ChunkRunnerFor
-import loamstream.model.execute.{ExecutionEnvironment => ExecEnv}
 import loamstream.model.jobs.JobStatus.{Failed, Running}
 import loamstream.model.jobs._
 import loamstream.model.jobs.commandline.CommandLineJob
@@ -19,6 +18,7 @@ import loamstream.util.Terminable
 import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
 import loamstream.model.execute.ExecuterHelpers
+import loamstream.model.execute.EnvironmentType
 
 /**
  * @author clint
@@ -37,7 +37,7 @@ final case class UgerChunkRunner(
   // It may be better to instead have a Factory method or such
   // to create various Runners since the user-specified Uger parameters are
   // per cmd block and are not known at the creation of ChunkRunners
-  extends ChunkRunnerFor(ExecEnv.Uger()) with Terminable with Loggable {
+  extends ChunkRunnerFor(EnvironmentType.Uger) with Terminable with Loggable {
 
   import UgerChunkRunner._
 

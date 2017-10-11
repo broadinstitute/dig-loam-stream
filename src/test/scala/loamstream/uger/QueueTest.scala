@@ -10,38 +10,35 @@ final class QueueTest extends FunSuite {
   import Queue._
   
   test("fromString") {
-    assert(fromString("").isEmpty)
-    assert(fromString("asdasdasdasd").isEmpty)
+    assert(fromString("") === None)
+    assert(fromString("   ") === None)
+    assert(fromString("asdasdasdasd") === None)
     
-    assert(fromString("short") === Some(Short))
-    assert(fromString("Short") === Some(Short))
-    assert(fromString("SHORT") === Some(Short))
-    assert(fromString("ShOrT") === Some(Short))
+    assert(fromString("short") === None)
+    assert(fromString("Short") === None)
+    assert(fromString("SHORT") === None)
+    assert(fromString("ShOrT") === None)
     
-    assert(fromString("long") === Some(Long))
-    assert(fromString("Long") === Some(Long))
-    assert(fromString("LONG") === Some(Long))
-    assert(fromString("LoNg") === Some(Long))
+    assert(fromString("long") === None)
+    assert(fromString("Long") === None)
+    assert(fromString("LONG") === None)
+    assert(fromString("LoNg") === None)
+    
+    assert(fromString("broad") === Some(Broad))
+    assert(fromString("Broad") === Some(Broad))
+    assert(fromString("BROAD") === Some(Broad))
+    assert(fromString("bRoAd") === Some(Broad))
   }
   
   test("name") {
-    assert(Short.name === "short")
-    assert(Long.name === "long")
+    assert(Broad.name === "broad")
   }
   
-  test("shorter/longer") {
-    assert(Short.shorter === Short)
-    assert(Short.longer === Long)
-    
-    assert(Long.shorter === Short)
-    assert(Long.longer === Long)
+  test("isBroad") {
+    assert(Broad.isBroad === true)
   }
   
-  test("isShort/isLong") {
-    assert(Short.isShort === true)
-    assert(Short.isLong === false)
-    
-    assert(Long.isShort === false)
-    assert(Long.isLong === true)
+  test("Default") {
+    assert(Queue.Default === Broad)
   }
 }

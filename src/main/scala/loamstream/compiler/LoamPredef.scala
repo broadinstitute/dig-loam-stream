@@ -2,18 +2,25 @@ package loamstream.compiler
 
 import java.net.URI
 import java.nio.file.{Files, Path, Paths}
-
 import com.google.protobuf.duration.Duration
 import loamstream.model.Tool.DefaultStores
-import loamstream.loam._
+import loamstream.loam.LoamScriptContext
+import loamstream.loam.LoamNativeTool
 import loamstream.loam.ops.StoreType
-
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
-import loamstream.model.execute.{ExecutionEnvironment, Memory}
-import loamstream.conf.{DataConfig, DynamicConfig}
-import loamstream.model.{Store, Tool}
+import loamstream.model.execute.Environment
+import loamstream.model.quantities.Memory
+import loamstream.conf.DataConfig
+import loamstream.conf.DynamicConfig
+import loamstream.model.Store
+import loamstream.model.Tool
 import loamstream.util.ConfigUtils
+import loamstream.conf.UgerConfig
+import loamstream.uger.UgerDefaults
+import loamstream.model.quantities.CpuTime
+import loamstream.conf.UgerSettings
+import loamstream.model.quantities.Cpus
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef {
@@ -119,7 +126,7 @@ object LoamPredef {
   def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T =
     inDir[T](Paths.get(path))(expr)
 
-  private[this] def runIn[A](env: ExecutionEnvironment)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+  private[this] def runIn[A](env: Environment)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     val oldEnv = scriptContext.executionEnvironment
     
     try {
@@ -131,7 +138,7 @@ object LoamPredef {
   }
   
   def local[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    runIn(ExecutionEnvironment.Local)(expr)(scriptContext)
+    runIn(Environment.Local)(expr)(scriptContext)
   }
 
   /**
@@ -141,16 +148,24 @@ object LoamPredef {
    * @param expr Block of cmd's and native code
    * @param scriptContext Container for compile time and run time context for a script
    */
-  def uger[A](mem: Double = 1, cores: Int = 1, maxRunTime: Double = 2)
-             (expr: => A)
-             (implicit scriptContext: LoamScriptContext): A = {
+  def uger[A](
+      cores: Int = UgerDefaults.cores.value,
+      mem: Double = UgerDefaults.memoryPerCore.gb, 
+      maxRunTime: Double = UgerDefaults.maxRunTime.hours)
+      (expr: => A)
+      (implicit scriptContext: LoamScriptContext): A = {
+    
     import scala.concurrent.duration._
 
-    runIn(ExecutionEnvironment.Uger(Memory.inGb(mem), cores, maxRunTime.hours))(expr)(scriptContext)
+    val settings = UgerSettings(Cpus(cores), Memory.inGb(mem), CpuTime.inHours(maxRunTime))
+    
+    val env = Environment.Uger(settings)
+    
+    runIn(env)(expr)(scriptContext)
   }
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    runIn(ExecutionEnvironment.Google)(expr)(scriptContext)
+    runIn(Environment.Google)(expr)(scriptContext)
   }
 
   def loadConfig(path: String): DataConfig = DataConfig.fromFile(path)

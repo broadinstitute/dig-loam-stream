@@ -5,6 +5,8 @@ import java.time.Instant
 import loamstream.uger.Queue
 import loamstream.uger.UgerException
 import loamstream.uger.UgerException
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 
 /**
  * @author clint

@@ -5,8 +5,8 @@ import java.nio.file.{Path, Paths}
 
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.{LoamGraph, LoamProjectContext, LoamScriptContext, LoamStoreKeySlot, LoamStoreRef}
+import loamstream.loam.ops.StoreType
 import loamstream.loam.ops.StoreType.TXT
-import loamstream.loam.ops.{StoreField, StoreType, TextStore, TextStoreField}
 import loamstream.util.TypeBox
 
 import scala.reflect.runtime.universe.TypeTag

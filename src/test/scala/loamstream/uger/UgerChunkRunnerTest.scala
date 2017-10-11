@@ -17,6 +17,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import loamstream.model.jobs.Execution
 import rx.lang.scala.Observable
+import loamstream.model.quantities.Memory
 
 /**
   * Created by kyuksel on 7/25/16.
@@ -28,7 +29,18 @@ final class UgerChunkRunnerTest extends FunSuite {
   
   import TestHelpers.neverRestart
   
-  private val config = UgerConfig(Paths.get("target/foo"), Paths.get("target/bar"), "some job parameters", 42)
+  private val config = {
+    import scala.concurrent.duration.DurationInt
+    
+    UgerConfig(
+      workDir = Paths.get("target/foo"), 
+      logFile = Paths.get("target/bar"), 
+      nativeSpecification = "some job parameters", 
+      maxNumJobs = 42,
+      defaultCores = 2,
+      defaultMemoryPerCore = Memory.inGb(2),
+      defaultMaxRunTime = 2.hours)
+  }
   private val client = MockDrmaaClient(Map.empty)
   private val runner = UgerChunkRunner(config, client, new JobMonitor(scheduler, Poller.drmaa(client)))
 

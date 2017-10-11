@@ -5,10 +5,11 @@ import loamstream.loam.LoamScriptContext
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.LoamConfig
 import loamstream.loam.LoamProjectContext
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.Environment
 import loamstream.loam.LoamCmdTool
 import loamstream.TestHelpers
 import loamstream.loam.LoamGraph
+import loamstream.conf.UgerSettings
 
 /**
  * @author clint
@@ -75,7 +76,7 @@ final class LoamPredefTest extends FunSuite {
     assert(queue.isEmpty === true)
   }
 
-  import ExecutionEnvironment._
+  import Environment._
   
   test("google") {
     implicit val scriptContext = newScriptContext
@@ -86,13 +87,13 @@ final class LoamPredefTest extends FunSuite {
   test("local") {
     implicit val scriptContext = newScriptContext
     
-    doEeTest(scriptContext, Uger, Local, LoamPredef.local)
+    doEeTest(scriptContext, Uger(UgerSettings.Defaults), Local, LoamPredef.local)
   }
   
   test("uger") {
     implicit val scriptContext = newScriptContext
     
-    doEeTest(scriptContext, Local, Uger, LoamPredef.uger)
+    doEeTest(scriptContext, Local, Uger(UgerSettings.Defaults), LoamPredef.uger())
   }
   
   private def newScriptContext: LoamScriptContext = {
@@ -103,8 +104,8 @@ final class LoamPredefTest extends FunSuite {
   
   private def doEeTest[A](
       scriptContext: LoamScriptContext,
-      initial: ExecutionEnvironment, 
-      shouldHaveSwitchedTo: ExecutionEnvironment,
+      initial: Environment, 
+      shouldHaveSwitchedTo: Environment,
       switchEe: (=> Any) => Any): Unit = {
     
     scriptContext.executionEnvironment = initial

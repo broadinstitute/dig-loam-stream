@@ -5,7 +5,7 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.Environment
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.ValueBox
@@ -21,7 +21,7 @@ import loamstream.util.Sequence
  * date: Dec 23, 2015
  */
 trait LJob extends Loggable {
-  def executionEnvironment: ExecutionEnvironment
+  def executionEnvironment: Environment
   
   def workDirOpt: Option[Path] = None
 

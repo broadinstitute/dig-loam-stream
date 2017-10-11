@@ -1,4 +1,4 @@
-package loamstream.model.execute
+package loamstream.model.quantities
 
 import org.scalatest.FunSuite
 
@@ -7,8 +7,6 @@ import org.scalatest.FunSuite
  * Mar 13, 2017
  */
 final class CpusTest extends FunSuite {
-  //scalastyle:off magic.number
-  
   test("Guards") {
     intercept[Exception] {
       Cpus(0)
@@ -26,7 +24,8 @@ final class CpusTest extends FunSuite {
   test("isSingle") {
     assert(Cpus(1).isSingle)
     
+    assert(Cpus(0).isSingle === false)
+    assert(Cpus(2).isSingle === false)
     assert(Cpus(42).isSingle === false)
   }
-  //scalastyle:on magic.number
 }

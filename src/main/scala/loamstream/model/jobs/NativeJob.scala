@@ -1,8 +1,13 @@
 package loamstream.model.jobs
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+
+import loamstream.conf.LocalSettings
+import loamstream.model.execute.Environment
 import loamstream.util.EvalLaterBox
-import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
+import loamstream.model.execute.EnvironmentType
+
 
 /** Job defined by Loam code */
 final case class NativeJob[T](
@@ -13,20 +18,20 @@ final case class NativeJob[T](
   override def name: String = s"${getClass.getSimpleName}#${id}(?,?,?)" 
   
   //TODO: Can we say this for all NativeJobs?
-  override def executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
+  override def executionEnvironment: Environment = Environment.Local
   
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
 
   override def execute(implicit executionContext: ExecutionContext): Future[Execution] = {
     exprBox.evalFuture.map { value =>
       Execution(id = None,
-                executionEnvironment,
+                envType = EnvironmentType.Local,
                 cmd = None,
-                LocalSettings(),
-                JobStatus.Succeeded,
-                Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
+                settings = LocalSettings,
+                status = JobStatus.Succeeded,
+                result = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
                 resources = None,
-                outputs.map(_.toOutputRecord))
+                outputs = outputs.map(_.toOutputRecord))
     }
   }
 }

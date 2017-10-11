@@ -2,8 +2,8 @@ package loamstream.uger
 
 import org.scalatest.FunSuite
 import org.ggf.drmaa.JobInfo
-import loamstream.model.execute.CpuTime
-import loamstream.model.execute.Memory
+import loamstream.model.quantities.CpuTime
+import loamstream.modquantitiesute.Memory
 import java.time.Instant
 
 /**

@@ -10,6 +10,8 @@ import loamstream.model.execute.Resources.UgerResources
 import loamstream.TestHelpers
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 
 /**
  * @author kyuksel

@@ -1,4 +1,4 @@
-package loamstream.model.execute
+package loamstream.model.quantities
 
 import org.scalatest.FunSuite
 import scala.concurrent.duration.DurationDouble

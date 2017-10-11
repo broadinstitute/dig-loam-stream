@@ -2,13 +2,15 @@ package loamstream.model.execute
 
 import java.time.Instant
 
-import loamstream.uger.Queue
 import scala.concurrent.duration.Duration
 import loamstream.util.Options
 import scala.util.Try
 import loamstream.uger.UgerException
 import scala.util.Failure
 import loamstream.util.Tries
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
+import loamstream.uger.Queue
 
 /**
  * @author kyuksel

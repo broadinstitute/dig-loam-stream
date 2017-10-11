@@ -21,7 +21,7 @@ final case class UgerConfig(
     logFile: Path, 
     nativeSpecification: String, 
     maxNumJobs: Int,
-    defaultCores: Int = UgerDefaults.cores.value,
+    defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime)
 

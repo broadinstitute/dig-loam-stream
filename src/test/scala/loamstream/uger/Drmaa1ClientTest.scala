@@ -3,7 +3,7 @@ package loamstream.uger
 import org.scalatest.FunSuite
 import org.ggf.drmaa.JobInfo
 import loamstream.model.quantities.CpuTime
-import loamstream.modquantitiesute.Memory
+import loamstream.model.quantities.Memory
 import java.time.Instant
 
 /**
@@ -11,7 +11,7 @@ import java.time.Instant
  * Mar 15, 2017
  */
 final class Drmaa1ClientTest extends FunSuite {
-  private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue.Short), Some("foo.example.com"))
+  private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue.Broad), Some("foo.example.com"))
   
   import Drmaa1ClientTest.LiteralJobInfo
   

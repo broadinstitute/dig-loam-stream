@@ -1,13 +1,17 @@
 package loamstream.model.jobs
 
-import org.scalatest.FunSuite
 import java.nio.file.Paths
 
-import loamstream.model.execute._
-import loamstream.util.TypeBox
+import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
-import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.conf.UgerSettings
+import loamstream.model.execute.Environment
+import loamstream.model.execute.ProvidesEnvAndResources
 import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.util.TypeBox
+
 
 /**
  * @author clint
@@ -26,7 +30,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val status0 = JobStatus.fromExitCode(result0.exitCode)
     val status1 = JobStatus.Succeeded
     
-    val job0 = CommandLineStringJob("foo", path("."), ExecutionEnvironment.Uger)
+    val job0 = CommandLineStringJob("foo", path("."), Environment.Uger(UgerSettings.Defaults))
     val job1 = MockJob(status1)
     
     val e0 = Execution.from(job0, status0, Option(result0))
@@ -48,13 +52,13 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
 
   test("isCommandExecution") {
     def assertIsCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
-      val execution = Execution(mockEnv, cmd, mockSettings, result, Set.empty[OutputRecord])
+      val execution = Execution(mockEnv.tpe, cmd, mockSettings, result, Set.empty[OutputRecord])
       
       assert(execution.isCommandExecution)
     }
     
     def assertIsNOTCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
-      val execution = Execution(mockEnv, cmd, mockSettings, result, Set.empty[OutputRecord])
+      val execution = Execution(mockEnv.tpe, cmd, mockSettings, result, Set.empty[OutputRecord])
       
       assert(!execution.isCommandExecution)
     }

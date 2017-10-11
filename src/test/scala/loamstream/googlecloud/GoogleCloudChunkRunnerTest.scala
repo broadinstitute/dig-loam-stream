@@ -1,16 +1,23 @@
 package loamstream.googlecloud
 
-import loamstream.util.ValueBox
-import org.scalatest.FunSuite
-import loamstream.model.execute._
-
 import scala.concurrent.ExecutionContext
-import loamstream.model.jobs.{Execution, JobResult, LJob, MockJob}
-import loamstream.util.Futures
-import loamstream.util.ObservableEnrichments
+
+import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
+import loamstream.model.execute.AsyncLocalChunkRunner
+import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.MockChunkRunner
+import loamstream.model.execute.ProvidesEnvAndResources
+import loamstream.model.execute.Resources
 import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
+import loamstream.util.ValueBox
+
 
 /**
  * @author clint
@@ -19,14 +26,14 @@ import loamstream.model.jobs.JobResult.CommandResult
 final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResources {
   //scalastyle:off magic.number
   
-  import GoogleCloudChunkRunnerTest.MockDataProcClient
   import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
-  import Futures.waitFor
-  import ObservableEnrichments._
+  import GoogleCloudChunkRunnerTest.MockDataProcClient
+  import loamstream.util.Futures.waitFor
+  import loamstream.util.ObservableEnrichments._
 
   private val clusterId = "some-cluster-id"
   
-  import TestHelpers.neverRestart
+  import loamstream.TestHelpers.neverRestart
   
   private val googleConfig = {
     import TestHelpers.path
@@ -35,7 +42,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   }
 
   private def mockJob(result: JobResult, resources: Option[Resources] = None) = {
-    val execution = Execution(env = ExecutionEnvironment.Google,
+    val execution = Execution(envType = EnvironmentType.Google,
                               settings = mockSettings,
                               status = result.toJobStatus,
                               result = Option(result),

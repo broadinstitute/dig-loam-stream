@@ -31,8 +31,8 @@ final class AccountingClientTest extends FunSuite {
       assert(mockClient.timesGetQueueInvoked() === 0)
     }
     
-    doTest(Queue.Short, "uger-c052.broadinstitute.org")
-    doTest(Queue.Long, "uger-c052.broadinstitute.org")
+    doTest(Queue.Broad, "uger-c052.broadinstitute.org")
+    doTest(Queue.Default, "uger-c052.broadinstitute.org")
   }
   
   test("QacctUgerClient.getQueue") {
@@ -55,12 +55,12 @@ final class AccountingClientTest extends FunSuite {
       assert(mockClient.timesGetQueueInvoked() === 2)
     }
     
-    doTest(Queue.Short, "foo.example.com")
-    doTest(Queue.Long, "foo.example.com")
+    doTest(Queue.Broad, "foo.example.com")
+    doTest(Queue.Default, "foo.example.com")
   }
   
   test("QacctUgerClient.getExecutionNode - no node to find") {
-    val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(Queue.Short), None))
+    val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(Queue.Broad), None))
   
     val jobId = "12345"
   

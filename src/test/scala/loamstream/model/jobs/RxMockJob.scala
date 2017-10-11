@@ -1,14 +1,16 @@
 package loamstream.model.jobs
 
-import loamstream.TestHelpers
+import java.time.Instant
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import loamstream.model.execute.{ExecutionEnvironment, LocalSettings}
+
+import loamstream.TestHelpers
+import loamstream.conf.LocalSettings
+import loamstream.model.execute.Environment
 import loamstream.util.Futures
 import loamstream.util.Observables
 import loamstream.util.ValueBox
-import java.time.Instant
 
 
 /**
@@ -25,7 +27,7 @@ final case class RxMockJob(
   fakeExecutionTimeInMs: Int,
   toReturn: () => Execution)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LJob {
 
-  override def executionEnvironment: ExecutionEnvironment = TestHelpers.env
+  override def executionEnvironment: Environment = TestHelpers.env
 
   private[this] val count = ValueBox(0)
 
@@ -102,9 +104,9 @@ object RxMockJob {
 
   private[this] def executionFrom(outputs: Set[Output], jobResult: JobResult) = {
     Execution(id = None,
-              TestHelpers.env,
+              TestHelpers.env.tpe,
               cmd = None,
-              settings = LocalSettings(),
+              settings = LocalSettings,
               jobResult.toJobStatus,
               Option(jobResult),
               resources = None,

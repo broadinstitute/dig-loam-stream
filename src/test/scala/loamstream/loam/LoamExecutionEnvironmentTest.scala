@@ -5,17 +5,18 @@ import loamstream.compiler.LoamCompiler
 import loamstream.util.Loggable
 import loamstream.model.execute.RxExecuter
 import loamstream.compiler.LoamEngine
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.NoOpJob
 import loamstream.TestHelpers
+import loamstream.conf.UgerSettings
 
 /**
  * @author clint
  * Nov 22, 2016
  */
-final class LoamExecutionEnvironmentTest extends FunSuite with Loggable {
+final class LoamEnvironmentTest extends FunSuite with Loggable {
   
   private val loamCompiler = LoamCompiler.default
   
@@ -32,11 +33,11 @@ final class LoamExecutionEnvironmentTest extends FunSuite with Loggable {
     
     assert(executable.jobs.size === 1)
     assert(job.asInstanceOf[CommandLineStringJob].commandLineString === "foo")
-    assert(job.executionEnvironment === ExecutionEnvironment.Local)
+    assert(job.executionEnvironment === Environment.Local)
   }
   
   test("Set EE") {
-    def doTest(env: ExecutionEnvironment): Unit = {
+    def doTest(env: Environment): Unit = {
       val methodName = env.toString.toLowerCase
       
       val code = s"""
@@ -54,13 +55,13 @@ final class LoamExecutionEnvironmentTest extends FunSuite with Loggable {
       assert(job.executionEnvironment === env)
     }
     
-    doTest(ExecutionEnvironment.Local)
-    doTest(ExecutionEnvironment.Uger)
-    doTest(ExecutionEnvironment.Google)
+    doTest(Environment.Local)
+    doTest(Environment.Uger(UgerSettings.Defaults))
+    doTest(Environment.Google)
   }
   
   test("Multiple EEs") {
-    def doTest(env1: ExecutionEnvironment, env2: ExecutionEnvironment, env3: ExecutionEnvironment ): Unit = {
+    def doTest(env1: Environment, env2: Environment, env3: Environment ): Unit = {
       val methodName1 = env1.toString.toLowerCase
       val methodName2 = env2.toString.toLowerCase
       val methodName3 = env3.toString.toLowerCase
@@ -105,16 +106,16 @@ final class LoamExecutionEnvironmentTest extends FunSuite with Loggable {
       assert(zerg.executionEnvironment === env3)
     }
     
-    import ExecutionEnvironment._
+    import Environment._
     
-    doTest(Local, Uger, Google)
-    doTest(Google, Uger, Local)
+    doTest(Local, Uger(UgerSettings.Defaults), Google)
+    doTest(Google, Uger(UgerSettings.Defaults), Local)
     doTest(Local, Local, Local)
     doTest(Google, Google, Google)
-    doTest(Uger, Uger, Uger)
-    doTest(Google, Uger, Uger)
-    doTest(Uger, Local, Local)
-    doTest(Local, Uger, Local)
+    doTest(Uger(UgerSettings.Defaults), Uger(UgerSettings.Defaults), Uger(UgerSettings.Defaults))
+    doTest(Google, Uger(UgerSettings.Defaults), Uger(UgerSettings.Defaults))
+    doTest(Uger(UgerSettings.Defaults), Local, Local)
+    doTest(Local, Uger(UgerSettings.Defaults), Local)
     
   }
 }

@@ -1,33 +1,36 @@
 package loamstream.uger
 
 import java.nio.file.Paths
-import loamstream.conf.UgerConfig
-import loamstream.model.jobs.NoOpJob
-import loamstream.util.Futures
-import loamstream.util.ObservableEnrichments
-import org.scalatest.FunSuite
-import rx.lang.scala.schedulers.IOScheduler
-import loamstream.TestHelpers
-import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.LJob
-import loamstream.model.execute.ExecutionEnvironment
-import loamstream.model.jobs.Output
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+
+import org.scalatest.FunSuite
+
+import loamstream.TestHelpers
+import loamstream.conf.UgerConfig
+import loamstream.model.execute.Environment
 import loamstream.model.jobs.Execution
-import rx.lang.scala.Observable
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.NoOpJob
+import loamstream.model.jobs.Output
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
+import loamstream.util.ObservableEnrichments
+import rx.lang.scala.Observable
+import rx.lang.scala.schedulers.IOScheduler
+
 
 /**
   * Created by kyuksel on 7/25/16.
   */
 final class UgerChunkRunnerTest extends FunSuite {
-  //scalastyle:off magic.number
-  
   private val scheduler = IOScheduler()
   
-  import TestHelpers.neverRestart
+  import loamstream.TestHelpers.neverRestart
   
   private val config = {
     import scala.concurrent.duration.DurationInt
@@ -37,15 +40,16 @@ final class UgerChunkRunnerTest extends FunSuite {
       logFile = Paths.get("target/bar"), 
       nativeSpecification = "some job parameters", 
       maxNumJobs = 42,
-      defaultCores = 2,
+      defaultCores = Cpus(2),
       defaultMemoryPerCore = Memory.inGb(2),
-      defaultMaxRunTime = 2.hours)
+      defaultMaxRunTime = CpuTime.inHours(2))
   }
+  
   private val client = MockDrmaaClient(Map.empty)
   private val runner = UgerChunkRunner(config, client, new JobMonitor(scheduler, Poller.drmaa(client)))
 
-  import Futures.waitFor
-  import ObservableEnrichments._
+  import loamstream.util.Futures.waitFor
+  import loamstream.util.ObservableEnrichments._
   
   test("NoOpJob is not attempted to be executed") {
     val noOpJob = NoOpJob(Set.empty)
@@ -281,15 +285,13 @@ final class UgerChunkRunnerTest extends FunSuite {
     doTest(alwaysRestart, Done, Failed(), JobStatus.Succeeded, JobStatus.Failed)
     doTest(alwaysRestart, CommandResult(0, None), CommandResult(1, None), JobStatus.Succeeded, JobStatus.Failed)
   }
-  
-  //scalastyle:on magic.number
 }
 
 object UgerChunkRunnerTest {
   final case class MockUgerJob(name: String, statusesToReturn: UgerStatus*) extends LJob {
     require(statusesToReturn.nonEmpty)
 
-    override val executionEnvironment: ExecutionEnvironment = ExecutionEnvironment.Local
+    override val executionEnvironment: Environment = Environment.Local
     
     override val inputs: Set[LJob] = Set.empty
 

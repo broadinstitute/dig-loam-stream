@@ -79,8 +79,8 @@ final class UgerResourcesTest extends FunSuite {
       assert(withNodeAndQueue.endTime === r.endTime)
     }
 
-    doTestWithQueue(Queue.Short)
-    doTestWithQueue(Queue.Long)
+    doTestWithQueue(Queue.Broad)
+    doTestWithQueue(Queue.Default)
   }
 
   test("fromMap - real-world data") {

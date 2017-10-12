@@ -6,14 +6,14 @@ import java.time.Instant
 
 import org.scalatest.FunSuite
 
-import loamstream.conf.GoogleSettings
-import loamstream.conf.LocalSettings
-import loamstream.conf.UgerSettings
 import loamstream.model.execute.Environment
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.ProvidesEnvAndResources
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
@@ -24,7 +24,6 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.uger.Queue
 import loamstream.util.Hashes
-import loamstream.model.execute.EnvironmentType
 
 /**
  * @author clint

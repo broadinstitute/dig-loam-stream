@@ -1,14 +1,13 @@
 package loamstream.db.slick
 
-import loamstream.conf.Settings
-import loamstream.conf.GoogleSettings
-import loamstream.conf.LocalSettings
-import loamstream.conf.UgerSettings
-import loamstream.uger.Queue
-import slick.jdbc.JdbcProfile
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
+import loamstream.model.execute.UgerSettings
+import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
+import loamstream.uger.Queue
 
 /**
  * @author kyuksel

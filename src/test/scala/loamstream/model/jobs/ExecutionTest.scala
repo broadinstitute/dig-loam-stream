@@ -5,9 +5,9 @@ import java.nio.file.Paths
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
-import loamstream.conf.UgerSettings
 import loamstream.model.execute.Environment
 import loamstream.model.execute.ProvidesEnvAndResources
+import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.util.TypeBox

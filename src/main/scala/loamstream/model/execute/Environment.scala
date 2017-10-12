@@ -1,10 +1,5 @@
 package loamstream.model.execute
 
-import loamstream.conf.GoogleSettings
-import loamstream.conf.LocalSettings
-import loamstream.conf.Settings
-import loamstream.conf.UgerSettings
-
 /**
  * @author clint
  *         Nov 22, 2016

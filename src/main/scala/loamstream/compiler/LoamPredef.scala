@@ -1,34 +1,31 @@
 package loamstream.compiler
 
 import java.net.URI
-import java.nio.file.{Files, Path, Paths}
-import com.google.protobuf.duration.Duration
-import loamstream.model.Tool.DefaultStores
-import loamstream.loam.LoamScriptContext
-import loamstream.loam.LoamNativeTool
-import loamstream.loam.ops.StoreType
-import scala.language.implicitConversions
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
 import scala.reflect.runtime.universe.TypeTag
-import loamstream.model.execute.Environment
-import loamstream.model.quantities.Memory
+
 import loamstream.conf.DataConfig
-import loamstream.conf.DynamicConfig
+import loamstream.loam.LoamNativeTool
+import loamstream.loam.LoamScriptContext
+import loamstream.loam.ops.StoreType
 import loamstream.model.Store
 import loamstream.model.Tool
-import loamstream.util.ConfigUtils
-import loamstream.conf.UgerConfig
-import loamstream.uger.UgerDefaults
+import loamstream.model.Tool.DefaultStores
+import loamstream.model.execute.Environment
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.UgerSettings
 import loamstream.model.quantities.CpuTime
-import loamstream.conf.UgerSettings
 import loamstream.model.quantities.Cpus
-import loamstream.conf.GoogleSettings
+import loamstream.model.quantities.Memory
+import loamstream.uger.UgerDefaults
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef {
 
   type Store[A <: StoreType] = loamstream.model.Store[A]
-  
-  implicit def toConstantFunction[T](item: T): () => T = () => item
   
   def path(pathString: String): Path = Paths.get(pathString)
 
@@ -162,8 +159,6 @@ object LoamPredef {
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     
-    import scala.concurrent.duration._
-
     val settings = UgerSettings(Cpus(cores), Memory.inGb(mem), CpuTime.inHours(maxRunTime))
     
     val env = Environment.Uger(settings)

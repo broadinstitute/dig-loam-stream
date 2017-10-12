@@ -4,10 +4,10 @@ import java.nio.file.Path
 
 import scala.concurrent.ExecutionContext
 
-import loamstream.conf.Settings
 import loamstream.db.LoamDao
-import loamstream.model.execute.Environment
+import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources
+import loamstream.model.execute.Settings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandInvocationFailure
@@ -15,7 +15,6 @@ import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.OutputRecord
 import loamstream.util.Loggable
 import loamstream.util.PathUtils
-import loamstream.model.execute.EnvironmentType
 
 /**
  * @author clint

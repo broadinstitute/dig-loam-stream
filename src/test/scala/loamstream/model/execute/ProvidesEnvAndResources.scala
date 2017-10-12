@@ -2,20 +2,20 @@ package loamstream.model.execute
 
 import java.time.Instant
 
-import loamstream.model.execute.Environment.Uger
-import loamstream.model.jobs.{Execution, JobResult, JobStatus}
-import loamstream.uger.Queue
 import org.scalatest.FunSuite
-import loamstream.model.execute.Resources.UgerResources
+
 import loamstream.TestHelpers
-import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Environment.Uger
 import loamstream.model.execute.Resources.GoogleResources
-import loamstream.model.quantities.Memory
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
 import loamstream.model.quantities.CpuTime
-import loamstream.conf.Settings
-import loamstream.conf.UgerSettings
 import loamstream.model.quantities.Cpus
-import loamstream.conf.GoogleSettings
+import loamstream.model.quantities.Memory
+import loamstream.uger.Queue
 
 /**
  * @author kyuksel

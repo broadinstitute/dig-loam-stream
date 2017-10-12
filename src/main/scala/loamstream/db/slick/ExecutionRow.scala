@@ -1,13 +1,13 @@
 package loamstream.db.slick
 
-import loamstream.conf.Settings
 import loamstream.model.execute.Environment
+import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources
+import loamstream.model.execute.Settings
 import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.OutputRecord
-import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.execute.EnvironmentType
 
 /**
  * @author clint

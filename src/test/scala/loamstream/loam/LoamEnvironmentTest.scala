@@ -10,8 +10,8 @@ import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.NoOpJob
 import loamstream.TestHelpers
-import loamstream.conf.UgerSettings
-import loamstream.conf.GoogleSettings
+import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Environment
 import loamstream.compiler.LoamPredef

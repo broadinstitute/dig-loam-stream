@@ -1,14 +1,9 @@
 package loamstream.model.jobs
 
-import loamstream.conf.LocalSettings
-import loamstream.conf.Settings
 import loamstream.model.execute.Environment
-import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources
+import loamstream.model.execute.Settings
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.execute.EnvironmentType
-import loamstream.conf.UgerSettings
-import loamstream.conf.GoogleSettings
 
 /**
  * @author clint

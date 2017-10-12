@@ -1,4 +1,4 @@
-package loamstream.conf
+package loamstream.model.execute
 
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
@@ -8,6 +8,7 @@ import loamstream.uger.UgerDefaults
 
 /**
  * @author kyuksel
+ * @author clint
  *         date: 3/7/17
  */
 

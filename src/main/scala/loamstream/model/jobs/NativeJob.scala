@@ -3,10 +3,8 @@ package loamstream.model.jobs
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-import loamstream.conf.LocalSettings
 import loamstream.model.execute.Environment
 import loamstream.util.EvalLaterBox
-import loamstream.model.execute.EnvironmentType
 
 
 /** Job defined by Loam code */

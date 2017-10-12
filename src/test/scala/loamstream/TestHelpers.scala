@@ -13,7 +13,6 @@ import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.LoamConfig
-import loamstream.conf.LocalSettings
 import loamstream.conf.PythonConfig
 import loamstream.conf.RConfig
 import loamstream.conf.UgerConfig

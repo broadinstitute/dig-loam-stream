@@ -6,7 +6,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
 import loamstream.TestHelpers
-import loamstream.conf.LocalSettings
+import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Environment
 import loamstream.util.Futures
 import loamstream.util.Observables

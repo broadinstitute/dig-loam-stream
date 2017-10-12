@@ -10,7 +10,6 @@ import scala.sys.process.ProcessLogger
 import scala.util.Failure
 import scala.util.Success
 
-import loamstream.conf.LocalSettings
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult.CommandInvocationFailure

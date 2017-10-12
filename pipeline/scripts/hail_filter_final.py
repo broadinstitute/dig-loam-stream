@@ -90,6 +90,9 @@ def main(args=None):
 	print "filtering failed variants out of vds"
 	vds = vds.filter_variants_expr('va.failed == 1', keep=False)
 
+	print "writing vds to disk"
+	vds.write(args.vds_out, overwrite=True)
+
 	print "writing Plink files to disk"
 	vds.export_plink(args.plink_out, fam_expr='famID = s, id = s, isFemale = sa.isFemale')
 
@@ -110,5 +113,6 @@ if __name__ == "__main__":
 	requiredArgs.add_argument('--variants-exclude-out', help='a base filename for failed variants', required=True)
 	requiredArgs.add_argument('--plink-out', help='a plink fileset name for output', required=True)
 	requiredArgs.add_argument('--vcf-out', help='a vcf file name for output', required=True)
+	requiredArgs.add_argument('--vds-out', help='a vds directory name for output', required=True)
 	args = parser.parse_args()
 	main(args)

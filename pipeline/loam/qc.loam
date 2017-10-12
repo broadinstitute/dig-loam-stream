@@ -164,8 +164,10 @@ object Params {
     cleanNameCloud: URI,
     cleanCloud: Seq[Store[TXT]],
     cleanVcf: Store[VCF],
+	cleanVds: Store[VCF],
     cleanVcfCloud: Store[VCF],
-    cleanVcfTbi: Store[TXT])
+    cleanVcfTbi: Store[TXT],
+    cleanVdsCloud: Store[VCF])
 
   val paramsByArr: Seq[(Int, Arr)] = (0 until nArrays).map { arr =>
 
@@ -358,7 +360,9 @@ object Params {
     cleanCloud = bedBimFam(cleanNameCloud),
     cleanVcf = store[VCF].at(localOutDir / s"${cleanBase}.vcf.bgz"),
     cleanVcfTbi = store[TXT].at(localOutDir / s"${cleanBase}.vcf.bgz.tbi"),
-    cleanVcfCloud = store[VCF].at(googleOutDir / s"${cleanBase}.vcf.bgz"))
+    cleanVcfCloud = store[VCF].at(googleOutDir / s"${cleanBase}.vcf.bgz"),
+    cleanVds = store[VCF].at(localOutDir / s"${cleanBase}.vds"),
+    cleanVdsCloud = store[VCF].at(googleOutDir / s"${cleanBase}.vds"))
     }
 
 }
@@ -533,15 +537,15 @@ def qc1(i: Int): Store[TXT] = {
    * King only writes the '.kin0' file if families are found, so a bash script is used to write an empty file in that case
    */
   
-  uger {
-    cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related}"""
-    .in(paramsArr.harmRefFiltPruned)
-    .out(paramsArr.kinLog, paramsArr.kinKin, paramsArr.kinTmpDat, paramsArr.kinTmpPed, paramsArr.kinKin0, paramsArr.kinKin0Related)
-  
-    cmd"""$binR --vanilla --args ${paramsArr.kinKin0Related} ${paramsArr.kinFamsizes} < ${rCalcKinshipFamSizes}"""
-    .in(paramsArr.kinKin0Related)
-    .out(paramsArr.kinFamsizes)
-  }
+  //uger {
+  //  cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related}"""
+  //  .in(paramsArr.harmRefFiltPruned)
+  //  .out(paramsArr.kinLog, paramsArr.kinKin, paramsArr.kinTmpDat, paramsArr.kinTmpPed, paramsArr.kinKin0, paramsArr.kinKin0Related)
+  //
+  //  cmd"""$binR --vanilla --args ${paramsArr.kinKin0Related} ${paramsArr.kinFamsizes} < ${rCalcKinshipFamSizes}"""
+  //  .in(paramsArr.kinKin0Related)
+  //  .out(paramsArr.kinFamsizes)
+  //}
   
   /**
     * Ancestry PCA Step
@@ -799,7 +803,8 @@ def qc2(i: Int): Unit = {
       --variantqc-out ${paramsArr.variantqcStatsCloud}
       --variants-exclude-out ${paramsArr.finalVariantExclusionsCloud}
       --plink-out ${paramsArr.cleanNameCloud}
-      --vcf-out ${paramsArr.cleanVcfCloud}"""
+      --vcf-out ${paramsArr.cleanVcfCloud}
+      --vds-out ${paramsArr.cleanVdsCloud}"""
       .in(paramsArr.harmRefVdsCloud, ancestryInferredMergedCloud, paramsArr.sampleqcSexcheckCloud, Input.Google.pheno, paramsArr.finalSampleExclusionsCloud)
       .out(paramsArr.cleanCloud :+ paramsArr.cleanVcfCloud :+ paramsArr.variantqcStatsCloud :+ paramsArr.finalVariantExclusionsCloud)
   }
@@ -807,6 +812,7 @@ def qc2(i: Int): Unit = {
   local {
     googleCopy(paramsArr.cleanCloud, paramsArr.clean)
     googleCopy(paramsArr.cleanVcfCloud, paramsArr.cleanVcf)
+    googleCopy(paramsArr.cleanVdsCloud, paramsArr.cleanVds)
     googleCopy(paramsArr.variantqcStatsCloud, paramsArr.variantqcStats)
 	googleCopy(paramsArr.finalVariantExclusionsCloud, paramsArr.finalVariantExclusions)
   }

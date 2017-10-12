@@ -1,5 +1,5 @@
-val dataConfig       = loadConfig("/humgen/diabetes2/users/ryank/software/dig-loam-stream/pipeline/conf/metsim/data.conf")
-val pipelineConfig   = loadConfig("/humgen/diabetes2/users/ryank/software/dig-loam-stream/pipeline/conf/qc.conf")
+val dataConfig       = loadConfig("dataConfig", "/humgen/diabetes2/users/ryank/software/dig-loam-stream/pipeline/conf/metsim/data.conf")
+val pipelineConfig   = loadConfig("pipelineConfig", "/humgen/diabetes2/users/ryank/software/dig-loam-stream/pipeline/conf/qc.conf")
 
 val localOutDir     = path(pipelineConfig.getStr("outputDirs.local"))
 val googleOutDir    = uri(pipelineConfig.getStr("outputDirs.google"))

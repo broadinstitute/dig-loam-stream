@@ -3,8 +3,6 @@ import java.net.URI
 import loamstream.model.Store
 import loamstream.util.UriEnrichments._
 import loamstream.util.HasPath._
-import PathsArePaths._
-import URIsHavePaths._
 
 def outputStoreName(name: String)(extension: String): String = s"${name}.${extension}"
 def outputStore(name: String): String => Store[TXT] = extension => store[TXT].at(outputStoreName(name)(extension))

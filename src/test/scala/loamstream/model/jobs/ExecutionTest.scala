@@ -52,13 +52,13 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
 
   test("isCommandExecution") {
     def assertIsCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
-      val execution = Execution(mockEnv.tpe, cmd, mockSettings, result, Set.empty[OutputRecord])
+      val execution = Execution(env = mockEnv, cmd = cmd, result = result, outputs = Set.empty[OutputRecord])
       
       assert(execution.isCommandExecution)
     }
     
     def assertIsNOTCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
-      val execution = Execution(mockEnv.tpe, cmd, mockSettings, result, Set.empty[OutputRecord])
+      val execution = Execution(env = mockEnv, cmd = cmd, result = result, outputs = Set.empty[OutputRecord])
       
       assert(!execution.isCommandExecution)
     }

@@ -17,10 +17,8 @@ import loamstream.conf.GoogleSettings
  */
 final case class Execution(
     id: Option[Int] = None,
-    //TODO: Consolidate with `settings` into an Environment
-    envType: EnvironmentType,
+    env: Environment,
     cmd: Option[String] = None,
-    settings: Settings,
     status: JobStatus,
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
@@ -29,12 +27,7 @@ final case class Execution(
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
 
-  def env: Environment = (envType, settings) match {
-    case (EnvironmentType.Local, _) => Environment.Local
-    case (EnvironmentType.Google, googleSettings: GoogleSettings) => Environment.Google(googleSettings)
-    case (EnvironmentType.Uger, ugerSettings: UgerSettings) => Environment.Uger(ugerSettings)
-    case _ => ???
-  }
+  def settings: Settings = env.settings
   
   //NB :(
   //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a
@@ -57,42 +50,59 @@ final case class Execution(
 
 object Execution {
   // TODO Remove when dynamic statuses flow in
-  def apply(env: EnvironmentType,
+  def apply(env: Environment,
             cmd: Option[String],
-            settings: Settings,
             result: JobResult,
             outputs: Set[OutputRecord]): Execution = {
     
-    Execution(id = None, env, cmd, settings, result.toJobStatus, Some(result), None, outputs)
+    Execution(
+        id = None, 
+        env = env, 
+        cmd = cmd, 
+        status = result.toJobStatus, 
+        result = Option(result), 
+        resources = None, 
+        outputs = outputs)
   }
 
   // TODO Remove when dynamic statuses flow in
-  def apply(env: EnvironmentType,
+  def apply(env: Environment,
             cmd: String,
-            settings: Settings,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
     
-    Execution(id = None, env, Option(cmd), settings, result.toJobStatus, Some(result), None, outputs.toSet)
+    Execution(
+        id = None, 
+        env = env, 
+        cmd = Option(cmd), 
+        status = result.toJobStatus, 
+        result = Option(result), 
+        resources = None, 
+        outputs = outputs.toSet)
   }
 
-  def apply(env: EnvironmentType,
+  def apply(env: Environment,
             cmd: String,
-            settings: Settings,
             status: JobStatus,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
     
-    Execution(id = None, env, Option(cmd), settings, status, Some(result), None, outputs.toSet)
+    Execution(
+        id = None, 
+        env = env, 
+        cmd = Option(cmd), 
+        status = status, 
+        result = Option(result), 
+        resources = None, 
+        outputs = outputs.toSet)
   }
 
-  def fromOutputs(env: EnvironmentType,
+  def fromOutputs(env: Environment,
                   cmd: String,
-                  settings: Settings,
                   result: JobResult,
                   outputs: Set[Output]): Execution = {
     
-    Execution(env, Option(cmd), settings, result, outputs.map(_.toOutputRecord))
+    apply(env, Option(cmd), result, outputs.map(_.toOutputRecord))
   }
 
   def from(job: LJob, jobStatus: JobStatus): Execution = from(job, jobStatus, result = None)
@@ -107,9 +117,8 @@ object Execution {
     // put in place to get the code to compile
     Execution(
       id = None,
-      envType = job.executionEnvironment.tpe,
+      env = job.executionEnvironment,
       cmd = commandLine,
-      settings = job.executionEnvironment.settings, // TODO: smell: we have no idea how this job was run
       status = status,
       result = result,
       resources = None, // TODO: smell: we have no idea how this job was run

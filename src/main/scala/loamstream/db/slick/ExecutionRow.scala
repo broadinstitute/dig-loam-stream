@@ -17,23 +17,28 @@ final case class ExecutionRow(id: Int, env: String, cmd: String, status: JobStat
   def toExecution(settings: Settings, resourcesOpt: Option[Resources], outputs: Set[OutputRecord]): Execution = {
     val commandResult = CommandResult(exitCode)
 
-    val envType = EnvironmentType.fromString(env)
+    val environmentOpt: Option[Environment] = for {
+      tpe <- EnvironmentType.fromString(env)
+      e <- Environment.from(tpe, settings)
+    } yield e
     
-    require(envType.isDefined)
+    //TODO: :(
+    require(environmentOpt.isDefined)
     
-    Execution(Option(mapId(identity)),
-              envType.get,
-              Option(cmd),
-              settings,
-              status,
-              Some(commandResult),
-              resourcesOpt,
-              outputs)
+    Execution(
+        id = Option(mapId(identity)),
+        env = environmentOpt.get,
+        cmd = Option(cmd),
+        status = status,
+        result = Option(commandResult),
+        resources = resourcesOpt,
+        outputs = outputs)
   }
 
   /**
    * Meant to abstract out Execution.id from ExecutionRow.id
    * to prevent database-level information from leaking up
    */
+  //TODO: Why is this here?
   private def mapId[A](f: Int => A): A = f(id)
 }

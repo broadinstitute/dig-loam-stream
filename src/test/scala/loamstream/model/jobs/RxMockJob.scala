@@ -103,14 +103,14 @@ object RxMockJob {
   }
 
   private[this] def executionFrom(outputs: Set[Output], jobResult: JobResult) = {
-    Execution(id = None,
-              TestHelpers.env.tpe,
-              cmd = None,
-              settings = LocalSettings,
-              jobResult.toJobStatus,
-              Option(jobResult),
-              resources = None,
-              outputs.map(_.toOutputRecord))
+    Execution(
+        id = None,
+        env = TestHelpers.env,
+        cmd = None,
+        status = jobResult.toJobStatus,
+        result = Option(jobResult),
+        resources = None,
+        outputs = outputs.map(_.toOutputRecord))
   }
 }
 // scalastyle:on magic.number

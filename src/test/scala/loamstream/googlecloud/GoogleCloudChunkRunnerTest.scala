@@ -17,6 +17,7 @@ import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.util.ValueBox
+import loamstream.model.execute.Environment
 
 
 /**
@@ -42,11 +43,12 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   }
 
   private def mockJob(result: JobResult, resources: Option[Resources] = None) = {
-    val execution = Execution(envType = EnvironmentType.Google,
-                              settings = mockSettings,
-                              status = result.toJobStatus,
-                              result = Option(result),
-                              resources = resources)
+    val execution = Execution(
+        env = Environment.Google(mockGoogleSettings),
+        status = result.toJobStatus,
+        result = Option(result),
+        resources = resources)
+        
     MockJob(execution)
   }
 

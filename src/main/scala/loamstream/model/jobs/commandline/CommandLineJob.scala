@@ -59,15 +59,14 @@ trait CommandLineJob extends LJob {
         case Failure(e) => (JobStatus.FailedWithException, CommandInvocationFailure(e))
       }
       
-      Execution(id = None,
-                envType = executionEnvironment.tpe,
-                cmd = Option(commandLineString),
-                //NB: Big smell: this job may or may not have been run locally :(
-                settings = LocalSettings,
-                status = jobStatus,
-                result = Option(jobResult),
-                resources = Option(resources),
-                outputs = outputs.map(_.toOutputRecord))
+      Execution(
+          id = None,
+          env = executionEnvironment,
+          cmd = Option(commandLineString),
+          status = jobStatus,
+          result = Option(jobResult),
+          resources = Option(resources),
+          outputs = outputs.map(_.toOutputRecord))
     }
   }
   

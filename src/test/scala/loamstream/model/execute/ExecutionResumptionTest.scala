@@ -31,9 +31,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
     val e = Execution(
         id = None,
-        envType = mockEnv.tpe,
+        env = mockEnv,
         cmd = Option(mockCmd),
-        settings = mockSettings,
         status = JobStatus.fromExitCode(exitCode),
         result = Option(JobResult.CommandResult(exitCode)),
         resources = Some(mockResources),

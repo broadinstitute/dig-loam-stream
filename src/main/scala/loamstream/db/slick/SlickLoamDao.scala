@@ -80,7 +80,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     val executionRow = {
       new ExecutionRow(
         dummyId, 
-        execution.envType.name, 
+        execution.env.tpe.name, 
         execution.cmd.get,
         execution.status, 
         commandResult.exitCode)
@@ -329,11 +329,12 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution(_, _, _, _, _, Some(cr: CommandResult), _, _) => e -> cr
+      case e @ Execution(_, _, _, _, Some(cr: CommandResult), _, _) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case DummyExitCode
-      case e @ Execution(_, _, _, _, _, Some(cr: CommandInvocationFailure), _, _) =>
+      case e @ Execution(_, _, _, _, Some(cr: CommandInvocationFailure), _, _) => {
         // TODO: Better assign e -> JobResult.Failure?
         e -> CommandResult(JobResult.DummyExitCode)
+      }
     }
   }
 

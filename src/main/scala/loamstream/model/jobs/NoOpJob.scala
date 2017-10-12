@@ -14,15 +14,14 @@ import loamstream.model.execute.EnvironmentType
  */
 //TODO: Get rid of this
 final case class NoOpJob(inputs: Set[LJob]) extends LJob {
-  override def execute(implicit context: ExecutionContext): Future[Execution] = {
-    val noOpExecution = Execution(envType = EnvironmentType.Local,
-                                  cmd = None,
-                                  settings = LocalSettings,
-                                  status = Succeeded,
-                                  result = None,
-                                  resources = None,
-                                  outputs = Set.empty[OutputRecord])
-    Future.successful(noOpExecution)
+  override def execute(implicit context: ExecutionContext): Future[Execution] = Future.successful {
+    Execution(
+        env = Environment.Local,
+        cmd = None,
+        status = Succeeded,
+        result = None,
+        resources = None,
+        outputs = Set.empty[OutputRecord])
   }
   
   override def toString: String = name

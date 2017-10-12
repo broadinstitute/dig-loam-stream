@@ -24,14 +24,14 @@ final case class NativeJob[T](
 
   override def execute(implicit executionContext: ExecutionContext): Future[Execution] = {
     exprBox.evalFuture.map { value =>
-      Execution(id = None,
-                envType = EnvironmentType.Local,
-                cmd = None,
-                settings = LocalSettings,
-                status = JobStatus.Succeeded,
-                result = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
-                resources = None,
-                outputs = outputs.map(_.toOutputRecord))
+      Execution(
+          id = None,
+          env = Environment.Local,
+          cmd = None,
+          status = JobStatus.Succeeded,
+          result = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
+          resources = None,
+          outputs = outputs.map(_.toOutputRecord))
     }
   }
 }

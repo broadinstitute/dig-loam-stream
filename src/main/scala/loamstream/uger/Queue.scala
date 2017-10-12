@@ -13,7 +13,7 @@ sealed abstract class Queue(val name: String) {
 }
   
 object Queue {
-  def Default: Queue = Broad 
+  val Default: Queue = Broad 
   
   case object Broad extends Queue("broad")
   

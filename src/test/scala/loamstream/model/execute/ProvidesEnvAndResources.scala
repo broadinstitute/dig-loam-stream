@@ -15,6 +15,7 @@ import loamstream.model.quantities.CpuTime
 import loamstream.conf.Settings
 import loamstream.conf.UgerSettings
 import loamstream.model.quantities.Cpus
+import loamstream.conf.GoogleSettings
 
 /**
  * @author kyuksel
@@ -24,6 +25,7 @@ trait ProvidesEnvAndResources extends FunSuite {
   
   val mockCmd: String = "R --vanilla --args ancestry_pca_scores.tsv < plot_ancestry_pca.r"
   val mockSettings: UgerSettings = UgerSettings(Cpus(4), Memory.inGb(8), queue = Queue.Broad)
+  val mockGoogleSettings: GoogleSettings = GoogleSettings("asdf")
   val mockEnv: Environment = Uger(mockSettings)
   val mockStatus: JobStatus = JobStatus.Unknown
   val mockExitCode: Int = 999
@@ -44,11 +46,7 @@ trait ProvidesEnvAndResources extends FunSuite {
   
   val mockResources: Resources = mockUgerResources
 
-  val mockExecution: Execution = Execution(
-    envType = mockEnv.tpe,
-    settings = mockSettings,
-    status = mockStatus
-  )
+  val mockExecution: Execution = Execution(env = mockEnv, status = mockStatus)
 
   protected def assertEqualFieldsFor(actual: Iterable[Execution], expected: Iterable[Execution]): Unit = {
     assert(actual.map(_.env) === expected.map(_.env))

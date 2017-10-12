@@ -31,4 +31,12 @@ object Environment {
   final case class Google(googleSettings: GoogleSettings) extends Environment(EnvironmentType.Google) {
     override def settings: Settings = googleSettings
   }
+  
+  //TODO: Revisit
+  def from(tpe: EnvironmentType, settings: Settings): Option[Environment] = (tpe, settings) match {
+    case (EnvironmentType.Local, LocalSettings) => Some(Local)
+    case (EnvironmentType.Uger, ugerSettings: UgerSettings) => Some(Uger(ugerSettings))
+    case (EnvironmentType.Google, googleSettings: GoogleSettings) => Some(Google(googleSettings))
+    case _ => None
+  }
 }

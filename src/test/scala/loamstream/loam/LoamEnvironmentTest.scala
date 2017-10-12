@@ -11,6 +11,13 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.NoOpJob
 import loamstream.TestHelpers
 import loamstream.conf.UgerSettings
+import loamstream.conf.GoogleSettings
+import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.Environment
+import loamstream.compiler.LoamPredef
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.CpuTime
 
 /**
  * @author clint
@@ -22,12 +29,16 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
   
   private val loamEngine = LoamEngine(TestHelpers.config, loamCompiler, RxExecuter.default)
   
+  private val clusterId = TestHelpers.config.googleConfig.get.clusterId
+  
   test("Default EE") {
-    val code = """
-                 cmd"foo"
-               """
+    val graph = TestHelpers.makeGraph { implicit context => 
+      import LoamCmdTool._
+      
+      cmd"foo"
+    }
     
-    val executable = loamEngine.compileToExecutable(code).get
+    val executable = LoamEngine.toExecutable(graph)
     
     val job = executable.jobs.head
     
@@ -40,13 +51,15 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     def doTest(env: Environment): Unit = {
       val methodName = env.toString.toLowerCase
       
-      val code = s"""
-                    $methodName {
-                      cmd"foo"
-                    }
-                  """
+      val graph = TestHelpers.makeGraph { implicit context => 
+        import LoamCmdTool._
       
-      val executable = loamEngine.compileToExecutable(code).get
+        envFn(env) {
+          cmd"foo"
+        }
+      }
+      
+      val executable = LoamEngine.toExecutable(graph)
       
       val job = executable.jobs.head
       
@@ -56,8 +69,8 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     }
     
     doTest(Environment.Local)
-    doTest(Environment.Uger(UgerSettings.Defaults))
-    doTest(Environment.Google)
+    doTest(Environment.Uger(UgerSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4))))
+    doTest(Environment.Google(GoogleSettings(clusterId)))
   }
   
   test("Multiple EEs") {
@@ -66,21 +79,25 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
       val methodName2 = env2.toString.toLowerCase
       val methodName3 = env3.toString.toLowerCase
       
-      val code = s"""
-                    $methodName1 {
-                      cmd"foo"
-                      cmd"bar"
-                    }
-                    $methodName2 {
-                      cmd"baz"
-                    }
-                    $methodName3 {
-                      cmd"blerg"
-                      cmd"zerg"
-                    }
-                  """
+      val graph = TestHelpers.makeGraph { implicit context => 
+        import LoamCmdTool._
+        
+        envFn(env1) {
+          cmd"foo"
+          cmd"bar"
+        }
+        
+        envFn(env2) {
+          cmd"baz"
+        }
+        
+        envFn(env3) {
+          cmd"blerg"
+          cmd"zerg"
+        }
+      }
       
-      val executable = loamEngine.compileToExecutable(code).get
+      val executable = LoamEngine.toExecutable(graph)
       
       //NB: Drop NoOpJob
       val jobs = executable.jobs.head.inputs
@@ -108,14 +125,25 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     
     import Environment._
     
-    doTest(Local, Uger(UgerSettings.Defaults), Google)
-    doTest(Google, Uger(UgerSettings.Defaults), Local)
-    doTest(Local, Local, Local)
-    doTest(Google, Google, Google)
-    doTest(Uger(UgerSettings.Defaults), Uger(UgerSettings.Defaults), Uger(UgerSettings.Defaults))
-    doTest(Google, Uger(UgerSettings.Defaults), Uger(UgerSettings.Defaults))
-    doTest(Uger(UgerSettings.Defaults), Local, Local)
-    doTest(Local, Uger(UgerSettings.Defaults), Local)
+    val ugerEnv = Uger(UgerSettings.Defaults)
+    val googleEnv = Google(GoogleSettings(clusterId))
     
+    doTest(Local, ugerEnv, googleEnv)
+    doTest(googleEnv, ugerEnv, Local)
+    doTest(Local, Local, Local)
+    doTest(googleEnv, googleEnv, googleEnv)
+    doTest(ugerEnv, ugerEnv, ugerEnv)
+    doTest(googleEnv, ugerEnv, ugerEnv)
+    doTest(ugerEnv, Local, Local)
+    doTest(Local, ugerEnv, Local)
+    
+  }
+  
+  private def envFn[A](env: Environment)(block: => A)(implicit context: LoamScriptContext): A = env match {
+    case Environment.Local => LoamPredef.local(block)
+    case Environment.Google(_) => LoamPredef.google(block)
+    case Environment.Uger(settings) => {
+      LoamPredef.ugerWith(settings.cpus.value, settings.memoryPerCpu.gb, settings.maxRunTime.hours)(block)
+    }
   }
 }

@@ -8,6 +8,7 @@ import loamstream.model.execute.Resources
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.EnvironmentType
 import loamstream.conf.UgerSettings
+import loamstream.conf.GoogleSettings
 
 /**
  * @author clint
@@ -16,6 +17,7 @@ import loamstream.conf.UgerSettings
  */
 final case class Execution(
     id: Option[Int] = None,
+    //TODO: Consolidate with `settings` into an Environment
     envType: EnvironmentType,
     cmd: Option[String] = None,
     settings: Settings,
@@ -29,7 +31,7 @@ final case class Execution(
 
   def env: Environment = (envType, settings) match {
     case (EnvironmentType.Local, _) => Environment.Local
-    case (EnvironmentType.Google, _) => Environment.Google
+    case (EnvironmentType.Google, googleSettings: GoogleSettings) => Environment.Google(googleSettings)
     case (EnvironmentType.Uger, ugerSettings: UgerSettings) => Environment.Uger(ugerSettings)
     case _ => ???
   }
@@ -107,7 +109,7 @@ object Execution {
       id = None,
       envType = job.executionEnvironment.tpe,
       cmd = commandLine,
-      settings = LocalSettings, // TODO: smell: we have no idea how this job was run
+      settings = job.executionEnvironment.settings, // TODO: smell: we have no idea how this job was run
       status = status,
       result = result,
       resources = None, // TODO: smell: we have no idea how this job was run

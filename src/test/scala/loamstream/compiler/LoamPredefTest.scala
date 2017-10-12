@@ -10,6 +10,10 @@ import loamstream.loam.LoamCmdTool
 import loamstream.TestHelpers
 import loamstream.loam.LoamGraph
 import loamstream.conf.UgerSettings
+import loamstream.conf.GoogleSettings
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.CpuTime
 
 /**
  * @author clint
@@ -81,7 +85,9 @@ final class LoamPredefTest extends FunSuite {
   test("google") {
     implicit val scriptContext = newScriptContext
     
-    doEeTest(scriptContext, Local, Google, LoamPredef.google)
+    val settings = GoogleSettings(scriptContext.googleConfig.clusterId)
+    
+    doEeTest(scriptContext, Local, Google(settings), LoamPredef.google)
   }
   
   test("local") {
@@ -93,11 +99,25 @@ final class LoamPredefTest extends FunSuite {
   test("uger") {
     implicit val scriptContext = newScriptContext
     
-    doEeTest(scriptContext, Local, Uger(UgerSettings.Defaults), LoamPredef.uger())
+    doEeTest(scriptContext, Local, Uger(UgerSettings.Defaults), LoamPredef.uger)
+  }
+  
+  test("ugerWith") {
+    implicit val scriptContext = newScriptContext
+    
+    doEeTest(scriptContext, Local, Uger(UgerSettings.Defaults), LoamPredef.ugerWith())
+  }
+  
+  test("ugerWith - non-defaults") {
+    implicit val scriptContext = newScriptContext
+    
+    val expectedSettings = UgerSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6))
+    
+    doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith(2, 4, 6))
   }
   
   private def newScriptContext: LoamScriptContext = {
-    val projectContext = LoamProjectContext.empty(LoamConfig(None, None, None, None, None, ExecutionConfig.default))
+    val projectContext = LoamProjectContext.empty(TestHelpers.config)
     
     new LoamScriptContext(projectContext)
   }

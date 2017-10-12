@@ -8,6 +8,7 @@ import loamstream.uger.Queue
 import slick.jdbc.JdbcProfile
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 
 /**
  * @author kyuksel
@@ -61,7 +62,7 @@ final case class UgerSettingRow(
 
   //NB: TODO: .get :(
   override def toSettings: Settings = {
-    UgerSettings(Cpus(cpus), Memory.inGb(memPerCpu), ???, Queue.fromString(queue).get)
+    UgerSettings(Cpus(cpus), Memory.inGb(memPerCpu), CpuTime.inHours(maxRunTime), Queue.fromString(queue).get)
   }
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {

@@ -21,6 +21,7 @@ import loamstream.uger.UgerDefaults
 import loamstream.model.quantities.CpuTime
 import loamstream.conf.UgerSettings
 import loamstream.model.quantities.Cpus
+import loamstream.conf.GoogleSettings
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef {
@@ -141,6 +142,12 @@ object LoamPredef {
     runIn(Environment.Local)(expr)(scriptContext)
   }
 
+  def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    val env = Environment.Uger(UgerSettings.Defaults)
+    
+    runIn(env)(expr)(scriptContext)
+  }
+  
   /**
    * @param mem Memory requested per job submission in Gb's
    * @param cores Number of cores requested per job submission
@@ -148,7 +155,7 @@ object LoamPredef {
    * @param expr Block of cmd's and native code
    * @param scriptContext Container for compile time and run time context for a script
    */
-  def uger[A](
+  def ugerWith[A](
       cores: Int = UgerDefaults.cores.value,
       mem: Double = UgerDefaults.memoryPerCore.gb, 
       maxRunTime: Double = UgerDefaults.maxRunTime.hours)
@@ -165,7 +172,9 @@ object LoamPredef {
   }
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    runIn(Environment.Google)(expr)(scriptContext)
+    val settings = GoogleSettings(scriptContext.googleConfig.clusterId) 
+    
+    runIn(Environment.Google(settings))(expr)(scriptContext)
   }
 
   def loadConfig(path: String): DataConfig = DataConfig.fromFile(path)

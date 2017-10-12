@@ -1,9 +1,8 @@
 package loamstream.model.execute
 
-import loamstream.conf.UgerConfig
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import loamstream.uger.UgerDefaults
+import loamstream.conf.GoogleSettings
+import loamstream.conf.LocalSettings
+import loamstream.conf.Settings
 import loamstream.conf.UgerSettings
 
 /**
@@ -11,6 +10,8 @@ import loamstream.conf.UgerSettings
  *         Nov 22, 2016
  */
 sealed abstract class Environment(val tpe: EnvironmentType) {
+  def settings: Settings
+  
   def isLocal: Boolean = tpe.isLocal
 
   def isGoogle: Boolean = tpe.isGoogle
@@ -19,9 +20,15 @@ sealed abstract class Environment(val tpe: EnvironmentType) {
 }
 
 object Environment {
-  final case object Local extends Environment(EnvironmentType.Local)
+  final case object Local extends Environment(EnvironmentType.Local) {
+    override def settings: Settings = LocalSettings
+  }
 
-  final case class Uger(settings: UgerSettings) extends Environment(EnvironmentType.Uger)
+  final case class Uger(ugerSettings: UgerSettings) extends Environment(EnvironmentType.Uger) {
+    override def settings: Settings = ugerSettings
+  }
 
-  final case object Google extends Environment(EnvironmentType.Google)
+  final case class Google(googleSettings: GoogleSettings) extends Environment(EnvironmentType.Google) {
+    override def settings: Settings = googleSettings
+  }
 }

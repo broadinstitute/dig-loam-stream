@@ -24,6 +24,7 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.uger.Queue
 import loamstream.util.Hashes
+import loamstream.model.execute.EnvironmentType
 
 /**
  * @author clint
@@ -216,9 +217,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val ugerSettings = UgerSettings(Cpus(8), Memory.inGb(4))
       val googleSettings = GoogleSettings("some-cluster")
       
-      val localEnv = Environment.Local
-      val ugerEnv = Environment.Uger(ugerSettings)
-      val googleEnv = Environment.Google
+      val localEnv: Environment = Environment.Local
+      val ugerEnv: Environment = Environment.Uger(ugerSettings)
 
       val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
       
@@ -238,7 +238,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val failed1 = Execution(ugerEnv.tpe, Option(mockCmd), ugerSettings, CommandResult(1), Set.empty[OutputRecord])
                               
       val succeeded = {
-        Execution(googleEnv.tpe, Option(mockCmd), googleSettings, CommandResult(0), Set(output1, output2))
+        Execution(EnvironmentType.Google, Option(mockCmd), googleSettings, CommandResult(0), Set(output1, output2))
       }
 
       assert(failed0.isFailure)

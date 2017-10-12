@@ -24,7 +24,6 @@ final class CpusTest extends FunSuite {
   test("isSingle") {
     assert(Cpus(1).isSingle)
     
-    assert(Cpus(0).isSingle === false)
     assert(Cpus(2).isSingle === false)
     assert(Cpus(42).isSingle === false)
   }

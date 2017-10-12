@@ -37,8 +37,4 @@ final class QueueTest extends FunSuite {
   test("isBroad") {
     assert(Broad.isBroad === true)
   }
-  
-  test("Default") {
-    assert(Queue.Default === Broad)
-  }
 }

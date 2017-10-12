@@ -143,7 +143,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     case Environment.Local => LoamPredef.local(block)
     case Environment.Google(_) => LoamPredef.google(block)
     case Environment.Uger(settings) => {
-      LoamPredef.ugerWith(settings.cpus.value, settings.memoryPerCpu.gb, settings.maxRunTime.hours)(block)
+      LoamPredef.ugerWith(settings.cores.value, settings.memoryPerCore.gb, settings.maxRunTime.hours)(block)
     }
   }
 }

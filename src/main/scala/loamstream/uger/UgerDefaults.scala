@@ -14,4 +14,6 @@ object UgerDefaults {
   val memoryPerCore: Memory = Memory.inGb(1)
     
   val maxRunTime: CpuTime = CpuTime.inHours(2)
+  
+  val queue: Queue = Queue.Broad
 }

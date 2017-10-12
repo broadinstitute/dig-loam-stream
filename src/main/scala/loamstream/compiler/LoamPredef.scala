@@ -146,9 +146,9 @@ object LoamPredef {
   }
   
   /**
-   * @param mem Memory requested per job submission in Gb's
+   * @param mem Memory requested per core, per job submission (in Gb's)
    * @param cores Number of cores requested per job submission
-   * @param maxRunTime Time limit after which a job may get killed
+   * @param maxRunTime Time limit (in hours) after which a job may get killed
    * @param expr Block of cmd's and native code
    * @param scriptContext Container for compile time and run time context for a script
    */

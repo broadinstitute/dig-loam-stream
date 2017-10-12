@@ -17,10 +17,10 @@ sealed trait Settings
 final case object LocalSettings extends Settings
 
 final case class UgerSettings(
-    cpus: Cpus,
-    memoryPerCpu: Memory,
+    cores: Cpus,
+    memoryPerCore: Memory,
     maxRunTime: CpuTime = UgerDefaults.maxRunTime,
-    queue: Queue = Queue.Default) extends Settings
+    queue: Queue = UgerDefaults.queue) extends Settings
     
 object UgerSettings {
   val Defaults: UgerSettings = UgerSettings(UgerDefaults.cores, UgerDefaults.memoryPerCore)

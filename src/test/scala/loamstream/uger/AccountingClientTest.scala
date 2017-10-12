@@ -12,51 +12,46 @@ final class AccountingClientTest extends FunSuite {
   import QacctTestHelpers.actualQacctOutput
   
   test("QacctUgerClient.getExecutionNode") {
-    def doTest(expectedQueue: Queue, expectedNode: String): Unit = {
-      val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+    val expectedNode: String = "uger-c052.broadinstitute.org"
+    val expectedQueue: Queue = Queue.Broad
     
-      val jobId = "12345"
+    val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+  
+    val jobId = "12345"
+  
+    assert(mockClient.getExecutionNode(jobId) === Some(expectedNode))
     
-      assert(mockClient.getExecutionNode(jobId) === Some(expectedNode))
-      
-      assert(mockClient.timesGetExecutionNodeInvoked() === 1)
-      assert(mockClient.timesGetQacctOutputForInvoked() === 1)
-      assert(mockClient.timesGetQueueInvoked() === 0)
-      
-      assert(mockClient.getExecutionNode(jobId) === Some(expectedNode))
-      
-      assert(mockClient.timesGetExecutionNodeInvoked() === 2)
-      //Invocations of qacct should be memoized
-      assert(mockClient.timesGetQacctOutputForInvoked() === 1)
-      assert(mockClient.timesGetQueueInvoked() === 0)
-    }
+    assert(mockClient.timesGetExecutionNodeInvoked() === 1)
+    assert(mockClient.timesGetQacctOutputForInvoked() === 1)
+    assert(mockClient.timesGetQueueInvoked() === 0)
     
-    doTest(Queue.Broad, "uger-c052.broadinstitute.org")
-    doTest(Queue.Default, "uger-c052.broadinstitute.org")
+    assert(mockClient.getExecutionNode(jobId) === Some(expectedNode))
+    
+    assert(mockClient.timesGetExecutionNodeInvoked() === 2)
+    //Invocations of qacct should be memoized
+    assert(mockClient.timesGetQacctOutputForInvoked() === 1)
+    assert(mockClient.timesGetQueueInvoked() === 0)
   }
   
   test("QacctUgerClient.getQueue") {
-    def doTest(expectedQueue: Queue, expectedNode: String): Unit = {
-      val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
-      
-      val jobId = "12345"
-      
-      assert(mockClient.getQueue(jobId) === Some(expectedQueue))
-      
-      assert(mockClient.timesGetExecutionNodeInvoked() === 0)
-      assert(mockClient.timesGetQacctOutputForInvoked() === 1)
-      assert(mockClient.timesGetQueueInvoked() === 1)
-      
-      assert(mockClient.getQueue(jobId) === Some(expectedQueue))
-      
-      assert(mockClient.timesGetExecutionNodeInvoked() === 0)
-      //Invocations of qacct should be memoized
-      assert(mockClient.timesGetQacctOutputForInvoked() === 1)
-      assert(mockClient.timesGetQueueInvoked() === 2)
-    }
+    val expectedQueue: Queue = Queue.Broad
+    val expectedNode: String = "foo.example.com"
+    val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
     
-    doTest(Queue.Broad, "foo.example.com")
-    doTest(Queue.Default, "foo.example.com")
+    val jobId = "12345"
+    
+    assert(mockClient.getQueue(jobId) === Some(expectedQueue))
+    
+    assert(mockClient.timesGetExecutionNodeInvoked() === 0)
+    assert(mockClient.timesGetQacctOutputForInvoked() === 1)
+    assert(mockClient.timesGetQueueInvoked() === 1)
+    
+    assert(mockClient.getQueue(jobId) === Some(expectedQueue))
+    
+    assert(mockClient.timesGetExecutionNodeInvoked() === 0)
+    //Invocations of qacct should be memoized
+    assert(mockClient.timesGetQacctOutputForInvoked() === 1)
+    assert(mockClient.timesGetQueueInvoked() === 2)
   }
   
   test("QacctUgerClient.getExecutionNode - no node to find") {

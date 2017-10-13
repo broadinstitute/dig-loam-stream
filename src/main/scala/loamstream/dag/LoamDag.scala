@@ -18,5 +18,10 @@ case class LoamDag(loam: LoamGraph) extends Dag {
   val storeNodes: Set[StoreNode] = loam.stores.map(StoreNode)
   val toolNodes: Set[ToolNode] = loam.tools.map(ToolNode)
 
-  override def nodes = storeNodes ++ toolNodes
+  override def nodes: Set[Node] = storeNodes ++ toolNodes
+
+  override def nextBefore(node: Node): Set[Node] = node match {
+    case StoreNode(store) => loam.storeProducers.get(store).map(ToolNode).map(Set[Node](_)).getOrElse(Set.empty[Node])
+    case ToolNode(tool) => loam.toolInputs.getOrElse(tool, Set.empty).map(StoreNode)
+  }
 }

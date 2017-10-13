@@ -10,4 +10,6 @@ case class WomDag(wom: Graph) extends Dag {
   override type Node = GraphNode
 
   override def nodes: Set[GraphNode] = wom.nodes
+
+  override def nextBefore(node: GraphNode): Set[Node] = node.upstream
 }

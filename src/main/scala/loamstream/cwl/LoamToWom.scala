@@ -4,7 +4,7 @@ import cats.data.Validated.{Invalid, Valid}
 import cats.data.{NonEmptyList, Validated}
 import cats.syntax.option.catsSyntaxOption
 import lenthall.validation.ErrorOr.{ErrorOr, ShortCircuitingFlatMap}
-import loamstream.loam.LoamToken.{MultiStoreToken, MultiToken, StoreRefToken, StoreToken, StringToken}
+import loamstream.loam.LoamToken._
 import loamstream.loam.{HasLocation, LoamCmdTool, LoamGraph, LoamStoreRef}
 import loamstream.model.{LId, Store, Tool}
 import shapeless.Coproduct
@@ -18,7 +18,7 @@ import wom.callable.{Callable, TaskDefinition, WorkflowDefinition}
 import wom.expression.{IoFunctionSet, WomExpression}
 import wom.graph.CallNode.{InputDefinitionFold, InputDefinitionPointer}
 import wom.graph.GraphNodePort.{InputPort, OutputPort}
-import wom.graph.{CallNode, Graph, GraphInputNode, GraphNode, RequiredGraphInputNode, TaskCall, TaskCallNode}
+import wom.graph._
 import wom.{CommandPart, RuntimeAttributes}
 
 /**
@@ -27,11 +27,11 @@ import wom.{CommandPart, RuntimeAttributes}
   */
 object LoamToWom {
 
-  case class WomFileVariable(name: String) extends WomExpression {
-    override def inputs: Set[String] = Set(name)
+  case class WomFileVariable(name: LocalName) extends WomExpression {
+    override def inputs: Set[String] = Set(name.value)
 
     override def evaluateValue(inputValues: Map[String, WdlValue], ioFunctionSet: IoFunctionSet): ErrorOr[WdlFile] =
-      Validated.fromOption[NonEmptyList[String], WdlValue](inputValues.get(name),
+      Validated.fromOption[NonEmptyList[String], WdlValue](inputValues.get(name.value),
         NonEmptyList.of(s"Missing input $name")).flatMap { (value: WdlValue) =>
         value match {
           case file: WdlFile => Valid(file)
@@ -45,11 +45,17 @@ object LoamToWom {
     override def evaluateFiles(inputTypes: Map[String, WdlValue], ioFunctionSet: IoFunctionSet,
                                coerceTo: WdlType): ErrorOr[Set[WdlFile]] =
       evaluateValue(inputTypes, ioFunctionSet).map(Set(_))
+
+    override def sourceString: String = name.value
   }
 
   def getInputNodeName(id: LId): String = "store" + id.name
 
+  def getInputNodeId(id: LId): WomIdentifier = WomIdentifier(getInputNodeName(id))
+
   def getTaskNodeName(id: LId): String = "task" + id.name
+
+  def getTaskNodeId(id: LId): WomIdentifier = WomIdentifier(getTaskNodeName(id))
 
   def getPortName(id: LId): String = "store" + id.name
 
@@ -86,14 +92,14 @@ object LoamToWom {
       }
       val stores = inputStores ++ addedStores
       val inputsToNodes = stores.map { input =>
-        (input.id, RequiredGraphInputNode(getInputNodeName(input.id), WdlFileType))
+        (input.id, RequiredGraphInputNode(getInputNodeId(input.id), WdlFileType))
       }.toMap
       LoamToNodes(loam, inputsToNodes, Map.empty)
     }
   }
 
   def getInputNode(inputStore: Store.Untyped): RequiredGraphInputNode =
-    RequiredGraphInputNode(getInputNodeName(inputStore.id), WdlFileType)
+    RequiredGraphInputNode(getInputNodeId(inputStore.id), WdlFileType)
 
   def mapInputsToNodes(inputStores: Set[Store.Untyped]): Map[Store.Untyped, RequiredGraphInputNode] =
     inputStores.map { store =>
@@ -153,7 +159,7 @@ object LoamToWom {
       val parameterMeta: Map[String, String] = Map.empty
       val outputs: List[Callable.OutputDefinition] = tool.outputs.values.map { store =>
         val name = getPortName(store.id)
-        Callable.OutputDefinition(name, WdlFileType, WomFileVariable(name))
+        Callable.OutputDefinition(name, WdlFileType, WomFileVariable(LocalName(name)))
       }.toList
       val inputs: List[_ <: Callable.InputDefinition] = tool.inputs.values.map { store =>
         Callable.RequiredInputDefinition(getPortName(store.id), WdlFileType)
@@ -175,7 +181,6 @@ object LoamToWom {
         Valid(mapOfErrorOr.mapValues(_.asInstanceOf[Valid[V]].a).view.force)
       } else {
         val strings = mapOfErrorOr.values.collect { case Invalid(list) => list }.map(_.toList).fold(List.empty)(_ ++ _)
-        println(strings.mkString("\n", "\n", "\n"))
         Invalid(NonEmptyList.fromListUnsafe(strings))
       }
     }
@@ -194,7 +199,7 @@ object LoamToWom {
     val errorOrTaskDefinition = getTaskDefinition(tool)
     errorOrTaskDefinition.flatMap { taskDefinition =>
       val callNodeBuilder = new CallNode.CallNodeBuilder
-      val name = getTaskNodeName(tool.id)
+      val id = getTaskNodeId(tool.id)
       val errorOrInputDefinitionsToOutputPorts: ErrorOr[Map[InputDefinition, OutputPort]] =
         tool.inputs.map { case (_, toolInputStore) =>
           val inputName = getPortName(toolInputStore.id)
@@ -211,7 +216,7 @@ object LoamToWom {
           callNodeBuilder.makeInputPort(inputDefinition, outputPort): InputPort
         }.toSet
         val inputDefinitionFold = InputDefinitionFold(mappings, callInputPorts, newGraphInputNodes)
-        callNodeBuilder.build(name, taskDefinition, inputDefinitionFold).node.asInstanceOf[TaskCallNode]
+        callNodeBuilder.build(id, taskDefinition, inputDefinitionFold).node.asInstanceOf[TaskCallNode]
       }
     }
   }
@@ -240,7 +245,7 @@ object LoamToWom {
           val meta: Map[String, String] = Map.empty
           val parameterMeta: Map[String, String] = Map.empty
           val declarations: List[(String, WomExpression)] = inputNodes.map { node =>
-            (node.name, WomFileVariable(node.name))
+            (node.identifier.localName.value, WomFileVariable(node.identifier.localName))
           }.toList
           WorkflowDefinition(graphName, graph, meta, parameterMeta, declarations)
         }

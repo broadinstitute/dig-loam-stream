@@ -24,4 +24,9 @@ case class LoamDag(loam: LoamGraph) extends Dag {
     case StoreNode(store) => loam.storeProducers.get(store).map(ToolNode).map(Set[Node](_)).getOrElse(Set.empty[Node])
     case ToolNode(tool) => loam.toolInputs.getOrElse(tool, Set.empty).map(StoreNode)
   }
+
+  override def nextAfter(node: Node): Set[Node] = node match {
+    case StoreNode(store) => loam.storeConsumers.getOrElse(store, Set.empty).map(ToolNode)
+    case ToolNode(tool) => loam.toolOutputs.getOrElse(tool, Set.empty).map(StoreNode)
+  }
 }

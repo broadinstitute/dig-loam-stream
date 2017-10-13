@@ -10,5 +10,7 @@ trait Dag {
   def nodes: Iterable[Node]
 
   def nextBefore(node: Node): Set[Node]
+
+  def nextAfter(node: Node): Set[Node]
 }
 

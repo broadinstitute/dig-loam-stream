@@ -12,4 +12,10 @@ case class WomDag(wom: Graph) extends Dag {
   override def nodes: Set[GraphNode] = wom.nodes
 
   override def nextBefore(node: GraphNode): Set[Node] = node.upstream
+
+  private val nodeToNextAfter: Map[Node, Set[Node]] =
+    nodes.flatMap(node => node.upstream.map(nodeBefore => (nodeBefore, node))).groupBy(_._1).mapValues(_.map(_._2))
+      .view.force
+
+  override def nextAfter(node: GraphNode): Set[Node] = nodeToNextAfter.getOrElse(node, Set.empty)
 }

@@ -13,9 +13,10 @@ import loamstream.model.execute.ExecutionEnvironment
 import loamstream.conf.{DataConfig, DynamicConfig}
 import loamstream.model.{Store, Tool}
 import loamstream.util.ConfigUtils
+import loamstream.util.Loggable
 
 /** Predefined symbols in Loam scripts */
-object LoamPredef {
+object LoamPredef extends Loggable {
 
   type Store[A <: StoreType] = loamstream.model.Store[A]
   
@@ -141,5 +142,26 @@ object LoamPredef {
     runIn(ExecutionEnvironment.Google)(expr)(scriptContext)
   }
 
+  /**
+   * Parse the config file into a DataConfig.
+   * @param path a string representing the path of the file to parse.
+   */
   def loadConfig(path: String): DataConfig = DataConfig.fromFile(path)
+  
+  /**
+   * Look for a system property containing the path to the config file to parse.
+   * If the key isn't found, use a default path.  In either case, parse the config
+   * file at the path into a DataConfig.
+   * @param key the name of a JVM system property to look for.  If the property is
+   * defined, use its value as a path to a config file to parse into a DataConfig.
+   * @param defaultPath a string representing the path of the file to parse if no
+   * JVM system property can be found using the param `key`.
+   */
+  def loadConfig(key: String, defaultPath: String): DataConfig = {
+    val pathToLoad = System.getProperty(key, defaultPath)
+    
+    debug(s"Loading config file: '${pathToLoad}'")
+    
+    loadConfig(pathToLoad)
+  }
 }

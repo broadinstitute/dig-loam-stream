@@ -3,8 +3,6 @@ import java.net.URI
 import loamstream.model.Store
 import loamstream.util.UriEnrichments._
 import loamstream.util.HasPath._
-import PathsArePaths._
-import URIsHavePaths._
 
 def outputStoreName(name: String)(extension: String): String = s"${name}.${extension}"
 def outputStore(name: String): String => Store[TXT] = extension => store[TXT].at(outputStoreName(name)(extension))
@@ -21,20 +19,3 @@ def bedBimFam(prefix: URI): Seq[Store[TXT]] = bedBimFam(extension => store[TXT].
 
 def basename(path: Path): String = base(path)
 def basename(uri: URI): String = base(uri)
-
-case class KlustakwikStores(base: String, fet: Store[TXT], tempClu: Store[TXT], clu: Store[TXT],
-                            klg: Store[TXT], klustakwikLog: Store[TXT]) {
-  val inputs: Set[Store[TXT]] = Set(fet)
-  val outputs: Set[Store[TXT]] = Set(clu, klg, klustakwikLog)
-}
-
-object KlustakwikStores {
-  def apply(base: String): KlustakwikStores = {
-    val makeStore: String => Store[TXT] = extension => store[TXT].at(s"${base}.${extension}")
-    val Seq(fet, tempClu, clu, klg, klustakwikLog) =
-      withExtensions("fet.1", "temp.clu.1", "clu.1", "klg.1", "klustakwik.log")(makeStore)
-    KlustakwikStores(base, fet, tempClu, clu, klg, klustakwikLog)
-  }
-
-  def apply(base: Path): KlustakwikStores = apply(base.toString)
-}

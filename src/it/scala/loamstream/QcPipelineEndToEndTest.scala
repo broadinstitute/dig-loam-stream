@@ -25,34 +25,18 @@ final class QcPipelineEndToEndTest extends FunSuite {
     //NB: Deterministic outputs from the penultimate Klustaskwik jobs
     //TODO: Better or different set of outputs to compare
     val filesToCheck: Seq[Path] = Seq(
-      path("CAMP.sampleqc.stats.adj.callRate_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.callRate_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.cluster.clu.1"),
-      path("CAMP.sampleqc.stats.adj.cluster.fet.1"),
-      path("CAMP.sampleqc.stats.adj.cluster.outliers"),
-      path("CAMP.sampleqc.stats.adj.cluster.xtabs"),
-      path("CAMP.sampleqc.stats.adj.hetHigh_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.hetHigh_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.hetLow_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.hetLow_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.het_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.het_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.ind.discreteness"),
-      path("CAMP.sampleqc.stats.adj.nCalled_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.nCalled_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.nHet_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.nHet_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.nHomVar_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.nHomVar_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.nNonRef_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.nNonRef_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.pca.loadings.tsv"),
-      path("CAMP.sampleqc.stats.adj.pca.scores.tsv"),
-      path("CAMP.sampleqc.stats.adj.rHetHomVar_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.rHetHomVar_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.rTiTv_res.clu.1"),
-      path("CAMP.sampleqc.stats.adj.rTiTv_res.fet.1"),
-      path("CAMP.sampleqc.stats.adj.tsv"))
+      path("camp.gwas1.clean.bed"),
+      path("camp.gwas1.clean.bim"),
+      path("camp.gwas1.clean.fam"),
+      path("camp.gwas1.clean.vcf.bgz"),
+      path("camp.gwas1.clean.vcf.bgz.tbi"),
+      path("camp.gwas1.final.sample.exclusions"),
+      path("camp.gwas1.final.variant.exclusions"),
+      path("camp.gwas1.sampleqc.outliers.tsv"),
+      path("camp.gwas1.sampleqc.sexcheck.problems.tsv"),
+      path("camp.gwas1.sampleqc.stats.tsv"),
+      path("camp.gwas1.variantqc.stats.tsv"),
+      path("camp.gwas1.ancestry.inferred.tsv"))
 
     val pairsToCompare: Seq[(Path, Path)] = filesToCheck.map(p => (referenceDir.resolve(p), outputDir.resolve(p)))
 

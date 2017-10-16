@@ -294,7 +294,7 @@ object Params {
     kinName = localOutDir / kinBase,
     kinLog = store[TXT].at(localOutDir / s"${kinBase}.log"),
     kinTmpDat = store[TXT].at(localOutDir / s"${kinBase}TMP.dat"),
-    kinTmpPed = store[TXT].at(localOutDir / s"${kinBase}.TMP.ped"),
+    kinTmpPed = store[TXT].at(localOutDir / s"${kinBase}TMP.ped"),
     kinKin = store[TXT].at(localOutDir / s"${kinBase}.kin"),
     kinKin0 = store[TXT].at(localOutDir / s"${kinBase}.kin0"),
     kinKin0Related = store[TXT].at(localOutDir / s"${kinBase}.kin0.related"),

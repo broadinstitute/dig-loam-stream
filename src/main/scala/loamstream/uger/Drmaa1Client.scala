@@ -19,6 +19,10 @@ import loamstream.util.Classes.simpleNameOf
 import loamstream.util.CompositeException
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
+import loamstream.model.execute.UgerSettings
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 
 /**
  * Created on: 5/19/16
@@ -138,18 +142,17 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @param numTasks length of task array to be submitted as a single UGER job
    */
   override def submitJob(
-                          // TODO: Add user-specified Uger parameters
-                 ugerConfig: UgerConfig,
-                 pathToScript: Path,
-                 jobName: String,
-                 numTasks: Int = 1): DrmaaClient.SubmissionResult = {
+      ugerSettings: UgerSettings,
+      ugerConfig: UgerConfig,
+      pathToScript: Path,
+      jobName: String,
+      numTasks: Int = 1): DrmaaClient.SubmissionResult = {
 
     val pathToUgerOutput = ugerConfig.logFile
-    val staticNativeSpecification = ugerConfig.nativeSpecification
-
-    // TODO: Append the user-specified Uger parameters to staticNativeSpecification
     
-    runJob(pathToScript, pathToUgerOutput, staticNativeSpecification, jobName, numTasks)
+    val fullNativeSpec = Drmaa1Client.nativeSpec(ugerConfig, ugerSettings)
+    
+    runJob(pathToScript, pathToUgerOutput, fullNativeSpec, jobName, numTasks)
   }
   
   /**
@@ -301,11 +304,19 @@ object Drmaa1Client {
     UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
   }
 
-  /** Namespace for native specification argument strings */
-  object JobSubmissionOption {
-    // N is to be replaced by the desired number of cores when native specification string is constructed
-    val Cores: String = "-binding linear:N -pe smp N"
-    val Mem: String = "h_vmem="
-    val MaxRunTime: String = "h_rt="
+  private[uger] def nativeSpec(ugerConfig: UgerConfig, ugerSettings: UgerSettings): String = {
+    val staticNativeSpec = ugerConfig.nativeSpecification
+
+    val dynamicNativeSpec = {
+      import ugerSettings._
+    
+      val numCores = cores.value
+      val runTime: Int = maxRunTime.hours.toInt
+      val mem: Int = memoryPerCore.gb.toInt
+      
+      s"h_rt=${runTime} h_vmem=${mem}g -binding linear:${numCores} -pe smp ${numCores} -q ${queue}"
+    }
+    
+    s"${staticNativeSpec} ${dynamicNativeSpec}"
   }
 }

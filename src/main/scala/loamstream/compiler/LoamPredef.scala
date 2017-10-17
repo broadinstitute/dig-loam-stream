@@ -140,7 +140,11 @@ object LoamPredef {
   }
 
   def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    val env = Environment.Uger(UgerSettings.Defaults)
+    val ugerConfig = scriptContext.ugerConfig 
+    
+    val settings = UgerSettings(ugerConfig.defaultCores, ugerConfig.defaultMemoryPerCore, ugerConfig.defaultMaxRunTime)
+    
+    val env = Environment.Uger(settings)
     
     runIn(env)(expr)(scriptContext)
   }

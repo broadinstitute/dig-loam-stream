@@ -9,6 +9,8 @@ package loamstream.uger
  *   -Clint Oct 11, 2017
  */
 sealed abstract class Queue(val name: String) {
+  override def toString: String = name
+  
   final def isBroad: Boolean = this == Queue.Broad
 }
   

@@ -11,6 +11,7 @@ import loamstream.model.execute.UgerSettings
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
+import loamstream.uger.UgerChunkRunner
 
 /**
  * @author clint

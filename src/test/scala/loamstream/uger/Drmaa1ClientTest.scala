@@ -5,6 +5,10 @@ import org.ggf.drmaa.JobInfo
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import java.time.Instant
+import loamstream.conf.UgerConfig
+import loamstream.TestHelpers
+import loamstream.model.execute.UgerSettings
+import loamstream.model.quantities.Cpus
 
 /**
  * @author clint
@@ -15,7 +19,6 @@ final class Drmaa1ClientTest extends FunSuite {
   
   import Drmaa1ClientTest.LiteralJobInfo
   
-  //scalastyle:off magic.number
   test("toResources - valid resource-usage data in JobInfo") {
     val mockUgerClient = new MockAccountingClient(_ => actualQacctOutput)
     
@@ -88,8 +91,34 @@ final class Drmaa1ClientTest extends FunSuite {
       "submission_time" -> "1488840615805.0000",
       "vmem" -> "0.0000",
       "wallclock" -> "2.7110")
-      
-  //scalastyle:on magic.number
+
+  test("nativeSpec") {
+    import Drmaa1Client.nativeSpec
+    import TestHelpers.path
+    
+    val bogusPath = path("/foo/bar/baz")
+    
+    val ugerConfig = UgerConfig(
+        workDir = bogusPath,
+        logFile = bogusPath,
+        nativeSpecification = "asdfasdf",
+        maxNumJobs = 42)
+        
+    val ugerSettings = UgerSettings(
+        cores = Cpus(42),
+        memoryPerCore = Memory.inGb(17),
+        maxRunTime = CpuTime.inHours(33))
+        
+    assert(ugerSettings.cores !== UgerDefaults.cores)
+    assert(ugerSettings.memoryPerCore !== UgerDefaults.memoryPerCore)
+    assert(ugerSettings.maxRunTime !== UgerDefaults.maxRunTime)
+    
+    val actualNativeSpec = nativeSpec(ugerConfig, ugerSettings)
+    
+    val expected = "asdfasdf h_rt=33 h_vmem=17g -binding linear:42 -pe smp 42 -q broad"
+    
+    assert(actualNativeSpec === expected)
+  }
 }
 
 object Drmaa1ClientTest {

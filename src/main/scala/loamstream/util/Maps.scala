@@ -17,6 +17,10 @@ object Maps {
       
       def mapKeys[A1](f: A => A1): Map[A1, B] = m.map { case (a, b) => (f(a), b) }
       
+      def collectKeys[A1](pf: PartialFunction[A, A1]): Map[A1, B] = {
+        m.collect { case (a, b) if pf.isDefinedAt(a) => (pf(a), b) }
+      }
+      
       def filterValues(p: B => Boolean): Map[A, B] = m.filter { case (_, b) => p(b) }
     }
   }

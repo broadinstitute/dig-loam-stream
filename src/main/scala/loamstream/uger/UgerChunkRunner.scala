@@ -19,6 +19,12 @@ import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
 import loamstream.model.execute.ExecuterHelpers
 import loamstream.model.execute.EnvironmentType
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import java.time.ZoneId
+import loamstream.model.execute.Environment
+import loamstream.util.Maps
+import loamstream.model.execute.UgerSettings
 
 /**
  * @author clint
@@ -30,14 +36,9 @@ import loamstream.model.execute.EnvironmentType
  */
 final case class UgerChunkRunner(
     ugerConfig: UgerConfig,
-    drmaaClient: DrmaaClient,
+    jobSubmitter: JobSubmitter,
     jobMonitor: JobMonitor,
-    pollingFrequencyInHz: Double = 1.0)
-  // TODO: Passing in an ExecEnv into ChunkRunnerFor may no longer make sense.
-  // It may be better to instead have a Factory method or such
-  // to create various Runners since the user-specified Uger parameters are
-  // per cmd block and are not known at the creation of ChunkRunners
-  extends ChunkRunnerFor(EnvironmentType.Uger) with Terminable with Loggable {
+    pollingFrequencyInHz: Double = 1.0) extends ChunkRunnerFor(EnvironmentType.Uger) with Terminable with Loggable {
 
   import UgerChunkRunner._
 
@@ -57,24 +58,27 @@ final case class UgerChunkRunner(
     // Filter out NoOpJob's
     val commandLineJobs = jobs.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
-    // TODO: We may need to chunk/group commandLineJobs by their Uger resource (mem, core, runTime)
-    // parameter via something like commandLineJobs.groupBy(_.executionEnvironment) since there will
-    // be one set of configurations per Uger bash script used by DrmaaClient.submitJob().
-    // While chunking, Uger resource parameters need to be extracted and passed into
-    // drmaaClient.submitJob()
+    val resultsForSubChunks: Iterable[Observable[Map[LJob, Execution]]] = {
+      subChunksBySettings(commandLineJobs).map { case (ugerSettings, ugerJobs) => 
+        runJobs(ugerSettings, ugerJobs, shouldRestart) 
+      }
+    }
+    
+    Observables.merge(resultsForSubChunks)
+  }
+  
+  private def runJobs(
+      ugerSettings: UgerSettings, 
+      ugerJobs: Seq[CommandLineJob],
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
 
-    if (commandLineJobs.nonEmpty) {
-      val ugerScript = writeUgerScriptFile(commandLineJobs)
+    ugerJobs match {
+      case Nil => Observable.just(Map.empty)
+      case _ => {
+        val submissionResult = jobSubmitter.submitJobs(ugerSettings, ugerJobs)
 
-      //TODO: do we need this?  Should it be something better?
-      val jobName: String = s"LoamStream-${UUID.randomUUID}"
-
-      val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, commandLineJobs.size)
-
-      toExecutionStream(commandLineJobs, submissionResult, shouldRestart)
-    } else {
-      // Handle NoOp case or a case when no jobs were presented for some reason
-      Observable.just(Map.empty)
+        toExecutionStream(ugerJobs, submissionResult, shouldRestart)
+      }
     }
   }
   
@@ -110,16 +114,6 @@ final case class UgerChunkRunner(
     val jobsAndUgerStatusesById = combine(jobsById, statuses(jobsById.keys))
     
     toExecutions(shouldRestart, jobsAndUgerStatusesById)
-  }
-  
-  private def writeUgerScriptFile(commandLineJobs: Seq[CommandLineJob]): Path = {
-    val ugerWorkDir = ugerConfig.workDir.toFile
-    
-    val ugerScript = createScriptFile(ScriptBuilder.buildFrom(commandLineJobs), ugerWorkDir)
-    
-    trace(s"Made script '$ugerScript' from $commandLineJobs")
-    
-    ugerScript
   }
 }
 
@@ -187,26 +181,6 @@ object UgerChunkRunner extends Loggable {
     Observable.just(jobs.mapTo(execution))
   }
 
-  private[uger] def createScriptFile(contents: String, file: Path): Path = {
-    Files.writeTo(file)(contents)
-
-    file
-  }
-
-  /**
-   * Creates a script file in the *default temporary-file directory*, using
-   * the given prefix and suffix to generate its name.
-   */
-  private[uger] def createScriptFile(contents: String): Path = createScriptFile(contents, Files.tempFile(".sh"))
-
-  /**
-   * Creates a script file in the *specified* directory, using
-   * the given prefix and suffix to generate its name.
-   */
-  private[uger] def createScriptFile(contents: String, directory: File): Path = {
-    createScriptFile(contents, Files.tempFile(".sh", directory))
-  }
-
   private[uger] def combine[A, U, V](m1: Map[A, U], m2: Map[A, V]): Map[A, (U, V)] = {
     Map.empty[A, (U, V)] ++ (for {
       (a, u) <- m1.toIterable
@@ -214,5 +188,12 @@ object UgerChunkRunner extends Loggable {
     } yield {
       a -> (u -> v)
     })
+  }
+  
+  private[uger] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[UgerSettings, Seq[CommandLineJob]] = {
+    import Environment.Uger
+    import Maps.Implicits._
+      
+    jobs.groupBy(_.executionEnvironment).collectKeys { case Uger(ugerSettings) => ugerSettings }
   }
 }

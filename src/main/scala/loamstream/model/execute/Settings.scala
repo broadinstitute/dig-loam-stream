@@ -5,6 +5,7 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.uger.Queue
 import loamstream.uger.UgerDefaults
+import loamstream.conf.UgerConfig
 
 /**
  * @author kyuksel
@@ -24,6 +25,12 @@ final case class UgerSettings(
     
 object UgerSettings {
   val Defaults: UgerSettings = UgerSettings(UgerDefaults.cores, UgerDefaults.memoryPerCore)
+  
+  def from(ugerConfig: UgerConfig): UgerSettings = {
+    import ugerConfig._
+    
+    UgerSettings(defaultCores, defaultMemoryPerCore, defaultMaxRunTime)
+  }
 }
 
 final case class GoogleSettings(cluster: String) extends Settings

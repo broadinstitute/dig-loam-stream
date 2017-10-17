@@ -80,4 +80,8 @@ final class MapsTest extends FunSuite {
     
     assert(m.mapKeys(_ + 1) == Map(2 -> "a", 3 -> "b", 4 -> "c"))
   }
+  
+  test("collectKeys") {
+    fail()
+  }
 }

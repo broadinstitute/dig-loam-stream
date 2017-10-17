@@ -11,6 +11,7 @@ import com.typesafe.config.Config
 import loamstream.model.quantities.Memory
 import net.ceedubs.ficus.readers.ValueReader
 import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
 
 /**
  * @author clint
@@ -25,7 +26,11 @@ object ValueReaders {
   }
   
   implicit val MemoryReader: ValueReader[Memory] = new ValueReader[Memory] {
-    override def read(config: Config, path: String): Memory = Memory.inGb(config.getString(path).toDouble)
+    override def read(config: Config, path: String): Memory = Memory.inGb(config.getDouble(path))
+  }
+  
+  implicit val CpusReader: ValueReader[Cpus] = new ValueReader[Cpus] {
+    override def read(config: Config, path: String): Cpus = Cpus(config.getInt(path))
   }
   
   implicit val CpuTimeReader: ValueReader[CpuTime] = new ValueReader[CpuTime] {

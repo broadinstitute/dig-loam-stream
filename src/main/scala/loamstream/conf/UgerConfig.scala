@@ -33,11 +33,11 @@ object UgerConfig {
     import ValueReaders.PathReader
     import ValueReaders.MemoryReader
     import ValueReaders.CpuTimeReader
+    import ValueReaders.CpusReader
 
-    //NB: Ficus now marshals the contents of loamstream.uger into a UgerConfig instance.
+    //NB: Ficus marshals the contents of loamstream.uger into a UgerConfig instance.
     //Names of fields in UgerConfig and keys under loamstream.uger must match.
+    
     Try(config.as[UgerConfig]("loamstream.uger"))
   }
-  
-  
 }

@@ -7,6 +7,7 @@ import loamstream.conf.UgerConfig
 import scala.util.Try
 import scala.concurrent.duration.Duration
 import loamstream.util.Terminable
+import loamstream.model.execute.UgerSettings
 
 /**
  * @author clint
@@ -25,10 +26,11 @@ trait DrmaaClient extends Terminable {
    * @param numTasks length of task array to be submitted as a single UGER job
    */
   def submitJob(
-                 ugerConfig: UgerConfig,
-                 pathToScript: Path,
-                 jobName: String,
-                 numTasks: Int = 1): DrmaaClient.SubmissionResult
+      ugerSettings: UgerSettings,
+      ugerConfig: UgerConfig,
+      pathToScript: Path,
+      jobName: String,
+      numTasks: Int = 1): DrmaaClient.SubmissionResult
     
   /**
    * Synchronously inspect the status of a job with the given ID

@@ -30,8 +30,9 @@ final class QueueTest extends FunSuite {
     assert(fromString("bRoAd") === Some(Broad))
   }
   
-  test("name") {
+  test("name/toString") {
     assert(Broad.name === "broad")
+    assert(Broad.toString === "broad")
   }
   
   test("isBroad") {

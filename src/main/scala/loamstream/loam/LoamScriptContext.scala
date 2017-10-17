@@ -11,6 +11,7 @@ import loamstream.conf.RConfig
 import loamstream.conf.PythonConfig
 import loamstream.googlecloud.HailConfig
 import loamstream.googlecloud.GoogleCloudConfig
+import loamstream.conf.UgerConfig
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -37,6 +38,10 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
   lazy val executionId: String = s"${java.util.UUID.randomUUID}"
   
   def config: LoamConfig = projectContext.config
+  
+  def ugerConfig: UgerConfig = {
+    getOpt(config.ugerConfig, s"Uger support requires a valid 'loamstream.uger' section in the config file")
+  }
   
   def rConfig: RConfig = {
     getOpt(config.rConfig, s"R support requires a valid 'loamstream.r' section in the config file")

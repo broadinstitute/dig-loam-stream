@@ -1,6 +1,7 @@
 package loamstream.dag.vis
 
 import loamstream.dag.Dag
+import loamstream.svg.SVG
 
 /**
   * LoamStream

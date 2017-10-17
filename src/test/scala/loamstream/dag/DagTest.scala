@@ -17,13 +17,13 @@ abstract class DagTest[D <: Dag] extends FunSuite {
 
   test("nextBefore, nextAfter") {
     for(nodeAfter <- dag.nodes) {
-      for(nodeBefore <- dag.nextBefore(nodeAfter)) {
-        assert(dag.nextAfter(nodeBefore)(nodeAfter))
+      for(nodeBefore <- dag.nextUp(nodeAfter)) {
+        assert(dag.nextDown(nodeBefore)(nodeAfter))
       }
     }
     for(nodeBefore <- dag.nodes) {
-      for(nodeAfter <- dag.nextAfter(nodeBefore)) {
-        assert(dag.nextBefore(nodeAfter)(nodeBefore))
+      for(nodeAfter <- dag.nextDown(nodeBefore)) {
+        assert(dag.nextUp(nodeAfter)(nodeBefore))
       }
     }
   }

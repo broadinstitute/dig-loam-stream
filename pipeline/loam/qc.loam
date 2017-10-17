@@ -8,658 +8,816 @@ import loamstream.conf.DataConfig
 import loamstream.googlecloud.HailSupport._
 import loamstream.model.Store
 
-for (params <- dataConfig.getObjList("chips")) {
-  allQcSteps(params)
-}
+val nChr = endChr - startChr + 1
+val kgSampleId = dataConfig.getStr("kgSampleId")
+val kgSamplePop = dataConfig.getStr("kgSamplePop")
+val kgSampleGroup = dataConfig.getStr("kgSampleGroup")
+val kgVcfBaseWild = dataConfig.getStr("kgVcfBaseWild")
+val kgLegendWild = dataConfig.getStr("kgLegendWild")
+val humanReferenceWild = dataConfig.getStr("humanReferenceWild")
+val phenoId = dataConfig.getStr("phenoId")
+val phenoSrSex = dataConfig.getStr("phenoSrSex")
+val phenoSrRace = dataConfig.getStr("phenoSrRace")
+val phenoStatus = dataConfig.getStr("phenoStatus")
+val nArrays = dataConfig.getObjList("arrays").size
+val nMetrics = sampleQcMetrics.size
 
-def allQcSteps(params: DataConfig): Unit = {
-  val kgPurcellVcfFile = path(params.getStr("kgPurcellVcf"))
-  val kgSampleFile = path(params.getStr("kgSample"))
-  val kgSampleId = params.getStr("kgSampleId")
-  val kgSamplePop = params.getStr("kgSamplePop")
-  val kgSampleGroup = params.getStr("kgSampleGroup")
-  val kgVcfBaseWild = params.getStr("kgVcfBaseWild")
-  val regionsExcludeFile = path(params.getStr("regionsExclude"))
-
-  // Project Settings
-  val id = params.getStr("id")
-  val vcf = store[VCF].at(params.getStr("vcf")).asInput
-  val phenoFile = path(params.getStr("pheno"))
-  val phenoId = params.getStr("phenoId")
-  val phenoSrSex = params.getStr("phenoSrSex")
-  val phenoSrRace = params.getStr("phenoSrRace")
-  val phenoStatus = params.getStr("phenoStatus")
-
-  val nChr = endChr - startChr + 1
-
-  // Alignment Step
-  val harmRefVcfName = s"${id}.harm.ref.vcf.gz"
-  val harmRefVcfTbiName = s"${id}.harm.ref.vcf.gz.tbi"
-
-  // Filter Step
-  val harmRefFiltPrefixName = s"${id}.harm.ref.filt"
-  val harmRefFiltPrunedPrefixName = s"${harmRefFiltPrefixName}.pruned"
-
-  // Kinship Step
-  val kinPrefixName = s"${id}.kinship"
-
-  // Ancestry PCA Step
-  val harmRef1kgPrefixName = s"${id}.harm.ref.1kg"
-
-  // Ancestry Cluster Step
-  val ancestryInferredName = s"${id}.ancestry.inferred.tsv"
-
-  // Sample QC Stats Calculation Step
-  val sampleqcStatsName = s"${id}.sampleqc.stats.tsv"
-  val sampleqcSexcheckProblemsName = s"${id}.sampleqc.sexcheck.problems.tsv"
-
-  // Sample QC Individual Stats Clustering Step
-  val sampleqcStatsAdjOutliersTableName = s"${id}.sampleqc.outliers.tsv"
-
-  // Compile Sample Exclusions Step
-  val finalSampleExclusionsName = s"${id}.final.sample.exclusions"
-
-  // Filter Clean Step
-  val cleanPrefixName = s"${id}.clean"
+object Input {
 
   object Local {
-    // Inputs
-    val kgPurcellVcf = store[VCF].at(kgPurcellVcfFile).asInput
-    val kgSample = store[TXT].at(kgSampleFile).asInput
-    val regionsExclude = store[TXT].at(regionsExcludeFile).asInput
-    val pheno = store[TXT].at(phenoFile).asInput
-
-    // Alignment Step
-    val rawChrs: Array[Seq[Store[TXT]]] = Array.ofDim(nChr)
-    val harmChrsPrefix: Array[Path] = Array.ofDim(nChr)
-    val harmChrs: Array[Seq[Store[TXT]]] = Array.ofDim(nChr)
-    val harmPrefix = localOutDir / s"${id}.harm"
-    val harm = bedBimFam(harmPrefix)
-    val harmRefPrefix = localOutDir / s"${id}.harm.ref"
-    val harmRefVcf = store[VCF].at(localOutDir / harmRefVcfName)
-    val harmRefVcfTbi = store[VCF].at(localOutDir / harmRefVcfTbiName)
-    val kgVcfChrs: Array[Store[VCF]] = Array.ofDim(nChr)
-    val harmVarIdUpdates: Array[Store[TXT]] = Array.ofDim(nChr)
-    val harmVarSnpLogs: Array[Store[TXT]] = Array.ofDim(nChr)
-    val harmMergeLines: Array[String] = Array.ofDim(nChr)
-    val harmMergeList = store[TXT].at(localOutDir / s"${id}.harm.merge.txt")
-    val harmForceA2 = store[TXT].at(localOutDir / s"${id}.harm.force_a2.txt")
-
-    // Load Step
-
-    // Filter Step
-    val harmRefFiltPrefix = localOutDir / harmRefFiltPrefixName
-    val harmRefFilt = bedBimFam(localOutDir / harmRefFiltPrefixName)
-    val harmRefFiltPrunedVds = store[VCF].at(localOutDir / s"${harmRefFiltPrunedPrefixName}.vds")
-    val harmRefFiltPrunedPrefix = localOutDir / harmRefFiltPrunedPrefixName
-    val harmRefFiltPruned = bedBimFam(harmRefFiltPrunedPrefix)
-
-    // Kinship Step
-    val kinPrefix = localOutDir / kinPrefixName
-    val kinLog = store[TXT].at(kinPrefix + ".log")
-    val kinTmpDat = store[TXT].at(kinPrefix + "TMP.dat")
-    val kinTmpPed = store[TXT].at(kinPrefix + "TMP.ped")
-    val kinKin = store[TXT].at(kinPrefix + ".kin")
-    val kinKin0 = store[TXT].at(kinPrefix + ".kin0")
-    val kinKin0Related = store[TXT].at(kinPrefix + ".kin0.related")
-    val kinFamsizes = store[TXT].at(kinPrefix + ".famsizes.tsv")
-
-    // Ancestry PCA Step
-    val ancestryPcaPrefix = localOutDir / s"${id}.ancestry.pca"
-    val harmRef1kgPrefix = localOutDir / harmRef1kgPrefixName
-    val harmRef1kg = bedBimFam(harmRef1kgPrefix)
-    val harmRef1kgGds = store[TXT].at(s"$harmRef1kgPrefix.gds")
-    val ancestryPcaLog = store[TXT].at(s"$ancestryPcaPrefix.log")
-    val ancestryPcaScores = store[TXT].at(s"$ancestryPcaPrefix.scores.tsv")
-    val ancestryPcaScoresPlots = store[TXT].at(s"$ancestryPcaPrefix.scores.plots.pdf")
-
-    // Ancestry Cluster Step
-    val ancestryClusterPrefix = localOutDir / s"${id}.ancestry.cluster"
-    val ancestryClusterLog = store[TXT].at(ancestryClusterPrefix + ".log")
-    val ancestryClusterFet = store[TXT].at(ancestryClusterPrefix + ".fet.1")
-    val ancestryClusterClu = store[TXT].at(ancestryClusterPrefix + ".clu.1")
-    val ancestryClusterKlg = store[TXT].at(ancestryClusterPrefix + ".klg.1")
-    val ancestryClusterPlots = store[TXT].at(ancestryClusterPrefix + ".plots.pdf")
-    val ancestryClusterPlotsCenters = store[TXT].at(ancestryClusterPrefix + ".plots.centers.pdf")
-    val ancestryClusterPlotsNo1kg = store[TXT].at(ancestryClusterPrefix + ".plots.no_1kg.pdf")
-    val ancestryClusterXtabs = store[TXT].at(ancestryClusterPrefix + ".xtabs")
-    val ancestryClusterGroups = store[TXT].at(ancestryClusterPrefix + ".groups.tsv")
-    val ancestryInferred = store[TXT].at(localOutDir / ancestryInferredName)
-
-    // PCA Step
-    val harmRefFiltPrunedPcaGds = store[TXT].at(s"$harmRefFiltPrunedPrefix.pca.gds")
-    val ancestryOutliers = store[TXT].at(localOutDir / s"${id}.ancestry.outliers")
-    val pcaLog = store[TXT].at(localOutDir / s"${id}.pca.log")
-    val pcaScores = store[TXT].at(localOutDir / s"${id}.pca.scores.tsv")
-    val pcaLoadings = store[TXT].at(localOutDir / s"${id}.pca.loadings.tsv")
-
-    // Sample QC Stats Calculation Step
-    val sampleqcStats = store[TXT].at(localOutDir / sampleqcStatsName)
-    val sampleqcStatsAdj = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.tsv")
-    val sampleqcStatsAdjCorrPlots = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.corr.pdf")
-    val sampleqcStatsAdjPcaLoadings = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.pca.loadings.tsv")
-    val sampleqcStatsAdjPcaScoresPlots = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.pca.plots.pdf")
-    val sampleqcStatsAdjPcaScores = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.pca.scores.tsv")
-    val sampleqcSexcheckProblems = store[TXT].at(localOutDir / sampleqcSexcheckProblemsName)
-
-    // Sample QC PCA Clustering Step
-    val sampleqcStatsAdjClusterKlustakwikStores = KlustakwikStores(localOutDir / s"${id}.sampleqc.stats.adj.cluster")
-    val sampleqcStatsAdjClusterOutliers = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.cluster.outliers")
-    val sampleqcStatsAdjClusterPlots = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.cluster.plots.pdf")
-    val sampleqcStatsAdjClusterXtabs = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.cluster.xtabs")
-    val sampleqcStatsAdjClusterStripchart = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.cluster.stripchart.pdf")
-
-    // Sample QC Individual Stats Clustering Step
-    val sampleqcStatsAdjPrefix = localOutDir / s"${id}.sampleqc.stats.adj"
-    val sampleqcStatsAdjIndWildcard = (localOutDir / s"${id}.sampleqc.stats.adj.[[STAR]].clu.1").toString.replace("[[STAR]]", "*")
-    val sampleqcStatsAdjIndBoxplots = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.ind.boxplots.pdf")
-    val sampleqcStatsAdjIndDiscreteness = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.ind.discreteness")
-    val sampleqcStatsAdjOutliersTable = store[TXT].at(localOutDir / sampleqcStatsAdjOutliersTableName)
-    val sampleqcStatsAdjStripchart = store[TXT].at(localOutDir / s"${id}.sampleqc.stats.adj.stripchart.pdf")
-
-    // Compile Sample Exclusions Step
-    val finalSampleExclusions = store[TXT].at(localOutDir / finalSampleExclusionsName)
-
-    // Filter Clean Step
-    val cleanPrefix = localOutDir / cleanPrefixName
-    val clean = bedBimFam(cleanPrefix)
-    val cleanPcaGds = store[TXT].at(cleanPrefix + ".pca.gds")
-    val cleanPcaScores = store[TXT].at(cleanPrefix + ".pca.scores.tsv")
-    val cleanPcaScoresRdata = store[TXT].at(cleanPrefix + ".pca.scores.RData")
-    val cleanPcaLog = store[TXT].at(cleanPrefix + ".pca.log")
-    val cleanRelateGds = store[TXT].at(cleanPrefix + ".relate.gds")
-    val cleanRelateScores = store[TXT].at(cleanPrefix + ".relate.scores.tsv")
-    val cleanRelateLog = store[TXT].at(cleanPrefix + ".relate.log")
+    val kgPurcellVcf = store[VCF].at(path(dataConfig.getStr("kgPurcellVcf"))).asInput
+    val kgSample = store[TXT].at(path(dataConfig.getStr("kgSample"))).asInput
+    val regionsExclude = store[TXT].at(path(dataConfig.getStr("regionsExclude"))).asInput
+    val pheno = store[TXT].at(path(dataConfig.getStr("pheno"))).asInput
   }
 
   object Google {
-    // Alignment Step
-    val harmRefVcf = store[VCF].at(googleOutDir / harmRefVcfName)
-    val harmRefVcfTbi = store[VCF].at(googleOutDir / harmRefVcfTbiName)
-
-    // Load Step
-    val harmRefVds = store[VCF].at(googleOutDir / s"${id}.harm.ref.vds")
-    val regionsExclude = store[TXT].at(googleOutDir / basename(regionsExcludeFile))
-
-    // Filter Step
-    val harmRefFiltPrefix = googleOutDir / harmRefFiltPrefixName
-    val harmRefFilt = bedBimFam(harmRefFiltPrefix)
-    val harmRefFiltVariantQc = store[TXT].at(googleOutDir / s"${harmRefFiltPrefixName}.variantqc.tsv")
-    val harmRefFiltVariantsPrunedIn = store[TXT].at(googleOutDir / s"${harmRefFiltPrunedPrefixName}.in")
-    val harmRefFiltVds = store[VCF].at(googleOutDir / s"${harmRefFiltPrefixName}.vds")
-    val harmRefFiltPrunedVds = store[VCF].at(googleOutDir / s"${harmRefFiltPrunedPrefixName}.vds")
-    val harmRefFiltPrunedPrefix = googleOutDir / harmRefFiltPrunedPrefixName
-    val harmRefFiltPruned = bedBimFam(harmRefFiltPrunedPrefix)
-
-    // Kinship Step
-    val kinPrefix = googleOutDir / kinPrefixName
-    val kinKin0Related = store[TXT].at(kinPrefix + ".kin0.related")
-    val kinFamsizes = store[TXT].at(kinPrefix + ".famsizes.tsv")
-
-    // Ancestry PCA Step
-    val kgPurcellVcf = store[VCF].at(googleOutDir / basename(kgPurcellVcfFile))
-    val kgSample = store[TXT].at(googleOutDir / basename(kgSampleFile))
-    val harmRef1kgPrefix = googleOutDir / harmRef1kgPrefixName
-    val harmRef1kg = bedBimFam(harmRef1kgPrefix)
-
-    // Sample QC Stats Calculation Step
-    val sampleqcSexcheck = store[TXT].at(googleOutDir / s"${id}.sampleqc.sexcheck.tsv")
-    val sampleqcSexcheckProblems = store[TXT].at(googleOutDir / sampleqcSexcheckProblemsName)
-
-    // Ancestry Cluster Step
-    val ancestryInferred = store[TXT].at(googleOutDir / ancestryInferredName)
-
-    // Sample QC Stats Calculation Step
-    val sampleqcStats = store[TXT].at(googleOutDir / sampleqcStatsName)
-    val pheno = store[TXT].at(googleOutDir / basename(phenoFile))
-
-    // Sample QC Individual Stats Clustering Step
-    val sampleqcStatsAdjOutliersTable = store[TXT].at(googleOutDir / sampleqcStatsAdjOutliersTableName)
-
-    // Compile Sample Exclusions Step
-    val finalSampleExclusions = store[TXT].at(googleOutDir / finalSampleExclusionsName)
-
-    // Filter Clean Step
-    val cleanPrefix = googleOutDir / s"${id}.clean"
-    val clean = bedBimFam(cleanPrefix)
+    val kgPurcellVcf = store[VCF].at(uri(dataConfig.getStr("kgPurcellVcfGoogle"))).asInput
+    val kgSample = store[TXT].at(uri(dataConfig.getStr("kgSampleGoogle"))).asInput
+    val regionsExclude = store[TXT].at(uri(dataConfig.getStr("regionsExcludeGoogle"))).asInput
+    val pheno = store[TXT].at(googleOutDir / s"${Input.Local.pheno}".split("/").last)
   }
 
+}
+
+object Params {
+
+  final case class Chr(
+    rawChrName: Path,
+    rawChr: Seq[Store[TXT]],
+    harmKgChrName: Path,
+    harmKgHuRefChrName: Path,
+    harmKgChr: Seq[Store[TXT]],
+    harmKgHuRefChr: Seq[Store[TXT]],
+    kgVcfChr: Store[VCF],
+    kgLegendChr: Store[TXT],
+    humanReference: Store[TXT],
+    harmKgChrRemove: Store[TXT],
+    harmKgChrNonKgFlip: Store[TXT],
+    harmKgChrForceA1: Store[TXT],
+    harmKgChrVarIdUpdate: Store[TXT],
+    harmKgChrVarSnpLog: Store[TXT],
+    harmMergeLine: String)
+
+  final case class Metric(
+    sampleqcStatsAdjIndMetric: String,
+    sampleqcStatsAdjIndClusterName: Path,
+    sampleqcStatsAdjIndClusterFet: Store[TXT],
+    sampleqcStatsAdjIndClusterClu: Store[TXT],
+    sampleqcStatsAdjIndClusterKlg: Store[TXT],
+    sampleqcStatsAdjIndClusterKlustakwikLog: Store[TXT])
+
+  final case class Arr(
+    arrayId: String,
+    harmName: Path,
+    harm: Seq[Store[TXT]],
+    harmRefName: Path,
+    harmRefVcf: Store[VCF],
+    harmRefVcfCloud: Store[VCF],
+    harmRefVcfTbi: Store[TXT],
+    harmRefVcfTbiCloud: Store[VCF],
+    harmRefVdsCloud: Store[VCF],
+    harmRefFilt: Seq[Store[TXT]],
+    harmRefFiltNameCloud: URI,
+    harmRefFiltCloud: Seq[Store[TXT]],
+    harmRefFiltVdsCloud: Store[VCF],
+    harmRefFiltVariantQcCloud: Store[TXT],
+    harmRefFiltVariantsPrunedInCloud: Store[TXT],
+    harmRefFiltPrunedName: Path,
+    harmRefFiltPruned: Seq[Store[TXT]],
+    harmRefFiltPrunedNameCloud: URI,
+    harmRefFiltPrunedCloud: Seq[Store[TXT]],
+    harmRefFiltPrunedVds: Store[VCF],
+    harmRefFiltPrunedVdsCloud: Store[VCF],
+    paramsByChr: Seq[(Int, Chr)],
+    paramsByMetric: Seq[(Int, Metric)],
+    paramsSortedByChr: Seq[Chr],
+    paramsSortedByMetric: Seq[Metric],
+    harmMergeLines: Seq[String],
+    harmMergeList: Store[TXT],
+    sampleqcStatsAdjIndClusterCluList: Seq[String],
+    harmForceA2: Store[TXT],
+    kinName: Path,
+    kinLog: Store[TXT],
+    kinTmpDat: Store[TXT],
+    kinTmpPed: Store[TXT],
+    kinKin: Store[TXT],
+    kinKin0: Store[TXT],
+    kinKin0Related: Store[TXT],
+    kinFamsizes: Store[TXT],
+    ancestryPcaName: Path,
+    harmRef1kgName: Path,
+    harmRef1kg: Seq[Store[TXT]],
+    harmRef1kgGds: Store[TXT],
+    ancestryPcaLog: Store[TXT],
+    ancestryPcaScores: Store[TXT],
+    ancestryPcaScoresPlots: Store[TXT],
+    harmRef1kgNameCloud: URI,
+    harmRef1kgCloud: Seq[Store[TXT]],
+    ancestryClusterName: Path,
+    ancestryClusterLog: Store[TXT],
+    ancestryClusterFet: Store[TXT],
+    ancestryClusterClu: Store[TXT],
+    ancestryClusterKlg: Store[TXT],
+    ancestryClusterPlots: Store[TXT],
+    ancestryClusterPlotsCenters: Store[TXT],
+    ancestryClusterPlotsNo1kg: Store[TXT],
+    ancestryClusterXtabs: Store[TXT],
+    ancestryClusterGroups: Store[TXT],
+    ancestryInferred: Store[TXT],
+    harmRefFiltPrunedPcaGds: Store[TXT],
+    pcaLog: Store[TXT],
+    pcaScores: Store[TXT],
+    pcaLoadings: Store[TXT],
+    sampleqcStats: Store[TXT],
+    sampleqcStatsAdj: Store[TXT],
+    sampleqcStatsAdjCorrPlots: Store[TXT],
+    sampleqcStatsAdjPcaLoadings: Store[TXT],
+    sampleqcStatsAdjPcaScoresPlots: Store[TXT],
+    sampleqcStatsAdjPcaScores: Store[TXT],
+	sampleqcSexcheck: Store[TXT],
+    sampleqcSexcheckProblems: Store[TXT],
+    sampleqcSexcheckCloud: Store[TXT],
+    sampleqcSexcheckProblemsCloud: Store[TXT],
+    sampleqcStatsCloud: Store[TXT],
+    sampleqcStatsAdjClusterFet: Store[TXT],
+    sampleqcStatsAdjClusterClu: Store[TXT],
+    sampleqcStatsAdjClusterKlg: Store[TXT],
+    sampleqcStatsAdjClusterKlustakwikLog: Store[TXT],
+    sampleqcStatsAdjClusterOutliers: Store[TXT],
+    sampleqcStatsAdjClusterPlots: Store[TXT],
+    sampleqcStatsAdjClusterXtabs: Store[TXT],
+    sampleqcStatsAdjClusterStripchart: Store[TXT],
+    sampleqcStatsAdjClusterName: Path,
+    sampleqcStatsAdjIndBoxplots: Store[TXT],
+    sampleqcStatsAdjIndDiscreteness: Store[TXT],
+    sampleqcStatsAdjOutliersTable: Store[TXT],
+    sampleqcStatsAdjStripchart: Store[TXT],
+    finalSampleExclusions: Store[TXT],
+    finalSampleExclusionsCloud: Store[TXT],
+    variantqcStats: Store[TXT],
+    variantqcStatsCloud: Store[TXT],
+    finalVariantExclusions: Store[TXT],
+    finalVariantExclusionsCloud: Store[TXT],
+    clean: Seq[Store[TXT]],
+    cleanNameCloud: URI,
+    cleanCloud: Seq[Store[TXT]],
+    cleanVcf: Store[VCF],
+    cleanVcfCloud: Store[VCF],
+    cleanVcfTbi: Store[TXT],
+    cleanVdsCloud: Store[VCF])
+
+  val paramsByArr: Seq[(Int, Arr)] = (0 until nArrays).map { arr =>
+
+    val arrayId = dataConfig.getObjList("arrays")(arr).getStr("arrayId")
+
+    val paramsByChr = (startChr to endChr).map { chr =>
+
+      val rawChrBase = s"${projectId}.${arrayId}.chr$chr"
+      val harmKgChrBase = s"${rawChrBase}.harmkg"
+      val harmKgChrName = localOutDir / harmKgChrBase
+      val harmKgHuRefChrName = localOutDir / s"${harmKgChrBase}.huref"
+      val rawChrName = localOutDir / rawChrBase
+      val kgVcfChr = store[VCF].at(
+          kgVcfBaseWild
+            .replace("[CHROMOSOME]", s"$chr")
+            .replace("23.phase3_shapeit2_mvncall_integrated_v5a",
+                     "X.phase3_shapeit2_mvncall_integrated_v1b") + ".vcf.gz").asInput
+      val kgLegendChr = store[TXT].at(
+          kgLegendWild
+            .replace("[CHROMOSOME]", s"$chr")
+            .replace("23",
+                     "X")).asInput
+      val humanReference = store[TXT].at(
+          humanReferenceWild
+            .replace("[CHROMOSOME]", s"$chr")
+            .replace("23",
+                     "X")).asInput
+
+      chr -> Chr(
+        rawChrName = rawChrName,
+        rawChr = bedBimFam(rawChrName),
+        harmKgChrName = harmKgChrName,
+        harmKgHuRefChrName = harmKgHuRefChrName,
+        harmKgChr = bedBimFam(harmKgChrName),
+        harmKgHuRefChr = bedBimFam(harmKgHuRefChrName),
+        kgVcfChr = kgVcfChr,
+        kgLegendChr = kgLegendChr,
+        humanReference = humanReference,
+        harmKgChrRemove = store[TXT].at(localOutDir / s"${harmKgChrBase}.remove"),
+        harmKgChrNonKgFlip = store[TXT].at(localOutDir / s"${harmKgChrBase}.nonkg.flip"),
+        harmKgChrForceA1 = store[TXT].at(localOutDir / s"${harmKgChrBase}.force_a1"),
+        harmKgChrVarIdUpdate = store[TXT].at(localOutDir / s"${harmKgChrBase}_idUpdates.txt"),
+        harmKgChrVarSnpLog = store[TXT].at(localOutDir / s"${harmKgChrBase}_snpLog.log"),
+        harmMergeLine = s"${localOutDir}/${harmKgChrBase}")
+    }
+
+    val sampleqcBase = s"${projectId}.${arrayId}.sampleqc"
+    val sampleqcStatsAdjBase = s"${sampleqcBase}.stats.adj"
+
+    val paramsByMetric: Seq[(Int, Metric)] = (0 until nMetrics).map { metricIdx =>
+
+      val sampleqcStatsAdjIndMetric = sampleQcMetrics(metricIdx)
+      val sampleqcStatsAdjIndClusterBase = s"${sampleqcStatsAdjBase}.${sampleqcStatsAdjIndMetric}"
+
+      metricIdx -> Metric(
+        sampleqcStatsAdjIndMetric = sampleqcStatsAdjIndMetric,
+        sampleqcStatsAdjIndClusterName = localOutDir / sampleqcStatsAdjIndClusterBase,
+        sampleqcStatsAdjIndClusterFet = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.fet.1"),
+        sampleqcStatsAdjIndClusterClu = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.clu.1"),
+        sampleqcStatsAdjIndClusterKlg = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.klg.1"),
+        sampleqcStatsAdjIndClusterKlustakwikLog = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.klustakwik.log"))
+    }
+
+    val harmBase = s"${projectId}.${arrayId}.harm"
+    val harmName = localOutDir / harmBase
+    val harmRefBase = s"${harmBase}.ref"
+    val harmRefFiltBase = s"${harmRefBase}.filt"
+    val harmRefFiltPrunedBase = s"${harmRefFiltBase}.pruned"
+    val harmRefFiltPrunedName = localOutDir / harmRefFiltPrunedBase
+    val harmRefFiltPrunedNameCloud = googleOutDir / s"${harmRefFiltBase}.pruned"
+    val harmRefFiltName = localOutDir / harmRefFiltBase
+    val kinBase = s"${projectId}.${arrayId}.kinship"
+    val harmRef1kgBase = s"${projectId}.${arrayId}.harm.ref.1kg"
+    val harmRef1kgName = localOutDir / harmRef1kgBase
+    val harmRef1kgNameCloud = googleOutDir / harmRef1kgBase
+    val pcaBase = s"${projectId}.${arrayId}.pca"
+    val ancestryBase = s"${projectId}.${arrayId}.ancestry"
+    val ancestryPcaBase = s"${ancestryBase}.pca"
+    val ancestryClusterBase = s"${projectId}.${arrayId}.ancestry.cluster"
+    val sampleqcSexcheckBase = s"${projectId}.${arrayId}.sampleqc.sexcheck"
+    val sampleqcStatsAdjOutliersTableBase = s"${sampleqcBase}.outliers.tsv"
+    val finalBase = s"${projectId}.${arrayId}.final"
+    val cleanBase = s"${projectId}.${arrayId}.clean"
+    val cleanName = localOutDir / cleanBase
+    val cleanNameCloud = googleOutDir / cleanBase
+    val sampleqcStatsAdjClusterBase = s"${sampleqcBase}.stats.adj.cluster"
+    val sampleqcStatsAdjClusterName = localOutDir / sampleqcStatsAdjClusterBase
+    val variantqcBase = s"${projectId}.${arrayId}.variantqc"
+
+    val (_, paramsSortedByChr) = paramsByChr.unzip
+    val harmMergeLines = paramsSortedByChr.map(_.harmKgHuRefChrName.toString)
+
+    val (_, paramsSortedByMetric) = paramsByMetric.unzip
+    val sampleqcStatsAdjIndClusterCluList = paramsSortedByMetric.map(_.sampleqcStatsAdjIndClusterClu.toString)
+
+    arr -> Arr(
+    arrayId = arrayId,
+    paramsByChr = paramsByChr,
+    paramsByMetric = paramsByMetric,
+    harmName = harmName,
+    harm = bedBimFam(harmName),
+    harmRefName = localOutDir / harmRefBase,
+    harmRefVcf = store[VCF].at(localOutDir / s"${harmRefBase}.vcf.gz"),
+    harmRefVcfCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vcf.gz"),
+    harmRefVcfTbi = store[TXT].at(localOutDir / s"${harmRefBase}.vcf.gz.tbi"),
+    harmRefVcfTbiCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vcf.gz.tbi"),
+    harmRefVdsCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vds"),
+    paramsSortedByChr = paramsSortedByChr,
+    paramsSortedByMetric = paramsSortedByMetric,
+    harmMergeLines = harmMergeLines,
+    sampleqcStatsAdjIndClusterCluList = sampleqcStatsAdjIndClusterCluList,
+    harmMergeList = store[TXT].at(localOutDir / s"${harmBase}.merge.txt"),
+    harmForceA2 = store[TXT].at(localOutDir / s"${harmBase}.force_a2.txt"),
+    harmRefFilt = bedBimFam(harmRefFiltName),
+    harmRefFiltNameCloud = googleOutDir / harmRefFiltBase,
+    harmRefFiltCloud = bedBimFam(googleOutDir / harmRefFiltBase),
+    harmRefFiltVdsCloud = store[VCF].at(googleOutDir / s"${harmRefFiltBase}.vds"),
+    harmRefFiltVariantQcCloud = store[TXT].at(googleOutDir / s"${harmRefFiltBase}.variantqc.tsv"),
+    harmRefFiltVariantsPrunedInCloud = store[TXT].at(googleOutDir / s"${harmRefFiltPrunedBase}.in"),
+    harmRefFiltPrunedName = harmRefFiltPrunedName,
+    harmRefFiltPruned = bedBimFam(harmRefFiltPrunedName),
+    harmRefFiltPrunedNameCloud = harmRefFiltPrunedNameCloud,
+    harmRefFiltPrunedCloud = bedBimFam(harmRefFiltPrunedNameCloud),
+    harmRefFiltPrunedVds = store[VCF].at(localOutDir / s"${harmRefFiltPrunedBase}.vds"),
+    harmRefFiltPrunedVdsCloud = store[VCF].at(googleOutDir / s"${harmRefFiltPrunedBase}.vds"),
+    kinName = localOutDir / kinBase,
+    kinLog = store[TXT].at(localOutDir / s"${kinBase}.log"),
+    kinTmpDat = store[TXT].at(localOutDir / s"${kinBase}TMP.dat"),
+    kinTmpPed = store[TXT].at(localOutDir / s"${kinBase}TMP.ped"),
+    kinKin = store[TXT].at(localOutDir / s"${kinBase}.kin"),
+    kinKin0 = store[TXT].at(localOutDir / s"${kinBase}.kin0"),
+    kinKin0Related = store[TXT].at(localOutDir / s"${kinBase}.kin0.related"),
+    kinFamsizes = store[TXT].at(localOutDir / s"${kinBase}.famsizes.tsv"),
+    ancestryPcaName = localOutDir / ancestryPcaBase,
+    harmRef1kgName = harmRef1kgName,
+    harmRef1kg = bedBimFam(harmRef1kgName),
+    harmRef1kgGds = store[TXT].at(localOutDir / s"${harmRef1kgBase}.gds"),
+    ancestryPcaLog = store[TXT].at(localOutDir / s"${ancestryPcaBase}.log"),
+    ancestryPcaScores = store[TXT].at(localOutDir / s"${ancestryPcaBase}.scores.tsv"),
+    ancestryPcaScoresPlots = store[TXT].at(localOutDir / s"${ancestryPcaBase}.scores.plots.pdf"),
+    harmRef1kgNameCloud = harmRef1kgNameCloud,
+    harmRef1kgCloud = bedBimFam(harmRef1kgNameCloud),
+    ancestryClusterName = localOutDir / ancestryClusterBase,
+    ancestryClusterLog = store[TXT].at(localOutDir / s"${ancestryClusterBase}.log"),
+    ancestryClusterFet = store[TXT].at(localOutDir / s"${ancestryClusterBase}.fet.1"),
+    ancestryClusterClu = store[TXT].at(localOutDir / s"${ancestryClusterBase}.clu.1"),
+    ancestryClusterKlg = store[TXT].at(localOutDir / s"${ancestryClusterBase}.klg.1"),
+    ancestryClusterPlots = store[TXT].at(localOutDir / s"${ancestryClusterBase}.plots.pdf"),
+    ancestryClusterPlotsCenters = store[TXT].at(localOutDir / s"${ancestryClusterBase}.plots.centers.pdf"),
+    ancestryClusterPlotsNo1kg = store[TXT].at(localOutDir / s"${ancestryClusterBase}.plots.no_1kg.pdf"),
+    ancestryClusterXtabs = store[TXT].at(localOutDir / s"${ancestryClusterBase}.xtabs"),
+    ancestryClusterGroups = store[TXT].at(localOutDir / s"${ancestryClusterBase}.groups.tsv"),
+    ancestryInferred = store[TXT].at(localOutDir / s"${ancestryBase}.inferred.tsv"),
+    harmRefFiltPrunedPcaGds = store[TXT].at(localOutDir / s"${harmRefFiltPrunedBase}.pca.gds"),
+    pcaLog = store[TXT].at(localOutDir / s"${pcaBase}.log"),
+    pcaScores = store[TXT].at(localOutDir / s"${pcaBase}.scores.tsv"),
+    pcaLoadings = store[TXT].at(localOutDir / s"${pcaBase}.loadings.tsv"),
+    sampleqcStats = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.tsv"),
+    sampleqcStatsAdj = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.tsv"),
+    sampleqcStatsAdjCorrPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.corr.pdf"),
+    sampleqcStatsAdjPcaLoadings = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.pca.loadings.tsv"),
+    sampleqcStatsAdjPcaScoresPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.pca.plots.pdf"),
+    sampleqcStatsAdjPcaScores = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.pca.scores.tsv"),
+	sampleqcSexcheck = store[TXT].at(localOutDir / s"${sampleqcSexcheckBase}.tsv"),
+    sampleqcSexcheckProblems = store[TXT].at(localOutDir / s"${sampleqcSexcheckBase}.problems.tsv"),
+    sampleqcSexcheckCloud = store[TXT].at(googleOutDir / s"${sampleqcSexcheckBase}.tsv"),
+    sampleqcSexcheckProblemsCloud = store[TXT].at(googleOutDir / s"${sampleqcSexcheckBase}.problems.tsv"),
+    sampleqcStatsCloud = store[TXT].at(googleOutDir / s"${sampleqcBase}.stats.tsv"),
+    sampleqcStatsAdjClusterName = sampleqcStatsAdjClusterName,
+    sampleqcStatsAdjClusterFet = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.fet.1"),
+    sampleqcStatsAdjClusterClu = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.clu.1"),
+    sampleqcStatsAdjClusterKlg = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klg.1"),
+    sampleqcStatsAdjClusterKlustakwikLog = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klustakwik.log"),
+    sampleqcStatsAdjClusterOutliers = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.outliers"),
+    sampleqcStatsAdjClusterPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.plots.pdf"),
+    sampleqcStatsAdjClusterXtabs = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.xtabs"),
+    sampleqcStatsAdjClusterStripchart = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.stripchart.pdf"),
+    sampleqcStatsAdjIndBoxplots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.ind.boxplots.pdf"),
+    sampleqcStatsAdjIndDiscreteness = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.ind.discreteness"),
+    sampleqcStatsAdjOutliersTable = store[TXT].at(localOutDir / sampleqcStatsAdjOutliersTableBase),
+    sampleqcStatsAdjStripchart = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.stripchart.pdf"),
+    finalSampleExclusions = store[TXT].at(localOutDir / s"${finalBase}.sample.exclusions"),
+    finalSampleExclusionsCloud = store[TXT].at(googleOutDir / s"${finalBase}.sample.exclusions"),
+    variantqcStats = store[TXT].at(localOutDir / s"${variantqcBase}.stats.tsv"),
+    variantqcStatsCloud = store[TXT].at(googleOutDir / s"${variantqcBase}.stats.tsv"),
+	finalVariantExclusions = store[TXT].at(localOutDir / s"${finalBase}.variant.exclusions"),
+	finalVariantExclusionsCloud = store[TXT].at(googleOutDir / s"${finalBase}.variant.exclusions"),
+    clean = bedBimFam(cleanName),
+    cleanNameCloud = cleanNameCloud,
+    cleanCloud = bedBimFam(cleanNameCloud),
+    cleanVcf = store[VCF].at(localOutDir / s"${cleanBase}.vcf.bgz"),
+    cleanVcfTbi = store[TXT].at(localOutDir / s"${cleanBase}.vcf.bgz.tbi"),
+    cleanVcfCloud = store[VCF].at(googleOutDir / s"${cleanBase}.vcf.bgz"),
+    cleanVdsCloud = store[VCF].at(googleOutDir / s"${cleanBase}.vds"))
+    }
+
+}
+
+// Perform qc1
+val ancestryInferredStores: Seq[Store[TXT]] = {
+  for {
+    i <- 0 until nArrays
+  } yield { 
+    qc1(i)
+  }
+}
+
+// Reconcile inferred ancestry step
+val ancestryInferredPathList = ancestryInferredStores.map(_.path).mkString(",")
+val ancestryInferredMerged = store[TXT].at(localOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
+val ancestryInferredMergedCloud = store[TXT].at(googleOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
+val ancestryInferredMergedOutliers = store[TXT].at(localOutDir / s"${projectId}.ancestry.inferred.merged.outliers.tsv")
+
+local {
+  cmd"""$binRscript --vanilla --verbose
+    $rAncestryClusterMerge
+    --ancestry-in $ancestryInferredPathList
+    --out-table ${ancestryInferredMerged}
+    --out-outliers ${ancestryInferredMergedOutliers}""".in(ancestryInferredStores).out(ancestryInferredMerged, ancestryInferredMergedOutliers).using("R-3.4")
+}
+
+// Perform qc2, adding relevent (inter-array) stores to the map
+for {
+  i <- 0 until nArrays
+} { 
+  qc2(i)
+}
+
+def qc1(i: Int): Store[TXT] = {
+
+  // Global parameters
+  val dataPath = dataConfig.getObjList("arrays")(i).getStr("dataPath")
+  val dataType = dataConfig.getObjList("arrays")(i).getStr("dataType")
+
+  // Input Stores
+  val data = {
+    if (dataType == "vcf") { store[VCF].at(path(dataPath)).asInput }
+    else { store[TXT].at(path(s"${dataPath}.bed")).asInput }
+  }
+
+  val (_, paramsArr) = Params.paramsByArr(i)
+
   /**
-   * Alignment Step
-   *  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
-   *  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
-   *  Input: $vcf, $kgVcfBaseWild (VCF files, all chromosomes)
-   *  Output Needed: ${id}.chr${CHROMOSOME}.bed/bim/fam, ${id}.chr${CHROMOSOME}.harm.bed/bim/fam/log(/nosex?/hh?), merge.txt, force_a2.txt,
-   *     ${id}.harm.sample, ${id}.chr${CHROMOSOME}.harm_idUpdates.txt, ${id}.chr${CHROMOSOME}.harm_snpLog.log
-   *  Notes:
-   *     Could also add --variants and --mafAlign as pipeline options, but for now these are static
-   *     Ideally, this will be run in parallel by chromosome number
-   */
+  * Params Step
+  *  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
+  *  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
+  *  Notes:
+  *     Could also add --variants and --mafAlign as pipeline options, but for now these are static
+  *     To save time, this will be run in parallel by chromosome number
+  */
   
   uger {
-    for ((i, j) <- (startChr to endChr).zipWithIndex) {
-      val rawChrsName = localOutDir / s"${id}.chr$i"
-      Local.rawChrs(j) = bedBimFam(rawChrsName)
-      Local.harmChrsPrefix(j) = localOutDir / s"${id}.chr$i.harm"
-      Local.harmChrs(j) = bedBimFam(Local.harmChrsPrefix(j))
-      Local.kgVcfChrs(j) = store[VCF].at(kgVcfBaseWild.replace("[CHROMOSOME]", s"$i").replace("23.phase3_shapeit2_mvncall_integrated_v5a","X.phase3_shapeit2_mvncall_integrated_v1b") + ".vcf.gz").asInput
-      Local.harmVarIdUpdates(j) = store[TXT].at(localOutDir / s"${id}.chr$i.harm_idUpdates.txt")
-      Local.harmVarSnpLogs(j) = store[TXT].at(localOutDir / s"${id}.chr$i.harm_snpLog.log")
-  
-      cmd"""$binPlink --vcf $vcf --chr $i --keep-allele-order --make-bed --output-chr MT --out $rawChrsName"""
-      .in(vcf)
-      .out(Local.rawChrs(j))
-  
+    for {
+      (chr, paramsChr) <- paramsArr.paramsByChr
+    } {
+      cmd"""$binPlink --$dataType $dataPath --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName}"""
+        .in(data)
+        .out(paramsChr.rawChr)
+      
       cmd"""$binGenotypeHarmonizer
-        --input $rawChrsName
-        --inputType PLINK_BED
-        --output ${Local.harmChrsPrefix(j)}
-        --outputType PLINK_BED
-        --ref ${Local.kgVcfChrs(j)}
-        --refType VCF
-        --keep
-        --update-id
-        --variants 1000
-        --mafAlign 0.1
-        --update-id
-        --update-reference-allele
-        --debug"""
-        .in(Local.rawChrs(j) :+ Local.kgVcfChrs(j))
-        .out(Local.harmChrs(j) :+ Local.harmVarIdUpdates(j) :+ Local.harmVarSnpLogs(j))
+      --input ${paramsChr.rawChrName}
+      --inputType PLINK_BED
+      --output ${paramsChr.harmKgChrName}
+      --outputType PLINK_BED
+      --ref ${paramsChr.kgVcfChr}
+      --refType VCF
+      --keep
+      --update-id
+      --variants 1000
+      --mafAlign 0.1
+      --update-id
+      --update-reference-allele
+      --debug"""
+        .in(paramsChr.rawChr :+ paramsChr.kgVcfChr)
+        .out(paramsChr.harmKgChr :+ paramsChr.harmKgChrVarIdUpdate :+ paramsChr.harmKgChrVarSnpLog)
   
-      Local.harmMergeLines(j) = s"${Local.harmChrsPrefix(j) + s".$bed"} ${Local.harmChrsPrefix(j) + s".$bim"} ${Local.harmChrsPrefix(j) + s".$fam"}"
+      cmd"""python $pyAlignNon1kgVariants
+      --legend ${paramsChr.kgLegendChr}
+      --bim ${paramsChr.harmKgChrName}.bim
+      --ref ${paramsChr.humanReference}
+      --out-remove ${paramsChr.harmKgChrRemove}
+      --out-flip ${paramsChr.harmKgChrNonKgFlip}
+      --out-force-a1 ${paramsChr.harmKgChrForceA1}"""
+        .in(paramsChr.harmKgChr :+ paramsChr.kgLegendChr)
+        .out(paramsChr.harmKgChrNonKgFlip, paramsChr.harmKgChrForceA1)
+  
+      cmd"""$binPlink --bfile ${paramsChr.harmKgChrName} --exclude ${paramsChr.harmKgChrRemove} --flip ${paramsChr.harmKgChrNonKgFlip} --a1-allele ${paramsChr.harmKgChrForceA1} --make-bed --out ${paramsChr.harmKgHuRefChrName}"""
+        .in(paramsChr.harmKgChr :+ paramsChr.harmKgChrRemove :+ paramsChr.harmKgChrNonKgFlip :+ paramsChr.harmKgChrForceA1)
+        .out(paramsChr.harmKgHuRefChr)
+  
     }
   
-    val harmMergeLinesConcat: String = Local.harmMergeLines.drop(1).mkString("\n") // Exclude first chrom
-  
-    cmd"""echo "$harmMergeLinesConcat" > ${Local.harmMergeList}""".out(Local.harmMergeList)
-  
-    cmd"""$binPlink --bfile ${Local.harmChrsPrefix(0)} --merge-list ${Local.harmMergeList} --make-bed --keep-allele-order --out ${Local.harmPrefix}"""
-    .in(Local.harmChrs.flatten :+ Local.harmMergeList)
-    .out(Local.harm)
-  
-    cmd"""awk '{print $$2,$$5}' ${Local.harmPrefix}.bim > ${Local.harmForceA2}"""
-    .in(Local.harm)
-    .out(Local.harmForceA2)
-  
-    cmd"""$binPlink --bfile ${Local.harmPrefix} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${Local.harmForceA2} --out ${Local.harmRefPrefix}"""
-    .in(Local.harm :+ Local.harmForceA2)
-    .out(Local.harmRefVcf)
-  
-    cmd"""$binTabix -f -p vcf ${Local.harmRefVcf}"""
-    .in(Local.harmRefVcf)
-    .out(Local.harmRefVcfTbi)
+    val harmMergeLinesConcat: String = paramsArr.harmMergeLines
+      .drop(1)
+      .mkString("\n") // Exclude first chrom
+    
+    cmd"""echo "$harmMergeLinesConcat" > ${paramsArr.harmMergeList}"""
+      .out(paramsArr.harmMergeList)
+    
+    cmd"""$binPlink --bfile ${paramsArr.paramsSortedByChr.head.harmKgHuRefChrName} --merge-list ${paramsArr.harmMergeList} --make-bed --keep-allele-order --out ${paramsArr.harmName}"""
+      .in(paramsArr.paramsSortedByChr.flatMap(_.harmKgHuRefChr) :+ paramsArr.harmMergeList)
+      .out(paramsArr.harm)
+    
+    cmd"""awk '{print $$2,$$5}' ${paramsArr.harmName}.bim > ${paramsArr.harmForceA2}"""
+      .in(paramsArr.harm)
+      .out(paramsArr.harmForceA2)
+    
+    cmd"""$binPlink --bfile ${paramsArr.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --out ${paramsArr.harmRefName}"""
+      .in(paramsArr.harm :+ paramsArr.harmForceA2)
+      .out(paramsArr.harmRefVcf)
+    
+    cmd"""$binTabix -f -p vcf ${paramsArr.harmRefVcf}"""
+      .in(paramsArr.harmRefVcf)
+      .out(paramsArr.harmRefVcfTbi)
   }
   
   /**
    * Load Step
    *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
-   *  Requires: Hail, Java (version under which Hail was compiled)
-   *  Input: $harmRefVcf
-   *  Output Needed: ${id}.harm.ref.vds/, ${id}.harm.ref.vds.log
-   *  Notes:
-   *   Monomorphic variants are automatically removed during import into Hail
+   *  Requires: Hail
    */
   
   local {
-    googleCopy(Local.harmRefVcf, Google.harmRefVcf)
-    googleCopy(Local.harmRefVcfTbi, Google.harmRefVcfTbi)
+    googleCopy(paramsArr.harmRefVcf, paramsArr.harmRefVcfCloud)
+    googleCopy(paramsArr.harmRefVcfTbi, paramsArr.harmRefVcfTbiCloud)
   }
-
+  
   google {
     hail"""$pyHailLoad
-      --vcf-in $id ${Google.harmRefVcf}
-	  --vds-out ${Google.harmRefVds}"""
-	  .in(Google.harmRefVcf, Google.harmRefVcfTbi)
-	  .out(Google.harmRefVds)
+      --vcf-in $projectId ${paramsArr.harmRefVcfCloud}
+      --vds-out ${paramsArr.harmRefVdsCloud}"""
+      .in(paramsArr.harmRefVcfCloud, paramsArr.harmRefVcfTbiCloud)
+      .out(paramsArr.harmRefVdsCloud)
   }
   
   /**
    * Filter Step
    *  Description: Generate filtered and filtered/pruned filesets for QC
-   *  Requires: Hail, Plink, Java (version under which Hail was compiled)
-   *  Input: $harmRefVds, $regionsExclude
-   *  Output: ${id}.filter.log, ${id}.variantqc.tsv, ${id}.filt.vds, ${id}.filt.pruned.vds, ${id}.filt.bed/bim/fam, ${id}.filt.prune.in, ${id}.filt.prune.out
-   *  Notes:
+   *  Requires: Hail
    */
 
-  local {
-    googleCopy(Local.regionsExclude, Google.regionsExclude)
-  }
-
-  // TODO this step may use multiple cores - need to add numCores option to each local / uger / google - currently set to multiprocessing.cpu_count()
   google {
     hail"""$pyHailFilter
-      --vds-in ${Google.harmRefVds}
-      --regions-exclude ${Google.regionsExclude}
-      --variant-qc-out ${Google.harmRefFiltVariantQc}
-      --variants-prunedin-out ${Google.harmRefFiltVariantsPrunedIn}
-      --filt-vds-out ${Google.harmRefFiltVds}
-      --filt-plink-out ${Google.harmRefFiltPrefix}
-      --filt-pruned-vds-out ${Google.harmRefFiltPrunedVds}
-      --filt-pruned-plink-out ${Google.harmRefFiltPrunedPrefix}"""
-      .in(Google.harmRefVds, Google.regionsExclude)
-      .out(((Google.harmRefFilt :+ Google.harmRefFiltVds) ++ (Google.harmRefFiltPruned :+ Google.harmRefFiltPrunedVds)) :+ Google.harmRefFiltVariantQc :+ Google.harmRefFiltVariantsPrunedIn)
+      --vds-in ${paramsArr.harmRefVdsCloud}
+      --regions-exclude ${Input.Google.regionsExclude}
+      --variant-qc-out ${paramsArr.harmRefFiltVariantQcCloud}
+      --variants-prunedin-out ${paramsArr.harmRefFiltVariantsPrunedInCloud}
+      --filt-vds-out ${paramsArr.harmRefFiltVdsCloud}
+      --filt-plink-out ${paramsArr.harmRefFiltNameCloud}
+      --filt-pruned-vds-out ${paramsArr.harmRefFiltPrunedVdsCloud}
+      --filt-pruned-plink-out ${paramsArr.harmRefFiltPrunedNameCloud}"""
+      .in(paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
+      .out(((paramsArr.harmRefFiltCloud :+ paramsArr.harmRefFiltVdsCloud) ++ (paramsArr.harmRefFiltPrunedCloud :+ paramsArr.harmRefFiltPrunedVdsCloud)) :+ paramsArr.harmRefFiltVariantQcCloud :+ paramsArr.harmRefFiltVariantsPrunedInCloud)
   }
-
+  
+  local {
+    googleCopy(paramsArr.harmRefFiltPrunedCloud, paramsArr.harmRefFiltPruned)
+  }
+  
   /**
    * Kinship Step
    *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
-   *  Requires: King, R, $rCalcKinshipSampleSharing
-   *  Input: $harmRefFiltPruned
-   *  Output: ${id}.kinshipTMP.dat, ${id}.kinshipTMP.ped, ${id}.kinship.kin, ${id}.kinship.kin0, ${id}.kinship.kin0.related, ${id}.kinship.sharing_counts.txt
+   *  Requires: King, R
    *  Notes:
    *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
    * King only writes the '.kin0' file if families are found, so a bash script is used to write an empty file in that case
    */
-
-  local {
-    googleCopy(Google.harmRefFiltPruned, Local.harmRefFiltPruned)
-
-    cmd"""$shKing $binKing ${Local.harmRefFiltPrunedPrefix}.bed ${Local.kinPrefix} ${Local.kinLog} ${Local.kinKin0} ${Local.kinKin0Related}"""
-    .in(Local.harmRefFiltPruned)
-    .out(Local.kinLog, Local.kinKin, Local.kinTmpDat, Local.kinTmpPed, Local.kinKin0, Local.kinKin0Related)
-
-    cmd"""$binR --vanilla --args ${Local.kinKin0Related} ${Local.kinFamsizes} < ${rCalcKinshipFamSizes}"""
-    .in(Local.kinKin0Related)
-    .out(Local.kinFamsizes)
-  }
-
+  
+  //uger {
+  //  cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related}"""
+  //  .in(paramsArr.harmRefFiltPruned)
+  //  .out(paramsArr.kinLog, paramsArr.kinKin, paramsArr.kinTmpDat, paramsArr.kinTmpPed, paramsArr.kinKin0, paramsArr.kinKin0Related)
+  //
+  //  cmd"""$binR --vanilla --args ${paramsArr.kinKin0Related} ${paramsArr.kinFamsizes} < ${rCalcKinshipFamSizes}"""
+  //  .in(paramsArr.kinKin0Related)
+  //  .out(paramsArr.kinFamsizes)
+  //}
+  
   /**
     * Ancestry PCA Step
     *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
     *  Requires: Hail, R, $rPlotAncestryPca
-    *  Input: $harmRefVds, $kgVds, $kgV3purcell5kAlleleFreqs
-    *  Output: ${id}.ancestry.pca.log, ${id}.ancestry.pca.scores.tsv, ${id}.ancestry.pca.loadings.tsv, .${id}.ancestry.pca.scores.tsv.crc,
-    *     ${id}.ancestry.pca.loadings.tsv.crc ${id}.ancestry.pca.scores.plots.pdf
     *  Notes:
     *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
     */
-
-  local {
-    googleCopy(Local.kgPurcellVcf, Google.kgPurcellVcf)
-    googleCopy(Local.kgSample, Google.kgSample)
-  }
-
+  
   google {
     hail"""$pyHailAncestryPcaMerge1kg
-      --vds-in ${Google.harmRefVds}
-      --kg-vcf-in ${Google.kgPurcellVcf}
-      --kg-sample ${Google.kgSample}
-      --plink-out ${Google.harmRef1kgPrefix}"""
-      .in(Google.harmRefVds, Google.kgPurcellVcf, Google.kgSample)
-      .out(Google.harmRef1kg)
+      --vds-in ${paramsArr.harmRefVdsCloud}
+      --kg-vcf-in ${Input.Google.kgPurcellVcf}
+      --kg-sample ${Input.Google.kgSample}
+      --plink-out ${paramsArr.harmRef1kgNameCloud}"""
+      .in(paramsArr.harmRefVdsCloud, Input.Google.kgPurcellVcf, Input.Google.kgSample)
+      .out(paramsArr.harmRef1kgCloud)
   }
-
+  
   local {
-    googleCopy(Google.harmRef1kg, Local.harmRef1kg)
-
+    googleCopy(paramsArr.harmRef1kgCloud, paramsArr.harmRef1kg)
+  }
+  
+  uger {
     cmd"""$binRscript --vanilla --verbose
       $rPcair
-      --plink-in ${Local.harmRef1kgPrefix}
-      --gds-out ${Local.harmRef1kgGds}
-      --scores ${Local.ancestryPcaScores}
-      --id $id
-      --update-pop $kgSampleId $kgSamplePop ${Local.kgSample}
-      --update-group $kgSampleId $kgSampleGroup ${Local.kgSample}
-      > ${Local.ancestryPcaLog}"""
-      .in(Local.harmRef1kg :+ Local.kgSample)
-      .out(Local.harmRef1kgGds, Local.ancestryPcaLog, Local.ancestryPcaScores)
+      --plink-in ${paramsArr.harmRef1kgName}
+      --gds-out ${paramsArr.harmRef1kgGds}
+      --scores ${paramsArr.ancestryPcaScores}
+      --id $projectId
+      --force-unrel $kgSampleId ${Input.Local.kgSample}
+      --update-pop $kgSampleId $kgSamplePop ${Input.Local.kgSample}
+      --update-group $kgSampleId $kgSampleGroup ${Input.Local.kgSample}
+      > ${paramsArr.ancestryPcaLog}"""
+      .in(paramsArr.harmRef1kg :+ Input.Local.kgSample)
+      .out(paramsArr.harmRef1kgGds, paramsArr.ancestryPcaLog, paramsArr.ancestryPcaScores)
       .using("R-3.4")
-
-    cmd"""$binR --vanilla --args $id ${Local.ancestryPcaScores} ${Local.ancestryPcaScoresPlots} < $rPlotAncestryPca"""
-    .in(Local.ancestryPcaScores)
-    .out(Local.ancestryPcaScoresPlots)
-
-    /**
-     * Ancestry Cluster Step
-     *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
-     *  Requires: Hail, R, $rPlotAncestryCluster, $id, $phenoId, $phenoSrRace
-     *  Input: ${id}.ancestry.pca.scores.tsv, $pheno
-     *  Output: ${id}.ancestry.fet.1, ${id}.ancestry.temp.clu.1, ${id}.ancestry.clu.1, ${id}.ancestry.klg.1, ${id}.ancestry.cluster_plots.pdf,
-     *     ${id}.ancestry.cluster_xtabs, ${id}.ancestry.cluster_plots.centers.pdf, ${id}.ancestry.clusters_assigned, ${id}.ancestry
-     *  Notes:
-     *     ${id}.ancestry contains the final inferred ancestry for each sample, including OUTLIERS
-     *     This file may be updated after reconciling with other arrays
-     */
-
-    cmd"""(echo 3; sed '1d' ${Local.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${Local.ancestryClusterFet}"""
-    .in(Local.ancestryPcaScores)
-    .out(Local.ancestryClusterFet)
-
-    cmd"""$binKlustakwik ${Local.ancestryClusterPrefix} 1 -UseFeatures 111 -UseDistributional 0 > ${Local.ancestryClusterLog}"""
-    .in(Local.ancestryClusterFet)
-    .out(Local.ancestryClusterClu, Local.ancestryClusterKlg, Local.ancestryClusterLog)
-
-    cmd"""$binR --vanilla --args ${Local.ancestryPcaScores} ${Local.ancestryClusterClu} ${Local.pheno} $id $phenoId $phenoSrRace
-      ${Local.ancestryClusterPlots} ${Local.ancestryClusterXtabs} ${Local.ancestryClusterPlotsCenters}
-      ${Local.ancestryClusterGroups} ${Local.ancestryInferred}
-      ${Local.ancestryClusterPlotsNo1kg} < $rPlotAncestryCluster"""
-      .in(Local.ancestryPcaScores, Local.ancestryClusterClu, Local.pheno)
-      .out(Local.ancestryClusterPlots, Local.ancestryClusterXtabs, Local.ancestryClusterPlotsCenters, Local.ancestryClusterGroups, Local.ancestryInferred, Local.ancestryClusterPlotsNo1kg)
+  
+    cmd"""$binR --vanilla --args $projectId ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryPcaScoresPlots} < $rPlotAncestryPca"""
+    .in(paramsArr.ancestryPcaScores)
+    .out(paramsArr.ancestryPcaScoresPlots)
   }
+  
+  /**
+   * Ancestry Cluster Step
+   *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
+   *  Requires: Hail, R
+   *  Notes:
+   *     *.ancestry.inferred.tsv contains the final inferred ancestry for each sample, including OUTLIERS
+   *     This file is array specific
+   */
+  
+  uger {
+    cmd"""(echo 3; sed '1d' ${paramsArr.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${paramsArr.ancestryClusterFet}"""
+    .in(paramsArr.ancestryPcaScores)
+    .out(paramsArr.ancestryClusterFet)
+  
+    cmd"""$binKlustakwik ${paramsArr.ancestryClusterName} 1 -UseFeatures 111 -UseDistributional 0 > ${paramsArr.ancestryClusterLog}"""
+    .in(paramsArr.ancestryClusterFet)
+    .out(paramsArr.ancestryClusterClu, paramsArr.ancestryClusterKlg, paramsArr.ancestryClusterLog)
+  
+    cmd"""$binR --vanilla --args ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryClusterClu} ${Input.Local.pheno} $projectId $phenoId $phenoSrRace
+      ${paramsArr.ancestryClusterPlots} ${paramsArr.ancestryClusterXtabs} ${paramsArr.ancestryClusterPlotsCenters}
+      ${paramsArr.ancestryClusterGroups} ${paramsArr.ancestryInferred}
+      ${paramsArr.ancestryClusterPlotsNo1kg} < $rPlotAncestryCluster"""
+      .in(paramsArr.ancestryPcaScores, paramsArr.ancestryClusterClu, Input.Local.pheno)
+      .out(paramsArr.ancestryClusterPlots, paramsArr.ancestryClusterXtabs, paramsArr.ancestryClusterPlotsCenters, paramsArr.ancestryClusterGroups, paramsArr.ancestryInferred, paramsArr.ancestryClusterPlotsNo1kg)
+  }
+
+  paramsArr.ancestryInferred
+
+}
+
+def qc2(i: Int): Unit = {
+
+  val (_, paramsArr) = Params.paramsByArr(i)
 
   /**
    * PCA Step
    *  Description: Calculate PCs for all non-outlier samples combined (to be used for adjustment during sample outlier removal)
-   *  Requires: Hail
-   *  Input: $harmRefFiltPrunedVds, $ancestryInferred
-   *  Output: ${id}.pca.log, ${id}.pca.scores.tsv, ${id}.pca.loadings.tsv, .${id}.pca.scores.tsv.crc,
-   *     ${id}.pca.loadings.tsv.crc
-   *  Notes:
+   *  Requires: R
    */
-
-  local {
-    cmd"""awk '{if($$2 == "OUTLIERS") print $$1}' ${Local.ancestryInferred} > ${Local.ancestryOutliers}""".in(Local.ancestryInferred).out(Local.ancestryOutliers)
-
+  
+  uger {
+  
     cmd"""$binRscript --vanilla --verbose
       $rPcair
-      --plink-in ${Local.harmRefFiltPrunedPrefix}
-      --gds-out ${Local.harmRefFiltPrunedPcaGds}
-      --exclude ${Local.ancestryOutliers}
-      --ancestry ${Local.ancestryInferred}
-      --id $id
-      --scores ${Local.pcaScores}
-      > ${Local.pcaLog}"""
-      .in(Local.harmRefFiltPruned :+ Local.ancestryInferred :+ Local.ancestryOutliers)
-      .out(Local.harmRefFiltPrunedPcaGds, Local.pcaLog, Local.pcaScores)
+      --plink-in ${paramsArr.harmRefFiltPrunedName}
+      --gds-out ${paramsArr.harmRefFiltPrunedPcaGds}
+      --exclude ${ancestryInferredMergedOutliers}
+      --ancestry ${ancestryInferredMerged}
+      --id $projectId
+      --scores ${paramsArr.pcaScores}
+      > ${paramsArr.pcaLog}"""
+      .in(paramsArr.harmRefFiltPruned :+ ancestryInferredMerged :+ ancestryInferredMergedOutliers)
+      .out(paramsArr.harmRefFiltPrunedPcaGds, paramsArr.pcaLog, paramsArr.pcaScores)
       .using("R-3.4")
   }
-
+  
   /**
    * Sample QC Stats Calculation Step
    *  Description: Calculate sexcheck and sample by variant statistics for all samples
    *  Requires: Hail, R
-   *  Input: $harmRefFiltVds, $ancestryInferred, $pcaScores
-   *  Output: ${id}.sampleqc.log, ${id}.sampleqc.sexcheck.tsv, ${id}.sampleqc.stats.tsv, ${id}.sampleqc.sexcheck.problems.tsv,
-   *     ${id}.sampleqc.stats.adj.tsv, ${id}.sampleqc.stats.adj.corr.pdf, ${id}.sampleqc.stats.adj.pca.loadings.tsv, ${id}.sampleqc.stats.adj.pcs.pdf,
-   *     ${id}.sampleqc.stats.adj.pca.scores.tsv
-   * Notes:
    */
-
+  
   local {
-    googleCopy(Local.ancestryInferred, Google.ancestryInferred)
-    googleCopy(Local.pheno, Google.pheno)
+    googleCopy(ancestryInferredMerged, ancestryInferredMergedCloud)
+    googleCopy(Input.Local.pheno, Input.Google.pheno)
   }
-
+  
   google {
     hail"""$pyHailSexcheck
-      --vds-in ${Google.harmRefVds}
-      --regions-exclude ${Google.regionsExclude}
-      --pheno-in ${Google.pheno}
+      --vds-in ${paramsArr.harmRefVdsCloud}
+      --regions-exclude ${Input.Google.regionsExclude}
+      --pheno-in ${Input.Google.pheno}
       --id-col $phenoId
       --sex-col $phenoSrSex
-      --sexcheck-out ${Google.sampleqcSexcheck}
-      --sexcheck-problems-out ${Google.sampleqcSexcheckProblems}"""
-      .in(Google.pheno, Google.harmRefVds, Google.regionsExclude)
-      .out(Google.sampleqcSexcheck, Google.sampleqcSexcheckProblems)
-
+      --sexcheck-out ${paramsArr.sampleqcSexcheckCloud}
+      --sexcheck-problems-out ${paramsArr.sampleqcSexcheckProblemsCloud}"""
+      .in(Input.Google.pheno, paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
+      .out(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheckProblemsCloud)
+  
     hail"""$pyHailSampleqc
-      --vds-in ${Google.harmRefFiltPrunedVds}
-      --clusters-in ${Google.ancestryInferred}
-      --qc-out ${Google.sampleqcStats}"""
-      .in(Google.harmRefFiltPrunedVds, Google.ancestryInferred)
-      .out(Google.sampleqcStats)
+      --vds-in ${paramsArr.harmRefFiltPrunedVdsCloud}
+      --clusters-in ${ancestryInferredMergedCloud}
+      --qc-out ${paramsArr.sampleqcStatsCloud}"""
+      .in(paramsArr.harmRefFiltPrunedVdsCloud, ancestryInferredMergedCloud)
+      .out(paramsArr.sampleqcStatsCloud)
   }
-
+  
   local {
-    googleCopy(Google.sampleqcStats, Local.sampleqcStats)
+    googleCopy(paramsArr.sampleqcStatsCloud, paramsArr.sampleqcStats)
   }
-
+  
   uger {
-    cmd"""$binR --vanilla --args ${Local.sampleqcStats} ${Local.pcaScores} ${Local.sampleqcStatsAdj} < $rCalcIstatsAdj"""
-    .in(Local.sampleqcStats, Local.pcaScores)
-    .out(Local.sampleqcStatsAdj)
-
-    cmd"""$binR --vanilla --args ${Local.sampleqcStatsAdj} ${Local.sampleqcStatsAdjCorrPlots} ${Local.sampleqcStatsAdjPcaLoadings} ${Local.sampleqcStatsAdjPcaScoresPlots} ${Local.sampleqcStatsAdjPcaScores} < $rIstatsAdjPca"""
-    .in(Local.sampleqcStatsAdj)
-    .out(Local.sampleqcStatsAdjCorrPlots, Local.sampleqcStatsAdjPcaLoadings, Local.sampleqcStatsAdjPcaScoresPlots, Local.sampleqcStatsAdjPcaScores)
+    cmd"""$binR --vanilla --args ${paramsArr.sampleqcStats} ${paramsArr.pcaScores} ${paramsArr.sampleqcStatsAdj} < $rCalcIstatsAdj"""
+    .in(paramsArr.sampleqcStats, paramsArr.pcaScores)
+    .out(paramsArr.sampleqcStatsAdj)
+  
+    cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdj} ${paramsArr.sampleqcStatsAdjCorrPlots} ${paramsArr.sampleqcStatsAdjPcaLoadings} ${paramsArr.sampleqcStatsAdjPcaScoresPlots} ${paramsArr.sampleqcStatsAdjPcaScores} < $rIstatsAdjPca"""
+    .in(paramsArr.sampleqcStatsAdj)
+    .out(paramsArr.sampleqcStatsAdjCorrPlots, paramsArr.sampleqcStatsAdjPcaLoadings, paramsArr.sampleqcStatsAdjPcaScoresPlots, paramsArr.sampleqcStatsAdjPcaScores)
   }
-
+  
+  local {
+	googleCopy(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheck)
+    googleCopy(paramsArr.sampleqcSexcheckProblemsCloud, paramsArr.sampleqcSexcheckProblems)
+  }
+  
   /**
    * Sample QC PCA Clustering Step
    *  Description: Cluster PCs of adjusted sample QC metrics
    *  Requires: Klustakwik, R
-   *  Input: $sampleqcStatsAdjPcaScores, $sampleqcStatsAdj
-   *  Output: ${id}.sampleqc.stats.adj.fet.1, ${id}.sampleqc.stats.adj.clu.1, ${id}.sampleqc.stats.adj.temp.clu.1, ${id}.sampleqc.stats.adj.klg.1,
-   *     ${id}.sampleqc.stats.adj.pca.outliers.tsv, ${id}.sampleqc.stats.adj.pca.clusters.plot.pdf, ${id}.sampleqc.stats.adj.pca.clusters.xtab,
-   *     ${id}.sampleqc.stats.adj.stripchart.pdf
-   * Notes:
    */
-
+  
   uger {
-    cmd"""N=$$(head -1 ${Local.sampleqcStatsAdjPcaScores} | wc | awk '{print $$2-1}');
-      echo $$N > ${Local.sampleqcStatsAdjClusterKlustakwikStores.fet};
-      sed '1d' ${Local.sampleqcStatsAdjPcaScores} | cut -f2- | sed 's/\t/ /g' >> ${Local.sampleqcStatsAdjClusterKlustakwikStores.fet};
-      FEATURES=1; for i in $$(seq 2 $$n); do FEATURES=$${FEATURES}1; done;
-      $binKlustakwik ${Local.sampleqcStatsAdjClusterKlustakwikStores.base} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
-      ${Local.sampleqcStatsAdjClusterKlustakwikStores.klustakwikLog}"""
-      .in(Local.sampleqcStatsAdjClusterKlustakwikStores.inputs + Local.sampleqcStatsAdjPcaScores)
-      .out(Local.sampleqcStatsAdjClusterKlustakwikStores.outputs)
-
-    cmd"""$binR --vanilla --args ${Local.sampleqcStatsAdjPcaScores} ${Local.sampleqcStatsAdjClusterKlustakwikStores.clu}
-      ${Local.sampleqcStatsAdjClusterOutliers} ${Local.sampleqcStatsAdjClusterPlots}
-      ${Local.sampleqcStatsAdjClusterXtabs} $id < $rIstatsPcsGmmClusterPlot"""
-      .in(Local.sampleqcStatsAdjPcaScores,  Local.sampleqcStatsAdjClusterKlustakwikStores.clu)
-      .out(Local.sampleqcStatsAdjClusterOutliers, Local.sampleqcStatsAdjClusterPlots, Local.sampleqcStatsAdjClusterXtabs)
-
+    cmd"""N=$$(head -1 ${paramsArr.sampleqcStatsAdjPcaScores} | wc | awk '{print $$2-1}');
+      echo $$N > ${paramsArr.sampleqcStatsAdjClusterFet};
+      sed '1d' ${paramsArr.sampleqcStatsAdjPcaScores} | cut -f2- | sed 's/\t/ /g' >> ${paramsArr.sampleqcStatsAdjClusterFet};
+      FEATURES=1; for i in $$(seq 2 $$N); do FEATURES=$${FEATURES}1; done;
+      $binKlustakwik ${paramsArr.sampleqcStatsAdjClusterName} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
+      ${paramsArr.sampleqcStatsAdjClusterKlustakwikLog}"""
+      .in(paramsArr.sampleqcStatsAdjClusterFet, paramsArr.sampleqcStatsAdjPcaScores)
+      .out(paramsArr.sampleqcStatsAdjClusterClu, paramsArr.sampleqcStatsAdjClusterKlg, paramsArr.sampleqcStatsAdjClusterKlustakwikLog)
+  
+    cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdjPcaScores} ${paramsArr.sampleqcStatsAdjClusterClu}
+      ${paramsArr.sampleqcStatsAdjClusterOutliers} ${paramsArr.sampleqcStatsAdjClusterPlots}
+      ${paramsArr.sampleqcStatsAdjClusterXtabs} $projectId < $rIstatsPcsGmmClusterPlot"""
+      .in(paramsArr.sampleqcStatsAdjPcaScores, paramsArr.sampleqcStatsAdjClusterClu)
+      .out(paramsArr.sampleqcStatsAdjClusterOutliers, paramsArr.sampleqcStatsAdjClusterPlots, paramsArr.sampleqcStatsAdjClusterXtabs)
+  
   }
-
+  
   /**
    * Sample QC Individual Stats Clustering Step
    *  Description: Cluster PCs of adjusted sample QC metrics
    *  Requires: Klustakwik, R
-   *  Input: $sampleqcStats, $sampleqcStatsAdj, $sampleqcStatsAdj, $sampleqcStatsAdjClusterOutliers, $ancestryInferred
-   *  Output: ${id}.sampleqc.stats.adj.*.fet.1, ${id}.sampleqc.stats.adj.*.clu.1, ${id}.sampleqc.stats.adj.*.temp.clu.1, ${id}.sampleqc.stats.adj.*.klg.1,
-   *     ${id}.sampleqc.stats.adj.*.klustakwik.log, ${id}.sampleqc.stats.adj.individual.boxplot.pdf, ${id}.sampleqc.stats.adj.individual.discreteness,
-   *     ${id}.sampleqc.stats.adj.individual.outliers.table, ${id}.sampleqc.stats.adj.individual.outliers.remove, ${id}.sampleqc.stats.adj.individual.stripchart.pdf
-   * Notes:
    */
   
-  val sampleQcKlustakwikStores: Seq[KlustakwikStores] = {
+  for {
+    (metric, paramsMetric) <- paramsArr.paramsByMetric
+  } {
+  
     uger {
-      sampleQcMetrics.map { metricId =>
-        val stores = KlustakwikStores(s"${Local.sampleqcStatsAdjPrefix}.${metricId}")
+      cmd"""echo 1 > ${paramsMetric.sampleqcStatsAdjIndClusterFet};
+        metricIdx=`head -1 ${paramsArr.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${paramsMetric.sampleqcStatsAdjIndMetric} | awk '{print $$1}'`;
+        sed '1d' ${paramsArr.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${paramsMetric.sampleqcStatsAdjIndClusterFet}"""
+        .in(paramsArr.sampleqcStatsAdj)
+        .out(paramsMetric.sampleqcStatsAdjIndClusterFet)
   
-        cmd"""echo 1 > ${stores.fet};
-          metricIdx=`head -1 ${Local.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${metricId} | awk '{print $$1}'`;
-          sed '1d' ${Local.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${stores.fet}"""
-          .in(Local.sampleqcStatsAdj)
-          .out(stores.fet)
-  
-        cmd"""$binKlustakwik ${stores.base} 1 -UseFeatures 1 -UseDistributional 0 > ${stores.klustakwikLog}"""
-        .in(stores.inputs)
-        .out(stores.outputs)
-  
-        stores
-      }
+      cmd"""$binKlustakwik ${paramsMetric.sampleqcStatsAdjIndClusterName} 1 -UseFeatures 1 -UseDistributional 0 > ${paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog}"""
+        .in(paramsMetric.sampleqcStatsAdjIndClusterFet)
+        .out(paramsMetric.sampleqcStatsAdjIndClusterClu, paramsMetric.sampleqcStatsAdjIndClusterKlg, paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog)
     }
+  
   }
   
-  local {
+  uger {
     cmd"""$binR --vanilla --args
       ${sampleQcMetrics.mkString(",")}
-      ${Local.sampleqcStats}
-      ${Local.sampleqcStatsAdj}
-      ${Local.sampleqcStatsAdjClusterOutliers}
-      ${Local.sampleqcStatsAdjIndBoxplots}
-      ${Local.sampleqcStatsAdjIndDiscreteness}
-      ${Local.sampleqcStatsAdjOutliersTable}
-      ${Local.sampleqcStatsAdjStripchart}
-      ${Local.ancestryInferred}
+      ${paramsArr.sampleqcStats}
+      ${paramsArr.sampleqcStatsAdj}
+      ${paramsArr.sampleqcStatsAdjClusterOutliers}
+      ${paramsArr.sampleqcStatsAdjIndBoxplots}
+      ${paramsArr.sampleqcStatsAdjIndDiscreteness}
+      ${paramsArr.sampleqcStatsAdjOutliersTable}
+      ${paramsArr.sampleqcStatsAdjStripchart}
+      ${ancestryInferredMerged}
       < $rIstatsAdjGmmPlotMetrics"""
-      .in(sampleQcKlustakwikStores.map(_.clu) :+ Local.sampleqcStats :+ Local.sampleqcStatsAdj :+ Local.ancestryInferred :+ Local.sampleqcStatsAdjClusterOutliers)
-      .out(Local.sampleqcStatsAdjIndBoxplots, Local.sampleqcStatsAdjIndDiscreteness, Local.sampleqcStatsAdjOutliersTable, Local.sampleqcStatsAdjStripchart)
+      .in(paramsArr.paramsSortedByMetric.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ ancestryInferredMerged :+ paramsArr.sampleqcStatsAdjClusterOutliers)
+      .out(paramsArr.sampleqcStatsAdjIndBoxplots, paramsArr.sampleqcStatsAdjIndDiscreteness, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcStatsAdjStripchart)
   }
   
   /**
    * Compile Sample Exclusions Step
+   * Requires: Python
    */
   
-  local {
-    googleCopy(Google.sampleqcSexcheckProblems, Local.sampleqcSexcheckProblems)
-
+  uger {
+  
     cmd"""python $pyCompileExclusions
-      --ancestry-inferred ${Local.ancestryInferred}
-      --kinship-related ${Local.kinKin0Related}
-      --kinship-famsizes ${Local.kinFamsizes}
-      --sampleqc-outliers ${Local.sampleqcStatsAdjOutliersTable}
-      --sexcheck-problems ${Local.sampleqcSexcheckProblems}
+      --ancestry-inferred ${ancestryInferredMerged}
+      --kinship-related ${paramsArr.kinKin0Related}
+      --kinship-famsizes ${paramsArr.kinFamsizes}
+      --sampleqc-outliers ${paramsArr.sampleqcStatsAdjOutliersTable}
+      --sexcheck-problems ${paramsArr.sampleqcSexcheckProblems}
       --ancestry-keep ${ancestryKeep.mkString(",")}
       --duplicates-keep ${duplicatesKeep.mkString(",")}
       --famsize-keep ${famsizeKeep.mkString(",")}
       --sampleqc-keep ${sampleqcKeep.mkString(",")}
       --sexcheck-keep ${sexcheckKeep.mkString(",")}
-      --out ${Local.finalSampleExclusions}"""
-      .in(Local.ancestryInferred, Local.kinKin0Related, Local.kinFamsizes, Local.sampleqcStatsAdjOutliersTable, Local.sampleqcSexcheckProblems)
-      .out(Local.finalSampleExclusions)
+      --out ${paramsArr.finalSampleExclusions}"""
+      .in(ancestryInferredMerged, paramsArr.kinKin0Related, paramsArr.kinFamsizes, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcSexcheckProblems)
+      .out(paramsArr.finalSampleExclusions)
   }
-  
- /**
+
+  /**
   * Filter Clean Step
   * filter variants and generate final clean dataset
   */
 
   local {
-    googleCopy(Local.finalSampleExclusions, Google.finalSampleExclusions)
+    googleCopy(paramsArr.finalSampleExclusions, paramsArr.finalSampleExclusionsCloud)
   }
-
+  
   google {
     hail"""$pyHailFilterFinal
-      --vds-in ${Google.harmRefVds}
-      --ancestry-in ${Google.ancestryInferred}
-      --sexcheck-in ${Google.sampleqcSexcheck}
-      --pheno-in ${Google.pheno}
+      --vds-in ${paramsArr.harmRefVdsCloud}
+      --ancestry-in ${ancestryInferredMergedCloud}
+      --sexcheck-in ${paramsArr.sampleqcSexcheckCloud}
+      --pheno-in ${Input.Google.pheno}
+      --iid-col $phenoId
       --case-ctrl-col $phenoStatus
-      --samples-remove ${Google.finalSampleExclusions}
-      --plink-out ${Google.cleanPrefix}"""
-      .in(Google.harmRefVds, Google.ancestryInferred, Google.sampleqcSexcheck, Google.pheno, Google.finalSampleExclusions)
-      .out(Google.clean)
+      --samples-remove ${paramsArr.finalSampleExclusionsCloud}
+      --variantqc-out ${paramsArr.variantqcStatsCloud}
+      --variants-exclude-out ${paramsArr.finalVariantExclusionsCloud}
+      --plink-out ${paramsArr.cleanNameCloud}
+      --vcf-out ${paramsArr.cleanVcfCloud}
+      --vds-out ${paramsArr.cleanVdsCloud}"""
+      .in(paramsArr.harmRefVdsCloud, ancestryInferredMergedCloud, paramsArr.sampleqcSexcheckCloud, Input.Google.pheno, paramsArr.finalSampleExclusionsCloud)
+      .out(paramsArr.cleanCloud :+ paramsArr.cleanVcfCloud :+ paramsArr.variantqcStatsCloud :+ paramsArr.finalVariantExclusionsCloud :+ paramsArr.cleanVdsCloud)
   }
 
   local {
-    googleCopy(Google.clean, Local.clean)
-
-    cmd"""$binRscript --vanilla --verbose
-      $rPcair
-      --plink-in ${Local.cleanPrefix}
-      --gds-out ${Local.cleanPcaGds}
-      --rdata ${Local.cleanPcaScoresRdata}
-      --ancestry ${Local.ancestryInferred}
-      --id $id
-      --scores ${Local.cleanPcaScores}
-      > ${Local.cleanPcaLog} """
-      .in(Local.clean :+ Local.ancestryInferred).out(Local.cleanPcaGds, Local.cleanPcaScores, Local.cleanPcaScoresRdata, Local.cleanPcaLog)
-      .using("R-3.4")
-  
-    cmd"""$binRscript --vanilla --verbose
-      $rPcrelate
-      --gds-in ${Local.cleanPcaGds}
-      --rdata-in ${Local.cleanPcaScoresRdata}
-      --ibd-out ${Local.cleanRelateScores}
-      > ${Local.cleanRelateLog}"""
-      .in(Local.cleanPcaGds, Local.cleanPcaScoresRdata)
-      .out(Local.cleanRelateScores, Local.cleanRelateLog)
-      .using("R-3.4")
+    googleCopy(paramsArr.cleanCloud, paramsArr.clean)
+    googleCopy(paramsArr.cleanVcfCloud, paramsArr.cleanVcf)
+    googleCopy(paramsArr.variantqcStatsCloud, paramsArr.variantqcStats)
+	googleCopy(paramsArr.finalVariantExclusionsCloud, paramsArr.finalVariantExclusions)
   }
+
+  local {
+    cmd"""$binTabix -f -p vcf ${paramsArr.cleanVcf}"""
+      .in(paramsArr.cleanVcf)
+      .out(paramsArr.cleanVcfTbi)
+  }
+
 }
+

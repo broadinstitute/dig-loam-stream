@@ -6,6 +6,7 @@ def main(args=None):
 
 	print "reading ancestry inferred file"
 	x=pd.read_table(args.ancestry_inferred,header=None)
+	x[0] = x[0].astype(str)
 	exc=x[0][x[1] == "OUTLIERS"].tolist()
 	if not args.ancestry_keep is None:
 		print "reinstating samples in ancestry keep list"
@@ -18,10 +19,12 @@ def main(args=None):
 	except EmptyDataError:
 		pass
 	else:
+		x['ID1'] = x['ID1'].astype(str)
+		x['ID2'] = x['ID2'].astype(str)
 		x=x[x['Kinship'] >= 0.4]
 		if x.shape[0] > 0:
 			exc=x['ID1'].tolist()
-			exc=exc.extend(x['ID2'].tolist())
+			exc.extend(x['ID2'].tolist())
 			if not args.duplicates_keep is None:
 				print "reinstating samples in duplicates keep list"
 				exc=[a for a in exc if a not in args.duplicates_keep.split(",")]
@@ -33,6 +36,7 @@ def main(args=None):
 	except EmptyDataError:
 		pass
 	else:
+		x[0] = x[0].astype(str)
 		exc=x[0][x[1] >= 10].tolist()
 		if len(exc) > 0:
 			if not args.famsize_keep is None:
@@ -46,6 +50,7 @@ def main(args=None):
 	except EmptyDataError:
 		pass
 	else:
+		x['IID'] = x['IID'].astype(str)
 		exc=x['IID'].tolist()
 		if len(exc) > 0:
 			if not args.sampleqc_keep is None:
@@ -59,6 +64,7 @@ def main(args=None):
 	except EmptyDataError:
 		pass
 	else:
+		x['IID'] = x['IID'].astype(str)
 		exc=x['IID'].tolist()
 		if len(exc) > 0:
 			if not args.sexcheck_keep is None:

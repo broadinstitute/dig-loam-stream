@@ -1,5 +1,6 @@
 package loamstream.dag
 
+import loamstream.dag.LoamDag.{Node, StoreNode, ToolNode}
 import loamstream.loam.LoamGraph
 import loamstream.model.{Store, Tool}
 
@@ -9,11 +10,7 @@ import loamstream.model.{Store, Tool}
   */
 case class LoamDag(loam: LoamGraph) extends Dag {
 
-  trait Node
-
-  case class StoreNode(store: Store.Untyped) extends Node
-
-  case class ToolNode(tool: Tool) extends Node
+  type Node = LoamDag.Node
 
   val storeNodes: Set[StoreNode] = loam.stores.map(StoreNode)
   val toolNodes: Set[ToolNode] = loam.tools.map(ToolNode)
@@ -29,4 +26,18 @@ case class LoamDag(loam: LoamGraph) extends Dag {
     case StoreNode(store) => loam.storeConsumers.getOrElse(store, Set.empty).map(ToolNode)
     case ToolNode(tool) => loam.toolOutputs.getOrElse(tool, Set.empty).map(StoreNode)
   }
+}
+
+object LoamDag {
+
+  trait Node extends Dag.NodeBase
+
+  case class StoreNode(store: Store.Untyped) extends Node {
+    override def label: String = store.toString
+  }
+
+  case class ToolNode(tool: Tool) extends Node {
+    override def label: String = tool.toString
+  }
+
 }

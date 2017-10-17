@@ -1,11 +1,14 @@
 package loamstream.dag
 
+import loamstream.dag.Dag.NodeBase
+
 /**
   * LoamStream
   * Created by oliverr on 10/10/2017.
   */
 trait Dag {
-  type Node
+
+  type Node <: NodeBase
 
   def nodes: Set[Node]
 
@@ -66,13 +69,19 @@ trait Dag {
       keepGoingFor = _.nonEmpty
     )
 
-  def unpackNodeGroups[K](groups: Map[K, Set[Node]]): Map[Node, K] = groups.toSet.flatMap {
-    case (key, nodes) => nodes.map(node => (node, key))
+  def unpackLevels(groups: Map[Int, Set[Node]]): Map[Node, Int] = groups.to[Set].flatMap {
+    case (key: Int, nodes: Set[Node]) => nodes.map(node => (node, key))
   }.toMap
 
-  def nodesToLevelsFromTop: Map[Node, Int] = unpackNodeGroups(levelsFromTop)
+  def nodesToLevelsFromTop: Map[Node, Int] = unpackLevels(levelsFromTop)
 
-  def nodesToLevelsFromBottom: Map[Node, Int] = unpackNodeGroups(levelsFromBottom)
+  def nodesToLevelsFromBottom: Map[Node, Int] = unpackLevels(levelsFromBottom)
 
+}
+
+object Dag {
+  trait NodeBase {
+    def label: String
+  }
 }
 

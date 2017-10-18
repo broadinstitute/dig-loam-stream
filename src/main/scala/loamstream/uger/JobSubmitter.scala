@@ -10,6 +10,7 @@ import java.io.File
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 import java.util.UUID
+import java.time.Instant
 
 /**
  * @author clint
@@ -27,7 +28,7 @@ object JobSubmitter {
       
       val ugerScript = writeUgerScriptFile(ugerJobs)
 
-      drmaaClient.submitJob(ugerSettings, ugerConfig, ugerScript, makeJobName, ugerJobs.size)
+      drmaaClient.submitJob(ugerSettings, ugerConfig, ugerScript, makeJobName(), ugerJobs.size)
     }
     
     private def writeUgerScriptFile(commandLineJobs: Seq[CommandLineJob]): Path = {
@@ -62,12 +63,10 @@ object JobSubmitter {
   }
   
   private val formatter: DateTimeFormatter = {
-    DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss").withZone(ZoneId.systemDefault)
+    DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss").withZone(ZoneId.systemDefault)
   }
 
-  private def makeJobName: String = {
-    import java.time.Instant.now
-  
-    s"LoamStream-${formatter.format(now)}-${UUID.randomUUID}"
+  private def makeJobName(timestamp: Instant = Instant.now): String = {
+    s"LoamStream-${formatter.format(timestamp)}-${UUID.randomUUID}"
   }
 }

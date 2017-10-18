@@ -261,10 +261,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskEndIndex = numTasks
       val taskIndexIncr = 1
 
-      // TODO Make native specification controllable from Loam (DSL)
-      // Request 16g memory to allow Klustakwik to run in QC chunk 2. :(
-      // Request short queue for faster integration testing
-      // TODO: This sort of thing really, really, needs to be configurable. :(
+      //TODO:
+      info(s"Using native spec: '$nativeSpecification'")
+      info(s"Using job name: '$jobName'")
+      info(s"Using script: '$pathToScript'")
+      
       jt.setNativeSpecification(nativeSpecification)
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
@@ -317,6 +318,6 @@ object Drmaa1Client {
       s"h_rt=${runTime} h_vmem=${mem}g -binding linear:${numCores} -pe smp ${numCores} -q ${queue}"
     }
     
-    s"${staticNativeSpec} ${dynamicNativeSpec}"
+    s"$staticNativeSpec $dynamicNativeSpec"
   }
 }

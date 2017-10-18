@@ -315,7 +315,7 @@ object Drmaa1Client {
       val runTime: Int = maxRunTime.hours.toInt
       val mem: Int = memoryPerCore.gb.toInt
       
-      s"h_rt=${runTime} h_vmem=${mem}g -binding linear:${numCores} -pe smp ${numCores} -q ${queue}"
+      s"-binding linear:${numCores} -pe smp ${numCores} -q ${queue} -l h_rt=${runTime},h_vmem=${mem}g"
     }
     
     s"$staticNativeSpec $dynamicNativeSpec"

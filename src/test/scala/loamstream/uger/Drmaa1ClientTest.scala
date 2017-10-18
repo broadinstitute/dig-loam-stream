@@ -115,7 +115,7 @@ final class Drmaa1ClientTest extends FunSuite {
     
     val actualNativeSpec = nativeSpec(ugerConfig, ugerSettings)
     
-    val expected = "asdfasdf h_rt=33 h_vmem=17g -binding linear:42 -pe smp 42 -q broad"
+    val expected = "asdfasdf -binding linear:42 -pe smp 42 -q broad -l h_rt=33,h_vmem=17g"
     
     assert(actualNativeSpec === expected)
   }

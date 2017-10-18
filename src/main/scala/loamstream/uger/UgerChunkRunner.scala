@@ -30,9 +30,7 @@ import loamstream.model.execute.UgerSettings
  * @author clint
  *         date: Jul 1, 2016
  *
- *         A ChunkRunner that runs groups of command line jobs as UGER task arrays, via the provided DrmaaClient.
- *
- *         TODO: Make logging more fine-grained; right now, too much is at info level.
+ *         A ChunkRunner that runs groups of command line jobs as UGER task arrays, via the provided JobSubmitter.
  */
 final case class UgerChunkRunner(
     ugerConfig: UgerConfig,
@@ -46,6 +44,13 @@ final case class UgerChunkRunner(
   
   override def maxNumJobs = ugerConfig.maxNumJobs
 
+  /**
+   * Run the provided jobs, using the provided predicate (`shouldRestart`) to decide whether to re-run them if they 
+   * fail.  Returns an Observable producing a map of jobs to Executions.
+   * 
+   * NB: NoOpJobs are ignored.  Otherwise, this method expects that all the other jobs are CommandLineJobs, and
+   * will throw otherwise.
+   */
   override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
 
     debug(s"Running: ")
@@ -58,6 +63,8 @@ final case class UgerChunkRunner(
     // Filter out NoOpJob's
     val commandLineJobs = jobs.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
+    //Group Jobs by their uger settings, and run each group.  This is necessary because the jobs in a group will
+    //be run as 1 Uger task array, and Uger params are per-task-array.
     val resultsForSubChunks: Iterable[Observable[Map[LJob, Execution]]] = {
       for {
         (ugerSettings, ugerJobs) <- subChunksBySettings(commandLineJobs) 
@@ -70,6 +77,10 @@ final case class UgerChunkRunner(
     else { Observables.merge(resultsForSubChunks) }
   }
   
+  /**
+   * Submits the provided CommandLineJobs and monitors them, resulting in an Observable producing a map of jobs to
+   * Executions
+   */
   private def runJobs(
       ugerSettings: UgerSettings, 
       ugerJobs: Seq[CommandLineJob],
@@ -193,6 +204,11 @@ object UgerChunkRunner extends Loggable {
     })
   }
   
+  /**
+   * Takes a bunch of CommandLineJobs, and groups them by their execution environments.  This has the effect
+   * of groupign together jobs with the same Uger settings.  This is necessary so that we can run each group
+   * of jobs as one Uger task array, and settings are per-task-array.
+   */
   private[uger] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[UgerSettings, Seq[CommandLineJob]] = {
     import Environment.Uger
     import Maps.Implicits._

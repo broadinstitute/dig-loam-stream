@@ -15,12 +15,25 @@ import java.time.Instant
 /**
  * @author clint
  * Oct 17, 2017
+ * 
+ * A trait representing the notion of submitting jobs to Uger.  
  */
 trait JobSubmitter {
+  /**
+   * Submit a batch of jobs to be run as a Uger task array (all packaged in one script).
+   * @params jobs the jobs to submit
+   * @param ugerSettings the Uger settings shared by all the jobs being submitted
+   */
   def submitJobs(ugerSettings: UgerSettings, jobs: Seq[CommandLineJob]): DrmaaClient.SubmissionResult
 }
 
 object JobSubmitter {
+  /**
+   * @author clint
+   * Oct 17, 2017
+   * 
+   * Default implementation of JobSubmitter; uses a DrmaaClient to submit jobs. 
+   */
   final case class Drmaa(drmaaClient: DrmaaClient, ugerConfig: UgerConfig) extends JobSubmitter with Loggable {
     override def submitJobs(
         ugerSettings: UgerSettings,
@@ -63,10 +76,14 @@ object JobSubmitter {
   }
   
   private val formatter: DateTimeFormatter = {
-    DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss").withZone(ZoneId.systemDefault)
+    DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss").withZone(ZoneId.systemDefault)
   }
 
-  private def makeJobName(timestamp: Instant = Instant.now): String = {
-    s"LoamStream-${formatter.format(timestamp)}-${UUID.randomUUID}"
+  /**
+   * Makes a Uger job name, like `LoamStream-<date>-<UUID>`
+   */
+  //TODO: Test
+  private[uger] def makeJobName(timestamp: Instant = Instant.now, uuid: UUID = UUID.randomUUID): String = {
+    s"LoamStream-${formatter.format(timestamp)}-$uuid"
   }
 }

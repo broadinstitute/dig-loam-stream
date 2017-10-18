@@ -17,6 +17,9 @@ sealed trait Settings
 
 final case object LocalSettings extends Settings
 
+/**
+ * Execution-time settings for a group of 1 or more Uger jobs 
+ */
 final case class UgerSettings(
     cores: Cpus,
     memoryPerCore: Memory,
@@ -33,4 +36,7 @@ object UgerSettings {
   }
 }
 
+/**
+ * Execution-time settings for a google job 
+ */
 final case class GoogleSettings(cluster: String) extends Settings

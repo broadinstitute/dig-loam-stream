@@ -50,7 +50,7 @@ object Observables extends Loggable {
    * 
    * @param tuples a collection of 2-tuples containing a key of type A, and an observable producing values of type B.
    * @param context the ExecutionContext to run on
-   * @return a future map of keys to values
+   * @return an Observable producing map of keys to values
    */
   def toMap[A,B](tuples: Traversable[(A, Observable[B])]): Observable[Map[A,B]] = {
     val z: Observable[Map[A,B]] = Observable.just(Map.empty)

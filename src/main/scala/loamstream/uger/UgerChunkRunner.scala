@@ -59,12 +59,15 @@ final case class UgerChunkRunner(
     val commandLineJobs = jobs.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
     val resultsForSubChunks: Iterable[Observable[Map[LJob, Execution]]] = {
-      subChunksBySettings(commandLineJobs).map { case (ugerSettings, ugerJobs) => 
+      for {
+        (ugerSettings, ugerJobs) <- subChunksBySettings(commandLineJobs) 
+      } yield {
         runJobs(ugerSettings, ugerJobs, shouldRestart) 
       }
     }
     
-    Observables.merge(resultsForSubChunks)
+    if(resultsForSubChunks.isEmpty) { Observable.just(Map.empty) }
+    else { Observables.merge(resultsForSubChunks) }
   }
   
   private def runJobs(

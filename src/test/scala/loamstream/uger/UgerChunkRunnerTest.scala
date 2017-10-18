@@ -29,6 +29,7 @@ import loamstream.model.execute.UgerSettings
 import loamstream.compiler.LoamEngine
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.uger.UgerChunkRunnerTest.MockJobSubmitter
+import loamstream.loam.LoamScriptContext
 
 
 /**
@@ -56,7 +57,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   import loamstream.util.ObservableEnrichments._
   
   test("NoOpJob is not attempted to be executed") {
-    val mockDrmaaClient = new MockDrmaaClient(Map.empty)
+    val mockDrmaaClient = MockDrmaaClient(Map.empty)
     val runner = UgerChunkRunner(
         ugerConfig = config,
         jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, config),
@@ -305,7 +306,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     doTest(alwaysRestart, CommandResult(0, None), CommandResult(1, None), JobStatus.Succeeded, JobStatus.Failed)
   }
   
-  test("Uger config is propagated to DRMAA client") {
+  test("Uger config is propagated to DRMAA client - 2 jobs, same settings") {
     val graph = TestHelpers.makeGraph { implicit context =>
       import LoamPredef._
       import StoreType.TXT
@@ -313,23 +314,28 @@ final class UgerChunkRunnerTest extends FunSuite {
     
       val a = store[TXT].at("a.txt").asInput
       val b = store[TXT].at("b.txt")
+      val c = store[TXT].at("c.txt")
     
       ugerWith(cores = 4, mem = 16, maxRunTime = 5) {
         cmd"cp $a $b".in(a).out(b)
+        cmd"cp $a $c".in(a).out(c)
       }
     }
     
     val executable = LoamEngine.toExecutable(graph)
 
-    val jobs = executable.jobs
+    //NB: Skip NoOpJob
+    val jobs = executable.jobs.head.inputs.toSeq
     
-    assert(jobs.size === 1)
+    assert(jobs.size === 2)
     
-    val expectedEnv = Environment.Uger(UgerSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5)))
+    val expectedSettings = UgerSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5))
+    val expectedEnv = Environment.Uger(expectedSettings)
     
-    assert(jobs.head.executionEnvironment === expectedEnv)
-    
-    val mockDrmaaClient = new MockDrmaaClient(Map.empty)
+    assert(jobs(0).executionEnvironment === expectedEnv)
+    assert(jobs(1).executionEnvironment === expectedEnv)
+        
+    val mockDrmaaClient = MockDrmaaClient(Map.empty)
     val mockJobSubmitter = new MockJobSubmitter
     
     val chunkRunner = UgerChunkRunner(
@@ -337,9 +343,89 @@ final class UgerChunkRunnerTest extends FunSuite {
         jobSubmitter = mockJobSubmitter,
         jobMonitor = new JobMonitor(poller = Poller.drmaa(mockDrmaaClient)))
         
-    chunkRunner.run(jobs, _ => false)
+    import ObservableEnrichments._        
     
-    fail("TODO")
+    val results = waitFor(chunkRunner.run(jobs.toSet, neverRestart).firstAsFuture)
+    
+    val actualSubmissionParams = mockJobSubmitter.params
+    
+    val Seq((actualSettings, actualSubmittedJobs)) = actualSubmissionParams
+    
+    assert(actualSettings === expectedSettings)
+    assert(actualSubmittedJobs.toSet === jobs.toSet)
+  }
+  
+  test("Uger config is propagated to DRMAA client - 2 pairs of jobs with different settings") {
+    val (graph, tool0, tool1, tool2, tool3) = { 
+      implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext)
+      
+      import LoamPredef._
+      import StoreType.TXT
+      import LoamCmdTool._
+    
+      val a = store[TXT].at("a.txt").asInput
+      val b = store[TXT].at("b.txt")
+      val c = store[TXT].at("c.txt")
+      val d = store[TXT].at("d.txt")
+      val e = store[TXT].at("e.txt")
+    
+      val (tool0, tool1) = ugerWith(cores = 4, mem = 16, maxRunTime = 5) {
+        (cmd"cp $a $b".in(a).out(b)) -> (cmd"cp $a $c".in(a).out(c))
+      }
+      
+      val (tool2, tool3) = ugerWith(cores = 7, mem = 9, maxRunTime = 11) {
+        (cmd"cp $a $d".in(a).out(d)) -> (cmd"cp $a $e".in(a).out(e))
+      }
+      
+      (sc.projectContext.graph, tool0, tool1, tool2, tool3)
+    }
+    
+    val executable = LoamEngine.toExecutable(graph)
+
+    //NB: Skip NoOpJob
+    val jobs = executable.jobs.head.inputs.toSeq
+    
+    assert(jobs.size === 4)
+    
+    val expectedSettings0 = UgerSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5))
+    val expectedSettings1 = UgerSettings(Cpus(7), Memory.inGb(9), CpuTime.inHours(11))
+    
+    val expectedEnv0 = Environment.Uger(expectedSettings0)
+    val expectedEnv1 = Environment.Uger(expectedSettings1)
+    
+    def findJob(tool: LoamCmdTool): CommandLineJob = {
+      jobs.iterator.map(_.asInstanceOf[CommandLineJob]).find(_.commandLineString == tool.commandLine).get
+    }
+    
+    assert(findJob(tool0).executionEnvironment === expectedEnv0)
+    assert(findJob(tool1).executionEnvironment === expectedEnv0)
+    
+    assert(findJob(tool2).executionEnvironment === expectedEnv1)
+    assert(findJob(tool3).executionEnvironment === expectedEnv1)
+        
+    val mockDrmaaClient = MockDrmaaClient(Map.empty)
+    val mockJobSubmitter = new MockJobSubmitter
+    
+    val chunkRunner = UgerChunkRunner(
+        ugerConfig = config,
+        jobSubmitter = mockJobSubmitter,
+        jobMonitor = new JobMonitor(poller = Poller.drmaa(mockDrmaaClient)))
+        
+    import ObservableEnrichments._        
+    
+    val results = waitFor(chunkRunner.run(jobs.toSet, neverRestart).firstAsFuture)
+    
+    val actualSubmissionParams = mockJobSubmitter.params
+    
+    val actualParamsUnordered: Set[(UgerSettings, Set[CommandLineJob])] = {
+      actualSubmissionParams.map { case (settings, jobs) => (settings, jobs.toSet) }.toSet
+    }
+    
+    val expectedParamsUnordered: Set[(UgerSettings, Set[CommandLineJob])] = Set(
+        expectedSettings0 -> Set(findJob(tool0), findJob(tool1)),
+        expectedSettings1 -> Set(findJob(tool2), findJob(tool3)))
+    
+    assert(actualParamsUnordered === expectedParamsUnordered)
   }
 }
 
@@ -350,7 +436,7 @@ object UgerChunkRunnerTest {
     override def submitJobs(ugerSettings: UgerSettings, jobs: Seq[CommandLineJob]): DrmaaClient.SubmissionResult = {
       params :+= (ugerSettings -> jobs)
       
-      DrmaaClient.SubmissionSuccess(Seq("foo", "bar", "baz"))
+      DrmaaClient.SubmissionSuccess(Nil)
     }
   }
   

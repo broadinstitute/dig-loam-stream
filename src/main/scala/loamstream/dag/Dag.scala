@@ -37,16 +37,16 @@ trait Dag {
     groupTraverse[Set[Node]](
       startGroup = nextUp(node),
       start = Set.empty,
-      next = _.flatMap(nextUp(_)),
+      next = _.flatMap(nextUp),
       merge = _ ++ _,
       keepGoingFor = _.nonEmpty
     )
 
   def nodesBelow(node: Node): Set[Node] =
     groupTraverse[Set[Node]](
-      startGroup = nextUp(node),
+      startGroup = nextDown(node),
       start = Set.empty,
-      next = _.flatMap(nextUp),
+      next = _.flatMap(nextDown),
       merge = _ ++ _,
       keepGoingFor = _.nonEmpty
     )

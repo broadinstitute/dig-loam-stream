@@ -63,10 +63,30 @@ abstract class DagTest[D <: Dag] extends FunSuite {
       assert(dag.bottomNodes.size === expectedResults.nBottomNodes, name)
     }
   }
+
+  test("levelsFromTop, levelsFromBottom") {
+    forAllDags { (name: String, dag: D, expectedResults: ExpectedResults) =>
+      assert(dag.levelsFromTop.map(_.size) === expectedResults.sizesOfLevelsFromTop, "from top, " + name)
+      assert(dag.levelsFromBottom.map(_.size) === expectedResults.sizesOfLevelsFromBottom, "from bottom, " + name)
+    }
+  }
+
+  private def regroupNodes[N <: D#Node](nodesToLevels: Map[N, Int]): Seq[Set[N]] ={
+    val groupedMap = nodesToLevels.groupBy(_._2).mapValues(_.keySet).view.force
+    (0 until groupedMap.size).map(groupedMap)
+  }
+
+  test("nodesToLevelsFromTop, nodesToLevelsFromBottom") {
+    forAllDags { (name: String, dag: D, _: ExpectedResults) =>
+      assert(dag.levelsFromTop === regroupNodes(dag.nodesToLevelsFromTop), "from top, " + name)
+      assert(dag.levelsFromBottom === regroupNodes(dag.nodesToLevelsFromBottom), "from bottom, " + name)
+    }
+  }
 }
 
 object DagTest {
 
-  case class ExpectedResults(nNodes: Int, nTopNodes: Int, nBottomNodes: Int)
+  case class ExpectedResults(nNodes: Int, nTopNodes: Int, nBottomNodes: Int,
+                             sizesOfLevelsFromTop: Seq[Int], sizesOfLevelsFromBottom: Seq[Int])
 
 }

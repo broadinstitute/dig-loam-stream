@@ -20,15 +20,15 @@ trait Dag {
 
   def bottomNodes: Set[Node] = nodes.filter(nextDown(_).isEmpty)
 
-  def groupTraverse[R](startGroup: Set[Node], start: R, next: Set[Node] => Set[Node], merge: (R, Set[Node]) => R,
-                       keepGoingFor: Set[Node] => Boolean): R = {
+  def groupTraverse[R](startGroup: Set[Node], start: R, next: (Set[Node], Set[Node]) => Set[Node],
+                       merge: (R, Set[Node]) => R, keepGoingFor: Set[Node] => Boolean): R = {
     var group: Set[Node] = startGroup
     var previousNodes: Set[Node] = Set.empty
     var result: R = start
     while (keepGoingFor(group)) {
       result = merge(result, group)
       previousNodes ++= group
-      group = next(group) -- previousNodes
+      group = next(group, previousNodes)
     }
     result
   }
@@ -37,7 +37,7 @@ trait Dag {
     groupTraverse[Set[Node]](
       startGroup = nextUp(node),
       start = Set.empty,
-      next = _.flatMap(nextUp),
+      next = _.flatMap(nextUp) -- _,
       merge = _ ++ _,
       keepGoingFor = _.nonEmpty
     )
@@ -46,36 +46,40 @@ trait Dag {
     groupTraverse[Set[Node]](
       startGroup = nextDown(node),
       start = Set.empty,
-      next = _.flatMap(nextDown),
+      next = _.flatMap(nextDown) -- _,
       merge = _ ++ _,
       keepGoingFor = _.nonEmpty
     )
 
-  def levelsFromTop: Map[Int, Set[Node]] =
+  def levelsFromTop: Seq[Set[Node]] =
     groupTraverse(
       startGroup = topNodes,
-      start = Map.empty[Int, Set[Node]],
-      next = _.flatMap(nodesBelow),
-      merge = (levels: Map[Int, Set[Node]], nodes: Set[Node]) => levels + (levels.size -> nodes),
+      start = Seq.empty[Set[Node]],
+      next =
+        (levelNodes, previousNodes) =>
+          levelNodes.flatMap(nextDown).filter(node => nextUp(node).forall(previousNodes)),
+      merge = (levels: Seq[Set[Node]], nodes: Set[Node]) => levels :+ nodes,
       keepGoingFor = _.nonEmpty
     )
 
-  def levelsFromBottom: Map[Int, Set[Node]] =
+  def levelsFromBottom: Seq[Set[Node]] =
     groupTraverse(
       startGroup = bottomNodes,
-      start = Map.empty[Int, Set[Node]],
-      next = _.flatMap(nodesAbove),
-      merge = (levels: Map[Int, Set[Node]], nodes: Set[Node]) => levels + (levels.size -> nodes),
+      start = Seq.empty[Set[Node]],
+      next =
+        (levelNodes, previousNodes) =>
+          levelNodes.flatMap(nextUp).filter(node => nextDown(node).forall(previousNodes)),
+      merge = (levels: Seq[Set[Node]], nodes: Set[Node]) => levels :+ nodes,
       keepGoingFor = _.nonEmpty
     )
 
-  def unpackLevels(groups: Map[Int, Set[Node]]): Map[Node, Int] = groups.to[Set].flatMap {
-    case (key: Int, nodes: Set[Node]) => nodes.map(node => (node, key))
+  def ungroupLevels(groups: Seq[Set[Node]]): Map[Node, Int] = groups.zipWithIndex.flatMap {
+    case (nodes: Set[Node], levelIndex: Int) => nodes.map(node => (node, levelIndex))
   }.toMap
 
-  def nodesToLevelsFromTop: Map[Node, Int] = unpackLevels(levelsFromTop)
+  def nodesToLevelsFromTop: Map[Node, Int] = ungroupLevels(levelsFromTop)
 
-  def nodesToLevelsFromBottom: Map[Node, Int] = unpackLevels(levelsFromBottom)
+  def nodesToLevelsFromBottom: Map[Node, Int] = ungroupLevels(levelsFromBottom)
 
 }
 

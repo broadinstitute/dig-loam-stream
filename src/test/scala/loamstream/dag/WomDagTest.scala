@@ -13,6 +13,7 @@ import wom.graph.Graph
   * Created by oruebenacker on 13.10.17.
   */
 class WomDagTest extends DagTest[WomDag] {
+
   import WomDagTest.toWomDag
 
   // scalastyle:off magic.number
@@ -21,7 +22,9 @@ class WomDagTest extends DagTest[WomDag] {
       ExpectedResults(
         nNodes = 4,
         nTopNodes = 2,
-        nBottomNodes = 1
+        nBottomNodes = 1,
+        sizesOfLevelsFromTop = Seq(2, 1, 1),
+        sizesOfLevelsFromBottom = Seq(1, 2, 1)
       )
     ),
     DagAndExpectations("slightly more complex",
@@ -29,7 +32,9 @@ class WomDagTest extends DagTest[WomDag] {
       ExpectedResults(
         nNodes = 21,
         nTopNodes = 6,
-        nBottomNodes = 2
+        nBottomNodes = 2,
+        sizesOfLevelsFromTop = Seq(6, 3, 3, 1, 1, 1, 1, 3, 2),
+        sizesOfLevelsFromBottom = Seq(2, 3, 1, 1, 2, 4, 4, 3, 1)
       )
     )
   )

@@ -154,7 +154,9 @@ object UgerChunkRunner extends Loggable {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
       ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, job))
       
-      val executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
+      def toUgerStatus(s: UgerStatus): Execution = Execution.from(job, toJobStatus(s), toJobResult(s))
+      
+      val executionObs = ugerJobStatuses.last.map(toUgerStatus)
       
       job -> executionObs
     }
@@ -165,8 +167,13 @@ object UgerChunkRunner extends Loggable {
   private[uger] def handleUgerStatus(shouldRestart: LJob => Boolean, job: LJob)(us: UgerStatus): Unit = {
     val jobStatus = toJobStatus(us)
     
-    if(jobStatus.isFailure) { handleFailureStatus(shouldRestart, jobStatus)(job) }
-    else { job.transitionTo(jobStatus) }
+    if(jobStatus.isFailure) {
+      debug(s"Handling failure status $jobStatus (was Uger status $us) for job $job")
+      
+      handleFailureStatus(shouldRestart, jobStatus)(job) 
+    } else { 
+      job.transitionTo(jobStatus) 
+    }
   }
   
   private[uger] def handleFailureStatus(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {

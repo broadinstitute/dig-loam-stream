@@ -33,8 +33,10 @@ import loamstream.loam.LoamScriptContext
 
 
 /**
-  * Created by kyuksel on 7/25/16.
-  */
+ * @author clint
+ * @author kyuksel
+ * Jul 25, 2016
+ */
 final class UgerChunkRunnerTest extends FunSuite {
   private val scheduler = IOScheduler()
   
@@ -46,7 +48,6 @@ final class UgerChunkRunnerTest extends FunSuite {
     UgerConfig(
       workDir = Paths.get("target/foo"), 
       logFile = Paths.get("target/bar"), 
-      nativeSpecification = "some job parameters", 
       maxNumJobs = 42,
       defaultCores = Cpus(2),
       defaultMemoryPerCore = Memory.inGb(2),

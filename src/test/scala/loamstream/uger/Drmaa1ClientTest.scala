@@ -98,11 +98,7 @@ final class Drmaa1ClientTest extends FunSuite {
     
     val bogusPath = path("/foo/bar/baz")
     
-    val ugerConfig = UgerConfig(
-        workDir = bogusPath,
-        logFile = bogusPath,
-        nativeSpecification = "asdfasdf",
-        maxNumJobs = 42)
+    val ugerConfig = UgerConfig(workDir = bogusPath, logFile = bogusPath, maxNumJobs = 42)
         
     val ugerSettings = UgerSettings(
         cores = Cpus(42),
@@ -113,9 +109,9 @@ final class Drmaa1ClientTest extends FunSuite {
     assert(ugerSettings.memoryPerCore !== UgerDefaults.memoryPerCore)
     assert(ugerSettings.maxRunTime !== UgerDefaults.maxRunTime)
     
-    val actualNativeSpec = nativeSpec(ugerConfig, ugerSettings)
+    val actualNativeSpec = nativeSpec(ugerSettings)
     
-    val expected = "asdfasdf -binding linear:42 -pe smp 42 -q broad -l h_rt=33,h_vmem=17g"
+    val expected = "-clear -cwd -shell y -b n -binding linear:42 -pe smp 42 -q broad -l h_rt=33,h_vmem=17g"
     
     assert(actualNativeSpec === expected)
   }

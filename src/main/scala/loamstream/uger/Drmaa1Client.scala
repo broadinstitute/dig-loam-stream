@@ -150,7 +150,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
     val pathToUgerOutput = ugerConfig.logFile
     
-    val fullNativeSpec = Drmaa1Client.nativeSpec(ugerConfig, ugerSettings)
+    val fullNativeSpec = Drmaa1Client.nativeSpec(ugerSettings)
     
     runJob(pathToScript, pathToUgerOutput, fullNativeSpec, jobName, numTasks)
   }
@@ -305,10 +305,11 @@ object Drmaa1Client {
     UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
   }
 
-  private[uger] def nativeSpec(ugerConfig: UgerConfig, ugerSettings: UgerSettings): String = {
-    val staticNativeSpec = ugerConfig.nativeSpecification
-
-    val dynamicNativeSpec = {
+  private[uger] def nativeSpec(ugerSettings: UgerSettings): String = {
+    //Will this ever change?
+    val staticPart = "-clear -cwd -shell y -b n"
+    
+    val dynamicPart = {
       import ugerSettings._
     
       val numCores = cores.value
@@ -318,6 +319,6 @@ object Drmaa1Client {
       s"-binding linear:${numCores} -pe smp ${numCores} -q ${queue} -l h_rt=${runTime},h_vmem=${mem}g"
     }
     
-    s"$staticNativeSpec $dynamicNativeSpec"
+    s"$staticPart $dynamicPart"
   }
 }

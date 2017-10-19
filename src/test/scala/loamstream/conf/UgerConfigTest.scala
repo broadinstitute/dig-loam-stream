@@ -29,7 +29,6 @@ final class UgerConfigTest extends FunSuite {
           workDir = "/foo/bar/baz"
           logFile = "nuh/zuh.log"
           maxNumJobs=44
-          nativeSpecification="-clear -cwd -shell y -b n"
           defaultCores = 42
           defaultMemoryPerCore = 9 // Gb
           defaultMaxRunTime = 11 // hours
@@ -42,7 +41,6 @@ final class UgerConfigTest extends FunSuite {
     assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
     assert(ugerConfig.logFile === Paths.get("nuh/zuh.log"))
     assert(ugerConfig.maxNumJobs === 44)
-    assert(ugerConfig.nativeSpecification === "-clear -cwd -shell y -b n")
     assert(ugerConfig.defaultCores === Cpus(42))
     assert(ugerConfig.defaultMemoryPerCore=== Memory.inGb(9))
     assert(ugerConfig.defaultMaxRunTime === CpuTime.inHours(11))
@@ -65,7 +63,6 @@ final class UgerConfigTest extends FunSuite {
     assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
     assert(ugerConfig.logFile === Paths.get("nuh/zuh.log"))
     assert(ugerConfig.maxNumJobs === 44)
-    assert(ugerConfig.nativeSpecification === "-clear -cwd -shell y -b n")
     assert(ugerConfig.defaultCores === UgerDefaults.cores)
     assert(ugerConfig.defaultMemoryPerCore=== UgerDefaults.memoryPerCore)
     assert(ugerConfig.defaultMaxRunTime === UgerDefaults.maxRunTime)

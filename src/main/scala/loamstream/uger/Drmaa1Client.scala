@@ -210,11 +210,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       //TODO: Add JobStatus.Aborted?
       UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasSignaled) {
-      debug(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
+      info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
       UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasCoreDump) {
-      debug(s"Job '$jobId' dumped core")
+      info(s"Job '$jobId' dumped core")
       
       UgerStatus.Failed(resourcesOption)
     } else {

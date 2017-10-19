@@ -59,6 +59,7 @@ object WomToCwlExamples {
       )
     }.toArray
     CommandLineTool(
+      id = base,
       baseCommand = baseCommand,
       arguments = arguments,
       inputs = inputs

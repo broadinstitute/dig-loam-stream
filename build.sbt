@@ -20,7 +20,7 @@ lazy val Versions = new {
   val RxScala = "0.26.5"
   val Ficus = "1.4.0"
   val Squants = "1.2.0"
-  val wdl4s = "0.16-148a6b4-SNAP"
+  val cromwell = "30-7309148-SNAP"
 }
 
 lazy val mainDeps = Seq(
@@ -42,7 +42,8 @@ lazy val mainDeps = Seq(
   "com.google.auth" % "google-auth-library-credentials" % Versions.GoogleAuth,
   "com.iheart" %% "ficus" % Versions.Ficus,
   "org.typelevel"  %% "squants"  % Versions.Squants,
-  "org.broadinstitute" %% "wdl4s" % Versions.wdl4s
+  "org.broadinstitute" %% "cromwell-wom" % Versions.cromwell,
+  "org.broadinstitute" %% "cromwell-cwl" % Versions.cromwell
 )
 
 lazy val testDeps = Seq(

@@ -77,6 +77,7 @@ object WomToCwl {
           )
       }.toArray
       CommandLineTool(
+        id = task.name,
         inputs = inputs,
         baseCommand = baseCommand,
         arguments = arguments

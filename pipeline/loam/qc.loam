@@ -246,7 +246,7 @@ def allQcSteps(params: DataConfig): Unit = {
       Local.harmVarIdUpdates(j) = store[TXT].at(localOutDir / s"${id}.chr$i.harm_idUpdates.txt")
       Local.harmVarSnpLogs(j) = store[TXT].at(localOutDir / s"${id}.chr$i.harm_snpLog.log")
   
-      cmd"""$binPlink --vcf $vcf --chr $i --keep-allele-order --make-bed --output-chr MT --out $rawChrsName"""
+      cmd"""$binPlink --memory 512 --threads 1 --vcf $vcf --chr $i --keep-allele-order --make-bed --output-chr MT --out $rawChrsName"""
       .in(vcf)
       .out(Local.rawChrs(j))
   
@@ -274,7 +274,7 @@ def allQcSteps(params: DataConfig): Unit = {
   
     cmd"""echo "$harmMergeLinesConcat" > ${Local.harmMergeList}""".out(Local.harmMergeList)
   
-    cmd"""$binPlink --bfile ${Local.harmChrsPrefix(0)} --merge-list ${Local.harmMergeList} --make-bed --keep-allele-order --out ${Local.harmPrefix}"""
+    cmd"""$binPlink --memory 512 --threads 1 --bfile ${Local.harmChrsPrefix(0)} --merge-list ${Local.harmMergeList} --make-bed --keep-allele-order --out ${Local.harmPrefix}"""
     .in(Local.harmChrs.flatten :+ Local.harmMergeList)
     .out(Local.harm)
   
@@ -282,7 +282,7 @@ def allQcSteps(params: DataConfig): Unit = {
     .in(Local.harm)
     .out(Local.harmForceA2)
   
-    cmd"""$binPlink --bfile ${Local.harmPrefix} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${Local.harmForceA2} --out ${Local.harmRefPrefix}"""
+    cmd"""$binPlink --memory 512 --threads 1 --bfile ${Local.harmPrefix} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${Local.harmForceA2} --out ${Local.harmRefPrefix}"""
     .in(Local.harm :+ Local.harmForceA2)
     .out(Local.harmRefVcf)
   

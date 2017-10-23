@@ -313,10 +313,10 @@ object Drmaa1Client {
       import ugerSettings._
     
       val numCores = cores.value
-      val runTime: Int = maxRunTime.hours.toInt
+      val runTimeInHours: Int = maxRunTime.hours.toInt
       val mem: Int = memoryPerCore.gb.toInt
       
-      s"-binding linear:${numCores} -pe smp ${numCores} -q ${queue} -l h_rt=${runTime},h_vmem=${mem}g"
+      s"-binding linear:${numCores} -pe smp ${numCores} -q ${queue} -l h_rt=${runTimeInHours}:0:0,h_vmem=${mem}g"
     }
     
     s"$staticPart $dynamicPart"

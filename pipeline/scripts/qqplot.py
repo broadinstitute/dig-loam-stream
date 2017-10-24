@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as scipy
 
+sns.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
+
 def qqplot(pvals, file, gc = False):
 
 	print "minimum p-value: {0:.3g}".format(np.min(pvals))
@@ -26,18 +28,19 @@ def qqplot(pvals, file, gc = False):
 	spvals = sorted(filter(lambda x: x and not(isnan(x)), pvals))
 	exp = sorted([-log(float(i) / len(spvals), 10) for i in np.arange(1, len(spvals) + 1, 1)])
 	obs = sorted(logpvals.tolist())
-	pltMax = int(ceil(max(obs)))
+	expMax = int(ceil(max(exp)))
+	obsMax = int(ceil(max(obs)))
 	ci_upper = sorted((-1 * np.log10(scipy.beta.ppf(0.95, range(1,len(obs) + 1), range(len(obs),0,-1)))).tolist())
 	ci_lower = sorted((-1 * np.log10(scipy.beta.ppf(0.05, range(1,len(obs) + 1), range(len(obs),0,-1)))).tolist())
 	plt.clf()
 	plt.figure(figsize=(6,6))
-	plt.scatter(exp, obs, c="#1F76B4", s=8)
+	plt.scatter(exp, obs, c="#1F76B4", s=12)
 	plt.plot((0, max(exp)),(0,max(exp)), linewidth=0.75, c="#B8860B")
 	plt.fill_between(exp, ci_lower, ci_upper, color="#646464", alpha=0.15)
 	plt.xlabel(r"Expected $- log_{10} (p)$")
 	plt.ylabel(r"Observed $- log_{10} (p)$")
-	plt.xlim(0, pltMax)
-	plt.ylim(0, max(pltMax, int(ceil(max(ci_upper))+1)))
+	plt.xlim(0, expMax)
+	plt.ylim(0, max(obsMax, int(ceil(max(ci_upper))+1)))
 	if lmda is not None:
 		plt.annotate(r"$\lambda \approx {0:.3f}$".format(lmda), xy=(1, 1), xycoords='axes fraction', horizontalalignment='right', verticalalignment='bottom', size='small', weight='bold', annotation_clip = False)
 	plt.savefig(file, bbox_inches='tight', dpi=300)

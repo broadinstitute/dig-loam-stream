@@ -6,6 +6,7 @@ val binKing                 = path(pipelineConfig.getStr("binaries.binKing"))
 val binPlink                = path(pipelineConfig.getStr("binaries.binPlink"))
 val binTabix                = path(pipelineConfig.getStr("binaries.binTabix"))
 val binKlustakwik           = path(pipelineConfig.getStr("binaries.binKlustakwik"))
+val binLocuszoom            = path(pipelineConfig.getStr("binaries.binLocuszoom"))
 
 val binBgzip                = path(pipelineConfig.getStr("binaries.binBgzip"))
 val binR                    = path(pipelineConfig.getStr("binaries.binR"))

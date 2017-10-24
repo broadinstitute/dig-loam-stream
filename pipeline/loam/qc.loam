@@ -7,6 +7,7 @@ import store_helpers._
 import loamstream.conf.DataConfig
 import loamstream.googlecloud.HailSupport._
 import loamstream.model.Store
+import loamstream.util.Files
 
 val nChr = endChr - startChr + 1
 val kgSampleId = dataConfig.getStr("kgSampleId")
@@ -98,9 +99,26 @@ object Params {
     assocSamplesIncludeCloud: Store[TXT],
     assocPhenoFileLog: Store[TXT],
     assocPhenoFile: Store[TXT],
+    assocPcsFile: Store[TXT],
     assocPhenoFileCloud: Store[TXT],
+    assocPcsFileCloud: Store[TXT],
     assocResults: Store[TXT],
+    assocResultsTbi: Store[TXT],
     assocResultsCloud: Store[TXT])
+
+  final case class Result(
+    resultPheno: String,
+    resultTest: String,
+    resultCovars: String,
+    resultTrans: String,
+    resultStrat: String,
+    resultFinal: Store[TXT],
+    resultFinalTbi: Store[TXT],
+    resultFinalCloud: Store[TXT],
+    resultFinalQqPlot: Store[TXT],
+    resultFinalMhtPlot: Store[TXT],
+    resultFinalSigRegions: Store[TXT],
+    resultFinalRegplotName: String)
 
   final case class Arr(
     arrayId: String,
@@ -122,12 +140,12 @@ object Params {
     harmRefFiltPrunedNameCloud: URI,
     harmRefFiltPrunedCloud: Seq[Store[TXT]],
     harmRefFiltPrunedVdsCloud: Store[VCF],
-    paramsByChr: Seq[(Int, Chr)],
-    paramsByAssoc: Seq[(Int, Assoc)],
-    paramsByMetric: Seq[(Int, Metric)],
-    paramsSortedByChr: Seq[Chr],
-    paramsSortedByAssoc: Seq[Assoc],
-    paramsSortedByMetric: Seq[Metric],
+    paramsByArrByChr: Seq[(Int, Chr)],
+    paramsByArrByAssoc: Seq[(Int, Assoc)],
+    paramsByArrByMetric: Seq[(Int, Metric)],
+    paramsByArrByChrSorted: Seq[Chr],
+    paramsByArrByAssocSorted: Seq[Assoc],
+    paramsByArrByMetricSorted: Seq[Metric],
     harmMergeLines: Seq[String],
     harmMergeList: Store[TXT],
     sampleqcStatsAdjIndClusterCluList: Seq[String],
@@ -200,11 +218,37 @@ object Params {
     cleanVcfTbi: Store[TXT],
     cleanVdsCloud: Store[VCF])
 
+  val paramsByResult: Seq[(Int, Result)] = (0 until assocSeq.size).map { result =>
+
+    val resultPheno = assocSeq(result)._1
+    val resultTest = assocSeq(result)._2
+    val resultCovars = assocSeq(result)._3
+    val resultTrans = assocSeq(result)._4
+    val resultStrat = assocSeq(result)._5
+
+    val covarsString = resultCovars.replace("+","_")
+
+    result -> Result(
+      resultPheno = resultPheno,
+      resultTest = resultTest,
+      resultCovars = resultCovars,
+      resultTrans = resultTrans,
+      resultStrat = resultStrat,
+      resultFinal = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.gz"),
+      resultFinalTbi = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.gz.tbi"),
+      resultFinalCloud = store[TXT].at(googleOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.gz"),
+      resultFinalQqPlot = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.qq.png"),
+      resultFinalMhtPlot = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.mht.png"),
+      resultFinalSigRegions = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.sigregions.tsv"),
+      resultFinalRegplotName = s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.regplot")
+
+  }
+
   val paramsByArr: Seq[(Int, Arr)] = (0 until nArrays).map { arr =>
 
     val arrayId = dataConfig.getObjList("arrays")(arr).getStr("arrayId")
 
-    val paramsByChr = (startChr to endChr).map { chr =>
+    val paramsByArrByChr = (startChr to endChr).map { chr =>
 
       val rawChrBase = s"${projectId}.${arrayId}.chr$chr"
       val harmKgChrBase = s"${rawChrBase}.harmkg"
@@ -245,7 +289,7 @@ object Params {
         harmMergeLine = s"${localOutDir}/${harmKgChrBase}")
     }
 
-    val paramsByAssoc = (0 until assocSeq.size).map { assoc =>
+    val paramsByArrByAssoc = (0 until assocSeq.size).map { assoc =>
 
       val assocPheno = assocSeq(assoc)._1
       val assocTest = assocSeq(assoc)._2
@@ -254,7 +298,6 @@ object Params {
       val assocStrat = assocSeq(assoc)._5
 
       val covarsString = assocCovars.replace("+","_")
-      val transString = assocTrans.replace(":","_")
 
       assoc -> Assoc(
         assocPheno = assocPheno,
@@ -262,22 +305,25 @@ object Params {
         assocCovars = assocCovars,
         assocTrans = assocTrans,
         assocStrat = assocStrat,
-        assocPhenoPrelimFile = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$transString.$covarsString.$assocTest.prelim_pheno.tsv"),
-        assocPhenoPrelimFileCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$transString.$covarsString.$assocTest.prelim_pheno.tsv"),
-        assocSamplesInclude = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$transString.$covarsString.$assocTest.samples.include"),
-        assocSamplesIncludeCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$transString.$covarsString.$assocTest.samples.include"),
-        assocPhenoFileLog = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$transString.$covarsString.$assocTest.pheno.log"),
-        assocPhenoFile = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$transString.$covarsString.$assocTest.pheno.tsv"),
-        assocPhenoFileCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$transString.$covarsString.$assocTest.pheno.tsv"),
-        assocResults = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$transString.$covarsString.$assocTest.results.tsv"),
-        assocResultsCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$transString.$covarsString.$assocTest.results.tsv"))
+        assocPhenoPrelimFile = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.prelim_pheno.tsv"),
+        assocPhenoPrelimFileCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.prelim_pheno.tsv"),
+        assocSamplesInclude = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.samples.include"),
+        assocSamplesIncludeCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.samples.include"),
+        assocPhenoFileLog = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.pheno.log"),
+        assocPhenoFile = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.pheno.tsv"),
+        assocPcsFile = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.pcs.include"),
+        assocPhenoFileCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.pheno.tsv"),
+        assocPcsFileCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.pcs.include"),
+        assocResults = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.results.tsv.gz"),
+        assocResultsTbi = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.results.tsv.gz.tbi"),
+        assocResultsCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.results.tsv.gz"))
 
     }
 
     val sampleqcBase = s"${projectId}.${arrayId}.sampleqc"
     val sampleqcStatsAdjBase = s"${sampleqcBase}.stats.adj"
 
-    val paramsByMetric = (0 until nMetrics).map { metricIdx =>
+    val paramsByArrByMetric = (0 until nMetrics).map { metricIdx =>
 
       val sampleqcStatsAdjIndMetric = sampleQcMetrics(metricIdx)
       val sampleqcStatsAdjIndClusterBase = s"${sampleqcStatsAdjBase}.${sampleqcStatsAdjIndMetric}"
@@ -317,17 +363,17 @@ object Params {
     val sampleqcStatsAdjClusterName = localOutDir / sampleqcStatsAdjClusterBase
     val variantqcBase = s"${projectId}.${arrayId}.variantqc"
 
-    val (_, paramsSortedByChr) = paramsByChr.unzip
-    val harmMergeLines = paramsSortedByChr.map(_.harmKgHuRefChrName.toString)
-	val (_, paramsSortedByAssoc) = paramsByAssoc.unzip
-    val (_, paramsSortedByMetric) = paramsByMetric.unzip
-    val sampleqcStatsAdjIndClusterCluList = paramsSortedByMetric.map(_.sampleqcStatsAdjIndClusterClu.toString)
+    val (_, paramsByArrByChrSorted) = paramsByArrByChr.unzip
+    val harmMergeLines = paramsByArrByChrSorted.map(_.harmKgHuRefChrName.toString)
+	val (_, paramsByArrByAssocSorted) = paramsByArrByAssoc.unzip
+    val (_, paramsByArrByMetricSorted) = paramsByArrByMetric.unzip
+    val sampleqcStatsAdjIndClusterCluList = paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu.toString)
 
     arr -> Arr(
     arrayId = arrayId,
-    paramsByChr = paramsByChr,
-    paramsByAssoc = paramsByAssoc,
-    paramsByMetric = paramsByMetric,
+    paramsByArrByChr = paramsByArrByChr,
+    paramsByArrByAssoc = paramsByArrByAssoc,
+    paramsByArrByMetric = paramsByArrByMetric,
     harmName = harmName,
     harm = bedBimFam(harmName),
     harmRefName = localOutDir / harmRefBase,
@@ -336,9 +382,9 @@ object Params {
     harmRefVcfTbi = store[TXT].at(localOutDir / s"${harmRefBase}.vcf.gz.tbi"),
     harmRefVcfTbiCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vcf.gz.tbi"),
     harmRefVdsCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vds"),
-    paramsSortedByChr = paramsSortedByChr,
-    paramsSortedByAssoc = paramsSortedByAssoc,
-    paramsSortedByMetric = paramsSortedByMetric,
+    paramsByArrByChrSorted = paramsByArrByChrSorted,
+    paramsByArrByAssocSorted = paramsByArrByAssocSorted,
+    paramsByArrByMetricSorted = paramsByArrByMetricSorted,
     harmMergeLines = harmMergeLines,
     sampleqcStatsAdjIndClusterCluList = sampleqcStatsAdjIndClusterCluList,
     harmMergeList = store[TXT].at(localOutDir / s"${harmBase}.merge.txt"),
@@ -448,10 +494,19 @@ local {
 }
 
 // Perform qc2, adding relevent (inter-array) stores to the map
+val resultsStoresMapsList: Seq[Map[(String, String, String, String, String), Store[TXT]]] = {
+  for {
+    i <- 0 until nArrays
+  } yield { 
+    qc2(i)
+  }
+}
+
+// Combine results step
 for {
-  i <- 0 until nArrays
-} { 
-  qc2(i)
+  i <- 0 until assocSeq.size
+} {
+  finalizeResults(i)
 }
 
 def qc1(i: Int): Store[TXT] = {
@@ -479,7 +534,7 @@ def qc1(i: Int): Store[TXT] = {
   //
   //uger {
   //  for {
-  //    (chr, paramsChr) <- paramsArr.paramsByChr
+  //    (chr, paramsChr) <- paramsArr.paramsByArrByChr
   //  } {
   //    cmd"""$binPlink --$dataType $dataPath --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName}"""
   //      .in(data)
@@ -525,8 +580,8 @@ def qc1(i: Int): Store[TXT] = {
   //  cmd"""echo "$harmMergeLinesConcat" > ${paramsArr.harmMergeList}"""
   //    .out(paramsArr.harmMergeList)
   //  
-  //  cmd"""$binPlink --bfile ${paramsArr.paramsSortedByChr.head.harmKgHuRefChrName} --merge-list ${paramsArr.harmMergeList} --make-bed --keep-allele-order --out ${paramsArr.harmName}"""
-  //    .in(paramsArr.paramsSortedByChr.flatMap(_.harmKgHuRefChr) :+ paramsArr.harmMergeList)
+  //  cmd"""$binPlink --bfile ${paramsArr.paramsByArrByChrSorted.head.harmKgHuRefChrName} --merge-list ${paramsArr.harmMergeList} --make-bed --keep-allele-order --out ${paramsArr.harmName}"""
+  //    .in(paramsArr.paramsByArrByChrSorted.flatMap(_.harmKgHuRefChr) :+ paramsArr.harmMergeList)
   //    .out(paramsArr.harm)
   //  
   //  cmd"""awk '{print $$2,$$5}' ${paramsArr.harmName}.bim > ${paramsArr.harmForceA2}"""
@@ -676,9 +731,10 @@ def qc1(i: Int): Store[TXT] = {
 
 }
 
-def qc2(i: Int): Unit = {
+def qc2(i: Int): Map[(String, String, String, String, String), Store[TXT]] = {
 
   val (_, paramsArr) = Params.paramsByArr(i)
+  var resultsMap = Seq[Map[(String, String, String, String, String), Store[TXT]]]()
 
   ///**
   // * PCA Step
@@ -783,7 +839,7 @@ def qc2(i: Int): Unit = {
   // */
   //
   //for {
-  //  (metric, paramsMetric) <- paramsArr.paramsByMetric
+  //  (metric, paramsMetric) <- paramsArr.paramsByArrByMetric
   //} {
   //
   //  uger {
@@ -812,7 +868,7 @@ def qc2(i: Int): Unit = {
   //    ${paramsArr.sampleqcStatsAdjStripchart}
   //    ${ancestryInferredMerged}
   //    < $rIstatsAdjGmmPlotMetrics"""
-  //    .in(paramsArr.paramsSortedByMetric.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ ancestryInferredMerged :+ paramsArr.sampleqcStatsAdjClusterOutliers)
+  //    .in(paramsArr.paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ ancestryInferredMerged :+ paramsArr.sampleqcStatsAdjClusterOutliers)
   //    .out(paramsArr.sampleqcStatsAdjIndBoxplots, paramsArr.sampleqcStatsAdjIndDiscreteness, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcStatsAdjStripchart)
   //}
   //
@@ -886,9 +942,9 @@ def qc2(i: Int): Unit = {
    */
   
   for {
-    (assoc, paramsAssoc) <- paramsArr.paramsByAssoc
+    (assoc, paramsAssoc) <- paramsArr.paramsByArrByAssoc
   } {
-
+  
     //google {
     //  hail"""$pyHailListSamples
     //    --vds-in ${paramsArr.cleanVdsCloud}
@@ -897,10 +953,9 @@ def qc2(i: Int): Unit = {
     //    --iid-col $phenoId
     //    --pheno-col ${paramsAssoc.assocPheno}
     //    --test ${paramsAssoc.assocTest}
-    //    --trans "${paramsAssoc.assocTrans}"
     //    --covars "${paramsAssoc.assocCovars}"
     //    --out-pheno-prelim ${paramsAssoc.assocPhenoPrelimFileCloud}
-	//    --out-samples ${paramsAssoc.assocSamplesIncludeCloud}"""
+    //    --out-samples ${paramsAssoc.assocSamplesIncludeCloud}"""
     //  .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno)
     //  .out(paramsAssoc.assocPhenoPrelimFileCloud, paramsAssoc.assocSamplesIncludeCloud)
     //}
@@ -909,44 +964,151 @@ def qc2(i: Int): Unit = {
     //  googleCopy(paramsAssoc.assocPhenoPrelimFileCloud, paramsAssoc.assocPhenoPrelimFile)
     //  googleCopy(paramsAssoc.assocSamplesIncludeCloud, paramsAssoc.assocSamplesInclude)
     //}
-
-    uger {
-      cmd"""$binRscript --vanilla --verbose
-        $rGeneratePheno
-        --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
-        --pheno-in ${Input.Local.pheno}
-        --pheno-col ${paramsAssoc.assocPheno}
-        --iid-col $phenoId
-        --samples-include ${paramsAssoc.assocSamplesInclude}
-        --variants-exclude ID ${paramsArr.finalVariantExclusions}
-        --trans "${paramsAssoc.assocTrans}"
-        --covars "${paramsAssoc.assocCovars}"
-        --out ${paramsAssoc.assocPhenoFile}
-        > ${paramsAssoc.assocPhenoFileLog}"""
-        .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, paramsAssoc.assocSamplesInclude, paramsArr.finalVariantExclusions)
-        .out(paramsAssoc.assocPhenoFile, paramsAssoc.assocPhenoFileLog)
-        .using("R-3.4")
-    }
-
+    //
+    //uger {
+    //  cmd"""$binRscript --vanilla --verbose
+    //    $rGeneratePheno
+    //    --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
+    //    --pheno-in ${Input.Local.pheno}
+    //    --ancestry-in ${ancestryInferredMerged}
+    //    --pheno-col ${paramsAssoc.assocPheno}
+    //    --iid-col $phenoId
+    //    --samples-include ${paramsAssoc.assocSamplesInclude}
+    //    --variants-exclude ID ${paramsArr.finalVariantExclusions}
+    //    --test ${paramsAssoc.assocTest}
+    //    --trans "${paramsAssoc.assocTrans}"
+    //    --covars "${paramsAssoc.assocCovars}"
+    //    --out-pheno ${paramsAssoc.assocPhenoFile}
+    //    --out-pcs ${paramsAssoc.assocPcsFile}
+    //    > ${paramsAssoc.assocPhenoFileLog} 2>&1"""
+    //    .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, ancestryInferredMerged, paramsAssoc.assocSamplesInclude, paramsArr.finalVariantExclusions)
+    //    .out(paramsAssoc.assocPhenoFile, paramsAssoc.assocPcsFile, paramsAssoc.assocPhenoFileLog)
+    //    .using("R-3.4")
+    //}
+    //
+    //local {
+    //  googleCopy(paramsAssoc.assocPhenoFile, paramsAssoc.assocPhenoFileCloud)
+    //  googleCopy(paramsAssoc.assocPcsFile, paramsAssoc.assocPcsFileCloud)
+    //}
+    //
     //google {
     //  hail"""$pyHailAssoc
     //    --vds-in ${paramsArr.cleanVdsCloud}
-    //    --pheno-in ${Input.Google.pheno}
+    //    --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
+    //    --pheno-in ${paramsAssoc.assocPhenoFileCloud}
     //    --iid-col $phenoId
     //    --pheno-col ${paramsAssoc.assocPheno}
+    //    --pcs-include ${paramsAssoc.assocPcsFileCloud}
     //    --test ${paramsAssoc.assocTest}
     //    --trans "${paramsAssoc.assocTrans}"
     //    --covars "${paramsAssoc.assocCovars}"
     //    --out ${paramsAssoc.assocResultsCloud}"""
-    //      .in(paramsArr.cleanVdsCloud, Input.Google.pheno)
+    //      .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno :+ paramsAssoc.assocPhenoFileCloud)
     //      .out(paramsAssoc.assocResultsCloud)
     //}
     //
     //local {
     //  googleCopy(paramsAssoc.assocResultsCloud, paramsAssoc.assocResults)
     //}
+    //
+    //local {
+    //  cmd"""$binTabix -b 2 -e 2 ${paramsAssoc.assocResults}"""
+    //    .in(paramsAssoc.assocResults)
+    //    .out(paramsAssoc.assocResultsTbi)
+    //}
+
+    resultsMap = resultsMap :+ Map((paramsArr.arrayId, paramsAssoc.assocPheno, paramsAssoc.assocTest, paramsAssoc.assocCovars, paramsAssoc.assocTrans) -> paramsAssoc.assocResultsCloud)
 
   }
 
+  return resultsMap.flatten.toMap
+
 }
 
+def finalizeResults(i: Int): Unit = {
+
+  val (_, paramsResult) = Params.paramsByResult(i)
+  
+  ///**
+  // * Merge Step
+  // *  Description: Run association tests
+  // *  Requires: Hail
+  // */
+  //
+  //val modelResultsMap = resultsStoresMapsList.flatten.toMap.filterKeys({e => e._2 == paramsResult.resultPheno && e._3 == paramsResult.resultTest && e._4 == paramsResult.resultCovars && e._5 == paramsResult.resultTrans})
+  //
+  //val modelResultsString = modelResultsMap.map { case (key, value) => s"""${key._1}___${value.toString.split("@")(1)}""" }.mkString(",")
+  //
+  //google {
+  //  hail"""$pyHailMerge
+  //    --results "${modelResultsString}"
+  //    --test ${paramsResult.resultTest}
+  //    --out ${paramsResult.resultFinalCloud}
+  //    """.in(modelResultsMap.values).out(paramsResult.resultFinalCloud)
+  //}
+  //
+  //local {
+  //  googleCopy(paramsResult.resultFinalCloud, paramsResult.resultFinal)
+  //}
+  //
+  //local {
+  //  cmd"""$binTabix -b 2 -e 2 ${paramsResult.resultFinal}"""
+  //    .in(paramsResult.resultFinal)
+  //    .out(paramsResult.resultFinalTbi)
+  //}
+  //
+  ///**
+  // * Plot Step
+  // *  Description: Run association tests
+  // *  Requires: Python
+  // */
+  //
+  //uger {
+  //  cmd"""python $pyQqPlot
+  //    --results ${paramsResult.resultFinal}
+  //    --p pval
+  //    --out ${paramsResult.resultFinalQqPlot}
+  //    """.in(paramsResult.resultFinal).out(paramsResult.resultFinalQqPlot)
+  //  
+  //  cmd"""python $pyMhtPlot
+  //    --results ${paramsResult.resultFinal}
+  //    --chr chr
+  //    --pos pos
+  //    --p pval
+  //    --out ${paramsResult.resultFinalMhtPlot}
+  //    """.in(paramsResult.resultFinal).out(paramsResult.resultFinalMhtPlot)
+  //  
+  //  cmd"""python $pyExtractTopRegions
+  //    --results ${paramsResult.resultFinal}
+  //    --chr chr
+  //    --pos pos
+  //    --p pval
+  //    --out ${paramsResult.resultFinalSigRegions}
+  //    """.in(paramsResult.resultFinal).out(paramsResult.resultFinalSigRegions)
+  //}
+
+  andThen {
+    uger {
+      val regions = Files.readFrom(paramsResult.resultFinalSigRegions.path).split(System.lineSeparator)
+
+      for (region <- regions) {
+        val regionChr = region.split("\t")(0)
+        val regionStart = region.split("\t")(1)
+        val regionEnd = region.split("\t")(2)
+		val resultsFinalRegplotPdf = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotName}_chr${regionChr}_${regionStart}_${regionEnd}.pdf")
+        val resultsFinalRegplotPng = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotName}_chr${regionChr}_${regionStart}_${regionEnd}.png")
+
+        cmd"""pcol=`tabix -H tabix ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; 
+          (echo -e "id\tpval"; tabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') | $binLocuszoom --metal - --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --plotonly --no-date --prefix ${paramsResult.resultFinalRegplotName} --cache None"""
+          .in(paramsResult.resultFinal)
+          .out(resultsFinalRegplotPdf)
+
+        cmd"""convert -density 300 -depth 8 -quality 100 -flatten ${resultsFinalRegplotPdf}[0] $resultsFinalRegplotPng"""
+          .in(resultsFinalRegplotPdf)
+          .out(resultsFinalRegplotPng)
+
+      }
+    }
+  }
+
+}

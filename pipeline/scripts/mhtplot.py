@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as scipy
 
+sns.set(context='notebook', style='darkgrid', palette='deep', font='sans-serif', font_scale=1, color_codes=False, rc=None)
+
 def mhtplot(df, chr, pos, p, file, gc = False, bicolor = False):
 
 	logp = 'log' + p
@@ -28,6 +30,7 @@ def mhtplot(df, chr, pos, p, file, gc = False, bicolor = False):
 	print "maximum -1*log10(p-value): {0:.3g}".format(np.max(df[logp]))
 	
 	print "calculating genomic positions"
+	df[chr] = df[chr].astype(str)
 	df[chrInt] = df[chr].replace({'X': '23', 'Y': '24', 'MT': '25'}).astype(int)
 	df.sort_values(by=[chrInt,pos], inplace=True)
 	ticks = []
@@ -116,7 +119,7 @@ def mhtplot(df, chr, pos, p, file, gc = False, bicolor = False):
 	plt.clf()
 	plt.figure(figsize=(16,4))
 	for i in range(len(chrs)):
-		plt.scatter(df.loc[df[chr] == chrs[i], gpos], df.loc[df[chr] == chrs[i], logp], c=chr_hex[i], s=2)
+		plt.scatter(df.loc[df[chr] == chrs[i], gpos], df.loc[df[chr] == chrs[i], logp], c=chr_hex[i], s=8)
 	plt.axhline(y = -1 * np.log10(sig), linewidth=0.75, color="#B8860B")
 	plt.xlabel("Chromosome")
 	plt.xticks(ticks, x_labels)

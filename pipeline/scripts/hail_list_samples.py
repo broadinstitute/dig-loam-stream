@@ -2,7 +2,6 @@ from hail import *
 hc = HailContext()
 import pandas as pd
 import numpy as np
-from math import log, isnan
 import argparse
 
 def main(args=None):
@@ -14,9 +13,6 @@ def main(args=None):
 	cols_keep = [args.iid_col,args.pheno_col]
 	if args.covars != "":
 		cols_keep = cols_keep + args.covars.split("+")
-	if args.trans != "":
-		if ":" in args.trans:
-			cols_keep = cols_keep + t.split(":")[1].split("+")
 	with hadoop_read(args.pheno_in) as f:
 		pheno_df = pd.read_table(f, sep="\t", usecols=cols_keep, dtype=object)
 
@@ -62,7 +58,6 @@ if __name__ == "__main__":
 	requiredArgs.add_argument('--iid-col', help='a column name for sample ID', required=True)
 	requiredArgs.add_argument('--pheno-col', help='a column name for the phenotype', required=True)
 	requiredArgs.add_argument('--test', help='an association test name (firth, score, lm, lmm, lrt)', required=True)
-	requiredArgs.add_argument('--trans', help='a transformation code', required=True)
 	requiredArgs.add_argument('--covars', help="a '+' separated list of covariates", required=True)
 	requiredArgs.add_argument('--out-pheno-prelim', help='a file name for the preliminary phenotypes', required=True)
 	requiredArgs.add_argument('--out-samples', help='a file name for list of samples to include in association test', required=True)

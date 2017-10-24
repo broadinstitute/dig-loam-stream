@@ -23,6 +23,7 @@ val phenoSrRace = dataConfig.getStr("phenoSrRace")
 val phenoStatus = dataConfig.getStr("phenoStatus")
 val nArrays = dataConfig.getObjList("arrays").size
 val nMetrics = sampleQcMetrics.size
+val reportAuthors = dataConfig.getStrList("reportAuthors").mkString(",")
 
 // generate list of tuples that define each association test
 var assocSeq: Seq[(String, String, String, String, String)] = Seq()
@@ -122,6 +123,9 @@ object Params {
 
   final case class Arr(
     arrayId: String,
+	arrayDataPath: String,
+    arrayDataType: String,
+    arrayData: Store[TXT],
     harmName: Path,
     harm: Seq[Store[TXT]],
     harmRefName: Path,
@@ -247,6 +251,12 @@ object Params {
   val paramsByArr: Seq[(Int, Arr)] = (0 until nArrays).map { arr =>
 
     val arrayId = dataConfig.getObjList("arrays")(arr).getStr("arrayId")
+    val arrayDataPath = dataConfig.getObjList("arrays")(arr).getStr("dataPath")
+    val arrayDataType = dataConfig.getObjList("arrays")(arr).getStr("dataType")
+    val arrayData = {
+      if (arrayDataType == "vcf") { store[TXT].at(path(arrayDataPath)).asInput }
+      else { store[TXT].at(path(s"${arrayDataPath}.bed")).asInput }
+    }
 
     val paramsByArrByChr = (startChr to endChr).map { chr =>
 
@@ -371,6 +381,9 @@ object Params {
 
     arr -> Arr(
     arrayId = arrayId,
+    arrayDataPath = arrayDataPath,
+    arrayDataType = arrayDataType,
+    arrayData = arrayData,
     paramsByArrByChr = paramsByArrByChr,
     paramsByArrByAssoc = paramsByArrByAssoc,
     paramsByArrByMetric = paramsByArrByMetric,
@@ -468,6 +481,8 @@ object Params {
     cleanVdsCloud = store[VCF].at(googleOutDir / s"${cleanBase}.vds"))
     }
 
+  val (_, paramsByArrSorted) = paramsByArr.unzip
+
 }
 
 // Perform qc1
@@ -509,17 +524,27 @@ for {
   finalizeResults(i)
 }
 
+// Generate qc report files
+val reportQcIntro = store[TXT].at(localOutDir / s"${projectId}.qcreport.intro.tex")
+var arrayDataStrings = Seq[String]()
+for { 
+  i <- 0 until nArrays
+} {
+  val (_, paramsArr) = Params.paramsByArr(i)
+  arrayDataStrings = arrayDataStrings :+ paramsArr.arrayDataType + "___" + paramsArr.arrayDataPath
+}
+
+uger {
+  cmd"""python $pyGenerateQcReportIntro
+    --id $projectId
+    --authors "$reportAuthors" 
+    --out ${reportQcIntro} 
+    --array-data ${arrayDataStrings.mkString(",")}"""
+    .in(Params.paramsByArrSorted.map(_.arrayData))
+    .out(reportQcIntro)
+}
+
 def qc1(i: Int): Store[TXT] = {
-
-  // Global parameters
-  val dataPath = dataConfig.getObjList("arrays")(i).getStr("dataPath")
-  val dataType = dataConfig.getObjList("arrays")(i).getStr("dataType")
-
-  // Input Stores
-  val data = {
-    if (dataType == "vcf") { store[VCF].at(path(dataPath)).asInput }
-    else { store[TXT].at(path(s"${dataPath}.bed")).asInput }
-  }
 
   val (_, paramsArr) = Params.paramsByArr(i)
 
@@ -536,8 +561,8 @@ def qc1(i: Int): Store[TXT] = {
   //  for {
   //    (chr, paramsChr) <- paramsArr.paramsByArrByChr
   //  } {
-  //    cmd"""$binPlink --$dataType $dataPath --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName}"""
-  //      .in(data)
+  //    cmd"""$binPlink --${paramsArr.dataType} ${paramsArr.dataPath} --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName}"""
+  //      .in(arrayData)
   //      .out(paramsChr.rawChr)
   //    
   //    cmd"""$binGenotypeHarmonizer
@@ -1086,27 +1111,27 @@ def finalizeResults(i: Int): Unit = {
   //    --out ${paramsResult.resultFinalSigRegions}
   //    """.in(paramsResult.resultFinal).out(paramsResult.resultFinalSigRegions)
   //}
-
+  //
   andThen {
     uger {
       val regions = Files.readFrom(paramsResult.resultFinalSigRegions.path).split(System.lineSeparator)
-
+  
       for (region <- regions) {
         val regionChr = region.split("\t")(0)
         val regionStart = region.split("\t")(1)
         val regionEnd = region.split("\t")(2)
-		val resultsFinalRegplotPdf = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotName}_chr${regionChr}_${regionStart}_${regionEnd}.pdf")
+        val resultsFinalRegplotPdf = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotName}_chr${regionChr}_${regionStart}_${regionEnd}.pdf")
         val resultsFinalRegplotPng = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotName}_chr${regionChr}_${regionStart}_${regionEnd}.png")
-
+  
         cmd"""pcol=`tabix -H tabix ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; 
           (echo -e "id\tpval"; tabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') | $binLocuszoom --metal - --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --plotonly --no-date --prefix ${paramsResult.resultFinalRegplotName} --cache None"""
           .in(paramsResult.resultFinal)
           .out(resultsFinalRegplotPdf)
-
+  
         cmd"""convert -density 300 -depth 8 -quality 100 -flatten ${resultsFinalRegplotPdf}[0] $resultsFinalRegplotPng"""
           .in(resultsFinalRegplotPdf)
           .out(resultsFinalRegplotPng)
-
+  
       }
     }
   }

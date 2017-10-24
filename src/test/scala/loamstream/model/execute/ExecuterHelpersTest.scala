@@ -137,11 +137,10 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     
     import ObservableEnrichments._
     
-    val two0StatusesFuture = two0.statuses.take(4).to[Seq].firstAsFuture
+    val two0StatusesFuture = two0.statuses.take(3).to[Seq].firstAsFuture
     
     import JobStatus._
     
-    //NB: One 'Succeeded' emitted in MockJob.executeSelf, the last one emitted in executeSingle
     assert(Futures.waitFor(two0StatusesFuture) === Seq(NotStarted, Running, Succeeded))
   }
   

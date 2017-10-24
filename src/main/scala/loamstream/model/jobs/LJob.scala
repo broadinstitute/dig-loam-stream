@@ -44,6 +44,7 @@ trait LJob extends Loggable {
    * the same upstream dependency would cause the dependency to be run more than necessary under certain 
    * conditions.
    */
+  //NB: Note use of .share which allows re-using this Observable, saving lots of memory when running complex pipelines
   protected final val runs: Observable[JobRun] = runsEmitter.share
   
   /** This job's current status */
@@ -107,6 +108,7 @@ trait LJob extends Loggable {
     }
 
     //Emit the current job *after* all our dependencies
+    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
     (dependencyRunnables ++ selfRunnables).share
   }
   
@@ -163,25 +165,28 @@ trait LJob extends Loggable {
         }
       }
     }
-    
+    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
     result.share
   }
 
   /**
    * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
    */
+  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
   lazy val statuses: Observable[JobStatus] = runs.map(_.status).share
 
   /**
    * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time.
    */
+  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
   protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first.share
 
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.
    * When this fires, our dependencies are finished.
    */
+  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
   protected[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
     Observables.sequence(inputs.toSeq.map(_.lastStatus)).share
   }

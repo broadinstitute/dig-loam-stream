@@ -125,7 +125,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     
     import Environment._
     
-    val ugerEnv = Uger(UgerSettings.Defaults)
+    val ugerEnv = Uger(TestHelpers.defaultUgerSettings)
     val googleEnv = Google(GoogleSettings(clusterId))
     
     doTest(Local, ugerEnv, googleEnv)

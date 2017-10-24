@@ -63,7 +63,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
     
     assert(jobs.size === 1)
     
-    val expectedEnv = Environment.Uger(UgerSettings.Defaults)
+    val expectedEnv = Environment.Uger(TestHelpers.defaultUgerSettings)
     
     assert(jobs.head.executionEnvironment === expectedEnv)
   }
@@ -88,7 +88,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
     
     assert(jobs.size === 1)
     
-    val expectedEnv = Environment.Uger(UgerSettings.Defaults)
+    val expectedEnv = Environment.Uger(TestHelpers.defaultUgerSettings)
     
     assert(jobs.head.executionEnvironment === expectedEnv)
   }

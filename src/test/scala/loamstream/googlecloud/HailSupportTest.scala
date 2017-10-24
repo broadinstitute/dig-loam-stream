@@ -17,6 +17,7 @@ import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Files
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -67,7 +68,7 @@ final class HailSupportTest extends FunSuite {
         pyhail""
       }
 
-      scriptContext.executionEnvironment = Environment.Uger(UgerSettings.Defaults)
+      scriptContext.executionEnvironment = Environment.Uger(TestHelpers.defaultUgerSettings)
 
       intercept[Exception] {
         hail""

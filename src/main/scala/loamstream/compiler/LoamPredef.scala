@@ -158,13 +158,20 @@ object LoamPredef extends Loggable {
    * @param scriptContext Container for compile time and run time context for a script
    */
   def ugerWith[A](
-      cores: Int = UgerDefaults.cores.value,
-      mem: Double = UgerDefaults.memoryPerCore.gb, 
-      maxRunTime: Double = UgerDefaults.maxRunTime.hours)
+      cores: Int = -1,
+      mem: Double = -1, 
+      maxRunTime: Double = -1)
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     
-    val settings = UgerSettings(Cpus(cores), Memory.inGb(mem), CpuTime.inHours(maxRunTime))
+    val ugerConfig = scriptContext.ugerConfig
+    
+    def orDefault[B](actual: B, default: B) = if(actual == -1) default else actual
+    
+    val settings = UgerSettings(
+        Cpus(orDefault(cores, ugerConfig.defaultCores.value)), 
+        Memory.inGb(orDefault(mem, ugerConfig.defaultMemoryPerCore.gb)), 
+        CpuTime.inHours(orDefault(maxRunTime, ugerConfig.defaultMaxRunTime.hours)))
     
     val env = Environment.Uger(settings)
     

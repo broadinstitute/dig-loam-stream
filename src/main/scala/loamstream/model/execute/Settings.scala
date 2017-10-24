@@ -27,7 +27,7 @@ final case class UgerSettings(
     queue: Queue = UgerDefaults.queue) extends Settings
     
 object UgerSettings {
-  val Defaults: UgerSettings = UgerSettings(UgerDefaults.cores, UgerDefaults.memoryPerCore)
+  //val Defaults: UgerSettings = UgerSettings(UgerDefaults.cores, UgerDefaults.memoryPerCore)
   
   def from(ugerConfig: UgerConfig): UgerSettings = {
     import ugerConfig._

@@ -12,13 +12,6 @@ import loamstream.model.quantities.CpuTime
  * Oct 12, 2017
  */
 final class SettingsTest extends FunSuite {
-  test("UgerSettings.Defaults") {
-    assert(UgerSettings.Defaults.cores === UgerDefaults.cores)
-    assert(UgerSettings.Defaults.memoryPerCore === UgerDefaults.memoryPerCore)
-    assert(UgerSettings.Defaults.maxRunTime === UgerDefaults.maxRunTime)
-    assert(UgerSettings.Defaults.queue === UgerDefaults.queue)
-  }
-  
   test("UgerSettings constructor defaults") {
     {
       val lotsOfCpus = Cpus(42)

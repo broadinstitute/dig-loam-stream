@@ -43,15 +43,14 @@ final class UgerSettingsTest extends FunSuite {
   }
   
   test("from - defaults") {
-    //NB: loamstream.uger block in loamstream-test.conf, loaded by TestHelpers.config, doesn't contain 
-    //cores/mem/maxruntime params, so defaults will be used.
+    //NB: from loamstream.uger block in loamstream-test.conf
     val ugerConfig = TestHelpers.config.ugerConfig.get
     
     val settings = UgerSettings.from(ugerConfig)
     
-    assert(settings.cores === UgerDefaults.cores)
-    assert(settings.memoryPerCore === UgerDefaults.memoryPerCore)
-    assert(settings.maxRunTime === UgerDefaults.maxRunTime)
+    assert(settings.cores === Cpus(2))
+    assert(settings.memoryPerCore === Memory.inGb(3))
+    assert(settings.maxRunTime === CpuTime.inHours(4))
     assert(settings.queue === UgerDefaults.queue)
   }
   

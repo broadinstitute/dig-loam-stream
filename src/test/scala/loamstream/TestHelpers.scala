@@ -31,6 +31,7 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.OutputRecord
 import loamstream.util.Sequence
+import loamstream.model.execute.UgerSettings
 
 /**
   * @author clint
@@ -39,9 +40,9 @@ import loamstream.util.Sequence
 object TestHelpers {
   def path(p: String): Path = Paths.get(p)
 
-  val approxDoublePrecision = 1e-16
-  val graceFactor = 20
-  val tolerance = graceFactor * approxDoublePrecision
+  val approxDoublePrecision: Double = 1e-16
+  val graceFactor: Int = 20
+  val tolerance: Double = graceFactor * approxDoublePrecision
 
   val alwaysRestart: LJob => Boolean = _ => true
   val neverRestart: LJob => Boolean = _ => false
@@ -78,7 +79,6 @@ object TestHelpers {
   def executionFrom(status: JobStatus,
                     result: Option[JobResult] = None,
                     resources: Option[Resources] = None): Execution = {
-
     Execution(
         id = None,
         env = env,
@@ -130,4 +130,13 @@ object TestHelpers {
   def loamEngine: LoamEngine = LoamEngine.default(config)
 
   def compile(loamCode: String): LoamCompiler.Result = loamEngine.compile(loamCode)
+  
+  val defaultUgerSettings: UgerSettings = {
+    val ugerConfig = config.ugerConfig.get 
+
+    UgerSettings(
+      ugerConfig.defaultCores,
+      ugerConfig.defaultMemoryPerCore,
+      ugerConfig.defaultMaxRunTime)
+  }
 }

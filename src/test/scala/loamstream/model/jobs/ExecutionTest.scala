@@ -30,7 +30,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val status0 = JobStatus.fromExitCode(result0.exitCode)
     val status1 = JobStatus.Succeeded
     
-    val job0 = CommandLineStringJob("foo", path("."), Environment.Uger(UgerSettings.Defaults))
+    val job0 = CommandLineStringJob("foo", path("."), Environment.Uger(TestHelpers.defaultUgerSettings))
     val job1 = MockJob(status1)
     
     val e0 = Execution.from(job0, status0, Option(result0))

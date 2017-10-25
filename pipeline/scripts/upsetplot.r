@@ -6,19 +6,14 @@ parser$add_argument("--type", choices=c("bim","fam"), dest="type", type="charact
 parser$add_argument("--out", dest="out", type="character", help="an output filename ending in '.png' or '.pdf'")
 args<-parser$parse_args()
 
-print(args)
+#print(args)
 
 library(UpSetR)
-args<-c()
-args$input<-"metabochip___/humgen/diabetes2/users/mvg/portal/aspera/SN0117470/FUSION_metabochip_portal.fam,gwas___/humgen/diabetes2/users/mvg/portal/aspera/SN0117470/FUSION_GWAS_portal.fam,ex_cidr___/humgen/diabetes2/users/mvg/portal/aspera/SN0117470/FUSION_exomechip_CIDR_portal.fam,ex_broad___/humgen/diabetes2/users/mvg/portal/aspera/SN0117470/FUSION_exomechip_Broad_portal.fam"
-args$type<-"fam"
-args$out<-"test.pdf"
 
 ids<-list()
 for(inp in unlist(strsplit(args$input,","))) {
 	l<-unlist(strsplit(inp,"___"))[1]
 	f<-unlist(strsplit(inp,"___"))[2]
-	print(f)
 	tbl<-read.table(f,header=F,as.is=T,stringsAsFactors=F)
 	if(args$type == "fam") {
 		ids[[l]]<-tbl[,2]
@@ -29,11 +24,10 @@ for(inp in unlist(strsplit(args$input,","))) {
 		stop(paste("file type ",args$type," not supported",sep=""))
 	}
 }
-
-if(unlist(strsplit(args$out,"\\."))[-1] == "pdf") {
+if(unlist(strsplit(args$out,"\\."))[length(unlist(strsplit(args$out,"\\.")))] == "pdf") {
 	pdf(args$out,width=0,height=0,paper="a4r",onefile=FALSE)
 } else {
-	png(args$out,width=5,height=4,units="in",res=300)
+	stop(paste("output extension ",unlist(strsplit(args$out,"\\."))[length(unlist(strsplit(args$out,"\\.")))]," not supported",sep=""))
 }
-upset(fromList(ids), order.by = "freq", main.bar.color="#1F76B4", sets.bar.color="#16BE72", line.size=1, number.angles = 30, point.size = 8, empty.intersections = NULL, mainbar.y.label = "Intersection Size", sets.x.label = "Set Size", text.scale = c(3, 3, 2, 2, 3, 3))
+upset(fromList(ids), order.by = "freq", main.bar.color="#1F76B4", sets.bar.color="#16BE72", line.size=1, number.angles = 0, point.size = 8, empty.intersections = NULL, mainbar.y.label = "Intersection Size", sets.x.label = "Set Size", text.scale = c(3, 3, 2, 2, 3, 3))
 dev.off()

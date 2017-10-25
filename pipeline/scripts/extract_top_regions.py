@@ -47,6 +47,7 @@ def main(args=None):
 			out.loc[index,'top_variant'] = df_region.loc[df_region[args.p].idxmin(), 'id']
 			out.loc[index,'top_pos'] = df_region.loc[df_region[args.p].idxmin(), args.pos]
 			out.loc[index,'top_pval'] = df_region.loc[df_region[args.p].idxmin(), args.p]
+		out.sort_values(['top_pval'], inplace=True)
 	else:
 		out = pd.DataFrame({'chr': [], 'start': [], 'end': [], 'top_variant': [], 'top_pos': [], 'top_pval': []})
 

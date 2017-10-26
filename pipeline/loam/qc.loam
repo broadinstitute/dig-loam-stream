@@ -533,65 +533,65 @@ andThen {
       plotSigRegions(i)
     }
   }
-}
 
-// Generate qc report files
-val reportQcIntro = store[TXT].at(localOutDir / s"${projectId}.qcreport.intro.tex")
-val reportQcDataSampleUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.pdf")
-val reportQcDataSampleUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.png")
-val reportQcDataVariantUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.pdf")
-val reportQcDataVariantUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.png")
-var arrayDataStrings = Seq[String]()
-var arrayDataFamStrings = Seq[String]()
-var arrayDataBimStrings = Seq[String]()
-val 
-for { 
-  i <- 0 until nArrays
-} {
-  val (_, paramsArr) = Params.paramsByArr(i)
-  arrayDataStrings = arrayDataStrings :+ paramsArr.arrayDataType + "___" + paramsArr.arrayDataPath
-  arrayDataFamStrings = arrayDataFamStrings :+ paramsArr.arrayId + "___" + paramsArr.arrayDataPath + ".fam"
-  arrayDataBimStrings = arrayDataBimStrings :+ paramsArr.arrayId + "___" + paramsArr.harmName + ".bim"
-}
-
-uger {
-
-  cmd"""python $pyGenerateQcReportIntro
-    --id $projectId
-    --authors "$reportAuthors" 
-    --out ${reportQcIntro} 
-    --array-data ${arrayDataStrings.mkString(",")}"""
-    .in(Params.paramsByArrSorted.map(_.arrayData))
-    .out(reportQcIntro)
-
-  cmd"""$binRscript --vanilla --verbose
-    $rUpsetplot
-    --input "${arrayDataFamStrings.mkString(",")}"
-    --type fam
-    --out $reportQcDataSampleUpsetplotPdf
-    """
-    .in(Params.paramsByArrSorted.map(_.arrayData))
-    .out(reportQcDataSampleUpsetplotPdf)
-    .using("R-3.4")
-
-  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataSampleUpsetplotPdf}[0] $reportQcDataSampleUpsetplotPng"""
-    .in(reportQcDataSampleUpsetplotPdf)
-    .out(reportQcDataSampleUpsetplotPng)
-
-  cmd"""$binRscript --vanilla --verbose
-    $rUpsetplot
-    --input "${arrayDataBimStrings.mkString(",")}"
-    --type bim
-    --out $reportQcDataVariantUpsetplotPdf
-    """
-    .in(Params.paramsByArrSorted.flatMap(_.harm))
-    .out(reportQcDataVariantUpsetplotPdf)
-    .using("R-3.4")
-
-  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataVariantUpsetplotPdf}[0] $reportQcDataVariantUpsetplotPng"""
-    .in(reportQcDataVariantUpsetplotPdf)
-    .out(reportQcDataVariantUpsetplotPng)
-
+  // Generate qc report files
+  val reportQcIntro = store[TXT].at(localOutDir / s"${projectId}.qcreport.intro.tex")
+  val reportQcDataSampleUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.pdf")
+  val reportQcDataSampleUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.png")
+  val reportQcDataVariantUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.pdf")
+  val reportQcDataVariantUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.png")
+  var arrayDataStrings = Seq[String]()
+  var arrayDataFamStrings = Seq[String]()
+  var arrayDataBimStrings = Seq[String]()
+  
+  for { 
+    i <- 0 until nArrays
+  } {
+    val (_, paramsArr) = Params.paramsByArr(i)
+    arrayDataStrings = arrayDataStrings :+ paramsArr.arrayDataType + "___" + paramsArr.arrayDataPath
+    arrayDataFamStrings = arrayDataFamStrings :+ paramsArr.arrayId + "___" + paramsArr.arrayDataPath + ".fam"
+    arrayDataBimStrings = arrayDataBimStrings :+ paramsArr.arrayId + "___" + paramsArr.harmName + ".bim"
+  }
+  
+  uger {
+  
+    cmd"""python $pyGenerateQcReportIntro
+      --id $projectId
+      --authors "$reportAuthors" 
+      --out ${reportQcIntro} 
+      --array-data ${arrayDataStrings.mkString(",")}"""
+      .in(Params.paramsByArrSorted.map(_.arrayData))
+      .out(reportQcIntro)
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rUpsetplot
+      --input "${arrayDataFamStrings.mkString(",")}"
+      --type fam
+      --out $reportQcDataSampleUpsetplotPdf
+      """
+      .in(Params.paramsByArrSorted.map(_.arrayData))
+      .out(reportQcDataSampleUpsetplotPdf)
+      .using("R-3.4")
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataSampleUpsetplotPdf}[0] $reportQcDataSampleUpsetplotPng"""
+      .in(reportQcDataSampleUpsetplotPdf)
+      .out(reportQcDataSampleUpsetplotPng)
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rUpsetplot
+      --input "${arrayDataBimStrings.mkString(",")}"
+      --type bim
+      --out $reportQcDataVariantUpsetplotPdf
+      """
+      .in(Params.paramsByArrSorted.flatMap(_.harm))
+      .out(reportQcDataVariantUpsetplotPdf)
+      .using("R-3.4")
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataVariantUpsetplotPdf}[0] $reportQcDataVariantUpsetplotPng"""
+      .in(reportQcDataVariantUpsetplotPdf)
+      .out(reportQcDataVariantUpsetplotPng)
+  
+  }
 }
 
 def qc1(i: Int): Store[TXT] = {
@@ -1162,6 +1162,7 @@ def mergeResults(i: Int): Unit = {
   //    """.in(paramsResult.resultFinal).out(paramsResult.resultFinalSigRegions)
   //}
 
+  
 }
 
 def plotSigRegions(i: Int): Seq[Store[TXT]] = {

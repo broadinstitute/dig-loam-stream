@@ -55,11 +55,18 @@ object LoamRunner {
       
       //Fold over the "stream" of graph chunks, producing job-execution results
       val (jobResults, _) = graphSource.iterator.foldLeft(z) { (state, chunk) =>
+        
         val (jobResultsSoFar, toolsRunSoFar) = state
+        
+        val rawChunkGraph = chunk()
+        
+        debug(s"Made raw chunk graph with ${rawChunkGraph.tools.size} tools and ${rawChunkGraph.stores.size} stores. Tools follow: ${rawChunkGraph.tools}")
         
         //Filter out tools from previous chunks, so we don't run jobs more than necessary, saving
         //the expense of calculating if a job can be skipped.
-        val chunkGraph = chunk().without(toolsRunSoFar)
+        val chunkGraph = rawChunkGraph.without(toolsRunSoFar)
+
+        debug(s"Made filtered chunk graph with ${chunkGraph.tools.size} tools and ${chunkGraph.stores.size} stores. Tools follow: ${chunkGraph.tools}")
         
         //Skip running if there are no new tools
         val jobResults = {

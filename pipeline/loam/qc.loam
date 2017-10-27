@@ -7,7 +7,7 @@ import store_helpers._
 import loamstream.conf.DataConfig
 import loamstream.googlecloud.HailSupport._
 import loamstream.model.Store
-import loamstream.util.Files
+import loamstream.util.CanBeClosed.enclosed
 
 val nChr = endChr - startChr + 1
 val kgSampleId = dataConfig.getStr("kgSampleId")
@@ -119,7 +119,8 @@ object Params {
     resultFinalQqPlot: Store[TXT],
     resultFinalMhtPlot: Store[TXT],
     resultFinalSigRegions: Store[TXT],
-    resultFinalRegplotName: String)
+    resultFinalRegplotBase: String,
+    resultFinalRegplotName: Path)
 
   final case class Arr(
     arrayId: String,
@@ -231,6 +232,7 @@ object Params {
     val resultStrat = assocSeq(result)._5
 
     val covarsString = resultCovars.replace("+","_")
+    val resultFinalRegplotBase = s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.regplot"
 
     result -> Result(
       resultPheno = resultPheno,
@@ -244,7 +246,8 @@ object Params {
       resultFinalQqPlot = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.qq.png"),
       resultFinalMhtPlot = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.mht.png"),
       resultFinalSigRegions = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.sigregions.tsv"),
-      resultFinalRegplotName = s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.regplot")
+      resultFinalRegplotBase = resultFinalRegplotBase,
+      resultFinalRegplotName = localOutDir / resultFinalRegplotBase)
 
   }
 
@@ -534,64 +537,64 @@ andThen {
     }
   }
 
-  // Generate qc report files
-  val reportQcIntro = store[TXT].at(localOutDir / s"${projectId}.qcreport.intro.tex")
-  val reportQcDataSampleUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.pdf")
-  val reportQcDataSampleUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.png")
-  val reportQcDataVariantUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.pdf")
-  val reportQcDataVariantUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.png")
-  var arrayDataStrings = Seq[String]()
-  var arrayDataFamStrings = Seq[String]()
-  var arrayDataBimStrings = Seq[String]()
-  
-  for { 
-    i <- 0 until nArrays
-  } {
-    val (_, paramsArr) = Params.paramsByArr(i)
-    arrayDataStrings = arrayDataStrings :+ paramsArr.arrayDataType + "___" + paramsArr.arrayDataPath
-    arrayDataFamStrings = arrayDataFamStrings :+ paramsArr.arrayId + "___" + paramsArr.arrayDataPath + ".fam"
-    arrayDataBimStrings = arrayDataBimStrings :+ paramsArr.arrayId + "___" + paramsArr.harmName + ".bim"
-  }
-  
-  uger {
-  
-    cmd"""python $pyGenerateQcReportIntro
-      --id $projectId
-      --authors "$reportAuthors" 
-      --out ${reportQcIntro} 
-      --array-data ${arrayDataStrings.mkString(",")}"""
-      .in(Params.paramsByArrSorted.map(_.arrayData))
-      .out(reportQcIntro)
-  
-    cmd"""$binRscript --vanilla --verbose
-      $rUpsetplot
-      --input "${arrayDataFamStrings.mkString(",")}"
-      --type fam
-      --out $reportQcDataSampleUpsetplotPdf
-      """
-      .in(Params.paramsByArrSorted.map(_.arrayData))
-      .out(reportQcDataSampleUpsetplotPdf)
-      .using("R-3.4")
-  
-    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataSampleUpsetplotPdf}[0] $reportQcDataSampleUpsetplotPng"""
-      .in(reportQcDataSampleUpsetplotPdf)
-      .out(reportQcDataSampleUpsetplotPng)
-  
-    cmd"""$binRscript --vanilla --verbose
-      $rUpsetplot
-      --input "${arrayDataBimStrings.mkString(",")}"
-      --type bim
-      --out $reportQcDataVariantUpsetplotPdf
-      """
-      .in(Params.paramsByArrSorted.flatMap(_.harm))
-      .out(reportQcDataVariantUpsetplotPdf)
-      .using("R-3.4")
-  
-    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataVariantUpsetplotPdf}[0] $reportQcDataVariantUpsetplotPng"""
-      .in(reportQcDataVariantUpsetplotPdf)
-      .out(reportQcDataVariantUpsetplotPng)
-  
-  }
+  //// Generate qc report files
+  //val reportQcIntro = store[TXT].at(localOutDir / s"${projectId}.qcreport.intro.tex")
+  //val reportQcDataSampleUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.pdf")
+  //val reportQcDataSampleUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.png")
+  //val reportQcDataVariantUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.pdf")
+  //val reportQcDataVariantUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.png")
+  //var arrayDataStrings = Seq[String]()
+  //var arrayDataFamStrings = Seq[String]()
+  //var arrayDataBimStrings = Seq[String]()
+  //
+  //for { 
+  //  i <- 0 until nArrays
+  //} {
+  //  val (_, paramsArr) = Params.paramsByArr(i)
+  //  arrayDataStrings = arrayDataStrings :+ paramsArr.arrayDataType + "___" + paramsArr.arrayDataPath
+  //  arrayDataFamStrings = arrayDataFamStrings :+ paramsArr.arrayId + "___" + paramsArr.arrayDataPath + ".fam"
+  //  arrayDataBimStrings = arrayDataBimStrings :+ paramsArr.arrayId + "___" + paramsArr.harmName + ".bim"
+  //}
+  //
+  //uger {
+  //
+  //  cmd"""python $pyGenerateQcReportIntro
+  //    --id $projectId
+  //    --authors "$reportAuthors" 
+  //    --out ${reportQcIntro} 
+  //    --array-data ${arrayDataStrings.mkString(",")}"""
+  //    .in(Params.paramsByArrSorted.map(_.arrayData))
+  //    .out(reportQcIntro)
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rUpsetplot
+  //    --input "${arrayDataFamStrings.mkString(",")}"
+  //    --type fam
+  //    --out $reportQcDataSampleUpsetplotPdf
+  //    """
+  //    .in(Params.paramsByArrSorted.map(_.arrayData))
+  //    .out(reportQcDataSampleUpsetplotPdf)
+  //    .using("R-3.4")
+  //
+  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataSampleUpsetplotPdf}[0] $reportQcDataSampleUpsetplotPng"""
+  //    .in(reportQcDataSampleUpsetplotPdf)
+  //    .out(reportQcDataSampleUpsetplotPng)
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rUpsetplot
+  //    --input "${arrayDataBimStrings.mkString(",")}"
+  //    --type bim
+  //    --out $reportQcDataVariantUpsetplotPdf
+  //    """
+  //    .in(Params.paramsByArrSorted.flatMap(_.harm))
+  //    .out(reportQcDataVariantUpsetplotPdf)
+  //    .using("R-3.4")
+  //
+  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataVariantUpsetplotPdf}[0] $reportQcDataVariantUpsetplotPng"""
+  //    .in(reportQcDataVariantUpsetplotPdf)
+  //    .out(reportQcDataVariantUpsetplotPng)
+  //
+  //}
 }
 
 def qc1(i: Int): Store[TXT] = {
@@ -1169,29 +1172,37 @@ def plotSigRegions(i: Int): Seq[Store[TXT]] = {
 
   val (_, paramsResult) = Params.paramsByResult(i)
   var resultsFinalRegplotList = Seq[Store[TXT]]()
+  val regions: Seq[String] = {
+    enclosed(scala.io.Source.fromFile(paramsResult.resultFinalSigRegions.path.toFile)) { 
+      _.getLines.filter(_.trim.nonEmpty).toIndexedSeq
+    }
+  }
 
-  uger {
-    val regions = Files.readFrom(paramsResult.resultFinalSigRegions.path).split(System.lineSeparator)
-  
+  local {
     for (region <- regions) {
 
       val regionChr = region.split("\t")(0)
       val regionStart = region.split("\t")(1)
       val regionEnd = region.split("\t")(2)
-      val resultsFinalRegplotPdf = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotName}_chr${regionChr}_${regionStart}_${regionEnd}.pdf")
-      val resultsFinalRegplotPng = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotName}_chr${regionChr}_${regionStart}_${regionEnd}.png")
-  
-      cmd"""pcol=`tabix -H tabix ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; 
-        (echo -e "id\tpval"; tabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') | $binLocuszoom --metal - --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --plotonly --no-date --prefix ${paramsResult.resultFinalRegplotName} --cache None"""
+      val resultsFinalRegplotData = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}_${regionEnd}.data.tsv")
+      val resultsFinalRegplotLog = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}_${regionEnd}.locuszoom.log")
+      val resultsFinalRegplotPdf = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}-${regionEnd}" / s"chr${regionChr}_${regionStart}-${regionEnd}.pdf")
+      val resultsFinalRegplotPng = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}_${regionEnd}.png")
+
+      cmd"""pcol=`$binTabix -H ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; (echo -e "id\tpval"; $binTabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') > ${resultsFinalRegplotData}"""
         .in(paramsResult.resultFinal)
-        .out(resultsFinalRegplotPdf)
+        .out(resultsFinalRegplotData)
+
+      cmd"""$binLocuszoom --metal ${resultsFinalRegplotData} --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --no-date --prefix ${paramsResult.resultFinalRegplotName} --cache None  > ${resultsFinalRegplotLog}"""
+        .in(resultsFinalRegplotData)
+        .out(resultsFinalRegplotPdf, resultsFinalRegplotLog)
   
       cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${resultsFinalRegplotPdf}[0] $resultsFinalRegplotPng"""
         .in(resultsFinalRegplotPdf)
         .out(resultsFinalRegplotPng)
 
       resultsFinalRegplotList = resultsFinalRegplotList :+ resultsFinalRegplotPng
-  
+
     }
   }
 

@@ -8,7 +8,7 @@ import loamstream.dag.vis.grid.DagGridLayout.NodeRow
   * LoamStream
   * Created by oliverr on 10/17/2017.
   */
-class DagGridLayoutBuilder extends DagLayout.Builder[DagGridLayout] {
+case class DagGridLayoutBuilder(nCols: Int) extends DagLayout.Builder[DagGridLayout] {
   override def build(dag: Dag) = {
     val nodeRows : Seq[NodeRow] = Seq.empty
 

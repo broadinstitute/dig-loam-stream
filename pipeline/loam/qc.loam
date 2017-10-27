@@ -73,9 +73,12 @@ object Params {
     kgVcfChr: Store[VCF],
     kgLegendChr: Store[TXT],
     humanReference: Store[TXT],
-    harmKgChrRemove: Store[TXT],
-    harmKgChrNonKgFlip: Store[TXT],
-    harmKgChrForceA1: Store[TXT],
+    harmNonKgChrRemove: Store[TXT],
+    harmNonKgChrIgnore: Store[TXT],
+    harmNonKgChrMono: Store[TXT],
+    harmNonKgChrNomatch: Store[TXT],
+    harmNonKgChrFlip: Store[TXT],
+    harmNonKgChrForceA1: Store[TXT],
     harmKgChrVarIdUpdate: Store[TXT],
     harmKgChrVarSnpLog: Store[TXT],
     harmMergeLine: String)
@@ -129,7 +132,15 @@ object Params {
     arrayData: Store[TXT],
     harmName: Path,
     harm: Seq[Store[TXT]],
+    harmNonKgRemove: Store[TXT],
+    harmNonKgIgnore: Store[TXT],
+    harmNonKgMono: Store[TXT],
+    harmNonKgNomatch: Store[TXT],
+    harmNonKgFlip: Store[TXT],
+    harmNonKgForceA1: Store[TXT],
+    harmKgVarSnpLog: Store[TXT],
     harmRefName: Path,
+    harmRef: Seq[Store[TXT]],
     harmRefVcf: Store[VCF],
     harmRefVcfCloud: Store[VCF],
     harmRefVcfTbi: Store[TXT],
@@ -294,9 +305,12 @@ object Params {
         kgVcfChr = kgVcfChr,
         kgLegendChr = kgLegendChr,
         humanReference = humanReference,
-        harmKgChrRemove = store[TXT].at(localOutDir / s"${harmKgChrBase}.remove"),
-        harmKgChrNonKgFlip = store[TXT].at(localOutDir / s"${harmKgChrBase}.nonkg.flip"),
-        harmKgChrForceA1 = store[TXT].at(localOutDir / s"${harmKgChrBase}.force_a1"),
+        harmNonKgChrRemove = store[TXT].at(localOutDir / s"${harmKgChrBase}.nonkg.remove"),
+        harmNonKgChrIgnore = store[TXT].at(localOutDir / s"${harmKgChrBase}.nonkg.ignore"),
+        harmNonKgChrMono = store[TXT].at(localOutDir / s"${harmKgChrBase}.nonkg.mono"),
+        harmNonKgChrNomatch = store[TXT].at(localOutDir / s"${harmKgChrBase}.nonkg.nomatch"),
+        harmNonKgChrFlip = store[TXT].at(localOutDir / s"${harmKgChrBase}.nonkg.flip"),
+        harmNonKgChrForceA1 = store[TXT].at(localOutDir / s"${harmKgChrBase}.nonkg.force_a1"),
         harmKgChrVarIdUpdate = store[TXT].at(localOutDir / s"${harmKgChrBase}_idUpdates.txt"),
         harmKgChrVarSnpLog = store[TXT].at(localOutDir / s"${harmKgChrBase}_snpLog.log"),
         harmMergeLine = s"${localOutDir}/${harmKgChrBase}")
@@ -353,6 +367,7 @@ object Params {
     val harmBase = s"${projectId}.${arrayId}.harm"
     val harmName = localOutDir / harmBase
     val harmRefBase = s"${harmBase}.ref"
+    val harmRefName = localOutDir / harmRefBase
     val harmRefFiltBase = s"${harmRefBase}.filt"
     val harmRefFiltPrunedBase = s"${harmRefFiltBase}.pruned"
     val harmRefFiltPrunedName = localOutDir / harmRefFiltPrunedBase
@@ -392,7 +407,15 @@ object Params {
     paramsByArrByMetric = paramsByArrByMetric,
     harmName = harmName,
     harm = bedBimFam(harmName),
-    harmRefName = localOutDir / harmRefBase,
+    harmRefName = harmRefName,
+    harmNonKgRemove = store[TXT].at(localOutDir / s"${harmBase}.nonkg.variants.removed.txt"),
+    harmNonKgIgnore = store[TXT].at(localOutDir / s"${harmBase}.nonkg.variants.ignored.txt"),
+    harmNonKgMono = store[TXT].at(localOutDir / s"${harmBase}.nonkg.variants.removed_mono.txt"),
+    harmNonKgNomatch = store[TXT].at(localOutDir / s"${harmBase}.nonkg.variants.removed_nomatch.txt"),
+    harmNonKgFlip = store[TXT].at(localOutDir / s"${harmBase}.nonkg.variants.flipped.txt"),
+    harmNonKgForceA1 = store[TXT].at(localOutDir / s"${harmBase}.nonkg.variants.forced_a1.txt"),
+    harmKgVarSnpLog = store[TXT].at(localOutDir / s"${harmBase}_snpLog.log"),
+	harmRef = bedBimFam(harmRefName),
     harmRefVcf = store[VCF].at(localOutDir / s"${harmRefBase}.vcf.gz"),
     harmRefVcfCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vcf.gz"),
     harmRefVcfTbi = store[TXT].at(localOutDir / s"${harmRefBase}.vcf.gz.tbi"),
@@ -503,13 +526,13 @@ val ancestryInferredMerged = store[TXT].at(localOutDir / s"${projectId}.ancestry
 val ancestryInferredMergedCloud = store[TXT].at(googleOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
 val ancestryInferredMergedOutliers = store[TXT].at(localOutDir / s"${projectId}.ancestry.inferred.merged.outliers.tsv")
 
-local {
-  cmd"""$binRscript --vanilla --verbose
-    $rAncestryClusterMerge
-    --ancestry-in $ancestryInferredPathList
-    --out-table ${ancestryInferredMerged}
-    --out-outliers ${ancestryInferredMergedOutliers}""".in(ancestryInferredStores).out(ancestryInferredMerged, ancestryInferredMergedOutliers).using("R-3.4")
-}
+//local {
+//  cmd"""$binRscript --vanilla --verbose
+//    $rAncestryClusterMerge
+//    --ancestry-in $ancestryInferredPathList
+//    --out-table ${ancestryInferredMerged}
+//    --out-outliers ${ancestryInferredMergedOutliers}""".in(ancestryInferredStores).out(ancestryInferredMerged, ancestryInferredMergedOutliers).using("R-3.4")
+//}
 
 // Perform qc2, adding relevent (inter-array) stores to the map
 val resultsStoresMapsList: Seq[Map[(String, String, String, String, String), Store[TXT]]] = {
@@ -537,64 +560,64 @@ andThen {
     }
   }
 
-  //// Generate qc report files
-  //val reportQcIntro = store[TXT].at(localOutDir / s"${projectId}.qcreport.intro.tex")
-  //val reportQcDataSampleUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.pdf")
-  //val reportQcDataSampleUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.png")
-  //val reportQcDataVariantUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.pdf")
-  //val reportQcDataVariantUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.png")
-  //var arrayDataStrings = Seq[String]()
-  //var arrayDataFamStrings = Seq[String]()
-  //var arrayDataBimStrings = Seq[String]()
-  //
-  //for { 
-  //  i <- 0 until nArrays
-  //} {
-  //  val (_, paramsArr) = Params.paramsByArr(i)
-  //  arrayDataStrings = arrayDataStrings :+ paramsArr.arrayDataType + "___" + paramsArr.arrayDataPath
-  //  arrayDataFamStrings = arrayDataFamStrings :+ paramsArr.arrayId + "___" + paramsArr.arrayDataPath + ".fam"
-  //  arrayDataBimStrings = arrayDataBimStrings :+ paramsArr.arrayId + "___" + paramsArr.harmName + ".bim"
-  //}
-  //
-  //uger {
-  //
-  //  cmd"""python $pyGenerateQcReportIntro
-  //    --id $projectId
-  //    --authors "$reportAuthors" 
-  //    --out ${reportQcIntro} 
-  //    --array-data ${arrayDataStrings.mkString(",")}"""
-  //    .in(Params.paramsByArrSorted.map(_.arrayData))
-  //    .out(reportQcIntro)
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rUpsetplot
-  //    --input "${arrayDataFamStrings.mkString(",")}"
-  //    --type fam
-  //    --out $reportQcDataSampleUpsetplotPdf
-  //    """
-  //    .in(Params.paramsByArrSorted.map(_.arrayData))
-  //    .out(reportQcDataSampleUpsetplotPdf)
-  //    .using("R-3.4")
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataSampleUpsetplotPdf}[0] $reportQcDataSampleUpsetplotPng"""
-  //    .in(reportQcDataSampleUpsetplotPdf)
-  //    .out(reportQcDataSampleUpsetplotPng)
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rUpsetplot
-  //    --input "${arrayDataBimStrings.mkString(",")}"
-  //    --type bim
-  //    --out $reportQcDataVariantUpsetplotPdf
-  //    """
-  //    .in(Params.paramsByArrSorted.flatMap(_.harm))
-  //    .out(reportQcDataVariantUpsetplotPdf)
-  //    .using("R-3.4")
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataVariantUpsetplotPdf}[0] $reportQcDataVariantUpsetplotPng"""
-  //    .in(reportQcDataVariantUpsetplotPdf)
-  //    .out(reportQcDataVariantUpsetplotPng)
-  //
-  //}
+  // Generate qc report files
+  val reportQcIntro = store[TXT].at(localOutDir / s"${projectId}.qcreport.intro.tex")
+  val reportQcDataSampleUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.pdf")
+  val reportQcDataSampleUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.png")
+  val reportQcDataVariantUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.pdf")
+  val reportQcDataVariantUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.png")
+  var arrayDataStrings = Seq[String]()
+  var harmRefFamStrings = Seq[String]()
+  var harmRefBimStrings = Seq[String]()
+  
+  for { 
+    i <- 0 until nArrays
+  } {
+    val (_, paramsArr) = Params.paramsByArr(i)
+    arrayDataStrings = arrayDataStrings :+ paramsArr.arrayDataType + "___" + paramsArr.arrayDataPath
+    harmRefFamStrings = harmRefFamStrings :+ paramsArr.arrayId + "___" + paramsArr.harmRefName + ".fam"
+    harmRefBimStrings = harmRefBimStrings :+ paramsArr.arrayId + "___" + paramsArr.harmRefName + ".bim"
+  }
+  
+  uger {
+  
+    cmd"""python $pyGenerateQcReportIntro
+      --id $projectId
+      --authors "$reportAuthors" 
+      --out ${reportQcIntro} 
+      --array-data ${arrayDataStrings.mkString(",")}"""
+      .in(Params.paramsByArrSorted.map(_.arrayData))
+      .out(reportQcIntro)
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rUpsetplot
+      --input "${harmRefFamStrings.mkString(",")}"
+      --type fam
+      --out $reportQcDataSampleUpsetplotPdf
+      """
+      .in(Params.paramsByArrSorted.map(_.arrayData))
+      .out(reportQcDataSampleUpsetplotPdf)
+      .using("R-3.4")
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataSampleUpsetplotPdf}[0] $reportQcDataSampleUpsetplotPng"""
+      .in(reportQcDataSampleUpsetplotPdf)
+      .out(reportQcDataSampleUpsetplotPng)
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rUpsetplot
+      --input "${harmRefBimStrings.mkString(",")}"
+      --type bim
+      --out $reportQcDataVariantUpsetplotPdf
+      """
+      .in(Params.paramsByArrSorted.flatMap(_.harm))
+      .out(reportQcDataVariantUpsetplotPdf)
+      .using("R-3.4")
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcDataVariantUpsetplotPdf}[0] $reportQcDataVariantUpsetplotPng"""
+      .in(reportQcDataVariantUpsetplotPdf)
+      .out(reportQcDataVariantUpsetplotPng)
+  
+  }
 }
 
 def qc1(i: Int): Store[TXT] = {
@@ -634,23 +657,26 @@ def qc1(i: Int): Store[TXT] = {
   //    --debug"""
   //      .in(paramsChr.rawChr :+ paramsChr.kgVcfChr)
   //      .out(paramsChr.harmKgChr :+ paramsChr.harmKgChrVarIdUpdate :+ paramsChr.harmKgChrVarSnpLog)
-  //
+  //  
   //    cmd"""python $pyAlignNon1kgVariants
   //    --legend ${paramsChr.kgLegendChr}
   //    --bim ${paramsChr.harmKgChrName}.bim
   //    --ref ${paramsChr.humanReference}
-  //    --out-remove ${paramsChr.harmKgChrRemove}
-  //    --out-flip ${paramsChr.harmKgChrNonKgFlip}
-  //    --out-force-a1 ${paramsChr.harmKgChrForceA1}"""
+  //    --out-remove ${paramsChr.harmNonKgChrRemove}
+  //    --out-ignore ${paramsChr.harmNonKgChrIgnore}
+  //    --out-mono ${paramsChr.harmNonKgChrMono}
+  //    --out-nomatch ${paramsChr.harmNonKgChrNomatch}
+  //    --out-flip ${paramsChr.harmNonKgChrFlip}
+  //    --out-force-a1 ${paramsChr.harmNonKgChrForceA1}"""
   //      .in(paramsChr.harmKgChr :+ paramsChr.kgLegendChr)
-  //      .out(paramsChr.harmKgChrNonKgFlip, paramsChr.harmKgChrForceA1)
-  //
-  //    cmd"""$binPlink --bfile ${paramsChr.harmKgChrName} --exclude ${paramsChr.harmKgChrRemove} --flip ${paramsChr.harmKgChrNonKgFlip} --a1-allele ${paramsChr.harmKgChrForceA1} --make-bed --out ${paramsChr.harmKgHuRefChrName}"""
-  //      .in(paramsChr.harmKgChr :+ paramsChr.harmKgChrRemove :+ paramsChr.harmKgChrNonKgFlip :+ paramsChr.harmKgChrForceA1)
+  //      .out(paramsChr.harmNonKgChrRemove, paramsChr.harmNonKgChrIgnore, paramsChr.harmNonKgChrMono,paramsChr.harmNonKgChrNomatch, paramsChr.harmNonKgChrFlip, paramsChr.harmNonKgChrForceA1)
+  //  
+  //    cmd"""$binPlink --bfile ${paramsChr.harmKgChrName} --exclude ${paramsChr.harmNonKgChrRemove} --flip ${paramsChr.harmNonKgChrFlip} --a1-allele ${paramsChr.harmNonKgChrForceA1} --make-bed --out ${paramsChr.harmKgHuRefChrName}"""
+  //      .in(paramsChr.harmKgChr :+ paramsChr.harmNonKgChrRemove :+ paramsChr.harmNonKgChrFlip :+ paramsChr.harmNonKgChrForceA1)
   //      .out(paramsChr.harmKgHuRefChr)
-  //
+  //  
   //  }
-  //
+  //  
   //  val harmMergeLinesConcat: String = paramsArr.harmMergeLines
   //    .drop(1)
   //    .mkString("\n") // Exclude first chrom
@@ -665,7 +691,11 @@ def qc1(i: Int): Store[TXT] = {
   //  cmd"""awk '{print $$2,$$5}' ${paramsArr.harmName}.bim > ${paramsArr.harmForceA2}"""
   //    .in(paramsArr.harm)
   //    .out(paramsArr.harmForceA2)
-  //  
+  //
+  //  cmd"""$binPlink --bfile ${paramsArr.harmName} --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --make-bed --out ${paramsArr.harmRefName}"""
+  //    .in(paramsArr.harm :+ paramsArr.harmForceA2)
+  //    .out(paramsArr.harmRef)
+  //
   //  cmd"""$binPlink --bfile ${paramsArr.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --out ${paramsArr.harmRefName}"""
   //    .in(paramsArr.harm :+ paramsArr.harmForceA2)
   //    .out(paramsArr.harmRefVcf)
@@ -673,6 +703,33 @@ def qc1(i: Int): Store[TXT] = {
   //  cmd"""$binTabix -f -p vcf ${paramsArr.harmRefVcf}"""
   //    .in(paramsArr.harmRefVcf)
   //    .out(paramsArr.harmRefVcfTbi)
+  //  
+  //  val harmNonKgChrRemoveString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrRemove.toString.split("@")(1)}"""}.mkString(",")
+  //  val harmNonKgChrMonoString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrMono.toString.split("@")(1)}"""}.mkString(",")
+  //  val harmNonKgChrNomatchString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrNomatch.toString.split("@")(1)}"""}.mkString(",")
+  //  val harmNonKgChrIgnoreString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrIgnore.toString.split("@")(1)}"""}.mkString(",")
+  //  val harmNonKgChrFlipString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrFlip.toString.split("@")(1)}"""}.mkString(",")
+  //  val harmNonKgChrForceA1String = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrForceA1.toString.split("@")(1)}"""}.mkString(",")
+  //  val harmKgChrVarSnpLogString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmKgChrVarSnpLog.toString.split("@")(1)}"""}.mkString(",")
+  //  
+  //  cmd"""python $pyMergeVariantLists
+  //    --remove-in "$harmNonKgChrRemoveString"
+  //    --remove-mono-in "$harmNonKgChrMonoString"
+  //    --remove-nomatch-in "$harmNonKgChrNomatchString"
+  //    --ignore-in "$harmNonKgChrIgnoreString"
+  //    --flip-in "$harmNonKgChrFlipString"
+  //    --force-a1-in "$harmNonKgChrForceA1String"
+  //    --snp-log-in "$harmKgChrVarSnpLogString"
+  //    --remove-out ${paramsArr.harmNonKgRemove}
+  //    --remove-mono-out ${paramsArr.harmNonKgMono}
+  //    --remove-nomatch-out ${paramsArr.harmNonKgNomatch}
+  //    --ignore-out ${paramsArr.harmNonKgIgnore}
+  //    --flip-out ${paramsArr.harmNonKgFlip}
+  //    --force-a1-out ${paramsArr.harmNonKgForceA1}
+  //    --snp-log-out ${paramsArr.harmKgVarSnpLog}
+  //    """
+  //    .in(paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrRemove))
+  //    .out(paramsArr.harmNonKgRemove, paramsArr.harmNonKgNomatch, paramsArr.harmNonKgMono, paramsArr.harmNonKgIgnore, paramsArr.harmNonKgFlip, paramsArr.harmNonKgForceA1, paramsArr.harmKgVarSnpLog)
   //}
   //
   ///**
@@ -1189,17 +1246,17 @@ def plotSigRegions(i: Int): Seq[Store[TXT]] = {
       val resultsFinalRegplotPdf = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}-${regionEnd}" / s"chr${regionChr}_${regionStart}-${regionEnd}.pdf")
       val resultsFinalRegplotPng = store[TXT].at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}_${regionEnd}.png")
 
-      cmd"""pcol=`$binTabix -H ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; (echo -e "id\tpval"; $binTabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') > ${resultsFinalRegplotData}"""
-        .in(paramsResult.resultFinal)
-        .out(resultsFinalRegplotData)
-
-      cmd"""$binLocuszoom --metal ${resultsFinalRegplotData} --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --no-date --prefix ${paramsResult.resultFinalRegplotName} --cache None  > ${resultsFinalRegplotLog}"""
-        .in(resultsFinalRegplotData)
-        .out(resultsFinalRegplotPdf, resultsFinalRegplotLog)
-  
-      cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${resultsFinalRegplotPdf}[0] $resultsFinalRegplotPng"""
-        .in(resultsFinalRegplotPdf)
-        .out(resultsFinalRegplotPng)
+      //cmd"""pcol=`$binTabix -H ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; (echo -e "id\tpval"; $binTabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') > ${resultsFinalRegplotData}"""
+      //  .in(paramsResult.resultFinal)
+      //  .out(resultsFinalRegplotData)
+      //
+      //cmd"""$binLocuszoom --metal ${resultsFinalRegplotData} --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --no-date --prefix ${paramsResult.resultFinalRegplotName} --cache None  > ${resultsFinalRegplotLog}"""
+      //  .in(resultsFinalRegplotData)
+      //  .out(resultsFinalRegplotPdf, resultsFinalRegplotLog)
+      //
+      //cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${resultsFinalRegplotPdf}[0] $resultsFinalRegplotPng"""
+      //  .in(resultsFinalRegplotPdf)
+      //  .out(resultsFinalRegplotPng)
 
       resultsFinalRegplotList = resultsFinalRegplotList :+ resultsFinalRegplotPng
 

@@ -62,7 +62,7 @@ def main(args=None):
 		if bima1 + bima2 not in ["AT","TA","GC","CG"]:
 			if bima1 == "0" or bima2 == "0":
 				print str(idx) + " " + bima1 + "/" + bima2 + " " + ref + " : remove"
-				bim.loc[idx,'status'] = "remove"
+				bim.loc[idx,'status'] = "remove_mono"
 			else:
 				if bima1 == ref:
 					print str(idx) + " " + bima1 + "/" + bima2 + " " + ref + " : match"
@@ -82,11 +82,14 @@ def main(args=None):
 					bim.loc[idx,'status'] = "flip_reverse"
 				else:
 					print str(idx) + " " + bima1 + "/" + bima2 + " " + ref + " : remove"
-					bim.loc[idx,'status'] = "remove"
+					bim.loc[idx,'status'] = "remove_nomatch"
 
-	bim['rsid'][bim['status'] == "remove"].to_csv(args.out_remove, header=False, index=False)
+	bim['rsid'][bim['status'].isin(["remove_mono","remove_nomatch"])].to_csv(args.out_remove, header=False, index=False)
+	bim['rsid'][bim['status'] == "remove_mono"].to_csv(args.out_mono, header=False, index=False)
+	bim['rsid'][bim['status'] == "remove_nomatch"].to_csv(args.out_nomatch, header=False, index=False)
+	bim['rsid'][bim['status'] == "ignore"].to_csv(args.out_ignore, header=False, index=False)
 	bim['rsid'][bim['status'].isin(["flip","flip_reverse"])].to_csv(args.out_flip, header=False, index=False)
-	bim = bim[bim['status'] != "remove"].reset_index(drop=True)
+	bim = bim[~bim['status'].isin(["remove_mono","remove_nomatch"])].reset_index(drop=True)
 	bim[['rsid','ref']].to_csv(args.out_force_a1, header=False, index=False, sep=" ")
 
 if __name__ == "__main__":
@@ -96,6 +99,9 @@ if __name__ == "__main__":
 	requiredArgs.add_argument('--bim', help='a bim file already aligned with 1kg using genotype harmonizer', required=True)
 	requiredArgs.add_argument('--ref', help='a file containing entire human reference build 37', required=True)
 	requiredArgs.add_argument('--out-remove', help='output file name for list of variants to remove', required=True)
+	requiredArgs.add_argument('--out-ignore', help='output file name for list of variants that were ignored (AT/GC variants)', required=True)
+	requiredArgs.add_argument('--out-mono', help='output file name for list of monomorphic variants', required=True)
+	requiredArgs.add_argument('--out-nomatch', help='output file name for list of variants whose alleles do not match the reference', required=True)
 	requiredArgs.add_argument('--out-flip', help='output file name for list of variants to flip', required=True)
 	requiredArgs.add_argument('--out-force-a1', help='output file name for list of variants and alleles to be force into a1 position in Plink file', required=True)
 	args = parser.parse_args()

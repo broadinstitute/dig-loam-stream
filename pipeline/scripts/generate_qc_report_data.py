@@ -1,21 +1,93 @@
 import argparse
-import pysam
 import numpy as np
 import pandas as pd
 
 def main(args=None):
 
 	## open latex file for writing
-	print ""
 	with open(args.out,'w') as f:
 
-		intro = ["""Prior to performing ancestry inference or sample QC, it is necessary to make sure that the input data contains variants that are easily interpretable and don’t add needless complexity to calculations. Before performing quality control, genotypes were harmonized with a modern reference panel. Using Genotype Harmonizer, variant strand was aligned with 1000 Genomes Phase 3 data. In the process of alignment, variant IDs were replaced with 1000 Genomes variant IDs. Additonally, many ambiguous variants (A/T and G/C variants) were properly aligned based on nearby LD scores. Any ambiguous variants that could not be aligned using LD were removed. Variants that did not match with any 1000 Genomes variant were maintained in this step. After harmonizing with Genotype Harmonizer, variants that did not match any 1000 Genomes variants were aligned manually with the human reference build GRCh37, flagging variants with non-reference allele for removal.""".format(nSamples, nArrays)]
 		print "writing data section"
 		f.write("\n"); f.write(r"\clearpage"); f.write("\n")
-		f.write("\n"); f.write(r"\section{Introduction}"); f.write("\n")
-		for p in intro:
-			f.write("\n"); f.write(p.encode('utf-8')); f.write("\n")
-			f.write("\n"); f.write(r"\bigskip"); f.write("\n")
+		f.write("\n"); f.write(r"\section{Data}"); f.write("\n")
+		f.write("\n"); f.write(r"\subsection{Samples}"); f.write("\n")
+		
+		text=r"""\begin{figure}[H]
+			     \centering
+			     \includegraphics[width=0.75\linewidth]{""" + args.samples_upset_diagram + """}
+			     \caption{Samples distributed by genotyping array}
+			     \label{fig:samplesUpsetDiagram}
+			  \end{figure}"""
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
+
+		f.write("\n"); f.write(r"\subsection{Variants}"); f.write("\n")
+
+		text=r"""\begin{table}[H]
+				\caption{Summary of raw variants by frequency and classification}
+				\begin{center}
+					\resizebox{\ifdim\width>\columnwidth\columnwidth\else\width\fi}{!}{%
+						\pgfplotstabletypeset[
+							font=\footnotesize,
+							col sep=tab,
+							columns={Array,Freq,Unpl,Auto,X,Y,X(PAR),Mito,InDel,Multi,Dup,Total},
+							column type={>{\fontseries{bx}\selectfont}c},
+							columns/Array/.style={column name=, string type, postproc cell content/.append style={/pgfplots/table/@cell content/.add={$\bf}{$},}},
+							columns/Freq/.style={column name=Freq, string type},
+							columns/Unpl/.style={column name=Unpl, string type},
+							columns/Auto/.style={column name=Auto, string type},
+							columns/X/.style={column name=X, string type},
+							columns/Y/.style={column name=Y, string type},
+							columns/X(PAR)/.style={column name=X(PAR), string type},
+							columns/Mito/.style={column name=Mito, string type},
+							columns/InDel/.style={column name=InDel, string type},
+							columns/Multi/.style={column name=Multi, string type},
+							columns/Dup/.style={column name=Dup, string type},
+							columns/Total/.style={column name=Total, string type},
+							postproc cell content/.append style={/pgfplots/table/@cell content/.add={\fontseries{\seriesdefault}\selectfont}{}},
+							every head row/.style={before row={\toprule}, after row={\midrule}},
+							every last row/.style={after row=\bottomrule},
+							empty cells with={}
+						]{""" + args.variants_summary_table + r"""}}
+				\label{table:variantsSummaryTable}
+				\end{center}
+				\hfill
+				\footnotesize
+				\begin{tabular}{>{\bfseries}r l}
+					Freq & Minor allele frequency (MAF) range \\
+					Unpl & Chromosome = 0 \\
+					Auto & Autosomal variants \\
+					X & X chromosome non-pseudoautosomal region (non-PAR) variants \\
+					Y & Y chromosome variants \\
+					X(PAR) & X chromosome pseudoautosomal (PAR) region variants \\
+					Mito & Mitochodrial variants \\
+					InDel & Insertion/Deletion variants (I/D or D/I alleles) \\
+					Multi & Multiallelic variants (2 or more alternate alleles) \\
+					Dup & Duplicated variants with respect to position and alleles
+				\end{tabular}
+			\end{table}"""
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
+
+		text = r"""Table \ref{table:variantsSummaryTable} gives an overview of the different variant classes and how they distribute across certain frequencies for each dataset. To facilitate downstream operations on genotype data, such as merging and meta-analysis, each dataset is harmonized with modern reference data. This harmonization process is performed in two steps. First, using Genotype Harmonizer, the variants are strand-aligned with the 1000 Genomes Phase 3 Version 5 \cite{1KG} variants. While some variants (A/C or G/T variants) are removed due to strand ambiguity, if enough information exists, Genotype Harmonizer uses LD with nearby variants to accurately determine strand. This step generates a list of variants for removal. The second step manually reconciles non-1000 Genomes variants with the human reference build GRCh37. This step flags variants for removal that do not match an allele to the reference and variants that have only a single allele in the data file (0 for the other). Note that some monomorphic variants are maintained in this process if there are two alleles in the data file and one of them matches a reference allele."""
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
+
+		text=r"""The following is a list of software used for variant harmonization:
+		\begin{itemize}
+			\item Plink1.9 \cite{plink}
+			\item Genotype Harmonizer \cite{genotypeHarmonizer}
+			\item Hail \cite{hail}
+		\end{itemize}"""
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
+
+		text=r"""After harmonization, the data is loaded into Hail \cite{hail} for downstream use. See Figure \ref{fig:variantsUpsetDiagram} for final variant counts by genotyping array."""
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
+
+		text=r"""\begin{figure}[H]
+			     \centering
+			     \includegraphics[width=0.75\linewidth]{""" + args.variants_upset_diagram + """}
+			     \caption{Harmonized variants distributed by genotyping array}
+			     \label{fig:variantsUpsetDiagram}
+			  \end{figure}"""
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
 
 	print "finished\n"
 
@@ -23,6 +95,8 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	requiredArgs = parser.add_argument_group('required arguments')
 	requiredArgs.add_argument('--out', help='an output file name with extension .tex', required=True)
-	requiredArgs.add_argument('--array-data', help='a comma separated list of array data (plink binary file name or vcf file) each a three underscore separated datatype (bfile or vcf) and data file pair', required=True)
+	requiredArgs.add_argument('--samples-upset-diagram', help='an upset diagram for samples', required=True)
+	requiredArgs.add_argument('--variants-summary-table', help='a variant summary table', required=True)
+	requiredArgs.add_argument('--variants-upset-diagram', help='an upset diagram for harmonized variants', required=True)
 	args = parser.parse_args()
 	main(args)

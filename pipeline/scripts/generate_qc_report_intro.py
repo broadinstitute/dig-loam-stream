@@ -14,6 +14,7 @@ header=r"""\documentclass[11pt]{article}
 \usepackage{grffile}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{float}
 \usepackage{microtype}
 \DisableLigatures{encoding = *, family = *}
 \usepackage{booktabs}
@@ -47,6 +48,7 @@ header=r"""\documentclass[11pt]{article}
 \renewcommand{\subsection}{\FloatBarrier\Oldsubsection}
 \let\Oldsubsubsection\subsubsection
 \renewcommand{\subsubsection}{\FloatBarrier\Oldsubsubsection}
+\captionsetup[table]{singlelinecheck=off,justification=raggedright}
 """
 
 
@@ -105,13 +107,13 @@ def main(args=None):
 				sys.exit("failed to load file of unsupported type " + aType)
 		samples = set(samples)
 		nSamples = len(samples)
-		intro = ["""This document contains details of our in-house quality control procedure and its application to the METSIM datasets. We received genotypes for {0:,d} unique samples distributed across {1:d} different genotyping technologies. Quality control was performed on these data to detect samples and variants that did not fit our standards for inclusion in association testing. Duplicate pairs, samples exhibiting excessive sharing of identity by descent, samples whose genotypic sex did not match their clinical sex, and outliers detected among several sample-by-variant statistics may have been flagged for removal from further analysis. Additionally, genotypic ancestry was inferred with respect to a modern reference panel, allowing for variant filtering to be performed within population. With the exception of inferring each samples ancestry, QC was performed on these arrays separately, allowing for flexibility in the way the data can be used in association tests.""".format(nSamples, nArrays)]
+
 		print "writing introduction"
 		f.write("\n"); f.write(r"\clearpage"); f.write("\n")
 		f.write("\n"); f.write(r"\section{Introduction}"); f.write("\n")
-		for p in intro:
-			f.write("\n"); f.write(p.encode('utf-8')); f.write("\n")
-			f.write("\n"); f.write(r"\bigskip"); f.write("\n")
+
+		text = """This document contains details of our in-house quality control procedure and its application to the METSIM datasets. We received genotypes for {0:,d} unique samples distributed across {1:d} different genotyping technologies. Quality control was performed on these data to detect samples and variants that did not fit our standards for inclusion in association testing. Duplicate pairs, samples exhibiting excessive sharing of identity by descent, samples whose genotypic sex did not match their clinical sex, and outliers detected among several sample-by-variant statistics may have been flagged for removal from further analysis. Additionally, genotypic ancestry was inferred with respect to a modern reference panel, allowing for variant filtering to be performed within population. With the exception of inferring each samples ancestry, QC was performed on these arrays separately, allowing for flexibility in the way the data can be used in association tests.""".format(nSamples, nArrays)
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
 
 	print "finished\n"
 

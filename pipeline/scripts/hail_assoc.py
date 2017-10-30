@@ -1,7 +1,5 @@
 from hail import *
 hc = HailContext()
-import pandas as pd
-import numpy as np
 import argparse
 
 

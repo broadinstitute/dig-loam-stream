@@ -17,9 +17,11 @@ for(inp in unlist(strsplit(args$input,","))) {
 	tbl<-read.table(f,header=F,as.is=T,stringsAsFactors=F)
 	if(args$type == "fam") {
 		ids[[l]]<-tbl[,2]
+		xLabel = "Samples"
 	} else if(args$type == "bim") {
 		tbl$id<-paste(tbl$V1,tbl$V4,tbl$V5,tbl$V6,sep=":")
 		ids[[l]]<-tbl$id
+		xLabel = "Variants"
 	} else {
 		stop(paste("file type ",args$type," not supported",sep=""))
 	}
@@ -29,5 +31,8 @@ if(unlist(strsplit(args$out,"\\."))[length(unlist(strsplit(args$out,"\\.")))] ==
 } else {
 	stop(paste("output extension ",unlist(strsplit(args$out,"\\."))[length(unlist(strsplit(args$out,"\\.")))]," not supported",sep=""))
 }
-upset(fromList(ids), order.by = "freq", main.bar.color="#1F76B4", sets.bar.color="#16BE72", line.size=1, number.angles = 0, point.size = 8, empty.intersections = NULL, mainbar.y.label = "Intersection Size", sets.x.label = "Set Size", text.scale = c(3, 3, 2, 2, 3, 3))
+
+# green: #16BE72
+# blue: #1F76B4
+upset(fromList(ids), order.by = "freq", sets.bar.color="#1F76B4", line.size=1, number.angles = 0, point.size = 8, empty.intersections = NULL, mainbar.y.label = "Intersection Size", sets.x.label = xLabel, text.scale = c(3, 3, 2, 2, 3, 3))
 dev.off()

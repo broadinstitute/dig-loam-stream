@@ -1,10 +1,6 @@
 from hail import *
 hc = HailContext()
-import pandas as pd
-import numpy as np
-from math import log, isnan
 import argparse
-import multiprocessing
 
 def main(args=None):
 

@@ -15,7 +15,7 @@ case class DagGridLayout(dag: Dag, rows: Seq[NodeRow]) extends DagLayout {
 object DagGridLayout {
 
   case class NodeRow(nodes: Seq[Option[Dag.NodeBase]]) {
-    def add(node: Dag.NodeBase, iCol: Int): NodeRow = NodeRow(nodes.)
+    def add(node: Dag.NodeBase, iCol: Int): NodeRow = NodeRow(nodes.updated(iCol, Option(node)))
   }
 
   def empty(nCols: Int): NodeRow = NodeRow(Seq.fill(nCols)(None))

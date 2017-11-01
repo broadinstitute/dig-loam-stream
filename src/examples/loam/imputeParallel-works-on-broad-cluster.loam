@@ -16,23 +16,23 @@ val impute2DataDir = dataDir / "impute2_example"
 
 val outputDir = path("/humgen/diabetes/users/kyuksel/imputation/run_dir")
 
-val data = store[VCF].at(shapeitDataDir / "gwas.vcf.gz").asInput
-val geneticMap = store[TXT].at(shapeitDataDir / "genetic_map.txt.gz").asInput
-val phasedHaps = store[TXT].at(outputDir / "phased.haps.gz")
-val phasedSamples = store[TXT].at(outputDir / "phased.samples.gz")
-val log = store[TXT].at(outputDir / "shapeit.log")
+val data = store.at(shapeitDataDir / "gwas.vcf.gz").asInput
+val geneticMap = store.at(shapeitDataDir / "genetic_map.txt.gz").asInput
+val phasedHaps = store.at(outputDir / "phased.haps.gz")
+val phasedSamples = store.at(outputDir / "phased.samples.gz")
+val log = store.at(outputDir / "shapeit.log")
 
 cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSamples -L $log --thread 16"
 
-val mapFile = store[TXT].at(impute2DataDir / "example.chr22.map").asInput
-val legend = store[TXT].at(impute2DataDir / "example.chr22.1kG.legend.gz").asInput
-val knownHaps = store[TXT].at(impute2DataDir / "example.chr22.prephasing.impute2_haps.gz").asInput
+val mapFile = store.at(impute2DataDir / "example.chr22.map").asInput
+val legend = store.at(impute2DataDir / "example.chr22.1kG.legend.gz").asInput
+val knownHaps = store.at(impute2DataDir / "example.chr22.prephasing.impute2_haps.gz").asInput
 
 for(iShard <- 0 until nShards) {
   val start = offset + iShard*basesPerShard + 1
   val end = start + basesPerShard - 1
 
-  val imputed = store[TXT].at(outputDir / s"imputed.data.bp${start}-${end}.gen")
+  val imputed = store.at(outputDir / s"imputed.data.bp${start}-${end}.gen")
 
   cmd"""$impute2 -use_prephased_g -m $mapFile -h $knownHaps -l $legend
   -known_haps_g $phasedHaps -int $start $end -Ne 20000 -o $imputed -verbose -o_gz

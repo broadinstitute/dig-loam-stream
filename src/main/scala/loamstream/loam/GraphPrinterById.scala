@@ -19,11 +19,11 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   if (fully) SourceUtils.fullTypeName(tpe) else SourceUtils.shortTypeName(tpe)
 
   /** Prints store */
-  def print(store: Store.Untyped, fully: Boolean): String = s"@${print(store.id)}[${print(store.sig.tpe, fully)}]"
+  def print(store: Store, fully: Boolean): String = s"@${print(store.id)}"
 
   /** Prints HasLocation **/
   def print(hasLocation: HasLocation, fully: Boolean): String = hasLocation match {
-    case store: Store.Untyped => print(store, fully)
+    case store: Store => print(store, fully)
     case storeRef: LoamStoreRef => print(storeRef.store, fully)
   }
 
@@ -42,7 +42,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   /** Prints prefix symbol to distinguish input and output stores */
   def printIoPrefix(tool: LoamCmdTool, hasLocation: HasLocation, graph: LoamGraph): String = {
     val store = hasLocation match {
-      case store: Store.Untyped => store
+      case store: Store => store
       case storeRef: LoamStoreRef => storeRef.store
     }
     graph.storeProducers.get(store) match {
@@ -83,11 +83,11 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
     val toolsString = toString(graph.tools.map(print))
 
     val storeLocationsString = toString(graph.storeLocations.map {
-      case (store, location) => s"${print(store, fully = false)} <- ${location.toString}"
+      case (store: HasLocation, location) => s"${print(store, fully = false)} <- ${location.toString}"
     })
 
     val storeProducersString = toString(graph.storeProducers.map {
-      case (store, producer: LoamCmdTool) => s"${print(store, fully = false)} <- ${print(producer, graph)}"
+      case (store: HasLocation, producer: LoamCmdTool) => s"${print(store, fully = false)} <- ${print(producer, graph)}"
       case tuple => throw new Exception(s"We don't know how to stringify non-LoamCmdTools: $tuple")
     })
 

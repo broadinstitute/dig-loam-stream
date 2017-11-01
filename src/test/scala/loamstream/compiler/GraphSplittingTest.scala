@@ -36,9 +36,9 @@ final class GraphSplittingTest extends FunSuite with Loggable {
   
   test("split slightly-less-simple loam file") {
     val code = """
-      val store0 = store[TXT].at("store0.txt").asInput
-      val store1 = store[TXT].at("store1.txt")
-      val store2 = store[TXT].at("store2.txt")
+      val store0 = store.at("store0.txt").asInput
+      val store1 = store.at("store1.txt")
+      val store2 = store.at("store2.txt")
       
       cmd"foo -i $store0 -o $store1".in(store0).out(store1)
       
@@ -50,7 +50,7 @@ final class GraphSplittingTest extends FunSuite with Loggable {
         val N = countLines(store1)
         
         for(i <- 1 to N) {
-          val barOutput = store[TXT].at(s"bar-$i.txt")
+          val barOutput = store.at(s"bar-$i.txt")
         
           cmd"bar -i $store1 -o $barOutput".in(store1).out(barOutput)
         }
@@ -85,9 +85,9 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       
       val cmd0 = findCommand(graph0)("foo -i ./store0.txt -o ./store1.txt")
       
-      assert(inputs(graph0)(cmd0) === Set[Store.Untyped](store0))
+      assert(inputs(graph0)(cmd0) === Set[Store](store0))
       
-      assert(outputs(graph0)(cmd0) === Set[Store.Untyped](store1))
+      assert(outputs(graph0)(cmd0) === Set[Store](store1))
     }
     
     {
@@ -121,17 +121,17 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       val bar2 = findCommand(graph1)("bar -i ./store1.txt -o ./bar-2.txt")
       val bar3 = findCommand(graph1)("bar -i ./store1.txt -o ./bar-3.txt")
       
-      assert(inputs(graph1)(cmd0) === Set[Store.Untyped](store0))
-      assert(outputs(graph1)(cmd0) === Set[Store.Untyped](store1))
+      assert(inputs(graph1)(cmd0) === Set[Store](store0))
+      assert(outputs(graph1)(cmd0) === Set[Store](store1))
       
-      assert(inputs(graph1)(bar1) === Set[Store.Untyped](store1))
-      assert(outputs(graph1)(bar1) === Set[Store.Untyped](barOut1))
+      assert(inputs(graph1)(bar1) === Set[Store](store1))
+      assert(outputs(graph1)(bar1) === Set[Store](barOut1))
       
-      assert(inputs(graph1)(bar2) === Set[Store.Untyped](store1))
-      assert(outputs(graph1)(bar2) === Set[Store.Untyped](barOut2))
+      assert(inputs(graph1)(bar2) === Set[Store](store1))
+      assert(outputs(graph1)(bar2) === Set[Store](barOut2))
       
-      assert(inputs(graph1)(bar3) === Set[Store.Untyped](store1))
-      assert(outputs(graph1)(bar3) === Set[Store.Untyped](barOut3))
+      assert(inputs(graph1)(bar3) === Set[Store](store1))
+      assert(outputs(graph1)(bar3) === Set[Store](barOut3))
       
     }
     
@@ -149,11 +149,11 @@ final class GraphSplittingTest extends FunSuite with Loggable {
     val code = """
       import scala.collection.mutable.{Buffer,ArrayBuffer}
       
-      val store0 = store[TXT].at("store0.txt").asInput
-      val store1 = store[TXT].at("store1.txt")
-      val store2 = store[TXT].at("store2.txt")
-      val barOutputs: Buffer[Store[TXT]] = new ArrayBuffer
-      val store3 = store[TXT].at("store3.txt")
+      val store0 = store.at("store0.txt").asInput
+      val store1 = store.at("store1.txt")
+      val store2 = store.at("store2.txt")
+      val barOutputs: Buffer[Store] = new ArrayBuffer
+      val store3 = store.at("store3.txt")
       
       cmd"foo -i $store0 -o $store1".in(store0).out(store1)
       
@@ -165,7 +165,7 @@ final class GraphSplittingTest extends FunSuite with Loggable {
         val N = countLines(store1)
         
         for(i <- 1 to N) {
-          val barOutput = store[TXT].at(s"bar-$i.txt")
+          val barOutput = store.at(s"bar-$i.txt")
         
           barOutputs += barOutput
         
@@ -205,8 +205,8 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       
       val cmd0 = findCommand(graph0)("foo -i ./store0.txt -o ./store1.txt")
       
-      assert(inputs(graph0)(cmd0) === Set[Store.Untyped](store0))
-      assert(outputs(graph0)(cmd0) === Set[Store.Untyped](store1))
+      assert(inputs(graph0)(cmd0) === Set[Store](store0))
+      assert(outputs(graph0)(cmd0) === Set[Store](store1))
     }
     
     //graph1 should contain everything defined by running the code OUTSIDE the andThen,
@@ -232,20 +232,20 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       val bar3 = findCommand(graph1)("bar -i ./store1.txt -o ./bar-3.txt")
       val cmd1 = findCommand(graph1)("baz -i ./store2.txt -o ./store3.txt")
       
-      assert(inputs(graph1)(cmd0) === Set[Store.Untyped](store0))
-      assert(outputs(graph1)(cmd0) === Set[Store.Untyped](store1))
+      assert(inputs(graph1)(cmd0) === Set[Store](store0))
+      assert(outputs(graph1)(cmd0) === Set[Store](store1))
       
-      assert(inputs(graph1)(bar1) === Set[Store.Untyped](store1))
-      assert(outputs(graph1)(bar1) === Set[Store.Untyped](barOut1))
+      assert(inputs(graph1)(bar1) === Set[Store](store1))
+      assert(outputs(graph1)(bar1) === Set[Store](barOut1))
       
-      assert(inputs(graph1)(bar2) === Set[Store.Untyped](store1))
-      assert(outputs(graph1)(bar2) === Set[Store.Untyped](barOut2))
+      assert(inputs(graph1)(bar2) === Set[Store](store1))
+      assert(outputs(graph1)(bar2) === Set[Store](barOut2))
       
-      assert(inputs(graph1)(bar3) === Set[Store.Untyped](store1))
-      assert(outputs(graph1)(bar3) === Set[Store.Untyped](barOut3))
+      assert(inputs(graph1)(bar3) === Set[Store](store1))
+      assert(outputs(graph1)(bar3) === Set[Store](barOut3))
       
-      assert(inputs(graph1)(cmd1) === Set[Store.Untyped](store2))
-      assert(outputs(graph1)(cmd1) === Set[Store.Untyped](store3))
+      assert(inputs(graph1)(cmd1) === Set[Store](store2))
+      assert(outputs(graph1)(cmd1) === Set[Store](store3))
     }
     
     //graph2 should contain everything defined OUTSIDE the andThen; that is, everything defined by
@@ -273,20 +273,20 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       
       assert(addedSinceGraph0.tools === Set(cmd1))
       
-      assert(inputs(graph2)(cmd0) === Set[Store.Untyped](store0))
-      assert(outputs(graph2)(cmd0) === Set[Store.Untyped](store1))
+      assert(inputs(graph2)(cmd0) === Set[Store](store0))
+      assert(outputs(graph2)(cmd0) === Set[Store](store1))
       
-      assert(inputs(graph2)(cmd1) === Set[Store.Untyped](store2))
-      assert(outputs(graph2)(cmd1) === Set[Store.Untyped](store3))
+      assert(inputs(graph2)(cmd1) === Set[Store](store2))
+      assert(outputs(graph2)(cmd1) === Set[Store](store3))
     }
   }
   
   test("split loam file with multiple andThens") {
     val code = """
-      val store0 = store[TXT].at("store0.txt").asInput
-      val store1 = store[TXT].at("store1.txt")
-      val store2 = store[TXT].at("store2.txt")
-      val store3 = store[TXT].at("store3.txt")
+      val store0 = store.at("store0.txt").asInput
+      val store1 = store.at("store1.txt")
+      val store2 = store.at("store2.txt")
+      val store3 = store.at("store3.txt")
       
       cmd"foo -i $store0 -o $store1".in(store0).out(store1)
       
@@ -296,7 +296,7 @@ final class GraphSplittingTest extends FunSuite with Loggable {
         val N = countLines(store1)
         
         for(i <- 1 to N) {
-          val barOutput = store[TXT].at(s"bar-$i.txt")
+          val barOutput = store.at(s"bar-$i.txt")
         
           cmd"bar -i $store1 -o $barOutput".in(store1).out(barOutput)
         }
@@ -308,7 +308,7 @@ final class GraphSplittingTest extends FunSuite with Loggable {
         val N = countLines(store3)
         
         for(i <- 1 to N) {
-          val nuhOutput = store[TXT].at(s"nuh-$i.txt")
+          val nuhOutput = store.at(s"nuh-$i.txt")
         
           cmd"nuh -i $store3 -o $nuhOutput".in(store3).out(nuhOutput)
         }
@@ -336,8 +336,8 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       
       val cmd0 = findCommand(graph0)("foo -i ./store0.txt -o ./store1.txt")
       
-      assert(inputs(graph0)(cmd0) === Set[Store.Untyped](store0))
-      assert(outputs(graph0)(cmd0) === Set[Store.Untyped](store1))
+      assert(inputs(graph0)(cmd0) === Set[Store](store0))
+      assert(outputs(graph0)(cmd0) === Set[Store](store1))
     }
     
     //graph1 should contain everything defined by running the code OUTSIDE the andThens,
@@ -363,20 +363,20 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       val bar3 = findCommand(graph1)("bar -i ./store1.txt -o ./bar-3.txt")
       val cmd1 = findCommand(graph1)("baz -i ./store2.txt -o ./store3.txt")
       
-      assert(inputs(graph1)(cmd0) === Set[Store.Untyped](store0))
-      assert(outputs(graph1)(cmd0) === Set[Store.Untyped](store1))
+      assert(inputs(graph1)(cmd0) === Set[Store](store0))
+      assert(outputs(graph1)(cmd0) === Set[Store](store1))
       
-      assert(inputs(graph1)(bar1) === Set[Store.Untyped](store1))
-      assert(outputs(graph1)(bar1) === Set[Store.Untyped](barOut1))
+      assert(inputs(graph1)(bar1) === Set[Store](store1))
+      assert(outputs(graph1)(bar1) === Set[Store](barOut1))
       
-      assert(inputs(graph1)(bar2) === Set[Store.Untyped](store1))
-      assert(outputs(graph1)(bar2) === Set[Store.Untyped](barOut2))
+      assert(inputs(graph1)(bar2) === Set[Store](store1))
+      assert(outputs(graph1)(bar2) === Set[Store](barOut2))
       
-      assert(inputs(graph1)(bar3) === Set[Store.Untyped](store1))
-      assert(outputs(graph1)(bar3) === Set[Store.Untyped](barOut3))
+      assert(inputs(graph1)(bar3) === Set[Store](store1))
+      assert(outputs(graph1)(bar3) === Set[Store](barOut3))
       
-      assert(inputs(graph1)(cmd1) === Set[Store.Untyped](store2))
-      assert(outputs(graph1)(cmd1) === Set[Store.Untyped](store3))
+      assert(inputs(graph1)(cmd1) === Set[Store](store2))
+      assert(outputs(graph1)(cmd1) === Set[Store](store3))
     }
     
     //graph2 should contain everything defined BEFORE the SECOND andThen
@@ -403,11 +403,11 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       
       assert(addedSinceGraph0.tools === Set(cmd1))
       
-      assert(inputs(graph2)(cmd0) === Set[Store.Untyped](store0))
-      assert(outputs(graph2)(cmd0) === Set[Store.Untyped](store1))
+      assert(inputs(graph2)(cmd0) === Set[Store](store0))
+      assert(outputs(graph2)(cmd0) === Set[Store](store1))
       
-      assert(inputs(graph2)(cmd1) === Set[Store.Untyped](store2))
-      assert(outputs(graph2)(cmd1) === Set[Store.Untyped](store3))
+      assert(inputs(graph2)(cmd1) === Set[Store](store2))
+      assert(outputs(graph2)(cmd1) === Set[Store](store3))
     }
     
     //graph3 should contain everything defined by running the code OUTSIDE the andThens,
@@ -439,29 +439,29 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       val nuh2 = findCommand(graph3)("nuh -i ./store3.txt -o ./nuh-2.txt")
       val nuh3 = findCommand(graph3)("nuh -i ./store3.txt -o ./nuh-3.txt")
       
-      assert(inputs(graph3)(cmd0) === Set[Store.Untyped](store0))
-      assert(outputs(graph3)(cmd0) === Set[Store.Untyped](store1))
+      assert(inputs(graph3)(cmd0) === Set[Store](store0))
+      assert(outputs(graph3)(cmd0) === Set[Store](store1))
       
-      assert(inputs(graph3)(bar1) === Set[Store.Untyped](store1))
-      assert(outputs(graph3)(bar1) === Set[Store.Untyped](barOut1))
+      assert(inputs(graph3)(bar1) === Set[Store](store1))
+      assert(outputs(graph3)(bar1) === Set[Store](barOut1))
       
-      assert(inputs(graph3)(bar2) === Set[Store.Untyped](store1))
-      assert(outputs(graph3)(bar2) === Set[Store.Untyped](barOut2))
+      assert(inputs(graph3)(bar2) === Set[Store](store1))
+      assert(outputs(graph3)(bar2) === Set[Store](barOut2))
       
-      assert(inputs(graph3)(bar3) === Set[Store.Untyped](store1))
-      assert(outputs(graph3)(bar3) === Set[Store.Untyped](barOut3))
+      assert(inputs(graph3)(bar3) === Set[Store](store1))
+      assert(outputs(graph3)(bar3) === Set[Store](barOut3))
       
-      assert(inputs(graph3)(cmd1) === Set[Store.Untyped](store2))
-      assert(outputs(graph3)(cmd1) === Set[Store.Untyped](store3))
+      assert(inputs(graph3)(cmd1) === Set[Store](store2))
+      assert(outputs(graph3)(cmd1) === Set[Store](store3))
       
-      assert(inputs(graph3)(nuh1) === Set[Store.Untyped](store3))
-      assert(outputs(graph3)(nuh1) === Set[Store.Untyped](nuhOut1))
+      assert(inputs(graph3)(nuh1) === Set[Store](store3))
+      assert(outputs(graph3)(nuh1) === Set[Store](nuhOut1))
       
-      assert(inputs(graph3)(nuh2) === Set[Store.Untyped](store3))
-      assert(outputs(graph3)(nuh2) === Set[Store.Untyped](nuhOut2))
+      assert(inputs(graph3)(nuh2) === Set[Store](store3))
+      assert(outputs(graph3)(nuh2) === Set[Store](nuhOut2))
       
-      assert(inputs(graph3)(nuh3) === Set[Store.Untyped](store3))
-      assert(outputs(graph3)(nuh3) === Set[Store.Untyped](nuhOut3))
+      assert(inputs(graph3)(nuh3) === Set[Store](store3))
+      assert(outputs(graph3)(nuh3) === Set[Store](nuhOut3))
     }
     
     //graph4 should contain everything defined OUTSIDE BOTH andThens; that is, everything defined by
@@ -493,11 +493,11 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       
       assert(addedSinceGraph0.tools === Set(cmd1))
       
-      assert(inputs(graph4)(cmd0) === Set[Store.Untyped](store0))
-      assert(outputs(graph4)(cmd0) === Set[Store.Untyped](store1))
+      assert(inputs(graph4)(cmd0) === Set[Store](store0))
+      assert(outputs(graph4)(cmd0) === Set[Store](store1))
       
-      assert(inputs(graph4)(cmd1) === Set[Store.Untyped](store2))
-      assert(outputs(graph4)(cmd1) === Set[Store.Untyped](store3))
+      assert(inputs(graph4)(cmd1) === Set[Store](store2))
+      assert(outputs(graph4)(cmd1) === Set[Store](store3))
     }
   }
   
@@ -532,17 +532,17 @@ final class GraphSplittingTest extends FunSuite with Loggable {
     g.tools.find(t => toCommandLine(g)(t) == expectedCl).get.asInstanceOf[LoamCmdTool]
   }
     
-  private def toPath(g: LoamGraph)(store: Store.Untyped): String = store.path.toString
+  private def toPath(g: LoamGraph)(store: Store): String = store.path.toString
   
   private def assertStoreExists(g: LoamGraph)(expectedPath: String): Unit = {
     assert(g.stores.exists(s => toPath(g)(s) == expectedPath))
   }
   
-  private def findStore(g: LoamGraph)(expectedPath: String): Store[_] = {
-    g.stores.find(s => toPath(g)(s) == expectedPath).get.asInstanceOf[Store[_]]
+  private def findStore(g: LoamGraph)(expectedPath: String): Store = {
+    g.stores.find(s => toPath(g)(s) == expectedPath).get.asInstanceOf[Store]
   }
   
-  private def inputs(g: LoamGraph)(t: Tool): Set[Store.Untyped] = t.inputs.values.toSet[Store.Untyped]
+  private def inputs(g: LoamGraph)(t: Tool): Set[Store] = t.inputs.values.toSet[Store]
   
-  private def outputs(g: LoamGraph)(t: Tool): Set[Store.Untyped] = t.outputs.values.toSet[Store.Untyped]
+  private def outputs(g: LoamGraph)(t: Tool): Set[Store] = t.outputs.values.toSet[Store]
 }

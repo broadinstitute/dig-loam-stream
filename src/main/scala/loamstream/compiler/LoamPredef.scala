@@ -5,7 +5,6 @@ import java.nio.file.{Files, Path, Paths}
 
 import loamstream.model.Tool.DefaultStores
 import loamstream.loam._
-import loamstream.loam.ops.StoreType
 
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
@@ -18,7 +17,7 @@ import loamstream.util.Loggable
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
 
-  type Store[A <: StoreType] = loamstream.model.Store[A]
+  type Store = loamstream.model.Store
   
   implicit def toConstantFunction[T](item: T): () => T = () => item
   
@@ -30,16 +29,14 @@ object LoamPredef extends Loggable {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store[S <: StoreType : TypeTag](implicit context: LoamScriptContext): Store[S] = {
-    Store.create[S]
-  }
+  def store(implicit context: LoamScriptContext): Store = Store.create
 
   def job[T: TypeTag](exp: => T)
                      (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
     LoamNativeTool(DefaultStores.empty, exp)
   }
 
-  def job[T: TypeTag](store: Store.Untyped, stores: Store.Untyped*)
+  def job[T: TypeTag](store: Store, stores: Store*)
                      (exp: => T)
                      (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
     LoamNativeTool((store +: stores).toSet, exp)
@@ -93,13 +90,13 @@ object LoamPredef extends Loggable {
     scriptContext.projectContext.registerLoamThunk(loamCode)
   }
   
-  def in(store: Store.Untyped, stores: Store.Untyped*): Tool.In = in(store +: stores)
+  def in(store: Store, stores: Store*): Tool.In = in(store +: stores)
 
-  def in(stores: Iterable[Store.Untyped]): Tool.In = Tool.In(stores)
+  def in(stores: Iterable[Store]): Tool.In = Tool.In(stores)
 
-  def out(store: Store.Untyped, stores: Store.Untyped*): Tool.Out = Tool.Out((store +: stores).toSet)
+  def out(store: Store, stores: Store*): Tool.Out = Tool.Out((store +: stores).toSet)
 
-  def out(stores: Iterable[Store.Untyped]): Tool.Out = Tool.Out(stores)
+  def out(stores: Iterable[Store]): Tool.Out = Tool.Out(stores)
 
   def changeDir(newPath: Path)(implicit scriptContext: LoamScriptContext): Path = scriptContext.changeWorkDir(newPath)
 

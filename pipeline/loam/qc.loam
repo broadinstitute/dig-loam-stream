@@ -25,17 +25,17 @@ val nMetrics = sampleQcMetrics.size
 object Input {
 
   object Local {
-    val kgPurcellVcf = store[VCF].at(path(dataConfig.getStr("kgPurcellVcf"))).asInput
-    val kgSample = store[TXT].at(path(dataConfig.getStr("kgSample"))).asInput
-    val regionsExclude = store[TXT].at(path(dataConfig.getStr("regionsExclude"))).asInput
-    val pheno = store[TXT].at(path(dataConfig.getStr("pheno"))).asInput
+    val kgPurcellVcf = store.at(path(dataConfig.getStr("kgPurcellVcf"))).asInput
+    val kgSample = store.at(path(dataConfig.getStr("kgSample"))).asInput
+    val regionsExclude = store.at(path(dataConfig.getStr("regionsExclude"))).asInput
+    val pheno = store.at(path(dataConfig.getStr("pheno"))).asInput
   }
 
   object Google {
-    val kgPurcellVcf = store[VCF].at(uri(dataConfig.getStr("kgPurcellVcfGoogle"))).asInput
-    val kgSample = store[TXT].at(uri(dataConfig.getStr("kgSampleGoogle"))).asInput
-    val regionsExclude = store[TXT].at(uri(dataConfig.getStr("regionsExcludeGoogle"))).asInput
-    val pheno = store[TXT].at(googleOutDir / s"${Input.Local.pheno}".split("/").last)
+    val kgPurcellVcf = store.at(uri(dataConfig.getStr("kgPurcellVcfGoogle"))).asInput
+    val kgSample = store.at(uri(dataConfig.getStr("kgSampleGoogle"))).asInput
+    val regionsExclude = store.at(uri(dataConfig.getStr("regionsExcludeGoogle"))).asInput
+    val pheno = store.at(googleOutDir / s"${Input.Local.pheno}".split("/").last)
   }
 
 }
@@ -44,128 +44,128 @@ object Params {
 
   final case class Chr(
     rawChrName: Path,
-    rawChr: Seq[Store[TXT]],
+    rawChr: Seq[Store],
     harmKgChrName: Path,
     harmKgHuRefChrName: Path,
-    harmKgChr: Seq[Store[TXT]],
-    harmKgHuRefChr: Seq[Store[TXT]],
-    kgVcfChr: Store[VCF],
-    kgLegendChr: Store[TXT],
-    humanReference: Store[TXT],
-    harmKgChrRemove: Store[TXT],
-    harmKgChrNonKgFlip: Store[TXT],
-    harmKgChrForceA1: Store[TXT],
-    harmKgChrVarIdUpdate: Store[TXT],
-    harmKgChrVarSnpLog: Store[TXT],
+    harmKgChr: Seq[Store],
+    harmKgHuRefChr: Seq[Store],
+    kgVcfChr: Store,
+    kgLegendChr: Store,
+    humanReference: Store,
+    harmKgChrRemove: Store,
+    harmKgChrNonKgFlip: Store,
+    harmKgChrForceA1: Store,
+    harmKgChrVarIdUpdate: Store,
+    harmKgChrVarSnpLog: Store,
     harmMergeLine: String)
 
   final case class Metric(
     sampleqcStatsAdjIndMetric: String,
     sampleqcStatsAdjIndClusterName: Path,
-    sampleqcStatsAdjIndClusterFet: Store[TXT],
-    sampleqcStatsAdjIndClusterClu: Store[TXT],
-    sampleqcStatsAdjIndClusterKlg: Store[TXT],
-    sampleqcStatsAdjIndClusterKlustakwikLog: Store[TXT])
+    sampleqcStatsAdjIndClusterFet: Store,
+    sampleqcStatsAdjIndClusterClu: Store,
+    sampleqcStatsAdjIndClusterKlg: Store,
+    sampleqcStatsAdjIndClusterKlustakwikLog: Store)
 
   final case class Arr(
     arrayId: String,
     harmName: Path,
-    harm: Seq[Store[TXT]],
+    harm: Seq[Store],
     harmRefName: Path,
-    harmRefVcf: Store[VCF],
-    harmRefVcfCloud: Store[VCF],
-    harmRefVcfTbi: Store[TXT],
-    harmRefVcfTbiCloud: Store[VCF],
-    harmRefVdsCloud: Store[VCF],
-    harmRefFilt: Seq[Store[TXT]],
+    harmRefVcf: Store,
+    harmRefVcfCloud: Store,
+    harmRefVcfTbi: Store,
+    harmRefVcfTbiCloud: Store,
+    harmRefVdsCloud: Store,
+    harmRefFilt: Seq[Store],
     harmRefFiltNameCloud: URI,
-    harmRefFiltCloud: Seq[Store[TXT]],
-    harmRefFiltVdsCloud: Store[VCF],
-    harmRefFiltVariantQcCloud: Store[TXT],
-    harmRefFiltVariantsPrunedInCloud: Store[TXT],
+    harmRefFiltCloud: Seq[Store],
+    harmRefFiltVdsCloud: Store,
+    harmRefFiltVariantQcCloud: Store,
+    harmRefFiltVariantsPrunedInCloud: Store,
     harmRefFiltPrunedName: Path,
-    harmRefFiltPruned: Seq[Store[TXT]],
+    harmRefFiltPruned: Seq[Store],
     harmRefFiltPrunedNameCloud: URI,
-    harmRefFiltPrunedCloud: Seq[Store[TXT]],
-    harmRefFiltPrunedVds: Store[VCF],
-    harmRefFiltPrunedVdsCloud: Store[VCF],
+    harmRefFiltPrunedCloud: Seq[Store],
+    harmRefFiltPrunedVds: Store,
+    harmRefFiltPrunedVdsCloud: Store,
     paramsByChr: Seq[(Int, Chr)],
     paramsByMetric: Seq[(Int, Metric)],
     paramsSortedByChr: Seq[Chr],
     paramsSortedByMetric: Seq[Metric],
     harmMergeLines: Seq[String],
-    harmMergeList: Store[TXT],
+    harmMergeList: Store,
     sampleqcStatsAdjIndClusterCluList: Seq[String],
-    harmForceA2: Store[TXT],
+    harmForceA2: Store,
     kinName: Path,
-    kinLog: Store[TXT],
-    kinTmpDat: Store[TXT],
-    kinTmpPed: Store[TXT],
-    kinKin: Store[TXT],
-    kinKin0: Store[TXT],
-    kinKin0Related: Store[TXT],
-    kinFamsizes: Store[TXT],
+    kinLog: Store,
+    kinTmpDat: Store,
+    kinTmpPed: Store,
+    kinKin: Store,
+    kinKin0: Store,
+    kinKin0Related: Store,
+    kinFamsizes: Store,
     ancestryPcaName: Path,
     harmRef1kgName: Path,
-    harmRef1kg: Seq[Store[TXT]],
-    harmRef1kgGds: Store[TXT],
-    ancestryPcaLog: Store[TXT],
-    ancestryPcaScores: Store[TXT],
-    ancestryPcaScoresPlots: Store[TXT],
+    harmRef1kg: Seq[Store],
+    harmRef1kgGds: Store,
+    ancestryPcaLog: Store,
+    ancestryPcaScores: Store,
+    ancestryPcaScoresPlots: Store,
     harmRef1kgNameCloud: URI,
-    harmRef1kgCloud: Seq[Store[TXT]],
+    harmRef1kgCloud: Seq[Store],
     ancestryClusterName: Path,
-    ancestryClusterLog: Store[TXT],
-    ancestryClusterFet: Store[TXT],
-    ancestryClusterClu: Store[TXT],
-    ancestryClusterKlg: Store[TXT],
-    ancestryClusterPlots: Store[TXT],
-    ancestryClusterPlotsCenters: Store[TXT],
-    ancestryClusterPlotsNo1kg: Store[TXT],
-    ancestryClusterXtabs: Store[TXT],
-    ancestryClusterGroups: Store[TXT],
-    ancestryInferred: Store[TXT],
-    harmRefFiltPrunedPcaGds: Store[TXT],
-    pcaLog: Store[TXT],
-    pcaScores: Store[TXT],
-    pcaLoadings: Store[TXT],
-    sampleqcStats: Store[TXT],
-    sampleqcStatsAdj: Store[TXT],
-    sampleqcStatsAdjCorrPlots: Store[TXT],
-    sampleqcStatsAdjPcaLoadings: Store[TXT],
-    sampleqcStatsAdjPcaScoresPlots: Store[TXT],
-    sampleqcStatsAdjPcaScores: Store[TXT],
-	sampleqcSexcheck: Store[TXT],
-    sampleqcSexcheckProblems: Store[TXT],
-    sampleqcSexcheckCloud: Store[TXT],
-    sampleqcSexcheckProblemsCloud: Store[TXT],
-    sampleqcStatsCloud: Store[TXT],
-    sampleqcStatsAdjClusterFet: Store[TXT],
-    sampleqcStatsAdjClusterClu: Store[TXT],
-    sampleqcStatsAdjClusterKlg: Store[TXT],
-    sampleqcStatsAdjClusterKlustakwikLog: Store[TXT],
-    sampleqcStatsAdjClusterOutliers: Store[TXT],
-    sampleqcStatsAdjClusterPlots: Store[TXT],
-    sampleqcStatsAdjClusterXtabs: Store[TXT],
-    sampleqcStatsAdjClusterStripchart: Store[TXT],
+    ancestryClusterLog: Store,
+    ancestryClusterFet: Store,
+    ancestryClusterClu: Store,
+    ancestryClusterKlg: Store,
+    ancestryClusterPlots: Store,
+    ancestryClusterPlotsCenters: Store,
+    ancestryClusterPlotsNo1kg: Store,
+    ancestryClusterXtabs: Store,
+    ancestryClusterGroups: Store,
+    ancestryInferred: Store,
+    harmRefFiltPrunedPcaGds: Store,
+    pcaLog: Store,
+    pcaScores: Store,
+    pcaLoadings: Store,
+    sampleqcStats: Store,
+    sampleqcStatsAdj: Store,
+    sampleqcStatsAdjCorrPlots: Store,
+    sampleqcStatsAdjPcaLoadings: Store,
+    sampleqcStatsAdjPcaScoresPlots: Store,
+    sampleqcStatsAdjPcaScores: Store,
+	sampleqcSexcheck: Store,
+    sampleqcSexcheckProblems: Store,
+    sampleqcSexcheckCloud: Store,
+    sampleqcSexcheckProblemsCloud: Store,
+    sampleqcStatsCloud: Store,
+    sampleqcStatsAdjClusterFet: Store,
+    sampleqcStatsAdjClusterClu: Store,
+    sampleqcStatsAdjClusterKlg: Store,
+    sampleqcStatsAdjClusterKlustakwikLog: Store,
+    sampleqcStatsAdjClusterOutliers: Store,
+    sampleqcStatsAdjClusterPlots: Store,
+    sampleqcStatsAdjClusterXtabs: Store,
+    sampleqcStatsAdjClusterStripchart: Store,
     sampleqcStatsAdjClusterName: Path,
-    sampleqcStatsAdjIndBoxplots: Store[TXT],
-    sampleqcStatsAdjIndDiscreteness: Store[TXT],
-    sampleqcStatsAdjOutliersTable: Store[TXT],
-    sampleqcStatsAdjStripchart: Store[TXT],
-    finalSampleExclusions: Store[TXT],
-    finalSampleExclusionsCloud: Store[TXT],
-    variantqcStats: Store[TXT],
-    variantqcStatsCloud: Store[TXT],
-    finalVariantExclusions: Store[TXT],
-    finalVariantExclusionsCloud: Store[TXT],
-    clean: Seq[Store[TXT]],
+    sampleqcStatsAdjIndBoxplots: Store,
+    sampleqcStatsAdjIndDiscreteness: Store,
+    sampleqcStatsAdjOutliersTable: Store,
+    sampleqcStatsAdjStripchart: Store,
+    finalSampleExclusions: Store,
+    finalSampleExclusionsCloud: Store,
+    variantqcStats: Store,
+    variantqcStatsCloud: Store,
+    finalVariantExclusions: Store,
+    finalVariantExclusionsCloud: Store,
+    clean: Seq[Store],
     cleanNameCloud: URI,
-    cleanCloud: Seq[Store[TXT]],
-    cleanVcf: Store[VCF],
-    cleanVcfCloud: Store[VCF],
-    cleanVcfTbi: Store[TXT],
-    cleanVdsCloud: Store[VCF])
+    cleanCloud: Seq[Store],
+    cleanVcf: Store,
+    cleanVcfCloud: Store,
+    cleanVcfTbi: Store,
+    cleanVdsCloud: Store)
 
   val paramsByArr: Seq[(Int, Arr)] = (0 until nArrays).map { arr =>
 
@@ -178,17 +178,17 @@ object Params {
       val harmKgChrName = localOutDir / harmKgChrBase
       val harmKgHuRefChrName = localOutDir / s"${harmKgChrBase}.huref"
       val rawChrName = localOutDir / rawChrBase
-      val kgVcfChr = store[VCF].at(
+      val kgVcfChr = store.at(
           kgVcfBaseWild
             .replace("[CHROMOSOME]", s"$chr")
             .replace("23.phase3_shapeit2_mvncall_integrated_v5a",
                      "X.phase3_shapeit2_mvncall_integrated_v1b") + ".vcf.gz").asInput
-      val kgLegendChr = store[TXT].at(
+      val kgLegendChr = store.at(
           kgLegendWild
             .replace("[CHROMOSOME]", s"$chr")
             .replace("23",
                      "X")).asInput
-      val humanReference = store[TXT].at(
+      val humanReference = store.at(
           humanReferenceWild
             .replace("[CHROMOSOME]", s"$chr")
             .replace("23",
@@ -204,11 +204,11 @@ object Params {
         kgVcfChr = kgVcfChr,
         kgLegendChr = kgLegendChr,
         humanReference = humanReference,
-        harmKgChrRemove = store[TXT].at(localOutDir / s"${harmKgChrBase}.remove"),
-        harmKgChrNonKgFlip = store[TXT].at(localOutDir / s"${harmKgChrBase}.nonkg.flip"),
-        harmKgChrForceA1 = store[TXT].at(localOutDir / s"${harmKgChrBase}.force_a1"),
-        harmKgChrVarIdUpdate = store[TXT].at(localOutDir / s"${harmKgChrBase}_idUpdates.txt"),
-        harmKgChrVarSnpLog = store[TXT].at(localOutDir / s"${harmKgChrBase}_snpLog.log"),
+        harmKgChrRemove = store.at(localOutDir / s"${harmKgChrBase}.remove"),
+        harmKgChrNonKgFlip = store.at(localOutDir / s"${harmKgChrBase}.nonkg.flip"),
+        harmKgChrForceA1 = store.at(localOutDir / s"${harmKgChrBase}.force_a1"),
+        harmKgChrVarIdUpdate = store.at(localOutDir / s"${harmKgChrBase}_idUpdates.txt"),
+        harmKgChrVarSnpLog = store.at(localOutDir / s"${harmKgChrBase}_snpLog.log"),
         harmMergeLine = s"${localOutDir}/${harmKgChrBase}")
     }
 
@@ -223,10 +223,10 @@ object Params {
       metricIdx -> Metric(
         sampleqcStatsAdjIndMetric = sampleqcStatsAdjIndMetric,
         sampleqcStatsAdjIndClusterName = localOutDir / sampleqcStatsAdjIndClusterBase,
-        sampleqcStatsAdjIndClusterFet = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.fet.1"),
-        sampleqcStatsAdjIndClusterClu = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.clu.1"),
-        sampleqcStatsAdjIndClusterKlg = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.klg.1"),
-        sampleqcStatsAdjIndClusterKlustakwikLog = store[TXT].at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.klustakwik.log"))
+        sampleqcStatsAdjIndClusterFet = store.at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.fet.1"),
+        sampleqcStatsAdjIndClusterClu = store.at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.clu.1"),
+        sampleqcStatsAdjIndClusterKlg = store.at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.klg.1"),
+        sampleqcStatsAdjIndClusterKlustakwikLog = store.at(localOutDir / s"${sampleqcStatsAdjIndClusterBase}.klustakwik.log"))
     }
 
     val harmBase = s"${projectId}.${arrayId}.harm"
@@ -268,104 +268,104 @@ object Params {
     harmName = harmName,
     harm = bedBimFam(harmName),
     harmRefName = localOutDir / harmRefBase,
-    harmRefVcf = store[VCF].at(localOutDir / s"${harmRefBase}.vcf.gz"),
-    harmRefVcfCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vcf.gz"),
-    harmRefVcfTbi = store[TXT].at(localOutDir / s"${harmRefBase}.vcf.gz.tbi"),
-    harmRefVcfTbiCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vcf.gz.tbi"),
-    harmRefVdsCloud = store[VCF].at(googleOutDir / s"${harmRefBase}.vds"),
+    harmRefVcf = store.at(localOutDir / s"${harmRefBase}.vcf.gz"),
+    harmRefVcfCloud = store.at(googleOutDir / s"${harmRefBase}.vcf.gz"),
+    harmRefVcfTbi = store.at(localOutDir / s"${harmRefBase}.vcf.gz.tbi"),
+    harmRefVcfTbiCloud = store.at(googleOutDir / s"${harmRefBase}.vcf.gz.tbi"),
+    harmRefVdsCloud = store.at(googleOutDir / s"${harmRefBase}.vds"),
     paramsSortedByChr = paramsSortedByChr,
     paramsSortedByMetric = paramsSortedByMetric,
     harmMergeLines = harmMergeLines,
     sampleqcStatsAdjIndClusterCluList = sampleqcStatsAdjIndClusterCluList,
-    harmMergeList = store[TXT].at(localOutDir / s"${harmBase}.merge.txt"),
-    harmForceA2 = store[TXT].at(localOutDir / s"${harmBase}.force_a2.txt"),
+    harmMergeList = store.at(localOutDir / s"${harmBase}.merge.txt"),
+    harmForceA2 = store.at(localOutDir / s"${harmBase}.force_a2.txt"),
     harmRefFilt = bedBimFam(harmRefFiltName),
     harmRefFiltNameCloud = googleOutDir / harmRefFiltBase,
     harmRefFiltCloud = bedBimFam(googleOutDir / harmRefFiltBase),
-    harmRefFiltVdsCloud = store[VCF].at(googleOutDir / s"${harmRefFiltBase}.vds"),
-    harmRefFiltVariantQcCloud = store[TXT].at(googleOutDir / s"${harmRefFiltBase}.variantqc.tsv"),
-    harmRefFiltVariantsPrunedInCloud = store[TXT].at(googleOutDir / s"${harmRefFiltPrunedBase}.in"),
+    harmRefFiltVdsCloud = store.at(googleOutDir / s"${harmRefFiltBase}.vds"),
+    harmRefFiltVariantQcCloud = store.at(googleOutDir / s"${harmRefFiltBase}.variantqc.tsv"),
+    harmRefFiltVariantsPrunedInCloud = store.at(googleOutDir / s"${harmRefFiltPrunedBase}.in"),
     harmRefFiltPrunedName = harmRefFiltPrunedName,
     harmRefFiltPruned = bedBimFam(harmRefFiltPrunedName),
     harmRefFiltPrunedNameCloud = harmRefFiltPrunedNameCloud,
     harmRefFiltPrunedCloud = bedBimFam(harmRefFiltPrunedNameCloud),
-    harmRefFiltPrunedVds = store[VCF].at(localOutDir / s"${harmRefFiltPrunedBase}.vds"),
-    harmRefFiltPrunedVdsCloud = store[VCF].at(googleOutDir / s"${harmRefFiltPrunedBase}.vds"),
+    harmRefFiltPrunedVds = store.at(localOutDir / s"${harmRefFiltPrunedBase}.vds"),
+    harmRefFiltPrunedVdsCloud = store.at(googleOutDir / s"${harmRefFiltPrunedBase}.vds"),
     kinName = localOutDir / kinBase,
-    kinLog = store[TXT].at(localOutDir / s"${kinBase}.log"),
-    kinTmpDat = store[TXT].at(localOutDir / s"${kinBase}TMP.dat"),
-    kinTmpPed = store[TXT].at(localOutDir / s"${kinBase}TMP.ped"),
-    kinKin = store[TXT].at(localOutDir / s"${kinBase}.kin"),
-    kinKin0 = store[TXT].at(localOutDir / s"${kinBase}.kin0"),
-    kinKin0Related = store[TXT].at(localOutDir / s"${kinBase}.kin0.related"),
-    kinFamsizes = store[TXT].at(localOutDir / s"${kinBase}.famsizes.tsv"),
+    kinLog = store.at(localOutDir / s"${kinBase}.log"),
+    kinTmpDat = store.at(localOutDir / s"${kinBase}TMP.dat"),
+    kinTmpPed = store.at(localOutDir / s"${kinBase}TMP.ped"),
+    kinKin = store.at(localOutDir / s"${kinBase}.kin"),
+    kinKin0 = store.at(localOutDir / s"${kinBase}.kin0"),
+    kinKin0Related = store.at(localOutDir / s"${kinBase}.kin0.related"),
+    kinFamsizes = store.at(localOutDir / s"${kinBase}.famsizes.tsv"),
     ancestryPcaName = localOutDir / ancestryPcaBase,
     harmRef1kgName = harmRef1kgName,
     harmRef1kg = bedBimFam(harmRef1kgName),
-    harmRef1kgGds = store[TXT].at(localOutDir / s"${harmRef1kgBase}.gds"),
-    ancestryPcaLog = store[TXT].at(localOutDir / s"${ancestryPcaBase}.log"),
-    ancestryPcaScores = store[TXT].at(localOutDir / s"${ancestryPcaBase}.scores.tsv"),
-    ancestryPcaScoresPlots = store[TXT].at(localOutDir / s"${ancestryPcaBase}.scores.plots.pdf"),
+    harmRef1kgGds = store.at(localOutDir / s"${harmRef1kgBase}.gds"),
+    ancestryPcaLog = store.at(localOutDir / s"${ancestryPcaBase}.log"),
+    ancestryPcaScores = store.at(localOutDir / s"${ancestryPcaBase}.scores.tsv"),
+    ancestryPcaScoresPlots = store.at(localOutDir / s"${ancestryPcaBase}.scores.plots.pdf"),
     harmRef1kgNameCloud = harmRef1kgNameCloud,
     harmRef1kgCloud = bedBimFam(harmRef1kgNameCloud),
     ancestryClusterName = localOutDir / ancestryClusterBase,
-    ancestryClusterLog = store[TXT].at(localOutDir / s"${ancestryClusterBase}.log"),
-    ancestryClusterFet = store[TXT].at(localOutDir / s"${ancestryClusterBase}.fet.1"),
-    ancestryClusterClu = store[TXT].at(localOutDir / s"${ancestryClusterBase}.clu.1"),
-    ancestryClusterKlg = store[TXT].at(localOutDir / s"${ancestryClusterBase}.klg.1"),
-    ancestryClusterPlots = store[TXT].at(localOutDir / s"${ancestryClusterBase}.plots.pdf"),
-    ancestryClusterPlotsCenters = store[TXT].at(localOutDir / s"${ancestryClusterBase}.plots.centers.pdf"),
-    ancestryClusterPlotsNo1kg = store[TXT].at(localOutDir / s"${ancestryClusterBase}.plots.no_1kg.pdf"),
-    ancestryClusterXtabs = store[TXT].at(localOutDir / s"${ancestryClusterBase}.xtabs"),
-    ancestryClusterGroups = store[TXT].at(localOutDir / s"${ancestryClusterBase}.groups.tsv"),
-    ancestryInferred = store[TXT].at(localOutDir / s"${ancestryBase}.inferred.tsv"),
-    harmRefFiltPrunedPcaGds = store[TXT].at(localOutDir / s"${harmRefFiltPrunedBase}.pca.gds"),
-    pcaLog = store[TXT].at(localOutDir / s"${pcaBase}.log"),
-    pcaScores = store[TXT].at(localOutDir / s"${pcaBase}.scores.tsv"),
-    pcaLoadings = store[TXT].at(localOutDir / s"${pcaBase}.loadings.tsv"),
-    sampleqcStats = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.tsv"),
-    sampleqcStatsAdj = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.tsv"),
-    sampleqcStatsAdjCorrPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.corr.pdf"),
-    sampleqcStatsAdjPcaLoadings = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.pca.loadings.tsv"),
-    sampleqcStatsAdjPcaScoresPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.pca.plots.pdf"),
-    sampleqcStatsAdjPcaScores = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.pca.scores.tsv"),
-	sampleqcSexcheck = store[TXT].at(localOutDir / s"${sampleqcSexcheckBase}.tsv"),
-    sampleqcSexcheckProblems = store[TXT].at(localOutDir / s"${sampleqcSexcheckBase}.problems.tsv"),
-    sampleqcSexcheckCloud = store[TXT].at(googleOutDir / s"${sampleqcSexcheckBase}.tsv"),
-    sampleqcSexcheckProblemsCloud = store[TXT].at(googleOutDir / s"${sampleqcSexcheckBase}.problems.tsv"),
-    sampleqcStatsCloud = store[TXT].at(googleOutDir / s"${sampleqcBase}.stats.tsv"),
+    ancestryClusterLog = store.at(localOutDir / s"${ancestryClusterBase}.log"),
+    ancestryClusterFet = store.at(localOutDir / s"${ancestryClusterBase}.fet.1"),
+    ancestryClusterClu = store.at(localOutDir / s"${ancestryClusterBase}.clu.1"),
+    ancestryClusterKlg = store.at(localOutDir / s"${ancestryClusterBase}.klg.1"),
+    ancestryClusterPlots = store.at(localOutDir / s"${ancestryClusterBase}.plots.pdf"),
+    ancestryClusterPlotsCenters = store.at(localOutDir / s"${ancestryClusterBase}.plots.centers.pdf"),
+    ancestryClusterPlotsNo1kg = store.at(localOutDir / s"${ancestryClusterBase}.plots.no_1kg.pdf"),
+    ancestryClusterXtabs = store.at(localOutDir / s"${ancestryClusterBase}.xtabs"),
+    ancestryClusterGroups = store.at(localOutDir / s"${ancestryClusterBase}.groups.tsv"),
+    ancestryInferred = store.at(localOutDir / s"${ancestryBase}.inferred.tsv"),
+    harmRefFiltPrunedPcaGds = store.at(localOutDir / s"${harmRefFiltPrunedBase}.pca.gds"),
+    pcaLog = store.at(localOutDir / s"${pcaBase}.log"),
+    pcaScores = store.at(localOutDir / s"${pcaBase}.scores.tsv"),
+    pcaLoadings = store.at(localOutDir / s"${pcaBase}.loadings.tsv"),
+    sampleqcStats = store.at(localOutDir / s"${sampleqcBase}.stats.tsv"),
+    sampleqcStatsAdj = store.at(localOutDir / s"${sampleqcBase}.stats.adj.tsv"),
+    sampleqcStatsAdjCorrPlots = store.at(localOutDir / s"${sampleqcBase}.stats.adj.corr.pdf"),
+    sampleqcStatsAdjPcaLoadings = store.at(localOutDir / s"${sampleqcBase}.stats.adj.pca.loadings.tsv"),
+    sampleqcStatsAdjPcaScoresPlots = store.at(localOutDir / s"${sampleqcBase}.stats.adj.pca.plots.pdf"),
+    sampleqcStatsAdjPcaScores = store.at(localOutDir / s"${sampleqcBase}.stats.adj.pca.scores.tsv"),
+	sampleqcSexcheck = store.at(localOutDir / s"${sampleqcSexcheckBase}.tsv"),
+    sampleqcSexcheckProblems = store.at(localOutDir / s"${sampleqcSexcheckBase}.problems.tsv"),
+    sampleqcSexcheckCloud = store.at(googleOutDir / s"${sampleqcSexcheckBase}.tsv"),
+    sampleqcSexcheckProblemsCloud = store.at(googleOutDir / s"${sampleqcSexcheckBase}.problems.tsv"),
+    sampleqcStatsCloud = store.at(googleOutDir / s"${sampleqcBase}.stats.tsv"),
     sampleqcStatsAdjClusterName = sampleqcStatsAdjClusterName,
-    sampleqcStatsAdjClusterFet = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.fet.1"),
-    sampleqcStatsAdjClusterClu = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.clu.1"),
-    sampleqcStatsAdjClusterKlg = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klg.1"),
-    sampleqcStatsAdjClusterKlustakwikLog = store[TXT].at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klustakwik.log"),
-    sampleqcStatsAdjClusterOutliers = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.outliers"),
-    sampleqcStatsAdjClusterPlots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.plots.pdf"),
-    sampleqcStatsAdjClusterXtabs = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.xtabs"),
-    sampleqcStatsAdjClusterStripchart = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.stripchart.pdf"),
-    sampleqcStatsAdjIndBoxplots = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.ind.boxplots.pdf"),
-    sampleqcStatsAdjIndDiscreteness = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.ind.discreteness"),
-    sampleqcStatsAdjOutliersTable = store[TXT].at(localOutDir / sampleqcStatsAdjOutliersTableBase),
-    sampleqcStatsAdjStripchart = store[TXT].at(localOutDir / s"${sampleqcBase}.stats.adj.stripchart.pdf"),
-    finalSampleExclusions = store[TXT].at(localOutDir / s"${finalBase}.sample.exclusions"),
-    finalSampleExclusionsCloud = store[TXT].at(googleOutDir / s"${finalBase}.sample.exclusions"),
-    variantqcStats = store[TXT].at(localOutDir / s"${variantqcBase}.stats.tsv"),
-    variantqcStatsCloud = store[TXT].at(googleOutDir / s"${variantqcBase}.stats.tsv"),
-	finalVariantExclusions = store[TXT].at(localOutDir / s"${finalBase}.variant.exclusions"),
-	finalVariantExclusionsCloud = store[TXT].at(googleOutDir / s"${finalBase}.variant.exclusions"),
+    sampleqcStatsAdjClusterFet = store.at(localOutDir / s"${sampleqcStatsAdjClusterBase}.fet.1"),
+    sampleqcStatsAdjClusterClu = store.at(localOutDir / s"${sampleqcStatsAdjClusterBase}.clu.1"),
+    sampleqcStatsAdjClusterKlg = store.at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klg.1"),
+    sampleqcStatsAdjClusterKlustakwikLog = store.at(localOutDir / s"${sampleqcStatsAdjClusterBase}.klustakwik.log"),
+    sampleqcStatsAdjClusterOutliers = store.at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.outliers"),
+    sampleqcStatsAdjClusterPlots = store.at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.plots.pdf"),
+    sampleqcStatsAdjClusterXtabs = store.at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.xtabs"),
+    sampleqcStatsAdjClusterStripchart = store.at(localOutDir / s"${sampleqcBase}.stats.adj.cluster.stripchart.pdf"),
+    sampleqcStatsAdjIndBoxplots = store.at(localOutDir / s"${sampleqcBase}.stats.adj.ind.boxplots.pdf"),
+    sampleqcStatsAdjIndDiscreteness = store.at(localOutDir / s"${sampleqcBase}.stats.adj.ind.discreteness"),
+    sampleqcStatsAdjOutliersTable = store.at(localOutDir / sampleqcStatsAdjOutliersTableBase),
+    sampleqcStatsAdjStripchart = store.at(localOutDir / s"${sampleqcBase}.stats.adj.stripchart.pdf"),
+    finalSampleExclusions = store.at(localOutDir / s"${finalBase}.sample.exclusions"),
+    finalSampleExclusionsCloud = store.at(googleOutDir / s"${finalBase}.sample.exclusions"),
+    variantqcStats = store.at(localOutDir / s"${variantqcBase}.stats.tsv"),
+    variantqcStatsCloud = store.at(googleOutDir / s"${variantqcBase}.stats.tsv"),
+	finalVariantExclusions = store.at(localOutDir / s"${finalBase}.variant.exclusions"),
+	finalVariantExclusionsCloud = store.at(googleOutDir / s"${finalBase}.variant.exclusions"),
     clean = bedBimFam(cleanName),
     cleanNameCloud = cleanNameCloud,
     cleanCloud = bedBimFam(cleanNameCloud),
-    cleanVcf = store[VCF].at(localOutDir / s"${cleanBase}.vcf.bgz"),
-    cleanVcfTbi = store[TXT].at(localOutDir / s"${cleanBase}.vcf.bgz.tbi"),
-    cleanVcfCloud = store[VCF].at(googleOutDir / s"${cleanBase}.vcf.bgz"),
-    cleanVdsCloud = store[VCF].at(googleOutDir / s"${cleanBase}.vds"))
+    cleanVcf = store.at(localOutDir / s"${cleanBase}.vcf.bgz"),
+    cleanVcfTbi = store.at(localOutDir / s"${cleanBase}.vcf.bgz.tbi"),
+    cleanVcfCloud = store.at(googleOutDir / s"${cleanBase}.vcf.bgz"),
+    cleanVdsCloud = store.at(googleOutDir / s"${cleanBase}.vds"))
     }
 
 }
 
 // Perform qc1
-val ancestryInferredStores: Seq[Store[TXT]] = {
+val ancestryInferredStores: Seq[Store] = {
   for {
     i <- 0 until nArrays
   } yield { 
@@ -375,9 +375,9 @@ val ancestryInferredStores: Seq[Store[TXT]] = {
 
 // Reconcile inferred ancestry step
 val ancestryInferredPathList = ancestryInferredStores.map(_.path).mkString(",")
-val ancestryInferredMerged = store[TXT].at(localOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
-val ancestryInferredMergedCloud = store[TXT].at(googleOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
-val ancestryInferredMergedOutliers = store[TXT].at(localOutDir / s"${projectId}.ancestry.inferred.merged.outliers.tsv")
+val ancestryInferredMerged = store.at(localOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
+val ancestryInferredMergedCloud = store.at(googleOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
+val ancestryInferredMergedOutliers = store.at(localOutDir / s"${projectId}.ancestry.inferred.merged.outliers.tsv")
 
 local {
   cmd"""$binRscript --vanilla --verbose
@@ -394,7 +394,7 @@ for {
   qc2(i)
 }
 
-def qc1(i: Int): Store[TXT] = {
+def qc1(i: Int): Store = {
 
   // Global parameters
   val dataPath = dataConfig.getObjList("arrays")(i).getStr("dataPath")
@@ -402,8 +402,8 @@ def qc1(i: Int): Store[TXT] = {
 
   // Input Stores
   val data = {
-    if (dataType == "vcf") { store[VCF].at(path(dataPath)).asInput }
-    else { store[TXT].at(path(s"${dataPath}.bed")).asInput }
+    if (dataType == "vcf") { store.at(path(dataPath)).asInput }
+    else { store.at(path(s"${dataPath}.bed")).asInput }
   }
 
   val (_, paramsArr) = Params.paramsByArr(i)

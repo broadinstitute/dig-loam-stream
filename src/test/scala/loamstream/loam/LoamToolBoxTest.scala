@@ -15,7 +15,6 @@ import loamstream.model.jobs.{Execution, LJob}
 import loamstream.util.Files
 import loamstream.TestHelpers
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.loam.ops.StoreType
 import loamstream.compiler.LoamPredef
 import loamstream.util.PathEnrichments
 import loamstream.model.execute.Executable
@@ -150,14 +149,13 @@ object LoamToolBoxTest {
     val toyCp = TestHelpers.makeGraph { implicit sc =>
       import LoamPredef._
       import LoamCmdTool._
-      import StoreType._
       
-      val fileIn = store[TXT].at(path("target/fileIn.txt")).asInput
-      val fileTmp1 = store[TXT]
-      val fileTmp2 = store[TXT]
-      val fileOut1 = store[TXT].at(path("target/fileOut1.txt"))
-      val fileOut2 = store[TXT].at(path("target/fileOut2.txt"))
-      val fileOut3 = store[TXT].at(path("target/fileOut3.txt"))
+      val fileIn = store.at(path("target/fileIn.txt")).asInput
+      val fileTmp1 = store
+      val fileTmp2 = store
+      val fileOut1 = store.at(path("target/fileOut1.txt"))
+      val fileOut2 = store.at(path("target/fileOut2.txt"))
+      val fileOut3 = store.at(path("target/fileOut3.txt"))
       cmd"cp $fileIn $fileTmp1"
       cmd"cp $fileTmp1 $fileTmp2"
       cmd"cp $fileTmp2 $fileOut1"
@@ -170,7 +168,6 @@ object LoamToolBoxTest {
     val imputeParallel = TestHelpers.makeGraph { implicit sc =>
       import LoamPredef._
       import LoamCmdTool._
-      import StoreType._
       import PathEnrichments._
 
       val softDir = path("/humgen/diabetes/users/ryank/software")
@@ -190,23 +187,23 @@ object LoamToolBoxTest {
       
       val outputDir = homeDir / "output"
       
-      val data = store[VCF].at(shapeitDataDir / "gwas.vcf.gz").asInput
-      val geneticMap = store[TXT].at(shapeitDataDir / "genetic_map.txt.gz").asInput
-      val phasedHaps = store[TXT].at(outputDir / "phased.haps.gz")
-      val phasedSamples = store[TXT].at(outputDir / "phased.samples.gz")
-      val log = store[TXT].at(outputDir / "shapeit.log")
+      val data = store.at(shapeitDataDir / "gwas.vcf.gz").asInput
+      val geneticMap = store.at(shapeitDataDir / "genetic_map.txt.gz").asInput
+      val phasedHaps = store.at(outputDir / "phased.haps.gz")
+      val phasedSamples = store.at(outputDir / "phased.samples.gz")
+      val log = store.at(outputDir / "shapeit.log")
       
       cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSamples -L $log --thread 16"
       
-      val mapFile = store[TXT].at(impute2DataDir / "example.chr22.map").asInput
-      val legend = store[TXT].at(impute2DataDir / "example.chr22.1kG.legend.gz").asInput
-      val knownHaps = store[TXT].at(impute2DataDir / "example.chr22.prephasing.impute2_haps.gz").asInput
+      val mapFile = store.at(impute2DataDir / "example.chr22.map").asInput
+      val legend = store.at(impute2DataDir / "example.chr22.1kG.legend.gz").asInput
+      val knownHaps = store.at(impute2DataDir / "example.chr22.prephasing.impute2_haps.gz").asInput
       
       for(iShard <- 0 until nShards) {
         val start = offset + iShard*basesPerShard + 1
         val end = start + basesPerShard - 1
       
-        val imputed = store[TXT].at(outputDir / s"imputed.data.bp${start}-${end}.gen")
+        val imputed = store.at(outputDir / s"imputed.data.bp${start}-${end}.gen")
       
         //NB: Bogus inpute2 command; doesn't need wrapping to appease ScalaStyle, and the content doesn't matter 
         cmd"$impute2 -use_prephased_g -m $mapFile -h $phasedHaps -l $legend -known_haps_g $knownHaps -int $start $end" 

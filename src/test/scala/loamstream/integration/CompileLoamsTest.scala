@@ -32,6 +32,6 @@ final class CompileLoamsTest extends FunSuite with LoamTestHelpers with Loggable
 
     val results = compile(LoamProject(TestHelpers.config, scripts))
     
-    assert(results.errors === Nil)
+    assert(results.isSuccess)
   }
 }

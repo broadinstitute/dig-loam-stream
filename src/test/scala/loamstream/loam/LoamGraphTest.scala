@@ -9,7 +9,6 @@ import loamstream.model.Tool
 import loamstream.model.Store
 import loamstream.model.execute.ExecutionEnvironment
 import loamstream.compiler.LoamPredef
-import loamstream.loam.ops.StoreType
 import java.nio.file.Path
 import loamstream.loam.files.LoamFileManager
 import loamstream.util.Maps
@@ -178,8 +177,6 @@ final class LoamGraphTest extends FunSuite {
 
 object LoamGraphTest {
 
-  import StoreType._
-  
   private def makeTestComponents: GraphComponents = {
     import TestHelpers.config
     
@@ -191,10 +188,10 @@ object LoamGraphTest {
     val inputFile = path("/user/home/someone/data.vcf")
     val outputFile = path("/user/home/someone/dataImputed.vcf")
     
-    val raw = store[VCF].at(inputFile).asInput
-    val phased = store[VCF]
-    val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
-    val imputed = store[VCF].at(outputFile)
+    val raw = store.at(inputFile).asInput
+    val phased = store
+    val template = store.at(path("/home/myself/template.vcf")).asInput
+    val imputed = store.at(outputFile)
     
     val phaseTool = cmd"shapeit -in $raw -out $phased"
     val imputeTool = cmd"impute -in $phased -template $template -out $imputed".using("R-3.1")
@@ -217,10 +214,10 @@ object LoamGraphTest {
     fileManager: LoamFileManager,
     inputFile: Path,
     outputFile: Path,
-    raw: Store[VCF],
-    phased: Store[VCF],
-    template: Store[VCF],
-    imputed: Store[VCF],
+    raw: Store,
+    phased: Store,
+    template: Store,
+    imputed: Store,
     phaseTool: LoamCmdTool,
     imputeTool: LoamCmdTool)
 }

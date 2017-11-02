@@ -1,0 +1,27 @@
+package loamstream.dag.vis.grid
+
+import loamstream.dag.vis.grid.DagGridLayout.NodeRow
+import org.scalatest.FunSuite
+
+/**
+  * LoamStream
+  * Created by oliverr on 11/2/2017.
+  */
+final class DagGridLayoutTest extends FunSuite {
+  test("DagGridLayout.NodeRow") {
+    // scalastyle:off magic.number
+    val emptyRowNine = NodeRow.empty(9)
+    val emptyRowTen = NodeRow.empty(10)
+    assert(emptyRowNine.isEmpty)
+    assert(emptyRowTen.isEmpty)
+    assert(emptyRowNine.isFull === false)
+    assert(emptyRowTen.isFull === false)
+    assert(emptyRowNine.emptyICols === (0 until 9))
+    assert(emptyRowTen.emptyICols === (0 until 10))
+    assert(emptyRowNine.iColsFromCenter === Seq(4, 3, 5, 2, 6, 1, 7, 0, 8))
+    assert(emptyRowTen.iColsFromCenter === Seq(5, 4, 6, 3, 7, 2, 8, 1, 9, 0))
+    assert(emptyRowNine.emptyIColsFromCenter === Seq(4, 3, 5, 2, 6, 1, 7, 0, 8))
+    assert(emptyRowTen.emptyIColsFromCenter === Seq(5, 4, 6, 3, 7, 2, 8, 1, 9, 0))
+  }
+
+}

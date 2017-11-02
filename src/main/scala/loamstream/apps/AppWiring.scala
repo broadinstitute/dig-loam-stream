@@ -35,6 +35,7 @@ import loamstream.uger.Drmaa1Client
 import loamstream.uger.UgerClient
 import loamstream.conf.ExecutionConfig
 import loamstream.util.ConfigUtils
+import loamstream.util.Tries
 
 /**
  * @author clint
@@ -62,26 +63,12 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
   def apply(cli: Conf): AppWiring = new DefaultAppWiring(cli)
   
   private final class DefaultAppWiring(cli: Conf) extends AppWiring with DefaultDb {
-    private[this] lazy val typesafeConfig = loadConfig(cli)
-    private[this] lazy val ugerConfigAttempt = UgerConfig.fromConfig(typesafeConfig)
-    private[this] lazy val googleConfigAttempt = GoogleCloudConfig.fromConfig(typesafeConfig)
-    private[this] lazy val hailConfigAttempt = HailConfig.fromConfig(typesafeConfig)
-    private[this] lazy val pythonConfigAttempt = PythonConfig.fromConfig(typesafeConfig)
-    private[this] lazy val rConfigAttempt = RConfig.fromConfig(typesafeConfig)
-    private[this] lazy val executionConfigAttempt = ExecutionConfig.fromConfig(typesafeConfig)
-
     override lazy val config: LoamConfig = {
-      if(executionConfigAttempt.isFailure) {
-        debug(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
-      }
+      val typesafeConfig: Config = loadConfig(cli)
       
-      LoamConfig(
-        ugerConfigAttempt.toOption,
-        googleConfigAttempt.toOption,
-        hailConfigAttempt.toOption,
-        pythonConfigAttempt.toOption,
-        rConfigAttempt.toOption,
-        executionConfigAttempt.getOrElse(ExecutionConfig.default))
+      //NB: .get is safe here, since we know LoamConfig.fromConfig won't return Failure
+      //TODO: Revisit this
+      LoamConfig.fromConfig(typesafeConfig).get
     }
     
     override def executer: Executer = terminableExecuter
@@ -106,7 +93,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
       val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(cli, threadPoolSize)
 
-      val googleRunner = googleChunkRunner(cli, googleConfigAttempt, localRunner)
+      val googleRunner = googleChunkRunner(cli, config.googleConfig, localRunner)
       
       val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
 
@@ -133,29 +120,42 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
   private def googleChunkRunner(
       cli: Conf,
-      googleConfigAttempt: Try[GoogleCloudConfig], 
+      googleConfigOpt: Option[GoogleCloudConfig], 
       delegate: ChunkRunner): Option[GoogleCloudChunkRunner] = {
     
-    val attempt = for {
-      googleConfig <- googleConfigAttempt
-      client <- CloudSdkDataProcClient.fromConfig(googleConfig)
-    } yield {
-      trace("Creating Google Cloud ChunkRunner...")
-      
-      GoogleCloudChunkRunner(client, googleConfig, delegate)
-    }
-    
-    val result = attempt.toOption
-    
     //TODO: A better way to enable or disable Google support; for now, this is purely expedient
-    if(result.isEmpty) {
-      val msg = s"""Google Cloud support NOT enabled because ${attempt.failed.get.getMessage}
-                   |in the config file (${cli.conf.toOption})""".stripMargin
+    
+    def noGoogleConfig: Option[GoogleCloudChunkRunner] = {
+      debug("Google Cloud support NOT enabled due to missing 'loamstream.googlecloud' section in the config file")
         
-      debug(msg)
+      None
     }
     
-    result
+    def googleConfigPresent(googleConfig: GoogleCloudConfig): Option[GoogleCloudChunkRunner] = {
+      val clientAttempt = CloudSdkDataProcClient.fromConfig(googleConfig)
+    
+      val runnerAttempt: Try[GoogleCloudChunkRunner] = {
+        for {
+          client <- CloudSdkDataProcClient.fromConfig(googleConfig)
+        } yield {
+          trace("Creating Google Cloud ChunkRunner...")
+    
+          GoogleCloudChunkRunner(client, googleConfig, delegate)
+        }
+      }
+
+      //NB: Invoke .recover for the logging side effect only :\
+      runnerAttempt.recover { case e =>
+        val msg = s"""|Google Cloud support NOT enabled because ${e.getMessage}
+                      |in the config file (${cli.conf.toOption})""".stripMargin
+      
+        debug(msg)
+      }
+    
+      runnerAttempt.toOption
+    }
+    
+    googleConfigOpt.fold(noGoogleConfig)(googleConfigPresent)
   }
   
   private def ugerChunkRunner(cli: Conf, threadPoolSize: Int): (Option[UgerChunkRunner], Seq[Terminable]) = {
@@ -243,7 +243,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
     cli.conf.toOption match {
       case Some(confFile) => ConfigUtils.configFromFile(confFile).withFallback(defaults)
-      case None           => defaults
+      case None           => ConfigUtils.allowSyspropOverrides(defaults)
     }
   }
 

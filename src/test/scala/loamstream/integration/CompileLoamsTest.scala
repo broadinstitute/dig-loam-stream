@@ -10,13 +10,17 @@ import loamstream.loam.LoamScript
 import loamstream.util.Shot
 import loamstream.TestHelpers
 import loamstream.util.Loggable
+import loamstream.util.ConfigUtils
+import loamstream.conf.LoamConfig
 
 /**
  * @author clint
  * Dec 21, 2016
  */
 final class CompileLoamsTest extends FunSuite with LoamTestHelpers with Loggable {
-  private val loamDir = Paths.get("pipeline/loam/")
+  import TestHelpers.path
+  
+  private val loamDir: Path = path("pipeline/loam/")
   
   test(s"Compile all files in $loamDir") {
     val loams: Set[Path] = {
@@ -30,7 +34,13 @@ final class CompileLoamsTest extends FunSuite with LoamTestHelpers with Loggable
 
     val scripts: Set[LoamScript] = Shot.sequence(loams.map(LoamScript.read)).get    
 
-    val results = compile(LoamProject(TestHelpers.config, scripts))
+    val config: LoamConfig = {
+      val typesafeConfig = ConfigUtils.configFromFile(path("pipeline/conf/loamstream.conf"))
+      
+      LoamConfig.fromConfig(typesafeConfig).get
+    }
+    
+    val results = compile(LoamProject(config, scripts))
     
     assert(results.isSuccess)
   }

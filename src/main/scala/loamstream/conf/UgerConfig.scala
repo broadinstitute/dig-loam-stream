@@ -13,9 +13,9 @@ import scala.util.Try
   */
 final case class UgerConfig(workDir: Path, logFile: Path, nativeSpecification: String, maxNumJobs: Int)
 
-object UgerConfig {
+object UgerConfig extends ConfigParser[UgerConfig] {
 
-  def fromConfig(config: Config): Try[UgerConfig] = {
+  override def fromConfig(config: Config): Try[UgerConfig] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.PathReader

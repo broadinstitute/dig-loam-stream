@@ -108,7 +108,7 @@ object ObservableEnrichments {
 
       def onError(e: Throwable): Unit = p.complete(Failure(e))
 
-      o.first.foreach(onNext, onError)
+      o.firstOrElse(None).foreach(onNext, onError)
 
       p.future
     }

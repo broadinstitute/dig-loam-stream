@@ -87,7 +87,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
       21 -> (39, 9411238),
       22 -> (36, 16050074))
 
-    //---------------------------LOOP THROUGH CHROMOSOMES-----------------------------------------------------------------
+    //---------------------------LOOP THROUGH CHROMOSOMES-----------------------------------------
     for (chrNum <- 12 to 22) {
       val chr = s"chr${chrNum}"
 
@@ -97,7 +97,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
 
       val (numShards, offset) = chrProps(chrNum)
 
-      //---------------------------LOOP THROUGH WINDOWS WITHIN CHROMOSOME-------------------------------------------------
+      //---------------------------LOOP THROUGH WINDOWS WITHIN CHROMOSOME-------------------------
       for (shard <- 0 until numShards) {
         val start = offset + (shard * numBasesPerShard) + 1
         val end = start + numBasesPerShard - 1

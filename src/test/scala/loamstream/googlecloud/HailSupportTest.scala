@@ -268,6 +268,7 @@ vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
       loamstream {
         googlecloud {
           gcloudBinary = "/path/to/gcloud"
+          gsutilBinary = "/path/to/gsutil"
           projectId = "some-project-id"
           clusterId = "some-cluster-id"
           credentialsFile = "/path/to/creds"

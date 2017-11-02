@@ -24,8 +24,8 @@ final case class GoogleCloudConfig(
     numWorkers: Int = Defaults.numWorkers, 
     workerMachineType: String = Defaults.workerMachineType,
     workerBootDiskSize: Int = Defaults.workerBootDiskSize,
-    numPreemptibleWorkers: Int = Defaults.numPreemptibleWorkers, //--num-preemptible-workers
-    preemptibleWorkerBootDiskSize: Int = Defaults.preemptibleWorkerBootDiskSize, //--preemptible-worker-boot-disk-size
+    numPreemptibleWorkers: Int = Defaults.numPreemptibleWorkers,
+    preemptibleWorkerBootDiskSize: Int = Defaults.preemptibleWorkerBootDiskSize,
     imageVersion: String = Defaults.imageVersion, 
     scopes: String = Defaults.scopes,
     properties: String = Defaults.properties,

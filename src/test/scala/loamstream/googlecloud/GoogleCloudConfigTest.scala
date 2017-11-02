@@ -10,7 +10,8 @@ import scala.util.Try
  * Nov 29, 2016
  */
 final class GoogleCloudConfigTest extends FunSuite {
-  private val binaryPath = "/path/to/gcloud"
+  private val gcloudBinaryPath = "/path/to/gcloud"
+  private val gsutilBinaryPath = "/path/to/gsutil"
   private val projectId = "pid"
   private val clusterId = "cid"
   private val credentialsFile = "/path/to/credentialsFile"
@@ -28,7 +29,8 @@ final class GoogleCloudConfigTest extends FunSuite {
   test("fromConfig - defaults used") {
     val confString = s"""loamstream {
         googlecloud {
-          gcloudBinary = "$binaryPath"
+          gcloudBinary = "$gcloudBinaryPath"
+          gsutilBinary = "$gsutilBinaryPath"
           projectId = "$projectId"
           clusterId = "$clusterId"
           credentialsFile = "$credentialsFile"
@@ -40,7 +42,8 @@ final class GoogleCloudConfigTest extends FunSuite {
     
     val gConfig = GoogleCloudConfig.fromConfig(config).get
     
-    assert(gConfig.gcloudBinary === Paths.get(binaryPath))
+    assert(gConfig.gcloudBinary === Paths.get(gcloudBinaryPath))
+    assert(gConfig.gsutilBinary === Paths.get(gsutilBinaryPath))
     assert(gConfig.projectId === projectId)
     assert(gConfig.clusterId === clusterId)
     assert(gConfig.credentialsFile === Paths.get(credentialsFile))
@@ -78,7 +81,8 @@ final class GoogleCloudConfigTest extends FunSuite {
   test("fromConfig - no defaults") {
     val confString = s"""loamstream {
         googlecloud {
-          gcloudBinary = "$binaryPath"
+          gcloudBinary = "$gcloudBinaryPath"
+          gsutilBinary = "$gsutilBinaryPath"
           projectId = "$projectId"
           clusterId = "$clusterId"
           credentialsFile = "$credentialsFile"
@@ -99,7 +103,8 @@ final class GoogleCloudConfigTest extends FunSuite {
     
     val gConfig = GoogleCloudConfig.fromConfig(config).get
     
-    assert(gConfig.gcloudBinary === Paths.get(binaryPath))
+    assert(gConfig.gcloudBinary === Paths.get(gcloudBinaryPath))
+    assert(gConfig.gsutilBinary === Paths.get(gsutilBinaryPath))
     assert(gConfig.projectId === projectId)
     assert(gConfig.clusterId === clusterId)
     assert(gConfig.numWorkers === numWorkers)

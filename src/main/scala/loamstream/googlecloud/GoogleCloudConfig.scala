@@ -15,6 +15,7 @@ import GoogleCloudConfig.Defaults
  */
 final case class GoogleCloudConfig(
     gcloudBinary: Path,
+    gsutilBinary: Path,
     projectId: String,
     clusterId: String,
     credentialsFile: Path,

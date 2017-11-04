@@ -91,7 +91,7 @@ for(p in c("all")) {
 			i<-i+1
 			p1<-ggplot(sdata_temp[sdata_temp$METRIC == f,],aes_string(x="METRIC",y="VALUE")) +
 				geom_point(data=sdata_temp[sdata_temp$METRIC == f & sdata_temp$DECISION=="KEEP",],color="lightgray") +
-				geom_boxplot(outlier.size=NA,fill=NA) +
+				geom_boxplot(outlier.shape=NA, outlier.size=NA,fill=NA) +
 				geom_point(data=sdata_temp[sdata_temp$METRIC == f & sdata_temp$DECISION=="OUTLIER_PCA",],color="blue") +
 				geom_point(data=sdata_temp[sdata_temp$METRIC == f & sdata_temp$DECISION=="OUTLIER_IND_PCA",],color="green") +
 				geom_point(data=sdata_temp[sdata_temp$METRIC == f & sdata_temp$DECISION=="OUTLIER_IND",],color="orange") +

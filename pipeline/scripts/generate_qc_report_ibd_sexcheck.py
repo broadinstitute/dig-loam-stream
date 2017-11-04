@@ -10,14 +10,7 @@ def main(args=None):
 		print "writing duplicates and excessive sharing section"
 		f.write("\n"); f.write(r"\subsection{Duplicates and Excessive Sharing of Identity-by-Descent (IBD)}"); f.write("\n")
 
-		text=r"""Software used for this step:
-		\begin{itemize}
-			\item Hail \cite{hail}
-			\item King \cite{king}
-		\end{itemize}"""
-		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
-
-		text=r"""Sample pair kinship was determined using KING \cite{king} relationship inference software, which offers a robust algorithm for relationship inference under population stratification. Prior to inferring relationships, we filtered variants with low callrate, variants with low minor allele frequency, variants with positions in known high LD regions \cite{umichHiLd}, and known T2D associated loci using the software Hail \cite{hail}. Then an LD pruned dataset was created. The specific filters that were used are listed below.."""
+		text=r"""Sample pair kinship coefficients were determined using KING \cite{king} relationship inference software, which offers a robust algorithm for relationship inference under population stratification. Prior to inferring relationships, we filtered variants with low callrate, variants with low minor allele frequency, variants with positions in known high LD regions \cite{umichHiLd}, and known Type 2 diabetes associated loci using the software Hail \cite{hail}. Then an LD pruned dataset was created. The specific filters that were used are listed below.."""
 		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
 
 		text=r"""\begin{itemize}
@@ -30,84 +23,114 @@ def main(args=None):
 		\end{itemize}"""
 		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
 
-		text_insert=""
-		i = 0
-		for a in args.filtered_bim.split(","):
-			i = i + 1
+		bim_list = args.filtered_bim.split(",")
+		if len(bim_list) > 1:
+			i = 0
+			for a in bim_list:
+				i = i + 1
+				l = a.split("___")[0]
+				m = a.split("___")[1]
+				df = pd.read_table(m, header=None)
+				if i == 1:
+					text1 = "{0:,d}".format(df.shape[0]) + " " + l + " variants"
+				elif i < len(bim_list)-1:
+					text1 = text1 + ", " + "{0:,d}".format(df.shape[0]) + " " + l + " variants"
+				else:
+					if len(bim_list) == 2:
+						text1 = text1 + " and " + "{0:,d}".format(df.shape[0]) + " " + l + " variants"
+					else:
+						text1 = text1 + ", and " + "{0:,d}".format(df.shape[0]) + " " + l + " variants"
+		else:
+			m = args.filtered_bim.split("___")[1]
+			df = pd.read_table(m, header=None)
+			text1 = "{0:,d}".format(df.shape[0]) + " variants"
+		text=r"""After filtering there were {0} remaining""".format(text1)
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
+
+		kin0_list = args.kin0_related.split(",")
+		if len(kin0_list) > 1:
+			i = 0
+			for a in kin0_list:
+				i = i + 1
+				l = a.split("___")[0]
+				m = a.split("___")[1]
+				df = pd.read_table(m)
+				df = df[df['Kinship'] > 0.4]
+				if i == 1:
+					text1 = "{0:,d}".format(df.shape[0]) + " " + l
+				elif i < len(kin0_list)-1:
+					text1 = text1 + ", " + "{0:,d}".format(df.shape[0]) + " " + l
+				else:
+					if len(kin0_list) == 2:
+						text1 = text1 + " and " + "{0:,d}".format(df.shape[0]) + " " + l
+					else:
+						text1 = text1 + ", and " + "{0:,d}".format(df.shape[0]) + " " + l
+		else:
+			text1 = "{0:,d}".format(df.shape[0])
+		text=r"""In order to identify duplicate pairs of samples, a filter was set to $Kinship > 0.4$. There were {0} sample pairs identified as duplicate in the array data.""".format(text1)
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
+
+		fam_list = args.famsizes.split(",")
+		if len(fam_list) > 0:
+			i = 0
+			for a in fam_list:
+				i = i + 1
+				l = a.split("___")[0]
+				m = a.split("___")[1]
+				df = pd.read_table(m, header=None)
+				df = df[df[1] >= 10]
+				if i == 1:
+					text1 = "{0:,d}".format(df.shape[0]) + " " + l
+				elif i < len(bim_list) -1:
+					text1 = text1 + ", " + "{0:,d}".format(df.shape[0]) + " " + l
+				else:
+					if len(bim_list) == 2:
+						text1 = text1 + " and " + "{0:,d}".format(df.shape[0]) + " " + l
+					else:
+						text1 = text1 + ", and " + "{0:,d}".format(df.shape[0]) + " " + l
+		else:
 			l = a.split("___")[0]
 			m = a.split("___")[1]
 			df = pd.read_table(m, header=None)
-			if i == 1:
-				text_insert = str(df.shape[0]) + " variants on the " + l + " array"
-			elif i < len(args.filtered_bim.split(",")) -1:
-				text_insert = text_insert + ", " + str(df.shape[0]) + " variants on the " + l + " array"
-			else:
-				if len(args.filtered_bim.split(",")) == 2:
-					text_insert = text_insert + " and " + str(df.shape[0]) + " variants on the " + l + " array"
-				else:
-					text_insert = text_insert + ", and " + str(df.shape[0]) + " variants on the " + l + " array"
-		text=r"""After filtering there were {0} """.format(text_insert)
+			text1 = "{0:,d}".format(df.shape[0])
+		text=r"""In addition to identifying duplicate samples, any single individual that exhibited Kinship values indicating a 2nd degree relative or higher relationship with 10 or more others was flagged for removal. The relationship count indicated {0} samples that exhibited high levels of sharing identity by descent.""".format(text1)
 		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
-
-		text_insert=""
-		i = 0
-		for a in args.kin0_related.split(","):
-			i = i + 1
-			l = a.split("___")[0]
-			m = a.split("___")[1]
-			df = pd.read_table(m)
-			df = df[df['Kinship'] > 0.4]
-			if i == 1:
-				text_insert = str(df.shape[0]) + " duplicate sample pairs on the " + l + " array"
-			elif i < len(args.filtered_bim.split(",")) -1:
-				text_insert = text_insert + ", " + str(df.shape[0]) + " duplicate sample pairs on the " + l + " array"
-			else:
-				if len(args.filtered_bim.split(",")) == 2:
-					text_insert = text_insert + " and " + str(df.shape[0]) + " duplicate sample pairs on the " + l + " array"
-				else:
-					text_insert = text_insert + ", and " + str(df.shape[0]) + " duplicate sample pairs on the " + l + " array"
-		if text_insert == "":
-			text_insert = "no duplicate sample pairs"
-		text=r"""Kinship coefficients were generated using the KING command $--kinship$. A threshold for identifying duplicate pairs was set to $Kinship > 0.4$. The output from KING indicated {0}.""".format(text_insert)
-		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
-
-		text_insert=""
-		i = 0
-		for a in args.famsizes.split(","):
-			i = i + 1
-			l = a.split("___")[0]
-			m = a.split("___")[1]
-			df = pd.read_table(m, header=None)
-			df = df[df[1] >= 10]
-			if i == 1:
-				text_insert = str(df.shape[0]) + " samples on the " + l + " array"
-			elif i < len(args.filtered_bim.split(",")) -1:
-				text_insert = text_insert + ", " + str(df.shape[0]) + " samples on the " + l + " array"
-			else:
-				if len(args.filtered_bim.split(",")) == 2:
-					text_insert = text_insert + " and " + str(df.shape[0]) + " samples on the " + l + " array"
-				else:
-					text_insert = text_insert + ", and " + str(df.shape[0]) + " samples on the " + l + " array"
-			if text_insert == "":
-				text_insert = "no samples with excessive sharing by IBD"
-		text=r"""In addition to identifying duplicate samples, any single individual that exhibited Kinship values indicating a 2nd degree relative or higher relationship with 10 or more others was flagged for removal. The relationship count indicated {0}.""".format(text_insert)
 
 		print "writing sex check section"
 		f.write("\n"); f.write(r"\subsection{Sex Chromosome Check}"); f.write("\n")
 
-		text=r"""Software used for this step:
-		\begin{itemize}
-			\item Hail \cite{hail}
-		\end{itemize}"""
-		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
-
+		sex_list = args.sexcheck_problems.split(",")
 		text_nomatch=""
 		text_noimpute={}
-		i = 0
-		for a in args.sexcheck_problems.split(","):
-			i = i + 1
-			l = a.split("___")[0]
-			m = a.split("___")[1]
+		if len(sex_list) > 0:
+			i = 0
+			for a in sex_list:
+				i = i + 1
+				l = a.split("___")[0]
+				m = a.split("___")[1]
+				df = pd.read_table(m)
+				if df.shape[0] > 0:
+					nnomatch = df[~np.isnan(df['isFemale'])].shape[0]
+					nnoimpute = df[np.isnan(df['isFemale'])].shape[0]
+				else:
+					nnomatch = 0
+					nnoimpute = 0
+				if i == 1:
+					text_nomatch = str(nnomatch) + " " + l
+					text_noimpute = str(nnoimpute) + " " + l
+				elif i < len(sex_list) -1:
+					text_nomatch = text_nomatch + ", " + str(nnomatch) + " " + l
+					text_noimpute = text_noimpute + ", " + str(nnoimpute) + " " + l
+				else:
+					if len(sex_list) == 2:
+						text_nomatch = text_nomatch + " and " + str(nnomatch) + " " + l
+						text_noimpute = text_noimpute + " and " + str(nnoimpute) + " " + l
+					else:
+						text_nomatch = text_nomatch + ", and " + str(nnomatch) + " " + l
+						text_noimpute = text_noimpute + ", and " + str(nnoimpute) + " " + l
+		else:
+			l = args.sexcheck_problems.split("___")[0]
+			m = args.sexcheck_problems.split("___")[1]
 			df = pd.read_table(m)
 			if df.shape[0] > 0:
 				nnomatch = df[~np.isnan(df['isFemale'])].shape[0]
@@ -115,23 +138,7 @@ def main(args=None):
 			else:
 				nnomatch = 0
 				nnoimpute = 0
-			if i == 1:
-				text_nomatch = str(nnomatch) + " samples on the " + l + " array"
-				text_noimpute = str(nnoimpute) + " samples on the " + l + " array"
-			elif i < len(args.sexcheck_problems.split(",")) -1:
-				text_nomatch = text_nomatch + ", " + str(nnomatch) + " samples on the " + l + " array"
-				text_noimpute = text_noimpute + ", " + str(nnoimpute) + " samples on the " + l + " array"
-			else:
-				if len(args.sexcheck_problems.split(",")) == 2:
-					text_nomatch = text_nomatch + " and " + str(nnomatch) + " samples on the " + l + " array"
-					text_noimpute = text_noimpute + " and " + str(nnoimpute) + " samples on the " + l + " array"
-				else:
-					text_nomatch = text_nomatch + ", and " + str(nnomatch) + " samples on the " + l + " array"
-					text_noimpute = text_noimpute + ", and " + str(nnoimpute) + " samples on the " + l + " array"
-			if text_nomatch == "":
-				text_nomatch = "no samples"
-				text_noimpute = "no samples"
-		text=r"""Each array was then checked for genotype / clinical data agreement for sex. There were {0} that were flagged as a 'PROBLEM' by Hail because it was unable to impute sex and there were {1} that were flagged for removal because the genotype based sex did not match their clinical sex.""".format(text_noimpute, text_nomatch)
+		text=r"""Each array was checked for genotype / clinical data agreement for sex. There were {0} samples that were flagged as a 'PROBLEM' by Hail because it was unable to impute sex and there were {1} samples that were flagged for removal because the genotype based sex did not match their clinical sex.""".format(text_noimpute, text_nomatch)
 		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
 
 	print "finished\n"

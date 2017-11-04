@@ -26,8 +26,7 @@ val nMetrics = sampleQcMetrics.size
 val reportAuthors = dataConfig.getStrList("reportAuthors").mkString(",")
 
 // generate list of tuples that define each association test
-var assocSeq: Seq[(String, String, String, String, String)] = Seq()
-
+var assocSeq: Seq[(String, String, String, String, String, Int)] = Seq()
 for { assoc <- dataConfig.getObjList("assocs") } 
   {
     for { test <- assoc.getStrList("tests") }
@@ -39,7 +38,8 @@ for { assoc <- dataConfig.getObjList("assocs") }
 	    		test,
 	    		covars,
 	    		assoc.getStr("trans"),
-	    		assoc.getStr("strat"))
+	    		assoc.getStr("strat"),
+                assoc.getInt("phase"))
 	    	  )  
 	      }
       }
@@ -50,6 +50,7 @@ object Input {
   object Local {
     val kgSample = store[TXT].at(path(dataConfig.getStr("kgSample"))).asInput
     val pheno = store[TXT].at(path(phenoFile)).asInput
+    val genes = store[TXT].at(path(dataConfig.getStr("genePositions"))).asInput
   }
 
   object Google {
@@ -97,6 +98,7 @@ object Params {
     assocCovars: String,
     assocTrans: String,
     assocStrat: String,
+    assocPhase: Int,
     assocPhenoPrelimFile: Store[TXT],
     assocPhenoPrelimFileCloud: Store[TXT],
     assocSamplesInclude: Store[TXT],
@@ -117,6 +119,12 @@ object Params {
     resultTrans: String,
     resultStrat: String,
     resultFinal: Store[TXT],
+    resultFinalTop1000: Store[TXT],
+    resultFinalTop1000Genes: Store[TXT],
+    resultFinalTop1000AnnotAlignedRisk: Store[TXT],
+    resultFinalTopLoci: Store[TXT],
+    resultFinalTopLociReport: Store[TXT],
+    resultFinalTopLociReportHighlighted: Store[TXT],
     resultFinalTbi: Store[TXT],
     resultFinalCloud: Store[TXT],
     resultFinalQqPlot: Store[TXT],
@@ -243,6 +251,7 @@ object Params {
     variantqcStatsCloud: Store[TXT],
     finalVariantExclusions: Store[TXT],
     finalVariantExclusionsCloud: Store[TXT],
+    cleanName: Path,
     clean: Seq[Store[TXT]],
     cleanNameCloud: URI,
     cleanCloud: Seq[Store[TXT]],
@@ -270,6 +279,12 @@ object Params {
       resultStrat = resultStrat,
       resultFinal = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.gz"),
       resultFinalTbi = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.gz.tbi"),
+      resultFinalTop1000 = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.top1000.tsv"),
+      resultFinalTop1000Genes = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.top1000.genes.tsv"),
+      resultFinalTop1000AnnotAlignedRisk = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.top1000.annot.aligned_risk.tsv"),
+      resultFinalTopLoci = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.toploci.tsv"),
+      resultFinalTopLociReport = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.toploci.report.tsv"),
+      resultFinalTopLociReportHighlighted = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.toploci.report.highlighted.tsv"),
       resultFinalCloud = store[TXT].at(googleOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.gz"),
       resultFinalQqPlot = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.qq.png"),
       resultFinalMhtPlot = store[TXT].at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.mht.png"),
@@ -343,6 +358,7 @@ object Params {
       val assocCovars = assocSeq(assoc)._3
       val assocTrans = assocSeq(assoc)._4
       val assocStrat = assocSeq(assoc)._5
+      val assocPhase = assocSeq(assoc)._6
 
       val covarsString = assocCovars.replace("+","_")
 
@@ -352,6 +368,7 @@ object Params {
         assocCovars = assocCovars,
         assocTrans = assocTrans,
         assocStrat = assocStrat,
+        assocPhase = assocPhase,
         assocPhenoPrelimFile = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.prelim_pheno.tsv"),
         assocPhenoPrelimFileCloud = store[TXT].at(googleOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.prelim_pheno.tsv"),
         assocSamplesInclude = store[TXT].at(localOutDir / s"${projectId}.${arrayId}.assoc.$assocPheno.$assocTrans.$covarsString.$assocTest.samples.include"),
@@ -535,6 +552,7 @@ object Params {
     variantqcStatsCloud = store[TXT].at(googleOutDir / s"${variantqcBase}.stats.tsv"),
 	finalVariantExclusions = store[TXT].at(localOutDir / s"${finalBase}.variant.exclusions"),
 	finalVariantExclusionsCloud = store[TXT].at(googleOutDir / s"${finalBase}.variant.exclusions"),
+    cleanName = cleanName,
     clean = bedBimFam(cleanName),
     cleanNameCloud = cleanNameCloud,
     cleanCloud = bedBimFam(cleanNameCloud),
@@ -602,11 +620,20 @@ andThen {
   val reportQcData = store[TXT].at(localOutDir / s"${projectId}.qcreport.data.tex")
   val reportQcAncestry = store[TXT].at(localOutDir / s"${projectId}.qcreport.ancestry.tex")
   val reportQcIbdSexcheck = store[TXT].at(localOutDir / s"${projectId}.qcreport.ibd_sexcheck.tex")
+  val reportQcSampleqc = store[TXT].at(localOutDir / s"${projectId}.qcreport.sampleqc.tex")
+  val reportQcVariantqc = store[TXT].at(localOutDir / s"${projectId}.qcreport.variantqc.tex")
   val reportQcBibliography = store[TXT].at(localOutDir / s"${projectId}.qcreport.bibliography.tex")
+  val reportQcTex = store[TXT].at(localOutDir / s"${projectId}.qcreport.tex")
+  val reportQcPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.pdf")
   val reportQcSampleUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.pdf")
   val reportQcSampleUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples.upsetplot.png")
+  val reportQcVariantsRemainingUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants_remaining.upsetplot.pdf")
+  val reportQcVariantsRemainingUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants_remaining.upsetplot.png")
+  val reportQcSamplesRemainingUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples_remaining.upsetplot.pdf")
+  val reportQcSamplesRemainingUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.samples_remaining.upsetplot.png")
   val reportQcVariantUpsetplotPdf = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.pdf")
   val reportQcVariantUpsetplotPng = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.upsetplot.png")
+  val reportQcSampleqcTable = store[TXT].at(localOutDir / s"${projectId}.qcreport.sampleqc.tbl")
   val reportQcVariantSummaryTable = store[TXT].at(localOutDir / s"${projectId}.qcreport.variants.summary.tbl")
   val reportQcAncestryClusterTable = store[TXT].at(localOutDir / s"${projectId}.qcreport.ancestry.clusters.tbl")
   val reportQcAncestryFinalTable = store[TXT].at(localOutDir / s"${projectId}.qcreport.ancestry.final.tbl")
@@ -630,7 +657,13 @@ andThen {
   var arrayKin0Related = Seq[String]()
   var arrayFamsizes = Seq[String]()
   var arraySexcheckProblems = Seq[String]()
-  
+  var arraySampleqcOutliers = Seq[String]()
+  var arrayFinalSampleExclusions = Seq[String]()
+  var arrayFinalVariantExclusions = Seq[String]()
+  var arraySampleqcOutlierPlots = Seq[String]()
+  var arrayCleanFamStrings = Seq[String]()
+  var arrayCleanBimStrings = Seq[String]()
+
   for { 
     i <- 0 until nArrays
   } {
@@ -657,142 +690,241 @@ andThen {
     arrayFamsizes = arrayFamsizes :+ paramsArr.arrayId + "___" + s"${paramsArr.kinFamsizes.toString.split("@")(1)}"
     arraySexcheckProblems = arraySexcheckProblems :+ paramsArr.arrayId + "___" + s"${paramsArr.sampleqcSexcheckProblems.toString.split("@")(1)}"
 
+    arraySampleqcOutliers = arraySampleqcOutliers :+ paramsArr.arrayId + "___" + s"${paramsArr.sampleqcStatsAdjOutliersTable.toString.split("@")(1)}"
+    arrayFinalSampleExclusions = arrayFinalSampleExclusions :+ paramsArr.arrayId + "___" + s"${paramsArr.finalSampleExclusions.toString.split("@")(1)}"
+    arrayFinalVariantExclusions = arrayFinalVariantExclusions :+ paramsArr.arrayId + "___" + s"${paramsArr.finalVariantExclusions.toString.split("@")(1)}"
+    arraySampleqcOutlierPlots = arraySampleqcOutlierPlots :+ paramsArr.arrayId + "___" + s"${paramsArr.sampleqcOutlierPlotPng.toString.split("@")(1)}"
+
+    arrayCleanFamStrings = arrayCleanFamStrings :+ paramsArr.arrayId + "___" + s"${paramsArr.cleanName}.fam"
+    arrayCleanBimStrings = arrayCleanBimStrings :+ paramsArr.arrayId + "___" + s"${paramsArr.cleanName}.bim"
+
   }
   
-  local {
+  //local {
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rVariantsSummaryTable
+  //    --freq-in "${arrayFrqStrings.mkString(",")}"
+  //    --indel-in "${arrayIndelStrings.mkString(",")}"
+  //    --multi-in "${arrayMultiStrings.mkString(",")}"
+  //    --dupl-in "${arrayDuplStrings.mkString(",")}"
+  //    --out ${reportQcVariantSummaryTable}"""
+  //    .in(Params.paramsByArrSorted.map(_.arrayDataRawFreq) ++ Params.paramsByArrSorted.map(_.arrayDataPreparedMultiallelic) ++ Params.paramsByArrSorted.map(_.arrayDataRawIndel) ++ Params.paramsByArrSorted.map(_.arrayDataRawDupRemove))
+  //    .out(reportQcVariantSummaryTable)
+  //    .using("R-3.4")
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rUpsetplotBimFam
+  //    --input "${harmRefFamStrings.mkString(",")}"
+  //    --type fam
+  //    --out $reportQcSampleUpsetplotPdf"""
+  //    .in(Params.paramsByArrSorted.map(_.arrayData))
+  //    .out(reportQcSampleUpsetplotPdf)
+  //    .using("R-3.4")
+  //
+  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcSampleUpsetplotPdf}[0] $reportQcSampleUpsetplotPng"""
+  //    .in(reportQcSampleUpsetplotPdf)
+  //    .out(reportQcSampleUpsetplotPng)
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rUpsetplotBimFam
+  //    --input "${harmRefBimStrings.mkString(",")}"
+  //    --type bim
+  //    --out $reportQcVariantUpsetplotPdf"""
+  //    .in(Params.paramsByArrSorted.flatMap(_.harm))
+  //    .out(reportQcVariantUpsetplotPdf)
+  //    .using("R-3.4")
+  //
+  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcVariantUpsetplotPdf}[0] $reportQcVariantUpsetplotPng"""
+  //    .in(reportQcVariantUpsetplotPdf)
+  //    .out(reportQcVariantUpsetplotPng)
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rAncestryClusterTable
+  //    --cluster-in "${arrayClusterGroups.mkString(",")}"
+  //    --ancestry-in "${arrayAncestryInferred.mkString(",")}"
+  //    --final-in ${ancestryInferredMerged}
+  //    --cluster-out ${reportQcAncestryClusterTable}
+  //    --final-out ${reportQcAncestryFinalTable}"""
+  //    .in(Params.paramsByArrSorted.map(_.ancestryClusterGroups) ++ Params.paramsByArrSorted.map(_.ancestryInferred) :+ ancestryInferredMerged)
+  //    .out(reportQcAncestryClusterTable, reportQcAncestryFinalTable)
+  //    .using("R-3.4")
+  //
+  //  cmd"""python $pyGenerateQcReportIntro
+  //    --id $projectId
+  //    --authors "$reportAuthors" 
+  //    --out ${reportQcIntro} 
+  //    --array-data ${arrayDataStrings.mkString(",")}"""
+  //    .in(Params.paramsByArrSorted.map(_.arrayData))
+  //    .out(reportQcIntro)
+  //
+  //  cmd"""python $pyGenerateQcReportData
+  //    --narrays $nArrays
+  //    --samples-upset-diagram ${reportQcSampleUpsetplotPng}
+  //    --variants-summary-table ${reportQcVariantSummaryTable} 
+  //    --variants-upset-diagram ${reportQcVariantUpsetplotPng} 
+  //    --out ${reportQcData}"""
+  //    .in(reportQcSampleUpsetplotPng, reportQcVariantSummaryTable)
+  //    .out(reportQcData)
+  //
+  //  cmd"""python $pyGenerateQcReportAncestry
+  //    --kg-merged-bim "${arrayMergedKgBims.mkString(",")}"
+  //    --pca-plots "${arrayPcaScoresPlots.mkString(",")}"
+  //    --cluster-plots "${arrayClusterPlots.mkString(",")}"
+  //    --cluster-table ${reportQcAncestryClusterTable}
+  //    --final-table ${reportQcAncestryFinalTable}
+  //    --out ${reportQcAncestry}"""
+  //    .in(Params.paramsByArrSorted.flatMap(_.harmRef1kg) ++ Params.paramsByArrSorted.map(_.ancestryPcaScoresPlotPc1VsPc2) ++ Params.paramsByArrSorted.map(_.ancestryPcaScoresPlotPc2VsPc3) ++ Params.paramsByArrSorted.map(_.ancestryClusterPlotPc1VsPc2) ++ Params.paramsByArrSorted.map(_.ancestryClusterPlotPc2VsPc3) :+ reportQcAncestryClusterTable :+ reportQcAncestryFinalTable)
+  //    .out(reportQcAncestry)
+  //
+  //  cmd"""python $pyGenerateQcReportIbdSexcheck
+  //    --filtered-bim "${arrayharmRefFilteredBims.mkString(",")}"
+  //    --kin0-related "${arrayKin0Related.mkString(",")}"
+  //    --famsizes "${arrayFamsizes.mkString(",")}"
+  //    --sexcheck-problems "${arraySexcheckProblems.mkString(",")}"
+  //    --out ${reportQcIbdSexcheck}"""
+  //    .in(Params.paramsByArrSorted.flatMap(_.harmRefFiltPruned) ++ Params.paramsByArrSorted.map(_.kinKin0Related) ++ Params.paramsByArrSorted.map(_.kinFamsizes) ++ Params.paramsByArrSorted.map(_.sampleqcSexcheckProblems))
+  //    .out(reportQcIbdSexcheck)
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rMakeMetricDistPlot
+  //    --sampleqc ${Params.paramsByArrSorted.head.sampleqcStats}
+  //    --metric nHet
+  //    --out ${sampleQcMetricDistUnadjPdf}
+  //    """
+  //    .in(Params.paramsByArrSorted.head.sampleqcStats)
+  //    .out(sampleQcMetricDistUnadjPdf)
+  //
+  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistUnadjPdf}[0] $sampleQcMetricDistUnadjPng"""
+  //    .in(sampleQcMetricDistUnadjPdf)
+  //    .out(sampleQcMetricDistUnadjPng)
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rMakeMetricDistPlot
+  //    --sampleqc ${Params.paramsByArrSorted.head.sampleqcStatsAdj}
+  //    --metric nHet_res
+  //    --out ${sampleQcMetricDistAdjPdf}
+  //    """
+  //    .in(Params.paramsByArrSorted.head.sampleqcStatsAdj)
+  //    .out(sampleQcMetricDistAdjPdf)
+  //
+  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistAdjPdf}[0] $sampleQcMetricDistAdjPng"""
+  //    .in(sampleQcMetricDistAdjPdf)
+  //    .out(sampleQcMetricDistAdjPng)
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rMakeOutlierTable
+  //    --ancestry-inferred-outliers ${ancestryInferredMergedOutliers}
+  //    --kinship-related ${arrayKin0Related.mkString(",")}
+  //    --kinship-famsizes ${arrayFamsizes.mkString(",")}
+  //    --sampleqc-outliers ${arraySampleqcOutliers.mkString(",")}
+  //    --sexcheck-problems ${arraySexcheckProblems.mkString(",")}
+  //    --final-exclusions ${arrayFinalSampleExclusions.mkString(",")}
+  //    --out ${reportQcSampleqcTable}"""
+  //    .in(Params.paramsByArrSorted.map(_.kinKin0Related) ++ Params.paramsByArrSorted.map(_.kinFamsizes) ++ Params.paramsByArrSorted.map(_.sampleqcStatsAdjOutliersTable) ++ Params.paramsByArrSorted.map(_.sampleqcSexcheckProblems) ++ Params.paramsByArrSorted.map(_.finalSampleExclusions) :+ ancestryInferredMergedOutliers)
+  //    .out(reportQcSampleqcTable)
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rUpsetplotBimFam
+  //    --input "${arrayCleanFamStrings.mkString(",")}"
+  //    --type fam
+  //    --out ${reportQcSamplesRemainingUpsetplotPdf}"""
+  //    .in(Params.paramsByArrSorted.flatMap(_.clean))
+  //    .out(reportQcSamplesRemainingUpsetplotPdf)
+  //    .using("R-3.4")
+  //
+  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcSamplesRemainingUpsetplotPdf}[0] $reportQcSamplesRemainingUpsetplotPng"""
+  //    .in(reportQcSamplesRemainingUpsetplotPdf)
+  //    .out(reportQcSamplesRemainingUpsetplotPng)
+  //
+  //  cmd"""python $pyGenerateQcReportSampleqc
+  //    --compare-dist-nhet-unadj ${sampleQcMetricDistUnadjPng}
+  //    --compare-dist-nhet-adj ${sampleQcMetricDistAdjPng}
+  //    --compare-dist-nhet-label ${Params.paramsByArrSorted.head.arrayId}
+  //    --sampleqc-outliers ${arraySampleqcOutlierPlots.mkString(",")}
+  //    --sampleqc-summary-table ${reportQcSampleqcTable}
+  //    --samples-upset-diagram ${reportQcSamplesRemainingUpsetplotPng}
+  //    --out ${reportQcSampleqc}"""
+  //    .in(Params.paramsByArrSorted.map(_.sampleqcOutlierPlotPng) :+ sampleQcMetricDistUnadjPng :+ sampleQcMetricDistAdjPng :+ reportQcSampleqcTable :+ reportQcSamplesRemainingUpsetplotPng)
+  //    .out(reportQcSampleqc)
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rUpsetplotBimFam
+  //    --input "${arrayCleanBimStrings.mkString(",")}"
+  //    --type bim
+  //    --out ${reportQcVariantsRemainingUpsetplotPdf}"""
+  //    .in(Params.paramsByArrSorted.flatMap(_.clean))
+  //    .out(reportQcVariantsRemainingUpsetplotPdf)
+  //    .using("R-3.4")
+  //
+  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcVariantsRemainingUpsetplotPdf}[0] $reportQcVariantsRemainingUpsetplotPng"""
+  //    .in(reportQcVariantsRemainingUpsetplotPdf)
+  //    .out(reportQcVariantsRemainingUpsetplotPng)
+  //
+  //  cmd"""python $pyGenerateQcReportVariantqc
+  //    --variants-upset-diagram ${reportQcVariantsRemainingUpsetplotPng}
+  //    --variant-exclusions "${arrayFinalVariantExclusions.mkString(",")}"
+  //    --out ${reportQcVariantqc}"""
+  //    .in(Params.paramsByArrSorted.map(_.finalVariantExclusions) :+ reportQcVariantsRemainingUpsetplotPng)
+  //    .out(reportQcVariantqc)
+  //
+  //  cmd"""python $pyGenerateQcReportBibliography
+  //    --out ${reportQcBibliography}"""
+  //    .out(reportQcBibliography)
+  //
+  //  cmd"""cat ${reportQcIntro} ${reportQcData} ${reportQcAncestry} ${reportQcIbdSexcheck} ${reportQcSampleqc} ${reportQcVariantqc} ${reportQcBibliography} > $reportQcTex"""
+  //    .in(reportQcIntro, reportQcData, reportQcAncestry, reportQcIbdSexcheck, reportQcSampleqc, reportQcVariantqc, reportQcBibliography)
+  //    .out(reportQcTex)
+  //
+  //  cmd"""$binPdflatex --output-directory=${localOutDir} $reportQcTex; sleep 5; $binPdflatex --output-directory=${localOutDir} $reportQcTex """
+  //    .in(reportQcTex)
+  //    .out(reportQcPdf)
+  //
+  //}
 
-    cmd"""$binRscript --vanilla --verbose
-      $rVariantsSummaryTable
-      --freq-in "${arrayFrqStrings.mkString(",")}"
-      --indel-in "${arrayIndelStrings.mkString(",")}"
-      --multi-in "${arrayMultiStrings.mkString(",")}"
-      --dupl-in "${arrayDuplStrings.mkString(",")}"
-      --out ${reportQcVariantSummaryTable}"""
-      .in(Params.paramsByArrSorted.map(_.arrayDataRawFreq) ++ Params.paramsByArrSorted.map(_.arrayDataPreparedMultiallelic) ++ Params.paramsByArrSorted.map(_.arrayDataRawIndel) ++ Params.paramsByArrSorted.map(_.arrayDataRawDupRemove))
-      .out(reportQcVariantSummaryTable)
-      .using("R-3.4")
-  
-    cmd"""$binRscript --vanilla --verbose
-      $rUpsetplot
-      --input "${harmRefFamStrings.mkString(",")}"
-      --type fam
-      --out $reportQcSampleUpsetplotPdf"""
-      .in(Params.paramsByArrSorted.map(_.arrayData))
-      .out(reportQcSampleUpsetplotPdf)
-      .using("R-3.4")
-  
-    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcSampleUpsetplotPdf}[0] $reportQcSampleUpsetplotPng"""
-      .in(reportQcSampleUpsetplotPdf)
-      .out(reportQcSampleUpsetplotPng)
-  
-    cmd"""$binRscript --vanilla --verbose
-      $rUpsetplot
-      --input "${harmRefBimStrings.mkString(",")}"
-      --type bim
-      --out $reportQcVariantUpsetplotPdf"""
-      .in(Params.paramsByArrSorted.flatMap(_.harm))
-      .out(reportQcVariantUpsetplotPdf)
-      .using("R-3.4")
-  
-    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcVariantUpsetplotPdf}[0] $reportQcVariantUpsetplotPng"""
-      .in(reportQcVariantUpsetplotPdf)
-      .out(reportQcVariantUpsetplotPng)
+  // Generate analysis report files
+  val assocPhases: Seq[Int] = assocSeq.map(_._6).distinct
+  for {
+    phase <- assocPhases
+  } {
+    val assocSeqPhase = assocSeq.filter(_._6 == phase)
+    val reportAnalysisIntro = store[TXT].at(localOutDir / s"${projectId}.analysisreport.phase${phase}.intro.tex")
+    val reportAnalysisIntroInput = store[TXT].at(localOutDir / s"${projectId}.analysisreport.phase${phase}.intro.input")
+    val reportAnalysisBibliography = store[TXT].at(localOutDir / s"${projectId}.analysisreport.phase${phase}.bibliography.tex")
+    val reportAnalysisTex = store[TXT].at(localOutDir / s"${projectId}.analysisreport.phase${phase}.tex")
+    val reportAnalysisInput = store[TXT].at(localOutDir / s"${projectId}.analysisreport.phase${phase}.input")
+    val reportAnalysisPdf = store[TXT].at(localOutDir / s"${projectId}.analysisreport.phase${phase}.pdf")
 
-    cmd"""$binRscript --vanilla --verbose
-      $rAncestryClusterTable
-      --cluster-in "${arrayClusterGroups.mkString(",")}"
-      --ancestry-in "${arrayAncestryInferred.mkString(",")}"
-      --final-in ${ancestryInferredMerged}
-      --cluster-out ${reportQcAncestryClusterTable}
-      --final-out ${reportQcAncestryFinalTable}"""
-      .in(Params.paramsByArrSorted.map(_.ancestryClusterGroups) ++ Params.paramsByArrSorted.map(_.ancestryInferred) :+ ancestryInferredMerged)
-      .out(reportQcAncestryClusterTable, reportQcAncestryFinalTable)
-      .using("R-3.4")
+    //for {
+    //  i <- 0 until assocSeqPhase.size
+    //} {
+    //
+    //}
 
-    cmd"""python $pyGenerateQcReportIntro
+    cmd"""python $pyGenerateAnalysisReportIntro
       --id $projectId
+      --phase $phase
       --authors "$reportAuthors" 
-      --out ${reportQcIntro} 
-      --array-data ${arrayDataStrings.mkString(",")}"""
+      --out-tex ${reportAnalysisIntro}
+      --out-input ${reportAnalysisIntroInput}"""
       .in(Params.paramsByArrSorted.map(_.arrayData))
-      .out(reportQcIntro)
-
-    cmd"""python $pyGenerateQcReportData
-      --samples-upset-diagram ${reportQcSampleUpsetplotPng}
-      --variants-summary-table ${reportQcVariantSummaryTable} 
-      --variants-upset-diagram ${reportQcVariantUpsetplotPng} 
-      --out ${reportQcData}"""
-      .in(reportQcSampleUpsetplotPng, reportQcVariantSummaryTable)
-      .out(reportQcData)
-
-    cmd"""python $pyGenerateQcReportAncestry
-      --kg-merged-bim "${arrayMergedKgBims.mkString(",")}"
-      --pca-plots "${arrayPcaScoresPlots.mkString(",")}"
-      --cluster-plots "${arrayClusterPlots.mkString(",")}"
-      --cluster-table ${reportQcAncestryClusterTable}
-      --final-table ${reportQcAncestryFinalTable}
-      --out ${reportQcAncestry}"""
-      .in(Params.paramsByArrSorted.flatMap(_.harmRef1kg) ++ Params.paramsByArrSorted.map(_.ancestryPcaScoresPlotPc1VsPc2) ++ Params.paramsByArrSorted.map(_.ancestryPcaScoresPlotPc2VsPc3) ++ Params.paramsByArrSorted.map(_.ancestryClusterPlotPc1VsPc2) ++ Params.paramsByArrSorted.map(_.ancestryClusterPlotPc2VsPc3) :+ reportQcAncestryClusterTable :+ reportQcAncestryFinalTable)
-      .out(reportQcAncestry)
-
-    cmd"""python $pyGenerateQcReportIbdSexcheck
-      --filtered-bim "${arrayharmRefFilteredBims.mkString(",")}"
-      --kin0-related "${arrayKin0Related.mkString(",")}"
-      --famsizes "${arrayFamsizes.mkString(",")}"
-      --sexcheck-problems "${arraySexcheckProblems.mkString(",")}"
-      --out ${reportQcIbdSexcheck}"""
-      .in(Params.paramsByArrSorted.flatMap(_.harmRefFiltPruned) ++ Params.paramsByArrSorted.map(_.kinKin0Related) ++ Params.paramsByArrSorted.map(_.kinFamsizes) ++ Params.paramsByArrSorted.map(_.sampleqcSexcheckProblems))
-      .out(reportQcIbdSexcheck)
-
-    cmd"""$binRscript --vanilla --verbose
-      $rMakeMetricDistPlot
-      --sampleqc ${Params.paramsByArrSorted.head.sampleqcStats}
-      --metric nHet
-      --out ${sampleQcMetricDistUnadjPdf}
-      """
-      .in(Params.paramsByArrSorted.head.sampleqcStats)
-      .out(sampleQcMetricDistUnadjPdf)
-
-    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistUnadjPdf}[0] $sampleQcMetricDistUnadjPng"""
-      .in(sampleQcMetricDistUnadjPdf)
-      .out(sampleQcMetricDistUnadjPng)
-
-    cmd"""$binRscript --vanilla --verbose
-      $rMakeMetricDistPlot
-      --sampleqc ${Params.paramsByArrSorted.head.sampleqcStatsAdj}
-      --metric nHet_res
-      --out ${sampleQcMetricDistAdjPdf}
-      """
-      .in(Params.paramsByArrSorted.head.sampleqcStatsAdj)
-      .out(sampleQcMetricDistAdjPdf)
-
-    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistAdjPdf}[0] $sampleQcMetricDistAdjPng"""
-      .in(sampleQcMetricDistAdjPdf)
-      .out(sampleQcMetricDistAdjPng)
-
-    //requiredArgs.add_argument('--compare-dist-nhet-unadj', help='an nHet plot', required=True)
-	//requiredArgs.add_argument('--compare-dist-nhet-adj', help='an nHet adjusted plot', required=True)
-	//requiredArgs.add_argument('--compare-dist-nhet-label', help='an array label', required=True)
-	//requiredArgs.add_argument('--pcarm-outlier', help='a pcarm outlier example plot', required=True)
-	//requiredArgs.add_argument('--sampleqc-outliers', help='a comma separated list of array labels and sampleqc outlier plots, each separated by 3 underscores', required=True)
-    //cmd"""python $pyGenerateQcReportSampleqc
-    //  --compare-dist-nhet-unadj ${sampleQcMetricDistUnadj}
-    //  --compare-dist-nhet-adj ${sampleQcMetricDistAdj}
-    //  --pcarm-outlier
-    //  --sampleqc-outliers
-    //
-    //
-    //  --filtered-bim "${arrayharmRefFilteredBims.mkString(",")}"
-    //  --kin0-related "${arrayKin0Related.mkString(",")}"
-    //  --famsizes "${arrayFamsizes.mkString(",")}"
-    //  --sexcheck-problems "${arraySexcheckProblems.mkString(",")}"
-    //  --out ${reportQcIbdSexcheck}"""
-    //  .in(Params.paramsByArrSorted.flatMap(_.harmRefFiltPruned) ++ Params.paramsByArrSorted.map(_.kinKin0Related) ++ Params.paramsByArrSorted.map(_.kinFamsizes) ++ Params.paramsByArrSorted.map(_.sampleqcSexcheckProblems))
-    //  .out(reportQcIbdSexcheck)
-
-    cmd"""python $pyGenerateQcReportBibliography
-      --out ${reportQcBibliography}"""
-      .out(reportQcBibliography)
+      .out(reportAnalysisIntro, reportAnalysisIntroInput)
+    
+    cmd"""python $pyGenerateAnalysisReportBibliography
+      --out ${reportAnalysisBibliography}"""
+      .out(reportAnalysisBibliography)
+    
+    cmd"""cat ${reportAnalysisIntro} ${reportAnalysisBibliography} > $reportAnalysisTex"""
+      .in(reportAnalysisIntro, reportAnalysisBibliography)
+      .out(reportAnalysisTex)
+    
+    cmd"""cat ${reportAnalysisIntroInput} > $reportAnalysisInput"""
+      .in(reportAnalysisIntroInput)
+      .out(reportAnalysisInput)
+    
+    cmd"""$binPdflatex --output-directory=${localOutDir} $reportAnalysisTex; sleep 5; $binPdflatex --output-directory=${localOutDir} $reportAnalysisTex """
+      .in(reportAnalysisTex)
+      .out(reportAnalysisPdf)
 
   }
 }
@@ -1219,11 +1351,11 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store[TXT]] = {
   // *  Requires: Klustakwik, R
   // */
   //
-  var sampleqcIndCluFiles = Seq[String]()
-  for {
-    (metric, paramsMetric) <- paramsArr.paramsByArrByMetric
-    } {
-      sampleqcIndCluFiles = sampleqcIndCluFiles :+ paramsMetric.sampleqcStatsAdjIndMetric + "___" + s"${paramsMetric.sampleqcStatsAdjIndClusterClu.toString.split("@")(1)}"
+  //var sampleqcIndCluFiles = Seq[String]()
+  //for {
+  //  (metric, paramsMetric) <- paramsArr.paramsByArrByMetric
+  //  } {
+  //    sampleqcIndCluFiles = sampleqcIndCluFiles :+ paramsMetric.sampleqcStatsAdjIndMetric + "___" + s"${paramsMetric.sampleqcStatsAdjIndClusterClu.toString.split("@")(1)}"
   //
   //  uger {
   //    cmd"""echo 1 > ${paramsMetric.sampleqcStatsAdjIndClusterFet};
@@ -1237,9 +1369,9 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store[TXT]] = {
   //      .out(paramsMetric.sampleqcStatsAdjIndClusterClu, paramsMetric.sampleqcStatsAdjIndClusterKlg, paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog)
   //  }
   //
-  }
+  //}
   //
-  uger {
+  //uger {
   //  cmd"""$binR --vanilla --args
   //    ${sampleQcMetrics.mkString(",")}
   //    ${paramsArr.sampleqcStats}
@@ -1253,23 +1385,23 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store[TXT]] = {
   //    < $rIstatsAdjGmmPlotMetrics"""
   //    .in(paramsArr.paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ ancestryInferredMerged :+ paramsArr.sampleqcStatsAdjClusterOutliers)
   //    .out(paramsArr.sampleqcStatsAdjIndBoxplots, paramsArr.sampleqcStatsAdjIndDiscreteness, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcStatsAdjStripchart)
-
-    cmd"""$binRscript --vanilla --verbose
-      $rMakeSampleqcOutlierPlot
-      --ind-clu-files "${sampleqcIndCluFiles.mkString(",")}"
-      --stats-unadj ${paramsArr.sampleqcStats}
-      --stats-adj ${paramsArr.sampleqcStatsAdj}
-      --metric-pca-outliers ${paramsArr.sampleqcStatsAdjClusterOutliers}
-      --out ${paramsArr.sampleqcOutlierPlotPdf}"""
-      .in(paramsArr.paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj)
-      .out(paramsArr.sampleqcOutlierPlotPdf)
-      .using("R-3.4")
-
-    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.sampleqcOutlierPlotPdf}[0] ${paramsArr.sampleqcOutlierPlotPng}"""
-      .in(paramsArr.sampleqcOutlierPlotPdf)
-      .out(paramsArr.sampleqcOutlierPlotPng)
-
-  }
+  //
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rMakeSampleqcOutlierPlot
+  //    --ind-clu-files "${sampleqcIndCluFiles.mkString(",")}"
+  //    --stats-unadj ${paramsArr.sampleqcStats}
+  //    --stats-adj ${paramsArr.sampleqcStatsAdj}
+  //    --metric-pca-outliers ${paramsArr.sampleqcStatsAdjClusterOutliers}
+  //    --out ${paramsArr.sampleqcOutlierPlotPdf}"""
+  //    .in(paramsArr.paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj)
+  //    .out(paramsArr.sampleqcOutlierPlotPdf)
+  //    .using("R-3.4")
+  //
+  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.sampleqcOutlierPlotPdf}[0] ${paramsArr.sampleqcOutlierPlotPng}"""
+  //    .in(paramsArr.sampleqcOutlierPlotPdf)
+  //    .out(paramsArr.sampleqcOutlierPlotPng)
+  //
+  //}
   //
   ///**
   // * Compile Sample Exclusions Step
@@ -1333,7 +1465,6 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store[TXT]] = {
   //    .in(paramsArr.cleanVcf)
   //    .out(paramsArr.cleanVcfTbi)
   //}
-
   /**
    * Association Step
    *  Description: Run association tests
@@ -1456,6 +1587,38 @@ def mergeResults(i: Int): Unit = {
   //    .out(paramsResult.resultFinalTbi)
   //}
   //
+
+  /**
+   * Top Results Step
+   *  Description: Extract top results and annotate
+   *  Requires: Python
+   */
+
+  uger {
+
+    //cmd"""python $pyTop1000
+    //  --results ${paramsResult.resultFinal}
+    //  --p pval 
+    //  --out ${paramsResult.resultFinalTop1000}"""
+    //  .in(paramsResult.resultFinal)
+    //  .out(paramsResult.resultFinalTop1000)
+    //
+    //cmd"""(sed '1d' ${paramsResult.resultFinalTop1000} | awk '{print $$1"\t"$$2}' | python $pyAddGeneAnnot --outside-name NA --chr-col 1 --pos-col 2 --gene-file ${Input.Local.genes} --out-delim \\t) | sort -u > ${paramsResult.resultFinalTop1000Genes}"""
+    //  .in(paramsResult.resultFinalTop1000, Input.Local.genes)
+    //  .out(paramsResult.resultFinalTop1000Genes)
+    //
+    //cmd"""$binRscript --vanilla --verbose
+    //  $rAlignRisk
+    //  --results ${paramsResult.resultFinalTop1000}
+    //  --genes ${paramsResult.resultFinalTop1000Genes}
+    //  --p pval
+    //  --test ${paramsResult.resultTest}
+    //  --out ${paramsResult.resultFinalTop1000AnnotAlignedRisk}"""
+    //  .in(paramsResult.resultFinalTop1000, paramsResult.resultFinalTop1000Genes)
+    //  .out(paramsResult.resultFinalTop1000AnnotAlignedRisk)
+    //  .using("R-3.4")
+
+  }
   ///**
   // * Plot Step
   // *  Description: Run association tests

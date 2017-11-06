@@ -5,8 +5,8 @@ import java.sql.Timestamp
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Resources.{GoogleResources, LocalResources, UgerResources}
 import loamstream.uger.Queue
-import loamstream.model.execute.Memory
-import loamstream.model.execute.CpuTime
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 
 /**
  * @author kyuksel

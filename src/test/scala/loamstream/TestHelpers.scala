@@ -1,27 +1,37 @@
 package loamstream
 
-import java.nio.file.{Path, Paths}
-
-import loamstream.conf.{LoamConfig, PythonConfig, RConfig, UgerConfig}
-import com.typesafe.config.ConfigFactory
-import loamstream.googlecloud.GoogleCloudConfig
-import loamstream.googlecloud.HailConfig
-import loamstream.model.execute.Resources.LocalResources
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.Instant
 
-import loamstream.model.execute.{ExecutionEnvironment, LocalSettings, Resources}
-import loamstream.model.jobs.{Execution, JobResult, JobStatus, OutputRecord}
-import loamstream.model.jobs.LJob
+import scala.concurrent.duration.Duration
+
+import com.typesafe.config.ConfigFactory
+
+import loamstream.compiler.LoamCompiler
+import loamstream.compiler.LoamEngine
 import loamstream.conf.ExecutionConfig
-import loamstream.loam.LoamScriptContext
+import loamstream.conf.LoamConfig
+import loamstream.conf.PythonConfig
+import loamstream.conf.RConfig
+import loamstream.conf.UgerConfig
+import loamstream.googlecloud.GoogleCloudConfig
+import loamstream.googlecloud.HailConfig
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScriptContext
+import loamstream.model.execute.Environment
+import loamstream.model.execute.Resources
+import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.RxExecuter
-import loamstream.compiler.LoamEngine
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.OutputRecord
 import loamstream.util.Sequence
-import java.nio.file.Files
-import scala.concurrent.duration.Duration
-import loamstream.compiler.LoamCompiler
+import loamstream.model.execute.UgerSettings
 
 /**
   * @author clint
@@ -30,9 +40,9 @@ import loamstream.compiler.LoamCompiler
 object TestHelpers {
   def path(p: String): Path = Paths.get(p)
 
-  val approxDoublePrecision = 1e-16
-  val graceFactor = 20
-  val tolerance = graceFactor * approxDoublePrecision
+  val approxDoublePrecision: Double = 1e-16
+  val graceFactor: Int = 20
+  val tolerance: Double = graceFactor * approxDoublePrecision
 
   val alwaysRestart: LJob => Boolean = _ => true
   val neverRestart: LJob => Boolean = _ => false
@@ -64,20 +74,19 @@ object TestHelpers {
     LocalResources(now, now)
   }
 
-  val env = ExecutionEnvironment.Local
+  val env: Environment = Environment.Local
 
   def executionFrom(status: JobStatus,
                     result: Option[JobResult] = None,
                     resources: Option[Resources] = None): Execution = {
-
-    Execution(id = None,
-              env,
-              cmd = None,
-              settings = LocalSettings(),
-              status,
-              result,
-              resources,
-              Set.empty[OutputRecord])
+    Execution(
+        id = None,
+        env = env,
+        cmd = None,
+        status,
+        result,
+        resources,
+        Set.empty[OutputRecord])
   }
 
   def executionFromStatus(status: JobStatus, resources: Option[Resources] = None): Execution = {
@@ -117,6 +126,17 @@ object TestHelpers {
     try { result }
     finally { loamstream.util.Files.createDirsIfNecessary(result) }
   }
+
+  def loamEngine: LoamEngine = LoamEngine.default(config)
+
+  def compile(loamCode: String): LoamCompiler.Result = loamEngine.compile(loamCode)
   
-  def compile(loamCode: String): LoamCompiler.Result = LoamEngine.default(config).compile(loamCode)
+  val defaultUgerSettings: UgerSettings = {
+    val ugerConfig = config.ugerConfig.get 
+
+    UgerSettings(
+      ugerConfig.defaultCores,
+      ugerConfig.defaultMemoryPerCore,
+      ugerConfig.defaultMaxRunTime)
+  }
 }

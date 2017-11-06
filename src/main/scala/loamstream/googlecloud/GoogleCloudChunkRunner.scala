@@ -1,29 +1,27 @@
 package loamstream.googlecloud
 
-import scala.concurrent.ExecutionContext
-import loamstream.model.execute.ChunkRunner
-import loamstream.model.execute.ChunkRunnerFor
-import loamstream.model.execute.ExecutionEnvironment
-import loamstream.model.jobs.{Execution, LJob}
-import loamstream.util.Terminable
-import loamstream.util.ExecutorServices
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-import loamstream.util.Loggable
-import java.util.concurrent.ExecutorService
-
-import loamstream.util.Maps
-import loamstream.util.Futures
-import loamstream.util.Throwables
-import loamstream.util.ObservableEnrichments
-import rx.lang.scala.Observable
-import loamstream.util.Observables
-
-import scala.util.Try
-import scala.util.Success
+import scala.concurrent.ExecutionContext
 import scala.util.Failure
-import loamstream.model.execute.Resources.LocalResources
+import scala.util.Success
+import scala.util.Try
+
+import loamstream.model.execute.ChunkRunner
+import loamstream.model.execute.ChunkRunnerFor
+import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.LJob
+import loamstream.util.ExecutorServices
+import loamstream.util.Futures
+import loamstream.util.Loggable
+import loamstream.util.Maps
+import loamstream.util.Observables
+import loamstream.util.Terminable
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -32,7 +30,7 @@ import loamstream.model.execute.Resources.GoogleResources
 final case class GoogleCloudChunkRunner(
     client: DataProcClient, 
     googleConfig: GoogleCloudConfig,
-    delegate: ChunkRunner) extends ChunkRunnerFor(ExecutionEnvironment.Google) with Terminable with Loggable {
+    delegate: ChunkRunner) extends ChunkRunnerFor(EnvironmentType.Google) with Terminable with Loggable {
   
   private[googlecloud] lazy val singleThreadedExecutor: ExecutorService = Executors.newSingleThreadExecutor
   
@@ -53,7 +51,7 @@ final case class GoogleCloudChunkRunner(
   }
   
   override def stop(): Unit = {
-    import Throwables._
+    import loamstream.util.Throwables._
     import scala.concurrent.duration._
     
     quietly("Error shutting down Executor")(ExecutorServices.shutdown(singleThreadedExecutor, 5.seconds))
@@ -94,9 +92,9 @@ final case class GoogleCloudChunkRunner(
       shouldRestart: LJob => Boolean)(job: LJob): Map[LJob, Execution] = {
     
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
-    //on the same cluster simultaneously
-    import ObservableEnrichments._
     import GoogleCloudChunkRunner.addCluster
+    //on the same cluster simultaneously
+    import loamstream.util.ObservableEnrichments._
 
     val futureResult = delegate.run(Set(job), shouldRestart).map(addCluster(googleConfig.clusterId)).firstAsFuture
     
@@ -114,7 +112,7 @@ object GoogleCloudChunkRunner {
   private[googlecloud] def addCluster(cluster: String)
                                      (jobsAndExecutions: Map[LJob, Execution]): Map[LJob, Execution] = {
     jobsAndExecutions.map {
-      case (job, execution @ Execution(_, _, _, _, _, _, Some(localResources: LocalResources), _)) => {
+      case (job, execution @ Execution(_, _, _, _, _, Some(localResources: LocalResources), _)) => {
         val googleResources = GoogleResources.fromClusterAndLocalResources(cluster, localResources)
         
         job -> execution.withResources(googleResources)

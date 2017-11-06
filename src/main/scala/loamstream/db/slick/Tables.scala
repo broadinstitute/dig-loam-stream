@@ -130,12 +130,13 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
   final class UgerSettings(tag: Tag) extends Table[UgerSettingRow](tag, Names.ugerSettings) with HasExecutionId {
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def mem = column[Int]("MEM")
-    def cpu = column[Int]("CPU")
+    def cpus = column[Int]("CPU")
+    def memPerCpu = column[Double]("MEM")
+    def maxRunTime = column[Double]("MAX_RUN_TIME")
     def queue = column[String]("QUEUE")
     val foreignKey = s"$foreignKeyPrefix${Names.ugerSettings}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, mem, cpu, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
+    def * = (executionId, cpus, memPerCpu, maxRunTime, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
   }
 
   final class GoogleSettings(tag: Tag) extends Table[GoogleSettingRow](tag, Names.googleSettings) with HasExecutionId {

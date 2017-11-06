@@ -5,8 +5,8 @@ import java.nio.file.Path
 
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.model.Tool.{AllStores, InputsAndOutputs}
+import loamstream.model.execute.Environment
 import loamstream.model.{Store, Tool}
-import loamstream.model.execute.ExecutionEnvironment
 import loamstream.util.{Equivalences, Hit, Maps, Miss, Shot, Traversables}
 
 /** The graph of all Loam stores and tools and their relationships */
@@ -61,7 +61,7 @@ final case class LoamGraph(
     keysSameSets: Equivalences[LoamStoreKeySlot],
     keysSameLists: Equivalences[LoamStoreKeySlot],
     workDirs: Map[Tool, Path],
-    executionEnvironments: Map[Tool, ExecutionEnvironment]) {
+    executionEnvironments: Map[Tool, Environment]) {
 
   /** Returns graph with store added */
   def withStore(store: Store.Untyped): LoamGraph = copy(stores = stores + store)
@@ -195,7 +195,7 @@ final case class LoamGraph(
   def workDirOpt(tool: Tool): Option[Path] = workDirs.get(tool)
 
   /** Optionally, the execution environment of a tool */
-  def executionEnvironmentOpt(tool: Tool): Option[ExecutionEnvironment] = executionEnvironments.get(tool)
+  def executionEnvironmentOpt(tool: Tool): Option[Environment] = executionEnvironments.get(tool)
 
   /** Ranks for all tools: zero for final tools; for all others one plus maximum of rank of succeeding tools */
   def ranks: Map[Tool, Int] = {

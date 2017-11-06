@@ -6,7 +6,6 @@ import java.util.UUID
 
 import loamstream.conf.UgerConfig
 import loamstream.model.execute.ChunkRunnerFor
-import loamstream.model.execute.{ExecutionEnvironment => ExecEnv}
 import loamstream.model.jobs.JobStatus.{Failed, Running}
 import loamstream.model.jobs._
 import loamstream.model.jobs.commandline.CommandLineJob
@@ -18,24 +17,26 @@ import loamstream.util.Observables
 import loamstream.util.Terminable
 import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
-import loamstream.model.jobs.JobStatus.FailedPermanently
 import loamstream.model.execute.ExecuterHelpers
-
-
+import loamstream.model.execute.EnvironmentType
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import java.time.ZoneId
+import loamstream.model.execute.Environment
+import loamstream.util.Maps
+import loamstream.model.execute.UgerSettings
 
 /**
  * @author clint
  *         date: Jul 1, 2016
  *
- *         A ChunkRunner that runs groups of command line jobs as UGER task arrays, via the provided DrmaaClient.
- *
- *         TODO: Make logging more fine-grained; right now, too much is at info level.
+ *         A ChunkRunner that runs groups of command line jobs as UGER task arrays, via the provided JobSubmitter.
  */
 final case class UgerChunkRunner(
     ugerConfig: UgerConfig,
-    drmaaClient: DrmaaClient,
+    jobSubmitter: JobSubmitter,
     jobMonitor: JobMonitor,
-    pollingFrequencyInHz: Double = 1.0) extends ChunkRunnerFor(ExecEnv.Uger) with Terminable with Loggable {
+    pollingFrequencyInHz: Double = 1.0) extends ChunkRunnerFor(EnvironmentType.Uger) with Terminable with Loggable {
 
   import UgerChunkRunner._
 
@@ -43,6 +44,13 @@ final case class UgerChunkRunner(
   
   override def maxNumJobs = ugerConfig.maxNumJobs
 
+  /**
+   * Run the provided jobs, using the provided predicate (`shouldRestart`) to decide whether to re-run them if they 
+   * fail.  Returns an Observable producing a map of jobs to Executions.
+   * 
+   * NB: NoOpJobs are ignored.  Otherwise, this method expects that all the other jobs are CommandLineJobs, and
+   * will throw otherwise.
+   */
   override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
 
     debug(s"Running: ")
@@ -55,18 +63,36 @@ final case class UgerChunkRunner(
     // Filter out NoOpJob's
     val commandLineJobs = jobs.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
 
-    if (commandLineJobs.nonEmpty) {
-      val ugerScript = writeUgerScriptFile(commandLineJobs)
+    //Group Jobs by their uger settings, and run each group.  This is necessary because the jobs in a group will
+    //be run as 1 Uger task array, and Uger params are per-task-array.
+    val resultsForSubChunks: Iterable[Observable[Map[LJob, Execution]]] = {
+      for {
+        (ugerSettings, ugerJobs) <- subChunksBySettings(commandLineJobs) 
+      } yield {
+        runJobs(ugerSettings, ugerJobs, shouldRestart) 
+      }
+    }
+    
+    if(resultsForSubChunks.isEmpty) { Observable.just(Map.empty) }
+    else { Observables.merge(resultsForSubChunks) }
+  }
+  
+  /**
+   * Submits the provided CommandLineJobs and monitors them, resulting in an Observable producing a map of jobs to
+   * Executions
+   */
+  private def runJobs(
+      ugerSettings: UgerSettings, 
+      ugerJobs: Seq[CommandLineJob],
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
 
-      //TODO: do we need this?  Should it be something better?
-      val jobName: String = s"LoamStream-${UUID.randomUUID}"
+    ugerJobs match {
+      case Nil => Observable.just(Map.empty)
+      case _ => {
+        val submissionResult = jobSubmitter.submitJobs(ugerSettings, ugerJobs)
 
-      val submissionResult = drmaaClient.submitJob(ugerConfig, ugerScript, jobName, commandLineJobs.size)
-
-      toExecutionStream(commandLineJobs, submissionResult, shouldRestart)
-    } else {
-      // Handle NoOp case or a case when no jobs were presented for some reason
-      Observable.just(Map.empty)
+        toExecutionStream(ugerJobs, submissionResult, shouldRestart)
+      }
     }
   }
   
@@ -103,16 +129,6 @@ final case class UgerChunkRunner(
     
     toExecutions(shouldRestart, jobsAndUgerStatusesById)
   }
-  
-  private def writeUgerScriptFile(commandLineJobs: Seq[CommandLineJob]): Path = {
-    val ugerWorkDir = ugerConfig.workDir.toFile
-    
-    val ugerScript = createScriptFile(ScriptBuilder.buildFrom(commandLineJobs), ugerWorkDir)
-    
-    trace(s"Made script '$ugerScript' from $commandLineJobs")
-    
-    ugerScript
-  }
 }
 
 object UgerChunkRunner extends Loggable {
@@ -138,7 +154,9 @@ object UgerChunkRunner extends Loggable {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
       ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, job))
       
-      val executionObs = ugerJobStatuses.last.map(s => Execution.from(job, toJobStatus(s), toJobResult(s)))
+      def toUgerStatus(s: UgerStatus): Execution = Execution.from(job, toJobStatus(s), toJobResult(s))
+      
+      val executionObs = ugerJobStatuses.last.map(toUgerStatus)
       
       job -> executionObs
     }
@@ -149,8 +167,13 @@ object UgerChunkRunner extends Loggable {
   private[uger] def handleUgerStatus(shouldRestart: LJob => Boolean, job: LJob)(us: UgerStatus): Unit = {
     val jobStatus = toJobStatus(us)
     
-    if(jobStatus.isFailure) { handleFailureStatus(shouldRestart, jobStatus)(job) }
-    else { job.transitionTo(jobStatus) }
+    if(jobStatus.isFailure) {
+      debug(s"Handling failure status $jobStatus (was Uger status $us) for job $job")
+      
+      handleFailureStatus(shouldRestart, jobStatus)(job) 
+    } else { 
+      job.transitionTo(jobStatus) 
+    }
   }
   
   private[uger] def handleFailureStatus(shouldRestart: LJob => Boolean, failureStatus: JobStatus)(job: LJob): Unit = {
@@ -179,26 +202,6 @@ object UgerChunkRunner extends Loggable {
     Observable.just(jobs.mapTo(execution))
   }
 
-  private[uger] def createScriptFile(contents: String, file: Path): Path = {
-    Files.writeTo(file)(contents)
-
-    file
-  }
-
-  /**
-   * Creates a script file in the *default temporary-file directory*, using
-   * the given prefix and suffix to generate its name.
-   */
-  private[uger] def createScriptFile(contents: String): Path = createScriptFile(contents, Files.tempFile(".sh"))
-
-  /**
-   * Creates a script file in the *specified* directory, using
-   * the given prefix and suffix to generate its name.
-   */
-  private[uger] def createScriptFile(contents: String, directory: File): Path = {
-    createScriptFile(contents, Files.tempFile(".sh", directory))
-  }
-
   private[uger] def combine[A, U, V](m1: Map[A, U], m2: Map[A, V]): Map[A, (U, V)] = {
     Map.empty[A, (U, V)] ++ (for {
       (a, u) <- m1.toIterable
@@ -206,5 +209,17 @@ object UgerChunkRunner extends Loggable {
     } yield {
       a -> (u -> v)
     })
+  }
+  
+  /**
+   * Takes a bunch of CommandLineJobs, and groups them by their execution environments.  This has the effect
+   * of groupign together jobs with the same Uger settings.  This is necessary so that we can run each group
+   * of jobs as one Uger task array, and settings are per-task-array.
+   */
+  private[uger] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[UgerSettings, Seq[CommandLineJob]] = {
+    import Environment.Uger
+    import Maps.Implicits._
+      
+    jobs.groupBy(_.executionEnvironment).collectKeys { case Uger(ugerSettings) => ugerSettings }
   }
 }

@@ -1,22 +1,25 @@
 package loamstream.model.jobs.commandline
 
-import java.nio.file.{Path, Files => JFiles}
-
-import loamstream.model.execute.LocalSettings
+import java.nio.file.{ Files => JFiles }
+import java.nio.file.Path
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.sys.process.ProcessBuilder
 import scala.sys.process.ProcessLogger
+import scala.util.Failure
+import scala.util.Success
+
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult.CommandInvocationFailure
+import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.Output
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.jobs.JobResult.{CommandInvocationFailure, CommandResult}
-import loamstream.model.jobs.{Execution, JobStatus, LJob, Output}
-
-import scala.util.Success
-import scala.util.Failure
 
 /**
   * LoamStream
@@ -55,14 +58,14 @@ trait CommandLineJob extends LJob {
         case Failure(e) => (JobStatus.FailedWithException, CommandInvocationFailure(e))
       }
       
-      Execution(id = None,
-                executionEnvironment,
-                Some(commandLineString),
-                LocalSettings(),
-                jobStatus,
-                Option(jobResult),
-                Option(resources),
-                outputs.map(_.toOutputRecord))
+      Execution(
+          id = None,
+          env = executionEnvironment,
+          cmd = Option(commandLineString),
+          status = jobStatus,
+          result = Option(jobResult),
+          resources = Option(resources),
+          outputs = outputs.map(_.toOutputRecord))
     }
   }
   

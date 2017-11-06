@@ -4,12 +4,11 @@ import java.nio.file.{Path, Paths}
 
 import loamstream.compiler.LoamPredef
 import loamstream.loam.files.LoamFileManager
-import loamstream.loam.ops.StoreType
 import loamstream.model.Store
-import loamstream.model.execute.ExecutionEnvironment
-import loamstream.util.Maps
+import loamstream.model.execute.Environment
 import loamstream.{LoamGraphExamples, TestHelpers}
 import org.scalatest.FunSuite
+import loamstream.util.Maps.Implicits._
 
 /**
   * LoamStream
@@ -40,8 +39,6 @@ final class LoamGraphTest extends FunSuite {
   test("Test rule eachStoresIsOutputOfItsProducer") {
     val graph = makeTestComponents.graph
 
-    import Maps.Implicits._
-
     val toolOutputsShaved = graph.toolOutputs.strictMapValues(_.drop(1))
 
     val graphBroken = graph.copy(toolOutputs = toolOutputsShaved)
@@ -50,8 +47,6 @@ final class LoamGraphTest extends FunSuite {
 
   test("Test rule eachStoresIsInputOfItsConsumers") {
     val graph = makeTestComponents.graph
-
-    import Maps.Implicits._
 
     val toolInputsShaved = graph.toolInputs.strictMapValues(_.drop(1))
 
@@ -178,22 +173,23 @@ final class LoamGraphTest extends FunSuite {
 
     assert(filtered.workDirs === Map(phaseTool -> TestHelpers.path(".")))
 
-    assert(filtered.executionEnvironments === Map(phaseTool -> ExecutionEnvironment.Local))
+    assert(filtered.executionEnvironments === Map(phaseTool -> Environment.Local))
   }
 }
 
 object LoamGraphTest {
 
-  import StoreType._
+  import loamstream.loam.ops.StoreType._
 
   private def makeTestComponents: GraphComponents = {
+
     import TestHelpers.config
 
     implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(config))
 
     import LoamCmdTool._
-    import LoamPredef._
-
+    import loamstream.compiler.LoamPredef._
+    
     val inputFile = path("/user/home/someone/data.vcf")
     val outputFile = path("/user/home/someone/dataImputed.vcf")
 

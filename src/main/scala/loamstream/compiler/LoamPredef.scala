@@ -1,26 +1,32 @@
 package loamstream.compiler
 
 import java.net.URI
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
-import loamstream.model.Tool.DefaultStores
-import loamstream.loam._
+import loamstream.conf.DataConfig
+import loamstream.loam.LoamNativeTool
+import loamstream.loam.LoamScriptContext
 import loamstream.loam.ops.StoreType
-
-import scala.language.implicitConversions
-import scala.reflect.runtime.universe.TypeTag
-import loamstream.model.execute.ExecutionEnvironment
-import loamstream.conf.{DataConfig, DynamicConfig}
-import loamstream.model.{Store, Tool}
-import loamstream.util.ConfigUtils
+import loamstream.model.Store
+import loamstream.model.Tool
+import loamstream.model.Tool.DefaultStores
+import loamstream.model.execute.Environment
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.UgerSettings
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.uger.UgerDefaults
 import loamstream.util.Loggable
+
+import scala.reflect.runtime.universe.TypeTag
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
 
   type Store[A <: StoreType] = loamstream.model.Store[A]
-  
-  implicit def toConstantFunction[T](item: T): () => T = () => item
   
   def path(pathString: String): Path = Paths.get(pathString)
 
@@ -119,7 +125,7 @@ object LoamPredef extends Loggable {
   def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T =
     inDir[T](Paths.get(path))(expr)
 
-  private[this] def runIn[A](env: ExecutionEnvironment)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+  private[this] def runIn[A](env: Environment)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     val oldEnv = scriptContext.executionEnvironment
     
     try {
@@ -131,15 +137,51 @@ object LoamPredef extends Loggable {
   }
   
   def local[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    runIn(ExecutionEnvironment.Local)(expr)(scriptContext)
+    runIn(Environment.Local)(expr)(scriptContext)
+  }
+
+  def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    val ugerConfig = scriptContext.ugerConfig 
+    
+    val settings = UgerSettings(ugerConfig.defaultCores, ugerConfig.defaultMemoryPerCore, ugerConfig.defaultMaxRunTime)
+    
+    val env = Environment.Uger(settings)
+    
+    runIn(env)(expr)(scriptContext)
   }
   
-  def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    runIn(ExecutionEnvironment.Uger)(expr)(scriptContext)
+  /**
+   * @param mem Memory requested per core, per job submission (in Gb's)
+   * @param cores Number of cores requested per job submission
+   * @param maxRunTime Time limit (in hours) after which a job may get killed
+   * @param expr Block of cmd's and native code
+   * @param scriptContext Container for compile time and run time context for a script
+   */
+  def ugerWith[A](
+      cores: Int = -1,
+      mem: Double = -1, 
+      maxRunTime: Double = -1)
+      (expr: => A)
+      (implicit scriptContext: LoamScriptContext): A = {
+    
+    val ugerConfig = scriptContext.ugerConfig
+    
+    def orDefault[B](actual: B, default: B) = if(actual == -1) default else actual
+    
+    val settings = UgerSettings(
+        Cpus(orDefault(cores, ugerConfig.defaultCores.value)), 
+        Memory.inGb(orDefault(mem, ugerConfig.defaultMemoryPerCore.gb)), 
+        CpuTime.inHours(orDefault(maxRunTime, ugerConfig.defaultMaxRunTime.hours)))
+    
+    val env = Environment.Uger(settings)
+    
+    runIn(env)(expr)(scriptContext)
   }
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    runIn(ExecutionEnvironment.Google)(expr)(scriptContext)
+    val settings = GoogleSettings(scriptContext.googleConfig.clusterId) 
+    
+    runIn(Environment.Google(settings))(expr)(scriptContext)
   }
 
   /**

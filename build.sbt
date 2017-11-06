@@ -18,7 +18,7 @@ lazy val Versions = new {
   val Slick = "3.2.0"
   val H2 = "1.4.192"
   val RxScala = "0.26.5"
-  val Ficus = "1.4.0"
+  val Ficus = "1.4.2"
   val Squants = "1.2.0"
   val Cromwell = "30-134dd95-SNAP"
 }

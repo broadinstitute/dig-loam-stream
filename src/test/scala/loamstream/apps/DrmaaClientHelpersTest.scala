@@ -12,6 +12,7 @@ import org.scalatest.FunSuite
 import loamstream.uger.DrmaaClient
 import loamstream.uger.UgerStatus
 import loamstream.uger.AccountingClient
+import loamstream.model.execute.UgerSettings
 
 /**
  * @author clint
@@ -74,10 +75,11 @@ object DrmaaClientHelpersTest {
     var isShutdown = false
       
     override def submitJob(
-                            ugerConfig: UgerConfig,
-                            pathToScript: Path,
-                            jobName: String,
-                            numTasks: Int = 1): DrmaaClient.SubmissionResult = ???
+        ugerSettings: UgerSettings,
+        ugerConfig: UgerConfig,
+        pathToScript: Path,
+        jobName: String,
+        numTasks: Int = 1): DrmaaClient.SubmissionResult = ???
     
     override def statusOf(jobId: String): Try[UgerStatus] = ???
   

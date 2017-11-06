@@ -23,7 +23,9 @@ final case class GoogleCloudConfig(
     masterBootDiskSize: Int = Defaults.masterBootDiskSize, 
     numWorkers: Int = Defaults.numWorkers, 
     workerMachineType: String = Defaults.workerMachineType,
-    workerBootDiskSize: Int = Defaults.workerBootDiskSize, 
+    workerBootDiskSize: Int = Defaults.workerBootDiskSize,
+    numPreemptibleWorkers: Int = Defaults.numPreemptibleWorkers,
+    preemptibleWorkerBootDiskSize: Int = Defaults.preemptibleWorkerBootDiskSize,
     imageVersion: String = Defaults.imageVersion, 
     scopes: String = Defaults.scopes,
     properties: String = Defaults.properties,
@@ -37,6 +39,8 @@ object GoogleCloudConfig {
     val numWorkers: Int = 2
     val workerMachineType: String = "n1-standard-1"
     val workerBootDiskSize: Int = 20 // in GB
+    val numPreemptibleWorkers: Int = 0
+    val preemptibleWorkerBootDiskSize: Int = 20 // in GB
     val imageVersion: String = "1.1" // 2.x not supported by Hail, 1.1 needed for new Python API
     val scopes: String = "https://www.googleapis.com/auth/cloud-platform"
     val properties: String = {

@@ -82,7 +82,8 @@ def greet(name):
   print 'Hello', name
 
 greet('Alice')
-greet('Bob')"""
+greet('Bob')
+"""
 
     doTest(loamLines, expectedBinary, expectedScriptContent)
   }
@@ -143,7 +144,8 @@ if(inherits(x, "try-error")) {
   out<-as.data.frame(sort(table(ids),decreasing=T))
   names(out)[1]<-"ibd_pairs"
   write.table(out,args[2],row.names=T,col.names=F,quote=F,append=F,sep="\t")
-}"""
+}
+"""
 
     doTest(loamLines, expectedBinary, expectedScriptContent)
   }

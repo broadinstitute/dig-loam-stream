@@ -11,7 +11,7 @@ import scala.util.Try
   *
   * @author Kaan Yuksel
   */
-final case class UgerConfig(workDir: Path, logFile: Path, nativeSpecification: String, maxNumJobs: Int)
+final case class UgerConfig(workDir: Path, nativeSpecification: String, maxNumJobs: Int)
 
 object UgerConfig extends ConfigParser[UgerConfig] {
 

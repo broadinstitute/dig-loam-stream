@@ -1,23 +1,25 @@
 package loamstream.googlecloud
 
-import java.nio.file.Paths
-
 import loamstream.util.PathUtils
 import org.scalatest.FunSuite
 import loamstream.util.ExitCodes
 import loamstream.util.ExitCodeException
+import loamstream.TestHelpers
 
 /**
  * @author clint
  * Nov 29, 2016
  */
 final class CloudSdkDataProcClientTest extends FunSuite {
-  //scalastyle:off magic.number
+  
+  import TestHelpers.path
+  
   private val config = GoogleCloudConfig(
-      gcloudBinary = Paths.get("/foo/bar/baz"),
+      gcloudBinary = path("/foo/bar/baz"),
+      gsutilBinary = path("/blah/blah/blah"),
       projectId = "pid",
       clusterId = "cid",
-      credentialsFile = Paths.get("N/A"),
+      credentialsFile = path("N/A"),
       numWorkers = 42,
       //non-default values
       zone = "z",
@@ -25,6 +27,8 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       masterBootDiskSize = 99,
       workerMachineType = "wmt",
       workerBootDiskSize = 17,
+      numPreemptibleWorkers = 123,
+      preemptibleWorkerBootDiskSize = 11,
       imageVersion = "42.2.1.0",
       scopes = "ses",
       properties = "p,r,o,p,s",
@@ -125,6 +129,10 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       config.workerMachineType,
       "--worker-boot-disk-size",
       config.workerBootDiskSize.toString,
+      "--num-preemptible-workers",
+      config.numPreemptibleWorkers.toString,
+      "--preemptible-worker-boot-disk-size",
+      config.preemptibleWorkerBootDiskSize.toString,
       "--image-version",
       config.imageVersion,
       "--scopes",

@@ -501,6 +501,69 @@ final class GraphSplittingTest extends FunSuite with Loggable {
     }
   }
   
+  test("one andThen, at the end, but it throws") {
+    val code = """
+      val store0 = store[TXT].at("store0.txt").asInput
+      val store1 = store[TXT].at("store1.txt")
+      val store2 = store[TXT].at("store2.txt")
+      
+      cmd"foo -i $store0 -o $store1".in(store0).out(store1)
+      
+      andThen {
+        throw new Exception("blerg")
+      }
+      """
+    
+    val chunkThunks = chunksFrom(code).toVector
+    
+    //We should still get 3 chunks
+    assert(chunkThunks.size === 3)
+    
+    val Seq(thunk0, thunk1, thunk2) = chunkThunks
+    
+    assert(thunk0() eq thunk0())
+    
+    {
+      val graph0 = thunk0()
+      
+      assert(graph0.stores.size === 3)
+      
+      assertStoreExists(graph0)("./store0.txt")
+      assertStoreExists(graph0)("./store1.txt")
+      assertStoreExists(graph0)("./store2.txt")
+      
+      assert(graph0.tools.size === 1)
+      
+      assertCommandExists(graph0)("foo -i ./store0.txt -o ./store1.txt")
+      
+      val store0 = findStore(graph0)("./store0.txt")
+      val store1 = findStore(graph0)("./store1.txt")
+      val store2 = findStore(graph0)("./store2.txt")
+      
+      val cmd0 = findCommand(graph0)("foo -i ./store0.txt -o ./store1.txt")
+      
+      assert(inputs(graph0)(cmd0) === Set(store0))
+      
+      assert(outputs(graph0)(cmd0) === Set(store1))
+    }
+    
+    {
+      val caught = intercept[Exception] {
+        thunk1()
+      }
+      
+      assert(caught.getMessage === "blerg")
+    }
+    
+    //Final graph should have no new tools
+    
+    val graph2 = thunk2()
+    
+    val filteredGraph2 = graph2.without(thunk0().tools)
+    
+    assert(filteredGraph2.tools === Set.empty)
+  }
+  
   private def chunksFrom(code: String): Iterator[GraphThunk] = {
     val project = LoamProject(config, LoamScript("foo", code))
     

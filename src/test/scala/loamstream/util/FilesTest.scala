@@ -217,7 +217,7 @@ final class FilesTest extends FunSuite {
 
   def assertEachLine(file: Path, predicateDescription: String)(predicate: String => Boolean): Unit = {
     CanBeClosed.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
-      assert(reader.lines().iterator().asScala.forall(predicate), s"Not true for every line: $predicateDescription")
+      assert(reader.lines.iterator.asScala.forall(predicate), s"Not true for every line: $predicateDescription")
     }
   }
 
@@ -271,6 +271,85 @@ final class FilesTest extends FunSuite {
       val nLinesWithTemplate = Files.countLines(outFile)
       assert(nLinesWithTemplate === nLinesWithTemplateExpected,
         s"""Expected $nLinesWithTemplateExpected with "$template", but found $nLinesWithTemplate.""")
+    }
+  }
+  
+  private def withTempFile[A](f: Path => A): A = {
+    val tempFile = Files.tempFile("foo")
+    assert(tempFile.toFile.exists === true)
+    
+    try { f(tempFile) }
+    finally {
+      java.nio.file.Files.delete(tempFile)
+      assert(tempFile.toFile.exists === false)
+    }
+  }
+  
+  test("getLines") {
+    val contents = """|foo
+                      |bar
+                      |
+                      |baz
+                      |  
+                      |  blerg  """.stripMargin
+   
+    withTempFile { tempFile =>                                            
+      Files.writeTo(tempFile)(contents)
+      
+      assert(Files.readFromAsUtf8(tempFile) === contents)
+      
+      val lines = Files.getLines(tempFile)
+      
+      val expected = Seq("foo", "bar", "", "baz", "  ", "  blerg  ")
+      
+      assert(lines === expected)
+    }
+  }
+  
+  test("getNonEmptyLines") {
+    val contents = """|
+                      |foo
+                      |bar
+                      |
+                      |
+                      |baz
+                      |  
+                      |  blerg  
+                      |
+                      |""".stripMargin
+   
+    withTempFile { tempFile =>                                            
+      Files.writeTo(tempFile)(contents)
+      
+      assert(Files.readFromAsUtf8(tempFile) === contents)
+      
+      val nonEmptyLines = Files.getNonEmptyLines(tempFile)
+      
+      val expected = Seq("foo", "bar", "baz", "  ", "  blerg  ")
+      
+      assert(nonEmptyLines === expected)
+    }
+  }
+  
+  test("readFrom() and readFromAsUtf8() work the same") {
+    val problematic = {
+      """|
+         |foo
+         |bar
+         |
+         |
+         |baz
+         |  
+         |  blerg  
+         |
+         |""".stripMargin
+    }
+    
+    withTempFile { tempFile =>                                            
+      Files.writeTo(tempFile)(problematic)
+      
+      assert(Files.readFromAsUtf8(tempFile) === problematic)
+      assert(Files.readFrom(tempFile) === problematic)
     }
   }
 }

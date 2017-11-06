@@ -23,7 +23,9 @@ object HailConfig {
   }
   
   def fromConfig(config: Config): Try[HailConfig] = {
-    import net.ceedubs.ficus.Ficus._
+    //NB: Import all Ficus typeclasses except the one for reading java.net.URIs, since we want our own handling of 
+    //those by ValueReaders.GcsUriReader.
+    import net.ceedubs.ficus.Ficus.{javaURIReader => _, _}
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.GcsUriReader
     import ValueReaders.PathReader

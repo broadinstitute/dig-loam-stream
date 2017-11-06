@@ -54,4 +54,14 @@ final class LoamScriptTest extends FunSuite {
     
     assert(TestHelpers.compile(loamCode).isValid)
   }
+  
+  test(".loam files import loamstream.googlecloud.GoogleSupport._") {
+    val loamCode0 = "googleCopy(null: Store[_], null: Store[_])"
+    
+    assert(TestHelpers.compile(loamCode0).isValid)
+    
+    val loamCode1 = "googleCopy(null: Iterable[Store[_]], null: Iterable[Store[_]])"
+    
+    assert(TestHelpers.compile(loamCode1).isValid)
+  }
 }

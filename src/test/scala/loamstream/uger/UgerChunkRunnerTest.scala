@@ -28,7 +28,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   
   import TestHelpers.neverRestart
   
-  private val config = UgerConfig(Paths.get("target/foo"), Paths.get("target/bar"), "some job parameters", 42)
+  private val config = UgerConfig(Paths.get("target/foo"), "some job parameters", 42)
   private val client = MockDrmaaClient(Map.empty)
   private val runner = UgerChunkRunner(config, client, new JobMonitor(scheduler, Poller.drmaa(client)))
 

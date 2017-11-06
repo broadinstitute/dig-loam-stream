@@ -1,16 +1,14 @@
 package loamstream.loam
 
+import java.nio.file.Path
 import java.nio.file.Paths
 
-import loamstream.compiler.LoamCompiler
 import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
-import loamstream.model.Tool
-import loamstream.model.Store
-import loamstream.model.execute.ExecutionEnvironment
-import loamstream.compiler.LoamPredef
-import java.nio.file.Path
 import loamstream.loam.files.LoamFileManager
+import loamstream.model.Store
+import loamstream.model.execute.Environment
 import loamstream.util.Maps
 
 /**
@@ -171,19 +169,19 @@ final class LoamGraphTest extends FunSuite {
     
     assert(filtered.workDirs === Map(phaseTool -> TestHelpers.path(".")))
     
-    assert(filtered.executionEnvironments === Map(phaseTool -> ExecutionEnvironment.Local))
+    assert(filtered.executionEnvironments === Map(phaseTool -> Environment.Local))
   }
 }
 
 object LoamGraphTest {
 
   private def makeTestComponents: GraphComponents = {
-    import TestHelpers.config
+    import loamstream.TestHelpers.config
     
     implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(config))
     
-    import LoamPredef._
     import LoamCmdTool._
+    import loamstream.compiler.LoamPredef._
     
     val inputFile = path("/user/home/someone/data.vcf")
     val outputFile = path("/user/home/someone/dataImputed.vcf")

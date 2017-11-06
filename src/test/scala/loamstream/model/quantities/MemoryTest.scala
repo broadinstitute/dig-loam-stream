@@ -1,6 +1,7 @@
 package loamstream.model.execute
 
 import org.scalatest.FunSuite
+import loamstream.model.quantities.Memory
 
 /**
  * @author clint

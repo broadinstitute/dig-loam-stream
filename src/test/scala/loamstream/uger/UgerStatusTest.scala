@@ -1,13 +1,16 @@
 package loamstream.uger
 
-import org.scalatest.FunSuite
-import org.ggf.drmaa.Session
-import loamstream.model.jobs.{JobResult, JobStatus}
-import loamstream.model.execute.Memory
 import java.time.Instant
 
-import loamstream.model.execute.CpuTime
+import org.scalatest.FunSuite
+
 import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
+
+import org.ggf.drmaa.Session
 
 /**
  * @author clint
@@ -15,16 +18,13 @@ import loamstream.model.execute.Resources.UgerResources
  */
 final class UgerStatusTest extends FunSuite {
   import UgerStatus._
-
-  //scalastyle:off magic.number
-  
   import scala.concurrent.duration._
     
   private val resources = UgerResources(
       Memory.inGb(2), 
       CpuTime(1.second), 
       Some("example.com"), 
-      Some(Queue.Long),
+      Some(Queue.Broad),
       Instant.now,
       Instant.now)
   
@@ -33,16 +33,16 @@ final class UgerStatusTest extends FunSuite {
       val initialStatus = makeInitialStatus(Some(resources))
       
       assert(initialStatus.resourcesOpt !== None)
-      assert(initialStatus.resourcesOpt.get.queue === Some(Queue.Long))
+      assert(initialStatus.resourcesOpt.get.queue === Some(Queue.Broad))
       
-      val transformed = initialStatus.transformResources(_.withQueue(Queue.Short))
+      val transformed = initialStatus.transformResources(_.withQueue(Queue.Broad))
       
       assert(transformed.getClass === initialStatus.getClass)
       
       assert(initialStatus.resourcesOpt !== None)
-      assert(initialStatus.resourcesOpt.get.queue === Some(Queue.Long))
+      assert(initialStatus.resourcesOpt.get.queue === Some(Queue.Broad))
       
-      assert(transformed.resourcesOpt.get.queue === Some(Queue.Short))
+      assert(transformed.resourcesOpt.get.queue === Some(Queue.Broad))
     }
     
     doTestWithExistingResources(CommandResult(0, _))
@@ -56,7 +56,7 @@ final class UgerStatusTest extends FunSuite {
     def doTestWithoutResources(initialStatus: UgerStatus): Unit = {
       assert(initialStatus.resourcesOpt === None)
       
-      val transformed = initialStatus.transformResources(_.withQueue(Queue.Short))
+      val transformed = initialStatus.transformResources(_.withQueue(Queue.Broad))
       
       assert(initialStatus.resourcesOpt === None)
       

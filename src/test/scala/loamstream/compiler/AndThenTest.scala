@@ -13,7 +13,7 @@ import loamstream.util.Loggable
  * @author clint
  * Jul 5, 2017
  */
-final class GraphSplittingTest extends FunSuite with Loggable {
+final class AndThenTest extends FunSuite with Loggable {
   import TestHelpers.config
   
   test("split simple loam file") {
@@ -503,9 +503,9 @@ final class GraphSplittingTest extends FunSuite with Loggable {
   
   test("one andThen, at the end, but it throws") {
     val code = """
-      val store0 = store[TXT].at("store0.txt").asInput
-      val store1 = store[TXT].at("store1.txt")
-      val store2 = store[TXT].at("store2.txt")
+      val store0 = store.at("store0.txt").asInput
+      val store1 = store.at("store1.txt")
+      val store2 = store.at("store2.txt")
       
       cmd"foo -i $store0 -o $store1".in(store0).out(store1)
       
@@ -576,7 +576,7 @@ final class GraphSplittingTest extends FunSuite with Loggable {
       result.errors.map(_.toString).foreach(error(_))
     }
     
-    require(result.isValid, "Compilation failed")
+    assert(result.isValid === true)
     
     val graphs = result.graphSource.iterator
     

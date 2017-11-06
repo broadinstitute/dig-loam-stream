@@ -1,13 +1,17 @@
 package loamstream.googlecloud
 
 import java.net.URI
-import com.typesafe.config.Config
-import scala.util.Try
-import loamstream.conf.ValueReaders
-import HailConfig.Defaults
 import java.nio.file.Path
-import loamstream.util.PathUtils
+
+import scala.util.Try
+
+import com.typesafe.config.Config
+
+import HailConfig.Defaults
 import loamstream.conf.HasScriptDir
+import loamstream.conf.ValueReaders
+import loamstream.util.PathUtils
+
 
 /**
  * @author clint

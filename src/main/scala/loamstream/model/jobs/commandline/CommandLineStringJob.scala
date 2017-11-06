@@ -1,13 +1,16 @@
 package loamstream.model.jobs.commandline
 
-import java.nio.file.{Path, Files => JFiles}
+import java.nio.file.Path
 
-import loamstream.model.execute.ExecutionEnvironment
-import loamstream.model.jobs.{LJob, Output}
+import scala.sys.process.ProcessBuilder
+import scala.sys.process.ProcessLogger
+
+import loamstream.model.execute.Environment
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.Output
 import loamstream.model.jobs.commandline.CommandLineJob.stdErrProcessLogger
-import loamstream.util.{BashScript, Files, Loggable}
-
-import scala.sys.process.{ProcessBuilder, ProcessLogger}
+import loamstream.util.BashScript
+import loamstream.util.Loggable
 
 /**
   * LoamStream
@@ -18,7 +21,7 @@ import scala.sys.process.{ProcessBuilder, ProcessLogger}
 final case class CommandLineStringJob(
     commandLineString: String,
     workDir: Path,
-    executionEnvironment: ExecutionEnvironment,
+    executionEnvironment: Environment,
     inputs: Set[LJob] = Set.empty,
     outputs: Set[Output] = Set.empty,
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,

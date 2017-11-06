@@ -3,13 +3,18 @@ package loamstream.db.slick
 import java.nio.file.Path
 
 import scala.concurrent.ExecutionContext
+
 import loamstream.db.LoamDao
-import loamstream.model.execute.{ExecutionEnvironment, Resources, Settings}
-import loamstream.model.jobs.{Execution, JobResult, OutputRecord}
-import loamstream.util.Futures
+import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.Resources
+import loamstream.model.execute.Settings
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobResult.CommandInvocationFailure
+import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.OutputRecord
 import loamstream.util.Loggable
 import loamstream.util.PathUtils
-import loamstream.model.jobs.JobResult.{CommandInvocationFailure, CommandResult}
 
 /**
  * @author clint
@@ -25,7 +30,7 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
   val driver = descriptor.dbType.driver
 
   import driver.api._
-  import Futures.waitFor
+  import loamstream.util.Futures.waitFor
 
   private def doFindOutput[A](loc: String, f: OutputRow => A): Option[A] = {
     val action = findOutputAction(loc)
@@ -71,8 +76,14 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
     //NB: Note dummy ID, will be assigned an auto-increment ID by the DB :\
     //NB: Also note unsafe .get, which is "ok" here since the executions without command lines will have been
     //filtered out before we get here.
-    val executionRow = new ExecutionRow(dummyId, execution.env.name, execution.cmd.get,
-      execution.status, commandResult.exitCode)
+    val executionRow = {
+      new ExecutionRow(
+        dummyId, 
+        execution.env.tpe.name, 
+        execution.cmd.get,
+        execution.status, 
+        commandResult.exitCode)
+    }
 
     import Implicits._
 
@@ -270,10 +281,10 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       runBlocking(table.filter(_.executionId === execution.id).result).map(_.toSettings)
     }
 
-    val table: SettingTable = ExecutionEnvironment.fromString(execution.env) match {
-      case ExecutionEnvironment.Local => tables.localSettings
-      case ExecutionEnvironment.Uger => tables.ugerSettings
-      case ExecutionEnvironment.Google => tables.googleSettings
+    val table: SettingTable = execution.env match {
+      case EnvironmentType.Names.Local => tables.localSettings
+      case EnvironmentType.Names.Uger => tables.ugerSettings
+      case EnvironmentType.Names.Google => tables.googleSettings
     }
 
     val queryResults: Seq[Settings] = settingsFrom(table)
@@ -293,10 +304,10 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
       runBlocking(table.filter(_.executionId === execution.id).result).map(_.toResources)
     }
     
-    val table: ResourceTable = ExecutionEnvironment.fromString(execution.env) match {
-      case ExecutionEnvironment.Local => tables.localResources
-      case ExecutionEnvironment.Uger => tables.ugerResources
-      case ExecutionEnvironment.Google => tables.googleResources
+    val table: ResourceTable = execution.env match {
+      case EnvironmentType.Names.Local => tables.localResources
+      case EnvironmentType.Names.Uger => tables.ugerResources
+      case EnvironmentType.Names.Google => tables.googleResources
     }
     
     val queryResults: Seq[Resources] = resourcesFrom(table)
@@ -317,11 +328,12 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends LoamDao with Logg
 
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution(_, _, _, _, _, Some(cr: CommandResult), _, _) => e -> cr
+      case e @ Execution(_, _, _, _, Some(cr: CommandResult), _, _) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case DummyExitCode
-      case e @ Execution(_, _, _, _, _, Some(cr: CommandInvocationFailure), _, _) =>
+      case e @ Execution(_, _, _, _, Some(cr: CommandInvocationFailure), _, _) => {
         // TODO: Better assign e -> JobResult.Failure?
         e -> CommandResult(JobResult.DummyExitCode)
+      }
     }
   }
 

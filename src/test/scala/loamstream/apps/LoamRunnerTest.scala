@@ -176,10 +176,10 @@ import loamstream.util.Files
 
 val workDir = path("""" + dir + """")
 
-val storeInitial = store[TXT].at(workDir / "storeInitial.txt")
-val storeFinal = store[TXT].at(workDir / "storeFinal.txt")
+val storeInitial = store.at(workDir / "storeInitial.txt")
+val storeFinal = store.at(workDir / "storeFinal.txt")
 
-def createStore(i: Int): Store[TXT] = store[TXT].at(workDir / s"store$i.txt")
+def createStore(i: Int): Store = store.at(workDir / s"store$i.txt")
 
 cmd"printf 'line1\nline2\nline3\n' > $storeInitial".out(storeInitial)
 

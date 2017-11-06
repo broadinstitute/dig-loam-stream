@@ -36,6 +36,7 @@ import loamstream.uger.UgerClient
 import loamstream.conf.ExecutionConfig
 import loamstream.util.ConfigUtils
 import loamstream.util.Tries
+import loamstream.uger.JobSubmitter
 
 /**
  * @author clint
@@ -227,7 +228,9 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val ugerRunner = {
         val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-        UgerChunkRunner(ugerConfig, ugerClient, jobMonitor, pollingFrequencyInHz)
+        val jobSubmitter = JobSubmitter.Drmaa(ugerClient, ugerConfig)
+        
+        UgerChunkRunner(ugerConfig, jobSubmitter, jobMonitor, pollingFrequencyInHz)
       }
 
       val handles = Seq(ugerClient, schedulerHandle, ugerRunner)

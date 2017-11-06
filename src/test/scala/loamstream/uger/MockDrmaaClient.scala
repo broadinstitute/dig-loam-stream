@@ -7,6 +7,7 @@ import java.nio.file.Path
 import loamstream.conf.UgerConfig
 import loamstream.util.ValueBox
 import loamstream.util.Maps
+import loamstream.model.execute.UgerSettings
 
 /**
  * @author clint
@@ -24,10 +25,11 @@ final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[UgerS
   val params: ValueBox[Seq[(String, Duration)]] = ValueBox(Vector.empty)
   
   override def submitJob(
-                          ugerConfig: UgerConfig,
-                          pathToScript: Path,
-                          jobName: String,
-                          numTasks: Int): DrmaaClient.SubmissionResult = ???
+      ugerSettings: UgerSettings,
+      ugerConfig: UgerConfig,
+      pathToScript: Path,
+      jobName: String,
+      numTasks: Int): DrmaaClient.SubmissionResult = ???
 
   override def statusOf(jobId: String): Try[UgerStatus] = waitFor(jobId, Duration.Zero)
 

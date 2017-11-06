@@ -1,10 +1,14 @@
-package loamstream.model
+package loamstream.loam.ast
+
+import org.scalatest.FunSuite
 
 import loamstream.TestHelpers.config
 import loamstream.compiler.LoamPredef.store
-import loamstream.loam.LoamCmdTool.StringContextWithCmd
-import loamstream.loam._
-import org.scalatest.FunSuite
+import loamstream.loam.LoamCmdTool
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScriptContext
+import loamstream.model.LId
+import loamstream.model.Store
 
 
 /**
@@ -249,7 +253,8 @@ final class AstTest extends FunSuite {
   }
 
   private object Tools {
-
+    import loamstream.loam.LoamCmdTool.StringContextWithCmd
+    
     val toolA: LoamCmdTool = cmd"a".out(storeA)
     val toolB: LoamCmdTool = cmd"b".in(storeX).out(storeB)
     val toolC: LoamCmdTool = cmd"c".in(storeX).out(storeC)

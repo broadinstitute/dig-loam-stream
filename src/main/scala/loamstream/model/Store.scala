@@ -1,14 +1,16 @@
 package loamstream.model
 
 import java.net.URI
-import java.nio.file.{ Path, Paths }
+import java.nio.file.Path
+import java.nio.file.Paths
 
-import loamstream.loam.LoamGraph.StoreLocation
-import loamstream.loam.{ LoamGraph, LoamProjectContext, LoamScriptContext, LoamStoreKeySlot, LoamStoreRef }
-import loamstream.util.TypeBox
-
-import scala.reflect.runtime.universe.TypeTag
 import loamstream.loam.HasLocation
+import loamstream.loam.LoamGraph
+import loamstream.loam.LoamGraph.StoreLocation
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScriptContext
+import loamstream.loam.LoamStoreKeySlot
+import loamstream.loam.LoamStoreRef
 
 /**
  * @author oliverr

@@ -2,7 +2,7 @@ package loamstream.loam.ast
 
 import loamstream.compiler.LoamCompiler
 import loamstream.loam.{LoamGraphValidation, LoamScript}
-import loamstream.model.AST.ToolNode
+import loamstream.loam.ast.AST.ToolNode
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.loam.LoamGraph

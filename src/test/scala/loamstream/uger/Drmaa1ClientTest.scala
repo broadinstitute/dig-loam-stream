@@ -1,14 +1,18 @@
 package loamstream.uger
 
-import org.scalatest.FunSuite
-import org.ggf.drmaa.JobInfo
-import loamstream.model.quantities.CpuTime
-import loamstream.model.quantities.Memory
 import java.time.Instant
-import loamstream.conf.UgerConfig
+
+import org.ggf.drmaa.JobInfo
+import org.ggf.drmaa.JobTemplate
+import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
+import loamstream.conf.UgerConfig
 import loamstream.model.execute.UgerSettings
+import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+
 
 /**
  * @author clint
@@ -18,6 +22,27 @@ final class Drmaa1ClientTest extends FunSuite {
   private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue.Broad), Some("foo.example.com"))
   
   import Drmaa1ClientTest.LiteralJobInfo
+  import loamstream.TestHelpers.path
+  
+  test("makeOutputPath") {
+    val ugerDir = path("some/path/blah")
+    val jobName = "asdasdasdfg"
+    
+    val actual = Drmaa1Client.makeOutputPath(ugerDir, jobName)
+    val expected = s":some/path/blah/asdasdasdfg.${JobTemplate.PARAMETRIC_INDEX}.stdout"
+    
+    assert(actual === expected) 
+  }
+  
+  test("makeErrorPath") {
+    val ugerDir = path("/some/other/path")
+    val jobName = "asdasdasdfghjk"
+    
+    val actual = Drmaa1Client.makeErrorPath(ugerDir, jobName)
+    val expected = s":/some/other/path/asdasdasdfghjk.${JobTemplate.PARAMETRIC_INDEX}.stderr"
+    
+    assert(actual === expected)
+  }
   
   test("toResources - valid resource-usage data in JobInfo") {
     val mockUgerClient = new MockAccountingClient(_ => actualQacctOutput)
@@ -98,7 +123,7 @@ final class Drmaa1ClientTest extends FunSuite {
     
     val bogusPath = path("/foo/bar/baz")
     
-    val ugerConfig = UgerConfig(workDir = bogusPath, logFile = bogusPath, maxNumJobs = 42)
+    val ugerConfig = UgerConfig(workDir = bogusPath, maxNumJobs = 41)
         
     val ugerSettings = UgerSettings(
         cores = Cpus(42),

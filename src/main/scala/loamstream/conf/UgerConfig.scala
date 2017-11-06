@@ -18,7 +18,6 @@ import loamstream.model.quantities.CpuTime
   */
 final case class UgerConfig(
     workDir: Path, 
-    logFile: Path, 
     maxNumJobs: Int,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,

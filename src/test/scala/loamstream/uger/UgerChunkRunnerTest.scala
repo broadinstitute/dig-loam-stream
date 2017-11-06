@@ -47,7 +47,6 @@ final class UgerChunkRunnerTest extends FunSuite {
     
     UgerConfig(
       workDir = Paths.get("target/foo"), 
-      logFile = Paths.get("target/bar"), 
       maxNumJobs = 42,
       defaultCores = Cpus(2),
       defaultMemoryPerCore = Memory.inGb(2),

@@ -148,7 +148,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       jobName: String,
       numTasks: Int = 1): DrmaaClient.SubmissionResult = {
 
-    val pathToUgerOutput = ugerConfig.logFile
+    val pathToUgerOutput = ugerConfig.workDir
     
     val fullNativeSpec = Drmaa1Client.nativeSpec(ugerSettings)
     
@@ -261,15 +261,19 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskEndIndex = numTasks
       val taskIndexIncr = 1
 
-      //TODO:
-      info(s"Using native spec: '$nativeSpecification'")
-      info(s"Using job name: '$jobName'")
-      info(s"Using script: '$pathToScript'")
+      debug(s"Using native spec: '$nativeSpecification'")
+      debug(s"Using job name: '$jobName'")
+      debug(s"Using script: '$pathToScript'")
+      
+      import Drmaa1Client._
       
       jt.setNativeSpecification(nativeSpecification)
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
-      jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")
+      //NB: Where a job's stdout goes
+      jt.setOutputPath(makeOutputPath(pathToUgerOutput, jobName))
+      //NB: Where a job's stderr goes
+      jt.setErrorPath(makeErrorPath(pathToUgerOutput, jobName))
 
       import scala.collection.JavaConverters._
       
@@ -320,5 +324,17 @@ object Drmaa1Client {
     }
     
     s"$staticPart $dynamicPart"
+  }
+  
+  private[uger] def makeOutputPath(ugerDir: Path, jobName: String): String = {
+    makeErrorOrOutputPath(ugerDir, jobName, "stdout")
+  }
+  
+  private[uger] def makeErrorPath(ugerDir: Path, jobName: String): String = {
+    makeErrorOrOutputPath(ugerDir, jobName, "stderr")
+  }
+  
+  private def makeErrorOrOutputPath(ugerDir: Path, jobName: String, suffix: String): String = {
+    s":$ugerDir/$jobName.${JobTemplate.PARAMETRIC_INDEX}.$suffix"
   }
 }

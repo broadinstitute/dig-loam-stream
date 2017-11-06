@@ -27,7 +27,6 @@ final class UgerConfigTest extends FunSuite {
       loamstream {
         uger {
           workDir = "/foo/bar/baz"
-          logFile = "nuh/zuh.log"
           maxNumJobs=44
           defaultCores = 42
           defaultMemoryPerCore = 9 // Gb
@@ -39,7 +38,6 @@ final class UgerConfigTest extends FunSuite {
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
     assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
-    assert(ugerConfig.logFile === Paths.get("nuh/zuh.log"))
     assert(ugerConfig.maxNumJobs === 44)
     assert(ugerConfig.defaultCores === Cpus(42))
     assert(ugerConfig.defaultMemoryPerCore=== Memory.inGb(9))
@@ -61,7 +59,6 @@ final class UgerConfigTest extends FunSuite {
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
     assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
-    assert(ugerConfig.logFile === Paths.get("nuh/zuh.log"))
     assert(ugerConfig.maxNumJobs === 44)
     assert(ugerConfig.defaultCores === UgerDefaults.cores)
     assert(ugerConfig.defaultMemoryPerCore=== UgerDefaults.memoryPerCore)

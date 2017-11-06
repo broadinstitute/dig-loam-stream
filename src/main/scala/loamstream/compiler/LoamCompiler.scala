@@ -280,6 +280,8 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
           
           projectContext.registerGraphSoFar()
           
+          debug(s"Compilation finished, starting with ${projectContext.graphQueue.size} graph chunks.")
+          
           LoamCompiler.Result.success(reporter, projectContext)
         } else {
           error(s"Compilation failed. There were $soManyIssues.")

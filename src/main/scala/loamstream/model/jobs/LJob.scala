@@ -36,7 +36,7 @@ trait LJob extends Loggable {
   private def snapshot: JobSnapshot = snapshotRef()
   
   //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject.withSize(15)
+  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject.withSize(15) //scalastyle:ignore magic.number
   
   /**
    * An Observable that emits JobRuns of this job.  These are (effectively) tuples of (job, status, runCount), 

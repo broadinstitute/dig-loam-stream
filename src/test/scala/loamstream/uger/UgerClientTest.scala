@@ -1,12 +1,15 @@
 package loamstream.uger
 
-import org.scalatest.FunSuite
-import loamstream.util.Tries
-import scala.util.Try
-import loamstream.model.execute.Resources.UgerResources
-import loamstream.model.execute.Memory
-import loamstream.model.execute.CpuTime
 import java.time.Instant
+
+import scala.util.Try
+
+import org.scalatest.FunSuite
+
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
+import loamstream.util.Tries
 
 /**
  * @author clint
@@ -26,7 +29,7 @@ final class UgerClientTest extends FunSuite {
     import UgerClient.fillInAccountingFieldsIfNecessary
     import QacctTestHelpers.actualQacctOutput
 
-    val expectedQueue = Queue.Short
+    val expectedQueue = Queue.Broad
     
     val expectedNode = "foo.example.com"
     
@@ -39,7 +42,7 @@ final class UgerClientTest extends FunSuite {
     assert(fillInAccountingFieldsIfNecessary(mockClient, "12334")(failure) === failure)
     
     def doTest(ugerStatus: UgerStatus): Unit = {
-      val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(Queue.Short), Some("foo.example.com")))
+      val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(Queue.Broad), Some("foo.example.com")))
       
       val result = fillInAccountingFieldsIfNecessary(mockClient, "12334")(Try(ugerStatus))
       

@@ -6,6 +6,7 @@ import scala.util.Try
 import scala.concurrent.duration.Duration
 import loamstream.util.Loggable
 import scala.util.Success
+import loamstream.model.execute.UgerSettings
 
 /**
  * @author clint
@@ -22,12 +23,13 @@ final class UgerClient(
   override def getQueue(jobId: String): Option[Queue] = accountingClient.getQueue(jobId)
   
   override def submitJob(
+      ugerSettings: UgerSettings,
       ugerConfig: UgerConfig,
       pathToScript: Path,
       jobName: String,
       numTasks: Int = 1): DrmaaClient.SubmissionResult = {
     
-    drmaaClient.submitJob(ugerConfig, pathToScript, jobName, numTasks)
+    drmaaClient.submitJob(ugerSettings, ugerConfig, pathToScript, jobName, numTasks)
   }
     
   /**

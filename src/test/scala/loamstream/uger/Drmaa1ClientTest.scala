@@ -1,22 +1,28 @@
 package loamstream.uger
 
-import org.scalatest.FunSuite
-import org.ggf.drmaa.JobInfo
-import loamstream.model.execute.CpuTime
-import loamstream.model.execute.Memory
 import java.time.Instant
-import loamstream.TestHelpers
+
+import org.ggf.drmaa.JobInfo
 import org.ggf.drmaa.JobTemplate
+import org.scalatest.FunSuite
+
+import loamstream.TestHelpers
+import loamstream.conf.UgerConfig
+import loamstream.model.execute.UgerSettings
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+
 
 /**
  * @author clint
  * Mar 15, 2017
  */
 final class Drmaa1ClientTest extends FunSuite {
-  private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue.Short), Some("foo.example.com"))
+  private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue.Broad), Some("foo.example.com"))
   
   import Drmaa1ClientTest.LiteralJobInfo
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
   
   test("makeOutputPath") {
     val ugerDir = path("some/path/blah")
@@ -110,6 +116,30 @@ final class Drmaa1ClientTest extends FunSuite {
       "submission_time" -> "1488840615805.0000",
       "vmem" -> "0.0000",
       "wallclock" -> "2.7110")
+
+  test("nativeSpec") {
+    import Drmaa1Client.nativeSpec
+    import TestHelpers.path
+    
+    val bogusPath = path("/foo/bar/baz")
+    
+    val ugerConfig = UgerConfig(workDir = bogusPath, maxNumJobs = 41)
+        
+    val ugerSettings = UgerSettings(
+        cores = Cpus(42),
+        memoryPerCore = Memory.inGb(17),
+        maxRunTime = CpuTime.inHours(33))
+        
+    assert(ugerSettings.cores !== UgerDefaults.cores)
+    assert(ugerSettings.memoryPerCore !== UgerDefaults.memoryPerCore)
+    assert(ugerSettings.maxRunTime !== UgerDefaults.maxRunTime)
+    
+    val actualNativeSpec = nativeSpec(ugerSettings)
+    
+    val expected = "-clear -cwd -shell y -b n -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17g"
+    
+    assert(actualNativeSpec === expected)
+  }
 }
 
 object Drmaa1ClientTest {

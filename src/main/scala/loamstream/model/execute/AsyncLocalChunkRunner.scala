@@ -15,7 +15,7 @@ import loamstream.model.jobs.JobStatus
  */
 final case class AsyncLocalChunkRunner(
     maxNumJobs: Int = defaultMaxNumJobs)
-    (implicit context: ExecutionContext) extends ChunkRunnerFor(ExecutionEnvironment.Local) {
+    (implicit context: ExecutionContext) extends ChunkRunnerFor(EnvironmentType.Local) {
 
   import ExecuterHelpers._
 

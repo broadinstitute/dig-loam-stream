@@ -13,7 +13,7 @@ import loamstream.util.Loggable
  * @author clint
  * Jul 5, 2017
  */
-final class GraphSplittingTest extends FunSuite with Loggable {
+final class AndThenTest extends FunSuite with Loggable {
   import TestHelpers.config
   
   test("split simple loam file") {

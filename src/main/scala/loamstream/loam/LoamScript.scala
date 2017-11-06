@@ -103,7 +103,6 @@ object LoamScript {
     Set(ScalaId.from[LoamPredef.type],
       ScalaId.from[StoreType.VCF],
       ScalaId.from[StoreType.TXT],
-      ScalaId.from[StoreType.BIM],
       ScalaId.from[LoamCmdTool.type],
       ScalaId.from[LoamCmdTool.StringContextWithCmd],
       ScalaId.from[PathEnrichments.type],

@@ -1,6 +1,8 @@
 package loamstream.model.jobs
 
-import loamstream.model.execute.{ExecutionEnvironment, LocalSettings, Resources, Settings}
+import loamstream.model.execute.Environment
+import loamstream.model.execute.Resources
+import loamstream.model.execute.Settings
 import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
@@ -8,18 +10,20 @@ import loamstream.model.jobs.commandline.CommandLineJob
  *         kyuksel
  * date: Sep 22, 2016
  */
-final case class Execution(id: Option[Int] = None,
-                           env: ExecutionEnvironment,
-                           cmd: Option[String] = None,
-                           settings: Settings,
-                           status: JobStatus,
-                           result: Option[JobResult] = None,
-                           resources: Option[Resources] = None,
-                           outputs: Set[OutputRecord] = Set.empty) {
+final case class Execution(
+    id: Option[Int] = None,
+    env: Environment,
+    cmd: Option[String] = None,
+    status: JobStatus,
+    result: Option[JobResult] = None,
+    resources: Option[Resources] = None,
+    outputs: Set[OutputRecord] = Set.empty) {
 
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
 
+  def settings: Settings = env.settings
+  
   //NB :(
   //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a
   //command-line string is defined.
@@ -41,43 +45,62 @@ final case class Execution(id: Option[Int] = None,
 
 object Execution {
   // TODO Remove when dynamic statuses flow in
-  def apply(env: ExecutionEnvironment,
+  def apply(env: Environment,
             cmd: Option[String],
-            settings: Settings,
             result: JobResult,
             outputs: Set[OutputRecord]): Execution = {
-    Execution(id = None, env, cmd, settings, result.toJobStatus, Some(result), None, outputs)
+    
+    Execution(
+        id = None, 
+        env = env, 
+        cmd = cmd, 
+        status = result.toJobStatus, 
+        result = Option(result), 
+        resources = None, 
+        outputs = outputs)
   }
 
   // TODO Remove when dynamic statuses flow in
-  def apply(env: ExecutionEnvironment,
+  def apply(env: Environment,
             cmd: String,
-            settings: Settings,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
-    Execution(id = None, env, Option(cmd), settings, result.toJobStatus, Some(result), None, outputs.toSet)
+    
+    Execution(
+        id = None, 
+        env = env, 
+        cmd = Option(cmd), 
+        status = result.toJobStatus, 
+        result = Option(result), 
+        resources = None, 
+        outputs = outputs.toSet)
   }
 
-  def apply(env: ExecutionEnvironment,
+  def apply(env: Environment,
             cmd: String,
-            settings: Settings,
             status: JobStatus,
             result: JobResult,
             outputs: OutputRecord*): Execution = {
-    Execution(id = None, env, Option(cmd), settings, status, Some(result), None, outputs.toSet)
+    
+    Execution(
+        id = None, 
+        env = env, 
+        cmd = Option(cmd), 
+        status = status, 
+        result = Option(result), 
+        resources = None, 
+        outputs = outputs.toSet)
   }
 
-  def fromOutputs(env: ExecutionEnvironment,
+  def fromOutputs(env: Environment,
                   cmd: String,
-                  settings: Settings,
                   result: JobResult,
                   outputs: Set[Output]): Execution = {
-    Execution(env, Option(cmd), settings, result, outputs.map(_.toOutputRecord))
+    
+    apply(env, Option(cmd), result, outputs.map(_.toOutputRecord))
   }
 
-  def from(job: LJob, jobStatus: JobStatus): Execution = {
-    from(job, jobStatus, result = None)
-  }
+  def from(job: LJob, jobStatus: JobStatus): Execution = from(job, jobStatus, result = None)
 
   def from(job: LJob, status: JobStatus, result: Option[JobResult]): Execution = {
     val commandLine: Option[String] = job match {
@@ -85,15 +108,15 @@ object Execution {
       case _ => None
     }
 
-    // TODO Replace the placeholders for `settings` objects put in place to get the code to compile
+    // TODO Replace the placeholders for `settings` and `resourcess` objects 
+    // put in place to get the code to compile
     Execution(
       id = None,
-      job.executionEnvironment,
-      commandLine,
-      LocalSettings(), // TODO
-      status,
-      result,
-      None,
-      job.outputs.map(_.toOutputRecord)) 
+      env = job.executionEnvironment,
+      cmd = commandLine,
+      status = status,
+      result = result,
+      resources = None, // TODO: smell: we have no idea how this job was run
+      outputs = job.outputs.map(_.toOutputRecord)) 
   }
 }

@@ -17,6 +17,8 @@ object HailSupport {
     def pyhail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       import LanguageSupport.{makeScript, GeneratedScriptParams}
       
+      val hailConfig = scriptContext.hailConfig
+      
       val scriptFile = makeScript(stringContext, GeneratedScriptParams("pyhail", "py", hailConfig.scriptDir), args: _*)
       
       hail"$scriptFile"
@@ -28,6 +30,9 @@ object HailSupport {
           scriptContext.executionEnvironment.isGoogle, 
           """hail"..." interpolators must be in google { ... } blocks""")
       
+      val hailConfig = scriptContext.hailConfig
+      val googleConfig = scriptContext.googleConfig
+          
       val jarFile = hailConfig.jarFile
       
       val googlePrefixParts: Seq[String] = Seq(
@@ -60,23 +65,5 @@ object HailSupport {
       
       LoamCmdTool.StringContextWithCmd(StringContext(newParts: _*)).cmd(newArgs: _*)
     }
-  }
-  
-  import LanguageSupport.config  
-    
-  private def hailConfig(implicit scriptContext: LoamScriptContext) = {
-    require(
-        config.hailConfig.isDefined,
-        s"Hail support requires a valid 'loamstream.googlecloud.hail' section in the config file")
-    
-    config.hailConfig.get
-  }
-  
-  private def googleConfig(implicit scriptContext: LoamScriptContext) = {
-    require(
-        config.googleConfig.isDefined, 
-        s"Hail support requires a valid 'loamstream.googlecloud' section in the config file")
-    
-    config.googleConfig.get
   }
 }

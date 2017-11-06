@@ -13,14 +13,6 @@ import loamstream.conf.HasScriptDir
  */
 object LanguageSupport {
   object R {
-    private def rConfig(implicit scriptContext: LoamScriptContext): RConfig = {
-      require(
-        config.rConfig.isDefined,
-        s"R support requires a valid 'loamstream.r' section in the config file")
-
-      config.rConfig.get
-    }
-    
     implicit final class StringContextWithR(val stringContext: StringContext) extends AnyVal {
       /*
        * Supports a R string interpolator for .loam files:
@@ -36,6 +28,8 @@ object LanguageSupport {
        * NOTE: The body of the code must be left-aligned
        */
       def r(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+        val rConfig = scriptContext.rConfig
+        
         val scriptFile = makeScript(stringContext, GeneratedScriptParams.r(rConfig), args: _*)
         
         import LoamCmdTool._
@@ -46,14 +40,6 @@ object LanguageSupport {
   }
   
   object Python {
-    private def pythonConfig(implicit scriptContext: LoamScriptContext): PythonConfig = {
-      require(
-        config.pythonConfig.isDefined,
-        s"Python support requires a valid 'loamstream.python' section in the config file")
-
-      config.pythonConfig.get
-    }
-    
     implicit final class StringContextWithPython(val stringContext: StringContext) extends AnyVal {
       /*
        * Supports a Python string interpolator for .loam files:
@@ -69,6 +55,8 @@ object LanguageSupport {
        * NOTE: The body of the code must be left-aligned
        */
       def python(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
+        val pythonConfig = scriptContext.pythonConfig
+        
         val scriptFile = makeScript(stringContext, GeneratedScriptParams.python(pythonConfig), args: _*)
         
         import LoamCmdTool._
@@ -80,9 +68,7 @@ object LanguageSupport {
   
   private[this] val fileNums: Sequence[Int] = Sequence[Int]()
   
-  def config(implicit scriptContext: LoamScriptContext): LoamConfig = {
-    scriptContext.projectContext.config
-  }
+  
   
   def determineScriptFile(prefix: String, extension: String, dir: Path)
                                          (implicit scriptContext: LoamScriptContext): Path = {

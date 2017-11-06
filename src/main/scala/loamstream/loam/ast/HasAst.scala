@@ -1,4 +1,4 @@
-package loamstream.model
+package loamstream.loam.ast
 
 /**
  * @author clint

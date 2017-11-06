@@ -143,7 +143,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
                  jobName: String,
                  numTasks: Int = 1): DrmaaClient.SubmissionResult = {
 
-    val pathToUgerOutput = ugerConfig.logFile
+    val pathToUgerOutput = ugerConfig.workDir
     val nativeSpecification = ugerConfig.nativeSpecification
     
     runJob(pathToScript, pathToUgerOutput, nativeSpecification, jobName, numTasks)
@@ -255,6 +255,8 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskEndIndex = numTasks
       val taskIndexIncr = 1
 
+      import Drmaa1Client._
+      
       // TODO Make native specification controllable from Loam (DSL)
       // Request 16g memory to allow Klustakwik to run in QC chunk 2. :(
       // Request short queue for faster integration testing
@@ -262,7 +264,10 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       jt.setNativeSpecification(nativeSpecification)
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
-      jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")
+      //NB: Where a job's stdout goes
+      jt.setOutputPath(makeOutputPath(pathToUgerOutput, jobName))
+      //NB: Where a job's stderr goes
+      jt.setErrorPath(makeErrorPath(pathToUgerOutput, jobName))
 
       import scala.collection.JavaConverters._
       
@@ -296,5 +301,17 @@ object Drmaa1Client {
     import scala.collection.JavaConverters._
     
     UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
+  }
+  
+  private[uger] def makeOutputPath(ugerDir: Path, jobName: String): String = {
+    makeErrorOrOutputPath(ugerDir, jobName, "stdout")
+  }
+  
+  private[uger] def makeErrorPath(ugerDir: Path, jobName: String): String = {
+    makeErrorOrOutputPath(ugerDir, jobName, "stderr")
+  }
+  
+  private def makeErrorOrOutputPath(ugerDir: Path, jobName: String, suffix: String): String = {
+    s":$ugerDir/$jobName.${JobTemplate.PARAMETRIC_INDEX}.$suffix"
   }
 }

@@ -4,7 +4,7 @@ import cats.Apply
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
 import cats.syntax.option.catsSyntaxOption
-import lenthall.validation.ErrorOr.ErrorOr
+import common.validation.ErrorOr.ErrorOr
 import loamstream.cwl.ParametrizedBashParser.Token
 
 

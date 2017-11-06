@@ -20,7 +20,7 @@ lazy val Versions = new {
   val RxScala = "0.26.5"
   val Ficus = "1.4.2"
   val Squants = "1.2.0"
-  val Cromwell = "30-134dd95-SNAP"
+  val Cromwell = "30-1c00c83-SNAP"
 }
 
 lazy val mainDeps = Seq(
@@ -43,6 +43,7 @@ lazy val mainDeps = Seq(
   "com.iheart" %% "ficus" % Versions.Ficus,
   "org.typelevel"  %% "squants"  % Versions.Squants,
   "org.broadinstitute" %% "cromwell-wom" % Versions.Cromwell,
+  "org.broadinstitute" %% "cromwell-wdl" % Versions.Cromwell,
   "org.broadinstitute" %% "cromwell-cwl" % Versions.Cromwell
 )
 

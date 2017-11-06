@@ -2,7 +2,7 @@ package loamstream.util
 
 import cats.data.NonEmptyList
 import cats.data.Validated.{Invalid, Valid}
-import lenthall.validation.ErrorOr.ErrorOr
+import common.validation.ErrorOr.ErrorOr
 
 import scala.collection.generic.CanBuildFrom
 import scala.util.{Failure, Success, Try}

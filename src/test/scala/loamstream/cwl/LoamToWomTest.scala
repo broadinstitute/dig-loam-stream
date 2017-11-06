@@ -1,7 +1,7 @@
 package loamstream.cwl
 
 import cats.data.Validated.{Invalid, Valid}
-import lenthall.validation.ErrorOr.ErrorOr
+import common.validation.ErrorOr.ErrorOr
 import loamstream.LoamGraphExamples
 import loamstream.loam.LoamGraph
 import org.scalatest.FunSuite

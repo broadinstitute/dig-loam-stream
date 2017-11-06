@@ -1,11 +1,11 @@
 package loamstream.cwl
 
 import shapeless.Coproduct
-import cwl.CommandLineTool.{Argument, BaseCommand}
-import cwl.{CommandInputParameter, CommandLineBinding, CommandLineTool, StringOrExpression}
+import cwl.CommandLineTool.{Argument, BaseCommand, CommandInputParameter}
+import cwl.{CommandLineBinding, CommandLineTool, StringOrExpression}
 import wdl.WdlExpression
 import wdl.command.{ParameterCommandPart, StringCommandPart}
-import wom.callable.{Callable, TaskDefinition}
+import wom.callable.{Callable, CallableTaskDefinition, TaskDefinition}
 import wom.expression.WomExpression
 import wom.{CommandPart, RuntimeAttributes}
 
@@ -20,7 +20,7 @@ object WomToCwlExamples {
   }
 
   private def womTask(name: String)(commandTemplate: CommandPart*) =
-    TaskDefinition(
+    CallableTaskDefinition(
       name = name,
       commandTemplate = commandTemplate,
       runtimeAttributes = RuntimeAttributes(Map.empty[String, WomExpression]),

@@ -2,12 +2,12 @@ package loamstream.cwl
 
 import cats.data.Validated.Valid
 import cats.syntax.option.catsSyntaxOption
-import lenthall.validation.ErrorOr.{ErrorOr, ShortCircuitingFlatMap}
+import common.validation.ErrorOr.{ErrorOr, ShortCircuitingFlatMap}
 import shapeless.Coproduct
-import cwl.CommandLineTool.{Argument, BaseCommand}
+import cwl.CommandLineTool.{Argument, BaseCommand, CommandInputParameter}
 import loamstream.cwl.CwlCmdTokenGrouper.Group
 import loamstream.cwl.ParametrizedBashParser.Token
-import cwl.{CommandInputParameter, CommandLineBinding, CommandLineTool, StringOrExpression}
+import cwl.{CommandLineBinding, CommandLineTool, StringOrExpression}
 import wdl.command.{ParameterCommandPart, StringCommandPart}
 import wom.CommandPart
 import wom.callable.TaskDefinition
@@ -62,7 +62,7 @@ object WomToCwl {
       val inputs = groups.collect {
         case Group.InputBinding(pos, prefixOption, separate, parameter) =>
           val id = s"input$pos"
-          val valueFrom = Option(Coproduct[StringOrExpression](parameter.expression.toWdlString))
+          val valueFrom = Option(Coproduct[StringOrExpression](parameter.expression.toWomString))
           val inputBinding = Option(
             CommandLineBinding(
               position = Option(pos),

@@ -1,5 +1,6 @@
 package loamstream.dag.vis.grid
 
+import loamstream.dag.MockDag
 import loamstream.dag.vis.grid.DagGridLayout.NodeRow
 import org.scalatest.FunSuite
 
@@ -8,10 +9,12 @@ import org.scalatest.FunSuite
   * Created by oliverr on 11/2/2017.
   */
 final class DagGridLayoutTest extends FunSuite {
+
   test("DagGridLayout.NodeRow") {
+    val dag = MockDag.empty
     // scalastyle:off magic.number
-    val emptyRowNine = NodeRow.empty(9)
-    val emptyRowTen = NodeRow.empty(10)
+    val emptyRowNine = NodeRow.empty(dag, 9)
+    val emptyRowTen = NodeRow.empty(dag, 10)
     assert(emptyRowNine.isEmpty)
     assert(emptyRowTen.isEmpty)
     assert(emptyRowNine.isFull === false)

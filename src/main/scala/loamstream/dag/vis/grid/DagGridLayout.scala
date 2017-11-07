@@ -8,14 +8,16 @@ import loamstream.dag.vis.grid.DagGridLayout.NodeRow
   * LoamStream
   * Created by oliverr on 10/16/2017.
   */
-case class DagGridLayout(dag: Dag, rows: Seq[NodeRow]) extends DagLayout {
+case class DagGridLayout[D <: Dag](dag: D, rows: Seq[NodeRow[D]]) extends DagLayout[D] {
 
 }
 
 object DagGridLayout {
 
-  case class NodeRow(nodes: Seq[Option[Dag.NodeBase]]) {
-    def add(node: Dag.NodeBase, iCol: Int): NodeRow = NodeRow(nodes.updated(iCol, Option(node)))
+  case class NodeRow[D <: Dag](dag: D, nodes0: Seq[Option[Dag.NodeBase]]) {
+    def nodes: Seq[Option[dag.Node]] = nodes0.map(_.map(_.asInstanceOf[dag.Node]))
+
+    def add(node: Dag.NodeBase, iCol: Int): NodeRow[D] = NodeRow(dag, nodes.updated(iCol, Option(node)))
 
     val nCols: Int = nodes.size
 
@@ -31,7 +33,7 @@ object DagGridLayout {
   }
 
   object NodeRow {
-    def empty(nCols: Int): NodeRow = NodeRow(Seq.fill(nCols)(None))
+    def empty[D <: Dag](dag: D, nCols: Int): NodeRow[D] = NodeRow[D](dag, Seq.fill(nCols)(None))
   }
 
 }

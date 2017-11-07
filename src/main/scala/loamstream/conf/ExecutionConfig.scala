@@ -9,11 +9,11 @@ import scala.util.Try
  */
 final case class ExecutionConfig(maxRunsPerJob: Int)
 
-object ExecutionConfig {
+object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
   val default: ExecutionConfig = ExecutionConfig(maxRunsPerJob = 4) //scalastyle:ignore magic.number
   
-  def fromConfig(config: Config): Try[ExecutionConfig] = {
+  override def fromConfig(config: Config): Try[ExecutionConfig] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 

@@ -3,10 +3,10 @@ val outputFile = path("/user/home/someone/dataImputed.vcf")
 val phaseCommand = "shapeit"
 val imputeCommand = "impute2"
 
-val raw = store[VCF].at(inputFile).asInput
-val phased = store[VCF]
-val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
-val imputed = store[VCF].at(outputFile)
+val raw = store.at(inputFile).asInput
+val phased = store
+val template = store.at(path("/home/myself/template.vcf")).asInput
+val imputed = store.at(outputFile)
 
 cmd"$phaseCommand -in $raw -out $phased"
 cmd"$imputeCommand -in $phased -template $template -out $imputed"

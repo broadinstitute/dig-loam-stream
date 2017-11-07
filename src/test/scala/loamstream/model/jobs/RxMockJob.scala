@@ -23,8 +23,7 @@ final case class RxMockJob(
   override val name: String,
   inputs: Set[LJob],
   outputs: Set[Output],
-  runsAfter: Set[RxMockJob],
-  fakeExecutionTimeInMs: Int,
+  runsAfter: Option[RxMockJob],
   toReturn: () => Execution)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LJob {
 
   override def executionEnvironment: Environment = TestHelpers.env
@@ -38,17 +37,12 @@ final case class RxMockJob(
   def lastRunTime: Option[Instant] = lastRunTimeRef()
   
   private def waitIfNecessary(): Unit = {
-    if (runsAfter.nonEmpty) {
+    runsAfter.foreach { jobToWaitFor =>
       import loamstream.util.ObservableEnrichments._
-      val finalDepStates = Observables.sequence(runsAfter.toSeq.map(_.lastStatus))
-
-      Futures.waitFor(finalDepStates.firstAsFuture)
-    }
-  }
-
-  private def delayIfNecessary(): Unit = {
-    if (fakeExecutionTimeInMs > 0) {
-      Thread.sleep(fakeExecutionTimeInMs)
+      
+      val finalDepState = jobToWaitFor.lastStatus
+      
+      Futures.waitFor(finalDepState.firstAsFuture)
     }
   }
 
@@ -66,13 +60,11 @@ final case class RxMockJob(
     
     Future(waitIfNecessary()).map { _ => 
     
-      trace(s"\t\tStarting job: $name")
+      trace(s"Starting job: $name")
 
       lastRunTimeRef := Some(Instant.now)
       
-      delayIfNecessary()
-
-      trace(s"\t\t\tFinishing job: $name")
+      trace(s"Finishing job: $name")
 
       toReturn()
     }
@@ -87,8 +79,7 @@ object RxMockJob {
   def apply(name: String,
             inputs: Set[LJob] = Set.empty,
             outputs: Set[Output] = Set.empty,
-            runsAfter: Set[RxMockJob] = Set.empty,
-            fakeExecutionTimeInMs: Int = 0,
+            runsAfter: Option[RxMockJob] = None,
             toReturn: () => JobResult = () => JobResult.CommandResult(0))
             (implicit 
                   executions: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty), 
@@ -98,7 +89,6 @@ object RxMockJob {
               inputs,
               outputs,
               runsAfter,
-              fakeExecutionTimeInMs,
               () => executionFrom(outputs, jobResult = toReturn()))
   }
 

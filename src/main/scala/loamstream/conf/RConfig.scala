@@ -14,13 +14,13 @@ import loamstream.util.PathUtils
  */
 final case class RConfig(binary: Path, scriptDir: Path = Defaults.scriptDir) extends HasScriptDir
 
-object RConfig {
+object RConfig extends ConfigParser[RConfig] {
 
   object Defaults {
     val scriptDir: Path = PathUtils.getCurrentDirectory
   }
 
-  def fromConfig(config: Config): Try[RConfig] = {
+  override def fromConfig(config: Config): Try[RConfig] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.PathReader

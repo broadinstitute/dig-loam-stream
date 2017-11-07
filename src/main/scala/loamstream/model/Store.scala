@@ -1,104 +1,84 @@
 package loamstream.model
 
 import java.net.URI
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
 
-import loamstream.loam.LoamGraph.StoreLocation
-import loamstream.loam.{LoamGraph, LoamProjectContext, LoamScriptContext, LoamStoreKeySlot, LoamStoreRef}
-import loamstream.loam.ops.StoreType
-import loamstream.loam.ops.StoreType.TXT
-import loamstream.util.TypeBox
-
-import scala.reflect.runtime.universe.TypeTag
 import loamstream.loam.HasLocation
+import loamstream.loam.LoamGraph
+import loamstream.loam.LoamGraph.StoreLocation
+import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamScriptContext
+import loamstream.loam.LoamStoreKeySlot
+import loamstream.loam.LoamStoreRef
 
 /**
-  * LoamStream
-  * Created by oliverr on 6/8/2016.
-  */
-object Store {
+ * @author oliverr
+ * @author clint
+ * Jun 8, 2016
+ */
+trait Store extends HasLocation {
+  def id: LId
 
-  trait Untyped extends HasLocation {
-    def id: LId
+  def scriptContext: LoamScriptContext
 
-    def sig: TypeBox.Untyped
+  def projectContext: LoamProjectContext = scriptContext.projectContext
 
-    def scriptContext: LoamScriptContext
+  def update(): Unit = projectContext.updateGraph(_.withStore(this))
 
-    def projectContext: LoamProjectContext = scriptContext.projectContext
-
-    def update(): Unit = projectContext.updateGraph(_.withStore(this))
-
-    def asInput: Store.Untyped
-
-    def at(path: String): Store.Untyped
-
-    def at(path: Path): Store.Untyped
-
-    def at(uri: URI): Store.Untyped
-
-    def at(location: StoreLocation): Store.Untyped
-
-    def key(name: String): LoamStoreKeySlot = LoamStoreKeySlot(this, name)(projectContext)
-
-    override def toString: String = {
-      val simpleTypeName = sig.tpe.toString.split("\\.").lastOption.getOrElse("?")
-      
-      val location = (pathOpt orElse uriOpt).map(_.toString).getOrElse(path)
-      
-      s"store[${simpleTypeName}]($id)@$location"
-    }
-    
-    def graph: LoamGraph = projectContext.graph
-
-    override def pathOpt: Option[Path] = graph.pathOpt(this)
-
-    override def path: Path = projectContext.fileManager.getPath(this)
-
-    override def uriOpt: Option[URI] = graph.uriOpt(this)
-
-    def +(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixAdder(suffix))
-
-    def -(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixRemover(suffix))
-  }
-
-  def create[S <: StoreType : TypeTag](implicit scriptContext: LoamScriptContext): Store[S] = {
-    Store[S](LId.newAnonId)
-  }
-}
-
-final case class Store[S <: StoreType : TypeTag] private(id: LId)(implicit val scriptContext: LoamScriptContext)
-  extends Store.Untyped {
-
-  override val sig: TypeBox[S] = TypeBox.of[S]
-
-  update()
-
-  override def asInput: Store[S] = {
+  def asInput: Store = {
     projectContext.updateGraph(_.withStoreAsInput(this))
-    
+
     this
   }
 
-  override def at(path: String): Store[S] = at(Paths.get(path))
+  def at(path: String): Store = at(Paths.get(path))
 
-  override def at(path: Path): Store[S] = {
+  def at(path: Path): Store = {
     val resolvedPath = scriptContext.workDir.resolve(path)
     val location = StoreLocation.PathLocation(resolvedPath)
     at(location)
   }
 
-  override def at(uri: URI): Store[S] = {
+  def at(uri: URI): Store = {
     val location = StoreLocation.UriLocation(uri)
     at(location)
   }
 
-  override def at(location: StoreLocation): Store[S] = {
+  def at(location: StoreLocation): Store = {
     projectContext.updateGraph(_.withStoreLocation(this, location))
-    
+
     this
   }
+
+  def key(name: String): LoamStoreKeySlot = LoamStoreKeySlot(this, name)(projectContext)
+
+  override def toString: String = {
+    val location = (pathOpt orElse uriOpt).map(_.toString).getOrElse(path)
+
+    s"store($id)@$location"
+  }
+
+  def graph: LoamGraph = projectContext.graph
+
+  override def pathOpt: Option[Path] = graph.pathOpt(this)
+
+  override def path: Path = projectContext.fileManager.getPath(this)
+
+  override def uriOpt: Option[URI] = graph.uriOpt(this)
+
+  def +(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixAdder(suffix))
+
+  def -(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixRemover(suffix))
 }
 
+object Store {
+  def create(implicit scriptContext: LoamScriptContext): Store = DefaultStore(LId.newAnonId)
 
+  private final case class DefaultStore private (id: LId)(implicit val scriptContext: LoamScriptContext)
+      extends Store {
 
+    update()
+
+  }
+}

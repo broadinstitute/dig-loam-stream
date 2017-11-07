@@ -3,20 +3,38 @@ package loamstream.util
 import java.nio.file.Paths
 import org.scalatest.FunSuite
 import com.typesafe.config.Config
+import loamstream.TestHelpers
 
 /**
  * @author clint
  * Oct 19, 2016
  */
 final class ConfigUtilsTest extends FunSuite {
+  import TestHelpers.path
+  
   test("Loading a config file works") {
-    val config = ConfigUtils.configFromFile(Paths.get("src/test/resources/foo.config"))
-    
+    doTest(ConfigUtils.configFromFile(path("src/test/resources/foo.conf")), false)
+  }
+  
+  test("Loading a Config via prefix works") {
+    doTest(ConfigUtils.configFromPrefix("foo"), true)
+  }
+  
+  private def doTest(config: Config, shouldHaveReferenceConfValues: Boolean): Unit = {
     //Config file should have been loaded, merged with system props, BUT NOT merged with defaults
       
     //default from reference.conf, shouldn't have been loaded
+    
+    if(shouldHaveReferenceConfValues) {
+      assert(config.getString("loamstream.uger.logFile") === "uger.log")
+    } else {
+      intercept[Exception] {
+        config.getString("loamstream.uger.logFile")
+      }
+    }
+    
     intercept[Exception] {
-      config.getString("loamstream.uger.logFile")
+      config.getString("loamstream.uger.blah")
     }
       
     //new key

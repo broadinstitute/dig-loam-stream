@@ -147,17 +147,17 @@ import loamstream.util.Files
 
 val workDir = path("""" + dir + """")
 
-val storeInitial = store[TXT].at(workDir / "storeInitial.txt")
-val storeFinal = store[TXT].at(workDir / "storeFinal.txt")
+val storeInitial = store.at(workDir / "storeInitial.txt")
+val storeFinal = store.at(workDir / "storeFinal.txt")
 
-def createStore(i: Int): Store[TXT] = store[TXT].at(workDir / s"store$i.txt")
+def createStore(i: Int): Store = store.at(workDir / s"store$i.txt")
 
 cmd"printf 'line1\nline2\nline3\n' > $storeInitial".out(storeInitial)
 
 andThen {
   val numLines = Files.countLines(storeInitial.path).toInt
 
-  val stores: Buffer[Store[TXT]] = new ArrayBuffer
+  val stores: Buffer[Store] = new ArrayBuffer
 
   for (i <- 1 to numLines) {
     val newStore = createStore(i)
@@ -176,10 +176,10 @@ import loamstream.util.Files
 
 val workDir = path("""" + dir + """")
 
-val storeInitial = store[TXT].at(workDir / "storeInitial.txt")
-val storeFinal = store[TXT].at(workDir / "storeFinal.txt")
+val storeInitial = store.at(workDir / "storeInitial.txt")
+val storeFinal = store.at(workDir / "storeFinal.txt")
 
-def createStore(i: Int): Store[TXT] = store[TXT].at(workDir / s"store$i.txt")
+def createStore(i: Int): Store = store.at(workDir / s"store$i.txt")
 
 cmd"printf 'line1\nline2\nline3\n' > $storeInitial".out(storeInitial)
 
@@ -195,19 +195,19 @@ import loamstream.util.Files
 
 val workDir = path("""" + dir + """")
 
-val storeInitial = store[TXT].at(workDir / "storeInitial.txt")
-val storeMiddle = store[TXT].at(workDir / "storeMiddle.txt")
-val storeFinal = store[TXT].at(workDir / "storeFinal.txt")
+val storeInitial = store.at(workDir / "storeInitial.txt")
+val storeMiddle = store.at(workDir / "storeMiddle.txt")
+val storeFinal = store.at(workDir / "storeFinal.txt")
 
 cmd"printf 'line1\nline2\nline3\n' > $storeInitial".out(storeInitial)
 
 andThen {
   val numLines = Files.countLines(storeInitial.path).toInt
 
-  val stores: Buffer[Store[TXT]] = new ArrayBuffer
+  val stores: Buffer[Store] = new ArrayBuffer
 
   for (i <- 1 to numLines) {
-    val newStore = store[TXT].at(workDir / s"mid-$i.txt")
+    val newStore = store.at(workDir / s"mid-$i.txt")
     stores += newStore
     cmd"printf 'This is line $i\n' > $newStore".in(storeInitial).out(newStore)
   }
@@ -219,10 +219,10 @@ andThen {
 andThen {
   val numLines = Files.countLines(storeMiddle.path).toInt
   
-  val stores: Buffer[Store[TXT]] = new ArrayBuffer
+  val stores: Buffer[Store] = new ArrayBuffer
 
   for (i <- 1 to numLines) {
-    val newStore = store[TXT].at(workDir / s"store-$i.txt")
+    val newStore = store.at(workDir / s"store-$i.txt")
     stores += newStore
     cmd"printf 'line $i\n' > $newStore".in(storeInitial).out(newStore)
   }

@@ -5,7 +5,6 @@ import java.nio.file.{Path, Files => JFiles}
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef._
 import loamstream.loam.LoamCmdTool.StringContextWithCmd
-import loamstream.loam.ops.StoreType.TXT
 import loamstream.util.PathEnrichments._
 import loamstream.util.Validation
 import org.scalatest.FunSuite
@@ -21,11 +20,11 @@ final class LoamNativeToolTest extends FunSuite {
   private def createProjectContext: LoamProjectContext = {
     implicit val projectContext = LoamProjectContext.empty(TestHelpers.config)
     implicit val scriptContext = new LoamScriptContext(projectContext)
-    val store0 = store[TXT].at(storePaths(0)).asInput
-    val store1 = store[TXT].at(storePaths(1))
-    val store2 = store[TXT].at(storePaths(2))
-    val store3 = store[TXT].at(storePaths(3))
-    val store4 = store[TXT].at(storePaths(4)) // scalastyle:ignore magic.number
+    val store0 = store.at(storePaths(0)).asInput
+    val store1 = store.at(storePaths(1))
+    val store2 = store.at(storePaths(2))
+    val store3 = store.at(storePaths(3))
+    val store4 = store.at(storePaths(4)) // scalastyle:ignore magic.number
     cmd"cp $store0 $store1"
     job(store1, store2) {
       JFiles.copy(store1.path, store2.path)
@@ -62,8 +61,7 @@ final class LoamNativeToolTest extends FunSuite {
     storePaths.foreach(assertFile)
   }
 
-  private def assertInputsAndOutputs(tool: Tool, inStores: Set[Store.Untyped],
-                             outStores: Set[Store.Untyped]): Unit = {
+  private def assertInputsAndOutputs(tool: Tool, inStores: Set[Store], outStores: Set[Store]): Unit = {
     assert(tool.inputs.values.toSet === inStores)
     assert(tool.outputs.values.toSet === outStores)
   }
@@ -72,11 +70,11 @@ final class LoamNativeToolTest extends FunSuite {
     import loamstream.compiler.LoamPredef._
     implicit val projectContext = LoamProjectContext.empty(TestHelpers.config)
     implicit val scriptContext = new LoamScriptContext(projectContext)
-    val store0 = store[TXT].at(storePaths(0)).asInput
-    val store1 = store[TXT].at(storePaths(1))
-    val store2 = store[TXT].at(storePaths(2))
-    val store3 = store[TXT].at(storePaths(3))
-    val store4 = store[TXT].at(storePaths(4)) // scalastyle:ignore magic.number
+    val store0 = store.at(storePaths(0)).asInput
+    val store1 = store.at(storePaths(1))
+    val store2 = store.at(storePaths(2))
+    val store3 = store.at(storePaths(3))
+    val store4 = store.at(storePaths(4)) // scalastyle:ignore magic.number
     val tool0 = job(store0, store1, store2) {
       "Hello!"
     }

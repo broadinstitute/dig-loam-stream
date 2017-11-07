@@ -12,7 +12,7 @@ sealed trait LId {
 
 object LId {
 
-  trait Owner {
+  trait HasId {
     def id: LId
   }
 

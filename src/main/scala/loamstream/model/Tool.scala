@@ -10,7 +10,7 @@ import loamstream.model.Tool.DefaultStores
   * @author Oliver
   *         date: Apr 26, 2016
   */
-trait Tool extends LId.Owner {
+trait Tool extends LId.HasId {
 
   /** The unique tool id */
   def id: LId

@@ -17,12 +17,15 @@ import loamstream.model.execute.AsyncLocalChunkRunner
 import scala.concurrent.ExecutionContext
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.JobStatus.Skipped
+import loamstream.loam.LoamGraph
+import loamstream.compiler.LoamPredef
+import loamstream.loam.LoamCmdTool
 
 /**
   * @author kaan
   * Sep 27, 2016
   */
-final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickLoamDao with Loggable {
+final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickLoamDao with Loggable { 
 
   // scalastyle:off no.whitespace.before.left.bracket
 
@@ -37,15 +40,13 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val fileOut1 = workDir.resolve("fileOut1.txt")
       val fileOut2 = workDir.resolve("fileOut2.txt")
 
-      /* Loam for the first run that mimics an incomplete pipeline run:
-          val fileIn = store[TXT].at("src/test/resources/a.txt").asInput
-          val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
-          cmd"cp $$fileIn $$fileOut1
-       */
-      val firstScript = {
-        s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
-            val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
-            cmd"cp $$fileIn $$fileOut1""""
+      val firstScript = TestHelpers.makeGraph { implicit context =>
+        import LoamPredef._
+        import LoamCmdTool._
+         
+        val in = LoamPredef.store.at(fileIn).asInput
+        val out = LoamPredef.store.at(fileOut1)
+        cmd"cp $in $out"
       }
 
       val (executable, executions) = compileAndRun(firstScript)
@@ -85,19 +86,18 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       assert(dao.findExecution(output2) === None)
 
-      /* Loam for the second run that mimics a run launched subsequently to an incomplete first run:
-          val fileIn = store[TXT].at("src/test/resources/a.txt").asInput
-          val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
-          val fileOut2 = store[TXT].at("$workDir/fileOut2.txt")
-          cmd"cp $$fileIn $$fileOut1"
-          cmd"cp $$fileOut1 $$fileOut2
-       */
-      val secondScript =
-      s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
-            val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
-            val fileOut2 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut2)})
-            cmd"cp $$fileIn $$fileOut1"
-            cmd"cp $$fileOut1 $$fileOut2""""
+      
+      val secondScript = TestHelpers.makeGraph { implicit context => 
+        import LoamPredef._
+        import LoamCmdTool._
+      
+        val in = LoamPredef.store.at(fileIn).asInput
+        val out1 = LoamPredef.store.at(fileOut1)
+        val out2 = LoamPredef.store.at(fileOut2)
+        
+        cmd"cp $in $out1"
+        cmd"cp $out1 $out2"
+      }
 
       //Run the script and validate the results
       def run(expectedStatuses: Seq[Execution]): Unit = {
@@ -165,10 +165,14 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
           cmd"asdfasdf $$fileIn $$fileOut1"
        */
-      val script = {
-        s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
-            val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
-            cmd"$bogusCommandName $$fileIn $$fileOut1""""
+      val script = TestHelpers.makeGraph { implicit context =>
+        import LoamPredef._
+        import LoamCmdTool._
+        
+        val in = LoamPredef.store.at(fileIn).asInput
+        val out1 = LoamPredef.store.at(fileOut1)
+        
+        cmd"$bogusCommandName $in $out1"
       }
 
       //Run the script and validate the results
@@ -235,12 +239,17 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
           cmd"asdfasdf $$fileIn $$fileOut1"
           cmd"asdfasdf $$fileOut1 $$fileOut2"
        */
-      val script =
-        s"""val fileIn = store[TXT].at(${SourceUtils.toStringLiteral(fileIn)}).asInput
-              val fileOut1 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut1)})
-              val fileOut2 = store[TXT].at(${SourceUtils.toStringLiteral(fileOut2)})
-              cmd"$bogusCommandName $$fileIn $$fileOut1"
-              cmd"$bogusCommandName $$fileOut1 $$fileOut2""""
+      val script = TestHelpers.makeGraph { implicit context =>
+        import LoamPredef._
+        import LoamCmdTool._
+
+        val in = LoamPredef.store.at(fileIn).asInput
+        val out1 = LoamPredef.store.at(fileOut1)
+        val out2 = LoamPredef.store.at(fileOut2)
+        
+        cmd"$bogusCommandName $in $out1"
+        cmd"$bogusCommandName $out1 $out2"
+      }
 
       //Run the script and validate the results
       def run(): Unit = {
@@ -324,10 +333,10 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
   }
 
-  private def compileAndRun(script: String): (Executable, Map[LJob, Execution]) = {
+  private def compileAndRun(graph: LoamGraph): (Executable, Map[LJob, Execution]) = {
     val engine = loamEngine
 
-    val executable = engine.compileToExecutable(script).get
+    val executable = LoamEngine.toExecutable(graph)
 
     val executions = engine.executer.execute(executable)
 

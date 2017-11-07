@@ -8,28 +8,27 @@ import scala.concurrent.Future
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
+import loamstream.compiler.LoamEngine
+import loamstream.compiler.LoamPredef
 import loamstream.conf.UgerConfig
+import loamstream.loam.LoamCmdTool
+import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.Environment
+import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.NoOpJob
 import loamstream.model.jobs.Output
+import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
+import loamstream.uger.UgerChunkRunnerTest.MockJobSubmitter
 import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
-import loamstream.compiler.LoamPredef
-import loamstream.loam.ops.StoreType
-import loamstream.loam.LoamCmdTool
-import loamstream.model.execute.UgerSettings
-import loamstream.compiler.LoamEngine
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.uger.UgerChunkRunnerTest.MockJobSubmitter
-import loamstream.loam.LoamScriptContext
 
 
 /**
@@ -309,12 +308,11 @@ final class UgerChunkRunnerTest extends FunSuite {
   test("Uger config is propagated to DRMAA client - 2 jobs, same settings") {
     val graph = TestHelpers.makeGraph { implicit context =>
       import LoamPredef._
-      import StoreType.TXT
       import LoamCmdTool._
     
-      val a = store[TXT].at("a.txt").asInput
-      val b = store[TXT].at("b.txt")
-      val c = store[TXT].at("c.txt")
+      val a = store.at("a.txt").asInput
+      val b = store.at("b.txt")
+      val c = store.at("c.txt")
     
       ugerWith(cores = 4, mem = 16, maxRunTime = 5) {
         cmd"cp $a $b".in(a).out(b)
@@ -360,14 +358,13 @@ final class UgerChunkRunnerTest extends FunSuite {
       implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext)
       
       import LoamPredef._
-      import StoreType.TXT
       import LoamCmdTool._
     
-      val a = store[TXT].at("a.txt").asInput
-      val b = store[TXT].at("b.txt")
-      val c = store[TXT].at("c.txt")
-      val d = store[TXT].at("d.txt")
-      val e = store[TXT].at("e.txt")
+      val a = store.at("a.txt").asInput
+      val b = store.at("b.txt")
+      val c = store.at("c.txt")
+      val d = store.at("d.txt")
+      val e = store.at("e.txt")
     
       val (tool0, tool1) = ugerWith(cores = 4, mem = 16, maxRunTime = 5) {
         (cmd"cp $a $b".in(a).out(b)) -> (cmd"cp $a $c".in(a).out(c))

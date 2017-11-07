@@ -180,7 +180,7 @@ trait LJob extends Loggable {
    * Will fire at most one time.
    */
   //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first.share
+  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).firstOrElse(status).share
 
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.

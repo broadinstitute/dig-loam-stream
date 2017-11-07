@@ -14,7 +14,7 @@ sealed trait LoamToken {
 }
 
 object LoamToken {
-  def storesFromTokens(tokens: Seq[LoamToken]): Set[Store.Untyped] = {
+  def storesFromTokens(tokens: Seq[LoamToken]): Set[Store] = {
     tokens.collect {
       case StoreToken(store) => store
       case StoreRefToken(storeRef) => storeRef.store
@@ -29,7 +29,7 @@ object LoamToken {
     override def toString(fileManager: LoamFileManager): String = toString
   }
 
-  final case class StoreToken(store: Store.Untyped) extends LoamToken {
+  final case class StoreToken(store: Store) extends LoamToken {
     override def toString: String = store.toString
 
     override def toString(fileManager: LoamFileManager): String = store.render(fileManager)

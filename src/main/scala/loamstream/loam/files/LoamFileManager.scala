@@ -20,11 +20,13 @@ final class LoamFileManager {
     pathsBox.getAndUpdate { paths =>
       paths.get(store).orElse(store.pathOpt) match {
         case Some(path) => (paths, path)
-        case None =>
-          val fileSuffix = FileSuffixes(store.sig.tpe)
+        case None => {
+          //TODO: hard-code this?
+          val fileSuffix = "txt"
           val path = Files.createTempFile(filePrefix, s".$fileSuffix")
           
           (paths + (store -> path), path)
+        }
       }
     }
   }
@@ -34,7 +36,8 @@ final class LoamFileManager {
       paths.get(store).orElse(store.pathOpt).orElse(store.uriOpt) match {
         case Some(locator) => (paths, locator.toString)
         case None =>
-          val fileSuffix = FileSuffixes(store.sig.tpe)
+          //TODO: hard-code this?
+          val fileSuffix = "txt"
           val path = Files.createTempFile(filePrefix, s".$fileSuffix")
           (paths + (store -> path), path.toString)
       }

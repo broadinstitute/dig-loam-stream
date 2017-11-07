@@ -20,7 +20,6 @@ final class RxExecuterTest extends FunSuite {
   import RxExecuterTest.ExecutionResults
   import scala.concurrent.ExecutionContext.Implicits.global
   
-  // scalastyle:off magic.number  
   private def exec(
       jobs: Set[RxMockJob],
       maxRestarts: Int,
@@ -498,7 +497,6 @@ final class RxExecuterTest extends FunSuite {
     doTest(2)
   }
   
-  // scalastyle:off magic.number
   test("New leaves are executed as soon as possible when there is no delay") {
     /* A four-step pipeline:
      *
@@ -570,7 +568,10 @@ final class RxExecuterTest extends FunSuite {
     doTest(2)
   }
 
-  test("New leaves are executed as soon as possible when initial jobs don't start simultaneously") {
+  //TODO: Assess the usefulness of this test.  It's caused a lot of problems, both because of the initial 
+  //implementation, and because of various fixes and workarounds in RxMockJob and this class.  It's also not clear
+  //what the original intent of this test was. 
+  test("New leaves are executed as soon as possible when some sub-trees run before others") {
     /* A four-step pipeline:
      *
      *           Job21
@@ -588,17 +589,17 @@ final class RxExecuterTest extends FunSuite {
     def doTest(maxRestartsAllowed: Int): Unit = {
       implicit val executionsBox: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty)
       
-      // The delay added to job11 should cause job23 and job24 to be bundled and executed prior to job21 and job22
-      lazy val job11 = RxMockJob("Job_1_1", runsAfter = Set(job12), fakeExecutionTimeInMs = 500)
+      // Ensure Job23 and Job24 run after job31
+      lazy val job11 = RxMockJob("Job_1_1")
       lazy val job12 = RxMockJob("Job_1_2")
       lazy val job21 = RxMockJob("Job_2_1", Set(job11))
       lazy val job22 = RxMockJob("Job_2_2", Set(job11))
-      lazy val job23 = RxMockJob("Job_2_3", Set(job12), runsAfter = Set(job31), fakeExecutionTimeInMs = 1000)
-      lazy val job24 = RxMockJob("Job_2_4", Set(job12))
+      lazy val job23 = RxMockJob("Job_2_3", Set(job12), runsAfter = Some(job31))
+      lazy val job24 = RxMockJob("Job_2_4", Set(job12), runsAfter = Some(job31))
       lazy val job31 = RxMockJob("Job_3_1", Set(job21, job22))
       lazy val job32 = RxMockJob("Job_3_2", Set(job23, job24))
       lazy val job4 = RxMockJob("Job_4", Set(job31, job32))
-  
+      
       def assertExecutionCounts(expected: Int): Unit = {
         Seq(job11, job12, job21, job22, job23, job24, job31, job32, job4).foreach { job =>
           assert(job.executionCount === expected, s"Expected $expected runs from $job, but got ${job.executionCount}")
@@ -607,12 +608,10 @@ final class RxExecuterTest extends FunSuite {
       
       assertExecutionCounts(0)
       
-      val ExecutionResults(result, _) = exec(Set(job4), maxRestartsAllowed)
-      
-      //NB: Chunks can be empty if no jobs became runnable during a certain period (RxExecuter.windowLength)
-      //This can happen non-deterministically since the precise timing of when jobs will be run can't be known.
-      //Filter out empty chunks here; we can still test that jobs were chunked properly and in the right order.  
-      //val jobExecutionSeq: Seq[Set[RxMockJob]] = r.jobExecutionSeq.filterNot(_.isEmpty)
+      //NB: Make sure the full stack trace of any exceptions is logged/printed, since SBT truncates them.
+      val ExecutionResults(result, _) = RxExecuterTest.logFullStackTrace {
+        exec(Set(job4), maxRestartsAllowed)
+      }
   
       assertExecutionCounts(1)
   
@@ -621,15 +620,18 @@ final class RxExecuterTest extends FunSuite {
       // NB: Don't check for specific chunks, since this is non-deterministic now that RxExecuter samples
       // The stream of runnables with Observable.tumbling.
   
-      // Also check that relationships are maintained,
+      // Check that relationships are maintained,
       job11 assertRanBefore job21 ; job11 assertRanBefore job22
       
       job12 assertRanBefore job23 ; job12 assertRanBefore job24
       
       job21 assertRanBefore job31 ; job22 assertRanBefore job31
       
+      job23 assertRanBefore job31 ; job24 assertRanBefore job31
       job23 assertRanBefore job32 ; job24 assertRanBefore job32
   
+      job31 assertRanBefore job32 
+      
       job31 assertRanBefore job4 ; job32 assertRanBefore job4
     }
     
@@ -730,6 +732,17 @@ final class RxExecuterTest extends FunSuite {
 }
 
 object RxExecuterTest {
+  private def logFullStackTrace[A](f: => A): A = {
+    try { f }
+    catch {
+      case scala.util.control.NonFatal(e) => {
+        e.printStackTrace()
+        
+        throw e
+      }
+    }
+  }
+  
   private def succeedsAfterNRuns(n: Int): () => JobResult = { 
     val runs: ValueBox[Int] = ValueBox(0)
     
@@ -769,4 +782,3 @@ object RxExecuterTest {
     }
   }
 }
-// scalastyle:on magic.number

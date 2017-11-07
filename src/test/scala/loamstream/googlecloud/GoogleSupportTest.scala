@@ -4,7 +4,6 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.loam.LoamScriptContext
 import loamstream.compiler.LoamPredef
-import loamstream.loam.ops.StoreType
 import loamstream.loam.LoamCmdTool
 
 /**
@@ -19,15 +18,14 @@ final class GoogleSupportTest extends FunSuite {
     
     import GoogleSupport._
     import LoamPredef._
-    import StoreType._
       
     val graphSoFar = context.projectContext.graph
       
     assert(graphSoFar.tools.isEmpty)
     assert(graphSoFar.stores.isEmpty)
     
-    val local = store[TXT].at(path("/some/local/path"))
-    val remote = store[TXT].at(uri("gs://loamstream/foo/bar/baz"))
+    val local = store.at(path("/some/local/path"))
+    val remote = store.at(uri("gs://loamstream/foo/bar/baz"))
     
     assert(graphSoFar.tools.isEmpty)
     
@@ -53,15 +51,14 @@ final class GoogleSupportTest extends FunSuite {
     
     import GoogleSupport._
     import LoamPredef._
-    import StoreType._
       
     val graphSoFar = context.projectContext.graph
       
     assert(graphSoFar.tools.isEmpty)
     assert(graphSoFar.stores.isEmpty)
     
-    val local = store[TXT].at(path("/some/local/path"))
-    val remote = store[TXT].at(uri("gs://loamstream/foo/bar/baz"))
+    val local = store.at(path("/some/local/path"))
+    val remote = store.at(uri("gs://loamstream/foo/bar/baz"))
     
     assert(graphSoFar.tools.isEmpty)
     
@@ -105,18 +102,17 @@ final class GoogleSupportTest extends FunSuite {
     
     import GoogleSupport._
     import LoamPredef._
-    import StoreType._
       
     val graphSoFar = context.projectContext.graph
       
     assert(graphSoFar.tools.isEmpty)
     assert(graphSoFar.stores.isEmpty)
     
-    val local0 = store[TXT].at(path("/some/local/path"))
-    val remote0 = store[TXT].at(uri("gs://loamstream/foo/bar/baz"))
+    val local0 = store.at(path("/some/local/path"))
+    val remote0 = store.at(uri("gs://loamstream/foo/bar/baz"))
     
-    val local1 = store[TXT].at(path("/some/other/path"))
-    val remote1 = store[TXT].at(uri("gs://loamstream/blah/blah/blerg"))
+    val local1 = store.at(path("/some/other/path"))
+    val remote1 = store.at(uri("gs://loamstream/blah/blah/blerg"))
     
     assert(graphSoFar.tools.isEmpty)
     
@@ -144,18 +140,17 @@ final class GoogleSupportTest extends FunSuite {
     
     import GoogleSupport._
     import LoamPredef._
-    import StoreType._
       
     val graphSoFar = context.projectContext.graph
       
     assert(graphSoFar.tools.isEmpty)
     assert(graphSoFar.stores.isEmpty)
     
-    val local0 = store[TXT].at(path("/some/local/path"))
-    val remote0 = store[TXT].at(uri("gs://loamstream/foo/bar/baz"))
+    val local0 = store.at(path("/some/local/path"))
+    val remote0 = store.at(uri("gs://loamstream/foo/bar/baz"))
     
-    val local1 = store[TXT].at(path("/some/other/path"))
-    val remote1 = store[TXT].at(uri("gs://loamstream/blah/blah/blerg"))
+    val local1 = store.at(path("/some/other/path"))
+    val remote1 = store.at(uri("gs://loamstream/blah/blah/blerg"))
     
     assert(graphSoFar.tools.isEmpty)
     

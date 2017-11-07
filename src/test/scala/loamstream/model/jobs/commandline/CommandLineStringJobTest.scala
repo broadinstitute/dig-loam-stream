@@ -8,7 +8,6 @@ import loamstream.TestHelpers
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamCmdTool
 import loamstream.compiler.LoamPredef
-import loamstream.loam.ops.StoreType
 
 /**
   * @author clint
@@ -21,10 +20,9 @@ final class CommandLineStringJobTest extends FunSuite {
     val graph: LoamGraph = TestHelpers.makeGraph { implicit sc =>
       import LoamPredef._
       import LoamCmdTool._
-      import StoreType._
     
-      val input = store[TXT].at("src/test/resources/test-data-CommandLineStringJobTest").asInput
-      val output = store[TXT].at(outputPath)
+      val input = store.at("src/test/resources/test-data-CommandLineStringJobTest").asInput
+      val output = store.at(outputPath)
 
       cmd"(head -1 $input ; sed '1d' $input | awk '{if($$8 >= 0.0884) print $$0}') > $output"
     }

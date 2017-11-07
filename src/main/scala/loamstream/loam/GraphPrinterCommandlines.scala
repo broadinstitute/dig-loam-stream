@@ -8,19 +8,20 @@ import loamstream.loam.LoamToken.MultiToken
 final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter {
 
   /** Prints a store */
-  def print(store: Store.Untyped): String = store.pathOpt.map(_.toString).getOrElse("[file]")
+  def print(store: Store): String = store.pathOpt.map(_.toString).getOrElse("[file]")
 
   /** Prints a store ref */
   def print(storeRef: LoamStoreRef): String =
   storeRef.store.pathOpt.map(storeRef.pathModifier).map(_.toString).getOrElse("[file ref]")
 
   def print(hasLocation: HasLocation): String = hasLocation match {
-    case store: Store.Untyped => print(store)
+    case store: Store => print(store)
     case storeRef: LoamStoreRef => print(storeRef)
   }
 
-  def print[H <: HasLocation](hasLocations: Iterable[H]): String =
+  def print[H <: HasLocation](hasLocations: Iterable[H]): String = {
     hasLocations.map(print(_: HasLocation)).mkString(" ")
+  }
 
   /** Prints a token */
   def print(token: LoamToken, graph: LoamGraph): String = token match {

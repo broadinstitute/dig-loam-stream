@@ -7,9 +7,9 @@ import org.scalatest.FunSuite
 import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
 
 /** Testing Loam scripts that can handle multiple projects in different directories */
-class LoamMultiProjectTest extends FunSuite {
+final class LoamMultiProjectTest extends FunSuite {
 
-  private class FilePathsLocal(val projectName: String) extends FilePaths {
+  private final class FilePathsLocal(val projectName: String) extends FilePaths {
     override val rootDir: Path = JFiles.createTempDirectory("LoamMultiProjectTest")
 
     val allProjectsDir: Path = rootDir.resolve("projects")
@@ -46,9 +46,9 @@ class LoamMultiProjectTest extends FunSuite {
          |import project.name
          |
          |inDir(${filePaths.rootDir.asStringLiteral}) {
-         |  val inFile = store[VCF].at(s"projects/$$name/data/$$name.vcf").asInput
-         |  val analysisFile = store[TXT].at(s"projects/$$name/analysis/$$name.analysis.txt")
-         |  val resultsFile = store[TXT].at(s"projects/$$name/results/$$name.results.txt")
+         |  val inFile = store.at(s"projects/$$name/data/$$name.vcf").asInput
+         |  val analysisFile = store.at(s"projects/$$name/analysis/$$name.analysis.txt")
+         |  val resultsFile = store.at(s"projects/$$name/results/$$name.results.txt")
          |
          |  cmd"cp $$inFile $$analysisFile"
          |  cmd"cp $$analysisFile $$resultsFile"

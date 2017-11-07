@@ -23,9 +23,9 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
 
   private[loam] def newLoamJob(tool: Tool): Shot[LJob] = {
     def outputsFor(tool: Tool): Set[Output] = {
-      val loamStores: Set[Store.Untyped] = graph.toolOutputs(tool)
+      val loamStores: Set[Store] = graph.toolOutputs(tool)
 
-      def pathOrUriToOutput(store: Store.Untyped): Option[Output] = {
+      def pathOrUriToOutput(store: Store): Option[Output] = {
         store.pathOpt.orElse(store.uriOpt).map {
           case path: Path => Output.PathOutput(path)
           case uri: URI => Output.GcsUriOutput(uri, client)

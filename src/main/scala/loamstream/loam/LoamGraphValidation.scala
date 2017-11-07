@@ -13,10 +13,10 @@ object LoamGraphValidation {
   type LoamBulkRule[Target, Details] = BulkValidation[LoamGraph, Target, Details]
   type LoamIssue[Details] = Issue[LoamGraph, Details]
   type LoamBulkIssue[Target, Details] = BulkIssue[LoamGraph, Target, Details]
-  type LoamStoreIssue[Details] = LoamBulkIssue[Store.Untyped, Details]
+  type LoamStoreIssue[Details] = LoamBulkIssue[Store, Details]
   type LoamToolIssue[Details] = LoamBulkIssue[Tool, Details]
-  type LoamProducerIssue[Details] = LoamBulkIssue[(Store.Untyped, Tool), Details]
-  type LoamConsumerIssue[Details] = LoamBulkIssue[(Store.Untyped, Tool), Details]
+  type LoamProducerIssue[Details] = LoamBulkIssue[(Store, Tool), Details]
+  type LoamConsumerIssue[Details] = LoamBulkIssue[(Store, Tool), Details]
 
   def newIssue[Details](graph: LoamGraph, rule: LoamGlobalRule[Details], details: Details, severity: Severity,
                         message: String):
@@ -35,72 +35,72 @@ object LoamGraphValidation {
 
   trait LoamGlobalRule[Details] extends Validation[LoamGraph]
 
-  trait LoamStoreRule[Details] extends LoamBulkRule[Store.Untyped, Details] {
-    override def targets(graph: LoamGraph): Seq[Store.Untyped] = graph.stores.toSeq
+  trait LoamStoreRule[Details] extends LoamBulkRule[Store, Details] {
+    override def targets(graph: LoamGraph): Seq[Store] = graph.stores.toSeq
   }
 
   trait LoamToolRule[Details] extends LoamBulkRule[Tool, Details] {
     override def targets(graph: LoamGraph): Seq[Tool] = graph.tools.toSeq
   }
 
-  trait LoamProducerRule[Details] extends LoamBulkRule[(Store.Untyped, Tool), Details] {
-    override def targets(graph: LoamGraph): Seq[(Store.Untyped, Tool)] =
+  trait LoamProducerRule[Details] extends LoamBulkRule[(Store, Tool), Details] {
+    override def targets(graph: LoamGraph): Seq[(Store, Tool)] =
       graph.stores.flatMap(store =>
         graph.storeProducers.get(store).map(tool => (store, tool))).toSeq
   }
 
-  trait LoamConsumerRule[Details] extends LoamBulkRule[(Store.Untyped, Tool), Details] {
-    override def targets(graph: LoamGraph): Seq[(Store.Untyped, Tool)] =
+  trait LoamConsumerRule[Details] extends LoamBulkRule[(Store, Tool), Details] {
+    override def targets(graph: LoamGraph): Seq[(Store, Tool)] =
       graph.stores.flatMap(store =>
         graph.storeConsumers.getOrElse(store, Set.empty).map(tool => (store, tool))).toSeq
   }
 
   val eachStoreIsInputOrHasProducer: LoamStoreRule[Unit] = new LoamStoreRule[Unit] {
-    override def apply(graph: LoamGraph, store: Store.Untyped): Seq[LoamStoreIssue[Unit]] =
+    override def apply(graph: LoamGraph, store: Store): Seq[LoamStoreIssue[Unit]] =
       issueIfElseIf(!graph.inputStores(store) && graph.storeProducers.get(store).isEmpty,
-        newBulkIssue[Store.Untyped, Unit](graph, this, store, (), Severity.Warning,
+        newBulkIssue[Store, Unit](graph, this, store, (), Severity.Warning,
           s"Store $store is neither input store nor has a producer"),
         graph.inputStores(store) && graph.storeProducers.get(store).nonEmpty,
-        newBulkIssue[Store.Untyped, Unit](graph, this, store, (), Severity.Warning,
+        newBulkIssue[Store, Unit](graph, this, store, (), Severity.Warning,
           s"Store $store is both input store and has a producer"))
   }
 
   val eachStoresIsOutputOfItsProducer: LoamProducerRule[Unit] = new LoamProducerRule[Unit] {
-    override def apply(graph: LoamGraph, producerEntry: (Store.Untyped, Tool)):
+    override def apply(graph: LoamGraph, producerEntry: (Store, Tool)):
     Seq[LoamProducerIssue[Unit]] = {
       val (store, tool) = producerEntry
       issueIf(!graph.toolOutputs.getOrElse(tool, Set.empty).contains(store),
-        newBulkIssue[(Store.Untyped, Tool), Unit](graph, this, producerEntry, (), Severity.Warning,
+        newBulkIssue[(Store, Tool), Unit](graph, this, producerEntry, (), Severity.Warning,
           s"Tool $tool is producer of store $store, but the store is not among its outputs."))
     }
   }
 
   val eachStoresIsInputOfItsConsumers: LoamConsumerRule[Unit] = new LoamConsumerRule[Unit] {
-    override def apply(graph: LoamGraph, consumerEntry: (Store.Untyped, Tool)):
+    override def apply(graph: LoamGraph, consumerEntry: (Store, Tool)):
     Seq[LoamConsumerIssue[Unit]] = {
       val (store, tool) = consumerEntry
       issueIf(!graph.toolInputs.getOrElse(tool, Set.empty).contains(store),
-        newBulkIssue[(Store.Untyped, Tool), Unit](graph, this, consumerEntry, (), Severity.Warning,
+        newBulkIssue[(Store, Tool), Unit](graph, this, consumerEntry, (), Severity.Warning,
           s"Tool $tool is consumer of store $store, but the store is not among its inputs."))
     }
   }
 
-  val eachToolsInputStoresArePresent: LoamToolRule[Set[Store.Untyped]] =
-    new LoamToolRule[Set[Store.Untyped]] {
-      override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store.Untyped]]] = {
+  val eachToolsInputStoresArePresent: LoamToolRule[Set[Store]] =
+    new LoamToolRule[Set[Store]] {
+      override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store]]] = {
         val missingInputs = graph.toolInputs.getOrElse(tool, Set.empty) -- graph.stores
         issueIf(missingInputs.nonEmpty,
-          newBulkIssue[Tool, Set[Store.Untyped]](graph, this, tool, missingInputs, Severity.Warning,
+          newBulkIssue[Tool, Set[Store]](graph, this, tool, missingInputs, Severity.Warning,
             s"The following inputs of tool $tool are missing from the graph: ${missingInputs.mkString(", ")}"))
       }
     }
 
-  val eachToolsOutputStoresArePresent: LoamToolRule[Set[Store.Untyped]] =
-    new LoamToolRule[Set[Store.Untyped]] {
-      override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store.Untyped]]] = {
+  val eachToolsOutputStoresArePresent: LoamToolRule[Set[Store]] =
+    new LoamToolRule[Set[Store]] {
+      override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store]]] = {
         val missingOutputs = graph.toolOutputs.getOrElse(tool, Set.empty) -- graph.stores
         issueIf(missingOutputs.nonEmpty,
-          newBulkIssue[Tool, Set[Store.Untyped]](graph, this, tool, missingOutputs, Severity.Warning,
+          newBulkIssue[Tool, Set[Store]](graph, this, tool, missingOutputs, Severity.Warning,
             s"The following outputs of tool $tool are missing from the graph: ${missingOutputs.mkString(", ")}"))
       }
     }
@@ -131,11 +131,11 @@ object LoamGraphValidation {
   }
 
   val eachStoreIsConnectedToATool: LoamStoreRule[Unit] = new LoamStoreRule[Unit] {
-    override def apply(graph: LoamGraph, store: Store.Untyped): Seq[LoamStoreIssue[Unit]] = {
+    override def apply(graph: LoamGraph, store: Store): Seq[LoamStoreIssue[Unit]] = {
       val storeIsInput = graph.storeConsumers.getOrElse(store, Set.empty).nonEmpty
       val storeIsOutput = graph.storeProducers.contains(store)
       issueIf(!(storeIsInput || storeIsOutput),
-        newBulkIssue[Store.Untyped, Unit](graph, this, store, (), Severity.Warning,
+        newBulkIssue[Store, Unit](graph, this, store, (), Severity.Warning,
           s"Store $store is neither input nor output of any tool."))
     }
   }

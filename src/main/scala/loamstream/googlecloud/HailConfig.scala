@@ -1,13 +1,17 @@
 package loamstream.googlecloud
 
 import java.net.URI
-import com.typesafe.config.Config
-import scala.util.Try
-import loamstream.conf.ValueReaders
-import HailConfig.Defaults
 import java.nio.file.Path
-import loamstream.util.PathUtils
+
+import scala.util.Try
+
+import com.typesafe.config.Config
+
+import HailConfig.Defaults
 import loamstream.conf.HasScriptDir
+import loamstream.conf.ValueReaders
+import loamstream.util.PathUtils
+
 
 /**
  * @author clint
@@ -23,7 +27,8 @@ object HailConfig {
   }
   
   def fromConfig(config: Config): Try[HailConfig] = {
-    //NB: Import Ficus._, but hide Ficus's javaURIReader typeclass instance, so we will use ValueReaders.GcsUriReader 
+    //NB: Import all Ficus typeclasses except the one for reading java.net.URIs, since we want our own handling of 
+    //those by ValueReaders.GcsUriReader.
     import net.ceedubs.ficus.Ficus.{javaURIReader => _, _}
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.GcsUriReader

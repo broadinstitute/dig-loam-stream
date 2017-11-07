@@ -6,8 +6,8 @@ import loamstream.loam.LoamCmdTool
 
 object GoogleSupport {
   def googleCopy(
-      srcs: Iterable[Store[_]], 
-      dests: Iterable[Store[_]], 
+      srcs: Iterable[Store], 
+      dests: Iterable[Store], 
       params: String*)(implicit context: LoamScriptContext): Unit = {
     
     for((src, dest) <- srcs.zip(dests)) {
@@ -15,7 +15,7 @@ object GoogleSupport {
     }
 }
 
-  def googleCopy(src: Store[_], dest: Store[_], params: String*)(implicit context: LoamScriptContext): Unit = {
+  def googleCopy(src: Store, dest: Store, params: String*)(implicit context: LoamScriptContext): Unit = {
     import LoamCmdTool._
     
     //TODO

@@ -44,7 +44,7 @@ class WomDagTest extends DagTest[WomDag] {
 object WomDagTest {
   def toWomDag(name: String, loam: LoamGraph): WomDag = {
     val workflowDefinition = LoamToWom.loamToWom(name, loam).asInstanceOf[Valid[WorkflowDefinition]].a
-    val wom = workflowDefinition.graph.asInstanceOf[Valid[Graph]].a
+    val wom = workflowDefinition.graph
     WomDag(wom)
   }
 }

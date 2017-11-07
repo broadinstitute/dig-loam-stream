@@ -64,7 +64,7 @@ object LoamToWom {
     def plusToolsToNodes(toolsToNodesNew: Map[LId, TaskCallNode]): LoamToNodes =
       copy(toolsToNodes = toolsToNodes ++ toolsToNodesNew)
 
-    def getNodeProvidingStore(store: Store.Untyped): ErrorOr[GraphNode] = {
+    def getNodeProvidingStore(store: Store): ErrorOr[GraphNode] = {
       val inputNodeOption: Option[RequiredGraphInputNode] = inputsToNodes.get(store.id)
       inputNodeOption.orElse {
         loam.storeProducers.get(store).map(_.id).flatMap(toolsToNodes.get)
@@ -88,7 +88,7 @@ object LoamToWom {
       val addedStores = if(includeAllWithNoProvider) {
         loam.stores.filterNot(loam.storeProducers.contains)
       } else {
-        Set.empty[Store.Untyped]
+        Set.empty[Store]
       }
       val stores = inputStores ++ addedStores
       val inputsToNodes = stores.map { input =>
@@ -98,21 +98,21 @@ object LoamToWom {
     }
   }
 
-  def getInputNode(inputStore: Store.Untyped): RequiredGraphInputNode =
+  def getInputNode(inputStore: Store): RequiredGraphInputNode =
     RequiredGraphInputNode(getInputNodeId(inputStore.id), WomFileType)
 
-  def mapInputsToNodes(inputStores: Set[Store.Untyped]): Map[Store.Untyped, RequiredGraphInputNode] =
+  def mapInputsToNodes(inputStores: Set[Store]): Map[Store, RequiredGraphInputNode] =
     inputStores.map { store =>
       val inputNode = getInputNode(store)
       (store, inputNode)
     }.toMap
 
-  private def hasLocationToStore(hasLocation: HasLocation): Store.Untyped = hasLocation match {
-    case store: Store.Untyped => store
+  private def hasLocationToStore(hasLocation: HasLocation): Store = hasLocation match {
+    case store: Store => store
     case LoamStoreRef(store, _) => store
   }
 
-  def getWdlExpression(store: Store.Untyped): WdlExpression = {
+  def getWdlExpression(store: Store): WdlExpression = {
     val name = getPortName(store.id)
     val astId = name.##
     val ast = new Terminal(astId, "identifier", name, name, 0, 0)

@@ -25,10 +25,10 @@ object LoamGraphExamples {
     val inputFile = path("/user/home/someone/data.vcf")
     val outputFile = path("/user/home/someone/dataImputed.vcf")
 
-    val raw = store[VCF].at(inputFile).asInput
-    val phased = store[VCF]
-    val template = store[VCF].at(path("/home/myself/template.vcf")).asInput
-    val imputed = store[VCF].at(outputFile)
+    val raw = store.at(inputFile).asInput
+    val phased = store
+    val template = store.at(path("/home/myself/template.vcf")).asInput
+    val imputed = store.at(outputFile)
 
     cmd"shapeit -in $raw -out $phased"
     cmd"impute -in $phased -template $template -out $imputed".using("R-3.1")
@@ -44,9 +44,9 @@ object LoamGraphExamples {
     import LoamPredef._
     import LoamCmdTool._
     val nIns = 6
-    val ins = Seq.fill(nIns)(store[TXT].asInput)
+    val ins = Seq.fill(nIns)(store.asInput)
     val nOuts = 15
-    val outs = Seq.fill(nOuts)(store[TXT])
+    val outs = Seq.fill(nOuts)(store)
     cmd"yo0".in(ins(0)).out(outs(0))
     cmd"yo1".in(ins(1)).out(outs(1))
     cmd"yo2".in(ins(2)).out(outs(2))

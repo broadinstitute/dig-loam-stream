@@ -32,7 +32,7 @@ object LoamDag {
 
   trait Node extends Dag.NodeBase
 
-  case class StoreNode(store: Store.Untyped) extends Node {
+  case class StoreNode(store: Store) extends Node {
     override def label: String = store.toString
   }
 

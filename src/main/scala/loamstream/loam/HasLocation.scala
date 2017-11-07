@@ -10,7 +10,6 @@ import loamstream.util.TypeBox
  * Aug 10, 2017
  */
 trait HasLocation {
-  def sig: TypeBox.Untyped
   
   def path: Path 
   

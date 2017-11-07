@@ -37,11 +37,10 @@ final class LoamTokenTest extends FunSuite {
   test("mergeStringTokens - mixed") {
     import LoamToken.mergeStringTokens
     import LoamPredef._
-    import loamstream.loam.ops.StoreType.{TXT, VCF}
     implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
     
-    val storeA = store[TXT]
-    val storeB = store[TXT]
+    val storeA = store
+    val storeB = store
     
     val storeRefToken = StoreRefToken(LoamStoreRef(storeA, identity))
     
@@ -86,11 +85,10 @@ final class LoamTokenTest extends FunSuite {
   
   test("StoreToken") {
     import LoamPredef._
-    import loamstream.loam.ops.StoreType.{TXT, VCF}
     implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
 
-    val txtStore = store[TXT]
-    val vcfStore = store[VCF]
+    val txtStore = store
+    val vcfStore = store
     
     assert(StoreToken(txtStore).toString === txtStore.toString)
     
@@ -103,10 +101,9 @@ final class LoamTokenTest extends FunSuite {
   
   test("StoreRefToken") {
     import LoamPredef._
-    import loamstream.loam.ops.StoreType.{TXT, VCF}
     implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
     
-    val underlyingStore = store[TXT].at("foo.txt")
+    val underlyingStore = store.at("foo.txt")
     
     val ref: LoamStoreRef =  underlyingStore + ".bar"
     
@@ -132,11 +129,10 @@ final class LoamTokenTest extends FunSuite {
   
   test("MultiStoreToken") {
     import LoamPredef._
-    import loamstream.loam.ops.StoreType.{TXT, VCF}
     implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
 
-    val txtStore = store[TXT]
-    val vcfStore = store[VCF]
+    val txtStore = store
+    val vcfStore = store
     
     assert(MultiStoreToken(Seq(txtStore, vcfStore)).toString === s"${txtStore.path} ${vcfStore.path}")
 

@@ -186,10 +186,8 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
         |  }
         |  
         |  uger {
-        |    logFile = "uger.log"
         |    maxNumJobs = 2400
         |    workDir = "uger"
-        |    nativeSpecification = "-clear -cwd -shell y -b n -l h_vmem=1g"
         |  }
         |}
         |""".stripMargin.trim

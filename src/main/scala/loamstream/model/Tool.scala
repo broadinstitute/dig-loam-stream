@@ -28,30 +28,30 @@ trait Tool extends LId.Owner {
   def defaultStores: DefaultStores
 
   /** Input stores of this tool */
-  def inputs: Map[LId, Store.Untyped] = {
+  def inputs: Map[LId, Store] = {
     graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
   }
 
   /** Output stores of this tool */
-  def outputs: Map[LId, Store.Untyped] = {
+  def outputs: Map[LId, Store] = {
     graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
   }
 
   /** Adds input stores to this tool */
-  def in(inStore: Store.Untyped, inStores: Store.Untyped*): this.type = in(inStore +: inStores)
+  def in(inStore: Store, inStores: Store*): this.type = in(inStore +: inStores)
 
   /** Adds input stores to this tool */
-  def in(inStores: Iterable[Store.Untyped]): this.type = {
+  def in(inStores: Iterable[Store]): this.type = {
     projectContext.updateGraph(_.withInputStores(this, inStores.toSet))
     
     this
   }
 
   /** Adds output stores to this tool */
-  def out(outStore: Store.Untyped, outStores: Store.Untyped*): this.type = out(outStore +: outStores)
+  def out(outStore: Store, outStores: Store*): this.type = out(outStore +: outStores)
 
   /** Adds output stores to this tool */
-  def out(outStores: Iterable[Store.Untyped]): this.type = {
+  def out(outStores: Iterable[Store]): this.type = {
     projectContext.updateGraph(_.withOutputStores(this, outStores.toSet))
     
     this
@@ -63,36 +63,36 @@ trait Tool extends LId.Owner {
 object Tool {
 
   sealed trait DefaultStores {
-    def all: Set[Store.Untyped]
+    def all: Set[Store]
   }
 
   object DefaultStores {
     val empty: AllStores = AllStores(Set.empty)
   }
 
-  final case class AllStores(stores: Set[Store.Untyped]) extends DefaultStores {
-    def all: Set[Store.Untyped] = stores
+  final case class AllStores(stores: Set[Store]) extends DefaultStores {
+    def all: Set[Store] = stores
   }
 
-  final case class In(stores: Iterable[Store.Untyped])
+  final case class In(stores: Iterable[Store])
 
   object In {
-    def apply(store: Store.Untyped, stores: Store.Untyped*): In = In(store +: stores)
+    def apply(store: Store, stores: Store*): In = In(store +: stores)
 
     val empty: In = In(Set.empty)
   }
 
-  final case class Out(stores: Iterable[Store.Untyped])
+  final case class Out(stores: Iterable[Store])
 
   object Out {
-    def apply(store: Store.Untyped, stores: Store.Untyped*): Out = Out(store +: stores)
+    def apply(store: Store, stores: Store*): Out = Out(store +: stores)
 
     val empty: Out = Out(Set.empty)
   }
 
-  final case class InputsAndOutputs(inputs: Iterable[Store.Untyped],
-                                    outputs: Iterable[Store.Untyped]) extends DefaultStores {
-    override def all: Set[Store.Untyped] = (inputs ++ outputs).toSet
+  final case class InputsAndOutputs(inputs: Iterable[Store],
+                                    outputs: Iterable[Store]) extends DefaultStores {
+    override def all: Set[Store] = (inputs ++ outputs).toSet
   }
 
   object InputsAndOutputs {

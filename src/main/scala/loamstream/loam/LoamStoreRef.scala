@@ -8,9 +8,7 @@ import loamstream.util.PathUtils
 import loamstream.util.TypeBox
 
 /** A reference to a Loam store and a path modifier to be used in command line tools */
-final case class LoamStoreRef(store: Store.Untyped, pathModifier: Path => Path) extends HasLocation {
-  
-  override def sig: TypeBox.Untyped = store.sig
+final case class LoamStoreRef(store: Store, pathModifier: Path => Path) extends HasLocation {
   
   override def path: Path = path(store.projectContext.fileManager)
   

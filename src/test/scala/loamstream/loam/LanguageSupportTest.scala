@@ -5,7 +5,6 @@ import java.nio.file.{Path, Paths}
 
 import loamstream.compiler.LoamPredef.store
 import loamstream.TestHelpers
-import loamstream.loam.ops.StoreType.TXT
 import loamstream.util.{BashScript, Files}
 import org.scalatest.FunSuite
 
@@ -51,7 +50,7 @@ final class LanguageSupportTest extends FunSuite {
 
     val someTool = "someToolPath"
     val someVal = 123
-    val someStore = store[TXT].at("/someStorePath")
+    val someStore = store.at("/someStorePath")
 
     val loamLine = python"""$someTool --foo $someVal --bar $someStore baz"""
 
@@ -103,7 +102,7 @@ greet('Bob')
 
     val someTool = "someToooolPath"
     val someVal = 456
-    val someStore = store[TXT].at("/someStooorePath")
+    val someStore = store.at("/someStooorePath")
 
     val loamLine = r"$someTool --foo $someVal --bar $someStore baz"
 

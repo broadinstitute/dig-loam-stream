@@ -65,7 +65,7 @@ object LoamCmdTool {
   }
   
   def toToken(arg: Any): LoamToken = arg match {
-    case store: Store.Untyped => StoreToken(store)
+    case store: Store => StoreToken(store)
     case storeRef: LoamStoreRef => StoreRefToken(storeRef)
     //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
     //the isHasLocationIterable() guard

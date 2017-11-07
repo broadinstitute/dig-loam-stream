@@ -13,9 +13,6 @@ import loamstream.loam.LoamToken.MultiToken
 import loamstream.loam.LoamToken.StoreRefToken
 import loamstream.loam.LoamToken.StoreToken
 import loamstream.loam.LoamToken.StringToken
-import loamstream.loam.ops.StoreType
-import loamstream.loam.ops.StoreType.TXT
-import loamstream.loam.ops.StoreType.VCF
 import loamstream.model.LId
 import loamstream.model.Store
 import loamstream.util.BashScript
@@ -57,8 +54,8 @@ final class LoamCmdToolTest extends FunSuite {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
     val is = Seq(3,4,5)
-    val nuh = store[TXT].at("nuh.txt")
-    val zuh = store[TXT].at("zuh.txt") + ".bar"
+    val nuh = store.at("nuh.txt")
+    val zuh = store.at("zuh.txt") + ".bar"
     val stores = Seq(nuh, zuh)
 
     val tool = cmd"foo bar --is $is baz --in $nuh --blarg $stores"
@@ -84,8 +81,8 @@ final class LoamCmdToolTest extends FunSuite {
 
     val input1 = 42
     val input2 = "input2"
-    val input3 = store[TXT].at("/inputStore").asInput
-    val output = store[VCF].at("/outputStore")
+    val input3 = store.at("/inputStore").asInput
+    val output = store.at("/outputStore")
 
     val useuse = "source /broad/software/scripts/useuse"
     val expectedCmdLineString =
@@ -120,8 +117,8 @@ final class LoamCmdToolTest extends FunSuite {
   test("using() in a more complex cmd") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
-    val input = store[TXT].at("/inputStore").asInput
-    val output = store[VCF].at("/outputStore")
+    val input = store.at("/inputStore").asInput
+    val output = store.at("/outputStore")
     val someOtherTool = "someOtherTool"
 
     val tool = cmd"(echo 10 ; sed '1d' $input | cut -f5- | sed 's/\t/ /g') > $output".using(someOtherTool)
@@ -144,18 +141,18 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.commandLine === expected)
   }
 
-  private def storeMap(stores: Iterable[Store.Untyped]): Map[LId, Store.Untyped] = {
+  private def storeMap(stores: Iterable[Store]): Map[LId, Store] = {
     stores.map(store => store.id -> store).toMap
   }
 
   private def tokens(values: AnyRef*): Seq[LoamToken] = values.map {
     case string: String => StringToken(string)
-    case store: Store.Untyped => StoreToken(store)
+    case store: Store => StoreToken(store)
   }
 
   private def assertGraph(graph: LoamGraph, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
-                  expectedInputs: Map[LId, Store.Untyped],
-                  expectedOutputs: Map[LId, Store.Untyped]): Unit = {
+                  expectedInputs: Map[LId, Store],
+                  expectedOutputs: Map[LId, Store]): Unit = {
     assert(tool.tokens === expectedTokens)
     assert(tool.inputs === expectedInputs)
     assert(tool.outputs === expectedOutputs)
@@ -188,8 +185,8 @@ final class LoamCmdToolTest extends FunSuite {
   }
 
   private def assertAddingIOStores(context: LoamProjectContext, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
-                           inputsBefore: Set[Store.Untyped], outputsBefore: Set[Store.Untyped],
-                           stores: Seq[Store.Untyped], addInputsFirst: Boolean = true): Unit = {
+                           inputsBefore: Set[Store], outputsBefore: Set[Store],
+                           stores: Seq[Store], addInputsFirst: Boolean = true): Unit = {
     val inputsMapBefore = storeMap(inputsBefore)
     val outputsMapBefore = storeMap(outputsBefore)
     val inputsMapAfter = storeMap(inputsBefore + stores.head + stores(2))
@@ -216,7 +213,7 @@ final class LoamCmdToolTest extends FunSuite {
     import LoamCmdTool.toToken
     
     //Store
-    val store = Store[StoreType.TXT](LId.newAnonId)
+    val store = Store.create
     
     assert(toToken(store) === StoreToken(store))
     
@@ -261,13 +258,13 @@ final class LoamCmdToolTest extends FunSuite {
       implicit val scriptContext = new LoamScriptContext(projectContext)
 
       val nStores = 4
-      val stores = Seq.fill[Store.Untyped](nStores)(Store[TXT](LId.newAnonId))
+      val stores = Seq.fill[Store](nStores)(Store.create)
 
       val tool = cmd"foo bar baz"
 
       val expectedTokens = tokens("foo bar baz")
-      val inputsBefore = Set.empty[Store.Untyped]
-      val outputsBefore = Set.empty[Store.Untyped]
+      val inputsBefore = Set.empty[Store]
+      val outputsBefore = Set.empty[Store]
       assertAddingIOStores(projectContext, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
     }
   }
@@ -278,16 +275,16 @@ final class LoamCmdToolTest extends FunSuite {
       implicit val scriptContext = new LoamScriptContext(projectContext)
 
       val nStores = 6
-      val stores = Seq.fill[Store.Untyped](nStores)(Store[TXT](LId.newAnonId))
+      val stores = Seq.fill[Store](nStores)(Store.create)
 
-      val inStoreImplicit = stores(4).at("inputFile.vcf").asInput // scalastyle:ignore magic.number
-      val outStoreImplicit = stores(5).at("outputFile.txt") // scalastyle:ignore magic.number
+      val inStoreImplicit = stores(4).at("inputFile.vcf").asInput
+      val outStoreImplicit = stores(5).at("outputFile.txt") 
 
       val tool = cmd"foo $inStoreImplicit $outStoreImplicit"
 
       val expectedTokens = tokens("foo ", inStoreImplicit, " ", outStoreImplicit)
-      val inputsBefore = Set[Store.Untyped](inStoreImplicit)
-      val outputsBefore = Set[Store.Untyped](outStoreImplicit)
+      val inputsBefore = Set[Store](inStoreImplicit)
+      val outputsBefore = Set[Store](outStoreImplicit)
       assertAddingIOStores(projectContext, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
     }
   }
@@ -295,10 +292,10 @@ final class LoamCmdToolTest extends FunSuite {
   test("at(...) and asInput") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
-    val inStoreWithPath = store[TXT].at("dir/inStoreWithPath.txt").asInput
-    val outStoreWithPath = store[TXT].at("dir/outStoreWithPath.txt")
-    val inStoreWithUri = store[TXT].at(uri("xyz://host/dir/inStoreWithUri")).asInput
-    val outStoreWithUri = store[TXT].at(uri("xyz://host/dir/outStoreWithUri"))
+    val inStoreWithPath = store.at("dir/inStoreWithPath.txt").asInput
+    val outStoreWithPath = store.at("dir/outStoreWithPath.txt")
+    val inStoreWithUri = store.at(uri("xyz://host/dir/inStoreWithUri")).asInput
+    val outStoreWithUri = store.at(uri("xyz://host/dir/outStoreWithUri"))
     val tool = cmd"maker $inStoreWithPath $inStoreWithUri $outStoreWithPath $outStoreWithUri"
     val inPath = BashScript.escapeString(inStoreWithPath.path.toString)
     val outPath = BashScript.escapeString(outStoreWithPath.path.toString)
@@ -317,9 +314,9 @@ final class LoamCmdToolTest extends FunSuite {
     
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
     
-    assert(isHasLocationIterable(Seq(store[TXT])) === true)
-    assert(isHasLocationIterable(Seq(store[TXT], store[VCF])) === true)
-    assert(isHasLocationIterable(Seq(store[TXT].at("foo.txt"), store[VCF].at("bar.vcf"))) === true)
+    assert(isHasLocationIterable(Seq(store)) === true)
+    assert(isHasLocationIterable(Seq(store, store)) === true)
+    assert(isHasLocationIterable(Seq(store.at("foo.txt"), store.at("bar.vcf"))) === true)
   }
   
   //scalastyle:on magic.number

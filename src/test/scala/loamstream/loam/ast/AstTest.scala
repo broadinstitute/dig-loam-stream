@@ -4,10 +4,9 @@ import org.scalatest.FunSuite
 
 import loamstream.TestHelpers.config
 import loamstream.compiler.LoamPredef.store
+import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
-import loamstream.loam.LoamCmdTool
-import loamstream.loam.ops.StoreType.TXT
 import loamstream.model.LId
 import loamstream.model.Store
 
@@ -238,19 +237,19 @@ final class AstTest extends FunSuite {
   }
 
   private object Stores {
-    val storeA: Store[TXT] = store[TXT]
-    val storeB: Store[TXT] = store[TXT]
-    val storeC: Store[TXT] = store[TXT]
-    val storeD: Store[TXT] = store[TXT]
-    val storeE: Store[TXT] = store[TXT]
-    val storeF: Store[TXT] = store[TXT]
-    val storeG: Store[TXT] = store[TXT]
-    val storeI: Store[TXT] = store[TXT]
-    val storeJ: Store[TXT] = store[TXT]
-    val storeQ: Store[TXT] = store[TXT]
-    val storeX: Store[TXT] = store[TXT]
-    val storeY: Store[TXT] = store[TXT]
-    val storeZ: Store[TXT] = store[TXT]
+    val storeA: Store = store
+    val storeB: Store = store
+    val storeC: Store = store
+    val storeD: Store = store
+    val storeE: Store = store
+    val storeF: Store = store
+    val storeG: Store = store
+    val storeI: Store = store
+    val storeJ: Store = store
+    val storeQ: Store = store
+    val storeX: Store = store
+    val storeY: Store = store
+    val storeZ: Store = store
   }
 
   private object Tools {

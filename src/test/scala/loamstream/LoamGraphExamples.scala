@@ -3,7 +3,6 @@ package loamstream
 import java.nio.file.{Files, Path, Paths}
 
 import loamstream.compiler.{LoamEngine, LoamPredef}
-import loamstream.loam.ops.StoreType.{TXT, VCF}
 import loamstream.loam.{LoamCmdTool, LoamGraph, LoamProjectContext, LoamScriptContext}
 
 import scala.collection.JavaConverters.iterableAsScalaIterableConverter

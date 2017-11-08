@@ -1,7 +1,7 @@
 package loamstream.dag.vis.grid
 
 import loamstream.dag.MockDag
-import loamstream.dag.vis.grid.DagGridLayout.NodeRow
+import loamstream.dag.vis.grid.DagGridLayoutBuilder.DagBox
 import org.scalatest.FunSuite
 
 /**
@@ -13,8 +13,10 @@ final class DagGridLayoutTest extends FunSuite {
   test("DagGridLayout.NodeRow") {
     val dag = MockDag.empty
     // scalastyle:off magic.number
-    val emptyRowNine = NodeRow.empty(dag, 9)
-    val emptyRowTen = NodeRow.empty(dag, 10)
+    val dagBoxNine = DagBox(dag, 9)
+    val dagBoxTen = DagBox(dag, 10)
+    val emptyRowNine = dagBoxNine.NodeRowBuilder.empty
+    val emptyRowTen = dagBoxTen.NodeRowBuilder.empty
     assert(emptyRowNine.isEmpty)
     assert(emptyRowTen.isEmpty)
     assert(emptyRowNine.isFull === false)

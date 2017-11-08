@@ -14,26 +14,20 @@ case class DagGridLayout[D <: Dag](dag: D, rows: Seq[NodeRow[D]]) extends DagLay
 
 object DagGridLayout {
 
-  case class NodeRow[D <: Dag](dag: D, nodes0: Seq[Option[Dag.NodeBase]]) {
-    def nodes: Seq[Option[dag.Node]] = nodes0.map(_.map(_.asInstanceOf[dag.Node]))
+  trait NodeRowBase[D <: Dag] {
+    def dag: D
 
-    def add(node: Dag.NodeBase, iCol: Int): NodeRow[D] = NodeRow(dag, nodes.updated(iCol, Option(node)))
+    def nCols: Int
 
-    val nCols: Int = nodes.size
+    def nodeOpts: Seq[Option[Dag.NodeBase]]
 
-    def isEmpty: Boolean = nodes.forall(_.isEmpty)
-
-    def isFull: Boolean = nodes.forall(_.nonEmpty)
-
-    def emptyICols: Seq[Int] = (0 until nCols).filter(nodes(_).isEmpty)
-
-    def iColsFromCenter: Seq[Int] = (0 until nCols).map(i => (nCols / 2) + (1 - 2 * (i % 2)) * ((i + 1) / 2))
-
-    def emptyIColsFromCenter: Seq[Int] = iColsFromCenter.filter(nodes(_).isEmpty)
+    def toNodeRow: NodeRow[D]
   }
 
-  object NodeRow {
-    def empty[D <: Dag](dag: D, nCols: Int): NodeRow[D] = NodeRow[D](dag, Seq.fill(nCols)(None))
+  case class NodeRow[D <: Dag](dag: D, nCols: Int, nodes: Seq[Dag.NodeBase]) extends NodeRowBase[D] {
+    override val nodeOpts: Seq[Option[Dag.NodeBase]] = nodes.map(Option(_))
+
+    override def toNodeRow: NodeRow[D] = this
   }
 
 }

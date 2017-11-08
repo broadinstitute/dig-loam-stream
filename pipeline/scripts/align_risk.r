@@ -17,8 +17,9 @@ names(y)[1]<-"gene"
 names(y)[2]<-"X.chr"
 names(y)[3]<-"pos"
 
-if(args$test == "wald") {
+if(args$test %in% c("wald","lrt","firth")) {
 	x$or <- exp(x$beta)
+	x <- x[,c(names(x)[1:(grep("pval",names(x))-1)],"or",names(x)[grep("pval",names(x)):length(names(x))])]
 }
 
 x<-merge(x,y,all=T)
@@ -38,6 +39,7 @@ for(i in 1:nrow(x)) {
 		if("af" %in% names(x)) { x$af = 1 - x$af }
 	}
 }
+
 
 cat(paste("#",paste(gsub("X.","",names(x)),collapse="\t"),"\n",sep=""), file=paste(args$out,sep=""))
 write.table(x[order(x[,args$p]),], paste(args$out,sep=""), row.names=F, col.names=F, quote=F, append=T, sep="\t")

@@ -10,19 +10,32 @@ import loamstream.dag.vis.grid.DagGridLayoutBuilder.DagBox
   */
 case class DagGridLayoutBuilder[D <: Dag](nCols: Int) extends DagLayout.Builder[D, DagGridLayout] {
 
-  private def evaluatePlacement(dagBox: DagBox[D])(placement: dagBox.NodesPlacement)(
-    node: dagBox.dag.Node, iCol: Int): Double = {
-    ???
+  private def evaluatePlacement(dagBox: DagBox[D])(nodesPlacement: dagBox.NodesPlacement)(
+    nextNodePlacement: nodesPlacement.NextNodePlacement): Double = {
+    val nodeToPlace = nextNodePlacement.node
+    val iCol = nextNodePlacement.iCol
+    val nodeBeforeOpt = nodesPlacement.previousRowOpt.flatMap(_.nodeOpts(iCol))
+    val connectToBeforeBonus = nodeBeforeOpt.map { nodeBefore =>
+      if (dagBox.dag.nextUp(nodeToPlace).contains(nodeBefore)) 1.0 else 0.0
+    }.getOrElse(0.0)
+    val nearCenterBonus = 1.0 / (1.0 + Math.abs(iCol - (nCols - 1) / 2.0))
+    connectToBeforeBonus + nearCenterBonus
   }
 
 
   override def build(dag: D): DagGridLayout[D] = {
     val dagBox = DagBox(dag, nCols)
-    val nodeRows: Seq[dagBox.NodeRowBuilder] = Seq.empty
-    for (levelNodes <- dag.levelsFromBottom.reverse) {
-
+    var nodesPlacement = dagBox.NodesPlacement.empty
+    while (!nodesPlacement.isComplete) {
+      val nodesPlacementOld = nodesPlacement
+      val nextNodePlacementEval: nodesPlacementOld.NextNodePlacement => Double =
+        (nextNodePlacement: nodesPlacementOld.NextNodePlacement) =>
+          evaluatePlacement(dagBox)(nodesPlacementOld)(nextNodePlacement)
+      val nextNodePlacement = nodesPlacementOld.findAllNextNodePlacements.maxBy(nextNodePlacementEval)
+      nodesPlacement = nodesPlacementOld + nextNodePlacement
     }
-    DagGridLayout(dag, nodeRows.map(_.toNodeRow))
+    val nodeRows = nodesPlacement.nodeRows.map(_.toNodeRow)
+    DagGridLayout(dag, nodeRows)
   }
 }
 
@@ -71,12 +84,12 @@ object DagGridLayoutBuilder {
 
       case class NextNodePlacement(node: dag.Node, iCol: Int)
 
-      def findAllNextNodePlacements: Set[NextNodePlacement] = for (
+      def findAllNextNodePlacements: Set[this.NextNodePlacement] = for (
         node <- unplacedLevelNodes.head;
         iCol <- currentRow.emptyIColsFromCenter
       ) yield NextNodePlacement(node, iCol)
 
-      def +(nextNodePlacement: NextNodePlacement): NodesPlacement = {
+      def +(nextNodePlacement: this.NextNodePlacement): NodesPlacement = {
         val placedNode = nextNodePlacement.node
         val iColPlaced = nextNodePlacement.iCol
         val newCurrentRow = currentRow.add(placedNode, iColPlaced)
@@ -95,10 +108,12 @@ object DagGridLayoutBuilder {
         NodesPlacement(nodeRowsNew, unplacedLevelNodesNew)
       }
 
+      def isComplete: Boolean = unplacedLevelNodes.isEmpty
+
     }
 
     object NodesPlacement {
-      def empty(nCols: Int): NodesPlacement =
+      def empty: NodesPlacement =
         NodesPlacement(
           nodeRows = Seq(NodeRowBuilder.empty),
           unplacedLevelNodes = dag.levelsFromBottom.reverse

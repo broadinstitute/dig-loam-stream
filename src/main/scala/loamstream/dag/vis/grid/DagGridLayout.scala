@@ -24,9 +24,7 @@ object DagGridLayout {
     def toNodeRow: NodeRow[D]
   }
 
-  case class NodeRow[D <: Dag](dag: D, nCols: Int, nodes: Seq[Dag.NodeBase]) extends NodeRowBase[D] {
-    override val nodeOpts: Seq[Option[Dag.NodeBase]] = nodes.map(Option(_))
-
+  case class NodeRow[D <: Dag](dag: D, nCols: Int, nodeOpts: Seq[Option[Dag.NodeBase]]) extends NodeRowBase[D] {
     override def toNodeRow: NodeRow[D] = this
   }
 

@@ -10,16 +10,11 @@ import loamstream.dag.vis.grid.DagGridLayoutBuilder.DagBox
   */
 case class DagGridLayoutBuilder[D <: Dag](nCols: Int) extends DagLayout.Builder[D, DagGridLayout] {
 
-  private def evaluatePlacement(dagBox: DagBox[D])(nodesPlacement: dagBox.NodesPlacement)(
+  private def placementCost(dagBox: DagBox[D])(nodesPlacement: dagBox.NodesPlacement)(
     nextNodePlacement: nodesPlacement.NextNodePlacement): Double = {
     val nodeToPlace = nextNodePlacement.node
-    val iCol = nextNodePlacement.iCol
-    val nodeBeforeOpt = nodesPlacement.previousRowOpt.flatMap(_.nodeOpts(iCol))
-    val connectToBeforeBonus = nodeBeforeOpt.map { nodeBefore =>
-      if (dagBox.dag.nextUp(nodeToPlace).contains(nodeBefore)) 1.0 else 0.0
-    }.getOrElse(0.0)
-    val nearCenterBonus = 1.0 / (1.0 + Math.abs(iCol - (nCols - 1) / 2.0))
-    connectToBeforeBonus + nearCenterBonus
+    val pos = nextNodePlacement.pos
+    dagBox.dag.nextUp(nodeToPlace).flatMap(nodesPlacement.nodePoses.get(_)).map(pos.distanceTo(_)).sum
   }
 
 
@@ -28,10 +23,10 @@ case class DagGridLayoutBuilder[D <: Dag](nCols: Int) extends DagLayout.Builder[
     var nodesPlacement = dagBox.NodesPlacement.empty
     while (!nodesPlacement.isComplete) {
       val nodesPlacementOld = nodesPlacement
-      val nextNodePlacementEval: nodesPlacementOld.NextNodePlacement => Double =
+      val nextNodePlacementCost: nodesPlacementOld.NextNodePlacement => Double =
         (nextNodePlacement: nodesPlacementOld.NextNodePlacement) =>
-          evaluatePlacement(dagBox)(nodesPlacementOld)(nextNodePlacement)
-      val nextNodePlacement = nodesPlacementOld.findAllNextNodePlacements.maxBy(nextNodePlacementEval)
+          placementCost(dagBox)(nodesPlacementOld)(nextNodePlacement)
+      val nextNodePlacement = nodesPlacementOld.findAllNextNodePlacements.minBy(nextNodePlacementCost)
       nodesPlacement = nodesPlacementOld + nextNodePlacement
     }
     val nodeRows = nodesPlacement.nodeRows.map(_.toNodeRow)
@@ -50,7 +45,7 @@ object DagGridLayoutBuilder {
       override def nCols: Int = DagBox.this.nCols
 
       override def toNodeRow: DagGridLayout.NodeRow[D] =
-        DagGridLayout.NodeRow(dag, nCols, nodeOpts.map(_.get))
+        DagGridLayout.NodeRow(dag, nCols, nodeOpts)
 
       def add(node: dag.Node, iCol: Int): NodeRowBuilder = {
         val nodeOptsNew: Seq[Option[dag.Node]] = nodeOpts.updated(iCol, Option(node))
@@ -73,7 +68,10 @@ object DagGridLayoutBuilder {
       def empty: NodeRowBuilder = NodeRowBuilder(Seq.fill(nCols)(None))
     }
 
-    case class NodesPlacement(nodeRows: Seq[NodeRowBuilder], unplacedLevelNodes: Seq[Set[dag.Node]]) {
+    import NodesPlacement.NodePos
+
+    case class NodesPlacement(nodeRows: Seq[NodeRowBuilder], nodePoses: Map[dag.Node, NodePos],
+                              unplacedLevelNodes: Seq[Set[dag.Node]]) {
 
       def currentRow: NodeRowBuilder = nodeRows.last
 
@@ -82,16 +80,17 @@ object DagGridLayoutBuilder {
         if (size < 2) None else Option(nodeRows(size - 2))
       }
 
-      case class NextNodePlacement(node: dag.Node, iCol: Int)
+      case class NextNodePlacement(node: dag.Node, pos: NodePos)
 
       def findAllNextNodePlacements: Set[this.NextNodePlacement] = for (
         node <- unplacedLevelNodes.head;
-        iCol <- currentRow.emptyIColsFromCenter
-      ) yield NextNodePlacement(node, iCol)
+        iCol <- currentRow.emptyICols
+      ) yield NextNodePlacement(node, NodePos(nodeRows.size, iCol))
 
       def +(nextNodePlacement: this.NextNodePlacement): NodesPlacement = {
         val placedNode = nextNodePlacement.node
-        val iColPlaced = nextNodePlacement.iCol
+        val pos = nextNodePlacement.pos
+        val iColPlaced = pos.iCol
         val newCurrentRow = currentRow.add(placedNode, iColPlaced)
         val nodeRowsWithNewNode = nodeRows.updated(nodeRows.size - 1, newCurrentRow)
         val nodeRowsNew = if (nodeRowsWithNewNode.last.isFull) {
@@ -99,13 +98,14 @@ object DagGridLayoutBuilder {
         } else {
           nodeRowsWithNewNode
         }
+        val nodePosesNew = NodesPlacement.this.nodePoses + (placedNode -> pos)
         val unplacedLevelNodesMinusPlacedNode = unplacedLevelNodes.updated(0, unplacedLevelNodes.head - placedNode)
         val unplacedLevelNodesNew = if (unplacedLevelNodesMinusPlacedNode.head.isEmpty) {
           unplacedLevelNodesMinusPlacedNode.tail
         } else {
           unplacedLevelNodesMinusPlacedNode
         }
-        NodesPlacement(nodeRowsNew, unplacedLevelNodesNew)
+        NodesPlacement(nodeRowsNew, nodePosesNew, unplacedLevelNodesNew)
       }
 
       def isComplete: Boolean = unplacedLevelNodes.isEmpty
@@ -116,8 +116,14 @@ object DagGridLayoutBuilder {
       def empty: NodesPlacement =
         NodesPlacement(
           nodeRows = Seq(NodeRowBuilder.empty),
+          nodePoses = Map.empty,
           unplacedLevelNodes = dag.levelsFromBottom.reverse
         )
+
+      case class NodePos(iRow: Int, iCol: Int) {
+        def distanceTo(oPos: NodePos): Int = Math.abs(oPos.iRow - iRow) + Math.abs(oPos.iCol - iCol)
+      }
+
     }
 
   }

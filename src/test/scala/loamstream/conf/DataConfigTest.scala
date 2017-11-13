@@ -57,6 +57,28 @@ final class DataConfigTest extends FunSuite {
     assert(phenotypes(0).getBool("dichotomous"))
     assert(!phenotypes(1).getBool("dichotomous"))
   }
+  
+  test("getObj") {
+    val confString = """|{
+                        |  foo = 42
+                        |  bar {
+                        |    baz = 99
+                        |    blerg {
+                        |      nuh = 17
+                        |      zuh {
+                        |        hello = asdf
+                        |      }
+                        |    }
+                        |  }
+                        |}
+                        |""".stripMargin
+                        
+    val conf = DataConfig(ConfigFactory.parseString(confString))
+    
+    assert(conf.getObj("bar").getInt("baz") === 99)
+    assert(conf.getObj("bar").getObj("blerg").getInt("nuh") === 17)
+    assert(conf.getObj("bar").getObj("blerg").getObj("zuh").getStr("hello") === "asdf")
+  }
 
   test("get{Obj,Str}List") {
     assert(conf.getObjList("data")(1).getStr("id") === "OMNI")

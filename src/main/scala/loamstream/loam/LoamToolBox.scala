@@ -5,7 +5,7 @@ import java.nio.file.{Path, Paths}
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.model.execute.Executable
 import loamstream.model.execute.Environment
-import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.{LJob, NativeJob, Output}
 import loamstream.model.{Store, Tool}
 import loamstream.loam.ast.AST
@@ -44,11 +44,13 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
     shotsForPrecedingTools.map { inputJobs =>
       val outputs = outputsFor(tool)
 
+      val toolNameOpt = graph.nameOf(tool)
+      
       tool match {
         case cmdTool: LoamCmdTool => {
-          CommandLineStringJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs)
+          CommandLineJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs, nameOpt = toolNameOpt)
         }
-        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs)
+        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs, nameOpt = toolNameOpt)
       }
     }
   }
@@ -71,7 +73,7 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
     val jobs: Set[LJob] = ast match {
       case AST.ToolNode(_, tool, deps) =>
         val jobsOption = for {
-        //TODO: Don't convert to option, pass misses through and fail loudly
+          //TODO: fail loudly
           job <- toolToJobShot(tool).asOpt
           newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs)
           newJob = if (newInputs == job.inputs) job else job.withInputs(newInputs)

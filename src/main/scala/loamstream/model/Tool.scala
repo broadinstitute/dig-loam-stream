@@ -58,6 +58,12 @@ trait Tool extends LId.HasId {
   }
 
   def workDirOpt: Option[Path] = graph.workDirs.get(this)
+  
+  def named(name: String): this.type = {
+    projectContext.updateGraph(_.withToolName(this, name))
+    
+    this
+  }
 }
 
 object Tool {

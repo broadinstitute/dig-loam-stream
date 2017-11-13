@@ -19,9 +19,14 @@ final class JobTest extends FunSuite with TestJobs {
   import Futures.waitFor
   import ObservableEnrichments._
 
-  private def exec(jobs: LJob*): Unit = jobs.foreach(_.execute(ExecutionContext.global))
+  private def exec(jobs: LocalJob*): Unit = jobs.foreach(_.execute(ExecutionContext.global))
 
   private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
+  
+  //TODO: Lame :(
+  private def toLJob(lj: LocalJob): LJob = lj
+  //TODO: Lame :(
+  private def toLocalJob(j: LJob): LocalJob = j.asInstanceOf[LocalJob]
   
   test("print - job tree with one root") {
     var visited: Map[LJob, Int] = Map.empty
@@ -213,9 +218,10 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("finalInputStatuses - some deps") {
-    val deps: Set[LJob] = Set(MockJob(FailedPermanently), MockJob(Succeeded))
+    val deps: Set[LocalJob] = Set(MockJob(FailedPermanently), MockJob(Succeeded))
     
-    val noDeps = MockJob(toReturn = Failed, inputs = deps)
+    //TODO: Lame :(
+    val noDeps = MockJob(toReturn = Failed, inputs = deps.map(toLJob))
     
     val finalInputStatusesFuture = noDeps.finalInputStatuses.firstAsFuture
     
@@ -389,7 +395,8 @@ final class JobTest extends FunSuite with TestJobs {
     
     val futureChildren = rootJob.runnables.map(_.job).drop(4).take(2).to[Set].firstAsFuture
     
-    exec(grandChildren.toSeq: _*)
+    //TODO: Lame cast :(
+    exec(grandChildren.toSeq.map(toLocalJob): _*)
     
     exec(c0, c1)
     
@@ -437,7 +444,8 @@ final class JobTest extends FunSuite with TestJobs {
     
     val futureChildren = rootJob.runnables.map(_.job).drop(4).take(2).to[Seq].firstAsFuture
     
-    exec(grandChildren: _*)
+    //TODO: Lame cast :(
+    exec(grandChildren.map(toLocalJob): _*)
     
     //We should get all the children, since their children all succeed
     //NB: We should get c0 once here, since it won't become runnable until we execute it, and it fails

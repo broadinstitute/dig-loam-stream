@@ -227,11 +227,6 @@ trait LJob extends Loggable {
   
   private def jobRunFrom(snapshot: JobSnapshot): JobRun = JobRun(this, snapshot.status, snapshot.runCount)
 
-  /**
-   * Implementions of this method will do any actual work to be performed by this job
-   */
-  def execute(implicit context: ExecutionContext): Future[Execution]
-
   protected def doWithInputs(newInputs: Set[LJob]): LJob
 
   final def withInputs(newInputs: Set[LJob]): LJob = {

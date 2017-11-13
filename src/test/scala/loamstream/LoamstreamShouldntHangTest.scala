@@ -1,19 +1,19 @@
 package loamstream
 
-import org.scalatest.FunSuite
-import loamstream.loam.LoamCmdTool
-import loamstream.compiler.LoamPredef
-import LoamstreamShouldntHangTest.Pipelines
-import loamstream.loam.LoamScriptContext
-import loamstream.loam.LoamGraph
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.compiler.LoamEngine
-import loamstream.model.jobs.Execution
 import scala.concurrent.duration.Duration
+
+import org.scalatest.FunSuite
+
+import LoamstreamShouldntHangTest.Pipelines
+import loamstream.compiler.LoamPredef
+import loamstream.loam.LoamCmdTool
+import loamstream.loam.LoamGraph
+import loamstream.loam.LoamScriptContext
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.LJob
 import loamstream.model.jobs.NoOpJob
-import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.commandline.CommandLineJob
+
 
 /**
  * @author clint
@@ -23,9 +23,9 @@ final class LoamstreamShouldntHangTest extends FunSuite {
   
   private def getJobFor(results: Map[LJob, Execution])(tool: LoamCmdTool): LJob = {
     def notNoOp(j: LJob): Boolean = !j.isInstanceOf[NoOpJob]
-    def asCLSJ(j: LJob): CommandLineStringJob = j.asInstanceOf[CommandLineStringJob]
+    def asCLJ(j: LJob): CommandLineJob = j.asInstanceOf[CommandLineJob]
     
-    results.keys.filter(notNoOp).map(asCLSJ).find(_.commandLineString == tool.commandLine).get
+    results.keys.filter(notNoOp).map(asCLJ).find(_.commandLineString == tool.commandLine).get
   }
   
   private def doTest(descriptor: Pipelines.Descriptor): Unit = {

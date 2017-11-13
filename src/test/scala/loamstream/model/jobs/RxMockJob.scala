@@ -24,7 +24,7 @@ final case class RxMockJob(
   inputs: Set[LJob],
   outputs: Set[Output],
   runsAfter: Option[RxMockJob],
-  toReturn: () => Execution)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LJob {
+  toReturn: () => Execution)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LocalJob {
 
   override def executionEnvironment: Environment = TestHelpers.env
 

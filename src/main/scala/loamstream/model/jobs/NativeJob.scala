@@ -11,25 +11,14 @@ import loamstream.util.EvalLaterBox
 final case class NativeJob[T](
     exprBox: EvalLaterBox[T], 
     inputs: Set[LJob] = Set.empty,
-    outputs: Set[Output] = Set.empty) extends LJob {
+    outputs: Set[Output] = Set.empty,
+    private val nameOpt: Option[String] = None) extends LJob {
   
-  override def name: String = s"${getClass.getSimpleName}#${id}(?,?,?)" 
+  override def name: String = nameOpt.getOrElse(id)
   
-  //TODO: Can we say this for all NativeJobs?
+  override def toString: String = s"${getClass.getSimpleName}#${id}(?,?,?)" 
+  
   override def executionEnvironment: Environment = Environment.Local
   
   override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
-
-  override def execute(implicit executionContext: ExecutionContext): Future[Execution] = {
-    exprBox.evalFuture.map { value =>
-      Execution(
-          id = None,
-          env = Environment.Local,
-          cmd = None,
-          status = JobStatus.Succeeded,
-          result = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
-          resources = None,
-          outputs = outputs.map(_.toOutputRecord))
-    }
-  }
 }

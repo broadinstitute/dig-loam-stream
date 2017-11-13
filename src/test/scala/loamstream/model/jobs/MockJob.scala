@@ -17,7 +17,7 @@ class MockJob(
                override val name: String,
                override val inputs: Set[LJob],
                val outputs: Set[Output],
-               val delay: Int) extends LJob {
+               val delay: Int) extends LocalJob {
 
   override def executionEnvironment: Environment = TestHelpers.env
   

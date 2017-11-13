@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import org.scalatest.FunSuite
 
 import loamstream.model.execute.Environment
-import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
   * Created by kyuksel on 2/29/2016.
@@ -16,15 +16,15 @@ final class ScriptBuilderTest extends FunSuite {
     def withNormalizedLineBreaks: String = string.replaceAll("\r\n", "\n")
   }
 
-  test("A shell script is generated out of a CommandLineStringJob, and can be used to submit a UGER job") {
-    val shapeItJob = Seq.fill(3)(getShapeItCommandLineStringJob)
+  test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
+    val shapeItJob = Seq.fill(3)(getShapeItCommandLineJob)
     val ugerScriptToRunShapeIt = ScriptBuilder.buildFrom(shapeItJob).withNormalizedLineBreaks
     val expectedScript = expectedScriptAsString.withNormalizedLineBreaks
 
     assert(ugerScriptToRunShapeIt == expectedScript)
   }
 
-  private def getShapeItCommandLineStringJob: CommandLineStringJob = {
+  private def getShapeItCommandLineJob: CommandLineJob = {
     val shapeItExecutable = "/some/shapeit/executable"
     val shapeItWorkDir = "someWorkDir"
     val vcf = "/some/vcf/file"
@@ -38,7 +38,7 @@ final class ScriptBuilderTest extends FunSuite {
     val shapeItCommandLineString = getShapeItCommandLineString(shapeItExecutable, vcf, map, hap, samples, log,
       numThreads)
 
-    CommandLineStringJob(shapeItCommandLineString, Paths.get(shapeItWorkDir), Environment.Local)
+    CommandLineJob(shapeItCommandLineString, Paths.get(shapeItWorkDir), Environment.Local)
   }
 
   private def getShapeItCommandLineTokens(

@@ -29,6 +29,7 @@ import loamstream.uger.UgerChunkRunnerTest.MockJobSubmitter
 import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.model.jobs.LocalJob
 
 
 /**
@@ -437,7 +438,7 @@ object UgerChunkRunnerTest {
     }
   }
   
-  final case class MockUgerJob(name: String, statusesToReturn: UgerStatus*) extends LJob {
+  final case class MockUgerJob(name: String, statusesToReturn: UgerStatus*) extends LocalJob {
     require(statusesToReturn.nonEmpty)
 
     override val executionEnvironment: Environment = Environment.Local

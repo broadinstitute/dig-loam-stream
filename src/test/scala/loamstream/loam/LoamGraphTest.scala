@@ -148,6 +148,8 @@ final class LoamGraphTest extends FunSuite {
     
     assert(graph.tools === Set(phaseTool, imputeTool))
     
+    assert(graph.namedTools === Map("phase" -> phaseTool))
+    
     val filtered = graph.without(Set(imputeTool))
     
     assert(graph.tools === Set(phaseTool, imputeTool))
@@ -170,6 +172,34 @@ final class LoamGraphTest extends FunSuite {
     assert(filtered.workDirs === Map(phaseTool -> TestHelpers.path(".")))
     
     assert(filtered.executionEnvironments === Map(phaseTool -> Environment.Local))
+    
+    assert(filtered.namedTools === Map("phase" -> phaseTool))
+  }
+  
+  test("withToolName") {
+    val components = makeTestComponents
+    
+    import components._
+    import LoamGraph.StoreLocation.PathLocation
+    import TestHelpers.path
+    
+    assert(graph.tools === Set(phaseTool, imputeTool))
+    
+    assert(graph.namedTools === Map("phase" -> phaseTool))
+    
+    //renaming a tool
+    intercept[Exception] {
+      graph.withToolName(phaseTool, "asdf")
+    }
+    
+    //non-unique name
+    intercept[Exception] {
+      graph.withToolName(imputeTool, "phase")
+    }
+    
+    val updatedGraph = graph.withToolName(imputeTool, "impute")
+    
+    assert(updatedGraph.namedTools === Map("phase" -> phaseTool, "impute" -> imputeTool))
   }
 }
 
@@ -191,7 +221,7 @@ object LoamGraphTest {
     val template = store.at(path("/home/myself/template.vcf")).asInput
     val imputed = store.at(outputFile)
     
-    val phaseTool = cmd"shapeit -in $raw -out $phased"
+    val phaseTool = cmd"shapeit -in $raw -out $phased".named("phase")
     val imputeTool = cmd"impute -in $phased -template $template -out $imputed".using("R-3.1")
     
     GraphComponents(

@@ -99,9 +99,9 @@ object TestHelpers {
   
   def emptyProjectContext = LoamProjectContext.empty(config)
   
-  def makeGraph(loamCode: LoamScriptContext => Any): LoamGraph = {
-      
-    val sc = new LoamScriptContext(emptyProjectContext)
+  def withScriptContext[A](f: LoamScriptContext => A): A = f(new LoamScriptContext(emptyProjectContext))
+  
+  def makeGraph(loamCode: LoamScriptContext => Any): LoamGraph = withScriptContext { sc =>
       
     loamCode(sc)
       

@@ -102,7 +102,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
       //NB: Drop NoOpJob
       val jobs = executable.jobs.head.inputs
       
-      def jobWith(commandLine: String): LJob = jobs.find(j => commandLineFrom(j) == commandLine).get
+      def jobWith(commandLine: String): LJob = jobs.find(j => commandLineFrom(j.job) == commandLine).get.job
       
       val foo = jobWith("foo")
       val bar = jobWith("bar")

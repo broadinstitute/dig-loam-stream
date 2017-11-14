@@ -29,13 +29,13 @@ final class JobTest extends FunSuite with TestJobs {
   private def toLocalJob(j: LJob): LocalJob = j.asInstanceOf[LocalJob]
   
   test("print - job tree with one root") {
-    var visited: Map[LJob, Int] = Map.empty
+    var visited: Map[JobNode, Int] = Map.empty
     
-    def incFor(job: LJob): Unit = {
+    def incFor(job: JobNode): Unit = {
       visited += (job -> (visited.getOrElse(job, 0) + 1))
     }
     
-    val doPrint: LJob => String => Unit = job => _ => incFor(job)
+    val doPrint: JobNode => String => Unit = job => _ => incFor(job)
     
     /*
      * gc0
@@ -55,10 +55,10 @@ final class JobTest extends FunSuite with TestJobs {
     val gc2 = MockJob(Succeeded)
     val gc3 = MockJob(Succeeded)
     
-    val c0 = MockJob(Succeeded, inputs = Set[LJob](gc0, gc1))
-    val c1 = MockJob(Succeeded, inputs = Set[LJob](gc2, gc3))
+    val c0 = MockJob(Succeeded, inputs = Set[JobNode](gc0, gc1))
+    val c1 = MockJob(Succeeded, inputs = Set[JobNode](gc2, gc3))
     
-    val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1))
+    val rootJob = MockJob(Succeeded, inputs = Set[JobNode](c0,c1))
     
     assert(visited.isEmpty)
     
@@ -68,13 +68,13 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("print - job graph with diamonds") {
-    var visited: Map[LJob, Int] = Map.empty
+    var visited: Map[JobNode, Int] = Map.empty
     
-    def incFor(job: LJob): Unit = {
+    def incFor(job: JobNode): Unit = {
       visited += (job -> (visited.getOrElse(job, 0) + 1))
     }
     
-    val doPrint: LJob => String => Unit = job => _ => incFor(job)
+    val doPrint: JobNode => String => Unit = job => _ => incFor(job)
     
     /*
      * ggc0
@@ -115,7 +115,7 @@ final class JobTest extends FunSuite with TestJobs {
 
     import Maps.Implicits._
         
-    assert(visited.mapKeys(_.name) === expected)
+    assert(visited.mapKeys(_.job.name) === expected)
   }
   
   test("transitionTo") {
@@ -305,7 +305,7 @@ final class JobTest extends FunSuite with TestJobs {
       
       val i1 = mockJob(if(anyFailures) FailedPermanently else Succeeded)
       
-      val inputs: Set[LJob] = Set(i0, notFinished, i1)
+      val inputs: Set[JobNode] = Set(i0, notFinished, i1)
       
       val job = MockJob(toReturn = resultStatus, inputs = inputs)
 
@@ -384,10 +384,10 @@ final class JobTest extends FunSuite with TestJobs {
     val gc2 = MockJob(Succeeded)
     val gc3 = MockJob(Skipped)
     
-    val c0 = MockJob(Succeeded, inputs = Set[LJob](gc0, gc1))
-    val c1 = MockJob(Succeeded, inputs = Set[LJob](gc2, gc3))
+    val c0 = MockJob(Succeeded, inputs = Set[JobNode](gc0, gc1))
+    val c1 = MockJob(Succeeded, inputs = Set[JobNode](gc2, gc3))
     
-    val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1))
+    val rootJob = MockJob(Succeeded, inputs = Set[JobNode](c0,c1))
     
     val grandChildren = waitFor(rootJob.runnables.map(_.job).take(4).to[Set].firstAsFuture)
     
@@ -432,10 +432,10 @@ final class JobTest extends FunSuite with TestJobs {
     val gc2 = MockJob(Succeeded, "gc2")
     val gc3 = MockJob(Skipped, "gc3")
     
-    val c0 = MockJob(toReturn = Failed, inputs = Set[LJob](gc0, gc1), name = "c0")
-    val c1 = MockJob(toReturn = Succeeded, inputs = Set[LJob](gc2, gc3), name = "c1")
+    val c0 = MockJob(toReturn = Failed, inputs = Set[JobNode](gc0, gc1), name = "c0")
+    val c1 = MockJob(toReturn = Succeeded, inputs = Set[JobNode](gc2, gc3), name = "c1")
     
-    val rootJob = MockJob(Succeeded, inputs = Set[LJob](c0,c1), name = "root")
+    val rootJob = MockJob(Succeeded, inputs = Set[JobNode](c0,c1), name = "root")
     
     val grandChildren = waitFor(rootJob.runnables.map(_.job).take(4).to[Seq].firstAsFuture)
     

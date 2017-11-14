@@ -6,49 +6,54 @@ import org.scalatest.FunSuite
 
 import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.TestHelpers
 
 /**
-  * Created by kyuksel on 2/29/2016.
-  */
-final class ScriptBuilderTest extends FunSuite {
-
-  private implicit class EnrichedString(string: String) {
+ * Created by kyuksel on 2/29/2016.
+ */
+object ScriptBuilderTest {
+  private final implicit class EnrichedString(val string: String) extends AnyVal {
     def withNormalizedLineBreaks: String = string.replaceAll("\r\n", "\n")
   }
+}
+
+final class ScriptBuilderTest extends FunSuite {
+
+  import ScriptBuilderTest.EnrichedString
 
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
-    val shapeItJob = Seq.fill(3)(getShapeItCommandLineJob)
-    val ugerScriptToRunShapeIt = ScriptBuilder.buildFrom(shapeItJob).withNormalizedLineBreaks
-    val expectedScript = expectedScriptAsString.withNormalizedLineBreaks
+    val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
+    val ugerScriptContents = ScriptBuilder.buildFrom(jobs).withNormalizedLineBreaks
+    val expectedScriptContents = expectedScriptAsString(0, 1, 2).withNormalizedLineBreaks
 
-    assert(ugerScriptToRunShapeIt == expectedScript)
+    assert(ugerScriptContents == expectedScriptContents)
   }
 
-  private def getShapeItCommandLineJob: CommandLineJob = {
+  import TestHelpers.path
+  
+  private def getShapeItCommandLineJob(discriminator: Int): CommandLineJob = {
     val shapeItExecutable = "/some/shapeit/executable"
-    val shapeItWorkDir = "someWorkDir"
-    val vcf = "/some/vcf/file"
-    val map = "/some/map/file"
-    val hap = "/some/haplotype/file"
+    val shapeItWorkDir = path("someWorkDir")
+    val vcf = s"/some/vcf/file.$discriminator"
+    val map = s"/some/map/file.$discriminator"
+    val hap = s"/some/haplotype/file.$discriminator"
     val samples = "/some/sample/file"
     val log = "/some/log/file"
     val numThreads = 2
 
-    val shapeItTokens = getShapeItCommandLineTokens(shapeItExecutable, vcf, map, hap, samples, log, numThreads)
-    val shapeItCommandLineString = getShapeItCommandLineString(shapeItExecutable, vcf, map, hap, samples, log,
-      numThreads)
+    val commandLineString = getShapeItCommandLineString(shapeItExecutable, vcf, map, hap, samples, log, numThreads)
 
-    CommandLineJob(shapeItCommandLineString, Paths.get(shapeItWorkDir), Environment.Local)
+    CommandLineJob(commandLineString, shapeItWorkDir, Environment.Local)
   }
 
   private def getShapeItCommandLineTokens(
-                                           shapeItExecutable: String,
-                                           vcf: String,
-                                           map: String,
-                                           haps: String,
-                                           samples: String,
-                                           log: String,
-                                           numThreads: Int = 1): Seq[String] = {
+      shapeItExecutable: String,
+      vcf: String,
+      map: String,
+      haps: String,
+      samples: String,
+      log: String,
+      numThreads: Int = 1): Seq[String] = {
 
     Seq(
       shapeItExecutable,
@@ -66,19 +71,19 @@ final class ScriptBuilderTest extends FunSuite {
   }
 
   private def getShapeItCommandLineString(
-                                           shapeItExecutable: String,
-                                           vcf: String,
-                                           map: String,
-                                           haps: String,
-                                           samples: String,
-                                           log: String,
-                                           numThreads: Int = 1): String = {
+      shapeItExecutable: String,
+      vcf: String,
+      map: String,
+      haps: String,
+      samples: String,
+      log: String,
+      numThreads: Int = 1): String = {
 
     getShapeItCommandLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads).mkString(" ")
   }
-// scalastyle:off method.length
-// scalastyle:off line.size.limit
-  def expectedScriptAsString: String = {
+  // scalastyle:off method.length
+  // scalastyle:off line.size.limit
+  private def expectedScriptAsString(discriminator0: Int, discriminator1: Int, discriminator2: Int): String = {
     val sixSpaces = "      "
 
     s"""#!/bin/bash
@@ -97,13 +102,13 @@ i=$$SGE_TASK_ID
 $sixSpaces
 if [ $$i -eq 1 ]
 then
-\t/some/shapeit/executable -V /some/vcf/file -M /some/map/file -O /some/haplotype/file /some/sample/file -L /some/log/file --thread 2
+\t/some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2
 elif [ $$i -eq 2 ]
 then
-\t/some/shapeit/executable -V /some/vcf/file -M /some/map/file -O /some/haplotype/file /some/sample/file -L /some/log/file --thread 2
+\t/some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2
 elif [ $$i -eq 3 ]
 then
-\t/some/shapeit/executable -V /some/vcf/file -M /some/map/file -O /some/haplotype/file /some/sample/file -L /some/log/file --thread 2
+\t/some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2
 fi
 """
   }

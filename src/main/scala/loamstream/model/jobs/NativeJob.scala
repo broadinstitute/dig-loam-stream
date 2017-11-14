@@ -1,7 +1,6 @@
 package loamstream.model.jobs
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+
 
 import loamstream.model.execute.Environment
 import loamstream.util.EvalLaterBox
@@ -10,7 +9,7 @@ import loamstream.util.EvalLaterBox
 /** Job defined by Loam code */
 final case class NativeJob[T](
     exprBox: EvalLaterBox[T], 
-    inputs: Set[LJob] = Set.empty,
+    inputs: Set[JobNode] = Set.empty,
     outputs: Set[Output] = Set.empty,
     private val nameOpt: Option[String] = None) extends LJob {
   
@@ -20,5 +19,5 @@ final case class NativeJob[T](
   
   override def executionEnvironment: Environment = Environment.Local
   
-  override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+  override protected def doWithInputs(newInputs: Set[JobNode]): LJob = copy(inputs = newInputs)
 }

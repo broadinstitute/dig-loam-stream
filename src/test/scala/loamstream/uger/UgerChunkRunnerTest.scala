@@ -30,6 +30,7 @@ import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.model.jobs.LocalJob
+import loamstream.model.jobs.JobNode
 
 
 /**
@@ -331,8 +332,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     val expectedSettings = UgerSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5))
     val expectedEnv = Environment.Uger(expectedSettings)
     
-    assert(jobs(0).executionEnvironment === expectedEnv)
-    assert(jobs(1).executionEnvironment === expectedEnv)
+    assert(jobs(0).job.executionEnvironment === expectedEnv)
+    assert(jobs(1).job.executionEnvironment === expectedEnv)
         
     val mockDrmaaClient = MockDrmaaClient(Map.empty)
     val mockJobSubmitter = new MockJobSubmitter
@@ -344,7 +345,7 @@ final class UgerChunkRunnerTest extends FunSuite {
         
     import ObservableEnrichments._        
     
-    val results = waitFor(chunkRunner.run(jobs.toSet, neverRestart).firstAsFuture)
+    val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
     
     val actualSubmissionParams = mockJobSubmitter.params
     
@@ -411,7 +412,7 @@ final class UgerChunkRunnerTest extends FunSuite {
         
     import ObservableEnrichments._        
     
-    val results = waitFor(chunkRunner.run(jobs.toSet, neverRestart).firstAsFuture)
+    val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
     
     val actualSubmissionParams = mockJobSubmitter.params
     
@@ -443,7 +444,7 @@ object UgerChunkRunnerTest {
 
     override val executionEnvironment: Environment = Environment.Local
     
-    override val inputs: Set[LJob] = Set.empty
+    override val inputs: Set[JobNode] = Set.empty
 
     override val outputs: Set[Output] = Set.empty
     
@@ -451,6 +452,6 @@ object UgerChunkRunnerTest {
       Future.successful(Execution.from(this, UgerStatus.toJobStatus(statusesToReturn.last)))
     }
 
-    protected def doWithInputs(newInputs: Set[LJob]): LJob = ???
+    protected override def doWithInputs(newInputs: Set[JobNode]): LJob = ???
   }
 }

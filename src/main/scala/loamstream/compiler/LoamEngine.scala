@@ -20,6 +20,7 @@ import loamstream.model.execute.Executable
 import loamstream.util.StringUtils
 import loamstream.conf.LoamConfig
 import loamstream.loam.LoamGraph
+import loamstream.model.jobs.JobNode
 
 
 /**
@@ -171,7 +172,7 @@ final case class LoamEngine(
     debug {
       val buffer = new StringBuilder
       
-      def doLog(ignored: LJob)(s: String) = buffer.append(s"\n$s")
+      def doLog(ignored: JobNode)(s: String) = buffer.append(s"\n$s")
       
       executable.jobs.headOption.foreach(_.print(doPrint = doLog))
     

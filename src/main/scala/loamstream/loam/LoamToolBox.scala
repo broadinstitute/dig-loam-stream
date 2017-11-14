@@ -10,6 +10,7 @@ import loamstream.model.jobs.{LJob, NativeJob, Output}
 import loamstream.model.{Store, Tool}
 import loamstream.loam.ast.AST
 import loamstream.util.{Hit, Miss, Shot, Snag}
+import loamstream.model.jobs.JobNode
 
 /**
   * LoamStream
@@ -17,7 +18,7 @@ import loamstream.util.{Hit, Miss, Shot, Snag}
   */
 final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = None) {
 
-  @volatile private[this] var loamJobs: Map[Tool, LJob] = Map.empty
+  @volatile private[this] var loamJobs: Map[Tool, JobNode] = Map.empty
 
   private[this] val lock = new AnyRef
 
@@ -39,7 +40,7 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
 
     val environment: Environment = graph.executionEnvironmentOpt(tool).getOrElse(Environment.Local)
 
-    val shotsForPrecedingTools: Shot[Set[LJob]] = Shot.sequence(graph.toolsPreceding(tool).map(getLoamJob))
+    val shotsForPrecedingTools: Shot[Set[JobNode]] = Shot.sequence(graph.toolsPreceding(tool).map(getLoamJob))
 
     shotsForPrecedingTools.map { inputJobs =>
       val outputs = outputsFor(tool)
@@ -55,7 +56,7 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
     }
   }
 
-  private[loam] def getLoamJob(tool: Tool): Shot[LJob] = lock.synchronized {
+  def getLoamJob(tool: Tool): Shot[JobNode] = lock.synchronized {
     loamJobs.get(tool) match {
       case Some(job) => Hit(job)
       case _ => newLoamJob(tool) match {
@@ -68,25 +69,25 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
   }
 
   def createExecutable(ast: AST): Executable = {
-    val noJobs: Set[LJob] = Set.empty
+    val noJobs: Set[JobNode] = Set.empty
 
-    val jobs: Set[LJob] = ast match {
-      case AST.ToolNode(_, tool, deps) =>
+    val jobs: Set[JobNode] = ast match {
+      case AST.ToolNode(_, tool, deps) => {
         val jobsOption = for {
           //TODO: fail loudly
-          job <- toolToJobShot(tool).asOpt
-          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobs)
-          newJob = if (newInputs == job.inputs) job else job.withInputs(newInputs)
+          job <- getLoamJob(tool).asOpt
+          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobNodes)
+          //newJob = if (newInputs == job.inputs) job else job.withInputs(newInputs)
+          newJob = job.withInputs(newInputs)
         } yield {
-          Set[LJob](newJob)
+          Set(newJob)
         }
 
         jobsOption.getOrElse(noJobs)
+      }
       case _ => noJobs //TODO: other AST nodes
     }
 
     Executable(jobs)
   }
-
-  def toolToJobShot(tool: Tool): Shot[LJob] = getLoamJob(tool)
 }

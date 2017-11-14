@@ -4,6 +4,7 @@ import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
 import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
@@ -11,6 +12,7 @@ import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
+
 
 /**
  * @author kyuksel
@@ -32,7 +34,7 @@ final class RxExecuterTest extends FunSuite {
     val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
     
     ExecutionResults(
-        executer.execute(Executable(jobs.asInstanceOf[Set[LJob]])), 
+        executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])), 
         runner.chunks.value.filter(_.nonEmpty).map(_.asInstanceOf[Set[RxMockJob]]))
   }
   
@@ -656,7 +658,7 @@ final class RxExecuterTest extends FunSuite {
     
     val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
     
-    (runner, executer.execute(Executable(jobs)))
+    (runner, executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])))
   }
 
   test("maxNumJobs is taken into account") {

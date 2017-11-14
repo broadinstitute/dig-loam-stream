@@ -10,13 +10,13 @@ import loamstream.model.jobs.commandline.CommandLineJob
   * For an example of such scripts, see src/test/resources/imputation/shapeItUgerSubmissionScript.sh
   */
 private[uger] object ScriptBuilder {
-  val space: String = " "
-  val tab: String = "\t"
-  val newLine: String = "\n"
-  val unixLineSep: String = " \\"
+  private val space: String = " "
+  private val tab: String = "\t"
+  private val newLine: String = "\n"
+  private val unixLineSep: String = " \\"
 
   //NB: We need to 'use' Java-1.8 to make some steps of the QC pipeline work.  
-  val scriptHeader: String =
+  private val scriptHeader: String =
     s"""#!/bin/bash
 #$$ -cwd
 #$$ -j y
@@ -31,31 +31,39 @@ source activate hail
 
 i=$$SGE_TASK_ID
       """
-  val endIf: String = s"""${newLine}fi$newLine"""
+  private val endIf: String = s"""${newLine}fi$newLine"""
 
+  def jobsWithUgerIndices(commandLineJobs: Seq[CommandLineJob]): Seq[(CommandLineJob, Int)] = {
+    //Uger task array indices start from 1
+    commandLineJobs.zipWithIndex.map { case (j, i) => (j, i + 1) } 
+  }
+  
   def buildFrom(commandLineJobs: Seq[CommandLineJob]): String = {
-    val taskIndexStartValue = 1
-    val firstIfBlock = getFirstIfBlock(commandLineJobs.head, taskIndexStartValue)
+    val jobsAndIndices = jobsWithUgerIndices(commandLineJobs)
+    
+    val (firstJob, firstIndex) = jobsAndIndices.head
+    
+    val firstIfBlock = getFirstIfBlock(firstJob, firstIndex)
 
-    val elseIfBlocks = commandLineJobs.tail.zipWithIndex.map { case (job, index) =>
-      s"${getElseIfHeader(index + 2)}${getBody(job)}"
+    val elseIfBlocks = jobsAndIndices.tail.map { case (job, index) =>
+      s"${getElseIfHeader(index)}${getBody(job)}"
     }.mkString(newLine)
 
     s"$scriptHeader$newLine$firstIfBlock$newLine$elseIfBlocks$endIf"
   }
 
-  def getFirstIfBlock(commandLineJob: CommandLineJob, indexStartValue: Int): String = {
+  private def getFirstIfBlock(commandLineJob: CommandLineJob, indexStartValue: Int): String = {
     val ifHeader = getIfHeader(indexStartValue)
     val ifBody = getBody(commandLineJob)
 
     s"$ifHeader$ifBody"
   }
 
-  def getBody(commandLineJob: CommandLineJob): String = {
+  private def getBody(commandLineJob: CommandLineJob): String = {
     s"""$newLine$tab${commandLineJob.commandLineString}"""
   }
 
-  def getIfHeader(index: Int): String = s"""if [ $$i -eq $index ]${newLine}then"""
+  private def getIfHeader(index: Int): String = s"""if [ $$i -eq $index ]${newLine}then"""
 
-  def getElseIfHeader(index: Int): String = s"""elif [ $$i -eq $index ]${newLine}then"""
+  private def getElseIfHeader(index: Int): String = s"""elif [ $$i -eq $index ]${newLine}then"""
 }

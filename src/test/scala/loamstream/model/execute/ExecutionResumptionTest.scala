@@ -105,7 +105,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
     }
   }
 
-  private def mockJob(name: String, outputs: Set[Output], inputs: Set[LJob] = Set.empty)(body: => Any): MockJob = {
+  private def mockJob(name: String, outputs: Set[Output], inputs: Set[JobNode] = Set.empty)(body: => Any): MockJob = {
     val successfulExecution = TestHelpers.executionFromResult(JobResult.CommandResult(0))
 
     val successfulExecutionWithOutputs = successfulExecution.copy(outputs = outputs.map(_.toOutputRecord))

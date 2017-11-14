@@ -34,7 +34,9 @@ object ExecuterHelpers extends Loggable {
   
   def flattenTree(roots: Set[LJob]): Set[LJob] = {
     roots.foldLeft(roots) { (acc, job) =>
-      job.inputs ++ flattenTree(job.inputs) ++ acc
+      val inputJobs = job.inputs.map(_.job)
+      
+      inputJobs ++ flattenTree(inputJobs) ++ acc
     }
   }
 }

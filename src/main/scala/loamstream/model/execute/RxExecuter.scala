@@ -15,6 +15,7 @@ import loamstream.util.Observables
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.model.jobs.JobNode
 
 /**
  * @author kaan
@@ -101,7 +102,7 @@ final case class RxExecuter(
   }
   
   private def logJobForest(executable: Executable): Unit = {
-    def log(printingJob: LJob)(s: String) = debug(s)
+    def log(printingJob: JobNode)(s: String) = debug(s)
       
     executable.jobs.head.print(doPrint = log, header = Some("Current Job Statuses:"))
   }

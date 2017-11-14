@@ -60,9 +60,10 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
     loamJobs.get(tool) match {
       case Some(job) => Hit(job)
       case _ => newLoamJob(tool) match {
-        case jobHit@Hit(job) =>
+        case jobHit @ Hit(job) => {
           loamJobs += tool -> job
           jobHit
+        }
         case miss: Miss => miss
       }
     }
@@ -77,8 +78,7 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
           //TODO: fail loudly
           job <- getLoamJob(tool).asOpt
           newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobNodes)
-          //newJob = if (newInputs == job.inputs) job else job.withInputs(newInputs)
-          newJob = job.withInputs(newInputs)
+          newJob = if (newInputs == job.inputs) job else job.withInputs(newInputs)
         } yield {
           Set(newJob)
         }

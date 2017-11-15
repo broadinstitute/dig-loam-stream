@@ -9,11 +9,21 @@ import java.nio.file.Paths
  */
 object LogFileNames {
   
-  def stdout(job: LJob): Path = makePath(job, "stdout")
+  private val defaultOutputDirName: String = "job-outputs"
   
-  def stderr(job: LJob): Path = makePath(job, "stderr")
+  def stdout(job: LJob, outputDirName: String = defaultOutputDirName): Path = makePath(job, "stdout", outputDirName)
   
-  private val outputDirName = "job-outputs"
+  def stderr(job: LJob, outputDirName: String = defaultOutputDirName): Path = makePath(job, "stderr", outputDirName)
   
-  private def makePath(job: LJob, suffix: String): Path = Paths.get(s"$outputDirName/${job.name}.$suffix")
+  private def makePath(job: LJob, suffix: String, outputDirName: String): Path = {
+    Paths.get(s"${mungeSpecialChars(outputDirName)}/${mungeSpecialChars(job.name)}.$suffix")
+  }
+  
+  //NB: Basically anything path-separator-related
+  private[this] val specialChars: Set[Char] = Set('/', ':', '\\')
+  
+  private def mungeSpecialChars(s: String): String = s.map {
+    case ch if ch.isWhitespace || specialChars.contains(ch) => '_'
+    case ch => ch      
+  }
 }

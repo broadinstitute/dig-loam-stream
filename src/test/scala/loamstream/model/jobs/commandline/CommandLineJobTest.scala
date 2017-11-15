@@ -13,7 +13,7 @@ import loamstream.compiler.LoamPredef
   * @author clint
   *         Nov 16, 2016
   */
-final class CommandLineStringJobTest extends FunSuite {
+final class CommandLineJobTest extends FunSuite {
   test("Complex command that needs escaping") {
     val outputPath = "target/foo"
     

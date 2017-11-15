@@ -27,11 +27,11 @@ final case class AsyncLocalChunkRunner(
   override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
     if(jobs.isEmpty) { Observable.just(Map.empty) }
     else {
-      import JobStrategy.canBeRunLocally
+      import LocalJobStrategy.canBeRun
       
       require(
-          jobs.forall(canBeRunLocally), 
-          s"Expected only LocalJobs, but found ${jobs.filterNot(canBeRunLocally).mkString(",")}")
+          jobs.forall(canBeRun), 
+          s"Expected only LocalJobs, but found ${jobs.filterNot(canBeRun).mkString(",")}")
       
       def exec(job: LJob): Observable[(LJob, Execution)] = Observable.from(executeSingle(job, shouldRestart))
 
@@ -57,7 +57,7 @@ object AsyncLocalChunkRunner extends Loggable {
     val processLogger = ProcessLoggers.forNamedJob(this, job)
     
     val result = for {
-      execution <- JobStrategy.localStrategyFor(job, processLogger).execute
+      execution <- LocalJobStrategy.execute(job, processLogger)
     } yield {
       job -> execution
     }

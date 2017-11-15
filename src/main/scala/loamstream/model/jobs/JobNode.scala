@@ -31,7 +31,7 @@ trait JobNode extends Loggable {
     if (inputs eq newInputs) { this }
     else { doWithInputs(newInputs) }
   }
-  
+
   private[this] val snapshotRef: ValueBox[JobSnapshot] = ValueBox(JobSnapshot(JobStatus.NotStarted, 0))
 
   /** This job's 'state' (status and run count) at this instant. */ 

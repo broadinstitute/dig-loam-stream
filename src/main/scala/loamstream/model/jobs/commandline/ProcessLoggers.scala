@@ -10,6 +10,7 @@ import java.nio.file.Paths
 import loamstream.util.Loggable
 import loamstream.util.Throwables
 import loamstream.model.jobs.LogFileNames
+import loamstream.util.Files
 
 /**
  * @author clint
@@ -28,15 +29,39 @@ object ProcessLoggers {
     toFilesProcessLogger(logger, LogFileNames.stdout(job), LogFileNames.stderr(job))
   }
 
-  def toFilesProcessLogger(logger: Loggable, stdOutDestination: Path, stdErrDestination: Path): CloseableProcessLogger = {
-    def writerFor(p: Path) = new BufferedWriter(new FileWriter(stdOutDestination.toFile))
+  def toFilesProcessLogger(
+      logger: Loggable, 
+      stdOutDestination: Path, 
+      stdErrDestination: Path): CloseableProcessLogger = {
+    
+    def makeNeededDirs(outputFile: Path): Unit = {
+      Option(outputFile.normalize.getParent).foreach(Files.createDirsIfNecessary)
+    }
+    
+    def writerFor(p: Path): Writer = {
+      makeNeededDirs(p)
+      
+      new BufferedWriter(new FileWriter(p.toFile))
+    }
+    
+    lazy val stdout = writerFor(stdOutDestination)
+    lazy val stderr = writerFor(stdErrDestination)
+    
+    //TODO: Giant hack
+    @volatile var wroteToStdOut = false
+    @volatile var wroteToStdErr = false
+    
+    val writeToStdOut: String => Unit = { line =>
+      wroteToStdOut = true
+      stdout.write(line) 
+    }
+    
+    val writeToStdErr: String => Unit = { line =>
+      wroteToStdErr = true
+      stderr.write(line) 
+    }
 
-    val stdout = writerFor(stdOutDestination)
-    val stderr = writerFor(stdErrDestination)
-
-    def writeTo(writer: Writer): String => Unit = writer.write(_: String)
-
-    val delegate = ProcessLogger(fout = writeTo(stdout), ferr = writeTo(stderr))
+    val delegate = ProcessLogger(fout = writeToStdOut, ferr = writeToStdErr)
     
     import Throwables.quietly
     
@@ -45,8 +70,8 @@ object ProcessLoggers {
     }
     
     CloseableProcessLogger(delegate) {
-      close(stdOutDestination, stdout)
-      close(stdErrDestination, stderr)
+      if(wroteToStdOut) { close(stdOutDestination, stdout) }
+      if(wroteToStdErr) { close(stdErrDestination, stderr) }
     }
   }
   

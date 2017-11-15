@@ -11,6 +11,8 @@ import loamstream.model.jobs.JobStatus
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.model.jobs.LocalJob
+import loamstream.model.jobs.commandline.ProcessLoggers
+import loamstream.util.Throwables
 
 /**
  * @author clint
@@ -52,15 +54,21 @@ object AsyncLocalChunkRunner extends Loggable {
     job.transitionTo(JobStatus.NotStarted)
     job.transitionTo(JobStatus.Running)
     
+    val processLogger = ProcessLoggers.forNamedJob(this, job)
+    
     val result = for {
-      execution <- JobStrategy.localStrategyFor(job).execute
+      execution <- JobStrategy.localStrategyFor(job, processLogger).execute
     } yield {
       job -> execution
     }
 
     import Futures.Implicits._
   
-    result.withSideEffect(handleResultOfExecution(shouldRestart))
+    def closeProcessLogger(ignored: (LJob, Execution)): Unit = {
+      Throwables.quietly("Closing process logger failed")(processLogger.close())
+    }
+    
+    result.withSideEffect(closeProcessLogger).withSideEffect(handleResultOfExecution(shouldRestart))
   }
   
   private[execute] def handleResultOfExecution(shouldRestart: LJob => Boolean)(tuple: (LJob, Execution)): Unit = {

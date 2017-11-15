@@ -41,11 +41,8 @@ final case class CommandLineJob(
     inputs: Set[JobNode] = Set.empty,
     outputs: Set[Output] = Set.empty,
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
-    private val processLoggerOpt: Option[ProcessLogger] = None,
     private val nameOpt: Option[String] = None) extends LJob with Loggable {
 
-  lazy val logger: ProcessLogger = processLoggerOpt.getOrElse(ProcessLoggers.stdErrProcessLogger(this))
-  
   //TODO: Close ProcessLogger Somehow (state transition hook?)
   
   override def name: String = nameOpt.getOrElse(id)

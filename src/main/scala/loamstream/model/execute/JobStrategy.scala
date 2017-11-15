@@ -2,24 +2,26 @@ package loamstream.model.execute
 
 import java.nio.file.{ Files => JFiles }
 
-import loamstream.model.jobs.LJob
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.util.Failure
+import scala.util.Success
+
+import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.NativeJob
-import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobResult.CommandInvocationFailure
+import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.LocalJob
+import loamstream.model.jobs.NativeJob
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.jobs.commandline.ProcessLoggers.CloseableProcessLogger
+import loamstream.util.BashScript
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
-import loamstream.model.execute.Resources.LocalResources
-import scala.util.Success
-import scala.util.Failure
-import loamstream.model.jobs.JobResult.CommandInvocationFailure
-import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.util.BashScript
-import loamstream.model.jobs.LocalJob
 
 /**
  * @author clint
@@ -32,14 +34,12 @@ trait JobStrategy {
 
 object JobStrategy {
   def canBeRunLocally(j: LJob): Boolean = j match {
-    case _: CommandLineJob => true
-    case _: NativeJob[_] => true
-    case _: LocalJob => true
+    case _: CommandLineJob | _: NativeJob[_] | _: LocalJob => true
     case _ => false
   }
   
-  def localStrategyFor(job: LJob): JobStrategy = job match {
-    case clj: CommandLineJob => CommandLineJobsCanBeRunLocally(clj)
+  def localStrategyFor(job: LJob, processLogger: CloseableProcessLogger): JobStrategy = job match {
+    case clj: CommandLineJob => CommandLineJobsCanBeRunLocally(clj, processLogger)
     case nj: NativeJob[_] => NativeJobsCanBeRunLocally(nj)
     case lj: LocalJob => LocalJobsCanBeRunLocally(lj)
   }
@@ -48,7 +48,10 @@ object JobStrategy {
     override def execute(implicit context: ExecutionContext): Future[Execution] = lj.execute
   }
   
-  final case class CommandLineJobsCanBeRunLocally(commandLineJob: CommandLineJob) extends JobStrategy with Loggable {
+  final case class CommandLineJobsCanBeRunLocally(
+      commandLineJob: CommandLineJob, 
+      processLogger: CloseableProcessLogger) extends JobStrategy with Loggable {
+    
     override def execute(implicit context: ExecutionContext): Future[Execution] = {
 
       Futures.runBlocking {
@@ -56,7 +59,7 @@ object JobStrategy {
         val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
           trace(s"RUNNING: ${commandLineJob.commandLineString}")
 
-          createWorkDirAndRun(commandLineJob)
+          createWorkDirAndRun(commandLineJob, processLogger)
         }
 
         val resources = LocalResources(start, end)
@@ -77,7 +80,7 @@ object JobStrategy {
       }
     }
 
-    private def createWorkDirAndRun(job: CommandLineJob): Int = {
+    private def createWorkDirAndRun(job: CommandLineJob, processLogger: CloseableProcessLogger): Int = {
       JFiles.createDirectories(job.workDir)
 
       val commandLineString = job.commandLineString
@@ -86,14 +89,14 @@ object JobStrategy {
         BashScript.fromCommandLineString(commandLineString).processBuilder(job.workDir)
       }
       
-      val exitValue = processBuilder.run(job.logger).exitValue
+      val exitValue = processBuilder.run(processLogger).exitValue
 
       if (job.exitValueIsOk(exitValue)) {
         trace(s"SUCCEEDED: $commandLineString")
       } else {
         trace(s"FAILED: $commandLineString")
       }
-
+      
       exitValue
     }
   }

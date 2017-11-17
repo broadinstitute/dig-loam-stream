@@ -352,7 +352,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     val Seq((actualSettings, actualSubmittedJobs)) = actualSubmissionParams
     
     assert(actualSettings === expectedSettings)
-    assert(actualSubmittedJobs.toSet === jobs.toSet)
+    assert(actualSubmittedJobs.ugerJobs.map(_.commandLineJob).toSet === jobs.toSet)
   }
   
   test("Uger config is propagated to DRMAA client - 2 pairs of jobs with different settings") {
@@ -417,7 +417,9 @@ final class UgerChunkRunnerTest extends FunSuite {
     val actualSubmissionParams = mockJobSubmitter.params
     
     val actualParamsUnordered: Set[(UgerSettings, Set[CommandLineJob])] = {
-      actualSubmissionParams.map { case (settings, jobs) => (settings, jobs.toSet) }.toSet
+      actualSubmissionParams.map { case (settings, taskArray) => 
+        (settings, taskArray.ugerJobs.map(_.commandLineJob).toSet) 
+      }.toSet
     }
     
     val expectedParamsUnordered: Set[(UgerSettings, Set[CommandLineJob])] = Set(
@@ -430,10 +432,10 @@ final class UgerChunkRunnerTest extends FunSuite {
 
 object UgerChunkRunnerTest {
   final class MockJobSubmitter extends JobSubmitter {
-    @volatile var params: Seq[(UgerSettings, Seq[CommandLineJob])] = Vector.empty
+    @volatile var params: Seq[(UgerSettings, UgerTaskArray)] = Vector.empty
     
-    override def submitJobs(ugerSettings: UgerSettings, jobs: Seq[CommandLineJob]): DrmaaClient.SubmissionResult = {
-      params :+= (ugerSettings -> jobs)
+    override def submitJobs(ugerSettings: UgerSettings, taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
+      params :+= (ugerSettings -> taskArray)
       
       DrmaaClient.SubmissionSuccess(Nil)
     }

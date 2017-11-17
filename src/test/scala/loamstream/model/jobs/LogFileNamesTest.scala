@@ -8,16 +8,21 @@ import loamstream.TestHelpers
  * Nov 15, 2017
  */
 final class LogFileNamesTest extends FunSuite {
-  import LogFileNames.{stdout, stderr}
+  
   import JobStatus.Succeeded
   import TestHelpers.path
+  
+  private val outputDir = "/x/y/z/job-outputs"
+  
+  private def stdout(job: LJob, outDir: String = outputDir) = LogFileNames.stdout(job, outDir)
+  private def stderr(job: LJob, outDir: String = outputDir) = LogFileNames.stderr(job, outDir)
   
   test("stdout - job with generated name") {
     val job = MockJob(Succeeded)
     
     val fileName = stdout(job)
     
-    assert(fileName === path(s"job-outputs/${job.name}.stdout"))
+    assert(fileName === path(s"/x/y/z/job-outputs/${job.name}.stdout"))
   }
   
   test("stdout - job with supplied name") {
@@ -25,7 +30,7 @@ final class LogFileNamesTest extends FunSuite {
     
     val fileName = stdout(job)
     
-    assert(fileName === path(s"job-outputs/foo.stdout"))
+    assert(fileName === path(s"/x/y/z/job-outputs/foo.stdout"))
   }
   
   test("stderr - job with generated name") {
@@ -33,7 +38,7 @@ final class LogFileNamesTest extends FunSuite {
     
     val fileName = stderr(job)
     
-    assert(fileName === path(s"job-outputs/${job.name}.stderr"))
+    assert(fileName === path(s"/x/y/z/job-outputs/${job.name}.stderr"))
   }
   
   test("stderr - job with supplied name") {
@@ -41,7 +46,7 @@ final class LogFileNamesTest extends FunSuite {
     
     val fileName = stderr(job)
     
-    assert(fileName === path(s"job-outputs/foo.stderr"))
+    assert(fileName === path(s"/x/y/z/job-outputs/foo.stderr"))
   }
   
   test("stdout - name with 'bad' chars") {
@@ -49,7 +54,7 @@ final class LogFileNamesTest extends FunSuite {
     
     val fileName = stdout(job)
     
-    assert(fileName === path(s"job-outputs/foo___blah_blah_bar_baz.stdout"))
+    assert(fileName === path(s"/x/y/z/job-outputs/foo___blah_blah_bar_baz.stdout"))
   }
   
   test("stderr - name with 'bad' chars") {
@@ -57,7 +62,7 @@ final class LogFileNamesTest extends FunSuite {
     
     val fileName = stderr(job)
     
-    assert(fileName === path(s"job-outputs/foo___blah_blah_bar_baz.stderr"))
+    assert(fileName === path(s"/x/y/z/job-outputs/foo___blah_blah_bar_baz.stderr"))
   }
   
   test("stdout - job with supplied name, custom dir") {
@@ -65,7 +70,7 @@ final class LogFileNamesTest extends FunSuite {
     
     val fileName = stdout(job, "blah")
     
-    assert(fileName === path(s"blah/foo.stdout"))
+    assert(fileName === path(s"blah/foo.stdout").toAbsolutePath)
   }
   
   test("stderr - job with supplied name, custom dir") {
@@ -73,6 +78,6 @@ final class LogFileNamesTest extends FunSuite {
     
     val fileName = stderr(job, "blah")
     
-    assert(fileName === path(s"blah/foo.stderr"))
+    assert(fileName === path(s"blah/foo.stderr").toAbsolutePath)
   }
 }

@@ -28,9 +28,7 @@ trait DrmaaClient extends Terminable {
   def submitJob(
       ugerSettings: UgerSettings,
       ugerConfig: UgerConfig,
-      pathToScript: Path,
-      jobName: String,
-      numTasks: Int = 1): DrmaaClient.SubmissionResult
+      taskArrayScript: UgerTaskArray): DrmaaClient.SubmissionResult
     
   /**
    * Synchronously inspect the status of a job with the given ID

@@ -25,11 +25,9 @@ final class UgerClient(
   override def submitJob(
       ugerSettings: UgerSettings,
       ugerConfig: UgerConfig,
-      pathToScript: Path,
-      jobName: String,
-      numTasks: Int = 1): DrmaaClient.SubmissionResult = {
+      taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
     
-    drmaaClient.submitJob(ugerSettings, ugerConfig, pathToScript, jobName, numTasks)
+    drmaaClient.submitJob(ugerSettings, ugerConfig, taskArray)
   }
     
   /**

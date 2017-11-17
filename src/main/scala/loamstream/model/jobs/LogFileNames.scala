@@ -16,7 +16,7 @@ object LogFileNames {
   def stderr(job: LJob, outputDirName: String = defaultOutputDirName): Path = makePath(job, "stderr", outputDirName)
   
   private def makePath(job: LJob, suffix: String, outputDirName: String): Path = {
-    Paths.get(s"${mungeSpecialChars(outputDirName)}/${mungeSpecialChars(job.name)}.$suffix")
+    Paths.get(s"${outputDirName}/${mungeSpecialChars(job.name)}.$suffix").toAbsolutePath
   }
   
   //NB: Basically anything path-separator-related

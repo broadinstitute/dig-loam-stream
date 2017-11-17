@@ -27,9 +27,7 @@ final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[UgerS
   override def submitJob(
       ugerSettings: UgerSettings,
       ugerConfig: UgerConfig,
-      pathToScript: Path,
-      jobName: String,
-      numTasks: Int): DrmaaClient.SubmissionResult = ???
+      taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = ???
 
   override def statusOf(jobId: String): Try[UgerStatus] = waitFor(jobId, Duration.Zero)
 

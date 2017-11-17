@@ -22,9 +22,16 @@ final class ScriptBuilderTest extends FunSuite {
   import ScriptBuilderTest.EnrichedString
 
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
+    val ugerConfig = TestHelpers.config.ugerConfig.get
+    
     val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
-    val ugerScriptContents = ScriptBuilder.buildFrom(jobs).withNormalizedLineBreaks
-    val expectedScriptContents = expectedScriptAsString(0, 1, 2).withNormalizedLineBreaks
+    val taskArray = UgerTaskArray.fromCommandLineJobs(ugerConfig, jobs)
+    val ugerScriptContents = ScriptBuilder.buildFrom(taskArray).withNormalizedLineBreaks
+    
+    val jobIds: (String, String, String) = (jobs(0).id, jobs(1).id, jobs(2).id)
+    val discriminators = (0, 1, 2)
+    
+    val expectedScriptContents = expectedScriptAsString(discriminators, jobIds).withNormalizedLineBreaks
 
     assert(ugerScriptContents == expectedScriptContents)
   }
@@ -83,7 +90,15 @@ final class ScriptBuilderTest extends FunSuite {
   }
   // scalastyle:off method.length
   // scalastyle:off line.size.limit
-  private def expectedScriptAsString(discriminator0: Int, discriminator1: Int, discriminator2: Int): String = {
+  private def expectedScriptAsString(discriminators: (Int, Int, Int), jobIds: (String, String, String)): String = {
+    val (discriminator0, discriminator1, discriminator2) = discriminators
+    val (jobId0, jobId1, jobId2) = jobIds
+    
+    val jobName = s"LoamStream-${jobId0}_${jobId1}_${jobId2}"
+    
+    val ugerDir = "/humgen/diabetes/users/kyuksel/imputation/shapeit_example"
+    val outputDir = path("job-outputs").toAbsolutePath
+    
     val sixSpaces = "      "
 
     s"""#!/bin/bash
@@ -102,13 +117,13 @@ i=$$SGE_TASK_ID
 $sixSpaces
 if [ $$i -eq 1 ]
 then
-\t/some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2
+\t( /some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2 ) ; mv $ugerDir/${jobName}.1.stdout $outputDir/${jobId0}.stdout ; mv $ugerDir/${jobName}.1.stderr $outputDir/${jobId0}.stderr
 elif [ $$i -eq 2 ]
 then
-\t/some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2
+\t( /some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2 ) ; mv $ugerDir/${jobName}.2.stdout $outputDir/${jobId1}.stdout ; mv $ugerDir/${jobName}.2.stderr $outputDir/${jobId1}.stderr
 elif [ $$i -eq 3 ]
 then
-\t/some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2
+\t( /some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2 ) ; mv $ugerDir/${jobName}.3.stdout $outputDir/${jobId2}.stdout ; mv $ugerDir/${jobName}.3.stderr $outputDir/${jobId2}.stderr
 fi
 """
   }

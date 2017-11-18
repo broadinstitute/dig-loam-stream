@@ -8,12 +8,31 @@ def main(args=None):
 	print "reading vds dataset"
 	vds = hc.read(args.vds_in)
 
+	if args.extract:
+		print "extracting variants in list"
+		kt = hc.import_table(args.extract, impute=True, no_header=True).annotate('Variant = f0').key_by('Variant')
+		vds = vds.filter_variants_table(kt, keep=True)
+
 	print "annotating samples with phenotype file"
 	annot = hc.import_table(args.pheno_in, no_header=False, missing="NA", impute=True, types={args.iid_col: TString()}).key_by(args.iid_col)
 	vds = vds.annotate_samples_table(annot, root="sa.pheno")
 
+	if args.ancestry:
+		print "adding ancestry annotation"
+		kt = hc.import_table(args.ancestry_in,delimiter="\t",no_header=True).annotate('IID = f0').key_by('IID')
+		vds = vds.annotate_samples_table(kt, expr='sa.pheno.GROUP = table.f1')
+
 	print "reducing to samples with non-missing phenotype"
 	vds = vds.filter_samples_expr('! sa.pheno.' + args.pheno_col + '.isMissing()')
+
+	if args.pops:
+		print "reducing to samples in populations " + args.pops
+		pops = args.pops.split(",")
+		pops_filter = 'sa.pheno.GROUP == ' + pops[0]
+		if len(pops) > 1:
+			for p in pops[1:]:
+				pops_filter = pops_filter + ' || sa.pheno.GROUP == ' + p
+		vds = vds.filter_samples_expr(pops_filter)
 
 	pheno_df = vds.samples_table().to_pandas()
 
@@ -74,6 +93,9 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--trans', help='a transformation code')
 	parser.add_argument('--covars', help="a '+' separated list of covariates")
+	parser.add_argument('--extract', help="a variant list to extract for analysis")
+	parser.add_argument('--ancestry-in', help='an inferred ancestry file')
+	parser.add_argument('--pops', help='a comma separated list of populations to include in analysis')
 	requiredArgs = parser.add_argument_group('required arguments')
 	requiredArgs.add_argument('--vds-in', help='a Hail vds directory path', required=True)
 	requiredArgs.add_argument('--bim-in', help='a filtered and pruned bim file', required=True)

@@ -16,12 +16,14 @@ y<-read.table(args$genes,header=T,as.is=T,sep="\t",comment.char="")
 names(y)[1]<-"gene"
 names(y)[2]<-"X.chr"
 names(y)[3]<-"pos"
-
 if(args$test %in% c("wald","lrt","firth")) {
 	x$or <- exp(x$beta)
-	x <- x[,c(names(x)[1:(grep("pval",names(x))-1)],"or",names(x)[grep("pval",names(x)):length(names(x))])]
+	pre<-names(x)[1:(grep("\\bpval\\b",names(x))-1)]
+	pre<-pre[grep("\\bor\\b",pre,invert=TRUE)]
+	post<-names(x)[grep("\\bpval\\b",names(x)):length(names(x))]
+	post<-post[grep("\\bor\\b",post,invert=TRUE)]
+	x <- x[,c(pre,"or",post)]
 }
-
 x<-merge(x,y,all=T)
 
 for(i in 1:nrow(x)) {
@@ -41,5 +43,9 @@ for(i in 1:nrow(x)) {
 }
 
 
+x <- x[order(x[,args$p]),]
+x <- x[! duplicated(x$gene),]
+x <- head(x, n=20)
+
 cat(paste("#",paste(gsub("X.","",names(x)),collapse="\t"),"\n",sep=""), file=paste(args$out,sep=""))
-write.table(x[order(x[,args$p]),], paste(args$out,sep=""), row.names=F, col.names=F, quote=F, append=T, sep="\t")
+write.table(x, paste(args$out,sep=""), row.names=F, col.names=F, quote=F, append=T, sep="\t")

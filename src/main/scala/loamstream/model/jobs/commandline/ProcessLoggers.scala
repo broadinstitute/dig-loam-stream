@@ -12,6 +12,8 @@ import loamstream.util.Throwables
 import loamstream.model.jobs.LogFileNames
 import loamstream.util.Files
 import loamstream.util.Functions
+import loamstream.conf.ExecutionConfig
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * @author clint
@@ -26,8 +28,10 @@ object ProcessLoggers {
       ferr = line => logger.info(s"(via stderr) $line"))
   }
 
-  def forNamedJob(logger: Loggable, job: LJob): CloseableProcessLogger = {
-    toFilesProcessLogger(logger, LogFileNames.stdout(job), LogFileNames.stderr(job))
+  def forNamedJob(executionConfig: ExecutionConfig, logger: Loggable, job: LJob): CloseableProcessLogger = {
+    import executionConfig.outputDir
+    
+    toFilesProcessLogger(logger, LogFileNames.stdout(job, outputDir), LogFileNames.stderr(job, outputDir))
   }
 
   def toFilesProcessLogger(

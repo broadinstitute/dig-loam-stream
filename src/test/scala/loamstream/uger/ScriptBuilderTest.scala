@@ -7,6 +7,7 @@ import org.scalatest.FunSuite
 import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.TestHelpers
+import loamstream.conf.ExecutionConfig
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -25,7 +26,7 @@ final class ScriptBuilderTest extends FunSuite {
     val ugerConfig = TestHelpers.config.ugerConfig.get
     
     val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
-    val taskArray = UgerTaskArray.fromCommandLineJobs(ugerConfig, jobs)
+    val taskArray = UgerTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, jobs)
     val ugerScriptContents = ScriptBuilder.buildFrom(taskArray).withNormalizedLineBreaks
     
     val jobIds: (String, String, String) = (jobs(0).id, jobs(1).id, jobs(2).id)
@@ -117,13 +118,13 @@ i=$$SGE_TASK_ID
 $sixSpaces
 if [ $$i -eq 1 ]
 then
-\t( /some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2 ) ; mv $ugerDir/${jobName}.1.stdout $outputDir/${jobId0}.stdout ; mv $ugerDir/${jobName}.1.stderr $outputDir/${jobId0}.stderr
+\t( /some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2 ) ; mkdir -p $outputDir ; mv $ugerDir/${jobName}.1.stdout $outputDir/${jobId0}.stdout ; mv $ugerDir/${jobName}.1.stderr $outputDir/${jobId0}.stderr
 elif [ $$i -eq 2 ]
 then
-\t( /some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2 ) ; mv $ugerDir/${jobName}.2.stdout $outputDir/${jobId1}.stdout ; mv $ugerDir/${jobName}.2.stderr $outputDir/${jobId1}.stderr
+\t( /some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2 ) ; mkdir -p $outputDir ; mv $ugerDir/${jobName}.2.stdout $outputDir/${jobId1}.stdout ; mv $ugerDir/${jobName}.2.stderr $outputDir/${jobId1}.stderr
 elif [ $$i -eq 3 ]
 then
-\t( /some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2 ) ; mv $ugerDir/${jobName}.3.stdout $outputDir/${jobId2}.stdout ; mv $ugerDir/${jobName}.3.stderr $outputDir/${jobId2}.stderr
+\t( /some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2 ) ; mkdir -p $outputDir ; mv $ugerDir/${jobName}.3.stdout $outputDir/${jobId2}.stdout ; mv $ugerDir/${jobName}.3.stderr $outputDir/${jobId2}.stderr
 fi
 """
   }

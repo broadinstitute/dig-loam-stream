@@ -9,6 +9,7 @@ import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.TestJobs
 import loamstream.util.Futures
 import loamstream.util.ObservableEnrichments
+import loamstream.conf.ExecutionConfig
 
 
 /**
@@ -81,11 +82,11 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     import TestHelpers.executionFromStatus
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val success = Futures.waitFor(executeSingle(two0, neverRestart))
+    val success = Futures.waitFor(executeSingle(ExecutionConfig.default, two0, neverRestart))
     
     assert(success === (two0 -> executionFromStatus(two0Success)))
     
-    val failure = Futures.waitFor(executeSingle(two0Failed, neverRestart))
+    val failure = Futures.waitFor(executeSingle(ExecutionConfig.default, two0Failed, neverRestart))
     
     assert(failure === (two0Failed -> executionFromStatus(two0Failure)))
     
@@ -113,13 +114,13 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
       
       assert(job.status === NotStarted)
       
-      waitFor(executeSingle(job, alwaysRestart))
+      waitFor(executeSingle(ExecutionConfig.default, job, alwaysRestart))
       
       assert(job.executionCount === 1)
           
       assert(job.status === status)
       
-      waitFor(executeSingle(job, neverRestart))
+      waitFor(executeSingle(ExecutionConfig.default, job, neverRestart))
       
       assert(job.executionCount === 2)
           

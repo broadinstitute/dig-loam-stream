@@ -25,6 +25,7 @@ import java.time.ZoneId
 import loamstream.model.execute.Environment
 import loamstream.util.Maps
 import loamstream.model.execute.UgerSettings
+import loamstream.conf.ExecutionConfig
 
 /**
  * @author clint
@@ -33,6 +34,7 @@ import loamstream.model.execute.UgerSettings
  *         A ChunkRunner that runs groups of command line jobs as UGER task arrays, via the provided JobSubmitter.
  */
 final case class UgerChunkRunner(
+    executionConfig: ExecutionConfig,
     ugerConfig: UgerConfig,
     jobSubmitter: JobSubmitter,
     jobMonitor: JobMonitor,
@@ -68,7 +70,7 @@ final case class UgerChunkRunner(
     val resultsForSubChunks: Iterable[Observable[Map[LJob, Execution]]] = {
       for {
         (ugerSettings, commandLineJobs) <- subChunksBySettings(commandLineJobs)
-        ugerTaskArray = UgerTaskArray.fromCommandLineJobs(ugerConfig, commandLineJobs)
+        ugerTaskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, commandLineJobs)
       } yield {
         runJobs(ugerSettings, ugerTaskArray, shouldRestart) 
       }

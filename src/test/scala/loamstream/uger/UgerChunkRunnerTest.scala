@@ -31,6 +31,7 @@ import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.JobNode
+import loamstream.conf.ExecutionConfig
 
 
 /**
@@ -42,17 +43,20 @@ final class UgerChunkRunnerTest extends FunSuite {
   private val scheduler = IOScheduler()
   
   import loamstream.TestHelpers.neverRestart
+  import loamstream.TestHelpers.path
   
-  private val config = {
+  private val ugerConfig = {
     import scala.concurrent.duration.DurationInt
     
     UgerConfig(
-      workDir = Paths.get("target/foo"), 
+      workDir = path("target/foo"), 
       maxNumJobs = 42,
       defaultCores = Cpus(2),
       defaultMemoryPerCore = Memory.inGb(2),
       defaultMaxRunTime = CpuTime.inHours(7))
   }
+  
+  private val executionConfig: ExecutionConfig = ExecutionConfig(42, path("target/bar")) 
   
   import loamstream.util.Futures.waitFor
   import loamstream.util.ObservableEnrichments._
@@ -60,8 +64,9 @@ final class UgerChunkRunnerTest extends FunSuite {
   test("NoOpJob is not attempted to be executed") {
     val mockDrmaaClient = MockDrmaaClient(Map.empty)
     val runner = UgerChunkRunner(
-        ugerConfig = config,
-        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, config),
+        executionConfig = executionConfig,
+        ugerConfig = ugerConfig,
+        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
         jobMonitor = new JobMonitor(scheduler, Poller.drmaa(mockDrmaaClient)))
     
     val noOpJob = NoOpJob(Set.empty)
@@ -74,8 +79,9 @@ final class UgerChunkRunnerTest extends FunSuite {
   test("No failures when empty set of jobs is presented") {
     val mockDrmaaClient = new MockDrmaaClient(Map.empty)
     val runner = UgerChunkRunner(
-        ugerConfig = config,
-        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, config),
+        executionConfig = executionConfig,
+        ugerConfig = ugerConfig,
+        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
         jobMonitor = new JobMonitor(scheduler, Poller.drmaa(mockDrmaaClient)))
     
     val result = waitFor(runner.run(Set.empty, neverRestart).firstAsFuture)
@@ -339,7 +345,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     val mockJobSubmitter = new MockJobSubmitter
     
     val chunkRunner = UgerChunkRunner(
-        ugerConfig = config,
+        executionConfig = executionConfig,
+        ugerConfig = ugerConfig,
         jobSubmitter = mockJobSubmitter,
         jobMonitor = new JobMonitor(poller = Poller.drmaa(mockDrmaaClient)))
         
@@ -406,7 +413,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     val mockJobSubmitter = new MockJobSubmitter
     
     val chunkRunner = UgerChunkRunner(
-        ugerConfig = config,
+        executionConfig = executionConfig,
+        ugerConfig = ugerConfig,
         jobSubmitter = mockJobSubmitter,
         jobMonitor = new JobMonitor(poller = Poller.drmaa(mockDrmaaClient)))
         

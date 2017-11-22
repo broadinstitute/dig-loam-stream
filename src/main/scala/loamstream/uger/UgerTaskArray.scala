@@ -9,6 +9,7 @@ import java.nio.file.Path
 import java.io.File
 import loamstream.util.Loggable
 import org.ggf.drmaa.JobTemplate
+import loamstream.conf.ExecutionConfig
 
 /**
  * @author clint
@@ -61,7 +62,10 @@ object UgerTaskArray {
   //TODO: TEST
   private[uger] def makeJobName(jobs: Seq[CommandLineJob]): String = s"LoamStream-${jobs.map(_.id).mkString("_")}"
   
-  def fromCommandLineJobs(ugerConfig: UgerConfig, jobs: Seq[CommandLineJob]): UgerTaskArray = {
+  def fromCommandLineJobs(
+      executionConfig: ExecutionConfig, 
+      ugerConfig: UgerConfig, 
+      jobs: Seq[CommandLineJob]): UgerTaskArray = {
     
     val ugerJobName: String = makeJobName(jobs) 
     
@@ -69,7 +73,7 @@ object UgerTaskArray {
       //Uger task array indices start from 1
       val indexInTaskArray = i + 1
       
-      UgerJobWrapper(commandLineJob, indexInTaskArray)
+      UgerJobWrapper(executionConfig, commandLineJob, indexInTaskArray)
     }
     
     val stdOutPathTemplate = ugerStdOutPathTemplate(ugerConfig, ugerJobName)

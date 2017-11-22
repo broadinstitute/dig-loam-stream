@@ -12,6 +12,7 @@ import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
+import loamstream.conf.ExecutionConfig
 
 
 /**
@@ -29,7 +30,7 @@ final class RxExecuterTest extends FunSuite {
     
     import scala.concurrent.duration._
     
-    val runner = MockChunkRunner(AsyncLocalChunkRunner(maxSimultaneousJobs))
+    val runner = MockChunkRunner(AsyncLocalChunkRunner(ExecutionConfig.default, maxSimultaneousJobs))
     
     val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
     
@@ -62,7 +63,7 @@ final class RxExecuterTest extends FunSuite {
   test("Guards") {
     import scala.concurrent.duration._
     
-    val runner = MockChunkRunner(AsyncLocalChunkRunner(8))
+    val runner = MockChunkRunner(AsyncLocalChunkRunner(ExecutionConfig.default, 8))
     
     intercept[Exception] {
       RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, -1)
@@ -648,7 +649,7 @@ final class RxExecuterTest extends FunSuite {
     
     import scala.concurrent.duration._
       
-    val realRunner = AsyncLocalChunkRunner(maxSimultaneousJobs)
+    val realRunner = AsyncLocalChunkRunner(ExecutionConfig.default, maxSimultaneousJobs)
   
     assert(realRunner.maxNumJobs === maxSimultaneousJobs)
     

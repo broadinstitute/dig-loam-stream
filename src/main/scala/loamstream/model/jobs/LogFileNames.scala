@@ -2,6 +2,7 @@ package loamstream.model.jobs
 
 import java.nio.file.Path
 import java.nio.file.Paths
+import loamstream.util.PathEnrichments
 
 /**
  * @author clint
@@ -9,14 +10,14 @@ import java.nio.file.Paths
  */
 object LogFileNames {
   
-  private val defaultOutputDirName: String = "job-outputs"
+  def stdout(job: LJob, outputDirName: Path): Path = makePath(job, "stdout", outputDirName)
   
-  def stdout(job: LJob, outputDirName: String = defaultOutputDirName): Path = makePath(job, "stdout", outputDirName)
+  def stderr(job: LJob, outputDirName: Path): Path = makePath(job, "stderr", outputDirName)
   
-  def stderr(job: LJob, outputDirName: String = defaultOutputDirName): Path = makePath(job, "stderr", outputDirName)
-  
-  private def makePath(job: LJob, suffix: String, outputDirName: String): Path = {
-    Paths.get(s"${outputDirName}/${mungeSpecialChars(job.name)}.$suffix").toAbsolutePath
+  private def makePath(job: LJob, suffix: String, outputDir: Path): Path = {
+    import PathEnrichments._
+    
+    (outputDir / s"${mungeSpecialChars(job.name)}.$suffix").toAbsolutePath
   }
   
   //NB: Basically anything path-separator-related

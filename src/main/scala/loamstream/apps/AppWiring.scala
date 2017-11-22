@@ -90,9 +90,9 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       
       val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs)
       
-      val localRunner = AsyncLocalChunkRunner()(localEC)
+      val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
 
-      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(cli, threadPoolSize)
+      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(cli, config, threadPoolSize)
 
       val googleRunner = googleChunkRunner(cli, config.googleConfig, localRunner)
       
@@ -159,8 +159,12 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     googleConfigOpt.fold(noGoogleConfig)(googleConfigPresent)
   }
   
-  private def ugerChunkRunner(cli: Conf, threadPoolSize: Int): (Option[UgerChunkRunner], Seq[Terminable]) = {
-    val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(cli, threadPoolSize))
+  private def ugerChunkRunner(
+      cli: Conf, 
+      loamConfig: LoamConfig, 
+      threadPoolSize: Int): (Option[UgerChunkRunner], Seq[Terminable]) = {
+    
+    val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(loamConfig, threadPoolSize))
 
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
     if(ugerRunnerOption.isEmpty) {
@@ -201,15 +205,11 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     result
   }
 
-  private def makeUgerChunkRunner(cli: Conf, threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
+  private def makeUgerChunkRunner(loamConfig: LoamConfig, threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
     trace("Parsing Uger config...")
 
-    val config = loadConfig(cli)
-
-    val ugerConfigAttempt = UgerConfig.fromConfig(config)
-
     for {
-      ugerConfig <- ugerConfigAttempt.toOption
+      ugerConfig <- loamConfig.ugerConfig
     } yield {
       debug("Creating Uger ChunkRunner...")
 
@@ -230,7 +230,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
         val jobSubmitter = JobSubmitter.Drmaa(ugerClient, ugerConfig)
         
-        UgerChunkRunner(ugerConfig, jobSubmitter, jobMonitor, pollingFrequencyInHz)
+        UgerChunkRunner(loamConfig.executionConfig, ugerConfig, jobSubmitter, jobMonitor, pollingFrequencyInHz)
       }
 
       val handles = Seq(ugerClient, schedulerHandle, ugerRunner)

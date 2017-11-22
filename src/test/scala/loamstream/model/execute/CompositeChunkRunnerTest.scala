@@ -8,6 +8,7 @@ import loamstream.util.Futures
 import rx.lang.scala.Observable
 import loamstream.util.ObservableEnrichments
 import loamstream.TestHelpers
+import loamstream.conf.ExecutionConfig
 
 /**
  * @author clint
@@ -79,7 +80,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
 }
 
 object CompositeChunkRunnerTest {
-  private def local(n: Int) = AsyncLocalChunkRunner(n)(ExecutionContext.global)
+  private def local(n: Int) = AsyncLocalChunkRunner(ExecutionConfig.default, n)(ExecutionContext.global)
   
   private final case class MockRunner(allowed: MockJob) extends ChunkRunner {
     override def maxNumJobs: Int = ???

@@ -3,6 +3,7 @@ package loamstream.conf
 import org.scalatest.FunSuite
 import com.typesafe.config.ConfigFactory
 import scala.util.Try
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -10,9 +11,10 @@ import scala.util.Try
  */
 final class ExecutionConfigTest extends FunSuite {
   import ExecutionConfig.fromConfig
+  import TestHelpers.path
   
   test("default") {
-    assert(ExecutionConfig.default === ExecutionConfig(4)) //scalastyle:ignore magic.number
+    assert(ExecutionConfig.default === ExecutionConfig(4, path("job-outputs"))) //scalastyle:ignore magic.number
   }
   
   test("fromConfig - bad input") {
@@ -32,11 +34,18 @@ final class ExecutionConfigTest extends FunSuite {
   }
   
   test("good input") {
-    val expected = 42 //scalastyle:ignore magic.number
-    val input = s"loamstream { execution { maxRunsPerJob = $expected } }"
+    val expectedMaxRunsPerJob = 42 //scalastyle:ignore magic.number
+    val expectedOutputDir = path("asdf/blah/foo")
+    
+    val input = s"""|loamstream { 
+                    |  execution { 
+                    |    maxRunsPerJob = $expectedMaxRunsPerJob 
+                    |    outputDir = $expectedOutputDir
+                    |  } 
+                    |}""".stripMargin
     
     val executionConfig = Try(ConfigFactory.parseString(input)).flatMap(fromConfig).get
     
-    assert(executionConfig === ExecutionConfig(expected))
+    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir))
   }
 }

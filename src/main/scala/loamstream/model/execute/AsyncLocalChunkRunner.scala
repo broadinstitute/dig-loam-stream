@@ -13,17 +13,19 @@ import loamstream.util.Loggable
 import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.commandline.ProcessLoggers
 import loamstream.util.Throwables
+import loamstream.conf.ExecutionConfig
 
 /**
  * @author clint
  * Nov 22, 2016
  */
 final case class AsyncLocalChunkRunner(
+    executionConfig: ExecutionConfig,
     maxNumJobs: Int = defaultMaxNumJobs)
     (implicit context: ExecutionContext) extends ChunkRunnerFor(EnvironmentType.Local) {
 
   import AsyncLocalChunkRunner._
-
+  
   override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
     if(jobs.isEmpty) { Observable.just(Map.empty) }
     else {
@@ -33,7 +35,9 @@ final case class AsyncLocalChunkRunner(
           jobs.forall(canBeRun), 
           s"Expected only LocalJobs, but found ${jobs.filterNot(canBeRun).mkString(",")}")
       
-      def exec(job: LJob): Observable[(LJob, Execution)] = Observable.from(executeSingle(job, shouldRestart))
+      def exec(job: LJob): Observable[(LJob, Execution)] = {
+        Observable.from(executeSingle(executionConfig, job, shouldRestart))
+      }
 
       val executionObservables: Seq[Observable[(LJob, Execution)]] = jobs.toSeq.map(exec)
         
@@ -48,13 +52,14 @@ object AsyncLocalChunkRunner extends Loggable {
   def defaultMaxNumJobs: Int = Runtime.getRuntime.availableProcessors
   
   def executeSingle(
+      executionConfig: ExecutionConfig,
       job: LJob, 
       shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[(LJob, Execution)] = {
     
     job.transitionTo(JobStatus.NotStarted)
     job.transitionTo(JobStatus.Running)
     
-    val processLogger = ProcessLoggers.forNamedJob(this, job)
+    val processLogger = ProcessLoggers.forNamedJob(executionConfig, this, job)
     
     val result = for {
       execution <- LocalJobStrategy.execute(job, processLogger)

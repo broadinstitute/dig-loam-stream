@@ -20,6 +20,7 @@ import loamstream.model.jobs.JobStatus.Skipped
 import loamstream.loam.LoamGraph
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamCmdTool
+import loamstream.conf.ExecutionConfig
 
 /**
   * @author kaan
@@ -316,7 +317,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   }
 
   private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
-    val asyncChunkRunner = AsyncLocalChunkRunner()(ExecutionContext.global)
+    val asyncChunkRunner = AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
 
     val mockRunner = MockChunkRunner(asyncChunkRunner)
 

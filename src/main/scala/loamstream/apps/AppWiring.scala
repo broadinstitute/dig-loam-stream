@@ -205,7 +205,10 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     result
   }
 
-  private def makeUgerChunkRunner(loamConfig: LoamConfig, threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
+  private def makeUgerChunkRunner(
+      loamConfig: LoamConfig, 
+      threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
+    
     trace("Parsing Uger config...")
 
     for {

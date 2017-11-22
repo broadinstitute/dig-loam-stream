@@ -59,7 +59,6 @@ object UgerTaskArray {
    * A Uger job name, like `LoamStream-<uger-job-id-0>_<uger-job-id-1>..._<uger-job-id-N>`
    * NB: Built deterministically. 
    */
-  //TODO: TEST
   private[uger] def makeJobName(jobs: Seq[CommandLineJob]): String = s"LoamStream-${jobs.map(_.id).mkString("_")}"
   
   def fromCommandLineJobs(
@@ -90,7 +89,7 @@ object UgerTaskArray {
     makeErrorOrOutputPath(ugerConfig, ugerJobName, "stderr")
   }
   
-  private[uger] def makeErrorOrOutputPath(ugerConfig: UgerConfig, jobName: String, suffix: String): String = {
+  private def makeErrorOrOutputPath(ugerConfig: UgerConfig, jobName: String, suffix: String): String = {
     s":${ugerConfig.workDir}/$jobName.${JobTemplate.PARAMETRIC_INDEX}.$suffix"
   }
 }

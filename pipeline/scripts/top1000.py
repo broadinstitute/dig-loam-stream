@@ -5,7 +5,7 @@ import argparse
 def main(args=None):
 
 	print "reading results from file"
-	df=pd.read_table(args.results, low_memory=False)
+	df=pd.read_table(args.results, low_memory=False, compression="gzip")
 	df.dropna(subset=[args.p], inplace=True)
 	df.reset_index(drop=True, inplace=True)
 

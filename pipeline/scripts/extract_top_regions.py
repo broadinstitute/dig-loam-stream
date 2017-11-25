@@ -5,7 +5,7 @@ import argparse
 def main(args=None):
 
 	print "reading results from file"
-	df=pd.read_table(args.results, low_memory=False)
+	df=pd.read_table(args.results, low_memory=False, compression="gzip")
 	df.dropna(subset=[args.p], inplace=True)
 	df.reset_index(drop=True, inplace=True)
 
@@ -49,9 +49,9 @@ def main(args=None):
 			out.loc[index,'top_pval'] = df_region.loc[df_region[args.p].idxmin(), args.p]
 		out.sort_values(['top_pval'], inplace=True)
 	else:
-		out = pd.DataFrame({'chr': [], 'start': [], 'end': [], 'top_variant': [], 'top_pos': [], 'top_pval': []})
+		out = pd.DataFrame({args.chr: [], 'start': [], 'end': [], 'top_variant': [], 'top_pos': [], 'top_pval': []})
 
-	out[['chr','start','end','top_variant','top_pos','top_pval']].to_csv(args.out, header=False, index=False, sep="\t")
+	out[[args.chr,'start','end','top_variant','top_pos','top_pval']].to_csv(args.out, header=False, index=False, sep="\t")
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()

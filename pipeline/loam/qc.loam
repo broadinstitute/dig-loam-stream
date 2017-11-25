@@ -26,28 +26,8 @@ val nMetrics = sampleQcMetrics.size
 val qcReportAuthors = dataConfig.getStrList("qcReportAuthors").mkString(",")
 val analysisReportAuthors = dataConfig.getStrList("analysisReportAuthors").mkString(",")
 
-//// generate list of tuples that define each association test
-//var modelSeq: Seq[(String, String, String, String, String, Int)] = Seq()
-//for { assoc <- dataConfig.getObjList("assocs") } 
-//  {
-//    for { test <- assoc.getStrList("tests") }
-//      {
-//	    for { covars <- assoc.getStrList("covars") }
-//	      {
-//	    	modelSeq = modelSeq :+ (
-//	    	  (assoc.getStr("pheno"),
-//	    		test,
-//	    		covars,
-//	    		assoc.getStr("trans"),
-//	    		assoc.getStr("strat"),
-//                assoc.getInt("phase"))
-//	    	  )  
-//	      }
-//      }
-//  }
-
 // generate list of tuples that define each model
-var modelSeq: Seq[(String, String, String, String, String, Int)] = Seq()
+var modelSeq: Seq[(String, String, String, String, String, String, Int)] = Seq()
 val phases = dataConfig.getObjList("phases")
 for { i <- 0 until phases.size } 
   {
@@ -63,6 +43,7 @@ for { i <- 0 until phases.size }
                     test,
                     covars,
                     phases(i).getStr("strat"),
+                    phases(i).getObjList("phenotypes")(j).getStr("ancestryKeep"),
                     i + 1)
                   )
               }
@@ -71,7 +52,7 @@ for { i <- 0 until phases.size }
   }
 
 // generate list of tuples that define each known loci table
-var knownLociSeq: Seq[(String, String, String, String, String, Int, Int, Int)] = Seq()
+var knownLociSeq: Seq[(String, String, String, String, String, String, String, String, Int, Int, Int)] = Seq()
 for { i <- 0 until phases.size } 
   {
     for { j <- 0 until phases(i).getObjList("phenotypes").size }
@@ -83,6 +64,9 @@ for { i <- 0 until phases.size }
                 phases(i).getObjList("phenotypes")(j).getStr("trans"),
                 phases(i).getObjList("phenotypes")(j).getObjList("knownLoci")(k).getStr("test"),
                 phases(i).getObjList("phenotypes")(j).getObjList("knownLoci")(k).getStr("covars"),
+                phases(i).getStr("strat"),
+                phases(i).getObjList("phenotypes")(j).getObjList("knownLoci")(k).getStr("pop"),
+                phases(i).getObjList("phenotypes")(j).getObjList("knownLoci")(k).getStr("hiLd"),
                 phases(i).getObjList("phenotypes")(j).getObjList("knownLoci")(k).getStr("data"),
                 i + 1,
                 j + 1,
@@ -96,12 +80,6 @@ for { i <- 0 until phases.size }
 //val out = store.at("test.modelSeq.log")
 //local {
 //    cmd"""echo "${s}" > ${out}""".out(out)
-//}
-//
-//val s2 = knownLociSeq.mkString("\n")
-//val out2 = store.at("test.knownLociSeq.log")
-//local {
-//    cmd"""echo "${s2}" > ${out2}""".out(out2)
 //}
 
 object Input {
@@ -157,6 +135,7 @@ object Params {
     modelCovars: String,
     modelTrans: String,
     modelStrat: String,
+    modelAncestryKeep: String,
     modelPhase: Int,
     modelPhenoPrelimFile: Store,
     modelPhenoPrelimFileCloud: Store,
@@ -197,23 +176,41 @@ object Params {
     knownLociTrans: String,
     knownLociTest: String,
     knownLociCovars: String,
-    knownLociData: Store,
-    knownLociLd: Store,
-    knownLociPhase: Int,
-    knownLociVarId: String,
-    knownLociEffectAllele: String,
-    knownLociOtherAllele: String,
-    knownLociOr: String,
-    knownLociBeta: String,
-    knownLociStdErr: String,
-    knownLociPval: String,
+    knownLociStrat: String,
     knownLociPop: String,
-    knownLociN: Int,
-    knownLociNcase: Int,
-    knownLociNctrl: Int,
-    knownLociDesc: String,
-    knownLociTag: String,
-    knownLociCitation: String)
+    knownLociHiLd: Store,
+    knownLociHiLdCloud: Store,
+    knownLociPhase: Int,
+    knownLociPhenoPrelimFile: Store,
+    knownLociPhenoPrelimFileCloud: Store,
+    knownLociSamplesInclude: Store,
+    knownLociSamplesIncludeCloud: Store,
+    knownLociPhenoFileLog: Store,
+    knownLociPhenoFile: Store,
+    knownLociPcsFile: Store,
+    knownLociPhenoFileCloud: Store,
+    knownLociPcsFileCloud: Store,
+    knownLociResults: Store,
+    knownLociResultsCloud: Store)
+
+  final case class ResultKnownLoci(
+    resultKnownLociPhenoName: String,
+    resultKnownLociTrans: String,
+    resultKnownLociTest: String,
+    resultKnownLociCovars: String,
+    resultKnownLociStrat: String,
+    resultKnownLociPop: String,
+    resultKnownLociHiLd: Store,
+    resultKnownLociData: Store,
+    resultKnownLociN: String,
+    resultKnownLociCase: String,
+    resultKnownLociCtrl: String,
+    resultKnownLociPhase: Int,
+    resultKnownLociPhenoNum: Int,
+    resultKnownLociKnownLociNum: Int,
+    resultKnownLociFinal: Store,
+    resultKnownLociFinalCloud: Store,
+    resultKnownLociFinalTop50Known: Store)
 
   final case class Arr(
     arrayId: String,
@@ -259,9 +256,11 @@ object Params {
     harmRefFiltPrunedVdsCloud: Store,
     paramsByArrByChr: Seq[(Int, Chr)],
     paramsByArrByModel: Seq[(Int, Model)],
+    paramsByArrByKnownLoci: Seq[(Int, KnownLoci)],
     paramsByArrByMetric: Seq[(Int, Metric)],
     paramsByArrByChrSorted: Seq[Chr],
     paramsByArrByModelSorted: Seq[Model],
+    paramsByArrByKnownLociSorted: Seq[KnownLoci],
     paramsByArrByMetricSorted: Seq[Metric],
     harmMergeLines: Seq[String],
     harmMergeList: Store,
@@ -362,15 +361,15 @@ object Params {
       resultCovars = resultCovars,
       resultTrans = resultTrans,
       resultStrat = resultStrat,
-      resultFinal = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.gz"),
-      resultFinalTbi = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.gz.tbi"),
+      resultFinal = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.bgz"),
+      resultFinalTbi = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.bgz.tbi"),
       resultFinalTop1000 = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.top1000.tsv"),
       resultFinalTop1000Genes = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.top1000.genes.tsv"),
       resultFinalTop20AnnotAlignedRisk = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.top20.annot.aligned_risk.tsv"),
       resultFinalTopLoci = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.toploci.tsv"),
       resultFinalTopLociReport = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.toploci.report.tsv"),
       resultFinalTopLociReportHighlighted = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.toploci.report.highlighted.tsv"),
-      resultFinalCloud = store.at(googleOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.gz"),
+      resultFinalCloud = store.at(googleOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.results.tsv.bgz"),
       resultFinalQqPlot = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.qq.png"),
       resultFinalMhtPlot = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.mht.png"),
       resultFinalSigRegions = store.at(localOutDir / s"${projectId}.assoc.$resultPheno.$resultTrans.$covarsString.$resultTest.sigregions.tsv"),
@@ -379,40 +378,41 @@ object Params {
   
   }
   
-  val paramsByKnownLoci: Seq[(Int, KnownLoci)] = (0 until knownLociSeq.size).map { knownLoci =>
-  
-    val knownLociPhenoName = knownLociSeq(knownLoci)._1
-    val knownLociTrans = knownLociSeq(knownLoci)._2
-    val knownLociTest = knownLociSeq(knownLoci)._3
-    val knownLociCovars = knownLociSeq(knownLoci)._4
-    val knownLociDataPath = path(knownLociSeq(knownLoci)._5)
-    val knownLociPhase = knownLociSeq(knownLoci)._6
-    val knownLociPhenoNum = knownLociSeq(knownLoci)._7
-    val knownLociKnownLociNum = knownLociSeq(knownLoci)._8
-  
-    knownLoci -> KnownLoci(
-      knownLociPhenoName = knownLociPhenoName,
-      knownLociTrans = knownLociTrans,
-      knownLociTest = knownLociTest,
-      knownLociCovars = knownLociCovars,
-      knownLociData = store.at(knownLociDataPath).asInput,
-      knownLociLd = store.at(path(dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("ld"))).asInput,
-      knownLociPhase = knownLociPhase,
-      knownLociVarId = dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("varId"),
-      knownLociEffectAllele = dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("effectAllele"),
-      knownLociOtherAllele = dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("otherAllele"),
-      knownLociOr = if(dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).isDefined("or")) dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("or") else "",
-      knownLociBeta = if(dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).isDefined("beta")) dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("beta") else "",
-      knownLociStdErr = if(dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).isDefined("stdErr")) dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("stdErr") else "",
-      knownLociPval = dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("pVal"),
-      knownLociPop = dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("pop"),
-      knownLociN = dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getInt("n"),
-      knownLociNcase = if(phases(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).isDefined("nCase")) phases(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getInt("nCase") else 0,
-      knownLociNctrl = if(phases(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).isDefined("nCase")) phases(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getInt("nCtrl") else 0,
-      knownLociDesc = dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("desc"),
-      knownLociTag = dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("tag"),
-      knownLociCitation = dataConfig.getObjList("phases")(knownLociPhase - 1).getObjList("phenotypes")(knownLociPhenoNum - 1).getObjList("knownLoci")(knownLociKnownLociNum - 1).getStr("citation"))
-  
+  val paramsByResultKnownLoci: Seq[(Int, ResultKnownLoci)] = (0 until knownLociSeq.size).map { resultKnownLoci =>
+
+    val resultKnownLociPhenoName = knownLociSeq(resultKnownLoci)._1
+    val resultKnownLociTrans = knownLociSeq(resultKnownLoci)._2
+    val resultKnownLociTest = knownLociSeq(resultKnownLoci)._3
+    val resultKnownLociCovars = knownLociSeq(resultKnownLoci)._4
+    val resultKnownLociStrat = knownLociSeq(resultKnownLoci)._5
+    val resultKnownLociPop = knownLociSeq(resultKnownLoci)._6
+    val resultKnownLociHiLdString = knownLociSeq(resultKnownLoci)._7
+    val resultKnownLociDataString = knownLociSeq(resultKnownLoci)._8
+    val resultKnownLociPhase = knownLociSeq(resultKnownLoci)._9
+    val resultKnownLociPhenoNum = knownLociSeq(resultKnownLoci)._10
+    val resultKnownLociKnownLociNum = knownLociSeq(resultKnownLoci)._11
+
+    val knownLociCovarsString = resultKnownLociCovars.replace("+","_")
+
+    resultKnownLoci -> ResultKnownLoci(
+      resultKnownLociPhenoName = resultKnownLociPhenoName,
+      resultKnownLociTrans = resultKnownLociTrans,
+      resultKnownLociTest = resultKnownLociTest,
+      resultKnownLociCovars = resultKnownLociCovars,
+      resultKnownLociStrat = resultKnownLociStrat,
+      resultKnownLociPop = resultKnownLociPop,
+      resultKnownLociHiLd = store.at(path(resultKnownLociHiLdString)).asInput,
+      resultKnownLociData = store.at(path(resultKnownLociDataString)).asInput,
+      resultKnownLociN = if (dataConfig.getObjList("phases")(resultKnownLociPhase - 1).getObjList("phenotypes")(resultKnownLociPhenoNum - 1).getObjList("knownLoci")(resultKnownLociKnownLociNum - 1).isDefined("n")) { dataConfig.getObjList("phases")(resultKnownLociPhase - 1).getObjList("phenotypes")(resultKnownLociPhenoNum - 1).getObjList("knownLoci")(resultKnownLociKnownLociNum - 1).getStr("n") } else { "" },
+      resultKnownLociCase = if (dataConfig.getObjList("phases")(resultKnownLociPhase - 1).getObjList("phenotypes")(resultKnownLociPhenoNum - 1).getObjList("knownLoci")(resultKnownLociKnownLociNum - 1).isDefined("nCase")) { dataConfig.getObjList("phases")(resultKnownLociPhase - 1).getObjList("phenotypes")(resultKnownLociPhenoNum - 1).getObjList("knownLoci")(resultKnownLociKnownLociNum - 1).getStr("nCase") } else { "" },
+      resultKnownLociCtrl = if (dataConfig.getObjList("phases")(resultKnownLociPhase - 1).getObjList("phenotypes")(resultKnownLociPhenoNum - 1).getObjList("knownLoci")(resultKnownLociKnownLociNum - 1).isDefined("nCtrl")) { dataConfig.getObjList("phases")(resultKnownLociPhase - 1).getObjList("phenotypes")(resultKnownLociPhenoNum - 1).getObjList("knownLoci")(resultKnownLociKnownLociNum - 1).getStr("nCtrl") } else { "" },
+      resultKnownLociPhase = resultKnownLociPhase,
+      resultKnownLociPhenoNum = resultKnownLociPhenoNum,
+      resultKnownLociKnownLociNum = resultKnownLociKnownLociNum,
+      resultKnownLociFinal = store.at(localOutDir / s"${projectId}.assoc.$resultKnownLociPhenoName.$resultKnownLociTrans.$knownLociCovarsString.$resultKnownLociTest.results.known_loci.tsv"),
+      resultKnownLociFinalCloud = store.at(googleOutDir / s"${projectId}.assoc.$resultKnownLociPhenoName.$resultKnownLociTrans.$knownLociCovarsString.$resultKnownLociTest.results.known_loci.tsv"),
+      resultKnownLociFinalTop50Known = store.at(localOutDir / s"${projectId}.assoc.$resultKnownLociPhenoName.$resultKnownLociTrans.$knownLociCovarsString.$resultKnownLociTest.results.known_loci.top50.tsv"))
+
   }
 
   val paramsByArr: Seq[(Int, Arr)] = (0 until nArrays).map { arr =>
@@ -479,9 +479,10 @@ object Params {
       val modelTest = modelSeq(model)._3
       val modelCovars = modelSeq(model)._4
       val modelStrat = modelSeq(model)._5
-      val modelPhase = modelSeq(model)._6
+      val modelAncestryKeep = modelSeq(model)._6
+      val modelPhase = modelSeq(model)._7
     
-      val covarsString = modelCovars.replace("+","_")
+      val modelCovarsString = modelCovars.replace("+","_")
     
       model -> Model(
         modelPheno = modelPheno,
@@ -490,21 +491,60 @@ object Params {
         modelTrans = modelTrans,
         modelStrat = modelStrat,
         modelPhase = modelPhase,
-        modelPhenoPrelimFile = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.prelim_pheno.tsv"),
-        modelPhenoPrelimFileCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.prelim_pheno.tsv"),
-        modelSamplesInclude = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.samples.include"),
-        modelSamplesIncludeCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.samples.include"),
-        modelPhenoFileLog = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.pheno.log"),
-        modelPhenoFile = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.pheno.tsv"),
-        modelPcsFile = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.pcs.include"),
-        modelPhenoFileCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.pheno.tsv"),
-        modelPcsFileCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.pcs.include"),
-        modelResults = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.results.tsv.gz"),
-        modelResultsTbi = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.results.tsv.gz.tbi"),
-        modelResultsCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$covarsString.$modelTest.results.tsv.gz"))
+        modelAncestryKeep = modelAncestryKeep,
+        modelPhenoPrelimFile = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.prelim_pheno.tsv"),
+        modelPhenoPrelimFileCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.prelim_pheno.tsv"),
+        modelSamplesInclude = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.samples.include"),
+        modelSamplesIncludeCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.samples.include"),
+        modelPhenoFileLog = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.pheno.log"),
+        modelPhenoFile = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.pheno.tsv"),
+        modelPcsFile = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.pcs.include"),
+        modelPhenoFileCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.pheno.tsv"),
+        modelPcsFileCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.pcs.include"),
+        modelResults = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.results.tsv.bgz"),
+        modelResultsTbi = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.results.tsv.bgz.tbi"),
+        modelResultsCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$modelPheno.$modelTrans.$modelCovarsString.$modelTest.results.tsv.bgz"))
     
     }
-  
+
+    val paramsByArrByKnownLoci = (0 until knownLociSeq.size).map { knownLoci =>
+
+      val knownLociPhenoName = knownLociSeq(knownLoci)._1
+      val knownLociTrans = knownLociSeq(knownLoci)._2
+      val knownLociTest = knownLociSeq(knownLoci)._3
+      val knownLociCovars = knownLociSeq(knownLoci)._4
+      val knownLociStrat = knownLociSeq(knownLoci)._5
+      val knownLociPop = knownLociSeq(knownLoci)._6
+      val knownLociHiLdString = knownLociSeq(knownLoci)._7
+      val knownLociPhase = knownLociSeq(knownLoci)._9
+
+      val knownLociCovarsString = knownLociCovars.replace("+","_")
+      val knownLociHiLdStringBase = knownLociHiLdString.split("/").last
+    
+      knownLoci -> KnownLoci(
+        knownLociPhenoName = knownLociPhenoName,
+        knownLociTrans = knownLociTrans,
+        knownLociTest = knownLociTest,
+        knownLociCovars = knownLociCovars,
+        knownLociStrat = knownLociStrat,
+        knownLociPop = knownLociPop,
+        knownLociHiLd = store.at(path(knownLociHiLdString)).asInput,
+        knownLociHiLdCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.${knownLociHiLdStringBase}"),
+        knownLociPhase = knownLociPhase,
+        knownLociPhenoPrelimFile = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.prelim_pheno.tsv"),
+        knownLociPhenoPrelimFileCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.prelim_pheno.tsv"),
+        knownLociSamplesInclude = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.samples.include"),
+        knownLociSamplesIncludeCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.samples.include"),
+        knownLociPhenoFileLog = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.pheno.log"),
+        knownLociPhenoFile = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.pheno.tsv"),
+        knownLociPcsFile = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.pcs.include"),
+        knownLociPhenoFileCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.pheno.tsv"),
+        knownLociPcsFileCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.pcs.include"),
+        knownLociResults = store.at(localOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.results.tsv"),
+        knownLociResultsCloud = store.at(googleOutDir / s"${projectId}.${arrayId}.assoc.$knownLociPhenoName.$knownLociTrans.$knownLociCovarsString.$knownLociTest.known_loci.results.tsv"))
+
+    }
+
     val sampleqcBase = s"${projectId}.${arrayId}.sampleqc"
     val sampleqcStatsAdjBase = s"${sampleqcBase}.stats.adj"
   
@@ -552,6 +592,7 @@ object Params {
     val (_, paramsByArrByChrSorted) = paramsByArrByChr.unzip
     val harmMergeLines = paramsByArrByChrSorted.map(_.harmKgHuRefChrName.toString)
     val (_, paramsByArrByModelSorted) = paramsByArrByModel.unzip
+    val (_, paramsByArrByKnownLociSorted) = paramsByArrByKnownLoci.unzip
     val (_, paramsByArrByMetricSorted) = paramsByArrByMetric.unzip
     val sampleqcStatsAdjIndClusterCluList = paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu.toString)
   
@@ -573,6 +614,7 @@ object Params {
     arrayDataPreparedMultiallelic = store.at(s"${arrayDataPreparedName}.multiallelic"),
     paramsByArrByChr = paramsByArrByChr,
     paramsByArrByModel = paramsByArrByModel,
+    paramsByArrByKnownLoci = paramsByArrByKnownLoci,
     paramsByArrByMetric = paramsByArrByMetric,
     harmName = harmName,
     harm = bedBimFam(harmName),
@@ -592,6 +634,7 @@ object Params {
     harmRefVdsCloud = store.at(googleOutDir / s"${harmRefBase}.vds"),
     paramsByArrByChrSorted = paramsByArrByChrSorted,
     paramsByArrByModelSorted = paramsByArrByModelSorted,
+    paramsByArrByKnownLociSorted = paramsByArrByKnownLociSorted,
     paramsByArrByMetricSorted = paramsByArrByMetricSorted,
     harmMergeLines = harmMergeLines,
     sampleqcStatsAdjIndClusterCluList = sampleqcStatsAdjIndClusterCluList,
@@ -688,7 +731,7 @@ object Params {
 
   val (_, paramsByArrSorted) = paramsByArr.unzip
   val (_, paramsByResultSorted) = paramsByResult.unzip
-  val (_, paramsByKnownLociSorted) = paramsByKnownLoci.unzip
+  val (_, paramsByResultKnownLociSorted) = paramsByResultKnownLoci.unzip
 
 }
 
@@ -729,6 +772,22 @@ for {
   i <- 0 until modelSeq.size
 } {
   mergeResults(i)
+}
+
+// Perform qc2, adding relevent (inter-array) stores to the map
+val resultsKnownLociStoresMapsList: Seq[Map[(String, String, String, String, String, String), Store]] = {
+  for {
+    i <- 0 until nArrays
+  } yield { 
+    qc3(i)
+  }
+}
+
+// Merge results step
+for {
+  i <- 0 until knownLociSeq.size
+} {
+  mergeKnownLoci(i)
 }
 
 // Generate regional plots after merge results step
@@ -1064,6 +1123,8 @@ andThen {
       val reportAnalysisPhenoCalibrationInput = store.at(localOutDir / s"${projectId}.analysisreport.phase${i}.${phenoName}.calibration.input")
       val reportAnalysisPhenoTopLoci = store.at(localOutDir / s"${projectId}.analysisreport.phase${i}.${phenoName}.top_loci.tex")
       val reportAnalysisPhenoTopLociInput = store.at(localOutDir / s"${projectId}.analysisreport.phase${i}.${phenoName}.top_loci.input")
+      val reportAnalysisPhenoKnownLoci = store.at(localOutDir / s"${projectId}.analysisreport.phase${i}.${phenoName}.known_loci.tex")
+      val reportAnalysisPhenoKnownLociInput = store.at(localOutDir / s"${projectId}.analysisreport.phase${i}.${phenoName}.known_loci.input")
       var reportAnalysisPhenoDistPlotList = Seq[Store]()
       var reportAnalysisPhenoDistStratPlotList = Seq[Store]()
       var reportAnalysisPhenoDistPlotStrings = Seq[String]()
@@ -1076,14 +1137,14 @@ andThen {
       var reportAnalysisModelPcsFileList = Seq[Store]()
       var reportAnalysisModelQqPlotList = Seq[Store]()
       var reportAnalysisModelMhtPlotList = Seq[Store]()
-      var reportAnalysisModelTop1000AnnotAlignedRiskList = Seq[Store]()
+      var reportAnalysisModelTop20AnnotAlignedRiskList = Seq[Store]()
+      var reportAnalysisModelTop50KnownList = Seq[Store]()
       var reportAnalysisModelRegplotsList = Seq[Store]()
-      var reportAnalysisKnownLociLdList = Seq[Store]()
       var reportAnalysisModelQqPlotStrings = Seq[String]()
       var reportAnalysisModelMhtPlotStrings = Seq[String]()
       var reportAnalysisModelRegplotsStrings = Seq[String]()
-      var reportAnalysisKnownLociLdStrings = Seq[String]()
-      var reportAnalysisModelTop1000AnnotAlignedRiskStrings = Seq[String]()
+      var reportAnalysisModelTop20AnnotAlignedRiskStrings = Seq[String]()
+      var reportAnalysisModelTop50KnownStrings = Seq[String]()
 
       for {
         k <- 0 until nArrays
@@ -1146,10 +1207,10 @@ andThen {
         val resultPhenoString = Seq(paramsResult.resultPheno, paramsResult.resultTrans, paramsResult.resultCovars.replace("+","_")).filter(_ != "").mkString("_")
         reportAnalysisModelQqPlotList = reportAnalysisModelQqPlotList :+ paramsResult.resultFinalQqPlot
         reportAnalysisModelMhtPlotList = reportAnalysisModelMhtPlotList :+ paramsResult.resultFinalMhtPlot
-		reportAnalysisModelTop1000AnnotAlignedRiskList = reportAnalysisModelTop1000AnnotAlignedRiskList :+ paramsResult.resultFinalTop20AnnotAlignedRisk
+		reportAnalysisModelTop20AnnotAlignedRiskList = reportAnalysisModelTop20AnnotAlignedRiskList :+ paramsResult.resultFinalTop20AnnotAlignedRisk
         reportAnalysisModelQqPlotStrings = reportAnalysisModelQqPlotStrings :+ resultPhenoString + "___" + s"${paramsResult.resultFinalQqPlot.toString.split("@")(1)}"
         reportAnalysisModelMhtPlotStrings = reportAnalysisModelMhtPlotStrings :+ resultPhenoString + "___" + s"${paramsResult.resultFinalMhtPlot.toString.split("@")(1)}"
-        reportAnalysisModelTop1000AnnotAlignedRiskStrings = reportAnalysisModelTop1000AnnotAlignedRiskStrings :+ resultPhenoString + "___" + s"${paramsResult.resultFinalTop20AnnotAlignedRisk.toString.split("@")(1)}"
+        reportAnalysisModelTop20AnnotAlignedRiskStrings = reportAnalysisModelTop20AnnotAlignedRiskStrings :+ resultPhenoString + "___" + s"${paramsResult.resultFinalTop20AnnotAlignedRisk.toString.split("@")(1)}"
 
         reportAnalysisModelRegplotsList = reportAnalysisModelRegplotsList ++ resultsFinalRegplots(m)
         var regPlotStrings = Seq[String]()
@@ -1158,7 +1219,11 @@ andThen {
         } {
           regPlotStrings = regPlotStrings :+ s"${p.toString.split("@")(1)}"
         }
-        reportAnalysisModelRegplotsStrings = reportAnalysisModelRegplotsStrings :+ resultPhenoString + "___" + regPlotStrings.mkString(";")
+
+        reportAnalysisModelRegplotsStrings = { 
+          if (regPlotStrings.size > 0) { reportAnalysisModelRegplotsStrings :+ resultPhenoString + "___" + regPlotStrings.mkString(";") }
+          else { reportAnalysisModelRegplotsStrings }
+        }
 
       }
 
@@ -1166,76 +1231,87 @@ andThen {
         m <-  knownLociSeq.zipWithIndex.filter(_._1._1 == phenoName).map(_._2)
       } {
 
-        val paramsKnownLoci = Params.paramsByKnownLociSorted(m)
-        reportAnalysisKnownLociLdList = reportAnalysisKnownLociLdList :+ paramsKnownLoci.knownLociLd
-        reportAnalysisKnownLociLdStrings = reportAnalysisKnownLociLdStrings :+ s"${paramsKnownLoci.knownLociLd.toString.split("@")(1)}"
+        val paramsResultKnownLoci = Params.paramsByResultKnownLociSorted(m)
+        val resultKnownLociPhenoString = Seq(paramsResultKnownLoci.resultKnownLociPhenoName, paramsResultKnownLoci.resultKnownLociTrans, paramsResultKnownLoci.resultKnownLociCovars.replace("+","_")).filter(_ != "").mkString("_")
+        reportAnalysisModelTop50KnownList = reportAnalysisModelTop50KnownList :+ paramsResultKnownLoci.resultKnownLociFinalTop50Known
+        reportAnalysisModelTop50KnownStrings = reportAnalysisModelTop50KnownStrings :+ resultKnownLociPhenoString + "___" + s"${paramsResultKnownLoci.resultKnownLociFinalTop50Known.toString.split("@")(1)}"
 
       }
 
-      //local {
-      //
-      //  cmd"""python $pyGenerateAnalysisReportPhenoSummary
-      //    --dist-plot "${reportAnalysisPhenoDistPlotStrings.mkString(",")}"
-      //    --strat-dist-plot "${reportAnalysisPhenoDistStratPlotStrings.mkString(",")}"
-      //    --pheno-master ${Input.Local.pheno}
-	  //    --id-col $phenoId
-	  //    --sex-col $phenoSrSex
-      //    --pheno "${reportAnalysisModelPhenoFileStrings.mkString(",")}"
-      //    --pheno-name ${phenoName}
-      //    --pheno-long-name "${phenoLongName}"
-      //    --ancestry ${ancestryInferredMerged}
-      //    --samples-include "${reportAnalysisModelSamplesIncludeStrings.mkString(",")}"
-      //    --pcs-include "${reportAnalysisModelPcsFileStrings.mkString(",")}"
-      //    --out-tex ${reportAnalysisPhenoSummary}
-      //    --out-input ${reportAnalysisPhenoSummaryInput}"""
-      //    .in(reportAnalysisModelPhenoFileList ++ reportAnalysisModelSamplesIncludeList ++ reportAnalysisModelPcsFileList ++ reportAnalysisPhenoDistPlotList ++ reportAnalysisPhenoDistStratPlotList :+ ancestryInferredMerged :+ Input.Local.pheno)
-      //    .out(reportAnalysisPhenoSummary, reportAnalysisPhenoSummaryInput)
-      //  
-      //  cmd"""python $pyGenerateAnalysisReportPhenoCalibration
-      //    --qq-plots "${reportAnalysisModelQqPlotStrings.mkString(",")}"
-	  //    --mht-plots "${reportAnalysisModelMhtPlotStrings.mkString(",")}"
-      //    --pheno-name ${phenoName}
-	  //    --out-tex ${reportAnalysisPhenoCalibration}
-	  //    --out-input ${reportAnalysisPhenoCalibrationInput}"""
-      //    .in(reportAnalysisModelQqPlotList ++ reportAnalysisModelMhtPlotList)
-      //    .out(reportAnalysisPhenoCalibration, reportAnalysisPhenoCalibrationInput)
-      //  
-      //  cmd"""python $pyGenerateAnalysisReportPhenoTopLoci
-      //    --top-results "${reportAnalysisModelTop1000AnnotAlignedRiskStrings.mkString(",")}"
-	  //    --regionals "${reportAnalysisModelRegplotsStrings.mkString(",")}"
-      //    --known-ld "${reportAnalysisKnownLociLdStrings.mkString(",")}"
-	  //    --pheno-name ${phenoName}
-	  //    --out-tex ${reportAnalysisPhenoTopLoci}
-	  //    --out-input ${reportAnalysisPhenoTopLociInput}"""
-      //    .in(reportAnalysisModelTop1000AnnotAlignedRiskList ++ reportAnalysisModelRegplotsList ++ reportAnalysisKnownLociLdList)
-      //    .out(reportAnalysisPhenoTopLoci, reportAnalysisPhenoTopLociInput)
-      //
-      //}
+      local {
+      
+        cmd"""python $pyGenerateAnalysisReportPhenoSummary
+          --dist-plot "${reportAnalysisPhenoDistPlotStrings.mkString(",")}"
+          --strat-dist-plot "${reportAnalysisPhenoDistStratPlotStrings.mkString(",")}"
+          --pheno-master ${Input.Local.pheno}
+	      --id-col $phenoId
+	      --sex-col $phenoSrSex
+          --pheno "${reportAnalysisModelPhenoFileStrings.mkString(",")}"
+          --pheno-name ${phenoName}
+          --pheno-long-name "${phenoLongName}"
+          --ancestry ${ancestryInferredMerged}
+          --samples-include "${reportAnalysisModelSamplesIncludeStrings.mkString(",")}"
+          --pcs-include "${reportAnalysisModelPcsFileStrings.mkString(",")}"
+          --out-tex ${reportAnalysisPhenoSummary}
+          --out-input ${reportAnalysisPhenoSummaryInput}"""
+          .in(reportAnalysisModelPhenoFileList ++ reportAnalysisModelSamplesIncludeList ++ reportAnalysisModelPcsFileList ++ reportAnalysisPhenoDistPlotList ++ reportAnalysisPhenoDistStratPlotList :+ ancestryInferredMerged :+ Input.Local.pheno)
+          .out(reportAnalysisPhenoSummary, reportAnalysisPhenoSummaryInput)
+        
+        cmd"""python $pyGenerateAnalysisReportPhenoCalibration
+          --qq-plots "${reportAnalysisModelQqPlotStrings.mkString(",")}"
+	      --mht-plots "${reportAnalysisModelMhtPlotStrings.mkString(",")}"
+          --pheno-name ${phenoName}
+          --pheno-long-name "${phenoLongName}"
+	      --out-tex ${reportAnalysisPhenoCalibration}
+	      --out-input ${reportAnalysisPhenoCalibrationInput}"""
+          .in(reportAnalysisModelQqPlotList ++ reportAnalysisModelMhtPlotList)
+          .out(reportAnalysisPhenoCalibration, reportAnalysisPhenoCalibrationInput)
+        
+        cmd"""python $pyGenerateAnalysisReportPhenoTopLoci
+          --top-results "${reportAnalysisModelTop20AnnotAlignedRiskStrings.mkString(",")}"
+	      --regionals "${reportAnalysisModelRegplotsStrings.mkString(",")}"
+	      --pheno-name ${phenoName}
+          --pheno-long-name "${phenoLongName}"
+	      --out-tex ${reportAnalysisPhenoTopLoci}
+	      --out-input ${reportAnalysisPhenoTopLociInput}"""
+          .in(reportAnalysisModelTop20AnnotAlignedRiskList ++ reportAnalysisModelRegplotsList)
+          .out(reportAnalysisPhenoTopLoci, reportAnalysisPhenoTopLociInput)
+
+        cmd"""python $pyGenerateAnalysisReportPhenoKnownLoci
+          --top-known-loci "${reportAnalysisModelTop50KnownStrings.mkString(",")}"
+	      --pheno-name ${phenoName}
+          --pheno-long-name "${phenoLongName}"
+	      --out-tex ${reportAnalysisPhenoKnownLoci}
+	      --out-input ${reportAnalysisPhenoKnownLociInput}"""
+          .in(reportAnalysisModelTop50KnownList)
+          .out(reportAnalysisPhenoKnownLoci, reportAnalysisPhenoKnownLociInput)
+      
+      }
 
       reportAnalysisResultsList = reportAnalysisResultsList :+ reportAnalysisPhenoSummary :+ reportAnalysisPhenoCalibration :+ reportAnalysisPhenoTopLoci
-      reportAnalysisResultsStringList = reportAnalysisResultsStringList :+ s"${reportAnalysisPhenoSummary.toString.split("@")(1)}" :+ s"${reportAnalysisPhenoCalibration.toString.split("@")(1)}" :+ s"${reportAnalysisModelTop1000AnnotAlignedRiskList.toString.split("@")(1)}" :+ s"${reportAnalysisModelRegplotsList.toString.split("@")(1)}"
+      reportAnalysisResultsStringList = reportAnalysisResultsStringList :+ s"${reportAnalysisPhenoSummary.toString.split("@")(1)}" :+ s"${reportAnalysisPhenoCalibration.toString.split("@")(1)}" :+ s"${reportAnalysisPhenoTopLoci.toString.split("@")(1)}" :+ s"${reportAnalysisPhenoKnownLoci.toString.split("@")(1)}"
       reportAnalysisResultsInputList = reportAnalysisResultsInputList :+ reportAnalysisPhenoSummaryInput :+ reportAnalysisPhenoCalibrationInput :+ reportAnalysisPhenoTopLociInput
-      reportAnalysisResultsInputStringList = reportAnalysisResultsInputStringList :+ s"${reportAnalysisPhenoSummaryInput.toString.split("@")(1)}" :+ s"${reportAnalysisPhenoCalibrationInput.toString.split("@")(1)}" :+ s"${reportAnalysisPhenoTopLociInput.toString.split("@")(1)}"
+      reportAnalysisResultsInputStringList = reportAnalysisResultsInputStringList :+ s"${reportAnalysisPhenoSummaryInput.toString.split("@")(1)}" :+ s"${reportAnalysisPhenoCalibrationInput.toString.split("@")(1)}" :+ s"${reportAnalysisPhenoTopLociInput.toString.split("@")(1)}" :+ s"${reportAnalysisPhenoKnownLociInput.toString.split("@")(1)}"
 
     }
 
-    //local {
-    //  cmd"""python $pyGenerateAnalysisReportBibliography
-    //    --out ${reportAnalysisBibliography}"""
-    //    .out(reportAnalysisBibliography)
-    //  
-    //  cmd"""cat ${reportAnalysisIntro} ${reportAnalysisData} ${reportAnalysisStrategy} ${reportAnalysisResultsStringList.mkString(" ")} ${reportAnalysisBibliography} > $reportAnalysisTex"""
-    //    .in(reportAnalysisResultsList :+ reportAnalysisIntro :+ reportAnalysisData :+ reportAnalysisStrategy :+ reportAnalysisBibliography)
-    //    .out(reportAnalysisTex)
-    //  
-    //  cmd"""cat ${reportAnalysisIntroInput} ${reportAnalysisDataInput} ${reportAnalysisStrategyInput} ${reportAnalysisResultsInputStringList.mkString(" ")} > $reportAnalysisInput"""
-    //    .in(reportAnalysisResultsInputList :+ reportAnalysisIntroInput :+ reportAnalysisDataInput :+ reportAnalysisStrategy)
-    //    .out(reportAnalysisInput)
-    //  
-    //  cmd"""$binPdflatex --output-directory=${localOutDir} $reportAnalysisTex; sleep 5; $binPdflatex --output-directory=${localOutDir} $reportAnalysisTex """
-    //    .in(reportAnalysisTex)
-    //    .out(reportAnalysisPdf)
-    //}
+    local {
+      cmd"""python $pyGenerateAnalysisReportBibliography
+        --out ${reportAnalysisBibliography}"""
+        .out(reportAnalysisBibliography)
+      
+      cmd"""cat ${reportAnalysisIntro} ${reportAnalysisData} ${reportAnalysisStrategy} ${reportAnalysisResultsStringList.mkString(" ")} ${reportAnalysisBibliography} > $reportAnalysisTex"""
+        .in(reportAnalysisResultsList :+ reportAnalysisIntro :+ reportAnalysisData :+ reportAnalysisStrategy :+ reportAnalysisBibliography)
+        .out(reportAnalysisTex)
+      
+      cmd"""cat ${reportAnalysisIntroInput} ${reportAnalysisDataInput} ${reportAnalysisStrategyInput} ${reportAnalysisResultsInputStringList.mkString(" ")} > $reportAnalysisInput"""
+        .in(reportAnalysisResultsInputList :+ reportAnalysisIntroInput :+ reportAnalysisDataInput :+ reportAnalysisStrategy)
+        .out(reportAnalysisInput)
+      
+      cmd"""$binPdflatex --output-directory=${localOutDir} $reportAnalysisTex; sleep 5; $binPdflatex --output-directory=${localOutDir} $reportAnalysisTex """
+        .in(reportAnalysisTex)
+        .out(reportAnalysisPdf)
+    }
 
   }
 }
@@ -1559,6 +1635,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
 
   val (_, paramsArr) = Params.paramsByArr(i)
   var resultsMap = Seq[Map[(String, String, String, String, String), Store]]()
+  var knownLociMap = Seq[Map[(String, String, String, String, String, String), Store]]()
 
   ///**
   // * PCA Step
@@ -1727,7 +1804,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
   //    --kinship-famsizes ${paramsArr.kinFamsizes}
   //    --sampleqc-outliers ${paramsArr.sampleqcStatsAdjOutliersTable}
   //    --sexcheck-problems ${paramsArr.sampleqcSexcheckProblems}
-  //    --ancestry-keep ${ancestryKeep.mkString(",")}
+  //    --ancestry-keep ${ancestryOutliersKeep.mkString(",")}
   //    --duplicates-keep ${duplicatesKeep.mkString(",")}
   //    --famsize-keep ${famsizeKeep.mkString(",")}
   //    --sampleqc-keep ${sampleqcKeep.mkString(",")}
@@ -1791,13 +1868,13 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
   //    .using("R-3.4")
   //
   //}
-
-  /**
-   * Association Step
-   *  Description: Run association tests
-   *  Requires: Hail
-   */
-  
+  //
+  ///**
+  // * Association Step
+  // *  Description: Run association tests
+  // *  Requires: Hail
+  // */
+  //
   for {
     (model, paramsModel) <- paramsArr.paramsByArrByModel
   } {
@@ -1828,6 +1905,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
     //    --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
     //    --pheno-in ${Input.Local.pheno}
     //    --ancestry-in ${ancestryInferredMerged}
+    //    --ancestry-keep "${paramsModel.modelAncestryKeep}"
     //    --pheno-col ${paramsModel.modelPheno}
     //    --iid-col $phenoId
     //    --samples-include ${paramsModel.modelSamplesInclude}
@@ -1837,7 +1915,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
     //    --covars "${paramsModel.modelCovars}"
     //    --out-pheno ${paramsModel.modelPhenoFile}
     //    --out-pcs ${paramsModel.modelPcsFile}
-    //    > ${paramsModel.modelPhenoFileLog} 2>&1"""
+    //    > ${paramsModel.modelPhenoFileLog}"""
     //    .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, ancestryInferredMerged, paramsModel.modelSamplesInclude, paramsArr.finalVariantExclusions)
     //    .out(paramsModel.modelPhenoFile, paramsModel.modelPcsFile, paramsModel.modelPhenoFileLog)
     //    .using("R-3.4")
@@ -1862,6 +1940,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
     //    --out ${paramsModel.modelResultsCloud}"""
     //      .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno :+ paramsModel.modelPhenoFileCloud)
     //      .out(paramsModel.modelResultsCloud)
+    //
     //}
     //
     //local {
@@ -1873,7 +1952,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
     //    .in(paramsModel.modelResults)
     //    .out(paramsModel.modelResultsTbi)
     //}
-
+  
     resultsMap = resultsMap :+ Map((paramsArr.arrayId, paramsModel.modelPheno, paramsModel.modelTest, paramsModel.modelCovars, paramsModel.modelTrans) -> paramsModel.modelResultsCloud)
 
   }
@@ -1882,20 +1961,122 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
 
 }
 
+def qc3(i: Int): Map[(String, String, String, String, String, String), Store] = {
+
+  val (_, paramsArr) = Params.paramsByArr(i)
+  var knownLociMap = Seq[Map[(String, String, String, String, String, String), Store]]()
+
+  for {
+    (model, paramsKnownLoci) <- paramsArr.paramsByArrByKnownLoci
+  } {
+  
+    //google {
+    //  hail"""$pyHailListSamples
+    //    --vds-in ${paramsArr.cleanVdsCloud}
+    //    --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
+    //    --pheno-in ${Input.Google.pheno}
+    //    --iid-col $phenoId
+    //    --pheno-col ${paramsKnownLoci.knownLociPhenoName}
+    //    --test ${paramsKnownLoci.knownLociTest}
+    //    --covars "${paramsKnownLoci.knownLociCovars}"
+    //    --out-pheno-prelim ${paramsKnownLoci.knownLociPhenoPrelimFileCloud}
+    //    --out-samples ${paramsKnownLoci.knownLociSamplesIncludeCloud}"""
+    //  .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno)
+    //  .out(paramsKnownLoci.knownLociPhenoPrelimFileCloud, paramsKnownLoci.knownLociSamplesIncludeCloud)
+    //}
+    //
+    //local {
+    //  googleCopy(paramsKnownLoci.knownLociPhenoPrelimFileCloud, paramsKnownLoci.knownLociPhenoPrelimFile)
+    //  googleCopy(paramsKnownLoci.knownLociSamplesIncludeCloud, paramsKnownLoci.knownLociSamplesInclude)
+    //}
+    //
+    //uger {
+    //  cmd"""$binRscript --vanilla --verbose
+    //    $rGeneratePheno
+    //    --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
+    //    --pheno-in ${Input.Local.pheno}
+    //    --ancestry-in ${ancestryInferredMerged}
+    //    --ancestry-keep "${paramsKnownLoci.knownLociPop}"
+    //    --pheno-col ${paramsKnownLoci.knownLociPhenoName}
+    //    --iid-col $phenoId
+    //    --samples-include ${paramsKnownLoci.knownLociSamplesInclude}
+    //    --variants-exclude ID ${paramsArr.finalVariantExclusions}
+    //    --test ${paramsKnownLoci.knownLociTest}
+    //    --trans "${paramsKnownLoci.knownLociTrans}"
+    //    --covars "${paramsKnownLoci.knownLociCovars}"
+    //    --out-pheno ${paramsKnownLoci.knownLociPhenoFile}
+    //    --out-pcs ${paramsKnownLoci.knownLociPcsFile}
+    //    > ${paramsKnownLoci.knownLociPhenoFileLog}"""
+    //    .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, ancestryInferredMerged, paramsKnownLoci.knownLociSamplesInclude, paramsArr.finalVariantExclusions)
+    //    .out(paramsKnownLoci.knownLociPhenoFile, paramsKnownLoci.knownLociPcsFile, paramsKnownLoci.knownLociPhenoFileLog)
+    //    .using("R-3.4")
+    //}
+    //
+    //local {
+    //  googleCopy(paramsKnownLoci.knownLociPhenoFile, paramsKnownLoci.knownLociPhenoFileCloud)
+    //  googleCopy(paramsKnownLoci.knownLociPcsFile, paramsKnownLoci.knownLociPcsFileCloud)
+    //  googleCopy(paramsKnownLoci.knownLociHiLd, paramsKnownLoci.knownLociHiLdCloud)
+    //}
+    //
+    //google {
+    //  hail"""$pyHailAssoc
+    //    --vds-in ${paramsArr.cleanVdsCloud}
+    //    --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
+    //    --pheno-in ${paramsKnownLoci.knownLociPhenoFileCloud}
+    //    --iid-col $phenoId
+    //    --pheno-col ${paramsKnownLoci.knownLociPhenoName}
+    //    --pcs-include ${paramsKnownLoci.knownLociPcsFileCloud}
+    //    --extract-ld ${paramsKnownLoci.knownLociHiLdCloud}
+    //    --test ${paramsKnownLoci.knownLociTest}
+    //    --trans "${paramsKnownLoci.knownLociTrans}"
+    //    --covars "${paramsKnownLoci.knownLociCovars}"
+    //    --out ${paramsKnownLoci.knownLociResultsCloud}"""
+    //      .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno :+ paramsKnownLoci.knownLociPhenoFileCloud :+ paramsKnownLoci.knownLociHiLdCloud)
+    //      .out(paramsKnownLoci.knownLociResultsCloud)
+    //
+    //}
+    //
+    //local {
+    //  googleCopy(paramsKnownLoci.knownLociResultsCloud, paramsKnownLoci.knownLociResults)
+    //}
+    
+    knownLociMap = knownLociMap :+ Map((paramsArr.arrayId, paramsKnownLoci.knownLociPhenoName, paramsKnownLoci.knownLociTest, paramsKnownLoci.knownLociCovars, paramsKnownLoci.knownLociTrans, paramsKnownLoci.knownLociPop) -> paramsKnownLoci.knownLociResultsCloud)
+  
+  }
+
+  return knownLociMap.flatten.toMap
+
+}
+
+
 def mergeResults(i: Int): Unit = {
 
   val (_, paramsResult) = Params.paramsByResult(i)
   
-  ///**
-  // * Merge Step
-  // *  Description: Run association tests
-  // *  Requires: Hail
-  // */
-  //
-  //val modelResultsMap = resultsStoresMapsList.flatten.toMap.filterKeys({e => e._2 == paramsResult.resultPheno && e._3 == paramsResult.resultTest && e._4 == paramsResult.resultCovars && e._5 == paramsResult.resultTrans})
-  //
-  //val modelResultsString = modelResultsMap.map { case (key, value) => s"""${key._1}___${value.toString.split("@")(1)}""" }.mkString(",")
-  //
+  /**
+   * Merge Step
+   *  Description: Run association tests
+   *  Requires: Hail
+   */
+  
+  val modelResultsMap = resultsStoresMapsList.flatten.toMap.filterKeys({e => e._2 == paramsResult.resultPheno && e._3 == paramsResult.resultTest && e._4 == paramsResult.resultCovars && e._5 == paramsResult.resultTrans})
+  
+  val modelResultsString = modelResultsMap.map { case (key, value) => s"""${key._1}___${value.toString.split("@")(1)}""" }.mkString(",")
+
+  var reportAnalysisResultKnownLociHiLdList = Seq[Store]()
+  var reportAnalysisResultKnownLociHiLdStrings = Seq[String]()
+      
+
+  for {
+    m <-  knownLociSeq.zipWithIndex.filter(_._1._1 == paramsResult.resultPheno).map(_._2)
+  } {
+      
+    val paramsResultKnownLoci = Params.paramsByResultKnownLociSorted(m)
+    reportAnalysisResultKnownLociHiLdList = reportAnalysisResultKnownLociHiLdList :+ paramsResultKnownLoci.resultKnownLociHiLd
+    reportAnalysisResultKnownLociHiLdStrings = reportAnalysisResultKnownLociHiLdStrings :+ s"${paramsResultKnownLoci.resultKnownLociHiLd.toString.split("@")(1)}"
+
+  }
+
   //google {
   //  hail"""$pyHailMerge
   //    --results "${modelResultsString}"
@@ -1907,13 +2088,12 @@ def mergeResults(i: Int): Unit = {
   //local {
   //  googleCopy(paramsResult.resultFinalCloud, paramsResult.resultFinal)
   //}
-  //
+
   //local {
   //  cmd"""$binTabix -b 2 -e 2 ${paramsResult.resultFinal}"""
   //    .in(paramsResult.resultFinal)
   //    .out(paramsResult.resultFinalTbi)
   //}
-  //
   //
   ///**
   // * Top Results Step
@@ -1921,38 +2101,42 @@ def mergeResults(i: Int): Unit = {
   // *  Requires: Python
   // */
   //
-  uger {
-  
-    //cmd"""python $pyTop1000
-    //  --results ${paramsResult.resultFinal}
-    //  --p pval 
-    //  --out ${paramsResult.resultFinalTop1000}"""
-    //  .in(paramsResult.resultFinal)
-    //  .out(paramsResult.resultFinalTop1000)
-    //
-    //cmd"""(sed '1d' ${paramsResult.resultFinalTop1000} | awk '{print $$1"\t"$$2}' | python $pyAddGeneAnnot --outside-name NA --chr-col 1 --pos-col 2 --gene-file ${Input.Local.genes} --out-delim \\t) | sort -u > ${paramsResult.resultFinalTop1000Genes}"""
-    //  .in(paramsResult.resultFinalTop1000, Input.Local.genes)
-    //  .out(paramsResult.resultFinalTop1000Genes)
-    
-    cmd"""$binRscript --vanilla --verbose
-      $rAlignRisk
-      --results ${paramsResult.resultFinalTop1000}
-      --genes ${paramsResult.resultFinalTop1000Genes}
-      --p pval
-      --test ${paramsResult.resultTest}
-      --out ${paramsResult.resultFinalTop20AnnotAlignedRisk}"""
-      .in(paramsResult.resultFinalTop1000, paramsResult.resultFinalTop1000Genes)
-      .out(paramsResult.resultFinalTop20AnnotAlignedRisk)
-      .using("R-3.4")
-  
-  }
+  //local {
+  //
+  //  cmd"""python $pyTop1000
+  //    --results ${paramsResult.resultFinal}
+  //    --p pval 
+  //    --out ${paramsResult.resultFinalTop1000}"""
+  //    .in(paramsResult.resultFinal)
+  //    .out(paramsResult.resultFinalTop1000)
+  //  
+  //  cmd"""(sed '1d' ${paramsResult.resultFinalTop1000} | awk '{print $$1"\t"$$2}' | python $pyAddGeneAnnot --outside-name NA --chr-col 1 --pos-col 2 --gene-file ${Input.Local.genes} --out-delim \\t) | sort -u > ${paramsResult.resultFinalTop1000Genes}"""
+  //    .in(paramsResult.resultFinalTop1000, Input.Local.genes)
+  //    .out(paramsResult.resultFinalTop1000Genes)
+  //  
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rTop20
+  //    --results ${paramsResult.resultFinalTop1000}
+  //    --chr "#chr"
+  //    --pos pos
+  //    --genes ${paramsResult.resultFinalTop1000Genes}
+  //    --known-loci ${reportAnalysisResultKnownLociHiLdStrings.mkString(",")}
+  //    --p pval
+  //    --test ${paramsResult.resultTest}
+  //    --out ${paramsResult.resultFinalTop20AnnotAlignedRisk}"""
+  //    .in(reportAnalysisResultKnownLociHiLdList :+ paramsResult.resultFinalTop1000 :+ paramsResult.resultFinalTop1000Genes)
+  //    .out(paramsResult.resultFinalTop20AnnotAlignedRisk)
+  //    .using("R-3.4")
+  //
+  //}
+
   ///**
   // * Plot Step
   // *  Description: Run association tests
   // *  Requires: Python
   // */
   //
-  //uger {
+  //local {
   //  cmd"""python $pyQqPlot
   //    --results ${paramsResult.resultFinal}
   //    --p pval
@@ -1961,7 +2145,7 @@ def mergeResults(i: Int): Unit = {
   //  
   //  cmd"""python $pyMhtPlot
   //    --results ${paramsResult.resultFinal}
-  //    --chr chr
+  //    --chr "#chr"
   //    --pos pos
   //    --p pval
   //    --out ${paramsResult.resultFinalMhtPlot}
@@ -1969,14 +2153,56 @@ def mergeResults(i: Int): Unit = {
   //  
   //  cmd"""python $pyExtractTopRegions
   //    --results ${paramsResult.resultFinal}
-  //    --chr chr
+  //    --chr "#chr"
   //    --pos pos
   //    --p pval
   //    --out ${paramsResult.resultFinalSigRegions}
   //    """.in(paramsResult.resultFinal).out(paramsResult.resultFinalSigRegions)
   //}
-
   
+}
+
+def mergeKnownLoci(i: Int): Unit = {
+
+  val (_, paramsResultKnownLoci) = Params.paramsByResultKnownLoci(i)
+  
+  /**
+   * Merge Step
+   *  Description: Run association tests for known loci
+   *  Requires: Hail
+   */
+
+  val knownLociMap = resultsKnownLociStoresMapsList.flatten.toMap.filterKeys({e => e._2 == paramsResultKnownLoci.resultKnownLociPhenoName && e._3 == paramsResultKnownLoci.resultKnownLociTest && e._4 == paramsResultKnownLoci.resultKnownLociCovars && e._5 == paramsResultKnownLoci.resultKnownLociTrans && e._6 == paramsResultKnownLoci.resultKnownLociPop})
+  
+  val knownLociString = knownLociMap.map { case (key, value) => s"""${key._1}___${value.toString.split("@")(1)}""" }.mkString(",")
+
+  //google {
+  //  hail"""$pyHailMerge
+  //    --results "${knownLociString}"
+  //    --test ${paramsResultKnownLoci.resultKnownLociTest}
+  //    --out ${paramsResultKnownLoci.resultKnownLociFinalCloud}
+  //    """.in(knownLociMap.values).out(paramsResultKnownLoci.resultKnownLociFinalCloud)
+  //}
+  //
+  //local {
+  //  googleCopy(paramsResultKnownLoci.resultKnownLociFinalCloud, paramsResultKnownLoci.resultKnownLociFinal)
+  //}
+  //
+  //uger {
+  //  cmd"""$binRscript --vanilla --verbose
+  //    $rTop50Known
+  //    --results ${paramsResultKnownLoci.resultKnownLociFinal}
+  //    --known-loci ${paramsResultKnownLoci.resultKnownLociData}
+  //    --known-loci-n "${paramsResultKnownLoci.resultKnownLociN}"
+  //    --known-loci-case "${paramsResultKnownLoci.resultKnownLociCase}"
+  //    --known-loci-ctrl "${paramsResultKnownLoci.resultKnownLociCtrl}"
+  //    --test ${paramsResultKnownLoci.resultKnownLociTest}
+  //    --out ${paramsResultKnownLoci.resultKnownLociFinalTop50Known}"""
+  //    .in(paramsResultKnownLoci.resultKnownLociFinal, paramsResultKnownLoci.resultKnownLociData)
+  //    .out(paramsResultKnownLoci.resultKnownLociFinalTop50Known)
+  //    .using("R-3.4")
+  //}
+
 }
 
 def plotSigRegions(i: Int): Seq[Store] = {
@@ -1991,29 +2217,30 @@ def plotSigRegions(i: Int): Seq[Store] = {
 
   local {
     for (region <- regions) {
-
+  
       val regionChr = region.split("\t")(0)
       val regionStart = region.split("\t")(1)
       val regionEnd = region.split("\t")(2)
-      val resultsFinalRegplotData = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}_${regionEnd}.data.tsv")
-      val resultsFinalRegplotLog = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}_${regionEnd}.locuszoom.log")
-      val resultsFinalRegplotPdf = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}-${regionEnd}" / s"chr${regionChr}_${regionStart}-${regionEnd}.pdf")
-      val resultsFinalRegplotPng = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_chr${regionChr}_${regionStart}_${regionEnd}.png")
-
+      val regionVar = region.split("\t")(3)
+      val resultsFinalRegplotData = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.data.tsv")
+      val resultsFinalRegplotLog = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.locuszoom.log")
+      val resultsFinalRegplotPdf = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}-${regionEnd}" / s"chr${regionChr}_${regionStart}-${regionEnd}.pdf")
+      val resultsFinalRegplotPng = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.png")
+  
       //cmd"""pcol=`$binTabix -H ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; (echo -e "id\tpval"; $binTabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') > ${resultsFinalRegplotData}"""
       //  .in(paramsResult.resultFinal)
       //  .out(resultsFinalRegplotData)
       //
-      //cmd"""$binLocuszoom --metal ${resultsFinalRegplotData} --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --no-date --prefix ${paramsResult.resultFinalRegplotName} --cache None  > ${resultsFinalRegplotLog}"""
+      //cmd"""$binLocuszoom --metal ${resultsFinalRegplotData} --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --no-date --prefix ${paramsResult.resultFinalRegplotName}_${regionVar} --cache None  > ${resultsFinalRegplotLog}"""
       //  .in(resultsFinalRegplotData)
       //  .out(resultsFinalRegplotPdf, resultsFinalRegplotLog)
       //
       //cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${resultsFinalRegplotPdf}[0] $resultsFinalRegplotPng"""
       //  .in(resultsFinalRegplotPdf)
       //  .out(resultsFinalRegplotPng)
-
+  
       resultsFinalRegplotList = resultsFinalRegplotList :+ resultsFinalRegplotPng
-
+  
     }
   }
 

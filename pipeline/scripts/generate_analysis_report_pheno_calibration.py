@@ -68,6 +68,7 @@ if __name__ == "__main__":
 	requiredArgs.add_argument('--qq-plots', help='a comma separated list of array labels, model names, and qq plots, each separated by 3 underscores', required=True)
 	requiredArgs.add_argument('--mht-plots', help='a comma separated list of array labels, model names, and manhattan plots, each separated by 3 underscores', required=True)
 	requiredArgs.add_argument('--pheno-name', help='a column name for phenotype', required=True)
+	requiredArgs.add_argument('--pheno-long-name', help='a full phenotype name', required=True)
 	requiredArgs.add_argument('--out-tex', help='an output file name with extension .tex', required=True)
 	requiredArgs.add_argument('--out-input', help='an output file name with extension .input', required=True)
 	args = parser.parse_args()

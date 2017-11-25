@@ -9,6 +9,7 @@ parser <- ArgumentParser()
 parser$add_argument("--gds-in", dest="gds_in", type="character", help="a plink binary file path")
 parser$add_argument("--pheno-in", dest="pheno_in", type="character", help="a phenotype file")
 parser$add_argument("--ancestry-in", dest="ancestry_in", type="character", help="an ancestry file")
+parser$add_argument("--ancestry-keep", dest="ancestry_keep", type="character", help="a comma separated list of population groups to keep (ie. EUR,AFR)")
 parser$add_argument("--pheno-col", dest="pheno_col", type="character", help="a column name for phenotype")
 parser$add_argument("--iid-col", dest="iid_col", help='a column name for sample ID in phenotype file')
 parser$add_argument("--samples-include", dest="samples_include", type="character", help="a final list of sample IDs to include")
@@ -72,6 +73,12 @@ ancestry<-read.table(args$ancestry_in,header=T,as.is=T,stringsAsFactors=F,sep="\
 names(ancestry)[1]<-args$iid_col
 names(ancestry)[2]<-"ANCESTRY_INFERRED"
 pheno<-merge(pheno,ancestry,all.x=T)
+print(names(pheno))
+if(! is.null(args$ancestry_keep)) {
+	anc_keep = unlist(strsplit(args$ancestry_keep,","))
+	print(paste("keeping populations group/s",paste(anc_keep,collapse="+"),"for analysis",sep=" "))
+	pheno <- pheno[pheno$ANCESTRY_INFERRED %in% anc_keep,]
+}
 
 print("reading sample and variant IDs from gds file")
 geno <- GdsGenotypeReader(filename = args$gds_in)

@@ -12,8 +12,8 @@ def main(args=None):
 	cols = {}
 	for i in xrange(len(results)):
 		kt = hc.import_table(results[i][1], no_header=False, missing="NA", impute=True, types={'uid': TString()}).key_by('uid')
-		cols[results[i][0]] = [str(c) for c in kt.columns]
-		kt = kt.rename([results[i][0] + '_' + x if x != 'uid' else x for x in kt.columns])
+		cols[results[i][0]] = [str(c).replace("#","") for c in kt.columns]
+		kt = kt.rename([results[i][0] + '_' + x.replace("#","") if x != 'uid' else x for x in kt.columns])
 		kt = kt.annotate(results[i][0] + '_cohort = "' + results[i][0] + '"')
 		if i == 0:
 			ktfinal = kt
@@ -40,7 +40,7 @@ def main(args=None):
 	ktout.rename(columns = {'chr': '#chr'}, inplace=True)
 
 	with hadoop_write(args.out) as f:
-		ktout.to_csv(f, header=True, index=False, sep="\t", na_rep="NA")
+		ktout.to_csv(f, header=True, index=False, sep="\t", na_rep="NA", compression="gzip")
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()

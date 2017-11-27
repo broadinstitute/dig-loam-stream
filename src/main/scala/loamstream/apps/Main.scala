@@ -23,6 +23,9 @@ import loamstream.util.Versions
  */
 object Main extends Loggable {
   def main(args: Array[String]): Unit = {
+    
+    addUncaughtExceptionHandler()
+    
     val cli = Conf(args)
 
     describeLoamstream()
@@ -32,6 +35,20 @@ object Main extends Loggable {
     } else {
       run(cli)
     }
+  }
+  
+  private def addUncaughtExceptionHandler(): Unit = {
+    val handler: Thread.UncaughtExceptionHandler = new Thread.UncaughtExceptionHandler {
+      override def uncaughtException(t: Thread, e: Throwable): Unit = {
+        error(s"[${t.getName}] Fatal uncaught exception; will trigger shutdown: ", e)
+
+        e.printStackTrace(System.err)
+      }
+    }
+    
+    Thread.setDefaultUncaughtExceptionHandler(handler)
+    
+    Thread.currentThread.setUncaughtExceptionHandler(handler)
   }
 
   private def addShutdownHook(wiring: AppWiring): Unit = {

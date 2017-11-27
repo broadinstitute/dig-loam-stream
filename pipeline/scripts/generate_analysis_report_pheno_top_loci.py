@@ -82,12 +82,12 @@ def main(args=None):
 							r"\end{figure}"])
 				f.write("\n"); f.write("\n".join(text).encode('utf-8')); f.write("\n")
 
-		text = r"\ExecuteMetaData[\currfilebase.input]{"  + args.pheno_long_name + r" top associations}"
+		text = r"\ExecuteMetaData[\currfilebase.input]{"  + args.pheno_long_name.replace(" ","-") + r"-top-associations}"
 		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
 
 	with open(args.out_input,'w') as f:
 
-		text = ["",r"%<*"  + args.pheno_long_name + r" top associations>","%</"  + args.pheno_long_name + r" top associations>"]
+		text = ["",r"%<*"  + args.pheno_long_name.replace(" ","-") + r"-top-associations>","%</"  + args.pheno_long_name.replace(" ","-") + r"-top-associations>"]
 		f.write("\n".join(text).encode('utf-8')); f.write("\n")
 
 	print "finished\n"

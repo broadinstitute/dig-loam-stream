@@ -3,6 +3,7 @@ library(argparse)
 parser <- ArgumentParser()
 parser$add_argument("--results", dest="results", type="character", help="a results file")
 parser$add_argument("--known-loci", dest="known_loci", help='a known gwas loci results file annotated with gene')
+parser$add_argument("--known-ld", dest="known_ld", help='an ld pair file')
 parser$add_argument("--known-loci-n", dest="known_loci_n", help='sample size for known gwas loci results file')
 parser$add_argument("--known-loci-case", dest="known_loci_case", help='number of cases for known gwas loci results file')
 parser$add_argument("--known-loci-ctrl", dest="known_loci_ctrl", help='number of controls for known gwas loci results file')
@@ -103,10 +104,31 @@ names(known)[names(known) == "effect"]<-"beta"
 names(known)[names(known) == "stderr"]<-"se"
 names(known)[names(known) == "p"]<-"pval"
 for(c in names(known)) {
-	if(! c %in% c("id","CLOSEST_GENE")) {
+	if(! c %in% c("CLOSEST_GENE")) {
 		names(known)[names(known) == c]<-paste(names(known)[names(known) == c],"known",sep="_")
 	}
 }
+
+ld <- read.table(args$known_ld, header=T, as.is=T, stringsAsFactors=F)
+known$id <- NA
+known$ident <- 0
+known$r2 <- NA
+for(i in 1:nrow(known)) {
+	if(known$id_known[i] %in% x$id) {
+		known$id[i] <- known$id_known[i]
+		known$ident[i] <- 1
+		known$r2[i] <- 1
+	} else {
+		ld_temp <- ld[ld$SNP_A == known$id_known[i],]
+		ld_temp <- ld_temp[ld_temp$SNP_B %in% x$id,]
+		if(nrow(ld_temp) > 0) {
+			ld_temp <- ld_temp[order(-ld_temp$R2),]
+			known$id[i] <- ld_temp$SNP_B[1]
+			known$r2[i] <- ld_temp$R2[1]
+		}
+	}
+}
+known <- known[! is.na(known$id),]
 
 x<-merge(x,known,all=F)
 
@@ -148,12 +170,16 @@ for(i in 1:nrow(x)) {
 	}
 }
 
+x <- x[order(-x$ident, -x$r2, x$pval_known),]
+x <- x[! duplicated(x$CLOSEST_GENE),]
+
 x$status<-NULL
 x$ref_known<-NULL
 x$alt_known<-NULL
+x$ident<-NULL
 
-cols_out <- c(cols_keep,"CLOSEST_GENE")
-cols_out_post <- names(x)[! names(x) %in% c(cols_keep,"CLOSEST_GENE")]
+cols_out <- c(cols_keep,"CLOSEST_GENE","r2")
+cols_out_post <- names(x)[! names(x) %in% c(cols_keep,"CLOSEST_GENE","r2")]
 if(args$known_loci_n != "") {
 	x$n_known <- args$known_loci_n
 	cols_out <- c(cols_out, "n_known")
@@ -171,8 +197,6 @@ cols_out <- c(cols_out, cols_out_post)
 x <- x[,cols_out]
 names(x)[names(x) == "CLOSEST_GENE"] <- "gene"
 
-x <- x[order(x$pval_known),]
-x <- x[! duplicated(x$gene),]
 x <- head(x, n=50)
 
 for(i in 1:nrow(x)) {

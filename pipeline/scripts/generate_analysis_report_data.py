@@ -12,21 +12,18 @@ def main(args=None):
 		f.write("\n"); f.write(r"\section{Data}"); f.write("\n")
 
 		text=r"""\begin{figure}[H]
-				\centering
-				\begin{subfigure}{.5\textwidth},
 					\centering
-					\includegraphics[width=\linewidth]{""" + args.samples_upset_diagram + r"""}
-					\caption{Samples remaining for analysis}
+					\includegraphics[width=0.75\linewidth]{""" + args.samples_upset_diagram + r"""}
+					\caption{Samples remaining for analysis after quality control}
 					\label{fig:samplesUpsetDiagram}
-				\end{subfigure}%
-				\begin{subfigure}{.5\textwidth},
+				\end{figure}"""
+		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
+
+		text=r"""\begin{figure}[H]
 					\centering
-					\includegraphics[width=\linewidth]{""" + args.variants_upset_diagram + r"""}
-					\caption{Variants remaining for analysis}
+					\includegraphics[width=0.75\linewidth]{""" + args.variants_upset_diagram + r"""}
+					\caption{Variants remaining for analysis after quality control}
 					\label{fig:variantsUpsetDiagram}
-				\end{subfigure}
-				\caption{Data available for analysis after quality control}
-				\label{fig:dataAvailableForAnalysis}
 				\end{figure}"""
 		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
 

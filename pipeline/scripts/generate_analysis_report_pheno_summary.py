@@ -47,7 +47,7 @@ def main(args=None):
 	else:
 		cols.extend(['Max','Min','Mean','Median','StdDev'])
 
-	sample_table = [r"\begin{table}[h!]",r"   \footnotesize",r"   \caption{" + args.pheno_long_name + " summarized by array, ancestry, and model}",r"   \centering",r"   \label{tab:samplesTable" + args.pheno_name + r"}",r"   \begin{adjustbox}{max width=\textwidth}",r"      \begin{tabular}{" + 'c'*(len(cols)) + "}",r"         \toprule"]
+	sample_table = [r"\begin{table}[h!]",r"   \footnotesize",r"   \caption{" + args.pheno_long_name + " summarized by array, ancestry, and model}",r"   \centering",r"   \label{table:samplesTable" + args.pheno_name + r"}",r"   \begin{adjustbox}{max width=\textwidth}",r"      \begin{tabular}{" + 'c'*(len(cols)) + "}",r"         \toprule"]
 	sample_table.extend([r"         " + ' & '.join([r"\textbf{" + x.replace('Mean','\\bm{$\\mu$}').replace('Median','\\bm{$\\tilde{x}$}').replace('StdDev','\\bm{$\\sigma$}') + r"}" for x in cols]) + r" \\"])
 	sample_table.extend([r"         \midrule"])
 	i = 0
@@ -109,7 +109,7 @@ def main(args=None):
 		f.write("\n"); f.write(r"\section{" + args.pheno_long_name + r"}"); f.write("\n")
 		f.write("\n"); f.write(r"\subsection{Summary}"); f.write("\n")
 
-		text = r"\ExecuteMetaData[\currfilebase.input]{" + args.pheno_long_name + r" Summary}"
+		text = r"\ExecuteMetaData[\currfilebase.input]{" + args.pheno_long_name.replace(" ","-") + r"-summary}"
 		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
 
 		n = 0
@@ -152,7 +152,7 @@ def main(args=None):
 
 	with open(args.out_input,'w') as f:
 
-		text = ["",r"%<*" + args.pheno_long_name + r" Summary>","%</" + args.pheno_long_name + r" Summary>"]
+		text = ["",r"%<*" + args.pheno_long_name.replace(" ","-") + r"-summary>","%</" + args.pheno_long_name.replace(" ","-") + r"-summary>"]
 		f.write("\n".join(text).encode('utf-8')); f.write("\n")
 
 	print "finished\n"

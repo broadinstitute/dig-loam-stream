@@ -52,12 +52,12 @@ def main(args=None):
 			r"\end{figure}"])
 		f.write("\n"); f.write("\n".join(text).encode('utf-8')); f.write("\n")
 
-		text = r"\ExecuteMetaData[\currfilebase.input]{"  + args.pheno_long_name + r" calibration}"
+		text = r"\ExecuteMetaData[\currfilebase.input]{"  + args.pheno_long_name.replace(" ","-") + r"-calibration}"
 		f.write("\n"); f.write(text.encode('utf-8')); f.write("\n")
 
 	with open(args.out_input,'w') as f:
 
-		text = ["",r"%<*"  + args.pheno_long_name + r" calibration>","%</"  + args.pheno_long_name + r" calibration>"]
+		text = ["",r"%<*"  + args.pheno_long_name.replace(" ","-") + r"-calibration>","%</"  + args.pheno_long_name.replace(" ","-") + r"-calibration>"]
 		f.write("\n".join(text).encode('utf-8')); f.write("\n")
 
 	print "finished\n"

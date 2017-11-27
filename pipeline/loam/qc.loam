@@ -77,12 +77,6 @@ for { i <- 0 until phases.size }
       }
   }
 
-//val s = modelSeq.mkString("\n")
-//val out = store.at("test.modelSeq.log")
-//local {
-//    cmd"""echo "${s}" > ${out}""".out(out)
-//}
-
 object Input {
 
   object Local {
@@ -742,14 +736,6 @@ object Params {
 
 }
 
-//val x: Nothing = Params.paramsByResultKnownLociSorted
-//val s = Params.paramsByResultSorted.mkString("\n")
-//val out = store.at("test.paramsByResultSorted.log")
-//local {
-//    cmd"""echo "${s}" > ${out}""".out(out)
-//}
-
-
 // Perform qc1
 val ancestryInferredStores: Seq[Store] = {
   for {
@@ -765,13 +751,13 @@ val ancestryInferredMerged = store.at(localOutDir / s"${projectId}.ancestry.infe
 val ancestryInferredMergedCloud = store.at(googleOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
 val ancestryInferredMergedOutliers = store.at(localOutDir / s"${projectId}.ancestry.inferred.merged.outliers.tsv")
 
-//local {
-//  cmd"""$binRscript --vanilla --verbose
-//    $rAncestryClusterMerge
-//    --ancestry-in $ancestryInferredPathList
-//    --out-table ${ancestryInferredMerged}
-//    --out-outliers ${ancestryInferredMergedOutliers}""".in(ancestryInferredStores).out(ancestryInferredMerged, ancestryInferredMergedOutliers).using("R-3.4")
-//}
+local {
+  cmd"""$binRscript --vanilla --verbose
+    $rAncestryClusterMerge
+    --ancestry-in $ancestryInferredPathList
+    --out-table ${ancestryInferredMerged}
+    --out-outliers ${ancestryInferredMergedOutliers}""".in(ancestryInferredStores).out(ancestryInferredMerged, ancestryInferredMergedOutliers).using("R-3.4")
+}
 
 // Perform qc2, adding relevent (inter-array) stores to the map
 val resultsStoresMapsList: Seq[Map[(String, String, String, String, String), Store]] = {
@@ -886,7 +872,7 @@ andThen {
     arrayClusterPlots = arrayClusterPlots :+ paramsArr.arrayId + "___" + s"${paramsArr.ancestryClusterPlotPc1VsPc2.toString.split("@")(1)}" + "___" + s"${paramsArr.ancestryClusterPlotPc2VsPc3.toString.split("@")(1)}"
 
     arrayharmRefFilteredBims = arrayharmRefFilteredBims :+ paramsArr.arrayId + "___" + s"${paramsArr.harmRefFiltPrunedName}.bim"
-	arrayKin0Related = arrayKin0Related :+ paramsArr.arrayId + "___" + s"${paramsArr.kinKin0Related.toString.split("@")(1)}"
+    arrayKin0Related = arrayKin0Related :+ paramsArr.arrayId + "___" + s"${paramsArr.kinKin0Related.toString.split("@")(1)}"
     arrayFamsizes = arrayFamsizes :+ paramsArr.arrayId + "___" + s"${paramsArr.kinFamsizes.toString.split("@")(1)}"
     arraySexcheckProblems = arraySexcheckProblems :+ paramsArr.arrayId + "___" + s"${paramsArr.sampleqcSexcheckProblems.toString.split("@")(1)}"
 
@@ -901,55 +887,55 @@ andThen {
   }
   
   local {
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rVariantsSummaryTable
-  //    --freq-in "${arrayFrqStrings.mkString(",")}"
-  //    --indel-in "${arrayIndelStrings.mkString(",")}"
-  //    --multi-in "${arrayMultiStrings.mkString(",")}"
-  //    --dupl-in "${arrayDuplStrings.mkString(",")}"
-  //    --out ${reportQcVariantSummaryTable}"""
-  //    .in(Params.paramsByArrSorted.map(_.arrayDataRawFreq) ++ Params.paramsByArrSorted.map(_.arrayDataPreparedMultiallelic) ++ Params.paramsByArrSorted.map(_.arrayDataRawIndel) ++ Params.paramsByArrSorted.map(_.arrayDataRawDupRemove))
-  //    .out(reportQcVariantSummaryTable)
-  //    .using("R-3.4")
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rUpsetplotBimFam
-  //    --input "${harmRefFamStrings.mkString(",")}"
-  //    --type fam
-  //    --out $reportQcSampleUpsetplotPdf"""
-  //    .in(Params.paramsByArrSorted.map(_.arrayData))
-  //    .out(reportQcSampleUpsetplotPdf)
-  //    .using("R-3.4")
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcSampleUpsetplotPdf}[0] $reportQcSampleUpsetplotPng"""
-  //    .in(reportQcSampleUpsetplotPdf)
-  //    .out(reportQcSampleUpsetplotPng)
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rUpsetplotBimFam
-  //    --input "${harmRefBimStrings.mkString(",")}"
-  //    --type bim
-  //    --out $reportQcVariantUpsetplotPdf"""
-  //    .in(Params.paramsByArrSorted.flatMap(_.harm))
-  //    .out(reportQcVariantUpsetplotPdf)
-  //    .using("R-3.4")
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcVariantUpsetplotPdf}[0] $reportQcVariantUpsetplotPng"""
-  //    .in(reportQcVariantUpsetplotPdf)
-  //    .out(reportQcVariantUpsetplotPng)
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rAncestryClusterTable
-  //    --cluster-in "${arrayClusterGroups.mkString(",")}"
-  //    --ancestry-in "${arrayAncestryInferred.mkString(",")}"
-  //    --final-in ${ancestryInferredMerged}
-  //    --cluster-out ${reportQcAncestryClusterTable}
-  //    --final-out ${reportQcAncestryFinalTable}"""
-  //    .in(Params.paramsByArrSorted.map(_.ancestryClusterGroups) ++ Params.paramsByArrSorted.map(_.ancestryInferred) :+ ancestryInferredMerged)
-  //    .out(reportQcAncestryClusterTable, reportQcAncestryFinalTable)
-  //    .using("R-3.4")
-  //
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rVariantsSummaryTable
+      --freq-in "${arrayFrqStrings.mkString(",")}"
+      --indel-in "${arrayIndelStrings.mkString(",")}"
+      --multi-in "${arrayMultiStrings.mkString(",")}"
+      --dupl-in "${arrayDuplStrings.mkString(",")}"
+      --out ${reportQcVariantSummaryTable}"""
+      .in(Params.paramsByArrSorted.map(_.arrayDataRawFreq) ++ Params.paramsByArrSorted.map(_.arrayDataPreparedMultiallelic) ++ Params.paramsByArrSorted.map(_.arrayDataRawIndel) ++ Params.paramsByArrSorted.map(_.arrayDataRawDupRemove))
+      .out(reportQcVariantSummaryTable)
+      .using("R-3.4")
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rUpsetplotBimFam
+      --input "${harmRefFamStrings.mkString(",")}"
+      --type fam
+      --out $reportQcSampleUpsetplotPdf"""
+      .in(Params.paramsByArrSorted.map(_.arrayData))
+      .out(reportQcSampleUpsetplotPdf)
+      .using("R-3.4")
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcSampleUpsetplotPdf}[0] $reportQcSampleUpsetplotPng"""
+      .in(reportQcSampleUpsetplotPdf)
+      .out(reportQcSampleUpsetplotPng)
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rUpsetplotBimFam
+      --input "${harmRefBimStrings.mkString(",")}"
+      --type bim
+      --out $reportQcVariantUpsetplotPdf"""
+      .in(Params.paramsByArrSorted.flatMap(_.harm))
+      .out(reportQcVariantUpsetplotPdf)
+      .using("R-3.4")
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcVariantUpsetplotPdf}[0] $reportQcVariantUpsetplotPng"""
+      .in(reportQcVariantUpsetplotPdf)
+      .out(reportQcVariantUpsetplotPng)
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rAncestryClusterTable
+      --cluster-in "${arrayClusterGroups.mkString(",")}"
+      --ancestry-in "${arrayAncestryInferred.mkString(",")}"
+      --final-in ${ancestryInferredMerged}
+      --cluster-out ${reportQcAncestryClusterTable}
+      --final-out ${reportQcAncestryFinalTable}"""
+      .in(Params.paramsByArrSorted.map(_.ancestryClusterGroups) ++ Params.paramsByArrSorted.map(_.ancestryInferred) :+ ancestryInferredMerged)
+      .out(reportQcAncestryClusterTable, reportQcAncestryFinalTable)
+      .using("R-3.4")
+  
     cmd"""python $pyGenerateQcReportIntro
       --id $projectId
       --authors "$qcReportAuthors" 
@@ -985,45 +971,45 @@ andThen {
       --out ${reportQcIbdSexcheck}"""
       .in(Params.paramsByArrSorted.flatMap(_.harmRefFiltPruned) ++ Params.paramsByArrSorted.map(_.kinKin0Related) ++ Params.paramsByArrSorted.map(_.kinFamsizes) ++ Params.paramsByArrSorted.map(_.sampleqcSexcheckProblems))
       .out(reportQcIbdSexcheck)
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rMakeMetricDistPlot
-  //    --sampleqc ${Params.paramsByArrSorted.head.sampleqcStats}
-  //    --metric nHet
-  //    --out ${sampleQcMetricDistUnadjPdf}
-  //    """
-  //    .in(Params.paramsByArrSorted.head.sampleqcStats)
-  //    .out(sampleQcMetricDistUnadjPdf)
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistUnadjPdf}[0] $sampleQcMetricDistUnadjPng"""
-  //    .in(sampleQcMetricDistUnadjPdf)
-  //    .out(sampleQcMetricDistUnadjPng)
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rMakeMetricDistPlot
-  //    --sampleqc ${Params.paramsByArrSorted.head.sampleqcStatsAdj}
-  //    --metric nHet_res
-  //    --out ${sampleQcMetricDistAdjPdf}
-  //    """
-  //    .in(Params.paramsByArrSorted.head.sampleqcStatsAdj)
-  //    .out(sampleQcMetricDistAdjPdf)
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistAdjPdf}[0] $sampleQcMetricDistAdjPng"""
-  //    .in(sampleQcMetricDistAdjPdf)
-  //    .out(sampleQcMetricDistAdjPng)
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rMakeOutlierTable
-  //    --ancestry-inferred-outliers ${ancestryInferredMergedOutliers}
-  //    --kinship-related ${arrayKin0Related.mkString(",")}
-  //    --kinship-famsizes ${arrayFamsizes.mkString(",")}
-  //    --sampleqc-outliers ${arraySampleqcOutliers.mkString(",")}
-  //    --sexcheck-problems ${arraySexcheckProblems.mkString(",")}
-  //    --final-exclusions ${arrayFinalSampleExclusions.mkString(",")}
-  //    --out ${reportQcSampleqcTable}"""
-  //    .in(Params.paramsByArrSorted.map(_.kinKin0Related) ++ Params.paramsByArrSorted.map(_.kinFamsizes) ++ Params.paramsByArrSorted.map(_.sampleqcStatsAdjOutliersTable) ++ Params.paramsByArrSorted.map(_.sampleqcSexcheckProblems) ++ Params.paramsByArrSorted.map(_.finalSampleExclusions) :+ ancestryInferredMergedOutliers)
-  //    .out(reportQcSampleqcTable)
-  //
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rMakeMetricDistPlot
+      --sampleqc ${Params.paramsByArrSorted.head.sampleqcStats}
+      --metric nHet
+      --out ${sampleQcMetricDistUnadjPdf}
+      """
+      .in(Params.paramsByArrSorted.head.sampleqcStats)
+      .out(sampleQcMetricDistUnadjPdf)
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistUnadjPdf}[0] $sampleQcMetricDistUnadjPng"""
+      .in(sampleQcMetricDistUnadjPdf)
+      .out(sampleQcMetricDistUnadjPng)
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rMakeMetricDistPlot
+      --sampleqc ${Params.paramsByArrSorted.head.sampleqcStatsAdj}
+      --metric nHet_res
+      --out ${sampleQcMetricDistAdjPdf}
+      """
+      .in(Params.paramsByArrSorted.head.sampleqcStatsAdj)
+      .out(sampleQcMetricDistAdjPdf)
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistAdjPdf}[0] $sampleQcMetricDistAdjPng"""
+      .in(sampleQcMetricDistAdjPdf)
+      .out(sampleQcMetricDistAdjPng)
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rMakeOutlierTable
+      --ancestry-inferred-outliers ${ancestryInferredMergedOutliers}
+      --kinship-related ${arrayKin0Related.mkString(",")}
+      --kinship-famsizes ${arrayFamsizes.mkString(",")}
+      --sampleqc-outliers ${arraySampleqcOutliers.mkString(",")}
+      --sexcheck-problems ${arraySexcheckProblems.mkString(",")}
+      --final-exclusions ${arrayFinalSampleExclusions.mkString(",")}
+      --out ${reportQcSampleqcTable}"""
+      .in(Params.paramsByArrSorted.map(_.kinKin0Related) ++ Params.paramsByArrSorted.map(_.kinFamsizes) ++ Params.paramsByArrSorted.map(_.sampleqcStatsAdjOutliersTable) ++ Params.paramsByArrSorted.map(_.sampleqcSexcheckProblems) ++ Params.paramsByArrSorted.map(_.finalSampleExclusions) :+ ancestryInferredMergedOutliers)
+      .out(reportQcSampleqcTable)
+  
     cmd"""$binRscript --vanilla --verbose
       $rUpsetplotBimFam
       --input "${arrayCleanFamStrings.mkString(",")}"
@@ -1048,20 +1034,20 @@ andThen {
       --out ${reportQcSampleqc}"""
       .in(Params.paramsByArrSorted.map(_.sampleqcOutlierPlotPng) :+ sampleQcMetricDistUnadjPng :+ sampleQcMetricDistAdjPng :+ reportQcSampleqcTable :+ reportQcSamplesRemainingUpsetplotPng)
       .out(reportQcSampleqc)
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rUpsetplotBimFam
-  //    --input "${arrayCleanBimStrings.mkString(",")}"
-  //    --type bim
-  //    --out ${reportQcVariantsRemainingUpsetplotPdf}"""
-  //    .in(Params.paramsByArrSorted.flatMap(_.clean))
-  //    .out(reportQcVariantsRemainingUpsetplotPdf)
-  //    .using("R-3.4")
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcVariantsRemainingUpsetplotPdf}[0] $reportQcVariantsRemainingUpsetplotPng"""
-  //    .in(reportQcVariantsRemainingUpsetplotPdf)
-  //    .out(reportQcVariantsRemainingUpsetplotPng)
-  //
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rUpsetplotBimFam
+      --input "${arrayCleanBimStrings.mkString(",")}"
+      --type bim
+      --out ${reportQcVariantsRemainingUpsetplotPdf}"""
+      .in(Params.paramsByArrSorted.flatMap(_.clean))
+      .out(reportQcVariantsRemainingUpsetplotPdf)
+      .using("R-3.4")
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${reportQcVariantsRemainingUpsetplotPdf}[0] $reportQcVariantsRemainingUpsetplotPng"""
+      .in(reportQcVariantsRemainingUpsetplotPdf)
+      .out(reportQcVariantsRemainingUpsetplotPng)
+  
     cmd"""python $pyGenerateQcReportVariantqc
       --variants-upset-diagram ${reportQcVariantsRemainingUpsetplotPng}
       --variant-exclusions "${arrayFinalVariantExclusions.mkString(",")}"
@@ -1130,7 +1116,7 @@ andThen {
     }
       
     for {
-	  j <- 0 until phases(i-1).getObjList("phenotypes").size
+      j <- 0 until phases(i-1).getObjList("phenotypes").size
     } {
 
       val phenoName = phases(i-1).getObjList("phenotypes")(j).getStr("phenoName")
@@ -1177,27 +1163,27 @@ andThen {
           reportAnalysisPhenoDistPlotStrings = reportAnalysisPhenoDistPlotStrings :+ paramsArr.arrayId + "___" + s"${reportAnalysisPhenoDistPlot.toString.split("@")(1)}"
           reportAnalysisPhenoDistStratPlotStrings = reportAnalysisPhenoDistStratPlotStrings :+ paramsArr.arrayId + "___" + s"${reportAnalysisPhenoDistStratPlot.toString.split("@")(1)}"
 
-          //local {
-          //
-          //  cmd"""python $pyPhenoDistPlot
-	      //    --pheno ${Input.Local.pheno}
-	      //    --pheno-name ${phenoName}
-          //    --fam ${paramsArr.cleanName}.fam
-	      //    --out ${reportAnalysisPhenoDistPlot}"""
-	      //    .in(paramsArr.clean :+ ancestryInferredMerged :+ Input.Local.pheno)
-	      //    .out(reportAnalysisPhenoDistPlot)
-          //
-	      //  cmd"""python $pyPhenoDistPlot
-	      //    --strat
-	      //    --ancestry ${ancestryInferredMerged}
-	      //    --pheno ${Input.Local.pheno}
-	      //    --pheno-name ${phenoName}
-          //    --fam ${paramsArr.cleanName}.fam
-	      //    --out ${reportAnalysisPhenoDistStratPlot}"""
-	      //    .in(paramsArr.clean :+ ancestryInferredMerged :+ Input.Local.pheno)
-	      //    .out(reportAnalysisPhenoDistStratPlot)
-          //
-          //}
+          local {
+          
+            cmd"""python $pyPhenoDistPlot
+              --pheno ${Input.Local.pheno}
+              --pheno-name ${phenoName}
+              --fam ${paramsArr.cleanName}.fam
+              --out ${reportAnalysisPhenoDistPlot}"""
+              .in(paramsArr.clean :+ ancestryInferredMerged :+ Input.Local.pheno)
+              .out(reportAnalysisPhenoDistPlot)
+          
+            cmd"""python $pyPhenoDistPlot
+              --strat
+              --ancestry ${ancestryInferredMerged}
+              --pheno ${Input.Local.pheno}
+              --pheno-name ${phenoName}
+              --fam ${paramsArr.cleanName}.fam
+              --out ${reportAnalysisPhenoDistStratPlot}"""
+              .in(paramsArr.clean :+ ancestryInferredMerged :+ Input.Local.pheno)
+              .out(reportAnalysisPhenoDistStratPlot)
+          
+          }
 
           reportAnalysisPhenoDistPlotList = reportAnalysisPhenoDistPlotList :+ reportAnalysisPhenoDistPlot
           reportAnalysisPhenoDistStratPlotList = reportAnalysisPhenoDistStratPlotList :+ reportAnalysisPhenoDistStratPlot
@@ -1227,7 +1213,7 @@ andThen {
         val resultPhenoString = Seq(paramsResult.resultPheno, paramsResult.resultTrans, paramsResult.resultCovars.replace("+","_")).filter(_ != "").mkString("_")
         reportAnalysisModelQqPlotList = reportAnalysisModelQqPlotList :+ paramsResult.resultFinalQqPlot
         reportAnalysisModelMhtPlotList = reportAnalysisModelMhtPlotList :+ paramsResult.resultFinalMhtPlot
-		reportAnalysisModelTop20AnnotAlignedRiskList = reportAnalysisModelTop20AnnotAlignedRiskList :+ paramsResult.resultFinalTop20AnnotAlignedRisk
+        reportAnalysisModelTop20AnnotAlignedRiskList = reportAnalysisModelTop20AnnotAlignedRiskList :+ paramsResult.resultFinalTop20AnnotAlignedRisk
         reportAnalysisModelQqPlotStrings = reportAnalysisModelQqPlotStrings :+ resultPhenoString + "___" + s"${paramsResult.resultFinalQqPlot.toString.split("@")(1)}"
         reportAnalysisModelMhtPlotStrings = reportAnalysisModelMhtPlotStrings :+ resultPhenoString + "___" + s"${paramsResult.resultFinalMhtPlot.toString.split("@")(1)}"
         reportAnalysisModelTop20AnnotAlignedRiskStrings = reportAnalysisModelTop20AnnotAlignedRiskStrings :+ resultPhenoString + "___" + s"${paramsResult.resultFinalTop20AnnotAlignedRisk.toString.split("@")(1)}"
@@ -1267,8 +1253,8 @@ andThen {
           --dist-plot "${reportAnalysisPhenoDistPlotStrings.mkString(",")}"
           --strat-dist-plot "${reportAnalysisPhenoDistStratPlotStrings.mkString(",")}"
           --pheno-master ${Input.Local.pheno}
-	      --id-col $phenoId
-	      --sex-col $phenoSrSex
+          --id-col $phenoId
+          --sex-col $phenoSrSex
           --pheno "${reportAnalysisModelPhenoFileStrings.mkString(",")}"
           --pheno-name ${phenoName}
           --pheno-long-name "${phenoLongName}"
@@ -1282,32 +1268,32 @@ andThen {
         
         cmd"""python $pyGenerateAnalysisReportPhenoCalibration
           --qq-plots "${reportAnalysisModelQqPlotStrings.mkString(",")}"
-	      --mht-plots "${reportAnalysisModelMhtPlotStrings.mkString(",")}"
+          --mht-plots "${reportAnalysisModelMhtPlotStrings.mkString(",")}"
           --pheno-name ${phenoName}
           --pheno-long-name "${phenoLongName}"
-	      --out-tex ${reportAnalysisPhenoCalibration}
-	      --out-input ${reportAnalysisPhenoCalibrationInput}"""
+          --out-tex ${reportAnalysisPhenoCalibration}
+          --out-input ${reportAnalysisPhenoCalibrationInput}"""
           .in(reportAnalysisModelQqPlotList ++ reportAnalysisModelMhtPlotList)
           .out(reportAnalysisPhenoCalibration, reportAnalysisPhenoCalibrationInput)
         
         cmd"""python $pyGenerateAnalysisReportPhenoTopLoci
           --top-results "${reportAnalysisModelTop20AnnotAlignedRiskStrings.mkString(",")}"
-	      --regionals "${reportAnalysisModelRegplotsStrings.mkString(",")}"
-	      --pheno-name ${phenoName}
+          --regionals "${reportAnalysisModelRegplotsStrings.mkString(",")}"
+          --pheno-name ${phenoName}
           --pheno-long-name "${phenoLongName}"
-	      --out-tex ${reportAnalysisPhenoTopLoci}
-	      --out-input ${reportAnalysisPhenoTopLociInput}"""
+          --out-tex ${reportAnalysisPhenoTopLoci}
+          --out-input ${reportAnalysisPhenoTopLociInput}"""
           .in(reportAnalysisModelTop20AnnotAlignedRiskList ++ reportAnalysisModelRegplotsList)
           .out(reportAnalysisPhenoTopLoci, reportAnalysisPhenoTopLociInput)
 
         cmd"""python $pyGenerateAnalysisReportPhenoKnownLoci
           --top-known-loci "${reportAnalysisModelTop50KnownStrings.mkString(",")}"
-	      --pheno-name ${phenoName}
+          --pheno-name ${phenoName}
           --pheno-long-name "${phenoLongName}"
           --desc "${reportAnalysisModelTop50KnownDesc.mkString(",,,")}"
           --tag "${reportAnalysisModelTop50KnownTag.mkString(",")}"
-	      --out-tex ${reportAnalysisPhenoKnownLoci}
-	      --out-input ${reportAnalysisPhenoKnownLociInput}"""
+          --out-tex ${reportAnalysisPhenoKnownLoci}
+          --out-input ${reportAnalysisPhenoKnownLociInput}"""
           .in(reportAnalysisModelTop50KnownList)
           .out(reportAnalysisPhenoKnownLoci, reportAnalysisPhenoKnownLociInput)
       
@@ -1349,312 +1335,312 @@ def qc1(i: Int): Store = {
 
   val (_, paramsArr) = Params.paramsByArr(i)
 
-  ///**
-  //* Prepare Step
-  //*  Description: Prepare plink files by: removing lowest quality duplicate variants, etc.
-  //*  Requires: Plink1.9
-  //*/
-  //
-  //local {
-  //
-  //  cmd"""awk '$$1 == 0 {print $$2}' ${paramsArr.arrayDataPath}.bim > ${paramsArr.arrayDataRawUnplaced}"""
-  //    .in(paramsArr.arrayData)
-  //    .out(paramsArr.arrayDataRawUnplaced)
-  //
-  //  cmd"""awk '{k=$$1":"$$4":"$$5":"$$6; if(!m[k]) {print $$2; m[k]=1}}' ${paramsArr.arrayDataPath}.bim > ${paramsArr.arrayDataRawUnique}"""
-  //    .in(paramsArr.arrayData)
-  //    .out(paramsArr.arrayDataRawUnique)
-  //
-  //  cmd"""awk '{if($$5$$6 == "ID" || $$5$$6 == "DI") print $$2}' ${paramsArr.arrayDataPath}.bim > ${paramsArr.arrayDataRawIndel}"""
-  //    .in(paramsArr.arrayData)
-  //    .out(paramsArr.arrayDataRawIndel)
-  //
-  //  cmd"""$binPlink --bfile ${paramsArr.arrayDataPath} --missing --out ${paramsArr.arrayDataRawName}.missing"""
-  //    .in(paramsArr.arrayData)
-  //    .out(paramsArr.arrayDataRawLmiss)
-  //
-  //  cmd"""$binPlink --bfile ${paramsArr.arrayDataPath} --freq --out ${paramsArr.arrayDataRawName}.freq"""
-  //    .in(paramsArr.arrayData)
-  //   .out(paramsArr.arrayDataRawFreq)
-  //
-  //  cmd"""sed '1d' ${paramsArr.arrayDataRawFreq} | awk '{if($$5 == 0) print $$2}' > ${paramsArr.arrayDataRawMono}"""
-  //    .in(paramsArr.arrayDataRawFreq)
-  //    .out(paramsArr.arrayDataRawMono)
-  //
-  //  // run find_best_duplicate_variants.r to generate exclude list for duplicates
-  //  cmd"""$binRscript --vanilla --verbose 
-  //    $rFindBestDuplicateVariants
-  //    --bim-in ${paramsArr.arrayDataPath}.bim
-  //    --freq-in ${paramsArr.arrayDataRawFreq}
-  //    --miss-in ${paramsArr.arrayDataRawLmiss}
-  //    --out ${paramsArr.arrayDataRawDupRemove}"""
-  //    .in(paramsArr.arrayData, paramsArr.arrayDataRawFreq, paramsArr.arrayDataRawLmiss)
-  //    .out(paramsArr.arrayDataRawDupRemove)
-  //
-  //  cmd"""$binPlink --bfile ${paramsArr.arrayDataPath} --exclude ${paramsArr.arrayDataRawDupRemove} --make-bed --out ${paramsArr.arrayDataPreparedName}"""
-  //    .in(paramsArr.arrayData, paramsArr.arrayDataRawDupRemove)
-  //    .out(paramsArr.arrayDataPrepared)
-  //
-  //  cmd"""awk '{if(x[$$1":"$$4]) {x_count[$$1":"$$4]++; print $$2; if(x_count[$$1":"$$4] == 1) {print x[$$1":"$$4]}} x[$$1":"$$4] = $$2}' ${paramsArr.arrayDataPreparedName}.bim > ${paramsArr.arrayDataPreparedMultiallelic}"""
-  //    .in(paramsArr.arrayDataPrepared)
-  //    .out(paramsArr.arrayDataPreparedMultiallelic)
-  //
-  //}  
-  //
-  ///**
-  //* Harmonize Step
-  //*  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
-  //*  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
-  //*  Notes:
-  //*     Could also add --variants and --mafAlign as pipeline options, but for now these are static
-  //*     To save time, this will be run in parallel by chromosome number
-  //*/
-  //
-  //uger {
-  //  for {
-  //    (chr, paramsChr) <- paramsArr.paramsByArrByChr
-  //  } {
-  //    cmd"""$binPlink --bfile ${paramsArr.arrayDataPreparedName} --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName}"""
-  //      .in(paramsArr.arrayDataPrepared)
-  //      .out(paramsChr.rawChr)
-  //    
-  //    cmd"""$binGenotypeHarmonizer
-  //    --input ${paramsChr.rawChrName}
-  //    --inputType PLINK_BED
-  //    --output ${paramsChr.harmKgChrName}
-  //    --outputType PLINK_BED
-  //    --ref ${paramsChr.kgVcfChr}
-  //    --refType VCF
-  //    --keep
-  //    --update-id
-  //    --variants 1000
-  //    --mafAlign 0.1
-  //    --update-id
-  //    --update-reference-allele
-  //    --debug"""
-  //      .in(paramsChr.rawChr :+ paramsChr.kgVcfChr)
-  //      .out(paramsChr.harmKgChr :+ paramsChr.harmKgChrVarIdUpdate :+ paramsChr.harmKgChrVarSnpLog)
-  //  
-  //    cmd"""python $pyAlignNon1kgVariants
-  //    --legend ${paramsChr.kgLegendChr}
-  //    --bim ${paramsChr.harmKgChrName}.bim
-  //    --ref ${paramsChr.humanReference}
-  //    --out-remove ${paramsChr.harmNonKgChrRemove}
-  //    --out-ignore ${paramsChr.harmNonKgChrIgnore}
-  //    --out-mono ${paramsChr.harmNonKgChrMono}
-  //    --out-nomatch ${paramsChr.harmNonKgChrNomatch}
-  //    --out-flip ${paramsChr.harmNonKgChrFlip}
-  //    --out-force-a1 ${paramsChr.harmNonKgChrForceA1}"""
-  //      .in(paramsChr.harmKgChr :+ paramsChr.kgLegendChr)
-  //      .out(paramsChr.harmNonKgChrRemove, paramsChr.harmNonKgChrIgnore, paramsChr.harmNonKgChrMono,paramsChr.harmNonKgChrNomatch, paramsChr.harmNonKgChrFlip, paramsChr.harmNonKgChrForceA1)
-  //  
-  //    cmd"""$binPlink --bfile ${paramsChr.harmKgChrName} --exclude ${paramsChr.harmNonKgChrRemove} --flip ${paramsChr.harmNonKgChrFlip} --a1-allele ${paramsChr.harmNonKgChrForceA1} --make-bed --out ${paramsChr.harmKgHuRefChrName}"""
-  //      .in(paramsChr.harmKgChr :+ paramsChr.harmNonKgChrRemove :+ paramsChr.harmNonKgChrFlip :+ paramsChr.harmNonKgChrForceA1)
-  //      .out(paramsChr.harmKgHuRefChr)
-  //  
-  //  }
-  //  
-  //  val harmMergeLinesConcat: String = paramsArr.harmMergeLines
-  //    .drop(1)
-  //    .mkString("\n") // Exclude first chrom
-  //  
-  //  cmd"""echo "$harmMergeLinesConcat" > ${paramsArr.harmMergeList}"""
-  //    .out(paramsArr.harmMergeList)
-  //  
-  //  cmd"""$binPlink --bfile ${paramsArr.paramsByArrByChrSorted.head.harmKgHuRefChrName} --merge-list ${paramsArr.harmMergeList} --make-bed --keep-allele-order --out ${paramsArr.harmName}"""
-  //    .in(paramsArr.paramsByArrByChrSorted.flatMap(_.harmKgHuRefChr) :+ paramsArr.harmMergeList)
-  //    .out(paramsArr.harm)
-  //  
-  //  cmd"""awk '{print $$2,$$5}' ${paramsArr.harmName}.bim > ${paramsArr.harmForceA2}"""
-  //    .in(paramsArr.harm)
-  //    .out(paramsArr.harmForceA2)
-  //
-  //  cmd"""$binPlink --bfile ${paramsArr.harmName} --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --make-bed --out ${paramsArr.harmRefName}"""
-  //    .in(paramsArr.harm :+ paramsArr.harmForceA2)
-  //    .out(paramsArr.harmRef)
-  //
-  //  cmd"""$binPlink --bfile ${paramsArr.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --out ${paramsArr.harmRefName}"""
-  //    .in(paramsArr.harm :+ paramsArr.harmForceA2)
-  //    .out(paramsArr.harmRefVcf)
-  //  
-  //  cmd"""$binTabix -f -p vcf ${paramsArr.harmRefVcf}"""
-  //    .in(paramsArr.harmRefVcf)
-  //    .out(paramsArr.harmRefVcfTbi)
-  //  
-  //  val harmNonKgChrRemoveString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrRemove.toString.split("@")(1)}"""}.mkString(",")
-  //  val harmNonKgChrMonoString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrMono.toString.split("@")(1)}"""}.mkString(",")
-  //  val harmNonKgChrNomatchString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrNomatch.toString.split("@")(1)}"""}.mkString(",")
-  //  val harmNonKgChrIgnoreString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrIgnore.toString.split("@")(1)}"""}.mkString(",")
-  //  val harmNonKgChrFlipString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrFlip.toString.split("@")(1)}"""}.mkString(",")
-  //  val harmNonKgChrForceA1String = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrForceA1.toString.split("@")(1)}"""}.mkString(",")
-  //  val harmKgChrVarSnpLogString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmKgChrVarSnpLog.toString.split("@")(1)}"""}.mkString(",")
-  //  
-  //  cmd"""python $pyMergeVariantLists
-  //    --remove-in "$harmNonKgChrRemoveString"
-  //    --remove-mono-in "$harmNonKgChrMonoString"
-  //    --remove-nomatch-in "$harmNonKgChrNomatchString"
-  //    --ignore-in "$harmNonKgChrIgnoreString"
-  //    --flip-in "$harmNonKgChrFlipString"
-  //    --force-a1-in "$harmNonKgChrForceA1String"
-  //    --snp-log-in "$harmKgChrVarSnpLogString"
-  //    --remove-out ${paramsArr.harmNonKgRemove}
-  //    --remove-mono-out ${paramsArr.harmNonKgMono}
-  //    --remove-nomatch-out ${paramsArr.harmNonKgNomatch}
-  //    --ignore-out ${paramsArr.harmNonKgIgnore}
-  //    --flip-out ${paramsArr.harmNonKgFlip}
-  //    --force-a1-out ${paramsArr.harmNonKgForceA1}
-  //    --snp-log-out ${paramsArr.harmKgVarSnpLog}
-  //    """
-  //    .in(paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrRemove) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrMono) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrNomatch) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrIgnore) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrFlip) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrForceA1) ++ paramsArr.paramsByArrByChrSorted.map(_.harmKgChrVarSnpLog))
-  //    .out(paramsArr.harmNonKgRemove, paramsArr.harmNonKgNomatch, paramsArr.harmNonKgMono, paramsArr.harmNonKgIgnore, paramsArr.harmNonKgFlip, paramsArr.harmNonKgForceA1, paramsArr.harmKgVarSnpLog)
-  //}
-  //
-  ///**
-  // * Load Step
-  // *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
-  // *  Requires: Hail
-  // */
-  //
-  //local {
-  //  googleCopy(paramsArr.harmRefVcf, paramsArr.harmRefVcfCloud)
-  //  googleCopy(paramsArr.harmRefVcfTbi, paramsArr.harmRefVcfTbiCloud)
-  //}
-  //
-  //google {
-  //  hail"""$pyHailLoad
-  //    --vcf-in $projectId ${paramsArr.harmRefVcfCloud}
-  //    --vds-out ${paramsArr.harmRefVdsCloud}"""
-  //    .in(paramsArr.harmRefVcfCloud, paramsArr.harmRefVcfTbiCloud)
-  //    .out(paramsArr.harmRefVdsCloud)
-  //}
-  //
-  ///**
-  // * Filter Step
-  // *  Description: Generate filtered and filtered/pruned filesets for QC
-  // *  Requires: Hail
-  // */
-  //
-  //google {
-  //  hail"""$pyHailFilter
-  //    --vds-in ${paramsArr.harmRefVdsCloud}
-  //    --regions-exclude ${Input.Google.regionsExclude}
-  //    --variant-qc-out ${paramsArr.harmRefFiltVariantQcCloud}
-  //    --variants-prunedin-out ${paramsArr.harmRefFiltVariantsPrunedInCloud}
-  //    --filt-vds-out ${paramsArr.harmRefFiltVdsCloud}
-  //    --filt-plink-out ${paramsArr.harmRefFiltNameCloud}
-  //    --filt-pruned-vds-out ${paramsArr.harmRefFiltPrunedVdsCloud}
-  //    --filt-pruned-plink-out ${paramsArr.harmRefFiltPrunedNameCloud}"""
-  //    .in(paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
-  //    .out(((paramsArr.harmRefFiltCloud :+ paramsArr.harmRefFiltVdsCloud) ++ (paramsArr.harmRefFiltPrunedCloud :+ paramsArr.harmRefFiltPrunedVdsCloud)) :+ paramsArr.harmRefFiltVariantQcCloud :+ paramsArr.harmRefFiltVariantsPrunedInCloud)
-  //}
-  //
-  //local {
-  //  googleCopy(paramsArr.harmRefFiltPrunedCloud, paramsArr.harmRefFiltPruned)
-  //}
-  //
-  ///**
-  // * Kinship Step
-  // *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
-  // *  Requires: King, R
-  // *  Notes:
-  // *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
-  // * King only writes the '.kin0' file if families are found, so a bash script is used to write an empty file in that case
-  // */
-  //
-  //uger {
-  //  cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related}"""
-  //  .in(paramsArr.harmRefFiltPruned)
-  //  .out(paramsArr.kinLog, paramsArr.kinKin, paramsArr.kinTmpDat, paramsArr.kinTmpPed, paramsArr.kinKin0, paramsArr.kinKin0Related)
-  //
-  //  cmd"""$binR --vanilla --args ${paramsArr.kinKin0Related} ${paramsArr.kinFamsizes} < ${rCalcKinshipFamSizes}"""
-  //  .in(paramsArr.kinKin0Related)
-  //  .out(paramsArr.kinFamsizes)
-  //}
-  //
-  ///**
-  //  * Ancestry PCA Step
-  //  *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
-  //  *  Requires: Hail, R, $rPlotAncestryPca
-  //  *  Notes:
-  //  *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
-  //  */
-  //
-  //google {
-  //  hail"""$pyHailAncestryPcaMerge1kg
-  //    --vds-in ${paramsArr.harmRefVdsCloud}
-  //    --kg-vcf-in ${Input.Google.kgPurcellVcf}
-  //    --kg-sample ${Input.Google.kgSample}
-  //    --plink-out ${paramsArr.harmRef1kgNameCloud}"""
-  //    .in(paramsArr.harmRefVdsCloud, Input.Google.kgPurcellVcf, Input.Google.kgSample)
-  //    .out(paramsArr.harmRef1kgCloud)
-  //}
-  //
-  //local {
-  //  googleCopy(paramsArr.harmRef1kgCloud, paramsArr.harmRef1kg)
-  //}
-  //
-  //uger {
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rPcair
-  //    --plink-in ${paramsArr.harmRef1kgName}
-  //    --gds-out ${paramsArr.harmRef1kgGds}
-  //    --scores ${paramsArr.ancestryPcaScores}
-  //    --id $projectId
-  //    --force-unrel $kgSampleId ${Input.Local.kgSample}
-  //    --update-pop $kgSampleId $kgSamplePop ${Input.Local.kgSample}
-  //    --update-group $kgSampleId $kgSampleGroup ${Input.Local.kgSample}
-  //    > ${paramsArr.ancestryPcaLog}"""
-  //    .in(paramsArr.harmRef1kg :+ Input.Local.kgSample)
-  //    .out(paramsArr.harmRef1kgGds, paramsArr.ancestryPcaLog, paramsArr.ancestryPcaScores)
-  //    .using("R-3.4")
-  //
-  //  cmd"""$binR --vanilla --args $projectId ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryPcaScoresPlots} < $rPlotAncestryPca"""
-  //  .in(paramsArr.ancestryPcaScores)
-  //  .out(paramsArr.ancestryPcaScoresPlots)
-  //  
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.ancestryPcaScoresPlots}[0] ${paramsArr.ancestryPcaScoresPlotPc1VsPc2}"""
-  //    .in(paramsArr.ancestryPcaScoresPlots)
-  //    .out(paramsArr.ancestryPcaScoresPlotPc1VsPc2)
-  //  
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.ancestryPcaScoresPlots}[1] ${paramsArr.ancestryPcaScoresPlotPc2VsPc3}"""
-  //    .in(paramsArr.ancestryPcaScoresPlots)
-  //    .out(paramsArr.ancestryPcaScoresPlotPc2VsPc3)
-  //}
-  //
-  ///**
-  // * Ancestry Cluster Step
-  // *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
-  // *  Requires: Hail, R
-  // *  Notes:
-  // *     *.ancestry.inferred.tsv contains the final inferred ancestry for each sample, including OUTLIERS
-  // *     This file is array specific
-  // */
-  //
-  //uger {
-  //  cmd"""(echo 3; sed '1d' ${paramsArr.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${paramsArr.ancestryClusterFet}"""
-  //  .in(paramsArr.ancestryPcaScores)
-  //  .out(paramsArr.ancestryClusterFet)
-  //
-  //  cmd"""$binKlustakwik ${paramsArr.ancestryClusterName} 1 -UseFeatures 111 -UseDistributional 0 > ${paramsArr.ancestryClusterLog}"""
-  //  .in(paramsArr.ancestryClusterFet)
-  //  .out(paramsArr.ancestryClusterClu, paramsArr.ancestryClusterKlg, paramsArr.ancestryClusterLog)
-  //
-  //  cmd"""$binR --vanilla --args ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryClusterClu} ${Input.Local.pheno} $projectId $phenoId $phenoSrRace
-  //    ${paramsArr.ancestryClusterPlots} ${paramsArr.ancestryClusterXtabs} ${paramsArr.ancestryClusterPlotsCenters}
-  //    ${paramsArr.ancestryClusterGroups} ${paramsArr.ancestryInferred}
-  //    ${paramsArr.ancestryClusterPlotsNo1kg} < $rPlotAncestryCluster"""
-  //    .in(paramsArr.ancestryPcaScores, paramsArr.ancestryClusterClu, Input.Local.pheno)
-  //    .out(paramsArr.ancestryClusterPlots, paramsArr.ancestryClusterXtabs, paramsArr.ancestryClusterPlotsCenters, paramsArr.ancestryClusterGroups, paramsArr.ancestryInferred, paramsArr.ancestryClusterPlotsNo1kg)
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.ancestryClusterPlots}[0] ${paramsArr.ancestryClusterPlotPc1VsPc2}"""
-  //    .in(paramsArr.ancestryClusterPlots)
-  //    .out(paramsArr.ancestryClusterPlotPc1VsPc2)
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.ancestryClusterPlots}[1] ${paramsArr.ancestryClusterPlotPc2VsPc3}"""
-  //    .in(paramsArr.ancestryClusterPlots)
-  //    .out(paramsArr.ancestryClusterPlotPc2VsPc3)
-  //
-  //}
+  /**
+  * Prepare Step
+  *  Description: Prepare plink files by: removing lowest quality duplicate variants, etc.
+  *  Requires: Plink1.9
+  */
+  
+  local {
+  
+    cmd"""awk '$$1 == 0 {print $$2}' ${paramsArr.arrayDataPath}.bim > ${paramsArr.arrayDataRawUnplaced}"""
+      .in(paramsArr.arrayData)
+      .out(paramsArr.arrayDataRawUnplaced)
+  
+    cmd"""awk '{k=$$1":"$$4":"$$5":"$$6; if(!m[k]) {print $$2; m[k]=1}}' ${paramsArr.arrayDataPath}.bim > ${paramsArr.arrayDataRawUnique}"""
+      .in(paramsArr.arrayData)
+      .out(paramsArr.arrayDataRawUnique)
+  
+    cmd"""awk '{if($$5$$6 == "ID" || $$5$$6 == "DI") print $$2}' ${paramsArr.arrayDataPath}.bim > ${paramsArr.arrayDataRawIndel}"""
+      .in(paramsArr.arrayData)
+      .out(paramsArr.arrayDataRawIndel)
+  
+    cmd"""$binPlink --bfile ${paramsArr.arrayDataPath} --missing --out ${paramsArr.arrayDataRawName}.missing"""
+      .in(paramsArr.arrayData)
+      .out(paramsArr.arrayDataRawLmiss)
+  
+    cmd"""$binPlink --bfile ${paramsArr.arrayDataPath} --freq --out ${paramsArr.arrayDataRawName}.freq"""
+      .in(paramsArr.arrayData)
+     .out(paramsArr.arrayDataRawFreq)
+  
+    cmd"""sed '1d' ${paramsArr.arrayDataRawFreq} | awk '{if($$5 == 0) print $$2}' > ${paramsArr.arrayDataRawMono}"""
+      .in(paramsArr.arrayDataRawFreq)
+      .out(paramsArr.arrayDataRawMono)
+  
+    // run find_best_duplicate_variants.r to generate exclude list for duplicates
+    cmd"""$binRscript --vanilla --verbose 
+      $rFindBestDuplicateVariants
+      --bim-in ${paramsArr.arrayDataPath}.bim
+      --freq-in ${paramsArr.arrayDataRawFreq}
+      --miss-in ${paramsArr.arrayDataRawLmiss}
+      --out ${paramsArr.arrayDataRawDupRemove}"""
+      .in(paramsArr.arrayData, paramsArr.arrayDataRawFreq, paramsArr.arrayDataRawLmiss)
+      .out(paramsArr.arrayDataRawDupRemove)
+  
+    cmd"""$binPlink --bfile ${paramsArr.arrayDataPath} --exclude ${paramsArr.arrayDataRawDupRemove} --make-bed --out ${paramsArr.arrayDataPreparedName}"""
+      .in(paramsArr.arrayData, paramsArr.arrayDataRawDupRemove)
+      .out(paramsArr.arrayDataPrepared)
+  
+    cmd"""awk '{if(x[$$1":"$$4]) {x_count[$$1":"$$4]++; print $$2; if(x_count[$$1":"$$4] == 1) {print x[$$1":"$$4]}} x[$$1":"$$4] = $$2}' ${paramsArr.arrayDataPreparedName}.bim > ${paramsArr.arrayDataPreparedMultiallelic}"""
+      .in(paramsArr.arrayDataPrepared)
+      .out(paramsArr.arrayDataPreparedMultiallelic)
+  
+  }  
+  
+  /**
+  * Harmonize Step
+  *  Description: Align data strand to 1KG reference. Also, update reference allele and variant ID to match 1KG
+  *  Requires: Plink1.9 and, at least, Genotype Harmonizer v1.4.18
+  *  Notes:
+  *     Could also add --variants and --mafAlign as pipeline options, but for now these are static
+  *     To save time, this will be run in parallel by chromosome number
+  */
+  
+  uger {
+    for {
+      (chr, paramsChr) <- paramsArr.paramsByArrByChr
+    } {
+      cmd"""$binPlink --bfile ${paramsArr.arrayDataPreparedName} --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName}"""
+        .in(paramsArr.arrayDataPrepared)
+        .out(paramsChr.rawChr)
+      
+      cmd"""$binGenotypeHarmonizer
+      --input ${paramsChr.rawChrName}
+      --inputType PLINK_BED
+      --output ${paramsChr.harmKgChrName}
+      --outputType PLINK_BED
+      --ref ${paramsChr.kgVcfChr}
+      --refType VCF
+      --keep
+      --update-id
+      --variants 1000
+      --mafAlign 0.1
+      --update-id
+      --update-reference-allele
+      --debug"""
+        .in(paramsChr.rawChr :+ paramsChr.kgVcfChr)
+        .out(paramsChr.harmKgChr :+ paramsChr.harmKgChrVarIdUpdate :+ paramsChr.harmKgChrVarSnpLog)
+    
+      cmd"""python $pyAlignNon1kgVariants
+      --legend ${paramsChr.kgLegendChr}
+      --bim ${paramsChr.harmKgChrName}.bim
+      --ref ${paramsChr.humanReference}
+      --out-remove ${paramsChr.harmNonKgChrRemove}
+      --out-ignore ${paramsChr.harmNonKgChrIgnore}
+      --out-mono ${paramsChr.harmNonKgChrMono}
+      --out-nomatch ${paramsChr.harmNonKgChrNomatch}
+      --out-flip ${paramsChr.harmNonKgChrFlip}
+      --out-force-a1 ${paramsChr.harmNonKgChrForceA1}"""
+        .in(paramsChr.harmKgChr :+ paramsChr.kgLegendChr)
+        .out(paramsChr.harmNonKgChrRemove, paramsChr.harmNonKgChrIgnore, paramsChr.harmNonKgChrMono,paramsChr.harmNonKgChrNomatch, paramsChr.harmNonKgChrFlip, paramsChr.harmNonKgChrForceA1)
+    
+      cmd"""$binPlink --bfile ${paramsChr.harmKgChrName} --exclude ${paramsChr.harmNonKgChrRemove} --flip ${paramsChr.harmNonKgChrFlip} --a1-allele ${paramsChr.harmNonKgChrForceA1} --make-bed --out ${paramsChr.harmKgHuRefChrName}"""
+        .in(paramsChr.harmKgChr :+ paramsChr.harmNonKgChrRemove :+ paramsChr.harmNonKgChrFlip :+ paramsChr.harmNonKgChrForceA1)
+        .out(paramsChr.harmKgHuRefChr)
+    
+    }
+    
+    val harmMergeLinesConcat: String = paramsArr.harmMergeLines
+      .drop(1)
+      .mkString("\n") // Exclude first chrom
+    
+    cmd"""echo "$harmMergeLinesConcat" > ${paramsArr.harmMergeList}"""
+      .out(paramsArr.harmMergeList)
+    
+    cmd"""$binPlink --bfile ${paramsArr.paramsByArrByChrSorted.head.harmKgHuRefChrName} --merge-list ${paramsArr.harmMergeList} --make-bed --keep-allele-order --out ${paramsArr.harmName}"""
+      .in(paramsArr.paramsByArrByChrSorted.flatMap(_.harmKgHuRefChr) :+ paramsArr.harmMergeList)
+      .out(paramsArr.harm)
+    
+    cmd"""awk '{print $$2,$$5}' ${paramsArr.harmName}.bim > ${paramsArr.harmForceA2}"""
+      .in(paramsArr.harm)
+      .out(paramsArr.harmForceA2)
+  
+    cmd"""$binPlink --bfile ${paramsArr.harmName} --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --make-bed --out ${paramsArr.harmRefName}"""
+      .in(paramsArr.harm :+ paramsArr.harmForceA2)
+      .out(paramsArr.harmRef)
+  
+    cmd"""$binPlink --bfile ${paramsArr.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --out ${paramsArr.harmRefName}"""
+      .in(paramsArr.harm :+ paramsArr.harmForceA2)
+      .out(paramsArr.harmRefVcf)
+    
+    cmd"""$binTabix -f -p vcf ${paramsArr.harmRefVcf}"""
+      .in(paramsArr.harmRefVcf)
+      .out(paramsArr.harmRefVcfTbi)
+    
+    val harmNonKgChrRemoveString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrRemove.toString.split("@")(1)}"""}.mkString(",")
+    val harmNonKgChrMonoString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrMono.toString.split("@")(1)}"""}.mkString(",")
+    val harmNonKgChrNomatchString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrNomatch.toString.split("@")(1)}"""}.mkString(",")
+    val harmNonKgChrIgnoreString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrIgnore.toString.split("@")(1)}"""}.mkString(",")
+    val harmNonKgChrFlipString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrFlip.toString.split("@")(1)}"""}.mkString(",")
+    val harmNonKgChrForceA1String = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrForceA1.toString.split("@")(1)}"""}.mkString(",")
+    val harmKgChrVarSnpLogString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmKgChrVarSnpLog.toString.split("@")(1)}"""}.mkString(",")
+    
+    cmd"""python $pyMergeVariantLists
+      --remove-in "$harmNonKgChrRemoveString"
+      --remove-mono-in "$harmNonKgChrMonoString"
+      --remove-nomatch-in "$harmNonKgChrNomatchString"
+      --ignore-in "$harmNonKgChrIgnoreString"
+      --flip-in "$harmNonKgChrFlipString"
+      --force-a1-in "$harmNonKgChrForceA1String"
+      --snp-log-in "$harmKgChrVarSnpLogString"
+      --remove-out ${paramsArr.harmNonKgRemove}
+      --remove-mono-out ${paramsArr.harmNonKgMono}
+      --remove-nomatch-out ${paramsArr.harmNonKgNomatch}
+      --ignore-out ${paramsArr.harmNonKgIgnore}
+      --flip-out ${paramsArr.harmNonKgFlip}
+      --force-a1-out ${paramsArr.harmNonKgForceA1}
+      --snp-log-out ${paramsArr.harmKgVarSnpLog}
+      """
+      .in(paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrRemove) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrMono) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrNomatch) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrIgnore) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrFlip) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrForceA1) ++ paramsArr.paramsByArrByChrSorted.map(_.harmKgChrVarSnpLog))
+      .out(paramsArr.harmNonKgRemove, paramsArr.harmNonKgNomatch, paramsArr.harmNonKgMono, paramsArr.harmNonKgIgnore, paramsArr.harmNonKgFlip, paramsArr.harmNonKgForceA1, paramsArr.harmKgVarSnpLog)
+  }
+  
+  /**
+   * Load Step
+   *  Description: Generate the Hail VDS from VCF file and a sample file containing population and sex information
+   *  Requires: Hail
+   */
+  
+  local {
+    googleCopy(paramsArr.harmRefVcf, paramsArr.harmRefVcfCloud)
+    googleCopy(paramsArr.harmRefVcfTbi, paramsArr.harmRefVcfTbiCloud)
+  }
+  
+  google {
+    hail"""$pyHailLoad
+      --vcf-in $projectId ${paramsArr.harmRefVcfCloud}
+      --vds-out ${paramsArr.harmRefVdsCloud}"""
+      .in(paramsArr.harmRefVcfCloud, paramsArr.harmRefVcfTbiCloud)
+      .out(paramsArr.harmRefVdsCloud)
+  }
+  
+  /**
+   * Filter Step
+   *  Description: Generate filtered and filtered/pruned filesets for QC
+   *  Requires: Hail
+   */
+  
+  google {
+    hail"""$pyHailFilter
+      --vds-in ${paramsArr.harmRefVdsCloud}
+      --regions-exclude ${Input.Google.regionsExclude}
+      --variant-qc-out ${paramsArr.harmRefFiltVariantQcCloud}
+      --variants-prunedin-out ${paramsArr.harmRefFiltVariantsPrunedInCloud}
+      --filt-vds-out ${paramsArr.harmRefFiltVdsCloud}
+      --filt-plink-out ${paramsArr.harmRefFiltNameCloud}
+      --filt-pruned-vds-out ${paramsArr.harmRefFiltPrunedVdsCloud}
+      --filt-pruned-plink-out ${paramsArr.harmRefFiltPrunedNameCloud}"""
+      .in(paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
+      .out(((paramsArr.harmRefFiltCloud :+ paramsArr.harmRefFiltVdsCloud) ++ (paramsArr.harmRefFiltPrunedCloud :+ paramsArr.harmRefFiltPrunedVdsCloud)) :+ paramsArr.harmRefFiltVariantQcCloud :+ paramsArr.harmRefFiltVariantsPrunedInCloud)
+  }
+  
+  local {
+    googleCopy(paramsArr.harmRefFiltPrunedCloud, paramsArr.harmRefFiltPruned)
+  }
+  
+  /**
+   * Kinship Step
+   *  Description: Calculate kinship to identify duplicates and any samples exhibiting abnormal (excessive) sharing
+   *  Requires: King, R
+   *  Notes:
+   *     King is preferred to Plink or Hail based IBD calcs due to robust algorithm handling of population stratification. This step should be followed by a visual inspection for duplicates or excessive sharing
+   * King only writes the '.kin0' file if families are found, so a bash script is used to write an empty file in that case
+   */
+  
+  uger {
+    cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related}"""
+    .in(paramsArr.harmRefFiltPruned)
+    .out(paramsArr.kinLog, paramsArr.kinKin, paramsArr.kinTmpDat, paramsArr.kinTmpPed, paramsArr.kinKin0, paramsArr.kinKin0Related)
+  
+    cmd"""$binR --vanilla --args ${paramsArr.kinKin0Related} ${paramsArr.kinFamsizes} < ${rCalcKinshipFamSizes}"""
+    .in(paramsArr.kinKin0Related)
+    .out(paramsArr.kinFamsizes)
+  }
+  
+  /**
+    * Ancestry PCA Step
+    *  Description: Calculate PCs combined with 1KG Phase 3 Purcell 5k data
+    *  Requires: Hail, R, $rPlotAncestryPca
+    *  Notes:
+    *     To perform ancestry inference and clustering with 1KG data, we must combine on common variants with reference data (clustering does not work when only using PCA loadings and projecting)
+    */
+  
+  google {
+    hail"""$pyHailAncestryPcaMerge1kg
+      --vds-in ${paramsArr.harmRefVdsCloud}
+      --kg-vcf-in ${Input.Google.kgPurcellVcf}
+      --kg-sample ${Input.Google.kgSample}
+      --plink-out ${paramsArr.harmRef1kgNameCloud}"""
+      .in(paramsArr.harmRefVdsCloud, Input.Google.kgPurcellVcf, Input.Google.kgSample)
+      .out(paramsArr.harmRef1kgCloud)
+  }
+  
+  local {
+    googleCopy(paramsArr.harmRef1kgCloud, paramsArr.harmRef1kg)
+  }
+  
+  uger {
+    cmd"""$binRscript --vanilla --verbose
+      $rPcair
+      --plink-in ${paramsArr.harmRef1kgName}
+      --gds-out ${paramsArr.harmRef1kgGds}
+      --scores ${paramsArr.ancestryPcaScores}
+      --id $projectId
+      --force-unrel $kgSampleId ${Input.Local.kgSample}
+      --update-pop $kgSampleId $kgSamplePop ${Input.Local.kgSample}
+      --update-group $kgSampleId $kgSampleGroup ${Input.Local.kgSample}
+      > ${paramsArr.ancestryPcaLog}"""
+      .in(paramsArr.harmRef1kg :+ Input.Local.kgSample)
+      .out(paramsArr.harmRef1kgGds, paramsArr.ancestryPcaLog, paramsArr.ancestryPcaScores)
+      .using("R-3.4")
+  
+    cmd"""$binR --vanilla --args $projectId ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryPcaScoresPlots} < $rPlotAncestryPca"""
+    .in(paramsArr.ancestryPcaScores)
+    .out(paramsArr.ancestryPcaScoresPlots)
+    
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.ancestryPcaScoresPlots}[0] ${paramsArr.ancestryPcaScoresPlotPc1VsPc2}"""
+      .in(paramsArr.ancestryPcaScoresPlots)
+      .out(paramsArr.ancestryPcaScoresPlotPc1VsPc2)
+    
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.ancestryPcaScoresPlots}[1] ${paramsArr.ancestryPcaScoresPlotPc2VsPc3}"""
+      .in(paramsArr.ancestryPcaScoresPlots)
+      .out(paramsArr.ancestryPcaScoresPlotPc2VsPc3)
+  }
+  
+  /**
+   * Ancestry Cluster Step
+   *  Description: Cluster with 1KG samples using Gaussian Mixture Modeling and infer ancestry
+   *  Requires: Hail, R
+   *  Notes:
+   *     *.ancestry.inferred.tsv contains the final inferred ancestry for each sample, including OUTLIERS
+   *     This file is array specific
+   */
+  
+  uger {
+    cmd"""(echo 3; sed '1d' ${paramsArr.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${paramsArr.ancestryClusterFet}"""
+    .in(paramsArr.ancestryPcaScores)
+    .out(paramsArr.ancestryClusterFet)
+  
+    cmd"""$binKlustakwik ${paramsArr.ancestryClusterName} 1 -UseFeatures 111 -UseDistributional 0 > ${paramsArr.ancestryClusterLog}"""
+    .in(paramsArr.ancestryClusterFet)
+    .out(paramsArr.ancestryClusterClu, paramsArr.ancestryClusterKlg, paramsArr.ancestryClusterLog)
+  
+    cmd"""$binR --vanilla --args ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryClusterClu} ${Input.Local.pheno} $projectId $phenoId $phenoSrRace
+      ${paramsArr.ancestryClusterPlots} ${paramsArr.ancestryClusterXtabs} ${paramsArr.ancestryClusterPlotsCenters}
+      ${paramsArr.ancestryClusterGroups} ${paramsArr.ancestryInferred}
+      ${paramsArr.ancestryClusterPlotsNo1kg} < $rPlotAncestryCluster"""
+      .in(paramsArr.ancestryPcaScores, paramsArr.ancestryClusterClu, Input.Local.pheno)
+      .out(paramsArr.ancestryClusterPlots, paramsArr.ancestryClusterXtabs, paramsArr.ancestryClusterPlotsCenters, paramsArr.ancestryClusterGroups, paramsArr.ancestryInferred, paramsArr.ancestryClusterPlotsNo1kg)
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.ancestryClusterPlots}[0] ${paramsArr.ancestryClusterPlotPc1VsPc2}"""
+      .in(paramsArr.ancestryClusterPlots)
+      .out(paramsArr.ancestryClusterPlotPc1VsPc2)
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.ancestryClusterPlots}[1] ${paramsArr.ancestryClusterPlotPc2VsPc3}"""
+      .in(paramsArr.ancestryClusterPlots)
+      .out(paramsArr.ancestryClusterPlotPc2VsPc3)
+  
+  }
 
   paramsArr.ancestryInferred
 
@@ -1666,321 +1652,321 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
   var resultsMap = Seq[Map[(String, String, String, String, String), Store]]()
   var knownLociMap = Seq[Map[(String, String, String, String, String, String), Store]]()
 
-  ///**
-  // * PCA Step
-  // *  Description: Calculate PCs for all non-outlier samples combined (to be used for adjustment during sample outlier removal)
-  // *  Requires: R
-  // */
-  //
-  //uger {
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rPcair
-  //    --plink-in ${paramsArr.harmRefFiltPrunedName}
-  //    --gds-out ${paramsArr.harmRefFiltPrunedPcaGds}
-  //    --exclude ${ancestryInferredMergedOutliers}
-  //    --ancestry ${ancestryInferredMerged}
-  //    --id $projectId
-  //    --scores ${paramsArr.pcaScores}
-  //    > ${paramsArr.pcaLog}"""
-  //    .in(paramsArr.harmRefFiltPruned :+ ancestryInferredMerged :+ ancestryInferredMergedOutliers)
-  //    .out(paramsArr.harmRefFiltPrunedPcaGds, paramsArr.pcaLog, paramsArr.pcaScores)
-  //    .using("R-3.4")
-  //}
-  //
-  ///**
-  // * Sample QC Stats Calculation Step
-  // *  Description: Calculate sexcheck and sample by variant statistics for all samples
-  // *  Requires: Hail, R
-  // */
-  //
-  //local {
-  //  googleCopy(ancestryInferredMerged, ancestryInferredMergedCloud)
-  //  googleCopy(Input.Local.pheno, Input.Google.pheno)
-  //}
-  //
-  //google {
-  //  hail"""$pyHailSexcheck
-  //    --vds-in ${paramsArr.harmRefVdsCloud}
-  //    --regions-exclude ${Input.Google.regionsExclude}
-  //    --pheno-in ${Input.Google.pheno}
-  //    --id-col $phenoId
-  //    --sex-col $phenoSrSex
-  //    --sexcheck-out ${paramsArr.sampleqcSexcheckCloud}
-  //    --sexcheck-problems-out ${paramsArr.sampleqcSexcheckProblemsCloud}"""
-  //    .in(Input.Google.pheno, paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
-  //    .out(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheckProblemsCloud)
-  //
-  //  hail"""$pyHailSampleqc
-  //    --vds-in ${paramsArr.harmRefFiltPrunedVdsCloud}
-  //    --clusters-in ${ancestryInferredMergedCloud}
-  //    --qc-out ${paramsArr.sampleqcStatsCloud}"""
-  //    .in(paramsArr.harmRefFiltPrunedVdsCloud, ancestryInferredMergedCloud)
-  //    .out(paramsArr.sampleqcStatsCloud)
-  //}
-  //
-  //local {
-  //  googleCopy(paramsArr.sampleqcStatsCloud, paramsArr.sampleqcStats)
-  //}
-  //
-  //uger {
-  //  cmd"""$binR --vanilla --args ${paramsArr.sampleqcStats} ${paramsArr.pcaScores} ${paramsArr.sampleqcStatsAdj} < $rCalcIstatsAdj"""
-  //  .in(paramsArr.sampleqcStats, paramsArr.pcaScores)
-  //  .out(paramsArr.sampleqcStatsAdj)
-  //
-  //  cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdj} ${paramsArr.sampleqcStatsAdjCorrPlots} ${paramsArr.sampleqcStatsAdjPcaLoadings} ${paramsArr.sampleqcStatsAdjPcaScoresPlots} ${paramsArr.sampleqcStatsAdjPcaScores} < $rIstatsAdjPca"""
-  //  .in(paramsArr.sampleqcStatsAdj)
-  //  .out(paramsArr.sampleqcStatsAdjCorrPlots, paramsArr.sampleqcStatsAdjPcaLoadings, paramsArr.sampleqcStatsAdjPcaScoresPlots, paramsArr.sampleqcStatsAdjPcaScores)
-  //}
-  //
-  //local {
-  //  googleCopy(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheck)
-  //  googleCopy(paramsArr.sampleqcSexcheckProblemsCloud, paramsArr.sampleqcSexcheckProblems)
-  //}
-  //
-  ///**
-  // * Sample QC PCA Clustering Step
-  // *  Description: Cluster PCs of adjusted sample QC metrics
-  // *  Requires: Klustakwik, R
-  // */
-  //
-  //uger {
-  //  cmd"""N=$$(head -1 ${paramsArr.sampleqcStatsAdjPcaScores} | wc | awk '{print $$2-1}');
-  //    echo $$N > ${paramsArr.sampleqcStatsAdjClusterFet};
-  //    sed '1d' ${paramsArr.sampleqcStatsAdjPcaScores} | cut -f2- | sed 's/\t/ /g' >> ${paramsArr.sampleqcStatsAdjClusterFet};
-  //    FEATURES=1; for i in $$(seq 2 $$N); do FEATURES=$${FEATURES}1; done;
-  //    $binKlustakwik ${paramsArr.sampleqcStatsAdjClusterName} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
-  //    ${paramsArr.sampleqcStatsAdjClusterKlustakwikLog}"""
-  //    .in(paramsArr.sampleqcStatsAdjPcaScores)
-  //    .out(paramsArr.sampleqcStatsAdjClusterFet, paramsArr.sampleqcStatsAdjClusterClu, paramsArr.sampleqcStatsAdjClusterKlg, paramsArr.sampleqcStatsAdjClusterKlustakwikLog)
-  //
-  //  cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdjPcaScores} ${paramsArr.sampleqcStatsAdjClusterClu}
-  //    ${paramsArr.sampleqcStatsAdjClusterOutliers} ${paramsArr.sampleqcStatsAdjClusterPlots}
-  //    ${paramsArr.sampleqcStatsAdjClusterXtabs} $projectId < $rIstatsPcsGmmClusterPlot"""
-  //    .in(paramsArr.sampleqcStatsAdjPcaScores, paramsArr.sampleqcStatsAdjClusterClu)
-  //    .out(paramsArr.sampleqcStatsAdjClusterOutliers, paramsArr.sampleqcStatsAdjClusterPlots, paramsArr.sampleqcStatsAdjClusterXtabs)
-  //
-  //}
-  //
-  ///**
-  // * Sample QC Individual Stats Clustering Step
-  // *  Description: Cluster PCs of adjusted sample QC metrics
-  // *  Requires: Klustakwik, R
-  // */
-  //
-  //var sampleqcIndCluFiles = Seq[String]()
-  //for {
-  //  (metric, paramsMetric) <- paramsArr.paramsByArrByMetric
-  //  } {
-  //    sampleqcIndCluFiles = sampleqcIndCluFiles :+ paramsMetric.sampleqcStatsAdjIndMetric + "___" + s"${paramsMetric.sampleqcStatsAdjIndClusterClu.toString.split("@")(1)}"
-  //
-  //  uger {
-  //    cmd"""echo 1 > ${paramsMetric.sampleqcStatsAdjIndClusterFet};
-  //      metricIdx=`head -1 ${paramsArr.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${paramsMetric.sampleqcStatsAdjIndMetric} | awk '{print $$1}'`;
-  //      sed '1d' ${paramsArr.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${paramsMetric.sampleqcStatsAdjIndClusterFet}"""
-  //      .in(paramsArr.sampleqcStatsAdj)
-  //      .out(paramsMetric.sampleqcStatsAdjIndClusterFet)
-  //
-  //    cmd"""$binKlustakwik ${paramsMetric.sampleqcStatsAdjIndClusterName} 1 -UseFeatures 1 -UseDistributional 0 > ${paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog}"""
-  //      .in(paramsMetric.sampleqcStatsAdjIndClusterFet)
-  //      .out(paramsMetric.sampleqcStatsAdjIndClusterClu, paramsMetric.sampleqcStatsAdjIndClusterKlg, paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog)
-  //  }
-  //
-  //}
-  //
-  //uger {
-  //  cmd"""$binR --vanilla --args
-  //    ${sampleQcMetrics.mkString(",")}
-  //    ${paramsArr.sampleqcStats}
-  //    ${paramsArr.sampleqcStatsAdj}
-  //    ${paramsArr.sampleqcStatsAdjClusterOutliers}
-  //    ${paramsArr.sampleqcStatsAdjIndBoxplots}
-  //    ${paramsArr.sampleqcStatsAdjIndDiscreteness}
-  //    ${paramsArr.sampleqcStatsAdjOutliersTable}
-  //    ${paramsArr.sampleqcStatsAdjStripchart}
-  //    ${ancestryInferredMerged}
-  //    < $rIstatsAdjGmmPlotMetrics"""
-  //    .in(paramsArr.paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ ancestryInferredMerged :+ paramsArr.sampleqcStatsAdjClusterOutliers)
-  //    .out(paramsArr.sampleqcStatsAdjIndBoxplots, paramsArr.sampleqcStatsAdjIndDiscreteness, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcStatsAdjStripchart)
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rMakeSampleqcOutlierPlot
-  //    --ind-clu-files "${sampleqcIndCluFiles.mkString(",")}"
-  //    --stats-unadj ${paramsArr.sampleqcStats}
-  //    --stats-adj ${paramsArr.sampleqcStatsAdj}
-  //    --metric-pca-outliers ${paramsArr.sampleqcStatsAdjClusterOutliers}
-  //    --out ${paramsArr.sampleqcOutlierPlotPdf}"""
-  //    .in(paramsArr.paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj)
-  //    .out(paramsArr.sampleqcOutlierPlotPdf)
-  //    .using("R-3.4")
-  //
-  //  cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.sampleqcOutlierPlotPdf}[0] ${paramsArr.sampleqcOutlierPlotPng}"""
-  //    .in(paramsArr.sampleqcOutlierPlotPdf)
-  //    .out(paramsArr.sampleqcOutlierPlotPng)
-  //
-  //}
-  //
-  ///**
-  // * Compile Sample Exclusions Step
-  // * Requires: Python
-  // */
-  //
-  //uger {
-  //
-  //  cmd"""python $pyCompileExclusions
-  //    --ancestry-inferred ${ancestryInferredMerged}
-  //    --kinship-related ${paramsArr.kinKin0Related}
-  //    --kinship-famsizes ${paramsArr.kinFamsizes}
-  //    --sampleqc-outliers ${paramsArr.sampleqcStatsAdjOutliersTable}
-  //    --sexcheck-problems ${paramsArr.sampleqcSexcheckProblems}
-  //    --ancestry-keep ${ancestryOutliersKeep.mkString(",")}
-  //    --duplicates-keep ${duplicatesKeep.mkString(",")}
-  //    --famsize-keep ${famsizeKeep.mkString(",")}
-  //    --sampleqc-keep ${sampleqcKeep.mkString(",")}
-  //    --sexcheck-keep ${sexcheckKeep.mkString(",")}
-  //    --out ${paramsArr.finalSampleExclusions}"""
-  //    .in(ancestryInferredMerged, paramsArr.kinKin0Related, paramsArr.kinFamsizes, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcSexcheckProblems)
-  //    .out(paramsArr.finalSampleExclusions)
-  //}
-  //
-  ///**
-  //* Filter Clean Step
-  //* filter variants and generate final clean dataset
-  //*/
-  //
-  //local {
-  //  googleCopy(paramsArr.finalSampleExclusions, paramsArr.finalSampleExclusionsCloud)
-  //}
-  //
-  //google {
-  //  hail"""$pyHailFilterFinal
-  //    --vds-in ${paramsArr.harmRefVdsCloud}
-  //    --ancestry-in ${ancestryInferredMergedCloud}
-  //    --sexcheck-in ${paramsArr.sampleqcSexcheckCloud}
-  //    --pheno-in ${Input.Google.pheno}
-  //    --iid-col $phenoId
-  //    --case-ctrl-col $phenoStatus
-  //    --samples-remove ${paramsArr.finalSampleExclusionsCloud}
-  //    --variantqc-out ${paramsArr.variantqcStatsCloud}
-  //    --variants-exclude-out ${paramsArr.finalVariantExclusionsCloud}
-  //    --plink-out ${paramsArr.cleanNameCloud}
-  //    --vcf-out ${paramsArr.cleanVcfCloud}
-  //    --vds-out ${paramsArr.cleanVdsCloud}"""
-  //    .in(paramsArr.harmRefVdsCloud, ancestryInferredMergedCloud, paramsArr.sampleqcSexcheckCloud, Input.Google.pheno, paramsArr.finalSampleExclusionsCloud)
-  //    .out(paramsArr.cleanCloud :+ paramsArr.cleanVcfCloud :+ paramsArr.variantqcStatsCloud :+ paramsArr.finalVariantExclusionsCloud :+ paramsArr.cleanVdsCloud)
-  //}
-  //
-  //local {
-  //  googleCopy(paramsArr.cleanCloud, paramsArr.clean)
-  //  googleCopy(paramsArr.cleanVcfCloud, paramsArr.cleanVcf)
-  //  googleCopy(paramsArr.variantqcStatsCloud, paramsArr.variantqcStats)
-  //  googleCopy(paramsArr.finalVariantExclusionsCloud, paramsArr.finalVariantExclusions)
-  //}
-  //
-  //local {
-  //  cmd"""$binTabix -f -p vcf ${paramsArr.cleanVcf}"""
-  //    .in(paramsArr.cleanVcf)
-  //    .out(paramsArr.cleanVcfTbi)
-  //}
-  //
-  //uger {
-  //
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rPcair
-  //    --plink-in ${paramsArr.harmRefFiltPrunedName}
-  //    --gds-out ${paramsArr.cleanGds}
-  //    --exclude ${paramsArr.finalSampleExclusions}
-  //    --scores ${paramsArr.cleanPcaScores}
-  //    > ${paramsArr.cleanPcaLog}"""
-  //    .in(paramsArr.harmRefFiltPruned)
-  //    .out(paramsArr.cleanGds, paramsArr.cleanPcaScores, paramsArr.cleanPcaLog)
-  //    .using("R-3.4")
-  //
-  //}
-  //
-  ///**
-  // * Association Step
-  // *  Description: Run association tests
-  // *  Requires: Hail
-  // */
-  //
+  /**
+   * PCA Step
+   *  Description: Calculate PCs for all non-outlier samples combined (to be used for adjustment during sample outlier removal)
+   *  Requires: R
+   */
+  
+  uger {
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rPcair
+      --plink-in ${paramsArr.harmRefFiltPrunedName}
+      --gds-out ${paramsArr.harmRefFiltPrunedPcaGds}
+      --exclude ${ancestryInferredMergedOutliers}
+      --ancestry ${ancestryInferredMerged}
+      --id $projectId
+      --scores ${paramsArr.pcaScores}
+      > ${paramsArr.pcaLog}"""
+      .in(paramsArr.harmRefFiltPruned :+ ancestryInferredMerged :+ ancestryInferredMergedOutliers)
+      .out(paramsArr.harmRefFiltPrunedPcaGds, paramsArr.pcaLog, paramsArr.pcaScores)
+      .using("R-3.4")
+  }
+  
+  /**
+   * Sample QC Stats Calculation Step
+   *  Description: Calculate sexcheck and sample by variant statistics for all samples
+   *  Requires: Hail, R
+   */
+  
+  local {
+    googleCopy(ancestryInferredMerged, ancestryInferredMergedCloud)
+    googleCopy(Input.Local.pheno, Input.Google.pheno)
+  }
+  
+  google {
+    hail"""$pyHailSexcheck
+      --vds-in ${paramsArr.harmRefVdsCloud}
+      --regions-exclude ${Input.Google.regionsExclude}
+      --pheno-in ${Input.Google.pheno}
+      --id-col $phenoId
+      --sex-col $phenoSrSex
+      --sexcheck-out ${paramsArr.sampleqcSexcheckCloud}
+      --sexcheck-problems-out ${paramsArr.sampleqcSexcheckProblemsCloud}"""
+      .in(Input.Google.pheno, paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
+      .out(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheckProblemsCloud)
+  
+    hail"""$pyHailSampleqc
+      --vds-in ${paramsArr.harmRefFiltPrunedVdsCloud}
+      --clusters-in ${ancestryInferredMergedCloud}
+      --qc-out ${paramsArr.sampleqcStatsCloud}"""
+      .in(paramsArr.harmRefFiltPrunedVdsCloud, ancestryInferredMergedCloud)
+      .out(paramsArr.sampleqcStatsCloud)
+  }
+  
+  local {
+    googleCopy(paramsArr.sampleqcStatsCloud, paramsArr.sampleqcStats)
+  }
+  
+  uger {
+    cmd"""$binR --vanilla --args ${paramsArr.sampleqcStats} ${paramsArr.pcaScores} ${paramsArr.sampleqcStatsAdj} < $rCalcIstatsAdj"""
+    .in(paramsArr.sampleqcStats, paramsArr.pcaScores)
+    .out(paramsArr.sampleqcStatsAdj)
+  
+    cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdj} ${paramsArr.sampleqcStatsAdjCorrPlots} ${paramsArr.sampleqcStatsAdjPcaLoadings} ${paramsArr.sampleqcStatsAdjPcaScoresPlots} ${paramsArr.sampleqcStatsAdjPcaScores} < $rIstatsAdjPca"""
+    .in(paramsArr.sampleqcStatsAdj)
+    .out(paramsArr.sampleqcStatsAdjCorrPlots, paramsArr.sampleqcStatsAdjPcaLoadings, paramsArr.sampleqcStatsAdjPcaScoresPlots, paramsArr.sampleqcStatsAdjPcaScores)
+  }
+  
+  local {
+    googleCopy(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheck)
+    googleCopy(paramsArr.sampleqcSexcheckProblemsCloud, paramsArr.sampleqcSexcheckProblems)
+  }
+  
+  /**
+   * Sample QC PCA Clustering Step
+   *  Description: Cluster PCs of adjusted sample QC metrics
+   *  Requires: Klustakwik, R
+   */
+  
+  uger {
+    cmd"""N=$$(head -1 ${paramsArr.sampleqcStatsAdjPcaScores} | wc | awk '{print $$2-1}');
+      echo $$N > ${paramsArr.sampleqcStatsAdjClusterFet};
+      sed '1d' ${paramsArr.sampleqcStatsAdjPcaScores} | cut -f2- | sed 's/\t/ /g' >> ${paramsArr.sampleqcStatsAdjClusterFet};
+      FEATURES=1; for i in $$(seq 2 $$N); do FEATURES=$${FEATURES}1; done;
+      $binKlustakwik ${paramsArr.sampleqcStatsAdjClusterName} 1 -UseFeatures $$FEATURES -UseDistributional 0 >
+      ${paramsArr.sampleqcStatsAdjClusterKlustakwikLog}"""
+      .in(paramsArr.sampleqcStatsAdjPcaScores)
+      .out(paramsArr.sampleqcStatsAdjClusterFet, paramsArr.sampleqcStatsAdjClusterClu, paramsArr.sampleqcStatsAdjClusterKlg, paramsArr.sampleqcStatsAdjClusterKlustakwikLog)
+  
+    cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdjPcaScores} ${paramsArr.sampleqcStatsAdjClusterClu}
+      ${paramsArr.sampleqcStatsAdjClusterOutliers} ${paramsArr.sampleqcStatsAdjClusterPlots}
+      ${paramsArr.sampleqcStatsAdjClusterXtabs} $projectId < $rIstatsPcsGmmClusterPlot"""
+      .in(paramsArr.sampleqcStatsAdjPcaScores, paramsArr.sampleqcStatsAdjClusterClu)
+      .out(paramsArr.sampleqcStatsAdjClusterOutliers, paramsArr.sampleqcStatsAdjClusterPlots, paramsArr.sampleqcStatsAdjClusterXtabs)
+  
+  }
+  
+  /**
+   * Sample QC Individual Stats Clustering Step
+   *  Description: Cluster PCs of adjusted sample QC metrics
+   *  Requires: Klustakwik, R
+   */
+  
+  var sampleqcIndCluFiles = Seq[String]()
+  for {
+    (metric, paramsMetric) <- paramsArr.paramsByArrByMetric
+    } {
+      sampleqcIndCluFiles = sampleqcIndCluFiles :+ paramsMetric.sampleqcStatsAdjIndMetric + "___" + s"${paramsMetric.sampleqcStatsAdjIndClusterClu.toString.split("@")(1)}"
+  
+    uger {
+      cmd"""echo 1 > ${paramsMetric.sampleqcStatsAdjIndClusterFet};
+        metricIdx=`head -1 ${paramsArr.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${paramsMetric.sampleqcStatsAdjIndMetric} | awk '{print $$1}'`;
+        sed '1d' ${paramsArr.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${paramsMetric.sampleqcStatsAdjIndClusterFet}"""
+        .in(paramsArr.sampleqcStatsAdj)
+        .out(paramsMetric.sampleqcStatsAdjIndClusterFet)
+  
+      cmd"""$binKlustakwik ${paramsMetric.sampleqcStatsAdjIndClusterName} 1 -UseFeatures 1 -UseDistributional 0 > ${paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog}"""
+        .in(paramsMetric.sampleqcStatsAdjIndClusterFet)
+        .out(paramsMetric.sampleqcStatsAdjIndClusterClu, paramsMetric.sampleqcStatsAdjIndClusterKlg, paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog)
+    }
+  
+  }
+  
+  uger {
+    cmd"""$binR --vanilla --args
+      ${sampleQcMetrics.mkString(",")}
+      ${paramsArr.sampleqcStats}
+      ${paramsArr.sampleqcStatsAdj}
+      ${paramsArr.sampleqcStatsAdjClusterOutliers}
+      ${paramsArr.sampleqcStatsAdjIndBoxplots}
+      ${paramsArr.sampleqcStatsAdjIndDiscreteness}
+      ${paramsArr.sampleqcStatsAdjOutliersTable}
+      ${paramsArr.sampleqcStatsAdjStripchart}
+      ${ancestryInferredMerged}
+      < $rIstatsAdjGmmPlotMetrics"""
+      .in(paramsArr.paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj :+ ancestryInferredMerged :+ paramsArr.sampleqcStatsAdjClusterOutliers)
+      .out(paramsArr.sampleqcStatsAdjIndBoxplots, paramsArr.sampleqcStatsAdjIndDiscreteness, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcStatsAdjStripchart)
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rMakeSampleqcOutlierPlot
+      --ind-clu-files "${sampleqcIndCluFiles.mkString(",")}"
+      --stats-unadj ${paramsArr.sampleqcStats}
+      --stats-adj ${paramsArr.sampleqcStatsAdj}
+      --metric-pca-outliers ${paramsArr.sampleqcStatsAdjClusterOutliers}
+      --out ${paramsArr.sampleqcOutlierPlotPdf}"""
+      .in(paramsArr.paramsByArrByMetricSorted.map(_.sampleqcStatsAdjIndClusterClu) :+ paramsArr.sampleqcStats :+ paramsArr.sampleqcStatsAdj)
+      .out(paramsArr.sampleqcOutlierPlotPdf)
+      .using("R-3.4")
+  
+    cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.sampleqcOutlierPlotPdf}[0] ${paramsArr.sampleqcOutlierPlotPng}"""
+      .in(paramsArr.sampleqcOutlierPlotPdf)
+      .out(paramsArr.sampleqcOutlierPlotPng)
+  
+  }
+  
+  /**
+   * Compile Sample Exclusions Step
+   * Requires: Python
+   */
+  
+  uger {
+  
+    cmd"""python $pyCompileExclusions
+      --ancestry-inferred ${ancestryInferredMerged}
+      --kinship-related ${paramsArr.kinKin0Related}
+      --kinship-famsizes ${paramsArr.kinFamsizes}
+      --sampleqc-outliers ${paramsArr.sampleqcStatsAdjOutliersTable}
+      --sexcheck-problems ${paramsArr.sampleqcSexcheckProblems}
+      --ancestry-keep ${ancestryOutliersKeep.mkString(",")}
+      --duplicates-keep ${duplicatesKeep.mkString(",")}
+      --famsize-keep ${famsizeKeep.mkString(",")}
+      --sampleqc-keep ${sampleqcKeep.mkString(",")}
+      --sexcheck-keep ${sexcheckKeep.mkString(",")}
+      --out ${paramsArr.finalSampleExclusions}"""
+      .in(ancestryInferredMerged, paramsArr.kinKin0Related, paramsArr.kinFamsizes, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcSexcheckProblems)
+      .out(paramsArr.finalSampleExclusions)
+  }
+  
+  /**
+  * Filter Clean Step
+  * filter variants and generate final clean dataset
+  */
+  
+  local {
+    googleCopy(paramsArr.finalSampleExclusions, paramsArr.finalSampleExclusionsCloud)
+  }
+  
+  google {
+    hail"""$pyHailFilterFinal
+      --vds-in ${paramsArr.harmRefVdsCloud}
+      --ancestry-in ${ancestryInferredMergedCloud}
+      --sexcheck-in ${paramsArr.sampleqcSexcheckCloud}
+      --pheno-in ${Input.Google.pheno}
+      --iid-col $phenoId
+      --case-ctrl-col $phenoStatus
+      --samples-remove ${paramsArr.finalSampleExclusionsCloud}
+      --variantqc-out ${paramsArr.variantqcStatsCloud}
+      --variants-exclude-out ${paramsArr.finalVariantExclusionsCloud}
+      --plink-out ${paramsArr.cleanNameCloud}
+      --vcf-out ${paramsArr.cleanVcfCloud}
+      --vds-out ${paramsArr.cleanVdsCloud}"""
+      .in(paramsArr.harmRefVdsCloud, ancestryInferredMergedCloud, paramsArr.sampleqcSexcheckCloud, Input.Google.pheno, paramsArr.finalSampleExclusionsCloud)
+      .out(paramsArr.cleanCloud :+ paramsArr.cleanVcfCloud :+ paramsArr.variantqcStatsCloud :+ paramsArr.finalVariantExclusionsCloud :+ paramsArr.cleanVdsCloud)
+  }
+  
+  local {
+    googleCopy(paramsArr.cleanCloud, paramsArr.clean)
+    googleCopy(paramsArr.cleanVcfCloud, paramsArr.cleanVcf)
+    googleCopy(paramsArr.variantqcStatsCloud, paramsArr.variantqcStats)
+    googleCopy(paramsArr.finalVariantExclusionsCloud, paramsArr.finalVariantExclusions)
+  }
+  
+  local {
+    cmd"""$binTabix -f -p vcf ${paramsArr.cleanVcf}"""
+      .in(paramsArr.cleanVcf)
+      .out(paramsArr.cleanVcfTbi)
+  }
+  
+  uger {
+  
+    cmd"""$binRscript --vanilla --verbose
+      $rPcair
+      --plink-in ${paramsArr.harmRefFiltPrunedName}
+      --gds-out ${paramsArr.cleanGds}
+      --exclude ${paramsArr.finalSampleExclusions}
+      --scores ${paramsArr.cleanPcaScores}
+      > ${paramsArr.cleanPcaLog}"""
+      .in(paramsArr.harmRefFiltPruned)
+      .out(paramsArr.cleanGds, paramsArr.cleanPcaScores, paramsArr.cleanPcaLog)
+      .using("R-3.4")
+  
+  }
+  
+  /**
+   * Association Step
+   *  Description: Run association tests
+   *  Requires: Hail
+   */
+  
   for {
     (model, paramsModel) <- paramsArr.paramsByArrByModel
   } {
   
-    //google {
-    //  hail"""$pyHailListSamples
-    //    --vds-in ${paramsArr.cleanVdsCloud}
-    //    --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
-    //    --pheno-in ${Input.Google.pheno}
-    //    --iid-col $phenoId
-    //    --pheno-col ${paramsModel.modelPheno}
-    //    --test ${paramsModel.modelTest}
-    //    --covars "${paramsModel.modelCovars}"
-    //    --out-pheno-prelim ${paramsModel.modelPhenoPrelimFileCloud}
-    //    --out-samples ${paramsModel.modelSamplesIncludeCloud}"""
-    //  .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno)
-    //  .out(paramsModel.modelPhenoPrelimFileCloud, paramsModel.modelSamplesIncludeCloud)
-    //}
-    //
-    //local {
-    //  googleCopy(paramsModel.modelPhenoPrelimFileCloud, paramsModel.modelPhenoPrelimFile)
-    //  googleCopy(paramsModel.modelSamplesIncludeCloud, paramsModel.modelSamplesInclude)
-    //}
-    //
-    //uger {
-    //  cmd"""$binRscript --vanilla --verbose
-    //    $rGeneratePheno
-    //    --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
-    //    --pheno-in ${Input.Local.pheno}
-    //    --ancestry-in ${ancestryInferredMerged}
-    //    --ancestry-keep "${paramsModel.modelAncestryKeep}"
-    //    --pheno-col ${paramsModel.modelPheno}
-    //    --iid-col $phenoId
-    //    --samples-include ${paramsModel.modelSamplesInclude}
-    //    --variants-exclude ID ${paramsArr.finalVariantExclusions}
-    //    --test ${paramsModel.modelTest}
-    //    --trans "${paramsModel.modelTrans}"
-    //    --covars "${paramsModel.modelCovars}"
-    //    --out-pheno ${paramsModel.modelPhenoFile}
-    //    --out-pcs ${paramsModel.modelPcsFile}
-    //    > ${paramsModel.modelPhenoFileLog}"""
-    //    .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, ancestryInferredMerged, paramsModel.modelSamplesInclude, paramsArr.finalVariantExclusions)
-    //    .out(paramsModel.modelPhenoFile, paramsModel.modelPcsFile, paramsModel.modelPhenoFileLog)
-    //    .using("R-3.4")
-    //}
-    //
-    //local {
-    //  googleCopy(paramsModel.modelPhenoFile, paramsModel.modelPhenoFileCloud)
-    //  googleCopy(paramsModel.modelPcsFile, paramsModel.modelPcsFileCloud)
-    //}
-    //
-    //google {
-    //  hail"""$pyHailAssoc
-    //    --vds-in ${paramsArr.cleanVdsCloud}
-    //    --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
-    //    --pheno-in ${paramsModel.modelPhenoFileCloud}
-    //    --iid-col $phenoId
-    //    --pheno-col ${paramsModel.modelPheno}
-    //    --pcs-include ${paramsModel.modelPcsFileCloud}
-    //    --test ${paramsModel.modelTest}
-    //    --trans "${paramsModel.modelTrans}"
-    //    --covars "${paramsModel.modelCovars}"
-    //    --out ${paramsModel.modelResultsCloud}"""
-    //      .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno :+ paramsModel.modelPhenoFileCloud)
-    //      .out(paramsModel.modelResultsCloud)
-    //
-    //}
-    //
-    //local {
-    //  googleCopy(paramsModel.modelResultsCloud, paramsModel.modelResults)
-    //}
-    //
-    //local {
-    //  cmd"""$binTabix -b 2 -e 2 ${paramsModel.modelResults}"""
-    //    .in(paramsModel.modelResults)
-    //    .out(paramsModel.modelResultsTbi)
-    //}
+    google {
+      hail"""$pyHailListSamples
+        --vds-in ${paramsArr.cleanVdsCloud}
+        --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
+        --pheno-in ${Input.Google.pheno}
+        --iid-col $phenoId
+        --pheno-col ${paramsModel.modelPheno}
+        --test ${paramsModel.modelTest}
+        --covars "${paramsModel.modelCovars}"
+        --out-pheno-prelim ${paramsModel.modelPhenoPrelimFileCloud}
+        --out-samples ${paramsModel.modelSamplesIncludeCloud}"""
+      .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno)
+      .out(paramsModel.modelPhenoPrelimFileCloud, paramsModel.modelSamplesIncludeCloud)
+    }
+    
+    local {
+      googleCopy(paramsModel.modelPhenoPrelimFileCloud, paramsModel.modelPhenoPrelimFile)
+      googleCopy(paramsModel.modelSamplesIncludeCloud, paramsModel.modelSamplesInclude)
+    }
+    
+    uger {
+      cmd"""$binRscript --vanilla --verbose
+        $rGeneratePheno
+        --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
+        --pheno-in ${Input.Local.pheno}
+        --ancestry-in ${ancestryInferredMerged}
+        --ancestry-keep "${paramsModel.modelAncestryKeep}"
+        --pheno-col ${paramsModel.modelPheno}
+        --iid-col $phenoId
+        --samples-include ${paramsModel.modelSamplesInclude}
+        --variants-exclude ID ${paramsArr.finalVariantExclusions}
+        --test ${paramsModel.modelTest}
+        --trans "${paramsModel.modelTrans}"
+        --covars "${paramsModel.modelCovars}"
+        --out-pheno ${paramsModel.modelPhenoFile}
+        --out-pcs ${paramsModel.modelPcsFile}
+        > ${paramsModel.modelPhenoFileLog}"""
+        .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, ancestryInferredMerged, paramsModel.modelSamplesInclude, paramsArr.finalVariantExclusions)
+        .out(paramsModel.modelPhenoFile, paramsModel.modelPcsFile, paramsModel.modelPhenoFileLog)
+        .using("R-3.4")
+    }
+    
+    local {
+      googleCopy(paramsModel.modelPhenoFile, paramsModel.modelPhenoFileCloud)
+      googleCopy(paramsModel.modelPcsFile, paramsModel.modelPcsFileCloud)
+    }
+    
+    google {
+      hail"""$pyHailAssoc
+        --vds-in ${paramsArr.cleanVdsCloud}
+        --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
+        --pheno-in ${paramsModel.modelPhenoFileCloud}
+        --iid-col $phenoId
+        --pheno-col ${paramsModel.modelPheno}
+        --pcs-include ${paramsModel.modelPcsFileCloud}
+        --test ${paramsModel.modelTest}
+        --trans "${paramsModel.modelTrans}"
+        --covars "${paramsModel.modelCovars}"
+        --out ${paramsModel.modelResultsCloud}"""
+          .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno :+ paramsModel.modelPhenoFileCloud)
+          .out(paramsModel.modelResultsCloud)
+    
+    }
+    
+    local {
+      googleCopy(paramsModel.modelResultsCloud, paramsModel.modelResults)
+    }
+    
+    local {
+      cmd"""$binTabix -b 2 -e 2 ${paramsModel.modelResults}"""
+        .in(paramsModel.modelResults)
+        .out(paramsModel.modelResultsTbi)
+    }
   
     resultsMap = resultsMap :+ Map((paramsArr.arrayId, paramsModel.modelPheno, paramsModel.modelTest, paramsModel.modelCovars, paramsModel.modelTrans) -> paramsModel.modelResultsCloud)
 
@@ -1999,75 +1985,75 @@ def qc3(i: Int): Map[(String, String, String, String, String, String), Store] = 
     (model, paramsKnownLoci) <- paramsArr.paramsByArrByKnownLoci
   } {
   
-    //google {
-    //  hail"""$pyHailListSamples
-    //    --vds-in ${paramsArr.cleanVdsCloud}
-    //    --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
-    //    --pheno-in ${Input.Google.pheno}
-    //    --iid-col $phenoId
-    //    --pheno-col ${paramsKnownLoci.knownLociPhenoName}
-    //    --test ${paramsKnownLoci.knownLociTest}
-    //    --covars "${paramsKnownLoci.knownLociCovars}"
-    //    --out-pheno-prelim ${paramsKnownLoci.knownLociPhenoPrelimFileCloud}
-    //    --out-samples ${paramsKnownLoci.knownLociSamplesIncludeCloud}"""
-    //  .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno)
-    //  .out(paramsKnownLoci.knownLociPhenoPrelimFileCloud, paramsKnownLoci.knownLociSamplesIncludeCloud)
-    //}
-    //
-    //local {
-    //  googleCopy(paramsKnownLoci.knownLociPhenoPrelimFileCloud, paramsKnownLoci.knownLociPhenoPrelimFile)
-    //  googleCopy(paramsKnownLoci.knownLociSamplesIncludeCloud, paramsKnownLoci.knownLociSamplesInclude)
-    //}
-    //
-    //uger {
-    //  cmd"""$binRscript --vanilla --verbose
-    //    $rGeneratePheno
-    //    --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
-    //    --pheno-in ${Input.Local.pheno}
-    //    --ancestry-in ${ancestryInferredMerged}
-    //    --ancestry-keep "${paramsKnownLoci.knownLociPop}"
-    //    --pheno-col ${paramsKnownLoci.knownLociPhenoName}
-    //    --iid-col $phenoId
-    //    --samples-include ${paramsKnownLoci.knownLociSamplesInclude}
-    //    --variants-exclude ID ${paramsArr.finalVariantExclusions}
-    //    --test ${paramsKnownLoci.knownLociTest}
-    //    --trans "${paramsKnownLoci.knownLociTrans}"
-    //    --covars "${paramsKnownLoci.knownLociCovars}"
-    //    --out-pheno ${paramsKnownLoci.knownLociPhenoFile}
-    //    --out-pcs ${paramsKnownLoci.knownLociPcsFile}
-    //    > ${paramsKnownLoci.knownLociPhenoFileLog}"""
-    //    .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, ancestryInferredMerged, paramsKnownLoci.knownLociSamplesInclude, paramsArr.finalVariantExclusions)
-    //    .out(paramsKnownLoci.knownLociPhenoFile, paramsKnownLoci.knownLociPcsFile, paramsKnownLoci.knownLociPhenoFileLog)
-    //    .using("R-3.4")
-    //}
-    //
-    //local {
-    //  googleCopy(paramsKnownLoci.knownLociPhenoFile, paramsKnownLoci.knownLociPhenoFileCloud)
-    //  googleCopy(paramsKnownLoci.knownLociPcsFile, paramsKnownLoci.knownLociPcsFileCloud)
-    //  googleCopy(paramsKnownLoci.knownLociHiLd, paramsKnownLoci.knownLociHiLdCloud)
-    //}
-    //
-    //google {
-    //  hail"""$pyHailAssoc
-    //    --vds-in ${paramsArr.cleanVdsCloud}
-    //    --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
-    //    --pheno-in ${paramsKnownLoci.knownLociPhenoFileCloud}
-    //    --iid-col $phenoId
-    //    --pheno-col ${paramsKnownLoci.knownLociPhenoName}
-    //    --pcs-include ${paramsKnownLoci.knownLociPcsFileCloud}
-    //    --extract-ld ${paramsKnownLoci.knownLociHiLdCloud}
-    //    --test ${paramsKnownLoci.knownLociTest}
-    //    --trans "${paramsKnownLoci.knownLociTrans}"
-    //    --covars "${paramsKnownLoci.knownLociCovars}"
-    //    --out ${paramsKnownLoci.knownLociResultsCloud}"""
-    //      .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno :+ paramsKnownLoci.knownLociPhenoFileCloud :+ paramsKnownLoci.knownLociHiLdCloud)
-    //      .out(paramsKnownLoci.knownLociResultsCloud)
-    //
-    //}
-    //
-    //local {
-    //  googleCopy(paramsKnownLoci.knownLociResultsCloud, paramsKnownLoci.knownLociResults)
-    //}
+    google {
+      hail"""$pyHailListSamples
+        --vds-in ${paramsArr.cleanVdsCloud}
+        --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
+        --pheno-in ${Input.Google.pheno}
+        --iid-col $phenoId
+        --pheno-col ${paramsKnownLoci.knownLociPhenoName}
+        --test ${paramsKnownLoci.knownLociTest}
+        --covars "${paramsKnownLoci.knownLociCovars}"
+        --out-pheno-prelim ${paramsKnownLoci.knownLociPhenoPrelimFileCloud}
+        --out-samples ${paramsKnownLoci.knownLociSamplesIncludeCloud}"""
+      .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno)
+      .out(paramsKnownLoci.knownLociPhenoPrelimFileCloud, paramsKnownLoci.knownLociSamplesIncludeCloud)
+    }
+    
+    local {
+      googleCopy(paramsKnownLoci.knownLociPhenoPrelimFileCloud, paramsKnownLoci.knownLociPhenoPrelimFile)
+      googleCopy(paramsKnownLoci.knownLociSamplesIncludeCloud, paramsKnownLoci.knownLociSamplesInclude)
+    }
+    
+    uger {
+      cmd"""$binRscript --vanilla --verbose
+        $rGeneratePheno
+        --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
+        --pheno-in ${Input.Local.pheno}
+        --ancestry-in ${ancestryInferredMerged}
+        --ancestry-keep "${paramsKnownLoci.knownLociPop}"
+        --pheno-col ${paramsKnownLoci.knownLociPhenoName}
+        --iid-col $phenoId
+        --samples-include ${paramsKnownLoci.knownLociSamplesInclude}
+        --variants-exclude ID ${paramsArr.finalVariantExclusions}
+        --test ${paramsKnownLoci.knownLociTest}
+        --trans "${paramsKnownLoci.knownLociTrans}"
+        --covars "${paramsKnownLoci.knownLociCovars}"
+        --out-pheno ${paramsKnownLoci.knownLociPhenoFile}
+        --out-pcs ${paramsKnownLoci.knownLociPcsFile}
+        > ${paramsKnownLoci.knownLociPhenoFileLog}"""
+        .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, ancestryInferredMerged, paramsKnownLoci.knownLociSamplesInclude, paramsArr.finalVariantExclusions)
+        .out(paramsKnownLoci.knownLociPhenoFile, paramsKnownLoci.knownLociPcsFile, paramsKnownLoci.knownLociPhenoFileLog)
+        .using("R-3.4")
+    }
+    
+    local {
+      googleCopy(paramsKnownLoci.knownLociPhenoFile, paramsKnownLoci.knownLociPhenoFileCloud)
+      googleCopy(paramsKnownLoci.knownLociPcsFile, paramsKnownLoci.knownLociPcsFileCloud)
+      googleCopy(paramsKnownLoci.knownLociHiLd, paramsKnownLoci.knownLociHiLdCloud)
+    }
+    
+    google {
+      hail"""$pyHailAssoc
+        --vds-in ${paramsArr.cleanVdsCloud}
+        --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
+        --pheno-in ${paramsKnownLoci.knownLociPhenoFileCloud}
+        --iid-col $phenoId
+        --pheno-col ${paramsKnownLoci.knownLociPhenoName}
+        --pcs-include ${paramsKnownLoci.knownLociPcsFileCloud}
+        --extract-ld ${paramsKnownLoci.knownLociHiLdCloud}
+        --test ${paramsKnownLoci.knownLociTest}
+        --trans "${paramsKnownLoci.knownLociTrans}"
+        --covars "${paramsKnownLoci.knownLociCovars}"
+        --out ${paramsKnownLoci.knownLociResultsCloud}"""
+          .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno :+ paramsKnownLoci.knownLociPhenoFileCloud :+ paramsKnownLoci.knownLociHiLdCloud)
+          .out(paramsKnownLoci.knownLociResultsCloud)
+    
+    }
+    
+    local {
+      googleCopy(paramsKnownLoci.knownLociResultsCloud, paramsKnownLoci.knownLociResults)
+    }
     
     knownLociMap = knownLociMap :+ Map((paramsArr.arrayId, paramsKnownLoci.knownLociPhenoName, paramsKnownLoci.knownLociTest, paramsKnownLoci.knownLociCovars, paramsKnownLoci.knownLociTrans, paramsKnownLoci.knownLociPop) -> paramsKnownLoci.knownLociResultsCloud)
   
@@ -2106,88 +2092,88 @@ def mergeResults(i: Int): Unit = {
 
   }
 
-  //google {
-  //  hail"""$pyHailMerge
-  //    --results "${modelResultsString}"
-  //    --test ${paramsResult.resultTest}
-  //    --out ${paramsResult.resultFinalCloud}
-  //    """.in(modelResultsMap.values).out(paramsResult.resultFinalCloud)
-  //}
-  //
-  //local {
-  //  googleCopy(paramsResult.resultFinalCloud, paramsResult.resultFinal)
-  //}
+  google {
+    hail"""$pyHailMerge
+      --results "${modelResultsString}"
+      --test ${paramsResult.resultTest}
+      --out ${paramsResult.resultFinalCloud}
+      """.in(modelResultsMap.values).out(paramsResult.resultFinalCloud)
+  }
+  
+  local {
+    googleCopy(paramsResult.resultFinalCloud, paramsResult.resultFinal)
+  }
 
-  //local {
-  //  cmd"""$binTabix -b 2 -e 2 ${paramsResult.resultFinal}"""
-  //    .in(paramsResult.resultFinal)
-  //    .out(paramsResult.resultFinalTbi)
-  //}
-  //
-  ///**
-  // * Top Results Step
-  // *  Description: Extract top results and annotate
-  // *  Requires: Python
-  // */
-  //
-  //local {
-  //
-  //  cmd"""python $pyTop1000
-  //    --results ${paramsResult.resultFinal}
-  //    --p pval 
-  //    --out ${paramsResult.resultFinalTop1000}"""
-  //    .in(paramsResult.resultFinal)
-  //    .out(paramsResult.resultFinalTop1000)
-  //  
-  //  cmd"""(sed '1d' ${paramsResult.resultFinalTop1000} | awk '{print $$1"\t"$$2}' | python $pyAddGeneAnnot --outside-name NA --chr-col 1 --pos-col 2 --gene-file ${Input.Local.genes} --out-delim \\t) | sort -u > ${paramsResult.resultFinalTop1000Genes}"""
-  //    .in(paramsResult.resultFinalTop1000, Input.Local.genes)
-  //    .out(paramsResult.resultFinalTop1000Genes)
-  //  
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rTop20
-  //    --results ${paramsResult.resultFinalTop1000}
-  //    --chr "#chr"
-  //    --pos pos
-  //    --genes ${paramsResult.resultFinalTop1000Genes}
-  //    --known-loci ${reportAnalysisResultKnownLociHiLdStrings.mkString(",")}
-  //    --p pval
-  //    --test ${paramsResult.resultTest}
-  //    --out ${paramsResult.resultFinalTop20AnnotAlignedRisk}"""
-  //    .in(reportAnalysisResultKnownLociHiLdList :+ paramsResult.resultFinalTop1000 :+ paramsResult.resultFinalTop1000Genes)
-  //    .out(paramsResult.resultFinalTop20AnnotAlignedRisk)
-  //    .using("R-3.4")
-  //
-  //}
+  local {
+    cmd"""$binTabix -b 2 -e 2 ${paramsResult.resultFinal}"""
+      .in(paramsResult.resultFinal)
+      .out(paramsResult.resultFinalTbi)
+  }
+  
+  /**
+   * Top Results Step
+   *  Description: Extract top results and annotate
+   *  Requires: Python
+   */
+  
+  local {
+  
+    cmd"""python $pyTop1000
+      --results ${paramsResult.resultFinal}
+      --p pval 
+      --out ${paramsResult.resultFinalTop1000}"""
+      .in(paramsResult.resultFinal)
+      .out(paramsResult.resultFinalTop1000)
+    
+    cmd"""(sed '1d' ${paramsResult.resultFinalTop1000} | awk '{print $$1"\t"$$2}' | python $pyAddGeneAnnot --outside-name NA --chr-col 1 --pos-col 2 --gene-file ${Input.Local.genes} --out-delim \\t) | sort -u > ${paramsResult.resultFinalTop1000Genes}"""
+      .in(paramsResult.resultFinalTop1000, Input.Local.genes)
+      .out(paramsResult.resultFinalTop1000Genes)
+    
+    cmd"""$binRscript --vanilla --verbose
+      $rTop20
+      --results ${paramsResult.resultFinalTop1000}
+      --chr "#chr"
+      --pos pos
+      --genes ${paramsResult.resultFinalTop1000Genes}
+      --known-loci ${reportAnalysisResultKnownLociHiLdStrings.mkString(",")}
+      --p pval
+      --test ${paramsResult.resultTest}
+      --out ${paramsResult.resultFinalTop20AnnotAlignedRisk}"""
+      .in(reportAnalysisResultKnownLociHiLdList :+ paramsResult.resultFinalTop1000 :+ paramsResult.resultFinalTop1000Genes)
+      .out(paramsResult.resultFinalTop20AnnotAlignedRisk)
+      .using("R-3.4")
+  
+  }
 
-  ///**
-  // * Plot Step
-  // *  Description: Run association tests
-  // *  Requires: Python
-  // */
-  //
-  //local {
-  //  cmd"""python $pyQqPlot
-  //    --results ${paramsResult.resultFinal}
-  //    --p pval
-  //    --out ${paramsResult.resultFinalQqPlot}
-  //    """.in(paramsResult.resultFinal).out(paramsResult.resultFinalQqPlot)
-  //  
-  //  cmd"""python $pyMhtPlot
-  //    --results ${paramsResult.resultFinal}
-  //    --chr "#chr"
-  //    --pos pos
-  //    --p pval
-  //    --out ${paramsResult.resultFinalMhtPlot}
-  //    """.in(paramsResult.resultFinal).out(paramsResult.resultFinalMhtPlot)
-  //  
-  //  cmd"""python $pyExtractTopRegions
-  //    --results ${paramsResult.resultFinal}
-  //    --chr "#chr"
-  //    --pos pos
-  //    --p pval
-  //    --out ${paramsResult.resultFinalSigRegions}
-  //    """.in(paramsResult.resultFinal).out(paramsResult.resultFinalSigRegions)
-  //}
+  /**
+   * Plot Step
+   *  Description: Run association tests
+   *  Requires: Python
+   */
+  
+  local {
+    cmd"""python $pyQqPlot
+      --results ${paramsResult.resultFinal}
+      --p pval
+      --out ${paramsResult.resultFinalQqPlot}
+      """.in(paramsResult.resultFinal).out(paramsResult.resultFinalQqPlot)
+    
+    cmd"""python $pyMhtPlot
+      --results ${paramsResult.resultFinal}
+      --chr "#chr"
+      --pos pos
+      --p pval
+      --out ${paramsResult.resultFinalMhtPlot}
+      """.in(paramsResult.resultFinal).out(paramsResult.resultFinalMhtPlot)
+    
+    cmd"""python $pyExtractTopRegions
+      --results ${paramsResult.resultFinal}
+      --chr "#chr"
+      --pos pos
+      --p pval
+      --out ${paramsResult.resultFinalSigRegions}
+      """.in(paramsResult.resultFinal).out(paramsResult.resultFinalSigRegions)
+  }
   
 }
 
@@ -2205,33 +2191,33 @@ def mergeKnownLoci(i: Int): Unit = {
   
   val knownLociString = knownLociMap.map { case (key, value) => s"""${key._1}___${value.toString.split("@")(1)}""" }.mkString(",")
 
-  //google {
-  //  hail"""$pyHailMerge
-  //    --results "${knownLociString}"
-  //    --test ${paramsResultKnownLoci.resultKnownLociTest}
-  //    --out ${paramsResultKnownLoci.resultKnownLociFinalCloud}
-  //    """.in(knownLociMap.values).out(paramsResultKnownLoci.resultKnownLociFinalCloud)
-  //}
-  //
-  //local {
-  //  googleCopy(paramsResultKnownLoci.resultKnownLociFinalCloud, paramsResultKnownLoci.resultKnownLociFinal)
-  //}
-  //
-  //uger {
-  //  cmd"""$binRscript --vanilla --verbose
-  //    $rTop50Known
-  //    --results ${paramsResultKnownLoci.resultKnownLociFinal}
-  //    --known-loci ${paramsResultKnownLoci.resultKnownLociData}
-  //    --known-ld ${paramsResultKnownLoci.resultKnownLociHiLd}
-  //    --known-loci-n "${paramsResultKnownLoci.resultKnownLociN}"
-  //    --known-loci-case "${paramsResultKnownLoci.resultKnownLociCase}"
-  //    --known-loci-ctrl "${paramsResultKnownLoci.resultKnownLociCtrl}"
-  //    --test ${paramsResultKnownLoci.resultKnownLociTest}
-  //    --out ${paramsResultKnownLoci.resultKnownLociFinalTop50Known}"""
-  //    .in(paramsResultKnownLoci.resultKnownLociFinal, paramsResultKnownLoci.resultKnownLociData)
-  //    .out(paramsResultKnownLoci.resultKnownLociFinalTop50Known)
-  //    .using("R-3.4")
-  //}
+  google {
+    hail"""$pyHailMerge
+      --results "${knownLociString}"
+      --test ${paramsResultKnownLoci.resultKnownLociTest}
+      --out ${paramsResultKnownLoci.resultKnownLociFinalCloud}
+      """.in(knownLociMap.values).out(paramsResultKnownLoci.resultKnownLociFinalCloud)
+  }
+  
+  local {
+    googleCopy(paramsResultKnownLoci.resultKnownLociFinalCloud, paramsResultKnownLoci.resultKnownLociFinal)
+  }
+  
+  uger {
+    cmd"""$binRscript --vanilla --verbose
+      $rTop50Known
+      --results ${paramsResultKnownLoci.resultKnownLociFinal}
+      --known-loci ${paramsResultKnownLoci.resultKnownLociData}
+      --known-ld ${paramsResultKnownLoci.resultKnownLociHiLd}
+      --known-loci-n "${paramsResultKnownLoci.resultKnownLociN}"
+      --known-loci-case "${paramsResultKnownLoci.resultKnownLociCase}"
+      --known-loci-ctrl "${paramsResultKnownLoci.resultKnownLociCtrl}"
+      --test ${paramsResultKnownLoci.resultKnownLociTest}
+      --out ${paramsResultKnownLoci.resultKnownLociFinalTop50Known}"""
+      .in(paramsResultKnownLoci.resultKnownLociFinal, paramsResultKnownLoci.resultKnownLociData)
+      .out(paramsResultKnownLoci.resultKnownLociFinalTop50Known)
+      .using("R-3.4")
+  }
 
 }
 
@@ -2257,17 +2243,17 @@ def plotSigRegions(i: Int): Seq[Store] = {
       val resultsFinalRegplotPdf = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}-${regionEnd}" / s"chr${regionChr}_${regionStart}-${regionEnd}.pdf")
       val resultsFinalRegplotPng = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.png")
   
-      //cmd"""pcol=`$binTabix -H ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; (echo -e "id\tpval"; $binTabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') > ${resultsFinalRegplotData}"""
-      //  .in(paramsResult.resultFinal)
-      //  .out(resultsFinalRegplotData)
-      //
-      //cmd"""$binLocuszoom --metal ${resultsFinalRegplotData} --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --no-date --prefix ${paramsResult.resultFinalRegplotName}_${regionVar} --cache None  > ${resultsFinalRegplotLog}"""
-      //  .in(resultsFinalRegplotData)
-      //  .out(resultsFinalRegplotPdf, resultsFinalRegplotLog)
-      //
-      //cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${resultsFinalRegplotPdf}[0] $resultsFinalRegplotPng"""
-      //  .in(resultsFinalRegplotPdf)
-      //  .out(resultsFinalRegplotPng)
+      cmd"""pcol=`$binTabix -H ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; (echo -e "id\tpval"; $binTabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') > ${resultsFinalRegplotData}"""
+        .in(paramsResult.resultFinal)
+        .out(resultsFinalRegplotData)
+      
+      cmd"""$binLocuszoom --metal ${resultsFinalRegplotData} --chr $regionChr --start $regionStart --end $regionEnd --markercol id --pvalcol pval --pop EUR --build hg19 --source 1000G_Nov2014 --no-date --prefix ${paramsResult.resultFinalRegplotName}_${regionVar} --cache None  > ${resultsFinalRegplotLog}"""
+        .in(resultsFinalRegplotData)
+        .out(resultsFinalRegplotPdf, resultsFinalRegplotLog)
+      
+      cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${resultsFinalRegplotPdf}[0] $resultsFinalRegplotPng"""
+        .in(resultsFinalRegplotPdf)
+        .out(resultsFinalRegplotPng)
   
       resultsFinalRegplotList = resultsFinalRegplotList :+ resultsFinalRegplotPng
   

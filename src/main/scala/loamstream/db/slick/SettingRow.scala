@@ -1,8 +1,13 @@
 package loamstream.db.slick
 
-import loamstream.model.execute.{GoogleSettings, LocalSettings, Settings, UgerSettings}
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
+import loamstream.model.execute.UgerSettings
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
 import loamstream.uger.Queue
-import slick.driver.JdbcProfile
 
 /**
  * @author kyuksel
@@ -17,15 +22,17 @@ sealed trait SettingRow {
 
 object SettingRow {
   def fromSettings(settings: Settings, executionId: Int): SettingRow = settings match {
-    case LocalSettings() => LocalSettingRow(executionId)
-    case UgerSettings(mem, cpu, queue) => UgerSettingRow(executionId, mem, cpu, queue.name)
+    case LocalSettings => LocalSettingRow(executionId)
+    case UgerSettings(cpus, memPerCpu, maxRunTime, queue) => {
+      UgerSettingRow(executionId, cpus.value, memPerCpu.gb, maxRunTime.hours, queue.name)
+    }
     case GoogleSettings(cluster) => GoogleSettingRow(executionId, cluster)
   }
 }
 
 final case class LocalSettingRow(executionId: Int) extends SettingRow {
   
-  override def toSettings: Settings = LocalSettings()
+  override def toSettings: Settings = LocalSettings
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._
@@ -44,13 +51,18 @@ object LocalSettingRow {
   }
 }
 
-final case class UgerSettingRow(executionId: Int,
-                      mem: Int,
-                      cpu: Int,
-                      queue: String) extends SettingRow {
+final case class UgerSettingRow(
+    executionId: Int,
+    cpus: Int,
+    //TODO: Make units explicit for memPerCpu and maxRunTime 
+    memPerCpu: Double,  //in GB
+    maxRunTime: Double, //in hours
+    queue: String) extends SettingRow {
 
   //NB: TODO: .get :(
-  override def toSettings: Settings = UgerSettings(mem, cpu, Queue.fromString(queue).get)
+  override def toSettings: Settings = {
+    UgerSettings(Cpus(cpus), Memory.inGb(memPerCpu), CpuTime.inHours(maxRunTime), Queue.fromString(queue).get)
+  }
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._

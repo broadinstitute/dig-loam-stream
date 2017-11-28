@@ -1,8 +1,10 @@
 package loamstream.loam.ast
 
 import loamstream.loam.LoamGraph
-import loamstream.model.AST.{Connection, ToolNode}
-import loamstream.model.{AST, Store, Tool}
+import loamstream.loam.ast.AST.Connection
+import loamstream.loam.ast.AST.ToolNode
+import loamstream.model.Store
+import loamstream.model.Tool
 
 /**
   * LoamStream
@@ -47,15 +49,11 @@ object LoamGraphAstMapper {
     LoamGraphAstMapping(graph, toolAsts, rootTools, rootAsts, toolsUnmapped)
   }
 
-  private def toConnection(graph: LoamGraph, toolAsts: Map[Tool, AST])
-                          (inputStore: Store.Untyped): Option[Connection] = {
+  private def toConnection(graph: LoamGraph, toolAsts: Map[Tool, AST])(inputStore: Store): Option[Connection] = {
+    graph.storeProducers.get(inputStore).flatMap { sourceTool =>
+      val id = inputStore.id
 
-    graph.storeProducers.get(inputStore) match {
-      case Some(sourceTool) =>
-        val id = inputStore.id
-
-        toolAsts.get(sourceTool).map(ast => Connection(id, id, ast))
-      case _ => None
+      toolAsts.get(sourceTool).map(ast => Connection(id, id, ast))
     }
   }
 

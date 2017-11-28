@@ -5,7 +5,7 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.Environment
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.ValueBox
@@ -26,7 +26,7 @@ import loamstream.util.Sequence
  * use.
  */
 trait LJob extends Loggable {
-  def executionEnvironment: ExecutionEnvironment
+  def executionEnvironment: Environment
   
   def workDirOpt: Option[Path] = None
 
@@ -36,7 +36,7 @@ trait LJob extends Loggable {
   private def snapshot: JobSnapshot = snapshotRef()
   
   //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject.withSize(15)
+  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject.withSize(LJob.replaySubjectBufferSize)
   
   /**
    * An Observable that emits JobRuns of this job.  These are (effectively) tuples of (job, status, runCount), 
@@ -44,6 +44,7 @@ trait LJob extends Loggable {
    * the same upstream dependency would cause the dependency to be run more than necessary under certain 
    * conditions.
    */
+  //NB: Note use of .share which allows re-using this Observable, saving lots of memory when running complex pipelines
   protected final val runs: Observable[JobRun] = runsEmitter.share
   
   /** This job's current status */
@@ -107,6 +108,7 @@ trait LJob extends Loggable {
     }
 
     //Emit the current job *after* all our dependencies
+    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
     (dependencyRunnables ++ selfRunnables).share
   }
   
@@ -163,25 +165,28 @@ trait LJob extends Loggable {
         }
       }
     }
-    
+    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
     result.share
   }
 
   /**
    * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
    */
+  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
   lazy val statuses: Observable[JobStatus] = runs.map(_.status).share
 
   /**
    * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time.
    */
-  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first.share
+  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
+  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).firstOrElse(status).share
 
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.
    * When this fires, our dependencies are finished.
    */
+  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
   protected[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
     Observables.sequence(inputs.toSeq.map(_.lastStatus)).share
   }
@@ -236,6 +241,8 @@ trait LJob extends Loggable {
 }
 
 object LJob {
+  private val replaySubjectBufferSize: Int = 15 // scalastyle:ignore magic.number
+  
   private[this] val idSequence: Sequence[Int] = Sequence()
   
   def nextId(): String = idSequence.next().toString 

@@ -80,4 +80,14 @@ final class MapsTest extends FunSuite {
     
     assert(m.mapKeys(_ + 1) == Map(2 -> "a", 3 -> "b", 4 -> "c"))
   }
+  
+  test("collectKeys") {
+    val m = Map(1 -> "a", 2 -> "b", 3 -> "c", 4 -> "d")
+    
+    import Maps.Implicits._
+    
+    def isEven(i: Int) = i % 2 == 0
+    
+    assert(m.collectKeys { case k if isEven(k) => (k * 2).toString } === Map("4" -> "b", "8" -> "d"))
+  }
 }

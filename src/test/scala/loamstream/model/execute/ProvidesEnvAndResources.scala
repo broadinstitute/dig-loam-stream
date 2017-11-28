@@ -2,29 +2,31 @@ package loamstream.model.execute
 
 import java.time.Instant
 
-import loamstream.model.execute.ExecutionEnvironment.Uger
-import loamstream.model.jobs.{Execution, JobResult, JobStatus}
-import loamstream.uger.Queue
 import org.scalatest.FunSuite
-import loamstream.model.execute.Resources.UgerResources
+
 import loamstream.TestHelpers
-import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Environment.Uger
 import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.uger.Queue
 
 /**
  * @author kyuksel
  *         date: 3/11/17
  */
 trait ProvidesEnvAndResources extends FunSuite {
-
-  val mockEnv: ExecutionEnvironment = Uger
+  
   val mockCmd: String = "R --vanilla --args ancestry_pca_scores.tsv < plot_ancestry_pca.r"
-  val mockSettings: Settings = {
-    val mem = 8
-    val cpu = 4
-
-    UgerSettings(mem, cpu, Queue.Short)
-  }
+  val mockSettings: UgerSettings = UgerSettings(Cpus(4), Memory.inGb(8), queue = Queue.Broad)
+  val mockGoogleSettings: GoogleSettings = GoogleSettings("asdf")
+  val mockEnv: Environment = Uger(mockSettings)
   val mockStatus: JobStatus = JobStatus.Unknown
   val mockExitCode: Int = 999
   val mockResult: JobResult = JobResult.CommandResult(mockExitCode)
@@ -37,18 +39,14 @@ trait ProvidesEnvAndResources extends FunSuite {
     val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
     val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
 
-    UgerResources(mem, cpu, Some("nodeName"), Some(Queue.Long), startTime, endTime)
+    UgerResources(mem, cpu, Some("nodeName"), Some(Queue.Broad), startTime, endTime)
   }
   
   val mockGoogleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)
   
   val mockResources: Resources = mockUgerResources
 
-  val mockExecution: Execution = Execution(
-    env = mockEnv,
-    settings = mockSettings,
-    status = mockStatus
-  )
+  val mockExecution: Execution = Execution(env = mockEnv, status = mockStatus)
 
   protected def assertEqualFieldsFor(actual: Iterable[Execution], expected: Iterable[Execution]): Unit = {
     assert(actual.map(_.env) === expected.map(_.env))

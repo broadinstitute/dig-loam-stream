@@ -29,14 +29,14 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
     val hash = Hashes.sha1(p)
     val lastModified = PathUtils.lastModifiedTime(p)
 
-    val e = Execution(id = None,
-                      mockEnv,
-                      Option(mockCmd),
-                      mockSettings,
-                      JobStatus.fromExitCode(exitCode),
-                      Option(JobResult.CommandResult(exitCode)),
-                      Some(mockResources),
-                      Set(cachedOutput(p, hash, lastModified)))
+    val e = Execution(
+        id = None,
+        env = mockEnv,
+        cmd = Option(mockCmd),
+        status = JobStatus.fromExitCode(exitCode),
+        result = Option(JobResult.CommandResult(exitCode)),
+        resources = Some(mockResources),
+        outputs = Set(cachedOutput(p, hash, lastModified)))
     
     store(e)
     

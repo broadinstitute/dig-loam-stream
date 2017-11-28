@@ -5,6 +5,8 @@ import java.time.Instant
 import loamstream.uger.Queue
 import loamstream.uger.UgerException
 import loamstream.uger.UgerException
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 
 /**
  * @author clint
@@ -66,19 +68,16 @@ final class UgerResourcesTest extends FunSuite {
     assert(withNode.startTime === r.startTime)
     assert(withNode.endTime === r.endTime)
 
-    def doTestWithQueue(q: Queue): Unit = {
-      val withNodeAndQueue = withNode.withQueue(q)
+    val q: Queue = Queue.Broad
+    
+    val withNodeAndQueue = withNode.withQueue(q)
 
-      assert(withNodeAndQueue.memory === r.memory)
-      assert(withNodeAndQueue.cpuTime === r.cpuTime)
-      assert(withNodeAndQueue.node === Some("foo.example.com"))
-      assert(withNodeAndQueue.queue === Some(q))
-      assert(withNodeAndQueue.startTime === r.startTime)
-      assert(withNodeAndQueue.endTime === r.endTime)
-    }
-
-    doTestWithQueue(Queue.Short)
-    doTestWithQueue(Queue.Long)
+    assert(withNodeAndQueue.memory === r.memory)
+    assert(withNodeAndQueue.cpuTime === r.cpuTime)
+    assert(withNodeAndQueue.node === Some("foo.example.com"))
+    assert(withNodeAndQueue.queue === Some(q))
+    assert(withNodeAndQueue.startTime === r.startTime)
+    assert(withNodeAndQueue.endTime === r.endTime)
   }
 
   test("fromMap - real-world data") {

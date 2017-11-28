@@ -4,6 +4,10 @@ import org.scalatest.FunSuite
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import java.nio.file.Paths
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
+import loamstream.uger.UgerDefaults
 
 /**
  * @author clint
@@ -23,9 +27,10 @@ final class UgerConfigTest extends FunSuite {
       loamstream {
         uger {
           workDir = "/foo/bar/baz"
-          logFile = "nuh/zuh.log"
           maxNumJobs=44
-          nativeSpecification="-clear -cwd -shell y -b n -q short -l h_vmem=16g"
+          defaultCores = 42
+          defaultMemoryPerCore = 9 // Gb
+          defaultMaxRunTime = 11 // hours
         }
       }
       """)
@@ -33,8 +38,30 @@ final class UgerConfigTest extends FunSuite {
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
     assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
-    assert(ugerConfig.logFile === Paths.get("nuh/zuh.log"))
     assert(ugerConfig.maxNumJobs === 44)
-    assert(ugerConfig.nativeSpecification === "-clear -cwd -shell y -b n -q short -l h_vmem=16g")
+    assert(ugerConfig.defaultCores === Cpus(42))
+    assert(ugerConfig.defaultMemoryPerCore=== Memory.inGb(9))
+    assert(ugerConfig.defaultMaxRunTime === CpuTime.inHours(11))
+  }
+  
+  test("Parsing a UgerConfig with optional values omitted should work") {
+    val valid = ConfigFactory.parseString("""
+      loamstream {
+        uger {
+          workDir = "/foo/bar/baz"
+          logFile = "nuh/zuh.log"
+          maxNumJobs=44
+          nativeSpecification="-clear -cwd -shell y -b n"
+        }
+      }
+      """)
+      
+    val ugerConfig = UgerConfig.fromConfig(valid).get
+    
+    assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
+    assert(ugerConfig.maxNumJobs === 44)
+    assert(ugerConfig.defaultCores === UgerDefaults.cores)
+    assert(ugerConfig.defaultMemoryPerCore=== UgerDefaults.memoryPerCore)
+    assert(ugerConfig.defaultMaxRunTime === UgerDefaults.maxRunTime)
   }
 }

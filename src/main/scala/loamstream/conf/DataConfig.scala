@@ -30,6 +30,8 @@ final case class DataConfig private(config: Config) {
 
   /** Value must be one of {true, false} and is case-sensitive */
   def getBool(path: String): Boolean = config.getBoolean(path)
+  
+  def getObj(path: String): DataConfig = DataConfig(config.getConfig(path))
 
   import scala.collection.JavaConverters._
 

@@ -2,12 +2,13 @@ package loamstream.loam
 
 import java.net.URI
 import java.nio.file.{Path, Paths}
-
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.model.execute.{Executable, ExecutionEnvironment}
+import loamstream.model.execute.Executable
+import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineStringJob
 import loamstream.model.jobs.{LJob, NativeJob, Output}
-import loamstream.model.{AST, Store, Tool}
+import loamstream.model.{Store, Tool}
+import loamstream.loam.ast.AST
 import loamstream.util.{Hit, Miss, Shot, Snag}
 
 /**
@@ -22,9 +23,9 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
 
   private[loam] def newLoamJob(tool: Tool): Shot[LJob] = {
     def outputsFor(tool: Tool): Set[Output] = {
-      val loamStores: Set[Store.Untyped] = graph.toolOutputs(tool)
+      val loamStores: Set[Store] = graph.toolOutputs(tool)
 
-      def pathOrUriToOutput(store: Store.Untyped): Option[Output] = {
+      def pathOrUriToOutput(store: Store): Option[Output] = {
         store.pathOpt.orElse(store.uriOpt).map {
           case path: Path => Output.PathOutput(path)
           case uri: URI => Output.GcsUriOutput(uri, client)
@@ -36,7 +37,7 @@ final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = N
 
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
 
-    val environment: ExecutionEnvironment = graph.executionEnvironmentOpt(tool).getOrElse(ExecutionEnvironment.Local)
+    val environment: Environment = graph.executionEnvironmentOpt(tool).getOrElse(Environment.Local)
 
     val shotsForPrecedingTools: Shot[Set[LJob]] = Shot.sequence(graph.toolsPreceding(tool).map(getLoamJob))
 

@@ -9,7 +9,7 @@ lazy val Versions = new {
   val GoogleAuth = "0.6.0"
   val Htsjdk = "2.1.0"
   val LogBack = "1.1.6"
-  val Scala = "2.12.3"
+  val Scala = "2.12.4"
   val ScalaFmt = "1.0.0-RC3"
   val ScalaMajor = "2.12"
   val ScalaTest = "3.0.0"
@@ -18,7 +18,7 @@ lazy val Versions = new {
   val Slick = "3.2.0"
   val H2 = "1.4.192"
   val RxScala = "0.26.5"
-  val Ficus = "1.4.0"
+  val Ficus = "1.4.2"
   val Squants = "1.2.0"
 }
 

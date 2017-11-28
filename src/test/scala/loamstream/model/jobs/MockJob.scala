@@ -6,7 +6,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import loamstream.util.Sequence
 import loamstream.util.ValueBox
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.Environment
 
 /**
  * @author clint
@@ -19,7 +19,7 @@ class MockJob(
                val outputs: Set[Output],
                val delay: Int) extends LJob {
 
-  override def executionEnvironment: ExecutionEnvironment = TestHelpers.env
+  override def executionEnvironment: Environment = TestHelpers.env
   
   override def toString: String = s"'$name'(#$id, returning $toReturn, ${inputs.size} dependencies)"
  

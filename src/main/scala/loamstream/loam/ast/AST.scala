@@ -1,6 +1,8 @@
-package loamstream.model
+package loamstream.loam.ast
 
 import loamstream.util.Loggable
+import loamstream.model.LId
+import loamstream.model.Tool
 
 /**
  * @author clint

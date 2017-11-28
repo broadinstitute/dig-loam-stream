@@ -5,7 +5,6 @@ import java.nio.file.{Path, Paths}
 
 import loamstream.compiler.LoamPredef.store
 import loamstream.TestHelpers
-import loamstream.loam.ops.StoreType.TXT
 import loamstream.util.{BashScript, Files}
 import org.scalatest.FunSuite
 
@@ -51,7 +50,7 @@ final class LanguageSupportTest extends FunSuite {
 
     val someTool = "someToolPath"
     val someVal = 123
-    val someStore = store[TXT].at("/someStorePath")
+    val someStore = store.at("/someStorePath")
 
     val loamLine = python"""$someTool --foo $someVal --bar $someStore baz"""
 
@@ -82,7 +81,8 @@ def greet(name):
   print 'Hello', name
 
 greet('Alice')
-greet('Bob')"""
+greet('Bob')
+"""
 
     doTest(loamLines, expectedBinary, expectedScriptContent)
   }
@@ -102,7 +102,7 @@ greet('Bob')"""
 
     val someTool = "someToooolPath"
     val someVal = 456
-    val someStore = store[TXT].at("/someStooorePath")
+    val someStore = store.at("/someStooorePath")
 
     val loamLine = r"$someTool --foo $someVal --bar $someStore baz"
 
@@ -143,7 +143,8 @@ if(inherits(x, "try-error")) {
   out<-as.data.frame(sort(table(ids),decreasing=T))
   names(out)[1]<-"ibd_pairs"
   write.table(out,args[2],row.names=T,col.names=F,quote=F,append=F,sep="\t")
-}"""
+}
+"""
 
     doTest(loamLines, expectedBinary, expectedScriptContent)
   }

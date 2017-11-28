@@ -5,10 +5,16 @@ import loamstream.loam.LoamScriptContext
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.LoamConfig
 import loamstream.loam.LoamProjectContext
-import loamstream.model.execute.ExecutionEnvironment
+import loamstream.model.execute.Environment
 import loamstream.loam.LoamCmdTool
 import loamstream.TestHelpers
 import loamstream.loam.LoamGraph
+import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.CpuTime
+import loamstream.uger.UgerDefaults
 
 /**
  * @author clint
@@ -75,36 +81,64 @@ final class LoamPredefTest extends FunSuite {
     assert(queue.isEmpty === true)
   }
 
-  import ExecutionEnvironment._
+  import Environment._
   
   test("google") {
     implicit val scriptContext = newScriptContext
     
-    doEeTest(scriptContext, Local, Google, LoamPredef.google)
+    val settings = GoogleSettings(scriptContext.googleConfig.clusterId)
+    
+    doEeTest(scriptContext, Local, Google(settings), LoamPredef.google)
   }
   
   test("local") {
     implicit val scriptContext = newScriptContext
     
-    doEeTest(scriptContext, Uger, Local, LoamPredef.local)
+    doEeTest(scriptContext, Uger(TestHelpers.defaultUgerSettings), Local, LoamPredef.local)
   }
   
   test("uger") {
     implicit val scriptContext = newScriptContext
     
-    doEeTest(scriptContext, Local, Uger, LoamPredef.uger)
+    doEeTest(scriptContext, Local, Uger(TestHelpers.defaultUgerSettings), LoamPredef.uger)
+  }
+  
+  test("ugerWith - defaults") {
+    implicit val scriptContext = newScriptContext
+    
+    val ugerConfig = scriptContext.ugerConfig
+    
+    assert(ugerConfig.defaultCores !== UgerDefaults.cores)
+    assert(ugerConfig.defaultMemoryPerCore !== UgerDefaults.memoryPerCore)
+    assert(ugerConfig.defaultMaxRunTime !== UgerDefaults.maxRunTime)
+    
+    //Make sure defaults come from LoamConfig
+    val expectedSettings = UgerSettings(
+        ugerConfig.defaultCores,
+        ugerConfig.defaultMemoryPerCore,
+        ugerConfig.defaultMaxRunTime)
+    
+    doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith())
+  }
+  
+  test("ugerWith - non-defaults") {
+    implicit val scriptContext = newScriptContext
+    
+    val expectedSettings = UgerSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6))
+    
+    doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith(2, 4, 6))
   }
   
   private def newScriptContext: LoamScriptContext = {
-    val projectContext = LoamProjectContext.empty(LoamConfig(None, None, None, None, None, ExecutionConfig.default))
+    val projectContext = LoamProjectContext.empty(TestHelpers.config)
     
     new LoamScriptContext(projectContext)
   }
   
   private def doEeTest[A](
       scriptContext: LoamScriptContext,
-      initial: ExecutionEnvironment, 
-      shouldHaveSwitchedTo: ExecutionEnvironment,
+      initial: Environment, 
+      shouldHaveSwitchedTo: Environment,
       switchEe: (=> Any) => Any): Unit = {
     
     scriptContext.executionEnvironment = initial

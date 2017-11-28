@@ -19,6 +19,10 @@ import loamstream.util.Classes.simpleNameOf
 import loamstream.util.CompositeException
 import loamstream.util.Loggable
 import loamstream.util.ValueBox
+import loamstream.model.execute.UgerSettings
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
 
 /**
  * Created on: 5/19/16
@@ -138,15 +142,17 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @param numTasks length of task array to be submitted as a single UGER job
    */
   override def submitJob(
-                 ugerConfig: UgerConfig,
-                 pathToScript: Path,
-                 jobName: String,
-                 numTasks: Int = 1): DrmaaClient.SubmissionResult = {
+      ugerSettings: UgerSettings,
+      ugerConfig: UgerConfig,
+      pathToScript: Path,
+      jobName: String,
+      numTasks: Int = 1): DrmaaClient.SubmissionResult = {
 
-    val pathToUgerOutput = ugerConfig.logFile
-    val nativeSpecification = ugerConfig.nativeSpecification
+    val pathToUgerOutput = ugerConfig.workDir
     
-    runJob(pathToScript, pathToUgerOutput, nativeSpecification, jobName, numTasks)
+    val fullNativeSpec = Drmaa1Client.nativeSpec(ugerSettings)
+    
+    runJob(pathToScript, pathToUgerOutput, fullNativeSpec, jobName, numTasks)
   }
   
   /**
@@ -204,11 +210,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       //TODO: Add JobStatus.Aborted?
       UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasSignaled) {
-      debug(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
+      info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
       UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasCoreDump) {
-      debug(s"Job '$jobId' dumped core")
+      info(s"Job '$jobId' dumped core")
       
       UgerStatus.Failed(resourcesOption)
     } else {
@@ -255,14 +261,19 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskEndIndex = numTasks
       val taskIndexIncr = 1
 
-      // TODO Make native specification controllable from Loam (DSL)
-      // Request 16g memory to allow Klustakwik to run in QC chunk 2. :(
-      // Request short queue for faster integration testing
-      // TODO: This sort of thing really, really, needs to be configurable. :(
+      debug(s"Using native spec: '$nativeSpecification'")
+      debug(s"Using job name: '$jobName'")
+      debug(s"Using script: '$pathToScript'")
+      
+      import Drmaa1Client._
+      
       jt.setNativeSpecification(nativeSpecification)
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
-      jt.setOutputPath(s":$pathToUgerOutput.${JobTemplate.PARAMETRIC_INDEX}")
+      //NB: Where a job's stdout goes
+      jt.setOutputPath(makeOutputPath(pathToUgerOutput, jobName))
+      //NB: Where a job's stderr goes
+      jt.setErrorPath(makeErrorPath(pathToUgerOutput, jobName))
 
       import scala.collection.JavaConverters._
       
@@ -296,5 +307,34 @@ object Drmaa1Client {
     import scala.collection.JavaConverters._
     
     UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
+  }
+
+  private[uger] def nativeSpec(ugerSettings: UgerSettings): String = {
+    //Will this ever change?
+    val staticPart = "-clear -cwd -shell y -b n"
+    
+    val dynamicPart = {
+      import ugerSettings._
+    
+      val numCores = cores.value
+      val runTimeInHours: Int = maxRunTime.hours.toInt
+      val mem: Int = memoryPerCore.gb.toInt
+      
+      s"-binding linear:${numCores} -pe smp ${numCores} -q ${queue} -l h_rt=${runTimeInHours}:0:0,h_vmem=${mem}g"
+    }
+    
+    s"$staticPart $dynamicPart"
+  }
+  
+  private[uger] def makeOutputPath(ugerDir: Path, jobName: String): String = {
+    makeErrorOrOutputPath(ugerDir, jobName, "stdout")
+  }
+  
+  private[uger] def makeErrorPath(ugerDir: Path, jobName: String): String = {
+    makeErrorOrOutputPath(ugerDir, jobName, "stderr")
+  }
+  
+  private def makeErrorOrOutputPath(ugerDir: Path, jobName: String, suffix: String): String = {
+    s":$ugerDir/$jobName.${JobTemplate.PARAMETRIC_INDEX}.$suffix"
   }
 }

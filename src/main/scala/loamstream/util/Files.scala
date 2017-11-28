@@ -80,13 +80,9 @@ object Files {
     doWriteTo(JFiles.newBufferedWriter(file, StandardCharsets.UTF_8), contents)
   }
 
-  def readFrom(file: Path): String = {
-    doReadFrom(JFiles.newBufferedReader(file, StandardCharsets.UTF_8))
-  }
+  def readFrom(file: Path): String = readFromAsUtf8(file)
 
-  def readFrom(file: String): String = {
-    readFrom(Paths.get(file))
-  }
+  def readFrom(file: String): String = readFrom(Paths.get(file))
 
   /** Writes to gzipped file */
   def writeToGzipped(file: Path)(contents: String): Unit = {
@@ -196,7 +192,15 @@ object Files {
     }
   }
 
-  def countLines(file: Path): Long = {
-    CanBeClosed.enclosed(Source.fromFile(file.toFile))(_.getLines.size)
+  private def withLines[A](file: Path)(f: Iterator[String] => A): A = {
+    CanBeClosed.enclosed(Source.fromFile(file.toFile)) { source =>
+      f(source.getLines)
+    }
   }
+  
+  def countLines(file: Path): Long = withLines(file)(_.size)
+  
+  def getLines(file: Path): IndexedSeq[String] = withLines(file)(_.toIndexedSeq)
+  
+  def getNonEmptyLines(file: Path): IndexedSeq[String] = withLines(file)(_.filter(_.nonEmpty).toIndexedSeq)
 }

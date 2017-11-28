@@ -1,7 +1,6 @@
 package loamstream.loam
 
 import loamstream.compiler.LoamPredef.store
-import loamstream.loam.ops.StoreType.{TXT, VCF}
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
 
@@ -9,14 +8,14 @@ import loamstream.TestHelpers
 final class LoamEquivalencesTest extends FunSuite {
   private implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config))
   
-  private val vcf1 = store[VCF]
-  private val vcf2 = store[VCF]
-  private val vcf3 = store[VCF]
-  private val vcf4 = store[VCF]
-  private val vcf5 = store[VCF]
-  private val vcf6 = store[VCF]
-  private val vcf7 = store[VCF]
-  private val sampleMatrix = store[TXT]
+  private val vcf1 = store
+  private val vcf2 = store
+  private val vcf3 = store
+  private val vcf4 = store
+  private val vcf5 = store
+  private val vcf6 = store
+  private val vcf7 = store
+  private val sampleMatrix = store
   
   vcf1.key("sample").setSameListAs(vcf2.key("sample"))
   vcf2.key("sample").setSameListAs(vcf3.key("sample"))

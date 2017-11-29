@@ -11,7 +11,7 @@ import loamstream.model.jobs.JobStatus.Succeeded
  * date: Jun 2, 2016
  */
 //TODO: Get rid of this
-final case class NoOpJob(inputs: Set[LJob]) extends LJob {
+final case class NoOpJob(inputs: Set[JobNode]) extends LocalJob {
   override def execute(implicit context: ExecutionContext): Future[Execution] = Future.successful {
     Execution(
         env = Environment.Local,
@@ -30,5 +30,5 @@ final case class NoOpJob(inputs: Set[LJob]) extends LJob {
 
   override val outputs: Set[Output] = Set.empty
     
-  override def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+  override def doWithInputs(newInputs: Set[JobNode]): LJob = copy(inputs = newInputs)
 }

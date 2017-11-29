@@ -15,6 +15,8 @@ import loamstream.util.Observables
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.model.jobs.JobNode
+import loamstream.conf.ExecutionConfig
 
 /**
  * @author kaan
@@ -101,7 +103,7 @@ final case class RxExecuter(
   }
   
   private def logJobForest(executable: Executable): Unit = {
-    def log(printingJob: LJob)(s: String) = debug(s)
+    def log(printingJob: JobNode)(s: String) = debug(s)
       
     executable.jobs.head.print(doPrint = log, header = Some("Current Job Statuses:"))
   }
@@ -138,15 +140,17 @@ final case class RxExecuter(
 
 object RxExecuter extends Loggable {
   object Defaults {
-    val maxNumConcurrentJobs: Int = 8
-    
     //NB: Use a short windowLength to speed up tests
     val windowLength: Double = 0.1
     val windowLengthInSec: Duration = windowLength.seconds
   
-    val jobFilter = JobFilter.RunEverything
+    val jobFilter: JobFilter = JobFilter.RunEverything
   
     val maxRunsPerJob: Int = 4
+    
+    lazy val executionConfig: ExecutionConfig = ExecutionConfig.default
+    
+    lazy val maxNumConcurrentJobs: Int = AsyncLocalChunkRunner.defaultMaxNumJobs
   }
   
   def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {
@@ -156,7 +160,7 @@ object RxExecuter extends Loggable {
   def default: RxExecuter = {
     implicit val executionContext = ExecutionContext.global
 
-    val chunkRunner = AsyncLocalChunkRunner(Defaults.maxNumConcurrentJobs)
+    val chunkRunner = AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)
 
     new RxExecuter(chunkRunner, Defaults.windowLengthInSec, Defaults.jobFilter, Defaults.maxRunsPerJob)
   }

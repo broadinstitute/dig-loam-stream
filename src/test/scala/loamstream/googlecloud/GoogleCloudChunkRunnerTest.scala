@@ -18,6 +18,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.util.ValueBox
 import loamstream.model.execute.Environment
+import loamstream.conf.ExecutionConfig
 
 
 /**
@@ -172,7 +173,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val client = new LiteralMockDataProcClient(delegateClient, ???)
       
-      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      val localRunner = AsyncLocalChunkRunner(ExecutionConfig.default, 1)(ExecutionContext.global)
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
@@ -205,7 +206,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
           isClusterRunningBody = delegateClient.isClusterRunning, 
           deleteClusterBody = throw e)
       
-      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      val localRunner = AsyncLocalChunkRunner(ExecutionConfig.default, 1)(ExecutionContext.global)
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
@@ -243,7 +244,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
           isClusterRunningBody = throw checkClusterException, 
           deleteClusterBody = throw deleteClusterException)
       
-      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      val localRunner = AsyncLocalChunkRunner(ExecutionConfig.default, 1)(ExecutionContext.global)
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
@@ -331,7 +332,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
           isClusterRunningBody = delegateClient.isClusterRunning, 
           startClusterBody = throw e)
       
-      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      val localRunner = AsyncLocalChunkRunner(ExecutionConfig.default, 1)(ExecutionContext.global)
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
@@ -389,7 +390,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
     withMockClient { delegateClient =>
       val client = new LiteralMockDataProcClient(delegateClient, ???)
       
-      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      val localRunner = AsyncLocalChunkRunner(ExecutionConfig.default, 1)(ExecutionContext.global)
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
@@ -430,7 +431,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
           (),
           throw new Exception)
       
-      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      val localRunner = AsyncLocalChunkRunner(ExecutionConfig.default, 1)(ExecutionContext.global)
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       
@@ -467,7 +468,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   
   private def withMockRunner[A](f: (MockChunkRunner, GoogleCloudChunkRunner, MockDataProcClient) => A): A = {
     withMockClient { client => 
-      val localRunner = AsyncLocalChunkRunner(1)(ExecutionContext.global)
+      val localRunner = AsyncLocalChunkRunner(ExecutionConfig.default, 1)(ExecutionContext.global)
       
       val googleRunner = GoogleCloudChunkRunner(client, googleConfig, localRunner)
       

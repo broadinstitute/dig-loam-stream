@@ -25,8 +25,9 @@ object HashType {
     override val algorithmName: String = "MD5"
   }
 
-  def fromAlgorithmName(name: String): Option[HashType] =
+  def fromAlgorithmName(name: String): Option[HashType] = {
     if (name == Sha1.algorithmName) { Some(Sha1) }
     else if (name == Md5.algorithmName) { Some(Md5) }
     else { None }
+  }
 }

@@ -18,6 +18,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.compiler.LoamPredef
 import loamstream.util.PathEnrichments
 import loamstream.model.execute.Executable
+import loamstream.model.execute.ExecuterHelpers
 
 /**
   * LoamStream
@@ -25,13 +26,19 @@ import loamstream.model.execute.Executable
   */
 final class LoamToolBoxTest extends FunSuite {
 
-  private def run(graph: LoamGraph): Results = {
-
+  private def toJobs(graph: LoamGraph): (LoamGraphAstMapping, Executable) = {
     val mapping = LoamGraphAstMapper.newMapping(graph)
 
     val toolBox = new LoamToolBox(graph)
 
     val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
+    
+    (mapping, executable)
+  }
+  
+  private def run(graph: LoamGraph): Results = {
+
+    val (mapping, executable) = toJobs(graph)
 
     val jobExecutions = RxExecuter.default.execute(executable)
     
@@ -56,6 +63,58 @@ final class LoamToolBoxTest extends FunSuite {
       assert(JFiles.exists(fileOut1))
       assert(JFiles.exists(fileOut2))
       assert(JFiles.exists(fileOut3))
+    }
+  }
+  
+  test("Simple toy pipeline using cp, some tools named; ensure tool names are propagated to jobs.") {
+    //Make files in target/ so we don't risk cluttering up the project root directory if anything goes wrong.
+    withFiles("target/fileIn.txt", "target/fileOut1.txt", "target/fileOut2.txt", "target/fileOut3.txt") { paths =>
+      val Seq(fileIn, fileOut1, fileOut2, fileOut3) = paths
+      
+      Files.writeTo(fileIn)("Hello World!")
+
+      val (graph, fileTmp2, twoToTwo, twoToThree) = TestHelpers.withScriptContext { implicit context => 
+        import LoamPredef._
+        import LoamCmdTool._
+        
+        val fileIn = store.at(path("target/fileIn.txt")).asInput
+        val fileTmp1 = store
+        val fileTmp2 = store
+        val fileOut1 = store.at(path("target/fileOut1.txt"))
+        val fileOut2 = store.at(path("target/fileOut2.txt"))
+        val fileOut3 = store.at(path("target/fileOut3.txt"))
+        cmd"cp $fileIn $fileTmp1"
+        cmd"cp $fileTmp1 $fileTmp2"
+        cmd"cp $fileTmp2 $fileOut1"
+        val twoToTwo = cmd"cp $fileTmp2 $fileOut2".named("2to2")
+        val twoToThree = cmd"cp $fileTmp2 $fileOut3".named("2to3")
+        
+        (context.projectContext.graph, fileTmp2, twoToTwo, twoToThree)
+      }
+      
+      val (mapping, executable) = toJobs(graph)
+
+      assert(mapping.rootAsts.size === 3)
+      assert(mapping.rootTools.size === 3)
+
+      assert(graph.namedTools === Map("2to2" -> twoToTwo, "2to3" -> twoToThree))
+      
+      val allJobs = ExecuterHelpers.flattenTree(executable.jobs)
+      
+      def jobWithName(name: String): CommandLineJob = allJobs.find(_.name == name).get.asInstanceOf[CommandLineJob]
+      
+      val job2To2 = jobWithName("2to2")
+      val job2To3 = jobWithName("2to3")
+      
+      assert(job2To2.commandLineString === s"cp ${fileTmp2.path} ./target/fileOut2.txt")
+      assert(job2To3.commandLineString === s"cp ${fileTmp2.path} ./target/fileOut3.txt")
+      
+      val namedJobs: Set[LJob] = Set(job2To2, job2To3)
+      
+      val unnamedJobs = allJobs.filterNot(namedJobs)
+      
+      assert(unnamedJobs.forall(_.name !== "2to2"))
+      assert(unnamedJobs.forall(_.name !== "2to3"))
     }
   }
 
@@ -162,7 +221,7 @@ object LoamToolBoxTest {
       cmd"cp $fileTmp2 $fileOut2"
       cmd"cp $fileTmp2 $fileOut3"
     }
-
+    
     // scalastyle:off line.size.limit
     // TODO: Clean up local paths
     val imputeParallel = TestHelpers.makeGraph { implicit sc =>

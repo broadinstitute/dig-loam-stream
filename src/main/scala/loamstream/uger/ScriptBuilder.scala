@@ -10,52 +10,58 @@ import loamstream.model.jobs.commandline.CommandLineJob
   * For an example of such scripts, see src/test/resources/imputation/shapeItUgerSubmissionScript.sh
   */
 private[uger] object ScriptBuilder {
-  val space: String = " "
-  val tab: String = "\t"
-  val newLine: String = "\n"
-  val unixLineSep: String = " \\"
+  private val space: String = " "
+  private val tab: String = "\t"
+  private val newLine: String = "\n"
+  private val unixLineSep: String = " \\"
 
   //NB: We need to 'use' Java-1.8 to make some steps of the QC pipeline work.  
-  val scriptHeader: String =
-    s"""#!/bin/bash
-#$$ -cwd
-#$$ -j y
+  private val scriptHeader: String = {
+    s"""|#!/bin/bash
+        |#$$ -cwd
+        |#$$ -j y
+        |
+        |source /broad/software/scripts/useuse
+        |reuse -q UGER
+        |reuse -q Java-1.8
+        |
+        |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$$PATH
+        |conda env create -f /humgen/diabetes/users/dig/hail/environment.yml
+        |source activate hail
+        |
+        |i=$$SGE_TASK_ID
+        |      """.stripMargin
+  }
+  
+  private val endIf: String = s"${newLine}fi${newLine}"
 
-source /broad/software/scripts/useuse
-reuse -q UGER
-reuse -q Java-1.8
+  def buildFrom(taskArray: UgerTaskArray): String = {
+    val ugerJobs = taskArray.ugerJobs
+    
+    val firstIfBlock = getFirstIfBlock(taskArray)
 
-export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$$PATH
-conda env create -f /humgen/diabetes/users/dig/hail/environment.yml
-source activate hail
-
-i=$$SGE_TASK_ID
-      """
-  val endIf: String = s"""${newLine}fi$newLine"""
-
-  def buildFrom(commandLineJobs: Seq[CommandLineJob]): String = {
-    val taskIndexStartValue = 1
-    val firstIfBlock = getFirstIfBlock(commandLineJobs.head, taskIndexStartValue)
-
-    val elseIfBlocks = commandLineJobs.tail.zipWithIndex.map { case (job, index) =>
-      s"${getElseIfHeader(index + 2)}${getBody(job)}"
+    val elseIfBlocks = ugerJobs.tail.map { ugerJob =>
+      val index = ugerJob.ugerIndex
+      
+      s"${getElseIfHeader(index)}${getBody(ugerJob.ugerCommandLine(taskArray))}"
     }.mkString(newLine)
 
-    s"$scriptHeader$newLine$firstIfBlock$newLine$elseIfBlocks$endIf"
+    s"${scriptHeader}${newLine}${firstIfBlock}${newLine}${elseIfBlocks}${endIf}"
   }
 
-  def getFirstIfBlock(commandLineJob: CommandLineJob, indexStartValue: Int): String = {
+  private def getFirstIfBlock(taskArray: UgerTaskArray): String = {
+    val ugerJob: UgerJobWrapper = taskArray.ugerJobs.head
+    val indexStartValue: Int = ugerJob.ugerIndex
+    
     val ifHeader = getIfHeader(indexStartValue)
-    val ifBody = getBody(commandLineJob)
+    val ifBody = getBody(ugerJob.ugerCommandLine(taskArray))
 
-    s"$ifHeader$ifBody"
+    s"${ifHeader}${ifBody}"
   }
 
-  def getBody(commandLineJob: CommandLineJob): String = {
-    s"""$newLine$tab${commandLineJob.commandLineString}"""
-  }
+  private def getBody(commandLineString: String): String = s"${newLine}${tab}${commandLineString}"
 
-  def getIfHeader(index: Int): String = s"""if [ $$i -eq $index ]${newLine}then"""
+  private def getIfHeader(index: Int): String = s"if [ $$i -eq $index ]${newLine}then"
 
-  def getElseIfHeader(index: Int): String = s"""elif [ $$i -eq $index ]${newLine}then"""
+  private def getElseIfHeader(index: Int): String = s"elif [ $$i -eq $index ]${newLine}then"
 }

@@ -1,14 +1,18 @@
 package loamstream.loam
 
-import java.nio.file.{Path, Paths, Files => JFiles}
+import java.nio.file.{ Files => JFiles }
+import java.nio.file.Path
+import java.nio.file.Paths
 
+import org.scalatest.FunSuite
+
+import loamstream.TestHelpers
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScriptTestUtils.FilePaths
 import loamstream.util.PathUtils
+
 import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
-import org.scalatest.FunSuite
-import loamstream.TestHelpers
-import org.testng.internal.Graph
+
 
 /**
   * LoamStream
@@ -22,7 +26,7 @@ final class LoamWorkDirTest extends FunSuite {
 
   private def assertWorkDirIsSet(workDirOpt1: Option[Path], workDirOpt2: Option[Path]): Unit = {
     import LoamCmdTool._
-    import LoamPredef._
+    import loamstream.compiler.LoamPredef._
     implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config))
     workDirOpt1 match {
       case Some(workDir1) => changeDir(workDir1)
@@ -72,7 +76,6 @@ final class LoamWorkDirTest extends FunSuite {
 
   private def createFilePaths: FilePathsLocal = new FilePathsLocal
 
-  // scalastyle:off magic.number
   private def createGraphUsingChangeDir(paths: FilePathsLocal): LoamGraph = TestHelpers.makeGraph { implicit sc =>
     import LoamPredef._
     import LoamCmdTool._
@@ -96,9 +99,6 @@ final class LoamWorkDirTest extends FunSuite {
     cmd"cp $outFile4 $outFile5"
   }
 
-  // scalastyle:on magic.number
-
-  // scalastyle:off magic.number
   private def createGraphUsingInDir(paths: FilePathsLocal): LoamGraph = TestHelpers.makeGraph { implicit sc =>
     import LoamPredef._
     import LoamCmdTool._
@@ -137,8 +137,6 @@ final class LoamWorkDirTest extends FunSuite {
     LoamScriptTestUtils.assertOutputFilesExist(filePaths)
   }
   
-  // scalastyle:on magic.number
-
   test("Toy pipeline of cp using changeDir(Path)") {
     val filePaths = createFilePaths
     

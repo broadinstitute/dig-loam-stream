@@ -29,6 +29,9 @@ import loamstream.uger.UgerChunkRunnerTest.MockJobSubmitter
 import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.model.jobs.LocalJob
+import loamstream.model.jobs.JobNode
+import loamstream.conf.ExecutionConfig
 
 
 /**
@@ -40,17 +43,20 @@ final class UgerChunkRunnerTest extends FunSuite {
   private val scheduler = IOScheduler()
   
   import loamstream.TestHelpers.neverRestart
+  import loamstream.TestHelpers.path
   
-  private val config = {
+  private val ugerConfig = {
     import scala.concurrent.duration.DurationInt
     
     UgerConfig(
-      workDir = Paths.get("target/foo"), 
+      workDir = path("target/foo"), 
       maxNumJobs = 42,
       defaultCores = Cpus(2),
       defaultMemoryPerCore = Memory.inGb(2),
       defaultMaxRunTime = CpuTime.inHours(7))
   }
+  
+  private val executionConfig: ExecutionConfig = ExecutionConfig(42, path("target/bar")) 
   
   import loamstream.util.Futures.waitFor
   import loamstream.util.ObservableEnrichments._
@@ -58,8 +64,9 @@ final class UgerChunkRunnerTest extends FunSuite {
   test("NoOpJob is not attempted to be executed") {
     val mockDrmaaClient = MockDrmaaClient(Map.empty)
     val runner = UgerChunkRunner(
-        ugerConfig = config,
-        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, config),
+        executionConfig = executionConfig,
+        ugerConfig = ugerConfig,
+        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
         jobMonitor = new JobMonitor(scheduler, Poller.drmaa(mockDrmaaClient)))
     
     val noOpJob = NoOpJob(Set.empty)
@@ -72,8 +79,9 @@ final class UgerChunkRunnerTest extends FunSuite {
   test("No failures when empty set of jobs is presented") {
     val mockDrmaaClient = new MockDrmaaClient(Map.empty)
     val runner = UgerChunkRunner(
-        ugerConfig = config,
-        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, config),
+        executionConfig = executionConfig,
+        ugerConfig = ugerConfig,
+        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
         jobMonitor = new JobMonitor(scheduler, Poller.drmaa(mockDrmaaClient)))
     
     val result = waitFor(runner.run(Set.empty, neverRestart).firstAsFuture)
@@ -330,27 +338,28 @@ final class UgerChunkRunnerTest extends FunSuite {
     val expectedSettings = UgerSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5))
     val expectedEnv = Environment.Uger(expectedSettings)
     
-    assert(jobs(0).executionEnvironment === expectedEnv)
-    assert(jobs(1).executionEnvironment === expectedEnv)
+    assert(jobs(0).job.executionEnvironment === expectedEnv)
+    assert(jobs(1).job.executionEnvironment === expectedEnv)
         
     val mockDrmaaClient = MockDrmaaClient(Map.empty)
     val mockJobSubmitter = new MockJobSubmitter
     
     val chunkRunner = UgerChunkRunner(
-        ugerConfig = config,
+        executionConfig = executionConfig,
+        ugerConfig = ugerConfig,
         jobSubmitter = mockJobSubmitter,
         jobMonitor = new JobMonitor(poller = Poller.drmaa(mockDrmaaClient)))
         
     import ObservableEnrichments._        
     
-    val results = waitFor(chunkRunner.run(jobs.toSet, neverRestart).firstAsFuture)
+    val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
     
     val actualSubmissionParams = mockJobSubmitter.params
     
     val Seq((actualSettings, actualSubmittedJobs)) = actualSubmissionParams
     
     assert(actualSettings === expectedSettings)
-    assert(actualSubmittedJobs.toSet === jobs.toSet)
+    assert(actualSubmittedJobs.ugerJobs.map(_.commandLineJob).toSet === jobs.toSet)
   }
   
   test("Uger config is propagated to DRMAA client - 2 pairs of jobs with different settings") {
@@ -404,18 +413,21 @@ final class UgerChunkRunnerTest extends FunSuite {
     val mockJobSubmitter = new MockJobSubmitter
     
     val chunkRunner = UgerChunkRunner(
-        ugerConfig = config,
+        executionConfig = executionConfig,
+        ugerConfig = ugerConfig,
         jobSubmitter = mockJobSubmitter,
         jobMonitor = new JobMonitor(poller = Poller.drmaa(mockDrmaaClient)))
         
     import ObservableEnrichments._        
     
-    val results = waitFor(chunkRunner.run(jobs.toSet, neverRestart).firstAsFuture)
+    val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
     
     val actualSubmissionParams = mockJobSubmitter.params
     
     val actualParamsUnordered: Set[(UgerSettings, Set[CommandLineJob])] = {
-      actualSubmissionParams.map { case (settings, jobs) => (settings, jobs.toSet) }.toSet
+      actualSubmissionParams.map { case (settings, taskArray) => 
+        (settings, taskArray.ugerJobs.map(_.commandLineJob).toSet) 
+      }.toSet
     }
     
     val expectedParamsUnordered: Set[(UgerSettings, Set[CommandLineJob])] = Set(
@@ -428,21 +440,21 @@ final class UgerChunkRunnerTest extends FunSuite {
 
 object UgerChunkRunnerTest {
   final class MockJobSubmitter extends JobSubmitter {
-    @volatile var params: Seq[(UgerSettings, Seq[CommandLineJob])] = Vector.empty
+    @volatile var params: Seq[(UgerSettings, UgerTaskArray)] = Vector.empty
     
-    override def submitJobs(ugerSettings: UgerSettings, jobs: Seq[CommandLineJob]): DrmaaClient.SubmissionResult = {
-      params :+= (ugerSettings -> jobs)
+    override def submitJobs(ugerSettings: UgerSettings, taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
+      params :+= (ugerSettings -> taskArray)
       
       DrmaaClient.SubmissionSuccess(Nil)
     }
   }
   
-  final case class MockUgerJob(name: String, statusesToReturn: UgerStatus*) extends LJob {
+  final case class MockUgerJob(name: String, statusesToReturn: UgerStatus*) extends LocalJob {
     require(statusesToReturn.nonEmpty)
 
     override val executionEnvironment: Environment = Environment.Local
     
-    override val inputs: Set[LJob] = Set.empty
+    override val inputs: Set[JobNode] = Set.empty
 
     override val outputs: Set[Output] = Set.empty
     
@@ -450,6 +462,6 @@ object UgerChunkRunnerTest {
       Future.successful(Execution.from(this, UgerStatus.toJobStatus(statusesToReturn.last)))
     }
 
-    protected def doWithInputs(newInputs: Set[LJob]): LJob = ???
+    protected override def doWithInputs(newInputs: Set[JobNode]): LJob = ???
   }
 }

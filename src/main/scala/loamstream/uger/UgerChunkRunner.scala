@@ -25,6 +25,7 @@ import java.time.ZoneId
 import loamstream.model.execute.Environment
 import loamstream.util.Maps
 import loamstream.model.execute.UgerSettings
+import loamstream.conf.ExecutionConfig
 
 /**
  * @author clint
@@ -33,6 +34,7 @@ import loamstream.model.execute.UgerSettings
  *         A ChunkRunner that runs groups of command line jobs as UGER task arrays, via the provided JobSubmitter.
  */
 final case class UgerChunkRunner(
+    executionConfig: ExecutionConfig,
     ugerConfig: UgerConfig,
     jobSubmitter: JobSubmitter,
     jobMonitor: JobMonitor,
@@ -42,7 +44,7 @@ final case class UgerChunkRunner(
 
   override def stop(): Unit = jobMonitor.stop()
   
-  override def maxNumJobs = ugerConfig.maxNumJobs
+  override def maxNumJobs: Int = ugerConfig.maxNumJobs
 
   /**
    * Run the provided jobs, using the provided predicate (`shouldRestart`) to decide whether to re-run them if they 
@@ -67,9 +69,10 @@ final case class UgerChunkRunner(
     //be run as 1 Uger task array, and Uger params are per-task-array.
     val resultsForSubChunks: Iterable[Observable[Map[LJob, Execution]]] = {
       for {
-        (ugerSettings, ugerJobs) <- subChunksBySettings(commandLineJobs) 
+        (ugerSettings, commandLineJobs) <- subChunksBySettings(commandLineJobs)
+        ugerTaskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, commandLineJobs)
       } yield {
-        runJobs(ugerSettings, ugerJobs, shouldRestart) 
+        runJobs(ugerSettings, ugerTaskArray, shouldRestart) 
       }
     }
     
@@ -83,15 +86,15 @@ final case class UgerChunkRunner(
    */
   private def runJobs(
       ugerSettings: UgerSettings, 
-      ugerJobs: Seq[CommandLineJob],
+      ugerTaskArray: UgerTaskArray,
       shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
 
-    ugerJobs match {
+    ugerTaskArray.ugerJobs match {
       case Nil => Observable.just(Map.empty)
-      case _ => {
-        val submissionResult = jobSubmitter.submitJobs(ugerSettings, ugerJobs)
+      case ugerJobs => {
+        val submissionResult = jobSubmitter.submitJobs(ugerSettings, ugerTaskArray)
 
-        toExecutionStream(ugerJobs, submissionResult, shouldRestart)
+        toExecutionStream(ugerJobs.map(_.commandLineJob), submissionResult, shouldRestart)
       }
     }
   }

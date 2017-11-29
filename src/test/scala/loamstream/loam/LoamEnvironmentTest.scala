@@ -1,23 +1,21 @@
 package loamstream.loam
 
 import org.scalatest.FunSuite
-import loamstream.compiler.LoamCompiler
-import loamstream.util.Loggable
-import loamstream.model.execute.RxExecuter
-import loamstream.compiler.LoamEngine
-import loamstream.model.execute.Environment
-import loamstream.model.jobs.commandline.CommandLineStringJob
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.NoOpJob
+
 import loamstream.TestHelpers
-import loamstream.model.execute.UgerSettings
-import loamstream.model.execute.GoogleSettings
-import loamstream.model.execute.EnvironmentType
-import loamstream.model.execute.Environment
+import loamstream.compiler.LoamCompiler
+import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.Cpus
+import loamstream.model.execute.Environment
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.RxExecuter
+import loamstream.model.execute.UgerSettings
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -31,6 +29,8 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
   
   private val clusterId = TestHelpers.config.googleConfig.get.clusterId
   
+  private def commandLineFrom(j: LJob): String = j.asInstanceOf[CommandLineJob].commandLineString
+  
   test("Default EE") {
     val graph = TestHelpers.makeGraph { implicit context => 
       import LoamCmdTool._
@@ -43,7 +43,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     val job = executable.jobs.head
     
     assert(executable.jobs.size === 1)
-    assert(job.asInstanceOf[CommandLineStringJob].commandLineString === "foo")
+    assert(commandLineFrom(job) === "foo")
     assert(job.executionEnvironment === Environment.Local)
   }
   
@@ -64,7 +64,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
       val job = executable.jobs.head
       
       assert(executable.jobs.size === 1)
-      assert(job.asInstanceOf[CommandLineStringJob].commandLineString === "foo")  
+      assert(commandLineFrom(job) === "foo")  
       assert(job.executionEnvironment === env)
     }
     
@@ -102,9 +102,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
       //NB: Drop NoOpJob
       val jobs = executable.jobs.head.inputs
       
-      def jobWith(commandLine: String): LJob = {
-        jobs.find(_.asInstanceOf[CommandLineStringJob].commandLineString == commandLine).get
-      }
+      def jobWith(commandLine: String): LJob = jobs.find(j => commandLineFrom(j.job) == commandLine).get.job
       
       val foo = jobWith("foo")
       val bar = jobWith("bar")

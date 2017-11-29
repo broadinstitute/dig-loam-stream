@@ -7,9 +7,8 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.model.execute.Environment
 import loamstream.model.execute.ProvidesEnvAndResources
-import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.TypeBox
 
 
@@ -30,7 +29,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val status0 = JobStatus.fromExitCode(result0.exitCode)
     val status1 = JobStatus.Succeeded
     
-    val job0 = CommandLineStringJob("foo", path("."), Environment.Uger(TestHelpers.defaultUgerSettings))
+    val job0 = CommandLineJob("foo", path("."), Environment.Uger(TestHelpers.defaultUgerSettings))
     val job1 = MockJob(status1)
     
     val e0 = Execution.from(job0, status0, Option(result0))

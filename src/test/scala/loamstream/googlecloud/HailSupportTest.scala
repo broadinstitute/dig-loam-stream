@@ -255,7 +255,7 @@ vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
     
     val toolBox = new LoamToolBox(sc.projectContext.graph)
 
-    val job = toolBox.toolToJobShot(tool).get.asInstanceOf[CommandLineJob]
+    val job = toolBox.getLoamJob(tool).get.asInstanceOf[CommandLineJob]
 
     def collapseWhitespace(s: String) = s.replaceAll("\\s+", " ")
 

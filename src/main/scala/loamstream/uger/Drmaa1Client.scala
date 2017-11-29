@@ -144,15 +144,13 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   override def submitJob(
       ugerSettings: UgerSettings,
       ugerConfig: UgerConfig,
-      pathToScript: Path,
-      jobName: String,
-      numTasks: Int = 1): DrmaaClient.SubmissionResult = {
+      taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
 
-    val pathToUgerOutput = ugerConfig.workDir
+    val ugerWorkDir = ugerConfig.workDir
     
     val fullNativeSpec = Drmaa1Client.nativeSpec(ugerSettings)
     
-    runJob(pathToScript, pathToUgerOutput, fullNativeSpec, jobName, numTasks)
+    runJob(taskArray, ugerWorkDir, fullNativeSpec)
   }
   
   /**
@@ -250,17 +248,18 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }
   }
   
-  private def runJob(pathToScript: Path,
-                     pathToUgerOutput: Path,
-                     nativeSpecification: String,
-                     jobName: String,
-                     numTasks: Int = 1): SubmissionResult = {
+  private def runJob(taskArray: UgerTaskArray,
+                     outputDir: Path,
+                     nativeSpecification: String): SubmissionResult = {
 
     withJobTemplate { (session, jt) =>
       val taskStartIndex = 1
-      val taskEndIndex = numTasks
+      val taskEndIndex = taskArray.size
       val taskIndexIncr = 1
 
+      val jobName = taskArray.ugerJobName
+      val pathToScript = taskArray.ugerScriptFile
+      
       debug(s"Using native spec: '$nativeSpecification'")
       debug(s"Using job name: '$jobName'")
       debug(s"Using script: '$pathToScript'")
@@ -271,9 +270,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
       //NB: Where a job's stdout goes
-      jt.setOutputPath(makeOutputPath(pathToUgerOutput, jobName))
+      jt.setOutputPath(taskArray.stdOutPathTemplate)
       //NB: Where a job's stderr goes
-      jt.setErrorPath(makeErrorPath(pathToUgerOutput, jobName))
+      jt.setErrorPath(taskArray.stdErrPathTemplate)
 
       import scala.collection.JavaConverters._
       
@@ -324,17 +323,5 @@ object Drmaa1Client {
     }
     
     s"$staticPart $dynamicPart"
-  }
-  
-  private[uger] def makeOutputPath(ugerDir: Path, jobName: String): String = {
-    makeErrorOrOutputPath(ugerDir, jobName, "stdout")
-  }
-  
-  private[uger] def makeErrorPath(ugerDir: Path, jobName: String): String = {
-    makeErrorOrOutputPath(ugerDir, jobName, "stderr")
-  }
-  
-  private def makeErrorOrOutputPath(ugerDir: Path, jobName: String, suffix: String): String = {
-    s":$ugerDir/$jobName.${JobTemplate.PARAMETRIC_INDEX}.$suffix"
   }
 }

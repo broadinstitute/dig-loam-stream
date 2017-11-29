@@ -40,7 +40,6 @@ final class LoamNativeToolTest extends FunSuite {
     LoamGraphValidation.allRules.apply(graph)
   }
 
-
   private val fileContentString = "Hello World!"
 
   private def assertFile(path: Path): Unit = {

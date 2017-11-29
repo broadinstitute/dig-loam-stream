@@ -13,11 +13,11 @@ import loamstream.model.execute.Environment
  * date: Jun 2, 2016
  */
 class MockJob(
-               val toReturn: Execution,
-               override val name: String,
-               override val inputs: Set[LJob],
-               val outputs: Set[Output],
-               val delay: Int) extends LJob {
+    val toReturn: Execution,
+    override val name: String,
+    override val inputs: Set[JobNode],
+    val outputs: Set[Output],
+    val delay: Int) extends LocalJob {
 
   override def executionEnvironment: Environment = TestHelpers.env
   
@@ -43,13 +43,13 @@ class MockJob(
   def executionCount = count.value
 
   def copy(
-            toReturn: Execution = this.toReturn,
-            name: String = this.name,
-            inputs: Set[LJob] = this.inputs,
-            outputs: Set[Output] = this.outputs,
-            delay: Int = this.delay): MockJob = new MockJob(toReturn, name, inputs, outputs, delay)
+      toReturn: Execution = this.toReturn,
+      name: String = this.name,
+      inputs: Set[JobNode] = this.inputs,
+      outputs: Set[Output] = this.outputs,
+      delay: Int = this.delay): MockJob = new MockJob(toReturn, name, inputs, outputs, delay)
 
-  override protected def doWithInputs(newInputs: Set[LJob]): LJob = copy(inputs = newInputs)
+  override protected def doWithInputs(newInputs: Set[JobNode]): LJob = copy(inputs = newInputs)
 }
 
 object MockJob {
@@ -74,7 +74,7 @@ object MockJob {
   def apply(
       toReturn: JobStatus,
       name: String = LJob.nextId().toString,
-      inputs: Set[LJob] = Set.empty,
+      inputs: Set[JobNode] = Set.empty,
       outputs: Set[Output] = Set.empty,
       delay: Int = 0): MockJob = {
     
@@ -85,7 +85,7 @@ object MockJob {
               delay)
   }
 
-  def unapply(job: LJob): Option[(Execution, String, Set[LJob], Set[Output], Int)] = job match {
+  def unapply(job: LJob): Option[(Execution, String, Set[JobNode], Set[Output], Int)] = job match {
     case mj: MockJob => Some((mj.toReturn, mj.name, mj.inputs, mj.outputs, mj.delay))
     case _ => None
   }

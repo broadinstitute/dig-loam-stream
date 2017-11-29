@@ -5,50 +5,63 @@ import java.nio.file.Paths
 import org.scalatest.FunSuite
 
 import loamstream.model.execute.Environment
-import loamstream.model.jobs.commandline.CommandLineStringJob
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.TestHelpers
+import loamstream.conf.ExecutionConfig
 
 /**
-  * Created by kyuksel on 2/29/2016.
-  */
-final class ScriptBuilderTest extends FunSuite {
-
-  private implicit class EnrichedString(string: String) {
+ * Created by kyuksel on 2/29/2016.
+ */
+object ScriptBuilderTest {
+  private final implicit class EnrichedString(val string: String) extends AnyVal {
     def withNormalizedLineBreaks: String = string.replaceAll("\r\n", "\n")
   }
+}
 
-  test("A shell script is generated out of a CommandLineStringJob, and can be used to submit a UGER job") {
-    val shapeItJob = Seq.fill(3)(getShapeItCommandLineStringJob)
-    val ugerScriptToRunShapeIt = ScriptBuilder.buildFrom(shapeItJob).withNormalizedLineBreaks
-    val expectedScript = expectedScriptAsString.withNormalizedLineBreaks
+final class ScriptBuilderTest extends FunSuite {
 
-    assert(ugerScriptToRunShapeIt == expectedScript)
+  import ScriptBuilderTest.EnrichedString
+
+  test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
+    val ugerConfig = TestHelpers.config.ugerConfig.get
+    
+    val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
+    val taskArray = UgerTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, jobs)
+    val ugerScriptContents = ScriptBuilder.buildFrom(taskArray).withNormalizedLineBreaks
+    
+    val jobIds: (String, String, String) = (jobs(0).id, jobs(1).id, jobs(2).id)
+    val discriminators = (0, 1, 2)
+    
+    val expectedScriptContents = expectedScriptAsString(discriminators, jobIds).withNormalizedLineBreaks
+
+    assert(ugerScriptContents == expectedScriptContents)
   }
 
-  private def getShapeItCommandLineStringJob: CommandLineStringJob = {
+  import TestHelpers.path
+  
+  private def getShapeItCommandLineJob(discriminator: Int): CommandLineJob = {
     val shapeItExecutable = "/some/shapeit/executable"
-    val shapeItWorkDir = "someWorkDir"
-    val vcf = "/some/vcf/file"
-    val map = "/some/map/file"
-    val hap = "/some/haplotype/file"
+    val shapeItWorkDir = path("someWorkDir")
+    val vcf = s"/some/vcf/file.$discriminator"
+    val map = s"/some/map/file.$discriminator"
+    val hap = s"/some/haplotype/file.$discriminator"
     val samples = "/some/sample/file"
     val log = "/some/log/file"
     val numThreads = 2
 
-    val shapeItTokens = getShapeItCommandLineTokens(shapeItExecutable, vcf, map, hap, samples, log, numThreads)
-    val shapeItCommandLineString = getShapeItCommandLineString(shapeItExecutable, vcf, map, hap, samples, log,
-      numThreads)
+    val commandLineString = getShapeItCommandLineString(shapeItExecutable, vcf, map, hap, samples, log, numThreads)
 
-    CommandLineStringJob(shapeItCommandLineString, Paths.get(shapeItWorkDir), Environment.Local)
+    CommandLineJob(commandLineString, shapeItWorkDir, Environment.Local)
   }
 
   private def getShapeItCommandLineTokens(
-                                           shapeItExecutable: String,
-                                           vcf: String,
-                                           map: String,
-                                           haps: String,
-                                           samples: String,
-                                           log: String,
-                                           numThreads: Int = 1): Seq[String] = {
+      shapeItExecutable: String,
+      vcf: String,
+      map: String,
+      haps: String,
+      samples: String,
+      log: String,
+      numThreads: Int = 1): Seq[String] = {
 
     Seq(
       shapeItExecutable,
@@ -66,19 +79,27 @@ final class ScriptBuilderTest extends FunSuite {
   }
 
   private def getShapeItCommandLineString(
-                                           shapeItExecutable: String,
-                                           vcf: String,
-                                           map: String,
-                                           haps: String,
-                                           samples: String,
-                                           log: String,
-                                           numThreads: Int = 1): String = {
+      shapeItExecutable: String,
+      vcf: String,
+      map: String,
+      haps: String,
+      samples: String,
+      log: String,
+      numThreads: Int = 1): String = {
 
     getShapeItCommandLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads).mkString(" ")
   }
-// scalastyle:off method.length
-// scalastyle:off line.size.limit
-  def expectedScriptAsString: String = {
+  // scalastyle:off method.length
+  // scalastyle:off line.size.limit
+  private def expectedScriptAsString(discriminators: (Int, Int, Int), jobIds: (String, String, String)): String = {
+    val (discriminator0, discriminator1, discriminator2) = discriminators
+    val (jobId0, jobId1, jobId2) = jobIds
+    
+    val jobName = s"LoamStream-${jobId0}_${jobId1}_${jobId2}"
+    
+    val ugerDir = "/humgen/diabetes/users/kyuksel/imputation/shapeit_example"
+    val outputDir = path("job-outputs").toAbsolutePath
+    
     val sixSpaces = "      "
 
     s"""#!/bin/bash
@@ -97,13 +118,13 @@ i=$$SGE_TASK_ID
 $sixSpaces
 if [ $$i -eq 1 ]
 then
-\t/some/shapeit/executable -V /some/vcf/file -M /some/map/file -O /some/haplotype/file /some/sample/file -L /some/log/file --thread 2
+\t( /some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2 ) ; mkdir -p $outputDir ; mv $ugerDir/${jobName}.1.stdout $outputDir/${jobId0}.stdout ; mv $ugerDir/${jobName}.1.stderr $outputDir/${jobId0}.stderr
 elif [ $$i -eq 2 ]
 then
-\t/some/shapeit/executable -V /some/vcf/file -M /some/map/file -O /some/haplotype/file /some/sample/file -L /some/log/file --thread 2
+\t( /some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2 ) ; mkdir -p $outputDir ; mv $ugerDir/${jobName}.2.stdout $outputDir/${jobId1}.stdout ; mv $ugerDir/${jobName}.2.stderr $outputDir/${jobId1}.stderr
 elif [ $$i -eq 3 ]
 then
-\t/some/shapeit/executable -V /some/vcf/file -M /some/map/file -O /some/haplotype/file /some/sample/file -L /some/log/file --thread 2
+\t( /some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2 ) ; mkdir -p $outputDir ; mv $ugerDir/${jobName}.3.stdout $outputDir/${jobId2}.stdout ; mv $ugerDir/${jobName}.3.stderr $outputDir/${jobId2}.stderr
 fi
 """
   }

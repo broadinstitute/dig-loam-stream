@@ -43,3 +43,4 @@ pipelines/
 .loamstream
 src/main/loam/loam
 .sbtopts
+job-outputs

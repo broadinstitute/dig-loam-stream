@@ -17,9 +17,7 @@ import loamstream.loam.LoamStoreRef
  * @author clint
  * Jun 8, 2016
  */
-trait Store extends HasLocation {
-  def id: LId
-
+trait Store extends HasLocation with LId.HasId {
   def scriptContext: LoamScriptContext
 
   def projectContext: LoamProjectContext = scriptContext.projectContext

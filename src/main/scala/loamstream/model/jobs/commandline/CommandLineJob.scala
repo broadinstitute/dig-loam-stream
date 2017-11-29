@@ -20,82 +20,52 @@ import loamstream.model.jobs.Output
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
+import loamstream.model.execute.Environment
+import loamstream.util.BashScript
+import java.io.BufferedWriter
+import java.io.FileWriter
+import java.io.Writer
+import loamstream.model.jobs.LocalJob
+import loamstream.model.jobs.JobNode
 
 /**
-  * LoamStream
-  * Created by oliverr on 6/17/2016.
-  * 
-  * A job based on a command line definition 
-  */
-trait CommandLineJob extends LJob {
-  def workDir: Path
+ * LoamStream
+ * Created by oliverr on 6/17/2016.
+ *
+ * A job based on a command line definition
+ */
+final case class CommandLineJob(
+    commandLineString: String,
+    workDir: Path,
+    executionEnvironment: Environment,
+    inputs: Set[JobNode] = Set.empty,
+    outputs: Set[Output] = Set.empty,
+    exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
+    private val nameOpt: Option[String] = None) extends LJob with Loggable {
+
+  //TODO: Close ProcessLogger Somehow (state transition hook?)
+  
+  override def name: String = nameOpt.getOrElse(id)
+  
+  override protected def doWithInputs(newInputs: Set[JobNode]): LJob = copy(inputs = newInputs)
+
+  def withCommandLineString(newCmd: String): CommandLineJob = copy(commandLineString = newCmd)
 
   override def workDirOpt: Option[Path] = Some(workDir)
 
-  def processBuilder: ProcessBuilder
-
-  def commandLineString: String
-
-  def logger: ProcessLogger
-
-  def exitValueCheck: Int => Boolean
-
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 
-  override def execute(implicit context: ExecutionContext): Future[Execution] = {
-    Futures.runBlocking {
-      
-      val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
-        trace(s"RUNNING: $commandLineString")
-        
-        createWorkDirAndRun()
-      }
-
-      val resources = LocalResources(start, end)
-      
-      val (jobStatus, jobResult) = exitValueAttempt match {
-        case Success(exitValue) => (JobStatus.fromExitCode(exitValue), CommandResult(exitValue))
-        case Failure(e) => (JobStatus.FailedWithException, CommandInvocationFailure(e))
-      }
-      
-      Execution(
-          id = None,
-          env = executionEnvironment,
-          cmd = Option(commandLineString),
-          status = jobStatus,
-          result = Option(jobResult),
-          resources = Option(resources),
-          outputs = outputs.map(_.toOutputRecord))
-    }
-  }
-  
-  private def createWorkDirAndRun(): Int = {
-    JFiles.createDirectories(workDir)
-      
-    val exitValue = processBuilder.run(logger).exitValue
-
-    if (exitValueIsOk(exitValue)) {
-      trace(s"SUCCEEDED: $commandLineString")
-    } else {
-      trace(s"FAILED: $commandLineString")
-    }
-        
-    exitValue
-  }
-
-  override def toString: String = s"'$commandLineString'"
+  override def toString: String = s"${getClass.getSimpleName}#${id}('${commandLineString}', ...)"
 }
 
 object CommandLineJob extends Loggable {
 
   private val mustBeZero: Int => Boolean = _ == 0
 
-  val defaultExitValueChecker = mustBeZero
-
-  val stdErrProcessLogger = ProcessLogger(line => (), line => info(s"(via stderr) $line"))
+  val defaultExitValueChecker: Int => Boolean = mustBeZero
 
   def unapply(job: LJob): Option[(String, Set[Output])] = job match {
     case clj: CommandLineJob => Some((clj.commandLineString, clj.outputs))
-    case _ => None
+    case _                   => None
   }
 }

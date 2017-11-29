@@ -45,7 +45,8 @@ object LoamGraph {
       keysSameSets = Equivalences.empty,
       keysSameLists = Equivalences.empty,
       workDirs = Map.empty,
-      executionEnvironments = Map.empty)
+      executionEnvironments = Map.empty,
+      namedTools = Map.empty)
   }
 }
 
@@ -61,8 +62,11 @@ final case class LoamGraph(
     storeConsumers: Map[Store, Set[Tool]],
     keysSameSets: Equivalences[LoamStoreKeySlot],
     keysSameLists: Equivalences[LoamStoreKeySlot],
+    //TODO: put "metadata" (work dirs, tool names, environments) that's not directly related to tool-store topologies
+    //somewhere else?  For now, following the established pattern.  -Clint Nov 9, 2017
     workDirs: Map[Tool, Path],
-    executionEnvironments: Map[Tool, Environment]) {
+    executionEnvironments: Map[Tool, Environment],
+    namedTools: Map[String, Tool]) {
 
   /** Returns graph with store added */
   def withStore(store: Store): LoamGraph = copy(stores = stores + store)
@@ -269,6 +273,21 @@ final case class LoamGraph(
       storeConsumers = storeConsumersNew)
   }
 
+  def nameOf(t: Tool): Option[String] = namedTools.collectFirst { case (n, namedTool) if namedTool == t => n }
+  
+  def withToolName(tool: Tool, name: String): LoamGraph = {
+    //TODO: Throw here, or elsewhere?  Make this a loam-compilation-time error another way?
+    if(namedTools.contains(name)) {
+      throw new Exception(s"Tool name '$name' must be unique.")
+    }
+    
+    if(namedTools.values.toSet.contains(tool)) {
+      throw new Exception(s"Tool '$tool' is already named ${nameOf(tool).get}")
+    }
+    
+    copy(namedTools = namedTools + (name -> tool))
+  }
+  
   def without(toolsToExclude: Set[Tool]): LoamGraph = containingOnly(tools -- toolsToExclude)
   
   private def containingOnly(toolsToKeep: Set[Tool]): LoamGraph = {
@@ -302,6 +321,8 @@ final case class LoamGraph(
       val retainedKeysSameSets = keysSameSets //TODO: correct?
       val retainedKeysSameLists = keysSameLists //TODO: correct?
       
+      val retainedNamedTools = namedTools.filterValues(toolsToKeep)
+      
       LoamGraph(
           stores = retainedStores,
           tools = toolsToKeep,
@@ -314,7 +335,8 @@ final case class LoamGraph(
           keysSameSets = retainedKeysSameSets,
           keysSameLists = retainedKeysSameLists,
           workDirs = retainedWorkDirs,
-          executionEnvironments = retainedExecutionEnvironments)
+          executionEnvironments = retainedExecutionEnvironments,
+          namedTools = retainedNamedTools)
     }
   }
 }

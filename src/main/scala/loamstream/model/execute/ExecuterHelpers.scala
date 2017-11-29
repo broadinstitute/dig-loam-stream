@@ -16,42 +16,6 @@ object ExecuterHelpers extends Loggable {
   
   def anyFailures[J <: LJob](m: Map[J, Execution]): Boolean = !noFailures(m)
 
-  def executeSingle(
-      job: LJob, 
-      shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[(LJob, Execution)] = {
-    
-    job.transitionTo(JobStatus.NotStarted)
-    job.transitionTo(JobStatus.Running)
-    
-    val result = for {
-      execution <- job.execute
-    } yield {
-      job -> execution
-    }
-
-    import Futures.Implicits._
-  
-    result.withSideEffect(handleResultOfExecution(shouldRestart))
-  }
-  
-  private[execute] def handleResultOfExecution(shouldRestart: LJob => Boolean)(tuple: (LJob, Execution)): Unit = {
-    val (job, execution) = tuple
-    
-    trace(s"Handling result of execution: $job => $execution")
-    
-    val newStatus = determineFinalStatus(shouldRestart, execution.status, job)
-    
-    job.transitionTo(newStatus)
-  }
-  
-  private[execute] def determineFinalStatus(
-      shouldRestart: LJob => Boolean,
-      newStatus: JobStatus,
-      job: LJob): JobStatus = {
-    
-    if(newStatus.isFailure) determineFailureStatus(shouldRestart, newStatus, job) else newStatus
-  }
-  
   def determineFailureStatus(
       shouldRestart: LJob => Boolean, 
       failureStatus: JobStatus, 
@@ -70,7 +34,9 @@ object ExecuterHelpers extends Loggable {
   
   def flattenTree(roots: Set[LJob]): Set[LJob] = {
     roots.foldLeft(roots) { (acc, job) =>
-      job.inputs ++ flattenTree(job.inputs) ++ acc
+      val inputJobs = job.inputs.map(_.job)
+      
+      inputJobs ++ flattenTree(inputJobs) ++ acc
     }
   }
 }

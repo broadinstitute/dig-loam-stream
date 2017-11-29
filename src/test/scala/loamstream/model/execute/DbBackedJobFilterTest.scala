@@ -3,10 +3,17 @@ package loamstream.model.execute
 import java.nio.file.Paths
 import java.time.Instant
 
-import org.scalatest.{FunSuite, PrivateMethodTester}
+import org.scalatest.FunSuite
+import org.scalatest.PrivateMethodTester
+
 import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.model.jobs.commandline.{CommandLineJob, CommandLineStringJob}
-import loamstream.model.jobs.{Execution, JobResult, JobStatus, MockJob, Output, OutputRecord}
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.Output
+import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.HashType.Sha1
 import loamstream.util.PathUtils
 
@@ -38,7 +45,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
   private def executions = dao.allExecutions.toSet
 
-  import JobResult._
+  import loamstream.model.jobs.JobResult._
 
   test("record() - no Executions") {
     createTablesAndThen {
@@ -230,7 +237,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
   test("command string comparison") {
     def cmdLineJob(cmd: String, outputs: Set[Output]): CommandLineJob = {
-      CommandLineStringJob(
+      CommandLineJob(
         commandLineString = cmd,
         workDir = PathUtils.getCurrentDirectory,
         executionEnvironment = mockEnv,

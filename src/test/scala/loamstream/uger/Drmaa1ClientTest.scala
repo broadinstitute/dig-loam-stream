@@ -24,7 +24,8 @@ final class Drmaa1ClientTest extends FunSuite {
   import Drmaa1ClientTest.LiteralJobInfo
   import loamstream.TestHelpers.path
   
-  test("makeOutputPath") {
+  //TODO
+  /*test("makeOutputPath") {
     val ugerDir = path("some/path/blah")
     val jobName = "asdasdasdfg"
     
@@ -42,7 +43,7 @@ final class Drmaa1ClientTest extends FunSuite {
     val expected = s":/some/other/path/asdasdasdfghjk.${JobTemplate.PARAMETRIC_INDEX}.stderr"
     
     assert(actual === expected)
-  }
+  }*/
   
   test("toResources - valid resource-usage data in JobInfo") {
     val mockUgerClient = new MockAccountingClient(_ => actualQacctOutput)

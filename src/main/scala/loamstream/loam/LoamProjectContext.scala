@@ -5,6 +5,7 @@ import loamstream.util.{DepositBox, ValueBox}
 import loamstream.conf.LoamConfig
 import loamstream.util.Functions
 import loamstream.compiler.GraphQueue
+import loamstream.model.Tool
 
 /** Container for compile time and run time context for a project */
 final class LoamProjectContext(

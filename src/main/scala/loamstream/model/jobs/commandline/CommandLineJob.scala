@@ -38,7 +38,7 @@ final case class CommandLineJob(
     commandLineString: String,
     workDir: Path,
     executionEnvironment: Environment,
-    inputs: Set[JobNode] = Set.empty,
+    override val inputs: Set[JobNode] = Set.empty,
     outputs: Set[Output] = Set.empty,
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
     private val nameOpt: Option[String] = None) extends LJob with Loggable {
@@ -46,8 +46,6 @@ final case class CommandLineJob(
   //TODO: Close ProcessLogger Somehow (state transition hook?)
   
   override def name: String = nameOpt.getOrElse(id)
-  
-  override protected def doWithInputs(newInputs: Set[JobNode]): LJob = copy(inputs = newInputs)
 
   def withCommandLineString(newCmd: String): CommandLineJob = copy(commandLineString = newCmd)
 

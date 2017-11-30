@@ -253,9 +253,11 @@ vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
   private def doTest(expectedCommandLine: String)(actual: => LoamCmdTool)(implicit sc: LoamScriptContext): Unit = {
     val tool = actual
     
-    val toolBox = new LoamToolBox(sc.projectContext.graph)
+    val graph = sc.projectContext.graph
+    
+    val toolBox = new LoamToolBox()
 
-    val job = toolBox.getLoamJob(tool).get.asInstanceOf[CommandLineJob]
+    val job = toolBox.getJob(graph)(tool).get.asInstanceOf[CommandLineJob]
 
     def collapseWhitespace(s: String) = s.replaceAll("\\s+", " ")
 
@@ -275,9 +277,11 @@ vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
     f(scriptContext)
   }
 
+  private val scriptDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+  
   private lazy val config: LoamConfig = {
     val configString = {
-      """
+      s"""
       loamstream {
         googlecloud {
           gcloudBinary = "/path/to/gcloud"
@@ -289,7 +293,7 @@ vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
           hail {
             jar = "gs://some-bucket/hail-all-spark.jar"
             zip = "gs://some-bucket/hail-all.zip"
-            scriptDir = "target" //don't litter in the current dir
+            scriptDir = ${scriptDir} //don't litter in the current dir
           }
         }
       }"""

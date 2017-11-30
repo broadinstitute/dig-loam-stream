@@ -18,6 +18,15 @@ final case class Executable(jobNodes: Set[JobNode]) {
     if(jobNodes.size > 1) { Executable(Set(NoOpJob(jobNodes))) }
     else { this }
   }
+  
+  def withoutNoOpJobNode: Executable = {
+    def firstJobNode = jobNodes.head
+    
+    val noOpRoot = jobNodes.size == 1 && firstJobNode.job.isInstanceOf[NoOpJob]
+    
+    if(noOpRoot) { copy(jobNodes = firstJobNode.inputs) }
+    else { this }
+  }
 }
 
 /** A container of jobs to be executed */

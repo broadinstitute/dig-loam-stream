@@ -12,6 +12,15 @@ import loamstream.TestHelpers
 import loamstream.util.Loggable
 import loamstream.util.ConfigUtils
 import loamstream.conf.LoamConfig
+import loamstream.compiler.LoamCompiler
+import loamstream.loam.LoamGraph
+import loamstream.compiler.LoamEngine
+import loamstream.util.TimeUtils
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import loamstream.model.execute.Executable
+import scala.util.Try
+import scala.concurrent.Await
 
 /**
  * @author clint
@@ -23,6 +32,37 @@ final class CompileLoamsTest extends FunSuite with LoamTestHelpers with Loggable
   private val loamDir: Path = path("pipeline/loam/")
   
   test(s"Compile all files in $loamDir") {
+    assert(results.isSuccess)
+  }
+  
+  test(s"Making jobs from all files in $loamDir shouldn't take too long") {
+    assert(results.isSuccess)
+    
+    //Getting the first graph chunk is fine for our purposes
+    val graph: LoamGraph = results.graphSource.iterator.next().apply()
+    
+    import ExecutionContext.Implicits.global
+    
+    val f: Future[(Try[Executable], Long)] = Future {
+      TimeUtils.elapsed {
+        LoamEngine.toExecutable(graph)
+      }
+    }
+    
+    import scala.concurrent.duration._
+    
+    //A hard-coded time like this is a bit fraught, but it will stop builds from hanging forever.
+    //Hopefully 10 minutes is enough even for a possibly-highly-loaded CI VM.
+    val maxWaitTime = 10.minutes
+    
+    val (executableAttempt, elapsed) = Await.result(f, maxWaitTime)
+    
+    info(s"Making jobs from all files in $loamDir took $elapsed milliseconds")
+    
+    assert(executableAttempt.isSuccess)
+  }
+  
+  private lazy val results: LoamCompiler.Result = {
     val loams: Set[Path] = {
       import scala.collection.JavaConverters._
       
@@ -40,8 +80,6 @@ final class CompileLoamsTest extends FunSuite with LoamTestHelpers with Loggable
       LoamConfig.fromConfig(typesafeConfig).get
     }
     
-    val results = compile(LoamProject(config, scripts))
-    
-    assert(results.isSuccess)
+    compile(LoamProject(config, scripts))
   }
 }

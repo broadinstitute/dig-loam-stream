@@ -1,26 +1,25 @@
 package loamstream.compiler
 
-import java.nio.file.{Files => JFiles}
+import java.nio.file.{ Files => JFiles }
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import loamstream.conf.LoamConfig
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.loam.LoamProjectContext
+import loamstream.loam.LoamGraph
 import loamstream.loam.LoamScript
 import loamstream.loam.LoamToolBox
-import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.model.execute.Executer
-import loamstream.util.Hit
-import loamstream.model.jobs.{Execution, LJob}
-import loamstream.util.Shot
-import loamstream.util.Miss
-import loamstream.util.Loggable
-import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.Executable
-import loamstream.util.StringUtils
-import loamstream.conf.LoamConfig
-import loamstream.loam.LoamGraph
+import loamstream.model.execute.Executer
+import loamstream.model.execute.RxExecuter
+import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobNode
+import loamstream.model.jobs.LJob
+import loamstream.util.Hit
+import loamstream.util.Loggable
+import loamstream.util.Miss
+import loamstream.util.Shot
+import loamstream.util.StringUtils
 
 
 /**
@@ -44,11 +43,9 @@ object LoamEngine {
       
   def toExecutable(graph: LoamGraph, csClient: Option[CloudStorageClient] = None): Executable = {
     
-    val mapping = LoamGraphAstMapper.newMapping(graph)
-    val toolBox = new LoamToolBox(graph, csClient)
+    val toolBox = new LoamToolBox(csClient)
 
-    //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
-    mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _).plusNoOpRootJobIfNeeded
+    toolBox.createExecutable(graph)
   }
 }
 
@@ -77,8 +74,8 @@ final case class LoamEngine(
       }
     }
     
-    import JFiles.readAllBytes
-    import StringUtils.fromUtf8Bytes
+    import java.nio.file.Files.readAllBytes
+    import loamstream.util.StringUtils.fromUtf8Bytes
 
     val codeShot = fileShot.flatMap(file => Shot(fromUtf8Bytes(readAllBytes(file))))
 

@@ -9,7 +9,7 @@ import loamstream.util.EvalLaterBox
 /** Job defined by Loam code */
 final case class NativeJob[T](
     exprBox: EvalLaterBox[T], 
-    inputs: Set[JobNode] = Set.empty,
+    override val inputs: Set[JobNode] = Set.empty,
     outputs: Set[Output] = Set.empty,
     private val nameOpt: Option[String] = None) extends LJob {
   
@@ -18,6 +18,4 @@ final case class NativeJob[T](
   override def toString: String = s"${getClass.getSimpleName}#${id}(?,?,?)" 
   
   override def executionEnvironment: Environment = Environment.Local
-  
-  override protected def doWithInputs(newInputs: Set[JobNode]): LJob = copy(inputs = newInputs)
 }

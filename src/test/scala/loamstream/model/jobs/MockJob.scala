@@ -7,6 +7,7 @@ import scala.concurrent.Future
 import loamstream.util.Sequence
 import loamstream.util.ValueBox
 import loamstream.model.execute.Environment
+import loamstream.util.Futures
 
 /**
  * @author clint
@@ -33,7 +34,9 @@ class MockJob(
       Thread.sleep(delay)
     }
 
-    transitionTo(toReturn.status)
+    //transitionTo(toReturn.status)
+    
+    import Futures.Implicits._
     
     Future.successful(toReturn)
   }
@@ -48,8 +51,6 @@ class MockJob(
       inputs: Set[JobNode] = this.inputs,
       outputs: Set[Output] = this.outputs,
       delay: Int = this.delay): MockJob = new MockJob(toReturn, name, inputs, outputs, delay)
-
-  override protected def doWithInputs(newInputs: Set[JobNode]): LJob = copy(inputs = newInputs)
 }
 
 object MockJob {

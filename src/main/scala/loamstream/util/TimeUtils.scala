@@ -19,6 +19,12 @@ object TimeUtils extends Loggable {
     (result, (start, end))
   }
   
+  def elapsed[A](block: => A): (Try[A], Long) = {
+    val (attempt, (start, end)) = startAndEndTime(block)
+    
+    (attempt, end.toEpochMilli - start.toEpochMilli)
+  }
+  
   def time[A](message: => String, doPrint: String => Any = trace(_))(block: => A): A = {
     val start = System.currentTimeMillis
 

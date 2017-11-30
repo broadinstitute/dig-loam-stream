@@ -8,6 +8,7 @@ import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
 import scala.io.{Codec, Source}
 import scala.util.{Failure, Success, Try}
+import org.apache.commons.io.FileUtils
 
 /**
   * @author clint

@@ -25,7 +25,7 @@ final class LoamRunnerTest extends FunSuite {
   import PathEnrichments._
   
   test("dynamic execution") {
-    val workDir = path("target/MainTest")
+    val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
     doTest(
       workDir, 
@@ -35,10 +35,8 @@ final class LoamRunnerTest extends FunSuite {
   }
   
   test("dynamic execution - andThen throws") {
-    val workDir = path("target/MainTest")
+    val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     val code = Code.oneAndThenThatThrows(workDir)
-    
-    nukeAndRemake(workDir)
     
     import TestHelpers.config
     
@@ -78,7 +76,7 @@ final class LoamRunnerTest extends FunSuite {
   }
   
   test("dynamic execution - multiple top-level andThens") {
-    val workDir = path("target/MainTest2")
+    val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
     doTest(
       workDir,
@@ -88,8 +86,6 @@ final class LoamRunnerTest extends FunSuite {
   }
   
   private def doTest(dir: Path, finalOutputFile: Path, expectedContents: String, code: String): Unit = {
-    
-    nukeAndRemake(dir)
     
     import TestHelpers.config
     
@@ -123,16 +119,6 @@ final class LoamRunnerTest extends FunSuite {
     assert(contents === expectedContents)
     
     assert(results.values.forall(_.isSuccess))
-  }
-  
-  private def nukeAndRemake(dir: Path): Unit = {
-    FileUtils.deleteDirectory(dir.toFile)
-    
-    assert(dir.toFile.exists === false)
-    
-    dir.toFile.mkdir()
-    
-    assert(dir.toFile.exists === true)
   }
   
   private def incAfter[A, B](incOp: => Unit)(f: A => B): A => B = { a =>

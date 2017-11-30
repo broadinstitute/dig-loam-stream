@@ -17,6 +17,10 @@ import rx.lang.scala.Scheduler
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.model.jobs.JobNode
 import loamstream.conf.ExecutionConfig
+import loamstream.util.ValueBox
+import java.io.FileWriter
+import loamstream.util.ExecutionContexts
+import loamstream.util.Terminable
 
 /**
  * @author kaan
@@ -27,9 +31,20 @@ final case class RxExecuter(
     runner: ChunkRunner,
     windowLength: Duration,
     jobFilter: JobFilter,
-    maxRunsPerJob: Int)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
+    maxRunsPerJob: Int,
+    stopHandle: Option[Terminable] = None)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
+  
+  override def stop(): Unit = stopHandle.foreach(_.stop())
   
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
+  
+  private def connect(node: JobNode): Unit = {
+    println(s"connecting: $node")
+    
+    node.connect()
+    
+    node.inputs.foreach(connect)
+  }
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.ObservableEnrichments._
@@ -41,7 +56,7 @@ final case class RxExecuter(
     //Note the use of `distinct`.  It's brute force, but simplifies the logic here and in LJob for the case where
     //multiple 'root' jobs depend on the same upstream job.  In this case, without `distinct`, the upstream job
     //would be run twice.
-    val runnables: Observable[JobRun] = Observables.merge(executable.jobs.toSeq.map(_.runnables)).distinct
+    val runnables: Observable[JobRun] = Observables.merge(executable.jobNodes.toSeq.map(_.runnables)).distinct
     
     //An observable stream of "chunks" of runnable jobs, with each chunk represented as an observable stream.
     //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
@@ -69,11 +84,54 @@ final case class RxExecuter(
     } yield {
       executionMap ++ skippedResultMap
     }
-   
+
+    //val stillWorking: ValueBox[Boolean] = ValueBox(true)
     
     //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
     //TODO: Make this configurable
-    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
+    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture/*.map { results =>
+      stillWorking := false
+      
+      results
+    }*/
+    
+    /*{
+      val testNameRegex = "loamstream.+\\.(.+?Test)".r
+      
+      val testNameOpt: Option[String] = (new Exception).getStackTrace.map(_.getClassName).collectFirst {
+        case testNameRegex(tn) => tn
+      }
+      
+      testNameOpt.foreach { testName =>
+        val t = new Thread(new Runnable {
+          private val out = new FileWriter(s"/home/clint/workspace/dig-loam-stream/rxe-log-${testName}")
+          
+          override def run(): Unit = {
+            try {
+              Thread.sleep(10 * 1000)
+              while(stillWorking()) {
+                executable.jobNodes.head.print(0, jobNode => s => out.write(s"$s\n"))
+                out.write("\n====================================\n\n")
+                out.flush()
+                Thread.sleep(10 * 1000)                
+              }
+              
+              out.write("*** FINISHED ***\n")
+            } finally {
+              out.close()
+            }
+          }
+        })
+      
+        t.setDaemon(true)
+      
+        t.start()
+      }
+    }*/
+    
+    executable.jobNodes.foreach(connect)
+    
+    println("Done connecting")
     
     Await.result(futureMergedResults, timeout)
   }
@@ -141,7 +199,7 @@ final case class RxExecuter(
 object RxExecuter extends Loggable {
   object Defaults {
     //NB: Use a short windowLength to speed up tests
-    val windowLength: Double = 0.1
+    val windowLength: Double = 0.05
     val windowLengthInSec: Duration = windowLength.seconds
   
     val jobFilter: JobFilter = JobFilter.RunEverything
@@ -158,11 +216,13 @@ object RxExecuter extends Loggable {
   }
 
   def default: RxExecuter = {
-    implicit val executionContext = ExecutionContext.global
+    //val executionContext = ExecutionContext.global
+    
+    val (executionContext, ecHandle) = ExecutionContexts.threadPool(Defaults.maxNumConcurrentJobs)
 
-    val chunkRunner = AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)
+    val chunkRunner = AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)(executionContext)
 
-    new RxExecuter(chunkRunner, Defaults.windowLengthInSec, Defaults.jobFilter, Defaults.maxRunsPerJob)
+    new RxExecuter(chunkRunner, Defaults.windowLengthInSec, Defaults.jobFilter, Defaults.maxRunsPerJob, Option(ecHandle))(executionContext)
   }
   
   def defaultWith(newJobFilter: JobFilter): RxExecuter = {

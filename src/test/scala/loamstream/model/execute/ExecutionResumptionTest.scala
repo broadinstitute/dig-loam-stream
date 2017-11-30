@@ -1,19 +1,28 @@
 package loamstream.model.execute
 
-import java.nio.file.{Path, Paths, StandardCopyOption}
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+
 import org.scalatest.FunSuite
+
+import loamstream.TestHelpers
 import loamstream.compiler.LoamCompiler
 import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.loam.LoamToolBox
-import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.model.jobs._
-import loamstream.util._
-import loamstream.loam.LoamScript
-import loamstream.TestHelpers
-import loamstream.model.jobs.JobStatus.{Skipped, Succeeded}
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobNode
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.JobStatus.Skipped
+import loamstream.model.jobs.JobStatus.Succeeded
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.Output
+import loamstream.util.Hashes
+import loamstream.util.PathUtils
+import loamstream.util.Sequence
 
 /**
   * @author clint
@@ -125,7 +134,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
     def doTestWithExecuter(executer: RxExecuter): Unit = {
       import java.nio.file.{ Files => JFiles }
-      import PathEnrichments._
+      import loamstream.util.PathEnrichments._
       val workDir = makeWorkDir()
 
       def path(s: String) = Paths.get(s)
@@ -158,7 +167,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       val executable = Executable(Set(f2ToF3))
   
       def runningEverything: Boolean = executer match {
-        case RxExecuter(_, _, jobFilter, _) => jobFilter == JobFilter.RunEverything
+        case RxExecuter(_, _, jobFilter, _, _) => jobFilter == JobFilter.RunEverything
         case _ => false
       }
 
@@ -208,21 +217,5 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   private val sequence: Sequence[Int] = Sequence()
 
-  private def makeWorkDir(): Path = {
-    def exists(path: Path): Boolean = path.toFile.exists
-
-    val suffixes = sequence.iterator
-
-    val candidates = suffixes.map(i => Paths.get(s"target/hashing-executer-test$i"))
-
-    val result = candidates.dropWhile(exists).next()
-
-    val asFile = result.toFile
-
-    asFile.mkdir()
-
-    assert(asFile.exists)
-
-    result
-  }
+  private def makeWorkDir(): Path = TestHelpers.getWorkDir(getClass.getSimpleName)
 }

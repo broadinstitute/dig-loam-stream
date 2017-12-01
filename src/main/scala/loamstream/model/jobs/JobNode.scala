@@ -75,7 +75,7 @@ trait JobNode extends Loggable {
       
       visited += jobNode
       
-      jobNode.inputs./*filterNot(visited.contains).*/foreach(loop(_, indent + 2, None))
+      jobNode.inputs.filterNot(visited.contains).foreach(loop(_, indent + 2, None))
     }
     
     loop(this, indent, header)
@@ -154,14 +154,14 @@ trait JobNode extends Loggable {
 
     val result = {
       if(inputs.isEmpty) {
-        info(logMsg("no deps, just us"))
+        debug(logMsg("no deps, just us"))
         
         justUs
       } else {
         for {
           inputStatuses <- finalInputStatuses
-          _ = info(logMsg(s"deps finished with statuses: $inputStatuses"))
-          _ = require(inputStatuses.size == inputs.size, s"Expected ${inputs.size} statuses, but got ${inputStatuses.size} at $job")
+          _ = debug(logMsg(s"deps finished with statuses: $inputStatuses"))
+          //_ = require(inputStatuses.size == inputs.size, s"Expected ${inputs.size} statuses, but got ${inputStatuses.size} at $job")
           anyInputFailures = inputStatuses.exists(_.isFailure)
           runnable <- if(anyInputFailures) stopDueToDependencyFailure() else justUs
         } yield {
@@ -193,8 +193,6 @@ trait JobNode extends Loggable {
     //NB: Note use of .replay.refCount which allows re-using this Observable, saving much memory when running complex pipelines
     (dependencyRunnables ++ selfRunnables).replay.refCount/*.replay.refCount*/
   }
-  
-  //transitionTo(JobStatus.NotStarted)
   
   /**
    * Sets the status of this job to be newStatus, and emits a JobRun with the new status to any observers.

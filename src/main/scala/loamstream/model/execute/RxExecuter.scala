@@ -39,22 +39,12 @@ final case class RxExecuter(
   
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
-  private def connect(node: JobNode): Unit = {
-    println(s"connecting: $node")
-    
-    node.connect()
-    
-    node.inputs.foreach(connect)
-  }
-  
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     
     import loamstream.util.ObservableEnrichments._
     
     val ioScheduler: Scheduler = IOScheduler()
 
-    connect(executable.plusNoOpRootJobIfNeeded.jobNodes.head)
-    
     //An Observable stream of jobs runs; each job is emitted when it becomes runnable.  This can be because the
     //job's dependencies finished successfully, or because the job failed and we've decided to restart it.
     //Note the use of `distinct`.  It's brute force, but simplifies the logic here and in LJob for the case where
@@ -73,7 +63,7 @@ final case class RxExecuter(
       _ = logJobForest(executable)
       //NB: .to[Set] is important: jobs in a chunk should be distinct, 
       //so they're not run more than once before transitioning to a terminal state.
-      jobs = chunk
+      jobs = chunk.toSet
       //NB: Filter out jobs from this chunk that finished when run as part of another chunk, so we don't run them
       //more times than necessary.  This helps in the face of job-restarting, since we can't call `distinct()` 
       //on `runnables` and declare victory like we did before, since that would filter out restarting jobs that 

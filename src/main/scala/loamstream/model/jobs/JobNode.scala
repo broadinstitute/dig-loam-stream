@@ -17,9 +17,9 @@ import rx.lang.scala.subjects.SerializedSubject
  * Date (as LJob): Dec 23, 2015
  * Factored out: Nov 14, 2017
  * 
- * NB: Note liberal use of Observable.replay.refCount to (dramatically) reduce memory consumption.  Without .replay.refCount, 
- * RxJava/RxScala makes one "copy" of any observable that multicasts *per* derived observable.  Since we 
- * resursively build Observable streams from trees of jobs, this led to pathological, exponential memory
+ * NB: Note liberal use of Observable.replay.refCount to (dramatically) reduce memory consumption.  Without 
+ * .replay.refCount, RxJava/RxScala makes one "copy" of any observable that multicasts *per* derived observable.  
+ * Since we resursively build Observable streams from trees of jobs, this led to pathological, exponential memory
  * use.
  */
 trait JobNode extends Loggable {  
@@ -36,24 +36,11 @@ trait JobNode extends Loggable {
   //NB: Needs to be a ReplaySubject for correct operation
   private[this] val runsEmitter: Subject[JobRun] = ReplaySubject()
   
-  private[this] val lastStatusEmitter: Subject[JobStatus] = ReplaySubject()
-  
-  //private[this] val depsFinishedEmitter: Subject[Seq[JobStatus]] = ReplaySubject()
-  
   /** This job's current status */
   final def status: JobStatus = snapshotRef().status
   
   /** The number of times this job has transitioned to `Running` status */
   final def runCount: Int = snapshotRef().runCount
-  
-  def connect(): Unit = {
-    /*runnables.connect
-    selfRunnables.connect*/
-    //lastStatus.connect
-    //finalInputStatuses.connect
-    
-    //statuses.filter(_.isTerminal).first.foreach(lastStatusEmitter.onNext(_))
-  }
   
   def print(
       indent: Int = 0, 
@@ -102,14 +89,13 @@ trait JobNode extends Loggable {
    */
   //NB: Note use of .replay.refCount which allows re-using this Observable, saving much memory when running complex pipelines
   private[jobs] lazy val lastStatus: /*Connectable*/Observable[JobStatus] = statuses.filter(_.isTerminal).first/*OrElse(status)*/.replay.refCount//.replay
-  //private[jobs] val lastStatus: Observable[JobStatus] = lastStatusEmitter.replay.refCount
 
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.
    * When this fires, our dependencies are finished.
    */
   //NB: Note use of .replay.refCount which allows re-using this Observable, saving much memory when running complex pipelines
-  /*private[jobs]*/ lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
+  private[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
     Observables.sequence(inputs.toSeq.map(_.lastStatus)).replay.refCount
   }
   
@@ -161,7 +147,6 @@ trait JobNode extends Loggable {
         for {
           inputStatuses <- finalInputStatuses
           _ = debug(logMsg(s"deps finished with statuses: $inputStatuses"))
-          //_ = require(inputStatuses.size == inputs.size, s"Expected ${inputs.size} statuses, but got ${inputStatuses.size} at $job")
           anyInputFailures = inputStatuses.exists(_.isFailure)
           runnable <- if(anyInputFailures) stopDueToDependencyFailure() else justUs
         } yield {
@@ -191,7 +176,7 @@ trait JobNode extends Loggable {
 
     //Emit the current job *after* all our dependencies
     //NB: Note use of .replay.refCount which allows re-using this Observable, saving much memory when running complex pipelines
-    (dependencyRunnables ++ selfRunnables).replay.refCount/*.replay.refCount*/
+    (dependencyRunnables ++ selfRunnables).replay.refCount
   }
   
   /**

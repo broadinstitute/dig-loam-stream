@@ -52,16 +52,15 @@ final case class RxExecuter(
     //would be run twice.
     val runnables: Observable[JobRun] = Observables.merge(executable.jobNodes.toSeq.map(_.runnables)).distinct
     
-    //An observable stream of "chunks" of runnable jobs, with each chunk represented as an observable stream.
+    //An observable stream of "chunks" of runnable jobs, with each chunk represented as a Seq.
     //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
     //are collected.  When that happens, the buffered "chunk" of jobs is emitted.
-    //val chunks: Observable[Observable[JobRun]] = runnables.tumbling(windowLength, runner.maxNumJobs, ioScheduler)
     val chunks: Observable[Seq[JobRun]] = runnables.tumblingBuffer(windowLength, runner.maxNumJobs, ioScheduler)
     
     val chunkResults: Observable[Map[LJob, Execution]] = for {
       chunk <- chunks
       _ = logJobForest(executable)
-      //NB: .to[Set] is important: jobs in a chunk should be distinct, 
+      //NB: .toSet is important: jobs in a chunk should be distinct, 
       //so they're not run more than once before transitioning to a terminal state.
       jobs = chunk.toSet
       //NB: Filter out jobs from this chunk that finished when run as part of another chunk, so we don't run them
@@ -79,81 +78,12 @@ final case class RxExecuter(
     } yield {
       executionMap ++ skippedResultMap
     }
-
-    //val stillWorking: ValueBox[Boolean] = ValueBox(true)
     
     //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
     //TODO: Make this configurable
-    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture/*.map { results =>
-      stillWorking := false
-      
-      results
-    }*/
-    
-    /*{
-      val testNameRegex = "loamstream.+\\.(.+?Test)".r
-      
-      val testNameOpt: Option[String] = (new Exception).getStackTrace.map(_.getClassName).collectFirst {
-        case testNameRegex(tn) => tn
-      }
-      
-      testNameOpt.foreach { testName =>
-        val t = new Thread(new Runnable {
-          private val out = new FileWriter(s"/home/clint/workspace/dig-loam-stream/rxe-log-${testName}")
-          
-          override def run(): Unit = {
-            try {
-              Thread.sleep(10 * 1000)
-              while(stillWorking()) {
-                executable.jobNodes.head.print(0, jobNode => s => out.write(s"$s\n"))
-                out.write("\n====================================\n\n")
-                out.flush()
-                Thread.sleep(10 * 1000)                
-              }
-              
-              out.write("*** FINISHED ***\n")
-            } finally {
-              out.close()
-            }
-          }
-        })
-      
-        t.setDaemon(true)
-      
-        t.start()
-      }
-    }*/
-    
-    //executable.jobNodes.foreach(connect)
-    
-    //println("Done connecting")
-    
-    try {
-      Await.result(futureMergedResults, timeout)
-    } finally {
-      val allJobs = ExecuterHelpers.flattenTree(executable.jobNodes)
-      
-      println("----------------------")
-      
-      println(s"${allJobs.size} jobs")
-      
-      val unFinished = allJobs.filterNot(_.status.isTerminal)
-      
-      println(s"${unFinished.size} Un-finished jobs:")
-      
-      unFinished.toSeq.sortBy(_.job.id).foreach { jn =>
-        val depString = jn.inputs.size match {
-          case 0 => "No deps"
-          case 1 => jn.inputs.head.toString
-        }
-        
-        println(s"${jn.status}:\t${jn.job}")
-        
-        println(s" => $depString")
-      }
-      
-      unFinished.map(uj => uj.finalInputStatuses.foreach(sts => println(s"${uj.job.id}: input statuses: $sts")))
-    }
+    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
+
+    Await.result(futureMergedResults, timeout)
   }
   
   private def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {

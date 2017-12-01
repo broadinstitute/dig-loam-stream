@@ -472,7 +472,7 @@ final class JobTest extends FunSuite with TestJobs {
     
     //We should get all the children, since their children all succeed
     //NB: We should get c0 once here, since it won't become runnable until we execute it, and it fails
-    assert(waitFor(futureChildren) === Seq(c0, c1))
+    assert(waitFor(futureChildren).toSet === Set(c0, c1))
     
     run(c0, c1)
     

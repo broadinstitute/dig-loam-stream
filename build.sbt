@@ -7,7 +7,6 @@ lazy val Versions = new {
   val DrmaaGridEngine = "6.2u5"
   val GoogleCloudStorage = "1.8.0"
   val GoogleAuth = "0.9.0"
-  val Htsjdk = "2.12.0"
   val LogBack = "1.2.3"
   val Scala = "2.12.4"
   val ScalaFmt = "1.3.0"
@@ -27,7 +26,6 @@ lazy val mainDeps = Seq(
   "org.scala-lang" % "scala-compiler" % Versions.Scala,
   "org.scala-lang" % "scala-reflect" % Versions.Scala,
   "com.geirsson" %% "scalafmt-core" % Versions.ScalaFmt,
-  "com.github.samtools" % "htsjdk" % Versions.Htsjdk,
   "commons-io" % "commons-io" % Versions.ApacheCommonsIO,
   "us.levk" % "drmaa-common" % Versions.DrmaaCommon,
   "us.levk" % "drmaa-gridengine" % Versions.DrmaaGridEngine,

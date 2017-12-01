@@ -63,23 +63,54 @@ final class CompileLoamsTest extends FunSuite with LoamTestHelpers with Loggable
   }
   
   private lazy val results: LoamCompiler.Result = {
-    val loams: Set[Path] = {
-      import scala.collection.JavaConverters._
+    withSysProps(
+        "dataConfig" -> "pipeline/conf/metsim/data.conf",
+        "pipelineConfig" -> "pipeline/conf/qc.conf") {
       
-      Files.list(loamDir).iterator.asScala.filter(_.toString.endsWith(".loam")).toSet
+      val loams: Set[Path] = {
+        import scala.collection.JavaConverters._
+        
+        Files.list(loamDir).iterator.asScala.filter(_.toString.endsWith(".loam")).toSet
+      }
+      
+      info(s"Compiling ${loams.size} files:")
+      loams.toSeq.sortBy(_.toString).foreach(loam => info(s"  $loam"))
+  
+      val scripts: Set[LoamScript] = Shot.sequence(loams.map(LoamScript.read)).get    
+  
+      val config: LoamConfig = {
+        val typesafeConfig = ConfigUtils.configFromFile(path("pipeline/conf/loamstream.conf"))
+        
+        LoamConfig.fromConfig(typesafeConfig).get
+      }
+      
+      compile(LoamProject(config, scripts))
+    }
+  }
+  
+  private def withSysProps[A](props: (String, String)*)(f: => A): A = {
+    val (oldValues, toRemove) = {
+      val tuples = props.map { case (key, _) => key -> System.getProperty(key) }
+      
+      def hasNullValue(t: (String, String)): Boolean = t._2 == null //scalastyle:ignore null
+      
+      (tuples.filterNot(hasNullValue), tuples.collect { case t @ (k, _) if hasNullValue(t) => k })  
     }
     
-    info(s"Compiling ${loams.size} files:")
-    loams.toSeq.sortBy(_.toString).foreach(loam => info(s"  $loam"))
-
-    val scripts: Set[LoamScript] = Shot.sequence(loams.map(LoamScript.read)).get    
-
-    val config: LoamConfig = {
-      val typesafeConfig = ConfigUtils.configFromFile(path("pipeline/conf/loamstream.conf"))
+    def applyValues(toRestore: Seq[(String, String)], toRemove: Seq[String] = Nil): Unit = {
+      toRestore.foreach { case (key, newValue) => 
+        System.setProperty(key, newValue)
+      }
       
-      LoamConfig.fromConfig(typesafeConfig).get
+      toRemove.foreach(System.clearProperty)
     }
     
-    compile(LoamProject(config, scripts))
+    try {
+      applyValues(props)
+      
+      f
+    } finally {
+      applyValues(oldValues, toRemove)
+    }
   }
 }

@@ -43,7 +43,12 @@ final case class CommandLineJob(
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
     private val nameOpt: Option[String] = None) extends LJob with Loggable {
 
-  //TODO: Close ProcessLogger Somehow (state transition hook?)
+  override def equals(other: Any): Boolean = other match {
+    case that: CommandLineJob => this.id == that.id
+    case _ => false
+  }
+  
+  override def hashCode: Int = id.hashCode
   
   override def name: String = nameOpt.getOrElse(id)
 

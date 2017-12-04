@@ -13,11 +13,17 @@ final class ConfigUtilsTest extends FunSuite {
   import TestHelpers.path
   
   test("Loading a config file works") {
-    doTest(ConfigUtils.configFromFile(path("src/test/resources/foo.conf")), false)
+    doTest(ConfigUtils.configFromFile(path("src/test/resources/foo.conf")), shouldHaveReferenceConfValues = false)
   }
   
   test("Loading a Config via prefix works") {
-    doTest(ConfigUtils.configFromPrefix("foo"), true)
+    doTest(ConfigUtils.configFromPrefix("foo"), shouldHaveReferenceConfValues = true)
+  }
+  
+  test("Loading a Config from a string works") {
+    val configData = Files.readFrom(path("src/test/resources/foo.conf"))
+    
+    doTest(ConfigUtils.configFromString(configData), shouldHaveReferenceConfValues = false)
   }
   
   private def doTest(config: Config, shouldHaveReferenceConfValues: Boolean): Unit = {

@@ -143,9 +143,11 @@ final class JobTest extends FunSuite with TestJobs {
     assert(statuses(3) === Seq(Running, Failed, Running))
     assert(job.runCount === 2)
     
-    intercept[Exception] {
-      job.transitionTo(Running)
-    }
+    //NB: Transitioning to the state we're already at should have no effect
+    job.transitionTo(Running)
+    job.transitionTo(Running)
+    job.transitionTo(Running)
+    job.transitionTo(Running)
     
     assert(job.status === Running)
     assert(statuses(3) === Seq(Running, Failed, Running))

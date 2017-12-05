@@ -90,18 +90,18 @@ final case class RxExecuter(
       executionMap ++ skippedResultMap
     }
     
-    val keepGoing: ValueBox[Boolean] = ValueBox(true)
+    //val keepGoing: ValueBox[Boolean] = ValueBox(true)
     
     //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
     //TODO: Make this configurable
-    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture.map { result =>
+    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture/*.map { result =>
       
       keepGoing := false
       
       result
-    }
+    }*/
 
-    val out = new java.io.PrintWriter(new java.io.FileWriter("rxe-log"))
+    /*val out = new java.io.PrintWriter(new java.io.FileWriter("rxe-log"))
     
     {
       import scala.concurrent.duration._
@@ -127,13 +127,13 @@ final case class RxExecuter(
       t.setDaemon(true)
       
       t.start()
-    }
+    }*/
     
-    try {
+    //try {
       Await.result(futureMergedResults, timeout)
-    } finally {
+    /*} finally {
       out.close()
-    }
+    }*/
   }
   
   private def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {

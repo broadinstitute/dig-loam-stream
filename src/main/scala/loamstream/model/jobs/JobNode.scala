@@ -186,37 +186,36 @@ trait JobNode extends Loggable {
    *
    * @param newStatus the new status to set for this job
    */
-  final def transitionTo(newStatus: JobStatus): Unit = snapshotRef.foreach { oldSnapshot =>
-    val runCount = oldSnapshot.runCount
-    val status = oldSnapshot.status
-    
-    info(s"Status change to $newStatus (run count $runCount) for job: $job")
-    
-    debug(s"Status change to $newStatus (run count $runCount) for job: $job")
-    
+  final def transitionTo(newStatus: JobStatus): Unit = { 
     val (newSnapshot, isChanged) = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
     
-    val isRunning = newSnapshot.status.isRunning
+    val newRunCount = newSnapshot.runCount
     
-    val isCouldNotStart = newSnapshot.status.isCouldNotStart
-    
-    if(isChanged && isRunning) {
-      info(s"Now running: $job")
-    }
-    
-    if(isChanged && isCouldNotStart) {
-      info(s"Could not start due to dependency failures: $job")
-    }
-    
-    val jobRun = jobRunFrom(newSnapshot)
-    
-    runsEmitter.onNext(jobRun)
-    
-    //Shut down all Observables derived from this job when we will no longer emit any events.
-    if(newStatus.isTerminal) {
-      trace(s"$newStatus is terminal; emitting no more JobRuns from job: $job")
-     
-      runsEmitter.onCompleted()
+    if(isChanged) {
+      debug(s"Status change to $newStatus (run count $newRunCount) for job: $job")
+      
+      val isRunning = newSnapshot.status.isRunning
+      
+      val isCouldNotStart = newSnapshot.status.isCouldNotStart
+      
+      if(isRunning) {
+        info(s"Now running: $job")
+      }
+      
+      if(isCouldNotStart) {
+        info(s"Could not start due to dependency failures: $job")
+      }
+      
+      val jobRun = jobRunFrom(newSnapshot)
+      
+      runsEmitter.onNext(jobRun)
+      
+      //Shut down all Observables derived from this job when we will no longer emit any events.
+      if(newStatus.isTerminal) {
+        trace(s"$newStatus is terminal; emitting no more JobRuns from job: $job")
+       
+        runsEmitter.onCompleted()
+      }
     }
   }
   

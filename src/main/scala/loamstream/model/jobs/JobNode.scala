@@ -9,6 +9,7 @@ import loamstream.util.Observables
 import rx.lang.scala.observables.ConnectableObservable
 import rx.lang.scala.subjects.BehaviorSubject
 import rx.lang.scala.subjects.SerializedSubject
+import loamstream.model.jobs.log.JobLog
 
 /**
  * @author oliverr
@@ -17,8 +18,8 @@ import rx.lang.scala.subjects.SerializedSubject
  * Date (as LJob): Dec 23, 2015
  * Factored out: Nov 14, 2017
  * 
- * NB: Note liberal use of Observable.replay.refCount to (dramatically) reduce memory consumption.  Without 
- * .replay.refCount, RxJava/RxScala makes one "copy" of any observable that multicasts *per* derived observable.  
+ * NB: Note liberal use of Observable.share to (dramatically) reduce memory consumption.  Without 
+ * .share, RxJava/RxScala makes one "copy" of any observable that multicasts *per* derived observable.  
  * Since we resursively build Observable streams from trees of jobs, this led to pathological, exponential memory
  * use.
  */
@@ -34,7 +35,7 @@ trait JobNode extends Loggable {
   private def snapshot: JobSnapshot = snapshotRef()
   
   //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject()
+  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject.withSize(15)//ReplaySubject()
   
   /** This job's current status */
   final def status: JobStatus = snapshotRef().status
@@ -42,61 +43,35 @@ trait JobNode extends Loggable {
   /** The number of times this job has transitioned to `Running` status */
   final def runCount: Int = snapshotRef().runCount
   
-  def print(
-      indent: Int = 0, 
-      doPrint: JobNode => String => Unit = _ => debug(_), 
-      header: Option[String] = None): Unit = {
-    
-    var visited: Set[JobNode] = Set.empty 
-    
-    def loop(
-        jobNode: JobNode,
-        indent: Int = 0, 
-        header: Option[String]): Unit = {
-      
-      val indentString = s"${"-" * indent} >"
-  
-      header.foreach(doPrint(jobNode))
-      
-      doPrint(jobNode)(s"$indentString (${jobNode.status})${jobNode}")
-      
-      visited += jobNode
-      
-      jobNode.inputs.filterNot(visited.contains).foreach(loop(_, indent + 2, None))
-    }
-    
-    loop(this, indent, header)
-  }
-  
   /**
    * An Observable that emits JobRuns of this job.  These are (effectively) tuples of (job, status, runCount), 
    * which allows using .distinct this and derived Observables, solving the problem where multiple jobs with 
    * the same upstream dependency would cause the dependency to be run more than necessary under certain 
    * conditions.
    */
-  //NB: Note use of .replay.refCount which allows re-using this Observable, saving lots of memory when running complex pipelines
-  private final lazy val runs: Observable[JobRun] = runsEmitter
+  //NB: Note use of .share which allows re-using this Observable, saving lots of memory when running complex pipelines
+  private final lazy val runs: Observable[JobRun] = runsEmitter.share
   
   /**
    * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
    */
-  //NB: Note use of .replay.refCount which allows re-using this Observable, saving much memory when running complex pipelines
-  final lazy val statuses: Observable[JobStatus] = runs.map(_.status).replay.refCount
+  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
+  final lazy val statuses: Observable[JobStatus] = runs.map(_.status).share
 
   /**
    * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time.
    */
-  //NB: Note use of .replay.refCount which allows re-using this Observable, saving much memory when running complex pipelines
-  private[jobs] lazy val lastStatus: /*Connectable*/Observable[JobStatus] = statuses.filter(_.isTerminal).first/*OrElse(status)*/.replay.refCount//.replay
+  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
+  private[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first.share
 
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.
    * When this fires, our dependencies are finished.
    */
-  //NB: Note use of .replay.refCount which allows re-using this Observable, saving much memory when running complex pipelines
+  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
   private[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
-    Observables.sequence(inputs.toSeq.map(_.lastStatus)).replay.refCount
+    Observables.sequence(inputs.toSeq.map(_.lastStatus)).share
   }
   
   /**
@@ -154,8 +129,8 @@ trait JobNode extends Loggable {
         }
       }
     }
-    //NB: Note use of .replay.refCount which allows re-using this Observable, saving much memory when running complex pipelines
-    result.replay.refCount
+    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
+    result.share
   }
 
   /**
@@ -175,8 +150,8 @@ trait JobNode extends Loggable {
     }
 
     //Emit the current job *after* all our dependencies
-    //NB: Note use of .replay.refCount which allows re-using this Observable, saving much memory when running complex pipelines
-    (dependencyRunnables ++ selfRunnables).replay.refCount
+    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
+    (dependencyRunnables ++ selfRunnables).share
   }
   
   /**
@@ -186,7 +161,8 @@ trait JobNode extends Loggable {
    *
    * @param newStatus the new status to set for this job
    */
-  final def transitionTo(newStatus: JobStatus): Unit = { 
+  final def transitionTo(newStatus: JobStatus): Unit = snapshotRef.foreach { _ =>
+    
     val (newSnapshot, isChanged) = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
     
     val newRunCount = newSnapshot.runCount
@@ -207,6 +183,8 @@ trait JobNode extends Loggable {
       }
       
       val jobRun = jobRunFrom(newSnapshot)
+
+      JobLog.onStatusChange(jobRun)
       
       runsEmitter.onNext(jobRun)
       
@@ -220,19 +198,4 @@ trait JobNode extends Loggable {
   }
   
   private def jobRunFrom(snapshot: JobSnapshot): JobRun = JobRun(this, snapshot.status, snapshot.runCount)
-}
-
-object JobNode {
-  def statusChanges(job: JobNode): Observable[JobRun] = postOrder(_.runs)(job).distinctUntilChanged(_.status)
-  
-  private def postOrder[A](f: JobNode => Observable[A])(root: JobNode): Observable[A] = {
-    val dependencyAs: Observable[A] = {
-      if(root.inputs.isEmpty) { Observable.empty }
-      else {
-        Observables.merge(root.inputs.map(postOrder(f)))
-      }
-    }
-    
-    dependencyAs ++ f(root)
-  }
 }

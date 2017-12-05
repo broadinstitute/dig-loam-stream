@@ -31,96 +31,6 @@ final class JobTest extends FunSuite with TestJobs {
   //TODO: Lame :(
   private def toLocalJob(j: LJob): LocalJob = j.asInstanceOf[LocalJob]
   
-  test("print - job tree with one root") {
-    var visited: Map[JobNode, Int] = Map.empty
-    
-    def incFor(job: JobNode): Unit = {
-      visited += (job -> (visited.getOrElse(job, 0) + 1))
-    }
-    
-    val doPrint: JobNode => String => Unit = job => _ => incFor(job)
-    
-    /*
-     * gc0
-     *    \    
-     *     +---c0 
-     *    /      \       
-     * gc1        \
-     *             +---root
-     * gc2        /
-     *    \      /
-     *     +---c1
-     *    /
-     * gc3
-     */
-    val gc0: LJob = MockJob(Succeeded)
-    val gc1: LJob = MockJob(Succeeded)
-    val gc2 = MockJob(Succeeded)
-    val gc3 = MockJob(Succeeded)
-    
-    val c0 = MockJob(Succeeded, inputs = Set[JobNode](gc0, gc1))
-    val c1 = MockJob(Succeeded, inputs = Set[JobNode](gc2, gc3))
-    
-    val rootJob = MockJob(Succeeded, inputs = Set[JobNode](c0,c1))
-    
-    assert(visited.isEmpty)
-    
-    rootJob.print(doPrint = doPrint)
-    
-    assert(visited === Map(gc0 -> 1, gc1 -> 1, gc2 -> 1, gc3 -> 1, c0 -> 1, c1 -> 1, rootJob -> 1))
-  }
-  
-  test("print - job graph with diamonds") {
-    var visited: Map[JobNode, Int] = Map.empty
-    
-    def incFor(job: JobNode): Unit = {
-      visited += (job -> (visited.getOrElse(job, 0) + 1))
-    }
-    
-    val doPrint: JobNode => String => Unit = job => _ => incFor(job)
-    
-    /*
-     * ggc0
-     *     \    
-     *      +---gc0   c0
-     *     /       \ /  \
-     * ggc1         +    +---root
-     *     \       / \  /
-     *      +---gc1   c1
-     *     /
-     * ggc2
-     */
-    val ggc0: LJob = MockJob(Succeeded, "ggc0")
-    val ggc1: LJob = MockJob(Succeeded, "ggc1")
-    val ggc2: LJob = MockJob(Succeeded, "ggc2")
-    
-    val gc0: LJob = MockJob(Succeeded, "gc0", inputs = Set(ggc0, ggc1))
-    val gc1: LJob = MockJob(Succeeded, "gc1", inputs = Set(ggc1, ggc2))
-    
-    val c0: LJob = MockJob(Succeeded, "c0", inputs = Set(gc0, gc1))
-    val c1: LJob = MockJob(Succeeded, "c1", inputs = Set(gc0, gc1))
-    
-    val root = MockJob(Succeeded, "root", inputs = Set(c0,c1))
-    
-    assert(visited.isEmpty)
-    
-    root.print(doPrint = doPrint)
-    
-    val expected = Map(
-        ggc0.name -> 1, 
-        ggc1.name -> 1, 
-        ggc2.name -> 1, 
-        gc0.name -> 1, 
-        gc1.name -> 1, 
-        c0.name -> 1, 
-        c1.name -> 1, 
-        root.name -> 1)
-
-    import Maps.Implicits._
-        
-    assert(visited.mapKeys(_.job.name) === expected)
-  }
-  
   test("transitionTo") {
     val job = MockJob(NotStarted)
     
@@ -155,6 +65,14 @@ final class JobTest extends FunSuite with TestJobs {
     
     job.transitionTo(Failed)
     assert(job.status === Failed)
+    
+    //NB: Transitioning to the state we're already at should have no effect
+    job.transitionTo(Failed)
+    job.transitionTo(Failed)
+    job.transitionTo(Failed)
+    job.transitionTo(Failed)
+    assert(job.status === Failed)
+    
     job.transitionTo(Running)
     
     assert(job.status === Running)
@@ -585,92 +503,5 @@ final class JobTest extends FunSuite with TestJobs {
     //runnables will have completed due to the terminal status.  Note that no more jobs are emitted from
     //runnables due to the terminal status.
     assert(waitFor(futureRunnables) === Seq(job, job, job))
-  }
-  
-  test("statusChanges") {
-    val job = MockJob(Succeeded, "job")
-    
-    val futureStatuses: Future[Seq[JobRun]] = JobNode.statusChanges(job).to[Seq].firstAsFuture
-    
-    job.transitionTo(Running)
-    job.transitionTo(Failed)
-    job.transitionTo(Running)
-    job.transitionTo(Succeeded)
-    
-    val statuses = waitFor(futureStatuses)
-    
-    val expected = Seq(
-        JobRun(job, Running, 1),
-        JobRun(job, Failed, 1),
-        JobRun(job, Running, 2),
-        JobRun(job, Succeeded, 2))
-        
-    println(statuses)
-        
-    assert(statuses === expected)
-  }
-  
-  test("statusChanges - some deps") {
-    /*
-     * gc0
-     *    \    
-     *     +---c0 
-     *    /      \       
-     * gc1        \
-     *             +---root
-     * gc2        /
-     *    \      /
-     *     +---c1
-     *    /
-     * gc3
-     */
-    val gc0 = MockJob(Succeeded, "gc0")
-    val gc1 = MockJob(Skipped, "gc1")
-    val gc2 = MockJob(Succeeded, "gc2")
-    val gc3 = MockJob(Skipped, "gc3")
-    
-    val c0 = MockJob(toReturn = Failed, inputs = Set[JobNode](gc0, gc1), name = "c0")
-    val c1 = MockJob(toReturn = Succeeded, inputs = Set[JobNode](gc2, gc3), name = "c1")
-    
-    val rootJob = MockJob(Succeeded, inputs = Set[JobNode](c0,c1), name = "root")
-    
-    val futureStatusChanges: Future[Seq[JobRun]] = JobNode.statusChanges(rootJob).to[Seq].firstAsFuture
-    
-    def changeStates(j: LJob): Unit = {
-      j.transitionTo(Running)
-      j.transitionTo(Failed)
-      j.transitionTo(Running)
-      j.transitionTo(Succeeded)
-    }
-    
-    changeStates(gc3)
-    changeStates(gc1)
-    changeStates(gc2)
-    changeStates(c1)
-    changeStates(gc0)
-    changeStates(c0)
-    changeStates(rootJob)
-    
-    val statuses = waitFor(futureStatusChanges)
-    
-    def expectedFor(j: LJob): Seq[JobRun] = {
-      Seq(
-        JobRun(j, Running, 1),
-        JobRun(j, Failed, 1),
-        JobRun(j, Running, 2),
-        JobRun(j, Succeeded, 2))
-    }
-    
-    val expected = {
-      expectedFor(gc3) ++
-      expectedFor(gc1) ++
-      expectedFor(gc2) ++
-      expectedFor(c1) ++
-      expectedFor(gc0) ++
-      expectedFor(c0) ++
-      expectedFor(rootJob)
-    }
-    
-    assert(statuses === expected)
   }
 }

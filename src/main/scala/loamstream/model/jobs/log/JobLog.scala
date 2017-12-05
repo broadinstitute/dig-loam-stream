@@ -12,7 +12,7 @@ import loamstream.util.Functions
 object JobLog extends Loggable {
   private def numCharsFor(js: JobStatus): Int = js.toString.length + 2
   
-  private val maxStatusChars = JobStatus.values.map(numCharsFor).max
+  private val maxStatusChars: Int = JobStatus.values.map(numCharsFor).max
   
   private[jobs] val computePadding: JobStatus => String = Functions.memoize { status => 
     val numPaddingChars = maxStatusChars - numCharsFor(status)

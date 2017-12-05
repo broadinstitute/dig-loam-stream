@@ -164,18 +164,6 @@ final case class LoamEngine(
   }
 
   private def toExecutable(graph: LoamGraph): Executable = LoamEngine.toExecutable(graph, csClient)
-
-  private def log(executable: Executable): Unit = {
-    debug {
-      val buffer = new StringBuilder
-      
-      def doLog(ignored: JobNode)(s: String) = buffer.append(s"\n$s")
-      
-      executable.jobs.headOption.foreach(_.print(doPrint = doLog))
-    
-      s"Job tree: $buffer"
-    }
-  }
   
   def run(graph: LoamGraph): Map[LJob, Execution] = {
     info("Making Executable from LoamGraph")

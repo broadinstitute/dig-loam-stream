@@ -737,11 +737,15 @@ object Params {
 
 // Perform qc1
 val ancestryInferredStores: Seq[Store] = {
+
   for {
     i <- 0 until nArrays
   } yield { 
+
     qc1(i)
+
   }
+
 }
 
 // Reconcile inferred ancestry step
@@ -750,54 +754,73 @@ val ancestryInferredMerged = store.at(localOutDir / s"${projectId}.ancestry.infe
 val ancestryInferredMergedCloud = store.at(googleOutDir / s"${projectId}.ancestry.inferred.merged.tsv")
 val ancestryInferredMergedOutliers = store.at(localOutDir / s"${projectId}.ancestry.inferred.merged.outliers.tsv")
 
-local {
+uger {
+
   cmd"""$binRscript --vanilla --verbose
     $rAncestryClusterMerge
     --ancestry-in $ancestryInferredPathList
     --out-table ${ancestryInferredMerged}
     --out-outliers ${ancestryInferredMergedOutliers}""".in(ancestryInferredStores).out(ancestryInferredMerged, ancestryInferredMergedOutliers).using("R-3.4")
+
 }
 
 // Perform qc2, adding relevent (inter-array) stores to the map
 val resultsStoresMapsList: Seq[Map[(String, String, String, String, String), Store]] = {
+
   for {
     i <- 0 until nArrays
   } yield { 
+
     qc2(i)
+
   }
+
 }
 
 // Merge results step
 for {
   i <- 0 until modelSeq.size
 } {
+
   mergeResults(i)
+
 }
 
 // Perform qc2, adding relevent (inter-array) stores to the map
 val resultsKnownLociStoresMapsList: Seq[Map[(String, String, String, String, String, String), Store]] = {
+
   for {
     i <- 0 until nArrays
   } yield { 
+
     qc3(i)
+
   }
+
 }
 
 // Merge results step
 for {
   i <- 0 until knownLociSeq.size
 } {
+
   mergeKnownLoci(i)
+
 }
 
 // Generate regional plots after merge results step
 andThen {
+
   val resultsFinalRegplots: Seq[Seq[Store]] = {
+
     for {
       i <- 0 until modelSeq.size
     } yield { 
+
       plotSigRegions(i)
+
     }
+
   }
 
   // Generate qc report files
@@ -885,7 +908,7 @@ andThen {
 
   }
   
-  local {
+  uger {
   
     cmd"""$binRscript --vanilla --verbose
       $rVariantsSummaryTable
@@ -1072,6 +1095,7 @@ andThen {
   for {
     i <- 1 until phases.size + 1
   } {
+
     val modelSeqPhase = modelSeq.filter(_._6 == i)
     val reportAnalysisIntro = store.at(localOutDir / s"${projectId}.analysisreport.phase${i}.intro.tex")
     val reportAnalysisData = store.at(localOutDir / s"${projectId}.analysisreport.phase${i}.data.tex")
@@ -1090,7 +1114,8 @@ andThen {
     var reportAnalysisResultsInputStringList = Seq[String]()
     var reportAnalysisModelTop50KnownCitation = Seq[String]()
 
-    local {
+    uger {
+
       cmd"""python $pyGenerateAnalysisReportIntro
         --id $projectId
         --phase $i
@@ -1112,6 +1137,7 @@ andThen {
         --out-tex ${reportAnalysisStrategy}
         --out-input ${reportAnalysisStrategyInput}"""
         .out(reportAnalysisStrategy, reportAnalysisStrategyInput)
+
     }
       
     for {
@@ -1162,7 +1188,7 @@ andThen {
           reportAnalysisPhenoDistPlotStrings = reportAnalysisPhenoDistPlotStrings :+ paramsArr.arrayId + "___" + s"${reportAnalysisPhenoDistPlot.toString.split("@")(1)}"
           reportAnalysisPhenoDistStratPlotStrings = reportAnalysisPhenoDistStratPlotStrings :+ paramsArr.arrayId + "___" + s"${reportAnalysisPhenoDistStratPlot.toString.split("@")(1)}"
 
-          local {
+          uger {
           
             cmd"""python $pyPhenoDistPlot
               --pheno ${Input.Local.pheno}
@@ -1222,7 +1248,9 @@ andThen {
         for {
           p <- resultsFinalRegplots(m)
         } {
+
           regPlotStrings = regPlotStrings :+ s"${p.toString.split("@")(1)}"
+
         }
 
         reportAnalysisModelRegplotsStrings = { 
@@ -1246,7 +1274,7 @@ andThen {
 
       }
 
-      local {
+      uger {
       
         cmd"""python $pyGenerateAnalysisReportPhenoSummary
           --dist-plot "${reportAnalysisPhenoDistPlotStrings.mkString(",")}"
@@ -1305,7 +1333,7 @@ andThen {
 
     }
 
-    local {
+    uger {
 
       cmd"""python $pyGenerateAnalysisReportBibliography
         --names "${analysisReportAcknowledgements}"
@@ -1340,7 +1368,7 @@ def qc1(i: Int): Store = {
   *  Requires: Plink1.9
   */
   
-  local {
+  uger {
   
     cmd"""awk '$$1 == 0 {print $$2}' ${paramsArr.arrayDataPath}.bim > ${paramsArr.arrayDataRawUnplaced}"""
       .in(paramsArr.arrayData)
@@ -1395,14 +1423,16 @@ def qc1(i: Int): Store = {
   *     To save time, this will be run in parallel by chromosome number
   */
   
-  uger {
-    for {
-      (chr, paramsChr) <- paramsArr.paramsByArrByChr
-    } {
-      cmd"""$binPlink --bfile ${paramsArr.arrayDataPreparedName} --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName}"""
+  for {
+    (chr, paramsChr) <- paramsArr.paramsByArrByChr
+  } {
+
+    uger {
+
+	  cmd"""$binPlink --bfile ${paramsArr.arrayDataPreparedName} --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName} --memory 3000 --threads 1"""
         .in(paramsArr.arrayDataPrepared)
         .out(paramsChr.rawChr)
-      
+    
       cmd"""$binGenotypeHarmonizer
       --input ${paramsChr.rawChrName}
       --inputType PLINK_BED
@@ -1419,7 +1449,7 @@ def qc1(i: Int): Store = {
       --debug"""
         .in(paramsChr.rawChr :+ paramsChr.kgVcfChr)
         .out(paramsChr.harmKgChr :+ paramsChr.harmKgChrVarIdUpdate :+ paramsChr.harmKgChrVarSnpLog)
-    
+      
       cmd"""python $pyAlignNon1kgVariants
       --legend ${paramsChr.kgLegendChr}
       --bim ${paramsChr.harmKgChrName}.bim
@@ -1432,48 +1462,68 @@ def qc1(i: Int): Store = {
       --out-force-a1 ${paramsChr.harmNonKgChrForceA1}"""
         .in(paramsChr.harmKgChr :+ paramsChr.kgLegendChr)
         .out(paramsChr.harmNonKgChrRemove, paramsChr.harmNonKgChrIgnore, paramsChr.harmNonKgChrMono,paramsChr.harmNonKgChrNomatch, paramsChr.harmNonKgChrFlip, paramsChr.harmNonKgChrForceA1)
-    
-      cmd"""$binPlink --bfile ${paramsChr.harmKgChrName} --exclude ${paramsChr.harmNonKgChrRemove} --flip ${paramsChr.harmNonKgChrFlip} --a1-allele ${paramsChr.harmNonKgChrForceA1} --make-bed --out ${paramsChr.harmKgHuRefChrName}"""
+      
+      cmd"""$binPlink --bfile ${paramsChr.harmKgChrName} --exclude ${paramsChr.harmNonKgChrRemove} --flip ${paramsChr.harmNonKgChrFlip} --a1-allele ${paramsChr.harmNonKgChrForceA1} --make-bed --out ${paramsChr.harmKgHuRefChrName} --memory 3000 --threads 1"""
         .in(paramsChr.harmKgChr :+ paramsChr.harmNonKgChrRemove :+ paramsChr.harmNonKgChrFlip :+ paramsChr.harmNonKgChrForceA1)
         .out(paramsChr.harmKgHuRefChr)
-    
+
     }
-    
-    val harmMergeLinesConcat: String = paramsArr.harmMergeLines
-      .drop(1)
-      .mkString("\n") // Exclude first chrom
-    
+  
+  }
+  
+  val harmMergeLinesConcat: String = paramsArr.harmMergeLines
+    .drop(1)
+    .mkString("\n") // Exclude first chrom
+
+  local {
+
     cmd"""echo "$harmMergeLinesConcat" > ${paramsArr.harmMergeList}"""
       .out(paramsArr.harmMergeList)
-    
-    cmd"""$binPlink --bfile ${paramsArr.paramsByArrByChrSorted.head.harmKgHuRefChrName} --merge-list ${paramsArr.harmMergeList} --make-bed --keep-allele-order --out ${paramsArr.harmName}"""
+
+  }
+
+  uger {
+  
+    cmd"""$binPlink --bfile ${paramsArr.paramsByArrByChrSorted.head.harmKgHuRefChrName} --merge-list ${paramsArr.harmMergeList} --make-bed --keep-allele-order --out ${paramsArr.harmName} --memory 3000 --threads 1"""
       .in(paramsArr.paramsByArrByChrSorted.flatMap(_.harmKgHuRefChr) :+ paramsArr.harmMergeList)
       .out(paramsArr.harm)
-    
+
+  }
+
+  local {
+  
     cmd"""awk '{print $$2,$$5}' ${paramsArr.harmName}.bim > ${paramsArr.harmForceA2}"""
       .in(paramsArr.harm)
       .out(paramsArr.harmForceA2)
+
+  }
+
+  uger {
   
-    cmd"""$binPlink --bfile ${paramsArr.harmName} --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --make-bed --out ${paramsArr.harmRefName}"""
+    cmd"""$binPlink --bfile ${paramsArr.harmName} --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --make-bed --out ${paramsArr.harmRefName} --memory 3000 --threads 1"""
       .in(paramsArr.harm :+ paramsArr.harmForceA2)
       .out(paramsArr.harmRef)
-  
-    cmd"""$binPlink --bfile ${paramsArr.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --out ${paramsArr.harmRefName}"""
+    
+    cmd"""$binPlink --bfile ${paramsArr.harmName} --recode vcf-iid bgz --real-ref-alleles --a2-allele ${paramsArr.harmForceA2} --out ${paramsArr.harmRefName} --memory 3000 --threads 1"""
       .in(paramsArr.harm :+ paramsArr.harmForceA2)
       .out(paramsArr.harmRefVcf)
     
     cmd"""$binTabix -f -p vcf ${paramsArr.harmRefVcf}"""
       .in(paramsArr.harmRefVcf)
       .out(paramsArr.harmRefVcfTbi)
-    
-    val harmNonKgChrRemoveString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrRemove.toString.split("@")(1)}"""}.mkString(",")
-    val harmNonKgChrMonoString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrMono.toString.split("@")(1)}"""}.mkString(",")
-    val harmNonKgChrNomatchString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrNomatch.toString.split("@")(1)}"""}.mkString(",")
-    val harmNonKgChrIgnoreString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrIgnore.toString.split("@")(1)}"""}.mkString(",")
-    val harmNonKgChrFlipString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrFlip.toString.split("@")(1)}"""}.mkString(",")
-    val harmNonKgChrForceA1String = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrForceA1.toString.split("@")(1)}"""}.mkString(",")
-    val harmKgChrVarSnpLogString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmKgChrVarSnpLog.toString.split("@")(1)}"""}.mkString(",")
-    
+
+  }
+  
+  val harmNonKgChrRemoveString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrRemove.toString.split("@")(1)}"""}.mkString(",")
+  val harmNonKgChrMonoString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrMono.toString.split("@")(1)}"""}.mkString(",")
+  val harmNonKgChrNomatchString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrNomatch.toString.split("@")(1)}"""}.mkString(",")
+  val harmNonKgChrIgnoreString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrIgnore.toString.split("@")(1)}"""}.mkString(",")
+  val harmNonKgChrFlipString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrFlip.toString.split("@")(1)}"""}.mkString(",")
+  val harmNonKgChrForceA1String = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmNonKgChrForceA1.toString.split("@")(1)}"""}.mkString(",")
+  val harmKgChrVarSnpLogString = paramsArr.paramsByArrByChrSorted.map{ e => s"""${e.harmKgChrVarSnpLog.toString.split("@")(1)}"""}.mkString(",")
+
+  ugerWith(mem=8) {
+
     cmd"""python $pyMergeVariantLists
       --remove-in "$harmNonKgChrRemoveString"
       --remove-mono-in "$harmNonKgChrMonoString"
@@ -1492,6 +1542,7 @@ def qc1(i: Int): Store = {
       """
       .in(paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrRemove) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrMono) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrNomatch) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrIgnore) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrFlip) ++ paramsArr.paramsByArrByChrSorted.map(_.harmNonKgChrForceA1) ++ paramsArr.paramsByArrByChrSorted.map(_.harmKgChrVarSnpLog))
       .out(paramsArr.harmNonKgRemove, paramsArr.harmNonKgNomatch, paramsArr.harmNonKgMono, paramsArr.harmNonKgIgnore, paramsArr.harmNonKgFlip, paramsArr.harmNonKgForceA1, paramsArr.harmKgVarSnpLog)
+
   }
   
   /**
@@ -1501,16 +1552,20 @@ def qc1(i: Int): Store = {
    */
   
   local {
+
     googleCopy(paramsArr.harmRefVcf, paramsArr.harmRefVcfCloud)
     googleCopy(paramsArr.harmRefVcfTbi, paramsArr.harmRefVcfTbiCloud)
+
   }
   
   google {
+
     hail"""$pyHailLoad
       --vcf-in $projectId ${paramsArr.harmRefVcfCloud}
       --vds-out ${paramsArr.harmRefVdsCloud}"""
       .in(paramsArr.harmRefVcfCloud, paramsArr.harmRefVcfTbiCloud)
       .out(paramsArr.harmRefVdsCloud)
+
   }
   
   /**
@@ -1520,6 +1575,7 @@ def qc1(i: Int): Store = {
    */
   
   google {
+
     hail"""$pyHailFilter
       --vds-in ${paramsArr.harmRefVdsCloud}
       --regions-exclude ${Input.Google.regionsExclude}
@@ -1531,10 +1587,13 @@ def qc1(i: Int): Store = {
       --filt-pruned-plink-out ${paramsArr.harmRefFiltPrunedNameCloud}"""
       .in(paramsArr.harmRefVdsCloud, Input.Google.regionsExclude)
       .out(((paramsArr.harmRefFiltCloud :+ paramsArr.harmRefFiltVdsCloud) ++ (paramsArr.harmRefFiltPrunedCloud :+ paramsArr.harmRefFiltPrunedVdsCloud)) :+ paramsArr.harmRefFiltVariantQcCloud :+ paramsArr.harmRefFiltVariantsPrunedInCloud)
+
   }
   
   local {
+
     googleCopy(paramsArr.harmRefFiltPrunedCloud, paramsArr.harmRefFiltPruned)
+
   }
   
   /**
@@ -1546,14 +1605,20 @@ def qc1(i: Int): Store = {
    * King only writes the '.kin0' file if families are found, so a bash script is used to write an empty file in that case
    */
   
-  uger {
-    cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related}"""
+  ugerWith(cores=4, mem=4) {
+
+    cmd"""$shKing $binKing ${paramsArr.harmRefFiltPrunedName}.bed ${paramsArr.kinName} ${paramsArr.kinLog} ${paramsArr.kinKin0} ${paramsArr.kinKin0Related} 4"""
     .in(paramsArr.harmRefFiltPruned)
     .out(paramsArr.kinLog, paramsArr.kinKin, paramsArr.kinTmpDat, paramsArr.kinTmpPed, paramsArr.kinKin0, paramsArr.kinKin0Related)
-  
+
+  }
+
+  uger {
+
     cmd"""$binR --vanilla --args ${paramsArr.kinKin0Related} ${paramsArr.kinFamsizes} < ${rCalcKinshipFamSizes}"""
     .in(paramsArr.kinKin0Related)
     .out(paramsArr.kinFamsizes)
+
   }
   
   /**
@@ -1565,6 +1630,7 @@ def qc1(i: Int): Store = {
     */
   
   google {
+
     hail"""$pyHailAncestryPcaMerge1kg
       --vds-in ${paramsArr.harmRefVdsCloud}
       --kg-vcf-in ${Input.Google.kgPurcellVcf}
@@ -1572,15 +1638,20 @@ def qc1(i: Int): Store = {
       --plink-out ${paramsArr.harmRef1kgNameCloud}"""
       .in(paramsArr.harmRefVdsCloud, Input.Google.kgPurcellVcf, Input.Google.kgSample)
       .out(paramsArr.harmRef1kgCloud)
+
   }
   
   local {
+
     googleCopy(paramsArr.harmRef1kgCloud, paramsArr.harmRef1kg)
+
   }
   
-  uger {
+  ugerWith(cores=4, mem=4) {
+
     cmd"""$binRscript --vanilla --verbose
       $rPcair
+      --cpus 4
       --plink-in ${paramsArr.harmRef1kgName}
       --gds-out ${paramsArr.harmRef1kgGds}
       --scores ${paramsArr.ancestryPcaScores}
@@ -1592,7 +1663,11 @@ def qc1(i: Int): Store = {
       .in(paramsArr.harmRef1kg :+ Input.Local.kgSample)
       .out(paramsArr.harmRef1kgGds, paramsArr.ancestryPcaLog, paramsArr.ancestryPcaScores)
       .using("R-3.4")
-  
+
+  }
+
+  uger {
+
     cmd"""$binR --vanilla --args $projectId ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryPcaScoresPlots} < $rPlotAncestryPca"""
     .in(paramsArr.ancestryPcaScores)
     .out(paramsArr.ancestryPcaScoresPlots)
@@ -1604,6 +1679,7 @@ def qc1(i: Int): Store = {
     cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${paramsArr.ancestryPcaScoresPlots}[1] ${paramsArr.ancestryPcaScoresPlotPc2VsPc3}"""
       .in(paramsArr.ancestryPcaScoresPlots)
       .out(paramsArr.ancestryPcaScoresPlotPc2VsPc3)
+
   }
   
   /**
@@ -1616,6 +1692,7 @@ def qc1(i: Int): Store = {
    */
   
   uger {
+
     cmd"""(echo 3; sed '1d' ${paramsArr.ancestryPcaScores} | cut -f4-6 | sed 's/\t/ /g') > ${paramsArr.ancestryClusterFet}"""
     .in(paramsArr.ancestryPcaScores)
     .out(paramsArr.ancestryClusterFet)
@@ -1623,6 +1700,10 @@ def qc1(i: Int): Store = {
     cmd"""$binKlustakwik ${paramsArr.ancestryClusterName} 1 -UseFeatures 111 -UseDistributional 0 > ${paramsArr.ancestryClusterLog}"""
     .in(paramsArr.ancestryClusterFet)
     .out(paramsArr.ancestryClusterClu, paramsArr.ancestryClusterKlg, paramsArr.ancestryClusterLog)
+
+  }
+
+  uger {
   
     cmd"""$binR --vanilla --args ${paramsArr.ancestryPcaScores} ${paramsArr.ancestryClusterClu} ${Input.Local.pheno} $projectId $phenoId $phenoSrRace
       ${paramsArr.ancestryClusterPlots} ${paramsArr.ancestryClusterXtabs} ${paramsArr.ancestryClusterPlotsCenters}
@@ -1657,10 +1738,11 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
    *  Requires: R
    */
   
-  uger {
+  ugerWith(cores=4, mem=4) {
   
     cmd"""$binRscript --vanilla --verbose
       $rPcair
+      --cpus 4
       --plink-in ${paramsArr.harmRefFiltPrunedName}
       --gds-out ${paramsArr.harmRefFiltPrunedPcaGds}
       --exclude ${ancestryInferredMergedOutliers}
@@ -1671,6 +1753,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
       .in(paramsArr.harmRefFiltPruned :+ ancestryInferredMerged :+ ancestryInferredMergedOutliers)
       .out(paramsArr.harmRefFiltPrunedPcaGds, paramsArr.pcaLog, paramsArr.pcaScores)
       .using("R-3.4")
+
   }
   
   /**
@@ -1680,11 +1763,14 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
    */
   
   local {
+
     googleCopy(ancestryInferredMerged, ancestryInferredMergedCloud)
     googleCopy(Input.Local.pheno, Input.Google.pheno)
+
   }
   
   google {
+
     hail"""$pyHailSexcheck
       --vds-in ${paramsArr.harmRefVdsCloud}
       --regions-exclude ${Input.Google.regionsExclude}
@@ -1702,13 +1788,17 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
       --qc-out ${paramsArr.sampleqcStatsCloud}"""
       .in(paramsArr.harmRefFiltPrunedVdsCloud, ancestryInferredMergedCloud)
       .out(paramsArr.sampleqcStatsCloud)
+
   }
   
   local {
+
     googleCopy(paramsArr.sampleqcStatsCloud, paramsArr.sampleqcStats)
+
   }
   
   uger {
+
     cmd"""$binR --vanilla --args ${paramsArr.sampleqcStats} ${paramsArr.pcaScores} ${paramsArr.sampleqcStatsAdj} < $rCalcIstatsAdj"""
     .in(paramsArr.sampleqcStats, paramsArr.pcaScores)
     .out(paramsArr.sampleqcStatsAdj)
@@ -1716,11 +1806,14 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
     cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdj} ${paramsArr.sampleqcStatsAdjCorrPlots} ${paramsArr.sampleqcStatsAdjPcaLoadings} ${paramsArr.sampleqcStatsAdjPcaScoresPlots} ${paramsArr.sampleqcStatsAdjPcaScores} < $rIstatsAdjPca"""
     .in(paramsArr.sampleqcStatsAdj)
     .out(paramsArr.sampleqcStatsAdjCorrPlots, paramsArr.sampleqcStatsAdjPcaLoadings, paramsArr.sampleqcStatsAdjPcaScoresPlots, paramsArr.sampleqcStatsAdjPcaScores)
+
   }
   
   local {
+
     googleCopy(paramsArr.sampleqcSexcheckCloud, paramsArr.sampleqcSexcheck)
     googleCopy(paramsArr.sampleqcSexcheckProblemsCloud, paramsArr.sampleqcSexcheckProblems)
+
   }
   
   /**
@@ -1730,6 +1823,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
    */
   
   uger {
+
     cmd"""N=$$(head -1 ${paramsArr.sampleqcStatsAdjPcaScores} | wc | awk '{print $$2-1}');
       echo $$N > ${paramsArr.sampleqcStatsAdjClusterFet};
       sed '1d' ${paramsArr.sampleqcStatsAdjPcaScores} | cut -f2- | sed 's/\t/ /g' >> ${paramsArr.sampleqcStatsAdjClusterFet};
@@ -1738,7 +1832,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
       ${paramsArr.sampleqcStatsAdjClusterKlustakwikLog}"""
       .in(paramsArr.sampleqcStatsAdjPcaScores)
       .out(paramsArr.sampleqcStatsAdjClusterFet, paramsArr.sampleqcStatsAdjClusterClu, paramsArr.sampleqcStatsAdjClusterKlg, paramsArr.sampleqcStatsAdjClusterKlustakwikLog)
-  
+
     cmd"""$binR --vanilla --args ${paramsArr.sampleqcStatsAdjPcaScores} ${paramsArr.sampleqcStatsAdjClusterClu}
       ${paramsArr.sampleqcStatsAdjClusterOutliers} ${paramsArr.sampleqcStatsAdjClusterPlots}
       ${paramsArr.sampleqcStatsAdjClusterXtabs} $projectId < $rIstatsPcsGmmClusterPlot"""
@@ -1754,26 +1848,31 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
    */
   
   var sampleqcIndCluFiles = Seq[String]()
+
   for {
     (metric, paramsMetric) <- paramsArr.paramsByArrByMetric
     } {
+
       sampleqcIndCluFiles = sampleqcIndCluFiles :+ paramsMetric.sampleqcStatsAdjIndMetric + "___" + s"${paramsMetric.sampleqcStatsAdjIndClusterClu.toString.split("@")(1)}"
   
     uger {
+
       cmd"""echo 1 > ${paramsMetric.sampleqcStatsAdjIndClusterFet};
         metricIdx=`head -1 ${paramsArr.sampleqcStatsAdj} | tr '\t' '\n' | awk '{print NR" "$$0}' | grep -w ${paramsMetric.sampleqcStatsAdjIndMetric} | awk '{print $$1}'`;
         sed '1d' ${paramsArr.sampleqcStatsAdj} | awk -v col=$${metricIdx} '{print $$col}' >> ${paramsMetric.sampleqcStatsAdjIndClusterFet}"""
         .in(paramsArr.sampleqcStatsAdj)
         .out(paramsMetric.sampleqcStatsAdjIndClusterFet)
-  
+
       cmd"""$binKlustakwik ${paramsMetric.sampleqcStatsAdjIndClusterName} 1 -UseFeatures 1 -UseDistributional 0 > ${paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog}"""
         .in(paramsMetric.sampleqcStatsAdjIndClusterFet)
         .out(paramsMetric.sampleqcStatsAdjIndClusterClu, paramsMetric.sampleqcStatsAdjIndClusterKlg, paramsMetric.sampleqcStatsAdjIndClusterKlustakwikLog)
+
     }
   
   }
   
   uger {
+
     cmd"""$binR --vanilla --args
       ${sampleQcMetrics.mkString(",")}
       ${paramsArr.sampleqcStats}
@@ -1826,6 +1925,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
       --out ${paramsArr.finalSampleExclusions}"""
       .in(ancestryInferredMerged, paramsArr.kinKin0Related, paramsArr.kinFamsizes, paramsArr.sampleqcStatsAdjOutliersTable, paramsArr.sampleqcSexcheckProblems)
       .out(paramsArr.finalSampleExclusions)
+
   }
   
   /**
@@ -1834,10 +1934,13 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
   */
   
   local {
+
     googleCopy(paramsArr.finalSampleExclusions, paramsArr.finalSampleExclusionsCloud)
+
   }
   
   google {
+
     hail"""$pyHailFilterFinal
       --vds-in ${paramsArr.harmRefVdsCloud}
       --ancestry-in ${ancestryInferredMergedCloud}
@@ -1853,25 +1956,31 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
       --vds-out ${paramsArr.cleanVdsCloud}"""
       .in(paramsArr.harmRefVdsCloud, ancestryInferredMergedCloud, paramsArr.sampleqcSexcheckCloud, Input.Google.pheno, paramsArr.finalSampleExclusionsCloud)
       .out(paramsArr.cleanCloud :+ paramsArr.cleanVcfCloud :+ paramsArr.variantqcStatsCloud :+ paramsArr.finalVariantExclusionsCloud :+ paramsArr.cleanVdsCloud)
+
   }
   
   local {
+
     googleCopy(paramsArr.cleanCloud, paramsArr.clean)
     googleCopy(paramsArr.cleanVcfCloud, paramsArr.cleanVcf)
     googleCopy(paramsArr.variantqcStatsCloud, paramsArr.variantqcStats)
     googleCopy(paramsArr.finalVariantExclusionsCloud, paramsArr.finalVariantExclusions)
+
   }
   
   local {
+
     cmd"""$binTabix -f -p vcf ${paramsArr.cleanVcf}"""
       .in(paramsArr.cleanVcf)
       .out(paramsArr.cleanVcfTbi)
+
   }
   
-  uger {
+  ugerWith(cores=4, mem=4) {
   
     cmd"""$binRscript --vanilla --verbose
       $rPcair
+      --cpus 4
       --plink-in ${paramsArr.harmRefFiltPrunedName}
       --gds-out ${paramsArr.cleanGds}
       --exclude ${paramsArr.finalSampleExclusions}
@@ -1894,6 +2003,7 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
   } {
   
     google {
+
       hail"""$pyHailListSamples
         --vds-in ${paramsArr.cleanVdsCloud}
         --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
@@ -1906,14 +2016,18 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
         --out-samples ${paramsModel.modelSamplesIncludeCloud}"""
       .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno)
       .out(paramsModel.modelPhenoPrelimFileCloud, paramsModel.modelSamplesIncludeCloud)
+
     }
     
     local {
+
       googleCopy(paramsModel.modelPhenoPrelimFileCloud, paramsModel.modelPhenoPrelimFile)
       googleCopy(paramsModel.modelSamplesIncludeCloud, paramsModel.modelSamplesInclude)
+
     }
     
     uger {
+
       cmd"""$binRscript --vanilla --verbose
         $rGeneratePheno
         --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
@@ -1933,14 +2047,18 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
         .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, ancestryInferredMerged, paramsModel.modelSamplesInclude, paramsArr.finalVariantExclusions)
         .out(paramsModel.modelPhenoFile, paramsModel.modelPcsFile, paramsModel.modelPhenoFileLog)
         .using("R-3.4")
+
     }
     
     local {
+
       googleCopy(paramsModel.modelPhenoFile, paramsModel.modelPhenoFileCloud)
       googleCopy(paramsModel.modelPcsFile, paramsModel.modelPcsFileCloud)
+
     }
     
     google {
+
       hail"""$pyHailAssoc
         --vds-in ${paramsArr.cleanVdsCloud}
         --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
@@ -1958,13 +2076,17 @@ def qc2(i: Int): Map[(String, String, String, String, String), Store] = {
     }
     
     local {
+
       googleCopy(paramsModel.modelResultsCloud, paramsModel.modelResults)
+
     }
     
     local {
+
       cmd"""$binTabix -b 2 -e 2 ${paramsModel.modelResults}"""
         .in(paramsModel.modelResults)
         .out(paramsModel.modelResultsTbi)
+
     }
   
     resultsMap = resultsMap :+ Map((paramsArr.arrayId, paramsModel.modelPheno, paramsModel.modelTest, paramsModel.modelCovars, paramsModel.modelTrans) -> paramsModel.modelResultsCloud)
@@ -1985,6 +2107,7 @@ def qc3(i: Int): Map[(String, String, String, String, String, String), Store] = 
   } {
   
     google {
+
       hail"""$pyHailListSamples
         --vds-in ${paramsArr.cleanVdsCloud}
         --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
@@ -1997,14 +2120,18 @@ def qc3(i: Int): Map[(String, String, String, String, String, String), Store] = 
         --out-samples ${paramsKnownLoci.knownLociSamplesIncludeCloud}"""
       .in(paramsArr.harmRefFiltPrunedCloud :+ paramsArr.cleanVdsCloud :+ Input.Google.pheno)
       .out(paramsKnownLoci.knownLociPhenoPrelimFileCloud, paramsKnownLoci.knownLociSamplesIncludeCloud)
+
     }
     
     local {
+
       googleCopy(paramsKnownLoci.knownLociPhenoPrelimFileCloud, paramsKnownLoci.knownLociPhenoPrelimFile)
       googleCopy(paramsKnownLoci.knownLociSamplesIncludeCloud, paramsKnownLoci.knownLociSamplesInclude)
+
     }
     
     uger {
+
       cmd"""$binRscript --vanilla --verbose
         $rGeneratePheno
         --gds-in ${paramsArr.harmRefFiltPrunedPcaGds}
@@ -2024,15 +2151,19 @@ def qc3(i: Int): Map[(String, String, String, String, String, String), Store] = 
         .in(paramsArr.harmRefFiltPrunedPcaGds, Input.Local.pheno, ancestryInferredMerged, paramsKnownLoci.knownLociSamplesInclude, paramsArr.finalVariantExclusions)
         .out(paramsKnownLoci.knownLociPhenoFile, paramsKnownLoci.knownLociPcsFile, paramsKnownLoci.knownLociPhenoFileLog)
         .using("R-3.4")
+
     }
     
     local {
+
       googleCopy(paramsKnownLoci.knownLociPhenoFile, paramsKnownLoci.knownLociPhenoFileCloud)
       googleCopy(paramsKnownLoci.knownLociPcsFile, paramsKnownLoci.knownLociPcsFileCloud)
       googleCopy(paramsKnownLoci.knownLociHiLd, paramsKnownLoci.knownLociHiLdCloud)
+
     }
     
     google {
+
       hail"""$pyHailAssoc
         --vds-in ${paramsArr.cleanVdsCloud}
         --bim-in ${paramsArr.harmRefFiltPrunedNameCloud}.bim
@@ -2051,7 +2182,9 @@ def qc3(i: Int): Map[(String, String, String, String, String, String), Store] = 
     }
     
     local {
+
       googleCopy(paramsKnownLoci.knownLociResultsCloud, paramsKnownLoci.knownLociResults)
+
     }
     
     knownLociMap = knownLociMap :+ Map((paramsArr.arrayId, paramsKnownLoci.knownLociPhenoName, paramsKnownLoci.knownLociTest, paramsKnownLoci.knownLociCovars, paramsKnownLoci.knownLociTrans, paramsKnownLoci.knownLociPop) -> paramsKnownLoci.knownLociResultsCloud)
@@ -2092,21 +2225,27 @@ def mergeResults(i: Int): Unit = {
   }
 
   google {
+
     hail"""$pyHailMerge
       --results "${modelResultsString}"
       --test ${paramsResult.resultTest}
       --out ${paramsResult.resultFinalCloud}
       """.in(modelResultsMap.values).out(paramsResult.resultFinalCloud)
+
   }
   
   local {
+
     googleCopy(paramsResult.resultFinalCloud, paramsResult.resultFinal)
+
   }
 
-  local {
+  uger {
+
     cmd"""$binTabix -b 2 -e 2 ${paramsResult.resultFinal}"""
       .in(paramsResult.resultFinal)
       .out(paramsResult.resultFinalTbi)
+
   }
   
   /**
@@ -2115,7 +2254,7 @@ def mergeResults(i: Int): Unit = {
    *  Requires: Python
    */
   
-  local {
+  uger {
   
     cmd"""python $pyTop1000
       --results ${paramsResult.resultFinal}
@@ -2150,7 +2289,8 @@ def mergeResults(i: Int): Unit = {
    *  Requires: Python
    */
   
-  local {
+  uger {
+
     cmd"""python $pyQqPlot
       --results ${paramsResult.resultFinal}
       --p pval
@@ -2172,6 +2312,7 @@ def mergeResults(i: Int): Unit = {
       --p pval
       --out ${paramsResult.resultFinalSigRegions}
       """.in(paramsResult.resultFinal).out(paramsResult.resultFinalSigRegions)
+
   }
   
 }
@@ -2191,18 +2332,23 @@ def mergeKnownLoci(i: Int): Unit = {
   val knownLociString = knownLociMap.map { case (key, value) => s"""${key._1}___${value.toString.split("@")(1)}""" }.mkString(",")
 
   google {
+
     hail"""$pyHailMerge
       --results "${knownLociString}"
       --test ${paramsResultKnownLoci.resultKnownLociTest}
       --out ${paramsResultKnownLoci.resultKnownLociFinalCloud}
       """.in(knownLociMap.values).out(paramsResultKnownLoci.resultKnownLociFinalCloud)
+
   }
   
   local {
+
     googleCopy(paramsResultKnownLoci.resultKnownLociFinalCloud, paramsResultKnownLoci.resultKnownLociFinal)
+
   }
   
   uger {
+
     cmd"""$binRscript --vanilla --verbose
       $rTop50Known
       --results ${paramsResultKnownLoci.resultKnownLociFinal}
@@ -2216,6 +2362,7 @@ def mergeKnownLoci(i: Int): Unit = {
       .in(paramsResultKnownLoci.resultKnownLociFinal, paramsResultKnownLoci.resultKnownLociData)
       .out(paramsResultKnownLoci.resultKnownLociFinalTop50Known)
       .using("R-3.4")
+
   }
 
 }
@@ -2230,18 +2377,19 @@ def plotSigRegions(i: Int): Seq[Store] = {
     }
   }
 
-  local {
-    for (region <- regions) {
+  for (region <- regions) {
   
-      val regionChr = region.split("\t")(0)
-      val regionStart = region.split("\t")(1)
-      val regionEnd = region.split("\t")(2)
-      val regionVar = region.split("\t")(3)
-      val resultsFinalRegplotData = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.data.tsv")
-      val resultsFinalRegplotLog = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.locuszoom.log")
-      val resultsFinalRegplotPdf = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}-${regionEnd}" / s"chr${regionChr}_${regionStart}-${regionEnd}.pdf")
-      val resultsFinalRegplotPng = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.png")
-  
+    val regionChr = region.split("\t")(0)
+    val regionStart = region.split("\t")(1)
+    val regionEnd = region.split("\t")(2)
+    val regionVar = region.split("\t")(3)
+    val resultsFinalRegplotData = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.data.tsv")
+    val resultsFinalRegplotLog = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.locuszoom.log")
+    val resultsFinalRegplotPdf = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}-${regionEnd}" / s"chr${regionChr}_${regionStart}-${regionEnd}.pdf")
+    val resultsFinalRegplotPng = store.at(localOutDir / s"${paramsResult.resultFinalRegplotBase}_${regionVar}_chr${regionChr}_${regionStart}_${regionEnd}.png")
+
+    uger {
+
       cmd"""pcol=`$binTabix -H ${paramsResult.resultFinal} | tr "\t" "\n" | grep -n pval | awk -F':' '{print $$1}'`; (echo -e "id\tpval"; $binTabix ${paramsResult.resultFinal} ${regionChr}:${regionStart}-${regionEnd} | awk -v pcol=$$pcol '{if(substr($$4 ,0, 2) != "rs") { print "chr"$$1":"$$2"\t"$$pcol } else print $$4"\t"$$pcol}') > ${resultsFinalRegplotData}"""
         .in(paramsResult.resultFinal)
         .out(resultsFinalRegplotData)
@@ -2253,10 +2401,11 @@ def plotSigRegions(i: Int): Seq[Store] = {
       cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${resultsFinalRegplotPdf}[0] $resultsFinalRegplotPng"""
         .in(resultsFinalRegplotPdf)
         .out(resultsFinalRegplotPng)
-  
-      resultsFinalRegplotList = resultsFinalRegplotList :+ resultsFinalRegplotPng
-  
+
     }
+  
+    resultsFinalRegplotList = resultsFinalRegplotList :+ resultsFinalRegplotPng
+  
   }
 
   resultsFinalRegplotList

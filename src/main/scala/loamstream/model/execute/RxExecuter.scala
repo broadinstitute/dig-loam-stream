@@ -41,13 +41,13 @@ final case class RxExecuter(
   
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
-  private def logStatusChanges(executable: Executable): Unit = {
+  /*private def logStatusChanges(executable: Executable): Unit = {
     //An observable stream of JobRuns, one for each status change experienced by each job in `executable`,
     //and all of those jobs' (transitive) dependencies.
     val statusChanges: Observable[JobRun] = executable.multiplex(JobNode.statusChanges)
     
     statusChanges.foreach(JobLog.onStatusChange)
-  }
+  }*/
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     
@@ -55,7 +55,7 @@ final case class RxExecuter(
     
     val ioScheduler: Scheduler = IOScheduler()
     
-    logStatusChanges(executable)
+    //logStatusChanges(executable)
 
     //An Observable stream of jobs runs; each job is emitted when it becomes runnable.  This can be because the
     //job's dependencies finished successfully, or because the job failed and we've decided to restart it.

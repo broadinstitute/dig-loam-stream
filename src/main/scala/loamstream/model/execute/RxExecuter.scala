@@ -22,6 +22,8 @@ import java.io.FileWriter
 import loamstream.util.ExecutionContexts
 import loamstream.util.Terminable
 import java.io.PrintWriter
+import java.time.Instant
+import loamstream.model.jobs.log.JobLog
 
 /**
  * @author kaan
@@ -39,18 +41,28 @@ final case class RxExecuter(
   
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
+  private def logStatusChanges(executable: Executable): Unit = {
+    //An observable stream of JobRuns, one for each status change experienced by each job in `executable`,
+    //and all of those jobs' (transitive) dependencies.
+    val statusChanges: Observable[JobRun] = executable.multiplex(JobNode.statusChanges)
+    
+    statusChanges.foreach(JobLog.onStatusChange)
+  }
+  
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     
     import loamstream.util.ObservableEnrichments._
     
     val ioScheduler: Scheduler = IOScheduler()
+    
+    logStatusChanges(executable)
 
     //An Observable stream of jobs runs; each job is emitted when it becomes runnable.  This can be because the
     //job's dependencies finished successfully, or because the job failed and we've decided to restart it.
     //Note the use of `distinct`.  It's brute force, but simplifies the logic here and in LJob for the case where
     //multiple 'root' jobs depend on the same upstream job.  In this case, without `distinct`, the upstream job
     //would be run twice.
-    val runnables: Observable[JobRun] = Observables.merge(executable.jobNodes.toSeq.map(_.runnables)).distinct
+    val runnables: Observable[JobRun] = executable.multiplex(_.runnables).distinct
     
     //An observable stream of "chunks" of runnable jobs, with each chunk represented as a Seq.
     //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
@@ -59,7 +71,6 @@ final case class RxExecuter(
     
     val chunkResults: Observable[Map[LJob, Execution]] = for {
       chunk <- chunks
-      _ = logJobForest(executable)
       //NB: .toSet is important: jobs in a chunk should be distinct, 
       //so they're not run more than once before transitioning to a terminal state.
       jobs = chunk.toSet
@@ -79,11 +90,50 @@ final case class RxExecuter(
       executionMap ++ skippedResultMap
     }
     
+    val keepGoing: ValueBox[Boolean] = ValueBox(true)
+    
     //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
     //TODO: Make this configurable
-    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
+    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture.map { result =>
+      
+      keepGoing := false
+      
+      result
+    }
 
-    Await.result(futureMergedResults, timeout)
+    val out = new java.io.PrintWriter(new java.io.FileWriter("rxe-log"))
+    
+    {
+      import scala.concurrent.duration._
+      
+      val interval = 30.seconds
+      
+      val t = new Thread(new Runnable {
+        override def run(): Unit = {
+          def now: String = Instant.now.toString
+          
+          while(keepGoing()) {
+            Thread.sleep(interval.toMillis)
+            
+            executable.plusNoOpRootJobIfNeeded.jobNodes.head.print(
+                doPrint = printingNode => s => out.println(s"[$now] (from Job#${printingNode.job.id}) $s"),
+                header = Some("Current job statuses: "))
+                
+            out.println("------------------------------")
+          }
+        }
+      })
+      
+      t.setDaemon(true)
+      
+      t.start()
+    }
+    
+    try {
+      Await.result(futureMergedResults, timeout)
+    } finally {
+      out.close()
+    }
   }
   
   private def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {
@@ -108,12 +158,6 @@ final case class RxExecuter(
     logSkippedJobs(skippedJobs)
     
     markJobsSkipped(skippedJobs)
-  }
-  
-  private def logJobForest(executable: Executable): Unit = {
-    def log(printingJob: JobNode)(s: String) = debug(s)
-      
-    executable.jobs.head.print(doPrint = log, header = Some("Current Job Statuses:"))
   }
   
   private def logJobsToBeRun(jobsToRun: Iterable[LJob]): Unit = {

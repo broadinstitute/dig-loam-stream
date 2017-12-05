@@ -75,7 +75,7 @@ trait JobNode extends Loggable {
    * conditions.
    */
   //NB: Note use of .replay.refCount which allows re-using this Observable, saving lots of memory when running complex pipelines
-  private final lazy val runs: Observable[JobRun] = runsEmitter.replay.refCount
+  private final lazy val runs: Observable[JobRun] = runsEmitter
   
   /**
    * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
@@ -192,8 +192,6 @@ trait JobNode extends Loggable {
     
     info(s"Status change to $newStatus (run count $runCount) for job: $job")
     
-    require(status != newStatus, s"Already at status '$newStatus' for job ${this}")
-    
     debug(s"Status change to $newStatus (run count $runCount) for job: $job")
     
     val (newSnapshot, isChanged) = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
@@ -223,4 +221,19 @@ trait JobNode extends Loggable {
   }
   
   private def jobRunFrom(snapshot: JobSnapshot): JobRun = JobRun(this, snapshot.status, snapshot.runCount)
+}
+
+object JobNode {
+  def statusChanges(job: JobNode): Observable[JobRun] = postOrder(_.runs)(job).distinctUntilChanged(_.status)
+  
+  private def postOrder[A](f: JobNode => Observable[A])(root: JobNode): Observable[A] = {
+    val dependencyAs: Observable[A] = {
+      if(root.inputs.isEmpty) { Observable.empty }
+      else {
+        Observables.merge(root.inputs.map(postOrder(f)))
+      }
+    }
+    
+    dependencyAs ++ f(root)
+  }
 }

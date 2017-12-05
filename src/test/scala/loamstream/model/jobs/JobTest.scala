@@ -584,4 +584,91 @@ final class JobTest extends FunSuite with TestJobs {
     //runnables due to the terminal status.
     assert(waitFor(futureRunnables) === Seq(job, job, job))
   }
+  
+  test("statusChanges") {
+    val job = MockJob(Succeeded, "job")
+    
+    val futureStatuses: Future[Seq[JobRun]] = JobNode.statusChanges(job).to[Seq].firstAsFuture
+    
+    job.transitionTo(Running)
+    job.transitionTo(Failed)
+    job.transitionTo(Running)
+    job.transitionTo(Succeeded)
+    
+    val statuses = waitFor(futureStatuses)
+    
+    val expected = Seq(
+        JobRun(job, Running, 1),
+        JobRun(job, Failed, 1),
+        JobRun(job, Running, 2),
+        JobRun(job, Succeeded, 2))
+        
+    println(statuses)
+        
+    assert(statuses === expected)
+  }
+  
+  test("statusChanges - some deps") {
+    /*
+     * gc0
+     *    \    
+     *     +---c0 
+     *    /      \       
+     * gc1        \
+     *             +---root
+     * gc2        /
+     *    \      /
+     *     +---c1
+     *    /
+     * gc3
+     */
+    val gc0 = MockJob(Succeeded, "gc0")
+    val gc1 = MockJob(Skipped, "gc1")
+    val gc2 = MockJob(Succeeded, "gc2")
+    val gc3 = MockJob(Skipped, "gc3")
+    
+    val c0 = MockJob(toReturn = Failed, inputs = Set[JobNode](gc0, gc1), name = "c0")
+    val c1 = MockJob(toReturn = Succeeded, inputs = Set[JobNode](gc2, gc3), name = "c1")
+    
+    val rootJob = MockJob(Succeeded, inputs = Set[JobNode](c0,c1), name = "root")
+    
+    val futureStatusChanges: Future[Seq[JobRun]] = JobNode.statusChanges(rootJob).to[Seq].firstAsFuture
+    
+    def changeStates(j: LJob): Unit = {
+      j.transitionTo(Running)
+      j.transitionTo(Failed)
+      j.transitionTo(Running)
+      j.transitionTo(Succeeded)
+    }
+    
+    changeStates(gc3)
+    changeStates(gc1)
+    changeStates(gc2)
+    changeStates(c1)
+    changeStates(gc0)
+    changeStates(c0)
+    changeStates(rootJob)
+    
+    val statuses = waitFor(futureStatusChanges)
+    
+    def expectedFor(j: LJob): Seq[JobRun] = {
+      Seq(
+        JobRun(j, Running, 1),
+        JobRun(j, Failed, 1),
+        JobRun(j, Running, 2),
+        JobRun(j, Succeeded, 2))
+    }
+    
+    val expected = {
+      expectedFor(gc3) ++
+      expectedFor(gc1) ++
+      expectedFor(gc2) ++
+      expectedFor(c1) ++
+      expectedFor(gc0) ++
+      expectedFor(c0) ++
+      expectedFor(rootJob)
+    }
+    
+    assert(statuses === expected)
+  }
 }

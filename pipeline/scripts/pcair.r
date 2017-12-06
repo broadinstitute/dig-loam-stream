@@ -1,6 +1,7 @@
 library(argparse)
 
 parser <- ArgumentParser()
+parser$add_argument("--cpus", dest="cpus", type="character", help="number of cpus to use for King")
 parser$add_argument("--plink-in", dest="plink_in", type="character", help="Plink fileset name")
 parser$add_argument("--gds-out", dest="gds_out", type="character", help="Bioconductor gds file name")
 parser$add_argument("--exclude", dest="exclude", default=NULL, type="character", help="A single column file with no header containing sample IDs to exclude")
@@ -40,7 +41,7 @@ print(paste("memory before running king: ",mem_used() / (1024^2),sep=""))
 
 print("running King robust to get kinship matrix")
 genofile <- snpgdsOpen(args$gds_out)
-king<-snpgdsIBDKING(genofile, sample.id=NULL, snp.id=NULL, autosome.only=TRUE, remove.monosnp=TRUE, maf=NaN, missing.rate=NaN, type="KING-robust", family.id=NULL, num.thread=4, verbose=TRUE)
+king<-snpgdsIBDKING(genofile, sample.id=NULL, snp.id=NULL, autosome.only=TRUE, remove.monosnp=TRUE, maf=NaN, missing.rate=NaN, type="KING-robust", family.id=NULL, num.thread=args$cpus, verbose=TRUE)
 kinship <- king$kinship
 rownames(kinship)<-king$sample.id
 colnames(kinship)<-king$sample.id

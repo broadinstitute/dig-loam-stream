@@ -1,6 +1,7 @@
 library(argparse)
 
 parser <- ArgumentParser()
+parser$add_argument("--cpus", dest="cpus", type="character", help="number of cpus to use for King")
 parser$add_argument("--plink-in", dest="plink_in", type="character", help="Plink fileset name")
 parser$add_argument("--gds-out", dest="gds_out", type="character", help="Bioconductor gds file name")
 parser$add_argument("--exclude", dest="exclude", default=NULL, type="character", help="A single column file with no header containing sample IDs to exclude")
@@ -40,7 +41,7 @@ print(paste("memory before running king: ",mem_used() / (1024^2),sep=""))
 
 print("running King robust to get kinship matrix")
 genofile <- snpgdsOpen(args$gds_out)
-king<-snpgdsIBDKING(genofile, sample.id=NULL, snp.id=NULL, autosome.only=TRUE, remove.monosnp=TRUE, maf=NaN, missing.rate=NaN, type="KING-robust", family.id=NULL, num.thread=4, verbose=TRUE)
+king<-snpgdsIBDKING(genofile, sample.id=NULL, snp.id=NULL, autosome.only=TRUE, remove.monosnp=TRUE, maf=NaN, missing.rate=NaN, type="KING-robust", family.id=NULL, num.thread=args$cpus, verbose=TRUE)
 kinship <- king$kinship
 rownames(kinship)<-king$sample.id
 colnames(kinship)<-king$sample.id
@@ -74,8 +75,13 @@ print("converting PCs to output format")
 out<-data.frame(mypcair$vectors)
 names(out)[1:20]<-paste("PC",seq(1,20),sep="")
 out$IID<-row.names(out)
-out$POP<-args$id
-out$GROUP<-args$id
+if(! is.null(args$id)) {
+	out$POP<-args$id
+	out$GROUP<-args$id
+} else {
+	out$POP<-NA
+	out$GROUP<-NA
+}
 
 if(! is.null(args$ancestry)) {
 	print("adding inferred ancestry to output")
@@ -109,5 +115,13 @@ if(! is.null(args$update_group)) {
 	out$GROUP_NEW<-NULL
 }
 
+out_cols<-c("IID","POP","GROUP",paste("PC",seq(1,20),sep=""))
+if(all(is.na(out$POP))) {
+	out_cols<-out_cols[! out_cols == "POP"]
+}
+if(all(is.na(out$GROUP))) {
+	out_cols<-out_cols[! out_cols == "GROUP"]
+}
+
 print("writing PCs to file")
-write.table(out[,c("IID","POP","GROUP",paste("PC",seq(1,20),sep=""))],args$scores,row.names=F,col.names=T,quote=F,sep="\t",append=F)
+write.table(out[,out_cols],args$scores,row.names=F,col.names=T,quote=F,sep="\t",append=F)

@@ -121,13 +121,13 @@ trait JobNode extends Loggable {
 
     val result = {
       if(inputs.isEmpty) {
-        debug(logMsg("no deps, just us"))
+        trace(logMsg("no deps, just us"))
         
         justUs
       } else {
         for {
           inputStatuses <- finalInputStatuses
-          _ = debug(logMsg(s"deps finished with statuses: $inputStatuses"))
+          _ = trace(logMsg(s"deps finished with statuses: $inputStatuses"))
           anyInputFailures = inputStatuses.exists(_.isFailure)
           runnable <- if(anyInputFailures) stopDueToDependencyFailure() else justUs
         } yield {

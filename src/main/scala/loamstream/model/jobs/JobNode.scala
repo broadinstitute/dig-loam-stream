@@ -18,8 +18,8 @@ import loamstream.model.jobs.log.JobLog
  * Date (as LJob): Dec 23, 2015
  * Factored out: Nov 14, 2017
  * 
- * NB: Note liberal use of Observable.share to (dramatically) reduce memory consumption.  Without 
- * .share, RxJava/RxScala makes one "copy" of any observable that multicasts *per* derived observable.  
+ * NB: Note liberal use of shareReplay (.share.cache) to (dramatically) reduce memory consumption.  Without 
+ * this, RxJava/RxScala makes one "copy" of any observable that multicasts *per* derived observable.  
  * Since we resursively build Observable streams from trees of jobs, this led to pathological, exponential memory
  * use.
  */
@@ -29,13 +29,15 @@ trait JobNode extends Loggable {
   /** Any jobs this job depends on */
   def inputs: Set[JobNode]
   
+  import JobNode.ObservableOps
+  
   private[this] val snapshotRef: ValueBox[JobSnapshot] = ValueBox(JobSnapshot(JobStatus.NotStarted, 0))
 
   /** This job's 'state' (status and run count) at this instant. */ 
   private def snapshot: JobSnapshot = snapshotRef()
   
   //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject.withSize(15)//ReplaySubject()
+  private[this] val runsEmitter: Subject[JobRun] = /*ReplaySubject.withSize(15)*/ ReplaySubject()
   
   /** This job's current status */
   final def status: JobStatus = snapshotRef().status
@@ -49,29 +51,33 @@ trait JobNode extends Loggable {
    * the same upstream dependency would cause the dependency to be run more than necessary under certain 
    * conditions.
    */
-  //NB: Note use of .share which allows re-using this Observable, saving lots of memory when running complex pipelines
-  private final lazy val runs: Observable[JobRun] = runsEmitter.share
+  //NB: Note use of .shareReplay which allows re-using this Observable, 
+  //saving lots of memory when running complex pipelines
+  private final lazy val runs: Observable[JobRun] = runsEmitter.shareReplay
   
   /**
    * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
    */
-  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-  final lazy val statuses: Observable[JobStatus] = runs.map(_.status).share
+  //NB: Note use of .shareReplay which allows re-using this Observable, 
+  //saving lots of memory when running complex pipelines
+  final lazy val statuses: Observable[JobStatus] = runs.map(_.status).shareReplay
 
   /**
    * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
    * Will fire at most one time.
    */
-  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-  private[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first.share
+  //NB: Note use of .shareReplay which allows re-using this Observable, 
+  //saving lots of memory when running complex pipelines
+  private[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first.shareReplay
 
   /**
    * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.
    * When this fires, our dependencies are finished.
    */
-  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
+  //NB: Note use of .shareReplay which allows re-using this Observable, 
+  //saving lots of memory when running complex pipelines
   private[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
-    Observables.sequence(inputs.toSeq.map(_.lastStatus)).share
+    Observables.sequence(inputs.toSeq.map(_.lastStatus)).shareReplay
   }
   
   /**
@@ -129,8 +135,9 @@ trait JobNode extends Loggable {
         }
       }
     }
-    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-    result.share
+    //NB: Note use of .shareReplay which allows re-using this Observable, 
+    //saving lots of memory when running complex pipelines
+    result.shareReplay
   }
 
   /**
@@ -150,8 +157,9 @@ trait JobNode extends Loggable {
     }
 
     //Emit the current job *after* all our dependencies
-    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-    (dependencyRunnables ++ selfRunnables).share
+    //NB: Note use of .shareReplay which allows re-using this Observable, 
+    //saving lots of memory when running complex pipelines
+    (dependencyRunnables ++ selfRunnables).shareReplay
   }
   
   /**
@@ -198,4 +206,11 @@ trait JobNode extends Loggable {
   }
   
   private def jobRunFrom(snapshot: JobSnapshot): JobRun = JobRun(this, snapshot.status, snapshot.runCount)
+}
+
+object JobNode {
+  /** Extension method to allow convenient, memory-efficient-enough multicasting */ 
+  private implicit final class ObservableOps[A](val o: Observable[A]) extends AnyVal { 
+    def shareReplay: Observable[A] = o.share.cache 
+  }
 }

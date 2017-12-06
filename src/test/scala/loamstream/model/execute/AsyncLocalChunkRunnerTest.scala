@@ -108,7 +108,7 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     
     val two0StatusesFuture = job.statuses.take(3).to[Seq].firstAsFuture
     
-    assert(Futures.waitFor(two0StatusesFuture) === Seq(/*NotStarted, */Running, Succeeded))
+    assert(Futures.waitFor(two0StatusesFuture) === Seq(Running, Succeeded))
   }
   
   test("executeSingle() - job transitioned to right state") {

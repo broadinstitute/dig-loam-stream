@@ -35,7 +35,8 @@ final case class RxExecuter(
     windowLength: Duration,
     jobFilter: JobFilter,
     maxRunsPerJob: Int,
-    stopHandle: Option[Terminable] = None)(implicit val executionContext: ExecutionContext) extends Executer with Loggable {
+    stopHandle: Option[Terminable] = None)
+    (implicit val executionContext: ExecutionContext) extends Executer with Loggable {
   
   override def stop(): Unit = stopHandle.foreach(_.stop())
   
@@ -165,7 +166,12 @@ object RxExecuter extends Loggable {
 
     val chunkRunner = AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)(executionContext)
 
-    new RxExecuter(chunkRunner, Defaults.windowLengthInSec, Defaults.jobFilter, Defaults.maxRunsPerJob, Option(ecHandle))(executionContext)
+    new RxExecuter(
+        chunkRunner, 
+        Defaults.windowLengthInSec, 
+        Defaults.jobFilter, 
+        Defaults.maxRunsPerJob, 
+        Option(ecHandle))(executionContext)
   }
   
   def defaultWith(newJobFilter: JobFilter): RxExecuter = {

@@ -163,9 +163,12 @@ trait JobNode extends Loggable {
   }
   
   /**
-   * Sets the status of this job to be newStatus, and emits a JobRun with the new status to any observers.
+   * Transitions this JobNode to a new status.  If the passed-in status is the same as this JobNode's current
+   * status, this method has no effect.  If the passed-in status is different, this method updates this JobNode's
+   * status of this job to be newStatus, and emits a JobRun with the new status to any observers.
+   * 
    * Also bumps this job's run count if the current status *is not* `Running` and the new status *is* `Running`.
-   * If `newStatus` is a terminal status, all Observables derived from this job will be shut down.   
+   * If `newStatus` is a terminal status, all Observables derived from this job will be shut down.
    *
    * @param newStatus the new status to set for this job
    */

@@ -22,6 +22,8 @@ import loamstream.util.BashScript
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
+import loamstream.model.jobs.commandline.ToFilesProcessLogger
+import loamstream.model.jobs.OutputStreams
 
 /**
  * @author clint
@@ -35,7 +37,7 @@ object LocalJobStrategy extends Loggable {
 
   def execute(
     job: LJob,
-    processLogger: CloseableProcessLogger)(implicit context: ExecutionContext): Future[Execution] = {
+    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[Execution] = {
 
     require(canBeRun(job), s"Expected job to be one we can run locally, but got $job")
     
@@ -59,13 +61,14 @@ object LocalJobStrategy extends Loggable {
         status = JobStatus.Succeeded,
         result = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
         resources = None,
-        outputs = nativeJob.outputs.map(_.toOutputRecord))
+        outputs = nativeJob.outputs.map(_.toOutputRecord),
+        outputStreams = None)
     }
   }
 
   def executeCommandLineJob(
     commandLineJob: CommandLineJob,
-    processLogger: CloseableProcessLogger)(implicit context: ExecutionContext): Future[Execution] = {
+    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[Execution] = {
 
     Futures.runBlocking {
 
@@ -82,6 +85,12 @@ object LocalJobStrategy extends Loggable {
         case Failure(e)         => (JobStatus.FailedWithException, CommandInvocationFailure(e))
       }
 
+      val outputStreams = OutputStreams(processLogger.stdoutPath, processLogger.stderrPath)
+      
+      //TODO: close process logger somewhere
+      
+      //asdasdasdasd
+      
       Execution(
         id = None,
         env = commandLineJob.executionEnvironment,
@@ -89,7 +98,8 @@ object LocalJobStrategy extends Loggable {
         status = jobStatus,
         result = Option(jobResult),
         resources = Option(resources),
-        outputs = commandLineJob.outputs.map(_.toOutputRecord))
+        outputs = commandLineJob.outputs.map(_.toOutputRecord),
+        outputStreams = Option(outputStreams))
     }
   }
 

@@ -280,7 +280,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     
       debug(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
 
-      SubmissionSuccess(jobIds)
+      val idsForJobs = jobIds.zip(taskArray.ugerJobs).toMap
+      
+      SubmissionSuccess(idsForJobs)
     }
   }
 

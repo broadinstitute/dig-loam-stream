@@ -1432,6 +1432,10 @@ def qc1(i: Int): Store = {
 	  cmd"""$binPlink --bfile ${paramsArr.arrayDataPreparedName} --chr $chr --keep-allele-order --make-bed --output-chr MT --out ${paramsChr.rawChrName} --memory 3000 --threads 1"""
         .in(paramsArr.arrayDataPrepared)
         .out(paramsChr.rawChr)
+
+    }
+
+    ugerWith(mem=8) {
     
       cmd"""$binGenotypeHarmonizer
       --input ${paramsChr.rawChrName}
@@ -1449,6 +1453,10 @@ def qc1(i: Int): Store = {
       --debug"""
         .in(paramsChr.rawChr :+ paramsChr.kgVcfChr)
         .out(paramsChr.harmKgChr :+ paramsChr.harmKgChrVarIdUpdate :+ paramsChr.harmKgChrVarSnpLog)
+
+    }
+
+    uger {
       
       cmd"""python $pyAlignNon1kgVariants
       --legend ${paramsChr.kgLegendChr}

@@ -24,27 +24,6 @@ final class Drmaa1ClientTest extends FunSuite {
   import Drmaa1ClientTest.LiteralJobInfo
   import loamstream.TestHelpers.path
   
-  //TODO
-  /*test("makeOutputPath") {
-    val ugerDir = path("some/path/blah")
-    val jobName = "asdasdasdfg"
-    
-    val actual = Drmaa1Client.makeOutputPath(ugerDir, jobName)
-    val expected = s":some/path/blah/asdasdasdfg.${JobTemplate.PARAMETRIC_INDEX}.stdout"
-    
-    assert(actual === expected) 
-  }
-  
-  test("makeErrorPath") {
-    val ugerDir = path("/some/other/path")
-    val jobName = "asdasdasdfghjk"
-    
-    val actual = Drmaa1Client.makeErrorPath(ugerDir, jobName)
-    val expected = s":/some/other/path/asdasdasdfghjk.${JobTemplate.PARAMETRIC_INDEX}.stderr"
-    
-    assert(actual === expected)
-  }*/
-  
   test("toResources - valid resource-usage data in JobInfo") {
     val mockUgerClient = new MockAccountingClient(_ => actualQacctOutput)
     
@@ -137,7 +116,7 @@ final class Drmaa1ClientTest extends FunSuite {
     
     val actualNativeSpec = nativeSpec(ugerSettings)
     
-    val expected = "-clear -cwd -shell y -b n -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17g"
+    val expected = "-cwd -shell y -b n -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17g"
     
     assert(actualNativeSpec === expected)
   }

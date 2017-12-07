@@ -19,7 +19,6 @@ private[uger] object ScriptBuilder {
   private val scriptHeader: String = {
     s"""|#!/bin/bash
         |#$$ -cwd
-        |#$$ -j y
         |
         |source /broad/software/scripts/useuse
         |reuse -q UGER

@@ -24,6 +24,7 @@ import loamstream.util.Loggable
 import loamstream.util.TimeUtils
 import loamstream.model.jobs.commandline.ToFilesProcessLogger
 import loamstream.model.jobs.OutputStreams
+import loamstream.util.CanBeClosed
 
 /**
  * @author clint
@@ -75,7 +76,9 @@ object LocalJobStrategy extends Loggable {
       val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
         trace(s"RUNNING: ${commandLineJob.commandLineString}")
 
-        createWorkDirAndRun(commandLineJob, processLogger)
+        CanBeClosed.enclosed(processLogger) {
+          createWorkDirAndRun(commandLineJob, _)
+        }
       }
 
       val resources = LocalResources(start, end)
@@ -86,10 +89,6 @@ object LocalJobStrategy extends Loggable {
       }
 
       val outputStreams = OutputStreams(processLogger.stdoutPath, processLogger.stderrPath)
-      
-      //TODO: close process logger somewhere
-      
-      //asdasdasdasd
       
       Execution(
         id = None,

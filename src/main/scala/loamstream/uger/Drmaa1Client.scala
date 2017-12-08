@@ -282,6 +282,16 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
       val idsForJobs = jobIds.zip(taskArray.ugerJobs).toMap
       
+      def ugerIdsToJobsString = {
+        (for {
+          (ugerId, job) <- idsForJobs.mapValues(_.commandLineJob)
+        } yield {
+          s"Uger Id: $ugerId => $job"
+        }).mkString("\n")
+      }
+      
+      info(s"Uger ids assigned to jobs:\n$ugerIdsToJobsString")
+      
       SubmissionSuccess(idsForJobs)
     }
   }

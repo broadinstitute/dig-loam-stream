@@ -147,6 +147,8 @@ for(i in 1:nrow(x)) {
 
 x <- x[x$status != "remove",]
 
+print(x[x$id == "rs4458523",])
+
 for(i in 1:nrow(x)) {
 	if(x$status[i] == "rev") {
 		ref <- x$ref_known[i]
@@ -154,7 +156,7 @@ for(i in 1:nrow(x)) {
 		x$ref_known[i] <- alt
 		x$alt_known[i] <- ref
 		if("beta_known" %in% names(x)) x$beta_known[i] <- -1 * x$beta_known[i]
-		if("or_known" %in% names(x)) x$beta_known[i] <- -1 * x$beta_known[i]
+		if("or_known" %in% names(x)) x$or_known[i] <- 1 / x$or_known[i]
 	} else if(x$status[i] == "comp") {
 		x$ref_known[i] <- complement(x$ref_known[i])
 		x$alt_known[i] <- complement(x$alt_known[i])
@@ -166,9 +168,11 @@ for(i in 1:nrow(x)) {
 		x$ref_known[i] <- complement(x$ref_known[i])
 		x$alt_known[i] <- complement(x$alt_known[i])
 		if("beta_known" %in% names(x)) x$beta_known[i] <- -1 * x$beta_known[i]
-		if("or_known" %in% names(x)) x$beta_known[i] <- -1 * x$beta_known[i]
+		if("or_known" %in% names(x)) x$or_known[i] <- 1 / x$or_known[i]
 	}
 }
+
+print(x[x$id == "rs4458523",])
 
 x <- x[order(-x$ident, -x$r2, x$pval_known),]
 x <- x[! duplicated(x$CLOSEST_GENE),]

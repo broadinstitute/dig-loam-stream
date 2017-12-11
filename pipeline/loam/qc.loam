@@ -1002,6 +1002,7 @@ andThen {
       """
       .in(Params.paramsByArrSorted.head.sampleqcStats)
       .out(sampleQcMetricDistUnadjPdf)
+      .using("R-3.4")
   
     cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistUnadjPdf}[0] $sampleQcMetricDistUnadjPng"""
       .in(sampleQcMetricDistUnadjPdf)
@@ -1015,6 +1016,7 @@ andThen {
       """
       .in(Params.paramsByArrSorted.head.sampleqcStatsAdj)
       .out(sampleQcMetricDistAdjPdf)
+      .using("R-3.4")
   
     cmd"""$binConvert -density 300 -depth 8 -quality 100 -flatten ${sampleQcMetricDistAdjPdf}[0] $sampleQcMetricDistAdjPng"""
       .in(sampleQcMetricDistAdjPdf)
@@ -1031,6 +1033,7 @@ andThen {
       --out ${reportQcSampleqcTable}"""
       .in(Params.paramsByArrSorted.map(_.kinKin0Related) ++ Params.paramsByArrSorted.map(_.kinFamsizes) ++ Params.paramsByArrSorted.map(_.sampleqcStatsAdjOutliersTable) ++ Params.paramsByArrSorted.map(_.sampleqcSexcheckProblems) ++ Params.paramsByArrSorted.map(_.finalSampleExclusions) :+ ancestryInferredMergedOutliers)
       .out(reportQcSampleqcTable)
+      .using("R-3.4")
   
     cmd"""$binRscript --vanilla --verbose
       $rUpsetplotBimFam
@@ -1403,6 +1406,7 @@ def qc1(i: Int): Store = {
       --out ${paramsArr.arrayDataRawDupRemove}"""
       .in(paramsArr.arrayData, paramsArr.arrayDataRawFreq, paramsArr.arrayDataRawLmiss)
       .out(paramsArr.arrayDataRawDupRemove)
+      .using("R-3.4")
   
     cmd"""$binPlink --bfile ${paramsArr.arrayDataPath} --exclude ${paramsArr.arrayDataRawDupRemove} --make-bed --out ${paramsArr.arrayDataPreparedName}"""
       .in(paramsArr.arrayData, paramsArr.arrayDataRawDupRemove)
@@ -1435,7 +1439,7 @@ def qc1(i: Int): Store = {
 
     }
 
-    ugerWith(mem=8) {
+    ugerWith(mem=8, maxRunTime=6) {
     
       cmd"""$binGenotypeHarmonizer
       --input ${paramsChr.rawChrName}

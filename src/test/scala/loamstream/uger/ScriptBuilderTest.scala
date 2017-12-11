@@ -104,7 +104,6 @@ final class ScriptBuilderTest extends FunSuite {
 
     s"""#!/bin/bash
 #$$ -cwd
-#$$ -j y
 
 source /broad/software/scripts/useuse
 reuse -q UGER

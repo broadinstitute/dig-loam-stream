@@ -322,7 +322,7 @@ object Drmaa1Client {
 
   private[uger] def nativeSpec(ugerSettings: UgerSettings): String = {
     //Will this ever change?
-    val staticPart = "-clear -cwd -shell y -b n"
+    val staticPart = "-cwd -shell y -b n"
     
     val dynamicPart = {
       import ugerSettings._

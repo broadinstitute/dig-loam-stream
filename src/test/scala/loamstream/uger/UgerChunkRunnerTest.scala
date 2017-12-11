@@ -45,18 +45,22 @@ final class UgerChunkRunnerTest extends FunSuite {
   import loamstream.TestHelpers.neverRestart
   import loamstream.TestHelpers.path
   
+  private val tempDir = TestHelpers.getWorkDir(getClass.getSimpleName) 
+  
   private val ugerConfig = {
     import scala.concurrent.duration.DurationInt
     
+    val workDir = tempDir.resolve("foo")
+    
     UgerConfig(
-      workDir = path("target/foo"), 
+      workDir = workDir, 
       maxNumJobs = 42,
       defaultCores = Cpus(2),
       defaultMemoryPerCore = Memory.inGb(2),
       defaultMaxRunTime = CpuTime.inHours(7))
   }
   
-  private val executionConfig: ExecutionConfig = ExecutionConfig(42, path("target/bar")) 
+  private val executionConfig: ExecutionConfig = ExecutionConfig(42, tempDir.resolve("bar")) 
   
   import loamstream.util.Futures.waitFor
   import loamstream.util.ObservableEnrichments._
@@ -137,21 +141,29 @@ final class UgerChunkRunnerTest extends FunSuite {
     import TestHelpers.{alwaysRestart, neverRestart}
     
     def doTest(ugerStatus: UgerStatus, isFailure: Boolean): Unit = {
-      val job = MockJob(NotStarted)
-      
       val jobStatus = UgerStatus.toJobStatus(ugerStatus)
       
-      assert(job.status === NotStarted)
+      {
+        val job = MockJob(NotStarted)
+        
+        assert(job.status === NotStarted)
+        
+        handleUgerStatus(alwaysRestart, job)(ugerStatus)
+        
+        assert(job.status === jobStatus)
+      }
       
-      handleUgerStatus(alwaysRestart, job)(ugerStatus)
+      {
+        val job = MockJob(NotStarted)
+        
+        assert(job.status === NotStarted)
       
-      assert(job.status === jobStatus)
+        handleUgerStatus(neverRestart, job)(ugerStatus)
       
-      handleUgerStatus(neverRestart, job)(ugerStatus)
+        val expected = if(isFailure) FailedPermanently else jobStatus
       
-      val expected = if(isFailure) FailedPermanently else jobStatus
-      
-      assert(job.status === expected)
+        assert(job.status === expected)
+      }
     }
     
     doTest(UgerStatus.Failed(), isFailure = true)
@@ -454,14 +466,12 @@ object UgerChunkRunnerTest {
 
     override val executionEnvironment: Environment = Environment.Local
     
-    override val inputs: Set[JobNode] = Set.empty
+    override def inputs: Set[JobNode] = Set.empty
 
-    override val outputs: Set[Output] = Set.empty
+    override def outputs: Set[Output] = Set.empty
     
     override def execute(implicit context: ExecutionContext): Future[Execution] = {
       Future.successful(Execution.from(this, UgerStatus.toJobStatus(statusesToReturn.last)))
     }
-
-    protected override def doWithInputs(newInputs: Set[JobNode]): LJob = ???
   }
 }

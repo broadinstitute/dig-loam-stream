@@ -61,6 +61,7 @@ object LoamRunner {
       
       //Fold over the "stream" of graph chunks, producing job-execution results
       val (jobResults, _) = graphSource.iterator.foldLeft(z) { (state, chunk) =>
+        
         val (jobResultsSoFar, toolsRunSoFar) = state
         
         val rawChunkGraph = getGraphFrom(chunk)

@@ -8,11 +8,10 @@ import loamstream.compiler.LoamProject
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScript
 import loamstream.loam.LoamToolBox
-import loamstream.loam.ast.LoamGraphAstMapper
-import loamstream.loam.ast.LoamGraphAstMapping
 import loamstream.model.execute.Executable
 import loamstream.model.execute.RxExecuter
-import loamstream.model.jobs.{Execution, LJob}
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 
 
@@ -49,17 +48,15 @@ trait LoamTestHelpers extends Loggable {
     compileResults
   }
 
-  def toExecutable(compileResults: LoamCompiler.Result): (LoamGraphAstMapping, Executable) = {
+  def toExecutable(compileResults: LoamCompiler.Result): Executable = {
     val context: LoamProjectContext = compileResults.contextOpt.get
     val graph = context.graph
 
-    val mapping = LoamGraphAstMapper.newMapping(graph)
+    val toolBox = new LoamToolBox()
 
-    val toolBox = new LoamToolBox(graph)
+    val executable = toolBox.createExecutable(graph)
 
-    val executable = mapping.rootAsts.map(toolBox.createExecutable).reduce(_ ++ _)
-
-    (mapping, executable)
+    executable
   }
 
   def run(executable: Executable): Map[LJob, Execution] = RxExecuter.default.execute(executable)

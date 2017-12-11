@@ -26,26 +26,34 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
       import AsyncLocalChunkRunner.handleResultOfExecution
       
-      val job = MockJob(NotStarted)
-    
-      val execution = Execution.from(job, status)
+      {
+        val job = MockJob(NotStarted)
       
-      assert(job.status === NotStarted)
+        val execution = Execution.from(job, status)
+        
+        assert(job.status === NotStarted)
+        
+        handleResultOfExecution(alwaysRestart)(job -> execution) 
+        
+        assert(job.status === status)
+      }
       
-      handleResultOfExecution(alwaysRestart)(job -> execution) 
+      {
+        val job = MockJob(NotStarted)
+        
+        val execution = Execution.from(job, status)
+        
+        assert(job.status === NotStarted)
       
-      assert(job.status === status)
+        handleResultOfExecution(neverRestart)(job -> execution)
       
-      handleResultOfExecution(neverRestart)(job -> execution)
-      
-      assert(job.status === expectedNoRestart)
+        assert(job.status === expectedNoRestart)
+      }
     }
     
     doTest(Failed, FailedPermanently)
     doTest(FailedWithException, FailedPermanently)
     doTest(Terminated, FailedPermanently)
-    doTest(NotStarted, NotStarted)
-    doTest(Running, Running)
     doTest(Skipped, Skipped)
     doTest(Submitted, Submitted)
     doTest(Succeeded, Succeeded)
@@ -82,21 +90,25 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     import TestHelpers.executionFromStatus
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val success = Futures.waitFor(executeSingle(ExecutionConfig.default, two0, neverRestart))
+    import JobStatus._
     
-    assert(success === (two0 -> executionFromStatus(two0Success)))
+    val job = MockJob(Succeeded) 
     
-    val failure = Futures.waitFor(executeSingle(ExecutionConfig.default, two0Failed, neverRestart))
+    val failedJob = MockJob(Failed)
     
-    assert(failure === (two0Failed -> executionFromStatus(two0Failure)))
+    val success = Futures.waitFor(executeSingle(ExecutionConfig.default, job, neverRestart))
+    
+    assert(success === (job -> executionFromStatus(Succeeded)))
+    
+    val failure = Futures.waitFor(executeSingle(ExecutionConfig.default, failedJob, neverRestart))
+    
+    assert(failure === (failedJob -> executionFromStatus(Failed)))
     
     import ObservableEnrichments._
     
-    val two0StatusesFuture = two0.statuses.take(3).to[Seq].firstAsFuture
+    val two0StatusesFuture = job.statuses.take(3).to[Seq].firstAsFuture
     
-    import JobStatus._
-    
-    assert(Futures.waitFor(two0StatusesFuture) === Seq(NotStarted, Running, Succeeded))
+    assert(Futures.waitFor(two0StatusesFuture) === Seq(Running, Succeeded))
   }
   
   test("executeSingle() - job transitioned to right state") {
@@ -108,7 +120,7 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
       val job = MockJob(status)
     
-      job.transitionTo(NotStarted)
+      //job.transitionTo(NotStarted)
       
       assert(job.executionCount === 0)
       
@@ -131,7 +143,6 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     doTest(FailedWithException, FailedPermanently)
     doTest(Terminated, FailedPermanently)
     doTest(NotStarted, NotStarted)
-    doTest(Running, Running)
     doTest(Skipped, Skipped)
     doTest(Submitted, Submitted)
     doTest(Succeeded, Succeeded)

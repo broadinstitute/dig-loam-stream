@@ -14,4 +14,6 @@ trait ConfigParser[A] {
   def fromConfig(config: Config): Try[A]
   
   final def fromPath(configFilePath: Path): Try[A] = fromConfig(ConfigUtils.configFromFile(configFilePath))
+  
+  final def fromString(configData: String): Try[A] = fromConfig(ConfigUtils.configFromString(configData))
 }

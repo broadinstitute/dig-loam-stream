@@ -27,4 +27,6 @@ object JobRun {
   def apply(jobNode: JobNode, status: JobStatus, runCount: Int): JobRun = JobRun(jobNode.job, status, runCount)
   
   def apply(job: LJob, status: JobStatus, runCount: Int): JobRun = new JobRun(job, status, runCount)
+  
+  def unapply(jr: JobRun): Option[(LJob, JobStatus, Int)] = Some((jr.job, jr.status, jr.runCount))
 }

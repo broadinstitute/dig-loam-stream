@@ -6,6 +6,7 @@ import loamstream.model.jobs.{Execution, LJob}
 import loamstream.model.jobs.JobStatus
 import loamstream.util.Futures
 import loamstream.util.Loggable
+import loamstream.model.jobs.JobNode
 
 /**
  * @author clint
@@ -32,11 +33,11 @@ object ExecuterHelpers extends Loggable {
     }
   }
   
-  def flattenTree(roots: Set[LJob]): Set[LJob] = {
+  def flattenTree(roots: Set[JobNode]): Set[JobNode] = {
     roots.foldLeft(roots) { (acc, job) =>
-      val inputJobs = job.inputs.map(_.job)
+      val inputJobNodes = job.inputs
       
-      inputJobs ++ flattenTree(inputJobs) ++ acc
+      inputJobNodes ++ flattenTree(inputJobNodes) ++ acc
     }
   }
 }

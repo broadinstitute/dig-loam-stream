@@ -15,7 +15,7 @@ import loamstream.compiler.LoamPredef
   */
 final class CommandLineJobTest extends FunSuite {
   test("Complex command that needs escaping") {
-    val outputPath = "target/foo"
+    val outputPath = TestHelpers.getWorkDir(getClass.getSimpleName).resolve("foo")
     
     val graph: LoamGraph = TestHelpers.makeGraph { implicit sc =>
       import LoamPredef._
@@ -33,7 +33,7 @@ final class CommandLineJobTest extends FunSuite {
 
     assert(jobResults.size === 1)
 
-    val numLines = CanBeClosed.enclosed(Source.fromFile(outputPath)) { source =>
+    val numLines = CanBeClosed.enclosed(Source.fromFile(outputPath.toFile)) { source =>
       source.getLines.map(_.trim).count(_.nonEmpty)
     }
 

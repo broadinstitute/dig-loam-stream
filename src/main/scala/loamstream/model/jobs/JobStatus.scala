@@ -43,6 +43,8 @@ object JobStatus extends Loggable {
   case object CouldNotStart extends NeitherSuccessNorFailure(isTerminal = true)
   case object FailedPermanently extends Failure(isTerminal = true)
 
+  def values: Set[JobStatus] = namesToInstances.values.toSet
+  
   def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
 
   def fromExitCode(code: Int): JobStatus = {

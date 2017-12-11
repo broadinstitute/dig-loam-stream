@@ -156,4 +156,20 @@ final class JobStatusTest extends FunSuite {
     assert(fromExitCode(42) === Failed) // scalastyle:ignore magic.number
   }
 
+  test("values") {
+    val expected = Set(
+        Succeeded,
+        Skipped,
+        Failed,
+        FailedWithException,
+        NotStarted,
+        Submitted,
+        Running,
+        Terminated,
+        Unknown,
+        CouldNotStart,
+        FailedPermanently)
+        
+    assert(JobStatus.values === expected)
+  }
 }

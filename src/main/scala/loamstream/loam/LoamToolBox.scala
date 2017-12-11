@@ -1,93 +1,82 @@
 package loamstream.loam
 
 import java.net.URI
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
+
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.model.execute.Executable
+import loamstream.model.Store
+import loamstream.model.Tool
 import loamstream.model.execute.Environment
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.{LJob, NativeJob, Output}
-import loamstream.model.{Store, Tool}
-import loamstream.loam.ast.AST
-import loamstream.util.{Hit, Miss, Shot, Snag}
+import loamstream.model.execute.Executable
 import loamstream.model.jobs.JobNode
+import loamstream.model.jobs.NativeJob
+import loamstream.model.jobs.Output
+import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
-  * LoamStream
-  * Created by oliverr on 6/21/2016.
-  */
-final class LoamToolBox(graph: LoamGraph, client: Option[CloudStorageClient] = None) {
+ * LoamStream
+ * Created by oliverr on 6/21/2016.
+ */
+final class LoamToolBox(client: Option[CloudStorageClient] = None) {
 
   @volatile private[this] var loamJobs: Map[Tool, JobNode] = Map.empty
 
   private[this] val lock = new AnyRef
 
-  private[loam] def newLoamJob(tool: Tool): Shot[LJob] = {
-    def outputsFor(tool: Tool): Set[Output] = {
-      val loamStores: Set[Store] = graph.toolOutputs(tool)
+  def createExecutable(graph: LoamGraph): Executable = {
+    //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
+    Executable(toJobs(graph)(graph.finalTools)).plusNoOpRootJobIfNeeded
+  }
 
-      def pathOrUriToOutput(store: Store): Option[Output] = {
-        store.pathOpt.orElse(store.uriOpt).map {
-          case path: Path => Output.PathOutput(path)
-          case uri: URI => Output.GcsUriOutput(uri, client)
+  private[loam] def toJobs(graph: LoamGraph)(tools: Set[Tool]): Set[JobNode] = tools.flatMap(getJob(graph))
+
+  def getJob(graph: LoamGraph)(tool: Tool): Option[JobNode] = lock.synchronized {
+    if (loamJobs.contains(tool)) {
+      loamJobs.get(tool)
+    } else {
+      newJob(graph)(tool) match {
+        case jobOpt @ Some(job) => {
+          loamJobs += tool -> job
+          jobOpt
         }
+        case None => None
       }
-
-      loamStores.flatMap(pathOrUriToOutput)
     }
+  }
 
+  private[loam] def newJob(graph: LoamGraph)(tool: Tool): Option[JobNode] = {
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
 
     val environment: Environment = graph.executionEnvironmentOpt(tool).getOrElse(Environment.Local)
 
-    val shotsForPrecedingTools: Shot[Set[JobNode]] = Shot.sequence(graph.toolsPreceding(tool).map(getLoamJob))
+    val inputJobs = toJobs(graph)(graph.toolsPreceding(tool))
 
-    shotsForPrecedingTools.map { inputJobs =>
-      val outputs = outputsFor(tool)
+    val outputs = outputsFor(graph)(tool)
 
-      val toolNameOpt = graph.nameOf(tool)
-      
-      tool match {
-        case cmdTool: LoamCmdTool => {
-          CommandLineJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs, nameOpt = toolNameOpt)
-        }
-        case nativeTool: LoamNativeTool[_] => NativeJob(nativeTool.expBox, inputJobs, outputs, nameOpt = toolNameOpt)
+    val toolNameOpt = graph.nameOf(tool)
+
+    tool match {
+      case cmdTool: LoamCmdTool => {
+        Some(CommandLineJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs, nameOpt = toolNameOpt))
       }
+      case nativeTool: LoamNativeTool[_] => {
+        Some(NativeJob(nativeTool.expBox, inputJobs, outputs, nameOpt = toolNameOpt))
+      }
+      case _ => None
     }
   }
 
-  def getLoamJob(tool: Tool): Shot[JobNode] = lock.synchronized {
-    loamJobs.get(tool) match {
-      case Some(job) => Hit(job)
-      case _ => newLoamJob(tool) match {
-        case jobHit @ Hit(job) => {
-          loamJobs += tool -> job
-          jobHit
-        }
-        case miss: Miss => miss
+  private def outputsFor(graph: LoamGraph)(tool: Tool): Set[Output] = {
+    val loamStores: Set[Store] = graph.toolOutputs(tool)
+
+    def pathOrUriToOutput(store: Store): Option[Output] = {
+      store.pathOpt.orElse(store.uriOpt).map {
+        case path: Path => Output.PathOutput(path)
+        case uri: URI   => Output.GcsUriOutput(uri, client)
       }
     }
-  }
 
-  def createExecutable(ast: AST): Executable = {
-    val noJobs: Set[JobNode] = Set.empty
-
-    val jobs: Set[JobNode] = ast match {
-      case AST.ToolNode(_, tool, deps) => {
-        val jobsOption = for {
-          //TODO: fail loudly
-          job <- getLoamJob(tool).asOpt
-          newInputs = deps.map(_.producer).flatMap(createExecutable(_).jobNodes)
-          newJob = if (newInputs == job.inputs) job else job.withInputs(newInputs)
-        } yield {
-          Set(newJob)
-        }
-
-        jobsOption.getOrElse(noJobs)
-      }
-      case _ => noJobs //TODO: other AST nodes
-    }
-
-    Executable(jobs)
+    loamStores.flatMap(pathOrUriToOutput)
   }
 }

@@ -32,6 +32,8 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.OutputRecord
 import loamstream.util.Sequence
 import loamstream.model.execute.UgerSettings
+import loamstream.util.PathEnrichments
+import org.apache.commons.io.FileUtils
 
 /**
   * @author clint
@@ -115,16 +117,14 @@ object TestHelpers {
   }
   
   def getWorkDir(basename: String): Path = {
-    val suffixes = Sequence[Int]()
+    val result = Files.createTempDirectory(basename)
+
+    //NB: This seems very heavy-handed, but java.io.File.deleteOnExit doesn't work for non-empty directories. :\
+    Runtime.getRuntime.addShutdownHook(new Thread {
+      override def run(): Unit = FileUtils.deleteQuietly(result.toFile)
+    })
     
-    val candidates = suffixes.iterator.map(i => path(s"target/$basename-$i"))
-    
-    val exists: Path => Boolean = Files.exists(_)
-    
-    val result = candidates.dropWhile(exists).next()
-    
-    try { result }
-    finally { loamstream.util.Files.createDirsIfNecessary(result) }
+    result
   }
 
   def loamEngine: LoamEngine = LoamEngine.default(config)

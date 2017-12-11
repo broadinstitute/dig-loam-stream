@@ -21,6 +21,7 @@ import loamstream.loam.LoamGraph
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamCmdTool
 import loamstream.conf.ExecutionConfig
+import loamstream.model.jobs.JobNode
 
 /**
   * @author kaan
@@ -292,23 +293,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
   private val sequence: Sequence[Int] = Sequence()
 
-  private def makeWorkDir(): Path = {
-    def exists(path: Path): Boolean = path.toFile.exists
-
-    val suffixes = sequence.iterator
-
-    val candidates = suffixes.map(i => Paths.get("target", s"resumptive-executer-test$i"))
-
-    val result = candidates.dropWhile(exists).next()
-
-    val asFile = result.toFile
-
-    asFile.mkdir()
-
-    assert(asFile.exists)
-
-    result
-  }
+  private def makeWorkDir(): Path = TestHelpers.getWorkDir(getClass.getSimpleName)
 
   private val resumptiveExecuter = {
     val dbBackedJobFilter = new DbBackedJobFilter(dao)
@@ -344,13 +329,16 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     (executable, executions)
   }
 
-  private def allJobsFrom(executable: Executable): Seq[LJob] = ExecuterHelpers.flattenTree(executable.jobs).toSeq
+  private def allJobsFrom(executable: Executable): Seq[JobNode] = {
+    ExecuterHelpers.flattenTree(executable.jobNodes).toSeq
+  }
 
   private def jobThatWritesTo(executable: Executable)(fileNameSuffix: Path): Option[LJob] = {
-    val allJobs = allJobsFrom(executable)
+    val allJobs = allJobsFrom(executable).map(_.job)
 
-    def outputMatches(o: Output): Boolean =
+    def outputMatches(o: Output): Boolean = {
       o.asInstanceOf[Output.PathOutput].path.toString.endsWith(fileNameSuffix.toString)
+    }
 
     def jobMatches(j: LJob): Boolean = j.outputs.exists(outputMatches)
 

@@ -1,14 +1,16 @@
 package loamstream.util
 
-import org.scalatest.FunSuite
+import java.nio.file.Path
 import java.nio.file.Paths
+
+import org.scalafmt.Scalafmt
+import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
 import loamstream.loam.LoamScript
-import java.nio.file.Path
-import loamstream.util.code.RootPackageId
 import loamstream.util.code.ObjectId
 import loamstream.util.code.PackageId
-import org.scalafmt.Scalafmt
+import loamstream.util.code.RootPackageId
 
 /**
  * @author clint
@@ -16,8 +18,8 @@ import org.scalafmt.Scalafmt
  */
 final class LoamToScalaConverterTest extends FunSuite {
   import LoamToScalaConverter._
-  
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
+  import PathEnrichments._
   
   private def format(scalaCode: String): String = Scalafmt.format(scalaCode).get
   
@@ -242,7 +244,7 @@ final class LoamToScalaConverterTest extends FunSuite {
   }
   
   test("makeScalaFile - root dir") {
-    val outputDir = path("target")
+    val outputDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
     val a = path("src/test/loam/a.loam")
     
@@ -250,7 +252,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val script = LoamScript("a", read(a), None)
     
-    val expectedScalaFile = path("target/loamstream/loam/scripts/a.scala")
+    val expectedScalaFile = outputDir / "loamstream" / "loam" / "scripts" / "a.scala"
     
     val actualScalaFile = makeScalaFile(outputDir, a, LoamFileInfo(path("a.loam"), script))
     
@@ -268,7 +270,7 @@ final class LoamToScalaConverterTest extends FunSuite {
   }
   
   test("makeScalaFile - sub dir") {
-    val outputDir = path("target")
+    val outputDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
     val x = path("src/test/loam/subdir/x.loam")
     
@@ -276,7 +278,7 @@ final class LoamToScalaConverterTest extends FunSuite {
     
     val script = LoamScript("x", read(x), Some(PackageId("subdir")))
     
-    val expectedScalaFile = path("target/loamstream/loam/scripts/subdir/x.scala")
+    val expectedScalaFile = outputDir / "loamstream" / "loam" / "scripts" / "subdir" / "x.scala"
     
     val actualScalaFile = makeScalaFile(outputDir, x, LoamFileInfo(path("subdir/x.loam"), script))
     
@@ -295,7 +297,7 @@ final class LoamToScalaConverterTest extends FunSuite {
   
   test("convert") {
     val inputDir = path("src/test/loam/subdir")
-    val outputDir = path("target")
+    val outputDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
     val xLoam = path("src/test/loam/subdir/x.loam")
     val yLoam = path("src/test/loam/subdir/y.loam")
@@ -305,10 +307,10 @@ final class LoamToScalaConverterTest extends FunSuite {
     val xScript = LoamScript("x", read(xLoam), None)
     val yScript = LoamScript("y", read(yLoam), None)
     
-    val expectedScalaFileX = path("target/loamstream/loam/scripts/x.scala")
-    val expectedScalaFileY = path("target/loamstream/loam/scripts/y.scala")
+    val expectedScalaFileX = outputDir / "loamstream/loam/scripts/x.scala"
+    val expectedScalaFileY = outputDir / "loamstream/loam/scripts/y.scala"
     val expectedProjectContextOwnerScalaFiles = {
-      Set(path("target/loamstream/loam/scripts/LoamProjectContextOwner.scala"))
+      Set(outputDir / "loamstream/loam/scripts/LoamProjectContextOwner.scala")
     }
     
     val filesMade = convert(inputDir, outputDir)

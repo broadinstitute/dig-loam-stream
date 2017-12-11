@@ -39,6 +39,6 @@ for(i in 1:nrow(out)) {
 
 out$FINAL[is.na(out$FINAL)]<-"OUTLIERS"
 write.table(out[,c("IID","FINAL")],args$out_table,row.names=F,col.names=T,sep="\t",append=F,quote=F)
-write.table(out$IID[out$FINAL == "OUTLIERS"],args$out_outliers,row.names=F,col.names=T,sep="\t",append=F,quote=F)
+write.table(out$IID[out$FINAL == "OUTLIERS"],args$out_outliers,row.names=F,col.names=F,sep="\t",append=F,quote=F)
 print(table(out$FINAL))
 

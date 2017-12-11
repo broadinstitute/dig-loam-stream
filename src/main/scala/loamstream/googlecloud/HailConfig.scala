@@ -19,6 +19,8 @@ import loamstream.util.PathUtils
  */
 final case class HailConfig(jar: URI, zip: URI, scriptDir: Path = Defaults.scriptDir) extends HasScriptDir {
   def jarFile: String = jar.getPath.split("/").last
+  
+  def withScriptDir(newScriptDir: Path): HailConfig = copy(scriptDir = newScriptDir)
 }
 
 object HailConfig {

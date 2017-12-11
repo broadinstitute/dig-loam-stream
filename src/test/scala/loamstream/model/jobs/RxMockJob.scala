@@ -21,7 +21,7 @@ import loamstream.util.ValueBox
 // scalastyle:off magic.number
 final case class RxMockJob( 
   override val name: String,
-  inputs: Set[JobNode],
+  override val inputs: Set[JobNode],
   outputs: Set[Output],
   runsAfter: Option[RxMockJob],
   toReturn: () => Execution)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LocalJob {
@@ -69,8 +69,6 @@ final case class RxMockJob(
       toReturn()
     }
   }
-
-  override protected def doWithInputs(newInputs: Set[JobNode]): LJob = copy(inputs = newInputs)
 
   override def toString: String = name
 }

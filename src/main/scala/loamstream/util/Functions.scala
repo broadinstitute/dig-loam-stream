@@ -17,7 +17,9 @@ object Functions {
     }
   }
   
-  def memoize[A, B](f: A => B, shouldCache: B => Boolean = (_ :B) => true): A => B = {
+  private def alwaysCache[A]: A => Boolean = _ => true
+  
+  def memoize[A, B](f: A => B, shouldCache: B => Boolean = alwaysCache): A => B = {
     val cache: ValueBox[Map[A, B]] = ValueBox(Map.empty)
     
     a => {

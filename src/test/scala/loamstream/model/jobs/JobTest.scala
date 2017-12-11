@@ -6,6 +6,11 @@ import loamstream.util.ObservableEnrichments
 
 import scala.concurrent.ExecutionContext
 import loamstream.util.Maps
+import loamstream.model.execute.AsyncLocalChunkRunner
+import loamstream.conf.ExecutionConfig
+import loamstream.TestHelpers
+import scala.concurrent.Future
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -13,126 +18,31 @@ import loamstream.util.Maps
  */
 final class JobTest extends FunSuite with TestJobs {
   
-  //scalastyle:off magic.number
-  
   import JobStatus._
   import Futures.waitFor
   import ObservableEnrichments._
-
-  private def exec(jobs: LocalJob*): Unit = jobs.foreach(_.execute(ExecutionContext.global))
 
   private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
   
   //TODO: Lame :(
   private def toLJob(lj: LocalJob): LJob = lj
   //TODO: Lame :(
+  private def toJobNode(j: LJob): JobNode = j
+  //TODO: Lame :(
   private def toLocalJob(j: LJob): LocalJob = j.asInstanceOf[LocalJob]
-  
-  test("print - job tree with one root") {
-    var visited: Map[JobNode, Int] = Map.empty
-    
-    def incFor(job: JobNode): Unit = {
-      visited += (job -> (visited.getOrElse(job, 0) + 1))
-    }
-    
-    val doPrint: JobNode => String => Unit = job => _ => incFor(job)
-    
-    /*
-     * gc0
-     *    \    
-     *     +---c0 
-     *    /      \       
-     * gc1        \
-     *             +---root
-     * gc2        /
-     *    \      /
-     *     +---c1
-     *    /
-     * gc3
-     */
-    val gc0: LJob = MockJob(Succeeded)
-    val gc1: LJob = MockJob(Succeeded)
-    val gc2 = MockJob(Succeeded)
-    val gc3 = MockJob(Succeeded)
-    
-    val c0 = MockJob(Succeeded, inputs = Set[JobNode](gc0, gc1))
-    val c1 = MockJob(Succeeded, inputs = Set[JobNode](gc2, gc3))
-    
-    val rootJob = MockJob(Succeeded, inputs = Set[JobNode](c0,c1))
-    
-    assert(visited.isEmpty)
-    
-    rootJob.print(doPrint = doPrint)
-    
-    assert(visited === Map(gc0 -> 1, gc1 -> 1, gc2 -> 1, gc3 -> 1, c0 -> 1, c1 -> 1, rootJob -> 1))
-  }
-  
-  test("print - job graph with diamonds") {
-    var visited: Map[JobNode, Int] = Map.empty
-    
-    def incFor(job: JobNode): Unit = {
-      visited += (job -> (visited.getOrElse(job, 0) + 1))
-    }
-    
-    val doPrint: JobNode => String => Unit = job => _ => incFor(job)
-    
-    /*
-     * ggc0
-     *     \    
-     *      +---gc0   c0
-     *     /       \ /  \
-     * ggc1         +    +---root
-     *     \       / \  /
-     *      +---gc1   c1
-     *     /
-     * ggc2
-     */
-    val ggc0: LJob = MockJob(Succeeded, "ggc0")
-    val ggc1: LJob = MockJob(Succeeded, "ggc1")
-    val ggc2: LJob = MockJob(Succeeded, "ggc2")
-    
-    val gc0: LJob = MockJob(Succeeded, "gc0", inputs = Set(ggc0, ggc1))
-    val gc1: LJob = MockJob(Succeeded, "gc1", inputs = Set(ggc1, ggc2))
-    
-    val c0: LJob = MockJob(Succeeded, "c0", inputs = Set(gc0, gc1))
-    val c1: LJob = MockJob(Succeeded, "c1", inputs = Set(gc0, gc1))
-    
-    val root = MockJob(Succeeded, "root", inputs = Set(c0,c1))
-    
-    assert(visited.isEmpty)
-    
-    root.print(doPrint = doPrint)
-    
-    val expected = Map(
-        ggc0.name -> 1, 
-        ggc1.name -> 1, 
-        ggc2.name -> 1, 
-        gc0.name -> 1, 
-        gc1.name -> 1, 
-        c0.name -> 1, 
-        c1.name -> 1, 
-        root.name -> 1)
-
-    import Maps.Implicits._
-        
-    assert(visited.mapKeys(_.job.name) === expected)
-  }
   
   test("transitionTo") {
     val job = MockJob(NotStarted)
     
     def statuses(howMany: Int): Seq[JobStatus] = waitFor(job.statuses.take(howMany).to[Seq].firstAsFuture)
     
-    job.transitionTo(NotStarted)
-    
     assert(job.status === NotStarted)
-    assert(statuses(1) === Seq(NotStarted))
     assert(job.runCount === 0)    
     
     job.transitionTo(Running)
     
     assert(job.status === Running)
-    assert(statuses(2) === Seq(NotStarted, Running))
+    assert(statuses(1) === Seq(Running))
     assert(job.runCount === 1)
     
     job.transitionTo(Failed)
@@ -140,21 +50,33 @@ final class JobTest extends FunSuite with TestJobs {
     job.transitionTo(Running)
     
     assert(job.status === Running)
-    assert(statuses(4) === Seq(NotStarted, Running, Failed, Running))
+    assert(statuses(3) === Seq(Running, Failed, Running))
     assert(job.runCount === 2)
     
+    //NB: Transitioning to the state we're already at should have no effect
+    job.transitionTo(Running)
+    job.transitionTo(Running)
+    job.transitionTo(Running)
     job.transitionTo(Running)
     
     assert(job.status === Running)
-    assert(statuses(5) === Seq(NotStarted, Running, Failed, Running, Running))
+    assert(statuses(3) === Seq(Running, Failed, Running))
     assert(job.runCount === 2)
     
     job.transitionTo(Failed)
     assert(job.status === Failed)
+    
+    //NB: Transitioning to the state we're already at should have no effect
+    job.transitionTo(Failed)
+    job.transitionTo(Failed)
+    job.transitionTo(Failed)
+    job.transitionTo(Failed)
+    assert(job.status === Failed)
+    
     job.transitionTo(Running)
     
     assert(job.status === Running)
-    assert(statuses(7) === Seq(NotStarted, Running, Failed, Running, Running, Failed, Running))
+    assert(statuses(5) === Seq(Running, Failed, Running, Failed, Running))
     assert(job.runCount === 3)
   }
   
@@ -174,6 +96,10 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("lastStatus - simple") {
+    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+
+    def run(job: MockJob) = runner.run(Set(job), TestHelpers.neverRestart)
+    
     def doTest(terminalStatus: JobStatus): Unit = {
       assert(terminalStatus.isTerminal)
     
@@ -181,7 +107,7 @@ final class JobTest extends FunSuite with TestJobs {
     
       val lastStatusFuture = terminalJob.lastStatus.firstAsFuture
 
-      terminalJob.execute(ExecutionContext.global)
+      run(terminalJob)
     
       assert(waitFor(lastStatusFuture) === terminalStatus)
     }
@@ -196,9 +122,6 @@ final class JobTest extends FunSuite with TestJobs {
     
     val lastStatusesFuture = failedJob.lastStatus.to[Seq].firstAsFuture
 
-    failedJob.transitionTo(NotStarted)
-    failedJob.transitionTo(NotStarted)
-    failedJob.transitionTo(Running)
     failedJob.transitionTo(Running)
     failedJob.transitionTo(Failed)
     failedJob.transitionTo(FailedPermanently)
@@ -218,14 +141,23 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("finalInputStatuses - some deps") {
+    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+
+    def run(jobs: Set[LJob]) = runner.run(jobs, TestHelpers.neverRestart)
+    
     val deps: Set[LocalJob] = Set(MockJob(FailedPermanently), MockJob(Succeeded))
     
     //TODO: Lame :(
-    val noDeps = MockJob(toReturn = Failed, inputs = deps.map(toLJob))
+    val depsAsLJobs: Set[LJob] = deps.map(toLJob)
+    
+    //TODO: Lame :(
+    val depsAsJobNodes: Set[JobNode] = deps.map(toJobNode)
+    
+    val noDeps = MockJob(toReturn = Failed, inputs = depsAsJobNodes)
     
     val finalInputStatusesFuture = noDeps.finalInputStatuses.firstAsFuture
     
-    deps.foreach(_.execute(ExecutionContext.global))
+    run(depsAsLJobs)
     
     //NB: Use Sets to ignore order
     val expected = Set(FailedPermanently, Succeeded)
@@ -337,15 +269,19 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("runnables - no deps") {
+    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+
+    def run(job: LJob) = runner.run(Set(job), TestHelpers.neverRestart)
+    
     def doTest(resultStatus: JobStatus): Unit = {
       val job = MockJob(resultStatus)
       
-      val runnables = {
+      val runnables: Future[Seq[JobRun]] = {
         if(resultStatus.isTerminal) { job.runnables.to[Seq].firstAsFuture }
         else { job.runnables.take(1).to[Seq].firstAsFuture }
       }
       
-      job.execute(ExecutionContext.global)
+      run(job)
       
       assert(waitFor(runnables).map(_.job) === Seq(job))
       
@@ -354,7 +290,6 @@ final class JobTest extends FunSuite with TestJobs {
     
     doTest(Succeeded)
     doTest(Failed)
-    doTest(NotStarted)
     doTest(FailedWithException)
     doTest(Unknown)
     doTest(Terminated)
@@ -365,6 +300,10 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("runnables - some deps, no failures") {
+    
+    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+
+    def run(jobs: LJob*) = runner.run(jobs.toSet, TestHelpers.neverRestart)
     
     /*
      * gc0
@@ -396,11 +335,11 @@ final class JobTest extends FunSuite with TestJobs {
     val futureChildren = rootJob.runnables.map(_.job).drop(4).take(2).to[Set].firstAsFuture
     
     //TODO: Lame cast :(
-    exec(grandChildren.toSeq.map(toLocalJob): _*)
+    run(grandChildren.toSeq.map(toLocalJob): _*)
     
-    exec(c0, c1)
+    run(c0, c1)
     
-    exec(rootJob)
+    run(rootJob)
     
     assert(waitFor(futureChildren) === Set(c0, c1))
     
@@ -413,6 +352,10 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("runnables - some deps, some failures") {
+    
+    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+
+    def run(jobs: LJob*) = runner.run(jobs.toSet, TestHelpers.alwaysRestart)
     
     /*
      * gc0 (success)
@@ -445,13 +388,13 @@ final class JobTest extends FunSuite with TestJobs {
     val futureChildren = rootJob.runnables.map(_.job).drop(4).take(2).to[Seq].firstAsFuture
     
     //TODO: Lame cast :(
-    exec(grandChildren.map(toLocalJob): _*)
+    run(grandChildren.map(toLocalJob): _*)
     
     //We should get all the children, since their children all succeed
     //NB: We should get c0 once here, since it won't become runnable until we execute it, and it fails
-    assert(waitFor(futureChildren) === Seq(c0, c1))
+    assert(waitFor(futureChildren).toSet === Set(c0, c1))
     
-    exec(c0, c1)
+    run(c0, c1)
     
     val futureNonRootRunnables = rootJob.runnables.map(_.job).take(7).to[Seq].firstAsFuture
     
@@ -485,6 +428,10 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("One job, multiple failures, ultimately succeeds") {
+    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+
+    def run(jobs: LJob*) = runner.run(jobs.toSet, TestHelpers.alwaysRestart)
+    
     val job = MockJob(Failed, "job")
     
     val firstRunnable = job.runnables.map(_.job).take(1).firstAsFuture
@@ -494,7 +441,7 @@ final class JobTest extends FunSuite with TestJobs {
     
     val firstAndSecond = job.runnables.map(_.job).take(2).to[Seq].firstAsFuture
     
-    exec(job)
+    run(job)
     
     //After the job runs (and fails), we expect 2 runnables: once for the job initially (since it had no deps)
     //and once for the failure
@@ -502,7 +449,7 @@ final class JobTest extends FunSuite with TestJobs {
     
     val firstSecondAndThird = job.runnables.map(_.job).take(3).to[Seq].firstAsFuture
     
-    exec(job)
+    run(job)
     
     //After the job runs twice (and fails twice), we expect 3 runnables: once for the job initially (since it had 
     //no deps) and once for each of the two failures.
@@ -520,6 +467,10 @@ final class JobTest extends FunSuite with TestJobs {
   }
   
   test("One job, multiple failures, ultimately fails") {
+    val runner = new AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
+
+    def run(jobs: LJob*) = runner.run(jobs.toSet, TestHelpers.alwaysRestart)
+    
     val job = MockJob(Failed, "job")
     
     val firstRunnable = job.runnables.map(_.job).take(1).firstAsFuture
@@ -529,7 +480,7 @@ final class JobTest extends FunSuite with TestJobs {
     
     val firstAndSecond = job.runnables.map(_.job).take(2).to[Seq].firstAsFuture
     
-    exec(job)
+    run(job)
     
     //After the job runs (and fails), we expect 2 runnables: once for the job initially (since it had no deps)
     //and once for the failure
@@ -537,7 +488,7 @@ final class JobTest extends FunSuite with TestJobs {
     
     val firstSecondAndThird = job.runnables.map(_.job).take(3).to[Seq].firstAsFuture
     
-    exec(job)
+    run(job)
     
     //After the job runs twice (and fails twice), we expect 3 runnables: once for the job initially (since it had 
     //no deps) and once for each of the two failures.
@@ -553,6 +504,4 @@ final class JobTest extends FunSuite with TestJobs {
     //runnables due to the terminal status.
     assert(waitFor(futureRunnables) === Seq(job, job, job))
   }
-  
-  //scalastyle:on magic.number
 }

@@ -10,6 +10,20 @@ import com.typesafe.config.ConfigFactory
  */
 object ConfigUtils {
   /**
+   * Create a Config with values passed from the serialized `confData` as well as JVM system properties.  
+   * System properties override values defined in `confData`.
+   * @param confData the string containing HOCON to parse.
+   * @return a Config object with values from `confData` as well as JVM system properties.
+   */
+  def configFromString(confData: String): Config = {
+    //parse the config data.
+    //NB: ConfigFactory.parseString() does not add fallbacks to JVM system properties like ConfigFactory.load() does.
+    val fromString = ConfigFactory.parseString(confData)
+    
+    allowSyspropOverrides(fromString)
+  }
+  
+  /**
    * Create a Config with values from `confFile` as well as JVM system properties.  System properties override
    * values defined in `confFile`.
    * @param confFile the path of the file to parse

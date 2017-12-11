@@ -6,6 +6,10 @@ import rx.lang.scala.subjects.ReplaySubject
 import rx.lang.scala.Observable
 import loamstream.util.Loggable
 import loamstream.util.Observables
+import rx.lang.scala.observables.ConnectableObservable
+import rx.lang.scala.subjects.BehaviorSubject
+import rx.lang.scala.subjects.SerializedSubject
+import loamstream.model.jobs.log.JobLog
 
 /**
  * @author oliverr
@@ -14,9 +18,9 @@ import loamstream.util.Observables
  * Date (as LJob): Dec 23, 2015
  * Factored out: Nov 14, 2017
  * 
- * NB: Note liberal use of Observable.share to (dramatically) reduce memory consumption.  Without .share, 
- * RxJava/RxScala makes one "copy" of any observable that multicasts *per* derived observable.  Since we 
- * resursively build Observable streams from trees of jobs, this led to pathological, exponential memory
+ * NB: Note liberal use of shareReplay (.share.cache) to (dramatically) reduce memory consumption.  Without 
+ * this, RxJava/RxScala makes one "copy" of any observable that multicasts *per* derived observable.  
+ * Since we resursively build Observable streams from trees of jobs, this led to pathological, exponential memory
  * use.
  */
 trait JobNode extends Loggable {  
@@ -25,20 +29,21 @@ trait JobNode extends Loggable {
   /** Any jobs this job depends on */
   def inputs: Set[JobNode]
   
-  protected def doWithInputs(newInputs: Set[JobNode]): JobNode
-
-  final def withInputs(newInputs: Set[JobNode]): JobNode = {
-    if (inputs eq newInputs) { this }
-    else { doWithInputs(newInputs) }
-  }
-
+  import JobNode.ObservableOps
+  
   private[this] val snapshotRef: ValueBox[JobSnapshot] = ValueBox(JobSnapshot(JobStatus.NotStarted, 0))
 
   /** This job's 'state' (status and run count) at this instant. */ 
   private def snapshot: JobSnapshot = snapshotRef()
   
   //NB: Needs to be a ReplaySubject for correct operation
-  private[this] val runsEmitter: Subject[JobRun] = ReplaySubject.withSize(JobNode.replaySubjectBufferSize)
+  private[this] val runsEmitter: Subject[JobRun] = /*ReplaySubject.withSize(15)*/ ReplaySubject()
+  
+  /** This job's current status */
+  final def status: JobStatus = snapshotRef().status
+  
+  /** The number of times this job has transitioned to `Running` status */
+  final def runCount: Int = snapshotRef().runCount
   
   /**
    * An Observable that emits JobRuns of this job.  These are (effectively) tuples of (job, status, runCount), 
@@ -46,60 +51,33 @@ trait JobNode extends Loggable {
    * the same upstream dependency would cause the dependency to be run more than necessary under certain 
    * conditions.
    */
-  //NB: Note use of .share which allows re-using this Observable, saving lots of memory when running complex pipelines
-  protected final val runs: Observable[JobRun] = runsEmitter.share
-  
-  /** This job's current status */
-  final def status: JobStatus = snapshotRef().status
-  
-  /** The number of times this job has transitioned to `Running` status */
-  def runCount: Int = snapshotRef().runCount
-  
-  def print(
-      indent: Int = 0, 
-      doPrint: JobNode => String => Unit = _ => debug(_), 
-      header: Option[String] = None): Unit = {
-    
-    var visited: Set[JobNode] = Set.empty 
-    
-    def loop(
-        jobNode: JobNode,
-        indent: Int = 0, 
-        header: Option[String]): Unit = {
-      
-      val indentString = s"${"-" * indent} >"
-  
-      header.foreach(doPrint(jobNode))
-      
-      doPrint(jobNode)(s"$indentString (${jobNode.status})${jobNode}")
-      
-      visited += jobNode
-      
-      jobNode.inputs.filterNot(visited.contains).foreach(loop(_, indent + 2, None))
-    }
-    
-    loop(this, indent, header)
-  }
+  //NB: Note use of .shareReplay which allows re-using this Observable, 
+  //saving lots of memory when running complex pipelines
+  private final lazy val runs: Observable[JobRun] = runsEmitter.shareReplay
   
   /**
-   * An Observable producing a all the runnable jobs among this job, its dependencies, their dependencies,
-   * and so on, as soon as those jobs become runnable.  A job becomes runnable when all its dependencies are finished
-   * - either successfully or with JobStatus.FailedPermanently - or if it fails (to facilitate restarting).  
-   * If a job has no dependencies, it's runnable immediately. (See selfRunnables)
+   * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
    */
-  final lazy val runnables: Observable[JobRun] = {
+  //NB: Note use of .shareReplay which allows re-using this Observable, 
+  //saving lots of memory when running complex pipelines
+  final lazy val statuses: Observable[JobStatus] = runs.map(_.status).shareReplay
 
-    //Multiplex the streams of runnable jobs starting from each of our dependencies
-    val dependencyRunnables = {
-      if(inputs.isEmpty) { Observable.empty }
-      //NB: Note the use of merge instead of ++; this ensures that we don't emit jobs from the sub-graph rooted at
-      //one dependency before the other dependencies, but rather emit all the streams of runnable jobs "together".
-      else { Observables.merge(inputs.toSeq.map(_.runnables)) }
-    }
+  /**
+   * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
+   * Will fire at most one time.
+   */
+  //NB: Note use of .shareReplay which allows re-using this Observable, 
+  //saving lots of memory when running complex pipelines
+  private[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).first.shareReplay
 
-    //Emit the current job *after* all our dependencies
-    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-    (dependencyRunnables ++ selfRunnables).share
+  /**
+   * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.
+   * When this fires, our dependencies are finished.
+   */
+  //NB: Note use of .shareReplay which allows re-using this Observable, 
+  //saving lots of memory when running complex pipelines
+  private[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
+    Observables.sequence(inputs.toSeq.map(_.lastStatus)).shareReplay
   }
   
   /**
@@ -149,7 +127,7 @@ trait JobNode extends Loggable {
       } else {
         for {
           inputStatuses <- finalInputStatuses
-          _ = debug(logMsg(s"deps finished with statuses: $inputStatuses"))
+          _ = trace(logMsg(s"deps finished with statuses: $inputStatuses"))
           anyInputFailures = inputStatuses.exists(_.isFailure)
           runnable <- if(anyInputFailures) stopDueToDependencyFailure() else justUs
         } yield {
@@ -157,63 +135,76 @@ trait JobNode extends Loggable {
         }
       }
     }
-    //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-    result.share
+    //NB: Note use of .shareReplay which allows re-using this Observable, 
+    //saving lots of memory when running complex pipelines
+    result.shareReplay
   }
 
   /**
-   * An observable stream of statuses emitted by this job, each one reflecting a status this job transitioned to.
+   * An Observable producing a all the runnable jobs among this job, its dependencies, their dependencies,
+   * and so on, as soon as those jobs become runnable.  A job becomes runnable when all its dependencies are finished
+   * - either successfully or with JobStatus.FailedPermanently - or if it fails (to facilitate restarting).  
+   * If a job has no dependencies, it's runnable immediately. (See selfRunnables)
    */
-  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-  lazy val statuses: Observable[JobStatus] = runs.map(_.status).share
+  final lazy val runnables: Observable[JobRun] = {
 
-  /**
-   * The "terminal" status emitted by this job: the one that indicates the job is finished for any reason.
-   * Will fire at most one time.
-   */
-  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-  protected[jobs] lazy val lastStatus: Observable[JobStatus] = statuses.filter(_.isTerminal).firstOrElse(status).share
+    //Multiplex the streams of runnable jobs starting from each of our dependencies
+    val dependencyRunnables = {
+      if(inputs.isEmpty) { Observable.empty }
+      //NB: Note the use of merge instead of ++; this ensures that we don't emit jobs from the sub-graph rooted at
+      //one dependency before the other dependencies, but rather emit all the streams of runnable jobs "together".
+      else { Observables.merge(inputs.toSeq.map(_.runnables)) }
+    }
 
-  /**
-   * An observable that will emit a sequence containing all our dependencies' "terminal" statuses.
-   * When this fires, our dependencies are finished.
-   */
-  //NB: Note use of .share which allows re-using this Observable, saving much memory when running complex pipelines
-  protected[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
-    Observables.sequence(inputs.toSeq.map(_.lastStatus)).share
+    //Emit the current job *after* all our dependencies
+    //NB: Note use of .shareReplay which allows re-using this Observable, 
+    //saving lots of memory when running complex pipelines
+    (dependencyRunnables ++ selfRunnables).shareReplay
   }
   
   /**
-   * Sets the status of this job to be newStatus, and emits a JobRun with the new status to any observers.
+   * Transitions this JobNode to a new status.  If the passed-in status is the same as this JobNode's current
+   * status, this method has no effect.  If the passed-in status is different, this method updates this JobNode's
+   * status of this job to be newStatus, and emits a JobRun with the new status to any observers.
+   * 
    * Also bumps this job's run count if the current status *is not* `Running` and the new status *is* `Running`.
-   * If `newStatus` is a terminal status, all Observables derived from this job will be shut down.   
+   * If `newStatus` is a terminal status, all Observables derived from this job will be shut down.
    *
    * @param newStatus the new status to set for this job
    */
-  final def transitionTo(newStatus: JobStatus): Unit = {
-    debug(s"Status change to $newStatus (run count $runCount) for job: $job")
+  final def transitionTo(newStatus: JobStatus): Unit = snapshotRef.foreach { _ =>
     
     val (newSnapshot, isChanged) = snapshotRef.mutateAndGet(_.transitionTo(newStatus))
     
-    val isRunning = newSnapshot.status.isRunning
+    val newRunCount = newSnapshot.runCount
     
-    val isCouldNotStart = newSnapshot.status.isCouldNotStart
-    
-    if(isChanged && isRunning) {
-      info(s"Now running: $job")
-    }
-    
-    if(isChanged && isCouldNotStart) {
-      info(s"Could not start due to dependency failures: $job")
-    }
-    
-    runsEmitter.onNext(jobRunFrom(newSnapshot))
-    
-    //Shut down all Observables derived from this job when we will no longer emit any events.
-    if(newStatus.isTerminal) {
-      trace(s"$newStatus is terminal; emitting no more JobRuns from job: $job")
+    if(isChanged) {
+      debug(s"Status change to $newStatus (run count $newRunCount) for job: $job")
       
-      runsEmitter.onCompleted()
+      val isRunning = newSnapshot.status.isRunning
+      
+      val isCouldNotStart = newSnapshot.status.isCouldNotStart
+      
+      if(isRunning) {
+        info(s"Now running: $job")
+      }
+      
+      if(isCouldNotStart) {
+        info(s"Could not start due to dependency failures: $job")
+      }
+      
+      val jobRun = jobRunFrom(newSnapshot)
+
+      JobLog.onStatusChange(jobRun)
+      
+      runsEmitter.onNext(jobRun)
+      
+      //Shut down all Observables derived from this job when we will no longer emit any events.
+      if(newStatus.isTerminal) {
+        trace(s"$newStatus is terminal; emitting no more JobRuns from job: $job")
+       
+        runsEmitter.onCompleted()
+      }
     }
   }
   
@@ -221,5 +212,8 @@ trait JobNode extends Loggable {
 }
 
 object JobNode {
-  private val replaySubjectBufferSize: Int = 15 // scalastyle:ignore magic.number
+  /** Extension method to allow convenient, memory-efficient-enough multicasting */ 
+  private implicit final class ObservableOps[A](val o: Observable[A]) extends AnyVal { 
+    def shareReplay: Observable[A] = o.share.cache 
+  }
 }

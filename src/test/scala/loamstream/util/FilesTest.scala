@@ -14,6 +14,8 @@ import loamstream.TestHelpers
   *         date: Jun 15, 2016
   */
 final class FilesTest extends FunSuite {
+  import PathEnrichments._
+  
   test("tempFile in default temporary-file directory") {
     val path = Files.tempFile("foo")
 
@@ -32,7 +34,9 @@ final class FilesTest extends FunSuite {
   }
 
   test("createDirsIfNecessary") {
-    val dummy = Paths.get("target/dummy1/dummy2")
+    val workDir = TestHelpers.getWorkDir(getClass.getSimpleName) 
+    
+    val dummy = workDir / "dummy1" / "dummy2"
     assert(!dummy.toFile.exists)
 
     Files.createDirsIfNecessary(dummy)
@@ -42,7 +46,9 @@ final class FilesTest extends FunSuite {
   }
 
   test("listFiles") {
-    val dummy = Paths.get("target/dummy-listFiles").toAbsolutePath
+    val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+    
+    val dummy = (workDir / "dummy-listFiles").toAbsolutePath
     val dummyFileSuffix = ".dummy.txt"
 
     assert(!dummy.toFile.exists)
@@ -69,7 +75,7 @@ final class FilesTest extends FunSuite {
     import TestHelpers.path
     import java.nio.file.Files.exists
     
-    val nonexistentPath = "target/foo/bar/baz/asdfasdasdasd"
+    val nonexistentPath = "/foo/bar/baz/asdfasdasdasd"
     
     assert(exists(path(nonexistentPath)) === false)
     
@@ -88,7 +94,7 @@ final class FilesTest extends FunSuite {
     import TestHelpers.path
     import java.nio.file.Files.exists
     
-    val nonexistentPath = "target/foo/bar/baz/asdfasdasdasd"
+    val nonexistentPath = "/foo/bar/baz/asdfasdasdasd"
     
     assert(exists(path(nonexistentPath)) === false)
     
@@ -147,14 +153,15 @@ final class FilesTest extends FunSuite {
   }
 
   /** Asserts that both texts are the same except for possibly different line breaks */
-  def assertSameText(text1: String, text2: String): Unit =
-  assert(StringUtils.assimilateLineBreaks(text1) === StringUtils.assimilateLineBreaks(text2))
+  private def assertSameText(text1: String, text2: String): Unit = {
+    assert(StringUtils.assimilateLineBreaks(text1) === StringUtils.assimilateLineBreaks(text2))
+  }
 
   test("Merging gzipped files") {
     val nFiles = 3
     val nLinesPerFile = 5
     val iFiles = 0 until nFiles
-    val folder = JFiles.createTempDirectory("loamStreamFilesTest")
+    val folder = TestHelpers.getWorkDir("loamStreamFilesTest")
     val paths = iFiles.map(iFile => folder.resolve(s"file$iFile.txt"))
 
     val contents = iFiles.map { iFile =>
@@ -175,7 +182,7 @@ final class FilesTest extends FunSuite {
     val nHeaderLines = 5
     val nBodyLines = 7
     val iFiles = 0 until nFiles
-    val folder = JFiles.createTempDirectory("loamStreamFilesTest")
+    val folder = TestHelpers.getWorkDir("loamStreamFilesTest")
     val paths = iFiles.map(iFile => folder.resolve(s"file$iFile.vcf"))
 
     val headers = iFiles.map { iFile =>
@@ -197,7 +204,7 @@ final class FilesTest extends FunSuite {
 
   test("Merging empty bunch of pseudo-VCF files") {
     def doTest(filterFactory: Files.LineFilter.Factory): Unit = {
-      val folder = JFiles.createTempDirectory("loamStreamFilesTest")
+      val folder = TestHelpers.getWorkDir("loamStreamFilesTest")
 
       val pathOut = folder.resolve("fileOut.txt")
 
@@ -215,7 +222,7 @@ final class FilesTest extends FunSuite {
     doTest(Files.LineFilter.acceptAll)
   }
 
-  def assertEachLine(file: Path, predicateDescription: String)(predicate: String => Boolean): Unit = {
+  private def assertEachLine(file: Path, predicateDescription: String)(predicate: String => Boolean): Unit = {
     CanBeClosed.enclosed(JFiles.newBufferedReader(file, StandardCharsets.UTF_8)) { reader =>
       assert(reader.lines.iterator.asScala.forall(predicate), s"Not true for every line: $predicateDescription")
     }

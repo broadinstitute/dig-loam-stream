@@ -56,7 +56,6 @@ object AsyncLocalChunkRunner extends Loggable {
       job: LJob, 
       shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[(LJob, Execution)] = {
     
-    job.transitionTo(JobStatus.NotStarted)
     job.transitionTo(JobStatus.Running)
     
     val processLogger = ProcessLoggers.forNamedJob(executionConfig, this, job)

@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import loamstream.loam.LoamScript
 import loamstream.util.{Files, PathEnrichments}
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 /**
   * @author clint
@@ -28,9 +29,7 @@ final class LoamFolderRepositoryTest extends FunSuite {
   }
 
   test("save") {
-    val dir = Paths.get("target/loam")
-
-    dir.toFile.mkdir()
+    val dir = TestHelpers.getWorkDir(getClass.getSimpleName)
 
     import PathEnrichments._
 
@@ -46,7 +45,7 @@ final class LoamFolderRepositoryTest extends FunSuite {
 
     val script = repo.save(LoamScript("foo", "bar")).get
 
-    assert(Files.readFromAsUtf8(Paths.get("target/loam/foo.loam")) == "bar")
+    assert(Files.readFromAsUtf8(dir / "foo.loam") == "bar")
 
     assert(script.name == "foo")
   }

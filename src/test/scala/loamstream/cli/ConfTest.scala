@@ -80,6 +80,32 @@ final class ConfTest extends FunSuite with Matchers {
     doTest("-d", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
   }
   
+  test("--disable-hashing") {
+    {
+      val args = Seq("--disable-hashing", "--dry-run", "src/examples/loam/cp.loam")
+      
+      val conf = makeConf(args)
+      
+      assert(conf.disableHashing.isSupplied)
+      assert(conf.dryRun.isSupplied)
+      assert(conf.conf.isSupplied === false)
+      assert(conf.version.isSupplied === false)
+      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+    }
+    
+    {
+      val args = Seq("--dry-run", "src/examples/loam/cp.loam")
+      
+      val conf = makeConf(args)
+      
+      assert(conf.disableHashing.isSupplied === false)
+      assert(conf.dryRun.isSupplied)
+      assert(conf.conf.isSupplied === false)
+      assert(conf.version.isSupplied === false)
+      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+    }
+  }
+  
   test("Loam files must be specified if running normally or with --dry-run") {
     //No loam files
     intercept[CliException] {

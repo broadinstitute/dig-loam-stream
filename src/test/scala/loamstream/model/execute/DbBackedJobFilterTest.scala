@@ -194,9 +194,9 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
 
-  test("needsToBeRun/hasDifferentHash/isOlder") {
+  test("needsToBeRun/hasDifferentHash/isOlder - should hash") {
     createTablesAndThen {
-      val filter = new DbBackedJobFilter(dao)
+      val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
       val jobName = "dummyJob"
 
       assert(executions === Set.empty)
@@ -216,15 +216,15 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       //                  'isOlder --> false
       //                  'needsToBeRun' --> true
       assert(cachedOutput3.isMissing)
-      assert(!filter.hasDifferentHash(cachedOutput3))
-      assert(!filter.isOlder(cachedOutput3))
+      assert(filter.hasDifferentHash(cachedOutput3) === false)
+      assert(filter.isOlder(cachedOutput3) === false)
       assert(filter.needsToBeRun(jobName, cachedOutput3))
 
       // Older record (than its matching record in DB): 'hasDifferentHash' --> false
       //                                                'isOlder --> true
       //                                                'needsToBeRun' --> true
       val olderRec = cachedOutput1.withLastModified(Instant.ofEpochMilli(0))
-      assert(!filter.hasDifferentHash(olderRec))
+      assert(filter.hasDifferentHash(olderRec) === false)
       assert(filter.isOlder(olderRec))
       assert(filter.needsToBeRun(jobName, olderRec))
 
@@ -241,7 +241,59 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       assert(filter.needsToBeRun(jobName, recWithDiffHash))
 
       // Otherwise: 'needsToBeRun' --> false
-      assert(!filter.needsToBeRun(jobName, cachedOutput1))
+      assert(filter.needsToBeRun(jobName, cachedOutput1) === false)
+    }
+  }
+  
+  test("needsToBeRun/hasDifferentHash/isOlder - hashing disabled") {
+    createTablesAndThen {
+      val filter = new DbBackedJobFilter(dao, HashingStrategy.DontHashOutputs)
+      val jobName = "dummyJob"
+
+      assert(executions === Set.empty)
+
+      val failure = CommandResult(42)
+      assert(failure.isFailure)
+
+      val success = CommandResult(0)
+      assert(success.isSuccess)
+
+      val failedExecs = Execution.fromOutputs(mockEnv, mockCmd, failure, dummyOutputStreams, Set[Output](o0))
+      val successfulExecs = Execution.fromOutputs(mockEnv, mockCmd, success, dummyOutputStreams, Set[Output](o1, o3))
+
+      filter.record(Seq(failedExecs, successfulExecs))
+
+      // Missing record:  'hasDifferentHash' --> false
+      //                  'isOlder --> false
+      //                  'needsToBeRun' --> true
+      assert(cachedOutput3.isMissing)
+      assert(filter.hasDifferentHash(cachedOutput3) === false)
+      assert(filter.isOlder(cachedOutput3) === false)
+      assert(filter.needsToBeRun(jobName, cachedOutput3))
+
+      // Older record (than its matching record in DB): 'hasDifferentHash' --> false
+      //                                                'isOlder --> true
+      //                                                'needsToBeRun' --> true
+      val olderRec = cachedOutput1.withLastModified(Instant.ofEpochMilli(0))
+      assert(filter.hasDifferentHash(olderRec) === false)
+      assert(filter.isOlder(olderRec))
+      assert(filter.needsToBeRun(jobName, olderRec))
+
+      // Unhashed record: 'needsToBeRun' --> false, since hashes aren't considered
+      assert(filter.needsToBeRun(jobName, cachedOutput0) === false)
+
+      // Record with different hash:  'hasDifferentHash' --> true
+      //                              'needsToBeRun' --> true
+      val recWithDiffHash = OutputRecord( cachedOutput1.loc,
+                                          Option("bogus-hash"),
+                                          Option(Sha1.algorithmName),
+                                          cachedOutput1.lastModified)
+      assert(filter.hasDifferentHash(recWithDiffHash))
+      //since hashes aren't considered
+      assert(filter.needsToBeRun(jobName, recWithDiffHash) === false)
+
+      // Otherwise: 'needsToBeRun' --> false
+      assert(filter.needsToBeRun(jobName, cachedOutput1) === false)
     }
   }
 

@@ -9,6 +9,7 @@ import org.rogach.scallop._
 import loamstream.util.Loggable
 import loamstream.util.Versions
 import java.net.URI
+import loamstream.model.execute.HashingStrategy
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -99,6 +100,10 @@ final case class Conf(
   val lookup: ScallopOption[Either[Path, URI]] = opt[Either[Path, URI]](
       descr = "Path to output file or URI; look up info on command that made it",
       required = false)(ValueConverters.PathOrGoogleUriConverter)
+      
+  val disableHashing: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Don't hash files when determining whether a job may be skipped.",
+      required = false)
       
   private def dryRunNoFilesMessage = "Please specify at least one Loam file to compile"
   private def runNoFilesMessage = "Please specify at least one Loam file to run"

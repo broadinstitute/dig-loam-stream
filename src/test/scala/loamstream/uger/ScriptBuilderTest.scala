@@ -90,6 +90,7 @@ final class ScriptBuilderTest extends FunSuite {
     getShapeItCommandLineTokens(shapeItExecutable, vcf, map, haps, samples, log, numThreads).mkString(" ")
   }
 
+  // scalastyle:off method.length
   private def expectedScriptAsString(discriminators: (Int, Int, Int), jobIds: (String, String, String)): String = {
     val (discriminator0, discriminator1, discriminator2) = discriminators
     val (jobId0, jobId1, jobId2) = jobIds
@@ -100,7 +101,8 @@ final class ScriptBuilderTest extends FunSuite {
     val outputDir = path("job-outputs").toAbsolutePath
     
     val sixSpaces = "      "
-
+    
+    // scalastyle:off line.size.limit
     s"""#!/bin/bash
 #$$ -cwd
 
@@ -152,5 +154,7 @@ exit $$LOAMSTREAM_JOB_EXIT_CODE
 
 fi
 """
+  // scalastyle:on line.size.limit
   }
+  // scalastyle:on method.length
 }

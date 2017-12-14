@@ -8,12 +8,15 @@ import org.ggf.drmaa.JobTemplate
 import loamstream.model.jobs.LogFileNames
 import java.nio.file.Paths
 import loamstream.conf.ExecutionConfig
+import loamstream.model.jobs.OutputStreams
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.commandline.HasCommandLine
 
 /**
  * @author clint
  * Nov 16, 2017
  */
-final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob: CommandLineJob, ugerIndex: Int) {
+final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob: HasCommandLine, ugerIndex: Int) {
   
   def ugerStdOutPath(taskArray: UgerTaskArray): Path = reifyPath(taskArray.stdOutPathTemplate)
   
@@ -26,9 +29,11 @@ final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob
     Paths.get(pathString).toAbsolutePath
   }
   
-  def stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, executionConfig.outputDir)
+  private def stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, executionConfig.outputDir)
   
-  def stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, executionConfig.outputDir)
+  private def stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, executionConfig.outputDir)
+  
+  def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
   
   def ugerCommandLine(taskArray: UgerTaskArray): String = {
     val plainCommandLine = commandLineJob.commandLineString

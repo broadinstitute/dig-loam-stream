@@ -30,13 +30,13 @@ final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob
   
   def stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, executionConfig.outputDir)
   
-  def ugerCommandLine(taskArray: UgerTaskArray): String = {
+  def ugerCommandChunk(taskArray: UgerTaskArray): String = {
     val plainCommandLine = commandLineJob.commandLineString
 
     val outputDir = executionConfig.outputDir.toAbsolutePath
     
     // scalastyle:off line.size.limit
-    s"( $plainCommandLine ) ; mkdir -p $outputDir ; mv ${ugerStdOutPath(taskArray)} $stdOutDestPath ; mv ${ugerStdErrPath(taskArray)} $stdErrDestPath"
+    s"""( $plainCommandLine ) ; mkdir -p $outputDir ; mv ${ugerStdOutPath(taskArray)} $stdOutDestPath ; mv ${ugerStdErrPath(taskArray)} $stdErrDestPath"""
     // scalastyle:on line.size.limit
   }
 }

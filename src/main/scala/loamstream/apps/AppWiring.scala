@@ -37,6 +37,11 @@ import loamstream.conf.ExecutionConfig
 import loamstream.util.ConfigUtils
 import loamstream.util.Tries
 import loamstream.uger.JobSubmitter
+import loamstream.model.execute.HashingStrategy
+import loamstream.cli.Intent
+import loamstream.cli.Intent.RealRun
+import java.nio.file.Path
+import scala.util.Success
 
 /**
  * @author clint
@@ -52,36 +57,45 @@ trait AppWiring {
 
   def cloudStorageClient: Option[CloudStorageClient]
 
-  private[AppWiring] def makeJobFilter(conf: Conf): JobFilter = {
-    if (conf.runEverything()) JobFilter.RunEverything else new DbBackedJobFilter(dao)
-  }
-  
   def shutdown(): Seq[Throwable]
 }
 
 object AppWiring extends DrmaaClientHelpers with Loggable {
 
-  def apply(cli: Conf): AppWiring = new DefaultAppWiring(cli)
+  def daoForOutputLookup(intent: Intent.LookupOutput): LoamDao = makeDefaultDb
   
-  private final class DefaultAppWiring(cli: Conf) extends AppWiring with DefaultDb {
-    override lazy val config: LoamConfig = {
-      val typesafeConfig: Config = loadConfig(cli)
+  def forRealRun(intent: Intent.RealRun): AppWiring = {
+    new DefaultAppWiring(
+        confFile = intent.confFile, 
+        shouldRunEverything = intent.shouldRunEverything, 
+        hashingStrategy = intent.hashingStrategy)
+  }
+
+  def loamConfigFrom(confFile: Option[Path]): LoamConfig = {
+    val typesafeConfig: Config = loadConfig(confFile)
       
-      //NB: .get is safe here, since we know LoamConfig.fromConfig won't return Failure
-      //TODO: Revisit this
-      LoamConfig.fromConfig(typesafeConfig).get
-    }
+    //NB: .get is safe here, since we know LoamConfig.fromConfig won't return Failure
+    //TODO: Revisit this
+    LoamConfig.fromConfig(typesafeConfig).get
+  }
+  
+  private final class DefaultAppWiring(
+      confFile: Option[Path],
+      shouldRunEverything: Boolean,
+      hashingStrategy: HashingStrategy) extends AppWiring with DefaultDb {
+    
+    override lazy val config: LoamConfig = loamConfigFrom(confFile)
     
     override def executer: Executer = terminableExecuter
 
     override def shutdown(): Seq[Throwable] = terminableExecuter.shutdown()
 
-    override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(cli)
+    override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(confFile, config)
 
     private lazy val terminableExecuter: TerminableExecuter = {
       trace("Creating executer...")
 
-      val jobFilter = makeJobFilter(cli)
+      val jobFilter = makeJobFilter
 
       val threadPoolSize = 50
       
@@ -92,9 +106,9 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       
       val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
 
-      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(cli, config, threadPoolSize)
+      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(confFile, config, threadPoolSize)
 
-      val googleRunner = googleChunkRunner(cli, config.googleConfig, localRunner)
+      val googleRunner = googleChunkRunner(confFile, config.googleConfig, localRunner)
       
       val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
 
@@ -117,10 +131,15 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
       new TerminableExecuter(rxExecuter, handles: _*)
     }
+    
+    private[AppWiring] def makeJobFilter: JobFilter = {
+      if (shouldRunEverything) { JobFilter.RunEverything }
+      else { new DbBackedJobFilter(dao, hashingStrategy) }
+    }
   }
 
   private def googleChunkRunner(
-      cli: Conf,
+      confFile: Option[Path],
       googleConfigOpt: Option[GoogleCloudConfig], 
       delegate: ChunkRunner): Option[GoogleCloudChunkRunner] = {
     
@@ -148,7 +167,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       //NB: Invoke .recover for the logging side effect only :\
       runnerAttempt.recover { case e =>
         val msg = s"""|Google Cloud support NOT enabled because ${e.getMessage}
-                      |in the config file (${cli.conf.toOption})""".stripMargin
+                      |in the config file (${confFile})""".stripMargin
       
         debug(msg)
       }
@@ -160,7 +179,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
   }
   
   private def ugerChunkRunner(
-      cli: Conf, 
+      confFile: Option[Path], 
       loamConfig: LoamConfig, 
       threadPoolSize: Int): (Option[UgerChunkRunner], Seq[Terminable]) = {
     
@@ -169,7 +188,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
     if(ugerRunnerOption.isEmpty) {
       val msg = s"""Uger support is NOT enabled. It can be enabled by defining loamstream.uger section
-                   |in the config file (${cli.conf.toOption}).""".stripMargin
+                   |in the config file (${confFile}).""".stripMargin
         
       debug(msg)
     }
@@ -182,35 +201,36 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     case None => (None, Nil)
   }
 
-  private def makeCloudStorageClient(cli: Conf): Option[CloudStorageClient] = {
-    val config = loadConfig(cli)
-
-    val attempt = for {
-      googleConfig <- GoogleCloudConfig.fromConfig(config)
+  private def makeCloudStorageClient(confFile: Option[Path], config: LoamConfig): Option[CloudStorageClient] = {
+    
+    val googleConfigAttempt: Try[GoogleCloudConfig] = config.googleConfig match {
+      case Some(googleConfig) => Success(googleConfig)
+      case None => Tries.failure(s"Missing or malformed 'loamstream.googlecloud' section in config file $confFile")
+    }
+    
+    val gcsClientAttempt = for {
+      googleConfig <- googleConfigAttempt
       gcsDriver <- GcsDriver.fromConfig(googleConfig)
     } yield {
       trace("Creating Google Cloud Storage Client...")
+      
       GcsClient(gcsDriver)
     }
 
-    val result = attempt.toOption
-    
-    if(result.isEmpty) {
+    if(gcsClientAttempt.isFailure) {
       val msg = s"""Job recording is turned off for outputs identified by URIs because
-                    |Google Cloud Storage Client could not be created due to ${attempt.failed.get.getMessage}
-                    |in the config file (${cli.conf.toOption})""".stripMargin
+                    |Google Cloud Storage Client could not be created due to ${gcsClientAttempt.failed.get.getMessage}
+                    |in the config file (${confFile})""".stripMargin
       debug(msg)
     }
 
-    result
+    gcsClientAttempt.toOption
   }
 
   private def makeUgerChunkRunner(
       loamConfig: LoamConfig, 
       threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
     
-    trace("Parsing Uger config...")
-
     for {
       ugerConfig <- loamConfig.ugerConfig
     } yield {
@@ -220,8 +240,10 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
+      //TODO: Make configurable?
       val threadPoolSize = 50
 
+      //TODO: Make configurable?
       val pollingFrequencyInHz = 0.1
 
       val poller = Poller.drmaa(ugerClient)
@@ -244,25 +266,27 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
   
   private def makeUgerClient: UgerClient = new UgerClient(new Drmaa1Client, AccountingClient.useActualBinary())
 
-  private def loadConfig(cli: Conf): Config = {
+  private def loadConfig(confFileOpt: Option[Path]): Config = {
     def defaults: Config = ConfigFactory.load()
 
-    cli.conf.toOption match {
+    confFileOpt match {
       case Some(confFile) => ConfigUtils.configFromFile(confFile).withFallback(defaults)
       case None           => ConfigUtils.allowSyspropOverrides(defaults)
     }
   }
 
+  private def makeDefaultDb: LoamDao = {
+    val dbDescriptor = DbDescriptor(DbType.H2, "jdbc:h2:./.loamstream/db")
+
+    val dao = new SlickLoamDao(dbDescriptor)
+
+    dao.createTables()
+
+    dao
+  }
+  
   private trait DefaultDb { self: AppWiring =>
-    override lazy val dao: LoamDao = {
-      val dbDescriptor = DbDescriptor(DbType.H2, "jdbc:h2:./.loamstream/db")
-
-      val dao = new SlickLoamDao(dbDescriptor)
-
-      dao.createTables()
-
-      dao
-    }
+    override lazy val dao: LoamDao = makeDefaultDb
   }
   
   private[apps] final class TerminableExecuter(

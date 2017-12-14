@@ -34,7 +34,7 @@ final case class UgerTaskArray(
     
     val ugerScript = createScriptFileIn(ugerWorkDir)(scriptContents)
   
-    trace(s"Made script '$ugerScript' from ${ugerJobs.map(_.ugerCommandLine(this))}")
+    trace(s"Made script '$ugerScript' from ${ugerJobs.map(_.ugerCommandChunk(this))}")
   
     ugerScript
   }

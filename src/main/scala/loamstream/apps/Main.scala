@@ -15,6 +15,8 @@ import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.util.OneTimeLatch
 import loamstream.util.Versions
+import loamstream.cli.ExecutionInfo
+import loamstream.cli.Intent
 
 
 /**
@@ -29,11 +31,16 @@ object Main extends Loggable {
     val cli = Conf(args)
 
     describeLoamstream()
+
+    val intent = Intent.from(cli)
     
-    if (cli.dryRun.isSupplied) {
-      compile(cli)
-    } else {
-      run(cli)
+    import Intent._
+    
+    intent match {
+      case ShowVersionAndQuit => ()
+      case dryRun: DryRun => doDryRun(dryRun)
+      case lookup: LookupOutput => doLookup(lookup)
+      case real: RealRun => doRealRun(real)
     }
   }
   
@@ -59,8 +66,8 @@ object Main extends Loggable {
     })
   }
 
-  private[apps] def run(cli: Conf): Unit = {
-    val wiring = AppWiring(cli)
+  private[apps] def doRealRun(intent: Intent.RealRun): Unit = {
+    val wiring = AppWiring.forRealRun(intent)
     
     addShutdownHook(wiring)
 
@@ -70,6 +77,14 @@ object Main extends Loggable {
       LoamEngine(wiring.config, loamCompiler, wiring.executer, wiring.cloudStorageClient)
     }
 
+    def loamScripts: Iterable[LoamScript] = {
+      val loamFiles = intent.loams
+      val loamScriptsShot = loamEngine.scriptsFrom(loamFiles)
+      assert(loamScriptsShot.isHit, "Could not load loam scripts")
+
+      loamScriptsShot.get
+    }
+    
     try {
       val project = LoamProject(loamEngine.config, loamScripts)
 
@@ -83,14 +98,6 @@ object Main extends Loggable {
       describeExecutions(jobsToExecutions.values)
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
-    }
-
-    def loamScripts: Iterable[LoamScript] = {
-      val loamFiles = cli.loams()
-      val loamScriptsShot = loamEngine.scriptsFrom(loamFiles)
-      assert(loamScriptsShot.isHit, "Could not load loam scripts")
-
-      loamScriptsShot.get
     }
   }
 
@@ -183,17 +190,29 @@ object Main extends Loggable {
     compilationResult
   }
 
-  private def compile(cli: Conf): Unit = {
-    val wiring = AppWiring(cli)
+  private def doDryRun(intent: Intent.DryRun): Unit = {
+    val loamConfig = AppWiring.loamConfigFrom(intent.confFile)
 
-    val loamEngine = LoamEngine.default(wiring.config)
+    val loamEngine = LoamEngine.default(loamConfig)
 
-    val compilationResultShot = loamEngine.compileFiles(cli.loams())
+    val compilationResultShot = loamEngine.compileFiles(intent.loams)
 
     assert(compilationResultShot.nonEmpty, compilationResultShot.message)
 
     val compilationResult = compilationResultShot.get
 
     info(compilationResult.report)
+  }
+  
+  private def doLookup(intent: Intent.LookupOutput): Unit = {
+    val dao = AppWiring.daoForOutputLookup(intent)
+    
+    val outputPathOrUri = intent.output
+    
+    val descriptionOpt = ExecutionInfo.forOutput(dao)(outputPathOrUri)
+    
+    def outputAsString: String = outputPathOrUri.fold(_.toString, _.toString)
+    
+    info(descriptionOpt.getOrElse(s"No records found for $outputAsString"))
   }
 }

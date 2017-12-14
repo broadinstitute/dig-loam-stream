@@ -89,6 +89,6 @@ final class UgerJobWrapperTest extends FunSuite {
     val expected = s"( ${j0.commandLineString} ) ; mkdir -p $outputDir ; mv /foo/bar/baz/$jobName.1.stdout $outputDir/${j0.id}.stdout ; mv /foo/bar/baz/$jobName.1.stderr $outputDir/${j0.id}.stderr"
     // scalastyle:on line.size.limit
     
-    assert(wrapper0.ugerCommandLine(taskArray) === expected)
+    assert(wrapper0.ugerCommandChunk(taskArray) === expected)
   }
 }

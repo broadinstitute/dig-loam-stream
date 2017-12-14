@@ -10,6 +10,7 @@ import loamstream.model.quantities.Cpus
 import scala.concurrent.duration.Duration
 import loamstream.uger.UgerDefaults
 import loamstream.model.quantities.CpuTime
+import loamstream.util.Loggable
 
 /**
   * Created on: 5/4/16
@@ -23,7 +24,7 @@ final case class UgerConfig(
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime)
 
-object UgerConfig extends ConfigParser[UgerConfig] {
+object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
 
   override def fromConfig(config: Config): Try[UgerConfig] = {
     import net.ceedubs.ficus.Ficus._
@@ -33,6 +34,8 @@ object UgerConfig extends ConfigParser[UgerConfig] {
     import ValueReaders.CpuTimeReader
     import ValueReaders.CpusReader
 
+    trace("Parsing Uger config...")
+    
     //NB: Ficus marshals the contents of loamstream.uger into a UgerConfig instance.
     //Names of fields in UgerConfig and keys under loamstream.uger must match.
     

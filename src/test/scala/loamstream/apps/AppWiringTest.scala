@@ -11,6 +11,8 @@ import loamstream.model.execute.JobFilter
 import loamstream.uger.UgerChunkRunner
 import loamstream.model.execute.AsyncLocalChunkRunner
 import loamstream.model.execute.CompositeChunkRunner
+import loamstream.model.execute.HashingStrategy
+import loamstream.cli.Intent
 
 /**
  * @author clint
@@ -25,8 +27,15 @@ final class AppWiringTest extends FunSuite with Matchers {
   
   private def cliConf(argString: String): Conf = Conf(argString.split("\\s+").toSeq)
   
+  //TODO: Purely expedient
+  private def appWiring(cli: Conf): AppWiring = {
+    val intent = Intent.from(cli).asInstanceOf[Intent.RealRun]
+    
+    AppWiring.forRealRun(intent)
+  }
+  
   test("Local execution, db-backed") {
-    val wiring = AppWiring(cliConf(s"$exampleFile"))
+    val wiring = appWiring(cliConf(s"$exampleFile"))
     
     wiring.dao shouldBe a[SlickLoamDao]
     wiring.executer shouldBe a[AppWiring.TerminableExecuter]
@@ -47,7 +56,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   }
   
   test("Local execution, run everything") {
-    val wiring = AppWiring(cliConf(s"--run-everything $exampleFile"))
+    val wiring = appWiring(cliConf(s"--run-everything $exampleFile"))
     
     wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     
@@ -66,7 +75,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   
   test("Uger execution also, db-backed") {
     
-    val wiring = AppWiring(cliConf(s"--conf $confFileForUger $exampleFile"))
+    val wiring = appWiring(cliConf(s"--conf $confFileForUger $exampleFile"))
     
     wiring.dao shouldBe a[SlickLoamDao]
 
@@ -91,7 +100,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   }
   
   test("Uger execution, run everything") {
-    val wiring = AppWiring(cliConf(s"--conf $confFileForUger --run-everything $exampleFile"))
+    val wiring = appWiring(cliConf(s"--conf $confFileForUger --run-everything $exampleFile"))
     
     wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     

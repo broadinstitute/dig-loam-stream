@@ -42,7 +42,7 @@ private[uger] object ScriptBuilder {
     val elseIfBlocks = ugerJobs.tail.map { ugerJob =>
       val index = ugerJob.ugerIndex
       
-      s"${getElseIfHeader(index)}${getBody(ugerJob.ugerCommandLine(taskArray))}"
+      s"${getElseIfHeader(index)}${getBody(taskArray, ugerJob)}"
     }.mkString(newLine)
 
     s"${scriptHeader}${newLine}${firstIfBlock}${newLine}${elseIfBlocks}${endIf}"
@@ -53,12 +53,16 @@ private[uger] object ScriptBuilder {
     val indexStartValue: Int = ugerJob.ugerIndex
     
     val ifHeader = getIfHeader(indexStartValue)
-    val ifBody = getBody(ugerJob.ugerCommandLine(taskArray))
+    val ifBody = getBody(taskArray, ugerJob)
 
     s"${ifHeader}${ifBody}"
   }
 
-  private def getBody(commandLineString: String): String = s"${newLine}${tab}${commandLineString}"
+  private def getBody(taskArray: UgerTaskArray, ugerJob: UgerJobWrapper): String = {
+    val commandChunk = ugerJob.ugerCommandChunk(taskArray)
+    
+    s"${newLine}${tab}${commandChunk}"
+  }
 
   private def getIfHeader(index: Int): String = s"if [ $$i -eq $index ]${newLine}then"
 

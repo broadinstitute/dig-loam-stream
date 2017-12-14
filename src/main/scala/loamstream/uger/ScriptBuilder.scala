@@ -11,7 +11,6 @@ import loamstream.model.jobs.commandline.CommandLineJob
   */
 private[uger] object ScriptBuilder {
   private val space: String = " "
-  private val tab: String = "\t"
   private val newLine: String = "\n"
   private val unixLineSep: String = " \\"
 
@@ -61,7 +60,7 @@ private[uger] object ScriptBuilder {
   private def getBody(taskArray: UgerTaskArray, ugerJob: UgerJobWrapper): String = {
     val commandChunk = ugerJob.ugerCommandChunk(taskArray)
     
-    s"${newLine}${tab}${commandChunk}"
+    s"${newLine}${commandChunk}"
   }
 
   private def getIfHeader(index: Int): String = s"if [ $$i -eq $index ]${newLine}then"

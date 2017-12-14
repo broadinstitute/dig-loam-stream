@@ -137,6 +137,16 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       else { new DbBackedJobFilter(dao, hashingStrategy) }
     }
   }
+  
+  private[apps] def determineHashingStrategy(conf: Conf): HashingStrategy = {
+    import HashingStrategy.{DontHashOutputs, HashOutputs}
+    
+    conf.disableHashing.toOption.map { shouldDisableHashing =>
+      if(shouldDisableHashing) DontHashOutputs else HashOutputs
+    }.getOrElse {
+      HashOutputs
+    }
+  }
 
   private def googleChunkRunner(
       confFile: Option[Path],

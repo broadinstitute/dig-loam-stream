@@ -66,6 +66,32 @@ object Main extends Loggable {
     })
   }
 
+  private def doDryRun(intent: Intent.DryRun): Unit = {
+    val loamConfig = AppWiring.loamConfigFrom(intent.confFile)
+
+    val loamEngine = LoamEngine.default(loamConfig)
+
+    val compilationResultShot = loamEngine.compileFiles(intent.loams)
+
+    assert(compilationResultShot.nonEmpty, compilationResultShot.message)
+
+    val compilationResult = compilationResultShot.get
+
+    info(compilationResult.report)
+  }
+  
+  private def doLookup(intent: Intent.LookupOutput): Unit = {
+    val dao = AppWiring.daoForOutputLookup(intent)
+    
+    val outputPathOrUri = intent.output
+    
+    val descriptionOpt = ExecutionInfo.forOutput(dao)(outputPathOrUri)
+    
+    def outputAsString: String = outputPathOrUri.fold(_.toString, _.toString)
+    
+    info(descriptionOpt.getOrElse(s"No records found for $outputAsString"))
+  }
+  
   private[apps] def doRealRun(intent: Intent.RealRun): Unit = {
     val wiring = AppWiring.forRealRun(intent)
     
@@ -171,12 +197,6 @@ object Main extends Loggable {
     }
   }
 
-  private def contextFrom(compilationResult: LoamCompiler.Result) = {
-    assert(compilationResult.contextOpt.nonEmpty, "Loam compilation results do not have context.")
-
-    compilationResult.contextOpt.get
-  }
-
   private def compile(loamEngine: LoamEngine, project: LoamProject): LoamCompiler.Result = {
     
     info(s"Now compiling project with ${project.scripts.size} scripts.")
@@ -188,31 +208,5 @@ object Main extends Loggable {
     info(compilationResult.summary)
 
     compilationResult
-  }
-
-  private def doDryRun(intent: Intent.DryRun): Unit = {
-    val loamConfig = AppWiring.loamConfigFrom(intent.confFile)
-
-    val loamEngine = LoamEngine.default(loamConfig)
-
-    val compilationResultShot = loamEngine.compileFiles(intent.loams)
-
-    assert(compilationResultShot.nonEmpty, compilationResultShot.message)
-
-    val compilationResult = compilationResultShot.get
-
-    info(compilationResult.report)
-  }
-  
-  private def doLookup(intent: Intent.LookupOutput): Unit = {
-    val dao = AppWiring.daoForOutputLookup(intent)
-    
-    val outputPathOrUri = intent.output
-    
-    val descriptionOpt = ExecutionInfo.forOutput(dao)(outputPathOrUri)
-    
-    def outputAsString: String = outputPathOrUri.fold(_.toString, _.toString)
-    
-    info(descriptionOpt.getOrElse(s"No records found for $outputAsString"))
   }
 }

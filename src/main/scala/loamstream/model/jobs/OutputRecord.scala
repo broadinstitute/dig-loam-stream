@@ -22,15 +22,12 @@ final case class OutputRecord(loc: String,
   def isMissing: Boolean = !isPresent
 
   def isOlderThan(other: OutputRecord): Boolean = {
-    import TimeUtils.Implicits._
-
-    lastModified match {
-      case Some(timestamp) => other.lastModified match {
-        case Some(otherTimestamp) => timestamp < otherTimestamp
-        case None => false
-      }
-      case None => false
-    }
+    val resultOpt = for {
+      timestamp <- lastModified
+      otherTimestamp <- other.lastModified
+    } yield timestamp.isBefore(otherTimestamp)
+    
+    resultOpt.getOrElse(false)
   }
 
   def isHashed: Boolean = hash.isDefined

@@ -46,6 +46,7 @@ object ExecutionInfo {
   
     val numOutputs = execution.outputs.size
   
+    //NB: Use '#' as a margin, to hopefully bypass any issues with commands including `|`.
     val withoutOutputs = s"""#
                              #Command: $commandString
                              #Environment: $envType
@@ -53,10 +54,21 @@ object ExecutionInfo {
                              #Output streams:
                              #  Stdout: $stdout
                              #  Stderr: $stderr
-                             #$numOutputs Output(s):""".stripMargin('#')
+                             #Recorded information about $numOutputs output(s) follows:""".stripMargin('#')
       
+    def outputRecordToString(o: OutputRecord): String = {
+      val hashString = (for {
+        ht <- o.hashType
+        h <- o.hash
+      } yield s"$ht: $h").getOrElse("None")
       
-    val outputs = execution.outputs.map(_.toString).mkString("\n  ")
+      s"""|  ${o.loc}
+          |    Present? ${if(o.isPresent) "Yes" else "No"}
+          |    Last modified: ${o.lastModified}
+          |    Hash: $hashString""".stripMargin
+    }
+                             
+    val outputs = execution.outputs.map(outputRecordToString).mkString("\n  ")
 
     s"${withoutOutputs}\n  ${outputs}"
   }

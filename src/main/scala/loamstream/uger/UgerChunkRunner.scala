@@ -26,6 +26,10 @@ import loamstream.model.execute.Environment
 import loamstream.util.Maps
 import loamstream.model.execute.UgerSettings
 import loamstream.conf.ExecutionConfig
+import loamstream.util.TimeUtils
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -160,11 +164,29 @@ object UgerChunkRunner extends Loggable {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
       ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, wrapper.commandLineJob))
 
-      def toExecution(s: UgerStatus): Execution = {
-        Execution.from(wrapper.commandLineJob, toJobStatus(s), toJobResult(s), Option(wrapper.outputStreams))
+      def toExecution(s: UgerStatus): Observable[Execution] = {
+        //TODO: XXX
+        import ExecutionContext.Implicits.global
+        
+        lazy val execution: Execution = {
+          Execution.from(wrapper.commandLineJob, toJobStatus(s), toJobResult(s), Option(wrapper.outputStreams))
+        }
+        
+        import ExecuterHelpers.{ waitForOutputs, waitForOutputsOnly }
+        
+        Observable.from {
+          //TODO: XXX get from UgerConfig
+          val howLong = {
+            import scala.concurrent.duration._
+        
+            1.minute
+          }
+          
+          waitForOutputs(waitForOutputsOnly(wrapper.commandLineJob, howLong), execution)
+        }
       }
 
-      val executionObs = ugerJobStatuses.last.map(toExecution)
+      val executionObs = ugerJobStatuses.last.flatMap(toExecution)
 
       wrapper -> executionObs
     }
@@ -210,8 +232,8 @@ object UgerChunkRunner extends Loggable {
       case None    => (JobResult.Failure, JobStatus.Failed)
     }
 
-    val execution: UgerJobWrapper => Execution = { job => 
-      Execution.from(job.commandLineJob, status, Option(result), Option(job.outputStreams))
+    val execution: UgerJobWrapper => Execution = { jobWrapper =>
+      Execution.from(jobWrapper.commandLineJob, status, Option(result), Option(jobWrapper.outputStreams))
     }
 
     import loamstream.util.Traversables.Implicits._

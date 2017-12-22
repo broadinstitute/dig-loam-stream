@@ -43,7 +43,9 @@ final case class OutputRecord(loc: String,
 
   def withLastModified(t: Instant) = copy(lastModified = Option(t))
 
-  override def toString: String = s"$loc"
+  override def toString: String = loc
+  
+  def toVerboseString: String = s"${getClass.getSimpleName}($loc, $isPresent, $hash, $hashType, $lastModified)"
 }
 
 object OutputRecord {

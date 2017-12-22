@@ -3,6 +3,7 @@ package loamstream.uger
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -16,4 +17,10 @@ object UgerDefaults {
   val maxRunTime: CpuTime = CpuTime.inHours(2)
   
   val queue: Queue = Queue.Broad
+  
+  val maxWaitTimeForOutputs: Duration = {
+    import scala.concurrent.duration._
+    
+    30.seconds
+  }
 }

@@ -85,7 +85,6 @@ object TestHelpers {
                     resources: Option[Resources] = None,
                     outputStreams: Option[OutputStreams] = None): Execution = {
     Execution(
-        id = None,
         env = env,
         cmd = None,
         status,

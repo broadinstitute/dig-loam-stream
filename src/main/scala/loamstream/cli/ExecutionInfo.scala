@@ -40,7 +40,8 @@ object ExecutionInfo {
   
     val envType = execution.env.tpe
     val envSettings = execution.env.settings
-  
+  execution.result.get
+    
     val stdout = execution.outputStreams.map(_.stdout).getOrElse("<Not produced>")
     val stderr = execution.outputStreams.map(_.stderr).getOrElse("<Not produced>")
   

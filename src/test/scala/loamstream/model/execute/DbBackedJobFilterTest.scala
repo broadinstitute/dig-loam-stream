@@ -73,7 +73,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
         assert(executions === Set.empty)
   
         val e = Execution(
-            id = None, 
             env = mockEnv, 
             cmd = command, 
             status = status, 
@@ -108,7 +107,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       assert(cr.isSuccess)
 
       val e = Execution(
-          id = None, 
           env = mockEnv, 
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
@@ -134,7 +132,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       assert(cr.isFailure)
 
       val e = Execution(
-          id = None, 
           env = mockEnv, 
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 

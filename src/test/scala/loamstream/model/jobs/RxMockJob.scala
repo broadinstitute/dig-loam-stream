@@ -92,7 +92,6 @@ object RxMockJob {
 
   private[this] def executionFrom(outputs: Set[Output], jobResult: JobResult) = {
     Execution(
-        id = None,
         env = TestHelpers.env,
         cmd = None,
         status = jobResult.toJobStatus,

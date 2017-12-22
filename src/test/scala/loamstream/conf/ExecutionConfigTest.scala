@@ -4,6 +4,8 @@ import org.scalatest.FunSuite
 import com.typesafe.config.ConfigFactory
 import scala.util.Try
 import loamstream.TestHelpers
+import java.nio.file.Path
+import scala.util.Success
 
 /**
  * @author clint
@@ -14,27 +16,31 @@ final class ExecutionConfigTest extends FunSuite {
   import TestHelpers.path
   
   test("default") {
-    assert(ExecutionConfig.default === ExecutionConfig(4, path("job-outputs"))) //scalastyle:ignore magic.number
+    assert(ExecutionConfig.default === ExecutionConfig(4, path("job-outputs")))
   }
   
   test("fromConfig - bad input") {
-    assert(fromConfig(ConfigFactory.empty).isFailure)
+    assert(fromConfig(ConfigFactory.empty) === Success(ExecutionConfig.default))
 
-    def doTest(s: String): Unit = {
+    def doTestShouldBeDefault(s: String): Unit = {
+      val config = Try(ConfigFactory.parseString(s))
+
+      assert(config.flatMap(fromConfig) === Success(ExecutionConfig.default))
+    }
+    
+    def doTestShouldFail(s: String): Unit = {
       val config = Try(ConfigFactory.parseString(s))
 
       assert(config.flatMap(fromConfig).isFailure)
     }
 
-    doTest(null) //scalastyle:ignore null
-    doTest("")
-    doTest("asdsadasd")
-    doTest("loamstream { }")
-    doTest("loamstream { execution { } }")
+    doTestShouldBeDefault("")
+    doTestShouldFail("asdsadasd")
+    doTestShouldBeDefault("loamstream { }")
   }
   
   test("good input") {
-    val expectedMaxRunsPerJob = 42 //scalastyle:ignore magic.number
+    val expectedMaxRunsPerJob = 42
     val expectedOutputDir = path("asdf/blah/foo")
     
     val input = s"""|loamstream { 
@@ -44,8 +50,56 @@ final class ExecutionConfigTest extends FunSuite {
                     |  } 
                     |}""".stripMargin
     
-    val executionConfig = Try(ConfigFactory.parseString(input)).flatMap(fromConfig).get
+    val executionConfig = parse(input).get
     
     assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir))
+  }
+  
+  test("good input - no outputDir") {
+    val expectedMaxRunsPerJob = 42
+    val expectedOutputDir = ExecutionConfig.Defaults.outputDir
+    
+    val input = s"""|loamstream { 
+                    |  execution { 
+                    |    maxRunsPerJob = $expectedMaxRunsPerJob 
+                    |  } 
+                    |}""".stripMargin
+    
+    val executionConfig = parse(input).get
+    
+    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir))
+  }
+  
+  test("good input - no maxRunsPerJob") {
+    val expectedMaxRunsPerJob = ExecutionConfig.Defaults.maxRunsPerJob
+    val expectedOutputDir = path("asdf/blah/foo")
+    
+    val input = s"""|loamstream { 
+                    |  execution { 
+                    |    outputDir = $expectedOutputDir
+                    |  } 
+                    |}""".stripMargin
+    
+    val executionConfig = parse(input).get
+    
+    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir))
+  }
+  
+  test("good input - all defaults") {
+    val expectedMaxRunsPerJob = ExecutionConfig.Defaults.maxRunsPerJob
+    val expectedOutputDir = ExecutionConfig.Defaults.outputDir
+    
+    val input = s"""|loamstream { 
+                    |  execution { 
+                    |  } 
+                    |}""".stripMargin
+    
+    val executionConfig = parse(input).get
+    
+    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir))
+  }
+  
+  private def parse(confString: String): Try[ExecutionConfig] = {
+    Try(ConfigFactory.parseString(confString)).flatMap(fromConfig)
   }
 }

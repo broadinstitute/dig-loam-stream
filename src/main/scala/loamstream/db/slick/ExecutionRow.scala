@@ -40,7 +40,6 @@ final case class ExecutionRow(
     val streamsOpt = Option(OutputStreams(toPath(stdoutPath), toPath(stderrPath)))
     
     Execution(
-        id = Option(id),
         env = environmentOpt.get,
         cmd = Option(cmd),
         status = status,

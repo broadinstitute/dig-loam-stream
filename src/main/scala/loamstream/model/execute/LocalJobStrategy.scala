@@ -25,6 +25,10 @@ import loamstream.util.TimeUtils
 import loamstream.model.jobs.commandline.ToFilesProcessLogger
 import loamstream.model.jobs.OutputStreams
 import loamstream.util.CanBeClosed
+import java.nio.file.FileSystem
+import scala.concurrent.duration.Duration
+import scala.util.Try
+import java.time.Instant
 
 /**
  * @author clint
@@ -56,7 +60,6 @@ object LocalJobStrategy extends Loggable {
 
     exprBox.evalFuture.map { value =>
       Execution(
-        id = None,
         env = Environment.Local,
         cmd = None,
         status = JobStatus.Succeeded,
@@ -66,13 +69,12 @@ object LocalJobStrategy extends Loggable {
         outputStreams = None)
     }
   }
-
+  
   def executeCommandLineJob(
     commandLineJob: CommandLineJob,
     processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[Execution] = {
-
-    Futures.runBlocking {
-
+    
+    def runCommandFuture: Future[RunData] = Futures.runBlocking {
       val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
         trace(s"RUNNING: ${commandLineJob.commandLineString}")
 
@@ -80,26 +82,35 @@ object LocalJobStrategy extends Loggable {
           createWorkDirAndRun(commandLineJob, _)
         }
       }
-
-      val resources = LocalResources(start, end)
-
+      
       val (jobStatus, jobResult) = exitValueAttempt match {
         case Success(exitValue) => (JobStatus.fromExitCode(exitValue), CommandResult(exitValue))
-        case Failure(e)         => (JobStatus.FailedWithException, CommandInvocationFailure(e))
+        case Failure(e)         => ExecuterHelpers.statusAndResultFrom(e)
       }
-
+      
       val outputStreams = OutputStreams(processLogger.stdoutPath, processLogger.stderrPath)
       
-      Execution(
-        id = None,
-        env = commandLineJob.executionEnvironment,
-        cmd = Option(commandLineJob.commandLineString),
-        status = jobStatus,
-        result = Option(jobResult),
-        resources = Option(resources),
-        outputs = commandLineJob.outputs.map(_.toOutputRecord),
-        outputStreams = Option(outputStreams))
+      RunData(commandLineJob, jobStatus, jobResult, LocalResources(start, end), outputStreams)
     }
+    
+    def executionForFailure(runData: RunData): PartialFunction[Throwable, Execution] = {
+      case e => ExecuterHelpers.updateWithException(runData.execution, e)
+    }
+    
+    def executionFuture(runData: RunData): Future[Execution] = {
+      import ExecuterHelpers.{ waitForOutputs, waitForOutputsOnly }
+      
+      //TODO: XXX get from LocalConfig
+      val howLong = {
+        import scala.concurrent.duration._
+        
+        1.minute
+      }
+      
+      waitForOutputs(waitForOutputsOnly(commandLineJob, howLong), runData.execution)
+    }
+    
+    runCommandFuture.flatMap(executionFuture)
   }
 
   private def createWorkDirAndRun(job: CommandLineJob, processLogger: CloseableProcessLogger): Int = {
@@ -120,5 +131,22 @@ object LocalJobStrategy extends Loggable {
     }
 
     exitValue
+  }
+  
+  private final case class RunData(
+      job: CommandLineJob, 
+      jobStatus: JobStatus, 
+      jobResult: JobResult, 
+      resources: LocalResources, 
+      outputStreams: OutputStreams) {
+    
+      lazy val execution: Execution = Execution(
+          env = job.executionEnvironment,
+          cmd = Option(job.commandLineString),
+          status = jobStatus,
+          result = Option(jobResult),
+          resources = Option(resources),
+          outputs = job.outputs.map(_.toOutputRecord),
+          outputStreams = Option(outputStreams))
   }
 }

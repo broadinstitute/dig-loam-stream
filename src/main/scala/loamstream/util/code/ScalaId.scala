@@ -4,6 +4,7 @@ import javax.lang.model.SourceVersion
 
 import scala.reflect.NameTransformer
 import scala.reflect.runtime.universe.{Symbol, Type, TypeTag, rootMirror, typeOf}
+import scala.annotation.tailrec
 
 
 /** A Scala identifier */
@@ -60,18 +61,36 @@ object ScalaId {
 
   /** Returns ScalaId of this symbol */
   def from(symbol: Symbol): ScalaId = {
-    if (PackageId.isRootPackage(symbol)) {
-      RootPackageId
-    } else if (symbol.isPackage) {
-      val parentPackageId = PackageId.from(symbol.owner)
-      parentPackageId.getPackage(symbol.name.toString)
-    } else {
-      val parentId = from(symbol.owner)
-      if (symbol.isType) {
-        parentId.getType(symbol.name.toString)
+    //NB: No longer blow the stack
+    @tailrec
+    def getParentPackageId(current: Symbol, soFar: Seq[Symbol]): (PackageId, Seq[Symbol]) = {
+      if (PackageId.isRootPackage(current)) {
+        val packageId: ScalaId = RootPackageId
+        
+        (RootPackageId, soFar)
+      } else if (current.isPackage) {
+        (PackageId.from(current), soFar)
       } else {
-        parentId.getObject(symbol.name.toString)
+        val owner = current.owner
+        
+        val newSoFar = current +: soFar
+        
+        getParentPackageId(owner, newSoFar)
       }
+    }
+    
+    val (parentPackageId: ScalaId, trailingSymbols) = getParentPackageId(symbol, Nil)
+    
+    trailingSymbols.foldLeft(parentPackageId)(makeScalaId)
+  }
+  
+  private def makeScalaId(parentId: ScalaId, childSymbol: Symbol): ScalaId = {
+    val childSymbolName = childSymbol.name.toString 
+    
+    if(childSymbol.isModuleClass) {
+      parentId.getObject(childSymbolName)
+    } else { 
+      parentId.getType(childSymbolName)
     }
   }
 }
@@ -102,14 +121,22 @@ object PackageId {
 
   /** Returns PackageId of this Symbol */
   def from(symbol: Symbol): PackageId = {
-    if (isRootPackage(symbol)) {
-      RootPackageId
-    } else {
-      val parentId = from(symbol.owner)
-      parentId.getPackage(symbol.name.toString)
+    require(symbol.isPackage)
+    
+    //NB: No longer blow the stack
+    @tailrec
+    def loop(current: Symbol, partsSoFar: Seq[String]): PackageId = {
+      if (isRootPackage(current)) {
+        partsSoFar.foldLeft(RootPackageId: PackageId)(_.getPackage(_))
+      } else {
+        val newSoFar = current.name.toString +: partsSoFar
+        
+        loop(current.owner, newSoFar)
+      }
     }
+    
+    loop(symbol, Nil)
   }
-
 }
 
 /** A package id */

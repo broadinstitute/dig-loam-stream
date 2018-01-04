@@ -14,6 +14,8 @@ import scala.util.Success
 
 import better.files.{ File => BetterFile }
 import better.files.FileMonitor
+import java.nio.file.{ Files => JFiles }
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * @author clint
@@ -26,62 +28,67 @@ object FileWatchers extends Loggable {
   def waitForCreationOf(file: Path, maxWaitTime: Duration)(implicit context: ExecutionContext): Future[Unit] = {
     val fileToWatch = normalize(file)
     
-    require(hasParentDir(file), s"$file must have a parent directory")
-    
-    require(maxWaitTime.isFinite, "maxWaitTime can't be infinite")
-    
-    debug(s"Waiting for $fileToWatch")
-    
-    def isFileWeCareAbout(f: BetterFile) = normalize(f) == fileToWatch
-    
-    val promise: Promise[Unit] = Promise()
-    
-    val watcher: FileMonitor = new FileMonitor(file.getParent, recursive = false) {
-      override def onEvent(eventType: WatchEvent.Kind[Path], eventFile: BetterFile, count: Int): Unit = {
-        if(isFileWeCareAbout(eventFile)) {
-          if(eventType == EventType.ENTRY_CREATE) {
+    if(JFiles.exists(fileToWatch)) {
+      trace(s"NOT Waiting for $fileToWatch, since it already exists")
+      
+      Future.successful(())
+    } else {
+      require(hasParentDir(file), s"$file must have a parent directory")
+      
+      require(maxWaitTime.isFinite, "maxWaitTime can't be infinite")
+      
+      debug(s"Waiting for $fileToWatch")
+      
+      val promise: Promise[Unit] = Promise()
+      
+      val (timerHandle, _) = in(maxWaitTime) {
+        promise.tryComplete(Tries.failure(s"Waited $maxWaitTime, but $fileToWatch was never created"))
+      }
+
+      val watcher: FileMonitor = new FileMonitor(file.getParent, recursive = false) {
+        private def isCreationEvent(eventType: WatchEvent.Kind[Path]) = eventType == EventType.ENTRY_CREATE
+        
+        private def isFileWeCareAbout(f: BetterFile) = normalize(f) == fileToWatch  
+        
+        private def relevantFileWasCreated(et: WatchEvent.Kind[Path], f: BetterFile): Boolean = {
+          isFileWeCareAbout(f) && isCreationEvent(et)
+        }
+        
+        override def onEvent(eventType: WatchEvent.Kind[Path], eventFile: BetterFile, count: Int): Unit = {
+          if(relevantFileWasCreated(eventType, eventFile)) {
             debug(s"$eventFile was created")
+            
+            stop()
             
             promise.tryComplete(Success(()))
           }
         }
       }
-    }
-    
-    watcher.start()
-    
-    import Futures.Implicits._
+      
+      watcher.start()
+      
+      def closeEverything(): Unit = {
+        Throwables.quietly(s"Couldn't close file watcher for $fileToWatch")(watcher.stop())
+        Throwables.quietly(s"Couldn't stop timer for $fileToWatch")(timerHandle.stop())
+      }
 
-    val timerHandle = in(maxWaitTime) {
-      promise.tryComplete(Tries.failure(s"Waited $maxWaitTime, but $fileToWatch was never created"))
+      promise.future.map(_ => closeEverything())
     }
-    
-    def closeEverything(): Unit = {
-      Throwables.quietly(s"Couldn't close file watcher for $fileToWatch")(watcher.close())
-      Throwables.quietly(s"Couldn't stop timer for $fileToWatch")(timerHandle.stop())
-    }
-    
-    promise.future.withSideEffect(_ => closeEverything())
   }
   
-  private[util] def in(howLong: Duration)(f: => Any): Terminable = {
-    val timer = new Timer(true)
-    
-    def killTimer(): Unit = {
-      timer.cancel() 
-      timer.purge()
+  private[util] def in[A](howLong: Duration)(f: => A)(implicit context: ExecutionContext): (Terminable, Future[A]) = {
+    val shouldRun: AtomicBoolean = new AtomicBoolean(true)
+
+    //TODO: Find a better, cancelable way to wait.  For now, it's "ok" for one future to be blocked and 'in flight' 
+    //for the duration specified by howLong.
+    val future = Futures.runBlocking(Thread.sleep(howLong.toMillis)).flatMap { _ =>
+      if(shouldRun.get) { Future(f) } 
+      else { Future.failed(new Exception(s"Not running, since we were cancelled.")) }
     }
     
-    val task: TimerTask = new TimerTask {
-      override def run(): Unit = { 
-        try { f }
-        finally { killTimer() }
-      }
-    }
+    val terminable = Terminable(shouldRun.set(false))
     
-    timer.schedule(task, howLong.toMillis)
-    
-    Terminable(killTimer())
+    (terminable, future) 
   }
   
   private def normalize(file: BetterFile): Path = PathUtils.normalizePath(file.toJava.toPath)

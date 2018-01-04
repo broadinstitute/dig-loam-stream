@@ -14,7 +14,7 @@ import loamstream.util.Futures
  * date: Jun 2, 2016
  */
 class MockJob(
-    val toReturn: Execution,
+    val toReturn: () => RunData,
     override val name: String,
     override val inputs: Set[JobNode],
     val outputs: Set[Output],
@@ -27,7 +27,7 @@ class MockJob(
   //NB: Previous versions defined equals() and hashCode() only in terms of 'toReturn', which caused problems;
   //switched back to reference equality.
 
-  override def execute(implicit context: ExecutionContext): Future[Execution] = {
+  override def execute(implicit context: ExecutionContext): Future[RunData] = {
     count.mutate(_ + 1)
 
     if (delay > 0) {
@@ -38,7 +38,7 @@ class MockJob(
     
     import Futures.Implicits._
     
-    Future.successful(toReturn)
+    Future.successful(toReturn())
   }
   
   private[this] val count = ValueBox(0)
@@ -46,7 +46,7 @@ class MockJob(
   def executionCount = count.value
 
   def copy(
-      toReturn: Execution = this.toReturn,
+      toReturn: () => RunData = this.toReturn,
       name: String = this.name,
       inputs: Set[JobNode] = this.inputs,
       outputs: Set[Output] = this.outputs,
@@ -56,7 +56,7 @@ class MockJob(
 object MockJob {
   import TestHelpers._
 
-  def apply(toReturn: Execution): MockJob = {
+  def apply(toReturn: RunData): MockJob = {
     new MockJob(toReturn,
                 name = LJob.nextId().toString,
                 inputs = Set.empty,
@@ -65,7 +65,7 @@ object MockJob {
   }
 
   def apply(toReturn: JobResult): MockJob = {
-    new MockJob(executionFromResult(toReturn),
+    new MockJob(runDataFromResult(toReturn),
                 name = LJob.nextId().toString,
                 inputs = Set.empty,
                 outputs = Set.empty,
@@ -79,7 +79,7 @@ object MockJob {
       outputs: Set[Output] = Set.empty,
       delay: Int = 0): MockJob = {
     
-  new MockJob(executionFromStatus(toReturn),
+  new MockJob(runDataFromStatus(toReturn),
               name,
               inputs,
               outputs,

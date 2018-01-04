@@ -14,6 +14,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.Output
 import loamstream.util.FileWatchers
 import loamstream.util.Loggable
+import loamstream.model.jobs.RunData
 
 /**
  * @author clint
@@ -50,6 +51,8 @@ object ExecuterHelpers extends Loggable {
   
   //TODO: TEST
   def statusAndResultFrom(t: Throwable): (JobStatus, JobResult) = {
+    t.printStackTrace(System.err)
+    
     (JobStatus.FailedWithException, CommandInvocationFailure(t))
   }
   
@@ -66,8 +69,6 @@ object ExecuterHelpers extends Loggable {
        howLong: Duration)
       (implicit context: ExecutionContext): Future[_] = {
     
-    debug(s"Checking that outputs of job ${job.id} exist.")
-  
     val anyMissingOutputs = job.outputs.exists(_.isMissing)
     
     if(anyMissingOutputs) {
@@ -76,9 +77,9 @@ object ExecuterHelpers extends Loggable {
       trace(s"NO missing outputs for job ${job.id}")
     }
     
-    val fileExistenceFutures = job.outputs.toSeq.collect { case o @ Output.PathOutput(p) if o.isMissing =>
-      FileWatchers.waitForCreationOf(p, howLong)
-    }
+    val missingPaths = job.outputs.toSeq.collect { case o @ Output.PathOutput(p) if o.isMissing => p }
+    
+    val fileExistenceFutures = missingPaths.map(p => FileWatchers.waitForCreationOf(p, howLong))
     
     Future.sequence(fileExistenceFutures)
   }
@@ -87,6 +88,22 @@ object ExecuterHelpers extends Loggable {
   def waitForOutputs(doWait: Future[_], execution: => Execution)(implicit context: ExecutionContext): Future[Execution] = { 
     doWait.map { _ => execution }.recover { 
       case e => ExecuterHelpers.updateWithException(execution, e)
+    }
+  }
+  
+  //TODO: TEST
+  def waitForOutputsAndMakeExecution(runData: RunData)(implicit context: ExecutionContext): Future[Execution] = {
+    //TODO: XXX get from LocalConfig
+    val howLong = {
+      import scala.concurrent.duration._
+      
+      1.minute
+    }
+    
+    if(runData.jobStatus.isSuccess) {
+      waitForOutputs(waitForOutputsOnly(runData.job, howLong), runData.execution)
+    } else {
+      Future.successful(runData.execution)
     }
   }
 }

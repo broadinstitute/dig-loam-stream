@@ -63,19 +63,15 @@ object ScalaId {
   def from(symbol: Symbol): ScalaId = {
     //NB: No longer blow the stack
     @tailrec
-    def getParentPackageId(current: Symbol, soFar: Seq[Symbol]): (PackageId, Seq[Symbol]) = {
+    def getParentPackageId(current: Symbol, trailingSymbols: Seq[Symbol]): (PackageId, Seq[Symbol]) = {
       if (PackageId.isRootPackage(current)) {
         val packageId: ScalaId = RootPackageId
         
-        (RootPackageId, soFar)
+        (RootPackageId, trailingSymbols)
       } else if (current.isPackage) {
-        (PackageId.from(current), soFar)
+        (PackageId.from(current), trailingSymbols)
       } else {
-        val owner = current.owner
-        
-        val newSoFar = current +: soFar
-        
-        getParentPackageId(owner, newSoFar)
+        getParentPackageId(current.owner, current +: trailingSymbols)
       }
     }
     

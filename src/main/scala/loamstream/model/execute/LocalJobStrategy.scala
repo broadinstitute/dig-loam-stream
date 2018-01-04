@@ -29,6 +29,7 @@ import java.nio.file.FileSystem
 import scala.concurrent.duration.Duration
 import scala.util.Try
 import java.time.Instant
+import loamstream.model.jobs.RunData
 
 /**
  * @author clint
@@ -46,35 +47,35 @@ object LocalJobStrategy extends Loggable {
 
     require(canBeRun(job), s"Expected job to be one we can run locally, but got $job")
     
-    job match {
+    val futureRunData = job match {
       case commandLineJob: CommandLineJob => executeCommandLineJob(commandLineJob, processLogger)
       case nativeJob: NativeJob[_]        => executeNativeJob(nativeJob)
       case localJob: LocalJob             => executeLocalJob(localJob)
     }
+    
+    futureRunData.flatMap(ExecuterHelpers.waitForOutputsAndMakeExecution)
   }
 
-  def executeLocalJob(localJob: LocalJob)(implicit context: ExecutionContext): Future[Execution] = localJob.execute
+  private def executeLocalJob(localJob: LocalJob)(implicit context: ExecutionContext): Future[RunData] = localJob.execute
 
-  def executeNativeJob[A](nativeJob: NativeJob[A])(implicit context: ExecutionContext): Future[Execution] = {
+  private def executeNativeJob[A](nativeJob: NativeJob[A])(implicit context: ExecutionContext): Future[RunData] = {
     val exprBox = nativeJob.exprBox
 
     exprBox.evalFuture.map { value =>
-      Execution(
-        env = Environment.Local,
-        cmd = None,
-        status = JobStatus.Succeeded,
-        result = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
-        resources = None,
-        outputs = nativeJob.outputs.map(_.toOutputRecord),
-        outputStreams = None)
+      RunData(
+        job = nativeJob, 
+        jobStatus = JobStatus.Succeeded, //NB: What about failures?
+        jobResult = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), //NB: What about failures?
+        resourcesOpt = None, 
+        outputStreamsOpt = None)
     }
   }
   
-  def executeCommandLineJob(
+  private def executeCommandLineJob(
     commandLineJob: CommandLineJob,
-    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[Execution] = {
+    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[RunData] = {
     
-    def runCommandFuture: Future[RunData] = Futures.runBlocking {
+    Futures.runBlocking {
       val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
         trace(s"RUNNING: ${commandLineJob.commandLineString}")
 
@@ -90,29 +91,10 @@ object LocalJobStrategy extends Loggable {
       
       val outputStreams = OutputStreams(processLogger.stdoutPath, processLogger.stderrPath)
       
-      RunData(commandLineJob, jobStatus, jobResult, LocalResources(start, end), outputStreams)
+      RunData(commandLineJob, jobStatus, Some(jobResult), Some(LocalResources(start, end)), Some(outputStreams))
     }
-    
-    def executionForFailure(runData: RunData): PartialFunction[Throwable, Execution] = {
-      case e => ExecuterHelpers.updateWithException(runData.execution, e)
-    }
-    
-    def executionFuture(runData: RunData): Future[Execution] = {
-      import ExecuterHelpers.{ waitForOutputs, waitForOutputsOnly }
-      
-      //TODO: XXX get from LocalConfig
-      val howLong = {
-        import scala.concurrent.duration._
-        
-        1.minute
-      }
-      
-      waitForOutputs(waitForOutputsOnly(commandLineJob, howLong), runData.execution)
-    }
-    
-    runCommandFuture.flatMap(executionFuture)
   }
-
+  
   private def createWorkDirAndRun(job: CommandLineJob, processLogger: CloseableProcessLogger): Int = {
     JFiles.createDirectories(job.workDir)
 
@@ -131,22 +113,5 @@ object LocalJobStrategy extends Loggable {
     }
 
     exitValue
-  }
-  
-  private final case class RunData(
-      job: CommandLineJob, 
-      jobStatus: JobStatus, 
-      jobResult: JobResult, 
-      resources: LocalResources, 
-      outputStreams: OutputStreams) {
-    
-      lazy val execution: Execution = Execution(
-          env = job.executionEnvironment,
-          cmd = Option(job.commandLineString),
-          status = jobStatus,
-          result = Option(jobResult),
-          resources = Option(resources),
-          outputs = job.outputs.map(_.toOutputRecord),
-          outputStreams = Option(outputStreams))
   }
 }

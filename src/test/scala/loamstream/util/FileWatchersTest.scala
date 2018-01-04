@@ -32,7 +32,7 @@ final class FileWatchersTest extends FunSuite {
     assert(JFiles.exists(initiallyNonExistantFile) === false)
     
     runInNewThread {
-      Thread.sleep(1000)
+      Thread.sleep(100)
       
       BetterFile(initiallyNonExistantFile).createIfNotExists()
     }
@@ -42,7 +42,7 @@ final class FileWatchersTest extends FunSuite {
     assert(JFiles.exists(initiallyNonExistantFile))
   }
   
-  private def runInNewThread[A](f: => A): Thread = {
+  private def runInNewThread(f: => Any): Thread = {
     val t = new Thread(new Runnable {
       override def run(): Unit = f
     })
@@ -61,7 +61,7 @@ final class FileWatchersTest extends FunSuite {
     
     import scala.concurrent.duration._ 
     
-    val howLong = 1.seconds
+    val howLong = 0.1.seconds
     
     import ExecutionContext.Implicits.global
     
@@ -77,10 +77,50 @@ final class FileWatchersTest extends FunSuite {
   }
   
   test("In") {
-    fail()
+    import scala.concurrent.duration._
+    
+    val howLong = 200.milliseconds
+    
+    @volatile var end = 0L
+    
+    val start = System.currentTimeMillis
+    
+    import ExecutionContext.Implicits.global
+    
+    val (terminable, future) = FileWatchers.in(howLong) {
+      end = System.currentTimeMillis
+    }
+    
+    Futures.waitFor(future)
+    
+    val elapsed = end - start
+    
+    assert(elapsed >= howLong.toMillis)
   }
   
-  test("Resources are properly closed") {
-    fail()
+  test("In - early cancellation") {
+    import scala.concurrent.duration._
+    
+    val howLong = 0.5.seconds
+    
+    @volatile var end = 0L
+    
+    val start = System.currentTimeMillis
+    
+    import ExecutionContext.Implicits.global
+    
+    val (terminable, future) = FileWatchers.in(howLong) {
+      end = System.currentTimeMillis
+    }
+    
+    terminable.stop()
+    
+    intercept[Exception] {
+      Futures.waitFor(future)
+    }
+    
+    val elapsed = end - start
+    
+    assert(elapsed < howLong.toMillis)
   }
 }

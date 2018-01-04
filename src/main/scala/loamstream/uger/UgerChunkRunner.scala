@@ -164,29 +164,23 @@ object UgerChunkRunner extends Loggable {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
       ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, wrapper.commandLineJob))
 
-      def toExecution(s: UgerStatus): Observable[Execution] = {
-        //TODO: XXX
-        import ExecutionContext.Implicits.global
-        
-        lazy val execution: Execution = {
-          Execution.from(wrapper.commandLineJob, toJobStatus(s), toJobResult(s), Option(wrapper.outputStreams))
-        }
-        
-        import ExecuterHelpers.{ waitForOutputs, waitForOutputsOnly }
-        
-        Observable.from {
-          //TODO: XXX get from UgerConfig
-          val howLong = {
-            import scala.concurrent.duration._
-        
-            1.minute
-          }
-          
-          waitForOutputs(waitForOutputsOnly(wrapper.commandLineJob, howLong), execution)
-        }
+      def toRunData(s: UgerStatus): RunData = {
+        RunData(
+            job = wrapper.commandLineJob,
+            jobStatus = toJobStatus(s),
+            jobResult = toJobResult(s),
+            resourcesOpt = None, //NB: This will be filled in later, if possible
+            outputStreamsOpt = Option(wrapper.outputStreams))
       }
+      
+      //TODO: XXX
+      import ExecutionContext.Implicits.global
 
-      val executionObs = ugerJobStatuses.last.flatMap(toExecution)
+      val executionObs = for {
+        lastStatus <- ugerJobStatuses.last
+        runData = toRunData(lastStatus)
+        execution <- Observable.from(ExecuterHelpers.waitForOutputsAndMakeExecution(runData))
+      } yield execution
 
       wrapper -> executionObs
     }

@@ -14,5 +14,5 @@ trait LocalJob extends LJob {
   /**
    * Implementions of this method will do any actual work to be performed by this job
    */
-  def execute(implicit context: ExecutionContext): Future[Execution]
+  def execute(implicit context: ExecutionContext): Future[RunData]
 }

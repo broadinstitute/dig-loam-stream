@@ -24,6 +24,8 @@ import loamstream.util.Terminable
 import java.io.PrintWriter
 import java.time.Instant
 import loamstream.model.jobs.log.JobLog
+import loamstream.model.jobs.RunData
+import scala.concurrent.Future
 
 /**
  * @author kaan
@@ -103,7 +105,9 @@ final case class RxExecuter(
   private def runJobs(jobsToRun: Iterable[LJob]): Observable[Map[LJob, Execution]] = {
     logJobsToBeRun(jobsToRun)
     
-    runner.run(jobsToRun.toSet, shouldRestart)
+    import RxExecuter.toExecutionMap
+    
+    runner.run(jobsToRun.toSet, shouldRestart).flatMap(toExecutionMap)
   }
   
   private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {
@@ -188,5 +192,19 @@ object RxExecuter extends Loggable {
     debug(s"Restarting $job ? $result (job has run $runCount times, max is $maxRunsPerJob)")
     
     result
+  }
+  
+  private[execute] def toExecutionMap(
+    runDataMap: Map[LJob, RunData])(implicit context: ExecutionContext): Observable[Map[LJob, Execution]] = {
+  
+    val jobToExecutionFutures = for {
+      (job, runData) <- runDataMap.toSeq
+    } yield {
+      ExecuterHelpers.waitForOutputsAndMakeExecution(runData).map(execution => job -> execution)
+    }
+    
+    Observable.from {
+      Future.sequence(jobToExecutionFutures).map(_.toMap)
+    }
   }
 }

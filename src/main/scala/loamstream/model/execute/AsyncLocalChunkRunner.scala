@@ -14,6 +14,8 @@ import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.commandline.ProcessLoggers
 import loamstream.util.Throwables
 import loamstream.conf.ExecutionConfig
+import loamstream.model.jobs.RunData
+import loamstream.util.Traversables
 
 /**
  * @author clint
@@ -26,7 +28,7 @@ final case class AsyncLocalChunkRunner(
 
   import AsyncLocalChunkRunner._
   
-  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     if(jobs.isEmpty) { Observable.just(Map.empty) }
     else {
       import LocalJobStrategy.canBeRun
@@ -35,15 +37,17 @@ final case class AsyncLocalChunkRunner(
           jobs.forall(canBeRun), 
           s"Expected only LocalJobs, but found ${jobs.filterNot(canBeRun).mkString(",")}")
       
-      def exec(job: LJob): Observable[(LJob, Execution)] = {
+      def exec(job: LJob): Observable[RunData] = {
         Observable.from(executeSingle(executionConfig, job, shouldRestart))
       }
 
-      val executionObservables: Seq[Observable[(LJob, Execution)]] = jobs.toSeq.map(exec)
+      val executionObservables: Seq[Observable[RunData]] = jobs.toSeq.map(exec)
         
-      val sequenceObservable: Observable[Seq[(LJob, Execution)]] = Observables.sequence(executionObservables)
+      val sequenceObservable: Observable[Seq[RunData]] = Observables.sequence(executionObservables)
       
-      sequenceObservable.foldLeft(Map.empty[LJob, Execution]) { _ ++ _ }
+      import Traversables.Implicits._
+      
+      sequenceObservable.foldLeft(Map.empty[LJob, RunData]) { (acc, runDatas) => acc ++ runDatas.mapBy(_.job) }
     }
   }
 }
@@ -54,35 +58,29 @@ object AsyncLocalChunkRunner extends Loggable {
   def executeSingle(
       executionConfig: ExecutionConfig,
       job: LJob, 
-      shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[(LJob, Execution)] = {
+      shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[RunData] = {
     
     job.transitionTo(JobStatus.Running)
     
     val processLogger = ProcessLoggers.forNamedJob(executionConfig, job)
     
-    val result = for {
-      execution <- LocalJobStrategy.execute(job, processLogger)
-    } yield {
-      job -> execution
-    }
+    val result = LocalJobStrategy.execute(job, processLogger)
 
     import Futures.Implicits._
   
-    def closeProcessLogger(ignored: (LJob, Execution)): Unit = {
+    def closeProcessLogger(ignored: RunData): Unit = {
       Throwables.quietly("Closing process logger failed")(processLogger.close())
     }
     
     result.withSideEffect(closeProcessLogger).withSideEffect(handleResultOfExecution(shouldRestart))
   }
   
-  private[execute] def handleResultOfExecution(shouldRestart: LJob => Boolean)(tuple: (LJob, Execution)): Unit = {
-    val (job, execution) = tuple
+  private[execute] def handleResultOfExecution(shouldRestart: LJob => Boolean)(runData: RunData): Unit = {
+    trace(s"Handling result of execution: ${runData.job} => $runData")
     
-    trace(s"Handling result of execution: $job => $execution")
+    val newStatus = determineFinalStatus(shouldRestart, runData.jobStatus, runData.job)
     
-    val newStatus = determineFinalStatus(shouldRestart, execution.status, job)
-    
-    job.transitionTo(newStatus)
+    runData.job.transitionTo(newStatus)
   }
   
   private[execute] def determineFinalStatus(

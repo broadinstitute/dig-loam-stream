@@ -57,7 +57,7 @@ final case class UgerChunkRunner(
    * NB: NoOpJobs are ignored.  Otherwise, this method expects that all the other jobs are CommandLineJobs, and
    * will throw otherwise.
    */
-  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
 
     debug(s"Running: ")
     jobs.foreach(job => debug(s"  $job"))
@@ -71,7 +71,7 @@ final case class UgerChunkRunner(
 
     //Group Jobs by their uger settings, and run each group.  This is necessary because the jobs in a group will
     //be run as 1 Uger task array, and Uger params are per-task-array.
-    val resultsForSubChunks: Iterable[Observable[Map[LJob, Execution]]] = {
+    val resultsForSubChunks: Iterable[Observable[Map[LJob, RunData]]] = {
       for {
         (ugerSettings, commandLineJobs) <- subChunksBySettings(commandLineJobs)
         ugerTaskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, commandLineJobs)
@@ -91,7 +91,7 @@ final case class UgerChunkRunner(
   private def runJobs(
     ugerSettings: UgerSettings,
     ugerTaskArray: UgerTaskArray,
-    shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+    shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
 
     ugerTaskArray.ugerJobs match {
       case Nil => Observable.just(Map.empty)
@@ -106,7 +106,7 @@ final case class UgerChunkRunner(
   private def toExecutionStream(
     ugerJobs: Seq[UgerJobWrapper],
     submissionResult: DrmaaClient.SubmissionResult,
-    shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+    shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
     val commandLineJobs = ugerJobs.map(_.commandLineJob)
     
@@ -115,7 +115,7 @@ final case class UgerChunkRunner(
       case DrmaaClient.SubmissionSuccess(ugerJobsByUgerId) => {
         commandLineJobs.foreach(_.transitionTo(Running))
 
-        jobsToExecutions(shouldRestart, ugerJobsByUgerId)
+        jobsToRunDatas(shouldRestart, ugerJobsByUgerId)
       }
       case DrmaaClient.SubmissionFailure(e) => {
         commandLineJobs.foreach(handleFailureStatus(shouldRestart, Failed))
@@ -125,9 +125,9 @@ final case class UgerChunkRunner(
     }
   }
 
-  private[uger] def jobsToExecutions(
+  private[uger] def jobsToRunDatas(
     shouldRestart: LJob => Boolean,
-    jobsById: Map[String, UgerJobWrapper]): Observable[Map[LJob, Execution]] = {
+    jobsById: Map[String, UgerJobWrapper]): Observable[Map[LJob, RunData]] = {
 
     def statuses(jobIds: Iterable[String]): Map[String, Observable[UgerStatus]] = {
       time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
@@ -137,7 +137,7 @@ final case class UgerChunkRunner(
 
     val jobsAndUgerStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    toExecutions(shouldRestart, jobsAndUgerStatusesById)
+    toRunDatas(shouldRestart, jobsAndUgerStatusesById)
   }
 }
 
@@ -154,11 +154,11 @@ object UgerChunkRunner extends Loggable {
 
   type JobAndStatuses = (UgerJobWrapper, Observable[UgerStatus])
 
-  private[uger] def toExecutions(
+  private[uger] def toRunDatas(
     shouldRestart: LJob => Boolean,
-    jobsAndUgerStatusesById: Map[String, JobAndStatuses]): Observable[Map[LJob, Execution]] = {
+    jobsAndUgerStatusesById: Map[String, JobAndStatuses]): Observable[Map[LJob, RunData]] = {
 
-    val ugerJobsToExecutionObservables: Iterable[(UgerJobWrapper, Observable[Execution])] = for {
+    val ugerJobsToExecutionObservables: Iterable[(UgerJobWrapper, Observable[RunData])] = for {
       (jobId, (wrapper, ugerJobStatuses)) <- jobsAndUgerStatusesById
     } yield {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
@@ -173,16 +173,9 @@ object UgerChunkRunner extends Loggable {
             outputStreamsOpt = Option(wrapper.outputStreams))
       }
       
-      //TODO: XXX
-      import ExecutionContext.Implicits.global
+      val runDataObs = ugerJobStatuses.last.map(toRunData)
 
-      val executionObs = for {
-        lastStatus <- ugerJobStatuses.last
-        runData = toRunData(lastStatus)
-        execution <- Observable.from(ExecuterHelpers.waitForOutputsAndMakeExecution(runData))
-      } yield execution
-
-      wrapper -> executionObs
+      wrapper -> runDataObs
     }
 
     val jobsToExecutionObservables = ugerJobsToExecutionObservables.map { case (jobWrapper, obs) => 
@@ -217,7 +210,7 @@ object UgerChunkRunner extends Loggable {
 
   private[uger] def makeAllFailureMap(
       jobs: Seq[UgerJobWrapper], 
-      cause: Option[Exception]): Observable[Map[LJob, Execution]] = {
+      cause: Option[Exception]): Observable[Map[LJob, RunData]] = {
     
     cause.foreach(e => error(s"Couldn't submit jobs to UGER: ${e.getMessage}", e))
 
@@ -226,8 +219,13 @@ object UgerChunkRunner extends Loggable {
       case None    => (JobResult.Failure, JobStatus.Failed)
     }
 
-    val execution: UgerJobWrapper => Execution = { jobWrapper =>
-      Execution.from(jobWrapper.commandLineJob, status, Option(result), Option(jobWrapper.outputStreams))
+    val execution: UgerJobWrapper => RunData = { jobWrapper =>
+      RunData(
+          job = jobWrapper.commandLineJob, 
+          jobStatus = status, 
+          jobResult = Option(result), 
+          resourcesOpt = None, 
+          outputStreamsOpt = Option(jobWrapper.outputStreams))
     }
 
     import loamstream.util.Traversables.Implicits._

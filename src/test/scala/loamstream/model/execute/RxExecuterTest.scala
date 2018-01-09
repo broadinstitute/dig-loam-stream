@@ -3,16 +3,17 @@ package loamstream.model.execute
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
+import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.RunData
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
-import loamstream.conf.ExecutionConfig
 
 
 /**
@@ -778,7 +779,7 @@ object RxExecuterTest {
     
     val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 
-    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
       chunks.mutate(_ :+ jobs)
 
       delegate.run(jobs, shouldRestart)

@@ -1,14 +1,17 @@
 package loamstream.model.execute
 
-import org.scalatest.FunSuite
-import loamstream.model.jobs.{Execution, JobStatus, LJob, MockJob}
-
 import scala.concurrent.ExecutionContext
+
+import org.scalatest.FunSuite
+
+import loamstream.conf.ExecutionConfig
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.RunData
 import loamstream.util.Futures
 import rx.lang.scala.Observable
 import loamstream.util.ObservableEnrichments
-import loamstream.TestHelpers
-import loamstream.conf.ExecutionConfig
 
 /**
  * @author clint
@@ -18,8 +21,8 @@ final class CompositeChunkRunnerTest extends FunSuite {
   
   //scalastyle:off magic.number
   
-  import TestHelpers.neverRestart
-  import CompositeChunkRunnerTest.{local, MockRunner}
+  import CompositeChunkRunnerTest.{ MockRunner, local }
+  import loamstream.TestHelpers.neverRestart
   
   test("maxNumJobs") {
     val n1 = 3
@@ -73,7 +76,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     
-    assert(Futures.waitFor(futureResults).mapValues(_.status) === expected)
+    assert(Futures.waitFor(futureResults).mapValues(_.jobStatus) === expected)
   }
   
   //scalastyle:on magic.number
@@ -89,7 +92,7 @@ object CompositeChunkRunnerTest {
     
     private val delegate = local(1)
     
-    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
       delegate.run(jobs, shouldRestart)
     }
   }

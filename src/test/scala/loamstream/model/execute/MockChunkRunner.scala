@@ -1,6 +1,7 @@
 package loamstream.model.execute
 
-import loamstream.model.jobs.{Execution, LJob}
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.RunData
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 
@@ -15,7 +16,7 @@ final case class MockChunkRunner(delegate: ChunkRunner) extends ChunkRunner {
   
   val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 
-  override def run(chunk: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+  override def run(chunk: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     chunks.mutate(_ :+ chunk)
 
     delegate.run(chunk, shouldRestart)

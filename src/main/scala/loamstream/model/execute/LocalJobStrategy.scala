@@ -43,17 +43,15 @@ object LocalJobStrategy extends Loggable {
 
   def execute(
     job: LJob,
-    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[Execution] = {
+    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[RunData] = {
 
     require(canBeRun(job), s"Expected job to be one we can run locally, but got $job")
     
-    val futureRunData = job match {
+    job match {
       case commandLineJob: CommandLineJob => executeCommandLineJob(commandLineJob, processLogger)
       case nativeJob: NativeJob[_]        => executeNativeJob(nativeJob)
       case localJob: LocalJob             => executeLocalJob(localJob)
     }
-    
-    futureRunData.flatMap(ExecuterHelpers.waitForOutputsAndMakeExecution)
   }
 
   private def executeLocalJob(localJob: LocalJob)(implicit context: ExecutionContext): Future[RunData] = localJob.execute

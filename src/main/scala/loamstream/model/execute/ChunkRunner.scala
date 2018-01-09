@@ -1,6 +1,7 @@
 package loamstream.model.execute
 
-import loamstream.model.jobs.{Execution, LJob}
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.RunData
 import rx.lang.scala.Observable
 
 /**
@@ -12,5 +13,5 @@ trait ChunkRunner {
   
   def canRun(job: LJob): Boolean
   
-  def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]]
+  def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]]
 }

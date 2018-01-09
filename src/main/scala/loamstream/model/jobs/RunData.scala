@@ -23,6 +23,8 @@ final case class RunData(
     s"${getClass.getSimpleName}(Job#${job.id}, $jobStatus, $jobResult, $resourcesOpt, $outputStreamsOpt)"
   }
   
+  def withResources(r: Resources): RunData = copy(resourcesOpt = Some(r))
+  
   private def cmdOpt: Option[String] = job match { 
     case clj: CommandLineJob => Some(clj.commandLineString)
     case _ => None

@@ -53,8 +53,7 @@ abstract class ExecuterTest(implicit executionContext: ExecutionContext) extends
   }
   
   withExecuter("Jobs with one level of dependencies where one dep fails") {
-    val twoPlusTwoWithFailure = twoPlusTwo.copy(inputs = Set(two0, two1Failed),
-                                                toReturn = TestHelpers.executionFrom(twoPlusTwoFailure))
+    lazy val twoPlusTwoWithFailure: MockJob = twoPlusTwo.copy(inputs = Set(two0, two1Failed))
 
     val status = executeJobsAndMapToStatuses(Set(twoPlusTwoWithFailure))
   

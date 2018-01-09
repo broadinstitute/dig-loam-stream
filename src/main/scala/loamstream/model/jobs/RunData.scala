@@ -13,9 +13,9 @@ import loamstream.model.execute.Resources
  * become visible to the LS process until later.
  */
 final case class RunData(
-    job: LJob, 
+    job: LJob,
     jobStatus: JobStatus, 
-    jobResult: Option[JobResult], 
+    jobResult: Option[JobResult],
     resourcesOpt: Option[Resources] = None, 
     outputStreamsOpt: Option[OutputStreams] = None) {
 

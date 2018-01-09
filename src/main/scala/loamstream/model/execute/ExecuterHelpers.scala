@@ -15,6 +15,7 @@ import loamstream.model.jobs.Output
 import loamstream.util.FileWatchers
 import loamstream.util.Loggable
 import loamstream.model.jobs.RunData
+import loamstream.model.LId
 
 /**
  * @author clint

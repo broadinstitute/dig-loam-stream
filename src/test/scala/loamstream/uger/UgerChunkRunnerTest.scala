@@ -33,6 +33,7 @@ import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.JobNode
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.commandline.HasCommandLine
+import loamstream.model.jobs.RunData
 
 
 /**
@@ -484,8 +485,15 @@ object UgerChunkRunnerTest {
 
     override def outputs: Set[Output] = Set.empty
     
-    override def execute(implicit context: ExecutionContext): Future[Execution] = {
-      Future.successful(Execution.from(this, UgerStatus.toJobStatus(statusesToReturn.last)))
+    override def execute(implicit context: ExecutionContext): Future[RunData] = {
+      val runData = RunData(
+          job = this, 
+          jobStatus = UgerStatus.toJobStatus(statusesToReturn.last), 
+          jobResult = None, 
+          resourcesOpt = None, 
+          outputStreamsOpt = None)
+      
+      Future.successful(runData)
     }
   }
 }

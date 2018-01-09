@@ -86,7 +86,7 @@ final class JobTest extends FunSuite with TestJobs {
     
       val executionFuture = failedJob.execute(ExecutionContext.global)
     
-      assert(waitFor(executionFuture).status === status)
+      assert(waitFor(executionFuture).jobStatus === status)
     }
     
     doTest(JobStatus.Failed)

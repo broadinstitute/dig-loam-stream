@@ -304,13 +304,12 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
 
     def mockJob(cmd: String, outputs: Set[Output]): MockJob = {
-      new MockJob(
-        toReturn = mockExecution,
+      new MockJob.FromJobFn(
+        toReturnFn = mockRunData(_),
         name = "mock job",
         inputs = Set.empty,
         outputs = outputs,
-        delay = 0
-      )
+        delay = 0)
     }
 
     def execution(cmd: String, outputs: Set[Output]): Execution = {

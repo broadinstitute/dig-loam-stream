@@ -16,6 +16,8 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.uger.Queue
+import loamstream.model.jobs.RunData
+import loamstream.model.jobs.LJob
 
 /**
  * @author kyuksel
@@ -50,6 +52,15 @@ trait ProvidesEnvAndResources extends FunSuite {
       env = mockEnv, 
       status = mockStatus, 
       outputStreams = Some(TestHelpers.dummyOutputStreams))
+      
+  def mockRunData(job: LJob): RunData = {
+    TestHelpers.runDataFrom(
+        job = job, 
+        status = mockStatus, 
+        result = None, 
+        resources = None, 
+        outputStreams = Some(TestHelpers.dummyOutputStreams))
+  }
 
   protected def assertEqualFieldsFor(actual: Iterable[Execution], expected: Iterable[Execution]): Unit = {
     assert(actual.map(_.env) === expected.map(_.env))

@@ -17,14 +17,16 @@ import loamstream.model.execute.Resources
 abstract class MockJob(
     override val name: String,
     override val inputs: Set[JobNode],
-    val outputs: Set[Output],
+    override val outputs: Set[Output],
     val delay: Int) extends LocalJob {
 
   def toReturn: RunData
   
   override def executionEnvironment: Environment = TestHelpers.env
   
-  override def toString: String = s"'$name'(#$id, returning $toReturn, ${inputs.size} dependencies)"
+  override def toString: String = {
+    s"'$name'(#$id, returning $toReturn, ${inputs.size} dependencies)"
+  }
  
   //NB: Previous versions defined equals() and hashCode() only in terms of 'toReturn', which caused problems;
   //switched back to reference equality.

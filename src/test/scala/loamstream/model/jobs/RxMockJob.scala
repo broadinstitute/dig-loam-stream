@@ -25,7 +25,7 @@ final case class RxMockJob(
   runsAfter: Option[RxMockJob],
   toReturnFn: RxMockJob => RunData)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LocalJob {
 
-  lazy val toReturn: RunData = toReturnFn(this)
+  def toReturn: RunData = toReturnFn(this)
   
   override def executionEnvironment: Environment = TestHelpers.env
 

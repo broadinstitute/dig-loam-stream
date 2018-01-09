@@ -19,6 +19,10 @@ final case class RunData(
     resourcesOpt: Option[Resources] = None, 
     outputStreamsOpt: Option[OutputStreams] = None) {
 
+  override def toString: String = {
+    s"${getClass.getSimpleName}(Job#${job.id}, $jobStatus, $jobResult, $resourcesOpt, $outputStreamsOpt)"
+  }
+  
   private def cmdOpt: Option[String] = job match { 
     case clj: CommandLineJob => Some(clj.commandLineString)
     case _ => None

@@ -133,8 +133,8 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val executions = waitFor(executionObs.lastAsFuture)
       
-      assert(executions(job1) === job1.toReturn)
-      assert(executions(job2) === job2.toReturn)
+      assert(executions(job1) === job1.toReturn.execution)
+      assert(executions(job2) === job2.toReturn.execution)
       
       val job3Execution = executions(job3)
       val job3Result = job3Execution.result.get.asInstanceOf[JobResult.CommandResult]
@@ -305,8 +305,8 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(client.startClusterInvocations() === 1)
       assert(client.deleteClusterInvocations() === 0)
       
-      assert(executions(job1) === job1.toReturn)
-      assert(executions(job2) === job2.toReturn)
+      assert(executions(job1) === job1.toReturn.execution)
+      assert(executions(job2) === job2.toReturn.execution)
 
       val job3Execution = executions(job3)
       val job3Result = job3Execution.result.get.asInstanceOf[JobResult.CommandResult]

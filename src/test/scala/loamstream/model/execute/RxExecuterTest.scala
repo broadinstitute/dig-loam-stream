@@ -171,7 +171,7 @@ final class RxExecuterTest extends FunSuite {
       
       assert(chunks === expectedChunks)
 
-      val expectedResult = if(shouldUltimatelyFail) JobResult.Failure else JobResult.Success
+      val expectedResult: JobResult = if(shouldUltimatelyFail) JobResult.Failure else JobResult.Success
       
       assert(executions.values.head.result === Some(expectedResult))
     }

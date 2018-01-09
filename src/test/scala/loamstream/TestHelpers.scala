@@ -88,7 +88,6 @@ object TestHelpers {
       resources: Option[Resources] = None,
       outputStreams: Option[OutputStreams] = None): RunData = RunData(job, status, result, resources, outputStreams)
   
-  @deprecated("", "")
   def executionFrom(status: JobStatus,
                     result: Option[JobResult] = None,
                     resources: Option[Resources] = None,
@@ -107,7 +106,6 @@ object TestHelpers {
     runDataFrom(job, status, result = None, resources)
   }
   
-  @deprecated("", "")
   def executionFromStatus(status: JobStatus, resources: Option[Resources] = None): Execution = {
     executionFrom(status, result = None, resources)
   }
@@ -116,7 +114,6 @@ object TestHelpers {
     runDataFrom(job, result.toJobStatus, Option(result), resources)
   }
   
-  @deprecated("", "")
   def executionFromResult(result: JobResult, resources: Option[Resources] = None): Execution = {
     executionFrom(result.toJobStatus, Option(result), resources)
   }

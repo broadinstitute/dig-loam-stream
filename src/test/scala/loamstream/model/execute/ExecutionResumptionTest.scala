@@ -181,10 +181,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   
       val executable = Executable(Set(f2ToF3))
   
-      def runningEverything: Boolean = executer match {
-        case RxExecuter(_, _, jobFilter, _, _) => jobFilter == JobFilter.RunEverything
-        case _ => false
-      }
+      val runningEverything: Boolean = executer.jobFilter == JobFilter.RunEverything
 
       createTablesAndThen {
         assert(start.toFile.exists)

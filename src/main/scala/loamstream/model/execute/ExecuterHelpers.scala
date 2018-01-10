@@ -16,6 +16,7 @@ import loamstream.util.FileWatchers
 import loamstream.util.Loggable
 import loamstream.model.jobs.RunData
 import loamstream.model.LId
+import loamstream.conf.LoamConfig
 
 /**
  * @author clint
@@ -93,14 +94,11 @@ object ExecuterHelpers extends Loggable {
   }
   
   //TODO: TEST
-  def waitForOutputsAndMakeExecution(runData: RunData)(implicit context: ExecutionContext): Future[Execution] = {
-    //TODO: XXX get from LocalConfig
-    val howLong = {
-      import scala.concurrent.duration._
-      
-      1.minute
-    }
+  def waitForOutputsAndMakeExecution(
+      runData: RunData, 
+      howLong: Duration)(implicit context: ExecutionContext): Future[Execution] = {
     
+    //TODO: Revisit this: should we should wait in all cases?
     if(runData.jobStatus.isSuccess) {
       waitForOutputs(waitForOutputsOnly(runData.job, howLong), runData.execution)
     } else {

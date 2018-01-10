@@ -30,7 +30,8 @@ final case class GoogleCloudConfig(
     imageVersion: String = Defaults.imageVersion, 
     scopes: String = Defaults.scopes,
     properties: String = Defaults.properties,
-    initializationActions: String = Defaults.initializationActions)
+    initializationActions: String = Defaults.initializationActions,
+    hail: Option[HailConfig] = None)
     
 object GoogleCloudConfig {
   object Defaults { // for creating a minimal cluster

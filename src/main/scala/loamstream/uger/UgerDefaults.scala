@@ -17,10 +17,4 @@ object UgerDefaults {
   val maxRunTime: CpuTime = CpuTime.inHours(2)
   
   val queue: Queue = Queue.Broad
-  
-  val maxWaitTimeForOutputs: Duration = {
-    import scala.concurrent.duration._
-    
-    30.seconds
-  }
 }

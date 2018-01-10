@@ -5,12 +5,16 @@ import scala.util.Try
 import java.nio.file.Path
 import java.nio.file.Paths
 import ExecutionConfig.Defaults
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
  * Apr 20, 2017
  */
-final case class ExecutionConfig(maxRunsPerJob: Int = Defaults.maxRunsPerJob, outputDir: Path = Defaults.outputDir)
+final case class ExecutionConfig(
+    maxRunsPerJob: Int = Defaults.maxRunsPerJob, 
+    outputDir: Path = Defaults.outputDir,
+    maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs)
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
@@ -18,6 +22,10 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     val maxRunsPerJob: Int = 4 //scalastyle:ignore magic.number
   
     val outputDir: Path = Paths.get("job-outputs")
+    
+    import scala.concurrent.duration._
+    
+    val maxWaitTimeForOutputs: Duration = 30.seconds
   }
   
   val default: ExecutionConfig = ExecutionConfig()

@@ -31,7 +31,6 @@ final class UgerConfigTest extends FunSuite {
           defaultCores = 42
           defaultMemoryPerCore = 9 // Gb
           defaultMaxRunTime = 11 // hours
-          maxWaitTimeForOutputs = "10 minutes"
         }
       }
       """)
@@ -43,10 +42,6 @@ final class UgerConfigTest extends FunSuite {
     assert(ugerConfig.defaultCores === Cpus(42))
     assert(ugerConfig.defaultMemoryPerCore=== Memory.inGb(9))
     assert(ugerConfig.defaultMaxRunTime === CpuTime.inHours(11))
-    
-    import scala.concurrent.duration._
-    
-    assert(ugerConfig.maxWaitTimeForOutputs === 10.minutes)
   }
   
   test("Parsing a UgerConfig with optional values omitted should work") {
@@ -67,6 +62,5 @@ final class UgerConfigTest extends FunSuite {
     assert(ugerConfig.defaultCores === UgerDefaults.cores)
     assert(ugerConfig.defaultMemoryPerCore=== UgerDefaults.memoryPerCore)
     assert(ugerConfig.defaultMaxRunTime === UgerDefaults.maxRunTime)
-    assert(ugerConfig.maxWaitTimeForOutputs === UgerDefaults.maxWaitTimeForOutputs)
   }
 }

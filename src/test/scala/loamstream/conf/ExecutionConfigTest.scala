@@ -16,7 +16,11 @@ final class ExecutionConfigTest extends FunSuite {
   import TestHelpers.path
   
   test("default") {
-    assert(ExecutionConfig.default === ExecutionConfig(4, path("job-outputs")))
+    import ExecutionConfig.Defaults
+    
+    val expected = ExecutionConfig(Defaults.maxRunsPerJob, Defaults.outputDir, Defaults.maxWaitTimeForOutputs)
+    
+    assert(ExecutionConfig.default === expected)
   }
   
   test("fromConfig - bad input") {
@@ -43,51 +47,80 @@ final class ExecutionConfigTest extends FunSuite {
     val expectedMaxRunsPerJob = 42
     val expectedOutputDir = path("asdf/blah/foo")
     
+    import scala.concurrent.duration._
+    val expectedMaxWaitTime = 99.seconds
+    
     val input = s"""|loamstream { 
                     |  execution { 
                     |    maxRunsPerJob = $expectedMaxRunsPerJob 
                     |    outputDir = $expectedOutputDir
+                    |    maxWaitTimeForOutputs = "99 seconds"
                     |  } 
                     |}""".stripMargin
     
     val executionConfig = parse(input).get
     
-    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir))
+    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir, expectedMaxWaitTime))
   }
   
   test("good input - no outputDir") {
     val expectedMaxRunsPerJob = 42
     val expectedOutputDir = ExecutionConfig.Defaults.outputDir
+
+    import scala.concurrent.duration._
+    val expectedMaxWaitTime = 99.seconds
     
     val input = s"""|loamstream { 
                     |  execution { 
                     |    maxRunsPerJob = $expectedMaxRunsPerJob 
+                    |    maxWaitTimeForOutputs = "99 seconds"
                     |  } 
                     |}""".stripMargin
     
     val executionConfig = parse(input).get
     
-    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir))
+    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir, expectedMaxWaitTime))
   }
   
   test("good input - no maxRunsPerJob") {
     val expectedMaxRunsPerJob = ExecutionConfig.Defaults.maxRunsPerJob
     val expectedOutputDir = path("asdf/blah/foo")
+    import scala.concurrent.duration._
+    val expectedMaxWaitTime = 99.seconds
     
     val input = s"""|loamstream { 
                     |  execution { 
                     |    outputDir = $expectedOutputDir
+                    |    maxWaitTimeForOutputs = "99 seconds"
+                    |  } 
+                    |}""".stripMargin    
+                    
+    val executionConfig = parse(input).get
+    
+    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir, expectedMaxWaitTime))
+  }
+  
+  test("good input - no maxWaitTimeForOutputs") {
+    val expectedMaxRunsPerJob = 42
+    val expectedOutputDir = path("asdf/blah/foo")
+    val expectedMaxWaitTime = ExecutionConfig.Defaults.maxWaitTimeForOutputs
+    
+    val input = s"""|loamstream { 
+                    |  execution { 
+                    |    outputDir = $expectedOutputDir
+                    |    maxRunsPerJob = $expectedMaxRunsPerJob
                     |  } 
                     |}""".stripMargin
     
     val executionConfig = parse(input).get
     
-    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir))
+    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir, expectedMaxWaitTime))
   }
   
   test("good input - all defaults") {
     val expectedMaxRunsPerJob = ExecutionConfig.Defaults.maxRunsPerJob
     val expectedOutputDir = ExecutionConfig.Defaults.outputDir
+    val expectedMaxWaitTime = ExecutionConfig.Defaults.maxWaitTimeForOutputs
     
     val input = s"""|loamstream { 
                     |  execution { 
@@ -96,7 +129,7 @@ final class ExecutionConfigTest extends FunSuite {
     
     val executionConfig = parse(input).get
     
-    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir))
+    assert(executionConfig === ExecutionConfig(expectedMaxRunsPerJob, expectedOutputDir, expectedMaxWaitTime))
   }
   
   private def parse(confString: String): Try[ExecutionConfig] = {

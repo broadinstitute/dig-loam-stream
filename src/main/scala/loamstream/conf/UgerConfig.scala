@@ -22,8 +22,7 @@ final case class UgerConfig(
     maxNumJobs: Int,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
-    defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime,
-    maxWaitTimeForOutputs: Duration = UgerDefaults.maxWaitTimeForOutputs)
+    defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime)
 
 object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
 

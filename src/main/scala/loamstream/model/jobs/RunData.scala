@@ -8,7 +8,7 @@ import loamstream.model.execute.Resources
  * Jan 3, 2018
  * 
  * Allows capturing info about the execution of a job without eagerly creating an Execution, which
- * would mean hasing any output files/uris. Deferring the creation of an Execution allows waiting to do so
+ * would mean hashing any output files/uris. Deferring the creation of an Execution allows waiting to do so
  * until all outputs are present (needed to work around Uger/Broad FS issue where files created by jobs don't
  * become visible to the LS process until later.
  * 

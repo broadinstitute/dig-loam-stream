@@ -10,10 +10,11 @@ import scala.concurrent.duration.Duration
  * date: Jul 1, 2016
  */
 final class FuturesTest extends FunSuite {
-  import Futures.waitFor
+  
+  import loamstream.TestHelpers.waitFor
   import scala.concurrent.ExecutionContext.Implicits.global
   
-  test("toMap / waitFor") {
+  test("toMap") {
     import Futures.toMap
     
     val empty: Iterable[(Int, Future[String])] = Nil
@@ -25,12 +26,10 @@ final class FuturesTest extends FunSuite {
     assert(waitFor(toMap(tuples)) == Map(42 -> "x", 99 -> "y"))
   }
   
-  test("runBlocking / waitFor") {
+  test("runBlocking") {
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    // scalastyle:off magic.number
     val f = Futures.runBlocking(42)
-    // scalastyle:on magic.number
     
     //We can't easily tell that the code chunk was marked 'blocking', so just see that the right
     //result comes back.

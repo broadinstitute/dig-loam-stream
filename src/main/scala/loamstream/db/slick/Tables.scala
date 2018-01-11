@@ -82,14 +82,15 @@ import slick.jdbc.meta.MTable
  *    EXECUTION_FK: a foreign-key constraint from OUTPUTS.EXECUTION_ID to EXECUTION.ID
  *
  */
-final class Tables(val driver: JdbcProfile) extends Loggable {
+final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   import driver.api._
   import driver.SchemaDescription
   import Tables.Names
   import ForeignKeyAction.{Restrict, Cascade}
 
-  private implicit val statusColumnType: BaseColumnType[JobStatus] =
+  private implicit val statusColumnType: BaseColumnType[JobStatus] = {
     MappedColumnType.base[JobStatus, String](_.toString, jobStatusfromString _)
+  }
 
   trait HasExecutionId { self: Table[_] =>
     def executionId: Rep[Int]
@@ -221,7 +222,7 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
         tables <- MTable.getTables
       } yield tables.map(_.name.name).toSet
 
-      perform(database)(existingTableNames)
+      runBlocking(database)(existingTableNames)
     }
 
     def createActions(tables: Map[String, SchemaDescription]) = {
@@ -239,19 +240,17 @@ final class Tables(val driver: JdbcProfile) extends Loggable {
 
     // Make sure 'Executions' table is created first
     val executionsTable = Map(Names.executions -> allTables(Names.executions))
-    perform(database)(createActions(executionsTable))
+    
+    runBlocking(database)(createActions(executionsTable))
+    
     // Then create the others that depend on 'Executions'
-    perform(database)(createActions(allTables - Names.executions))
+    runBlocking(database)(createActions(allTables - Names.executions))
   }
 
-  def drop(database: Database): Unit = perform(database)(ddlForAllTables.drop.transactionally)
+  def drop(database: Database): Unit = runBlocking(database)(ddlForAllTables.drop.transactionally)
 
   private def log(schema: SchemaDescription): Unit = {
     schema.createStatements.foreach(s => trace(s"DDL: $s"))
-  }
-
-  private def perform[A](database: Database)(action: DBIO[A]): A = {
-    Futures.waitFor(database.run(action))
   }
 
   private def jobStatusfromString(str: String): JobStatus = JobStatus.fromString(str).getOrElse {

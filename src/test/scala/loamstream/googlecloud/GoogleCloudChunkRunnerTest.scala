@@ -28,12 +28,11 @@ import loamstream.model.jobs.RunData
  * Dec 15, 2016
  */
 final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResources {
-  //scalastyle:off magic.number
   
   import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
   import GoogleCloudChunkRunnerTest.MockDataProcClient
-  import loamstream.util.Futures.waitFor
   import loamstream.util.ObservableEnrichments._
+  import loamstream.TestHelpers.waitFor
 
   private val clusterId = "some-cluster-id"
   
@@ -545,6 +544,4 @@ object GoogleCloudChunkRunnerTest {
       clusterRunning := true
     }
   }
-  
-  //scalastyle:on magic.number
 }

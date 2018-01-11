@@ -11,11 +11,10 @@ import rx.lang.scala.Observable
  * date: Aug 26, 2016
  */
 final class ObservablesTest extends FunSuite {
-  import Futures.waitFor
+  
+  import loamstream.TestHelpers.waitFor
   import ObservableEnrichments._
   import Observables.sequence
-  
-  // scalastyle:off magic.number
   
   private def makeObservable[A](period: Int, msgs: A*): Observable[A] = {
     if(period == 0) {
@@ -233,6 +232,4 @@ final class ObservablesTest extends FunSuite {
     
     assert(strs.sorted === expected)
   }
-  
-  // scalastyle:on magic.number
 }

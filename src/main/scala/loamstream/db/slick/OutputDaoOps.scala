@@ -12,7 +12,7 @@ import loamstream.util.PathUtils
  * 
  * NB: Factored out of SlickLoamDao, which had gotten huge
  */
-trait OutputOps extends LoamDao { self: CommonOps =>
+trait OutputDaoOps extends LoamDao { self: CommonDaoOps =>
   def descriptor: DbDescriptor
   
   val driver: JdbcProfile

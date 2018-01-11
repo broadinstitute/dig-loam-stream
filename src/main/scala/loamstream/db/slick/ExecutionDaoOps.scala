@@ -18,7 +18,7 @@ import loamstream.model.execute.Settings
  * 
  * NB: Factored out of SlickLoamDao, which had gotten huge
  */
-trait ExecutionOps extends LoamDao { self: CommonOps with OutputOps =>
+trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   def descriptor: DbDescriptor
   
   val driver: JdbcProfile

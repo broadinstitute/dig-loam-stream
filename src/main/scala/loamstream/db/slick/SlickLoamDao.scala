@@ -25,12 +25,11 @@ import loamstream.util.PathUtils
  * For a schema description, see Tables
  */
 final class SlickLoamDao(val descriptor: DbDescriptor) extends 
-    LoamDao with CommonOps with OutputOps with ExecutionOps {
+    LoamDao with CommonDaoOps with OutputDaoOps with ExecutionDaoOps {
   
   override val driver = descriptor.dbType.driver
 
   import driver.api._
-  import loamstream.util.Futures.waitFor
 
   protected[slick] override lazy val db: driver.backend.DatabaseDef = {
     Database.forURL(url = descriptor.url, driver = descriptor.dbType.jdbcDriverClass)
@@ -50,5 +49,5 @@ final class SlickLoamDao(val descriptor: DbDescriptor) extends
 
   override def dropTables(): Unit = tables.drop(db)
 
-  override def shutdown(): Unit = waitFor(db.shutdown)
+  override def shutdown(): Unit = blockOn(db.shutdown)
 }

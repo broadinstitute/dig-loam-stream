@@ -20,6 +20,7 @@ import loamstream.model.jobs.RunData
 final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
   import loamstream.TestHelpers.alwaysRestart
   import loamstream.TestHelpers.neverRestart
+  import loamstream.TestHelpers.waitFor
   
   test("handleResultOfExecution") {
     import JobStatus._
@@ -97,11 +98,11 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     
     val failedJob = MockJob(Failed)
     
-    val success = Futures.waitFor(executeSingle(ExecutionConfig.default, job, neverRestart))
+    val success = waitFor(executeSingle(ExecutionConfig.default, job, neverRestart))
     
     assert(success === runDataFromStatus(job, Succeeded))
     
-    val failure = Futures.waitFor(executeSingle(ExecutionConfig.default, failedJob, neverRestart))
+    val failure = waitFor(executeSingle(ExecutionConfig.default, failedJob, neverRestart))
     
     assert(failure === runDataFromStatus(failedJob, Failed))
     
@@ -109,13 +110,12 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     
     val two0StatusesFuture = job.statuses.take(3).to[Seq].firstAsFuture
     
-    assert(Futures.waitFor(two0StatusesFuture) === Seq(Running, Succeeded))
+    assert(waitFor(two0StatusesFuture) === Seq(Running, Succeeded))
   }
   
   test("executeSingle() - job transitioned to right state") {
     import AsyncLocalChunkRunner.executeSingle
     import JobStatus._
-    import Futures.waitFor
     import scala.concurrent.ExecutionContext.Implicits.global
     
     def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {

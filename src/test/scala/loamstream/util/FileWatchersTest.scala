@@ -13,6 +13,7 @@ import better.files.{ File => BetterFile }
 final class FileWatchersTest extends FunSuite {
   
   import PathEnrichments._
+  import TestHelpers.waitFor
   
   test("Waiting for a file that eventually appears works") {
     val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
@@ -37,7 +38,7 @@ final class FileWatchersTest extends FunSuite {
       BetterFile(initiallyNonExistantFile).createIfNotExists()
     }
     
-    Futures.waitFor(future)
+    waitFor(future)
     
     assert(JFiles.exists(initiallyNonExistantFile))
   }
@@ -70,7 +71,7 @@ final class FileWatchersTest extends FunSuite {
     assert(JFiles.exists(initiallyNonExistantFile) === false)
     
     intercept[Exception] {
-      Futures.waitFor(future)
+      waitFor(future)
     }
     
     assert(JFiles.exists(initiallyNonExistantFile) === false)
@@ -91,7 +92,7 @@ final class FileWatchersTest extends FunSuite {
       end = System.currentTimeMillis
     }
     
-    Futures.waitFor(future)
+    waitFor(future)
     
     val elapsed = end - start
     
@@ -116,7 +117,7 @@ final class FileWatchersTest extends FunSuite {
     terminable.stop()
     
     intercept[Exception] {
-      Futures.waitFor(future)
+      waitFor(future)
     }
     
     val elapsed = end - start

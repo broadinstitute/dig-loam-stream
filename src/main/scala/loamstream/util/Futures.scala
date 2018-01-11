@@ -14,11 +14,6 @@ import scala.concurrent.duration.Duration
  */
 object Futures {
   /**
-   * Wait forever for a Future to complete, and return the result of the Future.
-   */
-  def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)
-  
-  /**
    * Runs a block of code in a Future, marking the code chunk as blocking.
    * 
    * @param a the block of code to run

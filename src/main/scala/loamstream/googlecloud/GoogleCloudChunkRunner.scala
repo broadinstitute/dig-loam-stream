@@ -13,8 +13,8 @@ import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
+import loamstream.model.jobs.RunData
 import loamstream.util.ExecutorServices
 import loamstream.util.Futures
 import loamstream.util.Loggable
@@ -43,8 +43,8 @@ final case class GoogleCloudChunkRunner(
   
   override def maxNumJobs: Int = delegate.maxNumJobs
   
-  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
-    def emptyResults: Observable[Map[LJob, Execution]] = Observable.just(Map.empty)
+  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+    def emptyResults: Observable[Map[LJob, RunData]] = Observable.just(Map.empty)
   
     if(jobs.isEmpty) { emptyResults }
     else { runJobsSequentially(jobs, shouldRestart) }
@@ -76,7 +76,7 @@ final case class GoogleCloudChunkRunner(
   
   private[googlecloud] def runJobsSequentially(
       jobs: Set[LJob], 
-      shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
     Observables.observeAsync {
       withCluster(client) {
@@ -89,7 +89,7 @@ final case class GoogleCloudChunkRunner(
 
   private[googlecloud] def runSingle(
       delegate: ChunkRunner, 
-      shouldRestart: LJob => Boolean)(job: LJob): Map[LJob, Execution] = {
+      shouldRestart: LJob => Boolean)(job: LJob): Map[LJob, RunData] = {
     
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     import GoogleCloudChunkRunner.addCluster
@@ -110,12 +110,12 @@ final case class GoogleCloudChunkRunner(
 
 object GoogleCloudChunkRunner {
   private[googlecloud] def addCluster(cluster: String)
-                                     (jobsAndExecutions: Map[LJob, Execution]): Map[LJob, Execution] = {
+                                     (jobsAndExecutions: Map[LJob, RunData]): Map[LJob, RunData] = {
     jobsAndExecutions.map {
-      case (job, execution @ Execution(_, _, _, _, _, Some(localResources: LocalResources), _, _)) => {
+      case (job, runData @ RunData(_, _, _, Some(localResources: LocalResources), _)) => {
         val googleResources = GoogleResources.fromClusterAndLocalResources(cluster, localResources)
         
-        job -> execution.withResources(googleResources)
+        job -> runData.withResources(googleResources)
       }
       case tuple => tuple
     }

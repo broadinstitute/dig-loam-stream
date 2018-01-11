@@ -3,16 +3,17 @@ package loamstream.model.execute
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
+import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
+import loamstream.model.jobs.RunData
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
-import loamstream.conf.ExecutionConfig
 
 
 /**
@@ -32,7 +33,11 @@ final class RxExecuterTest extends FunSuite {
     
     val runner = MockChunkRunner(AsyncLocalChunkRunner(ExecutionConfig.default, maxSimultaneousJobs))
     
-    val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
+    import RxExecuter.Defaults.maxWaitTimeForOutputs
+    
+    val executer = {
+      RxExecuter(runner, maxWaitTimeForOutputs, 0.1.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
+    }
     
     ExecutionResults(
         executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])), 
@@ -65,20 +70,22 @@ final class RxExecuterTest extends FunSuite {
     
     val runner = MockChunkRunner(AsyncLocalChunkRunner(ExecutionConfig.default, 8))
     
+    import RxExecuter.Defaults.maxWaitTimeForOutputs
+    
     intercept[Exception] {
-      RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, -1)
+      RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, -1)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, 0)
+      RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, 0)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, -100)
+      RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, -100)
     }
     
-    RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, 1)
-    RxExecuter(runner, 0.25.seconds, JobFilter.RunEverything, 42)
+    RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, 1)
+    RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, 42)
   }
 
   import RxExecuterTest.JobOrderOps
@@ -171,7 +178,7 @@ final class RxExecuterTest extends FunSuite {
       
       assert(chunks === expectedChunks)
 
-      val expectedResult = if(shouldUltimatelyFail) JobResult.Failure else JobResult.Success
+      val expectedResult: JobResult = if(shouldUltimatelyFail) JobResult.Failure else JobResult.Success
       
       assert(executions.values.head.result === Some(expectedResult))
     }
@@ -657,7 +664,11 @@ final class RxExecuterTest extends FunSuite {
       
     assert(runner.maxNumJobs === maxSimultaneousJobs)
     
-    val executer = RxExecuter(runner, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
+    import RxExecuter.Defaults.maxWaitTimeForOutputs
+    
+    val executer = {
+      RxExecuter(runner, maxWaitTimeForOutputs, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
+    }
     
     (runner, executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])))
   }
@@ -778,7 +789,7 @@ object RxExecuterTest {
     
     val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 
-    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, Execution]] = {
+    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
       chunks.mutate(_ :+ jobs)
 
       delegate.run(jobs, shouldRestart)

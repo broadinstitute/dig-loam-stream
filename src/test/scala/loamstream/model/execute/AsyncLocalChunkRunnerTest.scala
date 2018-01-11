@@ -10,6 +10,7 @@ import loamstream.model.jobs.TestJobs
 import loamstream.util.Futures
 import loamstream.util.ObservableEnrichments
 import loamstream.conf.ExecutionConfig
+import loamstream.model.jobs.RunData
 
 
 /**
@@ -29,11 +30,11 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
       {
         val job = MockJob(NotStarted)
       
-        val execution = Execution.from(job, status)
+        val runData = RunData(job, status, None, None, None)
         
         assert(job.status === NotStarted)
         
-        handleResultOfExecution(alwaysRestart)(job -> execution) 
+        handleResultOfExecution(alwaysRestart)(runData) 
         
         assert(job.status === status)
       }
@@ -41,11 +42,11 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
       {
         val job = MockJob(NotStarted)
         
-        val execution = Execution.from(job, status)
+        val runData = RunData(job, status, None, None, None)
         
         assert(job.status === NotStarted)
       
-        handleResultOfExecution(neverRestart)(job -> execution)
+        handleResultOfExecution(neverRestart)(runData)
       
         assert(job.status === expectedNoRestart)
       }
@@ -87,7 +88,7 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
   
   test("executeSingle()") {
     import AsyncLocalChunkRunner.executeSingle
-    import TestHelpers.executionFromStatus
+    import TestHelpers.runDataFromStatus
     import scala.concurrent.ExecutionContext.Implicits.global
     
     import JobStatus._
@@ -98,11 +99,11 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     
     val success = Futures.waitFor(executeSingle(ExecutionConfig.default, job, neverRestart))
     
-    assert(success === (job -> executionFromStatus(Succeeded)))
+    assert(success === runDataFromStatus(job, Succeeded))
     
     val failure = Futures.waitFor(executeSingle(ExecutionConfig.default, failedJob, neverRestart))
     
-    assert(failure === (failedJob -> executionFromStatus(Failed)))
+    assert(failure === runDataFromStatus(failedJob, Failed))
     
     import ObservableEnrichments._
     

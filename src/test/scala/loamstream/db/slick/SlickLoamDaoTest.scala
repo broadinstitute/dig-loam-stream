@@ -107,8 +107,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       
       assert(dao.allOutputRecords.toSet === stored.outputs)
 
-      // TODO Stop ignoring the ID field
-      assert(stored.withId(None) === retrieved.withId(None))
+      assert(stored === retrieved)
     }
   }
 

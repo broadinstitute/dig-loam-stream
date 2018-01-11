@@ -14,7 +14,7 @@ import loamstream.util.{Hash, PathUtils}
 trait ProvidesSlickLoamDao {
   protected val descriptor: DbDescriptor = TestDbDescriptors.inMemoryH2
   
-  protected lazy val dao = new SlickLoamDao(descriptor)
+  protected lazy val dao: SlickLoamDao = new SlickLoamDao(descriptor)
   
   protected def store(execution: Execution): Unit = dao.insertExecutions(Seq(execution))
 

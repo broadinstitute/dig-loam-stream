@@ -36,6 +36,7 @@ import loamstream.util.PathEnrichments
 import org.apache.commons.io.FileUtils
 import loamstream.model.jobs.OutputStreams
 import java.util.UUID
+import loamstream.model.jobs.RunData
 
 /**
   * @author clint
@@ -80,12 +81,18 @@ object TestHelpers {
 
   val env: Environment = Environment.Local
 
+  def runDataFrom(
+      job: LJob,
+      status: JobStatus,
+      result: Option[JobResult] = None,
+      resources: Option[Resources] = None,
+      outputStreams: Option[OutputStreams] = None): RunData = RunData(job, status, result, resources, outputStreams)
+  
   def executionFrom(status: JobStatus,
                     result: Option[JobResult] = None,
                     resources: Option[Resources] = None,
                     outputStreams: Option[OutputStreams] = None): Execution = {
     Execution(
-        id = None,
         env = env,
         cmd = None,
         status,
@@ -95,10 +102,18 @@ object TestHelpers {
         outputStreams)
   }
 
+  def runDataFromStatus(job: LJob, status: JobStatus, resources: Option[Resources] = None): RunData = {
+    runDataFrom(job, status, result = None, resources)
+  }
+  
   def executionFromStatus(status: JobStatus, resources: Option[Resources] = None): Execution = {
     executionFrom(status, result = None, resources)
   }
 
+  def runDataFromResult(job: LJob, result: JobResult, resources: Option[Resources] = None): RunData = {
+    runDataFrom(job, result.toJobStatus, Option(result), resources)
+  }
+  
   def executionFromResult(result: JobResult, resources: Option[Resources] = None): Execution = {
     executionFrom(result.toJobStatus, Option(result), resources)
   }

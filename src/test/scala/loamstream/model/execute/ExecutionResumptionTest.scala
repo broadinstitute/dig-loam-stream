@@ -23,6 +23,7 @@ import loamstream.model.jobs.Output
 import loamstream.util.Hashes
 import loamstream.util.PathUtils
 import loamstream.util.Sequence
+import loamstream.model.jobs.RunData
 
 /**
   * @author clint
@@ -39,7 +40,6 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
     val lastModified = PathUtils.lastModifiedTime(p)
 
     val e = Execution(
-        id = None,
         env = mockEnv,
         cmd = Option(mockCmd),
         status = JobStatus.fromExitCode(exitCode),
@@ -116,12 +116,14 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
 
   private def mockJob(name: String, outputs: Set[Output], inputs: Set[JobNode] = Set.empty)(body: => Any): MockJob = {
-    val successfulExecution = TestHelpers.executionFromResult(JobResult.CommandResult(0))
-
-    val successfulExecutionWithOutputs = successfulExecution.copy(outputs = outputs.map(_.toOutputRecord))
-    
-    new MockJob(successfulExecutionWithOutputs, name, inputs, outputs, delay = 0) {
-      override def execute(implicit context: ExecutionContext): Future[Execution] = {
+    new MockJob.FromJobFn(
+        toReturnFn = job => TestHelpers.runDataFromResult(job, JobResult.CommandResult(0)), 
+        name = name, 
+        inputs = inputs, 
+        outputs = outputs, 
+        delay = 0) {
+      
+      override def execute(implicit context: ExecutionContext): Future[RunData] = {
         body
         
         super.execute
@@ -167,10 +169,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   
       val executable = Executable(Set(f2ToF3))
   
-      def runningEverything: Boolean = executer match {
-        case RxExecuter(_, _, jobFilter, _, _) => jobFilter == JobFilter.RunEverything
-        case _ => false
-      }
+      val runningEverything: Boolean = executer.jobFilter == JobFilter.RunEverything
 
       createTablesAndThen {
         assert(start.toFile.exists)

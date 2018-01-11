@@ -25,6 +25,11 @@ import loamstream.util.TimeUtils
 import loamstream.model.jobs.commandline.ToFilesProcessLogger
 import loamstream.model.jobs.OutputStreams
 import loamstream.util.CanBeClosed
+import java.nio.file.FileSystem
+import scala.concurrent.duration.Duration
+import scala.util.Try
+import java.time.Instant
+import loamstream.model.jobs.RunData
 
 /**
  * @author clint
@@ -38,7 +43,7 @@ object LocalJobStrategy extends Loggable {
 
   def execute(
     job: LJob,
-    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[Execution] = {
+    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[RunData] = {
 
     require(canBeRun(job), s"Expected job to be one we can run locally, but got $job")
     
@@ -49,30 +54,26 @@ object LocalJobStrategy extends Loggable {
     }
   }
 
-  def executeLocalJob(localJob: LocalJob)(implicit context: ExecutionContext): Future[Execution] = localJob.execute
+  private def executeLocalJob(localJob: LocalJob)(implicit ctx: ExecutionContext): Future[RunData] = localJob.execute
 
-  def executeNativeJob[A](nativeJob: NativeJob[A])(implicit context: ExecutionContext): Future[Execution] = {
+  private def executeNativeJob[A](nativeJob: NativeJob[A])(implicit context: ExecutionContext): Future[RunData] = {
     val exprBox = nativeJob.exprBox
 
     exprBox.evalFuture.map { value =>
-      Execution(
-        id = None,
-        env = Environment.Local,
-        cmd = None,
-        status = JobStatus.Succeeded,
-        result = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), // TODO: Is this right?
-        resources = None,
-        outputs = nativeJob.outputs.map(_.toOutputRecord),
-        outputStreams = None)
+      RunData(
+        job = nativeJob, 
+        jobStatus = JobStatus.Succeeded, //NB: What about failures?
+        jobResult = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), //NB: What about failures?
+        resourcesOpt = None, 
+        outputStreamsOpt = None)
     }
   }
-
-  def executeCommandLineJob(
+  
+  private def executeCommandLineJob(
     commandLineJob: CommandLineJob,
-    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[Execution] = {
-
+    processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[RunData] = {
+    
     Futures.runBlocking {
-
       val (exitValueAttempt, (start, end)) = TimeUtils.startAndEndTime {
         trace(s"RUNNING: ${commandLineJob.commandLineString}")
 
@@ -80,28 +81,18 @@ object LocalJobStrategy extends Loggable {
           createWorkDirAndRun(commandLineJob, _)
         }
       }
-
-      val resources = LocalResources(start, end)
-
+      
       val (jobStatus, jobResult) = exitValueAttempt match {
         case Success(exitValue) => (JobStatus.fromExitCode(exitValue), CommandResult(exitValue))
-        case Failure(e)         => (JobStatus.FailedWithException, CommandInvocationFailure(e))
+        case Failure(e)         => ExecuterHelpers.statusAndResultFrom(e)
       }
-
+      
       val outputStreams = OutputStreams(processLogger.stdoutPath, processLogger.stderrPath)
       
-      Execution(
-        id = None,
-        env = commandLineJob.executionEnvironment,
-        cmd = Option(commandLineJob.commandLineString),
-        status = jobStatus,
-        result = Option(jobResult),
-        resources = Option(resources),
-        outputs = commandLineJob.outputs.map(_.toOutputRecord),
-        outputStreams = Option(outputStreams))
+      RunData(commandLineJob, jobStatus, Some(jobResult), Some(LocalResources(start, end)), Some(outputStreams))
     }
   }
-
+  
   private def createWorkDirAndRun(job: CommandLineJob, processLogger: CloseableProcessLogger): Int = {
     JFiles.createDirectories(job.workDir)
 

@@ -234,13 +234,6 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       val bogusCommandName = "asdfasdf"
 
-      /* Loam for a run with two bogus jobs:
-          val fileIn = store[TXT].at("src/test/resources/a.txt").asInput
-          val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
-          val fileOut2 = store[TXT].at("$workDir/fileOut2.txt")
-          cmd"asdfasdf $$fileIn $$fileOut1"
-          cmd"asdfasdf $$fileOut1 $$fileOut2"
-       */
       val script = TestHelpers.makeGraph { implicit context =>
         import LoamPredef._
         import LoamCmdTool._

@@ -3,6 +3,7 @@ package loamstream.uger
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint

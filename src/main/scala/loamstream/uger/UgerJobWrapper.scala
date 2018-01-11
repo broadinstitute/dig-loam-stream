@@ -33,7 +33,7 @@ final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob
   
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
   
-  def ugerCommandLine(taskArray: UgerTaskArray): String = {
+  def ugerCommandChunk(taskArray: UgerTaskArray): String = {
     val plainCommandLine = commandLineJob.commandLineString
 
     val outputDir = executionConfig.outputDir.toAbsolutePath

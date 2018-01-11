@@ -33,6 +33,7 @@ import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.JobNode
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.commandline.HasCommandLine
+import loamstream.model.jobs.RunData
 
 
 /**
@@ -190,8 +191,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     jobWrapper -> Observable.from(mockJob.statusesToReturn)
   }
   
-  test("toExecutions - one failed job") {
-    import UgerChunkRunner.toExecutions
+  test("toRunDatas - one failed job") {
+    import UgerChunkRunner.toRunDatas
     import UgerStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     import UgerChunkRunnerTest.MockUgerJob
@@ -206,14 +207,13 @@ final class UgerChunkRunnerTest extends FunSuite {
       
       assert(job.runCount === 0)
       
-      val result = waitFor(toExecutions(shouldRestart, Map(id -> toTuple(failed))).firstAsFuture)
+      val result = waitFor(toRunDatas(shouldRestart, Map(id -> toTuple(failed))).firstAsFuture)
       
-      val Seq((actualJob, execution)) = result.toSeq
+      val Seq((actualJob, runData)) = result.toSeq
       
       assert(actualJob === job)    
-      assert(execution.status === JobStatus.Failed)
-      assert(execution.isFailure)
-      //TODO: Other assertions about execution?
+      assert(runData.jobStatus === JobStatus.Failed)
+      //TODO: Other assertions about RunData?
       
       val expectedStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastStatus)
       
@@ -233,8 +233,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     doTest(alwaysRestart, CommandResult(1, None), JobStatus.Failed)
   }
   
-  test("toExecutions - one successful job") {
-    import UgerChunkRunner.toExecutions
+  test("toRunDatas - one successful job") {
+    import UgerChunkRunner.toRunDatas
     import UgerStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     import UgerChunkRunnerTest.MockUgerJob
@@ -249,13 +249,12 @@ final class UgerChunkRunnerTest extends FunSuite {
       
       assert(job.runCount === 0)
       
-      val result = waitFor(toExecutions(shouldRestart, Map(id -> toTuple(worked))).firstAsFuture)
+      val result = waitFor(toRunDatas(shouldRestart, Map(id -> toTuple(worked))).firstAsFuture)
       
-      val Seq((actualJob, execution)) = result.toSeq
+      val Seq((actualJob, runData)) = result.toSeq
       
       assert(actualJob === job)
-      assert(execution.status === JobStatus.Succeeded)
-      assert(execution.isSuccess)
+      assert(runData.jobStatus === JobStatus.Succeeded)
       //TODO: Other assertions about execution?
       
       val expectedStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastStatus)
@@ -274,8 +273,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     doTest(alwaysRestart, CommandResult(0, None), JobStatus.Succeeded)
   }
   
-  test("toExecutions - one successful job, one failed job") {
-    import UgerChunkRunner.toExecutions
+  test("toRunDatas - one successful job, one failed job") {
+    import UgerChunkRunner.toRunDatas
     import UgerStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     import UgerChunkRunnerTest.MockUgerJob
@@ -302,17 +301,15 @@ final class UgerChunkRunnerTest extends FunSuite {
       
       val input = Map(goodId -> toTuple(worked), badId -> toTuple(failed))
       
-      val result = waitFor(toExecutions(shouldRestart, input).firstAsFuture)
+      val result = waitFor(toRunDatas(shouldRestart, input).firstAsFuture)
       
       val goodExecution = result(workedJob)
       val badExecution = result(failedJob)
       
       assert(result.size === 2)
       
-      assert(goodExecution.status === JobStatus.Succeeded)
-      assert(goodExecution.isSuccess)
-      assert(badExecution.status === JobStatus.Failed)
-      assert(badExecution.isFailure)
+      assert(goodExecution.jobStatus === JobStatus.Succeeded)
+      assert(badExecution.jobStatus === JobStatus.Failed)
       //TODO: Other assertions about execution?
       
       val expectedGoodStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastGoodStatus)
@@ -484,8 +481,15 @@ object UgerChunkRunnerTest {
 
     override def outputs: Set[Output] = Set.empty
     
-    override def execute(implicit context: ExecutionContext): Future[Execution] = {
-      Future.successful(Execution.from(this, UgerStatus.toJobStatus(statusesToReturn.last)))
+    override def execute(implicit context: ExecutionContext): Future[RunData] = {
+      val runData = RunData(
+          job = this, 
+          jobStatus = UgerStatus.toJobStatus(statusesToReturn.last), 
+          jobResult = None, 
+          resourcesOpt = None, 
+          outputStreamsOpt = None)
+      
+      Future.successful(runData)
     }
   }
 }

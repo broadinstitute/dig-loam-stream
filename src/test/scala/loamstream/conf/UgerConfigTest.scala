@@ -51,7 +51,6 @@ final class UgerConfigTest extends FunSuite {
           workDir = "/foo/bar/baz"
           logFile = "nuh/zuh.log"
           maxNumJobs=44
-          nativeSpecification="-clear -cwd -shell y -b n"
         }
       }
       """)

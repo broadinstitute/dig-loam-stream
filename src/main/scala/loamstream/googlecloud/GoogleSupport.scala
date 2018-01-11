@@ -18,14 +18,9 @@ object GoogleSupport {
   def googleCopy(src: Store, dest: Store, params: String*)(implicit context: LoamScriptContext): Unit = {
     import LoamCmdTool._
     
-    //TODO
-    val googleConfigOpt = context.projectContext.config.googleConfig
+    val googleConfig = context.googleConfig
     
-    require(
-        googleConfigOpt.isDefined, 
-        s"Google Cloud support requires a `loamstream.googlecloud` section in the config file")
-    
-    val gsutil =  googleConfigOpt.get.gsutilBinary.toAbsolutePath
+    val gsutil =  googleConfig.gsutilBinary.toAbsolutePath
     
     cmd"""${gsutil} cp ${params.mkString(" ")} ${src} ${dest}""".in(src).out(dest)
   }

@@ -18,14 +18,15 @@ import loamstream.util.ValueBox
  * @author clint
  *         date: Sep 15, 2016
  */
-// scalastyle:off magic.number
 final case class RxMockJob( 
   override val name: String,
   override val inputs: Set[JobNode],
   outputs: Set[Output],
   runsAfter: Option[RxMockJob],
-  toReturn: () => Execution)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LocalJob {
+  toReturnFn: RxMockJob => RunData)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LocalJob {
 
+  def toReturn: RunData = toReturnFn(this)
+  
   override def executionEnvironment: Environment = TestHelpers.env
 
   private[this] val count = ValueBox(0)
@@ -46,7 +47,7 @@ final case class RxMockJob(
     }
   }
 
-  override def execute(implicit context: ExecutionContext): Future[Execution] = {
+  override def execute(implicit context: ExecutionContext): Future[RunData] = {
 
     executions.mutate { oldExecutions =>
       
@@ -66,7 +67,7 @@ final case class RxMockJob(
       
       trace(s"Finishing job: $name")
 
-      toReturn()
+      toReturn
     }
   }
 
@@ -87,19 +88,15 @@ object RxMockJob {
               inputs,
               outputs,
               runsAfter,
-              () => executionFrom(outputs, jobResult = toReturn()))
+              job => runDataFrom(job, outputs, jobResult = toReturn()))
   }
 
-  private[this] def executionFrom(outputs: Set[Output], jobResult: JobResult) = {
-    Execution(
-        id = None,
-        env = TestHelpers.env,
-        cmd = None,
-        status = jobResult.toJobStatus,
-        result = Option(jobResult),
-        resources = None,
-        outputStreams = None,
-        outputs = outputs.map(_.toOutputRecord))
+  private[this] def runDataFrom(job: LJob, outputs: Set[Output], jobResult: JobResult): RunData = {
+    RunData(
+        job = job,
+        jobStatus = jobResult.toJobStatus,
+        jobResult = Option(jobResult),
+        resourcesOpt = None,
+        outputStreamsOpt = None)
   }
 }
-// scalastyle:on magic.number

@@ -3,13 +3,14 @@ package loamstream.model.jobs
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
-
-import loamstream.util.{Hash, HashType, Hashes, PathUtils}
 import java.time.Instant
-import java.nio.file.Paths
 
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.util.HashType.{Md5, Sha1}
+import loamstream.util.Hash
+import loamstream.util.HashType
+import loamstream.util.Hashes
+import loamstream.util.PathUtils
+import loamstream.util.PathUtils.normalizePath
 
 /**
  * @author clint
@@ -19,14 +20,14 @@ import loamstream.util.HashType.{Md5, Sha1}
  * A trait representing a handle to the output of a job; for now, we're primarily concerned with the case where
  * that output is a file, directory, or Google Cloud Storage objects but other output types are possible.
  */
-trait Output {
+sealed trait Output {
   def isPresent: Boolean
   
   final def isMissing: Boolean = !isPresent
   
   def hash: Option[Hash]
 
-  def hashType: Option[HashType] = hash.map(_.tpe)
+  final def hashType: Option[HashType] = hash.map(_.tpe)
 
   def lastModified: Option[Instant]
 
@@ -40,10 +41,10 @@ object Output {
    * A handle to an output of a job stored at 'path'.  Hashes and modification times are re-computed on
    * each access.
    */
-  final case class PathOutput(path: Path) extends Output {
+  final case class PathOutput private (path: Path) extends Output {
     override def isPresent: Boolean = Files.exists(path)
 
-    override def hash: Option[Hash] = if (Files.exists(path)) Option(Hashes.sha1(path)) else None
+    override def hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(path)) else None
 
     override def lastModified: Option[Instant] = {
       if (isPresent) Option(PathUtils.lastModifiedTime(path)) else None
@@ -51,16 +52,20 @@ object Output {
 
     override def location: String = PathUtils.normalize(path)
 
-    override def toOutputRecord: OutputRecord =
-      OutputRecord( loc = location,
-                    isPresent = isPresent,
-                    hash = hash.map(_.valueAsBase64String),
-                    hashType = hashType.map(_.algorithmName),
-                    lastModified = lastModified)
+    override def toOutputRecord: OutputRecord = {
+      OutputRecord( 
+          loc = location,
+          isPresent = isPresent,
+          hash = hashToString(hash),
+          hashType = hashTypeToString(hashType),
+          lastModified = lastModified)
+    }
 
-    def normalized: PathOutput = copy(path = normalize(path))
-
-    private def normalize(p: Path): Path = Paths.get(PathUtils.normalize(p))
+    def normalized: PathOutput = this
+  }
+  
+  object PathOutput {
+    def apply(path: Path): PathOutput = new PathOutput(normalizePath(path))
   }
 
   final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends Output {
@@ -72,11 +77,17 @@ object Output {
 
     override def location: String = uri.toString
 
-    override def toOutputRecord: OutputRecord =
-      OutputRecord( loc = location,
-                    isPresent = isPresent,
-                    hash = hash.map(_.valueAsBase64String),
-                    hashType = hashType.map(_.algorithmName),
-                    lastModified = lastModified)
+    override def toOutputRecord: OutputRecord = {
+      OutputRecord( 
+          loc = location,
+          isPresent = isPresent,
+          hash = hashToString(hash),
+          hashType = hashTypeToString(hashType),
+          lastModified = lastModified)
+    }
   }
+  
+  private def hashToString(hashOpt: Option[Hash]): Option[String] = hashOpt.map(_.valueAsBase64String)
+  
+  private def hashTypeToString(hashOpt: Option[HashType]): Option[String] = hashOpt.map(_.algorithmName)
 }

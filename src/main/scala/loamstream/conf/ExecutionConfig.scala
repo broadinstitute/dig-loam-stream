@@ -4,20 +4,31 @@ import com.typesafe.config.Config
 import scala.util.Try
 import java.nio.file.Path
 import java.nio.file.Paths
+import ExecutionConfig.Defaults
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
  * Apr 20, 2017
  */
-final case class ExecutionConfig(maxRunsPerJob: Int, outputDir: Path)
+final case class ExecutionConfig(
+    maxRunsPerJob: Int = Defaults.maxRunsPerJob, 
+    outputDir: Path = Defaults.outputDir,
+    maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs)
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
-  private val defaultOutputDir: Path = Paths.get("job-outputs")
+  object Defaults {
+    val maxRunsPerJob: Int = 4 //scalastyle:ignore magic.number
   
-  val default: ExecutionConfig = ExecutionConfig(
-      maxRunsPerJob = 4, //scalastyle:ignore magic.number 
-      outputDir = defaultOutputDir) 
+    val outputDir: Path = Paths.get("job-outputs")
+    
+    import scala.concurrent.duration._
+    
+    val maxWaitTimeForOutputs: Duration = 30.seconds
+  }
+  
+  val default: ExecutionConfig = ExecutionConfig()
   
   override def fromConfig(config: Config): Try[ExecutionConfig] = {
     import net.ceedubs.ficus.Ficus._

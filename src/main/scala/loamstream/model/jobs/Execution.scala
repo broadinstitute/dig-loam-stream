@@ -5,6 +5,7 @@ import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
 import loamstream.model.jobs.commandline.CommandLineJob
 import java.nio.file.Path
+import loamstream.util.Loggable
 
 /**
  * @author clint
@@ -12,7 +13,6 @@ import java.nio.file.Path
  * date: Sep 22, 2016
  */
 final case class Execution(
-    id: Option[Int] = None,
     env: Environment,
     cmd: Option[String] = None,
     status: JobStatus,
@@ -35,18 +35,22 @@ final case class Execution(
   }
 
   def withOutputRecords(newOutputs: Set[OutputRecord]): Execution = copy(outputs = newOutputs)
+  
   def withOutputRecords(newOutput: OutputRecord, others: OutputRecord*): Execution = {
     withOutputRecords((newOutput +: others).toSet)
   }
 
   def withResources(rs: Resources): Execution = copy(resources = Some(rs))
-
-  def withId(newId: Int): Execution = withId(Option(newId))
-  def withId(newId: Option[Int]): Execution = copy(id = newId)
+  
+  def withStatusAndResult(status: JobStatus, result: JobResult): Execution = {
+    copy(status = status, result = Option(result))
+  }
 }
 
-object Execution {
+//TODO: Clean up and consolidate factory methods.  We probably don't need so many.  Maybe name them better too.
+object Execution extends Loggable {
   // TODO Remove when dynamic statuses flow in
+  // What does this mean? -Clint Dec 2017
   def apply(env: Environment,
             cmd: Option[String],
             result: JobResult,
@@ -54,7 +58,6 @@ object Execution {
             outputs: Set[OutputRecord]): Execution = {
     
     Execution(
-        id = None, 
         env = env, 
         cmd = cmd, 
         status = result.toJobStatus, 
@@ -65,6 +68,7 @@ object Execution {
   }
 
   // TODO Remove when dynamic statuses flow in
+  // What does this mean? -Clint Dec 2017
   def apply(env: Environment,
             cmd: String,
             result: JobResult,
@@ -72,7 +76,6 @@ object Execution {
             outputs: OutputRecord*): Execution = {
     
     Execution(
-        id = None, 
         env = env, 
         cmd = Option(cmd), 
         status = result.toJobStatus, 
@@ -90,7 +93,6 @@ object Execution {
             outputs: OutputRecord*): Execution = {
     
     Execution(
-        id = None, 
         env = env, 
         cmd = Option(cmd), 
         status = status, 
@@ -127,16 +129,17 @@ object Execution {
       case clj: CommandLineJob => Option(clj.commandLineString)
       case _ => None
     }
-
+    
+    val outputRecords = job.outputs.map(_.toOutputRecord)
+    
     // TODO Replace the placeholder for `resources` object put in place to get the code to compile
     Execution(
-      id = None,
       env = job.executionEnvironment,
       cmd = commandLine,
       status = status,
       result = result,
       resources = None, // TODO: smell: we have no idea how this job was run
-      outputs = job.outputs.map(_.toOutputRecord),
+      outputs = outputRecords,
       outputStreams = outputStreams) 
   }
 }

@@ -98,6 +98,6 @@ final class UgerJobWrapperTest extends FunSuite {
                        |""".stripMargin
     // scalastyle:on line.size.limit
     
-    assert(wrapper0.ugerCommandLine(taskArray) === expected)
+    assert(wrapper0.ugerCommandChunk(taskArray) === expected)
   }
 }

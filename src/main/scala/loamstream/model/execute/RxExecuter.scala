@@ -203,7 +203,11 @@ object RxExecuter extends Loggable {
     
     result
   }
-  
+
+  /**
+   * Turns the passed `runDataMap` into an observable that will fire once, producing a Map derived from `runDataMap`
+   * by turning `runDataMap`'s values into Executions after waiting for any missing outputs. 
+   */
   private[execute] def toExecutionMap(
       maxWaitTimeForOutputs: Duration)(
       runDataMap: Map[LJob, RunData])(implicit context: ExecutionContext): Observable[Map[LJob, Execution]] = {

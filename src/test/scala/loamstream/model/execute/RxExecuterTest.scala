@@ -666,7 +666,9 @@ final class RxExecuterTest extends FunSuite {
     
     import RxExecuter.Defaults.maxWaitTimeForOutputs
     
-    val executer = RxExecuter(runner, maxWaitTimeForOutputs, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
+    val executer = {
+      RxExecuter(runner, maxWaitTimeForOutputs, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
+    }
     
     (runner, executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])))
   }

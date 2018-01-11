@@ -11,6 +11,8 @@ import loamstream.model.execute.Resources
  * would mean hasing any output files/uris. Deferring the creation of an Execution allows waiting to do so
  * until all outputs are present (needed to work around Uger/Broad FS issue where files created by jobs don't
  * become visible to the LS process until later.
+ * 
+ * TODO: A better name.  `JobRun` is taken, but perhaps *that* should be renamed.
  */
 final case class RunData(
     job: LJob,
@@ -32,7 +34,7 @@ final case class RunData(
   
   //NB: This is lazy, to allow waiting to hash outputs (done by `job.outputs.map(_.toOutputRecord)`) 
   //until they're ready.
-  lazy val execution: Execution = Execution(
+  lazy val toExecution: Execution = Execution(
       env = job.executionEnvironment,
       cmd = cmdOpt,
       status = jobStatus,

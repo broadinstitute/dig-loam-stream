@@ -54,7 +54,7 @@ object LocalJobStrategy extends Loggable {
     }
   }
 
-  private def executeLocalJob(localJob: LocalJob)(implicit context: ExecutionContext): Future[RunData] = localJob.execute
+  private def executeLocalJob(localJob: LocalJob)(implicit ctx: ExecutionContext): Future[RunData] = localJob.execute
 
   private def executeNativeJob[A](nativeJob: NativeJob[A])(implicit context: ExecutionContext): Future[RunData] = {
     val exprBox = nativeJob.exprBox

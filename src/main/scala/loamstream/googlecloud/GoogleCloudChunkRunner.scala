@@ -3,7 +3,9 @@ package loamstream.googlecloud
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -16,7 +18,6 @@ import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.util.ExecutorServices
-import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.Maps
 import loamstream.util.Observables
@@ -98,7 +99,8 @@ final case class GoogleCloudChunkRunner(
 
     val futureResult = delegate.run(Set(job), shouldRestart).map(addCluster(googleConfig.clusterId)).firstAsFuture
     
-    Futures.waitFor(futureResult)
+    //TODO: add some timeout
+    Await.result(futureResult, Duration.Inf)
   }
   
   private[googlecloud] def withCluster[A](client: DataProcClient)(f: => A): A = {

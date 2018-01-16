@@ -9,7 +9,6 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.RunData
-import loamstream.util.Futures
 import rx.lang.scala.Observable
 import loamstream.util.ObservableEnrichments
 
@@ -19,10 +18,9 @@ import loamstream.util.ObservableEnrichments
  */
 final class CompositeChunkRunnerTest extends FunSuite {
   
-  //scalastyle:off magic.number
-  
   import CompositeChunkRunnerTest.{ MockRunner, local }
   import loamstream.TestHelpers.neverRestart
+  import loamstream.TestHelpers.waitFor
   
   test("maxNumJobs") {
     val n1 = 3
@@ -76,10 +74,8 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     
-    assert(Futures.waitFor(futureResults).mapValues(_.jobStatus) === expected)
+    assert(waitFor(futureResults).mapValues(_.jobStatus) === expected)
   }
-  
-  //scalastyle:on magic.number
 }
 
 object CompositeChunkRunnerTest {

@@ -64,7 +64,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   
   private val executionConfig: ExecutionConfig = ExecutionConfig(42, tempDir.resolve("bar")) 
   
-  import loamstream.util.Futures.waitFor
+  import loamstream.TestHelpers.waitFor
   import loamstream.util.ObservableEnrichments._
   
   test("NoOpJob is not attempted to be executed") {

@@ -1,16 +1,13 @@
 package loamstream.model.jobs
 
-import org.scalatest.FunSuite
-import loamstream.util.Futures
-import loamstream.util.ObservableEnrichments
-
 import scala.concurrent.ExecutionContext
-import loamstream.util.Maps
-import loamstream.model.execute.AsyncLocalChunkRunner
-import loamstream.conf.ExecutionConfig
-import loamstream.TestHelpers
 import scala.concurrent.Future
-import rx.lang.scala.Observable
+
+import org.scalatest.FunSuite
+
+import loamstream.TestHelpers
+import loamstream.conf.ExecutionConfig
+import loamstream.model.execute.AsyncLocalChunkRunner
 
 /**
  * @author clint
@@ -19,8 +16,8 @@ import rx.lang.scala.Observable
 final class JobTest extends FunSuite with TestJobs {
   
   import JobStatus._
-  import Futures.waitFor
-  import ObservableEnrichments._
+  import loamstream.TestHelpers.waitFor
+  import loamstream.util.ObservableEnrichments._
 
   private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
   

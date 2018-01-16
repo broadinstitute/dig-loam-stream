@@ -43,7 +43,7 @@ final case class RxMockJob(
       
       val finalDepState = jobToWaitFor.lastStatus
       
-      Futures.waitFor(finalDepState.firstAsFuture)
+      loamstream.TestHelpers.waitFor(finalDepState.firstAsFuture)
     }
   }
 

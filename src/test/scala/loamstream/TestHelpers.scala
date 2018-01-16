@@ -37,6 +37,8 @@ import org.apache.commons.io.FileUtils
 import loamstream.model.jobs.OutputStreams
 import java.util.UUID
 import loamstream.model.jobs.RunData
+import scala.concurrent.Future
+import scala.concurrent.Await
 
 /**
   * @author clint
@@ -162,4 +164,11 @@ object TestHelpers {
   def dummyFileName: Path = TestHelpers.path(s"${UUID.randomUUID.toString}.log")
     
   def dummyOutputStreams: OutputStreams = OutputStreams(dummyFileName, dummyFileName)
+  
+  def waitFor[A](f: Future[A]): A = {
+    import scala.concurrent.duration._
+
+    //NB: Hard-coded timeout. :(  But at least it's no longer infinite! :)
+    Await.result(f, 10.minutes)
+  }
 }

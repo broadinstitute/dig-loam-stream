@@ -122,16 +122,15 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       
       val windowLength = 30.seconds
       
-      val maxNumRunsPerJob = config.executionConfig.maxRunsPerJob
-      val maxWaitTimeForOutputs = config.executionConfig.maxWaitTimeForOutputs
+      import config.executionConfig.{ maxRunsPerJob, maxWaitTimeForOutputs, outputPollingFrequencyInHz }
       
       val rxExecuter = {
         RxExecuter(
             compositeRunner, 
-            new FileMonitor(0.1, maxWaitTimeForOutputs), //TODO: XXX: hard-coded pollig frequency 
+            new FileMonitor(outputPollingFrequencyInHz, maxWaitTimeForOutputs),
             windowLength, 
             jobFilter, 
-            maxNumRunsPerJob)(executionContextWithThreadPool)
+            maxRunsPerJob)(executionContextWithThreadPool)
       }
 
       val handles: Seq[Terminable] = (ugerRunnerHandles ++ googleRunner) :+ threadPoolHandle :+ localEcHandle

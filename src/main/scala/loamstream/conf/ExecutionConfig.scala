@@ -14,7 +14,8 @@ import scala.concurrent.duration.Duration
 final case class ExecutionConfig(
     maxRunsPerJob: Int = Defaults.maxRunsPerJob, 
     outputDir: Path = Defaults.outputDir,
-    maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs)
+    maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs,
+    outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz)
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
@@ -26,6 +27,8 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     import scala.concurrent.duration._
     
     val maxWaitTimeForOutputs: Duration = 30.seconds
+    
+    val outputPollingFrequencyInHz: Double = 0.1
   }
   
   val default: ExecutionConfig = ExecutionConfig()

@@ -165,9 +165,9 @@ object RxExecuter extends Loggable {
     
     lazy val maxWaitTimeForOutputs: Duration = executionConfig.maxWaitTimeForOutputs
     
-    val outputExistencePollingFrequencyInHz: Double = 0.1
+    lazy val outputExistencePollingFrequencyInHz: Double = executionConfig.outputPollingFrequencyInHz
     
-    val fileMonitor: FileMonitor = new FileMonitor(outputExistencePollingFrequencyInHz, maxWaitTimeForOutputs)
+    lazy val fileMonitor: FileMonitor = new FileMonitor(outputExistencePollingFrequencyInHz, maxWaitTimeForOutputs)
   }
   
   def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {

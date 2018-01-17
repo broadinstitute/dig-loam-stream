@@ -42,6 +42,7 @@ import loamstream.cli.Intent
 import loamstream.cli.Intent.RealRun
 import java.nio.file.Path
 import scala.util.Success
+import loamstream.util.FileMonitor
 
 /**
  * @author clint
@@ -127,7 +128,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val rxExecuter = {
         RxExecuter(
             compositeRunner, 
-            maxWaitTimeForOutputs, 
+            new FileMonitor(0.1, maxWaitTimeForOutputs), //TODO: XXX: hard-coded pollig frequency 
             windowLength, 
             jobFilter, 
             maxNumRunsPerJob)(executionContextWithThreadPool)

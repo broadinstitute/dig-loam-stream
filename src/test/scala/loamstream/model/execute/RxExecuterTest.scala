@@ -33,10 +33,10 @@ final class RxExecuterTest extends FunSuite {
     
     val runner = MockChunkRunner(AsyncLocalChunkRunner(ExecutionConfig.default, maxSimultaneousJobs))
     
-    import RxExecuter.Defaults.maxWaitTimeForOutputs
+    import RxExecuter.Defaults.fileMonitor
     
     val executer = {
-      RxExecuter(runner, maxWaitTimeForOutputs, 0.1.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
+      RxExecuter(runner, fileMonitor, 0.1.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
     }
     
     ExecutionResults(
@@ -70,22 +70,22 @@ final class RxExecuterTest extends FunSuite {
     
     val runner = MockChunkRunner(AsyncLocalChunkRunner(ExecutionConfig.default, 8))
     
-    import RxExecuter.Defaults.maxWaitTimeForOutputs
+    import RxExecuter.Defaults.fileMonitor
     
     intercept[Exception] {
-      RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, -1)
+      RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, -1)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, 0)
+      RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, 0)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, -100)
+      RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, -100)
     }
     
-    RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, 1)
-    RxExecuter(runner, maxWaitTimeForOutputs, 0.25.seconds, JobFilter.RunEverything, 42)
+    RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, 1)
+    RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, 42)
   }
 
   import RxExecuterTest.JobOrderOps
@@ -664,10 +664,10 @@ final class RxExecuterTest extends FunSuite {
       
     assert(runner.maxNumJobs === maxSimultaneousJobs)
     
-    import RxExecuter.Defaults.maxWaitTimeForOutputs
+    import RxExecuter.Defaults.fileMonitor
     
     val executer = {
-      RxExecuter(runner, maxWaitTimeForOutputs, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
+      RxExecuter(runner, fileMonitor, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
     }
     
     (runner, executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])))

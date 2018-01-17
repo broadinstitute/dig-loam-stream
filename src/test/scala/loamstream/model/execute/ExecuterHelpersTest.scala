@@ -18,6 +18,7 @@ import loamstream.model.jobs.Output
 import loamstream.util.Files
 import loamstream.model.jobs.RunData
 import scala.concurrent.Future
+import loamstream.util.FileMonitor
 
 /**
  * @author clint
@@ -98,7 +99,9 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val f = waitForOutputsOnly(mockJob, 2.seconds)
+    val fileMonitor = new FileMonitor(10.0, 2.seconds)
+    
+    val f = waitForOutputsOnly(mockJob, fileMonitor)
     
     assert(exists(initiallyMissing0) === false)
     assert(exists(initiallyMissing1) === false)
@@ -146,7 +149,9 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val f = waitForOutputsOnly(mockJob, 0.seconds)
+    val fileMonitor = new FileMonitor(10.0, 0.seconds)
+    
+    val f = waitForOutputsOnly(mockJob, fileMonitor)
     
     assert(f.isCompleted)
   }
@@ -176,7 +181,9 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     
     val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
     
-    val f = waitForOutputsAndMakeExecution(runData, 0.seconds)
+    val fileMonitor = new FileMonitor(10.0, 0.seconds)
+    
+    val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
     
     val execution = Await.result(f, 10.seconds)
     
@@ -207,7 +214,9 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     
     val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
     
-    val f = waitForOutputsAndMakeExecution(runData, 5.seconds)
+    val fileMonitor = new FileMonitor(10.0, 5.seconds)
+    
+    val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
     
     assert(exists(out0))
     assert(exists(out1) === false)
@@ -251,7 +260,9 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
     
     //NB: Don't wait for any amount of time
-    val f = waitForOutputsAndMakeExecution(runData, 0.seconds)
+    val fileMonitor = new FileMonitor(10.0, 0.seconds)
+    
+    val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
     
     assert(exists(out0))
     assert(exists(out1) === false)
@@ -280,7 +291,9 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     
     val runData = RunData(mockJob, JobStatus.FailedPermanently, Some(JobResult.Failure))
     
-    val f = waitForOutputsAndMakeExecution(runData, 5.seconds)
+    val fileMonitor = new FileMonitor(10.0, 5.seconds)
+    
+    val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
     
     //NB: Outputs aren't considered at all, an already-completed future should be returned
     

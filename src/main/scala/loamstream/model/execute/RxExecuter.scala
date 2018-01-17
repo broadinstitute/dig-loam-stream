@@ -27,6 +27,7 @@ import loamstream.model.jobs.log.JobLog
 import loamstream.model.jobs.RunData
 import scala.concurrent.Future
 import loamstream.conf.LoamConfig
+import loamstream.util.FileMonitor
 
 /**
  * @author kaan
@@ -35,7 +36,7 @@ import loamstream.conf.LoamConfig
  */
 final case class RxExecuter(
     runner: ChunkRunner,
-    maxWaitTimeForOutputs: Duration,
+    fileMonitor: FileMonitor,
     windowLength: Duration,
     jobFilter: JobFilter,
     maxRunsPerJob: Int,
@@ -77,7 +78,7 @@ final case class RxExecuter(
       if notFinishedJobs.nonEmpty
       (jobsToRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
       _ = handleSkippedJobs(skippedJobs)
-      executionMap <- runJobs(jobsToRun, maxWaitTimeForOutputs)
+      executionMap <- runJobs(jobsToRun)
       _ = record(executionMap)
       _ = logFinishedJobs(executionMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
@@ -104,12 +105,12 @@ final case class RxExecuter(
   //NB: shouldRestart() mostly factored out to the companion object for simpler testing
   private def shouldRestart(job: LJob): Boolean = RxExecuter.shouldRestart(job, maxRunsPerJob)
   
-  private def runJobs(jobsToRun: Iterable[LJob], maxWaitTimeForOutputs: Duration): Observable[Map[LJob, Execution]] = {
+  private def runJobs(jobsToRun: Iterable[LJob]): Observable[Map[LJob, Execution]] = {
     logJobsToBeRun(jobsToRun)
     
     import RxExecuter.toExecutionMap
     
-    runner.run(jobsToRun.toSet, shouldRestart).flatMap(toExecutionMap(maxWaitTimeForOutputs))
+    runner.run(jobsToRun.toSet, shouldRestart).flatMap(toExecutionMap(fileMonitor))
   }
   
   private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {
@@ -163,12 +164,16 @@ object RxExecuter extends Loggable {
     lazy val maxNumConcurrentJobs: Int = AsyncLocalChunkRunner.defaultMaxNumJobs
     
     lazy val maxWaitTimeForOutputs: Duration = executionConfig.maxWaitTimeForOutputs
+    
+    val outputExistencePollingFrequencyInHz: Double = 0.1
+    
+    val fileMonitor: FileMonitor = new FileMonitor(outputExistencePollingFrequencyInHz, maxWaitTimeForOutputs)
   }
   
   def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {
     new RxExecuter(
         runner, 
-        Defaults.maxWaitTimeForOutputs, 
+        Defaults.fileMonitor, 
         Defaults.windowLengthInSec, 
         Defaults.jobFilter, 
         Defaults.maxRunsPerJob)
@@ -181,7 +186,7 @@ object RxExecuter extends Loggable {
 
     new RxExecuter(
         chunkRunner, 
-        Defaults.maxWaitTimeForOutputs,
+        Defaults.fileMonitor,
         Defaults.windowLengthInSec, 
         Defaults.jobFilter, 
         Defaults.maxRunsPerJob, 
@@ -209,11 +214,11 @@ object RxExecuter extends Loggable {
    * by turning `runDataMap`'s values into Executions after waiting for any missing outputs. 
    */
   private[execute] def toExecutionMap(
-      maxWaitTimeForOutputs: Duration)(
+      fileMonitor: FileMonitor)(
       runDataMap: Map[LJob, RunData])(implicit context: ExecutionContext): Observable[Map[LJob, Execution]] = {
   
     def waitForOutputs(runData: RunData) = {
-      ExecuterHelpers.waitForOutputsAndMakeExecution(runData, maxWaitTimeForOutputs)
+      ExecuterHelpers.waitForOutputsAndMakeExecution(runData, fileMonitor)
     }
     
     val jobToExecutionFutures = for {

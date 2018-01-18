@@ -69,7 +69,7 @@ object FileMonitor {
         (existingFile, watchers) <- existingFilesAndWatchers
         watcher <- watchers
       } {
-        watcher.onPathCreation()
+        watcher.completeSuccessfully()
       }
     }
 
@@ -109,33 +109,33 @@ object FileMonitor {
       promise.future
     }
     
-    def stop(): Unit = watchedFiles.mutate { pathsToWatchers =>
+    private def stop(): Unit = watchedFiles.mutate { pathsToWatchers =>
       if (isStopped) {
         debug(s"Watcher for '$fileToWatch' already stopped.")
-      }
-
-      val newMap: FilesToWatchers = pathsToWatchers.get(fileToWatch) match {
-        case Some(watchers) => {
-          val newWatchers = watchers - this
-
-          if (newWatchers.isEmpty) { pathsToWatchers - fileToWatch }
-          else { pathsToWatchers.updated(fileToWatch, newWatchers) }
+        
+        pathsToWatchers
+      } else {
+        val newMap: FilesToWatchers = pathsToWatchers.get(fileToWatch) match {
+          case Some(watchers) => {
+            val newWatchers = watchers - this
+  
+            if (newWatchers.isEmpty) { pathsToWatchers - fileToWatch }
+            else { pathsToWatchers.updated(fileToWatch, newWatchers) }
+          }
+          case None => {
+            debug(s"We weren't - or are no longer - registered to watch file '$fileToWatch'.")
+  
+            pathsToWatchers
+          }
         }
-        case None => {
-          debug(s"We weren't - or are no longer - registered to watch file '$fileToWatch'.")
-
-          pathsToWatchers
-        }
+  
+        stopped.set(true)
+  
+        newMap
       }
-
-      stopped.set(true)
-
-      completeWithFailure(s"Stopped waiting for '$fileToWatch'.", shouldStop = false)
-
-      newMap
     }
 
-    def start(): Unit = watchedFiles.mutate { pathsToWatchers =>
+    private def start(): Unit = watchedFiles.mutate { pathsToWatchers =>
       if (isStopped) {
         val newMap: FilesToWatchers = pathsToWatchers.get(fileToWatch) match {
           case Some(watchers) => pathsToWatchers.updated(fileToWatch, watchers + this)
@@ -150,18 +150,14 @@ object FileMonitor {
       }
     }
     
-    def onPathCreation(): Unit = {
-      promise.complete(Success(()))
-
-      stop()
+    def completeSuccessfully(): Unit = {
+      try { promise.complete(Success(())) }
+      finally { stop() }
     }
 
-    def completeWithFailure(message: String, shouldStop: Boolean = true): Unit = {
-      promise.tryComplete(Tries.failure(message))
-  
-      if (shouldStop) {
-        stop()
-      }
+    def completeWithFailure(message: String): Unit = {
+      try { promise.tryComplete(Tries.failure(message)) }
+      finally { stop() }
     }
   }
 }

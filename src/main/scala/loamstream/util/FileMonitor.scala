@@ -19,13 +19,20 @@ final class FileMonitor(pollingRateInHz: Double, maxWaitTime: Duration) {
   import FileMonitor.Watcher
   
   def waitForCreationOf(path: Path): Future[Unit] = {
-    val watcher = new Watcher(PathUtils.normalizePath(path), maxWaitTime, watchedFiles)
+    if(exists(path)) {
+      Future.successful(())
+    } else {
+      val watcher = new Watcher(PathUtils.normalizePath(path), maxWaitTime, watchedFiles)
     
-    watcher.future
+      watcher.future
+    }
   }
   
   private[this] val watchedFiles: ValueBox[FileMonitor.FilesToWatchers] = ValueBox(Map.empty)
 
+  //NB: exposed for tests
+  private[util] def getWatchedFiles: FileMonitor.FilesToWatchers = watchedFiles.value
+  
   private val timer: Timer = {
     val timerIsDaemon = true
 
@@ -42,7 +49,7 @@ final class FileMonitor(pollingRateInHz: Double, maxWaitTime: Duration) {
 }
 
 object FileMonitor {
-  private type FilesToWatchers = Map[Path, Set[Watcher]]
+  private[util] type FilesToWatchers = Map[Path, Set[Watcher]]
 
   private final class PollingTask(watchedFiles: ValueBox[FilesToWatchers]) extends TimerTask {
     override def run(): Unit = {
@@ -83,7 +90,7 @@ object FileMonitor {
     }
   }
 
-  private final class Watcher(
+  private[util] final class Watcher(
       val fileToWatch: Path,
       val maxWaitTime: Duration,
       watchedFiles: ValueBox[FilesToWatchers]) extends Loggable {
@@ -94,7 +101,7 @@ object FileMonitor {
 
     private val stopped: AtomicBoolean = new AtomicBoolean(true)
 
-    private def isStopped: Boolean = stopped.get
+    private[util] def isStopped: Boolean = stopped.get
 
     lazy val future: Future[Unit] = {
       start()

@@ -1,5 +1,7 @@
 import sbt.project
 
+test in assembly := {}
+
 lazy val Versions = new {
   val App = "1.3-SNAPSHOT"
   val ApacheCommonsIO = "2.6"
@@ -19,6 +21,20 @@ lazy val Versions = new {
   val RxScala = "0.26.5"
   val Ficus = "1.4.3"
   val Squants = "1.3.0"
+}
+
+lazy val Orgs = new {
+  val DIG = "org.broadinstitute.dig"
+}
+
+lazy val Paths = new {
+  val LocalRepo = "/humgen/diabetes/users/dig/loamstream/repo"
+}
+
+lazy val Resolvers = new {
+  val LocalRepo = Resolver.file("localRepo", new File(Paths.LocalRepo))
+  val SonatypeReleases = Resolver.sonatypeRepo("releases")
+  val SonatypeSnapshots = Resolver.sonatypeRepo("snapshots")
 }
 
 lazy val mainDeps = Seq(
@@ -45,24 +61,19 @@ lazy val testDeps = Seq(
   "org.scalatest" %% "scalatest" % Versions.ScalaTest % "it,test"
 )
 
-lazy val commonSettings = Seq(
-  version := Versions.App,
-  scalaVersion := Versions.Scala,
-  scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
-  resolvers ++= Seq(
-    Resolver.sonatypeRepo("releases"),
-    Resolver.sonatypeRepo("snapshots")
-  ),
-  libraryDependencies ++= (mainDeps ++ testDeps),
-  scalastyleFailOnError := true
-)
-
 lazy val root = (project in file("."))
   .configs(IntegrationTest)
-  .settings(commonSettings: _*)
   .settings(Defaults.itSettings : _*)
   .settings(
-    name := "LoamStream",
+    name := "loamstream",
+    organization := Orgs.DIG,
+    version := Versions.App,
+    scalaVersion := Versions.Scala,
+    scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
+    resolvers ++= Seq(Resolvers.SonatypeReleases, Resolvers.SonatypeSnapshots),
+    publishTo := Some(Resolvers.LocalRepo),
+    libraryDependencies ++= (mainDeps ++ testDeps),
+    scalastyleFailOnError := true,
     packageSummary in Linux := "LoamStream - Language for Omics Analysis Management",
     packageSummary in Windows := "LoamStream - Language for Omics Analysis Management",
     packageDescription := "A high level-language and runtime environment for large-scale omics analysis.",
@@ -71,6 +82,13 @@ lazy val root = (project in file("."))
     mainClass in assembly := Some("loamstream.apps.Main"),
     mainClass in Compile := Some("loamstream.apps.Main")
   ).enablePlugins(JavaAppPackaging)
+
+artifact in (Compile, assembly) := {
+  val art = (artifact in (Compile, assembly)).value
+  art.withClassifier(Some("assembly"))
+}
+
+addArtifact(artifact in (Compile, assembly), assembly)
 
 enablePlugins(GitVersioning)
 

@@ -12,13 +12,13 @@ import loamstream.model.jobs.JobResult.CommandInvocationFailure
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.Output
-import loamstream.util.FileWatchers
 import loamstream.util.Loggable
 import loamstream.model.jobs.RunData
 import loamstream.model.LId
 import loamstream.conf.LoamConfig
 import loamstream.util.Functions
 import scala.util.Try
+import loamstream.util.FileMonitor
 
 /**
  * @author clint
@@ -77,7 +77,7 @@ object ExecuterHelpers extends Loggable {
    */
   def waitForOutputsOnly(
        job: LJob, 
-       howLong: Duration)
+       fileMonitor: FileMonitor)
       (implicit context: ExecutionContext): Future[_] = {
     
     val anyMissingOutputs = job.outputs.exists(_.isMissing)
@@ -88,7 +88,7 @@ object ExecuterHelpers extends Loggable {
       //TODO: Support UriOutputs!!
       val missingPaths = job.outputs.toSeq.collect { case o @ Output.PathOutput(p) if o.isMissing => p }
     
-      val fileExistenceFutures = missingPaths.map(p => FileWatchers.waitForCreationOf(p, howLong))
+      val fileExistenceFutures = missingPaths.map(fileMonitor.waitForCreationOf)
     
       Future.sequence(fileExistenceFutures)
     } else {
@@ -126,12 +126,12 @@ object ExecuterHelpers extends Loggable {
    */
   def waitForOutputsAndMakeExecution(
       runData: RunData, 
-      howLong: Duration)(implicit context: ExecutionContext): Future[Execution] = {
+      fileMonitor: FileMonitor)(implicit context: ExecutionContext): Future[Execution] = {
     
     //TODO: Revisit this: should we should wait in all cases?
     if(runData.jobStatus.isSuccess) {
       doWaiting(
-          waitForOutputsOnly(runData.job, howLong), 
+          waitForOutputsOnly(runData.job, fileMonitor), 
           runData.toExecution,
           Execution.from(runData.job, JobStatus.Failed))
     } else {

@@ -42,6 +42,7 @@ import loamstream.cli.Intent
 import loamstream.cli.Intent.RealRun
 import java.nio.file.Path
 import scala.util.Success
+import loamstream.util.FileMonitor
 
 /**
  * @author clint
@@ -121,16 +122,15 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       
       val windowLength = 30.seconds
       
-      val maxNumRunsPerJob = config.executionConfig.maxRunsPerJob
-      val maxWaitTimeForOutputs = config.executionConfig.maxWaitTimeForOutputs
+      import config.executionConfig.{ maxRunsPerJob, maxWaitTimeForOutputs, outputPollingFrequencyInHz }
       
       val rxExecuter = {
         RxExecuter(
             compositeRunner, 
-            maxWaitTimeForOutputs, 
+            new FileMonitor(outputPollingFrequencyInHz, maxWaitTimeForOutputs),
             windowLength, 
             jobFilter, 
-            maxNumRunsPerJob)(executionContextWithThreadPool)
+            maxRunsPerJob)(executionContextWithThreadPool)
       }
 
       val handles: Seq[Terminable] = (ugerRunnerHandles ++ googleRunner) :+ threadPoolHandle :+ localEcHandle

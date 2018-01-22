@@ -1,7 +1,5 @@
 import sbt.project
 
-test in assembly := {}
-
 lazy val Versions = new {
   val App = "1.3-SNAPSHOT"
   val ApacheCommonsIO = "2.6"
@@ -28,6 +26,7 @@ lazy val Orgs = new {
 }
 
 lazy val Paths = new {
+  //`publish` will produce artifacts under this path
   val LocalRepo = "/humgen/diabetes/users/dig/loamstream/repo"
 }
 
@@ -83,6 +82,11 @@ lazy val root = (project in file("."))
     mainClass in Compile := Some("loamstream.apps.Main")
   ).enablePlugins(JavaAppPackaging)
 
+//Skip tests when running assembly (and publishing).  Comment this line to re-enable tests when publishing.
+test in assembly := {}
+
+//Make the fat jar produced by `assembly` a tracked artifact that will be published.  
+//(Without this bit, only the application classes, sources, and docs will be published.)
 artifact in (Compile, assembly) := {
   val art = (artifact in (Compile, assembly)).value
   art.withClassifier(Some("assembly"))
@@ -90,9 +94,11 @@ artifact in (Compile, assembly) := {
 
 addArtifact(artifact in (Compile, assembly), assembly)
 
-enablePlugins(GitVersioning)
-
+//Use slightly different style rules for tests.
 scalastyleConfig in Test := file("scalastyle-config-for-tests.xml")
+
+//Enables `buildInfoTask`, which bakes git version info into the LS jar.
+enablePlugins(GitVersioning)
 
 val buildInfoTask = taskKey[Seq[File]]("buildInfo")
 

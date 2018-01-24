@@ -1,7 +1,6 @@
 import sbt.project
 
 lazy val Versions = new {
-  val App = "1.3-SNAPSHOT"
   val ApacheCommonsIO = "2.6"
   val DrmaaCommon = "1.0"
   val DrmaaGridEngine = "6.2u5"
@@ -66,7 +65,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "loamstream",
     organization := Orgs.DIG,
-    version := Versions.App,
+    //NB: version set in version.sbt
     scalaVersion := Versions.Scala,
     scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
     resolvers ++= Seq(Resolvers.SonatypeReleases, Resolvers.SonatypeSnapshots),

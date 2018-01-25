@@ -1,7 +1,6 @@
 import sbt.project
 
 lazy val Versions = new {
-  val App = "1.3-SNAPSHOT"
   val ApacheCommonsIO = "2.6"
   val DrmaaCommon = "1.0"
   val DrmaaGridEngine = "6.2u5"
@@ -19,6 +18,21 @@ lazy val Versions = new {
   val RxScala = "0.26.5"
   val Ficus = "1.4.3"
   val Squants = "1.3.0"
+}
+
+lazy val Orgs = new {
+  val DIG = "org.broadinstitute.dig"
+}
+
+lazy val Paths = new {
+  //`publish` will produce artifacts under this path
+  val LocalRepo = "/humgen/diabetes/users/dig/loamstream/repo"
+}
+
+lazy val Resolvers = new {
+  val LocalRepo = Resolver.file("localRepo", new File(Paths.LocalRepo))
+  val SonatypeReleases = Resolver.sonatypeRepo("releases")
+  val SonatypeSnapshots = Resolver.sonatypeRepo("snapshots")
 }
 
 lazy val mainDeps = Seq(
@@ -45,24 +59,19 @@ lazy val testDeps = Seq(
   "org.scalatest" %% "scalatest" % Versions.ScalaTest % "it,test"
 )
 
-lazy val commonSettings = Seq(
-  version := Versions.App,
-  scalaVersion := Versions.Scala,
-  scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
-  resolvers ++= Seq(
-    Resolver.sonatypeRepo("releases"),
-    Resolver.sonatypeRepo("snapshots")
-  ),
-  libraryDependencies ++= (mainDeps ++ testDeps),
-  scalastyleFailOnError := true
-)
-
 lazy val root = (project in file("."))
   .configs(IntegrationTest)
-  .settings(commonSettings: _*)
   .settings(Defaults.itSettings : _*)
   .settings(
-    name := "LoamStream",
+    name := "loamstream",
+    organization := Orgs.DIG,
+    //NB: version set in version.sbt
+    scalaVersion := Versions.Scala,
+    scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
+    resolvers ++= Seq(Resolvers.SonatypeReleases, Resolvers.SonatypeSnapshots),
+    publishTo := Some(Resolvers.LocalRepo),
+    libraryDependencies ++= (mainDeps ++ testDeps),
+    scalastyleFailOnError := true,
     packageSummary in Linux := "LoamStream - Language for Omics Analysis Management",
     packageSummary in Windows := "LoamStream - Language for Omics Analysis Management",
     packageDescription := "A high level-language and runtime environment for large-scale omics analysis.",
@@ -72,9 +81,23 @@ lazy val root = (project in file("."))
     mainClass in Compile := Some("loamstream.apps.Main")
   ).enablePlugins(JavaAppPackaging)
 
-enablePlugins(GitVersioning)
+//Skip tests when running assembly (and publishing).  Comment this line to re-enable tests when publishing.
+test in assembly := {}
 
+//Make the fat jar produced by `assembly` a tracked artifact that will be published.  
+//(Without this bit, only the application classes, sources, and docs will be published.)
+artifact in (Compile, assembly) := {
+  val art = (artifact in (Compile, assembly)).value
+  art.withClassifier(Some("assembly"))
+}
+
+addArtifact(artifact in (Compile, assembly), assembly)
+
+//Use slightly different style rules for tests.
 scalastyleConfig in Test := file("scalastyle-config-for-tests.xml")
+
+//Enables `buildInfoTask`, which bakes git version info into the LS jar.
+enablePlugins(GitVersioning)
 
 val buildInfoTask = taskKey[Seq[File]]("buildInfo")
 

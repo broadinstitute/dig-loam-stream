@@ -151,13 +151,15 @@ object FileMonitor {
     }
     
     def completeSuccessfully(): Unit = {
-      try { promise.complete(Success(())) }
-      finally { stop() }
+      //NB: Make sure cleanup (stop()) happens BEFORE completing the promise
+      try { stop() }
+      finally { promise.complete(Success(())) }
     }
 
     def completeWithFailure(message: String): Unit = {
-      try { promise.tryComplete(Tries.failure(message)) }
-      finally { stop() }
+      //NB: Make sure cleanup (stop()) happens BEFORE completing the promise
+      try { stop() }
+      finally { promise.tryComplete(Tries.failure(message)) }
     }
   }
 }

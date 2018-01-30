@@ -36,11 +36,11 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
       
   private val dao: LoamDao = AppWiring.makeDaoFrom(dbDescriptor)
   
-  private def writeConfFileTo(configFilePath: Path): Unit = {
+  private def writeConfFileTo(configFilePath: Path, ugerWorkDir: Path): Unit = {
     val contents = s"""|loamstream {
                        |  uger {
                        |    maxNumJobs = 2400
-                       |    workDir = "uger"
+                       |    workDir = "$ugerWorkDir"
                        |  }
                        |}""".stripMargin
 
@@ -58,7 +58,11 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
     val confFilePath = tempDir / "loamstream.conf"
     
-    writeConfFileTo(confFilePath)
+    val ugerWorkDir = tempDir / "uger"
+    
+    writeConfFileTo(confFilePath, ugerWorkDir)
+    
+    assert(ugerWorkDir.toFile.mkdir())
     
     Files.writeTo(pathA)("AAA")
     

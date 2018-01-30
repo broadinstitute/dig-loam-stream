@@ -46,9 +46,9 @@ final class SimpleLocalPipelineTest extends FunSuite with IntegrationTestHelpers
       
       val loamScriptContents = {
         s"""|
-            |val a = store.at(${pathA}).asInput
-            |val b = store.at(${pathB})
-            |val c = store.at(${pathC})
+            |val a = store.at("${pathA}").asInput
+            |val b = store.at("${pathB}")
+            |val c = store.at("${pathC}")
             |
             |cmd"cp $$b $$c".in(b).out(c)
             |

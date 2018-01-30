@@ -31,4 +31,8 @@ object BashScript extends Loggable {
     case c if charsToBeEscaped(c) => Seq('\\', c)
     case c => Seq(c)
   }
+  
+  implicit class BashPath(path: Path) {
+    def render: String = escapeString(path.toString.replace('\\', '/'))
+  }
 }

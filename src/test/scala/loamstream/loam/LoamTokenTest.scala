@@ -107,7 +107,8 @@ final class LoamTokenTest extends FunSuite {
     
     val ref: LoamStoreRef =  underlyingStore + ".bar"
     
-    assert(StoreRefToken(ref).toString === "./foo.txt.bar")
+    assert(ref.path == Paths.get("./foo.txt.bar"))
+    assert(StoreRefToken(ref).toString(context.projectContext.fileManager) == ref.render(context.projectContext.fileManager))
     
     val bazPath = Paths.get("baz")
     

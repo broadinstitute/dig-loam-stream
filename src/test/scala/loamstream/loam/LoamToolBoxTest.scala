@@ -133,7 +133,7 @@ final class LoamToolBoxTest extends FunSuite {
         
         val graph = context.projectContext.graph
         
-        (graph, fileTmp1.path, fileTmp2.path, inToTmp1, tmp1ToTmp2, tmp2ToOne, tmp2ToTwo, tmp2ToThree)
+        (graph, fileTmp1.render, fileTmp2.render, inToTmp1, tmp1ToTmp2, tmp2ToOne, tmp2ToTwo, tmp2ToThree)
       }
     }
       
@@ -164,14 +164,14 @@ final class LoamToolBoxTest extends FunSuite {
     assert(singleDepOf(jobTmp1ToTmp2) eq jobInToTmp1)
     
     assert(hasNoDeps(jobInToTmp1))
-      
-    assert(jobTmp2To1.commandLineString === s"cp ${fileTmp2Path} ${fileOut1Path}")
-    assert(jobTmp2To2.commandLineString === s"cp ${fileTmp2Path} ${fileOut2Path}")
-    assert(jobTmp2To3.commandLineString === s"cp ${fileTmp2Path} ${fileOut3Path}")
+    
+    assert(jobTmp2To1.commandLineString === s"cp ${fileTmp2Path} ${fileOut1Path.toString.replace('\\', '/')}")
+    assert(jobTmp2To2.commandLineString === s"cp ${fileTmp2Path} ${fileOut2Path.toString.replace('\\', '/')}")
+    assert(jobTmp2To3.commandLineString === s"cp ${fileTmp2Path} ${fileOut3Path.toString.replace('\\', '/')}")
     
     assert(jobTmp1ToTmp2.commandLineString === s"cp ${fileTmp1Path} ${fileTmp2Path}")
     
-    assert(jobInToTmp1.commandLineString === s"cp ${fileInPath} ${fileTmp1Path}")
+    assert(jobInToTmp1.commandLineString === s"cp ${fileInPath.toString.replace('\\', '/')} ${fileTmp1Path}")
       
     val namedJobs: Set[LJob] = Set(jobTmp2To2, jobTmp2To3)
       

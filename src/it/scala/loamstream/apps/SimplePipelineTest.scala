@@ -10,6 +10,7 @@ import loamstream.model.execute.HashingStrategy
 import java.nio.file.Path
 import loamstream.db.slick.DbDescriptor
 import loamstream.db.LoamDao
+import java.nio.file.Paths
 
 /**
  * @author clint
@@ -35,6 +36,17 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
       
   private val dao: LoamDao = AppWiring.makeDaoFrom(dbDescriptor)
   
+  private def writeConfFileTo(configFilePath: Path): Unit = {
+    val contents = s"""|loamstream {
+                       |  uger {
+                       |    maxNumJobs = 2400
+                       |    workDir = "uger"
+                       |  }
+                       |}""".stripMargin
+
+    Files.writeTo(configFilePath)(contents)
+  }
+  
   private def doTest(environment: String, shouldRunEverything: Boolean, hashingStrategy: HashingStrategy): Unit = {
     val tempDir = getWorkDir
     
@@ -43,6 +55,10 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     val pathA = tempDir / "a.txt"
     val pathB = tempDir / "b.txt"
     val pathC = tempDir / "c.txt"
+    
+    val confFilePath = tempDir / "loamstream.conf"
+    
+    writeConfFileTo(confFilePath)
     
     Files.writeTo(pathA)("AAA")
     
@@ -73,7 +89,7 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     assert(Files.readFrom(loamScriptPath) === loamScriptContents)
 
     val intent = Intent.RealRun(
-      confFile = None,
+      confFile = Some(confFilePath),
       hashingStrategy = hashingStrategy,
       shouldRunEverything = shouldRunEverything,
       loams = Seq(loamScriptPath))

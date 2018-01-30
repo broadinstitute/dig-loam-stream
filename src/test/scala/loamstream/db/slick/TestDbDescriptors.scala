@@ -13,8 +13,8 @@ object TestDbDescriptors {
   //TODO: This shouldn't be necessary :(
   private val sequence: Sequence[Int] = Sequence()
 
-  private def makeUrl(dbName: String): String = s"jdbc:h2:$dbName;DB_CLOSE_DELAY=-1"
+  private def makeUrl(dbName: String): String = s"jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1"
   
   //TODO: Unique DB names shouldn't be necessary :(
-  def inMemoryH2: DbDescriptor = DbDescriptor(DbType.H2, makeUrl(s"mem:test${sequence.next()}"))
+  def inMemoryH2: DbDescriptor = DbDescriptor(DbType.H2, makeUrl(s"test${sequence.next()}"))
 }

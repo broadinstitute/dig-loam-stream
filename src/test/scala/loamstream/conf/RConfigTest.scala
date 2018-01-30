@@ -22,7 +22,7 @@ final class RConfigTest extends FunSuite {
     val confString =
       s"""loamstream {
             r {
-              binary = "${BashScript.escapeString(binaryPath.toString)}"
+              binary = "${binaryPath}"
             }
           }"""
 
@@ -38,8 +38,8 @@ final class RConfigTest extends FunSuite {
     val confString =
       s"""loamstream {
             r {
-              binary = "${BashScript.escapeString(binaryPath.toString)}"
-              scriptDir = "${BashScript.escapeString(scriptDirPath.toString)}"
+              binary = "${binaryPath}"
+              scriptDir = "${scriptDirPath}"
             }
           }"""
 

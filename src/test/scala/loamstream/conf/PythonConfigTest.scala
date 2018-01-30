@@ -22,7 +22,7 @@ final class PythonConfigTest extends FunSuite {
     val confString =
       s"""loamstream {
             python {
-              binary = "${BashScript.escapeString(binaryPath.toString)}"
+              binary = "${binaryPath}"
             }
           }"""
 
@@ -38,8 +38,8 @@ final class PythonConfigTest extends FunSuite {
     val confString =
       s"""loamstream {
             python {
-              binary = "${BashScript.escapeString(binaryPath.toString)}"
-              scriptDir = "${BashScript.escapeString(scriptDirPath.toString)}"
+              binary = "${binaryPath}"
+              scriptDir = "${scriptDirPath}"
             }
           }"""
 

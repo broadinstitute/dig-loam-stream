@@ -65,9 +65,10 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
   def daoForOutputLookup(intent: Intent.LookupOutput): LoamDao = makeDefaultDb
   
-  def forRealRun(intent: Intent.RealRun): AppWiring = {
+  def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
     new DefaultAppWiring(
-        confFile = intent.confFile, 
+        confFile = intent.confFile,
+        makeDao = makeDao,
         shouldRunEverything = intent.shouldRunEverything, 
         hashingStrategy = intent.hashingStrategy)
   }
@@ -82,8 +83,11 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
   
   private final class DefaultAppWiring(
       confFile: Option[Path],
+      makeDao: => LoamDao,
       shouldRunEverything: Boolean,
-      hashingStrategy: HashingStrategy) extends AppWiring with DefaultDb {
+      hashingStrategy: HashingStrategy) extends AppWiring {
+    
+    override lazy val dao: LoamDao = makeDao
     
     override lazy val config: LoamConfig = loamConfigFrom(confFile)
     
@@ -291,9 +295,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     }
   }
 
-  private def makeDefaultDb: LoamDao = {
-    val dbDescriptor = DbDescriptor(DbType.H2, "jdbc:h2:./.loamstream/db")
-
+  private[apps] def makeDaoFrom(dbDescriptor: DbDescriptor): LoamDao = {
     val dao = new SlickLoamDao(dbDescriptor)
 
     dao.createTables()
@@ -301,9 +303,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     dao
   }
   
-  private trait DefaultDb { self: AppWiring =>
-    override lazy val dao: LoamDao = makeDefaultDb
-  }
+  private[apps] def makeDefaultDb: LoamDao = makeDaoFrom(DbDescriptor(DbType.H2, "jdbc:h2:./.loamstream/db"))
   
   private[apps] final class TerminableExecuter(
       val delegate: Executer,

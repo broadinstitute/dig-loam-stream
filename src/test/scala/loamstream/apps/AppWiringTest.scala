@@ -13,6 +13,8 @@ import loamstream.model.execute.AsyncLocalChunkRunner
 import loamstream.model.execute.CompositeChunkRunner
 import loamstream.model.execute.HashingStrategy
 import loamstream.cli.Intent
+import loamstream.TestHelpers
+import loamstream.db.slick.TestDbDescriptors
 
 /**
  * @author clint
@@ -31,7 +33,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   private def appWiring(cli: Conf): AppWiring = {
     val intent = Intent.from(cli).asInstanceOf[Intent.RealRun]
     
-    AppWiring.forRealRun(intent)
+    AppWiring.forRealRun(intent, makeDao = AppWiring.makeDaoFrom(TestDbDescriptors.inMemoryH2))
   }
   
   test("Local execution, db-backed") {

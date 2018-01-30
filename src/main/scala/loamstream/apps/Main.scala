@@ -17,6 +17,7 @@ import loamstream.util.OneTimeLatch
 import loamstream.util.Versions
 import loamstream.cli.ExecutionInfo
 import loamstream.cli.Intent
+import loamstream.db.LoamDao
 
 
 /**
@@ -92,8 +93,8 @@ object Main extends Loggable {
     info(descriptionOpt.getOrElse(s"No records found for $outputAsString"))
   }
   
-  private[apps] def doRealRun(intent: Intent.RealRun): Unit = {
-    val wiring = AppWiring.forRealRun(intent)
+  private[apps] def doRealRun(intent: Intent.RealRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
+    val wiring = AppWiring.forRealRun(intent, makeDao)
     
     addShutdownHook(wiring)
 

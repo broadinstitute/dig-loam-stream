@@ -27,7 +27,7 @@ final class LoamCmdToolTest extends FunSuite {
   import LoamCmdTool._
   import loamstream.TestHelpers.emptyProjectContext
 
-  private val fileSepForBash = BashScript.escapeString(File.separator)
+  private val fileSepForBash = File.separator
   
   test("string interpolation (trivial)") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
@@ -297,10 +297,10 @@ final class LoamCmdToolTest extends FunSuite {
     val inStoreWithUri = store.at(uri("xyz://host/dir/inStoreWithUri")).asInput
     val outStoreWithUri = store.at(uri("xyz://host/dir/outStoreWithUri"))
     val tool = cmd"maker $inStoreWithPath $inStoreWithUri $outStoreWithPath $outStoreWithUri"
-    val inPath = BashScript.escapeString(inStoreWithPath.path.toString)
-    val outPath = BashScript.escapeString(outStoreWithPath.path.toString)
-    val inUri = BashScript.escapeString(inStoreWithUri.uriOpt.get.toString)
-    val outUri = BashScript.escapeString(outStoreWithUri.uriOpt.get.toString)
+    val inPath = inStoreWithPath.path.toString
+    val outPath = outStoreWithPath.path.toString
+    val inUri = inStoreWithUri.uriOpt.get.toString
+    val outUri = outStoreWithUri.uriOpt.get.toString
     val commandLineExpected = s"maker $inPath $inUri $outPath $outUri"
     assert(tool.commandLine === commandLineExpected)
   }

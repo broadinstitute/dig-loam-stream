@@ -69,11 +69,18 @@ final class SimpleLocalPipelineTest extends FunSuite with IntegrationTestHelpers
       val dao = AppWiring.makeDaoFrom(dbDescriptor)
       
       Main.doRealRun(intent, dao)
+      
+      assert(exists(pathA))
+      assert(exists(pathB))
+      assert(exists(pathC))
+      
+      assert(Files.readFrom(pathA) === Files.readFrom(pathB))
+      assert(Files.readFrom(pathB) === Files.readFrom(pathC))
     }
     
-    //doTest(Params(shouldRunEverything = true, hashingStrategy = HashingStrategy.HashOutputs))
+    doTest(Params(shouldRunEverything = true, hashingStrategy = HashingStrategy.HashOutputs))
     doTest(Params(shouldRunEverything = false, hashingStrategy = HashingStrategy.HashOutputs))
-    //doTest(Params(shouldRunEverything = true, hashingStrategy = HashingStrategy.DontHashOutputs))
-    //doTest(Params(shouldRunEverything = false, hashingStrategy = HashingStrategy.DontHashOutputs))
+    doTest(Params(shouldRunEverything = true, hashingStrategy = HashingStrategy.DontHashOutputs))
+    doTest(Params(shouldRunEverything = false, hashingStrategy = HashingStrategy.DontHashOutputs))
   }
 }

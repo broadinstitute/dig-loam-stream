@@ -58,23 +58,26 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
   }
   
   private def doTest(environment: String, shouldRunEverything: Boolean, hashingStrategy: HashingStrategy): Unit = {
-    val tempDir = getWorkDirUnderTarget
     
     import PathEnrichments._
     
-    val pathA = tempDir / "a.txt"
-    val pathB = tempDir / "b.txt"
-    val pathC = tempDir / "c.txt"
+    val workDir = getWorkDirUnderTarget(Some(s"$environment-$shouldRunEverything-$hashingStrategy"))
     
-    val confFilePath = tempDir / "loamstream.conf"
+    assert(exists(workDir))
     
-    val ugerWorkDir = if(environment == "uger") Some(tempDir / "uger") else None
+    val pathA = workDir / "a.txt"
+    val pathB = workDir / "b.txt"
+    val pathC = workDir / "c.txt"
+    
+    val confFilePath = workDir / "loamstream.conf"
+    
+    val ugerWorkDir = if(environment == "uger") Some(workDir / "uger") else None
     
     ugerWorkDir.foreach { uwd =>
       assert(uwd.toFile.mkdir())
     }
     
-    val jobOutputDir = tempDir / "job-outputs"
+    val jobOutputDir = workDir / "job-outputs"
     
     writeConfFileTo(confFilePath, ugerWorkDir, jobOutputDir)
     
@@ -100,7 +103,7 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
           |""".stripMargin.trim
     }
     
-    val loamScriptPath = tempDir / s"copy-a-b-c-$environment-$shouldRunEverything-$hashingStrategy.loam"
+    val loamScriptPath = workDir / s"copy-a-b-c-$environment-$shouldRunEverything-$hashingStrategy.loam"
     
     Files.writeTo(loamScriptPath)(loamScriptContents)
     

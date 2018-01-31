@@ -19,13 +19,15 @@ trait IntegrationTestHelpers {
     deleteAtExit(result)
   }
   
-  def getWorkDirUnderTarget: Path = {
+  def getWorkDirUnderTarget(subDir: Option[String] = None): Path = {
     import IntegrationTestHelpers.sequence
     import java.nio.file.Files.exists
     
-    val result = Paths.get("target", s"${getClass.getSimpleName}-${sequence.next()}")
+    val subDirParts = Seq(s"${getClass.getSimpleName}-${sequence.next()}") ++ subDir
     
-    result.toFile.mkdir()
+    val result = Paths.get("target", subDirParts: _*).toAbsolutePath
+    
+    result.toFile.mkdirs()
     
     require(exists(result))
 

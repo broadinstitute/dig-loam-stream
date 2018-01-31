@@ -32,7 +32,7 @@ final class LoamFileManager {
   }
 
   def getStoreString(store: HasLocation): String = {
-    pathsBox.getAndUpdate { paths =>
+    val rawString = pathsBox.getAndUpdate { paths =>
       paths.get(store).orElse(store.pathOpt).orElse(store.uriOpt) match {
         case Some(locator) => (paths, locator.toString)
         case None =>
@@ -42,6 +42,8 @@ final class LoamFileManager {
           (paths + (store -> path), path.toString)
       }
     }
+    
+    BashScript.escapeString(rawString)
   }
 }
 

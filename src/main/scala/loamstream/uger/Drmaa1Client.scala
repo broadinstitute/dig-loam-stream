@@ -23,15 +23,17 @@ import loamstream.model.execute.UgerSettings
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
+import loamstream.util.Throwables
+import loamstream.util.OneTimeLatch
 
 /**
  * Created on: 5/19/16
  *
- * @author Kaan Yuksel 
+ * @author Kaan Yuksel
  * @author clint
- * 
+ *
  * A DRMAAv1 implementation of DrmaaClient; can submit work to UGER and monitor it.
- * 
+ *
  */
 final class Drmaa1Client extends DrmaaClient with Loggable {
 
@@ -42,7 +44,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * 
    * Currently, this is handled by doing all operations that need a Session inside a call to withSession().
    */
-  
+
   import DrmaaClient._
 
   /*
@@ -51,7 +53,10 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * We wrap the Session in a ValueBox to make it easier to synchronize access to it.   
    */
   private[this] lazy val sessionBox: ValueBox[Session] = ValueBox(getNewSession)
-  
+
+  //Latch to ensure we only stop() once
+  private[this] val stopLatch: OneTimeLatch = new OneTimeLatch
+
   private def getNewSession: Session = {
     debug("Getting new DRMAA session")
 
@@ -68,47 +73,47 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
       s
     } catch {
-        case e: UnsatisfiedLinkError =>
-          error(s"Please check if you are running on a system with UGER (e.g. Broad VM). " +
-            s"Note that UGER is required if the configuration file specifies a 'uger { ... }' block.")
-          throw e
+      case e: UnsatisfiedLinkError =>
+        error(s"Please check if you are running on a system with UGER (e.g. Broad VM). " +
+          s"Note that UGER is required if the configuration file specifies a 'uger { ... }' block.")
+        throw e
     }
   }
-  
+
   /**
    * Kill the job with the specified id, if the job is running.
    */
   override def killJob(jobId: String): Unit = {
     debug(s"Killing Job '$jobId'")
-    
+
     withSession(_.control(jobId, Session.TERMINATE))
   }
-  
+
   /**
    * Kill all jobs.
    */
   override def killAllJobs(): Unit = {
     debug(s"Killing all jobs...")
-    
+
     killJob(Session.JOB_IDS_SESSION_ALL)
   }
-  
+
   /**
-   * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc)
+   * Shut down this client and dispose of any DRMAA resources it has acquired (Sessions, etc).
+   * Only the first call will do anything; subsequent calls won't have any effect.
    */
-  override def stop(): Unit = withSession { session =>
-    def failureAsOption(block: => Any): Option[Throwable] = Try(block).failed.toOption
-    
-    val killAllFailureOpt = failureAsOption(killAllJobs())
-    val shutdownFailureOpt = failureAsOption(tryShuttingDown(session))
-    
-    val failures = killAllFailureOpt.toSeq ++ shutdownFailureOpt
-    
-    if(failures.nonEmpty) {
-      throw new CompositeException(failures)
+  override def stop(): Unit = stopLatch.doOnce {
+    withSession { session =>
+      val failures = Throwables.collectFailures(
+        () => killAllJobs(),
+        () => tryShuttingDown(session))
+
+      if (failures.nonEmpty) {
+        throw new CompositeException(failures)
+      }
     }
   }
-  
+
   /**
    * Synchronously obtain the status of one running UGER job, given its id.
    *
@@ -142,22 +147,22 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @param numTasks length of task array to be submitted as a single UGER job
    */
   override def submitJob(
-      ugerSettings: UgerSettings,
-      ugerConfig: UgerConfig,
-      taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
+    ugerSettings: UgerSettings,
+    ugerConfig: UgerConfig,
+    taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
 
     val ugerWorkDir = ugerConfig.workDir
-    
+
     val fullNativeSpec = Drmaa1Client.nativeSpec(ugerSettings)
-    
+
     runJob(taskArray, ugerWorkDir, fullNativeSpec)
   }
-  
+
   /**
    * Synchronously wait for the timeout period for the job with the given id to complete.
    * If the timeout period elapses and the job doesn't complete, assume the job is still running, and inquire
    * about its status with statusOf.
-   * 
+   *
    * @param jobId the job id to wait for
    * @param timeout how long to wait (note that this method can be called many times)
    * @return Success with a JobStatus reflecting the completion status of the job, or a Failure.
@@ -170,7 +175,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         doWait(session, jobId, timeout)
       }
     }
-      
+
     //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
     waitAttempt.recover {
       case e: ExitTimeoutException =>
@@ -183,22 +188,22 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         UgerStatus.Done
     }
   }
-  
+
   private def doWait(session: Session, jobId: String, timeout: Duration): UgerStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
-    
+
     val resources = Drmaa1Client.toResources(jobInfo)
-      
+
     //Use recover for side-effect only
     resources.recover {
       case e: Exception => warn(s"Error parsing resource usage data for Job '$jobId'", e)
     }
-    
+
     val resourcesOption = resources.toOption
-    
+
     val result = if (jobInfo.hasExited) {
       val exitCode = jobInfo.getExitStatus
-      
+
       debug(s"Job '$jobId' exited with status code '${exitCode}'")
 
       UgerStatus.CommandResult(exitCode, resourcesOption)
@@ -213,16 +218,16 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       UgerStatus.Failed(resourcesOption)
     } else if (jobInfo.hasCoreDump) {
       info(s"Job '$jobId' dumped core")
-      
+
       UgerStatus.Failed(resourcesOption)
     } else {
       debug(s"Job '$jobId' finished with unknown status")
 
       UgerStatus.DoneUndetermined(resourcesOption)
     }
-    
+
     debug(s"Job '$jobId' finished, returning status $result")
-    
+
     result
   }
 
@@ -234,20 +239,20 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       case e: DrmaaException => warn(s"Could not properly exit DRMAA Session due to ${e.getClass.getName}", e)
     }
   }
-  
+
   private def withSession[A](f: Session => A): A = {
     sessionBox.get { currentSession =>
-      try { f(currentSession) } 
+      try { f(currentSession) }
       catch {
         case e: DrmaaException => {
           debug(s"Got ${simpleNameOf(e)}; re-throwing", e)
-          
+
           throw e
         }
       }
     }
   }
-  
+
   private def runJob(taskArray: UgerTaskArray,
                      outputDir: Path,
                      nativeSpecification: String): SubmissionResult = {
@@ -259,13 +264,13 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
       val jobName = taskArray.ugerJobName
       val pathToScript = taskArray.ugerScriptFile
-      
+
       debug(s"Using native spec: '$nativeSpecification'")
       debug(s"Using job name: '$jobName'")
       debug(s"Using script: '$pathToScript'")
-      
+
       import Drmaa1Client._
-      
+
       jt.setNativeSpecification(nativeSpecification)
       jt.setRemoteCommand(pathToScript.toString)
       jt.setJobName(jobName)
@@ -275,13 +280,13 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       jt.setErrorPath(taskArray.stdErrPathTemplate)
 
       import scala.collection.JavaConverters._
-      
+
       val jobIds = session.runBulkJobs(jt, taskStartIndex, taskEndIndex, taskIndexIncr).asScala.map(_.toString)
-    
+
       debug(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
 
       val idsForJobs = jobIds.zip(taskArray.ugerJobs).toMap
-      
+
       def ugerIdsToJobsString = {
         (for {
           (ugerId, job) <- idsForJobs.mapValues(_.commandLineJob)
@@ -289,9 +294,9 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
           s"Uger Id: $ugerId => $job"
         }).mkString("\n")
       }
-      
+
       info(s"Uger ids assigned to jobs:\n$ugerIdsToJobsString")
-      
+
       SubmissionSuccess(idsForJobs)
     }
   }
@@ -299,16 +304,15 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   private def withJobTemplate[A <: SubmissionResult](f: (Session, JobTemplate) => A): SubmissionResult = {
     withSession { session =>
       val jt = session.createJobTemplate
-      
+
       try { f(session, jt) }
       catch {
         case e: DrmaaException => {
           error(s"Error: ${e.getMessage}", e)
-          
+
           SubmissionFailure(e)
         }
-      }
-      finally { session.deleteJobTemplate(jt) }
+      } finally { session.deleteJobTemplate(jt) }
     }
   }
 }
@@ -316,24 +320,24 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 object Drmaa1Client {
   private[uger] def toResources(jobInfo: JobInfo): Try[UgerResources] = {
     import scala.collection.JavaConverters._
-    
+
     UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
   }
 
   private[uger] def nativeSpec(ugerSettings: UgerSettings): String = {
     //Will this ever change?
     val staticPart = "-cwd -shell y -b n"
-    
+
     val dynamicPart = {
       import ugerSettings._
-    
+
       val numCores = cores.value
       val runTimeInHours: Int = maxRunTime.hours.toInt
       val mem: Int = memoryPerCore.gb.toInt
-      
+
       s"-binding linear:${numCores} -pe smp ${numCores} -q ${queue} -l h_rt=${runTimeInHours}:0:0,h_vmem=${mem}g"
     }
-    
+
     s"$staticPart $dynamicPart"
   }
 }

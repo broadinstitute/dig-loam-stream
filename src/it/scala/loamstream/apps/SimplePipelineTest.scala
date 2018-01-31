@@ -51,7 +51,7 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
   }
   
   private def doTest(environment: String, shouldRunEverything: Boolean, hashingStrategy: HashingStrategy): Unit = {
-    val tempDir = getWorkDir
+    val tempDir = getWorkDirUnderTarget
     
     import PathEnrichments._
     

@@ -6,6 +6,7 @@ import java.nio.file.Files
 import org.apache.commons.io.FileUtils
 import loamstream.db.slick.DbDescriptor
 import loamstream.db.slick.DbType
+import loamstream.util.Sequence
 
 /**
  * @author clint
@@ -15,16 +16,35 @@ trait IntegrationTestHelpers {
   def getWorkDir: Path = {
     val result = Files.createTempDirectory(getClass.getSimpleName)
 
+    deleteAtExit(result)
+  }
+  
+  def getWorkDirUnderTarget: Path = {
+    import IntegrationTestHelpers.sequence
+    import java.nio.file.Files.exists
+    
+    val result = Paths.get("target", s"${getClass.getSimpleName}-${sequence.next()}")
+    
+    result.toFile.mkdir()
+    
+    require(exists(result))
+
+    deleteAtExit(result)
+  }
+  
+  private def deleteAtExit(p: Path): Path = {
     //NB: This seems very heavy-handed, but java.io.File.deleteOnExit doesn't work for non-empty directories. :\
     Runtime.getRuntime.addShutdownHook(new Thread {
-      override def run(): Unit = FileUtils.deleteQuietly(result.toFile)
+      override def run(): Unit = FileUtils.deleteQuietly(p.toFile)
     })
     
-    result
+    p
   }
 }
 
 object IntegrationTestHelpers {
+  private val sequence: Sequence[Int] = Sequence()
+  
   def path(s: String): Path = Paths.get(s)
   
   def withLoudStackTraces[A](f: => A): A = {

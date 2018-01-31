@@ -42,7 +42,7 @@ final class LoamFileManager {
           (paths + (store -> path), path.toString)
       }
     }
-    
+      
     BashScript.escapeString(rawString)
   }
 }

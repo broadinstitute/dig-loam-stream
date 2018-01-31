@@ -8,6 +8,8 @@ import java.time.Instant
   * Created by oliverr on 7/13/2016.
   */
 object PathUtils {
+  import BashScript.Implicits._
+
   //TODO: TEST!
   def transformFileName(path: Path, transformation: String => String): Path = {
     (path.getParent, path.getFileName) match {
@@ -35,10 +37,10 @@ object PathUtils {
   def getCurrentDirectory: Path = Paths.get(new java.io.File(".").getCanonicalPath)
 
   def newRelative(first: String, more: String*): Path = Paths.get(first, more.toArray: _*)
-  
+
   def newAbsolute(first: String, more: String*): Path = getRoot.resolve(newRelative(first, more: _*))
 
   def normalizePath(p: Path): Path = p.toAbsolutePath.normalize
 
-  def normalize(p: Path): String = normalizePath(p).toString
+  def normalize(p: Path): String = normalizePath(p).render
 }

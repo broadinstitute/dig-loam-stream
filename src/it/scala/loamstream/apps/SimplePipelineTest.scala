@@ -36,15 +36,22 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
       
   private val dao: LoamDao = AppWiring.makeDaoFrom(dbDescriptor)
   
-  private def writeConfFileTo(configFilePath: Path, ugerWorkDir: Path, jobOutputDir: Path): Unit = {
+  private def writeConfFileTo(configFilePath: Path, ugerWorkDir: Option[Path], jobOutputDir: Path): Unit = {
+    //Don't create a Uger section if we're not going to run anything on Uger, which will prevent DRMAA resources
+    //from being acquired if they're not needed.
+    val ugerSection = ugerWorkDir match {
+      case Some(dir) => s"""|  uger {
+                            |    maxNumJobs = 2400
+                            |    workDir = "$ugerWorkDir"
+                            |  }""".stripMargin
+      case None => ""
+    }
+    
     val contents = s"""|loamstream {
                        |  execution {
                        |    outputDir = "$jobOutputDir"
                        |  }
-                       |  uger {
-                       |    maxNumJobs = 2400
-                       |    workDir = "$ugerWorkDir"
-                       |  }
+                       |  ${ugerSection}
                        |}""".stripMargin
 
     Files.writeTo(configFilePath)(contents)
@@ -61,13 +68,15 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
     val confFilePath = tempDir / "loamstream.conf"
     
-    val ugerWorkDir = tempDir / "uger"
+    val ugerWorkDir = if(environment == "uger") Some(tempDir / "uger") else None
+    
+    ugerWorkDir.foreach { uwd =>
+      assert(uwd.toFile.mkdir())
+    }
     
     val jobOutputDir = tempDir / "job-outputs"
     
     writeConfFileTo(confFilePath, ugerWorkDir, jobOutputDir)
-    
-    assert(ugerWorkDir.toFile.mkdir())
     
     Files.writeTo(pathA)("AAA")
     
@@ -103,7 +112,7 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
       shouldRunEverything = shouldRunEverything,
       loams = Seq(loamScriptPath))
     
-    Main.doRealRun(intent, dao)
+    (new Main.Run).doRealRun(intent, dao)
     
     assert(exists(pathA))
     assert(exists(pathB))

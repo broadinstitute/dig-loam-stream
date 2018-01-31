@@ -15,7 +15,7 @@ import org.scalatest.FunSuite
 final class LanguageSupportTest extends FunSuite {
   import TestHelpers.config
 
-  private val bashFileSep = File.separator
+  private val bashFileSep = BashScript.escapeString(File.separator)
 
   private implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 

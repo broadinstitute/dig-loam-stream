@@ -1,12 +1,19 @@
 package loamstream.util
 
 import scala.util.control.NonFatal
+import scala.util.Try
 
 /**
  * @author clint
  * Dec 7, 2016
  */
 object Throwables {
+  def collectFailures(blocks: (() => Any)*): Seq[Throwable] = {
+    blocks.flatMap(b => failureOption(b()))
+  }
+  
+  def failureOption(f: => Any): Option[Throwable] = Try(f).failed.toOption
+  
   def quietly(
       message: String, 
       level: Loggable.Level.Value = Loggable.Level.error)

@@ -42,26 +42,13 @@ final class LoamRunnerTest extends FunSuite {
     
     val loamEngine: LoamEngine = LoamEngine.default(config)
     
-    @volatile var timesShutdown: Int = 0
-    @volatile var timesCompiled: Int = 0
-    
-    def noopShutdown[A]: ( => A) => A = incAfter(timesShutdown += 1) { f => f }
-    
-    val compile: LoamProject => LoamCompiler.Result = incAfter(timesCompiled += 1)(loamEngine.compile)
-   
-    val loamRunner = LoamRunner(loamEngine, compile, noopShutdown)
+    val loamRunner = LoamRunner(loamEngine)
 
     val project = LoamProject(config, LoamScript.withGeneratedName(code))
-    
-    assert(timesShutdown === 0)
-    assert(timesCompiled === 0)
     
     val thrown = intercept[Exception] {
       loamRunner.run(project)
     }
-    
-    assert(timesShutdown === 1)
-    assert(timesCompiled === 1)
     
     assert(thrown.getMessage === "blerg")
     
@@ -91,26 +78,15 @@ final class LoamRunnerTest extends FunSuite {
     
     val loamEngine: LoamEngine = LoamEngine.default(config)
     
-    @volatile var timesShutdown: Int = 0
-    @volatile var timesCompiled: Int = 0
-    
-    def noopShutdown[A]: ( => A) => A = incAfter(timesShutdown += 1) { f => f }
-    
-    val compile: LoamProject => LoamCompiler.Result = incAfter(timesCompiled += 1)(loamEngine.compile)
-   
-    val loamRunner = LoamRunner(loamEngine, compile, noopShutdown)
+    val loamRunner = LoamRunner(loamEngine)
 
     val project = LoamProject(config, LoamScript.withGeneratedName(code))
     
-    assert(timesShutdown === 0)
-    assert(timesCompiled === 0)
-    
     val results = loamRunner.run(project)
     
-    assert(timesShutdown === 1)
-    assert(timesCompiled === 1)
+    val resultsToExecutions = results.right.toOption.get
     
-    assert(results.nonEmpty)
+    assert(resultsToExecutions.nonEmpty)
     
     val contents = CanBeClosed.enclosed(Source.fromFile(finalOutputFile.toFile)) { source =>
       source.getLines.map(_.trim).filter(_.nonEmpty).mkString(" ")
@@ -118,7 +94,7 @@ final class LoamRunnerTest extends FunSuite {
     
     assert(contents === expectedContents)
     
-    assert(results.values.forall(_.isSuccess))
+    assert(resultsToExecutions.values.forall(_.isSuccess))
   }
   
   private def incAfter[A, B](incOp: => Unit)(f: A => B): A => B = { a =>

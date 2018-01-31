@@ -43,6 +43,8 @@ import loamstream.cli.Intent.RealRun
 import java.nio.file.Path
 import scala.util.Success
 import loamstream.util.FileMonitor
+import loamstream.compiler.LoamCompiler
+import loamstream.compiler.LoamEngine
 
 /**
  * @author clint
@@ -59,6 +61,10 @@ trait AppWiring {
   def cloudStorageClient: Option[CloudStorageClient]
 
   def shutdown(): Seq[Throwable]
+  
+  lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, cloudStorageClient)
+  
+  lazy val loamRunner: LoamRunner = LoamRunner(loamEngine)
 }
 
 object AppWiring extends DrmaaClientHelpers with Loggable {

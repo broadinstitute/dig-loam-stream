@@ -30,6 +30,8 @@ import loamstream.util.TimeUtils
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
+import loamstream.util.Throwables
+import loamstream.util.CompositeException
 
 /**
  * @author clint
@@ -46,7 +48,15 @@ final case class UgerChunkRunner(
 
   import UgerChunkRunner._
 
-  override def stop(): Unit = jobMonitor.stop()
+  override def stop(): Unit = {
+    val failures = Throwables.collectFailures(
+        jobMonitor.stop _, 
+        jobSubmitter.stop _)
+    
+    if(failures.nonEmpty) {
+      throw new CompositeException(failures)
+    }
+  }
 
   override def maxNumJobs: Int = ugerConfig.maxNumJobs
 

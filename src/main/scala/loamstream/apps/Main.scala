@@ -98,11 +98,7 @@ object Main extends Loggable {
     
     addShutdownHook(wiring)
 
-    val loamEngine = {
-      val loamCompiler = LoamCompiler.default
-      
-      LoamEngine(wiring.config, loamCompiler, wiring.executer, wiring.cloudStorageClient)
-    }
+    val loamEngine = wiring.loamEngine
 
     def loamScripts: Iterable[LoamScript] = {
       val loamFiles = intent.loams
@@ -115,16 +111,28 @@ object Main extends Loggable {
     try {
       val project = LoamProject(loamEngine.config, loamScripts)
 
-      //TODO: Move to AppWiring?
-      val runner = LoamRunner(loamEngine, prj => compile(loamEngine, prj), shutdownAfter(wiring))
-      
-      val jobsToExecutions = runner.run(project)
-      
-      listResults(jobsToExecutions)
-      
-      describeExecutions(jobsToExecutions.values)
+      //NB: Shut down before logging anything about jobs, so that potentially-noisy shutdown info is logged
+      //before final job statuses.
+      val runResults = shutdownAfter(wiring) {
+        wiring.loamRunner.run(project)
+      }
+
+      describeRunResults(runResults)
     } catch {
       case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
+    }
+  }
+  
+  private def describeRunResults(runResults: Either[LoamCompiler.Result, Map[LJob, Execution]]): Unit = {
+    runResults match {
+      case Left(compilationResults) => {
+        compilationResults.errors.foreach(e => error(s"Compilation error: $e"))
+      }
+      case Right(jobsToExecutions) => {
+        listResults(jobsToExecutions)
+    
+        describeExecutions(jobsToExecutions.values)
+      }
     }
   }
 
@@ -196,18 +204,5 @@ object Main extends Loggable {
         }
       }
     }
-  }
-
-  private def compile(loamEngine: LoamEngine, project: LoamProject): LoamCompiler.Result = {
-    
-    info(s"Now compiling project with ${project.scripts.size} scripts.")
-
-    val compilationResult = loamEngine.compile(project)
-    
-    assert(compilationResult.isValid, "Loam compilation result is not valid.")
-    
-    info(compilationResult.summary)
-
-    compilationResult
   }
 }

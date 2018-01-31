@@ -8,8 +8,6 @@ import scala.Vector
  * Dec 7, 2016
  */
 final class ThrowablesTest extends FunSuite {
-
-  //scalastyle:off magic.number
   
   type ParamTuple = (Loggable.Level.Value, String, Throwable)
   
@@ -20,6 +18,36 @@ final class ThrowablesTest extends FunSuite {
     override def log(level: Loggable.Level.Value, s: => String, e: Throwable): Unit = {
       params.mutate(_ :+ (level, s, e))
     }
+  }
+  
+  test("collectFailures") {
+    import Throwables.collectFailures
+    
+    assert(collectFailures() === Nil)
+    
+    assert(collectFailures(() => 42) === Nil)
+    
+    val e = new Exception 
+    
+    val f = new Exception 
+    
+    assert(collectFailures(() => throw e) === Seq(e))
+    
+    assert(collectFailures(() => 42, () => 42) === Nil)
+    
+    assert(collectFailures(() => throw e, () => throw f) === Seq(e, f))
+    
+    assert(collectFailures(() => 42, () => throw e, () => 42, () => throw f) === Seq(e, f))
+  }
+
+  test("failureOption") {
+    import Throwables.failureOption
+    
+    assert(failureOption(42) === None)
+    
+    val e = new Exception 
+    
+    assert(failureOption(throw e) === Some(e))
   }
   
   import Throwables.quietly
@@ -107,6 +135,4 @@ final class ThrowablesTest extends FunSuite {
     doTest(Loggable.Level.trace)
     doTest(Loggable.Level.warn)
   }
-  
-  //scalastyle:on magic.number
 }

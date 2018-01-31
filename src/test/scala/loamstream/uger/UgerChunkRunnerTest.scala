@@ -468,6 +468,8 @@ object UgerChunkRunnerTest {
       
       DrmaaClient.SubmissionSuccess(Map.empty)
     }
+    
+    override def stop(): Unit = ()
   }
   
   final case class MockUgerJob(name: String, statusesToReturn: UgerStatus*) extends LocalJob with HasCommandLine {

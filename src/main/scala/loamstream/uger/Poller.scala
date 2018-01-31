@@ -8,12 +8,13 @@ import org.ggf.drmaa.InvalidJobException
 
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.Loggable
+import loamstream.util.Terminable
 
 /**
  * @author clint
  * date: Jun 21, 2016
  */
-trait Poller {
+trait Poller extends Terminable {
   /**
    * Synchronously inquire about the status of one or more jobs
    *
@@ -26,6 +27,9 @@ trait Poller {
 object Poller {
   
   final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
+    
+    override def stop(): Unit = client.stop()
+    
     override def poll(jobIds: Iterable[String]): Map[String, Try[UgerStatus]] = {
       
       def statusAttempt(jobId: String): Try[UgerStatus] = {

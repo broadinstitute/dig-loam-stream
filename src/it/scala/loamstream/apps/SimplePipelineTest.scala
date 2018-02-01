@@ -18,12 +18,12 @@ import java.nio.file.Paths
  */
 final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
-  test(s"A simple linear pipeline running locally should work") {
+  /*test(s"A simple linear pipeline running locally should work") {
     doTest("local", shouldRunEverything = true, hashingStrategy = HashingStrategy.HashOutputs)
     doTest("local", shouldRunEverything = false, hashingStrategy = HashingStrategy.HashOutputs)
     doTest("local", shouldRunEverything = true, hashingStrategy = HashingStrategy.DontHashOutputs)
     doTest("local", shouldRunEverything = false, hashingStrategy = HashingStrategy.DontHashOutputs)
-  }
+  }*/
    
   test(s"A simple linear pipeline running on Uger should work") {
     doTest("uger", shouldRunEverything = true, hashingStrategy = HashingStrategy.HashOutputs)

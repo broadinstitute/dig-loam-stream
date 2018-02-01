@@ -63,7 +63,7 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
     val workDir = getWorkDirUnderTarget(Some(s"$environment-$shouldRunEverything-$hashingStrategy"))
     
-    assert(exists(workDir))
+    assert(exists(workDir) === true)
     
     val pathA = workDir / "a.txt"
     val pathB = workDir / "b.txt"
@@ -74,10 +74,12 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     val ugerWorkDir = if(environment == "uger") Some(workDir / "uger") else None
     
     ugerWorkDir.foreach { uwd =>
-      assert(uwd.toFile.mkdir())
+      assert(uwd.toFile.mkdirs() === true)
     }
     
     val jobOutputDir = workDir / "job-outputs"
+    
+    assert(jobOutputDir.toFile.mkdirs() === true)
     
     writeConfFileTo(confFilePath, ugerWorkDir, jobOutputDir)
     

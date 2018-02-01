@@ -21,7 +21,6 @@ trait IntegrationTestHelpers {
   
   def getWorkDirUnderTarget(subDir: Option[String] = None): Path = {
     import IntegrationTestHelpers.sequence
-    import java.nio.file.Files.exists
     
     val subDirParts = Seq(s"${getClass.getSimpleName}-${sequence.next()}") ++ subDir
     
@@ -29,8 +28,6 @@ trait IntegrationTestHelpers {
     
     result.toFile.mkdirs()
     
-    require(exists(result))
-
     deleteAtExit(result)
   }
   

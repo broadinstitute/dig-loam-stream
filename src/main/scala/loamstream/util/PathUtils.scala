@@ -32,7 +32,8 @@ object PathUtils {
     Instant.ofEpochMilli(lastModifiedTimeInMillis)
   }
 
-  def getRoot: Path = FileSystems.getDefault.getRootDirectories.iterator().next()
+  // On Windows multiple drives require us to use the current working directory.
+  def getRoot: Path = Paths.get("/").toAbsolutePath
 
   def getCurrentDirectory: Path = Paths.get(new java.io.File(".").getCanonicalPath)
 

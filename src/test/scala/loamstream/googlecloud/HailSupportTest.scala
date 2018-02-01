@@ -16,6 +16,7 @@ import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.util.BashScript.Implicits._
 import loamstream.util.Files
 import loamstream.TestHelpers
 
@@ -29,7 +30,7 @@ final class HailSupportTest extends FunSuite {
 
   //NB: Write pyhail script files to a temp dir
   private val scriptDir = TestHelpers.getWorkDir(getClass.getSimpleName)
-  
+
   //NB: Write pyhail script files to a temp dir
   private lazy val config: LoamConfig = {
     val configString = {
@@ -45,7 +46,7 @@ final class HailSupportTest extends FunSuite {
           hail {
             jar = "gs://some-bucket/hail-all-spark.jar"
             zip = "gs://some-bucket/hail-all.zip"
-            scriptDir = ${scriptDir} //don't litter in the current dir
+            scriptDir = ${scriptDir.render} //don't litter in the current dir
           }
         }
       }"""
@@ -53,13 +54,13 @@ final class HailSupportTest extends FunSuite {
 
     LoamConfig.fromString(configString).get
   }
-  
+
   private val projectContext: LoamProjectContext = LoamProjectContext.empty(config)
 
   private val clusterId = "asdfasdf"
-  
+
   private val googleEnv = Environment.Google(GoogleSettings(clusterId))
-  
+
   // scalastyle:off line.size.limit
   private val sep = File.separator
   private val gCloudPath = s"${sep}path${sep}to${sep}gcloud"
@@ -142,7 +143,7 @@ final class HailSupportTest extends FunSuite {
   test("Hail interpolator works with an empty command") {
     val expectedCommandLine = googlePrefix
 
-    withScriptContext { implicit context => 
+    withScriptContext { implicit context =>
       doTest(expectedCommandLine)(hail"")
     }
   }
@@ -156,25 +157,25 @@ final class HailSupportTest extends FunSuite {
   }
 
   test("PyHail interpolator works with a simple inline script") {
-    withScriptContext { implicit context => 
+    withScriptContext { implicit context =>
       val tool = pyhail"""xyz
   asdf
   foo"""
-  
+
       val commandLine = tool.commandLine
-  
+
       val scriptFile = commandLine.split("\\s+").last
-  
+
       val expectedCommandLine = s"${googlePrefix}${scriptFile}"
-  
+
       assert(commandLine === expectedCommandLine)
-  
+
       val scriptContents = Files.readFrom(scriptFile)
-  
+
       val expectedScriptContents = """xyz
   asdf
   foo"""
-  
+
       assert(scriptContents === expectedScriptContents)
     }
   }
@@ -238,52 +239,52 @@ final class HailSupportTest extends FunSuite {
   }
 
   test("PyHail interpolator works with a real-world inline script") {
-    withScriptContext { implicit context => 
+    withScriptContext { implicit context =>
       // scalastyle:off line.size.limit
       val tool = pyhail"""from hail import *
   hc = HailContext()
-  
+
   vds = hc.import_vcf('/some/really/long/path/to/a/file/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.bgz')
   vds = vds.split_multi()
   vds.write('1kg_purcell.vds',overwrite=True)
-  
+
   vds = hc.read('1kg_purcell.vds')
   vds.summarize().report()
-  
+
   vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
-  
+
       val commandLine = tool.commandLine
-  
+
       val scriptFile = commandLine.split("\\s+").last
-  
+
       val expectedCommandLine = s"${googlePrefix}${scriptFile}"
-  
+
       assert(commandLine === expectedCommandLine)
-  
+
       val scriptContents = Files.readFrom(scriptFile)
-  
+
       val expectedScriptContents = """from hail import *
   hc = HailContext()
-  
+
   vds = hc.import_vcf('/some/really/long/path/to/a/file/ALL.purcell5k.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.bgz')
   vds = vds.split_multi()
   vds.write('1kg_purcell.vds',overwrite=True)
-  
+
   vds = hc.read('1kg_purcell.vds')
   vds.summarize().report()
-  
+
   vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
       // scalastyle:on line.size.limit
-  
+
       assert(scriptContents === expectedScriptContents)
     }
   }
 
   private def doTest(expectedCommandLine: String)(actual: => LoamCmdTool)(implicit sc: LoamScriptContext): Unit = {
     val tool = actual
-    
+
     val graph = sc.projectContext.graph
-    
+
     val toolBox = new LoamToolBox()
 
     val job = toolBox.getJob(graph)(tool).get.asInstanceOf[CommandLineJob]
@@ -294,7 +295,7 @@ final class HailSupportTest extends FunSuite {
   }
 
   private def withScriptContext[A](f: LoamScriptContext => A): A = withScriptContext(projectContext, googleEnv)(f)
-  
+
   private def withScriptContext[A](
     projectContext: LoamProjectContext,
     initialExecutionEnvironment: Environment = googleEnv)(f: LoamScriptContext => A): A = {

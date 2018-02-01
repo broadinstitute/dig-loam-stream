@@ -42,7 +42,7 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     val ugerSection = ugerWorkDir match {
       case Some(dir) => s"""|  uger {
                             |    maxNumJobs = 2400
-                            |    workDir = "$ugerWorkDir"
+                            |    workDir = "$dir"
                             |  }""".stripMargin
       case None => ""
     }

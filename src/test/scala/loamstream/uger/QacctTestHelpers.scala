@@ -52,12 +52,12 @@ cpu          2.487
 mem          0.093
 io           0.010
 iow          0.280
-ioops        2120   
+ioops        2120
 maxvmem      322.164M
 maxrss       0.000
 maxpss       0.000
 arid         undefined
 jc_name      NONE
-    """.trim.split("\\n")
+    """.trim.split("[\\r\\n]+")
   //scalastyle:on method.length
 }

@@ -46,7 +46,7 @@ final class HailSupportTest extends FunSuite {
           hail {
             jar = "gs://some-bucket/hail-all-spark.jar"
             zip = "gs://some-bucket/hail-all.zip"
-            scriptDir = ${scriptDir.render} //don't litter in the current dir
+            scriptDir = "${scriptDir.render}" //don't litter in the current dir
           }
         }
       }"""

@@ -13,7 +13,8 @@ import loamstream.util.BashScript.Implicits._
  * Nov 2, 2017
  */
 final class GoogleSupportTest extends FunSuite {
-  private val gsutilPath = Paths.get("/humgen/diabetes/users/dig/loamstream/google-cloud-sdk/bin/gsutil").toAbsolutePath.render
+  private val gsutil = Paths.get("/humgen/diabetes/users/dig/loamstream/google-cloud-sdk/bin/gsutil")
+  private val gsutilPath = gsutil.toAbsolutePath.render
 
   test("googleCopy - one pair, no params") {
     implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)

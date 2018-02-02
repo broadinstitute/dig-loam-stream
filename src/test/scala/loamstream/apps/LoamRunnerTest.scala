@@ -201,7 +201,7 @@ final class LoamRunnerTest extends FunSuite {
           |    cmd"printf 'This is line $$i\\n' > $$newStore".in(storeInitial).out(newStore)
           |  }
           |
-          |  cmd"cat $${workDir.render}/mid-?.txt > $${storeMiddle} && cat $${workDir}/mid-?.txt >> $${storeMiddle}"
+          |  cmd"cat $${workDir.render}/mid-?.txt > $${storeMiddle} && cat $${workDir.render}/mid-?.txt >> $${storeMiddle}"
           |  .in(stores).out(storeMiddle)
           |}
           |

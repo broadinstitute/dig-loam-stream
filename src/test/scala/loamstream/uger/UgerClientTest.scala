@@ -24,34 +24,34 @@ final class UgerClientTest extends FunSuite {
       queue = None,
       Instant.now,
       Instant.now)
-  
+
   test("fillInAccountingFieldsIfNecessary") {
     import UgerClient.fillInAccountingFieldsIfNecessary
     import QacctTestHelpers.actualQacctOutput
 
     val expectedQueue = Queue.Broad
-    
+
     val expectedNode = "foo.example.com"
-    
+
     val qacctOutput = actualQacctOutput(Option(expectedQueue), Option(expectedNode))
-    
+
     val mockClient = new MockAccountingClient(_ => qacctOutput)
-    
+
     val failure = Tries.failure("blarg")
-    
+
     assert(fillInAccountingFieldsIfNecessary(mockClient, "12334")(failure) === failure)
-    
+
     def doTest(ugerStatus: UgerStatus): Unit = {
       val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(Queue.Broad), Some("foo.example.com")))
-      
+
       val result = fillInAccountingFieldsIfNecessary(mockClient, "12334")(Try(ugerStatus))
-      
+
       if(ugerStatus.notFinished) {
         assert(result.get === ugerStatus)
       } else {
         if(ugerStatus.resourcesOpt.isDefined) {
           val resultResources = result.get.resourcesOpt.get
-        
+
           assert(resultResources.queue === Some(expectedQueue))
           assert(resultResources.node === Some(expectedNode))
         } else {
@@ -59,7 +59,7 @@ final class UgerClientTest extends FunSuite {
         }
       }
     }
-    
+
     doTest(UgerStatus.Done)
     doTest(UgerStatus.DoneUndetermined(Some(resources)))
     doTest(UgerStatus.CommandResult(0, None))

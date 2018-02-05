@@ -8,6 +8,7 @@ import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.TestHelpers
 import loamstream.conf.ExecutionConfig
+import loamstream.util.BashScript.Implicits._
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -24,21 +25,21 @@ final class ScriptBuilderTest extends FunSuite {
 
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
     val ugerConfig = TestHelpers.config.ugerConfig.get
-    
+
     val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
     val taskArray = UgerTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, jobs)
     val ugerScriptContents = ScriptBuilder.buildFrom(taskArray).withNormalizedLineBreaks
-    
+
     val jobIds: (String, String, String) = (jobs(0).id, jobs(1).id, jobs(2).id)
     val discriminators = (0, 1, 2)
-    
+
     val expectedScriptContents = expectedScriptAsString(discriminators, jobIds).withNormalizedLineBreaks
 
     assert(ugerScriptContents == expectedScriptContents)
   }
 
   import TestHelpers.path
-  
+
   private def getShapeItCommandLineJob(discriminator: Int): CommandLineJob = {
     val shapeItExecutable = "/some/shapeit/executable"
     val shapeItWorkDir = path("someWorkDir")
@@ -94,14 +95,14 @@ final class ScriptBuilderTest extends FunSuite {
   private def expectedScriptAsString(discriminators: (Int, Int, Int), jobIds: (String, String, String)): String = {
     val (discriminator0, discriminator1, discriminator2) = discriminators
     val (jobId0, jobId1, jobId2) = jobIds
-    
+
     val jobName = s"LoamStream-${jobId0}_${jobId1}_${jobId2}"
-    
-    val ugerDir = "/humgen/diabetes/users/kyuksel/imputation/shapeit_example"
-    val outputDir = path("job-outputs").toAbsolutePath
-    
+
+    val ugerDir = path("/humgen/diabetes/users/kyuksel/imputation/shapeit_example").toAbsolutePath.render
+    val outputDir = path("job-outputs").toAbsolutePath.render
+
     val sixSpaces = "      "
-    
+
     // scalastyle:off line.size.limit
     s"""#!/bin/bash
 #$$ -cwd

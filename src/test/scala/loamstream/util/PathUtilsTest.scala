@@ -1,7 +1,7 @@
 package loamstream.util
 
 import java.io.File
-import java.nio.file.{FileSystems, Paths}
+import java.nio.file.{FileSystems, Path, Paths}
 import java.util.regex.Matcher
 
 import org.scalatest.FunSuite
@@ -86,35 +86,40 @@ final class PathUtilsTest extends FunSuite {
   }
 
   test("normalize") {
-    val absolute = Paths.get("/x/y/z")
-
-    val rootPath = FileSystems.getDefault.getRootDirectories.iterator.next
-
-    val absoluteExpected = s"${rootPath}x${File.separator}y${File.separator}z"
-
     import PathUtils.normalize
 
-    assert(normalize(absolute) === absoluteExpected)
+    val absolute = Paths.get("/x/y/z").toAbsolutePath
+
+    // On windows, multiple drives might exist, and the root drive will be
+    // whatever the CWD drive happens to be when the test is run.
+    val root = Paths.get(".").toAbsolutePath
+
+    // On windows, multiple drives might be in use and the "root" drive used for
+    // absolute will be whatever the cwd drive happens to be when the test is
+    // run. For this reason, if ANY drive absolute path matches, we're good.
+    def matchesExpected(path: Path, expected: String): Boolean = {
+      val normalizedPath = normalize(path)
+      val expectedPath = normalize(root resolve expected)
+
+      normalizedPath === expectedPath
+    }
+
+    assert(matchesExpected(absolute, "/x/y/z"))
 
     val relative = Paths.get("x/y/z")
 
-    //NB: Hopefully this is cross-platform
-    val cwd = Paths.get(".").toAbsolutePath.normalize
+    assert(matchesExpected(relative, "x/y/z"))
 
-    val expected = cwd.resolve(relative).toString
-
-    assert(normalize(relative) === expected)
-    
     val hasDot = Paths.get("/x/y/./z")
-    
-    assert(normalize(hasDot) === absoluteExpected)
-    
+
+    assert(matchesExpected(hasDot, "/x/y/z"))
+
     val hasTwoDots = Paths.get("/x/y/z/foo/..")
-    
-    assert(normalize(hasTwoDots) === absoluteExpected)
-    
+
+    assert(matchesExpected(hasTwoDots, "/x/y/z"))
+
     val hasBoth = Paths.get("/x/./y/./z/foo/..")
-    
-    assert(normalize(hasBoth) === absoluteExpected)
+
+    assert(matchesExpected(hasBoth, "/x/y/z"))
   }
 }

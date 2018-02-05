@@ -15,7 +15,10 @@ import org.scalatest.FunSuite
 final class LanguageSupportTest extends FunSuite {
   import TestHelpers.config
 
-  private val bashFileSep = BashScript.escapeString(File.separator)
+  // Since the cmd"..." scripts are run through `sh` the file separator
+  // should be what is understood by that executable and not platform
+  // specific.
+  private val bashFileSep = '/' //BashScript.escapeString(File.separator)
 
   private implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 

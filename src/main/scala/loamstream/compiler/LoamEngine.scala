@@ -113,7 +113,11 @@ final case class LoamEngine(
 
   def compile(scripts: Iterable[LoamScript]): LoamCompiler.Result = compiler.compile(LoamProject(config, scripts))
 
-  def compile(project: LoamProject): LoamCompiler.Result = compiler.compile(project)
+  def compile(project: LoamProject): LoamCompiler.Result = {
+    info(s"Now compiling project with ${project.scripts.size} scripts.")
+    
+    compiler.compile(project)
+  }
 
   def compile(script: LoamScript): LoamCompiler.Result = compiler.compile(config, script)
 

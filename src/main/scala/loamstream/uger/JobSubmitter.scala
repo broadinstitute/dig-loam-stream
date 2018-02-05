@@ -11,6 +11,7 @@ import java.time.format.DateTimeFormatter
 import java.time.ZoneId
 import java.util.UUID
 import java.time.Instant
+import loamstream.util.Terminable
 
 /**
  * @author clint
@@ -18,7 +19,7 @@ import java.time.Instant
  * 
  * A trait representing the notion of submitting jobs to Uger.  
  */
-trait JobSubmitter {
+trait JobSubmitter extends Terminable {
   /**
    * Submit a batch of jobs to be run as a Uger task array (all packaged in one script).
    * @params jobs the jobs to submit
@@ -41,5 +42,7 @@ object JobSubmitter {
 
       drmaaClient.submitJob(ugerSettings, ugerConfig, taskArray)
     }
+    
+    override def stop(): Unit = drmaaClient.stop()
   }
 }

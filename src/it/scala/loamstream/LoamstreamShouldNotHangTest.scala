@@ -50,10 +50,10 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     assert(!exists(zPath))
     
     val loamCode = s"""|
-                       |val nonexistent = store[TXT].at("$nonexistentPath").asInput
-                       |val storeX = store[TXT].at("$xPath")
-                       |val storeY = store[TXT].at("$yPath")
-                       |val storeZ = store[TXT].at("$zPath")
+                       |val nonexistent = store.at("$nonexistentPath").asInput
+                       |val storeX = store.at("$xPath")
+                       |val storeY = store.at("$yPath")
+                       |val storeZ = store.at("$zPath")
                        |
                        |uger {
                        |  //Will fail
@@ -109,14 +109,14 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     assert(!exists(yPath))
     
     val loamCode = s"""|
-                       |val nonexistent = store[TXT].at("$nonexistentPath").asInput
-                       |val storeX = store[TXT].at(s"$xPath")
-                       |val storeY = store[TXT].at(s"$yPath")
+                       |val nonexistent = store.at("$nonexistentPath").asInput
+                       |val storeX = store.at(s"$xPath")
+                       |val storeY = store.at(s"$yPath")
                        |
-                       |val storeA = store[TXT].at("$aPath").asInput
-                       |val storeB = store[TXT].at(s"$bPath")
-                       |val storeC = store[TXT].at(s"$cPath")
-                       |val storeD = store[TXT].at(s"$dPath")
+                       |val storeA = store.at("$aPath").asInput
+                       |val storeB = store.at(s"$bPath")
+                       |val storeC = store.at(s"$cPath")
+                       |val storeD = store.at(s"$dPath")
                        |
                        |uger {
                        |  //Should work
@@ -154,6 +154,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
   
   private def run(baseFileName: String, loamCode: String): Unit = {
     import PathEnrichments.PathHelpers
+    import java.nio.file.Files.exists
     
     Files.createDirsIfNecessary(outDir)                  
     
@@ -161,11 +162,22 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     
     Files.writeTo(loamFile)(loamCode)
     
+    //Recent Broad-FS issues have me gunshy
+    assert(exists(loamFile))
+    
     val confFile = outDir / s"$baseFileName.conf"
     
     Files.writeTo(confFile)(confFileContents)
     
-    Files.createDirsIfNecessary(path("./uger"))
+    //Recent Broad-FS issues have me gunshy
+    assert(exists(confFile))
+    
+    val ugerWorkDir = path("./uger")
+    
+    Files.createDirsIfNecessary(ugerWorkDir)
+    
+    //Recent Broad-FS issues have me gunshy
+    assert(exists(ugerWorkDir))
 
     val args: Array[String] = {
       Array(

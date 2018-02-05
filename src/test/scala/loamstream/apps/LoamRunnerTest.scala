@@ -128,6 +128,7 @@ final class LoamRunnerTest extends FunSuite {
   private object Code {
     import loamstream.util.BashScript.Implicits._
 
+    // scalastyle:off line.size.limit
     def oneAndThen(dir: Path): String =
       s"""|import scala.collection.mutable.{Buffer, ArrayBuffer}
           |import loamstream.model.Store
@@ -218,5 +219,6 @@ final class LoamRunnerTest extends FunSuite {
           |
           |  cmd"cat $${workDir.render}/store-?.txt > $${storeFinal}".in(stores).out(storeFinal)
           |}""".stripMargin
+     // scalastyle:on line.size.limit
   }
 }

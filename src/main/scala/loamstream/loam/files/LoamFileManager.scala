@@ -1,7 +1,7 @@
 package loamstream.loam.files
 
 import java.nio.file.{Files, Path}
-
+import java.net.URI
 import loamstream.model.Store
 import loamstream.util.{BashScript, ValueBox}
 import loamstream.loam.HasLocation
@@ -35,15 +35,16 @@ final class LoamFileManager {
 
   def getStoreString(store: HasLocation): String = {
     pathsBox.getAndUpdate { paths =>
-      paths.get(store).orElse(store.pathOpt) match {
-        case Some(loc) => (paths, loc.render)
+      paths.get(store).orElse(store.pathOpt).orElse(store.uriOpt) match {
+        case Some(loc: Path) => (paths, loc.render)
 
         // if it's a URI then we can't shouldn't replace the path separator
-        case None => store.uriOpt match {
-          case Some(loc) => (paths, loc.toString)
-          case None      =>
-            val (newPaths, path) = tempPath(paths, store)
-            (newPaths, path.render)
+        case Some(loc: URI) => (paths, loc.toString)
+
+        // create a temp file
+        case _ => {
+          val (newPaths, path) = tempPath(paths, store)
+          (newPaths, path.render)
         }
       }
     }

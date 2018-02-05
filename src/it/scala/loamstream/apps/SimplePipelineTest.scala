@@ -26,6 +26,8 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
   }
    
   test(s"A simple linear pipeline running on Uger should work") {
+    //NB: Due to DRMAA limitations, tests requiring UGER and running in the same JVM must run sequentially, 
+    //NOT concurrently!  Concurrent test runs using Uger can happen in different JVM processes.
     doTest("uger", shouldRunEverything = true, hashingStrategy = HashingStrategy.HashOutputs)
     doTest("uger", shouldRunEverything = false, hashingStrategy = HashingStrategy.HashOutputs)
     doTest("uger", shouldRunEverything = true, hashingStrategy = HashingStrategy.DontHashOutputs)

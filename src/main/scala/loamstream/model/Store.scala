@@ -65,6 +65,8 @@ trait Store extends HasLocation with LId.HasId {
 
   override def uriOpt: Option[URI] = graph.uriOpt(this)
 
+  def render: String = projectContext.fileManager.getStoreString(this)
+
   def +(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixAdder(suffix))
 
   def -(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixRemover(suffix))

@@ -1,6 +1,7 @@
 package loamstream.loam
 
 import java.io.File
+import java.nio.file.Paths
 
 import org.scalatest.FunSuite
 
@@ -26,8 +27,11 @@ final class LoamCmdToolTest extends FunSuite {
   
   import LoamCmdTool._
   import loamstream.TestHelpers.emptyProjectContext
-
-  private val fileSepForBash = BashScript.escapeString(File.separator)
+ 
+  // Since all the cmd"..." are placed into a script file to be executed
+  // with `sh`, the path separator should remain '/' as opposed to the
+  // platform separator.
+  private val fileSepForBash = '/' //BashScript.escapeString(File.separator)
   
   test("string interpolation (trivial)") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
@@ -57,6 +61,10 @@ final class LoamCmdToolTest extends FunSuite {
     val nuh = store.at("nuh.txt")
     val zuh = store.at("zuh.txt") + ".bar"
     val stores = Seq(nuh, zuh)
+    
+    // properly escaped for the bash scripts
+    val nuhPath = nuh.render(scriptContext.projectContext.fileManager)
+    val zuhPath = zuh.render(scriptContext.projectContext.fileManager)
 
     val tool = cmd"foo bar --is $is baz --in $nuh --blarg $stores"
     
@@ -73,7 +81,13 @@ final class LoamCmdToolTest extends FunSuite {
 
     assert(tool.inputs == Map.empty)
     assert(tool.outputs == Map(nuh.id -> nuh))
-    assert(tool.commandLine === "foo bar --is 3 4 5 baz --in ./nuh.txt --blarg ./nuh.txt ./zuh.txt.bar")
+    
+    // this will test the equality of the paths cross-platform
+    assert(nuh.path.normalize == Paths.get("nuh.txt"))
+    assert(zuh.path.normalize == Paths.get("zuh.txt.bar"))
+    
+    // can now interpolate the path variables on the command line
+    assert(tool.commandLine === s"foo bar --is 3 4 5 baz --in $nuhPath --blarg $nuhPath $zuhPath")
   }
 
   test("using() in any order with in() and out()") {
@@ -297,8 +311,8 @@ final class LoamCmdToolTest extends FunSuite {
     val inStoreWithUri = store.at(uri("xyz://host/dir/inStoreWithUri")).asInput
     val outStoreWithUri = store.at(uri("xyz://host/dir/outStoreWithUri"))
     val tool = cmd"maker $inStoreWithPath $inStoreWithUri $outStoreWithPath $outStoreWithUri"
-    val inPath = BashScript.escapeString(inStoreWithPath.path.toString)
-    val outPath = BashScript.escapeString(outStoreWithPath.path.toString)
+    val inPath = inStoreWithPath.render(scriptContext.projectContext.fileManager)
+    val outPath = outStoreWithPath.render(scriptContext.projectContext.fileManager)
     val inUri = BashScript.escapeString(inStoreWithUri.uriOpt.get.toString)
     val outUri = BashScript.escapeString(outStoreWithUri.uriOpt.get.toString)
     val commandLineExpected = s"maker $inPath $inUri $outPath $outUri"

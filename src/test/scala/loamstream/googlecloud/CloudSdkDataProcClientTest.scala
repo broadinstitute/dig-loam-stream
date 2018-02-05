@@ -2,6 +2,7 @@ package loamstream.googlecloud
 
 import loamstream.util.PathUtils
 import org.scalatest.FunSuite
+import loamstream.util.BashScript.Implicits._
 import loamstream.util.ExitCodes
 import loamstream.util.ExitCodeException
 import loamstream.TestHelpers
@@ -11,9 +12,9 @@ import loamstream.TestHelpers
  * Nov 29, 2016
  */
 final class CloudSdkDataProcClientTest extends FunSuite {
-  
+
   import TestHelpers.path
-  
+
   private val config = GoogleCloudConfig(
       gcloudBinary = path("/foo/bar/baz"),
       gsutilBinary = path("/blah/blah/blah"),
@@ -33,86 +34,86 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       scopes = "ses",
       properties = "p,r,o,p,s",
       initializationActions = "gs://example.com/blah/foo.sh")
-  
+
   private val examplePath = PathUtils.newAbsolute("foo", "bar", "baz")
-      
+
   private def alwaysFails(tokens: Seq[String]): Int = 42
-  
+
   private def alwaysSucceeds(tokens: Seq[String]): Int = ExitCodes.success
-  
+
   test("startCluster") {
     val client = new CloudSdkDataProcClient(config, alwaysSucceeds)
-    
+
     //Shouldn't throw
     client.startCluster()
   }
-  
+
   test("startCluster - should throw") {
     val client = new CloudSdkDataProcClient(config, alwaysFails)
-    
+
     intercept[ExitCodeException] {
       client.startCluster()
     }
   }
-  
+
   test("deleteCluster") {
     val client = new CloudSdkDataProcClient(config, alwaysSucceeds)
-    
+
     //Shouldn't throw
     client.deleteCluster()
   }
-  
+
   test("deleteCluster - should throw") {
     val client = new CloudSdkDataProcClient(config, alwaysFails)
-    
+
     intercept[ExitCodeException] {
       client.deleteCluster()
     }
   }
-  
+
   test("isClusterRunning") {
     val client = new CloudSdkDataProcClient(config, alwaysSucceeds)
-    
+
     assert(client.isClusterRunning)
   }
-  
+
   test("isClusterRunning - not running") {
     val client = new CloudSdkDataProcClient(config, alwaysFails)
-    
+
     assert(client.isClusterRunning === false)
   }
-  
+
   test("gcloudTokens") {
     import CloudSdkDataProcClient.gcloudTokens
-    
+
     val tokens = gcloudTokens(config)("foo", "--bar", "Baz")
-    
-    assert(tokens === Seq(examplePath.toString, "dataproc", "clusters", "foo", "--bar", "Baz"))
+
+    assert(tokens === Seq(examplePath.render, "dataproc", "clusters", "foo", "--bar", "Baz"))
   }
-  
+
   test("isClusterRunningTokens") {
     import CloudSdkDataProcClient.isClusterRunningTokens
-    
+
     val tokens = isClusterRunningTokens(config)
-    
-    assert(tokens === Seq(examplePath.toString, "dataproc", "clusters", "describe", config.clusterId))
+
+    assert(tokens === Seq(examplePath.render, "dataproc", "clusters", "describe", config.clusterId))
   }
-  
+
   test("deleteClusterTokens") {
     import CloudSdkDataProcClient.deleteClusterTokens
-    
+
     val tokens = deleteClusterTokens(config)
-    
-    assert(tokens === Seq(examplePath.toString, "dataproc", "clusters", "delete", config.clusterId))
+
+    assert(tokens === Seq(examplePath.render, "dataproc", "clusters", "delete", config.clusterId))
   }
-  
+
   test("startClusterTokens") {
     import CloudSdkDataProcClient.startClusterTokens
-    
+
     val tokens = startClusterTokens(config)
-    
+
     val expected = Seq(
-      examplePath.toString,
+      examplePath.render,
       "dataproc",
       "clusters",
       "create",
@@ -143,7 +144,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       config.properties,
       "--initialization-actions",
       config.initializationActions)
-    
+
     assert(tokens === expected)
   }
   //scalastyle:on magic.number

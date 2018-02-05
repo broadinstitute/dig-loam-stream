@@ -13,13 +13,13 @@ final case class BashScript(path: Path) {
 
 object BashScript extends Loggable {
 
-  private def defaultFileName: Path = JFiles.createTempFile("LoamStreamBashScript", ".sh")  
-  
+  private def defaultFileName: Path = JFiles.createTempFile("LoamStreamBashScript", ".sh")
+
   def fromCommandLineString(string: String, path: Path = defaultFileName): BashScript = {
     Files.writeTo(path)(s"${string}\nexit\n")
-    
+
     debug(s"Wrote shell script to $path for command '$string'")
-    
+
     BashScript(path)
   }
 
@@ -30,5 +30,11 @@ object BashScript extends Loggable {
   def escapeString(string: String): String = string.flatMap {
     case c if charsToBeEscaped(c) => Seq('\\', c)
     case c => Seq(c)
+  }
+
+  object Implicits {
+    implicit class BashPath(val path: Path) extends AnyVal {
+      def render: String = escapeString(path.toString.replace('\\', '/'))
+    }
   }
 }

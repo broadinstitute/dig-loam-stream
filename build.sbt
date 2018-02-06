@@ -84,7 +84,8 @@ lazy val root = (project in file("."))
 //Skip tests when running assembly (and publishing).  Comment this line to re-enable tests when publishing.
 test in assembly := {}
 
-//Uncomment to make integration tests run serially
+//Make integration tests run serially; this is needed since some integration tests use Uger, and we can only have
+//one Uger/DRMAA session active at once.
 parallelExecution in IntegrationTest := false
 
 //Show full stack traces from unit and integration tests

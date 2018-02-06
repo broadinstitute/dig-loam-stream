@@ -85,7 +85,7 @@ lazy val root = (project in file("."))
 test in assembly := {}
 
 //Uncomment to make integration tests run serially
-//parallelExecution in IntegrationTest := false
+parallelExecution in IntegrationTest := false
 
 //Show full stack traces from unit and integration tests
 testOptions in IntegrationTest += Tests.Argument("-oF")

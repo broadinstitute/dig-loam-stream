@@ -84,6 +84,13 @@ lazy val root = (project in file("."))
 //Skip tests when running assembly (and publishing).  Comment this line to re-enable tests when publishing.
 test in assembly := {}
 
+//Uncomment to make integration tests run serially
+//parallelExecution in IntegrationTest := false
+
+//Show full stack traces from unit and integration tests
+testOptions in IntegrationTest += Tests.Argument("-oF")
+testOptions in Test += Tests.Argument("-oF")
+
 //Make the fat jar produced by `assembly` a tracked artifact that will be published.  
 //(Without this bit, only the application classes, sources, and docs will be published.)
 artifact in (Compile, assembly) := {

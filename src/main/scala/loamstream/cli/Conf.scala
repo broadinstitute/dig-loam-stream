@@ -88,7 +88,8 @@ final case class Conf(
       descr = "Run every step in the pipeline, even if they've already been run")
   
   //Using all default args for `opt` makes it a flag 
-  val dryRun: ScallopOption[Boolean] = opt[Boolean](descr = "Only compile the supplied .loam files, don't run them")
+  val compileOnly: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Only compile the supplied .loam files, don't run them")
 
   val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
 
@@ -105,7 +106,7 @@ final case class Conf(
       descr = "Don't hash files when determining whether a job may be skipped.",
       required = false)
       
-  private def dryRunNoFilesMessage = "Please specify at least one Loam file to compile"
+  private def compileOnlyNoFilesMessage = "Please specify at least one Loam file to compile"
   private def runNoFilesMessage = "Please specify at least one Loam file to run"
 
   /**
@@ -114,21 +115,21 @@ final case class Conf(
    * --conf is always optional
    * --run-everything is always optional
    * --version trumps everything - if it's present, everything else is optional
-   * --backend and --dry-run are mutually exclusive; both require a non-empty list of loam files
+   * --compile-only requires a non-empty list of loam files
    */
-  validateOpt(version, lookup, conf, runEverything, loams, dryRun) {
+  validateOpt(version, lookup, conf, runEverything, loams, compileOnly) {
     // If --version is supplied, everything else is unchecked
     case (Some(true), _, _, _, _, _) => Right(Unit)
     
     // If --lookup is supplied, everything else is unchecked
     case (_, Some(outputPathOrUri), _, _, _, _) => Right(Unit)
 
-    //--dry-run and a non-empty list of loam files is valid
+    //--compile-only and a non-empty list of loam files is valid
     case (_, _, _, _, Some(files), Some(true)) if files.nonEmpty => Right(Unit)
-    case (_, _, _, _, Some(files), Some(true)) if files.isEmpty => Left(dryRunNoFilesMessage)
-    case (_, _, _, _, None, Some(true)) => Left(dryRunNoFilesMessage)
+    case (_, _, _, _, Some(files), Some(true)) if files.isEmpty => Left(compileOnlyNoFilesMessage)
+    case (_, _, _, _, None, Some(true)) => Left(compileOnlyNoFilesMessage)
 
-    // running (no --dry-run) with a non-empty list of loam files is valid
+    // running (no --compile-only) with a non-empty list of loam files is valid
     case (_, _, _, _, Some(files), _) if files.nonEmpty => Right(Unit)
     case (_, _, _, _, Some(files), _) if files.isEmpty => Left(runNoFilesMessage)
     case (_, _, _, _, None, _) => Left(runNoFilesMessage)

@@ -19,7 +19,7 @@ object Intent {
   
   final case class LookupOutput(confFile: Option[Path], output: Either[Path, URI]) extends Intent
   
-  final case class DryRun(confFile: Option[Path], loams: Seq[Path]) extends Intent
+  final case class CompileOnly(confFile: Option[Path], loams: Seq[Path]) extends Intent
   
   final case class RealRun(
       confFile: Option[Path],
@@ -33,7 +33,7 @@ object Intent {
     
     if(cli.version.isSupplied) { ShowVersionAndQuit }
     else if(cli.lookup.isSupplied) { LookupOutput(confOpt, cli.lookup()) }
-    else if(cli.dryRun.isSupplied) { DryRun(confOpt, cli.loams()) }
+    else if(cli.compileOnly.isSupplied) { CompileOnly(confOpt, cli.loams()) }
     else {
       RealRun(
         confFile = confOpt,

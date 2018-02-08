@@ -41,7 +41,7 @@ object Main extends Loggable {
     
     intent match {
       case ShowVersionAndQuit => ()
-      case dryRun: DryRun => run.doDryRun(dryRun)
+      case compileOnly: CompileOnly => run.doCompileOnly(compileOnly)
       case lookup: LookupOutput => run.doLookup(lookup)
       case real: RealRun => run.doRealRun(real)
     }
@@ -68,7 +68,7 @@ object Main extends Loggable {
   
   private[apps] final class Run {
   
-    def doDryRun(intent: Intent.DryRun): Unit = {
+    def doCompileOnly(intent: Intent.CompileOnly): Unit = {
       val loamConfig = AppWiring.loamConfigFrom(intent.confFile)
   
       val loamEngine = LoamEngine.default(loamConfig)

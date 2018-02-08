@@ -64,49 +64,49 @@ final class ConfTest extends FunSuite with Matchers {
     }
   }
   
-  test("--dry-run") {
+  test("--compile-only") {
     def doTest(flag: String, loams: Seq[String]): Unit = {
       val args = flag +: loams
       
       val conf = makeConf(args)
       
-      assert(conf.dryRun.isSupplied)
+      assert(conf.compileOnly.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === loams.map(Paths.get(_)))
     }
     
-    doTest("--dry-run", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
-    doTest("-d", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
+    doTest("--compile-only", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
+    doTest("-c", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
   }
   
   test("--disable-hashing") {
     {
-      val args = Seq("--disable-hashing", "--dry-run", "src/examples/loam/cp.loam")
+      val args = Seq("--disable-hashing", "--compile-only", "src/examples/loam/cp.loam")
       
       val conf = makeConf(args)
       
       assert(conf.disableHashing.isSupplied)
-      assert(conf.dryRun.isSupplied)
+      assert(conf.compileOnly.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
     }
     
     {
-      val args = Seq("--dry-run", "src/examples/loam/cp.loam")
+      val args = Seq("--compile-only", "src/examples/loam/cp.loam")
       
       val conf = makeConf(args)
       
       assert(conf.disableHashing.isSupplied === false)
-      assert(conf.dryRun.isSupplied)
+      assert(conf.compileOnly.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
     }
   }
   
-  test("Loam files must be specified if running normally or with --dry-run") {
+  test("Loam files must be specified if running normally or with --compile-only") {
     //No loam files
     intercept[CliException] {
       makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam"))
@@ -114,7 +114,7 @@ final class ConfTest extends FunSuite with Matchers {
     
     //No loam files
     intercept[CliException] {
-      makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam", "--dry-run"))
+      makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam", "--compile-only"))
     }
     
     //No loam files
@@ -124,7 +124,7 @@ final class ConfTest extends FunSuite with Matchers {
     
     //No loam files
     intercept[CliException] {
-      makeConf(Seq("--dry-run"))
+      makeConf(Seq("--compile-only"))
     }
     
     val exampleFile = "src/examples/loam/cp.loam"
@@ -136,7 +136,7 @@ final class ConfTest extends FunSuite with Matchers {
       val conf = makeConf(Seq(exampleFile))
       
       conf.loams() shouldEqual List(expected)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
       conf.runEverything.isSupplied shouldBe(false)
     }
@@ -145,16 +145,16 @@ final class ConfTest extends FunSuite with Matchers {
       val conf = makeConf(Seq(exampleFile, exampleFile))
       
       conf.loams() shouldEqual List(expected, expected)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
       conf.runEverything.isSupplied shouldBe(false)
     }
     
     {
-      val conf = makeConf(Seq("--dry-run", exampleFile, exampleFile))
+      val conf = makeConf(Seq("--compile-only", exampleFile, exampleFile))
       
       conf.loams() shouldEqual List(expected, expected)
-      conf.dryRun() shouldBe(true)
+      conf.compileOnly() shouldBe(true)
       conf.conf.isSupplied shouldBe(false)
       conf.runEverything.isSupplied shouldBe(false)
     }
@@ -170,7 +170,7 @@ final class ConfTest extends FunSuite with Matchers {
         
       conf.runEverything() shouldBe(true)
       conf.loams() shouldEqual List(expected)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     
@@ -179,7 +179,7 @@ final class ConfTest extends FunSuite with Matchers {
         
       conf.runEverything() shouldBe(true)
       conf.loams() shouldEqual List(expected)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     
@@ -188,7 +188,7 @@ final class ConfTest extends FunSuite with Matchers {
         
       conf.runEverything() shouldBe(false)
       conf.loams() shouldEqual List(expected)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
   }
@@ -209,7 +209,7 @@ final class ConfTest extends FunSuite with Matchers {
       
       conf.runEverything() shouldBe(false)
       conf.loams.isSupplied shouldBe(false)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     //Path, short arg name
@@ -221,7 +221,7 @@ final class ConfTest extends FunSuite with Matchers {
       
       conf.runEverything() shouldBe(false)
       conf.loams.isSupplied shouldBe(false)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     
@@ -234,7 +234,7 @@ final class ConfTest extends FunSuite with Matchers {
       
       conf.runEverything() shouldBe(false)
       conf.loams.isSupplied shouldBe(false)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     //URI, short arg name
@@ -246,7 +246,7 @@ final class ConfTest extends FunSuite with Matchers {
       
       conf.runEverything() shouldBe(false)
       conf.loams.isSupplied shouldBe(false)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
   }

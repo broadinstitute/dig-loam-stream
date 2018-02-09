@@ -40,10 +40,13 @@ object Main extends Loggable {
     import Intent._
     
     intent match {
-      case ShowVersionAndQuit => ()
-      case compileOnly: CompileOnly => run.doCompileOnly(compileOnly)
-      case lookup: LookupOutput => run.doLookup(lookup)
-      case real: RealRun => run.doRealRun(real)
+      case Right(ShowVersionAndQuit) => ()
+      case Right(lookup: LookupOutput) => run.doLookup(lookup)
+      case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
+      case Right(dryRun: DryRun) => run.doDryRun(dryRun)
+      case Right(real: RealRun) => run.doRealRun(real)
+      case Left(message) => cli.printHelp(message)
+      case _ => cli.printHelp()
     }
   }
   
@@ -75,11 +78,24 @@ object Main extends Loggable {
   
       val compilationResultShot = loamEngine.compileFiles(intent.loams)
   
-      assert(compilationResultShot.nonEmpty, compilationResultShot.message)
+      require(compilationResultShot.nonEmpty, compilationResultShot.message)
   
       val compilationResult = compilationResultShot.get
   
       info(compilationResult.report)
+    }
+    
+    def doDryRun(intent: Intent.DryRun): Unit = {
+      val loamConfig = AppWiring.loamConfigFrom(intent.confFile)
+  
+      val loamEngine = LoamEngine.default(loamConfig)
+  
+      val compilationResultShot = loamEngine.compileFiles(intent.loams)
+  
+      require(compilationResultShot.nonEmpty, compilationResultShot.message)
+  
+      //TODO
+      ???
     }
     
     def doLookup(intent: Intent.LookupOutput): Unit = {
@@ -104,7 +120,8 @@ object Main extends Loggable {
       def loamScripts: Iterable[LoamScript] = {
         val loamFiles = intent.loams
         val loamScriptsShot = loamEngine.scriptsFrom(loamFiles)
-        assert(loamScriptsShot.isHit, "Could not load loam scripts")
+        
+        require(loamScriptsShot.isHit, "Could not load loam scripts")
   
         loamScriptsShot.get
       }

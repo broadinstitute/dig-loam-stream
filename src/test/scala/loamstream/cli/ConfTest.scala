@@ -13,9 +13,7 @@ import java.net.URI
 final class ConfTest extends FunSuite with Matchers {
   private val testConfigFile = "src/test/resources/loamstream-test.conf".replace("/", File.separator)
 
-  private def makeConf(args: Seq[String], exitTheJvmOnValidationError: Boolean = false): Conf = {
-    Conf(args, exitTheJvmOnValidationError)
-  }
+  private def makeConf(args: Seq[String]): Conf = Conf(args)
   
   test("Single loam file along with conf file is parsed correctly") {
     val conf = makeConf(Seq("--conf", "src/test/resources/loamstream-test.conf", 
@@ -31,37 +29,6 @@ final class ConfTest extends FunSuite with Matchers {
 
     conf.loams() shouldEqual List(Paths.get("src/test/resources/a.txt"), Paths.get("src/test/resources/a.txt"))
     conf.conf().toString shouldEqual testConfigFile
-  }
-  
-  test("Test that we try to exit if passed no args") {
-    intercept[CliException] {
-      Conf(Seq.empty, exitTheJvmOnValidationError = false)
-    }
-  }
-  
-  test("Test that we try to exit if we're passed just --version") {
-    try {
-      Conf(Seq("--version"), exitTheJvmOnValidationError = false)
-      fail()
-    } catch {
-      case CliException(message) => assert(message === "version") 
-    }
-  }
-   
-  test("Test that we try to exit if passed nonexistent file names") {
-    intercept[CliException] {
-      val args = Seq("--conf", "src/test/resources/loamstream-test.conf",
-                     "--backend", "local",
-                     "asdfasdf.txt", "src/test/resources/a.txt")
-      
-      Conf(args, exitTheJvmOnValidationError = false)
-    }
-    
-    intercept[CliException] {
-      val args = Seq("--conf", "asdfasdf.txt", "--backend", "local", "src/test/resources/a.txt")
-      
-      Conf(args, exitTheJvmOnValidationError = false)
-    }
   }
   
   test("--compile-only") {
@@ -106,60 +73,6 @@ final class ConfTest extends FunSuite with Matchers {
     }
   }
   
-  test("Loam files must be specified if running normally or with --compile-only") {
-    //No loam files
-    intercept[CliException] {
-      makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam"))
-    }
-    
-    //No loam files
-    intercept[CliException] {
-      makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam", "--compile-only"))
-    }
-    
-    //No loam files
-    intercept[CliException] {
-      makeConf(Nil)
-    }
-    
-    //No loam files
-    intercept[CliException] {
-      makeConf(Seq("--compile-only"))
-    }
-    
-    val exampleFile = "src/examples/loam/cp.loam"
-    
-    val expected = Paths.get(exampleFile)
-    
-    //Just a loam file
-    {
-      val conf = makeConf(Seq(exampleFile))
-      
-      conf.loams() shouldEqual List(expected)
-      conf.compileOnly() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
-      conf.runEverything.isSupplied shouldBe(false)
-    }
-    
-    {
-      val conf = makeConf(Seq(exampleFile, exampleFile))
-      
-      conf.loams() shouldEqual List(expected, expected)
-      conf.compileOnly() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
-      conf.runEverything.isSupplied shouldBe(false)
-    }
-    
-    {
-      val conf = makeConf(Seq("--compile-only", exampleFile, exampleFile))
-      
-      conf.loams() shouldEqual List(expected, expected)
-      conf.compileOnly() shouldBe(true)
-      conf.conf.isSupplied shouldBe(false)
-      conf.runEverything.isSupplied shouldBe(false)
-    }
-  }
- 
   test("--run-everything") {
     val exampleFile = "src/examples/loam/cp.loam"
     

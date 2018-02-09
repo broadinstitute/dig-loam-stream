@@ -20,52 +20,34 @@ import loamstream.model.execute.HashingStrategy
  * to false is useful for tests, so that a validation failure doesn't make SBT exit.  If this is false, a 
  * CliException is thrown instead of invoking 'sys.exit()'.
  */
-final case class Conf(
-    arguments: Seq[String], 
-    exitTheJvmOnValidationError: Boolean = true) extends ScallopConf(arguments) with Loggable {
+final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
+  
+  def printHelp(message: String): Unit = {
+    printHelp()
+    
+    println() //scalastyle:ignore regex
+    
+    println(message) //scalastyle:ignore regex
+  }
   
   /** Inform the user about expected usage upon erroneous input/behaviour. */
   override def onError(e: Throwable): Unit = e match {
-    case ScallopException(message) =>
+    case ScallopException(message) => {
       error(message)
       printHelp()
-      exitOrThrow(message)
-    case ex => super.onError(ex)
-  }
-
-  /** In the verify stage, check that files with the supplied paths exist. */
-  private def validatePathsExist(paths: ScallopOption[List[Path]]): Unit = {
-    paths.toOption.foreach { paths =>
-      paths.foreach { path =>
-        if (!path.toFile.exists) {
-          val msg = s"File at '$path' not found"
-          
-          error(msg)
-          exitOrThrow(msg)
-        }
-      }
     }
+    case ex => super.onError(ex)
   }
 
   private def printHelpIfNoArgsAndExit(): Unit = {
     if (arguments.isEmpty) {
       printHelp()
-      exitOrThrow("No arguments provided")
     }
   }
   
   private def printVersionInfoAndExitIfNeeded(): Unit = {
     if (version()) {
       println(s"${Versions.load().get.toString}") //scalastyle:ignore regex
-      exitOrThrow("version")
-    }
-  }
-  
-  private def exitOrThrow(msg: String): Unit = {
-    if(exitTheJvmOnValidationError) {
-      sys.exit(1)
-    } else {
-      throw new CliException(msg)
     }
   }
 
@@ -90,6 +72,10 @@ final case class Conf(
   //Using all default args for `opt` makes it a flag 
   val compileOnly: ScallopOption[Boolean] = opt[Boolean](
       descr = "Only compile the supplied .loam files, don't run them")
+      
+  //Using all default args for `opt` makes it a flag 
+  val dryRun: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Show what commands would be run without running them")
 
   val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
 
@@ -106,48 +92,6 @@ final case class Conf(
       descr = "Don't hash files when determining whether a job may be skipped.",
       required = false)
       
-  private def compileOnlyNoFilesMessage = "Please specify at least one Loam file to compile"
-  private def runNoFilesMessage = "Please specify at least one Loam file to run"
-
-  /**
-   * NB: "manually" validate all combinations of args, since the interactions between Scallop validation methods
-   * (conflicts, codependent, etc) became unmanageable.
-   * --conf is always optional
-   * --run-everything is always optional
-   * --version trumps everything - if it's present, everything else is optional
-   * --compile-only requires a non-empty list of loam files
-   */
-  validateOpt(version, lookup, conf, runEverything, loams, compileOnly) {
-    // If --version is supplied, everything else is unchecked
-    case (Some(true), _, _, _, _, _) => Right(Unit)
-    
-    // If --lookup is supplied, everything else is unchecked
-    case (_, Some(outputPathOrUri), _, _, _, _) => Right(Unit)
-
-    //--compile-only and a non-empty list of loam files is valid
-    case (_, _, _, _, Some(files), Some(true)) if files.nonEmpty => Right(Unit)
-    case (_, _, _, _, Some(files), Some(true)) if files.isEmpty => Left(compileOnlyNoFilesMessage)
-    case (_, _, _, _, None, Some(true)) => Left(compileOnlyNoFilesMessage)
-
-    // running (no --compile-only) with a non-empty list of loam files is valid
-    case (_, _, _, _, Some(files), _) if files.nonEmpty => Right(Unit)
-    case (_, _, _, _, Some(files), _) if files.isEmpty => Left(runNoFilesMessage)
-    case (_, _, _, _, None, _) => Left(runNoFilesMessage)
-
-    case _ => Left("Invalid option/argument combination")
-  }
-  
-  /**
-   * NB: This needs to come before the call to verify(), or else we don't fail properly when the path
-   * supplied to --conf doesn't exist. Shrug.
-   */
-  validatePathExists(conf)
-
+  //NB: Required by Scallop
   verify()
-  
-  // The following checks come after verify() since options are lazily built by Scallop
-  printHelpIfNoArgsAndExit()
-  printVersionInfoAndExitIfNeeded()
-  
-  validatePathsExist(loams)
 }

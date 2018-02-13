@@ -45,6 +45,7 @@ import scala.util.Success
 import loamstream.util.FileMonitor
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
+import loamstream.model.execute.DryRunChunkRunner
 
 /**
  * @author clint
@@ -72,7 +73,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
   def daoForOutputLookup(intent: Intent.LookupOutput): LoamDao = makeDefaultDb
   
   def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
-    new DefaultAppWiring(
+    new RealRunAppWiring(
         confFile = intent.confFile,
         makeDao = makeDao,
         shouldRunEverything = intent.shouldRunEverything, 
@@ -87,11 +88,62 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     LoamConfig.fromConfig(typesafeConfig).get
   }
   
-  private final class DefaultAppWiring(
+  def forDryRun(intent: Intent.DryRun): AppWiring = new DryRunAppWiring(intent.confFile)
+  
+  private final class DryRunAppWiring(confFile: Option[Path]) extends 
+      FromChunkRunnerAppWiring(
+          confFile,
+          //Prevent affecting job skipping for future runs
+          makeInMemoryDb, 
+          shouldRunEverything = true, 
+          hashingStrategy = HashingStrategy.DontHashOutputs) {
+    
+    override protected def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable]) = {
+      val chunkRunner = new DryRunChunkRunner
+      
+      (chunkRunner, Seq(chunkRunner))
+    }
+    
+    override lazy val cloudStorageClient: Option[CloudStorageClient] = None
+  }
+  
+  private final class RealRunAppWiring(
+      confFile: Option[Path],
+      makeDao: => LoamDao,
+      shouldRunEverything: Boolean,
+      hashingStrategy: HashingStrategy) extends FromChunkRunnerAppWiring(
+                                                    confFile, 
+                                                    makeDao, 
+                                                    shouldRunEverything, 
+                                                    hashingStrategy) {
+    
+    override protected def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable]) = {
+      //TODO: Make the number of threads this uses configurable
+      val numberOfCPUs = Runtime.getRuntime.availableProcessors
+
+      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs)
+
+      val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
+
+      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(confFile, config, threadPoolSize)
+
+      val googleRunner = googleChunkRunner(confFile, config.googleConfig, localRunner)
+
+      val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
+      
+      val toBeStopped = compositeRunner +: localEcHandle +: (ugerRunnerHandles ++ compositeRunner.components)    
+      
+      (compositeRunner, toBeStopped.distinct)
+    }
+  }
+  
+  private abstract class FromChunkRunnerAppWiring(
       confFile: Option[Path],
       makeDao: => LoamDao,
       shouldRunEverything: Boolean,
       hashingStrategy: HashingStrategy) extends AppWiring {
+    
+    protected def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable])
     
     override lazy val dao: LoamDao = makeDao
     
@@ -108,20 +160,10 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
       val jobFilter = makeJobFilter
 
+      //TODO: Make this configurable?
       val threadPoolSize = 50
-      
-      //TODO: Make the number of threads this uses configurable
-      val numberOfCPUs = Runtime.getRuntime.availableProcessors
-      
-      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs)
-      
-      val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
 
-      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(confFile, config, threadPoolSize)
-
-      val googleRunner = googleChunkRunner(confFile, config.googleConfig, localRunner)
-      
-      val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
+      val (compositeRunner: ChunkRunner, runnerHandles: Seq[Terminable]) = makeChunkRunner(threadPoolSize)
 
       import loamstream.model.execute.ExecuterHelpers._
       import ExecutionContexts.threadPool
@@ -143,7 +185,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
             maxRunsPerJob)(executionContextWithThreadPool)
       }
 
-      val handles: Seq[Terminable] = (ugerRunnerHandles ++ googleRunner) :+ threadPoolHandle :+ localEcHandle
+      val handles: Seq[Terminable] = threadPoolHandle +: runnerHandles 
 
       new TerminableExecuter(rxExecuter, handles: _*)
     }
@@ -266,25 +308,22 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      //TODO: Make configurable?
-      val threadPoolSize = 50
-
-      //TODO: Make configurable?
-      val pollingFrequencyInHz = 0.1
-
       val poller = Poller.drmaa(ugerClient)
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
       val ugerRunner = {
+        //TODO: Make configurable?
+        val pollingFrequencyInHz = 0.1
+        
         val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
         val jobSubmitter = JobSubmitter.Drmaa(ugerClient, ugerConfig)
         
-        UgerChunkRunner(loamConfig.executionConfig, ugerConfig, jobSubmitter, jobMonitor, pollingFrequencyInHz)
+        UgerChunkRunner(loamConfig.executionConfig, ugerConfig, jobSubmitter, jobMonitor)
       }
 
-      val handles = Seq(ugerClient, schedulerHandle, ugerRunner)
+      val handles = Seq(schedulerHandle, ugerRunner)
 
       (ugerRunner, handles)
     }
@@ -309,7 +348,9 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     dao
   }
   
-  private[apps] def makeDefaultDb: LoamDao = makeDaoFrom(DbDescriptor(DbType.H2, "jdbc:h2:./.loamstream/db"))
+  private[apps] def makeDefaultDb: LoamDao = makeDaoFrom(DbDescriptor.onDiskDefault)
+  
+  private[apps] def makeInMemoryDb: LoamDao = makeDaoFrom(DbDescriptor.inMemory)
   
   private[apps] final class TerminableExecuter(
       val delegate: Executer,
@@ -320,7 +361,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     }
 
     def shutdown(): Seq[Throwable] = {
-      import Throwables._
+      import Throwables.quietly
       
       for {
         terminable <- toStop

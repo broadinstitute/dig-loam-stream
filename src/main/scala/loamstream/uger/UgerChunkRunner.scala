@@ -43,8 +43,7 @@ final case class UgerChunkRunner(
     executionConfig: ExecutionConfig,
     ugerConfig: UgerConfig,
     jobSubmitter: JobSubmitter,
-    jobMonitor: JobMonitor,
-    pollingFrequencyInHz: Double = 1.0) extends ChunkRunnerFor(EnvironmentType.Uger) with Terminable with Loggable {
+    jobMonitor: JobMonitor) extends ChunkRunnerFor(EnvironmentType.Uger) with Terminable with Loggable {
 
   import UgerChunkRunner._
 

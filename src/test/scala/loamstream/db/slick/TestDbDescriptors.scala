@@ -10,11 +10,6 @@ import java.nio.file.Path
  * date: Aug 12, 2016
  */
 object TestDbDescriptors {
-  //TODO: This shouldn't be necessary :(
-  private val sequence: Sequence[Int] = Sequence()
-
-  private def makeUrl(dbName: String): String = s"jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1"
-  
-  //TODO: Unique DB names shouldn't be necessary :(
-  def inMemoryH2: DbDescriptor = DbDescriptor(DbType.H2, makeUrl(s"test${sequence.next()}"))
+  @deprecated("", "")
+  def inMemoryH2: DbDescriptor = DbDescriptor.inMemory
 }

@@ -68,12 +68,46 @@ final class IntentTest extends FunSuite {
     //--dry-run
     assertInvalid("--dry-run") //no loams specified
     
-    assertValid(s"--dry-run $exampleFile0 $exampleFile1", DryRun(None, paths(exampleFile0, exampleFile1)))
+    assertValid(
+        s"--dry-run $exampleFile0 $exampleFile1", 
+        DryRun(
+          confFile = None,
+          hashingStrategy = HashingStrategy.HashOutputs,
+          shouldRunEverything = false,
+          loams = paths(exampleFile0, exampleFile1)))
     
     assertValid(
         s"--conf $confFile --dry-run $exampleFile0 $exampleFile1", 
-        DryRun(Some(confPath), paths(exampleFile0, exampleFile1)))
+        DryRun(
+          Some(confPath), 
+          hashingStrategy = HashingStrategy.HashOutputs,
+          shouldRunEverything = false,
+          loams = paths(exampleFile0, exampleFile1)))
+          
+    assertValid(
+        s"--conf $confFile --dry-run --run-everything $exampleFile0 $exampleFile1", 
+        DryRun(
+          Some(confPath), 
+          hashingStrategy = HashingStrategy.HashOutputs,
+          shouldRunEverything = true,
+          loams = paths(exampleFile0, exampleFile1)))
     
+    assertValid(
+        s"--conf $confFile --dry-run --disable-hashing $exampleFile0 $exampleFile1", 
+        DryRun(
+          Some(confPath), 
+          hashingStrategy = HashingStrategy.DontHashOutputs,
+          shouldRunEverything = false,
+          loams = paths(exampleFile0, exampleFile1)))
+    
+    assertValid(
+        s"--conf $confFile --dry-run --run-everything --disable-hashing $exampleFile0 $exampleFile1", 
+        DryRun(
+          Some(confPath), 
+          hashingStrategy = HashingStrategy.DontHashOutputs,
+          shouldRunEverything = true,
+          loams = paths(exampleFile0, exampleFile1)))
+          
     assertInvalid(s"--conf $confFile --dry-run $exampleFile0 $nonExistentFile") //nonexistent loam file
     
     assertInvalid(s"--dry-run $exampleFile0 $exampleFile1 --conf $confFile") //loams must come at the end

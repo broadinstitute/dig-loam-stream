@@ -60,6 +60,8 @@ trait AppWiring {
   def executer: Executer
 
   def cloudStorageClient: Option[CloudStorageClient]
+  
+  def jobFilter: JobFilter
 
   def shutdown(): Seq[Throwable]
   
@@ -71,14 +73,6 @@ trait AppWiring {
 object AppWiring extends DrmaaClientHelpers with Loggable {
 
   def daoForOutputLookup(intent: Intent.LookupOutput): LoamDao = makeDefaultDb
-  
-  def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
-    new RealRunAppWiring(
-        confFile = intent.confFile,
-        makeDao = makeDao,
-        shouldRunEverything = intent.shouldRunEverything, 
-        hashingStrategy = intent.hashingStrategy)
-  }
 
   def loamConfigFrom(confFile: Option[Path]): LoamConfig = {
     val typesafeConfig: Config = loadConfig(confFile)
@@ -88,62 +82,27 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     LoamConfig.fromConfig(typesafeConfig).get
   }
   
-  def forDryRun(intent: Intent.DryRun): AppWiring = new DryRunAppWiring(intent.confFile)
-  
-  private final class DryRunAppWiring(confFile: Option[Path]) extends 
-      FromChunkRunnerAppWiring(
-          confFile,
-          //Prevent affecting job skipping for future runs
-          makeInMemoryDb, 
-          shouldRunEverything = true, 
-          hashingStrategy = HashingStrategy.DontHashOutputs) {
-    
-    override protected def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable]) = {
-      val chunkRunner = new DryRunChunkRunner
-      
-      (chunkRunner, Seq(chunkRunner))
-    }
-    
-    override lazy val cloudStorageClient: Option[CloudStorageClient] = None
+  def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
+    new DefaultAppWiring(
+        confFile = intent.confFile,
+        makeDao = makeDao,
+        shouldRunEverything = intent.shouldRunEverything, 
+        hashingStrategy = intent.hashingStrategy)
+  }
+
+  def forDryRun(intent: Intent.DryRun, makeDao: => LoamDao): AppWiring = {
+    new DefaultAppWiring(
+        confFile = intent.confFile,
+        makeDao = makeDao,
+        shouldRunEverything = intent.shouldRunEverything, 
+        hashingStrategy = intent.hashingStrategy)
   }
   
-  private final class RealRunAppWiring(
-      confFile: Option[Path],
-      makeDao: => LoamDao,
-      shouldRunEverything: Boolean,
-      hashingStrategy: HashingStrategy) extends FromChunkRunnerAppWiring(
-                                                    confFile, 
-                                                    makeDao, 
-                                                    shouldRunEverything, 
-                                                    hashingStrategy) {
-    
-    override protected def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable]) = {
-      //TODO: Make the number of threads this uses configurable
-      val numberOfCPUs = Runtime.getRuntime.availableProcessors
-
-      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs)
-
-      val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
-
-      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(confFile, config, threadPoolSize)
-
-      val googleRunner = googleChunkRunner(confFile, config.googleConfig, localRunner)
-
-      val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
-      
-      val toBeStopped = compositeRunner +: localEcHandle +: (ugerRunnerHandles ++ compositeRunner.components)    
-      
-      (compositeRunner, toBeStopped.distinct)
-    }
-  }
-  
-  private abstract class FromChunkRunnerAppWiring(
+  private final class DefaultAppWiring(
       confFile: Option[Path],
       makeDao: => LoamDao,
       shouldRunEverything: Boolean,
       hashingStrategy: HashingStrategy) extends AppWiring {
-    
-    protected def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable])
     
     override lazy val dao: LoamDao = makeDao
     
@@ -155,6 +114,8 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(confFile, config)
 
+    override lazy val jobFilter: JobFilter = makeJobFilter
+    
     private lazy val terminableExecuter: TerminableExecuter = {
       trace("Creating executer...")
 
@@ -188,6 +149,25 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val handles: Seq[Terminable] = threadPoolHandle +: runnerHandles 
 
       new TerminableExecuter(rxExecuter, handles: _*)
+    }
+    
+    private def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable]) = {
+      //TODO: Make the number of threads this uses configurable
+      val numberOfCPUs = Runtime.getRuntime.availableProcessors
+
+      val (localEC, localEcHandle) = ExecutionContexts.threadPool(numberOfCPUs)
+
+      val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
+
+      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(confFile, config, threadPoolSize)
+
+      val googleRunner = googleChunkRunner(confFile, config.googleConfig, localRunner)
+
+      val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
+      
+      val toBeStopped = compositeRunner +: localEcHandle +: (ugerRunnerHandles ++ compositeRunner.components)    
+      
+      (compositeRunner, toBeStopped.distinct)
     }
     
     private[AppWiring] def makeJobFilter: JobFilter = {

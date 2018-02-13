@@ -14,18 +14,25 @@ import loamstream.model.jobs.JobStatus.Succeeded
 final case class NoOpJob(override val inputs: Set[JobNode]) extends LocalJob {
   override def execute(implicit context: ExecutionContext): Future[RunData] = Future.successful {
     RunData(
-        job = this,
-        jobStatus = Succeeded,
-        jobResult = None,
-        resourcesOpt = None,
-        outputStreamsOpt = None)
+      job = this,
+      jobStatus = Succeeded,
+      jobResult = None,
+      resourcesOpt = None,
+      outputStreamsOpt = None)
   }
-  
+
   override def toString: String = name
-  
+
   override def name: String = s"${getClass.getSimpleName}#${id}(${inputs.size} dependencies)"
-  
+
   override def executionEnvironment: Environment = Environment.Local
 
   override val outputs: Set[Output] = Set.empty
+}
+
+object NoOpJob {
+  def isNoOpJob(job: LJob): Boolean = job match {
+    case _: NoOpJob => true
+    case _          => false
+  }
 }

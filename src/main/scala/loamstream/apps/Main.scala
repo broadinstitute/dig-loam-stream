@@ -18,6 +18,10 @@ import loamstream.util.Versions
 import loamstream.cli.ExecutionInfo
 import loamstream.cli.Intent
 import loamstream.db.LoamDao
+import java.nio.file.Path
+import loamstream.model.execute.JobFilter
+import loamstream.model.execute.DbBackedJobFilter
+import loamstream.util.TimeUtils
 
 
 /**
@@ -71,31 +75,51 @@ object Main extends Loggable {
   
   private[apps] final class Run {
   
-    def doCompileOnly(intent: Intent.CompileOnly): Unit = {
-      val loamConfig = AppWiring.loamConfigFrom(intent.confFile)
-  
-      val loamEngine = LoamEngine.default(loamConfig)
-  
-      val compilationResultShot = loamEngine.compileFiles(intent.loams)
+    private def compile(loamEngine: LoamEngine, loams: Seq[Path]): LoamCompiler.Result = {
+      val compilationResultShot = loamEngine.compileFiles(loams)
   
       require(compilationResultShot.nonEmpty, compilationResultShot.message)
   
-      val compilationResult = compilationResultShot.get
+      compilationResultShot.get
+    }
+    
+    def doCompileOnly(intent: Intent.CompileOnly): Unit = {
+      val config = AppWiring.loamConfigFrom(intent.confFile)
+      
+      val loamEngine = LoamEngine.default(config)
+      
+      val compilationResult = compile(loamEngine, intent.loams)
   
       info(compilationResult.report)
     }
     
-    def doDryRun(intent: Intent.DryRun): Unit = {
-      val loamConfig = AppWiring.loamConfigFrom(intent.confFile)
+    def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
+      val config = AppWiring.loamConfigFrom(intent.confFile)
+      
+      val loamEngine = LoamEngine.default(config)
+      
+      val compilationResult = compile(loamEngine, intent.loams)
   
-      val loamEngine = LoamEngine.default(loamConfig)
-  
-      val compilationResultShot = loamEngine.compileFiles(intent.loams)
-  
-      require(compilationResultShot.nonEmpty, compilationResultShot.message)
+      info(compilationResult.report)
+      
+      val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
   
       //TODO
-      ???
+      val executable = executables.next()
+      
+      //TODO:
+      val jobFilter: JobFilter = {
+        if (intent.shouldRunEverything) { JobFilter.RunEverything }
+        else { new DbBackedJobFilter(makeDao, intent.hashingStrategy) }
+      }
+      
+      val dryRunner = new DryRunner(jobFilter)
+        
+      info("Jobs to be run:")
+  
+      TimeUtils.time(s"Listing jobs that would be run", info(_)) {
+        dryRunner.toBeRun(executable).map(_.toString).foreach(info(_))
+      }
     }
     
     def doLookup(intent: Intent.LookupOutput): Unit = {

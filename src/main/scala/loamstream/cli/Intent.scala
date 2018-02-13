@@ -14,6 +14,7 @@ sealed trait Intent {
 }
 
 object Intent extends Loggable {
+  
   final case object ShowVersionAndQuit extends Intent {
     def confFile: Option[Path] = None
   }
@@ -22,14 +23,17 @@ object Intent extends Loggable {
   
   final case class CompileOnly(confFile: Option[Path], loams: Seq[Path]) extends Intent
   
-  final case class DryRun(confFile: Option[Path], loams: Seq[Path]) extends Intent
+  final case class DryRun(
+      confFile: Option[Path],
+      hashingStrategy: HashingStrategy,
+      shouldRunEverything: Boolean,
+      loams: Seq[Path]) extends Intent
   
   final case class RealRun(
       confFile: Option[Path],
       hashingStrategy: HashingStrategy,
       shouldRunEverything: Boolean,
       loams: Seq[Path]) extends Intent
- 
   
   def from(cli: Conf): Either[String, Intent] = {
     import java.nio.file.Files.exists
@@ -48,22 +52,31 @@ object Intent extends Loggable {
     
     def loams = cli.loams()
     
+    def shouldRunEverything = cli.runEverything.isSupplied
+    
+    def hashingStrategy = determineHashingStrategy(cli)
+    
     if(cli.version.isSupplied) { Right(ShowVersionAndQuit) }
     else if(confDoesntExist) { Left(s"Config file '${cli.conf()}' specified, but it doesn't exist.") }
     else if(cli.lookup.isSupplied) { Right(LookupOutput(confOpt, cli.lookup())) }
     else if(cli.compileOnly.isSupplied && allLoamsPresent) { Right(CompileOnly(confOpt, loams)) }
-    else if(cli.dryRun.isSupplied && allLoamsPresent) { Right(DryRun(confOpt, loams)) }
-    else if(allLoamsPresent) {
+    else if(cli.dryRun.isSupplied && allLoamsPresent) { 
+      Right(DryRun(
+        confFile = confOpt,
+        hashingStrategy = hashingStrategy,
+        shouldRunEverything = shouldRunEverything,
+        loams = loams))
+    } else if(allLoamsPresent) {
       Right(RealRun(
         confFile = confOpt,
-        hashingStrategy = determineHashingStrategy(cli),
-        shouldRunEverything = cli.runEverything.isSupplied,
+        hashingStrategy = hashingStrategy,
+        shouldRunEverything = shouldRunEverything,
         loams = loams))
     } else if(noLoams) {
       Left("No loam files specified.")
     } else if(!allLoamsPresent) {
       Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}")
-    }  else {
+    } else {
       Left("Malformed command line.")
     }
   }

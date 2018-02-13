@@ -7,6 +7,7 @@ package loamstream.util
 object Iterators {
   object Implicits {
     implicit final class IteratorOps[A](val itr: Iterator[A]) extends AnyVal {
+      //NB: This will consume the iterator, if it's not empty
       def nextOption: Option[A] = if(itr.hasNext) Some(itr.next()) else None
     }
   }

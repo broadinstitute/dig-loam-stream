@@ -46,6 +46,7 @@ final case class UgerChunkRunner(
     jobMonitor: JobMonitor) extends ChunkRunnerFor(EnvironmentType.Uger) with Terminable with Loggable {
 
   import UgerChunkRunner._
+  import NoOpJob.isNoOpJob
 
   override def stop(): Unit = {
     val failures = Throwables.collectFailures(
@@ -156,11 +157,6 @@ object UgerChunkRunner extends Loggable {
     case _                   => false
   }
 
-  private[uger] def isNoOpJob(job: LJob): Boolean = job match {
-    case noj: NoOpJob => true
-    case _            => false
-  }
-
   type JobAndStatuses = (UgerJobWrapper, Observable[UgerStatus])
 
   private[uger] def toRunDatas(
@@ -215,7 +211,7 @@ object UgerChunkRunner extends Loggable {
     job.transitionTo(status)
   }
 
-  private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
+  private[uger] def isAcceptableJob(job: LJob): Boolean = NoOpJob.isNoOpJob(job) || isCommandLineJob(job)
 
   private[uger] def makeAllFailureMap(
       jobs: Seq[UgerJobWrapper], 

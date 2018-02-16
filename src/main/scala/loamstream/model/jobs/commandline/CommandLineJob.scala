@@ -50,7 +50,7 @@ final case class CommandLineJob(
   
   override def hashCode: Int = id.hashCode
   
-  override def name: String = nameOpt.getOrElse(id)
+  override def name: String = nameOpt.getOrElse(id.toString)
 
   def withCommandLineString(newCmd: String): CommandLineJob = copy(commandLineString = newCmd)
 

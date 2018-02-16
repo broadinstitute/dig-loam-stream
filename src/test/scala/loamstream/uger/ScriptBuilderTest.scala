@@ -30,7 +30,7 @@ final class ScriptBuilderTest extends FunSuite {
     val taskArray = UgerTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, jobs)
     val ugerScriptContents = ScriptBuilder.buildFrom(taskArray).withNormalizedLineBreaks
 
-    val jobIds: (String, String, String) = (jobs(0).id, jobs(1).id, jobs(2).id)
+    val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)
     val discriminators = (0, 1, 2)
 
     val expectedScriptContents = expectedScriptAsString(discriminators, jobIds).withNormalizedLineBreaks

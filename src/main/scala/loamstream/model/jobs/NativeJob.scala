@@ -13,7 +13,7 @@ final case class NativeJob[T](
     outputs: Set[Output] = Set.empty,
     private val nameOpt: Option[String] = None) extends LJob {
   
-  override def name: String = nameOpt.getOrElse(id)
+  override def name: String = nameOpt.getOrElse(id.toString)
   
   override def toString: String = s"${getClass.getSimpleName}#${id}(?,?,?)" 
   

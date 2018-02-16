@@ -28,7 +28,7 @@ trait LJob extends JobNode {
   /** A descriptive name for this job */
   def name: String
   
-  val id: String = LJob.nextId()
+  final val id: Int = LJob.nextId()
 
   /** Any outputs produced by this job */
   def outputs: Set[Output]
@@ -40,5 +40,5 @@ trait LJob extends JobNode {
 object LJob {
   private[this] val idSequence: Sequence[Int] = Sequence()
   
-  def nextId(): String = idSequence.next().toString 
+  def nextId(): Int = idSequence.next() 
 }

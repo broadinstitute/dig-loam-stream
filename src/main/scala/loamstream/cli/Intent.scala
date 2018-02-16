@@ -40,13 +40,9 @@ object Intent extends Loggable {
     
     def confOpt = cli.conf.toOption
     
-    def noLoams = !cli.loams.isSupplied || cli.loams().isEmpty
+    def noLoamsSupplied = !anyLoamsSupplied(cli)
     
-    def anyLoamsPresent = cli.loams.isSupplied && cli.loams().nonEmpty
-    
-    def loamsThatDontExist: Seq[Path] = if(anyLoamsPresent) cli.loams().filter(!exists(_)) else Nil
-    
-    def allLoamsPresent = anyLoamsPresent && cli.loams().forall(exists(_))
+    def loamsThatDontExist: Seq[Path] = if(anyLoamsSupplied(cli)) cli.loams().filter(!exists(_)) else Nil
     
     def confDoesntExist = cli.conf.isSupplied && !exists(cli.conf())
     
@@ -56,29 +52,45 @@ object Intent extends Loggable {
     
     def hashingStrategy = determineHashingStrategy(cli)
     
+    def makeDryRun = DryRun(
+        confFile = confOpt,
+        hashingStrategy = hashingStrategy,
+        shouldRunEverything = shouldRunEverything,
+        loams = loams)
+    
+    def makeRealRun = RealRun(
+        confFile = confOpt,
+        hashingStrategy = hashingStrategy,
+        shouldRunEverything = shouldRunEverything,
+        loams = loams)
+        
     if(cli.version.isSupplied) { Right(ShowVersionAndQuit) }
     else if(confDoesntExist) { Left(s"Config file '${cli.conf()}' specified, but it doesn't exist.") }
     else if(cli.lookup.isSupplied) { Right(LookupOutput(confOpt, cli.lookup())) }
-    else if(cli.compileOnly.isSupplied && allLoamsPresent) { Right(CompileOnly(confOpt, loams)) }
-    else if(cli.dryRun.isSupplied && allLoamsPresent) { 
-      Right(DryRun(
-        confFile = confOpt,
-        hashingStrategy = hashingStrategy,
-        shouldRunEverything = shouldRunEverything,
-        loams = loams))
-    } else if(allLoamsPresent) {
-      Right(RealRun(
-        confFile = confOpt,
-        hashingStrategy = hashingStrategy,
-        shouldRunEverything = shouldRunEverything,
-        loams = loams))
-    } else if(noLoams) {
+    else if(compileOnly(cli)) { Right(CompileOnly(confOpt, loams)) }
+    else if(dryRun(cli)) { 
+      Right(makeDryRun)
+    } else if(allLoamsExist(cli)) {
+      Right(makeRealRun)
+    } else if(noLoamsSupplied) {
       Left("No loam files specified.")
-    } else if(!allLoamsPresent) {
+    } else if(!allLoamsExist(cli)) {
       Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}")
     } else {
       Left("Malformed command line.")
     }
+  }
+  
+  private def dryRun(cli: Conf) = cli.dryRun.isSupplied && allLoamsExist(cli)
+  
+  private def compileOnly(cli: Conf) = cli.compileOnly.isSupplied && allLoamsExist(cli)
+  
+  private def anyLoamsSupplied(cli: Conf) = cli.loams.isSupplied && cli.loams().nonEmpty
+  
+  private def allLoamsExist(cli: Conf) = {
+    import java.nio.file.Files.exists
+    
+    anyLoamsSupplied(cli) && cli.loams().forall(exists(_))
   }
   
   private[cli] def determineHashingStrategy(cli: Conf): HashingStrategy = {

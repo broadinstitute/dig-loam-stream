@@ -13,30 +13,48 @@ import loamstream.util.Iterators
  * Feb 13, 2018
  */
 final class DryRunner(jobFilter: JobFilter) extends Loggable {
+  
   def toBeRun(executable: Executable): Iterable[LJob] = {
 
     val seen = scala.collection.mutable.HashSet.empty[LJob]
     
+    val markedAsRunnable = scala.collection.mutable.HashSet.empty[LJob]
+    
+    def alreadySeen(jn: JobNode) = seen(jn.job)
+    
+    def shouldBeRun(jn: JobNode) = markedAsRunnable(jn.job)
+    
     def gatherJobs(jobNode: JobNode): Iterable[LJob] = {
-
-      def alreadySeen(jn: JobNode) = seen(jn.job)
-
-      def jobId(jn: JobNode) = jn.job.id
-      
       val job = jobNode.job
 
-      if (seen(job)) {
+      if (alreadySeen(job)) {
         Nil
       } else {
         seen += job
         
-        val forInputs = {
-          jobNode.inputs.filterNot(alreadySeen).toSeq.sortBy(jobId).flatMap(gatherJobs).map(_.job)
+        val pathToLeaf = {
+          val inputsSortedById = jobNode.inputs.filterNot(alreadySeen).toSeq.sortBy(jobId)
+          
+          inputsSortedById.flatMap(gatherJobs)
         }
 
-        val forJobNode = if (jobFilter.shouldRun(job)) Seq(job) else Nil
+        val anyInputsNeedRunning = {
+          def anyMarkedRunnable(nodes: Iterable[LJob]) = nodes.filter(markedAsRunnable).nonEmpty
+          
+          val inputJobs = jobNode.inputs.map(_.job)
+          
+          anyMarkedRunnable(inputJobs) || anyMarkedRunnable(pathToLeaf)
+        }
+        
+        def shouldRunJob: Boolean = jobFilter.shouldRun(job)
+        
+        val shouldEmitJob = anyInputsNeedRunning || shouldRunJob
+        
+        val forJobNode = if (shouldEmitJob) Seq(job) else Nil
 
-        forInputs ++ forJobNode
+        markedAsRunnable ++= forJobNode
+        
+        pathToLeaf ++ forJobNode
       }
     }
 
@@ -46,4 +64,12 @@ final class DryRunner(jobFilter: JobFilter) extends Loggable {
 
     gatherJobs(rootJobNode).filterNot(isNoOpJob)
   }
+  
+  private def jobId(jn: JobNode) = jn.job.id
+}
+
+object DryRunner {
+  sealed private trait GatherInputsResult
+  
+  case object ShouldRun
 }

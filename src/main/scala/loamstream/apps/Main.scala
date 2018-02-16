@@ -115,10 +115,12 @@ object Main extends Loggable {
       
       val dryRunner = new DryRunner(jobFilter)
         
-      info("Jobs to be run:")
-  
       TimeUtils.time(s"Listing jobs that would be run", info(_)) {
-        dryRunner.toBeRun(executable).map(_.toString).foreach(info(_))
+        val jobsToBeRun = dryRunner.toBeRun(executable)
+        
+        info(s"Jobs to be run (${jobsToBeRun.size}):")
+        
+        jobsToBeRun.map(_.toString).foreach(info(_))
       }
     }
     

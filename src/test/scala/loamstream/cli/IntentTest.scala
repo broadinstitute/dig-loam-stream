@@ -179,13 +179,13 @@ final class IntentTest extends FunSuite {
     {
       val conf = cliConf(s"--disable-hashing --compile-only $exampleFile0")
 
-      assert(Intent.determineHashingStrategy(conf) === HashingStrategy.DontHashOutputs)
+      assert(Intent.determineHashingStrategy(conf.toValues) === HashingStrategy.DontHashOutputs)
     }
 
     {
       val conf = cliConf(s"--compile-only $exampleFile0")
 
-      assert(Intent.determineHashingStrategy(conf) === HashingStrategy.HashOutputs)
+      assert(Intent.determineHashingStrategy(conf.toValues) === HashingStrategy.HashOutputs)
     }
   }
 }

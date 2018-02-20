@@ -94,4 +94,31 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       
   //NB: Required by Scallop
   verify()
+  
+  def toValues: Conf.Values = Conf.Values(
+      loams = loams.toOption.toSeq.flatten,
+      lookup = lookup.toOption,
+      conf = conf.toOption,
+      versionSupplied = version.isSupplied,
+      runEverythingSupplied = runEverything.isSupplied,
+      compileOnlySupplied = compileOnly.isSupplied,
+      dryRunSupplied = dryRun.isSupplied,
+      disableHashingSupplied = disableHashing.isSupplied)
+}
+
+object Conf {
+  final case class Values(
+      loams: Seq[Path],
+      lookup: Option[Either[Path, URI]],
+      conf: Option[Path],
+      versionSupplied: Boolean,
+      runEverythingSupplied: Boolean,
+      compileOnlySupplied: Boolean,
+      dryRunSupplied: Boolean,
+      disableHashingSupplied: Boolean) {
+    
+    def lookupSupplied: Boolean = lookup.isDefined
+    
+    def confSupplied: Boolean = conf.isDefined
+  }
 }

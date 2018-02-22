@@ -13,30 +13,22 @@ final class ConfigUtilsTest extends FunSuite {
   import TestHelpers.path
   
   test("Loading a config file works") {
-    doTest(ConfigUtils.configFromFile(path("src/test/resources/foo.conf")), shouldHaveReferenceConfValues = false)
-  }
-  
-  test("Loading a Config via prefix works") {
-    doTest(ConfigUtils.configFromPrefix("foo"), shouldHaveReferenceConfValues = true)
+    doTest(ConfigUtils.configFromFile(path("src/test/resources/foo.conf")))
   }
   
   test("Loading a Config from a string works") {
     val configData = Files.readFrom(path("src/test/resources/foo.conf"))
     
-    doTest(ConfigUtils.configFromString(configData), shouldHaveReferenceConfValues = false)
+    doTest(ConfigUtils.configFromString(configData))
   }
   
-  private def doTest(config: Config, shouldHaveReferenceConfValues: Boolean): Unit = {
+  private def doTest(config: Config): Unit = {
     //Config file should have been loaded, merged with system props, BUT NOT merged with defaults
       
     //default from reference.conf, shouldn't have been loaded
     
-    if(shouldHaveReferenceConfValues) {
-      assert(config.getString("loamstream.uger.logFile") === "uger.log")
-    } else {
-      intercept[Exception] {
-        config.getString("loamstream.uger.logFile")
-      }
+    intercept[Exception] {
+      config.getString("loamstream.uger.logFile")
     }
     
     intercept[Exception] {

@@ -14,16 +14,50 @@ object HailSupport {
    * Gets Google Cloud and Hail config info from scriptContext.projectContext.config .
    */
   implicit final class StringContextWithHail(val stringContext: StringContext) extends AnyVal {
+    /**
+     * Declare a Tool that will run Hail by specifying the Python driver script inline.  For example:
+     * 
+     * pyhail"""#driver script code
+     *          #...
+     *          #more Python code""" 
+     */
     def pyhail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       import LanguageSupport.{makeScript, GeneratedScriptParams}
       
       val hailConfig = scriptContext.hailConfig
       
-      val scriptFile = makeScript(stringContext, GeneratedScriptParams("pyhail", "py", hailConfig.scriptDir), args: _*)
+      val scriptParams = GeneratedScriptParams("pyhail", "py", hailConfig.scriptDir)
+      
+      val scriptFile = makeScript(stringContext, scriptParams, args: _*)
       
       hail"$scriptFile"
     }
     
+    /**
+     * Declare a Tool that will run Hail by specifying Hail command-line args.  Usually, this will start with a 
+     * driver script file, like
+     * 
+     * val projectId = "foo"
+     * val inputVcf = store.at(uri("gs://foo/bar/baz.vcf"))
+     * val outputVds = store.at(uri("gs://foo/bar/baz.vds")) 
+     * 
+     * hail"""some_driver_file.py
+     *        --vcf-in $projectId ${inputVcf}
+     *        --vds-out ${outputVds}"""
+     *        
+     * This Tool will invoke `gcloud` to submit a Hail job to Google Cloud Dataproc.  Boilerplate params will be
+     * prepended to the contents of the hail"..." string, and $-variables will be interpolated.  This will result in
+     * a command line something like
+     * 
+     * `gcloud dataproc jobs submit pyspark --cluster=<cluster id from config file> --files=<URI of Hail jar> \
+     *  --py-files=<URI of Hail zip file> --properties="spark.driver.extraClassPath=<URI of Hail jar>,\
+     *  spark.executor.extraClassPath=<URI of Hail jar> \
+     *  some_driver_file.py \
+     *  --vcf-in foo gs://foo/bar/baz.vcf \
+     *  --vds-out gs://foo/bar/baz.vds`
+     *  
+     * being run.
+     */
     def hail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       
       require(

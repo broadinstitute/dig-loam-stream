@@ -34,25 +34,10 @@ object ConfigUtils {
     //NB: ConfigFactory.parseFile() does not add fallbacks to JVM system properties like ConfigFactory.load() does.
     //We can't use the latter without naming config files according to load()'s conventions, and we want to be able
     //to parse arbitrary files. 
+    
     val fromFile = ConfigFactory.parseFile(confFile.toAbsolutePath.toFile)
     
     allowSyspropOverrides(fromFile)
-  }
-  
-  /**
-   * Load a Config at `prefix` via ConfigFactory.load(), and return a Config object with values from the `load()`ed
-   * Config, as well as JVM system properties.  System properties override values defined in the `load()`ed Config.
-   * @param prefix the prefix of the config to load.  @see `com.typesafe.config.ConfigFactory.load(String)`  
-   * @return a Config object with values from the Config at `prefix` as well as JVM system properties.
-   */
-  def configFromPrefix(prefix: String): Config = {
-    //parse the config file at `confFile`.
-    //NB: ConfigFactory.parseFile() does not add fallbacks to JVM system properties like ConfigFactory.load() does.
-    //We can't use the latter without naming config files according to load()'s conventions, and we want to be able
-    //to parse arbitrary files. 
-    val fromPrefix = ConfigFactory.load(prefix)
-    
-    allowSyspropOverrides(fromPrefix)
   }
   
   /**

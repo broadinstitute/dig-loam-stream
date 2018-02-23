@@ -8,6 +8,7 @@ import loamstream.util._
 import loamstream.util.code.{ObjectId, PackageId, ScalaId, SourceUtils}
 import loamstream.googlecloud.GoogleSupport
 import loamstream.googlecloud.GoogleSupport
+import loamstream.googlecloud.HailSupport
 
 /** A named Loam script */
 object LoamScript {
@@ -155,6 +156,7 @@ import ${ScalaId.from[DepositBox[_]].inScalaFull}
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamScriptContext].inScalaFull}
 import ${ScalaId.from[GoogleSupport.type].inScalaFull}._
+import ${ScalaId.from[HailSupport.type].inScalaFull}._
 import java.nio.file._
 import java.net.URI
 

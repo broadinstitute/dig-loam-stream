@@ -19,7 +19,7 @@ import loamstream.util.Loggable
   */
 final case class UgerConfig(
     workDir: Path, 
-    maxNumJobs: Int,
+    maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime)

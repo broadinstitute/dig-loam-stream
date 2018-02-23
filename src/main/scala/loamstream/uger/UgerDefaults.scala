@@ -10,6 +10,8 @@ import scala.concurrent.duration.Duration
  * Oct 11, 2017
  */
 object UgerDefaults {
+  val maxConcurrentJobs: Int = 2000 //scalastyle:ignore magic.number
+  
   val cores: Cpus = Cpus(1)
 
   val memoryPerCore: Memory = Memory.inGb(1)

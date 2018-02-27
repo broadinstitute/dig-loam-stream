@@ -1,20 +1,23 @@
-package loamstream.apps
+package loamstream.model.execute
 
-import loamstream.model.execute.JobFilter
-import loamstream.model.execute.Executable
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.model.jobs.JobNode
+import scala.collection.Seq
 import loamstream.model.jobs.NoOpJob
-import loamstream.util.Iterators
+import loamstream.util.CanBeClosed
+import java.io.PrintWriter
+import java.io.FileWriter
+import java.nio.file.Path
+import java.time.Instant
 
 /**
  * @author clint
  * Feb 13, 2018
  */
-final class DryRunner(jobFilter: JobFilter) extends Loggable {
+object DryRunner extends Loggable {
   
-  def toBeRun(executable: Executable): Iterable[LJob] = {
+  def toBeRun(jobFilter: JobFilter, executable: Executable): Iterable[LJob] = {
 
     val seen = scala.collection.mutable.HashSet.empty[LJob]
     
@@ -66,10 +69,4 @@ final class DryRunner(jobFilter: JobFilter) extends Loggable {
   }
   
   private def jobId(jn: JobNode) = jn.job.id
-}
-
-object DryRunner {
-  sealed private trait GatherInputsResult
-  
-  case object ShouldRun
 }

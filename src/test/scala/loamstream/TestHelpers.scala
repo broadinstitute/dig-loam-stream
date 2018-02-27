@@ -148,7 +148,7 @@ object TestHelpers {
     result
   }
 
-  def loamEngine: LoamEngine = LoamEngine.default(config)
+  def loamEngine: LoamEngine = LoamEngine.default(config, RxExecuter.Defaults.jobFilter)
 
   def compile(loamCode: String): LoamCompiler.Result = loamEngine.compile(loamCode)
   

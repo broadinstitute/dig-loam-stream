@@ -37,8 +37,6 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
 
     val executer = RxExecuter.defaultWith(JobFilter.RunEverything)
 
-    val engine = LoamEngine.default(TestHelpers.config).copy(executer = executer)
-
     val g = graph(outputDir)
     
     assert(g.finalTools.flatMap(g.toolsPreceding) === g.initialTools)

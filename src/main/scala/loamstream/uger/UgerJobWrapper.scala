@@ -28,16 +28,16 @@ final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob
     Paths.get(pathString).toAbsolutePath
   }
 
-  private lazy val stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, executionConfig.outputDir)
+  private lazy val stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, executionConfig.jobOutputDir)
 
-  private lazy val stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, executionConfig.outputDir)
+  private lazy val stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, executionConfig.jobOutputDir)
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
   def ugerCommandChunk(taskArray: UgerTaskArray): String = {
     val plainCommandLine = commandLineJob.commandLineString
 
-    val outputDir = executionConfig.outputDir.toAbsolutePath
+    val outputDir = executionConfig.jobOutputDir.toAbsolutePath
 
     // scalastyle:off line.size.limit
     s"""|$plainCommandLine

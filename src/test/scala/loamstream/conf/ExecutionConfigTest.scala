@@ -19,7 +19,7 @@ final class ExecutionConfigTest extends FunSuite {
   test("default") {
     import ExecutionConfig.Defaults
 
-    val expected = ExecutionConfig(Defaults.maxRunsPerJob, Defaults.outputDir, Defaults.maxWaitTimeForOutputs)
+    val expected = ExecutionConfig(Defaults.maxRunsPerJob, Defaults.jobOutputDir, Defaults.maxWaitTimeForOutputs)
 
     assert(ExecutionConfig.default === expected)
   }
@@ -55,7 +55,7 @@ final class ExecutionConfigTest extends FunSuite {
     val input = s"""|loamstream {
                     |  execution {
                     |    maxRunsPerJob = $expectedMaxRunsPerJob
-                    |    outputDir = ${expectedOutputDir.render}
+                    |    jobOutputDir = ${expectedOutputDir.render}
                     |    maxWaitTimeForOutputs = "99 seconds"
                     |    outputPollingFrequencyInHz = 1.23
                     |  }
@@ -72,9 +72,9 @@ final class ExecutionConfigTest extends FunSuite {
     assert(executionConfig === expected)
   }
 
-  test("good input - no outputDir") {
+  test("good input - no jobOutputDir") {
     val expectedMaxRunsPerJob = 42
-    val expectedOutputDir = ExecutionConfig.Defaults.outputDir
+    val expectedOutputDir = ExecutionConfig.Defaults.jobOutputDir
     val expectedOutputPollingFrequencyInHz = ExecutionConfig.Defaults.outputPollingFrequencyInHz
 
     import scala.concurrent.duration._
@@ -107,7 +107,7 @@ final class ExecutionConfigTest extends FunSuite {
 
     val input = s"""|loamstream {
                     |  execution {
-                    |    outputDir = ${expectedOutputDir.render}
+                    |    jobOutputDir = ${expectedOutputDir.render}
                     |    maxWaitTimeForOutputs = "99 seconds"
                     |  }
                     |}""".stripMargin
@@ -131,7 +131,7 @@ final class ExecutionConfigTest extends FunSuite {
 
     val input = s"""|loamstream {
                     |  execution {
-                    |    outputDir = ${expectedOutputDir.render}
+                    |    jobOutputDir = ${expectedOutputDir.render}
                     |    maxRunsPerJob = $expectedMaxRunsPerJob
                     |  }
                     |}""".stripMargin
@@ -149,7 +149,7 @@ final class ExecutionConfigTest extends FunSuite {
 
   test("good input - all defaults") {
     val expectedMaxRunsPerJob = ExecutionConfig.Defaults.maxRunsPerJob
-    val expectedOutputDir = ExecutionConfig.Defaults.outputDir
+    val expectedOutputDir = ExecutionConfig.Defaults.jobOutputDir
     val expectedMaxWaitTime = ExecutionConfig.Defaults.maxWaitTimeForOutputs
     val expectedOutputPollingFrequencyInHz = ExecutionConfig.Defaults.outputPollingFrequencyInHz
 

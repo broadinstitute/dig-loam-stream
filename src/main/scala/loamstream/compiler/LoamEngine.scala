@@ -20,6 +20,12 @@ import loamstream.util.Loggable
 import loamstream.util.Miss
 import loamstream.util.Shot
 import loamstream.util.StringUtils
+import loamstream.model.execute.JobFilter
+import loamstream.model.execute.DryRunner
+import java.io.PrintWriter
+import java.io.FileWriter
+import loamstream.util.CanBeClosed
+import java.time.Instant
 
 
 /**
@@ -29,11 +35,12 @@ import loamstream.util.StringUtils
 object LoamEngine {
   def default(
       config: LoamConfig,
+      jobFilter: JobFilter,
       csClient: Option[CloudStorageClient] = None): LoamEngine = {
     
     val compiler = LoamCompiler.default
     
-    LoamEngine(config, compiler, RxExecuter.default, csClient)
+    LoamEngine(config, compiler, RxExecuter.default, jobFilter, csClient)
   }
 
   final case class Result(
@@ -53,6 +60,7 @@ final case class LoamEngine(
     config: LoamConfig,
     compiler: LoamCompiler, 
     executer: Executer,
+    jobFilter: JobFilter,
     csClient: Option[CloudStorageClient] = None) extends Loggable {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
@@ -174,6 +182,8 @@ final case class LoamEngine(
     
     val executable = toExecutable(graph)
     
+    listJobsThatCouldRun(executable)
+    
     info("Now going to execute.")
 
     val executions = executer.execute(executable)
@@ -182,7 +192,33 @@ final case class LoamEngine(
 
     executions
   }
-
+  
+  private def listJobsThatCouldRun(executable: Executable): Unit = {
+    listJobsThatCouldRun(DryRunner.toBeRun(jobFilter, executable))
+  }
+  
+  //TODO: Find a good place for this; it's exposed so it can be called from here and loamstream.apps.Main
+  def listJobsThatCouldRun(jobsThatCouldRun: => Iterable[LJob]): Unit = {
+    val outputFile = config.executionConfig.dryRunOutputFile
+    
+    lazy val jobs = jobsThatCouldRun
+    
+    val append = true
+    
+    CanBeClosed.enclosed(new PrintWriter(new FileWriter(outputFile.toFile, append))) { writer =>
+      info(s"Listing (${jobs.size}) jobs that could be run to ${outputFile}")
+      
+      for { 
+        job <- jobs 
+      } {
+        //NB: Don't log using SLF4J, since it's hard to make that happen to a file that's (conveniently) configurable 
+        //at runtime.
+        //TODO: Use SLF4J
+        writer.println(s"[${Instant.now}] $job") //scalastyle:ignore regex
+      }
+    }
+  }
+  
   def run(code: String): LoamEngine.Result = run(LoamScript.withGeneratedName(code))
 
   def run(scripts: Iterable[LoamScript]): LoamEngine.Result = run(LoamProject(config, scripts))

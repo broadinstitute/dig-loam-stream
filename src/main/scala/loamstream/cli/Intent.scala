@@ -16,7 +16,11 @@ sealed trait Intent {
 object Intent extends Loggable {
 
   final case object ShowVersionAndQuit extends Intent {
-    def confFile: Option[Path] = None
+    override def confFile: Option[Path] = None
+  }
+  
+  final case object ShowHelpAndQuit extends Intent {
+    override def confFile: Option[Path] = None
   }
 
   final case class LookupOutput(confFile: Option[Path], output: Either[Path, URI]) extends Intent
@@ -52,6 +56,7 @@ object Intent extends Loggable {
     def allLoamsExist = values.loams.nonEmpty && values.loams.forall(exists(_))
 
     if (values.versionSupplied) { Right(ShowVersionAndQuit) }
+    else if (values.helpSupplied) { Right(ShowHelpAndQuit) }
     else if (confDoesntExist) { Left(s"Config file '${values.conf.get}' specified, but it doesn't exist.") }
     else if (values.lookupSupplied) { Right(LookupOutput(values.conf, values.lookup.get)) }
     else if (compileOnly(values)) { Right(CompileOnly(values.conf, values.loams)) }

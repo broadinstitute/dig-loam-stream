@@ -66,6 +66,9 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   val version: ScallopOption[Boolean] = opt[Boolean](descr = "Print version information and exit")
   
   //Using all default args for `opt` makes it a flag 
+  val help: ScallopOption[Boolean] = opt[Boolean](descr = "Show help and exit")
+  
+  //Using all default args for `opt` makes it a flag 
   val runEverything: ScallopOption[Boolean] = opt[Boolean](
       descr = "Run every step in the pipeline, even if they've already been run")
   
@@ -99,6 +102,7 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       loams = loams.toOption.toSeq.flatten,
       lookup = lookup.toOption,
       conf = conf.toOption,
+      helpSupplied = help.isSupplied,
       versionSupplied = version.isSupplied,
       runEverythingSupplied = runEverything.isSupplied,
       compileOnlySupplied = compileOnly.isSupplied,
@@ -111,6 +115,7 @@ object Conf {
       loams: Seq[Path],
       lookup: Option[Either[Path, URI]],
       conf: Option[Path],
+      helpSupplied: Boolean,
       versionSupplied: Boolean,
       runEverythingSupplied: Boolean,
       compileOnlySupplied: Boolean,

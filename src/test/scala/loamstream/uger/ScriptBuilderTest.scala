@@ -99,7 +99,7 @@ final class ScriptBuilderTest extends FunSuite {
     val jobName = s"LoamStream-${jobId0}_${jobId1}_${jobId2}"
 
     val ugerDir = path("/humgen/diabetes/users/kyuksel/imputation/shapeit_example").toAbsolutePath.render
-    val outputDir = path("job-outputs").toAbsolutePath.render
+    val outputDir = path("out/job-outputs").toAbsolutePath.render
 
     val sixSpaces = "      "
 

@@ -65,7 +65,7 @@ trait AppWiring {
 
   def shutdown(): Seq[Throwable]
   
-  lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, cloudStorageClient)
+  lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, jobFilter, cloudStorageClient)
   
   lazy val loamRunner: LoamRunner = LoamRunner(loamEngine)
 }
@@ -82,6 +82,10 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     LoamConfig.fromConfig(typesafeConfig).get
   }
   
+  def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
+    makeJobFilter(intent.shouldRunEverything, intent.hashingStrategy, makeDao)
+  }
+  
   def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
     new DefaultAppWiring(
         confFile = intent.confFile,
@@ -90,13 +94,14 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
         hashingStrategy = intent.hashingStrategy)
   }
 
-  def forDryRun(intent: Intent.DryRun, makeDao: => LoamDao): AppWiring = {
-    new DefaultAppWiring(
-        confFile = intent.confFile,
-        makeDao = makeDao,
-        shouldRunEverything = intent.shouldRunEverything, 
-        hashingStrategy = intent.hashingStrategy)
-  }
+  private[AppWiring] def makeJobFilter(
+      shouldRunEverything: Boolean,
+      hashingStrategy: HashingStrategy,
+      dao: => LoamDao): JobFilter = {
+    
+    if (shouldRunEverything) { JobFilter.RunEverything }
+    else { new DbBackedJobFilter(dao, hashingStrategy) }
+  }  
   
   private final class DefaultAppWiring(
       confFile: Option[Path],
@@ -114,12 +119,10 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(confFile, config)
 
-    override lazy val jobFilter: JobFilter = makeJobFilter
+    override lazy val jobFilter: JobFilter = makeJobFilter(shouldRunEverything, hashingStrategy, dao)
     
     private lazy val terminableExecuter: TerminableExecuter = {
       trace("Creating executer...")
-
-      val jobFilter = makeJobFilter
 
       //TODO: Make this configurable?
       val threadPoolSize = 50
@@ -168,11 +171,6 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       val toBeStopped = compositeRunner +: localEcHandle +: (ugerRunnerHandles ++ compositeRunner.components)    
       
       (compositeRunner, toBeStopped.distinct)
-    }
-    
-    private[AppWiring] def makeJobFilter: JobFilter = {
-      if (shouldRunEverything) { JobFilter.RunEverything }
-      else { new DbBackedJobFilter(dao, hashingStrategy) }
     }
   }
   

@@ -9,6 +9,7 @@ import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.execute.JobFilter
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
+import loamstream.model.execute.DryRunner
 
 /**
  * @author clint
@@ -38,9 +39,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     assert(actual === Seq(job))
   }
@@ -54,9 +53,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldNOTRun = Set(job))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     assert(actual === Nil)
   }
@@ -75,9 +72,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job0, job1))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     assert(actual === sortedById(job0, job1))
   }
@@ -96,9 +91,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldNOTRun = Set(job0, job1))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     assert(actual === Nil)
   }
@@ -117,9 +110,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job1), shouldNOTRun = Set(job0))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     assert(actual === Seq(job1))
   }
@@ -134,9 +125,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job0, job1))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     assert(actual === Seq(job0, job1))
   }
@@ -153,9 +142,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job0, job1, job2, job3))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     assert(actual === Seq(job0, job1, job2, job3))
   }
@@ -172,9 +159,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job1, job2, job3), shouldNOTRun = Set(job0))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     assert(actual === Seq(job1, job2, job3))
   }
@@ -190,9 +175,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job0), shouldNOTRun = Set(job1, job2, job3))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     //NB: DryRunner is 'conservative'; if the JobFilter says a job should run, but subsequent jobs shouldn't, 
     //indicate that the subsequnt jobs will run since they follow on from one that does.
@@ -217,9 +200,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job0, job1, job2, job3))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     //NB: DryRunner is 'conservative'; if the JobFilter says a job should run, but subsequent jobs shouldn't, 
     //indicate that the subsequnt jobs will run since they follow on from one that does.
@@ -244,9 +225,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job0), shouldNOTRun = Set(job1, job2, job3))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     //NB: DryRunner is 'conservative'; if the JobFilter says a job should run, but subsequent jobs shouldn't, 
     //indicate that the subsequnt jobs will run since they follow on from one that does.
@@ -272,9 +251,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job0), shouldNOTRun = (jobs1to99.toSet + job100))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     //NB: DryRunner is 'conservative'; if the JobFilter says a job should run, but subsequent jobs shouldn't, 
     //indicate that the subsequnt jobs will run since they follow on from one that does.
@@ -302,9 +279,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job0), shouldNOTRun = (jobs1to99.toSet + job100))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     //NB: DryRunner is 'conservative'; if the JobFilter says a job should run, but subsequent jobs shouldn't, 
     //indicate that the subsequnt jobs will run since they follow on from one that does.
@@ -333,9 +308,7 @@ final class DryRunnerTest extends FunSuite {
     
     val jobFilter = MockJobFilter(shouldRun = Set(job0, job3, job4), shouldNOTRun = Set(job1, job2, job5))
     
-    val dryRunner = new DryRunner(jobFilter)
-    
-    val actual = dryRunner.toBeRun(executable)
+    val actual = DryRunner.toBeRun(jobFilter, executable)
     
     //NB: DryRunner is 'conservative'; if the JobFilter says a job should run, but subsequent jobs shouldn't, 
     //indicate that the subsequnt jobs will run since they follow on from one that does.

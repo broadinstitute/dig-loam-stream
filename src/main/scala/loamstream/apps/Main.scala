@@ -22,6 +22,7 @@ import java.nio.file.Path
 import loamstream.model.execute.JobFilter
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.util.TimeUtils
+import loamstream.model.execute.DryRunner
 
 
 /**
@@ -45,6 +46,7 @@ object Main extends Loggable {
     
     intent match {
       case Right(ShowVersionAndQuit) => ()
+      case Right(ShowHelpAndQuit) => cli.printHelp()
       case Right(lookup: LookupOutput) => run.doLookup(lookup)
       case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
       case Right(dryRun: DryRun) => run.doDryRun(dryRun)
@@ -86,7 +88,8 @@ object Main extends Loggable {
     def doCompileOnly(intent: Intent.CompileOnly): Unit = {
       val config = AppWiring.loamConfigFrom(intent.confFile)
       
-      val loamEngine = LoamEngine.default(config)
+      //TODO: JobFilter is superfluous here :\
+      val loamEngine = LoamEngine.default(config, JobFilter.RunEverything)
       
       val compilationResult = compile(loamEngine, intent.loams)
   
@@ -96,31 +99,31 @@ object Main extends Loggable {
     def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
       val config = AppWiring.loamConfigFrom(intent.confFile)
       
-      val loamEngine = LoamEngine.default(config)
+      val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
+      
+      val loamEngine = LoamEngine.default(config, jobFilter)
       
       val compilationResult = compile(loamEngine, intent.loams)
   
       info(compilationResult.report)
       
-      val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
-  
-      //TODO
-      val executable = executables.next()
-      
-      //TODO:
-      val jobFilter: JobFilter = {
-        if (intent.shouldRunEverything) { JobFilter.RunEverything }
-        else { new DbBackedJobFilter(makeDao, intent.hashingStrategy) }
-      }
-      
-      val dryRunner = new DryRunner(jobFilter)
+      if(compilationResult.isSuccess && compilationResult.isValid) {
+        val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
+    
+        //NB: We will only be able to log jobs that could be run that are declared "before" the first `antThen`.
+        val executable = executables.next()
         
-      TimeUtils.time(s"Listing jobs that would be run", info(_)) {
-        val jobsToBeRun = dryRunner.toBeRun(executable)
+        val jobsToBeRun = TimeUtils.time(s"Listing jobs that would be run", info(_)) {
+          DryRunner.toBeRun(jobFilter, executable)
+        }
         
         info(s"Jobs to be run (${jobsToBeRun.size}):")
-        
+          
+        //Log jobs that could be run normally
         jobsToBeRun.map(_.toString).foreach(info(_))
+        
+        //Also write them to a file, like if we were running for real.
+        loamEngine.listJobsThatCouldRun(jobsToBeRun)
       }
     }
     

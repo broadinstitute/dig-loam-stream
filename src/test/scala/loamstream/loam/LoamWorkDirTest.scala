@@ -11,8 +11,6 @@ import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScriptTestUtils.FilePaths
 import loamstream.util.PathUtils
 
-import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
-
 
 /**
   * LoamStream

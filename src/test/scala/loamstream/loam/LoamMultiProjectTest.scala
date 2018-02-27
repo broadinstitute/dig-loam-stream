@@ -4,7 +4,7 @@ import java.nio.file.{Path, Files => JFiles}
 
 import loamstream.loam.LoamScriptTestUtils.FilePaths
 import org.scalatest.FunSuite
-import loamstream.util.code.SourceUtils.Implicits.AnyToStringLiteral
+import loamstream.util.code.SourceUtils
 
 /** Testing Loam scripts that can handle multiple projects in different directories */
 final class LoamMultiProjectTest extends FunSuite {
@@ -37,15 +37,17 @@ final class LoamMultiProjectTest extends FunSuite {
   private def createFilePaths(projectName: String): FilePathsLocal = new FilePathsLocal(projectName)
 
   private def createScripts(projectName: String, filePaths: FilePathsLocal): Seq[LoamScript] = {
+    import SourceUtils.toStringLiteral
+    
     val projectScript = LoamScript("project",
       s"""
-         |val name = ${projectName.asStringLiteral}
+         |val name = ${toStringLiteral(projectName)}
       """.stripMargin)
     val pipelineScript = LoamScript("pipeline",
       s"""
          |import project.name
          |
-         |inDir(${filePaths.rootDir.asStringLiteral}) {
+         |inDir(${toStringLiteral(filePaths.rootDir)}) {
          |  val inFile = store.at(s"projects/$$name/data/$$name.vcf").asInput
          |  val analysisFile = store.at(s"projects/$$name/analysis/$$name.analysis.txt")
          |  val resultsFile = store.at(s"projects/$$name/results/$$name.results.txt")

@@ -36,12 +36,11 @@ import loamstream.util.IoUtils
 object LoamEngine {
   def default(
       config: LoamConfig,
-      jobFilter: JobFilter,
       csClient: Option[CloudStorageClient] = None): LoamEngine = {
     
     val compiler = LoamCompiler.default
     
-    LoamEngine(config, compiler, RxExecuter.default, jobFilter, csClient)
+    LoamEngine(config, compiler, RxExecuter.default, csClient)
   }
 
   final case class Result(
@@ -61,7 +60,6 @@ final case class LoamEngine(
     config: LoamConfig,
     compiler: LoamCompiler, 
     executer: Executer,
-    jobFilter: JobFilter,
     csClient: Option[CloudStorageClient] = None) extends Loggable {
 
   def report[T](shot: Shot[T], statusMsg: => String): Unit = {
@@ -195,7 +193,7 @@ final case class LoamEngine(
   }
   
   private def listJobsThatCouldRun(executable: Executable): Unit = {
-    listJobsThatCouldRun(DryRunner.toBeRun(jobFilter, executable))
+    listJobsThatCouldRun(DryRunner.toBeRun(executer.jobFilter, executable))
   }
   
   //TODO: Find a good place for this; it's exposed so it can be called from here and loamstream.apps.Main

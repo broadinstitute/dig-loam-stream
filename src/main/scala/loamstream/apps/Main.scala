@@ -88,8 +88,7 @@ object Main extends Loggable {
     def doCompileOnly(intent: Intent.CompileOnly): Unit = {
       val config = AppWiring.loamConfigFrom(intent.confFile)
       
-      //TODO: JobFilter is superfluous here :\
-      val loamEngine = LoamEngine.default(config, JobFilter.RunEverything)
+      val loamEngine = LoamEngine.default(config)
       
       val compilationResult = compile(loamEngine, intent.loams)
   
@@ -101,7 +100,7 @@ object Main extends Loggable {
       
       val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
       
-      val loamEngine = LoamEngine.default(config, jobFilter)
+      val loamEngine = LoamEngine.default(config)
       
       val compilationResult = compile(loamEngine, intent.loams)
   

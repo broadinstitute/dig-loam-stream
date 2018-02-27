@@ -65,7 +65,7 @@ trait AppWiring {
 
   def shutdown(): Seq[Throwable]
   
-  lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, jobFilter, cloudStorageClient)
+  lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, cloudStorageClient)
   
   lazy val loamRunner: LoamRunner = LoamRunner(loamEngine)
 }
@@ -338,6 +338,8 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       delegate.execute(executable)(timeout)
     }
 
+    override def jobFilter: JobFilter = delegate.jobFilter
+    
     def shutdown(): Seq[Throwable] = {
       import Throwables.quietly
       

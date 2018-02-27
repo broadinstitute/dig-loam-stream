@@ -58,7 +58,7 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
       
       val executer = RxExecuter.defaultWith(jobFilter)
       
-      val loamEngine = LoamEngine(TestHelpers.config, LoamCompiler.default, executer, jobFilter)
+      val loamEngine = LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
       
       def out0ExFromDb = dao.findExecution(OutputRecord(out0Path))
       def out1ExFromDb = dao.findExecution(OutputRecord(out1Path))

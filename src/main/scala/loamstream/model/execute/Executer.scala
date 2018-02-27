@@ -11,6 +11,8 @@ import loamstream.util.Terminable
  */
 trait Executer extends Terminable {
 
+  def jobFilter: JobFilter 
+  
   def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution]
   
   override def stop(): Unit = ()

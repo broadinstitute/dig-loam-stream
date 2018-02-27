@@ -4,7 +4,6 @@ import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
 import loamstream.model.jobs.JobNode
 import scala.collection.Seq
-import loamstream.model.jobs.NoOpJob
 import loamstream.util.CanBeClosed
 import java.io.PrintWriter
 import java.io.FileWriter
@@ -61,11 +60,7 @@ object DryRunner extends Loggable {
       }
     }
 
-    val rootJobNode = executable.plusNoOpRootJobIfNeeded.jobNodes.head
-
-    import NoOpJob.isNoOpJob
-
-    gatherJobs(rootJobNode).filterNot(isNoOpJob)
+    executable.jobNodes.toSeq.sortBy(jobId).flatMap(gatherJobs)
   }
   
   private def jobId(jn: JobNode) = jn.job.id

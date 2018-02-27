@@ -26,6 +26,7 @@ import java.io.PrintWriter
 import java.io.FileWriter
 import loamstream.util.CanBeClosed
 import java.time.Instant
+import loamstream.util.IoUtils
 
 
 /**
@@ -211,10 +212,11 @@ final case class LoamEngine(
       for { 
         job <- jobs 
       } {
-        //NB: Don't log using SLF4J, since it's hard to make that happen to a file that's (conveniently) configurable 
-        //at runtime.
-        //TODO: Use SLF4J
-        writer.println(s"[${Instant.now}] $job") //scalastyle:ignore regex
+        //NB: Don't log using SLF4J, since it's hard to make that happen such that the file where log messages end up
+        //is (conveniently) configurable at runtime, say via CLI params that we control (and aren't -D) and not by
+        //messing with `logback.xml`.
+        //TODO: Use SLF4J somehow.
+        IoUtils.printTo(writer)(s"[${Instant.now}] $job")
       }
     }
   }

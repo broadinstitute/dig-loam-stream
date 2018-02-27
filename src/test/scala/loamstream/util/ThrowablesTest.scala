@@ -15,6 +15,8 @@ final class ThrowablesTest extends FunSuite {
     
     val params: ValueBox[Seq[ParamTuple]] = ValueBox(Vector.empty)
     
+    override def log(level: Loggable.Level.Value, s: => String): Unit = ???
+    
     override def log(level: Loggable.Level.Value, s: => String, e: Throwable): Unit = {
       params.mutate(_ :+ (level, s, e))
     }

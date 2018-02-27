@@ -10,6 +10,7 @@ import loamstream.util.Loggable
 import loamstream.util.Versions
 import java.net.URI
 import loamstream.model.execute.HashingStrategy
+import loamstream.util.IoUtils
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -25,29 +26,20 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   def printHelp(message: String): Unit = {
     printHelp()
     
-    println() //scalastyle:ignore regex
+    IoUtils.printToConsole()
     
-    println(message) //scalastyle:ignore regex
+    IoUtils.printToConsole(message)
   }
   
   /** Inform the user about expected usage upon erroneous input/behaviour. */
   override def onError(e: Throwable): Unit = e match {
-    case ScallopException(message) => {
-      error(message)
-      printHelp()
-    }
+    case ScallopException(message) => printHelp(message)
     case ex => super.onError(ex)
   }
 
   private def printHelpIfNoArgsAndExit(): Unit = {
     if (arguments.isEmpty) {
       printHelp()
-    }
-  }
-  
-  private def printVersionInfoAndExitIfNeeded(): Unit = {
-    if (version()) {
-      println(s"${Versions.load().get.toString}") //scalastyle:ignore regex
     }
   }
 

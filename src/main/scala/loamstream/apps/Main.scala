@@ -110,7 +110,11 @@ object Main extends Loggable {
       if(compilationResult.isSuccess && compilationResult.isValid) {
         val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
     
-        //NB: We will only be able to log jobs that could be run that are declared "before" the first `antThen`.
+        //NB: We will only be able to log jobs that could be run that are declared "before" the first `andThen`.
+        //If `andThen` was used, `executables` would produce more than one value, which the code following this
+        //would ignore.  This is the best we can do here, because the structure of the subsequent `Executable`s 
+        //produced by the `executables` iterator would depend on the jobs in the previous `Executable`s having been 
+        //run, which we explicitly do not want to do here.  File this under "known limitations of `--dry-run`".
         val executable = executables.next()
         
         val jobsToBeRun = TimeUtils.time(s"Listing jobs that would be run", info(_)) {

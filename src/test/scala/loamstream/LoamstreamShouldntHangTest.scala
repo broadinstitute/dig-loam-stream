@@ -11,7 +11,6 @@ import loamstream.loam.LoamGraph
 import loamstream.loam.LoamScriptContext
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.NoOpJob
 import loamstream.model.jobs.commandline.CommandLineJob
 
 
@@ -22,10 +21,9 @@ import loamstream.model.jobs.commandline.CommandLineJob
 final class LoamstreamShouldntHangTest extends FunSuite {
   
   private def getJobFor(results: Map[LJob, Execution])(tool: LoamCmdTool): LJob = {
-    def notNoOp(j: LJob): Boolean = !j.isInstanceOf[NoOpJob]
     def asCLJ(j: LJob): CommandLineJob = j.asInstanceOf[CommandLineJob]
     
-    results.keys.filter(notNoOp).map(asCLJ).find(_.commandLineString == tool.commandLine).get
+    results.keys.map(asCLJ).find(_.commandLineString == tool.commandLine).get
   }
   
   private def doTest(descriptor: Pipelines.Descriptor): Unit = {

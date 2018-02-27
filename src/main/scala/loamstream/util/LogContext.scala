@@ -5,5 +5,7 @@ package loamstream.util
  * Dec 7, 2016
  */
 trait LogContext {
+  def log(level: Loggable.Level.Value, s: => String): Unit
+  
   def log(level: Loggable.Level.Value, s: => String, e: Throwable): Unit 
 }

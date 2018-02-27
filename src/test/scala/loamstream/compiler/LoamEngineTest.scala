@@ -7,7 +7,11 @@ import loamstream.util.{Files, StringUtils}
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
 
-
+/**
+ * @author clint
+ * @author oliver
+ * Feb 27, 2018
+ */
 final class LoamEngineTest extends FunSuite {
   private val engine: LoamEngine = TestHelpers.loamEngine
 

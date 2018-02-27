@@ -39,6 +39,7 @@ import java.util.UUID
 import loamstream.model.jobs.RunData
 import scala.concurrent.Future
 import scala.concurrent.Await
+import loamstream.loam.LoamScript
 
 /**
   * @author clint
@@ -150,7 +151,9 @@ object TestHelpers {
 
   def loamEngine: LoamEngine = LoamEngine.default(config)
 
-  def compile(loamCode: String): LoamCompiler.Result = loamEngine.compile(loamCode)
+  def compile(loamCode: String): LoamCompiler.Result = {
+    loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode))
+  }
   
   val defaultUgerSettings: UgerSettings = {
     val ugerConfig = config.ugerConfig.get 

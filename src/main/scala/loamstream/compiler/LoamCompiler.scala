@@ -33,8 +33,9 @@ object LoamCompiler extends Loggable {
   }
 
   final case class Settings(logCode: Boolean, logCodeOnError: Boolean) {
-    def logCodeForLevel(level: Loggable.Level.Value): Boolean =
+    def logCodeForLevel(level: Loggable.Level.Value): Boolean = {
       logCode || (logCodeOnError && (level >= Loggable.Level.warn))
+    }
   }
 
   /** A reporter receiving messages form the underlying Scala compiler

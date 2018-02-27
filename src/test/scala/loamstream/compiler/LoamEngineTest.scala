@@ -11,36 +11,8 @@ import loamstream.TestHelpers
 final class LoamEngineTest extends FunSuite {
   private val engine: LoamEngine = TestHelpers.loamEngine
 
-  test("Compile string") {
-    val fixture = Fixture.default
-    val compileResult = engine.compile(fixture.code)
-    fixture.assertCompileResultsLookGood(compileResult)
-  }
-
-  test("Compile file") {
-    val fixture = Fixture.default
-    val file = JFiles.createTempFile("LoamEngineTest", ".loam")
-    Files.writeTo(file)(fixture.code)
-    val compileResultShot = engine.compile(file)
-    assert(compileResultShot.nonEmpty)
-    val compileResult = compileResultShot.get
-    fixture.assertCompileResultsLookGood(compileResult)
-  }
-
-  test("Run string") {
-    val fixture = Fixture.default
-    fixture.writeFileIn()
-    engine.run(fixture.code)
-    fixture.assertOutputFilesArePresent()
-  }
-
-  test("Run file") {
-    val fixture = Fixture.default
-    val file = JFiles.createTempFile("LoamEngineTest", ".loam")
-    Files.writeTo(file)(fixture.code)
-    fixture.writeFileIn()
-    engine.runFile(file)
-    fixture.assertOutputFilesArePresent()
+  test("TODO") {
+    fail()
   }
 }
 

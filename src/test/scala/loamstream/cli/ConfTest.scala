@@ -13,9 +13,7 @@ import java.net.URI
 final class ConfTest extends FunSuite with Matchers {
   private val testConfigFile = "src/test/resources/loamstream-test.conf".replace("/", File.separator)
 
-  private def makeConf(args: Seq[String], exitTheJvmOnValidationError: Boolean = false): Conf = {
-    Conf(args, exitTheJvmOnValidationError)
-  }
+  private def makeConf(args: Seq[String]): Conf = Conf(args)
   
   test("Single loam file along with conf file is parsed correctly") {
     val conf = makeConf(Seq("--conf", "src/test/resources/loamstream-test.conf", 
@@ -33,133 +31,48 @@ final class ConfTest extends FunSuite with Matchers {
     conf.conf().toString shouldEqual testConfigFile
   }
   
-  test("Test that we try to exit if passed no args") {
-    intercept[CliException] {
-      Conf(Seq.empty, exitTheJvmOnValidationError = false)
-    }
-  }
-  
-  test("Test that we try to exit if we're passed just --version") {
-    try {
-      Conf(Seq("--version"), exitTheJvmOnValidationError = false)
-      fail()
-    } catch {
-      case CliException(message) => assert(message === "version") 
-    }
-  }
-   
-  test("Test that we try to exit if passed nonexistent file names") {
-    intercept[CliException] {
-      val args = Seq("--conf", "src/test/resources/loamstream-test.conf",
-                     "--backend", "local",
-                     "asdfasdf.txt", "src/test/resources/a.txt")
-      
-      Conf(args, exitTheJvmOnValidationError = false)
-    }
-    
-    intercept[CliException] {
-      val args = Seq("--conf", "asdfasdf.txt", "--backend", "local", "src/test/resources/a.txt")
-      
-      Conf(args, exitTheJvmOnValidationError = false)
-    }
-  }
-  
-  test("--dry-run") {
+  test("--compile-only") {
     def doTest(flag: String, loams: Seq[String]): Unit = {
       val args = flag +: loams
       
       val conf = makeConf(args)
       
-      assert(conf.dryRun.isSupplied)
+      assert(conf.compileOnly.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === loams.map(Paths.get(_)))
     }
     
-    doTest("--dry-run", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
-    doTest("-d", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
+    doTest("--compile-only", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
+    doTest("-c", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
   }
   
   test("--disable-hashing") {
     {
-      val args = Seq("--disable-hashing", "--dry-run", "src/examples/loam/cp.loam")
+      val args = Seq("--disable-hashing", "--compile-only", "src/examples/loam/cp.loam")
       
       val conf = makeConf(args)
       
       assert(conf.disableHashing.isSupplied)
-      assert(conf.dryRun.isSupplied)
+      assert(conf.compileOnly.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
     }
     
     {
-      val args = Seq("--dry-run", "src/examples/loam/cp.loam")
+      val args = Seq("--compile-only", "src/examples/loam/cp.loam")
       
       val conf = makeConf(args)
       
       assert(conf.disableHashing.isSupplied === false)
-      assert(conf.dryRun.isSupplied)
+      assert(conf.compileOnly.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
     }
   }
   
-  test("Loam files must be specified if running normally or with --dry-run") {
-    //No loam files
-    intercept[CliException] {
-      makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam"))
-    }
-    
-    //No loam files
-    intercept[CliException] {
-      makeConf(Seq("--conf", "src/main/loam/cp.loam src/main/loam/cp.loam", "--dry-run"))
-    }
-    
-    //No loam files
-    intercept[CliException] {
-      makeConf(Nil)
-    }
-    
-    //No loam files
-    intercept[CliException] {
-      makeConf(Seq("--dry-run"))
-    }
-    
-    val exampleFile = "src/examples/loam/cp.loam"
-    
-    val expected = Paths.get(exampleFile)
-    
-    //Just a loam file
-    {
-      val conf = makeConf(Seq(exampleFile))
-      
-      conf.loams() shouldEqual List(expected)
-      conf.dryRun() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
-      conf.runEverything.isSupplied shouldBe(false)
-    }
-    
-    {
-      val conf = makeConf(Seq(exampleFile, exampleFile))
-      
-      conf.loams() shouldEqual List(expected, expected)
-      conf.dryRun() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
-      conf.runEverything.isSupplied shouldBe(false)
-    }
-    
-    {
-      val conf = makeConf(Seq("--dry-run", exampleFile, exampleFile))
-      
-      conf.loams() shouldEqual List(expected, expected)
-      conf.dryRun() shouldBe(true)
-      conf.conf.isSupplied shouldBe(false)
-      conf.runEverything.isSupplied shouldBe(false)
-    }
-  }
- 
   test("--run-everything") {
     val exampleFile = "src/examples/loam/cp.loam"
     
@@ -170,7 +83,7 @@ final class ConfTest extends FunSuite with Matchers {
         
       conf.runEverything() shouldBe(true)
       conf.loams() shouldEqual List(expected)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     
@@ -179,7 +92,7 @@ final class ConfTest extends FunSuite with Matchers {
         
       conf.runEverything() shouldBe(true)
       conf.loams() shouldEqual List(expected)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     
@@ -188,7 +101,7 @@ final class ConfTest extends FunSuite with Matchers {
         
       conf.runEverything() shouldBe(false)
       conf.loams() shouldEqual List(expected)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
   }
@@ -209,7 +122,7 @@ final class ConfTest extends FunSuite with Matchers {
       
       conf.runEverything() shouldBe(false)
       conf.loams.isSupplied shouldBe(false)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     //Path, short arg name
@@ -221,7 +134,7 @@ final class ConfTest extends FunSuite with Matchers {
       
       conf.runEverything() shouldBe(false)
       conf.loams.isSupplied shouldBe(false)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     
@@ -234,7 +147,7 @@ final class ConfTest extends FunSuite with Matchers {
       
       conf.runEverything() shouldBe(false)
       conf.loams.isSupplied shouldBe(false)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
     //URI, short arg name
@@ -246,7 +159,7 @@ final class ConfTest extends FunSuite with Matchers {
       
       conf.runEverything() shouldBe(false)
       conf.loams.isSupplied shouldBe(false)
-      conf.dryRun() shouldBe(false)
+      conf.compileOnly() shouldBe(false)
       conf.conf.isSupplied shouldBe(false)
     }
   }

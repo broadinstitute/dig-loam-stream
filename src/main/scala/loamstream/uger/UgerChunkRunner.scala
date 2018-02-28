@@ -43,8 +43,7 @@ final case class UgerChunkRunner(
     executionConfig: ExecutionConfig,
     ugerConfig: UgerConfig,
     jobSubmitter: JobSubmitter,
-    jobMonitor: JobMonitor,
-    pollingFrequencyInHz: Double = 1.0) extends ChunkRunnerFor(EnvironmentType.Uger) with Terminable with Loggable {
+    jobMonitor: JobMonitor) extends ChunkRunnerFor(EnvironmentType.Uger) with Terminable with Loggable {
 
   import UgerChunkRunner._
 
@@ -73,11 +72,11 @@ final case class UgerChunkRunner(
     jobs.foreach(job => debug(s"  $job"))
 
     require(
-      jobs.forall(isAcceptableJob),
+      jobs.forall(_.isInstanceOf[CommandLineJob]),
       s"For now, we only know how to run ${simpleNameOf[CommandLineJob]}s on UGER")
 
     // Filter out NoOpJob's
-    val commandLineJobs = jobs.toSeq.filterNot(isNoOpJob).collect { case clj: CommandLineJob => clj }
+    val commandLineJobs = jobs.toSeq.collect { case clj: CommandLineJob => clj }
 
     //Group Jobs by their uger settings, and run each group.  This is necessary because the jobs in a group will
     //be run as 1 Uger task array, and Uger params are per-task-array.
@@ -152,15 +151,6 @@ final case class UgerChunkRunner(
 }
 
 object UgerChunkRunner extends Loggable {
-  private[uger] def isCommandLineJob(job: LJob): Boolean = job match {
-    case clj: CommandLineJob => true
-    case _                   => false
-  }
-
-  private[uger] def isNoOpJob(job: LJob): Boolean = job match {
-    case noj: NoOpJob => true
-    case _            => false
-  }
 
   type JobAndStatuses = (UgerJobWrapper, Observable[UgerStatus])
 
@@ -215,8 +205,6 @@ object UgerChunkRunner extends Loggable {
 
     job.transitionTo(status)
   }
-
-  private[uger] def isAcceptableJob(job: LJob): Boolean = isNoOpJob(job) || isCommandLineJob(job)
 
   private[uger] def makeAllFailureMap(
       jobs: Seq[UgerJobWrapper], 

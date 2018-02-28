@@ -30,7 +30,7 @@ final class ScriptBuilderTest extends FunSuite {
     val taskArray = UgerTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, jobs)
     val ugerScriptContents = ScriptBuilder.buildFrom(taskArray).withNormalizedLineBreaks
 
-    val jobIds: (String, String, String) = (jobs(0).id, jobs(1).id, jobs(2).id)
+    val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)
     val discriminators = (0, 1, 2)
 
     val expectedScriptContents = expectedScriptAsString(discriminators, jobIds).withNormalizedLineBreaks
@@ -99,7 +99,7 @@ final class ScriptBuilderTest extends FunSuite {
     val jobName = s"LoamStream-${jobId0}_${jobId1}_${jobId2}"
 
     val ugerDir = path("/humgen/diabetes/users/kyuksel/imputation/shapeit_example").toAbsolutePath.render
-    val outputDir = path("job-outputs").toAbsolutePath.render
+    val outputDir = path("out/job-outputs").toAbsolutePath.render
 
     val sixSpaces = "      "
 

@@ -39,6 +39,8 @@ final class JobMonitor(
     _isStopped.update(true)
     
     stopSignal.onNext(())
+    
+    poller.stop()
   }
   
   /**

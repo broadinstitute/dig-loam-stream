@@ -10,6 +10,7 @@ import loamstream.util.Loggable
 import loamstream.util.Versions
 import java.net.URI
 import loamstream.model.execute.HashingStrategy
+import loamstream.util.IoUtils
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -20,52 +21,25 @@ import loamstream.model.execute.HashingStrategy
  * to false is useful for tests, so that a validation failure doesn't make SBT exit.  If this is false, a 
  * CliException is thrown instead of invoking 'sys.exit()'.
  */
-final case class Conf(
-    arguments: Seq[String], 
-    exitTheJvmOnValidationError: Boolean = true) extends ScallopConf(arguments) with Loggable {
+final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
+  
+  def printHelp(message: String): Unit = {
+    printHelp()
+    
+    IoUtils.printToConsole()
+    
+    IoUtils.printToConsole(message)
+  }
   
   /** Inform the user about expected usage upon erroneous input/behaviour. */
   override def onError(e: Throwable): Unit = e match {
-    case ScallopException(message) =>
-      error(message)
-      printHelp()
-      exitOrThrow(message)
+    case ScallopException(message) => printHelp(message)
     case ex => super.onError(ex)
-  }
-
-  /** In the verify stage, check that files with the supplied paths exist. */
-  private def validatePathsExist(paths: ScallopOption[List[Path]]): Unit = {
-    paths.toOption.foreach { paths =>
-      paths.foreach { path =>
-        if (!path.toFile.exists) {
-          val msg = s"File at '$path' not found"
-          
-          error(msg)
-          exitOrThrow(msg)
-        }
-      }
-    }
   }
 
   private def printHelpIfNoArgsAndExit(): Unit = {
     if (arguments.isEmpty) {
       printHelp()
-      exitOrThrow("No arguments provided")
-    }
-  }
-  
-  private def printVersionInfoAndExitIfNeeded(): Unit = {
-    if (version()) {
-      println(s"${Versions.load().get.toString}") //scalastyle:ignore regex
-      exitOrThrow("version")
-    }
-  }
-  
-  private def exitOrThrow(msg: String): Unit = {
-    if(exitTheJvmOnValidationError) {
-      sys.exit(1)
-    } else {
-      throw new CliException(msg)
     }
   }
 
@@ -84,11 +58,19 @@ final case class Conf(
   val version: ScallopOption[Boolean] = opt[Boolean](descr = "Print version information and exit")
   
   //Using all default args for `opt` makes it a flag 
+  val help: ScallopOption[Boolean] = opt[Boolean](descr = "Show help and exit")
+  
+  //Using all default args for `opt` makes it a flag 
   val runEverything: ScallopOption[Boolean] = opt[Boolean](
       descr = "Run every step in the pipeline, even if they've already been run")
   
   //Using all default args for `opt` makes it a flag 
-  val dryRun: ScallopOption[Boolean] = opt[Boolean](descr = "Only compile the supplied .loam files, don't run them")
+  val compileOnly: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Only compile the supplied .loam files, don't run them")
+      
+  //Using all default args for `opt` makes it a flag 
+  val dryRun: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Show what commands would be run without running them")
 
   val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
 
@@ -105,48 +87,35 @@ final case class Conf(
       descr = "Don't hash files when determining whether a job may be skipped.",
       required = false)
       
-  private def dryRunNoFilesMessage = "Please specify at least one Loam file to compile"
-  private def runNoFilesMessage = "Please specify at least one Loam file to run"
-
-  /**
-   * NB: "manually" validate all combinations of args, since the interactions between Scallop validation methods
-   * (conflicts, codependent, etc) became unmanageable.
-   * --conf is always optional
-   * --run-everything is always optional
-   * --version trumps everything - if it's present, everything else is optional
-   * --backend and --dry-run are mutually exclusive; both require a non-empty list of loam files
-   */
-  validateOpt(version, lookup, conf, runEverything, loams, dryRun) {
-    // If --version is supplied, everything else is unchecked
-    case (Some(true), _, _, _, _, _) => Right(Unit)
-    
-    // If --lookup is supplied, everything else is unchecked
-    case (_, Some(outputPathOrUri), _, _, _, _) => Right(Unit)
-
-    //--dry-run and a non-empty list of loam files is valid
-    case (_, _, _, _, Some(files), Some(true)) if files.nonEmpty => Right(Unit)
-    case (_, _, _, _, Some(files), Some(true)) if files.isEmpty => Left(dryRunNoFilesMessage)
-    case (_, _, _, _, None, Some(true)) => Left(dryRunNoFilesMessage)
-
-    // running (no --dry-run) with a non-empty list of loam files is valid
-    case (_, _, _, _, Some(files), _) if files.nonEmpty => Right(Unit)
-    case (_, _, _, _, Some(files), _) if files.isEmpty => Left(runNoFilesMessage)
-    case (_, _, _, _, None, _) => Left(runNoFilesMessage)
-
-    case _ => Left("Invalid option/argument combination")
-  }
-  
-  /**
-   * NB: This needs to come before the call to verify(), or else we don't fail properly when the path
-   * supplied to --conf doesn't exist. Shrug.
-   */
-  validatePathExists(conf)
-
+  //NB: Required by Scallop
   verify()
   
-  // The following checks come after verify() since options are lazily built by Scallop
-  printHelpIfNoArgsAndExit()
-  printVersionInfoAndExitIfNeeded()
-  
-  validatePathsExist(loams)
+  def toValues: Conf.Values = Conf.Values(
+      loams = loams.toOption.toSeq.flatten,
+      lookup = lookup.toOption,
+      conf = conf.toOption,
+      helpSupplied = help.isSupplied,
+      versionSupplied = version.isSupplied,
+      runEverythingSupplied = runEverything.isSupplied,
+      compileOnlySupplied = compileOnly.isSupplied,
+      dryRunSupplied = dryRun.isSupplied,
+      disableHashingSupplied = disableHashing.isSupplied)
+}
+
+object Conf {
+  final case class Values(
+      loams: Seq[Path],
+      lookup: Option[Either[Path, URI]],
+      conf: Option[Path],
+      helpSupplied: Boolean,
+      versionSupplied: Boolean,
+      runEverythingSupplied: Boolean,
+      compileOnlySupplied: Boolean,
+      dryRunSupplied: Boolean,
+      disableHashingSupplied: Boolean) {
+    
+    def lookupSupplied: Boolean = lookup.isDefined
+    
+    def confSupplied: Boolean = conf.isDefined
+  }
 }

@@ -54,7 +54,7 @@ object LoamScriptTestUtils {
 
   def testScripts(scripts: Iterable[LoamScript], filePaths: FilePaths): Unit = {
     createInputFiles(filePaths)
-    val engine = LoamEngine.default(TestHelpers.config)
+    val engine = TestHelpers.loamEngine
     val results = engine.run(scripts)
     assert(results.jobExecutionsOpt.nonEmpty, results.compileResultOpt)
     assertOutputFilesExist(filePaths)

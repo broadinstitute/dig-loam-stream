@@ -4,12 +4,14 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.util.Observables
 import rx.lang.scala.Observable
+import loamstream.util.Throwables
+import loamstream.util.Loggable
 
 /**
  * @author clint
  * Nov 22, 2016
  */
-final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends ChunkRunner {
+final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends ChunkRunner with Loggable {
   
   override def maxNumJobs: Int = components.map(_.maxNumJobs).sum
   
@@ -31,5 +33,13 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
     }
     
     Observables.reduceMaps(resultObservables)
+  }
+  
+  override def stop(): Unit = {
+    for {
+      component <- components
+    } {
+      Throwables.quietly("Error shutting down: ")(component.stop())
+    }
   }
 }

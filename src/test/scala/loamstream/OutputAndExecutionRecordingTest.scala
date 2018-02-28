@@ -54,7 +54,9 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
     import Files.exists
     
     createTablesAndThen {
-      val executer = RxExecuter.defaultWith(new DbBackedJobFilter(dao, HashingStrategy.HashOutputs))
+      val jobFilter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
+      
+      val executer = RxExecuter.defaultWith(jobFilter)
       
       val loamEngine = LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
       

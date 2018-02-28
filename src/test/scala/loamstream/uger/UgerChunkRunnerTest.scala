@@ -19,7 +19,6 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.NoOpJob
 import loamstream.model.jobs.Output
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.quantities.CpuTime
@@ -67,21 +66,6 @@ final class UgerChunkRunnerTest extends FunSuite {
   import loamstream.TestHelpers.waitFor
   import loamstream.util.ObservableEnrichments._
   
-  test("NoOpJob is not attempted to be executed") {
-    val mockDrmaaClient = MockDrmaaClient(Map.empty)
-    val runner = UgerChunkRunner(
-        executionConfig = executionConfig,
-        ugerConfig = ugerConfig,
-        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
-        jobMonitor = new JobMonitor(scheduler, Poller.drmaa(mockDrmaaClient)))
-    
-    val noOpJob = NoOpJob(Set.empty)
-    
-    val result = waitFor(runner.run(Set(noOpJob), neverRestart).firstAsFuture)
-    
-    assert(result === Map.empty)
-  }
-
   test("No failures when empty set of jobs is presented") {
     val mockDrmaaClient = new MockDrmaaClient(Map.empty)
     val runner = UgerChunkRunner(
@@ -351,8 +335,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     
     val executable = LoamEngine.toExecutable(graph)
 
-    //NB: Skip NoOpJob
-    val jobs = executable.jobs.head.inputs.toSeq
+    val jobs = executable.jobs.toSeq
     
     assert(jobs.size === 2)
     
@@ -409,8 +392,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     
     val executable = LoamEngine.toExecutable(graph)
 
-    //NB: Skip NoOpJob
-    val jobs = executable.jobs.head.inputs.toSeq
+    val jobs = executable.jobs.toSeq
     
     assert(jobs.size === 4)
     

@@ -288,11 +288,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
   private def makeWorkDir(): Path = TestHelpers.getWorkDir(getClass.getSimpleName)
 
-  private val resumptiveExecuter = {
-    val dbBackedJobFilter = new DbBackedJobFilter(dao)
-
-    RxExecuter.defaultWith(dbBackedJobFilter)
-  }
+  private val dbBackedJobFilter = new DbBackedJobFilter(dao)
+  
+  private val resumptiveExecuter = RxExecuter.defaultWith(dbBackedJobFilter)
 
   private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
     val asyncChunkRunner = AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)

@@ -24,10 +24,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
 
   private[this] val lock = new AnyRef
 
-  def createExecutable(graph: LoamGraph): Executable = {
-    //TODO: Remove 'addNoOpRootJob' when the executer can walk through the job graph without it
-    Executable(toJobs(graph)(graph.finalTools)).plusNoOpRootJobIfNeeded
-  }
+  def createExecutable(graph: LoamGraph): Executable = Executable(toJobs(graph)(graph.finalTools))
 
   private[loam] def toJobs(graph: LoamGraph)(tools: Set[Tool]): Set[JobNode] = tools.flatMap(getJob(graph))
 

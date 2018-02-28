@@ -64,7 +64,7 @@ final class UgerJobWrapperTest extends FunSuite {
 
     val Seq(wrapper0) = taskArray.ugerJobs
 
-    val expected = path(s"${executionConfig.outputDir}/${j0.id}.stdout").toAbsolutePath
+    val expected = path(s"${executionConfig.jobOutputDir}/${j0.id}.stdout").toAbsolutePath
 
     assert(wrapper0.outputStreams.stdout === expected)
   }
@@ -74,7 +74,7 @@ final class UgerJobWrapperTest extends FunSuite {
 
     val Seq(wrapper0) = taskArray.ugerJobs
 
-    val expected = path(s"${executionConfig.outputDir}/${j0.id}.stderr").toAbsolutePath
+    val expected = path(s"${executionConfig.jobOutputDir}/${j0.id}.stderr").toAbsolutePath
 
     assert(wrapper0.outputStreams.stderr === expected)
   }
@@ -91,9 +91,9 @@ final class UgerJobWrapperTest extends FunSuite {
                        |
                        |LOAMSTREAM_JOB_EXIT_CODE=$$?
                        |
-                       |mkdir -p ${outputDir.render}
-                       |mv ${workDir.render}/$jobName.1.stdout ${outputDir.render}/${j0.id}.stdout || echo "Couldn't move Uger std out log" > ${outputDir.render}/${j0.id}.stdout
-                       |mv ${workDir.render}/$jobName.1.stderr ${outputDir.render}/${j0.id}.stderr || echo "Couldn't move Uger std err log" > ${outputDir.render}/${j0.id}.stderr
+                       |mkdir -p ${jobOutputDir.render}
+                       |mv ${workDir.render}/$jobName.1.stdout ${jobOutputDir.render}/${j0.id}.stdout || echo "Couldn't move Uger std out log" > ${jobOutputDir.render}/${j0.id}.stdout
+                       |mv ${workDir.render}/$jobName.1.stderr ${jobOutputDir.render}/${j0.id}.stderr || echo "Couldn't move Uger std err log" > ${jobOutputDir.render}/${j0.id}.stderr
                        |
                        |exit $$LOAMSTREAM_JOB_EXIT_CODE
                        |""".stripMargin

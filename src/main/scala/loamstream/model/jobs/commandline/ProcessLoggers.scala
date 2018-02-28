@@ -22,8 +22,8 @@ import loamstream.model.jobs.OutputStreams
  */
 object ProcessLoggers {
   def forNamedJob(executionConfig: ExecutionConfig, job: LJob): ToFilesProcessLogger = {
-    import executionConfig.outputDir
+    import executionConfig.jobOutputDir
     
-    ToFilesProcessLogger(LogFileNames.outputStreams(job, outputDir))
+    ToFilesProcessLogger(LogFileNames.outputStreams(job, jobOutputDir))
   }
 }

@@ -12,7 +12,6 @@ import loamstream.util.PathEnrichments
 import loamstream.loam.LoamGraph
 import loamstream.util.Files
 import java.nio.file.Path
-import loamstream.model.jobs.NoOpJob
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.loam.LoamToolBox
 
@@ -37,15 +36,13 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
 
     val executer = RxExecuter.defaultWith(JobFilter.RunEverything)
 
-    val engine = LoamEngine.default(TestHelpers.config).copy(executer = executer)
-
     val g = graph(outputDir)
     
     assert(g.finalTools.flatMap(g.toolsPreceding) === g.initialTools)
     
     assert(g.initialTools.flatMap(g.toolsSucceeding) === g.finalTools)
     
-    val executable = LoamEngine.toExecutable(g).withoutNoOpJobNode
+    val executable = LoamEngine.toExecutable(g)
 
     val numShardedJobs = chrProps.map(_.numShards).sum
     

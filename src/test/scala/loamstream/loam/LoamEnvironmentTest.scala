@@ -23,10 +23,6 @@ import loamstream.util.Loggable
  */
 final class LoamEnvironmentTest extends FunSuite with Loggable {
   
-  private val loamCompiler = LoamCompiler.default
-  
-  private val loamEngine = LoamEngine(TestHelpers.config, loamCompiler, RxExecuter.default)
-  
   private val clusterId = TestHelpers.config.googleConfig.get.clusterId
   
   private def commandLineFrom(j: LJob): String = j.asInstanceOf[CommandLineJob].commandLineString
@@ -99,8 +95,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
       
       val executable = LoamEngine.toExecutable(graph)
       
-      //NB: Drop NoOpJob
-      val jobs = executable.jobs.head.inputs
+      val jobs = executable.jobs
       
       def jobWith(commandLine: String): LJob = jobs.find(j => commandLineFrom(j.job) == commandLine).get.job
       

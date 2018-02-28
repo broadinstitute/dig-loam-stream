@@ -77,7 +77,7 @@ object MockJob {
   def apply(toReturn: RunData): MockJob = {
     new Constant(
         toReturn = toReturn,
-        name = LJob.nextId(),
+        name = LJob.nextId().toString,
         inputs = Set.empty,
         outputs = Set.empty,
         delay = 0)

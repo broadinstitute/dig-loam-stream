@@ -24,7 +24,7 @@ trait Loggable extends LogContext {
   
   protected implicit val logContext: LogContext = this
   
-  final def log(level: Level.Value, s: => String): Unit = level match {
+  override final def log(level: Level.Value, s: => String): Unit = level match {
     case Level.trace => trace(s)
     case Level.debug => debug(s)
     case Level.info => info(s)

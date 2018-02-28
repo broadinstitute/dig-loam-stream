@@ -18,6 +18,11 @@ import loamstream.util.Versions
 import loamstream.cli.ExecutionInfo
 import loamstream.cli.Intent
 import loamstream.db.LoamDao
+import java.nio.file.Path
+import loamstream.model.execute.JobFilter
+import loamstream.model.execute.DbBackedJobFilter
+import loamstream.util.TimeUtils
+import loamstream.model.execute.DryRunner
 
 
 /**
@@ -40,10 +45,14 @@ object Main extends Loggable {
     import Intent._
     
     intent match {
-      case ShowVersionAndQuit => ()
-      case dryRun: DryRun => run.doDryRun(dryRun)
-      case lookup: LookupOutput => run.doLookup(lookup)
-      case real: RealRun => run.doRealRun(real)
+      case Right(ShowVersionAndQuit) => ()
+      case Right(ShowHelpAndQuit) => cli.printHelp()
+      case Right(lookup: LookupOutput) => run.doLookup(lookup)
+      case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
+      case Right(dryRun: DryRun) => run.doDryRun(dryRun)
+      case Right(real: RealRun) => run.doRealRun(real)
+      case Left(message) => cli.printHelp(message)
+      case _ => cli.printHelp()
     }
   }
   
@@ -68,18 +77,57 @@ object Main extends Loggable {
   
   private[apps] final class Run {
   
-    def doDryRun(intent: Intent.DryRun): Unit = {
-      val loamConfig = AppWiring.loamConfigFrom(intent.confFile)
+    private def compile(loamEngine: LoamEngine, loams: Seq[Path]): LoamCompiler.Result = {
+      val compilationResultShot = loamEngine.compileFiles(loams)
   
-      val loamEngine = LoamEngine.default(loamConfig)
+      require(compilationResultShot.nonEmpty, compilationResultShot.message)
   
-      val compilationResultShot = loamEngine.compileFiles(intent.loams)
-  
-      assert(compilationResultShot.nonEmpty, compilationResultShot.message)
-  
-      val compilationResult = compilationResultShot.get
+      compilationResultShot.get
+    }
+    
+    def doCompileOnly(intent: Intent.CompileOnly): Unit = {
+      val config = AppWiring.loamConfigFrom(intent.confFile)
+      
+      val loamEngine = LoamEngine.default(config)
+      
+      val compilationResult = compile(loamEngine, intent.loams)
   
       info(compilationResult.report)
+    }
+    
+    def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
+      val config = AppWiring.loamConfigFrom(intent.confFile)
+      
+      val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
+      
+      val loamEngine = LoamEngine.default(config)
+      
+      val compilationResult = compile(loamEngine, intent.loams)
+  
+      info(compilationResult.report)
+      
+      if(compilationResult.isSuccess && compilationResult.isValid) {
+        val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
+    
+        //NB: We will only be able to log jobs that could be run that are declared "before" the first `andThen`.
+        //If `andThen` was used, `executables` would produce more than one value, which the code following this
+        //would ignore.  This is the best we can do here, because the structure of the subsequent `Executable`s 
+        //produced by the `executables` iterator would depend on the jobs in the previous `Executable`s having been 
+        //run, which we explicitly do not want to do here.  File this under "known limitations of `--dry-run`".
+        val executable = executables.next()
+        
+        val jobsToBeRun = TimeUtils.time(s"Listing jobs that would be run", info(_)) {
+          DryRunner.toBeRun(jobFilter, executable)
+        }
+        
+        info(s"Jobs to be run (${jobsToBeRun.size}):")
+          
+        //Log jobs that could be run normally
+        jobsToBeRun.map(_.toString).foreach(info(_))
+        
+        //Also write them to a file, like if we were running for real.
+        loamEngine.listJobsThatCouldRun(jobsToBeRun)
+      }
     }
     
     def doLookup(intent: Intent.LookupOutput): Unit = {
@@ -104,7 +152,8 @@ object Main extends Loggable {
       def loamScripts: Iterable[LoamScript] = {
         val loamFiles = intent.loams
         val loamScriptsShot = loamEngine.scriptsFrom(loamFiles)
-        assert(loamScriptsShot.isHit, "Could not load loam scripts")
+        
+        require(loamScriptsShot.isHit, "Could not load loam scripts")
   
         loamScriptsShot.get
       }

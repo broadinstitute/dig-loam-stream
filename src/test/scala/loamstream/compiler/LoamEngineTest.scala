@@ -9,7 +9,7 @@ import loamstream.TestHelpers
 
 
 final class LoamEngineTest extends FunSuite {
-  private val engine = LoamEngine.default(TestHelpers.config)
+  private val engine: LoamEngine = TestHelpers.loamEngine
 
   test("Compile string") {
     val fixture = Fixture.default

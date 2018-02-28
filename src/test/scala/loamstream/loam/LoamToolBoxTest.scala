@@ -24,9 +24,7 @@ final class LoamToolBoxTest extends FunSuite {
   private def toJobs(graph: LoamGraph): Executable = {
     val toolBox = new LoamToolBox()
 
-    val executable = toolBox.createExecutable(graph)
-
-    executable.withoutNoOpJobNode
+    toolBox.createExecutable(graph)
   }
 
   private def toClj(jn: JobNode) = jn.job.asInstanceOf[CommandLineJob]

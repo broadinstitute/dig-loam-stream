@@ -15,14 +15,13 @@
         </encoder>
     </appender>
     
-    <appender name="JOBLOG" class="ch.qos.logback.core.FileAppender">
+    <appender name="JOB_STATE_LOG" class="ch.qos.logback.core.FileAppender">
         <file>out/job-states.log</file>
         <append>false</append>
         <encoder>
             <pattern>%date %msg%n</pattern>
         </encoder>
     </appender>
-
     <!-- 
          Logging levels in the order of increasing significance are: TRACE < DEBUG < INFO <  WARN < ERROR
 
@@ -40,7 +39,7 @@
     <logger name="LoamStream" level="${loamstream-log-level:-INFO}"/>
     
     <logger name="loamstream.model.jobs.log" level="INFO">
-      <appender-ref ref="JOBLOG" />
+      <appender-ref ref="JOB_STATE_LOG" />
     </logger>
 
     <!-- Without this, Slick spews tons and tons of stuff to the console -->

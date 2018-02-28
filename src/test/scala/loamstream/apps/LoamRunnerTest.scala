@@ -40,7 +40,7 @@ final class LoamRunnerTest extends FunSuite {
 
     import TestHelpers.config
 
-    val loamEngine: LoamEngine = LoamEngine.default(config)
+    val loamEngine: LoamEngine = TestHelpers.loamEngine
     
     val loamRunner = LoamRunner(loamEngine)
 
@@ -76,7 +76,7 @@ final class LoamRunnerTest extends FunSuite {
 
     import TestHelpers.config
 
-    val loamEngine: LoamEngine = LoamEngine.default(config)
+    val loamEngine: LoamEngine = TestHelpers.loamEngine
     
     val loamRunner = LoamRunner(loamEngine)
 

@@ -21,11 +21,11 @@ object UgerTaskArrayTest {
 
   val workDir = path("/foo/bar/baz").toAbsolutePath
 
-  val outputDir = path("/path/to/logs").toAbsolutePath
+  val jobOutputDir = path("/path/to/logs").toAbsolutePath
 
   val ugerConfig = UgerConfig(workDir = workDir, maxNumJobs = 42)
 
-  val executionConfig = ExecutionConfig(maxRunsPerJob = 42, outputDir = outputDir)
+  val executionConfig = ExecutionConfig(maxRunsPerJob = 42, jobOutputDir = jobOutputDir)
 
   val jobs @ Seq(j0, j1, j2) = Seq(job("foo"), job("bar"), job("baz"))
 }

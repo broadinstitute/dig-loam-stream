@@ -9,7 +9,6 @@ import loamstream.loam.LoamGraph
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
-import loamstream.loam.LoamStoreKeySlot
 import loamstream.loam.LoamStoreRef
 
 /**
@@ -48,8 +47,6 @@ trait Store extends HasLocation with LId.HasId {
 
     this
   }
-
-  def key(name: String): LoamStoreKeySlot = LoamStoreKeySlot(this, name)(projectContext)
 
   override def toString: String = {
     val location = (pathOpt orElse uriOpt).map(_.toString).getOrElse(path)

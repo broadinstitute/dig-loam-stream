@@ -13,15 +13,13 @@ import loamstream.compiler.LoamProject
   * Done over: Feb 27, 2017
   * 
   */
-final class LoamRepositoryTest extends FunSuite {
+final class CompileExampleLoamsTest extends FunSuite {
   test("All examples compile") {
     val examples = Paths.get("src/examples/loam")
     
     val loamFiles = examples.toFile.listFiles.filter(_.getName.endsWith(".loam")).map(_.toPath)
     
     val loamEngine = TestHelpers.loamEngine
-    
-    val compiler = new LoamCompiler
     
     for (loamFile <- loamFiles) {
       val scriptShot = loamEngine.loadFile(loamFile)
@@ -30,9 +28,9 @@ final class LoamRepositoryTest extends FunSuite {
       
       val script = scriptShot.get
       
-      val compileResult = compiler.compile(LoamProject(TestHelpers.config, script))
+      val compileResult = loamEngine.compile(LoamProject(TestHelpers.config, script))
       
-      val message = s"${script}\n${compileResult.report}"
+      val message = s"; Compilation failed for $loamFile:\n${compileResult.report}"
       
       assert(compileResult.isSuccess, message)
       assert(compileResult.isClean, message)

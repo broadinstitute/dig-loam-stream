@@ -166,9 +166,6 @@ final class LoamGraphTest extends FunSuite {
     assert(filtered.storeProducers === Map(phased -> phaseTool))
     assert(filtered.storeConsumers === Map(raw -> Set(phaseTool)))
     
-    assert(filtered.keysSameLists === graph.keysSameLists)
-    assert(filtered.keysSameSets === graph.keysSameSets)
-    
     assert(filtered.workDirs === Map(phaseTool -> TestHelpers.path(".")))
     
     assert(filtered.executionEnvironments === Map(phaseTool -> Environment.Local))

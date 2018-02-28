@@ -27,6 +27,7 @@ import java.io.FileWriter
 import loamstream.util.CanBeClosed
 import java.time.Instant
 import loamstream.util.IoUtils
+import java.io.Writer
 
 
 /**
@@ -121,6 +122,7 @@ final case class LoamEngine(
   
   //TODO: Find a good place for this; it's exposed so it can be called from here and loamstream.apps.Main
   def listJobsThatCouldRun(jobsThatCouldRun: => Iterable[LJob]): Unit = {
+    
     val outputFile = config.executionConfig.dryRunOutputFile
     
     lazy val jobs = jobsThatCouldRun

@@ -1,78 +1,173 @@
 package loamstream.compiler
 
-import java.nio.file.{Path, Files => JFiles}
+import java.nio.file.{ Files => JFiles }
 
-import loamstream.compiler.LoamEngineTest.Fixture
-import loamstream.util.{Files, StringUtils}
 import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
+import loamstream.conf.ExecutionConfig
+import loamstream.loam.LoamCmdTool
+import loamstream.model.execute.Environment
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.util.Files
+import loamstream.util.PathEnrichments
+
 
 /**
  * @author clint
- * @author oliver
  * Feb 27, 2018
  */
 final class LoamEngineTest extends FunSuite {
+  import loamstream.TestHelpers.{ config, path } 
+  
   private val engine: LoamEngine = TestHelpers.loamEngine
-
-  test("TODO") {
-    fail()
+  
+  private val cpDotLoam = path("src/examples/loam/cp.loam")
+  private val firstDotLoam = path("src/examples/loam/first.loam")
+  
+  test("loadFile") {
+    val script = engine.loadFile(cpDotLoam).get
+    
+    assert(script.name === "cp")
+    assert(script.subPackage === None)
+    assert(script.code === Files.readFrom(cpDotLoam))
   }
-}
-
-/**
-  * LoamStream
-  * Created by oliverr on 7/8/2016.
-  */
-object LoamEngineTest {
-
-  private object Fixture {
-    def default: Fixture = {
-      val folder = JFiles.createTempDirectory("LoamEngineTest")
-      val fileIn = folder.resolve("fileIn.txt")
-      Files.writeTo(fileIn)("Hello World!")
-      val fileOut1 = folder.resolve("fileOut1.txt")
-      val fileOut2 = folder.resolve("fileOut1.txt")
-      val fileOut3 = folder.resolve("fileOut1.txt")
-      Fixture(fileIn, fileOut1, fileOut2, fileOut3)
+  
+  test("scriptsFrom") {
+    //Empty list of files
+    assert(engine.scriptsFrom(Nil).get === Nil)
+    
+    //One file
+    {
+      val scripts = engine.scriptsFrom(Seq(cpDotLoam)).get
+      
+      assert(scripts.size === 1)
+      
+      val cpScript = scripts.head
+    
+      assert(cpScript.name === "cp")
+      assert(cpScript.subPackage === None)
+      assert(cpScript.code === Files.readFrom(cpDotLoam))
     }
+
+    //Multiple files
+    val loamFiles = Seq(cpDotLoam, firstDotLoam)
+        
+    val scripts = engine.scriptsFrom(loamFiles).get
+    
+    val cpScript = scripts.find(_.name == "cp").get
+    
+    val firstScript = scripts.find(_.name == "first").get
+    
+    assert(cpScript.name === "cp")
+    assert(cpScript.subPackage === None)
+    assert(cpScript.code === Files.readFrom(cpDotLoam))
+    
+    assert(firstScript.name === "first")
+    assert(firstScript.subPackage === None)
+    assert(firstScript.code === Files.readFrom(firstDotLoam))
   }
-
-  private final case class Fixture(fileIn: Path, fileOut1: Path, fileOut2: Path, fileOut3: Path) {
-    def code = {
-      val fileInUnescaped = StringUtils.unescapeBackslashes(fileIn.toString)
-      val fileOut1Unescaped = StringUtils.unescapeBackslashes(fileOut1.toString)
-      val fileOut2Unescaped = StringUtils.unescapeBackslashes(fileOut2.toString)
-      val fileOut3Unescaped = StringUtils.unescapeBackslashes(fileOut3.toString)
-      s"""
-         |val fileIn = store.at("$fileInUnescaped").asInput
-         |val fileTmp1 = store
-         |val fileTmp2 = store
-         |val fileOut1 = store.at("$fileOut1Unescaped")
-         |val fileOut2 = store.at("$fileOut2Unescaped")
-         |val fileOut3 = store.at("$fileOut3Unescaped")
-         |cmd"cp $$fileIn $$fileTmp1"
-         |cmd"cp $$fileTmp1 $$fileTmp2"
-         |cmd"cp $$fileTmp2 $$fileOut1"
-         |cmd"cp $$fileTmp2 $$fileOut2"
-         |cmd"cp $$fileTmp2 $$fileOut3"
-    """.stripMargin
-    }
-
-    def assertCompileResultsLookGood(compileResult: LoamCompiler.Result): Unit = {
-      assert(compileResult.isSuccess, compileResult)
-      assert(compileResult.isClean, compileResult)
-      assert(compileResult.contextOpt.get.graph.stores.size == 6, compileResult)
-      assert(compileResult.contextOpt.get.graph.tools.size == 5, compileResult)
-    }
-
-    def writeFileIn(): Unit = Files.writeTo(fileIn)("Hello World!")
-
-    def assertOutputFilesArePresent(): Unit = {
-      assert(JFiles.exists(fileOut1))
-      assert(JFiles.exists(fileOut2))
-      assert(JFiles.exists(fileOut3))
-    }
+  
+  test("compile") {
+    val script = engine.loadFile(firstDotLoam).get
+    
+    val project = LoamProject(config, Set(script))
+    
+    val results = engine.compile(project)
+    
+    assert(results.errors === Nil)
+    assert(results.infos === Nil)
+    assert(results.warnings === Nil)
+    assert(results.exOpt === None)
+    assert(results.contextOpt.isDefined)
+    
+    val graph = results.contextOpt.get.graph
+    
+    assert(graph.stores.size === 2)
+    assert(graph.tools.size === 1)
   }
+  
+  test("compileFiles") {
+    val results = engine.compileFiles(Seq(cpDotLoam, firstDotLoam)).get
+    
+    assert(results.errors === Nil)
+    assert(results.infos === Nil)
+    assert(results.warnings === Nil)
+    assert(results.exOpt === None)
+    assert(results.contextOpt.isDefined)
+    
+    val graph = results.contextOpt.get.graph
+    
+    assert(graph.stores.size === 8)
+    assert(graph.tools.size === 6)
+  }
+  
+  test("run") {
+    val tempDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+    
+    import PathEnrichments._
 
+    val inputFile = tempDir / "A"
+    val outputFile = tempDir / "B"
+    
+    Files.writeTo(inputFile)("XYZ")
+    
+    val graph = TestHelpers.makeGraph { implicit context =>
+      import LoamPredef._
+      import LoamCmdTool._
+
+      val input = store.at(inputFile).asInput
+      val output = store.at(outputFile)
+      
+      cmd"cp $input $output".in(input).out(output)
+    }
+    
+    assert(JFiles.exists(inputFile))
+    assert(Files.readFrom(inputFile) === "XYZ")
+    
+    assert(JFiles.exists(outputFile) === false)
+    
+    val results = engine.run(graph)
+    
+    assert(results.size === 1)
+    
+    assert(results.values.head.isSuccess === true)
+    
+    assert(JFiles.exists(inputFile))
+    assert(Files.readFrom(inputFile) === "XYZ")
+    
+    assert(JFiles.exists(outputFile))
+    assert(Files.readFrom(outputFile) === "XYZ")
+  }
+  
+  test("listJobsThatCouldRun") {
+    
+    val tempDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+    
+    val outputFile = tempDir.resolve("dryRunOutput")
+    
+    val localConfig = config.copy(executionConfig = ExecutionConfig.default.copy(dryRunOutputFile = outputFile))
+    
+    val localEngine = LoamEngine.default(localConfig)
+    
+    def job(commandLine: String) = CommandLineJob(commandLine, path("."), Environment.Local)
+    
+    val j0 = job("foo")
+    val j1 = job("bar")
+    val j2 = job("baz")
+    
+    val jobs = Seq(j0, j1, j2)
+    
+    assert(JFiles.exists(outputFile) === false)
+    
+    localEngine.listJobsThatCouldRun(jobs)
+    
+    assert(JFiles.exists(outputFile) === true)
+    
+    val actuallyOutput = Files.getLines(outputFile)
+    
+    assert(actuallyOutput(0).endsWith(j0.toString))
+    assert(actuallyOutput(1).endsWith(j1.toString))
+    assert(actuallyOutput(2).endsWith(j2.toString))
+  }
 }

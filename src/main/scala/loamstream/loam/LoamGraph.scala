@@ -4,11 +4,11 @@ import java.net.URI
 import java.nio.file.Path
 
 import loamstream.loam.LoamGraph.StoreLocation
-import loamstream.model.Tool.{AllStores, InputsAndOutputs}
-import loamstream.model.{Store, Tool}
+import loamstream.model.Store
+import loamstream.model.Tool
+import loamstream.model.Tool.AllStores
+import loamstream.model.Tool.InputsAndOutputs
 import loamstream.model.execute.Environment
-import loamstream.util.{Equivalences, Maps}
-import loamstream.util.Traversables
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
@@ -108,7 +108,7 @@ final case class LoamGraph(
       if (tool.id == existing.id) { replacement } else { tool }
     }
 
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
 
     copy(
       tools = tools.map(replace),
@@ -270,7 +270,7 @@ final case class LoamGraph(
     else {
       type UStore = Store
       
-      import Traversables.Implicits._
+      import loamstream.util.Traversables.Implicits._
       
       val retainedInputs: Set[UStore] = toolsToKeep.flatMap(toolInputs(_))
       val retainedOutputs: Set[UStore] = toolsToKeep.flatMap(toolOutputs(_))
@@ -282,7 +282,7 @@ final case class LoamGraph(
       
       val retainedStores = retainedInputStores ++ retainedInputs ++ retainedOutputs
       
-      import Maps.Implicits._
+      import loamstream.util.Maps.Implicits._
       
       val retainedStoreLocations = storeLocations.filterKeys(retainedStores)
       val retainedStoreProducers = storeProducers.filterKeys(retainedStores).filterValues(toolsToKeep)

@@ -6,10 +6,10 @@ package loamstream.util.code
   */
 object ReflectionUtil {
 
-  private val nullAsDummyValue = null // scalastyle:ignore null
-
   /** Encodes object name and creates instance of it */
   def getObject[T](classLoader: ClassLoader, scalaObjectId: ObjectId): T = {
+    val nullAsDummyValue = null // scalastyle:ignore null
+    
     classLoader.loadClass(scalaObjectId.inJvmFull).getField("MODULE$").get(nullAsDummyValue).asInstanceOf[T]
   }
 

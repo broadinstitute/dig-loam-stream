@@ -4,11 +4,11 @@ import java.net.URI
 import java.nio.file.Path
 
 import loamstream.loam.LoamGraph.StoreLocation
-import loamstream.model.Tool.{AllStores, InputsAndOutputs}
-import loamstream.model.{Store, Tool}
+import loamstream.model.Store
+import loamstream.model.Tool
+import loamstream.model.Tool.AllStores
+import loamstream.model.Tool.InputsAndOutputs
 import loamstream.model.execute.Environment
-import loamstream.util.{Equivalences, Maps}
-import loamstream.util.Traversables
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
@@ -42,8 +42,6 @@ object LoamGraph {
       storeLocations = Map.empty,
       storeProducers = Map.empty,
       storeConsumers = Map.empty,
-      keysSameSets = Equivalences.empty,
-      keysSameLists = Equivalences.empty,
       workDirs = Map.empty,
       executionEnvironments = Map.empty,
       namedTools = Map.empty)
@@ -60,8 +58,6 @@ final case class LoamGraph(
     storeLocations: Map[Store, StoreLocation],
     storeProducers: Map[Store, Tool],
     storeConsumers: Map[Store, Set[Tool]],
-    keysSameSets: Equivalences[LoamStoreKeySlot],
-    keysSameLists: Equivalences[LoamStoreKeySlot],
     //TODO: put "metadata" (work dirs, tool names, environments) that's not directly related to tool-store topologies
     //somewhere else?  For now, following the established pattern.  -Clint Nov 9, 2017
     workDirs: Map[Tool, Path],
@@ -112,7 +108,7 @@ final case class LoamGraph(
       if (tool.id == existing.id) { replacement } else { tool }
     }
 
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
 
     copy(
       tools = tools.map(replace),
@@ -131,28 +127,6 @@ final case class LoamGraph(
   /** Returns graph with store location (path or URI) added */
   def withStoreLocation(store: Store, location: StoreLocation): LoamGraph = {
     copy(storeLocations = storeLocations + (store -> location))
-  }
-
-  /** Returns graph with key sets equivalence added */
-  def withKeysSameSet(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): LoamGraph = {
-    copy(keysSameSets = keysSameSets.withTheseEqual(slot1, slot2))
-  }
-
-  /** Returns graph with key lists (sets implied) equivalence added */
-  def withKeysSameList(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): LoamGraph = {
-    copy(
-      keysSameSets = keysSameSets.withTheseEqual(slot1, slot2),
-      keysSameLists = keysSameLists.withTheseEqual(slot1, slot2))
-  }
-
-  /** True if slots have same key set */
-  def areSameKeySets(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): Boolean = {
-    keysSameSets.theseAreEqual(slot1, slot2)
-  }
-
-  /** True if slots have same key list */
-  def areSameKeyLists(slot1: LoamStoreKeySlot, slot2: LoamStoreKeySlot): Boolean = {
-    keysSameLists.theseAreEqual(slot1, slot2)
   }
 
   /** Tools that produce a store consumed by this tool */
@@ -296,7 +270,7 @@ final case class LoamGraph(
     else {
       type UStore = Store
       
-      import Traversables.Implicits._
+      import loamstream.util.Traversables.Implicits._
       
       val retainedInputs: Set[UStore] = toolsToKeep.flatMap(toolInputs(_))
       val retainedOutputs: Set[UStore] = toolsToKeep.flatMap(toolOutputs(_))
@@ -308,7 +282,7 @@ final case class LoamGraph(
       
       val retainedStores = retainedInputStores ++ retainedInputs ++ retainedOutputs
       
-      import Maps.Implicits._
+      import loamstream.util.Maps.Implicits._
       
       val retainedStoreLocations = storeLocations.filterKeys(retainedStores)
       val retainedStoreProducers = storeProducers.filterKeys(retainedStores).filterValues(toolsToKeep)
@@ -318,9 +292,6 @@ final case class LoamGraph(
       val retainedWorkDirs = workDirs.filterKeys(toolsToKeep)
       val retainedExecutionEnvironments = executionEnvironments.filterKeys(toolsToKeep)
   
-      val retainedKeysSameSets = keysSameSets //TODO: correct?
-      val retainedKeysSameLists = keysSameLists //TODO: correct?
-      
       val retainedNamedTools = namedTools.filterValues(toolsToKeep)
       
       LoamGraph(
@@ -332,8 +303,6 @@ final case class LoamGraph(
           storeLocations = retainedStoreLocations,
           storeProducers = retainedStoreProducers,
           storeConsumers = retainedStoreConsumers,
-          keysSameSets = retainedKeysSameSets,
-          keysSameLists = retainedKeysSameLists,
           workDirs = retainedWorkDirs,
           executionEnvironments = retainedExecutionEnvironments,
           namedTools = retainedNamedTools)

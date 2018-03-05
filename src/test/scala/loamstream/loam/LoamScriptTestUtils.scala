@@ -5,9 +5,17 @@ import java.nio.file.{Path, Files => JFiles}
 import loamstream.compiler.LoamEngine
 import loamstream.util.Files
 import loamstream.TestHelpers
+import loamstream.compiler.LoamProject
+import loamstream.util.Loggable
+import loamstream.util.Hit
+import loamstream.util.Miss
+import loamstream.compiler.LoamCompiler
+import loamstream.util.Shot
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.Execution
 
 /** Utils for testing specific LoamScripts */
-object LoamScriptTestUtils {
+object LoamScriptTestUtils extends Loggable {
 
   trait FilePaths {
     def rootDir: Path
@@ -55,9 +63,31 @@ object LoamScriptTestUtils {
   def testScripts(scripts: Iterable[LoamScript], filePaths: FilePaths): Unit = {
     createInputFiles(filePaths)
     val engine = TestHelpers.loamEngine
-    val results = engine.run(scripts)
+    
+    val results = run(engine, LoamProject(TestHelpers.config, scripts))
+    
     assert(results.jobExecutionsOpt.nonEmpty, results.compileResultOpt)
     assertOutputFilesExist(filePaths)
   }
 
+  private final case class Result(
+      compileResultOpt: Shot[LoamCompiler.Result],
+      jobExecutionsOpt: Shot[Map[LJob, Execution]])
+  
+  private def run(engine: LoamEngine, project: LoamProject): Result = {
+    info(s"Now compiling project with ${project.scripts.size} scripts.")
+    
+    val compileResults = engine.compile(project)
+    
+    if (compileResults.isValid) {
+      info(compileResults.summary)
+      //TODO: What if compileResults.contextOpt is None?
+      val context = compileResults.contextOpt.get
+      val jobResults = engine.run(context.graph)
+      Result(Hit(compileResults), Hit(jobResults))
+    } else {
+      error("Could not compile.")
+      Result(Hit(compileResults), Miss("Could not compile"))
+    }
+  }
 }

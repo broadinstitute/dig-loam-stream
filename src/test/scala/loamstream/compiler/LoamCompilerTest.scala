@@ -2,7 +2,6 @@ package loamstream.compiler
 
 import java.nio.file.Paths
 
-import loamstream.compiler.repo.LoamRepository
 import loamstream.loam.{LoamGraphValidation, LoamScript}
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
@@ -63,13 +62,14 @@ final class LoamCompilerTest extends FunSuite {
   test("Testing sample code toyImpute.loam") {
     val compiler = new LoamCompiler
 
-    val exampleDir = Paths.get("src/examples/loam")
+    val exampleFile = Paths.get("src/examples/loam/toyImpute.loam")
 
-    val exampleRepo = LoamRepository.ofFolder(exampleDir)
-
-    val codeShot = exampleRepo.load("toyImpute").map(_.code)
-    assert(codeShot.nonEmpty)
-    val result = compiler.compile(TestHelpers.config, LoamScript("LoamCompilerTestScript1", codeShot.get))
+    val scriptShot = TestHelpers.loamEngine.loadFile(exampleFile)
+        
+    assert(scriptShot.nonEmpty)
+    
+    val result = compiler.compile(LoamProject(TestHelpers.config, scriptShot.get))
+    
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)
     val graph = result.contextOpt.get.graph

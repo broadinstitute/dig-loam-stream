@@ -53,12 +53,16 @@ final case class RxExecuter(
     
     val ioScheduler: Scheduler = IOScheduler()
     
-    //An Observable stream of jobs runs; each job is emitted when it becomes runnable.  This can be because the
+    //An Observable stream of job runs; each job is emitted when it becomes runnable.  This can be because the
     //job's dependencies finished successfully, or because the job failed and we've decided to restart it.
-    //Note the use of `distinct`.  It's brute force, but simplifies the logic here and in LJob for the case where
-    //multiple 'root' jobs depend on the same upstream job.  In this case, without `distinct`, the upstream job
-    //would be run twice.
-    val runnables: Observable[JobRun] = executable.multiplex(_.runnables).distinct
+    //
+    //Previously, job runs were de-duped here with .distinct, but this caused too much memory to be used, especially
+    //in the case of "diamond-shaped" topologies.  (This was always the case, but the issue became more acute when
+    //processing the FUSION dataset - which led to a larger and more complex topology of jobs - and when JobNode was
+    //switched to using caching observables.  The latter in particular led to combinatorial explosions in the number
+    //of job run objects in some cases.  De-duping here worked, but was "too late" - the damage in terms of heap
+    //usage had already been done.
+    val runnables: Observable[JobRun] = executable.multiplex(_.runnables)
     
     //An observable stream of "chunks" of runnable jobs, with each chunk represented as a Seq.
     //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'

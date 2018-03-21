@@ -18,6 +18,8 @@ lazy val Versions = new {
   val RxScala = "0.26.5"
   val Ficus = "1.4.3"
   val Squants = "1.3.0"
+  val LogbackColorizer = "1.0.1"
+  val Janino = "3.0.8"
 }
 
 lazy val Orgs = new {
@@ -52,7 +54,9 @@ lazy val mainDeps = Seq(
   "com.google.cloud" % "google-cloud-storage" % Versions.GoogleCloudStorage,
   "com.google.auth" % "google-auth-library-credentials" % Versions.GoogleAuth,
   "com.iheart" %% "ficus" % Versions.Ficus,
-  "org.typelevel"  %% "squants"  % Versions.Squants
+  "org.typelevel"  %% "squants"  % Versions.Squants,
+  "org.tuxdude.logback.extensions" % "logback-colorizer" % Versions.LogbackColorizer,
+  "org.codehaus.janino" % "janino" % Versions.Janino
 )
 
 lazy val testDeps = Seq(

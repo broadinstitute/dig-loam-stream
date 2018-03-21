@@ -1,9 +1,32 @@
 <configuration debug="false">
+
+    <!-- The order of specifying the log colors for different log levels is:
+         Error, Warn, Info, Debug, Trace -->
+    <property scope="context" name="COLORIZER_COLORS" value="boldred@white,yellow@black,green@,blue@,cyan@" />
+    
+    <conversionRule conversionWord="colorize" converterClass="org.tuxdude.logback.extensions.LogColorizer" />
+
+    <property scope="local" name="noColorPattern" value="%date %level [%thread] [%logger{10}] %msg %n" />
+
+    <!-- Colored log output is on by default; to switch it off, define the loamstream-log-nocolor system property:
+         java -Dloamstream-log-nocolor -jar foo.jar some.main.Class
+     -->
+    <if condition='isDefined("loamstream-log-nocolor")'>
+        <then>
+            <property scope="local" name="consolePattern" value="${noColorPattern}" />
+        </then>
+        <else>
+            <property
+                scope="local"
+                name="consolePattern"
+                value="%white(%date) %colorize(%level [%thread] [%logger{10}] %msg) %n" />
+        </else>
+    </if>
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <!-- encoders are assigned the type
-            ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
-            <pattern>%date %level [%thread] [%logger{10}] %msg%n</pattern>
+            <!-- <pattern>%white(%date) %colorize(%-5level [%thread] [%logger{10}] %msg) %n</pattern> -->
+            <pattern>${consolePattern}</pattern>
         </encoder>
     </appender>
 
@@ -11,7 +34,7 @@
         <file>out/loamStream.log</file>
         <append>false</append>
         <encoder>
-            <pattern>%date %level [%thread] [%logger{10}] %msg%n</pattern>
+            <pattern>${noColorPattern}</pattern>
         </encoder>
     </appender>
     

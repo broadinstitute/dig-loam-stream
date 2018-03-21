@@ -4,6 +4,7 @@
          Error, Warn, Info, Debug, Trace -->
     <property scope="context" name="COLORIZER_COLORS" value="boldred@white,yellow@black,green@,blue@,cyan@" />
     
+    <!-- Enables %colorize(...) in patterns -->
     <conversionRule conversionWord="colorize" converterClass="org.tuxdude.logback.extensions.LogColorizer" />
 
     <property scope="local" name="noColorPattern" value="%date %level [%thread] [%logger{10}] %msg %n" />

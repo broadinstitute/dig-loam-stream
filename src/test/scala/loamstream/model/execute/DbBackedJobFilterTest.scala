@@ -255,7 +255,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
   
-  test("needsToBeRun/hasDifferentHash/isOlder - should hash") {
+  test("needsToBeRun/hasDifferentHash/hasDifferentModTime - should hash") {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
       
@@ -280,7 +280,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       }
 
       // Missing record:  'hasDifferentHash' --> false
-      //                  'isOlder --> false
+      //                  'hasDifferentModTime --> false
       //                  'needsToBeRun' --> true
       assert(cachedNonExistentOutput.isMissing)
       assert(filter.hasDifferentHash(cachedNonExistentOutput) === false)
@@ -337,7 +337,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
   
-  test("needsToBeRun/hasDifferentHash/isOlder - hashing disabled") {
+  test("needsToBeRun/hasDifferentHash/hasDifferentModTime - hashing disabled") {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.DontHashOutputs)
       val jobName = "dummyJob"
@@ -361,7 +361,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
       }
 
       // Missing record:  'hasDifferentHash' --> false
-      //                  'isOlder --> false
+      //                  'hasDifferentModTime --> false
       //                  'needsToBeRun' --> true
       assert(cachedNonExistentOutput.isMissing)
       assert(filter.hasDifferentHash(cachedNonExistentOutput) === false)

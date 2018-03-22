@@ -21,11 +21,11 @@ final case class OutputRecord(loc: String,
 
   def isMissing: Boolean = !isPresent
 
-  def isOlderThan(other: OutputRecord): Boolean = {
+  def hasDifferentModTimeThan(other: OutputRecord): Boolean = {
     val resultOpt = for {
       timestamp <- lastModified
       otherTimestamp <- other.lastModified
-    } yield timestamp.isBefore(otherTimestamp)
+    } yield timestamp != otherTimestamp
     
     resultOpt.getOrElse(false)
   }

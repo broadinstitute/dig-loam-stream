@@ -57,16 +57,16 @@ class OutputRecordTest extends FunSuite {
     assert(emptyRec.hasDifferentHashThan(fooRec))
   }
 
-  test("isOlderThan/withLastModified") {
-    assert(!fooRec.isOlderThan(fooRecCopy))
-    assert(!fooRecCopy.isOlderThan(fooRec))
-    assert(!fooRec.isOlderThan(nonExistingRec))
-    assert(!nonExistingRec.isOlderThan(fooRec))
+  test("hasDifferentModTimeThan/withLastModified") {
+    assert(!fooRec.hasDifferentModTimeThan(fooRecCopy))
+    assert(!fooRecCopy.hasDifferentModTimeThan(fooRec))
+    assert(!fooRec.hasDifferentModTimeThan(nonExistingRec))
+    assert(!nonExistingRec.hasDifferentModTimeThan(fooRec))
 
     val newRec = fooRec.withLastModified(Instant.now())
     
-    assert(fooRec.isOlderThan(newRec))
-    assert(!newRec.isOlderThan(fooRec))
+    assert(fooRec.hasDifferentModTimeThan(newRec))
+    assert(newRec.hasDifferentModTimeThan(fooRec))
   }
 
 }

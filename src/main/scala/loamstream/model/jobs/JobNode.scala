@@ -157,9 +157,16 @@ trait JobNode extends Loggable {
     }
 
     //Emit the current job *after* all our dependencies
+    //
     //NB: Note use of .shareReplay which allows re-using this Observable, 
-    //saving lots of memory when running complex pipelines
-    (dependencyRunnables ++ selfRunnables).shareReplay
+    //saving lots of memory when running complex pipelines.
+    //
+    //NB: Note the use of `distinct`.  It's brute force, but simplifies the logic for the case where
+    //multiple 'root' jobs depend on the same upstream job.  In this case, without `distinct`, the upstream job
+    //would be run twice.  Additionally, due to diamond-shaped topologies, a combinatorial explosion in the number of
+    //JobRuns can occur.  It saves significant amounts of heap to mitigate that by de-duping here, at each node,
+    //instead of at the roots only.
+    (dependencyRunnables ++ selfRunnables).distinct.shareReplay
   }
   
   /**
@@ -213,7 +220,16 @@ trait JobNode extends Loggable {
 
 object JobNode {
   /** Extension method to allow convenient, memory-efficient-enough multicasting */ 
-  private implicit final class ObservableOps[A](val o: Observable[A]) extends AnyVal { 
+  private implicit final class ObservableOps[A](val o: Observable[A]) extends AnyVal {
+    //NB: .share enables multicasting, .cache allows replaying all items emitted by `o`
+    //to all future subscribers, at the cost of memory.  This is used (too) liberally here,
+    //to work around what I *think* are init-order problems.  My gut feeling is that once the
+    //forest of JobNodes and their associated Observables are wired up, we shouldn't need to
+    //replay everything, since nothing will subscribe to any Observables after items have begun 
+    //moving through them, but I could never get the tests working without .cache or .replay, etc.
+    //.cache and the liberal use of this method costs a non-trivial amount of of ram, so it would 
+    //be very good to make this method unneccessary, or use a different design from the one here in
+    //JobNode. -Clint Mar 14, 2018
     def shareReplay: Observable[A] = o.share.cache 
   }
 }

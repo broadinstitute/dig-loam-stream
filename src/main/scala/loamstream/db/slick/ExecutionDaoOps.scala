@@ -60,12 +60,10 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     }
   }
 
-  override def findExecution(output: OutputRecord): Option[Execution] = {
-
-    val lookingFor = output.loc
+  override def findExecution(outputLocation: String): Option[Execution] = {
 
     val executionForPath = for {
-      output <- tables.outputs.filter(_.locator === lookingFor)
+      output <- tables.outputs.filter(_.locator === outputLocation)
       execution <- output.execution
     } yield {
       execution

@@ -4,15 +4,18 @@ import java.nio.file.Path
 import java.time.Instant
 
 import scala.util.Try
-import loamstream.model.jobs.{Execution, OutputRecord}
-import loamstream.util.{Hash, PathUtils}
+
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.OutputRecord
+import loamstream.util.Hash
+import loamstream.util.PathUtils
 
 /**
  * @author clint
  * date: Aug 12, 2016
  */
 trait ProvidesSlickLoamDao {
-  protected val descriptor: DbDescriptor = TestDbDescriptors.inMemoryH2
+  protected val descriptor: DbDescriptor = DbDescriptor.inMemory
   
   protected lazy val dao: SlickLoamDao = new SlickLoamDao(descriptor)
   

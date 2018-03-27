@@ -34,7 +34,7 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     
     val outputPollingFrequencyInHz: Double = 0.1
     
-    val anonStoreDir = Paths.get("/tmp")
+    val anonStoreDir = Paths.get(System.getProperty("java.io.tmpdir", "/tmp"))
   }
   
   val default: ExecutionConfig = ExecutionConfig()

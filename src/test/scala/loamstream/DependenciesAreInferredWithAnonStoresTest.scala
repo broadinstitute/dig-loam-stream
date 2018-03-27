@@ -204,49 +204,4 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
     assert(exists(outPath0) === false)
     assert(exists(outPath1) === false)
   }
-  
-  ignore("src/examples/loam/cp.loam") {
-    val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
-    
-    val nonExistentInputPath = path("/some/nonexistent/path/in")
-    
-    val (graph, anon0, anon1) = TestHelpers.withScriptContext { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
-      
-      val nonexistent = store.at(nonExistentInputPath).asInput
-      val fileTmp1 = store
-      val fileTmp2 = store
-      val fileOut1 = store.at(workDir / "fileOut1.txt")
-      val fileOut2 = store.at(workDir / "fileOut2.txt")
-      val fileOut3 = store.at(workDir / "fileOut3.txt")
-      cmd"cp $nonexistent $fileTmp1".in(nonexistent).out(fileTmp1)
-      cmd"cp $fileTmp1 $fileTmp2".in(fileTmp1).out(fileTmp2)
-      cmd"cp $fileTmp2 $fileOut1".in(fileTmp2).out(fileOut1)
-      cmd"cp $fileTmp2 $fileOut2".in(fileTmp2).out(fileOut2)
-      cmd"cp $fileTmp2 $fileOut3".in(fileTmp2).out(fileOut3)
-      
-      (context.projectContext.graph, fileTmp1, fileTmp2)
-    }
-    
-    assert(exists(nonExistentInputPath) === false)
-    
-    val resultMap = TestHelpers.loamEngine.run(graph)
-
-    for {
-      (job, execution) <- resultMap
-    } {
-      println(s"'${job.asInstanceOf[CommandLineJob].commandLineString}' => ${execution.result.get} (${Files.readFrom(execution.outputStreams.get.stderr).trim})")
-    }
-    
-    println(s"Anon0 path: ${anon0.path}")
-    println(s"Anon1 path: ${anon1.path}")
-    
-    assert(exists(anon0.path) === false)
-    assert(exists(anon1.path) === false)
-    
-    //assert(resultMap.values.forall(_.isFailure))
-    
-    assert(resultMap.size === 1)
-  }
 }

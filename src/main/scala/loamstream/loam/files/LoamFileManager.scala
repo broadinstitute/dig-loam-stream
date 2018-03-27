@@ -5,30 +5,23 @@ import java.net.URI
 import loamstream.model.Store
 import loamstream.util.{BashScript, ValueBox}
 import loamstream.loam.HasLocation
+import loamstream.conf.ExecutionConfig
 
 /**
   * LoamStream
   * Created by oliverr on 6/22/2016.
   */
-final class LoamFileManager {
+final class LoamFileManager(executionConfig: ExecutionConfig) {
   import BashScript.Implicits._
-
+  import LoamFileManager.tempPath
+  
   private val pathsBox: ValueBox[Map[HasLocation, Path]] = ValueBox(Map.empty)
-
-  val filePrefix = "loam"
-
-  def tempPath(paths: Map[HasLocation, Path], store: HasLocation, fileSuffix: String = "txt") = {
-    val path = Files.createTempFile(filePrefix, s".$fileSuffix")
-
-    // updated paths and resulting file path
-    (paths + (store -> path), path)
-  }
-
+  
   def getPath(store: HasLocation): Path = {
     pathsBox.getAndUpdate { paths =>
       paths.get(store).orElse(store.pathOpt) match {
         case Some(path) => (paths, path)
-        case None       => tempPath(paths, store)
+        case None       => tempPath(executionConfig, paths, store)
       }
     }
   }
@@ -43,7 +36,8 @@ final class LoamFileManager {
 
         // create a temp file
         case _ => {
-          val (newPaths, path) = tempPath(paths, store)
+          val (newPaths, path) = tempPath(executionConfig, paths, store)
+          
           (newPaths, path.render)
         }
       }
@@ -52,11 +46,22 @@ final class LoamFileManager {
 }
 
 object LoamFileManager {
-  def apply(initial: Map[HasLocation, Path] = Map.empty): LoamFileManager = {
-    val result = new LoamFileManager
+  def apply(executionConfig: ExecutionConfig, initial: Map[HasLocation, Path] = Map.empty): LoamFileManager = {
+    val result = new LoamFileManager(executionConfig)
 
     result.pathsBox := initial
 
     result
+  }
+  
+  private[files] def tempPath(
+      executionConfig: ExecutionConfig,
+      paths: Map[HasLocation, Path], 
+      store: HasLocation): (Map[HasLocation, Path], Path) = {
+    
+    val path = Files.createTempFile(executionConfig.anonStoreDir, "loam", ".txt")
+
+    // updated paths and resulting file path
+    (paths + (store -> path), path)
   }
 }

@@ -16,7 +16,8 @@ final case class ExecutionConfig(
     jobOutputDir: Path = Defaults.jobOutputDir,
     maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs,
     outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
-    dryRunOutputFile: Path = Defaults.dryRunOutputFile)
+    dryRunOutputFile: Path = Defaults.dryRunOutputFile,
+    anonStoreDir: Path = Defaults.anonStoreDir)
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
@@ -32,6 +33,8 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     val maxWaitTimeForOutputs: Duration = 30.seconds
     
     val outputPollingFrequencyInHz: Double = 0.1
+    
+    val anonStoreDir = Paths.get("/tmp")
   }
   
   val default: ExecutionConfig = ExecutionConfig()

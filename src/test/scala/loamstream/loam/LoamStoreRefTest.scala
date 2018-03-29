@@ -4,12 +4,13 @@ import loamstream.loam.files.LoamFileManager
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.model.Store
+import loamstream.conf.ExecutionConfig
 
 /** Tests of LoamStoreRef, basically whether the path comes out right */
 final class LoamStoreRefTest extends FunSuite {
   private implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config))
   
-  private val fileManager = new LoamFileManager
+  private val fileManager = new LoamFileManager(ExecutionConfig.default)
   
   test("Adding a suffix to the path of a store.") {
     val path = "a/b/c/myfile.txt"

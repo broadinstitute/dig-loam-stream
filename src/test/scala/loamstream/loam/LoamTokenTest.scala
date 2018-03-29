@@ -1,12 +1,19 @@
 package loamstream.loam
 
-import loamstream.loam.LoamToken.{StoreToken, StoreRefToken, StringToken, MultiToken, MultiStoreToken}
-import org.scalatest.FunSuite
-import loamstream.loam.files.LoamFileManager
-import loamstream.compiler.LoamPredef
-import loamstream.conf.LoamConfig
-import loamstream.TestHelpers
 import java.nio.file.Paths
+
+import org.scalatest.FunSuite
+
+import loamstream.TestHelpers
+import loamstream.compiler.LoamPredef
+import loamstream.conf.ExecutionConfig
+import loamstream.loam.LoamToken.MultiStoreToken
+import loamstream.loam.LoamToken.MultiToken
+import loamstream.loam.LoamToken.StoreRefToken
+import loamstream.loam.LoamToken.StoreToken
+import loamstream.loam.LoamToken.StringToken
+import loamstream.loam.files.LoamFileManager
+
 
 /**
  * @author clint
@@ -94,7 +101,7 @@ final class LoamTokenTest extends FunSuite {
 
     val fooPath = Paths.get("foo.txt")
 
-    val fileManager = LoamFileManager(Map(txtStore -> fooPath))
+    val fileManager = LoamFileManager(ExecutionConfig.default, Map(txtStore -> fooPath))
 
     assert(StoreToken(txtStore).toString(fileManager) === fooPath.toString)
   }
@@ -115,7 +122,7 @@ final class LoamTokenTest extends FunSuite {
 
     val bazPath = Paths.get("baz")
 
-    val fileManager = LoamFileManager(Map(underlyingStore -> bazPath))
+    val fileManager = LoamFileManager(ExecutionConfig.default, Map(underlyingStore -> bazPath))
 
     assert(StoreRefToken(ref).toString(fileManager) === "baz.bar")
   }
@@ -143,7 +150,7 @@ final class LoamTokenTest extends FunSuite {
     val fooPath = Paths.get("foo.txt")
     val barPath = Paths.get("bar.vcf")
 
-    val fileManager = LoamFileManager(Map(txtStore -> fooPath, vcfStore -> barPath))
+    val fileManager = LoamFileManager(ExecutionConfig.default, Map(txtStore -> fooPath, vcfStore -> barPath))
 
     assert(MultiStoreToken(Seq(txtStore, vcfStore)).toString(fileManager) === s"$fooPath $barPath")
   }

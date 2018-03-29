@@ -134,7 +134,7 @@ final class LoamGraphTest extends FunSuite {
       val path = fileManager.getPath(store)
       val pathLastPart = path.getName(path.getNameCount - 1)
       assert(path === store.path)
-      assert(pathLastPart.toString.startsWith(fileManager.filePrefix) || store.pathOpt.contains(path))
+      assert(pathLastPart.toString.startsWith("loam") || store.pathOpt.contains(path))
     }
   }
   

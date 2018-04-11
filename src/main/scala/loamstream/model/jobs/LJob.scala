@@ -32,7 +32,7 @@ trait LJob extends JobNode {
 
   /** Any outputs produced by this job */
   def outputs: Set[Output]
-  
+
   //TODO
   override def job: LJob = this
 }

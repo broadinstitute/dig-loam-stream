@@ -53,13 +53,16 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
 
     val toolNameOpt = graph.nameOf(tool)
 
+    val dockerLocationOpt = graph.dockerLocations.get(tool)
+
     tool match {
-      case cmdTool: LoamCmdTool => {
-        Some(CommandLineJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs, nameOpt = toolNameOpt))
-      }
-      case nativeTool: LoamNativeTool[_] => {
+      case cmdTool: LoamCmdTool =>
+        Some(
+          CommandLineJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs, nameOpt = toolNameOpt,
+            dockerLocationOpt = dockerLocationOpt)
+        )
+      case nativeTool: LoamNativeTool[_] =>
         Some(NativeJob(nativeTool.expBox, inputJobs, outputs, nameOpt = toolNameOpt))
-      }
       case _ => None
     }
   }

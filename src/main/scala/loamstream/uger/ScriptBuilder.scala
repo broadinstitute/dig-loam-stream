@@ -24,8 +24,7 @@ private[uger] object ScriptBuilder {
         |reuse -q Java-1.8
         |
         |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$$PATH
-        |conda env create -f /humgen/diabetes/users/dig/hail/environment.yml
-        |source activate hail
+        |source activate loamstream_v1.0
         |
         |i=$$SGE_TASK_ID
         |      """.stripMargin

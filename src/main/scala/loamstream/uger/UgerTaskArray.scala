@@ -60,7 +60,15 @@ object UgerTaskArray {
    * A Uger job name, like `LoamStream-<uger-job-id-0>_<uger-job-id-1>..._<uger-job-id-N>`
    * NB: Built deterministically.
    */
-  private[uger] def makeJobName(jobs: Seq[CommandLineJob]): String = s"LoamStream-${jobs.map(_.id).mkString("_")}"
+
+  private def sha1(s: String): String =
+    java.security.MessageDigest.getInstance("SHA-1")
+      .digest(s.getBytes)
+      .map((b: Byte) => (if (b >= 0 & b < 16) "0" else "") + (b & 0xFF).toHexString)
+      .mkString
+
+  private[uger] def makeJobName(jobs: Seq[CommandLineJob]): String =
+    s"LoamStream-${sha1(jobs.map(_.id).mkString("_"))}"
 
   def fromCommandLineJobs(
       executionConfig: ExecutionConfig,

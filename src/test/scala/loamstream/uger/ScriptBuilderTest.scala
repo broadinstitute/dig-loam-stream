@@ -96,7 +96,7 @@ final class ScriptBuilderTest extends FunSuite {
     val (discriminator0, discriminator1, discriminator2) = discriminators
     val (jobId0, jobId1, jobId2) = jobIds
 
-    val jobName = s"LoamStream-${jobId0}_${jobId1}_${jobId2}"
+    val jobName = s"LoamStream-${UgerTaskArray.hashJobIds(Seq(jobId0.toInt, jobId1.toInt, jobId2.toInt))}"
 
     val ugerDir = path("/humgen/diabetes/users/kyuksel/imputation/shapeit_example").toAbsolutePath.render
     val outputDir = path("out/job-outputs").toAbsolutePath.render

@@ -61,14 +61,30 @@ object UgerTaskArray {
    * NB: Built deterministically.
    */
 
-  private def sha1(s: String): String =
+  private var jobIdMap = Map[String,Seq[Int]]()
+
+  // lookup a list of job IDs from the job SHA
+  def jobIdsOfSha(sha: String): Option[Seq[Int]] = jobIdMap.get(sha)
+
+  // hash a list of job IDs, which can grow too long for Uger
+  private[uger] def hashJobIds(jobIds: Seq[Int]): String =
     java.security.MessageDigest.getInstance("SHA-1")
-      .digest(s.getBytes)
+      .digest(jobIds.mkString("_").getBytes)
       .map((b: Byte) => (if (b >= 0 & b < 16) "0" else "") + (b & 0xFF).toHexString)
       .mkString
 
-  private[uger] def makeJobName(jobs: Seq[CommandLineJob]): String =
-    s"LoamStream-${sha1(jobs.map(_.id).mkString("_"))}"
+  // the job name is the hash of all the job IDs
+  private[uger] def makeJobName(jobs: Seq[CommandLineJob]): String = {
+    val jobIds = jobs.map(_.id)
+    val sha = hashJobIds(jobIds)
+
+    // record this short -> long name in the map (thread safe)
+    synchronized {
+      jobIdMap += (sha -> jobIds)
+    }
+
+    s"LoamStream-${sha}"
+  }
 
   def fromCommandLineJobs(
       executionConfig: ExecutionConfig,

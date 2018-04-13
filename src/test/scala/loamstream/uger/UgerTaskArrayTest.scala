@@ -40,9 +40,13 @@ final class UgerTaskArrayTest extends FunSuite {
 
     val jobName = UgerTaskArray.makeJobName(jobs)
 
-    val expected = s"LoamStream-${id0}_${id1}_${id2}"
+    // extract just the SHA from the job name
+    val sha = jobName.drop("LoamStream-".length)
+    val jobIds = UgerTaskArray.jobIdsOfSha(sha)
 
-    assert(jobName === expected)
+    val expected = Some(Seq(id0, id1, id2))
+
+    assert(jobIds === expected)
   }
 
   test("ugerStdOutPathTemplate") {

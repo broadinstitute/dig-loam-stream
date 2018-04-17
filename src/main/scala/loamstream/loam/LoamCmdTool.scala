@@ -113,4 +113,11 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
 
     updatedTool
   }
+
+  def withDockerLocation(dockerLocation: String): LoamCmdTool = {
+    scriptContext.projectContext.updateGraph{
+      graph => graph.withDockerLocation(this, dockerLocation)
+    }
+    this
+  }
 }

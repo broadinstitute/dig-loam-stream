@@ -7,7 +7,7 @@ import scala.io.Source
 import loamstream.TestHelpers
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamCmdTool
-import loamstream.compiler.LoamPredef
+import loamstream.compiler.{LoamEngine, LoamPredef}
 
 /**
   * @author clint
@@ -38,5 +38,37 @@ final class CommandLineJobTest extends FunSuite {
     }
 
     assert(numLines === 11)
+  }
+
+  test("Without Docker location") {
+    val graph = TestHelpers.makeGraph { implicit sc =>
+      import LoamCmdTool._
+      cmd"has no docker location"
+    }
+    assert(graph.tools.size === 1)
+    assert(graph.dockerLocations.isEmpty)
+    val executable = LoamEngine.toExecutable(graph)
+    val jobs = executable.jobNodes
+    assert(jobs.size === 1)
+    val job = jobs.head
+    assert(job.isInstanceOf[CommandLineJob])
+    assert(job.asInstanceOf[CommandLineJob].dockerLocationOpt === None)
+  }
+
+  test("With Docker location") {
+    val dockerLocation = "abc:xyz"
+    val graph = TestHelpers.makeGraph { implicit sc =>
+      import LoamCmdTool._
+      cmd"has no docker location".withDockerLocation(dockerLocation)
+    }
+    assert(graph.tools.size === 1)
+    assert(graph.dockerLocations.size === 1)
+    assert(graph.dockerLocations.values.head === dockerLocation)
+    val executable = LoamEngine.toExecutable(graph)
+    val jobs = executable.jobNodes
+    assert(jobs.size === 1)
+    val job = jobs.head
+    assert(job.isInstanceOf[CommandLineJob])
+    assert(job.asInstanceOf[CommandLineJob].dockerLocationOpt === Some(dockerLocation))
   }
 }

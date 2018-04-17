@@ -44,7 +44,8 @@ object LoamGraph {
       storeConsumers = Map.empty,
       workDirs = Map.empty,
       executionEnvironments = Map.empty,
-      namedTools = Map.empty)
+      namedTools = Map.empty,
+      dockerLocations = Map.empty)
   }
 }
 
@@ -62,7 +63,8 @@ final case class LoamGraph(
     //somewhere else?  For now, following the established pattern.  -Clint Nov 9, 2017
     workDirs: Map[Tool, Path],
     executionEnvironments: Map[Tool, Environment],
-    namedTools: Map[String, Tool]) {
+    namedTools: Map[String, Tool],
+    dockerLocations: Map[Tool, String]) {
 
   /** Returns graph with store added */
   def withStore(store: Store): LoamGraph = copy(stores = stores + store)
@@ -261,7 +263,10 @@ final case class LoamGraph(
     
     copy(namedTools = namedTools + (name -> tool))
   }
-  
+
+  def withDockerLocation(tool: Tool, dockerLocation: String): LoamGraph =
+    copy(dockerLocations = dockerLocations + (tool -> dockerLocation))
+
   def without(toolsToExclude: Set[Tool]): LoamGraph = containingOnly(tools -- toolsToExclude)
   
   private def containingOnly(toolsToKeep: Set[Tool]): LoamGraph = {
@@ -293,19 +298,22 @@ final case class LoamGraph(
       val retainedExecutionEnvironments = executionEnvironments.filterKeys(toolsToKeep)
   
       val retainedNamedTools = namedTools.filterValues(toolsToKeep)
-      
+
+      val retainedDockerLocations = dockerLocations.filterKeys(toolsToKeep)
+
       LoamGraph(
-          stores = retainedStores,
-          tools = toolsToKeep,
-          toolInputs = retainedToolsToInputs,
-          toolOutputs = retainedToolsToOutputs,
-          inputStores = retainedInputStores,
-          storeLocations = retainedStoreLocations,
-          storeProducers = retainedStoreProducers,
-          storeConsumers = retainedStoreConsumers,
-          workDirs = retainedWorkDirs,
-          executionEnvironments = retainedExecutionEnvironments,
-          namedTools = retainedNamedTools)
+        stores = retainedStores,
+        tools = toolsToKeep,
+        toolInputs = retainedToolsToInputs,
+        toolOutputs = retainedToolsToOutputs,
+        inputStores = retainedInputStores,
+        storeLocations = retainedStoreLocations,
+        storeProducers = retainedStoreProducers,
+        storeConsumers = retainedStoreConsumers,
+        workDirs = retainedWorkDirs,
+        executionEnvironments = retainedExecutionEnvironments,
+        namedTools = retainedNamedTools,
+        dockerLocations = retainedDockerLocations)
     }
   }
 }

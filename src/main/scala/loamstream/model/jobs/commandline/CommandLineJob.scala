@@ -1,32 +1,10 @@
 package loamstream.model.jobs.commandline
 
-import java.nio.file.{ Files => JFiles }
 import java.nio.file.Path
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.sys.process.ProcessBuilder
-import scala.sys.process.ProcessLogger
-import scala.util.Failure
-import scala.util.Success
-
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobResult.CommandInvocationFailure
-import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Output
-import loamstream.util.Futures
-import loamstream.util.Loggable
-import loamstream.util.TimeUtils
 import loamstream.model.execute.Environment
-import loamstream.util.BashScript
-import java.io.BufferedWriter
-import java.io.FileWriter
-import java.io.Writer
-import loamstream.model.jobs.LocalJob
-import loamstream.model.jobs.JobNode
+import loamstream.model.jobs.{JobNode, LJob, Output}
+import loamstream.util.Loggable
 
 /**
  * LoamStream
@@ -41,7 +19,8 @@ final case class CommandLineJob(
     override val inputs: Set[JobNode] = Set.empty,
     outputs: Set[Output] = Set.empty,
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
-    private val nameOpt: Option[String] = None) extends HasCommandLine with Loggable {
+    private val nameOpt: Option[String] = None,
+    dockerLocationOpt: Option[String] = None) extends HasCommandLine with Loggable {
 
   override def equals(other: Any): Boolean = other match {
     case that: CommandLineJob => this.id == that.id
@@ -55,6 +34,8 @@ final case class CommandLineJob(
   def withCommandLineString(newCmd: String): CommandLineJob = copy(commandLineString = newCmd)
 
   override def workDirOpt: Option[Path] = Some(workDir)
+
+  def withDockerLocation(dockerLocation: String): CommandLineJob = copy(dockerLocationOpt = Some(dockerLocation))
 
   def exitValueIsOk(exitValue: Int): Boolean = exitValueCheck(exitValue)
 

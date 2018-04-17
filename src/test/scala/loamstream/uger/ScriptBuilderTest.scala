@@ -27,13 +27,14 @@ final class ScriptBuilderTest extends FunSuite {
     val ugerConfig = TestHelpers.config.ugerConfig.get
 
     val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
-    val taskArray = UgerTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, jobs)
+    val jobName = UgerTaskArray.makeJobName()
+    val taskArray = UgerTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, jobs, jobName)
     val ugerScriptContents = ScriptBuilder.buildFrom(taskArray).withNormalizedLineBreaks
 
     val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)
     val discriminators = (0, 1, 2)
-
-    val expectedScriptContents = expectedScriptAsString(discriminators, jobIds).withNormalizedLineBreaks
+    
+    val expectedScriptContents = expectedScriptAsString(jobName, discriminators, jobIds).withNormalizedLineBreaks
 
     assert(ugerScriptContents == expectedScriptContents)
   }
@@ -92,11 +93,13 @@ final class ScriptBuilderTest extends FunSuite {
   }
 
   // scalastyle:off method.length
-  private def expectedScriptAsString(discriminators: (Int, Int, Int), jobIds: (String, String, String)): String = {
+  private def expectedScriptAsString(
+      jobName: String, 
+      discriminators: (Int, Int, Int), 
+      jobIds: (String, String, String)): String = {
+    
     val (discriminator0, discriminator1, discriminator2) = discriminators
     val (jobId0, jobId1, jobId2) = jobIds
-
-    val jobName = s"LoamStream-${jobId0}_${jobId1}_${jobId2}"
 
     val ugerDir = path("/humgen/diabetes/users/kyuksel/imputation/shapeit_example").toAbsolutePath.render
     val outputDir = path("out/job-outputs").toAbsolutePath.render

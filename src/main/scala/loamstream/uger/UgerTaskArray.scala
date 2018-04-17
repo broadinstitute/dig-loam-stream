@@ -57,17 +57,23 @@ final case class UgerTaskArray(
 
 object UgerTaskArray {
   /**
-   * A Uger job name, like `LoamStream-<uger-job-id-0>_<uger-job-id-1>..._<uger-job-id-N>`
-   * NB: Built deterministically.
+   * Make a name that will be used as a base for the names of all the jobs in this task array.
+   *  
+   * NB: This needs to be unique, and not too long, per Uger requirements.  Task arrays with job names that are too 
+   * long can be submitted, but their jobs will all fail.
+   *  
    */
-  private[uger] def makeJobName(jobs: Seq[CommandLineJob]): String = s"LoamStream-${jobs.map(_.id).mkString("_")}"
+  private[uger] def makeJobName(): String = {
+    val uuid = java.util.UUID.randomUUID.toString
+    
+    s"LoamStream-${uuid}"
+  }
 
   def fromCommandLineJobs(
       executionConfig: ExecutionConfig,
       ugerConfig: UgerConfig,
-      jobs: Seq[CommandLineJob]): UgerTaskArray = {
-
-    val ugerJobName: String = makeJobName(jobs)
+      jobs: Seq[CommandLineJob],
+      ugerJobName: String = makeJobName()): UgerTaskArray = {
 
     val ugerJobs = jobs.zipWithIndex.map { case (commandLineJob, i) =>
       //Uger task array indices start from 1

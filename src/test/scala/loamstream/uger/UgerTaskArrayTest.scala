@@ -36,17 +36,10 @@ final class UgerTaskArrayTest extends FunSuite {
 
   test("makeJobName") {
 
-    val Seq(id0, id1, id2) = Seq(j0.id, j1.id, j2.id)
+    val jobName = UgerTaskArray.makeJobName()
 
-    val jobName = UgerTaskArray.makeJobName(jobs)
-
-    // extract just the SHA from the job name
-    val sha = jobName.drop("LoamStream-".length)
-    val jobIds = UgerTaskArray.jobIdsOfSha(sha)
-
-    val expected = Some(Seq(id0, id1, id2))
-
-    assert(jobIds === expected)
+    assert(jobName.startsWith("LoamStream-"))
+    assert(jobName.size === 47)
   }
 
   test("ugerStdOutPathTemplate") {
@@ -70,11 +63,11 @@ final class UgerTaskArrayTest extends FunSuite {
   }
 
   test("fromCommandLineJobs") {
-    val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, jobs)
+    val expectedJobName = UgerTaskArray.makeJobName()
+    
+    val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, jobs, expectedJobName)
 
     assert(taskArray.ugerConfig === ugerConfig)
-
-    val expectedJobName = UgerTaskArray.makeJobName(jobs)
 
     assert(taskArray.ugerJobName === expectedJobName)
 

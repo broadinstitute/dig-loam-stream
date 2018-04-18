@@ -17,9 +17,6 @@ import loamstream.util.IoUtils
  * using [[https://github.com/scallop/scallop Scallop]] under the hood
  *
  * @param arguments command line arguments provided by the app user
- * @param exitTheJvmOnValidationError whether or not to exit the whole JVM on any validation errors; setting this
- * to false is useful for tests, so that a validation failure doesn't make SBT exit.  If this is false, a 
- * CliException is thrown instead of invoking 'sys.exit()'.
  */
 final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
   
@@ -86,7 +83,11 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   val disableHashing: ScallopOption[Boolean] = opt[Boolean](
       descr = "Don't hash files when determining whether a job may be skipped.",
       required = false)
-      
+
+  val wdl: ScallopOption[Boolean] = opt[Boolean](
+    descr = "Export to Workflow Description Language (WDL); don't run",
+    required = false
+  )
   //NB: Required by Scallop
   verify()
   
@@ -99,7 +100,8 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       runEverythingSupplied = runEverything.isSupplied,
       compileOnlySupplied = compileOnly.isSupplied,
       dryRunSupplied = dryRun.isSupplied,
-      disableHashingSupplied = disableHashing.isSupplied)
+      disableHashingSupplied = disableHashing.isSupplied,
+    wdlSupplied = wdl.isSupplied)
 }
 
 object Conf {
@@ -112,7 +114,8 @@ object Conf {
       runEverythingSupplied: Boolean,
       compileOnlySupplied: Boolean,
       dryRunSupplied: Boolean,
-      disableHashingSupplied: Boolean) {
+      disableHashingSupplied: Boolean,
+      wdlSupplied: Boolean) {
     
     def lookupSupplied: Boolean = lookup.isDefined
     

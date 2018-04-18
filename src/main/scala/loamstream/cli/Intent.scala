@@ -39,6 +39,8 @@ object Intent extends Loggable {
     shouldRunEverything: Boolean,
     loams: Seq[Path]) extends Intent
 
+  final case class WdlExport(confFile: Option[Path], loams: Seq[Path]) extends Intent
+
   def from(cli: Conf): Either[String, Intent] = from(cli.toValues)
     
   private def from(values: Conf.Values): Either[String, Intent] = {
@@ -55,8 +57,19 @@ object Intent extends Loggable {
 
     def allLoamsExist = values.loams.nonEmpty && values.loams.forall(exists(_))
 
+    def from2: Either[String, Intent] = {
+      if (noLoamsSupplied) {
+        Left("No loam files specified.")
+      } else if (!allLoamsExist) {
+        Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}")
+      } else {
+        Left("Malformed command line.")
+      }
+    }
+
     if (values.versionSupplied) { Right(ShowVersionAndQuit) }
     else if (values.helpSupplied) { Right(ShowHelpAndQuit) }
+    else if (values.wdlSupplied) { Right(WdlExport(values.conf, values.loams)) }
     else if (confDoesntExist) { Left(s"Config file '${values.conf.get}' specified, but it doesn't exist.") }
     else if (values.lookupSupplied) { Right(LookupOutput(values.conf, values.lookup.get)) }
     else if (compileOnly(values)) { Right(CompileOnly(values.conf, values.loams)) }
@@ -64,12 +77,8 @@ object Intent extends Loggable {
       Right(makeDryRun(values))
     } else if (allLoamsExist) {
       Right(makeRealRun(values))
-    } else if (noLoamsSupplied) {
-      Left("No loam files specified.")
-    } else if (!allLoamsExist) {
-      Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}")
     } else {
-      Left("Malformed command line.")
+      from2
     }
   }
 

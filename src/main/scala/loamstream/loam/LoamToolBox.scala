@@ -1,17 +1,12 @@
 package loamstream.loam
 
 import java.net.URI
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.model.Store
-import loamstream.model.Tool
-import loamstream.model.execute.Environment
-import loamstream.model.execute.Executable
-import loamstream.model.jobs.JobNode
-import loamstream.model.jobs.NativeJob
-import loamstream.model.jobs.Output
+import loamstream.model.{Store, Tool}
+import loamstream.model.execute.{Environment, Executable}
+import loamstream.model.jobs.{JobNode, Output}
 import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
@@ -33,10 +28,9 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
       loamJobs.get(tool)
     } else {
       newJob(graph)(tool) match {
-        case jobOpt @ Some(job) => {
+        case jobOpt @ Some(job) =>
           loamJobs += tool -> job
           jobOpt
-        }
         case None => None
       }
     }
@@ -54,12 +48,8 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
     val toolNameOpt = graph.nameOf(tool)
 
     tool match {
-      case cmdTool: LoamCmdTool => {
+      case cmdTool: LoamCmdTool =>
         Some(CommandLineJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs, nameOpt = toolNameOpt))
-      }
-      case nativeTool: LoamNativeTool[_] => {
-        Some(NativeJob(nativeTool.expBox, inputJobs, outputs, nameOpt = toolNameOpt))
-      }
       case _ => None
     }
   }

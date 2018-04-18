@@ -1,25 +1,14 @@
 package loamstream.compiler
 
 import java.net.URI
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{Files, Path, Paths}
 
 import loamstream.conf.DataConfig
-import loamstream.loam.LoamNativeTool
 import loamstream.loam.LoamScriptContext
-import loamstream.model.Store
-import loamstream.model.Tool
-import loamstream.model.Tool.DefaultStores
-import loamstream.model.execute.Environment
-import loamstream.model.execute.GoogleSettings
-import loamstream.model.execute.UgerSettings
-import loamstream.model.quantities.CpuTime
-import loamstream.model.quantities.Cpus
-import loamstream.model.quantities.Memory
+import loamstream.model.{Store, Tool}
+import loamstream.model.execute.{Environment, GoogleSettings, UgerSettings}
+import loamstream.model.quantities.{CpuTime, Cpus, Memory}
 import loamstream.util.Loggable
-
-import scala.reflect.runtime.universe.TypeTag
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -35,35 +24,6 @@ object LoamPredef extends Loggable {
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
   def store(implicit context: LoamScriptContext): Store = Store.create
-
-  def job[T: TypeTag](exp: => T)
-                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
-    LoamNativeTool(DefaultStores.empty, exp)
-  }
-
-  def job[T: TypeTag](store: Store, stores: Store*)
-                     (exp: => T)
-                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
-    LoamNativeTool((store +: stores).toSet, exp)
-  }
-
-  def job[T: TypeTag](in: Tool.In, out: Tool.Out)
-                     (exp: => T)
-                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
-    LoamNativeTool(in, out, exp)
-  }
-
-  def job[T: TypeTag](in: Tool.In)
-                     (exp: => T)
-                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
-    LoamNativeTool(in, exp)
-  }
-
-  def job[T: TypeTag](out: Tool.Out)
-                     (exp: => T)
-                     (implicit scriptContext: LoamScriptContext): LoamNativeTool[T] = {
-    LoamNativeTool(out, exp)
-  }
 
   /**
    * Indicate that jobs derived from tools/stores created by `loamCode` should run
@@ -198,7 +158,7 @@ object LoamPredef extends Loggable {
   def loadConfig(key: String, defaultPath: String): DataConfig = {
     val pathToLoad = System.getProperty(key, defaultPath)
     
-    debug(s"Loading config file: '${pathToLoad}'")
+    debug(s"Loading config file: '$pathToLoad'")
     
     loadConfig(pathToLoad)
   }

@@ -1,35 +1,15 @@
 package loamstream.model.execute
 
-import java.nio.file.{ Files => JFiles }
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.util.Failure
-import scala.util.Success
+import java.nio.file.{Files => JFiles}
 
 import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.jobs.Execution
-import loamstream.model.jobs.JobResult
-import loamstream.model.jobs.JobResult.CommandInvocationFailure
 import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.LocalJob
-import loamstream.model.jobs.NativeJob
-import loamstream.model.jobs.commandline.CloseableProcessLogger
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.util.BashScript
-import loamstream.util.Futures
-import loamstream.util.Loggable
-import loamstream.util.TimeUtils
-import loamstream.model.jobs.commandline.ToFilesProcessLogger
-import loamstream.model.jobs.OutputStreams
-import loamstream.util.CanBeClosed
-import java.nio.file.FileSystem
-import scala.concurrent.duration.Duration
-import scala.util.Try
-import java.time.Instant
-import loamstream.model.jobs.RunData
+import loamstream.model.jobs.{JobStatus, LJob, LocalJob, OutputStreams, RunData}
+import loamstream.model.jobs.commandline.{CloseableProcessLogger, CommandLineJob, ToFilesProcessLogger}
+import loamstream.util.{BashScript, CanBeClosed, Futures, Loggable, TimeUtils}
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 /**
  * @author clint
@@ -37,7 +17,7 @@ import loamstream.model.jobs.RunData
  */
 object LocalJobStrategy extends Loggable {
   def canBeRun(j: LJob): Boolean = j match {
-    case _: CommandLineJob | _: NativeJob[_] | _: LocalJob => true
+    case _: CommandLineJob | _: LocalJob => true
     case _ => false
   }
 
@@ -49,26 +29,12 @@ object LocalJobStrategy extends Loggable {
     
     job match {
       case commandLineJob: CommandLineJob => executeCommandLineJob(commandLineJob, processLogger)
-      case nativeJob: NativeJob[_]        => executeNativeJob(nativeJob)
       case localJob: LocalJob             => executeLocalJob(localJob)
     }
   }
 
   private def executeLocalJob(localJob: LocalJob)(implicit ctx: ExecutionContext): Future[RunData] = localJob.execute
 
-  private def executeNativeJob[A](nativeJob: NativeJob[A])(implicit context: ExecutionContext): Future[RunData] = {
-    val exprBox = nativeJob.exprBox
-
-    exprBox.evalFuture.map { value =>
-      RunData(
-        job = nativeJob, 
-        jobStatus = JobStatus.Succeeded, //NB: What about failures?
-        jobResult = Some(JobResult.ValueSuccess(value, exprBox.typeBox)), //NB: What about failures?
-        resourcesOpt = None, 
-        outputStreamsOpt = None)
-    }
-  }
-  
   private def executeCommandLineJob(
     commandLineJob: CommandLineJob,
     processLogger: ToFilesProcessLogger)(implicit context: ExecutionContext): Future[RunData] = {

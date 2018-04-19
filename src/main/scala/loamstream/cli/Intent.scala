@@ -23,23 +23,27 @@ object Intent extends Loggable {
     override def confFile: Option[Path] = None
   }
 
+  sealed trait IntentWithLoams extends Intent {
+    def loams: Seq[Path]
+  }
+
   final case class LookupOutput(confFile: Option[Path], output: Either[Path, URI]) extends Intent
 
-  final case class CompileOnly(confFile: Option[Path], loams: Seq[Path]) extends Intent
+  final case class CompileOnly(confFile: Option[Path], loams: Seq[Path]) extends IntentWithLoams
 
   final case class DryRun(
     confFile: Option[Path],
     hashingStrategy: HashingStrategy,
     shouldRunEverything: Boolean,
-    loams: Seq[Path]) extends Intent
+    loams: Seq[Path]) extends IntentWithLoams
 
   final case class RealRun(
     confFile: Option[Path],
     hashingStrategy: HashingStrategy,
     shouldRunEverything: Boolean,
-    loams: Seq[Path]) extends Intent
+    loams: Seq[Path]) extends IntentWithLoams
 
-  final case class WdlExport(confFile: Option[Path], loams: Seq[Path]) extends Intent
+  final case class WdlExport(confFile: Option[Path], loams: Seq[Path]) extends IntentWithLoams
 
   def from(cli: Conf): Either[String, Intent] = from(cli.toValues)
     

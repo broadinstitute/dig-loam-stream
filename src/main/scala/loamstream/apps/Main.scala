@@ -2,9 +2,7 @@ package loamstream.apps
 
 import scala.util.Failure
 import scala.util.Success
-
 import org.ggf.drmaa.DrmaaException
-
 import loamstream.cli.Conf
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
@@ -19,10 +17,10 @@ import loamstream.cli.ExecutionInfo
 import loamstream.cli.Intent
 import loamstream.db.LoamDao
 import java.nio.file.Path
-import loamstream.model.execute.JobFilter
-import loamstream.model.execute.DbBackedJobFilter
+
+import loamstream.model.execute.{DbBackedJobFilter, DryRunner, Executable, JobFilter}
 import loamstream.util.TimeUtils
-import loamstream.model.execute.DryRunner
+import loamstream.wdl.{LoamToWdl, WdlPrinter}
 
 
 /**
@@ -51,18 +49,17 @@ object Main extends Loggable {
       case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
       case Right(dryRun: DryRun) => run.doDryRun(dryRun)
       case Right(real: RealRun) => run.doRealRun(real)
+      case Right(wdlExport: WdlExport) => run.doWdlExport(wdlExport)
       case Left(message) => cli.printHelp(message)
       case _ => cli.printHelp()
     }
   }
   
   private def addUncaughtExceptionHandler(): Unit = {
-    val handler: Thread.UncaughtExceptionHandler = new Thread.UncaughtExceptionHandler {
-      override def uncaughtException(t: Thread, e: Throwable): Unit = {
-        error(s"[${t.getName}] Fatal uncaught exception; will trigger shutdown: ", e)
+    val handler: Thread.UncaughtExceptionHandler = (t: Thread, e: Throwable) => {
+      error(s"[${t.getName}] Fatal uncaught exception; will trigger shutdown: ", e)
 
-        e.printStackTrace(System.err)
-      }
+      e.printStackTrace(System.err)
     }
     
     Thread.setDefaultUncaughtExceptionHandler(handler)
@@ -70,7 +67,7 @@ object Main extends Loggable {
     Thread.currentThread.setUncaughtExceptionHandler(handler)
   }
 
-  private def describeLoamstream(): Unit = Versions.load match {
+  private def describeLoamstream(): Unit = Versions.load() match {
     case Success(versions) => info(versions.toString)
     case Failure(e) => warn("Unable to determine version info: ", e)
   }
@@ -94,28 +91,30 @@ object Main extends Loggable {
   
       info(compilationResult.report)
     }
+
+    private def engineAndExecutables(intent: Intent.IntentWithLoams): (LoamEngine, Iterator[Executable]) = {
+      val config = AppWiring.loamConfigFrom(intent.confFile)
+      val loamEngine = LoamEngine.default(config)
+      val compilationResult = compile(loamEngine, intent.loams)
+      info(compilationResult.report)
+      val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
+      (loamEngine, executables)
+    }
     
     def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
-      val config = AppWiring.loamConfigFrom(intent.confFile)
-      
-      val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
-      
-      val loamEngine = LoamEngine.default(config)
-      
-      val compilationResult = compile(loamEngine, intent.loams)
-  
-      info(compilationResult.report)
-      
-      if(compilationResult.isSuccess && compilationResult.isValid) {
-        val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
-    
+      val (loamEngine, executables) = engineAndExecutables(intent)
+
+      if(executables.hasNext) {
+
         //NB: We will only be able to log jobs that could be run that are declared "before" the first `andThen`.
         //If `andThen` was used, `executables` would produce more than one value, which the code following this
         //would ignore.  This is the best we can do here, because the structure of the subsequent `Executable`s 
         //produced by the `executables` iterator would depend on the jobs in the previous `Executable`s having been 
         //run, which we explicitly do not want to do here.  File this under "known limitations of `--dry-run`".
         val executable = executables.next()
-        
+
+        val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
+
         val jobsToBeRun = TimeUtils.time(s"Listing jobs that would be run", info(_)) {
           DryRunner.toBeRun(jobFilter, executable)
         }
@@ -129,7 +128,7 @@ object Main extends Loggable {
         loamEngine.listJobsThatCouldRun(jobsToBeRun)
       }
     }
-    
+
     def doLookup(intent: Intent.LookupOutput): Unit = {
       val dao = AppWiring.daoForOutputLookup(intent)
       
@@ -172,11 +171,27 @@ object Main extends Loggable {
         case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
       }
     }
-    
+
+    def doWdlExport(intent: Intent.WdlExport): Unit = {
+      val (_, executables) = engineAndExecutables(intent)
+      if(executables.hasNext) {
+        info("Start exporting to WDL")
+        // We can only really convert the first executable to WDL
+        val executable = executables.next()
+        val wdlElement = LoamToWdl.loamToWdl(executable)
+        val wdlString = WdlPrinter.print(wdlElement)
+        info("= = =  Start WDL  = = =")
+        info(wdlString)
+        info("= = =  End WDL  = = =")
+      } else {
+        info("Nothing to export to WDL")
+      }
+    }
+
     private def shutdownAfter[A](wiring: AppWiring)(f: => A): A = try { f } finally { shutdown(wiring) }
   
     private def addShutdownHook(wiring: AppWiring): Unit = {
-      def toThread(block: => Any): Thread = new Thread(new Runnable { override def run: Unit = block })
+      def toThread(block: => Any): Thread = new Thread(new Runnable { override def run(): Unit = block })
       
       Runtime.getRuntime.addShutdownHook(toThread {
         shutdown(wiring)
@@ -185,14 +200,11 @@ object Main extends Loggable {
     
     private def describeRunResults(runResults: Either[LoamCompiler.Result, Map[LJob, Execution]]): Unit = {
       runResults match {
-        case Left(compilationResults) => {
+        case Left(compilationResults) =>
           compilationResults.errors.foreach(e => error(s"Compilation error: $e"))
-        }
-        case Right(jobsToExecutions) => {
+        case Right(jobsToExecutions) =>
           listResults(jobsToExecutions)
-      
           describeExecutions(jobsToExecutions.values)
-        }
       }
     }
     
@@ -205,9 +217,8 @@ object Main extends Loggable {
         val (_, executionB) = b
         
         (executionA.resources, executionB.resources) match {
-          case (Some(resourcesA), Some(resourcesB)) => {
+          case (Some(resourcesA), Some(resourcesB)) =>
             resourcesA.startTime.toEpochMilli < resourcesB.startTime.toEpochMilli
-          }
           case (_, None) => false
           case _ => true
         }
@@ -248,13 +259,11 @@ object Main extends Loggable {
         
         wiring.shutdown() match {
           case Nil => info("LoamStream shut down successfully")
-          case exceptions => {
+          case exceptions =>
             error(s"LoamStream shut down with ${exceptions.size} errors: ")
-  
             exceptions.foreach { e =>
               error(s"Error shutting down: ${e.getClass.getName}", e)
             }
-          }
         }
       }
     }

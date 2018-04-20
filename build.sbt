@@ -20,6 +20,7 @@ lazy val Versions = new {
   val Squants = "1.3.0"
   val LogbackColorizer = "1.0.1"
   val Janino = "3.0.8"
+  val wdl3 = "32-cfaa39a-SNAP"
 }
 
 lazy val Orgs = new {
@@ -35,6 +36,7 @@ lazy val Resolvers = new {
   val LocalRepo = Resolver.file("localRepo", new File(Paths.LocalRepo))
   val SonatypeReleases = Resolver.sonatypeRepo("releases")
   val SonatypeSnapshots = Resolver.sonatypeRepo("snapshots")
+  val JCenterRepo = Resolver.jcenterRepo
 }
 
 lazy val mainDeps = Seq(
@@ -56,7 +58,8 @@ lazy val mainDeps = Seq(
   "com.iheart" %% "ficus" % Versions.Ficus,
   "org.typelevel"  %% "squants"  % Versions.Squants,
   "org.tuxdude.logback.extensions" % "logback-colorizer" % Versions.LogbackColorizer,
-  "org.codehaus.janino" % "janino" % Versions.Janino
+  "org.codehaus.janino" % "janino" % Versions.Janino,
+  "org.broadinstitute" %% "wdl-draft3" % Versions.wdl3
 )
 
 lazy val testDeps = Seq(
@@ -72,7 +75,7 @@ lazy val root = (project in file("."))
     //NB: version set in version.sbt
     scalaVersion := Versions.Scala,
     scalacOptions ++= Seq("-feature", "-deprecation", "-unchecked"),
-    resolvers ++= Seq(Resolvers.SonatypeReleases, Resolvers.SonatypeSnapshots),
+    resolvers ++= Seq(Resolvers.SonatypeReleases, Resolvers.SonatypeSnapshots, Resolvers.JCenterRepo),
     publishTo := Some(Resolvers.LocalRepo),
     libraryDependencies ++= (mainDeps ++ testDeps),
     scalastyleFailOnError := true,

@@ -1,9 +1,9 @@
 package loamstream.wdl
 
-import loamstream.wdl.model.WdlElement
+import wdl.model.draft3.elements.LanguageElement
 
 object WdlPrinter {
 
-  def print(wdlElement: WdlElement): String = wdlElement.toString
+  def print(wdlElement: LanguageElement): String = wdlElement.toString
 
 }

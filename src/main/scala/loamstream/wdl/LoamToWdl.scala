@@ -1,10 +1,10 @@
 package loamstream.wdl
 
 import loamstream.model.execute.Executable
-import loamstream.wdl.model.{WdlElement, Workflow}
+import wdl.model.draft3.elements.WorkflowDefinitionElement
 
 object LoamToWdl {
 
-  def loamToWdl(executable: Executable): WdlElement = Workflow("workflow42")
+  def loamToWdl(executable: Executable): WorkflowDefinitionElement = ???
 
 }

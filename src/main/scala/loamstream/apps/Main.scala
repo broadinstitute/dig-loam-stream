@@ -7,7 +7,7 @@ import loamstream.cli.Conf
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamProject
-import loamstream.loam.LoamScript
+import loamstream.loam.{LoamGraph, LoamScript}
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
 import loamstream.util.Loggable
@@ -92,17 +92,18 @@ object Main extends Loggable {
       info(compilationResult.report)
     }
 
-    private def engineAndExecutables(intent: Intent.IntentWithLoams): (LoamEngine, Iterator[Executable]) = {
+    private def engineAndCompilationResult[T](intent: Intent.IntentWithLoams): (LoamEngine, LoamCompiler.Result) = {
       val config = AppWiring.loamConfigFrom(intent.confFile)
       val loamEngine = LoamEngine.default(config)
       val compilationResult = compile(loamEngine, intent.loams)
       info(compilationResult.report)
-      val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
-      (loamEngine, executables)
+//      val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
+      (loamEngine, compilationResult)
     }
     
     def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
-      val (loamEngine, executables) = engineAndExecutables(intent)
+      val (loamEngine, compilationResult) = engineAndCompilationResult(intent)
+      val executables = compilationResult.graphSource.iterator.map(thunk => LoamEngine.toExecutable(thunk()))
 
       if(executables.hasNext) {
 
@@ -173,12 +174,13 @@ object Main extends Loggable {
     }
 
     def doWdlExport(intent: Intent.WdlExport): Unit = {
-      val (_, executables) = engineAndExecutables(intent)
-      if(executables.hasNext) {
+      val (_, compilationResult) = engineAndCompilationResult(intent)
+      val graphIter = compilationResult.graphSource.iterator.map(_())
+      if(graphIter.hasNext) {
         info("Start exporting to WDL")
         // We can only really convert the first executable to WDL
-        val executable = executables.next()
-        val wdlElement = LoamToWdl.loamToWdl(executable)
+        val graph = graphIter.next()
+        val wdlElement = LoamToWdl.loamToWdl(graph)
         val wdlString = WdlPrinter.print(wdlElement)
         info("= = =  Start WDL  = = =")
         info(wdlString)

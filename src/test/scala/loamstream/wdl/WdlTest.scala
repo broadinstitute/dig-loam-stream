@@ -1,15 +1,11 @@
 package loamstream.wdl
 
-import loamstream.loam.{LoamCmdTool, LoamProjectContext, LoamScriptContext, LoamToolBox}
-import loamstream.model.execute.Executable
+import loamstream.loam.{LoamCmdTool, LoamGraph, LoamProjectContext, LoamScriptContext, LoamToolBox}
 import org.scalatest.FunSuite
 
 class WdlTest extends FunSuite {
 
-  private val toolBox = new LoamToolBox()
-
-
-  private def createExecutable: Executable = {
+  private def createExecutable: LoamGraph = {
     import loamstream.TestHelpers.config
 
     implicit val scriptContext: LoamScriptContext = new LoamScriptContext(LoamProjectContext.empty(config))
@@ -29,8 +25,7 @@ class WdlTest extends FunSuite {
     cmd"grep colour $input > $tmp2"
     cmd"cat $tmp1 $tmp2 > $output"
 
-    val graph = scriptContext.projectContext.graph
-    toolBox.createExecutable(graph)
+    scriptContext.projectContext.graph
   }
 
   test("WDL") {

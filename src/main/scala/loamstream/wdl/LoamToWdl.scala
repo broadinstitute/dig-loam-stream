@@ -1,7 +1,6 @@
 package loamstream.wdl
 
 import loamstream.loam.LoamGraph
-import loamstream.model.execute.Executable
 import wdl.model.draft3.elements.{InputsSectionElement, MetaSectionElement, OutputsSectionElement}
 import wdl.model.draft3.elements.{ParameterMetaSectionElement, WorkflowDefinitionElement, WorkflowGraphElement}
 
@@ -15,11 +14,13 @@ object LoamToWdl {
   }
   val defaultWorkflowName: String = "workflow"
 
-  def getInputSectionElement(executable: Executable): Any = ???
+  def getInputSectionElement(loamGraph: LoamGraph): InputsSectionElement = {
+    ???
+  }
 
   def loamToWdl(loamGraph: LoamGraph): WorkflowDefinitionElement = {
     val name: String = createWorkflowName
-    val inputsSection: Option[InputsSectionElement] = ???
+    val inputsSection: Option[InputsSectionElement] = Some(getInputSectionElement(loamGraph))
     val graphElements: Set[WorkflowGraphElement] = ???
     val outputsSection: Option[OutputsSectionElement] = ???
     val metaSection: Option[MetaSectionElement] = ???

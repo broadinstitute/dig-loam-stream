@@ -2,9 +2,8 @@ package loamstream.wdl
 
 import loamstream.loam.LoamGraph
 import loamstream.model.Store
-import wdl.model.draft3.elements.{InputDeclarationElement, InputsSectionElement, MetaSectionElement}
-import wdl.model.draft3.elements.{OutputsSectionElement, ParameterMetaSectionElement, WorkflowDefinitionElement}
-import wdl.model.draft3.elements.WorkflowGraphElement
+import wdl.model.draft3.elements.{ExpressionElement, InputDeclarationElement, InputsSectionElement, MetaSectionElement, OutputsSectionElement, ParameterMetaSectionElement, PrimitiveTypeElement, WorkflowDefinitionElement, WorkflowGraphElement}
+import wom.types.WomStringType
 
 object LoamToWdl {
 
@@ -17,20 +16,22 @@ object LoamToWdl {
   val defaultWorkflowName: String = "workflow"
 
   def getInputDeclarationElement(store: Store): InputDeclarationElement = {
-    ???
+    val typeElement = PrimitiveTypeElement(WomStringType)
+    val name = store.id.name
+    val expressionOpt: Option[ExpressionElement] = None
+    InputDeclarationElement(typeElement, name, expressionOpt)
   }
 
   def getInputsMapping(loamGraph: LoamGraph): Map[Store, InputDeclarationElement] = {
-    ???
-  }
-
-  def getInputSectionElement(loamGraph: LoamGraph): InputsSectionElement = {
-    ???
+    loamGraph.inputStores.map { store =>
+      (store, getInputDeclarationElement(store))
+    }.toMap
   }
 
   def loamToWdl(loamGraph: LoamGraph): WorkflowDefinitionElement = {
     val name: String = createWorkflowName
-    val inputsSection: Option[InputsSectionElement] = Some(getInputSectionElement(loamGraph))
+    val inputsMapping = getInputsMapping(loamGraph)
+    val inputsSection: Option[InputsSectionElement] = Some(InputsSectionElement(inputsMapping.values.toSeq))
     val graphElements: Set[WorkflowGraphElement] = ???
     val outputsSection: Option[OutputsSectionElement] = ???
     val metaSection: Option[MetaSectionElement] = ???

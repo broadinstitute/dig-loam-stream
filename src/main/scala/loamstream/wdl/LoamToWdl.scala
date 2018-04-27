@@ -2,7 +2,7 @@ package loamstream.wdl
 
 import loamstream.loam.LoamGraph
 import loamstream.model.{Store, Tool}
-import wdl.model.draft3.elements.{ExpressionElement, FileElement, ImportElement, InputDeclarationElement, InputsSectionElement, LanguageElement, MetaSectionElement, OutputsSectionElement, ParameterMetaSectionElement, PrimitiveTypeElement, StructElement, TaskDefinitionElement, WorkflowDefinitionElement, WorkflowGraphElement}
+import wdl.model.draft3.elements.{CommandSectionElement, ExpressionElement, FileBodyElement, FileElement, ImportElement, InputDeclarationElement, InputsSectionElement, IntermediateValueDeclarationElement, LanguageElement, MetaSectionElement, OutputsSectionElement, ParameterMetaSectionElement, PrimitiveTypeElement, RuntimeAttributesSectionElement, StructElement, TaskDefinitionElement, WorkflowDefinitionElement, WorkflowGraphElement}
 import wom.types.WomStringType
 
 object LoamToWdl {
@@ -28,8 +28,32 @@ object LoamToWdl {
     }.toMap
   }
 
+  def getTask(tool: Tool): TaskDefinitionElement = {
+    val name: String = tool.id.name
+    val inputsSection: Option[InputsSectionElement] = ???
+    val declarations: Seq[IntermediateValueDeclarationElement] = ???
+    val outputsSection: Option[OutputsSectionElement] = ???
+    val commandSection: CommandSectionElement = ???
+    val runtimeSection: Option[RuntimeAttributesSectionElement] = ???
+    val metaSection: Option[MetaSectionElement] = ???
+    val parameterMetaSection: Option[ParameterMetaSectionElement] = ???
+    TaskDefinitionElement(
+      name = name,
+      inputsSection = inputsSection,
+      declarations = declarations,
+      outputsSection = outputsSection,
+      commandSection = commandSection,
+      runtimeSection = runtimeSection,
+      metaSection = metaSection,
+      parameterMetaSection = parameterMetaSection
+    )
+
+  }
+
   def getTaskMapping(loamGraph: LoamGraph): Map[Tool, TaskDefinitionElement] = {
-    ???
+    loamGraph.tools.map { tool =>
+      (tool, getTask(tool))
+    }.toMap
   }
 
   def getWorkflow(loamGraph: LoamGraph): WorkflowDefinitionElement = {

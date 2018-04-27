@@ -1,8 +1,10 @@
 package loamstream.wdl
 
 import loamstream.loam.LoamGraph
-import wdl.model.draft3.elements.{InputsSectionElement, MetaSectionElement, OutputsSectionElement}
-import wdl.model.draft3.elements.{ParameterMetaSectionElement, WorkflowDefinitionElement, WorkflowGraphElement}
+import loamstream.model.Store
+import wdl.model.draft3.elements.{InputDeclarationElement, InputsSectionElement, MetaSectionElement}
+import wdl.model.draft3.elements.{OutputsSectionElement, ParameterMetaSectionElement, WorkflowDefinitionElement}
+import wdl.model.draft3.elements.WorkflowGraphElement
 
 object LoamToWdl {
 
@@ -13,6 +15,14 @@ object LoamToWdl {
     "workflow" + numberStringPadded
   }
   val defaultWorkflowName: String = "workflow"
+
+  def getInputDeclarationElement(store: Store): InputDeclarationElement = {
+    ???
+  }
+
+  def getInputsMapping(loamGraph: LoamGraph): Map[Store, InputDeclarationElement] = {
+    ???
+  }
 
   def getInputSectionElement(loamGraph: LoamGraph): InputsSectionElement = {
     ???

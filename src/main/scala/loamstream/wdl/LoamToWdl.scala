@@ -1,8 +1,8 @@
 package loamstream.wdl
 
 import loamstream.loam.LoamGraph
-import loamstream.model.Store
-import wdl.model.draft3.elements.{ExpressionElement, InputDeclarationElement, InputsSectionElement, MetaSectionElement, OutputsSectionElement, ParameterMetaSectionElement, PrimitiveTypeElement, WorkflowDefinitionElement, WorkflowGraphElement}
+import loamstream.model.{Store, Tool}
+import wdl.model.draft3.elements.{ExpressionElement, FileElement, ImportElement, InputDeclarationElement, InputsSectionElement, LanguageElement, MetaSectionElement, OutputsSectionElement, ParameterMetaSectionElement, PrimitiveTypeElement, StructElement, TaskDefinitionElement, WorkflowDefinitionElement, WorkflowGraphElement}
 import wom.types.WomStringType
 
 object LoamToWdl {
@@ -28,7 +28,11 @@ object LoamToWdl {
     }.toMap
   }
 
-  def loamToWdl(loamGraph: LoamGraph): WorkflowDefinitionElement = {
+  def getTaskMapping(loamGraph: LoamGraph): Map[Tool, TaskDefinitionElement] = {
+    ???
+  }
+
+  def getWorkflow(loamGraph: LoamGraph): WorkflowDefinitionElement = {
     val name: String = createWorkflowName
     val inputsMapping = getInputsMapping(loamGraph)
     val inputsSection: Option[InputsSectionElement] = Some(InputsSectionElement(inputsMapping.values.toSeq))
@@ -43,6 +47,19 @@ object LoamToWdl {
       outputsSection = outputsSection,
       metaSection = metaSection,
       parameterMetaSection = parameterMetaSection
+    )
+  }
+
+  def loamToWdl(loamGraph: LoamGraph): FileElement = {
+    val imports: Seq[ImportElement] = Seq.empty
+    val structs: Seq[StructElement] = Seq.empty
+    val workflows: Seq[WorkflowDefinitionElement] = Seq(getWorkflow(loamGraph))
+    val tasks: Seq[TaskDefinitionElement] = ???
+    FileElement(
+      imports = imports,
+      structs = structs,
+      workflows = workflows,
+      tasks = tasks
     )
   }
 

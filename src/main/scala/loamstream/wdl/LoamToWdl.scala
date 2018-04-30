@@ -28,10 +28,11 @@ object LoamToWdl {
     }.toMap
   }
 
-  def getTask(tool: Tool): TaskDefinitionElement = {
+  def getTask(tool: Tool, inputsMapping: Map[Store, InputDeclarationElement]): TaskDefinitionElement = {
     val name: String = tool.id.name
-    val inputsSection: Option[InputsSectionElement] = ???
-    val declarations: Seq[IntermediateValueDeclarationElement] = ???
+    val inputsSection: Option[InputsSectionElement] =
+      Some(InputsSectionElement(tool.inputs.values.map(inputsMapping).toSeq))
+    val declarations: Seq[IntermediateValueDeclarationElement] = Seq.empty
     val outputsSection: Option[OutputsSectionElement] = ???
     val commandSection: CommandSectionElement = ???
     val runtimeSection: Option[RuntimeAttributesSectionElement] = ???
@@ -50,9 +51,10 @@ object LoamToWdl {
 
   }
 
-  def getTaskMapping(loamGraph: LoamGraph): Map[Tool, TaskDefinitionElement] = {
+  def getTasksMapping(loamGraph: LoamGraph, inputsMapping: Map[Store, InputDeclarationElement]):
+  Map[Tool, TaskDefinitionElement] = {
     loamGraph.tools.map { tool =>
-      (tool, getTask(tool))
+      (tool, getTask(tool, inputsMapping))
     }.toMap
   }
 
@@ -77,8 +79,10 @@ object LoamToWdl {
   def loamToWdl(loamGraph: LoamGraph): FileElement = {
     val imports: Seq[ImportElement] = Seq.empty
     val structs: Seq[StructElement] = Seq.empty
+    val inputsMapping = getInputsMapping(loamGraph)
+    val tasksMapping = getTasksMapping(loamGraph, inputsMapping)
     val workflows: Seq[WorkflowDefinitionElement] = Seq(getWorkflow(loamGraph))
-    val tasks: Seq[TaskDefinitionElement] = ???
+    val tasks: Seq[TaskDefinitionElement] = tasksMapping.values.toSeq
     FileElement(
       imports = imports,
       structs = structs,

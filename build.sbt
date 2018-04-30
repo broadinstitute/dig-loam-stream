@@ -20,7 +20,7 @@ lazy val Versions = new {
   val Squants = "1.3.0"
   val LogbackColorizer = "1.0.1"
   val Janino = "3.0.8"
-  val wdl3 = "32-e238392-SNAP"
+  val wdl3 = "32-db55c8b-SNAP"
 }
 
 lazy val Orgs = new {

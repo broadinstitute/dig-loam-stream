@@ -44,3 +44,11 @@ pipelines/
 src/main/loam/loam
 .sbtopts
 job-outputs
+
+# ensime configuration
+.ensime_cache/
+.ensime
+ensime.sbt
+
+# output log files
+*.log

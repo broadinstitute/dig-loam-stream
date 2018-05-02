@@ -75,12 +75,9 @@ final class LoamCompilerTest extends FunSuite {
     val graph = result.contextOpt.get.graph
     assert(graph.tools.size === 2)
     assert(graph.stores.size === 4)
-    assert(graph.stores.exists { store =>
-      graph.storeLocations.contains(store) && !graph.storeProducers.contains(store)
-    })
-    assert(graph.stores.forall { store =>
-      graph.storeLocations.contains(store) || graph.storeProducers.contains(store)
-    })
+    assert(graph.stores.exists(store => !graph.storeProducers.contains(store)))
+    assert((graph.stores -- graph.inputStores).forall(store => graph.storeProducers.contains(store)))
+    
     val validationIssues = LoamGraphValidation.allRules(graph)
     assert(validationIssues.isEmpty)
   }

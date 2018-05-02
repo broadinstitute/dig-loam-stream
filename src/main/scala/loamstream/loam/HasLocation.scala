@@ -2,7 +2,6 @@ package loamstream.loam
 
 import java.nio.file.Path
 import java.net.URI
-import loamstream.loam.files.LoamFileManager
 import loamstream.util.TypeBox
 
 /**
@@ -15,7 +14,9 @@ trait HasLocation {
   
   def pathOpt: Option[Path] = Option(path)
   
+  def uri: URI
+  
   def uriOpt: Option[URI] = None
   
-  def render(fileManager: LoamFileManager): String = fileManager.getStoreString(this)
+  def render: String
 }

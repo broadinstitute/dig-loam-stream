@@ -1,4 +1,4 @@
-package loamstream.loam.files
+/*package loamstream.loam.files
 
 import java.nio.file.{Files, Path}
 import java.net.URI
@@ -7,10 +7,10 @@ import loamstream.util.{BashScript, ValueBox}
 import loamstream.loam.HasLocation
 import loamstream.conf.ExecutionConfig
 
-/**
+*//**
   * LoamStream
   * Created by oliverr on 6/22/2016.
-  */
+  *//*
 final class LoamFileManager(executionConfig: ExecutionConfig) {
   import BashScript.Implicits._
   import LoamFileManager.tempPath
@@ -65,3 +65,4 @@ object LoamFileManager {
     (paths + (store -> path), path)
   }
 }
+*/

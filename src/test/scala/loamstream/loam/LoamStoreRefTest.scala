@@ -1,6 +1,5 @@
 package loamstream.loam
 
-import loamstream.loam.files.LoamFileManager
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.model.Store
@@ -10,14 +9,12 @@ import loamstream.conf.ExecutionConfig
 final class LoamStoreRefTest extends FunSuite {
   private implicit val scriptContext = new LoamScriptContext(LoamProjectContext.empty(TestHelpers.config))
   
-  private val fileManager = new LoamFileManager(ExecutionConfig.default)
-  
   test("Adding a suffix to the path of a store.") {
     val path = "a/b/c/myfile.txt"
     val suffix = ".gz"
     val store = Store.create.at(path).asInput
     val storeRef = store + suffix
-    assert(storeRef.path(fileManager).toString === store.pathOpt.get.toString + suffix)
+    assert(storeRef.path.toString === store.pathOpt.get.toString + suffix)
   }
   
   test("Removing a suffix from the path of a store.") {
@@ -25,7 +22,7 @@ final class LoamStoreRefTest extends FunSuite {
     val suffix = ".txt"
     val store = Store.create.at(path).asInput
     val storeRef = store - suffix
-    assert(storeRef.path(fileManager).toString + suffix === store.pathOpt.get.toString)
+    assert(storeRef.path.toString + suffix === store.pathOpt.get.toString)
   }
   
   test("Try removing a non-existing suffix from the path of a store, having no effect.") {
@@ -33,6 +30,6 @@ final class LoamStoreRefTest extends FunSuite {
     val suffix = ".gz"
     val store = Store.create.at(path).asInput
     val storeRef = store - suffix
-    assert(storeRef.path(fileManager).toString === store.pathOpt.get.toString)
+    assert(storeRef.path.toString === store.pathOpt.get.toString)
   }
 }

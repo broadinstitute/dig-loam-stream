@@ -28,7 +28,7 @@ final class LanguageSupportTest extends FunSuite {
                      expectedBinary: Path,
                      expectedScriptContent: String): Unit = {
 
-    val commandLine = LoamCmdTool.toString(scriptContext.projectContext.fileManager, loamLine.tokens)
+    val commandLine = LoamCmdTool.toString(loamLine.tokens)
     val pieces = commandLine.split(" ")
     val binary = pieces.head
     val file = pieces.last

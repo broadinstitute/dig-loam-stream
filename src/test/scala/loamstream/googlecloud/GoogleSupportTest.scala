@@ -64,8 +64,12 @@ final class GoogleSupportTest extends FunSuite {
     val local = store.at(path("/some/local/path"))
     val remote = store.at(uri("gs://loamstream/foo/bar/baz"))
 
+    assert(context.projectContext.graph.stores === Set(local, remote))
+    assert(context.projectContext.graph.tools.isEmpty)
+    
+    assert(graphSoFar.stores.isEmpty)
     assert(graphSoFar.tools.isEmpty)
-
+    
     googleCopy(local, remote, "blerg", "zerg")
 
     //No inputs, so nothing should have been done

@@ -108,9 +108,9 @@ final class LoamWorkDirTest extends FunSuite {
       cmd"cp $inFile $outFile0"
       inDir(paths.subDirName) {
         val outFile1 = store.at(paths.outFileNames(1))
-        outFile2.at(paths.outFileNames(2))
+        val outFile2Prime = outFile2.at(paths.outFileNames(2))
         cmd"cp $outFile0 $outFile1"
-        cmd"cp $outFile1 $outFile2"
+        cmd"cp $outFile1 $outFile2Prime"
       }
     }
     inDir(paths.rootDirs(1)) {

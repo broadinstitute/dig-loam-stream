@@ -71,15 +71,16 @@ object LoamPredef extends Loggable {
     val oldDir = scriptContext.workDir
     
     try {
-      scriptContext.changeWorkDir(path)
+      changeDir(path)
       expr
     } finally {
       scriptContext.setWorkDir(oldDir)
     }
   }
 
-  def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T =
+  def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T = {
     inDir[T](Paths.get(path))(expr)
+  }
 
   private[this] def runIn[A](env: Environment)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     val oldEnv = scriptContext.executionEnvironment

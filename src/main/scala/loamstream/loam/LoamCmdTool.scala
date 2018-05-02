@@ -4,7 +4,6 @@ import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken, MultiS
 import loamstream.model.Tool.{AllStores, DefaultStores}
 import loamstream.model.{LId, Store, Tool}
 import loamstream.util.StringUtils
-import loamstream.loam.files.LoamFileManager
 import loamstream.conf.DynamicConfig
 
 /**
@@ -77,9 +76,7 @@ object LoamCmdTool {
     case arg => StringToken(arg.toString)
   }
   
-  def toString(fileManager: LoamFileManager, tokens: Seq[LoamToken]): String = {
-    tokens.map(_.toString(fileManager)).mkString
-  }
+  def toString(tokens: Seq[LoamToken]): String = tokens.map(_.render).mkString
 }
 
 /** A command line tool specified in a Loam script */
@@ -90,7 +87,7 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
 
   /** Constructs the command line string */
-  def commandLine: String = LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
+  def commandLine: String = LoamCmdTool.toString(tokens)
 
   def using(dotkits: String*): LoamCmdTool = {
     val prefix = {

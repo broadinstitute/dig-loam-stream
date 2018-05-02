@@ -63,8 +63,8 @@ final class LoamCmdToolTest extends FunSuite {
     val stores = Seq(nuh, zuh)
     
     // properly escaped for the bash scripts
-    val nuhPath = nuh.render(scriptContext.projectContext.fileManager)
-    val zuhPath = zuh.render(scriptContext.projectContext.fileManager)
+    val nuhPath = nuh.render
+    val zuhPath = zuh.render
 
     val tool = cmd"foo bar --is $is baz --in $nuh --blarg $stores"
     
@@ -311,8 +311,8 @@ final class LoamCmdToolTest extends FunSuite {
     val inStoreWithUri = store.at(uri("xyz://host/dir/inStoreWithUri")).asInput
     val outStoreWithUri = store.at(uri("xyz://host/dir/outStoreWithUri"))
     val tool = cmd"maker $inStoreWithPath $inStoreWithUri $outStoreWithPath $outStoreWithUri"
-    val inPath = inStoreWithPath.render(scriptContext.projectContext.fileManager)
-    val outPath = outStoreWithPath.render(scriptContext.projectContext.fileManager)
+    val inPath = inStoreWithPath.render
+    val outPath = outStoreWithPath.render
     val inUri = BashScript.escapeString(inStoreWithUri.uriOpt.get.toString)
     val outUri = BashScript.escapeString(outStoreWithUri.uriOpt.get.toString)
     val commandLineExpected = s"maker $inPath $inUri $outPath $outUri"

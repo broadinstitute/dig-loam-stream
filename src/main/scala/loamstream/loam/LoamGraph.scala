@@ -39,7 +39,6 @@ object LoamGraph {
       toolInputs = Map.empty,
       toolOutputs = Map.empty,
       inputStores = Set.empty,
-      storeLocations = Map.empty,
       storeProducers = Map.empty,
       storeConsumers = Map.empty,
       workDirs = Map.empty,
@@ -55,7 +54,6 @@ final case class LoamGraph(
     toolInputs: Map[Tool, Set[Store]],
     toolOutputs: Map[Tool, Set[Store]],
     inputStores: Set[Store],
-    storeLocations: Map[Store, StoreLocation],
     storeProducers: Map[Store, Tool],
     storeConsumers: Map[Store, Set[Tool]],
     //TODO: put "metadata" (work dirs, tool names, environments) that's not directly related to tool-store topologies
@@ -120,20 +118,30 @@ final case class LoamGraph(
       executionEnvironments = executionEnvironments.mapKeys(replace)
     )
   }
+  
+  def updateStore(existing: Store, replacement: Store): LoamGraph = {
+    val replace: Store => Store = { store =>
+      if (store.id == existing.id) { replacement } else { store }
+    }
+
+    import loamstream.util.Maps.Implicits._
+
+    copy(
+      stores = stores.map(replace),
+      toolInputs = toolInputs.strictMapValues(_.map(replace)),
+      toolOutputs = toolOutputs.strictMapValues(_.map(replace)),
+      inputStores = inputStores.map(replace),
+      storeProducers = storeProducers.mapKeys(replace),
+      storeConsumers = storeConsumers.mapKeys(replace))
+  }
 
   /** Returns graph with store marked as input store */
   def withStoreAsInput(store: Store): LoamGraph = copy(inputStores = inputStores + store)
-
-  /** Returns graph with store location (path or URI) added */
-  def withStoreLocation(store: Store, location: StoreLocation): LoamGraph = {
-    copy(storeLocations = storeLocations + (store -> location))
-  }
 
   /** Tools that produce a store consumed by this tool */
   def toolsPreceding(tool: Tool): Set[Tool] = {
     toolInputs.getOrElse(tool, Set.empty).flatMap(storeProducers.get)
   }
-
 
   /** Tools that consume a store produced by this tool */
   def toolsSucceeding(tool: Tool): Set[Tool] = {
@@ -147,28 +155,10 @@ final case class LoamGraph(
   def finalTools: Set[Tool] = tools.filter(toolsSucceeding(_).isEmpty)
 
   /** Whether store has a Path associated with it */
-  def hasPath(store: Store): Boolean = {
-    storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.PathLocation])
-  }
-
-  /** Optionally the path associated with a store */
-  def pathOpt(store: Store): Option[Path] =
-  storeLocations.get(store) match {
-    case Some(StoreLocation.PathLocation(path)) => Some(path)
-    case _ => None
-  }
+  def hasPath(store: Store): Boolean = store.pathOpt.isDefined
 
   /** Whether store has a Path associated with it */
-  def hasUri(store: Store): Boolean = {
-    storeLocations.get(store).exists(_.isInstanceOf[StoreLocation.UriLocation])
-  }
-
-  /** Optionally the URI associated with a store */
-  def uriOpt(store: Store): Option[URI] = {
-    storeLocations.get(store).collect {
-      case StoreLocation.UriLocation(uri) => uri
-    }
-  }
+  def hasUri(store: Store): Boolean = store.uriOpt.isDefined
 
   /** Optionally, the work directory of a tool */
   def workDirOpt(tool: Tool): Option[Path] = workDirs.get(tool)
@@ -268,23 +258,20 @@ final case class LoamGraph(
 
     if(toolsToKeep == tools) { this }
     else {
-      type UStore = Store
-      
       import loamstream.util.Traversables.Implicits._
       
-      val retainedInputs: Set[UStore] = toolsToKeep.flatMap(toolInputs(_))
-      val retainedOutputs: Set[UStore] = toolsToKeep.flatMap(toolOutputs(_))
+      val retainedInputs: Set[Store] = toolsToKeep.flatMap(toolInputs(_))
+      val retainedOutputs: Set[Store] = toolsToKeep.flatMap(toolOutputs(_))
       
-      val retainedToolsToInputs: Map[Tool, Set[UStore]] = toolsToKeep.mapTo(toolInputs(_))
-      val retainedToolsToOutputs: Map[Tool, Set[UStore]] = toolsToKeep.mapTo(toolOutputs(_))
+      val retainedToolsToInputs: Map[Tool, Set[Store]] = toolsToKeep.mapTo(toolInputs(_))
+      val retainedToolsToOutputs: Map[Tool, Set[Store]] = toolsToKeep.mapTo(toolOutputs(_))
   
-      val retainedInputStores: Set[UStore] = inputStores.filter(retainedInputs)
+      val retainedInputStores: Set[Store] = inputStores.filter(retainedInputs)
       
       val retainedStores = retainedInputStores ++ retainedInputs ++ retainedOutputs
       
       import loamstream.util.Maps.Implicits._
       
-      val retainedStoreLocations = storeLocations.filterKeys(retainedStores)
       val retainedStoreProducers = storeProducers.filterKeys(retainedStores).filterValues(toolsToKeep)
       val retainedStoreConsumers = {
         storeConsumers.filterKeys(retainedStores).strictMapValues(_.filter(toolsToKeep)).filterValues(_.nonEmpty)
@@ -300,7 +287,6 @@ final case class LoamGraph(
           toolInputs = retainedToolsToInputs,
           toolOutputs = retainedToolsToOutputs,
           inputStores = retainedInputStores,
-          storeLocations = retainedStoreLocations,
           storeProducers = retainedStoreProducers,
           storeConsumers = retainedStoreConsumers,
           workDirs = retainedWorkDirs,

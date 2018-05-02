@@ -154,12 +154,6 @@ final case class LoamGraph(
   /** All tools with no succeeding tools */
   def finalTools: Set[Tool] = tools.filter(toolsSucceeding(_).isEmpty)
 
-  /** Whether store has a Path associated with it */
-  def hasPath(store: Store): Boolean = store.pathOpt.isDefined
-
-  /** Whether store has a Path associated with it */
-  def hasUri(store: Store): Boolean = store.uriOpt.isDefined
-
   /** Optionally, the work directory of a tool */
   def workDirOpt(tool: Tool): Option[Path] = workDirs.get(tool)
 

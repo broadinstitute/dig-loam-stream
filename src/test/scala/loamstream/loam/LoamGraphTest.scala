@@ -197,6 +197,14 @@ final class LoamGraphTest extends FunSuite {
     
     assert(updatedGraph.namedTools === Map("phase" -> phaseTool, "impute" -> imputeTool))
   }
+  
+  test("updateStore") {
+    fail("TODO")
+  }
+  
+  test("updateTool") {
+    fail("TODO")
+  }
 }
 
 object LoamGraphTest {

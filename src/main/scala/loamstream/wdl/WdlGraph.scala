@@ -10,6 +10,14 @@ import wom.types._
 /** Create a WDL task element from a LoamGraph node. */
 class WdlGraph(val graph: LoamGraph) {
 
+  /** Create a WDL ExpressionElement for a store to be used as an input. */
+  private def inputExpressionOfStore(store: Store) = {
+    val key = store.render.replaceAll("[^a-zA-Z0-9_]", "_")
+    val value = elements.ExpressionElement.StringLiteral(store.render)
+
+    elements.ExpressionElement.KvPair(key, value)
+  }
+
   /** Create an InputDeclarationElement from a Store. */
   private def inputOfStore(store: Store) = {
     val womType = elements.PrimitiveTypeElement(WomSingleFileType)
@@ -23,7 +31,7 @@ class WdlGraph(val graph: LoamGraph) {
   private def outputOfStore(store: Store) = {
     val womType = elements.PrimitiveTypeElement(WomSingleFileType)
     val name = store.render.replaceAll("[^a-zA-Z0-9_]", "_")
-    val expression = elements.ExpressionElement.StdoutElement
+    val expression = elements.ExpressionElement.StringLiteral(store.render)
 
     // create a new output declaration element that's a file
     elements.OutputDeclarationElement(womType, name, expression)
@@ -72,7 +80,7 @@ class WdlGraph(val graph: LoamGraph) {
     val commandSection = elements.CommandSectionElement(Seq(commandLineOfTool(tool)))
 
     // create the task
-    elements.TaskDefinitionElement(
+    val task = elements.TaskDefinitionElement(
       Gensym("task"),
       inputsSection,
       declarations,
@@ -82,17 +90,58 @@ class WdlGraph(val graph: LoamGraph) {
       metaSection,
       parameterMetaSection,
     )
+
+    // pair the tool and task
+    (tool, task)
   }
 
   /**
    * Create the top-level WDL workflow that manages calling all the tasks.
    */
   lazy val workflow = {
-    // TODO:
+    val inputs = graph.inputStores map (inputOfStore _)
+    val outputsSection = None
+    val metaSection = None
+    val parameterMetaSection = None
+
+    // map inputs to an input section if there are any
+    val inputsSection = Option(inputs.size > 0) collect {
+      case true => elements.InputsSectionElement(inputs.toSeq)
+    }
+
+    // graph elements (tasks to call)
+    val graphElements = tasks map { case (tool, task) =>
+      val name = task.name
+      val alias = None
+
+      // create all the inputs for the body
+      val inputs = graph.toolInputs(tool).map(inputExpressionOfStore _)
+
+      // if there are any inputs, create the body
+      val body = Option(inputs.size > 0) collect {
+        case true => elements.CallBodyElement(inputs.toVector)
+      }
+
+      elements.CallElement(name, alias, body)
+    }
+
+    elements.WorkflowDefinitionElement(
+      Gensym("workflow"),
+      inputsSection,
+      graphElements.toSet[elements.WorkflowGraphElement],
+      outputsSection,
+      metaSection,
+      parameterMetaSection,
+    )
   }
 
   /** Write this graph task node to a stream. */
   def write(stream: OutputStream) = {
-    tasks foreach (task => stream write WdlPrinter.print(task).getBytes)
+    stream write WdlPrinter.print(workflow).getBytes
+
+    // output all the tasks
+    tasks foreach {
+      case (_, task) => stream write WdlPrinter.print(task).getBytes
+    }
   }
 }

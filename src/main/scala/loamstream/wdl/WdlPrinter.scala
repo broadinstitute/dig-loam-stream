@@ -18,10 +18,9 @@ object WdlPrinter {
       case it: elements.RuntimeAttributesSectionElement => printRuntimeSection(it)
       case it: elements.TaskDefinitionElement           => printTaskDefinition(it)
       case it: elements.WorkflowDefinitionElement       => printWorkflowDefinition(it)
-      case it: elements.WorkflowGraphElement            => printWorkflowGraph(it)
 
       // not everything is handled
-      case _ => throw new Exception("Unknown WDL LanguageElement!")
+      case _ => throw new Exception("Unhandled WDL LanguageElement!")
     }
   }
 
@@ -35,17 +34,22 @@ object WdlPrinter {
       case elements.ExpressionElement.StdoutElement     => "stdout()"
 
       // TODO: handle more expression element types
-      case _ => throw new Exception("Unknown WDL ExpressionElement")
+      case _ => throw new Exception("Unhandled WDL ExpressionElement")
     }
   }
 
   /** Print an element type. */
   private def printType(element: elements.TypeElement): String = {
     element match {
-      case it: elements.ArrayTypeElement     => s"TODO: Array[T]"
-      case it: elements.MapTypeElement       => s"TODO: Map[K,V]"
-      case it: elements.OptionalTypeElement  => s"TODO: Option[T]"
-      case it: elements.PairTypeElement      => s"TODO: Pair[L,R]"
+      case it: elements.ArrayTypeElement    => s"Array[${printType(it.inner)}]"
+      case it: elements.MapTypeElement      => s"Map[${printType(it.keyType)},${printType(it.valueType)}]"
+      case it: elements.OptionalTypeElement => s"Option[${printType(it.maybeType)}]"
+      case it: elements.PairTypeElement     => s"Pair[${printType(it.leftType)},${printType(it.rightType)}]"
+
+      // singleton types
+      case elements.ObjectTypeElement => "Object"
+
+      // primitive types
       case it: elements.PrimitiveTypeElement => {
         it.primitiveType match {
           case wom.types.WomBooleanType    => "Boolean"
@@ -56,12 +60,17 @@ object WdlPrinter {
           case wom.types.WomStringType     => "String"
         }
       }
+
+      // TODO: handle more type elements
+      case _ => throw new Error("Unhandled WDL TypeElement!")
     }
   }
 
   /** Print a `call task [as [name]] { ... }` element. */
   private def printCall(it: elements.CallElement) = {
-    s"""|call ${it.toString} ${it.alias.map(name => s"as $name")} {
+    val alias = it.alias.map(name => s"as $name") getOrElse ""
+
+    s"""|call ${it.callableReference} $alias {
         |  ${it.body.map(print _) getOrElse ""}
         |}
         |""".stripMargin
@@ -69,7 +78,7 @@ object WdlPrinter {
 
   private def printCallBody(it: elements.CallBodyElement) = {
     val inputs = for (i <- it.inputs) yield {
-      s"${i.key}=${i.value.toString}"
+      s"${i.key}=${printExpression(i.value)}"
     }
 
     s"""|input:
@@ -127,7 +136,7 @@ object WdlPrinter {
 
   /** Print a single KV pair element. */
   private def printKvPair(it: elements.ExpressionElement.KvPair) = {
-    s"${it.key} = ${it.value.toString}"
+    s"${it.key} = ${it.value}"
   }
 
   /** Print a `runtime { ... } attribute section. */
@@ -157,9 +166,5 @@ object WdlPrinter {
         |  ${it.graphElements.map(print _) mkString "\n"}
         |}
         |""".stripMargin
-  }
-
-  private def printWorkflowGraph(it: elements.WorkflowGraphElement) = {
-    ""
   }
 }

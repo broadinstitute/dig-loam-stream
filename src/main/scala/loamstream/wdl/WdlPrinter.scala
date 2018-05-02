@@ -1,6 +1,5 @@
 package loamstream.wdl
 
-import loamstream.loam.LoamGraph
 import wdl.model.draft3._
 
 object WdlPrinter {
@@ -8,20 +7,55 @@ object WdlPrinter {
   /** Print single WDL element to a String. */
   def print(wdlElement: elements.LanguageElement): String = {
     wdlElement match {
-      case it: elements.CallBodyElement           => printCallBody(it)
-      case it: elements.CallElement               => printCall(it)
-      case it: elements.CommandSectionElement     => printCommandSection(it)
-      case it: elements.InputDeclarationElement   => printInput(it)
-      case it: elements.InputsSectionElement      => printInputsSection(it)
-      case it: elements.MetaSectionElement        => printMetaSection(it)
-      case it: elements.OutputDeclarationElement  => printOutput(it)
-      case it: elements.OutputsSectionElement     => printOutputsSection(it)
-      case it: elements.TaskDefinitionElement     => printTaskDefinition(it)
-      case it: elements.WorkflowDefinitionElement => printWorkflowDefinition(it)
-      case it: elements.WorkflowGraphElement      => printWorkflowGraph(it)
+      case it: elements.CallBodyElement                 => printCallBody(it)
+      case it: elements.CallElement                     => printCall(it)
+      case it: elements.CommandSectionElement           => printCommandSection(it)
+      case it: elements.InputDeclarationElement         => printInput(it)
+      case it: elements.InputsSectionElement            => printInputsSection(it)
+      case it: elements.MetaSectionElement              => printMetaSection(it)
+      case it: elements.OutputDeclarationElement        => printOutput(it)
+      case it: elements.OutputsSectionElement           => printOutputsSection(it)
+      case it: elements.RuntimeAttributesSectionElement => printRuntimeSection(it)
+      case it: elements.TaskDefinitionElement           => printTaskDefinition(it)
+      case it: elements.WorkflowDefinitionElement       => printWorkflowDefinition(it)
+      case it: elements.WorkflowGraphElement            => printWorkflowGraph(it)
 
       // not everything is handled
       case _ => throw new Exception("Unknown WDL LanguageElement!")
+    }
+  }
+
+  /** Print a single WDL expression element. */
+  private def printExpression(expr: elements.ExpressionElement): String = {
+    expr match {
+      case it: elements.ExpressionElement.StringLiteral => s""""${it.value}""""
+
+      // global output locations
+      case elements.ExpressionElement.StderrElement     => "stderr()"
+      case elements.ExpressionElement.StdoutElement     => "stdout()"
+
+      // TODO: handle more expression element types
+      case _ => throw new Exception("Unknown WDL ExpressionElement")
+    }
+  }
+
+  /** Print an element type. */
+  private def printType(element: elements.TypeElement): String = {
+    element match {
+      case it: elements.ArrayTypeElement     => s"TODO: Array[T]"
+      case it: elements.MapTypeElement       => s"TODO: Map[K,V]"
+      case it: elements.OptionalTypeElement  => s"TODO: Option[T]"
+      case it: elements.PairTypeElement      => s"TODO: Pair[L,R]"
+      case it: elements.PrimitiveTypeElement => {
+        it.primitiveType match {
+          case wom.types.WomBooleanType    => "Boolean"
+          case wom.types.WomFloatType      => "Float"
+          case wom.types.WomGlobFileType   => "Array[File]"
+          case wom.types.WomIntegerType    => "Int"
+          case wom.types.WomSingleFileType => "File"
+          case wom.types.WomStringType     => "String"
+        }
+      }
     }
   }
 
@@ -43,38 +77,63 @@ object WdlPrinter {
         |""".stripMargin
   }
 
+  private def printCommandLinePart(part: elements.CommandPartElement) = {
+    part match {
+      case it: elements.CommandPartElement.StringCommandPartElement => it.value
+      case it: elements.CommandPartElement.PlaceholderCommandPartElement => "TODO: "
+    }
+  }
+
+  /** Print a command line part. */
+  private def printCommandLine(it: elements.CommandSectionLine) = {
+    s"${it.parts map (printCommandLinePart _) mkString " "}"
+  }
+
   /** Print a `command { ... }` element. */
   private def printCommandSection(it: elements.CommandSectionElement) = {
     s"""|command {
-        |  ${it.toString}
+        |  ${it.parts map (printCommandLine _) mkString "\n  "}
         |}
         |""".stripMargin
   }
 
   /** Print a single input. */
   private def printInput(it: elements.InputDeclarationElement) = {
-    s"${it.typeElement.toString} ${it.name}"
+    s"${printType(it.typeElement)} ${it.name}"
   }
 
   /** Print the input section. */
   private def printInputsSection(it: elements.InputsSectionElement) = {
-    it.inputDeclarations.map(print _) mkString "\n"
+    it.inputDeclarations.map(print _) mkString "\n  "
   }
 
   /** Print a meta section. */
   private def printMetaSection(it: elements.MetaSectionElement) = {
-    (for ((k, v) <- it.meta) yield s"$k = $v") mkString "\n"
+    (for ((k, v) <- it.meta) yield s"$k = $v") mkString "\n  "
   }
 
   /** Print a single output element. */
   private def printOutput(it: elements.OutputDeclarationElement) = {
-    s"""${it.typeElement.toString} ${it.name} = "${it.toString}""""
+    s"${printType(it.typeElement)} ${it.name} = ${printExpression(it.expression)}"
   }
 
   /** Print the optional output section. */
   private def printOutputsSection(it: elements.OutputsSectionElement) = {
     s"""|output {
-        |  ${it.outputs.map(print _) mkString "\n"}
+        |  ${it.outputs.map(print _) mkString "\n  "}
+        |}
+        |""".stripMargin
+  }
+
+  /** Print a single KV pair element. */
+  private def printKvPair(it: elements.ExpressionElement.KvPair) = {
+    s"${it.key} = ${it.value.toString}"
+  }
+
+  /** Print a `runtime { ... } attribute section. */
+  private def printRuntimeSection(it: elements.RuntimeAttributesSectionElement) = {
+    s"""|runtime {
+        |  ${it.runtimeAttributes.map(printKvPair _) mkString ","}
         |}
         |""".stripMargin
   }

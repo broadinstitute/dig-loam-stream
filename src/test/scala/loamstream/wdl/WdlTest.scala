@@ -29,10 +29,15 @@ class WdlTest extends FunSuite {
   }
 
   test("WDL") {
-    val executable = createExecutable
-    val wdl = LoamToWdl.loamToWdl(executable)
-    val wdlString = WdlPrinter.print(wdl)
-    println(wdlString)
+    val output = new java.io.ByteArrayOutputStream()
+    val graph = createExecutable
+    val wdl = new WdlGraph(graph)
+
+    // dump the wdl to the stream
+    wdl.write(output)
+
+    // show it
+    println(output.toString)
   }
 
 }

@@ -199,9 +199,9 @@ final case class LoamGraph(
     storeMap.getOrElse(tool, Set.empty)
   }
 
-  private def inputsFor(tool: Tool): Set[Store] = storesFor(tool)(toolInputs)
+  def inputsFor(tool: Tool): Set[Store] = storesFor(tool)(toolInputs)
 
-  private def outputsFor(tool: Tool): Set[Store] = storesFor(tool)(toolOutputs)
+  def outputsFor(tool: Tool): Set[Store] = storesFor(tool)(toolOutputs)
 
   /** Adds input stores to tool
     *
@@ -248,42 +248,42 @@ final case class LoamGraph(
   }
 
   def nameOf(t: Tool): Option[String] = namedTools.collectFirst { case (n, namedTool) if namedTool == t => n }
-  
+
   def withToolName(tool: Tool, name: String): LoamGraph = {
     //TODO: Throw here, or elsewhere?  Make this a loam-compilation-time error another way?
     if(namedTools.contains(name)) {
       throw new Exception(s"Tool name '$name' must be unique.")
     }
-    
+
     if(namedTools.values.toSet.contains(tool)) {
       throw new Exception(s"Tool '$tool' is already named ${nameOf(tool).get}")
     }
-    
+
     copy(namedTools = namedTools + (name -> tool))
   }
-  
+
   def without(toolsToExclude: Set[Tool]): LoamGraph = containingOnly(tools -- toolsToExclude)
-  
+
   private def containingOnly(toolsToKeep: Set[Tool]): LoamGraph = {
 
     if(toolsToKeep == tools) { this }
     else {
       type UStore = Store
-      
+
       import loamstream.util.Traversables.Implicits._
-      
+
       val retainedInputs: Set[UStore] = toolsToKeep.flatMap(toolInputs(_))
       val retainedOutputs: Set[UStore] = toolsToKeep.flatMap(toolOutputs(_))
-      
+
       val retainedToolsToInputs: Map[Tool, Set[UStore]] = toolsToKeep.mapTo(toolInputs(_))
       val retainedToolsToOutputs: Map[Tool, Set[UStore]] = toolsToKeep.mapTo(toolOutputs(_))
-  
+
       val retainedInputStores: Set[UStore] = inputStores.filter(retainedInputs)
-      
+
       val retainedStores = retainedInputStores ++ retainedInputs ++ retainedOutputs
-      
+
       import loamstream.util.Maps.Implicits._
-      
+
       val retainedStoreLocations = storeLocations.filterKeys(retainedStores)
       val retainedStoreProducers = storeProducers.filterKeys(retainedStores).filterValues(toolsToKeep)
       val retainedStoreConsumers = {
@@ -291,9 +291,9 @@ final case class LoamGraph(
       }
       val retainedWorkDirs = workDirs.filterKeys(toolsToKeep)
       val retainedExecutionEnvironments = executionEnvironments.filterKeys(toolsToKeep)
-  
+
       val retainedNamedTools = namedTools.filterValues(toolsToKeep)
-      
+
       LoamGraph(
           stores = retainedStores,
           tools = toolsToKeep,

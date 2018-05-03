@@ -27,7 +27,13 @@ object WdlPrinter {
   /** Print a single WDL expression element. */
   private def printExpression(expr: elements.ExpressionElement): String = {
     expr match {
-      case it: elements.ExpressionElement.StringLiteral => s""""${it.value}""""
+      case it: elements.ExpressionElement.StringLiteral          => s""""${it.value}""""
+      case it: elements.ExpressionElement.IdentifierMemberAccess =>
+        if (it.memberAccessTail.size > 0) {
+          s"${it.first}.${it.second}.${it.memberAccessTail mkString "."}"
+        } else {
+          s"${it.first}.${it.second}"
+        }
 
       // global output locations
       case elements.ExpressionElement.StderrElement     => "stderr()"

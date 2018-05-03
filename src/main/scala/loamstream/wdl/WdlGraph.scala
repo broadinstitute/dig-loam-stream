@@ -11,9 +11,14 @@ import wom.types._
 class WdlGraph(val graph: LoamGraph) {
 
   /** Create a WDL ExpressionElement for a store to be used as an input. */
-  private def inputExpressionOfStore(store: Store) = {
+  private def inputExpressionOfStore(store: Store, ofTask: Option[elements.TaskDefinitionElement]) = {
     val key = store.render.replaceAll("[^a-zA-Z0-9_]", "_")
-    val value = elements.ExpressionElement.StringLiteral(store.render)
+
+    // if the store came from a task, index into it
+    val value = ofTask match {
+      case Some(task) => elements.ExpressionElement.IdentifierMemberAccess(task.name, key, Seq())
+      case None       => elements.ExpressionElement.StringLiteral(store.render)
+    }
 
     elements.ExpressionElement.KvPair(key, value)
   }
@@ -59,8 +64,8 @@ class WdlGraph(val graph: LoamGraph) {
    * Each of the tools has a set of inputs and outputs.
    */
   lazy val tasks = graph.tools map { tool =>
-    val inputs = graph.toolInputs(tool) map (inputOfStore _)
-    val outputs = graph.toolOutputs(tool) map (outputOfStore _)
+    val inputs = graph.toolInputs(tool).map(inputOfStore _)
+    val outputs = graph.toolOutputs(tool).map(outputOfStore _)
     val declarations = Seq() // TODO: constant inputs?
     val runtimeSection = None // TODO: docker image
     val metaSection = None
@@ -99,7 +104,7 @@ class WdlGraph(val graph: LoamGraph) {
    * Create the top-level WDL workflow that manages calling all the tasks.
    */
   lazy val workflow = {
-    val inputs = graph.inputStores map (inputOfStore _)
+    val inputs = graph.inputStores.map(inputOfStore _)
     val outputsSection = None
     val metaSection = None
     val parameterMetaSection = None
@@ -114,8 +119,17 @@ class WdlGraph(val graph: LoamGraph) {
       val name = task.name
       val alias = None
 
+      // need to lookup the parent tool that creates each input store
+      val parents = graph.toolsPreceding(tool)
+
       // create all the inputs for the body
-      val inputs = graph.toolInputs(tool).map(inputExpressionOfStore _)
+      val inputs = graph.toolInputs(tool).map { store =>
+        val parentTool = parents.find(tool => graph.outputsFor(tool).contains(store))
+        val parentTask = parentTool.flatMap(tool => tasks.find(_._1 == tool)).map(_._2)
+
+        //
+        inputExpressionOfStore(store, parentTask)
+      }
 
       // if there are any inputs, create the body
       val body = Option(inputs.size > 0) collect {

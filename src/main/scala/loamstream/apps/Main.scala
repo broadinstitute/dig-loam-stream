@@ -180,7 +180,7 @@ object Main extends Loggable {
         info("Start exporting to WDL")
         // We can only really convert the first executable to WDL
         val graph = graphIter.next()
-        val wdl = new WdlGraph(graph)
+        val wdl = new WdlGraph(intent.workflowName, graph)
         info("= = =  Start WDL  = = =")
         val wdlString = wdl.write(sys.process.stdout)
         info("= = =  End WDL  = = =")

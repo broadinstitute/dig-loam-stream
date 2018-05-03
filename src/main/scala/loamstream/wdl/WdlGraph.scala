@@ -8,7 +8,7 @@ import wdl.model.draft3.elements
 import wom.types._
 
 /** Create a WDL task element from a LoamGraph node. */
-class WdlGraph(val graph: LoamGraph) {
+class WdlGraph(val workflowName: String, val graph: LoamGraph) {
 
   /** Create a WDL ExpressionElement for a store to be used as an input. */
   private def inputExpressionOfStore(store: Store, ofTask: Option[elements.TaskDefinitionElement]) = {
@@ -140,7 +140,7 @@ class WdlGraph(val graph: LoamGraph) {
     }
 
     elements.WorkflowDefinitionElement(
-      Gensym("workflow"),
+      workflowName,
       inputsSection,
       graphElements.toSet[elements.WorkflowGraphElement],
       outputsSection,

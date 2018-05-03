@@ -31,7 +31,7 @@ class WdlTest extends FunSuite {
   test("WDL") {
     val output = new java.io.ByteArrayOutputStream()
     val graph = createExecutable
-    val wdl = new WdlGraph(graph)
+    val wdl = new WdlGraph("wfloam", graph)
 
     // dump the wdl to the stream
     wdl.write(output)

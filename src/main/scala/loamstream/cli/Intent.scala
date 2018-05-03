@@ -18,7 +18,7 @@ object Intent extends Loggable {
   final case object ShowVersionAndQuit extends Intent {
     override def confFile: Option[Path] = None
   }
-  
+
   final case object ShowHelpAndQuit extends Intent {
     override def confFile: Option[Path] = None
   }
@@ -43,10 +43,13 @@ object Intent extends Loggable {
     shouldRunEverything: Boolean,
     loams: Seq[Path]) extends IntentWithLoams
 
-  final case class WdlExport(confFile: Option[Path], loams: Seq[Path]) extends IntentWithLoams
+  final case class WdlExport(
+    confFile: Option[Path],
+    loams: Seq[Path],
+    workflowName: String) extends IntentWithLoams
 
   def from(cli: Conf): Either[String, Intent] = from(cli.toValues)
-    
+
   private def from(values: Conf.Values): Either[String, Intent] = {
     import java.nio.file.Files.exists
 
@@ -73,7 +76,7 @@ object Intent extends Loggable {
 
     if (values.versionSupplied) { Right(ShowVersionAndQuit) }
     else if (values.helpSupplied) { Right(ShowHelpAndQuit) }
-    else if (values.wdlSupplied) { Right(WdlExport(values.conf, values.loams)) }
+    else if (values.wdlWorkflow.isDefined) { Right(WdlExport(values.conf, values.loams, values.wdlWorkflow.get)) }
     else if (confDoesntExist) { Left(s"Config file '${values.conf.get}' specified, but it doesn't exist.") }
     else if (values.lookupSupplied) { Right(LookupOutput(values.conf, values.lookup.get)) }
     else if (compileOnly(values)) { Right(CompileOnly(values.conf, values.loams)) }

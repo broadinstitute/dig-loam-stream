@@ -19,15 +19,15 @@ import loamstream.util.IoUtils
  * @param arguments command line arguments provided by the app user
  */
 final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) with Loggable {
-  
+
   def printHelp(message: String): Unit = {
     printHelp()
-    
+
     IoUtils.printToConsole()
-    
+
     IoUtils.printToConsole(message)
   }
-  
+
   /** Inform the user about expected usage upon erroneous input/behaviour. */
   override def onError(e: Throwable): Unit = e match {
     case ScallopException(message) => printHelp(message)
@@ -41,7 +41,7 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   }
 
   private val listPathConverter: ValueConverter[List[Path]] = listArgConverter[Path](Paths.get(_))
-  
+
   // TODO: Add version info (ideally from build.sbt)?
   banner("""LoamStream is a genomic analysis stack featuring a high-level language, compiler and runtime engine.
            |Usage: scala loamstream.jar [options] [loam file(s)]
@@ -49,23 +49,23 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
            |       loamstream [options] [loam file(s)]
            |Options:
            |""".stripMargin)
-  
-           
-  //Using all default args for `opt` makes it a flag 
+
+
+  //Using all default args for `opt` makes it a flag
   val version: ScallopOption[Boolean] = opt[Boolean](descr = "Print version information and exit")
-  
-  //Using all default args for `opt` makes it a flag 
+
+  //Using all default args for `opt` makes it a flag
   val help: ScallopOption[Boolean] = opt[Boolean](descr = "Show help and exit")
-  
-  //Using all default args for `opt` makes it a flag 
+
+  //Using all default args for `opt` makes it a flag
   val runEverything: ScallopOption[Boolean] = opt[Boolean](
       descr = "Run every step in the pipeline, even if they've already been run")
-  
-  //Using all default args for `opt` makes it a flag 
+
+  //Using all default args for `opt` makes it a flag
   val compileOnly: ScallopOption[Boolean] = opt[Boolean](
       descr = "Only compile the supplied .loam files, don't run them")
-      
-  //Using all default args for `opt` makes it a flag 
+
+  //Using all default args for `opt` makes it a flag
   val dryRun: ScallopOption[Boolean] = opt[Boolean](
       descr = "Show what commands would be run without running them")
 
@@ -79,18 +79,18 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   val lookup: ScallopOption[Either[Path, URI]] = opt[Either[Path, URI]](
       descr = "Path to output file or URI; look up info on command that made it",
       required = false)(ValueConverters.PathOrGoogleUriConverter)
-      
+
   val disableHashing: ScallopOption[Boolean] = opt[Boolean](
       descr = "Don't hash files when determining whether a job may be skipped.",
       required = false)
 
-  val wdl: ScallopOption[Boolean] = opt[Boolean](
+  val wdl: ScallopOption[String] = opt[String](
     descr = "Export to Workflow Description Language (WDL); don't run",
     required = false
   )
   //NB: Required by Scallop
   verify()
-  
+
   def toValues: Conf.Values = Conf.Values(
       loams = loams.toOption.toSeq.flatten,
       lookup = lookup.toOption,
@@ -101,7 +101,7 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       compileOnlySupplied = compileOnly.isSupplied,
       dryRunSupplied = dryRun.isSupplied,
       disableHashingSupplied = disableHashing.isSupplied,
-    wdlSupplied = wdl.isSupplied)
+      wdlWorkflow = wdl.toOption)
 }
 
 object Conf {
@@ -115,10 +115,10 @@ object Conf {
       compileOnlySupplied: Boolean,
       dryRunSupplied: Boolean,
       disableHashingSupplied: Boolean,
-      wdlSupplied: Boolean) {
-    
+      wdlWorkflow: Option[String]) {
+
     def lookupSupplied: Boolean = lookup.isDefined
-    
+
     def confSupplied: Boolean = conf.isDefined
   }
 }

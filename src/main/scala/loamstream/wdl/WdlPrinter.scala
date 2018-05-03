@@ -3,24 +3,31 @@ package loamstream.wdl
 import wdl.model.draft3._
 
 object WdlPrinter {
+  val Indent = "  "
 
   /** Print single WDL element to a String. */
-  def print(wdlElement: elements.LanguageElement): String = {
-    wdlElement match {
+  def print(wdlElement: elements.LanguageElement, level: Int = 0): String = {
+    val s = wdlElement match {
       case it: elements.CallBodyElement                 => printCallBody(it)
-      case it: elements.CallElement                     => printCall(it)
+      case it: elements.CallElement                     => printCall(it, level)
       case it: elements.CommandSectionElement           => printCommandSection(it)
       case it: elements.InputDeclarationElement         => printInput(it)
-      case it: elements.InputsSectionElement            => printInputsSection(it)
+      case it: elements.InputsSectionElement            => printInputsSection(it, level)
       case it: elements.MetaSectionElement              => printMetaSection(it)
       case it: elements.OutputDeclarationElement        => printOutput(it)
-      case it: elements.OutputsSectionElement           => printOutputsSection(it)
+      case it: elements.OutputsSectionElement           => printOutputsSection(it, level)
       case it: elements.RuntimeAttributesSectionElement => printRuntimeSection(it)
-      case it: elements.TaskDefinitionElement           => printTaskDefinition(it)
-      case it: elements.WorkflowDefinitionElement       => printWorkflowDefinition(it)
+      case it: elements.TaskDefinitionElement           => printTaskDefinition(it, level)
+      case it: elements.WorkflowDefinitionElement       => printWorkflowDefinition(it, level)
 
       // not everything is handled
       case _ => throw new Exception("Unhandled WDL LanguageElement!")
+    }
+
+    if (level > 0) {
+      s.split('\n') mkString s"\n${Indent * level}"
+    } else {
+      s
     }
   }
 
@@ -73,11 +80,11 @@ object WdlPrinter {
   }
 
   /** Print a `call task [as [name]] { ... }` element. */
-  private def printCall(it: elements.CallElement) = {
+  private def printCall(it: elements.CallElement, level: Int) = {
     val alias = it.alias.map(name => s"as $name") getOrElse ""
 
     s"""|call ${it.callableReference} $alias {
-        |  ${it.body.map(print _) getOrElse ""}
+        |  ${it.body.map(print(_, level+1)) getOrElse ""}
         |}
         |""".stripMargin
   }
@@ -88,7 +95,7 @@ object WdlPrinter {
     }
 
     s"""|input:
-        |  ${inputs mkString ",\n"}
+        |  ${inputs mkString s",\n$Indent"}
         |""".stripMargin
   }
 
@@ -107,7 +114,7 @@ object WdlPrinter {
   /** Print a `command { ... }` element. */
   private def printCommandSection(it: elements.CommandSectionElement) = {
     s"""|command {
-        |  ${it.parts map (printCommandLine _) mkString "\n  "}
+        |  ${it.parts map (printCommandLine _) mkString s"\n$Indent"}
         |}
         |""".stripMargin
   }
@@ -118,13 +125,13 @@ object WdlPrinter {
   }
 
   /** Print the input section. */
-  private def printInputsSection(it: elements.InputsSectionElement) = {
-    it.inputDeclarations.map(print _) mkString "\n  "
+  private def printInputsSection(it: elements.InputsSectionElement, level: Int) = {
+    it.inputDeclarations.map(print(_, level+1)) mkString s"\n"
   }
 
   /** Print a meta section. */
   private def printMetaSection(it: elements.MetaSectionElement) = {
-    (for ((k, v) <- it.meta) yield s"$k = $v") mkString "\n  "
+    (for ((k, v) <- it.meta) yield s"$k = $v") mkString s"\n$Indent"
   }
 
   /** Print a single output element. */
@@ -133,9 +140,9 @@ object WdlPrinter {
   }
 
   /** Print the optional output section. */
-  private def printOutputsSection(it: elements.OutputsSectionElement) = {
+  private def printOutputsSection(it: elements.OutputsSectionElement, level: Int) = {
     s"""|output {
-        |  ${it.outputs.map(print _) mkString "\n  "}
+        |  ${it.outputs.map(print(_, level+1)) mkString s"\n$Indent"}
         |}
         |""".stripMargin
   }
@@ -154,22 +161,22 @@ object WdlPrinter {
   }
 
   /** Print a `task [name] { ... }` element. */
-  private def printTaskDefinition(it: elements.TaskDefinitionElement) = {
+  private def printTaskDefinition(it: elements.TaskDefinitionElement, level: Int) = {
     s"""|task ${it.name} {
-        |  ${it.inputsSection.map(print _) getOrElse ""}
-        |  ${print(it.commandSection)}
-        |  ${it.outputsSection.map(print _) getOrElse ""}
+        |  ${it.inputsSection.map(print(_, level+1)) getOrElse ""}
+        |  ${print(it.commandSection, level+1)}
+        |  ${it.outputsSection.map(print(_, level+1)) getOrElse ""}
         |}
         |""".stripMargin
   }
 
   /** Print a `workflow [name] { ... }` element. */
-  private def printWorkflowDefinition(it: elements.WorkflowDefinitionElement) = {
+  private def printWorkflowDefinition(it: elements.WorkflowDefinitionElement, level: Int) = {
     s"""|workflow ${it.name} {
-        |  ${it.inputsSection.map(print _) getOrElse ""}
-        |  ${it.outputsSection.map(print _) getOrElse ""}
-        |  ${it.metaSection.map(print _) getOrElse ""}
-        |  ${it.graphElements.map(print _) mkString "\n"}
+        |  ${it.inputsSection.map(print(_, level+1)) getOrElse ""}
+        |  ${it.outputsSection.map(print(_, level+1)) getOrElse ""}
+        |  ${it.metaSection.map(print(_, level+1)) getOrElse ""}
+        |  ${it.graphElements.map(print(_, level+1)) mkString s"\n$Indent"}
         |}
         |""".stripMargin
   }

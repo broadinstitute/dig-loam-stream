@@ -53,7 +53,7 @@ final class LanguageSupportTest extends FunSuite {
 
     val someTool = "someToolPath"
     val someVal = 123
-    val someStore = store.at("/someStorePath")
+    val someStore = store("/someStorePath")
 
     val loamLine = python"""$someTool --foo $someVal --bar $someStore baz"""
 
@@ -105,7 +105,7 @@ greet('Bob')
 
     val someTool = "someToooolPath"
     val someVal = 456
-    val someStore = store.at("/someStooorePath")
+    val someStore = store("/someStooorePath")
 
     val loamLine = r"$someTool --foo $someVal --bar $someStore baz"
 

@@ -50,10 +50,10 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     assert(!exists(zPath))
     
     val loamCode = s"""|
-                       |val nonexistent = store.at("$nonexistentPath").asInput
-                       |val storeX = store.at("$xPath")
-                       |val storeY = store.at("$yPath")
-                       |val storeZ = store.at("$zPath")
+                       |val nonexistent = store("$nonexistentPath").asInput
+                       |val storeX = store("$xPath")
+                       |val storeY = store("$yPath")
+                       |val storeZ = store("$zPath")
                        |
                        |uger {
                        |  //Will fail
@@ -109,14 +109,14 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     assert(!exists(yPath))
     
     val loamCode = s"""|
-                       |val nonexistent = store.at("$nonexistentPath").asInput
-                       |val storeX = store.at(s"$xPath")
-                       |val storeY = store.at(s"$yPath")
+                       |val nonexistent = store("$nonexistentPath").asInput
+                       |val storeX = store(s"$xPath")
+                       |val storeY = store(s"$yPath")
                        |
-                       |val storeA = store.at("$aPath").asInput
-                       |val storeB = store.at(s"$bPath")
-                       |val storeC = store.at(s"$cPath")
-                       |val storeD = store.at(s"$dPath")
+                       |val storeA = store("$aPath").asInput
+                       |val storeB = store(s"$bPath")
+                       |val storeC = store(s"$cPath")
+                       |val storeD = store(s"$dPath")
                        |
                        |uger {
                        |  //Should work

@@ -36,8 +36,8 @@ final class LoamWorkDirTest extends FunSuite {
     }
     val fileName1 = "file1.vcf"
     val fileName2 = "file2.vcf"
-    val store1 = store.at(fileName1).asInput
-    val store2 = store.at(fileName2).asInput
+    val store1 = store(fileName1).asInput
+    val store2 = store(fileName2).asInput
     val tool = cmd"yo $store1 $store2"
     val workDir = (workDirOpt1, workDirOpt2) match {
       case (Some(workDir1), Some(workDir2)) => workDir1.resolve(workDir2)
@@ -79,20 +79,20 @@ final class LoamWorkDirTest extends FunSuite {
     import LoamCmdTool._
     
     changeDir(paths.rootDirs.head)
-    val inFile = store.at(paths.inFileName).asInput
-    val outFile0 = store.at(paths.outFileNames.head)
+    val inFile = store(paths.inFileName).asInput
+    val outFile0 = store(paths.outFileNames.head)
     cmd"cp $inFile $outFile0"
     changeDir(paths.subDirName)
-    val outFile1 = store.at(paths.outFileNames(1))
-    val outFile2 = store.at(paths.outFileNames(2))
+    val outFile1 = store(paths.outFileNames(1))
+    val outFile2 = store(paths.outFileNames(2))
     cmd"cp $outFile0 $outFile1"
     cmd"cp $outFile1 $outFile2"
     changeDir(paths.rootDirs(1))
-    val outFile3 = store.at(paths.outFileNames(3))
+    val outFile3 = store(paths.outFileNames(3))
     cmd"cp $outFile2 $outFile3"
     changeDir(paths.subDirName)
-    val outFile4 = store.at(paths.outFileNames(4))
-    val outFile5 = store.at(paths.outFileNames(5))
+    val outFile4 = store(paths.outFileNames(4))
+    val outFile5 = store(paths.outFileNames(5))
     cmd"cp $outFile3 $outFile4"
     cmd"cp $outFile4 $outFile5"
   }
@@ -103,22 +103,22 @@ final class LoamWorkDirTest extends FunSuite {
 
     val outFile2 = store
     inDir(paths.rootDirs.head) {
-      val inFile = store.at(paths.inFileName).asInput
-      val outFile0 = store.at(paths.outFileNames.head)
+      val inFile = store(paths.inFileName).asInput
+      val outFile0 = store(paths.outFileNames.head)
       cmd"cp $inFile $outFile0"
       inDir(paths.subDirName) {
-        val outFile1 = store.at(paths.outFileNames(1))
-        val outFile2Prime = outFile2.at(paths.outFileNames(2))
+        val outFile1 = store(paths.outFileNames(1))
+        val outFile2Prime = store(paths.outFileNames(2))
         cmd"cp $outFile0 $outFile1"
         cmd"cp $outFile1 $outFile2Prime"
       }
     }
     inDir(paths.rootDirs(1)) {
-      val outFile3 = store.at(paths.outFileNames(3))
+      val outFile3 = store(paths.outFileNames(3))
       cmd"cp $outFile2 $outFile3"
       inDir(paths.subDirName) {
-        val outFile4 = store.at(paths.outFileNames(4))
-        val outFile5 = store.at(paths.outFileNames(5))
+        val outFile4 = store(paths.outFileNames(4))
+        val outFile5 = store(paths.outFileNames(5))
         cmd"cp $outFile3 $outFile4"
         cmd"cp $outFile4 $outFile5"
       }

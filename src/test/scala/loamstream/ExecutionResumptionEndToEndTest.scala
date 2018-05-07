@@ -46,8 +46,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         import LoamPredef._
         import LoamCmdTool._
          
-        val in = LoamPredef.store.at(fileIn).asInput
-        val out = LoamPredef.store.at(fileOut1)
+        val in = LoamPredef.store(fileIn).asInput
+        val out = LoamPredef.store(fileOut1)
         cmd"cp $in $out"
       }
 
@@ -93,9 +93,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         import LoamPredef._
         import LoamCmdTool._
       
-        val in = LoamPredef.store.at(fileIn).asInput
-        val out1 = LoamPredef.store.at(fileOut1)
-        val out2 = LoamPredef.store.at(fileOut2)
+        val in = LoamPredef.store(fileIn).asInput
+        val out1 = LoamPredef.store(fileOut1)
+        val out2 = LoamPredef.store(fileOut2)
         
         cmd"cp $in $out1"
         cmd"cp $out1 $out2"
@@ -171,8 +171,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         import LoamPredef._
         import LoamCmdTool._
         
-        val in = LoamPredef.store.at(fileIn).asInput
-        val out1 = LoamPredef.store.at(fileOut1)
+        val in = LoamPredef.store(fileIn).asInput
+        val out1 = LoamPredef.store(fileOut1)
         
         cmd"$bogusCommandName $in $out1"
       }
@@ -238,9 +238,9 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         import LoamPredef._
         import LoamCmdTool._
 
-        val in = LoamPredef.store.at(fileIn).asInput
-        val out1 = LoamPredef.store.at(fileOut1)
-        val out2 = LoamPredef.store.at(fileOut2)
+        val in = LoamPredef.store(fileIn).asInput
+        val out1 = LoamPredef.store(fileOut1)
+        val out2 = LoamPredef.store(fileOut2)
         
         cmd"$bogusCommandName $in $out1"
         cmd"$bogusCommandName $out1 $out2"

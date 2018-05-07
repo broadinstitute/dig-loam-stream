@@ -323,9 +323,9 @@ final class UgerChunkRunnerTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
     
-      val a = store.at("a.txt").asInput
-      val b = store.at("b.txt")
-      val c = store.at("c.txt")
+      val a = store("a.txt").asInput
+      val b = store("b.txt")
+      val c = store("c.txt")
     
       ugerWith(cores = 4, mem = 16, maxRunTime = 5) {
         cmd"cp $a $b".in(a).out(b)
@@ -373,11 +373,11 @@ final class UgerChunkRunnerTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
     
-      val a = store.at("a.txt").asInput
-      val b = store.at("b.txt")
-      val c = store.at("c.txt")
-      val d = store.at("d.txt")
-      val e = store.at("e.txt")
+      val a = store("a.txt").asInput
+      val b = store("b.txt")
+      val c = store("c.txt")
+      val d = store("d.txt")
+      val e = store("e.txt")
     
       val (tool0, tool1) = ugerWith(cores = 4, mem = 16, maxRunTime = 5) {
         (cmd"cp $a $b".in(a).out(b)) -> (cmd"cp $a $c".in(a).out(c))

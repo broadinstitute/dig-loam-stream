@@ -119,7 +119,7 @@ final case class LoamGraph(
     )
   }
   
-  def updateStore(existing: Store, replacement: Store): LoamGraph = {
+  /*def updateStore(existing: Store, replacement: Store): LoamGraph = {
     val replace: Store => Store = { store =>
       if (store.id == existing.id) { replacement } else { store }
     }
@@ -133,7 +133,7 @@ final case class LoamGraph(
       inputStores = inputStores.map(replace),
       storeProducers = storeProducers.mapKeys(replace),
       storeConsumers = storeConsumers.mapKeys(replace))
-  }
+  }*/
 
   /** Returns graph with store marked as input store */
   def withStoreAsInput(store: Store): LoamGraph = copy(inputStores = inputStores + store)

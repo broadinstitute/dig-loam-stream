@@ -198,10 +198,6 @@ final class LoamGraphTest extends FunSuite {
     assert(updatedGraph.namedTools === Map("phase" -> phaseTool, "impute" -> imputeTool))
   }
   
-  test("updateStore") {
-    fail("TODO")
-  }
-  
   test("updateTool") {
     fail("TODO")
   }
@@ -220,10 +216,10 @@ object LoamGraphTest {
     val inputFile = path("/user/home/someone/data.vcf")
     val outputFile = path("/user/home/someone/dataImputed.vcf")
     
-    val raw = store.at(inputFile).asInput
+    val raw = store(inputFile).asInput
     val phased = store
-    val template = store.at(path("/home/myself/template.vcf")).asInput
-    val imputed = store.at(outputFile)
+    val template = store(path("/home/myself/template.vcf")).asInput
+    val imputed = store(outputFile)
     
     val phaseTool = cmd"shapeit -in $raw -out $phased".named("phase")
     val imputeTool = cmd"impute -in $phased -template $template -out $imputed".using("R-3.1")

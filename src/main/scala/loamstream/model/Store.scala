@@ -18,12 +18,25 @@ import loamstream.util.BashScript
  * @author clint
  * Jun 8, 2016
  */
-final case class Store private (
-    id: LId, 
-    location: StoreLocation)(implicit val scriptContext: LoamScriptContext) extends HasLocation with LId.HasId {
+final class Store private (
+    val id: LId, 
+    val location: StoreLocation)(implicit val scriptContext: LoamScriptContext) extends HasLocation with LId.HasId {
     
-    update() 
+  update() 
   
+  override def equals(other: Any): Boolean = {
+    other match {
+      case that: Store => this.id == that.id
+      case _ => false
+    }
+  }
+  
+  override def hashCode: Int = id.hashCode
+  
+  override def toString: String = s"store($id)@$render"
+  
+  def copy(id: LId = this.id, location: StoreLocation = this.location): Store = new Store(id, location)
+    
   private def update(): Unit = projectContext.updateGraph(_.withStore(this))
     
   def projectContext: LoamProjectContext = scriptContext.projectContext
@@ -33,31 +46,6 @@ final case class Store private (
 
     this
   }
-
-  def at(path: String): Store = at(Paths.get(path))
-
-  def at(path: Path): Store = {
-    val resolvedPath = scriptContext.workDir.resolve(path)
-    val location = StoreLocation.PathLocation(resolvedPath)
-    
-    at(location)
-  }
-
-  def at(uri: URI): Store = {
-    val location = StoreLocation.UriLocation(uri)
-    
-    at(location)
-  }
-
-  def at(newLocation: StoreLocation): Store = {
-    val newStore = copy(location = newLocation)
-    
-    scriptContext.projectContext.updateGraph(_.updateStore(this, newStore))
-    
-    newStore
-  }
-
-  override def toString: String = s"store($id)@$render"
 
   def graph: LoamGraph = projectContext.graph
 
@@ -91,9 +79,15 @@ final case class Store private (
 }
 
 object Store {
-  def create(implicit scriptContext: LoamScriptContext): Store = {
-    val anonPath = Files.createTempFile(scriptContext.config.executionConfig.anonStoreDir, "loam", ".txt")
-    
-    Store(LId.newAnonId, StoreLocation.PathLocation(anonPath))
+  def create(implicit scriptContext: LoamScriptContext): Store = apply()
+  
+  def apply()(implicit scriptContext: LoamScriptContext): Store = apply(StoreLocation.PathLocation(anonPath))
+  
+  def apply(location: StoreLocation)(implicit scriptContext: LoamScriptContext): Store = {
+    new Store(LId.newAnonId, location)
+  }
+  
+  private def anonPath(implicit scriptContext: LoamScriptContext): Path = {
+    Files.createTempFile(scriptContext.config.executionConfig.anonStoreDir, "loam", ".txt")
   }
 }

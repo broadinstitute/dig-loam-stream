@@ -109,10 +109,10 @@ final class LoamRunnerTest extends FunSuite {
           |
           |val workDir = path("${dir.render}")
           |
-          |val storeInitial = store.at(workDir / "storeInitial.txt")
-          |val storeFinal = store.at(workDir / "storeFinal.txt")
+          |val storeInitial = store(workDir / "storeInitial.txt")
+          |val storeFinal = store(workDir / "storeFinal.txt")
           |
-          |def createStore(i: Int): Store = store.at(workDir / s"store$$i.txt")
+          |def createStore(i: Int): Store = store(workDir / s"store$$i.txt")
           |
           |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial".out(storeInitial)
           |
@@ -138,10 +138,10 @@ final class LoamRunnerTest extends FunSuite {
           |
           |val workDir = path("${dir.render}")
           |
-          |val storeInitial = store.at(workDir / "storeInitial.txt")
-          |val storeFinal = store.at(workDir / "storeFinal.txt")
+          |val storeInitial = store(workDir / "storeInitial.txt")
+          |val storeFinal = store(workDir / "storeFinal.txt")
           |
-          |def createStore(i: Int): Store = store.at(workDir / s"store$$i.txt")
+          |def createStore(i: Int): Store = store(workDir / s"store$$i.txt")
           |
           |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial".out(storeInitial)
           |
@@ -157,9 +157,9 @@ final class LoamRunnerTest extends FunSuite {
           |
           |val workDir = path("${dir.render}")
           |
-          |val storeInitial = store.at(workDir / "storeInitial.txt")
-          |val storeMiddle = store.at(workDir / "storeMiddle.txt")
-          |val storeFinal = store.at(workDir / "storeFinal.txt")
+          |val storeInitial = store(workDir / "storeInitial.txt")
+          |val storeMiddle = store(workDir / "storeMiddle.txt")
+          |val storeFinal = store(workDir / "storeFinal.txt")
           |
           |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial".out(storeInitial)
           |
@@ -169,7 +169,7 @@ final class LoamRunnerTest extends FunSuite {
           |  val stores: Buffer[Store] = new ArrayBuffer
           |
           |  for (i <- 1 to numLines) {
-          |    val newStore = store.at(workDir / s"mid-$$i.txt")
+          |    val newStore = store(workDir / s"mid-$$i.txt")
           |    stores += newStore
           |    cmd"printf 'This is line $$i\\n' > $$newStore".in(storeInitial).out(newStore)
           |  }
@@ -184,7 +184,7 @@ final class LoamRunnerTest extends FunSuite {
           |  val stores: Buffer[Store] = new ArrayBuffer
           |
           |  for (i <- 1 to numLines) {
-          |    val newStore = store.at(workDir / s"store-$$i.txt")
+          |    val newStore = store(workDir / s"store-$$i.txt")
           |    stores += newStore
           |    cmd"printf 'line $$i\\n' > $$newStore".in(storeInitial).out(newStore)
           |  }

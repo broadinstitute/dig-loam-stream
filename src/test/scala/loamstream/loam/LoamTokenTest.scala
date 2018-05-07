@@ -105,7 +105,7 @@ final class LoamTokenTest extends FunSuite {
     import LoamPredef._
     implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
 
-    val underlyingStore = store.at("foo.txt")
+    val underlyingStore = store("foo.txt")
 
     val ref: LoamStoreRef =  underlyingStore + ".bar"
 

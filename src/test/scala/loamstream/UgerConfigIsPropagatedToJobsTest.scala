@@ -22,8 +22,8 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
     
-      val a = store.at("a.txt").asInput
-      val b = store.at("b.txt")
+      val a = store("a.txt").asInput
+      val b = store("b.txt")
     
       ugerWith(cores = 4, mem = 16, maxRunTime = 5) {
         cmd"cp $a $b".in(a).out(b)
@@ -46,8 +46,8 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
     
-      val a = store.at("a.txt").asInput
-      val b = store.at("b.txt")
+      val a = store("a.txt").asInput
+      val b = store("b.txt")
     
       ugerWith() {
         cmd"cp $a $b".in(a).out(b)
@@ -70,8 +70,8 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
     
-      val a = store.at("a.txt").asInput
-      val b = store.at("b.txt")
+      val a = store("a.txt").asInput
+      val b = store("b.txt")
     
       uger {
         cmd"cp $a $b".in(a).out(b)

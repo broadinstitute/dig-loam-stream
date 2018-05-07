@@ -9,6 +9,7 @@ import loamstream.model.{Store, Tool}
 import loamstream.model.execute.{Environment, GoogleSettings, UgerSettings}
 import loamstream.model.quantities.{CpuTime, Cpus, Memory}
 import loamstream.util.Loggable
+import loamstream.loam.LoamGraph.StoreLocation
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -23,8 +24,25 @@ object LoamPredef extends Loggable {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store(implicit context: LoamScriptContext): Store = Store.create
+  def store(implicit context: LoamScriptContext): Store = Store()
 
+  def store(path: String)(implicit context: LoamScriptContext): Store = store(Paths.get(path))
+
+  def store(path: Path)(implicit context: LoamScriptContext): Store = {
+    val resolvedPath = context.workDir.resolve(path)
+    val location = StoreLocation.PathLocation(resolvedPath)
+    
+    store(location)
+  }
+
+  def store(uri: URI)(implicit context: LoamScriptContext): Store = {
+    val location = StoreLocation.UriLocation(uri)
+    
+    store(location)
+  }
+
+  def store(location: StoreLocation)(implicit context: LoamScriptContext): Store = Store(location)
+  
   /**
    * Indicate that jobs derived from tools/stores created by `loamCode` should run
    * AFTER jobs derived from tools/stores defined BEFORE the `andThen`, in evaluation order.

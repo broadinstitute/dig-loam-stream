@@ -7,5 +7,8 @@ import org.scalatest.FunSuite
  * May 2, 2018
  */
 final class StoreTest extends FunSuite {
-  fail("")
+  //fail("")
+  test("apply") {
+    //TODO
+  }
 }

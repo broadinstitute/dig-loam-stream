@@ -1,10 +1,10 @@
 package loamstream.apps
 
-import loamstream.uger.DrmaaClient
-import loamstream.uger.Drmaa1Client
-import loamstream.util.Loggable
 import org.ggf.drmaa.DrmaaException
-import loamstream.uger.AccountingClient
+
+import loamstream.uger.Drmaa1Client
+import loamstream.uger.DrmaaClient
+import loamstream.util.Loggable
 
 /**
  * @author clint

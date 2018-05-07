@@ -9,7 +9,7 @@ import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.jobs.JobStatus.{ Failed, Running }
 import loamstream.model.jobs._
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.uger.UgerStatus.{ toJobResult, toJobStatus }
+import loamstream.uger.DrmStatus.{ toJobResult, toJobStatus }
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.Files
 import loamstream.util.Loggable
@@ -138,7 +138,7 @@ final case class UgerChunkRunner(
     shouldRestart: LJob => Boolean,
     jobsById: Map[String, UgerJobWrapper]): Observable[Map[LJob, RunData]] = {
 
-    def statuses(jobIds: Iterable[String]): Map[String, Observable[UgerStatus]] = {
+    def statuses(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = {
       time(s"Calling Jobs.monitor(${jobIds.mkString(",")})", trace(_)) {
         jobMonitor.monitor(jobIds)
       }
@@ -152,7 +152,7 @@ final case class UgerChunkRunner(
 
 object UgerChunkRunner extends Loggable {
 
-  type JobAndStatuses = (UgerJobWrapper, Observable[UgerStatus])
+  type JobAndStatuses = (UgerJobWrapper, Observable[DrmStatus])
 
   private[uger] def toRunDatas(
     shouldRestart: LJob => Boolean,
@@ -164,7 +164,7 @@ object UgerChunkRunner extends Loggable {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
       ugerJobStatuses.distinct.foreach(handleUgerStatus(shouldRestart, wrapper.commandLineJob))
 
-      def toRunData(s: UgerStatus): RunData = {
+      def toRunData(s: DrmStatus): RunData = {
         RunData(
             job = wrapper.commandLineJob,
             jobStatus = toJobStatus(s),
@@ -185,7 +185,7 @@ object UgerChunkRunner extends Loggable {
     Observables.toMap(jobsToExecutionObservables)
   }
 
-  private[uger] def handleUgerStatus(shouldRestart: LJob => Boolean, job: LJob)(us: UgerStatus): Unit = {
+  private[uger] def handleUgerStatus(shouldRestart: LJob => Boolean, job: LJob)(us: DrmStatus): Unit = {
     val jobStatus = toJobStatus(us)
 
     if (jobStatus.isFailure) {

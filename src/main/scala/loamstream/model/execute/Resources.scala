@@ -10,7 +10,7 @@ import scala.util.Failure
 import loamstream.util.Tries
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
-import loamstream.uger.Queue
+import loamstream.drm.Queue
 
 /**
  * @author kyuksel
@@ -47,7 +47,7 @@ object Resources {
     }
   }
   
-  final case class UgerResources(
+  final case class DrmResources(
       memory: Memory,
       cpuTime: CpuTime,
       node: Option[String],
@@ -55,12 +55,12 @@ object Resources {
       startTime: Instant,
       endTime: Instant) extends Resources {
     
-    def withNode(newNode: String): UgerResources = copy(node = Option(newNode))
+    def withNode(newNode: String): DrmResources = copy(node = Option(newNode))
     
-    def withQueue(newQueue: Queue): UgerResources = copy(queue = Option(newQueue))
+    def withQueue(newQueue: Queue): DrmResources = copy(queue = Option(newQueue))
   }
   
-  object UgerResources {
+  object DrmResources {
     object Keys {
       val cpu = "cpu"
       val mem = "ru_maxrss"
@@ -71,7 +71,7 @@ object Resources {
     /**
      * Parse an untyped map, like the one returned by org.ggf.drmaa.JobInfo.getResourceUsage()
      */
-    def fromMap(m: Map[Any, Any]): Try[UgerResources] = {
+    def fromMap(m: Map[Any, Any]): Try[DrmResources] = {
       def tryGet[A](key: String): Try[String] = {
         import Options.toTry
         
@@ -110,7 +110,7 @@ object Resources {
         } yield {
           //TODO: Get node somehow (qacct?)
           //TODO: Get queue somehow (pass it in, qacct?)
-          UgerResources(mem, cpu, node = None, queue = None, startTime, endTime)
+          DrmResources(mem, cpu, node = None, queue = None, startTime, endTime)
         }
         
         //Wrap any exceptions in UgerException, so we can check for that in Drmaa1Client

@@ -2,12 +2,13 @@ package loamstream.uger
 
 import org.scalatest.FunSuite
 import loamstream.util.ValueBox
+import loamstream.drm.Queue
 
 /**
  * @author clint
  * Mar 15, 2017
  */
-final class AccountingClientTest extends FunSuite {
+final class QacctAccountingClientTest extends FunSuite {
 
   import QacctTestHelpers.actualQacctOutput
 
@@ -15,7 +16,7 @@ final class AccountingClientTest extends FunSuite {
     val expectedNode: String = "uger-c052.broadinstitute.org"
     val expectedQueue: Queue = Queue.Broad
 
-    val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
 
     val jobId = "12345"
     val actualNode = mockClient.getExecutionNode(jobId)
@@ -37,7 +38,7 @@ final class AccountingClientTest extends FunSuite {
   test("QacctUgerClient.getQueue") {
     val expectedQueue: Queue = Queue.Broad
     val expectedNode: String = "foo.example.com"
-    val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
 
     val jobId = "12345"
 
@@ -56,7 +57,7 @@ final class AccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getExecutionNode - no node to find") {
-    val mockClient = new MockAccountingClient(_ => actualQacctOutput(Some(Queue.Broad), None))
+    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(Queue.Broad), None))
 
     val jobId = "12345"
 
@@ -75,7 +76,7 @@ final class AccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getQueue - no queue to find") {
-    val mockClient = new MockAccountingClient(_ => actualQacctOutput(None, Some("foo.example.com")))
+    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(None, Some("foo.example.com")))
 
     val jobId = "12345"
 
@@ -94,7 +95,7 @@ final class AccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getQueue,getExecutionNode - neither present") {
-    val mockClient = new MockAccountingClient(_ => actualQacctOutput(None, None))
+    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(None, None))
 
     val jobId = "12345"
 
@@ -115,7 +116,7 @@ final class AccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getQueue,getExecutionNode - junk output") {
-    val mockClient = new MockAccountingClient(_ => Seq("foo", "bar", "baz"))
+    val mockClient = new MockQacctAccountingClient(_ => Seq("foo", "bar", "baz"))
 
     val jobId = "12345"
 
@@ -124,7 +125,7 @@ final class AccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getQueue,getExecutionNode - empty output") {
-    val mockClient = new MockAccountingClient(_ => Seq.empty)
+    val mockClient = new MockQacctAccountingClient(_ => Seq.empty)
 
     val jobId = "12345"
 
@@ -133,6 +134,6 @@ final class AccountingClientTest extends FunSuite {
   }
 
   test("makeTokens") {
-    assert(AccountingClient.makeTokens("foo", "bar") === Seq("foo", "-j", "bar"))
+    assert(QacctAccountingClient.makeTokens("foo", "bar") === Seq("foo", "-j", "bar"))
   }
 }

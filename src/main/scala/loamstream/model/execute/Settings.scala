@@ -3,7 +3,7 @@ package loamstream.model.execute
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.uger.Queue
+import loamstream.drm.Queue
 import loamstream.uger.UgerDefaults
 import loamstream.conf.UgerConfig
 
@@ -27,7 +27,6 @@ final case class UgerSettings(
     queue: Queue = UgerDefaults.queue) extends Settings
     
 object UgerSettings {
-  //val Defaults: UgerSettings = UgerSettings(UgerDefaults.cores, UgerDefaults.memoryPerCore)
   
   def from(ugerConfig: UgerConfig): UgerSettings = {
     import ugerConfig._

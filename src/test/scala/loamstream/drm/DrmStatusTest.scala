@@ -4,23 +4,24 @@ import java.time.Instant
 
 import org.scalatest.FunSuite
 
-import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 
 import org.ggf.drmaa.Session
+import loamstream.drm.Queue
 
 /**
  * @author clint
  * Jan 5, 2017
  */
-final class UgerStatusTest extends FunSuite {
-  import UgerStatus._
+final class DrmStatusTest extends FunSuite {
+  import DrmStatus._
   import scala.concurrent.duration._
     
-  private val resources = UgerResources(
+  private val resources = DrmResources(
       Memory.inGb(2), 
       CpuTime(1.second), 
       Some("example.com"), 
@@ -29,7 +30,7 @@ final class UgerStatusTest extends FunSuite {
       Instant.now)
   
   test("transformResources") {
-    def doTestWithExistingResources(makeInitialStatus: Option[UgerResources] => UgerStatus): Unit = {
+    def doTestWithExistingResources(makeInitialStatus: Option[DrmResources] => DrmStatus): Unit = {
       val initialStatus = makeInitialStatus(Some(resources))
       
       assert(initialStatus.resourcesOpt !== None)
@@ -53,7 +54,7 @@ final class UgerStatusTest extends FunSuite {
     doTestWithExistingResources(Suspended(_))
     doTestWithExistingResources(Undetermined(_))
     
-    def doTestWithoutResources(initialStatus: UgerStatus): Unit = {
+    def doTestWithoutResources(initialStatus: DrmStatus): Unit = {
       assert(initialStatus.resourcesOpt === None)
       
       val transformed = initialStatus.transformResources(_.withQueue(Queue.Broad))
@@ -256,9 +257,9 @@ final class UgerStatusTest extends FunSuite {
   }
   
   private def doFlagTest(
-      flag: UgerStatus => Boolean, 
-      expectedTrueFor: UgerStatus, 
-      expectedFalseFor: UgerStatus*): Unit = {
+      flag: DrmStatus => Boolean, 
+      expectedTrueFor: DrmStatus, 
+      expectedFalseFor: DrmStatus*): Unit = {
     
     assert(flag(expectedTrueFor) === true)
     

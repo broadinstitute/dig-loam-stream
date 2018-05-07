@@ -1,12 +1,14 @@
 package loamstream.uger
 
 import loamstream.util.ValueBox
+import loamstream.drm.Queue
+import loamstream.drm.AccountingClient
 
 /**
  * @author clint
  * Mar 15, 2017
  */
-final class MockAccountingClient(delegateFn: String => Seq[String]) extends AccountingClient {
+final class MockQacctAccountingClient(delegateFn: String => Seq[String]) extends AccountingClient {
   val timesGetQacctOutputForInvoked: ValueBox[Int] = ValueBox(0)
 
   val timesGetExecutionNodeInvoked: ValueBox[Int] = ValueBox(0)
@@ -20,7 +22,7 @@ final class MockAccountingClient(delegateFn: String => Seq[String]) extends Acco
       delegateFn(jobId)
     }
 
-    new AccountingClient.QacctUgerClient(wrappedDelegateFn)
+    new QacctAccountingClient(wrappedDelegateFn)
   }
 
   override def getExecutionNode(jobId: String): Option[String] = {

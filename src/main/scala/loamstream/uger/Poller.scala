@@ -21,7 +21,7 @@ trait Poller extends Terminable {
    * @param jobIds the ids of the jobs to inquire about
    * @return a map of job ids to attempts at that job's status
    */
-  def poll(jobIds: Iterable[String]): Map[String, Try[UgerStatus]]
+  def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]]
 }
 
 object Poller {
@@ -30,9 +30,9 @@ object Poller {
     
     override def stop(): Unit = client.stop()
     
-    override def poll(jobIds: Iterable[String]): Map[String, Try[UgerStatus]] = {
+    override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = {
       
-      def statusAttempt(jobId: String): Try[UgerStatus] = {
+      def statusAttempt(jobId: String): Try[DrmStatus] = {
         val result = client.statusOf(jobId).recoverWith { case e: InvalidJobException =>
           debug(s"Job '$jobId': Got an ${simpleNameOf(e)} when calling statusOf(); trying waitFor()", e)
         

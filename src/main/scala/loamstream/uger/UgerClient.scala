@@ -7,6 +7,8 @@ import scala.concurrent.duration.Duration
 import loamstream.util.Loggable
 import scala.util.Success
 import loamstream.model.execute.UgerSettings
+import loamstream.drm.Queue
+import loamstream.drm.AccountingClient
 
 /**
  * @author clint
@@ -36,7 +38,7 @@ final class UgerClient(
    * @param jobId the job ID, assigned by UGER, to inquire about
    * @return a Try, since inquiring might fail
    */
-  override def statusOf(jobId: String): Try[UgerStatus] = {
+  override def statusOf(jobId: String): Try[DrmStatus] = {
     fillInAccountingFieldsIfNecessary(accountingClient, jobId) {
       drmaaClient.statusOf(jobId)
     }
@@ -49,7 +51,7 @@ final class UgerClient(
    * @param timeout how long to wait.  If timeout elapses and the job doesn't finish, try to determine the job's
    * status using statusOf()
    */
-  override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = {
+  override def waitFor(jobId: String, timeout: Duration): Try[DrmStatus] = {
     fillInAccountingFieldsIfNecessary(accountingClient, jobId) {
       drmaaClient.waitFor(jobId, timeout)
     }
@@ -74,7 +76,7 @@ final class UgerClient(
 object UgerClient extends Loggable {
   private[uger] def fillInAccountingFieldsIfNecessary(
       accountingClient: AccountingClient, 
-      jobId: String)(attempt: Try[UgerStatus]): Try[UgerStatus] = {
+      jobId: String)(attempt: Try[DrmStatus]): Try[DrmStatus] = {
     
     for {
       ugerStatus <- attempt

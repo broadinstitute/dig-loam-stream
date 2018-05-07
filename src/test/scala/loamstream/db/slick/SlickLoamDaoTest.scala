@@ -12,7 +12,7 @@ import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.ProvidesEnvAndResources
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
@@ -23,7 +23,7 @@ import loamstream.model.jobs.OutputStreams
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.uger.Queue
+import loamstream.drm.Queue
 import loamstream.util.BashScript.Implicits._
 import loamstream.util.Hashes
 import loamstream.TestHelpers
@@ -258,7 +258,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
 
-      val ugerResources = UgerResources(
+      val ugerResources = DrmResources(
           Memory.inGb(2.1),
           CpuTime.inSeconds(12.34),
           Some("nodeName"),

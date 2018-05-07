@@ -1,5 +1,7 @@
 package loamstream.uger
 
+import loamstream.drm.Queue
+
 /**
  * @author clint
  * Mar 15, 2017

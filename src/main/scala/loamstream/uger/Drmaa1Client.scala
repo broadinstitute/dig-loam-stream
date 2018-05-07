@@ -14,7 +14,7 @@ import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
 
 import loamstream.conf.UgerConfig
-import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Resources.DrmResources
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.CompositeException
 import loamstream.util.Loggable
@@ -121,11 +121,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @return Success wrapping the JobStatus corresponding to the code obtained from UGER,
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
-  override def statusOf(jobId: String): Try[UgerStatus] = {
+  override def statusOf(jobId: String): Try[DrmStatus] = {
     Try {
       withSession { session =>
         val status = session.getJobProgramStatus(jobId)
-        val jobStatus = UgerStatus.fromUgerStatusCode(status)
+        val jobStatus = DrmStatus.fromUgerStatusCode(status)
 
         debug(s"Job '$jobId' has status $status, mapped to $jobStatus")
 
@@ -169,7 +169,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * If the timeout elapses without the job finishing, return Success(Running).  If an InvalidJobException
    * is thrown while waiting, return Success(Done).
    */
-  override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = {
+  override def waitFor(jobId: String, timeout: Duration): Try[DrmStatus] = {
     val waitAttempt = Try {
       withSession { session =>
         doWait(session, jobId, timeout)
@@ -179,17 +179,17 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     //If we time out before the job finishes, and we don't get an InvalidJobException, the job must be running 
     waitAttempt.recover {
       case e: ExitTimeoutException =>
-        debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${UgerStatus.Running}")
-        UgerStatus.Running
+        debug(s"Timed out waiting for job '$jobId' to finish; assuming the job's state is ${DrmStatus.Running}")
+        DrmStatus.Running
       case e: InvalidJobException =>
         debug(s"Received InvalidJobException while 'wait'ing for job '$jobId'. " +
           s"Assuming that the data records of the job was already reaped by a previous call, " +
-          s"and therefore mapping its status to ${UgerStatus.Done}")
-        UgerStatus.Done
+          s"and therefore mapping its status to ${DrmStatus.Done}")
+        DrmStatus.Done
     }
   }
 
-  private def doWait(session: Session, jobId: String, timeout: Duration): UgerStatus = {
+  private def doWait(session: Session, jobId: String, timeout: Duration): DrmStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
 
     val resources = Drmaa1Client.toResources(jobInfo)
@@ -206,24 +206,24 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
       debug(s"Job '$jobId' exited with status code '${exitCode}'")
 
-      UgerStatus.CommandResult(exitCode, resourcesOption)
+      DrmStatus.CommandResult(exitCode, resourcesOption)
     } else if (jobInfo.wasAborted) {
       info(s"Job '$jobId' was aborted; job info: $jobInfo")
 
       //TODO: Add JobStatus.Aborted?
-      UgerStatus.Failed(resourcesOption)
+      DrmStatus.Failed(resourcesOption)
     } else if (jobInfo.hasSignaled) {
       info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
-      UgerStatus.Failed(resourcesOption)
+      DrmStatus.Failed(resourcesOption)
     } else if (jobInfo.hasCoreDump) {
       info(s"Job '$jobId' dumped core")
 
-      UgerStatus.Failed(resourcesOption)
+      DrmStatus.Failed(resourcesOption)
     } else {
       debug(s"Job '$jobId' finished with unknown status")
 
-      UgerStatus.DoneUndetermined(resourcesOption)
+      DrmStatus.DoneUndetermined(resourcesOption)
     }
 
     debug(s"Job '$jobId' finished, returning status $result")
@@ -318,10 +318,10 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 }
 
 object Drmaa1Client {
-  private[uger] def toResources(jobInfo: JobInfo): Try[UgerResources] = {
+  private[uger] def toResources(jobInfo: JobInfo): Try[DrmResources] = {
     import scala.collection.JavaConverters._
 
-    UgerResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
+    DrmResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
   }
 
   private[uger] def nativeSpec(ugerSettings: UgerSettings): String = {

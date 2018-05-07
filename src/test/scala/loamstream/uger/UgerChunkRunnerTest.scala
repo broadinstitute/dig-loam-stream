@@ -126,8 +126,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     import JobStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     
-    def doTest(ugerStatus: UgerStatus, isFailure: Boolean): Unit = {
-      val jobStatus = UgerStatus.toJobStatus(ugerStatus)
+    def doTest(ugerStatus: DrmStatus, isFailure: Boolean): Unit = {
+      val jobStatus = DrmStatus.toJobStatus(ugerStatus)
       
       {
         val job = MockJob(NotStarted)
@@ -152,22 +152,22 @@ final class UgerChunkRunnerTest extends FunSuite {
       }
     }
     
-    doTest(UgerStatus.Failed(), isFailure = true)
-    doTest(UgerStatus.CommandResult(1, None), isFailure = true)
-    doTest(UgerStatus.DoneUndetermined(), isFailure = true)
-    doTest(UgerStatus.Suspended(), isFailure = true)
+    doTest(DrmStatus.Failed(), isFailure = true)
+    doTest(DrmStatus.CommandResult(1, None), isFailure = true)
+    doTest(DrmStatus.DoneUndetermined(), isFailure = true)
+    doTest(DrmStatus.Suspended(), isFailure = true)
     
-    doTest(UgerStatus.Done, isFailure = false)
-    doTest(UgerStatus.Queued, isFailure = false)
-    doTest(UgerStatus.QueuedHeld, isFailure = false)
-    doTest(UgerStatus.Requeued, isFailure = false)
-    doTest(UgerStatus.RequeuedHeld, isFailure = false)
-    doTest(UgerStatus.Running, isFailure = false)
-    doTest(UgerStatus.Undetermined(), isFailure = false)
-    doTest(UgerStatus.CommandResult(0, None), isFailure = false)
+    doTest(DrmStatus.Done, isFailure = false)
+    doTest(DrmStatus.Queued, isFailure = false)
+    doTest(DrmStatus.QueuedHeld, isFailure = false)
+    doTest(DrmStatus.Requeued, isFailure = false)
+    doTest(DrmStatus.RequeuedHeld, isFailure = false)
+    doTest(DrmStatus.Running, isFailure = false)
+    doTest(DrmStatus.Undetermined(), isFailure = false)
+    doTest(DrmStatus.CommandResult(0, None), isFailure = false)
   }
   
-  private def toTuple(jobWrapper: UgerJobWrapper): (UgerJobWrapper, Observable[UgerStatus]) = {
+  private def toTuple(jobWrapper: UgerJobWrapper): (UgerJobWrapper, Observable[DrmStatus]) = {
     import UgerChunkRunnerTest.MockUgerJob
     
     val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockUgerJob]
@@ -177,14 +177,14 @@ final class UgerChunkRunnerTest extends FunSuite {
   
   test("toRunDatas - one failed job") {
     import UgerChunkRunner.toRunDatas
-    import UgerStatus._
+    import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     import UgerChunkRunnerTest.MockUgerJob
     import ObservableEnrichments._
     
     val id = "failed"
     
-    def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: UgerStatus, expectedLastStatus: JobStatus): Unit = {
+    def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockUgerJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
       val failed = UgerJobWrapper(ExecutionConfig.default, job, 1)
@@ -219,14 +219,14 @@ final class UgerChunkRunnerTest extends FunSuite {
   
   test("toRunDatas - one successful job") {
     import UgerChunkRunner.toRunDatas
-    import UgerStatus._
+    import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     import UgerChunkRunnerTest.MockUgerJob
     import ObservableEnrichments._
     
     val id = "worked"
     
-    def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: UgerStatus, expectedLastStatus: JobStatus): Unit = {
+    def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockUgerJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
       val worked = UgerJobWrapper(ExecutionConfig.default, job, 1)
@@ -259,7 +259,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   
   test("toRunDatas - one successful job, one failed job") {
     import UgerChunkRunner.toRunDatas
-    import UgerStatus._
+    import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     import UgerChunkRunnerTest.MockUgerJob
     import ObservableEnrichments._
@@ -269,8 +269,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     
     def doTest(
         shouldRestart: LJob => Boolean, 
-        lastGoodUgerStatus: UgerStatus, 
-        lastBadUgerStatus: UgerStatus, 
+        lastGoodUgerStatus: DrmStatus, 
+        lastBadUgerStatus: DrmStatus, 
         expectedLastGoodStatus: JobStatus,
         expectedLastBadStatus: JobStatus): Unit = {
       
@@ -454,7 +454,7 @@ object UgerChunkRunnerTest {
     override def stop(): Unit = ()
   }
   
-  final case class MockUgerJob(name: String, statusesToReturn: UgerStatus*) extends LocalJob with HasCommandLine {
+  final case class MockUgerJob(name: String, statusesToReturn: DrmStatus*) extends LocalJob with HasCommandLine {
     require(statusesToReturn.nonEmpty)
 
     override def commandLineString: String = name //NB: The content of the command line is unimportant
@@ -468,7 +468,7 @@ object UgerChunkRunnerTest {
     override def execute(implicit context: ExecutionContext): Future[RunData] = {
       val runData = RunData(
           job = this, 
-          jobStatus = UgerStatus.toJobStatus(statusesToReturn.last), 
+          jobStatus = DrmStatus.toJobStatus(statusesToReturn.last), 
           jobResult = None, 
           resourcesOpt = None, 
           outputStreamsOpt = None)

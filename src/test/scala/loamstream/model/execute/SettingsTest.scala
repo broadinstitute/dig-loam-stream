@@ -2,7 +2,7 @@ package loamstream.model.execute
 
 import org.scalatest.FunSuite
 import loamstream.uger.UgerDefaults
-import loamstream.uger.Queue
+import loamstream.drm.Queue
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime

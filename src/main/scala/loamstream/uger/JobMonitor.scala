@@ -54,7 +54,7 @@ final class JobMonitor(
    * @return a map of job ids to Observable streams of statuses for each job. The statuses are the result of polling 
    * UGER *synchronously* via the supplied poller at the supplied rate.
    */
-  def monitor(jobIds: Iterable[String]): Map[String, Observable[UgerStatus]] = {
+  def monitor(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = {
     
     import scala.concurrent.duration._
     
@@ -69,7 +69,7 @@ final class JobMonitor(
     
     val ticks = Observable.interval(period, scheduler).takeUntil(stopSignal).share
     
-    def poll(): Map[String, Try[UgerStatus]] = poller.poll(jobIds)
+    def poll(): Map[String, Try[DrmStatus]] = poller.poll(jobIds)
     
     def shouldContinue = keepPolling()
     
@@ -86,7 +86,7 @@ final class JobMonitor(
     //polling, driven by `ticks` keeps going for a little while after.
     val pollResults = ticks.takeWhile(_ => shouldContinue).map(_ => poll()).until(allFinished(keepPolling)).replay
     
-    val byJobId: Map[String, Observable[Try[UgerStatus]]] = demultiplex(jobIds, pollResults)
+    val byJobId: Map[String, Observable[Try[DrmStatus]]] = demultiplex(jobIds, pollResults)
 
     val result = byJobId.map(unpackThenFilterThenLimit)
     
@@ -108,14 +108,14 @@ final class JobMonitor(
    * JobStatus.isFinished)
    */
   private[uger] def unpackThenFilterThenLimit(
-      jobStatusTuple: (String, Observable[Try[UgerStatus]])): (String, Observable[UgerStatus]) = {
+      jobStatusTuple: (String, Observable[Try[DrmStatus]])): (String, Observable[DrmStatus]) = {
     
     val (jobId, statusAttempts) = jobStatusTuple
     
     import ObservableEnrichments._
-    import UgerStatus.{DoneUndetermined, Undetermined}
+    import DrmStatus.{DoneUndetermined, Undetermined}
     
-    val statuses: Observable[UgerStatus] = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
+    val statuses: Observable[DrmStatus] = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
       //NB: DRMAA might not report when jobs are done, say if it hasn't cached the final status of a job, so we 
       //assume that an 'unknown job' failure for a job we've previously inquired about successfully means the job 
       //is done, though we can't determine how such a job ended. :(
@@ -154,7 +154,7 @@ final class JobMonitor(
    */
   private[uger] def demultiplex(
       jobIds: Iterable[String],
-      multiplexed: ConnectableObservable[Map[String, Try[UgerStatus]]]): Map[String, Observable[Try[UgerStatus]]] = {
+      multiplexed: ConnectableObservable[Map[String, Try[DrmStatus]]]): Map[String, Observable[Try[DrmStatus]]] = {
     
     val tuples = for {
       jobId <- jobIds
@@ -167,8 +167,8 @@ final class JobMonitor(
     tuples.toMap
   }
 
-  private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[UgerStatus]]): Boolean = {
-    def unpack(attempt: Try[UgerStatus]): UgerStatus = attempt.getOrElse(UgerStatus.Undetermined())
+  private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[DrmStatus]]): Boolean = {
+    def unpack(attempt: Try[DrmStatus]): DrmStatus = attempt.getOrElse(DrmStatus.Undetermined())
     
     val result = pollResults.values.map(unpack).forall(_.isFinished)
     

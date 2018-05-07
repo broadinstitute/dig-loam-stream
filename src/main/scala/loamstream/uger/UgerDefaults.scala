@@ -4,6 +4,7 @@ import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import scala.concurrent.duration.Duration
+import loamstream.drm.Queue
 
 /**
  * @author clint

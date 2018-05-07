@@ -1,18 +1,18 @@
 package loamstream.apps
 
-import java.nio.file.Path
 
-import loamstream.conf.UgerConfig
 
 import scala.concurrent.duration.Duration
 import scala.util.Try
 import scala.util.control.NoStackTrace
+
 import org.ggf.drmaa.DrmaaException
 import org.scalatest.FunSuite
-import loamstream.uger.DrmaaClient
-import loamstream.uger.UgerStatus
-import loamstream.uger.AccountingClient
+
+import loamstream.conf.UgerConfig
 import loamstream.model.execute.UgerSettings
+import loamstream.uger.DrmaaClient
+import loamstream.uger.DrmStatus
 import loamstream.uger.UgerTaskArray
 
 /**
@@ -80,9 +80,9 @@ object DrmaaClientHelpersTest {
         ugerConfig: UgerConfig,
         taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = ???
     
-    override def statusOf(jobId: String): Try[UgerStatus] = ???
+    override def statusOf(jobId: String): Try[DrmStatus] = ???
   
-    override def waitFor(jobId: String, timeout: Duration): Try[UgerStatus] = ???
+    override def waitFor(jobId: String, timeout: Duration): Try[DrmStatus] = ???
   
     override def stop(): Unit = {
       isShutdown = true

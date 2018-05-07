@@ -3,8 +3,8 @@ package loamstream.db.slick
 import java.sql.Timestamp
 
 import loamstream.model.execute.Resources
-import loamstream.model.execute.Resources.{GoogleResources, LocalResources, UgerResources}
-import loamstream.uger.Queue
+import loamstream.model.execute.Resources.{GoogleResources, LocalResources, DrmResources}
+import loamstream.drm.Queue
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 
@@ -24,7 +24,7 @@ object ResourceRow {
     case LocalResources(startTime, endTime) => {
       LocalResourceRow(executionId, Timestamp.from(startTime), Timestamp.from(endTime))
     }
-    case UgerResources(mem, cpu, node, queue, startTime, endTime) => {
+    case DrmResources(mem, cpu, node, queue, startTime, endTime) => {
       UgerResourceRow(executionId, mem.kb, cpu.seconds, node, queue.map(_.name),
         Timestamp.from(startTime), Timestamp.from(endTime))
     }
@@ -58,7 +58,7 @@ final case class UgerResourceRow(executionId: Int,
   override def toResources: Resources = {
     import scala.concurrent.duration._
     
-    UgerResources(
+    DrmResources(
         Memory.inKb(mem), CpuTime(cpu.seconds), node,
         queue.flatMap(Queue.fromString), startTime.toInstant, endTime.toInstant)
   }

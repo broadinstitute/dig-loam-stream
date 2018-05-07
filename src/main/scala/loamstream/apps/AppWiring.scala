@@ -30,7 +30,7 @@ import loamstream.googlecloud._
 import loamstream.util.Throwables
 
 import scala.util.Try
-import loamstream.uger.AccountingClient
+import loamstream.drm.AccountingClient
 import loamstream.uger.Drmaa1Client
 import loamstream.uger.UgerClient
 import loamstream.conf.ExecutionConfig
@@ -45,6 +45,7 @@ import scala.util.Success
 import loamstream.util.FileMonitor
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
+import loamstream.uger.QacctAccountingClient
 
 
 /**
@@ -307,7 +308,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     }
   }
   
-  private def makeUgerClient: UgerClient = new UgerClient(new Drmaa1Client, AccountingClient.useActualBinary())
+  private def makeUgerClient: UgerClient = new UgerClient(new Drmaa1Client, QacctAccountingClient.useActualBinary())
 
   private def loadConfig(confFileOpt: Option[Path]): Config = {
     def defaults: Config = ConfigFactory.load()

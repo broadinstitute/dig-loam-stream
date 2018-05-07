@@ -8,14 +8,14 @@ import loamstream.TestHelpers
 import loamstream.model.execute.Environment.Uger
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.uger.Queue
+import loamstream.drm.Queue
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.LJob
 
@@ -35,13 +35,13 @@ trait ProvidesEnvAndResources extends FunSuite {
 
   val mockLocalResources: LocalResources = TestHelpers.localResources
   
-  val mockUgerResources: UgerResources = {
+  val mockUgerResources: DrmResources = {
     val mem = Memory.inGb(2.1)
     val cpu = CpuTime.inSeconds(12.34)
     val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
     val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
 
-    UgerResources(mem, cpu, Some("nodeName"), Some(Queue.Broad), startTime, endTime)
+    DrmResources(mem, cpu, Some("nodeName"), Some(Queue.Broad), startTime, endTime)
   }
   
   val mockGoogleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)

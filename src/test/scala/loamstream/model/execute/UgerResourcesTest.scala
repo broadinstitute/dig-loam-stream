@@ -2,7 +2,7 @@ package loamstream.model.execute
 
 import org.scalatest.FunSuite
 import java.time.Instant
-import loamstream.uger.Queue
+import loamstream.drm.Queue
 import loamstream.uger.UgerException
 import loamstream.uger.UgerException
 import loamstream.model.quantities.Memory
@@ -15,14 +15,14 @@ import loamstream.model.quantities.CpuTime
 final class UgerResourcesTest extends FunSuite {
   //scalastyle:off magic.number
   
-  import Resources.UgerResources
+  import Resources.DrmResources
   import scala.concurrent.duration._
 
   private val now = Instant.now
 
   test("elapsedTime") {
     //Elapsed time is zero
-    val tookNoTime = UgerResources(
+    val tookNoTime = DrmResources(
       Memory.inGb(1),
       CpuTime(42.seconds),
       node = None,
@@ -33,7 +33,7 @@ final class UgerResourcesTest extends FunSuite {
     assert(tookNoTime.elapsedTime === 0.seconds)
 
     def doTestWithOffset(offsetInMillis: Long): Unit = {
-      val resources = UgerResources(
+      val resources = DrmResources(
         Memory.inGb(1),
         CpuTime(42.seconds),
         node = None,
@@ -51,7 +51,7 @@ final class UgerResourcesTest extends FunSuite {
   }
 
   test("withNode/withQueue") {
-    val r = UgerResources(
+    val r = DrmResources(
       Memory.inGb(1),
       CpuTime(42.seconds),
       node = None,
@@ -81,7 +81,7 @@ final class UgerResourcesTest extends FunSuite {
   }
 
   test("fromMap - real-world data") {
-    import UgerResources.fromMap
+    import DrmResources.fromMap
 
     assert(fromMap(null).isFailure) //scalastyle:ignore null
       
@@ -106,8 +106,8 @@ final class UgerResourcesTest extends FunSuite {
   }
   
   test("fromMap - some missing fields") {
-    import UgerResources.fromMap
-    import UgerResources.Keys
+    import DrmResources.fromMap
+    import DrmResources.Keys
 
     assert(fromMap(realWorldMap - Keys.cpu).isFailure)
     assert(fromMap(realWorldMap - Keys.mem).isFailure)
@@ -132,8 +132,8 @@ final class UgerResourcesTest extends FunSuite {
   }
   
   test("fromMap - some malformed fields") {
-    import UgerResources.fromMap
-    import UgerResources.Keys
+    import DrmResources.fromMap
+    import DrmResources.Keys
 
     def doTestWithBorkedKey(key: String): Unit = {
       assert(fromMap(realWorldMap + (key -> "asdf")).isFailure)

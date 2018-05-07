@@ -12,6 +12,7 @@ import loamstream.model.execute.UgerSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
+import loamstream.drm.Queue
 
 
 /**
@@ -25,7 +26,7 @@ final class Drmaa1ClientTest extends FunSuite {
   import loamstream.TestHelpers.path
   
   test("toResources - valid resource-usage data in JobInfo") {
-    val mockUgerClient = new MockAccountingClient(_ => actualQacctOutput)
+    val mockUgerClient = new MockQacctAccountingClient(_ => actualQacctOutput)
     
     val jobId = "12345"
     
@@ -44,7 +45,7 @@ final class Drmaa1ClientTest extends FunSuite {
   }
   
   test("toResources - incomplete resource-usage data in JobInfo") {
-    val mockUgerClient = new MockAccountingClient(_ => actualQacctOutput)
+    val mockUgerClient = new MockQacctAccountingClient(_ => actualQacctOutput)
     
     val jobId = "12345"
     

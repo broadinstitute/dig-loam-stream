@@ -55,14 +55,6 @@ object LoamPredef extends Loggable {
     scriptContext.projectContext.registerLoamThunk(loamCode)
   }
   
-  def in(store: Store, stores: Store*): Tool.In = in(store +: stores)
-
-  def in(stores: Iterable[Store]): Tool.In = Tool.In(stores)
-
-  def out(store: Store, stores: Store*): Tool.Out = Tool.Out((store +: stores).toSet)
-
-  def out(stores: Iterable[Store]): Tool.Out = Tool.Out(stores)
-
   def changeDir(newPath: Path)(implicit scriptContext: LoamScriptContext): Path = scriptContext.changeWorkDir(newPath)
 
   def changeDir(newPath: String)(implicit scriptContext: LoamScriptContext): Path = changeDir(Paths.get(newPath))

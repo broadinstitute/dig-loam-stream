@@ -199,7 +199,7 @@ final class LoamGraphTest extends FunSuite {
   }
   
   test("updateTool") {
-    //fail("TODO")
+    fail("TODO")
   }
 }
 

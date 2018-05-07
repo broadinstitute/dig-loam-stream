@@ -8,6 +8,8 @@ import loamstream.util.Files
 import java.nio.file.Paths
 import loamstream.util.BashScript
 import java.net.URI
+import loamstream.conf.ExecutionConfig
+import loamstream.loam.HasLocation
 
 /**
  * @author clint
@@ -104,5 +106,37 @@ final class LoamFileManagerTest extends FunSuite {
       
       assert(uriForStore === fileManager.getStoreString(storeWithUri))
     }
+  }
+  
+  test("tempPath") {
+    import LoamFileManager.tempPath
+    
+    val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+    
+    val executionConfig = ExecutionConfig.default.copy(anonStoreDir = workDir)
+    
+    final class MockHasLocation extends HasLocation { override def path: Path = ??? }
+    
+    val store0 = new MockHasLocation
+    val store1 = new MockHasLocation
+    
+    assert(store0 !== store1)
+    
+    val (paths0, path0) = tempPath(executionConfig, Map.empty, store0)
+    
+    assert(paths0 === Map(store0 -> path0))
+    
+    val (paths1, path1) = tempPath(executionConfig, paths0, store1)
+    
+    assert(paths1 === Map(store0 -> path0, store1 -> path1))
+    
+    assert(path0.startsWith(executionConfig.anonStoreDir))
+    assert(path1.startsWith(executionConfig.anonStoreDir))
+    
+    assert(path0.toString.endsWith(".txt"))
+    assert(path1.toString.endsWith(".txt"))
+    
+    assert(path0.getFileName.toString.startsWith("loam"))
+    assert(path1.getFileName.toString.startsWith("loam"))
   }
 }

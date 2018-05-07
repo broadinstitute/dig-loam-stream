@@ -46,28 +46,34 @@ final class ExecutionConfigTest extends FunSuite {
 
   test("good input") {
     val expectedMaxRunsPerJob = 42
-    val expectedOutputDir = path("asdf/blah/foo")
+    val expectedJobOutputDir = path("asdf/blah/foo")
 
     import scala.concurrent.duration._
     val expectedMaxWaitTime = 99.seconds
     val expectedOutputPollingFrequencyInHz = 1.23
-
+    val expectedDryRunOutputFile = path("foo/asdkas/asdasd/asd.txt")
+    val expectedAnonStoreDir = path("/alskdj/asd/asd")
+    
     val input = s"""|loamstream {
                     |  execution {
                     |    maxRunsPerJob = $expectedMaxRunsPerJob
-                    |    jobOutputDir = ${expectedOutputDir.render}
+                    |    jobOutputDir = ${expectedJobOutputDir.render}
                     |    maxWaitTimeForOutputs = "99 seconds"
                     |    outputPollingFrequencyInHz = 1.23
+                    |    dryRunOutputFile = ${expectedDryRunOutputFile.render},
+                    |    anonStoreDir = ${expectedAnonStoreDir.render}
                     |  }
                     |}""".stripMargin
 
     val executionConfig = parse(input).get
 
     val expected = ExecutionConfig(
-        expectedMaxRunsPerJob,
-        expectedOutputDir,
-        expectedMaxWaitTime,
-        expectedOutputPollingFrequencyInHz)
+        maxRunsPerJob = expectedMaxRunsPerJob,
+        jobOutputDir = expectedJobOutputDir,
+        maxWaitTimeForOutputs = expectedMaxWaitTime,
+        outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
+        dryRunOutputFile = expectedDryRunOutputFile,
+        anonStoreDir = expectedAnonStoreDir)
 
     assert(executionConfig === expected)
   }
@@ -149,9 +155,11 @@ final class ExecutionConfigTest extends FunSuite {
 
   test("good input - all defaults") {
     val expectedMaxRunsPerJob = ExecutionConfig.Defaults.maxRunsPerJob
-    val expectedOutputDir = ExecutionConfig.Defaults.jobOutputDir
+    val expectedJobOutputDir = ExecutionConfig.Defaults.jobOutputDir
     val expectedMaxWaitTime = ExecutionConfig.Defaults.maxWaitTimeForOutputs
     val expectedOutputPollingFrequencyInHz = ExecutionConfig.Defaults.outputPollingFrequencyInHz
+    val expectedDryRunOutputFile = ExecutionConfig.Defaults.dryRunOutputFile
+    val expectedAnonStoreDir = ExecutionConfig.Defaults.anonStoreDir
 
     val input = s"""|loamstream {
                     |  execution {
@@ -161,10 +169,12 @@ final class ExecutionConfigTest extends FunSuite {
     val executionConfig = parse(input).get
 
     val expected = ExecutionConfig(
-        expectedMaxRunsPerJob,
-        expectedOutputDir,
-        expectedMaxWaitTime,
-        expectedOutputPollingFrequencyInHz)
+        maxRunsPerJob = expectedMaxRunsPerJob,
+        jobOutputDir = expectedJobOutputDir,
+        maxWaitTimeForOutputs = expectedMaxWaitTime,
+        outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
+        dryRunOutputFile = expectedDryRunOutputFile,
+        anonStoreDir = expectedAnonStoreDir)
 
     assert(executionConfig === expected)
   }

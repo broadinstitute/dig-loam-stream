@@ -18,11 +18,11 @@ final class UgerJobWrapperTest extends FunSuite {
   }
 
   test("ugerStdOutPath") {
-    val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, jobs)
+    val jobName = UgerTaskArray.makeJobName()
+    
+    val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, jobs, jobName)
 
     val Seq(wrapper0, wrapper1, wrapper2) = taskArray.ugerJobs
-
-    val jobName = UgerTaskArray.makeJobName(jobs)
 
     val ugerStdOutPath0 = wrapper0.ugerStdOutPath(taskArray)
     val ugerStdOutPath1 = wrapper1.ugerStdOutPath(taskArray)
@@ -38,11 +38,11 @@ final class UgerJobWrapperTest extends FunSuite {
   }
 
   test("ugerStdErrPath") {
-    val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, jobs)
+    val jobName = UgerTaskArray.makeJobName()
+    
+    val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, jobs, jobName)
 
     val Seq(wrapper0, wrapper1, wrapper2) = taskArray.ugerJobs
-
-    val jobName = UgerTaskArray.makeJobName(jobs)
 
     val ugerStdErrPath0 = wrapper0.ugerStdErrPath(taskArray)
     val ugerStdErrPath1 = wrapper1.ugerStdErrPath(taskArray)
@@ -59,8 +59,6 @@ final class UgerJobWrapperTest extends FunSuite {
 
   test("outputStreams.stdout") {
     val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, Seq(j0))
-
-    val jobName = UgerTaskArray.makeJobName(Seq(j0))
 
     val Seq(wrapper0) = taskArray.ugerJobs
 
@@ -80,11 +78,11 @@ final class UgerJobWrapperTest extends FunSuite {
   }
 
   test("ugerCommandLine") {
-    val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, Seq(j0))
+    val jobName = UgerTaskArray.makeJobName()
+    
+    val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, Seq(j0), jobName)
 
     val Seq(wrapper0) = taskArray.ugerJobs
-
-    val jobName = UgerTaskArray.makeJobName(Seq(j0))
 
     // scalastyle:off line.size.limit
     val expected = s"""|${j0.commandLineString}

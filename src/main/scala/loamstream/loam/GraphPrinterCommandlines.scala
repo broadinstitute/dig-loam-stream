@@ -35,14 +35,10 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
   /** Prints a tool */
   def print(tool: Tool): String = tool match {
     case cmdTool: LoamCmdTool => print(cmdTool)
-    case nativeTool: LoamNativeTool[_] => print(nativeTool)
   }
 
   /** Prints a cmd tool */
   def print(tool: LoamCmdTool): String = tool.tokens.map(print(_, tool.graph)).mkString
-
-  /** Prints a native tool */
-  def print[T](tool: LoamNativeTool[T]): String = "[native tool]"
 
   /** Prints file names and command lines in LoamGraph */
   override def print(graph: LoamGraph): String =

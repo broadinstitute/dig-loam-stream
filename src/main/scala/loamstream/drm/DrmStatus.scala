@@ -1,4 +1,4 @@
-package loamstream.uger
+package loamstream.drm
 
 import loamstream.model.jobs.{JobResult, JobStatus}
 import org.ggf.drmaa.Session

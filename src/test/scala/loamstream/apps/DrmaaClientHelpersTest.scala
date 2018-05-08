@@ -10,9 +10,9 @@ import org.ggf.drmaa.DrmaaException
 import org.scalatest.FunSuite
 
 import loamstream.conf.UgerConfig
+import loamstream.drm.DrmStatus
 import loamstream.model.execute.UgerSettings
 import loamstream.uger.DrmaaClient
-import loamstream.uger.DrmStatus
 import loamstream.uger.UgerTaskArray
 
 /**

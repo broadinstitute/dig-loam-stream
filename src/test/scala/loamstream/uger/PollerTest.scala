@@ -9,6 +9,7 @@ import org.scalatest.FunSuite
 
 import loamstream.util.ObservableEnrichments
 import scala.util.Try
+import loamstream.drm.DrmStatus
 
 /**
  * @author clint
@@ -30,7 +31,7 @@ final class PollerTest extends FunSuite {
     
     val client = MockDrmaaClient(Map(jobId -> Seq(Success(Running), Success(Running), Success(Done))))
     
-    val poller = Poller.drmaa(client)
+    val poller = new DrmaaPoller(client)
     
     val statuses = Seq(
       poller.poll(Seq(jobId)),
@@ -59,7 +60,7 @@ final class PollerTest extends FunSuite {
         jobId2 -> Seq(Success(Running), Success(Done)),
         jobId3 -> Seq(Success(Running), Success(Running), Success(Done))))
     
-    val poller = Poller.drmaa(client)
+    val poller = new DrmaaPoller(client)
   
     def poll: Map[String, Try[DrmStatus]] = poller.poll(jobIds)
     
@@ -120,7 +121,7 @@ final class PollerTest extends FunSuite {
       Map(
         jobId -> Seq(Success(Running), Failure(exception), Success(Done), Failure(exception))))
     
-    val poller = Poller.drmaa(client)
+    val poller = new DrmaaPoller(client)
     
     val results = Seq(
       poller.poll(jobIds),

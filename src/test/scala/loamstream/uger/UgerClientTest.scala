@@ -6,11 +6,12 @@ import scala.util.Try
 
 import org.scalatest.FunSuite
 
+import loamstream.drm.DrmStatus
+import loamstream.drm.Queue
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.Tries
-import loamstream.drm.Queue
 
 /**
  * @author clint

@@ -1,20 +1,19 @@
 package loamstream.uger
 
-import scala.util.Try
 import scala.concurrent.duration.Duration
-import java.nio.file.Path
+import scala.util.Try
 
 import loamstream.conf.UgerConfig
-import loamstream.util.ValueBox
-import loamstream.util.Maps
+import loamstream.drm.DrmStatus
 import loamstream.model.execute.UgerSettings
+import loamstream.util.ValueBox
 
 /**
  * @author clint
  * date: Jul 6, 2016
  */
 final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[DrmStatus]]]) extends DrmaaClient {
-  import Maps.Implicits._
+  import loamstream.util.Maps.Implicits._
   
   private val remaining: ValueBox[Map[String, Seq[Try[DrmStatus]]]] = {
     ValueBox(toReturn.strictMapValues(_.init))

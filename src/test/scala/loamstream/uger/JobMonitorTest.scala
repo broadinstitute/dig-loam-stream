@@ -11,6 +11,7 @@ import scala.concurrent.Future
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.RxSchedulers
 import rx.lang.scala.Scheduler
+import loamstream.drm.DrmStatus
 
 /**
  * @author clint
@@ -23,7 +24,7 @@ final class JobMonitorTest extends FunSuite {
     withThreadPoolScheduler(1) { scheduler =>
       val client = MockDrmaaClient(Map.empty)
       
-      val jobMonitor = new JobMonitor(scheduler, Poller.drmaa(client))
+      val jobMonitor = new JobMonitor(scheduler, new DrmaaPoller(client))
       
       assert(jobMonitor.isStopped === false)
       
@@ -55,7 +56,7 @@ final class JobMonitorTest extends FunSuite {
     import scala.concurrent.ExecutionContext.Implicits.global
     import ObservableEnrichments._
     
-    val poller = Poller.drmaa(client)
+    val poller = new DrmaaPoller(client)
     
     withThreadPoolScheduler(3) { scheduler =>
       val statuses = (new JobMonitor(scheduler, poller, 9.99)).monitor(jobIds)

@@ -8,6 +8,8 @@ import scala.util.Try
 import scala.concurrent.duration.Duration
 import loamstream.util.Terminable
 import loamstream.model.execute.UgerSettings
+import loamstream.drm.DrmStatus
+import loamstream.drm.DrmStatus
 
 /**
  * @author clint

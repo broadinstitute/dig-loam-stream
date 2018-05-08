@@ -1,14 +1,14 @@
 package loamstream.uger
 
-import loamstream.conf.UgerConfig
-import java.nio.file.Path
-import scala.util.Try
 import scala.concurrent.duration.Duration
-import loamstream.util.Loggable
-import scala.util.Success
-import loamstream.model.execute.UgerSettings
-import loamstream.drm.Queue
+import scala.util.Try
+
+import loamstream.conf.UgerConfig
 import loamstream.drm.AccountingClient
+import loamstream.drm.DrmStatus
+import loamstream.drm.Queue
+import loamstream.model.execute.UgerSettings
+import loamstream.util.Loggable
 
 /**
  * @author clint

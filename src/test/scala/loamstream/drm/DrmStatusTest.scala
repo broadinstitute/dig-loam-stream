@@ -1,4 +1,4 @@
-package loamstream.uger
+package loamstream.drm
 
 import java.time.Instant
 
@@ -9,9 +9,7 @@ import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
-
 import org.ggf.drmaa.Session
-import loamstream.drm.Queue
 
 /**
  * @author clint

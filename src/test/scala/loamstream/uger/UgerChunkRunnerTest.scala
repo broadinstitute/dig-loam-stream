@@ -1,7 +1,5 @@
 package loamstream.uger
 
-import java.nio.file.Paths
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
@@ -10,17 +8,22 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
+import loamstream.conf.ExecutionConfig
 import loamstream.conf.UgerConfig
+import loamstream.drm.DrmStatus
 import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.Environment
 import loamstream.model.execute.UgerSettings
-import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
+import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.Output
+import loamstream.model.jobs.RunData
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
@@ -28,11 +31,7 @@ import loamstream.uger.UgerChunkRunnerTest.MockJobSubmitter
 import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
-import loamstream.model.jobs.LocalJob
-import loamstream.model.jobs.JobNode
-import loamstream.conf.ExecutionConfig
-import loamstream.model.jobs.commandline.HasCommandLine
-import loamstream.model.jobs.RunData
+
 
 
 /**
@@ -44,7 +43,6 @@ final class UgerChunkRunnerTest extends FunSuite {
   private val scheduler = IOScheduler()
   
   import loamstream.TestHelpers.neverRestart
-  import loamstream.TestHelpers.path
   
   private val tempDir = TestHelpers.getWorkDir(getClass.getSimpleName) 
   
@@ -72,7 +70,7 @@ final class UgerChunkRunnerTest extends FunSuite {
         executionConfig = executionConfig,
         ugerConfig = ugerConfig,
         jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
-        jobMonitor = new JobMonitor(scheduler, Poller.drmaa(mockDrmaaClient)))
+        jobMonitor = new JobMonitor(scheduler, new DrmaaPoller(mockDrmaaClient)))
     
     val result = waitFor(runner.run(Set.empty, neverRestart).firstAsFuture)
     
@@ -352,7 +350,7 @@ final class UgerChunkRunnerTest extends FunSuite {
         executionConfig = executionConfig,
         ugerConfig = ugerConfig,
         jobSubmitter = mockJobSubmitter,
-        jobMonitor = new JobMonitor(poller = Poller.drmaa(mockDrmaaClient)))
+        jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)))
         
     import ObservableEnrichments._        
     
@@ -419,7 +417,7 @@ final class UgerChunkRunnerTest extends FunSuite {
         executionConfig = executionConfig,
         ugerConfig = ugerConfig,
         jobSubmitter = mockJobSubmitter,
-        jobMonitor = new JobMonitor(poller = Poller.drmaa(mockDrmaaClient)))
+        jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)))
         
     import ObservableEnrichments._        
     

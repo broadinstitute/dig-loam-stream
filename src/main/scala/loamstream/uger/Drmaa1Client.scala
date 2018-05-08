@@ -14,17 +14,15 @@ import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
 
 import loamstream.conf.UgerConfig
+import loamstream.drm.DrmStatus
 import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.execute.UgerSettings
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.CompositeException
 import loamstream.util.Loggable
-import loamstream.util.ValueBox
-import loamstream.model.execute.UgerSettings
-import loamstream.model.quantities.Cpus
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import loamstream.util.Throwables
 import loamstream.util.OneTimeLatch
+import loamstream.util.Throwables
+import loamstream.util.ValueBox
 
 /**
  * Created on: 5/19/16

@@ -12,7 +12,7 @@ import loamstream.db.slick.DbType
 import loamstream.uger.UgerChunkRunner
 import loamstream.conf.{LoamConfig, PythonConfig, RConfig, UgerConfig}
 import loamstream.util.Loggable
-import loamstream.uger.Poller
+import loamstream.drm.Poller
 import loamstream.util.RxSchedulers
 import loamstream.uger.JobMonitor
 import loamstream.model.execute.RxExecuter
@@ -46,6 +46,7 @@ import loamstream.util.FileMonitor
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.uger.QacctAccountingClient
+import loamstream.uger.DrmaaPoller
 
 
 /**
@@ -287,7 +288,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val poller = Poller.drmaa(ugerClient)
+      val poller = new DrmaaPoller(ugerClient)
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 

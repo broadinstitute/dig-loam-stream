@@ -6,61 +6,47 @@ import scala.util.Try
 import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.InvalidJobException
 
+import loamstream.drm.DrmStatus
+import loamstream.drm.Poller
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.Loggable
-import loamstream.util.Terminable
 
 /**
  * @author clint
  * date: Jun 21, 2016
  */
-trait Poller extends Terminable {
-  /**
-   * Synchronously inquire about the status of one or more jobs
-   *
-   * @param jobIds the ids of the jobs to inquire about
-   * @return a map of job ids to attempts at that job's status
-   */
-  def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]]
-}
-
-object Poller {
+final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
   
-  final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
+  override def stop(): Unit = client.stop()
+  
+  override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = {
     
-    override def stop(): Unit = client.stop()
-    
-    override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = {
+    def statusAttempt(jobId: String): Try[DrmStatus] = {
+      val result = client.statusOf(jobId).recoverWith { case e: InvalidJobException =>
+        debug(s"Job '$jobId': Got an ${simpleNameOf(e)} when calling statusOf(); trying waitFor()", e)
       
-      def statusAttempt(jobId: String): Try[DrmStatus] = {
-        val result = client.statusOf(jobId).recoverWith { case e: InvalidJobException =>
-          debug(s"Job '$jobId': Got an ${simpleNameOf(e)} when calling statusOf(); trying waitFor()", e)
-        
-          client.waitFor(jobId, Duration.Zero)
-        }
-        
-        //Ignore the result of recover, we just want the logging side-effect
-        result.recover {
-          case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
-        }
-        
-        result
+        client.waitFor(jobId, Duration.Zero)
       }
       
-      //NB: Sort job ids for better log output
-      val sortedJobIds = jobIds.toSeq.sorted
-      
-      debug(s"Polling status of jobs ${sortedJobIds.mkString(",")}")
-      
-      val pollResults = sortedJobIds.map { jobId =>
-        jobId -> statusAttempt(jobId)
+      //Ignore the result of recover, we just want the logging side-effect
+      result.recover {
+        case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
       }
       
-      debug(s"Polled ${sortedJobIds.mkString(",")}")
-      
-      pollResults.toMap
+      result
     }
+    
+    //NB: Sort job ids for better log output
+    val sortedJobIds = jobIds.toSeq.sorted
+    
+    debug(s"Polling status of jobs ${sortedJobIds.mkString(",")}")
+    
+    val pollResults = sortedJobIds.map { jobId =>
+      jobId -> statusAttempt(jobId)
+    }
+    
+    debug(s"Polled ${sortedJobIds.mkString(",")}")
+    
+    pollResults.toMap
   }
-  
-  def drmaa(client: DrmaaClient): Poller = new DrmaaPoller(client)
 }

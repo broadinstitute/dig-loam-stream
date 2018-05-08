@@ -1,37 +1,29 @@
 package loamstream.uger
 
-import java.io.File
-import java.nio.file.Path
-import java.util.UUID
-
+import loamstream.conf.ExecutionConfig
 import loamstream.conf.UgerConfig
+import loamstream.drm.DrmStatus
+import loamstream.drm.DrmStatus.toJobResult
+import loamstream.drm.DrmStatus.toJobStatus
 import loamstream.model.execute.ChunkRunnerFor
-import loamstream.model.jobs.JobStatus.{ Failed, Running }
-import loamstream.model.jobs._
+import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.ExecuterHelpers
+import loamstream.model.execute.UgerSettings
+import loamstream.model.jobs.JobResult
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.JobStatus.Failed
+import loamstream.model.jobs.JobStatus.Running
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.RunData
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.uger.DrmStatus.{ toJobResult, toJobStatus }
 import loamstream.util.Classes.simpleNameOf
-import loamstream.util.Files
+import loamstream.util.CompositeException
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
+import loamstream.util.Throwables
 import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
-import loamstream.model.execute.ExecuterHelpers
-import loamstream.model.execute.EnvironmentType
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-import java.time.ZoneId
-import loamstream.model.execute.Environment
-import loamstream.util.Maps
-import loamstream.model.execute.UgerSettings
-import loamstream.conf.ExecutionConfig
-import loamstream.util.TimeUtils
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Duration
-import loamstream.util.Throwables
-import loamstream.util.CompositeException
 
 /**
  * @author clint
@@ -226,8 +218,8 @@ object UgerChunkRunner extends Loggable {
           outputStreamsOpt = Option(jobWrapper.outputStreams))
     }
 
-    import loamstream.util.Traversables.Implicits._
     import loamstream.util.Maps.Implicits._
+    import loamstream.util.Traversables.Implicits._
 
     Observable.just(jobs.mapTo(execution).mapKeys(_.commandLineJob))
   }
@@ -247,8 +239,8 @@ object UgerChunkRunner extends Loggable {
    * of jobs as one Uger task array, and settings are per-task-array.
    */
   private[uger] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[UgerSettings, Seq[CommandLineJob]] = {
-    import Environment.Uger
-    import Maps.Implicits._
+    import loamstream.model.execute.Environment.Uger
+    import loamstream.util.Maps.Implicits._
 
     jobs.groupBy(_.executionEnvironment).collectKeys { case Uger(ugerSettings) => ugerSettings }
   }

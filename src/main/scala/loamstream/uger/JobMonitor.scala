@@ -1,18 +1,21 @@
 package loamstream.uger
 
-import scala.util.{ Failure, Success, Try }
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 import org.ggf.drmaa.InvalidJobException
 
+import loamstream.drm.DrmStatus
+import loamstream.drm.Poller
 import loamstream.util.Loggable
-import loamstream.util.ObservableEnrichments
+import loamstream.util.Terminable
+import loamstream.util.ValueBox
 import rx.lang.scala.Observable
 import rx.lang.scala.Scheduler
-import rx.lang.scala.schedulers.IOScheduler
-import rx.lang.scala.observables.ConnectableObservable
-import loamstream.util.ValueBox
-import loamstream.util.Terminable
 import rx.lang.scala.Subject
+import rx.lang.scala.observables.ConnectableObservable
+import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.subjects.PublishSubject
 
 /**
@@ -73,7 +76,7 @@ final class JobMonitor(
     
     def shouldContinue = keepPolling()
     
-    import ObservableEnrichments._
+    import loamstream.util.ObservableEnrichments._
     
     //NB: The call to .replay() is needed to allow us to 'demultiplex' the stream of poll results into
     //several streams, one for each job id, without worrying about missing any emitted values if any 
@@ -112,8 +115,8 @@ final class JobMonitor(
     
     val (jobId, statusAttempts) = jobStatusTuple
     
-    import ObservableEnrichments._
-    import DrmStatus.{DoneUndetermined, Undetermined}
+    import loamstream.drm.DrmStatus.{ DoneUndetermined, Undetermined }
+    import loamstream.util.ObservableEnrichments._
     
     val statuses: Observable[DrmStatus] = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
       //NB: DRMAA might not report when jobs are done, say if it hasn't cached the final status of a job, so we 

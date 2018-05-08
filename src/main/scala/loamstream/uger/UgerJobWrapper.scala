@@ -44,9 +44,12 @@ final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |
+        |stdoutDestPath="${stdOutDestPath.render}"
+        |stderrDestPath="${stdErrDestPath.render}"
+        |
         |mkdir -p ${outputDir.render}
-        |mv ${ugerStdOutPath(taskArray).render} ${stdOutDestPath.render} || echo "Couldn't move Uger std out log" > ${stdOutDestPath.render}
-        |mv ${ugerStdErrPath(taskArray).render} ${stdErrDestPath.render} || echo "Couldn't move Uger std err log" > ${stdErrDestPath.render}
+        |mv ${ugerStdOutPath(taskArray).render} $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
+        |mv ${ugerStdErrPath(taskArray).render} $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin

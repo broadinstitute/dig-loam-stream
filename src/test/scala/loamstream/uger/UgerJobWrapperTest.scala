@@ -89,9 +89,12 @@ final class UgerJobWrapperTest extends FunSuite {
                        |
                        |LOAMSTREAM_JOB_EXIT_CODE=$$?
                        |
+                       |stdoutDestPath="${jobOutputDir.render}/${j0.id}.stdout"
+                       |stderrDestPath="${jobOutputDir.render}/${j0.id}.stderr"
+                       |
                        |mkdir -p ${jobOutputDir.render}
-                       |mv ${workDir.render}/$jobName.1.stdout ${jobOutputDir.render}/${j0.id}.stdout || echo "Couldn't move Uger std out log" > ${jobOutputDir.render}/${j0.id}.stdout
-                       |mv ${workDir.render}/$jobName.1.stderr ${jobOutputDir.render}/${j0.id}.stderr || echo "Couldn't move Uger std err log" > ${jobOutputDir.render}/${j0.id}.stderr
+                       |mv ${workDir.render}/$jobName.1.stdout $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
+                       |mv ${workDir.render}/$jobName.1.stderr $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
                        |
                        |exit $$LOAMSTREAM_JOB_EXIT_CODE
                        |""".stripMargin

@@ -125,9 +125,12 @@ then
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
+stdoutDestPath="$outputDir/${jobId0}.stdout"
+stderrDestPath="$outputDir/${jobId0}.stderr"
+
 mkdir -p $outputDir
-mv $ugerDir/${jobName}.1.stdout $outputDir/${jobId0}.stdout || echo "Couldn't move Uger std out log" > $outputDir/${jobId0}.stdout
-mv $ugerDir/${jobName}.1.stderr $outputDir/${jobId0}.stderr || echo "Couldn't move Uger std err log" > $outputDir/${jobId0}.stderr
+mv $ugerDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
+mv $ugerDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -137,9 +140,12 @@ then
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
+stdoutDestPath="$outputDir/${jobId1}.stdout"
+stderrDestPath="$outputDir/${jobId1}.stderr"
+
 mkdir -p $outputDir
-mv $ugerDir/${jobName}.2.stdout $outputDir/${jobId1}.stdout || echo "Couldn't move Uger std out log" > $outputDir/${jobId1}.stdout
-mv $ugerDir/${jobName}.2.stderr $outputDir/${jobId1}.stderr || echo "Couldn't move Uger std err log" > $outputDir/${jobId1}.stderr
+mv $ugerDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
+mv $ugerDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -149,9 +155,12 @@ then
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
+stdoutDestPath="$outputDir/${jobId2}.stdout"
+stderrDestPath="$outputDir/${jobId2}.stderr"
+
 mkdir -p $outputDir
-mv $ugerDir/${jobName}.3.stdout $outputDir/${jobId2}.stdout || echo "Couldn't move Uger std out log" > $outputDir/${jobId2}.stdout
-mv $ugerDir/${jobName}.3.stderr $outputDir/${jobId2}.stderr || echo "Couldn't move Uger std err log" > $outputDir/${jobId2}.stderr
+mv $ugerDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
+mv $ugerDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

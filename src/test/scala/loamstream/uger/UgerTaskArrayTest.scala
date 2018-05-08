@@ -99,7 +99,7 @@ final class UgerTaskArrayTest extends FunSuite {
   test("scriptContents") {
     val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, jobs)
 
-    assert(taskArray.scriptContents === ScriptBuilder.buildFrom(taskArray))
+    assert(taskArray.scriptContents === ScriptBuilder.uger.buildFrom(taskArray))
   }
 
   test("ugerScriptFile/writeUgerScriptFile") {
@@ -109,7 +109,7 @@ final class UgerTaskArrayTest extends FunSuite {
 
     val taskArray = UgerTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, jobs)
 
-    assert(taskArray.scriptContents === ScriptBuilder.buildFrom(taskArray))
+    assert(taskArray.scriptContents === ScriptBuilder.uger.buildFrom(taskArray))
 
     assert(taskArray.ugerScriptFile.getParent === workDir)
 

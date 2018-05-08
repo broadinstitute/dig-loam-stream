@@ -10,6 +10,32 @@ import loamstream.model.jobs.commandline.CommandLineJob
   * For an example of such scripts, see src/test/resources/imputation/shapeItUgerSubmissionScript.sh
   */
 private[uger] object ScriptBuilder {
+  final case class Params(preamble: String, indexEnvVarName: String, jobIdEnvVarName: String)
+  
+  object Params {
+    private val ugerPreamble="""|#$ -cwd
+                                |
+                                |source /broad/software/scripts/useuse
+                                |reuse -q UGER
+                                |reuse -q Java-1.8
+                                |
+                                |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$PATH
+                                |source activate loamstream_v1.0""".stripMargin
+    
+    private val lsfPreamble = """|
+                                 |""".stripMargin
+    
+                                
+    val uger = Params(preamble = ugerPreamble, indexEnvVarName = "SGE_TASK_ID", jobIdEnvVarName = "JOB_ID")
+    
+    val lsf = Params(preamble = lsfPreamble, indexEnvVarName = "LSB_JOBINDEX", jobIdEnvVarName = "LSB_JOBID")
+  }
+  
+  def uger: ScriptBuilder = new ScriptBuilder(Params.uger)
+  def lsf: ScriptBuilder = new ScriptBuilder(Params.lsf)
+}
+
+private[uger] class ScriptBuilder(params: ScriptBuilder.Params) {
   private val space: String = " "
   private val newLine: String = "\n"
   private val unixLineSep: String = " \\"
@@ -17,16 +43,10 @@ private[uger] object ScriptBuilder {
   //NB: We need to 'use' Java-1.8 to make some steps of the QC pipeline work.  
   private val scriptHeader: String = {
     s"""|#!/bin/bash
-        |#$$ -cwd
+        |${params.preamble}
         |
-        |source /broad/software/scripts/useuse
-        |reuse -q UGER
-        |reuse -q Java-1.8
-        |
-        |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$$PATH
-        |source activate loamstream_v1.0
-        |
-        |i=$$SGE_TASK_ID
+        |i=$$${params.indexEnvVarName}
+        |jobId=$$${params.jobIdEnvVarName}
         |      """.stripMargin
   }
   

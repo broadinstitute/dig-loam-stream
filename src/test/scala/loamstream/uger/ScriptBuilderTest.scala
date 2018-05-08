@@ -29,7 +29,7 @@ final class ScriptBuilderTest extends FunSuite {
     val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
     val jobName = UgerTaskArray.makeJobName()
     val taskArray = UgerTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, jobs, jobName)
-    val ugerScriptContents = ScriptBuilder.buildFrom(taskArray).withNormalizedLineBreaks
+    val ugerScriptContents = ScriptBuilder.uger.buildFrom(taskArray).withNormalizedLineBreaks
 
     val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)
     val discriminators = (0, 1, 2)
@@ -118,6 +118,7 @@ export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$$PATH
 source activate loamstream_v1.0
 
 i=$$SGE_TASK_ID
+jobId=$$JOB_ID
 $sixSpaces
 if [ $$i -eq 1 ]
 then

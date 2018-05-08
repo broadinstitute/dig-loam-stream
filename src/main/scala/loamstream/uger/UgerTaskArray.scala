@@ -25,7 +25,7 @@ final case class UgerTaskArray(
 
   def size: Int = ugerJobs.size
 
-  lazy val scriptContents: String = ScriptBuilder.buildFrom(this)
+  lazy val scriptContents: String = ScriptBuilder.uger.buildFrom(this)
 
   //NB: Side-effecting
   lazy val ugerScriptFile: Path = writeUgerScriptFile()

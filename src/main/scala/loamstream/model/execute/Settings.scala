@@ -6,6 +6,9 @@ import loamstream.model.quantities.Memory
 import loamstream.drm.Queue
 import loamstream.uger.UgerDefaults
 import loamstream.conf.UgerConfig
+import loamstream.conf.LsfConfig
+import loamstream.conf.DrmConfig
+import loamstream.drm.lsf.LsfDefaults
 
 /**
  * @author kyuksel
@@ -15,23 +18,27 @@ import loamstream.conf.UgerConfig
 
 sealed trait Settings
 
+/**
+ * Execution-time settings for a group of 1 or more local jobs (no settings possible yet)
+ */
 final case object LocalSettings extends Settings
 
 /**
- * Execution-time settings for a group of 1 or more Uger jobs 
+ * Execution-time settings for a group of 1 or more Uger or LSF jobs 
  */
-final case class UgerSettings(
+final case class DrmSettings(
     cores: Cpus,
     memoryPerCore: Memory,
-    maxRunTime: CpuTime = UgerDefaults.maxRunTime,
-    queue: Queue = UgerDefaults.queue) extends Settings
+    maxRunTime: CpuTime,
+    queue: Option[Queue]) extends Settings
     
-object UgerSettings {
+object DrmSettings {
+  def fromUgerConfig(config: UgerConfig): DrmSettings = {
+    DrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, Option(UgerDefaults.queue))
+  }
   
-  def from(ugerConfig: UgerConfig): UgerSettings = {
-    import ugerConfig._
-    
-    UgerSettings(defaultCores, defaultMemoryPerCore, defaultMaxRunTime)
+  def fromLsfConfig(config: LsfConfig): DrmSettings = {
+    DrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, None)
   }
 }
 

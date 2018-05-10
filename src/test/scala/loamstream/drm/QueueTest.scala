@@ -7,35 +7,19 @@ import org.scalatest.FunSuite
  * Mar 15, 2017
  */
 final class QueueTest extends FunSuite {
-  import Queue._
-  
-  test("fromString") {
-    assert(fromString("") === None)
-    assert(fromString("   ") === None)
-    assert(fromString("asdasdasdasd") === None)
-    
-    assert(fromString("short") === None)
-    assert(fromString("Short") === None)
-    assert(fromString("SHORT") === None)
-    assert(fromString("ShOrT") === None)
-    
-    assert(fromString("long") === None)
-    assert(fromString("Long") === None)
-    assert(fromString("LONG") === None)
-    assert(fromString("LoNg") === None)
-    
-    assert(fromString("broad") === Some(Broad))
-    assert(fromString("Broad") === Some(Broad))
-    assert(fromString("BROAD") === Some(Broad))
-    assert(fromString("bRoAd") === Some(Broad))
-  }
   
   test("name/toString") {
-    assert(Broad.name === "broad")
-    assert(Broad.toString === "broad")
+    val asdf = Queue("asdf")
+    
+    assert(asdf.name === "asdf")
+    assert(asdf.toString === "asdf")
   }
   
-  test("isBroad") {
-    assert(Broad.isBroad === true)
+  test("guards") {
+    Queue("asdf")
+    
+    intercept[Exception] {
+      Queue("")
+    }
   }
 }

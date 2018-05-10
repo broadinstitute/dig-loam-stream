@@ -31,7 +31,7 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.OutputRecord
 import loamstream.util.Sequence
-import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.DrmSettings
 import loamstream.util.PathEnrichments
 import org.apache.commons.io.FileUtils
 import loamstream.model.jobs.OutputStreams
@@ -40,6 +40,7 @@ import loamstream.model.jobs.RunData
 import scala.concurrent.Future
 import scala.concurrent.Await
 import loamstream.loam.LoamScript
+import loamstream.uger.UgerDefaults
 
 /**
   * @author clint
@@ -155,13 +156,14 @@ object TestHelpers {
     loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode))
   }
   
-  val defaultUgerSettings: UgerSettings = {
+  val defaultUgerSettings: DrmSettings = {
     val ugerConfig = config.ugerConfig.get 
 
-    UgerSettings(
+    DrmSettings(
       ugerConfig.defaultCores,
       ugerConfig.defaultMemoryPerCore,
-      ugerConfig.defaultMaxRunTime)
+      ugerConfig.defaultMaxRunTime,
+      Option(UgerDefaults.queue))
   }
   
   def dummyFileName: Path = TestHelpers.path(s"${UUID.randomUUID.toString}.log")

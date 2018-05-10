@@ -13,10 +13,10 @@ import org.ggf.drmaa.JobTemplate
 import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
 
-import loamstream.conf.UgerConfig
+import loamstream.conf.DrmConfig
 import loamstream.drm.DrmStatus
+import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Resources.DrmResources
-import loamstream.model.execute.UgerSettings
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.CompositeException
 import loamstream.util.Loggable
@@ -145,13 +145,13 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
    * @param numTasks length of task array to be submitted as a single UGER job
    */
   override def submitJob(
-    ugerSettings: UgerSettings,
-    ugerConfig: UgerConfig,
+    drmSettings: DrmSettings,
+    drmConfig: DrmConfig,
     taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
 
-    val ugerWorkDir = ugerConfig.workDir
+    val ugerWorkDir = drmConfig.workDir
 
-    val fullNativeSpec = Drmaa1Client.nativeSpec(ugerSettings)
+    val fullNativeSpec = Drmaa1Client.nativeSpec(drmSettings)
 
     runJob(taskArray, ugerWorkDir, fullNativeSpec)
   }
@@ -322,18 +322,19 @@ object Drmaa1Client {
     DrmResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
   }
 
-  private[uger] def nativeSpec(ugerSettings: UgerSettings): String = {
+  private[uger] def nativeSpec(drmSettings: DrmSettings): String = {
     //Will this ever change?
     val staticPart = "-cwd -shell y -b n"
 
     val dynamicPart = {
-      import ugerSettings._
+      import drmSettings._
 
       val numCores = cores.value
       val runTimeInHours: Int = maxRunTime.hours.toInt
       val mem: Int = memoryPerCore.gb.toInt
 
-      s"-binding linear:${numCores} -pe smp ${numCores} -q ${queue} -l h_rt=${runTimeInHours}:0:0,h_vmem=${mem}g"
+      //TODO: XXX .get :(
+      s"-binding linear:${numCores} -pe smp ${numCores} -q ${queue.get} -l h_rt=${runTimeInHours}:0:0,h_vmem=${mem}g"
     }
 
     s"$staticPart $dynamicPart"

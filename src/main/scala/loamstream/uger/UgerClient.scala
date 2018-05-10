@@ -3,11 +3,11 @@ package loamstream.uger
 import scala.concurrent.duration.Duration
 import scala.util.Try
 
-import loamstream.conf.UgerConfig
+import loamstream.conf.DrmConfig
 import loamstream.drm.AccountingClient
 import loamstream.drm.DrmStatus
 import loamstream.drm.Queue
-import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
 
 /**
@@ -25,11 +25,11 @@ final class UgerClient(
   override def getQueue(jobId: String): Option[Queue] = accountingClient.getQueue(jobId)
   
   override def submitJob(
-      ugerSettings: UgerSettings,
-      ugerConfig: UgerConfig,
+      drmSettings: DrmSettings,
+      drmConfig: DrmConfig,
       taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
     
-    drmaaClient.submitJob(ugerSettings, ugerConfig, taskArray)
+    drmaaClient.submitJob(drmSettings, drmConfig, taskArray)
   }
     
   /**

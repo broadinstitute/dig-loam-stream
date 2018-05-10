@@ -18,6 +18,7 @@ import loamstream.model.quantities.Memory
 import loamstream.drm.Queue
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.LJob
+import loamstream.uger.UgerDefaults
 
 /**
  * @author kyuksel
@@ -25,8 +26,12 @@ import loamstream.model.jobs.LJob
  */
 trait ProvidesEnvAndResources extends FunSuite {
   
+  private val broadQueue = Queue("broad")
+  
   val mockCmd: String = "R --vanilla --args ancestry_pca_scores.tsv < plot_ancestry_pca.r"
-  val mockSettings: UgerSettings = UgerSettings(Cpus(4), Memory.inGb(8), queue = Queue.Broad)
+  val mockSettings: DrmSettings = DrmSettings(
+      Cpus(4), Memory.inGb(8), UgerDefaults.maxRunTime, queue = Option(broadQueue))
+      
   val mockGoogleSettings: GoogleSettings = GoogleSettings("asdf")
   val mockEnv: Environment = Uger(mockSettings)
   val mockStatus: JobStatus = JobStatus.Unknown
@@ -41,7 +46,7 @@ trait ProvidesEnvAndResources extends FunSuite {
     val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
     val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
 
-    DrmResources(mem, cpu, Some("nodeName"), Some(Queue.Broad), startTime, endTime)
+    DrmResources(mem, cpu, Some("nodeName"), Some(broadQueue), startTime, endTime)
   }
   
   val mockGoogleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)

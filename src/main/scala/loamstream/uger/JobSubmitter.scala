@@ -1,16 +1,8 @@
 package loamstream.uger
 
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.conf.UgerConfig
+import loamstream.conf.DrmConfig
+import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
-import loamstream.model.execute.UgerSettings
-import java.nio.file.Path
-import loamstream.util.Files
-import java.io.File
-import java.time.format.DateTimeFormatter
-import java.time.ZoneId
-import java.util.UUID
-import java.time.Instant
 import loamstream.util.Terminable
 
 /**
@@ -25,7 +17,7 @@ trait JobSubmitter extends Terminable {
    * @params jobs the jobs to submit
    * @param ugerSettings the Uger settings shared by all the jobs being submitted
    */
-  def submitJobs(ugerSettings: UgerSettings, taskArray: UgerTaskArray): DrmaaClient.SubmissionResult
+  def submitJobs(drmSettings: DrmSettings, taskArray: UgerTaskArray): DrmaaClient.SubmissionResult
 }
 
 object JobSubmitter {
@@ -35,12 +27,12 @@ object JobSubmitter {
    * 
    * Default implementation of JobSubmitter; uses a DrmaaClient to submit jobs. 
    */
-  final case class Drmaa(drmaaClient: DrmaaClient, ugerConfig: UgerConfig) extends JobSubmitter with Loggable {
+  final case class Drmaa(drmaaClient: DrmaaClient, drmConfig: DrmConfig) extends JobSubmitter with Loggable {
     override def submitJobs(
-        ugerSettings: UgerSettings,
+        drmSettings: DrmSettings,
         taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
 
-      drmaaClient.submitJob(ugerSettings, ugerConfig, taskArray)
+      drmaaClient.submitJob(drmSettings, drmConfig, taskArray)
     }
     
     override def stop(): Unit = drmaaClient.stop()

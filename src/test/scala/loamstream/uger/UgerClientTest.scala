@@ -31,7 +31,7 @@ final class UgerClientTest extends FunSuite {
     import UgerClient.fillInAccountingFieldsIfNecessary
     import QacctTestHelpers.actualQacctOutput
 
-    val expectedQueue = Queue.Broad
+    val expectedQueue = Queue("broad")
 
     val expectedNode = "foo.example.com"
 
@@ -44,7 +44,8 @@ final class UgerClientTest extends FunSuite {
     assert(fillInAccountingFieldsIfNecessary(mockClient, "12334")(failure) === failure)
 
     def doTest(ugerStatus: DrmStatus): Unit = {
-      val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(Queue.Broad), Some("foo.example.com")))
+      val mockClient = new MockQacctAccountingClient(
+          _ => actualQacctOutput(Some(Queue("broad")), Some("foo.example.com")))
 
       val result = fillInAccountingFieldsIfNecessary(mockClient, "12334")(Try(ugerStatus))
 

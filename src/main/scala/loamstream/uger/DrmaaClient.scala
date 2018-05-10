@@ -1,15 +1,12 @@
 package loamstream.uger
 
-import java.nio.file.Path
-
-import loamstream.conf.UgerConfig
-
-import scala.util.Try
 import scala.concurrent.duration.Duration
+import scala.util.Try
+
+import loamstream.conf.DrmConfig
+import loamstream.drm.DrmStatus
+import loamstream.model.execute.DrmSettings
 import loamstream.util.Terminable
-import loamstream.model.execute.UgerSettings
-import loamstream.drm.DrmStatus
-import loamstream.drm.DrmStatus
 
 /**
  * @author clint
@@ -28,8 +25,8 @@ trait DrmaaClient extends Terminable {
    * @param numTasks length of task array to be submitted as a single UGER job
    */
   def submitJob(
-      ugerSettings: UgerSettings,
-      ugerConfig: UgerConfig,
+      drmSettings: DrmSettings,
+      drmConfig: DrmConfig,
       taskArrayScript: UgerTaskArray): DrmaaClient.SubmissionResult
     
   /**

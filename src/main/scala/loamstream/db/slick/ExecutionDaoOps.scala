@@ -228,7 +228,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   }
 
   private def tieSettingsToExecution(execution: Execution, executionId: Int): SettingRow = {
-      SettingRow.fromSettings(execution.settings, executionId)
+      SettingRow.fromEnvironment(execution.env, executionId)
   }
 
   private def tieResourcesToExecution(execution: Execution, executionId: Int): Option[ResourceRow] = {

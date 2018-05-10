@@ -5,11 +5,12 @@ import org.scalatest.FunSuite
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
 import loamstream.model.execute.Environment
-import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.DrmSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.loam.LoamCmdTool
+import loamstream.uger.UgerDefaults
 
 
 /**
@@ -36,7 +37,8 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
     
     assert(jobs.size === 1)
     
-    val expectedEnv = Environment.Uger(UgerSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5)))
+    val expectedEnv = Environment.Uger(
+        DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), Option(UgerDefaults.queue)))
     
     assert(jobs.head.executionEnvironment === expectedEnv)
   }

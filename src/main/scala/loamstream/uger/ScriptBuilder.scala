@@ -1,6 +1,7 @@
 package loamstream.uger
 
 import loamstream.model.jobs.commandline.CommandLineJob
+import org.ggf.drmaa.JobTemplate
 
 /**
   * @author Kaan
@@ -10,9 +11,14 @@ import loamstream.model.jobs.commandline.CommandLineJob
   * For an example of such scripts, see src/test/resources/imputation/shapeItUgerSubmissionScript.sh
   */
 private[uger] object ScriptBuilder {
-  final case class Params(preamble: String, indexEnvVarName: String, jobIdEnvVarName: String)
+  final case class Params(
+      preamble: Option[String], 
+      indexEnvVarName: String, 
+      jobIdEnvVarName: String,
+      drmIndexVarExpr: String)
   
   object Params {
+    //NB: We need to 'use' Java-1.8 to make some steps of the QC pipeline work.
     private val ugerPreamble="""|#$ -cwd
                                 |
                                 |source /broad/software/scripts/useuse
@@ -22,13 +28,18 @@ private[uger] object ScriptBuilder {
                                 |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$PATH
                                 |source activate loamstream_v1.0""".stripMargin
     
-    private val lsfPreamble = """|
-                                 |""".stripMargin
-    
                                 
-    val uger = Params(preamble = ugerPreamble, indexEnvVarName = "SGE_TASK_ID", jobIdEnvVarName = "JOB_ID")
+    val uger = Params(
+        preamble = Option(ugerPreamble), 
+        indexEnvVarName = "SGE_TASK_ID", 
+        jobIdEnvVarName = "JOB_ID", 
+        drmIndexVarExpr = JobTemplate.PARAMETRIC_INDEX)
     
-    val lsf = Params(preamble = lsfPreamble, indexEnvVarName = "LSB_JOBINDEX", jobIdEnvVarName = "LSB_JOBID")
+    val lsf = Params(
+        preamble = None, 
+        indexEnvVarName = "LSB_JOBINDEX", 
+        jobIdEnvVarName = "LSB_JOBID",
+        drmIndexVarExpr = "%I")
   }
   
   def uger: ScriptBuilder = new ScriptBuilder(Params.uger)
@@ -40,10 +51,9 @@ private[uger] class ScriptBuilder(params: ScriptBuilder.Params) {
   private val newLine: String = "\n"
   private val unixLineSep: String = " \\"
 
-  //NB: We need to 'use' Java-1.8 to make some steps of the QC pipeline work.  
   private val scriptHeader: String = {
     s"""|#!/bin/bash
-        |${params.preamble}
+        |${params.preamble.mkString}
         |
         |i=$$${params.indexEnvVarName}
         |jobId=$$${params.jobIdEnvVarName}
@@ -58,7 +68,7 @@ private[uger] class ScriptBuilder(params: ScriptBuilder.Params) {
     val firstIfBlock = getFirstIfBlock(taskArray)
 
     val elseIfBlocks = ugerJobs.tail.map { ugerJob =>
-      val index = ugerJob.ugerIndex
+      val index = ugerJob.drmIndex
       
       s"${getElseIfHeader(index)}${getBody(taskArray, ugerJob)}"
     }.mkString(newLine)
@@ -68,7 +78,7 @@ private[uger] class ScriptBuilder(params: ScriptBuilder.Params) {
 
   private def getFirstIfBlock(taskArray: UgerTaskArray): String = {
     val ugerJob: UgerJobWrapper = taskArray.ugerJobs.head
-    val indexStartValue: Int = ugerJob.ugerIndex
+    val indexStartValue: Int = ugerJob.drmIndex
     
     val ifHeader = getIfHeader(indexStartValue)
     val ifBody = getBody(taskArray, ugerJob)

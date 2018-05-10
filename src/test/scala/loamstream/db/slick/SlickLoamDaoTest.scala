@@ -6,27 +6,26 @@ import java.time.Instant
 
 import org.scalatest.FunSuite
 
+import loamstream.drm.Queue
+import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.ProvidesEnvAndResources
+import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.execute.Resources.DrmResources
-import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.model.jobs.OutputRecord
-import loamstream.model.jobs.OutputStreams
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.drm.Queue
-import loamstream.util.BashScript.Implicits._
+import loamstream.uger.UgerDefaults
+import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Hashes
-import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -50,7 +49,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   private def noExecutions: Boolean = dao.allExecutions.isEmpty
 
-  import TestHelpers.dummyOutputStreams
+  import loamstream.TestHelpers.dummyOutputStreams
 
   private def store(cmd: String, paths: Path*): Execution = {
     val outputs = paths.map { path =>
@@ -250,7 +249,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val output2 = cachedOutput(path2, hash2)
 
       val localSettings = LocalSettings
-      val ugerSettings = UgerSettings(Cpus(8), Memory.inGb(4))
+      val ugerSettings = DrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue))
       val googleSettings = GoogleSettings("some-cluster")
 
       val localEnv: Environment = Environment.Local
@@ -262,7 +261,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           Memory.inGb(2.1),
           CpuTime.inSeconds(12.34),
           Some("nodeName"),
-          Some(Queue.Broad),
+          Some(Queue("broad")),
           Instant.ofEpochMilli(64532),
           Instant.ofEpochMilli(9345345))
 

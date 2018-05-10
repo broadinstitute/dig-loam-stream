@@ -136,10 +136,21 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def cpus = column[Int]("CPU")
     def memPerCpu = column[Double]("MEM")
     def maxRunTime = column[Double]("MAX_RUN_TIME")
-    def queue = column[String]("QUEUE")
+    def queue = column[Option[String]]("QUEUE")
     val foreignKey = s"$foreignKeyPrefix${Names.ugerSettings}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
     def * = (executionId, cpus, memPerCpu, maxRunTime, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
+  }
+  
+  final class LsfSettings(tag: Tag) extends Table[LsfSettingRow](tag, Names.lsfSettings) with HasExecutionId {
+    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def cpus = column[Int]("CPU")
+    def memPerCpu = column[Double]("MEM")
+    def maxRunTime = column[Double]("MAX_RUN_TIME")
+    def queue = column[Option[String]]("QUEUE")
+    val foreignKey = s"$foreignKeyPrefix${Names.lsfSettings}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    def * = (executionId, cpus, memPerCpu, maxRunTime, queue) <> (LsfSettingRow.tupled, LsfSettingRow.unapply)
   }
 
   final class GoogleSettings(tag: Tag) extends Table[GoogleSettingRow](tag, Names.googleSettings) with HasExecutionId {
@@ -191,6 +202,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   lazy val outputs = TableQuery[Outputs]
   lazy val localSettings = TableQuery[LocalSettings]
   lazy val ugerSettings = TableQuery[UgerSettings]
+  lazy val lsfSettings = TableQuery[LsfSettings]
   lazy val googleSettings = TableQuery[GoogleSettings]
   lazy val localResources = TableQuery[LocalResources]
   lazy val ugerResources = TableQuery[UgerResources]
@@ -201,6 +213,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     Names.outputs -> outputs.schema,
     Names.localSettings -> localSettings.schema,
     Names.ugerSettings -> ugerSettings.schema,
+    Names.lsfSettings -> lsfSettings.schema,
     Names.googleSettings -> googleSettings.schema,
     Names.localResources -> localResources.schema,
     Names.ugerResources -> ugerResources.schema,
@@ -265,6 +278,7 @@ object Tables {
     val outputs = "OUTPUTS"
     val localSettings = "SETTINGS_LOCAL"
     val ugerSettings = "SETTINGS_UGER"
+    val lsfSettings = "SETTINGS_LSF"
     val googleSettings = "SETTINGS_GOOGLE"
     val localResources = "RESOURCES_LOCAL"
     val ugerResources = "RESOURCES_UGER"

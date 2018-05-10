@@ -15,7 +15,7 @@ import loamstream.util.BashScript.Implicits._
  * @author clint
  * Nov 16, 2017
  */
-final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob: HasCommandLine, ugerIndex: Int) {
+final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob: HasCommandLine, drmIndex: Int) {
 
   def ugerStdOutPath(taskArray: UgerTaskArray): Path = reifyPath(taskArray.stdOutPathTemplate)
 
@@ -23,7 +23,7 @@ final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob
 
   private def reifyPath(template: String): Path = {
     //NB: Replace task-array-index placeholder, drop initial ':'
-    val pathString = template.replace(JobTemplate.PARAMETRIC_INDEX, ugerIndex.toString).dropWhile(_ == ':')
+    val pathString = template.replace(JobTemplate.PARAMETRIC_INDEX, drmIndex.toString).dropWhile(_ == ':')
 
     Paths.get(pathString).toAbsolutePath
   }

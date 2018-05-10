@@ -8,7 +8,7 @@ import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
 import loamstream.conf.UgerConfig
-import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.DrmSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
@@ -20,7 +20,7 @@ import loamstream.drm.Queue
  * Mar 15, 2017
  */
 final class Drmaa1ClientTest extends FunSuite {
-  private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue.Broad), Some("foo.example.com"))
+  private val actualQacctOutput = QacctTestHelpers.actualQacctOutput(Some(Queue("broad")), Some("foo.example.com"))
   
   import Drmaa1ClientTest.LiteralJobInfo
   import loamstream.TestHelpers.path
@@ -106,10 +106,11 @@ final class Drmaa1ClientTest extends FunSuite {
     
     val ugerConfig = UgerConfig(workDir = bogusPath, maxNumJobs = 41)
         
-    val ugerSettings = UgerSettings(
+    val ugerSettings = DrmSettings(
         cores = Cpus(42),
         memoryPerCore = Memory.inGb(17),
-        maxRunTime = CpuTime.inHours(33))
+        maxRunTime = CpuTime.inHours(33),
+        queue = Option(UgerDefaults.queue))
         
     assert(ugerSettings.cores !== UgerDefaults.cores)
     assert(ugerSettings.memoryPerCore !== UgerDefaults.memoryPerCore)

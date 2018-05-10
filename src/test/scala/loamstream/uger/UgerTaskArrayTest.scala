@@ -82,9 +82,9 @@ final class UgerTaskArrayTest extends FunSuite {
     assert(taskArray.ugerJobs(1).commandLineJob === j1)
     assert(taskArray.ugerJobs(2).commandLineJob === j2)
 
-    assert(taskArray.ugerJobs(0).ugerIndex == 1)
-    assert(taskArray.ugerJobs(1).ugerIndex == 2)
-    assert(taskArray.ugerJobs(2).ugerIndex == 3)
+    assert(taskArray.ugerJobs(0).drmIndex == 1)
+    assert(taskArray.ugerJobs(1).drmIndex == 2)
+    assert(taskArray.ugerJobs(2).drmIndex == 3)
 
     assert(taskArray.ugerJobs.size === 3)
   }

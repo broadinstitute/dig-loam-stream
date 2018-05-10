@@ -19,11 +19,13 @@ final class DrmStatusTest extends FunSuite {
   import DrmStatus._
   import scala.concurrent.duration._
     
+  private val broadQueue = Queue("broad")
+  
   private val resources = DrmResources(
       Memory.inGb(2), 
       CpuTime(1.second), 
       Some("example.com"), 
-      Some(Queue.Broad),
+      Some(broadQueue),
       Instant.now,
       Instant.now)
   
@@ -32,16 +34,16 @@ final class DrmStatusTest extends FunSuite {
       val initialStatus = makeInitialStatus(Some(resources))
       
       assert(initialStatus.resourcesOpt !== None)
-      assert(initialStatus.resourcesOpt.get.queue === Some(Queue.Broad))
+      assert(initialStatus.resourcesOpt.get.queue === Some(broadQueue))
       
-      val transformed = initialStatus.transformResources(_.withQueue(Queue.Broad))
+      val transformed = initialStatus.transformResources(_.withQueue(broadQueue))
       
       assert(transformed.getClass === initialStatus.getClass)
       
       assert(initialStatus.resourcesOpt !== None)
-      assert(initialStatus.resourcesOpt.get.queue === Some(Queue.Broad))
+      assert(initialStatus.resourcesOpt.get.queue === Some(broadQueue))
       
-      assert(transformed.resourcesOpt.get.queue === Some(Queue.Broad))
+      assert(transformed.resourcesOpt.get.queue === Some(broadQueue))
     }
     
     doTestWithExistingResources(CommandResult(0, _))
@@ -55,7 +57,7 @@ final class DrmStatusTest extends FunSuite {
     def doTestWithoutResources(initialStatus: DrmStatus): Unit = {
       assert(initialStatus.resourcesOpt === None)
       
-      val transformed = initialStatus.transformResources(_.withQueue(Queue.Broad))
+      val transformed = initialStatus.transformResources(_.withQueue(broadQueue))
       
       assert(initialStatus.resourcesOpt === None)
       

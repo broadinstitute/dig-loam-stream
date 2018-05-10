@@ -5,20 +5,11 @@ package loamstream.drm
  * @author kyuksel
  * Mar 7, 2017
  * 
- * NB: The only queue that now exists is "broad", but this seems a prudent abstraction to keep, at least for now.
- *   -Clint Oct 11, 2017
+ * NB: The only queue that now exists on Uger is "broad", but others exist on EBI's LSF.
+ *   -Clint May 10, 2018
  */
-sealed abstract class Queue(val name: String) {
+final case class Queue(val name: String) {
+  require(name.nonEmpty)
+  
   override def toString: String = name
-  
-  final def isBroad: Boolean = this == Queue.Broad
-}
-  
-object Queue {
-  case object Broad extends Queue("broad")
-  
-  def fromString(s: String): Option[Queue] = s.trim.toLowerCase match {
-    case Broad.name => Some(Broad)
-    case _ => None
-  }
 }

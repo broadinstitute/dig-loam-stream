@@ -68,7 +68,7 @@ final class UgerResourcesTest extends FunSuite {
     assert(withNode.startTime === r.startTime)
     assert(withNode.endTime === r.endTime)
 
-    val q: Queue = Queue.Broad
+    val q: Queue = Queue("broad")
     
     val withNodeAndQueue = withNode.withQueue(q)
 

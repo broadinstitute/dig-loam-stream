@@ -45,7 +45,7 @@ final class QacctAccountingClient(
   override def getQueue(jobId: String): Option[Queue] = {
     val output = getQacctOutputFor(jobId)
 
-    findField(output, qname).flatMap(Queue.fromString)
+    findField(output, qname).map(_.trim).filter(_.nonEmpty).map(Queue(_))
   }
 
   private def findField(fields: Seq[String], regex: Regex): Option[String] = {

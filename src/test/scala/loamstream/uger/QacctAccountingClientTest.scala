@@ -14,7 +14,7 @@ final class QacctAccountingClientTest extends FunSuite {
 
   test("QacctUgerClient.getExecutionNode") {
     val expectedNode: String = "uger-c052.broadinstitute.org"
-    val expectedQueue: Queue = Queue.Broad
+    val expectedQueue: Queue = Queue("broad")
 
     val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
 
@@ -36,7 +36,7 @@ final class QacctAccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getQueue") {
-    val expectedQueue: Queue = Queue.Broad
+    val expectedQueue: Queue = Queue("broad")
     val expectedNode: String = "foo.example.com"
     val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
 
@@ -57,7 +57,7 @@ final class QacctAccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getExecutionNode - no node to find") {
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(Queue.Broad), None))
+    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(Queue("broad")), None))
 
     val jobId = "12345"
 

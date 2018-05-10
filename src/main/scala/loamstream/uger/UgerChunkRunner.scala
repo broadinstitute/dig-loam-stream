@@ -6,9 +6,9 @@ import loamstream.drm.DrmStatus
 import loamstream.drm.DrmStatus.toJobResult
 import loamstream.drm.DrmStatus.toJobStatus
 import loamstream.model.execute.ChunkRunnerFor
+import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.ExecuterHelpers
-import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobStatus.Failed
@@ -90,14 +90,14 @@ final case class UgerChunkRunner(
    * Executions
    */
   private def runJobs(
-    ugerSettings: UgerSettings,
+    drmSettings: DrmSettings,
     ugerTaskArray: UgerTaskArray,
     shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
 
     ugerTaskArray.ugerJobs match {
       case Nil => Observable.just(Map.empty)
       case ugerJobs => {
-        val submissionResult = jobSubmitter.submitJobs(ugerSettings, ugerTaskArray)
+        val submissionResult = jobSubmitter.submitJobs(drmSettings, ugerTaskArray)
 
         toExecutionStream(ugerJobs, submissionResult, shouldRestart)
       }
@@ -238,7 +238,7 @@ object UgerChunkRunner extends Loggable {
    * of groupign together jobs with the same Uger settings.  This is necessary so that we can run each group
    * of jobs as one Uger task array, and settings are per-task-array.
    */
-  private[uger] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[UgerSettings, Seq[CommandLineJob]] = {
+  private[uger] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[DrmSettings, Seq[CommandLineJob]] = {
     import loamstream.model.execute.Environment.Uger
     import loamstream.util.Maps.Implicits._
 

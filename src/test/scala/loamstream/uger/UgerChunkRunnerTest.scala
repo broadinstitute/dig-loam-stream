@@ -14,7 +14,7 @@ import loamstream.drm.DrmStatus
 import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.Environment
-import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.DrmSettings
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
@@ -337,7 +337,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     
     assert(jobs.size === 2)
     
-    val expectedSettings = UgerSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5))
+    val expectedSettings = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), Option(UgerDefaults.queue))
     val expectedEnv = Environment.Uger(expectedSettings)
     
     assert(jobs(0).job.executionEnvironment === expectedEnv)
@@ -394,8 +394,8 @@ final class UgerChunkRunnerTest extends FunSuite {
     
     assert(jobs.size === 4)
     
-    val expectedSettings0 = UgerSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5))
-    val expectedSettings1 = UgerSettings(Cpus(7), Memory.inGb(9), CpuTime.inHours(11))
+    val expectedSettings0 = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), Option(UgerDefaults.queue))
+    val expectedSettings1 = DrmSettings(Cpus(7), Memory.inGb(9), CpuTime.inHours(11), Option(UgerDefaults.queue))
     
     val expectedEnv0 = Environment.Uger(expectedSettings0)
     val expectedEnv1 = Environment.Uger(expectedSettings1)
@@ -425,13 +425,13 @@ final class UgerChunkRunnerTest extends FunSuite {
     
     val actualSubmissionParams = mockJobSubmitter.params
     
-    val actualParamsUnordered: Set[(UgerSettings, Set[LJob])] = {
+    val actualParamsUnordered: Set[(DrmSettings, Set[LJob])] = {
       actualSubmissionParams.map { case (settings, taskArray) => 
         (settings, taskArray.ugerJobs.map(_.commandLineJob).toSet[LJob]) 
       }.toSet
     }
     
-    val expectedParamsUnordered: Set[(UgerSettings, Set[LJob])] = Set(
+    val expectedParamsUnordered: Set[(DrmSettings, Set[LJob])] = Set(
         expectedSettings0 -> Set(findJob(tool0), findJob(tool1)),
         expectedSettings1 -> Set(findJob(tool2), findJob(tool3)))
     
@@ -441,10 +441,10 @@ final class UgerChunkRunnerTest extends FunSuite {
 
 object UgerChunkRunnerTest {
   final class MockJobSubmitter extends JobSubmitter {
-    @volatile var params: Seq[(UgerSettings, UgerTaskArray)] = Vector.empty
+    @volatile var params: Seq[(DrmSettings, UgerTaskArray)] = Vector.empty
     
-    override def submitJobs(ugerSettings: UgerSettings, taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
-      params :+= (ugerSettings -> taskArray)
+    override def submitJobs(drmSettings: DrmSettings, taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
+      params :+= (drmSettings -> taskArray)
       
       DrmaaClient.SubmissionSuccess(Map.empty)
     }

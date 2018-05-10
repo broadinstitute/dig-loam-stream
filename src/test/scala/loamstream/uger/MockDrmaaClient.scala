@@ -3,9 +3,9 @@ package loamstream.uger
 import scala.concurrent.duration.Duration
 import scala.util.Try
 
-import loamstream.conf.UgerConfig
+import loamstream.conf.DrmConfig
 import loamstream.drm.DrmStatus
-import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.DrmSettings
 import loamstream.util.ValueBox
 
 /**
@@ -24,8 +24,8 @@ final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[DrmSt
   val params: ValueBox[Seq[(String, Duration)]] = ValueBox(Vector.empty)
   
   override def submitJob(
-      ugerSettings: UgerSettings,
-      ugerConfig: UgerConfig,
+      drmSettings: DrmSettings,
+      drmConfig: DrmConfig,
       taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = ???
 
   override def statusOf(jobId: String): Try[DrmStatus] = waitFor(jobId, Duration.Zero)

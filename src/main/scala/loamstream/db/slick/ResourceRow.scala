@@ -60,7 +60,7 @@ final case class UgerResourceRow(executionId: Int,
     
     DrmResources(
         Memory.inKb(mem), CpuTime(cpu.seconds), node,
-        queue.flatMap(Queue.fromString), startTime.toInstant, endTime.toInstant)
+        queue.map(Queue(_)), startTime.toInstant, endTime.toInstant)
   }
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {

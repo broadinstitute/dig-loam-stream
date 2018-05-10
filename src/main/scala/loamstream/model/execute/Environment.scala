@@ -7,11 +7,13 @@ package loamstream.model.execute
 sealed abstract class Environment(val tpe: EnvironmentType) {
   def settings: Settings
   
-  def isLocal: Boolean = tpe.isLocal
+  final def isLocal: Boolean = tpe.isLocal
 
-  def isGoogle: Boolean = tpe.isGoogle
+  final def isGoogle: Boolean = tpe.isGoogle
   
-  def isUger: Boolean = tpe.isUger
+  final def isUger: Boolean = tpe.isUger
+  
+  final def isLsf: Boolean = tpe.isLsf
 }
 
 object Environment {
@@ -19,7 +21,11 @@ object Environment {
     override def settings: Settings = LocalSettings
   }
 
-  final case class Uger(ugerSettings: UgerSettings) extends Environment(EnvironmentType.Uger) {
+  final case class Uger(ugerSettings: DrmSettings) extends Environment(EnvironmentType.Uger) {
+    override def settings: Settings = ugerSettings
+  }
+  
+  final case class Lsf(ugerSettings: DrmSettings) extends Environment(EnvironmentType.Lsf) {
     override def settings: Settings = ugerSettings
   }
 
@@ -28,10 +34,11 @@ object Environment {
   }
   
   //TODO: Revisit
-  def from(tpe: EnvironmentType, settings: Settings): Option[Environment] = (tpe, settings) match {
-    case (EnvironmentType.Local, LocalSettings) => Some(Local)
-    case (EnvironmentType.Uger, ugerSettings: UgerSettings) => Some(Uger(ugerSettings))
-    case (EnvironmentType.Google, googleSettings: GoogleSettings) => Some(Google(googleSettings))
+  def from(tpe: EnvironmentType, settings: Settings): Option[Environment] = settings match {
+    case LocalSettings => Some(Local)
+    case drmSettings: DrmSettings if tpe.isUger => Some(Uger(drmSettings))
+    case drmSettings: DrmSettings if tpe.isLsf => Some(Lsf(drmSettings))
+    case googleSettings: GoogleSettings => Some(Google(googleSettings))
     case _ => None
   }
 }

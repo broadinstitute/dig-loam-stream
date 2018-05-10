@@ -9,9 +9,9 @@ import scala.util.control.NoStackTrace
 import org.ggf.drmaa.DrmaaException
 import org.scalatest.FunSuite
 
-import loamstream.conf.UgerConfig
+import loamstream.conf.DrmConfig
 import loamstream.drm.DrmStatus
-import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.DrmSettings
 import loamstream.uger.DrmaaClient
 import loamstream.uger.UgerTaskArray
 
@@ -76,8 +76,8 @@ object DrmaaClientHelpersTest {
     var isShutdown = false
       
     override def submitJob(
-        ugerSettings: UgerSettings,
-        ugerConfig: UgerConfig,
+        drmSettings: DrmSettings,
+        drmConfig: DrmConfig,
         taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = ???
     
     override def statusOf(jobId: String): Try[DrmStatus] = ???

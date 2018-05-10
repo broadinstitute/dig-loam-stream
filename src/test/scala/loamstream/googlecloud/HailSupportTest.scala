@@ -4,9 +4,7 @@ import java.io.File
 
 import org.scalatest.FunSuite
 
-import com.typesafe.config.ConfigFactory
-
-import loamstream.conf.ExecutionConfig
+import loamstream.TestHelpers
 import loamstream.conf.LoamConfig
 import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamProjectContext
@@ -14,11 +12,9 @@ import loamstream.loam.LoamScriptContext
 import loamstream.loam.LoamToolBox
 import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
-import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.util.BashScript.Implicits._
+import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Files
-import loamstream.TestHelpers
 
 /**
  * @author clint

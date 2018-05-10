@@ -9,7 +9,7 @@ import loamstream.model.execute.Environment
 import loamstream.loam.LoamCmdTool
 import loamstream.TestHelpers
 import loamstream.loam.LoamGraph
-import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.Cpus
@@ -113,10 +113,11 @@ final class LoamPredefTest extends FunSuite {
     assert(ugerConfig.defaultMaxRunTime !== UgerDefaults.maxRunTime)
     
     //Make sure defaults come from LoamConfig
-    val expectedSettings = UgerSettings(
+    val expectedSettings = DrmSettings(
         ugerConfig.defaultCores,
         ugerConfig.defaultMemoryPerCore,
-        ugerConfig.defaultMaxRunTime)
+        ugerConfig.defaultMaxRunTime,
+        Option(UgerDefaults.queue))
     
     doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith())
   }
@@ -124,7 +125,7 @@ final class LoamPredefTest extends FunSuite {
   test("ugerWith - non-defaults") {
     implicit val scriptContext = newScriptContext
     
-    val expectedSettings = UgerSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6))
+    val expectedSettings = DrmSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6), Option(UgerDefaults.queue))
     
     doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith(2, 4, 6))
   }

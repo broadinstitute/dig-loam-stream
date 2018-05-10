@@ -1,14 +1,22 @@
 package loamstream.compiler
 
 import java.net.URI
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 import loamstream.conf.DataConfig
 import loamstream.loam.LoamScriptContext
-import loamstream.model.{Store, Tool}
-import loamstream.model.execute.{Environment, GoogleSettings, UgerSettings}
-import loamstream.model.quantities.{CpuTime, Cpus, Memory}
+import loamstream.model.Store
+import loamstream.model.Tool
+import loamstream.model.execute.Environment
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.DrmSettings
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
+import loamstream.uger.UgerDefaults
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -91,7 +99,7 @@ object LoamPredef extends Loggable {
   def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     val ugerConfig = scriptContext.ugerConfig 
     
-    val settings = UgerSettings(ugerConfig.defaultCores, ugerConfig.defaultMemoryPerCore, ugerConfig.defaultMaxRunTime)
+    val settings = DrmSettings.fromUgerConfig(ugerConfig)
     
     val env = Environment.Uger(settings)
     
@@ -116,10 +124,11 @@ object LoamPredef extends Loggable {
     
     def orDefault[B](actual: B, default: B) = if(actual == -1) default else actual
     
-    val settings = UgerSettings(
+    val settings = DrmSettings(
         Cpus(orDefault(cores, ugerConfig.defaultCores.value)), 
         Memory.inGb(orDefault(mem, ugerConfig.defaultMemoryPerCore.gb)), 
-        CpuTime.inHours(orDefault(maxRunTime, ugerConfig.defaultMaxRunTime.hours)))
+        CpuTime.inHours(orDefault(maxRunTime, ugerConfig.defaultMaxRunTime.hours)),
+        Option(UgerDefaults.queue))
     
     val env = Environment.Uger(settings)
     

@@ -3,18 +3,17 @@ package loamstream.loam
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
-import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
+import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
-import loamstream.model.execute.RxExecuter
-import loamstream.model.execute.UgerSettings
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
+import loamstream.uger.UgerDefaults
 import loamstream.util.Loggable
 
 /**
@@ -65,7 +64,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     }
     
     doTest(Environment.Local)
-    doTest(Environment.Uger(UgerSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4))))
+    doTest(Environment.Uger(DrmSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4), Option(UgerDefaults.queue))))
     doTest(Environment.Google(GoogleSettings(clusterId)))
   }
   

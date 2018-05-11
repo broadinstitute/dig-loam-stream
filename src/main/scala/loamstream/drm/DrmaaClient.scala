@@ -1,12 +1,11 @@
-package loamstream.uger
+package loamstream.drm
 
 import scala.concurrent.duration.Duration
 import scala.util.Try
-
 import loamstream.conf.DrmConfig
-import loamstream.drm.DrmStatus
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Terminable
+
 
 /**
  * @author clint
@@ -27,7 +26,7 @@ trait DrmaaClient extends Terminable {
   def submitJob(
       drmSettings: DrmSettings,
       drmConfig: DrmConfig,
-      taskArrayScript: UgerTaskArray): DrmaaClient.SubmissionResult
+      taskArrayScript: DrmTaskArray): DrmaaClient.SubmissionResult
     
   /**
    * Synchronously inspect the status of a job with the given ID
@@ -72,7 +71,7 @@ object DrmaaClient {
     override val isFailure: Boolean = true
   }
 
-  final case class SubmissionSuccess(idsForJobs: Map[String, UgerJobWrapper]) extends SubmissionResult {
+  final case class SubmissionSuccess(idsForJobs: Map[String, DrmJobWrapper]) extends SubmissionResult {
     override val isFailure: Boolean = false
   }
 }

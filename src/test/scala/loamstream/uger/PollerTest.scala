@@ -10,6 +10,7 @@ import org.scalatest.FunSuite
 import loamstream.util.ObservableEnrichments
 import scala.util.Try
 import loamstream.drm.DrmStatus
+import loamstream.drm.DrmaaPoller
 
 /**
  * @author clint

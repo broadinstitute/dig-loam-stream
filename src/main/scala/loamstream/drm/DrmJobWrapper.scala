@@ -1,4 +1,4 @@
-package loamstream.uger
+package loamstream.drm
 
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -10,22 +10,25 @@ import loamstream.model.jobs.LogFileNames
 import loamstream.model.jobs.OutputStreams
 import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.BashScript.Implicits._
+import loamstream.conf.DrmConfig
+
 
 /**
  * @author clint
  * Nov 16, 2017
  */
-final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob: HasCommandLine, drmIndex: Int) {
+final case class DrmJobWrapper(
+    executionConfig: ExecutionConfig,
+    pathBuilder: PathBuilder,
+    commandLineJob: HasCommandLine, 
+    drmIndex: Int) {
 
-  def ugerStdOutPath(taskArray: UgerTaskArray): Path = reifyPath(taskArray.stdOutPathTemplate)
+  def drmStdOutPath(taskArray: DrmTaskArray): Path = {
+    pathBuilder.reifyPathTemplate(taskArray.stdOutPathTemplate, drmIndex)
+  }
 
-  def ugerStdErrPath(taskArray: UgerTaskArray): Path = reifyPath(taskArray.stdErrPathTemplate)
-
-  private def reifyPath(template: String): Path = {
-    //NB: Replace task-array-index placeholder, drop initial ':'
-    val pathString = template.replace(JobTemplate.PARAMETRIC_INDEX, drmIndex.toString).dropWhile(_ == ':')
-
-    Paths.get(pathString).toAbsolutePath
+  def drmStdErrPath(taskArray: DrmTaskArray): Path = {
+    pathBuilder.reifyPathTemplate(taskArray.stdErrPathTemplate, drmIndex)
   }
 
   private lazy val stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, executionConfig.jobOutputDir)
@@ -34,7 +37,7 @@ final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
-  def ugerCommandChunk(taskArray: UgerTaskArray): String = {
+  def commandChunk(taskArray: DrmTaskArray): String = {
     val plainCommandLine = commandLineJob.commandLineString
 
     val outputDir = executionConfig.jobOutputDir.toAbsolutePath
@@ -48,8 +51,8 @@ final case class UgerJobWrapper(executionConfig: ExecutionConfig, commandLineJob
         |stderrDestPath="${stdErrDestPath.render}"
         |
         |mkdir -p ${outputDir.render}
-        |mv ${ugerStdOutPath(taskArray).render} $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
-        |mv ${ugerStdErrPath(taskArray).render} $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
+        |mv ${drmStdOutPath(taskArray).render} $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
+        |mv ${drmStdErrPath(taskArray).render} $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin

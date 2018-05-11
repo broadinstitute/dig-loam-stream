@@ -1,14 +1,14 @@
-package loamstream.uger
-
-import java.nio.file.Paths
+package loamstream.drm
 
 import org.scalatest.FunSuite
-
 import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.TestHelpers
 import loamstream.conf.ExecutionConfig
 import loamstream.util.BashScript.Implicits._
+import scala.collection.Seq
+import loamstream.uger.UgerScriptBuilderParams
+import loamstream.uger.UgerPathBuilder
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -23,13 +23,15 @@ final class ScriptBuilderTest extends FunSuite {
 
   import ScriptBuilderTest.EnrichedString
 
+  //TODO: test making LSF scripts!! 
+  
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
     val ugerConfig = TestHelpers.config.ugerConfig.get
 
     val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
-    val jobName = UgerTaskArray.makeJobName()
-    val taskArray = UgerTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, jobs, jobName)
-    val ugerScriptContents = ScriptBuilder.uger.buildFrom(taskArray).withNormalizedLineBreaks
+    val jobName = DrmTaskArray.makeJobName()
+    val taskArray = DrmTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, UgerPathBuilder, jobs, jobName)
+    val ugerScriptContents = (new ScriptBuilder(UgerScriptBuilderParams)).buildFrom(taskArray).withNormalizedLineBreaks
 
     val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)
     val discriminators = (0, 1, 2)

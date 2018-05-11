@@ -7,6 +7,8 @@ import loamstream.conf.DrmConfig
 import loamstream.drm.DrmStatus
 import loamstream.model.execute.DrmSettings
 import loamstream.util.ValueBox
+import loamstream.drm.DrmaaClient
+import loamstream.drm.DrmTaskArray
 
 /**
  * @author clint
@@ -26,7 +28,7 @@ final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[DrmSt
   override def submitJob(
       drmSettings: DrmSettings,
       drmConfig: DrmConfig,
-      taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = ???
+      taskArray: DrmTaskArray): DrmaaClient.SubmissionResult = ???
 
   override def statusOf(jobId: String): Try[DrmStatus] = waitFor(jobId, Duration.Zero)
 

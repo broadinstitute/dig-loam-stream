@@ -4,6 +4,8 @@ import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
 import loamstream.util.Terminable
+import loamstream.drm.DrmaaClient
+import loamstream.drm.DrmTaskArray
 
 /**
  * @author clint
@@ -17,7 +19,7 @@ trait JobSubmitter extends Terminable {
    * @params jobs the jobs to submit
    * @param ugerSettings the Uger settings shared by all the jobs being submitted
    */
-  def submitJobs(drmSettings: DrmSettings, taskArray: UgerTaskArray): DrmaaClient.SubmissionResult
+  def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmaaClient.SubmissionResult
 }
 
 object JobSubmitter {
@@ -30,7 +32,7 @@ object JobSubmitter {
   final case class Drmaa(drmaaClient: DrmaaClient, drmConfig: DrmConfig) extends JobSubmitter with Loggable {
     override def submitJobs(
         drmSettings: DrmSettings,
-        taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
+        taskArray: DrmTaskArray): DrmaaClient.SubmissionResult = {
 
       drmaaClient.submitJob(drmSettings, drmConfig, taskArray)
     }

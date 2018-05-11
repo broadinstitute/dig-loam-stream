@@ -12,6 +12,7 @@ import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.RxSchedulers
 import rx.lang.scala.Scheduler
 import loamstream.drm.DrmStatus
+import loamstream.drm.DrmaaPoller
 
 /**
  * @author clint

@@ -31,6 +31,10 @@ import loamstream.uger.UgerChunkRunnerTest.MockJobSubmitter
 import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.drm.DrmaaClient
+import loamstream.drm.DrmTaskArray
+import loamstream.drm.DrmaaPoller
+import loamstream.drm.DrmJobWrapper
 
 
 
@@ -165,7 +169,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     doTest(DrmStatus.CommandResult(0, None), isFailure = false)
   }
   
-  private def toTuple(jobWrapper: UgerJobWrapper): (UgerJobWrapper, Observable[DrmStatus]) = {
+  private def toTuple(jobWrapper: DrmJobWrapper): (DrmJobWrapper, Observable[DrmStatus]) = {
     import UgerChunkRunnerTest.MockUgerJob
     
     val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockUgerJob]
@@ -185,7 +189,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockUgerJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
-      val failed = UgerJobWrapper(ExecutionConfig.default, job, 1)
+      val failed = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, job, 1)
       
       assert(job.runCount === 0)
       
@@ -227,7 +231,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockUgerJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
-      val worked = UgerJobWrapper(ExecutionConfig.default, job, 1)
+      val worked = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, job, 1)
       
       assert(job.runCount === 0)
       
@@ -275,8 +279,8 @@ final class UgerChunkRunnerTest extends FunSuite {
       val workedJob = MockUgerJob(goodId, Queued, Queued, Running, Running, lastGoodUgerStatus)
       val failedJob = MockUgerJob(badId, Queued, Queued, Running, Running, lastBadUgerStatus)
       
-      val worked = UgerJobWrapper(ExecutionConfig.default, workedJob, 1)
-      val failed = UgerJobWrapper(ExecutionConfig.default, failedJob, 2)
+      val worked = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, workedJob, 1)
+      val failed = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, failedJob, 2)
       
       assert(workedJob.runCount === 0)
       assert(failedJob.runCount === 0)
@@ -361,7 +365,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     val Seq((actualSettings, actualSubmittedJobs)) = actualSubmissionParams
     
     assert(actualSettings === expectedSettings)
-    assert(actualSubmittedJobs.ugerJobs.map(_.commandLineJob).toSet === jobs.toSet)
+    assert(actualSubmittedJobs.drmJobs.map(_.commandLineJob).toSet === jobs.toSet)
   }
   
   test("Uger config is propagated to DRMAA client - 2 pairs of jobs with different settings") {
@@ -427,7 +431,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     
     val actualParamsUnordered: Set[(DrmSettings, Set[LJob])] = {
       actualSubmissionParams.map { case (settings, taskArray) => 
-        (settings, taskArray.ugerJobs.map(_.commandLineJob).toSet[LJob]) 
+        (settings, taskArray.drmJobs.map(_.commandLineJob).toSet[LJob]) 
       }.toSet
     }
     
@@ -441,9 +445,9 @@ final class UgerChunkRunnerTest extends FunSuite {
 
 object UgerChunkRunnerTest {
   final class MockJobSubmitter extends JobSubmitter {
-    @volatile var params: Seq[(DrmSettings, UgerTaskArray)] = Vector.empty
+    @volatile var params: Seq[(DrmSettings, DrmTaskArray)] = Vector.empty
     
-    override def submitJobs(drmSettings: DrmSettings, taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
+    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmaaClient.SubmissionResult = {
       params :+= (drmSettings -> taskArray)
       
       DrmaaClient.SubmissionSuccess(Map.empty)

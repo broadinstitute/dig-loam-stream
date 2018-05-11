@@ -46,7 +46,9 @@ import loamstream.util.FileMonitor
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
 import loamstream.uger.QacctAccountingClient
-import loamstream.uger.DrmaaPoller
+import loamstream.drm.DrmaaPoller
+import loamstream.uger.UgerResourceUsageExtractor
+import loamstream.uger.UgerNativeSpecBuilder
 
 
 /**
@@ -72,7 +74,7 @@ trait AppWiring {
   lazy val loamRunner: LoamRunner = LoamRunner(loamEngine)
 }
 
-object AppWiring extends DrmaaClientHelpers with Loggable {
+object AppWiring extends Loggable {
 
   def daoForOutputLookup(intent: Intent.LookupOutput): LoamDao = makeDefaultDb
 
@@ -309,7 +311,11 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     }
   }
   
-  private def makeUgerClient: UgerClient = new UgerClient(new Drmaa1Client, QacctAccountingClient.useActualBinary())
+  private def makeUgerClient: UgerClient = {
+    val drmaa1Client = new Drmaa1Client(UgerResourceUsageExtractor, UgerNativeSpecBuilder)
+    
+    new UgerClient(drmaa1Client, QacctAccountingClient.useActualBinary())
+  }
 
   private def loadConfig(confFileOpt: Option[Path]): Config = {
     def defaults: Config = ConfigFactory.load()

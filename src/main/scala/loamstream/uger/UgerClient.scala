@@ -9,6 +9,8 @@ import loamstream.drm.DrmStatus
 import loamstream.drm.Queue
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
+import loamstream.drm.DrmaaClient
+import loamstream.drm.DrmTaskArray
 
 /**
  * @author clint
@@ -27,7 +29,7 @@ final class UgerClient(
   override def submitJob(
       drmSettings: DrmSettings,
       drmConfig: DrmConfig,
-      taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
+      taskArray: DrmTaskArray): DrmaaClient.SubmissionResult = {
     
     drmaaClient.submitJob(drmSettings, drmConfig, taskArray)
   }
@@ -78,24 +80,26 @@ object UgerClient extends Loggable {
       accountingClient: AccountingClient, 
       jobId: String)(attempt: Try[DrmStatus]): Try[DrmStatus] = {
     
+    import loamstream.util.Classes.simpleNameOf
+    
     for {
-      ugerStatus <- attempt
+      drmStatus <- attempt
     } yield {
-      if(ugerStatus.isFinished) {
-        debug(s"UgerStatus is finished, determining execution node and queue: $ugerStatus")
+      if(drmStatus.isFinished) {
+        debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $drmStatus")
         
         val executionNode = accountingClient.getExecutionNode(jobId)
         val executionQueue = accountingClient.getQueue(jobId)
         
-        val result = ugerStatus.transformResources(_.copy(node = executionNode, queue = executionQueue))
+        val result = drmStatus.transformResources(_.copy(node = executionNode, queue = executionQueue))
         
-        debug(s"Invoked AccountingClient; new UgerStatus is: $result")
+        debug(s"Invoked AccountingClient; new ${simpleNameOf[DrmStatus]} is: $result")
         
         result
       } else {
-        debug(s"UgerStatus is NOT finished, NOT determining execution node and queue: $ugerStatus")
+        debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $drmStatus")
         
-        ugerStatus 
+        drmStatus 
       }
     }
   }

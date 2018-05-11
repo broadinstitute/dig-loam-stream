@@ -1,13 +1,9 @@
-package loamstream.uger
+package loamstream.drm
 
 import scala.concurrent.duration.Duration
 import scala.util.Try
-
 import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.InvalidJobException
-
-import loamstream.drm.DrmStatus
-import loamstream.drm.Poller
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.Loggable
 

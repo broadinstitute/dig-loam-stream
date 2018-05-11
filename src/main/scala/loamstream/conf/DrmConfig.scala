@@ -10,6 +10,11 @@ import loamstream.util.Loggable
 import scala.util.Try
 import com.typesafe.config.Config
 import loamstream.util.Tries
+import loamstream.drm.ScriptBuilder
+import loamstream.drm.ScriptBuilderParams
+import loamstream.uger.UgerScriptBuilderParams
+import loamstream.drm.lsf.LsfScriptBuilderParams
+import loamstream.drm.lsf.LsfDefaults
 
 /**
  * @author clint
@@ -25,6 +30,17 @@ sealed trait DrmConfig {
   def defaultMemoryPerCore: Memory
   
   def defaultMaxRunTime: CpuTime
+  
+  final def isUgerConfig: Boolean = this.isInstanceOf[UgerConfig]
+  
+  final def isLsfConfig: Boolean = this.isInstanceOf[LsfConfig]
+  
+  final def scriptBuilderParams: ScriptBuilderParams = {
+    require(isUgerConfig || isLsfConfig)
+    
+    if(isUgerConfig) { UgerScriptBuilderParams }
+    else { LsfScriptBuilderParams }
+  }
 }
 
 object DrmConfig extends ConfigParser[DrmConfig] with Loggable {
@@ -76,10 +92,10 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
   */
 final case class LsfConfig(
     workDir: Path, 
-    maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
-    defaultCores: Cpus = UgerDefaults.cores,
-    defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
-    defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime) extends DrmConfig
+    maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
+    defaultCores: Cpus = LsfDefaults.cores,
+    defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,
+    defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime) extends DrmConfig
 
 object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
 

@@ -23,6 +23,11 @@ import loamstream.util.Loggable
 import loamstream.util.OneTimeLatch
 import loamstream.util.Throwables
 import loamstream.util.ValueBox
+import loamstream.drm.DrmaaClient
+import loamstream.drm.DrmTaskArray
+import loamstream.drm.ResourceUsageExtractor
+import loamstream.drm.NativeSpecBuilder
+
 
 /**
  * Created on: 5/19/16
@@ -33,8 +38,10 @@ import loamstream.util.ValueBox
  * A DRMAAv1 implementation of DrmaaClient; can submit work to UGER and monitor it.
  *
  */
-final class Drmaa1Client extends DrmaaClient with Loggable {
-
+final class Drmaa1Client(
+    resourceUsageExtractor: ResourceUsageExtractor,
+    nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClient with Loggable {
+  
   /*
    * NOTE: BEWARE: DRMAAv1 is not thread-safe.  All operations on org.ggf.drmaa.Sessions that change the number
    * of remote jobs - either by submitting them, killing them, or otherwise altering them with Session.control() -
@@ -147,13 +154,11 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   override def submitJob(
     drmSettings: DrmSettings,
     drmConfig: DrmConfig,
-    taskArray: UgerTaskArray): DrmaaClient.SubmissionResult = {
+    taskArray: DrmTaskArray): DrmaaClient.SubmissionResult = {
 
-    val ugerWorkDir = drmConfig.workDir
+    val fullNativeSpec = nativeSpecBuilder.toNativeSpec(drmSettings)
 
-    val fullNativeSpec = Drmaa1Client.nativeSpec(drmSettings)
-
-    runJob(taskArray, ugerWorkDir, fullNativeSpec)
+    runJob(taskArray, drmConfig.workDir, fullNativeSpec)
   }
 
   /**
@@ -190,7 +195,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
   private def doWait(session: Session, jobId: String, timeout: Duration): DrmStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
 
-    val resources = Drmaa1Client.toResources(jobInfo)
+    val resources = resourceUsageExtractor.toResources(jobInfo)
 
     //Use recover for side-effect only
     resources.recover {
@@ -251,7 +256,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
     }
   }
 
-  private def runJob(taskArray: UgerTaskArray,
+  private def runJob(taskArray: DrmTaskArray,
                      outputDir: Path,
                      nativeSpecification: String): SubmissionResult = {
 
@@ -260,14 +265,12 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
       val taskEndIndex = taskArray.size
       val taskIndexIncr = 1
 
-      val jobName = taskArray.ugerJobName
-      val pathToScript = taskArray.ugerScriptFile
+      val jobName = taskArray.drmJobName
+      val pathToScript = taskArray.drmScriptFile
 
       debug(s"Using native spec: '$nativeSpecification'")
       debug(s"Using job name: '$jobName'")
       debug(s"Using script: '$pathToScript'")
-
-      import Drmaa1Client._
 
       jt.setNativeSpecification(nativeSpecification)
       jt.setRemoteCommand(pathToScript.toString)
@@ -283,7 +286,7 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
 
       debug(s"Jobs have been submitted with ids ${jobIds.mkString(",")}")
 
-      val idsForJobs = jobIds.zip(taskArray.ugerJobs).toMap
+      val idsForJobs = jobIds.zip(taskArray.drmJobs).toMap
 
       def ugerIdsToJobsString = {
         (for {
@@ -312,31 +315,5 @@ final class Drmaa1Client extends DrmaaClient with Loggable {
         }
       } finally { session.deleteJobTemplate(jt) }
     }
-  }
-}
-
-object Drmaa1Client {
-  private[uger] def toResources(jobInfo: JobInfo): Try[DrmResources] = {
-    import scala.collection.JavaConverters._
-
-    DrmResources.fromMap(jobInfo.getResourceUsage.asScala.toMap)
-  }
-
-  private[uger] def nativeSpec(drmSettings: DrmSettings): String = {
-    //Will this ever change?
-    val staticPart = "-cwd -shell y -b n"
-
-    val dynamicPart = {
-      import drmSettings._
-
-      val numCores = cores.value
-      val runTimeInHours: Int = maxRunTime.hours.toInt
-      val mem: Int = memoryPerCore.gb.toInt
-
-      //TODO: XXX .get :(
-      s"-binding linear:${numCores} -pe smp ${numCores} -q ${queue.get} -l h_rt=${runTimeInHours}:0:0,h_vmem=${mem}g"
-    }
-
-    s"$staticPart $dynamicPart"
   }
 }

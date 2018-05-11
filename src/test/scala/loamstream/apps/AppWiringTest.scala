@@ -8,7 +8,7 @@ import loamstream.db.slick.SlickLoamDao
 import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.JobFilter
-import loamstream.drm.uger.UgerChunkRunner
+import loamstream.drm.uger.DrmChunkRunner
 import loamstream.model.execute.AsyncLocalChunkRunner
 import loamstream.model.execute.CompositeChunkRunner
 import loamstream.model.execute.HashingStrategy
@@ -93,7 +93,7 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     //NB: Use asInstanceOf because a[T] doesn't play nice with 'should contain' :\
     assert(runner.components.exists(_.isInstanceOf[AsyncLocalChunkRunner]))
-    assert(runner.components.exists(_.isInstanceOf[UgerChunkRunner]))
+    assert(runner.components.exists(_.isInstanceOf[DrmChunkRunner]))
     assert(runner.components.size === 2)
     
     actualExecuter.jobFilter shouldBe a[DbBackedJobFilter]
@@ -118,7 +118,7 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     //NB: Use asInstanceOf because a[T] doesn't play nice with 'should contain' :\
     assert(runner.components.exists(_.isInstanceOf[AsyncLocalChunkRunner]))
-    assert(runner.components.exists(_.isInstanceOf[UgerChunkRunner]))
+    assert(runner.components.exists(_.isInstanceOf[DrmChunkRunner]))
     assert(runner.components.size === 2)
     
     actualExecuter.asInstanceOf[RxExecuter].jobFilter shouldBe JobFilter.RunEverything

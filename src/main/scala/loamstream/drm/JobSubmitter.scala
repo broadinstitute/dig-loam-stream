@@ -28,9 +28,8 @@ object JobSubmitter {
    * Default implementation of JobSubmitter; uses a DrmaaClient to submit jobs. 
    */
   final case class Drmaa(drmaaClient: DrmaaClient, drmConfig: DrmConfig) extends JobSubmitter with Loggable {
-    override def submitJobs(
-        drmSettings: DrmSettings,
-        taskArray: DrmTaskArray): DrmSubmissionResult = {
+    
+    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmSubmissionResult = {
 
       drmaaClient.submitJob(drmSettings, drmConfig, taskArray)
     }

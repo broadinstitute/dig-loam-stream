@@ -48,7 +48,9 @@ import loamstream.drm.uger.QacctAccountingClient
 import loamstream.drm.DrmaaPoller
 import loamstream.drm.uger.UgerResourceUsageExtractor
 import loamstream.drm.uger.UgerNativeSpecBuilder
-import loamstream.drm.uger.UgerChunkRunner
+import loamstream.drm.uger.DrmChunkRunner
+import loamstream.drm.uger.UgerPathBuilder
+import loamstream.model.execute.EnvironmentType
 
 
 /**
@@ -231,7 +233,7 @@ object AppWiring extends Loggable {
   private def ugerChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int): (Option[UgerChunkRunner], Seq[Terminable]) = {
+      threadPoolSize: Int): (Option[DrmChunkRunner], Seq[Terminable]) = {
     
     val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(loamConfig, threadPoolSize))
 
@@ -279,7 +281,7 @@ object AppWiring extends Loggable {
 
   private def makeUgerChunkRunner(
       loamConfig: LoamConfig, 
-      threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
+      threadPoolSize: Int): Option[(DrmChunkRunner, Seq[Terminable])] = {
     
     for {
       ugerConfig <- loamConfig.ugerConfig
@@ -302,7 +304,13 @@ object AppWiring extends Loggable {
 
         val jobSubmitter = JobSubmitter.Drmaa(ugerClient, ugerConfig)
         
-        UgerChunkRunner(loamConfig.executionConfig, ugerConfig, jobSubmitter, jobMonitor)
+        DrmChunkRunner(
+            environmentType = EnvironmentType.Uger,
+            pathBuilder = UgerPathBuilder,
+            executionConfig = loamConfig.executionConfig, 
+            drmConfig = ugerConfig, 
+            jobSubmitter = jobSubmitter, 
+            jobMonitor = jobMonitor)
       }
 
       val handles = Seq(schedulerHandle, ugerRunner)

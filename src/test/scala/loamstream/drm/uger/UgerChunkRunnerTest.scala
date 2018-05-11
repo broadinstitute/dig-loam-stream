@@ -38,6 +38,7 @@ import loamstream.model.quantities.Memory
 import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.model.execute.EnvironmentType
 
 
 /**
@@ -72,9 +73,11 @@ final class UgerChunkRunnerTest extends FunSuite {
   
   test("No failures when empty set of jobs is presented") {
     val mockDrmaaClient = new MockDrmaaClient(Map.empty)
-    val runner = UgerChunkRunner(
+    val runner = DrmChunkRunner(
+        environmentType = EnvironmentType.Uger,
+        pathBuilder = UgerPathBuilder,
         executionConfig = executionConfig,
-        ugerConfig = ugerConfig,
+        drmConfig = ugerConfig,
         jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
         jobMonitor = new JobMonitor(scheduler, new DrmaaPoller(mockDrmaaClient)))
     
@@ -84,7 +87,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   }
   
   test("combine") {
-    import UgerChunkRunner.combine
+    import DrmChunkRunner.combine
     
     assert(combine(Map.empty, Map.empty) == Map.empty)
     
@@ -102,7 +105,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   }
   
   test("handleFailureStatus") {
-    import UgerChunkRunner.handleFailureStatus
+    import DrmChunkRunner.handleFailureStatus
     import JobStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     
@@ -126,7 +129,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   }
 
   test("handleUgerStatus") {
-    import UgerChunkRunner.handleUgerStatus
+    import DrmChunkRunner.handleDrmStatus
     import JobStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     
@@ -138,7 +141,7 @@ final class UgerChunkRunnerTest extends FunSuite {
         
         assert(job.status === NotStarted)
         
-        handleUgerStatus(alwaysRestart, job)(ugerStatus)
+        handleDrmStatus(alwaysRestart, job)(ugerStatus)
         
         assert(job.status === jobStatus)
       }
@@ -148,7 +151,7 @@ final class UgerChunkRunnerTest extends FunSuite {
         
         assert(job.status === NotStarted)
       
-        handleUgerStatus(neverRestart, job)(ugerStatus)
+        handleDrmStatus(neverRestart, job)(ugerStatus)
       
         val expected = if(isFailure) FailedPermanently else jobStatus
       
@@ -180,7 +183,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   }
   
   test("toRunDatas - one failed job") {
-    import UgerChunkRunner.toRunDatas
+    import DrmChunkRunner.toRunDatas
     import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     import UgerChunkRunnerTest.MockUgerJob
@@ -222,7 +225,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   }
   
   test("toRunDatas - one successful job") {
-    import UgerChunkRunner.toRunDatas
+    import DrmChunkRunner.toRunDatas
     import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     import UgerChunkRunnerTest.MockUgerJob
@@ -262,7 +265,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   }
   
   test("toRunDatas - one successful job, one failed job") {
-    import UgerChunkRunner.toRunDatas
+    import DrmChunkRunner.toRunDatas
     import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     import UgerChunkRunnerTest.MockUgerJob
@@ -352,9 +355,11 @@ final class UgerChunkRunnerTest extends FunSuite {
     val mockDrmaaClient = MockDrmaaClient(Map.empty)
     val mockJobSubmitter = new MockJobSubmitter
     
-    val chunkRunner = UgerChunkRunner(
+    val chunkRunner = DrmChunkRunner(
+        environmentType = EnvironmentType.Uger,
+        pathBuilder = UgerPathBuilder,
         executionConfig = executionConfig,
-        ugerConfig = ugerConfig,
+        drmConfig = ugerConfig,
         jobSubmitter = mockJobSubmitter,
         jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)))
         
@@ -419,9 +424,11 @@ final class UgerChunkRunnerTest extends FunSuite {
     val mockDrmaaClient = MockDrmaaClient(Map.empty)
     val mockJobSubmitter = new MockJobSubmitter
     
-    val chunkRunner = UgerChunkRunner(
+    val chunkRunner = DrmChunkRunner(
+        environmentType = EnvironmentType.Uger,
+        pathBuilder = UgerPathBuilder,
         executionConfig = executionConfig,
-        ugerConfig = ugerConfig,
+        drmConfig = ugerConfig,
         jobSubmitter = mockJobSubmitter,
         jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)))
         

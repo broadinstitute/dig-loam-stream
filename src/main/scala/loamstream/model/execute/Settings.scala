@@ -4,7 +4,7 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.drm.Queue
-import loamstream.uger.UgerDefaults
+import loamstream.drm.uger.UgerDefaults
 import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
 import loamstream.conf.DrmConfig

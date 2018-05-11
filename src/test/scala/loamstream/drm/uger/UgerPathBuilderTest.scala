@@ -1,4 +1,4 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import org.ggf.drmaa.JobTemplate
 import org.scalatest.FunSuite
@@ -7,14 +7,15 @@ import loamstream.TestHelpers
 import loamstream.conf.DrmConfig
 import loamstream.conf.UgerConfig
 
+
 /**
  * @author clint
  * May 11, 2018
  */
 final class UgerPathBuilderTest extends FunSuite {
   
+  import loamstream.TestHelpers.path
   import loamstream.util.BashScript.Implicits._
-  import TestHelpers.path
   
   private val workDir = TestHelpers.path("/foo/bar/baz").toAbsolutePath
 

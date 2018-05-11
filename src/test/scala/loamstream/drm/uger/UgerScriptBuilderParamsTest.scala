@@ -1,6 +1,7 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import org.scalatest.FunSuite
+
 
 /**
  * @author clint

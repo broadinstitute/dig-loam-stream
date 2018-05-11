@@ -18,7 +18,7 @@ import loamstream.model.quantities.Memory
 import loamstream.drm.Queue
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.LJob
-import loamstream.uger.UgerDefaults
+import loamstream.drm.uger.UgerDefaults
 
 /**
  * @author kyuksel

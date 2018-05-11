@@ -1,30 +1,28 @@
 package loamstream.drm
 
-import org.scalatest.FunSuite
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.execute.Environment
-import loamstream.conf.UgerConfig
-import loamstream.conf.ExecutionConfig
-import loamstream.util.BashScript.Implicits._
-import loamstream.util.Files
-import scala.collection.Seq
-import loamstream.TestHelpers
-import org.ggf.drmaa.JobTemplate
-import org.ggf.drmaa.JobTemplate
 import java.nio.file.Path
-import loamstream.uger.UgerPathBuilder
-import loamstream.drm.lsf.LsfPathBuilder
+
+import scala.collection.Seq
+
+import org.scalatest.FunSuite
+
 import loamstream.conf.DrmConfig
-import loamstream.uger.UgerScriptBuilderParams
-import loamstream.drm.lsf.LsfScriptBuilderParams
+import loamstream.conf.ExecutionConfig
 import loamstream.conf.LsfConfig
+import loamstream.conf.UgerConfig
+import loamstream.drm.lsf.LsfPathBuilder
+import loamstream.drm.uger.UgerPathBuilder
+import loamstream.model.execute.Environment
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.util.BashScript.Implicits.BashPath
+import loamstream.util.Files
 
 /**
  * @author clint
  * Nov 22, 2017
  */
 object DrmTaskArrayTest {
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
 
   def job(commandLine: String): CommandLineJob = CommandLineJob(commandLine, path("."), Environment.Local)
 
@@ -54,8 +52,8 @@ object DrmTaskArrayTest {
 }
 
 final class DrmTaskArrayTest extends FunSuite {
-  import TestHelpers.path
   import DrmTaskArrayTest._
+  import loamstream.TestHelpers.path
 
   test("makeJobName") {
 

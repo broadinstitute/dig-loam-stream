@@ -7,7 +7,7 @@ import java.nio.file.Paths
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
-import loamstream.uger.UgerDefaults
+import loamstream.drm.uger.UgerDefaults
 
 /**
  * @author clint

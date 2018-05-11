@@ -8,7 +8,7 @@ import loamstream.db.slick.SlickLoamDao
 import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.JobFilter
-import loamstream.uger.UgerChunkRunner
+import loamstream.drm.uger.UgerChunkRunner
 import loamstream.model.execute.AsyncLocalChunkRunner
 import loamstream.model.execute.CompositeChunkRunner
 import loamstream.model.execute.HashingStrategy

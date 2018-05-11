@@ -5,7 +5,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import loamstream.conf.DrmConfig
 import loamstream.util.BashScript
-import loamstream.uger.UgerScriptBuilderParams
+import loamstream.drm.uger.UgerScriptBuilderParams
 
 /**
   * @author Kaan

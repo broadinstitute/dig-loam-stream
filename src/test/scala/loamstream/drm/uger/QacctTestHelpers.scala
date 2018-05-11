@@ -1,4 +1,4 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import loamstream.drm.Queue
 

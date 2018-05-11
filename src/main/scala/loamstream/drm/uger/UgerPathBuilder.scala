@@ -1,8 +1,9 @@
-package loamstream.uger
+package loamstream.drm.uger
+
+import java.nio.file.Path
+import java.nio.file.Paths
 
 import loamstream.drm.PathBuilder
-import java.nio.file.Paths
-import java.nio.file.Path
 import loamstream.drm.ScriptBuilderParams
 
 /**

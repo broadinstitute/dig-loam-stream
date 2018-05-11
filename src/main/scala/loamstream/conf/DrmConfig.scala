@@ -2,19 +2,20 @@ package loamstream.conf
 
 import java.nio.file.Path
 
+import scala.util.Try
+
+import com.typesafe.config.Config
+
+import loamstream.drm.ScriptBuilderParams
+import loamstream.drm.lsf.LsfDefaults
+import loamstream.drm.lsf.LsfScriptBuilderParams
+import loamstream.drm.uger.UgerDefaults
+import loamstream.drm.uger.UgerScriptBuilderParams
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.uger.UgerDefaults
 import loamstream.util.Loggable
-import scala.util.Try
-import com.typesafe.config.Config
 import loamstream.util.Tries
-import loamstream.drm.ScriptBuilder
-import loamstream.drm.ScriptBuilderParams
-import loamstream.uger.UgerScriptBuilderParams
-import loamstream.drm.lsf.LsfScriptBuilderParams
-import loamstream.drm.lsf.LsfDefaults
 
 /**
  * @author clint
@@ -35,6 +36,7 @@ sealed trait DrmConfig {
   
   final def isLsfConfig: Boolean = this.isInstanceOf[LsfConfig]
   
+  //TODO: This feels wrong
   final def scriptBuilderParams: ScriptBuilderParams = {
     require(isUgerConfig || isLsfConfig)
     
@@ -72,8 +74,8 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.PathReader
     import ValueReaders.MemoryReader
-    import ValueReaders.CpuTimeReader
     import ValueReaders.CpusReader
+    import ValueReaders.CpuTimeReader
 
     trace("Parsing Uger config...")
     
@@ -104,8 +106,8 @@ object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.PathReader
     import ValueReaders.MemoryReader
-    import ValueReaders.CpuTimeReader
     import ValueReaders.CpusReader
+    import ValueReaders.CpuTimeReader
 
     trace("Parsing LSF config...")
     

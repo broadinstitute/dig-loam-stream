@@ -1,8 +1,8 @@
-package loamstream.uger
+package loamstream.drm.uger
 
-import loamstream.util.ValueBox
-import loamstream.drm.Queue
 import loamstream.drm.AccountingClient
+import loamstream.drm.Queue
+import loamstream.util.ValueBox
 
 /**
  * @author clint

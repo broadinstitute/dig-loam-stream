@@ -3,8 +3,8 @@ package loamstream.model.execute
 import org.scalatest.FunSuite
 import java.time.Instant
 import loamstream.drm.Queue
-import loamstream.uger.UgerException
-import loamstream.uger.UgerException
+import loamstream.drm.uger.UgerException
+import loamstream.drm.uger.UgerException
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 

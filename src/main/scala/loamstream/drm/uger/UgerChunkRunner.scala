@@ -1,10 +1,15 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.UgerConfig
+import loamstream.drm.DrmJobWrapper
 import loamstream.drm.DrmStatus
 import loamstream.drm.DrmStatus.toJobResult
 import loamstream.drm.DrmStatus.toJobStatus
+import loamstream.drm.DrmSubmissionResult
+import loamstream.drm.DrmTaskArray
+import loamstream.drm.JobMonitor
+import loamstream.drm.JobSubmitter
 import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.EnvironmentType
@@ -24,12 +29,6 @@ import loamstream.util.Terminable
 import loamstream.util.Throwables
 import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
-import loamstream.drm.DrmaaClient
-import loamstream.drm.DrmTaskArray
-import loamstream.drm.DrmJobWrapper
-import loamstream.drm.DrmSubmissionResult
-import loamstream.drm.JobSubmitter
-import loamstream.drm.JobMonitor
 
 /**
  * @author clint
@@ -117,7 +116,7 @@ final case class UgerChunkRunner(
     
     val commandLineJobs = ugerJobs.map(_.commandLineJob)
     
-    import DrmSubmissionResult._
+    import loamstream.drm.DrmSubmissionResult._
     
     submissionResult match {
 

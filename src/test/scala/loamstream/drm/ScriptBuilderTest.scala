@@ -7,8 +7,8 @@ import loamstream.TestHelpers
 import loamstream.conf.ExecutionConfig
 import loamstream.util.BashScript.Implicits._
 import scala.collection.Seq
-import loamstream.uger.UgerScriptBuilderParams
-import loamstream.uger.UgerPathBuilder
+import loamstream.drm.uger.UgerScriptBuilderParams
+import loamstream.drm.uger.UgerPathBuilder
 
 /**
  * Created by kyuksel on 2/29/2016.

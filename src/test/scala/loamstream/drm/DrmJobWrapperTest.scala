@@ -8,7 +8,7 @@ import scala.collection.Seq
 import loamstream.TestHelpers
 import loamstream.conf.UgerConfig
 import loamstream.conf.DrmConfig
-import loamstream.uger.UgerPathBuilder
+import loamstream.drm.uger.UgerPathBuilder
 import loamstream.drm.lsf.LsfPathBuilder
 
 /**

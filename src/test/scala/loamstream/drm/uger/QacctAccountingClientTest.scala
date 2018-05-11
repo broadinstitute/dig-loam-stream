@@ -1,7 +1,7 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import org.scalatest.FunSuite
-import loamstream.util.ValueBox
+
 import loamstream.drm.Queue
 
 /**

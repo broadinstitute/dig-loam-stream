@@ -1,7 +1,6 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import org.ggf.drmaa.JobTemplate
-
 import loamstream.drm.ScriptBuilderParams
 
 /**

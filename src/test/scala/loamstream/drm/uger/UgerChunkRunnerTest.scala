@@ -1,4 +1,4 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -10,11 +10,19 @@ import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.UgerConfig
+import loamstream.drm.DrmJobWrapper
 import loamstream.drm.DrmStatus
+import loamstream.drm.DrmSubmissionResult
+import loamstream.drm.DrmTaskArray
+import loamstream.drm.DrmaaPoller
+import loamstream.drm.JobMonitor
+import loamstream.drm.JobSubmitter
+import loamstream.drm.MockDrmaaClient
+import loamstream.drm.uger.UgerChunkRunnerTest.MockJobSubmitter
 import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamScriptContext
-import loamstream.model.execute.Environment
 import loamstream.model.execute.DrmSettings
+import loamstream.model.execute.Environment
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
@@ -27,19 +35,9 @@ import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.uger.UgerChunkRunnerTest.MockJobSubmitter
 import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
-import loamstream.drm.DrmaaClient
-import loamstream.drm.DrmTaskArray
-import loamstream.drm.DrmaaPoller
-import loamstream.drm.DrmJobWrapper
-import loamstream.drm.MockDrmaaClient
-import loamstream.drm.DrmSubmissionResult
-import loamstream.drm.JobSubmitter
-import loamstream.drm.JobMonitor
-
 
 
 /**

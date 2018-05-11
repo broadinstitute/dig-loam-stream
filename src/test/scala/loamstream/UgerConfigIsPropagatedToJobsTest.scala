@@ -10,7 +10,7 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.loam.LoamCmdTool
-import loamstream.uger.UgerDefaults
+import loamstream.drm.uger.UgerDefaults
 
 
 /**

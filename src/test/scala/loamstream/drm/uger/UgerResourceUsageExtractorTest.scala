@@ -1,11 +1,15 @@
-package loamstream.uger
+package loamstream.drm.uger
 
+import java.time.Instant
+
+import scala.concurrent.duration.DurationDouble
+
+import org.ggf.drmaa.JobInfo
 import org.scalatest.FunSuite
+
+import loamstream.drm.Queue
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
-import java.time.Instant
-import loamstream.drm.Queue
-import org.ggf.drmaa.JobInfo
 
 /**
  * @author clint
@@ -13,8 +17,8 @@ import org.ggf.drmaa.JobInfo
  */
 final class UgerResourceUsageExtractorTest extends FunSuite {
   
-  import UgerResourceUsageExtractor.fromUgerMap
   import UgerResourceUsageExtractor.UgerKeys
+  import UgerResourceUsageExtractor.fromUgerMap
   import UgerResourceUsageExtractor.toResources
   import UgerResourceUsageExtractorTest.LiteralJobInfo
   

@@ -1,12 +1,13 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
 import loamstream.conf.UgerConfig
 import loamstream.model.execute.DrmSettings
-import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
 
 /**
  * @author clint

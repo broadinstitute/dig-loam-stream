@@ -23,7 +23,7 @@ import loamstream.model.jobs.OutputRecord
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.uger.UgerDefaults
+import loamstream.drm.uger.UgerDefaults
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Hashes
 

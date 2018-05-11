@@ -4,7 +4,7 @@ import org.scalatest.FunSuite
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
-import loamstream.uger.UgerDefaults
+import loamstream.drm.uger.UgerDefaults
 import loamstream.TestHelpers
 import com.typesafe.config.ConfigFactory
 import loamstream.conf.LoamConfig

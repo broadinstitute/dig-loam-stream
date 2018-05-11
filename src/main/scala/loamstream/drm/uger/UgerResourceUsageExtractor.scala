@@ -1,17 +1,18 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import java.time.Instant
 
+import scala.concurrent.duration.DurationDouble
 import scala.util.Failure
 import scala.util.Try
 
 import org.ggf.drmaa.JobInfo
 
+import loamstream.drm.ResourceUsageExtractor
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.Tries
-import loamstream.drm.ResourceUsageExtractor
 
 
 /**

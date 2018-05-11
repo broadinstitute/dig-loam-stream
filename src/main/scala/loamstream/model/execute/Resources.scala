@@ -5,7 +5,7 @@ import java.time.Instant
 import scala.concurrent.duration.Duration
 import loamstream.util.Options
 import scala.util.Try
-import loamstream.uger.UgerException
+import loamstream.drm.uger.UgerException
 import scala.util.Failure
 import loamstream.util.Tries
 import loamstream.model.quantities.Memory

@@ -9,7 +9,6 @@ import loamstream.cli.Conf
 import com.typesafe.config.ConfigFactory
 import loamstream.db.slick.SlickLoamDao
 import loamstream.db.slick.DbType
-import loamstream.uger.UgerChunkRunner
 import loamstream.conf.{LoamConfig, PythonConfig, RConfig, UgerConfig}
 import loamstream.util.Loggable
 import loamstream.drm.Poller
@@ -45,10 +44,11 @@ import scala.util.Success
 import loamstream.util.FileMonitor
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
-import loamstream.uger.QacctAccountingClient
+import loamstream.drm.uger.QacctAccountingClient
 import loamstream.drm.DrmaaPoller
-import loamstream.uger.UgerResourceUsageExtractor
-import loamstream.uger.UgerNativeSpecBuilder
+import loamstream.drm.uger.UgerResourceUsageExtractor
+import loamstream.drm.uger.UgerNativeSpecBuilder
+import loamstream.drm.uger.UgerChunkRunner
 
 
 /**

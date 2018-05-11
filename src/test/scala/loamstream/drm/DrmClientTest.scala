@@ -9,9 +9,9 @@ import org.scalatest.FunSuite
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
-import loamstream.uger.MockQacctAccountingClient
+import loamstream.drm.uger.MockQacctAccountingClient
 import loamstream.util.Tries
-import loamstream.uger.QacctTestHelpers
+import loamstream.drm.uger.QacctTestHelpers
 
 
 /**

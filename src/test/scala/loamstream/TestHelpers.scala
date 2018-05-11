@@ -40,7 +40,7 @@ import loamstream.model.jobs.RunData
 import scala.concurrent.Future
 import scala.concurrent.Await
 import loamstream.loam.LoamScript
-import loamstream.uger.UgerDefaults
+import loamstream.drm.uger.UgerDefaults
 
 /**
   * @author clint

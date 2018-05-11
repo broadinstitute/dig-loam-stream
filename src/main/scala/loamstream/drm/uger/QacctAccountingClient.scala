@@ -1,12 +1,13 @@
-package loamstream.uger
+package loamstream.drm.uger
 
 import scala.util.control.NonFatal
 import scala.util.matching.Regex
-
 import loamstream.drm.AccountingClient
 import loamstream.drm.Queue
 import loamstream.util.Functions
 import loamstream.util.Loggable
+import scala.collection.Seq
+import scala.sys.process.stringSeqToProcess
 
 /**
  * @author clint

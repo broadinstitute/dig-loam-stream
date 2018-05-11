@@ -1,18 +1,18 @@
-package loamstream.uger
+package loamstream.drm
+
+import scala.collection.Seq
+import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.util.Success
 
 import org.scalatest.FunSuite
 
-import scala.util.Success
-import scala.concurrent.duration.Duration
-import scala.concurrent.Await
-
 import loamstream.util.ObservableEnrichments
-import scala.concurrent.Future
-import rx.lang.scala.schedulers.IOScheduler
 import loamstream.util.RxSchedulers
+
 import rx.lang.scala.Scheduler
-import loamstream.drm.DrmStatus
-import loamstream.drm.DrmaaPoller
+
 
 /**
  * @author clint

@@ -1,14 +1,10 @@
-package loamstream.uger
+package loamstream.drm
 
 import scala.concurrent.duration.Duration
 import scala.util.Try
-
 import loamstream.conf.DrmConfig
-import loamstream.drm.DrmStatus
 import loamstream.model.execute.DrmSettings
 import loamstream.util.ValueBox
-import loamstream.drm.DrmaaClient
-import loamstream.drm.DrmTaskArray
 
 /**
  * @author clint
@@ -28,7 +24,7 @@ final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[DrmSt
   override def submitJob(
       drmSettings: DrmSettings,
       drmConfig: DrmConfig,
-      taskArray: DrmTaskArray): DrmaaClient.SubmissionResult = ???
+      taskArray: DrmTaskArray): DrmSubmissionResult = ???
 
   override def statusOf(jobId: String): Try[DrmStatus] = waitFor(jobId, Duration.Zero)
 

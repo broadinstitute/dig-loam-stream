@@ -14,7 +14,7 @@ import loamstream.conf.{LoamConfig, PythonConfig, RConfig, UgerConfig}
 import loamstream.util.Loggable
 import loamstream.drm.Poller
 import loamstream.util.RxSchedulers
-import loamstream.uger.JobMonitor
+import loamstream.drm.JobMonitor
 import loamstream.model.execute.RxExecuter
 import loamstream.model.execute.Executable
 
@@ -31,12 +31,12 @@ import loamstream.util.Throwables
 
 import scala.util.Try
 import loamstream.drm.AccountingClient
-import loamstream.uger.Drmaa1Client
-import loamstream.uger.UgerClient
+import loamstream.drm.Drmaa1Client
+import loamstream.drm.DrmClient
 import loamstream.conf.ExecutionConfig
 import loamstream.util.ConfigUtils
 import loamstream.util.Tries
-import loamstream.uger.JobSubmitter
+import loamstream.drm.JobSubmitter
 import loamstream.model.execute.HashingStrategy
 import loamstream.cli.Intent
 import loamstream.cli.Intent.RealRun
@@ -311,10 +311,10 @@ object AppWiring extends Loggable {
     }
   }
   
-  private def makeUgerClient: UgerClient = {
+  private def makeUgerClient: DrmClient = {
     val drmaa1Client = new Drmaa1Client(UgerResourceUsageExtractor, UgerNativeSpecBuilder)
     
-    new UgerClient(drmaa1Client, QacctAccountingClient.useActualBinary())
+    new DrmClient(drmaa1Client, QacctAccountingClient.useActualBinary())
   }
 
   private def loadConfig(confFileOpt: Option[Path]): Config = {

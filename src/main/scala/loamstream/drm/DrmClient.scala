@@ -1,26 +1,20 @@
-package loamstream.uger
+package loamstream.drm
 
 import scala.concurrent.duration.Duration
 import scala.util.Try
-
 import loamstream.conf.DrmConfig
-import loamstream.drm.AccountingClient
-import loamstream.drm.DrmStatus
-import loamstream.drm.Queue
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
-import loamstream.drm.DrmaaClient
-import loamstream.drm.DrmTaskArray
 
 /**
  * @author clint
  * Mar 20, 2017
  */
-final class UgerClient(
+final class DrmClient(
     drmaaClient: DrmaaClient, 
     accountingClient: AccountingClient) extends DrmaaClient with AccountingClient {
   
-  import UgerClient.fillInAccountingFieldsIfNecessary
+  import DrmClient.fillInAccountingFieldsIfNecessary
   
   override def getExecutionNode(jobId: String): Option[String] = accountingClient.getExecutionNode(jobId)
   
@@ -29,7 +23,7 @@ final class UgerClient(
   override def submitJob(
       drmSettings: DrmSettings,
       drmConfig: DrmConfig,
-      taskArray: DrmTaskArray): DrmaaClient.SubmissionResult = {
+      taskArray: DrmTaskArray): DrmSubmissionResult = {
     
     drmaaClient.submitJob(drmSettings, drmConfig, taskArray)
   }
@@ -75,8 +69,8 @@ final class UgerClient(
   override def killAllJobs(): Unit = drmaaClient.killAllJobs()
 }
 
-object UgerClient extends Loggable {
-  private[uger] def fillInAccountingFieldsIfNecessary(
+object DrmClient extends Loggable {
+  private[drm] def fillInAccountingFieldsIfNecessary(
       accountingClient: AccountingClient, 
       jobId: String)(attempt: Try[DrmStatus]): Try[DrmStatus] = {
     

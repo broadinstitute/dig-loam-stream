@@ -1,26 +1,24 @@
-package loamstream.uger
+package loamstream.drm
 
+import scala.collection.Seq
 import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.util.Failure
 import scala.util.Success
+import scala.util.Try
+
+import loamstream.util.ObservableEnrichments
 
 import org.scalatest.FunSuite
 
-import loamstream.util.ObservableEnrichments
-import scala.util.Try
-import loamstream.drm.DrmStatus
-import loamstream.drm.DrmaaPoller
 
 /**
  * @author clint
  * date: Jul 6, 2016
  */
-final class PollerTest extends FunSuite {
+final class DrmaaPollerTest extends FunSuite {
   import DrmStatus._
-  import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.duration._
-  import ObservableEnrichments._
   
   //TODO: Replace with Futures.waitFor
   private def waitFor[A](f: Future[A]): A = Await.result(f, Duration.Inf)

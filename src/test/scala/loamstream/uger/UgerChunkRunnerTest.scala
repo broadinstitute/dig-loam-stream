@@ -35,6 +35,10 @@ import loamstream.drm.DrmaaClient
 import loamstream.drm.DrmTaskArray
 import loamstream.drm.DrmaaPoller
 import loamstream.drm.DrmJobWrapper
+import loamstream.drm.MockDrmaaClient
+import loamstream.drm.DrmSubmissionResult
+import loamstream.drm.JobSubmitter
+import loamstream.drm.JobMonitor
 
 
 
@@ -447,10 +451,10 @@ object UgerChunkRunnerTest {
   final class MockJobSubmitter extends JobSubmitter {
     @volatile var params: Seq[(DrmSettings, DrmTaskArray)] = Vector.empty
     
-    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmaaClient.SubmissionResult = {
+    override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmSubmissionResult = {
       params :+= (drmSettings -> taskArray)
       
-      DrmaaClient.SubmissionSuccess(Map.empty)
+      DrmSubmissionResult.SubmissionSuccess(Map.empty)
     }
     
     override def stop(): Unit = ()

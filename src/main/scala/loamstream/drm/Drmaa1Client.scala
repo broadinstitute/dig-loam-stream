@@ -1,32 +1,22 @@
-package loamstream.uger
+package loamstream.drm
 
 import java.nio.file.Path
-
 import scala.concurrent.duration.Duration
 import scala.util.Try
-
 import org.ggf.drmaa.DrmaaException
 import org.ggf.drmaa.ExitTimeoutException
 import org.ggf.drmaa.InvalidJobException
-import org.ggf.drmaa.JobInfo
 import org.ggf.drmaa.JobTemplate
 import org.ggf.drmaa.Session
 import org.ggf.drmaa.SessionFactory
-
 import loamstream.conf.DrmConfig
-import loamstream.drm.DrmStatus
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Resources.DrmResources
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.CompositeException
 import loamstream.util.Loggable
 import loamstream.util.OneTimeLatch
 import loamstream.util.Throwables
 import loamstream.util.ValueBox
-import loamstream.drm.DrmaaClient
-import loamstream.drm.DrmTaskArray
-import loamstream.drm.ResourceUsageExtractor
-import loamstream.drm.NativeSpecBuilder
 
 
 /**
@@ -49,8 +39,6 @@ final class Drmaa1Client(
    * 
    * Currently, this is handled by doing all operations that need a Session inside a call to withSession().
    */
-
-  import DrmaaClient._
 
   /*
    * NB: Several DRMAA operations are only valid if they're performed via the same Session as previous operations;
@@ -120,17 +108,17 @@ final class Drmaa1Client(
   }
 
   /**
-   * Synchronously obtain the status of one running UGER job, given its id.
+   * Synchronously obtain the status of one running DRM job, given its id.
    *
    * @param jobId the id of the job to get the status of
-   * @return Success wrapping the JobStatus corresponding to the code obtained from UGER,
+   * @return Success wrapping the JobStatus corresponding to the code obtained from DRM,
    * or Failure if the job id isn't known.  (Lamely, this can occur if the job is finished.)
    */
   override def statusOf(jobId: String): Try[DrmStatus] = {
     Try {
       withSession { session =>
         val status = session.getJobProgramStatus(jobId)
-        val jobStatus = DrmStatus.fromUgerStatusCode(status)
+        val jobStatus = DrmStatus.fromDrmStatusCode(status)
 
         debug(s"Job '$jobId' has status $status, mapped to $jobStatus")
 
@@ -144,17 +132,16 @@ final class Drmaa1Client(
   }
 
   /**
-   * Synchronously submit a job, in the form of a UGER wrapper shell script.
+   * Synchronously submit a job, in the form of a DRM wrapper shell script.
    *
-   * @param ugerConfig contains the parameters to configure a job
-   * @param pathToScript the path to the script that UGER should run
-   * @param jobName a descriptive prefix used to identify the job.  Has no impact on how the job runs.
-   * @param numTasks length of task array to be submitted as a single UGER job
+   * @param drmSettings job-specific settings (number of cores, memory, etc requested)
+   * @param drmConfig contains execution-wide parameters
+   * @param taskArray 
    */
   override def submitJob(
     drmSettings: DrmSettings,
     drmConfig: DrmConfig,
-    taskArray: DrmTaskArray): DrmaaClient.SubmissionResult = {
+    taskArray: DrmTaskArray): DrmSubmissionResult = {
 
     val fullNativeSpec = nativeSpecBuilder.toNativeSpec(drmSettings)
 
@@ -258,7 +245,7 @@ final class Drmaa1Client(
 
   private def runJob(taskArray: DrmTaskArray,
                      outputDir: Path,
-                     nativeSpecification: String): SubmissionResult = {
+                     nativeSpecification: String): DrmSubmissionResult = {
 
     withJobTemplate { (session, jt) =>
       val taskStartIndex = 1
@@ -288,21 +275,21 @@ final class Drmaa1Client(
 
       val idsForJobs = jobIds.zip(taskArray.drmJobs).toMap
 
-      def ugerIdsToJobsString = {
+      def drmIdsToJobsString = {
         (for {
-          (ugerId, job) <- idsForJobs.mapValues(_.commandLineJob)
+          (drmId, job) <- idsForJobs.mapValues(_.commandLineJob)
         } yield {
-          s"Uger Id: $ugerId => $job"
+          s"DRM Id: $drmId => $job"
         }).mkString("\n")
       }
 
-      info(s"Uger ids assigned to jobs:\n$ugerIdsToJobsString")
+      info(s"DRM ids assigned to jobs:\n$drmIdsToJobsString")
 
-      SubmissionSuccess(idsForJobs)
+      DrmSubmissionResult.SubmissionSuccess(idsForJobs)
     }
   }
 
-  private def withJobTemplate[A <: SubmissionResult](f: (Session, JobTemplate) => A): SubmissionResult = {
+  private def withJobTemplate[A <: DrmSubmissionResult](f: (Session, JobTemplate) => A): DrmSubmissionResult = {
     withSession { session =>
       val jt = session.createJobTemplate
 
@@ -311,7 +298,7 @@ final class Drmaa1Client(
         case e: DrmaaException => {
           error(s"Error: ${e.getMessage}", e)
 
-          SubmissionFailure(e)
+          DrmSubmissionResult.SubmissionFailure(e)
         }
       } finally { session.deleteJobTemplate(jt) }
     }

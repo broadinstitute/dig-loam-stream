@@ -75,7 +75,7 @@ object DrmStatus {
 
   import Session._
 
-  def fromUgerStatusCode(status: Int): DrmStatus = status match {
+  def fromDrmStatusCode(status: Int): DrmStatus = status match {
     case QUEUED_ACTIVE                                              => Queued
     case SYSTEM_ON_HOLD | USER_ON_HOLD | USER_SYSTEM_ON_HOLD        => QueuedHeld
     case RUNNING                                                    => Running

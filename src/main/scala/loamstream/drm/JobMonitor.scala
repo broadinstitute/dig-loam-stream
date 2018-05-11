@@ -1,13 +1,9 @@
-package loamstream.uger
+package loamstream.drm
 
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-
 import org.ggf.drmaa.InvalidJobException
-
-import loamstream.drm.DrmStatus
-import loamstream.drm.Poller
 import loamstream.util.Loggable
 import loamstream.util.Terminable
 import loamstream.util.ValueBox
@@ -17,6 +13,7 @@ import rx.lang.scala.Subject
 import rx.lang.scala.observables.ConnectableObservable
 import rx.lang.scala.schedulers.IOScheduler
 import rx.lang.scala.subjects.PublishSubject
+import scala.concurrent.duration.DurationDouble
 
 /**
  * @author clint
@@ -31,7 +28,7 @@ final class JobMonitor(
   
   private[this] val _isStopped: ValueBox[Boolean] = ValueBox(false)
   
-  private[uger] def isStopped: Boolean = _isStopped.value
+  private[drm] def isStopped: Boolean = _isStopped.value
   
   private[this] val stopSignal: Subject[Any] = PublishSubject()
   
@@ -110,7 +107,7 @@ final class JobMonitor(
    * filtered out, and that completes when a 'terminal' JobStatus is seen. (Done, Failed, etc; see 
    * JobStatus.isFinished)
    */
-  private[uger] def unpackThenFilterThenLimit(
+  private[drm] def unpackThenFilterThenLimit(
       jobStatusTuple: (String, Observable[Try[DrmStatus]])): (String, Observable[DrmStatus]) = {
     
     val (jobId, statusAttempts) = jobStatusTuple
@@ -155,7 +152,7 @@ final class JobMonitor(
    * 
    * Note that multiplexed must be a ConnectableObservable for this to work. 
    */
-  private[uger] def demultiplex(
+  private[drm] def demultiplex(
       jobIds: Iterable[String],
       multiplexed: ConnectableObservable[Map[String, Try[DrmStatus]]]): Map[String, Observable[Try[DrmStatus]]] = {
     

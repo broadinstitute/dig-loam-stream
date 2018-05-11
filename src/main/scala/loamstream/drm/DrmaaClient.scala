@@ -26,7 +26,7 @@ trait DrmaaClient extends Terminable {
   def submitJob(
       drmSettings: DrmSettings,
       drmConfig: DrmConfig,
-      taskArrayScript: DrmTaskArray): DrmaaClient.SubmissionResult
+      taskArrayScript: DrmTaskArray): DrmSubmissionResult
     
   /**
    * Synchronously inspect the status of a job with the given ID
@@ -61,17 +61,3 @@ trait DrmaaClient extends Terminable {
   def killAllJobs(): Unit
 }
 
-object DrmaaClient {
-
-  sealed trait SubmissionResult {
-    def isFailure: Boolean
-  }
-
-  final case class SubmissionFailure(cause: Exception) extends SubmissionResult {
-    override val isFailure: Boolean = true
-  }
-
-  final case class SubmissionSuccess(idsForJobs: Map[String, DrmJobWrapper]) extends SubmissionResult {
-    override val isFailure: Boolean = false
-  }
-}

@@ -1,4 +1,4 @@
-package loamstream.uger
+package loamstream.drm
 
 import java.time.Instant
 
@@ -6,18 +6,19 @@ import scala.util.Try
 
 import org.scalatest.FunSuite
 
-import loamstream.drm.DrmStatus
-import loamstream.drm.Queue
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
+import loamstream.uger.MockQacctAccountingClient
 import loamstream.util.Tries
+import loamstream.uger.QacctTestHelpers
+
 
 /**
  * @author clint
  * Mar 20, 2017
  */
-final class UgerClientTest extends FunSuite {
+final class DrmClientTest extends FunSuite {
 
   private val resources = DrmResources(
       Memory.inGb(123.45),
@@ -28,7 +29,7 @@ final class UgerClientTest extends FunSuite {
       Instant.now)
 
   test("fillInAccountingFieldsIfNecessary") {
-    import UgerClient.fillInAccountingFieldsIfNecessary
+    import DrmClient.fillInAccountingFieldsIfNecessary
     import QacctTestHelpers.actualQacctOutput
 
     val expectedQueue = Queue("broad")

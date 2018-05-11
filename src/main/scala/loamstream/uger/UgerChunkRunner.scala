@@ -27,6 +27,9 @@ import rx.lang.scala.Observable
 import loamstream.drm.DrmaaClient
 import loamstream.drm.DrmTaskArray
 import loamstream.drm.DrmJobWrapper
+import loamstream.drm.DrmSubmissionResult
+import loamstream.drm.JobSubmitter
+import loamstream.drm.JobMonitor
 
 /**
  * @author clint
@@ -109,19 +112,21 @@ final case class UgerChunkRunner(
 
   private def toExecutionStream(
     ugerJobs: Seq[DrmJobWrapper],
-    submissionResult: DrmaaClient.SubmissionResult,
+    submissionResult: DrmSubmissionResult,
     shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
     val commandLineJobs = ugerJobs.map(_.commandLineJob)
     
+    import DrmSubmissionResult._
+    
     submissionResult match {
 
-      case DrmaaClient.SubmissionSuccess(ugerJobsByUgerId) => {
+      case SubmissionSuccess(ugerJobsByUgerId) => {
         commandLineJobs.foreach(_.transitionTo(Running))
 
         jobsToRunDatas(shouldRestart, ugerJobsByUgerId)
       }
-      case DrmaaClient.SubmissionFailure(e) => {
+      case SubmissionFailure(e) => {
         commandLineJobs.foreach(handleFailureStatus(shouldRestart, Failed))
 
         makeAllFailureMap(ugerJobs, Some(e))

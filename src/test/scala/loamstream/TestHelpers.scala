@@ -41,6 +41,12 @@ import scala.concurrent.Future
 import scala.concurrent.Await
 import loamstream.loam.LoamScript
 import loamstream.drm.uger.UgerDefaults
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
+import loamstream.model.execute.Resources.LsfResources
+import loamstream.drm.Queue
+import loamstream.model.execute.Resources.GoogleResources
 
 /**
   * @author clint
@@ -82,6 +88,28 @@ object TestHelpers {
       
     LocalResources(now, now)
   }
+  
+  val broadQueue = Queue("broad")
+  
+  lazy val ugerResources: UgerResources = {
+    val mem = Memory.inGb(2.1)
+    val cpu = CpuTime.inSeconds(12.34)
+    val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
+    val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
+
+    UgerResources(mem, cpu, Some("nodeName"), Some(broadQueue), startTime, endTime)
+  }
+  
+  lazy val lsfResources: LsfResources = {
+    val mem = Memory.inGb(1.2)
+    val cpu = CpuTime.inSeconds(43.21)
+    val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
+    val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
+
+    LsfResources(mem, cpu, Some("nodeName"), Some(broadQueue), startTime, endTime)
+  }
+  
+  lazy val googleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)
 
   val env: Environment = Environment.Local
 

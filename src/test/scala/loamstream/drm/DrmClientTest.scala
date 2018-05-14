@@ -6,12 +6,13 @@ import scala.util.Try
 
 import org.scalatest.FunSuite
 
-import loamstream.model.execute.Resources.DrmResources
+import loamstream.drm.uger.MockQacctAccountingClient
+import loamstream.drm.uger.QacctTestHelpers
+import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
-import loamstream.drm.uger.MockQacctAccountingClient
 import loamstream.util.Tries
-import loamstream.drm.uger.QacctTestHelpers
+
 
 
 /**
@@ -20,7 +21,7 @@ import loamstream.drm.uger.QacctTestHelpers
  */
 final class DrmClientTest extends FunSuite {
 
-  private val resources = DrmResources(
+  private val resources = UgerResources(
       Memory.inGb(123.45),
       CpuTime.inSeconds(456.789),
       node = None,

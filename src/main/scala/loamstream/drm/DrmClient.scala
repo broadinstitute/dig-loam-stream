@@ -85,7 +85,7 @@ object DrmClient extends Loggable {
         val executionNode = accountingClient.getExecutionNode(jobId)
         val executionQueue = accountingClient.getQueue(jobId)
         
-        val result = drmStatus.transformResources(_.copy(node = executionNode, queue = executionQueue))
+        val result = drmStatus.transformResources(_.withNode(executionNode).withQueue(executionQueue))
         
         debug(s"Invoked AccountingClient; new ${simpleNameOf[DrmStatus]} is: $result")
         

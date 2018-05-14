@@ -46,9 +46,7 @@ object LocalSettingRow {
   //Function1, which doesn't have `tupled`.  This is lame, since 1-tuples exist, 
   //but oh well. :\
   //NB: We need tupled to make defining `*` projection easier in Tables.LocalSettings.
-  def tupled: (Int) => LocalSettingRow = {
-    case (eid) => LocalSettingRow(eid)
-  }
+  def tupled: (Int) => LocalSettingRow = LocalSettingRow(_)
 }
 
 protected trait DrmSettingRow extends SettingRow {

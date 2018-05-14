@@ -131,26 +131,27 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def * = (executionId) <> (LocalSettingRow.tupled, LocalSettingRow.unapply)
   }
 
-  final class UgerSettings(tag: Tag) extends Table[UgerSettingRow](tag, Names.ugerSettings) with HasExecutionId {
+  private[slick] abstract class DrmSettingsTable[R](
+      tag: Tag, 
+      name: String) extends Table[R](tag, name) with HasExecutionId {
+    
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def cpus = column[Int]("CPU")
     def memPerCpu = column[Double]("MEM")
     def maxRunTime = column[Double]("MAX_RUN_TIME")
     def queue = column[Option[String]]("QUEUE")
-    val foreignKey = s"$foreignKeyPrefix${Names.ugerSettings}"
+    val foreignKey = s"$foreignKeyPrefix${name}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, cpus, memPerCpu, maxRunTime, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
   }
   
-  final class LsfSettings(tag: Tag) extends Table[LsfSettingRow](tag, Names.lsfSettings) with HasExecutionId {
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def cpus = column[Int]("CPU")
-    def memPerCpu = column[Double]("MEM")
-    def maxRunTime = column[Double]("MAX_RUN_TIME")
-    def queue = column[Option[String]]("QUEUE")
-    val foreignKey = s"$foreignKeyPrefix${Names.lsfSettings}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, cpus, memPerCpu, maxRunTime, queue) <> (LsfSettingRow.tupled, LsfSettingRow.unapply)
+  final class UgerSettings(tag: Tag) extends DrmSettingsTable[UgerSettingRow](tag, Names.ugerSettings) {
+    override def * = {
+      (executionId, cpus, memPerCpu, maxRunTime, queue) <> (UgerSettingRow.tupled, UgerSettingRow.unapply)
+    }
+  }
+  
+  final class LsfSettings(tag: Tag) extends DrmSettingsTable[LsfSettingRow](tag, Names.lsfSettings) {
+    override def * = (executionId, cpus, memPerCpu, maxRunTime, queue) <> (LsfSettingRow.tupled, LsfSettingRow.unapply)
   }
 
   final class GoogleSettings(tag: Tag) extends Table[GoogleSettingRow](tag, Names.googleSettings) with HasExecutionId {
@@ -170,7 +171,22 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def * = (executionId, startTime, endTime) <> (LocalResourceRow.tupled, LocalResourceRow.unapply)
   }
 
-  final class UgerResources(tag: Tag) extends Table[UgerResourceRow](tag, Names.ugerResources) with HasExecutionId {
+  private[slick] abstract class DrmResourcesTable[R](
+      tag: Tag, 
+      name: String) extends Table[R](tag, name) with HasExecutionId {
+    
+    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def mem = column[Double]("MEM")
+    def cpu = column[Double]("CPU")
+    def node = column[Option[String]]("NODE")
+    def queue = column[Option[String]]("QUEUE")
+    def startTime = column[Timestamp]("START_TIME")
+    def endTime = column[Timestamp]("END_TIME")
+    val foreignKey = s"$foreignKeyPrefix${name}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+  }
+  
+  final class UgerResources(tag: Tag) extends Table[UgerResourceRow](tag, Names.ugerResources) with HasExecutionId { //DrmResourcesTable[UgerResourceRow](tag, Names.ugerResources) {
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def mem = column[Double]("MEM")
     def cpu = column[Double]("CPU")
@@ -180,8 +196,24 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def endTime = column[Timestamp]("END_TIME")
     val foreignKey = s"$foreignKeyPrefix${Names.ugerResources}"
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, mem, cpu, node, queue, startTime, endTime) <>
-      (UgerResourceRow.tupled, UgerResourceRow.unapply)
+    override def * = {
+      (executionId, mem, cpu, node, queue, startTime, endTime) <> (UgerResourceRow.tupled, UgerResourceRow.unapply)
+    }
+  }
+  
+  final class LsfResources(tag: Tag) extends Table[LsfResourceRow](tag, Names.lsfResources) with HasExecutionId { //DrmResourcesTable[LsfResourceRow](tag, Names.lsfResources) {
+    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
+    def mem = column[Double]("MEM")
+    def cpu = column[Double]("CPU")
+    def node = column[Option[String]]("NODE")
+    def queue = column[Option[String]]("QUEUE")
+    def startTime = column[Timestamp]("START_TIME")
+    def endTime = column[Timestamp]("END_TIME")
+    val foreignKey = s"$foreignKeyPrefix${Names.lsfResources}"
+    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    override def * = {
+      (executionId, mem, cpu, node, queue, startTime, endTime) <> (LsfResourceRow.tupled, LsfResourceRow.unapply)
+    }
   }
 
   final class GoogleResources(tag: Tag) extends 
@@ -206,6 +238,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   lazy val googleSettings = TableQuery[GoogleSettings]
   lazy val localResources = TableQuery[LocalResources]
   lazy val ugerResources = TableQuery[UgerResources]
+  lazy val lsfResources = TableQuery[LsfResources]
   lazy val googleResources = TableQuery[GoogleResources]
 
   private lazy val allTables: Map[String, SchemaDescription] = Map(
@@ -217,6 +250,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     Names.googleSettings -> googleSettings.schema,
     Names.localResources -> localResources.schema,
     Names.ugerResources -> ugerResources.schema,
+    Names.lsfResources -> lsfResources.schema,
     Names.googleResources -> googleResources.schema
   )
 
@@ -282,6 +316,7 @@ object Tables {
     val googleSettings = "SETTINGS_GOOGLE"
     val localResources = "RESOURCES_LOCAL"
     val ugerResources = "RESOURCES_UGER"
+    val lsfResources = "RESOURCES_LSF"
     val googleResources = "RESOURCES_GOOGLE"
   }
 }

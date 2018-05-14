@@ -49,23 +49,6 @@ final case class Execution(
 
 //TODO: Clean up and consolidate factory methods.  We probably don't need so many.  Maybe name them better too.
 object Execution extends Loggable {
-  // TODO Remove when dynamic statuses flow in
-  // What does this mean? -Clint Dec 2017
-  def apply(env: Environment,
-            cmd: Option[String],
-            result: JobResult,
-            outputStreams: OutputStreams,
-            outputs: Set[OutputRecord]): Execution = {
-    
-    Execution(
-        env = env, 
-        cmd = cmd, 
-        status = result.toJobStatus, 
-        result = Option(result), 
-        resources = None, 
-        outputs = outputs,
-        outputStreams = Option(outputStreams))
-  }
 
   // TODO Remove when dynamic statuses flow in
   // What does this mean? -Clint Dec 2017
@@ -108,7 +91,14 @@ object Execution extends Loggable {
                   outputStreams: OutputStreams,
                   outputs: Set[Output]): Execution = {
     
-    apply(env, Option(cmd), result, outputStreams, outputs.map(_.toOutputRecord))
+    apply(
+        env = env, 
+        cmd = Option(cmd), 
+        status = result.toJobStatus, 
+        result = Option(result), 
+        resources = None, 
+        outputs = outputs.map(_.toOutputRecord),
+        outputStreams = Option(outputStreams))
   }
 
   def from(job: LJob, jobStatus: JobStatus, outputStreams: OutputStreams): Execution = {

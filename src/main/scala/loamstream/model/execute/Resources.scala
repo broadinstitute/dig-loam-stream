@@ -47,16 +47,44 @@ object Resources {
     }
   }
   
-  final case class DrmResources(
+  trait DrmResources extends Resources {
+    def memory: Memory
+    def cpuTime: CpuTime
+    def node: Option[String]
+    def queue: Option[Queue]
+    
+    final def withNode(newNode: String): DrmResources = withNode(Option(newNode))
+    
+    def withNode(newNodeOpt: Option[String]): DrmResources
+    
+    final def withQueue(newQueue: Queue): DrmResources = withQueue(Option(newQueue))
+    
+    def withQueue(newQueueOpt: Option[Queue]): DrmResources
+  }
+  
+  final case class UgerResources(
       memory: Memory,
       cpuTime: CpuTime,
       node: Option[String],
       queue: Option[Queue],
       startTime: Instant,
-      endTime: Instant) extends Resources {
+      endTime: Instant) extends DrmResources {
     
-    def withNode(newNode: String): DrmResources = copy(node = Option(newNode))
+    override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)
     
-    def withQueue(newQueue: Queue): DrmResources = copy(queue = Option(newQueue))
+    override def withQueue(newQueueOpt: Option[Queue]): DrmResources = copy(queue = newQueueOpt)
+  }
+  
+  final case class LsfResources(
+      memory: Memory,
+      cpuTime: CpuTime,
+      node: Option[String],
+      queue: Option[Queue],
+      startTime: Instant,
+      endTime: Instant) extends DrmResources {
+    
+    override def withNode(newNodeOpt: Option[String]): DrmResources = copy(node = newNodeOpt)
+    
+    override def withQueue(newQueueOpt: Option[Queue]): DrmResources = copy(queue = newQueueOpt)
   }
 }

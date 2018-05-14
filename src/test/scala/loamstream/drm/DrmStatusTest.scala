@@ -2,14 +2,17 @@ package loamstream.drm
 
 import java.time.Instant
 
+import org.ggf.drmaa.Session
+
 import org.scalatest.FunSuite
 
 import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
-import org.ggf.drmaa.Session
+
 
 /**
  * @author clint
@@ -21,7 +24,7 @@ final class DrmStatusTest extends FunSuite {
     
   private val broadQueue = Queue("broad")
   
-  private val resources = DrmResources(
+  private val resources = UgerResources(
       Memory.inGb(2), 
       CpuTime(1.second), 
       Some("example.com"), 

@@ -19,6 +19,8 @@ import loamstream.drm.Queue
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.LJob
 import loamstream.drm.uger.UgerDefaults
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Resources.LsfResources
 
 /**
  * @author kyuksel
@@ -26,7 +28,7 @@ import loamstream.drm.uger.UgerDefaults
  */
 trait ProvidesEnvAndResources extends FunSuite {
   
-  private val broadQueue = Queue("broad")
+  import TestHelpers.broadQueue
   
   val mockCmd: String = "R --vanilla --args ancestry_pca_scores.tsv < plot_ancestry_pca.r"
   val mockSettings: DrmSettings = DrmSettings(
@@ -38,18 +40,10 @@ trait ProvidesEnvAndResources extends FunSuite {
   val mockExitCode: Int = 999
   val mockResult: JobResult = JobResult.CommandResult(mockExitCode)
 
-  val mockLocalResources: LocalResources = TestHelpers.localResources
-  
-  val mockUgerResources: DrmResources = {
-    val mem = Memory.inGb(2.1)
-    val cpu = CpuTime.inSeconds(12.34)
-    val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
-    val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
-
-    DrmResources(mem, cpu, Some("nodeName"), Some(broadQueue), startTime, endTime)
-  }
-  
-  val mockGoogleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)
+  import TestHelpers.{ugerResources => mockUgerResources}
+  import TestHelpers.{lsfResources => mockLsfResources}
+  import TestHelpers.{localResources => mockLocalResources}
+  import TestHelpers.{googleResources => mockGoogleResources}
   
   val mockResources: Resources = mockUgerResources
 

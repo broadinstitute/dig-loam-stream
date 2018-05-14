@@ -170,6 +170,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     val table: SettingTable = execution.env match {
       case EnvironmentType.Names.Local => tables.localSettings
       case EnvironmentType.Names.Uger => tables.ugerSettings
+      case EnvironmentType.Names.Lsf => tables.lsfSettings
       case EnvironmentType.Names.Google => tables.googleSettings
     }
 
@@ -193,6 +194,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     val table: ResourceTable = execution.env match {
       case EnvironmentType.Names.Local => tables.localResources
       case EnvironmentType.Names.Uger => tables.ugerResources
+      case EnvironmentType.Names.Lsf => tables.lsfResources
       case EnvironmentType.Names.Google => tables.googleResources
     }
     
@@ -209,7 +211,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
 
   private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = row.insertOrUpdate(tables)
 
-  private def insertOrUpdateResourceRows(rows: Iterable[ResourceRow]): DBIO[Seq[Int]] = {
+  private def insertOrUpdateResourceRows(rows: Option[ResourceRow]): DBIO[Seq[Int]] = {
     DBIO.sequence(rows.toSeq.map(insertOrUpdateResourceRow))
   }
 

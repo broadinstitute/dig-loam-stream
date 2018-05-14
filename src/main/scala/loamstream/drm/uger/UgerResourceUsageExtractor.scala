@@ -10,6 +10,7 @@ import org.ggf.drmaa.JobInfo
 
 import loamstream.drm.ResourceUsageExtractor
 import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
 import loamstream.util.Tries
@@ -36,7 +37,7 @@ object UgerResourceUsageExtractor extends ResourceUsageExtractor {
   /**
    * Parse an untyped map, like the one returned by org.ggf.drmaa.JobInfo.getResourceUsage()
    */
-  private[uger] def fromUgerMap(m: Map[Any, Any]): Try[DrmResources] = {
+  private[uger] def fromUgerMap(m: Map[Any, Any]): Try[UgerResources] = {
     def tryGet[A](key: String): Try[String] = {
       import loamstream.util.Options.toTry
       
@@ -73,9 +74,8 @@ object UgerResourceUsageExtractor extends ResourceUsageExtractor {
         startTime <- tryGet(UgerKeys.startTime).map(toInstant)
         endTime <- tryGet(UgerKeys.endTime).map(toInstant)
       } yield {
-        //TODO: Get node somehow (qacct?)
-        //TODO: Get queue somehow (pass it in, qacct?)
-        DrmResources(mem, cpu, node = None, queue = None, startTime, endTime)
+        //NB: Node and queue will be filled in later
+        UgerResources(memory = mem, cpuTime = cpu, node = None, queue = None, startTime = startTime, endTime = endTime)
       }
       
       //Wrap any exceptions in UgerException, so we can check for that in Drmaa1Client

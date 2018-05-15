@@ -257,7 +257,7 @@ object AppWiring extends Loggable {
     
     val googleConfigAttempt: Try[GoogleCloudConfig] = config.googleConfig match {
       case Some(googleConfig) => Success(googleConfig)
-      case None => Tries.failure(s"Missing or malformed 'loamstream.googlecloud' section in config file $confFile")
+      case None => Tries.failure(s"Missing or malformed 'loamstream.googlecloud' section in config file")
     }
     
     val gcsClientAttempt = for {

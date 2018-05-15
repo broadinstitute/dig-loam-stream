@@ -106,7 +106,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         cmd = Option(mockCmd), 
         status = result.toJobStatus,
         result = Option(result), 
-        resources = Option(TestHelpers.lsfResources), 
+        resources = Option(TestHelpers.ugerResources), 
         outputStreams = Option(dummyOutputStreams), 
         outputs = outputs.toSet)
 
@@ -289,7 +289,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           cmd = Option(mockCmd),
           status = CommandResult(42).toJobStatus,
           result = Option(CommandResult(42)),
-          resources = Option(ugerResources),
+          resources = Option(localResources),
           outputStreams = Option(dummyOutputStreams), 
           outputs = Set(output0))
 
@@ -321,7 +321,14 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       dao.insertExecutions(failed0)
 
       val expected0 = {
-        Execution(localEnv, mockCmd, CommandResult(42), failed0.outputStreams.get, OutputRecord(output0.loc))
+        Execution(
+            env = localEnv, 
+            cmd = Option(mockCmd), 
+            status = CommandResult(42).toJobStatus, 
+            result = Option(CommandResult(42)),
+            resources = Option(localResources),
+            outputStreams = failed0.outputStreams, 
+            outputs = Set(OutputRecord(output0.loc)))
       }
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
@@ -541,12 +548,14 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           
           import dao.tables.driver.api._
           
-          val resourcesFromDb: ResourceRow = env.tpe match {
-            case EnvironmentType.Local => dao.runBlocking(dao.tables.localResources.result).head
-            case EnvironmentType.Uger => dao.runBlocking(dao.tables.ugerResources.result).head
-            case EnvironmentType.Lsf => dao.runBlocking(dao.tables.lsfResources.result).head
-            case EnvironmentType.Google => dao.runBlocking(dao.tables.googleResources.result).head
-          }
+          val resourcesFromDb: ResourceRow = dao.runBlocking { 
+            env.tpe match {
+              case EnvironmentType.Local => dao.tables.localResources.result
+              case EnvironmentType.Uger => dao.tables.ugerResources.result
+              case EnvironmentType.Lsf => dao.tables.lsfResources.result
+              case EnvironmentType.Google => dao.tables.googleResources.result
+            }
+          }.head
           
           assert(resourcesFromDb === ResourceRow.fromResources(resources, 1))
           

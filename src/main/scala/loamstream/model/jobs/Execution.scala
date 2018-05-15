@@ -6,6 +6,11 @@ import loamstream.model.execute.Settings
 import loamstream.model.jobs.commandline.CommandLineJob
 import java.nio.file.Path
 import loamstream.util.Loggable
+import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Resources.LsfResources
 
 /**
  * @author clint
@@ -21,10 +26,23 @@ final case class Execution(
     outputs: Set[OutputRecord] = Set.empty,
     outputStreams: Option[OutputStreams]) {
 
+  require(
+      environmentAndResourcesMatch, 
+      s"Environment type and resources must match, but got ${env.tpe} and $resources")
+  
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
 
   def settings: Settings = env.settings
+  
+  private def environmentAndResourcesMatch: Boolean = (env.tpe, resources) match {
+    case (_, None) => true
+    case (EnvironmentType.Local, Some(_: LocalResources)) => true
+    case (EnvironmentType.Google, Some(_: GoogleResources)) => true
+    case (EnvironmentType.Uger, Some(_: UgerResources)) => true
+    case (EnvironmentType.Lsf, Some(_: LsfResources)) => true
+    case _ => false
+  }
   
   //NB :(
   //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a

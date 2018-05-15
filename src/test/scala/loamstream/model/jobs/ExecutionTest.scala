@@ -1,14 +1,28 @@
 package loamstream.model.jobs
 
 import java.nio.file.Paths
+import java.time.Instant
 
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
+import loamstream.drm.Queue
+import loamstream.drm.uger.UgerDefaults
+import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.ProvidesEnvAndResources
+import loamstream.model.execute.Resources
+import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
 import loamstream.util.TypeBox
 
 
@@ -20,7 +34,86 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   private val p0 = Paths.get("foo/bar/baz")
   private val p1 = Paths.get("nuh")
   
-  import TestHelpers.dummyOutputStreams
+  import loamstream.TestHelpers.dummyOutputStreams
+  
+  test("guards") {
+    val localSettings = LocalSettings
+    val drmSettings = DrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue))
+    val googleSettings = GoogleSettings("some-cluster")
+
+    val localEnv: Environment = Environment.Local
+    val ugerEnv: Environment = Environment.Uger(drmSettings)
+    val lsfEnv: Environment = Environment.Lsf(drmSettings)
+    val googleEnv: Environment = Environment.Google(googleSettings)
+
+    val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
+
+    val ugerResources = UgerResources(
+        Memory.inGb(2.1),
+        CpuTime.inSeconds(12.34),
+        Some("nodeName"),
+        Some(Queue("broad")),
+        Instant.ofEpochMilli(64532),
+        Instant.ofEpochMilli(9345345))
+        
+    val lsfResources = LsfResources(
+        Memory.inGb(1.2),
+        CpuTime.inSeconds(34.21),
+        Some("another-node"),
+        Some(Queue("ebi")),
+        Instant.ofEpochMilli(12345),
+        Instant.ofEpochMilli(12346))
+
+    val googleResources = GoogleResources(
+        "clusterName",
+        Instant.ofEpochMilli(1), 
+        Instant.ofEpochMilli(72345))
+      
+    def doTest(env: Environment, resources: Option[Resources], shouldThrow: Boolean): Unit = {
+      type WrapperFn = (=> Any) => Unit
+    
+      val noop: WrapperFn = { block => 
+        block 
+        ()
+      }
+      
+      val interceptException: WrapperFn = { block =>
+        intercept[Exception] {
+          block
+        }
+      }
+    
+      val wrapperFn: WrapperFn = if(shouldThrow) interceptException else noop
+    
+      wrapperFn {
+        val result = CommandResult(0)
+      
+        Execution(
+          env = env, 
+          cmd = Option(mockCmd),
+          status = result.toJobStatus,
+          result = Option(result),
+          resources = resources,
+          outputStreams = Option(dummyOutputStreams), 
+          outputs = Set.empty)
+      }
+    }
+    
+    doTest(localEnv, Some(localResources), shouldThrow = false)
+    doTest(ugerEnv, Some(ugerResources), shouldThrow = false)
+    doTest(lsfEnv, Some(lsfResources), shouldThrow = false)
+    doTest(googleEnv, Some(googleResources), shouldThrow = false)
+    
+    doTest(localEnv, None, shouldThrow = false)
+    doTest(ugerEnv, None, shouldThrow = false)
+    doTest(lsfEnv, None, shouldThrow = false)
+    doTest(googleEnv, None, shouldThrow = false)
+    
+    doTest(localEnv, Some(googleResources), shouldThrow = true)
+    doTest(ugerEnv, Some(localResources), shouldThrow = true)
+    doTest(lsfEnv, Some(ugerResources), shouldThrow = true)
+    doTest(googleEnv, Some(lsfResources), shouldThrow = true)
+  }
   
   test("from(LJob, JobStatus, JobResult)") {
     import TestHelpers.path

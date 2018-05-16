@@ -114,10 +114,11 @@ final case class LoamGraph(
       tools = tools.map(replace),
       toolInputs = toolInputs.mapKeys(replace),
       toolOutputs = toolOutputs.mapKeys(replace),
-      storeProducers = storeProducers.mapValues(replace).view.force,
-      storeConsumers = storeConsumers.mapValues(_.map(replace)).view.force,
+      storeProducers = storeProducers.strictMapValues(replace),
+      storeConsumers = storeConsumers.strictMapValues(_.map(replace)),
       workDirs = workDirs.mapKeys(replace),
-      executionEnvironments = executionEnvironments.mapKeys(replace)
+      executionEnvironments = executionEnvironments.mapKeys(replace),
+      namedTools = namedTools.strictMapValues(replace)
     )
   }
 

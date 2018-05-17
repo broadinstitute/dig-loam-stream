@@ -249,17 +249,17 @@ final case class LoamGraph(
 
   def nameOf(t: Tool): Option[String] = namedTools.collectFirst { case (n, namedTool) if namedTool == t => n }
   
-  def withToolName(tool: Tool, name: String): LoamGraph = {
+  def withToolName(tool: Tool, tagName: String): LoamGraph = {
     //TODO: Throw here, or elsewhere?  Make this a loam-compilation-time error another way?
-    if(namedTools.contains(name)) {
-      throw new Exception(s"Tool name '$name' must be unique.")
+    if(namedTools.contains(tagName)) {
+      throw new Exception(s"Tool tag name '$tagName' must be unique.")
     }
     
     if(namedTools.values.toSet.contains(tool)) {
-      throw new Exception(s"Tool '$tool' is already named ${nameOf(tool).get}")
+      throw new Exception(s"Tool '$tool' is already tagged as ${nameOf(tool).get}")
     }
     
-    copy(namedTools = namedTools + (name -> tool))
+    copy(namedTools = namedTools + (tagName -> tool))
   }
   
   def without(toolsToExclude: Set[Tool]): LoamGraph = containingOnly(tools -- toolsToExclude)

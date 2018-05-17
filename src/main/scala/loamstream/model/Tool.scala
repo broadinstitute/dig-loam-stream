@@ -12,9 +12,6 @@ import loamstream.model.Tool.DefaultStores
   */
 trait Tool extends LId.HasId {
 
-  /** The unique tool id */
-  def id: LId
-
   /** The LoamProjectContext associated with this tool */
   def projectContext: LoamProjectContext = scriptContext.projectContext
 
@@ -59,7 +56,10 @@ trait Tool extends LId.HasId {
 
   def workDirOpt: Option[Path] = graph.workDirs.get(this)
   
-  def named(name: String): this.type = {
+  @deprecated(message = "Use tag(name) instead", since = "")
+  def named(name: String): this.type = tag(name)
+  
+  def tag(name: String): this.type = {
     projectContext.updateGraph(_.withToolName(this, name))
     
     this

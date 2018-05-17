@@ -114,10 +114,11 @@ final case class LoamGraph(
       tools = tools.map(replace),
       toolInputs = toolInputs.mapKeys(replace),
       toolOutputs = toolOutputs.mapKeys(replace),
-      storeProducers = storeProducers.mapValues(replace).view.force,
-      storeConsumers = storeConsumers.mapValues(_.map(replace)).view.force,
+      storeProducers = storeProducers.strictMapValues(replace),
+      storeConsumers = storeConsumers.strictMapValues(_.map(replace)),
       workDirs = workDirs.mapKeys(replace),
-      executionEnvironments = executionEnvironments.mapKeys(replace)
+      executionEnvironments = executionEnvironments.mapKeys(replace),
+      namedTools = namedTools.strictMapValues(replace)
     )
   }
 
@@ -249,17 +250,17 @@ final case class LoamGraph(
 
   def nameOf(t: Tool): Option[String] = namedTools.collectFirst { case (n, namedTool) if namedTool == t => n }
   
-  def withToolName(tool: Tool, name: String): LoamGraph = {
+  def withToolName(tool: Tool, tagName: String): LoamGraph = {
     //TODO: Throw here, or elsewhere?  Make this a loam-compilation-time error another way?
-    if(namedTools.contains(name)) {
-      throw new Exception(s"Tool name '$name' must be unique.")
+    if(namedTools.contains(tagName)) {
+      throw new Exception(s"Tool tag name '$tagName' must be unique.")
     }
     
     if(namedTools.values.toSet.contains(tool)) {
-      throw new Exception(s"Tool '$tool' is already named ${nameOf(tool).get}")
+      throw new Exception(s"Tool '$tool' is already tagged as ${nameOf(tool).get}")
     }
     
-    copy(namedTools = namedTools + (name -> tool))
+    copy(namedTools = namedTools + (tagName -> tool))
   }
   
   def without(toolsToExclude: Set[Tool]): LoamGraph = containingOnly(tools -- toolsToExclude)

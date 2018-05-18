@@ -12,63 +12,24 @@ import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
 import loamstream.util.ExitCodes
+import loamstream.drm.DrmJobWrapper
+import loamstream.util.Traversables
 
 /**
  * @author clint
  * May 15, 2018
  */
-final class BsubJobSubmitter(
-    drmConfig: DrmConfig, 
-    actualExecutable: String = "bsub") extends JobSubmitter with Loggable {
+final class BsubJobSubmitter private[lsf] (
+    submissionFn: BsubJobSubmitter.SubmissionFn) extends JobSubmitter with Loggable {
     
+  import BsubJobSubmitter._
+  
   override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmSubmissionResult = {
     //bsub -W 1:0 -R "rusage[mem=1024]" -J "helloworld[1-3]" -o :logs/out.%J.%I -e :logs/err.%J.%I < ./arr.sh
     
-    import scala.sys.process._
-    import BsubJobSubmitter._
+    val runAttempt = submissionFn(drmSettings, taskArray)
     
-    val tokens = makeTokens(actualExecutable, taskArray, drmSettings)
-    
-    val processBuilder: ProcessBuilder = tokens #< taskArray.drmScriptFile.toFile
-    
-    val runAttempt = run(processBuilder)
-    
-    def failure(msg: String) = DrmSubmissionResult.SubmissionFailure(new Exception(msg))
-    
-    def logStdOutAndStdErr(runResults: RunResults, headerMessage: String): Unit = {
-      error(headerMessage)
-      runResults.stderr.foreach(line => error(s"${actualExecutable} <via stderr>: $line"))
-      runResults.stdout.foreach(line => error(s"${actualExecutable} <via stdout>: $line"))
-    }
-    
-    def toDrmSubmissionResult(runResults: RunResults): DrmSubmissionResult = {
-      if(ExitCodes.isSuccess(runResults.exitCode)) {
-        BsubJobSubmitter.extractJobId(runResults.stdout) match {
-          case Some(jobId) => {
-            val individualJobIds = (1 to taskArray.size).map(i => s"${jobId}[${i}]")
-            
-            val idsToJobs = individualJobIds.zip(taskArray.drmJobs).toMap
-            
-            DrmSubmissionResult.SubmissionSuccess(idsToJobs)
-          }
-          case None => {
-            logStdOutAndStdErr(runResults, "LSF Job submission failure, stdout and stderr follow:")
-            
-            val msg = s"LSF Job submission failure: couldn't determine job ID from output of `${actualExecutable}`: ${runResults.stdout}"
-        
-            failure(msg)
-          }
-        }
-      } else {
-        logStdOutAndStdErr(runResults, "LSF Job submission failure, stdout and stderr follow:")
-        
-        val msg = s"LSF Job submission failure: `${actualExecutable}` failed with status code ${runResults.exitCode}"
-        
-        failure(msg)
-      }
-    }
-    
-    runAttempt.map(toDrmSubmissionResult) match {
+    runAttempt.map(toDrmSubmissionResult(taskArray)) match {
       case Success(submissionResult) => submissionResult
       case Failure(e: Exception) => DrmSubmissionResult.SubmissionFailure(e)
       case Failure(e) => DrmSubmissionResult.SubmissionFailure(new Exception(e))
@@ -76,25 +37,65 @@ final class BsubJobSubmitter(
   }
   
   override def stop(): Unit = ()
+  
+  private def logStdOutAndStdErr(runResults: RunResults, headerMessage: String): Unit = {
+    error(headerMessage)
+    runResults.stderr.foreach(line => error(s"${runResults.executable} <via stderr>: $line"))
+    runResults.stdout.foreach(line => error(s"${runResults.executable} <via stdout>: $line"))
+  }
+    
+  private[lsf] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
+    if(ExitCodes.isSuccess(runResults.exitCode)) {
+      BsubJobSubmitter.extractJobId(runResults.stdout) match {
+        case Some(jobId) => {
+          import Traversables.Implicits._
+          
+          def lsfJobId(drmJob: DrmJobWrapper): String = LsfJobId(jobId, drmJob.drmIndex).asString
+          
+          val idsToJobs: Map[String, DrmJobWrapper] = taskArray.drmJobs.mapBy(lsfJobId)
+          
+          DrmSubmissionResult.SubmissionSuccess(idsToJobs)
+        }
+        case None => {
+          logStdOutAndStdErr(runResults, "LSF Job submission failure, stdout and stderr follow:")
+          
+          import runResults.{ stdout, executable }
+          
+          val msg = s"LSF Job submission failure: couldn't determine job ID from output of `${executable}`: ${stdout}"
+      
+          failure(msg)
+        }
+      }
+    } else {
+      logStdOutAndStdErr(runResults, "LSF Job submission failure, stdout and stderr follow:")
+      
+      import runResults.{ exitCode, executable }
+      
+      val msg = s"LSF Job submission failure: `${executable}` failed with status code ${exitCode}"
+      
+      failure(msg)
+    }
+  }
 }
 
 object BsubJobSubmitter {
-  private[lsf] final case class RunResults(exitCode: Int, stdout: Seq[String], stderr: Seq[String])
+  type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
   
-  import scala.sys.process._
-  
-  private[lsf] def run(processBuilder: ProcessBuilder): Try[RunResults] = {
-    val stdOutBuffer: Buffer[String] = new ArrayBuffer
-    val stdErrBuffer: Buffer[String] = new ArrayBuffer
-    
-    val processLogger = ProcessLogger(stdOutBuffer += _, stdErrBuffer += _)
-    
-    Try {
-      val exitCode = processBuilder.!(processLogger)
-    
-      RunResults(exitCode, stdOutBuffer.toList, stdErrBuffer.toList)
-    }
+  def fromActualBinary(actualExecutable: String = "bsub"): BsubJobSubmitter = {
+    new BsubJobSubmitter(invokeBinaryToSubmitJobs(actualExecutable))
   }
+  
+  private[lsf] def invokeBinaryToSubmitJobs(actualExecutable: String): SubmissionFn = { (drmSettings, taskArray) =>
+    import scala.sys.process._
+  
+    val tokens = makeTokens(actualExecutable, taskArray, drmSettings)
+    
+    val processBuilder: ProcessBuilder = tokens #< taskArray.drmScriptFile.toFile
+    
+    Processes.runSync(actualExecutable, processBuilder)
+  }
+  
+  private[lsf] def failure(msg: String) = DrmSubmissionResult.SubmissionFailure(new Exception(msg))
   
   private[lsf] def makeTokens(
       actualExecutable: String, 
@@ -104,7 +105,7 @@ object BsubJobSubmitter {
     val runTimeInHours: Int = drmSettings.maxRunTime.hours.toInt
     val maxRunTimePart = Seq("-W", s"${runTimeInHours}:0")
     
-    val memoryPerCoreInMegs = drmSettings.memoryPerCore.mb.toInt
+    val memoryPerCoreInMegs = drmSettings.memoryPerCore.mib.toInt
     val memoryPart = Seq("-R", s""""rusage[mem=${memoryPerCoreInMegs}]"""")
     
     val numCores = drmSettings.cores.value
@@ -123,10 +124,10 @@ object BsubJobSubmitter {
         (queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
   }
   
-  private val submittedJobIdRegex = """^Job <(\d+)> is submitted""".r
+  private val submittedJobIdRegex = """^Job\s+<(\d+)>.+$""".r
   
   private[lsf] def extractJobId(stdOutLines: Seq[String]): Option[String] = {
-    stdOutLines.iterator.map(_.trim).collectFirst {
+    stdOutLines.iterator.map(_.trim).filter(_.nonEmpty).collectFirst {
       case submittedJobIdRegex(jobId) => jobId
     }
   }

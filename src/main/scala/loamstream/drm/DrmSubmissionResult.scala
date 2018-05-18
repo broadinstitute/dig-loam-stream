@@ -7,6 +7,8 @@ package loamstream.drm
  */
 sealed trait DrmSubmissionResult {
   def isFailure: Boolean
+  
+  final def isSuccess: Boolean = !isFailure
 }
 
 object DrmSubmissionResult {

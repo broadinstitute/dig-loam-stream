@@ -51,6 +51,9 @@ import loamstream.drm.uger.UgerNativeSpecBuilder
 import loamstream.drm.uger.DrmChunkRunner
 import loamstream.drm.uger.UgerPathBuilder
 import loamstream.model.execute.EnvironmentType
+import loamstream.drm.lsf.BjobsPoller
+import loamstream.drm.lsf.BsubJobSubmitter
+import loamstream.drm.lsf.LsfPathBuilder
 
 
 /**
@@ -169,6 +172,8 @@ object AppWiring extends Loggable {
       val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
 
       val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(confFile, config, threadPoolSize)
+      
+      val (lsfRunner, lsfRunnerHandles) = lsfChunkRunner(confFile, config, threadPoolSize)
 
       val googleRunner = googleChunkRunner(confFile, config.googleConfig, localRunner)
 
@@ -248,6 +253,24 @@ object AppWiring extends Loggable {
     result
   }
   
+  private def lsfChunkRunner(
+      confFile: Option[Path], 
+      loamConfig: LoamConfig, 
+      threadPoolSize: Int): (Option[DrmChunkRunner], Seq[Terminable]) = {
+    
+    val result @ (lsfRunnerOption, _) = unpack(makeLsfChunkRunner(loamConfig, threadPoolSize))
+
+    //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
+    if(lsfRunnerOption.isEmpty) {
+      val msg = s"""LSF support is NOT enabled. It can be enabled by defining loamstream.lsf section
+                   |in the config file (${confFile}).""".stripMargin
+        
+      debug(msg)
+    }
+    
+    result
+  }
+  
   private def unpack[A,B](o: Option[(A, Seq[B])]): (Option[A], Seq[B]) = o match {
     case Some((a, b)) => (Some(a), b)
     case None => (None, Nil)
@@ -319,12 +342,50 @@ object AppWiring extends Loggable {
     }
   }
   
+  private def makeLsfChunkRunner(
+      loamConfig: LoamConfig, 
+      threadPoolSize: Int): Option[(DrmChunkRunner, Seq[Terminable])] = {
+    
+    for {
+      lsfConfig <- loamConfig.lsfConfig
+    } yield {
+      debug("Creating LSF ChunkRunner...")
+
+      import loamstream.model.execute.ExecuterHelpers._
+
+      val poller = new BjobsPoller()
+
+      val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
+
+      val ugerRunner = {
+        //TODO: Make configurable?
+        val pollingFrequencyInHz = 0.1
+        
+        val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
+
+        val jobSubmitter = BsubJobSubmitter.fromActualBinary()
+        
+        DrmChunkRunner(
+            environmentType = EnvironmentType.Lsf,
+            pathBuilder = LsfPathBuilder,
+            executionConfig = loamConfig.executionConfig, 
+            drmConfig = lsfConfig, 
+            jobSubmitter = jobSubmitter, 
+            jobMonitor = jobMonitor)
+      }
+
+      val handles = Seq(schedulerHandle, ugerRunner)
+
+      (ugerRunner, handles)
+    }
+  }
+  
   private def makeUgerClient: DrmClient = {
     val drmaa1Client = new Drmaa1Client(UgerResourceUsageExtractor, UgerNativeSpecBuilder)
     
     new DrmClient(drmaa1Client, QacctAccountingClient.useActualBinary())
   }
-
+  
   private def loadConfig(confFileOpt: Option[Path]): Config = {
     def defaults: Config = ConfigFactory.load()
 

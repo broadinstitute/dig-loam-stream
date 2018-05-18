@@ -47,6 +47,7 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.drm.Queue
 import loamstream.model.execute.Resources.GoogleResources
+import loamstream.conf.LsfConfig
 
 /**
   * @author clint
@@ -68,6 +69,7 @@ object TestHelpers {
     val config = ConfigFactory.load("loamstream-test")
     
     val ugerConfig = UgerConfig.fromConfig(config)
+    val lsfConfig = LsfConfig.fromConfig(config)
     val googleConfig = GoogleCloudConfig.fromConfig(config)
     val hailConfig = HailConfig.fromConfig(config)
     val pythonConfig = PythonConfig.fromConfig(config)
@@ -76,6 +78,7 @@ object TestHelpers {
 
     LoamConfig( 
       ugerConfig.toOption,
+      lsfConfig.toOption,
       googleConfig.toOption,
       hailConfig.toOption,
       pythonConfig.toOption,

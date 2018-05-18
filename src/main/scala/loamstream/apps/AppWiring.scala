@@ -357,7 +357,7 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val poller = new BjobsPoller()
+      val poller = BjobsPoller.fromExecutable()
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
@@ -367,7 +367,7 @@ object AppWiring extends Loggable {
         
         val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-        val jobSubmitter = BsubJobSubmitter.fromActualBinary()
+        val jobSubmitter = BsubJobSubmitter.fromExecutable()
         
         DrmChunkRunner(
             environmentType = EnvironmentType.Lsf,

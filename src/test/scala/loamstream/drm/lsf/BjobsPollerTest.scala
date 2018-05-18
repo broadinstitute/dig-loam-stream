@@ -2,12 +2,136 @@ package loamstream.drm.lsf
 
 import org.scalatest.FunSuite
 import loamstream.drm.DrmStatus
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 /**
  * @author clint
  * May 15, 2018
  */
 final class BjobsPollerTest extends FunSuite {
+  test("poll - happy path") {
+    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+      val stdout = Seq( 
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1] EXIT  42        ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ")
+      
+      Success(RunResults("whatever", 0, stdout, Seq.empty))
+    }
+    
+    val lsfJobIds = Set(
+        LsfJobId("2842408", 1).asString, 
+        LsfJobId("2842408", 2).asString, 
+        LsfJobId("2842408", 3).asString)
+    
+    val results = new BjobsPoller(pollFn).poll(lsfJobIds)
+    
+    val expected: Map[String, Try[DrmStatus]] = Map(
+      LsfJobId("2842408", 1).asString -> Success(DrmStatus.CommandResult(42, None)),
+      LsfJobId("2842408", 2).asString -> Success(DrmStatus.CommandResult(0, None)),
+      LsfJobId("2842408", 3).asString -> Success(DrmStatus.CommandResult(0, None)),
+    )
+    
+    assert(results === expected)
+  }
+  
+  test("poll - bjobs invocation failure") {
+    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+      val stdout = Seq( 
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1] EXIT  42        ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ")
+      
+      Success(RunResults("whatever", 42, stdout, Seq.empty))
+    }
+    
+    val lsfJobIds = Set(
+        LsfJobId("2842408", 1).asString, 
+        LsfJobId("2842408", 2).asString, 
+        LsfJobId("2842408", 3).asString)
+    
+    val results = new BjobsPoller(pollFn).poll(lsfJobIds)
+    
+    assert(results.keySet === lsfJobIds)
+    assert(results.values.forall(_.isFailure))
+  }
+  
+  test("poll - something threw") {
+    val msg = "blarg"
+    
+    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+      Failure(new Exception(msg))
+    }
+    
+    val lsfJobIds = Set(
+        LsfJobId("2842408", 1).asString, 
+        LsfJobId("2842408", 2).asString, 
+        LsfJobId("2842408", 3).asString)
+    
+    val results = new BjobsPoller(pollFn).poll(lsfJobIds)
+    
+    assert(results.keySet === lsfJobIds)
+    assert(results.values.forall(_.failed.get.getMessage == msg))
+  }
+  
+  test("runChunk - happy path") {
+    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+      val stdout = Seq( 
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1] EXIT  42        ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ")
+      
+      Success(RunResults("whatever", 0, stdout, Seq.empty))
+    }
+    
+    val lsfJobIds = Set(LsfJobId("2842408", 1), LsfJobId("2842408", 2), LsfJobId("2842408", 3))
+    
+    val results = new BjobsPoller(pollFn).runChunk(lsfJobIds)
+    
+    val expected: Map[LsfJobId, Try[DrmStatus]] = Map(
+      LsfJobId("2842408", 1) -> Success(DrmStatus.CommandResult(42, None)),
+      LsfJobId("2842408", 2) -> Success(DrmStatus.CommandResult(0, None)),
+      LsfJobId("2842408", 3) -> Success(DrmStatus.CommandResult(0, None)),
+    )
+    
+    assert(results === expected)
+  }
+  
+  test("runChunk - bjobs invocation failure") {
+    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+      val stdout = Seq( 
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1] EXIT  42        ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ")
+      
+      Success(RunResults("whatever", 42, stdout, Seq.empty))
+    }
+    
+    val lsfJobIds = Set(LsfJobId("2842408", 1), LsfJobId("2842408", 2), LsfJobId("2842408", 3))
+    
+    val results = new BjobsPoller(pollFn).runChunk(lsfJobIds)
+    
+    assert(results.keySet === lsfJobIds)
+    assert(results.values.forall(_.isFailure))
+  }
+  
+  test("runChunk - something threw") {
+    val msg = "blarg"
+    
+    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+      Failure(new Exception(msg))
+    }
+    
+    val lsfJobIds = Set(LsfJobId("2842408", 1), LsfJobId("2842408", 2), LsfJobId("2842408", 3))
+    
+    val results = new BjobsPoller(pollFn).runChunk(lsfJobIds)
+    
+    assert(results.keySet === lsfJobIds)
+    assert(results.values.forall(_.failed.get.getMessage == msg))
+  }
+  
   test("parseBjobsOutputLine - exit code") {
     import BjobsPoller.parseBjobsOutputLine
     

@@ -37,12 +37,6 @@ final class BsubJobSubmitter private[lsf] (
   
   override def stop(): Unit = ()
   
-  private def logStdOutAndStdErr(runResults: RunResults, headerMessage: String): Unit = {
-    error(headerMessage)
-    runResults.stderr.foreach(line => error(s"${runResults.executable} <via stderr>: $line"))
-    runResults.stdout.foreach(line => error(s"${runResults.executable} <via stdout>: $line"))
-  }
-    
   private[lsf] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
     if(runResults.isSuccess) {
       BsubJobSubmitter.extractJobId(runResults.stdout) match {
@@ -80,7 +74,7 @@ final class BsubJobSubmitter private[lsf] (
   private def logAndMakeFailure(
       runResults: RunResults)(errorMsg: RunResults => String): DrmSubmissionResult.SubmissionFailure = {
     
-    logStdOutAndStdErr(runResults, "LSF Job submission failure, stdout and stderr follow:")
+    runResults.logStdOutAndStdErr("LSF Job submission failure, stdout and stderr follow:")
       
     failure(errorMsg(runResults))
   }
@@ -89,7 +83,7 @@ final class BsubJobSubmitter private[lsf] (
 object BsubJobSubmitter extends Loggable {
   type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
   
-  def fromActualBinary(actualExecutable: String = "bsub"): BsubJobSubmitter = {
+  def fromExecutable(actualExecutable: String = "bsub"): BsubJobSubmitter = {
     new BsubJobSubmitter(invokeBinaryToSubmitJobs(actualExecutable))
   }
   

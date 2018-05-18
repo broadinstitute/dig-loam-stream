@@ -14,7 +14,7 @@ import scala.util.Success
  * @author clint
  * May 15, 2018
  */
-final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with Loggable {
+final class BjobsPoller private[lsf] (pollingFn: BjobsPoller.PollingFn) extends Poller with Loggable {
   /**
    * Synchronously inquire about the status of one or more jobs
    *
@@ -42,23 +42,19 @@ final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with 
     result
   }
   
-  private def runChunk(lsfJobIds: Set[LsfJobId]): Map[LsfJobId, Try[DrmStatus]] = {
-    val tokens = BjobsPoller.makeTokens(actualExecutable, lsfJobIds)
+  private[lsf] def runChunk(lsfJobIds: Set[LsfJobId]): Map[LsfJobId, Try[DrmStatus]] = {
+    val runResultsAttempt = pollingFn(lsfJobIds)
       
-    import scala.sys.process._
-    import loamstream.util.Maps.Implicits._
-    
-    debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
-    
-    //NB: Implicit conversion to ProcessBuilder :\
-    val processBuilder: ProcessBuilder = tokens
-    
-    val runResultsAttempt = Processes.runSync(actualExecutable, processBuilder)
-    
-    val chunkOfIdsToStatusesAttempt = for {
-      runResults <- runResultsAttempt
-    } yield {
-      BjobsPoller.parseBjobsOutput(runResults.stdout).toMap
+    val chunkOfIdsToStatusesAttempt = runResultsAttempt.flatMap { runResults =>
+      if(runResults.isFailure) { 
+        import runResults.exitCode
+        
+        runResults.logStdOutAndStdErr(s"LSF polling failure (exit code ${exitCode}), stdout and stderr follow:")
+        
+        Tries.failure(s"Error polling for job ids: $lsfJobIds")
+      } else {
+        Try(BjobsPoller.parseBjobsOutput(runResults.stdout).toMap)
+      }
     }
     
     chunkOfIdsToStatusesAttempt match { 
@@ -69,7 +65,11 @@ final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with 
         
         lsfJobIds.mapTo(_ => Failure(e))
       }
-      case Success(idsToStatuses) => idsToStatuses.strictMapValues(Success(_))
+      case Success(idsToStatuses) => {
+        import loamstream.util.Maps.Implicits._
+        
+        idsToStatuses.strictMapValues(Success(_))
+      }
     }
   }
   
@@ -77,6 +77,25 @@ final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with 
 }
 
 object BjobsPoller extends Loggable {
+  
+  type PollingFn = Set[LsfJobId] => Try[RunResults]
+  
+  def fromExecutable(actualExecutable: String = "bjobs"): BjobsPoller = {
+    def pollingFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
+      val tokens = makeTokens(actualExecutable, lsfJobIds)
+      
+      import scala.sys.process._
+      
+      debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+      
+      //NB: Implicit conversion to ProcessBuilder :\
+      val processBuilder: ProcessBuilder = tokens
+      
+      Processes.runSync(actualExecutable, processBuilder)
+    }
+    
+    new BjobsPoller(pollingFn)
+  }
   
   private[lsf] def parseBjobsOutput(lines: Seq[String]): Iterable[(LsfJobId, DrmStatus)] = {
     val dataLines = lines.map(_.trim).filter(_.nonEmpty)

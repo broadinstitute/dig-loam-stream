@@ -177,9 +177,13 @@ object AppWiring extends Loggable {
 
       val googleRunner = googleChunkRunner(confFile, config.googleConfig, localRunner)
 
-      val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
+      //val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
       
-      val toBeStopped = compositeRunner +: localEcHandle +: (ugerRunnerHandles ++ compositeRunner.components)    
+      val compositeRunner = CompositeChunkRunner(localRunner +: (lsfRunner.toSeq ++ googleRunner))
+      
+      //val toBeStopped = compositeRunner +: localEcHandle +: (ugerRunnerHandles ++ compositeRunner.components)
+      
+      val toBeStopped = compositeRunner +: localEcHandle +: (lsfRunnerHandles ++ compositeRunner.components)
       
       (compositeRunner, toBeStopped.distinct)
     }

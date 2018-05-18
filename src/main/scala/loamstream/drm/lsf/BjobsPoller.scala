@@ -22,6 +22,8 @@ final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with 
    * @return a map of job ids to attempts at that job's status
    */
   override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = {
+    debug(s"Polling for ${jobIds.size} jobs: $jobIds")
+    
     val allLsfJobIdsAttempt = Tries.sequence(jobIds.map(LsfJobId.parse)) 
     
     //TODO: .get
@@ -33,7 +35,11 @@ final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with 
     
     val jobIdsToStatusAttempts = Maps.mergeMaps(indicesByBaseId.values.map(runChunk))
     
-    jobIdsToStatusAttempts.mapKeys(_.asString)
+    val result = jobIdsToStatusAttempts.mapKeys(_.asString)
+    
+    debug(s"Done polling for $jobIds; results: $result")
+    
+    result
   }
   
   private def runChunk(lsfJobIds: Set[LsfJobId]): Map[LsfJobId, Try[DrmStatus]] = {
@@ -41,6 +47,8 @@ final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with 
       
     import scala.sys.process._
     import loamstream.util.Maps.Implicits._
+    
+    debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
     
     //NB: Implicit conversion to ProcessBuilder :\
     val processBuilder: ProcessBuilder = tokens
@@ -66,36 +74,32 @@ final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with 
   }
   
   override def stop(): Unit = ()
-  
-  /**
-   * JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
-		 2738574 cgilber DONE  research-r ebi-cli-002 ebi6-062    *oworld[2] May 16 23:19
-   */
 }
 
-object BjobsPoller {
-  
+object BjobsPoller extends Loggable {
   
   private[lsf] def parseBjobsOutput(lines: Seq[String]): Iterable[(LsfJobId, DrmStatus)] = {
     val dataLines = lines.map(_.trim).filter(_.nonEmpty)
     
-    /*
-      JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
-      2842408 cgilbert DONE  research-rh7 ebi-cli-002 ebi5-270    helloworld[2] May 17 20:14
-      2842408 cgilbert DONE  research-rh7 ebi-cli-002 ebi6-116    helloworld[3] May 17 20:14
-      2842408 cgilbert DONE  research-rh7 ebi-cli-002 hx-noah-10-09 helloworld[1] May 17 20:14
-     */
+    //NB: Bjobs output is expected to look like this (minus the header line)
+    //JOBID     JOB_NAME      STAT  EXIT_CODE
+    //2842408   LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1] EXIT  42        ",
+    //2842408   LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
+    //2842408   LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ")
     
     dataLines.flatMap(parseBjobsOutputLine)
   }
   
-  private val jobNameArrayIndexRegex: Regex = """^\w+?\[(\d+)\]""".r
+  private val jobNameArrayIndexRegex: Regex = """^.+?\[(\d+)\]""".r
   
   private[lsf] def parseBjobsOutputLine(line: String): Option[(LsfJobId, DrmStatus)] = {
+    trace(s"parsing bjobs output line '$line'")
+    
+    //NB: Bjobs output is expected to look like this (minus the header line)
     //JOBID     JOB_NAME      STAT  EXIT_CODE
-    //2842408   helloworld[1] EXIT  42        ",
-    //2842408   helloworld[3] DONE      -     ",
-    //2842408   helloworld[2] DONE      -     ")
+    //2842408   LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1] EXIT  42        ",
+    //2842408   LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
+    //2842408   LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ")
     val parts = line.split("""\s+""")
     
     def extractIndex(s: String): Option[Int] = s.trim match {
@@ -105,7 +109,7 @@ object BjobsPoller {
     
     val liftedParts = parts.lift
     
-    for {
+    val result = for {
       baseJobId <- liftedParts(0)
       jobNameWithIndex <- liftedParts(1)
       taskArrayIndex <- extractIndex(jobNameWithIndex)
@@ -118,6 +122,12 @@ object BjobsPoller {
       
       LsfJobId(baseJobId, taskArrayIndex) -> drmStatus
     }
+    
+    if(result.isEmpty) {
+      warn(s"Couldn't parse bjobs output line '$line'")
+    }
+    
+    result
   }
   
   private[lsf] def makeTokens(actualExecutable: String, lsfJobIds: Iterable[LsfJobId]): Seq[String] = {
@@ -125,7 +135,7 @@ object BjobsPoller {
     
     val baseJobIds = lsfJobIds.map(_.baseJobId).toSet
     
-    require(baseJobIds.size == 1, s"All lsf job ids should have the same base, but got $lsfJobIds")
+    require(baseJobIds.size == 1, s"All LSF job ids in this chunk should have the same base, but got $lsfJobIds")
     
     val indices = lsfJobIds.map(_.taskArrayIndex)
     
@@ -133,15 +143,15 @@ object BjobsPoller {
         
     val toQueryFor = s"${baseJobId}[${indices.mkString(",")}]"
     
-    //NB: -w means "don't truncate any values"
+    //NB: See https://www.ibm.com/support/knowledgecenter/en/SSETD4_9.1.2/lsf_command_ref/bjobs.1.html
     Seq(
         actualExecutable, 
-        "-noheader", 
-        "-d", 
-        "-r", 
-        "-s", 
-        "-o", 
-        """"jobid: job_name:-100 stat: exit_code:"""", 
+        "-noheader", //Don't print a header row
+        "-d",        //"Displays information about jobs that finished recently"
+        "-r",        //Displays running jobs
+        "-s",        //Display suspended jobs
+        "-o",        //Specify output columns
+        "jobid: job_name:-100 stat: exit_code:", 
         toQueryFor)
   }
 }

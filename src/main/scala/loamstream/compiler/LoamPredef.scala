@@ -106,6 +106,16 @@ object LoamPredef extends Loggable {
     runIn(env)(expr)(scriptContext)
   }
   
+  def lsf[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    val lsfConfig = scriptContext.lsfConfig 
+    
+    val settings = DrmSettings.fromLsfConfig(lsfConfig)
+    
+    val env = Environment.Lsf(settings)
+    
+    runIn(env)(expr)(scriptContext)
+  }
+  
   /**
    * @param mem Memory requested per core, per job submission (in Gb's)
    * @param cores Number of cores requested per job submission

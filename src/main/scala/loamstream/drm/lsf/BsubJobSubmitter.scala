@@ -14,6 +14,7 @@ import scala.util.Failure
 import loamstream.util.ExitCodes
 import loamstream.drm.DrmJobWrapper
 import loamstream.util.Traversables
+import scala.collection.mutable.ListBuffer
 
 /**
  * @author clint
@@ -25,8 +26,6 @@ final class BsubJobSubmitter private[lsf] (
   import BsubJobSubmitter._
   
   override def submitJobs(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmSubmissionResult = {
-    //bsub -W 1:0 -R "rusage[mem=1024]" -J "helloworld[1-3]" -o :logs/out.%J.%I -e :logs/err.%J.%I < ./arr.sh
-    
     val runAttempt = submissionFn(drmSettings, taskArray)
     
     runAttempt.map(toDrmSubmissionResult(taskArray)) match {
@@ -53,6 +52,15 @@ final class BsubJobSubmitter private[lsf] (
           def lsfJobId(drmJob: DrmJobWrapper): String = LsfJobId(jobId, drmJob.drmIndex).asString
           
           val idsToJobs: Map[String, DrmJobWrapper] = taskArray.drmJobs.mapBy(lsfJobId)
+
+          val numJobs = taskArray.size
+          val allJobIds = idsToJobs.keys
+          
+          val msg = {
+            s"Successfully submitted ${numJobs} LSF jobs with base job id '${jobId}'; individual job ids: ${allJobIds}"
+          }
+          
+          debug(msg)
           
           DrmSubmissionResult.SubmissionSuccess(idsToJobs)
         }
@@ -78,7 +86,7 @@ final class BsubJobSubmitter private[lsf] (
   }
 }
 
-object BsubJobSubmitter {
+object BsubJobSubmitter extends Loggable {
   type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
   
   def fromActualBinary(actualExecutable: String = "bsub"): BsubJobSubmitter = {
@@ -89,6 +97,8 @@ object BsubJobSubmitter {
     import scala.sys.process._
   
     val tokens = makeTokens(actualExecutable, taskArray, drmSettings)
+    
+    debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
     
     val processBuilder: ProcessBuilder = tokens #< taskArray.drmScriptFile.toFile
     
@@ -102,31 +112,39 @@ object BsubJobSubmitter {
       taskArray: DrmTaskArray,
       drmSettings: DrmSettings): Seq[String] = {
     
+    //NB: See https://www.ibm.com/support/knowledgecenter/en/SSETD4_9.1.2/lsf_command_ref/bsub.1.html
+    
     val runTimeInHours: Int = drmSettings.maxRunTime.hours.toInt
     val maxRunTimePart = Seq("-W", s"${runTimeInHours}:0")
     
     val memoryPerCoreInMegs = drmSettings.memoryPerCore.mib.toInt
-    val memoryPart = Seq("-R", s""""rusage[mem=${memoryPerCoreInMegs}]"""")
+    val memoryPart = Seq("-R", s"rusage[mem=${memoryPerCoreInMegs}]")
     
     val numCores = drmSettings.cores.value
     
-    val coresPart = Seq("-n", numCores.toString, "-R", """"span[hosts=1]"""")
+    val coresPart = Seq("-n", numCores.toString, "-R", s"span[hosts=1]")
     
     val queuePart: Seq[String] = drmSettings.queue.toSeq.flatMap(q => Seq("-q", q.name))
     
-    val jobNamePart = Seq("-J", s""""${taskArray.drmJobName}[1-${taskArray.size}]"""")
+    val jobNamePart = Seq("-J", s"${taskArray.drmJobName}[1-${taskArray.size}]")
     
     val stdoutPart = Seq("-oo", s":${taskArray.stdOutPathTemplate}")
     
     val stderrPart = Seq("-eo", s":${taskArray.stdErrPathTemplate}")
     
-    actualExecutable +: 
-        (queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
+    val allTokens: Buffer[String] = new ListBuffer
+    
+    allTokens += actualExecutable ++= queuePart ++= maxRunTimePart ++= memoryPart ++= coresPart ++= 
+                 jobNamePart ++= stdoutPart ++= stderrPart
+    
+    allTokens
   }
   
   private val submittedJobIdRegex = """^Job\s+<(\d+)>.+$""".r
   
   private[lsf] def extractJobId(stdOutLines: Seq[String]): Option[String] = {
+    trace(s"Parsing job-submission output: $stdOutLines")
+    
     stdOutLines.iterator.map(_.trim).filter(_.nonEmpty).collectFirst {
       case submittedJobIdRegex(jobId) => jobId
     }

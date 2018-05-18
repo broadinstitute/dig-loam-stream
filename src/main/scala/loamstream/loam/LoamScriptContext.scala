@@ -12,6 +12,7 @@ import loamstream.conf.PythonConfig
 import loamstream.googlecloud.HailConfig
 import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.conf.UgerConfig
+import loamstream.conf.LsfConfig
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -41,6 +42,10 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
   
   def ugerConfig: UgerConfig = {
     getOpt(config.ugerConfig, s"Uger support requires a valid 'loamstream.uger' section in the config file")
+  }
+  
+  def lsfConfig: LsfConfig = {
+    getOpt(config.lsfConfig, s"LSF support requires a valid 'loamstream.lsf' section in the config file")
   }
   
   def rConfig: RConfig = {

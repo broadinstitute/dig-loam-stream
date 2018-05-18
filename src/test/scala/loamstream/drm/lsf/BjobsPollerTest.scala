@@ -13,7 +13,7 @@ final class BjobsPollerTest extends FunSuite {
     
     val actualOutputLine = {
       // scalastyle:off line.size.limit
-      "2842408                                                                                        helloworld[2] EXIT  42        ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] EXIT  42        ",
       // scalastyle:on line.size.limit   
     }
     
@@ -27,7 +27,7 @@ final class BjobsPollerTest extends FunSuite {
     
     val actualOutputLine = {
       // scalastyle:off line.size.limit
-      "2842408                                                                                        helloworld[2] DONE      -     ",
+      "2842408                                 LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ",
       // scalastyle:on line.size.limit   
     }
     
@@ -41,7 +41,7 @@ final class BjobsPollerTest extends FunSuite {
     
     val actualOutputLine = {
       // scalastyle:off line.size.limit
-      "2842408                                                                                        helloworld[2] RUN       -     ",
+      "2842408                             LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] RUN       -     ",
       // scalastyle:on line.size.limit   
     }
     
@@ -59,9 +59,9 @@ final class BjobsPollerTest extends FunSuite {
   
     // scalastyle:off line.size.limit
     val actualOutput = Seq( 
-      "2842408                                                                                        helloworld[1] EXIT  42        ",
-      "2842408                                                                                        helloworld[3] DONE      -     ",
-      "2842408                                                                                        helloworld[2] DONE      -     ")
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1] EXIT  42        ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ")
     // scalastyle:on line.size.limit      
 
     val results = parseBjobsOutput(actualOutput)
@@ -95,7 +95,7 @@ final class BjobsPollerTest extends FunSuite {
         "-r", 
         "-s",
         "-o",
-        """"jobid: job_name:-100 stat: exit_code:"""",
+        "jobid: job_name:-100 stat: exit_code:",
         "2842408[3,1]")
     
     assert(tokens === expected)

@@ -1,20 +1,53 @@
 package loamstream.drm.lsf
 
 import org.scalatest.FunSuite
+import loamstream.drm.DrmStatus
 
 /**
  * @author clint
  * May 15, 2018
  */
 final class BjobsPollerTest extends FunSuite {
-  test("parseBjobsOutputLine") {
+  test("parseBjobsOutputLine - exit code") {
     import BjobsPoller.parseBjobsOutputLine
     
-    val actualOutputLine = "2842408 cgilbert DONE  research-rh7 ebi-cli-002 ebi5-270    helloworld[2] May 17 20:14"
+    val actualOutputLine = {
+      // scalastyle:off line.size.limit
+      "2842408                                                                                        helloworld[2] EXIT  42        ",
+      // scalastyle:on line.size.limit   
+    }
     
     val result = parseBjobsOutputLine(actualOutputLine)
     
-    assert(result === Some(LsfJobId("2842408", 2) -> LsfStatus.Done))
+    assert(result === Some(LsfJobId("2842408", 2) -> DrmStatus.CommandResult(42, None)))
+  }
+  
+  test("parseBjobsOutputLine - no exit code, exited normally") {
+    import BjobsPoller.parseBjobsOutputLine
+    
+    val actualOutputLine = {
+      // scalastyle:off line.size.limit
+      "2842408                                                                                        helloworld[2] DONE      -     ",
+      // scalastyle:on line.size.limit   
+    }
+    
+    val result = parseBjobsOutputLine(actualOutputLine)
+    
+    assert(result === Some(LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0, None)))
+  }
+  
+  test("parseBjobsOutputLine - no exit code, still running") {
+    import BjobsPoller.parseBjobsOutputLine
+    
+    val actualOutputLine = {
+      // scalastyle:off line.size.limit
+      "2842408                                                                                        helloworld[2] RUN       -     ",
+      // scalastyle:on line.size.limit   
+    }
+    
+    val result = parseBjobsOutputLine(actualOutputLine)
+    
+    assert(result === Some(LsfJobId("2842408", 2) -> DrmStatus.Running))
   }
   
   test("parseBjobsOutputLine - bad input") {
@@ -24,18 +57,19 @@ final class BjobsPollerTest extends FunSuite {
   test("parseBjobsOutput") { 
     import BjobsPoller.parseBjobsOutput
   
+    // scalastyle:off line.size.limit
     val actualOutput = Seq( 
-      "JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME",
-      "2842408 cgilbert DONE  research-rh7 ebi-cli-002 ebi5-270    helloworld[2] May 17 20:14",
-      "2842408 cgilbert PEND  research-rh7 ebi-cli-002 ebi6-116    helloworld[3] May 17 20:14",
-      "2842408 cgilbert EXIT  research-rh7 ebi-cli-002 hx-noah-10-09 helloworld[1] May 17 20:14")
-      
+      "2842408                                                                                        helloworld[1] EXIT  42        ",
+      "2842408                                                                                        helloworld[3] DONE      -     ",
+      "2842408                                                                                        helloworld[2] DONE      -     ")
+    // scalastyle:on line.size.limit      
+
     val results = parseBjobsOutput(actualOutput)
     
     val expected = Seq(
-        LsfJobId("2842408", 2) -> LsfStatus.Done,
-        LsfJobId("2842408", 3) -> LsfStatus.Pending,
-        LsfJobId("2842408", 1) -> LsfStatus.Exited)
+        LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42, None),
+        LsfJobId("2842408", 3) -> DrmStatus.CommandResult(0, None),
+        LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0, None))
         
     assert(results === expected)
   }
@@ -54,7 +88,15 @@ final class BjobsPollerTest extends FunSuite {
     
     val tokens = makeTokens(executable, lsfJobIds)
     
-    val expected = Seq("foo", "-w", "2842408[3,1]")
+    val expected = Seq(
+        "foo", 
+        "-noheader", 
+        "-d", 
+        "-r", 
+        "-s",
+        "-o",
+        """"jobid: job_name:-100 stat: exit_code:"""",
+        "2842408[3,1]")
     
     assert(tokens === expected)
   }

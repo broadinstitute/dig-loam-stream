@@ -33,12 +33,10 @@ final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with 
     
     val jobIdsToStatusAttempts = Maps.mergeMaps(indicesByBaseId.values.map(runChunk))
     
-    jobIdsToStatusAttempts.map { case (lsfJobId, statusAttempt) => 
-      lsfJobId.asString -> statusAttempt.map(_.toDrmStatus)
-    }
+    jobIdsToStatusAttempts.mapKeys(_.asString)
   }
   
-  private def runChunk(lsfJobIds: Set[LsfJobId]): Map[LsfJobId, Try[LsfStatus]] = {
+  private def runChunk(lsfJobIds: Set[LsfJobId]): Map[LsfJobId, Try[DrmStatus]] = {
     val tokens = BjobsPoller.makeTokens(actualExecutable, lsfJobIds)
       
     import scala.sys.process._
@@ -78,10 +76,8 @@ final class BjobsPoller(actualExecutable: String = "bjobs") extends Poller with 
 object BjobsPoller {
   
   
-  private[lsf] def parseBjobsOutput(lines: Seq[String]): Iterable[(LsfJobId, LsfStatus)] = {
-    val trimmedNonEmptyLines = lines.map(_.trim).filter(_.nonEmpty)
-    
-    val dataLines = trimmedNonEmptyLines.dropWhile(_.startsWith("JOBID"))
+  private[lsf] def parseBjobsOutput(lines: Seq[String]): Iterable[(LsfJobId, DrmStatus)] = {
+    val dataLines = lines.map(_.trim).filter(_.nonEmpty)
     
     /*
       JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
@@ -95,15 +91,14 @@ object BjobsPoller {
   
   private val jobNameArrayIndexRegex: Regex = """^\w+?\[(\d+)\]""".r
   
-  private[lsf] def parseBjobsOutputLine(line: String): Option[(LsfJobId, LsfStatus)] = {
-    //NB: note use of take(7) to drop the SUBMIT_TIME column.  This is needed since values in that column
-    //contain spaces, and columns are delimited by one or more spaces, not tabs. :\  For example:
-    //
-    //JOBID   USER    STAT  QUEUE      FROM_HOST   EXEC_HOST   JOB_NAME   SUBMIT_TIME
-    //2842408 cgilbert DONE  research-rh7 ebi-cli-002 ebi5-270    helloworld[2] May 17 20:14
-    val parts = line.split("""\s+""").take(7)
+  private[lsf] def parseBjobsOutputLine(line: String): Option[(LsfJobId, DrmStatus)] = {
+    //JOBID     JOB_NAME      STAT  EXIT_CODE
+    //2842408   helloworld[1] EXIT  42        ",
+    //2842408   helloworld[3] DONE      -     ",
+    //2842408   helloworld[2] DONE      -     ")
+    val parts = line.split("""\s+""")
     
-    def extractIndex(s: String): Option[Int] = s match {
+    def extractIndex(s: String): Option[Int] = s.trim match {
       case jobNameArrayIndexRegex(i) => Some(i.toInt)
       case _ => None
     }
@@ -112,12 +107,16 @@ object BjobsPoller {
     
     for {
       baseJobId <- liftedParts(0)
+      jobNameWithIndex <- liftedParts(1)
+      taskArrayIndex <- extractIndex(jobNameWithIndex)
       statusString <- liftedParts(2)
       status <- LsfStatus.fromString(statusString)
-      jobNameWithIndex <- liftedParts(6)
-      taskArrayIndex <- extractIndex(jobNameWithIndex)
+      exitCodeString <- liftedParts(3)
     } yield {
-      LsfJobId(baseJobId, taskArrayIndex) -> status
+      val exitCodeOpt = Try(exitCodeString.trim.toInt).toOption
+      val drmStatus = status.toDrmStatus(exitCodeOpt)
+      
+      LsfJobId(baseJobId, taskArrayIndex) -> drmStatus
     }
   }
   
@@ -135,6 +134,14 @@ object BjobsPoller {
     val toQueryFor = s"${baseJobId}[${indices.mkString(",")}]"
     
     //NB: -w means "don't truncate any values"
-    Seq(actualExecutable, "-w", toQueryFor)
+    Seq(
+        actualExecutable, 
+        "-noheader", 
+        "-d", 
+        "-r", 
+        "-s", 
+        "-o", 
+        """"jobid: job_name:-100 stat: exit_code:"""", 
+        toQueryFor)
   }
 }

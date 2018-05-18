@@ -46,25 +46,29 @@ import loamstream.drm.DrmStatus
  *   treats the job the same way as local ZOMBI jobs. In addition, it notifies the submission cluster that the job 
  *   is in ZOMBI state and the submission cluster requeues the job.
  */
-sealed abstract class LsfStatus(val lsfName: String) {
+sealed abstract class LsfStatus(val lsfName: Option[String]) {
   import LsfStatus._
   
-  def toDrmStatus: DrmStatus = this match {
-    case Pending => DrmStatus.Queued
-    case Provisioned => DrmStatus.Running
-    case SuspendedWhilePending => DrmStatus.Suspended()
-    case Running => DrmStatus.Running
-    case SuspendedWhileRunning => DrmStatus.Suspended()
-    case Suspended => DrmStatus.Suspended()
+  def this(name: String) = this(Option(name))
+  
+  def toDrmStatus(exitCodeOpt: Option[Int]): DrmStatus = (this, exitCodeOpt) match {
+    case (Pending, _) => DrmStatus.Queued
+    case (Provisioned, _) => DrmStatus.Running
+    case (SuspendedWhilePending, _) => DrmStatus.Suspended()
+    case (Running, _) => DrmStatus.Running
+    case (SuspendedWhileRunning, _) => DrmStatus.Suspended()
+    case (Suspended, _) => DrmStatus.Suspended()
     //TODO: Command result?
-    case Done => DrmStatus.Done
+    case (Done, _) => DrmStatus.CommandResult(0, None)
     //Handle different exit codes, say 131 to indicate job was killed by LSF?
-    case Exited => DrmStatus.Failed()
-    case Unknown => DrmStatus.Undetermined()
+    case (Exited, Some(exitCode)) => DrmStatus.CommandResult(exitCode, None)
+    case (Exited, None) => DrmStatus.Failed()
+    case (Unknown, _) => DrmStatus.Undetermined()
     //TODO: ???
-    case WaitingToRun => DrmStatus.Queued
+    case (WaitingToRun, _) => DrmStatus.Queued
     //TODO: ???
-    case Zombie => DrmStatus.Failed()
+    case (Zombie, _) => DrmStatus.Failed()
+    case (CommandResult(exitCode), _) => DrmStatus.CommandResult(exitCode, None)
   }
 }
 
@@ -81,11 +85,13 @@ object LsfStatus {
   case object Unknown extends LsfStatus("UNKWN")
   case object WaitingToRun extends LsfStatus("WAIT")
   case object Zombie extends LsfStatus("ZOMBI")
+  
+  final case class CommandResult(exitCode: Int) extends LsfStatus(None)
 
   def fromString(lsfName: String): Option[LsfStatus] = byName.get(lsfName.trim.toUpperCase)
 
   private lazy val byName: Map[String, LsfStatus] = {
-    Seq(
+    val named = Seq(
       Pending,
       Provisioned,
       SuspendedWhilePending,
@@ -96,6 +102,10 @@ object LsfStatus {
       Exited,
       Unknown,
       WaitingToRun,
-      Zombie).map(status => (status.lsfName -> status)).toMap
+      Zombie)
+      
+    named.zip(named.map(_.lsfName)).collect {
+      case (status, Some(lsfName)) => (lsfName -> status)
+    }.toMap
   }
 }

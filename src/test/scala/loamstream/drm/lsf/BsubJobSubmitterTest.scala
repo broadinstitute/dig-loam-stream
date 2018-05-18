@@ -18,6 +18,7 @@ import loamstream.util.Files
 import scala.util.Try
 import scala.util.Success
 import loamstream.drm.DrmSubmissionResult
+import scala.util.Failure
 
 /**
  * @author clint
@@ -47,11 +48,27 @@ final class BsubJobSubmitterTest extends FunSuite {
   }
   
   test("submitJobs - submission failure") {
-    fail("TODO")
+    def submissionFn(drmSettings: DrmSettings, taskArray: DrmTaskArray): Try[RunResults] = {
+      Success(RunResults("mock", 42, Seq.empty, Seq.empty))
+    }
+    
+    val submitter = new BsubJobSubmitter(submissionFn)
+    
+    val result = submitter.submitJobs(settings, taskArray)
+    
+    assert(result.isFailure)
   }
   
   test("submitJobs - something threw") {
-    fail("TODO")
+    def submissionFn(drmSettings: DrmSettings, taskArray: DrmTaskArray): Try[RunResults] = {
+      Failure(new Exception)
+    }
+    
+    val submitter = new BsubJobSubmitter(submissionFn)
+    
+    val result = submitter.submitJobs(settings, taskArray)
+    
+    assert(result.isFailure)
   }
   
   test("failure") {

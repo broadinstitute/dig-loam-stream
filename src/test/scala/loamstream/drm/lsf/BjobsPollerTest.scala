@@ -12,9 +12,7 @@ final class BjobsPollerTest extends FunSuite {
     import BjobsPoller.parseBjobsOutputLine
     
     val actualOutputLine = {
-      // scalastyle:off line.size.limit
       "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] EXIT  42        ",
-      // scalastyle:on line.size.limit   
     }
     
     val result = parseBjobsOutputLine(actualOutputLine)
@@ -26,9 +24,7 @@ final class BjobsPollerTest extends FunSuite {
     import BjobsPoller.parseBjobsOutputLine
     
     val actualOutputLine = {
-      // scalastyle:off line.size.limit
       "2842408                                 LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ",
-      // scalastyle:on line.size.limit   
     }
     
     val result = parseBjobsOutputLine(actualOutputLine)
@@ -40,9 +36,7 @@ final class BjobsPollerTest extends FunSuite {
     import BjobsPoller.parseBjobsOutputLine
     
     val actualOutputLine = {
-      // scalastyle:off line.size.limit
       "2842408                             LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] RUN       -     ",
-      // scalastyle:on line.size.limit   
     }
     
     val result = parseBjobsOutputLine(actualOutputLine)
@@ -51,18 +45,23 @@ final class BjobsPollerTest extends FunSuite {
   }
   
   test("parseBjobsOutputLine - bad input") {
-    fail("TODO")
+    import BjobsPoller.parseBjobsOutputLine
+    
+    assert(parseBjobsOutputLine("2842408                             blarg RUN       -     ") === None)
+    assert(parseBjobsOutputLine("") === None)
+    assert(parseBjobsOutputLine("   ") === None)
+    assert(parseBjobsOutputLine("foo") === None)
+    assert(parseBjobsOutputLine("2842408 LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] GLARG       -") === None)
+    assert(parseBjobsOutputLine("2842408 LoamStream-826b3929-4810-4116-8502-5c60cd830d81 RUN       -") === None)     
   }
   
   test("parseBjobsOutput") { 
     import BjobsPoller.parseBjobsOutput
   
-    // scalastyle:off line.size.limit
     val actualOutput = Seq( 
       "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1] EXIT  42        ",
       "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
       "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ")
-    // scalastyle:on line.size.limit      
 
     val results = parseBjobsOutput(actualOutput)
     
@@ -75,12 +74,28 @@ final class BjobsPollerTest extends FunSuite {
   }
   
   test("parseBjobsOutput - bad input") {
-    fail("TODO")
+    import BjobsPoller.parseBjobsOutput
+  
+    val actualOutput = Seq( 
+      "",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1] EXIT  42        ",
+      " fooooo ",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
+      "2842408 LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] GLARG       -",
+      "2842408                           LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ",
+      "2842408 LoamStream-826b3929-4810-4116-8502-5c60cd830d81 RUN       -")
+
+    val results = parseBjobsOutput(actualOutput)
+    
+    val expected = Seq(
+        LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42, None),
+        LsfJobId("2842408", 3) -> DrmStatus.CommandResult(0, None),
+        LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0, None))
+        
+    assert(results === expected)
   }
   
   test("makeTokens") {
-    //private[lsf] def makeTokens(actualExecutable: String, lsfJobIds: Set[LsfJobId]): Seq[String] = {
-    
     val executable = "foo"
     val lsfJobIds = Set(LsfJobId("2842408", 3), LsfJobId("2842408", 1))
     

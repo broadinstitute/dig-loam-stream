@@ -1,7 +1,14 @@
 package loamstream.drm.lsf
 
+import loamstream.util.ExitCodes
+
 /**
  * @author clint
  * May 15, 2018
  */
-final case class RunResults(executable: String, exitCode: Int, stdout: Seq[String], stderr: Seq[String])
+final case class RunResults(executable: String, exitCode: Int, stdout: Seq[String], stderr: Seq[String]) {
+  
+  def isSuccess: Boolean = ExitCodes.isSuccess(exitCode)
+  
+  def isFailure: Boolean = ExitCodes.isFailure(exitCode)
+}

@@ -44,45 +44,45 @@ final class BsubJobSubmitter private[lsf] (
   }
     
   private[lsf] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
-    if(ExitCodes.isSuccess(runResults.exitCode)) {
+    if(runResults.isSuccess) {
       BsubJobSubmitter.extractJobId(runResults.stdout) match {
-        case Some(jobId) => {
-          import Traversables.Implicits._
-          
-          def lsfJobId(drmJob: DrmJobWrapper): String = LsfJobId(jobId, drmJob.drmIndex).asString
-          
-          val idsToJobs: Map[String, DrmJobWrapper] = taskArray.drmJobs.mapBy(lsfJobId)
-
-          val numJobs = taskArray.size
-          val allJobIds = idsToJobs.keys
-          
-          val msg = {
-            s"Successfully submitted ${numJobs} LSF jobs with base job id '${jobId}'; individual job ids: ${allJobIds}"
-          }
-          
-          debug(msg)
-          
-          DrmSubmissionResult.SubmissionSuccess(idsToJobs)
-        }
+        case Some(jobId) =>  makeSuccess(jobId, taskArray)
         case None => {
-          logStdOutAndStdErr(runResults, "LSF Job submission failure, stdout and stderr follow:")
-          
-          import runResults.{ stdout, executable }
-          
-          val msg = s"LSF Job submission failure: couldn't determine job ID from output of `${executable}`: ${stdout}"
-      
-          failure(msg)
+          logAndMakeFailure(runResults) { r =>
+            s"LSF Job submission failure: couldn't determine job ID from output of `${r.executable}`: ${r.stdout}"
+          }
         }
       }
     } else {
-      logStdOutAndStdErr(runResults, "LSF Job submission failure, stdout and stderr follow:")
-      
-      import runResults.{ exitCode, executable }
-      
-      val msg = s"LSF Job submission failure: `${executable}` failed with status code ${exitCode}"
-      
-      failure(msg)
+      logAndMakeFailure(runResults) { runResults =>
+        s"LSF Job submission failure: `${runResults.executable}` failed with status code ${runResults.exitCode}"
+      }
     }
+  }
+  
+  private def makeSuccess(jobId: String, taskArray: DrmTaskArray): DrmSubmissionResult.SubmissionSuccess = {
+    import Traversables.Implicits._
+          
+    def lsfJobId(drmJob: DrmJobWrapper): String = LsfJobId(jobId, drmJob.drmIndex).asString
+    
+    val idsToJobs: Map[String, DrmJobWrapper] = taskArray.drmJobs.mapBy(lsfJobId)
+
+    debug {
+      val numJobs = taskArray.size
+      val allJobIds = idsToJobs.keys
+      
+      s"Successfully submitted ${numJobs} LSF jobs with base job id '${jobId}'; individual job ids: ${allJobIds}"
+    }
+    
+    DrmSubmissionResult.SubmissionSuccess(idsToJobs)
+  }
+  
+  private def logAndMakeFailure(
+      runResults: RunResults)(errorMsg: RunResults => String): DrmSubmissionResult.SubmissionFailure = {
+    
+    logStdOutAndStdErr(runResults, "LSF Job submission failure, stdout and stderr follow:")
+      
+    failure(errorMsg(runResults))
   }
 }
 
@@ -105,7 +105,9 @@ object BsubJobSubmitter extends Loggable {
     Processes.runSync(actualExecutable, processBuilder)
   }
   
-  private[lsf] def failure(msg: String) = DrmSubmissionResult.SubmissionFailure(new Exception(msg))
+  import DrmSubmissionResult.SubmissionFailure
+  
+  private[lsf] def failure(msg: String): SubmissionFailure = SubmissionFailure(new Exception(msg))
   
   private[lsf] def makeTokens(
       actualExecutable: String, 
@@ -132,12 +134,8 @@ object BsubJobSubmitter extends Loggable {
     
     val stderrPart = Seq("-eo", s":${taskArray.stdErrPathTemplate}")
     
-    val allTokens: Buffer[String] = new ListBuffer
-    
-    allTokens += actualExecutable ++= queuePart ++= maxRunTimePart ++= memoryPart ++= coresPart ++= 
-                 jobNamePart ++= stdoutPart ++= stderrPart
-    
-    allTokens
+    actualExecutable +: 
+      (queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
   }
   
   private val submittedJobIdRegex = """^Job\s+<(\d+)>.+$""".r

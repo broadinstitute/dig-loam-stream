@@ -87,6 +87,7 @@ object BjobsPoller extends Loggable {
     //2842408   LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3] DONE      -     ",
     //2842408   LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] DONE      -     ")
     
+    //TODO: Unparseable lines are ignored; revisit whether this is appropriate
     dataLines.flatMap(parseBjobsOutputLine)
   }
   

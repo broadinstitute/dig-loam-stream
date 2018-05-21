@@ -9,12 +9,14 @@ import loamstream.util.Maps
 import loamstream.util.Loggable
 import scala.util.Failure
 import scala.util.Success
+import InvokesBjobs.InvocationFn
 
 /**
  * @author clint
  * May 15, 2018
  */
-final class BjobsPoller private[lsf] (pollingFn: BjobsPoller.PollingFn) extends Poller with Loggable {
+final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[LsfJobId]]) extends Poller with Loggable { 
+  
   /**
    * Synchronously inquire about the status of one or more jobs
    *
@@ -41,6 +43,8 @@ final class BjobsPoller private[lsf] (pollingFn: BjobsPoller.PollingFn) extends 
     
     result
   }
+  
+  override def stop(): Unit = ()
   
   private[lsf] def runChunk(lsfJobIds: Set[LsfJobId]): Map[LsfJobId, Try[DrmStatus]] = {
     val runResultsAttempt = pollingFn(lsfJobIds)
@@ -72,30 +76,9 @@ final class BjobsPoller private[lsf] (pollingFn: BjobsPoller.PollingFn) extends 
       }
     }
   }
-  
-  override def stop(): Unit = ()
 }
 
-object BjobsPoller extends Loggable {
-  
-  type PollingFn = Set[LsfJobId] => Try[RunResults]
-  
-  def fromExecutable(actualExecutable: String = "bjobs"): BjobsPoller = {
-    def pollingFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
-      val tokens = makeTokens(actualExecutable, lsfJobIds)
-      
-      import scala.sys.process._
-      
-      debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
-      
-      //NB: Implicit conversion to ProcessBuilder :\
-      val processBuilder: ProcessBuilder = tokens
-      
-      Processes.runSync(actualExecutable, processBuilder)
-    }
-    
-    new BjobsPoller(pollingFn)
-  }
+object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
   
   private[lsf] def parseBjobsOutput(lines: Seq[String]): Iterable[(LsfJobId, DrmStatus)] = {
     val dataLines = lines.map(_.trim).filter(_.nonEmpty)
@@ -150,7 +133,7 @@ object BjobsPoller extends Loggable {
     result
   }
   
-  private[lsf] def makeTokens(actualExecutable: String, lsfJobIds: Iterable[LsfJobId]): Seq[String] = {
+  private[lsf] override def makeTokens(actualExecutable: String, lsfJobIds: Set[LsfJobId]): Seq[String] = {
     require(lsfJobIds.nonEmpty, s"Can't build '${actualExecutable}' command-line from empty set of job ids")
     
     val baseJobIds = lsfJobIds.map(_.baseJobId).toSet

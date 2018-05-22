@@ -84,7 +84,7 @@ final class DrmSettingsTest extends FunSuite {
     val settings = makeSettings(config)
     
     assert(settings.cores === Cpus(42))
-    assert(settings.memoryPerCore === Memory.inGb(17))
+    assert(settings.memoryPerCore === Memory.inGiB(17))
     assert(settings.maxRunTime === CpuTime.inHours(33))
     assert(settings.queue === expectedQueue)
   }

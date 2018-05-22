@@ -8,8 +8,8 @@ import loamstream.model.execute.Resources.DrmResources
  * @author clint
  * date: Jun 16, 2016
  * 
- * An ADT/"Enum" to represent job statuses as reported by UGER.  Values roughly correspond to constants in 
- * org.ggf.drmaa.Session.
+ * An ADT/"Enum" to represent job statuses as reported by UGER and other DRM systems.  
+ * Values roughly correspond to constants in org.ggf.drmaa.Session.
  */
 sealed trait DrmStatus {
   import DrmStatus._

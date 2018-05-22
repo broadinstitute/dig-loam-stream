@@ -1,6 +1,7 @@
 package loamstream.drm.lsf
 
 import loamstream.drm.DrmStatus
+import loamstream.model.execute.Resources.LsfResources
 
 /**
  * @author clint
@@ -51,24 +52,26 @@ sealed abstract class LsfStatus(val lsfName: Option[String]) {
   
   def this(name: String) = this(Option(name))
   
-  def toDrmStatus(exitCodeOpt: Option[Int]): DrmStatus = (this, exitCodeOpt) match {
-    case (Pending, _) => DrmStatus.Queued
-    case (Provisioned, _) => DrmStatus.Running
-    case (SuspendedWhilePending, _) => DrmStatus.Suspended()
-    case (Running, _) => DrmStatus.Running
-    case (SuspendedWhileRunning, _) => DrmStatus.Suspended()
-    case (Suspended, _) => DrmStatus.Suspended()
-    //TODO: Command result?
-    case (Done, _) => DrmStatus.CommandResult(0, None)
-    //Handle different exit codes, say 131 to indicate job was killed by LSF?
-    case (Exited, Some(exitCode)) => DrmStatus.CommandResult(exitCode, None)
-    case (Exited, None) => DrmStatus.Failed()
-    case (Unknown, _) => DrmStatus.Undetermined()
-    //TODO: ???
-    case (WaitingToRun, _) => DrmStatus.Queued
-    //TODO: ???
-    case (Zombie, _) => DrmStatus.Failed()
-    case (CommandResult(exitCode), _) => DrmStatus.CommandResult(exitCode, None)
+  def toDrmStatus(exitCodeOpt: Option[Int], resourcesOpt: Option[LsfResources]): DrmStatus = {
+    (this, exitCodeOpt) match {
+      case (Pending, _) => DrmStatus.Queued
+      case (Provisioned, _) => DrmStatus.Running
+      case (SuspendedWhilePending, _) => DrmStatus.Suspended(resourcesOpt)
+      case (Running, _) => DrmStatus.Running
+      case (SuspendedWhileRunning, _) => DrmStatus.Suspended(resourcesOpt)
+      case (Suspended, _) => DrmStatus.Suspended()
+      //TODO: Command result?
+      case (Done, _) => DrmStatus.CommandResult(0, resourcesOpt)
+      //Handle different exit codes, say 131 to indicate job was killed by LSF?
+      case (Exited, Some(exitCode)) => DrmStatus.CommandResult(exitCode, resourcesOpt)
+      case (Exited, None) => DrmStatus.Failed()
+      case (Unknown, _) => DrmStatus.Undetermined(resourcesOpt)
+      //TODO: ???
+      case (WaitingToRun, _) => DrmStatus.Queued
+      //TODO: ???
+      case (Zombie, _) => DrmStatus.Failed(resourcesOpt)
+      case (CommandResult(exitCode), _) => DrmStatus.CommandResult(exitCode, resourcesOpt)
+    }
   }
 }
 

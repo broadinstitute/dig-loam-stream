@@ -91,10 +91,7 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
     
-    //NB: Use asInstanceOf because a[T] doesn't play nice with 'should contain' :\
-    assert(runner.components.exists(_.isInstanceOf[AsyncLocalChunkRunner]))
-    assert(runner.components.exists(_.isInstanceOf[DrmChunkRunner]))
-    assert(runner.components.size === 2)
+    assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
     
     actualExecuter.jobFilter shouldBe a[DbBackedJobFilter]
     
@@ -116,10 +113,7 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
     
-    //NB: Use asInstanceOf because a[T] doesn't play nice with 'should contain' :\
-    assert(runner.components.exists(_.isInstanceOf[AsyncLocalChunkRunner]))
-    assert(runner.components.exists(_.isInstanceOf[DrmChunkRunner]))
-    assert(runner.components.size === 2)
+    assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
     
     actualExecuter.asInstanceOf[RxExecuter].jobFilter shouldBe JobFilter.RunEverything
   }

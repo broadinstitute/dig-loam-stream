@@ -14,11 +14,14 @@ final case class RunResults(executable: String, exitCode: Int, stdout: Seq[Strin
   
   def isFailure: Boolean = ExitCodes.isFailure(exitCode)
   
-  def logStdOutAndStdErr(headerMessage: String)(implicit logCtx: LogContext): Unit = {
-    def error(s: => String): Unit = logCtx.log(Loggable.Level.error, s)
+  def logStdOutAndStdErr(
+      headerMessage: String, 
+      level: Loggable.Level.Value = Loggable.Level.error)(implicit logCtx: LogContext): Unit = {
     
-    error(headerMessage)
-    stderr.foreach(line => error(s"${executable} <via stderr>: $line"))
-    stdout.foreach(line => error(s"${executable} <via stdout>: $line"))
+    def doLog(s: => String): Unit = logCtx.log(level, s)
+    
+    doLog(headerMessage)
+    stderr.foreach(line => doLog(s"${executable} <via stderr>: $line"))
+    stdout.foreach(line => doLog(s"${executable} <via stdout>: $line"))
   }
 }

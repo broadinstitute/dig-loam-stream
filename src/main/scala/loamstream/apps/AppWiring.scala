@@ -54,6 +54,7 @@ import loamstream.model.execute.EnvironmentType
 import loamstream.drm.lsf.BjobsPoller
 import loamstream.drm.lsf.BsubJobSubmitter
 import loamstream.drm.lsf.LsfPathBuilder
+import loamstream.drm.lsf.BkillJobKiller
 
 
 /**
@@ -262,7 +263,11 @@ object AppWiring extends Loggable {
       loamConfig: LoamConfig, 
       threadPoolSize: Int): (Option[DrmChunkRunner], Seq[Terminable]) = {
     
-    val result @ (lsfRunnerOption, _) = unpack(makeLsfChunkRunner(loamConfig, threadPoolSize))
+    val (lsfRunnerOption, terminables) = unpack(makeLsfChunkRunner(loamConfig, threadPoolSize))
+    
+    val jobKillerTerminable = Terminable {
+      BkillJobKiller.fromExecutable().killAllJobs()
+    }
 
     //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
     if(lsfRunnerOption.isEmpty) {
@@ -272,7 +277,7 @@ object AppWiring extends Loggable {
       debug(msg)
     }
     
-    result
+    (lsfRunnerOption, terminables :+ jobKillerTerminable)
   }
   
   private def unpack[A,B](o: Option[(A, Seq[B])]): (Option[A], Seq[B]) = o match {

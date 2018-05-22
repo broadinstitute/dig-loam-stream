@@ -40,7 +40,7 @@ final class UgerConfigTest extends FunSuite {
     assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
     assert(ugerConfig.maxNumJobs === 44)
     assert(ugerConfig.defaultCores === Cpus(42))
-    assert(ugerConfig.defaultMemoryPerCore=== Memory.inGb(9))
+    assert(ugerConfig.defaultMemoryPerCore=== Memory.inGiB(9))
     assert(ugerConfig.defaultMaxRunTime === CpuTime.inHours(11))
   }
   

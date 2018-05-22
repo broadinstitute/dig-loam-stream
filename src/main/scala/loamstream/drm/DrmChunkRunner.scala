@@ -190,7 +190,7 @@ object DrmChunkRunner extends Loggable {
             job = wrapper.commandLineJob,
             jobStatus = toJobStatus(s),
             jobResult = toJobResult(s),
-            resourcesOpt = None, //NB: This will be filled in later, if possible
+            resourcesOpt = s.resourcesOpt, //NB: In the DRMAA case, this will be re-filled-in later, if possible
             outputStreamsOpt = Option(wrapper.outputStreams))
       }
       

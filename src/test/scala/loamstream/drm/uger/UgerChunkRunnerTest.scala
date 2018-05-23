@@ -39,6 +39,7 @@ import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.model.execute.EnvironmentType
+import loamstream.drm.DrmSystem
 
 
 /**
@@ -326,7 +327,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   }
   
   test("Uger config is propagated to DRMAA client - 2 jobs, same settings") {
-    val graph = TestHelpers.makeGraph { implicit context =>
+    val graph = TestHelpers.makeGraph(DrmSystem.Uger) { implicit context =>
       import LoamPredef._
       import LoamCmdTool._
     
@@ -377,7 +378,7 @@ final class UgerChunkRunnerTest extends FunSuite {
   
   test("Uger config is propagated to DRMAA client - 2 pairs of jobs with different settings") {
     val (graph, tool0, tool1, tool2, tool3) = { 
-      implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext)
+      implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext(DrmSystem.Uger))
       
       import LoamPredef._
       import LoamCmdTool._

@@ -48,6 +48,7 @@ import loamstream.model.execute.Resources.LsfResources
 import loamstream.drm.Queue
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.conf.LsfConfig
+import loamstream.drm.DrmSystem
 
 /**
   * @author clint
@@ -155,13 +156,28 @@ object TestHelpers {
   
   def emptyProjectContext = LoamProjectContext.empty(config)
   
+  def emptyProjectContext(drmSystem: DrmSystem) = LoamProjectContext.empty(config.copy(drmSystem = Option(drmSystem)))
+  
   def withScriptContext[A](f: LoamScriptContext => A): A = f(new LoamScriptContext(emptyProjectContext))
   
-  def makeGraph(loamCode: LoamScriptContext => Any): LoamGraph = withScriptContext { sc =>
+  def withScriptContext[A](drmSystem: DrmSystem)(f: LoamScriptContext => A): A = {
+    f(new LoamScriptContext(emptyProjectContext(drmSystem)))
+  }
+  
+  def makeGraph(loamCode: LoamScriptContext => Any): LoamGraph = {
+    withScriptContext { sc =>
+      loamCode(sc)
       
-    loamCode(sc)
+      sc.projectContext.graph
+    }
+  }
+  
+  def makeGraph(drmSystem: DrmSystem)(loamCode: LoamScriptContext => Any): LoamGraph = {
+    withScriptContext(drmSystem) { sc =>
+      loamCode(sc)
       
-    sc.projectContext.graph
+      sc.projectContext.graph
+    }
   }
   
   def run(graph: LoamGraph, timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
@@ -195,6 +211,16 @@ object TestHelpers {
       ugerConfig.defaultMemoryPerCore,
       ugerConfig.defaultMaxRunTime,
       Option(UgerDefaults.queue))
+  }
+  
+  val defaultLsfSettings: DrmSettings = {
+    val lsfConfig = config.lsfConfig.get 
+
+    DrmSettings(
+      lsfConfig.defaultCores,
+      lsfConfig.defaultMemoryPerCore,
+      lsfConfig.defaultMaxRunTime,
+      None)
   }
   
   def dummyFileName: Path = TestHelpers.path(s"${UUID.randomUUID.toString}.log")

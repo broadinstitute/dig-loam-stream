@@ -20,6 +20,7 @@ object EnvironmentType {
     val Google = "google"
     val Uger = "uger"
     val Lsf = "lsf"
+    val Drm = "drm"
   }
 
   final case object Local extends EnvironmentType(Names.Local)

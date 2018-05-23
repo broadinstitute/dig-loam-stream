@@ -55,6 +55,7 @@ import loamstream.drm.lsf.BjobsPoller
 import loamstream.drm.lsf.BsubJobSubmitter
 import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.lsf.BkillJobKiller
+import loamstream.drm.DrmSystem
 
 
 /**
@@ -101,7 +102,8 @@ object AppWiring extends Loggable {
         confFile = intent.confFile,
         makeDao = makeDao,
         shouldRunEverything = intent.shouldRunEverything, 
-        hashingStrategy = intent.hashingStrategy)
+        hashingStrategy = intent.hashingStrategy,
+        drmSystemOpt = intent.drmSystemOpt)
   }
 
   private[AppWiring] def makeJobFilter(
@@ -117,7 +119,8 @@ object AppWiring extends Loggable {
       confFile: Option[Path],
       makeDao: => LoamDao,
       shouldRunEverything: Boolean,
-      hashingStrategy: HashingStrategy) extends AppWiring {
+      hashingStrategy: HashingStrategy,
+      drmSystemOpt: Option[DrmSystem]) extends AppWiring {
     
     override lazy val dao: LoamDao = makeDao
     

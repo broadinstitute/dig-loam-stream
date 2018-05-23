@@ -15,6 +15,8 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.drm.uger.UgerDefaults
 import loamstream.util.Loggable
+import loamstream.drm.DrmSystem
+import loamstream.model.execute.EnvironmentType
 
 /**
  * @author clint
@@ -42,11 +44,21 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     assert(job.executionEnvironment === Environment.Local)
   }
   
+  private def makeGraph(env: Environment): (LoamScriptContext => Any) => LoamGraph = env.tpe match {
+    case EnvironmentType.Uger => TestHelpers.makeGraph(DrmSystem.Uger)(_)
+    case EnvironmentType.Lsf => TestHelpers.makeGraph(DrmSystem.Lsf)(_)
+    case _ => TestHelpers.makeGraph(_)
+  }
+  
+  private def makeGraph(drmSystem: DrmSystem): (LoamScriptContext => Any) => LoamGraph = {
+    TestHelpers.makeGraph(drmSystem)(_)
+  }
+  
   test("Set EE") {
     def doTest(env: Environment): Unit = {
       val methodName = env.toString.toLowerCase
       
-      val graph = TestHelpers.makeGraph { implicit context => 
+      val graph = makeGraph(env) { implicit context => 
         import LoamCmdTool._
       
         envFn(env) {
@@ -64,17 +76,18 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     }
     
     doTest(Environment.Local)
-    doTest(Environment.Uger(DrmSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4), Option(UgerDefaults.queue))))
+    doTest(Environment.Uger(DrmSettings(Cpus(2), Memory.inGiB(3), CpuTime.inHours(4), Option(UgerDefaults.queue))))
+    doTest(Environment.Lsf(DrmSettings(Cpus(3), Memory.inGiB(4), CpuTime.inHours(5), None)))
     doTest(Environment.Google(GoogleSettings(clusterId)))
   }
   
   test("Multiple EEs") {
-    def doTest(env1: Environment, env2: Environment, env3: Environment ): Unit = {
+    def doTest(drmSystem: DrmSystem, env1: Environment, env2: Environment, env3: Environment ): Unit = {
       val methodName1 = env1.toString.toLowerCase
       val methodName2 = env2.toString.toLowerCase
       val methodName3 = env3.toString.toLowerCase
       
-      val graph = TestHelpers.makeGraph { implicit context => 
+      val graph = makeGraph(drmSystem) { implicit context => 
         import LoamCmdTool._
         
         envFn(env1) {
@@ -118,17 +131,26 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     import Environment._
     
     val ugerEnv = Uger(TestHelpers.defaultUgerSettings)
+    val lsfEnv = Lsf(TestHelpers.defaultLsfSettings)
     val googleEnv = Google(GoogleSettings(clusterId))
     
-    doTest(Local, ugerEnv, googleEnv)
-    doTest(googleEnv, ugerEnv, Local)
-    doTest(Local, Local, Local)
-    doTest(googleEnv, googleEnv, googleEnv)
-    doTest(ugerEnv, ugerEnv, ugerEnv)
-    doTest(googleEnv, ugerEnv, ugerEnv)
-    doTest(ugerEnv, Local, Local)
-    doTest(Local, ugerEnv, Local)
+    doTest(DrmSystem.Uger, Local, ugerEnv, googleEnv)
+    doTest(DrmSystem.Uger, googleEnv, ugerEnv, Local)
+    doTest(DrmSystem.Uger, Local, Local, Local)
+    doTest(DrmSystem.Uger, googleEnv, googleEnv, googleEnv)
+    doTest(DrmSystem.Uger, ugerEnv, ugerEnv, ugerEnv)
+    doTest(DrmSystem.Uger, googleEnv, ugerEnv, ugerEnv)
+    doTest(DrmSystem.Uger, ugerEnv, Local, Local)
+    doTest(DrmSystem.Uger, Local, ugerEnv, Local)
     
+    doTest(DrmSystem.Lsf, Local, lsfEnv, googleEnv)
+    doTest(DrmSystem.Lsf, googleEnv, lsfEnv, Local)
+    doTest(DrmSystem.Lsf, Local, Local, Local)
+    doTest(DrmSystem.Lsf, googleEnv, googleEnv, googleEnv)
+    doTest(DrmSystem.Lsf, lsfEnv, lsfEnv, lsfEnv)
+    doTest(DrmSystem.Lsf, googleEnv, lsfEnv, lsfEnv)
+    doTest(DrmSystem.Lsf, lsfEnv, Local, Local)
+    doTest(DrmSystem.Lsf, Local, lsfEnv, Local)
   }
   
   private def envFn[A](env: Environment)(block: => A)(implicit context: LoamScriptContext): A = env match {
@@ -136,6 +158,9 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     case Environment.Google(_) => LoamPredef.google(block)
     case Environment.Uger(settings) => {
       LoamPredef.ugerWith(settings.cores.value, settings.memoryPerCore.gb, settings.maxRunTime.hours)(block)
+    }
+    case Environment.Lsf(settings) => {
+      LoamPredef.drmWith(settings.cores.value, settings.memoryPerCore.gb, settings.maxRunTime.hours)(block)
     }
   }
 }

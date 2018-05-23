@@ -6,6 +6,8 @@ import scala.util.Try
 import com.typesafe.config.Config
 import scala.util.Success
 import loamstream.util.Loggable
+import loamstream.util.Tries
+import loamstream.drm.DrmSystem
 
 /**
  * @author clint
@@ -18,7 +20,8 @@ final case class LoamConfig(
     hailConfig: Option[HailConfig],
     pythonConfig: Option[PythonConfig],
     rConfig: Option[RConfig],
-    executionConfig: ExecutionConfig)
+    executionConfig: ExecutionConfig,
+    drmSystem: Option[DrmSystem] = None)
     
 object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
   override def fromConfig(config: Config): Try[LoamConfig] = {
@@ -34,15 +37,19 @@ object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
       debug(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
     }
     
-    Success {
-      LoamConfig( 
-        ugerConfig.toOption,
-        lsfConfig.toOption,
-        googleConfig.toOption,
-        hailConfig.toOption,
-        pythonConfig.toOption,
-        rConfig.toOption,
-        executionConfig.getOrElse(ExecutionConfig.default))
+    if(ugerConfig.isSuccess && lsfConfig.isSuccess) {
+      Tries.failure("Either Uger or LSF support may be configured, but not both")
+    } else {
+      Success {
+        LoamConfig( 
+          ugerConfig.toOption,
+          lsfConfig.toOption,
+          googleConfig.toOption,
+          hailConfig.toOption,
+          pythonConfig.toOption,
+          rConfig.toOption,
+          executionConfig.getOrElse(ExecutionConfig.default))
+      }
     }
   }
 }

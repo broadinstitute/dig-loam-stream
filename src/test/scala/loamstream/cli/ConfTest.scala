@@ -15,6 +15,50 @@ final class ConfTest extends FunSuite with Matchers {
 
   private def makeConf(args: Seq[String]): Conf = Conf(args)
   
+  test("--uger, --lsf") {
+    {
+      val args = Seq("src/examples/loam/cp.loam")
+      
+      val conf = makeConf(args)
+      
+      assert(conf.disableHashing.isSupplied === false)
+      assert(conf.compileOnly.isSupplied === false)
+      assert(conf.conf.isSupplied === false)
+      assert(conf.version.isSupplied === false)
+      assert(conf.uger.isSupplied === false)
+      assert(conf.lsf.isSupplied === false)
+      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+    }
+    
+    {
+      val args = Seq("--lsf", "src/examples/loam/cp.loam")
+      
+      val conf = makeConf(args)
+      
+      assert(conf.disableHashing.isSupplied === false)
+      assert(conf.compileOnly.isSupplied === false)
+      assert(conf.conf.isSupplied === false)
+      assert(conf.version.isSupplied === false)
+      assert(conf.uger.isSupplied === false)
+      assert(conf.lsf.isSupplied === true)
+      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+    }
+    
+    {
+      val args = Seq("--uger", "src/examples/loam/cp.loam")
+      
+      val conf = makeConf(args)
+      
+      assert(conf.disableHashing.isSupplied === false)
+      assert(conf.compileOnly.isSupplied === false)
+      assert(conf.conf.isSupplied === false)
+      assert(conf.version.isSupplied === false)
+      assert(conf.uger.isSupplied === true)
+      assert(conf.lsf.isSupplied === false)
+      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+    }
+  }
+  
   test("Single loam file along with conf file is parsed correctly") {
     val conf = makeConf(Seq("--conf", "src/test/resources/loamstream-test.conf", 
                             "src/test/resources/a.txt"))

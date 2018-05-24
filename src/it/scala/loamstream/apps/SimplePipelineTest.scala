@@ -11,6 +11,7 @@ import java.nio.file.Path
 import loamstream.db.slick.DbDescriptor
 import loamstream.db.LoamDao
 import java.nio.file.Paths
+import loamstream.drm.DrmSystem
 
 /**
  * @author clint
@@ -113,10 +114,17 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
     assert(Files.readFrom(loamScriptPath) === loamScriptContents)
 
+    val drmSystemOpt: Option[DrmSystem] = environment.toLowerCase match {
+      case "uger" => Some(DrmSystem.Uger)
+      case "lsf" => Some(DrmSystem.Lsf)
+      case _ => None
+    }
+    
     val intent = Intent.RealRun(
       confFile = Some(confFilePath),
       hashingStrategy = hashingStrategy,
       shouldRunEverything = shouldRunEverything,
+      drmSystemOpt = drmSystemOpt,
       loams = Seq(loamScriptPath))
     
     (new Main.Run).doRealRun(intent, dao)

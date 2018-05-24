@@ -1,4 +1,4 @@
-package loamstream.drm.uger
+package loamstream.drm
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -10,15 +10,7 @@ import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.UgerConfig
-import loamstream.drm.DrmJobWrapper
-import loamstream.drm.DrmStatus
-import loamstream.drm.DrmSubmissionResult
-import loamstream.drm.DrmTaskArray
-import loamstream.drm.DrmaaPoller
-import loamstream.drm.JobMonitor
-import loamstream.drm.JobSubmitter
-import loamstream.drm.MockDrmaaClient
-import loamstream.drm.uger.UgerChunkRunnerTest.MockJobSubmitter
+import loamstream.drm.DrmChunkRunnerTest.MockJobSubmitter
 import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.DrmSettings
@@ -39,7 +31,13 @@ import loamstream.util.ObservableEnrichments
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.model.execute.EnvironmentType
-import loamstream.drm.DrmSystem
+import loamstream.drm.uger.UgerPathBuilder
+import loamstream.drm.uger.UgerDefaults
+import loamstream.drm.uger.UgerPathBuilder
+import loamstream.drm.lsf.LsfPathBuilder
+import loamstream.conf.LsfConfig
+import loamstream.drm.DrmChunkRunnerTest.MockJobSubmitter
+import scala.util.Try
 
 
 /**
@@ -47,7 +45,7 @@ import loamstream.drm.DrmSystem
  * @author kyuksel
  * Jul 25, 2016
  */
-final class UgerChunkRunnerTest extends FunSuite {
+final class DrmChunkRunnerTest extends FunSuite {
   private val scheduler = IOScheduler()
   
   import loamstream.TestHelpers.neverRestart
@@ -67,12 +65,31 @@ final class UgerChunkRunnerTest extends FunSuite {
       defaultMaxRunTime = CpuTime.inHours(7))
   }
   
+  private val lsfConfig = {
+    import scala.concurrent.duration.DurationInt
+    
+    val workDir = tempDir.resolve("foo")
+    
+    LsfConfig(
+      workDir = workDir, 
+      maxNumJobs = 42,
+      defaultCores = Cpus(2),
+      defaultMemoryPerCore = Memory.inGb(2),
+      defaultMaxRunTime = CpuTime.inHours(7))
+  }
+  
   private val executionConfig: ExecutionConfig = ExecutionConfig(42, tempDir.resolve("bar")) 
   
   import loamstream.TestHelpers.waitFor
   import loamstream.util.ObservableEnrichments._
   
-  test("No failures when empty set of jobs is presented") {
+  private object JustFailsMockPoller extends Poller {
+    override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = ???
+    
+    override def stop(): Unit = ()
+  }
+  
+  test("No failures when empty set of jobs is presented - Uger") {
     val mockDrmaaClient = new MockDrmaaClient(Map.empty)
     val runner = DrmChunkRunner(
         environmentType = EnvironmentType.Uger,
@@ -80,7 +97,24 @@ final class UgerChunkRunnerTest extends FunSuite {
         executionConfig = executionConfig,
         drmConfig = ugerConfig,
         jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
-        jobMonitor = new JobMonitor(scheduler, new DrmaaPoller(mockDrmaaClient)))
+        //NB: The poller can always fail, since it should never be invoked
+        jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller))
+    
+    val result = waitFor(runner.run(Set.empty, neverRestart).firstAsFuture)
+    
+    assert(result === Map.empty)
+  }
+  
+  test("No failures when empty set of jobs is presented - Lsf") {
+    
+    val runner = DrmChunkRunner(
+        environmentType = EnvironmentType.Lsf,
+        pathBuilder = LsfPathBuilder,
+        executionConfig = executionConfig,
+        drmConfig = lsfConfig,
+        jobSubmitter = new MockJobSubmitter,
+        //NB: The poller can always fail, since it should never be invoked
+        jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller))
     
     val result = waitFor(runner.run(Set.empty, neverRestart).firstAsFuture)
     
@@ -129,20 +163,20 @@ final class UgerChunkRunnerTest extends FunSuite {
     doTest(Terminated)
   }
 
-  test("handleUgerStatus") {
+  test("handleDrmStatus") {
     import DrmChunkRunner.handleDrmStatus
     import JobStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
     
-    def doTest(ugerStatus: DrmStatus, isFailure: Boolean): Unit = {
-      val jobStatus = DrmStatus.toJobStatus(ugerStatus)
+    def doTest(drmStatus: DrmStatus, isFailure: Boolean): Unit = {
+      val jobStatus = DrmStatus.toJobStatus(drmStatus)
       
       {
         val job = MockJob(NotStarted)
         
         assert(job.status === NotStarted)
         
-        handleDrmStatus(alwaysRestart, job)(ugerStatus)
+        handleDrmStatus(alwaysRestart, job)(drmStatus)
         
         assert(job.status === jobStatus)
       }
@@ -152,7 +186,7 @@ final class UgerChunkRunnerTest extends FunSuite {
         
         assert(job.status === NotStarted)
       
-        handleDrmStatus(neverRestart, job)(ugerStatus)
+        handleDrmStatus(neverRestart, job)(drmStatus)
       
         val expected = if(isFailure) FailedPermanently else jobStatus
       
@@ -176,9 +210,9 @@ final class UgerChunkRunnerTest extends FunSuite {
   }
   
   private def toTuple(jobWrapper: DrmJobWrapper): (DrmJobWrapper, Observable[DrmStatus]) = {
-    import UgerChunkRunnerTest.MockUgerJob
+    import DrmChunkRunnerTest.MockDrmJob
     
-    val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockUgerJob]
+    val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockDrmJob]
     
     jobWrapper -> Observable.from(mockJob.statusesToReturn)
   }
@@ -187,13 +221,13 @@ final class UgerChunkRunnerTest extends FunSuite {
     import DrmChunkRunner.toRunDatas
     import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
-    import UgerChunkRunnerTest.MockUgerJob
+    import DrmChunkRunnerTest.MockDrmJob
     import ObservableEnrichments._
     
     val id = "failed"
     
     def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
-      val job = MockUgerJob(id, Queued, Queued, Running, Running, lastUgerStatus)
+      val job = MockDrmJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
       val failed = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, job, 1)
       
@@ -229,13 +263,13 @@ final class UgerChunkRunnerTest extends FunSuite {
     import DrmChunkRunner.toRunDatas
     import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
-    import UgerChunkRunnerTest.MockUgerJob
+    import DrmChunkRunnerTest.MockDrmJob
     import ObservableEnrichments._
     
     val id = "worked"
     
     def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
-      val job = MockUgerJob(id, Queued, Queued, Running, Running, lastUgerStatus)
+      val job = MockDrmJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
       val worked = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, job, 1)
       
@@ -269,7 +303,7 @@ final class UgerChunkRunnerTest extends FunSuite {
     import DrmChunkRunner.toRunDatas
     import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart}
-    import UgerChunkRunnerTest.MockUgerJob
+    import DrmChunkRunnerTest.MockDrmJob
     import ObservableEnrichments._
     
     val goodId = "worked"
@@ -277,13 +311,13 @@ final class UgerChunkRunnerTest extends FunSuite {
     
     def doTest(
         shouldRestart: LJob => Boolean, 
-        lastGoodUgerStatus: DrmStatus, 
-        lastBadUgerStatus: DrmStatus, 
+        lastGoodDrmStatus: DrmStatus, 
+        lastBadDrmStatus: DrmStatus, 
         expectedLastGoodStatus: JobStatus,
         expectedLastBadStatus: JobStatus): Unit = {
       
-      val workedJob = MockUgerJob(goodId, Queued, Queued, Running, Running, lastGoodUgerStatus)
-      val failedJob = MockUgerJob(badId, Queued, Queued, Running, Running, lastBadUgerStatus)
+      val workedJob = MockDrmJob(goodId, Queued, Queued, Running, Running, lastGoodDrmStatus)
+      val failedJob = MockDrmJob(badId, Queued, Queued, Running, Running, lastBadDrmStatus)
       
       val worked = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, workedJob, 1)
       val failed = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, failedJob, 2)
@@ -326,134 +360,211 @@ final class UgerChunkRunnerTest extends FunSuite {
     doTest(alwaysRestart, CommandResult(0, None), CommandResult(1, None), JobStatus.Succeeded, JobStatus.Failed)
   }
   
-  test("Uger config is propagated to DRMAA client - 2 jobs, same settings") {
-    val graph = TestHelpers.makeGraph(DrmSystem.Uger) { implicit context =>
-      import LoamPredef._
-      import LoamCmdTool._
+  test("DRM config is propagated to DRMAA client - 2 jobs, same settings") {
     
-      val a = store.at("a.txt").asInput
-      val b = store.at("b.txt")
-      val c = store.at("c.txt")
-    
-      ugerWith(cores = 4, mem = 16, maxRunTime = 5) {
-        cmd"cp $a $b".in(a).out(b)
-        cmd"cp $a $c".in(a).out(c)
+    def doTest(drmSystem: DrmSystem): Unit = {
+      
+      def envFn[A](cores: Int, mem: Int, maxRunTime: Int)(block: => A)(implicit context: LoamScriptContext): A = {
+        drmSystem match {
+          case DrmSystem.Uger => LoamPredef.ugerWith(cores, mem, maxRunTime)(block)
+          case DrmSystem.Lsf => LoamPredef.drmWith(cores, mem, maxRunTime)(block)
+        }
       }
+      
+      val graph = TestHelpers.makeGraph(drmSystem) { implicit context =>
+        import LoamPredef._
+        import LoamCmdTool._
+      
+        val a = store.at("a.txt").asInput
+        val b = store.at("b.txt")
+        val c = store.at("c.txt")
+      
+        envFn(cores = 4, mem = 16, maxRunTime = 5) {
+          cmd"cp $a $b".in(a).out(b)
+          cmd"cp $a $c".in(a).out(c)
+        }
+      }
+      
+      val executable = LoamEngine.toExecutable(graph)
+  
+      val jobs = executable.jobs.toSeq
+      
+      assert(jobs.size === 2)
+      
+      val queueOpt: Option[Queue] = drmSystem match {
+        case DrmSystem.Uger => Option(UgerDefaults.queue)
+        case DrmSystem.Lsf => None
+      }
+      
+      def makeEnv(settings: DrmSettings): Environment = drmSystem match {
+        case DrmSystem.Uger => Environment.Uger(settings)
+        case DrmSystem.Lsf => Environment.Lsf(settings)
+      }
+ 
+      val expectedSettings = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt)
+      val expectedEnv = makeEnv(expectedSettings)
+      
+      assert(jobs(0).job.executionEnvironment === expectedEnv)
+      assert(jobs(1).job.executionEnvironment === expectedEnv)
+      
+      val mockJobSubmitter = new MockJobSubmitter
+      
+      val chunkRunner = drmSystem match {
+        case DrmSystem.Uger => {
+          val mockDrmaaClient = MockDrmaaClient(Map.empty)
+      
+          DrmChunkRunner(
+              environmentType = EnvironmentType.Uger,
+              pathBuilder = UgerPathBuilder,
+              executionConfig = executionConfig,
+              drmConfig = ugerConfig,
+              jobSubmitter = mockJobSubmitter,
+              jobMonitor = new JobMonitor(poller = JustFailsMockPoller))
+        }
+        case DrmSystem.Lsf => {
+          DrmChunkRunner(
+              environmentType = EnvironmentType.Lsf,
+              pathBuilder = LsfPathBuilder,
+              executionConfig = executionConfig,
+              drmConfig = lsfConfig,
+              jobSubmitter = mockJobSubmitter,
+              jobMonitor = new JobMonitor(poller = JustFailsMockPoller))
+        }
+      }
+          
+      import ObservableEnrichments._        
+      
+      val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
+      
+      val actualSubmissionParams = mockJobSubmitter.params
+      
+      val Seq((actualSettings, actualSubmittedJobs)) = actualSubmissionParams
+      
+      assert(actualSettings === expectedSettings)
+      assert(actualSubmittedJobs.drmJobs.map(_.commandLineJob).toSet === jobs.toSet)
     }
     
-    val executable = LoamEngine.toExecutable(graph)
-
-    val jobs = executable.jobs.toSeq
-    
-    assert(jobs.size === 2)
-    
-    val expectedSettings = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), Option(UgerDefaults.queue))
-    val expectedEnv = Environment.Uger(expectedSettings)
-    
-    assert(jobs(0).job.executionEnvironment === expectedEnv)
-    assert(jobs(1).job.executionEnvironment === expectedEnv)
-        
-    val mockDrmaaClient = MockDrmaaClient(Map.empty)
-    val mockJobSubmitter = new MockJobSubmitter
-    
-    val chunkRunner = DrmChunkRunner(
-        environmentType = EnvironmentType.Uger,
-        pathBuilder = UgerPathBuilder,
-        executionConfig = executionConfig,
-        drmConfig = ugerConfig,
-        jobSubmitter = mockJobSubmitter,
-        jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)))
-        
-    import ObservableEnrichments._        
-    
-    val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
-    
-    val actualSubmissionParams = mockJobSubmitter.params
-    
-    val Seq((actualSettings, actualSubmittedJobs)) = actualSubmissionParams
-    
-    assert(actualSettings === expectedSettings)
-    assert(actualSubmittedJobs.drmJobs.map(_.commandLineJob).toSet === jobs.toSet)
+    doTest(DrmSystem.Uger)
+    doTest(DrmSystem.Lsf)
   }
   
   test("Uger config is propagated to DRMAA client - 2 pairs of jobs with different settings") {
-    val (graph, tool0, tool1, tool2, tool3) = { 
-      implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext(DrmSystem.Uger))
+    
+    def doTest(drmSystem: DrmSystem): Unit = {
       
-      import LoamPredef._
-      import LoamCmdTool._
-    
-      val a = store.at("a.txt").asInput
-      val b = store.at("b.txt")
-      val c = store.at("c.txt")
-      val d = store.at("d.txt")
-      val e = store.at("e.txt")
-    
-      val (tool0, tool1) = ugerWith(cores = 4, mem = 16, maxRunTime = 5) {
-        (cmd"cp $a $b".in(a).out(b)) -> (cmd"cp $a $c".in(a).out(c))
+      def envFn[A](cores: Int, mem: Int, maxRunTime: Int)(block: => A)(implicit context: LoamScriptContext): A = {
+        drmSystem match {
+          case DrmSystem.Uger => LoamPredef.ugerWith(cores, mem, maxRunTime)(block)
+          case DrmSystem.Lsf => LoamPredef.drmWith(cores, mem, maxRunTime)(block)
+        }
+      }  
+      
+      val (graph, tool0, tool1, tool2, tool3) = { 
+        implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext(drmSystem))
+        
+        import LoamPredef._
+        import LoamCmdTool._
+      
+        val a = store.at("a.txt").asInput
+        val b = store.at("b.txt")
+        val c = store.at("c.txt")
+        val d = store.at("d.txt")
+        val e = store.at("e.txt")
+      
+        val (tool0, tool1) = envFn(cores = 4, mem = 16, maxRunTime = 5) {
+          (cmd"cp $a $b".in(a).out(b)) -> (cmd"cp $a $c".in(a).out(c))
+        }
+        
+        val (tool2, tool3) = envFn(cores = 7, mem = 9, maxRunTime = 11) {
+          (cmd"cp $a $d".in(a).out(d)) -> (cmd"cp $a $e".in(a).out(e))
+        }
+        
+        (sc.projectContext.graph, tool0, tool1, tool2, tool3)
       }
       
-      val (tool2, tool3) = ugerWith(cores = 7, mem = 9, maxRunTime = 11) {
-        (cmd"cp $a $d".in(a).out(d)) -> (cmd"cp $a $e".in(a).out(e))
+      val executable = LoamEngine.toExecutable(graph)
+  
+      val jobs = executable.jobs.toSeq
+      
+      assert(jobs.size === 4)
+      
+      val queueOpt: Option[Queue] = drmSystem match {
+        case DrmSystem.Uger => Option(UgerDefaults.queue)
+        case DrmSystem.Lsf => None
       }
       
-      (sc.projectContext.graph, tool0, tool1, tool2, tool3)
-    }
-    
-    val executable = LoamEngine.toExecutable(graph)
+      def makeEnv(settings: DrmSettings): Environment = drmSystem match {
+        case DrmSystem.Uger => Environment.Uger(settings)
+        case DrmSystem.Lsf => Environment.Lsf(settings)
+      }
+      
+      val expectedSettings0 = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt)
+      val expectedSettings1 = DrmSettings(Cpus(7), Memory.inGb(9), CpuTime.inHours(11), queueOpt)
+      
+      val expectedEnv0 = makeEnv(expectedSettings0)
+      val expectedEnv1 = makeEnv(expectedSettings1)
+      
+      def findJob(tool: LoamCmdTool): CommandLineJob = {
+        jobs.iterator.map(_.asInstanceOf[CommandLineJob]).find(_.commandLineString == tool.commandLine).get
+      }
+      
+      assert(findJob(tool0).executionEnvironment === expectedEnv0)
+      assert(findJob(tool1).executionEnvironment === expectedEnv0)
+      
+      assert(findJob(tool2).executionEnvironment === expectedEnv1)
+      assert(findJob(tool3).executionEnvironment === expectedEnv1)
+      
+      val mockJobSubmitter = new MockJobSubmitter
+      
+      val chunkRunner = drmSystem match {
+        case DrmSystem.Uger => { 
+          val mockDrmaaClient = MockDrmaaClient(Map.empty)
 
-    val jobs = executable.jobs.toSeq
-    
-    assert(jobs.size === 4)
-    
-    val expectedSettings0 = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), Option(UgerDefaults.queue))
-    val expectedSettings1 = DrmSettings(Cpus(7), Memory.inGb(9), CpuTime.inHours(11), Option(UgerDefaults.queue))
-    
-    val expectedEnv0 = Environment.Uger(expectedSettings0)
-    val expectedEnv1 = Environment.Uger(expectedSettings1)
-    
-    def findJob(tool: LoamCmdTool): CommandLineJob = {
-      jobs.iterator.map(_.asInstanceOf[CommandLineJob]).find(_.commandLineString == tool.commandLine).get
+          DrmChunkRunner(
+              environmentType = EnvironmentType.Uger,
+              pathBuilder = UgerPathBuilder,
+              executionConfig = executionConfig,
+              drmConfig = ugerConfig,
+              jobSubmitter = mockJobSubmitter,
+              jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)))
+        }
+        case DrmSystem.Lsf => {
+          DrmChunkRunner(
+              environmentType = EnvironmentType.Lsf,
+              pathBuilder = LsfPathBuilder,
+              executionConfig = executionConfig,
+              drmConfig = lsfConfig,
+              jobSubmitter = mockJobSubmitter,
+              //NB: The poller can fail, since we're not checking execution results, just config-propagation
+              jobMonitor = new JobMonitor(poller = JustFailsMockPoller))
+        }
+      }
+          
+      import ObservableEnrichments._        
+      
+      val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
+      
+      val actualSubmissionParams = mockJobSubmitter.params
+      
+      val actualParamsUnordered: Set[(DrmSettings, Set[LJob])] = {
+        actualSubmissionParams.map { case (settings, taskArray) => 
+          (settings, taskArray.drmJobs.map(_.commandLineJob).toSet[LJob]) 
+        }.toSet
+      }
+      
+      val expectedParamsUnordered: Set[(DrmSettings, Set[LJob])] = Set(
+          expectedSettings0 -> Set(findJob(tool0), findJob(tool1)),
+          expectedSettings1 -> Set(findJob(tool2), findJob(tool3)))
+      
+      assert(actualParamsUnordered === expectedParamsUnordered)
     }
     
-    assert(findJob(tool0).executionEnvironment === expectedEnv0)
-    assert(findJob(tool1).executionEnvironment === expectedEnv0)
-    
-    assert(findJob(tool2).executionEnvironment === expectedEnv1)
-    assert(findJob(tool3).executionEnvironment === expectedEnv1)
-        
-    val mockDrmaaClient = MockDrmaaClient(Map.empty)
-    val mockJobSubmitter = new MockJobSubmitter
-    
-    val chunkRunner = DrmChunkRunner(
-        environmentType = EnvironmentType.Uger,
-        pathBuilder = UgerPathBuilder,
-        executionConfig = executionConfig,
-        drmConfig = ugerConfig,
-        jobSubmitter = mockJobSubmitter,
-        jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)))
-        
-    import ObservableEnrichments._        
-    
-    val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
-    
-    val actualSubmissionParams = mockJobSubmitter.params
-    
-    val actualParamsUnordered: Set[(DrmSettings, Set[LJob])] = {
-      actualSubmissionParams.map { case (settings, taskArray) => 
-        (settings, taskArray.drmJobs.map(_.commandLineJob).toSet[LJob]) 
-      }.toSet
-    }
-    
-    val expectedParamsUnordered: Set[(DrmSettings, Set[LJob])] = Set(
-        expectedSettings0 -> Set(findJob(tool0), findJob(tool1)),
-        expectedSettings1 -> Set(findJob(tool2), findJob(tool3)))
-    
-    assert(actualParamsUnordered === expectedParamsUnordered)
+    doTest(DrmSystem.Uger)
+    doTest(DrmSystem.Lsf)
   }
 }
 
-object UgerChunkRunnerTest {
+object DrmChunkRunnerTest {
   final class MockJobSubmitter extends JobSubmitter {
     @volatile var params: Seq[(DrmSettings, DrmTaskArray)] = Vector.empty
     
@@ -466,7 +577,7 @@ object UgerChunkRunnerTest {
     override def stop(): Unit = ()
   }
   
-  final case class MockUgerJob(name: String, statusesToReturn: DrmStatus*) extends LocalJob with HasCommandLine {
+  final case class MockDrmJob(name: String, statusesToReturn: DrmStatus*) extends LocalJob with HasCommandLine {
     require(statusesToReturn.nonEmpty)
 
     override def commandLineString: String = name //NB: The content of the command line is unimportant

@@ -37,19 +37,15 @@ object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
       debug(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
     }
     
-    if(ugerConfig.isSuccess && lsfConfig.isSuccess) {
-      Tries.failure("Either Uger or LSF support may be configured, but not both")
-    } else {
-      Success {
-        LoamConfig( 
-          ugerConfig.toOption,
-          lsfConfig.toOption,
-          googleConfig.toOption,
-          hailConfig.toOption,
-          pythonConfig.toOption,
-          rConfig.toOption,
-          executionConfig.getOrElse(ExecutionConfig.default))
-      }
+    Success {
+      LoamConfig( 
+        ugerConfig.toOption,
+        lsfConfig.toOption,
+        googleConfig.toOption,
+        hailConfig.toOption,
+        pythonConfig.toOption,
+        rConfig.toOption,
+        executionConfig.getOrElse(ExecutionConfig.default))
     }
   }
 }

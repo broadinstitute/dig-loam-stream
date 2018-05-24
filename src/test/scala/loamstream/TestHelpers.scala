@@ -87,6 +87,9 @@ object TestHelpers {
       executionConfig.getOrElse(ExecutionConfig.default))
   }
   
+  lazy val configWithUger = config.copy(drmSystem = Option(DrmSystem.Uger))
+  lazy val configWithLsf = config.copy(drmSystem = Option(DrmSystem.Lsf))
+  
   lazy val localResources: LocalResources = { 
     val now = Instant.now
       

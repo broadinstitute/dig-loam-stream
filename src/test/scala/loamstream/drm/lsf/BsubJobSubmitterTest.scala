@@ -167,7 +167,7 @@ final class BsubJobSubmitterTest extends FunSuite {
   //This kind of output shouldn't ever happen, but it lets us test that the first job id is the one that's picked.
   private val multilineBsubOutput: Seq[String] = Seq(
     "Job <2738574> is submitted to default queue <research-rh7>.",
-    "Job <1234567> is submitted to default queue <research-rh7>.",
+    "Job <1234567> is submitted to default queue <research-rh7>."
   )
   
   private val queue = Queue("fooQueue")

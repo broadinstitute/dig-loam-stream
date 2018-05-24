@@ -72,8 +72,7 @@ final class BjobsPollerTest extends FunSuite {
     val expected: Map[String, Try[DrmStatus]] = Map(
       LsfJobId("2842408", 1).asString -> Success(DrmStatus.CommandResult(42, resourcesByLsfArrayIndex.get(1))),
       LsfJobId("2842408", 2).asString -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(2))),
-      LsfJobId("2842408", 3).asString -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(3))),
-    )
+      LsfJobId("2842408", 3).asString -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(3))))
     
     assert(results === expected)
   }
@@ -104,7 +103,7 @@ final class BjobsPollerTest extends FunSuite {
     val lsfJobIds = Set(
         LsfJobId("2842408", 1).asString, 
         LsfJobId("2842408", 2).asString, 
-        LsfJobId("2842408", 3).asString)
+        LsfJobId("2842408", 3).asString )
     
     val results = new BjobsPoller(pollFn).poll(lsfJobIds)
     
@@ -124,7 +123,7 @@ final class BjobsPollerTest extends FunSuite {
     val expected: Map[LsfJobId, Try[DrmStatus]] = Map(
       LsfJobId("2842408", 1) -> Success(DrmStatus.CommandResult(42, resourcesByLsfArrayIndex.get(1))),
       LsfJobId("2842408", 2) -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(2))),
-      LsfJobId("2842408", 3) -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(3))),
+      LsfJobId("2842408", 3) -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(3)))
     )
     
     assert(results === expected)
@@ -307,6 +306,7 @@ final class BjobsPollerTest extends FunSuite {
     assert(parseCpuTime("0 seconds") === Success(zero))
     assert(parseCpuTime("0.0 seconds") === Success(zero))
     assert(parseCpuTime("0 second") === Success(zero))
-    assert(parseCpuTime("0.0 second") === Success(zero))}
+    assert(parseCpuTime("0.0 second") === Success(zero))
+  }
   
 }

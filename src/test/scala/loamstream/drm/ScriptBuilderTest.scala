@@ -30,7 +30,12 @@ final class ScriptBuilderTest extends FunSuite {
 
     val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
     val jobName = DrmTaskArray.makeJobName()
-    val taskArray = DrmTaskArray.fromCommandLineJobs(ExecutionConfig.default, ugerConfig, UgerPathBuilder, jobs, jobName)
+    val taskArray = DrmTaskArray.fromCommandLineJobs(
+        ExecutionConfig.default, 
+        ugerConfig, 
+        UgerPathBuilder, 
+        jobs, 
+        jobName)
     val ugerScriptContents = (new ScriptBuilder(UgerScriptBuilderParams)).buildFrom(taskArray).withNormalizedLineBreaks
 
     val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)

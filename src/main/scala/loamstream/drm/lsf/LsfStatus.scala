@@ -52,44 +52,43 @@ sealed abstract class LsfStatus(val lsfName: Option[String]) {
   
   def this(name: String) = this(Option(name))
   
-  def toDrmStatus(exitCodeOpt: Option[Int], resourcesOpt: Option[LsfResources]): DrmStatus = {
-    (this, exitCodeOpt) match {
-      case (Pending, _) => DrmStatus.Queued
-      case (Provisioned, _) => DrmStatus.Running
-      case (SuspendedWhilePending, _) => DrmStatus.Suspended(resourcesOpt)
-      case (Running, _) => DrmStatus.Running
-      case (SuspendedWhileRunning, _) => DrmStatus.Suspended(resourcesOpt)
-      case (Suspended, _) => DrmStatus.Suspended()
-      //TODO: Command result?
-      case (Done, _) => DrmStatus.CommandResult(0, resourcesOpt)
-      //Handle different exit codes, say 131 to indicate job was killed by LSF?
-      case (Exited, Some(exitCode)) => DrmStatus.CommandResult(exitCode, resourcesOpt)
-      case (Exited, None) => DrmStatus.Failed()
-      case (Unknown, _) => DrmStatus.Undetermined(resourcesOpt)
-      //TODO: ???
-      case (WaitingToRun, _) => DrmStatus.Queued
-      //TODO: ???
-      case (Zombie, _) => DrmStatus.Failed(resourcesOpt)
-      case (CommandResult(exitCode), _) => DrmStatus.CommandResult(exitCode, resourcesOpt)
-    }
-  }
+  def toDrmStatus(exitCodeOpt: Option[Int], resourcesOpt: Option[LsfResources]): DrmStatus
 }
 
 object LsfStatus {
 
-  case object Pending extends LsfStatus("PEND")
-  case object Provisioned extends LsfStatus("PROV")
-  case object SuspendedWhilePending extends LsfStatus("PSUSP")
-  case object Running extends LsfStatus("RUN")
-  case object SuspendedWhileRunning extends LsfStatus("USUSP")
-  case object Suspended extends LsfStatus("SSUSP")
-  case object Done extends LsfStatus("DONE")
-  case object Exited extends LsfStatus("EXIT")
-  case object Unknown extends LsfStatus("UNKWN")
-  case object WaitingToRun extends LsfStatus("WAIT")
-  case object Zombie extends LsfStatus("ZOMBI")
+  protected abstract class SimpleLsfStatus(
+      override val lsfName: Option[String], 
+      makeDrmStatus: Option[LsfResources] => DrmStatus) extends LsfStatus(lsfName) {
+    
+    def this(name: String, drmStatus: DrmStatus) = this(Option(name), _ => drmStatus)
+    
+    def this(name: String, makeDrmStatus: Option[LsfResources] => DrmStatus) = this(Option(name), makeDrmStatus)
+    
+    override def toDrmStatus(exitCodeOpt: Option[Int], resourcesOpt: Option[LsfResources]): DrmStatus = {
+      makeDrmStatus(resourcesOpt)
+    }
+  }
   
-  final case class CommandResult(exitCode: Int) extends LsfStatus(None)
+  final case object Pending extends SimpleLsfStatus("PEND", DrmStatus.Queued)
+  final case object Provisioned extends SimpleLsfStatus("PROV", DrmStatus.Running)
+  final case object SuspendedWhilePending extends SimpleLsfStatus("PSUSP", DrmStatus.Suspended())
+  final case object Running extends SimpleLsfStatus("RUN", DrmStatus.Running)
+  final case object SuspendedWhileRunning extends SimpleLsfStatus("USUSP", DrmStatus.Suspended(_))
+  final case object Suspended extends SimpleLsfStatus("SSUSP", DrmStatus.Suspended())
+  final case object Done extends SimpleLsfStatus("DONE", DrmStatus.CommandResult(0, _))
+  final case object Exited extends LsfStatus("EXIT") {
+    override def toDrmStatus(exitCodeOpt: Option[Int], resourcesOpt: Option[LsfResources]): DrmStatus = {
+      exitCodeOpt match {
+        case Some(exitCode) => DrmStatus.CommandResult(exitCode, resourcesOpt)
+        case None => DrmStatus.Failed(resourcesOpt)
+      }
+    }
+  }
+  final case object Unknown extends SimpleLsfStatus("UNKWN", DrmStatus.Undetermined(_))
+  final case object WaitingToRun extends SimpleLsfStatus("WAIT", DrmStatus.Queued)
+  final case object Zombie extends SimpleLsfStatus("ZOMBI", DrmStatus.Failed(_))
+  final case class CommandResult(exitCode: Int) extends SimpleLsfStatus(None, DrmStatus.CommandResult(exitCode, _))
 
   def fromString(lsfName: String): Option[LsfStatus] = byName.get(lsfName.trim.toUpperCase)
 

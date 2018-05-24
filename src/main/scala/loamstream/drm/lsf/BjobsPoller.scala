@@ -121,6 +121,34 @@ object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
     }
   }
   
+  private def resourcesAttempt(parts: Array[String], liftedParts: Int => Try[String]): Try[LsfResources] = {
+      import LsfDateParser.toInstant
+      
+      for {
+        // scalastyle:off magic.number
+        memString <- liftedParts(4)
+        cpuUsedString <- liftedParts(5)
+        nodeOpt = liftedParts(6).toOption
+        queueOpt = liftedParts(7).map(Queue(_)).toOption
+        startTimeString <- liftedParts(8)
+        endTimeString <- liftedParts(9)
+        // scalastyle:on magic.number
+        cpuUsed <- parseCpuTime(cpuUsedString)
+        startTime <- Options.toTry(toInstant(startTimeString))(s"Start time field not found in $parts")
+        endTime <- Options.toTry(toInstant(endTimeString))(s"End time field not found in $parts")
+      } yield {
+        val mem = Try(Memory.inKb(memString.toDouble))
+
+        LsfResources(
+          memory = mem.getOrElse(Memory.inBytes(0)), //TODO
+          cpuTime = cpuUsed,
+          node = nodeOpt,
+          queue = queueOpt,
+          startTime = startTime,
+          endTime = endTime)
+      }
+    }
+  
   private[lsf] def parseBjobsOutputLine(line: String): Try[(LsfJobId, DrmStatus)] = {
     trace(s"parsing bjobs output line '$line'")
     
@@ -148,34 +176,6 @@ object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
       }
     }
     
-    val noMemory: Memory = Memory.inBytes(0)
-    
-    def resourcesAttempt: Try[LsfResources] = {
-      import LsfDateParser.toInstant
-      
-      for {
-        memString <- liftedParts(4)
-        cpuUsedString <- liftedParts(5)
-        nodeOpt = liftedParts(6).toOption
-        queueOpt = liftedParts(7).map(Queue(_)).toOption
-        startTimeString <- liftedParts(8)
-        endTimeString <- liftedParts(9)
-        cpuUsed <- parseCpuTime(cpuUsedString)
-        startTime <- Options.toTry(toInstant(startTimeString))(s"Start time field not found in $parts")
-        endTime <- Options.toTry(toInstant(endTimeString))(s"End time field not found in $parts")
-      } yield {
-        val mem = Try(Memory.inKb(memString.toDouble))
-
-        LsfResources(
-          memory = mem.getOrElse(noMemory), //TODO
-          cpuTime = cpuUsed,
-          node = nodeOpt,
-          queue = queueOpt,
-          startTime = startTime,
-          endTime = endTime)
-      }
-    }
-    
     val resultAttempt = for {
       baseJobId <- liftedParts(0)
       jobNameWithIndex <- liftedParts(1)
@@ -186,7 +186,7 @@ object BjobsPoller extends InvokesBjobs.Companion(new BjobsPoller(_)) {
     } yield {
       val exitCodeOpt = Try(exitCodeString.toInt).toOption
       
-      val drmStatus = status.toDrmStatus(exitCodeOpt, resourcesAttempt.toOption)
+      val drmStatus = status.toDrmStatus(exitCodeOpt, resourcesAttempt(parts, liftedParts).toOption)
       
       LsfJobId(baseJobId, taskArrayIndex) -> drmStatus
     }

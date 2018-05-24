@@ -186,31 +186,13 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
   }
   
-  final class UgerResources(tag: Tag) extends Table[UgerResourceRow](tag, Names.ugerResources) with HasExecutionId { //DrmResourcesTable[UgerResourceRow](tag, Names.ugerResources) {
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def mem = column[Double]("MEM")
-    def cpu = column[Double]("CPU")
-    def node = column[Option[String]]("NODE")
-    def queue = column[Option[String]]("QUEUE")
-    def startTime = column[Timestamp]("START_TIME")
-    def endTime = column[Timestamp]("END_TIME")
-    val foreignKey = s"$foreignKeyPrefix${Names.ugerResources}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+  final class UgerResources(tag: Tag) extends DrmResourcesTable[UgerResourceRow](tag, Names.ugerResources) {
     override def * = {
       (executionId, mem, cpu, node, queue, startTime, endTime) <> (UgerResourceRow.tupled, UgerResourceRow.unapply)
     }
   }
   
-  final class LsfResources(tag: Tag) extends Table[LsfResourceRow](tag, Names.lsfResources) with HasExecutionId { //DrmResourcesTable[LsfResourceRow](tag, Names.lsfResources) {
-    override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    def mem = column[Double]("MEM")
-    def cpu = column[Double]("CPU")
-    def node = column[Option[String]]("NODE")
-    def queue = column[Option[String]]("QUEUE")
-    def startTime = column[Timestamp]("START_TIME")
-    def endTime = column[Timestamp]("END_TIME")
-    val foreignKey = s"$foreignKeyPrefix${Names.lsfResources}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+  final class LsfResources(tag: Tag) extends DrmResourcesTable[LsfResourceRow](tag, Names.lsfResources) {
     override def * = {
       (executionId, mem, cpu, node, queue, startTime, endTime) <> (LsfResourceRow.tupled, LsfResourceRow.unapply)
     }

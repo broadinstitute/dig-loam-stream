@@ -85,7 +85,7 @@ final class LsfStatusTest extends FunSuite {
       assert(CommandResult(0).toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.CommandResult(0, resourcesOpt))
     
       assert(Pending.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Queued)
-      assert(Provisioned.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Queued)
+      assert(Provisioned.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Running)
       assert(SuspendedWhilePending.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Suspended())
       assert(Running.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Running)
       assert(SuspendedWhileRunning.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Suspended(resourcesOpt))

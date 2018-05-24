@@ -17,11 +17,6 @@ final case class Memory private (value: Information) {
   def mb: Double = value.toMegabytes
   def kb: Double = value.toKilobytes
   
-  //TODO: TEST!
-  def gib: Double = value.toGibibytes
-  def mib: Double = value.toMebibytes
-  def kib: Double = value.toKibibytes
-  
   def *(factor: Double): Memory = if(factor == 1.0) this else Memory(value * factor)
   
   def /(factor: Double): Memory = {
@@ -44,11 +39,4 @@ object Memory {
   def inMb(howMany: Double): Memory = Memory(megabyte * howMany)
   
   def inGb(howMany: Double): Memory = Memory(gigabyte * howMany)
-  
-  //TODO: TEST!
-  def inKiB(howMany: Double): Memory = Memory(kibibyte * howMany)
-
-  def inMiB(howMany: Double): Memory = Memory(mebibyte * howMany)
-  
-  def inGiB(howMany: Double): Memory = Memory(gibibyte * howMany)
 }

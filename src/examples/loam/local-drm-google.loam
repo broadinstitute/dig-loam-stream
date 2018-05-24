@@ -12,7 +12,7 @@ val d = store
 //TODO: Get this from loamstream.conf somehow
 val gcloud = path("/home/unix/cgilbert/humgen/google-cloud-sdk/bin/gcloud")
 
-uger {
+drm {
   cmd"cp $a $b".in(a).out(b)
 }
 

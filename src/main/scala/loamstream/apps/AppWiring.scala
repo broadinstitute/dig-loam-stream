@@ -393,7 +393,7 @@ object AppWiring extends Loggable {
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
-      val ugerRunner = {
+      val lsfRunner = {
         //TODO: Make configurable?
         val pollingFrequencyInHz = 0.1
         
@@ -410,9 +410,9 @@ object AppWiring extends Loggable {
             jobMonitor = jobMonitor)
       }
 
-      val handles = Seq(schedulerHandle, ugerRunner)
+      val handles = Seq(schedulerHandle, lsfRunner)
 
-      (ugerRunner, handles)
+      (lsfRunner, handles)
     }
   }
   

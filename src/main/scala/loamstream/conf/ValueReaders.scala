@@ -26,7 +26,7 @@ object ValueReaders {
   }
   
   implicit val MemoryReader: ValueReader[Memory] = new ValueReader[Memory] {
-    override def read(config: Config, path: String): Memory = Memory.inGiB(config.getDouble(path))
+    override def read(config: Config, path: String): Memory = Memory.inGb(config.getDouble(path))
   }
   
   implicit val CpusReader: ValueReader[Cpus] = new ValueReader[Cpus] {

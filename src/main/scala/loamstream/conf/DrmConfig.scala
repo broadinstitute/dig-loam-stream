@@ -45,16 +45,6 @@ sealed trait DrmConfig {
   }
 }
 
-object DrmConfig extends ConfigParser[DrmConfig] with Loggable {
-  override def fromConfig(config: Config): Try[DrmConfig] = {
-    if(config.hasPath("loamstream.uger") && config.hasPath("loamstream.lsf")) {
-      Tries.failure(s"Either 'loamstream.uger' OR 'loamstream.lsf' can be defined, but both are present.")
-    } else {
-      UgerConfig.fromConfig(config).orElse(LsfConfig.fromConfig(config))
-    }
-  }
-}
-
 /**
   * Created on: 5/4/16
   *

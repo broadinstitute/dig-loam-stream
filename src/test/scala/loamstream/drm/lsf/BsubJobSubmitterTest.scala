@@ -112,7 +112,7 @@ final class BsubJobSubmitterTest extends FunSuite {
         "-W",
         "3:0",
         "-R",
-        s"rusage[mem=${7 * 1024}]",
+        s"rusage[mem=${7 * 1000}]",
         "-n",
         "42",
         "-R",
@@ -125,35 +125,6 @@ final class BsubJobSubmitterTest extends FunSuite {
         s":${taskArray.stdErrPathTemplate}")
         
     assert(tokens === expectedTokens)
-    
-    /*
-     * private[lsf] def makeTokens(
-      actualExecutable: String, 
-      taskArray: DrmTaskArray,
-      drmSettings: DrmSettings): Seq[String] = {
-    
-    val runTimeInHours: Int = drmSettings.maxRunTime.hours.toInt
-    val maxRunTimePart = Seq("-W", s"${runTimeInHours}:0")
-    
-    val memoryPerCoreInMegs = drmSettings.memoryPerCore.mb.toInt
-    val memoryPart = Seq("-R", s""""rusage[mem=${memoryPerCoreInMegs}]"""")
-    
-    val numCores = drmSettings.cores.value
-    
-    val coresPart = Seq("-n", numCores.toString, "-R", """"span[hosts=1]"""")
-    
-    val queuePart: Seq[String] = drmSettings.queue.toSeq.flatMap(q => Seq("-q", q.name))
-    
-    val jobNamePart = Seq("-J", s""""${taskArray.drmJobName}[1-${taskArray.size}]"""")
-    
-    val stdoutPart = Seq("-oo", s":${taskArray.stdOutPathTemplate}")
-    
-    val stderrPart = Seq("-eo", s":${taskArray.stdErrPathTemplate}")
-    
-    actualExecutable +: 
-        (queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
-  }
-     */
   }
   
   private def makeBsubOutput(baseJobId: String): Seq[String] = Seq(
@@ -174,7 +145,7 @@ final class BsubJobSubmitterTest extends FunSuite {
   
   private val settings = DrmSettings(
       cores = Cpus(42),
-      memoryPerCore = Memory.inGiB(7),
+      memoryPerCore = Memory.inGb(7),
       maxRunTime = CpuTime.inHours(3),
       queue = Some(queue))
     

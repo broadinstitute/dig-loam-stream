@@ -113,7 +113,7 @@ object BsubJobSubmitter extends Loggable {
     val runTimeInHours: Int = drmSettings.maxRunTime.hours.toInt
     val maxRunTimePart = Seq("-W", s"${runTimeInHours}:0")
     
-    val memoryPerCoreInMegs = drmSettings.memoryPerCore.mib.toInt
+    val memoryPerCoreInMegs = drmSettings.memoryPerCore.mb.toInt
     val memoryPart = Seq("-R", s"rusage[mem=${memoryPerCoreInMegs}]")
     
     val numCores = drmSettings.cores.value

@@ -101,6 +101,7 @@ object LoamPredef extends Loggable {
     runIn(Environment.Local)(expr)(scriptContext)
   }
 
+  @deprecated("uger { ... } blocks are deprecated; use drm { ... } instead.", "")
   def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = drm(expr)(scriptContext)
   
   def drm[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
@@ -141,24 +142,8 @@ object LoamPredef extends Loggable {
    * @param expr Block of cmd's and native code
    * @param scriptContext Container for compile time and run time context for a script
    */
+  @deprecated("ugerWith { ... } blocks are deprecated; use drmWith { ... } instead.", "")
   def ugerWith[A](
-      cores: Int = -1,
-      mem: Double = -1, 
-      maxRunTime: Double = -1)
-      (expr: => A)
-      (implicit scriptContext: LoamScriptContext): A = {
-    
-    drmWith(cores, mem, maxRunTime)(expr)(scriptContext)
-  }
-  
-  /**
-   * @param mem Memory requested per core, per job submission (in Gb's)
-   * @param cores Number of cores requested per job submission
-   * @param maxRunTime Time limit (in hours) after which a job may get killed
-   * @param expr Block of cmd's and native code
-   * @param scriptContext Container for compile time and run time context for a script
-   */
-  def lsfWith[A](
       cores: Int = -1,
       mem: Double = -1, 
       maxRunTime: Double = -1)

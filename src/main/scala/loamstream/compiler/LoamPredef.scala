@@ -111,28 +111,9 @@ object LoamPredef extends Loggable {
         loamConfig.drmSystem.isDefined, 
         "A DRM system (Uger or LSF) must be specified on the command-line to run jobs in a DRM environment")
     
-    val env = loamConfig.drmSystem.get match {
-      case DrmSystem.Lsf => lsfEnvironment
-      case DrmSystem.Uger => ugerEnvironment
-    }
+    val env = loamConfig.drmSystem.get.makeBasicEnvironment(scriptContext)
     
     runIn(env)(expr)(scriptContext)
-  }
-  
-  private def ugerEnvironment(implicit scriptContext: LoamScriptContext): Environment.Uger = {
-    val ugerConfig = scriptContext.ugerConfig 
-    
-    val settings = DrmSettings.fromUgerConfig(ugerConfig)
-    
-    Environment.Uger(settings)
-  }
-  
-  private def lsfEnvironment(implicit scriptContext: LoamScriptContext): Environment.Lsf = {
-    val lsfConfig = scriptContext.lsfConfig 
-    
-    val settings = DrmSettings.fromLsfConfig(lsfConfig)
-    
-    Environment.Lsf(settings)
   }
   
   /**
@@ -175,28 +156,17 @@ object LoamPredef extends Loggable {
         loamConfig.drmSystem.isDefined, 
         "A DRM system (Uger or LSF) must be specified on the command-line to run jobs in a DRM environment")
     
-    val makeEnv: DrmSettings => Environment = loamConfig.drmSystem.get match {
-      case DrmSystem.Uger => Environment.Uger(_)
-      case DrmSystem.Lsf => Environment.Lsf(_)
-    }
+    val drmSystem = loamConfig.drmSystem.get
     
-    val drmConfig: DrmConfig = loamConfig.drmSystem.get match {
-      case DrmSystem.Uger => scriptContext.ugerConfig
-      case DrmSystem.Lsf => scriptContext.lsfConfig
-    }
-    
-    val drmQueue: Option[Queue] = loamConfig.drmSystem.get match {
-      case DrmSystem.Uger => Option(UgerDefaults.queue)
-      case DrmSystem.Lsf => None
-    }
+    val drmConfig: DrmConfig = drmSystem.config(scriptContext)
     
     val settings = DrmSettings(
         Cpus(orDefault(cores, drmConfig.defaultCores.value)), 
         Memory.inGb(orDefault(mem, drmConfig.defaultMemoryPerCore.gb)), 
         CpuTime.inHours(orDefault(maxRunTime, drmConfig.defaultMaxRunTime.hours)),
-        drmQueue)
+        drmSystem.defaultQueue)
     
-    runIn(makeEnv(settings))(expr)(scriptContext)
+    runIn(drmSystem.makeEnvironment(settings))(expr)(scriptContext)
   }
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {

@@ -96,6 +96,12 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def executionId: Rep[Int]
   }
 
+  abstract class BelongsToExecution[R](tag: Tag, name: String) extends Table[R](tag, name) with HasExecutionId {
+    final val foreignKey = s"$foreignKeyPrefix${name}"
+    
+    final def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+  }
+  
   //Use Int.MaxValue as an approximation of maximum String length, since Strings are represented as
   //char arrays indexed by integers on the JVM, and String.length() returns an int.
   private[this] val maxStringColumnLength = Int.MaxValue
@@ -110,38 +116,40 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def stderrPath = column[String]("STDERR_PATH", O.Length(maxStringColumnLength))
     def exitCode = column[Int]("EXIT_CODE")
     def status = column[JobStatus]("STATUS")
-    def * = (id, env, cmd, status, exitCode, stdoutPath, stderrPath) <> (ExecutionRow.tupled, ExecutionRow.unapply)
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
+    override def * = {
+      (id, env, cmd, status, exitCode, stdoutPath, stderrPath) <> (ExecutionRow.tupled, ExecutionRow.unapply)
+    }
   }
 
-  final class Outputs(tag: Tag) extends Table[OutputRow](tag, Names.outputs) {
+  final class Outputs(tag: Tag) extends BelongsToExecution[OutputRow](tag, Names.outputs) {
     def locator = column[String]("LOCATOR", O.PrimaryKey)
     def lastModified = column[Option[Timestamp]]("LAST_MODIFIED")
     def hash = column[Option[String]]("HASH")
     def hashType = column[Option[String]]("HASH_TYPE")
-    def executionId = column[Int]("EXECUTION_ID")
-    val foreignKey = s"$foreignKeyPrefix${Names.outputs}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
+    override def executionId = column[Int]("EXECUTION_ID")
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
+    override def * = (locator, lastModified, hash, hashType, executionId.?) <> (OutputRow.tupled, OutputRow.unapply)
   }
 
-  final class LocalSettings(tag: Tag) extends Table[LocalSettingRow](tag, Names.localSettings) with HasExecutionId {
+  final class LocalSettings(tag: Tag) extends BelongsToExecution[LocalSettingRow](tag, Names.localSettings) {
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
-    val foreignKey = s"$foreignKeyPrefix${Names.localSettings}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId) <> (LocalSettingRow.tupled, LocalSettingRow.unapply)
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
+    override def * = (executionId) <> (LocalSettingRow.tupled, LocalSettingRow.unapply)
   }
 
   private[slick] abstract class DrmSettingsTable[R](
       tag: Tag, 
-      name: String) extends Table[R](tag, name) with HasExecutionId {
+      name: String) extends BelongsToExecution[R](tag, name) {
     
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def cpus = column[Int]("CPU")
     def memPerCpu = column[Double]("MEM")
     def maxRunTime = column[Double]("MAX_RUN_TIME")
     def queue = column[Option[String]]("QUEUE")
-    val foreignKey = s"$foreignKeyPrefix${name}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
   }
   
   final class UgerSettings(tag: Tag) extends DrmSettingsTable[UgerSettingRow](tag, Names.ugerSettings) {
@@ -154,26 +162,24 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     override def * = (executionId, cpus, memPerCpu, maxRunTime, queue) <> (LsfSettingRow.tupled, LsfSettingRow.unapply)
   }
 
-  final class GoogleSettings(tag: Tag) extends Table[GoogleSettingRow](tag, Names.googleSettings) with HasExecutionId {
+  final class GoogleSettings(tag: Tag) extends BelongsToExecution[GoogleSettingRow](tag, Names.googleSettings) {
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def cluster = column[String]("CLUSTER")
-    val foreignKey = s"$foreignKeyPrefix${Names.googleSettings}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, cluster) <> (GoogleSettingRow.tupled, GoogleSettingRow.unapply)
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
+    override def * = (executionId, cluster) <> (GoogleSettingRow.tupled, GoogleSettingRow.unapply)
   }
 
-  final class LocalResources(tag: Tag) extends Table[LocalResourceRow](tag, Names.localResources) with HasExecutionId {
+  final class LocalResources(tag: Tag) extends BelongsToExecution[LocalResourceRow](tag, Names.localResources) {
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def startTime = column[Timestamp]("START_TIME")
     def endTime = column[Timestamp]("END_TIME")
-    val foreignKey = s"$foreignKeyPrefix${Names.localResources}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, startTime, endTime) <> (LocalResourceRow.tupled, LocalResourceRow.unapply)
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
+    override def * = (executionId, startTime, endTime) <> (LocalResourceRow.tupled, LocalResourceRow.unapply)
   }
 
-  private[slick] abstract class DrmResourcesTable[R](
-      tag: Tag, 
-      name: String) extends Table[R](tag, name) with HasExecutionId {
+  private[slick] abstract class DrmResourcesTable[R](tag: Tag, name: String) extends BelongsToExecution[R](tag, name) {
     
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def mem = column[Double]("MEM")
@@ -182,32 +188,35 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     def queue = column[Option[String]]("QUEUE")
     def startTime = column[Timestamp]("START_TIME")
     def endTime = column[Timestamp]("END_TIME")
-    val foreignKey = s"$foreignKeyPrefix${name}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
   }
   
   final class UgerResources(tag: Tag) extends DrmResourcesTable[UgerResourceRow](tag, Names.ugerResources) {
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
     override def * = {
       (executionId, mem, cpu, node, queue, startTime, endTime) <> (UgerResourceRow.tupled, UgerResourceRow.unapply)
     }
   }
   
   final class LsfResources(tag: Tag) extends DrmResourcesTable[LsfResourceRow](tag, Names.lsfResources) {
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
     override def * = {
       (executionId, mem, cpu, node, queue, startTime, endTime) <> (LsfResourceRow.tupled, LsfResourceRow.unapply)
     }
   }
 
-  final class GoogleResources(tag: Tag) extends 
-      Table[GoogleResourceRow](tag, Names.googleResources) with HasExecutionId {
+  final class GoogleResources(tag: Tag) extends BelongsToExecution[GoogleResourceRow](tag, Names.googleResources) {
     
     override def executionId = column[Int]("EXECUTION_ID", O.PrimaryKey)
     def cluster = column[String]("CLUSTER")
     def startTime = column[Timestamp]("START_TIME")
     def endTime = column[Timestamp]("END_TIME")
-    val foreignKey = s"$foreignKeyPrefix${Names.googleResources}"
-    def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
-    def * = (executionId, cluster, startTime, endTime) <> (GoogleResourceRow.tupled, GoogleResourceRow.unapply)
+    //NB: Required by Slick to define the mapping between DB columns and case class fields.
+    //It's unlikely devs will need to call it directly.
+    override def * = {
+      (executionId, cluster, startTime, endTime) <> (GoogleResourceRow.tupled, GoogleResourceRow.unapply)
+    }
   }
 
   private val foreignKeyPrefix = s"FK_ID_EXECUTIONS_"

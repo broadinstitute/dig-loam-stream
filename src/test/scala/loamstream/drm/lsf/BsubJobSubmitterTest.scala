@@ -79,7 +79,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     val submissionResult = failure(msg)
     
     assert(submissionResult.isFailure === true)
-    assert(submissionResult.cause.getMessage === msg)
+    assert(submissionResult.failed.get.getMessage === msg)
   }
   
   test("extractJobId") {

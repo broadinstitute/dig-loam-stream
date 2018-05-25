@@ -223,7 +223,7 @@ object DrmChunkRunner extends Loggable {
 
   private[drm] def makeAllFailureMap(
       jobs: Seq[DrmJobWrapper], 
-      cause: Option[Exception]): Observable[Map[LJob, RunData]] = {
+      cause: Option[Throwable]): Observable[Map[LJob, RunData]] = {
     
     cause.foreach(e => error(s"Couldn't submit jobs to DRM system: ${e.getMessage}", e))
 
@@ -247,6 +247,30 @@ object DrmChunkRunner extends Loggable {
     Observable.just(jobs.mapTo(execution).mapKeys(_.commandLineJob))
   }
 
+  /**
+   * Takes two maps, and produces a new map containing keys that exist in both input maps, each mapped to
+   * a tuple of the keys mapped to by that key in the input maps.  For example:
+   * 
+   * given: 
+   * Map(
+   *   jobId0 -> job0,
+   *   jobId1 -> job1)
+   *   
+   * and
+   * 
+   * Map(
+   *   jobId0 -> streamOfStatuses0
+   *   jobId1 -> streamOfStatuses1)
+   *   
+   * return 
+   * 
+   * Map(
+   *   jobId0 -> (job0, streamOfStatuses0)
+   *   jobId1 -> (job1, streamOfStatuses1))
+   *   
+   * This is used to combine a map of jobs keyed on job ids with a map of job status streams keyed by id,
+   * but is generic since it makes this implementation shorter, easier to test, and (IMO) easier to read. (-Clint)
+   */
   private[drm] def combine[A, U, V](m1: Map[A, U], m2: Map[A, V]): Map[A, (U, V)] = {
     for {
       (a, u) <- m1

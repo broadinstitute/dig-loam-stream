@@ -11,6 +11,7 @@ import loamstream.drm.Queue
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import java.time.Instant
+import loamstream.model.execute.Resources.DrmResources
 
 /**
  * @author kyuksel
@@ -56,8 +57,12 @@ final case class LocalResourceRow(executionId: Int,
   }
 }
 
-private[slick] abstract class DrmResourceRow[R <: Resources](
-    makeResources: (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant) => R) extends ResourceRow {
+private[slick] object DrmResourceRow {
+  type ResourceMaker[R <: DrmResources] = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant) => R
+}
+
+private[slick] abstract class DrmResourceRow[R <: DrmResources](
+    makeResources: DrmResourceRow.ResourceMaker[R]) extends ResourceRow {
   
   def executionId: Int
   def mem: Double

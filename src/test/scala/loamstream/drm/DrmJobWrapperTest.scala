@@ -122,8 +122,8 @@ final class DrmJobWrapperTest extends FunSuite {
                          |stderrDestPath="${jobOutputDir.render}/${j0.id}.stderr"
                          |
                          |mkdir -p ${jobOutputDir.render}
-                         |mv ${workDir.render}/$jobName.1.stdout $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
-                         |mv ${workDir.render}/$jobName.1.stderr $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
+                         |mv ${workDir.render}/$jobName.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
+                         |mv ${workDir.render}/$jobName.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
                          |
                          |exit $$LOAMSTREAM_JOB_EXIT_CODE
                          |""".stripMargin

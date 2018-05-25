@@ -137,8 +137,8 @@ stdoutDestPath="$outputDir/${jobId0}.stdout"
 stderrDestPath="$outputDir/${jobId0}.stderr"
 
 mkdir -p $outputDir
-mv $ugerDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
-mv $ugerDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
+mv $ugerDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
+mv $ugerDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -152,8 +152,8 @@ stdoutDestPath="$outputDir/${jobId1}.stdout"
 stderrDestPath="$outputDir/${jobId1}.stderr"
 
 mkdir -p $outputDir
-mv $ugerDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
-mv $ugerDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
+mv $ugerDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
+mv $ugerDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -167,8 +167,8 @@ stdoutDestPath="$outputDir/${jobId2}.stdout"
 stderrDestPath="$outputDir/${jobId2}.stderr"
 
 mkdir -p $outputDir
-mv $ugerDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move Uger std out log" > $$stdoutDestPath
-mv $ugerDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move Uger std err log" > $$stderrDestPath
+mv $ugerDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
+mv $ugerDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

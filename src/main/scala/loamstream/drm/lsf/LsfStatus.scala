@@ -48,8 +48,6 @@ import loamstream.model.execute.Resources.LsfResources
  *   is in ZOMBI state and the submission cluster requeues the job.
  */
 sealed abstract class LsfStatus(val lsfName: Option[String]) {
-  import LsfStatus._
-  
   def this(name: String) = this(Option(name))
   
   def toDrmStatus(exitCodeOpt: Option[Int], resourcesOpt: Option[LsfResources]): DrmStatus

@@ -62,8 +62,12 @@ protected trait DrmSettingRow extends SettingRow {
   }
 }
 
+protected object DrmSettingRow {
+  type Maker[R <: DrmSettingRow] = (Int, Int, Double, Double, Option[String]) => R
+}
+
 protected abstract class DrmSettingRowCompanion[R <: DrmSettingRow](
-    make: (Int, Int, Double, Double, Option[String]) => R) extends ((Int, Int, Double, Double, Option[String]) => R) {
+    make: DrmSettingRow.Maker[R]) extends DrmSettingRow.Maker[R] {
   
   def fromSettings(executionId: Int, settings: DrmSettings): R = {
     make(

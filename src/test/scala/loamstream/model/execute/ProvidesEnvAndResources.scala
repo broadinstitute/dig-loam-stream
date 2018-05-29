@@ -8,16 +8,19 @@ import loamstream.TestHelpers
 import loamstream.model.execute.Environment.Uger
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.uger.Queue
+import loamstream.drm.Queue
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.LJob
+import loamstream.drm.uger.UgerDefaults
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Resources.LsfResources
 
 /**
  * @author kyuksel
@@ -25,26 +28,22 @@ import loamstream.model.jobs.LJob
  */
 trait ProvidesEnvAndResources extends FunSuite {
   
+  import TestHelpers.broadQueue
+  
   val mockCmd: String = "R --vanilla --args ancestry_pca_scores.tsv < plot_ancestry_pca.r"
-  val mockSettings: UgerSettings = UgerSettings(Cpus(4), Memory.inGb(8), queue = Queue.Broad)
+  val mockSettings: DrmSettings = DrmSettings(
+      Cpus(4), Memory.inGb(8), UgerDefaults.maxRunTime, queue = Option(broadQueue))
+      
   val mockGoogleSettings: GoogleSettings = GoogleSettings("asdf")
   val mockEnv: Environment = Uger(mockSettings)
   val mockStatus: JobStatus = JobStatus.Unknown
   val mockExitCode: Int = 999
   val mockResult: JobResult = JobResult.CommandResult(mockExitCode)
 
-  val mockLocalResources: LocalResources = TestHelpers.localResources
-  
-  val mockUgerResources: UgerResources = {
-    val mem = Memory.inGb(2.1)
-    val cpu = CpuTime.inSeconds(12.34)
-    val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
-    val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
-
-    UgerResources(mem, cpu, Some("nodeName"), Some(Queue.Broad), startTime, endTime)
-  }
-  
-  val mockGoogleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)
+  import TestHelpers.{ugerResources => mockUgerResources}
+  import TestHelpers.{lsfResources => mockLsfResources}
+  import TestHelpers.{localResources => mockLocalResources}
+  import TestHelpers.{googleResources => mockGoogleResources}
   
   val mockResources: Resources = mockUgerResources
 

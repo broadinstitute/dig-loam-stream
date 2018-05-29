@@ -61,7 +61,7 @@
 
     <logger name="LoamStream" level="${loamstream-log-level:-INFO}"/>
     
-    <logger name="loamstream.model.jobs.log" level="INFO">
+    <logger name="loamstream.model.jobs.log" level="${loamstream-log-level:-INFO}">
       <appender-ref ref="JOB_STATE_LOG" />
     </logger>
 

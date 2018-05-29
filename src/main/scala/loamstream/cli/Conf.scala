@@ -87,6 +87,12 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       descr = "Don't hash files when determining whether a job may be skipped.",
       required = false)
       
+  //Using all default args for `opt` makes it a flag 
+  val uger: ScallopOption[Boolean] = opt[Boolean](descr = "Run DRM jobs on Uger")
+  
+  //Using all default args for `opt` makes it a flag 
+  val lsf: ScallopOption[Boolean] = opt[Boolean](descr = "Run DRM jobs on LSF")
+      
   //NB: Required by Scallop
   verify()
   
@@ -99,7 +105,9 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       runEverythingSupplied = runEverything.isSupplied,
       compileOnlySupplied = compileOnly.isSupplied,
       dryRunSupplied = dryRun.isSupplied,
-      disableHashingSupplied = disableHashing.isSupplied)
+      disableHashingSupplied = disableHashing.isSupplied,
+      ugerSupplied = uger.isSupplied,
+      lsfSupplied = lsf.isSupplied)
 }
 
 object Conf {
@@ -112,7 +120,9 @@ object Conf {
       runEverythingSupplied: Boolean,
       compileOnlySupplied: Boolean,
       dryRunSupplied: Boolean,
-      disableHashingSupplied: Boolean) {
+      disableHashingSupplied: Boolean,
+      ugerSupplied: Boolean,
+      lsfSupplied: Boolean) {
     
     def lookupSupplied: Boolean = lookup.isDefined
     

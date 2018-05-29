@@ -31,7 +31,7 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.OutputRecord
 import loamstream.util.Sequence
-import loamstream.model.execute.UgerSettings
+import loamstream.model.execute.DrmSettings
 import loamstream.util.PathEnrichments
 import org.apache.commons.io.FileUtils
 import loamstream.model.jobs.OutputStreams
@@ -40,6 +40,15 @@ import loamstream.model.jobs.RunData
 import scala.concurrent.Future
 import scala.concurrent.Await
 import loamstream.loam.LoamScript
+import loamstream.drm.uger.UgerDefaults
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
+import loamstream.model.execute.Resources.LsfResources
+import loamstream.drm.Queue
+import loamstream.model.execute.Resources.GoogleResources
+import loamstream.conf.LsfConfig
+import loamstream.drm.DrmSystem
 
 /**
   * @author clint
@@ -61,6 +70,7 @@ object TestHelpers {
     val config = ConfigFactory.load("loamstream-test")
     
     val ugerConfig = UgerConfig.fromConfig(config)
+    val lsfConfig = LsfConfig.fromConfig(config)
     val googleConfig = GoogleCloudConfig.fromConfig(config)
     val hailConfig = HailConfig.fromConfig(config)
     val pythonConfig = PythonConfig.fromConfig(config)
@@ -69,6 +79,7 @@ object TestHelpers {
 
     LoamConfig( 
       ugerConfig.toOption,
+      lsfConfig.toOption,
       googleConfig.toOption,
       hailConfig.toOption,
       pythonConfig.toOption,
@@ -76,11 +87,36 @@ object TestHelpers {
       executionConfig.getOrElse(ExecutionConfig.default))
   }
   
+  lazy val configWithUger = config.copy(drmSystem = Option(DrmSystem.Uger))
+  lazy val configWithLsf = config.copy(drmSystem = Option(DrmSystem.Lsf))
+  
   lazy val localResources: LocalResources = { 
     val now = Instant.now
       
     LocalResources(now, now)
   }
+  
+  val broadQueue = Queue("broad")
+  
+  lazy val ugerResources: UgerResources = {
+    val mem = Memory.inGb(2.1)
+    val cpu = CpuTime.inSeconds(12.34)
+    val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
+    val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
+
+    UgerResources(mem, cpu, Some("nodeName"), Some(broadQueue), startTime, endTime)
+  }
+  
+  lazy val lsfResources: LsfResources = {
+    val mem = Memory.inGb(1.2)
+    val cpu = CpuTime.inSeconds(43.21)
+    val startTime = Instant.ofEpochMilli(64532) // scalastyle:ignore magic.number
+    val endTime = Instant.ofEpochMilli(9345345) // scalastyle:ignore magic.number
+
+    LsfResources(mem, cpu, Some("nodeName"), Some(broadQueue), startTime, endTime)
+  }
+  
+  lazy val googleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)
 
   val env: Environment = Environment.Local
 
@@ -123,13 +159,28 @@ object TestHelpers {
   
   def emptyProjectContext = LoamProjectContext.empty(config)
   
+  def emptyProjectContext(drmSystem: DrmSystem) = LoamProjectContext.empty(config.copy(drmSystem = Option(drmSystem)))
+  
   def withScriptContext[A](f: LoamScriptContext => A): A = f(new LoamScriptContext(emptyProjectContext))
   
-  def makeGraph(loamCode: LoamScriptContext => Any): LoamGraph = withScriptContext { sc =>
+  def withScriptContext[A](drmSystem: DrmSystem)(f: LoamScriptContext => A): A = {
+    f(new LoamScriptContext(emptyProjectContext(drmSystem)))
+  }
+  
+  def makeGraph(loamCode: LoamScriptContext => Any): LoamGraph = {
+    withScriptContext { sc =>
+      loamCode(sc)
       
-    loamCode(sc)
+      sc.projectContext.graph
+    }
+  }
+  
+  def makeGraph(drmSystem: DrmSystem)(loamCode: LoamScriptContext => Any): LoamGraph = {
+    withScriptContext(drmSystem) { sc =>
+      loamCode(sc)
       
-    sc.projectContext.graph
+      sc.projectContext.graph
+    }
   }
   
   def run(graph: LoamGraph, timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
@@ -155,13 +206,24 @@ object TestHelpers {
     loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode))
   }
   
-  val defaultUgerSettings: UgerSettings = {
+  val defaultUgerSettings: DrmSettings = {
     val ugerConfig = config.ugerConfig.get 
 
-    UgerSettings(
+    DrmSettings(
       ugerConfig.defaultCores,
       ugerConfig.defaultMemoryPerCore,
-      ugerConfig.defaultMaxRunTime)
+      ugerConfig.defaultMaxRunTime,
+      Option(UgerDefaults.queue))
+  }
+  
+  val defaultLsfSettings: DrmSettings = {
+    val lsfConfig = config.lsfConfig.get 
+
+    DrmSettings(
+      lsfConfig.defaultCores,
+      lsfConfig.defaultMemoryPerCore,
+      lsfConfig.defaultMaxRunTime,
+      None)
   }
   
   def dummyFileName: Path = TestHelpers.path(s"${UUID.randomUUID.toString}.log")

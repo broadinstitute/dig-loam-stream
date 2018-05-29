@@ -3,11 +3,12 @@ package loamstream.db.slick
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
-import loamstream.model.execute.UgerSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.uger.Queue
+import loamstream.drm.Queue
+import loamstream.model.execute.DrmSettings
+import loamstream.model.execute.Environment
 
 /**
  * @author kyuksel
@@ -21,12 +22,11 @@ sealed trait SettingRow {
 }
 
 object SettingRow {
-  def fromSettings(settings: Settings, executionId: Int): SettingRow = settings match {
-    case LocalSettings => LocalSettingRow(executionId)
-    case UgerSettings(cpus, memPerCpu, maxRunTime, queue) => {
-      UgerSettingRow(executionId, cpus.value, memPerCpu.gb, maxRunTime.hours, queue.name)
-    }
-    case GoogleSettings(cluster) => GoogleSettingRow(executionId, cluster)
+  def fromEnvironment(environment: Environment, executionId: Int): SettingRow = environment match {
+    case Environment.Local => LocalSettingRow(executionId)
+    case Environment.Uger(drmSettings) => UgerSettingRow.fromSettings(executionId, drmSettings)
+    case Environment.Lsf(drmSettings) => LsfSettingRow.fromSettings(executionId, drmSettings)
+    case Environment.Google(GoogleSettings(cluster)) => GoogleSettingRow(executionId, cluster)
   }
 }
 
@@ -46,8 +46,36 @@ object LocalSettingRow {
   //Function1, which doesn't have `tupled`.  This is lame, since 1-tuples exist, 
   //but oh well. :\
   //NB: We need tupled to make defining `*` projection easier in Tables.LocalSettings.
-  def tupled: (Int) => LocalSettingRow = {
-    case (eid) => LocalSettingRow(eid)
+  def tupled: (Int) => LocalSettingRow = LocalSettingRow(_)
+}
+
+protected trait DrmSettingRow extends SettingRow {
+  def executionId: Int
+  def cpus: Int
+  //TODO: Make units explicit for memPerCpu and maxRunTime 
+  def memPerCpu: Double  //in GB
+  def maxRunTime: Double //in hours
+  def queue: Option[String]
+  
+  final override def toSettings: Settings = {
+    DrmSettings(Cpus(cpus), Memory.inGb(memPerCpu), CpuTime.inHours(maxRunTime), queue.map(Queue(_)))
+  }
+}
+
+protected object DrmSettingRow {
+  type Maker[R <: DrmSettingRow] = (Int, Int, Double, Double, Option[String]) => R
+}
+
+protected abstract class DrmSettingRowCompanion[R <: DrmSettingRow](
+    make: DrmSettingRow.Maker[R]) extends DrmSettingRow.Maker[R] {
+  
+  def fromSettings(executionId: Int, settings: DrmSettings): R = {
+    make(
+        executionId, 
+        settings.cores.value, 
+        settings.memoryPerCore.gb, 
+        settings.maxRunTime.hours, 
+        settings.queue.map(_.name))
   }
 }
 
@@ -57,19 +85,33 @@ final case class UgerSettingRow(
     //TODO: Make units explicit for memPerCpu and maxRunTime 
     memPerCpu: Double,  //in GB
     maxRunTime: Double, //in hours
-    queue: String) extends SettingRow {
+    queue: Option[String]) extends DrmSettingRow {
 
-  //NB: TODO: .get :(
-  override def toSettings: Settings = {
-    UgerSettings(Cpus(cpus), Memory.inGb(memPerCpu), CpuTime.inHours(maxRunTime), Queue.fromString(queue).get)
-  }
-  
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._
     
     tables.ugerSettings.insertOrUpdate(this)
   }
 }
+
+object UgerSettingRow extends DrmSettingRowCompanion[UgerSettingRow](new UgerSettingRow(_, _, _, _, _))
+
+final case class LsfSettingRow(
+    executionId: Int,
+    cpus: Int,
+    //TODO: Make units explicit for memPerCpu and maxRunTime 
+    memPerCpu: Double,  //in GB
+    maxRunTime: Double, //in hours
+    queue: Option[String]) extends DrmSettingRow {
+
+  override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
+    import tables.driver.api._
+    
+    tables.lsfSettings.insertOrUpdate(this)
+  }
+}
+
+object LsfSettingRow extends DrmSettingRowCompanion[LsfSettingRow](new LsfSettingRow(_, _, _, _, _))
 
 final case class GoogleSettingRow(executionId: Int,
                                   cluster: String) extends SettingRow {

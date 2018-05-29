@@ -13,20 +13,29 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(Local.name === "local")
     assert(Google.name === "google")
     assert(Uger.name === "uger")
+    assert(Lsf.name === "lsf")
   }
   
   test("is* predicates") {
     assert(Local.isLocal === true)
     assert(Local.isGoogle === false)
     assert(Local.isUger === false)
+    assert(Local.isLsf === false)
     
     assert(Google.isLocal === false)
     assert(Google.isGoogle === true)
     assert(Google.isUger === false)
+    assert(Google.isLsf === false)
     
     assert(Uger.isLocal === false)
     assert(Uger.isGoogle === false)
     assert(Uger.isUger === true)
+    assert(Uger.isLsf === false)
+    
+    assert(Lsf.isLocal === false)
+    assert(Lsf.isGoogle === false)
+    assert(Lsf.isUger === false)
+    assert(Lsf.isLsf === true)
   }
   
   test("fromString") {
@@ -48,5 +57,10 @@ final class EnvironmentTypeTest extends FunSuite {
     assert(fromString("Uger") === Some(Uger))
     assert(fromString("UGER") === Some(Uger))
     assert(fromString("UgEr") === Some(Uger))
+    
+    assert(fromString("lsf") === Some(Lsf))
+    assert(fromString("Lsf") === Some(Lsf))
+    assert(fromString("LSF") === Some(Lsf))
+    assert(fromString("LsF") === Some(Lsf))
   }
 }

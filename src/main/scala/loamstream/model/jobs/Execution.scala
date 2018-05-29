@@ -6,6 +6,11 @@ import loamstream.model.execute.Settings
 import loamstream.model.jobs.commandline.CommandLineJob
 import java.nio.file.Path
 import loamstream.util.Loggable
+import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.Resources.GoogleResources
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.Resources.LsfResources
 
 /**
  * @author clint
@@ -21,10 +26,23 @@ final case class Execution(
     outputs: Set[OutputRecord] = Set.empty,
     outputStreams: Option[OutputStreams]) {
 
+  require(
+      environmentAndResourcesMatch, 
+      s"Environment type and resources must match, but got ${env.tpe} and $resources")
+  
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
 
   def settings: Settings = env.settings
+  
+  private def environmentAndResourcesMatch: Boolean = (env.tpe, resources) match {
+    case (_, None) => true
+    case (EnvironmentType.Local, Some(_: LocalResources)) => true
+    case (EnvironmentType.Google, Some(_: GoogleResources)) => true
+    case (EnvironmentType.Uger, Some(_: UgerResources)) => true
+    case (EnvironmentType.Lsf, Some(_: LsfResources)) => true
+    case _ => false
+  }
   
   //NB :(
   //We're a command execution if we wrap a CommandResult or CommandInvocationFailure, and a
@@ -49,23 +67,6 @@ final case class Execution(
 
 //TODO: Clean up and consolidate factory methods.  We probably don't need so many.  Maybe name them better too.
 object Execution extends Loggable {
-  // TODO Remove when dynamic statuses flow in
-  // What does this mean? -Clint Dec 2017
-  def apply(env: Environment,
-            cmd: Option[String],
-            result: JobResult,
-            outputStreams: OutputStreams,
-            outputs: Set[OutputRecord]): Execution = {
-    
-    Execution(
-        env = env, 
-        cmd = cmd, 
-        status = result.toJobStatus, 
-        result = Option(result), 
-        resources = None, 
-        outputs = outputs,
-        outputStreams = Option(outputStreams))
-  }
 
   // TODO Remove when dynamic statuses flow in
   // What does this mean? -Clint Dec 2017
@@ -108,7 +109,14 @@ object Execution extends Loggable {
                   outputStreams: OutputStreams,
                   outputs: Set[Output]): Execution = {
     
-    apply(env, Option(cmd), result, outputStreams, outputs.map(_.toOutputRecord))
+    apply(
+        env = env, 
+        cmd = Option(cmd), 
+        status = result.toJobStatus, 
+        result = Option(result), 
+        resources = None, 
+        outputs = outputs.map(_.toOutputRecord),
+        outputStreams = Option(outputStreams))
   }
 
   def from(job: LJob, jobStatus: JobStatus, outputStreams: OutputStreams): Execution = {

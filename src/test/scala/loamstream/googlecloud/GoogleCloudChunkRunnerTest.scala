@@ -56,8 +56,8 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
     
     val localResources = TestHelpers.localResources
     
-    val ugerResources = ProvidesEnvAndResources.mockUgerResources
-    val googleResources = ProvidesEnvAndResources.mockGoogleResources
+    val ugerResources = TestHelpers.ugerResources
+    val googleResources = TestHelpers.googleResources
     
     val job1 = mockJob(CommandResult(0), Some(localResources))
     val job2 = mockJob(CommandResult(1), Some(ugerResources))

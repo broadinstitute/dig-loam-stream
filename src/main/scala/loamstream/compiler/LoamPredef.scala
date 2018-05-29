@@ -1,15 +1,22 @@
 package loamstream.compiler
 
 import java.net.URI
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 import loamstream.conf.DataConfig
-import loamstream.loam.LoamScriptContext
-import loamstream.model.{Store, Tool}
-import loamstream.model.execute.{Environment, GoogleSettings, UgerSettings}
-import loamstream.model.quantities.{CpuTime, Cpus, Memory}
-import loamstream.util.Loggable
+import loamstream.conf.DrmConfig
 import loamstream.loam.LoamGraph.StoreLocation
+import loamstream.loam.LoamScriptContext
+import loamstream.model.Store
+import loamstream.model.execute.DrmSettings
+import loamstream.model.execute.Environment
+import loamstream.model.execute.GoogleSettings
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.util.Loggable
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -48,8 +55,8 @@ object LoamPredef extends Loggable {
    * AFTER jobs derived from tools/stores defined BEFORE the `andThen`, in evaluation order.
    * Enables code like:
    * 
-   *  val in = store[TXT].at("input-file").asInput
-   *  val computed = store[TXT].at("computed")
+   *  val in = store.at("input-file").asInput
+   *  val computed = store.at("computed")
    *  
    *  cmd"compute-something -i $in -o $computed".in(in).out(computed)
    *  
@@ -58,7 +65,7 @@ object LoamPredef extends Loggable {
    *    val n = countLinesIn(computed) 
    *    
    *    for(i <- 1 to n) {
-   *      val fooOut = store[TXT].at(s"foo-out-$i.txt")
+   *      val fooOut = store.at(s"foo-out-$i.txt")
    *    
    *      cmd"foo -i $computed -n $i".in(computed).out(fooOut)
    *    }
@@ -73,14 +80,6 @@ object LoamPredef extends Loggable {
     scriptContext.projectContext.registerLoamThunk(loamCode)
   }
   
-  def in(store: Store, stores: Store*): Tool.In = in(store +: stores)
-
-  def in(stores: Iterable[Store]): Tool.In = Tool.In(stores)
-
-  def out(store: Store, stores: Store*): Tool.Out = Tool.Out((store +: stores).toSet)
-
-  def out(stores: Iterable[Store]): Tool.Out = Tool.Out(stores)
-
   def changeDir(newPath: Path)(implicit scriptContext: LoamScriptContext): Path = scriptContext.changeWorkDir(newPath)
 
   def changeDir(newPath: String)(implicit scriptContext: LoamScriptContext): Path = changeDir(Paths.get(newPath))
@@ -115,12 +114,17 @@ object LoamPredef extends Loggable {
     runIn(Environment.Local)(expr)(scriptContext)
   }
 
-  def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
-    val ugerConfig = scriptContext.ugerConfig 
+  @deprecated("uger { ... } blocks are deprecated; use drm { ... } instead.", "")
+  def uger[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = drm(expr)(scriptContext)
+  
+  def drm[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {
+    val loamConfig = scriptContext.config 
     
-    val settings = UgerSettings(ugerConfig.defaultCores, ugerConfig.defaultMemoryPerCore, ugerConfig.defaultMaxRunTime)
+    require(
+        loamConfig.drmSystem.isDefined, 
+        "A DRM system (Uger or LSF) must be specified on the command-line to run jobs in a DRM environment")
     
-    val env = Environment.Uger(settings)
+    val env = loamConfig.drmSystem.get.makeBasicEnvironment(scriptContext)
     
     runIn(env)(expr)(scriptContext)
   }
@@ -132,6 +136,7 @@ object LoamPredef extends Loggable {
    * @param expr Block of cmd's and native code
    * @param scriptContext Container for compile time and run time context for a script
    */
+  @deprecated("ugerWith { ... } blocks are deprecated; use drmWith { ... } instead.", "")
   def ugerWith[A](
       cores: Int = -1,
       mem: Double = -1, 
@@ -139,18 +144,42 @@ object LoamPredef extends Loggable {
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     
-    val ugerConfig = scriptContext.ugerConfig
+    drmWith(cores, mem, maxRunTime)(expr)(scriptContext)
+  }
+  
+  /**
+   * @param mem Memory requested per core, per job submission (in Gb's)
+   * @param cores Number of cores requested per job submission
+   * @param maxRunTime Time limit (in hours) after which a job may get killed
+   * @param expr Block of cmd's and native code
+   * @param scriptContext Container for compile time and run time context for a script
+   */
+  def drmWith[A](
+      cores: Int = -1,
+      mem: Double = -1, 
+      maxRunTime: Double = -1)
+      (expr: => A)
+      (implicit scriptContext: LoamScriptContext): A = {
     
     def orDefault[B](actual: B, default: B) = if(actual == -1) default else actual
     
-    val settings = UgerSettings(
-        Cpus(orDefault(cores, ugerConfig.defaultCores.value)), 
-        Memory.inGb(orDefault(mem, ugerConfig.defaultMemoryPerCore.gb)), 
-        CpuTime.inHours(orDefault(maxRunTime, ugerConfig.defaultMaxRunTime.hours)))
+    val loamConfig = scriptContext.config
     
-    val env = Environment.Uger(settings)
+    require(
+        loamConfig.drmSystem.isDefined, 
+        "A DRM system (Uger or LSF) must be specified on the command-line to run jobs in a DRM environment")
     
-    runIn(env)(expr)(scriptContext)
+    val drmSystem = loamConfig.drmSystem.get
+    
+    val drmConfig: DrmConfig = drmSystem.config(scriptContext)
+    
+    val settings = DrmSettings(
+        Cpus(orDefault(cores, drmConfig.defaultCores.value)), 
+        Memory.inGb(orDefault(mem, drmConfig.defaultMemoryPerCore.gb)), 
+        CpuTime.inHours(orDefault(maxRunTime, drmConfig.defaultMaxRunTime.hours)),
+        drmSystem.defaultQueue)
+    
+    runIn(drmSystem.makeEnvironment(settings))(expr)(scriptContext)
   }
   
   def google[A](expr: => A)(implicit scriptContext: LoamScriptContext): A = {

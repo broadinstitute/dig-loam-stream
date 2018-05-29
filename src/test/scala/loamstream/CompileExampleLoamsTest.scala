@@ -28,7 +28,7 @@ final class CompileExampleLoamsTest extends FunSuite {
       
       val script = scriptShot.get
       
-      val compileResult = loamEngine.compile(LoamProject(TestHelpers.config, script))
+      val compileResult = loamEngine.compile(LoamProject(TestHelpers.configWithUger, script))
       
       val message = s"; Compilation failed for $loamFile:\n${compileResult.report}"
       

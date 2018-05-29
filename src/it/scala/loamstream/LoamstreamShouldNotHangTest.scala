@@ -118,7 +118,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
                        |val storeC = store(s"$cPath")
                        |val storeD = store(s"$dPath")
                        |
-                       |uger {
+                       |drm {
                        |  //Should work
                        |  cmd"cp $$storeA $$storeB".in(storeA).out(storeB)
                        |  cmd"cp $$storeB $$storeC".in(storeB).out(storeC)
@@ -181,6 +181,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
 
     val args: Array[String] = {
       Array(
+          "--uger",
           "--conf",
           confFile.toString,
           loamFile.toString)

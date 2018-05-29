@@ -19,6 +19,77 @@ final class LoamGraphTest extends FunSuite {
 
   import LoamGraphTest._
 
+  test("updateTool") {
+    val components = makeTestComponents
+    
+    val oldGraph = components.graph.copy(namedTools = components.graph.namedTools + ("impute" -> components.imputeTool))
+    
+    val oldTool = components.imputeTool
+    val newTool = oldTool.copy(
+        id = oldTool.id, 
+        tokens = (LoamToken.StringToken("NEW ") +: oldTool.tokens))(oldTool.scriptContext)
+    
+    val newGraph = oldGraph.updateTool(oldTool, newTool)
+    
+    assert(oldGraph !== newGraph)
+    
+    assert(oldGraph.tools === components.tools)
+    assert(newGraph.tools === Set(components.phaseTool, newTool))
+    
+    assert(oldGraph.toolInputs === Map(
+        components.phaseTool -> Set(components.raw),
+        components.imputeTool -> Set(components.phased, components.template)))
+    
+    assert(newGraph.toolInputs === Map(
+        components.phaseTool -> Set(components.raw),
+        newTool -> Set(components.phased, components.template)))
+        
+    assert(oldGraph.toolOutputs === Map(
+        components.phaseTool -> Set(components.phased),
+        components.imputeTool -> Set(components.imputed)))
+        
+    assert(newGraph.toolOutputs === Map(
+        components.phaseTool -> Set(components.phased),
+        newTool -> Set(components.imputed)))
+        
+    assert(oldGraph.storeProducers === Map(
+        components.phased -> components.phaseTool,
+        components.imputed -> components.imputeTool))
+        
+    assert(newGraph.storeProducers === Map(
+        components.phased -> components.phaseTool,
+        components.imputed -> newTool))
+        
+    assert(oldGraph.storeConsumers === Map(
+        components.raw -> Set(components.phaseTool),
+        components.phased -> Set(components.imputeTool),
+        components.template -> Set(components.imputeTool)))
+        
+    assert(newGraph.storeConsumers === Map(
+        components.raw -> Set(components.phaseTool),
+        components.phased -> Set(newTool),
+        components.template -> Set(newTool)))
+        
+    import TestHelpers.path
+        
+    assert(oldGraph.workDirs === Map(components.phaseTool -> path("."), components.imputeTool -> path(".")))
+    
+    assert(newGraph.workDirs === Map(components.phaseTool -> path("."), newTool -> path(".")))
+    
+    assert(oldGraph.executionEnvironments === Map(
+        components.phaseTool -> Environment.Local, components.imputeTool -> Environment.Local))
+        
+    assert(newGraph.executionEnvironments === Map(
+        components.phaseTool -> Environment.Local, newTool -> Environment.Local))
+    
+    assert(oldGraph.namedTools === Map("phase" -> components.phaseTool, "impute" -> components.imputeTool))
+    
+    assert(newGraph.namedTools === Map("phase" -> components.phaseTool, "impute" -> newTool))
+        
+    assert(oldGraph.stores === newGraph.stores)
+    assert(oldGraph.inputStores === newGraph.inputStores)
+  }
+
   test("Test that valid graph passes all checks.") {
     val graph = makeTestComponents.graph
     
@@ -237,13 +308,16 @@ object LoamGraphTest {
   }
   
   private final case class GraphComponents(
-    graph: LoamGraph,
-    inputFile: Path,
-    outputFile: Path,
-    raw: Store,
-    phased: Store,
-    template: Store,
-    imputed: Store,
-    phaseTool: LoamCmdTool,
-    imputeTool: LoamCmdTool)
+      graph: LoamGraph,
+      inputFile: Path,
+      outputFile: Path,
+      raw: Store,
+      phased: Store,
+      template: Store,
+      imputed: Store,
+      phaseTool: LoamCmdTool,
+      imputeTool: LoamCmdTool) {
+    
+    def tools: Set[LoamCmdTool] = Set(phaseTool, imputeTool)
+  }
 }

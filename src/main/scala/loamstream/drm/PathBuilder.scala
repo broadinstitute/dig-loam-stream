@@ -30,6 +30,6 @@ trait PathBuilder {
     //scriptBuilderParams.drmIndexVarExpr is a special string that will be substituted with the index of a job
     //in a task/job array at execution time.  
     //LSF uses '%I', Uger uses JobTemplate.PARAMETRIC_INDEX ('$drmaa_incr_ph$')
-    BashScript.escapeString(s"${pathTemplatePrefix}${drmConfig.workDir.render}/$jobName.${scriptBuilderParams.drmIndexVarExpr}.$suffix")
+    s"${pathTemplatePrefix}${drmConfig.workDir.render}/$jobName.${scriptBuilderParams.drmIndexVarExpr}.$suffix"
   }
 }

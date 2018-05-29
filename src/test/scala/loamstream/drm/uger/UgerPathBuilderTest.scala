@@ -26,7 +26,7 @@ final class UgerPathBuilderTest extends FunSuite {
       s":::/foo/bar/${UgerScriptBuilderParams.drmIndexVarExpr}/baz.${UgerScriptBuilderParams.drmIndexVarExpr}"
     }
     
-    assert(UgerPathBuilder.reifyPathTemplate(template, 42) === path("/foo/bar/42/baz.42"))
+    assert(UgerPathBuilder.reifyPathTemplate(template, 42) === path("/foo/bar/42/baz.42").toAbsolutePath)
   }
   
   test("pathTemplatePrefix") {
@@ -34,15 +34,13 @@ final class UgerPathBuilderTest extends FunSuite {
   }
   
   test("ugerStdOutPathTemplate") {
-    doPathTemplateTest(
-      UgerPathBuilder.stdOutPathTemplate,
-      s":${workDir.render}/blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stdout")
+    val expected = workDir.resolve(s"blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stdout")
+    doPathTemplateTest(UgerPathBuilder.stdOutPathTemplate, s":${expected.render}")
   }
 
   test("ugerStdErrPathTemplate") {
-    doPathTemplateTest(
-      UgerPathBuilder.stdErrPathTemplate,
-      s":${workDir.render}/blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stderr")
+    val expected = workDir.resolve(s"blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stderr")
+    doPathTemplateTest(UgerPathBuilder.stdErrPathTemplate, s":${expected.render}")
   }
 
   private def doPathTemplateTest(makeTemplate: (DrmConfig, String) => String, expected: String): Unit = {

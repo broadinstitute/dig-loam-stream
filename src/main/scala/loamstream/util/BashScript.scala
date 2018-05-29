@@ -24,7 +24,7 @@ object BashScript extends Loggable {
   }
 
   /** Characters that should be escaped by prefixing with backslash */
-  private val charsToBeEscaped: Set[Char] = Set('\\', '$', '\'', '\"', '\n', '\r', '\t', '\b', '\f', ' ')
+  private val charsToBeEscaped: Set[Char] = Set('\\', '\'', '\"', '\n', '\r', '\t', '\b', '\f', ' ')
 
   /** Escapes string for Bash. */
   def escapeString(string: String): String = string.flatMap {

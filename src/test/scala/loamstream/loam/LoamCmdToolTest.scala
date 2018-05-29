@@ -227,7 +227,7 @@ final class LoamCmdToolTest extends FunSuite {
     import LoamCmdTool.toToken
     
     //Store
-    val store = Store.create
+    val store = Store()
     
     assert(toToken(store) === StoreToken(store))
     
@@ -272,7 +272,7 @@ final class LoamCmdToolTest extends FunSuite {
       implicit val scriptContext = new LoamScriptContext(projectContext)
 
       val nStores = 4
-      val stores = Seq.fill[Store](nStores)(Store.create)
+      val stores = Seq.fill[Store](nStores)(Store())
 
       val tool = cmd"foo bar baz"
 

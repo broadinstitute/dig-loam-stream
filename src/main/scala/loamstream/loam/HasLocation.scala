@@ -12,11 +12,11 @@ trait HasLocation {
   
   def path: Path 
   
-  def pathOpt: Option[Path] = Option(path)
+  def pathOpt: Option[Path]
   
   def uri: URI
   
-  def uriOpt: Option[URI] = None
+  def uriOpt: Option[URI]
   
   def render: String
 }

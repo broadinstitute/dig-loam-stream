@@ -21,7 +21,7 @@ final class LsfPathBuilderTest extends FunSuite {
   test("reifyPathTemplate") {
     val template = s"/foo/bar/${LsfScriptBuilderParams.drmIndexVarExpr}/baz.${LsfScriptBuilderParams.drmIndexVarExpr}"
     
-    assert(LsfPathBuilder.reifyPathTemplate(template, 42) === path("/foo/bar/42/baz.42"))
+    assert(LsfPathBuilder.reifyPathTemplate(template, 42) === path("/foo/bar/42/baz.42").toAbsolutePath)
   }
   
   test("pathTemplatePrefix") {
@@ -29,15 +29,13 @@ final class LsfPathBuilderTest extends FunSuite {
   }
   
   test("ugerStdOutPathTemplate") {
-    doPathTemplateTest(
-      LsfPathBuilder.stdOutPathTemplate,
-      s"${workDir.render}/blarg-blahblah.%I.stdout")
+    val expected = workDir.resolve("blarg-blahblah.%I.stdout")
+    doPathTemplateTest(LsfPathBuilder.stdOutPathTemplate, expected.render)
   }
 
   test("ugerStdErrPathTemplate") {
-    doPathTemplateTest(
-      LsfPathBuilder.stdErrPathTemplate,
-      s"${workDir.render}/blarg-blahblah.%I.stderr")
+    val expected = workDir.resolve("blarg-blahblah.%I.stderr")
+    doPathTemplateTest(LsfPathBuilder.stdErrPathTemplate, expected.render)
   }
 
   private def doPathTemplateTest(makeTemplate: (DrmConfig, String) => String, expected: String): Unit = {

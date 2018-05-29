@@ -1,12 +1,20 @@
 package loamstream.cli
 
-import org.scalatest.FunSuite
-import loamstream.model.execute.HashingStrategy
-import loamstream.TestHelpers
-import java.nio.file.Path
 import java.net.URI
-import TestHelpers.path
-import Intent.{ from, ShowVersionAndQuit, CompileOnly, DryRun, LookupOutput, RealRun }
+import java.nio.file.Path
+
+import org.scalatest.FunSuite
+
+import Intent.CompileOnly
+import Intent.DryRun
+import Intent.LookupOutput
+import Intent.RealRun
+import Intent.ShowVersionAndQuit
+import Intent.from
+import loamstream.TestHelpers
+import loamstream.TestHelpers.path
+import loamstream.model.execute.HashingStrategy
+import loamstream.drm.DrmSystem
 
 /**
  * @author clint
@@ -20,7 +28,7 @@ final class IntentTest extends FunSuite {
   private val nonExistentFile = "/foo/bar/baz.loam"
   
   private val confFile = "src/test/resources/foo.conf"
-  private val confPath = path(confFile)
+  private val confPath = TestHelpers.path(confFile)
   
   private val outputFile = "src/test/resources/a.txt"
   private val outputUri = "gs://foo/bar/baz"
@@ -29,7 +37,7 @@ final class IntentTest extends FunSuite {
 
   private def uri(u: String): URI = URI.create(u)
     
-  private def paths(ps: String*): Seq[Path] = ps.map(path)
+  private def paths(ps: String*): Seq[Path] = ps.map(TestHelpers.path)
     
   private def assertInvalid(commandLine: String): Unit = {
     assert(from(cliConf(commandLine)).isLeft)
@@ -132,6 +140,7 @@ final class IntentTest extends FunSuite {
             confFile = None,
             hashingStrategy = HashingStrategy.HashOutputs,
             shouldRunEverything = false,
+            drmSystemOpt = None,
             loams = paths(exampleFile0, exampleFile1)))
             
     assertValid(
@@ -140,6 +149,25 @@ final class IntentTest extends FunSuite {
             confFile = Some(confPath),
             hashingStrategy = HashingStrategy.HashOutputs,
             shouldRunEverything = false,
+            drmSystemOpt = None,
+            loams = paths(exampleFile0, exampleFile1)))
+            
+    assertValid(
+        s"--uger --conf $confFile $exampleFile0 $exampleFile1", 
+        RealRun(
+            confFile = Some(confPath),
+            hashingStrategy = HashingStrategy.HashOutputs,
+            shouldRunEverything = false,
+            drmSystemOpt = Some(DrmSystem.Uger),
+            loams = paths(exampleFile0, exampleFile1)))
+            
+    assertValid(
+        s"--lsf --conf $confFile $exampleFile0 $exampleFile1", 
+        RealRun(
+            confFile = Some(confPath),
+            hashingStrategy = HashingStrategy.HashOutputs,
+            shouldRunEverything = false,
+            drmSystemOpt = Some(DrmSystem.Lsf),
             loams = paths(exampleFile0, exampleFile1)))
             
     assertValid(
@@ -148,6 +176,7 @@ final class IntentTest extends FunSuite {
             confFile = None,
             hashingStrategy = HashingStrategy.HashOutputs,
             shouldRunEverything = true,
+            drmSystemOpt = None,
             loams = paths(exampleFile0, exampleFile1)))
             
     assertValid(
@@ -156,6 +185,7 @@ final class IntentTest extends FunSuite {
             confFile = Some(confPath),
             hashingStrategy = HashingStrategy.HashOutputs,
             shouldRunEverything = true,
+            drmSystemOpt = None,
             loams = paths(exampleFile0, exampleFile1)))
             
     assertValid(
@@ -164,6 +194,7 @@ final class IntentTest extends FunSuite {
             confFile = None,
             hashingStrategy = HashingStrategy.DontHashOutputs,
             shouldRunEverything = true,
+            drmSystemOpt = None,
             loams = paths(exampleFile0, exampleFile1)))
             
     assertValid(
@@ -172,6 +203,25 @@ final class IntentTest extends FunSuite {
             confFile = Some(confPath),
             hashingStrategy = HashingStrategy.DontHashOutputs,
             shouldRunEverything = true,
+            drmSystemOpt = None,
+            loams = paths(exampleFile0, exampleFile1)))
+            
+    assertValid(
+        s"--lsf --conf $confFile --run-everything --disable-hashing $exampleFile0 $exampleFile1", 
+        RealRun(
+            confFile = Some(confPath),
+            hashingStrategy = HashingStrategy.DontHashOutputs,
+            shouldRunEverything = true,
+            drmSystemOpt = Some(DrmSystem.Lsf),
+            loams = paths(exampleFile0, exampleFile1)))
+            
+    assertValid(
+        s"--uger --conf $confFile --run-everything --disable-hashing $exampleFile0 $exampleFile1", 
+        RealRun(
+            confFile = Some(confPath),
+            hashingStrategy = HashingStrategy.DontHashOutputs,
+            shouldRunEverything = true,
+            drmSystemOpt = Some(DrmSystem.Uger),
             loams = paths(exampleFile0, exampleFile1)))
   }
 

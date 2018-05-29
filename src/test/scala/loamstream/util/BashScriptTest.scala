@@ -40,7 +40,7 @@ final class BashScriptTest extends FunSuite {
   test("BashScript.escapeString") {
     def testString(insert: String): String = s"So${insert}special!"
     
-    val specialChars: Set[Char] = Set('\\', '$', '\'', '\"', '\n', '\r', '\t', '\b', '\f', ' ')
+    val specialChars: Set[Char] = Set('\\', '\'', '\"', '\n', '\r', '\t', '\b', '\f', ' ')
     
     for (specialChar <- specialChars) {
       val string = testString(s"$specialChar")

@@ -1,50 +1,79 @@
 package loamstream.apps
 
 import com.typesafe.config.Config
-import loamstream.db.slick.DbDescriptor
-import loamstream.db.LoamDao
-import loamstream.model.execute.ChunkRunner
-import loamstream.model.execute.Executer
-import loamstream.cli.Conf
 import com.typesafe.config.ConfigFactory
-import loamstream.db.slick.SlickLoamDao
-import loamstream.db.slick.DbType
-import loamstream.uger.UgerChunkRunner
-import loamstream.conf.{LoamConfig, PythonConfig, RConfig, UgerConfig}
-import loamstream.util.Loggable
-import loamstream.uger.Poller
-import loamstream.util.RxSchedulers
-import loamstream.uger.JobMonitor
-import loamstream.model.execute.RxExecuter
-import loamstream.model.execute.Executable
 
-import scala.concurrent.duration.Duration
-import loamstream.model.jobs.{Execution, LJob}
-import loamstream.model.execute.DbBackedJobFilter
-import loamstream.model.execute.JobFilter
-import loamstream.util.Terminable
-import loamstream.model.execute.AsyncLocalChunkRunner
-import loamstream.model.execute.CompositeChunkRunner
-import loamstream.util.ExecutionContexts
-import loamstream.googlecloud._
-import loamstream.util.Throwables
+import java.nio.file.Path
 
-import scala.util.Try
-import loamstream.uger.AccountingClient
-import loamstream.uger.Drmaa1Client
-import loamstream.uger.UgerClient
-import loamstream.conf.ExecutionConfig
-import loamstream.util.ConfigUtils
-import loamstream.util.Tries
-import loamstream.uger.JobSubmitter
-import loamstream.model.execute.HashingStrategy
+import loamstream.cli.Conf
 import loamstream.cli.Intent
 import loamstream.cli.Intent.RealRun
-import java.nio.file.Path
-import scala.util.Success
-import loamstream.util.FileMonitor
 import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
+import loamstream.conf.ExecutionConfig
+import loamstream.conf.LoamConfig
+import loamstream.conf.PythonConfig
+import loamstream.conf.RConfig
+import loamstream.conf.UgerConfig
+
+import loamstream.db.LoamDao
+import loamstream.db.slick.DbDescriptor
+import loamstream.db.slick.DbType
+import loamstream.db.slick.SlickLoamDao
+
+import loamstream.drm.AccountingClient
+import loamstream.drm.Drmaa1Client
+import loamstream.drm.DrmaaPoller
+import loamstream.drm.DrmChunkRunner
+import loamstream.drm.DrmClient
+import loamstream.drm.DrmSystem
+import loamstream.drm.JobMonitor
+import loamstream.drm.JobSubmitter
+import loamstream.drm.Poller
+
+import loamstream.drm.lsf.BjobsPoller
+import loamstream.drm.lsf.BkillJobKiller
+import loamstream.drm.lsf.BsubJobSubmitter
+import loamstream.drm.lsf.LsfPathBuilder
+
+import loamstream.drm.uger.QacctAccountingClient
+import loamstream.drm.uger.UgerNativeSpecBuilder
+import loamstream.drm.uger.UgerPathBuilder
+import loamstream.drm.uger.UgerResourceUsageExtractor
+
+import loamstream.googlecloud.CloudSdkDataProcClient
+import loamstream.googlecloud.CloudStorageClient
+import loamstream.googlecloud.GcsClient
+import loamstream.googlecloud.GcsDriver
+import loamstream.googlecloud.GoogleCloudConfig
+import loamstream.googlecloud.GoogleCloudChunkRunner
+
+import loamstream.model.execute.AsyncLocalChunkRunner
+import loamstream.model.execute.ChunkRunner
+import loamstream.model.execute.CompositeChunkRunner
+import loamstream.model.execute.DbBackedJobFilter
+import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.Executable
+import loamstream.model.execute.Executer
+import loamstream.model.execute.HashingStrategy
+import loamstream.model.execute.JobFilter
+import loamstream.model.execute.RxExecuter
+
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.LJob
+
+import loamstream.util.ConfigUtils
+import loamstream.util.ExecutionContexts
+import loamstream.util.FileMonitor
+import loamstream.util.Loggable
+import loamstream.util.RxSchedulers
+import loamstream.util.Terminable
+import loamstream.util.Throwables
+import loamstream.util.Tries
+
+import scala.concurrent.duration.Duration
+import scala.util.Try
+import scala.util.Success
 
 
 /**
@@ -70,15 +99,14 @@ trait AppWiring {
   lazy val loamRunner: LoamRunner = LoamRunner(loamEngine)
 }
 
-object AppWiring extends DrmaaClientHelpers with Loggable {
+object AppWiring extends Loggable {
 
   def daoForOutputLookup(intent: Intent.LookupOutput): LoamDao = makeDefaultDb
 
   def loamConfigFrom(confFile: Option[Path]): LoamConfig = {
     val typesafeConfig: Config = loadConfig(confFile)
       
-    //NB: .get is safe here, since we know LoamConfig.fromConfig won't return Failure
-    //TODO: Revisit this
+    //TODO: Revisit .get
     LoamConfig.fromConfig(typesafeConfig).get
   }
   
@@ -91,7 +119,8 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
         confFile = intent.confFile,
         makeDao = makeDao,
         shouldRunEverything = intent.shouldRunEverything, 
-        hashingStrategy = intent.hashingStrategy)
+        hashingStrategy = intent.hashingStrategy,
+        drmSystemOpt = intent.drmSystemOpt)
   }
 
   private[AppWiring] def makeJobFilter(
@@ -107,11 +136,12 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
       confFile: Option[Path],
       makeDao: => LoamDao,
       shouldRunEverything: Boolean,
-      hashingStrategy: HashingStrategy) extends AppWiring {
+      hashingStrategy: HashingStrategy,
+      drmSystemOpt: Option[DrmSystem]) extends AppWiring {
     
     override lazy val dao: LoamDao = makeDao
     
-    override lazy val config: LoamConfig = loamConfigFrom(confFile)
+    override lazy val config: LoamConfig = loamConfigFrom(confFile).copy(drmSystem = drmSystemOpt)
     
     override def executer: Executer = terminableExecuter
 
@@ -155,6 +185,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     }
     
     private def makeChunkRunner(threadPoolSize: Int): (ChunkRunner, Seq[Terminable]) = {
+      
       //TODO: Make the number of threads this uses configurable
       val numberOfCPUs = Runtime.getRuntime.availableProcessors
 
@@ -162,13 +193,13 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
       val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
 
-      val (ugerRunner, ugerRunnerHandles) = ugerChunkRunner(confFile, config, threadPoolSize)
-
+      val (drmRunner, drmRunnerHandles) = drmChunkRunner(confFile, config, threadPoolSize)
+      
       val googleRunner = googleChunkRunner(confFile, config.googleConfig, localRunner)
 
-      val compositeRunner = CompositeChunkRunner(localRunner +: (ugerRunner.toSeq ++ googleRunner))
+      val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.toSeq ++ googleRunner))
       
-      val toBeStopped = compositeRunner +: localEcHandle +: (ugerRunnerHandles ++ compositeRunner.components)    
+      val toBeStopped = compositeRunner +: localEcHandle +: (drmRunnerHandles ++ compositeRunner.components)
       
       (compositeRunner, toBeStopped.distinct)
     }
@@ -224,10 +255,22 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     googleConfigOpt.fold(noGoogleConfig)(googleConfigPresent)
   }
   
+  private def drmChunkRunner(
+      confFile: Option[Path], 
+      loamConfig: LoamConfig, 
+      threadPoolSize: Int): (Option[DrmChunkRunner], Seq[Terminable]) = {
+
+    loamConfig.drmSystem match {
+      case Some(DrmSystem.Uger) => ugerChunkRunner(confFile, loamConfig, threadPoolSize)
+      case Some(DrmSystem.Lsf) => lsfChunkRunner(confFile, loamConfig, threadPoolSize)
+      case None => (None, Nil)
+    }
+  }
+  
   private def ugerChunkRunner(
       confFile: Option[Path], 
       loamConfig: LoamConfig, 
-      threadPoolSize: Int): (Option[UgerChunkRunner], Seq[Terminable]) = {
+      threadPoolSize: Int): (Option[DrmChunkRunner], Seq[Terminable]) = {
     
     val result @ (ugerRunnerOption, _) = unpack(makeUgerChunkRunner(loamConfig, threadPoolSize))
 
@@ -242,6 +285,28 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     result
   }
   
+  private def lsfChunkRunner(
+      confFile: Option[Path], 
+      loamConfig: LoamConfig, 
+      threadPoolSize: Int): (Option[DrmChunkRunner], Seq[Terminable]) = {
+    
+    val (lsfRunnerOption, terminables) = unpack(makeLsfChunkRunner(loamConfig, threadPoolSize))
+    
+    val jobKillerTerminable = Terminable {
+      BkillJobKiller.fromExecutable().killAllJobs()
+    }
+
+    //TODO: A better way to enable or disable Uger support; for now, this is purely expedient
+    if(lsfRunnerOption.isEmpty) {
+      val msg = s"""LSF support is NOT enabled. It can be enabled by defining loamstream.lsf section
+                   |in the config file (${confFile}).""".stripMargin
+        
+      debug(msg)
+    }
+    
+    (lsfRunnerOption, terminables :+ jobKillerTerminable)
+  }
+  
   private def unpack[A,B](o: Option[(A, Seq[B])]): (Option[A], Seq[B]) = o match {
     case Some((a, b)) => (Some(a), b)
     case None => (None, Nil)
@@ -251,7 +316,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     
     val googleConfigAttempt: Try[GoogleCloudConfig] = config.googleConfig match {
       case Some(googleConfig) => Success(googleConfig)
-      case None => Tries.failure(s"Missing or malformed 'loamstream.googlecloud' section in config file $confFile")
+      case None => Tries.failure(s"Missing or malformed 'loamstream.googlecloud' section in config file")
     }
     
     val gcsClientAttempt = for {
@@ -275,7 +340,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
   private def makeUgerChunkRunner(
       loamConfig: LoamConfig, 
-      threadPoolSize: Int): Option[(UgerChunkRunner, Seq[Terminable])] = {
+      threadPoolSize: Int): Option[(DrmChunkRunner, Seq[Terminable])] = {
     
     for {
       ugerConfig <- loamConfig.ugerConfig
@@ -286,7 +351,7 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val poller = Poller.drmaa(ugerClient)
+      val poller = new DrmaaPoller(ugerClient)
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
@@ -298,7 +363,13 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
 
         val jobSubmitter = JobSubmitter.Drmaa(ugerClient, ugerConfig)
         
-        UgerChunkRunner(loamConfig.executionConfig, ugerConfig, jobSubmitter, jobMonitor)
+        DrmChunkRunner(
+            environmentType = EnvironmentType.Uger,
+            pathBuilder = UgerPathBuilder,
+            executionConfig = loamConfig.executionConfig, 
+            drmConfig = ugerConfig, 
+            jobSubmitter = jobSubmitter, 
+            jobMonitor = jobMonitor)
       }
 
       val handles = Seq(schedulerHandle, ugerRunner)
@@ -307,8 +378,50 @@ object AppWiring extends DrmaaClientHelpers with Loggable {
     }
   }
   
-  private def makeUgerClient: UgerClient = new UgerClient(new Drmaa1Client, AccountingClient.useActualBinary())
+  private def makeLsfChunkRunner(
+      loamConfig: LoamConfig, 
+      threadPoolSize: Int): Option[(DrmChunkRunner, Seq[Terminable])] = {
+    
+    for {
+      lsfConfig <- loamConfig.lsfConfig
+    } yield {
+      debug("Creating LSF ChunkRunner...")
 
+      import loamstream.model.execute.ExecuterHelpers._
+
+      val poller = BjobsPoller.fromExecutable()
+
+      val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
+
+      val lsfRunner = {
+        //TODO: Make configurable?
+        val pollingFrequencyInHz = 0.1
+        
+        val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
+
+        val jobSubmitter = BsubJobSubmitter.fromExecutable()
+        
+        DrmChunkRunner(
+            environmentType = EnvironmentType.Lsf,
+            pathBuilder = LsfPathBuilder,
+            executionConfig = loamConfig.executionConfig, 
+            drmConfig = lsfConfig, 
+            jobSubmitter = jobSubmitter, 
+            jobMonitor = jobMonitor)
+      }
+
+      val handles = Seq(schedulerHandle, lsfRunner)
+
+      (lsfRunner, handles)
+    }
+  }
+  
+  private def makeUgerClient: DrmClient = {
+    val drmaa1Client = new Drmaa1Client(UgerResourceUsageExtractor, UgerNativeSpecBuilder)
+    
+    new DrmClient(drmaa1Client, QacctAccountingClient.useActualBinary())
+  }
+  
   private def loadConfig(confFileOpt: Option[Path]): Config = {
     def defaults: Config = ConfigFactory.load()
 

@@ -92,9 +92,9 @@ test in assembly := {}
 //one Uger/DRMAA session active at once.
 parallelExecution in IntegrationTest := false
 
-//Show full stack traces from unit and integration tests
-testOptions in IntegrationTest += Tests.Argument("-oF")
-testOptions in Test += Tests.Argument("-oF")
+//Show full stack traces from unit and integration tests (F); display test run times (D)
+testOptions in IntegrationTest += Tests.Argument("-oFD")
+testOptions in Test += Tests.Argument("-oFD")
 
 //Make the fat jar produced by `assembly` a tracked artifact that will be published.  
 //(Without this bit, only the application classes, sources, and docs will be published.)

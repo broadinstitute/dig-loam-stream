@@ -4,6 +4,7 @@ import java.nio.file.Path
 import loamstream.model.execute.HashingStrategy
 import java.net.URI
 import loamstream.util.Loggable
+import loamstream.drm.DrmSystem
 
 /**
  * @author clint
@@ -37,6 +38,7 @@ object Intent extends Loggable {
     confFile: Option[Path],
     hashingStrategy: HashingStrategy,
     shouldRunEverything: Boolean,
+    drmSystemOpt: Option[DrmSystem],
     loams: Seq[Path]) extends Intent
 
   def from(cli: Conf): Either[String, Intent] = from(cli.toValues)
@@ -79,11 +81,21 @@ object Intent extends Loggable {
     shouldRunEverything = values.runEverythingSupplied,
     loams = values.loams)
 
-  private def makeRealRun(values: Conf.Values): RealRun = RealRun(
-    confFile = values.conf,
-    hashingStrategy = determineHashingStrategy(values),
-    shouldRunEverything = values.runEverythingSupplied,
-    loams = values.loams)
+  private def makeRealRun(values: Conf.Values): RealRun = {
+   
+    val drmSystemOpt: Option[DrmSystem] = {
+      if(values.ugerSupplied) { Some(DrmSystem.Uger) }
+      else if(values.lsfSupplied) { Some(DrmSystem.Lsf) }
+      else { None }
+    }
+    
+    RealRun(
+      confFile = values.conf,
+      hashingStrategy = determineHashingStrategy(values),
+      shouldRunEverything = values.runEverythingSupplied,
+      drmSystemOpt = drmSystemOpt,
+      loams = values.loams)
+  }
 
   private def dryRun(values: Conf.Values) = values.dryRunSupplied && allLoamsExist(values)
 

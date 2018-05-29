@@ -7,7 +7,6 @@ import org.scalatest.FunSuite
   *         date: Aug 10, 2016
   */
 final class HelpersTest extends FunSuite {
-  //scalastyle:off magic.number
   test("timestampFromLong") {
     val millis = 123456
 
@@ -15,5 +14,4 @@ final class HelpersTest extends FunSuite {
 
     assert(timestamp.toInstant.toEpochMilli === millis)
   }
-  //scalastyle:on magic.number
 }

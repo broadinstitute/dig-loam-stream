@@ -1,0 +1,60 @@
+Notice of Third Party Code Dependencies
+
+LoamStream is distributed, in part, under and subject to the provisions of
+licenses for:
+
+Scala v. 2.12.4, Copyright (c) 2002 EPFL and Copyright (c) 2011 Lightbend,
+Inc. All rights reserved. (https://www.scala-lang.org/license/, BSD 3-Clause
+license); 
+
+ScalaFmt v. 1.3.0, Copyright (c) 2015 - 2018 Olafur Pall Geirsson. All rights
+reserved. (https://github.com/scalameta/scalafmt/blob/master/LICENCE.md,
+Apache 2.0 license); 
+
+Apache Commons IO v. 2.6, Copyright (c) 2017 The Apache Software Foundation.
+All Rights Reserved. (https://commons.apache.org/proper/commons-io/, Apache
+2.0 license); 
+
+DRMAA Commons v. 1.0, Copyright (c) 2018 The Apache Software Foundation. All
+rights reserved. (https://mvnrepository.com/artifact/us.levk/drmaa-common/1.0,
+Apache 2.0 license); 
+
+DRMAA GridEngine v. 6.2uv, Copyright (c) 2012 The Apache Software Foundation.
+All rights reserved. 
+(https://mvnrepository.com/artifact/us.levk/drmaa-gridengine/6.2u5, Apache 2.0
+license); 
+
+Logback Classic Module v. 1.2.3, Copyright (c) 1999 - 2017 QOS.ch. All rights
+reserved.
+(https://logback.qos.ch/, EPL 1.0 or GNU LGPL); 
+
+Typesafe Config v. 1.3.2, Copyright (c) 2011-2018 Havoc Pennington. All rights
+reserved.
+(https://github.com/lightbend/config, Apache 2.0 license);
+
+Typesafe Slick v. 3.2.1, Copyright (c) 2011 – 2016 Typesafe, Inc. All rights
+reserved.
+(https://github.com/slick/slick/blob/master/LICENSE.txt, BSD 2-Clause license);
+
+H2 Database Engine v. 1.4.196, Public Domain.
+(http://h2database.com/html/license.html , MPL 2.0 or EPL 1.0);
+
+Scallop v. 3.1.1, Copyright (c) 2012 Platon Pronko and Chris Hodapp. All 
+rightsreserved.
+(https://github.com/scallop/scallop, MIT license);
+
+Google Cloud Storage v. 1.8.0, Copyright (c) 2017 Google, Inc. All rights
+reserved.
+(https://mvnrepository.com/artifact/com.google.cloud/google-cloud-storage/1.8.0,
+Apache 2.0 license);
+
+Google Auth Library v. 0.9.0, Copyright (c) 2014 Google, Inc. All rights
+reserved. 
+(https://mvnrepository.com/artifact/com.google.auth/google-auth-library-credentials/0.9.0, 
+BSD 3-Clause license);
+
+Ficus v. 1.4.3, Copyright (c) 2014 - 2018 Cody Allen and others. All rights
+reserved. (https://github.com/iheartradio/ficus, MIT license); and 
+
+Squants v. 1.3.0, Copyright (c) 2014 - 2018 Gary Keorkunian and others. All
+rights reserved. (https://github.com/typelevel/squants, Apache 2.0 license).

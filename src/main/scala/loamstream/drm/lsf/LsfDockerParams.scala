@@ -1,12 +1,13 @@
 package loamstream.drm.lsf
 
 import java.nio.file.Path
-import java.nio.file.Paths
-
-import scala.beans.BeanProperty
-
+import java.nio.file.Paths.{get => path }
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.DumperOptions
+import LsfDockerParams.OutputBackend
+import loamstream.model.execute.Locations
+import loamstream.util.PathEnrichments
+import loamstream.drm.DockerParams
 
 /**
  * @author clint
@@ -28,41 +29,22 @@ import org.yaml.snakeyaml.DumperOptions
  *   logs and mount outputs under /hps/nobackup/docker/<username>/
  * `port_mapping` Map a specific port within the container (Int, default: no mapped ports)
  * 
- * NB: that this class does not expose `port_mapping` or include it in YAML produced by toYaml, letting that be set 
- * to the default.
+ * NB: that this class does not expose `port_mapping` or include it in YAML produced by toYaml, letting it be set to 
+ * the default.
  * NB: This class does not expose `output_backend`, and always writes `output_hps_nobackup` as that field's value in
+ * the YAML produced by toYaml.  The same goes for `mount_home` and `write_output`, where `true` is used for both in
  * the YAML produced by toYaml.
  */
-final case class ContainerDefinitionFile(
-    image: String,
-    mountHomes: Boolean = false,
-    mounts: Iterable[Path] = Nil,
-    writeOutput: Boolean = false,
-    output: Path = Paths.get("/output")) {
+final case class LsfDockerParams(
+    imageName: String,
+    mountedDirs: Iterable[Path],
+    outputDir: Path,
+    outputBackend: OutputBackend = OutputBackend.default) extends DockerParams {
   
-  def toYaml: String = ContainerDefinitionFile.toYaml(this)
-}
-
-object ContainerDefinitionFile {
-  sealed abstract class OutputBackend private (val name: String)
+  override def inHost(p: Path): Path = outputBackend.basePath.resolve(p)
   
-  object OutputBackend {
-    case object OutputHpsNobackup extends OutputBackend("output_hps_nobackup")
-    
-    def default: OutputBackend = OutputHpsNobackup 
-  }
-  
-  private lazy val defaultDumperOptions: DumperOptions = {
-    val options = new DumperOptions
-    
-    options.setAllowReadOnlyProperties(true)
-    
-    options
-  }
-
-  import java.{ util => ju }
-  
-  def toYaml(cdf: ContainerDefinitionFile): String = {
+  def toYaml: String = {
+    import java.{ util => ju }
     import loamstream.util.BashScript.Implicits._
     import scala.collection.JavaConverters._
     
@@ -70,14 +52,34 @@ object ContainerDefinitionFile {
     //with `!!`.  I'm not sure if that would break EBI's LSF, but better safe than sorry. -Clint June 6 2018
     //This also allows direct control over field names in the resulting YAML.
     val map: ju.Map[String, Any] = Map(
-        "image" -> cdf.image,
-        "mount_homes" -> cdf.mountHomes,
-        "mounts" -> cdf.mounts.map(_.render).toList.asJava,
-        "write_output" -> cdf.writeOutput,
-        "output" -> cdf.output.render,
-        "output_backend" -> OutputBackend.default.name).asJava
+        "image" -> imageName,
+        "mount_home" -> true,
+        "mounts" -> mountedDirs.map(_.render).toList.asJava,
+        "write_output" -> true,
+        "output" -> outputDir.render,
+        "output_backend" -> outputBackend.name).asJava
     
-    (new Yaml(defaultDumperOptions)).dump(map)
+    (new Yaml).dump(map)
+  }
+}
+
+object LsfDockerParams {
+  sealed abstract class OutputBackend private (val name: String) {
+    def basePath: Path
+  }
+  
+  object OutputBackend {
+    case object OutputHpsNobackup extends OutputBackend("output_hps_nobackup") {
+      override val basePath: Path = {
+        val username = System.getProperty("user.name")
+        
+        import PathEnrichments._
+        
+        path("/hps/nobackup/docker") / username / "output"
+      }
+    }
+    
+    def default: OutputBackend = OutputHpsNobackup 
   }
 }
 

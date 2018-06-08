@@ -27,7 +27,8 @@ final class DrmSystemTest extends FunSuite {
         Cpus(42),
         Memory.inGb(11),
         CpuTime.inSeconds(12.34),
-        Option(Queue("foo")))
+        Option(Queue("foo")),
+        None)
         
     assert(Uger.makeEnvironment(settings) === Environment.Uger(settings))
     assert(Lsf.makeEnvironment(settings) === Environment.Lsf(settings))

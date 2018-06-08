@@ -10,6 +10,7 @@ import loamstream.model.jobs.JobResult.CommandInvocationFailure
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
+import java.nio.file.Paths
 
 
 /**
@@ -158,29 +159,60 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
 
     runBlocking(query).map(toOutputRecord)
   }
+  
+  private def lsfSettingsFor(execution: ExecutionRow): Settings = {
+    //NB: There must be a better way thatn all these sequential, blocking subqueries. :(
+    
+    val settingsQuery = tables.lsfSettings.filter(_.executionId === execution.id).take(1)
+    
+    val settingsRows = runBlocking(settingsQuery.result)
+    
+    require(
+        settingsRows.size == 1,
+        s"There must be a single set of settings per execution. " +
+          s"Found ${settingsRows.size} for the execution with ID '${execution.id}'")
+    
+    val settingsRow = settingsRows.head
+    
+    val mountedDirsQuery = tables.lsfDockerMounts.filter(_.drmSettingsId === settingsRow.executionId)
+    
+    val dockerSettingsQuery = tables.lsfDockerSettings.filter(_.drmSettingsId === settingsRow.executionId)
+    
+    val dockerSettingsRowOpt = runBlocking(dockerSettingsQuery.result.headOption)
+    
+    val mountedDirs = runBlocking(mountedDirsQuery.result).map(_.path)
+    
+    val dockerParamsOpt = dockerSettingsRowOpt.map(_.toDockerParams(mountedDirs))
+    
+    settingsRow.toSettings(dockerParamsOpt)
+  }
 
   private def settingsFor(execution: ExecutionRow): Settings = {
-    //Oh, Slick ... yow :\
-    type SettingTable = TableQuery[_ <: tables.driver.api.Table[_ <: SettingRow] with tables.HasExecutionId]
-
-    def settingsFrom(table: SettingTable): Seq[Settings] = {
-      runBlocking(table.filter(_.executionId === execution.id).result).map(_.toSettings)
+    if(execution.env == EnvironmentType.Names.Lsf) {
+      lsfSettingsFor(execution)
+    } else {
+      //Oh, Slick ... yow :\
+      type SimpleSettingRow = SettingRow with HasSimpleToSettings
+      type SettingTable = TableQuery[_ <: tables.driver.api.Table[_ <: SimpleSettingRow] with tables.HasExecutionId]
+      
+      def settingsFrom(table: SettingTable): Seq[Settings] = {
+        runBlocking(table.filter(_.executionId === execution.id).result).map(_.toSettings)
+      }
+  
+      val table: SettingTable = execution.env match {
+        case EnvironmentType.Names.Local => tables.localSettings
+        case EnvironmentType.Names.Uger => tables.ugerSettings
+        case EnvironmentType.Names.Google => tables.googleSettings
+      }
+  
+      val queryResults: Seq[Settings] = settingsFrom(table)
+  
+      require(queryResults.size == 1,
+        s"There must be a single set of settings per execution. " +
+          s"Found ${queryResults.size} for the execution with ID '${execution.id}'")
+  
+      queryResults.head
     }
-
-    val table: SettingTable = execution.env match {
-      case EnvironmentType.Names.Local => tables.localSettings
-      case EnvironmentType.Names.Uger => tables.ugerSettings
-      case EnvironmentType.Names.Lsf => tables.lsfSettings
-      case EnvironmentType.Names.Google => tables.googleSettings
-    }
-
-    val queryResults: Seq[Settings] = settingsFrom(table)
-
-    require(queryResults.size == 1,
-      s"There must be a single set of settings per execution. " +
-        s"Found ${queryResults.size} for the execution with ID '${execution.id}'")
-
-    queryResults.head
   }
 
   private def resourcesFor(execution: ExecutionRow): Option[Resources] = {

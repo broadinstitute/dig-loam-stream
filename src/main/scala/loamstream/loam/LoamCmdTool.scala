@@ -24,7 +24,7 @@ object LoamCmdTool {
     def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       val tool = create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
 
-      LoamCmdTool.addToGraph(tool)
+      addToGraph(tool)
 
       tool
     }
@@ -35,7 +35,7 @@ object LoamCmdTool {
    *                  system-dependent markers (e.g. line breaks), etc.
    *                  within a commandline or a block of embedded code
    */
-  def create(args: Any*)(transform: String => String)
+  private[loam] def create(args: Any*)(transform: String => String)
             (implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
     //TODO: handle case where there are no parts (can that happen? cmd"" ?)
     val firstPart +: stringParts = stringContext.parts

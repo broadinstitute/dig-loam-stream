@@ -17,6 +17,7 @@ import loamstream.model.quantities.CpuTime
 import loamstream.drm.uger.UgerDefaults
 import loamstream.drm.DrmSystem
 import loamstream.drm.lsf.LsfDefaults
+import loamstream.drm.lsf.LsfDockerParams
 
 /**
  * @author clint
@@ -27,7 +28,9 @@ final class LoamPredefTest extends FunSuite {
     import TestHelpers.config
     
     def makeTool(commandLine: String)(implicit scriptCtx: LoamScriptContext): LoamCmdTool = {
-      val t = LoamCmdTool.create()(identity)(scriptCtx, StringContext(commandLine))
+      import LoamCmdTool._
+      
+      val t = cmd"$commandLine"
     
       assert(t.commandLine === commandLine)
     
@@ -133,7 +136,8 @@ final class LoamPredefTest extends FunSuite {
         ugerConfig.defaultCores,
         ugerConfig.defaultMemoryPerCore,
         ugerConfig.defaultMaxRunTime,
-        Option(UgerDefaults.queue))
+        Option(UgerDefaults.queue),
+        None)
     
     doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith())
   }
@@ -152,7 +156,8 @@ final class LoamPredefTest extends FunSuite {
         ugerConfig.defaultCores,
         ugerConfig.defaultMemoryPerCore,
         ugerConfig.defaultMaxRunTime,
-        Option(UgerDefaults.queue))
+        Option(UgerDefaults.queue),
+        None)
     
     doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.drmWith())
   }
@@ -171,6 +176,7 @@ final class LoamPredefTest extends FunSuite {
         lsfConfig.defaultCores,
         lsfConfig.defaultMemoryPerCore,
         lsfConfig.defaultMaxRunTime,
+        None,
         None)
     
     doEeTest(scriptContext, Local, Lsf(expectedSettings), LoamPredef.drmWith())
@@ -179,25 +185,74 @@ final class LoamPredefTest extends FunSuite {
   test("ugerWith - non-defaults") {
     implicit val scriptContext = newScriptContext(DrmSystem.Uger)
     
-    val expectedSettings = DrmSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6), Option(UgerDefaults.queue))
+    import TestHelpers.path
     
-    doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith(2, 4, 6))
+    val expectedSettings = DrmSettings(
+        cores = Cpus(2), 
+        memoryPerCore = Memory.inGb(4), 
+        maxRunTime = CpuTime.inHours(6), 
+        queue = Option(UgerDefaults.queue),
+        Some(LsfDockerParams(
+          imageName = "library/foo:1.2.3",
+          mountedDirs = Seq(path("/dev/null"), path("foo/bar"), path("/a/b/c")),
+          outputDir = path("/x/y/z"))))
+    
+    doEeTest(
+        scriptContext, 
+        Local, 
+        Uger(expectedSettings), 
+        LoamPredef.ugerWith(2, 4, 6, "library/foo:1.2.3", Seq(path("foo/bar"), path("/a/b/c")), path("/x/y/z")))
   }
   
   test("drmWith - non-defaults - Uger") {
     implicit val scriptContext = newScriptContext(DrmSystem.Uger)
     
-    val expectedSettings = DrmSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6), Option(UgerDefaults.queue))
+    import TestHelpers.path
     
-    doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.drmWith(2, 4, 6))
+    val expectedSettings = DrmSettings(
+        cores = Cpus(2), 
+        memoryPerCore = Memory.inGb(4), 
+        maxRunTime = CpuTime.inHours(6), 
+        queue = Option(UgerDefaults.queue),
+        Some(LsfDockerParams(
+          imageName = "library/foo:1.2.3",
+          mountedDirs = Seq(path("/dev/null"), path("foo/bar"), path("/a/b/c")),
+          outputDir = path("/x/y/z"))))
+    
+    doEeTest(
+        scriptContext, 
+        Local, 
+        Uger(expectedSettings), 
+        LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3", Seq(path("foo/bar"), path("/a/b/c")), path("/x/y/z")))
   }
   
   test("drmWith - non-defaults - Lsf") {
     implicit val scriptContext = newScriptContext(DrmSystem.Lsf)
     
-    val expectedSettings = DrmSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6), None)
+    import TestHelpers.path
     
-    doEeTest(scriptContext, Local, Lsf(expectedSettings), LoamPredef.drmWith(2, 4, 6))
+    val expectedSettings = DrmSettings(
+        cores = Cpus(2), 
+        memoryPerCore = Memory.inGb(4), 
+        maxRunTime = CpuTime.inHours(6), 
+        queue = Option(UgerDefaults.queue),
+        Some(LsfDockerParams(
+          imageName = "library/foo:1.2.3",
+          mountedDirs = Seq(path("/dev/null"), path("foo/bar"), path("/a/b/c")),
+          outputDir = path("/x/y/z"))))
+    
+    doEeTest(
+        scriptContext, 
+        Local, 
+        Lsf(expectedSettings), 
+        LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3", Seq(path("foo/bar"), path("/a/b/c")), path("/x/y/z")))
+  }
+  
+  test("nonexistentPaht doesn't exist") {
+    import java.nio.file.Files.exists
+    
+    //Lame, but marginally better than nothing
+    assert(exists(LoamPredef.nonExistentPath) === false)
   }
   
   private def newScriptContext: LoamScriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)

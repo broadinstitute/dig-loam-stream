@@ -213,7 +213,8 @@ object TestHelpers {
       ugerConfig.defaultCores,
       ugerConfig.defaultMemoryPerCore,
       ugerConfig.defaultMaxRunTime,
-      Option(UgerDefaults.queue))
+      Option(UgerDefaults.queue),
+      None)
   }
   
   val defaultLsfSettings: DrmSettings = {
@@ -223,6 +224,7 @@ object TestHelpers {
       lsfConfig.defaultCores,
       lsfConfig.defaultMemoryPerCore,
       lsfConfig.defaultMaxRunTime,
+      None,
       None)
   }
   

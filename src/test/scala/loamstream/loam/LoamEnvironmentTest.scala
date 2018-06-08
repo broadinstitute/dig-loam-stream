@@ -76,8 +76,10 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     }
     
     doTest(Environment.Local)
-    doTest(Environment.Uger(DrmSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4), Option(UgerDefaults.queue))))
-    doTest(Environment.Lsf(DrmSettings(Cpus(3), Memory.inGb(4), CpuTime.inHours(5), None)))
+    doTest {
+      Environment.Uger(DrmSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4), Option(UgerDefaults.queue), None))
+    }
+    doTest(Environment.Lsf(DrmSettings(Cpus(3), Memory.inGb(4), CpuTime.inHours(5), None, None)))
     doTest(Environment.Google(GoogleSettings(clusterId)))
   }
   

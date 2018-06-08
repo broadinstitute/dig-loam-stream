@@ -14,6 +14,7 @@ import scala.util.Try
 import loamstream.util.Tries
 import loamstream.drm.DrmSystem
 import loamstream.util.Options
+import loamstream.drm.DockerParams
 
 /**
  * @author kyuksel
@@ -35,15 +36,21 @@ final case class DrmSettings(
     cores: Cpus,
     memoryPerCore: Memory,
     maxRunTime: CpuTime,
-    queue: Option[Queue]) extends Settings
+    queue: Option[Queue],
+    dockerParams: Option[DockerParams]) extends Settings
     
 object DrmSettings {
   def fromUgerConfig(config: UgerConfig): DrmSettings = {
-    DrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, Option(UgerDefaults.queue))
+    DrmSettings(
+        config.defaultCores, 
+        config.defaultMemoryPerCore, 
+        config.defaultMaxRunTime, 
+        Option(UgerDefaults.queue),
+        None)
   }
   
   def fromLsfConfig(config: LsfConfig): DrmSettings = {
-    DrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, None)
+    DrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, None, None)
   }
 }
 

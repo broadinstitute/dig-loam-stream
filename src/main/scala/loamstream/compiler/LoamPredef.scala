@@ -22,6 +22,8 @@ import scala.util.Try
 import loamstream.drm.DrmSystem
 import loamstream.drm.Queue
 import loamstream.conf.DrmConfig
+import loamstream.drm.lsf.LsfDockerParams
+import loamstream.drm.DockerParams
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -116,6 +118,8 @@ object LoamPredef extends Loggable {
     runIn(env)(expr)(scriptContext)
   }
   
+  private[compiler] val nonExistentPath = Paths.get("/dev/null/nonexistent")
+  
   /**
    * @param mem Memory requested per core, per job submission (in Gb's)
    * @param cores Number of cores requested per job submission
@@ -127,7 +131,10 @@ object LoamPredef extends Loggable {
   def ugerWith[A](
       cores: Int = -1,
       mem: Double = -1, 
-      maxRunTime: Double = -1)
+      maxRunTime: Double = -1,
+      dockerImage: String = "",
+      mountsInContainers: Iterable[Path] = Nil,
+      outputBasePathInContainers: Path = nonExistentPath)
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     
@@ -144,7 +151,10 @@ object LoamPredef extends Loggable {
   def drmWith[A](
       cores: Int = -1,
       mem: Double = -1, 
-      maxRunTime: Double = -1)
+      maxRunTime: Double = -1,
+      dockerImage: String = "",
+      mountsInContainers: Iterable[Path] = Nil,
+      outputBasePathInContainers: Path = nonExistentPath)
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     
@@ -160,11 +170,27 @@ object LoamPredef extends Loggable {
     
     val drmConfig: DrmConfig = drmSystem.config(scriptContext)
     
+    val useDocker = dockerImage.nonEmpty
+    
+    val dockerParamsOpt: Option[DockerParams] = {
+      if(useDocker) {
+        require(drmSystem == DrmSystem.Lsf, s"Running commands in Docker containers is only supported on LSF.")
+        
+        Some(LsfDockerParams(
+            imageName = dockerImage,
+            mountedDirs = mountsInContainers,
+            outputDir = outputBasePathInContainers))
+      } else { 
+        None
+      }
+    }
+    
     val settings = DrmSettings(
-        Cpus(orDefault(cores, drmConfig.defaultCores.value)), 
-        Memory.inGb(orDefault(mem, drmConfig.defaultMemoryPerCore.gb)), 
-        CpuTime.inHours(orDefault(maxRunTime, drmConfig.defaultMaxRunTime.hours)),
-        drmSystem.defaultQueue)
+        cores = Cpus(orDefault(cores, drmConfig.defaultCores.value)), 
+        memoryPerCore = Memory.inGb(orDefault(mem, drmConfig.defaultMemoryPerCore.gb)), 
+        maxRunTime = CpuTime.inHours(orDefault(maxRunTime, drmConfig.defaultMaxRunTime.hours)),
+        queue = drmSystem.defaultQueue,
+        dockerParams = dockerParamsOpt)
     
     runIn(drmSystem.makeEnvironment(settings))(expr)(scriptContext)
   }

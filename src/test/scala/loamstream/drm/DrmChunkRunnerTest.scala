@@ -429,7 +429,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         case DrmSystem.Lsf => Environment.Lsf(settings)
       }
  
-      val expectedSettings = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt)
+      val expectedSettings = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt, None)
       val expectedEnv = makeEnv(expectedSettings)
       
       assert(jobs(0).job.executionEnvironment === expectedEnv)
@@ -522,8 +522,8 @@ final class DrmChunkRunnerTest extends FunSuite {
         case DrmSystem.Lsf => None
       }
       
-      val expectedSettings0 = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt)
-      val expectedSettings1 = DrmSettings(Cpus(7), Memory.inGb(9), CpuTime.inHours(11), queueOpt)
+      val expectedSettings0 = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt, None)
+      val expectedSettings1 = DrmSettings(Cpus(7), Memory.inGb(9), CpuTime.inHours(11), queueOpt, None)
       
       val expectedEnv0 = makeEnv(drmSystem, expectedSettings0)
       val expectedEnv1 = makeEnv(drmSystem, expectedSettings1)

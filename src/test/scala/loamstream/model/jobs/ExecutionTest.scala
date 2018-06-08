@@ -38,7 +38,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   
   test("guards") {
     val localSettings = LocalSettings
-    val drmSettings = DrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue))
+    val drmSettings = DrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
     val googleSettings = GoogleSettings("some-cluster")
 
     val localEnv: Environment = Environment.Local

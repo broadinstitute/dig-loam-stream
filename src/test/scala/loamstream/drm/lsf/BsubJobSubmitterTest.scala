@@ -147,7 +147,11 @@ final class BsubJobSubmitterTest extends FunSuite {
       cores = Cpus(42),
       memoryPerCore = Memory.inGb(7),
       maxRunTime = CpuTime.inHours(3),
-      queue = Some(queue))
+      queue = Some(queue),
+      dockerParams = Some(LsfDockerParams(
+          imageName = "library/foo:1.2.3",
+          mountedDirs = Seq(path("foo/bar"), path("/x/y/z")),
+          outputDir = path("/out"))))
     
   private val drmConfig = LsfConfig(workDir = path("/lsf/dir"))
     

@@ -9,16 +9,20 @@ import loamstream.model.quantities.Memory
 import loamstream.drm.Queue
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
+import java.nio.file.Path
+import loamstream.drm.DockerParams
 
 /**
  * @author kyuksel
  *         date: 3/7/17
  */
 sealed trait SettingRow {
-  def toSettings: Settings
-  
   //NB: Double-dispatch pattern, to avoid repeated pattern-matches in SlickLoamDao.
   def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int]
+}
+
+sealed trait HasSimpleToSettings {
+  def toSettings: Settings
 }
 
 object SettingRow {
@@ -30,7 +34,7 @@ object SettingRow {
   }
 }
 
-final case class LocalSettingRow(executionId: Int) extends SettingRow {
+final case class LocalSettingRow(executionId: Int) extends SettingRow with HasSimpleToSettings {
   
   override def toSettings: Settings = LocalSettings
   
@@ -56,10 +60,6 @@ protected trait DrmSettingRow extends SettingRow {
   def memPerCpu: Double  //in GB
   def maxRunTime: Double //in hours
   def queue: Option[String]
-  
-  final override def toSettings: Settings = {
-    DrmSettings(Cpus(cpus), Memory.inGb(memPerCpu), CpuTime.inHours(maxRunTime), queue.map(Queue(_)))
-  }
 }
 
 protected object DrmSettingRow {
@@ -85,8 +85,12 @@ final case class UgerSettingRow(
     //TODO: Make units explicit for memPerCpu and maxRunTime 
     memPerCpu: Double,  //in GB
     maxRunTime: Double, //in hours
-    queue: Option[String]) extends DrmSettingRow {
+    queue: Option[String]) extends DrmSettingRow with HasSimpleToSettings {
 
+  override def toSettings: Settings = {
+    DrmSettings(Cpus(cpus), Memory.inGb(memPerCpu), CpuTime.inHours(maxRunTime), queue.map(Queue(_)), None)
+  }
+  
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._
     
@@ -104,6 +108,10 @@ final case class LsfSettingRow(
     maxRunTime: Double, //in hours
     queue: Option[String]) extends DrmSettingRow {
 
+  def toSettings(dockerParamsOpt: Option[DockerParams]): Settings = {
+    DrmSettings(Cpus(cpus), Memory.inGb(memPerCpu), CpuTime.inHours(maxRunTime), queue.map(Queue(_)), dockerParamsOpt)
+  }
+  
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._
     
@@ -114,7 +122,7 @@ final case class LsfSettingRow(
 object LsfSettingRow extends DrmSettingRowCompanion[LsfSettingRow](new LsfSettingRow(_, _, _, _, _))
 
 final case class GoogleSettingRow(executionId: Int,
-                                  cluster: String) extends SettingRow {
+                                  cluster: String) extends SettingRow with HasSimpleToSettings {
 
   override def toSettings: Settings = GoogleSettings(cluster)
   

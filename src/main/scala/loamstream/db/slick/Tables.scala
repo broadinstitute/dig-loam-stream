@@ -97,9 +97,11 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   }
 
   abstract class BelongsToExecution[R](tag: Tag, name: String) extends Table[R](tag, name) with HasExecutionId {
-    final val foreignKey = s"$foreignKeyPrefix${name}"
-    
-    final def execution = foreignKey(foreignKey, executionId, executions)(_.id, onUpdate=Restrict, onDelete=Cascade)
+    final def execution = {
+      val foreignKeyName = s"${executionForeignKeyPrefix}${name}"
+      
+      foreignKey(foreignKeyName, executionId, executions)(_.id, onUpdate = Restrict, onDelete = Cascade)
+    }
   }
   
   //Use Int.MaxValue as an approximation of maximum String length, since Strings are represented as
@@ -218,8 +220,47 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
       (executionId, cluster, startTime, endTime) <> (GoogleResourceRow.tupled, GoogleResourceRow.unapply)
     }
   }
+  
+  trait HasDrmSettingsId { self: Table[_] =>
+    def drmSettingsId: Rep[Int]
+  }
+  
+  abstract class BelongsToDrmSettings[R, PR <: DrmSettingRow, P <: Table[PR] with HasExecutionId](
+      tag: Tag, 
+      name: String, 
+      parentTable: TableQuery[P]) extends Table[R](tag, name) with HasDrmSettingsId {
+    
+    override def drmSettingsId = column[Int]("DRM_SETTINGS_ID", O.PrimaryKey)
+    
+    final def settings = {
+      val foreignKeyName = s"${drmSettingsForeignKeyPrefix}${name}"
+      
+      foreignKey(foreignKeyName, drmSettingsId, parentTable)(_.executionId, onUpdate = Restrict, onDelete = Cascade)
+    }
+  }
+  
+  final class LsfDockerSettings(tag: Tag) extends 
+      BelongsToDrmSettings[LsfDockerSettingsRow, LsfSettingRow, LsfSettings](tag, Names.lsfDockerSettings, lsfSettings) {
+    
+    def imageName = column[String]("IMAGE_NAME")
+    def outputDir = column[String]("OUTPUT_DIR")
+    
+    override def * = {
+      (drmSettingsId, imageName, outputDir) <> (LsfDockerSettingsRow.tupled, LsfDockerSettingsRow.unapply)
+    }
+  }
+  
+  final class LsfDockerMounts(tag: Tag) extends 
+      BelongsToDrmSettings[DockerMountRow, LsfSettingRow, LsfSettings](tag, Names.lsfDockerMounts, lsfSettings) {
+    
+    def mountedDir = column[String]("MOUNTED_DIR")
+    
+    override def * = (drmSettingsId, mountedDir) <> (DockerMountRow.tupled, DockerMountRow.unapply)
+  }
 
-  private val foreignKeyPrefix = s"FK_ID_EXECUTIONS_"
+  private val executionForeignKeyPrefix = s"FK_ID_EXECUTIONS_"
+  
+  private val drmSettingsForeignKeyPrefix = s"FK_ID_DRM_SETTINGS_"
 
   lazy val executions = TableQuery[Executions]
   lazy val outputs = TableQuery[Outputs]
@@ -231,8 +272,11 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   lazy val ugerResources = TableQuery[UgerResources]
   lazy val lsfResources = TableQuery[LsfResources]
   lazy val googleResources = TableQuery[GoogleResources]
+  lazy val lsfDockerSettings = TableQuery[LsfDockerSettings]
+  lazy val lsfDockerMounts = TableQuery[LsfDockerMounts]
 
-  private lazy val allTables: Map[String, SchemaDescription] = Map(
+  //NB: Now a Seq so we can guarantee ordering
+  private lazy val allTables: Seq[(String, SchemaDescription)] = Seq(
     Names.executions -> executions.schema,
     Names.outputs -> outputs.schema,
     Names.localSettings -> localSettings.schema,
@@ -242,12 +286,14 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     Names.localResources -> localResources.schema,
     Names.ugerResources -> ugerResources.schema,
     Names.lsfResources -> lsfResources.schema,
-    Names.googleResources -> googleResources.schema
+    Names.googleResources -> googleResources.schema,
+    Names.lsfDockerSettings -> lsfDockerSettings.schema,
+    Names.lsfDockerMounts -> lsfDockerMounts.schema
   )
 
-  private def allTableNames: Seq[String] = allTables.keys.toSeq
+  private def allTableNames: Seq[String] = allTables.unzip._1
 
-  private def allSchemas: Seq[SchemaDescription] = allTables.values.toSeq
+  private def allSchemas: Seq[SchemaDescription] = allTables.unzip._2
 
   private def ddlForAllTables = allSchemas.reduce(_ ++ _)
 
@@ -263,7 +309,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
       runBlocking(database)(existingTableNames)
     }
 
-    def createActions(tables: Map[String, SchemaDescription]) = {
+    def createActions(tables: Seq[(String, SchemaDescription)]) = {
       val actions = for {
         (tableName, schema) <- tables
         if !existing.contains(tableName)
@@ -276,13 +322,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
       DBIO.sequence(actions).transactionally
     }
 
-    // Make sure 'Executions' table is created first
-    val executionsTable = Map(Names.executions -> allTables(Names.executions))
-    
-    runBlocking(database)(createActions(executionsTable))
-    
-    // Then create the others that depend on 'Executions'
-    runBlocking(database)(createActions(allTables - Names.executions))
+    runBlocking(database)(createActions(allTables))
   }
 
   def drop(database: Database): Unit = runBlocking(database)(ddlForAllTables.drop.transactionally)
@@ -309,5 +349,7 @@ object Tables {
     val ugerResources = "RESOURCES_UGER"
     val lsfResources = "RESOURCES_LSF"
     val googleResources = "RESOURCES_GOOGLE"
+    val lsfDockerSettings = "DOCKER_SETTINGS_LSF"
+    val lsfDockerMounts = "DOCKER_MOUNTS_LSF"
   }
 }

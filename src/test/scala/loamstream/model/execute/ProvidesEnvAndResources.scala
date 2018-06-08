@@ -32,7 +32,7 @@ trait ProvidesEnvAndResources extends FunSuite {
   
   val mockCmd: String = "R --vanilla --args ancestry_pca_scores.tsv < plot_ancestry_pca.r"
   val mockSettings: DrmSettings = DrmSettings(
-      Cpus(4), Memory.inGb(8), UgerDefaults.maxRunTime, queue = Option(broadQueue))
+      Cpus(4), Memory.inGb(8), UgerDefaults.maxRunTime, queue = Option(broadQueue), dockerParams = None)
       
   val mockGoogleSettings: GoogleSettings = GoogleSettings("asdf")
   val mockEnv: Environment = Uger(mockSettings)

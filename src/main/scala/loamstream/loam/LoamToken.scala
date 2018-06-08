@@ -17,7 +17,7 @@ object LoamToken {
   def storesFromTokens(tokens: Seq[LoamToken]): Set[Store] = {
     tokens.collect {
       case StoreToken(store) => store
-      case StoreRefToken(storeRef) => storeRef.store
+      case StoreRefToken(LoamStoreRef(store, _)) => store
     }.toSet
   }
 

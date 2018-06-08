@@ -12,6 +12,8 @@ import loamstream.model.quantities.Memory
 import loamstream.loam.LoamCmdTool
 import loamstream.drm.uger.UgerDefaults
 import loamstream.drm.DrmSystem
+import loamstream.drm.lsf.LsfDockerParams
+import loamstream.drm.DockerParams
 
 
 /**
@@ -44,7 +46,16 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
         case DrmSystem.Lsf => None
       }
       
-      val settings = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queue)
+      import TestHelpers.path
+      
+      val dockerParamsOpt: Option[DockerParams] = drmSystem match {
+        case DrmSystem.Uger => None
+        case DrmSystem.Lsf => {
+          Some(LsfDockerParams("library/foo:1.2.3", Seq(path("foo/bar"), path("/baz")), path("/blerg")))
+        }
+      }
+      
+      val settings = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queue, dockerParamsOpt)
       
       val expectedEnv = drmSystem match {
         case DrmSystem.Uger => Environment.Uger(settings)

@@ -25,8 +25,8 @@ object Environment {
     override def settings: Settings = ugerSettings
   }
   
-  final case class Lsf(ugerSettings: DrmSettings) extends Environment(EnvironmentType.Lsf) {
-    override def settings: Settings = ugerSettings
+  final case class Lsf(lsfSettings: DrmSettings) extends Environment(EnvironmentType.Lsf) {
+    override def settings: Settings = lsfSettings
   }
 
   final case class Google(googleSettings: GoogleSettings) extends Environment(EnvironmentType.Google) {

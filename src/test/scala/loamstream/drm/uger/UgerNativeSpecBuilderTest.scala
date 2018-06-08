@@ -26,7 +26,8 @@ final class UgerNativeSpecBuilderTest extends FunSuite {
         cores = Cpus(42),
         memoryPerCore = Memory.inGb(17),
         maxRunTime = CpuTime.inHours(33),
-        queue = Option(UgerDefaults.queue))
+        queue = Option(UgerDefaults.queue),
+        dockerParams = None)
         
     assert(ugerSettings.cores !== UgerDefaults.cores)
     assert(ugerSettings.memoryPerCore !== UgerDefaults.memoryPerCore)

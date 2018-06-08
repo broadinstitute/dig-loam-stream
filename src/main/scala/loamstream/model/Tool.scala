@@ -77,7 +77,7 @@ object Tool {
   }
 
   final case class AllStores(stores: Set[Store]) extends DefaultStores {
-    def all: Set[Store] = stores
+    override def all: Set[Store] = stores
   }
 
   final case class In(stores: Iterable[Store])

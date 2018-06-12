@@ -28,9 +28,7 @@ final class LoamPredefTest extends FunSuite {
     import TestHelpers.config
     
     def makeTool(commandLine: String)(implicit scriptCtx: LoamScriptContext): LoamCmdTool = {
-      import LoamCmdTool._
-      
-      val t = cmd"$commandLine"
+      val t = LoamCmdTool.create()(identity)(scriptCtx, StringContext(commandLine))
     
       assert(t.commandLine === commandLine)
     
@@ -192,16 +190,13 @@ final class LoamPredefTest extends FunSuite {
         memoryPerCore = Memory.inGb(4), 
         maxRunTime = CpuTime.inHours(6), 
         queue = Option(UgerDefaults.queue),
-        Some(LsfDockerParams(
-          imageName = "library/foo:1.2.3",
-          mountedDirs = Seq(path("/dev/null"), path("foo/bar"), path("/a/b/c")),
-          outputDir = path("/x/y/z"))))
+        None)
     
     doEeTest(
         scriptContext, 
         Local, 
         Uger(expectedSettings), 
-        LoamPredef.ugerWith(2, 4, 6, "library/foo:1.2.3", Seq(path("foo/bar"), path("/a/b/c")), path("/x/y/z")))
+        LoamPredef.ugerWith(2, 4, 6))
   }
   
   test("drmWith - non-defaults - Uger") {
@@ -214,16 +209,13 @@ final class LoamPredefTest extends FunSuite {
         memoryPerCore = Memory.inGb(4), 
         maxRunTime = CpuTime.inHours(6), 
         queue = Option(UgerDefaults.queue),
-        Some(LsfDockerParams(
-          imageName = "library/foo:1.2.3",
-          mountedDirs = Seq(path("/dev/null"), path("foo/bar"), path("/a/b/c")),
-          outputDir = path("/x/y/z"))))
+        None)
     
     doEeTest(
         scriptContext, 
         Local, 
         Uger(expectedSettings), 
-        LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3", Seq(path("foo/bar"), path("/a/b/c")), path("/x/y/z")))
+        LoamPredef.drmWith(2, 4, 6))
   }
   
   test("drmWith - non-defaults - Lsf") {
@@ -235,10 +227,10 @@ final class LoamPredefTest extends FunSuite {
         cores = Cpus(2), 
         memoryPerCore = Memory.inGb(4), 
         maxRunTime = CpuTime.inHours(6), 
-        queue = Option(UgerDefaults.queue),
+        queue = None,
         Some(LsfDockerParams(
           imageName = "library/foo:1.2.3",
-          mountedDirs = Seq(path("/dev/null"), path("foo/bar"), path("/a/b/c")),
+          mountedDirs = Seq(path("foo/bar"), path("/a/b/c")),
           outputDir = path("/x/y/z"))))
     
     doEeTest(

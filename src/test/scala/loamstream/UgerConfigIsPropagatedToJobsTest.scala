@@ -22,6 +22,7 @@ import loamstream.drm.DockerParams
  */
 final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
   test("uger config is propagated to jobs") {
+    
     def doTest(drmSystem: DrmSystem): Unit = {
       val graph = TestHelpers.makeGraph(drmSystem) { implicit context =>
         import LoamPredef._
@@ -30,8 +31,30 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
         val a = store.at("a.txt").asInput
         val b = store.at("b.txt")
       
-        drmWith(cores = 4, mem = 16, maxRunTime = 5) {
+        def declareJobForLsf = drmWith(
+            cores = 4, 
+            mem = 16, 
+            maxRunTime = 5, 
+            dockerImage = "library/foo:1.2.3", 
+            mountsInContainers = Seq(path("foo/bar"), path("/baz")),
+            outputBasePathInContainers = path("/blerg")) {
+          
           cmd"cp $a $b".in(a).out(b)
+        }
+        
+        def declareJobForUger = drmWith(cores = 4, mem = 16, maxRunTime = 5) {
+          cmd"cp $a $b".in(a).out(b)
+        }
+        
+        drmSystem match {
+          case DrmSystem.Uger => {
+            intercept[Exception] {
+              declareJobForLsf
+            }
+            
+            declareJobForUger
+          }
+          case DrmSystem.Lsf => declareJobForLsf
         }
       }
       
@@ -41,25 +64,30 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
       
       assert(jobs.size === 1)
       
-      val queue = drmSystem match {
+      val expectedQueue = drmSystem match {
         case DrmSystem.Uger => Option(UgerDefaults.queue)
         case DrmSystem.Lsf => None
       }
-      
+
       import TestHelpers.path
       
-      val dockerParamsOpt: Option[DockerParams] = drmSystem match {
+      val expectedDockerParamsOpt: Option[DockerParams] = drmSystem match {
         case DrmSystem.Uger => None
         case DrmSystem.Lsf => {
           Some(LsfDockerParams("library/foo:1.2.3", Seq(path("foo/bar"), path("/baz")), path("/blerg")))
         }
       }
       
-      val settings = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queue, dockerParamsOpt)
+      val expectedSettings = DrmSettings(
+          Cpus(4), 
+          Memory.inGb(16), 
+          CpuTime.inHours(5), 
+          expectedQueue, 
+          expectedDockerParamsOpt)
       
       val expectedEnv = drmSystem match {
-        case DrmSystem.Uger => Environment.Uger(settings)
-        case DrmSystem.Lsf => Environment.Lsf(settings)
+        case DrmSystem.Uger => Environment.Uger(expectedSettings)
+        case DrmSystem.Lsf => Environment.Lsf(expectedSettings)
       }
       
       assert(jobs.head.executionEnvironment === expectedEnv)

@@ -7,6 +7,7 @@ import loamstream.util.Futures
 import loamstream.util.Loggable
 import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MTable
+import slick.ast.ColumnOption
 
 /**
  * @author clint
@@ -230,8 +231,6 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
       name: String, 
       parentTable: TableQuery[P]) extends Table[R](tag, name) with HasDrmSettingsId {
     
-    override def drmSettingsId = column[Int]("DRM_SETTINGS_ID", O.PrimaryKey)
-    
     final def settings = {
       val foreignKeyName = s"${drmSettingsForeignKeyPrefix}${name}"
       
@@ -240,7 +239,12 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   }
   
   final class LsfDockerSettings(tag: Tag) extends 
-      BelongsToDrmSettings[LsfDockerSettingsRow, LsfSettingRow, LsfSettings](tag, Names.lsfDockerSettings, lsfSettings) {
+      BelongsToDrmSettings[LsfDockerSettingsRow, LsfSettingRow, LsfSettings](
+          tag, 
+          Names.lsfDockerSettings, 
+          lsfSettings) {
+    
+    override def drmSettingsId = column[Int]("DRM_SETTINGS_ID", O.PrimaryKey)
     
     def imageName = column[String]("IMAGE_NAME")
     def outputDir = column[String]("OUTPUT_DIR")
@@ -251,11 +255,15 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   }
   
   final class LsfDockerMounts(tag: Tag) extends 
-      BelongsToDrmSettings[DockerMountRow, LsfSettingRow, LsfSettings](tag, Names.lsfDockerMounts, lsfSettings) {
+      BelongsToDrmSettings[LsfDockerMountRow, LsfSettingRow, LsfSettings](tag, Names.lsfDockerMounts, lsfSettings) {
+
+    def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
+    
+    override def drmSettingsId = column[Int]("DRM_SETTINGS_ID")
     
     def mountedDir = column[String]("MOUNTED_DIR")
     
-    override def * = (drmSettingsId, mountedDir) <> (DockerMountRow.tupled, DockerMountRow.unapply)
+    override def * = (id, drmSettingsId, mountedDir) <> (LsfDockerMountRow.tupled, LsfDockerMountRow.unapply)
   }
 
   private val executionForeignKeyPrefix = s"FK_ID_EXECUTIONS_"

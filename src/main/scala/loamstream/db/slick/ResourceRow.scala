@@ -17,11 +17,8 @@ import loamstream.model.execute.Resources.DrmResources
  * @author kyuksel
  *         date: 3/10/17
  */
-sealed trait ResourceRow {
+sealed trait ResourceRow extends InsertOrUpdatable {
   def toResources: Resources
-  
-  //NB: Double-dispatch pattern, to avoid repeated pattern-matches in SlickLoamDao.
-  def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int]
 }
 
 object ResourceRow {

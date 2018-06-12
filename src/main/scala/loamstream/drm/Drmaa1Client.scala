@@ -198,7 +198,7 @@ final class Drmaa1Client(
 
       DrmStatus.CommandResult(exitCode, resourcesOption)
     } else if (jobInfo.wasAborted) {
-      info(s"Job '$jobId' was aborted; job info: $jobInfo")
+      info(s"Job '$jobId' was aborted")
 
       //TODO: Add JobStatus.Aborted?
       DrmStatus.Failed(resourcesOption)

@@ -11,6 +11,8 @@ import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
 import java.nio.file.Paths
+import loamstream.model.execute.Environment
+import loamstream.model.execute.DrmSettings
 
 
 /**
@@ -51,14 +53,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
 
     val executions = runBlocking(query.transactionally)
 
-    for {
-      execution <- executions
-    } yield {
-      val outputs = outputsFor(execution)
-      val settings = settingsFor(execution)
-      val resources = resourcesFor(execution)
-      execution.toExecution(settings, resources, outputs.toSet)
-    }
+    executions.map(reify)
   }
 
   override def findExecution(outputLocation: String): Option[Execution] = {
@@ -109,12 +104,14 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
       newExecution <- insertExecutionRow(executionRow)
       outputsWithExecutionId = tieOutputsToExecution(execution, newExecution.id)
       settingsWithExecutionId = tieSettingsToExecution(execution, newExecution.id)
+      dockerRowsTuple = tieDockerParamsToExecution(execution, newExecution.id)
       resourcesWithExecutionId = tieResourcesToExecution(execution, newExecution.id)
       insertedOutputCounts <- insertOrUpdateOutputRows(outputsWithExecutionId)
       insertedSettingCounts <- insertOrUpdateSettingRow(settingsWithExecutionId)
+      insertedDockerSettingsCounts <- insertOrUpdateDockerSettingsRows(dockerRowsTuple)
       insertedResourceCounts <- insertOrUpdateResourceRows(resourcesWithExecutionId)
     } yield {
-      insertedOutputCounts ++ Iterable(insertedSettingCounts) ++ insertedResourceCounts
+      insertedOutputCounts ++ Iterable(insertedSettingCounts) ++ insertedResourceCounts ++ insertedDockerSettingsCounts
     }
   }
   
@@ -240,8 +237,26 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   }
   
   private def insertOrUpdateSettingRow(row: SettingRow): DBIO[Int] = row.insertOrUpdate(tables)
-
+  
   private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = row.insertOrUpdate(tables)
+  
+  private def insertOrUpdateDockerSettingsRows(
+      tupleOpt: Option[(DockerSettingsRow, Seq[DockerMountRow])]): DBIO[Seq[Int]] = {
+    
+    tupleOpt match {
+      case None => DBIO.successful(Nil)
+      case Some((dockerSettingsRow, dockerMountRows)) => {
+        import Implicits._
+        
+        for {
+          settingsRowInsertionResult <- dockerSettingsRow.insertOrUpdate(tables)
+          mountRowsInsertionResults <- DBIO.sequence(dockerMountRows.map(_.insertOrUpdate(tables)))
+        } yield {
+          settingsRowInsertionResult +: mountRowsInsertionResults
+        }
+      }
+    }
+  }
 
   private def insertOrUpdateResourceRows(rows: Option[ResourceRow]): DBIO[Seq[Int]] = {
     DBIO.sequence(rows.toSeq.map(insertOrUpdateResourceRow))
@@ -263,6 +278,22 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
 
   private def tieSettingsToExecution(execution: Execution, executionId: Int): SettingRow = {
       SettingRow.fromEnvironment(execution.env, executionId)
+  }
+  
+  private def tieDockerParamsToExecution(
+      execution: Execution, 
+      executionId: Int): Option[(DockerSettingsRow, Seq[DockerMountRow])] = {
+    
+    execution.env match {
+      case Environment.Lsf(DrmSettings(_, _, _, _, Some(dockerParams))) => {
+        val dockerSettingsRow = LsfDockerSettingsRow.fromDockerParams(executionId, dockerParams)
+        
+        val dockerMountRows = dockerParams.mountedDirs.map(LsfDockerMountRow.fromPath(executionId))
+        
+        Some(dockerSettingsRow -> dockerMountRows.toSeq)
+      }
+      case _ => None 
+    }
   }
 
   private def tieResourcesToExecution(execution: Execution, executionId: Int): Option[ResourceRow] = {

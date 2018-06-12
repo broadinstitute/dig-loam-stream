@@ -131,10 +131,7 @@ object LoamPredef extends Loggable {
   def ugerWith[A](
       cores: Int = -1,
       mem: Double = -1, 
-      maxRunTime: Double = -1,
-      dockerImage: String = "",
-      mountsInContainers: Iterable[Path] = Nil,
-      outputBasePathInContainers: Path = nonExistentPath)
+      maxRunTime: Double = -1)
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     

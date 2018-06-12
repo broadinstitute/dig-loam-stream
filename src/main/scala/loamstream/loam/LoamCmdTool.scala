@@ -35,7 +35,7 @@ object LoamCmdTool {
    *                  system-dependent markers (e.g. line breaks), etc.
    *                  within a commandline or a block of embedded code
    */
-  private[loam] def create(args: Any*)(transform: String => String)
+  def create(args: Any*)(transform: String => String)
             (implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
     //TODO: handle case where there are no parts (can that happen? cmd"" ?)
     val firstPart +: stringParts = stringContext.parts

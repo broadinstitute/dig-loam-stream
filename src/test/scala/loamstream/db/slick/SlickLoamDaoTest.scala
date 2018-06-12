@@ -276,7 +276,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           None,
           Some(LsfDockerParams(
               imageName = "library/foo:1.2.3",
-              mountedDirs = Seq(path("foo/bar"), path("/x/y/z")),
+              mountedDirs = Seq(path("foo/bar").toAbsolutePath, path("/x/y/z")),
               outputDir = path("/out"))))
               
       val googleSettings = GoogleSettings("some-cluster")
@@ -521,7 +521,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         None, 
         Some(LsfDockerParams(
             imageName = "library/foo:1.2.3",
-            mountedDirs = Seq(path("foo/bar"), path("/x/y/z")),
+            mountedDirs = Seq(path("foo/bar").toAbsolutePath, path("/x/y/z")),
             outputDir = path("/out"))))
         
     val googleSettings = GoogleSettings("some-cluster")

@@ -15,6 +15,9 @@ import loamstream.util.ExitCodes
 import loamstream.drm.DrmJobWrapper
 import loamstream.util.Traversables
 import scala.collection.mutable.ListBuffer
+import java.nio.file.Path
+import loamstream.drm.DockerParams
+import loamstream.conf.LsfConfig
 
 /**
  * @author clint
@@ -83,14 +86,19 @@ final class BsubJobSubmitter private[lsf] (
 object BsubJobSubmitter extends Loggable {
   type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
   
-  def fromExecutable(actualExecutable: String = "bsub"): BsubJobSubmitter = {
-    new BsubJobSubmitter(invokeBinaryToSubmitJobs(actualExecutable))
+  def fromExecutable(lsfConfig: LsfConfig, actualExecutable: String = "bsub"): BsubJobSubmitter = {
+    new BsubJobSubmitter(invokeBinaryToSubmitJobs(lsfConfig, actualExecutable))
   }
   
-  private[lsf] def invokeBinaryToSubmitJobs(actualExecutable: String): SubmissionFn = { (drmSettings, taskArray) =>
+  private[lsf] def invokeBinaryToSubmitJobs(
+      lsfConfig: LsfConfig, 
+      actualExecutable: String): SubmissionFn = { (drmSettings, taskArray) =>
+        
     import scala.sys.process._
   
-    val tokens = makeTokens(actualExecutable, taskArray, drmSettings)
+    val (tokens, cdfOpt) = makeTokensAndCdf(actualExecutable, lsfConfig, taskArray, drmSettings)
+    
+    cdfOpt.foreach(_.writeYamlToFile())
     
     debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
     
@@ -103,12 +111,25 @@ object BsubJobSubmitter extends Loggable {
   
   private[lsf] def failure(msg: String): SubmissionFailure = SubmissionFailure(new Exception(msg))
   
-  private[lsf] def makeTokens(
+  private[lsf] def makeTokensAndCdf(
       actualExecutable: String, 
+      lsfConfig: LsfConfig, 
       taskArray: DrmTaskArray,
-      drmSettings: DrmSettings): Seq[String] = {
+      drmSettings: DrmSettings): (Seq[String], Option[ContainerDefinitionFile]) = {
     
     //NB: See https://www.ibm.com/support/knowledgecenter/en/SSETD4_9.1.2/lsf_command_ref/bsub.1.html
+    
+    val dockerTupleOpt: Option[(Seq[String], ContainerDefinitionFile)] = {
+      drmSettings.dockerParams.collect { case dockerParams: LsfDockerParams =>
+        val containerDefinitionFile = ContainerDefinitionFile(lsfConfig, taskArray, dockerParams)
+        
+        Seq("-a", s"docker(${containerDefinitionFile.yamlFile})") -> containerDefinitionFile
+      }
+    }
+    
+    val dockerPart = dockerTupleOpt.map { case (parts, _) => parts }.getOrElse(Nil)
+    
+    val cdfOpt = dockerTupleOpt.map { case (_, cdf) => cdf }
     
     val runTimeInHours: Int = drmSettings.maxRunTime.hours.toInt
     val maxRunTimePart = Seq("-W", s"${runTimeInHours}:0")
@@ -128,8 +149,10 @@ object BsubJobSubmitter extends Loggable {
     
     val stderrPart = Seq("-eo", s":${taskArray.stdErrPathTemplate}")
     
-    actualExecutable +: 
-      (queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
+    val tokens = actualExecutable +: 
+      (dockerPart ++ queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
+      
+    tokens -> cdfOpt
   }
   
   private val submittedJobIdRegex = """^Job\s+<(\d+)>.+$""".r

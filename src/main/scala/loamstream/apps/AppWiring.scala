@@ -399,7 +399,7 @@ object AppWiring extends Loggable {
         
         val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-        val jobSubmitter = BsubJobSubmitter.fromExecutable()
+        val jobSubmitter = BsubJobSubmitter.fromExecutable(lsfConfig)
         
         DrmChunkRunner(
             environmentType = EnvironmentType.Lsf,

@@ -19,6 +19,7 @@ import scala.util.Try
 import scala.util.Success
 import loamstream.drm.DrmSubmissionResult
 import scala.util.Failure
+import loamstream.util.BashScript
 
 /**
  * @author clint
@@ -98,15 +99,63 @@ final class BsubJobSubmitterTest extends FunSuite {
     assert(extractJobId(withUnTrimmedStrings) === Some("2738574"))
   }
   
-  test("makeTokens") {
-    import BsubJobSubmitter.makeTokens
+  test("makeTokensAndCdf - NO Docker") {
+    import BsubJobSubmitter.makeTokensAndCdf
     
     val executableName = "/definitely/not/the/default"
     
-    val tokens = makeTokens(executableName, taskArray, settings)
+    val lsfConfig = TestHelpers.config.lsfConfig.get    
+    
+    val (tokens, cdfOpt) = makeTokensAndCdf(executableName, lsfConfig, taskArray, settingsWithoutDocker)
+    
+    assert(cdfOpt === None)
     
     val expectedTokens = Seq(
         executableName,
+        "-q",
+        queue.name,
+        "-W",
+        "3:0",
+        "-R",
+        s"rusage[mem=${7 * 1000}]",
+        "-n",
+        "42",
+        "-R",
+        "span[hosts=1]",
+        "-J",
+        s"${taskArray.drmJobName}[1-2]",
+        "-oo",
+        s":${taskArray.stdOutPathTemplate}",
+        "-eo",
+        s":${taskArray.stdErrPathTemplate}")
+        
+    assert(tokens === expectedTokens)
+  }
+  
+  test("makeTokensAndCdf - WITH Docker") {
+    import BsubJobSubmitter.makeTokensAndCdf
+    
+    val executableName = "/definitely/not/the/default"
+    
+    val lsfConfig = TestHelpers.config.lsfConfig.get    
+    
+    val (tokens, cdfOpt) = makeTokensAndCdf(executableName, lsfConfig, taskArray, settings)
+    
+    assert(cdfOpt !== None)
+    
+    val Some(cdf) = cdfOpt
+    
+    val expectedYamlFileName = s"${taskArray.drmJobName}.yaml"
+    
+    assert(cdf.dockerParams === settings.dockerParams.get)
+    assert(cdf.yamlFile === lsfConfig.workDir.resolve(expectedYamlFileName))
+    
+    import BashScript._
+    
+    val expectedTokens = Seq(
+        executableName,
+        "-a",
+        s"docker(/some/work/dir/${expectedYamlFileName})",
         "-q",
         queue.name,
         "-W",
@@ -152,7 +201,9 @@ final class BsubJobSubmitterTest extends FunSuite {
           imageName = "library/foo:1.2.3",
           mountedDirs = Seq(path("foo/bar"), path("/x/y/z")),
           outputDir = path("/out"))))
-    
+  
+  private lazy val settingsWithoutDocker = settings.copy(dockerParams = None)
+          
   private val drmConfig = LsfConfig(workDir = path("/lsf/dir"))
     
   private def commandLineJob(commandLine: String) = CommandLineJob(

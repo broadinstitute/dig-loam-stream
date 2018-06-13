@@ -1,8 +1,9 @@
 package loamstream.drm.lsf
 
-import loamstream.drm.DockerParams
-import org.yaml.snakeyaml.Yaml
 import java.nio.file.Path
+
+import org.yaml.snakeyaml.Yaml
+
 import loamstream.conf.LsfConfig
 import loamstream.drm.DrmTaskArray
 import loamstream.util.Files

@@ -10,6 +10,7 @@ import loamstream.model.Store
 import loamstream.model.execute.Environment
 import loamstream.util.Maps
 import loamstream.loam.LoamGraph.StoreLocation
+import loamstream.compiler.LoamPredef
 
 /**
   * LoamStream
@@ -268,10 +269,6 @@ final class LoamGraphTest extends FunSuite {
     
     assert(updatedGraph.namedTools === Map("phase" -> phaseTool, "impute" -> imputeTool))
   }
-  
-  test("updateTool") {
-    fail("TODO")
-  }
 }
 
 object LoamGraphTest {
@@ -292,7 +289,7 @@ object LoamGraphTest {
     val template = store(path("/home/myself/template.vcf")).asInput
     val imputed = store(outputFile)
     
-    val phaseTool = cmd"shapeit -in $raw -out $phased".named("phase")
+    val phaseTool = cmd"shapeit -in $raw -out $phased".tag("phase")
     val imputeTool = cmd"impute -in $phased -template $template -out $imputed".using("R-3.1")
     
     GraphComponents(

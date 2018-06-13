@@ -7,20 +7,16 @@ import java.net.URI
  * @author clint
  * Jun 7, 2018
  */
-trait Locations {
-  def inHost(p: Path): Path
+trait Locations[L] {
+  def inHost(p: L): L
   
-  def inContainer(p: Path): Path
-  
-  final def inHost(u: URI): URI = u
-  
-  final def inContainer(u: URI): URI = u
+  def inContainer(p: L): L
 }
 
 object Locations {
-  object Identity extends Locations {
-    override def inHost(p: Path): Path = p 
+  def identity[A]: Locations[A] = new Locations[A] {
+    override def inHost(a: A): A = a 
   
-    override def inContainer(p: Path): Path = p
+    override def inContainer(a: A): A = a
   }
 }

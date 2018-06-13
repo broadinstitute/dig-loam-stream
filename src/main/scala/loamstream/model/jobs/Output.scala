@@ -11,6 +11,7 @@ import loamstream.util.HashType
 import loamstream.util.Hashes
 import loamstream.util.PathUtils
 import loamstream.util.PathUtils.normalizePath
+import loamstream.model.execute.Locations
 
 /**
  * @author clint
@@ -41,7 +42,16 @@ object Output {
    * A handle to an output of a job stored at 'path'.  Hashes and modification times are re-computed on
    * each access.
    */
-  final case class PathOutput private (path: Path) extends Output {
+  final case class PathOutput private (
+      basePath: Path, 
+      locations: Locations[Path] = Locations.identity) extends Output {
+    
+    lazy val path: Path = locations.inHost(basePath)
+    
+    //TODO
+    def pathInHost: Path = path
+    def pathInContainer: Path = locations.inContainer(basePath)
+    
     override def isPresent: Boolean = Files.exists(path)
 
     override def hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(path)) else None
@@ -66,6 +76,14 @@ object Output {
   
   object PathOutput {
     def apply(path: Path): PathOutput = new PathOutput(normalizePath(path))
+    
+    object InHost {
+      def unapply(pathOutput: PathOutput): Option[Path] = Option(pathOutput.pathInHost)
+    }
+    
+    object InContainer {
+      def unapply(pathOutput: PathOutput): Option[Path] = Option(pathOutput.pathInContainer)
+    }
   }
 
   final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends Output {

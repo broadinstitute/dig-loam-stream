@@ -86,7 +86,7 @@ object ExecuterHelpers extends Loggable {
       error(s"Missing outputs for job ${job.id}! : ${job.outputs.toSeq.filter(_.isMissing)}")
       
       //TODO: Support UriOutputs!!
-      val missingPaths = job.outputs.toSeq.collect { case o @ Output.PathOutput(p) if o.isMissing => p }
+      val missingPaths = job.outputs.toSeq.collect { case o @ Output.PathOutput.InHost(p) if o.isMissing => p }
     
       val fileExistenceFutures = missingPaths.map(fileMonitor.waitForCreationOf)
     

@@ -8,6 +8,8 @@ import loamstream.model.{Store, Tool}
 import loamstream.model.execute.{Environment, Executable}
 import loamstream.model.jobs.{JobNode, Output}
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.drm.DockerParams
+import loamstream.model.execute.Locations
 
 /**
  * LoamStream
@@ -41,9 +43,14 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
 
     val environment: Environment = graph.executionEnvironmentOpt(tool).getOrElse(Environment.Local)
 
+    val dockerParamsOpt: Option[DockerParams] = environment match {
+      case Environment.Lsf(lsfSettings) => lsfSettings.dockerParams 
+      case _ => None
+    }
+    
     val inputJobs = toJobs(graph)(graph.toolsPreceding(tool))
 
-    val outputs = outputsFor(graph)(tool)
+    val outputs = outputsFor(graph, tool, dockerParamsOpt)
 
     val toolNameOpt = graph.nameOf(tool)
 
@@ -54,16 +61,16 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
     }
   }
 
-  private def outputsFor(graph: LoamGraph)(tool: Tool): Set[Output] = {
+  private def outputsFor(graph: LoamGraph, tool: Tool, dockerParamsOpt: Option[DockerParams]): Set[Output] = {
     val loamStores: Set[Store] = graph.toolOutputs(tool)
 
     def pathOrUriToOutput(store: Store): Option[Output] = {
       store.pathOpt.orElse(store.uriOpt).map {
-        case path: Path => Output.PathOutput(path)
+        case path: Path => Output.PathOutput(path, dockerParamsOpt.getOrElse(Locations.identity))
         case uri: URI   => Output.GcsUriOutput(uri, client)
       }
     }
-
+    
     loamStores.flatMap(pathOrUriToOutput)
   }
 }

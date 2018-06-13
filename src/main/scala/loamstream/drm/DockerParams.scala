@@ -29,7 +29,7 @@ import loamstream.model.execute.Locations
  * NB: This class does not expose `output_backend`, and always writes `output_hps_nobackup` as that field's value in
  * the YAML produced by toYaml.
  */
-trait DockerParams extends Locations {
+trait DockerParams extends Locations[Path] {
   def imageName: String
   
   def mountedDirs: Iterable[Path]

@@ -10,18 +10,33 @@ import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
 import loamstream.loam.LoamStoreRef
+import java.nio.file.Files
+import loamstream.util.BashScript
+import loamstream.model.LId.LAnonId
 
 /**
  * @author oliverr
  * @author clint
  * Jun 8, 2016
  */
-trait Store extends HasLocation with LId.HasId {
-  def scriptContext: LoamScriptContext
-
+final class Store private (
+    val id: LId, 
+    val location: StoreLocation)(implicit val scriptContext: LoamScriptContext) extends HasLocation with LId.HasId {
+    
+  override def equals(other: Any): Boolean = {
+    other match {
+      case that: Store => this.id == that.id
+      case _ => false
+    }
+  }
+  
+  override def hashCode: Int = id.hashCode
+  
+  override def toString: String = s"store($id)@$render"
+  
+  def copy(id: LId = this.id, location: StoreLocation = this.location): Store = new Store(id, location)
+    
   def projectContext: LoamProjectContext = scriptContext.projectContext
-
-  def update(): Unit = projectContext.updateGraph(_.withStore(this))
 
   def asInput: Store = {
     projectContext.updateGraph(_.withStoreAsInput(this))
@@ -29,53 +44,66 @@ trait Store extends HasLocation with LId.HasId {
     this
   }
 
-  def at(path: String): Store = at(Paths.get(path))
-
-  def at(path: Path): Store = {
-    val resolvedPath = scriptContext.workDir.resolve(path)
-    val location = StoreLocation.PathLocation(resolvedPath)
-    at(location)
-  }
-
-  def at(uri: URI): Store = {
-    val location = StoreLocation.UriLocation(uri)
-    at(location)
-  }
-
-  def at(location: StoreLocation): Store = {
-    projectContext.updateGraph(_.withStoreLocation(this, location))
-
-    this
-  }
-
-  override def toString: String = {
-    val location = (pathOpt orElse uriOpt).map(_.toString).getOrElse(path)
-
-    s"store($id)@$location"
-  }
-
   def graph: LoamGraph = projectContext.graph
 
-  override def pathOpt: Option[Path] = graph.pathOpt(this)
+  override def pathOpt: Option[Path] = location match {
+    case StoreLocation.PathLocation(p) => Option(p)
+    case _ => None
+  }
 
-  override def path: Path = projectContext.fileManager.getPath(this)
+  override def uriOpt: Option[URI] = location match  {
+    case StoreLocation.UriLocation(u) => Option(u)
+    case _ => None
+  }
+  
+  override def path: Path = pathOpt.get
+    
+  override def uri: URI = uriOpt.get
+  
+  override def render: String = location match {
+    case StoreLocation.PathLocation(p) => Store.render(p)
+    case StoreLocation.UriLocation(u) => Store.render(u)
+  }
 
-  override def uriOpt: Option[URI] = graph.uriOpt(this)
+  def +(suffix: String): LoamStoreRef = {
+    if(pathOpt.isDefined) {
+      LoamStoreRef(this, pathModifier = LoamStoreRef.pathSuffixAdder(suffix))
+    } else {
+      LoamStoreRef(this, uriModifier = LoamStoreRef.uriSuffixAdder(suffix))
+    }
+  }
 
-  def render: String = projectContext.fileManager.getStoreString(this)
-
-  def +(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixAdder(suffix))
-
-  def -(suffix: String): LoamStoreRef = LoamStoreRef(this, LoamStoreRef.suffixRemover(suffix))
+  def -(suffix: String): LoamStoreRef = {
+    if(pathOpt.isDefined) {
+      LoamStoreRef(this, pathModifier = LoamStoreRef.pathSuffixRemover(suffix))
+    } else {
+      LoamStoreRef(this, uriModifier = LoamStoreRef.uriSuffixRemover(suffix))
+    }
+  }
 }
 
 object Store {
-  def create(implicit scriptContext: LoamScriptContext): Store = DefaultStore(LId.newAnonId)
-
-  private final case class DefaultStore private (id: LId)(implicit val scriptContext: LoamScriptContext)
-      extends Store {
-
-    update()
-
+  private[model] def apply(id: LId, location: StoreLocation)(implicit scriptContext: LoamScriptContext): Store = {
+    val store = new Store(id, location)
+    
+    scriptContext.projectContext.updateGraph(_.withStore(store))
+    
+    store
   }
+  
+  def apply()(implicit scriptContext: LoamScriptContext): Store = apply(StoreLocation.PathLocation(anonPath))
+  
+  def apply(location: StoreLocation)(implicit scriptContext: LoamScriptContext): Store = apply(LId.newAnonId, location)
+  
+  private def anonPath(implicit scriptContext: LoamScriptContext): Path = {
+    Files.createTempFile(scriptContext.config.executionConfig.anonStoreDir, "loam", ".txt")
+  }
+  
+  def render(p: Path): String = {
+    import BashScript.Implicits._
+    
+    p.render
+  }
+  
+  def render(u: URI): String = u.toString
 }

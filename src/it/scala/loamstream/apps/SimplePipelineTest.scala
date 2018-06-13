@@ -96,9 +96,9 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
     val loamScriptContents = {
       s"""|
-          |val a = store.at("${pathA}").asInput
-          |val b = store.at("${pathB}")
-          |val c = store.at("${pathC}")
+          |val a = store("${pathA}").asInput
+          |val b = store("${pathB}")
+          |val c = store("${pathC}")
           |
           |$environment { //should be 'local' or 'uger'
           |  cmd"cp $$b $$c".in(b).out(c) //NB: declare commands "out of order"

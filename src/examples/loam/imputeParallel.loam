@@ -8,22 +8,22 @@ val chr = 22
 val nShards = 3
 val basesPerShard = 1000000
 
-val data = store.at(s"data.chr${chr}.vcf.gz").asInput
-val geneticMap = store.at(kgpDir / s"genetic_map_chr${chr}_combined_b37.txt").asInput
-val phasedHaps = store.at(s"phased.data.${chr}.haps.gz")
-val phasedSample = store.at(s"phased.data.${chr}.sample.gz")
-val log = store.at(s"phased.data.${chr}.log")
+val data = store(s"data.chr${chr}.vcf.gz").asInput
+val geneticMap = store(kgpDir / s"genetic_map_chr${chr}_combined_b37.txt").asInput
+val phasedHaps = store(s"phased.data.${chr}.haps.gz")
+val phasedSample = store(s"phased.data.${chr}.sample.gz")
+val log = store(s"phased.data.${chr}.log")
 
 cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSample -L $log --thread 8"
 
-val exampleHaps = store.at(kgpDir / s"1000GP_Phase3_chr${chr}.hap.gz").asInput
-val exampleLegend = store.at(kgpDir / s"1000GP_Phase3_chr${chr}.legend.gz").asInput
+val exampleHaps = store(kgpDir / s"1000GP_Phase3_chr${chr}.hap.gz").asInput
+val exampleLegend = store(kgpDir / s"1000GP_Phase3_chr${chr}.legend.gz").asInput
 
 for(iShard <- 0 until nShards) {
   val start = iShard*basesPerShard + 1
   val end = (iShard + 1)*basesPerShard
 
-  val imputed = store.at(s"imputed.data.chr${chr}bp${start}-${end}.gen")
+  val imputed = store(s"imputed.data.chr${chr}bp${start}-${end}.gen")
 
   cmd"""$impute2 -use_prephased_g -m $geneticMap -h $exampleHaps -l $exampleLegend 
   -known_haps_g $phasedHaps -int ${start} ${end} -Ne 20000 -o imputes $imputed -verbose -o_gz

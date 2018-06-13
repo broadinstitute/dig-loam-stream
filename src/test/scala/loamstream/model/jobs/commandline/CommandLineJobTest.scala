@@ -21,8 +21,8 @@ final class CommandLineJobTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
     
-      val input = store.at("src/test/resources/test-data-CommandLineStringJobTest").asInput
-      val output = store.at(outputPath)
+      val input = store("src/test/resources/test-data-CommandLineStringJobTest").asInput
+      val output = store(outputPath)
 
       cmd"(head -1 $input ; sed '1d' $input | awk '{if($$8 >= 0.0884) print $$0}') > $output"
     }

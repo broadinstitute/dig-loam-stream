@@ -98,7 +98,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
     import PathEnrichments._
     
     // Map: Chrom Number -> (Number of Shards, Offset for Start Position)
-    val input = store.at("src/test/resources/a.txt").asInput
+    val input = store("src/test/resources/a.txt").asInput
 
     val numBasesPerShard = 1000000
 
@@ -106,7 +106,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
     for (Props(chrNum, numShards, offset) <- chrProps) {
       val chr = s"chr${chrNum}"
 
-      val chrFile = store.at(outputDir / s"a-$chr.txt")
+      val chrFile = store(outputDir / s"a-$chr.txt")
 
       cmd"cp $input $chrFile".in(input).out(chrFile).named(s"outer-$chr")
 
@@ -115,7 +115,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
         val start = offset + (shard * numBasesPerShard) + 1
         val end = start + numBasesPerShard - 1
 
-        val imputed = store.at(outputDir / s"imputed_data_${chr}_${shard}.txt")
+        val imputed = store(outputDir / s"imputed_data_${chr}_${shard}.txt")
 
         cmd"cp $chrFile $imputed".in(chrFile).out(imputed).named(s"inner-$chr-$shard")
       }

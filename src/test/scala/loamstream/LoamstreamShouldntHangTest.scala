@@ -116,8 +116,8 @@ object LoamstreamShouldntHangTest {
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       
-      val nonexistent = store.at(s"$workDir/foo/bar/baz").asInput
-      val storeX = store.at(s"$workDir/x.txt")
+      val nonexistent = store(s"$workDir/foo/bar/baz").asInput
+      val storeX = store(s"$workDir/x.txt")
       
       local {
         val fails = cmd"cp $nonexistent $storeX".in(nonexistent).out(storeX)
@@ -142,9 +142,9 @@ object LoamstreamShouldntHangTest {
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       
-      val nonexistent = store.at(s"$workDir/foo/bar/baz").asInput
-      val storeX = store.at(s"$workDir/x.txt")
-      val storeY = store.at(s"$workDir/y.txt")
+      val nonexistent = store(s"$workDir/foo/bar/baz").asInput
+      val storeX = store(s"$workDir/x.txt")
+      val storeY = store(s"$workDir/y.txt")
       
       local {
         val fails = cmd"cp $nonexistent $storeX".in(nonexistent).out(storeX)
@@ -170,9 +170,9 @@ object LoamstreamShouldntHangTest {
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       
-      val storeA = store.at("src/test/resources/a.txt").asInput
-      val storeB = store.at(s"$workDir/b.txt")
-      val workDirStore = store.at(workDir)
+      val storeA = store("src/test/resources/a.txt").asInput
+      val storeB = store(s"$workDir/b.txt")
+      val workDirStore = store(workDir)
       
       local {
         val shouldWork = cmd"cp $storeA $storeB".in(storeA).out(storeB)
@@ -204,10 +204,10 @@ object LoamstreamShouldntHangTest {
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       
-      val nonexistent = store.at(s"$workDir/asdf/asdf")
-      val storeX = store.at(s"$workDir/x.txt")
-      val storeY = store.at(s"$workDir/y.txt")
-      val storeZ = store.at(s"$workDir/z.txt")
+      val nonexistent = store(s"$workDir/asdf/asdf")
+      val storeX = store(s"$workDir/x.txt")
+      val storeY = store(s"$workDir/y.txt")
+      val storeZ = store(s"$workDir/z.txt")
       
       local {
         val failingDep = cmd"cp $nonexistent $storeX".in(nonexistent).out(storeX)
@@ -240,14 +240,14 @@ object LoamstreamShouldntHangTest {
       
       val workDir = TestHelpers.getWorkDir(s"${classOf[LoamstreamShouldntHangTest].getSimpleName}")
       
-      val nonexistent = store.at(s"$workDir/foo/bar/baz").asInput
-      val storeX = store.at(s"$workDir/x.txt")
-      val storeY = store.at(s"$workDir/y.txt")
+      val nonexistent = store(s"$workDir/foo/bar/baz").asInput
+      val storeX = store(s"$workDir/x.txt")
+      val storeY = store(s"$workDir/y.txt")
       
-      val storeA = store.at("src/test/resources/a.txt").asInput
-      val storeB = store.at(s"$workDir/b.txt")
-      val storeC = store.at(s"$workDir/c.txt")      
-      val storeD = store.at(s"$workDir/d.txt")
+      val storeA = store("src/test/resources/a.txt").asInput
+      val storeB = store(s"$workDir/b.txt")
+      val storeC = store(s"$workDir/c.txt")      
+      val storeD = store(s"$workDir/d.txt")
       
       local {
         val aToB = cmd"cp $storeA $storeB".in(storeA).out(storeB)

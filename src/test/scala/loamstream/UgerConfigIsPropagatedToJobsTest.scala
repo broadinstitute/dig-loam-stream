@@ -28,8 +28,8 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
         import LoamPredef._
         import LoamCmdTool._
       
-        val a = store.at("a.txt").asInput
-        val b = store.at("b.txt")
+        val a = store("a.txt").asInput
+        val b = store("b.txt")
       
         def declareJobForLsf = drmWith(
             cores = 4, 
@@ -103,8 +103,8 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
         import LoamPredef._
         import LoamCmdTool._
       
-        val a = store.at("a.txt").asInput
-        val b = store.at("b.txt")
+        val a = store("a.txt").asInput
+        val b = store("b.txt")
       
         drmWith() {
           cmd"cp $a $b".in(a).out(b)
@@ -135,8 +135,8 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
         import LoamPredef._
         import LoamCmdTool._
       
-        val a = store.at("a.txt").asInput
-        val b = store.at("b.txt")
+        val a = store("a.txt").asInput
+        val b = store("b.txt")
       
         drm {
           cmd"cp $a $b".in(a).out(b)

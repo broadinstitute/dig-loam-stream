@@ -2,7 +2,6 @@ package loamstream.loam
 
 import java.nio.file.Paths
 
-import loamstream.loam.files.LoamFileManager
 import loamstream.model.Store
 
 /**
@@ -10,14 +9,16 @@ import loamstream.model.Store
   * Created by oliverr on 6/14/2016.
   */
 sealed trait LoamToken {
-  def toString(fileManager: LoamFileManager): String
+  def render: String
 }
 
 object LoamToken {
   def storesFromTokens(tokens: Seq[LoamToken]): Set[Store] = {
     tokens.collect {
       case StoreToken(store) => store
-      case StoreRefToken(LoamStoreRef(store, _)) => store
+      //TODO: This probably isn't right; the Paths/URIs of the Stores returned won't be 
+      //modified by the Ref's transformation functions
+      case StoreRefToken(LoamStoreRef(store, _, _)) => store
     }.toSet
   }
 
@@ -26,33 +27,31 @@ object LoamToken {
 
     override def toString: String = string
 
-    override def toString(fileManager: LoamFileManager): String = toString
+    override def render: String = toString
   }
 
   final case class StoreToken(store: Store) extends LoamToken {
     override def toString: String = store.toString
 
-    override def toString(fileManager: LoamFileManager): String = store.render(fileManager)
+    override def render: String = store.render
   }
   
   final case class StoreRefToken(storeRef: LoamStoreRef) extends LoamToken {
     override def toString: String = storeRef.pathModifier(storeRef.store.path).toString
 
-    override def toString(fileManager: LoamFileManager): String = storeRef.render(fileManager)
+    override def render: String = storeRef.render
   }
   
   final case class MultiStoreToken(stores: Iterable[HasLocation]) extends LoamToken {
     override def toString: String = stores.map(_.path).mkString(" ")
 
-    override def toString(fileManager: LoamFileManager): String = {
-      stores.map(_.render(fileManager)).mkString(" ")
-    }
+    override def render: String = toString
   }
   
   final case class MultiToken[A](as: Iterable[A]) extends LoamToken {
     override def toString: String = as.mkString(" ")
 
-    override def toString(fileManager: LoamFileManager): String = toString
+    override def render: String = toString
   }
 
   def mergeStringTokens(tokens: Seq[LoamToken]): Seq[LoamToken] = {

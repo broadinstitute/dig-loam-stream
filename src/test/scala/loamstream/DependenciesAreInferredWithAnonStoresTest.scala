@@ -29,7 +29,7 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
       
-      val nonExistent = store.at(nonExistentInputPath).asInput
+      val nonExistent = store(nonExistentInputPath).asInput
       
       val anonOutput = store //Note anonymous store
       
@@ -54,7 +54,7 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
       
-      val in = store.at(inputPath).asInput
+      val in = store(inputPath).asInput
       
       val anonOutput = store //Note anonymous store
       
@@ -87,11 +87,11 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
       
-      val nonExistent = store.at(nonExistentInputPath).asInput
+      val nonExistent = store(nonExistentInputPath).asInput
       
       val intermediate = store //Note anonymous store
       
-      val out = store.at(outPath)
+      val out = store(outPath)
       
       cmd"cp $nonExistent $intermediate".in(nonExistent).out(intermediate)
       
@@ -126,11 +126,11 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
       
-      val in = store.at(inputPath).asInput
+      val in = store(inputPath).asInput
       
       val intermediate = store //Note anonymous store
       
-      val out = store.at(outPath)
+      val out = store(outPath)
       
       cmd"cp $in $intermediate".in(in).out(intermediate)
       
@@ -170,12 +170,12 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
       
-      val nonExistent = store.at(nonExistentInputPath).asInput
+      val nonExistent = store(nonExistentInputPath).asInput
       
       val intermediate = store //Note anonymous store
       
-      val out0 = store.at(outPath0)
-      val out1 = store.at(outPath1)
+      val out0 = store(outPath0)
+      val out1 = store(outPath1)
       
       cmd"cp $nonExistent $intermediate".in(nonExistent).out(intermediate)
       

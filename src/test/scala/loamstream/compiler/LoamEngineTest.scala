@@ -116,8 +116,8 @@ final class LoamEngineTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
 
-      val input = store.at(inputFile).asInput
-      val output = store.at(outputFile)
+      val input = store(inputFile).asInput
+      val output = store(outputFile)
       
       cmd"cp $input $output".in(input).out(output)
     }

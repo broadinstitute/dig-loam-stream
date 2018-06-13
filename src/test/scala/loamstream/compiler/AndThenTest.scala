@@ -37,9 +37,9 @@ final class AndThenTest extends FunSuite with Loggable {
 
   test("split slightly-less-simple loam file") {
     val code = """
-      val store0 = store.at("store0.txt").asInput
-      val store1 = store.at("store1.txt")
-      val store2 = store.at("store2.txt")
+      val store0 = store("store0.txt").asInput
+      val store1 = store("store1.txt")
+      val store2 = store("store2.txt")
 
       cmd"foo -i $store0 -o $store1".in(store0).out(store1)
 
@@ -51,7 +51,7 @@ final class AndThenTest extends FunSuite with Loggable {
         val N = countLines(store1)
 
         for(i <- 1 to N) {
-          val barOutput = store.at(s"bar-$i.txt")
+          val barOutput = store(s"bar-$i.txt")
 
           cmd"bar -i $store1 -o $barOutput".in(store1).out(barOutput)
         }
@@ -150,11 +150,11 @@ final class AndThenTest extends FunSuite with Loggable {
     val code = """
       import scala.collection.mutable.{Buffer,ArrayBuffer}
 
-      val store0 = store.at("store0.txt").asInput
-      val store1 = store.at("store1.txt")
-      val store2 = store.at("store2.txt")
+      val store0 = store("store0.txt").asInput
+      val store1 = store("store1.txt")
+      val store2 = store("store2.txt")
       val barOutputs: Buffer[Store] = new ArrayBuffer
-      val store3 = store.at("store3.txt")
+      val store3 = store("store3.txt")
 
       cmd"foo -i $store0 -o $store1".in(store0).out(store1)
 
@@ -166,7 +166,7 @@ final class AndThenTest extends FunSuite with Loggable {
         val N = countLines(store1)
 
         for(i <- 1 to N) {
-          val barOutput = store.at(s"bar-$i.txt")
+          val barOutput = store(s"bar-$i.txt")
 
           barOutputs += barOutput
 
@@ -284,10 +284,10 @@ final class AndThenTest extends FunSuite with Loggable {
 
   test("split loam file with multiple andThens") {
     val code = """
-      val store0 = store.at("store0.txt").asInput
-      val store1 = store.at("store1.txt")
-      val store2 = store.at("store2.txt")
-      val store3 = store.at("store3.txt")
+      val store0 = store("store0.txt").asInput
+      val store1 = store("store1.txt")
+      val store2 = store("store2.txt")
+      val store3 = store("store3.txt")
 
       cmd"foo -i $store0 -o $store1".in(store0).out(store1)
 
@@ -297,7 +297,7 @@ final class AndThenTest extends FunSuite with Loggable {
         val N = countLines(store1)
 
         for(i <- 1 to N) {
-          val barOutput = store.at(s"bar-$i.txt")
+          val barOutput = store(s"bar-$i.txt")
 
           cmd"bar -i $store1 -o $barOutput".in(store1).out(barOutput)
         }
@@ -309,7 +309,7 @@ final class AndThenTest extends FunSuite with Loggable {
         val N = countLines(store3)
 
         for(i <- 1 to N) {
-          val nuhOutput = store.at(s"nuh-$i.txt")
+          val nuhOutput = store(s"nuh-$i.txt")
 
           cmd"nuh -i $store3 -o $nuhOutput".in(store3).out(nuhOutput)
         }
@@ -504,9 +504,9 @@ final class AndThenTest extends FunSuite with Loggable {
 
   test("one andThen, at the end, but it throws") {
     val code = """
-      val store0 = store.at("store0.txt").asInput
-      val store1 = store.at("store1.txt")
-      val store2 = store.at("store2.txt")
+      val store0 = store("store0.txt").asInput
+      val store1 = store("store1.txt")
+      val store2 = store("store2.txt")
 
       cmd"foo -i $store0 -o $store1".in(store0).out(store1)
 

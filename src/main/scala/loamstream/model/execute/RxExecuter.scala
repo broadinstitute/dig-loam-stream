@@ -221,7 +221,7 @@ object RxExecuter extends Loggable {
       fileMonitor: FileMonitor)(
       runDataMap: Map[LJob, RunData])(implicit context: ExecutionContext): Observable[Map[LJob, Execution]] = {
   
-    def waitForOutputs(runData: RunData) = {
+    def waitForOutputs(runData: RunData): Future[Execution] = {
       ExecuterHelpers.waitForOutputsAndMakeExecution(runData, fileMonitor)
     }
     

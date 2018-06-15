@@ -83,7 +83,7 @@ object ExecuterHelpers extends Loggable {
     val anyMissingOutputs = job.outputs.exists(_.isMissing)
     
     if(anyMissingOutputs) {
-      error(s"Missing outputs for job ${job.id}! : ${job.outputs.toSeq.filter(_.isMissing)}")
+      error(s"Will wait for these missing outputs for job ${job.id} : ${job.outputs.toSeq.filter(_.isMissing)}")
       
       //TODO: Support UriOutputs!!
       val missingPaths = job.outputs.toSeq.collect { case o @ Output.PathOutput.InHost(p) if o.isMissing => p }

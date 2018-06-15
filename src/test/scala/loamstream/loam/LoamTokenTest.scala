@@ -13,6 +13,8 @@ import loamstream.loam.LoamToken.StoreRefToken
 import loamstream.loam.LoamToken.StoreToken
 import loamstream.loam.LoamToken.StringToken
 import loamstream.util.BashScript
+import loamstream.model.execute.Locations
+import java.nio.file.Path
 
 
 /**
@@ -37,6 +39,8 @@ final class LoamTokenTest extends FunSuite {
 
     assert(mergeStringTokens(allStringTokens) == Seq(StringToken("foo bar baz")))
   }
+  
+  private val identityLocations: Locations[Path] = Locations.identity
 
   test("mergeStringTokens - mixed") {
     import LoamToken.mergeStringTokens
@@ -46,15 +50,15 @@ final class LoamTokenTest extends FunSuite {
     val storeA = store
     val storeB = store
 
-    val storeRefToken = StoreRefToken(LoamStoreRef(storeA, identity))
+    val storeRefToken = StoreRefToken(LoamStoreRef(storeA, identity), identityLocations)
 
     val tokens = Seq(
         StringToken(""),
         StringToken("foo"),
         StringToken(" "),
-        StoreToken(storeA),
+        StoreToken(storeA, identityLocations),
         StringToken("bar"),
-        StoreToken(storeB),
+        StoreToken(storeB, identityLocations),
         storeRefToken,
         StringToken(""),
         StringToken(""),
@@ -62,17 +66,17 @@ final class LoamTokenTest extends FunSuite {
         StringToken("baz"),
         StringToken(""),
         MultiToken(Seq(1,2,3)),
-        MultiStoreToken(Seq(storeA, storeB)))
+        MultiStoreToken(Seq(storeA, storeB), identityLocations))
 
     val expected = Seq(
         StringToken("foo "),
-        StoreToken(storeA),
+        StoreToken(storeA, identityLocations),
         StringToken("bar"),
-        StoreToken(storeB),
+        StoreToken(storeB, identityLocations),
         storeRefToken,
         StringToken(" baz"),
         MultiToken(Seq(1,2,3)),
-        MultiStoreToken(Seq(storeA, storeB)))
+        MultiStoreToken(Seq(storeA, storeB), identityLocations))
 
     assert(mergeStringTokens(tokens) == expected)
   }
@@ -92,13 +96,12 @@ final class LoamTokenTest extends FunSuite {
     implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
 
     val txtStore = store
-    val vcfStore = store
 
-    assert(StoreToken(txtStore).toString === txtStore.toString)
+    assert(StoreToken(txtStore, identityLocations).toString === txtStore.toString)
 
     import BashScript.Implicits._
     
-    assert(StoreToken(txtStore).render === txtStore.path.render)
+    assert(StoreToken(txtStore, identityLocations).render === txtStore.path.render)
   }
 
   test("StoreRefToken") {
@@ -113,11 +116,11 @@ final class LoamTokenTest extends FunSuite {
     
     assert(ref.path.render == Paths.get("./foo.txt.bar").render)
 
-    val refString = StoreRefToken(ref).toString
+    val refString = StoreRefToken(ref, identityLocations).toString
     val renderedString = ref.render
     assert(refString == renderedString)
 
-    assert(StoreRefToken(ref).render === "./foo.txt.bar")
+    assert(StoreRefToken(ref, identityLocations).render === "./foo.txt.bar")
   }
 
   test("MultiToken") {
@@ -138,7 +141,7 @@ final class LoamTokenTest extends FunSuite {
     val txtStore = store
     val vcfStore = store
 
-    val multiStoreToken = MultiStoreToken(Seq(txtStore, vcfStore))
+    val multiStoreToken = MultiStoreToken(Seq(txtStore, vcfStore), identityLocations)
     
     assert(multiStoreToken.toString === s"${txtStore.path} ${vcfStore.path}")
 

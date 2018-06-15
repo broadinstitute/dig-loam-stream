@@ -5,6 +5,10 @@ import loamstream.model.Tool.{AllStores, DefaultStores}
 import loamstream.model.{LId, Store, Tool}
 import loamstream.util.StringUtils
 import loamstream.conf.DynamicConfig
+import loamstream.model.execute.Locations
+import java.nio.file.Path
+import loamstream.model.execute.Environment
+import loamstream.drm.DockerParams
 
 /**
   * LoamStream
@@ -28,6 +32,15 @@ object LoamCmdTool {
       tool
     }
   }
+  
+  private def currentDockerParams(implicit scriptContext: LoamScriptContext): Option[DockerParams] = {
+    val env = scriptContext.executionEnvironment
+    
+    env match {
+      case Environment.Lsf(lsfSettings) => lsfSettings.dockerParams
+      case _ => None
+    }
+  }
 
   /**
    * @param transform allows for manipulating white space,
@@ -41,9 +54,15 @@ object LoamCmdTool {
 
     val firstToken: LoamToken = createStringToken(firstPart)(transform)
 
+    val dockerParamsOpt = currentDockerParams
+    
+    //Associate transformations with stores when making tokens? 
+    
+    val locations: Locations[Path] = dockerParamsOpt.getOrElse(Locations.identity)
+    
     val tokens: Seq[LoamToken] = firstToken +: {
       stringParts.zip(args).flatMap { case (stringPart, arg) =>
-        Seq(toToken(arg), createStringToken(stringPart)(transform))
+        Seq(toToken(arg, locations), createStringToken(stringPart)(transform))
       }
     }
 
@@ -63,20 +82,28 @@ object LoamCmdTool {
     xs.nonEmpty && xs.forall(_.isInstanceOf[HasLocation])
   }
   
-  def toToken(arg: Any): LoamToken = arg match {
-    case store: Store => StoreToken(store)
-    case storeRef: LoamStoreRef => StoreRefToken(storeRef)
-    //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
-    //the isHasLocationIterable() guard
-    case stores: Iterable[HasLocation] @unchecked if isHasLocationIterable(stores) => MultiStoreToken(stores)
-    case args: Iterable[_] => MultiToken(args)
-    //NB: Will throw if the DynamicConf represents a config key that's not present,
-    //or a key that points to a sub-config (ie NOT a string or number)
-    case conf: DynamicConfig => StringToken(conf.unpack.toString)
-    case arg => StringToken(arg.toString)
-  }
+  def toString(tokens: Seq[LoamToken]): String = tokens.map(_.renderInContainer).mkString
   
-  def toString(tokens: Seq[LoamToken]): String = tokens.map(_.render).mkString
+  def toToken(arg: Any, locations: Locations[Path]): LoamToken = {
+    def isInputStore(s: Store) = s.graph.inputStores.contains(s)
+    
+    arg match {
+      //TODO
+      case store: Store if store.isInput => StoreToken(store, Locations.identity)
+      case store: Store => StoreToken(store, locations)
+      case storeRef: LoamStoreRef => StoreRefToken(storeRef, locations)
+      //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
+      //the isHasLocationIterable() guard
+      case stores: Iterable[HasLocation] @unchecked if isHasLocationIterable(stores) => {
+        MultiStoreToken(stores, locations)
+      }
+      case args: Iterable[_] => MultiToken(args)
+      //NB: Will throw if the DynamicConf represents a config key that's not present,
+      //or a key that points to a sub-config (ie NOT a string or number)
+      case conf: DynamicConfig => StringToken(conf.unpack.toString)
+      case arg => StringToken(arg.toString)
+    }
+  }
 }
 
 /** A command line tool specified in a Loam script */
@@ -110,4 +137,6 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
 
     updatedTool
   }
+  
+  
 }

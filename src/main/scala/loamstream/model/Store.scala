@@ -19,10 +19,10 @@ import loamstream.model.LId.LAnonId
  * @author clint
  * Jun 8, 2016
  */
-final class Store private (
-    val id: LId, 
-    val location: StoreLocation)(implicit val scriptContext: LoamScriptContext) extends HasLocation with LId.HasId {
+sealed abstract class Store protected (val id: LId) extends HasLocation with LId.HasId {
     
+  implicit val scriptContext: LoamScriptContext
+  
   override def equals(other: Any): Boolean = {
     other match {
       case that: Store => this.id == that.id
@@ -34,7 +34,7 @@ final class Store private (
   
   override def toString: String = s"store($id)@$render"
   
-  def copy(id: LId = this.id, location: StoreLocation = this.location): Store = new Store(id, location)
+  //def copy(id: LId = this.id, location: StoreLocation = this.location): Store = new Store(id, location)
     
   def projectContext: LoamProjectContext = scriptContext.projectContext
 
@@ -43,10 +43,12 @@ final class Store private (
 
     this
   }
+  
+  def isInput: Boolean = graph.inputStores.contains(this)
 
   def graph: LoamGraph = projectContext.graph
 
-  override def pathOpt: Option[Path] = location match {
+  /*override def pathOpt: Option[Path] = location match {
     case StoreLocation.PathLocation(p) => Option(p)
     case _ => None
   }
@@ -63,8 +65,8 @@ final class Store private (
   override def render: String = location match {
     case StoreLocation.PathLocation(p) => Store.render(p)
     case StoreLocation.UriLocation(u) => Store.render(u)
-  }
-
+  }*/
+  
   def +(suffix: String): LoamStoreRef = {
     if(pathOpt.isDefined) {
       LoamStoreRef(this, pathModifier = LoamStoreRef.pathSuffixAdder(suffix))
@@ -82,18 +84,55 @@ final class Store private (
   }
 }
 
+final case class PathStore(
+    override val id: LId, 
+    path: Path)(implicit override val scriptContext: LoamScriptContext) extends Store(id) {
+  
+  override def pathOpt: Option[Path] = Option(path)
+
+  override def uriOpt: Option[URI] = None
+    
+  override def uri: URI = uriOpt.get
+  
+  override def render: String = Store.render(path)
+}
+
+final case class UriStore(
+    override val id: LId, 
+    uri: URI)(implicit override val scriptContext: LoamScriptContext) extends Store(id) {
+  
+  override def pathOpt: Option[Path] = None
+  
+  override def uriOpt: Option[URI] = Option(uri)
+  
+  override def path: Path = pathOpt.get
+  
+  override def render: String = Store.render(uri)
+}
+
 object Store {
   private[model] def apply(id: LId, location: StoreLocation)(implicit scriptContext: LoamScriptContext): Store = {
-    val store = new Store(id, location)
+    val store = location match {
+      case StoreLocation.PathLocation(p) => PathStore(id, p)
+      case StoreLocation.UriLocation(u) => UriStore(id, u)
+    }
     
     scriptContext.projectContext.updateGraph(_.withStore(store))
     
     store
   }
   
-  def apply()(implicit scriptContext: LoamScriptContext): Store = apply(StoreLocation.PathLocation(anonPath))
+  private[model] def apply(path: Path)(implicit scriptContext: LoamScriptContext): Store = {
+    Store(StoreLocation.PathLocation(path))
+  }
+  
+  private[model] def apply(uri: URI)(implicit scriptContext: LoamScriptContext): Store = {
+    Store(StoreLocation.UriLocation(uri))
+  }
   
   def apply(location: StoreLocation)(implicit scriptContext: LoamScriptContext): Store = apply(LId.newAnonId, location)
+  
+  def apply()(implicit scriptContext: LoamScriptContext): Store = apply(anonPath)
   
   private def anonPath(implicit scriptContext: LoamScriptContext): Path = {
     Files.createTempFile(scriptContext.config.executionConfig.anonStoreDir, "loam", ".txt")

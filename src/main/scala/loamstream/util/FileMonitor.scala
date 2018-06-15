@@ -48,7 +48,7 @@ final class FileMonitor(pollingRateInHz: Double, maxWaitTime: Duration) {
   }
 }
 
-object FileMonitor {
+object FileMonitor extends Loggable {
   private[util] type FilesToWatchers = Map[Path, Set[Watcher]]
 
   private final class PollingTask(watchedFiles: ValueBox[FilesToWatchers]) extends TimerTask {
@@ -70,6 +70,13 @@ object FileMonitor {
         watcher <- watchers
       } {
         watcher.completeSuccessfully()
+        
+        import scala.concurrent.duration._
+        
+        //TODO
+        val waitedFor = ((Instant.now.toEpochMilli - watcher.startedWaiting.toEpochMilli).toDouble / 1000.0).seconds 
+        
+        debug(s"File '${existingFile}' appeared after ${waitedFor} seconds")
       }
     }
 
@@ -95,7 +102,9 @@ object FileMonitor {
       val maxWaitTime: Duration,
       watchedFiles: ValueBox[FilesToWatchers]) extends Loggable {
 
-    val waitUntil: Instant = Instant.now.plusMillis(maxWaitTime.toMillis)
+    val startedWaiting: Instant = Instant.now
+    
+    val waitUntil: Instant = startedWaiting.plusMillis(maxWaitTime.toMillis)
     
     private[this] final val promise: Promise[Unit] = Promise()
 

@@ -46,11 +46,11 @@ object Output {
       basePath: Path, 
       locations: Locations[Path] = Locations.identity) extends Output {
     
-    lazy val path: Path = locations.inHost(basePath)
+    def path: Path = basePath
     
     //TODO
-    def pathInHost: Path = path
-    def pathInContainer: Path = locations.inContainer(basePath)
+    lazy val pathInHost: Path = locations.inHost(basePath)
+    lazy val pathInContainer: Path = locations.inContainer(basePath)
     
     override def isPresent: Boolean = Files.exists(path)
 

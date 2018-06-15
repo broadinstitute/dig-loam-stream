@@ -17,6 +17,8 @@ import loamstream.loam.LoamToken.StringToken
 import loamstream.model.LId
 import loamstream.model.Store
 import loamstream.util.BashScript
+import loamstream.model.execute.Locations
+import java.nio.file.Path
 
 /**
   * @author clint
@@ -161,12 +163,16 @@ final class LoamCmdToolTest extends FunSuite {
 
   private def tokens(values: AnyRef*): Seq[LoamToken] = values.map {
     case string: String => StringToken(string)
-    case store: Store => StoreToken(store)
+    case store: Store => StoreToken(store, Locations.identity)
   }
 
-  private def assertGraph(graph: LoamGraph, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
-                  expectedInputs: Map[LId, Store],
-                  expectedOutputs: Map[LId, Store]): Unit = {
+  private def assertGraph(
+      graph: LoamGraph, 
+      tool: LoamCmdTool, 
+      expectedTokens: Seq[LoamToken],
+      expectedInputs: Map[LId, Store],
+      expectedOutputs: Map[LId, Store]): Unit = {
+    
     assert(tool.tokens === expectedTokens)
     assert(tool.inputs === expectedInputs)
     assert(tool.outputs === expectedOutputs)
@@ -198,9 +204,15 @@ final class LoamCmdToolTest extends FunSuite {
     }
   }
 
-  private def assertAddingIOStores(context: LoamProjectContext, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
-                           inputsBefore: Set[Store], outputsBefore: Set[Store],
-                           stores: Seq[Store], addInputsFirst: Boolean = true): Unit = {
+  private def assertAddingIOStores(
+      context: LoamProjectContext, 
+      tool: LoamCmdTool, 
+      expectedTokens: Seq[LoamToken],
+      inputsBefore: Set[Store], 
+      outputsBefore: Set[Store],
+      stores: Seq[Store], 
+      addInputsFirst: Boolean = true): Unit = {
+    
     val inputsMapBefore = storeMap(inputsBefore)
     val outputsMapBefore = storeMap(outputsBefore)
     val inputsMapAfter = storeMap(inputsBefore + stores.head + stores(2))
@@ -229,41 +241,43 @@ final class LoamCmdToolTest extends FunSuite {
     //Store
     val store = Store()
     
-    assert(toToken(store) === StoreToken(store))
+    val identity = Locations.identity[Path]
+    
+    assert(toToken(store, identity) === StoreToken(store, identity))
     
     //StoreRef:
-    val storeRef = LoamStoreRef(store, identity)
+    val storeRef = LoamStoreRef(store)
     
-    assert(toToken(storeRef) === StoreRefToken(storeRef))
+    assert(toToken(storeRef, identity) === StoreRefToken(storeRef, identity))
     
     //Non-HasLocation Iterable:
-    assert(toToken(Nil) === MultiToken(Nil))
-    assert(toToken(Seq(42)) === MultiToken(Seq(42)))
-    assert(toToken(Seq("x", "y", "z")) === MultiToken(Seq("x", "y", "z")))
+    assert(toToken(Nil, identity) === MultiToken(Nil))
+    assert(toToken(Seq(42), identity) === MultiToken(Seq(42)))
+    assert(toToken(Seq("x", "y", "z"), identity) === MultiToken(Seq("x", "y", "z")))
     
     //Iterable[HasLocation]
     {
       val things = Seq(store, storeRef)
       
-      assert(toToken(things) === MultiStoreToken(things))
+      assert(toToken(things, identity) === MultiStoreToken(things, identity))
     }
     
     //DynamicConfig
     
     val config = DynamicConfig(ConfigFactory.parseString("foo { bar { baz = 42 } }"), Some("foo.bar.baz"))
     
-    assert(toToken(config) === StringToken("42"))
+    assert(toToken(config, identity) === StringToken("42"))
     
     val configThatShouldBlowUp = config.copy(pathOption = Some("blerg.zerg"))
     
     intercept[Exception] {
-      toToken(configThatShouldBlowUp)
+      toToken(configThatShouldBlowUp, identity)
     }
     
     //arbitrary type
     final case class Foo(x: Int)
     
-    assert(toToken(Foo(42)) === StringToken("Foo(42)"))
+    assert(toToken(Foo(42), identity) === StringToken("Foo(42)"))
   }
   
   test("in() and out() with no implicit i/o stores") {

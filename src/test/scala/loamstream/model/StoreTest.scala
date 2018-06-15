@@ -24,11 +24,11 @@ final class StoreTest extends FunSuite {
     val s1 = Store()
     
     assert(s0.id !== s1.id)
-    assert(s0.location !== s1.location)
+    assert(s0.path !== s1.path)
     
     assert(s0.hashCode !== s1.hashCode)
     
-    val sameIdAsS0ButDifferentLocation = Store(s0.id, s1.location)
+    val sameIdAsS0ButDifferentLocation = Store(s0.id, StoreLocation.PathLocation(s1.path))
     
     assert(s0.hashCode === sameIdAsS0ButDifferentLocation.hashCode)
     
@@ -40,7 +40,7 @@ final class StoreTest extends FunSuite {
     val s1 = Store()
     
     assert(s0.id !== s1.id)
-    assert(s0.location !== s1.location)
+    assert(s0.path !== s1.path)
     
     assert(s0 === s0)
     assert(s1 === s1)
@@ -48,7 +48,7 @@ final class StoreTest extends FunSuite {
     assert(s0 !== s1)
     assert(s1 !== s0)
     
-    val sameIdAsS0ButDifferentLocation = Store(s0.id, s1.location)
+    val sameIdAsS0ButDifferentLocation = Store(s0.id, StoreLocation.PathLocation(s1.path))
     
     assert(s0 === sameIdAsS0ButDifferentLocation)
     assert(sameIdAsS0ButDifferentLocation === s0)
@@ -58,7 +58,6 @@ final class StoreTest extends FunSuite {
   }
   
   testWithScriptContext("toString") { implicit context =>
-    //override def toString: String = s"store($id)@$render"
 
     import BashScript.Implicits._
     
@@ -172,7 +171,7 @@ final class StoreTest extends FunSuite {
       val s1 = Store()
       
       assert(s0.id !== s1.id)
-      assert(s0.location !== s1.location)
+      assert(s0.path !== s1.path)
     }
     
     import TestHelpers.path

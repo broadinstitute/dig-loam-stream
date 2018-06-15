@@ -48,7 +48,7 @@ final case class ContainerDefinitionFile(dockerParams: LsfDockerParams, yamlFile
     //This also allows direct control over field names in the resulting YAML.
     val map: ju.Map[String, Any] = Map(
         "image" -> dockerParams.imageName,
-        "mount_home" -> true,
+        "mount_home" -> false,
         "mounts" -> dockerParams.mountedDirs.map(_.toAbsolutePath.render).toList.asJava,
         "write_output" -> true,
         "output" -> dockerParams.outputDir.toAbsolutePath.render,

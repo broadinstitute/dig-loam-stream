@@ -3,6 +3,11 @@ package loamstream.loam
 import java.nio.file.Paths
 
 import loamstream.model.Store
+import loamstream.model.execute.Locations
+import java.nio.file.Path
+import loamstream.model.UriStore
+import loamstream.model.PathStore
+import scala.reflect.ClassTag
 
 /**
   * LoamStream
@@ -10,15 +15,18 @@ import loamstream.model.Store
   */
 sealed trait LoamToken {
   def render: String
+  
+  def renderInContainer: String = render
 }
 
 object LoamToken {
+  
   def storesFromTokens(tokens: Seq[LoamToken]): Set[Store] = {
     tokens.collect {
-      case StoreToken(store) => store
+      case StoreToken(store, _) => store
       //TODO: This probably isn't right; the Paths/URIs of the Stores returned won't be 
       //modified by the Ref's transformation functions
-      case StoreRefToken(LoamStoreRef(store, _, _)) => store
+      case StoreRefToken(LoamStoreRef(store, _, _), _) => store
     }.toSet
   }
 
@@ -30,28 +38,78 @@ object LoamToken {
     override def render: String = toString
   }
 
-  final case class StoreToken(store: Store) extends LoamToken {
+  final case class StoreToken(
+      store: Store, 
+      pathLocations: Locations[Path]) extends LoamToken {
     override def toString: String = store.toString
 
     override def render: String = store.render
+    
+    override def renderInContainer: String = store match {
+      case us: UriStore => us.render
+      case PathStore(_, p) => Store.render(pathLocations.inContainer(p))
+    }
+    
+    override def hashCode: Int = store.hashCode
+    
+    override def equals(other: Any): Boolean = other match {
+      case that: StoreToken => this.store == that.store
+      case _ => false
+    }
   }
   
-  final case class StoreRefToken(storeRef: LoamStoreRef) extends LoamToken {
+  final case class StoreRefToken(
+      storeRef: LoamStoreRef,
+      pathLocations: Locations[Path]) extends LoamToken {
+    
     override def toString: String = storeRef.pathModifier(storeRef.store.path).toString
 
     override def render: String = storeRef.render
+    
+    override def renderInContainer: String = storeRef.store match {
+      case us: UriStore => us.render
+      case PathStore(_, p) => {
+        val finalStorePathFrom = storeRef.pathModifier.andThen(pathLocations.inContainer)
+      
+        Store.render(finalStorePathFrom(p))
+      }
+    }
+    
+    override def hashCode: Int = storeRef.hashCode
+    
+    override def equals(other: Any): Boolean = other match {
+      case that: StoreRefToken => this.storeRef == that.storeRef
+      case _ => false
+    }
   }
-  
-  final case class MultiStoreToken(stores: Iterable[HasLocation]) extends LoamToken {
-    override def toString: String = stores.map(_.path).mkString(" ")
 
-    override def render: String = toString
+  final case class MultiStoreToken(
+      stores: Iterable[HasLocation],
+      pathLocations: Locations[Path]) extends LoamToken {
+    
+    override def toString: String = render 
+
+    override def render: String = stores.map(_.render).mkString(" ")
+    
+    override def renderInContainer: String = stores.map {
+      case us: UriStore => us.render
+      case PathStore(_, p) => Store.render(pathLocations.inContainer(p))
+    }.mkString(" ")
+    
+    override def hashCode: Int = stores.hashCode
+    
+    override def equals(other: Any): Boolean = other match {
+      case that: MultiStoreToken => this.stores == that.stores
+      case _ => false
+    }
   }
   
   final case class MultiToken[A](as: Iterable[A]) extends LoamToken {
-    override def toString: String = as.mkString(" ")
+    override def toString: String = render
 
-    override def render: String = toString
+    override def render: String = as.mkString(" ")
+    
+    override def renderInContainer: String = render
   }
 
   def mergeStringTokens(tokens: Seq[LoamToken]): Seq[LoamToken] = {

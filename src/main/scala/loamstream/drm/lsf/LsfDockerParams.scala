@@ -17,10 +17,25 @@ final case class LsfDockerParams(
     outputDir: Path,
     outputBackend: OutputBackend = OutputBackend.default) extends DockerParams {
   
-  override def inHost(p: Path): Path = outputBackend.basePath.resolve(p)
+  require(outputDir.isAbsolute, s"Output dir (in container) must be absolute, but got '${outputDir}'")
+  
+  import LsfDockerParams.append
+  
+  override def inContainer(p: Path): Path = append(outputDir, p)
+  
+  override def inHost(p: Path): Path = append(outputBackend.basePath, p)
 }
 
 object LsfDockerParams {
+
+  private[lsf] def append(base: Path, rest: Path): Path = {
+    def toRelative(path: Path): Path = path.subpath(0, path.getNameCount)
+    
+    val toAppend = toRelative(rest)
+    
+    base.resolve(toAppend)
+  }
+  
   sealed abstract class OutputBackend private (val name: String) {
     def basePath: Path
   }

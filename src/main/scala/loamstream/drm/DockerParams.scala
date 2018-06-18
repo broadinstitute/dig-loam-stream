@@ -35,6 +35,4 @@ trait DockerParams extends Locations[Path] {
   def mountedDirs: Iterable[Path]
   
   def outputDir: Path
-  
-  override def inContainer(p: Path): Path = outputDir.resolve(p)
 }

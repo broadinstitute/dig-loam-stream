@@ -7,6 +7,8 @@ import org.yaml.snakeyaml.Yaml
 import loamstream.conf.LsfConfig
 import loamstream.drm.DrmTaskArray
 import loamstream.util.Files
+import java.nio.file.Paths
+import loamstream.drm.lsf.LsfDockerParams.OutputBackend
 
 /**
  * @author clint
@@ -42,23 +44,40 @@ final case class ContainerDefinitionFile(dockerParams: LsfDockerParams, yamlFile
     import java.{ util => ju }
     import loamstream.util.BashScript.Implicits._
     import scala.collection.JavaConverters._
+    import ContainerDefinitionFile.mountedDirsToUse
     
     //NB: Have SnakeYaml serialize a java.util.Map, since this prevents it from writing a type-tag line starting 
     //with `!!`.  I'm not sure if that would break EBI's LSF, but better safe than sorry. -Clint June 6 2018
     //This also allows direct control over field names in the resulting YAML.
-    val map: ju.Map[String, Any] = Map(
-        "image" -> dockerParams.imageName,
-        "mount_home" -> false,
-        "mounts" -> dockerParams.mountedDirs.map(_.toAbsolutePath.render).toList.asJava,
-        "write_output" -> true,
-        "output" -> dockerParams.outputDir.toAbsolutePath.render,
-        "output_backend" -> dockerParams.outputBackend.name).asJava
     
+    import ContainerDefinitionFile.Keys
+    
+    val map: ju.Map[String, Any] = Map(
+        Keys.image -> dockerParams.imageName,
+        Keys.mountHome -> false,
+        Keys.mounts -> mountedDirsToUse(dockerParams.mountedDirs).map(_.toAbsolutePath.render).toList.asJava,
+        Keys.writeOutput -> true,
+        Keys.output -> dockerParams.outputDir.toAbsolutePath.render,
+        Keys.outputBackend -> dockerParams.outputBackend.name).asJava
+   
     (new Yaml).dump(map)
   }
 }
 
 object ContainerDefinitionFile {
+  private[lsf] object Keys {
+    val image = "image"
+    val mountHome = "mount_home"
+    val mounts = "mounts"
+    val writeOutput = "write_output"
+    val output = "output"
+    val outputBackend = "output_backend"
+  }
+  
+  private[lsf] def mountedDirsToUse(orig: Iterable[Path]): Iterable[Path] = {
+    if(orig.isEmpty) Seq(Paths.get(".")) else orig
+  }
+  
   def apply(lsfConfig: LsfConfig, taskArray: DrmTaskArray, dockerParams: LsfDockerParams): ContainerDefinitionFile = {
     val yamlFileName = s"${taskArray.drmJobName}.yaml"
     

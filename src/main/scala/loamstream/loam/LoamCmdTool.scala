@@ -1,14 +1,21 @@
 package loamstream.loam
 
-import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken, MultiStoreToken, MultiToken}
-import loamstream.model.Tool.{AllStores, DefaultStores}
-import loamstream.model.{LId, Store, Tool}
-import loamstream.util.StringUtils
-import loamstream.conf.DynamicConfig
-import loamstream.model.execute.Locations
 import java.nio.file.Path
-import loamstream.model.execute.Environment
+
+import loamstream.conf.DynamicConfig
 import loamstream.drm.DockerParams
+import loamstream.loam.LoamToken.MultiStoreToken
+import loamstream.loam.LoamToken.MultiToken
+import loamstream.loam.LoamToken.StoreToken
+import loamstream.loam.LoamToken.StringToken
+import loamstream.model.LId
+import loamstream.model.Store
+import loamstream.model.Tool
+import loamstream.model.Tool.AllStores
+import loamstream.model.Tool.DefaultStores
+import loamstream.model.execute.Environment
+import loamstream.model.execute.Locations
+import loamstream.util.StringUtils
 
 /**
   * LoamStream
@@ -78,8 +85,8 @@ object LoamCmdTool {
     }
   }
   
-  private[loam] def isHasLocationIterable(xs: Iterable[_]): Boolean = {
-    xs.nonEmpty && xs.forall(_.isInstanceOf[HasLocation])
+  private[loam] def isStoreIterable(xs: Iterable[_]): Boolean = {
+    xs.nonEmpty && xs.forall(_.isInstanceOf[Store])
   }
   
   def toString(tokens: Seq[LoamToken]): String = tokens.map(_.render).mkString
@@ -91,10 +98,9 @@ object LoamCmdTool {
       //TODO
       case store: Store if store.isInput => StoreToken(store, Locations.identity)
       case store: Store => StoreToken(store, locations)
-      case storeRef: LoamStoreRef => StoreRefToken(storeRef, locations)
       //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
       //the isHasLocationIterable() guard
-      case stores: Iterable[HasLocation] @unchecked if isHasLocationIterable(stores) => {
+      case stores: Iterable[Store] @unchecked if isStoreIterable(stores) => {
         MultiStoreToken(stores, locations)
       }
       case args: Iterable[_] => MultiToken(args)

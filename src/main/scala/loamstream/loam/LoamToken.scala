@@ -22,12 +22,7 @@ sealed trait LoamToken {
 object LoamToken {
   
   def storesFromTokens(tokens: Seq[LoamToken]): Set[Store] = {
-    tokens.collect {
-      case StoreToken(store, _) => store
-      //TODO: This probably isn't right; the Paths/URIs of the Stores returned won't be 
-      //modified by the Ref's transformation functions
-      case StoreRefToken(LoamStoreRef(store, _, _), _) => store
-    }.toSet
+    tokens.collect { case StoreToken(store, _) => store }.toSet
   }
 
   final case class StringToken(string: String) extends LoamToken {
@@ -54,31 +49,8 @@ object LoamToken {
     }
   }
   
-  final case class StoreRefToken(
-      storeRef: LoamStoreRef,
-      pathLocations: Locations[Path]) extends LoamToken {
-    
-    override def toString: String = storeRef.pathModifier(storeRef.store.path).toString
-
-    override def render: String = storeRef.store match {
-      case us: UriStore => us.render
-      case PathStore(_, p) => {
-        val finalStorePathFrom = storeRef.pathModifier.andThen(pathLocations.inContainer)
-      
-        Store.render(finalStorePathFrom(p))
-      }
-    }
-    
-    override def hashCode: Int = storeRef.hashCode
-    
-    override def equals(other: Any): Boolean = other match {
-      case that: StoreRefToken => this.storeRef == that.storeRef
-      case _ => false
-    }
-  }
-
   final case class MultiStoreToken(
-      stores: Iterable[HasLocation],
+      stores: Iterable[Store],
       pathLocations: Locations[Path]) extends LoamToken {
     
     override def render: String = stores.map {

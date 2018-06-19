@@ -4,12 +4,10 @@ import java.net.URI
 import java.nio.file.Path
 import java.nio.file.Paths
 
-import loamstream.loam.HasLocation
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
-import loamstream.loam.LoamStoreRef
 import java.nio.file.Files
 import loamstream.util.BashScript
 import loamstream.model.LId.LAnonId
@@ -19,9 +17,19 @@ import loamstream.model.LId.LAnonId
  * @author clint
  * Jun 8, 2016
  */
-sealed abstract class Store protected (val id: LId) extends HasLocation with LId.HasId {
+sealed abstract class Store protected (val id: LId) extends LId.HasId {
     
   implicit val scriptContext: LoamScriptContext
+  
+  def path: Path 
+  
+  def pathOpt: Option[Path]
+  
+  def uri: URI
+  
+  def uriOpt: Option[URI]
+  
+  def render: String
   
   override def equals(other: Any): Boolean = {
     other match {
@@ -45,22 +53,6 @@ sealed abstract class Store protected (val id: LId) extends HasLocation with LId
   def isInput: Boolean = graph.inputStores.contains(this)
 
   def graph: LoamGraph = projectContext.graph
-  
-  def +(suffix: String): LoamStoreRef = {
-    if(pathOpt.isDefined) {
-      LoamStoreRef(this, pathModifier = LoamStoreRef.pathSuffixAdder(suffix))
-    } else {
-      LoamStoreRef(this, uriModifier = LoamStoreRef.uriSuffixAdder(suffix))
-    }
-  }
-
-  def -(suffix: String): LoamStoreRef = {
-    if(pathOpt.isDefined) {
-      LoamStoreRef(this, pathModifier = LoamStoreRef.pathSuffixRemover(suffix))
-    } else {
-      LoamStoreRef(this, uriModifier = LoamStoreRef.uriSuffixRemover(suffix))
-    }
-  }
 }
 
 final case class PathStore(

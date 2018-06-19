@@ -9,7 +9,6 @@ import loamstream.compiler.LoamPredef
 import loamstream.conf.ExecutionConfig
 import loamstream.loam.LoamToken.MultiStoreToken
 import loamstream.loam.LoamToken.MultiToken
-import loamstream.loam.LoamToken.StoreRefToken
 import loamstream.loam.LoamToken.StoreToken
 import loamstream.loam.LoamToken.StringToken
 import loamstream.util.BashScript
@@ -57,8 +56,6 @@ final class LoamTokenTest extends FunSuite {
       val storeA = store
       val storeB = store
   
-      val storeRefToken = StoreRefToken(LoamStoreRef(storeA, identity), locations)
-  
       val tokens = Seq(
           StringToken(""),
           StringToken("foo"),
@@ -66,7 +63,6 @@ final class LoamTokenTest extends FunSuite {
           StoreToken(storeA, locations),
           StringToken("bar"),
           StoreToken(storeB, locations),
-          storeRefToken,
           StringToken(""),
           StringToken(""),
           StringToken(" "),
@@ -80,7 +76,6 @@ final class LoamTokenTest extends FunSuite {
           StoreToken(storeA, locations),
           StringToken("bar"),
           StoreToken(storeB, locations),
-          storeRefToken,
           StringToken(" baz"),
           MultiToken(Seq(1,2,3)),
           MultiStoreToken(Seq(storeA, storeB), locations))
@@ -123,30 +118,6 @@ final class LoamTokenTest extends FunSuite {
     
     doTest(Locations.identity)
     doTest(literalLocations(path("foo"), path("bar")))
-  }
-
-  test("StoreRefToken") {
-    def doTest(locations: Locations[Path], expected: String): Unit = TestHelpers.withScriptContext { implicit ctx =>
-      import LoamPredef._
-
-      val underlyingStore = store("foo.txt")
-  
-      val ref: LoamStoreRef =  underlyingStore + ".bar"
-  
-      import BashScript.Implicits._
-      
-      assert(ref.path.render == Paths.get("./foo.txt.bar").render)
-  
-      val refString = StoreRefToken(ref, locations).toString
-      val renderedString = ref.render
-      
-      assert(refString == renderedString)
-  
-      assert(StoreRefToken(ref, locations).render === expected)
-    }
-    
-    doTest(Locations.identity, "./foo.txt.bar")
-    doTest(literalLocations(path("foo"), path("bar")), "foo")
   }
 
   test("MultiToken") {

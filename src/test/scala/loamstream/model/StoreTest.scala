@@ -129,36 +129,6 @@ final class StoreTest extends FunSuite {
     assert(uriStore.uri === u)
   }
   
-  testWithScriptContext("+/-") { implicit context =>
-    import TestHelpers.path
-    
-    val p = path("/foo/bar")
-      
-    val pathStore = Store(StoreLocation.PathLocation(p))
-    
-    val u = URI.create("gs://loamstream/foo/bar")
-      
-    val uriStore = Store(StoreLocation.UriLocation(u))
-    
-    import BashScript.Implicits._
-    
-    val zipPathStore = pathStore + ".zip"
-    
-    assert(zipPathStore.render === path("/foo/bar.zip").render)
-    
-    val bazUriStore = uriStore + "/baz"
-    
-    assert(bazUriStore.render === "gs://loamstream/foo/bar/baz")
-    
-    val pathStoreAgain = Store(StoreLocation.PathLocation(zipPathStore.path)) - ".zip"
-    
-    assert(pathStoreAgain.render === pathStore.render)
-    
-    val uriStoreAgain = Store(StoreLocation.UriLocation(bazUriStore.uri)) - "/baz"
-    
-    assert(uriStoreAgain.render === uriStore.render)
-  }
-  
   testWithScriptContext("apply") { implicit context =>
     //Anon id, anon (path) location:
     {

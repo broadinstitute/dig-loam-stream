@@ -16,7 +16,7 @@ import scala.reflect.ClassTag
 sealed trait LoamToken {
   def render: String
   
-  def renderInContainer: String = render
+  override def toString = render
 }
 
 object LoamToken {
@@ -33,9 +33,7 @@ object LoamToken {
   final case class StringToken(string: String) extends LoamToken {
     def +(oStringToken: StringToken): StringToken = StringToken(string + oStringToken.string)
 
-    override def toString: String = string
-
-    override def render: String = toString
+    override def render: String = string
   }
 
   final case class StoreToken(
@@ -43,9 +41,7 @@ object LoamToken {
       pathLocations: Locations[Path]) extends LoamToken {
     override def toString: String = store.toString
 
-    override def render: String = store.render
-    
-    override def renderInContainer: String = store match {
+    override def render: String = store match {
       case us: UriStore => us.render
       case PathStore(_, p) => Store.render(pathLocations.inContainer(p))
     }
@@ -64,9 +60,7 @@ object LoamToken {
     
     override def toString: String = storeRef.pathModifier(storeRef.store.path).toString
 
-    override def render: String = storeRef.render
-    
-    override def renderInContainer: String = storeRef.store match {
+    override def render: String = storeRef.store match {
       case us: UriStore => us.render
       case PathStore(_, p) => {
         val finalStorePathFrom = storeRef.pathModifier.andThen(pathLocations.inContainer)
@@ -87,11 +81,7 @@ object LoamToken {
       stores: Iterable[HasLocation],
       pathLocations: Locations[Path]) extends LoamToken {
     
-    override def toString: String = render 
-
-    override def render: String = stores.map(_.render).mkString(" ")
-    
-    override def renderInContainer: String = stores.map {
+    override def render: String = stores.map {
       case us: UriStore => us.render
       case PathStore(_, p) => Store.render(pathLocations.inContainer(p))
     }.mkString(" ")
@@ -105,11 +95,7 @@ object LoamToken {
   }
   
   final case class MultiToken[A](as: Iterable[A]) extends LoamToken {
-    override def toString: String = render
-
     override def render: String = as.mkString(" ")
-    
-    override def renderInContainer: String = render
   }
 
   def mergeStringTokens(tokens: Seq[LoamToken]): Seq[LoamToken] = {

@@ -82,7 +82,7 @@ object LoamCmdTool {
     xs.nonEmpty && xs.forall(_.isInstanceOf[HasLocation])
   }
   
-  def toString(tokens: Seq[LoamToken]): String = tokens.map(_.renderInContainer).mkString
+  def toString(tokens: Seq[LoamToken]): String = tokens.map(_.render).mkString
   
   def toToken(arg: Any, locations: Locations[Path]): LoamToken = {
     def isInputStore(s: Store) = s.graph.inputStores.contains(s)

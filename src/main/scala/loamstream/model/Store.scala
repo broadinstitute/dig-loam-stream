@@ -34,8 +34,6 @@ sealed abstract class Store protected (val id: LId) extends HasLocation with LId
   
   override def toString: String = s"store($id)@$render"
   
-  //def copy(id: LId = this.id, location: StoreLocation = this.location): Store = new Store(id, location)
-    
   def projectContext: LoamProjectContext = scriptContext.projectContext
 
   def asInput: Store = {
@@ -47,25 +45,6 @@ sealed abstract class Store protected (val id: LId) extends HasLocation with LId
   def isInput: Boolean = graph.inputStores.contains(this)
 
   def graph: LoamGraph = projectContext.graph
-
-  /*override def pathOpt: Option[Path] = location match {
-    case StoreLocation.PathLocation(p) => Option(p)
-    case _ => None
-  }
-
-  override def uriOpt: Option[URI] = location match  {
-    case StoreLocation.UriLocation(u) => Option(u)
-    case _ => None
-  }
-  
-  override def path: Path = pathOpt.get
-    
-  override def uri: URI = uriOpt.get
-  
-  override def render: String = location match {
-    case StoreLocation.PathLocation(p) => Store.render(p)
-    case StoreLocation.UriLocation(u) => Store.render(u)
-  }*/
   
   def +(suffix: String): LoamStoreRef = {
     if(pathOpt.isDefined) {

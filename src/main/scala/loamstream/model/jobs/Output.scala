@@ -43,24 +43,22 @@ object Output {
    * each access.
    */
   final case class PathOutput private (
-      basePath: Path, 
-      locations: Locations[Path] = Locations.identity) extends Output {
-    
-    def path: Path = basePath
+      path: Path, 
+      locations: Locations[Path]/* = Locations.identity*/) extends Output {
     
     //TODO
-    lazy val pathInHost: Path = locations.inHost(basePath)
-    lazy val pathInContainer: Path = locations.inContainer(basePath)
+    lazy val pathInHost: Path = locations.inHost(path)
+    lazy val pathInContainer: Path = locations.inContainer(path)
     
-    override def isPresent: Boolean = Files.exists(path)
+    override def isPresent: Boolean = Files.exists(pathInHost)
 
-    override def hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(path)) else None
+    override def hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(pathInHost)) else None
 
     override def lastModified: Option[Instant] = {
-      if (isPresent) Option(PathUtils.lastModifiedTime(path)) else None
+      if (isPresent) Option(PathUtils.lastModifiedTime(pathInHost)) else None
     }
 
-    override def location: String = PathUtils.normalize(path)
+    override def location: String = PathUtils.normalize(pathInHost)
 
     override def toOutputRecord: OutputRecord = {
       OutputRecord( 
@@ -75,15 +73,7 @@ object Output {
   }
   
   object PathOutput {
-    def apply(path: Path): PathOutput = new PathOutput(normalizePath(path))
-    
-    object InHost {
-      def unapply(pathOutput: PathOutput): Option[Path] = Option(pathOutput.pathInHost)
-    }
-    
-    object InContainer {
-      def unapply(pathOutput: PathOutput): Option[Path] = Option(pathOutput.pathInContainer)
-    }
+    def apply(path: Path, locations: Locations[Path]): PathOutput = new PathOutput(normalizePath(path), locations)
   }
 
   final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends Output {

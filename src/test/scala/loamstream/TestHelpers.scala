@@ -189,15 +189,24 @@ object TestHelpers {
     RxExecuter.default.execute(executable)(timeout)
   }
   
-  def getWorkDir(basename: String): Path = {
+  def getWorkDir(basename: String, deleteAtJvmShutdown: Boolean = true): Path = {
     val result = Files.createTempDirectory(basename)
 
-    //NB: This seems very heavy-handed, but java.io.File.deleteOnExit doesn't work for non-empty directories. :\
-    Runtime.getRuntime.addShutdownHook(new Thread {
-      override def run(): Unit = FileUtils.deleteQuietly(result.toFile)
-    })
+    if(deleteAtJvmShutdown) {
+      //NB: This seems very heavy-handed, but java.io.File.deleteOnExit doesn't work for non-empty directories. :\
+      Runtime.getRuntime.addShutdownHook(new Thread {
+        override def run(): Unit = FileUtils.deleteQuietly(result.toFile)
+      })
+    }
     
     result
+  }
+  
+  def withWorkDir[A](basename: String)(body: Path => A): A = {
+    val workDir = getWorkDir(basename, deleteAtJvmShutdown = false)
+    
+    try { body(workDir) }
+    finally { FileUtils.deleteQuietly(workDir.toFile) }
   }
 
   def loamEngine: LoamEngine = LoamEngine.default(config)

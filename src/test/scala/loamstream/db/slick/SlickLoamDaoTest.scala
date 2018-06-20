@@ -33,6 +33,7 @@ import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.drm.lsf.LsfDockerParams
 import loamstream.drm.lsf.LsfDefaults
+import loamstream.model.execute.Locations
 
 /**
  * @author clint
@@ -354,67 +355,77 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insertExecutions - CommandInvocationFailure") {
-    createTablesAndThen {
-      val output0 = PathOutput(path0)
-
-      val failed = Execution(
-          mockEnv,
-          mockCmd,
-          JobResult.CommandInvocationFailure(new Exception),
-          dummyOutputStreams,
-          output0.toOutputRecord)
-
-      assert(failed.isFailure)
-
-      assert(noOutputs)
-      assert(noExecutions)
-
-      dao.insertExecutions(failed)
-
-      val expected0 = Execution(
-          mockEnv,
-          mockCmd,
-          CommandResult(JobResult.DummyExitCode),
-          failed.outputStreams.get,
-          failedOutput(path0))
-
-      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+    def doTest(locations: Locations[Path]): Unit = {
+      createTablesAndThen {
+        val output0 = PathOutput(path0, locations)
+  
+        val failed = Execution(
+            mockEnv,
+            mockCmd,
+            JobResult.CommandInvocationFailure(new Exception),
+            dummyOutputStreams,
+            output0.toOutputRecord)
+  
+        assert(failed.isFailure)
+  
+        assert(noOutputs)
+        assert(noExecutions)
+  
+        dao.insertExecutions(failed)
+  
+        val expected0 = Execution(
+            mockEnv,
+            mockCmd,
+            CommandResult(JobResult.DummyExitCode),
+            failed.outputStreams.get,
+            failedOutput(path0))
+  
+        assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+      }
     }
+    
+    doTest(Locations.identity)
+    doTest(???)
   }
 
   test("insertExecutions - should throw") {
-    def doTest(command: Option[String], jobResult: JobResult): Unit = {
-      createTablesAndThen {
-        val output0 = PathOutput(path0)
-
-        val failed = Execution(
-            env = mockEnv, 
-            cmd = command, 
-            status = JobResult.Failure.toJobStatus,
-            result = Option(JobResult.Failure),
-            resources = None,
-            outputStreams = Option(dummyOutputStreams), 
-            outputs = Set(output0.toOutputRecord))
-
-        assert(failed.isFailure)
-
-        assert(noOutputs)
-        assert(noExecutions)
-
-        intercept[Exception] {
-          dao.insertExecutions(failed)
+    def doTestWithLocations(locations: Locations[Path]): Unit = {
+      def doTest(command: Option[String], jobResult: JobResult): Unit = {
+        createTablesAndThen {
+          val output0 = PathOutput(path0, locations)
+  
+          val failed = Execution(
+              env = mockEnv, 
+              cmd = command, 
+              status = JobResult.Failure.toJobStatus,
+              result = Option(JobResult.Failure),
+              resources = None,
+              outputStreams = Option(dummyOutputStreams), 
+              outputs = Set(output0.toOutputRecord))
+  
+          assert(failed.isFailure)
+  
+          assert(noOutputs)
+          assert(noExecutions)
+  
+          intercept[Exception] {
+            dao.insertExecutions(failed)
+          }
+  
+          assert(noOutputs)
+          assert(noExecutions)
         }
-
-        assert(noOutputs)
-        assert(noExecutions)
       }
+  
+      doTest(Some(mockCmd), JobResult.Failure)
+      doTest(None, JobResult.Failure)
+      doTest(Some(mockCmd), JobResult.CommandResult(1))
+      doTest(Some(mockCmd), JobResult.CommandResult(1))
+      doTest(None, JobResult.CommandResult(0))
     }
-
-    doTest(Some(mockCmd), JobResult.Failure)
-    doTest(None, JobResult.Failure)
-    doTest(Some(mockCmd), JobResult.CommandResult(1))
-    doTest(Some(mockCmd), JobResult.CommandResult(1))
-    doTest(None, JobResult.CommandResult(0))
+    
+    doTestWithLocations(Locations.identity)
+    doTestWithLocations(???)
   }
 
   test("findExecution") {
@@ -471,21 +482,26 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("findOutput") {
-    createTablesAndThen {
-      assert(noOutputs)
-
-      store(path0)
-
-      assert(dao.findOutputRecord(PathOutput(path0).toOutputRecord) === Some(cachedOutput(path0, hash0)))
-
-      assert(dao.findOutputRecord(path1) === None)
-
-      storeFailures(path1)
-
-      assert(dao.findOutputRecord(path0) === Some(cachedOutput(path0, hash0)))
-
-      assert(dao.findOutputRecord(path1) === Some(failedOutput(path1)))
+    def doTest(locations: Locations[Path]): Unit = {
+      createTablesAndThen {
+        assert(noOutputs)
+  
+        store(path0)
+  
+        assert(dao.findOutputRecord(PathOutput(path0, locations).toOutputRecord) === Some(cachedOutput(path0, hash0)))
+  
+        assert(dao.findOutputRecord(path1) === None)
+  
+        storeFailures(path1)
+  
+        assert(dao.findOutputRecord(path0) === Some(cachedOutput(path0, hash0)))
+  
+        assert(dao.findOutputRecord(path1) === Some(failedOutput(path1)))
+      }
     }
+    
+    doTest(Locations.identity)
+    doTest(???)
   }
 
   test("findCommand") {

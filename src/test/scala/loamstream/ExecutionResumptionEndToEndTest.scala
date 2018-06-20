@@ -22,6 +22,7 @@ import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamCmdTool
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.JobNode
+import loamstream.model.execute.Locations
 
 /**
   * @author kaan
@@ -32,25 +33,79 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   // scalastyle:off no.whitespace.before.left.bracket
 
   test("Jobs are skipped if their outputs were already produced by a previous run") {
-    createTablesAndThen {
-      import TestHelpers._
-
-      val fileIn = Paths.get("src", "test", "resources", "a.txt")
-
-      val workDir = makeWorkDir()
-
-      val fileOut1 = workDir.resolve("fileOut1.txt")
-      val fileOut2 = workDir.resolve("fileOut2.txt")
-
-      val firstScript = TestHelpers.makeGraph { implicit context =>
+    def copyAToB(fileIn: Path, fileOut: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
+      import LoamPredef._
+      import LoamCmdTool._
+       
+      val in = LoamPredef.store(fileIn).asInput
+      val out = LoamPredef.store(fileOut)
+      
+      cmd"cp $in $out"
+    }
+    
+    def copyAToBToC(fileIn: Path, fileOut1: Path, fileOut2: Path): LoamGraph = {
+      TestHelpers.makeGraph { implicit context => 
         import LoamPredef._
         import LoamCmdTool._
-         
+      
         val in = LoamPredef.store(fileIn).asInput
-        val out = LoamPredef.store(fileOut1)
-        cmd"cp $in $out"
+        val out1 = LoamPredef.store(fileOut1)
+        val out2 = LoamPredef.store(fileOut2)
+        
+        cmd"cp $in $out1"
+        cmd"cp $out1 $out2"
       }
+    }
+    
+    //Run the script and validate the results
+    def run(
+        secondScript: LoamGraph,
+        fileOut1: Path,
+        fileOut2: Path,
+        locations: Locations[Path])(expectedStatuses: Seq[Execution]): Unit = {
+      
+      val (executable, executions) = compileAndRun(secondScript)
 
+      val updatedOutput1 = OutputRecord(PathOutput(fileOut1, locations))
+      val updatedOutput2 = OutputRecord(PathOutput(fileOut2, locations))
+
+      //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
+      val firstJob = jobThatWritesTo(executable)(fileOut1).get
+      val secondJob = jobThatWritesTo(executable)(fileOut2).get
+
+      val firstExecution = executions(firstJob)
+      val secondExecution = executions(secondJob)
+      
+      def compareResultsAndStatuses(actual: Execution, expected: Execution): Unit = {
+        assert(actual.status === expected.status)
+
+        assert(actual.result === expected.result)
+      }
+      
+      compareResultsAndStatuses(firstExecution, expectedStatuses(0))
+      compareResultsAndStatuses(secondExecution, expectedStatuses(1))
+      
+      assert(executions.size === 2)
+
+      //If the jobs were run, we should have written an Execution for the job.
+      //If the job was skipped, we should have left the one from the previous successful run alone.
+
+      compareResultsAndStatuses(
+          dao.findExecution(updatedOutput1).get,
+          TestHelpers.executionFromResult(CommandResult(0)))
+      
+      assert(dao.findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
+
+      compareResultsAndStatuses(
+          dao.findExecution(updatedOutput2).get,
+        TestHelpers.executionFromResult(CommandResult(0)))
+      
+      assert(dao.findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
+    }
+    
+    def doFirstPart(fileIn: Path, fileOut1: Path, fileOut2: Path, locations: Locations[Path]): Unit = {
+      val firstScript = copyAToB(fileIn, fileOut1) 
+  
       val (executable, executions) = compileAndRun(firstScript)
 
       //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
@@ -75,8 +130,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       assert(executions.size === 1)
 
-      val output1 = OutputRecord(PathOutput(fileOut1))
-      val output2 = OutputRecord(PathOutput(fileOut2))
+      val output1 = OutputRecord(PathOutput(fileOut1, locations))
+      val output2 = OutputRecord(PathOutput(fileOut2, locations))
 
       val executionFromOutput1 = dao.findExecution(output1).get
       
@@ -87,99 +142,63 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       assert(executionFromOutput1.outputs === Set(output1))
 
       assert(dao.findExecution(output2) === None)
-
+    }
+    
+    def doSecondPart(fileIn: Path, fileOut1: Path, fileOut2: Path, locations: Locations[Path]): Unit = {
+      val secondScript = copyAToBToC(fileIn, fileOut1, fileOut2) 
+  
+      import TestHelpers.{ executionFrom, executionFromResult }
       
-      val secondScript = TestHelpers.makeGraph { implicit context => 
-        import LoamPredef._
-        import LoamCmdTool._
+      def doRun(expectedStatuses: Seq[Execution]): Unit = {
+        run(secondScript, fileOut1, fileOut2, locations)(expectedStatuses)
+      }
       
-        val in = LoamPredef.store(fileIn).asInput
-        val out1 = LoamPredef.store(fileOut1)
-        val out2 = LoamPredef.store(fileOut2)
-        
-        cmd"cp $in $out1"
-        cmd"cp $out1 $out2"
-      }
-
-      //Run the script and validate the results
-      def run(expectedStatuses: Seq[Execution]): Unit = {
-        val (executable, executions) = compileAndRun(secondScript)
-
-        val updatedOutput1 = OutputRecord(PathOutput(fileOut1))
-        val updatedOutput2 = OutputRecord(PathOutput(fileOut2))
-
-        //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
-        val firstJob = jobThatWritesTo(executable)(fileOut1).get
-        val secondJob = jobThatWritesTo(executable)(fileOut2).get
-
-        val firstExecution = executions(firstJob)
-        val secondExecution = executions(secondJob)
-        
-        def compareResultsAndStatuses(actual: Execution, expected: Execution): Unit = {
-          assert(actual.status === expected.status)
-
-          assert(actual.result === expected.result)
-        }
-        
-        compareResultsAndStatuses(firstExecution, expectedStatuses(0))
-        compareResultsAndStatuses(secondExecution, expectedStatuses(1))
-        
-        assert(executions.size === 2)
-
-        //If the jobs were run, we should have written an Execution for the job.
-        //If the job was skipped, we should have left the one from the previous successful run alone.
-
-        compareResultsAndStatuses(
-            dao.findExecution(updatedOutput1).get,
-            executionFromResult(CommandResult(0)))
-        
-        assert(dao.findExecution(updatedOutput1).get.outputs === Set(updatedOutput1))
-
-        compareResultsAndStatuses(
-            dao.findExecution(updatedOutput2).get,
-          executionFromResult(CommandResult(0)))
-        
-        assert(dao.findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
-      }
-
       //Run the second script a few times.  The first time, we expect the first job to be skipped, and the second one
       //to be run.  We expect both jobs to be skipped in all subsequent runs.
-      run(Seq(executionFrom(Skipped), executionFromResult(CommandResult(0))))
-      
-      run(Seq(Skipped, Skipped).map(executionFrom(_)))
-      run(Seq(Skipped, Skipped).map(executionFrom(_)))
-      run(Seq(Skipped, Skipped).map(executionFrom(_)))
+      doRun(Seq(executionFrom(Skipped), executionFromResult(CommandResult(0))))
+      doRun(Seq(Skipped, Skipped).map(executionFrom(_)))
+      doRun(Seq(Skipped, Skipped).map(executionFrom(_)))
+      doRun(Seq(Skipped, Skipped).map(executionFrom(_)))
     }
+    
+    def doTest(locations: Locations[Path]): Unit = createTablesAndThen {
+      val fileIn = Paths.get("src", "test", "resources", "a.txt")
+  
+      withWorkDir { workDir =>
+        val fileOut1 = workDir.resolve("fileOut1.txt")
+        val fileOut2 = workDir.resolve("fileOut2.txt")
+  
+        doFirstPart(fileIn, fileOut1, fileOut2, locations)
+  
+        doSecondPart(fileIn, fileOut1, fileOut2, locations)
+      }
+    }
+    
+    doTest(Locations.identity)
+    doTest(???)
   }
 
   test("Single failed job's exit status is recorded properly") {
+    
+    val fileIn = Paths.get("src", "test", "resources", "a.txt")
+    
+    val bogusCommandName = "asdfasdf"
+    
+    //Loam for a single invocation of a bogus command:
+    def makeScript(fileOut1: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
+      import LoamPredef._
+      import LoamCmdTool._
+      
+      val in = LoamPredef.store(fileIn).asInput
+      val out1 = LoamPredef.store(fileOut1)
+      
+      cmd"$bogusCommandName $in $out1"
+    }
+    
     createTablesAndThen {
-      val fileIn = Paths.get("src", "test", "resources", "a.txt")
-
-      val workDir = makeWorkDir()
-
-      val fileOut1 = workDir.resolve("fileOut1.txt")
-
-      val bogusCommandName = "asdfasdf"
-
-      /* Loam for a single invocation of a bogus command:
-          val fileIn = store[TXT].at("src/test/resources/a.txt").asInput
-          val fileOut1 = store[TXT].at("$workDir/fileOut1.txt")
-          cmd"asdfasdf $$fileIn $$fileOut1"
-       */
-      val script = TestHelpers.makeGraph { implicit context =>
-        import LoamPredef._
-        import LoamCmdTool._
-        
-        val in = LoamPredef.store(fileIn).asInput
-        val out1 = LoamPredef.store(fileOut1)
-        
-        cmd"$bogusCommandName $in $out1"
-      }
-
       //Run the script and validate the results
-      def run(): Unit = {
-        val (executable, executions) = compileAndRun(script)
+      def run(fileOut1: Path): Unit = {
+        val (executable, executions) = compileAndRun(makeScript(fileOut1))
 
         val allJobs = allJobsFrom(executable)
 
@@ -214,79 +233,81 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         assert(dao.findExecution(output1).get.result.get.isFailure)
         assert(dao.findExecution(output1).get.outputs === Set(output1))
       }
-
-      //Run the script a few times; we expect that the executer will try to run the bogus job every time, 
-      //since it never succeeds.
-      run()
-      run()
-      run()
+      
+      withWorkDir { workDir => 
+        val fileOut1 = workDir.resolve("fileOut1.txt")
+  
+        //Run the script a few times; we expect that the executer will try to run the bogus job every time, 
+        //since it never succeeds.
+        run(fileOut1)
+        run(fileOut1)
+        run(fileOut1)
+      }
     }
   }
 
   test("Exit status of failed jobs are recorded properly") {
+    val fileIn = Paths.get("src", "test", "resources", "a.txt")
+    
+    val bogusCommandName = "asdfasdf"
+    
+    def makeScript(fileOut1: Path, fileOut2: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
+      import LoamPredef._
+      import LoamCmdTool._
+
+      val in = LoamPredef.store(fileIn).asInput
+      val out1 = LoamPredef.store(fileOut1)
+      val out2 = LoamPredef.store(fileOut2)
+      
+      cmd"$bogusCommandName $in $out1"
+      cmd"$bogusCommandName $out1 $out2"
+    }
+    
+    //Run the script and validate the results
+    def run(fileOut1: Path, fileOut2: Path): Unit = {
+      val (executable, executions) = compileAndRun(makeScript(fileOut1, fileOut2))
+
+      val firstJob = jobThatWritesTo(executable)(fileOut1).get
+      val secondJob = jobThatWritesTo(executable)(fileOut2).get
+
+      {
+        import Matchers._
+
+        val exitCode = 127
+        executions(firstJob).result.get.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
+        executions(firstJob).resources.get.isInstanceOf[LocalResources] shouldBe true
+        executions.contains(secondJob) shouldBe false
+
+        executions(firstJob).result.get.isFailure shouldBe true
+
+        executions should have size 1
+      }
+
+      val output1 = OutputRecord(fileOut1)
+      val output2 = OutputRecord(fileOut2)
+
+      assert(dao.findExecution(output1).get.result.get.isFailure)
+      assert(dao.findExecution(output1).get.outputs === Set(output1))
+
+      //NB: The job that referenced output2 didn't get run, so its execution should not have been recorded 
+      assert(dao.findExecution(output2) === None)
+    }
+    
     createTablesAndThen {
-      val fileIn = Paths.get("src", "test", "resources", "a.txt")
-
-      val workDir = makeWorkDir()
-
-      val fileOut1 = workDir.resolve("fileOut1.txt")
-      val fileOut2 = workDir.resolve("fileOut2.txt")
-
-      val bogusCommandName = "asdfasdf"
-
-      val script = TestHelpers.makeGraph { implicit context =>
-        import LoamPredef._
-        import LoamCmdTool._
-
-        val in = LoamPredef.store(fileIn).asInput
-        val out1 = LoamPredef.store(fileOut1)
-        val out2 = LoamPredef.store(fileOut2)
-        
-        cmd"$bogusCommandName $in $out1"
-        cmd"$bogusCommandName $out1 $out2"
+      withWorkDir { workDir =>
+        val fileOut1 = workDir.resolve("fileOut1.txt")
+        val fileOut2 = workDir.resolve("fileOut2.txt")
+  
+        //Run the script a few times; we expect that the executer will try to run both (bogus) jobs every time, 
+        //since they never succeed.
+        run(fileOut1, fileOut2)
+        run(fileOut1, fileOut2)
+        run(fileOut1, fileOut2)
       }
-
-      //Run the script and validate the results
-      def run(): Unit = {
-        val (executable, executions) = compileAndRun(script)
-
-        val firstJob = jobThatWritesTo(executable)(fileOut1).get
-        val secondJob = jobThatWritesTo(executable)(fileOut2).get
-
-        {
-          import Matchers._
-
-          val exitCode = 127
-          executions(firstJob).result.get.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
-          executions(firstJob).resources.get.isInstanceOf[LocalResources] shouldBe true
-          executions.contains(secondJob) shouldBe false
-
-          executions(firstJob).result.get.isFailure shouldBe true
-
-          executions should have size 1
-        }
-
-        val output1 = OutputRecord(fileOut1)
-        val output2 = OutputRecord(fileOut2)
-
-        assert(dao.findExecution(output1).get.result.get.isFailure)
-        assert(dao.findExecution(output1).get.outputs === Set(output1))
-
-        //NB: The job that referenced output2 didn't get run, so its execution should not have been recorded 
-        assert(dao.findExecution(output2) === None)
-      }
-
-      //Run the script a few times; we expect that the executer will try to run both (bogus) jobs every time, 
-      //since they never succeed.
-      run()
-      run()
-      run()
     }
   }
 
   private val sequence: Sequence[Int] = Sequence()
-
-  private def makeWorkDir(): Path = TestHelpers.getWorkDir(getClass.getSimpleName)
 
   private val dbBackedJobFilter = new DbBackedJobFilter(dao)
   
@@ -335,6 +356,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
     allJobs.find(jobMatches)
   }
+  
+  private def withWorkDir[A](body: Path => A): A = TestHelpers.withWorkDir(getClass.getSimpleName)(body)
 
   // scalastyle:on no.whitespace.before.left.bracket
 }

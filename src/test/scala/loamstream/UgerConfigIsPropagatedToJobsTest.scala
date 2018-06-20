@@ -14,6 +14,7 @@ import loamstream.drm.uger.UgerDefaults
 import loamstream.drm.DrmSystem
 import loamstream.drm.lsf.LsfDockerParams
 import loamstream.drm.DockerParams
+import loamstream.loam.LoamGraph
 
 
 /**
@@ -23,8 +24,8 @@ import loamstream.drm.DockerParams
 final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
   test("uger config is propagated to jobs") {
     
-    def doTest(drmSystem: DrmSystem): Unit = {
-      val graph = TestHelpers.makeGraph(drmSystem) { implicit context =>
+    def makeGraph(drmSystem: DrmSystem): LoamGraph = {
+      TestHelpers.makeGraph(drmSystem) { implicit context =>
         import LoamPredef._
         import LoamCmdTool._
       
@@ -57,6 +58,10 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
           case DrmSystem.Lsf => declareJobForLsf
         }
       }
+    }
+    
+    def doTest(drmSystem: DrmSystem): Unit = {
+      val graph = makeGraph(drmSystem)
       
       val executable = LoamEngine.toExecutable(graph)
   

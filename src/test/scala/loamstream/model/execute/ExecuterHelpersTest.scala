@@ -19,12 +19,14 @@ import loamstream.util.Files
 import loamstream.model.jobs.RunData
 import scala.concurrent.Future
 import loamstream.util.FileMonitor
+import loamstream.LoamFunSuite
+import java.nio.file.Path
 
 /**
  * @author clint
  * date: Jun 7, 2016
  */
-final class ExecuterHelpersTest extends FunSuite with TestJobs {
+final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
   
   import TestHelpers.alwaysRestart
   import TestHelpers.neverRestart
@@ -71,212 +73,347 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     
     t.start()
   }
- 
-  test("waitForOutputsOnly - some missing outputs") {
-    val outDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+  
+  private def doInThreadAfter(millis: Long)(f: => Any): Unit = doInThread {  
+    Thread.sleep(millis)
     
-    import PathEnrichments._
+    f
+  }
+ 
+  test("waitForOutputsOnly - some missing outputs") { 
+    
+    import PathEnrichments.PathHelpers
     import ExecuterHelpers.waitForOutputsOnly
     import java.nio.file.Files.exists
+    import TestHelpers.path
     
-    val initiallyMissing0 = outDir / "foo.txt"
-    val initiallyMissing1 = outDir / "bar.txt"
-    val present = outDir / "baz.txt"
-    
-    val mockJob = MockJob(
-        toReturn = JobStatus.Succeeded,
-        outputs = Set(
-            Output.PathOutput(initiallyMissing0), 
-            Output.PathOutput(initiallyMissing1), 
-            Output.PathOutput(present)))
+    def doTest(
+        makeInitiallyMissing0: Path => Path,
+        makeInitiallyMissing1: Path => Path,
+        makePresent: Path => Path,
+        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
+          
+      val locations = getLocations(outDir)
+          
+      val initiallyMissing0 = makeInitiallyMissing0(outDir)
+      val initiallyMissing1 = makeInitiallyMissing1(outDir)
+      val present = makePresent(outDir)
+      
+      val initiallyMissingOutput0 = Output.PathOutput(initiallyMissing0, locations)
+      val initiallyMissingOutput1 = Output.PathOutput(initiallyMissing1, locations)
+      val presentOutput = Output.PathOutput(present, locations)
+      
+      val mockJob = MockJob(
+          toReturn = JobStatus.Succeeded,
+          outputs = Set(initiallyMissingOutput0, initiallyMissingOutput1, presentOutput))
+          
+      Files.writeTo(presentOutput.pathInHost)("2")
+      
+      assert(exists(initiallyMissingOutput0.pathInHost) === false)
+      assert(exists(initiallyMissingOutput1.pathInHost) === false)
+      assert(exists(presentOutput.pathInHost))
+      
+      import scala.concurrent.duration._
+      import scala.concurrent.ExecutionContext.Implicits.global
+      
+      withFileMonitor(new FileMonitor(10.0, 2.seconds)) { fileMonitor =>
+        val f = waitForOutputsOnly(mockJob, fileMonitor)
         
-    Files.writeTo(present)("2")
-    
-    assert(exists(initiallyMissing0) === false)
-    assert(exists(initiallyMissing1) === false)
-    assert(exists(present))
-    
-    import scala.concurrent.duration._
-    import scala.concurrent.ExecutionContext.Implicits.global
-    
-    val fileMonitor = new FileMonitor(10.0, 2.seconds)
-    
-    val f = waitForOutputsOnly(mockJob, fileMonitor)
-    
-    assert(exists(initiallyMissing0) === false)
-    assert(exists(initiallyMissing1) === false)
-    assert(exists(present))
-    
-    doInThread {
-      Thread.sleep(200)
-      
-      Files.writeTo(initiallyMissing0)("0")
+        assert(exists(initiallyMissingOutput0.pathInHost) === false)
+        assert(exists(initiallyMissingOutput1.pathInHost) === false)
+        assert(exists(presentOutput.pathInHost))
+        
+        doInThreadAfter(200) {
+          Files.writeTo(initiallyMissingOutput0.pathInHost)("0")
+        }
+        
+        doInThreadAfter(100) {
+          Files.writeTo(initiallyMissingOutput1.pathInHost)("1")
+        }
+        
+        Await.result(f, 3.seconds)
+        
+        assert(exists(initiallyMissingOutput0.pathInHost))
+        assert(exists(initiallyMissingOutput1.pathInHost))
+        assert(exists(presentOutput.pathInHost))
+      }
     }
     
-    doInThread {
-      Thread.sleep(100)
-      
-      Files.writeTo(initiallyMissing1)("1")
-    }
-    
-    Await.result(f, 3.seconds)
-    
-    assert(exists(initiallyMissing0))
-    assert(exists(initiallyMissing1))
-    assert(exists(present))
+    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
+    doTest(
+        _ / "foo.txt",
+        _ / "bar.txt",
+        _ / "baz.txt",
+        _ => Locations.identity)
+        
+    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
+    doTest( 
+      _ => path("foo.txt"),
+      _ => path("bar.txt"),
+      _ => path("baz.txt"),
+      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
   }
   
   test("waitForOutputsOnly - no missing outputs") {
-    val outDir = TestHelpers.getWorkDir(getClass.getSimpleName)
-    
-    import PathEnrichments._
+    import PathEnrichments.PathHelpers
     import ExecuterHelpers.waitForOutputsOnly
     import java.nio.file.Files.exists
+    import TestHelpers.path
     
-    val out0 = outDir / "foo.txt"
-    val out1 = outDir / "bar.txt"
+    def doTest(
+        makeOut0: Path => Path,
+        makeOut1: Path => Path,
+        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-    val mockJob = MockJob(
-        toReturn = JobStatus.Succeeded,
-        outputs = Set(Output.PathOutput(out0), Output.PathOutput(out1)))
+      val locations = getLocations(outDir)
+            
+      val out0 = makeOut0(outDir)
+      val out1 = makeOut1(outDir)
+      
+      val output0 = Output.PathOutput(out0, locations)
+      val output1 = Output.PathOutput(out1, locations)
+      
+      val mockJob = MockJob(
+          toReturn = JobStatus.Succeeded,
+          outputs = Set(output0, output1))
+          
+      //sanity check
+      assert(exists(output0.pathInHost) === false)
+      assert(exists(output1.pathInHost) === false)
+          
+      Files.writeTo(output0.pathInHost)("0")
+      Files.writeTo(output1.pathInHost)("1")
+      
+      assert(exists(output0.pathInHost))
+      assert(exists(output1.pathInHost))
+          
+      import scala.concurrent.duration._
+      import scala.concurrent.ExecutionContext.Implicits.global
+      
+      withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
+        val f = waitForOutputsOnly(mockJob, fileMonitor)
         
-    Files.writeTo(out0)("0")
-    Files.writeTo(out1)("1")
-    
-    assert(exists(out0))
-    assert(exists(out1))
+        assert(f.isCompleted)
         
-    import scala.concurrent.duration._
-    import scala.concurrent.ExecutionContext.Implicits.global
+        assert(exists(output0.pathInHost))
+        assert(exists(output1.pathInHost))
+      }
+    }
     
-    val fileMonitor = new FileMonitor(10.0, 0.seconds)
-    
-    val f = waitForOutputsOnly(mockJob, fileMonitor)
-    
-    assert(f.isCompleted)
+    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
+    doTest(
+        _ / "foo.txt",
+        _ / "bar.txt",
+        _ => Locations.identity)
+        
+        
+    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
+    doTest( 
+      _ => path("foo.txt"),
+      _ => path("bar.txt"),
+      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
   }
   
   test("waitForOutputsAndMakeExecution - success, no missing outputs") {
-    val outDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
-    import PathEnrichments._
+    import PathEnrichments.PathHelpers
     import ExecuterHelpers.waitForOutputsAndMakeExecution
     import java.nio.file.Files.exists
+    import TestHelpers.path
     
-    val out0 = outDir / "foo.txt"
-    val out1 = outDir / "bar.txt"
+    def doTest(
+        makeOut0: Path => Path,
+        makeOut1: Path => Path,
+        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-    val mockJob = MockJob(
-        toReturn = JobStatus.Succeeded,
-        outputs = Set(Output.PathOutput(out0), Output.PathOutput(out1)))
+      val locations = getLocations(outDir)
+      val out0 = makeOut0(outDir)
+      val out1 = makeOut1(outDir)
+      
+      val output0 = Output.PathOutput(out0, locations)
+      val output1 = Output.PathOutput(out1, locations)
+      
+      val mockJob = MockJob(
+          toReturn = JobStatus.Succeeded,
+          outputs = Set(output0, output1))
+          
+      //sanity check
+      assert(exists(output0.pathInHost) === false)
+      assert(exists(output1.pathInHost) === false)  
+          
+      Files.writeTo(output0.pathInHost)("0")
+      Files.writeTo(output1.pathInHost)("1")
+      
+      assert(exists(output0.pathInHost))
+      assert(exists(output1.pathInHost))
+          
+      import scala.concurrent.duration._
+      import scala.concurrent.ExecutionContext.Implicits.global
+      
+      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
+      
+      withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
+        val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
         
-    Files.writeTo(out0)("0")
-    Files.writeTo(out1)("1")
-    
-    assert(exists(out0))
-    assert(exists(out1))
+        val execution = Await.result(f, 10.seconds)
         
-    import scala.concurrent.duration._
-    import scala.concurrent.ExecutionContext.Implicits.global
+        assert(execution === runData.toExecution)
+      }
+    }
     
-    val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
-    
-    val fileMonitor = new FileMonitor(10.0, 0.seconds)
-    
-    val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
-    
-    val execution = Await.result(f, 10.seconds)
-    
-    assert(execution === runData.toExecution)
+    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
+    doTest(
+        _ / "foo.txt",
+        _ / "bar.txt",
+        _ => Locations.identity)
+        
+        
+    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
+    doTest( 
+      _ => path("foo.txt"),
+      _ => path("bar.txt"),
+      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
   }
   
   test("waitForOutputsAndMakeExecution - success, some missing outputs") {
-    val outDir = TestHelpers.getWorkDir(getClass.getSimpleName)
-    
-    import PathEnrichments._
+    import PathEnrichments.PathHelpers
     import ExecuterHelpers.waitForOutputsAndMakeExecution
     import java.nio.file.Files.exists
+    import TestHelpers.path
     
-    val out0 = outDir / "foo.txt"
-    val out1 = outDir / "bar.txt"
+    def doTest(
+        makeOut0: Path => Path,
+        makeOut1: Path => Path,
+        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-    val mockJob = MockJob(
-        toReturn = JobStatus.Succeeded,
-        outputs = Set(Output.PathOutput(out0), Output.PathOutput(out1)))
-        
-    Files.writeTo(out0)("0")
-    
-    assert(exists(out0))
-    assert(exists(out1) === false)
-        
-    import scala.concurrent.duration._
-    import scala.concurrent.ExecutionContext.Implicits.global
-    
-    val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
-    
-    val fileMonitor = new FileMonitor(10.0, 5.seconds)
-    
-    val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
-    
-    assert(exists(out0))
-    assert(exists(out1) === false)
-    
-    doInThread {
-      Thread.sleep(100)
+      val locations = getLocations(outDir)
+      val out0 = makeOut0(outDir)
+      val out1 = makeOut1(outDir)
       
-      Files.writeTo(out1)("1")
+      val output0 = Output.PathOutput(out0, locations)
+      val output1 = Output.PathOutput(out1, locations)
+      
+      val mockJob = MockJob(
+          toReturn = JobStatus.Succeeded,
+          outputs = Set(output0, output1))
+        
+      //sanity check
+      assert(exists(output0.pathInHost) === false)
+      assert(exists(output1.pathInHost) === false)
+          
+      Files.writeTo(output0.pathInHost)("0")
+      
+      assert(exists(output0.pathInHost))
+      assert(exists(output1.pathInHost) === false)
+          
+      import scala.concurrent.duration._
+      import scala.concurrent.ExecutionContext.Implicits.global
+      
+      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
+      
+      withFileMonitor(new FileMonitor(10.0, 5.seconds)) { fileMonitor => 
+        val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
+        
+        assert(exists(output0.pathInHost))
+        assert(exists(output1.pathInHost) === false)
+        
+        doInThread {
+          Thread.sleep(100)
+          
+          Files.writeTo(output0.pathInHost)("1")
+        }
+        
+        val execution = Await.result(f, 10.seconds)
+        
+        assert(exists(output0.pathInHost))
+        assert(exists(output1.pathInHost))
+        
+        assert(execution === runData.toExecution)
+      }
     }
     
-    val execution = Await.result(f, 10.seconds)
-    
-    assert(exists(out0))
-    assert(exists(out1))
-    
-    assert(execution === runData.toExecution)
+    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
+    doTest(
+        _ / "foo.txt",
+        _ / "bar.txt",
+        _ => Locations.identity)
+        
+        
+    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
+    doTest( 
+      _ => path("foo.txt"),
+      _ => path("bar.txt"),
+      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
   }
   
   test("waitForOutputsAndMakeExecution - success, some missing outputs that don't appear in time") {
-    val outDir = TestHelpers.getWorkDir(getClass.getSimpleName)
-    
-    import PathEnrichments._
+    import PathEnrichments.PathHelpers
     import ExecuterHelpers.waitForOutputsAndMakeExecution
     import java.nio.file.Files.exists
+    import TestHelpers.path
     
-    val out0 = outDir / "foo.txt"
-    val out1 = outDir / "bar.txt"
+    def doTest(
+        makeOut0: Path => Path,
+        makeOut1: Path => Path,
+        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-    val mockJob = MockJob(
-        toReturn = JobStatus.Succeeded,
-        outputs = Set(Output.PathOutput(out0), Output.PathOutput(out1)))
-        
-    Files.writeTo(out0)("0")
-    
-    assert(exists(out0))
-    assert(exists(out1) === false)
-        
-    import scala.concurrent.duration._
-    import scala.concurrent.ExecutionContext.Implicits.global
-    
-    val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
-    
-    //NB: Don't wait for any amount of time
-    val fileMonitor = new FileMonitor(10.0, 0.seconds)
-    
-    val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
-    
-    assert(exists(out0))
-    assert(exists(out1) === false)
-    
-    //NB: Output will appear in 1 second
-    doInThread {
-      Thread.sleep(1000)
+      val locations = getLocations(outDir)
+      val out0 = makeOut0(outDir)
+      val out1 = makeOut1(outDir)
       
-      Files.writeTo(out1)("1")
+      val output0 = Output.PathOutput(out0, locations)
+      val output1 = Output.PathOutput(out1, locations)
+      
+      val mockJob = MockJob(
+          toReturn = JobStatus.Succeeded,
+          outputs = Set(output0, output1))
+        
+      //sanity check
+      assert(exists(output0.pathInHost) === false)
+      assert(exists(output1.pathInHost) === false)
+          
+      Files.writeTo(output0.pathInHost)("0")
+      
+      assert(exists(output0.pathInHost))
+      assert(exists(output1.pathInHost) === false)
+          
+      import scala.concurrent.duration._
+      import scala.concurrent.ExecutionContext.Implicits.global
+      
+      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
+      
+      //NB: Don't wait for any amount of time
+      withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
+        val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
+        
+        assert(exists(output0.pathInHost))
+        assert(exists(output1.pathInHost) === false)
+        
+        //NB: Output will appear in 1 second, but we only "wait" for 0 seconds 
+        doInThread {
+          Thread.sleep(1000)
+          
+          Files.writeTo(output1.pathInHost)("1")
+        }
+        
+        val execution = Await.result(f, 10.seconds)
+        
+        assert(execution.status === JobStatus.FailedWithException)
+      }
     }
     
-    val execution = Await.result(f, 10.seconds)
-    
-    assert(execution.status === JobStatus.FailedWithException)
+    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
+    doTest(
+        _ / "foo.txt",
+        _ / "bar.txt",
+        _ => Locations.identity)
+        
+        
+    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
+    doTest( 
+      _ => path("foo.txt"),
+      _ => path("bar.txt"),
+      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
   }
   
   test("waitForOutputsAndMakeExecution - failure") {
@@ -291,17 +428,17 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     
     val runData = RunData(mockJob, JobStatus.FailedPermanently, Some(JobResult.Failure))
     
-    val fileMonitor = new FileMonitor(10.0, 5.seconds)
-    
-    val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
-    
-    //NB: Outputs aren't considered at all, an already-completed future should be returned
-    
-    assert(f.isCompleted)
-    
-    val execution = Await.result(f, 10.seconds)
-    
-    assert(execution === runData.toExecution)
+    withFileMonitor(new FileMonitor(10.0, 5.seconds)) { fileMonitor => 
+      val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
+      
+      //NB: Outputs aren't considered at all, an already-completed future should be returned
+      
+      assert(f.isCompleted)
+      
+      val execution = Await.result(f, 10.seconds)
+      
+      assert(execution === runData.toExecution)
+    }
   }
   
   test("doWaiting - no exception") {
@@ -440,4 +577,6 @@ final class ExecuterHelpersTest extends FunSuite with TestJobs {
     assert(noFailures(someFailures) === false)
     assert(anyFailures(someFailures) === true)
   }
+  
+  private def withFileMonitor[A](m: FileMonitor)(body: FileMonitor => A): A = try { body(m) } finally { m.stop() }
 }

@@ -19,6 +19,7 @@ import loamstream.util.PathUtils
 import loamstream.model.jobs.OutputStreams
 import loamstream.TestHelpers
 import loamstream.model.jobs.LJob
+import java.nio.file.Path
 
 /**
  * @author clint
@@ -27,24 +28,57 @@ import loamstream.model.jobs.LJob
 final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   with PrivateMethodTester with ProvidesEnvAndResources {
 
-  private val p0 = Paths.get("src/test/resources/for-hashing/foo.txt")
-  private val p1 = Paths.get("src/test/resources/for-hashing/empty.txt")
-  private val p2 = Paths.get("src/test/resources/for-hashing/subdir/bar.txt")
-  private val nonexistentPath = Paths.get("non/existent/blah.txt")
+  import TestHelpers.path
+  
+  private val nonexistentPath = path("non/existent/blah.txt")
 
-  private val o0 = Output.PathOutput(p0)
-  private val o1 = Output.PathOutput(p1)
-  private val o2 = Output.PathOutput(p2)
-  private val nonExistentOutput = Output.PathOutput(nonexistentPath)
+  private trait Outputs {
+    def p0: Path
+    def p1: Path
+    def p2: Path
+    
+    def o0: Output.PathOutput
+    def o1: Output.PathOutput
+    def o2: Output.PathOutput
+    def nonExistentOutput: Output.PathOutput
+    
+    final val cachedOutput0: OutputRecord = o0.toOutputRecord
+    final val cachedOutput1: OutputRecord = o1.toOutputRecord
+    final val cachedOutput2: OutputRecord = o2.toOutputRecord
+    final val cachedNonExistentOutput: OutputRecord = nonExistentOutput.toOutputRecord
+    
+    final val failedOutput0: OutputRecord = failedOutput(p0)
+    final val failedOutput1: OutputRecord = failedOutput(p1)
+    final val failedOutput2: OutputRecord = failedOutput(p2)
+  }
+  
+  private object SimpleOutputs extends Outputs {
+    import Locations.identity
 
-  private val cachedOutput0 = o0.toOutputRecord
-  private val cachedOutput1 = o1.toOutputRecord
-  private val cachedOutput2 = o2.toOutputRecord
-  private val cachedNonExistentOutput = nonExistentOutput.toOutputRecord
-
-  private val failedOutput0 = failedOutput(p0)
-  private val failedOutput1 = failedOutput(p1)
-  private val failedOutput2 = failedOutput(p2)
+    override val p0 = path("src/test/resources/for-hashing/foo.txt")
+    override val p1 = path("src/test/resources/for-hashing/empty.txt")
+    override val p2 = path("src/test/resources/for-hashing/subdir/bar.txt")
+    
+    override val o0 = Output.PathOutput(p0, identity)
+    override val o1 = Output.PathOutput(p1, identity)
+    override val o2 = Output.PathOutput(p2, identity)
+    override val nonExistentOutput = Output.PathOutput(nonexistentPath, identity)
+  }
+  
+  private object DockerOutputs extends Outputs {
+    override val p0 = path("for-hashing/foo.txt")
+    override val p1 = path("for-hashing/empty.txt")
+    override val p2 = path("for-hashing/subdir/bar.txt")
+    
+    val srcTestResources = path("src/test/resources")
+    
+    val locations = MockLocations.fromFunctions(makeInHost = srcTestResources.resolve(_))
+    
+    override val o0 = Output.PathOutput(p0, locations)
+    override val o1 = Output.PathOutput(p1, locations)
+    override val o2 = Output.PathOutput(p2, locations)
+    override val nonExistentOutput = Output.PathOutput(nonexistentPath, locations)
+  }
 
   private def executions = dao.allExecutions.toSet
 

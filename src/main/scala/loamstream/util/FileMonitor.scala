@@ -15,7 +15,7 @@ import scala.util.Success
  * @author clint
  * Jan 16, 2018
  */
-final class FileMonitor(pollingRateInHz: Double, maxWaitTime: Duration) {
+final class FileMonitor(pollingRateInHz: Double, maxWaitTime: Duration) extends Terminable {
   import FileMonitor.Watcher
   
   def waitForCreationOf(path: Path): Future[Unit] = {
@@ -45,6 +45,12 @@ final class FileMonitor(pollingRateInHz: Double, maxWaitTime: Duration) {
     t.scheduleAtFixedRate(task, 0, periodInMillis)
 
     t
+  }
+  
+  override def stop(): Unit = watchedFiles.foreach { watched =>
+    timer.cancel()
+    
+    watched.values.flatten.foreach(_.completeWithFailure("Shutting down Timer"))
   }
 }
 

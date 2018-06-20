@@ -14,9 +14,11 @@ trait Locations[L] {
 }
 
 object Locations {
-  def identity[A]: Locations[A] = new Locations[A] {
-    override def inHost(a: A): A = a 
+  private object Identity extends Locations[Any] {
+    override def inHost(a: Any): Any = a 
   
-    override def inContainer(a: A): A = a
+    override def inContainer(a: Any): Any = a
   }
+  
+  def identity[A]: Locations[A] = Identity.asInstanceOf[Locations[A]]
 }

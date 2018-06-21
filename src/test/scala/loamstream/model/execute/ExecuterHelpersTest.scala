@@ -320,7 +320,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
         doInThread {
           Thread.sleep(100)
           
-          Files.writeTo(output0.pathInHost)("1")
+          Files.writeTo(output1.pathInHost)("1")
         }
         
         val execution = Await.result(f, 10.seconds)

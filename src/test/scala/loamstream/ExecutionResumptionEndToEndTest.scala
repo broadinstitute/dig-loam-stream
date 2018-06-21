@@ -23,6 +23,7 @@ import loamstream.loam.LoamCmdTool
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.JobNode
 import loamstream.model.execute.Locations
+import loamstream.model.execute.MockLocations
 
 /**
   * @author kaan
@@ -161,10 +162,12 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       doRun(Seq(Skipped, Skipped).map(executionFrom(_)))
     }
     
-    def doTest(locations: Locations[Path]): Unit = createTablesAndThen {
+    def doTest(makeLocations: Path => Locations[Path]): Unit = createTablesAndThen {
       val fileIn = Paths.get("src", "test", "resources", "a.txt")
   
       withWorkDir { workDir =>
+        val locations = makeLocations(workDir)
+        
         val fileOut1 = workDir.resolve("fileOut1.txt")
         val fileOut2 = workDir.resolve("fileOut2.txt")
   
@@ -174,8 +177,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       }
     }
     
-    doTest(Locations.identity)
-    doTest(???)
+    doTest(_ => Locations.identity)
+    doTest(workDir => MockLocations.fromFunctions(makeInHost = workDir.resolve(_)))
   }
 
   test("Single failed job's exit status is recorded properly") {
@@ -195,45 +198,45 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       cmd"$bogusCommandName $in $out1"
     }
     
-    createTablesAndThen {
-      //Run the script and validate the results
-      def run(fileOut1: Path): Unit = {
-        val (executable, executions) = compileAndRun(makeScript(fileOut1))
+    //Run the script and validate the results
+    def run(fileOut1: Path): Unit = {
+      val (executable, executions) = compileAndRun(makeScript(fileOut1))
 
-        val allJobs = allJobsFrom(executable)
+      val allJobs = allJobsFrom(executable)
 
-        val allCommandLines = allJobs.collect { case clj: CommandLineJob => clj.commandLineString }
+      val allCommandLines = allJobs.collect { case clj: CommandLineJob => clj.commandLineString }
 
-        assert(allCommandLines.map(_.take(bogusCommandName.length)) === Seq(bogusCommandName))
+      assert(allCommandLines.map(_.take(bogusCommandName.length)) === Seq(bogusCommandName))
 
-        val onlyExecution = executions.values.head
+      val onlyExecution = executions.values.head
 
-        val exitCode = 127
-        val onlyResultOpt = onlyExecution.result
+      val exitCode = 127
+      val onlyResultOpt = onlyExecution.result
 
-        assert(onlyResultOpt.nonEmpty)
+      assert(onlyResultOpt.nonEmpty)
 
-        val onlyResult = onlyResultOpt.get
+      val onlyResult = onlyResultOpt.get
 
-        {
-          import Matchers._
+      {
+        import Matchers._
 
-          executions should have size 1
-          onlyExecution.resources.get.isInstanceOf[LocalResources] shouldBe true
-          onlyResult.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
-          onlyResult.isFailure shouldBe true
-        }
-
-        val output1 = OutputRecord(fileOut1)
-        val recordOpt = dao.findOutputRecord(output1)
-
-        assert(recordOpt === Some(output1))
-        assert(recordOpt.get.hash.isEmpty)
-
-        assert(dao.findExecution(output1).get.result.get.isFailure)
-        assert(dao.findExecution(output1).get.outputs === Set(output1))
+        executions should have size 1
+        onlyExecution.resources.get.isInstanceOf[LocalResources] shouldBe true
+        onlyResult.asInstanceOf[CommandResult].exitCode shouldEqual exitCode
+        onlyResult.isFailure shouldBe true
       }
-      
+
+      val output1 = OutputRecord(fileOut1)
+      val recordOpt = dao.findOutputRecord(output1)
+
+      assert(recordOpt === Some(output1))
+      assert(recordOpt.get.hash.isEmpty)
+
+      assert(dao.findExecution(output1).get.result.get.isFailure)
+      assert(dao.findExecution(output1).get.outputs === Set(output1))
+    }
+    
+    createTablesAndThen {
       withWorkDir { workDir => 
         val fileOut1 = workDir.resolve("fileOut1.txt")
   
@@ -349,7 +352,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     val allJobs = allJobsFrom(executable).map(_.job)
 
     def outputMatches(o: Output): Boolean = {
-      o.asInstanceOf[Output.PathOutput].path.toString.endsWith(fileNameSuffix.toString)
+      o.asInstanceOf[Output.PathOutput].pathInHost.toString.endsWith(fileNameSuffix.toString)
     }
 
     def jobMatches(j: LJob): Boolean = j.outputs.exists(outputMatches)

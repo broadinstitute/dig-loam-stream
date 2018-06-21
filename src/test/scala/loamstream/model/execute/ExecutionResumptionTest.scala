@@ -136,16 +136,20 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
     
     import locations.inHost
     
-    val startToF1 = mockJob(copyCmd(inHost(start), inHost(f1)), Set(Output.PathOutput(f1, locations))) {
-      copy(start, f1)
+    val f1InHost = inHost(f1)
+    val f2InHost = inHost(f2)
+    val f3InHost = inHost(f3)
+    
+    val startToF1 = mockJob(copyCmd(start, f1InHost), Set(Output.PathOutput(f1, locations))) {
+      copy(start, f1InHost)
     }
 
-    val f1ToF2 = mockJob(copyCmd(inHost(f1), inHost(f2)), Set(Output.PathOutput(f2, locations)), Set(startToF1)) {
-      copy(f1, f2)
+    val f1ToF2 = mockJob(copyCmd(f1InHost, f2InHost), Set(Output.PathOutput(f2, locations)), Set(startToF1)) {
+      copy(f1InHost, f2InHost)
     }
 
-    val f2ToF3 = mockJob(copyCmd(inHost(f2), inHost(f3)), Set(Output.PathOutput(f3, locations)), Set(f1ToF2)) {
-      copy(f2, f3)
+    val f2ToF3 = mockJob(copyCmd(f2InHost, f3InHost), Set(Output.PathOutput(f3, locations)), Set(f1ToF2)) {
+      copy(f2InHost, f3InHost)
     }
     
     (startToF1, f1ToF2, f2ToF3)
@@ -196,9 +200,14 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
         makeF3: Path => Path, 
         makeLocations: Path => Locations[Path]): Unit = withWorkDir { workDir =>
         
+      val locations = makeLocations(workDir)
+      
+      import locations.inHost
+          
       val (f1, f2, f3) = (makeF1(workDir), makeF2(workDir), makeF3(workDir))
+      val (f1InHost, f2InHost, f3InHost) = (inHost(f1), inHost(f2), inHost(f3))
 
-      val mockJobsTuple = makeMockJobs(start, f1, f2, f3, makeLocations(workDir))
+      val mockJobsTuple = makeMockJobs(start, f1, f2, f3, locations)
       
       val (startToF1, f1ToF2, f2ToF3) = mockJobsTuple 
 
@@ -210,10 +219,12 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   
       val runningEverything: Boolean = executer.jobFilter == JobFilter.RunEverything
 
-      assert(start.toFile.exists)
-      assert(f1.toFile.exists === false)
-      assert(f2.toFile.exists === false)
-      assert(f3.toFile.exists === false)
+      import java.nio.file.Files.exists
+      
+      assert(exists(start))
+      assert(exists(f1InHost) === false)
+      assert(exists(f2InHost) === false)
+      assert(exists(f3InHost) === false)
       
       runWithExecuter(
           runningEverything,
@@ -221,7 +232,12 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
           executable,
           mockJobsTuple,
           expectations, 
-          () => setup(start, f1, f2, f3))
+          () => setup(start, f1InHost, f2InHost, f3InHost))
+          
+      assert(exists(start))
+      assert(exists(f1InHost))
+      assert(exists(f2InHost))
+      assert(exists(f3InHost))
     }
     //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS
     doTest(_ / "fileOut1.txt", _ / "fileOut2.txt", _ / "fileOut3.txt", _ => Locations.identity)

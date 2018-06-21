@@ -64,9 +64,11 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
   private def outputsFor(graph: LoamGraph, tool: Tool, dockerParamsOpt: Option[DockerParams]): Set[Output] = {
     val loamStores: Set[Store] = graph.toolOutputs(tool)
 
+    val locations: Locations[Path] = dockerParamsOpt.getOrElse(Locations.identity)
+    
     def pathOrUriToOutput(store: Store): Option[Output] = {
       store.pathOpt.orElse(store.uriOpt).map {
-        case path: Path => Output.PathOutput(path, dockerParamsOpt.getOrElse(Locations.identity))
+        case path: Path => Output.PathOutput(locations.inHost(path), locations)
         case uri: URI   => Output.GcsUriOutput(uri, client)
       }
     }

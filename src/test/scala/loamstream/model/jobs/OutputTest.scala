@@ -18,6 +18,7 @@ import loamstream.util.PlatformUtil
 import loamstream.model.execute.Locations
 import java.nio.file.Path
 import loamstream.TestHelpers
+import loamstream.model.execute.MockLocations
 
 /**
   * @author clint
@@ -29,27 +30,27 @@ final class OutputTest extends FunSuite {
     import Output.PathOutput
     import TestHelpers.path
     import java.nio.file.Files
+    import PathUtils.normalizePath
 
     val nonExistingLocation = "sjkafhkfhksdjfh"
-    
     val nonExistingPath = path(nonExistingLocation)
-    val existingPath = path("src/test/resources/for-hashing/foo.txt")
-  
+      
     //sanity check
     assert(Files.exists(nonExistingPath) === false)
-    assert(Files.exists(existingPath))
   
-    def doTest(locations: Locations[Path]): Unit = {
+    def doTest(existingPath: Path, locations: Locations[Path]): Unit = {
+      val existingPathInHost = locations.inHost(existingPath)
+      val nonExistingPathInHost = locations.inHost(nonExistingPath)
+      
+      //sanity check
+      assert(Files.exists(existingPathInHost))
+      
       val doesntExist = PathOutput(path(nonExistingLocation), locations)
       val exists = PathOutput(existingPath, locations)  
   
-      assert(exists.path === existingPath)
-      assert(exists.pathInContainer === locations.inContainer(existingPath))
-      assert(exists.pathInHost === locations.inHost(existingPath))
+      assert(exists.pathInHost === normalizePath(existingPathInHost))
       
-      assert(doesntExist.path === nonExistingPath)
-      assert(doesntExist.pathInContainer === locations.inContainer(nonExistingPath))
-      assert(doesntExist.pathInHost === locations.inHost(nonExistingPath))
+      assert(doesntExist.pathInHost === normalizePath(nonExistingPathInHost))
       
       assert(!doesntExist.isPresent)
   
@@ -57,7 +58,7 @@ final class OutputTest extends FunSuite {
         doesntExist.hash.get
       }
   
-      assert(exists.isPresent)
+      assert(exists.isPresent, s"'${exists.pathInHost}' doesn't exist")
       
       val expectedHash = {
         if (PlatformUtil.isWindows) { "kUUgk+jLmf99lY+xeUH/MX0CYxg=" } 
@@ -70,24 +71,38 @@ final class OutputTest extends FunSuite {
   
       val doesntExistRecord = doesntExist.toOutputRecord
       
-      val expectedDoesntExistRecord = OutputRecord( loc = PathUtils.normalize(Paths.get(nonExistingLocation)),
-                                                    isPresent = false,
-                                                    hash = None,
-                                                    hashType = None,
-                                                    lastModified = None)
+      val expectedDoesntExistRecord = OutputRecord( 
+          loc = PathUtils.normalize(nonExistingPathInHost),
+          isPresent = false,
+          hash = None,
+          hashType = None,
+          lastModified = None)
+                                                    
       assert(doesntExistRecord === expectedDoesntExistRecord)
   
       val existsRecord = exists.toOutputRecord
-      val expectedExistsRecord = OutputRecord(loc = PathUtils.normalize(existingPath),
-                                              isPresent = true,
-                                              hash = Some(hashStr),
-                                              hashType = Some(Sha1.algorithmName),
-                                              lastModified = Some(PathUtils.lastModifiedTime(existingPath)))
+      
+      val expectedExistsRecord = OutputRecord(
+          loc = PathUtils.normalize(existingPathInHost),
+          isPresent = true,
+          hash = Some(hashStr),
+          hashType = Some(Sha1.algorithmName),
+          lastModified = Some(PathUtils.lastModifiedTime(existingPathInHost)))
+      
       assert(existsRecord === expectedExistsRecord)
+      
     }
     
-    doTest(Locations.identity)
-    doTest(???)
+    doTest(path("src/test/resources/for-hashing/foo.txt"), Locations.identity)
+    
+    val srcTestResources = path("src/test/resources")
+    val resolveInSrcTestResources: Path => Path = srcTestResources.resolve(_) 
+    
+    doTest(
+        path("for-hashing/foo.txt"), 
+        MockLocations.fromFunctions(
+            makeInHost = resolveInSrcTestResources, 
+            makeInContainer = resolveInSrcTestResources))
   }
 
   test("GcsUriOutput.location") {

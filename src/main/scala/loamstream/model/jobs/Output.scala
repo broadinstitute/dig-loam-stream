@@ -42,13 +42,7 @@ object Output {
    * A handle to an output of a job stored at 'path'.  Hashes and modification times are re-computed on
    * each access.
    */
-  final case class PathOutput private (
-      path: Path, 
-      locations: Locations[Path]/* = Locations.identity*/) extends Output {
-    
-    //TODO
-    lazy val pathInHost: Path = locations.inHost(path)
-    lazy val pathInContainer: Path = locations.inContainer(path)
+  final case class PathOutput private (pathInHost: Path) extends Output {
     
     override def isPresent: Boolean = Files.exists(pathInHost)
 
@@ -73,7 +67,9 @@ object Output {
   }
   
   object PathOutput {
-    def apply(path: Path, locations: Locations[Path]): PathOutput = new PathOutput(normalizePath(path), locations)
+    def apply(path: Path, locations: Locations[Path]): PathOutput = {
+      new PathOutput(normalizePath(locations.inHost(path)))
+    }
   }
 
   final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends Output {

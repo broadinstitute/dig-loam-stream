@@ -15,10 +15,10 @@ object MockLocations {
   
   def fromFunctions(
       makeInHost: Path => Path = _ => ???, 
-      makeContainerValue: Path => Path = _ => ???): Locations[Path] = new Locations[Path] {
+      makeInContainer: Path => Path = _ => ???): Locations[Path] = new Locations[Path] {
     
     override def inHost(p: Path): Path = makeInHost(p) 
   
-    override def inContainer(p: Path): Path = makeContainerValue(p)
+    override def inContainer(p: Path): Path = makeInContainer(p)
   } 
 }

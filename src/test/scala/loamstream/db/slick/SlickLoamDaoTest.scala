@@ -34,6 +34,8 @@ import loamstream.model.execute.Resources.LsfResources
 import loamstream.drm.lsf.LsfDockerParams
 import loamstream.drm.lsf.LsfDefaults
 import loamstream.model.execute.Locations
+import loamstream.model.execute.MockLocations
+import loamstream.util.Hash
 
 /**
  * @author clint
@@ -41,10 +43,16 @@ import loamstream.model.execute.Locations
  *         date: 8/9/16
  */
 final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with ProvidesEnvAndResources {
-  private val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
-  private val path1 = Paths.get("src/test/resources/for-hashing/bigger")
-  private val path2 = Paths.get("src/test/resources/for-hashing/empty.txt")
-  private val path3 = Paths.get("src/test/resources/blarg")
+  import TestHelpers.path
+  
+  private val srcTestResources = path("src/test/resources")
+  
+  private val resolveInSrcTestResources: Path => Path = srcTestResources.resolve(_)
+  
+  private val path0 = path("src/test/resources/for-hashing/foo.txt")
+  private val path1 = path("src/test/resources/for-hashing/bigger")
+  private val path2 = path("src/test/resources/for-hashing/empty.txt")
+  private val path3 = path("src/test/resources/blarg")
 
   private lazy val hash0 = Hashes.sha1(path0)
   private lazy val hash1 = Hashes.sha1(path1)
@@ -355,9 +363,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insertExecutions - CommandInvocationFailure") {
-    def doTest(locations: Locations[Path]): Unit = {
+    def doTest(path: Path, locations: Locations[Path]): Unit = {
       createTablesAndThen {
-        val output0 = PathOutput(path0, locations)
+        val output0 = PathOutput(path, locations)
   
         val failed = Execution(
             mockEnv,
@@ -378,21 +386,21 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             mockCmd,
             CommandResult(JobResult.DummyExitCode),
             failed.outputStreams.get,
-            failedOutput(path0))
+            failedOutput(output0.pathInHost))
   
         assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
       }
     }
     
-    doTest(Locations.identity)
-    doTest(???)
+    doTest(path0, Locations.identity)
+    doTest(path("for-hashing/foo.txt"), MockLocations.fromFunctions(makeInHost = resolveInSrcTestResources))
   }
 
   test("insertExecutions - should throw") {
-    def doTestWithLocations(locations: Locations[Path]): Unit = {
+    def doTestWithLocations(path: Path, locations: Locations[Path]): Unit = {
       def doTest(command: Option[String], jobResult: JobResult): Unit = {
         createTablesAndThen {
-          val output0 = PathOutput(path0, locations)
+          val output0 = PathOutput(path, locations)
   
           val failed = Execution(
               env = mockEnv, 
@@ -424,8 +432,10 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       doTest(None, JobResult.CommandResult(0))
     }
     
-    doTestWithLocations(Locations.identity)
-    doTestWithLocations(???)
+    doTestWithLocations(path0, Locations.identity)
+    doTestWithLocations(
+        path("for-hashing/foo.txt"), 
+        MockLocations.fromFunctions(makeInHost = resolveInSrcTestResources))
   }
 
   test("findExecution") {
@@ -482,26 +492,35 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("findOutput") {
-    def doTest(locations: Locations[Path]): Unit = {
+    def doTest(path0: Path, path1: Path, hash0: Hash, locations: Locations[Path]): Unit = {
       createTablesAndThen {
         assert(noOutputs)
   
-        store(path0)
+        val path0InHost = locations.inHost(path0)
+        val path1InHost = locations.inHost(path1)
+        
+        store(path0InHost)
   
-        assert(dao.findOutputRecord(PathOutput(path0, locations).toOutputRecord) === Some(cachedOutput(path0, hash0)))
+        val outputRecord0FromDb = dao.findOutputRecord(PathOutput(path0, locations).toOutputRecord)
+        
+        assert(outputRecord0FromDb === Some(cachedOutput(path0InHost, hash0)))
   
-        assert(dao.findOutputRecord(path1) === None)
+        assert(dao.findOutputRecord(path1InHost) === None)
   
-        storeFailures(path1)
+        storeFailures(path1InHost)
   
-        assert(dao.findOutputRecord(path0) === Some(cachedOutput(path0, hash0)))
+        assert(dao.findOutputRecord(path0InHost) === Some(cachedOutput(path0InHost, hash0)))
   
-        assert(dao.findOutputRecord(path1) === Some(failedOutput(path1)))
+        assert(dao.findOutputRecord(path1InHost) === Some(failedOutput(path1InHost)))
       }
     }
     
-    doTest(Locations.identity)
-    doTest(???)
+    doTest(path0, path1, hash0, Locations.identity)
+    doTest(
+        path("for-hashing/foo.txt"), 
+        path("for-hashing/bigger"),
+        hash0, 
+        MockLocations.fromFunctions(makeInHost = resolveInSrcTestResources))
   }
 
   test("findCommand") {

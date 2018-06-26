@@ -27,7 +27,7 @@ final class LoamPredefTest extends FunSuite {
     import TestHelpers.config
     
     def makeTool(commandLine: String)(implicit scriptCtx: LoamScriptContext): LoamCmdTool = {
-      val t = LoamCmdTool.create()(identity)(scriptCtx, StringContext(commandLine))
+      val t = LoamCmdTool.create()(name = commandLine, transform = identity)(scriptCtx, StringContext(commandLine))
     
       assert(t.commandLine === commandLine)
     

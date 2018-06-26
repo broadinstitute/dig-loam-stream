@@ -33,7 +33,7 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       
       val anonOutput = store //Note anonymous store
       
-      cmd"cp $nonExistent $anonOutput".in(nonExistent).out(anonOutput)
+      cmd"cp $nonExistent $anonOutput"().in(nonExistent).out(anonOutput)
     }
     
     val resultMap = TestHelpers.loamEngine.run(graph)
@@ -58,7 +58,7 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       
       val anonOutput = store //Note anonymous store
       
-      cmd"cp $in $anonOutput".in(in).out(anonOutput)
+      cmd"cp $in $anonOutput"("foo").in(in).out(anonOutput)
       
       (context.projectContext.graph, anonOutput)
     }
@@ -93,9 +93,9 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       
       val out = store.at(outPath)
       
-      cmd"cp $nonExistent $intermediate".in(nonExistent).out(intermediate)
+      cmd"cp $nonExistent $intermediate"().in(nonExistent).out(intermediate)
       
-      cmd"cp $intermediate $out".in(intermediate).out(out)
+      cmd"cp $intermediate $out"().in(intermediate).out(out)
     }
     
     assert(exists(outPath) === false)
@@ -132,9 +132,9 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       
       val out = store.at(outPath)
       
-      cmd"cp $in $intermediate".in(in).out(intermediate)
+      cmd"cp $in $intermediate"().in(in).out(intermediate)
       
-      cmd"cp $intermediate $out".in(intermediate).out(out)
+      cmd"cp $intermediate $out"().in(intermediate).out(out)
     }
     
     assert(exists(outPath) === false)
@@ -177,10 +177,10 @@ final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
       val out0 = store.at(outPath0)
       val out1 = store.at(outPath1)
       
-      cmd"cp $nonExistent $intermediate".in(nonExistent).out(intermediate)
+      cmd"cp $nonExistent $intermediate"().in(nonExistent).out(intermediate)
       
-      cmd"cp $intermediate $out0".in(intermediate).out(out0)
-      cmd"cp $intermediate $out1".in(intermediate).out(out1)
+      cmd"cp $intermediate $out0"().in(intermediate).out(out0)
+      cmd"cp $intermediate $out1"().in(intermediate).out(out1)
     }
     
     assert(exists(outPath0) === false)

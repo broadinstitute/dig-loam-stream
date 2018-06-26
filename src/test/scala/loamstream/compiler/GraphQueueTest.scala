@@ -105,11 +105,11 @@ object GraphQueueTest extends Assertions {
 
     implicit val scriptCtx = new LoamScriptContext(projectCtx)
     
-    val t0 = cmd"foo"
+    val t0 = cmd"foo"()
     
     val g1 = projectCtx.graph
     
-    val t1 = cmd"bar"
+    val t1 = cmd"bar"()
     
     val g2 = projectCtx.graph
     

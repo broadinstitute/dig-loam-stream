@@ -290,8 +290,8 @@ object LoamGraphTest {
     val template = store.at(path("/home/myself/template.vcf")).asInput
     val imputed = store.at(outputFile)
     
-    val phaseTool = cmd"shapeit -in $raw -out $phased".named("phase")
-    val imputeTool = cmd"impute -in $phased -template $template -out $imputed".using("R-3.1")
+    val phaseTool = cmd"shapeit -in $raw -out $phased"().named("phase")
+    val imputeTool = cmd"impute -in $phased -template $template -out $imputed"().using("R-3.1")
     
     GraphComponents(
       graph = scriptContext.projectContext.graph,

@@ -29,7 +29,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
         val b = store.at("b.txt")
       
         drmWith(cores = 4, mem = 16, maxRunTime = 5) {
-          cmd"cp $a $b".in(a).out(b)
+          cmd"cp $a $b"().in(a).out(b)
         }
       }
       
@@ -68,7 +68,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
         val b = store.at("b.txt")
       
         drmWith() {
-          cmd"cp $a $b".in(a).out(b)
+          cmd"cp $a $b"().in(a).out(b)
         }
       }
       
@@ -100,7 +100,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
         val b = store.at("b.txt")
       
         drm {
-          cmd"cp $a $b".in(a).out(b)
+          cmd"cp $a $b"().in(a).out(b)
         }
       }
       

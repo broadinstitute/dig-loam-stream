@@ -68,10 +68,10 @@ final class LoamToolBoxTest extends FunSuite {
       val fileOut2Store = store.at(fileOut2)
       val fileOut3Store = store.at(fileOut3)
       val fileOut4Store = store.at(fileOut4)
-      val inToOne = cmd"cp $fileInStore $fileOut1Store".in(fileInStore).out(fileOut1Store)
-      val oneToTwo = cmd"cp $fileOut1Store $fileOut2Store".in(fileOut1Store).out(fileOut2Store)
-      val twoToThree = cmd"cp $fileOut2Store $fileOut3Store".in(fileOut2Store).out(fileOut3Store)
-      val twoToFour = cmd"cp $fileOut2Store $fileOut4Store".in(fileOut2Store).out(fileOut4Store)
+      val inToOne = cmd"cp $fileInStore $fileOut1Store"().in(fileInStore).out(fileOut1Store)
+      val oneToTwo = cmd"cp $fileOut1Store $fileOut2Store"().in(fileOut1Store).out(fileOut2Store)
+      val twoToThree = cmd"cp $fileOut2Store $fileOut3Store"().in(fileOut2Store).out(fileOut3Store)
+      val twoToFour = cmd"cp $fileOut2Store $fileOut4Store"().in(fileOut2Store).out(fileOut4Store)
 
       (context.projectContext.graph, inToOne, oneToTwo, twoToThree, twoToFour)
     }
@@ -124,11 +124,11 @@ final class LoamToolBoxTest extends FunSuite {
         val fileOut2 = store.at(fileOut2Path)
         val fileOut3 = store.at(fileOut3Path)
 
-        val inToTmp1 = cmd"cp $fileIn $fileTmp1"
-        val tmp1ToTmp2 = cmd"cp $fileTmp1 $fileTmp2"
-        val tmp2ToOne = cmd"cp $fileTmp2 $fileOut1"
-        val tmp2ToTwo = cmd"cp $fileTmp2 $fileOut2".named("2to2")
-        val tmp2ToThree = cmd"cp $fileTmp2 $fileOut3".named("2to3")
+        val inToTmp1 = cmd"cp $fileIn $fileTmp1"()
+        val tmp1ToTmp2 = cmd"cp $fileTmp1 $fileTmp2"()
+        val tmp2ToOne = cmd"cp $fileTmp2 $fileOut1"()
+        val tmp2ToTwo = cmd"cp $fileTmp2 $fileOut2"().named("2to2")
+        val tmp2ToThree = cmd"cp $fileTmp2 $fileOut3"().named("2to3")
 
         val graph = context.projectContext.graph
 
@@ -212,7 +212,7 @@ final class LoamToolBoxTest extends FunSuite {
         val shapeitOuput = store.at(outputDir / "phased.samples.gz")
         val log = store.at(outputDir / "shapeit.log")
 
-        val shapeitTool = cmd"$shapeit -i $input -o $shapeitOuput".in(input).out(shapeitOuput)
+        val shapeitTool = cmd"$shapeit -i $input -o $shapeitOuput"().in(input).out(shapeitOuput)
 
         val imputeTools = for(iShard <- 0 until nShards) yield {
           val start = offset + (iShard * basesPerShard) + 1
@@ -220,7 +220,7 @@ final class LoamToolBoxTest extends FunSuite {
 
           val imputed = store.at(outputDir / s"imputed.data.bp${start}-${end}.gen")
 
-          val imputeTool = cmd"$impute2 -i $shapeitOuput -o $imputed".in(shapeitOuput).out(imputed)
+          val imputeTool = cmd"$impute2 -i $shapeitOuput -o $imputed"().in(shapeitOuput).out(imputed)
 
           imputeTool
         }

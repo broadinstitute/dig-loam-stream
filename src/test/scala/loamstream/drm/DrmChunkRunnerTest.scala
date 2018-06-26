@@ -383,8 +383,8 @@ final class DrmChunkRunnerTest extends FunSuite {
         val c = store.at("c.txt")
       
         envFn(drmSystem)(cores = 4, mem = 16, maxRunTime = 5) {
-          cmd"cp $a $b".in(a).out(b)
-          cmd"cp $a $c".in(a).out(c)
+          cmd"cp $a $b"().in(a).out(b)
+          cmd"cp $a $c"().in(a).out(c)
         }
       }
     }
@@ -470,11 +470,11 @@ final class DrmChunkRunnerTest extends FunSuite {
       val e = store.at("e.txt")
     
       val (tool0, tool1) = envFn(drmSystem)(cores = 4, mem = 16, maxRunTime = 5) {
-        (cmd"cp $a $b".in(a).out(b)) -> (cmd"cp $a $c".in(a).out(c))
+        (cmd"cp $a $b"().in(a).out(b)) -> (cmd"cp $a $c"().in(a).out(c))
       }
       
       val (tool2, tool3) = envFn(drmSystem)(cores = 7, mem = 9, maxRunTime = 11) {
-        (cmd"cp $a $d".in(a).out(d)) -> (cmd"cp $a $e".in(a).out(e))
+        (cmd"cp $a $d"().in(a).out(d)) -> (cmd"cp $a $e"().in(a).out(e))
       }
       
       (sc.projectContext.graph, tool0, tool1, tool2, tool3)

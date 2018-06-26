@@ -114,7 +114,7 @@ final class LoamRunnerTest extends FunSuite {
           |
           |def createStore(i: Int): Store = store.at(workDir / s"store$$i.txt")
           |
-          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial".out(storeInitial)
+          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial"().out(storeInitial)
           |
           |andThen {
           |  val numLines = Files.countLines(storeInitial.path).toInt
@@ -124,10 +124,10 @@ final class LoamRunnerTest extends FunSuite {
           |  for (i <- 1 to numLines) {
           |    val newStore = createStore(i)
           |    stores += newStore
-          |    cmd"printf 'This is line $$i\\n' > $$newStore".in(storeInitial).out(newStore)
+          |    cmd"printf 'This is line $$i\\n' > $$newStore"().in(storeInitial).out(newStore)
           |  }
           |
-          |  cmd"cat $${workDir.render}/store?.txt > $${storeFinal}".in(stores).out(storeFinal)
+          |  cmd"cat $${workDir.render}/store?.txt > $${storeFinal}"().in(stores).out(storeFinal)
           |}""".stripMargin
 
     def oneAndThenThatThrows(dir: Path): String =
@@ -143,7 +143,7 @@ final class LoamRunnerTest extends FunSuite {
           |
           |def createStore(i: Int): Store = store.at(workDir / s"store$$i.txt")
           |
-          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial".out(storeInitial)
+          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial"().out(storeInitial)
           |
           |andThen {
           |  throw new Exception("blerg")
@@ -161,7 +161,7 @@ final class LoamRunnerTest extends FunSuite {
           |val storeMiddle = store.at(workDir / "storeMiddle.txt")
           |val storeFinal = store.at(workDir / "storeFinal.txt")
           |
-          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial".out(storeInitial)
+          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial"().out(storeInitial)
           |
           |andThen {
           |  val numLines = Files.countLines(storeInitial.path).toInt
@@ -171,10 +171,10 @@ final class LoamRunnerTest extends FunSuite {
           |  for (i <- 1 to numLines) {
           |    val newStore = store.at(workDir / s"mid-$$i.txt")
           |    stores += newStore
-          |    cmd"printf 'This is line $$i\\n' > $$newStore".in(storeInitial).out(newStore)
+          |    cmd"printf 'This is line $$i\\n' > $$newStore"().in(storeInitial).out(newStore)
           |  }
           |
-          |  cmd"cat $${workDir.render}/mid-?.txt > $${storeMiddle} && cat $${workDir.render}/mid-?.txt >> $${storeMiddle}"
+          |  cmd"cat $${workDir.render}/mid-?.txt > $${storeMiddle} && cat $${workDir.render}/mid-?.txt >> $${storeMiddle}"()
           |  .in(stores).out(storeMiddle)
           |}
           |
@@ -186,10 +186,10 @@ final class LoamRunnerTest extends FunSuite {
           |  for (i <- 1 to numLines) {
           |    val newStore = store.at(workDir / s"store-$$i.txt")
           |    stores += newStore
-          |    cmd"printf 'line $$i\\n' > $$newStore".in(storeInitial).out(newStore)
+          |    cmd"printf 'line $$i\\n' > $$newStore"().in(storeInitial).out(newStore)
           |  }
           |
-          |  cmd"cat $${workDir.render}/store-?.txt > $${storeFinal}".in(stores).out(storeFinal)
+          |  cmd"cat $${workDir.render}/store-?.txt > $${storeFinal}"().in(stores).out(storeFinal)
           |}""".stripMargin
      // scalastyle:on line.size.limit
   }

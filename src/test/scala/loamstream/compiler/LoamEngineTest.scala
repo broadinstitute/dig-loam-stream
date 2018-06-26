@@ -119,7 +119,7 @@ final class LoamEngineTest extends FunSuite {
       val input = store.at(inputFile).asInput
       val output = store.at(outputFile)
       
-      cmd"cp $input $output".in(input).out(output)
+      cmd"cp $input $output"().in(input).out(output)
     }
     
     assert(JFiles.exists(inputFile))

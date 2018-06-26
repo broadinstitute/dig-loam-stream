@@ -25,8 +25,8 @@ final class ToolTest extends FunSuite {
       assert(graph.tools === Set.empty)
       assert(graph.namedTools === Map.empty)
       
-      val tool0 = cmd"foo --bar --baz"
-      val tool1 = cmd"bar --baz"
+      val tool0 = cmd"foo --bar --baz"()
+      val tool1 = cmd"bar --baz"()
       
       assert(graph.tools === Set(tool0, tool1))
       assert(graph.namedTools === Map.empty)
@@ -45,7 +45,7 @@ final class ToolTest extends FunSuite {
       assert(graph.tools === Set(tool0, tool1))
       assert(graph.namedTools === Map("foo" -> tool0, "bar" -> tool1))
       
-      val tool2 = cmd"baz"
+      val tool2 = cmd"baz"()
       
       assert(graph.tools === Set(tool0, tool1, tool2))
       assert(graph.namedTools === Map("foo" -> tool0, "bar" -> tool1))

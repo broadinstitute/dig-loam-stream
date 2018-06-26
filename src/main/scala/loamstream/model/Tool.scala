@@ -12,6 +12,8 @@ import loamstream.model.Tool.DefaultStores
   */
 trait Tool extends LId.HasId {
 
+  def name: String
+  
   /** The LoamProjectContext associated with this tool */
   def projectContext: LoamProjectContext = scriptContext.projectContext
 

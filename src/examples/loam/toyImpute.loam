@@ -8,5 +8,5 @@ val phased = store
 val template = store.at(path("/home/myself/template.vcf")).asInput
 val imputed = store.at(outputFile)
 
-cmd"$phaseCommand -in $raw -out $phased"
-cmd"$imputeCommand -in $phased -template $template -out $imputed"
+cmd"$phaseCommand -in $raw -out $phased"()
+cmd"$imputeCommand -in $phased -template $template -out $imputed"()

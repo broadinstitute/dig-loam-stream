@@ -45,7 +45,7 @@ for (chr_num <- 1 to 22) {
   val phased_samples = store.at(output_dir / s"phased_samples_${chr}.gz")
   val log = store.at(output_dir / s"shapeit_${chr}.log")
 
-  cmd"$shapeit -V $vcf_data -M $genetic_map -O $phased_haps $phased_samples -L $log --thread 16"
+  cmd"$shapeit -V $vcf_data -M $genetic_map -O $phased_haps $phased_samples -L $log --thread 16"()
 
   val map_file = store.at(kgp_dir / s"genetic_map_${chr}_combined_b37.txt").asInput
   val legend = store.at(kgp_dir / s"1000GP_Phase3_${chr}.legend.gz").asInput
@@ -61,6 +61,6 @@ for (chr_num <- 1 to 22) {
 
     cmd"""$impute2 -use_prephased_g -m $map_file -h $known_haps -l $legend
     -known_haps_g $phased_haps -int $start $end -Ne 20000 -o $imputed -verbose -o_gz
-    """
+    """()
   }
 }

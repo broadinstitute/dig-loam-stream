@@ -52,8 +52,8 @@ final class LoamMultiProjectTest extends FunSuite {
          |  val analysisFile = store.at(s"projects/$$name/analysis/$$name.analysis.txt")
          |  val resultsFile = store.at(s"projects/$$name/results/$$name.results.txt")
          |
-         |  cmd"cp $$inFile $$analysisFile"
-         |  cmd"cp $$analysisFile $$resultsFile"
+         |  cmd"cp $$inFile $$analysisFile"()
+         |  cmd"cp $$analysisFile $$resultsFile"()
          |}
       """.stripMargin)
     Seq(projectScript, pipelineScript)

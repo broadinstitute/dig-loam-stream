@@ -32,7 +32,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     val graph = TestHelpers.makeGraph { implicit context => 
       import LoamCmdTool._
       
-      cmd"foo"
+      cmd"foo"()
     }
     
     val executable = LoamEngine.toExecutable(graph)
@@ -62,7 +62,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
         import LoamCmdTool._
       
         envFn(env) {
-          cmd"foo"
+          cmd"foo"()
         }
       }
       
@@ -91,17 +91,17 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
         import LoamCmdTool._
         
         envFn(env1) {
-          cmd"foo"
-          cmd"bar"
+          cmd"foo"()
+          cmd"bar"()
         }
         
         envFn(env2) {
-          cmd"baz"
+          cmd"baz"()
         }
         
         envFn(env3) {
-          cmd"blerg"
-          cmd"zerg"
+          cmd"blerg"()
+          cmd"zerg"()
         }
       }
       

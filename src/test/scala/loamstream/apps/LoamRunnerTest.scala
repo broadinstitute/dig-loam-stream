@@ -84,7 +84,9 @@ final class LoamRunnerTest extends FunSuite {
     
     val results = loamRunner.run(project)
     
-    val resultsToExecutions = results.right.toOption.get
+    assert(results.isRight, s"Expected compilation to succeed, but got ${results}")
+    
+    val resultsToExecutions = results.right.get
     
     assert(resultsToExecutions.nonEmpty)
     
@@ -102,7 +104,8 @@ final class LoamRunnerTest extends FunSuite {
 
     // scalastyle:off line.size.limit
     def oneAndThen(dir: Path): String =
-      s"""|import scala.collection.mutable.{Buffer, ArrayBuffer}
+      s"""|import scala.collection.mutable.Buffer
+          |import scala.collection.mutable.ArrayBuffer
           |import loamstream.model.Store
           |import loamstream.util.Files
           |import loamstream.util.BashScript.Implicits._
@@ -114,7 +117,7 @@ final class LoamRunnerTest extends FunSuite {
           |
           |def createStore(i: Int): Store = store.at(workDir / s"store$$i.txt")
           |
-          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial".out(storeInitial)
+          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial"(out = Seq(storeInitial))
           |
           |andThen {
           |  val numLines = Files.countLines(storeInitial.path).toInt
@@ -124,10 +127,10 @@ final class LoamRunnerTest extends FunSuite {
           |  for (i <- 1 to numLines) {
           |    val newStore = createStore(i)
           |    stores += newStore
-          |    cmd"printf 'This is line $$i\\n' > $$newStore".in(storeInitial).out(newStore)
+          |    cmd"printf 'This is line $$i\\n' > $$newStore"(in = Seq(storeInitial), out = Seq(newStore))
           |  }
           |
-          |  cmd"cat $${workDir.render}/store?.txt > $${storeFinal}".in(stores).out(storeFinal)
+          |  cmd"cat $${workDir.render}/store?.txt > $${storeFinal}"(in = stores, out = Seq(storeFinal))
           |}""".stripMargin
 
     def oneAndThenThatThrows(dir: Path): String =
@@ -143,7 +146,7 @@ final class LoamRunnerTest extends FunSuite {
           |
           |def createStore(i: Int): Store = store.at(workDir / s"store$$i.txt")
           |
-          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial".out(storeInitial)
+          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial"(out = Seq(storeInitial))
           |
           |andThen {
           |  throw new Exception("blerg")
@@ -161,7 +164,7 @@ final class LoamRunnerTest extends FunSuite {
           |val storeMiddle = store.at(workDir / "storeMiddle.txt")
           |val storeFinal = store.at(workDir / "storeFinal.txt")
           |
-          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial".out(storeInitial)
+          |cmd"printf 'line1\\nline2\\nline3' > $$storeInitial"(out = Seq(storeInitial))
           |
           |andThen {
           |  val numLines = Files.countLines(storeInitial.path).toInt
@@ -171,11 +174,11 @@ final class LoamRunnerTest extends FunSuite {
           |  for (i <- 1 to numLines) {
           |    val newStore = store.at(workDir / s"mid-$$i.txt")
           |    stores += newStore
-          |    cmd"printf 'This is line $$i\\n' > $$newStore".in(storeInitial).out(newStore)
+          |    cmd"printf 'This is line $$i\\n' > $$newStore"(in = Seq(storeInitial), out = Seq(newStore))
           |  }
           |
-          |  cmd"cat $${workDir.render}/mid-?.txt > $${storeMiddle} && cat $${workDir.render}/mid-?.txt >> $${storeMiddle}"
-          |  .in(stores).out(storeMiddle)
+          |  cmd"cat $${workDir.render}/mid-?.txt > $${storeMiddle} && cat $${workDir.render}/mid-?.txt >> $${storeMiddle}"(
+          |    in = stores, out = Seq(storeMiddle))
           |}
           |
           |andThen {
@@ -186,10 +189,10 @@ final class LoamRunnerTest extends FunSuite {
           |  for (i <- 1 to numLines) {
           |    val newStore = store.at(workDir / s"store-$$i.txt")
           |    stores += newStore
-          |    cmd"printf 'line $$i\\n' > $$newStore".in(storeInitial).out(newStore)
+          |    cmd"printf 'line $$i\\n' > $$newStore"(in = Seq(storeInitial), out = Seq(newStore))
           |  }
           |
-          |  cmd"cat $${workDir.render}/store-?.txt > $${storeFinal}".in(stores).out(storeFinal)
+          |  cmd"cat $${workDir.render}/store-?.txt > $${storeFinal}"(in = stores, out = Seq(storeFinal))
           |}""".stripMargin
      // scalastyle:on line.size.limit
   }

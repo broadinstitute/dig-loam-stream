@@ -120,7 +120,7 @@ object LoamstreamShouldntHangTest {
       val storeX = store.at(s"$workDir/x.txt")
       
       local {
-        val fails = cmd"cp $nonexistent $storeX".in(nonexistent).out(storeX)
+        val fails = cmd"cp $nonexistent $storeX"(in = Seq(nonexistent), out = Seq(storeX))
         
         OnlyOneFailure(scriptContext.projectContext.graph, fails)
       }
@@ -147,8 +147,8 @@ object LoamstreamShouldntHangTest {
       val storeY = store.at(s"$workDir/y.txt")
       
       local {
-        val fails = cmd"cp $nonexistent $storeX".in(nonexistent).out(storeX)
-        val shouldWork = cmd"cp $storeX $storeY".in(storeX).out(storeY)
+        val fails = cmd"cp $nonexistent $storeX"(in = Seq(nonexistent), out = Seq(storeX))
+        val shouldWork = cmd"cp $storeX $storeY"(in = Seq(storeX), out = Seq(storeY))
         
         TwoStepsOneFails(scriptContext.projectContext.graph, fails = fails, shouldWork = shouldWork)
       }
@@ -175,9 +175,9 @@ object LoamstreamShouldntHangTest {
       val workDirStore = store.at(workDir)
       
       local {
-        val shouldWork = cmd"cp $storeA $storeB".in(storeA).out(storeB)
+        val shouldWork = cmd"cp $storeA $storeB"(in = Seq(storeA), out = Seq(storeB))
         //NB: Fails since cat/bash won't write a file over a directory
-        val fails = cmd"cat $storeB > $workDirStore".in(storeB).out(workDirStore)
+        val fails = cmd"cat $storeB > $workDirStore"(in = Seq(storeB), out = Seq(workDirStore))
         
         TwoStepsOneFails(scriptContext.projectContext.graph, fails = fails, shouldWork = shouldWork)
       }
@@ -210,10 +210,10 @@ object LoamstreamShouldntHangTest {
       val storeZ = store.at(s"$workDir/z.txt")
       
       local {
-        val failingDep = cmd"cp $nonexistent $storeX".in(nonexistent).out(storeX)
+        val failingDep = cmd"cp $nonexistent $storeX"(in = Seq(nonexistent), out = Seq(storeX))
         
-        val shouldWork0 = cmd"cp $storeX $storeY".in(storeX).out(storeY)
-        val shouldWork1 = cmd"cp $storeX $storeZ".in(storeX).out(storeZ)
+        val shouldWork0 = cmd"cp $storeX $storeY"(in = Seq(storeX), out = Seq(storeY))
+        val shouldWork1 = cmd"cp $storeX $storeZ"(in = Seq(storeX), out = Seq(storeZ))
         
         ThreeStepsMutualDepFails(scriptContext.projectContext.graph, fails = failingDep, shouldWork0, shouldWork1)
       }
@@ -250,11 +250,11 @@ object LoamstreamShouldntHangTest {
       val storeD = store.at(s"$workDir/d.txt")
       
       local {
-        val aToB = cmd"cp $storeA $storeB".in(storeA).out(storeB)
-        val fails = cmd"cp $nonexistent $storeX && cp $storeB $storeX".in(nonexistent, storeB).out(storeX)
-        val xToY = cmd"cp $storeX $storeY".in(storeX).out(storeY)
-        val bToC = cmd"cp $storeB $storeC".in(storeB).out(storeC)
-        val cToD = cmd"cp $storeC $storeD".in(storeC).out(storeD)
+        val aToB = cmd"cp $storeA $storeB"(in = Seq(storeA), out = Seq(storeB))
+        val fails = cmd"cp $nonexistent $storeX && cp $storeB $storeX"(in = Seq(nonexistent, storeB), out = Seq(storeX))
+        val xToY = cmd"cp $storeX $storeY"(in = Seq(storeX), out = Seq(storeY))
+        val bToC = cmd"cp $storeB $storeC"(in = Seq(storeB), out = Seq(storeC))
+        val cToD = cmd"cp $storeC $storeD"(in = Seq(storeC), out = Seq(storeD))
         val graph = scriptContext.projectContext.graph
         
         SomeFailures(graph, fails, xToY, aToB, bToC, cToD)

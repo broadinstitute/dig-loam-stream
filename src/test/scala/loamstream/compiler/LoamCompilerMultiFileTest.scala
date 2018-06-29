@@ -40,7 +40,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
   test("Full name instead of import") {
     val scriptIndividualImport = LoamScript("individualImport",
       """
-        |cmd"echo ${values.greeting} the answer is ${values.answer}"
+        |cmd"echo ${values.greeting} the answer is ${values.answer}"()
       """.stripMargin)
     val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
     val compiler = createNewCompiler
@@ -53,7 +53,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     val scriptIndividualImport = LoamScript("individualImport",
       """
         |import values.{answer, greeting}
-        |cmd"echo $greeting the answer is $answer"
+        |cmd"echo $greeting the answer is $answer"()
       """.stripMargin)
     val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
     val compiler = createNewCompiler
@@ -66,7 +66,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     val scriptIndividualImport = LoamScript("individualImport",
       """
         |import values.{answer => answerToTheGreatQuestion, greeting => casualGreeting}
-        |cmd"echo $casualGreeting the answer is $answerToTheGreatQuestion"
+        |cmd"echo $casualGreeting the answer is $answerToTheGreatQuestion"()
       """.stripMargin)
     val project = LoamProject(TestHelpers.config, scriptValues, scriptIndividualImport)
     val compiler = createNewCompiler
@@ -79,7 +79,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     val scriptWildcardImport = LoamScript("wildcardImport",
       """
         |import values._
-        |cmd"echo $greeting the answer is $answer"
+        |cmd"echo $greeting the answer is $answer"()
       """.stripMargin)
     val project = LoamProject(TestHelpers.config, scriptValues, scriptWildcardImport)
     val compiler = createNewCompiler
@@ -104,7 +104,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
         """
           |import greetingForwarder.copyOfGreeting
           |import answerForwarder.copyOfAnswer
-          |cmd"echo $copyOfGreeting the answer is $copyOfAnswer"
+          |cmd"echo $copyOfGreeting the answer is $copyOfAnswer"()
         """.stripMargin))
     val project = LoamProject(TestHelpers.config, scripts)
     val compiler = createNewCompiler

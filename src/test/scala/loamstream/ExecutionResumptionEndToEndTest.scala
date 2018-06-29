@@ -48,7 +48,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
          
         val in = LoamPredef.store.at(fileIn).asInput
         val out = LoamPredef.store.at(fileOut1)
-        cmd"cp $in $out"
+        cmd"cp $in $out"()
       }
 
       val (executable, executions) = compileAndRun(firstScript)
@@ -97,8 +97,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         val out1 = LoamPredef.store.at(fileOut1)
         val out2 = LoamPredef.store.at(fileOut2)
         
-        cmd"cp $in $out1"
-        cmd"cp $out1 $out2"
+        cmd"cp $in $out1"()
+        cmd"cp $out1 $out2"()
       }
 
       //Run the script and validate the results
@@ -174,7 +174,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         val in = LoamPredef.store.at(fileIn).asInput
         val out1 = LoamPredef.store.at(fileOut1)
         
-        cmd"$bogusCommandName $in $out1"
+        cmd"$bogusCommandName $in $out1"()
       }
 
       //Run the script and validate the results
@@ -242,8 +242,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         val out1 = LoamPredef.store.at(fileOut1)
         val out2 = LoamPredef.store.at(fileOut2)
         
-        cmd"$bogusCommandName $in $out1"
-        cmd"$bogusCommandName $out1 $out2"
+        cmd"$bogusCommandName $in $out1"()
+        cmd"$bogusCommandName $out1 $out2"()
       }
 
       //Run the script and validate the results

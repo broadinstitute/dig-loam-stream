@@ -19,8 +19,6 @@ import loamstream.util.PathEnrichments
   */
 final class LoamToolBoxTest extends FunSuite {
 
-  import TestHelpers.path
-
   private def toJobs(graph: LoamGraph): Executable = {
     val toolBox = new LoamToolBox()
 
@@ -48,6 +46,58 @@ final class LoamToolBoxTest extends FunSuite {
   private def hasNoDeps(jobNode: JobNode): Boolean = jobNode.inputs.isEmpty
 
   import PathEnrichments._
+  
+  test("Simple one-command pipeline") {
+    val (graph, tool) = TestHelpers.withScriptContext { implicit context =>
+      import LoamPredef._
+      import LoamCmdTool._
+      
+      val tool = cmd"echo 'hello world!'"()
+      
+      (context.projectContext.graph, tool)
+    }
+
+    assert(graph.tools === Set(tool))
+    assert(graph.finalTools === Set(tool)) 
+    
+    val executable = toJobs(graph)
+    
+    assert(executable.jobNodes.size === 1)
+    
+    assert(executable.jobNodes.head.job.asInstanceOf[CommandLineJob].commandLineString === tool.commandLine)
+  }
+  
+  test("Simple two-command pipeline") {
+    val (graph, tool0, tool1) = TestHelpers.withScriptContext { implicit context =>
+      import LoamPredef._
+      import LoamCmdTool._
+      
+      val input = store.at("foo.txt").asInput
+      val out0 = store.at("bar.txt")
+      val out1 = store.at("baz.txt")
+      
+      val tool0 = cmd"cp $input $out0"(in = Seq(input), out = Seq(out0))
+      
+      val tool1 = cmd"cp $out0 $out1"(in = Seq(out0), out = Seq(out1))
+      
+      (context.projectContext.graph, tool0, tool1)
+    }
+
+    assert(graph.tools === Set(tool0, tool1))
+    assert(graph.finalTools === Set(tool1))
+    
+    val executable = toJobs(graph)
+    
+    assert(executable.jobNodes.size === 1)
+    
+    val rootJob = executable.jobNodes.head.job.asInstanceOf[CommandLineJob]
+    
+    assert(rootJob.commandLineString === tool1.commandLine)
+    
+    assert(rootJob.inputs.size === 1)
+    
+    assert(rootJob.inputs.head.job.asInstanceOf[CommandLineJob].commandLineString === tool0.commandLine)
+  }
 
   test("Simple toy pipeline using cp.") {
 
@@ -68,10 +118,10 @@ final class LoamToolBoxTest extends FunSuite {
       val fileOut2Store = store.at(fileOut2)
       val fileOut3Store = store.at(fileOut3)
       val fileOut4Store = store.at(fileOut4)
-      val inToOne = cmd"cp $fileInStore $fileOut1Store".in(fileInStore).out(fileOut1Store)
-      val oneToTwo = cmd"cp $fileOut1Store $fileOut2Store".in(fileOut1Store).out(fileOut2Store)
-      val twoToThree = cmd"cp $fileOut2Store $fileOut3Store".in(fileOut2Store).out(fileOut3Store)
-      val twoToFour = cmd"cp $fileOut2Store $fileOut4Store".in(fileOut2Store).out(fileOut4Store)
+      val inToOne = cmd"cp $fileInStore $fileOut1Store"(in = Seq(fileInStore), out = Seq(fileOut1Store))
+      val oneToTwo = cmd"cp $fileOut1Store $fileOut2Store"(in = Seq(fileOut1Store), out = Seq(fileOut2Store))
+      val twoToThree = cmd"cp $fileOut2Store $fileOut3Store"(in = Seq(fileOut2Store), out = Seq(fileOut3Store))
+      val twoToFour = cmd"cp $fileOut2Store $fileOut4Store"(in = Seq(fileOut2Store), out = Seq(fileOut4Store))
 
       (context.projectContext.graph, inToOne, oneToTwo, twoToThree, twoToFour)
     }
@@ -124,11 +174,11 @@ final class LoamToolBoxTest extends FunSuite {
         val fileOut2 = store.at(fileOut2Path)
         val fileOut3 = store.at(fileOut3Path)
 
-        val inToTmp1 = cmd"cp $fileIn $fileTmp1"
-        val tmp1ToTmp2 = cmd"cp $fileTmp1 $fileTmp2"
-        val tmp2ToOne = cmd"cp $fileTmp2 $fileOut1"
-        val tmp2ToTwo = cmd"cp $fileTmp2 $fileOut2".named("2to2")
-        val tmp2ToThree = cmd"cp $fileTmp2 $fileOut3".named("2to3")
+        val inToTmp1 = cmd"cp $fileIn $fileTmp1"()
+        val tmp1ToTmp2 = cmd"cp $fileTmp1 $fileTmp2"()
+        val tmp2ToOne = cmd"cp $fileTmp2 $fileOut1"()
+        val tmp2ToTwo = cmd"cp $fileTmp2 $fileOut2"(name = "2to2")
+        val tmp2ToThree = cmd"cp $fileTmp2 $fileOut3"(name = "2to3")
 
         val graph = context.projectContext.graph
 
@@ -140,7 +190,16 @@ final class LoamToolBoxTest extends FunSuite {
 
     assert(executable.jobNodes.size === 3)
 
-    assert(graph.namedTools === Map("2to2" -> tmp2ToTwo, "2to3" -> tmp2ToThree))
+    assert(graph.namedTools("2to2") === tmp2ToTwo)
+    assert(graph.namedTools("2to3") === tmp2ToThree)
+    
+    val toolsWithNames = graph.namedTools.values.toSet
+    
+    assert(toolsWithNames.contains(inToTmp1))
+    assert(toolsWithNames.contains(tmp1ToTmp2))
+    assert(toolsWithNames.contains(tmp2ToOne))
+    
+    assert(graph.namedTools.size === 5)
 
     val allJobs = ExecuterHelpers.flattenTree(executable.jobNodes).map(_.job)
 
@@ -185,7 +244,7 @@ final class LoamToolBoxTest extends FunSuite {
 
     val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
 
-    val softDir = path("/path/to/binaries")
+    val softDir = TestHelpers.path("/path/to/binaries")
 
     val shapeit = softDir / "shapeit"
     val impute2 = softDir / "impute2"
@@ -212,7 +271,7 @@ final class LoamToolBoxTest extends FunSuite {
         val shapeitOuput = store.at(outputDir / "phased.samples.gz")
         val log = store.at(outputDir / "shapeit.log")
 
-        val shapeitTool = cmd"$shapeit -i $input -o $shapeitOuput".in(input).out(shapeitOuput)
+        val shapeitTool = cmd"$shapeit -i $input -o $shapeitOuput"(in = Seq(input), out = Seq(shapeitOuput))
 
         val imputeTools = for(iShard <- 0 until nShards) yield {
           val start = offset + (iShard * basesPerShard) + 1
@@ -220,7 +279,7 @@ final class LoamToolBoxTest extends FunSuite {
 
           val imputed = store.at(outputDir / s"imputed.data.bp${start}-${end}.gen")
 
-          val imputeTool = cmd"$impute2 -i $shapeitOuput -o $imputed".in(shapeitOuput).out(imputed)
+          val imputeTool = cmd"$impute2 -i $shapeitOuput -o $imputed"(in = Seq(shapeitOuput), out = Seq(imputed))
 
           imputeTool
         }

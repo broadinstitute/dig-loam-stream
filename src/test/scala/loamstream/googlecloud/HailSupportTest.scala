@@ -70,56 +70,56 @@ final class HailSupportTest extends FunSuite {
 
       scriptContext.executionEnvironment = googleEnv
 
-      hail""
+      hail""()
 
-      pyhail""
+      pyhail""()
 
       scriptContext.executionEnvironment = Environment.Local
 
       intercept[Exception] {
-        hail""
+        hail""()
       }
 
       intercept[Exception] {
-        pyhail""
+        pyhail""()
       }
 
       scriptContext.executionEnvironment = Environment.Uger(TestHelpers.defaultUgerSettings)
 
       intercept[Exception] {
-        hail""
+        hail""()
       }
 
       intercept[Exception] {
-        pyhail""
+        pyhail""()
       }
 
       scriptContext.executionEnvironment = googleEnv
 
-      hail""
+      hail""()
 
-      pyhail""
+      pyhail""()
     }
   }
 
   test("Guards: config sections") {
     withScriptContext(LoamProjectContext.empty(config)) { implicit scriptContext =>
-      hail""
+      hail""()
     }
 
     withScriptContext(LoamProjectContext.empty(config)) { implicit scriptContext =>
-      pyhail""
+      pyhail""()
     }
 
     val noGoogleConfig = config.copy(googleConfig = None)
 
     withScriptContext(LoamProjectContext.empty(noGoogleConfig)) { implicit scriptContext =>
       intercept[Exception] {
-        hail""
+        hail""()
       }
 
       intercept[Exception] {
-        pyhail""
+        pyhail""()
       }
     }
 
@@ -127,11 +127,11 @@ final class HailSupportTest extends FunSuite {
 
     withScriptContext(LoamProjectContext.empty(noHailConfig)) { implicit scriptContext =>
       intercept[Exception] {
-        hail""
+        hail""()
       }
 
       intercept[Exception] {
-        pyhail""
+        pyhail""()
       }
     }
   }
@@ -140,7 +140,7 @@ final class HailSupportTest extends FunSuite {
     val expectedCommandLine = googlePrefix
 
     withScriptContext { implicit context =>
-      doTest(expectedCommandLine)(hail"")
+      doTest(expectedCommandLine)(hail""())
     }
   }
 
@@ -148,7 +148,7 @@ final class HailSupportTest extends FunSuite {
     val expectedCommandLine = s"${googlePrefix}foo.py"
 
     withScriptContext { implicit context =>
-      doTest(expectedCommandLine)(hail"foo.py")
+      doTest(expectedCommandLine)(hail"foo.py"())
     }
   }
 
@@ -156,7 +156,7 @@ final class HailSupportTest extends FunSuite {
     withScriptContext { implicit context =>
       val tool = pyhail"""xyz
   asdf
-  foo"""
+  foo"""()
 
       val commandLine = tool.commandLine
 
@@ -228,7 +228,7 @@ final class HailSupportTest extends FunSuite {
         exportsamples -c "IID = sa.pheno.IID, POP = sa.pheno.POP, SUPERPOP = sa.pheno.SUPERPOP, SEX = sa.pheno.SEX, PC1 = sa.pca.scores.PC1, PC2 = sa.pca.scores.PC2, PC3 = sa.pca.scores.PC3, PC4 = sa.pca.scores.PC4, PC5 = sa.pca.scores.PC5, PC6 = sa.pca.scores.PC6, PC7 = sa.pca.scores.PC7, PC8 = sa.pca.scores.PC8, PC9 = sa.pca.scores.PC9, PC10 = sa.pca.scores.PC10"
         -o ${ancestryScoresTsv}
         exportvariants -c "ID = v, PC1 = va.pca.loadings.PC1, PC2 = va.pca.loadings.PC2, PC3 = va.pca.loadings.PC3, PC4 = va.pca.loadings.PC4, PC5 = va.pca.loadings.PC5, PC6 = va.pca.loadings.PC6, PC7 = va.pca.loadings.PC7, PC8 = va.pca.loadings.PC8, PC9 = va.pca.loadings.PC9, PC10 = va.pca.loadings.PC10"
-        -o ${ancestryPcaLoadingsTsv}"""
+        -o ${ancestryPcaLoadingsTsv}"""()
       }
       // scalastyle:on line.size.limit
     }
@@ -247,7 +247,7 @@ final class HailSupportTest extends FunSuite {
   vds = hc.read('1kg_purcell.vds')
   vds.summarize().report()
 
-  vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""
+  vds.export_plink('1kg_purcell',fam_expr='famID=s,id=s')"""()
 
       val commandLine = tool.commandLine
 

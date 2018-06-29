@@ -41,7 +41,7 @@ final class LanguageSupportTest extends FunSuite {
   test("Python - empty snippet") {
     import LanguageSupport.Python._
 
-    val loamLine = python""
+    val loamLine = python""()
     val expectedBinary = Paths.get("/path/to/python/binary")
     val expectedScriptContent = ""
 
@@ -55,7 +55,7 @@ final class LanguageSupportTest extends FunSuite {
     val someVal = 123
     val someStore = store.at("/someStorePath")
 
-    val loamLine = python"""$someTool --foo $someVal --bar $someStore baz"""
+    val loamLine = python"""$someTool --foo $someVal --bar $someStore baz"""()
 
     val expectedBinary = Paths.get("/path/to/python/binary")
     val expectedScriptContent = s"someToolPath --foo 123 --bar ${bashFileSep}someStorePath baz"
@@ -75,7 +75,7 @@ def greet(name):
 
 greet('$Alice')
 greet('$Bob')
-"""
+"""()
 
     val expectedBinary = Paths.get("/path/to/python/binary")
     val expectedScriptContent =
@@ -93,7 +93,7 @@ greet('Bob')
   test("R - empty snippet") {
     import LanguageSupport.R._
 
-    val loamLine = r""""""
+    val loamLine = r""""""()
     val expectedBinary = Paths.get("/path/to/R/binary")
     val expectedScriptContent = ""
 
@@ -107,7 +107,7 @@ greet('Bob')
     val someVal = 456
     val someStore = store.at("/someStooorePath")
 
-    val loamLine = r"$someTool --foo $someVal --bar $someStore baz"
+    val loamLine = r"$someTool --foo $someVal --bar $someStore baz"()
 
     val expectedBinary = Paths.get("/path/to/R/binary")
     val expectedScriptContent = s"someToooolPath --foo 456 --bar ${bashFileSep}someStooorePath baz"
@@ -131,7 +131,7 @@ if(inherits(x, "try-error")) {
   names(out)[1]<-"ibd_pairs"
   write.table(out,args[2],row.names=T,col.names=F,quote=F,append=F,sep="\t")
 }
-"""
+"""()
 
     val expectedBinary = Paths.get("/path/to/R/binary")
     val expectedScriptContent =

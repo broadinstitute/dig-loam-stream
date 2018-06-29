@@ -17,6 +17,8 @@ final class CommandLineJobTest extends FunSuite {
   test("Complex command that needs escaping") {
     val outputPath = TestHelpers.getWorkDir(getClass.getSimpleName).resolve("foo")
     
+    val name = "asdasdasdaskldfjdgf"
+    
     val graph: LoamGraph = TestHelpers.makeGraph { implicit sc =>
       import LoamPredef._
       import LoamCmdTool._
@@ -24,13 +26,16 @@ final class CommandLineJobTest extends FunSuite {
       val input = store.at("src/test/resources/test-data-CommandLineStringJobTest").asInput
       val output = store.at(outputPath)
 
-      cmd"(head -1 $input ; sed '1d' $input | awk '{if($$8 >= 0.0884) print $$0}') > $output"
+      cmd"(head -1 $input ; sed '1d' $input | awk '{if($$8 >= 0.0884) print $$0}') > $output"(name)
     }
+    
+    assert(graph.tools.head.name === name)
+    assert(graph.tools.size === 1)
     
     val jobResults = TestHelpers.run(graph)
 
     assert(jobResults.values.head.isSuccess)
-
+    
     assert(jobResults.size === 1)
 
     val numLines = CanBeClosed.enclosed(Source.fromFile(outputPath.toFile)) { source =>

@@ -52,8 +52,9 @@ final case class GcsDriver(credentialsFile: Path) extends CloudStorageDriver wit
         BlobField.UPDATED,
         BlobField.MD5HASH)
 
-      storage.list(bucketName(uri), withPrefix, withRelevantFields).getValues.asScala
-        .map(b => BlobMetadata(b.getName, b.getMd5, b.getUpdateTime))
+      val blobs = storage.list(bucketName(uri), withPrefix, withRelevantFields).getValues.asScala
+      
+      blobs.map(b => BlobMetadata(b.getName, b.getMd5, b.getUpdateTime))
     } catch {
       case e: StorageException =>
         warn(s"URI $uri is invalid because ${e.getMessage.toLowerCase()}")

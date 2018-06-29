@@ -14,7 +14,7 @@ val phasedHaps = store.at(s"phased.data.${chr}.haps.gz")
 val phasedSample = store.at(s"phased.data.${chr}.sample.gz")
 val log = store.at(s"phased.data.${chr}.log")
 
-cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSample -L $log --thread 8"
+cmd"$shapeit -V $data -M $geneticMap -O $phasedHaps $phasedSample -L $log --thread 8"()
 
 val exampleHaps = store.at(kgpDir / s"1000GP_Phase3_chr${chr}.hap.gz").asInput
 val exampleLegend = store.at(kgpDir / s"1000GP_Phase3_chr${chr}.legend.gz").asInput
@@ -27,5 +27,5 @@ for(iShard <- 0 until nShards) {
 
   cmd"""$impute2 -use_prephased_g -m $geneticMap -h $exampleHaps -l $exampleLegend 
   -known_haps_g $phasedHaps -int ${start} ${end} -Ne 20000 -o imputes $imputed -verbose -o_gz
-  """
+  """()
 }

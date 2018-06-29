@@ -108,7 +108,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
 
       val chrFile = store.at(outputDir / s"a-$chr.txt")
 
-      cmd"cp $input $chrFile".in(input).out(chrFile).named(s"outer-$chr")
+      cmd"cp $input $chrFile"(name = s"outer-$chr", in = Seq(input), out = Seq(chrFile))
 
       //---------------------------LOOP THROUGH WINDOWS WITHIN CHROMOSOME-------------------------
       for (shard <- 0 until numShards) {
@@ -117,7 +117,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
 
         val imputed = store.at(outputDir / s"imputed_data_${chr}_${shard}.txt")
 
-        cmd"cp $chrFile $imputed".in(chrFile).out(imputed).named(s"inner-$chr-$shard")
+        cmd"cp $chrFile $imputed"(name = s"inner-$chr-$shard", in = Seq(chrFile), out = Seq(imputed))
       }
     }
   }

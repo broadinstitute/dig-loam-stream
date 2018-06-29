@@ -18,7 +18,6 @@ object LoamGraph {
 
   /** The location of a store */
   object StoreLocation {
-
     /** Store location based on a Path */
     final case class PathLocation(path: Path) extends StoreLocation {
       override def toString: String = path.toString
@@ -28,7 +27,6 @@ object LoamGraph {
     final case class UriLocation(uri: URI) extends StoreLocation {
       override def toString: String = uri.toString
     }
-
   }
 
   /** An empty graph */
@@ -77,17 +75,23 @@ final case class LoamGraph(
       }
     } else {
       val (toolInputStores, toolOutputStores) = tool.defaultStores match {
-        case AllStores(toolStores) =>
-          val toolInputStores =
-            toolStores.filter(store => inputStores.contains(store) || storeProducers.contains(store))
+        case AllStores(toolStores) => {
+          val toolInputStores = toolStores.filter(s => inputStores.contains(s) || storeProducers.contains(s))
           val toolOutputStores = toolStores -- toolInputStores
+          
           (toolInputStores, toolOutputStores)
+        }
         case InputsAndOutputs(inputs, outputs) => (inputs.toSet, outputs.toSet)
       }
+      
       val outputsWithProducer = toolOutputStores.map(store => store -> tool)
-      val storeConsumersNew =
+      
+      val storeConsumersNew = {
         toolInputStores.map(store => store -> (storeConsumers.getOrElse(store, Set.empty) + tool))
+      }
 
+      requireUniqueToolName(tool)
+      
       copy(
         tools = tools + tool,
         toolInputs = toolInputs + (tool -> toolInputStores),
@@ -95,7 +99,8 @@ final case class LoamGraph(
         storeProducers = storeProducers ++ outputsWithProducer,
         storeConsumers = storeConsumers ++ storeConsumersNew,
         workDirs = workDirs + (tool -> scriptContext.workDir),
-        executionEnvironments = executionEnvironments + (tool -> scriptContext.executionEnvironment)
+        executionEnvironments = executionEnvironments + (tool -> scriptContext.executionEnvironment),
+        namedTools = namedTools + (tool.name -> tool)
       )
     }
   }
@@ -135,7 +140,6 @@ final case class LoamGraph(
     toolInputs.getOrElse(tool, Set.empty).flatMap(storeProducers.get)
   }
 
-
   /** Tools that consume a store produced by this tool */
   def toolsSucceeding(tool: Tool): Set[Tool] = {
     toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers.getOrElse(_, Set.empty))
@@ -153,8 +157,7 @@ final case class LoamGraph(
   }
 
   /** Optionally the path associated with a store */
-  def pathOpt(store: Store): Option[Path] =
-  storeLocations.get(store) match {
+  def pathOpt(store: Store): Option[Path] = storeLocations.get(store) match {
     case Some(StoreLocation.PathLocation(path)) => Some(path)
     case _ => None
   }
@@ -217,8 +220,9 @@ final case class LoamGraph(
       case (store, producer) => stores(store) && producer == tool
     }
 
-    val storeConsumersNew =
+    val storeConsumersNew = {
       storeConsumers ++ stores.map(store => (store, storeConsumers.getOrElse(store, Set.empty) + tool))
+    }
 
     copy(
       toolInputs = toolInputsNew,
@@ -238,8 +242,9 @@ final case class LoamGraph(
 
     val storeProducersNew = storeProducers ++ stores.map(store => store -> tool)
 
-    val storeConsumersNew =
+    val storeConsumersNew = {
       storeConsumers ++ stores.map(store => (store, storeConsumers.getOrElse(store, Set.empty) - tool))
+    }
 
     copy(
       toolInputs = toolInputsNew,
@@ -248,19 +253,13 @@ final case class LoamGraph(
       storeConsumers = storeConsumersNew)
   }
 
-  def nameOf(t: Tool): Option[String] = namedTools.collectFirst { case (n, namedTool) if namedTool == t => n }
+  def nameOf(t: Tool): Option[String] = namedTools.collectFirst { case (name, namedTool) if namedTool == t => name }
   
-  def withToolName(tool: Tool, tagName: String): LoamGraph = {
+  private[loam] def requireUniqueToolName(tool: Tool): Unit = {
     //TODO: Throw here, or elsewhere?  Make this a loam-compilation-time error another way?
-    if(namedTools.contains(tagName)) {
-      throw new Exception(s"Tool tag name '$tagName' must be unique.")
+    if(namedTools.contains(tool.name)) {
+      throw new Exception(s"Tool tag name '${tool.name}' must be unique.")
     }
-    
-    if(namedTools.values.toSet.contains(tool)) {
-      throw new Exception(s"Tool '$tool' is already tagged as ${nameOf(tool).get}")
-    }
-    
-    copy(namedTools = namedTools + (tagName -> tool))
   }
   
   def without(toolsToExclude: Set[Tool]): LoamGraph = containingOnly(tools -- toolsToExclude)

@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import loamstream.loam.{LoamGraph, LoamProjectContext, LoamScriptContext}
 import loamstream.model.Tool.DefaultStores
+import loamstream.util.Traversables
 
 /**
   * @author Clint
@@ -12,6 +13,8 @@ import loamstream.model.Tool.DefaultStores
   */
 trait Tool extends LId.HasId {
 
+  def name: String
+  
   /** The LoamProjectContext associated with this tool */
   def projectContext: LoamProjectContext = scriptContext.projectContext
 
@@ -24,45 +27,22 @@ trait Tool extends LId.HasId {
   /** Input and output stores before any are specified using in or out */
   def defaultStores: DefaultStores
 
+  def workDirOpt: Option[Path] = graph.workDirs.get(this)
+  
+  import Traversables.Implicits._
+  
   /** Input stores of this tool */
   def inputs: Map[LId, Store] = {
-    graph.toolInputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
+    val myInputs: Set[Store] = graph.toolInputs.getOrElse(this, Set.empty)
+    
+    myInputs.mapBy(_.id)
   }
 
   /** Output stores of this tool */
   def outputs: Map[LId, Store] = {
-    graph.toolOutputs.getOrElse(this, Set.empty).map(store => (store.id, store)).toMap
-  }
-
-  /** Adds input stores to this tool */
-  def in(inStore: Store, inStores: Store*): this.type = in(inStore +: inStores)
-
-  /** Adds input stores to this tool */
-  def in(inStores: Iterable[Store]): this.type = {
-    projectContext.updateGraph(_.withInputStores(this, inStores.toSet))
+    val myOutputs: Set[Store] = graph.toolOutputs.getOrElse(this, Set.empty)
     
-    this
-  }
-
-  /** Adds output stores to this tool */
-  def out(outStore: Store, outStores: Store*): this.type = out(outStore +: outStores)
-
-  /** Adds output stores to this tool */
-  def out(outStores: Iterable[Store]): this.type = {
-    projectContext.updateGraph(_.withOutputStores(this, outStores.toSet))
-    
-    this
-  }
-
-  def workDirOpt: Option[Path] = graph.workDirs.get(this)
-  
-  @deprecated(message = "Use tag(name) instead", since = "")
-  def named(name: String): this.type = tag(name)
-  
-  def tag(name: String): this.type = {
-    projectContext.updateGraph(_.withToolName(this, name))
-    
-    this
+    myOutputs.mapBy(_.id)
   }
 }
 

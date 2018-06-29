@@ -101,9 +101,9 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
           |val c = store.at("${pathC}")
           |
           |$environment { //should be 'local' or 'uger'
-          |  cmd"cp $$b $$c".in(b).out(c) //NB: declare commands "out of order"
+          |  cmd"cp $$b $$c"(in = Seq(b), out = Seq(c)) //NB: declare commands "out of order"
           |
-          |  cmd"cp $$a $$b".in(a).out(b)
+          |  cmd"cp $$a $$b"(in = Seq(a), out = Seq(b))
           |}
           |""".stripMargin.trim
     }

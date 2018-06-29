@@ -57,11 +57,11 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
                        |
                        |uger {
                        |  //Will fail
-                       |  cmd"cp $$nonexistent $$storeX".in(nonexistent).out(storeX)
+                       |  cmd"cp $$nonexistent $$storeX"(in = Seq(nonexistent), out = Seq(storeX))
                        |
                        |  //Would work if previous cmd worked
-                       |  cmd"cp $$storeX $$storeY".in(storeX).out(storeY)
-                       |  cmd"cp $$storeX $$storeZ".in(storeX).out(storeZ)
+                       |  cmd"cp $$storeX $$storeY"(in = Seq(storeX), out = Seq(storeY))
+                       |  cmd"cp $$storeX $$storeZ"(in = Seq(storeX), out = Seq(storeZ))
                        |}
                        |""".stripMargin
     
@@ -120,13 +120,13 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
                        |
                        |drm {
                        |  //Should work
-                       |  cmd"cp $$storeA $$storeB".in(storeA).out(storeB)
-                       |  cmd"cp $$storeB $$storeC".in(storeB).out(storeC)
-                       |  cmd"cp $$storeC $$storeD".in(storeC).out(storeD)
+                       |  cmd"cp $$storeA $$storeB"(in = Seq(storeA), out = Seq(storeB))
+                       |  cmd"cp $$storeB $$storeC"(in = Seq(storeB), out = Seq(storeC))
+                       |  cmd"cp $$storeC $$storeD"(in = Seq(storeC), out = Seq(storeD))
                        |  //Will fail
-                       |  cmd"cp $$nonexistent $$storeX && cp $$storeB $$storeX".in(nonexistent, storeB).out(storeX)
+                       |  cmd"cp $$nonexistent $$storeX && cp $$storeB $$storeX"(in = Seq(nonexistent, storeB), out = Seq(storeX))
                        |  //Shouldn't run
-                       |  cmd"cp $$storeX $$storeY".in(storeX).out(storeY)
+                       |  cmd"cp $$storeX $$storeY"(in = Seq(storeX), out = Seq(storeY))
                        |}
                        |""".stripMargin
     

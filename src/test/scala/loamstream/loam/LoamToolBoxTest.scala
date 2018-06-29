@@ -84,8 +84,7 @@ final class LoamToolBoxTest extends FunSuite {
     }
 
     assert(graph.tools === Set(tool0, tool1))
-    
-    //assert(graph.finalTools === Set(tool1))
+    assert(graph.finalTools === Set(tool1))
     
     val executable = toJobs(graph)
     

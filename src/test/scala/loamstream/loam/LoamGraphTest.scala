@@ -260,14 +260,14 @@ final class LoamGraphTest extends FunSuite {
     assert(graph.namedTools("phase") === phaseTool)
     assert(graph.namedTools.size === 2)
     
-    //renaming a tool
+    //non-unique name
     intercept[Exception] {
-      graph.withToolName(phaseTool, "asdf")
+      graph.requireUniqueToolName(phaseTool)
     }
     
     //non-unique name
     intercept[Exception] {
-      graph.withToolName(imputeTool, "phase")
+      graph.requireUniqueToolName(imputeTool)
     }
   }
 }

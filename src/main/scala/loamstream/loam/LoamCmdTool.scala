@@ -8,18 +8,35 @@ import loamstream.loam.files.LoamFileManager
 import loamstream.conf.DynamicConfig
 import loamstream.util.Sequence
 
-/**
-  * LoamStream
-  * Created by oliverr on 5/25/2016.
-  */
-object LoamCmdTool {
+/** 
+ * @author oliverr
+ * @author clint
+ * @author kaan
+ * 
+ * @date 5/25/2016
+ *  
+ * A command line tool specified in a Loam script
+ */
+final case class LoamCmdTool private (
+    id: LId, 
+    name: String, 
+    val tokens: Seq[LoamToken])(implicit val scriptContext: LoamScriptContext) extends Tool {
 
-  private def createStringToken(string: String)(transform: String => String): StringToken = {
-    StringToken(transform(string))
-  }
+  /** Input and output stores before any are specified using in or out */
+  override lazy val defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
+
+  /** Constructs the command line string */
+  lazy val commandLine: String = LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
+  
+  private[loam] def withName(newName: String): LoamCmdTool = copy(name = newName)
+}
+
+object LoamCmdTool {
 
   implicit final class StringContextWithCmd(val stringContext: StringContext) extends AnyVal {
     /** 
+     *  String interpolator for making LoamCmdTools.
+     *  
      *  BEWARE: This method has the implicit side-effect of modifying the graph
      *          within scriptContext via the call to addToGraph()
      */
@@ -33,21 +50,16 @@ object LoamCmdTool {
 
       val toAdd = addUsing(tool, using)
       
-      //NB: Tool must be added to the graph *before* addName(), addIns(), and addOuts() are called.
+      //NB: Tool must be added to the graph *before* addIns() and addOuts() are called.
       //These methods 'mutate' the graph, and behave incorrectly if the Tool they reference isn't (yet)
       //part of the graph.
-      LoamCmdTool.addToGraph(toAdd)
+      addToGraph(toAdd)
       
-      addName(toAdd, name)
       addIns(toAdd, in)
       addOuts(toAdd, out)
 
       toAdd
     }
-  }
-  
-  private def addName(tool: LoamCmdTool, name: String): Unit = {
-    tool.projectContext.updateGraph(_.withToolName(tool, name))
   }
   
   /** Adds input stores to this tool */
@@ -97,14 +109,17 @@ object LoamCmdTool {
    */
   def create(args: Any*)(name: String, transform: String => String)
             (implicit scriptContext: LoamScriptContext, stringContext: StringContext): LoamCmdTool = {
+
+    def makeStringToken(string: String): StringToken = StringToken(transform(string))
+    
     //TODO: handle case where there are no parts (can that happen? cmd"" ?)
     val firstPart +: stringParts = stringContext.parts
 
-    val firstToken: LoamToken = createStringToken(firstPart)(transform)
+    val firstToken: LoamToken = makeStringToken(firstPart)
 
     val tokens: Seq[LoamToken] = firstToken +: {
       stringParts.zip(args).flatMap { case (stringPart, arg) =>
-        Seq(toToken(arg), createStringToken(stringPart)(transform))
+        Seq(toToken(arg), makeStringToken(stringPart))
       }
     }
 
@@ -140,39 +155,4 @@ object LoamCmdTool {
   def toString(fileManager: LoamFileManager, tokens: Seq[LoamToken]): String = {
     tokens.map(_.toString(fileManager)).mkString
   }
-}
-
-/** A command line tool specified in a Loam script */
-final case class LoamCmdTool private (
-    id: LId, 
-    name: String, 
-    val tokens: Seq[LoamToken])(implicit val scriptContext: LoamScriptContext) extends Tool {
-
-  /** Input and output stores before any are specified using in or out */
-  override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
-
-  /** Constructs the command line string */
-  def commandLine: String = LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
-
-  /*def using(dotkits: String*): LoamCmdTool = {
-    val prefix = {
-      val useuse = "source /broad/software/scripts/useuse"
-      val and = "&&"
-      val reuse = "reuse -q"
-      val reuses = dotkits.mkString(s"$reuse ", s" $and $reuse ", s" $and")
-      val openParen = "("
-      s"$useuse $and $reuses $openParen"
-    }
-
-    val useToken = StringToken(prefix)
-    val closeParenToken = StringToken(")")
-
-    val updatedTool = copy(tokens = useToken +: tokens :+ closeParenToken)
-
-    scriptContext.projectContext.updateGraph { graph =>
-      graph.updateTool(this, updatedTool)
-    }
-
-    updatedTool
-  }*/
 }

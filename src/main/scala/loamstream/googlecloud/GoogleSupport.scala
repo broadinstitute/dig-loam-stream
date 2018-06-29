@@ -19,6 +19,6 @@ object GoogleSupport {
 
     val gsutil =  context.googleConfig.gsutilBinary.toAbsolutePath
 
-    cmd"""${gsutil.render} cp ${params.mkString(" ")} ${src} ${dest}"""(name).in(src).out(dest)
+    cmd"${gsutil.render} cp ${params.mkString(" ")} ${src} ${dest}"(name = name, in = Seq(src), out = Seq(dest))
   }
 }

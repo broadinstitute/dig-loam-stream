@@ -82,9 +82,11 @@ final class LoamGraphTest extends FunSuite {
     assert(newGraph.executionEnvironments === Map(
         components.phaseTool -> Environment.Local, newTool -> Environment.Local))
     
-    assert(oldGraph.namedTools === Map("phase" -> components.phaseTool, "impute" -> components.imputeTool))
+    assert(oldGraph.namedTools("phase") === components.phaseTool)
+    assert(oldGraph.namedTools("impute") === components.imputeTool)
     
-    assert(newGraph.namedTools === Map("phase" -> components.phaseTool, "impute" -> newTool))
+    assert(newGraph.namedTools("phase") === components.phaseTool)
+    assert(newGraph.namedTools("impute") === newTool)
         
     assert(oldGraph.stores === newGraph.stores)
     assert(oldGraph.inputStores === newGraph.inputStores)
@@ -220,7 +222,8 @@ final class LoamGraphTest extends FunSuite {
     
     assert(graph.tools === Set(phaseTool, imputeTool))
     
-    assert(graph.namedTools === Map("phase" -> phaseTool))
+    assert(graph.namedTools("phase") === phaseTool)
+    assert(graph.namedTools.size === 2)
     
     val filtered = graph.without(Set(imputeTool))
     
@@ -254,7 +257,8 @@ final class LoamGraphTest extends FunSuite {
     
     assert(graph.tools === Set(phaseTool, imputeTool))
     
-    assert(graph.namedTools === Map("phase" -> phaseTool))
+    assert(graph.namedTools("phase") === phaseTool)
+    assert(graph.namedTools.size === 2)
     
     //renaming a tool
     intercept[Exception] {
@@ -265,10 +269,6 @@ final class LoamGraphTest extends FunSuite {
     intercept[Exception] {
       graph.withToolName(imputeTool, "phase")
     }
-    
-    val updatedGraph = graph.withToolName(imputeTool, "impute")
-    
-    assert(updatedGraph.namedTools === Map("phase" -> phaseTool, "impute" -> imputeTool))
   }
 }
 
@@ -290,8 +290,8 @@ object LoamGraphTest {
     val template = store.at(path("/home/myself/template.vcf")).asInput
     val imputed = store.at(outputFile)
     
-    val phaseTool = cmd"shapeit -in $raw -out $phased"().named("phase")
-    val imputeTool = cmd"impute -in $phased -template $template -out $imputed"().using("R-3.1")
+    val phaseTool = cmd"shapeit -in $raw -out $phased"(name = "phase")
+    val imputeTool = cmd"impute -in $phased -template $template -out $imputed"(using = Seq("R-3.1"))
     
     GraphComponents(
       graph = scriptContext.projectContext.graph,

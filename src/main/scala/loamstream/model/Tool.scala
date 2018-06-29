@@ -37,35 +37,35 @@ trait Tool extends LId.HasId {
   }
 
   /** Adds input stores to this tool */
-  def in(inStore: Store, inStores: Store*): this.type = in(inStore +: inStores)
+  /*def in(inStore: Store, inStores: Store*): this.type = in(inStore +: inStores)
 
-  /** Adds input stores to this tool */
+  *//** Adds input stores to this tool *//*
   def in(inStores: Iterable[Store]): this.type = {
     projectContext.updateGraph(_.withInputStores(this, inStores.toSet))
     
     this
   }
 
-  /** Adds output stores to this tool */
+  *//** Adds output stores to this tool *//*
   def out(outStore: Store, outStores: Store*): this.type = out(outStore +: outStores)
 
-  /** Adds output stores to this tool */
+  *//** Adds output stores to this tool *//*
   def out(outStores: Iterable[Store]): this.type = {
     projectContext.updateGraph(_.withOutputStores(this, outStores.toSet))
     
     this
-  }
+  }*/
 
   def workDirOpt: Option[Path] = graph.workDirs.get(this)
   
-  @deprecated(message = "Use tag(name) instead", since = "")
+  /*@deprecated(message = "Use tag(name) instead", since = "")
   def named(name: String): this.type = tag(name)
   
   def tag(name: String): this.type = {
     projectContext.updateGraph(_.withToolName(this, name))
     
     this
-  }
+  }*/
 }
 
 object Tool {

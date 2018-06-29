@@ -13,15 +13,15 @@ val d = store
 val gcloud = path("/home/unix/cgilbert/humgen/google-cloud-sdk/bin/gcloud")
 
 drm {
-  cmd"cp $a $b"().in(a).out(b)
+  cmd"cp $a $b"(in = Seq(a), out = Seq(b))
 }
 
 local {
-  cmd"cp $b $c"().in(b).out(c)
+  cmd"cp $b $c"(in = Seq(b), out = Seq(c))
 }
 
 //Basically run 'hail --help'; stresses cluster creation and teardown, plus hail invocation
 //TODO: Get cluster name and jar path from config file
 google {
-  cmd"$gcloud dataproc jobs submit spark --cluster cg-test --jar gs://loamstream/hail/hail-all-spark.jar_cloud --class org.broadinstitute.hail.driver.Main --help"().in(c).out(d)
+  cmd"$gcloud dataproc jobs submit spark --cluster cg-test --jar gs://loamstream/hail/hail-all-spark.jar_cloud --class org.broadinstitute.hail.driver.Main --help"(in = Seq(c), out = Seq(d))
 }

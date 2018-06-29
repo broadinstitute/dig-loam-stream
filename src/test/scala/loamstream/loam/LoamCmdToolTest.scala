@@ -18,6 +18,7 @@ import loamstream.model.LId
 import loamstream.model.Store
 import loamstream.util.BashScript
 import loamstream.TestHelpers
+import loamstream.util.Traversables
 
 /**
   * @author clint
@@ -109,7 +110,7 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.commandLine === s"foo bar --is 3 4 5 baz --in $nuhPath --blarg $nuhPath $zuhPath")
   }
 
-  test("using() in any order with in() and out()") {
+  test("using, in and out") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
     val input1 = 42
@@ -118,33 +119,26 @@ final class LoamCmdToolTest extends FunSuite {
     val output = store.at("/outputStore")
 
     val useuse = "source /broad/software/scripts/useuse"
-    val expectedCmdLineString =
+
+    val expectedCmdLineString = {
       s"$useuse && reuse -q R-3.1 && " +
       s"(someTool --in 42 --in input2 --in ${fileSepForBash}inputStore --out ${fileSepForBash}outputStore)"
+    }
 
-    val baseTool = cmd"someTool --in $input1 --in $input2 --in $input3 --out $output"()
+    val tool = cmd"someTool --in $input1 --in $input2 --in $input3 --out $output"(
+        in = Seq(input3), out = Seq(output), using = Seq("R-3.1"))
 
-    val toolv1 = baseTool.in(input3).out(output).using("R-3.1")
+    assert(tool.graph eq scriptContext.projectContext.graph)
+    assert(tool.graph.stores.size === 2)
+    assert(tool.graph.storeProducers.size === 1)
+    assert(tool.graph.storeConsumers.size === 2)
+    assert(tool.graph.toolInputs.size === 1)
+    assert(tool.graph.toolOutputs.size === 1)
+    assert(tool.graph.tools === Set(tool))
+    assert(tool.inputs.size === 1)
+    assert(tool.outputs.size === 1)
 
-    assert(toolv1.graph eq scriptContext.projectContext.graph)
-    assert(toolv1.graph.stores.size === 2)
-    assert(toolv1.graph.storeProducers.size === 1)
-    assert(toolv1.graph.storeConsumers.size === 2)
-    assert(toolv1.graph.toolInputs.size === 1)
-    assert(toolv1.graph.toolOutputs.size === 1)
-    assert(toolv1.graph.tools === Set(toolv1))
-    assert(toolv1.inputs.size === 1)
-    assert(toolv1.outputs.size === 1)
-
-    assert(toolv1.commandLine === expectedCmdLineString)
-
-    val toolv2 = baseTool.in(input3).using("R-3.1").out(output)
-
-    assert(toolv2.commandLine === expectedCmdLineString)
-
-    val toolv3 = baseTool.using("R-3.1").in(input3).out(output)
-
-    assert(toolv2.commandLine === expectedCmdLineString)
+    assert(tool.commandLine === expectedCmdLineString)
   }
 
   test("using() in a more complex cmd") {
@@ -154,7 +148,7 @@ final class LoamCmdToolTest extends FunSuite {
     val output = store.at("/outputStore")
     val someOtherTool = "someOtherTool"
 
-    val tool = cmd"(echo 10 ; sed '1d' $input | cut -f5- | sed 's/\t/ /g') > $output"().using(someOtherTool)
+    val tool = cmd"(echo 10 ; sed '1d' $input | cut -f5- | sed 's/\t/ /g') > $output"(using = Seq(someOtherTool))
 
     val useuse = "source /broad/software/scripts/useuse"
     val expected = s"$useuse && reuse -q someOtherTool && " +
@@ -166,7 +160,7 @@ final class LoamCmdToolTest extends FunSuite {
   test("using() with multiple tools to be 'use'd") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
-    val tool = cmd"someTool"().using("otherTool1", "otherTool2", "otherTool3")
+    val tool = cmd"someTool"(using = Seq("otherTool1", "otherTool2", "otherTool3"))
 
     val useuse = "source /broad/software/scripts/useuse"
     val expected = s"$useuse && reuse -q otherTool1 && reuse -q otherTool2 && reuse -q otherTool3 && (someTool)"
@@ -174,8 +168,10 @@ final class LoamCmdToolTest extends FunSuite {
     assert(tool.commandLine === expected)
   }
 
-  private def storeMap(stores: Iterable[Store]): Map[LId, Store] = {
-    stores.map(store => store.id -> store).toMap
+  private def storesById(stores: Iterable[Store]): Map[LId, Store] = {
+    import Traversables.Implicits._
+    
+    stores.mapBy(_.id)
   }
 
   private def tokens(values: AnyRef*): Seq[LoamToken] = values.map {
@@ -220,20 +216,25 @@ final class LoamCmdToolTest extends FunSuite {
   private def assertAddingIOStores(context: LoamProjectContext, tool: LoamCmdTool, expectedTokens: Seq[LoamToken],
                            inputsBefore: Set[Store], outputsBefore: Set[Store],
                            stores: Seq[Store], addInputsFirst: Boolean = true): Unit = {
-    val inputsMapBefore = storeMap(inputsBefore)
-    val outputsMapBefore = storeMap(outputsBefore)
-    val inputsMapAfter = storeMap(inputsBefore + stores.head + stores(2))
-    val outputsMapAfter = storeMap(outputsBefore + stores(1) + stores(3))
+    
+    val inputsMapBefore = storesById(inputsBefore)
+    val outputsMapBefore = storesById(outputsBefore)
+    val inputsMapAfter = storesById(inputsBefore + stores.head + stores(2))
+    val outputsMapAfter = storesById(outputsBefore + stores(1) + stores(3))
 
     assertGraph(context.graph, tool, expectedTokens, inputsMapBefore, outputsMapBefore)
+    
+    val inputs = Seq(stores.head, stores(2))
+    val outputs = Seq(stores(1), stores(3)) 
+    
     if (addInputsFirst) {
-      tool.in(stores.head, stores(2))
+      LoamCmdTool.addIns(tool, inputs)
       assertGraph(context.graph, tool, expectedTokens, inputsMapAfter, outputsMapBefore)
-      tool.out(stores(1), stores(3))
+      LoamCmdTool.addOuts(tool, outputs)
     } else {
-      tool.out(stores(1), stores(3))
+      LoamCmdTool.addOuts(tool, outputs)
       assertGraph(context.graph, tool, expectedTokens, inputsMapBefore, outputsMapAfter)
-      tool.in(stores.head, stores(2))
+      LoamCmdTool.addIns(tool, inputs)
     }
     assertGraph(context.graph, tool, expectedTokens, inputsMapAfter, outputsMapAfter)
   }

@@ -77,16 +77,20 @@ final case class LoamGraph(
       }
     } else {
       val (toolInputStores, toolOutputStores) = tool.defaultStores match {
-        case AllStores(toolStores) =>
-          val toolInputStores =
-            toolStores.filter(store => inputStores.contains(store) || storeProducers.contains(store))
+        case AllStores(toolStores) => {
+          val toolInputStores = toolStores.filter(s => inputStores.contains(s) || storeProducers.contains(s))
           val toolOutputStores = toolStores -- toolInputStores
+          
           (toolInputStores, toolOutputStores)
+        }
         case InputsAndOutputs(inputs, outputs) => (inputs.toSet, outputs.toSet)
       }
+      
       val outputsWithProducer = toolOutputStores.map(store => store -> tool)
-      val storeConsumersNew =
+      
+      val storeConsumersNew = {
         toolInputStores.map(store => store -> (storeConsumers.getOrElse(store, Set.empty) + tool))
+      }
 
       copy(
         tools = tools + tool,
@@ -135,7 +139,6 @@ final case class LoamGraph(
     toolInputs.getOrElse(tool, Set.empty).flatMap(storeProducers.get)
   }
 
-
   /** Tools that consume a store produced by this tool */
   def toolsSucceeding(tool: Tool): Set[Tool] = {
     toolOutputs.getOrElse(tool, Set.empty).flatMap(storeConsumers.getOrElse(_, Set.empty))
@@ -153,8 +156,7 @@ final case class LoamGraph(
   }
 
   /** Optionally the path associated with a store */
-  def pathOpt(store: Store): Option[Path] =
-  storeLocations.get(store) match {
+  def pathOpt(store: Store): Option[Path] = storeLocations.get(store) match {
     case Some(StoreLocation.PathLocation(path)) => Some(path)
     case _ => None
   }
@@ -217,8 +219,9 @@ final case class LoamGraph(
       case (store, producer) => stores(store) && producer == tool
     }
 
-    val storeConsumersNew =
+    val storeConsumersNew = {
       storeConsumers ++ stores.map(store => (store, storeConsumers.getOrElse(store, Set.empty) + tool))
+    }
 
     copy(
       toolInputs = toolInputsNew,
@@ -238,8 +241,9 @@ final case class LoamGraph(
 
     val storeProducersNew = storeProducers ++ stores.map(store => store -> tool)
 
-    val storeConsumersNew =
+    val storeConsumersNew = {
       storeConsumers ++ stores.map(store => (store, storeConsumers.getOrElse(store, Set.empty) - tool))
+    }
 
     copy(
       toolInputs = toolInputsNew,

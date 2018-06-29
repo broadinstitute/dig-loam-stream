@@ -13,7 +13,7 @@ import loamstream.loam.LoamCmdTool
 final class ToolTest extends FunSuite {
   //TODO: More!!!
   
-  test("named/tag") {
+  /*test("named/tag") {
     def doTest(method: Tool => String => Tool): Unit = {
       implicit val scriptContext: LoamScriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
       
@@ -63,5 +63,5 @@ final class ToolTest extends FunSuite {
     
     doTest(_.named)
     doTest(_.tag)
-  }
+  }*/
 }

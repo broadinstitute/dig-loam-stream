@@ -74,6 +74,8 @@ import loamstream.util.Tries
 import scala.concurrent.duration.Duration
 import scala.util.Try
 import scala.util.Success
+import loamstream.model.execute.ExecutionRecorder
+import loamstream.model.execute.DbBackedExecutionRecorder
 
 
 /**
@@ -91,6 +93,8 @@ trait AppWiring {
   def cloudStorageClient: Option[CloudStorageClient]
   
   def jobFilter: JobFilter
+  
+  def executionRecorder: ExecutionRecorder
 
   def shutdown(): Seq[Throwable]
   
@@ -111,7 +115,9 @@ object AppWiring extends Loggable {
   }
   
   def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
-    makeJobFilter(intent.shouldRunEverything, intent.hashingStrategy, makeDao)
+    val (jobFilter, _) = makeJobFilter(intent.shouldRunEverything, intent.hashingStrategy, makeDao)
+    
+    jobFilter
   }
   
   def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
@@ -126,10 +132,14 @@ object AppWiring extends Loggable {
   private[AppWiring] def makeJobFilter(
       shouldRunEverything: Boolean,
       hashingStrategy: HashingStrategy,
-      dao: => LoamDao): JobFilter = {
+      getDao: => LoamDao): (JobFilter, ExecutionRecorder) = {
     
-    if (shouldRunEverything) { JobFilter.RunEverything }
-    else { new DbBackedJobFilter(dao, hashingStrategy) }
+    if (shouldRunEverything) { (JobFilter.RunEverything, ExecutionRecorder.DontRecord) }
+    else {
+      val dao = getDao
+      
+      (new DbBackedJobFilter(dao, hashingStrategy), new DbBackedExecutionRecorder(dao)) 
+    }
   }  
   
   private final class DefaultAppWiring(
@@ -149,7 +159,9 @@ object AppWiring extends Loggable {
 
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(confFile, config)
 
-    override lazy val jobFilter: JobFilter = makeJobFilter(shouldRunEverything, hashingStrategy, dao)
+    override lazy val (jobFilter: JobFilter, executionRecorder: ExecutionRecorder) = {
+      makeJobFilter(shouldRunEverything, hashingStrategy, dao)
+    }
     
     private lazy val terminableExecuter: TerminableExecuter = {
       trace("Creating executer...")
@@ -176,6 +188,7 @@ object AppWiring extends Loggable {
             new FileMonitor(outputPollingFrequencyInHz, maxWaitTimeForOutputs),
             windowLength, 
             jobFilter, 
+            executionRecorder,
             maxRunsPerJob)(executionContextWithThreadPool)
       }
 

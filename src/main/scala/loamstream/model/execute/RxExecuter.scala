@@ -39,6 +39,7 @@ final case class RxExecuter(
     fileMonitor: FileMonitor,
     windowLength: Duration,
     jobFilter: JobFilter,
+    executionRecorder: ExecutionRecorder,
     maxRunsPerJob: Int,
     stopHandle: Option[Terminable] = None)
     (implicit val executionContext: ExecutionContext) extends Executer with Loggable {
@@ -149,7 +150,7 @@ final case class RxExecuter(
   }
 
   private def record(executionMap: Map[LJob, Execution]): Unit = {
-    jobFilter.record(executionMap.values)
+    executionRecorder.record(executionMap.values)
   }
 }
 
@@ -161,6 +162,8 @@ object RxExecuter extends Loggable {
   
     val jobFilter: JobFilter = JobFilter.RunEverything
   
+    val executionRecorder: ExecutionRecorder = ExecutionRecorder.DontRecord
+    
     val maxRunsPerJob: Int = 4
     
     lazy val executionConfig: ExecutionConfig = ExecutionConfig.default
@@ -180,6 +183,7 @@ object RxExecuter extends Loggable {
         Defaults.fileMonitor, 
         Defaults.windowLengthInSec, 
         Defaults.jobFilter, 
+        Defaults.executionRecorder,
         Defaults.maxRunsPerJob)
   }
 
@@ -193,14 +197,28 @@ object RxExecuter extends Loggable {
         Defaults.fileMonitor,
         Defaults.windowLengthInSec, 
         Defaults.jobFilter, 
+        Defaults.executionRecorder,
         Defaults.maxRunsPerJob, 
         Option(ecHandle))(executionContext)
   }
   
-  def defaultWith(newJobFilter: JobFilter): RxExecuter = {
-    val d = default
+  def defaultWith(
+      newJobFilter: JobFilter = Defaults.jobFilter, 
+      newExecutionRecorder: ExecutionRecorder = Defaults.executionRecorder): RxExecuter = {
     
-    d.copy(jobFilter = newJobFilter)(d.executionContext)
+    def addJobFilter(rxe: RxExecuter): RxExecuter = {
+      implicit val context = rxe.executionContext 
+      
+      if(newJobFilter eq rxe.jobFilter) rxe else rxe.copy(jobFilter = newJobFilter)
+    }
+    
+    def addExecutionRecorder(rxe: RxExecuter): RxExecuter = {
+      implicit val context = rxe.executionContext
+      
+      if(newExecutionRecorder eq rxe.executionRecorder) rxe else rxe.copy(executionRecorder = newExecutionRecorder)
+    }
+    
+    addExecutionRecorder(addJobFilter(default))
   }
   
   private[execute] def shouldRestart(job: LJob, maxRunsPerJob: Int): Boolean = {

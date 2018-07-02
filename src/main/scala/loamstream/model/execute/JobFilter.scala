@@ -9,14 +9,10 @@ import loamstream.model.jobs.Execution
  */
 trait JobFilter {
   def shouldRun(job: LJob): Boolean
-
-  def record(executions: Iterable[Execution]): Unit
 }
 
 object JobFilter {
   object RunEverything extends JobFilter {
     override def shouldRun(job: LJob): Boolean = true
-
-    override def record(executions: Iterable[Execution]): Unit = ()
   }
 }

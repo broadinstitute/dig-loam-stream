@@ -36,7 +36,13 @@ final class RxExecuterTest extends FunSuite {
     import RxExecuter.Defaults.fileMonitor
     
     val executer = {
-      RxExecuter(runner, fileMonitor, 0.1.seconds, JobFilter.RunEverything, maxRunsPerJob = maxRestarts + 1)
+      RxExecuter(
+          runner, 
+          fileMonitor, 
+          0.1.seconds, 
+          JobFilter.RunEverything, 
+          ExecutionRecorder.DontRecord, 
+          maxRunsPerJob = maxRestarts + 1)
     }
     
     ExecutionResults(
@@ -72,20 +78,23 @@ final class RxExecuterTest extends FunSuite {
     
     import RxExecuter.Defaults.fileMonitor
     
+    val jobFilter = JobFilter.RunEverything
+    val executionRecorder = ExecutionRecorder.DontRecord
+    
     intercept[Exception] {
-      RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, -1)
+      RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, -1)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, 0)
+      RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, 0)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, -100)
+      RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, -100)
     }
     
-    RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, 1)
-    RxExecuter(runner, fileMonitor, 0.25.seconds, JobFilter.RunEverything, 42)
+    RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, 1)
+    RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, 42)
   }
 
   import RxExecuterTest.JobOrderOps
@@ -667,7 +676,13 @@ final class RxExecuterTest extends FunSuite {
     import RxExecuter.Defaults.fileMonitor
     
     val executer = {
-      RxExecuter(runner, fileMonitor, 0.1.seconds, JobFilter.RunEverything, maxRestartsAllowed + 1)
+      RxExecuter(
+          runner, 
+          fileMonitor, 
+          0.1.seconds, 
+          JobFilter.RunEverything, 
+          ExecutionRecorder.DontRecord, 
+          maxRestartsAllowed + 1)
     }
     
     (runner, executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])))

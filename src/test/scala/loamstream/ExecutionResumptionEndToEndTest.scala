@@ -22,6 +22,7 @@ import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamCmdTool
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.JobNode
+import loamstream.model.execute.DbBackedExecutionRecorder
 
 /**
   * @author kaan
@@ -288,17 +289,17 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
   private def makeWorkDir(): Path = TestHelpers.getWorkDir(getClass.getSimpleName)
 
-  private val dbBackedJobFilter = new DbBackedJobFilter(dao)
-  
-  private val resumptiveExecuter = RxExecuter.defaultWith(dbBackedJobFilter)
-
   private def makeLoggingExecuter: (RxExecuter, MockChunkRunner) = {
     val asyncChunkRunner = AsyncLocalChunkRunner(ExecutionConfig.default)(ExecutionContext.global)
 
     val mockRunner = MockChunkRunner(asyncChunkRunner)
 
+    val delegateExecuter: RxExecuter = {
+      RxExecuter.defaultWith(new DbBackedJobFilter(dao), new DbBackedExecutionRecorder(dao))
+    }
+    
     val resultExecuter = {
-      resumptiveExecuter.copy(runner = mockRunner, maxRunsPerJob = 1)(resumptiveExecuter.executionContext)
+      delegateExecuter.copy(runner = mockRunner, maxRunsPerJob = 1)(delegateExecuter.executionContext)
     }
     
     (resultExecuter, mockRunner)

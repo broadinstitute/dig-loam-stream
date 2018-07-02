@@ -6,6 +6,7 @@ import loamstream.db.LoamDao
 import loamstream.model.execute.Executer
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.model.execute.JobFilter
+import loamstream.model.execute.ExecutionRecorder
 
 /**
  * @author clint
@@ -46,6 +47,8 @@ object MainTest {
     override def cloudStorageClient: Option[CloudStorageClient] = ???
 
     override def jobFilter: JobFilter = ???
+    
+    override def executionRecorder: ExecutionRecorder = ???
     
     override def shutdown(): Seq[Throwable] = {
       shutdownInvocations += 1

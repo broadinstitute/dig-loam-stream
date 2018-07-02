@@ -41,4 +41,6 @@ trait ProvidesSlickLoamDao {
       
     f
   }
+  
+  protected def executions: Set[Execution] = dao.allExecutions.toSet
 }

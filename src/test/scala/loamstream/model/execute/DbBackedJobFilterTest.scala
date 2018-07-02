@@ -24,8 +24,7 @@ import loamstream.model.jobs.LJob
  * @author clint
  *         date: Sep 30, 2016
  */
-final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
-  with PrivateMethodTester with ProvidesEnvAndResources {
+final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao with ProvidesEnvAndResources {
 
   private val p0 = Paths.get("src/test/resources/for-hashing/foo.txt")
   private val p1 = Paths.get("src/test/resources/for-hashing/empty.txt")
@@ -45,8 +44,6 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   private val failedOutput0 = failedOutput(p0)
   private val failedOutput1 = failedOutput(p1)
   private val failedOutput2 = failedOutput(p2)
-
-  private def executions = dao.allExecutions.toSet
 
   import loamstream.model.jobs.JobResult._
   import TestHelpers.dummyOutputStreams
@@ -70,150 +67,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     assert(cachedNonExistentOutput.isMissing)
   }
   
-  test("record() - no Executions") {
-    createTablesAndThen {
-      val filter = new DbBackedJobFilter(dao)
-
-      assert(executions === Set.empty)
-
-      filter.record(Nil)
-
-      assert(executions === Set.empty)
-    }
-  }
-
-  test("record() - non-command-Execution") {
-    def doTest(
-        command: Option[String], 
-        status: JobStatus, 
-        result: Option[JobResult] = None): Unit = {
-      createTablesAndThen {
-        val filter = new DbBackedJobFilter(dao)
-  
-        assert(executions === Set.empty)
-  
-        val e = Execution(
-            env = mockEnv, 
-            cmd = command, 
-            status = status, 
-            result = result, 
-            resources = Option(mockResources),
-            outputStreams = None,
-            outputs = Set.empty[OutputRecord])
-
-        assert(e.isCommandExecution === false)
-        
-        filter.record(Seq(e))
-  
-        assert(executions === Set.empty)
-      }
-    }
-    
-    doTest(None, JobStatus.Succeeded, Option(CommandResult(0)))
-    doTest(None, JobStatus.Failed, Option(JobResult.Failure))
-    doTest(None, JobStatus.Succeeded)
-    doTest(Some(mockCmd), JobStatus.Failed)
-    doTest(Some(mockCmd), JobStatus.Succeeded)
-  }
-
-  test("record() - successful command-Execution, no outputs") {
-    createTablesAndThen {
-      val filter = new DbBackedJobFilter(dao)
-
-      assert(executions === Set.empty)
-
-      val cr = CommandResult(0)
-
-      assert(cr.isSuccess)
-
-      val e = Execution(
-          env = mockEnv, 
-          cmd = Option(mockCmd), 
-          status = cr.toJobStatus, 
-          result = Option(cr), 
-          resources = Option(mockResources),
-          outputStreams = Some(dummyOutputStreams),
-          outputs = Set.empty[OutputRecord])
-
-      filter.record(Seq(e))
-
-      assertEqualFieldsFor(executions, Set(e))
-    }
-  }
-
-  test("record() - failed command-Execution, no outputs") {
-    createTablesAndThen {
-      val filter = new DbBackedJobFilter(dao)
-
-      assert(executions === Set.empty)
-
-      val cr = CommandResult(42)
-
-      assert(cr.isFailure)
-
-      val e = Execution(
-          env = mockEnv, 
-          cmd = Option(mockCmd), 
-          status = cr.toJobStatus, 
-          result = Option(cr),
-          resources = Option(mockResources),
-          outputStreams = Some(dummyOutputStreams),
-          outputs = Set.empty[OutputRecord])
-
-      filter.record(Seq(e))
-
-      assertEqualFieldsFor(executions, Set(e))
-    }
-  }
-
-  test("record() - successful command-Execution, some outputs") {
-    createTablesAndThen {
-      val filter = new DbBackedJobFilter(dao)
-
-      assert(executions === Set.empty)
-
-      val cr = CommandResult(0)
-
-      assert(cr.isSuccess)
-
-      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set[Output](o0, o1, o2))
-      val withHashedOutputs = e.withOutputRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
-
-      filter.record(Seq(e))
-
-      assertEqualFieldsFor(executions, Set(withHashedOutputs))
-    }
-  }
-
-  test("record() - failed command-Execution, some outputs") {
-    createTablesAndThen {
-      val filter = new DbBackedJobFilter(dao)
-
-      assert(executions === Set.empty)
-
-      val cr = CommandResult(42)
-
-      assert(cr.isFailure)
-
-      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set[Output](o0, o1, o2))
-
-      filter.record(Seq(e))
-
-      val expected = Set(
-          Execution(
-              env = mockEnv, 
-              cmd = mockCmd, 
-              result = CommandResult(42),
-              outputStreams = e.outputStreams.get,
-              outputs = failedOutput0, failedOutput1, failedOutput2))
-      
-      assertEqualFieldsFor(executions, expected)
-    }
-  }
-
   test("shouldRun - failed and successful runs") {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
+      val recorder = new DbBackedExecutionRecorder(dao)
         
       val jobName = "dummyJob"
       
@@ -244,7 +101,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
           Execution.fromOutputs(mockEnv, successfulCommandLine, success, outputStreams, successfulJob.outputs)
         }
   
-        filter.record(Seq(failedExec, successfulExec))
+        recorder.record(Seq(failedExec, successfulExec))
       }
       
       //Doesn't need to be re-run
@@ -258,6 +115,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   test("needsToBeRun/hasDifferentHash/hasDifferentModTime - should hash") {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
+      val recorder = new DbBackedExecutionRecorder(dao)
       
       val jobName = "dummyJob"
 
@@ -276,7 +134,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
           Execution.fromOutputs(mockEnv, mockCmd, success, dummyOutputStreams, Set[Output](o1, nonExistentOutput))
         }
   
-        filter.record(Seq(failedExec, successfulExec))
+        recorder.record(Seq(failedExec, successfulExec))
       }
 
       // Missing record:  'hasDifferentHash' --> false
@@ -340,6 +198,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   test("needsToBeRun/hasDifferentHash/hasDifferentModTime - hashing disabled") {
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.DontHashOutputs)
+      val recorder = new DbBackedExecutionRecorder(dao)
       val jobName = "dummyJob"
 
       assert(executions === Set.empty)
@@ -357,7 +216,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
           Execution.fromOutputs(mockEnv, mockCmd, success, dummyOutputStreams, Set[Output](o1, nonExistentOutput))
         }
   
-        filter.record(Seq(failedExec, successfulExec))
+        recorder.record(Seq(failedExec, successfulExec))
       }
 
       // Missing record:  'hasDifferentHash' --> false
@@ -446,9 +305,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
+      val recorder = new DbBackedExecutionRecorder(dao)
       val outputs = Set[Output](o0, o1)
 
-      filter.record(Iterable(execution(cmd0, outputs)))
+      recorder.record(Iterable(execution(cmd0, outputs)))
 
       assert(filter.findCommandLineInDb(o0.location) === Some(cmd0))
       assert(filter.findCommandLineInDb(o1.location) === Some(cmd0))
@@ -457,7 +317,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
       assert(filter.hasNewCommandLine(cmdLineJob0) === false)
 
-      filter.record(Iterable(execution(cmd1, Set[Output](o2))))
+      recorder.record(Iterable(execution(cmd1, Set[Output](o2))))
       
       val cmdLineJob1 = cmdLineJob("cmd1-altered", Set(o2))
 

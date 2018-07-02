@@ -10,18 +10,22 @@ import scala.util.matching.Regex
  */
 object ByNameJobFilter {
   private[this] final implicit class RegexOps(val regex: Regex) extends AnyVal {
-    def matches(input: String): Boolean = regex.pattern.matcher(input).matches
+    def matches(input: String): Boolean = regex.findFirstMatchIn(input).isDefined
     
     def doesntMatch(input: String): Boolean = !matches(input)
   }
   
-  def only(regex: Regex): JobFilter = new JobFilter {
-    //TODO
-    override def shouldRun(job: LJob): Boolean = regex.matches(job.name)
+  def allOf(regex: Regex, rest: Regex*): JobFilter = new JobFilter {
+    override def shouldRun(job: LJob): Boolean = (regex +: rest).forall(_.matches(job.name))
   }
   
-  def except(regex: Regex): JobFilter = new JobFilter {
-    //TODO
-    override def shouldRun(job: LJob): Boolean = regex.doesntMatch(job.name)
+  def anyOf(regex: Regex, rest: Regex*): JobFilter = new JobFilter {
+    override def shouldRun(job: LJob): Boolean = (regex +: rest).exists(_.matches(job.name))
   }
+  
+  def noneOf(regex: Regex, rest: Regex*): JobFilter = new JobFilter {
+    override def shouldRun(job: LJob): Boolean = (regex +: rest).forall(_.doesntMatch(job.name))
+  }
+  
+  
 }

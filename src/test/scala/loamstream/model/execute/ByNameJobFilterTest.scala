@@ -12,17 +12,17 @@ import loamstream.model.jobs.LJob
 final class ByNameJobFilterTest extends FunSuite {
   private def mockJob(name: String): LJob = MockJob(toReturn = JobStatus.Succeeded, name = name)
   
-  val foo123 = mockJob("foo123")
-  val foo = mockJob("foo")
-  val oneTwoThree = mockJob("123")
+  private val foo123 = mockJob("foo123")
+  private val foo = mockJob("foo")
+  private val oneTwoThree = mockJob("123")
   
-  val letters = "[a-z]+".r
-  val numbers = "\\d+".r
-  val twentyThree = "23".r
-  val fs = "f+".r
-  val os = "o+".r
-  val xes = "x+".r
-  val ys = "y+".r
+  private val letters = "[a-z]+".r
+  private val numbers = "\\d+".r
+  private val twentyThree = "23".r
+  private val fs = "f+".r
+  private val os = "o+".r
+  private val xes = "x+".r
+  private val ys = "y+".r
   
   test("allOf") {
     import ByNameJobFilter.allOf

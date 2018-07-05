@@ -5,6 +5,7 @@ import loamstream.model.execute.HashingStrategy
 import java.net.URI
 import loamstream.util.Loggable
 import loamstream.drm.DrmSystem
+import org.rogach.scallop.ScallopOption
 
 /**
  * @author clint
@@ -29,17 +30,23 @@ object Intent extends Loggable {
   final case class CompileOnly(confFile: Option[Path], loams: Seq[Path]) extends Intent
 
   final case class DryRun(
-    confFile: Option[Path],
-    hashingStrategy: HashingStrategy,
-    shouldRunEverything: Boolean,
-    loams: Seq[Path]) extends Intent
+      confFile: Option[Path],
+      hashingStrategy: HashingStrategy,
+      jobFilterIntent: JobFilterIntent,
+      loams: Seq[Path]) extends Intent {
+    
+    def shouldRunEverything: Boolean = jobFilterIntent == JobFilterIntent.RunEverything 
+  }
 
   final case class RealRun(
-    confFile: Option[Path],
-    hashingStrategy: HashingStrategy,
-    shouldRunEverything: Boolean,
-    drmSystemOpt: Option[DrmSystem],
-    loams: Seq[Path]) extends Intent
+      confFile: Option[Path],
+      hashingStrategy: HashingStrategy,
+      jobFilterIntent: JobFilterIntent,
+      drmSystemOpt: Option[DrmSystem],
+      loams: Seq[Path]) extends Intent {
+    
+    def shouldRunEverything: Boolean = jobFilterIntent == JobFilterIntent.RunEverything
+  }
 
   def from(cli: Conf): Either[String, Intent] = from(cli.toValues)
     
@@ -62,37 +69,38 @@ object Intent extends Loggable {
     else if (confDoesntExist) { Left(s"Config file '${values.conf.get}' specified, but it doesn't exist.") }
     else if (values.lookupSupplied) { Right(LookupOutput(values.conf, values.lookup.get)) }
     else if (compileOnly(values)) { Right(CompileOnly(values.conf, values.loams)) }
-    else if (dryRun(values)) {
-      Right(makeDryRun(values))
-    } else if (allLoamsExist) {
-      Right(makeRealRun(values))
-    } else if (noLoamsSupplied) {
-      Left("No loam files specified.")
-    } else if (!allLoamsExist) {
-      Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}")
-    } else {
-      Left("Malformed command line.")
-    }
+    else if (dryRun(values)) { Right(makeDryRun(values)) } 
+    else if (allLoamsExist) { Right(makeRealRun(values)) } 
+    else if (noLoamsSupplied) { Left("No loam files specified.") } 
+    else if (!allLoamsExist) { Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}") } 
+    else { Left("Malformed command line.") }
   }
 
-  private def makeDryRun(values: Conf.Values): DryRun = DryRun(
-    confFile = values.conf,
-    hashingStrategy = determineHashingStrategy(values),
-    shouldRunEverything = values.runEverythingSupplied,
-    loams = values.loams)
+  private def makeDryRun(values: Conf.Values): DryRun = {
+    DryRun(
+      confFile = values.conf,
+      hashingStrategy = determineHashingStrategy(values),
+      jobFilterIntent = determineJobFilterIntent(values),
+      loams = values.loams)
+  }
 
   private def makeRealRun(values: Conf.Values): RealRun = {
    
-    val drmSystemOpt: Option[DrmSystem] = {
-      if(values.ugerSupplied) { Some(DrmSystem.Uger) }
-      else if(values.lsfSupplied) { Some(DrmSystem.Lsf) }
-      else { None }
+    def toDrmSystem(backendName: String): Option[DrmSystem] = backendName.toLowerCase match {
+      case Conf.BackendNames.Uger => Some(DrmSystem.Uger)
+      case Conf.BackendNames.Lsf => Some(DrmSystem.Lsf)
+      case _ => None
     }
     
+    val drmSystemOpt: Option[DrmSystem] = for {
+      backend <- values.backend
+      drmSystem <- toDrmSystem(backend)
+    } yield drmSystem
+
     RealRun(
       confFile = values.conf,
       hashingStrategy = determineHashingStrategy(values),
-      shouldRunEverything = values.runEverythingSupplied,
+      jobFilterIntent = determineJobFilterIntent(values),
       drmSystemOpt = drmSystemOpt,
       loams = values.loams)
   }
@@ -111,5 +119,25 @@ object Intent extends Loggable {
     import HashingStrategy.{ DontHashOutputs, HashOutputs }
 
     if (values.disableHashingSupplied) DontHashOutputs else HashOutputs
+  }
+  
+  private def noneSupplied(as: Option[Seq[String]], bs: Option[Seq[String]], cs: Option[Seq[String]]): Boolean = {
+    as.isEmpty && bs.isEmpty && cs.isEmpty 
+  }
+  
+  private[cli] def determineJobFilterIntent(values: Conf.Values): JobFilterIntent = {
+    def nameOf(field: Conf => ScallopOption[_]) = field(values.derivedFrom).name
+    
+    def toRegexes(regexStrings: Seq[String]) = regexStrings.map(_.r)
+    
+    import JobFilterIntent._
+    
+    values.run match {
+      case Some((Conf.RunStrategies.Everything, _)) => RunEverything
+      case Some((Conf.RunStrategies.AllOf, regexStrings)) => RunIfAllMatch(toRegexes(regexStrings))
+      case Some((Conf.RunStrategies.AnyOf, regexStrings)) => RunIfAnyMatch(toRegexes(regexStrings))
+      case Some((Conf.RunStrategies.NoneOf, regexStrings)) => RunIfNoneMatch(toRegexes(regexStrings))
+      case _ => DontFilterByName
+    }
   }
 }

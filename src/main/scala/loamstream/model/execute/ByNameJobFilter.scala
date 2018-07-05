@@ -15,17 +15,27 @@ object ByNameJobFilter {
     def doesntMatch(input: String): Boolean = !matches(input)
   }
   
-  def allOf(regex: Regex, rest: Regex*): JobFilter = new JobFilter {
-    override def shouldRun(job: LJob): Boolean = (regex +: rest).forall(_.matches(job.name))
+  def allOf(regex: Regex, rest: Regex*): JobFilter = allOf(regex +: rest)
+  
+  def allOf(regexes: Seq[Regex]): JobFilter = new AllOf(regexes)
+  
+  def anyOf(regex: Regex, rest: Regex*): JobFilter = anyOf(regex +: rest)
+  
+  def anyOf(regexes: Seq[Regex]): JobFilter = new AnyOf(regexes)
+  
+  def noneOf(regex: Regex, rest: Regex*): JobFilter = noneOf(regex +: rest)
+  
+  def noneOf(regexes: Seq[Regex]): JobFilter = new NoneOf(regexes)
+  
+  final class AllOf(regexes: Seq[Regex]) extends JobFilter {
+    override def shouldRun(job: LJob): Boolean = regexes.forall(_.matches(job.name))
   }
   
-  def anyOf(regex: Regex, rest: Regex*): JobFilter = new JobFilter {
-    override def shouldRun(job: LJob): Boolean = (regex +: rest).exists(_.matches(job.name))
+  final class AnyOf(regexes: Seq[Regex]) extends JobFilter {
+    override def shouldRun(job: LJob): Boolean = regexes.exists(_.matches(job.name))
   }
   
-  def noneOf(regex: Regex, rest: Regex*): JobFilter = new JobFilter {
-    override def shouldRun(job: LJob): Boolean = (regex +: rest).forall(_.doesntMatch(job.name))
+  final class NoneOf(regexes: Seq[Regex]) extends JobFilter {
+    override def shouldRun(job: LJob): Boolean = regexes.forall(_.doesntMatch(job.name))
   }
-  
-  
 }

@@ -76,6 +76,8 @@ import scala.util.Try
 import scala.util.Success
 import loamstream.model.execute.ExecutionRecorder
 import loamstream.model.execute.DbBackedExecutionRecorder
+import loamstream.cli.JobFilterIntent
+import loamstream.model.execute.ByNameJobFilter
 
 
 /**
@@ -115,7 +117,7 @@ object AppWiring extends Loggable {
   }
   
   def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
-    val (jobFilter, _) = makeJobFilter(intent.shouldRunEverything, intent.hashingStrategy, makeDao)
+    val (jobFilter, _) = makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, makeDao)
     
     jobFilter
   }
@@ -124,28 +126,35 @@ object AppWiring extends Loggable {
     new DefaultAppWiring(
         confFile = intent.confFile,
         makeDao = makeDao,
-        shouldRunEverything = intent.shouldRunEverything, 
+        jobFilterIntent = intent.jobFilterIntent, 
         hashingStrategy = intent.hashingStrategy,
         drmSystemOpt = intent.drmSystemOpt)
   }
 
   private[AppWiring] def makeJobFilter(
-      shouldRunEverything: Boolean,
+      jobFilterIntent: JobFilterIntent,
       hashingStrategy: HashingStrategy,
       getDao: => LoamDao): (JobFilter, ExecutionRecorder) = {
     
-    if (shouldRunEverything) { (JobFilter.RunEverything, ExecutionRecorder.DontRecord) }
-    else {
-      val dao = getDao
-      
-      (new DbBackedJobFilter(dao, hashingStrategy), new DbBackedExecutionRecorder(dao)) 
+    val dao = getDao
+    
+    import JobFilterIntent._
+    
+    val jobFilter = jobFilterIntent match {
+      case RunEverything => JobFilter.RunEverything
+      case RunIfAllMatch(regexes) => ByNameJobFilter.allOf(regexes)
+      case RunIfAnyMatch(regexes) => ByNameJobFilter.anyOf(regexes)
+      case RunIfNoneMatch(regexes) => ByNameJobFilter.noneOf(regexes)
+      case _ => new DbBackedJobFilter(dao, hashingStrategy)
     }
+    
+    (jobFilter, new DbBackedExecutionRecorder(dao))
   }  
   
   private final class DefaultAppWiring(
       confFile: Option[Path],
       makeDao: => LoamDao,
-      shouldRunEverything: Boolean,
+      jobFilterIntent: JobFilterIntent,
       hashingStrategy: HashingStrategy,
       drmSystemOpt: Option[DrmSystem]) extends AppWiring {
     
@@ -160,7 +169,7 @@ object AppWiring extends Loggable {
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(confFile, config)
 
     override lazy val (jobFilter: JobFilter, executionRecorder: ExecutionRecorder) = {
-      makeJobFilter(shouldRunEverything, hashingStrategy, dao)
+      makeJobFilter(jobFilterIntent, hashingStrategy, dao)
     }
     
     private lazy val terminableExecuter: TerminableExecuter = {

@@ -11,6 +11,8 @@ import loamstream.util.Versions
 import java.net.URI
 import loamstream.model.execute.HashingStrategy
 import loamstream.util.IoUtils
+import loamstream.util.Options
+import loamstream.cli.Conf.BackendNames
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -33,7 +35,11 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   
   /** Inform the user about expected usage upon erroneous input/behaviour. */
   override def onError(e: Throwable): Unit = e match {
-    case ScallopException(message) => printHelp(message)
+    case e @ ScallopException(message) => {
+      printHelp(message)
+      
+      throw new CliException(e)
+    }
     case ex => super.onError(ex)
   }
 
@@ -43,7 +49,7 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
     }
   }
 
-  private val listPathConverter: ValueConverter[List[Path]] = listArgConverter[Path](Paths.get(_))
+  private val listPathConverter: ValueConverter[Seq[Path]] = listArgConverter[Path](Paths.get(_)).map(_.toSeq)
   
   // TODO: Add version info (ideally from build.sbt)?
   banner("""LoamStream is a genomic analysis stack featuring a high-level language, compiler and runtime engine.
@@ -54,75 +60,129 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
            |""".stripMargin)
   
            
-  //Using all default args for `opt` makes it a flag 
+  /** Whether to show version info and quit */         
   val version: ScallopOption[Boolean] = opt[Boolean](descr = "Print version information and exit")
   
-  //Using all default args for `opt` makes it a flag 
+  /** Whether to show usage info and quit */
   val help: ScallopOption[Boolean] = opt[Boolean](descr = "Show help and exit")
   
-  //Using all default args for `opt` makes it a flag 
-  val runEverything: ScallopOption[Boolean] = opt[Boolean](
-      descr = "Run every step in the pipeline, even if they've already been run")
+  val run: ScallopOption[List[String]] = opt(
+      descr = "How to run jobs: " +
+              "<everything> - always run jobs, never skip them; " +
+              "<allOf> <regexes> - run jobs if their names match ALL of the passed regexes" +
+              "<anyOf> <regexes> - run jobs if their names match ANY of the passed regexes" +
+              "<noneOf> <regexes> - run jobs if their names match NONE of the passed regexes",
+      required = false)
   
-  //Using all default args for `opt` makes it a flag 
+  /** 
+   *  Compile loam files (evaluate them to produce a LoamGraph, or print compilation errors), 
+   *  but not execute the jobs declared in them 
+   */
   val compileOnly: ScallopOption[Boolean] = opt[Boolean](
       descr = "Only compile the supplied .loam files, don't run them")
       
-  //Using all default args for `opt` makes it a flag 
+  /** 
+   *  Print a list of what jobs would be executed, without executing anything
+   */
   val dryRun: ScallopOption[Boolean] = opt[Boolean](
       descr = "Show what commands would be run without running them")
 
+  /**
+   *  Path to LoamStream's config file
+   */
   val conf: ScallopOption[Path] = opt[Path](descr = "Path to config file")
 
-  val loams: ScallopOption[List[Path]] = trailArg[List[Path]](
+  /**
+   *  The .loam files to evaluate
+   */
+  val loams: ScallopOption[Seq[Path]] = opt[Seq[Path]](
       descr = "Path(s) to loam script(s)",
       required = false,
       validate = _.nonEmpty)(listPathConverter)
 
+  /**
+   * Look up information about a job that produced a path or URI
+   */
   val lookup: ScallopOption[Either[Path, URI]] = opt[Either[Path, URI]](
       descr = "Path to output file or URI; look up info on command that made it",
       required = false)(ValueConverters.PathOrGoogleUriConverter)
       
+  /**
+   * Don't hash job outputs when determining whether jobs may be skipped
+   */
   val disableHashing: ScallopOption[Boolean] = opt[Boolean](
       descr = "Don't hash files when determining whether a job may be skipped.",
       required = false)
-      
-  //Using all default args for `opt` makes it a flag 
-  val uger: ScallopOption[Boolean] = opt[Boolean](descr = "Run DRM jobs on Uger")
   
-  //Using all default args for `opt` makes it a flag 
-  val lsf: ScallopOption[Boolean] = opt[Boolean](descr = "Run DRM jobs on LSF")
-      
+  /**
+   * The DRM backend to use, wither 'lsf' or 'uger'
+   */
+  val backend: ScallopOption[String] = {
+    opt(descr = s"The backend to run jobs on. Options are: ${BackendNames.values.mkString(",")}")
+  }
+  
+  //NB: Makes Scallop behave
+  val trailing: ScallopOption[List[String]] = trailArg(required = false)
+  
   //NB: Required by Scallop
   verify()
   
-  def toValues: Conf.Values = Conf.Values(
+  def toValues: Conf.Values = {
+    import Options.Implicits._
+    
+    def getRun: Option[(String, Seq[String])] = for {
+      r <- run.toOption
+      discriminator <- r.headOption
+      rest = if(r.isEmpty) r else r.tail
+    } yield (discriminator, rest)
+    
+    import Conf.RunStrategies
+    import Conf.BackendNames
+      
+    Conf.Values(
       loams = loams.toOption.toSeq.flatten,
       lookup = lookup.toOption,
       conf = conf.toOption,
       helpSupplied = help.isSupplied,
       versionSupplied = version.isSupplied,
-      runEverythingSupplied = runEverything.isSupplied,
       compileOnlySupplied = compileOnly.isSupplied,
       dryRunSupplied = dryRun.isSupplied,
       disableHashingSupplied = disableHashing.isSupplied,
-      ugerSupplied = uger.isSupplied,
-      lsfSupplied = lsf.isSupplied)
+      backend = backend.toOption,
+      run = getRun,
+      this)
+  }
 }
 
 object Conf {
+  object BackendNames {
+    val Lsf = "lsf"
+    val Uger = "uger"
+    
+    val values: Seq[String] = Seq(Lsf, Uger)
+  }
+  
+  object RunStrategies {
+    val Everything = "everything"
+    val AllOf = "allOf"
+    val AnyOf = "anyOf"
+    val NoneOf = "noneOf"
+    
+    val values: Seq[String] = Seq(Everything, AllOf, AnyOf, NoneOf)
+  }
+  
   final case class Values(
       loams: Seq[Path],
       lookup: Option[Either[Path, URI]],
       conf: Option[Path],
       helpSupplied: Boolean,
       versionSupplied: Boolean,
-      runEverythingSupplied: Boolean,
       compileOnlySupplied: Boolean,
       dryRunSupplied: Boolean,
       disableHashingSupplied: Boolean,
-      ugerSupplied: Boolean,
-      lsfSupplied: Boolean) {
+      backend: Option[String],
+      run: Option[(String, Seq[String])],
+      derivedFrom: Conf) {
     
     def lookupSupplied: Boolean = lookup.isDefined
     

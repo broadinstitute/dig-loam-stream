@@ -20,6 +20,8 @@ import rx.lang.scala.Observable
  * @author kyuksel
  *         date: Aug 17, 2016
  */
+//TODO:
+//scalastyle:off file.size.limit
 final class RxExecuterTest extends FunSuite {
   import RxExecuterTest.ExecutionResults
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -811,3 +813,4 @@ object RxExecuterTest {
     }
   }
 }
+//scalastyle:on file.size.limit

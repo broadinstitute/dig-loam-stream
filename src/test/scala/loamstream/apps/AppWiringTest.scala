@@ -150,7 +150,9 @@ final class AppWiringTest extends FunSuite with Matchers {
   
   test("DRM execution, run everything") {
     def doTest(drmSystem: DrmSystem): Unit = {
-      val wiring = appWiring(cliConf(s"${toFlag(drmSystem)} --conf $confFileForUger --run everything --loams $exampleFile"))
+      val wiring = {
+        appWiring(cliConf(s"${toFlag(drmSystem)} --conf $confFileForUger --run everything --loams $exampleFile"))
+      }
       
       assert(wiring.executer.isInstanceOf[AppWiring.TerminableExecuter])
       

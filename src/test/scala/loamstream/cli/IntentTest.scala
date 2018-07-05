@@ -71,7 +71,8 @@ final class IntentTest extends FunSuite {
     assertInvalid("--compile-only") //no loams specified
     assertInvalid("--compile-only --loams") //no loams specified
     
-    assertValid(s"--compile-only --loams $exampleFile0 $exampleFile1", CompileOnly(None, paths(exampleFile0, exampleFile1)))
+    assertValid(
+        s"--compile-only --loams $exampleFile0 $exampleFile1", CompileOnly(None, paths(exampleFile0, exampleFile1)))
     
     assertValid(
         s"--conf $confFile --compile-only --loams $exampleFile0 $exampleFile1", 
@@ -238,27 +239,21 @@ final class IntentTest extends FunSuite {
             jobFilterIntent = JobFilterIntent.RunEverything,
             drmSystemOpt = Some(DrmSystem.Uger),
             loams = paths(exampleFile0, exampleFile1)))
-            
-    def doTest(drmSystemOpt: Option[DrmSystem], byNameFilterType: String, hashingStrategy: HashingStrategy): Unit = {
-      val backendPart = drmSystemOpt.map(drmSystem => s"--backend $drmSystem").getOrElse("")
       
-      val runParams = Seq("foo", "bar", "baz")
-      val regexes = runParams.map(_.r)
-      
-      val runPart = s"--run $byNameFilterType ${runParams.mkString(" ")}"
-      
-      val hashingPart = if(hashingStrategy == HashingStrategy.DontHashOutputs) "--disable-hashing" else ""
-      
-      def toJobFilterIntent(tag: String): JobFilterIntent = tag match {
-        case Conf.RunStrategies.AllOf => JobFilterIntent.RunIfAllMatch(regexes)
-        case Conf.RunStrategies.AnyOf => JobFilterIntent.RunIfAnyMatch(regexes)
-        case Conf.RunStrategies.NoneOf => JobFilterIntent.RunIfNoneMatch(regexes)
-      }
-      
-      val commandLine = s"$backendPart --conf $confFile $runPart $hashingPart --loams $exampleFile0 $exampleFile1".trim
-      
-      //Now skip calling assertValid() so we can have a custom field-by-field equality test, necessary for the regexes
-      //in some JobFilterIntents
+    val runParams = Seq("foo", "bar", "baz")
+    val runRegexes = runParams.map(_.r)  
+
+    def toJobFilterIntent(tag: String): JobFilterIntent = tag match {
+      case Conf.RunStrategies.AllOf => JobFilterIntent.RunIfAllMatch(runRegexes)
+      case Conf.RunStrategies.AnyOf => JobFilterIntent.RunIfAnyMatch(runRegexes)
+      case Conf.RunStrategies.NoneOf => JobFilterIntent.RunIfNoneMatch(runRegexes)
+    }
+    
+    def assertIsValidRealRun(
+        commandLine: String, 
+        drmSystemOpt: Option[DrmSystem], 
+        byNameFilterType: String, 
+        hashingStrategy: HashingStrategy): Unit = {
       
       val result = cliConf(commandLine).flatMap(from)
     
@@ -282,7 +277,7 @@ final class IntentTest extends FunSuite {
             case JobFilterIntent.RunIfAllMatch(res) => res
             case JobFilterIntent.RunIfAnyMatch(res) => res
             case JobFilterIntent.RunIfNoneMatch(res) => res
-            case x => { println(x) ; Nil }
+            case x => Nil
           }
           
           regexes.map(_.pattern.toString)
@@ -296,6 +291,21 @@ final class IntentTest extends FunSuite {
       } else {
         assert(result.right.get === expected)
       }
+    }
+            
+    def doTest(drmSystemOpt: Option[DrmSystem], byNameFilterType: String, hashingStrategy: HashingStrategy): Unit = {
+      val backendPart = drmSystemOpt.map(drmSystem => s"--backend $drmSystem").getOrElse("")
+      
+      val runPart = s"--run $byNameFilterType ${runParams.mkString(" ")}"
+      
+      val hashingPart = if(hashingStrategy == HashingStrategy.DontHashOutputs) "--disable-hashing" else ""
+      
+      val commandLine = s"$backendPart --conf $confFile $runPart $hashingPart --loams $exampleFile0 $exampleFile1".trim
+      
+      //Now call our own assertValid() so we can have a custom field-by-field equality test, necessary for the regexes
+      //in some JobFilterIntents
+      
+      assertIsValidRealRun(commandLine, drmSystemOpt, byNameFilterType, hashingStrategy)
     }
     
     for {

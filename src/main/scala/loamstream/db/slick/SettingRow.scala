@@ -11,6 +11,8 @@ import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
 import java.nio.file.Path
 import loamstream.drm.DockerParams
+import loamstream.model.execute.UgerDrmSettings
+import loamstream.model.execute.LsfDrmSettings
 
 /**
  * @author kyuksel
@@ -60,6 +62,11 @@ protected trait DrmSettingRow extends SettingRow {
   def memPerCpu: Double  //in GB
   def maxRunTime: Double //in hours
   def queue: Option[String]
+  
+  protected final def makeQueueOpt: Option[Queue] = queue.map(Queue(_))
+  protected final def makeCpus: Cpus = Cpus(cpus)
+  protected final def makeMemory: Memory = Memory.inGb(memPerCpu)
+  protected final def makeCpuTime: CpuTime = CpuTime.inHours(maxRunTime)
 }
 
 protected object DrmSettingRow {
@@ -87,9 +94,7 @@ final case class UgerSettingRow(
     maxRunTime: Double, //in hours
     queue: Option[String]) extends DrmSettingRow with HasSimpleToSettings {
 
-  override def toSettings: Settings = {
-    DrmSettings(Cpus(cpus), Memory.inGb(memPerCpu), CpuTime.inHours(maxRunTime), queue.map(Queue(_)), None)
-  }
+  override def toSettings: Settings = UgerDrmSettings(makeCpus, makeMemory, makeCpuTime, makeQueueOpt, None)
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._
@@ -109,7 +114,7 @@ final case class LsfSettingRow(
     queue: Option[String]) extends DrmSettingRow {
 
   def toSettings(dockerParamsOpt: Option[DockerParams]): Settings = {
-    DrmSettings(Cpus(cpus), Memory.inGb(memPerCpu), CpuTime.inHours(maxRunTime), queue.map(Queue(_)), dockerParamsOpt)
+    LsfDrmSettings(makeCpus, makeMemory, makeCpuTime, makeQueueOpt, dockerParamsOpt)
   }
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {

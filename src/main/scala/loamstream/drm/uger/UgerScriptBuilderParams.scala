@@ -19,8 +19,8 @@ object UgerScriptBuilderParams extends ScriptBuilderParams {
                                 |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$PATH
                                 |source activate loamstream_v1.0""".stripMargin
   
-  override val preamble = Option(ugerPreamble) 
-  override val indexEnvVarName = "SGE_TASK_ID" 
-  override val jobIdEnvVarName = "JOB_ID"
-  override val drmIndexVarExpr = JobTemplate.PARAMETRIC_INDEX
+  override val preamble: Option[String] = Option(ugerPreamble) 
+  override val indexEnvVarName: String = "SGE_TASK_ID" 
+  override val jobIdEnvVarName: String = "JOB_ID"
+  override val drmIndexVarExpr: String = JobTemplate.PARAMETRIC_INDEX
 }

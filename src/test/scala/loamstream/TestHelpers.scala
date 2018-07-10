@@ -49,6 +49,8 @@ import loamstream.drm.Queue
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.conf.LsfConfig
 import loamstream.drm.DrmSystem
+import loamstream.model.execute.UgerDrmSettings
+import loamstream.model.execute.LsfDrmSettings
 
 /**
   * @author clint
@@ -215,10 +217,10 @@ object TestHelpers {
     loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode))
   }
   
-  val defaultUgerSettings: DrmSettings = {
+  val defaultUgerSettings: UgerDrmSettings = {
     val ugerConfig = config.ugerConfig.get 
 
-    DrmSettings(
+    UgerDrmSettings(
       ugerConfig.defaultCores,
       ugerConfig.defaultMemoryPerCore,
       ugerConfig.defaultMaxRunTime,
@@ -226,10 +228,10 @@ object TestHelpers {
       None)
   }
   
-  val defaultLsfSettings: DrmSettings = {
+  val defaultLsfSettings: LsfDrmSettings = {
     val lsfConfig = config.lsfConfig.get 
 
-    DrmSettings(
+    LsfDrmSettings(
       lsfConfig.defaultCores,
       lsfConfig.defaultMemoryPerCore,
       lsfConfig.defaultMaxRunTime,

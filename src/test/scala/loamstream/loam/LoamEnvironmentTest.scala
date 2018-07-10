@@ -17,6 +17,8 @@ import loamstream.drm.uger.UgerDefaults
 import loamstream.util.Loggable
 import loamstream.drm.DrmSystem
 import loamstream.model.execute.EnvironmentType
+import loamstream.model.execute.UgerDrmSettings
+import loamstream.model.execute.LsfDrmSettings
 
 /**
  * @author clint
@@ -77,9 +79,9 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     
     doTest(Environment.Local)
     doTest {
-      Environment.Uger(DrmSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4), Option(UgerDefaults.queue), None))
+      Environment.Uger(UgerDrmSettings(Cpus(2), Memory.inGb(3), CpuTime.inHours(4), Option(UgerDefaults.queue), None))
     }
-    doTest(Environment.Lsf(DrmSettings(Cpus(3), Memory.inGb(4), CpuTime.inHours(5), None, None)))
+    doTest(Environment.Lsf(LsfDrmSettings(Cpus(3), Memory.inGb(4), CpuTime.inHours(5), None, None)))
     doTest(Environment.Google(GoogleSettings(clusterId)))
   }
   

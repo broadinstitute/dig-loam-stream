@@ -18,6 +18,8 @@ import loamstream.drm.uger.UgerDefaults
 import loamstream.drm.DrmSystem
 import loamstream.drm.lsf.LsfDefaults
 import loamstream.drm.lsf.LsfDockerParams
+import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.UgerDrmSettings
 
 /**
  * @author clint
@@ -130,7 +132,7 @@ final class LoamPredefTest extends FunSuite {
     assert(ugerConfig.defaultMaxRunTime !== UgerDefaults.maxRunTime)
     
     //Make sure defaults come from LoamConfig
-    val expectedSettings = DrmSettings(
+    val expectedSettings = DrmSystem.Uger.settingsMaker(
         ugerConfig.defaultCores,
         ugerConfig.defaultMemoryPerCore,
         ugerConfig.defaultMaxRunTime,
@@ -150,7 +152,7 @@ final class LoamPredefTest extends FunSuite {
     assert(ugerConfig.defaultMaxRunTime !== UgerDefaults.maxRunTime)
     
     //Make sure defaults come from LoamConfig
-    val expectedSettings = DrmSettings(
+    val expectedSettings = DrmSystem.Uger.settingsMaker(
         ugerConfig.defaultCores,
         ugerConfig.defaultMemoryPerCore,
         ugerConfig.defaultMaxRunTime,
@@ -170,7 +172,7 @@ final class LoamPredefTest extends FunSuite {
     assert(lsfConfig.defaultMaxRunTime !== LsfDefaults.maxRunTime)
     
     //Make sure defaults come from LoamConfig
-    val expectedSettings = DrmSettings(
+    val expectedSettings = DrmSystem.Lsf.settingsMaker(
         lsfConfig.defaultCores,
         lsfConfig.defaultMemoryPerCore,
         lsfConfig.defaultMaxRunTime,
@@ -185,7 +187,7 @@ final class LoamPredefTest extends FunSuite {
     
     import TestHelpers.path
     
-    val expectedSettings = DrmSettings(
+    val expectedSettings = UgerDrmSettings(
         cores = Cpus(2), 
         memoryPerCore = Memory.inGb(4), 
         maxRunTime = CpuTime.inHours(6), 
@@ -204,7 +206,7 @@ final class LoamPredefTest extends FunSuite {
     
     import TestHelpers.path
     
-    val expectedSettings = DrmSettings(
+    val expectedSettings = UgerDrmSettings(
         cores = Cpus(2), 
         memoryPerCore = Memory.inGb(4), 
         maxRunTime = CpuTime.inHours(6), 
@@ -223,7 +225,7 @@ final class LoamPredefTest extends FunSuite {
     
     import TestHelpers.path
     
-    val expectedSettings = DrmSettings(
+    val expectedSettings = LsfDrmSettings(
         cores = Cpus(2), 
         memoryPerCore = Memory.inGb(4), 
         maxRunTime = CpuTime.inHours(6), 

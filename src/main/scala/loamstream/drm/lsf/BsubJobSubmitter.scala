@@ -38,6 +38,12 @@ final class BsubJobSubmitter private[lsf] (
     }
   }
   
+  private def mungeCommandLines(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmTaskArray = {
+    val newCommandLineJobs = ???
+    
+    taskArray.copy(drmJobs = newCommandLineJobs)
+  }
+  
   override def stop(): Unit = ()
   
   private[lsf] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {

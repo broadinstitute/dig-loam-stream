@@ -83,7 +83,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
         }
       }
       
-      val expectedSettings = DrmSettings(
+      val expectedSettings = drmSystem.settingsMaker(
           Cpus(4), 
           Memory.inGb(16), 
           CpuTime.inHours(5), 

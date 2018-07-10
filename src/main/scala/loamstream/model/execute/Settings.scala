@@ -15,6 +15,7 @@ import loamstream.util.Tries
 import loamstream.drm.DrmSystem
 import loamstream.util.Options
 import loamstream.drm.DockerParams
+import loamstream.model.jobs.commandline.HasCommandLine
 
 /**
  * @author kyuksel
@@ -32,16 +33,54 @@ final case object LocalSettings extends Settings
 /**
  * Execution-time settings for a group of 1 or more Uger or LSF jobs 
  */
-final case class DrmSettings(
+trait DrmSettings extends Settings {
+  def cores: Cpus
+  def memoryPerCore: Memory
+  def maxRunTime: CpuTime
+  def queue: Option[Queue]
+  def dockerParams: Option[DockerParams]
+  
+  def commandLineInTaskArray(job: HasCommandLine): String
+}
+
+final case class UgerDrmSettings(
     cores: Cpus,
     memoryPerCore: Memory,
     maxRunTime: CpuTime,
     queue: Option[Queue],
-    dockerParams: Option[DockerParams]) extends Settings
+    dockerParams: Option[DockerParams]) extends DrmSettings {
+  
+  override def commandLineInTaskArray(job: HasCommandLine): String = job.commandLineString
+}
+    
+final case class LsfDrmSettings(
+    cores: Cpus,
+    memoryPerCore: Memory,
+    maxRunTime: CpuTime,
+    queue: Option[Queue],
+    dockerParams: Option[DockerParams]) extends DrmSettings {
+  
+  override def commandLineInTaskArray(job: HasCommandLine): String = {
+    val singularityPart = dockerParams match { 
+      case Some(params) => s"singularity exec docker://${params.imageName} "
+      case _ => ""
+    }
+    
+    s"${singularityPart}${job.commandLineString}"
+  }
+}
     
 object DrmSettings {
+  type SettingsMaker = (Cpus, Memory, CpuTime, Option[Queue], Option[DockerParams]) => DrmSettings
+  
+  def unapply(settings: DrmSettings): Option[(Cpus, Memory, CpuTime, Option[Queue], Option[DockerParams])] = {
+    import settings._
+    
+    Some(cores, memoryPerCore, maxRunTime, queue, dockerParams)
+  }
+  
   def fromUgerConfig(config: UgerConfig): DrmSettings = {
-    DrmSettings(
+    UgerDrmSettings(
         config.defaultCores, 
         config.defaultMemoryPerCore, 
         config.defaultMaxRunTime, 
@@ -50,7 +89,7 @@ object DrmSettings {
   }
   
   def fromLsfConfig(config: LsfConfig): DrmSettings = {
-    DrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, None, None)
+    LsfDrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, None, None)
   }
 }
 

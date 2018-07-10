@@ -52,17 +52,17 @@ object JobStatus extends Loggable {
     else { Failed }
   }
   
-  sealed abstract class Success(
+  protected sealed abstract class Success(
       override val isTerminal: Boolean = true,
       override val isSuccess: Boolean = true,
       override val isFailure: Boolean = false) extends JobStatus
 
-  sealed abstract class Failure(
+  protected sealed abstract class Failure(
       override val isTerminal: Boolean = false,
       override val isSuccess: Boolean = false,
       override val isFailure: Boolean = true) extends JobStatus
 
-  sealed abstract class NeitherSuccessNorFailure(
+  protected sealed abstract class NeitherSuccessNorFailure(
       override val isTerminal: Boolean = false,
       override val isSuccess: Boolean = false,
       override val isFailure: Boolean = false) extends JobStatus

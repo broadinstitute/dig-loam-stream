@@ -21,6 +21,7 @@ import loamstream.model.jobs.LJob
 import loamstream.drm.uger.UgerDefaults
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.execute.Resources.LsfResources
+import loamstream.drm.lsf.LsfDefaults
 
 /**
  * @author kyuksel
@@ -31,11 +32,14 @@ trait ProvidesEnvAndResources extends FunSuite {
   import TestHelpers.broadQueue
   
   val mockCmd: String = "R --vanilla --args ancestry_pca_scores.tsv < plot_ancestry_pca.r"
-  val mockSettings: DrmSettings = DrmSettings(
+  val mockUgerSettings: DrmSettings = UgerDrmSettings(
       Cpus(4), Memory.inGb(8), UgerDefaults.maxRunTime, queue = Option(broadQueue), dockerParams = None)
       
+  val mockLsfSettings: DrmSettings = LsfDrmSettings(
+      Cpus(4), Memory.inGb(8), LsfDefaults.maxRunTime, queue = None, dockerParams = None)
+      
   val mockGoogleSettings: GoogleSettings = GoogleSettings("asdf")
-  val mockEnv: Environment = Uger(mockSettings)
+  val mockEnv: Environment = Uger(mockUgerSettings)
   val mockStatus: JobStatus = JobStatus.Unknown
   val mockExitCode: Int = 999
   val mockResult: JobResult = JobResult.CommandResult(mockExitCode)

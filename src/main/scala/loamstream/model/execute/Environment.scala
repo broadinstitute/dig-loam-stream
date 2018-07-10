@@ -36,8 +36,8 @@ object Environment {
   //TODO: Revisit
   def from(tpe: EnvironmentType, settings: Settings): Option[Environment] = settings match {
     case LocalSettings => Some(Local)
-    case drmSettings: DrmSettings if tpe.isUger => Some(Uger(drmSettings))
-    case drmSettings: DrmSettings if tpe.isLsf => Some(Lsf(drmSettings))
+    case drmSettings: UgerDrmSettings if tpe.isUger => Some(Uger(drmSettings)) //what if tpe ISN'T Uger?
+    case drmSettings: LsfDrmSettings if tpe.isLsf => Some(Lsf(drmSettings)) //what if tpe ISN'T LSF?
     case googleSettings: GoogleSettings => Some(Google(googleSettings))
     case _ => None
   }

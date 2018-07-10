@@ -32,11 +32,11 @@ final class ScriptBuilder(params: ScriptBuilderParams) {
   private val endIf: String = s"${newLine}fi${newLine}"
 
   def buildFrom(taskArray: DrmTaskArray): String = {
-    val ugerJobs = taskArray.drmJobs
+    val drmJobs = taskArray.drmJobs
     
     val firstIfBlock = getFirstIfBlock(taskArray)
 
-    val elseIfBlocks = ugerJobs.tail.map { ugerJob =>
+    val elseIfBlocks = drmJobs.tail.map { ugerJob =>
       val index = ugerJob.drmIndex
       
       s"${getElseIfHeader(index)}${getBody(taskArray, ugerJob)}"
@@ -46,17 +46,17 @@ final class ScriptBuilder(params: ScriptBuilderParams) {
   }
 
   private def getFirstIfBlock(taskArray: DrmTaskArray): String = {
-    val ugerJob: DrmJobWrapper = taskArray.drmJobs.head
-    val indexStartValue: Int = ugerJob.drmIndex
+    val drmJob: DrmJobWrapper = taskArray.drmJobs.head
+    val indexStartValue: Int = drmJob.drmIndex
     
     val ifHeader = getIfHeader(indexStartValue)
-    val ifBody = getBody(taskArray, ugerJob)
+    val ifBody = getBody(taskArray, drmJob)
 
     s"${ifHeader}${ifBody}"
   }
 
-  private def getBody(taskArray: DrmTaskArray, ugerJob: DrmJobWrapper): String = {
-    val commandChunk = ugerJob.commandChunk(taskArray)
+  private def getBody(taskArray: DrmTaskArray, drmJob: DrmJobWrapper): String = {
+    val commandChunk = drmJob.commandChunk(taskArray)
     
     s"${newLine}${commandChunk}"
   }

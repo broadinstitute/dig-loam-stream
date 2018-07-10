@@ -25,6 +25,8 @@ import loamstream.drm.Queue
 import loamstream.conf.DrmConfig
 import loamstream.drm.lsf.LsfDockerParams
 import loamstream.drm.DockerParams
+import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.UgerDrmSettings
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -201,12 +203,12 @@ object LoamPredef extends Loggable {
       }
     }
     
-    val settings = DrmSettings(
-        cores = Cpus(orDefault(cores, drmConfig.defaultCores.value)), 
-        memoryPerCore = Memory.inGb(orDefault(mem, drmConfig.defaultMemoryPerCore.gb)), 
-        maxRunTime = CpuTime.inHours(orDefault(maxRunTime, drmConfig.defaultMaxRunTime.hours)),
-        queue = drmSystem.defaultQueue,
-        dockerParams = dockerParamsOpt)
+    val settings = drmSystem.settingsMaker(
+        Cpus(orDefault(cores, drmConfig.defaultCores.value)), 
+        Memory.inGb(orDefault(mem, drmConfig.defaultMemoryPerCore.gb)), 
+        CpuTime.inHours(orDefault(maxRunTime, drmConfig.defaultMaxRunTime.hours)),
+        drmSystem.defaultQueue,
+        dockerParamsOpt)
     
     runIn(drmSystem.makeEnvironment(settings))(expr)(scriptContext)
   }

@@ -36,6 +36,8 @@ import loamstream.drm.lsf.LsfDefaults
 import loamstream.model.execute.Locations
 import loamstream.model.execute.MockLocations
 import loamstream.util.Hash
+import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.UgerDrmSettings
 
 /**
  * @author clint
@@ -78,7 +80,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val result = JobResult.CommandResult(0)
       
       Execution(
-          env = Environment.Lsf(mockSettings),
+          env = Environment.Lsf(mockLsfSettings),
           cmd = Option(cmd),
           status = result.toJobStatus,
           result = Option(result),
@@ -278,7 +280,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val output2 = cachedOutput(path2, hash2)
 
       val localSettings = LocalSettings
-      val lsfSettings = DrmSettings(
+      val lsfSettings = LsfDrmSettings(
           Cpus(8), 
           Memory.inGb(4), 
           LsfDefaults.maxRunTime, 
@@ -547,9 +549,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
     val localSettings = LocalSettings
     val ugerSettings = {
-      DrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
+      UgerDrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
     }
-    val lsfSettings = DrmSettings(
+    val lsfSettings = LsfDrmSettings(
         Cpus(8), 
         Memory.inGb(4), 
         LsfDefaults.maxRunTime, 

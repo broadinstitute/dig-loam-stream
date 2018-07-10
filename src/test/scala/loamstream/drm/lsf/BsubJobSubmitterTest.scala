@@ -20,6 +20,7 @@ import scala.util.Success
 import loamstream.drm.DrmSubmissionResult
 import scala.util.Failure
 import loamstream.util.BashScript
+import loamstream.model.execute.LsfDrmSettings
 
 /**
  * @author clint
@@ -192,7 +193,7 @@ final class BsubJobSubmitterTest extends FunSuite {
   
   private val queue = Queue("fooQueue")
   
-  private val settings = DrmSettings(
+  private val settings = LsfDrmSettings(
       cores = Cpus(42),
       memoryPerCore = Memory.inGb(7),
       maxRunTime = CpuTime.inHours(3),
@@ -216,6 +217,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     
   private val taskArray = DrmTaskArray.fromCommandLineJobs(
       executionConfig = ExecutionConfig.default,
+      drmSettings = settings,
       drmConfig = drmConfig,
       pathBuilder = LsfPathBuilder,
       jobs = Seq(job0, job1))

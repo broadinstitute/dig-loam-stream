@@ -11,6 +11,7 @@ import loamstream.model.jobs.OutputStreams
 import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.BashScript.Implicits._
 import loamstream.conf.DrmConfig
+import loamstream.model.execute.DrmSettings
 
 
 /**
@@ -19,6 +20,7 @@ import loamstream.conf.DrmConfig
  */
 final case class DrmJobWrapper(
     executionConfig: ExecutionConfig,
+    drmSettings: DrmSettings,
     pathBuilder: PathBuilder,
     commandLineJob: HasCommandLine, 
     drmIndex: Int) {
@@ -38,12 +40,12 @@ final case class DrmJobWrapper(
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
   def commandChunk(taskArray: DrmTaskArray): String = {
-    val plainCommandLine = commandLineJob.commandLineString
+    val commandLine = drmSettings.commandLineInTaskArray(commandLineJob)
 
     val outputDir = executionConfig.jobOutputDir.toAbsolutePath
 
     // scalastyle:off line.size.limit
-    s"""|$plainCommandLine
+    s"""|${commandLine}
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |

@@ -26,12 +26,16 @@ object Intent extends Loggable {
 
   final case class LookupOutput(confFile: Option[Path], output: Either[Path, URI]) extends Intent
 
-  final case class CompileOnly(confFile: Option[Path], loams: Seq[Path]) extends Intent
+  final case class CompileOnly(
+      confFile: Option[Path], 
+      drmSystemOpt: Option[DrmSystem], 
+      loams: Seq[Path]) extends Intent
 
   final case class DryRun(
     confFile: Option[Path],
     hashingStrategy: HashingStrategy,
     shouldRunEverything: Boolean,
+    drmSystemOpt: Option[DrmSystem],
     loams: Seq[Path]) extends Intent
 
   final case class RealRun(
@@ -61,7 +65,7 @@ object Intent extends Loggable {
     else if (values.helpSupplied) { Right(ShowHelpAndQuit) }
     else if (confDoesntExist) { Left(s"Config file '${values.conf.get}' specified, but it doesn't exist.") }
     else if (values.lookupSupplied) { Right(LookupOutput(values.conf, values.lookup.get)) }
-    else if (compileOnly(values)) { Right(CompileOnly(values.conf, values.loams)) }
+    else if (compileOnly(values)) { Right(CompileOnly(values.conf, getDrmSystem(values), values.loams)) }
     else if (dryRun(values)) {
       Right(makeDryRun(values))
     } else if (allLoamsExist) {
@@ -79,21 +83,21 @@ object Intent extends Loggable {
     confFile = values.conf,
     hashingStrategy = determineHashingStrategy(values),
     shouldRunEverything = values.runEverythingSupplied,
+    drmSystemOpt = getDrmSystem(values),
     loams = values.loams)
 
-  private def makeRealRun(values: Conf.Values): RealRun = {
-   
-    val drmSystemOpt: Option[DrmSystem] = {
-      if(values.ugerSupplied) { Some(DrmSystem.Uger) }
-      else if(values.lsfSupplied) { Some(DrmSystem.Lsf) }
-      else { None }
-    }
+  private def getDrmSystem(values: Conf.Values): Option[DrmSystem] = {
+    if(values.ugerSupplied) { Some(DrmSystem.Uger) }
+    else if(values.lsfSupplied) { Some(DrmSystem.Lsf) }
+    else { None }
+  }
     
+  private def makeRealRun(values: Conf.Values): RealRun = {
     RealRun(
       confFile = values.conf,
       hashingStrategy = determineHashingStrategy(values),
       shouldRunEverything = values.runEverythingSupplied,
-      drmSystemOpt = drmSystemOpt,
+      drmSystemOpt = getDrmSystem(values),
       loams = values.loams)
   }
 

@@ -72,11 +72,13 @@ final class IntentTest extends FunSuite {
     //--compile-only
     assertInvalid("--compile-only") //no loams specified
     
-    assertValid(s"--compile-only $exampleFile0 $exampleFile1", CompileOnly(None, paths(exampleFile0, exampleFile1)))
+    assertIsValidWithAllDrmSystems(
+        s"--compile-only $exampleFile0 $exampleFile1", 
+        drmSysOpt => CompileOnly(None, drmSysOpt, paths(exampleFile0, exampleFile1)))
     
-    assertValid(
+    assertIsValidWithAllDrmSystems(
         s"--conf $confFile --compile-only $exampleFile0 $exampleFile1", 
-        CompileOnly(Some(confPath), paths(exampleFile0, exampleFile1)))
+        drmSysOpt => CompileOnly(Some(confPath), drmSysOpt, paths(exampleFile0, exampleFile1)))
     
     assertInvalid(s"--conf $confFile --compile-only $exampleFile0 $nonExistentFile") //nonexistent loam file
     

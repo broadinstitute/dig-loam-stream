@@ -47,6 +47,15 @@ final class IntentTest extends FunSuite {
     assert(from(cliConf(commandLine)).right.get === expected)
   }
   
+  private def assertIsValidWithAllDrmSystems(
+      baseCommandLine: String, 
+      makeExpectedIntent: Option[DrmSystem] => Intent): Unit = {
+    
+    assertValid(baseCommandLine, makeExpectedIntent(None))
+    assertValid(s"--uger ${baseCommandLine}", makeExpectedIntent(Some(DrmSystem.Uger)))
+    assertValid(s"--lsf ${baseCommandLine}", makeExpectedIntent(Some(DrmSystem.Lsf)))
+  }
+  
   test("from") {
     //Junk params
     assertInvalid("asdfasdfasdf")
@@ -76,44 +85,49 @@ final class IntentTest extends FunSuite {
     //--dry-run
     assertInvalid("--dry-run") //no loams specified
     
-    assertValid(
+    assertIsValidWithAllDrmSystems(
         s"--dry-run $exampleFile0 $exampleFile1", 
-        DryRun(
+        drmSysOpt => DryRun(
           confFile = None,
           hashingStrategy = HashingStrategy.HashOutputs,
           shouldRunEverything = false,
-          loams = paths(exampleFile0, exampleFile1)))
-    
-    assertValid(
-        s"--conf $confFile --dry-run $exampleFile0 $exampleFile1", 
-        DryRun(
-          Some(confPath), 
-          hashingStrategy = HashingStrategy.HashOutputs,
-          shouldRunEverything = false,
+          drmSystemOpt = drmSysOpt,
           loams = paths(exampleFile0, exampleFile1)))
           
-    assertValid(
+    assertIsValidWithAllDrmSystems(
+        s"--conf $confFile --dry-run $exampleFile0 $exampleFile1", 
+        drmSysOpt => DryRun(
+          Some(confPath), 
+          hashingStrategy = HashingStrategy.HashOutputs,
+          shouldRunEverything = false,
+          drmSystemOpt = drmSysOpt,
+          loams = paths(exampleFile0, exampleFile1)))
+          
+    assertIsValidWithAllDrmSystems(
         s"--conf $confFile --dry-run --run-everything $exampleFile0 $exampleFile1", 
-        DryRun(
+        drmSysOpt => DryRun(
           Some(confPath), 
           hashingStrategy = HashingStrategy.HashOutputs,
           shouldRunEverything = true,
+          drmSystemOpt = drmSysOpt,
           loams = paths(exampleFile0, exampleFile1)))
     
-    assertValid(
+    assertIsValidWithAllDrmSystems(
         s"--conf $confFile --dry-run --disable-hashing $exampleFile0 $exampleFile1", 
-        DryRun(
+        drmSysOpt => DryRun(
           Some(confPath), 
           hashingStrategy = HashingStrategy.DontHashOutputs,
           shouldRunEverything = false,
+          drmSystemOpt = drmSysOpt,
           loams = paths(exampleFile0, exampleFile1)))
     
-    assertValid(
+    assertIsValidWithAllDrmSystems(
         s"--conf $confFile --dry-run --run-everything --disable-hashing $exampleFile0 $exampleFile1", 
-        DryRun(
+        drmSysOpt => DryRun(
           Some(confPath), 
           hashingStrategy = HashingStrategy.DontHashOutputs,
           shouldRunEverything = true,
+          drmSystemOpt = drmSysOpt,
           loams = paths(exampleFile0, exampleFile1)))
           
     assertInvalid(s"--conf $confFile --dry-run $exampleFile0 $nonExistentFile") //nonexistent loam file

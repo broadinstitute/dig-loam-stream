@@ -32,6 +32,7 @@ object Intent extends Loggable {
     confFile: Option[Path],
     hashingStrategy: HashingStrategy,
     shouldRunEverything: Boolean,
+    drmSystemOpt: Option[DrmSystem],
     loams: Seq[Path]) extends Intent
 
   final case class RealRun(
@@ -79,21 +80,21 @@ object Intent extends Loggable {
     confFile = values.conf,
     hashingStrategy = determineHashingStrategy(values),
     shouldRunEverything = values.runEverythingSupplied,
+    drmSystemOpt = getDrmSystem(values),
     loams = values.loams)
 
-  private def makeRealRun(values: Conf.Values): RealRun = {
-   
-    val drmSystemOpt: Option[DrmSystem] = {
-      if(values.ugerSupplied) { Some(DrmSystem.Uger) }
-      else if(values.lsfSupplied) { Some(DrmSystem.Lsf) }
-      else { None }
-    }
+  private def getDrmSystem(values: Conf.Values): Option[DrmSystem] = {
+    if(values.ugerSupplied) { Some(DrmSystem.Uger) }
+    else if(values.lsfSupplied) { Some(DrmSystem.Lsf) }
+    else { None }
+  }
     
+  private def makeRealRun(values: Conf.Values): RealRun = {
     RealRun(
       confFile = values.conf,
       hashingStrategy = determineHashingStrategy(values),
       shouldRunEverything = values.runEverythingSupplied,
-      drmSystemOpt = drmSystemOpt,
+      drmSystemOpt = getDrmSystem(values),
       loams = values.loams)
   }
 

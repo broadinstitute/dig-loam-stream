@@ -12,7 +12,6 @@ import loamstream.loam.LoamToken.MultiToken
 import loamstream.loam.LoamToken.StoreToken
 import loamstream.loam.LoamToken.StringToken
 import loamstream.util.BashScript
-import loamstream.model.execute.Locations
 import java.nio.file.Path
 import loamstream.util.Sequence
 import loamstream.LoamFunSuite

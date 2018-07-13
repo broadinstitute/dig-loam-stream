@@ -33,6 +33,8 @@ final class OutputTest extends FunSuite {
     val nonExistingLocation = "sjkafhkfhksdjfh"
     val nonExistingPath = path(nonExistingLocation)
       
+    val doesntExist = PathOutput(path(nonExistingLocation))
+    
     //sanity check
     assert(Files.exists(nonExistingPath) === false)
   
@@ -40,7 +42,6 @@ final class OutputTest extends FunSuite {
       //sanity check
       assert(Files.exists(existingPath))
       
-      val doesntExist = PathOutput(path(nonExistingLocation))
       val exists = PathOutput(existingPath)  
   
       assert(exists.pathInHost === normalizePath(existingPath))
@@ -49,17 +50,12 @@ final class OutputTest extends FunSuite {
       
       assert(!doesntExist.isPresent)
   
-      intercept[Exception] {
-        doesntExist.hash.get
-      }
+      assert(doesntExist.hash.isEmpty)
   
       assert(exists.isPresent, s"'${exists.pathInHost}' doesn't exist")
       
-      val expectedHash = {
-        //NB: These are different on different platforms due to GitHub's line-ending-munging. 
-        if (PlatformUtil.isWindows) { "kUUgk+jLmf99lY+xeUH/MX0CYxg=" } 
-        else { "y3i4QSra98i17swJ28mqTTy7NnU=" }
-      }
+      //NB: These are different on different platforms due to GitHub's line-ending-munging.
+      val expectedHash = if (PlatformUtil.isWindows) "kUUgk+jLmf99lY+xeUH/MX0CYxg=" else "y3i4QSra98i17swJ28mqTTy7NnU="
   
       val hashStr = exists.hash.get.valueAsBase64String
       
@@ -86,7 +82,6 @@ final class OutputTest extends FunSuite {
           lastModified = Some(PathUtils.lastModifiedTime(existingPath)))
       
       assert(existsRecord === expectedExistsRecord)
-      
     }
     
     doTest(path("src/test/resources/for-hashing/foo.txt"))

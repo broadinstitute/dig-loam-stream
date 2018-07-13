@@ -33,51 +33,35 @@ final class ScriptBuilderTest extends FunSuite {
 
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
     def doTest(drmSystem: DrmSystem, dockerParamsOpt: Option[DockerParams]): Unit = {
-      val drmConfig: DrmConfig = drmSystem match {
-        case DrmSystem.Lsf => TestHelpers.configWithLsf.lsfConfig.get
-        case DrmSystem.Uger => TestHelpers.configWithUger.ugerConfig.get
-      }
-      
-      val defaultQueue: Option[Queue] = drmSystem match {
-        case DrmSystem.Lsf => None
-        case DrmSystem.Uger => Some(Queue("broad"))
-      }
-      
-      val pathBuilder: PathBuilder = drmSystem match {
-        case DrmSystem.Lsf => LsfPathBuilder
-        case DrmSystem.Uger => UgerPathBuilder
-      }
-      
-      val scriptBuilderParams: ScriptBuilderParams = drmSystem match {
-        case DrmSystem.Lsf => LsfScriptBuilderParams
-        case DrmSystem.Uger => UgerScriptBuilderParams
-      }
-      
       val drmSettings = drmSystem.settingsMaker(
           Cpus(1),
           Memory.inGb(42),
           CpuTime.inHours(2),
-          defaultQueue,
+          defaultQueue(drmSystem),
           dockerParamsOpt)
   
       val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
       val jobName = DrmTaskArray.makeJobName()
       
+      val config = drmConfig(drmSystem)
+      
       val taskArray = DrmTaskArray.fromCommandLineJobs(
           ExecutionConfig.default,
           drmSettings,
-          drmConfig, 
-          pathBuilder, 
+          config, 
+          pathBuilder(drmSystem), 
           jobs, 
           jobName)
           
-      val scriptContents = (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray).withNormalizedLineBreaks
+      val scriptContents = {
+        (new ScriptBuilder(scriptBuilderParams(drmSystem))).buildFrom(taskArray).withNormalizedLineBreaks
+      }
   
       val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)
       val discriminators = (0, 1, 2)
       
       val expectedScriptContents = expectedScriptAsString(
-        drmConfig, 
+        config, 
         jobName, 
         discriminators, 
         jobIds, 
@@ -95,6 +79,26 @@ final class ScriptBuilderTest extends FunSuite {
   }
 
   import TestHelpers.path
+  
+  private def defaultQueue(drmSystem: DrmSystem): Option[Queue] = drmSystem match {
+    case DrmSystem.Lsf => None
+    case DrmSystem.Uger => Some(Queue("broad"))
+  }
+  
+  private def drmConfig(drmSystem: DrmSystem): DrmConfig = drmSystem match {
+    case DrmSystem.Lsf => TestHelpers.configWithLsf.lsfConfig.get
+    case DrmSystem.Uger => TestHelpers.configWithUger.ugerConfig.get
+  }
+  
+  private def pathBuilder(drmSystem: DrmSystem): PathBuilder = drmSystem match {
+    case DrmSystem.Lsf => LsfPathBuilder
+    case DrmSystem.Uger => UgerPathBuilder
+  }
+  
+  private def scriptBuilderParams(drmSystem: DrmSystem): ScriptBuilderParams = drmSystem match {
+    case DrmSystem.Lsf => LsfScriptBuilderParams
+    case DrmSystem.Uger => UgerScriptBuilderParams
+  }
 
   private def getShapeItCommandLineJob(discriminator: Int): CommandLineJob = {
     val shapeItExecutable = "/some/shapeit/executable"

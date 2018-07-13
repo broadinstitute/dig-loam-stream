@@ -39,15 +39,6 @@ object LoamCmdTool {
     }
   }
   
-  private def currentDockerParams(implicit scriptContext: LoamScriptContext): Option[DockerParams] = {
-    val env = scriptContext.executionEnvironment
-    
-    env match {
-      case Environment.Lsf(lsfSettings) => lsfSettings.dockerParams
-      case _ => None
-    }
-  }
-
   /**
    * @param transform allows for manipulating white space,
    *                  system-dependent markers (e.g. line breaks), etc.
@@ -60,8 +51,6 @@ object LoamCmdTool {
 
     val firstToken: LoamToken = createStringToken(firstPart)(transform)
 
-    val dockerParamsOpt = currentDockerParams
-    
     //Associate transformations with stores when making tokens? 
     
     val tokens: Seq[LoamToken] = firstToken +: {

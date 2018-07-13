@@ -139,8 +139,6 @@ object LoamPredef extends Loggable {
     runIn(env)(expr)(scriptContext)
   }
   
-  private[compiler] val nonExistentPath = Paths.get("/dev/null/nonexistent")
-  
   /**
    * @param mem Memory requested per core, per job submission (in Gb's)
    * @param cores Number of cores requested per job submission

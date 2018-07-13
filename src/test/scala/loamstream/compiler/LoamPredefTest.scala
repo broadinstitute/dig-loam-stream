@@ -239,13 +239,6 @@ final class LoamPredefTest extends FunSuite {
         LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3"))
   }
   
-  test("nonexistentPaht doesn't exist") {
-    import java.nio.file.Files.exists
-    
-    //Lame, but marginally better than nothing
-    assert(exists(LoamPredef.nonExistentPath) === false)
-  }
-  
   private def newScriptContext: LoamScriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)
   
   private def newScriptContext(drmSystem: DrmSystem): LoamScriptContext = {

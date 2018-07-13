@@ -241,6 +241,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
       case None => DBIO.successful(None)
       case Some(dockerSettingsRow) => {
         import Implicits._
+        
         for {
           settingsRowInsertionResult <- dockerSettingsRow.insertOrUpdate(tables)
         } yield {

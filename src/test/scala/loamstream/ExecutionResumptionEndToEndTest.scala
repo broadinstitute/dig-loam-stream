@@ -172,13 +172,15 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     
     val fileIn = Paths.get("src", "test", "resources", "a.txt")
   
-    withWorkDir { workDir =>
-      val fileOut1 = workDir.resolve("fileOut1.txt")
-      val fileOut2 = workDir.resolve("fileOut2.txt")
-
-      doFirstPart(fileIn, fileOut1, fileOut2)
-
-      doSecondPart(fileIn, fileOut1, fileOut2)
+    createTablesAndThen {
+      withWorkDir { workDir =>
+        val fileOut1 = workDir.resolve("fileOut1.txt")
+        val fileOut2 = workDir.resolve("fileOut2.txt")
+  
+        doFirstPart(fileIn, fileOut1, fileOut2)
+  
+        doSecondPart(fileIn, fileOut1, fileOut2)
+      }
     }
   }
 

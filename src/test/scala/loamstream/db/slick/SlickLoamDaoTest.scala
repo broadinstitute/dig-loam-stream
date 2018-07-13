@@ -484,28 +484,23 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("findOutput") {
-    def doTest(path0: Path, path1: Path, hash0: Hash): Unit = {
-      createTablesAndThen {
-        assert(noOutputs)
-  
-        store(path0)
-  
-        val outputRecord0FromDb = dao.findOutputRecord(PathOutput(path0).toOutputRecord)
-        
-        assert(outputRecord0FromDb === Some(cachedOutput(path0, hash0)))
-  
-        assert(dao.findOutputRecord(path1) === None)
-  
-        storeFailures(path1)
-  
-        assert(dao.findOutputRecord(path0) === Some(cachedOutput(path0, hash0)))
-  
-        assert(dao.findOutputRecord(path1) === Some(failedOutput(path1)))
-      }
+    createTablesAndThen {
+      assert(noOutputs)
+
+      store(path0)
+
+      val outputRecord0FromDb = dao.findOutputRecord(PathOutput(path0).toOutputRecord)
+      
+      assert(outputRecord0FromDb === Some(cachedOutput(path0, hash0)))
+
+      assert(dao.findOutputRecord(path1) === None)
+
+      storeFailures(path1)
+
+      assert(dao.findOutputRecord(path0) === Some(cachedOutput(path0, hash0)))
+
+      assert(dao.findOutputRecord(path1) === Some(failedOutput(path1)))
     }
-    
-    doTest(path0, path1, hash0)
-    doTest(path("for-hashing/foo.txt"), path("for-hashing/bigger"), hash0)
   }
 
   test("findCommand") {

@@ -14,7 +14,6 @@ import loamstream.model.Tool
 import loamstream.model.Tool.AllStores
 import loamstream.model.Tool.DefaultStores
 import loamstream.model.execute.Environment
-import loamstream.model.execute.Locations
 import loamstream.util.StringUtils
 
 /**
@@ -65,11 +64,9 @@ object LoamCmdTool {
     
     //Associate transformations with stores when making tokens? 
     
-    val locations: Locations[Path] = dockerParamsOpt.getOrElse(Locations.identity)
-    
     val tokens: Seq[LoamToken] = firstToken +: {
       stringParts.zip(args).flatMap { case (stringPart, arg) =>
-        Seq(toToken(arg, locations), createStringToken(stringPart)(transform))
+        Seq(toToken(arg), createStringToken(stringPart)(transform))
       }
     }
 
@@ -91,17 +88,15 @@ object LoamCmdTool {
   
   def toString(tokens: Seq[LoamToken]): String = tokens.map(_.render).mkString
   
-  def toToken(arg: Any, locations: Locations[Path]): LoamToken = {
+  def toToken(arg: Any): LoamToken = {
     def isInputStore(s: Store) = s.graph.inputStores.contains(s)
     
     arg match {
-      //TODO
-      case store: Store if store.isInput => StoreToken(store, Locations.identity)
-      case store: Store => StoreToken(store, locations)
+      case store: Store => StoreToken(store)
       //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
       //the isHasLocationIterable() guard
       case stores: Iterable[Store] @unchecked if isStoreIterable(stores) => {
-        MultiStoreToken(stores, locations)
+        MultiStoreToken(stores)
       }
       case args: Iterable[_] => MultiToken(args)
       //NB: Will throw if the DynamicConf represents a config key that's not present,

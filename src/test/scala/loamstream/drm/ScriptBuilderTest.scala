@@ -87,7 +87,7 @@ final class ScriptBuilderTest extends FunSuite {
       assert(scriptContents == expectedScriptContents)
     }
     
-    val dockerParams = LsfDockerParams("library/foo:1.23", Nil, TestHelpers.path("/dev/null"))
+    val dockerParams = LsfDockerParams("library/foo:1.23")
     
     doTest(DrmSystem.Uger, None)
     doTest(DrmSystem.Lsf, None)

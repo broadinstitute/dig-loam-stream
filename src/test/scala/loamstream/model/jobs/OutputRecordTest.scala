@@ -6,7 +6,6 @@ import java.time.Instant
 
 import org.scalatest.FunSuite
 
-import loamstream.model.execute.Locations
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.HashType.Sha1
 import loamstream.util.Hashes
@@ -45,7 +44,7 @@ final class OutputRecordTest extends FunSuite {
 
     assert(nonExistingRec.isMissing)
 
-    val recFromFooOutput = OutputRecord(PathOutput(fooPath, Locations.identity).normalized)
+    val recFromFooOutput = OutputRecord(PathOutput(fooPath).normalized)
     assert(fooRec == recFromFooOutput)
 
     val expectedNonExistingRec = OutputRecord(nonExistingLoc, false, None, None, None)

@@ -170,9 +170,7 @@ object LoamPredef extends Loggable {
       cores: Int = -1,
       mem: Double = -1, 
       maxRunTime: Double = -1,
-      dockerImage: String = "",
-      mountsInContainers: Iterable[Path] = Nil,
-      outputBasePathInContainers: Path = nonExistentPath)
+      dockerImage: String = "")
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     
@@ -194,10 +192,7 @@ object LoamPredef extends Loggable {
       if(useDocker) {
         require(drmSystem == DrmSystem.Lsf, s"Running commands in Docker containers is only supported on LSF.")
         
-        Some(LsfDockerParams(
-            imageName = dockerImage,
-            mountedDirs = mountsInContainers,
-            outputDir = outputBasePathInContainers))
+        Some(LsfDockerParams(imageName = dockerImage))
       } else { 
         None
       }

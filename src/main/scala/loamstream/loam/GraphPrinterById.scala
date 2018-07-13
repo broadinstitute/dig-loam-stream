@@ -50,8 +50,8 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
     
     def tokenToString(token: LoamToken): String = token match {
       case StringToken(string) => string
-      case StoreToken(store, _) => hasLocationToString(store)
-      case MultiStoreToken(stores, _) => stores.map(hasLocationToString).mkString(" ")
+      case StoreToken(store) => hasLocationToString(store)
+      case MultiStoreToken(stores) => stores.map(hasLocationToString).mkString(" ")
       case MultiToken(things) => things.map(_.toString).mkString(" ")
     }
 

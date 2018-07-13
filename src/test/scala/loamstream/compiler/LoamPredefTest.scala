@@ -230,16 +230,13 @@ final class LoamPredefTest extends FunSuite {
         memoryPerCore = Memory.inGb(4), 
         maxRunTime = CpuTime.inHours(6), 
         queue = None,
-        Some(LsfDockerParams(
-          imageName = "library/foo:1.2.3",
-          mountedDirs = Seq(path("foo/bar"), path("/a/b/c")),
-          outputDir = path("/x/y/z"))))
+        Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
     
     doEeTest(
         scriptContext, 
         Local, 
         Lsf(expectedSettings), 
-        LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3", Seq(path("foo/bar"), path("/a/b/c")), path("/x/y/z")))
+        LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3"))
   }
   
   test("nonexistentPaht doesn't exist") {

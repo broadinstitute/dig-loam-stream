@@ -14,22 +14,13 @@ trait DockerSettingsRow extends InsertOrUpdatable {
   def drmSettingsId: Int
   
   def imageName: String
-  
-  def outputDir: String
-  
-  def toDockerParams(mountedDirs: Iterable[Path]): DockerParams
+
+  def toDockerParams: DockerParams
 }
 
-final case class LsfDockerSettingsRow(
-    drmSettingsId: Int, 
-    imageName: String, 
-    outputDir: String) extends DockerSettingsRow {
+final case class LsfDockerSettingsRow(drmSettingsId: Int, imageName: String) extends DockerSettingsRow {
   
-  override def toDockerParams(mountedDirs: Iterable[Path]): DockerParams = {
-    import Paths.{get => toPath}
-    
-    LsfDockerParams(imageName, mountedDirs, toPath(outputDir))
-  }
+  override def toDockerParams: DockerParams = LsfDockerParams(imageName)
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._
@@ -38,10 +29,8 @@ final case class LsfDockerSettingsRow(
   }
 }
 
-object LsfDockerSettingsRow extends ((Int, String, String) => LsfDockerSettingsRow) {
+object LsfDockerSettingsRow extends ((Int, String) => LsfDockerSettingsRow) {
   def fromDockerParams(drmSettingsId: Int, dockerParams: DockerParams): LsfDockerSettingsRow = {
-    import BashScript.Implicits._
-    
-    LsfDockerSettingsRow(drmSettingsId, dockerParams.imageName, dockerParams.outputDir.toAbsolutePath.render)
+    LsfDockerSettingsRow(drmSettingsId, dockerParams.imageName)
   }
 }

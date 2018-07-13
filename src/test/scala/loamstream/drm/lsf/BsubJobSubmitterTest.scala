@@ -101,62 +101,16 @@ final class BsubJobSubmitterTest extends FunSuite {
   }
   
   test("makeTokensAndCdf - NO Docker") {
-    import BsubJobSubmitter.makeTokensAndCdf
+    import BsubJobSubmitter.makeTokens
     
     val executableName = "/definitely/not/the/default"
     
     val lsfConfig = TestHelpers.config.lsfConfig.get    
     
-    val (tokens, cdfOpt) = makeTokensAndCdf(executableName, lsfConfig, taskArray, settingsWithoutDocker)
-    
-    assert(cdfOpt === None)
+    val tokens = makeTokens(executableName, lsfConfig, taskArray, settingsWithoutDocker)
     
     val expectedTokens = Seq(
         executableName,
-        "-q",
-        queue.name,
-        "-W",
-        "3:0",
-        "-R",
-        s"rusage[mem=${7 * 1000}]",
-        "-n",
-        "42",
-        "-R",
-        "span[hosts=1]",
-        "-J",
-        s"${taskArray.drmJobName}[1-2]",
-        "-oo",
-        s":${taskArray.stdOutPathTemplate}",
-        "-eo",
-        s":${taskArray.stdErrPathTemplate}")
-        
-    assert(tokens === expectedTokens)
-  }
-  
-  test("makeTokensAndCdf - WITH Docker") {
-    import BsubJobSubmitter.makeTokensAndCdf
-    
-    val executableName = "/definitely/not/the/default"
-    
-    val lsfConfig = TestHelpers.config.lsfConfig.get    
-    
-    val (tokens, cdfOpt) = makeTokensAndCdf(executableName, lsfConfig, taskArray, settings)
-    
-    assert(cdfOpt !== None)
-    
-    val Some(cdf) = cdfOpt
-    
-    val expectedYamlFileName = s"${taskArray.drmJobName}.yaml"
-    
-    assert(cdf.dockerParams === settings.dockerParams.get)
-    assert(cdf.yamlFile === lsfConfig.workDir.resolve(expectedYamlFileName))
-    
-    import BashScript._
-    
-    val expectedTokens = Seq(
-        executableName,
-        "-a",
-        s"docker(/some/work/dir/${expectedYamlFileName})",
         "-q",
         queue.name,
         "-W",
@@ -198,10 +152,7 @@ final class BsubJobSubmitterTest extends FunSuite {
       memoryPerCore = Memory.inGb(7),
       maxRunTime = CpuTime.inHours(3),
       queue = Some(queue),
-      dockerParams = Some(LsfDockerParams(
-          imageName = "library/foo:1.2.3",
-          mountedDirs = Seq(path("foo/bar"), path("/x/y/z")),
-          outputDir = path("/out"))))
+      dockerParams = Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
   
   private lazy val settingsWithoutDocker = settings.copy(dockerParams = None)
           

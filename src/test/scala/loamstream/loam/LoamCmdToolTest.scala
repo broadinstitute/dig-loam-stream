@@ -16,7 +16,6 @@ import loamstream.loam.LoamToken.StringToken
 import loamstream.model.LId
 import loamstream.model.Store
 import loamstream.util.BashScript
-import loamstream.model.execute.Locations
 import java.nio.file.Path
 import loamstream.TestHelpers
 import loamstream.LoamFunSuite
@@ -147,112 +146,97 @@ final class LoamCmdToolTest extends LoamFunSuite {
   }
 
   test("toToken") {
-    def doTest(locations: Locations[Path]): Unit = {
-      TestHelpers.withScriptContext { implicit scriptContext =>
-        import LoamCmdTool.toToken
+    TestHelpers.withScriptContext { implicit scriptContext =>
+      import LoamCmdTool.toToken
+      
+      //Store
+      val store0 = Store()
+      val store1 = Store()
+      
+      assert(toToken(store0) === StoreToken(store0))
+      
+      //Non-HasLocation Iterable:
+      assert(toToken(Nil) === MultiToken(Nil))
+      assert(toToken(Seq(42)) === MultiToken(Seq(42)))
+      assert(toToken(Seq("x", "y", "z")) === MultiToken(Seq("x", "y", "z")))
+      
+      //Iterable[Store]
+      {
+        val things = Seq(store0, store1)
         
-        //Store
-        val store0 = Store()
-        val store1 = Store()
-        
-        assert(toToken(store0, locations) === StoreToken(store0, locations))
-        
-        //Non-HasLocation Iterable:
-        assert(toToken(Nil, locations) === MultiToken(Nil))
-        assert(toToken(Seq(42), locations) === MultiToken(Seq(42)))
-        assert(toToken(Seq("x", "y", "z"), locations) === MultiToken(Seq("x", "y", "z")))
-        
-        //Iterable[Store]
-        {
-          val things = Seq(store0, store1)
-          
-          assert(toToken(things, locations) === MultiStoreToken(things, locations))
-        }
-        
-        //DynamicConfig
-        
-        val config = DynamicConfig(ConfigFactory.parseString("foo { bar { baz = 42 } }"), Some("foo.bar.baz"))
-        
-        assert(toToken(config, locations) === StringToken("42"))
-        
-        val configThatShouldBlowUp = config.copy(pathOption = Some("blerg.zerg"))
-        
-        intercept[Exception] {
-          toToken(configThatShouldBlowUp, locations)
-        }
-        
-        //arbitrary type
-        final case class Foo(x: Int)
-        
-        assert(toToken(Foo(42), locations) === StringToken("Foo(42)"))
+        assert(toToken(things) === MultiStoreToken(things))
       }
+      
+      //DynamicConfig
+      
+      val config = DynamicConfig(ConfigFactory.parseString("foo { bar { baz = 42 } }"), Some("foo.bar.baz"))
+      
+      assert(toToken(config) === StringToken("42"))
+      
+      val configThatShouldBlowUp = config.copy(pathOption = Some("blerg.zerg"))
+      
+      intercept[Exception] {
+        toToken(configThatShouldBlowUp)
+      }
+      
+      //arbitrary type
+      final case class Foo(x: Int)
+      
+      assert(toToken(Foo(42)) === StringToken("Foo(42)"))
     }
-    
-    doTest(Locations.identity)
-    doTest(mockLocations(path("foo")))
   }
   
   test("in() and out() with no implicit i/o stores") {
-    def doTest(locations: Locations[Path]): Unit = {
-      for (addInputsFirst <- Seq(true, false)) {
-        TestHelpers.withScriptContext { implicit scriptContext =>
-          val projectContext = scriptContext.projectContext
-          
-          val nStores = 4
-          val stores = Seq.fill[Store](nStores)(Store())
-    
-          val tool = cmd"foo bar baz"
-    
-          val expectedTokens = tokens(locations)("foo bar baz")
-          val inputsBefore: Set[Store] = Set.empty
-          val outputsBefore: Set[Store] = Set.empty
-          
-          assertAddingIOStores(
-              projectContext, 
-              tool, 
-              expectedTokens, 
-              inputsBefore, 
-              outputsBefore, 
-              stores, 
-              addInputsFirst)
-        }
+    for (addInputsFirst <- Seq(true, false)) {
+      TestHelpers.withScriptContext { implicit scriptContext =>
+        val projectContext = scriptContext.projectContext
+        
+        val nStores = 4
+        val stores = Seq.fill[Store](nStores)(Store())
+  
+        val tool = cmd"foo bar baz"
+  
+        val expectedTokens = tokens("foo bar baz")
+        val inputsBefore: Set[Store] = Set.empty
+        val outputsBefore: Set[Store] = Set.empty
+        
+        assertAddingIOStores(
+            projectContext, 
+            tool, 
+            expectedTokens, 
+            inputsBefore, 
+            outputsBefore, 
+            stores, 
+            addInputsFirst)
       }
     }
-    
-    doTest(Locations.identity)
-    doTest(mockLocations(path("blerg")))
   }
 
   test("in() and out() mixed with implicit i/o stores") {
-    def doTest(locations: Locations[Path]): Unit = {
-      for (addInputsFirst <- Seq(true, false)) {
-        TestHelpers.withScriptContext { implicit scriptContext =>
-          val projectContext = scriptContext.projectContext
+    for (addInputsFirst <- Seq(true, false)) {
+      TestHelpers.withScriptContext { implicit scriptContext =>
+        val projectContext = scriptContext.projectContext
+
+        val stores = Seq(store, store, store, store, store("inputFile.vcf").asInput, store("outputFile.txt"))
   
-          val stores = Seq(store, store, store, store, store("inputFile.vcf").asInput, store("outputFile.txt"))
-    
-          val Seq(_, _, _, _, inStoreImplicit, outStoreImplicit) = stores 
-    
-          val tool = cmd"foo $inStoreImplicit $outStoreImplicit"
-    
-          val expectedTokens = tokens(locations)("foo ", inStoreImplicit, " ", outStoreImplicit)
-          val inputsBefore = Set[Store](inStoreImplicit)
-          val outputsBefore = Set[Store](outStoreImplicit)
-          
-          assertAddingIOStores(
-              projectContext, 
-              tool, 
-              expectedTokens, 
-              inputsBefore, 
-              outputsBefore, 
-              stores, 
-              addInputsFirst)
-        }
+        val Seq(_, _, _, _, inStoreImplicit, outStoreImplicit) = stores 
+  
+        val tool = cmd"foo $inStoreImplicit $outStoreImplicit"
+  
+        val expectedTokens = tokens("foo ", inStoreImplicit, " ", outStoreImplicit)
+        val inputsBefore = Set[Store](inStoreImplicit)
+        val outputsBefore = Set[Store](outStoreImplicit)
+        
+        assertAddingIOStores(
+            projectContext, 
+            tool, 
+            expectedTokens, 
+            inputsBefore, 
+            outputsBefore, 
+            stores, 
+            addInputsFirst)
       }
     }
-    
-    doTest(Locations.identity)
-    doTest(mockLocations(path("blerg")))
   }
 
   testWithScriptContext("at(...) and asInput") { implicit scriptContext =>
@@ -287,9 +271,9 @@ final class LoamCmdToolTest extends LoamFunSuite {
     stores.map(store => store.id -> store).toMap
   }
 
-  private def tokens(locations: Locations[Path])(values: AnyRef*): Seq[LoamToken] = values.map {
+  private def tokens(values: AnyRef*): Seq[LoamToken] = values.map {
     case string: String => StringToken(string)
-    case store: Store => StoreToken(store, locations)
+    case store: Store => StoreToken(store)
   }
 
   private def assertGraph(
@@ -357,11 +341,5 @@ final class LoamCmdToolTest extends LoamFunSuite {
     }
     
     assertGraph(context.graph, tool, expectedTokens, inputsMapAfter, outputsMapAfter)
-  }
-
-  private def mockLocations(inContainerValue: => Path): Locations[Path] = new Locations[Path] {
-    override def inHost(ignored: Path): Path = inContainerValue 
-  
-    override def inContainer(ignored: Path): Path = ???
   }
 }

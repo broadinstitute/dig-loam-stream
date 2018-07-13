@@ -43,11 +43,11 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
       val out2 = makeStore(out2Path)
 
       local {
-        cmd"(echo copying locally 0 ; cp $in $out0)".in(in).out(out0).named("Local-copy0")
+        cmd"(echo copying locally 0 ; cp $in $out0)".in(in).out(out0).tag("Local-copy0")
 
-        cmd"(echo copying locally 1 ; cp $out0 $out1)".in(out0).out(out1).named("Local-copy1")
+        cmd"(echo copying locally 1 ; cp $out0 $out1)".in(out0).out(out1).tag("Local-copy1")
         
-        cmd"(echo copying locally 2 ; cp $out1 $out2)".in(out1).out(out2).named("Local-copy2")
+        cmd"(echo copying locally 2 ; cp $out1 $out2)".in(out1).out(out2).tag("Local-copy2")
       }
     }
     

@@ -1,29 +1,38 @@
 package loamstream
 
-import java.nio.file.{Path, Paths}
-
-import loamstream.compiler.{LoamCompiler, LoamEngine}
-import loamstream.db.slick.ProvidesSlickLoamDao
-import loamstream.model.execute.{DbBackedJobFilter, Executable, ExecuterHelpers, MockChunkRunner, RxExecuter}
-import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.Output.PathOutput
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.{Execution, LJob, Output, OutputRecord}
-import loamstream.util.code.SourceUtils
-import loamstream.util.{Loggable, Sequence}
-import org.scalatest.{FunSuite, Matchers}
-import loamstream.model.execute.AsyncLocalChunkRunner
+import java.nio.file.Path
+import java.nio.file.Paths
 
 import scala.concurrent.ExecutionContext
-import loamstream.model.execute.Resources.LocalResources
-import loamstream.model.jobs.JobStatus.Skipped
-import loamstream.loam.LoamGraph
+
+import org.scalatest.FunSuite
+
+import loamstream.compiler.LoamCompiler
+import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
-import loamstream.loam.LoamCmdTool
 import loamstream.conf.ExecutionConfig
+import loamstream.db.slick.ProvidesSlickLoamDao
+import loamstream.loam.LoamGraph
+import loamstream.loam.LoamCmdTool
+import loamstream.model.execute.AsyncLocalChunkRunner
+import loamstream.model.execute.DbBackedJobFilter
+import loamstream.model.execute.Executable
+import loamstream.model.execute.ExecuterHelpers
+import loamstream.model.execute.MockChunkRunner
+import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.RxExecuter
+import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobNode
-import loamstream.model.execute.Locations
-import loamstream.model.execute.MockLocations
+import loamstream.model.jobs.JobResult.CommandResult
+import loamstream.model.jobs.JobStatus.Skipped
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.Output
+import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.util.Loggable
+import loamstream.util.Sequence
+
 
 /**
   * @author kaan
@@ -62,13 +71,12 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     def run(
         secondScript: LoamGraph,
         fileOut1: Path,
-        fileOut2: Path,
-        locations: Locations[Path])(expectedStatuses: Seq[Execution]): Unit = {
+        fileOut2: Path)(expectedStatuses: Seq[Execution]): Unit = {
       
       val (executable, executions) = compileAndRun(secondScript)
 
-      val updatedOutput1 = OutputRecord(PathOutput(fileOut1, locations))
-      val updatedOutput2 = OutputRecord(PathOutput(fileOut2, locations))
+      val updatedOutput1 = OutputRecord(PathOutput(fileOut1))
+      val updatedOutput2 = OutputRecord(PathOutput(fileOut2))
 
       //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
       val firstJob = jobThatWritesTo(executable)(fileOut1).get
@@ -104,7 +112,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       assert(dao.findExecution(updatedOutput2).get.outputs === Set(updatedOutput2))
     }
     
-    def doFirstPart(fileIn: Path, fileOut1: Path, fileOut2: Path, locations: Locations[Path]): Unit = {
+    def doFirstPart(fileIn: Path, fileOut1: Path, fileOut2: Path): Unit = {
       val firstScript = copyAToB(fileIn, fileOut1) 
   
       val (executable, executions) = compileAndRun(firstScript)
@@ -131,8 +139,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       assert(executions.size === 1)
 
-      val output1 = OutputRecord(PathOutput(fileOut1, locations))
-      val output2 = OutputRecord(PathOutput(fileOut2, locations))
+      val output1 = OutputRecord(PathOutput(fileOut1))
+      val output2 = OutputRecord(PathOutput(fileOut2))
 
       val executionFromOutput1 = dao.findExecution(output1).get
       
@@ -145,13 +153,13 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       assert(dao.findExecution(output2) === None)
     }
     
-    def doSecondPart(fileIn: Path, fileOut1: Path, fileOut2: Path, locations: Locations[Path]): Unit = {
+    def doSecondPart(fileIn: Path, fileOut1: Path, fileOut2: Path): Unit = {
       val secondScript = copyAToBToC(fileIn, fileOut1, fileOut2) 
   
       import TestHelpers.{ executionFrom, executionFromResult }
       
       def doRun(expectedStatuses: Seq[Execution]): Unit = {
-        run(secondScript, fileOut1, fileOut2, locations)(expectedStatuses)
+        run(secondScript, fileOut1, fileOut2)(expectedStatuses)
       }
       
       //Run the second script a few times.  The first time, we expect the first job to be skipped, and the second one
@@ -162,23 +170,16 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       doRun(Seq(Skipped, Skipped).map(executionFrom(_)))
     }
     
-    def doTest(makeLocations: Path => Locations[Path]): Unit = createTablesAndThen {
-      val fileIn = Paths.get("src", "test", "resources", "a.txt")
+    val fileIn = Paths.get("src", "test", "resources", "a.txt")
   
-      withWorkDir { workDir =>
-        val locations = makeLocations(workDir)
-        
-        val fileOut1 = workDir.resolve("fileOut1.txt")
-        val fileOut2 = workDir.resolve("fileOut2.txt")
-  
-        doFirstPart(fileIn, fileOut1, fileOut2, locations)
-  
-        doSecondPart(fileIn, fileOut1, fileOut2, locations)
-      }
+    withWorkDir { workDir =>
+      val fileOut1 = workDir.resolve("fileOut1.txt")
+      val fileOut2 = workDir.resolve("fileOut2.txt")
+
+      doFirstPart(fileIn, fileOut1, fileOut2)
+
+      doSecondPart(fileIn, fileOut1, fileOut2)
     }
-    
-    doTest(_ => Locations.identity)
-    doTest(workDir => MockLocations.fromFunctions(makeInHost = workDir.resolve(_)))
   }
 
   test("Single failed job's exit status is recorded properly") {
@@ -218,7 +219,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val onlyResult = onlyResultOpt.get
 
       {
-        import Matchers._
+        import org.scalatest.Matchers._
 
         executions should have size 1
         onlyExecution.resources.get.isInstanceOf[LocalResources] shouldBe true
@@ -274,7 +275,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       val secondJob = jobThatWritesTo(executable)(fileOut2).get
 
       {
-        import Matchers._
+        import org.scalatest.Matchers._
 
         val exitCode = 127
         executions(firstJob).result.get.asInstanceOf[CommandResult].exitCode shouldEqual exitCode

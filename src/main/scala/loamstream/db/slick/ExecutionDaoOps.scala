@@ -171,15 +171,11 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     
     val settingsRow = settingsRows.head
     
-    val mountedDirsQuery = tables.lsfDockerMounts.filter(_.drmSettingsId === settingsRow.executionId)
-    
     val dockerSettingsQuery = tables.lsfDockerSettings.filter(_.drmSettingsId === settingsRow.executionId)
     
     val dockerSettingsRowOpt = runBlocking(dockerSettingsQuery.result.headOption)
     
-    val mountedDirs = runBlocking(mountedDirsQuery.result).map(_.path)
-    
-    val dockerParamsOpt = dockerSettingsRowOpt.map(_.toDockerParams(mountedDirs))
+    val dockerParamsOpt = dockerSettingsRowOpt.map(_.toDockerParams)
     
     settingsRow.toSettings(dockerParamsOpt)
   }
@@ -240,19 +236,15 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   
   private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = row.insertOrUpdate(tables)
   
-  private def insertOrUpdateDockerSettingsRows(
-      tupleOpt: Option[(DockerSettingsRow, Seq[DockerMountRow])]): DBIO[Seq[Int]] = {
-    
-    tupleOpt match {
-      case None => DBIO.successful(Nil)
-      case Some((dockerSettingsRow, dockerMountRows)) => {
+  private def insertOrUpdateDockerSettingsRows(dockerSettingsRowOpt: Option[DockerSettingsRow]): DBIO[Option[Int]] = {
+    dockerSettingsRowOpt match {
+      case None => DBIO.successful(None)
+      case Some(dockerSettingsRow) => {
         import Implicits._
-        
         for {
           settingsRowInsertionResult <- dockerSettingsRow.insertOrUpdate(tables)
-          mountRowsInsertionResults <- DBIO.sequence(dockerMountRows.map(_.insertOrUpdate(tables)))
         } yield {
-          settingsRowInsertionResult +: mountRowsInsertionResults
+          Option(settingsRowInsertionResult)
         }
       }
     }
@@ -282,15 +274,13 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   
   private def tieDockerParamsToExecution(
       execution: Execution, 
-      executionId: Int): Option[(DockerSettingsRow, Seq[DockerMountRow])] = {
+      executionId: Int): Option[DockerSettingsRow] = {
     
     execution.env match {
       case Environment.Lsf(DrmSettings(_, _, _, _, Some(dockerParams))) => {
         val dockerSettingsRow = LsfDockerSettingsRow.fromDockerParams(executionId, dockerParams)
         
-        val dockerMountRows = dockerParams.mountedDirs.map(LsfDockerMountRow.fromPath(executionId))
-        
-        Some(dockerSettingsRow -> dockerMountRows.toSeq)
+        Some(dockerSettingsRow)
       }
       case _ => None 
     }

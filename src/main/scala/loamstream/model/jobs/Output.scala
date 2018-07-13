@@ -11,7 +11,6 @@ import loamstream.util.HashType
 import loamstream.util.Hashes
 import loamstream.util.PathUtils
 import loamstream.util.PathUtils.normalizePath
-import loamstream.model.execute.Locations
 
 /**
  * @author clint
@@ -67,9 +66,7 @@ object Output {
   }
   
   object PathOutput {
-    def apply(path: Path, locations: Locations[Path]): PathOutput = {
-      new PathOutput(normalizePath(locations.inHost(path)))
-    }
+    def apply(path: Path): PathOutput = new PathOutput(normalizePath(path))
   }
 
   final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends Output {

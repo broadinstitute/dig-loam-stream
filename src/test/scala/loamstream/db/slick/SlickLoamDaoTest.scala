@@ -1,20 +1,27 @@
 package loamstream.db.slick
 
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.time.Instant
 
 import org.scalatest.FunSuite
 
+import loamstream.TestHelpers
 import loamstream.drm.Queue
-import loamstream.model.execute.DrmSettings
+import loamstream.drm.lsf.LsfDefaults
+import loamstream.drm.lsf.LsfDockerParams
+import loamstream.drm.uger.UgerDefaults
 import loamstream.model.execute.Environment
+import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.ProvidesEnvAndResources
-import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.execute.Resources
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
@@ -23,21 +30,9 @@ import loamstream.model.jobs.OutputRecord
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.drm.uger.UgerDefaults
 import loamstream.util.BashScript.Implicits.BashPath
-import loamstream.util.Hashes
-import loamstream.model.execute.Resources.UgerResources
-import loamstream.TestHelpers
-import loamstream.model.execute.Resources
-import loamstream.model.execute.EnvironmentType
-import loamstream.model.execute.Resources.LsfResources
-import loamstream.drm.lsf.LsfDockerParams
-import loamstream.drm.lsf.LsfDefaults
-import loamstream.model.execute.Locations
-import loamstream.model.execute.MockLocations
 import loamstream.util.Hash
-import loamstream.model.execute.LsfDrmSettings
-import loamstream.model.execute.UgerDrmSettings
+import loamstream.util.Hashes
 
 /**
  * @author clint
@@ -45,7 +40,7 @@ import loamstream.model.execute.UgerDrmSettings
  *         date: 8/9/16
  */
 final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with ProvidesEnvAndResources {
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
   
   private val srcTestResources = path("src/test/resources")
   
@@ -285,10 +280,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           Memory.inGb(4), 
           LsfDefaults.maxRunTime, 
           None,
-          Some(LsfDockerParams(
-              imageName = "library/foo:1.2.3",
-              mountedDirs = Seq(path("foo/bar").toAbsolutePath, path("/x/y/z")),
-              outputDir = path("/out"))))
+          Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
               
       val googleSettings = GoogleSettings("some-cluster")
 
@@ -365,9 +357,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insertExecutions - CommandInvocationFailure") {
-    def doTest(path: Path, locations: Locations[Path]): Unit = {
+    def doTest(path: Path): Unit = {
       createTablesAndThen {
-        val output0 = PathOutput(path, locations)
+        val output0 = PathOutput(path)
   
         val failed = Execution(
             mockEnv,
@@ -394,15 +386,15 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       }
     }
     
-    doTest(path0, Locations.identity)
-    doTest(path("for-hashing/foo.txt"), MockLocations.fromFunctions(makeInHost = resolveInSrcTestResources))
+    doTest(path0)
+    doTest(path("for-hashing/foo.txt"))
   }
 
   test("insertExecutions - should throw") {
-    def doTestWithLocations(path: Path, locations: Locations[Path]): Unit = {
+    def doTestWithLocations(path: Path): Unit = {
       def doTest(command: Option[String], jobResult: JobResult): Unit = {
         createTablesAndThen {
-          val output0 = PathOutput(path, locations)
+          val output0 = PathOutput(path)
   
           val failed = Execution(
               env = mockEnv, 
@@ -434,10 +426,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       doTest(None, JobResult.CommandResult(0))
     }
     
-    doTestWithLocations(path0, Locations.identity)
-    doTestWithLocations(
-        path("for-hashing/foo.txt"), 
-        MockLocations.fromFunctions(makeInHost = resolveInSrcTestResources))
+    doTestWithLocations(path0)
+    doTestWithLocations(path("for-hashing/foo.txt"))
   }
 
   test("findExecution") {
@@ -494,35 +484,28 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("findOutput") {
-    def doTest(path0: Path, path1: Path, hash0: Hash, locations: Locations[Path]): Unit = {
+    def doTest(path0: Path, path1: Path, hash0: Hash): Unit = {
       createTablesAndThen {
         assert(noOutputs)
   
-        val path0InHost = locations.inHost(path0)
-        val path1InHost = locations.inHost(path1)
+        store(path0)
+  
+        val outputRecord0FromDb = dao.findOutputRecord(PathOutput(path0).toOutputRecord)
         
-        store(path0InHost)
+        assert(outputRecord0FromDb === Some(cachedOutput(path0, hash0)))
   
-        val outputRecord0FromDb = dao.findOutputRecord(PathOutput(path0, locations).toOutputRecord)
-        
-        assert(outputRecord0FromDb === Some(cachedOutput(path0InHost, hash0)))
+        assert(dao.findOutputRecord(path1) === None)
   
-        assert(dao.findOutputRecord(path1InHost) === None)
+        storeFailures(path1)
   
-        storeFailures(path1InHost)
+        assert(dao.findOutputRecord(path0) === Some(cachedOutput(path0, hash0)))
   
-        assert(dao.findOutputRecord(path0InHost) === Some(cachedOutput(path0InHost, hash0)))
-  
-        assert(dao.findOutputRecord(path1InHost) === Some(failedOutput(path1InHost)))
+        assert(dao.findOutputRecord(path1) === Some(failedOutput(path1)))
       }
     }
     
-    doTest(path0, path1, hash0, Locations.identity)
-    doTest(
-        path("for-hashing/foo.txt"), 
-        path("for-hashing/bigger"),
-        hash0, 
-        MockLocations.fromFunctions(makeInHost = resolveInSrcTestResources))
+    doTest(path0, path1, hash0)
+    doTest(path("for-hashing/foo.txt"), path("for-hashing/bigger"), hash0)
   }
 
   test("findCommand") {
@@ -556,10 +539,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         Memory.inGb(4), 
         LsfDefaults.maxRunTime, 
         None, 
-        Some(LsfDockerParams(
-            imageName = "library/foo:1.2.3",
-            mountedDirs = Seq(path("foo/bar").toAbsolutePath, path("/x/y/z")),
-            outputDir = path("/out"))))
+        Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
         
     val googleSettings = GoogleSettings("some-cluster")
 

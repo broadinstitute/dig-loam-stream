@@ -53,37 +53,19 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   }
   
   private object SimpleOutputs extends Outputs {
-    import Locations.identity
-
     override val p0 = path("src/test/resources/for-hashing/foo.txt")
     override val p1 = path("src/test/resources/for-hashing/empty.txt")
     override val p2 = path("src/test/resources/for-hashing/subdir/bar.txt")
     
-    override val o0 = Output.PathOutput(p0, identity)
-    override val o1 = Output.PathOutput(p1, identity)
-    override val o2 = Output.PathOutput(p2, identity)
-    override val nonExistentOutput = Output.PathOutput(nonexistentPath, identity)
+    override val o0 = Output.PathOutput(p0)
+    override val o1 = Output.PathOutput(p1)
+    override val o2 = Output.PathOutput(p2)
+    override val nonExistentOutput = Output.PathOutput(nonexistentPath)
   }
   
-  private object DockerOutputs extends Outputs {
-    override val p0 = path("for-hashing/foo.txt")
-    override val p1 = path("for-hashing/empty.txt")
-    override val p2 = path("for-hashing/subdir/bar.txt")
-    
-    val srcTestResources = path("src/test/resources")
-    
-    val locations = MockLocations.fromFunctions(makeInHost = srcTestResources.resolve(_))
-    
-    override val o0 = Output.PathOutput(p0, locations)
-    override val o1 = Output.PathOutput(p1, locations)
-    override val o2 = Output.PathOutput(p2, locations)
-    override val nonExistentOutput = Output.PathOutput(nonexistentPath, locations)
-  }
-  
-  private def testWithBothOutputSets(name: String)(body: Outputs => Any): Unit = {
+  private def testWithSimpleOutputSet(name: String)(body: Outputs => Any): Unit = {
     test(name) {
       body(SimpleOutputs)
-      body(DockerOutputs)
     }
   }
 
@@ -208,7 +190,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
 
-  testWithBothOutputSets("record() - successful command-Execution, some outputs") { outputs =>
+  testWithSimpleOutputSet("record() - successful command-Execution, some outputs") { outputs =>
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
   
@@ -230,7 +212,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
 
-  testWithBothOutputSets("record() - failed command-Execution, some outputs") { outputs =>
+  testWithSimpleOutputSet("record() - failed command-Execution, some outputs") { outputs =>
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
 
@@ -258,7 +240,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
 
-  testWithBothOutputSets("shouldRun - failed and successful runs") { outputs =>
+  testWithSimpleOutputSet("shouldRun - failed and successful runs") { outputs =>
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
         
@@ -302,7 +284,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
   
-  testWithBothOutputSets("needsToBeRun/hasDifferentHash/hasDifferentModTime - should hash") { outputs =>
+  testWithSimpleOutputSet("needsToBeRun/hasDifferentHash/hasDifferentModTime - should hash") { outputs =>
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
       
@@ -386,7 +368,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
   
-  testWithBothOutputSets("needsToBeRun/hasDifferentHash/hasDifferentModTime - hashing disabled") { outputs =>
+  testWithSimpleOutputSet("needsToBeRun/hasDifferentHash/hasDifferentModTime - hashing disabled") { outputs =>
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.DontHashOutputs)
       val jobName = "dummyJob"
@@ -470,7 +452,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     }
   }
 
-  testWithBothOutputSets("command string comparison") { outputSet =>
+  testWithSimpleOutputSet("command string comparison") { outputSet =>
     def cmdLineJob(cmd: String, outputs: Set[Output]): CommandLineJob = {
       CommandLineJob(
         commandLineString = cmd,

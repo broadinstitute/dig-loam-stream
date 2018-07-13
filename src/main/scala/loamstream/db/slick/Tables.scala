@@ -247,25 +247,10 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     override def drmSettingsId = column[Int]("DRM_SETTINGS_ID", O.PrimaryKey)
     
     def imageName = column[String]("IMAGE_NAME")
-    def outputDir = column[String]("OUTPUT_DIR")
     
-    override def * = {
-      (drmSettingsId, imageName, outputDir) <> (LsfDockerSettingsRow.tupled, LsfDockerSettingsRow.unapply)
-    }
+    override def * = (drmSettingsId, imageName) <> (LsfDockerSettingsRow.tupled, LsfDockerSettingsRow.unapply)
   }
   
-  final class LsfDockerMounts(tag: Tag) extends 
-      BelongsToDrmSettings[LsfDockerMountRow, LsfSettingRow, LsfSettings](tag, Names.lsfDockerMounts, lsfSettings) {
-
-    def id = column[Int]("ID", O.AutoInc, O.PrimaryKey)
-    
-    override def drmSettingsId = column[Int]("DRM_SETTINGS_ID")
-    
-    def mountedDir = column[String]("MOUNTED_DIR")
-    
-    override def * = (id, drmSettingsId, mountedDir) <> (LsfDockerMountRow.tupled, LsfDockerMountRow.unapply)
-  }
-
   private val executionForeignKeyPrefix = s"FK_ID_EXECUTIONS_"
   
   private val drmSettingsForeignKeyPrefix = s"FK_ID_DRM_SETTINGS_"
@@ -281,7 +266,6 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   lazy val lsfResources = TableQuery[LsfResources]
   lazy val googleResources = TableQuery[GoogleResources]
   lazy val lsfDockerSettings = TableQuery[LsfDockerSettings]
-  lazy val lsfDockerMounts = TableQuery[LsfDockerMounts]
 
   //NB: Now a Seq so we can guarantee ordering
   private lazy val allTables: Seq[(String, SchemaDescription)] = Seq(
@@ -295,8 +279,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     Names.ugerResources -> ugerResources.schema,
     Names.lsfResources -> lsfResources.schema,
     Names.googleResources -> googleResources.schema,
-    Names.lsfDockerSettings -> lsfDockerSettings.schema,
-    Names.lsfDockerMounts -> lsfDockerMounts.schema
+    Names.lsfDockerSettings -> lsfDockerSettings.schema
   )
 
   private def allTableNames: Seq[String] = allTables.unzip._1
@@ -358,6 +341,5 @@ object Tables {
     val lsfResources = "RESOURCES_LSF"
     val googleResources = "RESOURCES_GOOGLE"
     val lsfDockerSettings = "DOCKER_SETTINGS_LSF"
-    val lsfDockerMounts = "DOCKER_MOUNTS_LSF"
   }
 }

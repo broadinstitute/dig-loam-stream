@@ -90,18 +90,15 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     def doTest(
         makeInitiallyMissing0: Path => Path,
         makeInitiallyMissing1: Path => Path,
-        makePresent: Path => Path,
-        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
-          
-      val locations = getLocations(outDir)
+        makePresent: Path => Path): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
           
       val initiallyMissing0 = makeInitiallyMissing0(outDir)
       val initiallyMissing1 = makeInitiallyMissing1(outDir)
       val present = makePresent(outDir)
       
-      val initiallyMissingOutput0 = Output.PathOutput(initiallyMissing0, locations)
-      val initiallyMissingOutput1 = Output.PathOutput(initiallyMissing1, locations)
-      val presentOutput = Output.PathOutput(present, locations)
+      val initiallyMissingOutput0 = Output.PathOutput(initiallyMissing0)
+      val initiallyMissingOutput1 = Output.PathOutput(initiallyMissing1)
+      val presentOutput = Output.PathOutput(present)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -139,19 +136,10 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       }
     }
     
-    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
     doTest(
         _ / "foo.txt",
         _ / "bar.txt",
-        _ / "baz.txt",
-        _ => Locations.identity)
-        
-    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
-    doTest( 
-      _ => path("foo.txt"),
-      _ => path("bar.txt"),
-      _ => path("baz.txt"),
-      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
+        _ / "baz.txt")
   }
   
   test("waitForOutputsOnly - no missing outputs") {
@@ -162,16 +150,13 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     def doTest(
         makeOut0: Path => Path,
-        makeOut1: Path => Path,
-        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
+        makeOut1: Path => Path): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-      val locations = getLocations(outDir)
-            
       val out0 = makeOut0(outDir)
       val out1 = makeOut1(outDir)
       
-      val output0 = Output.PathOutput(out0, locations)
-      val output1 = Output.PathOutput(out1, locations)
+      val output0 = Output.PathOutput(out0)
+      val output1 = Output.PathOutput(out1)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -200,18 +185,9 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       }
     }
     
-    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
     doTest(
         _ / "foo.txt",
-        _ / "bar.txt",
-        _ => Locations.identity)
-        
-        
-    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
-    doTest( 
-      _ => path("foo.txt"),
-      _ => path("bar.txt"),
-      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
+        _ / "bar.txt")
   }
   
   test("waitForOutputsAndMakeExecution - success, no missing outputs") {
@@ -223,15 +199,13 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     def doTest(
         makeOut0: Path => Path,
-        makeOut1: Path => Path,
-        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
+        makeOut1: Path => Path): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-      val locations = getLocations(outDir)
       val out0 = makeOut0(outDir)
       val out1 = makeOut1(outDir)
       
-      val output0 = Output.PathOutput(out0, locations)
-      val output1 = Output.PathOutput(out1, locations)
+      val output0 = Output.PathOutput(out0)
+      val output1 = Output.PathOutput(out1)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -261,18 +235,9 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       }
     }
     
-    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
     doTest(
         _ / "foo.txt",
-        _ / "bar.txt",
-        _ => Locations.identity)
-        
-        
-    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
-    doTest( 
-      _ => path("foo.txt"),
-      _ => path("bar.txt"),
-      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
+        _ / "bar.txt")
   }
   
   test("waitForOutputsAndMakeExecution - success, some missing outputs") {
@@ -283,15 +248,13 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     def doTest(
         makeOut0: Path => Path,
-        makeOut1: Path => Path,
-        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
+        makeOut1: Path => Path): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-      val locations = getLocations(outDir)
       val out0 = makeOut0(outDir)
       val out1 = makeOut1(outDir)
       
-      val output0 = Output.PathOutput(out0, locations)
-      val output1 = Output.PathOutput(out1, locations)
+      val output0 = Output.PathOutput(out0)
+      val output1 = Output.PathOutput(out1)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -332,18 +295,9 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       }
     }
     
-    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
     doTest(
         _ / "foo.txt",
-        _ / "bar.txt",
-        _ => Locations.identity)
-        
-        
-    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
-    doTest( 
-      _ => path("foo.txt"),
-      _ => path("bar.txt"),
-      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
+        _ / "bar.txt")
   }
   
   test("waitForOutputsAndMakeExecution - success, some missing outputs that don't appear in time") {
@@ -354,15 +308,13 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     def doTest(
         makeOut0: Path => Path,
-        makeOut1: Path => Path,
-        getLocations: Path => Locations[Path]): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
+        makeOut1: Path => Path): Unit = TestHelpers.withWorkDir(getClass.getSimpleName) { outDir =>
     
-      val locations = getLocations(outDir)
       val out0 = makeOut0(outDir)
       val out1 = makeOut1(outDir)
       
-      val output0 = Output.PathOutput(out0, locations)
-      val output1 = Output.PathOutput(out1, locations)
+      val output0 = Output.PathOutput(out0)
+      val output1 = Output.PathOutput(out1)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -402,18 +354,9 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       }
     }
     
-    //Non-docker case: where the paths in the Outputs (from Loam files) are the same as those on the host FS 
     doTest(
         _ / "foo.txt",
-        _ / "bar.txt",
-        _ => Locations.identity)
-        
-        
-    //Docker case: where the paths in the Outputs (from Loam files) are DIFFERNT from those on the host FS
-    doTest( 
-      _ => path("foo.txt"),
-      _ => path("bar.txt"),
-      outDir => MockLocations.fromFunctions(makeInHost = outDir.resolve(_)))
+        _ / "bar.txt")
   }
   
   test("waitForOutputsAndMakeExecution - failure") {

@@ -15,10 +15,8 @@ import loamstream.util.HashType.Md5
 import loamstream.util.HashType.Sha1
 import loamstream.util.PathUtils
 import loamstream.util.PlatformUtil
-import loamstream.model.execute.Locations
 import java.nio.file.Path
 import loamstream.TestHelpers
-import loamstream.model.execute.MockLocations
 
 /**
   * @author clint
@@ -38,19 +36,16 @@ final class OutputTest extends FunSuite {
     //sanity check
     assert(Files.exists(nonExistingPath) === false)
   
-    def doTest(existingPath: Path, locations: Locations[Path]): Unit = {
-      val existingPathInHost = locations.inHost(existingPath)
-      val nonExistingPathInHost = locations.inHost(nonExistingPath)
-      
+    def doTest(existingPath: Path): Unit = {
       //sanity check
-      assert(Files.exists(existingPathInHost))
+      assert(Files.exists(existingPath))
       
-      val doesntExist = PathOutput(path(nonExistingLocation), locations)
-      val exists = PathOutput(existingPath, locations)  
+      val doesntExist = PathOutput(path(nonExistingLocation))
+      val exists = PathOutput(existingPath)  
   
-      assert(exists.pathInHost === normalizePath(existingPathInHost))
+      assert(exists.pathInHost === normalizePath(existingPath))
       
-      assert(doesntExist.pathInHost === normalizePath(nonExistingPathInHost))
+      assert(doesntExist.pathInHost === normalizePath(nonExistingPath))
       
       assert(!doesntExist.isPresent)
   
@@ -61,6 +56,7 @@ final class OutputTest extends FunSuite {
       assert(exists.isPresent, s"'${exists.pathInHost}' doesn't exist")
       
       val expectedHash = {
+        //NB: These are different on different platforms due to GitHub's line-ending-munging. 
         if (PlatformUtil.isWindows) { "kUUgk+jLmf99lY+xeUH/MX0CYxg=" } 
         else { "y3i4QSra98i17swJ28mqTTy7NnU=" }
       }
@@ -72,7 +68,7 @@ final class OutputTest extends FunSuite {
       val doesntExistRecord = doesntExist.toOutputRecord
       
       val expectedDoesntExistRecord = OutputRecord( 
-          loc = PathUtils.normalize(nonExistingPathInHost),
+          loc = PathUtils.normalize(nonExistingPath),
           isPresent = false,
           hash = None,
           hashType = None,
@@ -83,26 +79,17 @@ final class OutputTest extends FunSuite {
       val existsRecord = exists.toOutputRecord
       
       val expectedExistsRecord = OutputRecord(
-          loc = PathUtils.normalize(existingPathInHost),
+          loc = PathUtils.normalize(existingPath),
           isPresent = true,
           hash = Some(hashStr),
           hashType = Some(Sha1.algorithmName),
-          lastModified = Some(PathUtils.lastModifiedTime(existingPathInHost)))
+          lastModified = Some(PathUtils.lastModifiedTime(existingPath)))
       
       assert(existsRecord === expectedExistsRecord)
       
     }
     
-    doTest(path("src/test/resources/for-hashing/foo.txt"), Locations.identity)
-    
-    val srcTestResources = path("src/test/resources")
-    val resolveInSrcTestResources: Path => Path = srcTestResources.resolve(_) 
-    
-    doTest(
-        path("for-hashing/foo.txt"), 
-        MockLocations.fromFunctions(
-            makeInHost = resolveInSrcTestResources, 
-            makeInContainer = resolveInSrcTestResources))
+    doTest(path("src/test/resources/for-hashing/foo.txt"))
   }
 
   test("GcsUriOutput.location") {

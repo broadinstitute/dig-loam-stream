@@ -15,8 +15,8 @@ final case class GraphPrinterCommandlines(lineLength: Int) extends GraphPrinter 
   /** Prints a token */
   def print(token: LoamToken, graph: LoamGraph): String = token match {
     case StringToken(string) => string
-    case StoreToken(store, _) => print(store)
-    case MultiStoreToken(stores, _) => print(stores)
+    case StoreToken(store) => print(store)
+    case MultiStoreToken(stores) => print(stores)
     case MultiToken(tokens) => tokens.mkString(",")
   }
 

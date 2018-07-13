@@ -36,9 +36,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
             cores = 4, 
             mem = 16, 
             maxRunTime = 5, 
-            dockerImage = "library/foo:1.2.3", 
-            mountsInContainers = Seq(path("foo/bar"), path("/baz")),
-            outputBasePathInContainers = path("/blerg")) {
+            dockerImage = "library/foo:1.2.3") {
           
           cmd"cp $a $b".in(a).out(b)
         }
@@ -78,9 +76,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
       
       val expectedDockerParamsOpt: Option[DockerParams] = drmSystem match {
         case DrmSystem.Uger => None
-        case DrmSystem.Lsf => {
-          Some(LsfDockerParams("library/foo:1.2.3", Seq(path("foo/bar"), path("/baz")), path("/blerg")))
-        }
+        case DrmSystem.Lsf => Some(LsfDockerParams("library/foo:1.2.3"))
       }
       
       val expectedSettings = drmSystem.settingsMaker(

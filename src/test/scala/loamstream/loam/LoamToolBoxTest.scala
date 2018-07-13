@@ -127,8 +127,8 @@ final class LoamToolBoxTest extends FunSuite {
         val inToTmp1 = cmd"cp $fileIn $fileTmp1"
         val tmp1ToTmp2 = cmd"cp $fileTmp1 $fileTmp2"
         val tmp2ToOne = cmd"cp $fileTmp2 $fileOut1"
-        val tmp2ToTwo = cmd"cp $fileTmp2 $fileOut2".named("2to2")
-        val tmp2ToThree = cmd"cp $fileTmp2 $fileOut3".named("2to3")
+        val tmp2ToTwo = cmd"cp $fileTmp2 $fileOut2".tag("2to2")
+        val tmp2ToThree = cmd"cp $fileTmp2 $fileOut3".tag("2to3")
 
         val graph = context.projectContext.graph
 

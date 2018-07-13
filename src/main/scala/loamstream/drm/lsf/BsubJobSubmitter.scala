@@ -38,12 +38,6 @@ final class BsubJobSubmitter private[lsf] (
     }
   }
   
-  private def mungeCommandLines(drmSettings: DrmSettings, taskArray: DrmTaskArray): DrmTaskArray = {
-    val newCommandLineJobs = ???
-    
-    taskArray.copy(drmJobs = newCommandLineJobs)
-  }
-  
   override def stop(): Unit = ()
   
   private[lsf] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
@@ -102,9 +96,7 @@ object BsubJobSubmitter extends Loggable {
         
     import scala.sys.process._
   
-    val (tokens, cdfOpt) = makeTokensAndCdf(actualExecutable, lsfConfig, taskArray, drmSettings)
-    
-    cdfOpt.foreach(_.writeYamlToFile())
+    val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
     
     debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
     
@@ -117,25 +109,13 @@ object BsubJobSubmitter extends Loggable {
   
   private[lsf] def failure(msg: String): SubmissionFailure = SubmissionFailure(new Exception(msg))
   
-  private[lsf] def makeTokensAndCdf(
+  private[lsf] def makeTokens(
       actualExecutable: String, 
       lsfConfig: LsfConfig, 
       taskArray: DrmTaskArray,
-      drmSettings: DrmSettings): (Seq[String], Option[ContainerDefinitionFile]) = {
+      drmSettings: DrmSettings): Seq[String] = {
     
     //NB: See https://www.ibm.com/support/knowledgecenter/en/SSETD4_9.1.2/lsf_command_ref/bsub.1.html
-    
-    val dockerTupleOpt: Option[(Seq[String], ContainerDefinitionFile)] = {
-      drmSettings.dockerParams.collect { case dockerParams: LsfDockerParams =>
-        val containerDefinitionFile = ContainerDefinitionFile(lsfConfig, taskArray, dockerParams)
-        
-        Seq("-a", s"docker(${containerDefinitionFile.yamlFile})") -> containerDefinitionFile
-      }
-    }
-    
-    val dockerPart = dockerTupleOpt.map { case (parts, _) => parts }.getOrElse(Nil)
-    
-    val cdfOpt = dockerTupleOpt.map { case (_, cdf) => cdf }
     
     val runTimeInHours: Int = drmSettings.maxRunTime.hours.toInt
     val maxRunTimePart = Seq("-W", s"${runTimeInHours}:0")
@@ -156,9 +136,9 @@ object BsubJobSubmitter extends Loggable {
     val stderrPart = Seq("-eo", s":${taskArray.stdErrPathTemplate}")
     
     val tokens = actualExecutable +: 
-      (dockerPart ++ queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
+      (queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
       
-    tokens -> cdfOpt
+    tokens
   }
   
   private val submittedJobIdRegex = """^Job\s+<(\d+)>.+$""".r

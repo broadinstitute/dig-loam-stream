@@ -20,7 +20,6 @@ lazy val Versions = new {
   val Squants = "1.3.0"
   val LogbackColorizer = "1.0.1"
   val Janino = "3.0.8"
-  val SnakeYaml =  "1.21"
 }
 
 lazy val Orgs = new {
@@ -57,8 +56,7 @@ lazy val mainDeps = Seq(
   "com.iheart" %% "ficus" % Versions.Ficus,
   "org.typelevel"  %% "squants"  % Versions.Squants,
   "org.tuxdude.logback.extensions" % "logback-colorizer" % Versions.LogbackColorizer,
-  "org.codehaus.janino" % "janino" % Versions.Janino,
-   "org.yaml" % "snakeyaml" % Versions.SnakeYaml
+  "org.codehaus.janino" % "janino" % Versions.Janino
 )
 
 lazy val testDeps = Seq(

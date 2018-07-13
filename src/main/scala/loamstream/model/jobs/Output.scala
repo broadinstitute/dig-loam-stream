@@ -41,17 +41,17 @@ object Output {
    * A handle to an output of a job stored at 'path'.  Hashes and modification times are re-computed on
    * each access.
    */
-  final case class PathOutput private (pathInHost: Path) extends Output {
+  final case class PathOutput private (path: Path) extends Output {
     
-    override def isPresent: Boolean = Files.exists(pathInHost)
+    override def isPresent: Boolean = Files.exists(path)
 
-    override def hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(pathInHost)) else None
+    override def hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(path)) else None
 
     override def lastModified: Option[Instant] = {
-      if (isPresent) Option(PathUtils.lastModifiedTime(pathInHost)) else None
+      if (isPresent) Option(PathUtils.lastModifiedTime(path)) else None
     }
 
-    override def location: String = PathUtils.normalize(pathInHost)
+    override def location: String = PathUtils.normalize(path)
 
     override def toOutputRecord: OutputRecord = {
       OutputRecord( 

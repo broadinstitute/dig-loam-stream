@@ -104,11 +104,11 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
           toReturn = JobStatus.Succeeded,
           outputs = Set(initiallyMissingOutput0, initiallyMissingOutput1, presentOutput))
           
-      Files.writeTo(presentOutput.pathInHost)("2")
+      Files.writeTo(presentOutput.path)("2")
       
-      assert(exists(initiallyMissingOutput0.pathInHost) === false)
-      assert(exists(initiallyMissingOutput1.pathInHost) === false)
-      assert(exists(presentOutput.pathInHost))
+      assert(exists(initiallyMissingOutput0.path) === false)
+      assert(exists(initiallyMissingOutput1.path) === false)
+      assert(exists(presentOutput.path))
       
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -116,23 +116,23 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       withFileMonitor(new FileMonitor(10.0, 2.seconds)) { fileMonitor =>
         val f = waitForOutputsOnly(mockJob, fileMonitor)
         
-        assert(exists(initiallyMissingOutput0.pathInHost) === false)
-        assert(exists(initiallyMissingOutput1.pathInHost) === false)
-        assert(exists(presentOutput.pathInHost))
+        assert(exists(initiallyMissingOutput0.path) === false)
+        assert(exists(initiallyMissingOutput1.path) === false)
+        assert(exists(presentOutput.path))
         
         doInThreadAfter(200) {
-          Files.writeTo(initiallyMissingOutput0.pathInHost)("0")
+          Files.writeTo(initiallyMissingOutput0.path)("0")
         }
         
         doInThreadAfter(100) {
-          Files.writeTo(initiallyMissingOutput1.pathInHost)("1")
+          Files.writeTo(initiallyMissingOutput1.path)("1")
         }
         
         Await.result(f, 3.seconds)
         
-        assert(exists(initiallyMissingOutput0.pathInHost))
-        assert(exists(initiallyMissingOutput1.pathInHost))
-        assert(exists(presentOutput.pathInHost))
+        assert(exists(initiallyMissingOutput0.path))
+        assert(exists(initiallyMissingOutput1.path))
+        assert(exists(presentOutput.path))
       }
     }
     
@@ -163,14 +163,14 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
           outputs = Set(output0, output1))
           
       //sanity check
-      assert(exists(output0.pathInHost) === false)
-      assert(exists(output1.pathInHost) === false)
+      assert(exists(output0.path) === false)
+      assert(exists(output1.path) === false)
           
-      Files.writeTo(output0.pathInHost)("0")
-      Files.writeTo(output1.pathInHost)("1")
+      Files.writeTo(output0.path)("0")
+      Files.writeTo(output1.path)("1")
       
-      assert(exists(output0.pathInHost))
-      assert(exists(output1.pathInHost))
+      assert(exists(output0.path))
+      assert(exists(output1.path))
           
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -180,8 +180,8 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
         
         assert(f.isCompleted)
         
-        assert(exists(output0.pathInHost))
-        assert(exists(output1.pathInHost))
+        assert(exists(output0.path))
+        assert(exists(output1.path))
       }
     }
     
@@ -212,14 +212,14 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
           outputs = Set(output0, output1))
           
       //sanity check
-      assert(exists(output0.pathInHost) === false)
-      assert(exists(output1.pathInHost) === false)  
+      assert(exists(output0.path) === false)
+      assert(exists(output1.path) === false)  
           
-      Files.writeTo(output0.pathInHost)("0")
-      Files.writeTo(output1.pathInHost)("1")
+      Files.writeTo(output0.path)("0")
+      Files.writeTo(output1.path)("1")
       
-      assert(exists(output0.pathInHost))
-      assert(exists(output1.pathInHost))
+      assert(exists(output0.path))
+      assert(exists(output1.path))
           
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -261,13 +261,13 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
           outputs = Set(output0, output1))
         
       //sanity check
-      assert(exists(output0.pathInHost) === false)
-      assert(exists(output1.pathInHost) === false)
+      assert(exists(output0.path) === false)
+      assert(exists(output1.path) === false)
           
-      Files.writeTo(output0.pathInHost)("0")
+      Files.writeTo(output0.path)("0")
       
-      assert(exists(output0.pathInHost))
-      assert(exists(output1.pathInHost) === false)
+      assert(exists(output0.path))
+      assert(exists(output1.path) === false)
           
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -277,19 +277,19 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       withFileMonitor(new FileMonitor(10.0, 5.seconds)) { fileMonitor => 
         val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
         
-        assert(exists(output0.pathInHost))
-        assert(exists(output1.pathInHost) === false)
+        assert(exists(output0.path))
+        assert(exists(output1.path) === false)
         
         doInThread {
           Thread.sleep(100)
           
-          Files.writeTo(output1.pathInHost)("1")
+          Files.writeTo(output1.path)("1")
         }
         
         val execution = Await.result(f, 10.seconds)
         
-        assert(exists(output0.pathInHost))
-        assert(exists(output1.pathInHost))
+        assert(exists(output0.path))
+        assert(exists(output1.path))
         
         assert(execution === runData.toExecution)
       }
@@ -321,13 +321,13 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
           outputs = Set(output0, output1))
         
       //sanity check
-      assert(exists(output0.pathInHost) === false)
-      assert(exists(output1.pathInHost) === false)
+      assert(exists(output0.path) === false)
+      assert(exists(output1.path) === false)
           
-      Files.writeTo(output0.pathInHost)("0")
+      Files.writeTo(output0.path)("0")
       
-      assert(exists(output0.pathInHost))
-      assert(exists(output1.pathInHost) === false)
+      assert(exists(output0.path))
+      assert(exists(output1.path) === false)
           
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
@@ -338,14 +338,14 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
         val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
         
-        assert(exists(output0.pathInHost))
-        assert(exists(output1.pathInHost) === false)
+        assert(exists(output0.path))
+        assert(exists(output1.path) === false)
         
         //NB: Output will appear in 1 second, but we only "wait" for 0 seconds 
         doInThread {
           Thread.sleep(1000)
           
-          Files.writeTo(output1.pathInHost)("1")
+          Files.writeTo(output1.path)("1")
         }
         
         val execution = Await.result(f, 10.seconds)

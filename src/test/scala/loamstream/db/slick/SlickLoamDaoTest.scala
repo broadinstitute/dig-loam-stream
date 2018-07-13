@@ -380,7 +380,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             mockCmd,
             CommandResult(JobResult.DummyExitCode),
             failed.outputStreams.get,
-            failedOutput(output0.pathInHost))
+            failedOutput(output0.path))
   
         assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
       }

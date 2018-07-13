@@ -44,15 +44,15 @@ final class OutputTest extends FunSuite {
       
       val exists = PathOutput(existingPath)  
   
-      assert(exists.pathInHost === normalizePath(existingPath))
+      assert(exists.path === normalizePath(existingPath))
       
-      assert(doesntExist.pathInHost === normalizePath(nonExistingPath))
+      assert(doesntExist.path === normalizePath(nonExistingPath))
       
       assert(!doesntExist.isPresent)
   
       assert(doesntExist.hash.isEmpty)
   
-      assert(exists.isPresent, s"'${exists.pathInHost}' doesn't exist")
+      assert(exists.isPresent, s"'${exists.path}' doesn't exist")
       
       //NB: These are different on different platforms due to GitHub's line-ending-munging.
       val expectedHash = if (PlatformUtil.isWindows) "kUUgk+jLmf99lY+xeUH/MX0CYxg=" else "y3i4QSra98i17swJ28mqTTy7NnU="

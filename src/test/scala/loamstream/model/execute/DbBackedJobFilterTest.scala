@@ -47,9 +47,9 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     final lazy val cachedOutput2: OutputRecord = o2.toOutputRecord
     final lazy val cachedNonExistentOutput: OutputRecord = nonExistentOutput.toOutputRecord
     
-    final lazy val failedOutput0: OutputRecord = failedOutput(o0.pathInHost)
-    final lazy val failedOutput1: OutputRecord = failedOutput(o1.pathInHost)
-    final lazy val failedOutput2: OutputRecord = failedOutput(o2.pathInHost)
+    final lazy val failedOutput0: OutputRecord = failedOutput(o0.path)
+    final lazy val failedOutput1: OutputRecord = failedOutput(o1.path)
+    final lazy val failedOutput2: OutputRecord = failedOutput(o2.path)
   }
   
   private object SimpleOutputs extends Outputs {

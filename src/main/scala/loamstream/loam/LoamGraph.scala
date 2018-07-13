@@ -119,22 +119,6 @@ final case class LoamGraph(
       namedTools = namedTools.strictMapValues(replace)
     )
   }
-  
-  /*def updateStore(existing: Store, replacement: Store): LoamGraph = {
-    val replace: Store => Store = { store =>
-      if (store.id == existing.id) { replacement } else { store }
-    }
-
-    import loamstream.util.Maps.Implicits._
-
-    copy(
-      stores = stores.map(replace),
-      toolInputs = toolInputs.strictMapValues(_.map(replace)),
-      toolOutputs = toolOutputs.strictMapValues(_.map(replace)),
-      inputStores = inputStores.map(replace),
-      storeProducers = storeProducers.mapKeys(replace),
-      storeConsumers = storeConsumers.mapKeys(replace))
-  }*/
 
   /** Returns graph with store marked as input store */
   def withStoreAsInput(store: Store): LoamGraph = copy(inputStores = inputStores + store)

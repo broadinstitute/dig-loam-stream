@@ -23,7 +23,7 @@ final class LoamGraphTest extends FunSuite {
   test("updateTool") {
     val components = makeTestComponents
     
-    val oldGraph = components.graph.copy(namedTools = components.graph.namedTools + ("impute" -> components.imputeTool))
+    val oldGraph = components.graph.withToolName(components.imputeTool, "impute")
     
     val oldTool = components.imputeTool
     val newTool = oldTool.copy(
@@ -83,10 +83,12 @@ final class LoamGraphTest extends FunSuite {
     assert(newGraph.executionEnvironments === Map(
         components.phaseTool -> Environment.Local, newTool -> Environment.Local))
     
-    assert(oldGraph.namedTools === Map("phase" -> components.phaseTool, "impute" -> components.imputeTool))
+    assert(oldGraph.nameOf(components.phaseTool) === Some("phase"))
+    assert(oldGraph.nameOf(components.imputeTool) === Some("impute"))
     
-    assert(newGraph.namedTools === Map("phase" -> components.phaseTool, "impute" -> newTool))
-        
+    assert(newGraph.nameOf(components.phaseTool) === Some("phase"))
+    assert(newGraph.nameOf(newTool) === Some("impute"))
+    
     assert(oldGraph.stores === newGraph.stores)
     assert(oldGraph.inputStores === newGraph.inputStores)
   }
@@ -220,7 +222,8 @@ final class LoamGraphTest extends FunSuite {
     
     assert(graph.tools === Set(phaseTool, imputeTool))
     
-    assert(graph.namedTools === Map("phase" -> phaseTool))
+    assert(graph.nameOf(phaseTool) === Some("phase"))
+    assert(graph.nameOf(imputeTool).isDefined)
     
     val filtered = graph.without(Set(imputeTool))
     
@@ -253,7 +256,8 @@ final class LoamGraphTest extends FunSuite {
     
     assert(graph.tools === Set(phaseTool, imputeTool))
     
-    assert(graph.namedTools === Map("phase" -> phaseTool))
+    assert(graph.nameOf(phaseTool) === Some("phase"))
+    assert(graph.nameOf(imputeTool).isDefined)
     
     //renaming a tool
     intercept[Exception] {
@@ -265,6 +269,7 @@ final class LoamGraphTest extends FunSuite {
       graph.withToolName(imputeTool, "phase")
     }
     
+    //Give a tool with an auto-generated name a user-specified name
     val updatedGraph = graph.withToolName(imputeTool, "impute")
     
     assert(updatedGraph.namedTools === Map("phase" -> phaseTool, "impute" -> imputeTool))

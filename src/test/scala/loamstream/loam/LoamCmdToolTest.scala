@@ -19,6 +19,8 @@ import loamstream.util.BashScript
 import java.nio.file.Path
 import loamstream.TestHelpers
 import loamstream.LoamFunSuite
+import loamstream.model.Tool
+import loamstream.compiler.LoamPredef
 
 /**
   * @author clint
@@ -33,11 +35,15 @@ final class LoamCmdToolTest extends LoamFunSuite {
   // platform separator.
   private val fileSepForBash = '/'
   
+  private def nameOf(t: Tool) = t.graph.nameOf(t)
+  
   testWithScriptContext("string interpolation (trivial)") { implicit scriptContext =>
     val tool = cmd"foo bar baz"
 
     assert(tool.graph eq scriptContext.projectContext.graph)
 
+    assert(nameOf(tool).isDefined)
+    
     assert(tool.graph.stores == Set.empty)
     assert(tool.graph.storeProducers === Map.empty)
     assert(tool.graph.storeConsumers == Map.empty)
@@ -67,6 +73,8 @@ final class LoamCmdToolTest extends LoamFunSuite {
     assert(tool.graph eq scriptContext.projectContext.graph)
 
     assert(tool.graph.stores === Set(nuh, zuh))
+    assert(nameOf(tool).isDefined)
+    
     assert(tool.graph.storeProducers === Map(nuh -> tool))
     assert(tool.graph.storeConsumers == Map.empty)
 
@@ -99,7 +107,11 @@ final class LoamCmdToolTest extends LoamFunSuite {
 
     val baseTool = cmd"someTool --in $input1 --in $input2 --in $input3 --out $output"
 
+    val baseToolName = nameOf(baseTool)
+    
     val toolv1 = baseTool.in(input3).out(output).using("R-3.1")
+    
+    val toolv1Name = nameOf(toolv1)
 
     assert(toolv1.graph eq scriptContext.projectContext.graph)
     assert(toolv1.graph.stores.size === 2)
@@ -115,11 +127,19 @@ final class LoamCmdToolTest extends LoamFunSuite {
 
     val toolv2 = baseTool.in(input3).using("R-3.1").out(output)
 
+    val toolv2Name = nameOf(toolv2)
+    
     assert(toolv2.commandLine === expectedCmdLineString)
 
     val toolv3 = baseTool.using("R-3.1").in(input3).out(output)
 
-    assert(toolv2.commandLine === expectedCmdLineString)
+    val toolv3Name = nameOf(toolv3)
+    
+    assert(toolv3.commandLine === expectedCmdLineString)
+    
+    assert(baseToolName == toolv1Name)
+    assert(baseToolName == toolv2Name)
+    assert(baseToolName == toolv3Name)
   }
 
   testWithScriptContext("using() in a more complex cmd") { implicit scriptContext =>
@@ -134,6 +154,8 @@ final class LoamCmdToolTest extends LoamFunSuite {
       s"((echo 10 ; sed '1d' ${fileSepForBash}inputStore | cut -f5- | sed 's/\\t/ /g') > ${fileSepForBash}outputStore)"
 
     assert(tool.commandLine === expected)
+    
+    assert(nameOf(tool).isDefined)
   }
 
   testWithScriptContext("using() with multiple tools to be 'use'd") { implicit scriptContext =>
@@ -143,6 +165,8 @@ final class LoamCmdToolTest extends LoamFunSuite {
     val expected = s"$useuse && reuse -q otherTool1 && reuse -q otherTool2 && reuse -q otherTool3 && (someTool)"
 
     assert(tool.commandLine === expected)
+    
+    assert(nameOf(tool).isDefined)
   }
 
   test("toToken") {
@@ -341,5 +365,22 @@ final class LoamCmdToolTest extends LoamFunSuite {
     }
     
     assertGraph(context.graph, tool, expectedTokens, inputsMapAfter, outputsMapAfter)
+
+    //DynamicConfig
+    
+    val config = DynamicConfig(ConfigFactory.parseString("foo { bar { baz = 42 } }"), Some("foo.bar.baz"))
+    
+    assert(toToken(config) === StringToken("42"))
+    
+    val configThatShouldBlowUp = config.copy(pathOption = Some("blerg.zerg"))
+    
+    intercept[Exception] {
+      toToken(configThatShouldBlowUp)
+    }
+    
+    //arbitrary type
+    final case class Foo(x: Int)
+    
+    assert(toToken(Foo(42)) === StringToken("Foo(42)"))
   }
 }

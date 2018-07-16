@@ -1,9 +1,6 @@
 package loamstream.loam
 
-import java.nio.file.Path
-
 import loamstream.conf.DynamicConfig
-import loamstream.drm.DockerParams
 import loamstream.loam.LoamToken.MultiStoreToken
 import loamstream.loam.LoamToken.MultiToken
 import loamstream.loam.LoamToken.StoreToken
@@ -13,7 +10,6 @@ import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.model.Tool.AllStores
 import loamstream.model.Tool.DefaultStores
-import loamstream.model.execute.Environment
 import loamstream.util.StringUtils
 
 /**

@@ -29,14 +29,16 @@ final class ToolTest extends FunSuite {
       val tool1 = cmd"bar --baz"
       
       assert(graph.tools === Set(tool0, tool1))
-      assert(graph.namedTools === Map.empty)
+      assert(graph.nameOf(tool0).isDefined)
+      assert(graph.nameOf(tool1).isDefined)
       
       val namedTool0 = method(tool0)("foo")
       
       assert(namedTool0 eq tool0)
       
       assert(graph.tools === Set(tool0, tool1))
-      assert(graph.namedTools === Map("foo" -> tool0))
+      assert(graph.nameOf(tool0) === Some("foo"))
+      assert(graph.nameOf(tool1).isDefined)
       
       val namedTool1 = method(tool1)("bar")
       
@@ -48,7 +50,8 @@ final class ToolTest extends FunSuite {
       val tool2 = cmd"baz"
       
       assert(graph.tools === Set(tool0, tool1, tool2))
-      assert(graph.namedTools === Map("foo" -> tool0, "bar" -> tool1))
+      assert(graph.nameOf(tool0) === Some("foo"))
+      assert(graph.nameOf(tool1) === Some("bar"))
       
       //non-unique name
       intercept[Exception] {

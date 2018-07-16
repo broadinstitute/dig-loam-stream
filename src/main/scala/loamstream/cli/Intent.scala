@@ -121,10 +121,6 @@ object Intent extends Loggable {
     if (values.disableHashingSupplied) DontHashOutputs else HashOutputs
   }
   
-  private def noneSupplied(as: Option[Seq[String]], bs: Option[Seq[String]], cs: Option[Seq[String]]): Boolean = {
-    as.isEmpty && bs.isEmpty && cs.isEmpty 
-  }
-  
   private[cli] def determineJobFilterIntent(values: Conf.Values): JobFilterIntent = {
     def nameOf(field: Conf => ScallopOption[_]) = field(values.derivedFrom).name
     

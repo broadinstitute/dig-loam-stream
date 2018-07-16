@@ -117,7 +117,7 @@ object AppWiring extends Loggable {
   }
   
   def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
-    val (jobFilter, _) = makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, makeDao)
+    val (jobFilter, _) = makeJobFilterAndExecutionRecorder(intent.jobFilterIntent, intent.hashingStrategy, makeDao)
     
     jobFilter
   }
@@ -131,7 +131,7 @@ object AppWiring extends Loggable {
         drmSystemOpt = intent.drmSystemOpt)
   }
 
-  private[AppWiring] def makeJobFilter(
+  private[AppWiring] def makeJobFilterAndExecutionRecorder(
       jobFilterIntent: JobFilterIntent,
       hashingStrategy: HashingStrategy,
       getDao: => LoamDao): (JobFilter, ExecutionRecorder) = {
@@ -169,7 +169,7 @@ object AppWiring extends Loggable {
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(confFile, config)
 
     override lazy val (jobFilter: JobFilter, executionRecorder: ExecutionRecorder) = {
-      makeJobFilter(jobFilterIntent, hashingStrategy, dao)
+      makeJobFilterAndExecutionRecorder(jobFilterIntent, hashingStrategy, dao)
     }
     
     private lazy val terminableExecuter: TerminableExecuter = {

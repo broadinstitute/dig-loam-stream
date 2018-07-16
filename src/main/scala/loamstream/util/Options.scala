@@ -15,18 +15,4 @@ object Options {
     case Some(a) => Success(a)
     case None => Tries.failure(ifNoneMessage, makeException)
   }
-  
-  object Implicits {
-    final implicit class BooleanOptionOps(val o: Option[Boolean]) extends AnyVal {
-      def orFalse: Boolean = o match {
-        case Some(b) => b
-        case _ => false
-      }
-      
-      def orTrue: Boolean = o match {
-        case Some(b) => b
-        case _ => true
-      }
-    }
-  }
 }

@@ -128,12 +128,12 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   verify()
   
   def toValues: Conf.Values = {
-    import Options.Implicits._
+    def tailIfPresent[A](as: Seq[A]): Seq[A] = as.headOption.map(_ => as.tail).getOrElse(Nil)
     
     def getRun: Option[(String, Seq[String])] = for {
       r <- run.toOption
       discriminator <- r.headOption
-      rest = if(r.isEmpty) r else r.tail
+      rest = tailIfPresent(r)
     } yield (discriminator, rest)
     
     import Conf.RunStrategies
@@ -167,8 +167,6 @@ object Conf {
     val AllOf = "allOf"
     val AnyOf = "anyOf"
     val NoneOf = "noneOf"
-    
-    val values: Seq[String] = Seq(Everything, AllOf, AnyOf, NoneOf)
   }
   
   final case class Values(

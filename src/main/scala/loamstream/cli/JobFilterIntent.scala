@@ -6,9 +6,7 @@ import scala.util.matching.Regex
  * @author clint
  * Jul 2, 2018
  */
-sealed trait JobFilterIntent {
-  
-}
+sealed trait JobFilterIntent
 
 object JobFilterIntent {
   case object RunEverything extends JobFilterIntent

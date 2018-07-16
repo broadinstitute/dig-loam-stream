@@ -17,14 +17,13 @@ import loamstream.loam.LoamToken.StringToken
 import loamstream.model.LId
 import loamstream.model.Store
 import loamstream.util.BashScript
+import loamstream.model.Tool
 
 /**
   * @author clint
   *         date: Jul 21, 2016
   */
 final class LoamCmdToolTest extends FunSuite {
-  //scalastyle:off magic.number
-  
   import LoamCmdTool._
   import loamstream.TestHelpers.emptyProjectContext
  
@@ -33,6 +32,8 @@ final class LoamCmdToolTest extends FunSuite {
   // platform separator.
   private val fileSepForBash = '/' //BashScript.escapeString(File.separator)
   
+  private def nameOf(t: Tool) = t.graph.nameOf(t)
+  
   test("string interpolation (trivial)") {
     implicit val scriptContext = new LoamScriptContext(emptyProjectContext)
 
@@ -40,6 +41,8 @@ final class LoamCmdToolTest extends FunSuite {
 
     assert(tool.graph eq scriptContext.projectContext.graph)
 
+    assert(nameOf(tool).isDefined)
+    
     assert(tool.graph.stores == Set.empty)
     assert(tool.graph.storeProducers === Map.empty)
     assert(tool.graph.storeConsumers == Map.empty)
@@ -70,6 +73,8 @@ final class LoamCmdToolTest extends FunSuite {
     
     assert(tool.graph eq scriptContext.projectContext.graph)
 
+    assert(nameOf(tool).isDefined)
+    
     assert(tool.graph.stores === Set(nuh, zuh.store))
     assert(tool.graph.storeProducers === Map(nuh -> tool))
     assert(tool.graph.storeConsumers == Map.empty)
@@ -105,7 +110,11 @@ final class LoamCmdToolTest extends FunSuite {
 
     val baseTool = cmd"someTool --in $input1 --in $input2 --in $input3 --out $output"
 
+    val baseToolName = nameOf(baseTool)
+    
     val toolv1 = baseTool.in(input3).out(output).using("R-3.1")
+    
+    val toolv1Name = nameOf(toolv1)
 
     assert(toolv1.graph eq scriptContext.projectContext.graph)
     assert(toolv1.graph.stores.size === 2)
@@ -121,11 +130,19 @@ final class LoamCmdToolTest extends FunSuite {
 
     val toolv2 = baseTool.in(input3).using("R-3.1").out(output)
 
+    val toolv2Name = nameOf(toolv2)
+    
     assert(toolv2.commandLine === expectedCmdLineString)
 
     val toolv3 = baseTool.using("R-3.1").in(input3).out(output)
 
-    assert(toolv2.commandLine === expectedCmdLineString)
+    val toolv3Name = nameOf(toolv3)
+    
+    assert(toolv3.commandLine === expectedCmdLineString)
+    
+    assert(baseToolName == toolv1Name)
+    assert(baseToolName == toolv2Name)
+    assert(baseToolName == toolv3Name)
   }
 
   test("using() in a more complex cmd") {
@@ -142,6 +159,8 @@ final class LoamCmdToolTest extends FunSuite {
       s"((echo 10 ; sed '1d' ${fileSepForBash}inputStore | cut -f5- | sed 's/\\t/ /g') > ${fileSepForBash}outputStore)"
 
     assert(tool.commandLine === expected)
+    
+    assert(nameOf(tool).isDefined)
   }
 
   test("using() with multiple tools to be 'use'd") {
@@ -153,6 +172,8 @@ final class LoamCmdToolTest extends FunSuite {
     val expected = s"$useuse && reuse -q otherTool1 && reuse -q otherTool2 && reuse -q otherTool3 && (someTool)"
 
     assert(tool.commandLine === expected)
+    
+    assert(nameOf(tool).isDefined)
   }
 
   private def storeMap(stores: Iterable[Store]): Map[LId, Store] = {
@@ -275,10 +296,13 @@ final class LoamCmdToolTest extends FunSuite {
       val stores = Seq.fill[Store](nStores)(Store.create)
 
       val tool = cmd"foo bar baz"
+      
+      assert(nameOf(tool).isDefined)
 
       val expectedTokens = tokens("foo bar baz")
       val inputsBefore = Set.empty[Store]
       val outputsBefore = Set.empty[Store]
+      
       assertAddingIOStores(projectContext, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
     }
   }
@@ -295,10 +319,13 @@ final class LoamCmdToolTest extends FunSuite {
       val outStoreImplicit = stores(5).at("outputFile.txt") 
 
       val tool = cmd"foo $inStoreImplicit $outStoreImplicit"
+      
+      assert(nameOf(tool).isDefined)
 
       val expectedTokens = tokens("foo ", inStoreImplicit, " ", outStoreImplicit)
       val inputsBefore = Set[Store](inStoreImplicit)
       val outputsBefore = Set[Store](outStoreImplicit)
+      
       assertAddingIOStores(projectContext, tool, expectedTokens, inputsBefore, outputsBefore, stores, addInputsFirst)
     }
   }
@@ -316,6 +343,9 @@ final class LoamCmdToolTest extends FunSuite {
     val inUri = BashScript.escapeString(inStoreWithUri.uriOpt.get.toString)
     val outUri = BashScript.escapeString(outStoreWithUri.uriOpt.get.toString)
     val commandLineExpected = s"maker $inPath $inUri $outPath $outUri"
+    
+    assert(nameOf(tool).isDefined)
+    
     assert(tool.commandLine === commandLineExpected)
   }
   
@@ -332,6 +362,4 @@ final class LoamCmdToolTest extends FunSuite {
     assert(isHasLocationIterable(Seq(store, store)) === true)
     assert(isHasLocationIterable(Seq(store.at("foo.txt"), store.at("bar.vcf"))) === true)
   }
-  
-  //scalastyle:on magic.number
 }

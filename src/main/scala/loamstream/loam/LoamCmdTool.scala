@@ -1,11 +1,18 @@
 package loamstream.loam
 
-import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken, MultiStoreToken, MultiToken}
-import loamstream.model.Tool.{AllStores, DefaultStores}
-import loamstream.model.{LId, Store, Tool}
-import loamstream.util.StringUtils
-import loamstream.loam.files.LoamFileManager
 import loamstream.conf.DynamicConfig
+import loamstream.loam.LoamToken.MultiStoreToken
+import loamstream.loam.LoamToken.MultiToken
+import loamstream.loam.LoamToken.StoreRefToken
+import loamstream.loam.LoamToken.StoreToken
+import loamstream.loam.LoamToken.StringToken
+import loamstream.loam.files.LoamFileManager
+import loamstream.model.LId
+import loamstream.model.Store
+import loamstream.model.Tool
+import loamstream.model.Tool.AllStores
+import loamstream.model.Tool.DefaultStores
+import loamstream.util.StringUtils
 
 /**
   * LoamStream

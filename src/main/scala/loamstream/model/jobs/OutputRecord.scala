@@ -1,10 +1,10 @@
 package loamstream.model.jobs
 
+import java.net.URI
 import java.nio.file.Path
 import java.time.Instant
 
-import loamstream.util.{PathUtils, TimeUtils}
-import java.net.URI
+import loamstream.util.Paths
 
 /**
  * @author kyuksel
@@ -55,7 +55,7 @@ object OutputRecord {
                                                       hashType = None,
                                                       lastModified = None)
                                                       
-  def apply(path: Path): OutputRecord = OutputRecord(PathUtils.normalize(path))
+  def apply(path: Path): OutputRecord = OutputRecord(Paths.normalize(path))
   
   def apply(uri: URI): OutputRecord = OutputRecord(uri.toString)
 

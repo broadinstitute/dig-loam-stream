@@ -8,7 +8,7 @@ import scala.util.Try
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.OutputRecord
 import loamstream.util.Hash
-import loamstream.util.PathUtils
+import loamstream.util.Paths
 
 /**
  * @author clint
@@ -24,14 +24,14 @@ trait ProvidesSlickLoamDao {
   protected def cachedOutput(path: Path, hash: Hash, lastModified: Instant): OutputRecord = {
     val hashValue = hash.valueAsBase64String
 
-    OutputRecord(PathUtils.normalize(path), Option(hashValue), Option(hash.tpe.algorithmName), Option(lastModified))
+    OutputRecord(Paths.normalize(path), Option(hashValue), Option(hash.tpe.algorithmName), Option(lastModified))
   }
 
   protected def cachedOutput(path: Path, hash: Hash): OutputRecord = {
     cachedOutput(path, hash, Instant.ofEpochMilli(0))
   }
 
-  protected def failedOutput(path: Path): OutputRecord = OutputRecord(PathUtils.normalize(path))
+  protected def failedOutput(path: Path): OutputRecord = OutputRecord(Paths.normalize(path))
 
   protected def createTablesAndThen[A](f: => A): A = {
     //NB: Use Try(...) to succinctly ignore failures

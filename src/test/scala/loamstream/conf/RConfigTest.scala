@@ -1,20 +1,23 @@
 package loamstream.conf
 
-import java.nio.file.Paths
+import scala.util.Try
 
-import com.typesafe.config.ConfigFactory
-import loamstream.util.{BashScript, PathUtils}
 import org.scalatest.FunSuite
 
-import scala.util.Try
+import com.typesafe.config.ConfigFactory
+
+import loamstream.util.BashScript
+import loamstream.util.Paths
 
 /**
  * @author kyuksel
  *         date: 4/12/17
  */
 final class RConfigTest extends FunSuite {
-  private val binaryPath = Paths.get("path/to/R/binary")
-  private val scriptDirPath = Paths.get("path/to/script/location")
+  import loamstream.TestHelpers.path
+  
+  private val binaryPath = path("path/to/R/binary")
+  private val scriptDirPath = path("path/to/script/location")
 
   import RConfig.fromConfig
   
@@ -31,7 +34,7 @@ final class RConfigTest extends FunSuite {
     val rConfig = fromConfig(config).get
 
     assert(rConfig.binary === binaryPath)
-    assert(rConfig.scriptDir === PathUtils.getCurrentDirectory)
+    assert(rConfig.scriptDir === Paths.getCurrentDirectory)
   }
 
   test("fromConfig - defaults overridden") {

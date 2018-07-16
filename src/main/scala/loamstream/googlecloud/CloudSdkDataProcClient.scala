@@ -1,7 +1,7 @@
 package loamstream.googlecloud
 
 import loamstream.util.Loggable
-import loamstream.util.PathUtils.normalize
+import loamstream.util.Paths.normalize
 import scala.util.Try
 import scala.util.Success
 import loamstream.util.Tries

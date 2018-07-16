@@ -1,11 +1,12 @@
 package loamstream.model.execute
 
-import java.nio.file.Paths
+import java.nio.file.Path
 import java.time.Instant
 
 import org.scalatest.FunSuite
 import org.scalatest.PrivateMethodTester
 
+import loamstream.TestHelpers
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
@@ -15,11 +16,7 @@ import loamstream.model.jobs.Output
 import loamstream.model.jobs.OutputRecord
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.HashType.Sha1
-import loamstream.util.PathUtils
-import loamstream.model.jobs.OutputStreams
-import loamstream.TestHelpers
-import loamstream.model.jobs.LJob
-import java.nio.file.Path
+import loamstream.util.Paths
 
 /**
  * @author clint
@@ -28,7 +25,7 @@ import java.nio.file.Path
 final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
   with PrivateMethodTester with ProvidesEnvAndResources {
 
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
   
   private val nonexistentPath = path("non/existent/blah.txt")
 
@@ -71,8 +68,8 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
 
   private def executions = dao.allExecutions.toSet
 
+  import loamstream.TestHelpers.dummyOutputStreams
   import loamstream.model.jobs.JobResult._
-  import TestHelpers.dummyOutputStreams
 
   test("sanity check paths") {
     import java.nio.file.Files.exists
@@ -456,7 +453,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao
     def cmdLineJob(cmd: String, outputs: Set[Output]): CommandLineJob = {
       CommandLineJob(
         commandLineString = cmd,
-        workDir = PathUtils.getCurrentDirectory,
+        workDir = Paths.getCurrentDirectory,
         executionEnvironment = mockEnv,
         outputs = outputs)
     }

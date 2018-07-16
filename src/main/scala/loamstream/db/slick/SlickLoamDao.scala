@@ -14,7 +14,6 @@ import loamstream.model.jobs.JobResult.CommandInvocationFailure
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.OutputRecord
 import loamstream.util.Loggable
-import loamstream.util.PathUtils
 
 /**
  * @author clint

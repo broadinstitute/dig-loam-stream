@@ -193,7 +193,7 @@ object LoamToScalaConverter extends Loggable {
     //This pattern match is safe as long as `LoamScript.scriptsPackage` is not the root package
     val first +: rest = partsWithSubPackages
     
-    PathUtils.newRelative(first, rest: _*)
+    Paths.newRelative(first, rest: _*)
   }
   
   private[util] def pathParts(p: Path): Seq[String] = {

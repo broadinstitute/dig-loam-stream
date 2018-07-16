@@ -6,7 +6,7 @@ import com.typesafe.config.Config
 import loamstream.conf.PythonConfig.Defaults
 
 import scala.util.Try
-import loamstream.util.PathUtils
+import loamstream.util.Paths
 
 /**
  * @author kyuksel
@@ -17,7 +17,7 @@ final case class PythonConfig(binary: Path, scriptDir: Path = Defaults.scriptDir
 object PythonConfig extends ConfigParser[PythonConfig] {
 
   object Defaults {
-    val scriptDir: Path = PathUtils.getCurrentDirectory
+    val scriptDir: Path = Paths.getCurrentDirectory
   }
 
   override def fromConfig(config: Config): Try[PythonConfig] = {

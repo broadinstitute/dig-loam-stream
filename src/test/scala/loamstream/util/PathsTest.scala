@@ -4,67 +4,74 @@ import java.io.File
 import java.nio.file.Path
 import java.util.regex.Matcher
 
+import scala.util.Success
+
 import org.scalatest.FunSuite
-import loamstream.TestHelpers
 
 /**
-  * @author clint
-  *         date: Jul 20, 2016
-  */
-final class PathUtilsTest extends FunSuite {
-
-  import PathUtils._
-  import TestHelpers.path
-
-  private val add2: String => String = (_: String) + "2"
-
-  private val root = path("/")
-
-  private val foo = path("foo")
-
-  private val fooBar = path("foo/bar")
-
-  // scalastyle:off null
-  test("transformFileName") {
-
-    assert(root.getParent == null)
-    assert(root.getFileName == null)
-
-    assert(transformFileName(root, add2) == null)
-
-    assert(foo.getParent == null)
-    assert(foo.getFileName != null)
-
-    assert(transformFileName(foo, add2) == path("foo2"))
-
-    assert(fooBar.getParent != null)
-    assert(fooBar.getFileName != null)
-
-    assert(transformFileName(fooBar, add2) == path("foo/bar2"))
+ * @author clint
+ * date: Jun 1, 2016
+ */
+final class PathEnrichmentsTest extends FunSuite {
+  import Paths.Implicits._
+  import loamstream.TestHelpers.path
+  
+  test("building paths with /") {
+    val root = path("/")
+    
+    val opt = root / "opt"
+    
+    assert(opt == path("/opt"))
+    
+    val foo = path("foo")
+    
+    val fooBarBazTxt = foo / "bar" / "baz.txt"
+    
+    assert(fooBarBazTxt == path("foo/bar/baz.txt"))
+  }
+  
+  test("building paths with / and Tries") {
+    import Tries._
+    
+    val root = path("/")
+    
+    val opt = root / Success("opt")
+    
+    assert(opt.get == path("/opt"))
+    
+    val foo = path("foo")
+    
+    val fooBarBazTxt = foo / Success("bar") / Success("baz.txt")
+    
+    assert(fooBarBazTxt.get == path("foo/bar/baz.txt"))
+    
+    assert((foo / Success("bar") / failure("baz.txt")).isFailure)
+    assert((foo / failure("bar") / Success("baz.txt")).isFailure)
+    assert((foo / failure("bar") / failure("baz.txt")).isFailure)
   }
 
-  test("getFileNameTransformation") {
+  test("appending to paths with + and Tries") {
+    import Tries._
 
-    assert(root.getParent == null)
-    assert(root.getFileName == null)
+    val locator = "someDir/someFile"
+    val root = path(locator)
+    val ext = ".someExt"
 
-    assert(getFileNameTransformation(add2)(root) == null)
+    assert(root + ext === path(s"$locator.someExt"))
 
-    assert(foo.getParent == null)
-    assert(foo.getFileName != null)
+    val foo = path("foo")
+    val fooWithGoodExt = foo + Success(".txt")
+    val fooWithBadExt = foo + failure(".txt")
 
-    assert(getFileNameTransformation(add2)(foo) == path("foo2"))
-
-    assert(fooBar.getParent != null)
-    assert(fooBar.getFileName != null)
-
-    assert(getFileNameTransformation(add2)(fooBar) == path("foo/bar2"))
+    assert(fooWithGoodExt.get === path("foo.txt"))
+    assert(fooWithBadExt.isFailure)
   }
-  // scalastyle:on null
-
+  
   test("lastModifiedTime") {
     val doesntExist = path("/aslkdjklas/lakjslks/askldjlaksd/asklfj")
 
+    import Paths.lastModifiedTime
+    
     assert(lastModifiedTime(doesntExist).toEpochMilli == 0L)
 
     val exists = path("src/test/resources/for-hashing/foo.txt")
@@ -73,6 +80,11 @@ final class PathUtilsTest extends FunSuite {
   }
 
   test("Root path, new relative path, new absolute path") {
+    
+    import Paths.getRoot
+    import Paths.newRelative
+    import Paths.newAbsolute
+    
     assert(getRoot.getNameCount === 0)
     if (PlatformUtil.isWindows) {
       assert(getRoot.toString.endsWith(":\\"))
@@ -88,7 +100,7 @@ final class PathUtilsTest extends FunSuite {
   }
 
   test("normalize") {
-    import PathUtils.normalize
+    import Paths.normalize
 
     val absolute = path("/x/y/z").toAbsolutePath
 

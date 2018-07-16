@@ -9,8 +9,8 @@ import loamstream.googlecloud.CloudStorageClient
 import loamstream.util.Hash
 import loamstream.util.HashType
 import loamstream.util.Hashes
-import loamstream.util.PathUtils
-import loamstream.util.PathUtils.normalizePath
+import loamstream.util.Paths
+import loamstream.util.Paths.normalizePath
 
 /**
  * @author clint
@@ -48,10 +48,10 @@ object Output {
     override def hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(path)) else None
 
     override def lastModified: Option[Instant] = {
-      if (isPresent) Option(PathUtils.lastModifiedTime(path)) else None
+      if (isPresent) Option(Paths.lastModifiedTime(path)) else None
     }
 
-    override def location: String = PathUtils.normalize(path)
+    override def location: String = Paths.normalize(path)
 
     override def toOutputRecord: OutputRecord = {
       OutputRecord( 

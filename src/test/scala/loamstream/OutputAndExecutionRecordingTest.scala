@@ -1,23 +1,25 @@
 package loamstream
 
+import java.nio.file.Path
+
 import org.scalatest.FunSuite
-import loamstream.compiler.LoamPredef
-import loamstream.loam.LoamCmdTool
-import loamstream.util.Paths
+
+import loamstream.compiler.LoamCompiler
 import loamstream.compiler.LoamEngine
-import loamstream.model.execute.RxExecuter
-import loamstream.apps.AppWiring
+import loamstream.compiler.LoamPredef
+import loamstream.db.slick.ProvidesSlickLoamDao
+import loamstream.loam.LoamCmdTool
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.HashingStrategy
-import loamstream.compiler.LoamCompiler
-import loamstream.model.jobs.OutputRecord
-import java.nio.file.Files
-import loamstream.db.slick.ProvidesSlickLoamDao
-import java.nio.file.Path
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.util.PathUtils
+import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.Execution
+import loamstream.model.jobs.LJob
+import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.util.Paths
+import java.nio.file.Files
+
+
 
 /**
  * @author clint
@@ -99,10 +101,8 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
       assert(out2ExFromDb.flatMap(outputField(_.hashType)).isDefined)
       assert(out2ExFromDb.flatMap(outputField(_.hash)).isDefined)
       
-      import PathUtils.normalize
-      
       def findJobCopyingTo(p: Path): (LJob, Execution) = {
-        val lookingFor = normalize(p)
+        val lookingFor = Paths.normalize(p)
         
         results.find { 
           case (j, _) => j.asInstanceOf[CommandLineJob].commandLineString.endsWith(s"${lookingFor})") 

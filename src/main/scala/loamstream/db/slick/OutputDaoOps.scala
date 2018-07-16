@@ -1,10 +1,11 @@
 package loamstream.db.slick
 
-import loamstream.model.jobs.OutputRecord
-import loamstream.db.LoamDao
-import slick.jdbc.JdbcProfile
 import java.nio.file.Path
-import loamstream.util.PathUtils
+
+import loamstream.db.LoamDao
+import loamstream.model.jobs.OutputRecord
+import loamstream.util.Paths
+import slick.jdbc.JdbcProfile
 
 /**
  * @author clint
@@ -28,7 +29,7 @@ trait OutputDaoOps extends LoamDao { self: CommonDaoOps =>
   }
 
   override def deletePathOutput(paths: Iterable[Path]): Unit = {
-    deleteOutput(paths.map(PathUtils.normalize))
+    deleteOutput(paths.map(Paths.normalize))
   }
   
   //TODO: Find way to extract common code from the all* methods

@@ -27,7 +27,7 @@ import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.util.ObservableEnrichments
+import loamstream.util.Observables
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
 import loamstream.model.execute.EnvironmentType
@@ -83,7 +83,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val executionConfig: ExecutionConfig = ExecutionConfig(42, tempDir.resolve("bar")) 
   
   import loamstream.TestHelpers.waitFor
-  import loamstream.util.ObservableEnrichments._
+  import Observables.Implicits._
   
   private object JustFailsMockPoller extends Poller {
     override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = ???
@@ -224,7 +224,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart, defaultUgerSettings}
     import DrmChunkRunnerTest.MockDrmJob
-    import ObservableEnrichments._
+    import Observables.Implicits._
     
     val id = "failed"
     
@@ -266,7 +266,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart, defaultUgerSettings}
     import DrmChunkRunnerTest.MockDrmJob
-    import ObservableEnrichments._
+    import Observables.Implicits._
     
     val id = "worked"
     
@@ -306,7 +306,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     import DrmStatus._
     import TestHelpers.{alwaysRestart, neverRestart, defaultUgerSettings}
     import DrmChunkRunnerTest.MockDrmJob
-    import ObservableEnrichments._
+    import Observables.Implicits._
     
     val goodId = "worked"
     val badId = "failed"
@@ -439,7 +439,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
-      import ObservableEnrichments._        
+      import Observables.Implicits._
       
       val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
       
@@ -542,7 +542,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
-      import ObservableEnrichments._        
+      import Observables.Implicits._   
       
       val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
       

@@ -1,6 +1,6 @@
 package loamstream.util
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 
 import org.scalatest.FunSuite
 
@@ -9,7 +9,7 @@ import org.scalatest.FunSuite
   *         date: Aug 4, 2016
   */
 final class HashesTest extends FunSuite {
-  private def path(s: String): Path = Paths.get(s)
+  import loamstream.TestHelpers.path
 
   test("sha1(File) - bad input") {
     intercept[Exception] {

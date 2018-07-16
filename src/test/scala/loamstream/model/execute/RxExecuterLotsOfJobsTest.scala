@@ -1,19 +1,17 @@
 package loamstream.model.execute
 
-import org.scalatest.FunSuite
-import java.nio.file.Paths
+import java.nio.file.Path
 
-import loamstream.compiler.LoamEngine
-import loamstream.util.PlatformUtil
+import org.scalatest.FunSuite
+
 import loamstream.TestHelpers
+import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamCmdTool
-import loamstream.util.PathEnrichments
 import loamstream.loam.LoamGraph
-import loamstream.util.Files
-import java.nio.file.Path
-import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.loam.LoamToolBox
+import loamstream.util.Paths
+import loamstream.util.PlatformUtil
+
 
 /**
  * @author clint
@@ -25,7 +23,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
 
   private val cancelOnWindows = true
 
-  import PathEnrichments._
+  import loamstream.util.Paths.Implicits._
   
   test("lots of jobs don't blow the stack") {
     val outputDir: Path =  TestHelpers.getWorkDir(getClass.getSimpleName)
@@ -95,7 +93,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
   private def graph(outputDir: Path): LoamGraph = TestHelpers.makeGraph { implicit context =>
     import LoamPredef._
     import LoamCmdTool._
-    import PathEnrichments._
+    import Paths.Implicits._
     
     // Map: Chrom Number -> (Number of Shards, Offset for Start Position)
     val input = store("src/test/resources/a.txt").asInput

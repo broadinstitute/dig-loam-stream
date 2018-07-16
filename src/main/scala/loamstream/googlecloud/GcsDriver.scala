@@ -42,7 +42,7 @@ final case class GcsDriver(credentialsFile: Path) extends CloudStorageDriver wit
    * underneath it (directly or recursively).
    */
   def blobsAt(uri: URI): Iterable[BlobMetadata] = {
-    import loamstream.util.UriEnrichments._
+    import loamstream.util.Uris.Implicits._
     import scala.collection.JavaConverters._
 
     try {

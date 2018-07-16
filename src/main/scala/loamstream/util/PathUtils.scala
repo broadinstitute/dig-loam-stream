@@ -1,6 +1,8 @@
 package loamstream.util
 
-import java.nio.file.{FileSystems, Path, Paths}
+import java.nio.file.FileSystems
+import java.nio.file.Path
+import java.nio.file.{Paths => JPaths}
 import java.time.Instant
 
 /**
@@ -14,7 +16,7 @@ object PathUtils {
   def transformFileName(path: Path, transformation: String => String): Path = {
     (path.getParent, path.getFileName) match {
       case (null, null) => null // scalastyle:ignore null
-      case (null, fileName) => Paths.get(transformation(fileName.toString)) // scalastyle:ignore null
+      case (null, fileName) => JPaths.get(transformation(fileName.toString)) // scalastyle:ignore null
       case (parent, fileName) => parent.resolve(transformation(fileName.toString))
     }
   }
@@ -33,11 +35,11 @@ object PathUtils {
   }
 
   // On Windows multiple drives require us to use the current working directory.
-  def getRoot: Path = Paths.get("/").toAbsolutePath
+  def getRoot: Path = JPaths.get("/").toAbsolutePath
 
-  def getCurrentDirectory: Path = Paths.get(new java.io.File(".").getCanonicalPath)
+  def getCurrentDirectory: Path = JPaths.get(new java.io.File(".").getCanonicalPath)
 
-  def newRelative(first: String, more: String*): Path = Paths.get(first, more.toArray: _*)
+  def newRelative(first: String, more: String*): Path = JPaths.get(first, more.toArray: _*)
 
   def newAbsolute(first: String, more: String*): Path = getRoot.resolve(newRelative(first, more: _*))
 

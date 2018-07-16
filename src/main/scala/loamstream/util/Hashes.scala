@@ -5,7 +5,7 @@ import java.io.FileInputStream
 import java.security.MessageDigest
 
 import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{ Paths => JPaths }
 
 /**
  * @author clint
@@ -46,7 +46,7 @@ object Hashes {
   private def dirChunks(hashType: HashType, dir: File): Iterator[Array[Byte]] = {
     val children = dir.listFiles
     
-    def toPath(f: File) = Paths.get(f.toURI)
+    def toPath(f: File) = JPaths.get(f.toURI)
     
     //Avoid null to appease scalastyle
     Option(children) match {

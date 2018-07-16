@@ -1,6 +1,5 @@
 package loamstream.util
 
-import java.nio.file.Paths
 import org.scalatest.FunSuite
 import com.typesafe.config.Config
 import loamstream.TestHelpers

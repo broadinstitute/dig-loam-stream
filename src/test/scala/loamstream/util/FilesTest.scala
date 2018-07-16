@@ -1,7 +1,8 @@
 package loamstream.util
 
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Path, Paths, Files => JFiles}
+import java.nio.file.Path
+import java.nio.file.{Files => JFiles}
 
 import org.scalatest.FunSuite
 
@@ -14,7 +15,8 @@ import loamstream.TestHelpers
   *         date: Jun 15, 2016
   */
 final class FilesTest extends FunSuite {
-  import PathEnrichments._
+  import Paths.Implicits._
+  import TestHelpers.path
   
   test("tempFile in default temporary-file directory") {
     val path = Files.tempFile("foo")
@@ -145,7 +147,7 @@ final class FilesTest extends FunSuite {
   test("Read from file compressed by an external tool") {
     val expected = "This is some text."
 
-    val file = Paths.get("src/test/resources/foo.txt.gz")
+    val file = path("src/test/resources/foo.txt.gz")
 
     val actual = Files.readFromGzipped(file)
 
@@ -177,6 +179,22 @@ final class FilesTest extends FunSuite {
     assertSameText(contentOut, contentOutExpected)
   }
 
+  private val onlyFirstVcfHeader: Files.LineFilter.Factory = () => { 
+    var firstVcfHeaderIsPast = false
+
+    line => {
+      val lineIsNotHeader = !line.startsWith("##")
+      if (firstVcfHeaderIsPast) {
+        lineIsNotHeader
+      } else {
+        if (lineIsNotHeader) {
+          firstVcfHeaderIsPast = true
+        }
+        true
+      }
+    }
+  }
+  
   test("Merging pseudo-VCF files, keeping only header of first file") {
     val nFiles = 3
     val nHeaderLines = 5
@@ -194,11 +212,16 @@ final class FilesTest extends FunSuite {
     }
 
     val contents = iFiles.map(iFile => s"${headers(iFile)}\n${bodies(iFile)}")
+
     iFiles.foreach(iFile => Files.writeToGzipped(paths(iFile))(contents(iFile)))
+    
     val pathOut = folder.resolve("fileOut.txt")
-    Files.mergeLinesGzipped(paths, pathOut, Files.LineFilter.onlyFirstVcfHeader)
+    
+    Files.mergeLinesGzipped(paths, pathOut, onlyFirstVcfHeader)
+    
     val contentOutExpected = s"${headers(0)}\n${bodies.mkString("\n")}"
     val contentOut = Files.readFromGzipped(pathOut)
+    
     assertSameText(contentOut, contentOutExpected)
   }
 
@@ -217,7 +240,7 @@ final class FilesTest extends FunSuite {
       assert(Files.readFromGzipped(pathOut) == "")
     }
 
-    doTest(Files.LineFilter.onlyFirstVcfHeader)
+    doTest(onlyFirstVcfHeader)
 
     doTest(Files.LineFilter.acceptAll)
   }

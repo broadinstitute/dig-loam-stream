@@ -49,7 +49,7 @@ final case class RxExecuter(
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     
-    import loamstream.util.ObservableEnrichments._
+    import loamstream.util.Observables.Implicits._
     
     val ioScheduler: Scheduler = IOScheduler()
     

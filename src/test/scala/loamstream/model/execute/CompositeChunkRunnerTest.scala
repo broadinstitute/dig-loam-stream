@@ -10,7 +10,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.RunData
 import rx.lang.scala.Observable
-import loamstream.util.ObservableEnrichments
+import loamstream.util.Observables
 
 /**
  * @author clint
@@ -68,7 +68,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
       runner.run(Set(job1, job4), neverRestart)
     }
     
-    import ObservableEnrichments._
+    import Observables.Implicits._
     
     val futureResults = runner.run(Set(job1, job2), neverRestart).firstAsFuture
     

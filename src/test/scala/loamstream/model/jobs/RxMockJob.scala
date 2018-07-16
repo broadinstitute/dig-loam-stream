@@ -39,7 +39,7 @@ final case class RxMockJob(
   
   private def waitIfNecessary(): Unit = {
     runsAfter.foreach { jobToWaitFor =>
-      import loamstream.util.ObservableEnrichments._
+      import loamstream.util.Observables.Implicits._
       
       val finalDepState = jobToWaitFor.lastStatus
       

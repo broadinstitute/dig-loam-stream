@@ -1,10 +1,11 @@
 package loamstream.util
 
 import java.io.File
-import java.nio.file.{FileSystems, Path, Paths}
+import java.nio.file.Path
 import java.util.regex.Matcher
 
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 /**
   * @author clint
@@ -13,14 +14,15 @@ import org.scalatest.FunSuite
 final class PathUtilsTest extends FunSuite {
 
   import PathUtils._
+  import TestHelpers.path
 
   private val add2: String => String = (_: String) + "2"
 
-  private val root = Paths.get("/")
+  private val root = path("/")
 
-  private val foo = Paths.get("foo")
+  private val foo = path("foo")
 
-  private val fooBar = Paths.get("foo/bar")
+  private val fooBar = path("foo/bar")
 
   // scalastyle:off null
   test("transformFileName") {
@@ -33,12 +35,12 @@ final class PathUtilsTest extends FunSuite {
     assert(foo.getParent == null)
     assert(foo.getFileName != null)
 
-    assert(transformFileName(foo, add2) == Paths.get("foo2"))
+    assert(transformFileName(foo, add2) == path("foo2"))
 
     assert(fooBar.getParent != null)
     assert(fooBar.getFileName != null)
 
-    assert(transformFileName(fooBar, add2) == Paths.get("foo/bar2"))
+    assert(transformFileName(fooBar, add2) == path("foo/bar2"))
   }
 
   test("getFileNameTransformation") {
@@ -51,21 +53,21 @@ final class PathUtilsTest extends FunSuite {
     assert(foo.getParent == null)
     assert(foo.getFileName != null)
 
-    assert(getFileNameTransformation(add2)(foo) == Paths.get("foo2"))
+    assert(getFileNameTransformation(add2)(foo) == path("foo2"))
 
     assert(fooBar.getParent != null)
     assert(fooBar.getFileName != null)
 
-    assert(getFileNameTransformation(add2)(fooBar) == Paths.get("foo/bar2"))
+    assert(getFileNameTransformation(add2)(fooBar) == path("foo/bar2"))
   }
   // scalastyle:on null
 
   test("lastModifiedTime") {
-    val doesntExist = Paths.get("/aslkdjklas/lakjslks/askldjlaksd/asklfj")
+    val doesntExist = path("/aslkdjklas/lakjslks/askldjlaksd/asklfj")
 
     assert(lastModifiedTime(doesntExist).toEpochMilli == 0L)
 
-    val exists = Paths.get("src/test/resources/for-hashing/foo.txt")
+    val exists = path("src/test/resources/for-hashing/foo.txt")
 
     assert(lastModifiedTime(exists).toEpochMilli == exists.toFile.lastModified)
   }
@@ -88,11 +90,11 @@ final class PathUtilsTest extends FunSuite {
   test("normalize") {
     import PathUtils.normalize
 
-    val absolute = Paths.get("/x/y/z").toAbsolutePath
+    val absolute = path("/x/y/z").toAbsolutePath
 
     // On windows, multiple drives might exist, and the root drive will be
     // whatever the CWD drive happens to be when the test is run.
-    val root = Paths.get(".").toAbsolutePath
+    val root = path(".").toAbsolutePath
 
     // On windows, multiple drives might be in use and the "root" drive used for
     // absolute will be whatever the cwd drive happens to be when the test is
@@ -106,19 +108,19 @@ final class PathUtilsTest extends FunSuite {
 
     assert(matchesExpected(absolute, "/x/y/z"))
 
-    val relative = Paths.get("x/y/z")
+    val relative = path("x/y/z")
 
     assert(matchesExpected(relative, "x/y/z"))
 
-    val hasDot = Paths.get("/x/y/./z")
+    val hasDot = path("/x/y/./z")
 
     assert(matchesExpected(hasDot, "/x/y/z"))
 
-    val hasTwoDots = Paths.get("/x/y/z/foo/..")
+    val hasTwoDots = path("/x/y/z/foo/..")
 
     assert(matchesExpected(hasTwoDots, "/x/y/z"))
 
-    val hasBoth = Paths.get("/x/./y/./z/foo/..")
+    val hasBoth = path("/x/./y/./z/foo/..")
 
     assert(matchesExpected(hasBoth, "/x/y/z"))
   }

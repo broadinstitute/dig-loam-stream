@@ -95,7 +95,7 @@ final case class GoogleCloudChunkRunner(
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
     import GoogleCloudChunkRunner.addCluster
     //on the same cluster simultaneously
-    import loamstream.util.ObservableEnrichments._
+    import loamstream.util.Observables.Implicits._
 
     val futureResult = delegate.run(Set(job), shouldRestart).map(addCluster(googleConfig.clusterId)).firstAsFuture
     

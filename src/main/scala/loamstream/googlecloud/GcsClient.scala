@@ -16,7 +16,7 @@ import scala.util.Try
  * Wrapper around Google Cloud Storage JAVA API to expose methods for job recording purposes
  */
 final case class GcsClient(driver: CloudStorageDriver) extends CloudStorageClient with Loggable {
-  import loamstream.util.UriEnrichments._
+  import loamstream.util.Uris.Implicits._
 
   override val hashAlgorithm: HashType = Md5
 

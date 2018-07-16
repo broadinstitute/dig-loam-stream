@@ -8,7 +8,7 @@ import org.scalatest.FunSuite
  * date: Nov 17, 2016
  */
 final class UriEnrichmentsTest extends FunSuite {
-  import UriEnrichments._
+  import Uris.Implicits._
 
   test("appending segments using / to base URIs WITHOUT trailing file separators") {
     val root = URI.create("/")

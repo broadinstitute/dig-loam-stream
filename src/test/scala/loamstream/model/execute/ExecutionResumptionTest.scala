@@ -182,7 +182,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
   
   private def doTestWithExecuter(executer: RxExecuter, expectations: Seq[JobStatus], setup: SetupFn): Unit = {
-    import loamstream.util.PathEnrichments.PathHelpers
+    import loamstream.util.Paths.Implicits.PathHelpers
     import TestHelpers.path
 
     val start = path("src/test/resources/a.txt")

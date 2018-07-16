@@ -8,7 +8,7 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.TestJobs
 import loamstream.util.Futures
-import loamstream.util.ObservableEnrichments
+import loamstream.util.Observables
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.RunData
 
@@ -106,7 +106,7 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     
     assert(failure === runDataFromStatus(failedJob, Failed))
     
-    import ObservableEnrichments._
+    import Observables.Implicits._
     
     val two0StatusesFuture = job.statuses.take(3).to[Seq].firstAsFuture
     

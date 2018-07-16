@@ -1,6 +1,7 @@
 package loamstream.util
 
-import java.nio.file.{Paths, Files => JFiles}
+import java.nio.file.{Paths => JPaths}
+import java.nio.file.{Files => JFiles}
 import loamstream.loam.LoamScript
 import java.nio.file.Path
 import java.io.File
@@ -61,9 +62,9 @@ object LoamToScalaConverter extends Loggable {
     
     val Array(inputDirString, outputDirString) = args
 
-    val inputDir = Paths.get(inputDirString)
+    val inputDir = JPaths.get(inputDirString)
     
-    val outputDir = Paths.get(outputDirString)
+    val outputDir = JPaths.get(outputDirString)
     
     convert(inputDir, outputDir, recursive = true)
   }

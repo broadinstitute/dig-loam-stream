@@ -3,7 +3,7 @@ package loamstream
 import org.scalatest.FunSuite
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamCmdTool
-import loamstream.util.PathEnrichments
+import loamstream.util.Paths
 import loamstream.compiler.LoamEngine
 import loamstream.model.execute.RxExecuter
 import loamstream.apps.AppWiring
@@ -27,7 +27,7 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
   test("Data about outputs and job executions should be recorded properly") {
     val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
-    import PathEnrichments._
+    import Paths.Implicits._
     
     val out0Path = workDir / "A.copy"
     val out1Path = workDir / "A.copy.copy"

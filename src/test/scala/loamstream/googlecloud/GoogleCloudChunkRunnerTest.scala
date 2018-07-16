@@ -31,7 +31,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   
   import GoogleCloudChunkRunnerTest.LiteralMockDataProcClient
   import GoogleCloudChunkRunnerTest.MockDataProcClient
-  import loamstream.util.ObservableEnrichments._
+  import loamstream.util.Observables.Implicits._
   import loamstream.TestHelpers.waitFor
 
   private val clusterId = "some-cluster-id"

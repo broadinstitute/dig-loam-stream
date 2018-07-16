@@ -17,7 +17,7 @@ final class JobTest extends FunSuite with TestJobs {
   
   import JobStatus._
   import loamstream.TestHelpers.waitFor
-  import loamstream.util.ObservableEnrichments._
+  import loamstream.util.Observables.Implicits._
 
   private def count[A](as: Seq[A]): Map[A, Int] = as.groupBy(identity).mapValues(_.size)
   

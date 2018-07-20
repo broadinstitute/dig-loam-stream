@@ -69,7 +69,7 @@ object Intent extends Loggable {
     else if (confDoesntExist) { Left(s"Config file '${values.conf.get}' specified, but it doesn't exist.") }
     else if (values.lookupSupplied) { Right(LookupOutput(values.conf, values.lookup.get)) }
     else if (compileOnly(values)) { Right(CompileOnly(values.conf, values.loams)) }
-    else if (dryRun(values)) { Right(makeDryRun(values)) } 
+    else if (dryRun(values) && allLoamsExist) { Right(makeDryRun(values)) } 
     else if (allLoamsExist) { Right(makeRealRun(values)) } 
     else if (noLoamsSupplied) { Left("No loam files specified.") } 
     else if (!allLoamsExist) { Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}") } 
@@ -86,15 +86,9 @@ object Intent extends Loggable {
 
   private def makeRealRun(values: Conf.Values): RealRun = {
    
-    def toDrmSystem(backendName: String): Option[DrmSystem] = backendName.toLowerCase match {
-      case Conf.BackendNames.Uger => Some(DrmSystem.Uger)
-      case Conf.BackendNames.Lsf => Some(DrmSystem.Lsf)
-      case _ => None
-    }
-    
     val drmSystemOpt: Option[DrmSystem] = for {
       backend <- values.backend
-      drmSystem <- toDrmSystem(backend)
+      drmSystem <- DrmSystem.fromName(backend)
     } yield drmSystem
 
     RealRun(

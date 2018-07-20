@@ -1,18 +1,18 @@
 package loamstream.cli
 
+import java.net.URI
 import java.nio.file.Path
 import java.nio.file.Paths
 
+import org.rogach.scallop.listArgConverter
+import org.rogach.scallop.ScallopConf
+import org.rogach.scallop.ScallopOption
+import org.rogach.scallop.ValueConverter
 import org.rogach.scallop.exceptions.ScallopException
-import org.rogach.scallop._
 
-import loamstream.util.Loggable
-import loamstream.util.Versions
-import java.net.URI
-import loamstream.model.execute.HashingStrategy
+import loamstream.drm.DrmSystem
 import loamstream.util.IoUtils
-import loamstream.util.Options
-import loamstream.cli.Conf.BackendNames
+import loamstream.util.Loggable
 
 /**
  * Provides a command line interface for LoamStream apps
@@ -118,7 +118,7 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
    * The DRM backend to use, wither 'lsf' or 'uger'
    */
   val backend: ScallopOption[String] = {
-    opt(descr = s"The backend to run jobs on. Options are: ${BackendNames.values.mkString(",")}")
+    opt(descr = s"The backend to run jobs on. Options are: ${DrmSystem.values.map(_.name).mkString(",")}")
   }
   
   //NB: Makes Scallop behave
@@ -129,15 +129,11 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   
   def toValues: Conf.Values = {
     def tailIfPresent[A](as: Seq[A]): Seq[A] = as.headOption.map(_ => as.tail).getOrElse(Nil)
-    
-    def getRun: Option[(String, Seq[String])] = for {
-      r <- run.toOption
-      discriminator <- r.headOption
-      rest = tailIfPresent(r)
-    } yield (discriminator, rest)
-    
-    import Conf.RunStrategies
-    import Conf.BackendNames
+
+    def getRun: Option[(String, Seq[String])] = run.toOption.flatMap {
+      case head :: rest => Some(head -> rest)
+      case _            => None
+    }
       
     Conf.Values(
       loams = loams.toOption.toSeq.flatten,
@@ -155,12 +151,6 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
 }
 
 object Conf {
-  object BackendNames {
-    val Lsf = "lsf"
-    val Uger = "uger"
-    
-    val values: Seq[String] = Seq(Lsf, Uger)
-  }
   
   object RunStrategies {
     val Everything = "everything"

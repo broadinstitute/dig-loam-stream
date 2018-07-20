@@ -13,6 +13,8 @@ import loamstream.model.execute.Environment
  * May 23, 2018
  */
 sealed trait DrmSystem {
+  def name: String
+  
   def makeEnvironment(settings: DrmSettings): Environment
   
   def defaultQueue: Option[Queue]
@@ -28,6 +30,8 @@ sealed trait DrmSystem {
 
 object DrmSystem {
   final case object Uger extends DrmSystem {
+    override def name: String = toString
+    
     override def makeEnvironment(settings: DrmSettings): Environment = Environment.Uger(settings)
     
     override def defaultQueue: Option[Queue] = Option(UgerDefaults.queue)
@@ -40,6 +44,8 @@ object DrmSystem {
   }
   
   final case object Lsf extends DrmSystem {
+    override def name: String = toString
+    
     override def makeEnvironment(settings: DrmSettings): Environment = Environment.Lsf(settings)
     
     override def defaultQueue: Option[Queue] = None
@@ -50,4 +56,14 @@ object DrmSystem {
       DrmSettings.fromLsfConfig(config(scriptContext))
     }
   }
+  
+  def fromName(name: String): Option[DrmSystem] = {
+    val mungedName = name.toLowerCase.capitalize
+    
+    if(mungedName == Uger.name) { Some(Uger) }
+    else if(mungedName == Lsf.name) { Some(Lsf) }
+    else { None }
+  }
+  
+  lazy val values: Iterable[DrmSystem] = Seq(Uger, Lsf)
 }

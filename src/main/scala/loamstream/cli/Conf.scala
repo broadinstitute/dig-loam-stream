@@ -128,10 +128,8 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   verify()
   
   def toValues: Conf.Values = {
-    def tailIfPresent[A](as: Seq[A]): Seq[A] = as.headOption.map(_ => as.tail).getOrElse(Nil)
-
     def getRun: Option[(String, Seq[String])] = run.toOption.flatMap {
-      case head :: rest => Some(head -> rest)
+      case head +: rest => Some(head -> rest)
       case _            => None
     }
       

@@ -54,6 +54,21 @@ final class IntentTest extends FunSuite {
     assert(result.right.get === expected)
   }
   
+  private def assertIsValidWithAllDrmSystems(
+      baseCommandLine: String, 
+      makeExpectedIntent: Option[DrmSystem] => Intent): Unit = {
+    
+    assertValid(baseCommandLine, makeExpectedIntent(None))
+    assertValid(s"--backend uger ${baseCommandLine}", makeExpectedIntent(Some(DrmSystem.Uger)))
+    assertValid(s"--backend lsf ${baseCommandLine}", makeExpectedIntent(Some(DrmSystem.Lsf)))
+  }
+  
+  private def assertIsInvalidWithAllDrmSystems(baseCommandLine: String): Unit = {
+    assertInvalid(baseCommandLine)
+    assertInvalid(s"--backend uger ${baseCommandLine}")
+    assertInvalid(s"--backend lsf ${baseCommandLine}")
+  }
+  
   test("from") {
     //Junk params
     assertInvalid("asdfasdfasdf")
@@ -68,77 +83,136 @@ final class IntentTest extends FunSuite {
     assertValid("--version --conf blah.conf foo.loam bar.loam", ShowVersionAndQuit)
     
     //--compile-only
-    assertInvalid("--compile-only") //no loams specified
-    assertInvalid("--compile-only --loams") //no loams specified
+    assertIsInvalidWithAllDrmSystems("--compile-only") //no loams specified
+    assertIsInvalidWithAllDrmSystems("--compile-only --loams") //no loams specified
     
-    assertValid(
-        s"--compile-only --loams $exampleFile0 $exampleFile1", CompileOnly(None, paths(exampleFile0, exampleFile1)))
+    //--loams  is now required
+    assertIsInvalidWithAllDrmSystems(s"--compile-only $exampleFile0 $exampleFile1")
     
-    assertValid(
+    assertIsValidWithAllDrmSystems(
+        s"--compile-only --loams $exampleFile0 $exampleFile1", 
+        drmSysOpt => CompileOnly(None, drmSysOpt, paths(exampleFile0, exampleFile1)))
+    
+    assertIsValidWithAllDrmSystems(
         s"--conf $confFile --compile-only --loams $exampleFile0 $exampleFile1", 
-        CompileOnly(Some(confPath), paths(exampleFile0, exampleFile1)))
+        drmSysOpt => CompileOnly(Some(confPath), drmSysOpt, paths(exampleFile0, exampleFile1)))
     
-    assertInvalid(s"--conf $confFile --compile-only --loams $exampleFile0 $nonExistentFile") //nonexistent loam file
+    assertIsInvalidWithAllDrmSystems(
+        s"--conf $confFile --compile-only --loams $exampleFile0 $nonExistentFile") //nonexistent loam file
     
-    assertValid(
+    assertIsValidWithAllDrmSystems(
         s"--compile-only --loams $exampleFile0 $exampleFile1 --conf $confFile",
-        CompileOnly(Some(confPath), paths(exampleFile0, exampleFile1)))
+        drmSysOpt => CompileOnly(Some(confPath), drmSysOpt, paths(exampleFile0, exampleFile1)))
     
     //--dry-run
     assertInvalid("--dry-run") //no loams specified
     
-    assertValid(
+    //--loams is required
+    assertIsInvalidWithAllDrmSystems(s"--dry-run $exampleFile0 $exampleFile1")
+    
+    assertIsValidWithAllDrmSystems(
         s"--dry-run --loams $exampleFile0 $exampleFile1", 
-        DryRun(
+        drmSysOpt => DryRun(
           confFile = None,
           hashingStrategy = HashingStrategy.HashOutputs,
           jobFilterIntent = JobFilterIntent.DontFilterByName,
+          drmSystemOpt = drmSysOpt,
           loams = paths(exampleFile0, exampleFile1)))
-    
-    assertValid(
+          
+    assertIsValidWithAllDrmSystems(
         s"--conf $confFile --dry-run --loams $exampleFile0 $exampleFile1", 
-        DryRun(
+        drmSysOpt => DryRun(
           Some(confPath), 
           hashingStrategy = HashingStrategy.HashOutputs,
           jobFilterIntent = JobFilterIntent.DontFilterByName,
+          drmSystemOpt = drmSysOpt,
           loams = paths(exampleFile0, exampleFile1)))
           
-    assertValid(
+    assertIsValidWithAllDrmSystems(
         s"--conf $confFile --dry-run --run everything --loams $exampleFile0 $exampleFile1", 
-        DryRun(
+        drmSysOpt => DryRun(
           Some(confPath), 
           hashingStrategy = HashingStrategy.HashOutputs,
           jobFilterIntent = JobFilterIntent.RunEverything,
+          drmSystemOpt = drmSysOpt,
           loams = paths(exampleFile0, exampleFile1)))
     
-    assertValid(
+    assertIsValidWithAllDrmSystems(
         s"--conf $confFile --dry-run --disable-hashing --loams $exampleFile0 $exampleFile1", 
-        DryRun(
+        drmSysOpt => DryRun(
           Some(confPath), 
           hashingStrategy = HashingStrategy.DontHashOutputs,
           jobFilterIntent = JobFilterIntent.DontFilterByName,
+          drmSystemOpt = drmSysOpt,
           loams = paths(exampleFile0, exampleFile1)))
     
-    assertValid(
+    assertIsValidWithAllDrmSystems(
         s"--conf $confFile --dry-run --run everything --disable-hashing --loams $exampleFile0 $exampleFile1", 
-        DryRun(
+        drmSysOpt => DryRun(
           Some(confPath), 
           hashingStrategy = HashingStrategy.DontHashOutputs,
           jobFilterIntent = JobFilterIntent.RunEverything,
+          drmSystemOpt = drmSysOpt,
+          loams = paths(exampleFile0, exampleFile1)))
+
+    assertIsValidWithAllDrmSystems(
+        s"--dry-run --loams $exampleFile0 $exampleFile1", 
+        drmSysOpt => DryRun(
+          confFile = None,
+          hashingStrategy = HashingStrategy.HashOutputs,
+          jobFilterIntent = JobFilterIntent.DontFilterByName,
+          drmSystemOpt = drmSysOpt,
+          loams = paths(exampleFile0, exampleFile1)))
+    
+    assertIsValidWithAllDrmSystems(
+        s"--conf $confFile --dry-run --loams $exampleFile0 $exampleFile1", 
+        drmSysOpt => DryRun(
+          Some(confPath), 
+          hashingStrategy = HashingStrategy.HashOutputs,
+          jobFilterIntent = JobFilterIntent.DontFilterByName,
+          drmSystemOpt = drmSysOpt,
           loams = paths(exampleFile0, exampleFile1)))
           
-    assertInvalid(s"--conf $confFile --dry-run --loams $exampleFile0 $nonExistentFile") //nonexistent loam file
+    assertIsValidWithAllDrmSystems(
+        s"--conf $confFile --dry-run --run everything --loams $exampleFile0 $exampleFile1", 
+        drmSysOpt => DryRun(
+          Some(confPath), 
+          hashingStrategy = HashingStrategy.HashOutputs,
+          jobFilterIntent = JobFilterIntent.RunEverything,
+          drmSystemOpt = drmSysOpt,
+          loams = paths(exampleFile0, exampleFile1)))
+    
+    assertIsValidWithAllDrmSystems(
+        s"--conf $confFile --dry-run --disable-hashing --loams $exampleFile0 $exampleFile1", 
+        drmSysOpt => DryRun(
+          Some(confPath), 
+          hashingStrategy = HashingStrategy.DontHashOutputs,
+          jobFilterIntent = JobFilterIntent.DontFilterByName,
+          drmSystemOpt = drmSysOpt,
+          loams = paths(exampleFile0, exampleFile1)))
+    
+    assertIsValidWithAllDrmSystems(
+        s"--conf $confFile --dry-run --run everything --disable-hashing --loams $exampleFile0 $exampleFile1", 
+        drmSysOpt => DryRun(
+          Some(confPath), 
+          hashingStrategy = HashingStrategy.DontHashOutputs,
+          jobFilterIntent = JobFilterIntent.RunEverything,
+          drmSystemOpt = drmSysOpt,
+          loams = paths(exampleFile0, exampleFile1)))
+          
+    //nonexistent loam file
+    assertIsInvalidWithAllDrmSystems(s"--conf $confFile --dry-run --loams $exampleFile0 $nonExistentFile") 
     
     //--run-everything no longer valid, use --run everything instead
-    assertInvalid(s"--conf $confFile --run-everything --dry-run --loams $exampleFile0")
+    assertIsInvalidWithAllDrmSystems(s"--conf $confFile --run-everything --dry-run --loams $exampleFile0")
     
     //--uger and --lsf gone in favor of --backend {uger,lsf}
-    assertInvalid(s"--lsf --conf $confFile --loams $exampleFile0 $exampleFile1")
-    assertInvalid(s"--uger --conf $confFile --loams $exampleFile0 $exampleFile1")
+    assertIsInvalidWithAllDrmSystems(s"--lsf --conf $confFile --loams $exampleFile0 $exampleFile1")
+    assertIsInvalidWithAllDrmSystems(s"--uger --conf $confFile --loams $exampleFile0 $exampleFile1")
     
     //--lookup
-    assertInvalid("--lookup") //no output file
-    assertInvalid(s"--conf $confFile --lookup") //no output file
+    assertIsInvalidWithAllDrmSystems("--lookup") //no output file
+    assertIsInvalidWithAllDrmSystems(s"--conf $confFile --lookup") //no output file
     
     assertValid(s"--lookup $outputFile", LookupOutput(None, Left(path(outputFile))))
     assertValid(s"--lookup $outputUri", LookupOutput(None, Right(uri(outputUri))))
@@ -148,7 +222,8 @@ final class IntentTest extends FunSuite {
     
     //Run some loams
     
-    assertInvalid(s"--loams $exampleFile0 $nonExistentFile")
+    //nonexistent loam file
+    assertIsInvalidWithAllDrmSystems(s"--loams $exampleFile0 $nonExistentFile")
     
     assertValid(
         s"--loams $exampleFile0 $exampleFile1", 

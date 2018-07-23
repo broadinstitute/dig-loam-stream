@@ -6,12 +6,13 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 import loamstream.conf.DataConfig
+import loamstream.conf.DrmConfig
+import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamScriptContext
 import loamstream.model.Store
-import loamstream.model.Tool
+import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
-import loamstream.model.execute.DrmSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
@@ -22,6 +23,10 @@ import scala.util.Try
 import loamstream.drm.DrmSystem
 import loamstream.drm.Queue
 import loamstream.conf.DrmConfig
+import loamstream.drm.lsf.LsfDockerParams
+import loamstream.drm.DockerParams
+import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.UgerDrmSettings
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -36,8 +41,25 @@ object LoamPredef extends Loggable {
 
   def tempDir(prefix: String): () => Path = () => Files.createTempDirectory(prefix)
 
-  def store(implicit context: LoamScriptContext): Store = Store.create
+  def store(implicit context: LoamScriptContext): Store = Store()
 
+  def store(path: String)(implicit context: LoamScriptContext): Store = store(Paths.get(path))
+
+  def store(path: Path)(implicit context: LoamScriptContext): Store = {
+    val resolvedPath = context.workDir.resolve(path)
+    val location = StoreLocation.PathLocation(resolvedPath)
+    
+    store(location)
+  }
+
+  def store(uri: URI)(implicit context: LoamScriptContext): Store = {
+    val location = StoreLocation.UriLocation(uri)
+    
+    store(location)
+  }
+
+  def store(location: StoreLocation)(implicit context: LoamScriptContext): Store = Store(location)
+  
   /**
    * Indicate that jobs derived from tools/stores created by `loamCode` should run
    * AFTER jobs derived from tools/stores defined BEFORE the `andThen`, in evaluation order.
@@ -76,15 +98,16 @@ object LoamPredef extends Loggable {
     val oldDir = scriptContext.workDir
     
     try {
-      scriptContext.changeWorkDir(path)
+      changeDir(path)
       expr
     } finally {
       scriptContext.setWorkDir(oldDir)
     }
   }
 
-  def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T =
+  def inDir[T](path: String)(expr: => T)(implicit scriptContext: LoamScriptContext): T = {
     inDir[T](Paths.get(path))(expr)
+  }
 
   private[this] def runIn[A](env: Environment)(expr: => A)(implicit scriptContext: LoamScriptContext): A = {
     val oldEnv = scriptContext.executionEnvironment
@@ -144,7 +167,8 @@ object LoamPredef extends Loggable {
   def drmWith[A](
       cores: Int = -1,
       mem: Double = -1, 
-      maxRunTime: Double = -1)
+      maxRunTime: Double = -1,
+      dockerImage: String = "")
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     
@@ -160,11 +184,24 @@ object LoamPredef extends Loggable {
     
     val drmConfig: DrmConfig = drmSystem.config(scriptContext)
     
-    val settings = DrmSettings(
+    val useDocker = dockerImage.nonEmpty
+    
+    val dockerParamsOpt: Option[DockerParams] = {
+      if(useDocker) {
+        require(drmSystem == DrmSystem.Lsf, s"Running commands in Docker containers is only supported on LSF.")
+        
+        Some(LsfDockerParams(imageName = dockerImage))
+      } else { 
+        None
+      }
+    }
+    
+    val settings = drmSystem.settingsMaker(
         Cpus(orDefault(cores, drmConfig.defaultCores.value)), 
         Memory.inGb(orDefault(mem, drmConfig.defaultMemoryPerCore.gb)), 
         CpuTime.inHours(orDefault(maxRunTime, drmConfig.defaultMaxRunTime.hours)),
-        drmSystem.defaultQueue)
+        drmSystem.defaultQueue,
+        dockerParamsOpt)
     
     runIn(drmSystem.makeEnvironment(settings))(expr)(scriptContext)
   }

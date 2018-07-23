@@ -1,18 +1,21 @@
 package loamstream.model.jobs
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.Instant
+
+import org.scalatest.FunSuite
 
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.HashType.Sha1
-import loamstream.util.{Hashes, PathUtils}
-import org.scalatest.FunSuite
+import loamstream.util.Hashes
+import loamstream.util.PathUtils
 
 /**
  * @author kyuksel
  * date: Jan 3, 2017
  */
-class OutputRecordTest extends FunSuite {
+final class OutputRecordTest extends FunSuite {
   private val fooLoc = normalize("src/test/resources/for-hashing/foo.txt")
   private val fooPath = Paths.get(fooLoc)
   private val fooHash = Hashes.sha1(fooPath).valueAsBase64String

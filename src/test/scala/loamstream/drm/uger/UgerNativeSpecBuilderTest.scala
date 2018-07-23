@@ -8,6 +8,7 @@ import loamstream.model.execute.DrmSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
+import loamstream.model.execute.UgerDrmSettings
 
 /**
  * @author clint
@@ -22,11 +23,12 @@ final class UgerNativeSpecBuilderTest extends FunSuite {
     
     val ugerConfig = UgerConfig(workDir = bogusPath, maxNumJobs = 41)
         
-    val ugerSettings = DrmSettings(
+    val ugerSettings = UgerDrmSettings(
         cores = Cpus(42),
         memoryPerCore = Memory.inGb(17),
         maxRunTime = CpuTime.inHours(33),
-        queue = Option(UgerDefaults.queue))
+        queue = Option(UgerDefaults.queue),
+        dockerParams = None)
         
     assert(ugerSettings.cores !== UgerDefaults.cores)
     assert(ugerSettings.memoryPerCore !== UgerDefaults.memoryPerCore)

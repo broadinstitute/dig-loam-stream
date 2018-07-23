@@ -7,6 +7,7 @@ import loamstream.util.BashScript.Implicits._
 import loamstream.util.Loggable
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.DrmConfig
+import loamstream.model.execute.DrmSettings
 
 
 /**
@@ -68,6 +69,7 @@ object DrmTaskArray {
 
   def fromCommandLineJobs(
       executionConfig: ExecutionConfig,
+      drmSettings: DrmSettings,
       drmConfig: DrmConfig,
       pathBuilder: PathBuilder,
       jobs: Seq[CommandLineJob],
@@ -77,7 +79,7 @@ object DrmTaskArray {
       //Uger task array indices start from 1
       val indexInTaskArray = i + 1
 
-      DrmJobWrapper(executionConfig, pathBuilder, commandLineJob, indexInTaskArray)
+      DrmJobWrapper(executionConfig, drmSettings, pathBuilder, commandLineJob, indexInTaskArray)
     }
 
     val scriptBuilderParams = drmConfig.scriptBuilderParams

@@ -3,10 +3,8 @@ package loamstream.loam
 import loamstream.conf.DynamicConfig
 import loamstream.loam.LoamToken.MultiStoreToken
 import loamstream.loam.LoamToken.MultiToken
-import loamstream.loam.LoamToken.StoreRefToken
 import loamstream.loam.LoamToken.StoreToken
 import loamstream.loam.LoamToken.StringToken
-import loamstream.loam.files.LoamFileManager
 import loamstream.model.LId
 import loamstream.model.Store
 import loamstream.model.Tool
@@ -31,12 +29,12 @@ object LoamCmdTool {
     def cmd(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       val tool = create(args : _*)(StringUtils.unwrapLines)(scriptContext, stringContext)
 
-      LoamCmdTool.addToGraph(tool)
+      addToGraph(tool)
 
       tool
     }
   }
-
+  
   /**
    * @param transform allows for manipulating white space,
    *                  system-dependent markers (e.g. line breaks), etc.
@@ -49,6 +47,8 @@ object LoamCmdTool {
 
     val firstToken: LoamToken = createStringToken(firstPart)(transform)
 
+    //Associate transformations with stores when making tokens? 
+    
     val tokens: Seq[LoamToken] = firstToken +: {
       stringParts.zip(args).flatMap { case (stringPart, arg) =>
         Seq(toToken(arg), createStringToken(stringPart)(transform))
@@ -67,25 +67,28 @@ object LoamCmdTool {
     }
   }
   
-  private[loam] def isHasLocationIterable(xs: Iterable[_]): Boolean = {
-    xs.nonEmpty && xs.forall(_.isInstanceOf[HasLocation])
+  private[loam] def isStoreIterable(xs: Iterable[_]): Boolean = {
+    xs.nonEmpty && xs.forall(_.isInstanceOf[Store])
   }
   
-  def toToken(arg: Any): LoamToken = arg match {
-    case store: Store => StoreToken(store)
-    case storeRef: LoamStoreRef => StoreRefToken(storeRef)
-    //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
-    //the isHasLocationIterable() guard
-    case stores: Iterable[HasLocation] @unchecked if isHasLocationIterable(stores) => MultiStoreToken(stores)
-    case args: Iterable[_] => MultiToken(args)
-    //NB: Will throw if the DynamicConf represents a config key that's not present,
-    //or a key that points to a sub-config (ie NOT a string or number)
-    case conf: DynamicConfig => StringToken(conf.unpack.toString)
-    case arg => StringToken(arg.toString)
-  }
+  def toString(tokens: Seq[LoamToken]): String = tokens.map(_.render).mkString
   
-  def toString(fileManager: LoamFileManager, tokens: Seq[LoamToken]): String = {
-    tokens.map(_.toString(fileManager)).mkString
+  def toToken(arg: Any): LoamToken = {
+    def isInputStore(s: Store) = s.graph.inputStores.contains(s)
+    
+    arg match {
+      case store: Store => StoreToken(store)
+      //NB: @unchecked is ok here because the check that can't be performed due to erasure is worked around by 
+      //the isHasLocationIterable() guard
+      case stores: Iterable[Store] @unchecked if isStoreIterable(stores) => {
+        MultiStoreToken(stores)
+      }
+      case args: Iterable[_] => MultiToken(args)
+      //NB: Will throw if the DynamicConf represents a config key that's not present,
+      //or a key that points to a sub-config (ie NOT a string or number)
+      case conf: DynamicConfig => StringToken(conf.unpack.toString)
+      case arg => StringToken(arg.toString)
+    }
   }
 }
 
@@ -97,7 +100,7 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
   override def defaultStores: DefaultStores = AllStores(LoamToken.storesFromTokens(tokens))
 
   /** Constructs the command line string */
-  def commandLine: String = LoamCmdTool.toString(scriptContext.projectContext.fileManager, tokens)
+  def commandLine: String = LoamCmdTool.toString(tokens)
 
   def using(dotkits: String*): LoamCmdTool = {
     val prefix = {
@@ -120,4 +123,6 @@ final case class LoamCmdTool private (id: LId, tokens: Seq[LoamToken])(implicit 
 
     updatedTool
   }
+  
+  
 }

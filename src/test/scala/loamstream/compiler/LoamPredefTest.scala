@@ -17,6 +17,9 @@ import loamstream.model.quantities.CpuTime
 import loamstream.drm.uger.UgerDefaults
 import loamstream.drm.DrmSystem
 import loamstream.drm.lsf.LsfDefaults
+import loamstream.drm.lsf.LsfDockerParams
+import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.UgerDrmSettings
 
 /**
  * @author clint
@@ -129,11 +132,12 @@ final class LoamPredefTest extends FunSuite {
     assert(ugerConfig.defaultMaxRunTime !== UgerDefaults.maxRunTime)
     
     //Make sure defaults come from LoamConfig
-    val expectedSettings = DrmSettings(
+    val expectedSettings = DrmSystem.Uger.settingsMaker(
         ugerConfig.defaultCores,
         ugerConfig.defaultMemoryPerCore,
         ugerConfig.defaultMaxRunTime,
-        Option(UgerDefaults.queue))
+        Option(UgerDefaults.queue),
+        None)
     
     doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith())
   }
@@ -148,11 +152,12 @@ final class LoamPredefTest extends FunSuite {
     assert(ugerConfig.defaultMaxRunTime !== UgerDefaults.maxRunTime)
     
     //Make sure defaults come from LoamConfig
-    val expectedSettings = DrmSettings(
+    val expectedSettings = DrmSystem.Uger.settingsMaker(
         ugerConfig.defaultCores,
         ugerConfig.defaultMemoryPerCore,
         ugerConfig.defaultMaxRunTime,
-        Option(UgerDefaults.queue))
+        Option(UgerDefaults.queue),
+        None)
     
     doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.drmWith())
   }
@@ -167,10 +172,11 @@ final class LoamPredefTest extends FunSuite {
     assert(lsfConfig.defaultMaxRunTime !== LsfDefaults.maxRunTime)
     
     //Make sure defaults come from LoamConfig
-    val expectedSettings = DrmSettings(
+    val expectedSettings = DrmSystem.Lsf.settingsMaker(
         lsfConfig.defaultCores,
         lsfConfig.defaultMemoryPerCore,
         lsfConfig.defaultMaxRunTime,
+        None,
         None)
     
     doEeTest(scriptContext, Local, Lsf(expectedSettings), LoamPredef.drmWith())
@@ -179,25 +185,58 @@ final class LoamPredefTest extends FunSuite {
   test("ugerWith - non-defaults") {
     implicit val scriptContext = newScriptContext(DrmSystem.Uger)
     
-    val expectedSettings = DrmSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6), Option(UgerDefaults.queue))
+    import TestHelpers.path
     
-    doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith(2, 4, 6))
+    val expectedSettings = UgerDrmSettings(
+        cores = Cpus(2), 
+        memoryPerCore = Memory.inGb(4), 
+        maxRunTime = CpuTime.inHours(6), 
+        queue = Option(UgerDefaults.queue),
+        None)
+    
+    doEeTest(
+        scriptContext, 
+        Local, 
+        Uger(expectedSettings), 
+        LoamPredef.ugerWith(2, 4, 6))
   }
   
   test("drmWith - non-defaults - Uger") {
     implicit val scriptContext = newScriptContext(DrmSystem.Uger)
     
-    val expectedSettings = DrmSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6), Option(UgerDefaults.queue))
+    import TestHelpers.path
     
-    doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.drmWith(2, 4, 6))
+    val expectedSettings = UgerDrmSettings(
+        cores = Cpus(2), 
+        memoryPerCore = Memory.inGb(4), 
+        maxRunTime = CpuTime.inHours(6), 
+        queue = Option(UgerDefaults.queue),
+        None)
+    
+    doEeTest(
+        scriptContext, 
+        Local, 
+        Uger(expectedSettings), 
+        LoamPredef.drmWith(2, 4, 6))
   }
   
   test("drmWith - non-defaults - Lsf") {
     implicit val scriptContext = newScriptContext(DrmSystem.Lsf)
     
-    val expectedSettings = DrmSettings(Cpus(2), Memory.inGb(4), CpuTime.inHours(6), None)
+    import TestHelpers.path
     
-    doEeTest(scriptContext, Local, Lsf(expectedSettings), LoamPredef.drmWith(2, 4, 6))
+    val expectedSettings = LsfDrmSettings(
+        cores = Cpus(2), 
+        memoryPerCore = Memory.inGb(4), 
+        maxRunTime = CpuTime.inHours(6), 
+        queue = None,
+        Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
+    
+    doEeTest(
+        scriptContext, 
+        Local, 
+        Lsf(expectedSettings), 
+        LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3"))
   }
   
   private def newScriptContext: LoamScriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)

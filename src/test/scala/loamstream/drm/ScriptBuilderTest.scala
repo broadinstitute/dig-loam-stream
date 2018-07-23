@@ -9,6 +9,14 @@ import loamstream.util.BashScript.Implicits._
 import scala.collection.Seq
 import loamstream.drm.uger.UgerScriptBuilderParams
 import loamstream.drm.uger.UgerPathBuilder
+import loamstream.model.execute.DrmSettings
+import loamstream.conf.DrmConfig
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
+import loamstream.drm.lsf.LsfDockerParams
+import loamstream.drm.lsf.LsfPathBuilder
+import loamstream.drm.lsf.LsfScriptBuilderParams
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -23,30 +31,74 @@ final class ScriptBuilderTest extends FunSuite {
 
   import ScriptBuilderTest.EnrichedString
 
-  //TODO: test making LSF scripts!! 
-  
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
-    val ugerConfig = TestHelpers.config.ugerConfig.get
-
-    val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
-    val jobName = DrmTaskArray.makeJobName()
-    val taskArray = DrmTaskArray.fromCommandLineJobs(
-        ExecutionConfig.default, 
-        ugerConfig, 
-        UgerPathBuilder, 
-        jobs, 
-        jobName)
-    val ugerScriptContents = (new ScriptBuilder(UgerScriptBuilderParams)).buildFrom(taskArray).withNormalizedLineBreaks
-
-    val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)
-    val discriminators = (0, 1, 2)
+    def doTest(drmSystem: DrmSystem, dockerParamsOpt: Option[DockerParams]): Unit = {
+      val drmSettings = drmSystem.settingsMaker(
+          Cpus(1),
+          Memory.inGb(42),
+          CpuTime.inHours(2),
+          defaultQueue(drmSystem),
+          dockerParamsOpt)
+  
+      val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
+      val jobName = DrmTaskArray.makeJobName()
+      
+      val config = drmConfig(drmSystem)
+      
+      val taskArray = DrmTaskArray.fromCommandLineJobs(
+          ExecutionConfig.default,
+          drmSettings,
+          config, 
+          pathBuilder(drmSystem), 
+          jobs, 
+          jobName)
+          
+      val scriptContents = {
+        (new ScriptBuilder(scriptBuilderParams(drmSystem))).buildFrom(taskArray).withNormalizedLineBreaks
+      }
+  
+      val jobIds: (String, String, String) = (jobs(0).id.toString, jobs(1).id.toString, jobs(2).id.toString)
+      val discriminators = (0, 1, 2)
+      
+      val expectedScriptContents = expectedScriptAsString(
+        config, 
+        jobName, 
+        discriminators, 
+        jobIds, 
+        drmSystem, 
+        dockerParamsOpt).withNormalizedLineBreaks
+  
+      assert(scriptContents == expectedScriptContents)
+    }
     
-    val expectedScriptContents = expectedScriptAsString(jobName, discriminators, jobIds).withNormalizedLineBreaks
-
-    assert(ugerScriptContents == expectedScriptContents)
+    val dockerParams = LsfDockerParams("library/foo:1.23")
+    
+    doTest(DrmSystem.Uger, None)
+    doTest(DrmSystem.Lsf, None)
+    doTest(DrmSystem.Lsf, Some(dockerParams))
   }
 
   import TestHelpers.path
+  
+  private def defaultQueue(drmSystem: DrmSystem): Option[Queue] = drmSystem match {
+    case DrmSystem.Lsf => None
+    case DrmSystem.Uger => Some(Queue("broad"))
+  }
+  
+  private def drmConfig(drmSystem: DrmSystem): DrmConfig = drmSystem match {
+    case DrmSystem.Lsf => TestHelpers.configWithLsf.lsfConfig.get
+    case DrmSystem.Uger => TestHelpers.configWithUger.ugerConfig.get
+  }
+  
+  private def pathBuilder(drmSystem: DrmSystem): PathBuilder = drmSystem match {
+    case DrmSystem.Lsf => LsfPathBuilder
+    case DrmSystem.Uger => UgerPathBuilder
+  }
+  
+  private def scriptBuilderParams(drmSystem: DrmSystem): ScriptBuilderParams = drmSystem match {
+    case DrmSystem.Lsf => LsfScriptBuilderParams
+    case DrmSystem.Uger => UgerScriptBuilderParams
+  }
 
   private def getShapeItCommandLineJob(discriminator: Int): CommandLineJob = {
     val shapeItExecutable = "/some/shapeit/executable"
@@ -101,74 +153,91 @@ final class ScriptBuilderTest extends FunSuite {
 
   // scalastyle:off method.length
   private def expectedScriptAsString(
+      drmConfig: DrmConfig,
       jobName: String, 
       discriminators: (Int, Int, Int), 
-      jobIds: (String, String, String)): String = {
+      jobIds: (String, String, String),
+      drmSystem: DrmSystem, 
+      dockerParamsOpt: Option[DockerParams]): String = {
     
     val (discriminator0, discriminator1, discriminator2) = discriminators
     val (jobId0, jobId1, jobId2) = jobIds
 
-    val ugerDir = path("/humgen/diabetes/users/kyuksel/imputation/shapeit_example").toAbsolutePath.render
-    val outputDir = path("out/job-outputs").toAbsolutePath.render
+    val drmOutputDir = drmConfig.workDir.toAbsolutePath.render
+    val finalOutputDir = path("out/job-outputs").toAbsolutePath.render
 
     val sixSpaces = "      "
 
+    val singularityPrefix: String = (drmSystem, dockerParamsOpt) match {
+      case (DrmSystem.Lsf, Some(dockerParams)) => s"singularity exec docker://${dockerParams.imageName} "
+      case _ => ""
+    }
+    
+    val header: String = drmSystem match {
+      case DrmSystem.Uger => """|#$ -cwd
+                                |
+                                |source /broad/software/scripts/useuse
+                                |reuse -q UGER
+                                |reuse -q Java-1.8
+                                |
+                                |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$PATH
+                                |source activate loamstream_v1.0
+                                |
+                                |i=$SGE_TASK_ID
+                                |jobId=$JOB_ID""".stripMargin
+                               
+      case DrmSystem.Lsf => """|
+                               |
+                               |i=$LSB_JOBINDEX
+                               |jobId=$LSB_JOBID""".stripMargin
+    }
+    
     // scalastyle:off line.size.limit
     s"""#!/bin/bash
-#$$ -cwd
-
-source /broad/software/scripts/useuse
-reuse -q UGER
-reuse -q Java-1.8
-
-export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$$PATH
-source activate loamstream_v1.0
-
-i=$$SGE_TASK_ID
-jobId=$$JOB_ID
-$sixSpaces
+${header}
+${sixSpaces}
 if [ $$i -eq 1 ]
 then
-/some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2
+${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator0 -M /some/map/file.$discriminator0 -O /some/haplotype/file.$discriminator0 /some/sample/file -L /some/log/file --thread 2
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-stdoutDestPath="$outputDir/${jobId0}.stdout"
-stderrDestPath="$outputDir/${jobId0}.stderr"
+stdoutDestPath="$finalOutputDir/${jobId0}.stdout"
+stderrDestPath="$finalOutputDir/${jobId0}.stderr"
 
-mkdir -p $outputDir
-mv $ugerDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-mv $ugerDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+mkdir -p $finalOutputDir
+mv $drmOutputDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
+mv $drmOutputDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
 elif [ $$i -eq 2 ]
 then
-/some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2
+${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator1 -M /some/map/file.$discriminator1 -O /some/haplotype/file.$discriminator1 /some/sample/file -L /some/log/file --thread 2
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-stdoutDestPath="$outputDir/${jobId1}.stdout"
-stderrDestPath="$outputDir/${jobId1}.stderr"
+stdoutDestPath="$finalOutputDir/${jobId1}.stdout"
+stderrDestPath="$finalOutputDir/${jobId1}.stderr"
 
-mkdir -p $outputDir
-mv $ugerDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-mv $ugerDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+mkdir -p $finalOutputDir
+mv $drmOutputDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
+mv $drmOutputDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
 elif [ $$i -eq 3 ]
 then
-/some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2
+${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator2 -M /some/map/file.$discriminator2 -O /some/haplotype/file.$discriminator2 /some/sample/file -L /some/log/file --thread 2
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-stdoutDestPath="$outputDir/${jobId2}.stdout"
-stderrDestPath="$outputDir/${jobId2}.stderr"
+stdoutDestPath="$finalOutputDir/${jobId2}.stdout"
+stderrDestPath="$finalOutputDir/${jobId2}.stderr"
 
-mkdir -p $outputDir
-mv $ugerDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-mv $ugerDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+mkdir -p $finalOutputDir
+mv $drmOutputDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
+mv $drmOutputDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

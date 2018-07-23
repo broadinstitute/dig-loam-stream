@@ -1,6 +1,5 @@
 package loamstream.loam
 
-import loamstream.loam.files.LoamFileManager
 import loamstream.util.{DepositBox, ValueBox}
 import loamstream.conf.LoamConfig
 import loamstream.util.Functions
@@ -15,8 +14,6 @@ final class LoamProjectContext(
 
   def graph: LoamGraph = graphBox.value
 
-  val fileManager: LoamFileManager = new LoamFileManager(config.executionConfig)
-  
   def updateGraph(f: LoamGraph => LoamGraph): Unit = graphBox.mutate(f)
   
   /**

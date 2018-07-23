@@ -1,20 +1,27 @@
 package loamstream.db.slick
 
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.time.Instant
 
 import org.scalatest.FunSuite
 
+import loamstream.TestHelpers
 import loamstream.drm.Queue
-import loamstream.model.execute.DrmSettings
+import loamstream.drm.lsf.LsfDefaults
+import loamstream.drm.lsf.LsfDockerParams
+import loamstream.drm.uger.UgerDefaults
 import loamstream.model.execute.Environment
+import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.ProvidesEnvAndResources
-import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.execute.Resources
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
+import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
@@ -23,14 +30,9 @@ import loamstream.model.jobs.OutputRecord
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.drm.uger.UgerDefaults
 import loamstream.util.BashScript.Implicits.BashPath
+import loamstream.util.Hash
 import loamstream.util.Hashes
-import loamstream.model.execute.Resources.UgerResources
-import loamstream.TestHelpers
-import loamstream.model.execute.Resources
-import loamstream.model.execute.EnvironmentType
-import loamstream.model.execute.Resources.LsfResources
 
 /**
  * @author clint
@@ -38,10 +40,16 @@ import loamstream.model.execute.Resources.LsfResources
  *         date: 8/9/16
  */
 final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with ProvidesEnvAndResources {
-  private val path0 = Paths.get("src/test/resources/for-hashing/foo.txt")
-  private val path1 = Paths.get("src/test/resources/for-hashing/bigger")
-  private val path2 = Paths.get("src/test/resources/for-hashing/empty.txt")
-  private val path3 = Paths.get("src/test/resources/blarg")
+  import loamstream.TestHelpers.path
+  
+  private val srcTestResources = path("src/test/resources")
+  
+  private val resolveInSrcTestResources: Path => Path = srcTestResources.resolve(_)
+  
+  private val path0 = path("src/test/resources/for-hashing/foo.txt")
+  private val path1 = path("src/test/resources/for-hashing/bigger")
+  private val path2 = path("src/test/resources/for-hashing/empty.txt")
+  private val path3 = path("src/test/resources/blarg")
 
   private lazy val hash0 = Hashes.sha1(path0)
   private lazy val hash1 = Hashes.sha1(path1)
@@ -67,7 +75,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val result = JobResult.CommandResult(0)
       
       Execution(
-          env = Environment.Lsf(mockSettings),
+          env = Environment.Lsf(mockLsfSettings),
           cmd = Option(cmd),
           status = result.toJobStatus,
           result = Option(result),
@@ -260,20 +268,28 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
   test("insertExecutions/allExecutionRows") {
     createTablesAndThen {
+      import TestHelpers.path
+      
       val output0 = cachedOutput(path0, hash0)
       val output1 = cachedOutput(path1, hash1)
       val output2 = cachedOutput(path2, hash2)
 
       val localSettings = LocalSettings
-      val ugerSettings = DrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue))
+      val lsfSettings = LsfDrmSettings(
+          Cpus(8), 
+          Memory.inGb(4), 
+          LsfDefaults.maxRunTime, 
+          None,
+          Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
+              
       val googleSettings = GoogleSettings("some-cluster")
 
       val localEnv: Environment = Environment.Local
-      val ugerEnv: Environment = Environment.Uger(ugerSettings)
+      val lsfEnv: Environment = Environment.Lsf(lsfSettings)
 
       val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
 
-      val ugerResources = UgerResources(
+      val lsfResources = LsfResources(
           Memory.inGb(2.1),
           CpuTime.inSeconds(12.34),
           Some("nodeName"),
@@ -294,11 +310,11 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           outputs = Set(output0))
 
       val failed1 = Execution(
-          env = ugerEnv, 
+          env = lsfEnv, 
           cmd = Option(mockCmd),
           status = CommandResult(1).toJobStatus,
           result = Option(CommandResult(1)),
-          resources = Option(ugerResources),
+          resources = Option(lsfResources),
           outputStreams = Option(dummyOutputStreams), 
           outputs = Set.empty)
 
@@ -341,67 +357,77 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("insertExecutions - CommandInvocationFailure") {
-    createTablesAndThen {
-      val output0 = PathOutput(path0)
-
-      val failed = Execution(
-          mockEnv,
-          mockCmd,
-          JobResult.CommandInvocationFailure(new Exception),
-          dummyOutputStreams,
-          output0.toOutputRecord)
-
-      assert(failed.isFailure)
-
-      assert(noOutputs)
-      assert(noExecutions)
-
-      dao.insertExecutions(failed)
-
-      val expected0 = Execution(
-          mockEnv,
-          mockCmd,
-          CommandResult(JobResult.DummyExitCode),
-          failed.outputStreams.get,
-          failedOutput(path0))
-
-      assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+    def doTest(path: Path): Unit = {
+      createTablesAndThen {
+        val output0 = PathOutput(path)
+  
+        val failed = Execution(
+            mockEnv,
+            mockCmd,
+            JobResult.CommandInvocationFailure(new Exception),
+            dummyOutputStreams,
+            output0.toOutputRecord)
+  
+        assert(failed.isFailure)
+  
+        assert(noOutputs)
+        assert(noExecutions)
+  
+        dao.insertExecutions(failed)
+  
+        val expected0 = Execution(
+            mockEnv,
+            mockCmd,
+            CommandResult(JobResult.DummyExitCode),
+            failed.outputStreams.get,
+            failedOutput(output0.path))
+  
+        assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
+      }
     }
+    
+    doTest(path0)
+    doTest(path("for-hashing/foo.txt"))
   }
 
   test("insertExecutions - should throw") {
-    def doTest(command: Option[String], jobResult: JobResult): Unit = {
-      createTablesAndThen {
-        val output0 = PathOutput(path0)
-
-        val failed = Execution(
-            env = mockEnv, 
-            cmd = command, 
-            status = JobResult.Failure.toJobStatus,
-            result = Option(JobResult.Failure),
-            resources = None,
-            outputStreams = Option(dummyOutputStreams), 
-            outputs = Set(output0.toOutputRecord))
-
-        assert(failed.isFailure)
-
-        assert(noOutputs)
-        assert(noExecutions)
-
-        intercept[Exception] {
-          dao.insertExecutions(failed)
+    def doTestWithLocations(path: Path): Unit = {
+      def doTest(command: Option[String], jobResult: JobResult): Unit = {
+        createTablesAndThen {
+          val output0 = PathOutput(path)
+  
+          val failed = Execution(
+              env = mockEnv, 
+              cmd = command, 
+              status = JobResult.Failure.toJobStatus,
+              result = Option(JobResult.Failure),
+              resources = None,
+              outputStreams = Option(dummyOutputStreams), 
+              outputs = Set(output0.toOutputRecord))
+  
+          assert(failed.isFailure)
+  
+          assert(noOutputs)
+          assert(noExecutions)
+  
+          intercept[Exception] {
+            dao.insertExecutions(failed)
+          }
+  
+          assert(noOutputs)
+          assert(noExecutions)
         }
-
-        assert(noOutputs)
-        assert(noExecutions)
       }
+  
+      doTest(Some(mockCmd), JobResult.Failure)
+      doTest(None, JobResult.Failure)
+      doTest(Some(mockCmd), JobResult.CommandResult(1))
+      doTest(Some(mockCmd), JobResult.CommandResult(1))
+      doTest(None, JobResult.CommandResult(0))
     }
-
-    doTest(Some(mockCmd), JobResult.Failure)
-    doTest(None, JobResult.Failure)
-    doTest(Some(mockCmd), JobResult.CommandResult(1))
-    doTest(Some(mockCmd), JobResult.CommandResult(1))
-    doTest(None, JobResult.CommandResult(0))
+    
+    doTestWithLocations(path0)
+    doTestWithLocations(path("for-hashing/foo.txt"))
   }
 
   test("findExecution") {
@@ -463,7 +489,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       store(path0)
 
-      assert(dao.findOutputRecord(PathOutput(path0).toOutputRecord) === Some(cachedOutput(path0, hash0)))
+      val outputRecord0FromDb = dao.findOutputRecord(PathOutput(path0).toOutputRecord)
+      
+      assert(outputRecord0FromDb === Some(cachedOutput(path0, hash0)))
 
       assert(dao.findOutputRecord(path1) === None)
 
@@ -495,77 +523,88 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
   
   test("Insert/retrieve successful Execution for all environments") {
-      val localSettings = LocalSettings
-      val drmSettings = DrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue))
-      val googleSettings = GoogleSettings("some-cluster")
-
-      val localEnv: Environment = Environment.Local
-      val ugerEnv: Environment = Environment.Uger(drmSettings)
-      val lsfEnv: Environment = Environment.Lsf(drmSettings)
-      val googleEnv: Environment = Environment.Google(googleSettings)
-
-      val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
-
-      val ugerResources = UgerResources(
-          Memory.inGb(2.1),
-          CpuTime.inSeconds(12.34),
-          Some("nodeName"),
-          Some(Queue("broad")),
-          Instant.ofEpochMilli(64532),
-          Instant.ofEpochMilli(9345345))
-          
-      val lsfResources = LsfResources(
-          Memory.inGb(1.2),
-          CpuTime.inSeconds(34.21),
-          Some("another-node"),
-          Some(Queue("ebi")),
-          Instant.ofEpochMilli(12345),
-          Instant.ofEpochMilli(12346))
-
-      val googleResources = GoogleResources(
-          "clusterName",
-          Instant.ofEpochMilli(1), 
-          Instant.ofEpochMilli(72345))
-
-      val output0 = cachedOutput(path0, hash0)
-        
-      def doTest(env: Environment, resources: Resources): Unit = {
-        createTablesAndThen {
-          assert(noExecutions)
-          
-          val result = CommandResult(0)
-          
-          val execution = Execution(
-              env = env, 
-              cmd = Option(mockCmd),
-              status = result.toJobStatus,
-              result = Option(result),
-              resources = Option(resources),
-              outputStreams = Option(dummyOutputStreams), 
-              outputs = Set(output0))
-              
-          dao.insertExecutions(execution)
-          
-          import dao.tables.driver.api._
-          
-          val resourcesFromDb: ResourceRow = dao.runBlocking { 
-            env.tpe match {
-              case EnvironmentType.Local => dao.tables.localResources.result
-              case EnvironmentType.Uger => dao.tables.ugerResources.result
-              case EnvironmentType.Lsf => dao.tables.lsfResources.result
-              case EnvironmentType.Google => dao.tables.googleResources.result
-            }
-          }.head
-          
-          assert(resourcesFromDb === ResourceRow.fromResources(resources, 1))
-          
-          assert(dao.allExecutions.head === execution)
-        }
-      }
-      
-      doTest(localEnv, localResources)
-      doTest(ugerEnv, ugerResources)
-      doTest(lsfEnv, lsfResources)
-      doTest(googleEnv, googleResources)
+    import TestHelpers.path
+  
+    val localSettings = LocalSettings
+    val ugerSettings = {
+      UgerDrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
     }
+    val lsfSettings = LsfDrmSettings(
+        Cpus(8), 
+        Memory.inGb(4), 
+        LsfDefaults.maxRunTime, 
+        None, 
+        Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
+        
+    val googleSettings = GoogleSettings("some-cluster")
+
+    val localEnv: Environment = Environment.Local
+    val ugerEnv: Environment = Environment.Uger(ugerSettings)
+    val lsfEnv: Environment = Environment.Lsf(lsfSettings)
+    val googleEnv: Environment = Environment.Google(googleSettings)
+
+    val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
+
+    val ugerResources = UgerResources(
+        Memory.inGb(2.1),
+        CpuTime.inSeconds(12.34),
+        Some("nodeName"),
+        Some(Queue("broad")),
+        Instant.ofEpochMilli(64532),
+        Instant.ofEpochMilli(9345345))
+        
+    val lsfResources = LsfResources(
+        Memory.inGb(1.2),
+        CpuTime.inSeconds(34.21),
+        Some("another-node"),
+        Some(Queue("ebi")),
+        Instant.ofEpochMilli(12345),
+        Instant.ofEpochMilli(12346))
+
+    val googleResources = GoogleResources(
+        "clusterName",
+        Instant.ofEpochMilli(1), 
+        Instant.ofEpochMilli(72345))
+
+    val output0 = cachedOutput(path0, hash0)
+        
+    def doTest(env: Environment, resources: Resources): Unit = {
+      createTablesAndThen {
+        assert(noExecutions)
+        
+        val result = CommandResult(0)
+        
+        val execution = Execution(
+            env = env, 
+            cmd = Option(mockCmd),
+            status = result.toJobStatus,
+            result = Option(result),
+            resources = Option(resources),
+            outputStreams = Option(dummyOutputStreams), 
+            outputs = Set(output0))
+            
+        dao.insertExecutions(execution)
+        
+        import dao.tables.driver.api._
+        
+        val resourcesFromDb: ResourceRow = dao.runBlocking { 
+          env.tpe match {
+            case EnvironmentType.Local => dao.tables.localResources.result
+            case EnvironmentType.Uger => dao.tables.ugerResources.result
+            case EnvironmentType.Lsf => dao.tables.lsfResources.result
+            case EnvironmentType.Google => dao.tables.googleResources.result
+          }
+        }.head
+        
+        assert(resourcesFromDb === ResourceRow.fromResources(resources, 1))
+        
+        assert(dao.allExecutions.head === execution)
+      }
+    }
+      
+    doTest(localEnv, localResources)
+    doTest(ugerEnv, ugerResources)
+    doTest(lsfEnv, lsfResources)
+    doTest(googleEnv, googleResources)
+  }
 }

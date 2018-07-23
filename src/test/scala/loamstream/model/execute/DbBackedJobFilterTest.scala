@@ -19,6 +19,7 @@ import loamstream.util.PathUtils
 import loamstream.model.jobs.OutputStreams
 import loamstream.TestHelpers
 import loamstream.model.jobs.LJob
+import java.nio.file.Path
 
 /**
  * @author clint
@@ -26,30 +27,53 @@ import loamstream.model.jobs.LJob
  */
 final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao with ProvidesEnvAndResources {
 
-  private val p0 = Paths.get("src/test/resources/for-hashing/foo.txt")
-  private val p1 = Paths.get("src/test/resources/for-hashing/empty.txt")
-  private val p2 = Paths.get("src/test/resources/for-hashing/subdir/bar.txt")
-  private val nonexistentPath = Paths.get("non/existent/blah.txt")
+  import TestHelpers.path
+  
+  private val nonexistentPath = path("non/existent/blah.txt")
 
-  private val o0 = Output.PathOutput(p0)
-  private val o1 = Output.PathOutput(p1)
-  private val o2 = Output.PathOutput(p2)
-  private val nonExistentOutput = Output.PathOutput(nonexistentPath)
-
-  private val cachedOutput0 = o0.toOutputRecord
-  private val cachedOutput1 = o1.toOutputRecord
-  private val cachedOutput2 = o2.toOutputRecord
-  private val cachedNonExistentOutput = nonExistentOutput.toOutputRecord
-
-  private val failedOutput0 = failedOutput(p0)
-  private val failedOutput1 = failedOutput(p1)
-  private val failedOutput2 = failedOutput(p2)
+  private trait Outputs {
+    def p0: Path
+    def p1: Path
+    def p2: Path
+    
+    def o0: Output.PathOutput
+    def o1: Output.PathOutput
+    def o2: Output.PathOutput
+    def nonExistentOutput: Output.PathOutput
+    
+    final lazy val cachedOutput0: OutputRecord = o0.toOutputRecord
+    final lazy val cachedOutput1: OutputRecord = o1.toOutputRecord
+    final lazy val cachedOutput2: OutputRecord = o2.toOutputRecord
+    final lazy val cachedNonExistentOutput: OutputRecord = nonExistentOutput.toOutputRecord
+    
+    final lazy val failedOutput0: OutputRecord = failedOutput(o0.path)
+    final lazy val failedOutput1: OutputRecord = failedOutput(o1.path)
+    final lazy val failedOutput2: OutputRecord = failedOutput(o2.path)
+  }
+  
+  private object SimpleOutputs extends Outputs {
+    override val p0 = path("src/test/resources/for-hashing/foo.txt")
+    override val p1 = path("src/test/resources/for-hashing/empty.txt")
+    override val p2 = path("src/test/resources/for-hashing/subdir/bar.txt")
+    
+    override val o0 = Output.PathOutput(p0)
+    override val o1 = Output.PathOutput(p1)
+    override val o2 = Output.PathOutput(p2)
+    override val nonExistentOutput = Output.PathOutput(nonexistentPath)
+  }
+  
+  private def testWithSimpleOutputSet(name: String)(body: Outputs => Any): Unit = {
+    test(name) {
+      body(SimpleOutputs)
+    }
+  }
 
   import loamstream.model.jobs.JobResult._
   import TestHelpers.dummyOutputStreams
 
   test("sanity check paths") {
     import java.nio.file.Files.exists
+    import SimpleOutputs._
     
     assert(exists(p0))
     assert(exists(p1))
@@ -67,7 +91,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     assert(cachedNonExistentOutput.isMissing)
   }
   
-  test("shouldRun - failed and successful runs") {
+  testWithSimpleOutputSet("shouldRun - failed and successful runs") { outputs =>
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
       val recorder = new DbBackedExecutionRecorder(dao)
@@ -83,8 +107,8 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         CommandLineJob(commandLine, TestHelpers.path("."), Environment.Local, outputs = outputs)
       }
       
-      val successfulJob = commandLineJob(successfulCommandLine, Set(o0))
-      val failedJob = commandLineJob(failedCommandLine, Set(o0))
+      val successfulJob = commandLineJob(successfulCommandLine, Set(outputs.o0))
+      val failedJob = commandLineJob(failedCommandLine, Set(outputs.o0))
       
       {
         val failure = CommandResult(42)
@@ -112,7 +136,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     }
   }
   
-  test("needsToBeRun/hasDifferentHash/hasDifferentModTime - should hash") {
+  testWithSimpleOutputSet("needsToBeRun/hasDifferentHash/hasDifferentModTime - should hash") { outputs =>
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
       val recorder = new DbBackedExecutionRecorder(dao)
@@ -121,6 +145,8 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
+      import outputs.{o0, o1, o2, nonExistentOutput, cachedNonExistentOutput, cachedOutput0, cachedOutput1 }
+      
       {
         val failure = CommandResult(42)
         assert(failure.isFailure)
@@ -128,10 +154,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
         
-        val failedExec = Execution.fromOutputs(mockEnv, mockCmd, failure, dummyOutputStreams, Set[Output](o0))
+        val failedExec = Execution.fromOutputs(mockEnv, mockCmd, failure, dummyOutputStreams, Set(o0))
         
         val successfulExec = {
-          Execution.fromOutputs(mockEnv, mockCmd, success, dummyOutputStreams, Set[Output](o1, nonExistentOutput))
+          Execution.fromOutputs(mockEnv, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
         }
   
         recorder.record(Seq(failedExec, successfulExec))
@@ -195,7 +221,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     }
   }
   
-  test("needsToBeRun/hasDifferentHash/hasDifferentModTime - hashing disabled") {
+  testWithSimpleOutputSet("needsToBeRun/hasDifferentHash/hasDifferentModTime - hashing disabled") { outputs =>
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao, HashingStrategy.DontHashOutputs)
       val recorder = new DbBackedExecutionRecorder(dao)
@@ -203,6 +229,8 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(executions === Set.empty)
 
+      import outputs.{o0, o1, o2, nonExistentOutput, cachedNonExistentOutput, cachedOutput0, cachedOutput1 }
+      
       {
         val failure = CommandResult(42)
         assert(failure.isFailure)
@@ -210,10 +238,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
 
-        val failedExec = Execution.fromOutputs(mockEnv, mockCmd, failure, dummyOutputStreams, Set[Output](o0))
+        val failedExec = Execution.fromOutputs(mockEnv, mockCmd, failure, dummyOutputStreams, Set(o0))
         
         val successfulExec = {
-          Execution.fromOutputs(mockEnv, mockCmd, success, dummyOutputStreams, Set[Output](o1, nonExistentOutput))
+          Execution.fromOutputs(mockEnv, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
         }
   
         recorder.record(Seq(failedExec, successfulExec))
@@ -278,7 +306,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     }
   }
 
-  test("command string comparison") {
+  testWithSimpleOutputSet("command string comparison") { outputSet =>
     def cmdLineJob(cmd: String, outputs: Set[Output]): CommandLineJob = {
       CommandLineJob(
         commandLineString = cmd,
@@ -303,10 +331,14 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     val cmd0 = "cmd0"
     val cmd1 = "cmd1"
     
+    import outputSet.{o0, o1, o2 }
+    
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
+
+      val outputs: Set[Output] = Set(o0, o1)
+
       val recorder = new DbBackedExecutionRecorder(dao)
-      val outputs = Set[Output](o0, o1)
 
       recorder.record(Iterable(execution(cmd0, outputs)))
 

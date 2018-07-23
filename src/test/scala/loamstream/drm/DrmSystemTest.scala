@@ -23,14 +23,24 @@ final class DrmSystemTest extends FunSuite {
   }
   
   test("makeEnvironment") {
-    val settings = DrmSettings(
+    def makeSettings(drmSystem: DrmSystem) = drmSystem.settingsMaker(
         Cpus(42),
         Memory.inGb(11),
         CpuTime.inSeconds(12.34),
-        Option(Queue("foo")))
+        Option(Queue("foo")),
+        None)
         
-    assert(Uger.makeEnvironment(settings) === Environment.Uger(settings))
-    assert(Lsf.makeEnvironment(settings) === Environment.Lsf(settings))
+    {
+      val settings = makeSettings(Uger)
+      
+      assert(Uger.makeEnvironment(settings) === Environment.Uger(settings))
+    }
+    
+    {
+      val settings = makeSettings(Lsf)
+      
+      assert(Lsf.makeEnvironment(settings) === Environment.Lsf(settings))  
+    }
   }
   
   test("config") {

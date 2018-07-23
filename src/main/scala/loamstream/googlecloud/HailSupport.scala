@@ -38,8 +38,8 @@ object HailSupport {
      * driver script file, like
      * 
      * val projectId = "foo"
-     * val inputVcf = store.at(uri("gs://foo/bar/baz.vcf"))
-     * val outputVds = store.at(uri("gs://foo/bar/baz.vds")) 
+     * val inputVcf = store(uri("gs://foo/bar/baz.vcf"))
+     * val outputVds = store(uri("gs://foo/bar/baz.vds")) 
      * 
      * hail"""some_driver_file.py
      *        --vcf-in $projectId ${inputVcf}

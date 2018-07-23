@@ -20,16 +20,18 @@ final class DrmJobWrapperTest extends FunSuite {
   import DrmTaskArrayTest._
 
   private def wrapper(commandLineJob: CommandLineJob, ugerIndex: Int, pathBuilder: PathBuilder): DrmJobWrapper = {
-    val drmConfig: DrmConfig = UgerConfig(path(".")) //the defaults, basically
-    
-    DrmJobWrapper(executionConfig, pathBuilder, commandLineJob, ugerIndex)
+    DrmJobWrapper(executionConfig, TestHelpers.defaultUgerSettings, pathBuilder, commandLineJob, ugerIndex)
   }
 
+  private val ugerSettings = TestHelpers.defaultUgerSettings
+  
   test("stdOutPath") {
     def doTest(pathBuilder: PathBuilder): Unit = {
       val jobName = DrmTaskArray.makeJobName()
       
-      val taskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, pathBuilder, jobs, jobName)
+      val taskArray = {
+        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, jobs, jobName)
+      }
   
       val Seq(wrapper0, wrapper1, wrapper2) = taskArray.drmJobs
   
@@ -54,7 +56,9 @@ final class DrmJobWrapperTest extends FunSuite {
     def doTest(pathBuilder: PathBuilder): Unit = {
       val jobName = DrmTaskArray.makeJobName()
       
-      val taskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, pathBuilder, jobs, jobName)
+      val taskArray = {
+        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, jobs, jobName)
+      }
   
       val Seq(wrapper0, wrapper1, wrapper2) = taskArray.drmJobs
   
@@ -77,7 +81,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
   test("outputStreams.stdout") {
     def doTest(pathBuilder: PathBuilder): Unit = {
-      val taskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, pathBuilder, Seq(j0))
+      val taskArray = {
+        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, Seq(j0))
+      }
   
       val Seq(wrapper0) = taskArray.drmJobs
   
@@ -92,7 +98,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
   test("outputStreams.stderr") {
     def doTest(pathBuilder: PathBuilder): Unit = {
-      val taskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, pathBuilder, Seq(j0))
+      val taskArray = {
+        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, Seq(j0))
+      }
   
       val Seq(wrapper0) = taskArray.drmJobs
   
@@ -109,7 +117,9 @@ final class DrmJobWrapperTest extends FunSuite {
     def doTest(pathBuilder: PathBuilder): Unit = {
       val jobName = DrmTaskArray.makeJobName()
       
-      val taskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, pathBuilder, Seq(j0), jobName)
+      val taskArray = {
+        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, Seq(j0), jobName)
+      }
   
       val Seq(wrapper0) = taskArray.drmJobs
   

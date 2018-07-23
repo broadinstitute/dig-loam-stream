@@ -16,6 +16,7 @@ import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Files
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -54,7 +55,8 @@ object DrmTaskArrayTest {
 final class DrmTaskArrayTest extends FunSuite {
   import DrmTaskArrayTest._
   import loamstream.TestHelpers.path
-
+  import loamstream.TestHelpers.defaultUgerSettings
+  
   test("makeJobName") {
 
     val jobName = DrmTaskArray.makeJobName()
@@ -71,8 +73,17 @@ final class DrmTaskArrayTest extends FunSuite {
         expectedStdOutPathTemplate: String,
         expectedStdErrPathTemplate: String): Unit = {
       
-      val taskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, pathBuilder, jobs, expectedJobName)
+      val taskArray = {
+        DrmTaskArray.fromCommandLineJobs(
+            executionConfig, 
+            defaultUgerSettings, 
+            ugerConfig, 
+            pathBuilder, 
+            jobs, 
+            expectedJobName)
+      }
   
+      assert(taskArray.drmJobs.forall(_.drmSettings === defaultUgerSettings))
       assert(taskArray.drmConfig === ugerConfig)
   
       assert(taskArray.drmJobName === expectedJobName)
@@ -120,7 +131,11 @@ final class DrmTaskArrayTest extends FunSuite {
 
   test("size") {
     def doTest(pathBuilder: PathBuilder): Unit = {
-      val taskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, ugerConfig, pathBuilder, jobs)
+      import TestHelpers.defaultUgerSettings
+      
+      val taskArray = {
+        DrmTaskArray.fromCommandLineJobs(executionConfig, defaultUgerSettings, ugerConfig, pathBuilder, jobs)
+      }
   
       assert(taskArray.size === 3)
       assert(taskArray.size === jobs.size)
@@ -136,7 +151,11 @@ final class DrmTaskArrayTest extends FunSuite {
       val pathBuilder = if(drmConfig.isUgerConfig) UgerPathBuilder else LsfPathBuilder
       val scriptBuilderParams = drmConfig.scriptBuilderParams
       
-      val taskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, drmConfig, pathBuilder, jobs)
+      import TestHelpers.defaultUgerSettings
+      
+      val taskArray = {
+        DrmTaskArray.fromCommandLineJobs(executionConfig, defaultUgerSettings, drmConfig, pathBuilder, jobs)
+      }
 
       assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
     }
@@ -153,7 +172,11 @@ final class DrmTaskArrayTest extends FunSuite {
       val pathBuilder = if(drmConfig.isUgerConfig) UgerPathBuilder else LsfPathBuilder
       val scriptBuilderParams = drmConfig.scriptBuilderParams
 
-      val taskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, drmConfig, pathBuilder, jobs)
+      import TestHelpers.defaultUgerSettings
+      
+      val taskArray = {
+        DrmTaskArray.fromCommandLineJobs(executionConfig, defaultUgerSettings, drmConfig, pathBuilder, jobs)
+      }
   
       assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
   

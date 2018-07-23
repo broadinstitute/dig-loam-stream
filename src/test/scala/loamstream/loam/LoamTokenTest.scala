@@ -9,21 +9,23 @@ import loamstream.compiler.LoamPredef
 import loamstream.conf.ExecutionConfig
 import loamstream.loam.LoamToken.MultiStoreToken
 import loamstream.loam.LoamToken.MultiToken
-import loamstream.loam.LoamToken.StoreRefToken
 import loamstream.loam.LoamToken.StoreToken
 import loamstream.loam.LoamToken.StringToken
-import loamstream.loam.files.LoamFileManager
+import loamstream.util.BashScript
+import java.nio.file.Path
+import loamstream.util.Sequence
+import loamstream.LoamFunSuite
+import loamstream.LoamFunSuite
 
 
 /**
  * @author clint
  * date: Jul 20, 2016
  */
-final class LoamTokenTest extends FunSuite {
-  //scalastyle:off null
-  private def dummyFileManager: LoamFileManager = null.asInstanceOf[LoamFileManager]
-  //scalastyle:on null
+final class LoamTokenTest extends LoamFunSuite {
 
+  import TestHelpers.path
+  
   test("mergeStringTokens - all StringTokens") {
     import LoamToken.mergeStringTokens
 
@@ -41,15 +43,12 @@ final class LoamTokenTest extends FunSuite {
     assert(mergeStringTokens(allStringTokens) == Seq(StringToken("foo bar baz")))
   }
 
-  test("mergeStringTokens - mixed") {
+  testWithScriptContext("mergeStringTokens - mixed") { implicit context =>
     import LoamToken.mergeStringTokens
     import LoamPredef._
-    implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
 
     val storeA = store
     val storeB = store
-
-    val storeRefToken = StoreRefToken(LoamStoreRef(storeA, identity))
 
     val tokens = Seq(
         StringToken(""),
@@ -58,7 +57,6 @@ final class LoamTokenTest extends FunSuite {
         StoreToken(storeA),
         StringToken("bar"),
         StoreToken(storeB),
-        storeRefToken,
         StringToken(""),
         StringToken(""),
         StringToken(" "),
@@ -72,7 +70,6 @@ final class LoamTokenTest extends FunSuite {
         StoreToken(storeA),
         StringToken("bar"),
         StoreToken(storeB),
-        storeRefToken,
         StringToken(" baz"),
         MultiToken(Seq(1,2,3)),
         MultiStoreToken(Seq(storeA, storeB)))
@@ -86,45 +83,26 @@ final class LoamTokenTest extends FunSuite {
     val sPlus42 = "asdasdasfasf42"
 
     assert(StringToken(s).toString === s)
-    assert(StringToken(s).toString(dummyFileManager) === s)
+    assert(StringToken(s).toString === s)
     assert(StringToken(s) + StringToken("42") === StringToken(sPlus42))
   }
 
-  test("StoreToken") {
+  testWithScriptContext("StoreToken") { implicit context =>
     import LoamPredef._
-    implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
 
-    val txtStore = store
-    val vcfStore = store
+    val pathStore = store("/foo/bar.txt")
+    
+    val u = uri("gs://loamstream/foo/bar")
+    
+    val uriStore = store(u)
 
-    assert(StoreToken(txtStore).toString === txtStore.toString)
+    assert(StoreToken(pathStore).toString === pathStore.toString)
+    assert(StoreToken(uriStore).toString === uriStore.toString)
 
-    val fooPath = Paths.get("foo.txt")
-
-    val fileManager = LoamFileManager(ExecutionConfig.default, Map(txtStore -> fooPath))
-
-    assert(StoreToken(txtStore).toString(fileManager) === fooPath.toString)
-  }
-
-  test("StoreRefToken") {
-    import LoamPredef._
-    implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
-
-    val underlyingStore = store.at("foo.txt")
-
-    val ref: LoamStoreRef =  underlyingStore + ".bar"
-
-    assert(ref.path == Paths.get("./foo.txt.bar"))
-
-    val refString = StoreRefToken(ref).toString(context.projectContext.fileManager)
-    val renderedString = ref.render(context.projectContext.fileManager)
-    assert(refString == renderedString)
-
-    val bazPath = Paths.get("baz")
-
-    val fileManager = LoamFileManager(ExecutionConfig.default, Map(underlyingStore -> bazPath))
-
-    assert(StoreRefToken(ref).toString(fileManager) === "baz.bar")
+    import BashScript.Implicits._
+    
+    assert(StoreToken(pathStore).render === pathStore.path.render)
+    assert(StoreToken(uriStore).render === uriStore.render)
   }
 
   test("MultiToken") {
@@ -132,26 +110,22 @@ final class LoamTokenTest extends FunSuite {
     assert(MultiToken(Seq("x", "y", "z")).toString === "x y z")
     assert(MultiToken(Nil).toString === "")
 
-    assert(MultiToken(Seq(9, 10, 11)).toString(dummyFileManager) === "9 10 11")
-    assert(MultiToken(Seq("x", "y", "z")).toString(dummyFileManager) === "x y z")
+    assert(MultiToken(Seq(9, 10, 11)).toString === "9 10 11")
+    assert(MultiToken(Seq("x", "y", "z")).toString === "x y z")
 
-    assert(MultiToken(Nil).toString(dummyFileManager) === "")
+    assert(MultiToken(Nil).toString === "")
   }
 
-  test("MultiStoreToken") {
+  testWithScriptContext("MultiStoreToken") { implicit ctx =>
     import LoamPredef._
-    implicit val context = new LoamScriptContext(TestHelpers.emptyProjectContext)
 
-    val txtStore = store
-    val vcfStore = store
+    val txtStore = store("X.txt")
+    val vcfStore = store("Y.txt")
 
-    assert(MultiStoreToken(Seq(txtStore, vcfStore)).toString === s"${txtStore.path} ${vcfStore.path}")
+    val multiStoreToken = MultiStoreToken(Seq(txtStore, vcfStore))
+    
+    assert(multiStoreToken.toString === "./X.txt ./Y.txt")
 
-    val fooPath = Paths.get("foo.txt")
-    val barPath = Paths.get("bar.vcf")
-
-    val fileManager = LoamFileManager(ExecutionConfig.default, Map(txtStore -> fooPath, vcfStore -> barPath))
-
-    assert(MultiStoreToken(Seq(txtStore, vcfStore)).toString(fileManager) === s"$fooPath $barPath")
+    assert(multiStoreToken.render === "./X.txt ./Y.txt")
   }
 }

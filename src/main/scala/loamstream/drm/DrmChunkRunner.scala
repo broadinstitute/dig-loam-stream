@@ -81,10 +81,10 @@ final case class DrmChunkRunner(
     //be run as 1 Uger task array, and Uger params are per-task-array.
     val resultsForSubChunks: Iterable[Observable[Map[LJob, RunData]]] = {
       for {
-        (drmSettings, commandLineJobs) <- subChunksBySettings(commandLineJobs)
-        drmTaskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, drmConfig, pathBuilder, commandLineJobs)
+        (settings, rawJobs) <- subChunksBySettings(commandLineJobs)
+        drmTaskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, settings, drmConfig, pathBuilder, rawJobs)
       } yield {
-        runJobs(drmSettings, drmTaskArray, shouldRestart)
+        runJobs(settings, drmTaskArray, shouldRestart)
       }
     }
 

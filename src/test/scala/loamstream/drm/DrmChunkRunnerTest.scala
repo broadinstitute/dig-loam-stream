@@ -222,7 +222,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   test("toRunDatas - one failed job") {
     import DrmChunkRunner.toRunDatas
     import DrmStatus._
-    import TestHelpers.{alwaysRestart, neverRestart}
+    import TestHelpers.{alwaysRestart, neverRestart, defaultUgerSettings}
     import DrmChunkRunnerTest.MockDrmJob
     import ObservableEnrichments._
     
@@ -231,7 +231,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
-      val failed = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, job, 1)
+      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, UgerPathBuilder, job, 1)
       
       assert(job.runCount === 0)
       
@@ -264,7 +264,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   test("toRunDatas - one successful job") {
     import DrmChunkRunner.toRunDatas
     import DrmStatus._
-    import TestHelpers.{alwaysRestart, neverRestart}
+    import TestHelpers.{alwaysRestart, neverRestart, defaultUgerSettings}
     import DrmChunkRunnerTest.MockDrmJob
     import ObservableEnrichments._
     
@@ -273,7 +273,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
-      val worked = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, job, 1)
+      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, UgerPathBuilder, job, 1)
       
       assert(job.runCount === 0)
       
@@ -304,7 +304,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   test("toRunDatas - one successful job, one failed job") {
     import DrmChunkRunner.toRunDatas
     import DrmStatus._
-    import TestHelpers.{alwaysRestart, neverRestart}
+    import TestHelpers.{alwaysRestart, neverRestart, defaultUgerSettings}
     import DrmChunkRunnerTest.MockDrmJob
     import ObservableEnrichments._
     
@@ -321,8 +321,8 @@ final class DrmChunkRunnerTest extends FunSuite {
       val workedJob = MockDrmJob(goodId, Queued, Queued, Running, Running, lastGoodDrmStatus)
       val failedJob = MockDrmJob(badId, Queued, Queued, Running, Running, lastBadDrmStatus)
       
-      val worked = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, workedJob, 1)
-      val failed = DrmJobWrapper(ExecutionConfig.default, UgerPathBuilder, failedJob, 2)
+      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, UgerPathBuilder, workedJob, 1)
+      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, UgerPathBuilder, failedJob, 2)
       
       assert(workedJob.runCount === 0)
       assert(failedJob.runCount === 0)
@@ -378,9 +378,9 @@ final class DrmChunkRunnerTest extends FunSuite {
         import LoamPredef._
         import LoamCmdTool._
       
-        val a = store.at("a.txt").asInput
-        val b = store.at("b.txt")
-        val c = store.at("c.txt")
+        val a = store("a.txt").asInput
+        val b = store("b.txt")
+        val c = store("c.txt")
       
         envFn(drmSystem)(cores = 4, mem = 16, maxRunTime = 5) {
           cmd"cp $a $b".in(a).out(b)
@@ -429,7 +429,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         case DrmSystem.Lsf => Environment.Lsf(settings)
       }
  
-      val expectedSettings = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt)
+      val expectedSettings = drmSystem.settingsMaker(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt, None)
       val expectedEnv = makeEnv(expectedSettings)
       
       assert(jobs(0).job.executionEnvironment === expectedEnv)
@@ -463,11 +463,11 @@ final class DrmChunkRunnerTest extends FunSuite {
       import LoamPredef._
       import LoamCmdTool._
     
-      val a = store.at("a.txt").asInput
-      val b = store.at("b.txt")
-      val c = store.at("c.txt")
-      val d = store.at("d.txt")
-      val e = store.at("e.txt")
+      val a = store("a.txt").asInput
+      val b = store("b.txt")
+      val c = store("c.txt")
+      val d = store("d.txt")
+      val e = store("e.txt")
     
       val (tool0, tool1) = envFn(drmSystem)(cores = 4, mem = 16, maxRunTime = 5) {
         (cmd"cp $a $b".in(a).out(b)) -> (cmd"cp $a $c".in(a).out(c))
@@ -522,8 +522,8 @@ final class DrmChunkRunnerTest extends FunSuite {
         case DrmSystem.Lsf => None
       }
       
-      val expectedSettings0 = DrmSettings(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt)
-      val expectedSettings1 = DrmSettings(Cpus(7), Memory.inGb(9), CpuTime.inHours(11), queueOpt)
+      val expectedSettings0 = drmSystem.settingsMaker(Cpus(4), Memory.inGb(16), CpuTime.inHours(5), queueOpt, None)
+      val expectedSettings1 = drmSystem.settingsMaker(Cpus(7), Memory.inGb(9), CpuTime.inHours(11), queueOpt, None)
       
       val expectedEnv0 = makeEnv(drmSystem, expectedSettings0)
       val expectedEnv1 = makeEnv(drmSystem, expectedSettings1)

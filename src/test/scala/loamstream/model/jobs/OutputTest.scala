@@ -4,12 +4,19 @@ import java.net.URI
 import java.nio.file.Paths
 import java.time.Instant
 
+import org.scalatest.FunSuite
+
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.model.jobs.Output.GcsUriOutput
 import loamstream.model.jobs.OutputTest.MockGcsClient
-import loamstream.util.HashType.{Md5, Sha1}
-import loamstream.util.{Hash, HashType, PathUtils, PlatformUtil}
-import org.scalatest.FunSuite
+import loamstream.util.Hash
+import loamstream.util.HashType
+import loamstream.util.HashType.Md5
+import loamstream.util.HashType.Sha1
+import loamstream.util.PathUtils
+import loamstream.util.PlatformUtil
+import java.nio.file.Path
+import loamstream.TestHelpers
 
 /**
   * @author clint
@@ -19,44 +26,65 @@ import org.scalatest.FunSuite
 final class OutputTest extends FunSuite {
   test("PathOutput") {
     import Output.PathOutput
+    import TestHelpers.path
+    import java.nio.file.Files
+    import PathUtils.normalizePath
 
     val nonExistingLocation = "sjkafhkfhksdjfh"
-    val doesntExist = PathOutput(Paths.get(nonExistingLocation))
-
-    val existingPath = Paths.get("src/test/resources/for-hashing/foo.txt")
-    val exists = PathOutput(existingPath)
-
-    assert(!doesntExist.isPresent)
-
-    intercept[Exception] {
-      doesntExist.hash.get
+    val nonExistingPath = path(nonExistingLocation)
+      
+    val doesntExist = PathOutput(path(nonExistingLocation))
+    
+    //sanity check
+    assert(Files.exists(nonExistingPath) === false)
+  
+    def doTest(existingPath: Path): Unit = {
+      //sanity check
+      assert(Files.exists(existingPath))
+      
+      val exists = PathOutput(existingPath)  
+  
+      assert(exists.path === normalizePath(existingPath))
+      
+      assert(doesntExist.path === normalizePath(nonExistingPath))
+      
+      assert(!doesntExist.isPresent)
+  
+      assert(doesntExist.hash.isEmpty)
+  
+      assert(exists.isPresent, s"'${exists.path}' doesn't exist")
+      
+      //NB: These are different on different platforms due to GitHub's line-ending-munging.
+      val expectedHash = if (PlatformUtil.isWindows) "kUUgk+jLmf99lY+xeUH/MX0CYxg=" else "y3i4QSra98i17swJ28mqTTy7NnU="
+  
+      val hashStr = exists.hash.get.valueAsBase64String
+      
+      assert(hashStr == expectedHash)
+  
+      val doesntExistRecord = doesntExist.toOutputRecord
+      
+      val expectedDoesntExistRecord = OutputRecord( 
+          loc = PathUtils.normalize(nonExistingPath),
+          isPresent = false,
+          hash = None,
+          hashType = None,
+          lastModified = None)
+                                                    
+      assert(doesntExistRecord === expectedDoesntExistRecord)
+  
+      val existsRecord = exists.toOutputRecord
+      
+      val expectedExistsRecord = OutputRecord(
+          loc = PathUtils.normalize(existingPath),
+          isPresent = true,
+          hash = Some(hashStr),
+          hashType = Some(Sha1.algorithmName),
+          lastModified = Some(PathUtils.lastModifiedTime(existingPath)))
+      
+      assert(existsRecord === expectedExistsRecord)
     }
-
-    assert(exists.isPresent)
-    val expectedHash = if (PlatformUtil.isWindows) {
-      "kUUgk+jLmf99lY+xeUH/MX0CYxg="
-    } else {
-      "y3i4QSra98i17swJ28mqTTy7NnU="
-    }
-
-    val hashStr = exists.hash.get.valueAsBase64String
-    assert(hashStr == expectedHash)
-
-    val doesntExistRecord = doesntExist.toOutputRecord
-    val expectedDoesntExistRecord = OutputRecord( loc = PathUtils.normalize(Paths.get(nonExistingLocation)),
-                                                  isPresent = false,
-                                                  hash = None,
-                                                  hashType = None,
-                                                  lastModified = None)
-    assert(doesntExistRecord === expectedDoesntExistRecord)
-
-    val existsRecord = exists.toOutputRecord
-    val expectedExistsRecord = OutputRecord(loc = PathUtils.normalize(existingPath),
-                                            isPresent = true,
-                                            hash = Some(hashStr),
-                                            hashType = Some(Sha1.algorithmName),
-                                            lastModified = Some(PathUtils.lastModifiedTime(existingPath)))
-    assert(existsRecord === expectedExistsRecord)
+    
+    doTest(path("src/test/resources/for-hashing/foo.txt"))
   }
 
   test("GcsUriOutput.location") {

@@ -19,6 +19,8 @@ import scala.util.Try
 import scala.util.Success
 import loamstream.drm.DrmSubmissionResult
 import scala.util.Failure
+import loamstream.util.BashScript
+import loamstream.model.execute.LsfDrmSettings
 
 /**
  * @author clint
@@ -98,12 +100,14 @@ final class BsubJobSubmitterTest extends FunSuite {
     assert(extractJobId(withUnTrimmedStrings) === Some("2738574"))
   }
   
-  test("makeTokens") {
+  test("makeTokensAndCdf - NO Docker") {
     import BsubJobSubmitter.makeTokens
     
     val executableName = "/definitely/not/the/default"
     
-    val tokens = makeTokens(executableName, taskArray, settings)
+    val lsfConfig = TestHelpers.config.lsfConfig.get    
+    
+    val tokens = makeTokens(executableName, lsfConfig, taskArray, settingsWithoutDocker)
     
     val expectedTokens = Seq(
         executableName,
@@ -143,12 +147,15 @@ final class BsubJobSubmitterTest extends FunSuite {
   
   private val queue = Queue("fooQueue")
   
-  private val settings = DrmSettings(
+  private val settings = LsfDrmSettings(
       cores = Cpus(42),
       memoryPerCore = Memory.inGb(7),
       maxRunTime = CpuTime.inHours(3),
-      queue = Some(queue))
-    
+      queue = Some(queue),
+      dockerParams = Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
+  
+  private lazy val settingsWithoutDocker = settings.copy(dockerParams = None)
+          
   private val drmConfig = LsfConfig(workDir = path("/lsf/dir"))
     
   private def commandLineJob(commandLine: String) = CommandLineJob(
@@ -161,6 +168,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     
   private val taskArray = DrmTaskArray.fromCommandLineJobs(
       executionConfig = ExecutionConfig.default,
+      drmSettings = settings,
       drmConfig = drmConfig,
       pathBuilder = LsfPathBuilder,
       jobs = Seq(job0, job1))

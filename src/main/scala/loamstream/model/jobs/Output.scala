@@ -42,6 +42,7 @@ object Output {
    * each access.
    */
   final case class PathOutput private (path: Path) extends Output {
+    
     override def isPresent: Boolean = Files.exists(path)
 
     override def hash: Option[Hash] = if (isPresent) Option(Hashes.sha1(path)) else None

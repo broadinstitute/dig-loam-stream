@@ -30,12 +30,16 @@ object Intent extends Loggable {
 
   final case class LookupOutput(confFile: Option[Path], output: Either[Path, URI]) extends Intent
 
-  final case class CompileOnly(confFile: Option[Path], loams: Seq[Path]) extends Intent
+  final case class CompileOnly(
+      confFile: Option[Path], 
+      drmSystemOpt: Option[DrmSystem], 
+      loams: Seq[Path]) extends Intent
 
   final case class DryRun(
       confFile: Option[Path],
       hashingStrategy: HashingStrategy,
       jobFilterIntent: JobFilterIntent,
+      drmSystemOpt: Option[DrmSystem],
       loams: Seq[Path]) extends Intent {
     
     def shouldRunEverything: Boolean = jobFilterIntent == JobFilterIntent.RunEverything 
@@ -68,15 +72,19 @@ object Intent extends Loggable {
       asDryRun(values) orElse 
       asRealRun(values)
     }
-    
+
     result match {
       case Some(intent) => Right(intent)
       case None => {
         if (confSpecifiedButDoesntExist(values)) { 
           Left(s"Config file '${values.conf.get}' specified, but it doesn't exist.") 
-        } else if (noLoamsSupplied) { Left("No loam files specified.") }
-        else if (!allLoamsExist(values)) { Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}") } 
-        else { Left("Malformed command line.") }
+        } else if (noLoamsSupplied) { 
+          Left("No loam files specified.") 
+        } else if (!allLoamsExist(values)) { 
+          Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}") 
+        } else { 
+          Left("Malformed command line.") 
+        }
       }
     }
   }
@@ -107,7 +115,11 @@ object Intent extends Loggable {
   }
   
   private def asCompileOnly(values: Conf.Values): Option[Intent] = {
-    if(confExistsOrOmitted(values) && compileOnly(values)) Some(CompileOnly(values.conf, values.loams)) else None
+    if(confExistsOrOmitted(values) && compileOnly(values)) {
+      Some(CompileOnly(values.conf, getDrmSystem(values), values.loams))
+    } else {
+      None
+    }
   }
   
   private def asDryRun(values: Conf.Values): Option[Intent] = {
@@ -123,24 +135,24 @@ object Intent extends Loggable {
       confFile = values.conf,
       hashingStrategy = determineHashingStrategy(values),
       jobFilterIntent = determineJobFilterIntent(values),
+      drmSystemOpt = getDrmSystem(values),
       loams = values.loams)
   }
-
+  
   private def makeRealRun(values: Conf.Values): RealRun = {
-   
-    val drmSystemOpt: Option[DrmSystem] = for {
-      backend <- values.backend
-      drmSystem <- DrmSystem.fromName(backend)
-    } yield drmSystem
-
     RealRun(
       confFile = values.conf,
       hashingStrategy = determineHashingStrategy(values),
       jobFilterIntent = determineJobFilterIntent(values),
-      drmSystemOpt = drmSystemOpt,
+      drmSystemOpt = getDrmSystem(values),
       loams = values.loams)
   }
 
+  private def getDrmSystem(values: Conf.Values): Option[DrmSystem] = for {
+    backend <- values.backend
+    drmSystem <- DrmSystem.fromName(backend)
+  } yield drmSystem
+  
   private def dryRun(values: Conf.Values) = values.dryRunSupplied && allLoamsExist(values)
 
   private def compileOnly(values: Conf.Values) = values.compileOnlySupplied && allLoamsExist(values)

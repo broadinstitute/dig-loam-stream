@@ -7,6 +7,8 @@ import loamstream.drm.uger.UgerDefaults
 import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
+import loamstream.model.execute.UgerDrmSettings
+import loamstream.model.execute.LsfDrmSettings
 
 /**
  * @author clint
@@ -26,6 +28,8 @@ sealed trait DrmSystem {
   final def makeBasicEnvironment(scriptContext: LoamScriptContext) : Environment = {
     makeEnvironment(settingsFromConfig(scriptContext))
   }
+  
+  def settingsMaker: DrmSettings.SettingsMaker
 }
 
 object DrmSystem {
@@ -41,6 +45,8 @@ object DrmSystem {
     override def settingsFromConfig(scriptContext: LoamScriptContext): DrmSettings = {
       DrmSettings.fromUgerConfig(config(scriptContext))
     }
+    
+    override val settingsMaker: DrmSettings.SettingsMaker = UgerDrmSettings.apply
   }
   
   final case object Lsf extends DrmSystem {
@@ -55,6 +61,8 @@ object DrmSystem {
     override def settingsFromConfig(scriptContext: LoamScriptContext): DrmSettings = {
       DrmSettings.fromLsfConfig(config(scriptContext))
     }
+    
+    override val settingsMaker: DrmSettings.SettingsMaker = LsfDrmSettings.apply
   }
   
   def fromName(name: String): Option[DrmSystem] = {

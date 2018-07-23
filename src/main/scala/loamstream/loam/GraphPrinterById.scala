@@ -1,12 +1,15 @@
 package loamstream.loam
 
-import loamstream.loam.LoamToken.{StoreRefToken, StoreToken, StringToken}
-import loamstream.model.{LId, Store, Tool}
+import loamstream.loam.LoamToken.MultiStoreToken
+import loamstream.loam.LoamToken.MultiToken
+import loamstream.loam.LoamToken.StoreToken
+import loamstream.loam.LoamToken.StringToken
+import loamstream.model.LId
+import loamstream.model.Store
+import loamstream.model.Tool
 import loamstream.util.code.SourceUtils
 
 import scala.reflect.runtime.universe.Type
-import loamstream.loam.LoamToken.MultiStoreToken
-import loamstream.loam.LoamToken.MultiToken
 
 /** Prints LoamGraph for educational and debugging purposes exposing ids */
 final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
@@ -21,12 +24,6 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   /** Prints store */
   def print(store: Store, fully: Boolean): String = s"@${print(store.id)}"
 
-  /** Prints HasLocation **/
-  def print(hasLocation: HasLocation, fully: Boolean): String = hasLocation match {
-    case store: Store => print(store, fully)
-    case storeRef: LoamStoreRef => print(storeRef.store, fully)
-  }
-
   /** Prints cmd tool */
   def print(tool: Tool): String = tool match {
     case cmdTool: LoamCmdTool => print(cmdTool)
@@ -36,11 +33,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
   def print(tool: LoamCmdTool): String = print(tool, tool.graph)
 
   /** Prints prefix symbol to distinguish input and output stores */
-  def printIoPrefix(tool: LoamCmdTool, hasLocation: HasLocation, graph: LoamGraph): String = {
-    val store = hasLocation match {
-      case store: Store => store
-      case storeRef: LoamStoreRef => storeRef.store
-    }
+  def printIoPrefix(tool: LoamCmdTool, store: Store, graph: LoamGraph): String = {
     graph.storeProducers.get(store) match {
       case Some(producer) if producer == tool => ">"
       case _ => "<"
@@ -49,15 +42,14 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
   /** Prints tool */
   def print(tool: LoamCmdTool, graph: LoamGraph): String = {
-    def hasLocationToString(hasLocation: HasLocation): String = {
-      val ioPrefix = printIoPrefix(tool, hasLocation, graph)
+    def hasLocationToString(store: Store): String = {
+      val ioPrefix = printIoPrefix(tool, store, graph)
       
-      s"$ioPrefix${print(hasLocation, fully = false)}"
+      s"$ioPrefix${print(store, fully = false)}"
     }
     
     def tokenToString(token: LoamToken): String = token match {
       case StringToken(string) => string
-      case StoreRefToken(ref) => hasLocationToString(ref)
       case StoreToken(store) => hasLocationToString(store)
       case MultiStoreToken(stores) => stores.map(hasLocationToString).mkString(" ")
       case MultiToken(things) => things.map(_.toString).mkString(" ")
@@ -78,15 +70,11 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
     val toolsString = toString(graph.tools.map(print))
 
-    val storeLocationsString = toString(graph.storeLocations.map {
-      case (store: HasLocation, location) => s"${print(store, fully = false)} <- ${location.toString}"
-    })
-
     val storeProducersString = toString(graph.storeProducers.map {
-      case (store: HasLocation, producer: LoamCmdTool) => s"${print(store, fully = false)} <- ${print(producer, graph)}"
+      case (store: Store, producer: LoamCmdTool) => s"${print(store, fully = false)} <- ${print(producer, graph)}"
       case tuple => throw new Exception(s"We don't know how to stringify non-LoamCmdTools: $tuple")
     })
 
-    toString(Seq(storesString, toolsString, storeLocationsString, storeProducersString))
+    toString(Seq(storesString, toolsString, storeProducersString))
   }
 }

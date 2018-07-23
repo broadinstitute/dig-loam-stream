@@ -10,6 +10,9 @@ import loamstream.model.jobs.JobResult.CommandInvocationFailure
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
+import java.nio.file.Paths
+import loamstream.model.execute.Environment
+import loamstream.model.execute.DrmSettings
 
 
 /**
@@ -50,14 +53,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
 
     val executions = runBlocking(query.transactionally)
 
-    for {
-      execution <- executions
-    } yield {
-      val outputs = outputsFor(execution)
-      val settings = settingsFor(execution)
-      val resources = resourcesFor(execution)
-      execution.toExecution(settings, resources, outputs.toSet)
-    }
+    executions.map(reify)
   }
 
   override def findExecution(outputLocation: String): Option[Execution] = {
@@ -108,12 +104,14 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
       newExecution <- insertExecutionRow(executionRow)
       outputsWithExecutionId = tieOutputsToExecution(execution, newExecution.id)
       settingsWithExecutionId = tieSettingsToExecution(execution, newExecution.id)
+      dockerRowsTuple = tieDockerParamsToExecution(execution, newExecution.id)
       resourcesWithExecutionId = tieResourcesToExecution(execution, newExecution.id)
       insertedOutputCounts <- insertOrUpdateOutputRows(outputsWithExecutionId)
       insertedSettingCounts <- insertOrUpdateSettingRow(settingsWithExecutionId)
+      insertedDockerSettingsCounts <- insertOrUpdateDockerSettingsRows(dockerRowsTuple)
       insertedResourceCounts <- insertOrUpdateResourceRows(resourcesWithExecutionId)
     } yield {
-      insertedOutputCounts ++ Iterable(insertedSettingCounts) ++ insertedResourceCounts
+      insertedOutputCounts ++ Iterable(insertedSettingCounts) ++ insertedResourceCounts ++ insertedDockerSettingsCounts
     }
   }
   
@@ -158,29 +156,56 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
 
     runBlocking(query).map(toOutputRecord)
   }
+  
+  private def lsfSettingsFor(execution: ExecutionRow): Settings = {
+    //NB: There must be a better way thatn all these sequential, blocking subqueries. :(
+    
+    val settingsQuery = tables.lsfSettings.filter(_.executionId === execution.id).take(1)
+    
+    val settingsRows = runBlocking(settingsQuery.result)
+    
+    require(
+        settingsRows.size == 1,
+        s"There must be a single set of settings per execution. " +
+          s"Found ${settingsRows.size} for the execution with ID '${execution.id}'")
+    
+    val settingsRow = settingsRows.head
+    
+    val dockerSettingsQuery = tables.lsfDockerSettings.filter(_.drmSettingsId === settingsRow.executionId)
+    
+    val dockerSettingsRowOpt = runBlocking(dockerSettingsQuery.result.headOption)
+    
+    val dockerParamsOpt = dockerSettingsRowOpt.map(_.toDockerParams)
+    
+    settingsRow.toSettings(dockerParamsOpt)
+  }
 
   private def settingsFor(execution: ExecutionRow): Settings = {
-    //Oh, Slick ... yow :\
-    type SettingTable = TableQuery[_ <: tables.driver.api.Table[_ <: SettingRow] with tables.HasExecutionId]
-
-    def settingsFrom(table: SettingTable): Seq[Settings] = {
-      runBlocking(table.filter(_.executionId === execution.id).result).map(_.toSettings)
+    if(execution.env == EnvironmentType.Names.Lsf) {
+      lsfSettingsFor(execution)
+    } else {
+      //Oh, Slick ... yow :\
+      type SimpleSettingRow = SettingRow with HasSimpleToSettings
+      type SettingTable = TableQuery[_ <: tables.driver.api.Table[_ <: SimpleSettingRow] with tables.HasExecutionId]
+      
+      def settingsFrom(table: SettingTable): Seq[Settings] = {
+        runBlocking(table.filter(_.executionId === execution.id).result).map(_.toSettings)
+      }
+  
+      val table: SettingTable = execution.env match {
+        case EnvironmentType.Names.Local => tables.localSettings
+        case EnvironmentType.Names.Uger => tables.ugerSettings
+        case EnvironmentType.Names.Google => tables.googleSettings
+      }
+  
+      val queryResults: Seq[Settings] = settingsFrom(table)
+  
+      require(queryResults.size == 1,
+        s"There must be a single set of settings per execution. " +
+          s"Found ${queryResults.size} for the execution with ID '${execution.id}'")
+  
+      queryResults.head
     }
-
-    val table: SettingTable = execution.env match {
-      case EnvironmentType.Names.Local => tables.localSettings
-      case EnvironmentType.Names.Uger => tables.ugerSettings
-      case EnvironmentType.Names.Lsf => tables.lsfSettings
-      case EnvironmentType.Names.Google => tables.googleSettings
-    }
-
-    val queryResults: Seq[Settings] = settingsFrom(table)
-
-    require(queryResults.size == 1,
-      s"There must be a single set of settings per execution. " +
-        s"Found ${queryResults.size} for the execution with ID '${execution.id}'")
-
-    queryResults.head
   }
 
   private def resourcesFor(execution: ExecutionRow): Option[Resources] = {
@@ -208,8 +233,23 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   }
   
   private def insertOrUpdateSettingRow(row: SettingRow): DBIO[Int] = row.insertOrUpdate(tables)
-
+  
   private def insertOrUpdateResourceRow(row: ResourceRow): DBIO[Int] = row.insertOrUpdate(tables)
+  
+  private def insertOrUpdateDockerSettingsRows(dockerSettingsRowOpt: Option[DockerSettingsRow]): DBIO[Option[Int]] = {
+    dockerSettingsRowOpt match {
+      case None => DBIO.successful(None)
+      case Some(dockerSettingsRow) => {
+        import Implicits._
+        
+        for {
+          settingsRowInsertionResult <- dockerSettingsRow.insertOrUpdate(tables)
+        } yield {
+          Option(settingsRowInsertionResult)
+        }
+      }
+    }
+  }
 
   private def insertOrUpdateResourceRows(rows: Option[ResourceRow]): DBIO[Seq[Int]] = {
     DBIO.sequence(rows.toSeq.map(insertOrUpdateResourceRow))
@@ -231,6 +271,20 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
 
   private def tieSettingsToExecution(execution: Execution, executionId: Int): SettingRow = {
       SettingRow.fromEnvironment(execution.env, executionId)
+  }
+  
+  private def tieDockerParamsToExecution(
+      execution: Execution, 
+      executionId: Int): Option[DockerSettingsRow] = {
+    
+    execution.env match {
+      case Environment.Lsf(DrmSettings(_, _, _, _, Some(dockerParams))) => {
+        val dockerSettingsRow = LsfDockerSettingsRow.fromDockerParams(executionId, dockerParams)
+        
+        Some(dockerSettingsRow)
+      }
+      case _ => None 
+    }
   }
 
   private def tieResourcesToExecution(execution: Execution, executionId: Int): Option[ResourceRow] = {

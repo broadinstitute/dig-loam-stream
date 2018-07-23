@@ -35,20 +35,20 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
     val out2Path = workDir / "A.copy.copy.copy"
     
     val graph = TestHelpers.makeGraph { implicit context =>
-      import LoamPredef.{ store => str, _ }
+      import LoamPredef.{ store => makeStore, _ }
       import LoamCmdTool._
       
-      val in = str.at("src/test/resources/a.txt").asInput
-      val out0 = str.at(out0Path)
-      val out1 = str.at(out1Path)
-      val out2 = str.at(out2Path)
+      val in = makeStore("src/test/resources/a.txt").asInput
+      val out0 = makeStore(out0Path)
+      val out1 = makeStore(out1Path)
+      val out2 = makeStore(out2Path)
 
       local {
-        cmd"(echo copying locally 0 ; cp $in $out0)".in(in).out(out0).named("Local-copy0")
+        cmd"(echo copying locally 0 ; cp $in $out0)".in(in).out(out0).tag("Local-copy0")
 
-        cmd"(echo copying locally 1 ; cp $out0 $out1)".in(out0).out(out1).named("Local-copy1")
+        cmd"(echo copying locally 1 ; cp $out0 $out1)".in(out0).out(out1).tag("Local-copy1")
         
-        cmd"(echo copying locally 2 ; cp $out1 $out2)".in(out1).out(out2).named("Local-copy2")
+        cmd"(echo copying locally 2 ; cp $out1 $out2)".in(out1).out(out2).tag("Local-copy2")
       }
     }
     

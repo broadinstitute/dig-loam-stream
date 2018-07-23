@@ -15,6 +15,9 @@ import loamstream.util.ExitCodes
 import loamstream.drm.DrmJobWrapper
 import loamstream.util.Traversables
 import scala.collection.mutable.ListBuffer
+import java.nio.file.Path
+import loamstream.drm.DockerParams
+import loamstream.conf.LsfConfig
 
 /**
  * @author clint
@@ -83,14 +86,17 @@ final class BsubJobSubmitter private[lsf] (
 object BsubJobSubmitter extends Loggable {
   type SubmissionFn = (DrmSettings, DrmTaskArray) => Try[RunResults]
   
-  def fromExecutable(actualExecutable: String = "bsub"): BsubJobSubmitter = {
-    new BsubJobSubmitter(invokeBinaryToSubmitJobs(actualExecutable))
+  def fromExecutable(lsfConfig: LsfConfig, actualExecutable: String = "bsub"): BsubJobSubmitter = {
+    new BsubJobSubmitter(invokeBinaryToSubmitJobs(lsfConfig, actualExecutable))
   }
   
-  private[lsf] def invokeBinaryToSubmitJobs(actualExecutable: String): SubmissionFn = { (drmSettings, taskArray) =>
+  private[lsf] def invokeBinaryToSubmitJobs(
+      lsfConfig: LsfConfig, 
+      actualExecutable: String): SubmissionFn = { (drmSettings, taskArray) =>
+        
     import scala.sys.process._
   
-    val tokens = makeTokens(actualExecutable, taskArray, drmSettings)
+    val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
     
     debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
     
@@ -105,6 +111,7 @@ object BsubJobSubmitter extends Loggable {
   
   private[lsf] def makeTokens(
       actualExecutable: String, 
+      lsfConfig: LsfConfig, 
       taskArray: DrmTaskArray,
       drmSettings: DrmSettings): Seq[String] = {
     
@@ -128,8 +135,10 @@ object BsubJobSubmitter extends Loggable {
     
     val stderrPart = Seq("-eo", s":${taskArray.stdErrPathTemplate}")
     
-    actualExecutable +: 
+    val tokens = actualExecutable +: 
       (queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)
+      
+    tokens
   }
   
   private val submittedJobIdRegex = """^Job\s+<(\d+)>.+$""".r

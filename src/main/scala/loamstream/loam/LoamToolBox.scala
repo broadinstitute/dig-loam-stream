@@ -1,17 +1,24 @@
 package loamstream.loam
 
 import java.net.URI
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
+import java.nio.file.Paths
 
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.model.{Store, Tool}
-import loamstream.model.execute.{Environment, Executable}
-import loamstream.model.jobs.{JobNode, Output}
+import loamstream.model.Store
+import loamstream.model.Tool
+import loamstream.model.execute.Environment
+import loamstream.model.execute.Executable
+import loamstream.model.jobs.JobNode
+import loamstream.model.jobs.Output
 import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
  * LoamStream
+ * 
  * Created by oliverr on 6/21/2016.
+ * 
+ * Turns a LoamGraph into an Executable (a collection of jobs)
  */
 final class LoamToolBox(client: Option[CloudStorageClient] = None) {
 
@@ -43,7 +50,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
 
     val inputJobs = toJobs(graph)(graph.toolsPreceding(tool))
 
-    val outputs = outputsFor(graph)(tool)
+    val outputs = outputsFor(graph, tool)
 
     val toolNameOpt = graph.nameOf(tool)
 
@@ -54,16 +61,16 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
     }
   }
 
-  private def outputsFor(graph: LoamGraph)(tool: Tool): Set[Output] = {
+  private def outputsFor(graph: LoamGraph, tool: Tool): Set[Output] = {
     val loamStores: Set[Store] = graph.toolOutputs(tool)
-
+    
     def pathOrUriToOutput(store: Store): Option[Output] = {
       store.pathOpt.orElse(store.uriOpt).map {
         case path: Path => Output.PathOutput(path)
         case uri: URI   => Output.GcsUriOutput(uri, client)
       }
     }
-
+    
     loamStores.flatMap(pathOrUriToOutput)
   }
 }

@@ -24,6 +24,8 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.TypeBox
+import loamstream.model.execute.UgerDrmSettings
+import loamstream.model.execute.LsfDrmSettings
 
 
 /**
@@ -38,12 +40,17 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   
   test("guards") {
     val localSettings = LocalSettings
-    val drmSettings = DrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue))
+    val ugerSettings = {
+      UgerDrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
+    }
+    val lsfSettings = {
+      LsfDrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
+    }
     val googleSettings = GoogleSettings("some-cluster")
 
     val localEnv: Environment = Environment.Local
-    val ugerEnv: Environment = Environment.Uger(drmSettings)
-    val lsfEnv: Environment = Environment.Lsf(drmSettings)
+    val ugerEnv: Environment = Environment.Uger(ugerSettings)
+    val lsfEnv: Environment = Environment.Lsf(lsfSettings)
     val googleEnv: Environment = Environment.Google(googleSettings)
 
     val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))

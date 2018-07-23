@@ -7,8 +7,8 @@ import loamstream.drm.ScriptBuilderParams
  * May 11, 2018
  */
 object LsfScriptBuilderParams extends ScriptBuilderParams {
-  override val preamble = None 
-  override val indexEnvVarName = "LSB_JOBINDEX" 
-  override val jobIdEnvVarName = "LSB_JOBID"
-  override val drmIndexVarExpr = "%I"
+  override val preamble: Option[String] = None 
+  override val indexEnvVarName: String = "LSB_JOBINDEX" 
+  override val jobIdEnvVarName: String = "LSB_JOBID"
+  override val drmIndexVarExpr: String = "%I"
 }

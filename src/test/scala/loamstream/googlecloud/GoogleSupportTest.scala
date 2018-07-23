@@ -27,8 +27,8 @@ final class GoogleSupportTest extends FunSuite {
     assert(graphSoFar.tools.isEmpty)
     assert(graphSoFar.stores.isEmpty)
 
-    val local = store.at(path("/some/local/path"))
-    val remote = store.at(uri("gs://loamstream/foo/bar/baz"))
+    val local = store(path("/some/local/path"))
+    val remote = store(uri("gs://loamstream/foo/bar/baz"))
 
     assert(graphSoFar.tools.isEmpty)
 
@@ -61,11 +61,15 @@ final class GoogleSupportTest extends FunSuite {
     assert(graphSoFar.tools.isEmpty)
     assert(graphSoFar.stores.isEmpty)
 
-    val local = store.at(path("/some/local/path"))
-    val remote = store.at(uri("gs://loamstream/foo/bar/baz"))
+    val local = store(path("/some/local/path"))
+    val remote = store(uri("gs://loamstream/foo/bar/baz"))
 
+    assert(context.projectContext.graph.stores === Set(local, remote))
+    assert(context.projectContext.graph.tools.isEmpty)
+    
+    assert(graphSoFar.stores.isEmpty)
     assert(graphSoFar.tools.isEmpty)
-
+    
     googleCopy(local, remote, "blerg", "zerg")
 
     //No inputs, so nothing should have been done
@@ -112,11 +116,11 @@ final class GoogleSupportTest extends FunSuite {
     assert(graphSoFar.tools.isEmpty)
     assert(graphSoFar.stores.isEmpty)
 
-    val local0 = store.at(path("/some/local/path"))
-    val remote0 = store.at(uri("gs://loamstream/foo/bar/baz"))
+    val local0 = store(path("/some/local/path"))
+    val remote0 = store(uri("gs://loamstream/foo/bar/baz"))
 
-    val local1 = store.at(path("/some/other/path"))
-    val remote1 = store.at(uri("gs://loamstream/blah/blah/blerg"))
+    val local1 = store(path("/some/other/path"))
+    val remote1 = store(uri("gs://loamstream/blah/blah/blerg"))
 
     assert(graphSoFar.tools.isEmpty)
 
@@ -150,11 +154,11 @@ final class GoogleSupportTest extends FunSuite {
     assert(graphSoFar.tools.isEmpty)
     assert(graphSoFar.stores.isEmpty)
 
-    val local0 = store.at(path("/some/local/path"))
-    val remote0 = store.at(uri("gs://loamstream/foo/bar/baz"))
+    val local0 = store(path("/some/local/path"))
+    val remote0 = store(uri("gs://loamstream/foo/bar/baz"))
 
-    val local1 = store.at(path("/some/other/path"))
-    val remote1 = store.at(uri("gs://loamstream/blah/blah/blerg"))
+    val local1 = store(path("/some/other/path"))
+    val remote1 = store(uri("gs://loamstream/blah/blah/blerg"))
 
     assert(graphSoFar.tools.isEmpty)
 

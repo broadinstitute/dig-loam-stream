@@ -6,10 +6,11 @@ import java.nio.file.Paths
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
-import loamstream.loam.files.LoamFileManager
 import loamstream.model.Store
 import loamstream.model.execute.Environment
 import loamstream.util.Maps
+import loamstream.loam.LoamGraph.StoreLocation
+import loamstream.compiler.LoamPredef
 
 /**
   * LoamStream
@@ -90,7 +91,6 @@ final class LoamGraphTest extends FunSuite {
     
     assert(oldGraph.stores === newGraph.stores)
     assert(oldGraph.inputStores === newGraph.inputStores)
-    assert(oldGraph.storeLocations === newGraph.storeLocations)
   }
 
   test("Test that valid graph passes all checks.") {
@@ -194,18 +194,18 @@ final class LoamGraphTest extends FunSuite {
   test("LoamGraph.pathOpt and LoamFileManager") {
     val components = makeTestComponents
     val graph = components.graph
-    val fileManager = components.fileManager
     
     val pathInputFile = Paths.get("/user/home/someone/data.vcf")
     val pathOutputFile = Paths.get("/user/home/someone/dataImputed.vcf")
     val pathTemplate = Paths.get("/home/myself/template.vcf")
     
-    val expectedStorePathOpts = Set(Some(pathInputFile), Some(pathTemplate), Some(pathOutputFile), None)
+    val expectedStorePathOpts = Set(
+        Some(pathInputFile), Some(pathTemplate), Some(pathOutputFile), Some(components.phased.path))
     
-    assert(graph.stores.map(graph.pathOpt) === expectedStorePathOpts)
+    assert(graph.stores.map(_.pathOpt) === expectedStorePathOpts)
     
     for (store <- graph.stores) {
-      val path = fileManager.getPath(store)
+      val path = store.path
       val pathLastPart = path.getName(path.getNameCount - 1)
       assert(path === store.path)
       assert(pathLastPart.toString.startsWith("loam") || store.pathOpt.contains(path))
@@ -235,8 +235,7 @@ final class LoamGraphTest extends FunSuite {
     assert(filtered.toolOutputs === Map(phaseTool -> Set(phased)))
     assert(filtered.inputStores === Set(raw))
     
-    //NB: location of phased is not specified
-    assert(filtered.storeLocations === Map(raw -> PathLocation(inputFile)))
+    assert((graph.stores - imputed - template) === filtered.stores)
     
     assert(filtered.storeProducers === Map(phased -> phaseTool))
     assert(filtered.storeConsumers === Map(raw -> Set(phaseTool)))
@@ -290,17 +289,16 @@ object LoamGraphTest {
     val inputFile = path("/user/home/someone/data.vcf")
     val outputFile = path("/user/home/someone/dataImputed.vcf")
     
-    val raw = store.at(inputFile).asInput
+    val raw = store(inputFile).asInput
     val phased = store
-    val template = store.at(path("/home/myself/template.vcf")).asInput
-    val imputed = store.at(outputFile)
+    val template = store(path("/home/myself/template.vcf")).asInput
+    val imputed = store(outputFile)
     
     val phaseTool = cmd"shapeit -in $raw -out $phased".tag("phase")
     val imputeTool = cmd"impute -in $phased -template $template -out $imputed".using("R-3.1")
     
     GraphComponents(
       graph = scriptContext.projectContext.graph,
-      fileManager = scriptContext.projectContext.fileManager,
       inputFile = inputFile,
       outputFile = outputFile,
       raw = raw,
@@ -313,7 +311,6 @@ object LoamGraphTest {
   
   private final case class GraphComponents(
       graph: LoamGraph,
-      fileManager: LoamFileManager,
       inputFile: Path,
       outputFile: Path,
       raw: Store,

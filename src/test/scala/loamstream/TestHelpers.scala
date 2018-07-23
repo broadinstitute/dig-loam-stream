@@ -49,6 +49,8 @@ import loamstream.drm.Queue
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.conf.LsfConfig
 import loamstream.drm.DrmSystem
+import loamstream.model.execute.UgerDrmSettings
+import loamstream.model.execute.LsfDrmSettings
 
 /**
   * @author clint
@@ -189,15 +191,24 @@ object TestHelpers {
     RxExecuter.default.execute(executable)(timeout)
   }
   
-  def getWorkDir(basename: String): Path = {
+  def getWorkDir(basename: String, deleteAtJvmShutdown: Boolean = true): Path = {
     val result = Files.createTempDirectory(basename)
 
-    //NB: This seems very heavy-handed, but java.io.File.deleteOnExit doesn't work for non-empty directories. :\
-    Runtime.getRuntime.addShutdownHook(new Thread {
-      override def run(): Unit = FileUtils.deleteQuietly(result.toFile)
-    })
+    if(deleteAtJvmShutdown) {
+      //NB: This seems very heavy-handed, but java.io.File.deleteOnExit doesn't work for non-empty directories. :\
+      Runtime.getRuntime.addShutdownHook(new Thread {
+        override def run(): Unit = FileUtils.deleteQuietly(result.toFile)
+      })
+    }
     
     result
+  }
+  
+  def withWorkDir[A](basename: String)(body: Path => A): A = {
+    val workDir = getWorkDir(basename, deleteAtJvmShutdown = false)
+    
+    try { body(workDir) }
+    finally { FileUtils.deleteQuietly(workDir.toFile) }
   }
 
   def loamEngine: LoamEngine = LoamEngine.default(config)
@@ -206,23 +217,25 @@ object TestHelpers {
     loamEngine.compiler.compile(config, LoamScript.withGeneratedName(loamCode))
   }
   
-  val defaultUgerSettings: DrmSettings = {
+  val defaultUgerSettings: UgerDrmSettings = {
     val ugerConfig = config.ugerConfig.get 
 
-    DrmSettings(
+    UgerDrmSettings(
       ugerConfig.defaultCores,
       ugerConfig.defaultMemoryPerCore,
       ugerConfig.defaultMaxRunTime,
-      Option(UgerDefaults.queue))
+      Option(UgerDefaults.queue),
+      None)
   }
   
-  val defaultLsfSettings: DrmSettings = {
+  val defaultLsfSettings: LsfDrmSettings = {
     val lsfConfig = config.lsfConfig.get 
 
-    DrmSettings(
+    LsfDrmSettings(
       lsfConfig.defaultCores,
       lsfConfig.defaultMemoryPerCore,
       lsfConfig.defaultMaxRunTime,
+      None,
       None)
   }
   

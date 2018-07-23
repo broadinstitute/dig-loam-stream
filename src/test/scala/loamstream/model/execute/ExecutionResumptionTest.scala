@@ -130,92 +130,120 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       }
     }
   }
+  
+  private def makeMockJobs(start: Path, f1: Path, f2: Path, f3: Path): (MockJob, MockJob, MockJob) = {
 
-  // scalastyle:off method.length
-  //NB: Tests with the 'run-everything' JobFilter as well as a DB-backed one.
-  private def doTest(expectations: Seq[JobStatus])(setup: (Path, Path, Path, Path) => Any): Unit = {
+    val startToF1 = mockJob(copyCmd(start, f1), Set(Output.PathOutput(f1))) {
+      copy(start, f1)
+    }
 
-    def doTestWithExecuter(executer: RxExecuter): Unit = {
-      import java.nio.file.{ Files => JFiles }
-      import loamstream.util.PathEnrichments._
-      val workDir = makeWorkDir()
+    val f1ToF2 = mockJob(copyCmd(f1, f2), Set(Output.PathOutput(f2)), Set(startToF1)) {
+      copy(f1, f2)
+    }
 
-      def path(s: String) = Paths.get(s)
-
-      // Setting the option to replace existing files so if a 'cp' job was mistakenly run (instead of being skipped),
-      // the test fails with a more descriptive message instead of a FileAlreadyExistsException
-      def copy(source: Path, target: Path) = JFiles.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
-
-      val start = path("src/test/resources/a.txt")
-      val f1 = workDir / "fileOut1.txt"
-      val f2 = workDir / "fileOut2.txt"
-      val f3 = workDir / "fileOut3.txt"
-
-      val startToF1 = mockJob(copyCmd(start, f1), Set(Output.PathOutput(f1))) {
-        copy(start, f1)
+    val f2ToF3 = mockJob(copyCmd(f2, f3), Set(Output.PathOutput(f3)), Set(f1ToF2)) {
+      copy(f2, f3)
+    }
+    
+    (startToF1, f1ToF2, f2ToF3)
+  }
+  
+  private type SetupFn = (Path, Path, Path, Path) => Any 
+  
+  private def runWithExecuter(
+      runningEverything: Boolean,
+      executer: Executer,
+      executable: Executable,
+      mockJobs: (MockJob, MockJob, MockJob),
+      expectations: Seq[JobStatus],
+      doSetup: () => Unit): Unit = {
+    
+    createTablesAndThen {
+      if (!runningEverything) {
+        doSetup()
       }
 
-      val f1ToF2 = mockJob(copyCmd(f1, f2), Set(Output.PathOutput(f2)), Set(startToF1)) {
-        copy(f1, f2)
-      }
+      val jobResults = executer.execute(executable)
 
-      val f2ToF3 = mockJob(copyCmd(f2, f3), Set(Output.PathOutput(f3)), Set(f1ToF2)) {
-        copy(f2, f3)
-      }
+      val (startToF1, f1ToF2, f2ToF3) = mockJobs
+      
+      val jobStatuses = Seq(startToF1.status, f1ToF2.status, f2ToF3.status)
 
-      assert(startToF1.status == JobStatus.NotStarted)
-      assert(f1ToF2.status == JobStatus.NotStarted)
-      assert(f2ToF3.status == JobStatus.NotStarted)
+      val expectedStatuses = if (runningEverything) Seq(Succeeded, Succeeded, Succeeded) else expectations
+
+      assert(jobStatuses == expectedStatuses)
+
+      val expectedNumResults = if (runningEverything) 3 else expectations.count(_.isSuccess)
+
+      assert(jobResults.size == expectedNumResults)
+
+      assert(jobResults.values.forall(_.isSuccess))
+    }
+  }
+  
+  private def doTestWithExecuter(executer: RxExecuter, expectations: Seq[JobStatus], setup: SetupFn): Unit = {
+    import loamstream.util.PathEnrichments.PathHelpers
+    import TestHelpers.path
+
+    val start = path("src/test/resources/a.txt")
+    
+    def doTest(
+        makeF1: Path => Path, 
+        makeF2: Path => Path, 
+        makeF3: Path => Path): Unit = withWorkDir { workDir =>
+        
+      val (f1, f2, f3) = (makeF1(workDir), makeF2(workDir), makeF3(workDir))
+
+      val mockJobsTuple = makeMockJobs(start, f1, f2, f3)
+      
+      val (startToF1, f1ToF2, f2ToF3) = mockJobsTuple 
+
+      assert(startToF1.status === JobStatus.NotStarted)
+      assert(f1ToF2.status === JobStatus.NotStarted)
+      assert(f2ToF3.status === JobStatus.NotStarted)
   
       val executable = Executable(Set(f2ToF3))
   
       val runningEverything: Boolean = executer.jobFilter == JobFilter.RunEverything
 
-      createTablesAndThen {
-        assert(start.toFile.exists)
-        assert(!f1.toFile.exists)
-        assert(!f2.toFile.exists)
-        assert(!f3.toFile.exists)
-
-        if (!runningEverything) {
-          setup(start, f1, f2, f3)
-        }
-
-        val jobResults = executer.execute(executable)
-
-        val jobStatuses = Seq(startToF1.status, f1ToF2.status, f2ToF3.status)
-
-        val expectedStatuses = {
-          if (runningEverything) {
-            Seq(Succeeded, Succeeded, Succeeded)
-          }
-          else {
-            expectations
-          }
-        }
-
-        assert(jobStatuses == expectedStatuses)
-
-        val expectedNumResults = if (runningEverything) 3 else expectations.count(_.isSuccess)
-
-        assert(jobResults.size == expectedNumResults)
-
-        assert(jobResults.values.forall(_.isSuccess))
-      }
+      import java.nio.file.Files.exists
+      
+      assert(exists(start))
+      assert(exists(f1) === false)
+      assert(exists(f2) === false)
+      assert(exists(f3) === false)
+      
+      runWithExecuter(
+          runningEverything,
+          executer,
+          executable,
+          mockJobsTuple,
+          expectations, 
+          () => setup(start, f1, f2, f3))
+          
+      assert(exists(start))
+      assert(exists(f1))
+      assert(exists(f2))
+      assert(exists(f3))
     }
-
-    doTestWithExecuter(runsEverythingExecuter)
-
-    doTestWithExecuter(dbBackedExecuter)
+    
+    doTest(_ / "fileOut1.txt", _ / "fileOut2.txt", _ / "fileOut3.txt")
   }
 
-  // scalastyle:on method.length
+  //NB: Tests with the 'run-everything' JobFilter as well as a DB-backed one.
+  private def doTest(expectations: Seq[JobStatus])(setup: SetupFn): Unit = {
+    doTestWithExecuter(runsEverythingExecuter, expectations, setup)
 
+    doTestWithExecuter(dbBackedExecuter, expectations, setup)
+  }
+
+  // Setting the option to replace existing files so if a 'cp' job was mistakenly run (instead of being skipped),
+  // the test fails with a more descriptive message instead of a FileAlreadyExistsException
+  private def copy(source: Path, target: Path): Unit = {
+    java.nio.file.Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
+  }
+  
+  private def withWorkDir[A](body: Path => A): A = TestHelpers.withWorkDir(getClass.getSimpleName)(body)
+  
   private def copyCmd(file1: Path, file2: Path): String = s"cp $file1 $file2"
-
-  private lazy val compiler = new LoamCompiler
-
-  private val sequence: Sequence[Int] = Sequence()
-
-  private def makeWorkDir(): Path = TestHelpers.getWorkDir(getClass.getSimpleName)
 }

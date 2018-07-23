@@ -189,7 +189,6 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
   }
   
   test("waitForOutputsAndMakeExecution - success, no missing outputs") {
-    
     import Paths.Implicits.PathHelpers
     import ExecuterHelpers.waitForOutputsAndMakeExecution
     import java.nio.file.Files.exists
@@ -269,7 +268,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
           
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
-      
+
       val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
       
       withFileMonitor(new FileMonitor(10.0, 5.seconds)) { fileMonitor => 
@@ -323,7 +322,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       assert(exists(output1.path) === false)
           
       Files.writeTo(output0.path)("0")
-      
+
       assert(exists(output0.path))
       assert(exists(output1.path) === false)
           

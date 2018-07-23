@@ -324,10 +324,6 @@ object DryRunnerTest {
     
     require(shouldRun.intersect(shouldNOTRun).isEmpty)
     
-    override def shouldRun(job: LJob): Boolean = {
-      shouldRun.contains(job) || !shouldNOTRun.contains(job)
-    }
-
-    override def record(executions: Iterable[Execution]): Unit = sys.error("This should never be called in this test")
+    override def shouldRun(job: LJob): Boolean = shouldRun.contains(job) || !shouldNOTRun.contains(job)
   }
 }

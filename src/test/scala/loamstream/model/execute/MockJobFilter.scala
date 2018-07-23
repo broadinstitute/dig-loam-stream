@@ -8,7 +8,8 @@ import loamstream.model.jobs.Execution
  * @author clint
  * Mar 21, 2017
  */
-final class MockJobFilter(shouldRunPredicate: LJob => Boolean = _ => true) extends JobFilter {
+final class MockJobFilterAndExecutionRecorder(
+    shouldRunPredicate: LJob => Boolean = _ => true) extends JobFilter with ExecutionRecorder {
 
   val recordedExecutions: ValueBox[Seq[Execution]] = ValueBox(Vector.empty)
   

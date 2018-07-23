@@ -181,9 +181,11 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
 
     val args: Array[String] = {
       Array(
-          "--uger",
+          "--backend",
+          "uger",
           "--conf",
           confFile.toString,
+          "--loams",
           loamFile.toString)
     }
     

@@ -68,4 +68,32 @@ final class DrmSystemTest extends FunSuite {
       assert(Lsf.makeBasicEnvironment(scriptContext) === expectedLsf)
     }
   }
+  
+  test("fromName") {
+    def doTest(name: String, expected: Option[DrmSystem]): Unit = {
+      def to1337Case(s: String): String = {
+        val tuples: Seq[((Char, Char), Int)] = s.toLowerCase.zip(s.toUpperCase).zipWithIndex
+        
+        val chars = tuples.map { case ((lc, uc), i) => if (i % 2 == 0) lc else uc }
+        
+        chars.foldLeft("") { _ + _ }
+      }
+      
+      assert(DrmSystem.fromName(name) === expected)
+      assert(DrmSystem.fromName(name.toUpperCase) === expected)
+      assert(DrmSystem.fromName(name.toLowerCase) === expected)
+      assert(DrmSystem.fromName(to1337Case(name)) === expected)
+    }
+    
+    doTest("uger", Some(Uger))
+    doTest("lsf", Some(Lsf))
+      
+    doTest("", None)
+    doTest("uger1234", None)
+    doTest("asdasdasdasd", None)
+  }
+  
+  test("values") {
+    assert(DrmSystem.values.toSet === Set(Uger, Lsf))
+  }
 }

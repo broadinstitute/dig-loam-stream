@@ -17,8 +17,6 @@ import loamstream.util.HashType.Sha1
 import loamstream.util.Paths
 import loamstream.util.PlatformUtil
 
-
-
 /**
   * @author clint
   *         kyuksel

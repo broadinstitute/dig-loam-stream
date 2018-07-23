@@ -18,6 +18,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.PathUtils
 import loamstream.model.jobs.Execution
+import loamstream.model.execute.DbBackedExecutionRecorder
 
 /**
  * @author clint
@@ -55,8 +56,9 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
     
     createTablesAndThen {
       val jobFilter = new DbBackedJobFilter(dao, HashingStrategy.HashOutputs)
+      val executionRecorder = new DbBackedExecutionRecorder(dao)
       
-      val executer = RxExecuter.defaultWith(jobFilter)
+      val executer = RxExecuter.defaultWith(jobFilter, executionRecorder)
       
       val loamEngine = LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
       

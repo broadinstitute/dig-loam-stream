@@ -16,6 +16,7 @@ import loamstream.TestHelpers
 import loamstream.db.slick.DbDescriptor
 import loamstream.drm.DrmSystem
 import loamstream.drm.DrmChunkRunner
+import loamstream.model.execute.ByNameJobFilter
 
 
 /**
@@ -39,7 +40,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   }
   
   test("Local execution, db-backed") {
-    val wiring = appWiring(cliConf(s"$exampleFile"))
+    val wiring = appWiring(cliConf(s"--loams $exampleFile"))
     
     wiring.dao shouldBe a[SlickLoamDao]
     wiring.executer shouldBe a[AppWiring.TerminableExecuter]
@@ -60,7 +61,7 @@ final class AppWiringTest extends FunSuite with Matchers {
   }
   
   test("Local execution, run everything") {
-    val wiring = appWiring(cliConf(s"--run-everything $exampleFile"))
+    val wiring = appWiring(cliConf(s"--run everything --loams $exampleFile"))
     
     wiring.executer shouldBe a[AppWiring.TerminableExecuter]
     
@@ -78,13 +79,13 @@ final class AppWiringTest extends FunSuite with Matchers {
   }
   
   private def toFlag(drmSystem: DrmSystem): String = drmSystem match {
-    case DrmSystem.Uger => "--uger"
-    case DrmSystem.Lsf => "--lsf"
+    case DrmSystem.Uger => "--backend uger"
+    case DrmSystem.Lsf => "--backend lsf"
   }
   
   test("DRM execution, db-backed") {
     def doTest(drmSystem: DrmSystem): Unit = {
-      val wiring = appWiring(cliConf(s"${toFlag(drmSystem)} --conf $confFileForUger $exampleFile"))
+      val wiring = appWiring(cliConf(s"${toFlag(drmSystem)} --conf $confFileForUger --loams $exampleFile"))
       
       assert(wiring.dao.isInstanceOf[SlickLoamDao])
   
@@ -109,9 +110,49 @@ final class AppWiringTest extends FunSuite with Matchers {
     doTest(DrmSystem.Lsf)
   }
   
+  test("DRM execution, filter jobs by name") {
+    def doTest(drmSystem: DrmSystem, filterType: String): Unit = {
+      val commandLine = s"${toFlag(drmSystem)} --conf $confFileForUger --run $filterType a b c --loams $exampleFile"
+      
+      val wiring = appWiring(cliConf(commandLine))
+      
+      val expectedJobFilterClass: Class[_] = filterType match {
+        case Conf.RunStrategies.AllOf => classOf[ByNameJobFilter.AllOf]
+        case Conf.RunStrategies.AnyOf => classOf[ByNameJobFilter.AnyOf]
+        case Conf.RunStrategies.NoneOf => classOf[ByNameJobFilter.NoneOf]
+        case _ => sys.error(s"Unexpected filter type '$filterType'")
+      }
+      
+      assert(wiring.jobFilter.getClass === expectedJobFilterClass)
+      
+      assert(wiring.dao.isInstanceOf[SlickLoamDao])
+  
+      assert(wiring.executer.isInstanceOf[AppWiring.TerminableExecuter])
+      
+      assert(wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.isInstanceOf[RxExecuter])
+      
+      val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
+      
+      assert(actualExecuter.runner.isInstanceOf[CompositeChunkRunner])
+      
+      val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
+      
+      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
+    }
+    
+    doTest(DrmSystem.Uger, Conf.RunStrategies.AllOf)
+    doTest(DrmSystem.Uger, Conf.RunStrategies.AnyOf)
+    doTest(DrmSystem.Uger, Conf.RunStrategies.NoneOf)
+    doTest(DrmSystem.Lsf, Conf.RunStrategies.AllOf)
+    doTest(DrmSystem.Lsf, Conf.RunStrategies.AnyOf)
+    doTest(DrmSystem.Lsf, Conf.RunStrategies.NoneOf)
+  }
+  
   test("DRM execution, run everything") {
     def doTest(drmSystem: DrmSystem): Unit = {
-      val wiring = appWiring(cliConf(s"${toFlag(drmSystem)} --conf $confFileForUger --run-everything $exampleFile"))
+      val wiring = {
+        appWiring(cliConf(s"${toFlag(drmSystem)} --conf $confFileForUger --run everything --loams $exampleFile"))
+      }
       
       assert(wiring.executer.isInstanceOf[AppWiring.TerminableExecuter])
       

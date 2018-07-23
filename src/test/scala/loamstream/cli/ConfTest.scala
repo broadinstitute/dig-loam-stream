@@ -6,6 +6,7 @@ import java.nio.file.Paths
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
 import java.net.URI
+import loamstream.TestHelpers
 
 /**
  * Created by kyuksel on 10/12/16.
@@ -15,9 +16,11 @@ final class ConfTest extends FunSuite with Matchers {
 
   private def makeConf(args: Seq[String]): Conf = Conf(args)
   
-  test("--uger, --lsf") {
+  import TestHelpers.path
+  
+  test("--backend") {
     {
-      val args = Seq("src/examples/loam/cp.loam")
+      val args = Seq("--loams", "src/examples/loam/cp.loam")
       
       val conf = makeConf(args)
       
@@ -25,13 +28,12 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.compileOnly.isSupplied === false)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
-      assert(conf.uger.isSupplied === false)
-      assert(conf.lsf.isSupplied === false)
-      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+      assert(conf.backend.isSupplied === false)
+      assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
     }
     
     {
-      val args = Seq("--lsf", "src/examples/loam/cp.loam")
+      val args = Seq("--backend", "lsf", "--loams", "src/examples/loam/cp.loam")
       
       val conf = makeConf(args)
       
@@ -39,13 +41,12 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.compileOnly.isSupplied === false)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
-      assert(conf.uger.isSupplied === false)
-      assert(conf.lsf.isSupplied === true)
-      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+      assert(conf.backend() == "lsf")
+      assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
     }
     
     {
-      val args = Seq("--uger", "src/examples/loam/cp.loam")
+      val args = Seq("--backend", "uger", "--loams", "src/examples/loam/cp.loam")
       
       val conf = makeConf(args)
       
@@ -53,38 +54,37 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.compileOnly.isSupplied === false)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
-      assert(conf.uger.isSupplied === true)
-      assert(conf.lsf.isSupplied === false)
-      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+      assert(conf.backend() === "uger")
+      assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
     }
   }
   
   test("Single loam file along with conf file is parsed correctly") {
-    val conf = makeConf(Seq("--conf", "src/test/resources/loamstream-test.conf", 
+    val conf = makeConf(Seq("--conf", "src/test/resources/loamstream-test.conf", "--loams", 
                             "src/test/resources/a.txt"))
 
-    conf.loams() shouldEqual List(Paths.get("src/test/resources/a.txt"))
+    conf.loams() shouldEqual List(path("src/test/resources/a.txt"))
     conf.conf().toString shouldEqual testConfigFile
   }
 
   test("Multiple loam files along with conf file are parsed correctly") {
-    val conf = makeConf(Seq("--conf", "src/test/resources/loamstream-test.conf",
+    val conf = makeConf(Seq("--conf", "src/test/resources/loamstream-test.conf", "--loams", 
                             "src/test/resources/a.txt", "src/test/resources/a.txt"))
 
-    conf.loams() shouldEqual List(Paths.get("src/test/resources/a.txt"), Paths.get("src/test/resources/a.txt"))
+    conf.loams() shouldEqual List(path("src/test/resources/a.txt"), path("src/test/resources/a.txt"))
     conf.conf().toString shouldEqual testConfigFile
   }
   
   test("--compile-only") {
     def doTest(flag: String, loams: Seq[String]): Unit = {
-      val args = flag +: loams
+      val args = flag +: "--loams" +: loams
       
       val conf = makeConf(args)
       
       assert(conf.compileOnly.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
-      assert(conf.loams() === loams.map(Paths.get(_)))
+      assert(conf.loams() === loams.map(path(_)))
     }
     
     doTest("--compile-only", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
@@ -93,7 +93,7 @@ final class ConfTest extends FunSuite with Matchers {
   
   test("--disable-hashing") {
     {
-      val args = Seq("--disable-hashing", "--compile-only", "src/examples/loam/cp.loam")
+      val args = Seq("--disable-hashing", "--compile-only", "--loams", "src/examples/loam/cp.loam")
       
       val conf = makeConf(args)
       
@@ -101,11 +101,11 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.compileOnly.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
-      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+      assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
     }
     
     {
-      val args = Seq("--compile-only", "src/examples/loam/cp.loam")
+      val args = Seq("--compile-only", "--loams", "src/examples/loam/cp.loam")
       
       val conf = makeConf(args)
       
@@ -113,40 +113,40 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.compileOnly.isSupplied)
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
-      assert(conf.loams() === Seq(Paths.get("src/examples/loam/cp.loam")))
+      assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
     }
   }
   
-  test("--run-everything") {
+  test("--run everything") {
     val exampleFile = "src/examples/loam/cp.loam"
     
-    val expected = Paths.get(exampleFile)
+    val expected = path(exampleFile)
     
     {
-      val conf = makeConf(Seq("--run-everything", exampleFile))
-        
-      conf.runEverything() shouldBe(true)
-      conf.loams() shouldEqual List(expected)
-      conf.compileOnly() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
+      val values = makeConf(Seq("--run", "everything", "--loams", exampleFile)).toValues
+      
+      assert(values.run === Some("everything", Nil))
+      assert(values.compileOnlySupplied === false)
+      assert(values.loams === Seq(expected))
+      assert(values.conf.isEmpty)
     }
     
     {
-      val conf = makeConf(Seq("-r", exampleFile))
+      val values = makeConf(Seq("-r", "everything", "--loams", exampleFile)).toValues
         
-      conf.runEverything() shouldBe(true)
-      conf.loams() shouldEqual List(expected)
-      conf.compileOnly() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
+      assert(values.run === Some("everything", Nil))
+      assert(values.compileOnlySupplied === false)
+      assert(values.loams === Seq(expected))
+      assert(values.conf.isEmpty)
     }
     
     {
-      val conf = makeConf(Seq(exampleFile))
+      val values = makeConf(Seq("--loams", exampleFile)).toValues
         
-      conf.runEverything() shouldBe(false)
-      conf.loams() shouldEqual List(expected)
-      conf.compileOnly() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
+      assert(values.run === None)
+      assert(values.compileOnlySupplied === false)
+      assert(values.loams === Seq(expected))
+      assert(values.conf.isEmpty)
     }
   }
   
@@ -154,57 +154,30 @@ final class ConfTest extends FunSuite with Matchers {
     val someFile = "some/arbitrary/output"
     val someUri = "gs://foo/bar/baz"
     
-    val expectedPath = Paths.get(someFile)
+    val expectedPath = path(someFile)
     val expectedUri = URI.create(someUri)
     
     //Path, full arg name
     {
-      val conf = makeConf(Seq("--lookup", someFile))
+      val values = makeConf(Seq("--lookup", someFile)).toValues
         
-      conf.lookup.isSupplied shouldBe(true)
-      conf.lookup() shouldBe(Left(expectedPath))
+      assert(values.lookup === Some(Left(expectedPath)))
       
-      conf.runEverything() shouldBe(false)
-      conf.loams.isSupplied shouldBe(false)
-      conf.compileOnly() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
+      assert(values.run === None)
+      assert(values.loams === Nil)
+      assert(values.compileOnlySupplied === false)
+      assert(values.conf === None)
     }
-    //Path, short arg name
-    {
-      val conf = makeConf(Seq("-l", someFile))
-        
-      conf.lookup.isSupplied shouldBe(true)
-      conf.lookup() shouldBe(Left(expectedPath))
-      
-      conf.runEverything() shouldBe(false)
-      conf.loams.isSupplied shouldBe(false)
-      conf.compileOnly() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
-    }
-    
     //URI, full arg name
     {
-      val conf = makeConf(Seq("--lookup", someUri))
+      val values = makeConf(Seq("--lookup", someUri)).toValues
         
-      conf.lookup.isSupplied shouldBe(true)
-      conf.lookup() shouldBe(Right(expectedUri))
+      assert(values.lookup === Some(Right(expectedUri)))
       
-      conf.runEverything() shouldBe(false)
-      conf.loams.isSupplied shouldBe(false)
-      conf.compileOnly() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
-    }
-    //URI, short arg name
-    {
-      val conf = makeConf(Seq("-l", someUri))
-        
-      conf.lookup.isSupplied shouldBe(true)
-      conf.lookup() shouldBe(Right(expectedUri))
-      
-      conf.runEverything() shouldBe(false)
-      conf.loams.isSupplied shouldBe(false)
-      conf.compileOnly() shouldBe(false)
-      conf.conf.isSupplied shouldBe(false)
+      assert(values.run === None)
+      assert(values.loams === Nil)
+      assert(values.compileOnlySupplied === false)
+      assert(values.conf === None)
     }
   }
 }

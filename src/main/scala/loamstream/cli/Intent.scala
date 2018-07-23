@@ -91,11 +91,11 @@ object Intent extends Loggable {
   private def confSpecifiedButDoesntExist(values: Conf.Values) = !confExistsOrOmitted(values)
   
   private def asShowVersionAndQuit(values: Conf.Values): Option[Intent] = {
-    if(values.versionSupplied) Some(Intent.ShowVersionAndQuit) else None
+    if(values.versionSupplied) Some(ShowVersionAndQuit) else None
   }
     
   private def asShowHelpAndQuit(values: Conf.Values): Option[Intent] = {
-    if(values.helpSupplied) Some(Intent.ShowHelpAndQuit) else None
+    if(values.helpSupplied) Some(ShowHelpAndQuit) else None
   }
   
   private def asLookupOutput(values: Conf.Values): Option[Intent] = {

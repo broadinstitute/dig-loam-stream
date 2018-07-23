@@ -34,14 +34,6 @@ final class DbBackedJobFilter(
     noOutputs || failed || distinctCommand || anyOutputNeedsToBeRun
   }
 
-  override def record(executions: Iterable[Execution]): Unit = {
-    //NB: We can only insert command executions (UGER or command-line jobs, anything with an in exit status code)
-    //for now
-    val insertableExecutions = executions.filter(_.isCommandExecution)
-
-    dao.insertExecutions(insertableExecutions)
-  }
-
   // If performance becomes an issue, not 'findOutput()'ing multiple times
   // for a given OutputRecord should help
   private[execute] def needsToBeRun(jobStr: String, rec: OutputRecord): Boolean = {

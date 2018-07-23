@@ -1,10 +1,14 @@
 package loamstream.cli
 
-import java.nio.file.Path
-import loamstream.model.execute.HashingStrategy
 import java.net.URI
-import loamstream.util.Loggable
+import java.nio.file.Path
+
+import org.rogach.scallop.ScallopOption
+
 import loamstream.drm.DrmSystem
+import loamstream.model.execute.HashingStrategy
+import loamstream.util.Loggable
+
 
 /**
  * @author clint
@@ -29,17 +33,23 @@ object Intent extends Loggable {
   final case class CompileOnly(confFile: Option[Path], loams: Seq[Path]) extends Intent
 
   final case class DryRun(
-    confFile: Option[Path],
-    hashingStrategy: HashingStrategy,
-    shouldRunEverything: Boolean,
-    loams: Seq[Path]) extends Intent
+      confFile: Option[Path],
+      hashingStrategy: HashingStrategy,
+      jobFilterIntent: JobFilterIntent,
+      loams: Seq[Path]) extends Intent {
+    
+    def shouldRunEverything: Boolean = jobFilterIntent == JobFilterIntent.RunEverything 
+  }
 
   final case class RealRun(
-    confFile: Option[Path],
-    hashingStrategy: HashingStrategy,
-    shouldRunEverything: Boolean,
-    drmSystemOpt: Option[DrmSystem],
-    loams: Seq[Path]) extends Intent
+      confFile: Option[Path],
+      hashingStrategy: HashingStrategy,
+      jobFilterIntent: JobFilterIntent,
+      drmSystemOpt: Option[DrmSystem],
+      loams: Seq[Path]) extends Intent {
+    
+    def shouldRunEverything: Boolean = jobFilterIntent == JobFilterIntent.RunEverything
+  }
 
   def from(cli: Conf): Either[String, Intent] = from(cli.toValues)
     
@@ -50,49 +60,83 @@ object Intent extends Loggable {
 
     def loamsThatDontExist: Seq[Path] = values.loams.filter(!exists(_))
 
-    def confDoesntExist = values.conf match {
-      case Some(confFile) => !exists(confFile)
-      case None => false
+    val result = {
+      asShowVersionAndQuit(values) orElse
+      asShowHelpAndQuit(values) orElse
+      asLookupOutput(values) orElse 
+      asCompileOnly(values) orElse
+      asDryRun(values) orElse 
+      asRealRun(values)
     }
-
-    def allLoamsExist = values.loams.nonEmpty && values.loams.forall(exists(_))
-
-    if (values.versionSupplied) { Right(ShowVersionAndQuit) }
-    else if (values.helpSupplied) { Right(ShowHelpAndQuit) }
-    else if (confDoesntExist) { Left(s"Config file '${values.conf.get}' specified, but it doesn't exist.") }
-    else if (values.lookupSupplied) { Right(LookupOutput(values.conf, values.lookup.get)) }
-    else if (compileOnly(values)) { Right(CompileOnly(values.conf, values.loams)) }
-    else if (dryRun(values)) {
-      Right(makeDryRun(values))
-    } else if (allLoamsExist) {
-      Right(makeRealRun(values))
-    } else if (noLoamsSupplied) {
-      Left("No loam files specified.")
-    } else if (!allLoamsExist) {
-      Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}")
-    } else {
-      Left("Malformed command line.")
+    
+    result match {
+      case Some(intent) => Right(intent)
+      case None => {
+        if (confSpecifiedButDoesntExist(values)) { 
+          Left(s"Config file '${values.conf.get}' specified, but it doesn't exist.") 
+        } else if (noLoamsSupplied) { Left("No loam files specified.") }
+        else if (!allLoamsExist(values)) { Left(s"Some loam files were missing: ${loamsThatDontExist.mkString(", ")}") } 
+        else { Left("Malformed command line.") }
+      }
     }
   }
-
-  private def makeDryRun(values: Conf.Values): DryRun = DryRun(
-    confFile = values.conf,
-    hashingStrategy = determineHashingStrategy(values),
-    shouldRunEverything = values.runEverythingSupplied,
-    loams = values.loams)
+  
+  import java.nio.file.Files.exists
+  
+  private def confExistsOrOmitted(values: Conf.Values): Boolean = values.conf match {
+    case Some(confFile) => exists(confFile)
+    case None => true
+  }
+    
+  private def confSpecifiedButDoesntExist(values: Conf.Values) = !confExistsOrOmitted(values)
+  
+  private def asShowVersionAndQuit(values: Conf.Values): Option[Intent] = {
+    if(values.versionSupplied) Some(ShowVersionAndQuit) else None
+  }
+    
+  private def asShowHelpAndQuit(values: Conf.Values): Option[Intent] = {
+    if(values.helpSupplied) Some(ShowHelpAndQuit) else None
+  }
+  
+  private def asLookupOutput(values: Conf.Values): Option[Intent] = {
+    if(confExistsOrOmitted(values) && values.lookupSupplied) {
+      Some(LookupOutput(values.conf, values.lookup.get)) 
+    } else {
+      None
+    }
+  }
+  
+  private def asCompileOnly(values: Conf.Values): Option[Intent] = {
+    if(confExistsOrOmitted(values) && compileOnly(values)) Some(CompileOnly(values.conf, values.loams)) else None
+  }
+  
+  private def asDryRun(values: Conf.Values): Option[Intent] = {
+    if(confExistsOrOmitted(values) && dryRun(values) && allLoamsExist(values)) Some(makeDryRun(values)) else None  
+  }
+  
+  private def asRealRun(values: Conf.Values): Option[Intent] = {
+    if(confExistsOrOmitted(values) && allLoamsExist(values)) { Some(makeRealRun(values)) } else None
+  }
+  
+  private def makeDryRun(values: Conf.Values): DryRun = {
+    DryRun(
+      confFile = values.conf,
+      hashingStrategy = determineHashingStrategy(values),
+      jobFilterIntent = determineJobFilterIntent(values),
+      loams = values.loams)
+  }
 
   private def makeRealRun(values: Conf.Values): RealRun = {
    
-    val drmSystemOpt: Option[DrmSystem] = {
-      if(values.ugerSupplied) { Some(DrmSystem.Uger) }
-      else if(values.lsfSupplied) { Some(DrmSystem.Lsf) }
-      else { None }
-    }
-    
+    val drmSystemOpt: Option[DrmSystem] = for {
+      backend <- values.backend
+      drmSystem <- DrmSystem.fromName(backend)
+    } yield drmSystem
+
     RealRun(
       confFile = values.conf,
       hashingStrategy = determineHashingStrategy(values),
-      shouldRunEverything = values.runEverythingSupplied,
+      jobFilterIntent = determineJobFilterIntent(values),
       drmSystemOpt = drmSystemOpt,
       loams = values.loams)
   }
@@ -102,14 +146,28 @@ object Intent extends Loggable {
   private def compileOnly(values: Conf.Values) = values.compileOnlySupplied && allLoamsExist(values)
 
   private def allLoamsExist(values: Conf.Values) = {
-    import java.nio.file.Files.exists
-
     values.loams.nonEmpty && values.loams.forall(exists(_))
   }
 
   private[cli] def determineHashingStrategy(values: Conf.Values): HashingStrategy = {
-    import HashingStrategy.{ DontHashOutputs, HashOutputs }
+    import loamstream.model.execute.HashingStrategy.{ DontHashOutputs, HashOutputs }
 
     if (values.disableHashingSupplied) DontHashOutputs else HashOutputs
+  }
+  
+  private[cli] def determineJobFilterIntent(values: Conf.Values): JobFilterIntent = {
+    def nameOf(field: Conf => ScallopOption[_]) = field(values.derivedFrom).name
+    
+    def toRegexes(regexStrings: Seq[String]) = regexStrings.map(_.r)
+    
+    import JobFilterIntent._
+    
+    values.run match {
+      case Some((Conf.RunStrategies.Everything, _)) => RunEverything
+      case Some((Conf.RunStrategies.AllOf, regexStrings)) => RunIfAllMatch(toRegexes(regexStrings))
+      case Some((Conf.RunStrategies.AnyOf, regexStrings)) => RunIfAnyMatch(toRegexes(regexStrings))
+      case Some((Conf.RunStrategies.NoneOf, regexStrings)) => RunIfNoneMatch(toRegexes(regexStrings))
+      case _ => DontFilterByName
+    }
   }
 }

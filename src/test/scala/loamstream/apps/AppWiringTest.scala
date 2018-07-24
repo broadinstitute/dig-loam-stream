@@ -17,6 +17,7 @@ import loamstream.db.slick.DbDescriptor
 import loamstream.drm.DrmSystem
 import loamstream.drm.DrmChunkRunner
 import loamstream.model.execute.ByNameJobFilter
+import loamstream.conf.LoamConfig
 
 
 /**
@@ -173,5 +174,19 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     doTest(DrmSystem.Uger)
     doTest(DrmSystem.Lsf)
+  }
+  
+  test("loamConfigFrom") {
+    import AppWiring.loamConfigFrom
+    
+    val expectedBaseConfig = LoamConfig.fromPath(confFileForUger).get
+    
+    def doTest(drmSystemOpt: Option[DrmSystem]): Unit = {
+      assert(loamConfigFrom(Some(confFileForUger), drmSystemOpt) === expectedBaseConfig.copy(drmSystem = drmSystemOpt))
+    }
+    
+    doTest(None)
+    doTest(Some(DrmSystem.Uger))
+    doTest(Some(DrmSystem.Lsf))
   }
 }

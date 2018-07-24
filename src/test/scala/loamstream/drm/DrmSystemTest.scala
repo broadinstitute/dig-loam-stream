@@ -91,6 +91,9 @@ final class DrmSystemTest extends FunSuite {
     doTest("", None)
     doTest("uger1234", None)
     doTest("asdasdasdasd", None)
+    
+    assert(DrmSystem.fromName("Uger") === Some(Uger))
+    assert(DrmSystem.fromName("Lsf") === Some(Lsf))
   }
   
   test("values") {

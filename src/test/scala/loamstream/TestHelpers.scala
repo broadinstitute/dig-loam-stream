@@ -2,7 +2,6 @@ package loamstream
 
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.time.Instant
 
 import scala.concurrent.duration.Duration
@@ -32,7 +31,7 @@ import loamstream.model.jobs.LJob
 import loamstream.model.jobs.OutputRecord
 import loamstream.util.Sequence
 import loamstream.model.execute.DrmSettings
-import loamstream.util.PathEnrichments
+import loamstream.util.Paths
 import org.apache.commons.io.FileUtils
 import loamstream.model.jobs.OutputStreams
 import java.util.UUID
@@ -57,7 +56,7 @@ import loamstream.model.execute.LsfDrmSettings
   *         date: Mar 10, 2016
   */
 object TestHelpers {
-  def path(p: String): Path = Paths.get(p)
+  def path(p: String): Path = java.nio.file.Paths.get(p)
 
   val approxDoublePrecision: Double = 1e-16
   val graceFactor: Int = 20

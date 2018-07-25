@@ -6,7 +6,7 @@ import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.MockJob
 import loamstream.util.Futures
-import loamstream.util.ObservableEnrichments
+import loamstream.util.Observables
 import rx.lang.scala.Observable
 
 /**
@@ -28,7 +28,7 @@ final class ExecutableTest extends FunSuite {
     
     val namesObservable = executable.multiplex(names(3))
     
-    import ObservableEnrichments._
+    import Observables.Implicits._
     import loamstream.TestHelpers.waitFor
     
     val actualNames: Seq[String] = waitFor(namesObservable.to[Seq].firstAsFuture).sorted

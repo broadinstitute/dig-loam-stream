@@ -22,7 +22,7 @@ final class FileMonitor(pollingRateInHz: Double, maxWaitTime: Duration) extends 
     if(exists(path)) {
       Future.successful(())
     } else {
-      val watcher = new Watcher(PathUtils.normalizePath(path), maxWaitTime, watchedFiles)
+      val watcher = new Watcher(Paths.normalizePath(path), maxWaitTime, watchedFiles)
     
       watcher.future
     }

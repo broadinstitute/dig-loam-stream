@@ -1,7 +1,6 @@
 package loamstream.model.jobs
 
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.time.Instant
 
 import org.scalatest.FunSuite
@@ -9,15 +8,18 @@ import org.scalatest.FunSuite
 import loamstream.model.jobs.Output.PathOutput
 import loamstream.util.HashType.Sha1
 import loamstream.util.Hashes
-import loamstream.util.PathUtils
+import loamstream.util.Paths
+import loamstream.TestHelpers
 
 /**
  * @author kyuksel
  * date: Jan 3, 2017
  */
 final class OutputRecordTest extends FunSuite {
+  import TestHelpers.path
+  
   private val fooLoc = normalize("src/test/resources/for-hashing/foo.txt")
-  private val fooPath = Paths.get(fooLoc)
+  private val fooPath = path(fooLoc)
   private val fooHash = Hashes.sha1(fooPath).valueAsBase64String
   private val fooHashType = Sha1.algorithmName
   private val fooRec = OutputRecord(fooLoc, Option(fooHash), Option(fooHashType), lastModifiedOptOf(fooPath))
@@ -27,7 +29,7 @@ final class OutputRecordTest extends FunSuite {
   private val fooRecCopy = OutputRecord(fooLoc)
 
   private val emptyLoc = normalize("src/test/resources/for-hashing/empty.txt")
-  private val emptyPath = Paths.get(emptyLoc)
+  private val emptyPath = path(emptyLoc)
   private val emptyHash = Hashes.sha1(emptyPath).valueAsBase64String
   private val emptyHashType = Sha1.algorithmName
   private val emptyRec = OutputRecord(emptyLoc, Option(emptyHash), Option(emptyHashType), lastModifiedOptOf(emptyPath))
@@ -35,9 +37,9 @@ final class OutputRecordTest extends FunSuite {
   private val nonExistingLoc = normalize("non/existent/path")
   private val nonExistingRec = OutputRecord(nonExistingLoc)
 
-  private def lastModifiedOptOf(p: Path): Option[Instant] = Option(PathUtils.lastModifiedTime(p))
+  private def lastModifiedOptOf(p: Path): Option[Instant] = Option(Paths.lastModifiedTime(p))
 
-  private def normalize(loc: String): String = PathUtils.normalize(Paths.get(loc))
+  private def normalize(loc: String): String = Paths.normalize(path(loc))
 
   test("apply/isPresent/isMissing") {
     assert(fooRec.isPresent)

@@ -1,16 +1,17 @@
 package loamstream.util
 
-import java.nio.file.Paths
-
 import org.scalatest.FunSuite
 
 import scala.collection.mutable
+import loamstream.TestHelpers
 
 /**
   * @author clint
   *         date: Aug 4, 2016
   */
 final class HashTest extends FunSuite {
+  import TestHelpers.path
+  
   private val allZeroesArray: Array[Byte] = Array(0.toByte, 0.toByte, 0.toByte, 0.toByte)
   
   private val allZeroes = Hash(mutable.WrappedArray.make(allZeroesArray), HashType.Sha1)
@@ -19,7 +20,7 @@ final class HashTest extends FunSuite {
   
   private val someOnes = Hash(mutable.WrappedArray.make(someOnesArray), HashType.Sha1)
 
-  private val realWorld = Hashes.sha1(Paths.get("src/test/resources/for-hashing/foo.txt"))
+  private val realWorld = Hashes.sha1(path("src/test/resources/for-hashing/foo.txt"))
 
   test("valueAsBinary64String") {
 
@@ -57,8 +58,8 @@ final class HashTest extends FunSuite {
   }
 
   test("equals") {
-    val h1 = Hashes.sha1(Paths.get("src/test/resources/for-hashing/foo.txt"))
-    val h2 = Hashes.sha1(Paths.get("src/test/resources/for-hashing/foo.txt"))
+    val h1 = Hashes.sha1(path("src/test/resources/for-hashing/foo.txt"))
+    val h2 = Hashes.sha1(path("src/test/resources/for-hashing/foo.txt"))
 
     assert(h1 == h2)
     assert(h2 == h1)
@@ -69,7 +70,7 @@ final class HashTest extends FunSuite {
     assert(realWorld == h2)
     assert(h2 == realWorld)
 
-    val h3 = Hashes.sha1(Paths.get("src/test/resources/for-hashing/empty.txt"))
+    val h3 = Hashes.sha1(path("src/test/resources/for-hashing/empty.txt"))
 
     assert(h1 != h3)
     assert(h2 != h3)

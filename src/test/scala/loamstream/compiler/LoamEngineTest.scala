@@ -10,7 +10,7 @@ import loamstream.loam.LoamCmdTool
 import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Files
-import loamstream.util.PathEnrichments
+import loamstream.util.Paths
 
 
 /**
@@ -105,7 +105,7 @@ final class LoamEngineTest extends FunSuite {
   test("run") {
     val tempDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
-    import PathEnrichments._
+    import Paths.Implicits._
 
     val inputFile = tempDir / "A"
     val outputFile = tempDir / "B"

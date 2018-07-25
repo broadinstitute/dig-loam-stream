@@ -12,7 +12,7 @@ import scala.concurrent.Future
  */
 final class FileMonitorTest extends FunSuite {
   
-  import PathEnrichments._
+  import Paths.Implicits._
   import TestHelpers.waitFor
   
   test("'Waiting' for a file that already exists") {

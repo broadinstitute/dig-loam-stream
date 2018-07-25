@@ -46,7 +46,7 @@ final class LoamToolBoxTest extends FunSuite {
 
   private def hasNoDeps(jobNode: JobNode): Boolean = jobNode.inputs.isEmpty
 
-  import loamstream.util.PathEnrichments._
+  import loamstream.util.Paths.Implicits._
 
   test("Simple toy pipeline using cp.") {
 

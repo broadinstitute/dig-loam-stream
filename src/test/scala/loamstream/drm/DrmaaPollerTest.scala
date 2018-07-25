@@ -7,8 +7,6 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import loamstream.util.ObservableEnrichments
-
 import org.scalatest.FunSuite
 
 

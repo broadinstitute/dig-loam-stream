@@ -3,7 +3,7 @@ package loamstream
 import org.scalatest.FunSuite
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamCmdTool
-import loamstream.util.PathEnrichments
+import loamstream.util.Paths
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.LJob
 import loamstream.util.Files
@@ -16,7 +16,7 @@ import java.io.IOException
 final class DependenciesAreInferredWithAnonStoresTest extends FunSuite {
   import TestHelpers.path
   import java.nio.file.Files.exists
-  import PathEnrichments._
+  import Paths.Implicits._
   
   test("Copying a nonexistent file to an anonymous store should fail as expected") {
     val nonExistentInputPath = path("/some/nonexistent/path/in")

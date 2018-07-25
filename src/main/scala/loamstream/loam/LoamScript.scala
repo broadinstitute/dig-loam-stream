@@ -103,9 +103,12 @@ object LoamScript {
     Set(ScalaId.from[LoamPredef.type],
       ScalaId.from[LoamCmdTool.type],
       ScalaId.from[LoamCmdTool.StringContextWithCmd],
-      ScalaId.from[PathEnrichments.type],
-      ScalaId.from[PathEnrichments.PathHelpers],
-      ScalaId.from[PathEnrichments.PathAttemptHelpers],
+      ScalaId.from[loamstream.util.Uris.type],
+      ScalaId.from[loamstream.util.Uris.Implicits.type],
+      ScalaId.from[loamstream.util.Paths.type],
+      ScalaId.from[loamstream.util.Paths.Implicits.type],
+      ScalaId.from[loamstream.util.Paths.Implicits.PathHelpers],
+      ScalaId.from[loamstream.util.Paths.Implicits.PathAttemptHelpers],
       ScalaId.from[LoamScriptContext],
       ScalaId.from[LoamProjectContext],
       ScalaId.from[LoamProjectContext.type]
@@ -150,8 +153,8 @@ import ${ScalaId.from[LoamGraph].inScalaFull}
 import ${ScalaId.from[ValueBox[_]].inScalaFull}
 import ${ScalaId.from[LoamScriptBox].inScalaFull}
 import ${ScalaId.from[LoamCmdTool.type].inScalaFull}._
-import ${ScalaId.from[PathEnrichments.type].inScalaFull}._
-import ${ScalaId.from[UriEnrichments.type].inScalaFull}._
+import ${ScalaId.from[loamstream.util.Paths.Implicits.type].inScalaFull}._
+import ${ScalaId.from[loamstream.util.Uris.Implicits.type].inScalaFull}._
 import ${ScalaId.from[DepositBox[_]].inScalaFull}
 import ${ScalaId.from[LoamProjectContext].inScalaFull}
 import ${ScalaId.from[LoamScriptContext].inScalaFull}

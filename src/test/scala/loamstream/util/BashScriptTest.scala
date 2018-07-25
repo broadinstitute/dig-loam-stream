@@ -1,14 +1,18 @@
 package loamstream.util
 
-import java.nio.file.{Path, Paths, Files => JFiles}
+import java.nio.file.Path
+import java.nio.file.{Files => JFiles}
 
 import org.scalatest.FunSuite
 
 import scala.sys.process.ProcessLogger
+import loamstream.TestHelpers
 
 /** Test of BashScript */
 final class BashScriptTest extends FunSuite {
 
+  import TestHelpers.path
+  
   test("Create and run script") {
     def pathToBashString(path: Path): String = BashScript.escapeString(path.toString)
     
@@ -22,7 +26,7 @@ final class BashScriptTest extends FunSuite {
     
     assert(JFiles.exists(scriptPath), "Script file does not exist.")
     
-    val currentDir = Paths.get(".")
+    val currentDir = path(".")
     val processBuilder = script.processBuilder(currentDir)
     val noOpProcessLogger = ProcessLogger(line => ())
     

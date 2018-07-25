@@ -13,7 +13,7 @@ import loamstream.compiler.LoamProject
 import loamstream.compiler.LoamEngine
 import loamstream.loam.LoamScript
 import java.nio.file.Path
-import loamstream.util.PathEnrichments
+import loamstream.util.Paths
 import loamstream.util.Files
 
 /**
@@ -22,7 +22,7 @@ import loamstream.util.Files
  */
 final class LoamRunnerTest extends FunSuite {
   import TestHelpers.path
-  import PathEnrichments._
+  import Paths.Implicits._
 
   test("dynamic execution") {
     val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)

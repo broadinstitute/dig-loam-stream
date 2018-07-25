@@ -1,11 +1,12 @@
 package loamstream.model.jobs
 
 import java.net.URI
-import java.nio.file.Paths
+import java.nio.file.Path
 import java.time.Instant
 
 import org.scalatest.FunSuite
 
+import loamstream.TestHelpers
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.model.jobs.Output.GcsUriOutput
 import loamstream.model.jobs.OutputTest.MockGcsClient
@@ -13,10 +14,8 @@ import loamstream.util.Hash
 import loamstream.util.HashType
 import loamstream.util.HashType.Md5
 import loamstream.util.HashType.Sha1
-import loamstream.util.PathUtils
+import loamstream.util.Paths
 import loamstream.util.PlatformUtil
-import java.nio.file.Path
-import loamstream.TestHelpers
 
 /**
   * @author clint
@@ -28,7 +27,7 @@ final class OutputTest extends FunSuite {
     import Output.PathOutput
     import TestHelpers.path
     import java.nio.file.Files
-    import PathUtils.normalizePath
+    import Paths.normalizePath
 
     val nonExistingLocation = "sjkafhkfhksdjfh"
     val nonExistingPath = path(nonExistingLocation)
@@ -64,7 +63,7 @@ final class OutputTest extends FunSuite {
       val doesntExistRecord = doesntExist.toOutputRecord
       
       val expectedDoesntExistRecord = OutputRecord( 
-          loc = PathUtils.normalize(nonExistingPath),
+          loc = Paths.normalize(nonExistingPath),
           isPresent = false,
           hash = None,
           hashType = None,
@@ -75,11 +74,11 @@ final class OutputTest extends FunSuite {
       val existsRecord = exists.toOutputRecord
       
       val expectedExistsRecord = OutputRecord(
-          loc = PathUtils.normalize(existingPath),
+          loc = Paths.normalize(existingPath),
           isPresent = true,
           hash = Some(hashStr),
           hashType = Some(Sha1.algorithmName),
-          lastModified = Some(PathUtils.lastModifiedTime(existingPath)))
+          lastModified = Some(Paths.lastModifiedTime(existingPath)))
       
       assert(existsRecord === expectedExistsRecord)
     }

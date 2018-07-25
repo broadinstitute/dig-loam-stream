@@ -2,8 +2,10 @@ package loamstream.db
 
 import java.nio.file.Path
 
-import loamstream.model.jobs.{Execution, Output, OutputRecord}
-import loamstream.util.PathUtils
+import loamstream.model.jobs.Execution
+import loamstream.model.jobs.Output
+import loamstream.model.jobs.OutputRecord
+import loamstream.util.Paths
 
 /**
  * @author clint
@@ -26,7 +28,7 @@ trait LoamDao {
   def deletePathOutput(path: Iterable[Path]): Unit
 
   def findOutputRecord(loc: String): Option[OutputRecord]
-  final def findOutputRecord(path: Path): Option[OutputRecord] = findOutputRecord(PathUtils.normalize(path))
+  final def findOutputRecord(path: Path): Option[OutputRecord] = findOutputRecord(Paths.normalize(path))
   final def findOutputRecord(rec: OutputRecord): Option[OutputRecord] = findOutputRecord(rec.loc)
   final def findOutputRecord(output: Output): Option[OutputRecord] = findOutputRecord(output.toOutputRecord)
 
@@ -34,7 +36,7 @@ trait LoamDao {
    * Returns the command line that was used to produce the output at the specified location
    */
   def findCommand(loc: String): Option[String]
-  final def findCommand(path: Path): Option[String] = findCommand(PathUtils.normalize(path))
+  final def findCommand(path: Path): Option[String] = findCommand(Paths.normalize(path))
 
   def allOutputRecords: Seq[OutputRecord]
   

@@ -1,14 +1,28 @@
 package loamstream.util
 
-import java.io._
+import java.io.BufferedReader
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.io.Reader
+import java.io.Writer
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Path, Paths, Files => JFiles}
+import java.nio.file.{ Files => JFiles }
+import java.nio.file.Path
+import java.nio.file.{ Paths => JPaths }
 import java.util.stream.Collectors
-import java.util.zip.{GZIPInputStream, GZIPOutputStream}
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 
-import scala.io.{Codec, Source}
-import scala.util.{Failure, Success, Try}
-import org.apache.commons.io.FileUtils
+import scala.io.Codec
+import scala.io.Source
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * @author clint
@@ -67,7 +81,7 @@ object Files {
     }
   }
 
-  def tryFile(fileName: String): Try[Path] = tryFile(Paths.get(fileName))
+  def tryFile(fileName: String): Try[Path] = tryFile(JPaths.get(fileName))
 
   def tryFile(path: Path): Try[Path] = {
     if (path.toFile.exists) {
@@ -83,7 +97,7 @@ object Files {
 
   def readFrom(file: Path): String = readFromAsUtf8(file)
 
-  def readFrom(file: String): String = readFrom(Paths.get(file))
+  def readFrom(file: String): String = readFrom(JPaths.get(file))
 
   /** Writes to gzipped file */
   def writeToGzipped(file: Path)(contents: String): Unit = {
@@ -121,28 +135,9 @@ object Files {
   object LineFilter {
     type Factory = () => LineFilter
 
-    private object AcceptsAllLineFilter extends LineFilter {
-      override def apply(line: String): Boolean = true
-    }
+    private val acceptsAllLineFilter: LineFilter = _ => true
 
-    val acceptAll: Factory = () => AcceptsAllLineFilter
-
-    //TODO: It would be nice to not need a stateful predicate
-    val onlyFirstVcfHeader: Factory = () => new LineFilter {
-      private var firstVcfHeaderIsPast = false
-
-      override def apply(line: String): Boolean = {
-        val lineIsNotHeader = !line.startsWith("##")
-        if (firstVcfHeaderIsPast) {
-          lineIsNotHeader
-        } else {
-          if (lineIsNotHeader) {
-            firstVcfHeaderIsPast = true
-          }
-          true
-        }
-      }
-    }
+    val acceptAll: Factory = () => acceptsAllLineFilter
   }
 
   //TODO: Currently, this always creates the output file, even if sourcePaths is empty.  Is that the right thing to do?

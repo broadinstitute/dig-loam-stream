@@ -8,7 +8,7 @@ import scala.util.Success
 
 import org.scalatest.FunSuite
 
-import loamstream.util.ObservableEnrichments
+import loamstream.util.Observables
 import loamstream.util.RxSchedulers
 
 import rx.lang.scala.Scheduler
@@ -55,7 +55,7 @@ final class JobMonitorTest extends FunSuite {
         jobId3 -> Seq(Success(Running), Success(Running), Success(Done))))
     
     import scala.concurrent.ExecutionContext.Implicits.global
-    import ObservableEnrichments._
+    import Observables.Implicits._
     
     val poller = new DrmaaPoller(client)
     

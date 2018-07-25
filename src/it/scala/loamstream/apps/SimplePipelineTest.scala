@@ -1,18 +1,18 @@
 package loamstream.apps
 
-import org.scalatest.FunSuite
-import loamstream.util.Files
 import java.nio.file.Files.exists
+import java.nio.file.Path
+
+import org.scalatest.FunSuite
+
 import loamstream.IntegrationTestHelpers
 import loamstream.cli.Intent
-import loamstream.util.PathEnrichments
-import loamstream.model.execute.HashingStrategy
-import java.nio.file.Path
-import loamstream.db.slick.DbDescriptor
-import loamstream.db.LoamDao
-import java.nio.file.Paths
-import loamstream.drm.DrmSystem
 import loamstream.cli.JobFilterIntent
+import loamstream.db.LoamDao
+import loamstream.db.slick.DbDescriptor
+import loamstream.drm.DrmSystem
+import loamstream.model.execute.HashingStrategy
+import loamstream.util.Files
 
 /**
  * @author clint
@@ -20,7 +20,7 @@ import loamstream.cli.JobFilterIntent
  */
 final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
-  import JobFilterIntent.{RunEverything, DontFilterByName}
+  import loamstream.cli.JobFilterIntent.{ DontFilterByName, RunEverything }
   
   test(s"A simple linear pipeline running locally should work") {
     doTest("local", jobFilterIntent = RunEverything, hashingStrategy = HashingStrategy.HashOutputs)
@@ -65,7 +65,7 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
   
   private def doTest(environment: String, jobFilterIntent: JobFilterIntent, hashingStrategy: HashingStrategy): Unit = {
     
-    import PathEnrichments._
+    import loamstream.util.Paths.Implicits._
     
     val workDir = getWorkDirUnderTarget(Some(s"$environment-$jobFilterIntent-$hashingStrategy"))
     

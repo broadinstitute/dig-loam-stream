@@ -1,8 +1,7 @@
 package loamstream.model.jobs
 
 import java.nio.file.Path
-import java.nio.file.Paths
-import loamstream.util.PathEnrichments
+import loamstream.util.Paths
 
 /**
  * @author clint
@@ -19,7 +18,7 @@ object LogFileNames {
   def stderr(job: LJob, outputDirName: Path): Path = makePath(job, "stderr", outputDirName)
   
   private def makePath(job: LJob, suffix: String, outputDir: Path): Path = {
-    import PathEnrichments._
+    import Paths.Implicits._
     
     (outputDir / s"${mungeSpecialChars(job.name)}.$suffix").toAbsolutePath
   }

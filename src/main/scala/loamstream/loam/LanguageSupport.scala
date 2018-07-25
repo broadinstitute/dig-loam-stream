@@ -1,6 +1,6 @@
 package loamstream.loam
 
-import loamstream.util.{Files, PathEnrichments, Sequence, StringUtils}
+import loamstream.util.{Files, Paths, Sequence, StringUtils}
 import java.nio.file.Path
 
 import loamstream.conf.{LoamConfig, PythonConfig, RConfig}
@@ -68,18 +68,19 @@ object LanguageSupport {
   
   private[this] val fileNums: Sequence[Int] = Sequence[Int]()
   
-  
-  
-  def determineScriptFile(prefix: String, extension: String, dir: Path)
-                                         (implicit scriptContext: LoamScriptContext): Path = {
-    import PathEnrichments._
+  def determineScriptFile(
+      prefix: String, 
+      extension: String, 
+      dir: Path)(implicit scriptContext: LoamScriptContext): Path = {
+    
+    import Paths.Implicits._
 
     val executionId = scriptContext.executionId
     val filename = s"$prefix-$executionId-${fileNums.next()}.$extension"
 
     Files.createDirsIfNecessary(dir)
 
-    dir/filename
+    dir / filename
   }
   
   def makeScriptContent(

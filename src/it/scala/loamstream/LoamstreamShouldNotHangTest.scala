@@ -3,7 +3,7 @@ package loamstream
 import org.scalatest.FunSuite
 import java.nio.file.Path
 import loamstream.util.Files
-import loamstream.util.PathEnrichments
+import loamstream.util.Paths
 
 /**
  * @author clint
@@ -36,7 +36,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
     */
   test("Loamstream should not hang - minimal version") {
 
-    import PathEnrichments.PathHelpers
+    import Paths.Implicits.PathHelpers
     
     Files.createDirsIfNecessary(outDir)
     
@@ -89,7 +89,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
    */
   test("Loamstream should not hang - more-complex version") {
     
-    import PathEnrichments.PathHelpers
+    import Paths.Implicits.PathHelpers
     
     Files.createDirsIfNecessary(outDir)
     
@@ -153,7 +153,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
   }
   
   private def run(baseFileName: String, loamCode: String): Unit = {
-    import PathEnrichments.PathHelpers
+    import Paths.Implicits.PathHelpers
     import java.nio.file.Files.exists
     
     Files.createDirsIfNecessary(outDir)                  

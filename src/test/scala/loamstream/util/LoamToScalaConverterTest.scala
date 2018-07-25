@@ -1,7 +1,6 @@
 package loamstream.util
 
 import java.nio.file.Path
-import java.nio.file.Paths
 
 import org.scalafmt.Scalafmt
 import org.scalatest.FunSuite
@@ -19,7 +18,7 @@ import loamstream.util.code.RootPackageId
 final class LoamToScalaConverterTest extends FunSuite {
   import LoamToScalaConverter._
   import loamstream.TestHelpers.path
-  import PathEnrichments._
+  import Paths.Implicits._
   
   private def format(scalaCode: String): String = Scalafmt.format(scalaCode).get
   
@@ -102,23 +101,23 @@ final class LoamToScalaConverterTest extends FunSuite {
   }
   
   test("pathParts") {
-    val relative = Paths.get("foo/bar/baz")
+    val relative = path("foo/bar/baz")
     
     assert(pathParts(relative) === Seq("foo", "bar", "baz"))
     
-    val absolute = Paths.get("/foo/bar/baz")
+    val absolute = path("/foo/bar/baz")
     
     assert(pathParts(absolute) === Seq("foo", "bar", "baz"))
     
-    val relativeSingle = Paths.get("foo")
+    val relativeSingle = path("foo")
     
     assert(pathParts(relativeSingle) === Seq("foo"))
     
-    val absoluteSingle = Paths.get("/foo")
+    val absoluteSingle = path("/foo")
     
     assert(pathParts(absoluteSingle) === Seq("foo"))
     
-    assert(pathParts(Paths.get(".")) === Nil)
+    assert(pathParts(path(".")) === Nil)
     
     val empty = absolute.relativize(absolute)
     

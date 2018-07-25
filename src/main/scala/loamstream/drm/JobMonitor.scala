@@ -73,7 +73,7 @@ final class JobMonitor(
     
     def shouldContinue = keepPolling()
     
-    import loamstream.util.ObservableEnrichments._
+    import loamstream.util.Observables.Implicits._
     
     //NB: The call to .replay() is needed to allow us to 'demultiplex' the stream of poll results into
     //several streams, one for each job id, without worrying about missing any emitted values if any 
@@ -113,7 +113,7 @@ final class JobMonitor(
     val (jobId, statusAttempts) = jobStatusTuple
     
     import loamstream.drm.DrmStatus.{ DoneUndetermined, Undetermined }
-    import loamstream.util.ObservableEnrichments._
+    import loamstream.util.Observables.Implicits._
     
     val statuses: Observable[DrmStatus] = statusAttempts.distinctUntilChanged.zipWithIndex.collect {
       //NB: DRMAA might not report when jobs are done, say if it hasn't cached the final status of a job, so we 

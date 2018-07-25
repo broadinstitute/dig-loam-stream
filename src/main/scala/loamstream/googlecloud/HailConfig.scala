@@ -10,7 +10,7 @@ import com.typesafe.config.Config
 import HailConfig.Defaults
 import loamstream.conf.HasScriptDir
 import loamstream.conf.ValueReaders
-import loamstream.util.PathUtils
+import loamstream.util.Paths
 
 
 /**
@@ -25,7 +25,7 @@ final case class HailConfig(jar: URI, zip: URI, scriptDir: Path = Defaults.scrip
 
 object HailConfig {
   object Defaults {
-    val scriptDir: Path = PathUtils.getCurrentDirectory
+    val scriptDir: Path = Paths.getCurrentDirectory
   }
   
   def fromConfig(config: Config): Try[HailConfig] = {

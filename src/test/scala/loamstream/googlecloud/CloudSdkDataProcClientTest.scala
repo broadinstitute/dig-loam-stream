@@ -1,11 +1,11 @@
 package loamstream.googlecloud
 
-import loamstream.util.PathUtils
 import org.scalatest.FunSuite
-import loamstream.util.BashScript.Implicits._
-import loamstream.util.ExitCodes
+
+import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.ExitCodeException
-import loamstream.TestHelpers
+import loamstream.util.ExitCodes
+import loamstream.util.Paths
 
 /**
  * @author clint
@@ -13,7 +13,7 @@ import loamstream.TestHelpers
  */
 final class CloudSdkDataProcClientTest extends FunSuite {
 
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
 
   private val config = GoogleCloudConfig(
       gcloudBinary = path("/foo/bar/baz"),
@@ -35,7 +35,7 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       properties = "p,r,o,p,s",
       initializationActions = "gs://example.com/blah/foo.sh")
 
-  private val examplePath = PathUtils.newAbsolute("foo", "bar", "baz")
+  private val examplePath = Paths.newAbsolute("foo", "bar", "baz")
 
   private def alwaysFails(tokens: Seq[String]): Int = 42
 

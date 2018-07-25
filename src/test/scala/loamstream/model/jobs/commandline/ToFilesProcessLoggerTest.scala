@@ -3,7 +3,7 @@ package loamstream.model.jobs.commandline
 import scala.sys.process.ProcessLogger
 import org.scalatest.FunSuite
 import loamstream.TestHelpers
-import loamstream.util.PathEnrichments
+import loamstream.util.Paths
 import loamstream.util.Files
 import loamstream.util.CanBeClosed
 import java.nio.file.Path
@@ -14,7 +14,7 @@ import java.nio.file.Path
  * Nov 15, 2017
  */
 final class ToFilesProcessLoggerTest extends FunSuite {
-  import PathEnrichments._
+  import Paths.Implicits._
   
   test("Nothing written to stdout, that file shouldn't get made") {
     val (stdoutPath, stderrPath) = withLogger { logger =>

@@ -2,14 +2,13 @@ package loamstream.loam
 
 import java.nio.file.{ Files => JFiles }
 import java.nio.file.Path
-import java.nio.file.Paths
 
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamScriptTestUtils.FilePaths
-import loamstream.util.PathUtils
+import loamstream.util.Paths
 
 
 /**
@@ -20,7 +19,9 @@ final class LoamWorkDirTest extends FunSuite {
 
   private def assertPathsEquivalent(path1: Path, path2: Path): Unit = assert(path1.normalize() === path2.normalize())
 
-  private def assertPathsEquivalent(path1: Path, path2: String): Unit = assertPathsEquivalent(path1, Paths.get(path2))
+  private def assertPathsEquivalent(path1: Path, path2: String): Unit = {
+    assertPathsEquivalent(path1, TestHelpers.path(path2))
+  }
 
   private def assertWorkDirIsSet(workDirOpt1: Option[Path], workDirOpt2: Option[Path]): Unit = {
     import LoamCmdTool._
@@ -43,7 +44,7 @@ final class LoamWorkDirTest extends FunSuite {
       case (Some(workDir1), Some(workDir2)) => workDir1.resolve(workDir2)
       case (Some(workDir1), None) => workDir1
       case (None, Some(workDir2)) => workDir2
-      case (None, None) => Paths.get(".")
+      case (None, None) => path(".")
     }
     assertPathsEquivalent(store1.path, workDir.resolve(fileName1))
     assertPathsEquivalent(store2.path, workDir.resolve(fileName2))
@@ -51,7 +52,9 @@ final class LoamWorkDirTest extends FunSuite {
   }
 
   test("Check work dirs and file paths are correctly set in graph") {
-    val workDirs = Seq(Paths.get("."), PathUtils.newRelative("a", "b", "c"), PathUtils.newAbsolute("a", "b", "c"))
+    import TestHelpers.path
+    
+    val workDirs = Seq(path("."), Paths.newRelative("a", "b", "c"), Paths.newAbsolute("a", "b", "c"))
     val workDirOpts = workDirs.map(Option(_)) :+ None
     for (workDirOpt1 <- workDirOpts) {
       for (workDirOpt2 <- workDirOpts) {

@@ -1,7 +1,6 @@
 package loamstream.model.execute
 
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
 import scala.concurrent.ExecutionContext
@@ -10,7 +9,6 @@ import scala.concurrent.Future
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
-import loamstream.compiler.LoamCompiler
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobNode
@@ -20,10 +18,9 @@ import loamstream.model.jobs.JobStatus.Skipped
 import loamstream.model.jobs.JobStatus.Succeeded
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.Output
-import loamstream.util.Hashes
-import loamstream.util.PathUtils
-import loamstream.util.Sequence
 import loamstream.model.jobs.RunData
+import loamstream.util.Hashes
+import loamstream.util.Paths
 
 /**
   * @author clint
@@ -37,7 +34,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
   private def hashAndStore(p: Path, exitCode: Int = 0): Execution = {
     val hash = Hashes.sha1(p)
-    val lastModified = PathUtils.lastModifiedTime(p)
+    val lastModified = Paths.lastModifiedTime(p)
 
     val e = Execution(
         env = mockEnv,
@@ -182,8 +179,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   }
   
   private def doTestWithExecuter(executer: RxExecuter, expectations: Seq[JobStatus], setup: SetupFn): Unit = {
-    import loamstream.util.PathEnrichments.PathHelpers
-    import TestHelpers.path
+    import loamstream.TestHelpers.path
+    import loamstream.util.Paths.Implicits.PathHelpers
 
     val start = path("src/test/resources/a.txt")
     

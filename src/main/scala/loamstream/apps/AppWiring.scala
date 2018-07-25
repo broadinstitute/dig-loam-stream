@@ -109,11 +109,13 @@ object AppWiring extends Loggable {
 
   def daoForOutputLookup(intent: Intent.LookupOutput): LoamDao = makeDefaultDb
 
-  def loamConfigFrom(confFile: Option[Path]): LoamConfig = {
+  def loamConfigFrom(confFile: Option[Path], drmSystemOpt: Option[DrmSystem]): LoamConfig = {
     val typesafeConfig: Config = loadConfig(confFile)
       
     //TODO: Revisit .get
-    LoamConfig.fromConfig(typesafeConfig).get
+    val withoutDrmSystem = LoamConfig.fromConfig(typesafeConfig).get
+    
+    withoutDrmSystem.copy(drmSystem = drmSystemOpt)
   }
   
   def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
@@ -123,12 +125,7 @@ object AppWiring extends Loggable {
   }
   
   def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
-    new DefaultAppWiring(
-        confFile = intent.confFile,
-        makeDao = makeDao,
-        jobFilterIntent = intent.jobFilterIntent, 
-        hashingStrategy = intent.hashingStrategy,
-        drmSystemOpt = intent.drmSystemOpt)
+    new DefaultAppWiring(intent, makeDao = makeDao)
   }
 
   private[AppWiring] def makeJobFilterAndExecutionRecorder(
@@ -152,24 +149,21 @@ object AppWiring extends Loggable {
   }  
   
   private final class DefaultAppWiring(
-      confFile: Option[Path],
-      makeDao: => LoamDao,
-      jobFilterIntent: JobFilterIntent,
-      hashingStrategy: HashingStrategy,
-      drmSystemOpt: Option[DrmSystem]) extends AppWiring {
+      intent: Intent.RealRun,
+      makeDao: => LoamDao) extends AppWiring {
     
     override lazy val dao: LoamDao = makeDao
     
-    override lazy val config: LoamConfig = loamConfigFrom(confFile).copy(drmSystem = drmSystemOpt)
+    override lazy val config: LoamConfig = loamConfigFrom(intent.confFile, intent.drmSystemOpt)
     
     override def executer: Executer = terminableExecuter
 
     override def shutdown(): Seq[Throwable] = terminableExecuter.shutdown()
 
-    override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(confFile, config)
+    override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(intent.confFile, config)
 
     override lazy val (jobFilter: JobFilter, executionRecorder: ExecutionRecorder) = {
-      makeJobFilterAndExecutionRecorder(jobFilterIntent, hashingStrategy, dao)
+      makeJobFilterAndExecutionRecorder(intent.jobFilterIntent, intent.hashingStrategy, dao)
     }
     
     private lazy val terminableExecuter: TerminableExecuter = {
@@ -215,9 +209,9 @@ object AppWiring extends Loggable {
 
       val localRunner = AsyncLocalChunkRunner(config.executionConfig)(localEC)
 
-      val (drmRunner, drmRunnerHandles) = drmChunkRunner(confFile, config, threadPoolSize)
+      val (drmRunner, drmRunnerHandles) = drmChunkRunner(intent.confFile, config, threadPoolSize)
       
-      val googleRunner = googleChunkRunner(confFile, config.googleConfig, localRunner)
+      val googleRunner = googleChunkRunner(intent.confFile, config.googleConfig, localRunner)
 
       val compositeRunner = CompositeChunkRunner(localRunner +: (drmRunner.toSeq ++ googleRunner))
       

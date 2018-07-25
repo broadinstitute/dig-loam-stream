@@ -82,6 +82,15 @@ final class IntentTest extends FunSuite {
     assertValid("--version --compile-only", ShowVersionAndQuit)
     assertValid("--version --conf blah.conf foo.loam bar.loam", ShowVersionAndQuit)
     
+    assertValid(
+        s"--backend Uger --dry-run --conf $confFile --loams $exampleFile0",
+        DryRun(
+            confFile = Some(confPath),
+            hashingStrategy = HashingStrategy.HashOutputs,
+            jobFilterIntent = JobFilterIntent.DontFilterByName,
+            drmSystemOpt = Option(DrmSystem.Uger),
+            loams = paths(exampleFile0)))
+    
     //--compile-only
     assertIsInvalidWithAllDrmSystems("--compile-only") //no loams specified
     assertIsInvalidWithAllDrmSystems("--compile-only --loams") //no loams specified

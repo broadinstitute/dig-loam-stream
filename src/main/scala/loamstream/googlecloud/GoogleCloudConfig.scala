@@ -10,30 +10,32 @@ import loamstream.conf.ValueReaders
 import GoogleCloudConfig.Defaults
 
 /**
- * @author clint
- * Nov 28, 2016
- */
+  * @author clint
+  * Nov 28, 2016
+  */
 final case class GoogleCloudConfig(
     gcloudBinary: Path,
     gsutilBinary: Path,
     projectId: String,
     clusterId: String,
+    metadata: String,
     credentialsFile: Path,
     zone: String = Defaults.zone,
     masterMachineType: String = Defaults.masterMachineType,
-    masterBootDiskSize: Int = Defaults.masterBootDiskSize, 
-    numWorkers: Int = Defaults.numWorkers, 
+    masterBootDiskSize: Int = Defaults.masterBootDiskSize,
+    numWorkers: Int = Defaults.numWorkers,
     workerMachineType: String = Defaults.workerMachineType,
     workerBootDiskSize: Int = Defaults.workerBootDiskSize,
     numPreemptibleWorkers: Int = Defaults.numPreemptibleWorkers,
     preemptibleWorkerBootDiskSize: Int = Defaults.preemptibleWorkerBootDiskSize,
-    imageVersion: String = Defaults.imageVersion, 
+    imageVersion: String = Defaults.imageVersion,
     scopes: String = Defaults.scopes,
     properties: String = Defaults.properties,
     initializationActions: String = Defaults.initializationActions)
-    
+
 object GoogleCloudConfig {
   object Defaults { // for creating a minimal cluster
+    val metadata: String = ""
     val zone: String = "us-central1-b"
     val masterMachineType: String = "n1-standard-1"
     val masterBootDiskSize: Int = 20 // in GB
@@ -42,21 +44,22 @@ object GoogleCloudConfig {
     val workerBootDiskSize: Int = 20 // in GB
     val numPreemptibleWorkers: Int = 0
     val preemptibleWorkerBootDiskSize: Int = 20 // in GB
-    val imageVersion: String = "1.1.49" // 2.x not supported by Hail, 1.1 needed for new Python API
+    val imageVersion
+      : String = "1.1.49" // 2.x not supported by Hail, 1.1 needed for new Python API
     val scopes: String = "https://www.googleapis.com/auth/cloud-platform"
     val properties: String = {
       "spark:spark.driver.extraJavaOptions=-Xss4M,spark:spark.executor.extraJavaOptions=-Xss4M," +
-      "spark:spark.driver.memory=45g,spark:spark.driver.maxResultSize=30g,spark:spark.task.maxFailures=20," +
-      "spark:spark.kryoserializer.buffer.max=1g,hdfs:dfs.replication=1"
+        "spark:spark.driver.memory=45g,spark:spark.driver.maxResultSize=30g,spark:spark.task.maxFailures=20," +
+        "spark:spark.kryoserializer.buffer.max=1g,hdfs:dfs.replication=1"
     }
     val initializationActions: String = "gs://loamstream/hail/hail-init.sh"
   }
-  
+
   def fromConfig(config: Config): Try[GoogleCloudConfig] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.PathReader
-    
+
     //NB: Ficus now marshals the contents of loamstream.googlecloud into a GoogleCloudConfig instance.
     //Names of fields in GoogleCloudConfig and keys under loamstream.googlecloud must match.
     Try(config.as[GoogleCloudConfig]("loamstream.googlecloud"))

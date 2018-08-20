@@ -16,24 +16,26 @@ final class CloudSdkDataProcClientTest extends FunSuite {
   import loamstream.TestHelpers.path
 
   private val config = GoogleCloudConfig(
-      gcloudBinary = path("/foo/bar/baz"),
-      gsutilBinary = path("/blah/blah/blah"),
-      projectId = "pid",
-      clusterId = "cid",
-      credentialsFile = path("N/A"),
-      numWorkers = 42,
-      //non-default values
-      zone = "z",
-      masterMachineType = "mmt",
-      masterBootDiskSize = 99,
-      workerMachineType = "wmt",
-      workerBootDiskSize = 17,
-      numPreemptibleWorkers = 123,
-      preemptibleWorkerBootDiskSize = 11,
-      imageVersion = "42.2.1.0",
-      scopes = "ses",
-      properties = "p,r,o,p,s",
-      initializationActions = "gs://example.com/blah/foo.sh")
+    gcloudBinary = path("/foo/bar/baz"),
+    gsutilBinary = path("/blah/blah/blah"),
+    projectId = "pid",
+    clusterId = "cid",
+    credentialsFile = path("N/A"),
+    numWorkers = 42,
+    //non-default values
+    zone = "z",
+    masterMachineType = "mmt",
+    masterBootDiskSize = 99,
+    workerMachineType = "wmt",
+    workerBootDiskSize = 17,
+    numPreemptibleWorkers = 123,
+    preemptibleWorkerBootDiskSize = 11,
+    imageVersion = "42.2.1.0",
+    scopes = "ses",
+    properties = "p,r,o,p,s",
+    initializationActions = "gs://example.com/blah/foo.sh",
+    metadata = Some("key=value")
+  )
 
   private val examplePath = Paths.newAbsolute("foo", "bar", "baz")
 
@@ -143,7 +145,10 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       "--properties",
       config.properties,
       "--initialization-actions",
-      config.initializationActions)
+      config.initializationActions,
+      "--metadata",
+      config.metadata.get,
+    )
 
     assert(tokens === expected)
   }

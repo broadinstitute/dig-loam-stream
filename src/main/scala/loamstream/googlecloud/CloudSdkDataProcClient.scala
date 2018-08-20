@@ -8,14 +8,12 @@ import loamstream.util.Tries
 import loamstream.util.ExitCodes
 
 /**
-  * @author clint
-  * Nov 28, 2016
-  */
+ * @author clint
+ * Nov 28, 2016
+ */
 final class CloudSdkDataProcClient private[googlecloud] (
-    config: GoogleCloudConfig,
-    runCommand: Seq[String] => Int = CloudSdkDataProcClient.runCommand)
-    extends DataProcClient
-    with Loggable {
+  config: GoogleCloudConfig,
+  runCommand: Seq[String] => Int = CloudSdkDataProcClient.runCommand) extends DataProcClient with Loggable {
 
   import CloudSdkDataProcClient.{
     startClusterTokens,
@@ -57,24 +55,20 @@ object CloudSdkDataProcClient extends Loggable {
     if (gcloudBinary.exists && gcloudBinary.canExecute) {
       Success(new CloudSdkDataProcClient(config))
     } else {
-      Tries.failure(
-        s"gcloud executable not found at ${config.gcloudBinary} or not executable")
+      Tries.failure(s"gcloud executable not found at ${config.gcloudBinary} or not executable")
     }
   }
 
-  private[googlecloud] def deleteClusterTokens(
-      config: GoogleCloudConfig): Seq[String] = {
+  private[googlecloud] def deleteClusterTokens(config: GoogleCloudConfig): Seq[String] = {
     gcloudTokens(config)("delete", config.clusterId)
   }
 
-  private[googlecloud] def isClusterRunningTokens(
-      config: GoogleCloudConfig): Seq[String] = {
+  private[googlecloud] def isClusterRunningTokens(config: GoogleCloudConfig): Seq[String] = {
     gcloudTokens(config)("describe", config.clusterId)
   }
 
-  private[googlecloud] def startClusterTokens(
-      config: GoogleCloudConfig): Seq[String] = {
-    gcloudTokens(config)(
+  private[googlecloud] def startClusterTokens(config: GoogleCloudConfig): Seq[String] = {
+    val firstTokens: Seq[String] = Seq(
       "create",
       config.clusterId,
       "--zone",
@@ -102,14 +96,19 @@ object CloudSdkDataProcClient extends Loggable {
       "--properties",
       config.properties,
       "--initialization-actions",
-      config.initializationActions,
-      "--metadata",
-      if (config.metadata.isEmpty) "dummy-key=1" else config.metadata
-    )
+      config.initializationActions)
+    
+    val metadataPart: Seq[String] = config.metadata match {
+      case Some(md) => Seq("--metadata", md)
+      case None => Nil
+    }
+    
+    val tokens = firstTokens ++ metadataPart
+
+    gcloudTokens(config)(tokens: _*)
   }
 
-  private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(
-      args: String*): Seq[String] = {
+  private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(args: String*): Seq[String] = {
     val gcloud = normalize(config.gcloudBinary)
 
     gcloud +: "dataproc" +: "clusters" +: args

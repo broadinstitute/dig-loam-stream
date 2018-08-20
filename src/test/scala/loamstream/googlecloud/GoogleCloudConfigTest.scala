@@ -27,7 +27,8 @@ final class GoogleCloudConfigTest extends FunSuite {
   private val scopes = "ses"
   private val properties = "p,r,o,p,s"
   private val initializationActions = "gs://example.com/foo.sh"
-  
+  private val metadata = "key=value"
+
   test("fromConfig - defaults used") {
     val confString = s"""loamstream {
         googlecloud {
@@ -38,17 +39,17 @@ final class GoogleCloudConfigTest extends FunSuite {
           credentialsFile = "$credentialsFile"
         }
       }"""
-          
+
     val config = ConfigFactory.parseString(confString)
-    
+
     val gConfig = GoogleCloudConfig.fromConfig(config).get
-    
+
     assert(gConfig.gcloudBinary === Paths.get(gcloudBinaryPath))
     assert(gConfig.gsutilBinary === Paths.get(gsutilBinaryPath))
     assert(gConfig.projectId === projectId)
     assert(gConfig.clusterId === clusterId)
     assert(gConfig.credentialsFile === Paths.get(credentialsFile))
-    
+
     import GoogleCloudConfig.Defaults
 
     assert(gConfig.numWorkers === Defaults.numWorkers)
@@ -63,24 +64,25 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.scopes === Defaults.scopes)
     assert(gConfig.properties === Defaults.properties)
     assert(gConfig.initializationActions === Defaults.initializationActions)
+    assert(gConfig.metadata === Defaults.metadata)
   }
-  
+
   test("fromConfig - bad input") {
     assert(GoogleCloudConfig.fromConfig(ConfigFactory.empty).isFailure)
-    
+
     def doTest(s: String): Unit = {
       val config = Try(ConfigFactory.parseString(s))
-    
+
       assert(config.flatMap(GoogleCloudConfig.fromConfig).isFailure)
     }
-    
+
     doTest(null) //scalastyle:ignore null
     doTest("")
     doTest("asdsadasd")
     doTest("loamstream { }")
     doTest("loamstream { googlecloud { } }")
   }
-  
+
   test("fromConfig - no defaults") {
     val confString = s"""loamstream {
         googlecloud {
@@ -101,13 +103,14 @@ final class GoogleCloudConfigTest extends FunSuite {
           scopes = "$scopes"
           properties = "$properties"
           initializationActions = "$initializationActions"
+          metadata = "$metadata"
         }
       }"""
-          
+
     val config = ConfigFactory.parseString(confString)
-    
+
     val gConfig = GoogleCloudConfig.fromConfig(config).get
-    
+
     assert(gConfig.gcloudBinary === Paths.get(gcloudBinaryPath))
     assert(gConfig.gsutilBinary === Paths.get(gsutilBinaryPath))
     assert(gConfig.projectId === projectId)
@@ -124,5 +127,6 @@ final class GoogleCloudConfigTest extends FunSuite {
     assert(gConfig.scopes === scopes)
     assert(gConfig.properties === properties)
     assert(gConfig.initializationActions === initializationActions)
+    assert(gConfig.metadata === Some(metadata))
   }
 }

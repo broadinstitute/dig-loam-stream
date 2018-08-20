@@ -34,8 +34,9 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     scopes = "ses",
     properties = "p,r,o,p,s",
     initializationActions = "gs://example.com/blah/foo.sh",
-    metadata = Some("key=value")
-  )
+    metadata = None)
+    
+  private val configWithMetadata = config.copy(metadata = Some("key=value"))
 
   private val examplePath = Paths.newAbsolute("foo", "bar", "baz")
 
@@ -109,12 +110,27 @@ final class CloudSdkDataProcClientTest extends FunSuite {
     assert(tokens === Seq(examplePath.render, "dataproc", "clusters", "delete", config.clusterId))
   }
 
-  test("startClusterTokens") {
+  test("startClusterTokens - with metadata") {
+    import CloudSdkDataProcClient.startClusterTokens
+
+    val tokens = startClusterTokens(configWithMetadata)
+
+    val expected = baseStartClusterTokens ++ Seq("--metadata", configWithMetadata.metadata.get)
+
+    assert(tokens === expected)
+  }
+  
+  test("startClusterTokens - no metadata") {
     import CloudSdkDataProcClient.startClusterTokens
 
     val tokens = startClusterTokens(config)
 
-    val expected = Seq(
+    val expected = baseStartClusterTokens
+
+    assert(tokens === expected)
+  }
+  
+  private val baseStartClusterTokens: Seq[String] = Seq(
       examplePath.render,
       "dataproc",
       "clusters",
@@ -145,12 +161,5 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       "--properties",
       config.properties,
       "--initialization-actions",
-      config.initializationActions,
-      "--metadata",
-      config.metadata.get,
-    )
-
-    assert(tokens === expected)
-  }
-  //scalastyle:on magic.number
+      config.initializationActions)
 }

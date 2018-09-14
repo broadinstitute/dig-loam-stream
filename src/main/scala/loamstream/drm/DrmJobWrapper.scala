@@ -53,8 +53,8 @@ final case class DrmJobWrapper(
         |stderrDestPath="${stdErrDestPath.render}"
         |
         |mkdir -p ${outputDir.render}
-        |mv ${drmStdOutPath(taskArray).render} $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-        |mv ${drmStdErrPath(taskArray).render} $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+        |mv ${drmStdOutPath(taskArray).render} $$stdoutDestPath || echo "Couldn't move DRM std out log ${drmStdOutPath(taskArray).render}; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+        |mv ${drmStdErrPath(taskArray).render} $$stderrDestPath || echo "Couldn't move DRM std err log ${drmStdErrPath(taskArray).render}; it's likely the job wasn't submitted successfully" > $$stderrDestPath
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin

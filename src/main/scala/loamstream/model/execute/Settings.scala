@@ -62,7 +62,7 @@ final case class LsfDrmSettings(
   
   override def commandLineInTaskArray(job: HasCommandLine): String = {
     val singularityPart = dockerParams match { 
-      case Some(params) => s"singularity exec docker://${params.imageName} "
+      case Some(params) => s"singularity exec ${params.imageName} "
       case _ => ""
     }
     

@@ -113,7 +113,7 @@ final class DrmJobWrapperTest extends FunSuite {
     doTest(LsfPathBuilder)
   }
 
-  test("ugerCommandLine") {
+  test("commandChunk") {
     def doTest(pathBuilder: PathBuilder): Unit = {
       val jobName = DrmTaskArray.makeJobName()
       
@@ -132,8 +132,8 @@ final class DrmJobWrapperTest extends FunSuite {
                          |stderrDestPath="${jobOutputDir.render}/${j0.id}.stderr"
                          |
                          |mkdir -p ${jobOutputDir.render}
-                         |mv ${workDir.render}/$jobName.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-                         |mv ${workDir.render}/$jobName.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+                         |mv ${workDir.render}/$jobName.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log ${workDir.render}/$jobName.1.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+                         |mv ${workDir.render}/$jobName.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log ${workDir.render}/$jobName.1.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
                          |
                          |exit $$LOAMSTREAM_JOB_EXIT_CODE
                          |""".stripMargin

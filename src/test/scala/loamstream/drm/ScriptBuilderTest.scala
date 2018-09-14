@@ -169,7 +169,7 @@ final class ScriptBuilderTest extends FunSuite {
     val sixSpaces = "      "
 
     val singularityPrefix: String = (drmSystem, dockerParamsOpt) match {
-      case (DrmSystem.Lsf, Some(dockerParams)) => s"singularity exec docker://${dockerParams.imageName} "
+      case (DrmSystem.Lsf, Some(dockerParams)) => s"singularity exec ${dockerParams.imageName} "
       case _ => ""
     }
     
@@ -206,8 +206,8 @@ stdoutDestPath="$finalOutputDir/${jobId0}.stdout"
 stderrDestPath="$finalOutputDir/${jobId0}.stderr"
 
 mkdir -p $finalOutputDir
-mv $drmOutputDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+mv $drmOutputDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.1.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $drmOutputDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.1.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -221,8 +221,8 @@ stdoutDestPath="$finalOutputDir/${jobId1}.stdout"
 stderrDestPath="$finalOutputDir/${jobId1}.stderr"
 
 mkdir -p $finalOutputDir
-mv $drmOutputDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+mv $drmOutputDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.2.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $drmOutputDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.2.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -236,8 +236,8 @@ stdoutDestPath="$finalOutputDir/${jobId2}.stdout"
 stderrDestPath="$finalOutputDir/${jobId2}.stderr"
 
 mkdir -p $finalOutputDir
-mv $drmOutputDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+mv $drmOutputDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.3.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $drmOutputDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.3.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

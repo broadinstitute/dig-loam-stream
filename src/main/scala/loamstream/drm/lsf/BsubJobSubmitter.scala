@@ -131,9 +131,9 @@ object BsubJobSubmitter extends Loggable {
     
     val jobNamePart = Seq("-J", s"${taskArray.drmJobName}[1-${taskArray.size}]")
     
-    val stdoutPart = Seq("-oo", s":${taskArray.stdOutPathTemplate}")
+    val stdoutPart = Seq("-oo", s"${taskArray.stdOutPathTemplate}")
     
-    val stderrPart = Seq("-eo", s":${taskArray.stdErrPathTemplate}")
+    val stderrPart = Seq("-eo", s"${taskArray.stdErrPathTemplate}")
     
     val tokens = actualExecutable +: 
       (queuePart ++ maxRunTimePart ++ memoryPart ++ coresPart ++ jobNamePart ++ stdoutPart ++ stderrPart)

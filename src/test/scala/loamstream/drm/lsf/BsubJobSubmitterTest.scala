@@ -124,9 +124,9 @@ final class BsubJobSubmitterTest extends FunSuite {
         "-J",
         s"${taskArray.drmJobName}[1-2]",
         "-oo",
-        s":${taskArray.stdOutPathTemplate}",
+        taskArray.stdOutPathTemplate,
         "-eo",
-        s":${taskArray.stdErrPathTemplate}")
+        taskArray.stdErrPathTemplate)
         
     assert(tokens === expectedTokens)
   }

@@ -72,6 +72,7 @@ final class ScriptBuilderTest extends FunSuite {
     val dockerParams = DockerParams("library/foo:1.23")
     
     doTest(DrmSystem.Uger, None)
+    doTest(DrmSystem.Uger, Some(dockerParams))
     doTest(DrmSystem.Lsf, None)
     doTest(DrmSystem.Lsf, Some(dockerParams))
   }
@@ -166,8 +167,8 @@ final class ScriptBuilderTest extends FunSuite {
 
     val sixSpaces = "      "
 
-    val singularityPrefix: String = (drmSystem, dockerParamsOpt) match {
-      case (DrmSystem.Lsf, Some(dockerParams)) => s"singularity exec ${dockerParams.imageName} "
+    val singularityPrefix: String = dockerParamsOpt match {
+      case Some(dockerParams) => s"singularity exec ${dockerParams.imageName} "
       case _ => ""
     }
     

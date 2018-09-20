@@ -81,7 +81,9 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
     import loamstream.util.Paths.Implicits._
     
-    val testTag = s"${environmentDescriptor.name}-${jobFilterIntent}-${hashingStrategy}"
+    def munge(s: String): String = s.map { case ':' | '/' | '.' => '_' }
+    
+    val testTag = munge(s"${environmentDescriptor.name}-${jobFilterIntent}-${hashingStrategy}")
     
     val workDir = getWorkDirUnderTarget(Some(testTag))
     

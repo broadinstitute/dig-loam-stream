@@ -10,6 +10,7 @@ import loamstream.conf.UgerConfig
 import loamstream.conf.DrmConfig
 import loamstream.drm.uger.UgerPathBuilder
 import loamstream.drm.lsf.LsfPathBuilder
+import loamstream.model.execute.DrmSettings
 
 /**
  * @author clint
@@ -114,17 +115,17 @@ final class DrmJobWrapperTest extends FunSuite {
   }
 
   test("commandChunk") {
-    def doTest(pathBuilder: PathBuilder): Unit = {
+    def doTest(pathBuilder: PathBuilder, settings: DrmSettings, expectedSingularityPart: String): Unit = {
       val jobName = DrmTaskArray.makeJobName()
       
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, Seq(j0), jobName)
+        DrmTaskArray.fromCommandLineJobs(executionConfig, settings, ugerConfig, pathBuilder, Seq(j0), jobName)
       }
   
       val Seq(wrapper0) = taskArray.drmJobs
   
       // scalastyle:off line.size.limit
-      val expected = s"""|${j0.commandLineString}
+      val expected = s"""|${expectedSingularityPart}${j0.commandLineString}
                          |
                          |LOAMSTREAM_JOB_EXIT_CODE=$$?
                          |
@@ -142,7 +143,18 @@ final class DrmJobWrapperTest extends FunSuite {
       assert(wrapper0.commandChunk(taskArray) === expected)
     }
     
-    doTest(UgerPathBuilder)
-    doTest(LsfPathBuilder)
+    val imageName = "fooImage.simg"
+    
+    val ugerSettingsNoContainer = TestHelpers.defaultUgerSettings
+    val ugerSettingsWITHContainer = ugerSettingsNoContainer.copy(dockerParams = Option(DockerParams(imageName)))
+    
+    val lsfSettingsNoContainer = TestHelpers.defaultLsfSettings
+    val lsfSettingsWITHContainer = lsfSettingsNoContainer.copy(dockerParams = Option(DockerParams(imageName)))
+    
+    doTest(UgerPathBuilder, ugerSettingsNoContainer, "")
+    doTest(UgerPathBuilder, ugerSettingsWITHContainer, "singularity exec fooImage.simg ")
+    
+    doTest(LsfPathBuilder, lsfSettingsNoContainer, "")
+    doTest(LsfPathBuilder, lsfSettingsWITHContainer, "singularity exec fooImage.simg ")
   }
 }

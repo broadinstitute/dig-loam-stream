@@ -13,11 +13,7 @@ import loamstream.util.Sequence
  * Jul 27, 2017
  */
 trait IntegrationTestHelpers {
-  def getWorkDir: Path = {
-    val result = Files.createTempDirectory(getClass.getSimpleName)
-
-    deleteAtExit(result)
-  }
+  def getWorkDir: Path = Files.createTempDirectory(getClass.getSimpleName)
   
   def getWorkDirUnderTarget(subDir: Option[String] = None): Path = {
     import IntegrationTestHelpers.sequence
@@ -26,18 +22,11 @@ trait IntegrationTestHelpers {
     
     val result = Paths.get("target", subDirParts: _*).toAbsolutePath
     
-    result.toFile.mkdirs()
-    
-    deleteAtExit(result)
-  }
-  
-  private def deleteAtExit(p: Path): Path = {
-    //NB: This seems very heavy-handed, but java.io.File.deleteOnExit doesn't work for non-empty directories. :\
-    Runtime.getRuntime.addShutdownHook(new Thread {
-      override def run(): Unit = FileUtils.deleteQuietly(p.toFile)
-    })
-    
-    p
+    try { 
+      result 
+    } finally {
+      result.toFile.mkdirs()
+    }
   }
 }
 

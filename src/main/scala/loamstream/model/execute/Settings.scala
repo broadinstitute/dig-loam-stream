@@ -40,27 +40,8 @@ trait DrmSettings extends Settings {
   def queue: Option[Queue]
   def dockerParams: Option[DockerParams]
   
-  def commandLineInTaskArray(job: HasCommandLine): String
-}
-
-final case class UgerDrmSettings(
-    cores: Cpus,
-    memoryPerCore: Memory,
-    maxRunTime: CpuTime,
-    queue: Option[Queue],
-    dockerParams: Option[DockerParams]) extends DrmSettings {
-  
-  override def commandLineInTaskArray(job: HasCommandLine): String = job.commandLineString
-}
-    
-final case class LsfDrmSettings(
-    cores: Cpus,
-    memoryPerCore: Memory,
-    maxRunTime: CpuTime,
-    queue: Option[Queue],
-    dockerParams: Option[DockerParams]) extends DrmSettings {
-  
-  override def commandLineInTaskArray(job: HasCommandLine): String = {
+  def commandLineInTaskArray(job: HasCommandLine): String = {
+    //TODO: Make singularity executable configurable?
     val singularityPart = dockerParams match { 
       case Some(params) => s"singularity exec ${params.imageName} "
       case _ => ""
@@ -69,6 +50,20 @@ final case class LsfDrmSettings(
     s"${singularityPart}${job.commandLineString}"
   }
 }
+
+final case class UgerDrmSettings(
+    cores: Cpus,
+    memoryPerCore: Memory,
+    maxRunTime: CpuTime,
+    queue: Option[Queue],
+    dockerParams: Option[DockerParams]) extends DrmSettings
+    
+final case class LsfDrmSettings(
+    cores: Cpus,
+    memoryPerCore: Memory,
+    maxRunTime: CpuTime,
+    queue: Option[Queue],
+    dockerParams: Option[DockerParams]) extends DrmSettings
     
 object DrmSettings {
   type SettingsMaker = (Cpus, Memory, CpuTime, Option[Queue], Option[DockerParams]) => DrmSettings

@@ -1,22 +1,20 @@
 package loamstream.drm
 
 import org.scalatest.FunSuite
-import loamstream.model.execute.Environment
-import loamstream.model.jobs.commandline.CommandLineJob
+
 import loamstream.TestHelpers
-import loamstream.conf.ExecutionConfig
-import loamstream.util.BashScript.Implicits._
-import scala.collection.Seq
-import loamstream.drm.uger.UgerScriptBuilderParams
-import loamstream.drm.uger.UgerPathBuilder
-import loamstream.model.execute.DrmSettings
 import loamstream.conf.DrmConfig
-import loamstream.model.quantities.Cpus
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import loamstream.drm.lsf.LsfDockerParams
+import loamstream.conf.ExecutionConfig
 import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.lsf.LsfScriptBuilderParams
+import loamstream.drm.uger.UgerPathBuilder
+import loamstream.drm.uger.UgerScriptBuilderParams
+import loamstream.model.execute.Environment
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.util.BashScript.Implicits.BashPath
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -71,14 +69,14 @@ final class ScriptBuilderTest extends FunSuite {
       assert(scriptContents == expectedScriptContents)
     }
     
-    val dockerParams = LsfDockerParams("library/foo:1.23")
+    val dockerParams = DockerParams("library/foo:1.23")
     
     doTest(DrmSystem.Uger, None)
     doTest(DrmSystem.Lsf, None)
     doTest(DrmSystem.Lsf, Some(dockerParams))
   }
 
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
   
   private def defaultQueue(drmSystem: DrmSystem): Option[Queue] = drmSystem match {
     case DrmSystem.Lsf => None

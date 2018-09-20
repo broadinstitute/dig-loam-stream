@@ -8,7 +8,6 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.drm.Queue
 import loamstream.drm.lsf.LsfDefaults
-import loamstream.drm.lsf.LsfDockerParams
 import loamstream.drm.uger.UgerDefaults
 import loamstream.model.execute.Environment
 import loamstream.model.execute.EnvironmentType
@@ -33,6 +32,7 @@ import loamstream.model.quantities.Memory
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Hash
 import loamstream.util.Hashes
+import loamstream.drm.DockerParams
 
 /**
  * @author clint
@@ -280,7 +280,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           Memory.inGb(4), 
           LsfDefaults.maxRunTime, 
           None,
-          Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
+          Some(DockerParams(imageName = "library/foo:1.2.3")))
               
       val googleSettings = GoogleSettings("some-cluster")
 
@@ -534,7 +534,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         Memory.inGb(4), 
         LsfDefaults.maxRunTime, 
         None, 
-        Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
+        Some(DockerParams(imageName = "library/foo:1.2.3")))
         
     val googleSettings = GoogleSettings("some-cluster")
 

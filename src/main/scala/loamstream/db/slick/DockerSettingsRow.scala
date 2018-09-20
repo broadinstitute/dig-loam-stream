@@ -1,10 +1,6 @@
 package loamstream.db.slick
 
-import java.nio.file.Path
 import loamstream.drm.DockerParams
-import loamstream.drm.lsf.LsfDockerParams
-import java.nio.file.Paths
-import loamstream.util.BashScript
 
 /**
  * @author clint
@@ -20,7 +16,7 @@ trait DockerSettingsRow extends InsertOrUpdatable {
 
 final case class LsfDockerSettingsRow(drmSettingsId: Int, imageName: String) extends DockerSettingsRow {
   
-  override def toDockerParams: DockerParams = LsfDockerParams(imageName)
+  override def toDockerParams: DockerParams = DockerParams(imageName)
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._

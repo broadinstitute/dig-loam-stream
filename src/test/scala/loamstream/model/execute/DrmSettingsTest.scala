@@ -1,19 +1,25 @@
 package loamstream.model.execute
 
+import java.nio.file.Path
+
 import org.scalatest.FunSuite
+
+import com.typesafe.config.ConfigFactory
+
+import loamstream.TestHelpers
+import loamstream.conf.ConfigParser
+import loamstream.conf.DrmConfig
+import loamstream.conf.LsfConfig
+import loamstream.conf.UgerConfig
+import loamstream.drm.DockerParams
+import loamstream.drm.Queue
+import loamstream.drm.uger.UgerDefaults
+import loamstream.model.jobs.commandline.HasCommandLine
+import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import loamstream.drm.uger.UgerDefaults
-import loamstream.TestHelpers
-import com.typesafe.config.ConfigFactory
-import loamstream.conf.LoamConfig
-import loamstream.conf.UgerConfig
-import loamstream.conf.DrmConfig
-import java.nio.file.Path
-import loamstream.drm.Queue
-import loamstream.conf.LsfConfig
-import loamstream.conf.ConfigParser
+import loamstream.model.jobs.commandline.CommandLineJob
+import java.nio.file.Paths
 
 /**
  * @author clint
@@ -29,12 +35,40 @@ final class DrmSettingsTest extends FunSuite {
     doBasicFromConfigTest(LsfConfig.apply, DrmSettings.fromLsfConfig, None)
   }
   
+  test("commandLineInTaskArray - no image") {
+    val ugerSettings = TestHelpers.defaultUgerSettings
+    
+    assert(ugerSettings.dockerParams === None)
+    
+    val lsfSettings = TestHelpers.defaultLsfSettings
+    
+    assert(lsfSettings.dockerParams === None)
+    
+    val job = makeJob("foo")
+    
+    assert(ugerSettings.commandLineInTaskArray(job) === "foo")
+    assert(lsfSettings.commandLineInTaskArray(job) === "foo")
+  }
+  
+  test("commandLineInTaskArray - with image") {
+    val ugerSettings = TestHelpers.defaultUgerSettings.copy(dockerParams = Option(DockerParams("bar")))
+    
+    val lsfSettings = TestHelpers.defaultLsfSettings.copy(dockerParams = Option(DockerParams("baz")))
+    
+    val job = makeJob("foo")
+    
+    assert(ugerSettings.commandLineInTaskArray(job) === "singularity exec bar foo")
+    assert(lsfSettings.commandLineInTaskArray(job) === "singularity exec baz foo")
+  }
+
+  private def makeJob(commandLine: String) = CommandLineJob(commandLine, Paths.get("."), Environment.Local)
+  
   private def doBasicFromConfigTest[C <: DrmConfig](
       makeConfig: (Path, Int, Cpus, Memory, CpuTime) => C, 
       makeSettings: C => DrmSettings,
       expectedQueue: Option[Queue]): Unit = {
     
-    import TestHelpers.path
+    import loamstream.TestHelpers.path
     
     val elevenJobs = 11
     val lotsOfCpus = Cpus(42)

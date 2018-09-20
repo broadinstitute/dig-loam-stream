@@ -13,6 +13,7 @@ import loamstream.db.slick.DbDescriptor
 import loamstream.drm.DrmSystem
 import loamstream.model.execute.HashingStrategy
 import loamstream.util.Files
+import loamstream.model.execute.EnvironmentType
 
 /**
  * @author clint
@@ -21,21 +22,31 @@ import loamstream.util.Files
 final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
   import loamstream.cli.JobFilterIntent.{ DontFilterByName, RunEverything }
+  import HashingStrategy.{ HashOutputs, DontHashOutputs }
+  import SimplePipelineTest.EnvironmentDescriptor
+  import SimplePipelineTest.EnvironmentDescriptor._
   
   test(s"A simple linear pipeline running locally should work") {
-    doTest("local", jobFilterIntent = RunEverything, hashingStrategy = HashingStrategy.HashOutputs)
-    doTest("local", jobFilterIntent = DontFilterByName, hashingStrategy = HashingStrategy.HashOutputs)
-    doTest("local", jobFilterIntent = RunEverything, hashingStrategy = HashingStrategy.DontHashOutputs)
-    doTest("local", jobFilterIntent = DontFilterByName, hashingStrategy = HashingStrategy.DontHashOutputs)
+    doTest(Local, jobFilterIntent = RunEverything, hashingStrategy = HashOutputs)
+    doTest(Local, jobFilterIntent = DontFilterByName, hashingStrategy = HashOutputs)
+    doTest(Local, jobFilterIntent = RunEverything, hashingStrategy = DontHashOutputs)
+    doTest(Local, jobFilterIntent = DontFilterByName, hashingStrategy = DontHashOutputs)
   }
    
   test(s"A simple linear pipeline running on Uger should work") {
     //NB: Due to DRMAA limitations, tests requiring UGER and running in the same JVM must run sequentially, 
     //NOT concurrently!  Concurrent test runs using Uger can happen in different JVM processes.
-    doTest("uger", jobFilterIntent = RunEverything, hashingStrategy = HashingStrategy.HashOutputs)
-    doTest("uger", jobFilterIntent = DontFilterByName, hashingStrategy = HashingStrategy.HashOutputs)
-    doTest("uger", jobFilterIntent = RunEverything, hashingStrategy = HashingStrategy.DontHashOutputs)
-    doTest("uger", jobFilterIntent = DontFilterByName, hashingStrategy = HashingStrategy.DontHashOutputs)
+    doTest(Uger, jobFilterIntent = RunEverything, hashingStrategy = HashOutputs)
+    doTest(Uger, jobFilterIntent = DontFilterByName, hashingStrategy = HashOutputs)
+    doTest(Uger, jobFilterIntent = RunEverything, hashingStrategy = DontHashOutputs)
+    doTest(Uger, jobFilterIntent = DontFilterByName, hashingStrategy = DontHashOutputs)
+    
+    val image = "docker://library/ubuntu:18.04"
+    
+    doTest(UgerInContainer(image), jobFilterIntent = RunEverything, hashingStrategy = HashOutputs)
+    doTest(UgerInContainer(image), jobFilterIntent = DontFilterByName, hashingStrategy = HashOutputs)
+    doTest(UgerInContainer(image), jobFilterIntent = RunEverything, hashingStrategy = DontHashOutputs)
+    doTest(UgerInContainer(image), jobFilterIntent = DontFilterByName, hashingStrategy = DontHashOutputs)
   }
   
   private val dbDescriptor: DbDescriptor = IntegrationTestHelpers.inMemoryH2(this.getClass.getSimpleName)
@@ -63,11 +74,16 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     Files.writeTo(configFilePath)(contents)
   }
   
-  private def doTest(environment: String, jobFilterIntent: JobFilterIntent, hashingStrategy: HashingStrategy): Unit = {
+  private def doTest(
+      environmentDescriptor: EnvironmentDescriptor, 
+      jobFilterIntent: JobFilterIntent, 
+      hashingStrategy: HashingStrategy): Unit = {
     
     import loamstream.util.Paths.Implicits._
     
-    val workDir = getWorkDirUnderTarget(Some(s"$environment-$jobFilterIntent-$hashingStrategy"))
+    val testTag = s"${environmentDescriptor.name}-${jobFilterIntent}-${hashingStrategy}"
+    
+    val workDir = getWorkDirUnderTarget(Some(testTag))
     
     assert(exists(workDir) === true)
     
@@ -77,17 +93,17 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
     val confFilePath = workDir / "loamstream.conf"
     
-    val ugerWorkDir = if(environment == "uger") Some(workDir / "uger") else None
+    val drmWorkDir = if(environmentDescriptor.isUger) Some(workDir / "uger") else None
     
-    ugerWorkDir.foreach { uwd =>
-      assert(uwd.toFile.mkdirs() === true)
+    drmWorkDir.foreach { wd =>
+      assert(wd.toFile.mkdirs() === true)
     }
     
     val jobOutputDir = workDir / "job-outputs"
     
     assert(jobOutputDir.toFile.mkdirs() === true)
     
-    writeConfFileTo(confFilePath, ugerWorkDir, jobOutputDir)
+    writeConfFileTo(confFilePath, drmWorkDir, jobOutputDir)
     
     Files.writeTo(pathA)("AAA")
     
@@ -97,13 +113,19 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     assert(exists(pathB) === false)
     assert(exists(pathC) === false)
     
+    val envFnName = environmentDescriptor match {
+      case Local => "local" 
+      case Uger => "drm"
+      case UgerInContainer(imageName) => s"drmWith(imageName = ${imageName})"
+    }
+    
     val loamScriptContents = {
       s"""|
           |val a = store("${pathA}").asInput
           |val b = store("${pathB}")
           |val c = store("${pathC}")
           |
-          |$environment { //should be 'local' or 'uger'
+          |${envFnName} { //should be 'local', 'drm', or 'drmWith(imageName = ...)'
           |  cmd"cp $$b $$c".in(b).out(c) //NB: declare commands "out of order"
           |
           |  cmd"cp $$a $$b".in(a).out(b)
@@ -111,23 +133,17 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
           |""".stripMargin.trim
     }
     
-    val loamScriptPath = workDir / s"copy-a-b-c-$environment-$jobFilterIntent-$hashingStrategy.loam"
+    val loamScriptPath = workDir / s"copy-a-b-c-${testTag}.loam"
     
     Files.writeTo(loamScriptPath)(loamScriptContents)
     
     assert(Files.readFrom(loamScriptPath) === loamScriptContents)
 
-    val drmSystemOpt: Option[DrmSystem] = environment.toLowerCase match {
-      case "uger" => Some(DrmSystem.Uger)
-      case "lsf" => Some(DrmSystem.Lsf)
-      case _ => None
-    }
-    
     val intent = Intent.RealRun(
       confFile = Some(confFilePath),
       hashingStrategy = hashingStrategy,
       jobFilterIntent = jobFilterIntent,
-      drmSystemOpt = drmSystemOpt,
+      drmSystemOpt = environmentDescriptor.drmSystem,
       loams = Seq(loamScriptPath))
     
     (new Main.Run).doRealRun(intent, dao)
@@ -138,5 +154,39 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
     assert(Files.readFrom(pathA) === Files.readFrom(pathB))
     assert(Files.readFrom(pathB) === Files.readFrom(pathC))
+  }
+}
+
+object SimplePipelineTest {
+  private sealed abstract class EnvironmentDescriptor {
+    def name: String
+    
+    import EnvironmentDescriptor._
+    
+    def isUger: Boolean = this match {
+      case Uger | UgerInContainer(_) => true
+      case _ => false
+    }
+    
+    def drmSystem: Option[DrmSystem] = this match {
+      case Uger | UgerInContainer(_) => Some(DrmSystem.Uger)
+      case _ => None
+    }
+  }
+  
+  private object EnvironmentDescriptor {
+    final case object Local extends EnvironmentDescriptor {
+      override def name: String = "local"
+    }
+    
+    final case object Uger extends EnvironmentDescriptor  {
+      override def name: String = "uger"
+    }
+    
+    final case class UgerInContainer(imageName: String) extends EnvironmentDescriptor  {
+      override def name: String = s"uger-${imageName}"
+    }
+
+    //Someday: LSF?
   }
 }

@@ -158,7 +158,7 @@ object LoamPredef extends Loggable {
       cores: Int = -1,
       mem: Double = -1, 
       maxRunTime: Double = -1,
-      dockerImage: String = "")
+      imageName: String = "")
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     
@@ -174,10 +174,10 @@ object LoamPredef extends Loggable {
     
     val drmConfig: DrmConfig = drmSystem.config(scriptContext)
     
-    val useDocker = dockerImage.nonEmpty
+    val useDocker = imageName.nonEmpty
     
     val dockerParamsOpt: Option[DockerParams] = {
-      if(useDocker) { Some(DockerParams(imageName = dockerImage)) } 
+      if(useDocker) { Some(DockerParams(imageName)) } 
       else { None }
     }
     

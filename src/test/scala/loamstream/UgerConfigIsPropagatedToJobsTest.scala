@@ -35,7 +35,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
             cores = 4, 
             mem = 16, 
             maxRunTime = 5, 
-            dockerImage = "library/foo:1.2.3") {
+            imageName = "library/foo:1.2.3") {
           
           cmd"cp $a $b".in(a).out(b)
         }

@@ -121,7 +121,7 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     val envFnName = environmentDescriptor match {
       case Local => "local" 
       case Uger => "drm"
-      case UgerInContainer(imageName) => s"drmWith(imageName = ${imageName})"
+      case UgerInContainer(imageName) => s"""drmWith(imageName = "${imageName}")"""
     }
     
     val loamScriptContents = {

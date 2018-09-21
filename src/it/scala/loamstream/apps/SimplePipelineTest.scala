@@ -26,27 +26,27 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
   import SimplePipelineTest.EnvironmentDescriptor
   import SimplePipelineTest.EnvironmentDescriptor._
   
-  /*test(s"A simple linear pipeline running locally should work") {
+  test(s"A simple linear pipeline running locally should work") {
     doTest(Local, jobFilterIntent = RunEverything, hashingStrategy = HashOutputs)
     doTest(Local, jobFilterIntent = DontFilterByName, hashingStrategy = HashOutputs)
     doTest(Local, jobFilterIntent = RunEverything, hashingStrategy = DontHashOutputs)
     doTest(Local, jobFilterIntent = DontFilterByName, hashingStrategy = DontHashOutputs)
-  }*/
+  }
    
   test(s"A simple linear pipeline running on Uger should work") {
     //NB: Due to DRMAA limitations, tests requiring UGER and running in the same JVM must run sequentially, 
     //NOT concurrently!  Concurrent test runs using Uger can happen in different JVM processes.
-    /*doTest(Uger, jobFilterIntent = RunEverything, hashingStrategy = HashOutputs)
+    doTest(Uger, jobFilterIntent = RunEverything, hashingStrategy = HashOutputs)
     doTest(Uger, jobFilterIntent = DontFilterByName, hashingStrategy = HashOutputs)
     doTest(Uger, jobFilterIntent = RunEverything, hashingStrategy = DontHashOutputs)
-    doTest(Uger, jobFilterIntent = DontFilterByName, hashingStrategy = DontHashOutputs)*/
+    doTest(Uger, jobFilterIntent = DontFilterByName, hashingStrategy = DontHashOutputs)
     
     val image = "docker://library/ubuntu:18.04"
     
-    //doTest(UgerInContainer(image), jobFilterIntent = RunEverything, hashingStrategy = HashOutputs)
-    //doTest(UgerInContainer(image), jobFilterIntent = DontFilterByName, hashingStrategy = HashOutputs)
+    doTest(UgerInContainer(image), jobFilterIntent = RunEverything, hashingStrategy = HashOutputs)
+    doTest(UgerInContainer(image), jobFilterIntent = DontFilterByName, hashingStrategy = HashOutputs)
     doTest(UgerInContainer(image), jobFilterIntent = RunEverything, hashingStrategy = DontHashOutputs)
-    //doTest(UgerInContainer(image), jobFilterIntent = DontFilterByName, hashingStrategy = DontHashOutputs)
+    doTest(UgerInContainer(image), jobFilterIntent = DontFilterByName, hashingStrategy = DontHashOutputs)
   }
   
   private val dbDescriptor: DbDescriptor = IntegrationTestHelpers.inMemoryH2(this.getClass.getSimpleName)

@@ -12,6 +12,7 @@ import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.BashScript.Implicits._
 import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
+import loamstream.util.Loggable
 
 
 /**
@@ -23,7 +24,7 @@ final case class DrmJobWrapper(
     drmSettings: DrmSettings,
     pathBuilder: PathBuilder,
     commandLineJob: HasCommandLine, 
-    drmIndex: Int) {
+    drmIndex: Int) extends Loggable {
 
   def drmStdOutPath(taskArray: DrmTaskArray): Path = {
     pathBuilder.reifyPathTemplate(taskArray.stdOutPathTemplate, drmIndex)
@@ -51,7 +52,11 @@ final case class DrmJobWrapper(
       case _ => ""
     }
     
-    s"${singularityPart}${commandLineJob.commandLineString}"
+    val result = s"${singularityPart}${commandLineJob.commandLineString}"
+    
+    debug(s"Raw command in DRM shell script: '${result}'")
+    
+    result
   }
   
   def commandChunk(taskArray: DrmTaskArray): String = {

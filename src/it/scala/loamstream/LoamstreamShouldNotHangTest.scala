@@ -9,7 +9,7 @@ import loamstream.util.Paths
  * @author clint
  * Sep 20, 2017
  */
-final class LoamstreamShouldNotHangTest extends FunSuite {
+abstract class LoamstreamShouldNotHangTest extends FunSuite {
   import IntegrationTestHelpers.path
   import java.nio.file.Files.exists
 

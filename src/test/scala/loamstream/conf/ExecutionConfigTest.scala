@@ -73,7 +73,50 @@ final class ExecutionConfigTest extends FunSuite {
         maxWaitTimeForOutputs = expectedMaxWaitTime,
         outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
         dryRunOutputFile = expectedDryRunOutputFile,
-        anonStoreDir = expectedAnonStoreDir)
+        anonStoreDir = expectedAnonStoreDir,
+        singularity = SingularityConfig.default)
+
+    assert(executionConfig === expected)
+  }
+  
+  test("good input - with singularity config") {
+    val expectedMaxRunsPerJob = 42
+    val expectedJobOutputDir = path("asdf/blah/foo")
+
+    import scala.concurrent.duration._
+    val expectedMaxWaitTime = 99.seconds
+    val expectedOutputPollingFrequencyInHz = 1.23
+    val expectedDryRunOutputFile = path("foo/asdkas/asdasd/asd.txt")
+    val expectedAnonStoreDir = path("/alskdj/asd/asd")
+    val expectedSingularityExecutable = path("/foo/bar/baz")
+    val mappedDir0 = path("/bar")
+    val mappedDir1 = path("/baz/blerg/blip")
+    
+    val input = s"""|loamstream {
+                    |  execution {
+                    |    maxRunsPerJob = $expectedMaxRunsPerJob
+                    |    jobOutputDir = ${expectedJobOutputDir.render}
+                    |    maxWaitTimeForOutputs = "99 seconds"
+                    |    outputPollingFrequencyInHz = 1.23
+                    |    dryRunOutputFile = ${expectedDryRunOutputFile.render},
+                    |    anonStoreDir = ${expectedAnonStoreDir.render}
+                    |    singularity {
+                    |      executable = ${expectedSingularityExecutable.render}
+                    |      mappedDirs = [${mappedDir0.render}, ${mappedDir1.render}]
+                    |    }
+                    |  }
+                    |}""".stripMargin
+
+    val executionConfig = parse(input).get
+
+    val expected = ExecutionConfig(
+        maxRunsPerJob = expectedMaxRunsPerJob,
+        jobOutputDir = expectedJobOutputDir,
+        maxWaitTimeForOutputs = expectedMaxWaitTime,
+        outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
+        dryRunOutputFile = expectedDryRunOutputFile,
+        anonStoreDir = expectedAnonStoreDir,
+        singularity = SingularityConfig(expectedSingularityExecutable.render, Seq(mappedDir0, mappedDir1)))
 
     assert(executionConfig === expected)
   }

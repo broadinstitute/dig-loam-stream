@@ -39,13 +39,26 @@ final case class DrmJobWrapper(
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
+  private[drm] def commandLineInTaskArray: String = {
+    val singularityConfig = executionConfig.singularity
+    
+    def mappingPart: String = singularityConfig.mappedDirs.distinct.map { dir =>
+      s"-B ${dir.toAbsolutePath} "
+    }.mkString
+    
+    val singularityPart = drmSettings.dockerParams match { 
+      case Some(params) => s"${singularityConfig.executable} exec ${mappingPart}${params.imageName} "
+      case _ => ""
+    }
+    
+    s"${singularityPart}${commandLineJob.commandLineString}"
+  }
+  
   def commandChunk(taskArray: DrmTaskArray): String = {
-    val commandLine = drmSettings.commandLineInTaskArray(commandLineJob)
-
     val outputDir = executionConfig.jobOutputDir.toAbsolutePath
 
     // scalastyle:off line.size.limit
-    s"""|${commandLine}
+    s"""|${commandLineInTaskArray}
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |

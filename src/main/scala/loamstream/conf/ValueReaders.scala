@@ -48,4 +48,10 @@ object ValueReaders {
       result
     }
   }
+  
+  implicit val SingularityConfigReader: ValueReader[SingularityConfig] = new ValueReader[SingularityConfig] {
+    override def read(config: Config, path: String): SingularityConfig = {
+      SingularityConfig.fromConfig(config).get
+    }
+  }
 }

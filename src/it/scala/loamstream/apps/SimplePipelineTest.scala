@@ -67,6 +67,9 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     val contents = s"""|loamstream {
                        |  execution {
                        |    outputDir = "$jobOutputDir"
+                       |    singularity {
+                       |      mappedDirs = "/humgen"
+                       |    }
                        |  }
                        |  ${ugerSection}
                        |}""".stripMargin

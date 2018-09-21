@@ -39,16 +39,6 @@ trait DrmSettings extends Settings {
   def maxRunTime: CpuTime
   def queue: Option[Queue]
   def dockerParams: Option[DockerParams]
-  
-  def commandLineInTaskArray(job: HasCommandLine): String = {
-    //TODO: Make singularity executable configurable?
-    val singularityPart = dockerParams match { 
-      case Some(params) => s"singularity exec -B /humgen ${params.imageName} "
-      case _ => ""
-    }
-    
-    s"${singularityPart}${job.commandLineString}"
-  }
 }
 
 final case class UgerDrmSettings(

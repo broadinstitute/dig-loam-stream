@@ -54,7 +54,7 @@ final case class DrmJobWrapper(
     
     val result = s"${singularityPart}${commandLineJob.commandLineString}"
     
-    debug(s"Raw command in DRM shell script: '${result}'")
+    info(s"Raw command in DRM shell script: '${result}'")
     
     result
   }

@@ -43,7 +43,7 @@ trait DrmSettings extends Settings {
   def commandLineInTaskArray(job: HasCommandLine): String = {
     //TODO: Make singularity executable configurable?
     val singularityPart = dockerParams match { 
-      case Some(params) => s"singularity exec ${params.imageName} "
+      case Some(params) => s"singularity exec -B /humgen ${params.imageName} "
       case _ => ""
     }
     

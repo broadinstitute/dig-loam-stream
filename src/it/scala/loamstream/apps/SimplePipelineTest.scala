@@ -68,13 +68,15 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
                        |  execution {
                        |    outputDir = "$jobOutputDir"
                        |    singularity {
-                       |      mappedDirs = "/humgen"
+                       |      mappedDirs = ["/humgen"]
                        |    }
                        |  }
                        |  ${ugerSection}
                        |}""".stripMargin
 
     Files.writeTo(configFilePath)(contents)
+    
+    assert(Files.readFrom(configFilePath) === contents)
   }
   
   private def doTest(

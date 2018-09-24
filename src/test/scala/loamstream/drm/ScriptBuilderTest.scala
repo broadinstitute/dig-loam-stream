@@ -182,6 +182,9 @@ final class ScriptBuilderTest extends FunSuite {
                                 |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$PATH
                                 |source activate loamstream_v1.0
                                 |
+                                |mkdir -p /broad/hptmp/${USER}
+                                |export SINGULARITY_CACHEDIR=/broad/hptmp/${USER}
+                                |
                                 |i=$SGE_TASK_ID
                                 |jobId=$JOB_ID""".stripMargin
                                

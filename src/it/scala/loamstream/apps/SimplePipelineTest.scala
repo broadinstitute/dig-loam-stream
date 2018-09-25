@@ -19,7 +19,7 @@ import loamstream.model.execute.EnvironmentType
  * @author clint
  * Jan 29, 2018
  */
-final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
+final class SimplePipelineTest extends FunSuite {
     
   import loamstream.cli.JobFilterIntent.{ DontFilterByName, RunEverything }
   import HashingStrategy.{ HashOutputs, DontHashOutputs }
@@ -86,14 +86,9 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     
     import loamstream.util.Paths.Implicits._
     
-    def munge(s: String): String = s.map { 
-      case ':' | '/' | '.' => '_'
-      case c => c
-    }
+    val testTag = s"${environmentDescriptor.toFileNamePart}-${jobFilterIntent}-${hashingStrategy}"
     
-    val testTag = munge(s"${environmentDescriptor.name}-${jobFilterIntent}-${hashingStrategy}")
-    
-    val workDir = getWorkDirUnderTarget(Some(testTag))
+    val workDir = IntegrationTestHelpers.getWorkDirUnderTarget(Some(testTag))
     
     assert(exists(workDir) === true)
     
@@ -123,11 +118,7 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
     assert(exists(pathB) === false)
     assert(exists(pathC) === false)
     
-    val envFnName = environmentDescriptor match {
-      case Local => "local" 
-      case Uger => "drm"
-      case UgerInContainer(imageName) => s"""drmWith(imageName = "${imageName}")"""
-    }
+    val envFnName = environmentDescriptor.toLoamCode
     
     val loamScriptContents = {
       s"""|
@@ -169,7 +160,9 @@ final class SimplePipelineTest extends FunSuite with IntegrationTestHelpers {
 
 object SimplePipelineTest {
   private sealed abstract class EnvironmentDescriptor {
-    def name: String
+    def toFileNamePart: String
+    
+    def toLoamCode: String = toFileNamePart
     
     import EnvironmentDescriptor._
     
@@ -186,15 +179,24 @@ object SimplePipelineTest {
   
   private object EnvironmentDescriptor {
     final case object Local extends EnvironmentDescriptor {
-      override def name: String = "local"
+      override def toFileNamePart: String = "local"
     }
     
     final case object Uger extends EnvironmentDescriptor  {
-      override def name: String = "uger"
+      override def toFileNamePart: String = "drm"
     }
     
     final case class UgerInContainer(imageName: String) extends EnvironmentDescriptor  {
-      override def name: String = s"uger-${imageName}"
+      override def toFileNamePart: String = {
+        def munge(s: String): String = s.map { 
+          case ':' | '/' | '.' => '_'
+          case c => c
+        }
+        
+        s"drm-${munge(imageName)}"
+      }
+      
+      override def toLoamCode: String = s"""drmWith(imageName = "${imageName}")"""
     }
 
     //Someday: LSF?

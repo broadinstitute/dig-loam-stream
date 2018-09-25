@@ -12,6 +12,7 @@ import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.BashScript.Implicits._
 import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
+import loamstream.util.Loggable
 
 
 /**
@@ -23,7 +24,7 @@ final case class DrmJobWrapper(
     drmSettings: DrmSettings,
     pathBuilder: PathBuilder,
     commandLineJob: HasCommandLine, 
-    drmIndex: Int) {
+    drmIndex: Int) extends Loggable {
 
   def drmStdOutPath(taskArray: DrmTaskArray): Path = {
     pathBuilder.reifyPathTemplate(taskArray.stdOutPathTemplate, drmIndex)
@@ -39,13 +40,30 @@ final case class DrmJobWrapper(
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
+  private[drm] def commandLineInTaskArray: String = {
+    val singularityConfig = executionConfig.singularity
+    
+    def mappingPart: String = singularityConfig.mappedDirs.distinct.map { dir =>
+      s"-B ${dir.toAbsolutePath} "
+    }.mkString
+    
+    val singularityPart = drmSettings.dockerParams match { 
+      case Some(params) => s"${singularityConfig.executable} exec ${mappingPart}${params.imageName} "
+      case _ => ""
+    }
+    
+    val result = s"${singularityPart}${commandLineJob.commandLineString}"
+    
+    debug(s"Raw command in DRM shell script: '${result}'")
+    
+    result
+  }
+  
   def commandChunk(taskArray: DrmTaskArray): String = {
-    val commandLine = drmSettings.commandLineInTaskArray(commandLineJob)
-
     val outputDir = executionConfig.jobOutputDir.toAbsolutePath
 
     // scalastyle:off line.size.limit
-    s"""|${commandLine}
+    s"""|${commandLineInTaskArray}
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |

@@ -20,7 +20,10 @@ final class UgerScriptBuilderParamsTest extends FunSuite {
                       |reuse -q Java-1.8
                       |
                       |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$PATH
-                      |source activate loamstream_v1.0""".stripMargin
+                      |source activate loamstream_v1.0
+                      |
+                      |mkdir -p /broad/hptmp/${USER}
+                      |export SINGULARITY_CACHEDIR=/broad/hptmp/${USER}""".stripMargin
     
     assert(UgerScriptBuilderParams.preamble === Some(expected))
   }

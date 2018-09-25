@@ -39,8 +39,6 @@ trait DrmSettings extends Settings {
   def maxRunTime: CpuTime
   def queue: Option[Queue]
   def dockerParams: Option[DockerParams]
-  
-  def commandLineInTaskArray(job: HasCommandLine): String
 }
 
 final case class UgerDrmSettings(
@@ -48,27 +46,14 @@ final case class UgerDrmSettings(
     memoryPerCore: Memory,
     maxRunTime: CpuTime,
     queue: Option[Queue],
-    dockerParams: Option[DockerParams]) extends DrmSettings {
-  
-  override def commandLineInTaskArray(job: HasCommandLine): String = job.commandLineString
-}
+    dockerParams: Option[DockerParams]) extends DrmSettings
     
 final case class LsfDrmSettings(
     cores: Cpus,
     memoryPerCore: Memory,
     maxRunTime: CpuTime,
     queue: Option[Queue],
-    dockerParams: Option[DockerParams]) extends DrmSettings {
-  
-  override def commandLineInTaskArray(job: HasCommandLine): String = {
-    val singularityPart = dockerParams match { 
-      case Some(params) => s"singularity exec ${params.imageName} "
-      case _ => ""
-    }
-    
-    s"${singularityPart}${job.commandLineString}"
-  }
-}
+    dockerParams: Option[DockerParams]) extends DrmSettings
     
 object DrmSettings {
   type SettingsMaker = (Cpus, Memory, CpuTime, Option[Queue], Option[DockerParams]) => DrmSettings

@@ -1,33 +1,32 @@
 package loamstream.drm.lsf
 
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
 import org.scalatest.FunSuite
-import loamstream.conf.DrmConfig
-import loamstream.conf.LsfConfig
+
 import loamstream.TestHelpers
-import loamstream.model.quantities.Cpus
-import loamstream.model.quantities.CpuTime
+import loamstream.conf.ExecutionConfig
+import loamstream.conf.LsfConfig
+import loamstream.drm.DockerParams
+import loamstream.drm.DrmSubmissionResult
+import loamstream.drm.DrmTaskArray
 import loamstream.drm.Queue
 import loamstream.model.execute.DrmSettings
-import loamstream.model.quantities.Memory
-import loamstream.drm.DrmTaskArray
-import loamstream.conf.ExecutionConfig
-import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.Environment
-import loamstream.util.ExitCodes
-import loamstream.util.Files
-import scala.util.Try
-import scala.util.Success
-import loamstream.drm.DrmSubmissionResult
-import scala.util.Failure
-import loamstream.util.BashScript
 import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
 
 /**
  * @author clint
  * May 15, 2018
  */
 final class BsubJobSubmitterTest extends FunSuite {
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
   
   test("submitJobs - happy path") {
     def submissionFn(drmSettings: DrmSettings, taskArray: DrmTaskArray): Try[RunResults] = {
@@ -152,7 +151,7 @@ final class BsubJobSubmitterTest extends FunSuite {
       memoryPerCore = Memory.inGb(7),
       maxRunTime = CpuTime.inHours(3),
       queue = Some(queue),
-      dockerParams = Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
+      dockerParams = Some(DockerParams(imageName = "library/foo:1.2.3")))
   
   private lazy val settingsWithoutDocker = settings.copy(dockerParams = None)
           

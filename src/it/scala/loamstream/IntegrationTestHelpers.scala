@@ -12,35 +12,6 @@ import loamstream.util.Sequence
  * @author clint
  * Jul 27, 2017
  */
-trait IntegrationTestHelpers {
-  def getWorkDir: Path = {
-    val result = Files.createTempDirectory(getClass.getSimpleName)
-
-    deleteAtExit(result)
-  }
-  
-  def getWorkDirUnderTarget(subDir: Option[String] = None): Path = {
-    import IntegrationTestHelpers.sequence
-    
-    val subDirParts = Seq(s"${getClass.getSimpleName}-${sequence.next()}") ++ subDir
-    
-    val result = Paths.get("target", subDirParts: _*).toAbsolutePath
-    
-    result.toFile.mkdirs()
-    
-    deleteAtExit(result)
-  }
-  
-  private def deleteAtExit(p: Path): Path = {
-    //NB: This seems very heavy-handed, but java.io.File.deleteOnExit doesn't work for non-empty directories. :\
-    Runtime.getRuntime.addShutdownHook(new Thread {
-      override def run(): Unit = FileUtils.deleteQuietly(p.toFile)
-    })
-    
-    p
-  }
-}
-
 object IntegrationTestHelpers {
   private val sequence: Sequence[Int] = Sequence()
   
@@ -50,5 +21,17 @@ object IntegrationTestHelpers {
     def makeUrl(dbName: String): String = s"jdbc:h2:mem:$dbName;DB_CLOSE_DELAY=-1"
     
     DbDescriptor(DbType.H2, makeUrl(s"integrationtest-${discriminator}"))
+  }
+  
+  def getWorkDirUnderTarget(subDir: Option[String] = None): Path = {
+    val subDirParts = Seq(s"${getClass.getSimpleName}-${sequence.next()}") ++ subDir
+    
+    val result = Paths.get("target", subDirParts: _*).toAbsolutePath
+    
+    try { 
+      result 
+    } finally {
+      result.toFile.mkdirs()
+    }
   }
 }

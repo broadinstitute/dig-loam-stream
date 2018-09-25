@@ -1,19 +1,20 @@
 package loamstream.model.execute
 
+import java.nio.file.Path
+
 import org.scalatest.FunSuite
+
+import com.typesafe.config.ConfigFactory
+
+import loamstream.conf.ConfigParser
+import loamstream.conf.DrmConfig
+import loamstream.conf.LsfConfig
+import loamstream.conf.UgerConfig
+import loamstream.drm.Queue
+import loamstream.drm.uger.UgerDefaults
+import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import loamstream.drm.uger.UgerDefaults
-import loamstream.TestHelpers
-import com.typesafe.config.ConfigFactory
-import loamstream.conf.LoamConfig
-import loamstream.conf.UgerConfig
-import loamstream.conf.DrmConfig
-import java.nio.file.Path
-import loamstream.drm.Queue
-import loamstream.conf.LsfConfig
-import loamstream.conf.ConfigParser
 
 /**
  * @author clint
@@ -34,7 +35,7 @@ final class DrmSettingsTest extends FunSuite {
       makeSettings: C => DrmSettings,
       expectedQueue: Option[Queue]): Unit = {
     
-    import TestHelpers.path
+    import loamstream.TestHelpers.path
     
     val elevenJobs = 11
     val lotsOfCpus = Cpus(42)

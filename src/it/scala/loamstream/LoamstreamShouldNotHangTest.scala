@@ -55,7 +55,7 @@ final class LoamstreamShouldNotHangTest extends FunSuite {
                        |val storeY = store("$yPath")
                        |val storeZ = store("$zPath")
                        |
-                       |uger {
+                       |drm {
                        |  //Will fail
                        |  cmd"cp $$nonexistent $$storeX".in(nonexistent).out(storeX)
                        |

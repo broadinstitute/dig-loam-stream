@@ -7,26 +7,16 @@ import java.nio.file.Paths
 
 import loamstream.conf.DataConfig
 import loamstream.conf.DrmConfig
+import loamstream.drm.DockerParams
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamScriptContext
 import loamstream.model.Store
-import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
-import loamstream.drm.uger.UgerDefaults
-import loamstream.util.Options
-import scala.util.Try
-import loamstream.drm.DrmSystem
-import loamstream.drm.Queue
-import loamstream.conf.DrmConfig
-import loamstream.drm.lsf.LsfDockerParams
-import loamstream.drm.DockerParams
-import loamstream.model.execute.LsfDrmSettings
-import loamstream.model.execute.UgerDrmSettings
 
 /** Predefined symbols in Loam scripts */
 object LoamPredef extends Loggable {
@@ -168,7 +158,7 @@ object LoamPredef extends Loggable {
       cores: Int = -1,
       mem: Double = -1, 
       maxRunTime: Double = -1,
-      dockerImage: String = "")
+      imageName: String = "")
       (expr: => A)
       (implicit scriptContext: LoamScriptContext): A = {
     
@@ -184,16 +174,11 @@ object LoamPredef extends Loggable {
     
     val drmConfig: DrmConfig = drmSystem.config(scriptContext)
     
-    val useDocker = dockerImage.nonEmpty
+    val useDocker = imageName.nonEmpty
     
     val dockerParamsOpt: Option[DockerParams] = {
-      if(useDocker) {
-        require(drmSystem == DrmSystem.Lsf, s"Running commands in Docker containers is only supported on LSF.")
-        
-        Some(LsfDockerParams(imageName = dockerImage))
-      } else { 
-        None
-      }
+      if(useDocker) { Some(DockerParams(imageName)) } 
+      else { None }
     }
     
     val settings = drmSystem.settingsMaker(

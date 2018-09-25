@@ -8,6 +8,4 @@ import java.nio.file.Path
  * 
  * Represents the information needed to run commands in a Docker container. 
  */
-trait DockerParams {
-  def imageName: String
-}
+final case class DockerParams(imageName: String)

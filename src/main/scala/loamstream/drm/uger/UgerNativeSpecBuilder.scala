@@ -21,7 +21,16 @@ object UgerNativeSpecBuilder extends NativeSpecBuilder {
 
       val queuePart = queue.map(q => s"-q $q").getOrElse("")
       
-      s"-binding linear:${numCores} -pe smp ${numCores} $queuePart -l h_rt=${runTimeInHours}:0:0,h_vmem=${mem}g"
+      val osPart = drmSettings.dockerParams match {
+        case Some(_) => "-l os=RedHat7"
+        case None => ""
+      }
+      
+      val memPart = s"h_vmem=${mem}g"
+      
+      val runTimePart = s"h_rt=${runTimeInHours}:0:0"
+      
+      s"-binding linear:${numCores} -pe smp ${numCores} $queuePart -l ${runTimePart},${memPart} ${osPart}"
     }
 
     s"$staticPart $dynamicPart"

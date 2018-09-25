@@ -17,9 +17,10 @@ import loamstream.model.quantities.CpuTime
 import loamstream.drm.uger.UgerDefaults
 import loamstream.drm.DrmSystem
 import loamstream.drm.lsf.LsfDefaults
-import loamstream.drm.lsf.LsfDockerParams
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings
+import loamstream.drm.DockerParams
+import loamstream.drm.Queue
 
 /**
  * @author clint
@@ -201,42 +202,30 @@ final class LoamPredefTest extends FunSuite {
         LoamPredef.ugerWith(2, 4, 6))
   }
   
-  test("drmWith - non-defaults - Uger") {
-    implicit val scriptContext = newScriptContext(DrmSystem.Uger)
+  test("drmWith - non-defaults") {
+    def doTest(drmSystem: DrmSystem): Unit = {
+      implicit val scriptContext = newScriptContext(drmSystem)
+      
+      import TestHelpers.path
+      
+      val expectedSettings = drmSystem.settingsMaker(
+          Cpus(2), 
+          Memory.inGb(4), 
+          CpuTime.inHours(6), 
+          drmSystem.defaultQueue, //use this default, since it's not possible to specify a queue via drmWith()
+          Some(DockerParams(imageName = "library/foo:1.2.3")))
+      
+      val expectedEnvironment = drmSystem.makeEnvironment(expectedSettings)
+          
+      doEeTest(
+          scriptContext, 
+          Local, 
+          expectedEnvironment, 
+          LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3"))
+    }
     
-    import TestHelpers.path
-    
-    val expectedSettings = UgerDrmSettings(
-        cores = Cpus(2), 
-        memoryPerCore = Memory.inGb(4), 
-        maxRunTime = CpuTime.inHours(6), 
-        queue = Option(UgerDefaults.queue),
-        None)
-    
-    doEeTest(
-        scriptContext, 
-        Local, 
-        Uger(expectedSettings), 
-        LoamPredef.drmWith(2, 4, 6))
-  }
-  
-  test("drmWith - non-defaults - Lsf") {
-    implicit val scriptContext = newScriptContext(DrmSystem.Lsf)
-    
-    import TestHelpers.path
-    
-    val expectedSettings = LsfDrmSettings(
-        cores = Cpus(2), 
-        memoryPerCore = Memory.inGb(4), 
-        maxRunTime = CpuTime.inHours(6), 
-        queue = None,
-        Some(LsfDockerParams(imageName = "library/foo:1.2.3")))
-    
-    doEeTest(
-        scriptContext, 
-        Local, 
-        Lsf(expectedSettings), 
-        LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3"))
+    doTest(DrmSystem.Lsf)
+    doTest(DrmSystem.Uger)
   }
   
   private def newScriptContext: LoamScriptContext = new LoamScriptContext(TestHelpers.emptyProjectContext)

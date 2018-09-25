@@ -59,11 +59,11 @@ final class LogFileNamesTest extends FunSuite {
   }
 
   test("stderr - name with 'bad' chars") {
-    val job = MockJob(Succeeded, "foo   blah/blah:bar\\baz")
+    val job = MockJob(Succeeded, "foo   blah/blah:b$ar\\baz$$")
 
     val fileName = stderr(job)
 
-    assert(fileName === path(s"/x/y/z/job-outputs/foo___blah_blah_bar_baz.stderr").toAbsolutePath)
+    assert(fileName === path(s"/x/y/z/job-outputs/foo___blah_blah_b_ar_baz__.stderr").toAbsolutePath)
   }
 
   test("stdout - job with supplied name, custom dir") {

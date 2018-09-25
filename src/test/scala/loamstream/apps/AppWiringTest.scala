@@ -18,6 +18,9 @@ import loamstream.drm.DrmSystem
 import loamstream.drm.DrmChunkRunner
 import loamstream.model.execute.ByNameJobFilter
 import loamstream.conf.LoamConfig
+import loamstream.drm.lsf.LsfPathBuilder
+import loamstream.drm.uger.UgerPathBuilder
+import loamstream.drm.PathBuilder
 
 
 /**
@@ -176,6 +179,27 @@ final class AppWiringTest extends FunSuite with Matchers {
     doTest(DrmSystem.Lsf)
   }
   
+  test("DRM execution, correct PathBuilder is used by DrmChunkRunner") {
+    def doTest(drmSystem: DrmSystem, expectedPathBuilder: PathBuilder): Unit = {
+      val wiring = {
+        appWiring(cliConf(s"${toFlag(drmSystem)} --conf $confFileForUger --loams $exampleFile"))
+      }
+      
+      val actualExecuter = wiring.executer.asInstanceOf[AppWiring.TerminableExecuter].delegate.asInstanceOf[RxExecuter]
+      
+      val runner = actualExecuter.runner.asInstanceOf[CompositeChunkRunner]
+      
+      assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
+      
+      val drmRunner = runner.components.collectFirst { case drmRunner: DrmChunkRunner => drmRunner }.get
+      
+      assert(drmRunner.pathBuilder === expectedPathBuilder)
+    }
+    
+    doTest(DrmSystem.Uger, UgerPathBuilder)
+    doTest(DrmSystem.Lsf, LsfPathBuilder)
+  }
+  
   test("loamConfigFrom") {
     import AppWiring.loamConfigFrom
     
@@ -189,4 +213,6 @@ final class AppWiringTest extends FunSuite with Matchers {
     doTest(Some(DrmSystem.Uger))
     doTest(Some(DrmSystem.Lsf))
   }
+  
+  
 }

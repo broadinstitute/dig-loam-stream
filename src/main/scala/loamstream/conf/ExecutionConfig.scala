@@ -17,7 +17,8 @@ final case class ExecutionConfig(
     maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs,
     outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
     dryRunOutputFile: Path = Defaults.dryRunOutputFile,
-    anonStoreDir: Path = Defaults.anonStoreDir)
+    anonStoreDir: Path = Defaults.anonStoreDir,
+    singularity: SingularityConfig = Defaults.singularityConfig)
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
@@ -34,7 +35,9 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     
     val outputPollingFrequencyInHz: Double = 0.1
     
-    val anonStoreDir = Paths.get(System.getProperty("java.io.tmpdir", "/tmp"))
+    val anonStoreDir: Path = Paths.get(System.getProperty("java.io.tmpdir", "/tmp"))
+    
+    val singularityConfig: SingularityConfig = SingularityConfig.default
   }
   
   val default: ExecutionConfig = ExecutionConfig()
@@ -43,6 +46,7 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
     import ValueReaders.PathReader
+    import ValueReaders.SingularityConfigReader
 
     //NB: Ficus now marshals the contents of loamstream.execution into an ExecutionConfig instance.
     //Names of fields in ExecutionConfig and keys under loamstream.execution must match.

@@ -24,7 +24,7 @@ object LogFileNames {
   }
   
   //NB: Basically anything path-separator-related
-  private[this] val specialChars: Set[Char] = Set('/', ':', '\\')
+  private[this] val specialChars: Set[Char] = Set('/', ':', '\\', '$')
   
   private def mungeSpecialChars(s: String): String = s.map {
     case ch if ch.isWhitespace || specialChars.contains(ch) => '_'

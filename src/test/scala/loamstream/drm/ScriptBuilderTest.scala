@@ -1,22 +1,20 @@
 package loamstream.drm
 
 import org.scalatest.FunSuite
-import loamstream.model.execute.Environment
-import loamstream.model.jobs.commandline.CommandLineJob
+
 import loamstream.TestHelpers
-import loamstream.conf.ExecutionConfig
-import loamstream.util.BashScript.Implicits._
-import scala.collection.Seq
-import loamstream.drm.uger.UgerScriptBuilderParams
-import loamstream.drm.uger.UgerPathBuilder
-import loamstream.model.execute.DrmSettings
 import loamstream.conf.DrmConfig
-import loamstream.model.quantities.Cpus
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import loamstream.drm.lsf.LsfDockerParams
+import loamstream.conf.ExecutionConfig
 import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.lsf.LsfScriptBuilderParams
+import loamstream.drm.uger.UgerPathBuilder
+import loamstream.drm.uger.UgerScriptBuilderParams
+import loamstream.model.execute.Environment
+import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.util.BashScript.Implicits.BashPath
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -71,14 +69,15 @@ final class ScriptBuilderTest extends FunSuite {
       assert(scriptContents == expectedScriptContents)
     }
     
-    val dockerParams = LsfDockerParams("library/foo:1.23")
+    val dockerParams = DockerParams("library/foo:1.23")
     
     doTest(DrmSystem.Uger, None)
+    doTest(DrmSystem.Uger, Some(dockerParams))
     doTest(DrmSystem.Lsf, None)
     doTest(DrmSystem.Lsf, Some(dockerParams))
   }
 
-  import TestHelpers.path
+  import loamstream.TestHelpers.path
   
   private def defaultQueue(drmSystem: DrmSystem): Option[Queue] = drmSystem match {
     case DrmSystem.Lsf => None
@@ -168,8 +167,8 @@ final class ScriptBuilderTest extends FunSuite {
 
     val sixSpaces = "      "
 
-    val singularityPrefix: String = (drmSystem, dockerParamsOpt) match {
-      case (DrmSystem.Lsf, Some(dockerParams)) => s"singularity exec docker://${dockerParams.imageName} "
+    val singularityPrefix: String = dockerParamsOpt match {
+      case Some(dockerParams) => s"singularity exec ${dockerParams.imageName} "
       case _ => ""
     }
     
@@ -182,6 +181,9 @@ final class ScriptBuilderTest extends FunSuite {
                                 |
                                 |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$PATH
                                 |source activate loamstream_v1.0
+                                |
+                                |mkdir -p /broad/hptmp/${USER}
+                                |export SINGULARITY_CACHEDIR=/broad/hptmp/${USER}
                                 |
                                 |i=$SGE_TASK_ID
                                 |jobId=$JOB_ID""".stripMargin
@@ -206,8 +208,8 @@ stdoutDestPath="$finalOutputDir/${jobId0}.stdout"
 stderrDestPath="$finalOutputDir/${jobId0}.stderr"
 
 mkdir -p $finalOutputDir
-mv $drmOutputDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+mv $drmOutputDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.1.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $drmOutputDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.1.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -221,8 +223,8 @@ stdoutDestPath="$finalOutputDir/${jobId1}.stdout"
 stderrDestPath="$finalOutputDir/${jobId1}.stderr"
 
 mkdir -p $finalOutputDir
-mv $drmOutputDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+mv $drmOutputDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.2.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $drmOutputDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.2.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -236,8 +238,8 @@ stdoutDestPath="$finalOutputDir/${jobId2}.stdout"
 stderrDestPath="$finalOutputDir/${jobId2}.stderr"
 
 mkdir -p $finalOutputDir
-mv $drmOutputDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move DRM std err log" > $$stderrDestPath
+mv $drmOutputDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.3.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $drmOutputDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.3.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

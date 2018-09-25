@@ -32,7 +32,7 @@ import loamstream.model.quantities.Memory
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Hash
 import loamstream.util.Hashes
-import loamstream.drm.DockerParams
+import loamstream.drm.ContainerParams
 
 /**
  * @author clint
@@ -280,7 +280,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           Memory.inGb(4), 
           LsfDefaults.maxRunTime, 
           None,
-          Some(DockerParams(imageName = "library/foo:1.2.3")))
+          Some(ContainerParams(imageName = "library/foo:1.2.3")))
               
       val googleSettings = GoogleSettings("some-cluster")
 
@@ -526,15 +526,20 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     import TestHelpers.path
   
     val localSettings = LocalSettings
-    val ugerSettings = {
-      UgerDrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
-    }
+    
+    val ugerSettings = UgerDrmSettings(
+        Cpus(8), 
+        Memory.inGb(4), 
+        UgerDefaults.maxRunTime, 
+        Option(UgerDefaults.queue), 
+        Some(ContainerParams(imageName = "library/foo:1.2.3")))
+
     val lsfSettings = LsfDrmSettings(
         Cpus(8), 
         Memory.inGb(4), 
         LsfDefaults.maxRunTime, 
         None, 
-        Some(DockerParams(imageName = "library/foo:1.2.3")))
+        Some(ContainerParams(imageName = "library/foo:1.2.3")))
         
     val googleSettings = GoogleSettings("some-cluster")
 

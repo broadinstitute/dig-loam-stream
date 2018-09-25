@@ -16,7 +16,7 @@ import loamstream.drm.DrmJobWrapper
 import loamstream.util.Traversables
 import scala.collection.mutable.ListBuffer
 import java.nio.file.Path
-import loamstream.drm.DockerParams
+import loamstream.drm.ContainerParams
 import loamstream.conf.LsfConfig
 
 /**

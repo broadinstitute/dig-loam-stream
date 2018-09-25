@@ -47,7 +47,7 @@ final case class DrmJobWrapper(
       s"-B ${dir.toAbsolutePath} "
     }.mkString
     
-    val singularityPart = drmSettings.dockerParams match { 
+    val singularityPart = drmSettings.containerParams match { 
       case Some(params) => s"${singularityConfig.executable} exec ${mappingPart}${params.imageName} "
       case _ => ""
     }

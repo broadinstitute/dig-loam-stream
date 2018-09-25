@@ -10,7 +10,7 @@ import loamstream.drm.Queue
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
 import java.nio.file.Path
-import loamstream.drm.DockerParams
+import loamstream.drm.ContainerParams
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 
@@ -25,6 +25,10 @@ sealed trait SettingRow {
 
 sealed trait HasSimpleToSettings {
   def toSettings: Settings
+}
+
+sealed trait HasContainerParamsToSettings {
+  def toSettings(containerParamsOpt: Option[ContainerParams]): Settings
 }
 
 object SettingRow {
@@ -92,9 +96,11 @@ final case class UgerSettingRow(
     //TODO: Make units explicit for memPerCpu and maxRunTime 
     memPerCpu: Double,  //in GB
     maxRunTime: Double, //in hours
-    queue: Option[String]) extends DrmSettingRow with HasSimpleToSettings {
+    queue: Option[String]) extends DrmSettingRow with HasContainerParamsToSettings {
 
-  override def toSettings: Settings = UgerDrmSettings(makeCpus, makeMemory, makeCpuTime, makeQueueOpt, None)
+  override def toSettings(containerParamsOpt: Option[ContainerParams]): Settings = {
+    UgerDrmSettings(makeCpus, makeMemory, makeCpuTime, makeQueueOpt, containerParamsOpt)
+  }
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {
     import tables.driver.api._
@@ -111,10 +117,10 @@ final case class LsfSettingRow(
     //TODO: Make units explicit for memPerCpu and maxRunTime 
     memPerCpu: Double,  //in GB
     maxRunTime: Double, //in hours
-    queue: Option[String]) extends DrmSettingRow {
+    queue: Option[String]) extends DrmSettingRow with HasContainerParamsToSettings {
 
-  def toSettings(dockerParamsOpt: Option[DockerParams]): Settings = {
-    LsfDrmSettings(makeCpus, makeMemory, makeCpuTime, makeQueueOpt, dockerParamsOpt)
+  override def toSettings(containerParamsOpt: Option[ContainerParams]): Settings = {
+    LsfDrmSettings(makeCpus, makeMemory, makeCpuTime, makeQueueOpt, containerParamsOpt)
   }
   
   override def insertOrUpdate(tables: Tables): tables.driver.api.DBIO[Int] = {

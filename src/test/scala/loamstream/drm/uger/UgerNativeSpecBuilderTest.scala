@@ -10,8 +10,8 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.drm.DrmSystem
-import loamstream.drm.DockerParams
-import loamstream.drm.DockerParams
+import loamstream.drm.ContainerParams
+import loamstream.drm.ContainerParams
 
 /**
  * @author clint
@@ -19,7 +19,7 @@ import loamstream.drm.DockerParams
  */
 final class UgerNativeSpecBuilderTest extends FunSuite {
   test("nativeSpec") {
-    def doTest(dockerParams: Option[DockerParams], expectedOsPart: String): Unit = {
+    def doTest(containerParams: Option[ContainerParams], expectedOsPart: String): Unit = {
       import UgerNativeSpecBuilder.toNativeSpec
       import TestHelpers.path
       
@@ -32,7 +32,7 @@ final class UgerNativeSpecBuilderTest extends FunSuite {
           memoryPerCore = Memory.inGb(17),
           maxRunTime = CpuTime.inHours(33),
           queue = Option(UgerDefaults.queue),
-          dockerParams = dockerParams)
+          containerParams = containerParams)
           
       assert(ugerSettings.cores !== UgerDefaults.cores)
       assert(ugerSettings.memoryPerCore !== UgerDefaults.memoryPerCore)
@@ -48,6 +48,6 @@ final class UgerNativeSpecBuilderTest extends FunSuite {
     }
 
     doTest(None, "")
-    doTest(Some(DockerParams("docker://library/foo:1.2.3")), "-l os=RedHat7")
+    doTest(Some(ContainerParams("docker://library/foo:1.2.3")), "-l os=RedHat7")
   }
 }

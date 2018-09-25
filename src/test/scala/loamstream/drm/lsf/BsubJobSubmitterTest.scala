@@ -9,7 +9,7 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.LsfConfig
-import loamstream.drm.DockerParams
+import loamstream.drm.ContainerParams
 import loamstream.drm.DrmSubmissionResult
 import loamstream.drm.DrmTaskArray
 import loamstream.drm.Queue
@@ -99,14 +99,14 @@ final class BsubJobSubmitterTest extends FunSuite {
     assert(extractJobId(withUnTrimmedStrings) === Some("2738574"))
   }
   
-  test("makeTokensAndCdf - NO Docker") {
+  test("makeTokensAndCdf - NO containerization") {
     import BsubJobSubmitter.makeTokens
     
     val executableName = "/definitely/not/the/default"
     
     val lsfConfig = TestHelpers.config.lsfConfig.get    
     
-    val tokens = makeTokens(executableName, lsfConfig, taskArray, settingsWithoutDocker)
+    val tokens = makeTokens(executableName, lsfConfig, taskArray, settingsWithoutContainer)
     
     val expectedTokens = Seq(
         executableName,
@@ -151,9 +151,9 @@ final class BsubJobSubmitterTest extends FunSuite {
       memoryPerCore = Memory.inGb(7),
       maxRunTime = CpuTime.inHours(3),
       queue = Some(queue),
-      dockerParams = Some(DockerParams(imageName = "library/foo:1.2.3")))
+      containerParams = Some(ContainerParams(imageName = "library/foo:1.2.3")))
   
-  private lazy val settingsWithoutDocker = settings.copy(dockerParams = None)
+  private lazy val settingsWithoutContainer = settings.copy(containerParams = None)
           
   private val drmConfig = LsfConfig(workDir = path("/lsf/dir"))
     

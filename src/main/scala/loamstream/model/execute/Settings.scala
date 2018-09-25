@@ -14,7 +14,7 @@ import scala.util.Try
 import loamstream.util.Tries
 import loamstream.drm.DrmSystem
 import loamstream.util.Options
-import loamstream.drm.DockerParams
+import loamstream.drm.ContainerParams
 import loamstream.model.jobs.commandline.HasCommandLine
 
 /**
@@ -33,12 +33,12 @@ final case object LocalSettings extends Settings
 /**
  * Execution-time settings for a group of 1 or more Uger or LSF jobs 
  */
-trait DrmSettings extends Settings {
+sealed trait DrmSettings extends Settings {
   def cores: Cpus
   def memoryPerCore: Memory
   def maxRunTime: CpuTime
   def queue: Option[Queue]
-  def dockerParams: Option[DockerParams]
+  def containerParams: Option[ContainerParams]
 }
 
 final case class UgerDrmSettings(
@@ -46,22 +46,22 @@ final case class UgerDrmSettings(
     memoryPerCore: Memory,
     maxRunTime: CpuTime,
     queue: Option[Queue],
-    dockerParams: Option[DockerParams]) extends DrmSettings
+    containerParams: Option[ContainerParams]) extends DrmSettings
     
 final case class LsfDrmSettings(
     cores: Cpus,
     memoryPerCore: Memory,
     maxRunTime: CpuTime,
     queue: Option[Queue],
-    dockerParams: Option[DockerParams]) extends DrmSettings
+    containerParams: Option[ContainerParams]) extends DrmSettings
     
 object DrmSettings {
-  type SettingsMaker = (Cpus, Memory, CpuTime, Option[Queue], Option[DockerParams]) => DrmSettings
+  type SettingsMaker = (Cpus, Memory, CpuTime, Option[Queue], Option[ContainerParams]) => DrmSettings
   
-  def unapply(settings: DrmSettings): Option[(Cpus, Memory, CpuTime, Option[Queue], Option[DockerParams])] = {
+  def unapply(settings: DrmSettings): Option[(Cpus, Memory, CpuTime, Option[Queue], Option[ContainerParams])] = {
     import settings._
     
-    Some(cores, memoryPerCore, maxRunTime, queue, dockerParams)
+    Some(cores, memoryPerCore, maxRunTime, queue, containerParams)
   }
   
   def fromUgerConfig(config: UgerConfig): DrmSettings = {

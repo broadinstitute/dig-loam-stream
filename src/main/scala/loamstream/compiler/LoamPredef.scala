@@ -7,7 +7,7 @@ import java.nio.file.Paths
 
 import loamstream.conf.DataConfig
 import loamstream.conf.DrmConfig
-import loamstream.drm.DockerParams
+import loamstream.drm.ContainerParams
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamScriptContext
 import loamstream.model.Store
@@ -174,10 +174,10 @@ object LoamPredef extends Loggable {
     
     val drmConfig: DrmConfig = drmSystem.config(scriptContext)
     
-    val useDocker = imageName.nonEmpty
+    val runInContainer = imageName.nonEmpty
     
-    val dockerParamsOpt: Option[DockerParams] = {
-      if(useDocker) { Some(DockerParams(imageName)) } 
+    val containerParamsOpt: Option[ContainerParams] = {
+      if(runInContainer) { Some(ContainerParams(imageName)) } 
       else { None }
     }
     
@@ -186,7 +186,7 @@ object LoamPredef extends Loggable {
         Memory.inGb(orDefault(mem, drmConfig.defaultMemoryPerCore.gb)), 
         CpuTime.inHours(orDefault(maxRunTime, drmConfig.defaultMaxRunTime.hours)),
         drmSystem.defaultQueue,
-        dockerParamsOpt)
+        containerParamsOpt)
     
     runIn(drmSystem.makeEnvironment(settings))(expr)(scriptContext)
   }

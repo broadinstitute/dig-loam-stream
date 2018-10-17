@@ -60,16 +60,15 @@ object CloudSdkDataProcClient extends Loggable {
   }
 
   private[googlecloud] def deleteClusterTokens(config: GoogleCloudConfig): Seq[String] = {
-    gcloudTokens(config)("delete", config.clusterId)
+    gcloudTokens(config)("delete")(config.clusterId)
   }
 
   private[googlecloud] def isClusterRunningTokens(config: GoogleCloudConfig): Seq[String] = {
-    gcloudTokens(config)("describe", config.clusterId)
+    gcloudTokens(config)("describe")(config.clusterId)
   }
 
   private[googlecloud] def startClusterTokens(config: GoogleCloudConfig): Seq[String] = {
     val firstTokens: Seq[String] = Seq(
-      "create",
       config.clusterId,
       "--zone",
       config.zone,
@@ -91,8 +90,6 @@ object CloudSdkDataProcClient extends Loggable {
       config.imageVersion,
       "--scopes",
       config.scopes,
-      "--project",
-      config.projectId,
       "--properties",
       config.properties,
       "--initialization-actions",
@@ -105,13 +102,13 @@ object CloudSdkDataProcClient extends Loggable {
     
     val tokens = firstTokens ++ metadataPart
 
-    gcloudTokens(config)(tokens: _*)
+    gcloudTokens(config)("create")(tokens: _*)
   }
 
-  private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(args: String*): Seq[String] = {
+  private[googlecloud] def gcloudTokens(config: GoogleCloudConfig)(verb: String)(args: String*): Seq[String] = {
     val gcloud = normalize(config.gcloudBinary)
 
-    gcloud +: "dataproc" +: "clusters" +: args
+    gcloud +: "dataproc" +: "clusters" +: verb +: "--project" +: config.projectId +: args
   }
 
   private def runCommand(tokens: Seq[String]): Int = {

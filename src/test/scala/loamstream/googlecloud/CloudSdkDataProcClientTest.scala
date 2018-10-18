@@ -89,9 +89,13 @@ final class CloudSdkDataProcClientTest extends FunSuite {
   test("gcloudTokens") {
     import CloudSdkDataProcClient.gcloudTokens
 
-    val tokens = gcloudTokens(config)("foo", "--bar", "Baz")
+    val tokens = gcloudTokens(config)("foo")("--bar", "Baz")
 
-    assert(tokens === Seq(examplePath.render, "dataproc", "clusters", "foo", "--bar", "Baz"))
+    val expectedTokens = {
+      Seq(examplePath.render, "dataproc", "clusters", "foo", "--project", config.projectId, "--bar", "Baz")
+    }
+    
+    assert(tokens === expectedTokens)
   }
 
   test("isClusterRunningTokens") {
@@ -99,7 +103,11 @@ final class CloudSdkDataProcClientTest extends FunSuite {
 
     val tokens = isClusterRunningTokens(config)
 
-    assert(tokens === Seq(examplePath.render, "dataproc", "clusters", "describe", config.clusterId))
+    val expectedTokens = {
+      Seq(examplePath.render, "dataproc", "clusters", "describe", "--project", config.projectId, config.clusterId)
+    }
+    
+    assert(tokens === expectedTokens)
   }
 
   test("deleteClusterTokens") {
@@ -107,7 +115,11 @@ final class CloudSdkDataProcClientTest extends FunSuite {
 
     val tokens = deleteClusterTokens(config)
 
-    assert(tokens === Seq(examplePath.render, "dataproc", "clusters", "delete", config.clusterId))
+    val expectedTokens = {
+      Seq(examplePath.render, "dataproc", "clusters", "delete", "--project", config.projectId, config.clusterId) 
+    }
+    
+    assert(tokens === expectedTokens)
   }
 
   test("startClusterTokens - with metadata") {
@@ -135,6 +147,8 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       "dataproc",
       "clusters",
       "create",
+      "--project",
+      config.projectId,
       config.clusterId,
       "--zone",
       config.zone,
@@ -156,8 +170,6 @@ final class CloudSdkDataProcClientTest extends FunSuite {
       config.imageVersion,
       "--scopes",
       config.scopes,
-      "--project",
-      config.projectId,
       "--properties",
       config.properties,
       "--initialization-actions",

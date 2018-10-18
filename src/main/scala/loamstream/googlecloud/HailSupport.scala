@@ -74,6 +74,8 @@ object HailSupport {
           /*${googleConfig.gcloudBinary}, */
           " dataproc jobs submit pyspark --cluster=", 
           /*${googleConfig.clusterId}*/ 
+          " --project=",
+          /*${googleConfig.projectId}*/
           " --files=",
           /*${hailConfig.jar}*/
           " --py-files=",
@@ -83,6 +85,7 @@ object HailSupport {
       val googlePrefixArgs: Seq[Any] = Seq(
           googleConfig.gcloudBinary, 
           googleConfig.clusterId, 
+          googleConfig.projectId,
           hailConfig.jar, 
           hailConfig.zip)
       

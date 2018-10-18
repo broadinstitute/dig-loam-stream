@@ -24,7 +24,12 @@ object IntegrationTestHelpers {
   }
   
   def getWorkDirUnderTarget(subDir: Option[String] = None): Path = {
-    val subDirParts = Seq(s"${getClass.getSimpleName}-${sequence.next()}") ++ subDir
+    val classNamePart = getClass.getSimpleName match {
+      case cn if cn.endsWith("$") => cn.dropRight(1)
+      case cn => cn
+    }
+    
+    val subDirParts = Seq(s"${classNamePart}-${sequence.next()}") ++ subDir
     
     val result = Paths.get("target", subDirParts: _*).toAbsolutePath
     

@@ -60,7 +60,7 @@ final class HailSupportTest extends FunSuite {
   // scalastyle:off line.size.limit
   private val sep = File.separator
   private val gCloudPath = s"${sep}path${sep}to${sep}gcloud"
-  private val googlePrefix = s"""$gCloudPath dataproc jobs submit pyspark --cluster=some-cluster-id --files=gs://some-bucket/hail-all-spark.jar --py-files=gs://some-bucket/hail-all.zip --properties="spark.driver.extraClassPath=./hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar" """
+  private val googlePrefix = s"""$gCloudPath dataproc jobs submit pyspark --cluster=some-cluster-id --project=some-project-id --files=gs://some-bucket/hail-all-spark.jar --py-files=gs://some-bucket/hail-all.zip --properties="spark.driver.extraClassPath=./hail-all-spark.jar,spark.executor.extraClassPath=./hail-all-spark.jar" """
   // scalastyle:on line.size.limit
 
   import HailSupport._

@@ -40,6 +40,7 @@ import loamstream.drm.DrmChunkRunnerTest.MockJobSubmitter
 import scala.util.Try
 import loamstream.loam.LoamGraph
 import loamstream.model.Tool
+import loamstream.drm.uger.UgerScriptBuilderParams
 
 
 /**
@@ -91,11 +92,13 @@ final class DrmChunkRunnerTest extends FunSuite {
     override def stop(): Unit = ()
   }
   
+  private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig))
+  
   test("No failures when empty set of jobs is presented - Uger") {
     val mockDrmaaClient = new MockDrmaaClient(Map.empty)
     val runner = DrmChunkRunner(
         environmentType = EnvironmentType.Uger,
-        pathBuilder = UgerPathBuilder,
+        pathBuilder = ugerPathBuilder,
         executionConfig = executionConfig,
         drmConfig = ugerConfig,
         jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
@@ -231,7 +234,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
-      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, UgerPathBuilder, job, 1)
+      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, 1)
       
       assert(job.runCount === 0)
       
@@ -273,7 +276,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
-      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, UgerPathBuilder, job, 1)
+      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, 1)
       
       assert(job.runCount === 0)
       
@@ -321,8 +324,8 @@ final class DrmChunkRunnerTest extends FunSuite {
       val workedJob = MockDrmJob(goodId, Queued, Queued, Running, Running, lastGoodDrmStatus)
       val failedJob = MockDrmJob(badId, Queued, Queued, Running, Running, lastBadDrmStatus)
       
-      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, UgerPathBuilder, workedJob, 1)
-      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, UgerPathBuilder, failedJob, 2)
+      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, workedJob, 1)
+      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, failedJob, 2)
       
       assert(workedJob.runCount === 0)
       assert(failedJob.runCount === 0)
@@ -395,7 +398,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
-            pathBuilder = UgerPathBuilder,
+            pathBuilder = ugerPathBuilder,
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
@@ -486,7 +489,7 @@ final class DrmChunkRunnerTest extends FunSuite {
 
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
-            pathBuilder = UgerPathBuilder,
+            pathBuilder = ugerPathBuilder,
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,

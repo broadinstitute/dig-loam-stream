@@ -1,6 +1,7 @@
 package loamstream.drm.uger
 
 import org.scalatest.FunSuite
+import loamstream.TestHelpers
 
 
 /**
@@ -8,8 +9,16 @@ import org.scalatest.FunSuite
  * May 11, 2018
  */
 final class UgerScriptBuilderParamsTest extends FunSuite {
+  import TestHelpers.path
+  
+  private val someDir = path("/some/dir")
+  
+  private val someEnv = "someEnv"
+  
   test("drmIndexVarExpr") {
-    assert(UgerScriptBuilderParams.drmIndexVarExpr === "$drmaa_incr_ph$")
+    val params = new UgerScriptBuilderParams(someDir, someEnv)
+    
+    assert(params.drmIndexVarExpr === "$drmaa_incr_ph$")
   }
   
   test("preamble") {
@@ -19,20 +28,26 @@ final class UgerScriptBuilderParamsTest extends FunSuite {
                       |reuse -q UGER
                       |reuse -q Java-1.8
                       |
-                      |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$PATH
-                      |source activate loamstream_v1.0
+                      |export PATH=/some/dir:$PATH
+                      |source activate someEnv
                       |
                       |mkdir -p /broad/hptmp/${USER}
                       |export SINGULARITY_CACHEDIR=/broad/hptmp/${USER}""".stripMargin
     
-    assert(UgerScriptBuilderParams.preamble === Some(expected))
+    val params = new UgerScriptBuilderParams(someDir, someEnv)
+                      
+    assert(params.preamble === Some(expected))
   }
   
   test("indexEnvVarName") {
-    assert(UgerScriptBuilderParams.indexEnvVarName === "SGE_TASK_ID")
+    val params = new UgerScriptBuilderParams(someDir, someEnv)
+    
+    assert(params.indexEnvVarName === "SGE_TASK_ID")
   }
   
   test("jobIdEnvVarName") {
-    assert(UgerScriptBuilderParams.jobIdEnvVarName === "JOB_ID")
+    val params = new UgerScriptBuilderParams(someDir, someEnv)
+    
+    assert(params.jobIdEnvVarName === "JOB_ID")
   }
 }

@@ -21,6 +21,7 @@ import loamstream.conf.LoamConfig
 import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.uger.UgerPathBuilder
 import loamstream.drm.PathBuilder
+import loamstream.drm.uger.UgerScriptBuilderParams
 
 
 /**
@@ -195,8 +196,11 @@ final class AppWiringTest extends FunSuite with Matchers {
       
       assert(drmRunner.pathBuilder === expectedPathBuilder)
     }
+
+    val loamConfig = LoamConfig.fromPath(confFileForUger).get
     
-    doTest(DrmSystem.Uger, UgerPathBuilder)
+    doTest(DrmSystem.Uger, new UgerPathBuilder(UgerScriptBuilderParams(loamConfig.ugerConfig.get)))
+    
     doTest(DrmSystem.Lsf, LsfPathBuilder)
   }
   

@@ -36,13 +36,7 @@ sealed trait DrmConfig {
   
   final def isLsfConfig: Boolean = this.isInstanceOf[LsfConfig]
   
-  //TODO: This feels wrong
-  final def scriptBuilderParams: ScriptBuilderParams = {
-    require(isUgerConfig || isLsfConfig)
-    
-    if(isUgerConfig) { UgerScriptBuilderParams }
-    else { LsfScriptBuilderParams }
-  }
+  def scriptBuilderParams: ScriptBuilderParams
 }
 
 /**
@@ -55,7 +49,12 @@ final case class UgerConfig(
     maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
-    defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime) extends DrmConfig
+    defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime,
+    extraPathDir: Path = UgerDefaults.extraPathDir,
+    condaEnvName: String = UgerDefaults.condaEnvName) extends DrmConfig {
+  
+  override def scriptBuilderParams: ScriptBuilderParams = new UgerScriptBuilderParams(extraPathDir, condaEnvName)
+}
 
 object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
 
@@ -87,7 +86,10 @@ final case class LsfConfig(
     maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
     defaultCores: Cpus = LsfDefaults.cores,
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,
-    defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime) extends DrmConfig
+    defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime) extends DrmConfig {
+  
+  override def scriptBuilderParams: ScriptBuilderParams = LsfScriptBuilderParams
+}
 
 object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
 

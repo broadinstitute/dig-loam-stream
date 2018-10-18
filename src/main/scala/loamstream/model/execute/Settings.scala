@@ -22,7 +22,6 @@ import loamstream.model.jobs.commandline.HasCommandLine
  * @author clint
  *         date: 3/7/17
  */
-
 sealed trait Settings
 
 /**

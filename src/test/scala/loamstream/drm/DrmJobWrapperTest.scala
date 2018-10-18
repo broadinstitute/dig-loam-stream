@@ -14,6 +14,7 @@ import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
+import loamstream.drm.uger.UgerScriptBuilderParams
 
 /**
  * @author clint
@@ -29,6 +30,8 @@ final class DrmJobWrapperTest extends FunSuite {
 
   private val ugerSettings = TestHelpers.defaultUgerSettings
 
+  private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(TestHelpers.configWithUger.ugerConfig.get))
+  
   test("commandLineInTaskArray - no image") {
     val ugerSettings = TestHelpers.defaultUgerSettings
 
@@ -44,7 +47,7 @@ final class DrmJobWrapperTest extends FunSuite {
       assert(drmJob.commandLineInTaskArray === "foo")
     }
 
-    doTest(UgerPathBuilder, ugerSettings)
+    doTest(ugerPathBuilder, ugerSettings)
     doTest(LsfPathBuilder, lsfSettings)
   }
 
@@ -61,7 +64,7 @@ final class DrmJobWrapperTest extends FunSuite {
       assert(drmJob.commandLineInTaskArray === s"singularity exec ${drmSettings.containerParams.get.imageName} foo")
     }
 
-    doTest(UgerPathBuilder, ugerSettings)
+    doTest(ugerPathBuilder, ugerSettings)
     doTest(LsfPathBuilder, lsfSettings)
   }
 
@@ -87,7 +90,7 @@ final class DrmJobWrapperTest extends FunSuite {
       assert(drmJob.commandLineInTaskArray === expected)
     }
 
-    doTest(UgerPathBuilder, ugerSettings)
+    doTest(ugerPathBuilder, ugerSettings)
     doTest(LsfPathBuilder, lsfSettings)
   }
 
@@ -116,7 +119,7 @@ final class DrmJobWrapperTest extends FunSuite {
       assert(stdOutPath2 === expected2)
     }
 
-    doTest(UgerPathBuilder)
+    doTest(ugerPathBuilder)
     doTest(LsfPathBuilder)
   }
 
@@ -143,7 +146,7 @@ final class DrmJobWrapperTest extends FunSuite {
       assert(stdErrPath2 === expected2)
     }
 
-    doTest(UgerPathBuilder)
+    doTest(ugerPathBuilder)
     doTest(LsfPathBuilder)
   }
 
@@ -160,7 +163,7 @@ final class DrmJobWrapperTest extends FunSuite {
       assert(wrapper0.outputStreams.stdout === expected)
     }
 
-    doTest(UgerPathBuilder)
+    doTest(ugerPathBuilder)
     doTest(LsfPathBuilder)
   }
 
@@ -177,7 +180,7 @@ final class DrmJobWrapperTest extends FunSuite {
       assert(wrapper0.outputStreams.stderr === expected)
     }
 
-    doTest(UgerPathBuilder)
+    doTest(ugerPathBuilder)
     doTest(LsfPathBuilder)
   }
 
@@ -218,8 +221,8 @@ final class DrmJobWrapperTest extends FunSuite {
     val lsfSettingsNoContainer = TestHelpers.defaultLsfSettings
     val lsfSettingsWITHContainer = lsfSettingsNoContainer.copy(containerParams = Option(ContainerParams(imageName)))
 
-    doTest(UgerPathBuilder, ugerSettingsNoContainer, "")
-    doTest(UgerPathBuilder, ugerSettingsWITHContainer, "singularity exec fooImage.simg ")
+    doTest(ugerPathBuilder, ugerSettingsNoContainer, "")
+    doTest(ugerPathBuilder, ugerSettingsWITHContainer, "singularity exec fooImage.simg ")
 
     doTest(LsfPathBuilder, lsfSettingsNoContainer, "")
     doTest(LsfPathBuilder, lsfSettingsWITHContainer, "singularity exec fooImage.simg ")

@@ -8,6 +8,7 @@ import loamstream.util.Loggable
 import slick.jdbc.JdbcProfile
 import slick.jdbc.meta.MTable
 import slick.ast.ColumnOption
+import scala.reflect.ClassTag
 
 /**
  * @author clint
@@ -238,18 +239,37 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     }
   }
   
-  final class LsfDockerSettings(tag: Tag) extends 
-      BelongsToDrmSettings[LsfDockerSettingsRow, LsfSettingRow, LsfSettings](
-          tag, 
-          Names.lsfDockerSettings, 
-          lsfSettings) {
+  abstract class ContainerSettings[R : ClassTag, PR <: DrmSettingRow, P <: Table[PR] with HasExecutionId](
+      tag: Tag, 
+      name: String, 
+      parentTable: TableQuery[P],
+      companion: ContainerSettingsRowCompanion[R]) 
+          extends BelongsToDrmSettings[R, PR, P](tag, name, parentTable) with HasDrmSettingsId {
     
     override def drmSettingsId = column[Int]("DRM_SETTINGS_ID", O.PrimaryKey)
     
     def imageName = column[String]("IMAGE_NAME")
     
-    override def * = (drmSettingsId, imageName) <> (LsfDockerSettingsRow.tupled, LsfDockerSettingsRow.unapply)
+    override def * = {
+      val mappingParts = companion.slickMappingTuple
+      
+      (drmSettingsId, imageName) <> (mappingParts._1, mappingParts._2)
+    }
   }
+  
+  final class LsfContainerSettings(tag: Tag) extends 
+      ContainerSettings[LsfContainerSettingsRow, LsfSettingRow, LsfSettings](
+          tag, 
+          Names.lsfContainerSettings, 
+          lsfSettings,
+          LsfContainerSettingsRow)
+  
+  final class UgerContainerSettings(tag: Tag) extends 
+      ContainerSettings[UgerContainerSettingsRow, UgerSettingRow, UgerSettings](
+          tag, 
+          Names.ugerContainerSettings, 
+          ugerSettings,
+          UgerContainerSettingsRow)
   
   private val executionForeignKeyPrefix = s"FK_ID_EXECUTIONS_"
   
@@ -265,7 +285,8 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
   lazy val ugerResources = TableQuery[UgerResources]
   lazy val lsfResources = TableQuery[LsfResources]
   lazy val googleResources = TableQuery[GoogleResources]
-  lazy val lsfDockerSettings = TableQuery[LsfDockerSettings]
+  lazy val lsfContainerSettings = TableQuery[LsfContainerSettings]
+  lazy val ugerContainerSettings = TableQuery[UgerContainerSettings]
 
   //NB: Now a Seq so we can guarantee ordering
   private lazy val allTables: Seq[(String, SchemaDescription)] = Seq(
@@ -279,7 +300,8 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     Names.ugerResources -> ugerResources.schema,
     Names.lsfResources -> lsfResources.schema,
     Names.googleResources -> googleResources.schema,
-    Names.lsfDockerSettings -> lsfDockerSettings.schema
+    Names.lsfContainerSettings -> lsfContainerSettings.schema,
+    Names.ugerContainerSettings -> ugerContainerSettings.schema
   )
 
   private def allTableNames: Seq[String] = allTables.unzip._1
@@ -340,6 +362,7 @@ object Tables {
     val ugerResources = "RESOURCES_UGER"
     val lsfResources = "RESOURCES_LSF"
     val googleResources = "RESOURCES_GOOGLE"
-    val lsfDockerSettings = "DOCKER_SETTINGS_LSF"
+    val lsfContainerSettings = "CONTAINER_SETTINGS_LSF"
+    val ugerContainerSettings = "CONTAINER_SETTINGS_UGER"
   }
 }

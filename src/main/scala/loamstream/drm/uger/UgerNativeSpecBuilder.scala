@@ -21,7 +21,7 @@ object UgerNativeSpecBuilder extends NativeSpecBuilder {
 
       val queuePart = queue.map(q => s"-q $q").getOrElse("")
       
-      val osPart = drmSettings.dockerParams match {
+      val osPart = drmSettings.containerParams match {
         case Some(_) => "-l os=RedHat7"
         case None => ""
       }

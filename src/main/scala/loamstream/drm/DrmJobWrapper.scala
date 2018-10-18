@@ -41,13 +41,14 @@ final case class DrmJobWrapper(executionConfig: ExecutionConfig,
 
   private[drm] def commandLineInTaskArray: String = {
     val singularityConfig = executionConfig.singularity
-
-    def mappingPart: String =
+    
+    def mappingPart: String = {
       singularityConfig.mappedDirs.distinct.map { dir =>
         s"-B ${dir.toAbsolutePath.render} "
       }.mkString
+    }
 
-    val singularityPart = drmSettings.dockerParams match {
+    val singularityPart = drmSettings.containerParams match {
       case Some(params) => s"${singularityConfig.executable} exec ${mappingPart}${params.imageName} "
       case _            => ""
     }

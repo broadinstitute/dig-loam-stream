@@ -12,7 +12,7 @@ import loamstream.model.quantities.Memory
 import loamstream.loam.LoamCmdTool
 import loamstream.drm.uger.UgerDefaults
 import loamstream.drm.DrmSystem
-import loamstream.drm.DockerParams
+import loamstream.drm.ContainerParams
 import loamstream.loam.LoamGraph
 
 
@@ -63,7 +63,7 @@ final class UgerConfigIsPropagatedToJobsTest extends FunSuite {
           Memory.inGb(16), 
           CpuTime.inHours(5), 
           expectedQueue, 
-          Some(DockerParams("library/foo:1.2.3")))
+          Some(ContainerParams("library/foo:1.2.3")))
       
       val expectedEnv = drmSystem match {
         case DrmSystem.Uger => Environment.Uger(expectedSettings)

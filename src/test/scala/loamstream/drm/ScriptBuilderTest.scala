@@ -30,13 +30,13 @@ final class ScriptBuilderTest extends FunSuite {
   import ScriptBuilderTest.EnrichedString
 
   test("A shell script is generated out of a CommandLineJob, and can be used to submit a UGER job") {
-    def doTest(drmSystem: DrmSystem, dockerParamsOpt: Option[DockerParams]): Unit = {
+    def doTest(drmSystem: DrmSystem, containerParamsOpt: Option[ContainerParams]): Unit = {
       val drmSettings = drmSystem.settingsMaker(
           Cpus(1),
           Memory.inGb(42),
           CpuTime.inHours(2),
           defaultQueue(drmSystem),
-          dockerParamsOpt)
+          containerParamsOpt)
   
       val jobs = Seq(getShapeItCommandLineJob(0), getShapeItCommandLineJob(1), getShapeItCommandLineJob(2))
       val jobName = DrmTaskArray.makeJobName()
@@ -64,17 +64,17 @@ final class ScriptBuilderTest extends FunSuite {
         discriminators, 
         jobIds, 
         drmSystem, 
-        dockerParamsOpt).withNormalizedLineBreaks
+        containerParamsOpt).withNormalizedLineBreaks
   
       assert(scriptContents == expectedScriptContents)
     }
     
-    val dockerParams = DockerParams("library/foo:1.23")
+    val containerParams = ContainerParams("library/foo:1.23")
     
     doTest(DrmSystem.Uger, None)
-    doTest(DrmSystem.Uger, Some(dockerParams))
+    doTest(DrmSystem.Uger, Some(containerParams))
     doTest(DrmSystem.Lsf, None)
-    doTest(DrmSystem.Lsf, Some(dockerParams))
+    doTest(DrmSystem.Lsf, Some(containerParams))
   }
 
   import loamstream.TestHelpers.path
@@ -157,7 +157,7 @@ final class ScriptBuilderTest extends FunSuite {
       discriminators: (Int, Int, Int), 
       jobIds: (String, String, String),
       drmSystem: DrmSystem, 
-      dockerParamsOpt: Option[DockerParams]): String = {
+      containerParamsOpt: Option[ContainerParams]): String = {
     
     val (discriminator0, discriminator1, discriminator2) = discriminators
     val (jobId0, jobId1, jobId2) = jobIds
@@ -167,8 +167,8 @@ final class ScriptBuilderTest extends FunSuite {
 
     val sixSpaces = "      "
 
-    val singularityPrefix: String = dockerParamsOpt match {
-      case Some(dockerParams) => s"singularity exec ${dockerParams.imageName} "
+    val singularityPrefix: String = containerParamsOpt match {
+      case Some(containerParams) => s"singularity exec ${containerParams.imageName} "
       case _ => ""
     }
     

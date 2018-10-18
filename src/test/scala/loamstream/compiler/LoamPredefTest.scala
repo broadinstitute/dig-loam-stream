@@ -19,7 +19,7 @@ import loamstream.drm.DrmSystem
 import loamstream.drm.lsf.LsfDefaults
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings
-import loamstream.drm.DockerParams
+import loamstream.drm.ContainerParams
 import loamstream.drm.Queue
 
 /**
@@ -213,7 +213,7 @@ final class LoamPredefTest extends FunSuite {
           Memory.inGb(4), 
           CpuTime.inHours(6), 
           drmSystem.defaultQueue, //use this default, since it's not possible to specify a queue via drmWith()
-          Some(DockerParams(imageName = "library/foo:1.2.3")))
+          Some(ContainerParams(imageName = "library/foo:1.2.3")))
       
       val expectedEnvironment = drmSystem.makeEnvironment(expectedSettings)
           

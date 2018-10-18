@@ -41,4 +41,12 @@ object Environment {
     case googleSettings: GoogleSettings => Some(Google(googleSettings))
     case _ => None
   }
+  
+  object Drm {
+    def unapply(env: Environment): Option[DrmSettings] = env match {
+      case Uger(settings) => Some(settings)
+      case Lsf(settings) => Some(settings)
+      case _ => None
+    }
+  }
 }

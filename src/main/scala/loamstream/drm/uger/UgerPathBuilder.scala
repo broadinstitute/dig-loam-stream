@@ -10,7 +10,7 @@ import loamstream.drm.ScriptBuilderParams
  * @author clint
  * May 11, 2018
  */
-final class UgerPathBuilder(override val scriptBuilderParams: UgerScriptBuilderParams) extends PathBuilder {
+final case class UgerPathBuilder(override val scriptBuilderParams: UgerScriptBuilderParams) extends PathBuilder {
   override def reifyPathTemplate(template: String, drmIndex: Int): Path = {
     //NB: Replace task-array-index placeholder, drop initial ':'
     val pathString = template.replace(scriptBuilderParams.drmIndexVarExpr, drmIndex.toString).dropWhile(_ == ':')

@@ -9,7 +9,7 @@ import loamstream.conf.UgerConfig
  * @author clint
  * May 11, 2018
  */
-final class UgerScriptBuilderParams(extraPathDir: Path, condaEnvName: String) extends ScriptBuilderParams {
+final case class UgerScriptBuilderParams(extraPathDir: Path, condaEnvName: String) extends ScriptBuilderParams {
   
   /*
    * We need to 'use' Java-1.8 to make some steps of the QC pipeline work.

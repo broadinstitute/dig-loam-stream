@@ -10,12 +10,12 @@ import loamstream.conf.UgerConfig
  * May 11, 2018
  */
 final case class UgerNativeSpecBuilder(ugerConfig: UgerConfig) extends NativeSpecBuilder {
-  override def toNativeSpec(ugerSettings: DrmSettings): String = {
+  override def toNativeSpec(drmSettings: DrmSettings): String = {
 
     val staticPart = ugerConfig.staticJobSubmissionParams
 
     val dynamicPart = {
-      import ugerSettings._
+      import drmSettings._
 
       val numCores = cores.value
       val runTimeInHours: Int = maxRunTime.hours.toInt
@@ -23,7 +23,7 @@ final case class UgerNativeSpecBuilder(ugerConfig: UgerConfig) extends NativeSpe
 
       val queuePart = queue.map(q => s"-q $q").getOrElse("")
       
-      val osPart = ugerSettings.containerParams match {
+      val osPart = drmSettings.containerParams match {
         case Some(_) => "-l os=RedHat7"
         case None => ""
       }

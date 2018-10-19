@@ -57,13 +57,15 @@ final case class LsfDrmSettings(
 object DrmSettings {
   type SettingsMaker = (Cpus, Memory, CpuTime, Option[Queue], Option[ContainerParams]) => DrmSettings
   
-  def unapply(settings: DrmSettings): Option[(Cpus, Memory, CpuTime, Option[Queue], Option[ContainerParams])] = {
+  type FieldsTuple = (Cpus, Memory, CpuTime, Option[Queue], Option[ContainerParams])
+  
+  def unapply(settings: DrmSettings): Option[FieldsTuple] = {
     import settings._
     
-    Some(cores, memoryPerCore, maxRunTime, queue, containerParams)
+    Some((cores, memoryPerCore, maxRunTime, queue, containerParams))
   }
   
-  def fromUgerConfig(config: UgerConfig): DrmSettings = {
+  def fromUgerConfig(config: UgerConfig): UgerDrmSettings = {
     UgerDrmSettings(
         config.defaultCores, 
         config.defaultMemoryPerCore, 
@@ -72,7 +74,7 @@ object DrmSettings {
         None)
   }
   
-  def fromLsfConfig(config: LsfConfig): DrmSettings = {
+  def fromLsfConfig(config: LsfConfig): LsfDrmSettings = {
     LsfDrmSettings(config.defaultCores, config.defaultMemoryPerCore, config.defaultMaxRunTime, None, None)
   }
 }

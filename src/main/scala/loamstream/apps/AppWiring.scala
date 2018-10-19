@@ -364,7 +364,7 @@ object AppWiring extends Loggable {
     } yield {
       debug("Creating Uger ChunkRunner...")
 
-      val ugerClient = makeUgerClient
+      val ugerClient = makeUgerClient(ugerConfig)
 
       import loamstream.model.execute.ExecuterHelpers._
 
@@ -433,8 +433,8 @@ object AppWiring extends Loggable {
     }
   }
   
-  private def makeUgerClient: DrmClient = {
-    val drmaa1Client = new Drmaa1Client(UgerResourceUsageExtractor, UgerNativeSpecBuilder)
+  private def makeUgerClient(ugerConfig: UgerConfig): DrmClient = {
+    val drmaa1Client = new Drmaa1Client(UgerResourceUsageExtractor, UgerNativeSpecBuilder(ugerConfig))
     
     new DrmClient(drmaa1Client, QacctAccountingClient.useActualBinary())
   }

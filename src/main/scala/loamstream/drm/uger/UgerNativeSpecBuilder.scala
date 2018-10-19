@@ -2,18 +2,20 @@ package loamstream.drm.uger
 
 import loamstream.drm.NativeSpecBuilder
 import loamstream.model.execute.DrmSettings
+import loamstream.model.execute.UgerDrmSettings
+import loamstream.conf.UgerConfig
 
 /**
  * @author clint
  * May 11, 2018
  */
-object UgerNativeSpecBuilder extends NativeSpecBuilder {
-  override def toNativeSpec(drmSettings: DrmSettings): String = {
-    //Will this ever change?
-    val staticPart = "-cwd -shell y -b n"
+final case class UgerNativeSpecBuilder(ugerConfig: UgerConfig) extends NativeSpecBuilder {
+  override def toNativeSpec(ugerSettings: DrmSettings): String = {
+
+    val staticPart = ugerConfig.staticJobSubmissionParams
 
     val dynamicPart = {
-      import drmSettings._
+      import ugerSettings._
 
       val numCores = cores.value
       val runTimeInHours: Int = maxRunTime.hours.toInt
@@ -21,7 +23,7 @@ object UgerNativeSpecBuilder extends NativeSpecBuilder {
 
       val queuePart = queue.map(q => s"-q $q").getOrElse("")
       
-      val osPart = drmSettings.containerParams match {
+      val osPart = ugerSettings.containerParams match {
         case Some(_) => "-l os=RedHat7"
         case None => ""
       }

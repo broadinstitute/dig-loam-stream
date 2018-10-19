@@ -51,7 +51,8 @@ final case class UgerConfig(
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
     defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime,
     extraPathDir: Path = UgerDefaults.extraPathDir,
-    condaEnvName: String = UgerDefaults.condaEnvName) extends DrmConfig {
+    condaEnvName: String = UgerDefaults.condaEnvName,
+    staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams) extends DrmConfig {
   
   override def scriptBuilderParams: ScriptBuilderParams = new UgerScriptBuilderParams(extraPathDir, condaEnvName)
 }

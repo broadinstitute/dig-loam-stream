@@ -29,6 +29,7 @@ final class UgerConfigTest extends FunSuite {
     assert(config.defaultMaxRunTime === UgerDefaults.maxRunTime)
     assert(config.extraPathDir === UgerDefaults.extraPathDir)
     assert(config.condaEnvName === UgerDefaults.condaEnvName)
+    assert(config.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
   }
   
   test("Parsing bad input should fail") {
@@ -50,6 +51,7 @@ final class UgerConfigTest extends FunSuite {
           defaultMaxRunTime = 11 // hours
           extraPathDir = /blah/baz
           condaEnvName = fooEnv
+          staticJobSubmissionParams = "foo bar baz"
         }
       }
       """)
@@ -63,6 +65,7 @@ final class UgerConfigTest extends FunSuite {
     assert(ugerConfig.defaultMaxRunTime === CpuTime.inHours(11))
     assert(ugerConfig.extraPathDir === path("/blah/baz"))
     assert(ugerConfig.condaEnvName === "fooEnv")
+    assert(ugerConfig.staticJobSubmissionParams === "foo bar baz")
   }
   
   test("Parsing a UgerConfig with optional values omitted should work") {
@@ -83,5 +86,6 @@ final class UgerConfigTest extends FunSuite {
     assert(ugerConfig.defaultMaxRunTime === UgerDefaults.maxRunTime)
     assert(ugerConfig.extraPathDir === UgerDefaults.extraPathDir)
     assert(ugerConfig.condaEnvName === UgerDefaults.condaEnvName)
+    assert(ugerConfig.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
   }
 }

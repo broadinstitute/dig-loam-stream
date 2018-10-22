@@ -25,4 +25,6 @@ object UgerDefaults {
   val extraPathDir: Path = Paths.get("/humgen/diabetes/users/dig/miniconda2/bin")
 
   val condaEnvName: String = "loamstream_v1.0"
+  
+  val staticJobSubmissionParams: String = "-cwd -shell y -b n"
 }

@@ -20,7 +20,6 @@ import loamstream.drm.ContainerParams
 final class UgerNativeSpecBuilderTest extends FunSuite {
   test("nativeSpec") {
     def doTest(containerParams: Option[ContainerParams], expectedOsPart: String): Unit = {
-      import UgerNativeSpecBuilder.toNativeSpec
       import TestHelpers.path
       
       val bogusPath = path("/foo/bar/baz")
@@ -37,14 +36,33 @@ final class UgerNativeSpecBuilderTest extends FunSuite {
       assert(ugerSettings.cores !== UgerDefaults.cores)
       assert(ugerSettings.memoryPerCore !== UgerDefaults.memoryPerCore)
       assert(ugerSettings.maxRunTime !== UgerDefaults.maxRunTime)
+
+      def getNativeSpec(uc: UgerConfig) = UgerNativeSpecBuilder(uc).toNativeSpec(ugerSettings)
       
-      val actualNativeSpec = toNativeSpec(ugerSettings)
-     
-      val expected = {
-        s"-cwd -shell y -b n -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17g $expectedOsPart"
+      //default native spec
+      {
+        assert(ugerConfig.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
+        
+        val actualNativeSpec = getNativeSpec(ugerConfig)
+       
+        val expected = {
+          s"-cwd -shell y -b n -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17g $expectedOsPart"
+        }
+        
+        assert(actualNativeSpec === expected)
       }
-      
-      assert(actualNativeSpec === expected)
+      //non-default native spec
+      {
+        val nonDefaultUgerConfig = ugerConfig.copy(staticJobSubmissionParams = "foo bar baz")
+        
+        val actualNativeSpec = getNativeSpec(nonDefaultUgerConfig)
+       
+        val expected = {
+          s"foo bar baz -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17g $expectedOsPart"
+        }
+        
+        assert(actualNativeSpec === expected)
+      }
     }
 
     doTest(None, "")

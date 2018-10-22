@@ -2,15 +2,17 @@ package loamstream.drm.uger
 
 import loamstream.drm.NativeSpecBuilder
 import loamstream.model.execute.DrmSettings
+import loamstream.model.execute.UgerDrmSettings
+import loamstream.conf.UgerConfig
 
 /**
  * @author clint
  * May 11, 2018
  */
-object UgerNativeSpecBuilder extends NativeSpecBuilder {
+final case class UgerNativeSpecBuilder(ugerConfig: UgerConfig) extends NativeSpecBuilder {
   override def toNativeSpec(drmSettings: DrmSettings): String = {
-    //Will this ever change?
-    val staticPart = "-cwd -shell y -b n"
+
+    val staticPart = ugerConfig.staticJobSubmissionParams
 
     val dynamicPart = {
       import drmSettings._

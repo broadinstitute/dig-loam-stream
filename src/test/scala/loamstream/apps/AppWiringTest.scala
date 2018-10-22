@@ -1,27 +1,28 @@
 package loamstream.apps
 
-import org.scalatest.FunSuite
 import java.nio.file.Paths
-import loamstream.cli.Conf
+
+import org.scalatest.FunSuite
 import org.scalatest.Matchers
-import loamstream.db.slick.SlickLoamDao
-import loamstream.model.execute.RxExecuter
-import loamstream.model.execute.DbBackedJobFilter
-import loamstream.model.execute.JobFilter
-import loamstream.model.execute.AsyncLocalChunkRunner
-import loamstream.model.execute.CompositeChunkRunner
-import loamstream.model.execute.HashingStrategy
+
+import loamstream.cli.Conf
 import loamstream.cli.Intent
-import loamstream.TestHelpers
-import loamstream.db.slick.DbDescriptor
-import loamstream.drm.DrmSystem
-import loamstream.drm.DrmChunkRunner
-import loamstream.model.execute.ByNameJobFilter
 import loamstream.conf.LoamConfig
+import loamstream.db.slick.DbDescriptor
+import loamstream.db.slick.SlickLoamDao
+import loamstream.drm.DrmChunkRunner
+import loamstream.drm.DrmSystem
+import loamstream.drm.PathBuilder
 import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.uger.UgerPathBuilder
-import loamstream.drm.PathBuilder
 import loamstream.drm.uger.UgerScriptBuilderParams
+import loamstream.model.execute.AsyncLocalChunkRunner
+import loamstream.model.execute.ByNameJobFilter
+import loamstream.model.execute.CompositeChunkRunner
+import loamstream.model.execute.DbBackedJobFilter
+import loamstream.model.execute.JobFilter
+import loamstream.model.execute.RxExecuter
+
 
 
 /**
@@ -217,6 +218,4 @@ final class AppWiringTest extends FunSuite with Matchers {
     doTest(Some(DrmSystem.Uger))
     doTest(Some(DrmSystem.Lsf))
   }
-  
-  
 }

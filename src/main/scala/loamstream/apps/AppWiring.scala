@@ -78,6 +78,7 @@ import loamstream.model.execute.ExecutionRecorder
 import loamstream.model.execute.DbBackedExecutionRecorder
 import loamstream.cli.JobFilterIntent
 import loamstream.model.execute.ByNameJobFilter
+import loamstream.drm.uger.UgerScriptBuilderParams
 
 
 /**
@@ -381,7 +382,7 @@ object AppWiring extends Loggable {
         
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
-            pathBuilder = UgerPathBuilder,
+            pathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig)),
             executionConfig = loamConfig.executionConfig, 
             drmConfig = ugerConfig, 
             jobSubmitter = jobSubmitter, 

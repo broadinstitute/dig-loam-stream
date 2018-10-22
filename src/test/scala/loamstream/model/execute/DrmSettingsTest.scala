@@ -22,34 +22,42 @@ import loamstream.model.quantities.Memory
  */
 final class DrmSettingsTest extends FunSuite {
   
+  import loamstream.TestHelpers.path
+  
   test("fromUgerConfig") {
-    doBasicFromConfigTest(UgerConfig.apply, DrmSettings.fromUgerConfig, Some(UgerDefaults.queue))
+    val elevenJobs = 11
+    val lotsOfCpus = Cpus(42)
+    val seventeenGigs = Memory.inGb(17)
+    val fiveHours = CpuTime.inHours(5)
+    val someDir = path("/some/dir")
+    val someEnv = "someEnv"
+    
+    val config = UgerConfig(path("/foo/bar"), elevenJobs, lotsOfCpus, seventeenGigs, fiveHours, someDir, someEnv) 
+      
+    val settings = DrmSettings.fromUgerConfig(config)
+    
+    assert(settings.cores === lotsOfCpus)
+    assert(settings.memoryPerCore === seventeenGigs)
+    assert(settings.maxRunTime === fiveHours)
+    assert(settings.queue === Some(UgerDefaults.queue))
+    assert(settings.containerParams === None)
   }
   
   test("fromLsfConfig") {
-    doBasicFromConfigTest(LsfConfig.apply, DrmSettings.fromLsfConfig, None)
-  }
-  
-  private def doBasicFromConfigTest[C <: DrmConfig](
-      makeConfig: (Path, Int, Cpus, Memory, CpuTime) => C, 
-      makeSettings: C => DrmSettings,
-      expectedQueue: Option[Queue]): Unit = {
-    
-    import loamstream.TestHelpers.path
-    
     val elevenJobs = 11
     val lotsOfCpus = Cpus(42)
     val seventeenGigs = Memory.inGb(17)
     val fiveHours = CpuTime.inHours(5)
     
-    val config = makeConfig(path("/foo/bar"), elevenJobs, lotsOfCpus, seventeenGigs, fiveHours) 
+    val config = LsfConfig(path("/foo/bar"), elevenJobs, lotsOfCpus, seventeenGigs, fiveHours) 
       
-    val settings = makeSettings(config)
+    val settings = DrmSettings.fromLsfConfig(config)
     
     assert(settings.cores === lotsOfCpus)
     assert(settings.memoryPerCore === seventeenGigs)
     assert(settings.maxRunTime === fiveHours)
-    assert(settings.queue === expectedQueue)
+    assert(settings.queue === None)
+    assert(settings.containerParams === None)
   }
   
   test("fromUgerConfig - parsed conf file") {

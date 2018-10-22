@@ -17,6 +17,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Files
 import loamstream.TestHelpers
+import loamstream.drm.uger.UgerScriptBuilderParams
 
 /**
  * @author clint
@@ -56,6 +57,8 @@ final class DrmTaskArrayTest extends FunSuite {
   import DrmTaskArrayTest._
   import loamstream.TestHelpers.path
   import loamstream.TestHelpers.defaultUgerSettings
+
+  private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(TestHelpers.configWithUger.ugerConfig.get))
   
   test("makeJobName") {
 
@@ -141,14 +144,14 @@ final class DrmTaskArrayTest extends FunSuite {
       assert(taskArray.size === jobs.size)
     }
     
-    doTest(UgerPathBuilder)
+    doTest(ugerPathBuilder)
     doTest(LsfPathBuilder)
   }
 
   test("scriptContents") {
     def doTest(drmConfig: DrmConfig): Unit = {
       //Expedient
-      val pathBuilder = if(drmConfig.isUgerConfig) UgerPathBuilder else LsfPathBuilder
+      val pathBuilder = if(drmConfig.isUgerConfig) ugerPathBuilder else LsfPathBuilder
       val scriptBuilderParams = drmConfig.scriptBuilderParams
       
       import TestHelpers.defaultUgerSettings
@@ -169,7 +172,7 @@ final class DrmTaskArrayTest extends FunSuite {
     
     def doTest(drmConfig: DrmConfig): Unit = {
       //Expedient
-      val pathBuilder = if(drmConfig.isUgerConfig) UgerPathBuilder else LsfPathBuilder
+      val pathBuilder = if(drmConfig.isUgerConfig) ugerPathBuilder else LsfPathBuilder
       val scriptBuilderParams = drmConfig.scriptBuilderParams
 
       import TestHelpers.defaultUgerSettings

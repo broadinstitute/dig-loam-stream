@@ -10,7 +10,7 @@ import loamstream.drm.ScriptBuilderParams
  * @author clint
  * May 11, 2018
  */
-object UgerPathBuilder extends PathBuilder {
+final case class UgerPathBuilder(override val scriptBuilderParams: UgerScriptBuilderParams) extends PathBuilder {
   override def reifyPathTemplate(template: String, drmIndex: Int): Path = {
     //NB: Replace task-array-index placeholder, drop initial ':'
     val pathString = template.replace(scriptBuilderParams.drmIndexVarExpr, drmIndex.toString).dropWhile(_ == ':')
@@ -20,6 +20,4 @@ object UgerPathBuilder extends PathBuilder {
   
   //NB: Need to build this differently by environment (':' for Uger, '' for LSF)
   override def pathTemplatePrefix: String = ":"
-  
-  override def scriptBuilderParams: ScriptBuilderParams = UgerScriptBuilderParams
 }

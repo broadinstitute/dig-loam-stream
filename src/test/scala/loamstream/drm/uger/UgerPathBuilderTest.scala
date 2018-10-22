@@ -17,30 +17,52 @@ final class UgerPathBuilderTest extends FunSuite {
   import loamstream.TestHelpers.path
   import loamstream.util.BashScript.Implicits._
   
-  private val workDir = TestHelpers.path("/foo/bar/baz").toAbsolutePath
+  private val workDir = path("/foo/bar/baz").toAbsolutePath
 
   private val ugerConfig = UgerConfig(workDir = workDir, maxNumJobs = 42)
   
+  private val someDir = path("/some/dir")
+  
+  private val someEnv = "someEnv"
+  
   test("reifyPathTemplate") {
+    val params = new UgerScriptBuilderParams(someDir, someEnv)
+    
+    val pathBuilder = new UgerPathBuilder(params)
+    
     val template = {
-      s":::/foo/bar/${UgerScriptBuilderParams.drmIndexVarExpr}/baz.${UgerScriptBuilderParams.drmIndexVarExpr}"
+      s":::/foo/bar/${params.drmIndexVarExpr}/baz.${params.drmIndexVarExpr}"
     }
     
-    assert(UgerPathBuilder.reifyPathTemplate(template, 42) === path("/foo/bar/42/baz.42").toAbsolutePath)
+    assert(pathBuilder.reifyPathTemplate(template, 42) === path("/foo/bar/42/baz.42").toAbsolutePath)
   }
   
   test("pathTemplatePrefix") {
-    assert(UgerPathBuilder.pathTemplatePrefix === ":")
+    val params = new UgerScriptBuilderParams(someDir, someEnv)
+    
+    val pathBuilder = new UgerPathBuilder(params)
+    
+    assert(pathBuilder.pathTemplatePrefix === ":")
   }
   
   test("ugerStdOutPathTemplate") {
+    val params = new UgerScriptBuilderParams(someDir, someEnv)
+    
+    val pathBuilder = new UgerPathBuilder(params)
+    
     val expected = workDir.resolve(s"blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stdout")
-    doPathTemplateTest(UgerPathBuilder.stdOutPathTemplate, s":${expected.render}")
+    
+    doPathTemplateTest(pathBuilder.stdOutPathTemplate, s":${expected.render}")
   }
 
   test("ugerStdErrPathTemplate") {
+    val params = new UgerScriptBuilderParams(someDir, someEnv)
+    
+    val pathBuilder = new UgerPathBuilder(params)
+    
     val expected = workDir.resolve(s"blarg-blahblah.${JobTemplate.PARAMETRIC_INDEX}.stderr")
-    doPathTemplateTest(UgerPathBuilder.stdErrPathTemplate, s":${expected.render}")
+    
+    doPathTemplateTest(pathBuilder.stdErrPathTemplate, s":${expected.render}")
   }
 
   private def doPathTemplateTest(makeTemplate: (DrmConfig, String) => String, expected: String): Unit = {

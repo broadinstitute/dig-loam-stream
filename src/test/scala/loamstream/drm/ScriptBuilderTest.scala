@@ -79,6 +79,10 @@ final class ScriptBuilderTest extends FunSuite {
 
   import loamstream.TestHelpers.path
   
+  private val ugerScriptBuilderParams = new UgerScriptBuilderParams(path("/foo/bar"), "someEnv")
+  
+  private val ugerPathBuilder = new UgerPathBuilder(ugerScriptBuilderParams)
+  
   private def defaultQueue(drmSystem: DrmSystem): Option[Queue] = drmSystem match {
     case DrmSystem.Lsf => None
     case DrmSystem.Uger => Some(Queue("broad"))
@@ -91,12 +95,12 @@ final class ScriptBuilderTest extends FunSuite {
   
   private def pathBuilder(drmSystem: DrmSystem): PathBuilder = drmSystem match {
     case DrmSystem.Lsf => LsfPathBuilder
-    case DrmSystem.Uger => UgerPathBuilder
+    case DrmSystem.Uger => ugerPathBuilder
   }
   
   private def scriptBuilderParams(drmSystem: DrmSystem): ScriptBuilderParams = drmSystem match {
     case DrmSystem.Lsf => LsfScriptBuilderParams
-    case DrmSystem.Uger => UgerScriptBuilderParams
+    case DrmSystem.Uger => ugerScriptBuilderParams
   }
 
   private def getShapeItCommandLineJob(discriminator: Int): CommandLineJob = {
@@ -179,8 +183,8 @@ final class ScriptBuilderTest extends FunSuite {
                                 |reuse -q UGER
                                 |reuse -q Java-1.8
                                 |
-                                |export PATH=/humgen/diabetes/users/dig/miniconda2/bin:$PATH
-                                |source activate loamstream_v1.0
+                                |export PATH=/foo/bar:$PATH
+                                |source activate someEnv
                                 |
                                 |mkdir -p /broad/hptmp/${USER}
                                 |export SINGULARITY_CACHEDIR=/broad/hptmp/${USER}

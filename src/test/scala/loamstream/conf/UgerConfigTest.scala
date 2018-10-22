@@ -8,12 +8,29 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import loamstream.drm.uger.UgerDefaults
+import loamstream.TestHelpers
 
 /**
  * @author clint
  * date: Jun 1, 2016
  */
 final class UgerConfigTest extends FunSuite {
+  import TestHelpers.path
+  
+  test("defaults") {
+    val fooBar = path("/foo/bar")
+    
+    val config = UgerConfig(workDir = fooBar)
+    
+    assert(config.workDir === fooBar)
+    assert(config.maxNumJobs === UgerDefaults.maxConcurrentJobs)
+    assert(config.defaultCores === UgerDefaults.cores)
+    assert(config.defaultMemoryPerCore === UgerDefaults.memoryPerCore)
+    assert(config.defaultMaxRunTime === UgerDefaults.maxRunTime)
+    assert(config.extraPathDir === UgerDefaults.extraPathDir)
+    assert(config.condaEnvName === UgerDefaults.condaEnvName)
+  }
+  
   test("Parsing bad input should fail") {
     assert(UgerConfig.fromConfig(ConfigFactory.empty()).isFailure)
     
@@ -22,7 +39,7 @@ final class UgerConfigTest extends FunSuite {
     assert(UgerConfig.fromConfig(ConfigFactory.parseString("{}")).isFailure)
   }
   
-  test("Parsing a UgerConfig should work") {
+  test("Parsing a UgerConfig with all values provided should work") {
     val valid = ConfigFactory.parseString("""
       loamstream {
         uger {
@@ -31,6 +48,8 @@ final class UgerConfigTest extends FunSuite {
           defaultCores = 42
           defaultMemoryPerCore = 9 // Gb
           defaultMaxRunTime = 11 // hours
+          extraPathDir = /blah/baz
+          condaEnvName = fooEnv
         }
       }
       """)
@@ -42,6 +61,8 @@ final class UgerConfigTest extends FunSuite {
     assert(ugerConfig.defaultCores === Cpus(42))
     assert(ugerConfig.defaultMemoryPerCore=== Memory.inGb(9))
     assert(ugerConfig.defaultMaxRunTime === CpuTime.inHours(11))
+    assert(ugerConfig.extraPathDir === path("/blah/baz"))
+    assert(ugerConfig.condaEnvName === "fooEnv")
   }
   
   test("Parsing a UgerConfig with optional values omitted should work") {
@@ -49,8 +70,6 @@ final class UgerConfigTest extends FunSuite {
       loamstream {
         uger {
           workDir = "/foo/bar/baz"
-          logFile = "nuh/zuh.log"
-          maxNumJobs=44
         }
       }
       """)
@@ -58,9 +77,11 @@ final class UgerConfigTest extends FunSuite {
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
     assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
-    assert(ugerConfig.maxNumJobs === 44)
+    assert(ugerConfig.maxNumJobs === UgerDefaults.maxConcurrentJobs)
     assert(ugerConfig.defaultCores === UgerDefaults.cores)
-    assert(ugerConfig.defaultMemoryPerCore=== UgerDefaults.memoryPerCore)
+    assert(ugerConfig.defaultMemoryPerCore === UgerDefaults.memoryPerCore)
     assert(ugerConfig.defaultMaxRunTime === UgerDefaults.maxRunTime)
+    assert(ugerConfig.extraPathDir === UgerDefaults.extraPathDir)
+    assert(ugerConfig.condaEnvName === UgerDefaults.condaEnvName)
   }
 }

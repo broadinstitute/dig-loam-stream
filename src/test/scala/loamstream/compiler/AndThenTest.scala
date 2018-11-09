@@ -568,7 +568,7 @@ final class AndThenTest extends FunSuite with Loggable {
   private def chunksFrom(code: String): Iterator[GraphThunk] = {
     val project = LoamProject(config, LoamScript("foo", code))
 
-    val compiler = LoamCompiler(LoamCompiler.Settings.default)
+    val compiler = LoamCompiler.default
 
     val result = compiler.compile(project)
 

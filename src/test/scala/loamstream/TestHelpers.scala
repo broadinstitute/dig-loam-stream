@@ -50,6 +50,7 @@ import loamstream.conf.LsfConfig
 import loamstream.drm.DrmSystem
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
+import loamstream.conf.CompilationConfig
 
 /**
   * @author clint
@@ -77,6 +78,7 @@ object TestHelpers {
     val pythonConfig = PythonConfig.fromConfig(config)
     val rConfig = RConfig.fromConfig(config)
     val executionConfig = ExecutionConfig.fromConfig(config)
+    val compilationConfig = CompilationConfig.fromConfig(config)
 
     LoamConfig( 
       ugerConfig.toOption,
@@ -85,7 +87,8 @@ object TestHelpers {
       hailConfig.toOption,
       pythonConfig.toOption,
       rConfig.toOption,
-      executionConfig.getOrElse(ExecutionConfig.default))
+      executionConfig.getOrElse(ExecutionConfig.default),
+      compilationConfig.getOrElse(CompilationConfig.default))
   }
   
   lazy val configWithUger = config.copy(drmSystem = Option(DrmSystem.Uger))

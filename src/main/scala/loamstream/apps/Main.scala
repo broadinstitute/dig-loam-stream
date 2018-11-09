@@ -23,6 +23,8 @@ import loamstream.model.execute.JobFilter
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.util.TimeUtils
 import loamstream.model.execute.DryRunner
+import loamstream.drm.DrmSystem
+import loamstream.conf.LoamConfig
 
 
 /**
@@ -86,7 +88,7 @@ object Main extends Loggable {
     }
     
     def doCompileOnly(intent: Intent.CompileOnly): Unit = {
-      val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt)
+      val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate)
       
       val loamEngine = LoamEngine.default(config)
       
@@ -96,7 +98,7 @@ object Main extends Loggable {
     }
     
     def doDryRun(intent: Intent.DryRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
-      val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt)
+      val config = AppWiring.loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate) 
       
       val jobFilter = AppWiring.jobFilterForDryRun(intent, makeDao)
       

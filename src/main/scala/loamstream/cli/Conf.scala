@@ -74,6 +74,9 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
               "<noneOf> <regexes> - run jobs if their names match NONE of the passed regexes",
       required = false)
   
+  val noValidation: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Don't validate the graph produced by evaluating .loam files")
+      
   /** 
    *  Compile loam files (evaluate them to produce a LoamGraph, or print compilation errors), 
    *  but not execute the jobs declared in them 
@@ -139,6 +142,7 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
       conf = conf.toOption,
       helpSupplied = help.isSupplied,
       versionSupplied = version.isSupplied,
+      noValidationSupplied = noValidation.isSupplied,
       compileOnlySupplied = compileOnly.isSupplied,
       dryRunSupplied = dryRun.isSupplied,
       disableHashingSupplied = disableHashing.isSupplied,
@@ -163,6 +167,7 @@ object Conf {
       conf: Option[Path],
       helpSupplied: Boolean,
       versionSupplied: Boolean,
+      noValidationSupplied: Boolean,
       compileOnlySupplied: Boolean,
       dryRunSupplied: Boolean,
       disableHashingSupplied: Boolean,

@@ -25,6 +25,7 @@ import loamstream.util.code.ReflectionUtil
 import java.io.FileOutputStream
 import java.io.PrintStream
 import loamstream.util.TimeUtils
+import loamstream.conf.CompilationConfig
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -129,9 +130,9 @@ object LoamCompiler extends Loggable {
     def report: String = (summary +: (warnings ++ infos).map(_.summary)).mkString(System.lineSeparator)
   }
 
-  def default: LoamCompiler = apply(Settings.default)
+  def default: LoamCompiler = apply(CompilationConfig.default, Settings.default)
 
-  def apply(settings: Settings): LoamCompiler = new LoamCompiler(settings)
+  def apply(config: CompilationConfig, settings: Settings): LoamCompiler = new LoamCompiler(config, settings)
   
   private def makeScalaCompilerSettings(targetDir: VirtualDirectory): ScalaCompilerSettings = {
     val scalaCompilerSettings = new ScalaCompilerSettings
@@ -151,7 +152,9 @@ object LoamCompiler extends Loggable {
 }
 
 /** The compiler compiling Loam scripts into execution plans */
-final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings.default) extends Loggable {
+final class LoamCompiler(
+    compilationConfig: CompilationConfig,
+    settings: LoamCompiler.Settings = LoamCompiler.Settings.default) extends Loggable {
 
   private val targetDirectoryName = "target"
   private val targetDirectoryParentOption = None
@@ -278,8 +281,10 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
           val scriptBox = scriptBoxes.head
           val graph = scriptBox.graph
           
-          TimeUtils.time("Validating graph", debug(_)) {
-            validateGraph(graph)
+          if(compilationConfig.shouldValidateGraph) {
+            TimeUtils.time("Validating graph", debug(_)) {
+              validateGraph(graph)
+            }
           }
           
           reportCompilation(project, graph, projectContextReceipt)

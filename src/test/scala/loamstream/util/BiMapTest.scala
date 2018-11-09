@@ -85,13 +85,51 @@ final class BiMapTest extends FunSuite {
     val m3 = BiMap("x" -> 42, "y" -> 99, "z" -> 123)
     
     assert(m3.filterKeys(_ != "z") === BiMap("x" -> 42, "y" -> 99))
+    
+    assert(m3.filterKeys(_ => true) === m3)
     assert(m3.filterKeys(_ != "asdf") === m3)
+  }
+  
+  test("filterValues") {
+    val m3 = BiMap("x" -> 42, "y" -> 99, "z" -> 123)
+    
+    def isOdd(i: Int) = i % 2 != 0
+    
+    assert(m3.filterValues(isOdd) === BiMap("y" -> 99, "z" -> 123))
+    
+    assert(m3.filterValues(_ != 0) === m3)
+    assert(m3.filterValues(_ => true) === m3)
   }
   
   test("mapKeys") {
     val m3 = BiMap("x" -> 42, "y" -> 99, "z" -> 123)
     
     assert(m3.mapKeys(_ * 2) === BiMap("xx" -> 42, "yy" -> 99, "zz" -> 123))
+  }
+  
+  test("mapValues") {
+    val m3 = BiMap("x" -> 42, "y" -> 99, "z" -> 123)
+    
+    assert(m3.mapValues(_ + 1) === BiMap("x" -> 43, "y" -> 100, "z" -> 124))
+  }
+  
+  test("++") {
+    val m3 = BiMap.empty ++ Seq("x" -> 42, "y" -> 99, "z" -> 123)
+    
+    assert(m3.toMap === Map("x" -> 42, "y" -> 99, "z" -> 123))
+    
+    assert((m3 ++ Nil) === m3)
+  }
+  
+  test("--") {
+    val m4 = BiMap("x" -> 42, "y" -> 99, "z" -> 123, "w" -> 11)
+    
+    assert((m4 -- m4.keys) === BiMap.empty)
+    assert((m4 -- Nil) === m4)
+    //removing keys that aren't in the BiMap does nothing
+    assert((m4 -- "abc".map(_.toString)) === m4)
+    
+    assert(m4 -- Seq("x", "z", "w", "a")=== BiMap("y" -> 99))
   }
   
   test("+") {

@@ -15,6 +15,8 @@ final class SetsTest extends FunSuite {
     val rhs = Set(3, 4, 5, 6)
     
     assert(fasterSetDiff(lhs, rhs) === Set(1, 2))
+    
+    assert(fasterSetDiff(lhs, lhs) === Set.empty)
   }
   
   test("fasterSetDiff - some empty sets") {

@@ -1,10 +1,10 @@
 package loamstream.util
 
-import java.nio.file.{Path, Files => JFiles}
+import java.nio.file.Path
+import java.nio.file.{Files => JFiles}
 
-import scala.sys.process.{Process, ProcessBuilder}
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.ArrayBuffer
+import scala.sys.process.Process
+import scala.sys.process.ProcessBuilder
 
 /** A class representing a Bash script */
 final case class BashScript(path: Path) {

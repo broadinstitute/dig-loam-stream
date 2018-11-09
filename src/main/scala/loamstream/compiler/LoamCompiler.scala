@@ -24,6 +24,7 @@ import loamstream.util.Validation.IssueBase
 import loamstream.util.code.ReflectionUtil
 import java.io.FileOutputStream
 import java.io.PrintStream
+import loamstream.util.TimeUtils
 
 /** The compiler compiling Loam scripts into execution plans */
 object LoamCompiler extends Loggable {
@@ -259,8 +260,10 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
       try {
         val sourceFiles = project.scripts.map(LoamCompiler.toBatchSourceFile(projectContextReceipt))
         
-        withRun { run =>
-          run.compileSources(sourceFiles.toList)
+        TimeUtils.time("Compiling .scala files", debug(_)) {
+          withRun { run =>
+            run.compileSources(sourceFiles.toList)
+          }
         }
         
         if (targetDirectory.nonEmpty) {
@@ -268,12 +271,16 @@ final class LoamCompiler(settings: LoamCompiler.Settings = LoamCompiler.Settings
           
           val classLoader = new AbstractFileClassLoader(targetDirectory, getClass.getClassLoader)
           
-          val scriptBoxes = project.scripts.map(LoamCompiler.evaluateLoamScript(classLoader))
+          val scriptBoxes = TimeUtils.time("Evaluating Loam code", debug(_)) {
+            project.scripts.map(LoamCompiler.evaluateLoamScript(classLoader))
+          }
           
           val scriptBox = scriptBoxes.head
           val graph = scriptBox.graph
           
-          validateGraph(graph)
+          TimeUtils.time("Validating graph", debug(_)) {
+            validateGraph(graph)
+          }
           
           reportCompilation(project, graph, projectContextReceipt)
           

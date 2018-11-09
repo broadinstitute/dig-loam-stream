@@ -5,6 +5,7 @@ import loamstream.loam.LoamScriptContext
 import loamstream.TestHelpers
 import loamstream.compiler.LoamPredef
 import loamstream.loam.LoamCmdTool
+import loamstream.util.BiMap
 
 /**
  * @author clint
@@ -23,7 +24,7 @@ final class ToolTest extends FunSuite {
       def graph = scriptContext.projectContext.graph
       
       assert(graph.tools === Set.empty)
-      assert(graph.namedTools === Map.empty)
+      assert(graph.namedTools === BiMap.empty)
       
       val tool0 = cmd"foo --bar --baz"
       val tool1 = cmd"bar --baz"
@@ -45,7 +46,7 @@ final class ToolTest extends FunSuite {
       assert(namedTool1 eq tool1)
       
       assert(graph.tools === Set(tool0, tool1))
-      assert(graph.namedTools === Map("foo" -> tool0, "bar" -> tool1))
+      assert(graph.namedTools.toMap === Map(tool0 -> "foo", tool1 -> "bar"))
       
       val tool2 = cmd"baz"
       

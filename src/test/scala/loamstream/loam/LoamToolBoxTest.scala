@@ -142,8 +142,8 @@ final class LoamToolBoxTest extends FunSuite {
     assert(graph.nameOf(inToTmp1).isDefined)
     assert(graph.nameOf(tmp1ToTmp2).isDefined)
     assert(graph.nameOf(tmp2ToOne).isDefined)
-    assert(graph.namedTools.get("2to2") === Some(tmp2ToTwo))
-    assert(graph.namedTools.get("2to3") === Some(tmp2ToThree))
+    assert(graph.namedTools.getByValue("2to2") === Some(tmp2ToTwo))
+    assert(graph.namedTools.getByValue("2to3") === Some(tmp2ToThree))
 
     val allJobs = ExecuterHelpers.flattenTree(executable.jobNodes).map(_.job)
 

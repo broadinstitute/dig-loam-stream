@@ -45,7 +45,7 @@ final class LoamCmdToolTest extends LoamFunSuite {
     assert(nameOf(tool).isDefined)
     
     assert(tool.graph.stores == Set.empty)
-    assert(tool.graph.storeProducers === Map.empty)
+    assert(tool.graph.storeProducers.toMap === Map.empty)
     assert(tool.graph.storeConsumers == Map.empty)
 
     assert(tool.graph.toolInputs == Map(tool -> Set.empty))
@@ -75,7 +75,7 @@ final class LoamCmdToolTest extends LoamFunSuite {
     assert(tool.graph.stores === Set(nuh, zuh))
     assert(nameOf(tool).isDefined)
     
-    assert(tool.graph.storeProducers === Map(nuh -> tool))
+    assert(tool.graph.storeProducers.toMap === Map(nuh -> tool))
     assert(tool.graph.storeConsumers == Map.empty)
 
     assert(tool.graph.toolInputs == Map(tool -> Set.empty))

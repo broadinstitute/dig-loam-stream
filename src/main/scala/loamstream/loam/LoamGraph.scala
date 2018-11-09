@@ -42,7 +42,7 @@ object LoamGraph {
       toolInputs = Map.empty,
       toolOutputs = Map.empty,
       inputStores = Set.empty,
-      storeProducers = Map.empty,
+      storeProducers = BiMap.empty,
       storeConsumers = Map.empty,
       workDirs = Map.empty,
       executionEnvironments = Map.empty,
@@ -63,7 +63,7 @@ final case class LoamGraph(
     toolInputs: Map[Tool, Set[Store]],
     toolOutputs: Map[Tool, Set[Store]],
     inputStores: Set[Store],
-    storeProducers: Map[Store, Tool],
+    storeProducers: BiMap[Store, Tool],
     storeConsumers: Map[Store, Set[Tool]],
     //TODO: put "metadata" (work dirs, tool names, environments) that's not directly related to tool-store topologies
     //somewhere else?  For now, following the established pattern.  -Clint Nov 9, 2017
@@ -133,7 +133,7 @@ final case class LoamGraph(
       tools = tools.map(replace),
       toolInputs = toolInputs.mapKeys(replace),
       toolOutputs = toolOutputs.mapKeys(replace),
-      storeProducers = storeProducers.strictMapValues(replace),
+      storeProducers = storeProducers.mapValues(replace),
       storeConsumers = storeConsumers.strictMapValues(_.map(replace)),
       workDirs = workDirs.mapKeys(replace),
       executionEnvironments = executionEnvironments.mapKeys(replace),
@@ -202,12 +202,15 @@ final case class LoamGraph(
 
     val toolOutputsNew = toolOutputs + (tool -> (outputsFor(tool) -- stores))
 
-    val storeProducersNew = storeProducers.filterNot {
-      case (store, producer) => stores(store) && producer == tool
+    val storeProducersKeysToRemove: Iterable[Store] = {
+      stores.map { s => s -> storeProducers.get(s) }.collect { case (s, Some(producer)) if producer == tool => s }
     }
+    
+    val storeProducersNew = storeProducers -- storeProducersKeysToRemove
 
-    val storeConsumersNew =
+    val storeConsumersNew = {
       storeConsumers ++ stores.map(store => (store, storeConsumers.getOrElse(store, Set.empty) + tool))
+    }
 
     copy(
       toolInputs = toolInputsNew,

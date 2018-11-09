@@ -11,6 +11,7 @@ import loamstream.model.execute.Environment
 import loamstream.util.Maps
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.compiler.LoamPredef
+import loamstream.util.BiMap
 
 /**
   * LoamStream
@@ -53,11 +54,11 @@ final class LoamGraphTest extends FunSuite {
         components.phaseTool -> Set(components.phased),
         newTool -> Set(components.imputed)))
         
-    assert(oldGraph.storeProducers === Map(
+    assert(oldGraph.storeProducers.toMap === Map(
         components.phased -> components.phaseTool,
         components.imputed -> components.imputeTool))
         
-    assert(newGraph.storeProducers === Map(
+    assert(newGraph.storeProducers.toMap === Map(
         components.phased -> components.phaseTool,
         components.imputed -> newTool))
         
@@ -153,7 +154,7 @@ final class LoamGraphTest extends FunSuite {
   test("Test rule eachStoreIsConnectedToATool") {
     val graph = makeTestComponents.graph
     
-    val graphBroken = graph.copy(storeProducers = Map.empty, storeConsumers = Map.empty)
+    val graphBroken = graph.copy(storeProducers = BiMap.empty, storeConsumers = Map.empty)
     
     assert(LoamGraphValidation.eachStoreIsConnectedToATool(graphBroken).nonEmpty)
   }
@@ -237,7 +238,7 @@ final class LoamGraphTest extends FunSuite {
     
     assert((graph.stores - imputed - template) === filtered.stores)
     
-    assert(filtered.storeProducers === Map(phased -> phaseTool))
+    assert(filtered.storeProducers.toMap === Map(phased -> phaseTool))
     assert(filtered.storeConsumers === Map(raw -> Set(phaseTool)))
     
     assert(filtered.workDirs === Map(phaseTool -> TestHelpers.path(".")))

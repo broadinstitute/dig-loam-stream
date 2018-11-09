@@ -3,6 +3,8 @@ package loamstream.util
 import java.nio.file.{Path, Files => JFiles}
 
 import scala.sys.process.{Process, ProcessBuilder}
+import scala.collection.mutable.Buffer
+import scala.collection.mutable.ArrayBuffer
 
 /** A class representing a Bash script */
 final case class BashScript(path: Path) {
@@ -26,10 +28,25 @@ object BashScript extends Loggable {
   /** Characters that should be escaped by prefixing with backslash */
   private val charsToBeEscaped: Set[Char] = Set('\\', '\'', '\"', '\n', '\r', '\t', '\b', '\f', ' ')
 
-  /** Escapes string for Bash. */
-  def escapeString(string: String): String = string.flatMap {
-    case c if charsToBeEscaped(c) => Seq('\\', c)
-    case c => Seq(c)
+  /** 
+   * Escapes string for Bash.
+   * Note new StringBuilder-oriented approach, which is significantly faster than the previous one that relied on
+   * String.flatMap.  Somewhat surprisingly, this method was a significant component of the graph-validation code's
+   * running time before switching to the StringBuilder approach.   
+   */
+  def escapeString(string: String): String = {
+    val builder = new StringBuilder(string.length * 2)
+    
+    string.foreach { c =>
+      
+      if(charsToBeEscaped(c)) {
+        builder.append('\\')
+      }
+      
+      builder.append(c)
+    }
+    
+    builder.toString
   }
 
   object Implicits {

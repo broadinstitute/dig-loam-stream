@@ -7,6 +7,15 @@ import org.scalatest.FunSuite
  * Nov 7, 2018
  */
 final class BiMapTest extends FunSuite {
+  test("guards") {
+    BiMap()
+    BiMap("x" -> 1, "y" -> 2)
+    
+    intercept[Exception] {
+      BiMap("x" -> 1, "x" -> 2)
+    }
+  }
+  
   test("size") {
     assert(BiMap.empty.size === 0)
     assert(BiMap("x" -> 42).size === 1)

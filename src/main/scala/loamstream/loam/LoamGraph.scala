@@ -12,6 +12,7 @@ import loamstream.model.execute.Environment
 import loamstream.util.Sequence
 import loamstream.util.Traversables
 import loamstream.util.BiMap
+import loamstream.util.BiMultiMap
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
@@ -42,7 +43,7 @@ object LoamGraph {
       toolInputs = Map.empty,
       toolOutputs = Map.empty,
       inputStores = Set.empty,
-      storeProducers = BiMap.empty,
+      storeProducers = BiMultiMap.empty,
       storeConsumers = Map.empty,
       workDirs = Map.empty,
       executionEnvironments = Map.empty,
@@ -63,7 +64,7 @@ final case class LoamGraph(
     toolInputs: Map[Tool, Set[Store]],
     toolOutputs: Map[Tool, Set[Store]],
     inputStores: Set[Store],
-    storeProducers: BiMap[Store, Tool],
+    storeProducers: BiMultiMap[Store, Tool],
     storeConsumers: Map[Store, Set[Tool]],
     //TODO: put "metadata" (work dirs, tool names, environments) that's not directly related to tool-store topologies
     //somewhere else?  For now, following the established pattern.  -Clint Nov 9, 2017

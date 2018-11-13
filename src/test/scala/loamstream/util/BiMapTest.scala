@@ -228,4 +228,18 @@ final class BiMapTest extends FunSuite {
     
     assert(m.toMap === Map(42 -> "x", 99 -> "y"))
   }
+  
+  test("Soundness is preserved by + and ++") {
+    val m = BiMap("x" -> 42, "y" -> 99)
+    
+    val plusOne = m + ("x" -> 123)
+    
+    assert(plusOne.forward === Map("x" -> 123, "y" -> 99))
+    assert(plusOne.backward === Map(123 -> "x", 99 -> "y"))
+    
+    val m2 = m ++ Seq("x" -> 123, "x" -> 11, "z" -> 17)
+    
+    assert(m2.forward === Map("x" -> 11, "y" -> 99, "z" -> 17))
+    assert(m2.backward === Map(11 -> "x", 99 -> "y", 17 -> "z"))
+  }
 }

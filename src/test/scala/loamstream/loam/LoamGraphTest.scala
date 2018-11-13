@@ -9,10 +9,6 @@ import loamstream.TestHelpers
 import loamstream.model.Store
 import loamstream.model.execute.Environment
 import loamstream.util.Maps
-import loamstream.loam.LoamGraph.StoreLocation
-import loamstream.compiler.LoamPredef
-import loamstream.util.BiMap
-import loamstream.util.BiMultiMap
 
 /**
   * LoamStream
@@ -155,7 +151,7 @@ final class LoamGraphTest extends FunSuite {
   test("Test rule eachStoreIsConnectedToATool") {
     val graph = makeTestComponents.graph
     
-    val graphBroken = graph.copy(storeProducers = BiMultiMap.empty, storeConsumers = Map.empty)
+    val graphBroken = graph.copy(storeProducers = Map.empty, storeConsumers = Map.empty)
     
     assert(LoamGraphValidation.eachStoreIsConnectedToATool(graphBroken).nonEmpty)
   }

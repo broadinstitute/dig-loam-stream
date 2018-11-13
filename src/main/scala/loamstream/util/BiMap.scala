@@ -9,10 +9,7 @@ package loamstream.util
  * keys /and/ values.
  * 
  * Note: uniqueness of keys and values is guaranteed by overwriting existing mappings, just like with regular 
- * Maps.  However, this can lead to situations where the 'forward' and 'backward' mappings are asymmetrical:
- *   BiMap("x" -> 1, "x" -> 2)
- * This will throw; if it didn't, the un-sound BiMap(forward = Map("x" -> 2), backward = Map(1 -> "x", 2 -> "x"))
- * would be produced.  When adding mappings with `+`, this class ensures that both forward and backward mappings
+ * Maps.  When adding mappings with `+`, this class ensures that both forward and backward mappings
  * are overwritten if they're present.
  */
 final case class BiMap[A, B] private (private[util] val forward: Map[A, B], private[util] val backward: Map[B, A]) {
@@ -49,15 +46,11 @@ final case class BiMap[A, B] private (private[util] val forward: Map[A, B], priv
   def mapValues[C](f: B => C): BiMap[A, C] = inverse.mapKeys(f).inverse
   
   def +(tuple: (A, B)): BiMap[A, B] = {
-    /*val (a, b) = tuple
+    val (a, b) = tuple
     
     val withoutAnyExistingMapping = (this - a).withoutValue(b)
     
-    BiMap(withoutAnyExistingMapping.forward + tuple, withoutAnyExistingMapping.backward + tuple.swap)*/
-    
-    //BiMap((forward - a) + tuple, (backward - b) + tuple.swap)
-    
-    BiMap(forward + tuple, backward + tuple.swap)
+    BiMap(withoutAnyExistingMapping.forward + tuple, withoutAnyExistingMapping.backward + tuple.swap)
   }
   
   def ++(tuples: Iterable[(A, B)]): BiMap[A, B] = tuples.foldLeft(this)(_ + _)

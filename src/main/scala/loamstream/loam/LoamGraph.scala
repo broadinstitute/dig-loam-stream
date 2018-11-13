@@ -12,7 +12,6 @@ import loamstream.model.execute.Environment
 import loamstream.util.Sequence
 import loamstream.util.Traversables
 import loamstream.util.BiMap
-import loamstream.util.BiMultiMap
 
 /** The graph of all Loam stores and tools and their relationships */
 object LoamGraph {
@@ -43,7 +42,7 @@ object LoamGraph {
       toolInputs = Map.empty,
       toolOutputs = Map.empty,
       inputStores = Set.empty,
-      storeProducers = BiMultiMap.empty,
+      storeProducers = Map.empty,
       storeConsumers = Map.empty,
       workDirs = Map.empty,
       executionEnvironments = Map.empty,
@@ -64,7 +63,7 @@ final case class LoamGraph(
     toolInputs: Map[Tool, Set[Store]],
     toolOutputs: Map[Tool, Set[Store]],
     inputStores: Set[Store],
-    storeProducers: BiMultiMap[Store, Tool],
+    storeProducers: Map[Store, Tool],
     storeConsumers: Map[Store, Set[Tool]],
     //TODO: put "metadata" (work dirs, tool names, environments) that's not directly related to tool-store topologies
     //somewhere else?  For now, following the established pattern.  -Clint Nov 9, 2017
@@ -86,9 +85,10 @@ final case class LoamGraph(
     } else {
       val (toolInputStores, toolOutputStores) = tool.defaultStores match {
         case AllStores(toolStores) => {
-          val toolInputStores = {
-            toolStores.filter(store => inputStores.contains(store) || storeProducers.contains(store))
-          }
+          def isInputStore(s: Store) = inputStores.contains(s) || storeProducers.contains(s)
+          
+          val toolInputStores = toolStores.filter(isInputStore)
+
           val toolOutputStores = toolStores -- toolInputStores
           
           (toolInputStores, toolOutputStores)
@@ -203,6 +203,11 @@ final case class LoamGraph(
 
     val toolOutputsNew = toolOutputs + (tool -> (outputsFor(tool) -- stores))
 
+    //Remove only at most `stores.size` keys from `storeProducers`.  Previously, this code relied on calling
+    //`storeProducers.filterNot`, which traversed the entire storeProducers Map and ran in O(nStores) time.
+    //The current approach is faster since for non-trivial pipelines, the number of keys to remove from 
+    //storeProducers is usually *much* smaller than the total number of stores, and removing a key from a map is
+    //fast, either O(1) or O(log nStores).
     val storeProducersKeysToRemove: Iterable[Store] = {
       stores.map { s => s -> storeProducers.get(s) }.collect { case (s, Some(producer)) if producer == tool => s }
     }

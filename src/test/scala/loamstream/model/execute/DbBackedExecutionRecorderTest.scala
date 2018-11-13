@@ -9,7 +9,7 @@ import loamstream.model.jobs.OutputRecord
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.TestHelpers.dummyOutputStreams
 import loamstream.TestHelpers.path
-import loamstream.model.jobs.Output
+import loamstream.model.jobs.DataHandle
 
 /**
  * @author clint
@@ -22,10 +22,10 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   private val p2 = path("src/test/resources/for-hashing/subdir/bar.txt")
   private val nonexistentPath = path("non/existent/blah.txt")
 
-  private val o0 = Output.PathOutput(p0)
-  private val o1 = Output.PathOutput(p1)
-  private val o2 = Output.PathOutput(p2)
-  private val nonExistentOutput = Output.PathOutput(nonexistentPath)
+  private val o0 = DataHandle.PathOutput(p0)
+  private val o1 = DataHandle.PathOutput(p1)
+  private val o2 = DataHandle.PathOutput(p2)
+  private val nonExistentOutput = DataHandle.PathOutput(nonexistentPath)
   
   private val cachedOutput0 = o0.toOutputRecord
   private val cachedOutput1 = o1.toOutputRecord
@@ -161,7 +161,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isFailure)
 
-      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set[Output](o0, o1, o2))
+      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set[DataHandle](o0, o1, o2))
 
       recorder.record(Seq(e))
 

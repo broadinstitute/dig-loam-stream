@@ -9,7 +9,7 @@ import loamstream.TestHelpers
 import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.Output
+import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.OutputRecord
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.HashType.Sha1
@@ -31,10 +31,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     def p1: Path
     def p2: Path
     
-    def o0: Output.PathOutput
-    def o1: Output.PathOutput
-    def o2: Output.PathOutput
-    def nonExistentOutput: Output.PathOutput
+    def o0: DataHandle.PathOutput
+    def o1: DataHandle.PathOutput
+    def o2: DataHandle.PathOutput
+    def nonExistentOutput: DataHandle.PathOutput
     
     final lazy val cachedOutput0: OutputRecord = o0.toOutputRecord
     final lazy val cachedOutput1: OutputRecord = o1.toOutputRecord
@@ -51,10 +51,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     override val p1 = path("src/test/resources/for-hashing/empty.txt")
     override val p2 = path("src/test/resources/for-hashing/subdir/bar.txt")
     
-    override val o0 = Output.PathOutput(p0)
-    override val o1 = Output.PathOutput(p1)
-    override val o2 = Output.PathOutput(p2)
-    override val nonExistentOutput = Output.PathOutput(nonexistentPath)
+    override val o0 = DataHandle.PathOutput(p0)
+    override val o1 = DataHandle.PathOutput(p1)
+    override val o2 = DataHandle.PathOutput(p2)
+    override val nonExistentOutput = DataHandle.PathOutput(nonexistentPath)
   }
   
   private def testWithSimpleOutputSet(name: String)(body: Outputs => Any): Unit = {
@@ -98,7 +98,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
       val failedCommandLine = mockCmd
       val successfulCommandLine = s"${mockCmd}asdfasdf"
       
-      def commandLineJob(commandLine: String, outputs: Set[Output]) = {
+      def commandLineJob(commandLine: String, outputs: Set[DataHandle]) = {
         CommandLineJob(commandLine, TestHelpers.path("."), Environment.Local, outputs = outputs)
       }
       
@@ -302,7 +302,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
   }
 
   testWithSimpleOutputSet("command string comparison") { outputSet =>
-    def cmdLineJob(cmd: String, outputs: Set[Output]): CommandLineJob = {
+    def cmdLineJob(cmd: String, outputs: Set[DataHandle]): CommandLineJob = {
       CommandLineJob(
         commandLineString = cmd,
         workDir = Paths.getCurrentDirectory,
@@ -310,16 +310,17 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         outputs = outputs)
     }
 
-    def mockJob(cmd: String, outputs: Set[Output]): MockJob = {
+    def mockJob(cmd: String, outputs: Set[DataHandle]): MockJob = {
       new MockJob.FromJobFn(
         toReturnFn = mockRunData(_),
         name = "mock job",
-        inputs = Set.empty,
+        dependencies = Set.empty,
+        inputs = Set.empty, //TODO
         outputs = outputs,
         delay = 0)
     }
 
-    def execution(cmd: String, outputs: Set[Output]): Execution = {
+    def execution(cmd: String, outputs: Set[DataHandle]): Execution = {
       Execution.fromOutputs(mockEnv, cmd, CommandResult(0), dummyOutputStreams, outputs)
     }
 
@@ -331,7 +332,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     createTablesAndThen {
       val filter = new DbBackedJobFilter(dao)
 
-      val outputs: Set[Output] = Set(o0, o1)
+      val outputs: Set[DataHandle] = Set(o0, o1)
 
       val recorder = new DbBackedExecutionRecorder(dao)
 
@@ -344,7 +345,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       assert(filter.hasNewCommandLine(cmdLineJob0) === false)
 
-      recorder.record(Iterable(execution(cmd1, Set[Output](o2))))
+      recorder.record(Iterable(execution(cmd1, Set[DataHandle](o2))))
       
       val cmdLineJob1 = cmdLineJob("cmd1-altered", Set(o2))
 

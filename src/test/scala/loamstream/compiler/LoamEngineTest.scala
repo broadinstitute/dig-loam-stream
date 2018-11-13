@@ -150,7 +150,9 @@ final class LoamEngineTest extends FunSuite {
     
     val localEngine = LoamEngine.default(localConfig)
     
-    def job(commandLine: String) = CommandLineJob(commandLine, path("."), Environment.Local)
+    def job(commandLine: String) = {
+      CommandLineJob(commandLineString = commandLine, executionEnvironment = Environment.Local)
+    }
     
     val j0 = job("foo")
     val j1 = job("bar")

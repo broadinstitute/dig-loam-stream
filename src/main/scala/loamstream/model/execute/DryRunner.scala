@@ -35,7 +35,7 @@ object DryRunner extends Loggable {
         seen += job
         
         val pathToLeaf = {
-          val inputsSortedById = jobNode.inputs.filterNot(alreadySeen).toSeq.sortBy(jobId)
+          val inputsSortedById = jobNode.dependencies.filterNot(alreadySeen).toSeq.sortBy(jobId)
           
           inputsSortedById.flatMap(gatherJobs)
         }
@@ -43,7 +43,7 @@ object DryRunner extends Loggable {
         val anyInputsNeedRunning = {
           def anyMarkedRunnable(nodes: Iterable[LJob]) = nodes.filter(markedAsRunnable).nonEmpty
           
-          val inputJobs = jobNode.inputs.map(_.job)
+          val inputJobs = jobNode.dependencies.map(_.job)
           
           anyMarkedRunnable(inputJobs) || anyMarkedRunnable(pathToLeaf)
         }

@@ -24,7 +24,7 @@ import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.DataHandle.PathOutput
 import loamstream.model.jobs.OutputRecord
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus

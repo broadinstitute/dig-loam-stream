@@ -107,7 +107,7 @@ object Execution extends Loggable {
                   cmd: String,
                   result: JobResult,
                   outputStreams: OutputStreams,
-                  outputs: Set[Output]): Execution = {
+                  outputs: Set[DataHandle]): Execution = {
     
     apply(
         env = env, 

@@ -20,7 +20,7 @@ import loamstream.util.Paths.normalizePath
  * A trait representing a handle to the output of a job; for now, we're primarily concerned with the case where
  * that output is a file, directory, or Google Cloud Storage objects but other output types are possible.
  */
-sealed trait Output {
+sealed trait DataHandle {
   def isPresent: Boolean
   
   final def isMissing: Boolean = !isPresent
@@ -36,12 +36,12 @@ sealed trait Output {
   def toOutputRecord: OutputRecord
 }
 
-object Output {
+object DataHandle {
   /**
    * A handle to an output of a job stored at 'path'.  Hashes and modification times are re-computed on
    * each access.
    */
-  final case class PathOutput private (path: Path) extends Output {
+  final case class PathOutput private (path: Path) extends DataHandle {
     
     override def isPresent: Boolean = Files.exists(path)
 
@@ -69,7 +69,7 @@ object Output {
     def apply(path: Path): PathOutput = new PathOutput(normalizePath(path))
   }
 
-  final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends Output {
+  final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends DataHandle {
     override def isPresent = client.exists(_.isPresent(uri))
 
     override def hash: Option[Hash] = client.flatMap(_.hash(uri))

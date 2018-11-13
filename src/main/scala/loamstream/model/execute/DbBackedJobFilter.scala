@@ -5,7 +5,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.{Execution, LJob, OutputRecord}
 import loamstream.util.Loggable
 import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.Output
+import loamstream.model.jobs.DataHandle
 
 /**
  * @author clint
@@ -97,7 +97,7 @@ final class DbBackedJobFilter(
     }
   }
   
-  private[execute] def outputThatCausesRunningIfAny(job: LJob): Option[Output] = {
+  private[execute] def outputThatCausesRunningIfAny(job: LJob): Option[DataHandle] = {
     job.outputs.collectFirst { case o if needsToBeRun(job.toString, o.toOutputRecord) => o }
   }
 }

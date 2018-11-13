@@ -5,7 +5,7 @@ import java.time.Instant
 
 import org.scalatest.FunSuite
 
-import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.DataHandle.PathOutput
 import loamstream.util.HashType.Sha1
 import loamstream.util.Hashes
 import loamstream.util.Paths

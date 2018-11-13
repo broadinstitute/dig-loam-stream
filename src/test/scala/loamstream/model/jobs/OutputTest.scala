@@ -8,7 +8,7 @@ import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.model.jobs.Output.GcsUriOutput
+import loamstream.model.jobs.DataHandle.GcsUriOutput
 import loamstream.model.jobs.OutputTest.MockGcsClient
 import loamstream.util.Hash
 import loamstream.util.HashType
@@ -24,7 +24,7 @@ import loamstream.util.PlatformUtil
   */
 final class OutputTest extends FunSuite {
   test("PathOutput") {
-    import Output.PathOutput
+    import DataHandle.PathOutput
     import TestHelpers.path
     import java.nio.file.Files
     import Paths.normalizePath
@@ -88,7 +88,7 @@ final class OutputTest extends FunSuite {
 
   test("GcsUriOutput.location") {
     import java.net.URI
-    import Output.GcsUriOutput
+    import DataHandle.GcsUriOutput
 
     val invalidLocation = "sjkafhkfhksdjfh"
     val invalidUri = URI.create(invalidLocation)

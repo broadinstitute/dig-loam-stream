@@ -20,8 +20,9 @@ import loamstream.util.ValueBox
  */
 final case class RxMockJob( 
   override val name: String,
-  override val inputs: Set[JobNode],
-  outputs: Set[Output],
+  override val dependencies: Set[JobNode],
+  inputs: Set[DataHandle],
+  outputs: Set[DataHandle],
   runsAfter: Option[RxMockJob],
   toReturnFn: RxMockJob => RunData)(implicit executions: ValueBox[Vector[RxMockJob]]) extends LocalJob {
 
@@ -76,8 +77,9 @@ final case class RxMockJob(
 
 object RxMockJob {
   def apply(name: String,
-            inputs: Set[JobNode] = Set.empty,
-            outputs: Set[Output] = Set.empty,
+            dependencies: Set[JobNode] = Set.empty,
+            inputs: Set[DataHandle] = Set.empty,
+            outputs: Set[DataHandle] = Set.empty,
             runsAfter: Option[RxMockJob] = None,
             toReturn: () => JobResult = () => JobResult.CommandResult(0))
             (implicit 
@@ -85,13 +87,14 @@ object RxMockJob {
                   discriminator: Int = 42): RxMockJob = {
 
     RxMockJob(name,
+              dependencies,
               inputs,
               outputs,
               runsAfter,
               job => runDataFrom(job, outputs, jobResult = toReturn()))
   }
 
-  private[this] def runDataFrom(job: LJob, outputs: Set[Output], jobResult: JobResult): RunData = {
+  private[this] def runDataFrom(job: LJob, outputs: Set[DataHandle], jobResult: JobResult): RunData = {
     RunData(
         job = job,
         jobStatus = jobResult.toJobStatus,

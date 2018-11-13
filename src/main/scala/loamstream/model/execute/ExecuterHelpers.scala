@@ -11,7 +11,7 @@ import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandInvocationFailure
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Output
+import loamstream.model.jobs.DataHandle
 import loamstream.util.Loggable
 import loamstream.model.jobs.RunData
 import loamstream.model.LId
@@ -47,7 +47,7 @@ object ExecuterHelpers extends Loggable {
   
   def flattenTree(roots: Set[JobNode]): Set[JobNode] = {
     roots.foldLeft(roots) { (acc, job) =>
-      val inputJobNodes = job.inputs
+      val inputJobNodes = job.dependencies
       
       inputJobNodes ++ flattenTree(inputJobNodes) ++ acc
     }
@@ -88,7 +88,7 @@ object ExecuterHelpers extends Loggable {
       error(s"Will wait for these missing outputs for job ${job.id} : ${missingOutputs}")
       
       //TODO: Support UriOutputs!!
-      val missingPaths = missingOutputs.collect { case o: Output.PathOutput => o.path }
+      val missingPaths = missingOutputs.collect { case o: DataHandle.PathOutput => o.path }
     
       val fileExistenceFutures = missingPaths.map(fileMonitor.waitForCreationOf)
     

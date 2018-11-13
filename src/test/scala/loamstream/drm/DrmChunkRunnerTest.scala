@@ -20,7 +20,7 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.Output
+import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.commandline.HasCommandLine
@@ -589,9 +589,11 @@ object DrmChunkRunnerTest {
     
     override val executionEnvironment: Environment = Environment.Local
     
-    override def inputs: Set[JobNode] = Set.empty
+    override def dependencies: Set[JobNode] = Set.empty
 
-    override def outputs: Set[Output] = Set.empty
+    override def inputs: Set[DataHandle] = Set.empty
+    
+    override def outputs: Set[DataHandle] = Set.empty
     
     override def execute(implicit context: ExecutionContext): Future[RunData] = {
       val runData = RunData(

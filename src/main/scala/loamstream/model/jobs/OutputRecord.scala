@@ -70,7 +70,7 @@ object OutputRecord {
 
   
 
-  def apply(output: Output): OutputRecord = output.lastModified match {
+  def apply(output: DataHandle): OutputRecord = output.lastModified match {
     case lmOpt @ Some(_) => OutputRecord( loc = output.location,
                                           isPresent = true,
                                           hash = output.hash.map(_.valueAsBase64String),

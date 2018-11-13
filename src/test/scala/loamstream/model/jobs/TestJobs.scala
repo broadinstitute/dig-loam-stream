@@ -22,14 +22,14 @@ trait TestJobs {
   protected val two0 = MockJob(two0Success)
   protected val two1 = MockJob(two1Success)
 
-  protected val twoPlusTwo = MockJob(twoPlusTwoSuccess, inputs = Set[JobNode](two0, two1))
+  protected val twoPlusTwo = MockJob(twoPlusTwoSuccess, dependencies = Set[JobNode](two0, two1))
 
-  protected val plusOne = MockJob(plusOneSuccess, inputs = Set[JobNode](twoPlusTwo))
+  protected val plusOne = MockJob(plusOneSuccess, dependencies = Set[JobNode](twoPlusTwo))
   
   protected val two0Failed = MockJob(two0Failure)
   protected val two1Failed = MockJob(two1Failure)
 
-  protected val twoPlusTwoFailed = MockJob(twoPlusTwoFailure, inputs = Set[JobNode](two0Failed, two1Failed))
+  protected val twoPlusTwoFailed = MockJob(twoPlusTwoFailure, dependencies = Set[JobNode](two0Failed, two1Failed))
 
-  protected val plusOneFailed = MockJob(plusOneFailure, inputs = Set[JobNode](twoPlusTwoFailed))
+  protected val plusOneFailed = MockJob(plusOneFailure, dependencies = Set[JobNode](twoPlusTwoFailed))
 }

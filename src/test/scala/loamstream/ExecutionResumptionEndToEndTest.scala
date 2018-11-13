@@ -27,8 +27,8 @@ import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.JobStatus.Skipped
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Output
-import loamstream.model.jobs.Output.PathOutput
+import loamstream.model.jobs.DataHandle
+import loamstream.model.jobs.DataHandle.PathOutput
 import loamstream.model.jobs.OutputRecord
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Loggable
@@ -358,8 +358,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
   private def jobThatWritesTo(executable: Executable)(fileNameSuffix: Path): Option[LJob] = {
     val allJobs = allJobsFrom(executable).map(_.job)
 
-    def outputMatches(o: Output): Boolean = {
-      o.asInstanceOf[Output.PathOutput].path.toString.endsWith(fileNameSuffix.toString)
+    def outputMatches(o: DataHandle): Boolean = {
+      o.asInstanceOf[DataHandle.PathOutput].path.toString.endsWith(fileNameSuffix.toString)
     }
 
     def jobMatches(j: LJob): Boolean = j.outputs.exists(outputMatches)

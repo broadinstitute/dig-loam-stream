@@ -39,12 +39,12 @@ final class LoamToolBoxTest extends FunSuite {
   }
 
   private def singleDepOf(jobNode: JobNode): CommandLineJob = {
-    assert(jobNode.inputs.size === 1)
+    assert(jobNode.dependencies.size === 1)
 
-    toClj(jobNode.inputs.head)
+    toClj(jobNode.dependencies.head)
   }
 
-  private def hasNoDeps(jobNode: JobNode): Boolean = jobNode.inputs.isEmpty
+  private def hasNoDeps(jobNode: JobNode): Boolean = jobNode.dependencies.isEmpty
 
   import loamstream.util.Paths.Implicits._
 

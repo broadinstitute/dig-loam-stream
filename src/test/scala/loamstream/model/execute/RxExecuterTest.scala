@@ -209,7 +209,7 @@ final class RxExecuterTest extends FunSuite {
     def doTest(maxRestartsAllowed: Int, expectedRuns: Seq[Int], jobResult: JobResult): Unit = {
 
       val job1 = RxMockJob("Job_1", toReturn = () => jobResult)
-      val job2 = RxMockJob("Job_2", inputs = Set(job1), toReturn = () => jobResult)
+      val job2 = RxMockJob("Job_2", dependencies = Set(job1), toReturn = () => jobResult)
 
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)

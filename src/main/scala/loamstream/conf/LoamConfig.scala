@@ -8,6 +8,7 @@ import scala.util.Success
 import loamstream.util.Loggable
 import loamstream.util.Tries
 import loamstream.drm.DrmSystem
+import scala.collection.SortedMap.Default
 
 /**
  * @author clint
@@ -33,7 +34,7 @@ object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
     val pythonConfig = PythonConfig.fromConfig(config)
     val rConfig = RConfig.fromConfig(config)
     val executionConfig = ExecutionConfig.fromConfig(config)
-    val compilationConfig = CompilationConfig.fromConfig(config)
+    val compilationConfig = CompilationConfig.default
 
     if(executionConfig.isFailure) {
       debug(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
@@ -48,7 +49,7 @@ object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
         pythonConfig.toOption,
         rConfig.toOption,
         executionConfig.getOrElse(ExecutionConfig.default),
-        compilationConfig.getOrElse(CompilationConfig.default))
+        compilationConfig)
     }
   }
 }

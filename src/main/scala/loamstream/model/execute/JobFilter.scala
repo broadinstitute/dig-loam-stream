@@ -11,9 +11,9 @@ import loamstream.model.jobs.LJob
 trait JobFilter {
   def shouldRun(job: LJob): Boolean
   
-  final def &&(other: JobFilter): JobFilter = new AndJobFilter(this, other)
+  final def &&(other: JobFilter): JobFilter = new AndJobFilter(this, other) //scalastyle:ignore method.name
   
-  final def ||(other: JobFilter): JobFilter = new OrJobFilter(this, other)
+  final def ||(other: JobFilter): JobFilter = new OrJobFilter(this, other)  //scalastyle:ignore method.name
 }
 
 object JobFilter {

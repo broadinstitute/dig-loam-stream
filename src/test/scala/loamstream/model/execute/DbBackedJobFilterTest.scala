@@ -31,10 +31,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     def p1: Path
     def p2: Path
     
-    def o0: DataHandle.PathOutput
-    def o1: DataHandle.PathOutput
-    def o2: DataHandle.PathOutput
-    def nonExistentOutput: DataHandle.PathOutput
+    def o0: DataHandle.PathHandle
+    def o1: DataHandle.PathHandle
+    def o2: DataHandle.PathHandle
+    def nonExistentOutput: DataHandle.PathHandle
     
     final lazy val cachedOutput0: OutputRecord = o0.toOutputRecord
     final lazy val cachedOutput1: OutputRecord = o1.toOutputRecord
@@ -51,10 +51,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     override val p1 = path("src/test/resources/for-hashing/empty.txt")
     override val p2 = path("src/test/resources/for-hashing/subdir/bar.txt")
     
-    override val o0 = DataHandle.PathOutput(p0)
-    override val o1 = DataHandle.PathOutput(p1)
-    override val o2 = DataHandle.PathOutput(p2)
-    override val nonExistentOutput = DataHandle.PathOutput(nonexistentPath)
+    override val o0 = DataHandle.PathHandle(p0)
+    override val o1 = DataHandle.PathHandle(p1)
+    override val o2 = DataHandle.PathHandle(p2)
+    override val nonExistentOutput = DataHandle.PathHandle(nonexistentPath)
   }
   
   private def testWithSimpleOutputSet(name: String)(body: Outputs => Any): Unit = {

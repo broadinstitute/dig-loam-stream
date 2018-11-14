@@ -76,8 +76,8 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
   private def handlesFor(stores: Set[Store]): Set[DataHandle] = {
     def pathOrUriToOutput(store: Store): Option[DataHandle] = {
       store.pathOpt.orElse(store.uriOpt).map {
-        case path: Path => DataHandle.PathOutput(path)
-        case uri: URI   => DataHandle.GcsUriOutput(uri, client)
+        case path: Path => DataHandle.PathHandle(path)
+        case uri: URI   => DataHandle.GcsUriHandle(uri, client)
       }
     }
     

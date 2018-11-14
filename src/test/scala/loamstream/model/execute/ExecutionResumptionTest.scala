@@ -136,15 +136,15 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   
   private def makeMockJobs(start: Path, f1: Path, f2: Path, f3: Path): (MockJob, MockJob, MockJob) = {
 
-    val startToF1 = mockJob(copyCmd(start, f1), Set(DataHandle.PathOutput(f1))) {
+    val startToF1 = mockJob(copyCmd(start, f1), Set(DataHandle.PathHandle(f1))) {
       copy(start, f1)
     }
 
-    val f1ToF2 = mockJob(copyCmd(f1, f2), Set(DataHandle.PathOutput(f2)), dependencies = Set(startToF1)) {
+    val f1ToF2 = mockJob(copyCmd(f1, f2), Set(DataHandle.PathHandle(f2)), dependencies = Set(startToF1)) {
       copy(f1, f2)
     }
 
-    val f2ToF3 = mockJob(copyCmd(f2, f3), Set(DataHandle.PathOutput(f3)), dependencies = Set(f1ToF2)) {
+    val f2ToF3 = mockJob(copyCmd(f2, f3), Set(DataHandle.PathHandle(f3)), dependencies = Set(f1ToF2)) {
       copy(f2, f3)
     }
     

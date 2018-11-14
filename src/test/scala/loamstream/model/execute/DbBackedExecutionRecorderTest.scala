@@ -22,10 +22,10 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   private val p2 = path("src/test/resources/for-hashing/subdir/bar.txt")
   private val nonexistentPath = path("non/existent/blah.txt")
 
-  private val o0 = DataHandle.PathOutput(p0)
-  private val o1 = DataHandle.PathOutput(p1)
-  private val o2 = DataHandle.PathOutput(p2)
-  private val nonExistentOutput = DataHandle.PathOutput(nonexistentPath)
+  private val o0 = DataHandle.PathHandle(p0)
+  private val o1 = DataHandle.PathHandle(p1)
+  private val o2 = DataHandle.PathHandle(p2)
+  private val nonExistentOutput = DataHandle.PathHandle(nonexistentPath)
   
   private val cachedOutput0 = o0.toOutputRecord
   private val cachedOutput1 = o1.toOutputRecord

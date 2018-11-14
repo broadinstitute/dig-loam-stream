@@ -41,7 +41,7 @@ object DataHandle {
    * A handle to an output of a job stored at 'path'.  Hashes and modification times are re-computed on
    * each access.
    */
-  final case class PathOutput private (path: Path) extends DataHandle {
+  final case class PathHandle private (path: Path) extends DataHandle {
     
     override def isPresent: Boolean = Files.exists(path)
 
@@ -62,14 +62,14 @@ object DataHandle {
           lastModified = lastModified)
     }
 
-    def normalized: PathOutput = this
+    def normalized: PathHandle = this
   }
   
-  object PathOutput {
-    def apply(path: Path): PathOutput = new PathOutput(normalizePath(path))
+  object PathHandle {
+    def apply(path: Path): PathHandle = new PathHandle(normalizePath(path))
   }
 
-  final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends DataHandle {
+  final case class GcsUriHandle(uri: URI, client: Option[CloudStorageClient]) extends DataHandle {
     override def isPresent = client.exists(_.isPresent(uri))
 
     override def hash: Option[Hash] = client.flatMap(_.hash(uri))

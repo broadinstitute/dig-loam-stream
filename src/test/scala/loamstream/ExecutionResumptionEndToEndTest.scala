@@ -28,7 +28,7 @@ import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.JobStatus.Skipped
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.DataHandle
-import loamstream.model.jobs.DataHandle.PathOutput
+import loamstream.model.jobs.DataHandle.PathHandle
 import loamstream.model.jobs.OutputRecord
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Loggable
@@ -77,8 +77,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       
       val (executable, executions) = compileAndRun(secondScript)
 
-      val updatedOutput1 = OutputRecord(PathOutput(fileOut1))
-      val updatedOutput2 = OutputRecord(PathOutput(fileOut2))
+      val updatedOutput1 = OutputRecord(PathHandle(fileOut1))
+      val updatedOutput2 = OutputRecord(PathHandle(fileOut2))
 
       //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
       val firstJob = jobThatWritesTo(executable)(fileOut1).get
@@ -141,8 +141,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       assert(executions.size === 1)
 
-      val output1 = OutputRecord(PathOutput(fileOut1))
-      val output2 = OutputRecord(PathOutput(fileOut2))
+      val output1 = OutputRecord(PathHandle(fileOut1))
+      val output2 = OutputRecord(PathHandle(fileOut2))
 
       val executionFromOutput1 = dao.findExecution(output1).get
       
@@ -359,7 +359,7 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
     val allJobs = allJobsFrom(executable).map(_.job)
 
     def outputMatches(o: DataHandle): Boolean = {
-      o.asInstanceOf[DataHandle.PathOutput].path.toString.endsWith(fileNameSuffix.toString)
+      o.asInstanceOf[DataHandle.PathHandle].path.toString.endsWith(fileNameSuffix.toString)
     }
 
     def jobMatches(j: LJob): Boolean = j.outputs.exists(outputMatches)

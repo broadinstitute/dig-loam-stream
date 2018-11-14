@@ -24,7 +24,7 @@ import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.DataHandle.PathOutput
+import loamstream.model.jobs.DataHandle.PathHandle
 import loamstream.model.jobs.OutputRecord
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
@@ -359,7 +359,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   test("insertExecutions - CommandInvocationFailure") {
     def doTest(path: Path): Unit = {
       createTablesAndThen {
-        val output0 = PathOutput(path)
+        val output0 = PathHandle(path)
   
         val failed = Execution(
             mockEnv,
@@ -394,7 +394,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     def doTestWithLocations(path: Path): Unit = {
       def doTest(command: Option[String], jobResult: JobResult): Unit = {
         createTablesAndThen {
-          val output0 = PathOutput(path)
+          val output0 = PathHandle(path)
   
           val failed = Execution(
               env = mockEnv, 
@@ -489,7 +489,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       store(path0)
 
-      val outputRecord0FromDb = dao.findOutputRecord(PathOutput(path0).toOutputRecord)
+      val outputRecord0FromDb = dao.findOutputRecord(PathHandle(path0).toOutputRecord)
       
       assert(outputRecord0FromDb === Some(cachedOutput(path0, hash0)))
 

@@ -94,9 +94,9 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       val initiallyMissing1 = makeInitiallyMissing1(outDir)
       val present = makePresent(outDir)
       
-      val initiallyMissingOutput0 = DataHandle.PathOutput(initiallyMissing0)
-      val initiallyMissingOutput1 = DataHandle.PathOutput(initiallyMissing1)
-      val presentOutput = DataHandle.PathOutput(present)
+      val initiallyMissingOutput0 = DataHandle.PathHandle(initiallyMissing0)
+      val initiallyMissingOutput1 = DataHandle.PathHandle(initiallyMissing1)
+      val presentOutput = DataHandle.PathHandle(present)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -153,8 +153,8 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       val out0 = makeOut0(outDir)
       val out1 = makeOut1(outDir)
       
-      val output0 = DataHandle.PathOutput(out0)
-      val output1 = DataHandle.PathOutput(out1)
+      val output0 = DataHandle.PathHandle(out0)
+      val output1 = DataHandle.PathHandle(out1)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -201,8 +201,8 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       val out0 = makeOut0(outDir)
       val out1 = makeOut1(outDir)
       
-      val output0 = DataHandle.PathOutput(out0)
-      val output1 = DataHandle.PathOutput(out1)
+      val output0 = DataHandle.PathHandle(out0)
+      val output1 = DataHandle.PathHandle(out1)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -250,8 +250,8 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       val out0 = makeOut0(outDir)
       val out1 = makeOut1(outDir)
       
-      val output0 = DataHandle.PathOutput(out0)
-      val output1 = DataHandle.PathOutput(out1)
+      val output0 = DataHandle.PathHandle(out0)
+      val output1 = DataHandle.PathHandle(out1)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,
@@ -310,8 +310,8 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       val out0 = makeOut0(outDir)
       val out1 = makeOut1(outDir)
       
-      val output0 = DataHandle.PathOutput(out0)
-      val output1 = DataHandle.PathOutput(out1)
+      val output0 = DataHandle.PathHandle(out0)
+      val output1 = DataHandle.PathHandle(out1)
       
       val mockJob = MockJob(
           toReturn = JobStatus.Succeeded,

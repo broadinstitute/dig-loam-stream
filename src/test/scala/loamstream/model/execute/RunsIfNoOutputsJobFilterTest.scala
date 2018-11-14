@@ -18,7 +18,7 @@ final class RunsIfNoOutputsJobFilterTest extends FunSuite {
     
     assert(noOutputs.outputs.isEmpty)
     
-    val someOutputs = MockJob(JobStatus.Succeeded, outputs = Set(DataHandle.PathOutput(path("/foo/bar"))))
+    val someOutputs = MockJob(JobStatus.Succeeded, outputs = Set(DataHandle.PathHandle(path("/foo/bar"))))
     
     assert(someOutputs.outputs.nonEmpty)
     

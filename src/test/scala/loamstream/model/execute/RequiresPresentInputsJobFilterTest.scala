@@ -23,7 +23,7 @@ final class RequiresPresentInputsJobFilterTest extends FunSuite {
   }
   
   test("shouldRun - job with all inputs present") {
-    val inputs: Set[DataHandle] = Set(DataHandle.PathOutput(path("src/main")), DataHandle.PathOutput(path("src/test")))
+    val inputs: Set[DataHandle] = Set(DataHandle.PathHandle(path("src/main")), DataHandle.PathHandle(path("src/test")))
     
     val presentInputs = MockJob(JobStatus.Succeeded, inputs = inputs)
     
@@ -34,8 +34,8 @@ final class RequiresPresentInputsJobFilterTest extends FunSuite {
   }
   
   test("shouldRun - job with all inputs missing") {
-    val missing0 = DataHandle.PathOutput(path("/alskdjalksdjlkasjd"))
-    val missing1 = DataHandle.PathOutput(path("/skdjfhksdjhfkjsdjf"))
+    val missing0 = DataHandle.PathHandle(path("/alskdjalksdjlkasjd"))
+    val missing1 = DataHandle.PathHandle(path("/skdjfhksdjhfkjsdjf"))
     
     val inputs: Set[DataHandle] = Set(missing0, missing1)
     
@@ -48,8 +48,8 @@ final class RequiresPresentInputsJobFilterTest extends FunSuite {
   }
   
   test("shouldRun - job with some inputs missing") {
-    val present = DataHandle.PathOutput(path("src/main"))
-    val missing = DataHandle.PathOutput(path("/skdjfhksdjhfkjsdjf"))
+    val present = DataHandle.PathHandle(path("src/main"))
+    val missing = DataHandle.PathHandle(path("/skdjfhksdjhfkjsdjf"))
     
     val inputs: Set[DataHandle] = Set(present, missing)
     

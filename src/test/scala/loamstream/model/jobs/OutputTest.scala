@@ -8,7 +8,7 @@ import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
 import loamstream.googlecloud.CloudStorageClient
-import loamstream.model.jobs.DataHandle.GcsUriOutput
+import loamstream.model.jobs.DataHandle.GcsUriHandle
 import loamstream.model.jobs.OutputTest.MockGcsClient
 import loamstream.util.Hash
 import loamstream.util.HashType
@@ -24,7 +24,7 @@ import loamstream.util.PlatformUtil
   */
 final class OutputTest extends FunSuite {
   test("PathOutput") {
-    import DataHandle.PathOutput
+    import DataHandle.PathHandle
     import TestHelpers.path
     import java.nio.file.Files
     import Paths.normalizePath
@@ -32,7 +32,7 @@ final class OutputTest extends FunSuite {
     val nonExistingLocation = "sjkafhkfhksdjfh"
     val nonExistingPath = path(nonExistingLocation)
       
-    val doesntExist = PathOutput(path(nonExistingLocation))
+    val doesntExist = PathHandle(path(nonExistingLocation))
     
     //sanity check
     assert(Files.exists(nonExistingPath) === false)
@@ -41,7 +41,7 @@ final class OutputTest extends FunSuite {
       //sanity check
       assert(Files.exists(existingPath))
       
-      val exists = PathOutput(existingPath)  
+      val exists = PathHandle(existingPath)  
   
       assert(exists.path === normalizePath(existingPath))
       
@@ -88,17 +88,17 @@ final class OutputTest extends FunSuite {
 
   test("GcsUriOutput.location") {
     import java.net.URI
-    import DataHandle.GcsUriOutput
+    import DataHandle.GcsUriHandle
 
     val invalidLocation = "sjkafhkfhksdjfh"
     val invalidUri = URI.create(invalidLocation)
-    val invalidOutput = GcsUriOutput(invalidUri, Option(MockGcsClient()))
+    val invalidOutput = GcsUriHandle(invalidUri, Option(MockGcsClient()))
 
     assert(invalidOutput.location === invalidLocation)
 
     val validLocation = "gs://bucket/folder/file"
     val validUri = URI.create(validLocation)
-    val validOutput = GcsUriOutput(validUri, Option(MockGcsClient()))
+    val validOutput = GcsUriHandle(validUri, Option(MockGcsClient()))
 
     assert(validOutput.location === validLocation)
   }
@@ -107,7 +107,7 @@ final class OutputTest extends FunSuite {
   val someURI = URI.create(someLoc)
 
   test("GcsUriOutput with no CloudStorageClient") {
-    val output = GcsUriOutput(someURI, client = None)
+    val output = GcsUriHandle(someURI, client = None)
     val expectedOutputRecord = OutputRecord(loc = someLoc,
                                             isPresent = false,
                                             hash = None,
@@ -124,7 +124,7 @@ final class OutputTest extends FunSuite {
     def gcsUriOutput(hash: Option[Hash] = None,
                      isPresent: Boolean = false,
                      lastModified: Option[Instant] = None) = {
-      GcsUriOutput(someURI, Option(MockGcsClient(hash, isPresent, lastModified)))
+      GcsUriHandle(someURI, Option(MockGcsClient(hash, isPresent, lastModified)))
     }
 
     val someHash = Hash.fromStrings(Some("HashValue"), Md5.algorithmName)

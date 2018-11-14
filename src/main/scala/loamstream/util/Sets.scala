@@ -12,7 +12,7 @@ object Sets {
    * `--`, hence the need to ensure we have HashSets.  Empirically, using this method makes validation run in linear 
    * time instead of quadratic time, as it did previously.   
    */
-  def fasterSetDiff[A](lhs: Set[A], rhs: Set[A]): Set[A] = {
+  def hashSetDiff[A](lhs: Set[A], rhs: Set[A]): Set[A] = {
     import scala.collection.immutable.HashSet
     
     def toHashSet(s: Set[A]): HashSet[A] = s match {

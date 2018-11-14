@@ -1,9 +1,8 @@
 package loamstream.model.execute
 
-import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Execution
 import loamstream.model.execute.JobFilter.AndJobFilter
-import loamstream.util.Loggable
+import loamstream.model.execute.JobFilter.OrJobFilter
+import loamstream.model.jobs.LJob
 
 /**
  * @author clint
@@ -13,12 +12,22 @@ trait JobFilter {
   def shouldRun(job: LJob): Boolean
   
   final def &&(other: JobFilter): JobFilter = new AndJobFilter(this, other)
+  
+  final def ||(other: JobFilter): JobFilter = new OrJobFilter(this, other)
 }
 
 object JobFilter {
-  final class AndJobFilter(lhs: JobFilter, rhs: JobFilter) extends JobFilter {
-    override def shouldRun(job: LJob): Boolean = lhs.shouldRun(job) && rhs.shouldRun(job)
+  abstract class BooleanJobFilter(
+      lhs: JobFilter, 
+      rhs: JobFilter, 
+      op: (Boolean, => Boolean) => Boolean) extends JobFilter {
+    
+    override def shouldRun(job: LJob): Boolean = op(lhs.shouldRun(job), rhs.shouldRun(job))
   }
+  
+  final case class AndJobFilter(lhs: JobFilter, rhs: JobFilter) extends BooleanJobFilter(lhs, rhs, _ && _)
+  
+  final case class OrJobFilter(lhs: JobFilter, rhs: JobFilter) extends BooleanJobFilter(lhs, rhs, _ || _)
   
   object RunEverything extends JobFilter {
     override def shouldRun(job: LJob): Boolean = true

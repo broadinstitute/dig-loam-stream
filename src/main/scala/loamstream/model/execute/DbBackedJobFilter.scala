@@ -17,21 +17,21 @@ final class DbBackedJobFilter(
     val outputHashingStrategy: HashingStrategy = HashingStrategy.HashOutputs) extends JobFilter with Loggable {
   
   override def shouldRun(job: LJob): Boolean = {
-    val noOutputs = job.outputs.isEmpty
-    lazy val lastFailure = lastFailureStatus(job)
-    lazy val failed = lastFailure.isDefined 
+    //val noOutputs = job.outputs.isEmpty
+    val lastFailure = lastFailureStatus(job)
+    val failed = lastFailure.isDefined 
     lazy val distinctCommand = hasNewCommandLine(job)
     lazy val outputThatCausesRunning = outputThatCausesRunningIfAny(job)
     lazy val anyOutputNeedsToBeRun = outputThatCausesRunning.isDefined
 
     def msg = s"Job $job will be run because"
     
-    if (noOutputs) { debug(s"$msg it has no known outputs") }
-    else if (failed) { debug(s"$msg it failed last time with status: ${lastFailure.get}") }
+    //if (noOutputs) { debug(s"$msg it has no known outputs") }
+    /*else */if (failed) { debug(s"$msg it failed last time with status: ${lastFailure.get}") }
     else if (distinctCommand) { debug(s"$msg its command changed") }
     else if (anyOutputNeedsToBeRun) { debug(s"$msg of this output: ${outputThatCausesRunning.get.location}") }
 
-    noOutputs || failed || distinctCommand || anyOutputNeedsToBeRun
+    /*noOutputs || */failed || distinctCommand || anyOutputNeedsToBeRun
   }
 
   // If performance becomes an issue, not 'findOutput()'ing multiple times

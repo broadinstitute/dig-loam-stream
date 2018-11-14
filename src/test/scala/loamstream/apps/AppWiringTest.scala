@@ -22,6 +22,9 @@ import loamstream.model.execute.CompositeChunkRunner
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.JobFilter
 import loamstream.model.execute.RxExecuter
+import loamstream.model.execute.RequiresPresentInputsJobFilter
+import loamstream.model.execute.RunsIfNoOutputsJobFilter
+import loamstream.model.execute.HashingStrategy
 
 
 
@@ -61,9 +64,14 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     compositeRunner.components.map(_.getClass) shouldBe(Seq(classOf[AsyncLocalChunkRunner]))
     
-    executer.jobFilter shouldBe a[DbBackedJobFilter]
+    import JobFilter.{AndJobFilter, OrJobFilter}
     
-    executer.jobFilter.asInstanceOf[DbBackedJobFilter].dao shouldBe wiring.dao
+    val AndJobFilter(jf0, OrJobFilter(jf1, jf2: DbBackedJobFilter)) = executer.jobFilter
+    
+    assert(jf0 === RequiresPresentInputsJobFilter)
+    assert(jf1 === RunsIfNoOutputsJobFilter)
+    assert(jf2.dao eq wiring.dao)
+    assert(jf2.outputHashingStrategy === HashingStrategy.HashOutputs)
   }
   
   test("Local execution, run everything") {
@@ -107,9 +115,14 @@ final class AppWiringTest extends FunSuite with Matchers {
       
       assert(runner.components.map(_.getClass).toSet === Set(classOf[AsyncLocalChunkRunner], classOf[DrmChunkRunner]))
       
-      actualExecuter.jobFilter shouldBe a[DbBackedJobFilter]
+      import JobFilter.{AndJobFilter, OrJobFilter}
       
-      actualExecuter.jobFilter.asInstanceOf[DbBackedJobFilter].dao shouldBe wiring.dao
+      val AndJobFilter(jf0, OrJobFilter(jf1, jf2: DbBackedJobFilter)) = actualExecuter.jobFilter
+    
+      assert(jf0 === RequiresPresentInputsJobFilter)
+      assert(jf1 === RunsIfNoOutputsJobFilter)
+      assert(jf2.dao eq wiring.dao)
+      assert(jf2.outputHashingStrategy === HashingStrategy.HashOutputs)
     }
     
     doTest(DrmSystem.Uger)

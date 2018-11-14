@@ -13,7 +13,7 @@ import loamstream.util.Paths
  * A container for job output attributes that are to be recorded and are not system-dependent
  * (e.g. in hash type or how resources are identified [URI/Path/etc])
  */
-final case class OutputRecord(loc: String,
+final case class StoreRecord(loc: String,
                               isPresent: Boolean,
                               hash: Option[String],
                               hashType: Option[String],
@@ -21,7 +21,7 @@ final case class OutputRecord(loc: String,
 
   def isMissing: Boolean = !isPresent
 
-  def hasDifferentModTimeThan(other: OutputRecord): Boolean = {
+  def hasDifferentModTimeThan(other: StoreRecord): Boolean = {
     val resultOpt = for {
       timestamp <- lastModified
       otherTimestamp <- other.lastModified
@@ -32,7 +32,7 @@ final case class OutputRecord(loc: String,
 
   def isHashed: Boolean = hash.isDefined
 
-  def hasDifferentHashThan(other: OutputRecord): Boolean = (
+  def hasDifferentHashThan(other: StoreRecord): Boolean = (
     for {
       hashValue <- hash
       hashKind <- hashType
@@ -48,21 +48,21 @@ final case class OutputRecord(loc: String,
   def toVerboseString: String = s"${getClass.getSimpleName}($loc, $isPresent, $hash, $hashType, $lastModified)"
 }
 
-object OutputRecord {
-  def apply(loc: String): OutputRecord = OutputRecord(loc,
+object StoreRecord {
+  def apply(loc: String): StoreRecord = StoreRecord(loc,
                                                       isPresent = false,
                                                       hash = None,
                                                       hashType = None,
                                                       lastModified = None)
                                                       
-  def apply(path: Path): OutputRecord = OutputRecord(Paths.normalize(path))
+  def apply(path: Path): StoreRecord = StoreRecord(Paths.normalize(path))
   
-  def apply(uri: URI): OutputRecord = OutputRecord(uri.toString)
+  def apply(uri: URI): StoreRecord = StoreRecord(uri.toString)
 
   def apply(loc: String,
             hash: Option[String],
             hashType: Option[String],
-            lastModified: Option[Instant]): OutputRecord = OutputRecord(loc,
+            lastModified: Option[Instant]): StoreRecord = StoreRecord(loc,
                                                                         isPresent = lastModified.isDefined,
                                                                         hash = hash,
                                                                         hashType = hashType,
@@ -70,13 +70,13 @@ object OutputRecord {
 
   
 
-  def apply(output: DataHandle): OutputRecord = output.lastModified match {
-    case lmOpt @ Some(_) => OutputRecord( loc = output.location,
+  def apply(output: DataHandle): StoreRecord = output.lastModified match {
+    case lmOpt @ Some(_) => StoreRecord( loc = output.location,
                                           isPresent = true,
                                           hash = output.hash.map(_.valueAsBase64String),
                                           hashType = output.hashType.map(_.algorithmName),
                                           lastModified = lmOpt)
-    case _ => OutputRecord( loc = output.location,
+    case _ => StoreRecord( loc = output.location,
                             isPresent = false,
                             hash = None,
                             hashType = None,

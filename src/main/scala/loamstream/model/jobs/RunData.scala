@@ -40,6 +40,6 @@ final case class RunData(
       status = jobStatus,
       result = jobResult,
       resources = resourcesOpt,
-      outputs = job.outputs.map(_.toOutputRecord),
+      outputs = job.outputs.map(_.toStoreRecord),
       outputStreams = outputStreamsOpt)
 }

@@ -60,9 +60,9 @@ final class OutputTest extends FunSuite {
       
       assert(hashStr == expectedHash)
   
-      val doesntExistRecord = doesntExist.toOutputRecord
+      val doesntExistRecord = doesntExist.toStoreRecord
       
-      val expectedDoesntExistRecord = OutputRecord( 
+      val expectedDoesntExistRecord = StoreRecord( 
           loc = Paths.normalize(nonExistingPath),
           isPresent = false,
           hash = None,
@@ -71,9 +71,9 @@ final class OutputTest extends FunSuite {
                                                     
       assert(doesntExistRecord === expectedDoesntExistRecord)
   
-      val existsRecord = exists.toOutputRecord
+      val existsRecord = exists.toStoreRecord
       
-      val expectedExistsRecord = OutputRecord(
+      val expectedExistsRecord = StoreRecord(
           loc = Paths.normalize(existingPath),
           isPresent = true,
           hash = Some(hashStr),
@@ -108,7 +108,7 @@ final class OutputTest extends FunSuite {
 
   test("GcsUriOutput with no CloudStorageClient") {
     val output = GcsUriHandle(someURI, client = None)
-    val expectedOutputRecord = OutputRecord(loc = someLoc,
+    val expectedOutputRecord = StoreRecord(loc = someLoc,
                                             isPresent = false,
                                             hash = None,
                                             hashType = None,
@@ -117,7 +117,7 @@ final class OutputTest extends FunSuite {
     assert(output.isMissing)
     assert(output.hash.isEmpty)
     assert(output.lastModified.isEmpty)
-    assert(output.toOutputRecord === expectedOutputRecord)
+    assert(output.toStoreRecord === expectedOutputRecord)
   }
 
   test("GcsUriOutput with CloudStorageClient") {
@@ -131,7 +131,7 @@ final class OutputTest extends FunSuite {
 
     // Not present; no hash; no timestamp
     val output1 = gcsUriOutput()
-    val expectedOutputRecord1 = OutputRecord( loc = someLoc,
+    val expectedOutputRecord1 = StoreRecord( loc = someLoc,
                                               isPresent = false,
                                               hash = None,
                                               hashType = None,
@@ -139,11 +139,11 @@ final class OutputTest extends FunSuite {
     assert(output1.isMissing)
     assert(output1.hash.isEmpty)
     assert(output1.lastModified.isEmpty)
-    assert(output1.toOutputRecord === expectedOutputRecord1)
+    assert(output1.toStoreRecord === expectedOutputRecord1)
 
     // Present; no hash; no timestamp
     val output2 = gcsUriOutput(isPresent = true)
-    val expectedOutputRecord2 = OutputRecord( loc = someLoc,
+    val expectedOutputRecord2 = StoreRecord( loc = someLoc,
                                               isPresent = true,
                                               hash = None,
                                               hashType = None,
@@ -151,11 +151,11 @@ final class OutputTest extends FunSuite {
     assert(output2.isPresent)
     assert(output2.hash.isEmpty)
     assert(output2.lastModified.isEmpty)
-    assert(output2.toOutputRecord === expectedOutputRecord2)
+    assert(output2.toStoreRecord === expectedOutputRecord2)
 
     // Present; some hash; no timestamp
     val output3 = gcsUriOutput(isPresent = true, hash = someHash)
-    val expectedOutputRecord3 = OutputRecord( loc = someLoc,
+    val expectedOutputRecord3 = StoreRecord( loc = someLoc,
                                               isPresent = true,
                                               hash = someHash.map(_.valueAsBase64String),
                                               hashType = Some(Md5.algorithmName),
@@ -163,11 +163,11 @@ final class OutputTest extends FunSuite {
     assert(output3.isPresent)
     assert(output3.hash.isDefined)
     assert(output3.lastModified.isEmpty)
-    assert(output3.toOutputRecord === expectedOutputRecord3)
+    assert(output3.toStoreRecord === expectedOutputRecord3)
 
     // Present; some hash; some timestamp
     val output4 = gcsUriOutput(isPresent = true, hash = someHash, lastModified = Some(Instant.ofEpochMilli(2)))
-    val expectedOutputRecord4 = OutputRecord( loc = someLoc,
+    val expectedOutputRecord4 = StoreRecord( loc = someLoc,
                                               isPresent = true,
                                               hash = someHash.map(_.valueAsBase64String),
                                               hashType = Some(Md5.algorithmName),
@@ -175,7 +175,7 @@ final class OutputTest extends FunSuite {
     assert(output4.isPresent)
     assert(output4.hash.isDefined)
     assert(output4.lastModified.isDefined)
-    assert(output4.toOutputRecord === expectedOutputRecord4)
+    assert(output4.toStoreRecord === expectedOutputRecord4)
   }
 }
 

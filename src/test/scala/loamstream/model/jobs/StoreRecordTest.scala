@@ -15,27 +15,27 @@ import loamstream.TestHelpers
  * @author kyuksel
  * date: Jan 3, 2017
  */
-final class OutputRecordTest extends FunSuite {
+final class StoreRecordTest extends FunSuite {
   import TestHelpers.path
   
   private val fooLoc = normalize("src/test/resources/for-hashing/foo.txt")
   private val fooPath = path(fooLoc)
   private val fooHash = Hashes.sha1(fooPath).valueAsBase64String
   private val fooHashType = Sha1.algorithmName
-  private val fooRec = OutputRecord(fooLoc, Option(fooHash), Option(fooHashType), lastModifiedOptOf(fooPath))
+  private val fooRec = StoreRecord(fooLoc, Option(fooHash), Option(fooHashType), lastModifiedOptOf(fooPath))
 
   private val fooPathCopy = fooPath
   private val fooHashCopy = Hashes.sha1(fooPathCopy).valueAsBase64String
-  private val fooRecCopy = OutputRecord(fooLoc)
+  private val fooRecCopy = StoreRecord(fooLoc)
 
   private val emptyLoc = normalize("src/test/resources/for-hashing/empty.txt")
   private val emptyPath = path(emptyLoc)
   private val emptyHash = Hashes.sha1(emptyPath).valueAsBase64String
   private val emptyHashType = Sha1.algorithmName
-  private val emptyRec = OutputRecord(emptyLoc, Option(emptyHash), Option(emptyHashType), lastModifiedOptOf(emptyPath))
+  private val emptyRec = StoreRecord(emptyLoc, Option(emptyHash), Option(emptyHashType), lastModifiedOptOf(emptyPath))
 
   private val nonExistingLoc = normalize("non/existent/path")
-  private val nonExistingRec = OutputRecord(nonExistingLoc)
+  private val nonExistingRec = StoreRecord(nonExistingLoc)
 
   private def lastModifiedOptOf(p: Path): Option[Instant] = Option(Paths.lastModifiedTime(p))
 
@@ -46,10 +46,10 @@ final class OutputRecordTest extends FunSuite {
 
     assert(nonExistingRec.isMissing)
 
-    val recFromFooOutput = OutputRecord(PathHandle(fooPath).normalized)
+    val recFromFooOutput = StoreRecord(PathHandle(fooPath).normalized)
     assert(fooRec == recFromFooOutput)
 
-    val expectedNonExistingRec = OutputRecord(nonExistingLoc, false, None, None, None)
+    val expectedNonExistingRec = StoreRecord(nonExistingLoc, false, None, None, None)
     assert(nonExistingRec == expectedNonExistingRec)
   }
 

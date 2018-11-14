@@ -3,7 +3,7 @@ package loamstream.cli
 import loamstream.model.jobs.Execution
 import java.nio.file.Path
 import loamstream.db.LoamDao
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import java.net.URI
 
 /**
@@ -18,8 +18,8 @@ object ExecutionInfo {
    */
   def forOutput(dao: LoamDao)(pathOrUri: Either[Path, URI]): Option[String] = {
     val outputRecord = pathOrUri match {
-      case Left(path) => OutputRecord(path)
-      case Right(uri) => OutputRecord(uri)
+      case Left(path) => StoreRecord(path)
+      case Right(uri) => StoreRecord(uri)
     }
     
     doForOutput(dao)(outputRecord)
@@ -29,7 +29,7 @@ object ExecutionInfo {
    * Produce an Option wrapping a description of the Execution that produced this output, or None
    * if no such Execution is found. 
    */
-  private def doForOutput(dao: LoamDao)(output: OutputRecord): Option[String] = {
+  private def doForOutput(dao: LoamDao)(output: StoreRecord): Option[String] = {
     val executionOpt = dao.findExecution(output)
     
     executionOpt.map(describe)
@@ -57,7 +57,7 @@ object ExecutionInfo {
                              #  Stderr: $stderr
                              #Recorded information about $numOutputs output(s) follows:""".stripMargin('#')
       
-    def outputRecordToString(o: OutputRecord): String = {
+    def outputRecordToString(o: StoreRecord): String = {
       val hashString = (for {
         ht <- o.hashType
         h <- o.hash

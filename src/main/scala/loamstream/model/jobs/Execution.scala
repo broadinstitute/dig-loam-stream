@@ -23,7 +23,7 @@ final case class Execution(
     status: JobStatus,
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
-    outputs: Set[OutputRecord] = Set.empty,
+    outputs: Set[StoreRecord] = Set.empty,
     outputStreams: Option[OutputStreams]) {
 
   require(
@@ -52,10 +52,10 @@ final case class Execution(
     case _ => false
   }
 
-  def withOutputRecords(newOutputs: Set[OutputRecord]): Execution = copy(outputs = newOutputs)
+  def withStoreRecords(newOutputs: Set[StoreRecord]): Execution = copy(outputs = newOutputs)
   
-  def withOutputRecords(newOutput: OutputRecord, others: OutputRecord*): Execution = {
-    withOutputRecords((newOutput +: others).toSet)
+  def withStoreRecords(newOutput: StoreRecord, others: StoreRecord*): Execution = {
+    withStoreRecords((newOutput +: others).toSet)
   }
 
   def withResources(rs: Resources): Execution = copy(resources = Some(rs))
@@ -74,7 +74,7 @@ object Execution extends Loggable {
             cmd: String,
             result: JobResult,
             outputStreams: OutputStreams,
-            outputs: OutputRecord*): Execution = {
+            outputs: StoreRecord*): Execution = {
     
     Execution(
         env = env, 
@@ -91,7 +91,7 @@ object Execution extends Loggable {
             status: JobStatus,
             result: JobResult,
             outputStreams: OutputStreams,
-            outputs: OutputRecord*): Execution = {
+            outputs: StoreRecord*): Execution = {
     
     Execution(
         env = env, 
@@ -115,7 +115,7 @@ object Execution extends Loggable {
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
-        outputs = outputs.map(_.toOutputRecord),
+        outputs = outputs.map(_.toStoreRecord),
         outputStreams = Option(outputStreams))
   }
 
@@ -138,7 +138,7 @@ object Execution extends Loggable {
       case _ => None
     }
     
-    val outputRecords = job.outputs.map(_.toOutputRecord)
+    val outputRecords = job.outputs.map(_.toStoreRecord)
     
     // TODO Replace the placeholder for `resources` object put in place to get the code to compile
     Execution(

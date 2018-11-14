@@ -10,7 +10,7 @@ import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.MockJob
 import loamstream.model.jobs.DataHandle
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.HashType.Sha1
 import loamstream.util.Paths
@@ -36,14 +36,14 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     def o2: DataHandle.PathHandle
     def nonExistentOutput: DataHandle.PathHandle
     
-    final lazy val cachedOutput0: OutputRecord = o0.toOutputRecord
-    final lazy val cachedOutput1: OutputRecord = o1.toOutputRecord
-    final lazy val cachedOutput2: OutputRecord = o2.toOutputRecord
-    final lazy val cachedNonExistentOutput: OutputRecord = nonExistentOutput.toOutputRecord
+    final lazy val cachedOutput0: StoreRecord = o0.toStoreRecord
+    final lazy val cachedOutput1: StoreRecord = o1.toStoreRecord
+    final lazy val cachedOutput2: StoreRecord = o2.toStoreRecord
+    final lazy val cachedNonExistentOutput: StoreRecord = nonExistentOutput.toStoreRecord
     
-    final lazy val failedOutput0: OutputRecord = failedOutput(o0.path)
-    final lazy val failedOutput1: OutputRecord = failedOutput(o1.path)
-    final lazy val failedOutput2: OutputRecord = failedOutput(o2.path)
+    final lazy val failedOutput0: StoreRecord = failedOutput(o0.path)
+    final lazy val failedOutput1: StoreRecord = failedOutput(o1.path)
+    final lazy val failedOutput2: StoreRecord = failedOutput(o2.path)
   }
   
   private object SimpleOutputs extends Outputs {
@@ -202,7 +202,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       // Record with different hash:  'hasDifferentHash' --> true
       //                              'needsToBeRun' --> true
-      val recWithDiffHash = OutputRecord( cachedOutput1.loc,
+      val recWithDiffHash = StoreRecord( cachedOutput1.loc,
                                           Option("bogus-hash"),
                                           Option(Sha1.algorithmName),
                                           cachedOutput1.lastModified)
@@ -287,7 +287,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       // Record with different hash:  'hasDifferentHash' --> true
       //                              'needsToBeRun' --> true
-      val recWithDiffHash = OutputRecord( cachedOutput1.loc,
+      val recWithDiffHash = StoreRecord( cachedOutput1.loc,
                                           Option("bogus-hash"),
                                           Option(Sha1.algorithmName),
                                           cachedOutput1.lastModified)

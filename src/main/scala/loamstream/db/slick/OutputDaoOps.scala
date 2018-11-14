@@ -3,7 +3,7 @@ package loamstream.db.slick
 import java.nio.file.Path
 
 import loamstream.db.LoamDao
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import loamstream.util.Paths
 import slick.jdbc.JdbcProfile
 
@@ -20,7 +20,7 @@ trait OutputDaoOps extends LoamDao { self: CommonDaoOps =>
 
   import driver.api._
   
-  override def findOutputRecord(loc: String): Option[OutputRecord] = findOutputRow(loc).map(toOutputRecord)
+  override def findStoreRecord(loc: String): Option[StoreRecord] = findOutputRow(loc).map(toOutputRecord)
   
   override def deleteOutput(locs: Iterable[String]): Unit = {
     val delete = outputDeleteAction(locs)
@@ -33,7 +33,7 @@ trait OutputDaoOps extends LoamDao { self: CommonDaoOps =>
   }
   
   //TODO: Find way to extract common code from the all* methods
-  override def allOutputRecords: Seq[OutputRecord] = {
+  override def allStoreRecords: Seq[StoreRecord] = {
     val query = tables.outputs.result
 
     log(query)
@@ -57,7 +57,7 @@ trait OutputDaoOps extends LoamDao { self: CommonDaoOps =>
     runBlocking(action)
   }
   
-  protected def toOutputRecord(row: OutputRow): OutputRecord = row.toOutputRecord
+  protected def toOutputRecord(row: OutputRow): StoreRecord = row.toOutputRecord
   
   protected def outputDeleteAction(locsToDelete: Iterable[String]): WriteAction[Int] = {
     OutputQueries.outputsByPaths(locsToDelete).delete

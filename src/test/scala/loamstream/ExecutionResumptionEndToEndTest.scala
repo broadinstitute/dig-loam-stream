@@ -29,7 +29,7 @@ import loamstream.model.jobs.JobStatus.Skipped
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.DataHandle.PathHandle
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.Loggable
 import loamstream.util.Sequence
@@ -77,8 +77,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
       
       val (executable, executions) = compileAndRun(secondScript)
 
-      val updatedOutput1 = OutputRecord(PathHandle(fileOut1))
-      val updatedOutput2 = OutputRecord(PathHandle(fileOut2))
+      val updatedOutput1 = StoreRecord(PathHandle(fileOut1))
+      val updatedOutput2 = StoreRecord(PathHandle(fileOut2))
 
       //Jobs and results come back as an unordered map, so we need to find the jobs we're looking for. 
       val firstJob = jobThatWritesTo(executable)(fileOut1).get
@@ -141,8 +141,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
 
       assert(executions.size === 1)
 
-      val output1 = OutputRecord(PathHandle(fileOut1))
-      val output2 = OutputRecord(PathHandle(fileOut2))
+      val output1 = StoreRecord(PathHandle(fileOut1))
+      val output2 = StoreRecord(PathHandle(fileOut2))
 
       val executionFromOutput1 = dao.findExecution(output1).get
       
@@ -231,8 +231,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         onlyResult.isFailure shouldBe true
       }
 
-      val output1 = OutputRecord(fileOut1)
-      val recordOpt = dao.findOutputRecord(output1)
+      val output1 = StoreRecord(fileOut1)
+      val recordOpt = dao.findStoreRecord(output1)
 
       assert(recordOpt === Some(output1))
       assert(recordOpt.get.hash.isEmpty)
@@ -291,8 +291,8 @@ final class ExecutionResumptionEndToEndTest extends FunSuite with ProvidesSlickL
         executions should have size 1
       }
 
-      val output1 = OutputRecord(fileOut1)
-      val output2 = OutputRecord(fileOut2)
+      val output1 = StoreRecord(fileOut1)
+      val output2 = StoreRecord(fileOut2)
 
       assert(dao.findExecution(output1).get.result.get.isFailure)
       assert(dao.findExecution(output1).get.outputs === Set(output1))

@@ -15,7 +15,7 @@ import loamstream.model.execute.HashingStrategy
 import loamstream.model.execute.RxExecuter
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.Execution
 import loamstream.model.execute.DbBackedExecutionRecorder
@@ -64,9 +64,9 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
       
       val loamEngine = LoamEngine(TestHelpers.config, LoamCompiler.default, executer)
       
-      def out0ExFromDb = dao.findExecution(OutputRecord(out0Path))
-      def out1ExFromDb = dao.findExecution(OutputRecord(out1Path))
-      def out2ExFromDb = dao.findExecution(OutputRecord(out2Path))
+      def out0ExFromDb = dao.findExecution(StoreRecord(out0Path))
+      def out1ExFromDb = dao.findExecution(StoreRecord(out1Path))
+      def out2ExFromDb = dao.findExecution(StoreRecord(out2Path))
       
       assert(out0ExFromDb.isEmpty)
       assert(out1ExFromDb.isEmpty)
@@ -86,7 +86,7 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
       assert(exists(out1Path))
       assert(exists(out2Path))
       
-      def outputField[A](field: OutputRecord => A)(e: Execution): A = field(e.outputs.head)
+      def outputField[A](field: StoreRecord => A)(e: Execution): A = field(e.outputs.head)
       
       assert(out0ExFromDb.map(outputField(_.isPresent)) === Some(true))
       assert(out0ExFromDb.flatMap(outputField(_.lastModified)).isDefined)

@@ -2,7 +2,7 @@ package loamstream.model.execute
 
 import loamstream.db.LoamDao
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.jobs.{Execution, LJob, OutputRecord}
+import loamstream.model.jobs.{Execution, LJob, StoreRecord}
 import loamstream.util.Loggable
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.DataHandle
@@ -34,12 +34,12 @@ final class DbBackedJobFilter(
 
   // If performance becomes an issue, not 'findOutput()'ing multiple times
   // for a given OutputRecord should help
-  private[execute] def needsToBeRun(jobStr: String, rec: OutputRecord): Boolean = {
+  private[execute] def needsToBeRun(jobStr: String, rec: StoreRecord): Boolean = {
     val msg = s"Job $jobStr will be run because its output"
 
     val considerHashes = outputHashingStrategy.shouldHash
     
-    lazy val missingFromDisk = rec.isMissing
+    val missingFromDisk = rec.isMissing
     lazy val differentModTime = hasDifferentModTime(rec)
     lazy val noHashInDb = notHashedInDb(rec)
     lazy val differentHashInDb = hasDifferentHash(rec)
@@ -55,25 +55,25 @@ final class DbBackedJobFilter(
     missingFromDisk || differentModTime || absentOrDifferentHash
   }
 
-  private def findOutputInDb(loc: String): Option[OutputRecord] = dao.findOutputRecord(loc)
+  private def findOutputInDb(loc: String): Option[StoreRecord] = dao.findStoreRecord(loc)
 
   private[execute] def findCommandLineInDb(loc: String): Option[String] = dao.findCommand(loc)
 
-  private def isHashedInDb(onDisk: OutputRecord): Boolean = {
+  private def isHashedInDb(onDisk: StoreRecord): Boolean = {
     compareWithDb(onDisk)(fromDb => fromDb.isHashed)
   }
 
-  private def notHashedInDb(onDisk: OutputRecord): Boolean = !isHashedInDb(onDisk)
+  private def notHashedInDb(onDisk: StoreRecord): Boolean = !isHashedInDb(onDisk)
 
-  private[execute] def hasDifferentHash(onDisk: OutputRecord): Boolean = {
+  private[execute] def hasDifferentHash(onDisk: StoreRecord): Boolean = {
     compareWithDb(onDisk)(fromDb => onDisk.hasDifferentHashThan(fromDb))
   }
 
-  private[execute] def hasDifferentModTime(onDisk: OutputRecord): Boolean = {
+  private[execute] def hasDifferentModTime(onDisk: StoreRecord): Boolean = {
     compareWithDb(onDisk)(fromDb => onDisk.hasDifferentModTimeThan(fromDb))
   }
   
-  private def compareWithDb(onDisk: OutputRecord)(compare: OutputRecord => Boolean): Boolean = {
+  private def compareWithDb(onDisk: StoreRecord)(compare: StoreRecord => Boolean): Boolean = {
     findOutputInDb(onDisk.loc) match {
       case Some(fromDb) => compare(fromDb)
       case None => false
@@ -96,6 +96,6 @@ final class DbBackedJobFilter(
   }
   
   private[execute] def outputThatCausesRunningIfAny(job: LJob): Option[DataHandle] = {
-    job.outputs.collectFirst { case o if needsToBeRun(job.toString, o.toOutputRecord) => o }
+    job.outputs.collectFirst { case o if needsToBeRun(job.toString, o.toStoreRecord) => o }
   }
 }

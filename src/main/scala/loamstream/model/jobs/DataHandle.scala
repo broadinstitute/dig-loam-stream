@@ -33,7 +33,7 @@ sealed trait DataHandle {
 
   def location: String
 
-  def toOutputRecord: OutputRecord
+  def toStoreRecord: StoreRecord
 }
 
 object DataHandle {
@@ -53,8 +53,8 @@ object DataHandle {
 
     override def location: String = Paths.normalize(path)
 
-    override def toOutputRecord: OutputRecord = {
-      OutputRecord( 
+    override def toStoreRecord: StoreRecord = {
+      StoreRecord( 
           loc = location,
           isPresent = isPresent,
           hash = hashToString(hash),
@@ -78,8 +78,8 @@ object DataHandle {
 
     override def location: String = uri.toString
 
-    override def toOutputRecord: OutputRecord = {
-      OutputRecord( 
+    override def toStoreRecord: StoreRecord = {
+      StoreRecord( 
           loc = location,
           isPresent = isPresent,
           hash = hashToString(hash),

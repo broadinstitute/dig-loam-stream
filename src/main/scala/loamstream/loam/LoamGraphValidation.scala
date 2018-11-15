@@ -86,8 +86,8 @@ object LoamGraphValidation {
   
   object eachToolsInputStoresArePresent extends LoamToolRule[Set[Store]] {
     override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store]]] = {
-      //NB: Use fasterSetDiff because `--` had O(n^2) running time :( 
-      val missingInputs = Sets.fasterSetDiff(graph.toolInputs.getOrElse(tool, Set.empty), graph.stores)
+      //NB: Use hashSetDiff because `--` had O(n^2) running time :( 
+      val missingInputs = Sets.hashSetDiff(graph.toolInputs.getOrElse(tool, Set.empty), graph.stores)
       
       issueIf(missingInputs.nonEmpty,
         newBulkIssue[Tool, Set[Store]](graph, this, tool, missingInputs, Severity.Warning,
@@ -97,8 +97,8 @@ object LoamGraphValidation {
 
   object eachToolsOutputStoresArePresent extends LoamToolRule[Set[Store]] {
     override def apply(graph: LoamGraph, tool: Tool): Seq[LoamToolIssue[Set[Store]]] = {
-      //NB: Use fasterSetDiff because `--` had O(n^2) running time :(
-      val missingOutputs = Sets.fasterSetDiff(graph.toolOutputs.getOrElse(tool, Set.empty), graph.stores)
+      //NB: Use hashSetDiff because `--` had O(n^2) running time :(
+      val missingOutputs = Sets.hashSetDiff(graph.toolOutputs.getOrElse(tool, Set.empty), graph.stores)
       
       issueIf(missingOutputs.nonEmpty,
         newBulkIssue[Tool, Set[Store]](graph, this, tool, missingOutputs, Severity.Warning,

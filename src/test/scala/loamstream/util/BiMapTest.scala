@@ -14,6 +14,10 @@ final class BiMapTest extends FunSuite {
     intercept[Exception] {
       BiMap("x" -> 1, "x" -> 2)
     }
+    
+    intercept[Exception] {
+      BiMap("x" -> 1, "y" -> 1)
+    }
   }
   
   test("size") {
@@ -99,27 +103,10 @@ final class BiMapTest extends FunSuite {
     assert(m3.filterKeys(_ != "asdf") === m3)
   }
   
-  test("filterValues") {
-    val m3 = BiMap("x" -> 42, "y" -> 99, "z" -> 123)
-    
-    def isOdd(i: Int) = i % 2 != 0
-    
-    assert(m3.filterValues(isOdd) === BiMap("y" -> 99, "z" -> 123))
-    
-    assert(m3.filterValues(_ != 0) === m3)
-    assert(m3.filterValues(_ => true) === m3)
-  }
-  
   test("mapKeys") {
     val m3 = BiMap("x" -> 42, "y" -> 99, "z" -> 123)
     
     assert(m3.mapKeys(_ * 2) === BiMap("xx" -> 42, "yy" -> 99, "zz" -> 123))
-  }
-  
-  test("mapValues") {
-    val m3 = BiMap("x" -> 42, "y" -> 99, "z" -> 123)
-    
-    assert(m3.mapValues(_ + 1) === BiMap("x" -> 43, "y" -> 100, "z" -> 124))
   }
   
   test("++") {
@@ -229,7 +216,7 @@ final class BiMapTest extends FunSuite {
     assert(m.toMap === Map(42 -> "x", 99 -> "y"))
   }
   
-  test("Soundness is preserved by + and ++") {
+  test("Soundness is preserved by + and ++ (duplicate keys)") {
     val m = BiMap("x" -> 42, "y" -> 99)
     
     val plusOne = m + ("x" -> 123)
@@ -241,5 +228,19 @@ final class BiMapTest extends FunSuite {
     
     assert(m2.forward === Map("x" -> 11, "y" -> 99, "z" -> 17))
     assert(m2.backward === Map(11 -> "x", 99 -> "y", 17 -> "z"))
+  }
+  
+  test("Soundness is preserved by + and ++ (duplicate values)") {
+    val m = BiMap("x" -> 42, "y" -> 99)
+    
+    val plusOne = m + ("z" -> 42)
+    
+    assert(plusOne.forward === Map("z" -> 42, "y" -> 99))
+    assert(plusOne.backward === Map(42 -> "z", 99 -> "y"))
+    
+    val m2 = m ++ Seq("u" -> 42, "v" -> 42, "z" -> 17)
+    
+    assert(m2.forward === Map("v" -> 42, "y" -> 99, "z" -> 17))
+    assert(m2.backward === Map(42 -> "v", 99 -> "y", 17 -> "z"))
   }
 }

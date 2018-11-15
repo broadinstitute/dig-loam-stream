@@ -7,24 +7,24 @@ import org.scalatest.FunSuite
  * Nov 9, 2018
  */
 final class SetsTest extends FunSuite {
-  import Sets.fasterSetDiff
+  import Sets.hashSetDiff
   
-  test("fasterSetDiff") {
+  test("hashSetDiff") {
     val lhs = Set(1, 2, 3, 4)
     
     val rhs = Set(3, 4, 5, 6)
     
-    assert(fasterSetDiff(lhs, rhs) === Set(1, 2))
+    assert(hashSetDiff(lhs, rhs) === Set(1, 2))
     
-    assert(fasterSetDiff(lhs, lhs) === Set.empty)
+    assert(hashSetDiff(lhs, lhs) === Set.empty)
   }
   
-  test("fasterSetDiff - some empty sets") {
+  test("hashSetDiff - some empty sets") {
     val s = Set("a", "b", "c") 
     
-    assert(fasterSetDiff(Set.empty[String], Set.empty[String]) === Set.empty[String])
+    assert(hashSetDiff(Set.empty[String], Set.empty[String]) === Set.empty[String])
     
-    assert(fasterSetDiff(s, Set.empty) === s)
-    assert(fasterSetDiff(Set.empty, s) === Set.empty)
+    assert(hashSetDiff(s, Set.empty) === s)
+    assert(hashSetDiff(Set.empty, s) === Set.empty)
   }
 }

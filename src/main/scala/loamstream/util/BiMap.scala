@@ -37,13 +37,13 @@ final case class BiMap[A, B] private (private[util] val forward: Map[A, B], priv
   
   import Maps.Implicits._
   
-  def filterKeys(p: A => Boolean): BiMap[A, B] = BiMap(forward.filterKeys(p), backward.filterValues(p))
-  
-  def filterValues(p: B => Boolean): BiMap[A, B] = BiMap(forward.filterValues(p), backward.filterKeys(p))
+  def filterKeys(p: A => Boolean): BiMap[A, B] = {
+    val forwardKeysToRemove = forward.keys.filterNot(p)
+    
+    this -- forwardKeysToRemove
+  }
   
   def mapKeys[C](f: A => C): BiMap[C, B] = BiMap(forward.mapKeys(f), backward.strictMapValues(f))
-  
-  def mapValues[C](f: B => C): BiMap[A, C] = inverse.mapKeys(f).inverse
   
   def +(tuple: (A, B)): BiMap[A, B] = {
     val (a, b) = tuple
@@ -61,11 +61,7 @@ final case class BiMap[A, B] private (private[util] val forward: Map[A, B], priv
     BiMap(forward - a, backward -- bToRemove)
   }
   
-  def --(as: Iterable[A]): BiMap[A, B] = {
-    val bsToRemove = as.flatMap(forward.get)
-    
-    BiMap(forward -- as, backward -- bsToRemove)
-  }
+  def --(as: Iterable[A]): BiMap[A, B] = as.foldLeft(this)(_ - _)
   
   def withoutValue(b: B): BiMap[A, B] = (inverse - b).inverse
   

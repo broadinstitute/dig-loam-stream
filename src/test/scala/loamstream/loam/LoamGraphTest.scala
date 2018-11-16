@@ -9,8 +9,6 @@ import loamstream.TestHelpers
 import loamstream.model.Store
 import loamstream.model.execute.Environment
 import loamstream.util.Maps
-import loamstream.loam.LoamGraph.StoreLocation
-import loamstream.compiler.LoamPredef
 
 /**
   * LoamStream
@@ -53,11 +51,11 @@ final class LoamGraphTest extends FunSuite {
         components.phaseTool -> Set(components.phased),
         newTool -> Set(components.imputed)))
         
-    assert(oldGraph.storeProducers === Map(
+    assert(oldGraph.storeProducers.toMap === Map(
         components.phased -> components.phaseTool,
         components.imputed -> components.imputeTool))
         
-    assert(newGraph.storeProducers === Map(
+    assert(newGraph.storeProducers.toMap === Map(
         components.phased -> components.phaseTool,
         components.imputed -> newTool))
         
@@ -237,14 +235,14 @@ final class LoamGraphTest extends FunSuite {
     
     assert((graph.stores - imputed - template) === filtered.stores)
     
-    assert(filtered.storeProducers === Map(phased -> phaseTool))
+    assert(filtered.storeProducers.toMap === Map(phased -> phaseTool))
     assert(filtered.storeConsumers === Map(raw -> Set(phaseTool)))
     
     assert(filtered.workDirs === Map(phaseTool -> TestHelpers.path(".")))
     
     assert(filtered.executionEnvironments === Map(phaseTool -> Environment.Local))
     
-    assert(filtered.namedTools === Map("phase" -> phaseTool))
+    assert(filtered.namedTools.toMap === Map(phaseTool -> "phase"))
   }
   
   test("withToolName") {
@@ -272,7 +270,7 @@ final class LoamGraphTest extends FunSuite {
     //Give a tool with an auto-generated name a user-specified name
     val updatedGraph = graph.withToolName(imputeTool, "impute")
     
-    assert(updatedGraph.namedTools === Map("phase" -> phaseTool, "impute" -> imputeTool))
+    assert(updatedGraph.namedTools.toMap === Map(phaseTool -> "phase", imputeTool -> "impute"))
   }
 }
 

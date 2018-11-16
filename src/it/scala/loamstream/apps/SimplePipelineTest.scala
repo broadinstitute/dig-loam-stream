@@ -142,6 +142,7 @@ final class SimplePipelineTest extends FunSuite {
 
     val intent = Intent.RealRun(
       confFile = Some(confFilePath),
+      shouldValidate = true,
       hashingStrategy = hashingStrategy,
       jobFilterIntent = jobFilterIntent,
       drmSystemOpt = environmentDescriptor.drmSystem,

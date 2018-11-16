@@ -110,13 +110,21 @@ object AppWiring extends Loggable {
 
   def daoForOutputLookup(intent: Intent.LookupOutput): LoamDao = makeDefaultDb
 
-  def loamConfigFrom(confFile: Option[Path], drmSystemOpt: Option[DrmSystem]): LoamConfig = {
+  def loamConfigFrom(
+      confFile: Option[Path], 
+      drmSystemOpt: Option[DrmSystem], 
+      shouldValidateGraph: Boolean): LoamConfig = {
+    
     val typesafeConfig: Config = loadConfig(confFile)
       
     //TODO: Revisit .get
     val withoutDrmSystem = LoamConfig.fromConfig(typesafeConfig).get
     
-    withoutDrmSystem.copy(drmSystem = drmSystemOpt)
+    val withDrmSystem = withoutDrmSystem.copy(drmSystem = drmSystemOpt)
+    
+    val newCompilationConfig = withDrmSystem.compilationConfig.copy(shouldValidateGraph = shouldValidateGraph)
+    
+    withDrmSystem.copy(compilationConfig = newCompilationConfig)
   }
   
   def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
@@ -155,7 +163,7 @@ object AppWiring extends Loggable {
     
     override lazy val dao: LoamDao = makeDao
     
-    override lazy val config: LoamConfig = loamConfigFrom(intent.confFile, intent.drmSystemOpt)
+    override lazy val config: LoamConfig = loamConfigFrom(intent.confFile, intent.drmSystemOpt, intent.shouldValidate)
     
     override def executer: Executer = terminableExecuter
 

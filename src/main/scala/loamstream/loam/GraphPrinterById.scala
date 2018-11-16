@@ -70,7 +70,7 @@ final case class GraphPrinterById(idLength: Int) extends GraphPrinter {
 
     val toolsString = toString(graph.tools.map(print))
 
-    val storeProducersString = toString(graph.storeProducers.map {
+    val storeProducersString = toString(graph.storeProducers.toMap.map {
       case (store: Store, producer: LoamCmdTool) => s"${print(store, fully = false)} <- ${print(producer, graph)}"
       case tuple => throw new Exception(s"We don't know how to stringify non-LoamCmdTools: $tuple")
     })

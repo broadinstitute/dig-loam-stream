@@ -29,7 +29,7 @@ final class LoamCompilerMultiFileTest extends FunSuite {
     assert(cmdTool.tokens.head.toString() === "echo Hello the answer is 42")
   }
 
-  private def createNewCompiler: LoamCompiler = new LoamCompiler
+  private def createNewCompiler: LoamCompiler = LoamCompiler.default
 
   private val scriptValues = LoamScript("values",
     """

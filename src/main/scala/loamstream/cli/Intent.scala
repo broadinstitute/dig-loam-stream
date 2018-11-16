@@ -32,11 +32,13 @@ object Intent extends Loggable {
 
   final case class CompileOnly(
       confFile: Option[Path], 
+      shouldValidate: Boolean,
       drmSystemOpt: Option[DrmSystem], 
       loams: Seq[Path]) extends Intent
 
   final case class DryRun(
       confFile: Option[Path],
+      shouldValidate: Boolean,
       hashingStrategy: HashingStrategy,
       jobFilterIntent: JobFilterIntent,
       drmSystemOpt: Option[DrmSystem],
@@ -47,6 +49,7 @@ object Intent extends Loggable {
 
   final case class RealRun(
       confFile: Option[Path],
+      shouldValidate: Boolean,
       hashingStrategy: HashingStrategy,
       jobFilterIntent: JobFilterIntent,
       drmSystemOpt: Option[DrmSystem],
@@ -116,7 +119,7 @@ object Intent extends Loggable {
   
   private def asCompileOnly(values: Conf.Values): Option[Intent] = {
     if(confExistsOrOmitted(values) && compileOnly(values)) {
-      Some(CompileOnly(values.conf, getDrmSystem(values), values.loams))
+      Some(CompileOnly(values.conf, !values.noValidationSupplied, getDrmSystem(values), values.loams))
     } else {
       None
     }
@@ -133,6 +136,7 @@ object Intent extends Loggable {
   private def makeDryRun(values: Conf.Values): DryRun = {
     DryRun(
       confFile = values.conf,
+      shouldValidate = !values.noValidationSupplied, 
       hashingStrategy = determineHashingStrategy(values),
       jobFilterIntent = determineJobFilterIntent(values),
       drmSystemOpt = getDrmSystem(values),
@@ -142,6 +146,7 @@ object Intent extends Loggable {
   private def makeRealRun(values: Conf.Values): RealRun = {
     RealRun(
       confFile = values.conf,
+      shouldValidate = !values.noValidationSupplied,
       hashingStrategy = determineHashingStrategy(values),
       jobFilterIntent = determineJobFilterIntent(values),
       drmSystemOpt = getDrmSystem(values),

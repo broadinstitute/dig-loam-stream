@@ -8,6 +8,7 @@ import scala.util.Success
 import loamstream.util.Loggable
 import loamstream.util.Tries
 import loamstream.drm.DrmSystem
+import scala.collection.SortedMap.Default
 
 /**
  * @author clint
@@ -21,6 +22,7 @@ final case class LoamConfig(
     pythonConfig: Option[PythonConfig],
     rConfig: Option[RConfig],
     executionConfig: ExecutionConfig,
+    compilationConfig: CompilationConfig,
     drmSystem: Option[DrmSystem] = None)
     
 object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
@@ -32,20 +34,22 @@ object LoamConfig extends ConfigParser[LoamConfig] with Loggable {
     val pythonConfig = PythonConfig.fromConfig(config)
     val rConfig = RConfig.fromConfig(config)
     val executionConfig = ExecutionConfig.fromConfig(config)
+    val compilationConfig = CompilationConfig.default
 
     if(executionConfig.isFailure) {
       debug(s"'loamstream.execution' section missing from config file, using defaults: ${ExecutionConfig.default}")
     }
     
     Success {
-      LoamConfig( 
+      LoamConfig(
         ugerConfig.toOption,
         lsfConfig.toOption,
         googleConfig.toOption,
         hailConfig.toOption,
         pythonConfig.toOption,
         rConfig.toOption,
-        executionConfig.getOrElse(ExecutionConfig.default))
+        executionConfig.getOrElse(ExecutionConfig.default),
+        compilationConfig)
     }
   }
 }

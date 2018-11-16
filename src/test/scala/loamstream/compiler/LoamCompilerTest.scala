@@ -8,6 +8,7 @@ import loamstream.TestHelpers
 import loamstream.loam.LoamProjectContext
 import loamstream.util.ValueBox
 import loamstream.model.Store
+import loamstream.conf.CompilationConfig
 
 /**
   * LoamStream
@@ -24,7 +25,7 @@ object LoamCompilerTest {
 
 final class LoamCompilerTest extends FunSuite {
   test("Testing sanity of classloader used by compiler.") {
-    val compiler = new LoamCompiler
+    val compiler = LoamCompiler.default
     val compilerClassLoader = compiler.compiler.rootClassLoader
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "java.lang.String"))
     assert(LoamCompilerTest.classIsLoaded(compilerClassLoader, "scala.collection.immutable.Seq"))
@@ -32,7 +33,7 @@ final class LoamCompilerTest extends FunSuite {
   }
 
   test("Testing compilation of legal code fragment with no settings (saying 'Hello!').") {
-    val compiler = new LoamCompiler
+    val compiler = LoamCompiler.default
     val code = {
       // scalastyle:off regex
       """
@@ -48,7 +49,7 @@ final class LoamCompilerTest extends FunSuite {
   
   test("Testing that compilation of illegal code fragment causes compile errors.") {
     val settingsWithNoCodeLoggingOnError = LoamCompiler.Settings.default.copy(logCodeOnError = false)
-    val compiler = new LoamCompiler(settingsWithNoCodeLoggingOnError)
+    val compiler = new LoamCompiler(CompilationConfig.default, settingsWithNoCodeLoggingOnError)
     val code = {
       """
     The enlightened soul is a person who is self-conscious of his "human condition" in his time and historical
@@ -60,7 +61,7 @@ final class LoamCompilerTest extends FunSuite {
   }
   
   test("Testing sample code toyImpute.loam") {
-    val compiler = new LoamCompiler
+    val compiler = LoamCompiler.default
 
     val exampleFile = Paths.get("src/examples/loam/toyImpute.loam")
 

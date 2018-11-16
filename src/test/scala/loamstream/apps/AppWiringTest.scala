@@ -210,12 +210,23 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     val expectedBaseConfig = LoamConfig.fromPath(confFileForUger).get
     
-    def doTest(drmSystemOpt: Option[DrmSystem]): Unit = {
-      assert(loamConfigFrom(Some(confFileForUger), drmSystemOpt) === expectedBaseConfig.copy(drmSystem = drmSystemOpt))
+    def doTest(drmSystemOpt: Option[DrmSystem], shouldValidate: Boolean): Unit = {
+      
+      val withDrmSystem = expectedBaseConfig.copy(drmSystem = drmSystemOpt)
+      
+      val newCompilationConfig = withDrmSystem.compilationConfig.copy(shouldValidateGraph = shouldValidate)
+      
+      val expected = withDrmSystem.copy(compilationConfig = newCompilationConfig)
+      
+      assert(loamConfigFrom(Some(confFileForUger), drmSystemOpt, shouldValidate) === expected)
     }
     
-    doTest(None)
-    doTest(Some(DrmSystem.Uger))
-    doTest(Some(DrmSystem.Lsf))
+    doTest(None, true)
+    doTest(Some(DrmSystem.Uger), true)
+    doTest(Some(DrmSystem.Lsf), true)
+    
+    doTest(None, false)
+    doTest(Some(DrmSystem.Uger), false)
+    doTest(Some(DrmSystem.Lsf), false)
   }
 }

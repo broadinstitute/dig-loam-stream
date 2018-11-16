@@ -39,7 +39,7 @@ object LoamEngine {
       config: LoamConfig,
       csClient: Option[CloudStorageClient] = None): LoamEngine = {
     
-    val compiler = LoamCompiler.default
+    val compiler = LoamCompiler(config.compilationConfig, LoamCompiler.Settings.default) 
     
     LoamEngine(config, compiler, RxExecuter.default, csClient)
   }

@@ -71,10 +71,9 @@ final case class RxExecuter(
     val chunks: Observable[Seq[JobRun]] = runnables.tumblingBuffer(windowLength, runner.maxNumJobs, ioScheduler)
     
     val chunkResults: Observable[Map[LJob, Execution]] = for {
-      chunk <- chunks
       //NB: .toSet is important: jobs in a chunk should be distinct, 
       //so they're not run more than once before transitioning to a terminal state.
-      jobs = chunk.toSet
+      jobs <- chunks.map(_.toSet)
       //NB: Filter out jobs from this chunk that finished when run as part of another chunk, so we don't run them
       //more times than necessary.  This helps in the face of job-restarting, since we can't call `distinct()` 
       //on `runnables` and declare victory like we did before, since that would filter out restarting jobs that 

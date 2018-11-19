@@ -79,8 +79,9 @@ import loamstream.model.execute.DbBackedExecutionRecorder
 import loamstream.cli.JobFilterIntent
 import loamstream.model.execute.ByNameJobFilter
 import loamstream.drm.uger.UgerScriptBuilderParams
-import loamstream.model.execute.RequiresPresentInputsJobFilter
 import loamstream.model.execute.RunsIfNoOutputsJobFilter
+import loamstream.model.execute.RequiresPresentInputsJobCanceler
+import loamstream.model.execute.JobCanceler
 
 
 /**
@@ -201,6 +202,7 @@ object AppWiring extends Loggable {
             compositeRunner, 
             new FileMonitor(outputPollingFrequencyInHz, maxWaitTimeForOutputs),
             windowLength, 
+            defaultJobCanceller,
             jobFilter, 
             executionRecorder,
             maxRunsPerJob)(executionContextWithThreadPool)
@@ -490,7 +492,9 @@ object AppWiring extends Loggable {
     }
   }
   
+  private[apps] def defaultJobCanceller: JobCanceler = RequiresPresentInputsJobCanceler
+  
   private[apps] def defaultJobFilter(dao: LoamDao, outputHashingStrategy: HashingStrategy): JobFilter = {
-    RequiresPresentInputsJobFilter && (RunsIfNoOutputsJobFilter || new DbBackedJobFilter(dao, outputHashingStrategy))
+    RunsIfNoOutputsJobFilter || new DbBackedJobFilter(dao, outputHashingStrategy)
   }
 }

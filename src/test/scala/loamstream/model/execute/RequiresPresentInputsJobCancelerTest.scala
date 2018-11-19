@@ -11,18 +11,18 @@ import loamstream.model.jobs.JobStatus
  * @author clint
  * Nov 13, 2018
  */
-final class RequiresPresentInputsJobFilterTest extends FunSuite {
+final class RequiresPresentInputsJobCancelerTest extends FunSuite {
   import TestHelpers.path
   
-  test("shouldRun - job with no inputs") {
+  test("shouldCancel - job with no inputs") {
     val noInputs = MockJob(JobResult.Success)
     
     assert(noInputs.inputs.isEmpty)
     
-    assert(RequiresPresentInputsJobFilter.shouldRun(noInputs))
+    assert(RequiresPresentInputsJobCanceler.shouldCancel(noInputs) === false)
   }
   
-  test("shouldRun - job with all inputs present") {
+  test("shouldCancel - job with all inputs present") {
     val inputs: Set[DataHandle] = Set(DataHandle.PathHandle(path("src/main")), DataHandle.PathHandle(path("src/test")))
     
     val presentInputs = MockJob(JobStatus.Succeeded, inputs = inputs)
@@ -30,10 +30,10 @@ final class RequiresPresentInputsJobFilterTest extends FunSuite {
     assert(presentInputs.inputs.nonEmpty)
     assert(presentInputs.inputs.forall(_.isPresent))
     
-    assert(RequiresPresentInputsJobFilter.shouldRun(presentInputs))
+    assert(RequiresPresentInputsJobCanceler.shouldCancel(presentInputs) === false)
   }
   
-  test("shouldRun - job with all inputs missing") {
+  test("shouldCancel - job with all inputs missing") {
     val missing0 = DataHandle.PathHandle(path("/alskdjalksdjlkasjd"))
     val missing1 = DataHandle.PathHandle(path("/skdjfhksdjhfkjsdjf"))
     
@@ -44,10 +44,10 @@ final class RequiresPresentInputsJobFilterTest extends FunSuite {
     assert(missingInputs.inputs.nonEmpty)
     assert(missingInputs.inputs.forall(_.isMissing))
     
-    assert(RequiresPresentInputsJobFilter.shouldRun(missingInputs) === false)
+    assert(RequiresPresentInputsJobCanceler.shouldCancel(missingInputs))
   }
   
-  test("shouldRun - job with some inputs missing") {
+  test("shouldCancel - job with some inputs missing") {
     val present = DataHandle.PathHandle(path("src/main"))
     val missing = DataHandle.PathHandle(path("/skdjfhksdjhfkjsdjf"))
     
@@ -58,6 +58,6 @@ final class RequiresPresentInputsJobFilterTest extends FunSuite {
     assert(present.isPresent)
     assert(missing.isMissing)
     
-    assert(RequiresPresentInputsJobFilter.shouldRun(someMissingInputs) === false)
+    assert(RequiresPresentInputsJobCanceler.shouldCancel(someMissingInputs))
   }
 }

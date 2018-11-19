@@ -38,6 +38,7 @@ final case class RxExecuter(
     runner: ChunkRunner,
     fileMonitor: FileMonitor,
     windowLength: Duration,
+    jobCanceler: JobCanceler,
     jobFilter: JobFilter,
     executionRecorder: ExecutionRecorder,
     maxRunsPerJob: Int,
@@ -49,7 +50,6 @@ final case class RxExecuter(
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
-    
     import loamstream.util.Observables.Implicits._
     
     val ioScheduler: Scheduler = IOScheduler()
@@ -81,16 +81,18 @@ final case class RxExecuter(
       //already ran 
       (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
       if notFinishedJobs.nonEmpty
-      (jobsToRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
+      (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
+      (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
       _ = handleSkippedJobs(skippedJobs)
-      executionMap <- runJobs(jobsToRun)
+      cancelledJobsMap = cancelJobs(jobsToCancel)
+      runJobsMap <- runJobs(jobsToRun)
+      executionMap = cancelledJobsMap ++ runJobsMap
       _ = record(executionMap)
       _ = logFinishedJobs(executionMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
     } yield {
       executionMap ++ skippedResultMap
     }
-    
     //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
     //TODO: Make this configurable
     val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
@@ -116,6 +118,16 @@ final case class RxExecuter(
     import RxExecuter.toExecutionMap
     
     runner.run(jobsToRun.toSet, shouldRestart).flatMap(toExecutionMap(fileMonitor))
+  }
+  
+  private def cancelJobs(jobsToCancel: Iterable[LJob]): Map[LJob, Execution] = {
+    val failedPermanently = JobStatus.FailedPermanently
+    
+    jobsToCancel.foreach(_.transitionTo(failedPermanently))
+    
+    import loamstream.util.Traversables.Implicits._
+    
+    jobsToCancel.mapTo(job => Execution.from(job, failedPermanently))
   }
   
   private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {
@@ -160,13 +172,15 @@ object RxExecuter extends Loggable {
     val windowLength: Double = 0.05
     val windowLengthInSec: Duration = windowLength.seconds
   
+    val jobCanceler: JobCanceler = JobCanceler.NeverCancel
+    
     val jobFilter: JobFilter = JobFilter.RunEverything
   
     val executionRecorder: ExecutionRecorder = ExecutionRecorder.DontRecord
     
     val maxRunsPerJob: Int = 4
     
-    lazy val executionConfig: ExecutionConfig = ExecutionConfig.default
+    val executionConfig: ExecutionConfig = ExecutionConfig.default
     
     lazy val maxNumConcurrentJobs: Int = AsyncLocalChunkRunner.defaultMaxNumJobs
     
@@ -181,7 +195,8 @@ object RxExecuter extends Loggable {
     new RxExecuter(
         runner, 
         Defaults.fileMonitor, 
-        Defaults.windowLengthInSec, 
+        Defaults.windowLengthInSec,
+        Defaults.jobCanceler,
         Defaults.jobFilter, 
         Defaults.executionRecorder,
         Defaults.maxRunsPerJob)
@@ -196,6 +211,7 @@ object RxExecuter extends Loggable {
         chunkRunner, 
         Defaults.fileMonitor,
         Defaults.windowLengthInSec, 
+        Defaults.jobCanceler,
         Defaults.jobFilter, 
         Defaults.executionRecorder,
         Defaults.maxRunsPerJob, 

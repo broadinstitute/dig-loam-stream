@@ -22,9 +22,9 @@ import loamstream.model.execute.CompositeChunkRunner
 import loamstream.model.execute.DbBackedJobFilter
 import loamstream.model.execute.JobFilter
 import loamstream.model.execute.RxExecuter
-import loamstream.model.execute.RequiresPresentInputsJobFilter
 import loamstream.model.execute.RunsIfNoOutputsJobFilter
 import loamstream.model.execute.HashingStrategy
+import loamstream.model.execute.RequiresPresentInputsJobCanceler
 
 
 
@@ -66,9 +66,8 @@ final class AppWiringTest extends FunSuite with Matchers {
     
     import JobFilter.{AndJobFilter, OrJobFilter}
     
-    val AndJobFilter(jf0, OrJobFilter(jf1, jf2: DbBackedJobFilter)) = executer.jobFilter
+    val OrJobFilter(jf1, jf2: DbBackedJobFilter) = executer.jobFilter
     
-    assert(jf0 === RequiresPresentInputsJobFilter)
     assert(jf1 === RunsIfNoOutputsJobFilter)
     assert(jf2.dao eq wiring.dao)
     assert(jf2.outputHashingStrategy === HashingStrategy.HashOutputs)
@@ -117,9 +116,8 @@ final class AppWiringTest extends FunSuite with Matchers {
       
       import JobFilter.{AndJobFilter, OrJobFilter}
       
-      val AndJobFilter(jf0, OrJobFilter(jf1, jf2: DbBackedJobFilter)) = actualExecuter.jobFilter
+      val OrJobFilter(jf1, jf2: DbBackedJobFilter) = actualExecuter.jobFilter
     
-      assert(jf0 === RequiresPresentInputsJobFilter)
       assert(jf1 === RunsIfNoOutputsJobFilter)
       assert(jf2.dao eq wiring.dao)
       assert(jf2.outputHashingStrategy === HashingStrategy.HashOutputs)
@@ -241,5 +239,9 @@ final class AppWiringTest extends FunSuite with Matchers {
     doTest(None, false)
     doTest(Some(DrmSystem.Uger), false)
     doTest(Some(DrmSystem.Lsf), false)
+  }
+  
+  test("defaultJobCanceler") {
+    assert(AppWiring.defaultJobCanceller === RequiresPresentInputsJobCanceler)
   }
 }

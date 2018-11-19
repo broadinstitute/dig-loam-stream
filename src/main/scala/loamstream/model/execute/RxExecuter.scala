@@ -81,11 +81,10 @@ final case class RxExecuter(
       (finishedJobs, notFinishedJobs) = jobs.partition(_.status.isTerminal)
       if notFinishedJobs.nonEmpty
       (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
-      _ = debug(s"Choosing what to cancel from among $jobsToMaybeRun")
       (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
       _ = handleSkippedJobs(skippedJobs)
-      cancelledJobsMap = cancelJobs(jobsToCancel)
       runJobsMap <- runJobs(jobsToRun)
+      cancelledJobsMap = cancelJobs(jobsToCancel)
       executionMap = cancelledJobsMap ++ runJobsMap
       _ = record(executionMap)
       _ = logFinishedJobs(executionMap)

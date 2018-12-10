@@ -28,6 +28,7 @@ import loamstream.model.jobs.RunData
 import scala.concurrent.Future
 import loamstream.conf.LoamConfig
 import loamstream.util.FileMonitor
+import loamstream.util.Futures
 
 /**
  * @author kaan
@@ -120,13 +121,13 @@ final case class RxExecuter(
   }
   
   private def cancelJobs(jobsToCancel: Iterable[LJob]): Map[LJob, Execution] = {
-    val failedPermanently = JobStatus.FailedPermanently
+    import JobStatus.FailedPermanently
     
-    jobsToCancel.foreach(_.transitionTo(failedPermanently))
+    jobsToCancel.foreach(_.transitionTo(FailedPermanently))
     
     import loamstream.util.Traversables.Implicits._
     
-    jobsToCancel.mapTo(job => Execution.from(job, failedPermanently))
+    jobsToCancel.mapTo(job => Execution.from(job, FailedPermanently))
   }
   
   private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {
@@ -261,7 +262,14 @@ object RxExecuter extends Loggable {
     val jobToExecutionFutures = for {
       (job, runData) <- runDataMap.toSeq
     } yield {
-      waitForOutputs(runData).map(execution => job -> execution)
+      import Futures.Implicits._
+      
+      waitForOutputs(runData).map(execution => job -> execution).withSideEffect {
+        //Transition Job to whatever its ultimate status was: 
+        //  WaitingForOutputs => Succeeded | Failed
+        //  foo => foo
+        case (job, execution) => job.transitionTo(execution.status)
+      }
     }
     
     Observable.from {

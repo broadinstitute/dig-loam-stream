@@ -27,19 +27,30 @@ final case class RunData(
   
   def withResources(r: Resources): RunData = copy(resourcesOpt = Some(r))
   
-  private def cmdOpt: Option[String] = job match { 
+  private[jobs] def cmdOpt: Option[String] = job match { 
     case clj: CommandLineJob => Some(clj.commandLineString)
     case _ => None
   }
   
   //NB: This is lazy, to allow waiting to hash outputs (done by `job.outputs.map(_.toOutputRecord)`) 
-  //until they're ready.
-  lazy val toExecution: Execution = Execution(
+  //until they're ready, and to only do that once.
+  lazy val toExecution: Execution = {
+    val ultimateStatus = RunData.determineJobStatus(jobStatus)
+    
+    Execution(
       env = job.executionEnvironment,
       cmd = cmdOpt,
-      status = jobStatus,
+      status = ultimateStatus,
       result = jobResult,
       resources = resourcesOpt,
       outputs = job.outputs.map(_.toStoreRecord),
       outputStreams = outputStreamsOpt)
+  }
+}
+
+object RunData {
+  private[jobs] def determineJobStatus(status: JobStatus): JobStatus = status match {
+    case JobStatus.WaitingForOutputs => JobStatus.Succeeded
+    case _ => status
+  }
 }

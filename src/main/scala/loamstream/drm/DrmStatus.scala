@@ -86,7 +86,7 @@ object DrmStatus {
   }
 
   def toJobStatus(status: DrmStatus): JobStatus = status match {
-    case Done                                                       => JobStatus.Succeeded
+    case Done                                                       => JobStatus.WaitingForOutputs
     case CommandResult(exitStatus, _)                               => JobStatus.fromExitCode(exitStatus)
     case DoneUndetermined(resources)                                => JobStatus.Failed
     case Failed(resources)                                          => JobStatus.Failed

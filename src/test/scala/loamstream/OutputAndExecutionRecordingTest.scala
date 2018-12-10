@@ -78,13 +78,13 @@ final class OutputAndExecutionRecordingTest extends FunSuite with ProvidesSlickL
       
       val results = loamEngine.run(graph)
       
-      assert(out0ExFromDb.isDefined)
-      assert(out1ExFromDb.isDefined)
-      assert(out2ExFromDb.isDefined)
-      
       assert(exists(out0Path))
       assert(exists(out1Path))
       assert(exists(out2Path))
+      
+      assert(out0ExFromDb.isDefined)
+      assert(out1ExFromDb.isDefined)
+      assert(out2ExFromDb.isDefined)
       
       def outputField[A](field: StoreRecord => A)(e: Execution): A = field(e.outputs.head)
       

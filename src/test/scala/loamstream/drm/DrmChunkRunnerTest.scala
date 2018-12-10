@@ -49,9 +49,12 @@ import loamstream.drm.uger.UgerScriptBuilderParams
  * Jul 25, 2016
  */
 final class DrmChunkRunnerTest extends FunSuite {
+  
   private val scheduler = IOScheduler()
   
   import loamstream.TestHelpers.neverRestart
+  import JobStatus.FailedPermanently
+  import JobStatus.Succeeded
   
   private val tempDir = TestHelpers.getWorkDir(getClass.getSimpleName) 
   
@@ -273,8 +276,8 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     val id = "worked"
     
-    def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
-      val job = MockDrmJob(id, Queued, Queued, Running, Running, lastUgerStatus)
+    def doTest(shouldRestart: LJob => Boolean, lastDrmStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
+      val job = MockDrmJob(id, Queued, Queued, Running, Running, lastDrmStatus)
       
       val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, 1)
       
@@ -285,23 +288,28 @@ final class DrmChunkRunnerTest extends FunSuite {
       val Seq((actualJob, runData)) = result.toSeq
       
       assert(actualJob === job)
-      assert(runData.jobStatus === JobStatus.Succeeded)
+      assert(runData.jobStatus === JobStatus.WaitingForOutputs)
       //TODO: Other assertions about execution?
       
-      val expectedStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastStatus)
+      val expectedStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastStatus, FailedPermanently)
+
+      //Transition to FailedPermanently to make sure the Observable job.status finishes one way or another, in the
+      //case that the mock job "ends" with a non-terminal status like WaitingForOutputs.
+      
+      job.transitionTo(FailedPermanently)
       
       val statuses = job.statuses.to[Seq] 
 
-      assert(waitFor(statuses.firstAsFuture) === expectedStatuses)
+      assert(waitFor(statuses.firstAsFuture) === expectedStatuses.distinct)
       
       assert(job.runCount === 1)
     }
     
-    doTest(neverRestart, Done, JobStatus.Succeeded)
-    doTest(neverRestart, CommandResult(0, None), JobStatus.Succeeded)
+    doTest(neverRestart, Done, JobStatus.WaitingForOutputs)
+    doTest(neverRestart, CommandResult(0, None), JobStatus.WaitingForOutputs)
     
-    doTest(alwaysRestart, Done, JobStatus.Succeeded)
-    doTest(alwaysRestart, CommandResult(0, None), JobStatus.Succeeded)
+    doTest(alwaysRestart, Done, JobStatus.WaitingForOutputs)
+    doTest(alwaysRestart, CommandResult(0, None), JobStatus.WaitingForOutputs)
   }
   
   test("toRunDatas - one successful job, one failed job") {
@@ -339,17 +347,21 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       assert(result.size === 2)
       
-      assert(goodExecution.jobStatus === JobStatus.Succeeded)
+      assert(goodExecution.jobStatus === JobStatus.WaitingForOutputs)
       assert(badExecution.jobStatus === JobStatus.Failed)
       //TODO: Other assertions about execution?
       
-      val expectedGoodStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastGoodStatus)
+      val expectedGoodStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastGoodStatus, Succeeded)
       val expectedBadStatuses = Seq(JobStatus.Submitted, JobStatus.Running, expectedLastBadStatus)
+      
+      //Transition to Succeeded to make sure the Observable workedJob.status finishes one way or another, in the
+      //case that that job "ends" with a non-terminal status like WaitingForOutputs.
+      workedJob.transitionTo(Succeeded)
       
       val goodStatuses = workedJob.statuses.to[Seq] 
       val badStatuses = (if(shouldRestart(failedJob)) failedJob.statuses.take(3) else failedJob.statuses).to[Seq]
 
-      assert(waitFor(goodStatuses.firstAsFuture) === expectedGoodStatuses)
+      assert(waitFor(goodStatuses.firstAsFuture) === expectedGoodStatuses.distinct)
       assert(waitFor(badStatuses.firstAsFuture) === expectedBadStatuses)
       
       assert(workedJob.runCount === 1)
@@ -358,11 +370,23 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     val failedPermanently = JobStatus.FailedPermanently
     
-    doTest(neverRestart, Done, Failed(), JobStatus.Succeeded, failedPermanently)
-    doTest(neverRestart, CommandResult(0, None), CommandResult(1, None), JobStatus.Succeeded, failedPermanently)
+    doTest(neverRestart, Done, Failed(), JobStatus.WaitingForOutputs, failedPermanently)
     
-    doTest(alwaysRestart, Done, Failed(), JobStatus.Succeeded, JobStatus.Failed)
-    doTest(alwaysRestart, CommandResult(0, None), CommandResult(1, None), JobStatus.Succeeded, JobStatus.Failed)
+    doTest(
+        neverRestart, 
+        CommandResult(0, None), 
+        CommandResult(1, None), 
+        JobStatus.WaitingForOutputs, 
+        failedPermanently)
+    
+    doTest(alwaysRestart, Done, Failed(), JobStatus.WaitingForOutputs, JobStatus.Failed)
+    
+    doTest(
+        alwaysRestart, 
+        CommandResult(0, None), 
+        CommandResult(1, None), 
+        JobStatus.WaitingForOutputs, 
+        JobStatus.Failed)
   }
   
   private def envFn[A]

@@ -39,6 +39,7 @@ object JobStatus extends Loggable {
   case object NotStarted extends NeitherSuccessNorFailure
   case object Submitted extends NeitherSuccessNorFailure
   case object Running extends NeitherSuccessNorFailure
+  case object WaitingForOutputs extends Success(isTerminal = false)
   case object Unknown extends NeitherSuccessNorFailure
   case object CouldNotStart extends NeitherSuccessNorFailure(isTerminal = true)
   case object FailedPermanently extends Failure(isTerminal = true)
@@ -48,7 +49,7 @@ object JobStatus extends Loggable {
   def fromString(s: String): Option[JobStatus] = namesToInstances.get(s.toLowerCase.trim)
 
   def fromExitCode(code: Int): JobStatus = {
-    if (ExitCodes.isSuccess(code)) { Succeeded }
+    if (ExitCodes.isSuccess(code)) { WaitingForOutputs }
     else { Failed }
   }
   
@@ -78,5 +79,6 @@ object JobStatus extends Loggable {
     "running" -> Running,
     "unknown" -> Unknown,
     "permanentfailure" -> FailedPermanently,
-    "couldnotstart" -> CouldNotStart)
+    "couldnotstart" -> CouldNotStart,
+    "waitingforoutputs" -> WaitingForOutputs)
 }

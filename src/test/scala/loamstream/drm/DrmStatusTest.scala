@@ -99,10 +99,10 @@ final class DrmStatusTest extends FunSuite {
   }
 
   test("toJobStatus") {
-    assert(toJobStatus(Done) === JobStatus.Succeeded)
+    assert(toJobStatus(Done) === JobStatus.WaitingForOutputs)
     
     assert(toJobStatus(CommandResult(-1, Some(resources))) === JobStatus.Failed)
-    assert(toJobStatus(CommandResult(0, Some(resources))) === JobStatus.Succeeded)
+    assert(toJobStatus(CommandResult(0, Some(resources))) === JobStatus.WaitingForOutputs)
     assert(toJobStatus(CommandResult(42, Some(resources))) === JobStatus.Failed)
     
     assert(toJobStatus(DoneUndetermined(Some(resources))) === JobStatus.Failed)

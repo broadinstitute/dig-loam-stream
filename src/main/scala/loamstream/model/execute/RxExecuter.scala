@@ -29,6 +29,7 @@ import scala.concurrent.Future
 import loamstream.conf.LoamConfig
 import loamstream.util.FileMonitor
 import loamstream.util.Futures
+import jdk.nashorn.internal.runtime.FinalScriptFunctionData
 
 /**
  * @author kaan
@@ -103,9 +104,8 @@ final case class RxExecuter(
   private def logFinishedJobs(jobs: Map[LJob, Execution]): Unit = {
     for {
       (job, execution) <- jobs
-      status = execution.status
     } {
-      info(s"Finished with $status when running $job")
+      info(s"Finished with ${execution.status} (${execution.result}) when running $job")
     }
   }
   
@@ -117,7 +117,7 @@ final case class RxExecuter(
     
     import RxExecuter.toExecutionMap
     
-    runner.run(jobsToRun.toSet, shouldRestart).flatMap(toExecutionMap(fileMonitor))
+    runner.run(jobsToRun.toSet, shouldRestart).flatMap(toExecutionMap(fileMonitor, shouldRestart))
   }
   
   private def cancelJobs(jobsToCancel: Iterable[LJob]): Map[LJob, Execution] = {
@@ -252,8 +252,10 @@ object RxExecuter extends Loggable {
    * by turning `runDataMap`'s values into Executions after waiting for any missing outputs. 
    */
   private[execute] def toExecutionMap(
-      fileMonitor: FileMonitor)(
-      runDataMap: Map[LJob, RunData])(implicit context: ExecutionContext): Observable[Map[LJob, Execution]] = {
+      fileMonitor: FileMonitor,
+      shouldRestart: LJob => Boolean)
+      (runDataMap: Map[LJob, RunData])
+      (implicit context: ExecutionContext): Observable[Map[LJob, Execution]] = {
   
     def waitForOutputs(runData: RunData): Future[Execution] = {
       ExecuterHelpers.waitForOutputsAndMakeExecution(runData, fileMonitor)
@@ -268,7 +270,17 @@ object RxExecuter extends Loggable {
         //Transition Job to whatever its ultimate status was: 
         //  WaitingForOutputs => Succeeded | Failed
         //  foo => foo
-        case (job, execution) => job.transitionTo(execution.status)
+        case (job, execution) => {
+          val finalStatus = {
+            if(execution.status.isFailure) {
+              ExecuterHelpers.determineFailureStatus(shouldRestart, execution.status, job) 
+            } else {
+              execution.status
+            }
+          }
+          
+          job.transitionTo(finalStatus)
+        }
       }
     }
     

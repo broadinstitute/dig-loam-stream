@@ -45,6 +45,14 @@ object ExecuterHelpers extends Loggable {
     }
   }
   
+  def determineFinalStatus(
+      shouldRestart: LJob => Boolean,
+      newStatus: JobStatus,
+      job: LJob): JobStatus = {
+
+    if(newStatus.isFailure) determineFailureStatus(shouldRestart, newStatus, job) else newStatus
+  }
+  
   def flattenTree(roots: Set[JobNode]): Set[JobNode] = {
     roots.foldLeft(roots) { (acc, job) =>
       val inputJobNodes = job.dependencies

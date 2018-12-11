@@ -53,22 +53,6 @@ final class DownstreamJobsDontRunWhenOutputsMissingTest extends FunSuite {
     assert(!exists(intermediateFile))
     assert(!exists(outputFile))
     
-    /*import DataHandle.PathHandle.{ apply => dataHandle }
-    
-    val firstJob = MockJob(
-        toReturn = JobStatus.WaitingForOutputs, 
-        inputs = Set(dataHandle(inputFile)),
-        outputs = Set(dataHandle(intermediateFile)),
-        dependencies = Set.empty)
-    
-    val secondJob = MockJob(
-        toReturn = JobStatus.Succeeded, 
-        inputs = Set(dataHandle(intermediateFile)),
-        outputs = Set(dataHandle(outputFile)),
-        dependencies = Set(firstJob))
-    
-    val executable = Executable(Set(secondJob))*/
-    
     val executable = (new LoamToolBox).createExecutable(graph)
         
     val firstJob = executable.jobNodes.head.dependencies.head.job

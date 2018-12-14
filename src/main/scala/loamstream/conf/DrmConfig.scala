@@ -16,6 +16,7 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
 import loamstream.util.Tries
+import java.nio.file.Paths
 
 /**
  * @author clint
@@ -39,13 +40,19 @@ sealed trait DrmConfig {
   def scriptBuilderParams: ScriptBuilderParams
 }
 
+object DrmConfig {
+  object Defaults {
+    val workDir: Path = Paths.get(".loamstream", "scripts") 
+  }
+}
+
 /**
   * Created on: 5/4/16
   *
   * @author Kaan Yuksel
   */
 final case class UgerConfig(
-    workDir: Path, 
+    workDir: Path = DrmConfig.Defaults.workDir, 
     maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
@@ -83,7 +90,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
   * @author clint
   */
 final case class LsfConfig(
-    workDir: Path, 
+    workDir: Path = DrmConfig.Defaults.workDir, 
     maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
     defaultCores: Cpus = LsfDefaults.cores,
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,

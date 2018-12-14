@@ -31,7 +31,7 @@
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>out/loamStream.log</file>
+        <file>.loamstream/logs/loamStream.log</file>
         <append>false</append>
         <encoder>
             <pattern>${noColorPattern}</pattern>
@@ -39,7 +39,7 @@
     </appender>
     
     <appender name="JOB_STATE_LOG" class="ch.qos.logback.core.FileAppender">
-        <file>out/job-states.log</file>
+        <file>.loamstream/logs/job-states.log</file>
         <append>false</append>
         <encoder>
             <pattern>%date %msg%n</pattern>

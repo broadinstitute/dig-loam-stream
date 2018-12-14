@@ -18,12 +18,12 @@ import loamstream.util.Loggable
  * @author clint
  * Nov 16, 2017
  */
-final case class DrmJobWrapper(executionConfig: ExecutionConfig,
-                               drmSettings: DrmSettings,
-                               pathBuilder: PathBuilder,
-                               commandLineJob: HasCommandLine,
-                               drmIndex: Int)
-    extends Loggable {
+final case class DrmJobWrapper(
+    executionConfig: ExecutionConfig,
+    drmSettings: DrmSettings,
+    pathBuilder: PathBuilder,
+    commandLineJob: HasCommandLine,
+    drmIndex: Int) extends Loggable {
 
   def drmStdOutPath(taskArray: DrmTaskArray): Path = {
     pathBuilder.reifyPathTemplate(taskArray.stdOutPathTemplate, drmIndex)

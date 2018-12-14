@@ -25,9 +25,9 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
   object Defaults {
     val maxRunsPerJob: Int = 4 //scalastyle:ignore magic.number
   
-    val dryRunOutputFile: Path = Paths.get("out", "joblist")
+    val dryRunOutputFile: Path = Paths.get(".loamstream", "logs", "joblist")
     
-    val jobOutputDir: Path = Paths.get("out", "job-outputs")
+    val jobOutputDir: Path = Paths.get(".loamstream", "job-outputs")
     
     import scala.concurrent.duration._
     

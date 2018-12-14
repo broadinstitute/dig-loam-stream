@@ -88,7 +88,6 @@ final class ConfTest extends FunSuite with Matchers {
     }
     
     doTest("--compile-only", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
-    doTest("-c", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
   }
   
   test("--disable-hashing") {

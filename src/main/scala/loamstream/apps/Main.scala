@@ -25,6 +25,13 @@ import loamstream.util.TimeUtils
 import loamstream.model.execute.DryRunner
 import loamstream.drm.DrmSystem
 import loamstream.conf.LoamConfig
+import org.apache.commons.io.IOUtils
+import org.apache.commons.io.FileUtils
+import java.nio.file.Paths
+import loamstream.conf.DrmConfig
+import loamstream.db.slick.DbDescriptor
+import loamstream.conf.ExecutionConfig
+import loamstream.conf.Locations
 
 
 /**
@@ -53,6 +60,7 @@ object Main extends Loggable {
       case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
       case Right(dryRun: DryRun) => run.doDryRun(dryRun)
       case Right(real: RealRun) => run.doRealRun(real)
+      case Right(clean: Clean) => run.doClean(clean)
       case Left(message) => cli.printHelp(message)
       case _ => cli.printHelp()
     }
@@ -77,8 +85,36 @@ object Main extends Loggable {
     case Failure(e) => warn("Unable to determine version info: ", e)
   }
   
-  private[apps] final class Run {
+  private[apps] final class Run extends Loggable {
   
+    def doClean(clean: Intent.Clean): Unit = {
+      def delete(p: Path): Unit = {
+        info(s"Deleting '${p.toAbsolutePath}'...")
+        
+        FileUtils.deleteQuietly(p.toFile)
+      }
+      
+      val config = AppWiring.loamConfigFrom(clean.confFile, drmSystemOpt = None, shouldValidateGraph = false)
+      
+      if(clean.db) {
+        AppWiring.dbDescriptor match {
+          case DbDescriptor.OnDiskH2(dbDir, _) => delete(dbDir)
+          case _ => ()
+        }
+      }
+      
+      if(clean.logs) {
+        delete(Locations.logDir)
+        
+        delete(Locations.jobOutputDir)
+      }
+      
+      if(clean.scripts) {
+        delete(Locations.ugerDir)
+        delete(Locations.lsfDir)
+      }
+    }
+    
     private def compile(loamEngine: LoamEngine, loams: Seq[Path]): LoamCompiler.Result = {
       val compilationResultShot = loamEngine.compileFiles(loams)
   

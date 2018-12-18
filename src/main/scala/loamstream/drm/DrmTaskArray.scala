@@ -29,7 +29,7 @@ final case class DrmTaskArray(
   lazy val drmScriptFile: Path = writeDrmScriptFile()
 
   private def writeDrmScriptFile(): Path = {
-    val drmWorkDir = drmConfig.workDir
+    val drmWorkDir = drmConfig.scriptDir
 
     val drmScript = createScriptFileIn(drmWorkDir)(scriptContents)
 

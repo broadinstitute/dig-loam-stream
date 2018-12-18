@@ -13,22 +13,17 @@ import scala.concurrent.duration.Duration
  */
 final case class ExecutionConfig(
     maxRunsPerJob: Int = Defaults.maxRunsPerJob, 
-    jobOutputDir: Path = Defaults.jobOutputDir,
     maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs,
     outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
-    dryRunOutputFile: Path = Defaults.dryRunOutputFile,
     anonStoreDir: Path = Defaults.anonStoreDir,
-    singularity: SingularityConfig = Defaults.singularityConfig)
+    singularity: SingularityConfig = Defaults.singularityConfig) {
+}
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
   object Defaults {
     val maxRunsPerJob: Int = 4 //scalastyle:ignore magic.number
   
-    val dryRunOutputFile: Path = Paths.get(".loamstream", "logs", "joblist")
-    
-    val jobOutputDir: Path = Paths.get(".loamstream", "job-outputs")
-    
     import scala.concurrent.duration._
     
     val maxWaitTimeForOutputs: Duration = 30.seconds

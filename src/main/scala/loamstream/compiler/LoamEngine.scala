@@ -28,6 +28,8 @@ import loamstream.util.CanBeClosed
 import java.time.Instant
 import loamstream.util.IoUtils
 import java.io.Writer
+import loamstream.conf.ExecutionConfig
+import loamstream.conf.Locations
 
 
 /**
@@ -121,9 +123,9 @@ final case class LoamEngine(
   }
   
   //TODO: Find a good place for this; it's exposed so it can be called from here and loamstream.apps.Main
-  def listJobsThatCouldRun(jobsThatCouldRun: => Iterable[LJob]): Unit = {
-    
-    val outputFile = config.executionConfig.dryRunOutputFile
+  def listJobsThatCouldRun(
+      jobsThatCouldRun: => Iterable[LJob], 
+      outputFile: Path = Locations.dryRunOutputFile): Unit = {
     
     lazy val jobs = jobsThatCouldRun
     

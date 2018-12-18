@@ -32,7 +32,13 @@ final class DrmSettingsTest extends FunSuite {
     val someDir = path("/some/dir")
     val someEnv = "someEnv"
     
-    val config = UgerConfig(path("/foo/bar"), elevenJobs, lotsOfCpus, seventeenGigs, fiveHours, someDir, someEnv) 
+    val config = UgerConfig(
+        maxNumJobs = elevenJobs, 
+        defaultCores = lotsOfCpus, 
+        defaultMemoryPerCore = seventeenGigs,
+        defaultMaxRunTime = fiveHours, 
+        extraPathDir = someDir,
+        condaEnvName = someEnv) 
       
     val settings = DrmSettings.fromUgerConfig(config)
     
@@ -49,7 +55,11 @@ final class DrmSettingsTest extends FunSuite {
     val seventeenGigs = Memory.inGb(17)
     val fiveHours = CpuTime.inHours(5)
     
-    val config = LsfConfig(path("/foo/bar"), elevenJobs, lotsOfCpus, seventeenGigs, fiveHours) 
+    val config = LsfConfig(
+        maxNumJobs = elevenJobs, 
+        defaultCores = lotsOfCpus, 
+        defaultMemoryPerCore = seventeenGigs,
+        defaultMaxRunTime = fiveHours) 
       
     val settings = DrmSettings.fromLsfConfig(config)
     

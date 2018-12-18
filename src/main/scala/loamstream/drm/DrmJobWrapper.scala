@@ -13,6 +13,7 @@ import loamstream.util.BashScript.Implicits._
 import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
+import loamstream.conf.Locations
 
 /**
  * @author clint
@@ -33,9 +34,9 @@ final case class DrmJobWrapper(
     pathBuilder.reifyPathTemplate(taskArray.stdErrPathTemplate, drmIndex)
   }
 
-  private lazy val stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, executionConfig.jobOutputDir)
+  private lazy val stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, Locations.jobOutputDir)
 
-  private lazy val stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, executionConfig.jobOutputDir)
+  private lazy val stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, Locations.jobOutputDir)
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
@@ -61,7 +62,7 @@ final case class DrmJobWrapper(
   }
 
   def commandChunk(taskArray: DrmTaskArray): String = {
-    val outputDir = executionConfig.jobOutputDir.toAbsolutePath
+    val outputDir = Locations.jobOutputDir.toAbsolutePath
 
     // scalastyle:off line.size.limit
     s"""|${commandLineInTaskArray}

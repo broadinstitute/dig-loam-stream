@@ -15,6 +15,7 @@ import loamstream.util.Functions
 import loamstream.conf.ExecutionConfig
 import java.util.concurrent.atomic.AtomicBoolean
 import loamstream.model.jobs.OutputStreams
+import loamstream.conf.Locations
 
 /**
  * @author clint
@@ -22,7 +23,7 @@ import loamstream.model.jobs.OutputStreams
  */
 object ProcessLoggers {
   def forNamedJob(executionConfig: ExecutionConfig, job: LJob): ToFilesProcessLogger = {
-    import executionConfig.jobOutputDir
+    import Locations.jobOutputDir
     
     ToFilesProcessLogger(LogFileNames.outputStreams(job, jobOutputDir))
   }

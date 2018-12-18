@@ -3,20 +3,37 @@ package loamstream.db.slick
 import java.nio.file.Path
 import java.nio.file.Paths
 import loamstream.util.Sequence
+import loamstream.conf.Locations
 
 /**
  * @author clint
  * date: Aug 10, 2016
  */
-final case class DbDescriptor(dbType: DbType, url: String)
+sealed trait DbDescriptor {
+  def dbType: DbType
+  def url: String
+}
 
 object DbDescriptor {
-  def inMemory: DbDescriptor = DbDescriptor(DbType.H2, makeUrl(s"test${sequence.next()}"))
+  def apply(dbType: DbType, url: String): DbDescriptor = TypeAndJdbcUrl(dbType, url)
   
+  final case class TypeAndJdbcUrl(dbType: DbType, url: String) extends DbDescriptor
+  
+  final case class OnDiskH2(dbDir: Path, dbName: String) extends DbDescriptor {
+    override val dbType: DbType = DbType.H2
+    
+    override val url: String = s"jdbc:h2:${dbDir.resolve(dbName)}"
+  }
+  
+  def inMemory: DbDescriptor = TypeAndJdbcUrl(DbType.H2, makeUrl(s"test${sequence.next()}"))
+
   //DB files live named .loamstream/db/loamstream.*, all under .loamstream/db
-  val onDiskDefault: DbDescriptor = onDiskAt(Paths.get("./.loamstream/db/loamstream"))
+  val defaultDbName: String = "loamstream"
+  val defaultDbDir: Path = Locations.loamstreamDir.resolve("db")
   
-  def onDiskAt(dbDir: Path): DbDescriptor = DbDescriptor(DbType.H2, s"jdbc:h2:${dbDir}")
+  def onDiskDefault: DbDescriptor = onDiskAt(defaultDbDir, defaultDbName)
+  
+  def onDiskAt(dbDir: Path, dbName: String): OnDiskH2 = OnDiskH2(dbDir, dbName)
   
   //TODO: This shouldn't be necessary :(
   private val sequence: Sequence[Int] = Sequence()

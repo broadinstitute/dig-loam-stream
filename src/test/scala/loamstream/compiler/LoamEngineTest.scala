@@ -146,7 +146,7 @@ final class LoamEngineTest extends FunSuite {
     
     val outputFile = tempDir.resolve("dryRunOutput")
     
-    val localConfig = config.copy(executionConfig = ExecutionConfig.default.copy(dryRunOutputFile = outputFile))
+    val localConfig = config.copy(executionConfig = ExecutionConfig.default)
     
     val localEngine = LoamEngine.default(localConfig)
     
@@ -162,7 +162,7 @@ final class LoamEngineTest extends FunSuite {
     
     assert(JFiles.exists(outputFile) === false)
     
-    localEngine.listJobsThatCouldRun(jobs)
+    localEngine.listJobsThatCouldRun(jobs, outputFile)
     
     assert(JFiles.exists(outputFile) === true)
     

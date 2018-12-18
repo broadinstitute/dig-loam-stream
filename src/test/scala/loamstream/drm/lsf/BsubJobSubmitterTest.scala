@@ -155,7 +155,7 @@ final class BsubJobSubmitterTest extends FunSuite {
   
   private lazy val settingsWithoutContainer = settings.copy(containerParams = None)
           
-  private val drmConfig = LsfConfig(workDir = path("/lsf/dir"))
+  private val drmConfig = LsfConfig()
     
   private def commandLineJob(commandLine: String) = CommandLineJob(
       commandLineString = commandLine,

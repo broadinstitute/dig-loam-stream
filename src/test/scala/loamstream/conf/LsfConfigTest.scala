@@ -19,7 +19,8 @@ final class LsfConfigTest extends FunSuite {
   test("defaults") {
     val config = LsfConfig()
     
-    assert(config.workDir === DrmConfig.Defaults.workDir)
+    assert(config.workDir === Locations.lsfDir)
+    assert(config.scriptDir === Locations.lsfScriptDir)
     assert(config.maxNumJobs === LsfDefaults.maxConcurrentJobs)
     assert(config.defaultCores === LsfDefaults.cores)
     assert(config.defaultMemoryPerCore === LsfDefaults.memoryPerCore)
@@ -30,7 +31,6 @@ final class LsfConfigTest extends FunSuite {
     val valid = ConfigFactory.parseString("""
       loamstream {
         lsf {
-          workDir = "/foo/bar/baz"
           maxNumJobs=44
           defaultCores = 42
           defaultMemoryPerCore = 9 // Gb
@@ -41,7 +41,8 @@ final class LsfConfigTest extends FunSuite {
       
     val lsfConfig = LsfConfig.fromConfig(valid).get
     
-    assert(lsfConfig.workDir === path("/foo/bar/baz"))
+    assert(lsfConfig.workDir === Locations.lsfDir)
+    assert(lsfConfig.scriptDir === Locations.lsfScriptDir)
     assert(lsfConfig.maxNumJobs === 44)
     assert(lsfConfig.defaultCores === Cpus(42))
     assert(lsfConfig.defaultMemoryPerCore=== Memory.inGb(9))
@@ -59,7 +60,8 @@ final class LsfConfigTest extends FunSuite {
       
     val lsfConfig = LsfConfig.fromConfig(valid).get
     
-    assert(lsfConfig.workDir === DrmConfig.Defaults.workDir)
+    assert(lsfConfig.workDir === Locations.lsfDir)
+    assert(lsfConfig.scriptDir === Locations.lsfScriptDir)
     assert(lsfConfig.maxNumJobs === LsfDefaults.maxConcurrentJobs)
     assert(lsfConfig.defaultCores === LsfDefaults.cores)
     assert(lsfConfig.defaultMemoryPerCore === LsfDefaults.memoryPerCore)

@@ -18,6 +18,12 @@ import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Files
 import loamstream.TestHelpers
 import loamstream.drm.uger.UgerScriptBuilderParams
+import loamstream.model.quantities.Cpus
+import loamstream.model.quantities.Memory
+import loamstream.model.quantities.CpuTime
+import loamstream.drm.uger.UgerDefaults
+import loamstream.drm.lsf.LsfScriptBuilderParams
+import loamstream.conf.Locations
 
 /**
  * @author clint
@@ -32,10 +38,10 @@ object DrmTaskArrayTest {
 
   val jobOutputDir = path("/path/to/logs").toAbsolutePath
 
-  val ugerConfig = UgerConfig(workDir = workDir, maxNumJobs = 42)
-  val lsfConfig = LsfConfig(workDir = workDir, maxNumJobs = 42)
+  val ugerConfig = UgerConfig(maxNumJobs = 42)
+  val lsfConfig = LsfConfig(maxNumJobs = 42)
 
-  val executionConfig = ExecutionConfig(maxRunsPerJob = 42, jobOutputDir = jobOutputDir)
+  val executionConfig = ExecutionConfig(maxRunsPerJob = 42)
 
   val jobs @ Seq(j0, j1, j2) = Seq(job("foo"), job("bar"), job("baz"))
   
@@ -76,18 +82,20 @@ final class DrmTaskArrayTest extends FunSuite {
         expectedStdOutPathTemplate: String,
         expectedStdErrPathTemplate: String): Unit = {
       
+      val drmConfig = ugerConfig.copy(workDir = workDir)
+      
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(
             executionConfig, 
             defaultUgerSettings, 
-            ugerConfig, 
+            drmConfig, 
             pathBuilder, 
             jobs, 
             expectedJobName)
       }
   
       assert(taskArray.drmJobs.forall(_.drmSettings === defaultUgerSettings))
-      assert(taskArray.drmConfig === ugerConfig)
+      assert(taskArray.drmConfig === drmConfig)
   
       assert(taskArray.drmJobName === expectedJobName)
   
@@ -168,8 +176,6 @@ final class DrmTaskArrayTest extends FunSuite {
   }
 
   test("drmScriptFile/writeDrmScriptFile") {
-    def workDir = Files.tempFile("foo").getParent
-    
     def doTest(drmConfig: DrmConfig): Unit = {
       //Expedient
       val pathBuilder = if(drmConfig.isUgerConfig) ugerPathBuilder else LsfPathBuilder
@@ -183,12 +189,14 @@ final class DrmTaskArrayTest extends FunSuite {
   
       assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
   
-      assert(taskArray.drmScriptFile.getParent === drmConfig.workDir)
+      assert(taskArray.drmScriptFile.getParent === drmConfig.scriptDir)
   
       assert(Files.readFrom(taskArray.drmScriptFile) === taskArray.scriptContents)
     }
     
-    doTest(UgerConfig(workDir = workDir, maxNumJobs = 99))
-    doTest(LsfConfig(workDir = workDir, maxNumJobs = 99))
+    val scriptDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+    
+    doTest(UgerConfig(scriptDir = scriptDir, maxNumJobs = 99))
+    doTest(LsfConfig(scriptDir = scriptDir, maxNumJobs = 99))
   }
 }

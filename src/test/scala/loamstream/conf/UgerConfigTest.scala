@@ -20,7 +20,8 @@ final class UgerConfigTest extends FunSuite {
   test("defaults") {
     val config = UgerConfig()
     
-    assert(config.workDir === DrmConfig.Defaults.workDir)
+    assert(config.workDir === Locations.ugerDir)
+    assert(config.scriptDir === Locations.ugerScriptDir)
     assert(config.maxNumJobs === UgerDefaults.maxConcurrentJobs)
     assert(config.defaultCores === UgerDefaults.cores)
     assert(config.defaultMemoryPerCore === UgerDefaults.memoryPerCore)
@@ -34,7 +35,6 @@ final class UgerConfigTest extends FunSuite {
     val valid = ConfigFactory.parseString("""
       loamstream {
         uger {
-          workDir = "/foo/bar/baz"
           maxNumJobs=44
           defaultCores = 42
           defaultMemoryPerCore = 9 // Gb
@@ -48,7 +48,8 @@ final class UgerConfigTest extends FunSuite {
       
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
-    assert(ugerConfig.workDir === path("/foo/bar/baz"))
+    assert(ugerConfig.workDir === Locations.ugerDir)
+    assert(ugerConfig.scriptDir === Locations.ugerScriptDir)
     assert(ugerConfig.maxNumJobs === 44)
     assert(ugerConfig.defaultCores === Cpus(42))
     assert(ugerConfig.defaultMemoryPerCore=== Memory.inGb(9))
@@ -69,7 +70,8 @@ final class UgerConfigTest extends FunSuite {
       
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
-    assert(ugerConfig.workDir === DrmConfig.Defaults.workDir)
+    assert(ugerConfig.workDir === Locations.ugerDir)
+    assert(ugerConfig.scriptDir === Locations.ugerScriptDir)
     assert(ugerConfig.maxNumJobs === UgerDefaults.maxConcurrentJobs)
     assert(ugerConfig.defaultCores === UgerDefaults.cores)
     assert(ugerConfig.defaultMemoryPerCore === UgerDefaults.memoryPerCore)

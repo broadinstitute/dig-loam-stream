@@ -468,9 +468,9 @@ object AppWiring extends Loggable {
     dao
   }
   
-  private[apps] def makeDefaultDb: LoamDao = makeDaoFrom(DbDescriptor.onDiskDefault)
+  private[apps] val dbDescriptor: DbDescriptor = DbDescriptor.onDiskDefault
   
-  private[apps] def makeInMemoryDb: LoamDao = makeDaoFrom(DbDescriptor.inMemory)
+  private[apps] def makeDefaultDb: LoamDao = makeDaoFrom(dbDescriptor)
   
   private[apps] final class TerminableExecuter(
       val delegate: Executer,

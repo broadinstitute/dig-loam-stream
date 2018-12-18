@@ -6,6 +6,7 @@ import org.scalatest.FunSuite
 import loamstream.TestHelpers
 import loamstream.conf.DrmConfig
 import loamstream.conf.UgerConfig
+import loamstream.conf.Locations
 
 
 /**
@@ -17,9 +18,9 @@ final class UgerPathBuilderTest extends FunSuite {
   import loamstream.TestHelpers.path
   import loamstream.util.BashScript.Implicits._
   
-  private val workDir = path("/foo/bar/baz").toAbsolutePath
+  private val workDir = Locations.ugerDir
 
-  private val ugerConfig = UgerConfig(workDir = workDir, maxNumJobs = 42)
+  private val ugerConfig = UgerConfig(maxNumJobs = 42)
   
   private val someDir = path("/some/dir")
   

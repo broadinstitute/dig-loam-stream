@@ -123,9 +123,7 @@ final case class LoamEngine(
   }
   
   //TODO: Find a good place for this; it's exposed so it can be called from here and loamstream.apps.Main
-  def listJobsThatCouldRun(
-      jobsThatCouldRun: => Iterable[LJob], 
-      outputFile: Path = Locations.dryRunOutputFile): Unit = {
+  def listJobsThatCouldRun(jobsThatCouldRun: => Iterable[LJob], outputFile: Path = Locations.dryRunOutputFile): Unit = {
     
     lazy val jobs = jobsThatCouldRun
     

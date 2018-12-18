@@ -10,19 +10,22 @@ import java.nio.file.Path
  * An object containing the location of various things: output files, default log dir, etc.
  */
 object Locations {
-  val loamstreamDir = Paths.get("./.loamstream")
   
-  val logDir: Path = loamstreamDir.resolve("logs").normalize
+  import java.nio.file.Files.createDirectories
+  
+  lazy val loamstreamDir: Path = createDirectories(Paths.get("./.loamstream"))
+  
+  lazy val logDir: Path = createDirectories(loamstreamDir.resolve("logs").normalize)
     
   val dryRunOutputFile: Path = logDir.resolve("joblist").normalize
     
-  val jobOutputDir: Path = loamstreamDir.resolve("job-outputs").normalize
+  lazy val jobOutputDir: Path = createDirectories(loamstreamDir.resolve("job-outputs").normalize)
   
-  val dbDir: Path = loamstreamDir.resolve("db")
+  lazy val dbDir: Path = createDirectories(loamstreamDir.resolve("db"))
   
-  val ugerDir = loamstreamDir.resolve("uger").normalize
-  val lsfDir = loamstreamDir.resolve("lsf").normalize
+  lazy val ugerDir = createDirectories(loamstreamDir.resolve("uger").normalize)
+  lazy val lsfDir = createDirectories(loamstreamDir.resolve("lsf").normalize)
   
-  val ugerScriptDir: Path = ugerDir.resolve("scripts").normalize
-  val lsfScriptDir: Path = lsfDir.resolve("scripts").normalize
+  lazy val ugerScriptDir: Path = createDirectories(ugerDir.resolve("scripts").normalize)
+  lazy val lsfScriptDir: Path = createDirectories(lsfDir.resolve("scripts").normalize)
 }

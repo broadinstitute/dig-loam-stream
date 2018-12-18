@@ -13,6 +13,7 @@ import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobStatus.Failed
 import loamstream.model.jobs.JobStatus.Running
+import loamstream.model.jobs.JobStatus.Submitted
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.commandline.CommandLineJob
@@ -106,12 +107,12 @@ final case class DrmChunkRunner(
       case drmJobs => {
         val submissionResult = jobSubmitter.submitJobs(drmSettings, drmTaskArray)
 
-        toExecutionStream(drmJobs, submissionResult, shouldRestart)
+        toRunDataStream(drmJobs, submissionResult, shouldRestart)
       }
     }
   }
 
-  private def toExecutionStream(
+  private def toRunDataStream(
     drmJobs: Seq[DrmJobWrapper],
     submissionResult: DrmSubmissionResult,
     shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
@@ -123,7 +124,7 @@ final case class DrmChunkRunner(
     submissionResult match {
 
       case SubmissionSuccess(drmJobsByDrmId) => {
-        commandLineJobs.foreach(_.transitionTo(Running))
+        commandLineJobs.foreach(_.transitionTo(Submitted))
 
         jobsToRunDatas(shouldRestart, drmJobsByDrmId)
       }

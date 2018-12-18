@@ -9,6 +9,7 @@ import loamstream.model.execute.ExecuterHelpers
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
+import loamstream.model.jobs.DataHandle
 
 
 
@@ -39,12 +40,12 @@ final class LoamToolBoxTest extends FunSuite {
   }
 
   private def singleDepOf(jobNode: JobNode): CommandLineJob = {
-    assert(jobNode.inputs.size === 1)
+    assert(jobNode.dependencies.size === 1)
 
-    toClj(jobNode.inputs.head)
+    toClj(jobNode.dependencies.head)
   }
 
-  private def hasNoDeps(jobNode: JobNode): Boolean = jobNode.inputs.isEmpty
+  private def hasNoDeps(jobNode: JobNode): Boolean = jobNode.dependencies.isEmpty
 
   import loamstream.util.Paths.Implicits._
 
@@ -101,6 +102,20 @@ final class LoamToolBoxTest extends FunSuite {
     assert(singleDepOf(oneToTwoJob) === inToOneJob)
 
     assert(hasNoDeps(inToOneJob))
+    
+    import DataHandle.PathHandle
+    
+    assert(inToOneJob.inputs === Set(PathHandle(fileIn)))
+    assert(inToOneJob.outputs === Set(PathHandle(fileOut1)))
+    
+    assert(oneToTwoJob.inputs === Set(PathHandle(fileOut1)))
+    assert(oneToTwoJob.outputs === Set(PathHandle(fileOut2)))
+    
+    assert(twoToThreeJob.inputs === Set(PathHandle(fileOut2)))
+    assert(twoToThreeJob.outputs === Set(PathHandle(fileOut3)))
+    
+    assert(twoToFourJob.inputs === Set(PathHandle(fileOut2)))
+    assert(twoToFourJob.outputs === Set(PathHandle(fileOut4)))
   }
 
   test("Simple toy pipeline using cp, some tools named; ensure tool names are propagated to jobs.") {

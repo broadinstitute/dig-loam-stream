@@ -28,7 +28,7 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import loamstream.util.Sequence
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Paths
@@ -141,7 +141,7 @@ object TestHelpers {
         status,
         result,
         resources,
-        Set.empty[OutputRecord],
+        Set.empty[StoreRecord],
         outputStreams)
   }
 

@@ -27,7 +27,7 @@ final class DryRunnerTest extends FunSuite {
   private def mockJob(name: String) = MockJob(toReturn = JobStatus.Succeeded, name = name)
   
   private def mockJob(name: String, dependencies: MockJob*): MockJob = {
-    MockJob(toReturn = JobStatus.Succeeded, name = name, inputs = dependencies.toSet)
+    MockJob(toReturn = JobStatus.Succeeded, name = name, dependencies = dependencies.toSet)
   }
   
   test("toBeRun - single job, should be run") {

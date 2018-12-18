@@ -7,7 +7,7 @@ import loamstream.model.execute.Settings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.JobStatus
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import java.nio.file.Paths
 import loamstream.model.jobs.OutputStreams
 
@@ -24,7 +24,7 @@ final case class ExecutionRow(
     stdoutPath: String,
     stderrPath: String) {
   
-  def toExecution(settings: Settings, resourcesOpt: Option[Resources], outputs: Set[OutputRecord]): Execution = {
+  def toExecution(settings: Settings, resourcesOpt: Option[Resources], outputs: Set[StoreRecord]): Execution = {
     val commandResult = CommandResult(exitCode)
 
     val environmentOpt: Option[Environment] = for {

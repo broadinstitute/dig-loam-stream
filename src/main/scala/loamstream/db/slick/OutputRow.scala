@@ -2,7 +2,7 @@ package loamstream.db.slick
 
 import java.sql.Timestamp
 
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 
 /**
  * @author clint
@@ -47,7 +47,7 @@ final case class OutputRow( loc: String,
       None)
   }
 
-  def this(rec: OutputRecord) = {
+  def this(rec: StoreRecord) = {
     this(
       rec.loc,
       rec.lastModified.map(Timestamp.from),
@@ -58,5 +58,5 @@ final case class OutputRow( loc: String,
 
   def withExecutionId(newExecutionId: Int): OutputRow = copy(executionId = Some(newExecutionId))
 
-  def toOutputRecord: OutputRecord = OutputRecord(loc, hash, hashType, lastModified.map(_.toInstant))
+  def toOutputRecord: StoreRecord = StoreRecord(loc, hash, hashType, lastModified.map(_.toInstant))
 }

@@ -76,18 +76,10 @@ object AsyncLocalChunkRunner extends Loggable {
   }
   
   private[execute] def handleResultOfExecution(shouldRestart: LJob => Boolean)(runData: RunData): Unit = {
-    trace(s"Handling result of execution: ${runData.job} => $runData")
+    debug(s"Handling result of execution: ${runData.job} => $runData")
     
-    val newStatus = determineFinalStatus(shouldRestart, runData.jobStatus, runData.job)
+    val newStatus = ExecuterHelpers.determineFinalStatus(shouldRestart, runData.jobStatus, runData.job)
     
     runData.job.transitionTo(newStatus)
-  }
-  
-  private[execute] def determineFinalStatus(
-      shouldRestart: LJob => Boolean,
-      newStatus: JobStatus,
-      job: LJob): JobStatus = {
-
-    if(newStatus.isFailure) ExecuterHelpers.determineFailureStatus(shouldRestart, newStatus, job) else newStatus
   }
 }

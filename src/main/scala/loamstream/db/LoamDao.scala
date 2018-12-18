@@ -3,8 +3,8 @@ package loamstream.db
 import java.nio.file.Path
 
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.Output
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.DataHandle
+import loamstream.model.jobs.StoreRecord
 import loamstream.util.Paths
 
 /**
@@ -16,7 +16,7 @@ trait LoamDao {
   final def insertExecutions(execution: Execution, others: Execution*): Unit = insertExecutions(execution +: others)
   def insertExecutions(rows: Iterable[Execution]): Unit
 
-  final def findExecution(output: OutputRecord): Option[Execution] = findExecution(output.loc)
+  final def findExecution(output: StoreRecord): Option[Execution] = findExecution(output.loc)
   
   def findExecution(outputLocation: String): Option[Execution]
 
@@ -27,10 +27,10 @@ trait LoamDao {
   final def deletePathOutput(path: Path, others: Path*): Unit = deletePathOutput(path +: others)
   def deletePathOutput(path: Iterable[Path]): Unit
 
-  def findOutputRecord(loc: String): Option[OutputRecord]
-  final def findOutputRecord(path: Path): Option[OutputRecord] = findOutputRecord(Paths.normalize(path))
-  final def findOutputRecord(rec: OutputRecord): Option[OutputRecord] = findOutputRecord(rec.loc)
-  final def findOutputRecord(output: Output): Option[OutputRecord] = findOutputRecord(output.toOutputRecord)
+  def findStoreRecord(loc: String): Option[StoreRecord]
+  final def findStoreRecord(path: Path): Option[StoreRecord] = findStoreRecord(Paths.normalize(path))
+  final def findStoreRecord(rec: StoreRecord): Option[StoreRecord] = findStoreRecord(rec.loc)
+  final def findStoreRecord(output: DataHandle): Option[StoreRecord] = findStoreRecord(output.toStoreRecord)
 
   /**
    * Returns the command line that was used to produce the output at the specified location
@@ -38,7 +38,7 @@ trait LoamDao {
   def findCommand(loc: String): Option[String]
   final def findCommand(path: Path): Option[String] = findCommand(Paths.normalize(path))
 
-  def allOutputRecords: Seq[OutputRecord]
+  def allStoreRecords: Seq[StoreRecord]
   
   def createTables(): Unit
   

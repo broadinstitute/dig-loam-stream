@@ -24,32 +24,91 @@ import rx.lang.scala.Observable
 //scalastyle:off file.size.limit
 final class RxExecuterTest extends FunSuite {
   import RxExecuterTest.ExecutionResults
+  import RxExecuterTest.JobOrderOps
   import scala.concurrent.ExecutionContext.Implicits.global
   
-  private def exec(
-      jobs: Set[RxMockJob],
-      maxRestarts: Int,
-      maxSimultaneousJobs: Int = 8): ExecutionResults = {
-    
+  private def makeExecuter(maxRestarts: Int, maxSimultaneousJobs: Int = 8): (RxExecuter, MockChunkRunner) = {
     import scala.concurrent.duration._
     
     val runner = MockChunkRunner(AsyncLocalChunkRunner(ExecutionConfig.default, maxSimultaneousJobs))
     
     import RxExecuter.Defaults.fileMonitor
     
-    val executer = {
-      RxExecuter(
-          runner, 
-          fileMonitor, 
-          0.1.seconds, 
-          JobFilter.RunEverything, 
-          ExecutionRecorder.DontRecord, 
-          maxRunsPerJob = maxRestarts + 1)
-    }
-    
+    val executer = RxExecuter(
+        runner, 
+        fileMonitor, 
+        0.1.seconds, 
+        JobCanceler.NeverCancel,
+        JobFilter.RunEverything, 
+        ExecutionRecorder.DontRecord, 
+        maxRunsPerJob = maxRestarts + 1)
+        
+    (executer, runner)
+  }
+  
+  private def doExec(executer: RxExecuter, runner: MockChunkRunner, jobs: Set[RxMockJob]): ExecutionResults = {
     ExecutionResults(
         executer.execute(Executable(jobs.asInstanceOf[Set[JobNode]])), 
         runner.chunks.value.filter(_.nonEmpty).map(_.asInstanceOf[Set[RxMockJob]]))
+  }
+  
+  private def exec(
+      jobs: Set[RxMockJob],
+      maxRestarts: Int,
+      maxSimultaneousJobs: Int = 8): ExecutionResults = {
+    
+    val (executer, runner) = makeExecuter(maxRestarts, maxSimultaneousJobs)
+    
+    doExec(executer, runner, jobs)
+  }
+  
+  test("3-job pipeline where one job is canceled before running") {
+    /* A 3-step pipeline:
+     *
+     * Job1 
+     *     \
+     *       -- Job3
+     *     /
+     * Job2
+     */
+    def doTest(maxRestartsAllowed: Int): Unit = {
+      implicit val executionsBox: ValueBox[Vector[RxMockJob]] = ValueBox(Vector.empty)
+      
+      val job1 = RxMockJob("Job_1")
+      val job2 = RxMockJob("Job_2")
+      val job3 = RxMockJob("Job_3", Set(job1, job2))
+  
+      assert(job1.executionCount === 0)
+      assert(job2.executionCount === 0)
+      assert(job3.executionCount === 0)
+  
+      val (executer, runner) = makeExecuter(maxRestartsAllowed)
+      
+      val willCancelJob2: JobCanceler = new JobCanceler {
+        override def shouldCancel(job: LJob): Boolean = job eq job2
+      }
+      
+      val mungedExecutor = executer.copy(jobCanceler = willCancelJob2)
+      
+      val ExecutionResults(result, chunks) = doExec(mungedExecutor, runner, Set(job3))
+  
+      assert(job1.executionCount === 1)
+      assert(job2.executionCount === 0)
+      assert(job3.executionCount === 0)
+  
+      assert(result(job1).isSuccess)
+      assert(result(job2).isFailure)
+      assert(result.get(job3) === None)
+      
+      assert(result(job2).status === JobStatus.FailedPermanently)
+      
+      assert(result(job2).result === None)
+      
+      assert(result.size === 2)
+    }
+    
+    doTest(0)
+    doTest(2)
   }
   
   test("shouldRestart") {
@@ -80,27 +139,26 @@ final class RxExecuterTest extends FunSuite {
     
     import RxExecuter.Defaults.fileMonitor
     
+    val jobCanceler = JobCanceler.NeverCancel
     val jobFilter = JobFilter.RunEverything
     val executionRecorder = ExecutionRecorder.DontRecord
     
     intercept[Exception] {
-      RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, -1)
+      RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -1)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, 0)
+      RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 0)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, -100)
+      RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -100)
     }
     
-    RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, 1)
-    RxExecuter(runner, fileMonitor, 0.25.seconds, jobFilter, executionRecorder, 42)
+    RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 1)
+    RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 42)
   }
 
-  import RxExecuterTest.JobOrderOps
-  
   test("Single successful job") {
     /* Single-job pipeline:
      *
@@ -158,11 +216,11 @@ final class RxExecuterTest extends FunSuite {
     val failureWithException = JobResult.FailureWithException(new Exception)
     val commandResult = JobResult.CommandResult(42)
     
-    doTest(maxRestartsAllowed = 0, expectedRuns = 1, jobResult = JobResult.Failure)
+    doTest(maxRestartsAllowed = 0, expectedRuns = 1, jobResult = failure)
     doTest(maxRestartsAllowed = 0, expectedRuns = 1, jobResult = failureWithException)
     doTest(maxRestartsAllowed = 0, expectedRuns = 1, jobResult = commandResult)
     
-    doTest(maxRestartsAllowed = 1, expectedRuns = 2, jobResult = JobResult.Failure)
+    doTest(maxRestartsAllowed = 1, expectedRuns = 2, jobResult = failure)
     doTest(maxRestartsAllowed = 1, expectedRuns = 2, jobResult = failureWithException)
     doTest(maxRestartsAllowed = 1, expectedRuns = 2, jobResult = commandResult)
   }
@@ -209,7 +267,7 @@ final class RxExecuterTest extends FunSuite {
     def doTest(maxRestartsAllowed: Int, expectedRuns: Seq[Int], jobResult: JobResult): Unit = {
 
       val job1 = RxMockJob("Job_1", toReturn = () => jobResult)
-      val job2 = RxMockJob("Job_2", inputs = Set(job1), toReturn = () => jobResult)
+      val job2 = RxMockJob("Job_2", dependencies = Set(job1), toReturn = () => jobResult)
 
       assert(job1.executionCount === 0)
       assert(job2.executionCount === 0)
@@ -682,6 +740,7 @@ final class RxExecuterTest extends FunSuite {
           runner, 
           fileMonitor, 
           0.1.seconds, 
+          JobCanceler.NeverCancel,
           JobFilter.RunEverything, 
           ExecutionRecorder.DontRecord, 
           maxRestartsAllowed + 1)

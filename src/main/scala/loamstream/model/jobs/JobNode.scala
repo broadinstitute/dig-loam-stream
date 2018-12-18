@@ -27,7 +27,7 @@ trait JobNode extends Loggable {
   def job: LJob
   
   /** Any jobs this job depends on */
-  def inputs: Set[JobNode]
+  def dependencies: Set[JobNode]
   
   import JobNode.ObservableOps
   
@@ -77,7 +77,7 @@ trait JobNode extends Loggable {
   //NB: Note use of .shareReplay which allows re-using this Observable, 
   //saving lots of memory when running complex pipelines
   private[jobs] lazy val finalInputStatuses: Observable[Seq[JobStatus]] = {
-    Observables.sequence(inputs.toSeq.map(_.lastStatus)).shareReplay
+    Observables.sequence(dependencies.toSeq.map(_.lastStatus)).shareReplay
   }
   
   /**
@@ -120,7 +120,7 @@ trait JobNode extends Loggable {
     }
 
     val result = {
-      if(inputs.isEmpty) {
+      if(dependencies.isEmpty) {
         trace(logMsg("no deps, just us"))
         
         justUs
@@ -150,10 +150,10 @@ trait JobNode extends Loggable {
 
     //Multiplex the streams of runnable jobs starting from each of our dependencies
     val dependencyRunnables = {
-      if(inputs.isEmpty) { Observable.empty }
+      if(dependencies.isEmpty) { Observable.empty }
       //NB: Note the use of merge instead of ++; this ensures that we don't emit jobs from the sub-graph rooted at
       //one dependency before the other dependencies, but rather emit all the streams of runnable jobs "together".
-      else { Observables.merge(inputs.toSeq.map(_.runnables)) }
+      else { Observables.merge(dependencies.toSeq.map(_.runnables)) }
     }
 
     //Emit the current job *after* all our dependencies

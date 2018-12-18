@@ -12,7 +12,7 @@ import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandInvocationFailure
 import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import loamstream.util.Loggable
 
 /**

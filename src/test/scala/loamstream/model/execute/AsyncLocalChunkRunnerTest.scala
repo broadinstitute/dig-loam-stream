@@ -61,32 +61,6 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     doTest(Succeeded, Succeeded)
   }
   
-  test("determineFinalStatus") {
-    import AsyncLocalChunkRunner.determineFinalStatus
-    import JobStatus._
-    
-    def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
-      val job = MockJob(NotStarted)
-      
-      assert(job.status === NotStarted)
-      
-      assert(determineFinalStatus(alwaysRestart, status, job) === status)
-      
-      assert(determineFinalStatus(neverRestart, status, job) === expectedNoRestart)
-      
-      assert(job.status === NotStarted)
-    }
-    
-    doTest(Failed, FailedPermanently)
-    doTest(FailedWithException, FailedPermanently)
-    doTest(Terminated, FailedPermanently)
-    doTest(NotStarted, NotStarted)
-    doTest(Running, Running)
-    doTest(Skipped, Skipped)
-    doTest(Submitted, Submitted)
-    doTest(Succeeded, Succeeded)
-  }
-  
   test("executeSingle()") {
     import AsyncLocalChunkRunner.executeSingle
     import TestHelpers.runDataFromStatus

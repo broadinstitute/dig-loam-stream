@@ -21,6 +21,7 @@ final class JobStatusTest extends FunSuite {
     assert(Unknown.isPermanentFailure === false)
     assert(CouldNotStart.isPermanentFailure === false)
     assert(FailedPermanently.isPermanentFailure === true)
+    assert(WaitingForOutputs.isPermanentFailure === false)
   }
   
   test("isCouldNotStart") {
@@ -35,6 +36,7 @@ final class JobStatusTest extends FunSuite {
     assert(Unknown.isCouldNotStart === false)
     assert(CouldNotStart.isCouldNotStart === true)
     assert(FailedPermanently.isCouldNotStart === false)
+    assert(WaitingForOutputs.isCouldNotStart === false)
   }
   
   test("isSuccess") {
@@ -49,6 +51,7 @@ final class JobStatusTest extends FunSuite {
     assert(Unknown.isSuccess === false)
     assert(CouldNotStart.isSuccess === false)
     assert(FailedPermanently.isSuccess === false)
+    assert(WaitingForOutputs.isSuccess === true)
   }
   
   test("isSkipped") {
@@ -63,6 +66,7 @@ final class JobStatusTest extends FunSuite {
     assert(Unknown.isSkipped === false)
     assert(CouldNotStart.isSkipped === false)
     assert(FailedPermanently.isSkipped === false)
+    assert(WaitingForOutputs.isSkipped === false)
   }
 
   test("isFailure") {
@@ -77,6 +81,7 @@ final class JobStatusTest extends FunSuite {
     assert(Unknown.isFailure === false)
     assert(CouldNotStart.isFailure === false)
     assert(FailedPermanently.isFailure === true)
+    assert(WaitingForOutputs.isFailure === false)
   }
 
   test("isFinished") {
@@ -91,6 +96,7 @@ final class JobStatusTest extends FunSuite {
     assert(Unknown.isFinished === false)
     assert(CouldNotStart.isFinished === true)
     assert(FailedPermanently.isFinished === true)
+    assert(WaitingForOutputs.isFinished === true)
   }
 
   test("notFinished") {
@@ -105,6 +111,7 @@ final class JobStatusTest extends FunSuite {
     assert(Unknown.notFinished === true)
     assert(CouldNotStart.notFinished === false)
     assert(FailedPermanently.notFinished === false)
+    assert(WaitingForOutputs.notFinished === false)
   }
   
   test("fromString") {
@@ -144,16 +151,17 @@ final class JobStatusTest extends FunSuite {
     doTest("Unknown", Some(Unknown))
     doTest("PermanentFailure", Some(FailedPermanently))
     doTest("CouldNotStart", Some(CouldNotStart))
+    doTest("WaitingForOutputs", Some(WaitingForOutputs))
     doTest("", None)
     doTest("Undefined", None)
     doTest("blah", None)
   }
 
   test("fromExitCode") {
-    assert(fromExitCode(0) === Succeeded)
+    assert(fromExitCode(0) === WaitingForOutputs)
     assert(fromExitCode(1) === Failed)
     assert(fromExitCode(-1) === Failed)
-    assert(fromExitCode(42) === Failed) // scalastyle:ignore magic.number
+    assert(fromExitCode(42) === Failed)
   }
 
   test("values") {
@@ -168,7 +176,8 @@ final class JobStatusTest extends FunSuite {
         Terminated,
         Unknown,
         CouldNotStart,
-        FailedPermanently)
+        FailedPermanently,
+        WaitingForOutputs)
         
     assert(JobStatus.values === expected)
   }

@@ -201,13 +201,9 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     assertIsNOTCommandExecution(Success)
     assertIsNOTCommandExecution(Failure)
     assertIsNOTCommandExecution(FailureWithException(e))
-    assertIsNOTCommandExecution(ValueSuccess(123, TypeBox.of[Int]))
 
     assertIsNOTCommandExecution(Success, None)
     assertIsNOTCommandExecution(Failure, None)
     assertIsNOTCommandExecution(FailureWithException(e), None)
-    assertIsNOTCommandExecution(ValueSuccess(123, TypeBox.of[Int]), None)
   }
-
-  //scalastyle:on magic.number
 }

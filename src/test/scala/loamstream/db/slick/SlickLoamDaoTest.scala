@@ -24,8 +24,8 @@ import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.jobs.Execution
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
-import loamstream.model.jobs.Output.PathOutput
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.DataHandle.PathHandle
+import loamstream.model.jobs.StoreRecord
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
@@ -58,7 +58,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   private val cmd0 = "(echo 10 ; sed '1d' ancestry.txt | cut -f5- | sed 's/\t/ /g') > ancestry.fet"
   private val cmd1 = "R --vanilla --args pca_scores.tsv < plot_pca.r"
 
-  private def noOutputs: Boolean = dao.allOutputRecords.isEmpty
+  private def noOutputs: Boolean = dao.allStoreRecords.isEmpty
 
   private def noExecutions: Boolean = dao.allExecutions.isEmpty
 
@@ -102,7 +102,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   private def storeFailures(paths: Path*): Unit = {
-    val outputs = paths.map(OutputRecord(_))
+    val outputs = paths.map(StoreRecord(_))
 
     //NB: Failure
     val result = JobResult.CommandResult(42)
@@ -129,7 +129,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val Seq(retrieved) = dao.allExecutions
 
-      assert(dao.allOutputRecords.toSet === stored.outputs)
+      assert(dao.allStoreRecords.toSet === stored.outputs)
 
       assert(stored === retrieved)
     }
@@ -143,7 +143,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val expected =  Seq(cachedOutput(path0, hash0))
 
-      assert(dao.allOutputRecords === expected)
+      assert(dao.allStoreRecords === expected)
     }
   }
 
@@ -157,7 +157,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val expected = Set(cachedOutput(path0, hash0), cachedOutput(path1, hash1), cachedOutput(path2, hash2))
 
       //Use Sets to ignore order
-      assert(dao.allOutputRecords.toSet == expected)
+      assert(dao.allStoreRecords.toSet == expected)
     }
   }
 
@@ -168,11 +168,11 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       storeFailures(path0, path1, path2)
 
-      val expected = Set(OutputRecord(path0), OutputRecord(path1), OutputRecord(path2))
+      val expected = Set(StoreRecord(path0), StoreRecord(path1), StoreRecord(path2))
 
       //Use Sets to ignore order
-      assert(dao.allOutputRecords.toSet == expected)
-      assert(dao.allOutputRecords.forall(dao.findExecution(_).get.isFailure))
+      assert(dao.allStoreRecords.toSet == expected)
+      assert(dao.allStoreRecords.forall(dao.findExecution(_).get.isFailure))
     }
   }
 
@@ -184,14 +184,14 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       store(path0, path1)
       storeFailures(path2, path3)
 
-      val failedOutputs = Set(OutputRecord(path2), OutputRecord(path3))
+      val failedOutputs = Set(StoreRecord(path2), StoreRecord(path3))
       val hashedOutputs = Set(cachedOutput(path0, hash0), cachedOutput(path1, hash1))
 
-      val all: Set[OutputRecord] = failedOutputs ++ hashedOutputs
+      val all: Set[StoreRecord] = failedOutputs ++ hashedOutputs
 
       //Use Sets to ignore order
-      assert(dao.allOutputRecords.toSet == all)
-      assert(dao.allOutputRecords.count(dao.findExecution(_).get.isFailure) == failedOutputs.size)
+      assert(dao.allStoreRecords.toSet == all)
+      assert(dao.allStoreRecords.count(dao.findExecution(_).get.isFailure) == failedOutputs.size)
     }
   }
 
@@ -202,7 +202,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       store(path0, path1, path2)
 
-      assert(dao.allOutputRecords.size == 3)
+      assert(dao.allStoreRecords.size == 3)
 
       dao.deletePathOutput(path0, path1, path2)
 
@@ -217,11 +217,11 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       store(path0, path1, path2)
 
-      assert(dao.allOutputRecords.size == 3)
+      assert(dao.allStoreRecords.size == 3)
 
       dao.deletePathOutput(path0, path2)
 
-      assert(dao.allOutputRecords.map(_.loc) == Seq(path1.toAbsolutePath.render))
+      assert(dao.allStoreRecords.map(_.loc) == Seq(path1.toAbsolutePath.render))
 
       dao.deletePathOutput(path0, path1)
 
@@ -344,7 +344,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             result = Option(CommandResult(42)),
             resources = Option(localResources),
             outputStreams = failed0.outputStreams, 
-            outputs = Set(OutputRecord(output0.loc)))
+            outputs = Set(StoreRecord(output0.loc)))
       }
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
@@ -359,14 +359,14 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   test("insertExecutions - CommandInvocationFailure") {
     def doTest(path: Path): Unit = {
       createTablesAndThen {
-        val output0 = PathOutput(path)
+        val output0 = PathHandle(path)
   
         val failed = Execution(
             mockEnv,
             mockCmd,
             JobResult.CommandInvocationFailure(new Exception),
             dummyOutputStreams,
-            output0.toOutputRecord)
+            output0.toStoreRecord)
   
         assert(failed.isFailure)
   
@@ -394,7 +394,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     def doTestWithLocations(path: Path): Unit = {
       def doTest(command: Option[String], jobResult: JobResult): Unit = {
         createTablesAndThen {
-          val output0 = PathOutput(path)
+          val output0 = PathHandle(path)
   
           val failed = Execution(
               env = mockEnv, 
@@ -403,7 +403,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
               result = Option(JobResult.Failure),
               resources = None,
               outputStreams = Option(dummyOutputStreams), 
-              outputs = Set(output0.toOutputRecord))
+              outputs = Set(output0.toStoreRecord))
   
           assert(failed.isFailure)
   
@@ -489,17 +489,17 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       store(path0)
 
-      val outputRecord0FromDb = dao.findOutputRecord(PathOutput(path0).toOutputRecord)
+      val outputRecord0FromDb = dao.findStoreRecord(PathHandle(path0).toStoreRecord)
       
       assert(outputRecord0FromDb === Some(cachedOutput(path0, hash0)))
 
-      assert(dao.findOutputRecord(path1) === None)
+      assert(dao.findStoreRecord(path1) === None)
 
       storeFailures(path1)
 
-      assert(dao.findOutputRecord(path0) === Some(cachedOutput(path0, hash0)))
+      assert(dao.findStoreRecord(path0) === Some(cachedOutput(path0, hash0)))
 
-      assert(dao.findOutputRecord(path1) === Some(failedOutput(path1)))
+      assert(dao.findStoreRecord(path1) === Some(failedOutput(path1)))
     }
   }
 

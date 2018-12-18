@@ -6,7 +6,7 @@ import java.time.Instant
 import scala.util.Try
 
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import loamstream.util.Hash
 import loamstream.util.Paths
 
@@ -21,17 +21,17 @@ trait ProvidesSlickLoamDao {
   
   protected def store(execution: Execution): Unit = dao.insertExecutions(Seq(execution))
 
-  protected def cachedOutput(path: Path, hash: Hash, lastModified: Instant): OutputRecord = {
+  protected def cachedOutput(path: Path, hash: Hash, lastModified: Instant): StoreRecord = {
     val hashValue = hash.valueAsBase64String
 
-    OutputRecord(Paths.normalize(path), Option(hashValue), Option(hash.tpe.algorithmName), Option(lastModified))
+    StoreRecord(Paths.normalize(path), Option(hashValue), Option(hash.tpe.algorithmName), Option(lastModified))
   }
 
-  protected def cachedOutput(path: Path, hash: Hash): OutputRecord = {
+  protected def cachedOutput(path: Path, hash: Hash): StoreRecord = {
     cachedOutput(path, hash, Instant.ofEpochMilli(0))
   }
 
-  protected def failedOutput(path: Path): OutputRecord = OutputRecord(Paths.normalize(path))
+  protected def failedOutput(path: Path): StoreRecord = StoreRecord(Paths.normalize(path))
 
   protected def createTablesAndThen[A](f: => A): A = {
     //NB: Use Try(...) to succinctly ignore failures

@@ -16,8 +16,9 @@ import loamstream.model.execute.Resources
  */
 abstract class MockJob(
     override val name: String,
-    override val inputs: Set[JobNode],
-    override val outputs: Set[Output],
+    override val dependencies: Set[JobNode],
+    override val inputs: Set[DataHandle],
+    override val outputs: Set[DataHandle],
     val delay: Int) extends LocalJob {
 
   def toReturn: RunData
@@ -25,7 +26,7 @@ abstract class MockJob(
   override def executionEnvironment: Environment = TestHelpers.env
   
   override def toString: String = {
-    s"'$name'(#$id, returning $toReturn, ${inputs.size} dependencies)"
+    s"'$name'(#$id, returning $toReturn, ${dependencies.size} dependencies)"
   }
  
   //NB: Previous versions defined equals() and hashCode() only in terms of 'toReturn', which caused problems;
@@ -49,25 +50,31 @@ abstract class MockJob(
 
   def copy(
       name: String = this.name,
-      inputs: Set[JobNode] = this.inputs,
-      outputs: Set[Output] = this.outputs,
-      delay: Int = this.delay): MockJob = new MockJob.Constant(this.toReturn, name, inputs, outputs, delay)
+      dependencies: Set[JobNode] = this.dependencies,
+      inputs: Set[DataHandle] = this.inputs,
+      outputs: Set[DataHandle] = this.outputs,
+      delay: Int = this.delay): MockJob = {
+    
+    new MockJob.Constant(this.toReturn, name, dependencies, inputs, outputs, delay)
+  }
 }
 
 object MockJob {
   private final class Constant(
       override val toReturn: RunData,
       override val name: String,
-      override val inputs: Set[JobNode],
-      override val outputs: Set[Output],
-      override val delay: Int) extends MockJob(name, inputs, outputs, delay)
+      override val dependencies: Set[JobNode],
+      override val inputs: Set[DataHandle],
+      override val outputs: Set[DataHandle],
+      override val delay: Int) extends MockJob(name, dependencies, inputs, outputs, delay)
   
   class FromJobFn(
       toReturnFn: MockJob => RunData,
       override val name: String,
-      override val inputs: Set[JobNode],
-      override val outputs: Set[Output],
-      override val delay: Int) extends MockJob(name, inputs, outputs, delay) {
+      override val dependencies: Set[JobNode],
+      override val inputs: Set[DataHandle],
+      override val outputs: Set[DataHandle],
+      override val delay: Int) extends MockJob(name, dependencies, inputs, outputs, delay) {
     
     override lazy val toReturn: RunData = toReturnFn(this)
   }
@@ -78,6 +85,7 @@ object MockJob {
     new Constant(
         toReturn = toReturn,
         name = LJob.nextId().toString,
+        dependencies = Set.empty,
         inputs = Set.empty,
         outputs = Set.empty,
         delay = 0)
@@ -87,6 +95,7 @@ object MockJob {
     new FromJobFn(
         toReturnFn = job => runDataFromResult(job, jobResultToReturn),
         name = LJob.nextId().toString,
+        dependencies = Set.empty,
         inputs = Set.empty,
         outputs = Set.empty,
         delay = 0)
@@ -100,6 +109,7 @@ object MockJob {
     new FromJobFn(
         toReturnFn = job => runDataFrom(job, jobResult.toJobStatus, Option(jobResult), resources, outputStreams),
         name = LJob.nextId().toString,
+        dependencies = Set.empty,
         inputs = Set.empty,
         outputs = Set.empty,
         delay = 0)
@@ -108,20 +118,22 @@ object MockJob {
   def apply(
       toReturn: JobStatus,
       name: String = LJob.nextId().toString,
-      inputs: Set[JobNode] = Set.empty,
-      outputs: Set[Output] = Set.empty,
+      dependencies: Set[JobNode] = Set.empty,
+      inputs: Set[DataHandle] = Set.empty,
+      outputs: Set[DataHandle] = Set.empty,
       delay: Int = 0): MockJob = {
     
     new FromJobFn(
         job => runDataFromStatus(job, toReturn),
         name,
+        dependencies,
         inputs,
         outputs,
         delay)
   }
 
-  def unapply(job: LJob): Option[(RunData, String, Set[JobNode], Set[Output], Int)] = job match {
-    case mj: MockJob => Some((mj.toReturn, mj.name, mj.inputs, mj.outputs, mj.delay))
+  def unapply(job: LJob): Option[(RunData, String, Set[JobNode], Set[DataHandle], Int)] = job match {
+    case mj: MockJob => Some((mj.toReturn, mj.name, mj.dependencies, mj.outputs, mj.delay))
     case _ => None
   }
 }

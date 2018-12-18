@@ -3,7 +3,7 @@ package loamstream.db.slick
 import slick.jdbc.JdbcProfile
 import loamstream.db.LoamDao
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.JobResult.CommandInvocationFailure
@@ -157,7 +157,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   }
   
   //TODO: There must be a better way than a subquery
-  private def outputsFor(execution: ExecutionRow): Seq[OutputRecord] = {
+  private def outputsFor(execution: ExecutionRow): Seq[StoreRecord] = {
     val query = tables.outputs.filter(_.executionId === execution.id).result
 
     runBlocking(query).map(toOutputRecord)
@@ -285,7 +285,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   }
 
   private def tieOutputsToExecution(execution: Execution, executionId: Int): Seq[OutputRow] = {
-    def toOutputRows(f: OutputRecord => OutputRow): Seq[OutputRow] = {
+    def toOutputRows(f: StoreRecord => OutputRow): Seq[OutputRow] = {
       execution.outputs.toSeq.map(f)
     }
 

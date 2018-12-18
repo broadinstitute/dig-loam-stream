@@ -20,7 +20,7 @@ import loamstream.util.Paths.normalizePath
  * A trait representing a handle to the output of a job; for now, we're primarily concerned with the case where
  * that output is a file, directory, or Google Cloud Storage objects but other output types are possible.
  */
-sealed trait Output {
+sealed trait DataHandle {
   def isPresent: Boolean
   
   final def isMissing: Boolean = !isPresent
@@ -33,15 +33,15 @@ sealed trait Output {
 
   def location: String
 
-  def toOutputRecord: OutputRecord
+  def toStoreRecord: StoreRecord
 }
 
-object Output {
+object DataHandle {
   /**
    * A handle to an output of a job stored at 'path'.  Hashes and modification times are re-computed on
    * each access.
    */
-  final case class PathOutput private (path: Path) extends Output {
+  final case class PathHandle private (path: Path) extends DataHandle {
     
     override def isPresent: Boolean = Files.exists(path)
 
@@ -53,8 +53,8 @@ object Output {
 
     override def location: String = Paths.normalize(path)
 
-    override def toOutputRecord: OutputRecord = {
-      OutputRecord( 
+    override def toStoreRecord: StoreRecord = {
+      StoreRecord( 
           loc = location,
           isPresent = isPresent,
           hash = hashToString(hash),
@@ -62,14 +62,14 @@ object Output {
           lastModified = lastModified)
     }
 
-    def normalized: PathOutput = this
+    def normalized: PathHandle = this
   }
   
-  object PathOutput {
-    def apply(path: Path): PathOutput = new PathOutput(normalizePath(path))
+  object PathHandle {
+    def apply(path: Path): PathHandle = new PathHandle(normalizePath(path))
   }
 
-  final case class GcsUriOutput(uri: URI, client: Option[CloudStorageClient]) extends Output {
+  final case class GcsUriHandle(uri: URI, client: Option[CloudStorageClient]) extends DataHandle {
     override def isPresent = client.exists(_.isPresent(uri))
 
     override def hash: Option[Hash] = client.flatMap(_.hash(uri))
@@ -78,8 +78,8 @@ object Output {
 
     override def location: String = uri.toString
 
-    override def toOutputRecord: OutputRecord = {
-      OutputRecord( 
+    override def toStoreRecord: StoreRecord = {
+      StoreRecord( 
           loc = location,
           isPresent = isPresent,
           hash = hashToString(hash),

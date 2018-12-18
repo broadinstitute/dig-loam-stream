@@ -48,7 +48,7 @@ final class RxExecuterLotsOfJobsTest extends FunSuite {
     assert(executable.jobNodes.size === numShardedJobs)
     
     //Dependencies of the sharded jobs, the per-chromosome jobs
-    assert(executable.jobNodes.flatMap(_.inputs).size === chrProps.size) 
+    assert(executable.jobNodes.flatMap(_.dependencies).size === chrProps.size) 
     
     val expectedNumberOfJobs = {
       val numPerChromosomeJobs = chrProps.size

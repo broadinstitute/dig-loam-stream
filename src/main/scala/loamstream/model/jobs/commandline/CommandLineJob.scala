@@ -16,7 +16,7 @@ import loamstream.model.jobs.JobResult.CommandInvocationFailure
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
-import loamstream.model.jobs.Output
+import loamstream.model.jobs.DataHandle
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
@@ -27,6 +27,7 @@ import java.io.FileWriter
 import java.io.Writer
 import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.JobNode
+import java.nio.file.Paths
 
 /**
  * LoamStream
@@ -36,10 +37,11 @@ import loamstream.model.jobs.JobNode
  */
 final case class CommandLineJob(
     commandLineString: String,
-    workDir: Path,
+    workDir: Path = Paths.get("."),
     executionEnvironment: Environment,
-    override val inputs: Set[JobNode] = Set.empty,
-    outputs: Set[Output] = Set.empty,
+    override val dependencies: Set[JobNode] = Set.empty,
+    inputs: Set[DataHandle] = Set.empty,
+    outputs: Set[DataHandle] = Set.empty,
     exitValueCheck: Int => Boolean = CommandLineJob.defaultExitValueChecker,
     private val nameOpt: Option[String] = None) extends HasCommandLine with Loggable {
 
@@ -67,7 +69,7 @@ object CommandLineJob extends Loggable {
 
   val defaultExitValueChecker: Int => Boolean = mustBeZero
 
-  def unapply(job: LJob): Option[(String, Set[Output])] = job match {
+  def unapply(job: LJob): Option[(String, Set[DataHandle])] = job match {
     case clj: CommandLineJob => Some((clj.commandLineString, clj.outputs))
     case _                   => None
   }

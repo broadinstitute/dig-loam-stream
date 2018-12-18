@@ -5,11 +5,11 @@ import loamstream.db.slick.ProvidesSlickLoamDao
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.Execution
-import loamstream.model.jobs.OutputRecord
+import loamstream.model.jobs.StoreRecord
 import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.TestHelpers.dummyOutputStreams
 import loamstream.TestHelpers.path
-import loamstream.model.jobs.Output
+import loamstream.model.jobs.DataHandle
 
 /**
  * @author clint
@@ -22,15 +22,15 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
   private val p2 = path("src/test/resources/for-hashing/subdir/bar.txt")
   private val nonexistentPath = path("non/existent/blah.txt")
 
-  private val o0 = Output.PathOutput(p0)
-  private val o1 = Output.PathOutput(p1)
-  private val o2 = Output.PathOutput(p2)
-  private val nonExistentOutput = Output.PathOutput(nonexistentPath)
+  private val o0 = DataHandle.PathHandle(p0)
+  private val o1 = DataHandle.PathHandle(p1)
+  private val o2 = DataHandle.PathHandle(p2)
+  private val nonExistentOutput = DataHandle.PathHandle(nonexistentPath)
   
-  private val cachedOutput0 = o0.toOutputRecord
-  private val cachedOutput1 = o1.toOutputRecord
-  private val cachedOutput2 = o2.toOutputRecord
-  private val cachedNonExistentOutput = nonExistentOutput.toOutputRecord
+  private val cachedOutput0 = o0.toStoreRecord
+  private val cachedOutput1 = o1.toStoreRecord
+  private val cachedOutput2 = o2.toStoreRecord
+  private val cachedNonExistentOutput = nonExistentOutput.toStoreRecord
 
   private val failedOutput0 = failedOutput(p0)
   private val failedOutput1 = failedOutput(p1)
@@ -65,7 +65,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
             result = result, 
             resources = Option(mockResources),
             outputStreams = None,
-            outputs = Set.empty[OutputRecord])
+            outputs = Set.empty[StoreRecord])
 
         assert(e.isCommandExecution === false)
         
@@ -99,7 +99,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
           result = Option(cr), 
           resources = Option(mockResources),
           outputStreams = Some(dummyOutputStreams),
-          outputs = Set.empty[OutputRecord])
+          outputs = Set.empty[StoreRecord])
 
       recorder.record(Seq(e))
 
@@ -143,7 +143,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       assert(cr.isSuccess)
 
       val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set(o0, o1, o2))
-      val withHashedOutputs = e.withOutputRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
+      val withHashedOutputs = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
 
       recorder.record(Seq(e))
 
@@ -161,7 +161,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isFailure)
 
-      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set[Output](o0, o1, o2))
+      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set[DataHandle](o0, o1, o2))
 
       recorder.record(Seq(e))
 

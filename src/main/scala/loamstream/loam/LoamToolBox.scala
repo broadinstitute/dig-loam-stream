@@ -10,7 +10,7 @@ import loamstream.model.Tool
 import loamstream.model.execute.Environment
 import loamstream.model.execute.Executable
 import loamstream.model.jobs.JobNode
-import loamstream.model.jobs.Output
+import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.commandline.CommandLineJob
 
 /**
@@ -50,27 +50,37 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
 
     val inputJobs = toJobs(graph)(graph.toolsPreceding(tool))
 
+    val inputs = inputsFor(graph, tool)
     val outputs = outputsFor(graph, tool)
 
     val toolNameOpt = graph.nameOf(tool)
 
     tool match {
       case cmdTool: LoamCmdTool =>
-        Some(CommandLineJob(cmdTool.commandLine, workDir, environment, inputJobs, outputs, nameOpt = toolNameOpt))
+        Some(CommandLineJob(
+            commandLineString = cmdTool.commandLine, 
+            workDir = workDir, 
+            executionEnvironment = environment, 
+            dependencies = inputJobs,
+            inputs = inputs,
+            outputs = outputs, 
+            nameOpt = toolNameOpt))
       case _ => None
     }
   }
 
-  private def outputsFor(graph: LoamGraph, tool: Tool): Set[Output] = {
-    val loamStores: Set[Store] = graph.toolOutputs(tool)
-    
-    def pathOrUriToOutput(store: Store): Option[Output] = {
+  private def inputsFor(graph: LoamGraph, tool: Tool): Set[DataHandle] = handlesFor(graph.toolInputs(tool))
+  
+  private def outputsFor(graph: LoamGraph, tool: Tool): Set[DataHandle] = handlesFor(graph.toolOutputs(tool))
+  
+  private def handlesFor(stores: Set[Store]): Set[DataHandle] = {
+    def pathOrUriToOutput(store: Store): Option[DataHandle] = {
       store.pathOpt.orElse(store.uriOpt).map {
-        case path: Path => Output.PathOutput(path)
-        case uri: URI   => Output.GcsUriOutput(uri, client)
+        case path: Path => DataHandle.PathHandle(path)
+        case uri: URI   => DataHandle.GcsUriHandle(uri, client)
       }
     }
     
-    loamStores.flatMap(pathOrUriToOutput)
+    stores.flatMap(pathOrUriToOutput)
   }
 }

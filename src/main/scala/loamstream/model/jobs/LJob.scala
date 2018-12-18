@@ -30,8 +30,11 @@ trait LJob extends JobNode {
   
   final val id: Int = LJob.nextId()
 
+  /** Any inputs needed by this job */
+  def inputs: Set[DataHandle]
+  
   /** Any outputs produced by this job */
-  def outputs: Set[Output]
+  def outputs: Set[DataHandle]
   
   //TODO
   override def job: LJob = this

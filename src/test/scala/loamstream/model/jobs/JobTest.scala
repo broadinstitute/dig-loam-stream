@@ -150,7 +150,7 @@ final class JobTest extends FunSuite with TestJobs {
     //TODO: Lame :(
     val depsAsJobNodes: Set[JobNode] = deps.map(toJobNode)
     
-    val noDeps = MockJob(toReturn = Failed, inputs = depsAsJobNodes)
+    val noDeps = MockJob(toReturn = Failed, dependencies = depsAsJobNodes)
     
     val finalInputStatusesFuture = noDeps.finalInputStatuses.firstAsFuture
     
@@ -234,9 +234,9 @@ final class JobTest extends FunSuite with TestJobs {
       
       val i1 = mockJob(if(anyFailures) FailedPermanently else Succeeded)
       
-      val inputs: Set[JobNode] = Set(i0, notFinished, i1)
+      val dependencies: Set[JobNode] = Set(i0, notFinished, i1)
       
-      val job = MockJob(toReturn = resultStatus, inputs = inputs)
+      val job = MockJob(toReturn = resultStatus, dependencies = dependencies)
 
       notFinished.transitionTo(Succeeded)
       
@@ -320,10 +320,10 @@ final class JobTest extends FunSuite with TestJobs {
     val gc2 = MockJob(Succeeded)
     val gc3 = MockJob(Skipped)
     
-    val c0 = MockJob(Succeeded, inputs = Set[JobNode](gc0, gc1))
-    val c1 = MockJob(Succeeded, inputs = Set[JobNode](gc2, gc3))
+    val c0 = MockJob(Succeeded, dependencies = Set[JobNode](gc0, gc1))
+    val c1 = MockJob(Succeeded, dependencies = Set[JobNode](gc2, gc3))
     
-    val rootJob = MockJob(Succeeded, inputs = Set[JobNode](c0,c1))
+    val rootJob = MockJob(Succeeded, dependencies = Set[JobNode](c0,c1))
     
     val grandChildren = waitFor(rootJob.runnables.map(_.job).take(4).to[Set].firstAsFuture)
     
@@ -372,10 +372,10 @@ final class JobTest extends FunSuite with TestJobs {
     val gc2 = MockJob(Succeeded, "gc2")
     val gc3 = MockJob(Skipped, "gc3")
     
-    val c0 = MockJob(toReturn = Failed, inputs = Set[JobNode](gc0, gc1), name = "c0")
-    val c1 = MockJob(toReturn = Succeeded, inputs = Set[JobNode](gc2, gc3), name = "c1")
+    val c0 = MockJob(toReturn = Failed, dependencies = Set[JobNode](gc0, gc1), name = "c0")
+    val c1 = MockJob(toReturn = Succeeded, dependencies = Set[JobNode](gc2, gc3), name = "c1")
     
-    val rootJob = MockJob(Succeeded, inputs = Set[JobNode](c0,c1), name = "root")
+    val rootJob = MockJob(Succeeded, dependencies = Set[JobNode](c0,c1), name = "root")
     
     val grandChildren = waitFor(rootJob.runnables.map(_.job).take(4).to[Seq].firstAsFuture)
     

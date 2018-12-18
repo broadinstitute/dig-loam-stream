@@ -17,7 +17,7 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobStatus.Skipped
 import loamstream.model.jobs.JobStatus.Succeeded
 import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.Output
+import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.RunData
 import loamstream.util.Hashes
 import loamstream.util.Paths
@@ -112,11 +112,17 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
     }
   }
 
-  private def mockJob(name: String, outputs: Set[Output], inputs: Set[JobNode] = Set.empty)(body: => Any): MockJob = {
+  private def mockJob(
+      name: String, 
+      outputs: Set[DataHandle],
+      inputs: Set[DataHandle] = Set.empty,
+      dependencies: Set[JobNode] = Set.empty)(body: => Any): MockJob = {
+    
     new MockJob.FromJobFn(
         toReturnFn = job => TestHelpers.runDataFromResult(job, JobResult.CommandResult(0)), 
         name = name, 
-        inputs = inputs, 
+        dependencies = dependencies,
+        inputs = inputs,
         outputs = outputs, 
         delay = 0) {
       
@@ -130,15 +136,15 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
   
   private def makeMockJobs(start: Path, f1: Path, f2: Path, f3: Path): (MockJob, MockJob, MockJob) = {
 
-    val startToF1 = mockJob(copyCmd(start, f1), Set(Output.PathOutput(f1))) {
+    val startToF1 = mockJob(copyCmd(start, f1), Set(DataHandle.PathHandle(f1))) {
       copy(start, f1)
     }
 
-    val f1ToF2 = mockJob(copyCmd(f1, f2), Set(Output.PathOutput(f2)), Set(startToF1)) {
+    val f1ToF2 = mockJob(copyCmd(f1, f2), Set(DataHandle.PathHandle(f2)), dependencies = Set(startToF1)) {
       copy(f1, f2)
     }
 
-    val f2ToF3 = mockJob(copyCmd(f2, f3), Set(Output.PathOutput(f3)), Set(f1ToF2)) {
+    val f2ToF3 = mockJob(copyCmd(f2, f3), Set(DataHandle.PathHandle(f3)), dependencies = Set(f1ToF2)) {
       copy(f2, f3)
     }
     

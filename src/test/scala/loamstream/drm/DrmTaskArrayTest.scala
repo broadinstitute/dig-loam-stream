@@ -34,14 +34,14 @@ object DrmTaskArrayTest {
 
   def job(commandLine: String): CommandLineJob = CommandLineJob(commandLine, path("."), Environment.Local)
 
-  val workDir = path("/foo/bar/baz").toAbsolutePath
+  private val workDir = path("/foo/bar/baz").toAbsolutePath
 
-  val jobOutputDir = path("/path/to/logs").toAbsolutePath
+  private val jobOutputDir = path("/path/to/logs").toAbsolutePath
 
-  val ugerConfig = UgerConfig(maxNumJobs = 42)
-  val lsfConfig = LsfConfig(maxNumJobs = 42)
+  private val ugerConfig = UgerConfig(maxNumJobs = 42)
+  private val lsfConfig = LsfConfig(maxNumJobs = 42)
 
-  val executionConfig = ExecutionConfig(maxRunsPerJob = 42)
+  private val executionConfig = ExecutionConfig(maxRunsPerJob = 42)
 
   val jobs @ Seq(j0, j1, j2) = Seq(job("foo"), job("bar"), job("baz"))
   

@@ -29,9 +29,8 @@ object DbDescriptor {
 
   //DB files live named .loamstream/db/loamstream.*, all under .loamstream/db
   val defaultDbName: String = "loamstream"
-  val defaultDbDir: Path = Locations.loamstreamDir.resolve("db")
   
-  def onDiskDefault: DbDescriptor = onDiskAt(defaultDbDir, defaultDbName)
+  def onDiskDefault: DbDescriptor = onDiskAt(Locations.dbDir, defaultDbName)
   
   def onDiskAt(dbDir: Path, dbName: String): OnDiskH2 = OnDiskH2(dbDir, dbName)
   

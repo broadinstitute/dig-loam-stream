@@ -19,6 +19,9 @@ import loamstream.conf.Locations
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.conf.DrmConfig
+import loamstream.conf.ExecutionConfig
+import loamstream.conf.UgerConfig
+import loamstream.conf.LsfConfig
 
 /**
  * @author clint
@@ -29,12 +32,16 @@ final class DrmJobWrapperTest extends FunSuite {
   import loamstream.TestHelpers.path
 
   private def wrapper(commandLineJob: CommandLineJob, ugerIndex: Int, pathBuilder: PathBuilder): DrmJobWrapper = {
-    DrmJobWrapper(executionConfig, TestHelpers.defaultUgerSettings, pathBuilder, commandLineJob, ugerIndex)
+    DrmJobWrapper(baseExecutionConfig, TestHelpers.defaultUgerSettings, pathBuilder, commandLineJob, ugerIndex)
   }
 
   private val ugerSettings = TestHelpers.defaultUgerSettings
 
   private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(TestHelpers.configWithUger.ugerConfig.get))
+  
+  private val baseExecutionConfig = ExecutionConfig(maxRunsPerJob = 42)
+  private val baseUgerConfig = UgerConfig(maxNumJobs = 42)
+  private val baseLsfConfig = LsfConfig(maxNumJobs = 42)
   
   test("commandLineInTaskArray - no image") {
     val ugerSettings = TestHelpers.defaultUgerSettings
@@ -46,7 +53,7 @@ final class DrmJobWrapperTest extends FunSuite {
     assert(lsfSettings.containerParams === None)
 
     def doTest(pathBuilder: PathBuilder, drmSettings: DrmSettings): Unit = {
-      val drmJob = DrmJobWrapper(executionConfig, drmSettings, pathBuilder, makeJob("foo"), 1)
+      val drmJob = DrmJobWrapper(baseExecutionConfig, drmSettings, pathBuilder, makeJob("foo"), 1)
 
       assert(drmJob.commandLineInTaskArray === "foo")
     }
@@ -60,10 +67,10 @@ final class DrmJobWrapperTest extends FunSuite {
 
     val lsfSettings = TestHelpers.defaultLsfSettings.copy(containerParams = Option(ContainerParams("baz")))
 
-    assert(executionConfig.singularity == SingularityConfig.default)
+    assert(baseExecutionConfig.singularity == SingularityConfig.default)
 
     def doTest(pathBuilder: PathBuilder, drmSettings: DrmSettings): Unit = {
-      val drmJob = DrmJobWrapper(executionConfig, drmSettings, pathBuilder, makeJob("foo"), 1)
+      val drmJob = DrmJobWrapper(baseExecutionConfig, drmSettings, pathBuilder, makeJob("foo"), 1)
 
       assert(drmJob.commandLineInTaskArray === s"singularity exec ${drmSettings.containerParams.get.imageName} foo")
     }
@@ -83,7 +90,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val singularityConfig = SingularityConfig("blarg", Seq(bar, fooBarBat))
 
-      val executionConfigWithSingularityParams = executionConfig.copy(singularity = singularityConfig)
+      val executionConfigWithSingularityParams = baseExecutionConfig.copy(singularity = singularityConfig)
 
       val drmJob = DrmJobWrapper(executionConfigWithSingularityParams, drmSettings, pathBuilder, makeJob("foo"), 1)
 
@@ -100,12 +107,18 @@ final class DrmJobWrapperTest extends FunSuite {
 
   private def makeJob(commandLine: String) = CommandLineJob(commandLine, Paths.get("."), Environment.Local)
 
-  test("stdOutPath") {
+  test("drmStdOutPath") {
     def doTest(pathBuilder: PathBuilder): Unit = {
       val jobName = DrmTaskArray.makeJobName()
 
+      val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+      
+      val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
+      
+      val executionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
+      
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, jobs, jobName)
+        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, drmConfig, pathBuilder, jobs, jobName)
       }
 
       val Seq(wrapper0, wrapper1, wrapper2) = taskArray.drmJobs
@@ -116,9 +129,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
       import loamstream.util.Paths.Implicits.PathHelpers
       
-      val expected0 = (Locations.ugerDir / s"$jobName.1.stdout").toAbsolutePath
-      val expected1 = (Locations.ugerDir / s"$jobName.2.stdout").toAbsolutePath
-      val expected2 = (Locations.ugerDir / s"$jobName.3.stdout").toAbsolutePath
+      val expected0 = (drmConfig.workDir / s"$jobName.1.stdout").toAbsolutePath
+      val expected1 = (drmConfig.workDir / s"$jobName.2.stdout").toAbsolutePath
+      val expected2 = (drmConfig.workDir / s"$jobName.3.stdout").toAbsolutePath
 
       assert(stdOutPath0 === expected0)
       assert(stdOutPath1 === expected1)
@@ -129,12 +142,18 @@ final class DrmJobWrapperTest extends FunSuite {
     doTest(LsfPathBuilder)
   }
 
-  test("ugerStdErrPath") {
+  test("drmStdErrPath") {
     def doTest(pathBuilder: PathBuilder): Unit = {
       val jobName = DrmTaskArray.makeJobName()
 
+      val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+      
+      val executionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
+      
+      val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
+      
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, jobs, jobName)
+        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, drmConfig, pathBuilder, jobs, jobName)
       }
 
       val Seq(wrapper0, wrapper1, wrapper2) = taskArray.drmJobs
@@ -145,9 +164,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
       import loamstream.util.Paths.Implicits.PathHelpers
       
-      val expected0 = (Locations.ugerDir / s"$jobName.1.stderr").toAbsolutePath
-      val expected1 = (Locations.ugerDir / s"$jobName.2.stderr").toAbsolutePath
-      val expected2 = (Locations.ugerDir / s"$jobName.3.stderr").toAbsolutePath
+      val expected0 = (drmConfig.workDir / s"$jobName.1.stderr").toAbsolutePath
+      val expected1 = (drmConfig.workDir / s"$jobName.2.stderr").toAbsolutePath
+      val expected2 = (drmConfig.workDir / s"$jobName.3.stderr").toAbsolutePath
 
       assert(stdErrPath0 === expected0)
       assert(stdErrPath1 === expected1)
@@ -160,13 +179,19 @@ final class DrmJobWrapperTest extends FunSuite {
 
   test("outputStreams.stdout") {
     def doTest(pathBuilder: PathBuilder): Unit = {
+      val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+      
+      val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
+      
+      val executionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
+      
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, Seq(j0))
+        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, drmConfig, pathBuilder, Seq(j0))
       }
 
       val Seq(wrapper0) = taskArray.drmJobs
 
-      val expected = path(s"${Locations.jobOutputDir}/${j0.id}.stdout").toAbsolutePath
+      val expected = path(s"${executionConfig.jobOutputDir}/${j0.id}.stdout").toAbsolutePath
 
       assert(wrapper0.outputStreams.stdout === expected)
     }
@@ -177,13 +202,19 @@ final class DrmJobWrapperTest extends FunSuite {
 
   test("outputStreams.stderr") {
     def doTest(pathBuilder: PathBuilder): Unit = {
+      val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+      
+      val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
+      
+      val executionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
+      
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, ugerConfig, pathBuilder, Seq(j0))
+        DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, drmConfig, pathBuilder, Seq(j0))
       }
 
       val Seq(wrapper0) = taskArray.drmJobs
 
-      val expected = path(s"${Locations.jobOutputDir}/${j0.id}.stderr").toAbsolutePath
+      val expected = path(s"${executionConfig.jobOutputDir}/${j0.id}.stderr").toAbsolutePath
 
       assert(wrapper0.outputStreams.stderr === expected)
     }
@@ -196,10 +227,14 @@ final class DrmJobWrapperTest extends FunSuite {
     def doTest(pathBuilder: PathBuilder, settings: DrmSettings, expectedSingularityPart: String): Unit = {
       val jobName = DrmTaskArray.makeJobName()
 
+      val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+      
       val drmConfig: DrmConfig = settings match {
-        case _: UgerDrmSettings => ugerConfig
-        case _: LsfDrmSettings => lsfConfig
+        case _: UgerDrmSettings => baseUgerConfig.copy(workDir = testWorkDir)
+        case _: LsfDrmSettings => baseLsfConfig.copy(workDir = testWorkDir)
       }
+      
+      val executionConfig: ExecutionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
       
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(executionConfig, settings, drmConfig, pathBuilder, Seq(j0), jobName)
@@ -207,16 +242,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val Seq(wrapper0) = taskArray.drmJobs
 
-      val workDir = {
-        val baseWorkDir = settings match {
-          case _: UgerDrmSettings => Locations.ugerDir
-          case _: LsfDrmSettings => Locations.lsfDir
-        }
-        
-        baseWorkDir.toAbsolutePath.render
-      }
+      val workDir = drmConfig.workDir
       
-      val jobOutputDir = Locations.jobOutputDir.toAbsolutePath
+      val jobOutputDir = executionConfig.jobOutputDir.toAbsolutePath
       
       // scalastyle:off line.size.limit
       val expected = s"""|${expectedSingularityPart}${j0.commandLineString}

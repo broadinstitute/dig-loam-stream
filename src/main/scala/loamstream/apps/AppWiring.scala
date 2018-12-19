@@ -82,6 +82,7 @@ import loamstream.drm.uger.UgerScriptBuilderParams
 import loamstream.model.execute.RunsIfNoOutputsJobFilter
 import loamstream.model.execute.RequiresPresentInputsJobCanceler
 import loamstream.model.execute.JobCanceler
+import loamstream.conf.Locations
 
 
 /**
@@ -468,9 +469,13 @@ object AppWiring extends Loggable {
     dao
   }
   
-  private[apps] val dbDescriptor: DbDescriptor = DbDescriptor.onDiskDefault
+  private[apps] def dbDescriptor(dbDir: Path): DbDescriptor = {
+    DbDescriptor.onDiskAt(dbDir, DbDescriptor.defaultDbName)
+  }
   
-  private[apps] def makeDefaultDb: LoamDao = makeDaoFrom(dbDescriptor)
+  private[apps] def makeDefaultDb: LoamDao = {
+    makeDaoFrom(dbDescriptor(Locations.dbDir))
+  }
   
   private[apps] final class TerminableExecuter(
       val delegate: Executer,

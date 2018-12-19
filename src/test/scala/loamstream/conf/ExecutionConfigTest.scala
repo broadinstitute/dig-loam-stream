@@ -21,8 +21,10 @@ final class ExecutionConfigTest extends FunSuite {
 
     val expected = ExecutionConfig(
         Defaults.maxRunsPerJob,
+        Defaults.jobOutputDir,
         Defaults.maxWaitTimeForOutputs,
         Defaults.outputPollingFrequencyInHz,
+        Defaults.dryRunOutputFile,
         Defaults.anonStoreDir,
         Defaults.singularityConfig)
 
@@ -135,9 +137,9 @@ final class ExecutionConfigTest extends FunSuite {
     val executionConfig = parse(input).get
 
     val expected = ExecutionConfig(
-        expectedMaxRunsPerJob,
-        expectedMaxWaitTime,
-        expectedOutputPollingFrequencyInHz)
+        maxRunsPerJob = expectedMaxRunsPerJob,
+        maxWaitTimeForOutputs = expectedMaxWaitTime,
+        outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz)
 
     assert(executionConfig === expected)
   }
@@ -157,9 +159,9 @@ final class ExecutionConfigTest extends FunSuite {
     val executionConfig = parse(input).get
 
     val expected = ExecutionConfig(
-        expectedMaxRunsPerJob,
-        expectedMaxWaitTime,
-        expectedOutputPollingFrequencyInHz)
+        maxRunsPerJob = expectedMaxRunsPerJob,
+        maxWaitTimeForOutputs = expectedMaxWaitTime,
+        outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz)
 
     assert(executionConfig === expected)
   }

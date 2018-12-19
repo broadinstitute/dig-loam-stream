@@ -13,10 +13,14 @@ import scala.concurrent.duration.Duration
  */
 final case class ExecutionConfig(
     maxRunsPerJob: Int = Defaults.maxRunsPerJob, 
+    jobOutputDir: Path = Defaults.jobOutputDir,
     maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs,
     outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
+    dryRunOutputFile: Path = Defaults.dryRunOutputFile,
     anonStoreDir: Path = Defaults.anonStoreDir,
-    singularity: SingularityConfig = Defaults.singularityConfig) {
+    singularity: SingularityConfig = Defaults.singularityConfig,
+    dbDir: Path = Defaults.dbDir,
+    logDir: Path = Defaults.logDir) {
 }
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
@@ -24,6 +28,10 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
   object Defaults {
     val maxRunsPerJob: Int = 4 //scalastyle:ignore magic.number
   
+    val dryRunOutputFile: Path = Locations.dryRunOutputFile
+    
+    val jobOutputDir: Path = Locations.jobOutputDir
+    
     import scala.concurrent.duration._
     
     val maxWaitTimeForOutputs: Duration = 30.seconds
@@ -33,6 +41,10 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     val anonStoreDir: Path = Paths.get(System.getProperty("java.io.tmpdir", "/tmp"))
     
     val singularityConfig: SingularityConfig = SingularityConfig.default
+    
+    val dbDir: Path = Locations.dbDir
+    
+    val logDir: Path = Locations.logDir
   }
   
   val default: ExecutionConfig = ExecutionConfig()

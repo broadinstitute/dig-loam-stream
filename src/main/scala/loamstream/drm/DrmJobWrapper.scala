@@ -34,9 +34,9 @@ final case class DrmJobWrapper(
     pathBuilder.reifyPathTemplate(taskArray.stdErrPathTemplate, drmIndex)
   }
 
-  private lazy val stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, Locations.jobOutputDir)
+  private lazy val stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, executionConfig.jobOutputDir)
 
-  private lazy val stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, Locations.jobOutputDir)
+  private lazy val stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, executionConfig.jobOutputDir)
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
@@ -62,7 +62,7 @@ final case class DrmJobWrapper(
   }
 
   def commandChunk(taskArray: DrmTaskArray): String = {
-    val outputDir = Locations.jobOutputDir.toAbsolutePath
+    val outputDir = executionConfig.jobOutputDir.toAbsolutePath
 
     // scalastyle:off line.size.limit
     s"""|${commandLineInTaskArray}

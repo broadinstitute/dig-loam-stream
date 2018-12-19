@@ -23,7 +23,7 @@ import loamstream.conf.Locations
  */
 object ProcessLoggers {
   def forNamedJob(executionConfig: ExecutionConfig, job: LJob): ToFilesProcessLogger = {
-    import Locations.jobOutputDir
+    import executionConfig.jobOutputDir
     
     ToFilesProcessLogger(LogFileNames.outputStreams(job, jobOutputDir))
   }

@@ -87,31 +87,38 @@ object Main extends Loggable {
   
   private[apps] final class Run extends Loggable {
   
-    def doClean(clean: Intent.Clean): Unit = {
+    def configForClean(clean: Intent.Clean): LoamConfig = {
+      AppWiring.loamConfigFrom(clean.confFile, drmSystemOpt = None, shouldValidateGraph = false)
+    }
+    
+    def doClean(clean: Intent.Clean): Unit = actuallyDoClean(clean, configForClean(clean))
+    
+    def actuallyDoClean(clean: Intent.Clean, config: LoamConfig): Unit = {
       def delete(p: Path): Unit = {
         info(s"Deleting '${p.toAbsolutePath}'...")
         
         FileUtils.deleteQuietly(p.toFile)
       }
       
-      val config = AppWiring.loamConfigFrom(clean.confFile, drmSystemOpt = None, shouldValidateGraph = false)
-      
       if(clean.db) {
-        AppWiring.dbDescriptor match {
+        AppWiring.dbDescriptor(config.executionConfig.dbDir) match {
           case DbDescriptor.OnDiskH2(dbDir, _) => delete(dbDir)
           case _ => ()
         }
       }
       
       if(clean.logs) {
-        delete(Locations.logDir)
+        delete(config.executionConfig.logDir)
         
-        delete(Locations.jobOutputDir)
+        delete(config.executionConfig.jobOutputDir)
       }
       
       if(clean.scripts) {
-        delete(Locations.ugerDir)
-        delete(Locations.lsfDir)
+        config.ugerConfig.map(_.scriptDir).foreach(delete)
+        config.lsfConfig.map(_.scriptDir).foreach(delete)
+        
+        config.ugerConfig.map(_.workDir).foreach(delete)
+        config.lsfConfig.map(_.workDir).foreach(delete)
       }
     }
     
@@ -181,6 +188,7 @@ object Main extends Loggable {
     }
     
     def doRealRun(intent: Intent.RealRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
+      
       val wiring = AppWiring.forRealRun(intent, makeDao)
       
       addShutdownHook(wiring)

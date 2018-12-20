@@ -18,6 +18,57 @@ final class ConfTest extends FunSuite with Matchers {
   
   import TestHelpers.path
   
+  test("--clean") {
+    {
+      val conf = makeConf(Seq("--clean"))
+      
+      assert(conf.clean.isSupplied === true)
+      assert(conf.cleanDb.isSupplied === false)
+      assert(conf.cleanLogs.isSupplied === false)
+      assert(conf.cleanScripts.isSupplied === false)
+      
+      assert(conf.disableHashing.isSupplied === false)
+      assert(conf.compileOnly.isSupplied === false)
+      assert(conf.conf.isSupplied === false)
+      assert(conf.version.isSupplied === false)
+      assert(conf.backend.isSupplied === false)
+      assert(conf.loams.isSupplied === false)
+    }
+    
+    {
+      val conf = makeConf("--clean-db --clean-logs --clean-scripts".split("\\s+"))
+      
+      assert(conf.clean.isSupplied === false)
+      assert(conf.cleanDb.isSupplied === true)
+      assert(conf.cleanLogs.isSupplied === true)
+      assert(conf.cleanScripts.isSupplied === true)
+      
+      assert(conf.disableHashing.isSupplied === false)
+      assert(conf.compileOnly.isSupplied === false)
+      assert(conf.conf.isSupplied === false)
+      assert(conf.version.isSupplied === false)
+      assert(conf.backend.isSupplied === false)
+      assert(conf.loams.isSupplied === false)
+    }
+    
+    {
+      val conf = makeConf("--clean --clean-db --clean-logs --clean-scripts".split("\\s+"))
+      
+      assert(conf.clean.isSupplied === true)
+      assert(conf.cleanDb.isSupplied === true)
+      assert(conf.cleanLogs.isSupplied === true)
+      assert(conf.cleanScripts.isSupplied === true)
+      
+      assert(conf.disableHashing.isSupplied === false)
+      assert(conf.compileOnly.isSupplied === false)
+      assert(conf.conf.isSupplied === false)
+      assert(conf.version.isSupplied === false)
+      assert(conf.backend.isSupplied === false)
+      assert(conf.loams.isSupplied === false)
+    }
+    
+  }
+  
   test("--backend") {
     {
       val args = Seq("--loams", "src/examples/loam/cp.loam")
@@ -30,6 +81,10 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.version.isSupplied === false)
       assert(conf.backend.isSupplied === false)
       assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
+      assert(conf.clean.isSupplied === false)
+      assert(conf.cleanDb.isSupplied === false)
+      assert(conf.cleanLogs.isSupplied === false)
+      assert(conf.cleanScripts.isSupplied === false)
     }
     
     {
@@ -43,6 +98,10 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.version.isSupplied === false)
       assert(conf.backend() == "lsf")
       assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
+      assert(conf.clean.isSupplied === false)
+      assert(conf.cleanDb.isSupplied === false)
+      assert(conf.cleanLogs.isSupplied === false)
+      assert(conf.cleanScripts.isSupplied === false)
     }
     
     {
@@ -56,6 +115,10 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.version.isSupplied === false)
       assert(conf.backend() === "uger")
       assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
+      assert(conf.clean.isSupplied === false)
+      assert(conf.cleanDb.isSupplied === false)
+      assert(conf.cleanLogs.isSupplied === false)
+      assert(conf.cleanScripts.isSupplied === false)
     }
   }
   

@@ -49,6 +49,24 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
   
   val default: ExecutionConfig = ExecutionConfig()
   
+  //Parse Typesafe Configs into instances of Parsed, which only contains those fields we want to be configurable
+  //via loamstream.conf.  Other values (workDir, scriptDir) can be set by unit tests, for example, but adding them
+  //to loamstream.conf has no effect.
+  private final case class Parsed(
+    maxRunsPerJob: Int = Defaults.maxRunsPerJob, 
+    maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs,
+    outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
+    anonStoreDir: Path = Defaults.anonStoreDir,
+    singularity: SingularityConfig = Defaults.singularityConfig) {
+    
+    def toExecutionConfig: ExecutionConfig = ExecutionConfig(
+      maxRunsPerJob = maxRunsPerJob, 
+      maxWaitTimeForOutputs = maxWaitTimeForOutputs,
+      outputPollingFrequencyInHz = outputPollingFrequencyInHz,
+      anonStoreDir = anonStoreDir,
+      singularity = singularity)
+  }
+  
   override def fromConfig(config: Config): Try[ExecutionConfig] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
@@ -57,6 +75,6 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
     //NB: Ficus now marshals the contents of loamstream.execution into an ExecutionConfig instance.
     //Names of fields in ExecutionConfig and keys under loamstream.execution must match.
-    Try(config.as[ExecutionConfig]("loamstream.execution"))
+    Try(config.as[Parsed]("loamstream.execution").toExecutionConfig)
   }
 }

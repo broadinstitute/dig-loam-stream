@@ -148,6 +148,10 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === loams.map(path(_)))
+      assert(conf.clean.isSupplied === false)
+      assert(conf.cleanDb.isSupplied === false)
+      assert(conf.cleanLogs.isSupplied === false)
+      assert(conf.cleanScripts.isSupplied === false)
     }
     
     doTest("--compile-only", Seq("src/examples/loam/cp.loam", "src/examples/loam/cp.loam"))
@@ -164,6 +168,10 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
+      assert(conf.clean.isSupplied === false)
+      assert(conf.cleanDb.isSupplied === false)
+      assert(conf.cleanLogs.isSupplied === false)
+      assert(conf.cleanScripts.isSupplied === false)
     }
     
     {
@@ -176,6 +184,10 @@ final class ConfTest extends FunSuite with Matchers {
       assert(conf.conf.isSupplied === false)
       assert(conf.version.isSupplied === false)
       assert(conf.loams() === Seq(path("src/examples/loam/cp.loam")))
+      assert(conf.clean.isSupplied === false)
+      assert(conf.cleanDb.isSupplied === false)
+      assert(conf.cleanLogs.isSupplied === false)
+      assert(conf.cleanScripts.isSupplied === false)
     }
   }
   
@@ -191,6 +203,9 @@ final class ConfTest extends FunSuite with Matchers {
       assert(values.compileOnlySupplied === false)
       assert(values.loams === Seq(expected))
       assert(values.conf.isEmpty)
+      assert(values.cleanDbSupplied === false)
+      assert(values.cleanLogsSupplied === false)
+      assert(values.cleanScriptsSupplied === false)
     }
     
     {
@@ -200,6 +215,9 @@ final class ConfTest extends FunSuite with Matchers {
       assert(values.compileOnlySupplied === false)
       assert(values.loams === Seq(expected))
       assert(values.conf.isEmpty)
+      assert(values.cleanDbSupplied === false)
+      assert(values.cleanLogsSupplied === false)
+      assert(values.cleanScriptsSupplied === false)
     }
     
     {
@@ -209,6 +227,9 @@ final class ConfTest extends FunSuite with Matchers {
       assert(values.compileOnlySupplied === false)
       assert(values.loams === Seq(expected))
       assert(values.conf.isEmpty)
+      assert(values.cleanDbSupplied === false)
+      assert(values.cleanLogsSupplied === false)
+      assert(values.cleanScriptsSupplied === false)
     }
   }
   
@@ -229,6 +250,9 @@ final class ConfTest extends FunSuite with Matchers {
       assert(values.loams === Nil)
       assert(values.compileOnlySupplied === false)
       assert(values.conf === None)
+      assert(values.cleanDbSupplied === false)
+      assert(values.cleanLogsSupplied === false)
+      assert(values.cleanScriptsSupplied === false)
     }
     //URI, full arg name
     {
@@ -240,6 +264,9 @@ final class ConfTest extends FunSuite with Matchers {
       assert(values.loams === Nil)
       assert(values.compileOnlySupplied === false)
       assert(values.conf === None)
+      assert(values.cleanDbSupplied === false)
+      assert(values.cleanLogsSupplied === false)
+      assert(values.cleanScriptsSupplied === false)
     }
   }
 }

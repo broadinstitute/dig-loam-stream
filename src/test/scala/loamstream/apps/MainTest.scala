@@ -1,6 +1,10 @@
 package loamstream.apps
 
 import org.scalatest.FunSuite
+
+import java.nio.file.Files.exists
+import java.nio.file.Path
+
 import loamstream.conf.LoamConfig
 import loamstream.db.LoamDao
 import loamstream.model.execute.Executer
@@ -10,13 +14,14 @@ import loamstream.model.execute.ExecutionRecorder
 import loamstream.cli.Intent
 import loamstream.db.slick.DbDescriptor
 import loamstream.conf.Locations
-import java.nio.file.Path
 import loamstream.TestHelpers
 import loamstream.drm.DrmSystem
 import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.CompilationConfig
+
+
 
 /**
  * @author clint
@@ -43,43 +48,57 @@ final class MainTest extends FunSuite {
     assert(mockWiring.shutdownInvocations === 1)
   }
   
-  test("doClean - clean db") {
-    import java.nio.file.Files.exists
+  private def makeIfNecessary(ps: Path*): Unit = ps.foreach { p =>
+    p.toFile.mkdirs()
     
-    def makeIfNecessary(p: Path): Unit = {
-      p.toFile.mkdirs()
-      
-      assert(exists(p))
+    assert(exists(p))
+  }
+  
+  private def makeIfNecessary(pos: Option[Path]*)(implicit discriminator: Int = 42): Unit = {
+    pos.flatten.foreach(makeIfNecessary(_))
+  }
+  
+  test("doClean - clean db") {
+
+    def getUgerConfig(drmSystem: DrmSystem, workDir: Path): Option[UgerConfig] = drmSystem match {
+      case DrmSystem.Uger => {
+        Some(UgerConfig(workDir = workDir.resolve("work"), scriptDir = workDir.resolve("scripts")))
+      }
+      case _ => None
     }
     
-    def doTest(intent: Intent.Clean, drmSystem: DrmSystem): Unit = {
-      val run = new Main.Run
-      
+    def getLsfConfig(drmSystem: DrmSystem, workDir: Path): Option[LsfConfig] = drmSystem match {
+      case DrmSystem.Lsf => {
+        Some(LsfConfig(workDir = workDir.resolve("work"), scriptDir = workDir.resolve("scripts")))
+      }
+      case _ => None
+    }
+    
+    def getPaths: (Path, Path, Path, Path, Path) = {
       val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
-      
-      val ugerConfigOpt: Option[UgerConfig] = drmSystem match {
-        case DrmSystem.Uger => {
-          Some(UgerConfig(workDir = workDir.resolve("work"), scriptDir = workDir.resolve("scripts")))
-        }
-        case _ => None
-      }
-      
-      val lsfConfigOpt: Option[LsfConfig] = drmSystem match {
-        case DrmSystem.Lsf => {
-          Some(LsfConfig(workDir = workDir.resolve("work"), scriptDir = workDir.resolve("scripts")))
-        }
-        case _ => None
-      }
       
       val dbDir = workDir.resolve("db")
       val logDir = workDir.resolve("logs")
       val jobOutputDir = workDir.resolve("job-outputs")
       
+      val dryRunOutputFile = workDir.resolve("joblist")
+      
+      (workDir, dbDir, logDir, jobOutputDir, dryRunOutputFile)
+    }
+    
+    def doTest(intent: Intent.Clean, drmSystem: DrmSystem): Unit = {
+      val run = new Main.Run
+      
+      val (workDir, dbDir, logDir, jobOutputDir, dryRunOutputFile) = getPaths
+      
       val executionConfig = ExecutionConfig(
           jobOutputDir = jobOutputDir, 
-          dryRunOutputFile = workDir.resolve("joblist"),
+          dryRunOutputFile = dryRunOutputFile,
           dbDir = dbDir,
           logDir = logDir)
+          
+      val ugerConfigOpt = getUgerConfig(drmSystem, workDir)
+      val lsfConfigOpt = getLsfConfig(drmSystem, workDir)
       
       val config = LoamConfig(
           ugerConfig = ugerConfigOpt,
@@ -96,33 +115,22 @@ final class MainTest extends FunSuite {
       val logDirsShouldExistAfterClean = !intent.logs
       val scriptDirsShouldExistAfterClean = !intent.scripts
       
-      makeIfNecessary(dbDir)
-      makeIfNecessary(logDir)
-      makeIfNecessary(jobOutputDir)
-      
-      ugerConfigOpt.map(_.workDir).foreach(makeIfNecessary)
-      lsfConfigOpt.map(_.workDir).foreach(makeIfNecessary)
-      
-      ugerConfigOpt.map(_.scriptDir).foreach(makeIfNecessary)
-      lsfConfigOpt.map(_.scriptDir).foreach(makeIfNecessary)
+      makeIfNecessary(dbDir, logDir, jobOutputDir)
+      makeIfNecessary(ugerConfigOpt.map(_.workDir), lsfConfigOpt.map(_.workDir))
+      makeIfNecessary(ugerConfigOpt.map(_.scriptDir), lsfConfigOpt.map(_.scriptDir))
       
       run.actuallyDoClean(intent, config)
       
       assert(exists(dbDir) === dbDirShouldExistAfterClean)
-      
       assert(exists(logDir) === logDirsShouldExistAfterClean)
       assert(exists(jobOutputDir) === logDirsShouldExistAfterClean)
       
-      for {
-        ugerConfig <- ugerConfigOpt
-      } {
+      for(ugerConfig <- ugerConfigOpt) {
         assert(exists(ugerConfig.workDir) === scriptDirsShouldExistAfterClean)
         assert(exists(ugerConfig.scriptDir) === scriptDirsShouldExistAfterClean)
       }
       
-      for {
-        lsfConfig <- lsfConfigOpt
-      } {
+      for(lsfConfig <- lsfConfigOpt) {
         assert(exists(lsfConfig.workDir) === scriptDirsShouldExistAfterClean)
         assert(exists(lsfConfig.scriptDir) === scriptDirsShouldExistAfterClean)
       }

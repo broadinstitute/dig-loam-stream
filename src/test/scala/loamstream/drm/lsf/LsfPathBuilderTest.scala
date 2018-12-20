@@ -14,9 +14,9 @@ final class LsfPathBuilderTest extends FunSuite {
   import loamstream.util.BashScript.Implicits._
   import TestHelpers.path
   
-  private val workDir = TestHelpers.path("/foo/bar/baz").toAbsolutePath
-
-  private val lsfConfig = LsfConfig(workDir = workDir, maxNumJobs = 42)
+  private val lsfConfig = LsfConfig(maxNumJobs = 42)
+  
+  private val workDir = lsfConfig.workDir
   
   test("reifyPathTemplate") {
     val template = s"/foo/bar/${LsfScriptBuilderParams.drmIndexVarExpr}/baz.${LsfScriptBuilderParams.drmIndexVarExpr}"

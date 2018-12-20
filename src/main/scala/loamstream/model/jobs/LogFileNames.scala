@@ -13,9 +13,9 @@ object LogFileNames {
     OutputStreams(stdout(job, outputDirName), stderr(job, outputDirName))
   }
   
-  def stdout(job: LJob, outputDirName: Path): Path = makePath(job, "stdout", outputDirName)
+  def stdout(job: LJob, outputDir: Path): Path = makePath(job, "stdout", outputDir)
   
-  def stderr(job: LJob, outputDirName: Path): Path = makePath(job, "stderr", outputDirName)
+  def stderr(job: LJob, outputDir: Path): Path = makePath(job, "stderr", outputDir)
   
   private def makePath(job: LJob, suffix: String, outputDir: Path): Path = {
     import Paths.Implicits._

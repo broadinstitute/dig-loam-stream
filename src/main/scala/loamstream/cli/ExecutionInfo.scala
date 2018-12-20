@@ -40,7 +40,7 @@ object ExecutionInfo {
   
     val envType = execution.env.tpe
     val envSettings = execution.env.settings
-  execution.result.get
+    val result = execution.result
     
     val stdout = execution.outputStreams.map(_.stdout).getOrElse("<Not produced>")
     val stderr = execution.outputStreams.map(_.stderr).getOrElse("<Not produced>")
@@ -50,6 +50,7 @@ object ExecutionInfo {
     //NB: Use '#' as a margin, to hopefully bypass any issues with commands including `|`.
     val withoutOutputs = s"""#
                              #Command: $commandString
+                             #Result: $result
                              #Environment: $envType
                              #Settings: $envSettings
                              #Output streams:

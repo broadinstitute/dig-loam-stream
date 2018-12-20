@@ -30,6 +30,8 @@ object Intent extends Loggable {
 
   final case class LookupOutput(confFile: Option[Path], output: Either[Path, URI]) extends Intent
 
+  final case class Clean(confFile: Option[Path], db: Boolean, logs: Boolean, scripts: Boolean) extends Intent
+  
   final case class CompileOnly(
       confFile: Option[Path], 
       shouldValidate: Boolean,
@@ -70,6 +72,7 @@ object Intent extends Loggable {
     val result = {
       asShowVersionAndQuit(values) orElse
       asShowHelpAndQuit(values) orElse
+      asClean(values) orElse
       asLookupOutput(values) orElse 
       asCompileOnly(values) orElse
       asDryRun(values) orElse 
@@ -107,6 +110,18 @@ object Intent extends Loggable {
     
   private def asShowHelpAndQuit(values: Conf.Values): Option[Intent] = {
     if(values.helpSupplied) Some(ShowHelpAndQuit) else None
+  }
+  
+  private def asClean(values: Conf.Values): Option[Intent] = {
+    if(values.cleanDbSupplied || values.cleanLogsSupplied || values.cleanScriptsSupplied) {
+      Some(Clean(
+          values.conf, 
+          db = values.cleanDbSupplied, 
+          logs = values.cleanLogsSupplied,
+          scripts = values.cleanScriptsSupplied))
+    } else {
+      None
+    }
   }
   
   private def asLookupOutput(values: Conf.Values): Option[Intent] = {

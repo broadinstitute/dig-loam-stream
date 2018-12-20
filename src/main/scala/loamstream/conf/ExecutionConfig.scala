@@ -18,16 +18,19 @@ final case class ExecutionConfig(
     outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
     dryRunOutputFile: Path = Defaults.dryRunOutputFile,
     anonStoreDir: Path = Defaults.anonStoreDir,
-    singularity: SingularityConfig = Defaults.singularityConfig)
+    singularity: SingularityConfig = Defaults.singularityConfig,
+    dbDir: Path = Defaults.dbDir,
+    logDir: Path = Defaults.logDir) {
+}
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
   object Defaults {
     val maxRunsPerJob: Int = 4 //scalastyle:ignore magic.number
   
-    val dryRunOutputFile: Path = Paths.get("out", "joblist")
+    val dryRunOutputFile: Path = Locations.dryRunOutputFile
     
-    val jobOutputDir: Path = Paths.get("out", "job-outputs")
+    val jobOutputDir: Path = Locations.jobOutputDir
     
     import scala.concurrent.duration._
     
@@ -38,9 +41,31 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     val anonStoreDir: Path = Paths.get(System.getProperty("java.io.tmpdir", "/tmp"))
     
     val singularityConfig: SingularityConfig = SingularityConfig.default
+    
+    val dbDir: Path = Locations.dbDir
+    
+    val logDir: Path = Locations.logDir
   }
   
   val default: ExecutionConfig = ExecutionConfig()
+  
+  //Parse Typesafe Configs into instances of Parsed, which only contains those fields we want to be configurable
+  //via loamstream.conf.  Other values (workDir, scriptDir) can be set by unit tests, for example, but adding them
+  //to loamstream.conf has no effect.
+  private final case class Parsed(
+    maxRunsPerJob: Int = Defaults.maxRunsPerJob, 
+    maxWaitTimeForOutputs: Duration = Defaults.maxWaitTimeForOutputs,
+    outputPollingFrequencyInHz: Double = Defaults.outputPollingFrequencyInHz,
+    anonStoreDir: Path = Defaults.anonStoreDir,
+    singularity: SingularityConfig = Defaults.singularityConfig) {
+    
+    def toExecutionConfig: ExecutionConfig = ExecutionConfig(
+      maxRunsPerJob = maxRunsPerJob, 
+      maxWaitTimeForOutputs = maxWaitTimeForOutputs,
+      outputPollingFrequencyInHz = outputPollingFrequencyInHz,
+      anonStoreDir = anonStoreDir,
+      singularity = singularity)
+  }
   
   override def fromConfig(config: Config): Try[ExecutionConfig] = {
     import net.ceedubs.ficus.Ficus._
@@ -50,6 +75,6 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
 
     //NB: Ficus now marshals the contents of loamstream.execution into an ExecutionConfig instance.
     //Names of fields in ExecutionConfig and keys under loamstream.execution must match.
-    Try(config.as[ExecutionConfig]("loamstream.execution"))
+    Try(config.as[Parsed]("loamstream.execution").toExecutionConfig)
   }
 }

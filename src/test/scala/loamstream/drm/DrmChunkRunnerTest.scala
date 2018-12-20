@@ -61,11 +61,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val ugerConfig = {
     import scala.concurrent.duration.DurationInt
     
-    val workDir = tempDir.resolve("foo")
-    
     UgerConfig(
-      workDir = workDir, 
-      maxNumJobs = 42,
       defaultCores = Cpus(2),
       defaultMemoryPerCore = Memory.inGb(2),
       defaultMaxRunTime = CpuTime.inHours(7))
@@ -74,17 +70,14 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val lsfConfig = {
     import scala.concurrent.duration.DurationInt
     
-    val workDir = tempDir.resolve("foo")
-    
     LsfConfig(
-      workDir = workDir, 
       maxNumJobs = 42,
       defaultCores = Cpus(2),
       defaultMemoryPerCore = Memory.inGb(2),
       defaultMaxRunTime = CpuTime.inHours(7))
   }
   
-  private val executionConfig: ExecutionConfig = ExecutionConfig(42, tempDir.resolve("bar")) 
+  private val executionConfig: ExecutionConfig = ExecutionConfig(42) 
   
   import loamstream.TestHelpers.waitFor
   import Observables.Implicits._

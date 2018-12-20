@@ -16,6 +16,7 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
 import loamstream.util.Tries
+import java.nio.file.Paths
 
 /**
  * @author clint
@@ -23,6 +24,8 @@ import loamstream.util.Tries
  */
 sealed trait DrmConfig {
   def workDir: Path 
+  
+  def scriptDir: Path
   
   def maxNumJobs: Int
   
@@ -45,7 +48,8 @@ sealed trait DrmConfig {
   * @author Kaan Yuksel
   */
 final case class UgerConfig(
-    workDir: Path, 
+    workDir: Path = Locations.ugerDir,
+    scriptDir: Path = Locations.ugerScriptDir,
     maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
@@ -59,6 +63,25 @@ final case class UgerConfig(
 
 object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
 
+  private final case class Parsed(
+    maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
+    defaultCores: Cpus = UgerDefaults.cores,
+    defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
+    defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime,
+    extraPathDir: Path = UgerDefaults.extraPathDir,
+    condaEnvName: String = UgerDefaults.condaEnvName,
+    staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams) {
+    
+    def toUgerConfig: UgerConfig = UgerConfig(
+      maxNumJobs = maxNumJobs,
+      defaultCores = defaultCores,
+      defaultMemoryPerCore = defaultMemoryPerCore,
+      defaultMaxRunTime = defaultMaxRunTime,
+      extraPathDir = extraPathDir,
+      condaEnvName = condaEnvName,
+      staticJobSubmissionParams = staticJobSubmissionParams)
+  }
+  
   override def fromConfig(config: Config): Try[UgerConfig] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
@@ -72,7 +95,7 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
     //NB: Ficus marshals the contents of loamstream.uger into a UgerConfig instance.
     //Names of fields in UgerConfig and keys under loamstream.uger must match.
     
-    Try(config.as[UgerConfig]("loamstream.uger"))
+    Try(config.as[Parsed]("loamstream.uger").toUgerConfig)
   }
 }
 
@@ -83,7 +106,8 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
   * @author clint
   */
 final case class LsfConfig(
-    workDir: Path, 
+    workDir: Path = Locations.lsfDir,
+    scriptDir: Path = Locations.lsfScriptDir,
     maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
     defaultCores: Cpus = LsfDefaults.cores,
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,
@@ -93,7 +117,22 @@ final case class LsfConfig(
 }
 
 object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
-
+  //Parse Typesafe Configs into instances of Parsed, which only contains those fields we want to be configurable
+  //via loamstream.conf.  Other values (workDir, scriptDir) can be set by unit tests, for example, but adding them
+  //to loamstream.conf has no effect.
+  private final case class Parsed(
+    maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
+    defaultCores: Cpus = UgerDefaults.cores,
+    defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
+    defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime) {
+    
+    def toLsfConfig: LsfConfig = LsfConfig(
+      maxNumJobs = maxNumJobs,
+      defaultCores = defaultCores,
+      defaultMemoryPerCore = defaultMemoryPerCore,
+      defaultMaxRunTime = defaultMaxRunTime)
+  }
+  
   override def fromConfig(config: Config): Try[LsfConfig] = {
     import net.ceedubs.ficus.Ficus._
     import net.ceedubs.ficus.readers.ArbitraryTypeReader._
@@ -107,6 +146,6 @@ object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
     //NB: Ficus marshals the contents of loamstream.lsf into a LsfConfig instance.
     //Names of fields in LsfConfig and keys under loamstream.lsf must match.
     
-    Try(config.as[LsfConfig]("loamstream.lsf"))
+    Try(config.as[Parsed]("loamstream.lsf").toLsfConfig)
   }
 }

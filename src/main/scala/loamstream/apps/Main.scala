@@ -25,6 +25,13 @@ import loamstream.util.TimeUtils
 import loamstream.model.execute.DryRunner
 import loamstream.drm.DrmSystem
 import loamstream.conf.LoamConfig
+import org.apache.commons.io.IOUtils
+import org.apache.commons.io.FileUtils
+import java.nio.file.Paths
+import loamstream.conf.DrmConfig
+import loamstream.db.slick.DbDescriptor
+import loamstream.conf.ExecutionConfig
+import loamstream.conf.Locations
 
 
 /**
@@ -53,6 +60,7 @@ object Main extends Loggable {
       case Right(compileOnly: CompileOnly) => run.doCompileOnly(compileOnly)
       case Right(dryRun: DryRun) => run.doDryRun(dryRun)
       case Right(real: RealRun) => run.doRealRun(real)
+      case Right(clean: Clean) => run.doClean(clean)
       case Left(message) => cli.printHelp(message)
       case _ => cli.printHelp()
     }
@@ -77,8 +85,40 @@ object Main extends Loggable {
     case Failure(e) => warn("Unable to determine version info: ", e)
   }
   
-  private[apps] final class Run {
+  private[apps] final class Run extends Loggable {
   
+    def configForClean(clean: Intent.Clean): LoamConfig = {
+      AppWiring.loamConfigFrom(clean.confFile, drmSystemOpt = None, shouldValidateGraph = false)
+    }
+    
+    def doClean(clean: Intent.Clean): Unit = actuallyDoClean(clean, configForClean(clean))
+    
+    def actuallyDoClean(clean: Intent.Clean, config: LoamConfig): Unit = {
+      def delete(p: Path): Unit = {
+        info(s"Deleting '${p.toAbsolutePath}'...")
+        
+        FileUtils.deleteQuietly(p.toFile)
+      }
+      
+      if(clean.db) {
+        delete(config.executionConfig.dbDir)
+      }
+      
+      if(clean.logs) {
+        delete(config.executionConfig.logDir)
+        
+        delete(config.executionConfig.jobOutputDir)
+      }
+      
+      if(clean.scripts) {
+        config.ugerConfig.map(_.scriptDir).foreach(delete)
+        config.lsfConfig.map(_.scriptDir).foreach(delete)
+        
+        config.ugerConfig.map(_.workDir).foreach(delete)
+        config.lsfConfig.map(_.workDir).foreach(delete)
+      }
+    }
+    
     private def compile(loamEngine: LoamEngine, loams: Seq[Path]): LoamCompiler.Result = {
       val compilationResultShot = loamEngine.compileFiles(loams)
   
@@ -145,6 +185,7 @@ object Main extends Loggable {
     }
     
     def doRealRun(intent: Intent.RealRun, makeDao: => LoamDao = AppWiring.makeDefaultDb): Unit = {
+      
       val wiring = AppWiring.forRealRun(intent, makeDao)
       
       addShutdownHook(wiring)

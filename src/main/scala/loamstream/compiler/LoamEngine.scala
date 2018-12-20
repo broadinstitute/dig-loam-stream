@@ -28,6 +28,8 @@ import loamstream.util.CanBeClosed
 import java.time.Instant
 import loamstream.util.IoUtils
 import java.io.Writer
+import loamstream.conf.ExecutionConfig
+import loamstream.conf.Locations
 
 
 /**
@@ -105,7 +107,7 @@ final case class LoamEngine(
     
     val executable = LoamEngine.toExecutable(graph, csClient)
     
-    listJobsThatCouldRun(executable)
+    listJobsThatCouldRun(executable, config.executionConfig.dryRunOutputFile)
     
     info("Now going to execute.")
 
@@ -116,14 +118,14 @@ final case class LoamEngine(
     executions
   }
   
-  private def listJobsThatCouldRun(executable: Executable): Unit = {
-    listJobsThatCouldRun(DryRunner.toBeRun(executer.jobFilter, executable))
+  private def listJobsThatCouldRun(executable: Executable, jobListOutputFile: Path): Unit = {
+    listJobsThatCouldRun(DryRunner.toBeRun(executer.jobFilter, executable), jobListOutputFile)
   }
   
   //TODO: Find a good place for this; it's exposed so it can be called from here and loamstream.apps.Main
-  def listJobsThatCouldRun(jobsThatCouldRun: => Iterable[LJob]): Unit = {
-    
-    val outputFile = config.executionConfig.dryRunOutputFile
+  def listJobsThatCouldRun(
+      jobsThatCouldRun: => Iterable[LJob], 
+      outputFile: Path = config.executionConfig.dryRunOutputFile): Unit = {
     
     lazy val jobs = jobsThatCouldRun
     

@@ -13,17 +13,18 @@ import loamstream.util.BashScript.Implicits._
 import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
+import loamstream.conf.Locations
 
 /**
  * @author clint
  * Nov 16, 2017
  */
-final case class DrmJobWrapper(executionConfig: ExecutionConfig,
-                               drmSettings: DrmSettings,
-                               pathBuilder: PathBuilder,
-                               commandLineJob: HasCommandLine,
-                               drmIndex: Int)
-    extends Loggable {
+final case class DrmJobWrapper(
+    executionConfig: ExecutionConfig,
+    drmSettings: DrmSettings,
+    pathBuilder: PathBuilder,
+    commandLineJob: HasCommandLine,
+    drmIndex: Int) extends Loggable {
 
   def drmStdOutPath(taskArray: DrmTaskArray): Path = {
     pathBuilder.reifyPathTemplate(taskArray.stdOutPathTemplate, drmIndex)

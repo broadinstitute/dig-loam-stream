@@ -18,11 +18,10 @@ final class UgerConfigTest extends FunSuite {
   import TestHelpers.path
   
   test("defaults") {
-    val fooBar = path("/foo/bar")
+    val config = UgerConfig()
     
-    val config = UgerConfig(workDir = fooBar)
-    
-    assert(config.workDir === fooBar)
+    assert(config.workDir === Locations.ugerDir)
+    assert(config.scriptDir === Locations.ugerScriptDir)
     assert(config.maxNumJobs === UgerDefaults.maxConcurrentJobs)
     assert(config.defaultCores === UgerDefaults.cores)
     assert(config.defaultMemoryPerCore === UgerDefaults.memoryPerCore)
@@ -32,19 +31,10 @@ final class UgerConfigTest extends FunSuite {
     assert(config.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
   }
   
-  test("Parsing bad input should fail") {
-    assert(UgerConfig.fromConfig(ConfigFactory.empty()).isFailure)
-    
-    assert(UgerConfig.fromConfig(ConfigFactory.load()).isFailure)
-    
-    assert(UgerConfig.fromConfig(ConfigFactory.parseString("{}")).isFailure)
-  }
-  
   test("Parsing a UgerConfig with all values provided should work") {
     val valid = ConfigFactory.parseString("""
       loamstream {
         uger {
-          workDir = "/foo/bar/baz"
           maxNumJobs=44
           defaultCores = 42
           defaultMemoryPerCore = 9 // Gb
@@ -58,7 +48,8 @@ final class UgerConfigTest extends FunSuite {
       
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
-    assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
+    assert(ugerConfig.workDir === Locations.ugerDir)
+    assert(ugerConfig.scriptDir === Locations.ugerScriptDir)
     assert(ugerConfig.maxNumJobs === 44)
     assert(ugerConfig.defaultCores === Cpus(42))
     assert(ugerConfig.defaultMemoryPerCore=== Memory.inGb(9))
@@ -72,14 +63,15 @@ final class UgerConfigTest extends FunSuite {
     val valid = ConfigFactory.parseString("""
       loamstream {
         uger {
-          workDir = "/foo/bar/baz"
+          
         }
       }
       """)
       
     val ugerConfig = UgerConfig.fromConfig(valid).get
     
-    assert(ugerConfig.workDir === Paths.get("/foo/bar/baz"))
+    assert(ugerConfig.workDir === Locations.ugerDir)
+    assert(ugerConfig.scriptDir === Locations.ugerScriptDir)
     assert(ugerConfig.maxNumJobs === UgerDefaults.maxConcurrentJobs)
     assert(ugerConfig.defaultCores === UgerDefaults.cores)
     assert(ugerConfig.defaultMemoryPerCore === UgerDefaults.memoryPerCore)

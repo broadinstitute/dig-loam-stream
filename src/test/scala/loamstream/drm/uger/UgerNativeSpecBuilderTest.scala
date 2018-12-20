@@ -22,9 +22,7 @@ final class UgerNativeSpecBuilderTest extends FunSuite {
     def doTest(containerParams: Option[ContainerParams], expectedOsPart: String): Unit = {
       import TestHelpers.path
       
-      val bogusPath = path("/foo/bar/baz")
-      
-      val ugerConfig = UgerConfig(workDir = bogusPath, maxNumJobs = 41)
+      val ugerConfig = UgerConfig(maxNumJobs = 41)
           
       val ugerSettings = UgerDrmSettings(
           cores = Cpus(42),

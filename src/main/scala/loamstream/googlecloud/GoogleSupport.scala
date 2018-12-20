@@ -9,14 +9,14 @@ object GoogleSupport {
   def googleCopy(
       srcs: Iterable[Store],
       dests: Iterable[Store],
-      params: String*)(implicit context: LoamScriptContext): Unit = {
+      params: String*)(implicit context: LoamScriptContext): Iterable[LoamCmdTool] = {
 
-    for((src, dest) <- srcs.zip(dests)) {
+    for((src, dest) <- srcs.zip(dests)) yield {
       googleCopy(src, dest, params: _*)
     }
 }
 
-  def googleCopy(src: Store, dest: Store, params: String*)(implicit context: LoamScriptContext): Unit = {
+  def googleCopy(src: Store, dest: Store, params: String*)(implicit context: LoamScriptContext): LoamCmdTool = {
     import LoamCmdTool._
 
     val googleConfig = context.googleConfig

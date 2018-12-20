@@ -66,6 +66,19 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
   /** Whether to show usage info and quit */
   val help: ScallopOption[Boolean] = opt[Boolean](descr = "Show help and exit")
   
+  /** Whether to clear the DB */
+  val cleanDb: ScallopOption[Boolean] = opt[Boolean](descr = "Clean db")
+  
+  /** Whether to clear the logs */
+  val cleanLogs: ScallopOption[Boolean] = opt[Boolean](descr = "Clean logs")
+  
+  /** Whether to clear DRM scripts */
+  val cleanScripts: ScallopOption[Boolean] = opt[Boolean](descr = "Clean generated DRM (Uger, LSF) scripts")
+  
+  val clean: ScallopOption[Boolean] = opt[Boolean](
+      descr = "Deletes .loamstream/ ; Effectively the same as using all of " +
+              "--clean-db, --clean-logs, and --clean-scripts")
+  
   val run: ScallopOption[List[String]] = opt(
       descr = "How to run jobs: " +
               "<everything> - always run jobs, never skip them; " +
@@ -139,6 +152,9 @@ final case class Conf(arguments: Seq[String]) extends ScallopConf(arguments) wit
     Conf.Values(
       loams = loams.toOption.toSeq.flatten,
       lookup = lookup.toOption,
+      cleanDbSupplied = cleanDb.isSupplied || clean.isSupplied,
+      cleanLogsSupplied = cleanLogs.isSupplied || clean.isSupplied,
+      cleanScriptsSupplied = cleanScripts.isSupplied || clean.isSupplied,
       conf = conf.toOption,
       helpSupplied = help.isSupplied,
       versionSupplied = version.isSupplied,
@@ -164,6 +180,9 @@ object Conf {
   final case class Values(
       loams: Seq[Path],
       lookup: Option[Either[Path, URI]],
+      cleanDbSupplied: Boolean,
+      cleanLogsSupplied: Boolean,
+      cleanScriptsSupplied: Boolean,
       conf: Option[Path],
       helpSupplied: Boolean,
       versionSupplied: Boolean,

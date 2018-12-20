@@ -167,7 +167,7 @@ final class ScriptBuilderTest extends FunSuite {
     val (jobId0, jobId1, jobId2) = jobIds
 
     val drmOutputDir = drmConfig.workDir.toAbsolutePath.render
-    val finalOutputDir = path("out/job-outputs").toAbsolutePath.render
+    val finalOutputDir = path(".loamstream/job-outputs").toAbsolutePath.render
 
     val sixSpaces = "      "
 

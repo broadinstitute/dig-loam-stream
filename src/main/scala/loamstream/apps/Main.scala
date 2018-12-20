@@ -101,10 +101,7 @@ object Main extends Loggable {
       }
       
       if(clean.db) {
-        AppWiring.dbDescriptor(config.executionConfig.dbDir) match {
-          case DbDescriptor.OnDiskH2(dbDir, _) => delete(dbDir)
-          case _ => ()
-        }
+        delete(config.executionConfig.dbDir)
       }
       
       if(clean.logs) {

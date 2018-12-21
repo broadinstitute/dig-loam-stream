@@ -81,10 +81,6 @@ object LoamCompiler extends Loggable {
     def throwable(reporter: CompilerReporter, throwable: Throwable): Result = {
       Result(reporter.errors, reporter.warnings, reporter.infos, None, Some(throwable))
     }
-    
-    private[compiler] def toGraphSource(contextOption: Option[LoamProjectContext]): GraphSource = {
-      contextOption.map(_.graphQueue).map(GraphSource.fromQueue).getOrElse(GraphSource.Empty)
-    }
   }
 
   /** The result of the compilation of a Loam script
@@ -101,8 +97,6 @@ object LoamCompiler extends Loggable {
       infos: Seq[Issue],
       contextOpt: Option[LoamProjectContext], 
       exOpt: Option[Throwable] = None) {
-    
-    val graphSource: GraphSource = Result.toGraphSource(contextOpt)
     
     def humanReadableErrors: Seq[CompilationError] = errors.map(CompilationError.from)
     
@@ -291,9 +285,7 @@ final class LoamCompiler(
           
           val projectContext = scriptBox.projectContext
           
-          projectContext.registerGraphSoFar()
-          
-          debug(s"Compilation finished, starting with ${projectContext.graphQueue.size} graph chunks.")
+          debug(s"Compilation finished.")
           
           LoamCompiler.Result.success(reporter, projectContext)
         } else {

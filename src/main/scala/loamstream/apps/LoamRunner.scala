@@ -29,13 +29,9 @@ object LoamRunner {
       
       info(compilationResults.summary)
 
-      if (compilationResults.isValid && compilationResults.isSuccess) {
-        compilationResults.contextOpt.map(_.graph) match {
-          case Some(graph) => Right(loamEngine.run(graph))
-          case None => Left(compilationResults)
-        }
-      } else {
-        Left(compilationResults)
+      compilationResults match {
+        case success: LoamCompiler.Result.Success => Right(loamEngine.run(success.graph))
+        case _ => Left(compilationResults)
       }
     }
   }

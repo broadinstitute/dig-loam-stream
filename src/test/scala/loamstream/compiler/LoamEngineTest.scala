@@ -73,30 +73,24 @@ final class LoamEngineTest extends FunSuite {
     
     val project = LoamProject(config, Set(script))
     
-    val results = engine.compile(project)
+    val results @ LoamCompiler.Result.Success(warnings, infos, graph) = engine.compile(project)
     
     assert(results.errors === Nil)
-    assert(results.infos === Nil)
-    assert(results.warnings === Nil)
-    assert(results.exOpt === None)
-    assert(results.contextOpt.isDefined)
-    
-    val graph = results.contextOpt.get.graph
+    assert(infos === Nil)
+    assert(warnings === Nil)
     
     assert(graph.stores.size === 2)
     assert(graph.tools.size === 1)
   }
   
   test("compileFiles") {
-    val results = engine.compileFiles(Seq(cpDotLoam, firstDotLoam)).get
+    val results @ LoamCompiler.Result.Success(warnings, infos, graph) = {
+      engine.compileFiles(Seq(cpDotLoam, firstDotLoam)).get
+    }
     
     assert(results.errors === Nil)
-    assert(results.infos === Nil)
-    assert(results.warnings === Nil)
-    assert(results.exOpt === None)
-    assert(results.contextOpt.isDefined)
-    
-    val graph = results.contextOpt.get.graph
+    assert(infos === Nil)
+    assert(warnings === Nil)
     
     assert(graph.stores.size === 8)
     assert(graph.tools.size === 6)

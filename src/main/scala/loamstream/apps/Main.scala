@@ -148,25 +148,24 @@ object Main extends Loggable {
   
       info(compilationResult.report)
       
-      if(compilationResult.isSuccess && compilationResult.isValid) {
-        val executableOpt = compilationResult.contextOpt.map(_.graph).map(LoamEngine.toExecutable(_))
+      compilationResult match {
+        case LoamCompiler.Result.Success(_, _, graph) => {
+          val executable = LoamEngine.toExecutable(graph)
     
-        executableOpt match {
-          case None => error(s"No Executable was produced, despite compilation succeeding; something is very wrong.")
-          case Some(executable) => {
-            val jobsToBeRun = TimeUtils.time(s"Listing jobs that would be run", info(_)) {
-              DryRunner.toBeRun(jobFilter, executable)
-            }
-            
-            info(s"Jobs to be run (${jobsToBeRun.size}):")
-              
-            //Log jobs that could be run normally
-            jobsToBeRun.map(_.toString).foreach(info(_))
-            
-            //Also write them to a file, like if we were running for real.
-            loamEngine.listJobsThatCouldRun(jobsToBeRun)
+          val jobsToBeRun = TimeUtils.time(s"Listing jobs that would be run", info(_)) {
+            DryRunner.toBeRun(jobFilter, executable)
           }
+          
+          info(s"Jobs to be run (${jobsToBeRun.size}):")
+            
+          //Log jobs that could be run normally
+          jobsToBeRun.map(_.toString).foreach(info(_))
+          
+          //Also write them to a file, like if we were running for real.
+          loamEngine.listJobsThatCouldRun(jobsToBeRun)
         }
+        //Any compilaiton errors will already have been logged by LoamCompiler 
+        case _ => ()
       }
     }
     

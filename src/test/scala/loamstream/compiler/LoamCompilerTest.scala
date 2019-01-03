@@ -73,7 +73,9 @@ final class LoamCompilerTest extends FunSuite {
     
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)
-    val graph = result.contextOpt.get.graph
+    
+    val graph = result.asInstanceOf[LoamCompiler.Result.Success].graph
+    
     assert(graph.tools.size === 2)
     assert(graph.stores.size === 4)
     assert(graph.stores.exists(store => !graph.storeProducers.contains(store)))

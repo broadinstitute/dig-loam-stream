@@ -246,17 +246,19 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val jobOutputDir = executionConfig.jobOutputDir.toAbsolutePath
 
+      import loamstream.util.Paths.Implicits.PathHelpers
+      
       // scalastyle:off line.size.limit
       val expected = s"""|${expectedSingularityPart}${j0.commandLineString}
                          |
                          |LOAMSTREAM_JOB_EXIT_CODE=$$?
                          |
-                         |stdoutDestPath="${jobOutputDir.render(j0.id.toString)}.stdout"
-                         |stderrDestPath="${jobOutputDir.render(j0.id.toString)}.stderr"
+                         |stdoutDestPath="${(jobOutputDir / j0.id.toString).render}.stdout"
+                         |stderrDestPath="${(jobOutputDir / j0.id.toString).render}.stderr"
                          |
                          |mkdir -p ${jobOutputDir.render}
-                         |mv ${workDir.render(jobName)}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log ${workDir.render(jobName)}.1.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-                         |mv ${workDir.render(jobName)}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log ${workDir.render(jobName)}.1.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+                         |mv ${(workDir / jobName).render}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log ${(workDir / jobName).render}.1.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+                         |mv ${(workDir / jobName).render}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log ${(workDir / jobName).render}.1.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
                          |
                          |exit $$LOAMSTREAM_JOB_EXIT_CODE
                          |""".stripMargin

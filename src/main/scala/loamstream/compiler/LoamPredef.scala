@@ -50,36 +50,6 @@ object LoamPredef extends Loggable {
 
   def store(location: StoreLocation)(implicit context: LoamScriptContext): Store = Store(location)
   
-  /**
-   * Indicate that jobs derived from tools/stores created by `loamCode` should run
-   * AFTER jobs derived from tools/stores defined BEFORE the `andThen`, in evaluation order.
-   * Enables code like:
-   * 
-   *  val in = store.at("input-file").asInput
-   *  val computed = store.at("computed")
-   *  
-   *  cmd"compute-something -i $in -o $computed".in(in).out(computed)
-   *  
-   *  andThen {
-   *    //needs to wait for 'compute-something' command to finish
-   *    val n = countLinesIn(computed) 
-   *    
-   *    for(i <- 1 to n) {
-   *      val fooOut = store.at(s"foo-out-$i.txt")
-   *    
-   *      cmd"foo -i $computed -n $i".in(computed).out(fooOut)
-   *    }
-   *  }
-   */
-  def andThen(loamCode: => Any)(implicit scriptContext: LoamScriptContext): Unit = {
-    // TODO: try-catch to print a friendlier message in case 'loamCode' throws exception
-    // TODO: makes sense to asynchronously evaluate 'loamCode'?
-    
-    scriptContext.projectContext.registerGraphSoFar()
-    
-    scriptContext.projectContext.registerLoamThunk(loamCode)
-  }
-  
   def changeDir(newPath: Path)(implicit scriptContext: LoamScriptContext): Path = scriptContext.changeWorkDir(newPath)
 
   def changeDir(newPath: String)(implicit scriptContext: LoamScriptContext): Path = changeDir(Paths.get(newPath))

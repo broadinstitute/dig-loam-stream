@@ -73,7 +73,9 @@ final class LoamCompilerTest extends FunSuite {
     
     assert(result.errors.isEmpty)
     assert(result.warnings.isEmpty)
-    val graph = result.contextOpt.get.graph
+    
+    val graph = result.asInstanceOf[LoamCompiler.Result.Success].graph
+    
     assert(graph.tools.size === 2)
     assert(graph.stores.size === 4)
     assert(graph.stores.exists(store => !graph.storeProducers.contains(store)))
@@ -81,34 +83,5 @@ final class LoamCompilerTest extends FunSuite {
     
     val validationIssues = LoamGraphValidation.allRules(graph)
     assert(validationIssues.isEmpty)
-  }
-  
-  test("Result.toGraphSource") {
-    import LoamCompiler.Result.toGraphSource
-    
-    //No LoamProjectContext
-    assert(toGraphSource(None) === GraphSource.Empty)
-    
-    val (g0, g1, g2) = GraphQueueTest.makeTestGraphs()
-    
-    import TestHelpers.config
-    
-    //LoamProjectContext exists with empty graph queue
-    {
-      val ctx = new LoamProjectContext(config, ValueBox(g1), GraphQueue.empty)
-      
-      val source = toGraphSource(Some(ctx))
-      
-      assert(source.iterator.hasNext === false)
-    }
-    
-    //LoamProjectContext exists with non-empty graph queue
-    {
-      val ctx = new LoamProjectContext(config, ValueBox(g0), GraphQueue(() => g1, () => g2))
-      
-      val source = toGraphSource(Some(ctx))
-      
-      assert(source.iterator.toSeq.map(_.apply()) === Seq(g1, g2))
-    }
   }
 }

@@ -79,15 +79,16 @@ object LoamScriptTestUtils extends Loggable {
     
     val compileResults = engine.compile(project)
     
-    if (compileResults.isValid) {
-      info(compileResults.summary)
-      //TODO: What if compileResults.contextOpt is None?
-      val context = compileResults.contextOpt.get
-      val jobResults = engine.run(context.graph)
-      Result(Hit(compileResults), Hit(jobResults))
-    } else {
-      error("Could not compile.")
-      Result(Hit(compileResults), Miss("Could not compile"))
+    compileResults match {
+      case success @ LoamCompiler.Result.Success(_, _, graph) => {
+        info(success.summary)
+        val jobResults = engine.run(graph)
+        Result(Hit(success), Hit(jobResults))
+      }
+      case _ => {
+        error("Could not compile.")
+        Result(Hit(compileResults), Miss("Could not compile"))
+      }
     }
   }
 }

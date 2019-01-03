@@ -12,19 +12,27 @@ final class LoamCompilerMultiFileTest extends FunSuite {
   private def assertCompiledFine(results: LoamCompiler.Result, nStores: Int, nTools: Int): Unit = {
     assert(results.isSuccess, results.report)
     assert(results.isClean, results.report)
-    assert(results.contextOpt.nonEmpty, results.report)
-    val graph = results.contextOpt.get.graph
+    assert(results.isInstanceOf[LoamCompiler.Result.Success], results.report)
+
+    val graph = results.asInstanceOf[LoamCompiler.Result.Success].graph
+    
     assert(graph.stores.size === nStores)
     assert(graph.tools.size === nTools)
   }
 
   private def assertEchoCommand(results: LoamCompiler.Result): Unit = {
-    assert(results.contextOpt.nonEmpty)
-    val graph = results.contextOpt.get.graph
+    assert(results.isInstanceOf[LoamCompiler.Result.Success])
+    
+    val graph = results.asInstanceOf[LoamCompiler.Result.Success].graph
+    
     assert(graph.tools.size === 1)
+    
     val tool = graph.tools.head
+    
     assert(tool.isInstanceOf[LoamCmdTool])
+    
     val cmdTool = tool.asInstanceOf[LoamCmdTool]
+    
     assert(cmdTool.tokens.size === 1)
     assert(cmdTool.tokens.head.toString() === "echo Hello the answer is 42")
   }

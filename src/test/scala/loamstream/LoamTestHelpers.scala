@@ -49,8 +49,8 @@ trait LoamTestHelpers extends Loggable {
   }
 
   def toExecutable(compileResults: LoamCompiler.Result): Executable = {
-    val context: LoamProjectContext = compileResults.contextOpt.get
-    val graph = context.graph
+
+    val graph = compileResults.asInstanceOf[LoamCompiler.Result.Success].graph
 
     val toolBox = new LoamToolBox()
 

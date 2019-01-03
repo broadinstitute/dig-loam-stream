@@ -50,7 +50,7 @@ object BashScript extends Loggable {
 
   object Implicits {
     implicit class BashPath(val path: Path) extends AnyVal {
-      def render: String = escapeString(path.toAbsolutePath.toString.replace('\\', '/'))
+      def render: String = escapeString(path.toString.replace('\\', '/'))
     }
   }
 }

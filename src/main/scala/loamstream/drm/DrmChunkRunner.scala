@@ -27,6 +27,7 @@ import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
 import loamstream.util.Maps
 import loamstream.util.Traversables
+import loamstream.model.jobs.commandline.HasCommandLine
 
 
 /**
@@ -118,24 +119,17 @@ final case class DrmChunkRunner(
     shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
     val commandLineJobs = drmJobs.map(_.commandLineJob)
+
+    updateJobStatusesOnSubmission(commandLineJobs, submissionResult, shouldRestart)
     
     import loamstream.drm.DrmSubmissionResult._
     
     submissionResult match {
-
-      case SubmissionSuccess(drmJobsByDrmId) => {
-        commandLineJobs.foreach(_.transitionTo(Submitted))
-
-        jobsToRunDatas(shouldRestart, drmJobsByDrmId)
-      }
-      case SubmissionFailure(e) => {
-        commandLineJobs.foreach(handleFailureStatus(shouldRestart, Failed))
-
-        makeAllFailureMap(drmJobs, Some(e))
-      }
+      case SubmissionSuccess(drmJobsByDrmId) => jobsToRunDatas(shouldRestart, drmJobsByDrmId)
+      case SubmissionFailure(e) => makeAllFailureMap(drmJobs, Some(e))
     }
   }
-
+  
   private[drm] def jobsToRunDatas(
     shouldRestart: LJob => Boolean,
     jobsById: Map[String, DrmJobWrapper]): Observable[Map[LJob, RunData]] = {
@@ -170,6 +164,23 @@ object DrmChunkRunner extends Loggable {
 
   type JobAndStatuses = (DrmJobWrapper, Observable[DrmStatus])
 
+  private[drm] def updateJobStatusesOnSubmission(
+      commandLineJobs: Seq[HasCommandLine],
+      submissionResult: DrmSubmissionResult,
+      shouldRestart: LJob => Boolean): Unit = {
+    
+    import loamstream.drm.DrmSubmissionResult._
+    
+    submissionResult match {
+      case SubmissionSuccess(drmJobsByDrmId) => {
+        val actuallySubmittedJobs = drmJobsByDrmId.values.map(_.commandLineJob).toSet.intersect(commandLineJobs.toSet)
+        
+        actuallySubmittedJobs.foreach(_.transitionTo(Running))
+      }
+      case SubmissionFailure(e) => commandLineJobs.foreach(handleFailureStatus(shouldRestart, Failed))
+    }
+  }
+  
   private[drm] def toRunDatas(
     shouldRestart: LJob => Boolean,
     jobsAndDrmStatusesById: Map[String, JobAndStatuses]): Observable[Map[LJob, RunData]] = {

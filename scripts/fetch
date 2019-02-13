@@ -15,6 +15,26 @@ if($showHelp || (scalar(@coords) < 1)) {
   die($usage);
 }
 
+my $wgetMissing = !!system("which wget > /dev/null");
+
+my $unzipMissing = !!system("which unzip > /dev/null");
+
+if($wgetMissing || $unzipMissing) {
+  my $missingDepMessage = "This script needs both 'wget' and 'unzip' on the path; make sure they're available, or see what would be run with --dry-run and look for manual alternatives.\n";
+
+  if($wgetMissing && $unzipMissing) {
+    die("Error: Neither 'unzip' nor 'wget' are on your path. $missingDepMessage");
+  }
+
+  if($unzipMissing) {
+    die("Error: 'unzip' is not on your path. $missingDepMessage");
+  }
+
+  if($wgetMissing) {
+    die("Error: 'wget' is not on your path. $missingDepMessage");
+  }
+}
+
 my %filesToUrls = ();
 
 my $repoBase = 'http://s3.amazonaws.com/dig-repo/releases';#/org/broadinstitute/dig/dig-loam_2.12/2.3/dig-loam_2.12-2.3.zip"

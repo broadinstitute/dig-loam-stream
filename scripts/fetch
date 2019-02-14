@@ -1,0 +1,133 @@
+#!/usr/bin/env perl
+
+use strict;
+use Getopt::Long;
+
+my $isDryRun = '';
+my $showHelp = '';
+my @coords = ();
+
+my $usage = "Fetch released Loam artifacts from the DIG repo on S3 and store them in .loamstream/.\nUsage: fetch [--dry-run] --coords artifact0:version0 artifact1:version1 ... artifactN:versionN\n  --help\tShow this message and exit.\n  --dry-run\tIf specified, show the commands this script would run without running them.\n  --coords\tA whitespace-separated list of artifact coordinates in the form <artifact-name>:<version>, like dig-loam:2.3 dig-loam-images:1.0\n";
+
+GetOptions('dry-run' => \$isDryRun, 'help' => \$showHelp, 'coords=s{1,}' => \@coords) or die($usage);
+
+if($showHelp || (scalar(@coords) < 1)) {
+  die($usage);
+}
+
+my $wgetMissing = !!system("which wget > /dev/null");
+
+my $unzipMissing = !!system("which unzip > /dev/null");
+
+if($wgetMissing || $unzipMissing) {
+  my $missingDepMessage = "This script needs both 'wget' and 'unzip' on the path; make sure they're available, or see what would be run with --dry-run and look for manual alternatives.\n";
+
+  if($wgetMissing && $unzipMissing) {
+    die("Error: Neither 'unzip' nor 'wget' are on your path. $missingDepMessage");
+  }
+
+  if($unzipMissing) {
+    die("Error: 'unzip' is not on your path. $missingDepMessage");
+  }
+
+  if($wgetMissing) {
+    die("Error: 'wget' is not on your path. $missingDepMessage");
+  }
+}
+
+my %filesToUrls = ();
+
+my $repoBase = 'http://s3.amazonaws.com/dig-repo/releases';#/org/broadinstitute/dig/dig-loam_2.12/2.3/dig-loam_2.12-2.3.zip"
+
+my $groupId;
+my $artifactId;
+my $version;
+
+my $groupIdPart;
+my $artifactIdPart;
+
+foreach my $coord (@coords ) {
+  if($coord =~ m/(.+?):(.+?):(.+?)$/) {
+    $groupId = $1;
+    $artifactId = $2;
+    $version = $3;
+  } elsif($coord =~ m/(.+?):(.+?)$/) {
+    $groupId = "org.broadinstitute.dig";
+    $artifactId = $1;
+    $version = $2;
+  } else {
+    die("Unexpected coordinate format: '$coord'");
+  }
+
+  $groupIdPart = $groupId;
+  $groupIdPart =~ s|\.|/|g;
+
+  if($artifactId !~ m/_2\.12$/) {
+    $artifactIdPart = "$artifactId\_2.12";
+  } else {
+    $artifactIdPart = $artifactId;
+  }
+
+  my $file = "$artifactIdPart-$version.zip";
+
+  my $url = "$repoBase/$groupIdPart/$artifactIdPart/$version/$file";
+
+  $filesToUrls{$file} = $url;
+}
+
+my @commands = ();
+my @wgetCommands = ();
+my @unzipCommands = ();
+my @rmCommands = ();
+my @echoCommands = ();
+
+push @commands, "mkdir -p .loamstream";
+
+for my $file (keys(%filesToUrls)) {
+  my $url = $filesToUrls{$file};
+
+  $file =~ m/(.+?)_2\.12-(.+?)\.zip$/;
+
+  my $artifact = $1;
+  my $version = $2;
+
+  my $artifactDir = ".loamstream/$artifact/$version";
+
+  push @commands, "mkdir -p $artifactDir";
+
+  my $wgetCommand = "wget $url -O .loamstream/$file";
+
+  push @wgetCommands, $wgetCommand;
+
+  my $unzipCommand = "unzip .loamstream/$file -d $artifactDir";
+
+  push @unzipCommands, $unzipCommand;
+
+  push @rmCommands, "rm .loamstream/$file";
+
+  push @echoCommands, "echo Downloaded $artifact:$version to $artifactDir"; 
+}
+
+push @commands, @wgetCommands;
+push @commands, @unzipCommands;
+push @commands, @rmCommands;
+push @commands, @echoCommands;
+push @commands, "echo Done.";
+
+if($isDryRun) {
+  print "NOTE: --dry-run specified; would have run the following commands:\n";
+
+  for my $command (@commands) {
+    print $command, "\n";
+  }
+} else {
+  for my $command (@commands) {
+    my $exitCode = system($command);
+
+    if($exitCode != 0) {
+      print "Command $command failed with an exit code of $exitCode.\n";
+
+      exit($exitCode >> 8);
+    }
+  }
+}

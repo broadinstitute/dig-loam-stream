@@ -10,6 +10,21 @@ final class JobRunTest extends FunSuite {
 
   import JobStatus._
   
+  test("key") {
+    val job0 = RxMockJob("foo")
+    val job1 = RxMockJob("bar")
+    
+    assert(job0.id != job1.id)
+    
+    assert(JobRun(job0, Submitted, 42).key === (job0.id, 42))
+    assert(JobRun(job1, Submitted, 42).key === (job1.id, 42))
+    assert(JobRun(job1, Submitted, 99).key === (job1.id, 99))
+    
+    assert(JobRun(job0, Running, 42).key === (job0.id, 42))
+    assert(JobRun(job0, Skipped, 42).key === (job0.id, 42))
+    assert(JobRun(job0, Failed, 42).key === (job0.id, 42))
+  }
+  
   test("toString") {
     val job = RxMockJob("foo")
     

@@ -71,7 +71,6 @@ final class RxExecuterTest extends FunSuite {
     import TestHelpers.waitFor
     import Observables.Implicits._
     
-    
     val job1 = RxMockJob("Job_1")
     val job2 = RxMockJob("Job_2")
     val job3 = RxMockJob("Job_3")
@@ -82,7 +81,7 @@ final class RxExecuterTest extends FunSuite {
     
     val someDupes = Seq(
         JobRun(job1, NotStarted, 1), 
-        JobRun(job1, Skipped, 1),
+        JobRun(job1, NotStarted, 1),
         JobRun(job2, Running, 99),
         JobRun(job3, Running, 42),
         JobRun(job2, Running, 99))

@@ -21,6 +21,8 @@ final class JobRun(val job: LJob, val status: JobStatus, val runCount: Int) {
   }
   
   override def hashCode: Int = Seq(job, status, runCount).hashCode
+  
+  def key: (Int, JobStatus, Int) = (job.id, status, runCount)
 }
 
 object JobRun {

@@ -139,7 +139,9 @@ object LoamCompiler extends Loggable {
         val soManyWarnings = soMany(warnings.size, "warning")
         val soManyInfos = soMany(infos.size, "info")
         
-        s"There were $soManyErrors, $soManyWarnings, $soManyInfos. ${throwable.getClass.getName} caught: ${throwable.getMessage}"
+        val throwableClass = throwable.getClass.getName
+        
+        s"There were $soManyErrors, $soManyWarnings, $soManyInfos. ${throwableClass} caught: ${throwable.getMessage}"
       }
     }
   }

@@ -61,7 +61,7 @@ final case class RxExecuter(
     //
     //De-dupe jobs based on their ids and run counts.  This allows for re-running failed jobs, since while the
     //job id would stay the same in that case, the run count would differ.  This is a blunt-force method that 
-    //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.; unsurprisingly,   
+    //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.
     val runnables: Observable[JobRun] = RxExecuter.deDupe(executable.multiplex(_.runnables))
     
     //An observable stream of "chunks" of runnable jobs, with each chunk represented as a Seq.

@@ -61,8 +61,8 @@ final case class RxExecuter(
     //
     //De-dupe jobs based on their ids and run counts.  This allows for re-running failed jobs, since while the
     //job id would stay the same in that case, the run count would differ.  This is a blunt-force method that 
-    //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.  
-    val runnables: Observable[JobRun] = executable.multiplex(_.runnables).distinct(_.key)
+    //prevents running the same job more than once concurrently in the face of "diamond-shaped" topologies.; unsurprisingly,   
+    val runnables: Observable[JobRun] = RxExecuter.deDupe(executable.multiplex(_.runnables))
     
     //An observable stream of "chunks" of runnable jobs, with each chunk represented as a Seq.
     //Jobs are buffered up until the amount of time indicated by 'windowLength' elapses, or 'runner.maxNumJobs'
@@ -233,6 +233,8 @@ object RxExecuter extends Loggable {
     
     addExecutionRecorder(addJobFilter(default))
   }
+  
+  private[execute] def deDupe(jobRuns: Observable[JobRun]): Observable[JobRun] = jobRuns.distinct(_.key)
   
   private[execute] def shouldRestart(job: LJob, maxRunsPerJob: Int): Boolean = {
     val runCount = job.runCount

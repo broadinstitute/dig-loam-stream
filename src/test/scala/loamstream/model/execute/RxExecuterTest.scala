@@ -14,6 +14,9 @@ import loamstream.model.jobs.RunData
 import loamstream.model.jobs.RxMockJob
 import loamstream.util.ValueBox
 import rx.lang.scala.Observable
+import loamstream.model.jobs.JobStatus.NotStarted
+import loamstream.model.jobs.JobRun
+import loamstream.util.Observables
 
 
 /**
@@ -60,6 +63,36 @@ final class RxExecuterTest extends FunSuite {
     val (executer, runner) = makeExecuter(maxRestarts, maxSimultaneousJobs)
     
     doExec(executer, runner, jobs)
+  }
+  
+  test("deDupe") {
+    import RxExecuter.deDupe
+    import JobStatus._
+    import TestHelpers.waitFor
+    import Observables.Implicits._
+    
+    
+    val job1 = RxMockJob("Job_1")
+    val job2 = RxMockJob("Job_2")
+    val job3 = RxMockJob("Job_3")
+    
+    val noDupes = Seq(JobRun(job1, NotStarted, 1), JobRun(job2, NotStarted, 1), JobRun(job3, Running, 42))
+    
+    assert(waitFor(deDupe(Observable.from(noDupes)).to[Seq].firstAsFuture) === noDupes)
+    
+    val someDupes = Seq(
+        JobRun(job1, NotStarted, 1), 
+        JobRun(job1, Skipped, 1),
+        JobRun(job2, Running, 99),
+        JobRun(job3, Running, 42),
+        JobRun(job2, Running, 99))
+    
+    val deDuped = Seq(
+        JobRun(job1, NotStarted, 1),
+        JobRun(job2, Running, 99),
+        JobRun(job3, Running, 42))
+    
+    assert(waitFor(deDupe(Observable.from(someDupes)).to[Seq].firstAsFuture) === deDuped)
   }
   
   test("3-job pipeline where one job is canceled before running") {

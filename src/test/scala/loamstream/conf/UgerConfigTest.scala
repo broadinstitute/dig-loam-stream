@@ -29,6 +29,7 @@ final class UgerConfigTest extends FunSuite {
     assert(config.extraPathDir === UgerDefaults.extraPathDir)
     assert(config.condaEnvName === UgerDefaults.condaEnvName)
     assert(config.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
+    assert(config.maxQacctRetries === UgerDefaults.maxQacctRetries)
   }
   
   test("Parsing a UgerConfig with all values provided should work") {
@@ -42,21 +43,23 @@ final class UgerConfigTest extends FunSuite {
           extraPathDir = /blah/baz
           condaEnvName = fooEnv
           staticJobSubmissionParams = "foo bar baz"
+          maxQacctRetries = 123
         }
       }
       """)
       
-    val ugerConfig = UgerConfig.fromConfig(valid).get
+    val config = UgerConfig.fromConfig(valid).get
     
-    assert(ugerConfig.workDir === Locations.ugerDir)
-    assert(ugerConfig.scriptDir === Locations.ugerScriptDir)
-    assert(ugerConfig.maxNumJobs === 44)
-    assert(ugerConfig.defaultCores === Cpus(42))
-    assert(ugerConfig.defaultMemoryPerCore=== Memory.inGb(9))
-    assert(ugerConfig.defaultMaxRunTime === CpuTime.inHours(11))
-    assert(ugerConfig.extraPathDir === path("/blah/baz"))
-    assert(ugerConfig.condaEnvName === "fooEnv")
-    assert(ugerConfig.staticJobSubmissionParams === "foo bar baz")
+    assert(config.workDir === Locations.ugerDir)
+    assert(config.scriptDir === Locations.ugerScriptDir)
+    assert(config.maxNumJobs === 44)
+    assert(config.defaultCores === Cpus(42))
+    assert(config.defaultMemoryPerCore=== Memory.inGb(9))
+    assert(config.defaultMaxRunTime === CpuTime.inHours(11))
+    assert(config.extraPathDir === path("/blah/baz"))
+    assert(config.condaEnvName === "fooEnv")
+    assert(config.staticJobSubmissionParams === "foo bar baz")
+    assert(config.maxQacctRetries === 123)
   }
   
   test("Parsing a UgerConfig with optional values omitted should work") {
@@ -68,16 +71,17 @@ final class UgerConfigTest extends FunSuite {
       }
       """)
       
-    val ugerConfig = UgerConfig.fromConfig(valid).get
+    val config = UgerConfig.fromConfig(valid).get
     
-    assert(ugerConfig.workDir === Locations.ugerDir)
-    assert(ugerConfig.scriptDir === Locations.ugerScriptDir)
-    assert(ugerConfig.maxNumJobs === UgerDefaults.maxConcurrentJobs)
-    assert(ugerConfig.defaultCores === UgerDefaults.cores)
-    assert(ugerConfig.defaultMemoryPerCore === UgerDefaults.memoryPerCore)
-    assert(ugerConfig.defaultMaxRunTime === UgerDefaults.maxRunTime)
-    assert(ugerConfig.extraPathDir === UgerDefaults.extraPathDir)
-    assert(ugerConfig.condaEnvName === UgerDefaults.condaEnvName)
-    assert(ugerConfig.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
+    assert(config.workDir === Locations.ugerDir)
+    assert(config.scriptDir === Locations.ugerScriptDir)
+    assert(config.maxNumJobs === UgerDefaults.maxConcurrentJobs)
+    assert(config.defaultCores === UgerDefaults.cores)
+    assert(config.defaultMemoryPerCore === UgerDefaults.memoryPerCore)
+    assert(config.defaultMaxRunTime === UgerDefaults.maxRunTime)
+    assert(config.extraPathDir === UgerDefaults.extraPathDir)
+    assert(config.condaEnvName === UgerDefaults.condaEnvName)
+    assert(config.staticJobSubmissionParams === UgerDefaults.staticJobSubmissionParams)
+    assert(config.maxQacctRetries === UgerDefaults.maxQacctRetries)
   }
 }

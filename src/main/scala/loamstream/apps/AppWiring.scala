@@ -449,7 +449,7 @@ object AppWiring extends Loggable {
   private def makeUgerClient(ugerConfig: UgerConfig): DrmClient = {
     val drmaa1Client = new Drmaa1Client(UgerResourceUsageExtractor, UgerNativeSpecBuilder(ugerConfig))
     
-    new DrmClient(drmaa1Client, QacctAccountingClient.useActualBinary())
+    new DrmClient(drmaa1Client, QacctAccountingClient.useActualBinary(ugerConfig))
   }
   
   private def loadConfig(confFileOpt: Option[Path]): Config = {

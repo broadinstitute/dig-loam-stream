@@ -8,6 +8,10 @@ import loamstream.util.Functions
 import loamstream.util.Loggable
 import scala.collection.Seq
 import scala.sys.process.stringSeqToProcess
+import loamstream.conf.UgerConfig
+import scala.util.Try
+import scala.util.Success
+import scala.util.Failure
 
 /**
  * @author clint
@@ -18,6 +22,7 @@ import scala.sys.process.stringSeqToProcess
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
+    ugerConfig: UgerConfig,
     val qacctOutputForJobIdFn: String => Seq[String]) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
@@ -27,9 +32,31 @@ final class QacctAccountingClient(
   //NB: Don't cache empty results, since this likely indicates a failure when invoking qaact, and we'd like to
   //be able to try again in that case.
   private val qacctOutputForJobId: String => Seq[String] = {
-    val shouldCache: Seq[String] => Boolean = _.nonEmpty
+    val doRetries: String => Seq[String] = { jobId =>
+      val maxRuns = ugerConfig.maxQacctRetries + 1
+      
+      def invokeQacct(): Try[Seq[String]] = Try(qacctOutputForJobIdFn(jobId))
+      
+      val attempt = Iterator.continually(invokeQacct()).take(maxRuns).dropWhile(_.isFailure).toStream
+      
+      attempt.headOption match {
+        case Some(Success(lines)) => lines
+        case Some(Failure(e)) => {
+          debug(s"Error invoking qacct; execution stats won't be available: $e")
 
-    Functions.memoize(qacctOutputForJobIdFn, shouldCache)
+          trace(s"qacct invocation failure stack trace:", e)
+
+          Seq.empty
+        }
+        case None => {
+          debug(s"Invoking qacct failed after $maxRuns runs; execution stats won't be available")
+
+          Seq.empty
+        }
+      }
+    }
+    
+    Functions.memoize(doRetries)
   }
 
   protected def getQacctOutputFor(jobId: String): Seq[String] = qacctOutputForJobId(jobId)
@@ -63,30 +90,21 @@ object QacctAccountingClient extends Loggable {
   /**
    * Make a UgerAcct that will retrieve job metadata by running some executable, by default, `qacct`.
    */
-  def useActualBinary(binaryName: String = "qacct"): QacctAccountingClient = {
+  def useActualBinary(ugerConfig: UgerConfig, binaryName: String = "qacct"): QacctAccountingClient = {
     import scala.sys.process._
 
-    def getQacctOutputFor(jobId: String): Seq[String] = {
+    def invokeQacctFor(jobId: String): Seq[String] = {
       val tokens = makeTokens(binaryName, jobId)
 
       val noopProcessLogger = ProcessLogger(_ => ())
 
-      try {
-        //NB: Use noopProcessLogger to suppress stderr output that would otherwise go to the console.
-        //NB: Even with noopProcessLogger, all lines written to stdout will be available via lineStream.
-        //NB: Use toIndexedSeq to eagerly consume stdout, effectively running the command synchronously.
-        tokens.lineStream(noopProcessLogger).toIndexedSeq
-      } catch {
-        case NonFatal(e) => {
-          debug(s"Error invoking '$binaryName'; execution node and queue won't be available: $e")
-          trace(s"'$binaryName' invocation failure stack trace:", e)
-
-          Seq.empty
-        }
-      }
+      //NB: Use noopProcessLogger to suppress stderr output that would otherwise go to the console.
+      //NB: Even with noopProcessLogger, all lines written to stdout will be available via lineStream.
+      //NB: Use toIndexedSeq to eagerly consume stdout, effectively running the command synchronously.
+      tokens.lineStream(noopProcessLogger).toIndexedSeq
     }
-
-    new QacctAccountingClient(getQacctOutputFor)
+    
+    new QacctAccountingClient(ugerConfig, invokeQacctFor)
   }
 
   private[uger] def makeTokens(binaryName: String, jobId: String): Seq[String] = Seq(binaryName, "-j", jobId)

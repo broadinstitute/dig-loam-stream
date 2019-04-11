@@ -37,9 +37,17 @@ final class QacctAccountingClient(
       
       def invokeQacct(): Try[Seq[String]] = Try(qacctOutputForJobIdFn(jobId))
       
-      val attempt = Iterator.continually(invokeQacct()).take(maxRuns).dropWhile(_.isFailure).toStream
+      def delayIfFailure(attempt: Try[Seq[String]]): Try[Seq[String]] = {
+        if(attempt.isFailure) {
+          Thread.sleep(1000)
+        }
+        
+        attempt
+      }
       
-      attempt.headOption match {
+      val attempts = Iterator.continually(invokeQacct()).take(maxRuns).map(delayIfFailure).dropWhile(_.isFailure)
+      
+      attempts.toStream.headOption match {
         case Some(Success(lines)) => lines
         case Some(Failure(e)) => {
           debug(s"Error invoking qacct; execution stats won't be available: $e")

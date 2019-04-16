@@ -54,14 +54,19 @@ final class QacctAccountingClient(
       attempts.toStream.headOption match {
         case Some(Success(lines)) => lines
         case Some(Failure(e)) => {
-          debug(s"Error invoking qacct; execution stats won't be available: $e")
+          debug(s"Error invoking qacct for job with DRM id '$jobId'; execution stats won't be available: $e")
 
           trace(s"qacct invocation failure stack trace:", e)
 
           Seq.empty
         }
         case None => {
-          debug(s"Invoking qacct failed after $maxRuns runs; execution stats won't be available")
+          val msg = {
+            s"Invoking qacct for job with DRM id '$jobId' failed after $maxRuns runs; " +
+             "execution stats won't be available"
+          }
+          
+          debug(msg)
 
           Seq.empty
         }

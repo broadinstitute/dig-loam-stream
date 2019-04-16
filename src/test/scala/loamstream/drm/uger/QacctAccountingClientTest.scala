@@ -13,6 +13,28 @@ final class QacctAccountingClientTest extends FunSuite {
 
   import QacctTestHelpers.actualQacctOutput
 
+  test("delaySequence") {
+    val delays = QacctAccountingClient.delaySequence
+    
+    val actual = delays.take(10).toIndexedSeq
+    
+    import scala.concurrent.duration._
+    
+    val expected = Seq(
+        0.5.seconds, 
+        1.second, 
+        2.seconds, 
+        4.seconds, 
+        8.seconds, 
+        16.seconds,
+        30.seconds,
+        30.seconds,
+        30.seconds,
+        30.seconds)
+        
+    assert(actual === expected)
+  }
+  
   test("retries - never works") {
     val maxRuns = 2
     

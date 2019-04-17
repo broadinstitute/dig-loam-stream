@@ -23,6 +23,8 @@ import loamstream.util.Maps
 import loamstream.util.Observables
 import loamstream.util.Terminable
 import rx.lang.scala.Observable
+import rx.lang.scala.schedulers.ExecutionContextScheduler
+import rx.lang.scala.Scheduler
 
 /**
  * @author clint
@@ -38,6 +40,8 @@ final case class GoogleCloudChunkRunner(
   private implicit lazy val singleThreadedExecutionContext: ExecutionContext = {
     ExecutionContext.fromExecutorService(singleThreadedExecutor)
   }
+  
+  private lazy val singleThreadedScheduler: Scheduler = ExecutionContextScheduler(singleThreadedExecutionContext)
   
   //NB: Ensure that we only start the cluster once from this Runner
   private lazy val init: Unit = client.startCluster()
@@ -79,13 +83,13 @@ final case class GoogleCloudChunkRunner(
       jobs: Set[LJob], 
       shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
-    Observables.observeAsync {
+    def doRunSingle(j: LJob): Map[LJob, RunData] = {
       withCluster(client) {
-        val singleJobResults = jobs.toSeq.map(runSingle(delegate, shouldRestart))
-          
-        Maps.mergeMaps(singleJobResults)
+        runSingle(delegate, shouldRestart)(j)
       }
     }
+    
+    Observable.from(jobs).subscribeOn(singleThreadedScheduler).map(doRunSingle)
   }
 
   private[googlecloud] def runSingle(

@@ -178,7 +178,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
 
       val expectedNumResults = if (runningEverything) 3 else expectations.count(_.isSuccess)
 
-      assert(jobResults.size == expectedNumResults, s"Got ${jobResults.size} results but expected ${expectedNumResults} given expected statuses: ${expectedStatuses}")
+      assert(jobResults.size == expectedNumResults)
 
       assert(jobResults.values.forall(_.isSuccess))
     }

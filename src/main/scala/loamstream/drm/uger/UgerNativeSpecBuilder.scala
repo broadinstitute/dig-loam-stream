@@ -28,7 +28,7 @@ final case class UgerNativeSpecBuilder(ugerConfig: UgerConfig) extends NativeSpe
         case None => ""
       }
       
-      val memPart = s"h_vmem=${mem}g"
+      val memPart = s"h_vmem=${mem}G"
       
       val runTimePart = s"h_rt=${runTimeInHours}:0:0"
       

@@ -44,7 +44,7 @@ final class UgerNativeSpecBuilderTest extends FunSuite {
         val actualNativeSpec = getNativeSpec(ugerConfig)
        
         val expected = {
-          s"-cwd -shell y -b n -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17g $expectedOsPart"
+          s"-cwd -shell y -b n -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17G $expectedOsPart"
         }
         
         assert(actualNativeSpec === expected)
@@ -56,7 +56,7 @@ final class UgerNativeSpecBuilderTest extends FunSuite {
         val actualNativeSpec = getNativeSpec(nonDefaultUgerConfig)
        
         val expected = {
-          s"foo bar baz -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17g $expectedOsPart"
+          s"foo bar baz -binding linear:42 -pe smp 42 -q broad -l h_rt=33:0:0,h_vmem=17G $expectedOsPart"
         }
         
         assert(actualNativeSpec === expected)

@@ -85,9 +85,9 @@ final case class RxExecuter(
       cancelledJobsMap = cancelJobs(jobsToCancel)
       _ = record(cancelledJobsMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
-      runJobsMap <- runJobs(jobsToRun)
-      _ = record(runJobsMap)
-      executionMap = cancelledJobsMap ++ runJobsMap
+      executionTupleOpt <- runJobs(jobsToRun)
+      _ = record(executionTupleOpt)
+      executionMap = cancelledJobsMap ++ executionTupleOpt
       _ = logFinishedJobs(executionMap)
     } yield {
       executionMap ++ skippedResultMap
@@ -112,18 +112,18 @@ final case class RxExecuter(
   //NB: shouldRestart() mostly factored out to the companion object for simpler testing
   private def shouldRestart(job: LJob): Boolean = RxExecuter.shouldRestart(job, maxRunsPerJob)
   
-  private def runJobs(jobsToRun: Iterable[LJob]): Observable[Map[LJob, Execution]] = {
+  private def runJobs(jobsToRun: Iterable[LJob]): Observable[Option[(LJob, Execution)]] = {
     logJobsToBeRun(jobsToRun)
     
     import RxExecuter.toExecutionMap
     
     val emptyMap = Map.empty[LJob, Execution]
     
-    if(jobsToRun.isEmpty) { Observable.just(emptyMap) }
+    if(jobsToRun.isEmpty) { Observable.just(None) }
     else {
       val jobRunObs = runner.run(jobsToRun.toSet, shouldRestart)
       
-      jobRunObs.flatMap(toExecutionMap(fileMonitor, shouldRestart)).scan(emptyMap)(_ + _)
+      jobRunObs.flatMap(toExecutionMap(fileMonitor, shouldRestart)).map(Option(_))
     }
   }
   

@@ -12,13 +12,14 @@ import loamstream.conf.UgerConfig
 final class QacctAccountingClientTest extends FunSuite {
 
   import QacctTestHelpers.actualQacctOutput
+  import scala.concurrent.duration._
 
-  test("delaySequence") {
-    val delays = QacctAccountingClient.delaySequence
+  test("delaySequence - defaults") {
+    val delays = QacctAccountingClient.delaySequence(
+        QacctAccountingClient.defaultDelayStart, 
+        QacctAccountingClient.defaultDelayCap)
     
     val actual = delays.take(10).toIndexedSeq
-    
-    import scala.concurrent.duration._
     
     val expected = Seq(
         0.5.seconds, 
@@ -35,12 +36,52 @@ final class QacctAccountingClientTest extends FunSuite {
     assert(actual === expected)
   }
   
+  test("delaySequence - non-defaults, cap not hit") {
+    val delays = QacctAccountingClient.delaySequence(0.01.seconds, 10.seconds)
+    
+    val actual = delays.take(10).toIndexedSeq
+    
+    val expected = Seq(
+        0.01.seconds, 
+        0.02.second, 
+        0.04.seconds, 
+        0.08.seconds, 
+        0.16.seconds, 
+        0.32.seconds,
+        0.64.seconds,
+        1.28.seconds,
+        2.56.seconds,
+        5.12.seconds)
+        
+    assert(actual === expected)
+  }
+  
+  test("delaySequence - non-defaults, cap hit") {
+    val delays = QacctAccountingClient.delaySequence(0.01.seconds, 1.seconds)
+    
+    val actual = delays.take(10).toIndexedSeq
+    
+    val expected = Seq(
+        0.01.seconds, 
+        0.02.second, 
+        0.04.seconds, 
+        0.08.seconds, 
+        0.16.seconds, 
+        0.32.seconds,
+        0.64.seconds,
+        1.second,
+        1.second,
+        1.second)
+        
+    assert(actual === expected)
+  }
+  
   test("retries - never works") {
-    val maxRuns = 2
+    val maxRuns = 6
     
     val ugerConfig = UgerConfig(maxQacctRetries = maxRuns - 1)
     
-    val mockClient = new MockQacctAccountingClient(_ => throw new Exception, ugerConfig)
+    val mockClient = new MockQacctAccountingClient(_ => throw new Exception, ugerConfig, 0.001.seconds, 0.5.seconds)
     
     val jobId = "abc123"
     
@@ -51,21 +92,21 @@ final class QacctAccountingClientTest extends FunSuite {
     assert(mockClient.getExecutionNode(jobId).isEmpty)
     
     //Should have retried once
-    assert(mockClient.timesGetQacctOutputForInvoked === 2)
+    assert(mockClient.timesGetQacctOutputForInvoked === maxRuns)
     assert(mockClient.timesGetExecutionNodeInvoked === 1)
     assert(mockClient.timesGetQueueInvoked === 0)
     
     assert(mockClient.getExecutionNode(jobId).isEmpty)
     
     //should have memoized results, and not retried any more
-    assert(mockClient.timesGetQacctOutputForInvoked === 2)
+    assert(mockClient.timesGetQacctOutputForInvoked === maxRuns)
     assert(mockClient.timesGetExecutionNodeInvoked === 2)
     assert(mockClient.timesGetQueueInvoked === 0)
     
     assert(mockClient.getQueue(jobId).isEmpty)
     
     //should have memoized results, and not retried any more
-    assert(mockClient.timesGetQacctOutputForInvoked === 2)
+    assert(mockClient.timesGetQacctOutputForInvoked === maxRuns)
     assert(mockClient.timesGetExecutionNodeInvoked === 2)
     assert(mockClient.timesGetQueueInvoked === 1)
   }
@@ -90,7 +131,7 @@ final class QacctAccountingClientTest extends FunSuite {
       }
     }
     
-    val mockClient = new MockQacctAccountingClient(invokeQacct, ugerConfig)
+    val mockClient = new MockQacctAccountingClient(invokeQacct, ugerConfig, 0.001.seconds, 1.second)
     
     val jobId = "abc123"
     

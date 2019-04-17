@@ -5,6 +5,7 @@ import loamstream.drm.Queue
 import loamstream.util.ValueBox
 import loamstream.conf.UgerConfig
 import scala.util.Try
+import scala.concurrent.duration.Duration
 
 /**
  * @author clint
@@ -12,7 +13,9 @@ import scala.util.Try
  */
 final class MockQacctAccountingClient(
     delegateFn: String => Seq[String],
-    ugerConfig: UgerConfig = UgerConfig()) extends AccountingClient {
+    ugerConfig: UgerConfig = UgerConfig(),
+    delayStart: Duration = QacctAccountingClient.defaultDelayStart,
+    delayCap: Duration = QacctAccountingClient.defaultDelayCap) extends AccountingClient {
   
   private val timesGetQacctOutputForInvokedBox: ValueBox[Int] = ValueBox(0)
 
@@ -33,7 +36,7 @@ final class MockQacctAccountingClient(
       delegateFn(jobId)
     }
 
-    new QacctAccountingClient(ugerConfig, wrappedDelegateFn)
+    new QacctAccountingClient(ugerConfig, wrappedDelegateFn, delayStart, delayCap)
   }
 
   override def getExecutionNode(jobId: String): Option[String] = {

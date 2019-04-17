@@ -24,21 +24,23 @@ import scala.concurrent.duration._
  */
 final class QacctAccountingClient(
     ugerConfig: UgerConfig,
-    val qacctOutputForJobIdFn: String => Seq[String]) extends AccountingClient with Loggable {
+    val qacctOutputForJobIdFn: String => Seq[String],
+    delayStart: Duration = QacctAccountingClient.defaultDelayStart,
+    delayCap: Duration = QacctAccountingClient.defaultDelayCap) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
 
   //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
   //qacct in the production case, more than necessary.
-  //NB: If qacct fails, retry up to ugerConfig.maxQacctRetries times, waiting 0.5, 1, 2, 4, ... up to 30s 
-  //in between each one.
+  //NB: If qacct fails, retry up to ugerConfig.maxQacctRetries times, by default waiting 
+  //0.5, 1, 2, 4, ... up to 30s in between each one.
   private val qacctOutputForJobId: String => Seq[String] = {
     val doRetries: String => Seq[String] = { jobId =>
       val maxRuns = ugerConfig.maxQacctRetries + 1
       
       def invokeQacct(): Try[Seq[String]] = Try(qacctOutputForJobIdFn(jobId))
       
-      val delays = delaySequence
+      val delays = delaySequence(delayStart, delayCap)
       
       def delayIfFailure(attempt: Try[Seq[String]]): Try[Seq[String]] = {
         if(attempt.isFailure) {
@@ -126,7 +128,13 @@ object QacctAccountingClient extends Loggable {
 
   private[uger] def makeTokens(binaryName: String, jobId: String): Seq[String] = Seq(binaryName, "-j", jobId)
   
-  private[uger] def delaySequence: Iterator[Duration] = {
-    Iterator.iterate(0.5)(_ * 2).map(scala.math.min(30, _)).map(_.seconds)
+  private[uger] val defaultDelayStart: Duration = 0.5.seconds
+  private[uger] val defaultDelayCap: Duration = 30.seconds
+  
+  private[uger] def delaySequence(start: Duration, cap: Duration): Iterator[Duration] = {
+    require(start gt 0.seconds)
+    require(cap gt 0.seconds)
+    
+    Iterator.iterate(start)(_ * 2).map(_.min(cap))
   }
 }

@@ -27,4 +27,6 @@ object UgerDefaults {
   val condaEnvName: String = "loamstream_v1.0"
   
   val staticJobSubmissionParams: String = "-cwd -shell y -b n"
+  
+  val maxQacctRetries: Int = 9
 }

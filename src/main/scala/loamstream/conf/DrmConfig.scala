@@ -56,7 +56,8 @@ final case class UgerConfig(
     defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime,
     extraPathDir: Path = UgerDefaults.extraPathDir,
     condaEnvName: String = UgerDefaults.condaEnvName,
-    staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams) extends DrmConfig {
+    staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams,
+    maxQacctRetries: Int =  UgerDefaults.maxQacctRetries) extends DrmConfig {
   
   override def scriptBuilderParams: ScriptBuilderParams = new UgerScriptBuilderParams(extraPathDir, condaEnvName)
 }
@@ -70,7 +71,8 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
     defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime,
     extraPathDir: Path = UgerDefaults.extraPathDir,
     condaEnvName: String = UgerDefaults.condaEnvName,
-    staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams) {
+    staticJobSubmissionParams: String = UgerDefaults.staticJobSubmissionParams,
+    maxQacctRetries: Int =  UgerDefaults.maxQacctRetries) {
     
     def toUgerConfig: UgerConfig = UgerConfig(
       maxNumJobs = maxNumJobs,
@@ -79,7 +81,8 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
       defaultMaxRunTime = defaultMaxRunTime,
       extraPathDir = extraPathDir,
       condaEnvName = condaEnvName,
-      staticJobSubmissionParams = staticJobSubmissionParams)
+      staticJobSubmissionParams = staticJobSubmissionParams,
+      maxQacctRetries = maxQacctRetries)
   }
   
   override def fromConfig(config: Config): Try[UgerConfig] = {

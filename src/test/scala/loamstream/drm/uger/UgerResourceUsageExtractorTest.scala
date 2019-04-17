@@ -51,8 +51,8 @@ final class UgerResourceUsageExtractorTest extends FunSuite {
     //Should fail; incomplete info from JobInfo
     assert(toResources(jobInfo).isFailure)
     
-    assert(mockUgerClient.timesGetExecutionNodeInvoked() == 0)
-    assert(mockUgerClient.timesGetQueueInvoked() == 0)
+    assert(mockUgerClient.timesGetExecutionNodeInvoked == 0)
+    assert(mockUgerClient.timesGetQueueInvoked == 0)
   }
   
   test("fromUgerMap - real-world data") {

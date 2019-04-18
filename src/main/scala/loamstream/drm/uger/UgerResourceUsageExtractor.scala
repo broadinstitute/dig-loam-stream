@@ -20,7 +20,7 @@ import loamstream.util.Tries
  * @author clint
  * May 11, 2018
  */
-object UgerResourceUsageExtractor extends ResourceUsageExtractor {
+object UgerResourceUsageExtractor extends ResourceUsageExtractor[JobInfo] {
   override def toResources(jobInfo: JobInfo): Try[DrmResources] = {
     import scala.collection.JavaConverters._
 

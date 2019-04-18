@@ -11,3 +11,9 @@ trait AccountingClient {
 
   def getQueue(jobId: String): Option[Queue]
 }
+
+object AccountingClient {
+  private[drm] def delaySequence: Iterator[Duration] = {
+    Iterator.iterate(0.5)(_ * 2).map(scala.math.min(30, _)).map(_.seconds)
+  }
+}

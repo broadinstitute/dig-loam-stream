@@ -1,5 +1,7 @@
 package loamstream.drm
 
+import scala.concurrent.duration._
+
 /**
  * @author clint
  * Mar 9, 2017
@@ -13,7 +15,13 @@ trait AccountingClient {
 }
 
 object AccountingClient {
-  private[drm] def delaySequence: Iterator[Duration] = {
-    Iterator.iterate(0.5)(_ * 2).map(scala.math.min(30, _)).map(_.seconds)
+  protected[drm] val defaultDelayStart: Duration = 0.5.seconds
+  protected[drm] val defaultDelayCap: Duration = 30.seconds
+  
+  protected[drm] def delaySequence(start: Duration, cap: Duration): Iterator[Duration] = {
+    require(start gt 0.seconds)
+    require(cap gt 0.seconds)
+    
+    Iterator.iterate(start)(_ * 2).map(_.min(cap))
   }
 }

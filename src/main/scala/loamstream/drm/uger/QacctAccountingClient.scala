@@ -25,8 +25,8 @@ import scala.concurrent.duration._
 final class QacctAccountingClient(
     ugerConfig: UgerConfig,
     val qacctOutputForJobIdFn: String => Seq[String],
-    delayStart: Duration = QacctAccountingClient.defaultDelayStart,
-    delayCap: Duration = QacctAccountingClient.defaultDelayCap) extends AccountingClient with Loggable {
+    delayStart: Duration = AccountingClient.defaultDelayStart,
+    delayCap: Duration = AccountingClient.defaultDelayCap) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
 
@@ -40,7 +40,7 @@ final class QacctAccountingClient(
       
       def invokeQacct(): Try[Seq[String]] = Try(qacctOutputForJobIdFn(jobId))
       
-      val delays = delaySequence(delayStart, delayCap)
+      val delays = AccountingClient.delaySequence(delayStart, delayCap)
       
       def delayIfFailure(attempt: Try[Seq[String]]): Try[Seq[String]] = {
         if(attempt.isFailure) {
@@ -127,14 +127,4 @@ object QacctAccountingClient extends Loggable {
   }
 
   private[uger] def makeTokens(binaryName: String, jobId: String): Seq[String] = Seq(binaryName, "-j", jobId)
-  
-  private[uger] val defaultDelayStart: Duration = 0.5.seconds
-  private[uger] val defaultDelayCap: Duration = 30.seconds
-  
-  private[uger] def delaySequence(start: Duration, cap: Duration): Iterator[Duration] = {
-    require(start gt 0.seconds)
-    require(cap gt 0.seconds)
-    
-    Iterator.iterate(start)(_ * 2).map(_.min(cap))
-  }
 }

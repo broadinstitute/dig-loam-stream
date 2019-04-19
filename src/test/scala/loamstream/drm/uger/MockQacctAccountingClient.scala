@@ -14,8 +14,8 @@ import scala.concurrent.duration.Duration
 final class MockQacctAccountingClient(
     delegateFn: String => Seq[String],
     ugerConfig: UgerConfig = UgerConfig(),
-    delayStart: Duration = QacctAccountingClient.defaultDelayStart,
-    delayCap: Duration = QacctAccountingClient.defaultDelayCap) extends AccountingClient {
+    delayStart: Duration = AccountingClient.defaultDelayStart,
+    delayCap: Duration = AccountingClient.defaultDelayCap) extends AccountingClient {
   
   private val timesGetQacctOutputForInvokedBox: ValueBox[Int] = ValueBox(0)
 

@@ -17,6 +17,7 @@ import loamstream.util.Loggable
 import loamstream.util.OneTimeLatch
 import loamstream.util.Throwables
 import loamstream.util.ValueBox
+import org.ggf.drmaa.JobInfo
 
 
 /**
@@ -29,7 +30,7 @@ import loamstream.util.ValueBox
  *
  */
 final class Drmaa1Client(
-    resourceUsageExtractor: ResourceUsageExtractor,
+    resourceUsageExtractor: ResourceUsageExtractor[JobInfo],
     nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClient with Loggable {
   
   /*

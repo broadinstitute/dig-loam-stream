@@ -118,7 +118,7 @@ object Execution extends Loggable {
     
     val outputRecords = job.outputs.map(_.toStoreRecord)
     
-    Execution(
+    /*Execution(
       env = job.executionEnvironment,
       cmd = commandLine,
       status = status,
@@ -126,6 +126,8 @@ object Execution extends Loggable {
       resources = resources, 
       outputs = outputRecords,
       outputStreams = outputStreams,
-      terminationReason = terminationReason) 
+      terminationReason = terminationReason)*/
+    
+    ???
   }
 }

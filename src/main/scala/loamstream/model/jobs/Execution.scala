@@ -108,8 +108,8 @@ object Execution extends Loggable {
       status: JobStatus, 
       result: Option[JobResult] = None, 
       outputStreams: Option[OutputStreams] = None,
-      resources: Option[Resources] = None,
-      terminationReason: Option[TerminationReason] = None): Execution = {
+      resources: Option[Resources] = None/*,
+      terminationReason: Option[TerminationReason] = None*/): Execution = {
     
     val commandLine: Option[String] = job match {
       case clj: CommandLineJob => Option(clj.commandLineString)
@@ -118,16 +118,14 @@ object Execution extends Loggable {
     
     val outputRecords = job.outputs.map(_.toStoreRecord)
     
-    /*Execution(
+    Execution(
       env = job.executionEnvironment,
       cmd = commandLine,
       status = status,
       result = result,
       resources = resources, 
       outputs = outputRecords,
-      outputStreams = outputStreams,
-      terminationReason = terminationReason)*/
-    
-    ???
+      outputStreams = outputStreams/*,
+      terminationReason = terminationReason*/)
   }
 }

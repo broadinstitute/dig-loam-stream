@@ -7,6 +7,9 @@ import scala.util.Success
 import java.time.Instant
 import loamstream.drm.Queue
 import loamstream.model.quantities.CpuTime
+import java.time.ZoneId
+import java.time.temporal.ChronoField
+import java.time.ZonedDateTime
 
 /**
  * @author clint
@@ -20,13 +23,22 @@ final class BacctResourceUsageExtractorTest extends FunSuite {
   
   test("Parse actual bacct outpout - happy path") {
     val actual = BacctResourceUsageExtractor.toResources(actualOutput.split("\\n"))
+    
+    val systemTimeZoneId = ZoneId.of(java.util.TimeZone.getDefault.getID)
+    
+    val now = Instant.now.atZone(systemTimeZoneId)
+    
+    val systemTimeZoneOffSet = now.getOffset.getId
+    
+    val currentYear: Int = now.get(ChronoField.YEAR)
+    
     val expected = LsfResources(
             Memory.inMb(0), 
             CpuTime.inSeconds(0.02), 
             Option("ebi6-054"),
             Option(Queue("research-rh7")),
-            Instant.parse("2019-04-18T22:32:01.00Z"),
-            Instant.parse("2019-04-18T22:32:01.00Z"))
+            ZonedDateTime.parse(s"${currentYear}-04-18T22:32:01.00${systemTimeZoneOffSet}").toInstant,
+            ZonedDateTime.parse(s"${currentYear}-04-18T23:34:12.00${systemTimeZoneOffSet}").toInstant)
     
     assert(actual.get === expected)
   }
@@ -44,7 +56,7 @@ final class BacctResourceUsageExtractorTest extends FunSuite {
 Job <2811237>, User <cgilbert>, Project <default>, Status <EXIT>, Queue <research-rh7>, Command <cp ./A.txt ./B.txt>, Share group charged </cgilbert>
 Thu Apr 18 22:32:01: Submitted from host <ebi-cli-001>, CWD <$HOME>;
 Thu Apr 18 22:32:01: Dispatched to <ebi6-054>, Effective RES_REQ <select[type == local] order[r15s:pg] rusage[numcpus=1.00:duration=8h:decay=0] span[hosts=1] >;
-Thu Apr 18 22:32:01: Completed <exit>.
+Thu Apr 18 23:34:12: Completed <exit>.
 
 Accounting information about this job:
      Share group charged </cgilbert>

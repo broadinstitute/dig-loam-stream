@@ -89,15 +89,25 @@ object BacctResourceUsageExtractor extends ResourceUsageExtractor[Seq[String]] {
     } yield resources
   }
 
-  private def currentYear: Int = Instant.now.atZone(ZoneId.of("UTC")).get(ChronoField.YEAR)
-  
-  //Thu Apr 18 22:32:01
-  private def dateFormatter: DateTimeFormatter = (new DateTimeFormatterBuilder)
-    .appendPattern("EEE MMM dd HH:mm:ss")
-    .parseDefaulting(ChronoField.NANO_OF_SECOND, 0)
-    .parseDefaulting(ChronoField.YEAR, currentYear)
-    .toFormatter
-    .withZone(ZoneId.of("UTC"))
+  //Parses dates of the form: Thu Apr 18 22:32:01
+  //Since that date format doesn't include a year or time zone, we have to provide default values for those.  This code
+  //asks the runtime for them, each time a formatter is made.  (The formatter takes all its parameters by-value.)
+  //Consequently, this formatter needs to be a def. It wouldn't be so bad to cache the formatter and assume the year 
+  //is the same throughout a run of LS, but I don't think that will save very much cpu time, and date issues that only 
+  //manifest on runs that cross year boundaries are not something that would be fun to debug in fome far-off future.  
+  //-Clint Apr 22, 2019
+  private def dateFormatter: DateTimeFormatter = {
+    val systemTimeZoneId = ZoneId.of(java.util.TimeZone.getDefault.getID)
+
+    val currentYear: Int = Instant.now.atZone(systemTimeZoneId).get(ChronoField.YEAR)
+    
+    (new DateTimeFormatterBuilder)
+      .appendPattern("EEE MMM dd HH:mm:ss")
+      .parseDefaulting(ChronoField.NANO_OF_SECOND, 0)
+      .parseDefaulting(ChronoField.YEAR, currentYear)
+      .toFormatter
+      .withZone(systemTimeZoneId)
+  }
   
   private object Regexes {
     val node = ".*Dispatched to <(.+?)>.*".r

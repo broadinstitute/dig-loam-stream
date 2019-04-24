@@ -13,6 +13,8 @@ import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
 import scala.concurrent.duration._
+import loamstream.util.RunResults
+import loamstream.util.Processes
 
 /**
  * @author clint
@@ -24,7 +26,8 @@ import scala.concurrent.duration._
  */
 final class QacctAccountingClient(
     ugerConfig: UgerConfig,
-    val qacctOutputForJobIdFn: String => Seq[String],
+    binaryName: String,
+    val qacctOutputForJobIdFn: AccountingClient.InvocationFn[String],
     delayStart: Duration = AccountingClient.defaultDelayStart,
     delayCap: Duration = AccountingClient.defaultDelayCap) extends AccountingClient with Loggable {
 
@@ -34,65 +37,36 @@ final class QacctAccountingClient(
   //qacct in the production case, more than necessary.
   //NB: If qacct fails, retry up to ugerConfig.maxQacctRetries times, by default waiting 
   //0.5, 1, 2, 4, ... up to 30s in between each one.
-  private val qacctOutputForJobId: String => Seq[String] = {
-    val doRetries: String => Seq[String] = { jobId =>
-      val maxRuns = ugerConfig.maxQacctRetries + 1
-      
-      def invokeQacct(): Try[Seq[String]] = Try(qacctOutputForJobIdFn(jobId))
-      
-      val delays = AccountingClient.delaySequence(delayStart, delayCap)
-      
-      def delayIfFailure(attempt: Try[Seq[String]]): Try[Seq[String]] = {
-        if(attempt.isFailure) {
-          //TODO: evaluate whether or not blocking is ok. For now, it's expedient and doesn't seem to cause problems.
-          Thread.sleep(delays.next().toMillis)
-        }
-        
-        attempt
-      }
-      
-      val attempts = Iterator.continually(invokeQacct()).take(maxRuns).map(delayIfFailure).dropWhile(_.isFailure)
-      
-      attempts.toStream.headOption match {
-        case Some(Success(lines)) => lines
-        case Some(Failure(e)) => {
-          debug(s"Error invoking qacct for job with DRM id '$jobId'; execution stats won't be available: $e")
-
-          trace(s"qacct invocation failure stack trace:", e)
-
-          Seq.empty
-        }
-        case None => {
-          val msg = {
-            s"Invoking qacct for job with DRM id '$jobId' failed after $maxRuns runs; " +
-             "execution stats won't be available"
-          }
-          
-          debug(msg)
-
-          Seq.empty
-        }
-      }
-    }
-    
-    Functions.memoize(doRetries)
+  private val qacctOutputForJobId: AccountingClient.InvocationFn[String] = {
+    AccountingClient.doRetries(
+        binaryName = binaryName, 
+        maxRetries = ugerConfig.maxQacctRetries, 
+        delayStart = delayStart, 
+        delayCap = delayCap, 
+        delegateFn = qacctOutputForJobIdFn)
   }
 
-  protected def getQacctOutputFor(jobId: String): Seq[String] = qacctOutputForJobId(jobId)
+  //NB: Failures will already have been logged, so we can drop any Failure(e) here.
+  protected def getQacctOutputFor(jobId: String): Option[Seq[String]] = {
+    qacctOutputForJobId(jobId).toOption.map(_.stdout)
+  }
 
   import Regexes.{ hostname, qname }
 
   override def getExecutionNode(jobId: String): Option[String] = {
-    val output = getQacctOutputFor(jobId)
-
-    //NB: Empty hostname strings are considered invalid
-    findField(output, hostname).map(_.trim).filter(_.nonEmpty)
+    for {
+      output <- getQacctOutputFor(jobId)
+      //NB: Empty hostname strings are considered invalid
+      node <- findField(output, hostname).map(_.trim).filter(_.nonEmpty)
+    } yield node
   }
 
   override def getQueue(jobId: String): Option[Queue] = {
-    val output = getQacctOutputFor(jobId)
-
-    findField(output, qname).map(_.trim).filter(_.nonEmpty).map(Queue(_))
+    for {
+      output <- getQacctOutputFor(jobId)
+      //NB: Empty qname strings are considered invalid
+      queue <- findField(output, qname).map(_.trim).filter(_.nonEmpty).map(Queue(_))
+    } yield queue
   }
 
   private def findField(fields: Seq[String], regex: Regex): Option[String] = {
@@ -107,23 +81,12 @@ object QacctAccountingClient extends Loggable {
   }
 
   /**
-   * Make a UgerAcct that will retrieve job metadata by running some executable, by default, `qacct`.
+   * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
    */
   def useActualBinary(ugerConfig: UgerConfig, binaryName: String = "qacct"): QacctAccountingClient = {
-    import scala.sys.process._
-
-    def invokeQacctFor(jobId: String): Seq[String] = {
-      val tokens = makeTokens(binaryName, jobId)
-
-      val noopProcessLogger = ProcessLogger(_ => ())
-
-      //NB: Use noopProcessLogger to suppress stderr output that would otherwise go to the console.
-      //NB: Even with noopProcessLogger, all lines written to stdout will be available via lineStream.
-      //NB: Use toIndexedSeq to eagerly consume stdout, effectively running the command synchronously.
-      tokens.lineStream(noopProcessLogger).toIndexedSeq
-    }
+    def invokeQacctFor(jobId: String): Try[RunResults] = Processes.runSync(binaryName, makeTokens(binaryName, jobId))
     
-    new QacctAccountingClient(ugerConfig, invokeQacctFor)
+    new QacctAccountingClient(ugerConfig, binaryName, invokeQacctFor)
   }
 
   private[uger] def makeTokens(binaryName: String, jobId: String): Seq[String] = Seq(binaryName, "-j", jobId)

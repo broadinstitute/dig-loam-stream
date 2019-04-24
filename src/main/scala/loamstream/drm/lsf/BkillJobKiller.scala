@@ -5,6 +5,8 @@ import BkillJobKiller.InvocationFn
 import scala.util.Success
 import scala.util.Failure
 import loamstream.util.Loggable
+import loamstream.util.RunResults
+import loamstream.util.Processes
 
 /**
  * @author clint
@@ -13,18 +15,8 @@ import loamstream.util.Loggable
 final class BkillJobKiller(invocationFn: InvocationFn) extends Loggable {
   def killAllJobs(): Unit = {
     invocationFn() match {
-      case Success(runResults) => {
-        if(runResults.isFailure) {
-          runResults.logStdOutAndStdErr(
-            s"Error invoking ${runResults.executable} (exit code ${runResults.exitCode}); output streams follow:",
-            Loggable.Level.warn)
-        } else {
-          debug("Killed LSF jobs")
-        }
-      }
-      case Failure(e) => {
-        warn(s"Error killing all LSF jobs: ${e.getMessage}", e)
-      }
+      case Success(runResults) => debug("Killed LSF jobs")
+      case Failure(e) => warn(s"Error killing all LSF jobs: ${e.getMessage}", e)
     }
   }
 }
@@ -40,12 +32,7 @@ object BkillJobKiller {
   
   def fromExecutable(actualExecutable: String = "bkill"): BkillJobKiller = {
     val killJobs: InvocationFn = { () =>
-      import scala.sys.process._
-      
-      //NB: Implicit conversion to ProcessBuilder :\ 
-      val processBuilder: ProcessBuilder = makeTokens(actualExecutable)
-      
-      Processes.runSync(actualExecutable, processBuilder)
+      Processes.runSync(actualExecutable, makeTokens(actualExecutable))
     }
     
     new BkillJobKiller(killJobs)

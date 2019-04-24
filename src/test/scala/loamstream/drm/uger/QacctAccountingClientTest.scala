@@ -4,6 +4,9 @@ import org.scalatest.FunSuite
 
 import loamstream.drm.Queue
 import loamstream.conf.UgerConfig
+import scala.util.Try
+import loamstream.util.RunResults
+import loamstream.util.Tries
 
 /**
  * @author clint
@@ -12,6 +15,7 @@ import loamstream.conf.UgerConfig
 final class QacctAccountingClientTest extends FunSuite {
 
   import QacctTestHelpers.actualQacctOutput
+  import QacctTestHelpers.successfulRun
   import scala.concurrent.duration._
   
   test("retries - never works") {
@@ -19,7 +23,7 @@ final class QacctAccountingClientTest extends FunSuite {
     
     val ugerConfig = UgerConfig(maxQacctRetries = maxRuns - 1)
     
-    val mockClient = new MockQacctAccountingClient(_ => throw new Exception, ugerConfig, 0.001.seconds, 0.5.seconds)
+    val mockClient = new MockQacctAccountingClient(_ => Tries.failure("blarg"), ugerConfig, 0.001.seconds, 0.5.seconds)
     
     val jobId = "abc123"
     
@@ -59,13 +63,13 @@ final class QacctAccountingClientTest extends FunSuite {
     
     var timesQacctInvoked = 0
     
-    def invokeQacct(jobId: String): Seq[String] = {
+    def invokeQacct(jobId: String): Try[RunResults] = {
       timesQacctInvoked += 1
       
       if(timesQacctInvoked < 3) {
-        throw new Exception
+        Tries.failure("")
       } else {
-        actualQacctOutput(Some(expectedQueue), Some(expectedNode))
+        successfulRun(stdout = actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
       }
     }
     
@@ -103,7 +107,9 @@ final class QacctAccountingClientTest extends FunSuite {
     val expectedNode: String = "uger-c052.broadinstitute.org"
     val expectedQueue: Queue = Queue("broad")
 
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+    val mockClient = new MockQacctAccountingClient(_ => 
+      successfulRun(stdout = actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+    )
 
     val jobId = "12345"
     val actualNode = mockClient.getExecutionNode(jobId)
@@ -125,7 +131,9 @@ final class QacctAccountingClientTest extends FunSuite {
   test("QacctUgerClient.getQueue") {
     val expectedQueue: Queue = Queue("broad")
     val expectedNode: String = "foo.example.com"
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+    val mockClient = new MockQacctAccountingClient(_ => 
+      successfulRun(stdout = actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+    )
 
     val jobId = "12345"
 
@@ -144,7 +152,9 @@ final class QacctAccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getExecutionNode - no node to find") {
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(Queue("broad")), None))
+    val mockClient = new MockQacctAccountingClient(_ => 
+      successfulRun(stdout = actualQacctOutput(Some(Queue("broad")), None))
+    )
 
     val jobId = "12345"
 
@@ -163,7 +173,9 @@ final class QacctAccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getQueue - no queue to find") {
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(None, Some("foo.example.com")))
+    val mockClient = new MockQacctAccountingClient(_ => 
+      successfulRun(stdout = actualQacctOutput(None, Some("foo.example.com")))
+    )
 
     val jobId = "12345"
 
@@ -182,7 +194,9 @@ final class QacctAccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getQueue,getExecutionNode - neither present") {
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(None, None))
+    val mockClient = new MockQacctAccountingClient(_ => 
+      successfulRun(stdout = actualQacctOutput(None, None))
+    )
 
     val jobId = "12345"
 
@@ -203,7 +217,7 @@ final class QacctAccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getQueue,getExecutionNode - junk output") {
-    val mockClient = new MockQacctAccountingClient(_ => Seq("foo", "bar", "baz"))
+    val mockClient = new MockQacctAccountingClient(_ => successfulRun(stdout = Seq("foo", "bar", "baz")))
 
     val jobId = "12345"
 
@@ -212,7 +226,7 @@ final class QacctAccountingClientTest extends FunSuite {
   }
 
   test("QacctUgerClient.getQueue,getExecutionNode - empty output") {
-    val mockClient = new MockQacctAccountingClient(_ => Seq.empty)
+    val mockClient = new MockQacctAccountingClient(_ => successfulRun(stdout = Seq.empty))
 
     val jobId = "12345"
 

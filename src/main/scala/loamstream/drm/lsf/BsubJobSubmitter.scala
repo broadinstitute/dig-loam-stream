@@ -18,6 +18,8 @@ import scala.collection.mutable.ListBuffer
 import java.nio.file.Path
 import loamstream.drm.ContainerParams
 import loamstream.conf.LsfConfig
+import loamstream.util.RunResults
+import loamstream.util.Processes
 
 /**
  * @author clint
@@ -94,15 +96,9 @@ object BsubJobSubmitter extends Loggable {
       lsfConfig: LsfConfig, 
       actualExecutable: String): SubmissionFn = { (drmSettings, taskArray) =>
         
-    import scala.sys.process._
-  
     val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
     
-    debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
-    
-    val processBuilder: ProcessBuilder = tokens #< taskArray.drmScriptFile.toFile
-    
-    Processes.runSync(actualExecutable, processBuilder)
+    Processes.runSync(actualExecutable, tokens)
   }
   
   import DrmSubmissionResult.SubmissionFailure

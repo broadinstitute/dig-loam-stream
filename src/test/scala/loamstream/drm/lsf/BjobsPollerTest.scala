@@ -12,6 +12,8 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.execute.Resources.LsfResources
 import loamstream.model.quantities.Memory
 import loamstream.drm.Queue
+import loamstream.util.RunResults
+import loamstream.util.Tries
 
 /**
  * @author clint
@@ -78,9 +80,7 @@ final class BjobsPollerTest extends FunSuite {
   }
   
   test("poll - bjobs invocation failure") {
-    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
-      Success(RunResults("whatever", 42, validStdOut, Seq.empty))
-    }
+    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = Tries.failure("blarg")
     
     val lsfJobIds = Set(
         LsfJobId("2842408", 1).asString, 
@@ -130,24 +130,9 @@ final class BjobsPollerTest extends FunSuite {
   }
   
   test("runChunk - bjobs invocation failure") {
-    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
-      Success(RunResults("whatever", 42, validStdOut, Seq.empty))
-    }
-    
-    val lsfJobIds = Set(LsfJobId("2842408", 1), LsfJobId("2842408", 2), LsfJobId("2842408", 3))
-    
-    val results = new BjobsPoller(pollFn).runChunk(lsfJobIds)
-    
-    assert(results.keySet === lsfJobIds)
-    assert(results.values.forall(_.isFailure))
-  }
-  
-  test("runChunk - something threw") {
     val msg = "blarg"
     
-    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
-      Failure(new Exception(msg))
-    }
+    def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = Failure(new Exception(msg))
     
     val lsfJobIds = Set(LsfJobId("2842408", 1), LsfJobId("2842408", 2), LsfJobId("2842408", 3))
     

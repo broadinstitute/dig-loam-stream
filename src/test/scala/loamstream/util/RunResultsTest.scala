@@ -1,4 +1,4 @@
-package loamstream.drm.lsf
+package loamstream.util
 
 import org.scalatest.FunSuite
 

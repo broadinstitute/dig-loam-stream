@@ -21,9 +21,10 @@ final class UgerResourceUsageExtractorTest extends FunSuite {
   import UgerResourceUsageExtractor.fromUgerMap
   import UgerResourceUsageExtractor.toResources
   import UgerResourceUsageExtractorTest.LiteralJobInfo
+  import QacctTestHelpers.successfulRun
   
   test("toResources - valid resource-usage data in JobInfo") {
-    val mockUgerClient = new MockQacctAccountingClient(_ => actualQacctOutput)
+    val mockUgerClient = new MockQacctAccountingClient(_ => successfulRun(stdout = actualQacctOutput))
     
     val jobId = "12345"
     
@@ -42,7 +43,7 @@ final class UgerResourceUsageExtractorTest extends FunSuite {
   }
   
   test("toResources - incomplete resource-usage data in JobInfo") {
-    val mockUgerClient = new MockQacctAccountingClient(_ => actualQacctOutput)
+    val mockUgerClient = new MockQacctAccountingClient(_ => successfulRun(stdout = actualQacctOutput))
     
     val jobId = "12345"
     

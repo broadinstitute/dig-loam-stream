@@ -19,4 +19,6 @@ object LsfDefaults {
   val memoryPerCore: Memory = Memory.inGb(1)
     
   val maxRunTime: CpuTime = CpuTime.inHours(2)
+  
+  val maxBacctRetries: Int = 9
 }

@@ -62,15 +62,7 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[LsfJobId]]) ex
     val runResultsAttempt = pollingFn(lsfJobIds)
       
     val chunkOfIdsToStatusesAttempt = runResultsAttempt.flatMap { runResults =>
-      if(runResults.isFailure) { 
-        import runResults.exitCode
-        
-        runResults.logStdOutAndStdErr(s"LSF polling failure (exit code ${exitCode}), stdout and stderr follow:")
-        
-        Tries.failure(s"Error polling for job ids: $lsfJobIds")
-      } else {
-        Try(BjobsPoller.parseBjobsOutput(runResults.stdout).toMap)
-      }
+      Try(BjobsPoller.parseBjobsOutput(runResults.stdout).toMap)
     }
     
     chunkOfIdsToStatusesAttempt match { 

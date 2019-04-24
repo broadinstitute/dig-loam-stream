@@ -22,24 +22,29 @@ import java.time.ZoneId
  * Apr 18, 2019
  */
 object BacctResourceUsageExtractor extends ResourceUsageExtractor[Seq[String]] {
+  
   override def toResources(bacctOutput: Seq[String]): Try[LsfResources] = {
-    //Dispatched to <ebi6-054>
+    val mungedBacctOutput = bacctOutput.map(_.trim)
     
-    val node = bacctOutput.collectFirst { case Regexes.node(n) => n }
+    /*
+     * Documentation on bacct's output format:
+     * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
+     */
+    val node = mungedBacctOutput.collectFirst { case Regexes.node(n) => n }
     
-    val queue = bacctOutput.collectFirst { case Regexes.queue(q) => q }.map(Queue(_))
+    val queue = mungedBacctOutput.collectFirst { case Regexes.queue(q) => q }.map(Queue(_))
     
-    def isHeaderLine(s: String): Boolean = s.trim.startsWith("CPU_T")
+    def isHeaderLine(s: String): Boolean = s.startsWith("CPU_T")
     
-    val dataLineOpt = bacctOutput.sliding(2).collectFirst {
+    val dataLineOpt = mungedBacctOutput.sliding(2).collectFirst {
       case Seq(firstLine, nextLine) if isHeaderLine(firstLine) => nextLine.trim
     }
     
-    val dataLineAttempt = Options.toTry(dataLineOpt)(s"Couldn't find data line in bacct output: '$bacctOutput'")
+    val dataLineAttempt = Options.toTry(dataLineOpt)(s"Couldn't find data line in bacct output: '$mungedBacctOutput'")
     
+    //"Data lines" look like this:
     //CPU_T     WAIT     TURNAROUND   STATUS     HOG_FACTOR    MEM    SWAP
     //0.02        0              0     exit         0.0000     0M      0M
-    
     def parseDataLine(line: String): Try[LsfResources] = {
       val parts = line.split("\\s+")
         
@@ -47,20 +52,29 @@ object BacctResourceUsageExtractor extends ResourceUsageExtractor[Seq[String]] {
         if(parts.isDefinedAt(i)) Success(parts(i)) else Tries.failure(message)
       }
 
-      //NB: assume megabytes :(
-      def parseMemory(s: String): Try[Memory] = s match {
-        case Regexes.memory(howMuch) => Try(Memory.inMb(howMuch.toDouble))
-        case _ => Tries.failure(s"Couldn't parse memory information from '$s', part of line '$line'")
+      //NB: assume megabytes or gigabytes; the LSF documentation doesn't describe what units are possible. :(
+      def parseMemory(s: String): Try[Memory] = {
+        val toMemory: Double => Memory = s.last.toUpper match {
+          case 'M' => Memory.inMb
+          case 'G' => Memory.inGb
+        }
+        
+        s match {
+          case Regexes.memory(howMuch) => Try(toMemory(howMuch.toDouble))
+          case _ => Tries.failure(s"Couldn't parse memory information from '$s', part of line '$line'")
+        }
       }
       
+      /*
+       * Cpu time is reported in seconds.  See:
+       * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
+       */
       def parseCpuTime(s: String): Try[CpuTime] = Try(CpuTime.inSeconds(s.toDouble))
         
-      def parseTime(regex: Regex, fieldType: String): Try[Instant] = {
-        println(s"%%%%%%%%%%%%% parsing time line: ")
+      def parseTimestamp(regex: Regex, fieldType: String): Try[Instant] = {
+        val dateOpt = mungedBacctOutput.collectFirst { case regex(v) => v }
         
-        val dateOpt = bacctOutput.iterator.map(_.trim).collectFirst { case regex(v) => v }
-        
-        def failureMessage = s"Couldn't parse $fieldType timestamp from bacct output '$bacctOutput'"
+        def failureMessage = s"Couldn't parse $fieldType timestamp from bacct output '$mungedBacctOutput'"
         
         val dateStringAttempt = Options.toTry(dateOpt)(failureMessage)
         
@@ -70,8 +84,8 @@ object BacctResourceUsageExtractor extends ResourceUsageExtractor[Seq[String]] {
       for {
         memory <- tryToGet(6, s"Couldn't parse memory usage from bacct line '$line'").flatMap(parseMemory)
         cpuTime <- tryToGet(0, s"Couldn't parse cpu time usage from bacct line '$line'").flatMap(parseCpuTime)
-        startTime <- parseTime(Regexes.startTime, "start")
-        endTime <- parseTime(Regexes.endTime, "end")
+        startTime <- parseTimestamp(Regexes.startTime, "start")
+        endTime <- parseTimestamp(Regexes.endTime, "end")
       } yield {
         LsfResources(
           memory = memory,
@@ -83,19 +97,18 @@ object BacctResourceUsageExtractor extends ResourceUsageExtractor[Seq[String]] {
       }
     }
     
-    for {
-      dataLine <- dataLineAttempt
-      resources <- parseDataLine(dataLine)
-    } yield resources
+    dataLineAttempt.flatMap(parseDataLine)
   }
 
-  //Parses dates of the form: Thu Apr 18 22:32:01
-  //Since that date format doesn't include a year or time zone, we have to provide default values for those.  This code
-  //asks the runtime for them, each time a formatter is made.  (The formatter takes all its parameters by-value.)
-  //Consequently, this formatter needs to be a def. It wouldn't be so bad to cache the formatter and assume the year 
-  //is the same throughout a run of LS, but I don't think that will save very much cpu time, and date issues that only 
-  //manifest on runs that cross year boundaries are not something that would be fun to debug in fome far-off future.  
-  //-Clint Apr 22, 2019
+  /*
+   * Parses dates of the form: Thu Apr 18 22:32:01
+   * Since that date format doesn't include a year or time zone, we have to provide default values for those.  This 
+   * code asks the runtime for them, each time a formatter is made.  (The formatter takes all its parameters by-value.)
+   * Consequently, this formatter needs to be a def. It wouldn't be so bad to cache the formatter and assume the year 
+   * is the same throughout a run of LS, but I don't think that will save very much cpu time, and date bugs that only
+   * manifest on runs that cross year boundaries are not something that would be fun to debug in fome far-off future.
+   *  -Clint Apr 22, 2019
+   */
   private def dateFormatter: DateTimeFormatter = {
     val systemTimeZoneId = ZoneId.of(java.util.TimeZone.getDefault.getID)
 
@@ -116,6 +129,6 @@ object BacctResourceUsageExtractor extends ResourceUsageExtractor[Seq[String]] {
     val startTime = "(.*):\\s+Dispatched\\sto.*".r
     //Thu Apr 18 22:32:01: Completed <exit>.
     val endTime = "(.*):\\s+Completed.*".r
-    val memory = "^(\\d+)M$".r
+    val memory = "^(\\d+)[MmGg]$".r
   }
 }

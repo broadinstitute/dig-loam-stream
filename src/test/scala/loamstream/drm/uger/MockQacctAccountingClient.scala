@@ -6,13 +6,15 @@ import loamstream.util.ValueBox
 import loamstream.conf.UgerConfig
 import scala.util.Try
 import scala.concurrent.duration.Duration
+import loamstream.util.RunResults
+import scala.util.Success
 
 /**
  * @author clint
  * Mar 15, 2017
  */
 final class MockQacctAccountingClient(
-    delegateFn: String => Seq[String],
+    delegateFn: String => Try[RunResults],
     ugerConfig: UgerConfig = UgerConfig(),
     delayStart: Duration = AccountingClient.defaultDelayStart,
     delayCap: Duration = AccountingClient.defaultDelayCap) extends AccountingClient {
@@ -30,13 +32,15 @@ final class MockQacctAccountingClient(
   def timesGetQueueInvoked: Int = timesGetQueueInvokedBox()
 
   private val actualDelegate = {
-    val wrappedDelegateFn: String => Seq[String] = { jobId =>
+    val fakeBinaryName = "MOCK"
+    
+    val wrappedDelegateFn: String => Try[RunResults] = { jobId =>
       timesGetQacctOutputForInvokedBox.mutate(_ + 1)
 
       delegateFn(jobId)
     }
 
-    new QacctAccountingClient(ugerConfig, wrappedDelegateFn, delayStart, delayCap)
+    new QacctAccountingClient(ugerConfig, fakeBinaryName, wrappedDelegateFn, delayStart, delayCap)
   }
 
   override def getExecutionNode(jobId: String): Option[String] = {

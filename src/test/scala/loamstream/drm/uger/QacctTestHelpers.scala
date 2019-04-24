@@ -1,12 +1,32 @@
 package loamstream.drm.uger
 
 import loamstream.drm.Queue
+import loamstream.util.RunResults
+import scala.util.Try
+import scala.util.Success
 
 /**
  * @author clint
  * Mar 15, 2017
  */
 object QacctTestHelpers {
+  def successfulRun(
+      stdout: Seq[String], 
+      stderr: Seq[String] = Nil, 
+      fakeBinaryName: String = "MOCK"): Try[RunResults] = {
+    
+    Success(RunResults(fakeBinaryName, exitCode = 0, stdout = stdout, stderr = stderr))
+  }
+  
+  def failedRun(
+      exitCode: Int, 
+      stdout: Seq[String], 
+      stderr: Seq[String] = Nil, 
+      fakeBinaryName: String = "MOCK"): Try[RunResults] = {
+
+    Success(RunResults(fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr))
+  }
+  
   //scalastyle:off method.length
   def actualQacctOutput(queue: Option[Queue], node: Option[String]): Seq[String] = s"""
 qname        ${queue.map(_.name).getOrElse("")}

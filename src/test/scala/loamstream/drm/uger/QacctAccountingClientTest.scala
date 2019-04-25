@@ -27,6 +27,22 @@ final class QacctAccountingClientTest extends FunSuite {
   import QacctTestHelpers.expectedResources
   import scala.concurrent.duration._
   
+  test("toInstant - problematic dates") {
+    val localTzOffset = ZonedDateTime.now.getOffset
+    
+    def doTest(ugerFormat: String, expectedInIsoFormat: String): Unit = {
+      val expected = LocalDateTime.parse(expectedInIsoFormat).toInstant(localTzOffset)
+      
+      val parsed = QacctAccountingClient.toInstant("start")(ugerFormat)
+      
+      assert(parsed.get === expected)
+    }
+    
+    //NB: One is DST, one isn't :\
+    doTest("04/25/2019 14:20:36.264", "2019-04-25T14:20:36.264")
+    doTest("03/06/2017 17:49:50.505", "2017-03-06T18:49:50.505")
+  }
+  
   test("getResourceUsage - accounting client fails") {
     val ugerConfig = UgerConfig(maxQacctRetries = 0)
     

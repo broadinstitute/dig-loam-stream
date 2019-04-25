@@ -27,6 +27,7 @@ import java.time.temporal.ChronoField
 import loamstream.util.Tries
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
+import java.time.OffsetDateTime
 
 /**
  * @author clint
@@ -84,7 +85,10 @@ final class QacctAccountingClient(
         endTime = end)
     }
   }
-  
+}
+
+object QacctAccountingClient extends Loggable {
+
   private def orElseErrorMessage[A](msg: String)(a: => A): Try[A] = {
     Try(a).recoverWith { case _ => Tries.failure(msg) } 
   }
@@ -105,9 +109,9 @@ final class QacctAccountingClient(
   }
   
   //NB: qacct reports timestamps in a format like `03/06/2017 17:49:50.455` in the local time zone 
-  private def toInstant(fieldType: String)(s: String): Try[Instant] = {
+  private[uger] def toInstant(fieldType: String)(s: String): Try[Instant] = {
     orElseErrorMessage(s"Couldn't parse $fieldType timestamp from '$s'") {
-      QacctAccountingClient.dateFormatter.parse(s, ZonedDateTime.from(_)).toInstant
+      QacctAccountingClient.dateFormatter.parse(s, Instant.from(_))
     }
   }
 
@@ -116,14 +120,11 @@ final class QacctAccountingClient(
     
     Options.toTry(opt)(s"Couldn't find field that matched regex '$regex'")
   }
-}
-
-object QacctAccountingClient extends Loggable {
   
   //Example date from qacct: 03/06/2017 17:49:50.455
   private val dateFormatter: DateTimeFormatter = {
     (new DateTimeFormatterBuilder)
-      .appendPattern("dd/MM/yyyy HH:mm:ss.SSS")
+      .appendPattern("MM/dd/yyyy HH:mm:ss.SSS")
       .toFormatter
       .withZone(ZoneId.systemDefault)
   }

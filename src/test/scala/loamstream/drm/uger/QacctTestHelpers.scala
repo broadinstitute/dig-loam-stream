@@ -44,8 +44,8 @@ object QacctTestHelpers {
       cpuTime = CpuTime.inSeconds(2.487),
       node = expectedNode,
       queue = expectedQueue,
-      startTime = LocalDateTime.parse("2017-06-03T17:49:50.505").toInstant(localTzOffset),
-      endTime = LocalDateTime.parse("2017-06-03T17:49:57.464").toInstant(localTzOffset))
+      startTime = LocalDateTime.parse("2017-03-06T18:49:50.505").toInstant(localTzOffset),
+      endTime = LocalDateTime.parse("2017-03-06T18:49:57.464").toInstant(localTzOffset))
   }
   
   //scalastyle:off method.length

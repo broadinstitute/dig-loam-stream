@@ -134,11 +134,7 @@ final case class DrmChunkRunner(
     shouldRestart: LJob => Boolean,
     jobsById: Map[String, DrmJobWrapper]): Observable[Map[LJob, RunData]] = {
 
-    def statuses(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = {
-      time(s"Calling JobMonitor.monitor(${jobIds.mkString(",")})", trace(_)) {
-        jobMonitor.monitor(jobIds)
-      }
-    }
+    def statuses(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = jobMonitor.monitor(jobIds)
 
     val jobsAndDrmStatusesById = combine(jobsById, statuses(jobsById.keys))
 
@@ -192,6 +188,8 @@ object DrmChunkRunner extends Loggable {
       drmJobStatuses.distinct.foreach(handleDrmStatus(shouldRestart, wrapper.commandLineJob))
 
       def toRunData(s: DrmStatus): RunData = {
+        
+        
         RunData(
             job = wrapper.commandLineJob,
             jobStatus = toJobStatus(s),

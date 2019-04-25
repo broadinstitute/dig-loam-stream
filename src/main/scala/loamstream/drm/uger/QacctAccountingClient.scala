@@ -15,6 +15,18 @@ import scala.util.Failure
 import scala.concurrent.duration._
 import loamstream.util.RunResults
 import loamstream.util.Processes
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
+import loamstream.util.Options
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.time.ZoneId
+import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoField
+import loamstream.util.Tries
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 /**
  * @author clint
@@ -47,37 +59,91 @@ final class QacctAccountingClient(
   }
 
   //NB: Failures will already have been logged, so we can drop any Failure(e) here.
-  protected def getQacctOutputFor(jobId: String): Option[Seq[String]] = {
-    qacctOutputForJobId(jobId).toOption.map(_.stdout)
+  private def getQacctOutputFor(jobId: String): Try[Seq[String]] = {
+    qacctOutputForJobId(jobId).map(_.stdout)
   }
 
-  import Regexes.{ hostname, qname }
+  import Regexes.{ hostname, qname, cpu, mem, startTime, endTime }
 
   override def getExecutionNode(jobId: String): Option[String] = {
-    for {
-      output <- getQacctOutputFor(jobId)
-      //NB: Empty hostname strings are considered invalid
-      node <- findField(output, hostname).map(_.trim).filter(_.nonEmpty)
-    } yield node
+    getResourceUsage(jobId).toOption.flatMap(_.node)
   }
 
   override def getQueue(jobId: String): Option[Queue] = {
+    getResourceUsage(jobId).toOption.flatMap(_.queue)
+  }
+  
+  override def getResourceUsage(jobId: String): Try[UgerResources] = {
+    //NB: Uger reports cpu time as a floating-point number of cpu-seconds. 
+    def toCpuTime(s: String) = {
+      Try(CpuTime(s.toDouble.seconds)).recoverWith {
+        case _ => Tries.failure(s"Couldn't parse '$s' as CpuTime")
+      }
+    }
+    
+    //NB: The value of qacct's ru_maxrss field (in kilobytes) is the closest approximation of
+    //a Uger job's memory utilization
+    def toMemory(s: String): Try[Memory] = {
+      Try(Memory.inKb(s.toDouble)).recoverWith {
+        case _ => Tries.failure(s"Couldn't parse '$s' as Memory (in kilobytes)")
+      }
+    }
+    
+    //NB: qacct reports timestamps in a format like `03/06/2017 17:49:50.455` in the local time zone 
+    def toInstant(fieldType: String)(s: String): Try[Instant] = {
+      Try {
+        QacctAccountingClient.dateFormatter.parse(s, ZonedDateTime.from(_)).toInstant
+      }/*.recoverWith {
+        case _ => Tries.failure(s"Couldn't parse $fieldType timestamp from '$s'")
+      }*/
+    }
+    
     for {
       output <- getQacctOutputFor(jobId)
-      //NB: Empty qname strings are considered invalid
-      queue <- findField(output, qname).map(_.trim).filter(_.nonEmpty).map(Queue(_))
-    } yield queue
+      nodeOpt = findField(output, hostname).toOption
+      queueOpt = findField(output, qname).map(Queue(_)).toOption
+      memory <- findField(output, mem).flatMap(toMemory)
+      cpuTime <- findField(output, cpu).flatMap(toCpuTime)
+      start <- findField(output, startTime).flatMap(toInstant("start"))
+      end <- findField(output, endTime).flatMap(toInstant("end"))
+    } yield {
+      UgerResources(
+        memory = memory,
+        cpuTime = cpuTime,
+        node = nodeOpt,
+        queue = queueOpt,
+        startTime = start,
+        endTime = end)
+    }
   }
 
-  private def findField(fields: Seq[String], regex: Regex): Option[String] = {
-    fields.collect { case regex(value) => value }.headOption
+  private def findField(fields: Seq[String], regex: Regex): Try[String] = {
+    val opt = fields.collectFirst { case regex(value) => value.trim }.filter(_.nonEmpty)
+    
+    Options.toTry(opt)(s"Couldn't find field that matched regex '$regex'")
   }
 }
 
 object QacctAccountingClient extends Loggable {
+  
+  private val dateFormatter: DateTimeFormatter = {
+    (new DateTimeFormatterBuilder)
+      .appendPattern("dd/MM/yyyy HH:mm:ss.SSS")
+      .toFormatter
+      .withZone(ZoneId.systemDefault)
+  }
+  
+  
   private object Regexes {
     val qname = "qname\\s+(.+?)$".r
     val hostname = "hostname\\s+(.+?)$".r
+    
+    val cpu = "cpu\\s+(.+?)$".r
+    val mem = "ru_maxrss\\s+(.+?)$".r
+    
+    val startTime = "start_time\\s+(.+?)$".r
+    //03/06/2017 17:49:50.455
+    val endTime = "end_time\\s+(.+?)$".r
   }
 
   /**

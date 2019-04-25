@@ -23,10 +23,12 @@ final class DrmaaPollerTest extends FunSuite {
 
   private val zero = Duration.Zero
   
+  
+  
   test("drama().poll() - happy path") {
     val jobId = "foo"
     
-    val client = MockDrmaaClient(Map(jobId -> Seq(Success(Running), Success(Running), Success(Done))))
+    val client = MockDrmClient(Map(jobId -> Seq(Success(Running), Success(Running), Success(Done))))
     
     val poller = new DrmaaPoller(client)
     
@@ -51,7 +53,7 @@ final class DrmaaPollerTest extends FunSuite {
     
     val jobIds = Seq(jobId1, jobId2, jobId3)
     
-    val client = MockDrmaaClient(
+    val client = MockDrmClient(
       Map(
         jobId1 -> Seq(Success(Running), Success(Running), Success(Running), Success(Done)),
         jobId2 -> Seq(Success(Running), Success(Done)),
@@ -114,7 +116,7 @@ final class DrmaaPollerTest extends FunSuite {
     
     val jobIds = Seq(jobId)
     
-    val client = MockDrmaaClient(
+    val client = MockDrmClient(
       Map(
         jobId -> Seq(Success(Running), Failure(exception), Success(Done), Failure(exception))))
     

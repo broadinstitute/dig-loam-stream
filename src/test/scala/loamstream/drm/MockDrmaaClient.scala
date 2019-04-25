@@ -5,12 +5,13 @@ import scala.util.Try
 import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.ValueBox
+import loamstream.model.execute.Resources.DrmResources
 
 /**
  * @author clint
  * date: Jul 6, 2016
  */
-final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[DrmStatus]]]) extends DrmaaClient {
+final case class MockDrmClient(private val toReturn: Map[String, Seq[Try[DrmStatus]]]) extends DrmClient {
   import loamstream.util.Maps.Implicits._
   
   private val remaining: ValueBox[Map[String, Seq[Try[DrmStatus]]]] = {
@@ -50,4 +51,10 @@ final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[DrmSt
   override def killJob(jobId: String): Unit = ???
   
   override def killAllJobs(): Unit = ???
+  
+  override def getExecutionNode(jobId: String): Option[String] = ???
+
+  override def getQueue(jobId: String): Option[Queue] = ???
+  
+  override def getResourceUsage(jobId: String): Try[DrmResources] = ???
 }

@@ -52,7 +52,7 @@ final class JobMonitor(
    * @param scheduler the RxScala Scheduler to run the polling operations on 
    * @param jobIds the ids of the jobs to monitor
    * @return a map of job ids to Observable streams of statuses for each job. The statuses are the result of polling 
-   * UGER *synchronously* via the supplied poller at the supplied rate.
+   * the DRM system *synchronously* via the supplied poller at the supplied rate.
    */
   def monitor(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = {
     

@@ -7,7 +7,11 @@ import loamstream.util.RunResults
 import scala.util.Try
 import loamstream.util.Processes
 
-final class BacctInvoker(
+/**
+ * @author clint
+ * Apr 23, 2019
+ */
+final class BacctInvoker private[lsf] (
     lsfConfig: LsfConfig,
     binaryName: String,
     delegateFn: String => Try[RunResults],
@@ -18,9 +22,9 @@ final class BacctInvoker(
   //bacct in the production case, more than necessary.
   //NB: If bacct fails, retry up to lsfConfig.maxBacctRetries times, by default waiting 
   //0.5, 1, 2, 4, ... up to 30s in between each one.
-  override def apply(jobId: String): Try[RunResults] = qacctOutputForJobId(jobId)
+  override def apply(jobId: String): Try[RunResults] = bacctOutputForJobId(jobId)
   
-  private val qacctOutputForJobId: String => Try[RunResults] = {
+  private val bacctOutputForJobId: String => Try[RunResults] = {
     AccountingClient.doRetries(
         binaryName = binaryName, 
         maxRetries = lsfConfig.maxBacctRetries, 

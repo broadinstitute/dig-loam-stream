@@ -23,7 +23,7 @@ final class JobMonitorTest extends FunSuite {
   
   test("stop()") {
     withThreadPoolScheduler(1) { scheduler =>
-      val client = MockDrmaaClient(Map.empty)
+      val client = MockDrmClient(Map.empty)
       
       val jobMonitor = new JobMonitor(scheduler, new DrmaaPoller(client))
       
@@ -48,7 +48,7 @@ final class JobMonitorTest extends FunSuite {
     
     val jobIds = Seq(jobId1, jobId2, jobId3)
     
-    val client = MockDrmaaClient(
+    val client = MockDrmClient(
       Map(
         jobId1 -> Seq(Success(Queued), Success(Running), Success(Running), Success(Done)),
         jobId2 -> Seq(Success(Running), Success(Done)),

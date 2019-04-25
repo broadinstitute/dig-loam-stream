@@ -24,9 +24,7 @@ final class BacctResourceUsageExtractorTest extends FunSuite {
   test("Parse actual bacct outpout - happy path") {
     val actual = BacctResourceUsageExtractor.toResources(actualOutput.split("\\n"))
     
-    val systemTimeZoneId = ZoneId.of(java.util.TimeZone.getDefault.getID)
-    
-    val now = Instant.now.atZone(systemTimeZoneId)
+    val now = ZonedDateTime.now
     
     val systemTimeZoneOffSet = now.getOffset.getId
     

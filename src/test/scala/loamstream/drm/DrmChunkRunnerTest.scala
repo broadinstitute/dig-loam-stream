@@ -92,13 +92,13 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig))
   
   test("No failures when empty set of jobs is presented - Uger") {
-    val mockDrmaaClient = new MockDrmaaClient(Map.empty)
+    val mockDrmClient = new MockDrmClient(Map.empty)
     val runner = DrmChunkRunner(
         environmentType = EnvironmentType.Uger,
         pathBuilder = ugerPathBuilder,
         executionConfig = executionConfig,
         drmConfig = ugerConfig,
-        jobSubmitter = JobSubmitter.Drmaa(mockDrmaaClient, ugerConfig),
+        jobSubmitter = JobSubmitter.Drmaa(mockDrmClient, ugerConfig),
         //NB: The poller can always fail, since it should never be invoked
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller))
     
@@ -412,7 +412,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     def makeChunkRunner(drmSystem: DrmSystem, mockJobSubmitter: MockJobSubmitter): DrmChunkRunner = drmSystem match {
       case DrmSystem.Uger => {
-        val mockDrmaaClient = MockDrmaaClient(Map.empty)
+        val mockDrmClient = MockDrmClient(Map.empty)
     
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
@@ -503,7 +503,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     def makeChunkRunner(drmSystem: DrmSystem, mockJobSubmitter: MockJobSubmitter): DrmChunkRunner = drmSystem match {
       case DrmSystem.Uger => { 
-        val mockDrmaaClient = MockDrmaaClient(Map.empty)
+        val mockDrmClient = MockDrmClient(Map.empty)
 
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
@@ -511,7 +511,7 @@ final class DrmChunkRunnerTest extends FunSuite {
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)))
+            jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmClient)))
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(

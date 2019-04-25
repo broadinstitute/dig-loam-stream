@@ -9,6 +9,8 @@ import loamstream.util.Functions
 import loamstream.util.RunResults
 import loamstream.util.Processes
 import loamstream.util.Tries
+import loamstream.util.Loops
+import loamstream.model.execute.Resources.DrmResources
 
 /**
  * @author clint
@@ -20,6 +22,8 @@ trait AccountingClient {
   def getExecutionNode(jobId: String): Option[String]
 
   def getQueue(jobId: String): Option[Queue]
+  
+  def getResourceUsage(jobId: String): Try[DrmResources]
 }
 
 object AccountingClient extends Loggable {
@@ -55,21 +59,12 @@ object AccountingClient extends Loggable {
       case attempt => attempt
     }
     
-    val delays = AccountingClient.delaySequence(delayStart, delayCap)
-    
-    def delayIfFailure[A](attempt: Try[A]): Try[A] = {
-      if(attempt.isFailure) {
-        //TODO: Evaluate whether or not blocking is ok. For now, it's expedient and doesn't seem to cause problems.
-        Thread.sleep(delays.next().toMillis)
-      }
-      
-      attempt
+    val resultOpt = Loops.retryUntilSuccessWithBackoff(maxRuns, delayStart, delayCap) {
+      invokeBinary()
     }
     
-    val attempts = Iterator.continually(invokeBinary()).take(maxRuns).map(delayIfFailure).dropWhile(_.isFailure)
-    
-    val result: Try[RunResults] = attempts.toStream.headOption match {
-      case Some(s @ Success(_)) => s
+    val result: Try[RunResults] = resultOpt match {
+      case Some(a) => Success(a)
       case _ => {
         val msg = {
           s"Invoking '$binaryName' for job with DRM id '$jobId' failed after $maxRuns runs; " +

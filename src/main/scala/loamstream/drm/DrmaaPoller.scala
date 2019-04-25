@@ -11,7 +11,7 @@ import loamstream.util.Loggable
  * @author clint
  * date: Jun 21, 2016
  */
-final class DrmaaPoller(client: DrmaaClient) extends Poller with Loggable {
+final class DrmaaPoller(client: DrmClient) extends Poller with Loggable {
   
   override def stop(): Unit = client.stop()
   

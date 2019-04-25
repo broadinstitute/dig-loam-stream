@@ -8,6 +8,7 @@ import scala.util.Try
 import scala.concurrent.duration.Duration
 import loamstream.util.RunResults
 import scala.util.Success
+import loamstream.model.execute.Resources.DrmResources
 
 /**
  * @author clint
@@ -25,11 +26,15 @@ final class MockQacctAccountingClient(
 
   private val timesGetQueueInvokedBox: ValueBox[Int] = ValueBox(0)
   
+  private val timesGetResourceUsageInvokedBox: ValueBox[Int] = ValueBox(0)
+  
   def timesGetQacctOutputForInvoked: Int = timesGetQacctOutputForInvokedBox()
 
   def timesGetExecutionNodeInvoked: Int = timesGetExecutionNodeInvokedBox()
 
   def timesGetQueueInvoked: Int = timesGetQueueInvokedBox()
+  
+  def timesGetResourceUsageInvoked: Int = timesGetResourceUsageInvokedBox()
 
   private val actualDelegate = {
     val fakeBinaryName = "MOCK"
@@ -53,5 +58,11 @@ final class MockQacctAccountingClient(
     timesGetQueueInvokedBox.mutate(_ + 1)
 
     actualDelegate.getQueue(jobId)
+  }
+  
+  override def getResourceUsage(jobId: String): Try[DrmResources] = {
+    timesGetResourceUsageInvokedBox.mutate(_ + 1)
+    
+    actualDelegate.getResourceUsage(jobId)
   }
 }

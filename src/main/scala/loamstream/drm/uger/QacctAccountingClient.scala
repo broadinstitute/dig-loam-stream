@@ -28,6 +28,7 @@ import loamstream.util.Tries
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 import java.time.OffsetDateTime
+import loamstream.util.RetryingCommandInvoker
 
 /**
  * @author clint
@@ -38,31 +39,11 @@ import java.time.OffsetDateTime
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
-    ugerConfig: UgerConfig,
-    binaryName: String,
-    val qacctOutputForJobIdFn: AccountingClient.InvocationFn[String],
-    delayStart: Duration = AccountingClient.defaultDelayStart,
-    delayCap: Duration = AccountingClient.defaultDelayCap) extends AccountingClient with Loggable {
+    qacctInvoker: RetryingCommandInvoker[String]) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
 
-  //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
-  //qacct in the production case, more than necessary.
-  //NB: If qacct fails, retry up to ugerConfig.maxQacctRetries times, by default waiting 
-  //0.5, 1, 2, 4, ... up to 30s in between each one.
-  private val qacctOutputForJobId: AccountingClient.InvocationFn[String] = {
-    AccountingClient.doRetries(
-        binaryName = binaryName, 
-        maxRetries = ugerConfig.maxQacctRetries, 
-        delayStart = delayStart, 
-        delayCap = delayCap, 
-        delegateFn = qacctOutputForJobIdFn)
-  }
-
-  //NB: Failures will already have been logged, so we can drop any Failure(e) here.
-  private def getQacctOutputFor(jobId: String): Try[Seq[String]] = {
-    qacctOutputForJobId(jobId).map(_.stdout)
-  }
+  private def getQacctOutputFor(jobId: String): Try[Seq[String]] = qacctInvoker(jobId).map(_.stdout)
 
   import Regexes.{ hostname, qname, cpu, mem, startTime, endTime }
 
@@ -89,6 +70,13 @@ final class QacctAccountingClient(
 
 object QacctAccountingClient extends Loggable {
 
+  /**
+   * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
+   */
+  def useActualBinary(ugerConfig: UgerConfig, binaryName: String = "qacct"): QacctAccountingClient = {
+    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxQacctRetries, binaryName))
+  }
+  
   private def orElseErrorMessage[A](msg: String)(a: => A): Try[A] = {
     Try(a).recoverWith { case _ => Tries.failure(msg) } 
   }
@@ -140,15 +128,4 @@ object QacctAccountingClient extends Loggable {
     
     val endTime = "end_time\\s+(.+?)$".r
   }
-
-  /**
-   * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
-   */
-  def useActualBinary(ugerConfig: UgerConfig, binaryName: String = "qacct"): QacctAccountingClient = {
-    def invokeQacctFor(jobId: String): Try[RunResults] = Processes.runSync(binaryName, makeTokens(binaryName, jobId))
-    
-    new QacctAccountingClient(ugerConfig, binaryName, invokeQacctFor)
-  }
-
-  private[uger] def makeTokens(binaryName: String, jobId: String): Seq[String] = Seq(binaryName, "-j", jobId)
 }

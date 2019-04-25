@@ -9,14 +9,17 @@ import scala.util.Success
  * Apr 24, 2019
  */
 object Loops {
-  private[util] val defaultDelayStart: Duration = 0.5.seconds
-  private[util] val defaultDelayCap: Duration = 30.seconds
   
-  private[util] def delaySequence(start: Duration, cap: Duration): Iterator[Duration] = {
-    require(start gt 0.seconds)
-    require(cap gt 0.seconds)
+  private[util] object Backoff {
+    val defaultDelayStart: Duration = 0.5.seconds
+    val defaultDelayCap: Duration = 30.seconds
     
-    Iterator.iterate(start)(_ * 2).map(_.min(cap))
+    def delaySequence(start: Duration, cap: Duration): Iterator[Duration] = {
+      require(start gt 0.seconds)
+      require(cap gt 0.seconds)
+      
+      Iterator.iterate(start)(_ * 2).map(_.min(cap))
+    }
   }
   
   def retryUntilSuccessWithBackoff[A](
@@ -24,12 +27,16 @@ object Loops {
       delayStart: Duration, 
       delayCap: Duration)(op: => Try[A]): Option[A] = {
     
-    val delays = delaySequence(delayStart, delayCap)
+    val delays = Backoff.delaySequence(delayStart, delayCap)
     
     def delayIfFailure[A](attempt: Try[A]): Try[A] = {
       if(attempt.isFailure) {
-        //TODO: Evaluate whether or not blocking is ok. For now, it's expedient and doesn't seem to cause problems.
-        Thread.sleep(delays.next().toMillis)
+        val howMuch = delays.next().toMillis
+        
+        if(howMuch > 0) {
+          //TODO: Evaluate whether or not blocking is ok. For now, it's expedient and doesn't seem to cause problems.
+          Thread.sleep(delays.next().toMillis)
+        }
       }
       
       attempt

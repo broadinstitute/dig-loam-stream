@@ -10,19 +10,38 @@ import loamstream.model.quantities.CpuTime
 import java.time.ZoneId
 import java.time.temporal.ChronoField
 import java.time.ZonedDateTime
+import loamstream.util.RetryingCommandInvoker
+import loamstream.util.RunResults
+import scala.util.Try
 
 /**
  * @author clint
  * Apr 18, 2019
  */
-final class BacctResourceUsageExtractorTest extends FunSuite {
+final class BacctAccountingClientTest extends FunSuite {
+  private def runResultsAttempt(
+      binaryName: String = "MOCK", 
+      exitCode: Int = 0, 
+      stdout: Seq[String] = Nil,
+      stderr: Seq[String] = Nil): Try[RunResults] = Success(RunResults(binaryName, exitCode, stdout, stderr))
+  
   test("Parse actual bacct outpout - bad input") {
-    assert(BacctResourceUsageExtractor.toResources(Nil).isFailure === true)
-    assert(BacctResourceUsageExtractor.toResources(Seq("x", "y", "z")).isFailure === true)
+    def doTest(bacctOutput: Seq[String]): Unit = {
+      val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = bacctOutput))
+    
+      assert(new BacctAccountingClient(mockInvoker).getResourceUsage("foo").isFailure === true)
+    }
+    
+    doTest(Nil)
+    doTest(Seq("x", "y", "z"))
   }
   
   test("Parse actual bacct outpout - happy path") {
-    val actual = BacctResourceUsageExtractor.toResources(actualOutput.split("\\n"))
+    val splitOutput = actualOutput.split("\\n")
+    
+    val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
+    
+    val actual = (new BacctAccountingClient(mockInvoker)).getResourceUsage("someJobId")
     
     val now = ZonedDateTime.now
     

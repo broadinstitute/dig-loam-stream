@@ -9,6 +9,7 @@ import scala.concurrent.duration.Duration
 import loamstream.util.RunResults
 import scala.util.Success
 import loamstream.model.execute.Resources.DrmResources
+import loamstream.util.RetryingCommandInvoker
 
 /**
  * @author clint
@@ -37,7 +38,11 @@ final class MockQacctAccountingClient(
       delegateFn(jobId)
     }
 
-    new QacctAccountingClient(ugerConfig, fakeBinaryName, wrappedDelegateFn, delayStart, delayCap)
+    val invoker = {
+      new RetryingCommandInvoker[String](ugerConfig.maxQacctRetries, "MOCK", wrappedDelegateFn, delayStart, delayCap)
+    }
+    
+    new QacctAccountingClient(invoker)
   }
 
   override def getResourceUsage(jobId: String): Try[DrmResources] = {

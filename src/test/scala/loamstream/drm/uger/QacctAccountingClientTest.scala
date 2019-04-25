@@ -207,8 +207,4 @@ final class QacctAccountingClientTest extends FunSuite {
 
     assert(mockClient.getResourceUsage(jobId).isFailure)
   }
-
-  test("makeTokens") {
-    assert(QacctAccountingClient.makeTokens("foo", "bar") === Seq("foo", "-j", "bar"))
-  }
 }

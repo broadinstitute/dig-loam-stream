@@ -39,7 +39,6 @@ import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.uger.QacctAccountingClient
 import loamstream.drm.uger.UgerNativeSpecBuilder
 import loamstream.drm.uger.UgerPathBuilder
-import loamstream.drm.uger.UgerResourceUsageExtractor
 
 import loamstream.googlecloud.CloudSdkDataProcClient
 import loamstream.googlecloud.CloudStorageClient
@@ -447,7 +446,7 @@ object AppWiring extends Loggable {
   }
   
   private def makeUgerClient(ugerConfig: UgerConfig): DrmClient = {
-    val drmaa1Client = new Drmaa1Client(UgerResourceUsageExtractor, UgerNativeSpecBuilder(ugerConfig))
+    val drmaa1Client = new Drmaa1Client(UgerNativeSpecBuilder(ugerConfig))
     
     new DrmClient.Default(drmaa1Client, QacctAccountingClient.useActualBinary(ugerConfig))
   }

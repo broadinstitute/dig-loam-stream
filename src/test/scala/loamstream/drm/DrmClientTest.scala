@@ -49,10 +49,12 @@ final class DrmClientTest extends FunSuite {
       assert(fillInAccountingFieldsIfNecessary(mockClientThatFails, "12334")(failure) === failure)
   
       def doTest(ugerStatus: DrmStatus): Unit = {
-        //The input should be unchanged if invoking the accounting client failed
         val result = fillInAccountingFieldsIfNecessary(mockClientThatFails, "12334")(Try(ugerStatus))
   
-        assert(result.get === ugerStatus)
+        //We only expect to try the AccountingClient (and munge the status) if the status represents a finished state.
+        val expected = if(ugerStatus.isFinished) ugerStatus.withResources(None) else ugerStatus
+        
+        assert(result.get === expected)
       }
   
       doTest(DrmStatus.Done)
@@ -95,21 +97,20 @@ final class DrmClientTest extends FunSuite {
 
     def doTest(ugerStatus: DrmStatus): Unit = {
       val mockClient = new MockQacctAccountingClient(
-          _ => successfulRun(stdout = actualQacctOutput(Some(Queue("broad")), Some("foo.example.com"))))
+          _ => successfulRun(stdout = actualQacctOutput(Some(expectedQueue), Some(expectedNode))))
 
-      val result = fillInAccountingFieldsIfNecessary(mockClient, "12334")(Try(ugerStatus))
+      val expectedResources = QacctTestHelpers.expectedResources(expectedNode, expectedQueue)
+      
+      val result = fillInAccountingFieldsIfNecessary(mockClient, "12334")(Try(ugerStatus)).get
 
-      if(ugerStatus.notFinished) {
-        assert(result.get === ugerStatus)
+      val resourcesExpected = !ugerStatus.isInstanceOf[DrmStatus.NoResources]
+      
+      //We only expect to invoke the AccountingClient and munge ugerStatus if ugerStatus is finished, and a status
+      //that can contain resources
+      if(ugerStatus.isFinished && resourcesExpected) {
+        assert(result.resourcesOpt === Some(expectedResources), s"$ugerStatus")
       } else {
-        if(ugerStatus.resourcesOpt.isDefined) {
-          val resultResources = result.get.resourcesOpt.get
-
-          assert(resultResources.queue === Some(expectedQueue))
-          assert(resultResources.node === Some(expectedNode))
-        } else {
-          assert(result.get.resourcesOpt === None)
-        }
+        assert(result === ugerStatus)
       }
     }
 

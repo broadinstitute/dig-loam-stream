@@ -33,44 +33,41 @@ sealed trait DrmStatus {
   
   def resourcesOpt: Option[DrmResources] = None
   
-  def withResources(rs: DrmResources): DrmStatus = this
-  
-  def transformResources(f: DrmResources => DrmResources): DrmStatus = resourcesOpt match {
-    case None => this
-    case Some(rs) => withResources(f(rs))
-  }
+  def withResources(rs: Option[DrmResources]): DrmStatus = this
 }
 
 object DrmStatus {
   
-  case object Done extends DrmStatus
-  case object Queued extends DrmStatus
-  case object QueuedHeld extends DrmStatus
-  case object Requeued extends DrmStatus
-  case object RequeuedHeld extends DrmStatus
-  case object Running extends DrmStatus
+  private[drm] sealed trait NoResources
+  
+  case object Done extends DrmStatus with NoResources
+  case object Queued extends DrmStatus with NoResources
+  case object QueuedHeld extends DrmStatus with NoResources
+  case object Requeued extends DrmStatus with NoResources
+  case object RequeuedHeld extends DrmStatus with NoResources
+  case object Running extends DrmStatus with NoResources
 
   final case class CommandResult(
       exitStatus: Int, 
       override val resourcesOpt: Option[DrmResources]) extends DrmStatus {
     
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
+    override def withResources(rs: Option[DrmResources]): DrmStatus = copy(resourcesOpt = rs)
   }
   
   final case class Failed(override val resourcesOpt: Option[DrmResources] = None) extends DrmStatus {
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
+    override def withResources(rs: Option[DrmResources]): DrmStatus = copy(resourcesOpt = rs)
   }
   
   final case class DoneUndetermined(override val resourcesOpt: Option[DrmResources] = None) extends DrmStatus {
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
+    override def withResources(rs: Option[DrmResources]): DrmStatus = copy(resourcesOpt = rs)
   }
   
   final case class Suspended(override val resourcesOpt: Option[DrmResources] = None) extends DrmStatus {
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
+    override def withResources(rs: Option[DrmResources]): DrmStatus = copy(resourcesOpt = rs)
   }
   
   final case class Undetermined(override val resourcesOpt: Option[DrmResources] = None) extends DrmStatus {
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
+    override def withResources(rs: Option[DrmResources]): DrmStatus = copy(resourcesOpt = rs)
   }
 
   import Session._

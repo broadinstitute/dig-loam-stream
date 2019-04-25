@@ -52,9 +52,5 @@ final case class MockDrmClient(private val toReturn: Map[String, Seq[Try[DrmStat
   
   override def killAllJobs(): Unit = ???
   
-  override def getExecutionNode(jobId: String): Option[String] = ???
-
-  override def getQueue(jobId: String): Option[Queue] = ???
-  
   override def getResourceUsage(jobId: String): Try[DrmResources] = ???
 }

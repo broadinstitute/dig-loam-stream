@@ -4,6 +4,11 @@ import loamstream.drm.Queue
 import loamstream.util.RunResults
 import scala.util.Try
 import scala.util.Success
+import loamstream.model.execute.Resources.UgerResources
+import java.time.ZonedDateTime
+import java.time.LocalDateTime
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
 
 /**
  * @author clint
@@ -25,6 +30,22 @@ object QacctTestHelpers {
       fakeBinaryName: String = "MOCK"): Try[RunResults] = {
 
     Success(RunResults(fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr))
+  }
+  
+  def expectedResources(expectedNode: String, expectedQueue: Queue): UgerResources = {
+    expectedResources(Option(expectedNode), Option(expectedQueue))
+  }
+
+  def expectedResources(expectedNode: Option[String], expectedQueue: Option[Queue]): UgerResources = {
+    val localTzOffset = ZonedDateTime.now.getOffset
+    
+    UgerResources(
+      memory = Memory.inKb(60092),
+      cpuTime = CpuTime.inSeconds(2.487),
+      node = expectedNode,
+      queue = expectedQueue,
+      startTime = LocalDateTime.parse("2017-06-03T17:49:50.505").toInstant(localTzOffset),
+      endTime = LocalDateTime.parse("2017-06-03T17:49:57.464").toInstant(localTzOffset))
   }
   
   //scalastyle:off method.length

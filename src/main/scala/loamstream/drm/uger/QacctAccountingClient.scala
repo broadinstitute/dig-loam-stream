@@ -65,39 +65,7 @@ final class QacctAccountingClient(
 
   import Regexes.{ hostname, qname, cpu, mem, startTime, endTime }
 
-  override def getExecutionNode(jobId: String): Option[String] = {
-    getResourceUsage(jobId).toOption.flatMap(_.node)
-  }
-
-  override def getQueue(jobId: String): Option[Queue] = {
-    getResourceUsage(jobId).toOption.flatMap(_.queue)
-  }
-  
   override def getResourceUsage(jobId: String): Try[UgerResources] = {
-    //NB: Uger reports cpu time as a floating-point number of cpu-seconds. 
-    def toCpuTime(s: String) = {
-      Try(CpuTime(s.toDouble.seconds)).recoverWith {
-        case _ => Tries.failure(s"Couldn't parse '$s' as CpuTime")
-      }
-    }
-    
-    //NB: The value of qacct's ru_maxrss field (in kilobytes) is the closest approximation of
-    //a Uger job's memory utilization
-    def toMemory(s: String): Try[Memory] = {
-      Try(Memory.inKb(s.toDouble)).recoverWith {
-        case _ => Tries.failure(s"Couldn't parse '$s' as Memory (in kilobytes)")
-      }
-    }
-    
-    //NB: qacct reports timestamps in a format like `03/06/2017 17:49:50.455` in the local time zone 
-    def toInstant(fieldType: String)(s: String): Try[Instant] = {
-      Try {
-        QacctAccountingClient.dateFormatter.parse(s, ZonedDateTime.from(_)).toInstant
-      }/*.recoverWith {
-        case _ => Tries.failure(s"Couldn't parse $fieldType timestamp from '$s'")
-      }*/
-    }
-    
     for {
       output <- getQacctOutputFor(jobId)
       nodeOpt = findField(output, hostname).toOption
@@ -116,6 +84,32 @@ final class QacctAccountingClient(
         endTime = end)
     }
   }
+  
+  private def orElseErrorMessage[A](msg: String)(a: => A): Try[A] = {
+    Try(a).recoverWith { case _ => Tries.failure(msg) } 
+  }
+  
+  //NB: Uger reports cpu time as a floating-point number of cpu-seconds. 
+  private def toCpuTime(s: String) = {
+    orElseErrorMessage(s"Couldn't parse '$s' as CpuTime") {
+      CpuTime(s.toDouble.seconds)
+    }
+  }
+  
+  //NB: The value of qacct's ru_maxrss field (in kilobytes) is the closest approximation of
+  //a Uger job's memory utilization
+  private def toMemory(s: String): Try[Memory] = {
+    orElseErrorMessage(s"Couldn't parse '$s' as Memory (in kilobytes)") {
+      Memory.inKb(s.toDouble)
+    }
+  }
+  
+  //NB: qacct reports timestamps in a format like `03/06/2017 17:49:50.455` in the local time zone 
+  private def toInstant(fieldType: String)(s: String): Try[Instant] = {
+    orElseErrorMessage(s"Couldn't parse $fieldType timestamp from '$s'") {
+      QacctAccountingClient.dateFormatter.parse(s, ZonedDateTime.from(_)).toInstant
+    }
+  }
 
   private def findField(fields: Seq[String], regex: Regex): Try[String] = {
     val opt = fields.collectFirst { case regex(value) => value.trim }.filter(_.nonEmpty)
@@ -126,13 +120,13 @@ final class QacctAccountingClient(
 
 object QacctAccountingClient extends Loggable {
   
+  //Example date from qacct: 03/06/2017 17:49:50.455
   private val dateFormatter: DateTimeFormatter = {
     (new DateTimeFormatterBuilder)
       .appendPattern("dd/MM/yyyy HH:mm:ss.SSS")
       .toFormatter
       .withZone(ZoneId.systemDefault)
   }
-  
   
   private object Regexes {
     val qname = "qname\\s+(.+?)$".r
@@ -142,7 +136,7 @@ object QacctAccountingClient extends Loggable {
     val mem = "ru_maxrss\\s+(.+?)$".r
     
     val startTime = "start_time\\s+(.+?)$".r
-    //03/06/2017 17:49:50.455
+    
     val endTime = "end_time\\s+(.+?)$".r
   }
 

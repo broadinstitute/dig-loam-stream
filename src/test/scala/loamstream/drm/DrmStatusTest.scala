@@ -31,52 +31,6 @@ final class DrmStatusTest extends FunSuite {
       Some(broadQueue),
       Instant.now,
       Instant.now)
-  
-  test("transformResources") {
-    def doTestWithExistingResources(makeInitialStatus: Option[DrmResources] => DrmStatus): Unit = {
-      val initialStatus = makeInitialStatus(Some(resources))
-      
-      assert(initialStatus.resourcesOpt !== None)
-      assert(initialStatus.resourcesOpt.get.queue === Some(broadQueue))
-      
-      val transformed = initialStatus.transformResources(_.withQueue(broadQueue))
-      
-      assert(transformed.getClass === initialStatus.getClass)
-      
-      assert(initialStatus.resourcesOpt !== None)
-      assert(initialStatus.resourcesOpt.get.queue === Some(broadQueue))
-      
-      assert(transformed.resourcesOpt.get.queue === Some(broadQueue))
-    }
-    
-    doTestWithExistingResources(CommandResult(0, _))
-    doTestWithExistingResources(CommandResult(1, _))
-    doTestWithExistingResources(CommandResult(42, _))
-    doTestWithExistingResources(Failed( _))
-    doTestWithExistingResources(DoneUndetermined(_))
-    doTestWithExistingResources(Suspended(_))
-    doTestWithExistingResources(Undetermined(_))
-    
-    def doTestWithoutResources(initialStatus: DrmStatus): Unit = {
-      assert(initialStatus.resourcesOpt === None)
-      
-      val transformed = initialStatus.transformResources(_.withQueue(broadQueue))
-      
-      assert(initialStatus.resourcesOpt === None)
-      
-      assert(transformed.resourcesOpt === None)
-      
-      assert(transformed.getClass === initialStatus.getClass)
-      assert(transformed eq initialStatus)
-    }
-   
-    doTestWithoutResources(Done)
-    doTestWithoutResources(Queued)
-    doTestWithoutResources(QueuedHeld)
-    doTestWithoutResources(Requeued)
-    doTestWithoutResources(RequeuedHeld)
-    doTestWithoutResources(Running)
-  }
       
   test("fromUgerStatusCode") {
     import Session._
@@ -270,6 +224,4 @@ final class DrmStatusTest extends FunSuite {
       assert(flag(ugerStatus) === false)
     }
   }
-  
-  //scalastyle:on magic.number
 }

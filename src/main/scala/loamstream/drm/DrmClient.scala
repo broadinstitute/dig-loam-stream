@@ -6,6 +6,7 @@ import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.Loggable
 import loamstream.model.execute.Resources.DrmResources
+import scala.util.Success
 
 /**
  * @author clint
@@ -17,10 +18,6 @@ object DrmClient extends Loggable {
   final class Default(
       drmaaClient: DrmaaClient,
       accountingClient: AccountingClient) extends DrmClient {
-
-    override def getExecutionNode(jobId: String): Option[String] = accountingClient.getExecutionNode(jobId)
-
-    override def getQueue(jobId: String): Option[Queue] = accountingClient.getQueue(jobId)
 
     override def getResourceUsage(jobId: String): Try[DrmResources] = accountingClient.getResourceUsage(jobId)
     
@@ -85,10 +82,14 @@ object DrmClient extends Loggable {
       if (drmStatus.isFinished) {
         debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $drmStatus")
 
-        val executionNode = accountingClient.getExecutionNode(jobId)
-        val executionQueue = accountingClient.getQueue(jobId)
-
-        val result = drmStatus.transformResources(_.withNode(executionNode).withQueue(executionQueue))
+        val resourcesAttempt = accountingClient.getResourceUsage(jobId)
+        
+        //For side effect only
+        resourcesAttempt.recover {
+          case e => warn(s"Error invoking accounting client for job with DRM id '$jobId': ${e.getMessage}", e)
+        }
+        
+        val result = drmStatus.withResources(resourcesAttempt.toOption)
 
         debug(s"Invoked AccountingClient; new ${simpleNameOf[DrmStatus]} is: $result")
 

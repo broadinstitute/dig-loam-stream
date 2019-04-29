@@ -43,11 +43,9 @@ final case class AsyncLocalChunkRunner(
 
       val executionObservables: Seq[Observable[RunData]] = jobs.toSeq.map(exec)
         
-      val sequenceObservable: Observable[Seq[RunData]] = Observables.sequence(executionObservables)
+      val z: Map[LJob, RunData] = Map.empty
       
-      import Traversables.Implicits._
-      
-      sequenceObservable.foldLeft(Map.empty[LJob, RunData]) { (acc, runDatas) => acc ++ runDatas.mapBy(_.job) }
+      Observables.merge(executionObservables).scan(z) { (acc, runData) => acc + (runData.job -> runData) }
     }
   }
 }

@@ -43,11 +43,11 @@ final case class AsyncLocalChunkRunner(
 
       val executionObservables: Seq[Observable[RunData]] = jobs.toSeq.map(exec)
         
-      val sequenceObservable: Observable[Seq[RunData]] = Observables.sequence(executionObservables)
+      val z: Map[LJob, RunData] = Map.empty
       
-      import Traversables.Implicits._
-      
-      sequenceObservable.foldLeft(Map.empty[LJob, RunData]) { (acc, runDatas) => acc ++ runDatas.mapBy(_.job) }
+      //NB: Note the use of scan() here.  It ensures that an item is emitted for a job as soon as that job finishes,     
+      //instead of only once when all the jobs in a chunk finish.
+      Observables.merge(executionObservables).scan(z) { (acc, runData) => acc + (runData.job -> runData) }
     }
   }
 }

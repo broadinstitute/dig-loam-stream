@@ -101,7 +101,7 @@ final case class GoogleCloudChunkRunner(
     //on the same cluster simultaneously
     import loamstream.util.Observables.Implicits._
 
-    val futureResult = delegate.run(Set(job), shouldRestart).map(addCluster(googleConfig.clusterId)).firstAsFuture
+    val futureResult = delegate.run(Set(job), shouldRestart).map(addCluster(googleConfig.clusterId)).lastAsFuture
     
     //TODO: add some timeout
     Await.result(futureResult, Duration.Inf)

@@ -31,7 +31,11 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
       runner.run(jobsForRunner, shouldRestart)
     }
     
-    Observables.reduceMaps(resultObservables)
+    val z: Map[LJob, RunData] = Map.empty
+    
+    //NB: Note the use of scan() here.  It ensures that an item is emitted for a job as soon as that job finishes,     
+    //instead of only once when all the jobs in a chunk finish.
+    Observables.merge(resultObservables).scan(z)(_ ++ _).distinct
   }
   
   override def stop(): Unit = {

@@ -144,44 +144,6 @@ final class ObservablesTest extends FunSuite {
     }
   }
   
-  private def doReduceMapsTest(os: Seq[Observable[Map[String,Int]]], expected: Map[String, Int]): Unit = {
-    import Observables.reduceMaps
-    
-    waitFor(reduceMaps(os).to[Seq].firstAsFuture) === Seq(expected)
-  }
-  
-  test("reduceMaps - empty input") {
-    doReduceMapsTest(Seq.empty, Map.empty)
-  }
-    
-  test("reduceMaps - empty inputs (plural)") {
-    doReduceMapsTest(Seq(Observable.empty, Observable.empty, Observable.empty), Map.empty)
-  }
-
-  test("reduceMaps - non-empty input") {
-    val m0 = Map("a" -> 1, "b"-> 2)
-    val m1 = Map("c" -> 3)
-    val m2 = Map("d" -> 4, "e"-> 5)
-    val m3 = Map("f" -> 5)
-    val m4 = Map("g" -> 6, "h"-> 7)
-    
-    val o0 = Observable.just(m0)
-    val o1 = Observable.just(m1, m2)
-    val o2 = Observable.just(m3, m4)
-    
-    val expected = Map(
-        "a" -> 1, 
-        "b"-> 2,
-        "c" -> 3,
-        "d" -> 4, 
-        "e"-> 5,
-        "f" -> 5,
-        "g" -> 6, 
-        "h"-> 7)
-    
-    doReduceMapsTest(Seq(o0, o1, o2), expected)
-  }
-  
   test("merge - empty input") {
     import Observables.merge
     

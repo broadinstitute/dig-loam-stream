@@ -70,7 +70,7 @@ final class CompositeChunkRunnerTest extends FunSuite {
     
     import Observables.Implicits._
     
-    val futureResults = runner.run(Set(job1, job2), neverRestart).firstAsFuture
+    val futureResults = runner.run(Set(job1, job2), neverRestart).lastAsFuture
     
     val expected = Map(job1 -> JobStatus.Succeeded, job2 -> JobStatus.Failed)
     

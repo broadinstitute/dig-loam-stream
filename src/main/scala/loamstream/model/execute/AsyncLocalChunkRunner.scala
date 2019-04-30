@@ -45,6 +45,8 @@ final case class AsyncLocalChunkRunner(
         
       val z: Map[LJob, RunData] = Map.empty
       
+      //NB: Note the use of scan() here.  It ensures that an item is emitted for a job as soon as that job finishes,     
+      //instead of only once when all the jobs in a chunk finish.
       Observables.merge(executionObservables).scan(z) { (acc, runData) => acc + (runData.job -> runData) }
     }
   }

@@ -127,13 +127,13 @@ final class JobMonitor(
         
         warn(s"Job '$jobId': $msg")
         
-        DoneUndetermined()
+        DoneUndetermined
       }
       //Any other polling failure leaves us unable to know the job's status
       case (Failure(e), _) => {
         warn(s"Job '$jobId': polling failed with a(n) ${e.getClass.getName}; mapping to $Undetermined", e)
         
-        Undetermined()
+        Undetermined
       }
       case (Success(status), _) => status
     }
@@ -168,7 +168,7 @@ final class JobMonitor(
   }
 
   private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[DrmStatus]]): Boolean = {
-    def unpack(attempt: Try[DrmStatus]): DrmStatus = attempt.getOrElse(DrmStatus.Undetermined())
+    def unpack(attempt: Try[DrmStatus]): DrmStatus = attempt.getOrElse(DrmStatus.Undetermined)
     
     val result = pollResults.values.map(unpack).forall(_.isFinished)
     

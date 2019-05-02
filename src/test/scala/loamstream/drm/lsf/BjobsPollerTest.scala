@@ -23,41 +23,10 @@ final class BjobsPollerTest extends FunSuite {
 
   // scalastyle:off line.size.limit
   private val validStdOut = Seq(
-      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1]|EXIT |42        |    -     |0.0 second|            hx-noah-08-13|             research-rh7|             May 22 20:48|           May 22 20:48 L",
-      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2]|DONE |    -     |    -     |0.0 second|            hx-noah-08-03|             research-rh7|             May 22 20:48|           May 22 20:48 L",
-      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3]|DONE |    -     |    -     |0.0 second|            hx-noah-01-04|             research-rh7|             May 22 20:48|           May 22 20:48 L")
+      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1]|EXIT |42        ",
+      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2]|DONE |    -     ",
+      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3]|DONE |    -     ")
   // scalastyle:on line.size.limit
-
-  private val resourcesByLsfArrayIndex: Map[Int, LsfResources] = {
-    val zeroBytes = Memory.inBytes(0)
-    val zeroSeconds = CpuTime.inSeconds(0)
-    val queue = Queue("research-rh7")
-    val startTime = LsfDateParser.toInstant("May 22 20:48").get
-    val endTime = LsfDateParser.toInstant("May 22 20:48").get
-    
-    Map(
-      1 -> LsfResources(
-          memory = zeroBytes, 
-          cpuTime = zeroSeconds, 
-          node = Option("hx-noah-08-13"), 
-          queue = Option(queue),
-          startTime = startTime,
-          endTime = endTime),
-      2 -> LsfResources(
-          memory = zeroBytes, 
-          cpuTime = zeroSeconds, 
-          node = Option("hx-noah-08-03"), 
-          queue = Option(queue),
-          startTime = startTime,
-          endTime = endTime),
-      3 -> LsfResources(
-          memory = zeroBytes, 
-          cpuTime = zeroSeconds, 
-          node = Option("hx-noah-01-04"), 
-          queue = Option(queue),
-          startTime = startTime,
-          endTime = endTime))
-  }
   
   test("poll - happy path") {
     def pollFn(lsfJobIds: Set[LsfJobId]): Try[RunResults] = {
@@ -72,9 +41,9 @@ final class BjobsPollerTest extends FunSuite {
     val results = new BjobsPoller(pollFn).poll(lsfJobIds)
     
     val expected: Map[String, Try[DrmStatus]] = Map(
-      LsfJobId("2842408", 1).asString -> Success(DrmStatus.CommandResult(42, resourcesByLsfArrayIndex.get(1))),
-      LsfJobId("2842408", 2).asString -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(2))),
-      LsfJobId("2842408", 3).asString -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(3))))
+      LsfJobId("2842408", 1).asString -> Success(DrmStatus.CommandResult(42)),
+      LsfJobId("2842408", 2).asString -> Success(DrmStatus.CommandResult(0)),
+      LsfJobId("2842408", 3).asString -> Success(DrmStatus.CommandResult(0)))
     
     assert(results === expected)
   }
@@ -121,9 +90,9 @@ final class BjobsPollerTest extends FunSuite {
     val results = new BjobsPoller(pollFn).runChunk(lsfJobIds)
     
     val expected: Map[LsfJobId, Try[DrmStatus]] = Map(
-      LsfJobId("2842408", 1) -> Success(DrmStatus.CommandResult(42, resourcesByLsfArrayIndex.get(1))),
-      LsfJobId("2842408", 2) -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(2))),
-      LsfJobId("2842408", 3) -> Success(DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(3)))
+      LsfJobId("2842408", 1) -> Success(DrmStatus.CommandResult(42)),
+      LsfJobId("2842408", 2) -> Success(DrmStatus.CommandResult(0)),
+      LsfJobId("2842408", 3) -> Success(DrmStatus.CommandResult(0))
     )
     
     assert(results === expected)
@@ -147,13 +116,13 @@ final class BjobsPollerTest extends FunSuite {
     
     val actualOutputLine = {
       // scalastyle:off line.size.limit
-      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1]|EXIT |42        |    -     |0.0 second|            hx-noah-08-13|             research-rh7|             May 22 20:48|           May 22 20:48 L"
+      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1]|EXIT |42        "
       // scalastyle:on line.size.limit
     }
     
     val result = parseBjobsOutputLine(actualOutputLine)
     
-    val expected = Success(LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42, resourcesByLsfArrayIndex.get(1)))
+    val expected = Success(LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42))
     
     assert(result === expected)
   }
@@ -163,13 +132,13 @@ final class BjobsPollerTest extends FunSuite {
     
     val actualOutputLine = {
       // scalastyle:off line.size.limit
-      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2]|DONE |    -     |    -     |0.0 second|            hx-noah-08-03|             research-rh7|             May 22 20:48|           May 22 20:48 L"
+      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2]|DONE |    -     "
       // scalastyle:on line.size.limit
     }
     
     val result = parseBjobsOutputLine(actualOutputLine)
     
-    assert(result === Success(LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(2))))
+    assert(result === Success(LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0)))
   }
   
   test("parseBjobsOutputLine - no exit code, still running") {
@@ -177,7 +146,7 @@ final class BjobsPollerTest extends FunSuite {
     
     val actualOutputLine = {
       // scalastyle:off line.size.limit
-      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2]|RUN  |    -     |    -     |0.0 second|            hx-noah-08-03|             research-rh7|             May 22 20:48|           May 22 20:48 L"
+      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2]|RUN  |    -     "
       // scalastyle:on line.size.limit
     }
     
@@ -207,9 +176,9 @@ final class BjobsPollerTest extends FunSuite {
     val results = parseBjobsOutput(validStdOut)
     
     val expected = Seq(
-        LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42, resourcesByLsfArrayIndex.get(1)),
-        LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(2)),
-        LsfJobId("2842408", 3) -> DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(3)))
+        LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42),
+        LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0),
+        LsfJobId("2842408", 3) -> DrmStatus.CommandResult(0))
         
     assert(results === expected)
   }
@@ -220,20 +189,20 @@ final class BjobsPollerTest extends FunSuite {
     val actualOutput = Seq(
       // scalastyle:off line.size.limit
       "",
-      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1]|EXIT |42        |    -     |0.0 second|            hx-noah-08-13|             research-rh7|             May 22 20:48|           May 22 20:48 L",
+      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[1]|EXIT |42        ",
       " fooooo ",
-      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3]|DONE |    -     |    -     |0.0 second|            hx-noah-01-04|             research-rh7|             May 22 20:48|           May 22 20:48 L",
+      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[3]|DONE |    -     ",
       "2842408 LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2] GLARG       -",
-      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2]|DONE |    -     |    -     |0.0 second|            hx-noah-08-03|             research-rh7|             May 22 20:48|           May 22 20:48 L",
+      "2842408|            LoamStream-826b3929-4810-4116-8502-5c60cd830d81[2]|DONE |    -     ",
       "2842408 LoamStream-826b3929-4810-4116-8502-5c60cd830d81 RUN       -")
       // scalastyle:on line.size.limit
 
     val results = parseBjobsOutput(actualOutput)
     
     val expected = Seq(
-        LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42, resourcesByLsfArrayIndex.get(1)),
-        LsfJobId("2842408", 3) -> DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(3)),
-        LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0, resourcesByLsfArrayIndex.get(2)))
+        LsfJobId("2842408", 1) -> DrmStatus.CommandResult(42),
+        LsfJobId("2842408", 3) -> DrmStatus.CommandResult(0),
+        LsfJobId("2842408", 2) -> DrmStatus.CommandResult(0))
         
     assert(results === expected)
   }
@@ -243,7 +212,7 @@ final class BjobsPollerTest extends FunSuite {
       
     val actualOutput = Seq(
       // scalastyle:off line.size.limit
-      "3993061|                         LoamStream-e569ac4a-f6cc-4c66-b314-68cac844bbc1[1]|PEND |    -     |    -     |    -     |                                     -                                     |                                                               research-rh7|                                     -                                     |                                     -")
+      "3993061|                         LoamStream-e569ac4a-f6cc-4c66-b314-68cac844bbc1[1]|PEND |    -     ")
       // scalastyle:on line.size.limit
 
     val results = parseBjobsOutput(actualOutput)
@@ -269,7 +238,7 @@ final class BjobsPollerTest extends FunSuite {
         "-s",
         "-o",
         // scalastyle:off line.size.limit
-        "jobid: job_name:-75 stat: exit_code: mem: cpu_used: exec_host:-75 queue:-75 start_time:-75 finish_time:-75 delimiter='|'",
+        "jobid: job_name:-75 stat: exit_code: delimiter='|'",
         // scalastyle:on line.size.limit
         "2842408[3,1]")
     

@@ -1,24 +1,25 @@
 package loamstream.drm.lsf
 
-import scala.util.Try
-
-import loamstream.model.execute.Resources.LsfResources
-import loamstream.util.Tries
-import loamstream.util.Options
-import scala.util.Success
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
 import java.time.Instant
-import loamstream.drm.Queue
-import scala.util.matching.Regex
-import java.time.format.DateTimeFormatterBuilder
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoField
 import java.time.ZoneId
-import loamstream.util.RetryingCommandInvoker
-import loamstream.drm.AccountingClient
-import loamstream.util.Loggable
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoField
+
+import scala.util.Success
+import scala.util.Try
+import scala.util.matching.Regex
+
 import loamstream.conf.LsfConfig
+import loamstream.drm.AccountingClient
+import loamstream.drm.Queue
+import loamstream.model.execute.Resources.LsfResources
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
+import loamstream.util.Loggable
+import loamstream.util.Options
+import loamstream.util.RetryingCommandInvoker
+import loamstream.util.Tries
 
 /**
  * @author clint

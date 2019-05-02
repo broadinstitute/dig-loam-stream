@@ -13,8 +13,6 @@ object Processes extends Loggable {
   import scala.sys.process._
   
   def runSync(executable: String, commandLineTokens: Seq[String]): Try[RunResults] = {
-    debug(s"Invoking '$executable': '${commandLineTokens.mkString(" ")}'")
-
     import scala.sys.process._
     
     //NB: Implicit conversion to ProcessBuilder :\ 

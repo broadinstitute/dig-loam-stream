@@ -1,7 +1,7 @@
 package loamstream.drm
 
-import DrmStatus.toJobStatus
 import DrmStatus.toJobResult
+import DrmStatus.toJobStatus
 import loamstream.conf.DrmConfig
 import loamstream.conf.ExecutionConfig
 import loamstream.model.execute.ChunkRunnerFor
@@ -9,27 +9,22 @@ import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.ExecuterHelpers
+import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobStatus.Failed
 import loamstream.model.jobs.JobStatus.Running
-import loamstream.model.jobs.JobStatus.Submitted
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.CompositeException
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
 import loamstream.util.Throwables
-import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
-import loamstream.util.Maps
-import loamstream.util.Traversables
-import loamstream.model.jobs.commandline.HasCommandLine
-import scala.util.Try
-import loamstream.model.execute.Resources.DrmResources
 
 
 /**
@@ -150,7 +145,7 @@ final case class DrmChunkRunner(
    * of jobs as one Uger task array, and settings are per-task-array.
    */
   private[drm] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[DrmSettings, Seq[CommandLineJob]] = {
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
     
     jobs.groupBy(_.executionEnvironment).collectKeys { 
       case Environment.Uger(ugerSettings) => ugerSettings
@@ -227,8 +222,6 @@ object DrmChunkRunner extends Loggable {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
       drmJobStatuses.distinct.foreach(handleDrmStatus(shouldRestart, wrapper.commandLineJob))
 
-      
-      
       val runDataObs = drmJobStatuses.last.map(toRunData(accountingClient, wrapper, jobId))
 
       wrapper -> runDataObs
@@ -282,8 +275,8 @@ object DrmChunkRunner extends Loggable {
           outputStreamsOpt = Option(jobWrapper.outputStreams))
     }
 
-    import Traversables.Implicits._
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
+    import loamstream.util.Traversables.Implicits._
     
     Observable.just(jobs.mapTo(execution).mapKeys(_.commandLineJob))
   }

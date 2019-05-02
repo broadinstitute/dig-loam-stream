@@ -2,6 +2,7 @@ package loamstream.drm
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.util.Try
 
 import org.scalatest.FunSuite
 
@@ -9,18 +10,26 @@ import loamstream.TestHelpers
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
 import loamstream.conf.ExecutionConfig
+import loamstream.conf.LsfConfig
 import loamstream.conf.UgerConfig
+import loamstream.drm.DrmChunkRunnerTest.MockDrmJob
 import loamstream.drm.DrmChunkRunnerTest.MockJobSubmitter
+import loamstream.drm.lsf.LsfPathBuilder
+import loamstream.drm.uger.UgerDefaults
+import loamstream.drm.uger.UgerPathBuilder
+import loamstream.drm.uger.UgerScriptBuilderParams
 import loamstream.loam.LoamCmdTool
+import loamstream.loam.LoamGraph
 import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
+import loamstream.model.execute.EnvironmentType
+import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.MockJob
-import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.commandline.HasCommandLine
@@ -28,20 +37,9 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.Observables
+
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
-import loamstream.model.execute.EnvironmentType
-import loamstream.drm.uger.UgerPathBuilder
-import loamstream.drm.uger.UgerDefaults
-import loamstream.drm.uger.UgerPathBuilder
-import loamstream.drm.lsf.LsfPathBuilder
-import loamstream.conf.LsfConfig
-import loamstream.drm.DrmChunkRunnerTest.MockJobSubmitter
-import scala.util.Try
-import loamstream.loam.LoamGraph
-import loamstream.model.Tool
-import loamstream.drm.uger.UgerScriptBuilderParams
-import loamstream.drm.DrmChunkRunnerTest.MockDrmJob
 
 
 /**
@@ -54,8 +52,8 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val scheduler = IOScheduler()
   
   import loamstream.TestHelpers.neverRestart
-  import JobStatus.FailedPermanently
-  import JobStatus.Succeeded
+  import loamstream.model.jobs.JobStatus.FailedPermanently
+  import loamstream.model.jobs.JobStatus.Succeeded
   
   private val tempDir = TestHelpers.getWorkDir(getClass.getSimpleName) 
   
@@ -81,7 +79,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val executionConfig: ExecutionConfig = ExecutionConfig(42) 
   
   import loamstream.TestHelpers.waitFor
-  import Observables.Implicits._
+  import loamstream.util.Observables.Implicits._
   
   private object JustFailsMockPoller extends Poller {
     override def poll(jobIds: Iterable[String]): Map[String, Try[DrmStatus]] = ???
@@ -198,10 +196,10 @@ final class DrmChunkRunnerTest extends FunSuite {
       }
     }
     
-    doTest(DrmStatus.Failed(), isFailure = true)
-    doTest(DrmStatus.CommandResult(1, None), isFailure = true)
-    doTest(DrmStatus.DoneUndetermined(), isFailure = true)
-    doTest(DrmStatus.Suspended(), isFailure = true)
+    doTest(DrmStatus.Failed, isFailure = true)
+    doTest(DrmStatus.CommandResult(1), isFailure = true)
+    doTest(DrmStatus.DoneUndetermined, isFailure = true)
+    doTest(DrmStatus.Suspended, isFailure = true)
     
     doTest(DrmStatus.Done, isFailure = false)
     doTest(DrmStatus.Queued, isFailure = false)
@@ -209,12 +207,11 @@ final class DrmChunkRunnerTest extends FunSuite {
     doTest(DrmStatus.Requeued, isFailure = false)
     doTest(DrmStatus.RequeuedHeld, isFailure = false)
     doTest(DrmStatus.Running, isFailure = false)
-    doTest(DrmStatus.Undetermined(), isFailure = false)
-    doTest(DrmStatus.CommandResult(0, None), isFailure = false)
+    doTest(DrmStatus.Undetermined, isFailure = false)
+    doTest(DrmStatus.CommandResult(0), isFailure = false)
   }
   
   private def toTuple(jobWrapper: DrmJobWrapper): (DrmJobWrapper, Observable[DrmStatus]) = {
-    import DrmChunkRunnerTest.MockDrmJob
     
     val mockJob = jobWrapper.commandLineJob.asInstanceOf[MockDrmJob]
     
@@ -256,13 +253,13 @@ final class DrmChunkRunnerTest extends FunSuite {
       assert(job.runCount === 1)
     }
     
-    doTest(neverRestart, Failed(), JobStatus.FailedPermanently)
-    doTest(neverRestart, DoneUndetermined(), JobStatus.FailedPermanently)
-    doTest(neverRestart, CommandResult(1, None), JobStatus.FailedPermanently)
+    doTest(neverRestart, Failed, JobStatus.FailedPermanently)
+    doTest(neverRestart, DoneUndetermined, JobStatus.FailedPermanently)
+    doTest(neverRestart, CommandResult(1), JobStatus.FailedPermanently)
     
-    doTest(alwaysRestart, Failed(), JobStatus.Failed)
-    doTest(alwaysRestart, DoneUndetermined(), JobStatus.Failed)
-    doTest(alwaysRestart, CommandResult(1, None), JobStatus.Failed)
+    doTest(alwaysRestart, Failed, JobStatus.Failed)
+    doTest(alwaysRestart, DoneUndetermined, JobStatus.Failed)
+    doTest(alwaysRestart, CommandResult(1), JobStatus.Failed)
   }
   
   test("toRunDatas - one successful job") {
@@ -306,10 +303,10 @@ final class DrmChunkRunnerTest extends FunSuite {
     }
     
     doTest(neverRestart, Done, JobStatus.WaitingForOutputs)
-    doTest(neverRestart, CommandResult(0, None), JobStatus.WaitingForOutputs)
+    doTest(neverRestart, CommandResult(0), JobStatus.WaitingForOutputs)
     
     doTest(alwaysRestart, Done, JobStatus.WaitingForOutputs)
-    doTest(alwaysRestart, CommandResult(0, None), JobStatus.WaitingForOutputs)
+    doTest(alwaysRestart, CommandResult(0), JobStatus.WaitingForOutputs)
   }
   
   test("toRunDatas - one successful job, one failed job") {
@@ -372,21 +369,21 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     val failedPermanently = JobStatus.FailedPermanently
     
-    doTest(neverRestart, Done, Failed(), JobStatus.WaitingForOutputs, failedPermanently)
+    doTest(neverRestart, Done, Failed, JobStatus.WaitingForOutputs, failedPermanently)
     
     doTest(
         neverRestart, 
-        CommandResult(0, None), 
-        CommandResult(1, None), 
+        CommandResult(0), 
+        CommandResult(1), 
         JobStatus.WaitingForOutputs, 
         failedPermanently)
     
-    doTest(alwaysRestart, Done, Failed(), JobStatus.WaitingForOutputs, JobStatus.Failed)
+    doTest(alwaysRestart, Done, Failed, JobStatus.WaitingForOutputs, JobStatus.Failed)
     
     doTest(
         alwaysRestart, 
-        CommandResult(0, None), 
-        CommandResult(1, None), 
+        CommandResult(0), 
+        CommandResult(1), 
         JobStatus.WaitingForOutputs, 
         JobStatus.Failed)
   }
@@ -468,7 +465,6 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
-      import Observables.Implicits._
       
       val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
       
@@ -489,8 +485,8 @@ final class DrmChunkRunnerTest extends FunSuite {
     def makeGraphAndTools(drmSystem: DrmSystem): (LoamGraph, LoamCmdTool, LoamCmdTool, LoamCmdTool, LoamCmdTool) = {
       implicit val sc = new LoamScriptContext(TestHelpers.emptyProjectContext(drmSystem))
         
-      import LoamPredef._
-      import LoamCmdTool._
+      import loamstream.compiler.LoamPredef._
+      import loamstream.loam.LoamCmdTool._
     
       val a = store("a.txt").asInput
       val b = store("b.txt")
@@ -573,7 +569,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
-      import Observables.Implicits._   
+   
       
       val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
       
@@ -598,7 +594,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   
   test("updateJobStatusesOnSubmission - SubmissionSuccess") {
     val foo = MockDrmJob("Foo", DrmStatus.Done)
-    val bar = MockDrmJob("Bar", DrmStatus.CommandResult(42, None))
+    val bar = MockDrmJob("Bar", DrmStatus.CommandResult(42))
     val baz = MockDrmJob("Baz", DrmStatus.Done)
     
     val jobs: Seq[HasCommandLine] = Seq(foo, bar, baz)

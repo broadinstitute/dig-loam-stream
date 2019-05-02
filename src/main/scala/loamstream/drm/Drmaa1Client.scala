@@ -186,24 +186,24 @@ final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClie
 
       debug(s"Job '$jobId' exited with status code '${exitCode}'")
 
-      DrmStatus.CommandResult(exitCode, None)
+      DrmStatus.CommandResult(exitCode)
     } else if (jobInfo.wasAborted) {
       info(s"Job '$jobId' was aborted")
 
       //TODO: Add JobStatus.Aborted?
-      DrmStatus.Failed(None)
+      DrmStatus.Failed
     } else if (jobInfo.hasSignaled) {
       info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
-      DrmStatus.Failed(None)
+      DrmStatus.Failed
     } else if (jobInfo.hasCoreDump) {
       info(s"Job '$jobId' dumped core")
 
-      DrmStatus.Failed(None)
+      DrmStatus.Failed
     } else {
       debug(s"Job '$jobId' finished with unknown status")
 
-      DrmStatus.DoneUndetermined(None)
+      DrmStatus.DoneUndetermined
     }
 
     debug(s"Job '$jobId' finished, returning status $result")

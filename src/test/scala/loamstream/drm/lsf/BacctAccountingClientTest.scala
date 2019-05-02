@@ -100,9 +100,9 @@ final class BacctAccountingClientTest extends FunSuite {
     assert(parseMemory(line)("3.2g").get === Memory.inGb(3.2))
   }
   
-  test("parseTimestamp") {
-    import BacctAccountingClient.parseTimestamp
-    import BacctAccountingClient.Regexes
+  test("parse{Start,End}Time") {
+    import BacctAccountingClient.parseStartTime
+    import BacctAccountingClient.parseEndTime
     
     val now = ZonedDateTime.now
     
@@ -113,18 +113,32 @@ final class BacctAccountingClientTest extends FunSuite {
     val april18 = ZonedDateTime.parse(s"${currentYear}-04-18T22:32:01.00${systemTimeZoneOffSet}").toInstant
     val april1 = ZonedDateTime.parse(s"${currentYear}-04-01T22:32:01.00${systemTimeZoneOffSet}").toInstant
     
-    def doTest(dateString: String, expected: Instant): Unit = {
-      def parse(s: String) = parseTimestamp(Seq(s))(Regexes.startTime, "start")
-      
-      val attempt0 = parse(s"${dateString}: [1] dispatched to asdasdasdads")
-      val attempt1 = parse(s"${dateString}: Dispatched to asdasdasdads")
-      
-      assert(attempt0.get === expected)
-      assert(attempt1.get === expected)
+    def doTest(date: String, expected: Instant, dateLinePart: String, parse: Seq[String] => Try[Instant]): Unit = {
+      assert(parse(Seq(s"${date}: ${dateLinePart} asdasdasdads")).get === expected)
     }
     
-    doTest("Thu Apr 18 22:32:01", april18)
-    doTest("Mon Apr  1 22:32:01", april1)
+    doTest("Thu Apr 18 22:32:01", april18, "[1] dispatched to", parseStartTime)
+    doTest("Thu Apr 18 22:32:01", april18, "Dispatched to", parseStartTime)
+    doTest("Mon Apr  1 22:32:01", april1, "[1] dispatched to", parseStartTime)
+    doTest("Mon Apr  1 22:32:01", april1, "Dispatched to", parseStartTime)
+    
+    doTest("Thu Apr 18 22:32:01", april18, "Completed", parseEndTime)
+    doTest("Mon Apr  1 22:32:01", april1, "Completed", parseEndTime)
+
+    def doTestShouldFail(line: String, parse: Seq[String] => Try[Instant]): Unit = {
+      assert(parse(Seq(line)).isFailure)
+    }
+    
+    doTestShouldFail("Thu Apr 18 22:32:01: [1] dispatched to", parseEndTime)
+    doTestShouldFail("Thu Apr 18 22:32:01: Dispatched to", parseEndTime)
+    doTestShouldFail("Mon Apr  1 22:32:01: [1] dispatched to", parseEndTime)
+    doTestShouldFail("Mon Apr  1 22:32:01: Dispatched to", parseEndTime)
+    
+    doTestShouldFail("Thu Apr 18 22:32:01: Completed", parseStartTime)
+    doTestShouldFail("Mon Apr  1 22:32:01: Completed", parseStartTime)
+    
+    doTestShouldFail("asdasdasdads", parseStartTime)
+    doTestShouldFail("asdasdasdads", parseEndTime)
   }
   
   private val actualOutput = """

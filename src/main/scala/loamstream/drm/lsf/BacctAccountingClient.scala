@@ -81,8 +81,8 @@ object BacctAccountingClient {
     for {
       memory <- tryToGet(5, s"Couldn't parse memory usage from bacct line '$line'").flatMap(parseMemory(line))
       cpuTime <- tryToGet(0, s"Couldn't parse cpu time usage from bacct line '$line'").flatMap(parseCpuTime)
-      startTime <- parseTimestamp(mungedBacctOutput)(Regexes.startTime, "start")
-      endTime <- parseTimestamp(mungedBacctOutput)(Regexes.endTime, "end")
+      startTime <- parseStartTime(mungedBacctOutput)
+      endTime <- parseEndTime(mungedBacctOutput)
     } yield {
       LsfResources(
         memory = memory,
@@ -115,7 +115,15 @@ object BacctAccountingClient {
    */
   private def parseCpuTime(s: String): Try[CpuTime] = Try(CpuTime.inSeconds(s.toDouble))
   
-  private[lsf] def parseTimestamp(mungedBacctOutput: Seq[String])(regex: Regex, fieldType: String): Try[Instant] = {
+  private[lsf] def parseStartTime(mungedBacctOutput: Seq[String]): Try[Instant] = {
+    parseTimestamp(mungedBacctOutput)(Regexes.startTime, "start")
+  }
+  
+  private[lsf] def parseEndTime(mungedBacctOutput: Seq[String]): Try[Instant] = {
+    parseTimestamp(mungedBacctOutput)(Regexes.endTime, "end")
+  }
+  
+  private def parseTimestamp(mungedBacctOutput: Seq[String])(regex: Regex, fieldType: String): Try[Instant] = {
     val dateOpt = mungedBacctOutput.collectFirst { case regex(v) => v }
     
     def failureMessage = s"Couldn't parse $fieldType timestamp from bacct output '$mungedBacctOutput'"

@@ -11,9 +11,6 @@ import scala.util.Success
 object Loops {
   
   private[util] object Backoff {
-    val defaultDelayStart: Duration = 0.5.seconds
-    val defaultDelayCap: Duration = 30.seconds
-    
     def delaySequence(start: Duration, cap: Duration): Iterator[Duration] = {
       require(start gt 0.seconds)
       require(cap gt 0.seconds)
@@ -22,6 +19,12 @@ object Loops {
     }
   }
   
+  /**
+   * Perform an operation that might fail, and returns a Try, up to maxRuns times, returning the result, if any,
+   * of the last success, wrapped in an Option, or None if no operation was successful.  In between failures, wait
+   * a certain amount of time, starting at the duration indicated by delayStart after the first failure and doubling
+   * after each subsequent failure, up to a max of delayCap.  @see Backoff.delaySequence .
+   */
   def retryUntilSuccessWithBackoff[A](
       maxRuns: Int, 
       delayStart: Duration, 

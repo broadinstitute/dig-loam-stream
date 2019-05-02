@@ -25,16 +25,6 @@ trait AccountingClient {
 object AccountingClient extends Loggable {
   protected[drm] type InvocationFn[A] = A => Try[RunResults] 
   
-  protected[drm] val defaultDelayStart: Duration = 0.5.seconds
-  protected[drm] val defaultDelayCap: Duration = 30.seconds
-  
-  protected[drm] def delaySequence(start: Duration, cap: Duration): Iterator[Duration] = {
-    require(start gt 0.seconds)
-    require(cap gt 0.seconds)
-    
-    Iterator.iterate(start)(_ * 2).map(_.min(cap))
-  }
-  
   protected[drm] def doRetries(
       binaryName: String,
       maxRetries: Int,

@@ -13,8 +13,8 @@ final class RetryingCommandInvoker[A](
     maxRetries: Int,
     binaryName: String,
     delegateFn: InvocationFn[A],
-    delayStart: Duration = Loops.Backoff.defaultDelayStart,
-    delayCap: Duration = Loops.Backoff.defaultDelayCap) extends (InvocationFn[A]) with Loggable {
+    delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
+    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap) extends (InvocationFn[A]) with Loggable {
   
   //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
   //bacct/qacct, more than necessary.
@@ -72,4 +72,9 @@ final class RetryingCommandInvoker[A](
 
 object RetryingCommandInvoker {
   type InvocationFn[A] = A => Try[RunResults]
+  
+  import scala.concurrent.duration._
+  
+  val defaultDelayStart: Duration = 0.5.seconds
+  val defaultDelayCap: Duration = 30.seconds
 }

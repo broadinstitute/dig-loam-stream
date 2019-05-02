@@ -18,8 +18,8 @@ import loamstream.util.RetryingCommandInvoker
 final class MockQacctAccountingClient(
     delegateFn: String => Try[RunResults],
     ugerConfig: UgerConfig = UgerConfig(),
-    delayStart: Duration = AccountingClient.defaultDelayStart,
-    delayCap: Duration = AccountingClient.defaultDelayCap) extends AccountingClient {
+    delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
+    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap) extends AccountingClient {
   
   private val timesGetQacctOutputForInvokedBox: ValueBox[Int] = ValueBox(0)
 

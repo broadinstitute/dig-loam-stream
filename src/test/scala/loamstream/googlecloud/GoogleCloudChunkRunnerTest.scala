@@ -21,6 +21,7 @@ import loamstream.model.execute.Environment
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.OutputStreams
 import loamstream.model.jobs.RunData
+import loamstream.util.Maps
 
 
 /**
@@ -130,7 +131,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val runDataObs = actualGoogleRunner.runJobsSequentially(Set(job1, job2, job3), neverRestart)
       
-      val runDatas = waitFor(runDataObs.lastAsFuture)
+      val z: Map[LJob, RunData] = Map.empty 
+      
+      val runDatas = waitFor(runDataObs.foldLeft(z)(_ ++ _).lastAsFuture)
       
       assert(runDatas(job1) === job1.toReturn)
       assert(runDatas(job2) === job2.toReturn)
@@ -298,7 +301,11 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(client.startClusterInvocations() === 0)
       assert(client.deleteClusterInvocations() === 0)
       
-      val jobRuns = waitFor(googleRunner.run(Set(job1, job2, job3), neverRestart).lastAsFuture)
+      val z: Map[LJob, RunData] = Map.empty
+      
+      val runDataObs = googleRunner.run(Set(job1, job2, job3), neverRestart)
+      
+      val jobRuns = waitFor(runDataObs.foldLeft(z)(_ ++ _).lastAsFuture)
       
       assert(client.clusterRunning() === true)
       assert(client.startClusterInvocations() === 1)

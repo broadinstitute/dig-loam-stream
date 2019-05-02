@@ -82,18 +82,21 @@ final case class RxExecuter(
       (jobsToMaybeRun, skippedJobs) = notFinishedJobs.map(_.job).partition(jobFilter.shouldRun)
       (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
       _ = handleSkippedJobs(skippedJobs)
-      runJobsMap <- runJobs(jobsToRun)
       cancelledJobsMap = cancelJobs(jobsToCancel)
-      executionMap = cancelledJobsMap ++ runJobsMap
-      _ = record(executionMap)
-      _ = logFinishedJobs(executionMap)
+      _ = record(cancelledJobsMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
+      executionTupleOpt <- runJobs(jobsToRun)
+      _ = record(executionTupleOpt)
+      executionMap = cancelledJobsMap ++ executionTupleOpt
+      _ = logFinishedJobs(executionMap)
     } yield {
       executionMap ++ skippedResultMap
     }
     //NB: We no longer stop on the first failure, but run each sub-tree of jobs as far as possible.
-    //TODO: Make this configurable
-    val futureMergedResults = chunkResults.to[Seq].map(Maps.mergeMaps).firstAsFuture
+    
+    val z: Map[LJob, Execution] = Map.empty
+    
+    val futureMergedResults = chunkResults.foldLeft(z)(_ ++ _).firstAsFuture
 
     Await.result(futureMergedResults, timeout)
   }
@@ -109,12 +112,22 @@ final case class RxExecuter(
   //NB: shouldRestart() mostly factored out to the companion object for simpler testing
   private def shouldRestart(job: LJob): Boolean = RxExecuter.shouldRestart(job, maxRunsPerJob)
   
-  private def runJobs(jobsToRun: Iterable[LJob]): Observable[Map[LJob, Execution]] = {
+  //Produce Optional LJob -> Execution tuples.  We need to be able to produce just one (empty) item,
+  //instead of just returning Observable.empty, so that code chained onto this method's result with
+  //flatMap will run.
+  private def runJobs(jobsToRun: Iterable[LJob]): Observable[Option[(LJob, Execution)]] = {
     logJobsToBeRun(jobsToRun)
     
     import RxExecuter.toExecutionMap
     
-    runner.run(jobsToRun.toSet, shouldRestart).flatMap(toExecutionMap(fileMonitor, shouldRestart))
+    val emptyMap = Map.empty[LJob, Execution]
+    
+    if(jobsToRun.isEmpty) { Observable.just(None) }
+    else {
+      val jobRunObs = runner.run(jobsToRun.toSet, shouldRestart)
+      
+      jobRunObs.flatMap(toExecutionMap(fileMonitor, shouldRestart)).map(Option(_))
+    }
   }
   
   private def cancelJobs(jobsToCancel: Iterable[LJob]): Map[LJob, Execution] = {
@@ -158,9 +171,13 @@ final case class RxExecuter(
     skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped))
   }
 
-  private def record(executionMap: Map[LJob, Execution]): Unit = {
-    executionRecorder.record(executionMap.values)
+  private def record(executionTuples: Iterable[(LJob, Execution)]): Unit = {
+    val executions = executionTuples.collect { case (_, e) => e }
+    
+    executionRecorder.record(executions)
   }
+  
+  private def record(executionTuples: (LJob, Execution)*): Unit = record(executionTuples.toIterable)
 }
 
 object RxExecuter extends Loggable {
@@ -254,7 +271,7 @@ object RxExecuter extends Loggable {
       fileMonitor: FileMonitor,
       shouldRestart: LJob => Boolean)
       (runDataMap: Map[LJob, RunData])
-      (implicit context: ExecutionContext): Observable[Map[LJob, Execution]] = {
+      (implicit context: ExecutionContext): Observable[(LJob, Execution)] = {
   
     def waitForOutputs(runData: RunData): Future[Execution] = {
       ExecuterHelpers.waitForOutputsAndMakeExecution(runData, fileMonitor)
@@ -283,8 +300,6 @@ object RxExecuter extends Loggable {
       }
     }
     
-    Observable.from {
-      Future.sequence(jobToExecutionFutures).map(_.toMap)
-    }
+    Observable.from(jobToExecutionFutures).flatMap(Observable.from(_))
   }
 }

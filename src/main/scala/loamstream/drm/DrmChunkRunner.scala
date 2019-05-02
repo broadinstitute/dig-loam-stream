@@ -191,6 +191,31 @@ object DrmChunkRunner extends Loggable {
     resourcesAttempt.toOption
   }
   
+  private[drm] def toRunData(
+      accountingClient: AccountingClient, 
+      wrapper: DrmJobWrapper, 
+      jobId: String)(s: DrmStatus): RunData = {
+    
+    val resourcesOpt: Option[DrmResources] = {
+      if(s.isFinished) {
+        debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
+        
+        getResourceUsageFor(accountingClient)(jobId)
+      } else {
+        debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $s")
+        
+        None
+      }
+    }
+    
+    RunData(
+        job = wrapper.commandLineJob,
+        jobStatus = toJobStatus(s),
+        jobResult = toJobResult(s),
+        resourcesOpt = resourcesOpt,
+        outputStreamsOpt = Option(wrapper.outputStreams))
+  }
+  
   private[drm] def toRunDatas(
     accountingClient: AccountingClient, 
     shouldRestart: LJob => Boolean,
@@ -202,30 +227,9 @@ object DrmChunkRunner extends Loggable {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
       drmJobStatuses.distinct.foreach(handleDrmStatus(shouldRestart, wrapper.commandLineJob))
 
-      import loamstream.util.Classes.simpleNameOf
       
-      def toRunData(s: DrmStatus): RunData = {
-        val resourcesOpt: Option[DrmResources] = {
-          if(s.isFinished) {
-            debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
-            
-            getResourceUsageFor(accountingClient)(jobId)
-          } else {
-            debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $s")
-            
-            None
-          }
-        }
-        
-        RunData(
-            job = wrapper.commandLineJob,
-            jobStatus = toJobStatus(s),
-            jobResult = toJobResult(s),
-            resourcesOpt = resourcesOpt,
-            outputStreamsOpt = Option(wrapper.outputStreams))
-      }
       
-      val runDataObs = drmJobStatuses.last.map(toRunData)
+      val runDataObs = drmJobStatuses.last.map(toRunData(accountingClient, wrapper, jobId))
 
       wrapper -> runDataObs
     }

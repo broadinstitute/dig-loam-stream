@@ -18,6 +18,7 @@ import java.time.ZoneId
 import loamstream.util.RetryingCommandInvoker
 import loamstream.drm.AccountingClient
 import loamstream.util.Loggable
+import loamstream.conf.LsfConfig
 
 /**
  * @author clint
@@ -56,6 +57,13 @@ final class BacctAccountingClient(
 }
 
 object BacctAccountingClient {
+  /**
+   * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
+   */
+  def useActualBinary(lsfConfig: LsfConfig, binaryName: String = "bacct"): BacctAccountingClient = {
+    new BacctAccountingClient(BacctInvoker.useActualBinary(lsfConfig.maxBacctRetries, binaryName))
+  }
+  
   //"Data lines" look like this:
   //CPU_T     WAIT     TURNAROUND   STATUS     HOG_FACTOR    MEM    SWAP
   //0.02        0              0     exit         0.0000     0M      0M
@@ -71,7 +79,7 @@ object BacctAccountingClient {
     }
     
     for {
-      memory <- tryToGet(6, s"Couldn't parse memory usage from bacct line '$line'").flatMap(parseMemory(line))
+      memory <- tryToGet(5, s"Couldn't parse memory usage from bacct line '$line'").flatMap(parseMemory(line))
       cpuTime <- tryToGet(0, s"Couldn't parse cpu time usage from bacct line '$line'").flatMap(parseCpuTime)
       startTime <- parseTimestamp(mungedBacctOutput)(Regexes.startTime, "start")
       endTime <- parseTimestamp(mungedBacctOutput)(Regexes.endTime, "end")
@@ -89,7 +97,7 @@ object BacctAccountingClient {
   private def isHeaderLine(s: String): Boolean = s.startsWith("CPU_T")
   
   //NB: assume megabytes or gigabytes; the LSF documentation doesn't describe what units are possible. :(
-  private def parseMemory(line: String)(s: String): Try[Memory] = {
+  private[lsf] def parseMemory(line: String)(s: String): Try[Memory] = {
     val toMemory: Double => Memory = s.last.toUpper match {
       case 'M' => Memory.inMb
       case 'G' => Memory.inGb
@@ -107,14 +115,20 @@ object BacctAccountingClient {
    */
   private def parseCpuTime(s: String): Try[CpuTime] = Try(CpuTime.inSeconds(s.toDouble))
   
-  def parseTimestamp(mungedBacctOutput: Seq[String])(regex: Regex, fieldType: String): Try[Instant] = {
+  private[lsf] def parseTimestamp(mungedBacctOutput: Seq[String])(regex: Regex, fieldType: String): Try[Instant] = {
     val dateOpt = mungedBacctOutput.collectFirst { case regex(v) => v }
     
     def failureMessage = s"Couldn't parse $fieldType timestamp from bacct output '$mungedBacctOutput'"
     
     val dateStringAttempt = Options.toTry(dateOpt)(failureMessage)
     
-    dateStringAttempt.map(ds => dateFormatter.parse(ds, Instant.from))
+    val (primaryFormatter, alternateFormatter) = dateFormatters 
+    
+    def parseInstant(formatter: DateTimeFormatter): Try[Instant] = {
+      dateStringAttempt.map(ds => formatter.parse(ds, Instant.from))
+    }
+    
+    parseInstant(primaryFormatter).orElse(parseInstant(alternateFormatter))
   }
   
   /*
@@ -126,26 +140,30 @@ object BacctAccountingClient {
    * manifest on runs that cross year boundaries are not something that would be fun to debug in fome far-off future.
    *  -Clint Apr 22, 2019
    */
-  private def dateFormatter: DateTimeFormatter = {
+  private def dateFormatters: (DateTimeFormatter, DateTimeFormatter) = {
     val systemTimeZoneId = ZoneId.of(java.util.TimeZone.getDefault.getID)
 
     val currentYear: Int = Instant.now.atZone(systemTimeZoneId).get(ChronoField.YEAR)
+
+    def makeDateTimeFormatter(pattern: String) = {
+      (new DateTimeFormatterBuilder)
+        .appendPattern(pattern)
+        .parseDefaulting(ChronoField.NANO_OF_SECOND, 0)
+        .parseDefaulting(ChronoField.YEAR, currentYear)
+        .toFormatter
+        .withZone(systemTimeZoneId)
+    }
     
-    (new DateTimeFormatterBuilder)
-      .appendPattern("EEE MMM dd HH:mm:ss")
-      .parseDefaulting(ChronoField.NANO_OF_SECOND, 0)
-      .parseDefaulting(ChronoField.YEAR, currentYear)
-      .toFormatter
-      .withZone(systemTimeZoneId)
+    (makeDateTimeFormatter("EEE MMM dd HH:mm:ss"), makeDateTimeFormatter("EEE MMM  d HH:mm:ss"))
   }
   
-  private object Regexes {
-    val node = ".*Dispatched to <(.+?)>.*".r
+  private[lsf] object Regexes {
+    val node = ".*[Dd]ispatched to <(.+?)>.*".r
     val queue = ".*Queue <(.+?)>.*".r
     //Thu Apr 18 22:32:01: Dispatched to <ebi6-054>
-    val startTime = "(.*):\\s+Dispatched\\sto.*".r
+    val startTime = "(.*):.*[Dd]ispatched\\sto.*".r
     //Thu Apr 18 22:32:01: Completed <exit>.
     val endTime = "(.*):\\s+Completed.*".r
-    val memory = "^(\\d+)[MmGg]$".r
+    val memory = "^(.+)[MmGg]$".r
   }
 }

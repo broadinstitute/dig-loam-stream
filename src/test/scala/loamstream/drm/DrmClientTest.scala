@@ -1,4 +1,4 @@
-package loamstream.drm
+/*package loamstream.drm
 
 import java.time.Instant
 
@@ -16,10 +16,10 @@ import loamstream.conf.UgerConfig
 
 
 
-/**
+*//**
  * @author clint
  * Mar 20, 2017
- */
+ *//*
 final class DrmClientTest extends FunSuite {
 
   private val resources = UgerResources(
@@ -130,3 +130,4 @@ final class DrmClientTest extends FunSuite {
     doTest(DrmStatus.Undetermined(Some(resources)))
   }
 }
+*/

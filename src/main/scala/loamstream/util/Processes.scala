@@ -20,10 +20,10 @@ object Processes extends Loggable {
     //NB: Implicit conversion to ProcessBuilder :\ 
     val processBuilder: ProcessBuilder = commandLineTokens
     
-    doRunSync(executable, processBuilder)
+    runSync(executable, processBuilder)
   }
   
-  private def doRunSync(
+  def runSync(
       executable: String, 
       processBuilder: ProcessBuilder)(implicit logCtx: LogContext): Try[RunResults] = {
     

@@ -28,6 +28,8 @@ import rx.lang.scala.Observable
 import loamstream.util.Maps
 import loamstream.util.Traversables
 import loamstream.model.jobs.commandline.HasCommandLine
+import scala.util.Try
+import loamstream.model.execute.Resources.DrmResources
 
 
 /**
@@ -42,7 +44,8 @@ final case class DrmChunkRunner(
     executionConfig: ExecutionConfig,
     drmConfig: DrmConfig,
     jobSubmitter: JobSubmitter,
-    jobMonitor: JobMonitor) extends ChunkRunnerFor(environmentType) with Terminable with Loggable {
+    jobMonitor: JobMonitor,
+    accountingClient: AccountingClient) extends ChunkRunnerFor(environmentType) with Terminable with Loggable {
 
   require(environmentType.isUger || environmentType.isLsf, "Only UGER and LSF environments are supported")
   
@@ -138,7 +141,7 @@ final case class DrmChunkRunner(
 
     val jobsAndDrmStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    toRunDatas(shouldRestart, jobsAndDrmStatusesById)
+    toRunDatas(accountingClient, shouldRestart, jobsAndDrmStatusesById)
   }
   
   /**
@@ -177,7 +180,19 @@ object DrmChunkRunner extends Loggable {
     }
   }
   
+  private[drm] def getResourceUsageFor(accountingClient: AccountingClient)(jobId: String): Option[DrmResources] = {
+    val resourcesAttempt = accountingClient.getResourceUsage(jobId)
+        
+    //For side effect only
+    resourcesAttempt.recover {
+      case e => warn(s"Error invoking accounting client for job with DRM id '$jobId': ${e.getMessage}", e)
+    }
+    
+    resourcesAttempt.toOption
+  }
+  
   private[drm] def toRunDatas(
+    accountingClient: AccountingClient, 
     shouldRestart: LJob => Boolean,
     jobsAndDrmStatusesById: Map[String, JobAndStatuses]): Observable[Map[LJob, RunData]] = {
 
@@ -187,14 +202,26 @@ object DrmChunkRunner extends Loggable {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
       drmJobStatuses.distinct.foreach(handleDrmStatus(shouldRestart, wrapper.commandLineJob))
 
+      import loamstream.util.Classes.simpleNameOf
+      
       def toRunData(s: DrmStatus): RunData = {
-        
+        val resourcesOpt: Option[DrmResources] = {
+          if(s.isFinished) {
+            debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
+            
+            getResourceUsageFor(accountingClient)(jobId)
+          } else {
+            debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $s")
+            
+            None
+          }
+        }
         
         RunData(
             job = wrapper.commandLineJob,
             jobStatus = toJobStatus(s),
             jobResult = toJobResult(s),
-            resourcesOpt = s.resourcesOpt, //NB: In the DRMAA case, this will be re-filled-in later, if possible
+            resourcesOpt = resourcesOpt,
             outputStreamsOpt = Option(wrapper.outputStreams))
       }
       

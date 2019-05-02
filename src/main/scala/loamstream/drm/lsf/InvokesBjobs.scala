@@ -19,7 +19,11 @@ object InvokesBjobs {
     
     final def fromExecutable(actualExecutable: String = "bjobs"): A = {
       def invocationFn(lsfJobIds: P): Try[RunResults] = {
-        Processes.runSync(actualExecutable, makeTokens(actualExecutable, lsfJobIds))
+        val tokens = makeTokens(actualExecutable, lsfJobIds)
+        
+        trace(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+        
+        Processes.runSync(actualExecutable, tokens)
       }
       
       constructor(invocationFn)

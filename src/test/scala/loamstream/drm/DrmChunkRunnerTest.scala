@@ -92,7 +92,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   private val ugerPathBuilder = new UgerPathBuilder(UgerScriptBuilderParams(ugerConfig))
   
   test("No failures when empty set of jobs is presented - Uger") {
-    val mockDrmClient = new MockDrmClient(Map.empty)
+    val mockDrmClient = new MockDrmaaClient(Map.empty)
     val runner = DrmChunkRunner(
         environmentType = EnvironmentType.Uger,
         pathBuilder = ugerPathBuilder,
@@ -100,7 +100,8 @@ final class DrmChunkRunnerTest extends FunSuite {
         drmConfig = ugerConfig,
         jobSubmitter = JobSubmitter.Drmaa(mockDrmClient, ugerConfig),
         //NB: The poller can always fail, since it should never be invoked
-        jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller))
+        jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
+        accountingClient = MockAccountingClient.NeverWorks)
     
     val result = waitFor(runner.run(Set.empty, neverRestart).firstAsFuture)
     
@@ -116,7 +117,8 @@ final class DrmChunkRunnerTest extends FunSuite {
         drmConfig = lsfConfig,
         jobSubmitter = new MockJobSubmitter,
         //NB: The poller can always fail, since it should never be invoked
-        jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller))
+        jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
+        accountingClient = MockAccountingClient.NeverWorks)
     
     val result = waitFor(runner.run(Set.empty, neverRestart).firstAsFuture)
     
@@ -235,7 +237,9 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       assert(job.runCount === 0)
       
-      val result = waitFor(toRunDatas(shouldRestart, Map(id -> toTuple(failed))).firstAsFuture)
+      val accountingClient = MockAccountingClient.NeverWorks
+      
+      val result = waitFor(toRunDatas(accountingClient, shouldRestart, Map(id -> toTuple(failed))).firstAsFuture)
       
       val Seq((actualJob, runData)) = result.toSeq
       
@@ -273,11 +277,13 @@ final class DrmChunkRunnerTest extends FunSuite {
     def doTest(shouldRestart: LJob => Boolean, lastDrmStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastDrmStatus)
       
+      val accountingClient = MockAccountingClient.NeverWorks
+      
       val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, 1)
       
       assert(job.runCount === 0)
       
-      val result = waitFor(toRunDatas(shouldRestart, Map(id -> toTuple(worked))).firstAsFuture)
+      val result = waitFor(toRunDatas(accountingClient, shouldRestart, Map(id -> toTuple(worked))).firstAsFuture)
       
       val Seq((actualJob, runData)) = result.toSeq
       
@@ -334,7 +340,9 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val input = Map(goodId -> toTuple(worked), badId -> toTuple(failed))
       
-      val result = waitFor(toRunDatas(shouldRestart, input).firstAsFuture)
+      val accountingClient = MockAccountingClient.NeverWorks
+      
+      val result = waitFor(toRunDatas(accountingClient, shouldRestart, input).firstAsFuture)
       
       val goodExecution = result(workedJob)
       val badExecution = result(failedJob)
@@ -412,15 +420,14 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     def makeChunkRunner(drmSystem: DrmSystem, mockJobSubmitter: MockJobSubmitter): DrmChunkRunner = drmSystem match {
       case DrmSystem.Uger => {
-        val mockDrmClient = MockDrmClient(Map.empty)
-    
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
             pathBuilder = ugerPathBuilder,
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = JustFailsMockPoller))
+            jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
+            accountingClient = MockAccountingClient.NeverWorks)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -429,7 +436,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             executionConfig = executionConfig,
             drmConfig = lsfConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = JustFailsMockPoller))
+            jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
+            accountingClient = MockAccountingClient.NeverWorks)
       }
     }
     
@@ -503,7 +511,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     
     def makeChunkRunner(drmSystem: DrmSystem, mockJobSubmitter: MockJobSubmitter): DrmChunkRunner = drmSystem match {
       case DrmSystem.Uger => { 
-        val mockDrmClient = MockDrmClient(Map.empty)
+        val mockDrmaaClient = MockDrmaaClient(Map.empty)
 
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
@@ -511,7 +519,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             executionConfig = executionConfig,
             drmConfig = ugerConfig,
             jobSubmitter = mockJobSubmitter,
-            jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmClient)))
+            jobMonitor = new JobMonitor(poller = new DrmaaPoller(mockDrmaaClient)),
+            accountingClient = MockAccountingClient.NeverWorks)
       }
       case DrmSystem.Lsf => {
         DrmChunkRunner(
@@ -521,7 +530,8 @@ final class DrmChunkRunnerTest extends FunSuite {
             drmConfig = lsfConfig,
             jobSubmitter = mockJobSubmitter,
             //NB: The poller can fail, since we're not checking execution results, just config-propagation
-            jobMonitor = new JobMonitor(poller = JustFailsMockPoller))
+            jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
+            accountingClient = MockAccountingClient.NeverWorks)
       }
     }
     

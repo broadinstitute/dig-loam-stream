@@ -98,7 +98,14 @@ object BsubJobSubmitter extends Loggable {
         
     val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
     
-    Processes.runSync(actualExecutable, tokens)
+    debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
+    
+    import scala.sys.process._
+    
+    //NB: script contents are piped to bsub
+    val processBuilder: ProcessBuilder = tokens #< taskArray.drmScriptFile.toFile
+    
+    Processes.runSync(actualExecutable, processBuilder)
   }
   
   import DrmSubmissionResult.SubmissionFailure

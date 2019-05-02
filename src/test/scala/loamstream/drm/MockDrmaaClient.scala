@@ -11,7 +11,7 @@ import loamstream.model.execute.Resources.DrmResources
  * @author clint
  * date: Jul 6, 2016
  */
-final case class MockDrmClient(private val toReturn: Map[String, Seq[Try[DrmStatus]]]) extends DrmClient {
+final case class MockDrmaaClient(private val toReturn: Map[String, Seq[Try[DrmStatus]]]) extends DrmaaClient {
   import loamstream.util.Maps.Implicits._
   
   private val remaining: ValueBox[Map[String, Seq[Try[DrmStatus]]]] = {
@@ -51,6 +51,4 @@ final case class MockDrmClient(private val toReturn: Map[String, Seq[Try[DrmStat
   override def killJob(jobId: String): Unit = ???
   
   override def killAllJobs(): Unit = ???
-  
-  override def getResourceUsage(jobId: String): Try[DrmResources] = ???
 }

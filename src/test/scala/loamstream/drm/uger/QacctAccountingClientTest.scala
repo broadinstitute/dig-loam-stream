@@ -1,20 +1,16 @@
 package loamstream.drm.uger
 
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
+
+import scala.util.Try
+
 import org.scalatest.FunSuite
 
-import loamstream.drm.Queue
 import loamstream.conf.UgerConfig
-import scala.util.Try
+import loamstream.drm.Queue
 import loamstream.util.RunResults
 import loamstream.util.Tries
-import loamstream.model.execute.Resources.UgerResources
-import loamstream.model.quantities.Memory
-import loamstream.model.quantities.CpuTime
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.util.TimeZone
-import java.time.ZonedDateTime
 
 /**
  * @author clint
@@ -23,8 +19,8 @@ import java.time.ZonedDateTime
 final class QacctAccountingClientTest extends FunSuite {
 
   import QacctTestHelpers.actualQacctOutput
-  import QacctTestHelpers.successfulRun
   import QacctTestHelpers.expectedResources
+  import QacctTestHelpers.successfulRun
   import scala.concurrent.duration._
   
   test("toInstant - problematic dates") {

@@ -52,8 +52,8 @@ final class BjobsPoller private[lsf] (pollingFn: InvocationFn[Set[LsfJobId]]) ex
   private[lsf] def runChunk(lsfJobIds: Set[LsfJobId]): Map[LsfJobId, Try[DrmStatus]] = {
     val runResultsAttempt = pollingFn(lsfJobIds)
       
-    val chunkOfIdsToStatusesAttempt = runResultsAttempt.flatMap { runResults =>
-      Try(BjobsPoller.parseBjobsOutput(runResults.stdout).toMap)
+    val chunkOfIdsToStatusesAttempt = runResultsAttempt.map { runResults =>
+      BjobsPoller.parseBjobsOutput(runResults.stdout).toMap
     }
     
     chunkOfIdsToStatusesAttempt match { 

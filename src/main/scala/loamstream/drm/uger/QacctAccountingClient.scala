@@ -1,34 +1,25 @@
 package loamstream.drm.uger
 
-import scala.util.control.NonFatal
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+
+import scala.collection.Seq
+import scala.concurrent.duration.DurationDouble
+import scala.util.Try
 import scala.util.matching.Regex
+
+import loamstream.conf.UgerConfig
 import loamstream.drm.AccountingClient
 import loamstream.drm.Queue
-import loamstream.util.Functions
-import loamstream.util.Loggable
-import scala.collection.Seq
-import scala.sys.process.stringSeqToProcess
-import loamstream.conf.UgerConfig
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
-import scala.concurrent.duration._
-import loamstream.util.RunResults
-import loamstream.util.Processes
 import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
+import loamstream.util.Loggable
 import loamstream.util.Options
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-import java.time.ZoneId
-import java.time.format.DateTimeFormatterBuilder
-import java.time.temporal.ChronoField
-import loamstream.util.Tries
-import java.time.LocalDateTime
-import java.time.ZonedDateTime
-import java.time.OffsetDateTime
 import loamstream.util.RetryingCommandInvoker
+import loamstream.util.Tries
 
 /**
  * @author clint
@@ -45,7 +36,7 @@ final class QacctAccountingClient(
 
   private def getQacctOutputFor(jobId: String): Try[Seq[String]] = qacctInvoker(jobId).map(_.stdout)
 
-  import Regexes.{ hostname, qname, cpu, mem, startTime, endTime }
+  import Regexes.{ cpu, endTime, hostname, mem, qname, startTime }
 
   override def getResourceUsage(jobId: String): Try[UgerResources] = {
     for {

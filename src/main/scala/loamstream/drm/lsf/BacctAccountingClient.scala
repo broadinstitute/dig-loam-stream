@@ -149,7 +149,7 @@ object BacctAccountingClient {
    * code asks the runtime for them, each time a formatter is made.  (The formatter takes all its parameters by-value.)
    * Consequently, this formatter needs to be a def. It wouldn't be so bad to cache the formatter and assume the year 
    * is the same throughout a run of LS, but I don't think that will save very much cpu time, and date bugs that only
-   * manifest on runs that cross year boundaries are not something that would be fun to debug in fome far-off future.
+   * manifest on runs that cross year boundaries are not something that would be fun to debug in some far-off future.
    *  -Clint Apr 22, 2019
    */
   private def dateFormatters: (DateTimeFormatter, DateTimeFormatter) = {
@@ -166,6 +166,10 @@ object BacctAccountingClient {
         .withZone(systemTimeZoneId)
     }
     
+    //NB: Return two formatters, differing in the number of characters the day-of-month part will take, and 
+    //associated padding.  To the best of my knowledge, there is no way to say something like "one or more 
+    //day-of-month digits", or "one or two day-of-month digits".  Instead, we return two formatters, so that 
+    //the second may be tried when parsing if the first one doesn't work.
     (makeDateTimeFormatter("EEE MMM dd HH:mm:ss"), makeDateTimeFormatter("EEE MMM  d HH:mm:ss"))
   }
   

@@ -8,6 +8,12 @@ import scala.util.Success
 /**
  * @author clint
  * Apr 25, 2019
+ * 
+ * Runs a function, delegateFn, up to maxRetries + 1 times, and returns the first Success, or a Failure otherwise.
+ * 
+ * Used to run command-line utils synchronously, retrying them if their exit codes are non-zero.  Waits greater
+ * and greater periods after each failure, starting at delayStart and doubling after each failure, up to a max of
+ * delayCap.  See Loops.Backoff.delaySequence and Loops.retryUntilSuccessWithBackoff . 
  */
 final class RetryingCommandInvoker[A](
     maxRetries: Int,

@@ -1,14 +1,16 @@
 package loamstream.drm.uger
 
-import loamstream.drm.Queue
-import loamstream.util.RunResults
-import scala.util.Try
-import scala.util.Success
-import loamstream.model.execute.Resources.UgerResources
-import java.time.ZonedDateTime
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
+
+import scala.util.Success
+import scala.util.Try
+
+import loamstream.drm.Queue
+import loamstream.model.execute.Resources.UgerResources
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Memory
+import loamstream.util.RunResults
 
 /**
  * @author clint

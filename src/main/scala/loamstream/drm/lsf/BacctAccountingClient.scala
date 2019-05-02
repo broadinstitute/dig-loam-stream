@@ -79,9 +79,12 @@ object BacctAccountingClient {
       if(parts.isDefinedAt(i)) Success(parts(i)) else Tries.failure(message)
     }
     
+    val memIndex = 5 //scalastyle:ignore magic.number
+    val cpuTimeIndex = 0
+    
     for {
-      memory <- tryToGet(5, s"Couldn't parse memory usage from bacct line '$line'").flatMap(parseMemory(line))
-      cpuTime <- tryToGet(0, s"Couldn't parse cpu time usage from bacct line '$line'").flatMap(parseCpuTime)
+      memory <- tryToGet(memIndex, s"Couldn't parse memory usage from bacct line '$line'").flatMap(parseMemory(line))
+      cpuTime <- tryToGet(cpuTimeIndex, s"Couldn't parse cpu time usage from bacct line '$line'").flatMap(parseCpuTime)
       startTime <- parseStartTime(mungedBacctOutput)
       endTime <- parseEndTime(mungedBacctOutput)
     } yield {

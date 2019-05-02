@@ -141,6 +141,7 @@ final class BacctAccountingClientTest extends FunSuite {
     doTestShouldFail("asdasdasdads", parseEndTime)
   }
   
+  // scalastyle:off line.size.limit
   private val actualOutput = """
     Accounting information about jobs that are: 
   - submitted by all users.
@@ -178,7 +179,7 @@ SUMMARY:      ( time unit: second )
  Minimum expansion factor of a job:  0.00
  Total Run time consumed:         0      Average Run time consumed:       0
     """
-  
+
   private val problematicOutput = """
     Accounting information about jobs that are:
    - submitted by all users.
@@ -217,4 +218,5 @@ SUMMARY:      ( time unit: second )
    Total Run time consumed:        22      Average Run time consumed:      22
    Maximum Run time of a job:      22      Minimum Run time of a job:      22
    """
+  // scalastyle:on line.size.limit
 }

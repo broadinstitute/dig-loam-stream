@@ -13,6 +13,7 @@ import java.time.ZonedDateTime
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.RunResults
 import scala.util.Try
+import loamstream.model.jobs.TerminationReason
 
 /**
  * @author clint
@@ -58,6 +59,35 @@ final class BacctAccountingClientTest extends FunSuite {
             ZonedDateTime.parse(s"${currentYear}-04-18T23:34:12.00${systemTimeZoneOffSet}").toInstant)
     
     assert(actual.get === expected)
+  }
+  
+  test("getTerminationReason - happy path") {
+    def doTest(lsfReason: String, lsfDesc: String, expected: Option[TerminationReason]): Unit = {
+      val splitOutput = actualOutputWithTerminationReason(lsfReason, lsfDesc).split("\\n")
+      
+      val mockInvoker = new RetryingCommandInvoker[String](0, "MOCK", _ => runResultsAttempt(stdout = splitOutput))
+      
+      val actual = (new BacctAccountingClient(mockInvoker)).getTerminationReason("someJobId")
+      
+      assert(actual.get === expected)
+    }
+    
+    doTest("", "blah blah", None)
+    doTest("asdfasdf", "blah blah", None)
+    
+    doTest("TERM_RUNLIMIT", "blah blah", Some(TerminationReason.RunTime(Some("TERM_RUNLIMIT"))))
+    
+    doTest("TERM_CPULIMIT", "blah blah", Some(TerminationReason.CpuTime(Some("TERM_CPULIMIT"))))
+    
+    doTest("TERM_OWNER", "blah blah", Some(TerminationReason.UserRequested(Some("TERM_OWNER"))))
+    doTest("TERM_FORCE_OWNER", "blah blah", Some(TerminationReason.UserRequested(Some("TERM_FORCE_OWNER"))))
+    
+    doTest("TERM_MEMLIMIT", "blah blah", Some(TerminationReason.Memory(Some("TERM_MEMLIMIT"))))
+    doTest("TERM_SWAP", "blah blah", Some(TerminationReason.Memory(Some("TERM_SWAP"))))
+    
+    doTest("TERM_UNKNOWN", "blah blah", Some(TerminationReason.Unknown(Some("TERM_UNKNOWN"))))
+    
+    doTest("TERM_FOO", "blah blah", Some(TerminationReason.Unclassified(Some("TERM_FOO"))))
   }
   
   test("Parse actual bacct outpout - problematic output") {
@@ -180,6 +210,46 @@ SUMMARY:      ( time unit: second )
  Total Run time consumed:         0      Average Run time consumed:       0
     """
 
+  private def actualOutputWithTerminationReason(termReason: String, termDesc: String): String = s"""
+
+Accounting information about jobs that are: 
+  - submitted by all users.
+  - accounted on all projects.
+  - completed normally or exited
+  - executed on all hosts.
+  - submitted to all queues.
+  - accounted on all service classes.
+------------------------------------------------------------------------------
+
+Job <2119469>, User <cgilbert>, Project <default>, Status <EXIT>, Queue <research-rh7>, Command <java Hello 250000000 0>, Share group charged </cgilbert>
+Mon May  6 22:58:01: Submitted from host <ebi-cli-001>, CWD <$$HOME>;
+Mon May  6 22:58:03: Dispatched to <ebi6-142>, Effective RES_REQ <select[type == local] order[r15s:pg] rusage[mem=1000.00:duration=8h:decay=0,numcpus=1.00:duration=8h:decay=0] span[hosts=1] >;
+Mon May  6 22:58:03: Completed <exit>; ${termReason}: ${termDesc}
+
+Accounting information about this job:
+     Share group charged </cgilbert>
+     CPU_T     WAIT     TURNAROUND   STATUS     HOG_FACTOR    MEM    SWAP
+      0.09        2              2     exit         0.0460     3M     60M
+------------------------------------------------------------------------------
+
+SUMMARY:      ( time unit: second ) 
+ Total number of done jobs:       0      Total number of exited jobs:     1
+ Total CPU time consumed:       0.1      Average CPU time consumed:     0.1
+ Maximum CPU time of a job:     0.1      Minimum CPU time of a job:     0.1
+ Total wait time in queues:     2.0
+ Average wait time in queue:    2.0
+ Maximum wait time in queue:    2.0      Minimum wait time in queue:    2.0
+ Average turnaround time:         2 (seconds/job)
+ Maximum turnaround time:         2      Minimum turnaround time:         2
+ Average hog factor of a job:  0.05 ( cpu time / turnaround time )
+ Maximum hog factor of a job:  0.05      Minimum hog factor of a job:  0.05
+ Average expansion factor of a job:  2.00 ( turnaround time / run time )
+ Maximum expansion factor of a job:  2.00
+ Minimum expansion factor of a job:  2.00
+ Total Run time consumed:         0      Average Run time consumed:       0
+ Maximum Run time of a job:       0      Minimum Run time of a job:       0
+    """
+  
   private val problematicOutput = """
     Accounting information about jobs that are:
    - submitted by all users.

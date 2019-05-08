@@ -24,7 +24,7 @@ final class RunDataTest extends FunSuite {
   test("withResources") {
     val j = MockJob(Succeeded)
     
-    val runDataNoResources = RunData(j, Succeeded, None, None, None)
+    val runDataNoResources = RunData(j, Succeeded, None, None, None, None)
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
@@ -34,7 +34,7 @@ final class RunDataTest extends FunSuite {
     
     val googleResources = GoogleResources.fromClusterAndLocalResources("foo", localResources)
     
-    val runDataLocalResources = RunData(j, Succeeded, None, Some(localResources), None)
+    val runDataLocalResources = RunData(j, Succeeded, None, Some(localResources), None, None)
     
     assert(runDataLocalResources.resourcesOpt === Some(localResources))
     assert(runDataLocalResources.withResources(googleResources).resourcesOpt === Some(googleResources))
@@ -43,13 +43,13 @@ final class RunDataTest extends FunSuite {
   test("cmdOpt") {
     val mockJob = MockJob(Succeeded)
     
-    val runDataMockJob = RunData(mockJob, Succeeded, None, None, None)
+    val runDataMockJob = RunData(mockJob, Succeeded, None, None, None, None)
     
     assert(runDataMockJob.cmdOpt === None)
     
     val clj = CommandLineJob(dummyCommandLine, executionEnvironment = Environment.Local)
     
-    val runDataCommandLineJob = RunData(clj, Succeeded, None, None, None)
+    val runDataCommandLineJob = RunData(clj, Succeeded, None, None, None, None)
     
     assert(runDataCommandLineJob.cmdOpt === Some(dummyCommandLine))
   }
@@ -72,12 +72,15 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
+    val termReason = TerminationReason.Memory()
+    
     val runData = RunData(
         job = j,
         jobStatus = Succeeded, 
         jobResult = Some(JobResult.Success),
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
         env = j.executionEnvironment,
@@ -96,12 +99,15 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
+    val termReason = TerminationReason.Memory()
+    
     val runData = RunData(
         job = j,
         jobStatus = FailedPermanently, 
         jobResult = Some(JobResult.Failure),
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
         env = j.executionEnvironment,
@@ -120,12 +126,15 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
+    val termReason = TerminationReason.Memory()
+    
     val runData = RunData(
         job = j,
         jobStatus = WaitingForOutputs, 
         jobResult = None,
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
         env = j.executionEnvironment,
@@ -144,12 +153,15 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
+    val termReason = TerminationReason.Memory()
+    
     val runData = RunData(
         job = clj,
         jobStatus = Succeeded, 
         jobResult = Some(JobResult.Success),
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
         env = clj.executionEnvironment,
@@ -168,12 +180,15 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
+    val termReason = TerminationReason.Memory()
+    
     val runData = RunData(
         job = clj,
         jobStatus = FailedPermanently, 
         jobResult = Some(JobResult.Failure),
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
         env = clj.executionEnvironment,
@@ -192,12 +207,15 @@ final class RunDataTest extends FunSuite {
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
+    val termReason = TerminationReason.Memory()
+    
     val runData = RunData(
         job = clj,
         jobStatus = WaitingForOutputs, 
         jobResult = None,
         resourcesOpt = Some(localResources),
-        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreamsOpt = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
         env = clj.executionEnvironment,

@@ -20,6 +20,7 @@ import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
+import loamstream.model.jobs.TerminationReason
 
 /**
  * @author clint
@@ -56,6 +57,10 @@ final class QacctAccountingClient(
         startTime = start,
         endTime = end)
     }
+  }
+  
+  override def getTerminationReason(jobId: String): Try[Option[TerminationReason]] = {
+    ???
   }
 }
 

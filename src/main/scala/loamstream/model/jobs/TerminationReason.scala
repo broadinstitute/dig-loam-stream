@@ -6,24 +6,33 @@ package loamstream.model.jobs
  * 
  * An ADT for the reasons why a job was killed by the underlying system (Uger/LSF/Google) 
  */
-sealed trait TerminationReason
+sealed abstract class TerminationReason(val raw: Option[String]) {
+  import TerminationReason._
+  
+  def isRunTime: Boolean = this.isInstanceOf[RunTime]
+  def isCpuTime: Boolean = this.isInstanceOf[CpuTime]
+  def isMemory: Boolean = this.isInstanceOf[Memory]
+  def isUserRequested: Boolean = this.isInstanceOf[UserRequested]
+  def isUnclassified: Boolean = this.isInstanceOf[Unclassified]
+  def isUnknown: Boolean = this.isInstanceOf[Unknown]
+}
 
 object TerminationReason {
   //A was killed because it ran too long 
-  case object RunTime extends TerminationReason
+  final case class RunTime(override val raw: Option[String] = None) extends TerminationReason(raw)
   //A was killed because it used too much CPU time
-  case object CpuTime extends TerminationReason
+  final case class CpuTime(override val raw: Option[String] = None) extends TerminationReason(raw)
   //A was killed because it used too much RAM
-  case object Memory extends TerminationReason
+  final case class Memory(override val raw: Option[String] = None) extends TerminationReason(raw)
   //A was killed because the user requested it (with ctrl-c, say)
-  case object UserRequested extends TerminationReason
-  
-  val values: Set[TerminationReason] = Set(RunTime, CpuTime, Memory, UserRequested)
+  final case class UserRequested(override val raw: Option[String] = None) extends TerminationReason(raw)
+  final case class Unclassified(override val raw: Option[String] = None) extends TerminationReason(raw)
+  final case class Unknown(override val raw: Option[String] = None) extends TerminationReason(raw)
 }
 
 /*
  * LSF Termination reasons:
- * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
+ * 
  * 
 TERM_CHKPNT: Job was killed after checkpointing (13)
 TERM_CWD_NOTEXIST: current working directory is not accessible or does not exist on the execution host (25)

@@ -247,7 +247,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       
-      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
+      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success), terminationReasonOpt = None)
       
       withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
         val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
@@ -295,7 +295,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
 
-      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
+      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success), terminationReasonOpt = None)
       
       withFileMonitor(new FileMonitor(10.0, 5.seconds)) { fileMonitor => 
         val f = waitForOutputsAndMakeExecution(runData, fileMonitor)
@@ -355,7 +355,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
       import scala.concurrent.duration._
       import scala.concurrent.ExecutionContext.Implicits.global
       
-      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success))
+      val runData = RunData(mockJob, JobStatus.Succeeded, Some(JobResult.Success), terminationReasonOpt = None)
       
       //NB: Don't wait for any amount of time
       withFileMonitor(new FileMonitor(10.0, 0.seconds)) { fileMonitor => 
@@ -392,7 +392,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
     
-    val runData = RunData(mockJob, JobStatus.FailedPermanently, Some(JobResult.Failure))
+    val runData = RunData(mockJob, JobStatus.FailedPermanently, Some(JobResult.Failure), terminationReasonOpt = None)
     
     withFileMonitor(new FileMonitor(10.0, 5.seconds)) { fileMonitor => 
       val f = waitForOutputsAndMakeExecution(runData, fileMonitor)

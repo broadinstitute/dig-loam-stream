@@ -19,10 +19,13 @@ final case class RunData(
     jobStatus: JobStatus, 
     jobResult: Option[JobResult],
     resourcesOpt: Option[Resources] = None, 
-    outputStreamsOpt: Option[OutputStreams] = None) {
+    outputStreamsOpt: Option[OutputStreams] = None,
+    terminationReasonOpt: Option[TerminationReason]) {
 
   override def toString: String = {
-    s"${getClass.getSimpleName}(Job#${job.id}, $jobStatus, $jobResult, $resourcesOpt, $outputStreamsOpt)"
+    val name = getClass.getSimpleName
+    
+    s"${name}(Job#${job.id}, $jobStatus, $jobResult, $resourcesOpt, $outputStreamsOpt, $terminationReasonOpt)"
   }
   
   def withResources(r: Resources): RunData = copy(resourcesOpt = Some(r))

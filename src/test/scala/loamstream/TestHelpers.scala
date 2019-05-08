@@ -51,6 +51,7 @@ import loamstream.drm.DrmSystem
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.conf.CompilationConfig
+import loamstream.model.jobs.TerminationReason
 
 /**
   * @author clint
@@ -129,7 +130,11 @@ object TestHelpers {
       status: JobStatus,
       result: Option[JobResult] = None,
       resources: Option[Resources] = None,
-      outputStreams: Option[OutputStreams] = None): RunData = RunData(job, status, result, resources, outputStreams)
+      outputStreams: Option[OutputStreams] = None,
+      terminationReasonOpt: Option[TerminationReason] = None): RunData = {
+    
+    RunData(job, status, result, resources, outputStreams, terminationReasonOpt)
+  }
   
   def executionFrom(status: JobStatus,
                     result: Option[JobResult] = None,

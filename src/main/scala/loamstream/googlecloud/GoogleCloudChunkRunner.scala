@@ -118,7 +118,7 @@ object GoogleCloudChunkRunner {
   private[googlecloud] def addCluster(cluster: String)
                                      (jobsAndExecutions: Map[LJob, RunData]): Map[LJob, RunData] = {
     jobsAndExecutions.map {
-      case (job, runData @ RunData(_, _, _, Some(localResources: LocalResources), _)) => {
+      case (job, runData @ RunData(_, _, _, Some(localResources: LocalResources), _, _)) => {
         val googleResources = GoogleResources.fromClusterAndLocalResources(cluster, localResources)
         
         job -> runData.withResources(googleResources)

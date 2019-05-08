@@ -20,6 +20,7 @@ import loamstream.util.Loggable
 import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
+import loamstream.model.jobs.TerminationReason
 
 /**
  * @author clint
@@ -34,11 +35,17 @@ final class BacctAccountingClient(
     getBacctOutputFor(jobId).flatMap(toResources)
   }
   
-  private def getBacctOutputFor(jobId: String): Try[Seq[String]] = bacctInvoker(jobId).map(_.stdout)
+  override def getTerminationReason(jobId: String): Try[Option[TerminationReason]] = {
+    getBacctOutputFor(jobId).map(toTerminationReason)
+  }
+  
+  private def getBacctOutputFor(jobId: String): Try[Seq[String]] = bacctInvoker(jobId).map(_.stdout.map(_.trim))
     
-  private def toResources(bacctOutput: Seq[String]): Try[LsfResources] = {
-    val mungedBacctOutput = bacctOutput.map(_.trim)
-    
+  private def toTerminationReason(bacctOutput: Seq[String]): Option[TerminationReason] = {
+    bacctOutput.collectFirst { case Regexes.termReason(r) => r }.map(parseTerminationReason)
+  }
+  
+  private def toResources(mungedBacctOutput: Seq[String]): Try[LsfResources] = {
     /*
      * Documentation on bacct's output format:
      * https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
@@ -87,6 +94,7 @@ object BacctAccountingClient {
       cpuTime <- tryToGet(cpuTimeIndex, s"Couldn't parse cpu time usage from bacct line '$line'").flatMap(parseCpuTime)
       startTime <- parseStartTime(mungedBacctOutput)
       endTime <- parseEndTime(mungedBacctOutput)
+      
     } yield {
       LsfResources(
         memory = memory,
@@ -180,6 +188,32 @@ object BacctAccountingClient {
     val startTime = "(.*):.*[Dd]ispatched\\sto.*".r
     //Thu Apr 18 22:32:01: Completed <exit>.
     val endTime = "(.*):\\s+Completed.*".r
+    //Mon May  6 22:58:03: Completed <exit>; TERM_RUNLIMIT: job killed after reaching LSF run time limit.
+    val termReason = ".*:\\s+Completed.*;\\s+(TERM_.*):.*".r
+    //MEM SWAP
+    //3M  60M
     val memory = "^(.+)[MmGg]$".r
+  }
+  
+  //See https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_command_ref/bacct.1.html
+  private[lsf] def parseTerminationReason(lsfReason: String): TerminationReason = lsfReason.trim.toUpperCase match {
+    //Job was killed after it reached LSF CPU usage limit (12)
+    case raw @ "TERM_CPULIMIT" => TerminationReason.CpuTime(Option(raw))
+    
+    //Job was killed by owner (14)
+    //Job was killed by owner without time for cleanup (8)
+    case raw @ ("TERM_OWNER" | "TERM_FORCE_OWNER") => TerminationReason.UserRequested(Option(raw))
+    
+    //Job was killed after it reached LSF memory usage limit (16)
+    //Job was killed after it reached LSF swap usage limit (20)
+    case raw @ ("TERM_MEMLIMIT" | "TERM_SWAP") => TerminationReason.Memory(Option(raw)) 
+    
+    //Job was killed after it reached LSF runtime limit (5)
+    case raw @ "TERM_RUNLIMIT" => TerminationReason.RunTime(Option(raw))
+    
+    //LSF cannot determine a termination reason. 0 is logged but "TERM_UNKNOWN is not displayed (0)
+    case raw @ "TERM_UNKNOWN" => TerminationReason.Unknown(Option(raw))
+    
+    case raw => TerminationReason.Unclassified(Option(raw))
   }
 }

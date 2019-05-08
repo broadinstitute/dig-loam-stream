@@ -10,6 +10,7 @@ import loamstream.util.RunResults
 import scala.util.Success
 import loamstream.model.execute.Resources.DrmResources
 import loamstream.util.RetryingCommandInvoker
+import loamstream.model.jobs.TerminationReason
 
 /**
  * @author clint
@@ -25,9 +26,13 @@ final class MockQacctAccountingClient(
 
   private val timesGetResourceUsageInvokedBox: ValueBox[Int] = ValueBox(0)
   
+  private val timesGetTerminationReasonInvokedBox: ValueBox[Int] = ValueBox(0)
+  
   def timesGetQacctOutputForInvoked: Int = timesGetQacctOutputForInvokedBox()
     
   def timesGetResourceUsageInvoked: Int = timesGetResourceUsageInvokedBox()
+  
+  def timesGetTerminationReasonInvoked: Int = timesGetTerminationReasonInvokedBox()
 
   private val actualDelegate = {
     val fakeBinaryName = "MOCK"
@@ -49,5 +54,11 @@ final class MockQacctAccountingClient(
     timesGetResourceUsageInvokedBox.mutate(_ + 1)
     
     actualDelegate.getResourceUsage(jobId)
+  }
+  
+  override def getTerminationReason(jobId: String): Try[Option[TerminationReason]] = {
+    timesGetTerminationReasonInvokedBox.mutate(_ + 1)
+    
+    actualDelegate.getTerminationReason(jobId)
   }
 }

@@ -12,6 +12,7 @@ import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import java.time.Instant
 import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.jobs.TerminationReason
 
 /**
  * @author kyuksel
@@ -55,7 +56,8 @@ final case class LocalResourceRow(executionId: Int,
 }
 
 private[slick] object DrmResourceRow {
-  type ResourceMaker[R <: DrmResources] = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant) => R
+  type ResourceMaker[R <: DrmResources] = 
+    (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant) => R
 }
 
 private[slick] abstract class DrmResourceRow[R <: DrmResources](

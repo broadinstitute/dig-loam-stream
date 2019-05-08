@@ -31,7 +31,7 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
       {
         val job = MockJob(NotStarted)
       
-        val runData = RunData(job, status, None, None, None)
+        val runData = RunData(job, status, None, None, None, None)
         
         assert(job.status === NotStarted)
         
@@ -43,7 +43,7 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
       {
         val job = MockJob(NotStarted)
         
-        val runData = RunData(job, status, None, None, None)
+        val runData = RunData(job, status, None, None, None, None)
         
         assert(job.status === NotStarted)
       

@@ -659,7 +659,8 @@ object DrmChunkRunnerTest {
           jobStatus = DrmStatus.toJobStatus(statusesToReturn.last), 
           jobResult = None, 
           resourcesOpt = None, 
-          outputStreamsOpt = None)
+          outputStreamsOpt = None,
+          terminationReasonOpt = None)
       
       Future.successful(runData)
     }

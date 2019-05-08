@@ -100,6 +100,7 @@ object RxMockJob {
         jobStatus = jobResult.toJobStatus,
         jobResult = Option(jobResult),
         resourcesOpt = None,
-        outputStreamsOpt = None)
+        outputStreamsOpt = None,
+        terminationReasonOpt = None)
   }
 }

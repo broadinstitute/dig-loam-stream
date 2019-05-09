@@ -24,12 +24,11 @@ sealed trait DrmStatus {
   def isSuspended: Boolean = this == Suspended
   def isUndetermined: Boolean = this == Undetermined
   def isDoneUndetermined: Boolean = this == DoneUndetermined
+  def isCommandResult: Boolean = this.isInstanceOf[CommandResult]
 
-  def notFinished: Boolean = {
-    isRequeued || isRequeuedHeld || isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
-  }
+  def notFinished: Boolean = !isFinished
 
-  def isFinished: Boolean = !notFinished
+  def isFinished: Boolean = isFailed || isDone || isDoneUndetermined || isCommandResult
 }
 
 object DrmStatus {

@@ -43,18 +43,21 @@ final class BsubJobSubmitter private[lsf] (
   override def stop(): Unit = ()
   
   private[lsf] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
-    if(runResults.isSuccess) {
-      BsubJobSubmitter.extractJobId(runResults.stdout) match {
-        case Some(jobId) =>  makeSuccess(jobId, taskArray)
-        case None => {
-          logAndMakeFailure(runResults) { r =>
-            s"LSF Job submission failure: couldn't determine job ID from output of `${r.executable}`: ${r.stdout}"
+    runResults match {
+      case r: RunResults.Successful => {
+        BsubJobSubmitter.extractJobId(r.stdout) match {
+          case Some(jobId) =>  makeSuccess(jobId, taskArray)
+          case None => {
+            logAndMakeFailure(r) { r =>
+              s"LSF Job submission failure: couldn't determine job ID from output of `${r.executable}`: ${r.stdout}"
+            }
           }
         }
-      }
-    } else {
-      logAndMakeFailure(runResults) { runResults =>
-        s"LSF Job submission failure: `${runResults.executable}` failed with status code ${runResults.exitCode}"
+      } 
+      case r: RunResults.Unsuccessful => {
+        logAndMakeFailure(r) { r =>
+          s"LSF Job submission failure: `${r.executable}` failed with status code ${r.exitCode}"
+        }
       }
     }
   }
@@ -76,8 +79,8 @@ final class BsubJobSubmitter private[lsf] (
     DrmSubmissionResult.SubmissionSuccess(idsToJobs)
   }
   
-  private def logAndMakeFailure(
-      runResults: RunResults)(errorMsg: RunResults => String): DrmSubmissionResult.SubmissionFailure = {
+  private def logAndMakeFailure[R <: RunResults](
+      runResults: R)(errorMsg: R => String): DrmSubmissionResult.SubmissionFailure = {
     
     runResults.logStdOutAndStdErr("LSF Job submission failure, stdout and stderr follow:")
       

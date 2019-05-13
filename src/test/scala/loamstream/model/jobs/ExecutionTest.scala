@@ -140,14 +140,14 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val e1 = Execution.from(job1, status1, terminationReason = None)
     
     assert(e0.cmd === Some("foo"))
-    assert(e0.env.isUger)
+    assert(e0.env.settings.isUger)
     assert(e0.result === Some(result0))
     assert(e0.outputs === Set.empty)
     assert(e0.outputStreams === outputStreamsOpt)
     //TODO: Check settings field once it's no longer a placeholder 
     
     assert(e1.cmd === None)
-    assert(e1.env.isLocal)
+    assert(e1.env.settings.isLocal)
     assert(e1.status === status1)
     assert(e1.result === None)
     assert(e1.outputs === Set.empty)

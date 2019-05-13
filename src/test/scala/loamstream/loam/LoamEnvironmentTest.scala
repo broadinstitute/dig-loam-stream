@@ -46,7 +46,7 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
     assert(job.executionEnvironment === Environment.Local)
   }
   
-  private def makeGraph(env: Environment): (LoamScriptContext => Any) => LoamGraph = env.tpe match {
+  private def makeGraph(env: Environment): (LoamScriptContext => Any) => LoamGraph = env.settings.envType match {
     case EnvironmentType.Uger => TestHelpers.makeGraph(DrmSystem.Uger)(_)
     case EnvironmentType.Lsf => TestHelpers.makeGraph(DrmSystem.Lsf)(_)
     case _ => TestHelpers.makeGraph(_)

@@ -22,7 +22,15 @@ import loamstream.model.jobs.commandline.HasCommandLine
  * @author clint
  *         date: 3/7/17
  */
-sealed abstract class Settings(val envType: EnvironmentType)
+sealed abstract class Settings(val envType: EnvironmentType) {
+  final def isLocal: Boolean = envType.isLocal
+
+  final def isGoogle: Boolean = envType.isGoogle
+  
+  final def isUger: Boolean = envType.isUger
+  
+  final def isLsf: Boolean = envType.isLsf
+}
 
 /**
  * Execution-time settings for a group of 1 or more local jobs (no settings possible yet)

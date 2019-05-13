@@ -30,12 +30,12 @@ final case class Execution(
 
   require(
       environmentAndResourcesMatch, 
-      s"Environment type and resources must match, but got ${env.tpe} and $resources")
+      s"Environment type and resources must match, but got ${env.settings.envType} and $resources")
   
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
   
-  private def environmentAndResourcesMatch: Boolean = (env.tpe, resources) match {
+  private def environmentAndResourcesMatch: Boolean = (env.settings.envType, resources) match {
     case (_, None) => true
     case (EnvironmentType.Local, Some(_: LocalResources)) => true
     case (EnvironmentType.Google, Some(_: GoogleResources)) => true

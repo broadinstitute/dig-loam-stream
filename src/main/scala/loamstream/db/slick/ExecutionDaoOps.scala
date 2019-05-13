@@ -93,7 +93,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
     val executionRow = {
       new ExecutionRow(
         id = dummyId, 
-        env = execution.env.tpe.name, 
+        env = execution.env.settings.envType.name, 
         cmd = execution.cmd.get,
         status = execution.status, 
         exitCode = commandResult.exitCode,

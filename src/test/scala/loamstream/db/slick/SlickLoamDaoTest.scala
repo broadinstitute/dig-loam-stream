@@ -659,7 +659,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         import dao.tables.driver.api._
         
         val resourcesFromDb: ResourceRow = dao.runBlocking { 
-          env.tpe match {
+          env.settings.envType match {
             case EnvironmentType.Local => dao.tables.localResources.result
             case EnvironmentType.Uger => dao.tables.ugerResources.result
             case EnvironmentType.Lsf => dao.tables.lsfResources.result

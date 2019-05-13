@@ -4,32 +4,24 @@ package loamstream.model.execute
  * @author clint
  *         Nov 22, 2016
  */
-sealed abstract class Environment(val tpe: EnvironmentType) {
+sealed trait Environment {
   def settings: Settings
-  
-  final def isLocal: Boolean = tpe.isLocal
-
-  final def isGoogle: Boolean = tpe.isGoogle
-  
-  final def isUger: Boolean = tpe.isUger
-  
-  final def isLsf: Boolean = tpe.isLsf
 }
 
 object Environment {
-  final case object Local extends Environment(EnvironmentType.Local) {
+  final case object Local extends Environment {
     override def settings: Settings = LocalSettings
   }
 
-  final case class Uger(ugerSettings: DrmSettings) extends Environment(EnvironmentType.Uger) {
+  final case class Uger(ugerSettings: DrmSettings) extends Environment {
     override def settings: Settings = ugerSettings
   }
   
-  final case class Lsf(lsfSettings: DrmSettings) extends Environment(EnvironmentType.Lsf) {
+  final case class Lsf(lsfSettings: DrmSettings) extends Environment {
     override def settings: Settings = lsfSettings
   }
 
-  final case class Google(googleSettings: GoogleSettings) extends Environment(EnvironmentType.Google) {
+  final case class Google(googleSettings: GoogleSettings) extends Environment {
     override def settings: Settings = googleSettings
   }
   

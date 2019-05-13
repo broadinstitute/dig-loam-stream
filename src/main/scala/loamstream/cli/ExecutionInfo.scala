@@ -38,7 +38,7 @@ object ExecutionInfo {
   private def describe(execution: Execution): String = {
     val commandString = execution.cmd.map(c => s"'$c'")getOrElse("<None>")
   
-    val envType = execution.env.tpe
+    val envType = execution.env.settings.envType
     val envSettings = execution.env.settings
     val result = execution.result
     

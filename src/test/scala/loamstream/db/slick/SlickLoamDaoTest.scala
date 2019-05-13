@@ -33,6 +33,7 @@ import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Hash
 import loamstream.util.Hashes
 import loamstream.drm.ContainerParams
+import loamstream.model.jobs.TerminationReason
 
 /**
  * @author clint
@@ -81,7 +82,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           result = Option(result),
           resources = Option(TestHelpers.lsfResources),
           outputStreams = Option(dummyOutputStreams),
-          outputs = outputs.toSet)
+          outputs = outputs.toSet,
+          terminationReason = None)
     }
 
     dao.insertExecutions(execution)
@@ -116,7 +118,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         result = Option(result), 
         resources = Option(TestHelpers.ugerResources), 
         outputStreams = Option(dummyOutputStreams), 
-        outputs = outputs.toSet)
+        outputs = outputs.toSet,
+        terminationReason = Some(TerminationReason.CpuTime(Some("TERM_CPULIMIT"))))
 
     dao.insertExecutions(execution)
   }
@@ -229,7 +232,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     }
   }
 
-  test("insertExecutionRow") {
+  test("insertExecutionRow - no termination reason") {
     import Helpers.dummyId
 
     createTablesAndThen {
@@ -245,8 +248,10 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           mockStatus,
           mockExitCode,
           outputStreams.stdout.toString,
-          outputStreams.stderr.toString)
-
+          outputStreams.stderr.toString,
+          None,
+          None)
+      
       assert(allExecutionRows.isEmpty)
 
       val insertAction = dao.insertExecutionRow(toInsert)
@@ -263,6 +268,49 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(recorded.exitCode === mockExitCode)
       assert(recorded.stdoutPath === outputStreams.stdout.toString)
       assert(recorded.stderrPath === outputStreams.stderr.toString)
+      assert(recorded.terminationReasonType === None)
+      assert(recorded.rawTerminationReason === None)
+    }
+  }
+  
+  test("insertExecutionRow - with termination reason") {
+    import Helpers.dummyId
+
+    createTablesAndThen {
+      assert(noOutputs)
+      assert(noExecutions)
+
+      val outputStreams = dummyOutputStreams
+
+      val toInsert = new ExecutionRow(
+          dummyId,
+          mockEnv.toString,
+          mockCmd,
+          mockStatus,
+          mockExitCode,
+          outputStreams.stdout.toString,
+          outputStreams.stderr.toString,
+          Some(TerminationReason.Memory.Name),
+          Some("TERM_MEMLIMIT"))
+      
+      assert(allExecutionRows.isEmpty)
+
+      val insertAction = dao.insertExecutionRow(toInsert)
+
+      dao.runBlocking(insertAction)
+
+      val Seq(recorded) = allExecutionRows
+
+      // The DB must assign an auto-incremented 'id' upon insertion
+      assert(recorded.id != dummyId)
+      assert(recorded.env === mockEnv.toString)
+      assert(recorded.cmd === mockCmd)
+      assert(recorded.status === mockStatus)
+      assert(recorded.exitCode === mockExitCode)
+      assert(recorded.stdoutPath === outputStreams.stdout.toString)
+      assert(recorded.stderrPath === outputStreams.stderr.toString)
+      assert(recorded.terminationReasonType === Some(TerminationReason.Memory.Name))
+      assert(recorded.rawTerminationReason === Some("TERM_MEMLIMIT"))
     }
   }
 
@@ -307,7 +355,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           result = Option(CommandResult(42)),
           resources = Option(localResources),
           outputStreams = Option(dummyOutputStreams), 
-          outputs = Set(output0))
+          outputs = Set(output0),
+          terminationReason = None)
 
       val failed1 = Execution(
           env = lsfEnv, 
@@ -316,7 +365,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           result = Option(CommandResult(1)),
           resources = Option(lsfResources),
           outputStreams = Option(dummyOutputStreams), 
-          outputs = Set.empty)
+          outputs = Set.empty,
+          terminationReason = Some(TerminationReason.UserRequested(Some("FOO"))))
 
       val succeeded = Execution(
           env = Environment.Google(googleSettings),
@@ -325,7 +375,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           result = Option(CommandResult(0)),
           resources = Option(googleResources),
           outputStreams = Option(dummyOutputStreams),
-          outputs = Set(output1, output2))
+          outputs = Set(output1, output2),
+          terminationReason = None)
 
       assert(failed0.isFailure)
       assert(failed1.isFailure)
@@ -344,7 +395,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             result = Option(CommandResult(42)),
             resources = Option(localResources),
             outputStreams = failed0.outputStreams, 
-            outputs = Set(StoreRecord(output0.loc)))
+            outputs = Set(StoreRecord(output0.loc)),
+            terminationReason = None)
       }
 
       assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
@@ -403,7 +455,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
               result = Option(JobResult.Failure),
               resources = None,
               outputStreams = Option(dummyOutputStreams), 
-              outputs = Set(output0.toStoreRecord))
+              outputs = Set(output0.toStoreRecord),
+              terminationReason = None)
   
           assert(failed.isFailure)
   
@@ -446,7 +499,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             result = Option(CommandResult(1)),
             resources = Option(resources),
             outputStreams = Option(dummyOutputStreams), 
-            outputs = Set.empty)
+            outputs = Set.empty,
+            terminationReason = None)
   
         assert(ex0.isFailure)
         assert(ex1.isSuccess)
@@ -586,7 +640,8 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
             result = Option(result),
             resources = Option(resources),
             outputStreams = Option(dummyOutputStreams), 
-            outputs = Set(output0))
+            outputs = Set(output0),
+            terminationReason = None)
             
         dao.insertExecutions(execution)
         

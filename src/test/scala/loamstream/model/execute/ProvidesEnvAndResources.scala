@@ -54,7 +54,8 @@ trait ProvidesEnvAndResources extends FunSuite {
   val mockExecution: Execution = Execution(
       env = mockEnv, 
       status = mockStatus, 
-      outputStreams = Some(TestHelpers.dummyOutputStreams))
+      outputStreams = Some(TestHelpers.dummyOutputStreams),
+      terminationReason = None)
       
   def mockRunData(job: LJob): RunData = {
     TestHelpers.runDataFrom(

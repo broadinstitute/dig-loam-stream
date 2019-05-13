@@ -79,7 +79,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     def doTest(env: Environment, resources: Option[Resources], shouldThrow: Boolean): Unit = {
       type WrapperFn = (=> Any) => Unit
     
-      val noop: WrapperFn = { block => 
+      val justRun: WrapperFn = { block => 
         block 
         ()
       }
@@ -90,9 +90,9 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
         }
       }
     
-      val wrapperFn: WrapperFn = if(shouldThrow) interceptException else noop
+      val runOrInterceptExpectedExceptions: WrapperFn = if(shouldThrow) interceptException else justRun
     
-      wrapperFn {
+      runOrInterceptExpectedExceptions {
         val result = CommandResult(0)
       
         Execution(
@@ -102,7 +102,8 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
           result = Option(result),
           resources = resources,
           outputStreams = Option(dummyOutputStreams), 
-          outputs = Set.empty)
+          outputs = Set.empty,
+          terminationReason = None)
       }
     }
     
@@ -134,8 +135,8 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     
     val outputStreamsOpt = Some(dummyOutputStreams)
     
-    val e0 = Execution.from(job0, status0, Option(result0), outputStreamsOpt)
-    val e1 = Execution.from(job1, status1)
+    val e0 = Execution.from(job0, status0, Option(result0), outputStreamsOpt, terminationReason = None)
+    val e1 = Execution.from(job1, status1, terminationReason = None)
     
     assert(e0.cmd === Some("foo"))
     assert(e0.env.isUger)
@@ -162,7 +163,8 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
           result = Option(result),
           resources = None,
           outputStreams = Option(dummyOutputStreams),
-          outputs = Set.empty)
+          outputs = Set.empty,
+          terminationReason = None)
       
       assert(execution.isCommandExecution)
     }
@@ -175,7 +177,8 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
           result = Option(result),
           resources = None,
           outputStreams = Option(dummyOutputStreams),
-          outputs = Set.empty)
+          outputs = Set.empty,
+          terminationReason = None)
       
       assert(!execution.isCommandExecution)
     }

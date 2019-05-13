@@ -47,7 +47,8 @@ final case class RunData(
       result = jobResult,
       resources = resourcesOpt,
       outputs = job.outputs.map(_.toStoreRecord),
-      outputStreams = outputStreamsOpt)
+      outputStreams = outputStreamsOpt,
+      terminationReason = terminationReasonOpt)
   }
 }
 

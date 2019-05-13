@@ -72,7 +72,8 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
         env = Environment.Local,
         status = JobStatus.Running,
         result = None,
-        outputStreams = None)
+        outputStreams = None,
+        terminationReason = None)
         
     val e = new Exception with scala.util.control.NoStackTrace
     
@@ -433,7 +434,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     val alreadyComplete = Future.successful(())
     
-    def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently)
+    def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently, terminationReason = None)
     
     import scala.concurrent.duration._
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -456,7 +457,7 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
     
     val waitFuture = Future.failed(exception)
     
-    def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently)
+    def fallbackExecution = Execution.from(mockJob, JobStatus.FailedPermanently, terminationReason = None)
     
     import scala.concurrent.duration._
     

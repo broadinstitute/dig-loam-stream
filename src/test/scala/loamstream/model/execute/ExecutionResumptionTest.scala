@@ -43,7 +43,8 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
         result = Option(JobResult.CommandResult(exitCode)),
         resources = Some(mockResources),
         outputStreams = Some(TestHelpers.dummyOutputStreams),
-        outputs = Set(cachedOutput(p, hash, lastModified)))
+        outputs = Set(cachedOutput(p, hash, lastModified)),
+        terminationReason = None)
     
     store(e)
     

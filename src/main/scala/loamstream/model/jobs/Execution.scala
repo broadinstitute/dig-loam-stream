@@ -24,8 +24,8 @@ final case class Execution(
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
     outputs: Set[StoreRecord] = Set.empty,
-    outputStreams: Option[OutputStreams]/*,
-    terminationReason: Option[TerminationReason] = None*/) {
+    outputStreams: Option[OutputStreams],
+    terminationReason: Option[TerminationReason]) {
 
   require(
       environmentAndResourcesMatch, 
@@ -84,7 +84,8 @@ object Execution extends Loggable {
         result = Option(result), 
         resources = None, 
         outputs = outputs.toSet,
-        outputStreams = Option(outputStreams))
+        outputStreams = Option(outputStreams),
+        terminationReason = None)
   }
 
   def fromOutputs(env: Environment,
@@ -100,7 +101,8 @@ object Execution extends Loggable {
         result = Option(result), 
         resources = None, 
         outputs = outputs.map(_.toStoreRecord),
-        outputStreams = Option(outputStreams))
+        outputStreams = Option(outputStreams),
+        terminationReason = None)
   }
 
   def from(
@@ -108,8 +110,8 @@ object Execution extends Loggable {
       status: JobStatus, 
       result: Option[JobResult] = None, 
       outputStreams: Option[OutputStreams] = None,
-      resources: Option[Resources] = None/*,
-      terminationReason: Option[TerminationReason] = None*/): Execution = {
+      resources: Option[Resources] = None,
+      terminationReason: Option[TerminationReason]): Execution = {
     
     val commandLine: Option[String] = job match {
       case clj: CommandLineJob => Option(clj.commandLineString)
@@ -125,7 +127,7 @@ object Execution extends Loggable {
       result = result,
       resources = resources, 
       outputs = outputRecords,
-      outputStreams = outputStreams/*,
-      terminationReason = terminationReason*/)
+      outputStreams = outputStreams,
+      terminationReason = terminationReason)
   }
 }

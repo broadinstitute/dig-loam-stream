@@ -143,11 +143,12 @@ object TestHelpers {
     Execution(
         env = env,
         cmd = None,
-        status,
-        result,
-        resources,
-        Set.empty[StoreRecord],
-        outputStreams)
+        status = status,
+        result = result,
+        resources = resources,
+        outputs = Set.empty[StoreRecord],
+        outputStreams = outputStreams,
+        terminationReason = None)
   }
 
   def runDataFromStatus(job: LJob, status: JobStatus, resources: Option[Resources] = None): RunData = {

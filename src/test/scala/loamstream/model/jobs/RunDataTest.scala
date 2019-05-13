@@ -89,7 +89,8 @@ final class RunDataTest extends FunSuite {
         result = Some(JobResult.Success),
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
   }
@@ -116,7 +117,8 @@ final class RunDataTest extends FunSuite {
         result = Some(JobResult.Failure),
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
   }
@@ -143,7 +145,8 @@ final class RunDataTest extends FunSuite {
         result = None,
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
   }
@@ -170,7 +173,8 @@ final class RunDataTest extends FunSuite {
         result = Some(JobResult.Success),
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
   }
@@ -197,7 +201,8 @@ final class RunDataTest extends FunSuite {
         result = Some(JobResult.Failure),
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
   }
@@ -224,7 +229,8 @@ final class RunDataTest extends FunSuite {
         result = None,
         resources = Option(localResources),
         outputs = Set.empty,
-        outputStreams = Some(OutputStreams(path("foo"), path("bar"))))
+        outputStreams = Some(OutputStreams(path("foo"), path("bar"))),
+        terminationReason = Some(termReason))
     
     assert(runData.toExecution === expected)
   }

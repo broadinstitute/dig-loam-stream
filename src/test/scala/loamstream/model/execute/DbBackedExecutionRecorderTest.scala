@@ -65,7 +65,8 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
             result = result, 
             resources = Option(mockResources),
             outputStreams = None,
-            outputs = Set.empty[StoreRecord])
+            outputs = Set.empty[StoreRecord],
+            terminationReason = None)
 
         assert(e.isCommandExecution === false)
         
@@ -99,7 +100,8 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
           result = Option(cr), 
           resources = Option(mockResources),
           outputStreams = Some(dummyOutputStreams),
-          outputs = Set.empty[StoreRecord])
+          outputs = Set.empty[StoreRecord],
+          terminationReason = None)
 
       recorder.record(Seq(e))
 
@@ -124,7 +126,8 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
           result = Option(cr),
           resources = Option(mockResources),
           outputStreams = Some(dummyOutputStreams),
-          outputs = Set.empty)
+          outputs = Set.empty,
+          terminationReason = None)
 
       recorder.record(Seq(e))
 

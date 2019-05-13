@@ -10,6 +10,7 @@ import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.StoreRecord
 import java.nio.file.Paths
 import loamstream.model.jobs.OutputStreams
+import loamstream.model.jobs.TerminationReason
 
 /**
  * @author clint
@@ -22,7 +23,9 @@ final case class ExecutionRow(
     status: JobStatus, 
     exitCode: Int,
     stdoutPath: String,
-    stderrPath: String) {
+    stderrPath: String,
+    terminationReasonType: Option[String],
+    rawTerminationReason: Option[String]) {
   
   def toExecution(settings: Settings, resourcesOpt: Option[Resources], outputs: Set[StoreRecord]): Execution = {
     val commandResult = CommandResult(exitCode)
@@ -38,6 +41,8 @@ final case class ExecutionRow(
     import Paths.{get => toPath}
     
     val streamsOpt = Option(OutputStreams(toPath(stdoutPath), toPath(stderrPath)))
+
+    val termReason = terminationReasonType.flatMap(TerminationReason.fromNameAndRawValue(_, rawTerminationReason))
     
     Execution(
         env = environmentOpt.get,
@@ -46,6 +51,7 @@ final case class ExecutionRow(
         result = Option(commandResult),
         resources = resourcesOpt,
         outputs = outputs,
-        outputStreams = streamsOpt)
+        outputStreams = streamsOpt,
+        terminationReason = termReason)
   }
 }

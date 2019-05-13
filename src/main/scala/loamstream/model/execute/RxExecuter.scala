@@ -137,7 +137,7 @@ final case class RxExecuter(
     
     import loamstream.util.Traversables.Implicits._
     
-    jobsToCancel.mapTo(job => Execution.from(job, FailedPermanently))
+    jobsToCancel.mapTo(job => Execution.from(job, FailedPermanently, terminationReason = None))
   }
   
   private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {
@@ -168,7 +168,7 @@ final case class RxExecuter(
   private def toSkippedResultMap(skippedJobs: Iterable[LJob]): Map[LJob, Execution] = {
     import loamstream.util.Traversables.Implicits._
       
-    skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped))
+    skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped, terminationReason = None))
   }
 
   private def record(executionTuples: Iterable[(LJob, Execution)]): Unit = {

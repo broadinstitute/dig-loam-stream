@@ -56,7 +56,8 @@ object LocalJobStrategy extends Loggable {
       val outputStreams = OutputStreams(processLogger.stdoutPath, processLogger.stderrPath)
       
       RunData(
-          job = commandLineJob, 
+          job = commandLineJob,
+          settings = LocalSettings,
           jobStatus = jobStatus, 
           jobResult = Some(jobResult), 
           resourcesOpt = Some(LocalResources(start, end)), 

@@ -60,6 +60,7 @@ trait ProvidesEnvAndResources extends FunSuite {
   def mockRunData(job: LJob): RunData = {
     TestHelpers.runDataFrom(
         job = job, 
+        settings = LocalSettings,
         status = mockStatus, 
         result = None, 
         resources = None, 

@@ -120,7 +120,7 @@ final class ExecutionResumptionTest extends FunSuite with ProvidesSlickLoamDao w
       dependencies: Set[JobNode] = Set.empty)(body: => Any): MockJob = {
     
     new MockJob.FromJobFn(
-        toReturnFn = job => TestHelpers.runDataFromResult(job, JobResult.CommandResult(0)), 
+        toReturnFn = job => TestHelpers.runDataFromResult(job, LocalSettings, JobResult.CommandResult(0)), 
         name = name, 
         dependencies = dependencies,
         inputs = inputs,

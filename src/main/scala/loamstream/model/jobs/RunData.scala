@@ -2,6 +2,7 @@ package loamstream.model.jobs
 
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.Resources
+import loamstream.model.execute.Settings
 
 /**
  * @author clint
@@ -16,6 +17,7 @@ import loamstream.model.execute.Resources
  */
 final case class RunData(
     job: LJob,
+    settings: Settings,
     jobStatus: JobStatus, 
     jobResult: Option[JobResult],
     resourcesOpt: Option[Resources] = None, 
@@ -24,8 +26,9 @@ final case class RunData(
 
   override def toString: String = {
     val name = getClass.getSimpleName
+    val id = job.id
     
-    s"${name}(Job#${job.id}, $jobStatus, $jobResult, $resourcesOpt, $outputStreamsOpt, $terminationReasonOpt)"
+    s"${name}(Job#$id, $settings, $jobStatus, $jobResult, $resourcesOpt, $outputStreamsOpt, $terminationReasonOpt)"
   }
   
   def withResources(r: Resources): RunData = copy(resourcesOpt = Some(r))

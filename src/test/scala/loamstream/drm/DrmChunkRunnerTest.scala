@@ -40,6 +40,7 @@ import loamstream.util.Observables
 
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.IOScheduler
+import loamstream.model.execute.LocalSettings
 
 
 /**
@@ -656,6 +657,7 @@ object DrmChunkRunnerTest {
     override def execute(implicit context: ExecutionContext): Future[RunData] = {
       val runData = RunData(
           job = this, 
+          settings = LocalSettings,
           jobStatus = DrmStatus.toJobStatus(statusesToReturn.last), 
           jobResult = None, 
           resourcesOpt = None, 

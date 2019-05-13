@@ -31,7 +31,7 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
       {
         val job = MockJob(NotStarted)
       
-        val runData = RunData(job, status, None, None, None, None)
+        val runData = RunData(job, LocalSettings, status, None, None, None, None)
         
         assert(job.status === NotStarted)
         
@@ -43,7 +43,7 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
       {
         val job = MockJob(NotStarted)
         
-        val runData = RunData(job, status, None, None, None, None)
+        val runData = RunData(job, LocalSettings, status, None, None, None, None)
         
         assert(job.status === NotStarted)
       
@@ -74,11 +74,11 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     
     val success = waitFor(executeSingle(ExecutionConfig.default, job, neverRestart))
     
-    assert(success === runDataFromStatus(job, Succeeded))
+    assert(success === runDataFromStatus(job, LocalSettings, Succeeded))
     
     val failure = waitFor(executeSingle(ExecutionConfig.default, failedJob, neverRestart))
     
-    assert(failure === runDataFromStatus(failedJob, Failed))
+    assert(failure === runDataFromStatus(failedJob, LocalSettings, Failed))
     
     import Observables.Implicits._
     

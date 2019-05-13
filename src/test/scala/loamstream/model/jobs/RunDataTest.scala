@@ -7,6 +7,8 @@ import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.Environment
 import loamstream.TestHelpers
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.GoogleSettings
 
 
 /**
@@ -24,7 +26,7 @@ final class RunDataTest extends FunSuite {
   test("withResources") {
     val j = MockJob(Succeeded)
     
-    val runDataNoResources = RunData(j, Succeeded, None, None, None, None)
+    val runDataNoResources = RunData(j, LocalSettings, Succeeded, None, None, None, None)
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
@@ -34,7 +36,9 @@ final class RunDataTest extends FunSuite {
     
     val googleResources = GoogleResources.fromClusterAndLocalResources("foo", localResources)
     
-    val runDataLocalResources = RunData(j, Succeeded, None, Some(localResources), None, None)
+    val googleSettings = GoogleSettings("foo")
+    
+    val runDataLocalResources = RunData(j, googleSettings, Succeeded, None, Some(localResources), None, None)
     
     assert(runDataLocalResources.resourcesOpt === Some(localResources))
     assert(runDataLocalResources.withResources(googleResources).resourcesOpt === Some(googleResources))
@@ -43,13 +47,13 @@ final class RunDataTest extends FunSuite {
   test("cmdOpt") {
     val mockJob = MockJob(Succeeded)
     
-    val runDataMockJob = RunData(mockJob, Succeeded, None, None, None, None)
+    val runDataMockJob = RunData(mockJob, LocalSettings, Succeeded, None, None, None, None)
     
     assert(runDataMockJob.cmdOpt === None)
     
     val clj = CommandLineJob(dummyCommandLine, executionEnvironment = Environment.Local)
     
-    val runDataCommandLineJob = RunData(clj, Succeeded, None, None, None, None)
+    val runDataCommandLineJob = RunData(clj, LocalSettings, Succeeded, None, None, None, None)
     
     assert(runDataCommandLineJob.cmdOpt === Some(dummyCommandLine))
   }
@@ -76,6 +80,7 @@ final class RunDataTest extends FunSuite {
     
     val runData = RunData(
         job = j,
+        settings = LocalSettings,
         jobStatus = Succeeded, 
         jobResult = Some(JobResult.Success),
         resourcesOpt = Some(localResources),
@@ -104,6 +109,7 @@ final class RunDataTest extends FunSuite {
     
     val runData = RunData(
         job = j,
+        settings = LocalSettings,
         jobStatus = FailedPermanently, 
         jobResult = Some(JobResult.Failure),
         resourcesOpt = Some(localResources),
@@ -132,6 +138,7 @@ final class RunDataTest extends FunSuite {
     
     val runData = RunData(
         job = j,
+        settings = LocalSettings,
         jobStatus = WaitingForOutputs, 
         jobResult = None,
         resourcesOpt = Some(localResources),
@@ -160,6 +167,7 @@ final class RunDataTest extends FunSuite {
     
     val runData = RunData(
         job = clj,
+        settings = LocalSettings,
         jobStatus = Succeeded, 
         jobResult = Some(JobResult.Success),
         resourcesOpt = Some(localResources),
@@ -188,6 +196,7 @@ final class RunDataTest extends FunSuite {
     
     val runData = RunData(
         job = clj,
+        settings = LocalSettings,
         jobStatus = FailedPermanently, 
         jobResult = Some(JobResult.Failure),
         resourcesOpt = Some(localResources),
@@ -216,6 +225,7 @@ final class RunDataTest extends FunSuite {
     
     val runData = RunData(
         job = clj,
+        settings = LocalSettings,
         jobStatus = WaitingForOutputs, 
         jobResult = None,
         resourcesOpt = Some(localResources),

@@ -52,6 +52,7 @@ import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.conf.CompilationConfig
 import loamstream.model.jobs.TerminationReason
+import loamstream.model.execute.Settings
 
 /**
   * @author clint
@@ -127,13 +128,14 @@ object TestHelpers {
 
   def runDataFrom(
       job: LJob,
+      settings: Settings,
       status: JobStatus,
       result: Option[JobResult] = None,
       resources: Option[Resources] = None,
       outputStreams: Option[OutputStreams] = None,
       terminationReasonOpt: Option[TerminationReason] = None): RunData = {
     
-    RunData(job, status, result, resources, outputStreams, terminationReasonOpt)
+    RunData(job, settings, status, result, resources, outputStreams, terminationReasonOpt)
   }
   
   def executionFrom(status: JobStatus,
@@ -151,16 +153,23 @@ object TestHelpers {
         terminationReason = None)
   }
 
-  def runDataFromStatus(job: LJob, status: JobStatus, resources: Option[Resources] = None): RunData = {
-    runDataFrom(job, status, result = None, resources)
-  }
+  def runDataFromStatus(
+      job: LJob, 
+      settings: Settings, 
+      status: JobStatus, 
+      resources: Option[Resources] = None): RunData = runDataFrom(job, settings, status, result = None, resources)
   
   def executionFromStatus(status: JobStatus, resources: Option[Resources] = None): Execution = {
     executionFrom(status, result = None, resources)
   }
 
-  def runDataFromResult(job: LJob, result: JobResult, resources: Option[Resources] = None): RunData = {
-    runDataFrom(job, result.toJobStatus, Option(result), resources)
+  def runDataFromResult(
+      job: LJob,
+      settings: Settings,
+      result: JobResult, 
+      resources: Option[Resources] = None): RunData = {
+    
+    runDataFrom(job, settings, result.toJobStatus, Option(result), resources)
   }
   
   def executionFromResult(result: JobResult, resources: Option[Resources] = None): Execution = {

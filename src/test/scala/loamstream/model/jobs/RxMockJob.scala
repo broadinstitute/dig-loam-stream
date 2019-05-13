@@ -97,6 +97,7 @@ object RxMockJob {
   private[this] def runDataFrom(job: LJob, outputs: Set[DataHandle], jobResult: JobResult): RunData = {
     RunData(
         job = job,
+        settings = LocalSettings,
         jobStatus = jobResult.toJobStatus,
         jobResult = Option(jobResult),
         resourcesOpt = None,

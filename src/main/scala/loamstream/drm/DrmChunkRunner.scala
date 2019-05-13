@@ -206,6 +206,7 @@ object DrmChunkRunner extends Loggable {
     
     RunData(
         job = wrapper.commandLineJob,
+        settings = wrapper.drmSettings,
         jobStatus = toJobStatus(s),
         jobResult = toJobResult(s),
         resourcesOpt = infoOpt.map(_.resources),
@@ -271,6 +272,7 @@ object DrmChunkRunner extends Loggable {
     val execution: DrmJobWrapper => RunData = { jobWrapper =>
       RunData(
           job = jobWrapper.commandLineJob, 
+          settings = jobWrapper.drmSettings,
           jobStatus = status, 
           jobResult = Option(result), 
           resourcesOpt = None, 

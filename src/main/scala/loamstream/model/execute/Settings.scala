@@ -22,17 +22,17 @@ import loamstream.model.jobs.commandline.HasCommandLine
  * @author clint
  *         date: 3/7/17
  */
-sealed trait Settings
+sealed abstract class Settings(val envType: EnvironmentType)
 
 /**
  * Execution-time settings for a group of 1 or more local jobs (no settings possible yet)
  */
-final case object LocalSettings extends Settings
+final case object LocalSettings extends Settings(EnvironmentType.Local)
 
 /**
  * Execution-time settings for a group of 1 or more Uger or LSF jobs 
  */
-sealed trait DrmSettings extends Settings {
+sealed abstract class DrmSettings(override val envType: EnvironmentType) extends Settings(envType) {
   def cores: Cpus
   def memoryPerCore: Memory
   def maxRunTime: CpuTime
@@ -45,14 +45,14 @@ final case class UgerDrmSettings(
     memoryPerCore: Memory,
     maxRunTime: CpuTime,
     queue: Option[Queue],
-    containerParams: Option[ContainerParams]) extends DrmSettings
+    containerParams: Option[ContainerParams]) extends DrmSettings(EnvironmentType.Uger)
     
 final case class LsfDrmSettings(
     cores: Cpus,
     memoryPerCore: Memory,
     maxRunTime: CpuTime,
     queue: Option[Queue],
-    containerParams: Option[ContainerParams]) extends DrmSettings
+    containerParams: Option[ContainerParams]) extends DrmSettings(EnvironmentType.Lsf)
     
 object DrmSettings {
   type SettingsMaker = (Cpus, Memory, CpuTime, Option[Queue], Option[ContainerParams]) => DrmSettings
@@ -82,4 +82,4 @@ object DrmSettings {
 /**
  * Execution-time settings for a google job 
  */
-final case class GoogleSettings(cluster: String) extends Settings
+final case class GoogleSettings(cluster: String) extends Settings(EnvironmentType.Google)

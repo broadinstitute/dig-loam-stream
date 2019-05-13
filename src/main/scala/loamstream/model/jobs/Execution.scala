@@ -20,6 +20,7 @@ import loamstream.model.execute.Resources.LsfResources
 final case class Execution(
     env: Environment,
     cmd: Option[String] = None,
+    settings: Settings,
     status: JobStatus,
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
@@ -33,8 +34,6 @@ final case class Execution(
   
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
-
-  def settings: Settings = env.settings
   
   private def environmentAndResourcesMatch: Boolean = (env.tpe, resources) match {
     case (_, None) => true
@@ -79,6 +78,7 @@ object Execution extends Loggable {
     
     Execution(
         env = env, 
+        settings = env.settings,
         cmd = Option(cmd), 
         status = result.toJobStatus, 
         result = Option(result), 
@@ -96,6 +96,7 @@ object Execution extends Loggable {
     
     apply(
         env = env, 
+        settings = env.settings,
         cmd = Option(cmd), 
         status = result.toJobStatus, 
         result = Option(result), 
@@ -120,8 +121,11 @@ object Execution extends Loggable {
     
     val outputRecords = job.outputs.map(_.toStoreRecord)
     
+    val env = job.executionEnvironment
+    
     Execution(
-      env = job.executionEnvironment,
+      env = env,
+      settings = env.settings,
       cmd = commandLine,
       status = status,
       result = result,

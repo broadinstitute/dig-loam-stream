@@ -144,6 +144,7 @@ object TestHelpers {
                     outputStreams: Option[OutputStreams] = None): Execution = {
     Execution(
         env = env,
+        settings = env.settings,
         cmd = None,
         status = status,
         result = result,

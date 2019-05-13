@@ -89,6 +89,7 @@ final class RunDataTest extends FunSuite {
         
     val expected = Execution(
         env = j.executionEnvironment,
+        settings = j.executionEnvironment.settings,
         cmd = None,
         status = Succeeded,
         result = Some(JobResult.Success),
@@ -118,6 +119,7 @@ final class RunDataTest extends FunSuite {
         
     val expected = Execution(
         env = j.executionEnvironment,
+        settings = j.executionEnvironment.settings,
         cmd = None,
         status = FailedPermanently,
         result = Some(JobResult.Failure),
@@ -147,6 +149,7 @@ final class RunDataTest extends FunSuite {
         
     val expected = Execution(
         env = j.executionEnvironment,
+        settings = j.executionEnvironment.settings,
         cmd = None,
         status = Succeeded,
         result = None,
@@ -176,6 +179,7 @@ final class RunDataTest extends FunSuite {
         
     val expected = Execution(
         env = clj.executionEnvironment,
+        settings = clj.executionEnvironment.settings,
         cmd = Some(dummyCommandLine),
         status = Succeeded,
         result = Some(JobResult.Success),
@@ -205,6 +209,7 @@ final class RunDataTest extends FunSuite {
         
     val expected = Execution(
         env = clj.executionEnvironment,
+        settings = clj.executionEnvironment.settings,
         cmd = Some(dummyCommandLine),
         status = FailedPermanently,
         result = Some(JobResult.Failure),
@@ -234,6 +239,7 @@ final class RunDataTest extends FunSuite {
         
     val expected = Execution(
         env = clj.executionEnvironment,
+        settings = clj.executionEnvironment.settings,
         cmd = Some(dummyCommandLine),
         status = Succeeded,
         result = None,

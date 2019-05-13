@@ -45,6 +45,7 @@ final case class RunData(
     
     Execution(
       env = job.executionEnvironment,
+      settings = settings,
       cmd = cmdOpt,
       status = ultimateStatus,
       result = jobResult,

@@ -46,6 +46,7 @@ final case class ExecutionRow(
     
     Execution(
         env = environmentOpt.get,
+        settings = settings,
         cmd = Option(cmd),
         status = status,
         result = Option(commandResult),

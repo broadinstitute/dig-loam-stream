@@ -97,6 +97,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
       
         Execution(
           env = env, 
+          settings = env.settings,
           cmd = Option(mockCmd),
           status = result.toJobStatus,
           result = Option(result),
@@ -158,6 +159,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     def assertIsCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
           env = mockEnv, 
+          settings = mockEnv.settings,
           cmd = cmd, 
           status = result.toJobStatus,
           result = Option(result),
@@ -172,6 +174,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     def assertIsNOTCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
           env = mockEnv, 
+          settings = mockEnv.settings,
           cmd = cmd, 
           status = result.toJobStatus,
           result = Option(result),

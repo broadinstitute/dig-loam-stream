@@ -77,6 +77,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       
       Execution(
           env = Environment.Lsf(mockLsfSettings),
+          settings = mockLsfSettings,
           cmd = Option(cmd),
           status = result.toJobStatus,
           result = Option(result),
@@ -113,6 +114,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
     val execution = Execution(
         env = mockEnv, 
+        settings = mockEnv.settings,
         cmd = Option(mockCmd), 
         status = result.toJobStatus,
         result = Option(result), 
@@ -350,6 +352,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val failed0 = Execution(
           env = localEnv, 
+          settings = localEnv.settings,
           cmd = Option(mockCmd),
           status = CommandResult(42).toJobStatus,
           result = Option(CommandResult(42)),
@@ -360,6 +363,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val failed1 = Execution(
           env = lsfEnv, 
+          settings = lsfEnv.settings,
           cmd = Option(mockCmd),
           status = CommandResult(1).toJobStatus,
           result = Option(CommandResult(1)),
@@ -368,8 +372,11 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           outputs = Set.empty,
           terminationReason = Some(TerminationReason.UserRequested(Some("FOO"))))
 
+      val googleEnv = Environment.Google(googleSettings)
+          
       val succeeded = Execution(
-          env = Environment.Google(googleSettings),
+          env = googleEnv,
+          settings = googleEnv.settings,
           cmd = Option(mockCmd),
           status = CommandResult(0).toJobStatus,
           result = Option(CommandResult(0)),
@@ -390,6 +397,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val expected0 = {
         Execution(
             env = localEnv, 
+            settings = localEnv.settings,
             cmd = Option(mockCmd), 
             status = CommandResult(42).toJobStatus, 
             result = Option(CommandResult(42)),
@@ -450,6 +458,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
           val failed = Execution(
               env = mockEnv, 
+              settings = mockEnv.settings,
               cmd = command, 
               status = JobResult.Failure.toJobStatus,
               result = Option(JobResult.Failure),
@@ -494,6 +503,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         val ex1 = Execution(mockEnv, mockCmd, CommandResult(0), dummyOutputStreams, output1, output2)
         val ex2 = Execution(
             env = mockEnv, 
+            settings = mockEnv.settings,
             cmd = Option(mockCmd), 
             status = CommandResult(1).toJobStatus, 
             result = Option(CommandResult(1)),
@@ -635,6 +645,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         
         val execution = Execution(
             env = env, 
+            settings = env.settings,
             cmd = Option(mockCmd),
             status = result.toJobStatus,
             result = Option(result),

@@ -17,6 +17,7 @@ import loamstream.util.Loggable
 import loamstream.util.OneTimeLatch
 import loamstream.util.Throwables
 import loamstream.util.ValueBox
+import org.ggf.drmaa.JobInfo
 
 
 /**
@@ -28,9 +29,7 @@ import loamstream.util.ValueBox
  * A DRMAAv1 implementation of DrmaaClient; can submit work to UGER and monitor it.
  *
  */
-final class Drmaa1Client(
-    resourceUsageExtractor: ResourceUsageExtractor,
-    nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClient with Loggable {
+final class Drmaa1Client(nativeSpecBuilder: NativeSpecBuilder) extends DrmaaClient with Loggable {
   
   /*
    * NOTE: BEWARE: DRMAAv1 is not thread-safe.  All operations on org.ggf.drmaa.Sessions that change the number
@@ -182,38 +181,29 @@ final class Drmaa1Client(
   private def doWait(session: Session, jobId: String, timeout: Duration): DrmStatus = {
     val jobInfo = session.wait(jobId, timeout.toSeconds)
 
-    val resources = resourceUsageExtractor.toResources(jobInfo)
-
-    //Use recover for side-effect only
-    resources.recover {
-      case e: Exception => warn(s"Error parsing resource usage data for Job '$jobId'", e)
-    }
-
-    val resourcesOption = resources.toOption
-
     val result = if (jobInfo.hasExited) {
       val exitCode = jobInfo.getExitStatus
 
       debug(s"Job '$jobId' exited with status code '${exitCode}'")
 
-      DrmStatus.CommandResult(exitCode, resourcesOption)
+      DrmStatus.CommandResult(exitCode)
     } else if (jobInfo.wasAborted) {
       info(s"Job '$jobId' was aborted")
 
       //TODO: Add JobStatus.Aborted?
-      DrmStatus.Failed(resourcesOption)
+      DrmStatus.Failed
     } else if (jobInfo.hasSignaled) {
       info(s"Job '$jobId' signaled, terminatingSignal = '${jobInfo.getTerminatingSignal}'")
 
-      DrmStatus.Failed(resourcesOption)
+      DrmStatus.Failed
     } else if (jobInfo.hasCoreDump) {
       info(s"Job '$jobId' dumped core")
 
-      DrmStatus.Failed(resourcesOption)
+      DrmStatus.Failed
     } else {
       debug(s"Job '$jobId' finished with unknown status")
 
-      DrmStatus.DoneUndetermined(resourcesOption)
+      DrmStatus.DoneUndetermined
     }
 
     debug(s"Job '$jobId' finished, returning status $result")

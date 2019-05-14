@@ -52,7 +52,7 @@ final class JobMonitor(
    * @param scheduler the RxScala Scheduler to run the polling operations on 
    * @param jobIds the ids of the jobs to monitor
    * @return a map of job ids to Observable streams of statuses for each job. The statuses are the result of polling 
-   * UGER *synchronously* via the supplied poller at the supplied rate.
+   * the DRM system *synchronously* via the supplied poller at the supplied rate.
    */
   def monitor(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = {
     
@@ -127,13 +127,13 @@ final class JobMonitor(
         
         warn(s"Job '$jobId': $msg")
         
-        DoneUndetermined()
+        DoneUndetermined
       }
       //Any other polling failure leaves us unable to know the job's status
       case (Failure(e), _) => {
         warn(s"Job '$jobId': polling failed with a(n) ${e.getClass.getName}; mapping to $Undetermined", e)
         
-        Undetermined()
+        Undetermined
       }
       case (Success(status), _) => status
     }
@@ -168,7 +168,7 @@ final class JobMonitor(
   }
 
   private def allFinished(keepPollingFlag: ValueBox[Boolean])(pollResults: Map[String, Try[DrmStatus]]): Boolean = {
-    def unpack(attempt: Try[DrmStatus]): DrmStatus = attempt.getOrElse(DrmStatus.Undetermined())
+    def unpack(attempt: Try[DrmStatus]): DrmStatus = attempt.getOrElse(DrmStatus.Undetermined)
     
     val result = pollResults.values.map(unpack).forall(_.isFinished)
     

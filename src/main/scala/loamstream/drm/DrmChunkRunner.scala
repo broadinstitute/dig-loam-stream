@@ -1,7 +1,7 @@
 package loamstream.drm
 
-import DrmStatus.toJobStatus
 import DrmStatus.toJobResult
+import DrmStatus.toJobStatus
 import loamstream.conf.DrmConfig
 import loamstream.conf.ExecutionConfig
 import loamstream.model.execute.ChunkRunnerFor
@@ -9,25 +9,22 @@ import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.Environment
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.ExecuterHelpers
+import loamstream.model.execute.Resources.DrmResources
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobStatus.Failed
 import loamstream.model.jobs.JobStatus.Running
-import loamstream.model.jobs.JobStatus.Submitted
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.Classes.simpleNameOf
 import loamstream.util.CompositeException
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
 import loamstream.util.Throwables
-import loamstream.util.TimeUtils.time
 import rx.lang.scala.Observable
-import loamstream.util.Maps
-import loamstream.util.Traversables
-import loamstream.model.jobs.commandline.HasCommandLine
 
 
 /**
@@ -42,7 +39,8 @@ final case class DrmChunkRunner(
     executionConfig: ExecutionConfig,
     drmConfig: DrmConfig,
     jobSubmitter: JobSubmitter,
-    jobMonitor: JobMonitor) extends ChunkRunnerFor(environmentType) with Terminable with Loggable {
+    jobMonitor: JobMonitor,
+    accountingClient: AccountingClient) extends ChunkRunnerFor(environmentType) with Terminable with Loggable {
 
   require(environmentType.isUger || environmentType.isLsf, "Only UGER and LSF environments are supported")
   
@@ -134,15 +132,11 @@ final case class DrmChunkRunner(
     shouldRestart: LJob => Boolean,
     jobsById: Map[String, DrmJobWrapper]): Observable[Map[LJob, RunData]] = {
 
-    def statuses(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = {
-      time(s"Calling JobMonitor.monitor(${jobIds.mkString(",")})", trace(_)) {
-        jobMonitor.monitor(jobIds)
-      }
-    }
+    def statuses(jobIds: Iterable[String]): Map[String, Observable[DrmStatus]] = jobMonitor.monitor(jobIds)
 
     val jobsAndDrmStatusesById = combine(jobsById, statuses(jobsById.keys))
 
-    toRunDatas(shouldRestart, jobsAndDrmStatusesById)
+    toRunDatas(accountingClient, shouldRestart, jobsAndDrmStatusesById)
   }
   
   /**
@@ -151,7 +145,7 @@ final case class DrmChunkRunner(
    * of jobs as one Uger task array, and settings are per-task-array.
    */
   private[drm] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[DrmSettings, Seq[CommandLineJob]] = {
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
     
     jobs.groupBy(_.executionEnvironment).collectKeys { 
       case Environment.Uger(ugerSettings) => ugerSettings
@@ -181,7 +175,44 @@ object DrmChunkRunner extends Loggable {
     }
   }
   
+  private[drm] def getResourceUsageFor(accountingClient: AccountingClient)(jobId: String): Option[DrmResources] = {
+    val resourcesAttempt = accountingClient.getResourceUsage(jobId)
+        
+    //For side effect only
+    resourcesAttempt.recover {
+      case e => warn(s"Error invoking accounting client for job with DRM id '$jobId': ${e.getMessage}", e)
+    }
+    
+    resourcesAttempt.toOption
+  }
+  
+  private[drm] def toRunData(
+      accountingClient: AccountingClient, 
+      wrapper: DrmJobWrapper, 
+      jobId: String)(s: DrmStatus): RunData = {
+    
+    val resourcesOpt: Option[DrmResources] = {
+      if(s.isFinished) {
+        debug(s"${simpleNameOf[DrmStatus]} is finished, determining execution node and queue: $s")
+        
+        getResourceUsageFor(accountingClient)(jobId)
+      } else {
+        debug(s"${simpleNameOf[DrmStatus]} is NOT finished, NOT determining execution node and queue: $s")
+        
+        None
+      }
+    }
+    
+    RunData(
+        job = wrapper.commandLineJob,
+        jobStatus = toJobStatus(s),
+        jobResult = toJobResult(s),
+        resourcesOpt = resourcesOpt,
+        outputStreamsOpt = Option(wrapper.outputStreams))
+  }
+  
   private[drm] def toRunDatas(
+    accountingClient: AccountingClient, 
     shouldRestart: LJob => Boolean,
     jobsAndDrmStatusesById: Map[String, JobAndStatuses]): Observable[Map[LJob, RunData]] = {
 
@@ -191,16 +222,7 @@ object DrmChunkRunner extends Loggable {
       //NB: Important: Jobs must be transitioned to new states by ChunkRunners like us.
       drmJobStatuses.distinct.foreach(handleDrmStatus(shouldRestart, wrapper.commandLineJob))
 
-      def toRunData(s: DrmStatus): RunData = {
-        RunData(
-            job = wrapper.commandLineJob,
-            jobStatus = toJobStatus(s),
-            jobResult = toJobResult(s),
-            resourcesOpt = s.resourcesOpt, //NB: In the DRMAA case, this will be re-filled-in later, if possible
-            outputStreamsOpt = Option(wrapper.outputStreams))
-      }
-      
-      val runDataObs = drmJobStatuses.last.map(toRunData)
+      val runDataObs = drmJobStatuses.last.map(toRunData(accountingClient, wrapper, jobId))
 
       wrapper -> runDataObs
     }
@@ -253,8 +275,8 @@ object DrmChunkRunner extends Loggable {
           outputStreamsOpt = Option(jobWrapper.outputStreams))
     }
 
-    import Traversables.Implicits._
-    import Maps.Implicits._
+    import loamstream.util.Maps.Implicits._
+    import loamstream.util.Traversables.Implicits._
     
     Observable.just(jobs.mapTo(execution).mapKeys(_.commandLineJob))
   }

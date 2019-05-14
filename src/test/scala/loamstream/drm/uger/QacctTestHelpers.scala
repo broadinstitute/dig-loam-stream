@@ -1,12 +1,55 @@
 package loamstream.drm.uger
 
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
+
+import scala.util.Success
+import scala.util.Try
+
 import loamstream.drm.Queue
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
+import loamstream.util.RunResults
 
 /**
  * @author clint
  * Mar 15, 2017
  */
 object QacctTestHelpers {
+  def successfulRun(
+      stdout: Seq[String], 
+      stderr: Seq[String] = Nil, 
+      fakeBinaryName: String = "MOCK"): Try[RunResults] = {
+    
+    Success(RunResults(fakeBinaryName, exitCode = 0, stdout = stdout, stderr = stderr))
+  }
+  
+  def failedRun(
+      exitCode: Int, 
+      stdout: Seq[String], 
+      stderr: Seq[String] = Nil, 
+      fakeBinaryName: String = "MOCK"): Try[RunResults] = {
+
+    Success(RunResults(fakeBinaryName, exitCode = exitCode, stdout = stdout, stderr = stderr))
+  }
+  
+  def expectedResources(expectedNode: String, expectedQueue: Queue): UgerResources = {
+    expectedResources(Option(expectedNode), Option(expectedQueue))
+  }
+
+  def expectedResources(expectedNode: Option[String], expectedQueue: Option[Queue]): UgerResources = {
+    val localTzOffset = ZonedDateTime.now.getOffset
+    
+    UgerResources(
+      memory = Memory.inKb(60092),
+      cpuTime = CpuTime.inSeconds(2.487),
+      node = expectedNode,
+      queue = expectedQueue,
+      startTime = LocalDateTime.parse("2017-03-06T18:49:50.505").toInstant(localTzOffset),
+      endTime = LocalDateTime.parse("2017-03-06T18:49:57.464").toInstant(localTzOffset))
+  }
+  
   //scalastyle:off method.length
   def actualQacctOutput(queue: Option[Queue], node: Option[String]): Seq[String] = s"""
 qname        ${queue.map(_.name).getOrElse("")}

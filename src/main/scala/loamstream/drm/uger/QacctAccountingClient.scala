@@ -1,18 +1,25 @@
 package loamstream.drm.uger
 
-import scala.util.control.NonFatal
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+
+import scala.collection.Seq
+import scala.concurrent.duration.DurationDouble
+import scala.util.Try
 import scala.util.matching.Regex
+
+import loamstream.conf.UgerConfig
 import loamstream.drm.AccountingClient
 import loamstream.drm.Queue
-import loamstream.util.Functions
+import loamstream.model.execute.Resources.UgerResources
+import loamstream.model.quantities.CpuTime
+import loamstream.model.quantities.Memory
 import loamstream.util.Loggable
-import scala.collection.Seq
-import scala.sys.process.stringSeqToProcess
-import loamstream.conf.UgerConfig
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
-import scala.concurrent.duration._
+import loamstream.util.Options
+import loamstream.util.RetryingCommandInvoker
+import loamstream.util.Tries
 
 /**
  * @author clint
@@ -23,118 +30,93 @@ import scala.concurrent.duration._
  * job id, to facilitate unit testing.
  */
 final class QacctAccountingClient(
-    ugerConfig: UgerConfig,
-    val qacctOutputForJobIdFn: String => Seq[String],
-    delayStart: Duration = QacctAccountingClient.defaultDelayStart,
-    delayCap: Duration = QacctAccountingClient.defaultDelayCap) extends AccountingClient with Loggable {
+    qacctInvoker: RetryingCommandInvoker[String]) extends AccountingClient with Loggable {
 
   import QacctAccountingClient._
 
-  //Memoize the function that retrieves the metadata, to avoid running something expensive, like invoking
-  //qacct in the production case, more than necessary.
-  //NB: If qacct fails, retry up to ugerConfig.maxQacctRetries times, by default waiting 
-  //0.5, 1, 2, 4, ... up to 30s in between each one.
-  private val qacctOutputForJobId: String => Seq[String] = {
-    val doRetries: String => Seq[String] = { jobId =>
-      val maxRuns = ugerConfig.maxQacctRetries + 1
-      
-      def invokeQacct(): Try[Seq[String]] = Try(qacctOutputForJobIdFn(jobId))
-      
-      val delays = delaySequence(delayStart, delayCap)
-      
-      def delayIfFailure(attempt: Try[Seq[String]]): Try[Seq[String]] = {
-        if(attempt.isFailure) {
-          //TODO: evaluate whether or not blocking is ok. For now, it's expedient and doesn't seem to cause problems.
-          Thread.sleep(delays.next().toMillis)
-        }
-        
-        attempt
-      }
-      
-      val attempts = Iterator.continually(invokeQacct()).take(maxRuns).map(delayIfFailure).dropWhile(_.isFailure)
-      
-      attempts.toStream.headOption match {
-        case Some(Success(lines)) => lines
-        case Some(Failure(e)) => {
-          debug(s"Error invoking qacct for job with DRM id '$jobId'; execution stats won't be available: $e")
+  private def getQacctOutputFor(jobId: String): Try[Seq[String]] = qacctInvoker(jobId).map(_.stdout)
 
-          trace(s"qacct invocation failure stack trace:", e)
+  import Regexes.{ cpu, endTime, hostname, mem, qname, startTime }
 
-          Seq.empty
-        }
-        case None => {
-          val msg = {
-            s"Invoking qacct for job with DRM id '$jobId' failed after $maxRuns runs; " +
-             "execution stats won't be available"
-          }
-          
-          debug(msg)
-
-          Seq.empty
-        }
-      }
+  override def getResourceUsage(jobId: String): Try[UgerResources] = {
+    for {
+      output <- getQacctOutputFor(jobId)
+      nodeOpt = findField(output, hostname).toOption
+      queueOpt = findField(output, qname).map(Queue(_)).toOption
+      memory <- findField(output, mem).flatMap(toMemory)
+      cpuTime <- findField(output, cpu).flatMap(toCpuTime)
+      start <- findField(output, startTime).flatMap(toInstant("start"))
+      end <- findField(output, endTime).flatMap(toInstant("end"))
+    } yield {
+      UgerResources(
+        memory = memory,
+        cpuTime = cpuTime,
+        node = nodeOpt,
+        queue = queueOpt,
+        startTime = start,
+        endTime = end)
     }
-    
-    Functions.memoize(doRetries)
-  }
-
-  protected def getQacctOutputFor(jobId: String): Seq[String] = qacctOutputForJobId(jobId)
-
-  import Regexes.{ hostname, qname }
-
-  override def getExecutionNode(jobId: String): Option[String] = {
-    val output = getQacctOutputFor(jobId)
-
-    //NB: Empty hostname strings are considered invalid
-    findField(output, hostname).map(_.trim).filter(_.nonEmpty)
-  }
-
-  override def getQueue(jobId: String): Option[Queue] = {
-    val output = getQacctOutputFor(jobId)
-
-    findField(output, qname).map(_.trim).filter(_.nonEmpty).map(Queue(_))
-  }
-
-  private def findField(fields: Seq[String], regex: Regex): Option[String] = {
-    fields.collect { case regex(value) => value }.headOption
   }
 }
 
 object QacctAccountingClient extends Loggable {
+
+  /**
+   * Make a QacctAccountingClient that will retrieve job metadata by running some executable, by default, `qacct`.
+   */
+  def useActualBinary(ugerConfig: UgerConfig, binaryName: String = "qacct"): QacctAccountingClient = {
+    new QacctAccountingClient(QacctInvoker.useActualBinary(ugerConfig.maxQacctRetries, binaryName))
+  }
+  
+  private def orElseErrorMessage[A](msg: String)(a: => A): Try[A] = {
+    Try(a).recoverWith { case _ => Tries.failure(msg) } 
+  }
+  
+  //NB: Uger reports cpu time as a floating-point number of cpu-seconds. 
+  private def toCpuTime(s: String) = {
+    orElseErrorMessage(s"Couldn't parse '$s' as CpuTime") {
+      CpuTime(s.toDouble.seconds)
+    }
+  }
+  
+  //NB: The value of qacct's ru_maxrss field (in kilobytes) is the closest approximation of
+  //a Uger job's memory utilization
+  private def toMemory(s: String): Try[Memory] = {
+    orElseErrorMessage(s"Couldn't parse '$s' as Memory (in kilobytes)") {
+      Memory.inKb(s.toDouble)
+    }
+  }
+  
+  //NB: qacct reports timestamps in a format like `03/06/2017 17:49:50.455` in the local time zone 
+  private[uger] def toInstant(fieldType: String)(s: String): Try[Instant] = {
+    orElseErrorMessage(s"Couldn't parse $fieldType timestamp from '$s'") {
+      QacctAccountingClient.dateFormatter.parse(s, Instant.from(_))
+    }
+  }
+
+  private def findField(fields: Seq[String], regex: Regex): Try[String] = {
+    val opt = fields.collectFirst { case regex(value) => value.trim }.filter(_.nonEmpty)
+    
+    Options.toTry(opt)(s"Couldn't find field that matched regex '$regex'")
+  }
+  
+  //Example date from qacct: 03/06/2017 17:49:50.455
+  private val dateFormatter: DateTimeFormatter = {
+    (new DateTimeFormatterBuilder)
+      .appendPattern("MM/dd/yyyy HH:mm:ss.SSS")
+      .toFormatter
+      .withZone(ZoneId.systemDefault)
+  }
+  
   private object Regexes {
     val qname = "qname\\s+(.+?)$".r
     val hostname = "hostname\\s+(.+?)$".r
-  }
-
-  /**
-   * Make a UgerAcct that will retrieve job metadata by running some executable, by default, `qacct`.
-   */
-  def useActualBinary(ugerConfig: UgerConfig, binaryName: String = "qacct"): QacctAccountingClient = {
-    import scala.sys.process._
-
-    def invokeQacctFor(jobId: String): Seq[String] = {
-      val tokens = makeTokens(binaryName, jobId)
-
-      val noopProcessLogger = ProcessLogger(_ => ())
-
-      //NB: Use noopProcessLogger to suppress stderr output that would otherwise go to the console.
-      //NB: Even with noopProcessLogger, all lines written to stdout will be available via lineStream.
-      //NB: Use toIndexedSeq to eagerly consume stdout, effectively running the command synchronously.
-      tokens.lineStream(noopProcessLogger).toIndexedSeq
-    }
     
-    new QacctAccountingClient(ugerConfig, invokeQacctFor)
-  }
-
-  private[uger] def makeTokens(binaryName: String, jobId: String): Seq[String] = Seq(binaryName, "-j", jobId)
-  
-  private[uger] val defaultDelayStart: Duration = 0.5.seconds
-  private[uger] val defaultDelayCap: Duration = 30.seconds
-  
-  private[uger] def delaySequence(start: Duration, cap: Duration): Iterator[Duration] = {
-    require(start gt 0.seconds)
-    require(cap gt 0.seconds)
+    val cpu = "cpu\\s+(.+?)$".r
+    val mem = "ru_maxrss\\s+(.+?)$".r
     
-    Iterator.iterate(start)(_ * 2).map(_.min(cap))
+    val startTime = "start_time\\s+(.+?)$".r
+    
+    val endTime = "end_time\\s+(.+?)$".r
   }
 }

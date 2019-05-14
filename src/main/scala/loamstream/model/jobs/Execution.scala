@@ -24,7 +24,8 @@ final case class Execution(
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
     outputs: Set[StoreRecord] = Set.empty,
-    outputStreams: Option[OutputStreams]) {
+    outputStreams: Option[OutputStreams]/*,
+    terminationReason: Option[TerminationReason] = None*/) {
 
   require(
       environmentAndResourcesMatch, 
@@ -86,23 +87,6 @@ object Execution extends Loggable {
         outputStreams = Option(outputStreams))
   }
 
-  def apply(env: Environment,
-            cmd: String,
-            status: JobStatus,
-            result: JobResult,
-            outputStreams: OutputStreams,
-            outputs: StoreRecord*): Execution = {
-    
-    Execution(
-        env = env, 
-        cmd = Option(cmd), 
-        status = status, 
-        result = Option(result), 
-        resources = None, 
-        outputs = outputs.toSet,
-        outputStreams = Option(outputStreams))
-  }
-
   def fromOutputs(env: Environment,
                   cmd: String,
                   result: JobResult,
@@ -119,19 +103,13 @@ object Execution extends Loggable {
         outputStreams = Option(outputStreams))
   }
 
-  def from(job: LJob, jobStatus: JobStatus, outputStreams: OutputStreams): Execution = {
-    from(job, jobStatus, result = None, Option(outputStreams))
-  }
-  
-  def from(job: LJob, jobStatus: JobStatus): Execution = {
-    from(job, jobStatus, result = None, outputStreams = None)
-  }
-
   def from(
       job: LJob, 
       status: JobStatus, 
-      result: Option[JobResult], 
-      outputStreams: Option[OutputStreams]): Execution = {
+      result: Option[JobResult] = None, 
+      outputStreams: Option[OutputStreams] = None,
+      resources: Option[Resources] = None/*,
+      terminationReason: Option[TerminationReason] = None*/): Execution = {
     
     val commandLine: Option[String] = job match {
       case clj: CommandLineJob => Option(clj.commandLineString)
@@ -140,14 +118,14 @@ object Execution extends Loggable {
     
     val outputRecords = job.outputs.map(_.toStoreRecord)
     
-    // TODO Replace the placeholder for `resources` object put in place to get the code to compile
     Execution(
       env = job.executionEnvironment,
       cmd = commandLine,
       status = status,
       result = result,
-      resources = None, // TODO: smell: we have no idea how this job was run
+      resources = resources, 
       outputs = outputRecords,
-      outputStreams = outputStreams) 
+      outputStreams = outputStreams/*,
+      terminationReason = terminationReason*/)
   }
 }

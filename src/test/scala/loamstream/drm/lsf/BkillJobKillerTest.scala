@@ -1,7 +1,10 @@
 package loamstream.drm.lsf
 
-import org.scalatest.FunSuite
 import scala.util.Success
+
+import org.scalatest.FunSuite
+
+import loamstream.util.RunResults
 import loamstream.util.Tries
 
 /**

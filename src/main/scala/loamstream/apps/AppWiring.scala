@@ -25,7 +25,6 @@ import loamstream.drm.AccountingClient
 import loamstream.drm.Drmaa1Client
 import loamstream.drm.DrmaaPoller
 import loamstream.drm.DrmChunkRunner
-import loamstream.drm.DrmClient
 import loamstream.drm.DrmSystem
 import loamstream.drm.JobMonitor
 import loamstream.drm.JobSubmitter
@@ -39,7 +38,6 @@ import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.uger.QacctAccountingClient
 import loamstream.drm.uger.UgerNativeSpecBuilder
 import loamstream.drm.uger.UgerPathBuilder
-import loamstream.drm.uger.UgerResourceUsageExtractor
 
 import loamstream.googlecloud.CloudSdkDataProcClient
 import loamstream.googlecloud.CloudStorageClient
@@ -83,6 +81,8 @@ import loamstream.model.execute.RunsIfNoOutputsJobFilter
 import loamstream.model.execute.RequiresPresentInputsJobCanceler
 import loamstream.model.execute.JobCanceler
 import loamstream.conf.Locations
+import loamstream.drm.lsf.BacctAccountingClient
+import loamstream.drm.DrmaaClient
 
 
 /**
@@ -377,11 +377,11 @@ object AppWiring extends Loggable {
     } yield {
       debug("Creating Uger ChunkRunner...")
 
-      val ugerClient = makeUgerClient(ugerConfig)
+      val drmaaClient = new Drmaa1Client(UgerNativeSpecBuilder(ugerConfig))
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val poller = new DrmaaPoller(ugerClient)
+      val poller = new DrmaaPoller(drmaaClient)
 
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
@@ -391,7 +391,9 @@ object AppWiring extends Loggable {
         
         val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
-        val jobSubmitter = JobSubmitter.Drmaa(ugerClient, ugerConfig)
+        val jobSubmitter = JobSubmitter.Drmaa(drmaaClient, ugerConfig)
+        
+        val accountingClient = QacctAccountingClient.useActualBinary(ugerConfig)
         
         DrmChunkRunner(
             environmentType = EnvironmentType.Uger,
@@ -399,7 +401,8 @@ object AppWiring extends Loggable {
             executionConfig = loamConfig.executionConfig, 
             drmConfig = ugerConfig, 
             jobSubmitter = jobSubmitter, 
-            jobMonitor = jobMonitor)
+            jobMonitor = jobMonitor,
+            accountingClient = accountingClient)
       }
 
       val handles = Seq(schedulerHandle, ugerRunner)
@@ -419,17 +422,19 @@ object AppWiring extends Loggable {
 
       import loamstream.model.execute.ExecuterHelpers._
 
-      val poller = BjobsPoller.fromExecutable()
-
       val (scheduler, schedulerHandle) = RxSchedulers.backedByThreadPool(threadPoolSize)
 
       val lsfRunner = {
         //TODO: Make configurable?
         val pollingFrequencyInHz = 0.1
+
+        val poller = BjobsPoller.fromExecutable()
         
         val jobMonitor = new JobMonitor(scheduler, poller, pollingFrequencyInHz)
 
         val jobSubmitter = BsubJobSubmitter.fromExecutable(lsfConfig)
+
+        val accountingClient = BacctAccountingClient.useActualBinary(lsfConfig)
         
         DrmChunkRunner(
             environmentType = EnvironmentType.Lsf,
@@ -437,19 +442,14 @@ object AppWiring extends Loggable {
             executionConfig = loamConfig.executionConfig, 
             drmConfig = lsfConfig, 
             jobSubmitter = jobSubmitter, 
-            jobMonitor = jobMonitor)
+            jobMonitor = jobMonitor,
+            accountingClient = accountingClient)
       }
 
       val handles = Seq(schedulerHandle, lsfRunner)
 
       (lsfRunner, handles)
     }
-  }
-  
-  private def makeUgerClient(ugerConfig: UgerConfig): DrmClient = {
-    val drmaa1Client = new Drmaa1Client(UgerResourceUsageExtractor, UgerNativeSpecBuilder(ugerConfig))
-    
-    new DrmClient(drmaa1Client, QacctAccountingClient.useActualBinary(ugerConfig))
   }
   
   private def loadConfig(confFileOpt: Option[Path]): Config = {

@@ -1,14 +1,8 @@
 package loamstream.drm.lsf
 
-import java.time.Instant
-
 import org.scalatest.FunSuite
 
 import loamstream.drm.DrmStatus
-import loamstream.drm.Queue
-import loamstream.model.execute.Resources.LsfResources
-import loamstream.model.quantities.CpuTime
-import loamstream.model.quantities.Memory
 
 /**
  * @author clint
@@ -70,36 +64,28 @@ final class LsfStatusTest extends FunSuite {
   }
   
   test("toDrmStatus") {
-    val resourcesOpt: Option[LsfResources] = Some(LsfResources(
-        memory = Memory.inMb(42),
-        cpuTime = CpuTime.inSeconds(99),
-        node = Some("foo"),
-        queue = Some(Queue("fooQueue")),
-        startTime = Instant.now,
-        endTime = Instant.now))
-        
     import LsfStatus._
         
     def doTest(exitCodeOpt: Option[Int]): Unit = {
-      assert(CommandResult(42).toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.CommandResult(42, resourcesOpt))
-      assert(CommandResult(0).toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.CommandResult(0, resourcesOpt))
+      assert(CommandResult(42).toDrmStatus(exitCodeOpt) === DrmStatus.CommandResult(42))
+      assert(CommandResult(0).toDrmStatus(exitCodeOpt) === DrmStatus.CommandResult(0))
     
-      assert(Pending.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Queued)
-      assert(Provisioned.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Running)
-      assert(SuspendedWhilePending.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Suspended())
-      assert(Running.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Running)
-      assert(SuspendedWhileRunning.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Suspended(resourcesOpt))
-      assert(Suspended.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Suspended())
-      assert(Done.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.CommandResult(0, resourcesOpt))
+      assert(Pending.toDrmStatus(exitCodeOpt) === DrmStatus.Queued)
+      assert(Provisioned.toDrmStatus(exitCodeOpt) === DrmStatus.Running)
+      assert(SuspendedWhilePending.toDrmStatus(exitCodeOpt) === DrmStatus.Suspended)
+      assert(Running.toDrmStatus(exitCodeOpt) === DrmStatus.Running)
+      assert(SuspendedWhileRunning.toDrmStatus(exitCodeOpt) === DrmStatus.Suspended)
+      assert(Suspended.toDrmStatus(exitCodeOpt) === DrmStatus.Suspended)
+      assert(Done.toDrmStatus(exitCodeOpt) === DrmStatus.CommandResult(0))
       exitCodeOpt match {
         case Some(exitCode) => {
-          assert(Exited.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.CommandResult(exitCode, resourcesOpt))
+          assert(Exited.toDrmStatus(exitCodeOpt) === DrmStatus.CommandResult(exitCode))
         }
-        case None => assert(Exited.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Failed(resourcesOpt))
+        case None => assert(Exited.toDrmStatus(exitCodeOpt) === DrmStatus.Failed)
       }
-      assert(Unknown.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Undetermined(resourcesOpt))
-      assert(WaitingToRun.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Queued)
-      assert(Zombie.toDrmStatus(exitCodeOpt, resourcesOpt) === DrmStatus.Failed(resourcesOpt))
+      assert(Unknown.toDrmStatus(exitCodeOpt) === DrmStatus.Undetermined)
+      assert(WaitingToRun.toDrmStatus(exitCodeOpt) === DrmStatus.Queued)
+      assert(Zombie.toDrmStatus(exitCodeOpt) === DrmStatus.Failed)
     }
     
     doTest(Some(42))

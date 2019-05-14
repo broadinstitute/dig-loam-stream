@@ -23,6 +23,8 @@ final class DrmaaPollerTest extends FunSuite {
 
   private val zero = Duration.Zero
   
+  
+  
   test("drama().poll() - happy path") {
     val jobId = "foo"
     

@@ -5,6 +5,7 @@ import scala.util.Try
 import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
 import loamstream.util.ValueBox
+import loamstream.model.execute.Resources.DrmResources
 
 /**
  * @author clint

@@ -20,6 +20,7 @@ import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
+import loamstream.util.RunResults
 
 /**
  * @author clint

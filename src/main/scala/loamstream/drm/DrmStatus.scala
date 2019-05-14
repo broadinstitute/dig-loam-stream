@@ -15,30 +15,20 @@ sealed trait DrmStatus {
   import DrmStatus._
 
   def isDone: Boolean = this == Done
-  def isFailed: Boolean = this.isInstanceOf[Failed]
+  def isFailed: Boolean = this == Failed
   def isRequeued: Boolean = this == Requeued
   def isRequeuedHeld: Boolean = this == RequeuedHeld
   def isQueued: Boolean = this == Queued
   def isQueuedHeld: Boolean = this == QueuedHeld
   def isRunning: Boolean = this == Running
-  def isSuspended: Boolean = this.isInstanceOf[Suspended]
-  def isUndetermined: Boolean = this.isInstanceOf[Undetermined]
-  def isDoneUndetermined: Boolean = this.isInstanceOf[DoneUndetermined]
+  def isSuspended: Boolean = this == Suspended
+  def isUndetermined: Boolean = this == Undetermined
+  def isDoneUndetermined: Boolean = this == DoneUndetermined
+  def isCommandResult: Boolean = this.isInstanceOf[CommandResult]
 
-  def notFinished: Boolean = {
-    isRequeued || isRequeuedHeld || isQueued || isQueuedHeld || isRunning || isSuspended || isUndetermined
-  }
+  def notFinished: Boolean = !isFinished
 
-  def isFinished: Boolean = !notFinished
-  
-  def resourcesOpt: Option[DrmResources] = None
-  
-  def withResources(rs: DrmResources): DrmStatus = this
-  
-  def transformResources(f: DrmResources => DrmResources): DrmStatus = resourcesOpt match {
-    case None => this
-    case Some(rs) => withResources(f(rs))
-  }
+  def isFinished: Boolean = isFailed || isDone || isDoneUndetermined || isCommandResult
 }
 
 object DrmStatus {
@@ -50,28 +40,12 @@ object DrmStatus {
   case object RequeuedHeld extends DrmStatus
   case object Running extends DrmStatus
 
-  final case class CommandResult(
-      exitStatus: Int, 
-      override val resourcesOpt: Option[DrmResources]) extends DrmStatus {
-    
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
-  }
+  final case class CommandResult(exitStatus: Int) extends DrmStatus
   
-  final case class Failed(override val resourcesOpt: Option[DrmResources] = None) extends DrmStatus {
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
-  }
-  
-  final case class DoneUndetermined(override val resourcesOpt: Option[DrmResources] = None) extends DrmStatus {
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
-  }
-  
-  final case class Suspended(override val resourcesOpt: Option[DrmResources] = None) extends DrmStatus {
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
-  }
-  
-  final case class Undetermined(override val resourcesOpt: Option[DrmResources] = None) extends DrmStatus {
-    override def withResources(rs: DrmResources): DrmStatus = copy(resourcesOpt = Option(rs))
-  }
+  case object Failed extends DrmStatus
+  case object DoneUndetermined extends DrmStatus
+  case object Suspended extends DrmStatus
+  case object Undetermined extends DrmStatus
 
   import Session._
 
@@ -79,29 +53,29 @@ object DrmStatus {
     case QUEUED_ACTIVE                                              => Queued
     case SYSTEM_ON_HOLD | USER_ON_HOLD | USER_SYSTEM_ON_HOLD        => QueuedHeld
     case RUNNING                                                    => Running
-    case SYSTEM_SUSPENDED | USER_SUSPENDED | USER_SYSTEM_SUSPENDED  => Suspended()
+    case SYSTEM_SUSPENDED | USER_SUSPENDED | USER_SYSTEM_SUSPENDED  => Suspended
     case DONE                                                       => Done
-    case FAILED                                                     => Failed()
-    case UNDETERMINED | _                                           => Undetermined()
+    case FAILED                                                     => Failed
+    case UNDETERMINED | _                                           => Undetermined
   }
 
   def toJobStatus(status: DrmStatus): JobStatus = status match {
-    case Done                                                       => JobStatus.WaitingForOutputs
-    case CommandResult(exitStatus, _)                               => JobStatus.fromExitCode(exitStatus)
-    case DoneUndetermined(resources)                                => JobStatus.Failed
-    case Failed(resources)                                          => JobStatus.Failed
-    case Queued | QueuedHeld | Requeued | RequeuedHeld              => JobStatus.Submitted
-    case Running                                                    => JobStatus.Running
-    case Suspended(resources)                                       => JobStatus.Failed
-    case Undetermined(resources)                                    => JobStatus.Unknown
+    case Done                                          => JobStatus.WaitingForOutputs
+    case CommandResult(exitStatus)                     => JobStatus.fromExitCode(exitStatus)
+    case DoneUndetermined                              => JobStatus.Failed
+    case Failed                                        => JobStatus.Failed
+    case Queued | QueuedHeld | Requeued | RequeuedHeld => JobStatus.Submitted
+    case Running                                       => JobStatus.Running
+    case Suspended                                     => JobStatus.Failed
+    case Undetermined                                  => JobStatus.Unknown
   }
 
   def toJobResult(status: DrmStatus): Option[JobResult] = status match {
     //Done => JobResult.Success?
-    case CommandResult(exitStatus, resources)      => Some(JobResult.CommandResult(exitStatus))
-    case DoneUndetermined(resources)               => Some(JobResult.Failure)
-    case Failed(resources)                         => Some(JobResult.Failure)
-    case Suspended(resources)                      => Some(JobResult.Failure)
-    case _                                         => None
+    case CommandResult(exitStatus)      => Some(JobResult.CommandResult(exitStatus))
+    case DoneUndetermined               => Some(JobResult.Failure)
+    case Failed                         => Some(JobResult.Failure)
+    case Suspended                      => Some(JobResult.Failure)
+    case _                              => None
   }
 }

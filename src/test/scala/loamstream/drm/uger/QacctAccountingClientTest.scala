@@ -1,9 +1,16 @@
 package loamstream.drm.uger
 
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
+
+import scala.util.Try
+
 import org.scalatest.FunSuite
 
-import loamstream.drm.Queue
 import loamstream.conf.UgerConfig
+import loamstream.drm.Queue
+import loamstream.util.RunResults
+import loamstream.util.Tries
 
 /**
  * @author clint
@@ -12,68 +19,63 @@ import loamstream.conf.UgerConfig
 final class QacctAccountingClientTest extends FunSuite {
 
   import QacctTestHelpers.actualQacctOutput
+  import QacctTestHelpers.expectedResources
+  import QacctTestHelpers.successfulRun
   import scala.concurrent.duration._
-
-  test("delaySequence - defaults") {
-    val delays = QacctAccountingClient.delaySequence(
-        QacctAccountingClient.defaultDelayStart, 
-        QacctAccountingClient.defaultDelayCap)
+  
+  test("toInstant - problematic dates") {
+    val localTzOffset = ZonedDateTime.now.getOffset
     
-    val actual = delays.take(10).toIndexedSeq
+    def doTest(ugerFormat: String, expectedInIsoFormat: String): Unit = {
+      val expected = LocalDateTime.parse(expectedInIsoFormat).toInstant(localTzOffset)
+      
+      val parsed = QacctAccountingClient.toInstant("start")(ugerFormat)
+      
+      assert(parsed.get === expected)
+    }
     
-    val expected = Seq(
-        0.5.seconds, 
-        1.second, 
-        2.seconds, 
-        4.seconds, 
-        8.seconds, 
-        16.seconds,
-        30.seconds,
-        30.seconds,
-        30.seconds,
-        30.seconds)
-        
-    assert(actual === expected)
+    //NB: One is DST, one isn't :\
+    doTest("04/25/2019 14:20:36.264", "2019-04-25T14:20:36.264")
+    doTest("03/06/2017 17:49:50.505", "2017-03-06T18:49:50.505")
   }
   
-  test("delaySequence - non-defaults, cap not hit") {
-    val delays = QacctAccountingClient.delaySequence(0.01.seconds, 10.seconds)
+  test("getResourceUsage - accounting client fails") {
+    val ugerConfig = UgerConfig(maxQacctRetries = 0)
     
-    val actual = delays.take(10).toIndexedSeq
+    val mockClient = new MockQacctAccountingClient(_ => Tries.failure("blarg"), ugerConfig)
     
-    val expected = Seq(
-        0.01.seconds, 
-        0.02.second, 
-        0.04.seconds, 
-        0.08.seconds, 
-        0.16.seconds, 
-        0.32.seconds,
-        0.64.seconds,
-        1.28.seconds,
-        2.56.seconds,
-        5.12.seconds)
-        
-    assert(actual === expected)
+    val jobId = "abc123"
+    
+    assert(mockClient.timesGetQacctOutputForInvoked === 0)
+    assert(mockClient.timesGetResourceUsageInvoked === 0)
+    
+    assert(mockClient.getResourceUsage(jobId).isFailure)
+    
+    assert(mockClient.timesGetQacctOutputForInvoked === 1)
+    assert(mockClient.timesGetResourceUsageInvoked === 1)
   }
   
-  test("delaySequence - non-defaults, cap hit") {
-    val delays = QacctAccountingClient.delaySequence(0.01.seconds, 1.seconds)
+  test("getResourceUsage - happy path") {
+    val ugerConfig = UgerConfig()
     
-    val actual = delays.take(10).toIndexedSeq
+    val expectedNode: String = "uger-c052.broadinstitute.org"
+    val expectedQueue: Queue = Queue("broad")
     
-    val expected = Seq(
-        0.01.seconds, 
-        0.02.second, 
-        0.04.seconds, 
-        0.08.seconds, 
-        0.16.seconds, 
-        0.32.seconds,
-        0.64.seconds,
-        1.second,
-        1.second,
-        1.second)
-        
-    assert(actual === expected)
+    val qacctOutput = actualQacctOutput(Some(expectedQueue), Some(expectedNode))
+    
+    val mockClient = new MockQacctAccountingClient(_ => successfulRun(stdout = qacctOutput), ugerConfig)
+    
+    val jobId = "abc123"
+    
+    assert(mockClient.timesGetQacctOutputForInvoked === 0)
+    assert(mockClient.timesGetResourceUsageInvoked === 0)
+    
+    val actualResources = mockClient.getResourceUsage(jobId).get
+    
+    assert(mockClient.timesGetQacctOutputForInvoked === 1)
+    assert(mockClient.timesGetResourceUsageInvoked === 1)
+    
+    assert(actualResources === expectedResources(expectedNode, expectedQueue))
   }
   
   test("retries - never works") {
@@ -81,34 +83,24 @@ final class QacctAccountingClientTest extends FunSuite {
     
     val ugerConfig = UgerConfig(maxQacctRetries = maxRuns - 1)
     
-    val mockClient = new MockQacctAccountingClient(_ => throw new Exception, ugerConfig, 0.001.seconds, 0.5.seconds)
+    val mockClient = new MockQacctAccountingClient(_ => Tries.failure("blarg"), ugerConfig, 0.001.seconds, 0.5.seconds)
     
     val jobId = "abc123"
     
     assert(mockClient.timesGetQacctOutputForInvoked === 0)
-    assert(mockClient.timesGetExecutionNodeInvoked === 0)
-    assert(mockClient.timesGetQueueInvoked === 0)
+    assert(mockClient.timesGetResourceUsageInvoked === 0)
     
-    assert(mockClient.getExecutionNode(jobId).isEmpty)
+    assert(mockClient.getResourceUsage(jobId).isFailure)
     
-    //Should have retried once
+    //Should have retried 
     assert(mockClient.timesGetQacctOutputForInvoked === maxRuns)
-    assert(mockClient.timesGetExecutionNodeInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 0)
+    assert(mockClient.timesGetResourceUsageInvoked === 1)
     
-    assert(mockClient.getExecutionNode(jobId).isEmpty)
+    assert(mockClient.getResourceUsage(jobId).isFailure)
     
     //should have memoized results, and not retried any more
     assert(mockClient.timesGetQacctOutputForInvoked === maxRuns)
-    assert(mockClient.timesGetExecutionNodeInvoked === 2)
-    assert(mockClient.timesGetQueueInvoked === 0)
-    
-    assert(mockClient.getQueue(jobId).isEmpty)
-    
-    //should have memoized results, and not retried any more
-    assert(mockClient.timesGetQacctOutputForInvoked === maxRuns)
-    assert(mockClient.timesGetExecutionNodeInvoked === 2)
-    assert(mockClient.timesGetQueueInvoked === 1)
+    assert(mockClient.timesGetResourceUsageInvoked === 2)
   }
   
   test("retries - works after 2 failures") {
@@ -121,13 +113,13 @@ final class QacctAccountingClientTest extends FunSuite {
     
     var timesQacctInvoked = 0
     
-    def invokeQacct(jobId: String): Seq[String] = {
+    def invokeQacct(jobId: String): Try[RunResults] = {
       timesQacctInvoked += 1
       
       if(timesQacctInvoked < 3) {
-        throw new Exception
+        Tries.failure("")
       } else {
-        actualQacctOutput(Some(expectedQueue), Some(expectedNode))
+        successfulRun(stdout = actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
       }
     }
     
@@ -136,153 +128,79 @@ final class QacctAccountingClientTest extends FunSuite {
     val jobId = "abc123"
     
     assert(mockClient.timesGetQacctOutputForInvoked === 0)
-    assert(mockClient.timesGetExecutionNodeInvoked === 0)
-    assert(mockClient.timesGetQueueInvoked === 0)
+    assert(mockClient.timesGetResourceUsageInvoked === 0)
     
-    assert(mockClient.getExecutionNode(jobId) === Some(expectedNode))
+    assert(mockClient.getResourceUsage(jobId).get === expectedResources(expectedNode, expectedQueue))
     
     //Should have retried twice
     assert(mockClient.timesGetQacctOutputForInvoked === 3)
-    assert(mockClient.timesGetExecutionNodeInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 0)
+    assert(mockClient.timesGetResourceUsageInvoked === 1)
     
-    assert(mockClient.getExecutionNode(jobId) === Some(expectedNode))
-    
-    //should have memoized results, and not retried any more
-    assert(mockClient.timesGetQacctOutputForInvoked === 3)
-    assert(mockClient.timesGetExecutionNodeInvoked === 2)
-    assert(mockClient.timesGetQueueInvoked === 0)
-    
-    assert(mockClient.getQueue(jobId) === Some(expectedQueue))
+    assert(mockClient.getResourceUsage(jobId).get === expectedResources(expectedNode, expectedQueue))
     
     //should have memoized results, and not retried any more
     assert(mockClient.timesGetQacctOutputForInvoked === 3)
-    assert(mockClient.timesGetExecutionNodeInvoked === 2)
-    assert(mockClient.timesGetQueueInvoked === 1)
-  }
-  
-  test("QacctUgerClient.getExecutionNode") {
-    val expectedNode: String = "uger-c052.broadinstitute.org"
-    val expectedQueue: Queue = Queue("broad")
-
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
-
-    val jobId = "12345"
-    val actualNode = mockClient.getExecutionNode(jobId)
-
-    assert(actualNode === Some(expectedNode))
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 1)
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 0)
-
-    assert(mockClient.getExecutionNode(jobId) === Some(expectedNode))
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 2)
-    //Invocations of qacct should be memoized
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 0)
+    assert(mockClient.timesGetResourceUsageInvoked === 2)
   }
 
-  test("QacctUgerClient.getQueue") {
-    val expectedQueue: Queue = Queue("broad")
-    val expectedNode: String = "foo.example.com"
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(expectedQueue), Some(expectedNode)))
+  test("getResourceUsage - no node to find") {
+    val mockClient = new MockQacctAccountingClient(_ => 
+      successfulRun(stdout = actualQacctOutput(Some(Queue("broad")), None))
+    )
 
     val jobId = "12345"
 
-    assert(mockClient.getQueue(jobId) === Some(expectedQueue))
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 0)
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 1)
-
-    assert(mockClient.getQueue(jobId) === Some(expectedQueue))
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 0)
-    //Invocations of qacct should be memoized
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 2)
+    val expected = expectedResources(None, Some(Queue("broad")))
+    
+    assert(mockClient.getResourceUsage(jobId).get === expected)
+    
+    assert(expected.queue === Some(Queue("broad")))
+    assert(expected.node === None)
   }
 
-  test("QacctUgerClient.getExecutionNode - no node to find") {
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(Some(Queue("broad")), None))
+  test("getResourceUsage - no queue to find") {
+    val mockClient = new MockQacctAccountingClient(_ => 
+      successfulRun(stdout = actualQacctOutput(None, Some("foo.example.com")))
+    )
 
     val jobId = "12345"
 
-    assert(mockClient.getExecutionNode(jobId) === None)
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 1)
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 0)
-
-    assert(mockClient.getExecutionNode(jobId) === None)
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 2)
-    //Invocations of qacct should be memoized
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 0)
+    val expected = expectedResources(Some("foo.example.com"), None)
+    
+    assert(mockClient.getResourceUsage(jobId).get === expected)
+    
+    assert(expected.queue === None)
+    assert(expected.node === Some("foo.example.com"))
   }
 
-  test("QacctUgerClient.getQueue - no queue to find") {
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(None, Some("foo.example.com")))
+  test("getResourceUsage - neither queue nor node present") {
+    val mockClient = new MockQacctAccountingClient(_ => 
+      successfulRun(stdout = actualQacctOutput(None, None))
+    )
 
     val jobId = "12345"
 
-    assert(mockClient.getQueue(jobId) === None)
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 0)
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 1)
-
-    assert(mockClient.getQueue(jobId) === None)
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 0)
-    //Invocations of qacct should be memoized
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 2)
+    val expected = expectedResources(None, None)
+    
+    assert(mockClient.getResourceUsage(jobId).get === expected)
+    
+    assert(expected.queue === None)
+    assert(expected.node === None)
   }
 
-  test("QacctUgerClient.getQueue,getExecutionNode - neither present") {
-    val mockClient = new MockQacctAccountingClient(_ => actualQacctOutput(None, None))
+  test("getResourceUsage - junk output") {
+    val mockClient = new MockQacctAccountingClient(_ => successfulRun(stdout = Seq("foo", "bar", "baz")))
 
     val jobId = "12345"
 
-    assert(mockClient.getQueue(jobId) === None)
-    assert(mockClient.getExecutionNode(jobId) === None)
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 1)
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 1)
-
-    assert(mockClient.getQueue(jobId) === None)
-    assert(mockClient.getExecutionNode(jobId) === None)
-
-    assert(mockClient.timesGetExecutionNodeInvoked === 2)
-    //Invocations of qacct should be memoized
-    assert(mockClient.timesGetQacctOutputForInvoked === 1)
-    assert(mockClient.timesGetQueueInvoked === 2)
+    assert(mockClient.getResourceUsage(jobId).isFailure)
   }
 
-  test("QacctUgerClient.getQueue,getExecutionNode - junk output") {
-    val mockClient = new MockQacctAccountingClient(_ => Seq("foo", "bar", "baz"))
+  test("getQueue,getExecutionNode - empty output") {
+    val mockClient = new MockQacctAccountingClient(_ => successfulRun(stdout = Seq.empty))
 
     val jobId = "12345"
 
-    assert(mockClient.getQueue(jobId) === None)
-    assert(mockClient.getExecutionNode(jobId) === None)
-  }
-
-  test("QacctUgerClient.getQueue,getExecutionNode - empty output") {
-    val mockClient = new MockQacctAccountingClient(_ => Seq.empty)
-
-    val jobId = "12345"
-
-    assert(mockClient.getQueue(jobId) === None)
-    assert(mockClient.getExecutionNode(jobId) === None)
-  }
-
-  test("makeTokens") {
-    assert(QacctAccountingClient.makeTokens("foo", "bar") === Seq("foo", "-j", "bar"))
+    assert(mockClient.getResourceUsage(jobId).isFailure)
   }
 }

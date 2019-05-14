@@ -18,6 +18,8 @@ import scala.collection.mutable.ListBuffer
 import java.nio.file.Path
 import loamstream.drm.ContainerParams
 import loamstream.conf.LsfConfig
+import loamstream.util.RunResults
+import loamstream.util.Processes
 
 /**
  * @author clint
@@ -41,18 +43,21 @@ final class BsubJobSubmitter private[lsf] (
   override def stop(): Unit = ()
   
   private[lsf] def toDrmSubmissionResult(taskArray: DrmTaskArray)(runResults: RunResults): DrmSubmissionResult = {
-    if(runResults.isSuccess) {
-      BsubJobSubmitter.extractJobId(runResults.stdout) match {
-        case Some(jobId) =>  makeSuccess(jobId, taskArray)
-        case None => {
-          logAndMakeFailure(runResults) { r =>
-            s"LSF Job submission failure: couldn't determine job ID from output of `${r.executable}`: ${r.stdout}"
+    runResults match {
+      case r: RunResults.Successful => {
+        BsubJobSubmitter.extractJobId(r.stdout) match {
+          case Some(jobId) =>  makeSuccess(jobId, taskArray)
+          case None => {
+            logAndMakeFailure(r) { r =>
+              s"LSF Job submission failure: couldn't determine job ID from output of `${r.executable}`: ${r.stdout}"
+            }
           }
         }
-      }
-    } else {
-      logAndMakeFailure(runResults) { runResults =>
-        s"LSF Job submission failure: `${runResults.executable}` failed with status code ${runResults.exitCode}"
+      } 
+      case r: RunResults.Unsuccessful => {
+        logAndMakeFailure(r) { r =>
+          s"LSF Job submission failure: `${r.executable}` failed with status code ${r.exitCode}"
+        }
       }
     }
   }
@@ -74,8 +79,8 @@ final class BsubJobSubmitter private[lsf] (
     DrmSubmissionResult.SubmissionSuccess(idsToJobs)
   }
   
-  private def logAndMakeFailure(
-      runResults: RunResults)(errorMsg: RunResults => String): DrmSubmissionResult.SubmissionFailure = {
+  private def logAndMakeFailure[R <: RunResults](
+      runResults: R)(errorMsg: R => String): DrmSubmissionResult.SubmissionFailure = {
     
     runResults.logStdOutAndStdErr("LSF Job submission failure, stdout and stderr follow:")
       
@@ -94,12 +99,13 @@ object BsubJobSubmitter extends Loggable {
       lsfConfig: LsfConfig, 
       actualExecutable: String): SubmissionFn = { (drmSettings, taskArray) =>
         
-    import scala.sys.process._
-  
     val tokens = makeTokens(actualExecutable, lsfConfig, taskArray, drmSettings)
     
     debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
     
+    import scala.sys.process._
+    
+    //NB: script contents are piped to bsub
     val processBuilder: ProcessBuilder = tokens #< taskArray.drmScriptFile.toFile
     
     Processes.runSync(actualExecutable, processBuilder)

@@ -30,7 +30,7 @@ trait DrmaaClient extends Terminable {
     
   /**
    * Synchronously inspect the status of a job with the given ID
- *
+   *
    * @param jobId the job ID, assigned by UGER, to inquire about
    * @return a Try, since inquiring might fail
    */
@@ -38,7 +38,7 @@ trait DrmaaClient extends Terminable {
 
   /**
    * Wait (synchronously) for a job to complete.
- *
+   *
    * @param jobId the job ID, assigned by UGER, of the job to wait for
    * @param timeout how long to wait.  If timeout elapses and the job doesn't finish, try to determine the job's
    * status using statusOf()

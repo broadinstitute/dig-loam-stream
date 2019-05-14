@@ -6,48 +6,48 @@ import loamstream.util.ValueBox
 import loamstream.conf.UgerConfig
 import scala.util.Try
 import scala.concurrent.duration.Duration
+import loamstream.util.RunResults
+import scala.util.Success
+import loamstream.model.execute.Resources.DrmResources
+import loamstream.util.RetryingCommandInvoker
 
 /**
  * @author clint
  * Mar 15, 2017
  */
 final class MockQacctAccountingClient(
-    delegateFn: String => Seq[String],
+    delegateFn: String => Try[RunResults],
     ugerConfig: UgerConfig = UgerConfig(),
-    delayStart: Duration = QacctAccountingClient.defaultDelayStart,
-    delayCap: Duration = QacctAccountingClient.defaultDelayCap) extends AccountingClient {
+    delayStart: Duration = RetryingCommandInvoker.defaultDelayStart,
+    delayCap: Duration = RetryingCommandInvoker.defaultDelayCap) extends AccountingClient {
   
   private val timesGetQacctOutputForInvokedBox: ValueBox[Int] = ValueBox(0)
 
-  private val timesGetExecutionNodeInvokedBox: ValueBox[Int] = ValueBox(0)
-
-  private val timesGetQueueInvokedBox: ValueBox[Int] = ValueBox(0)
+  private val timesGetResourceUsageInvokedBox: ValueBox[Int] = ValueBox(0)
   
   def timesGetQacctOutputForInvoked: Int = timesGetQacctOutputForInvokedBox()
-
-  def timesGetExecutionNodeInvoked: Int = timesGetExecutionNodeInvokedBox()
-
-  def timesGetQueueInvoked: Int = timesGetQueueInvokedBox()
+    
+  def timesGetResourceUsageInvoked: Int = timesGetResourceUsageInvokedBox()
 
   private val actualDelegate = {
-    val wrappedDelegateFn: String => Seq[String] = { jobId =>
+    val fakeBinaryName = "MOCK"
+    
+    val wrappedDelegateFn: String => Try[RunResults] = { jobId =>
       timesGetQacctOutputForInvokedBox.mutate(_ + 1)
 
       delegateFn(jobId)
     }
 
-    new QacctAccountingClient(ugerConfig, wrappedDelegateFn, delayStart, delayCap)
+    val invoker = {
+      new RetryingCommandInvoker[String](ugerConfig.maxQacctRetries, "MOCK", wrappedDelegateFn, delayStart, delayCap)
+    }
+    
+    new QacctAccountingClient(invoker)
   }
 
-  override def getExecutionNode(jobId: String): Option[String] = {
-    timesGetExecutionNodeInvokedBox.mutate(_ + 1)
-
-    actualDelegate.getExecutionNode(jobId)
-  }
-
-  override def getQueue(jobId: String): Option[Queue] = {
-    timesGetQueueInvokedBox.mutate(_ + 1)
-
-    actualDelegate.getQueue(jobId)
+  override def getResourceUsage(jobId: String): Try[DrmResources] = {
+    timesGetResourceUsageInvokedBox.mutate(_ + 1)
+    
+    actualDelegate.getResourceUsage(jobId)
   }
 }

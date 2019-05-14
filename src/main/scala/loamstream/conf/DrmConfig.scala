@@ -114,7 +114,8 @@ final case class LsfConfig(
     maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
     defaultCores: Cpus = LsfDefaults.cores,
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,
-    defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime) extends DrmConfig {
+    defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime,
+    maxBacctRetries: Int =  LsfDefaults.maxBacctRetries) extends DrmConfig {
   
   override def scriptBuilderParams: ScriptBuilderParams = LsfScriptBuilderParams
 }
@@ -124,16 +125,18 @@ object LsfConfig extends ConfigParser[LsfConfig] with Loggable {
   //via loamstream.conf.  Other values (workDir, scriptDir) can be set by unit tests, for example, but adding them
   //to loamstream.conf has no effect.
   private final case class Parsed(
-    maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
-    defaultCores: Cpus = UgerDefaults.cores,
-    defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
-    defaultMaxRunTime: CpuTime = UgerDefaults.maxRunTime) {
+    maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
+    defaultCores: Cpus = LsfDefaults.cores,
+    defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,
+    defaultMaxRunTime: CpuTime = LsfDefaults.maxRunTime,
+    maxBacctRetries: Int = LsfDefaults.maxBacctRetries) {
     
     def toLsfConfig: LsfConfig = LsfConfig(
       maxNumJobs = maxNumJobs,
       defaultCores = defaultCores,
       defaultMemoryPerCore = defaultMemoryPerCore,
-      defaultMaxRunTime = defaultMaxRunTime)
+      defaultMaxRunTime = defaultMaxRunTime,
+      maxBacctRetries = maxBacctRetries)
   }
   
   override def fromConfig(config: Config): Try[LsfConfig] = {

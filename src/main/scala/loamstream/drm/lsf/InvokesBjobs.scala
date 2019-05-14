@@ -3,6 +3,8 @@ package loamstream.drm.lsf
 import scala.util.Try
 import loamstream.util.Loggable
 import loamstream.util.Terminable
+import loamstream.util.RunResults
+import loamstream.util.Processes
 
 /**
  * @author clint
@@ -19,19 +21,12 @@ object InvokesBjobs {
       def invocationFn(lsfJobIds: P): Try[RunResults] = {
         val tokens = makeTokens(actualExecutable, lsfJobIds)
         
-        import scala.sys.process._
+        trace(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
         
-        debug(s"Invoking '$actualExecutable': '${tokens.mkString(" ")}'")
-        
-        //NB: Implicit conversion to ProcessBuilder :\
-        val processBuilder: ProcessBuilder = tokens
-        
-        Processes.runSync(actualExecutable, processBuilder)
+        Processes.runSync(actualExecutable, tokens)
       }
       
       constructor(invocationFn)
     }
   }
-  
-  
 }

@@ -34,6 +34,7 @@ import loamstream.util.Hash
 import loamstream.util.Hashes
 import loamstream.drm.ContainerParams
 import loamstream.model.jobs.TerminationReason
+import loamstream.model.execute.Settings
 
 /**
  * @author clint
@@ -112,7 +113,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
     assert(result.isFailure)
 
     val execution = Execution(
-        settings = mockEnv.settings,
+        settings = mockUgerSettings,
         cmd = Option(mockCmd), 
         status = result.toJobStatus,
         result = Option(result), 
@@ -349,7 +350,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         Instant.ofEpochMilli(1), Instant.ofEpochMilli(72345))
 
       val failed0 = Execution(
-          settings = localEnv.settings,
+          settings = LocalSettings,
           cmd = Option(mockCmd),
           status = CommandResult(42).toJobStatus,
           result = Option(CommandResult(42)),
@@ -359,7 +360,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           terminationReason = None)
 
       val failed1 = Execution(
-          settings = lsfEnv.settings,
+          settings = lsfSettings,
           cmd = Option(mockCmd),
           status = CommandResult(1).toJobStatus,
           result = Option(CommandResult(1)),
@@ -371,7 +372,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       val googleEnv = Environment.Google(googleSettings)
           
       val succeeded = Execution(
-          settings = googleEnv.settings,
+          settings = googleSettings,
           cmd = Option(mockCmd),
           status = CommandResult(0).toJobStatus,
           result = Option(CommandResult(0)),
@@ -391,7 +392,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val expected0 = {
         Execution(
-            settings = localEnv.settings,
+            settings = LocalSettings,
             cmd = Option(mockCmd), 
             status = CommandResult(42).toJobStatus, 
             result = Option(CommandResult(42)),
@@ -416,7 +417,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         val output0 = PathHandle(path)
   
         val failed = Execution(
-            mockEnv,
+            mockUgerSettings,
             mockCmd,
             JobResult.CommandInvocationFailure(new Exception),
             dummyOutputStreams,
@@ -430,7 +431,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         dao.insertExecutions(failed)
   
         val expected0 = Execution(
-            mockEnv,
+            mockUgerSettings,
             mockCmd,
             CommandResult(JobResult.DummyExitCode),
             failed.outputStreams.get,
@@ -451,7 +452,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           val output0 = PathHandle(path)
   
           val failed = Execution(
-              settings = mockEnv.settings,
+              settings = mockUgerSettings,
               cmd = command, 
               status = JobResult.Failure.toJobStatus,
               result = Option(JobResult.Failure),
@@ -492,10 +493,10 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         val output1 = cachedOutput(path1, hash1)
         val output2 = cachedOutput(path2, hash2)
   
-        val ex0 = Execution(mockEnv, mockCmd, CommandResult(42), dummyOutputStreams, output0)
-        val ex1 = Execution(mockEnv, mockCmd, CommandResult(0), dummyOutputStreams, output1, output2)
+        val ex0 = Execution(mockUgerSettings, mockCmd, CommandResult(42), dummyOutputStreams, output0)
+        val ex1 = Execution(mockUgerSettings, mockCmd, CommandResult(0), dummyOutputStreams, output1, output2)
         val ex2 = Execution(
-            settings = mockEnv.settings,
+            settings = mockUgerSettings,
             cmd = Option(mockCmd), 
             status = CommandResult(1).toJobStatus, 
             result = Option(CommandResult(1)),
@@ -512,7 +513,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
         dao.insertExecutions(ex0)
   
-        val expected0 = Execution(mockEnv, mockCmd, CommandResult(42), ex0.outputStreams.get, failedOutput(path0))
+        val expected0 = Execution(mockUgerSettings, mockCmd, CommandResult(42), ex0.outputStreams.get, failedOutput(path0))
   
         assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
         assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))
@@ -629,14 +630,14 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
     val output0 = cachedOutput(path0, hash0)
         
-    def doTest(env: Environment, resources: Resources): Unit = {
+    def doTest(settings: Settings, resources: Resources): Unit = {
       createTablesAndThen {
         assert(noExecutions)
         
         val result = CommandResult(0)
         
         val execution = Execution(
-            settings = env.settings,
+            settings = settings,
             cmd = Option(mockCmd),
             status = result.toJobStatus,
             result = Option(result),
@@ -650,7 +651,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         import dao.tables.driver.api._
         
         val resourcesFromDb: ResourceRow = dao.runBlocking { 
-          env.settings.envType match {
+          settings.envType match {
             case EnvironmentType.Local => dao.tables.localResources.result
             case EnvironmentType.Uger => dao.tables.ugerResources.result
             case EnvironmentType.Lsf => dao.tables.lsfResources.result
@@ -664,9 +665,9 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       }
     }
       
-    doTest(localEnv, localResources)
-    doTest(ugerEnv, ugerResources)
-    doTest(lsfEnv, lsfResources)
-    doTest(googleEnv, googleResources)
+    doTest(localSettings, localResources)
+    doTest(ugerSettings, ugerResources)
+    doTest(lsfSettings, lsfResources)
+    doTest(googleSettings, googleResources)
   }
 }

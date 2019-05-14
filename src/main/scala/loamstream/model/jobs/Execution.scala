@@ -69,7 +69,7 @@ object Execution extends Loggable {
 
   // TODO Remove when dynamic statuses flow in
   // What does this mean? -Clint Dec 2017
-  def apply(env: Environment,
+  def apply(settings: Settings,
             cmd: String,
             result: JobResult,
             outputStreams: OutputStreams,
@@ -77,7 +77,7 @@ object Execution extends Loggable {
     
     Execution(
         cmd = Option(cmd),
-        settings = env.settings,
+        settings = settings,
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
@@ -86,7 +86,7 @@ object Execution extends Loggable {
         terminationReason = None)
   }
 
-  def fromOutputs(env: Environment,
+  def fromOutputs(settings: Settings,
                   cmd: String,
                   result: JobResult,
                   outputStreams: OutputStreams,
@@ -94,7 +94,7 @@ object Execution extends Loggable {
     
     apply(
         cmd = Option(cmd),
-        settings = env.settings,
+        settings = settings,
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 

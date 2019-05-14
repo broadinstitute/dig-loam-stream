@@ -114,11 +114,19 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         
         import TestHelpers.{ dummyOutputStreams => outputStreams }
         
-        val failedExec = Execution.fromOutputs(mockEnv, failedCommandLine, failure, outputStreams, failedJob.outputs)
+        val failedExec = Execution.fromOutputs(
+            mockUgerSettings, 
+            failedCommandLine, 
+            failure, 
+            outputStreams, 
+            failedJob.outputs)
         
-        val successfulExec = {
-          Execution.fromOutputs(mockEnv, successfulCommandLine, success, outputStreams, successfulJob.outputs)
-        }
+        val successfulExec = Execution.fromOutputs(
+            mockUgerSettings, 
+            successfulCommandLine, 
+            success, 
+            outputStreams, 
+            successfulJob.outputs)
   
         recorder.record(Seq(failedExec, successfulExec))
       }
@@ -149,10 +157,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
         
-        val failedExec = Execution.fromOutputs(mockEnv, mockCmd, failure, dummyOutputStreams, Set(o0))
+        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyOutputStreams, Set(o0))
         
         val successfulExec = {
-          Execution.fromOutputs(mockEnv, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
+          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
         }
   
         recorder.record(Seq(failedExec, successfulExec))
@@ -233,10 +241,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
 
-        val failedExec = Execution.fromOutputs(mockEnv, mockCmd, failure, dummyOutputStreams, Set(o0))
+        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyOutputStreams, Set(o0))
         
         val successfulExec = {
-          Execution.fromOutputs(mockEnv, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
+          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
         }
   
         recorder.record(Seq(failedExec, successfulExec))
@@ -306,7 +314,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
       CommandLineJob(
         commandLineString = cmd,
         workDir = Paths.getCurrentDirectory,
-        initialSettings = mockEnv.settings,
+        initialSettings = mockUgerSettings,
         outputs = outputs)
     }
 
@@ -321,7 +329,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     }
 
     def execution(cmd: String, outputs: Set[DataHandle]): Execution = {
-      Execution.fromOutputs(mockEnv, cmd, CommandResult(0), dummyOutputStreams, outputs)
+      Execution.fromOutputs(mockUgerSettings, cmd, CommandResult(0), dummyOutputStreams, outputs)
     }
 
     val cmd0 = "cmd0"

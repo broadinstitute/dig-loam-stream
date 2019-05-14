@@ -52,7 +52,7 @@ trait ProvidesEnvAndResources extends FunSuite {
   val mockResources: Resources = mockUgerResources
 
   val mockExecution: Execution = Execution(
-      settings = mockEnv.settings,
+      settings = mockUgerSettings,
       status = mockStatus, 
       outputStreams = Some(TestHelpers.dummyOutputStreams),
       terminationReason = None)

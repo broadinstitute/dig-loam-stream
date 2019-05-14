@@ -29,7 +29,7 @@ final case class RxMockJob(
 
   def toReturn: RunData = toReturnFn(this)
   
-  override def initialSettings: Settings = TestHelpers.env.settings
+  override def initialSettings: Settings = LocalSettings
 
   private[this] val count = ValueBox(0)
 

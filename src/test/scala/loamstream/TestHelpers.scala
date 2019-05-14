@@ -53,6 +53,7 @@ import loamstream.model.execute.LsfDrmSettings
 import loamstream.conf.CompilationConfig
 import loamstream.model.jobs.TerminationReason
 import loamstream.model.execute.Settings
+import loamstream.model.execute.LocalSettings
 
 /**
   * @author clint
@@ -143,7 +144,7 @@ object TestHelpers {
                     resources: Option[Resources] = None,
                     outputStreams: Option[OutputStreams] = None): Execution = {
     Execution(
-        settings = env.settings,
+        settings = LocalSettings,
         cmd = None,
         status = status,
         result = result,

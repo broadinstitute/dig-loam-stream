@@ -59,7 +59,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
         assert(executions === Set.empty)
   
         val e = Execution(
-            settings = mockEnv.settings,
+            settings = mockUgerSettings,
             cmd = command, 
             status = status, 
             result = result, 
@@ -94,7 +94,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       assert(cr.isSuccess)
 
       val e = Execution(
-          settings = mockEnv.settings,
+          settings = mockUgerSettings,
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
           result = Option(cr), 
@@ -120,7 +120,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       assert(cr.isFailure)
 
       val e = Execution(
-          settings = mockEnv.settings,
+          settings = mockUgerSettings,
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
           result = Option(cr),
@@ -145,7 +145,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isSuccess)
 
-      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set(o0, o1, o2))
+      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyOutputStreams, Set(o0, o1, o2))
       val withHashedOutputs = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
 
       recorder.record(Seq(e))
@@ -164,13 +164,13 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(cr.isFailure)
 
-      val e = Execution.fromOutputs(mockEnv, mockCmd, cr, dummyOutputStreams, Set[DataHandle](o0, o1, o2))
+      val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyOutputStreams, Set[DataHandle](o0, o1, o2))
 
       recorder.record(Seq(e))
 
       val expected = Set(
           Execution(
-              env = mockEnv, 
+              settings = mockUgerSettings, 
               cmd = mockCmd, 
               result = CommandResult(42),
               outputStreams = e.outputStreams.get,

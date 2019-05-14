@@ -26,6 +26,7 @@ import loamstream.model.quantities.Memory
 import loamstream.util.TypeBox
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.Settings
 
 
 /**
@@ -47,11 +48,6 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
       LsfDrmSettings(Cpus(8), Memory.inGb(4), UgerDefaults.maxRunTime, Option(UgerDefaults.queue), None)
     }
     val googleSettings = GoogleSettings("some-cluster")
-
-    val localEnv: Environment = Environment.Local
-    val ugerEnv: Environment = Environment.Uger(ugerSettings)
-    val lsfEnv: Environment = Environment.Lsf(lsfSettings)
-    val googleEnv: Environment = Environment.Google(googleSettings)
 
     val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
 
@@ -76,7 +72,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
         Instant.ofEpochMilli(1), 
         Instant.ofEpochMilli(72345))
       
-    def doTest(env: Environment, resources: Option[Resources], shouldThrow: Boolean): Unit = {
+    def doTest(settings: Settings, resources: Option[Resources], shouldThrow: Boolean): Unit = {
       type WrapperFn = (=> Any) => Unit
     
       val justRun: WrapperFn = { block => 
@@ -96,7 +92,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
         val result = CommandResult(0)
       
         Execution(
-          settings = env.settings,
+          settings = settings,
           cmd = Option(mockCmd),
           status = result.toJobStatus,
           result = Option(result),
@@ -107,20 +103,20 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
       }
     }
     
-    doTest(localEnv, Some(localResources), shouldThrow = false)
-    doTest(ugerEnv, Some(ugerResources), shouldThrow = false)
-    doTest(lsfEnv, Some(lsfResources), shouldThrow = false)
-    doTest(googleEnv, Some(googleResources), shouldThrow = false)
+    doTest(localSettings, Some(localResources), shouldThrow = false)
+    doTest(ugerSettings, Some(ugerResources), shouldThrow = false)
+    doTest(lsfSettings, Some(lsfResources), shouldThrow = false)
+    doTest(googleSettings, Some(googleResources), shouldThrow = false)
     
-    doTest(localEnv, None, shouldThrow = false)
-    doTest(ugerEnv, None, shouldThrow = false)
-    doTest(lsfEnv, None, shouldThrow = false)
-    doTest(googleEnv, None, shouldThrow = false)
+    doTest(localSettings, None, shouldThrow = false)
+    doTest(ugerSettings, None, shouldThrow = false)
+    doTest(lsfSettings, None, shouldThrow = false)
+    doTest(googleSettings, None, shouldThrow = false)
     
-    doTest(localEnv, Some(googleResources), shouldThrow = true)
-    doTest(ugerEnv, Some(localResources), shouldThrow = true)
-    doTest(lsfEnv, Some(ugerResources), shouldThrow = true)
-    doTest(googleEnv, Some(lsfResources), shouldThrow = true)
+    doTest(localSettings, Some(googleResources), shouldThrow = true)
+    doTest(ugerSettings, Some(localResources), shouldThrow = true)
+    doTest(lsfSettings, Some(ugerResources), shouldThrow = true)
+    doTest(googleSettings, Some(lsfResources), shouldThrow = true)
   }
   
   test("from(LJob, JobStatus, JobResult)") {
@@ -157,7 +153,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   test("isCommandExecution") {
     def assertIsCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
-          settings = mockEnv.settings,
+          settings = mockUgerSettings,
           cmd = cmd, 
           status = result.toJobStatus,
           result = Option(result),
@@ -171,7 +167,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     
     def assertIsNOTCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
-          settings = mockEnv.settings,
+          settings = mockUgerSettings,
           cmd = cmd, 
           status = result.toJobStatus,
           result = Option(result),

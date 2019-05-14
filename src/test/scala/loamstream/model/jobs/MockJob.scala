@@ -25,7 +25,7 @@ abstract class MockJob(
 
   def toReturn: RunData
   
-  override def initialSettings: Settings = TestHelpers.env.settings
+  override def initialSettings: Settings = LocalSettings
   
   override def toString: String = {
     s"'$name'(#$id, returning $toReturn, ${dependencies.size} dependencies)"

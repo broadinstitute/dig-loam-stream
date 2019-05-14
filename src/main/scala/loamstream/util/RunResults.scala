@@ -4,13 +4,15 @@ package loamstream.util
  * @author clint
  * May 15, 2018
  */
-final case class RunResults(executable: String, exitCode: Int, stdout: Seq[String], stderr: Seq[String]) {
+sealed trait RunResults {
   
-  def isSuccess: Boolean = ExitCodes.isSuccess(exitCode)
+  def executable: String
   
-  def isFailure: Boolean = ExitCodes.isFailure(exitCode)
+  def stdout: Seq[String]
   
-  def logStdOutAndStdErr(
+  def stderr: Seq[String]
+
+  final def logStdOutAndStdErr(
       headerMessage: String, 
       level: Loggable.Level.Value = Loggable.Level.error)(implicit logCtx: LogContext): Unit = {
     
@@ -20,4 +22,19 @@ final case class RunResults(executable: String, exitCode: Int, stdout: Seq[Strin
     stderr.foreach(line => doLog(s"${executable} <via stderr>: $line"))
     stdout.foreach(line => doLog(s"${executable} <via stdout>: $line"))
   }
+}
+
+object RunResults {
+  def apply(executable: String, exitCode: Int, stdout: Seq[String], stderr: Seq[String]): RunResults = {
+    if(ExitCodes.isSuccess(exitCode)) { Successful(executable, stdout, stderr) }
+    else { Unsuccessful(executable, exitCode, stdout, stderr) }
+  }
+  
+  final case class Successful(executable: String, stdout: Seq[String], stderr: Seq[String]) extends RunResults
+  
+  final case class Unsuccessful(
+      executable: String, 
+      exitCode: Int, 
+      stdout: Seq[String], 
+      stderr: Seq[String]) extends RunResults
 }

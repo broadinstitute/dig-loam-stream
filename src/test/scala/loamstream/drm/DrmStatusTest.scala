@@ -94,7 +94,7 @@ final class DrmStatusTest extends FunSuite {
       _.isDone, 
       expectedTrueFor = Done, 
       expectedFalseFor = DoneUndetermined, Failed, Queued, QueuedHeld, Requeued, 
-                         RequeuedHeld, Running, Suspended, Undetermined)
+                         RequeuedHeld, Running, Suspended, Undetermined, CommandResult(0))
   }
   
   test("isFailed") {
@@ -102,7 +102,7 @@ final class DrmStatusTest extends FunSuite {
       _.isFailed, 
       expectedTrueFor = Failed, 
       expectedFalseFor = Done, DoneUndetermined, Queued, QueuedHeld, Requeued, 
-                         RequeuedHeld, Running, Suspended, Undetermined)
+                         RequeuedHeld, Running, Suspended, Undetermined, CommandResult(0))
   }
   
   test("isQueued") {
@@ -110,7 +110,7 @@ final class DrmStatusTest extends FunSuite {
       _.isQueued, 
       expectedTrueFor = Queued, 
       expectedFalseFor = Done, DoneUndetermined, Failed, QueuedHeld, Requeued, 
-                         RequeuedHeld, Running, Suspended, Undetermined)
+                         RequeuedHeld, Running, Suspended, Undetermined, CommandResult(0))
   }
   
   test("isQueuedHeld") {
@@ -118,7 +118,7 @@ final class DrmStatusTest extends FunSuite {
       _.isQueuedHeld, 
       expectedTrueFor = QueuedHeld, 
       expectedFalseFor = Done, DoneUndetermined, Failed, Queued, Requeued, 
-                         RequeuedHeld, Running, Suspended, Undetermined)
+                         RequeuedHeld, Running, Suspended, Undetermined, CommandResult(0))
   }
   
   test("isRunning") {
@@ -126,7 +126,7 @@ final class DrmStatusTest extends FunSuite {
       _.isRunning, 
       expectedTrueFor = Running, 
       expectedFalseFor = Done, DoneUndetermined, Failed, Queued, QueuedHeld, Requeued, 
-                         RequeuedHeld, Suspended, Undetermined)
+                         RequeuedHeld, Suspended, Undetermined, CommandResult(0))
   }
   
   test("isSuspended") {
@@ -134,7 +134,7 @@ final class DrmStatusTest extends FunSuite {
       _.isSuspended, 
       expectedTrueFor = Suspended, 
       expectedFalseFor = Done, DoneUndetermined, Failed, Queued, QueuedHeld, 
-                         Requeued, RequeuedHeld, Running, Undetermined)
+                         Requeued, RequeuedHeld, Running, Undetermined, CommandResult(0))
   }
   
   test("isUndetermined") {
@@ -142,7 +142,7 @@ final class DrmStatusTest extends FunSuite {
       _.isUndetermined, 
       expectedTrueFor = Undetermined, 
       expectedFalseFor = Done, DoneUndetermined, Failed, Queued, QueuedHeld, Requeued, 
-                         RequeuedHeld, Running, Suspended)
+                         RequeuedHeld, Running, Suspended, CommandResult(0))
   }
   
   test("isDoneUndetermined") {
@@ -150,7 +150,21 @@ final class DrmStatusTest extends FunSuite {
       _.isDoneUndetermined, 
       expectedTrueFor = DoneUndetermined, 
       expectedFalseFor = Done, Failed, Queued, QueuedHeld, Requeued, 
-                         RequeuedHeld, Running, Suspended, Undetermined)
+                         RequeuedHeld, Running, Suspended, Undetermined, CommandResult(0))
+  }
+  
+  test("isCommandResult") {
+    doFlagTest(
+      _.isCommandResult, 
+      expectedTrueFor = CommandResult(0), 
+      expectedFalseFor = Done, Failed, Queued, QueuedHeld, Requeued, 
+                         RequeuedHeld, Running, Suspended, Undetermined, DoneUndetermined)
+                         
+    doFlagTest(
+      _.isCommandResult, 
+      expectedTrueFor = CommandResult(42), 
+      expectedFalseFor = Done, Failed, Queued, QueuedHeld, Requeued, 
+                         RequeuedHeld, Running, Suspended, Undetermined, DoneUndetermined)
   }
 
   test("notFinished") {

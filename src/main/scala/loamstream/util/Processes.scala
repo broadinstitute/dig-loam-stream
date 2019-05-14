@@ -4,6 +4,7 @@ import scala.collection.mutable.Buffer
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 import scala.util.Success
+import scala.util.Failure
 
 /**
  * @author clint
@@ -30,21 +31,10 @@ object Processes extends Loggable {
     
     val processLogger = ProcessLogger(stdOutBuffer += _, stdErrBuffer += _)
     
-    val attempt = Try {
+    Try {
       val exitCode = processBuilder.!(processLogger)
     
       RunResults(executable, exitCode, stdOutBuffer.toList, stdErrBuffer.toList)
-    }
-    
-    attempt match {
-      case s @ Success(runResults) if runResults.isFailure => {
-        val msg = s"Error invoking ${executable} (exit code ${runResults.exitCode})"
-        
-        runResults.logStdOutAndStdErr(s"$msg; output streams follow:", Loggable.Level.warn)(logCtx)
-        
-        Tries.failure(msg)
-      }
-      case attempt => attempt
     }
   }
 }

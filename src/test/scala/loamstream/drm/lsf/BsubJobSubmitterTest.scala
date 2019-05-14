@@ -14,7 +14,6 @@ import loamstream.drm.DrmSubmissionResult
 import loamstream.drm.DrmTaskArray
 import loamstream.drm.Queue
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.quantities.CpuTime

@@ -6,7 +6,6 @@ import loamstream.TestHelpers
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.commandline.CommandLineJob
@@ -133,8 +132,6 @@ final class LoamEnvironmentTest extends FunSuite with Loggable {
       assert(blerg.initialSettings === env3)
       assert(zerg.initialSettings === env3)
     }
-    
-    import Environment._
     
     val ugerSettings = TestHelpers.defaultUgerSettings
     val lsfSettings = TestHelpers.defaultLsfSettings

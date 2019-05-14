@@ -5,7 +5,6 @@ import java.nio.file.Path
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-import loamstream.model.execute.Environment
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.ValueBox

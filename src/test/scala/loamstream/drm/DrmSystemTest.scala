@@ -6,7 +6,6 @@ import loamstream.model.execute.DrmSettings
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
-import loamstream.model.execute.Environment
 import loamstream.TestHelpers
 
 /**

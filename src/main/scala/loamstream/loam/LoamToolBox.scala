@@ -7,7 +7,6 @@ import java.nio.file.Paths
 import loamstream.googlecloud.CloudStorageClient
 import loamstream.model.Store
 import loamstream.model.Tool
-import loamstream.model.execute.Environment
 import loamstream.model.execute.Executable
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.DataHandle

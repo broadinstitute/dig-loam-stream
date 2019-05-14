@@ -6,7 +6,6 @@ import loamstream.conf.DrmConfig
 import loamstream.conf.ExecutionConfig
 import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.ExecuterHelpers
 import loamstream.model.execute.Resources.DrmResources

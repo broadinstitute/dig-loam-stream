@@ -7,7 +7,6 @@ import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
 import loamstream.model.Store
-import loamstream.model.execute.Environment
 import loamstream.util.Maps
 import loamstream.model.execute.LocalSettings
 

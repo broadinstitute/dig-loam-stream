@@ -4,7 +4,6 @@ import org.scalatest.FunSuite
 
 import loamstream.compiler.LoamEngine
 import loamstream.compiler.LoamPredef
-import loamstream.model.execute.Environment
 import loamstream.model.execute.DrmSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus

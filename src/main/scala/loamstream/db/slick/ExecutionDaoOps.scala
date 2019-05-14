@@ -11,7 +11,6 @@ import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
 import java.nio.file.Paths
-import loamstream.model.execute.Environment
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings

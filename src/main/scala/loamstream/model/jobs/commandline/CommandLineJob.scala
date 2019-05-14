@@ -20,7 +20,6 @@ import loamstream.model.jobs.DataHandle
 import loamstream.util.Futures
 import loamstream.util.Loggable
 import loamstream.util.TimeUtils
-import loamstream.model.execute.Environment
 import loamstream.util.BashScript
 import java.io.BufferedWriter
 import java.io.FileWriter

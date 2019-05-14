@@ -1,6 +1,5 @@
 package loamstream.model.jobs
 
-import loamstream.model.execute.Environment
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
 import loamstream.model.jobs.commandline.CommandLineJob

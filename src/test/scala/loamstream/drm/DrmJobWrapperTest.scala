@@ -11,7 +11,6 @@ import loamstream.conf.SingularityConfig
 import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.uger.UgerPathBuilder
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.drm.uger.UgerScriptBuilderParams

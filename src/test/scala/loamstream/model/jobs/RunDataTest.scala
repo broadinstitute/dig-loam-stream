@@ -5,7 +5,6 @@ import loamstream.model.execute.Resources.LocalResources
 import java.time.Instant
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.jobs.commandline.CommandLineJob
-import loamstream.model.execute.Environment
 import loamstream.TestHelpers
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.GoogleSettings

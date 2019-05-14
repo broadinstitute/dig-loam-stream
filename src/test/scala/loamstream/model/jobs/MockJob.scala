@@ -6,7 +6,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import loamstream.util.Sequence
 import loamstream.util.ValueBox
-import loamstream.model.execute.Environment
 import loamstream.util.Futures
 import loamstream.model.execute.Resources
 import loamstream.model.execute.LocalSettings

@@ -9,7 +9,6 @@ import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.lsf.LsfScriptBuilderParams
 import loamstream.drm.uger.UgerPathBuilder
 import loamstream.drm.uger.UgerScriptBuilderParams
-import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus

@@ -9,7 +9,6 @@ import loamstream.TestHelpers
 import loamstream.drm.Queue
 import loamstream.drm.uger.UgerDefaults
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.ProvidesEnvAndResources

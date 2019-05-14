@@ -12,7 +12,6 @@ import loamstream.conf.LsfConfig
 import loamstream.conf.UgerConfig
 import loamstream.drm.lsf.LsfPathBuilder
 import loamstream.drm.uger.UgerPathBuilder
-import loamstream.model.execute.Environment
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Files

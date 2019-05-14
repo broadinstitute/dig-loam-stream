@@ -22,7 +22,6 @@ import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamScriptContext
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.JobNode
@@ -525,11 +524,6 @@ final class DrmChunkRunnerTest extends FunSuite {
             jobMonitor = new JobMonitor(poller = JustFailsMockPoller),
             accountingClient = MockAccountingClient.NeverWorks)
       }
-    }
-    
-    def makeEnv(drmSystem: DrmSystem, settings: DrmSettings): Environment = drmSystem match {
-      case DrmSystem.Uger => Environment.Uger(settings)
-      case DrmSystem.Lsf => Environment.Lsf(settings)
     }
     
     def doTest(drmSystem: DrmSystem): Unit = {

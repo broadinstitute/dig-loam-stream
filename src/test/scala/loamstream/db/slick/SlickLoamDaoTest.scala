@@ -9,7 +9,6 @@ import loamstream.TestHelpers
 import loamstream.drm.Queue
 import loamstream.drm.lsf.LsfDefaults
 import loamstream.drm.uger.UgerDefaults
-import loamstream.model.execute.Environment
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.execute.LocalSettings
@@ -244,7 +243,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val toInsert = new ExecutionRow(
           dummyId,
-          mockEnv.toString,
+          mockUgerSettings.envType.toString,
           mockCmd,
           mockStatus,
           mockExitCode,
@@ -263,7 +262,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       // The DB must assign an auto-incremented 'id' upon insertion
       assert(recorded.id != dummyId)
-      assert(recorded.env === mockEnv.toString)
+      assert(recorded.env === mockUgerSettings.envType.toString)
       assert(recorded.cmd === mockCmd)
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
@@ -285,7 +284,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       val toInsert = new ExecutionRow(
           dummyId,
-          mockEnv.toString,
+          mockUgerSettings.envType.toString,
           mockCmd,
           mockStatus,
           mockExitCode,
@@ -304,7 +303,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
 
       // The DB must assign an auto-incremented 'id' upon insertion
       assert(recorded.id != dummyId)
-      assert(recorded.env === mockEnv.toString)
+      assert(recorded.env === mockUgerSettings.envType.toString)
       assert(recorded.cmd === mockCmd)
       assert(recorded.status === mockStatus)
       assert(recorded.exitCode === mockExitCode)
@@ -332,9 +331,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           Some(ContainerParams(imageName = "library/foo:1.2.3")))
               
       val googleSettings = GoogleSettings("some-cluster")
-
-      val localEnv: Environment = Environment.Local
-      val lsfEnv: Environment = Environment.Lsf(lsfSettings)
 
       val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
 
@@ -369,8 +365,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           outputs = Set.empty,
           terminationReason = Some(TerminationReason.UserRequested(Some("FOO"))))
 
-      val googleEnv = Environment.Google(googleSettings)
-          
       val succeeded = Execution(
           settings = googleSettings,
           cmd = Option(mockCmd),
@@ -599,11 +593,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         Some(ContainerParams(imageName = "library/foo:1.2.3")))
         
     val googleSettings = GoogleSettings("some-cluster")
-
-    val localEnv: Environment = Environment.Local
-    val ugerEnv: Environment = Environment.Uger(ugerSettings)
-    val lsfEnv: Environment = Environment.Lsf(lsfSettings)
-    val googleEnv: Environment = Environment.Google(googleSettings)
 
     val localResources = LocalResources(Instant.ofEpochMilli(123), Instant.ofEpochMilli(456))
 

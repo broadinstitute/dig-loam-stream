@@ -5,7 +5,6 @@ import loamstream.loam.LoamScriptContext
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.LoamConfig
 import loamstream.loam.LoamProjectContext
-import loamstream.model.execute.Environment
 import loamstream.loam.LoamCmdTool
 import loamstream.TestHelpers
 import loamstream.loam.LoamGraph
@@ -29,8 +28,6 @@ import loamstream.model.execute.LocalSettings
  * May 5, 2017
  */
 final class LoamPredefTest extends FunSuite {
-  import Environment._
-  
   test("google") {
     implicit val scriptContext = newScriptContext
     

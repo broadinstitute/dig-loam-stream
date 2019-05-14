@@ -10,7 +10,6 @@ import loamstream.loam.LoamCmdTool
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
 import loamstream.loam.LoamToolBox
-import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath

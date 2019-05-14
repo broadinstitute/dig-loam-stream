@@ -5,7 +5,6 @@ import java.nio.file.Paths
 
 import loamstream.util.DepositBox
 import loamstream.util.ValueBox
-import loamstream.model.execute.Environment
 import loamstream.conf.LoamConfig
 import loamstream.conf.RConfig
 import loamstream.conf.PythonConfig

@@ -8,7 +8,6 @@ import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.drm.Queue
 import loamstream.model.execute.DrmSettings
-import loamstream.model.execute.Environment
 import java.nio.file.Path
 import loamstream.drm.ContainerParams
 import loamstream.model.execute.UgerDrmSettings

@@ -5,7 +5,6 @@ import java.time.Instant
 import org.scalatest.FunSuite
 
 import loamstream.TestHelpers
-import loamstream.model.execute.Environment.Uger
 import loamstream.model.execute.Resources.GoogleResources
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.Resources.DrmResources
@@ -39,7 +38,6 @@ trait ProvidesEnvAndResources extends FunSuite {
       Cpus(4), Memory.inGb(8), LsfDefaults.maxRunTime, queue = None, containerParams = None)
       
   val mockGoogleSettings: GoogleSettings = GoogleSettings("asdf")
-  val mockEnv: Environment = Uger(mockUgerSettings)
   val mockStatus: JobStatus = JobStatus.Unknown
   val mockExitCode: Int = 999
   val mockResult: JobResult = JobResult.CommandResult(mockExitCode)

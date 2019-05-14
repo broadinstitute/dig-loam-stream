@@ -20,7 +20,6 @@ import loamstream.googlecloud.HailConfig
 import loamstream.loam.LoamGraph
 import loamstream.loam.LoamProjectContext
 import loamstream.loam.LoamScriptContext
-import loamstream.model.execute.Environment
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Resources.LocalResources
 import loamstream.model.execute.RxExecuter
@@ -124,8 +123,6 @@ object TestHelpers {
   }
   
   lazy val googleResources: GoogleResources = GoogleResources("some-cluster-id", Instant.now, Instant.now)
-
-  val env: Environment = Environment.Local
 
   def runDataFrom(
       job: LJob,

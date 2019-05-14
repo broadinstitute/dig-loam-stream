@@ -17,7 +17,6 @@ import loamstream.model.jobs.JobResult.CommandResult
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.MockJob
 import loamstream.util.ValueBox
-import loamstream.model.execute.Environment
 import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.OutputStreams
 import loamstream.model.jobs.RunData

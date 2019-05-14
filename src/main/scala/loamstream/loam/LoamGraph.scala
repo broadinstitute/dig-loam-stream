@@ -8,7 +8,6 @@ import loamstream.model.Store
 import loamstream.model.Tool
 import loamstream.model.Tool.AllStores
 import loamstream.model.Tool.InputsAndOutputs
-import loamstream.model.execute.Environment
 import loamstream.util.Sequence
 import loamstream.util.Traversables
 import loamstream.util.BiMap

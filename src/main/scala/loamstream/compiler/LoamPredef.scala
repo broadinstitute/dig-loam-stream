@@ -11,7 +11,6 @@ import loamstream.drm.ContainerParams
 import loamstream.loam.LoamGraph.StoreLocation
 import loamstream.loam.LoamScriptContext
 import loamstream.model.Store
-import loamstream.model.execute.Environment
 import loamstream.model.execute.GoogleSettings
 import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus

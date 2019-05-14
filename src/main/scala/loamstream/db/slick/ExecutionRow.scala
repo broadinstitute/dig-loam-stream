@@ -30,13 +30,6 @@ final case class ExecutionRow(
   def toExecution(settings: Settings, resourcesOpt: Option[Resources], outputs: Set[StoreRecord]): Execution = {
     val commandResult = CommandResult(exitCode)
 
-    val environmentOpt: Option[Environment] = for {
-      tpe <- EnvironmentType.fromString(env)
-      e <- Environment.from(tpe, settings)
-    } yield e
-    
-    //TODO: :(
-    require(environmentOpt.isDefined)
     
     import Paths.{get => toPath}
     
@@ -45,7 +38,6 @@ final case class ExecutionRow(
     val termReason = terminationReasonType.flatMap(TerminationReason.fromNameAndRawValue(_, rawTerminationReason))
     
     Execution(
-        env = environmentOpt.get,
         settings = settings,
         cmd = Option(cmd),
         status = status,

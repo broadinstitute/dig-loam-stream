@@ -21,6 +21,8 @@ import loamstream.model.execute.LsfDrmSettings
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.drm.ContainerParams
 import loamstream.drm.Queue
+import loamstream.model.execute.Settings
+import loamstream.model.execute.LocalSettings
 
 /**
  * @author clint
@@ -34,32 +36,32 @@ final class LoamPredefTest extends FunSuite {
     
     val settings = GoogleSettings(scriptContext.googleConfig.clusterId)
     
-    doEeTest(scriptContext, Local, Google(settings), LoamPredef.google)
+    doSettingsTest(scriptContext, LocalSettings, settings, LoamPredef.google)
   }
   
   test("local") {
     implicit val scriptContext = newScriptContext
     
-    doEeTest(scriptContext, Uger(TestHelpers.defaultUgerSettings), Local, LoamPredef.local)
+    doSettingsTest(scriptContext, TestHelpers.defaultUgerSettings, LocalSettings, LoamPredef.local)
   }
   
   test("uger") {
     implicit val scriptContext = newScriptContext(DrmSystem.Uger)
     
-    doEeTest(scriptContext, Local, Uger(TestHelpers.defaultUgerSettings), LoamPredef.uger)
+    doSettingsTest(scriptContext, LocalSettings, TestHelpers.defaultUgerSettings, LoamPredef.uger)
   }
   
   test("drm") {
     {
       implicit val scriptContext = newScriptContext(DrmSystem.Uger)
     
-      doEeTest(scriptContext, Local, Uger(TestHelpers.defaultUgerSettings), LoamPredef.drm)
+      doSettingsTest(scriptContext, LocalSettings, TestHelpers.defaultUgerSettings, LoamPredef.drm)
     }
     
     {
       implicit val scriptContext = newScriptContext(DrmSystem.Lsf)
     
-      doEeTest(scriptContext, Local, Lsf(TestHelpers.defaultLsfSettings), LoamPredef.drm)
+      doSettingsTest(scriptContext, LocalSettings, TestHelpers.defaultLsfSettings, LoamPredef.drm)
     }
   }
   
@@ -80,7 +82,7 @@ final class LoamPredefTest extends FunSuite {
         Option(UgerDefaults.queue),
         None)
     
-    doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.ugerWith())
+    doSettingsTest(scriptContext, LocalSettings, expectedSettings, LoamPredef.ugerWith())
   }
   
   test("drmWith - defaults - Uger") {
@@ -100,7 +102,7 @@ final class LoamPredefTest extends FunSuite {
         Option(UgerDefaults.queue),
         None)
     
-    doEeTest(scriptContext, Local, Uger(expectedSettings), LoamPredef.drmWith())
+    doSettingsTest(scriptContext, LocalSettings, expectedSettings, LoamPredef.drmWith())
   }
   
   test("drmWith - defaults - LSF") {
@@ -120,7 +122,7 @@ final class LoamPredefTest extends FunSuite {
         None,
         None)
     
-    doEeTest(scriptContext, Local, Lsf(expectedSettings), LoamPredef.drmWith())
+    doSettingsTest(scriptContext, LocalSettings, expectedSettings, LoamPredef.drmWith())
   }
   
   test("ugerWith - non-defaults") {
@@ -135,10 +137,10 @@ final class LoamPredefTest extends FunSuite {
         queue = Option(UgerDefaults.queue),
         None)
     
-    doEeTest(
+    doSettingsTest(
         scriptContext, 
-        Local, 
-        Uger(expectedSettings), 
+        LocalSettings, 
+        expectedSettings, 
         LoamPredef.ugerWith(2, 4, 6))
   }
   
@@ -155,12 +157,10 @@ final class LoamPredefTest extends FunSuite {
           drmSystem.defaultQueue, //use this default, since it's not possible to specify a queue via drmWith()
           Some(ContainerParams(imageName = "library/foo:1.2.3")))
       
-      val expectedEnvironment = drmSystem.makeEnvironment(expectedSettings)
-          
-      doEeTest(
+      doSettingsTest(
           scriptContext, 
-          Local, 
-          expectedEnvironment, 
+          LocalSettings, 
+          expectedSettings, 
           LoamPredef.drmWith(2, 4, 6, "library/foo:1.2.3"))
     }
     
@@ -174,22 +174,22 @@ final class LoamPredefTest extends FunSuite {
     new LoamScriptContext(TestHelpers.emptyProjectContext(drmSystem))
   }
   
-  private def doEeTest[A](
+  private def doSettingsTest[A](
       scriptContext: LoamScriptContext,
-      initial: Environment, 
-      shouldHaveSwitchedTo: Environment,
-      switchEe: (=> Any) => Any): Unit = {
+      initial: Settings, 
+      shouldHaveSwitchedTo: Settings,
+      switchSettings: (=> Any) => Any): Unit = {
     
-    scriptContext.executionEnvironment = initial
+    scriptContext.settings = initial
     
-    assert(scriptContext.executionEnvironment === initial)
+    assert(scriptContext.settings === initial)
     
-    switchEe {
+    switchSettings {
       //We should have switched to the new EE
-      assert(scriptContext.executionEnvironment === shouldHaveSwitchedTo)
+      assert(scriptContext.settings === shouldHaveSwitchedTo)
     }
     
     //We should have restored the original EE 
-    assert(scriptContext.executionEnvironment === initial)
+    assert(scriptContext.settings === initial)
   }
 }

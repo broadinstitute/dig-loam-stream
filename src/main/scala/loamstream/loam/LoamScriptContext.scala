@@ -13,6 +13,8 @@ import loamstream.googlecloud.HailConfig
 import loamstream.googlecloud.GoogleCloudConfig
 import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
+import loamstream.model.execute.Settings
+import loamstream.model.execute.LocalSettings
 
 /** Container for compile time and run time context for a script */
 final class LoamScriptContext(val projectContext: LoamProjectContext) {
@@ -28,12 +30,12 @@ final class LoamScriptContext(val projectContext: LoamProjectContext) {
 
   def changeWorkDir(newDir: Path): Path = workDirBox.mutate(_.resolve(newDir)).value
   
-  val environmentBox: ValueBox[Environment] = ValueBox(Environment.Local)
+  private val settingsBox: ValueBox[Settings] = ValueBox(LocalSettings)
 
-  def executionEnvironment: Environment = environmentBox.value
+  def settings: Settings = settingsBox.value
 
-  def executionEnvironment_=(newEnv: Environment): Unit = {
-    environmentBox.value = newEnv
+  def settings_=(newSettings: Settings): Unit = {
+    settingsBox.value = newSettings
   }
 
   lazy val executionId: String = s"${java.util.UUID.randomUUID}"

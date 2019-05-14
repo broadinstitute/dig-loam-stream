@@ -148,9 +148,8 @@ final case class DrmChunkRunner(
   private[drm] def subChunksBySettings(jobs: Seq[CommandLineJob]): Map[DrmSettings, Seq[CommandLineJob]] = {
     import loamstream.util.Maps.Implicits._
     
-    jobs.groupBy(_.executionEnvironment).collectKeys { 
-      case Environment.Uger(ugerSettings) => ugerSettings
-      case Environment.Lsf(lsfSettings) => lsfSettings
+    jobs.groupBy(_.initialSettings).collectKeys { 
+      case drmSettings: DrmSettings => drmSettings
     }
   }
 }

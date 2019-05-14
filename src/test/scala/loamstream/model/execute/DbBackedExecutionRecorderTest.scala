@@ -59,7 +59,6 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
         assert(executions === Set.empty)
   
         val e = Execution(
-            env = mockEnv, 
             settings = mockEnv.settings,
             cmd = command, 
             status = status, 
@@ -95,7 +94,6 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       assert(cr.isSuccess)
 
       val e = Execution(
-          env = mockEnv, 
           settings = mockEnv.settings,
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 
@@ -122,7 +120,6 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       assert(cr.isFailure)
 
       val e = Execution(
-          env = mockEnv, 
           settings = mockEnv.settings,
           cmd = Option(mockCmd), 
           status = cr.toJobStatus, 

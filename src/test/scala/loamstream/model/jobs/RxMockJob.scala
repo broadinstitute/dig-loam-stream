@@ -11,6 +11,7 @@ import loamstream.model.execute.Environment
 import loamstream.util.Futures
 import loamstream.util.Observables
 import loamstream.util.ValueBox
+import loamstream.model.execute.Settings
 
 
 /**
@@ -28,7 +29,7 @@ final case class RxMockJob(
 
   def toReturn: RunData = toReturnFn(this)
   
-  override def executionEnvironment: Environment = TestHelpers.env
+  override def initialSettings: Settings = TestHelpers.env.settings
 
   private[this] val count = ValueBox(0)
 

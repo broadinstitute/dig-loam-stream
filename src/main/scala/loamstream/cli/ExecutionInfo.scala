@@ -38,8 +38,9 @@ object ExecutionInfo {
   private def describe(execution: Execution): String = {
     val commandString = execution.cmd.map(c => s"'$c'")getOrElse("<None>")
   
-    val envType = execution.env.settings.envType
-    val envSettings = execution.env.settings
+    val envSettings = execution.settings
+    val envType = envSettings.envType
+    
     val result = execution.result
     
     val stdout = execution.outputStreams.map(_.stdout).getOrElse("<Not produced>")

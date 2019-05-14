@@ -12,6 +12,8 @@ import loamstream.model.execute.Executable
 import loamstream.model.jobs.JobNode
 import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.commandline.CommandLineJob
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
 
 /**
  * LoamStream
@@ -46,7 +48,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
   private[loam] def newJob(graph: LoamGraph)(tool: Tool): Option[JobNode] = {
     val workDir: Path = graph.workDirOpt(tool).getOrElse(Paths.get("."))
 
-    val environment: Environment = graph.executionEnvironmentOpt(tool).getOrElse(Environment.Local)
+    val settings: Settings = graph.settingsOpt(tool).getOrElse(LocalSettings)
 
     val inputJobs = toJobs(graph)(graph.toolsPreceding(tool))
 
@@ -60,7 +62,7 @@ final class LoamToolBox(client: Option[CloudStorageClient] = None) {
         Some(CommandLineJob(
             commandLineString = cmdTool.commandLine, 
             workDir = workDir, 
-            executionEnvironment = environment, 
+            initialSettings = settings, 
             dependencies = inputJobs,
             inputs = inputs,
             outputs = outputs, 

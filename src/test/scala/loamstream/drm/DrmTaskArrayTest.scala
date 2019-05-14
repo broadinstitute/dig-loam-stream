@@ -24,6 +24,7 @@ import loamstream.model.quantities.CpuTime
 import loamstream.drm.uger.UgerDefaults
 import loamstream.drm.lsf.LsfScriptBuilderParams
 import loamstream.conf.Locations
+import loamstream.model.execute.LocalSettings
 
 /**
  * @author clint
@@ -32,7 +33,7 @@ import loamstream.conf.Locations
 object DrmTaskArrayTest {
   import loamstream.TestHelpers.path
 
-  def job(commandLine: String): CommandLineJob = CommandLineJob(commandLine, path("."), Environment.Local)
+  def job(commandLine: String): CommandLineJob = CommandLineJob(commandLine, path("."), LocalSettings)
 
   private val workDir = path("/foo/bar/baz").toAbsolutePath
 

@@ -13,6 +13,7 @@ import java.nio.file.Path
 import loamstream.drm.ContainerParams
 import loamstream.model.execute.UgerDrmSettings
 import loamstream.model.execute.LsfDrmSettings
+import loamstream.model.execute.EnvironmentType
 
 /**
  * @author kyuksel
@@ -32,11 +33,11 @@ sealed trait HasContainerParamsToSettings {
 }
 
 object SettingRow {
-  def fromEnvironment(environment: Environment, executionId: Int): SettingRow = environment match {
-    case Environment.Local => LocalSettingRow(executionId)
-    case Environment.Uger(drmSettings) => UgerSettingRow.fromSettings(executionId, drmSettings)
-    case Environment.Lsf(drmSettings) => LsfSettingRow.fromSettings(executionId, drmSettings)
-    case Environment.Google(GoogleSettings(cluster)) => GoogleSettingRow(executionId, cluster)
+  def fromSettings(settings: Settings, executionId: Int): SettingRow = settings match {
+    case LocalSettings => LocalSettingRow(executionId)
+    case ugerSettings: UgerDrmSettings => UgerSettingRow.fromSettings(executionId, ugerSettings)
+    case lsfSettings: LsfDrmSettings => LsfSettingRow.fromSettings(executionId, lsfSettings)
+    case GoogleSettings(cluster) => GoogleSettingRow(executionId, cluster)
   }
 }
 

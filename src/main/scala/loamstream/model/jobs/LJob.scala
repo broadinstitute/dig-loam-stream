@@ -13,6 +13,7 @@ import rx.lang.scala.Observable
 import rx.lang.scala.Subject
 import rx.lang.scala.subjects.ReplaySubject
 import loamstream.util.Sequence
+import loamstream.model.execute.Settings
 
 /**
  * @author oliverr
@@ -21,7 +22,7 @@ import loamstream.util.Sequence
  * date: Dec 23, 2015
  */
 trait LJob extends JobNode {
-  def executionEnvironment: Environment
+  def initialSettings: Settings
   
   def workDirOpt: Option[Path] = None
 

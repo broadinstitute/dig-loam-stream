@@ -15,6 +15,7 @@ import loamstream.model.quantities.CpuTime
 import loamstream.model.quantities.Cpus
 import loamstream.model.quantities.Memory
 import loamstream.util.BashScript.Implicits.BashPath
+import loamstream.model.execute.LocalSettings
 
 /**
  * Created by kyuksel on 2/29/2016.
@@ -115,7 +116,7 @@ final class ScriptBuilderTest extends FunSuite {
 
     val commandLineString = getShapeItCommandLineString(shapeItExecutable, vcf, map, hap, samples, log, numThreads)
 
-    CommandLineJob(commandLineString, shapeItWorkDir, Environment.Local)
+    CommandLineJob(commandLineString, shapeItWorkDir, LocalSettings)
   }
 
   private def getShapeItCommandLineTokens(

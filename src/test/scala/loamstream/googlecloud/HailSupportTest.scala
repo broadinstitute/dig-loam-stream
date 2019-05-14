@@ -15,6 +15,8 @@ import loamstream.model.execute.GoogleSettings
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.util.BashScript.Implicits.BashPath
 import loamstream.util.Files
+import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
 
 /**
  * @author clint
@@ -55,7 +57,7 @@ final class HailSupportTest extends FunSuite {
 
   private val clusterId = "asdfasdf"
 
-  private val googleEnv = Environment.Google(GoogleSettings(clusterId))
+  private val googleSettings = GoogleSettings(clusterId)
 
   // scalastyle:off line.size.limit
   private val sep = File.separator
@@ -68,13 +70,13 @@ final class HailSupportTest extends FunSuite {
   test("Guards: executionEnvironment") {
     withScriptContext(projectContext) { implicit scriptContext =>
 
-      scriptContext.executionEnvironment = googleEnv
+      scriptContext.settings = googleSettings
 
       hail""
 
       pyhail""
 
-      scriptContext.executionEnvironment = Environment.Local
+      scriptContext.settings = LocalSettings
 
       intercept[Exception] {
         hail""
@@ -84,7 +86,7 @@ final class HailSupportTest extends FunSuite {
         pyhail""
       }
 
-      scriptContext.executionEnvironment = Environment.Uger(TestHelpers.defaultUgerSettings)
+      scriptContext.settings = TestHelpers.defaultUgerSettings
 
       intercept[Exception] {
         hail""
@@ -94,7 +96,7 @@ final class HailSupportTest extends FunSuite {
         pyhail""
       }
 
-      scriptContext.executionEnvironment = googleEnv
+      scriptContext.settings = googleSettings
 
       hail""
 
@@ -290,15 +292,15 @@ final class HailSupportTest extends FunSuite {
     assert(collapseWhitespace(job.commandLineString) === collapseWhitespace(expectedCommandLine))
   }
 
-  private def withScriptContext[A](f: LoamScriptContext => A): A = withScriptContext(projectContext, googleEnv)(f)
+  private def withScriptContext[A](f: LoamScriptContext => A): A = withScriptContext(projectContext, googleSettings)(f)
 
   private def withScriptContext[A](
     projectContext: LoamProjectContext,
-    initialExecutionEnvironment: Environment = googleEnv)(f: LoamScriptContext => A): A = {
+    initialSettings: Settings = googleSettings)(f: LoamScriptContext => A): A = {
 
     val scriptContext = new LoamScriptContext(projectContext)
 
-    scriptContext.executionEnvironment = initialExecutionEnvironment
+    scriptContext.settings = initialSettings
 
     f(scriptContext)
   }

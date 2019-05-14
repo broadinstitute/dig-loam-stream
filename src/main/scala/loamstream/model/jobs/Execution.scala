@@ -18,7 +18,6 @@ import loamstream.model.execute.Resources.LsfResources
  * date: Sep 22, 2016
  */
 final case class Execution(
-    env: Environment,
     cmd: Option[String] = None,
     settings: Settings,
     status: JobStatus,
@@ -30,12 +29,12 @@ final case class Execution(
 
   require(
       environmentAndResourcesMatch, 
-      s"Environment type and resources must match, but got ${env.settings.envType} and $resources")
+      s"Environment type and resources must match, but got ${settings.envType} and $resources")
   
   def isSuccess: Boolean = status.isSuccess
   def isFailure: Boolean = status.isFailure
   
-  private def environmentAndResourcesMatch: Boolean = (env.settings.envType, resources) match {
+  private def environmentAndResourcesMatch: Boolean = (settings.envType, resources) match {
     case (_, None) => true
     case (EnvironmentType.Local, Some(_: LocalResources)) => true
     case (EnvironmentType.Google, Some(_: GoogleResources)) => true
@@ -77,9 +76,8 @@ object Execution extends Loggable {
             outputs: StoreRecord*): Execution = {
     
     Execution(
-        env = env, 
+        cmd = Option(cmd),
         settings = env.settings,
-        cmd = Option(cmd), 
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
@@ -95,9 +93,8 @@ object Execution extends Loggable {
                   outputs: Set[DataHandle]): Execution = {
     
     apply(
-        env = env, 
+        cmd = Option(cmd),
         settings = env.settings,
-        cmd = Option(cmd), 
         status = result.toJobStatus, 
         result = Option(result), 
         resources = None, 
@@ -121,11 +118,8 @@ object Execution extends Loggable {
     
     val outputRecords = job.outputs.map(_.toStoreRecord)
     
-    val env = job.executionEnvironment
-    
     Execution(
-      env = env,
-      settings = env.settings,
+      settings = job.initialSettings,
       cmd = commandLine,
       status = status,
       result = result,

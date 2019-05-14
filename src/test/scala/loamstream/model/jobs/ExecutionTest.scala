@@ -96,7 +96,6 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
         val result = CommandResult(0)
       
         Execution(
-          env = env, 
           settings = env.settings,
           cmd = Option(mockCmd),
           status = result.toJobStatus,
@@ -131,7 +130,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val status0 = JobStatus.fromExitCode(result0.exitCode)
     val status1 = JobStatus.Succeeded
     
-    val job0 = CommandLineJob("foo", path("."), Environment.Uger(TestHelpers.defaultUgerSettings))
+    val job0 = CommandLineJob("foo", path("."), TestHelpers.defaultUgerSettings)
     val job1 = MockJob(status1)
     
     val outputStreamsOpt = Some(dummyOutputStreams)
@@ -140,14 +139,14 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val e1 = Execution.from(job1, status1, terminationReason = None)
     
     assert(e0.cmd === Some("foo"))
-    assert(e0.env.settings.isUger)
+    assert(e0.settings.isUger)
     assert(e0.result === Some(result0))
     assert(e0.outputs === Set.empty)
     assert(e0.outputStreams === outputStreamsOpt)
     //TODO: Check settings field once it's no longer a placeholder 
     
     assert(e1.cmd === None)
-    assert(e1.env.settings.isLocal)
+    assert(e1.settings.isLocal)
     assert(e1.status === status1)
     assert(e1.result === None)
     assert(e1.outputs === Set.empty)
@@ -158,7 +157,6 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   test("isCommandExecution") {
     def assertIsCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
-          env = mockEnv, 
           settings = mockEnv.settings,
           cmd = cmd, 
           status = result.toJobStatus,
@@ -173,7 +171,6 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     
     def assertIsNOTCommandExecution(result: JobResult, cmd: Option[String] = Option(mockCmd)): Unit = {
       val execution = Execution(
-          env = mockEnv, 
           settings = mockEnv.settings,
           cmd = cmd, 
           status = result.toJobStatus,

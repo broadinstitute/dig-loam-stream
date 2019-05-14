@@ -161,7 +161,7 @@ final class BsubJobSubmitterTest extends FunSuite {
   private def commandLineJob(commandLine: String) = CommandLineJob(
       commandLineString = commandLine,
       workDir = path("."),
-      executionEnvironment = Environment.Lsf(settings))
+      initialSettings = settings)
     
   private val job0 = commandLineJob("asdf")
   private val job1 = commandLineJob("echo 42")

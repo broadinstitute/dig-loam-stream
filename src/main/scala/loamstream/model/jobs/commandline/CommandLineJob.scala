@@ -28,6 +28,7 @@ import java.io.Writer
 import loamstream.model.jobs.LocalJob
 import loamstream.model.jobs.JobNode
 import java.nio.file.Paths
+import loamstream.model.execute.Settings
 
 /**
  * LoamStream
@@ -38,7 +39,7 @@ import java.nio.file.Paths
 final case class CommandLineJob(
     commandLineString: String,
     workDir: Path = Paths.get("."),
-    executionEnvironment: Environment,
+    initialSettings: Settings,
     override val dependencies: Set[JobNode] = Set.empty,
     inputs: Set[DataHandle] = Set.empty,
     outputs: Set[DataHandle] = Set.empty,

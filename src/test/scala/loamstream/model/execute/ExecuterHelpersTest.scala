@@ -69,7 +69,6 @@ final class ExecuterHelpersTest extends LoamFunSuite with TestJobs {
   
   test("updateWithException") {
     val execution = Execution(
-        env = Environment.Local,
         settings = LocalSettings,
         status = JobStatus.Running,
         result = None,

@@ -9,6 +9,7 @@ import loamstream.TestHelpers
 import loamstream.model.Store
 import loamstream.model.execute.Environment
 import loamstream.util.Maps
+import loamstream.model.execute.LocalSettings
 
 /**
   * LoamStream
@@ -75,11 +76,11 @@ final class LoamGraphTest extends FunSuite {
     
     assert(newGraph.workDirs === Map(components.phaseTool -> path("."), newTool -> path(".")))
     
-    assert(oldGraph.executionEnvironments === Map(
-        components.phaseTool -> Environment.Local, components.imputeTool -> Environment.Local))
+    assert(oldGraph.toolSettings === Map(
+        components.phaseTool -> LocalSettings, components.imputeTool -> LocalSettings))
         
-    assert(newGraph.executionEnvironments === Map(
-        components.phaseTool -> Environment.Local, newTool -> Environment.Local))
+    assert(newGraph.toolSettings === Map(
+        components.phaseTool -> LocalSettings, newTool -> LocalSettings))
     
     assert(oldGraph.nameOf(components.phaseTool) === Some("phase"))
     assert(oldGraph.nameOf(components.imputeTool) === Some("impute"))
@@ -240,7 +241,7 @@ final class LoamGraphTest extends FunSuite {
     
     assert(filtered.workDirs === Map(phaseTool -> TestHelpers.path(".")))
     
-    assert(filtered.executionEnvironments === Map(phaseTool -> Environment.Local))
+    assert(filtered.toolSettings === Map(phaseTool -> LocalSettings))
     
     assert(filtered.namedTools.toMap === Map(phaseTool -> "phase"))
   }

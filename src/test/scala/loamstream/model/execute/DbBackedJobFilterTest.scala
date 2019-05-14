@@ -99,7 +99,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
       val successfulCommandLine = s"${mockCmd}asdfasdf"
       
       def commandLineJob(commandLine: String, outputs: Set[DataHandle]) = {
-        CommandLineJob(commandLine, TestHelpers.path("."), Environment.Local, outputs = outputs)
+        CommandLineJob(commandLine, TestHelpers.path("."), LocalSettings, outputs = outputs)
       }
       
       val successfulJob = commandLineJob(successfulCommandLine, Set(outputs.o0))
@@ -306,7 +306,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
       CommandLineJob(
         commandLineString = cmd,
         workDir = Paths.getCurrentDirectory,
-        executionEnvironment = mockEnv,
+        initialSettings = mockEnv.settings,
         outputs = outputs)
     }
 

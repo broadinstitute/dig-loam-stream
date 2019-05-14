@@ -51,7 +51,7 @@ final class RunDataTest extends FunSuite {
     
     assert(runDataMockJob.cmdOpt === None)
     
-    val clj = CommandLineJob(dummyCommandLine, executionEnvironment = Environment.Local)
+    val clj = CommandLineJob(dummyCommandLine, initialSettings = LocalSettings)
     
     val runDataCommandLineJob = RunData(clj, LocalSettings, Succeeded, None, None, None, None)
     
@@ -88,8 +88,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        env = j.executionEnvironment,
-        settings = j.executionEnvironment.settings,
+        settings = j.initialSettings,
         cmd = None,
         status = Succeeded,
         result = Some(JobResult.Success),
@@ -118,8 +117,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        env = j.executionEnvironment,
-        settings = j.executionEnvironment.settings,
+        settings = j.initialSettings,
         cmd = None,
         status = FailedPermanently,
         result = Some(JobResult.Failure),
@@ -148,8 +146,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        env = j.executionEnvironment,
-        settings = j.executionEnvironment.settings,
+        settings = j.initialSettings,
         cmd = None,
         status = Succeeded,
         result = None,
@@ -162,7 +159,7 @@ final class RunDataTest extends FunSuite {
   }
   
   test("toExecution - command line job, succeeded") {
-    val clj = CommandLineJob(dummyCommandLine, executionEnvironment = Environment.Local)
+    val clj = CommandLineJob(dummyCommandLine, initialSettings = LocalSettings)
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
@@ -178,8 +175,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        env = clj.executionEnvironment,
-        settings = clj.executionEnvironment.settings,
+        settings = clj.initialSettings,
         cmd = Some(dummyCommandLine),
         status = Succeeded,
         result = Some(JobResult.Success),
@@ -192,7 +188,7 @@ final class RunDataTest extends FunSuite {
   }
   
   test("toExecution - command line job, failed") {
-    val clj = CommandLineJob(dummyCommandLine, executionEnvironment = Environment.Local)
+    val clj = CommandLineJob(dummyCommandLine, initialSettings = LocalSettings)
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
@@ -208,8 +204,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        env = clj.executionEnvironment,
-        settings = clj.executionEnvironment.settings,
+        settings = clj.initialSettings,
         cmd = Some(dummyCommandLine),
         status = FailedPermanently,
         result = Some(JobResult.Failure),
@@ -222,7 +217,7 @@ final class RunDataTest extends FunSuite {
   }
   
   test("toExecution - command line job, waiting-for-outputs") {
-    val clj = CommandLineJob(dummyCommandLine, executionEnvironment = Environment.Local)
+    val clj = CommandLineJob(dummyCommandLine, initialSettings = LocalSettings)
     
     val localResources = LocalResources(Instant.now, Instant.now)
     
@@ -238,8 +233,7 @@ final class RunDataTest extends FunSuite {
         terminationReasonOpt = Some(termReason))
         
     val expected = Execution(
-        env = clj.executionEnvironment,
-        settings = clj.executionEnvironment.settings,
+        settings = clj.initialSettings,
         cmd = Some(dummyCommandLine),
         status = Succeeded,
         result = None,

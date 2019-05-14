@@ -10,6 +10,7 @@ import loamstream.model.execute.Environment
 import loamstream.util.Futures
 import loamstream.model.execute.Resources
 import loamstream.model.execute.LocalSettings
+import loamstream.model.execute.Settings
 
 /**
  * @author clint
@@ -24,7 +25,7 @@ abstract class MockJob(
 
   def toReturn: RunData
   
-  override def executionEnvironment: Environment = TestHelpers.env
+  override def initialSettings: Settings = TestHelpers.env.settings
   
   override def toString: String = {
     s"'$name'(#$id, returning $toReturn, ${dependencies.size} dependencies)"

@@ -61,7 +61,7 @@ object HailSupport {
     def hail(args: Any*)(implicit scriptContext: LoamScriptContext): LoamCmdTool = {
       
       require(
-          scriptContext.executionEnvironment.settings.isGoogle, 
+          scriptContext.settings.isGoogle, 
           """hail"..." interpolators must be in google { ... } blocks""")
       
       val hailConfig = scriptContext.hailConfig

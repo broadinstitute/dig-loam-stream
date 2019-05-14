@@ -7,5 +7,5 @@ import loamstream.model.jobs.LJob
  * Nov 28, 2016
  */
 abstract class ChunkRunnerFor(environmentType: EnvironmentType) extends ChunkRunner {
-  override def canRun(job: LJob): Boolean = job.executionEnvironment.settings.envType == environmentType
+  override def canRun(job: LJob): Boolean = job.initialSettings.envType == environmentType
 }

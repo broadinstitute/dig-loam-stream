@@ -481,16 +481,18 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   }
 
   test("findExecution") {
+    val ugerSettings = mockUgerSettings
+    
     def doTest(resources: Resources): Unit = {
       createTablesAndThen {
         val output0 = cachedOutput(path0, hash0)
         val output1 = cachedOutput(path1, hash1)
         val output2 = cachedOutput(path2, hash2)
   
-        val ex0 = Execution(mockUgerSettings, mockCmd, CommandResult(42), dummyOutputStreams, output0)
-        val ex1 = Execution(mockUgerSettings, mockCmd, CommandResult(0), dummyOutputStreams, output1, output2)
+        val ex0 = Execution(ugerSettings, mockCmd, CommandResult(42), dummyOutputStreams, output0)
+        val ex1 = Execution(ugerSettings, mockCmd, CommandResult(0), dummyOutputStreams, output1, output2)
         val ex2 = Execution(
-            settings = mockUgerSettings,
+            settings = ugerSettings,
             cmd = Option(mockCmd), 
             status = CommandResult(1).toJobStatus, 
             result = Option(CommandResult(1)),
@@ -507,7 +509,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
   
         dao.insertExecutions(ex0)
   
-        val expected0 = Execution(mockUgerSettings, mockCmd, CommandResult(42), ex0.outputStreams.get, failedOutput(path0))
+        val expected0 = Execution(ugerSettings, mockCmd, CommandResult(42), ex0.outputStreams.get, failedOutput(path0))
   
         assertEqualFieldsFor(dao.allExecutions.toSet, Set(expected0))
         assertEqualFieldsFor(dao.findExecution(output0), Some(expected0))

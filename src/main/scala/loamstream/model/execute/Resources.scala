@@ -11,7 +11,6 @@ import loamstream.util.Tries
 import loamstream.model.quantities.Memory
 import loamstream.model.quantities.CpuTime
 import loamstream.drm.Queue
-import loamstream.model.jobs.TerminationReason
 
 /**
  * @author kyuksel

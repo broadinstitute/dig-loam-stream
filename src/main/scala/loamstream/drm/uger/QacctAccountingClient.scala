@@ -21,6 +21,7 @@ import loamstream.util.Options
 import loamstream.util.RetryingCommandInvoker
 import loamstream.util.Tries
 import loamstream.model.jobs.TerminationReason
+import scala.util.Success
 
 /**
  * @author clint
@@ -60,7 +61,8 @@ final class QacctAccountingClient(
   }
   
   override def getTerminationReason(jobId: String): Try[Option[TerminationReason]] = {
-    ???
+    //NB: Uger/qacct does not provide this information directly. 
+    Success(None)
   }
 }
 

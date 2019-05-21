@@ -12,7 +12,7 @@ import org.scalatest.FunSuite
  * @author clint
  * date: Jun 1, 2016
  */
-final class PathEnrichmentsTest extends FunSuite {
+final class PathsTest extends FunSuite {
   import Paths.Implicits._
   import loamstream.TestHelpers.path
   
@@ -135,5 +135,16 @@ final class PathEnrichmentsTest extends FunSuite {
     val hasBoth = path("/x/./y/./z/foo/..")
 
     assert(matchesExpected(hasBoth, "/x/y/z"))
+  }
+  
+  test("mungePathRelatedChars") {
+    import Paths.mungePathRelatedChars
+    
+    assert(mungePathRelatedChars("foo") === "foo")
+    assert(mungePathRelatedChars("BAR") === "BAR")
+    
+    assert(mungePathRelatedChars("x/y/z") === "x_y_z")
+    
+    assert(mungePathRelatedChars("foo   blah/blah:b$ar\\baz$$") === "foo___blah_blah_b_ar_baz__")
   }
 }

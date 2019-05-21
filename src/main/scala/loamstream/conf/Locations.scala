@@ -15,6 +15,8 @@ object Locations {
   
   val loamstreamDir: Path = createDirectories(Paths.get("./.loamstream"))
   
+  val jobDir: Path = createDirectories(loamstreamDir.resolve("jobs").normalize)
+  
   val logDir: Path = createDirectories(loamstreamDir.resolve("logs").normalize)
     
   val dryRunOutputFile: Path = logDir.resolve("joblist").normalize

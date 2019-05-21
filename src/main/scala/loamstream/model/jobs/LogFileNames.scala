@@ -19,15 +19,8 @@ object LogFileNames {
   
   private def makePath(job: LJob, suffix: String, outputDir: Path): Path = {
     import Paths.Implicits._
+    import Paths.mungePathRelatedChars
     
-    (outputDir / s"${mungeSpecialChars(job.name)}.$suffix").toAbsolutePath
-  }
-  
-  //NB: Basically anything path-separator-related
-  private[this] val specialChars: Set[Char] = Set('/', ':', '\\', '$')
-  
-  private def mungeSpecialChars(s: String): String = s.map {
-    case ch if ch.isWhitespace || specialChars.contains(ch) => '_'
-    case ch => ch      
+    (outputDir / s"${mungePathRelatedChars(job.name)}.$suffix").toAbsolutePath
   }
 }

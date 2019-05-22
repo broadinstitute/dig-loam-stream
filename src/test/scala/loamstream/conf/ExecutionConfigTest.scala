@@ -21,7 +21,6 @@ final class ExecutionConfigTest extends FunSuite {
 
     val expected = ExecutionConfig(
         Defaults.maxRunsPerJob,
-        Defaults.jobOutputDir,
         Defaults.maxWaitTimeForOutputs,
         Defaults.outputPollingFrequencyInHz,
         Defaults.dryRunOutputFile,

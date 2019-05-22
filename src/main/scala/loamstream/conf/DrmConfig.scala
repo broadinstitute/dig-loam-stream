@@ -48,8 +48,8 @@ sealed trait DrmConfig {
   * @author Kaan Yuksel
   */
 final case class UgerConfig(
-    workDir: Path = Locations.ugerDir,
-    scriptDir: Path = Locations.ugerScriptDir,
+    workDir: Path = Locations.Default.ugerDir,
+    scriptDir: Path = Locations.Default.ugerScriptDir,
     maxNumJobs: Int = UgerDefaults.maxConcurrentJobs,
     defaultCores: Cpus = UgerDefaults.cores,
     defaultMemoryPerCore: Memory = UgerDefaults.memoryPerCore,
@@ -109,8 +109,8 @@ object UgerConfig extends ConfigParser[UgerConfig] with Loggable {
   * @author clint
   */
 final case class LsfConfig(
-    workDir: Path = Locations.lsfDir,
-    scriptDir: Path = Locations.lsfScriptDir,
+    workDir: Path = Locations.Default.lsfDir,
+    scriptDir: Path = Locations.Default.lsfScriptDir,
     maxNumJobs: Int = LsfDefaults.maxConcurrentJobs,
     defaultCores: Cpus = LsfDefaults.cores,
     defaultMemoryPerCore: Memory = LsfDefaults.memoryPerCore,

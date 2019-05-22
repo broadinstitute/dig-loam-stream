@@ -115,7 +115,7 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
-      val executionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
       
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, drmConfig, pathBuilder, jobs, jobName)

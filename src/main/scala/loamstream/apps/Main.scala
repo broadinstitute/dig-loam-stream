@@ -107,7 +107,7 @@ object Main extends Loggable {
       if(clean.logs) {
         delete(config.executionConfig.logDir)
         
-        delete(config.executionConfig.jobOutputDir)
+        delete(config.executionConfig.toLocations.jobOutputDir)
       }
       
       if(clean.scripts) {

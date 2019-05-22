@@ -20,8 +20,8 @@ final class UgerConfigTest extends FunSuite {
   test("defaults") {
     val config = UgerConfig()
     
-    assert(config.workDir === Locations.ugerDir)
-    assert(config.scriptDir === Locations.ugerScriptDir)
+    assert(config.workDir === Locations.Default.ugerDir)
+    assert(config.scriptDir === Locations.Default.ugerScriptDir)
     assert(config.maxNumJobs === UgerDefaults.maxConcurrentJobs)
     assert(config.defaultCores === UgerDefaults.cores)
     assert(config.defaultMemoryPerCore === UgerDefaults.memoryPerCore)
@@ -50,8 +50,8 @@ final class UgerConfigTest extends FunSuite {
       
     val config = UgerConfig.fromConfig(valid).get
     
-    assert(config.workDir === Locations.ugerDir)
-    assert(config.scriptDir === Locations.ugerScriptDir)
+    assert(config.workDir === Locations.Default.ugerDir)
+    assert(config.scriptDir === Locations.Default.ugerScriptDir)
     assert(config.maxNumJobs === 44)
     assert(config.defaultCores === Cpus(42))
     assert(config.defaultMemoryPerCore=== Memory.inGb(9))
@@ -73,8 +73,8 @@ final class UgerConfigTest extends FunSuite {
       
     val config = UgerConfig.fromConfig(valid).get
     
-    assert(config.workDir === Locations.ugerDir)
-    assert(config.scriptDir === Locations.ugerScriptDir)
+    assert(config.workDir === Locations.Default.ugerDir)
+    assert(config.scriptDir === Locations.Default.ugerScriptDir)
     assert(config.maxNumJobs === UgerDefaults.maxConcurrentJobs)
     assert(config.defaultCores === UgerDefaults.cores)
     assert(config.defaultMemoryPerCore === UgerDefaults.memoryPerCore)

@@ -92,7 +92,7 @@ final class MainTest extends FunSuite {
       val (workDir, dbDir, logDir, jobOutputDir, dryRunOutputFile) = getPaths
       
       val executionConfig = ExecutionConfig(
-          jobOutputDir = jobOutputDir, 
+          jobDir = jobOutputDir, 
           dryRunOutputFile = dryRunOutputFile,
           dbDir = dbDir,
           logDir = logDir)

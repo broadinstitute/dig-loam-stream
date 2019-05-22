@@ -9,7 +9,7 @@ import loamstream.model.jobs.LJob
  * @author clint
  * Jul 2, 2018
  */
-final class DbBackedExecutionRecorder(val dao: LoamDao) extends ExecutionRecorder with Loggable {
+final class DbBackedExecutionRecorder(val dao: LoamDao) extends ExecutionRecorder {
   
   override def record(executionTuples: Iterable[(LJob, Execution)]): Unit = {
     //NB: We can only insert command executions (UGER or command-line jobs, anything with an in exit status code)

@@ -128,7 +128,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
             outputStreams, 
             successfulJob.outputs)
   
-        recorder.record(Seq(failedExec, successfulExec))
+        recorder.record(Seq(failedJob -> failedExec, successfulJob -> successfulExec))
       }
       
       //Doesn't need to be re-run
@@ -163,7 +163,11 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
           Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
         }
   
-        recorder.record(Seq(failedExec, successfulExec))
+        val executionTuples = {
+          Seq(MockJob(failure.toJobStatus) -> failedExec, MockJob(success.toJobStatus) -> successfulExec)
+        }
+        
+        recorder.record(executionTuples)
       }
 
       // Missing record:  'hasDifferentHash' --> false
@@ -247,7 +251,11 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
           Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
         }
   
-        recorder.record(Seq(failedExec, successfulExec))
+        val executionTuples = {
+          Seq(MockJob(failure.toJobStatus) -> failedExec, MockJob(success.toJobStatus) -> successfulExec)
+        }
+        
+        recorder.record(executionTuples)
       }
 
       // Missing record:  'hasDifferentHash' --> false
@@ -344,16 +352,16 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       val recorder = new DbBackedExecutionRecorder(dao)
 
-      recorder.record(Iterable(execution(cmd0, outputs)))
+      val cmdLineJob0 = cmdLineJob(cmd0, outputs)
+      
+      recorder.record(Iterable(cmdLineJob0 -> execution(cmd0, outputs)))
 
       assert(filter.findCommandLineInDb(o0.location) === Some(cmd0))
       assert(filter.findCommandLineInDb(o1.location) === Some(cmd0))
 
-      val cmdLineJob0 = cmdLineJob(cmd0, outputs)
-
       assert(filter.hasNewCommandLine(cmdLineJob0) === false)
 
-      recorder.record(Iterable(execution(cmd1, Set[DataHandle](o2))))
+      recorder.record(Iterable(cmdLineJob(cmd1, Set(o2)) -> execution(cmd1, Set[DataHandle](o2))))
       
       val cmdLineJob1 = cmdLineJob("cmd1-altered", Set(o2))
 

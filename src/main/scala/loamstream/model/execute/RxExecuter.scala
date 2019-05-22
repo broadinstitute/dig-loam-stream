@@ -171,13 +171,7 @@ final case class RxExecuter(
     skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped, terminationReason = None))
   }
 
-  private def record(executionTuples: Iterable[(LJob, Execution)]): Unit = {
-    val executions = executionTuples.collect { case (_, e) => e }
-    
-    executionRecorder.record(executions)
-  }
-  
-  private def record(executionTuples: (LJob, Execution)*): Unit = record(executionTuples.toIterable)
+  private def record(executionTuples: Iterable[(LJob, Execution)]): Unit = executionRecorder.record(executionTuples)
 }
 
 object RxExecuter extends Loggable {

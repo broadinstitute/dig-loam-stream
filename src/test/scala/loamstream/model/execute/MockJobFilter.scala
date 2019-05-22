@@ -11,11 +11,11 @@ import loamstream.model.jobs.Execution
 final class MockJobFilterAndExecutionRecorder(
     shouldRunPredicate: LJob => Boolean = _ => true) extends JobFilter with ExecutionRecorder {
 
-  val recordedExecutions: ValueBox[Seq[Execution]] = ValueBox(Vector.empty)
+  val recordedExecutionTuples: ValueBox[Seq[(LJob, Execution)]] = ValueBox(Vector.empty)
   
   override def shouldRun(job: LJob): Boolean = shouldRunPredicate(job)
 
-  override def record(executions: Iterable[Execution]): Unit = {
-    recordedExecutions.mutate(_ ++ executions)
+  override def record(executionTuples: Iterable[(LJob, Execution)]): Unit = {
+    recordedExecutionTuples.mutate(_ ++ executionTuples)
   }
 }

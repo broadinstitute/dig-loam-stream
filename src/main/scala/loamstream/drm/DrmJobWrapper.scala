@@ -24,6 +24,7 @@ final case class DrmJobWrapper(
     drmSettings: DrmSettings,
     pathBuilder: PathBuilder,
     commandLineJob: HasCommandLine,
+    jobDir: Path,
     drmIndex: Int) extends Loggable {
 
   def drmStdOutPath(taskArray: DrmTaskArray): Path = {

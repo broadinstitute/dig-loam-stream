@@ -22,6 +22,7 @@ import loamstream.conf.ExecutionConfig
 import loamstream.conf.UgerConfig
 import loamstream.conf.LsfConfig
 import loamstream.model.execute.LocalSettings
+import loamstream.model.jobs.JobOracle
 
 /**
  * @author clint
@@ -30,10 +31,6 @@ import loamstream.model.execute.LocalSettings
 final class DrmJobWrapperTest extends FunSuite {
   import DrmTaskArrayTest._
   import loamstream.TestHelpers.path
-
-  private def wrapper(commandLineJob: CommandLineJob, ugerIndex: Int, pathBuilder: PathBuilder): DrmJobWrapper = {
-    DrmJobWrapper(baseExecutionConfig, TestHelpers.defaultUgerSettings, pathBuilder, commandLineJob, ugerIndex)
-  }
 
   private val ugerSettings = TestHelpers.defaultUgerSettings
 
@@ -53,7 +50,7 @@ final class DrmJobWrapperTest extends FunSuite {
     assert(lsfSettings.containerParams === None)
 
     def doTest(pathBuilder: PathBuilder, drmSettings: DrmSettings): Unit = {
-      val drmJob = DrmJobWrapper(baseExecutionConfig, drmSettings, pathBuilder, makeJob("foo"), 1)
+      val drmJob = DrmJobWrapper(baseExecutionConfig, drmSettings, pathBuilder, makeJob("foo"), path("."), 1)
 
       assert(drmJob.commandLineInTaskArray === "foo")
     }
@@ -70,7 +67,7 @@ final class DrmJobWrapperTest extends FunSuite {
     assert(baseExecutionConfig.singularity == SingularityConfig.default)
 
     def doTest(pathBuilder: PathBuilder, drmSettings: DrmSettings): Unit = {
-      val drmJob = DrmJobWrapper(baseExecutionConfig, drmSettings, pathBuilder, makeJob("foo"), 1)
+      val drmJob = DrmJobWrapper(baseExecutionConfig, drmSettings, pathBuilder, makeJob("foo"), path("."), 1)
 
       assert(drmJob.commandLineInTaskArray === s"singularity exec ${drmSettings.containerParams.get.imageName} foo")
     }
@@ -92,7 +89,9 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val executionConfigWithSingularityParams = baseExecutionConfig.copy(singularity = singularityConfig)
 
-      val drmJob = DrmJobWrapper(executionConfigWithSingularityParams, drmSettings, pathBuilder, makeJob("foo"), 1)
+      val drmJob = {
+        DrmJobWrapper(executionConfigWithSingularityParams, drmSettings, pathBuilder, makeJob("foo"), path("."), 1)
+      }
 
       val expected = {
         s"blarg exec -B ${bar.render} -B ${fooBarBat.render} ${drmSettings.containerParams.get.imageName} foo"

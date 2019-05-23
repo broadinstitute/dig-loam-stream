@@ -79,7 +79,7 @@ object DrmTaskArray {
       //Uger task array indices start from 1
       val indexInTaskArray = i + 1
 
-      DrmJobWrapper(executionConfig, drmSettings, pathBuilder, commandLineJob, indexInTaskArray)
+      DrmJobWrapper(executionConfig, drmSettings, pathBuilder, commandLineJob, ???, indexInTaskArray)
     }
 
     val scriptBuilderParams = drmConfig.scriptBuilderParams

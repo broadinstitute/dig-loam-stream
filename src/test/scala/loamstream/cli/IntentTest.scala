@@ -17,7 +17,6 @@ import loamstream.model.execute.HashingStrategy
 import loamstream.drm.DrmSystem
 import scala.util.Try
 import scala.util.matching.Regex
-import loamstream.cli.Intent.Clean
 
 /**
  * @author clint
@@ -81,20 +80,6 @@ final class IntentTest extends FunSuite {
     assertInvalid(baseCommandLine)
     assertInvalid(s"--backend uger ${baseCommandLine}")
     assertInvalid(s"--backend lsf ${baseCommandLine}")
-  }
-  
-  test("from --clean flags") {
-    assertValid("--clean-db", Clean(None, db = true, logs = false, scripts = false))
-    assertValid(s"--clean-db --conf $confFile", Clean(Some(confPath), db = true, logs = false, scripts = false))
-    
-    assertValid("--clean-logs", Clean(None, db = false, logs = true, scripts = false))
-    assertValid(s"--clean-logs --conf $confFile", Clean(Some(confPath), db = false, logs = true, scripts = false))
-    
-    assertValid("--clean-scripts", Clean(None, db = false, logs = false, scripts = true))
-    assertValid(s"--clean-scripts --conf $confFile", Clean(Some(confPath), db = false, logs = false, scripts = true))
-    
-    assertValid("--clean", Clean(None, db = true, logs = true, scripts = true))
-    assertValid(s"--clean --conf $confFile", Clean(Some(confPath), db = true, logs = true, scripts = true))
   }
   
   test("from") {

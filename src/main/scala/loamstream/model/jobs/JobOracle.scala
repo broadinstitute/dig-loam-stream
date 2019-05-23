@@ -8,7 +8,15 @@ import loamstream.conf.ExecutionConfig
  * May 22, 2019
  */
 trait JobOracle {
-  def logDirFor(job: LJob): Option[Path]
+  def dirOptFor(job: LJob): Option[Path]
+  
+  final def dirFor(job: LJob): Path = {
+    val opt = dirOptFor(job)
+    
+    require(opt.isDefined, s"Job is not know to this oracle: $job")
+    
+    opt.get
+  }
 }
 
 object JobOracle {
@@ -27,7 +35,7 @@ object JobOracle {
       body
     }
     
-    override def logDirFor(job: LJob): Option[Path] = initAndThen {
+    override def dirOptFor(job: LJob): Option[Path] = initAndThen {
       dirsByJob.get(job)
     }
   }

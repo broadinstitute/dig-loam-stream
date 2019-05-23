@@ -1,11 +1,12 @@
 package loamstream.model.execute
 
+import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
-import loamstream.util.Observables
-import rx.lang.scala.Observable
-import loamstream.util.Throwables
 import loamstream.util.Loggable
+import loamstream.util.Observables
+import loamstream.util.Throwables
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -17,7 +18,7 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
   
   override def canRun(job: LJob): Boolean = components.exists(_.canRun(job))
   
-  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(jobs: Set[LJob], jobOracle: JobOracle, shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
     require(jobs.forall(canRun), s"Don't know how to run ${jobs.filterNot(canRun)}")
     
@@ -28,7 +29,7 @@ final case class CompositeChunkRunner(components: Seq[ChunkRunner]) extends Chun
     val resultObservables = for {
       (runner, jobsForRunner) <- byRunner
     } yield {
-      runner.run(jobsForRunner, shouldRestart)
+      runner.run(jobsForRunner, jobOracle, shouldRestart)
     }
     
     val z: Map[LJob, RunData] = Map.empty

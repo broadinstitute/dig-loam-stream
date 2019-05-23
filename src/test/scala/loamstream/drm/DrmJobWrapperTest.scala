@@ -148,7 +148,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
       
-      val executionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
@@ -183,7 +183,7 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
-      val executionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
       
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, drmConfig, pathBuilder, Seq(j0))
@@ -191,7 +191,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val Seq(wrapper0) = taskArray.drmJobs
 
-      val expected = path(s"${executionConfig.jobOutputDir}/${j0.id}.stdout").toAbsolutePath
+      val expected = path(s"${executionConfig.jobDir}/${j0.id}.stdout").toAbsolutePath
 
       assert(wrapper0.outputStreams.stdout === expected)
     }
@@ -206,7 +206,7 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
-      val executionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
       
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(executionConfig, ugerSettings, drmConfig, pathBuilder, Seq(j0))
@@ -214,7 +214,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val Seq(wrapper0) = taskArray.drmJobs
 
-      val expected = path(s"${executionConfig.jobOutputDir}/${j0.id}.stderr").toAbsolutePath
+      val expected = path(s"${executionConfig.jobDir}/${j0.id}.stderr").toAbsolutePath
 
       assert(wrapper0.outputStreams.stderr === expected)
     }
@@ -234,7 +234,7 @@ final class DrmJobWrapperTest extends FunSuite {
         case _: LsfDrmSettings => baseLsfConfig.copy(workDir = testWorkDir)
       }
       
-      val executionConfig: ExecutionConfig = baseExecutionConfig.copy(jobOutputDir = testWorkDir)
+      val executionConfig: ExecutionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
       
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(executionConfig, settings, drmConfig, pathBuilder, Seq(j0), jobName)
@@ -244,7 +244,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val workDir = drmConfig.workDir
       
-      val jobOutputDir = executionConfig.jobOutputDir.toAbsolutePath
+      val jobOutputDir = executionConfig.jobDir.toAbsolutePath
 
       import loamstream.util.Paths.Implicits.PathHelpers
       

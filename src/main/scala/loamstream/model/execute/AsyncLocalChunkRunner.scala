@@ -1,21 +1,19 @@
 package loamstream.model.execute
 
 import scala.concurrent.ExecutionContext
-import loamstream.model.jobs.{Execution, LJob}
-import loamstream.util.Maps
-import AsyncLocalChunkRunner.defaultMaxNumJobs
-import rx.lang.scala.Observable
-import loamstream.util.Observables
 import scala.concurrent.Future
-import loamstream.model.jobs.JobStatus
-import loamstream.util.Futures
-import loamstream.util.Loggable
-import loamstream.model.jobs.LocalJob
-import loamstream.model.jobs.commandline.ProcessLoggers
-import loamstream.util.Throwables
+
+import AsyncLocalChunkRunner.defaultMaxNumJobs
 import loamstream.conf.ExecutionConfig
+import loamstream.model.jobs.JobOracle
+import loamstream.model.jobs.JobStatus
+import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
-import loamstream.util.Traversables
+import loamstream.model.jobs.commandline.ProcessLoggers
+import loamstream.util.Loggable
+import loamstream.util.Observables
+import loamstream.util.Throwables
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -28,7 +26,11 @@ final case class AsyncLocalChunkRunner(
 
   import AsyncLocalChunkRunner._
   
-  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(
+      jobs: Set[LJob], 
+      jobOracle: JobOracle, 
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+    
     if(jobs.isEmpty) { Observable.just(Map.empty) }
     else {
       import LocalJobStrategy.canBeRun
@@ -66,7 +68,7 @@ object AsyncLocalChunkRunner extends Loggable {
     
     val result = LocalJobStrategy.execute(job, processLogger)
 
-    import Futures.Implicits._
+    import loamstream.util.Futures.Implicits._
   
     def closeProcessLogger(ignored: RunData): Unit = {
       Throwables.quietly("Closing process logger failed")(processLogger.close())

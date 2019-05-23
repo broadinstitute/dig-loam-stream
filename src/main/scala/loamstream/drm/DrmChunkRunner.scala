@@ -8,7 +8,7 @@ import loamstream.model.execute.ChunkRunnerFor
 import loamstream.model.execute.DrmSettings
 import loamstream.model.execute.EnvironmentType
 import loamstream.model.execute.ExecuterHelpers
-import loamstream.model.execute.Resources.DrmResources
+import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.JobResult
 import loamstream.model.jobs.JobStatus
 import loamstream.model.jobs.JobStatus.Failed
@@ -18,13 +18,10 @@ import loamstream.model.jobs.RunData
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.jobs.commandline.HasCommandLine
 import loamstream.util.Classes.simpleNameOf
-import loamstream.util.CompositeException
 import loamstream.util.Loggable
 import loamstream.util.Observables
 import loamstream.util.Terminable
-import loamstream.util.Throwables
 import rx.lang.scala.Observable
-import loamstream.model.jobs.TerminationReason
 
 
 /**
@@ -40,21 +37,14 @@ final case class DrmChunkRunner(
     drmConfig: DrmConfig,
     jobSubmitter: JobSubmitter,
     jobMonitor: JobMonitor,
-    accountingClient: AccountingClient) extends ChunkRunnerFor(environmentType) with Terminable with Loggable {
+    accountingClient: AccountingClient) extends ChunkRunnerFor(environmentType) with 
+        Terminable.StopsComponents with Loggable {
 
   require(environmentType.isUger || environmentType.isLsf, "Only UGER and LSF environments are supported")
   
   import DrmChunkRunner._
 
-  override def stop(): Unit = {
-    val failures = Throwables.collectFailures(
-        jobMonitor.stop _, 
-        jobSubmitter.stop _)
-    
-    if(failures.nonEmpty) {
-      throw new CompositeException(failures)
-    }
-  }
+  override protected val terminableComponents: Iterable[Terminable] = Seq(jobMonitor, jobSubmitter)
 
   override def maxNumJobs: Int = drmConfig.maxNumJobs
 
@@ -65,7 +55,10 @@ final case class DrmChunkRunner(
    * NB: NoOpJobs are ignored.  Otherwise, this method expects that all the other jobs are CommandLineJobs, and
    * will throw otherwise.
    */
-  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(
+      jobs: Set[LJob], 
+      jobOracle: JobOracle, 
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
 
     debug(s"Running: ")
     jobs.foreach(job => debug(s"  $job"))

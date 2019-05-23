@@ -13,6 +13,8 @@ final case class Executable(jobNodes: Set[JobNode]) {
   def ++(oExecutable: Executable): Executable = Executable(jobs ++ oExecutable.jobs)
 
   def multiplex[A](f: JobNode => Observable[A]): Observable[A] = Observables.merge(jobNodes.map(f))
+  
+  def allJobs: Iterable[LJob] = DryRunner.toBeRun(JobFilter.RunEverything, this)
 }
 
 /** A container of jobs to be executed */

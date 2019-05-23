@@ -200,6 +200,7 @@ object AppWiring extends Loggable {
       
       val rxExecuter = {
         RxExecuter(
+            config.executionConfig,
             compositeRunner, 
             new FileMonitor(outputPollingFrequencyInHz, maxWaitTimeForOutputs),
             windowLength, 

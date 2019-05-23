@@ -30,6 +30,7 @@ import loamstream.conf.LoamConfig
 import loamstream.util.FileMonitor
 import loamstream.util.Futures
 import jdk.nashorn.internal.runtime.FinalScriptFunctionData
+import loamstream.model.jobs.JobOracle
 
 /**
  * @author kaan
@@ -37,6 +38,7 @@ import jdk.nashorn.internal.runtime.FinalScriptFunctionData
  *         date: Aug 17, 2016
  */
 final case class RxExecuter(
+    executionConfig: ExecutionConfig,
     runner: ChunkRunner,
     fileMonitor: FileMonitor,
     windowLength: Duration,
@@ -44,15 +46,15 @@ final case class RxExecuter(
     jobFilter: JobFilter,
     executionRecorder: ExecutionRecorder,
     maxRunsPerJob: Int,
-    stopHandle: Option[Terminable] = None)
-    (implicit val executionContext: ExecutionContext) extends Executer with Loggable {
-  
-  override def stop(): Unit = stopHandle.foreach(_.stop())
+    override protected val terminableComponents: Iterable[Terminable] = Nil)
+    (implicit val executionContext: ExecutionContext) extends Executer with Terminable.StopsComponents with Loggable {
   
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.Observables.Implicits._
+    
+    val jobOracle = new JobOracle.ForJobs(executionConfig, executable.allJobs)
     
     val ioScheduler: Scheduler = IOScheduler()
     
@@ -85,7 +87,7 @@ final case class RxExecuter(
       cancelledJobsMap = cancelJobs(jobsToCancel)
       _ = record(cancelledJobsMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
-      executionTupleOpt <- runJobs(jobsToRun)
+      executionTupleOpt <- runJobs(jobsToRun, jobOracle)
       _ = record(executionTupleOpt)
       executionMap = cancelledJobsMap ++ executionTupleOpt
       _ = logFinishedJobs(executionMap)
@@ -115,7 +117,7 @@ final case class RxExecuter(
   //Produce Optional LJob -> Execution tuples.  We need to be able to produce just one (empty) item,
   //instead of just returning Observable.empty, so that code chained onto this method's result with
   //flatMap will run.
-  private def runJobs(jobsToRun: Iterable[LJob]): Observable[Option[(LJob, Execution)]] = {
+  private def runJobs(jobsToRun: Iterable[LJob], jobOracle: JobOracle): Observable[Option[(LJob, Execution)]] = {
     logJobsToBeRun(jobsToRun)
     
     import RxExecuter.toExecutionMap
@@ -124,7 +126,7 @@ final case class RxExecuter(
     
     if(jobsToRun.isEmpty) { Observable.just(None) }
     else {
-      val jobRunObs = runner.run(jobsToRun.toSet, shouldRestart)
+      val jobRunObs = runner.run(jobsToRun.toSet, jobOracle, shouldRestart)
       
       jobRunObs.flatMap(toExecutionMap(fileMonitor, shouldRestart)).map(Option(_))
     }
@@ -201,6 +203,7 @@ object RxExecuter extends Loggable {
   
   def apply(runner: ChunkRunner)(implicit executionContext: ExecutionContext): RxExecuter = {
     new RxExecuter(
+        Defaults.executionConfig,
         runner, 
         Defaults.fileMonitor, 
         Defaults.windowLengthInSec,
@@ -216,6 +219,7 @@ object RxExecuter extends Loggable {
     val chunkRunner = AsyncLocalChunkRunner(Defaults.executionConfig, Defaults.maxNumConcurrentJobs)(executionContext)
 
     new RxExecuter(
+        Defaults.executionConfig,
         chunkRunner, 
         Defaults.fileMonitor,
         Defaults.windowLengthInSec, 

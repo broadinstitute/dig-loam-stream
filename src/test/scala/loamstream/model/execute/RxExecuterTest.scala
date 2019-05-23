@@ -17,6 +17,7 @@ import rx.lang.scala.Observable
 import loamstream.model.jobs.JobStatus.NotStarted
 import loamstream.model.jobs.JobRun
 import loamstream.util.Observables
+import loamstream.model.jobs.JobOracle
 
 
 /**
@@ -38,6 +39,7 @@ final class RxExecuterTest extends FunSuite {
     import RxExecuter.Defaults.fileMonitor
     
     val executer = RxExecuter(
+        RxExecuter.Defaults.executionConfig,
         runner, 
         fileMonitor, 
         0.1.seconds, 
@@ -167,7 +169,9 @@ final class RxExecuterTest extends FunSuite {
   test("Guards") {
     import scala.concurrent.duration._
     
-    val runner = MockChunkRunner(AsyncLocalChunkRunner(ExecutionConfig.default, 8))
+    val executionConfig = ExecutionConfig.default
+    
+    val runner = MockChunkRunner(AsyncLocalChunkRunner(executionConfig, 8))
     
     import RxExecuter.Defaults.fileMonitor
     
@@ -176,19 +180,19 @@ final class RxExecuterTest extends FunSuite {
     val executionRecorder = ExecutionRecorder.DontRecord
     
     intercept[Exception] {
-      RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -1)
+      RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -1)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 0)
+      RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 0)
     }
     
     intercept[Exception] {
-      RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -100)
+      RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, -100)
     }
     
-    RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 1)
-    RxExecuter(runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 42)
+    RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 1)
+    RxExecuter(executionConfig, runner, fileMonitor, 0.25.seconds, jobCanceler, jobFilter, executionRecorder, 42)
   }
 
   test("Single successful job") {
@@ -769,6 +773,7 @@ final class RxExecuterTest extends FunSuite {
     
     val executer = {
       RxExecuter(
+          RxExecuter.Defaults.executionConfig,
           runner, 
           fileMonitor, 
           0.1.seconds, 
@@ -897,10 +902,14 @@ object RxExecuterTest {
     
     val chunks: ValueBox[Seq[Set[LJob]]] = ValueBox(Vector.empty)
 
-    override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+    override def run(
+        jobs: Set[LJob], 
+        jobOracle: JobOracle, 
+        shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+      
       chunks.mutate(_ :+ jobs)
 
-      delegate.run(jobs, shouldRestart)
+      delegate.run(jobs, jobOracle, shouldRestart)
     }
   }
 }

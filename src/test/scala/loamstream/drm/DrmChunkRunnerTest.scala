@@ -102,7 +102,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
         accountingClient = MockAccountingClient.NeverWorks)
     
-    val result = waitFor(runner.run(Set.empty, neverRestart).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
     
     assert(result === Map.empty)
   }
@@ -119,7 +119,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         jobMonitor = new JobMonitor(scheduler, JustFailsMockPoller),
         accountingClient = MockAccountingClient.NeverWorks)
     
-    val result = waitFor(runner.run(Set.empty, neverRestart).firstAsFuture)
+    val result = waitFor(runner.run(Set.empty, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
     
     assert(result === Map.empty)
   }
@@ -461,7 +461,9 @@ final class DrmChunkRunnerTest extends FunSuite {
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
       
-      val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
+      val results = {
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+      }
       
       val actualSubmissionParams = mockJobSubmitter.params
       
@@ -556,9 +558,9 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val chunkRunner = makeChunkRunner(drmSystem, mockJobSubmitter)
           
-   
-      
-      val results = waitFor(chunkRunner.run(jobs.map(_.job).toSet, neverRestart).firstAsFuture)
+      val results = {
+        waitFor(chunkRunner.run(jobs.map(_.job).toSet, TestHelpers.DummyJobOracle, neverRestart).firstAsFuture)
+      }
       
       val actualSubmissionParams = mockJobSubmitter.params
       

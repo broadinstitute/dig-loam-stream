@@ -53,12 +53,17 @@ import loamstream.conf.CompilationConfig
 import loamstream.model.jobs.TerminationReason
 import loamstream.model.execute.Settings
 import loamstream.model.execute.LocalSettings
+import loamstream.model.jobs.JobOracle
 
 /**
   * @author clint
   *         date: Mar 10, 2016
   */
 object TestHelpers {
+  object DummyJobOracle extends JobOracle {
+    override def dirOptFor(job: LJob): Option[Path] = Some(path(Paths.mungePathRelatedChars(job.name)))
+  }
+  
   def path(p: String): Path = java.nio.file.Paths.get(p)
 
   val approxDoublePrecision: Double = 1e-16

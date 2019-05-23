@@ -1,9 +1,10 @@
 package loamstream.model.execute
 
+import loamstream.model.jobs.JobOracle
 import loamstream.model.jobs.LJob
 import loamstream.model.jobs.RunData
-import rx.lang.scala.Observable
 import loamstream.util.Terminable
+import rx.lang.scala.Observable
 
 /**
  * @author clint
@@ -14,7 +15,7 @@ trait ChunkRunner extends Terminable {
   
   def canRun(job: LJob): Boolean
   
-  def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]]
+  def run(jobs: Set[LJob], jobOracle: JobOracle, shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]]
   
   override def stop(): Unit = ()
 }

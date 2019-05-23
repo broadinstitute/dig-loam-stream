@@ -128,7 +128,9 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(client.startClusterInvocations() === 0)
       assert(client.deleteClusterInvocations() === 0)
       
-      val runDataObs = actualGoogleRunner.runJobsSequentially(Set(job1, job2, job3), neverRestart)
+      val runDataObs = {
+        actualGoogleRunner.runJobsSequentially(Set(job1, job2, job3), TestHelpers.DummyJobOracle, neverRestart)
+      }
       
       val z: Map[LJob, RunData] = Map.empty 
       
@@ -278,7 +280,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(client.startClusterInvocations() === 0)
       assert(client.deleteClusterInvocations() === 0)
       
-      val result = waitFor(googleRunner.run(Set.empty, neverRestart).lastAsFuture)
+      val result = waitFor(googleRunner.run(Set.empty, TestHelpers.DummyJobOracle, neverRestart).lastAsFuture)
       
       assert(client.clusterRunning() === false)
       assert(client.startClusterInvocations() === 0)
@@ -302,7 +304,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val z: Map[LJob, RunData] = Map.empty
       
-      val runDataObs = googleRunner.run(Set(job1, job2, job3), neverRestart)
+      val runDataObs = googleRunner.run(Set(job1, job2, job3), TestHelpers.DummyJobOracle, neverRestart)
       
       val jobRuns = waitFor(runDataObs.foldLeft(z)(_ ++ _).lastAsFuture)
       
@@ -352,7 +354,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       assert(client.delegate.deleteClusterInvocations() === 0)
       
       val thrown = intercept[Exception] {
-        waitFor(googleRunner.run(Set(job1, job2, job3), neverRestart).lastAsFuture)
+        waitFor(googleRunner.run(Set(job1, job2, job3), TestHelpers.DummyJobOracle, neverRestart).lastAsFuture)
       }
       
       assert(thrown === e)
@@ -378,7 +380,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val job1 = mockJob(JobResult.Success)
       
-      waitFor(googleRunner.run(Set(job1), neverRestart).lastAsFuture)
+      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle, neverRestart).lastAsFuture)
       
       assert(client.clusterRunning() === true)
       
@@ -413,7 +415,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val job1 = mockJob(JobResult.Success)
       
-      waitFor(googleRunner.run(Set(job1), neverRestart).lastAsFuture)
+      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle, neverRestart).lastAsFuture)
       
       assert(client.delegate.clusterRunning() === true)
       
@@ -454,7 +456,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
       
       val job1 = mockJob(JobResult.Success)
       
-      waitFor(googleRunner.run(Set(job1), neverRestart).lastAsFuture)
+      waitFor(googleRunner.run(Set(job1), TestHelpers.DummyJobOracle, neverRestart).lastAsFuture)
       
       assert(client.delegate.clusterRunning() === true)
       

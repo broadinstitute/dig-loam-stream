@@ -25,6 +25,7 @@ import loamstream.util.Terminable
 import rx.lang.scala.Observable
 import rx.lang.scala.schedulers.ExecutionContextScheduler
 import rx.lang.scala.Scheduler
+import loamstream.model.jobs.JobOracle
 
 /**
  * @author clint
@@ -48,11 +49,11 @@ final case class GoogleCloudChunkRunner(
   
   override def maxNumJobs: Int = delegate.maxNumJobs
   
-  override def run(jobs: Set[LJob], shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(jobs: Set[LJob], jobOracle: JobOracle, shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     def emptyResults: Observable[Map[LJob, RunData]] = Observable.just(Map.empty)
   
     if(jobs.isEmpty) { emptyResults }
-    else { runJobsSequentially(jobs, shouldRestart) }
+    else { runJobsSequentially(jobs, jobOracle, shouldRestart) }
   }
   
   override def stop(): Unit = {
@@ -81,11 +82,12 @@ final case class GoogleCloudChunkRunner(
   
   private[googlecloud] def runJobsSequentially(
       jobs: Set[LJob], 
+      jobOracle: JobOracle, 
       shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
     
     def doRunSingle(j: LJob): Map[LJob, RunData] = {
       withCluster(client) {
-        runSingle(delegate, shouldRestart)(j)
+        runSingle(delegate, jobOracle, shouldRestart)(j)
       }
     }
     
@@ -94,6 +96,7 @@ final case class GoogleCloudChunkRunner(
 
   private[googlecloud] def runSingle(
       delegate: ChunkRunner, 
+      jobOracle: JobOracle, 
       shouldRestart: LJob => Boolean)(job: LJob): Map[LJob, RunData] = {
     
     //NB: Enforce single-threaded execution, since we don't want multiple jobs running 
@@ -101,7 +104,9 @@ final case class GoogleCloudChunkRunner(
     //on the same cluster simultaneously
     import loamstream.util.Observables.Implicits._
 
-    val futureResult = delegate.run(Set(job), shouldRestart).map(addCluster(googleConfig.clusterId)).lastAsFuture
+    val futureResult = {
+      delegate.run(Set(job), jobOracle, shouldRestart).map(addCluster(googleConfig.clusterId)).lastAsFuture
+    }
     
     //TODO: add some timeout
     Await.result(futureResult, Duration.Inf)

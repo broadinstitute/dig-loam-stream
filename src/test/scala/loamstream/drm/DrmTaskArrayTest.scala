@@ -84,9 +84,12 @@ final class DrmTaskArrayTest extends FunSuite {
       
       val drmConfig = ugerConfig.copy(workDir = workDir)
       
+      val jobOracle = TestHelpers.InDirJobOracle(workDir)
+      
       val taskArray = {
         DrmTaskArray.fromCommandLineJobs(
             executionConfig, 
+            jobOracle,
             defaultUgerSettings, 
             drmConfig, 
             pathBuilder, 
@@ -144,8 +147,10 @@ final class DrmTaskArrayTest extends FunSuite {
     def doTest(pathBuilder: PathBuilder): Unit = {
       import TestHelpers.defaultUgerSettings
       
+      val jobOracle = TestHelpers.DummyJobOracle
+      
       val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, defaultUgerSettings, ugerConfig, pathBuilder, jobs)
+        DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, defaultUgerSettings, ugerConfig, pathBuilder, jobs)
       }
   
       assert(taskArray.size === 3)
@@ -164,11 +169,16 @@ final class DrmTaskArrayTest extends FunSuite {
       
       import TestHelpers.defaultUgerSettings
       
-      val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, defaultUgerSettings, drmConfig, pathBuilder, jobs)
+      TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+       
+        val jobOracle = TestHelpers.InDirJobOracle(workDir)
+        
+        val taskArray = {
+          DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, defaultUgerSettings, drmConfig, pathBuilder, jobs)
+        }
+  
+        assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
       }
-
-      assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
     }
     
     doTest(ugerConfig)
@@ -183,15 +193,19 @@ final class DrmTaskArrayTest extends FunSuite {
 
       import TestHelpers.defaultUgerSettings
       
-      val taskArray = {
-        DrmTaskArray.fromCommandLineJobs(executionConfig, defaultUgerSettings, drmConfig, pathBuilder, jobs)
+      TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
+        val jobOracle = TestHelpers.InDirJobOracle(workDir)
+
+        val taskArray = {
+          DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, defaultUgerSettings, drmConfig, pathBuilder, jobs)
+        }
+    
+        assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
+    
+        assert(taskArray.drmScriptFile.getParent === drmConfig.scriptDir)
+    
+        assert(Files.readFrom(taskArray.drmScriptFile) === taskArray.scriptContents)
       }
-  
-      assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
-  
-      assert(taskArray.drmScriptFile.getParent === drmConfig.scriptDir)
-  
-      assert(Files.readFrom(taskArray.drmScriptFile) === taskArray.scriptContents)
     }
     
     val scriptDir = TestHelpers.getWorkDir(getClass.getSimpleName)

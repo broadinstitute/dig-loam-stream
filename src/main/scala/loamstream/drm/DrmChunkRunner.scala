@@ -73,9 +73,11 @@ final case class DrmChunkRunner(
     //Group Jobs by their uger settings, and run each group.  This is necessary because the jobs in a group will
     //be run as 1 Uger task array, and Uger params are per-task-array.
     val resultsForSubChunks: Iterable[Observable[Map[LJob, RunData]]] = {
+      import DrmTaskArray.fromCommandLineJobs
+      
       for {
         (settings, rawJobs) <- subChunksBySettings(commandLineJobs)
-        drmTaskArray = DrmTaskArray.fromCommandLineJobs(executionConfig, settings, drmConfig, pathBuilder, rawJobs)
+        drmTaskArray = fromCommandLineJobs(executionConfig, jobOracle, settings, drmConfig, pathBuilder, rawJobs)
       } yield {
         runJobs(settings, drmTaskArray, shouldRestart)
       }

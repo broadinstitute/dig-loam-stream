@@ -52,6 +52,7 @@ final class DrmChunkRunnerTest extends FunSuite {
   
   private val scheduler = IOScheduler()
   
+  import loamstream.TestHelpers.path
   import loamstream.TestHelpers.neverRestart
   import loamstream.model.jobs.JobStatus.FailedPermanently
   import loamstream.model.jobs.JobStatus.Succeeded
@@ -231,7 +232,7 @@ final class DrmChunkRunnerTest extends FunSuite {
     def doTest(shouldRestart: LJob => Boolean, lastUgerStatus: DrmStatus, expectedLastStatus: JobStatus): Unit = {
       val job = MockDrmJob(id, Queued, Queued, Running, Running, lastUgerStatus)
       
-      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, 1)
+      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
       assert(job.runCount === 0)
       
@@ -277,7 +278,7 @@ final class DrmChunkRunnerTest extends FunSuite {
       
       val accountingClient = MockAccountingClient.NeverWorks
       
-      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, 1)
+      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, job, path("."), 1)
       
       assert(job.runCount === 0)
       
@@ -330,8 +331,8 @@ final class DrmChunkRunnerTest extends FunSuite {
       val workedJob = MockDrmJob(goodId, Queued, Queued, Running, Running, lastGoodDrmStatus)
       val failedJob = MockDrmJob(badId, Queued, Queued, Running, Running, lastBadDrmStatus)
       
-      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, workedJob, 1)
-      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, failedJob, 2)
+      val worked = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, workedJob, path("."), 1)
+      val failed = DrmJobWrapper(ExecutionConfig.default, defaultUgerSettings, ugerPathBuilder, failedJob, path("."), 2)
       
       assert(workedJob.runCount === 0)
       assert(failedJob.runCount === 0)
@@ -594,6 +595,7 @@ final class DrmChunkRunnerTest extends FunSuite {
         DrmSettings.fromLsfConfig(LsfConfig()),
         LsfPathBuilder,
         job,
+        path("."), 
         index)
     
     val submissionSuccess = DrmSubmissionResult.SubmissionSuccess(Map(

@@ -64,6 +64,10 @@ object TestHelpers {
     override def dirOptFor(job: LJob): Option[Path] = Some(path(Paths.mungePathRelatedChars(job.name)))
   }
   
+  final case class InDirJobOracle(dir: Path) extends JobOracle {
+    override def dirOptFor(job: LJob): Option[Path] = Some(dir.resolve(Paths.mungePathRelatedChars(job.name)))
+  }
+  
   def path(p: String): Path = java.nio.file.Paths.get(p)
 
   val approxDoublePrecision: Double = 1e-16

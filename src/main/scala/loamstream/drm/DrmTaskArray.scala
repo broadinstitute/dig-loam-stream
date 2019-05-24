@@ -8,6 +8,7 @@ import loamstream.util.Loggable
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.DrmConfig
 import loamstream.model.execute.DrmSettings
+import loamstream.model.jobs.JobOracle
 
 
 /**
@@ -69,6 +70,7 @@ object DrmTaskArray {
 
   def fromCommandLineJobs(
       executionConfig: ExecutionConfig,
+      jobOracle: JobOracle,
       drmSettings: DrmSettings,
       drmConfig: DrmConfig,
       pathBuilder: PathBuilder,
@@ -79,7 +81,9 @@ object DrmTaskArray {
       //Uger task array indices start from 1
       val indexInTaskArray = i + 1
 
-      DrmJobWrapper(executionConfig, drmSettings, pathBuilder, commandLineJob, ???, indexInTaskArray)
+      val jobDir = jobOracle.dirFor(commandLineJob)
+      
+      DrmJobWrapper(executionConfig, drmSettings, pathBuilder, commandLineJob, jobDir, indexInTaskArray)
     }
 
     val scriptBuilderParams = drmConfig.scriptBuilderParams

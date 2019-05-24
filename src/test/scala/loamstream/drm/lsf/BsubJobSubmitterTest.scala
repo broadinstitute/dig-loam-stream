@@ -167,6 +167,7 @@ final class BsubJobSubmitterTest extends FunSuite {
     
   private val taskArray = DrmTaskArray.fromCommandLineJobs(
       executionConfig = ExecutionConfig.default,
+      jobOracle = TestHelpers.DummyJobOracle,
       drmSettings = settings,
       drmConfig = drmConfig,
       pathBuilder = LsfPathBuilder,

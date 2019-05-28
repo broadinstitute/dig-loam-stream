@@ -128,7 +128,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
             outputStreams, 
             successfulJob.outputs)
   
-        recorder.record(Seq(failedJob -> failedExec, successfulJob -> successfulExec))
+        recorder.record(TestHelpers.DummyJobOracle, Seq(failedJob -> failedExec, successfulJob -> successfulExec))
       }
       
       //Doesn't need to be re-run
@@ -167,7 +167,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
           Seq(MockJob(failure.toJobStatus) -> failedExec, MockJob(success.toJobStatus) -> successfulExec)
         }
         
-        recorder.record(executionTuples)
+        recorder.record(TestHelpers.DummyJobOracle, executionTuples)
       }
 
       // Missing record:  'hasDifferentHash' --> false
@@ -255,7 +255,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
           Seq(MockJob(failure.toJobStatus) -> failedExec, MockJob(success.toJobStatus) -> successfulExec)
         }
         
-        recorder.record(executionTuples)
+        recorder.record(TestHelpers.DummyJobOracle, executionTuples)
       }
 
       // Missing record:  'hasDifferentHash' --> false
@@ -354,14 +354,16 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
 
       val cmdLineJob0 = cmdLineJob(cmd0, outputs)
       
-      recorder.record(Iterable(cmdLineJob0 -> execution(cmd0, outputs)))
+      recorder.record(TestHelpers.DummyJobOracle, Iterable(cmdLineJob0 -> execution(cmd0, outputs)))
 
       assert(filter.findCommandLineInDb(o0.location) === Some(cmd0))
       assert(filter.findCommandLineInDb(o1.location) === Some(cmd0))
 
       assert(filter.hasNewCommandLine(cmdLineJob0) === false)
 
-      recorder.record(Iterable(cmdLineJob(cmd1, Set(o2)) -> execution(cmd1, Set[DataHandle](o2))))
+      recorder.record(
+          TestHelpers.DummyJobOracle, 
+          Iterable(cmdLineJob(cmd1, Set(o2)) -> execution(cmd1, Set[DataHandle](o2))))
       
       val cmdLineJob1 = cmdLineJob("cmd1-altered", Set(o2))
 

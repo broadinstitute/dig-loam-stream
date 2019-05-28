@@ -51,6 +51,8 @@ final case class RxExecuter(
   
   require(maxRunsPerJob >= 1, s"The maximum number of times to run each job must not be negative; got $maxRunsPerJob")
   
+  import executionRecorder.record
+  
   override def execute(executable: Executable)(implicit timeout: Duration = Duration.Inf): Map[LJob, Execution] = {
     import loamstream.util.Observables.Implicits._
     
@@ -85,10 +87,10 @@ final case class RxExecuter(
       (jobsToCancel, jobsToRun) = jobsToMaybeRun.partition(jobCanceler.shouldCancel)
       _ = handleSkippedJobs(skippedJobs)
       cancelledJobsMap = cancelJobs(jobsToCancel)
-      _ = record(cancelledJobsMap)
+      _ = record(jobOracle, cancelledJobsMap)
       skippedResultMap = toSkippedResultMap(skippedJobs)
       executionTupleOpt <- runJobs(jobsToRun, jobOracle)
-      _ = record(executionTupleOpt)
+      _ = record(jobOracle, executionTupleOpt)
       executionMap = cancelledJobsMap ++ executionTupleOpt
       _ = logFinishedJobs(executionMap)
     } yield {
@@ -172,8 +174,6 @@ final case class RxExecuter(
       
     skippedJobs.mapTo(job => Execution.from(job, JobStatus.Skipped, terminationReason = None))
   }
-
-  private def record(executionTuples: Iterable[(LJob, Execution)]): Unit = executionRecorder.record(executionTuples)
 }
 
 object RxExecuter extends Loggable {

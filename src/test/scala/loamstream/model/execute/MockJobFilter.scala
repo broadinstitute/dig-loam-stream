@@ -3,6 +3,7 @@ package loamstream.model.execute
 import loamstream.model.jobs.LJob
 import loamstream.util.ValueBox
 import loamstream.model.jobs.Execution
+import loamstream.model.jobs.JobOracle
 
 /**
  * @author clint
@@ -15,7 +16,7 @@ final class MockJobFilterAndExecutionRecorder(
   
   override def shouldRun(job: LJob): Boolean = shouldRunPredicate(job)
 
-  override def record(executionTuples: Iterable[(LJob, Execution)]): Unit = {
+  override def record(jobOracle: JobOracle, executionTuples: Iterable[(LJob, Execution)]): Unit = {
     recordedExecutionTuples.mutate(_ ++ executionTuples)
   }
 }

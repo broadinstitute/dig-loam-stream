@@ -11,6 +11,7 @@ import loamstream.TestHelpers.dummyOutputStreams
 import loamstream.TestHelpers.path
 import loamstream.model.jobs.DataHandle
 import loamstream.model.jobs.MockJob
+import loamstream.TestHelpers
 
 /**
  * @author clint
@@ -43,7 +44,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       assert(executions === Set.empty)
 
-      recorder.record(Nil)
+      recorder.record(TestHelpers.DummyJobOracle, Nil)
 
       assert(executions === Set.empty)
     }
@@ -73,7 +74,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
         assert(e.isCommandExecution === false)
         
-        recorder.record(Seq(job -> e))
+        recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
   
         assert(executions === Set.empty)
       }
@@ -108,7 +109,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
           outputs = Set.empty[StoreRecord],
           terminationReason = None)
 
-      recorder.record(Seq(job -> e))
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
       assertEqualFieldsFor(executions, Set(e))
     }
@@ -136,7 +137,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
           outputs = Set.empty,
           terminationReason = None)
 
-      recorder.record(Seq(job -> e))
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
       assertEqualFieldsFor(executions, Set(e))
     }
@@ -158,7 +159,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
 
       val withHashedOutputs = e.withStoreRecords(Set(cachedOutput0, cachedOutput1, cachedOutput2))
 
-      recorder.record(Seq(job -> e))
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
       assertEqualFieldsFor(executions, Set(withHashedOutputs))
     }
@@ -178,7 +179,7 @@ final class DbBackedExecutionRecorderTest extends FunSuite with ProvidesSlickLoa
       
       val e = Execution.fromOutputs(mockUgerSettings, mockCmd, cr, dummyOutputStreams, Set[DataHandle](o0, o1, o2))
 
-      recorder.record(Seq(job -> e))
+      recorder.record(TestHelpers.DummyJobOracle, Seq(job -> e))
 
       val expected = Set(
           Execution(

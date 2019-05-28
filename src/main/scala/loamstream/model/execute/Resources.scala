@@ -62,6 +62,16 @@ object Resources {
     def withQueue(newQueueOpt: Option[Queue]): DrmResources
   }
   
+  object DrmResources {
+    type FieldsTuple = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant)
+    
+    def unapply(r: Resources): Option[FieldsTuple] = r match {
+      case u: UgerResources => UgerResources.unapply(u)
+      case l: LsfResources => LsfResources.unapply(l)
+      case _ => None
+    }
+  }
+  
   final case class UgerResources(
       memory: Memory,
       cpuTime: CpuTime,

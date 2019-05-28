@@ -83,6 +83,7 @@ import loamstream.model.execute.JobCanceler
 import loamstream.conf.Locations
 import loamstream.drm.lsf.BacctAccountingClient
 import loamstream.drm.DrmaaClient
+import loamstream.model.execute.FileSystemExecutionRecorder
 
 
 /**
@@ -158,7 +159,7 @@ object AppWiring extends Loggable {
       case _ => defaultJobFilter(dao, hashingStrategy)
     }
     
-    (jobFilter, new DbBackedExecutionRecorder(dao))
+    (jobFilter, FileSystemExecutionRecorder && (new DbBackedExecutionRecorder(dao)))
   }  
   
   private final class DefaultAppWiring(

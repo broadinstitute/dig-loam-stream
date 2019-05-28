@@ -20,10 +20,10 @@ final case class ExecutionConfig(
     singularity: SingularityConfig = Defaults.singularityConfig,
     dbDir: Path = Defaults.dbDir,
     logDir: Path = Defaults.logDir,
-    jobDir: Path = Defaults.jobDir,
+    jobDataDir: Path = Defaults.jobDataDir,
     maxJobLogFilesPerDir: Int = Defaults.maxJobLogFilesPerDir) {
   
-  def toLocations: Locations = Locations.Literal(dbDir = dbDir, logDir = logDir, jobDir = jobDir)
+  def toLocations: Locations = Locations.Literal(dbDir = dbDir, logDir = logDir, jobDataDir = jobDataDir)
 }
 
 object ExecutionConfig extends ConfigParser[ExecutionConfig] {
@@ -47,7 +47,7 @@ object ExecutionConfig extends ConfigParser[ExecutionConfig] {
     
     val logDir: Path = Locations.Default.logDir
     
-    val jobDir: Path = Locations.Default.jobDir
+    val jobDataDir: Path = Locations.Default.jobDataDir
     
     val maxJobLogFilesPerDir: Int = 3000
   }

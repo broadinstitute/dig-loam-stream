@@ -28,7 +28,7 @@ final class ExecutionConfigTest extends FunSuite {
         Defaults.singularityConfig,
         Defaults.dbDir,
         Defaults.logDir,
-        Defaults.jobDir,
+        Defaults.jobDataDir,
         Defaults.maxJobLogFilesPerDir)
 
     assert(ExecutionConfig.default === expected)

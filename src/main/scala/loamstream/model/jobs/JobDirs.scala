@@ -48,7 +48,7 @@ object JobDirs {
       }
     }
     
-    def pathsByJob: Map[LJob, Path] = {
+    def pathsByJob(jobDataDir: Path): Map[LJob, Path] = {
       import LPaths.Implicits._
 
       def doPathsByJob(root: Path)(n: DirNode): Iterable[(LJob, Path)] = n match {
@@ -60,13 +60,13 @@ object JobDirs {
         }
       }
       
-      doPathsByJob(path("."))(this).toMap
+      doPathsByJob(jobDataDir)(this).toMap
     }
     
     def makeDirsUnder(root: Path): Unit = {
       import LPaths.Implicits._
       
-      pathsByJob.values.map(root.resolve(_)).foreach(loamstream.util.Files.createDirsIfNecessary)
+      pathsByJob(root).values.map(root.resolve(_)).foreach(loamstream.util.Files.createDirsIfNecessary)
     }
   }
   

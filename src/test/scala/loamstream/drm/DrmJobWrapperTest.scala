@@ -114,7 +114,7 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
-      val executionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
       
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
@@ -156,7 +156,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val testWorkDir = TestHelpers.getWorkDir(getClass.getSimpleName)
       
-      val executionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
@@ -200,7 +200,7 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
-      val executionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
       
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
@@ -225,7 +225,7 @@ final class DrmJobWrapperTest extends FunSuite {
       
       val drmConfig = baseUgerConfig.copy(workDir = testWorkDir)
       
-      val executionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
+      val executionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
       
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
@@ -255,7 +255,7 @@ final class DrmJobWrapperTest extends FunSuite {
         case _: LsfDrmSettings => baseLsfConfig.copy(workDir = testWorkDir)
       }
       
-      val executionConfig: ExecutionConfig = baseExecutionConfig.copy(jobDir = testWorkDir)
+      val executionConfig: ExecutionConfig = baseExecutionConfig.copy(jobDataDir = testWorkDir)
       
       val jobOracle = TestHelpers.InDirJobOracle(testWorkDir)
       
@@ -267,7 +267,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val workDir = drmConfig.workDir
       
-      val jobOutputDir = executionConfig.jobDir.toAbsolutePath
+      val jobOutputDir = executionConfig.jobDataDir.toAbsolutePath
 
       import loamstream.util.Paths.Implicits.PathHelpers
       

@@ -111,7 +111,7 @@ final class JobDirsTest extends FunSuite {
     
     val leaf = Leaf(jobFoo)
     
-    assert(leaf.pathsByJob === Map(jobFoo -> path("foo")))
+    assert(leaf.pathsByJob(path("what/ever")) === Map(jobFoo -> path("what/ever/foo")))
   }
   
   test("pathsByJob - one level") {
@@ -125,12 +125,12 @@ final class JobDirsTest extends FunSuite {
     val interior = Interior("x", Seq(Leaf(jobFoo), Leaf(jobBar), Leaf(jobBaz), Leaf(jobBlerg))) 
     
     val expected = Map(
-        jobFoo -> path("x/foo"),
-        jobBar -> path("x/bar"),
-        jobBaz -> path("x/baz"),
-        jobBlerg -> path("x/blerg"))
+        jobFoo -> path("some/root/x/foo"),
+        jobBar -> path("some/root/x/bar"),
+        jobBaz -> path("some/root/x/baz"),
+        jobBlerg -> path("some/root/x/blerg"))
     
-    assert(interior.pathsByJob === expected)
+    assert(interior.pathsByJob(path("some/root")) === expected)
   }
   
   test("pathsByJob - more levels") {
@@ -159,16 +159,16 @@ final class JobDirsTest extends FunSuite {
                              )))) 
     
     val expected = Map(
-        jobFoo -> path("0/1/a/foo"),
-        jobBar -> path("0/1/a/bar"),
-        jobBaz -> path("0/1/b/baz"),
-        jobBlerg -> path("0/1/b/blerg"),
-        jobZerg -> path("0/2/x/zerg"),
-        jobNerg -> path("0/2/x/nerg"),
-        jobFlerg -> path("0/2/y/flerg"),
-        jobAsdf -> path("0/2/y/asdf"))
+        jobFoo -> path("some/root/0/1/a/foo"),
+        jobBar -> path("some/root/0/1/a/bar"),
+        jobBaz -> path("some/root/0/1/b/baz"),
+        jobBlerg -> path("some/root/0/1/b/blerg"),
+        jobZerg -> path("some/root/0/2/x/zerg"),
+        jobNerg -> path("some/root/0/2/x/nerg"),
+        jobFlerg -> path("some/root/0/2/y/flerg"),
+        jobAsdf -> path("some/root/0/2/y/asdf"))
     
-    assert(interior.pathsByJob === expected)
+    assert(interior.pathsByJob(path("some/root")) === expected)
   }
   
   test("makeDirsUnder - one level") {

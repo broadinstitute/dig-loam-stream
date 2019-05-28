@@ -173,9 +173,13 @@ final class DrmTaskArrayTest extends FunSuite {
        
         val jobOracle = TestHelpers.InDirJobOracle(workDir)
         
-        val taskArray = {
-          DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, defaultUgerSettings, drmConfig, pathBuilder, jobs)
-        }
+        val taskArray = DrmTaskArray.fromCommandLineJobs(
+            executionConfig, 
+            jobOracle, 
+            defaultUgerSettings, 
+            drmConfig, 
+            pathBuilder, 
+            jobs)
   
         assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
       }
@@ -196,9 +200,13 @@ final class DrmTaskArrayTest extends FunSuite {
       TestHelpers.withWorkDir(getClass.getSimpleName) { workDir =>
         val jobOracle = TestHelpers.InDirJobOracle(workDir)
 
-        val taskArray = {
-          DrmTaskArray.fromCommandLineJobs(executionConfig, jobOracle, defaultUgerSettings, drmConfig, pathBuilder, jobs)
-        }
+        val taskArray = DrmTaskArray.fromCommandLineJobs(
+            executionConfig, 
+            jobOracle, 
+            defaultUgerSettings, 
+            drmConfig, 
+            pathBuilder, 
+            jobs)
     
         assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
     

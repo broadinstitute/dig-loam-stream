@@ -49,7 +49,11 @@ final case class GoogleCloudChunkRunner(
   
   override def maxNumJobs: Int = delegate.maxNumJobs
   
-  override def run(jobs: Set[LJob], jobOracle: JobOracle, shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+  override def run(
+      jobs: Set[LJob], 
+      jobOracle: JobOracle, 
+      shouldRestart: LJob => Boolean): Observable[Map[LJob, RunData]] = {
+    
     def emptyResults: Observable[Map[LJob, RunData]] = Observable.just(Map.empty)
   
     if(jobs.isEmpty) { emptyResults }

@@ -72,11 +72,13 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     
     val failedJob = MockJob(Failed)
     
-    val success = waitFor(executeSingle(ExecutionConfig.default, job, neverRestart))
+    val jobOracle = TestHelpers.DummyJobOracle
+    
+    val success = waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, neverRestart))
     
     assert(success === runDataFromStatus(job, LocalSettings, Succeeded))
     
-    val failure = waitFor(executeSingle(ExecutionConfig.default, failedJob, neverRestart))
+    val failure = waitFor(executeSingle(ExecutionConfig.default, jobOracle, failedJob, neverRestart))
     
     assert(failure === runDataFromStatus(failedJob, LocalSettings, Failed))
     
@@ -94,20 +96,22 @@ final class AsyncLocalChunkRunnerTest extends FunSuite with TestJobs {
     
     def doTest(status: JobStatus, expectedNoRestart: JobStatus): Unit = {
       val job = MockJob(status)
-    
+
+      val jobOracle = TestHelpers.DummyJobOracle
+      
       //job.transitionTo(NotStarted)
       
       assert(job.executionCount === 0)
       
       assert(job.status === NotStarted)
       
-      waitFor(executeSingle(ExecutionConfig.default, job, alwaysRestart))
+      waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, alwaysRestart))
       
       assert(job.executionCount === 1)
           
       assert(job.status === status)
       
-      waitFor(executeSingle(ExecutionConfig.default, job, neverRestart))
+      waitFor(executeSingle(ExecutionConfig.default, jobOracle, job, neverRestart))
       
       assert(job.executionCount === 2)
           

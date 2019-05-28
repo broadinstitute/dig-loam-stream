@@ -27,15 +27,25 @@ final case class DrmTaskArray(
   lazy val scriptContents: String = (new ScriptBuilder(drmConfig.scriptBuilderParams)).buildFrom(this)
 
   //NB: Side-effecting
-  lazy val drmScriptFile: Path = writeDrmScriptFile()
+  lazy val drmScriptFile: Path = writeDrmScriptFiles()
 
-  private def writeDrmScriptFile(): Path = {
-    val drmWorkDir = drmConfig.scriptDir
+  private def writeDrmScriptFiles(): Path = {
+    val drmWorkDir = drmConfig.workDir
 
     val drmScript = createScriptFileIn(drmWorkDir)(scriptContents)
 
     trace(s"Made script '$drmScript' from ${drmJobs.map(_.commandChunk(this))}")
 
+    for {
+      jobDir <- drmJobs.map(_.jobDir)
+    } {
+      java.nio.file.Files.createDirectories(jobDir)
+      
+      val drmScriptInJobDir = jobDir.resolve("drm-script.sh")
+      
+      java.nio.file.Files.copy(drmScript, drmScriptInJobDir)
+    }
+    
     drmScript
   }
 

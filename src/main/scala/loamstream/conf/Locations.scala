@@ -19,15 +19,10 @@ trait Locations {
 
   def dryRunOutputFile: Path
 
-  def jobOutputDir: Path
-
   def dbDir: Path
 
   def ugerDir: Path
   def lsfDir: Path
-
-  def ugerScriptDir: Path
-  def lsfScriptDir: Path
 }
 
 object Locations {
@@ -41,12 +36,9 @@ object Locations {
     jobDir: Path = Default.jobDir,
     logDir: Path = Default.logDir,
     dryRunOutputFile: Path = Default.dryRunOutputFile,
-    jobOutputDir: Path = Default.jobOutputDir,
     dbDir: Path = Default.dbDir,
     ugerDir: Path = Default.ugerDir,
-    lsfDir: Path = Default.lsfDir,
-    ugerScriptDir: Path = Default.ugerScriptDir,
-    lsfScriptDir: Path = Default.lsfScriptDir) extends Locations {
+    lsfDir: Path = Default.lsfDir) extends Locations {
     
     override lazy val jobDataDir: Path = createDirectories(jobDir / "data")
   }
@@ -62,14 +54,9 @@ object Locations {
 
     override val dryRunOutputFile: Path = (logDir / "joblist").normalize
 
-    override val jobOutputDir: Path = createDirectories((loamstreamDir / "job-outputs").normalize)
-
     override val dbDir: Path = createDirectories(loamstreamDir / "db")
 
     override lazy val ugerDir = createDirectories((loamstreamDir / "uger").normalize)
     override lazy val lsfDir = createDirectories((loamstreamDir / "lsf").normalize)
-
-    override lazy val ugerScriptDir: Path = createDirectories((ugerDir / "scripts").normalize)
-    override lazy val lsfScriptDir: Path = createDirectories((lsfDir / "scripts").normalize)
   }
 }

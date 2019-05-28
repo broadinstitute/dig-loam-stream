@@ -40,7 +40,7 @@ final case class AsyncLocalChunkRunner(
           s"Expected only LocalJobs, but found ${jobs.filterNot(canBeRun).mkString(",")}")
       
       def exec(job: LJob): Observable[RunData] = {
-        Observable.from(executeSingle(executionConfig, job, shouldRestart))
+        Observable.from(executeSingle(executionConfig, jobOracle, job, shouldRestart))
       }
 
       val executionObservables: Seq[Observable[RunData]] = jobs.toSeq.map(exec)
@@ -59,12 +59,15 @@ object AsyncLocalChunkRunner extends Loggable {
   
   def executeSingle(
       executionConfig: ExecutionConfig,
+      jobOracle: JobOracle,
       job: LJob, 
       shouldRestart: LJob => Boolean)(implicit executor: ExecutionContext): Future[RunData] = {
     
     job.transitionTo(JobStatus.Running)
     
-    val processLogger = ProcessLoggers.forNamedJob(executionConfig, job)
+    val jobDir = jobOracle.dirFor(job)
+    
+    val processLogger = ProcessLoggers.forNamedJob(executionConfig, job, jobDir)
     
     val result = LocalJobStrategy.execute(job, processLogger)
 

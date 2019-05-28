@@ -210,15 +210,15 @@ final class DrmTaskArrayTest extends FunSuite {
     
         assert(taskArray.scriptContents === (new ScriptBuilder(scriptBuilderParams)).buildFrom(taskArray))
     
-        assert(taskArray.drmScriptFile.getParent === drmConfig.scriptDir)
+        assert(taskArray.drmScriptFile.getParent === drmConfig.workDir)
     
         assert(Files.readFrom(taskArray.drmScriptFile) === taskArray.scriptContents)
       }
     }
     
-    val scriptDir = TestHelpers.getWorkDir(getClass.getSimpleName)
+    val workDir = TestHelpers.getWorkDir(getClass.getSimpleName)
     
-    doTest(UgerConfig(scriptDir = scriptDir, maxNumJobs = 99))
-    doTest(LsfConfig(scriptDir = scriptDir, maxNumJobs = 99))
+    doTest(UgerConfig(workDir = workDir, maxNumJobs = 99))
+    doTest(LsfConfig(workDir = workDir, maxNumJobs = 99))
   }
 }

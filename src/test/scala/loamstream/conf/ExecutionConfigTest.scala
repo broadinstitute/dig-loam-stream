@@ -25,7 +25,11 @@ final class ExecutionConfigTest extends FunSuite {
         Defaults.outputPollingFrequencyInHz,
         Defaults.dryRunOutputFile,
         Defaults.anonStoreDir,
-        Defaults.singularityConfig)
+        Defaults.singularityConfig,
+        Defaults.dbDir,
+        Defaults.logDir,
+        Defaults.jobDir,
+        Defaults.maxJobLogFilesPerDir)
 
     assert(ExecutionConfig.default === expected)
   }
@@ -59,6 +63,7 @@ final class ExecutionConfigTest extends FunSuite {
     val expectedOutputPollingFrequencyInHz = 1.23
     val expectedDryRunOutputFile = path("foo/asdkas/asdasd/asd.txt")
     val expectedAnonStoreDir = path("/alskdj/asd/asd")
+    val expectedMaxJobLogFilesPerDir = 12345
     
     val input = s"""|loamstream {
                     |  execution {
@@ -66,6 +71,7 @@ final class ExecutionConfigTest extends FunSuite {
                     |    maxWaitTimeForOutputs = "99 seconds"
                     |    outputPollingFrequencyInHz = 1.23
                     |    anonStoreDir = ${expectedAnonStoreDir.render}
+                    |    maxJobLogFilesPerDir = $expectedMaxJobLogFilesPerDir
                     |  }
                     |}""".stripMargin
 
@@ -76,7 +82,8 @@ final class ExecutionConfigTest extends FunSuite {
         maxWaitTimeForOutputs = expectedMaxWaitTime,
         outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
         anonStoreDir = expectedAnonStoreDir,
-        singularity = SingularityConfig.default)
+        singularity = SingularityConfig.default,
+        maxJobLogFilesPerDir = expectedMaxJobLogFilesPerDir)
 
     assert(executionConfig === expected)
   }
@@ -166,11 +173,6 @@ final class ExecutionConfigTest extends FunSuite {
   }
 
   test("good input - all defaults") {
-    val expectedMaxRunsPerJob = ExecutionConfig.Defaults.maxRunsPerJob
-    val expectedMaxWaitTime = ExecutionConfig.Defaults.maxWaitTimeForOutputs
-    val expectedOutputPollingFrequencyInHz = ExecutionConfig.Defaults.outputPollingFrequencyInHz
-    val expectedAnonStoreDir = ExecutionConfig.Defaults.anonStoreDir
-
     val input = s"""|loamstream {
                     |  execution {
                     |  }
@@ -178,11 +180,7 @@ final class ExecutionConfigTest extends FunSuite {
 
     val executionConfig = parse(input).get
 
-    val expected = ExecutionConfig(
-        maxRunsPerJob = expectedMaxRunsPerJob,
-        maxWaitTimeForOutputs = expectedMaxWaitTime,
-        outputPollingFrequencyInHz = expectedOutputPollingFrequencyInHz,
-        anonStoreDir = expectedAnonStoreDir)
+    val expected = ExecutionConfig.default
 
     assert(executionConfig === expected)
   }

@@ -80,9 +80,6 @@ final class ScriptBuilderTest extends FunSuite {
         drmSystem, 
         containerParamsOpt).withNormalizedLineBreaks
         
-      Files.writeTo(path("/home/clint/a"))(scriptContents)
-      Files.writeTo(path("/home/clint/e"))(expectedScriptContents)
-        
       assert(scriptContents === expectedScriptContents)
     }
     

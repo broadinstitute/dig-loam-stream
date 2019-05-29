@@ -174,6 +174,8 @@ object Main extends Loggable {
           wiring.loamRunner.run(project)
         }
   
+        wiring.writeIndexFiles()
+        
         describeRunResults(runResults)
       } catch {
         case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)

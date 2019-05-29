@@ -84,6 +84,7 @@ import loamstream.conf.Locations
 import loamstream.drm.lsf.BacctAccountingClient
 import loamstream.drm.DrmaaClient
 import loamstream.model.execute.FileSystemExecutionRecorder
+import loamstream.model.execute.BuildsIndexExecutionRecorder
 
 
 /**
@@ -104,6 +105,8 @@ trait AppWiring {
   
   def executionRecorder: ExecutionRecorder
 
+  def writeIndexFiles(): Unit 
+  
   def shutdown(): Seq[Throwable]
   
   lazy val loamEngine: LoamEngine = LoamEngine(config, LoamCompiler.default, executer, cloudStorageClient)
@@ -133,34 +136,46 @@ object AppWiring extends Loggable {
   }
   
   def jobFilterForDryRun(intent: Intent.DryRun, makeDao: => LoamDao): JobFilter = {
-    val (jobFilter, _) = makeJobFilterAndExecutionRecorder(intent.jobFilterIntent, intent.hashingStrategy, makeDao)
-    
-    jobFilter
+    AppWiring.makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, makeDao)
   }
   
   def forRealRun(intent: Intent.RealRun, makeDao: => LoamDao): AppWiring = {
     new DefaultAppWiring(intent, makeDao = makeDao)
   }
 
-  private[AppWiring] def makeJobFilterAndExecutionRecorder(
+  private[AppWiring] def makeJobFilter(
       jobFilterIntent: JobFilterIntent,
       hashingStrategy: HashingStrategy,
-      getDao: => LoamDao): (JobFilter, ExecutionRecorder) = {
+      getDao: => LoamDao): JobFilter = {
     
     val dao = getDao
     
     import JobFilterIntent._
     
-    val jobFilter = jobFilterIntent match {
+    jobFilterIntent match {
       case RunEverything => JobFilter.RunEverything
       case RunIfAllMatch(regexes) => ByNameJobFilter.allOf(regexes)
       case RunIfAnyMatch(regexes) => ByNameJobFilter.anyOf(regexes)
       case RunIfNoneMatch(regexes) => ByNameJobFilter.noneOf(regexes)
       case _ => defaultJobFilter(dao, hashingStrategy)
     }
+  }
+  
+  private[AppWiring] def makeExecutionRecorders(
+      getDao: => LoamDao): (ExecutionRecorder, BuildsIndexExecutionRecorder) = {
     
-    (jobFilter, FileSystemExecutionRecorder && (new DbBackedExecutionRecorder(dao)))
-  }  
+    val dao = getDao
+    
+    val buildsIndexExecutionRecorder = new BuildsIndexExecutionRecorder
+
+    val rootExecutionRecorder = {
+      FileSystemExecutionRecorder && 
+      (new DbBackedExecutionRecorder(dao)) &&
+      buildsIndexExecutionRecorder
+    }
+    
+    (rootExecutionRecorder, buildsIndexExecutionRecorder)
+  }
   
   private final class DefaultAppWiring(
       intent: Intent.RealRun,
@@ -176,8 +191,34 @@ object AppWiring extends Loggable {
 
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(intent.confFile, config)
 
-    override lazy val (jobFilter: JobFilter, executionRecorder: ExecutionRecorder) = {
-      makeJobFilterAndExecutionRecorder(intent.jobFilterIntent, intent.hashingStrategy, dao)
+    override def writeIndexFiles(): Unit = {
+      val allJobs = buildsIndexExecutionRecorder.toIndex
+      
+      val failedJobs = allJobs.filter(_.jobStatus.isFailure)
+      
+      val allJobsIndexFile = Locations.Default.logDir.resolve("all-jobs.tsv")
+      
+      val failedJobsIndexFile = Locations.Default.logDir.resolve("failed-jobs.tsv")
+      
+      allJobs.writeToFile(allJobsIndexFile)
+      
+      failedJobs.writeToFile(failedJobsIndexFile)
+    }
+    
+    override lazy val jobFilter: JobFilter = makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, dao)
+    
+    private lazy val executionRecorders = makeExecutionRecorders(dao)
+    
+    private lazy val buildsIndexExecutionRecorder = {
+      val (_, bier) = executionRecorders
+      
+      bier
+    }
+    
+    override lazy val executionRecorder: ExecutionRecorder = {
+      val (er, _) = executionRecorders
+      
+      er
     }
     
     private lazy val terminableExecuter: TerminableExecuter = {

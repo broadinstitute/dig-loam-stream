@@ -63,6 +63,8 @@ object Resources {
   }
   
   object DrmResources {
+    type ResourcesMaker = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant) => DrmResources
+    
     type FieldsTuple = (Memory, CpuTime, Option[String], Option[Queue], Instant, Instant)
     
     def unapply(r: Resources): Option[FieldsTuple] = r match {

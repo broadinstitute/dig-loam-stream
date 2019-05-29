@@ -42,61 +42,71 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
   
   private[execute] def makeAccountingFilePath(dir: Path): Path = pathWithExtension(dir, "accounting")
   
-  private object SettingsKeys {
+  private object Keys {
     val settingsType = "settings-type"
+    val startTime = "start-time"
+    val endTime = "end-time"
+    val cluster = "cluster"
+    val memory = "memory"
+    val cores = "cores"
+    val maxRunTime = "max-run-time"
+    val cpuTime = "cpu-time"
+    val executionNode = "execution-node"
+    val queue = "queue"
+    val singularityImageName = "singularity-image-name"
   }
   
-  def line(key: String, value: String): String = s"${key}\t${value}"
+  private def line(key: String, value: String): String = s"${key}\t${value}"
   
-  def resourcesToString(resources: Resources): String = {
-    def startAndEndTimeLines: Seq[String] = {
+  private def tuplesToFileContents(ts: Iterable[(String, Any)]): String = {
+    ts.map { case (k, v) => line(k, v.toString) }.mkString("\n") 
+  }
+  
+  def resourcesToString(resources: Resources): String = tuplesToFileContents(resourcesToTuples(resources))
+  
+  def settingsToString(settings: Settings): String = tuplesToFileContents(settingsToTuples(settings))
+  
+  def resourcesToTuples(resources: Resources): Iterable[(String, Any)] = {
+    val startAndEndTimeTuples : Seq[(String, Any)] = {
       Seq(
-        line("start-time", resources.startTime.toString),
-        line("end-time", resources.endTime.toString))
+        Keys.startTime -> resources.startTime.toString,
+        Keys.endTime -> resources.endTime.toString)
     }
     
-    val resourceSpecificLines: Seq[String] = resources match {
+    val resourceSpecificTuples: Seq[(String, Any)] = resources match {
       case _: LocalResources => Nil
-      case g: GoogleResources => Seq(line("cluster", g.cluster))
+      case g: GoogleResources => Seq(Keys.cluster -> g.cluster)
       case DrmResources(memory, cpuTime, nodeOpt, queueOpt, _, _) => {
         Seq(
-          line("memory", memory.toString),
-          line("cpu-time", cpuTime.duration.toString),
-          line("execution-node", nodeOpt.getOrElse("")),
-          line("queue", queueOpt.map(_.toString).getOrElse("")))
+          Keys.memory -> memory.value.toString,
+          Keys.cpuTime -> cpuTime.duration.toString,
+          Keys.executionNode -> nodeOpt.getOrElse(""),
+          Keys.queue -> queueOpt.map(_.toString).getOrElse(""))
       }
     }
     
-    (startAndEndTimeLines ++ resourceSpecificLines).mkString("\n")
+    startAndEndTimeTuples ++ resourceSpecificTuples
   }
-  
-  def settingsToString(settings: Settings): String = {
-    def typeLine(envTypeName: String): String = line(SettingsKeys.settingsType, envTypeName)
-    
-    def linesFrom(containerParams: ContainerParams): Seq[String] = {
-      Seq(line("singularity-image-name", containerParams.imageName))
-    }
-    
-    def emptyContainerParamsLine: String = line("singularity-image-name", "")
+
+  def settingsToTuples(settings: Settings): Seq[(String, Any)] = {
+    def typeTuple(envTypeName: String): (String, Any) = Keys.settingsType -> envTypeName
     
     settings match {
-      case LocalSettings => typeLine(EnvironmentType.Local.name)
+      case LocalSettings => Seq(typeTuple(EnvironmentType.Local.name))
       case GoogleSettings(cluster) => {
-        Seq(typeLine(EnvironmentType.Google.name), line("cluster", cluster)).mkString("\n")
-      }
-      case DrmSettings(cpus, memory, cpuTime, queueOpt, containerParamsOpt) => {
-        val tpe = settings.envType match {
-          case et @ (EnvironmentType.Uger | EnvironmentType.Lsf) => et.name
-          case et => sys.error(s"DRM Environment type expected, but got $et")
-        }
-        
         Seq(
-          typeLine(tpe),
-          line("cpus", cpus.value.toString),
-          line("memory", memory.value.toString),
-          line("cpu-time", cpuTime.duration.toString),
-          line("queue", queueOpt.map(_.toString).getOrElse("")),
-          containerParamsOpt.map(linesFrom).getOrElse(Seq(emptyContainerParamsLine))).mkString("\n")
+          typeTuple(EnvironmentType.Google.name), 
+          Keys.cluster -> cluster)
+      }
+      case DrmSettings(cores, memory, cpuTime, queueOpt, containerParamsOpt) => {
+        val containerParamsTuples = Seq(
+          Keys.singularityImageName -> containerParamsOpt.map(_.imageName).getOrElse(""))
+        
+        (typeTuple(settings.envType.name) +: containerParamsTuples) ++ Seq(
+          Keys.cores -> cores.value.toString,
+          Keys.memory -> memory.value.toString,
+          Keys.maxRunTime -> cpuTime.duration.toString,
+          Keys.queue -> queueOpt.map(_.toString).getOrElse("")) 
       }
     }
   }

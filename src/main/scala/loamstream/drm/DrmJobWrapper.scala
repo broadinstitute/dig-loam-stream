@@ -35,9 +35,9 @@ final case class DrmJobWrapper(
     pathBuilder.reifyPathTemplate(taskArray.stdErrPathTemplate, drmIndex)
   }
   
-  private lazy val stdOutDestPath: Path = LogFileNames.stdout(commandLineJob, jobDir)
+  private lazy val stdOutDestPath: Path = LogFileNames.stdout(jobDir)
 
-  private lazy val stdErrDestPath: Path = LogFileNames.stderr(commandLineJob, jobDir)
+  private lazy val stdErrDestPath: Path = LogFileNames.stderr(jobDir)
 
   def outputStreams: OutputStreams = OutputStreams(stdOutDestPath, stdErrDestPath)
 
@@ -70,14 +70,17 @@ final case class DrmJobWrapper(
         |
         |LOAMSTREAM_JOB_EXIT_CODE=$$?
         |
+        |origStdoutPath="${drmStdOutPath(taskArray).render}"
+        |origStderrPath="${drmStdErrPath(taskArray).render}"
+        |
         |stdoutDestPath="${stdOutDestPath.render}"
         |stderrDestPath="${stdErrDestPath.render}"
         |
-        |mkdir -p ${outputDir.render}
-        |mv ${drmStdOutPath(taskArray).render} $$stdoutDestPath || echo "Couldn't move DRM std out log ${drmStdOutPath(
-         taskArray).render}; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-        |mv ${drmStdErrPath(taskArray).render} $$stderrDestPath || echo "Couldn't move DRM std err log ${drmStdErrPath(
-         taskArray).render}; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+        |jobDir="${outputDir.render}"
+        |
+        |mkdir -p $$jobDir
+        |mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+        |mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
         |
         |exit $$LOAMSTREAM_JOB_EXIT_CODE
         |""".stripMargin

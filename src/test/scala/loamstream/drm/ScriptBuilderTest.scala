@@ -225,12 +225,17 @@ ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator0 -
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-stdoutDestPath="$finalOutputDir0/0.stdout"
-stderrDestPath="$finalOutputDir0/0.stderr"
+origStdoutPath="${drmOutputDir}/${jobName}.1.stdout"
+origStderrPath="${drmOutputDir}/${jobName}.1.stderr"
 
-mkdir -p $finalOutputDir0
-mv $drmOutputDir/${jobName}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.1.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.1.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+stdoutDestPath="$finalOutputDir0/stdout"
+stderrDestPath="$finalOutputDir0/stderr"
+
+jobDir="$finalOutputDir0"
+
+mkdir -p $$jobDir
+mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -240,12 +245,17 @@ ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator1 -
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-stdoutDestPath="$finalOutputDir1/1.stdout"
-stderrDestPath="$finalOutputDir1/1.stderr"
+origStdoutPath="${drmOutputDir}/${jobName}.2.stdout"
+origStderrPath="${drmOutputDir}/${jobName}.2.stderr"
 
-mkdir -p $finalOutputDir1
-mv $drmOutputDir/${jobName}.2.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.2.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.2.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.2.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+stdoutDestPath="$finalOutputDir1/stdout"
+stderrDestPath="$finalOutputDir1/stderr"
+
+jobDir="$finalOutputDir1"
+
+mkdir -p $$jobDir
+mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 
@@ -255,12 +265,17 @@ ${singularityPrefix}/some/shapeit/executable -V /some/vcf/file.$discriminator2 -
 
 LOAMSTREAM_JOB_EXIT_CODE=$$?
 
-stdoutDestPath="$finalOutputDir2/2.stdout"
-stderrDestPath="$finalOutputDir2/2.stderr"
+origStdoutPath="${drmOutputDir}/${jobName}.3.stdout"
+origStderrPath="${drmOutputDir}/${jobName}.3.stderr"
 
-mkdir -p $finalOutputDir2
-mv $drmOutputDir/${jobName}.3.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log $drmOutputDir/${jobName}.3.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-mv $drmOutputDir/${jobName}.3.stderr $$stderrDestPath || echo "Couldn't move DRM std err log $drmOutputDir/${jobName}.3.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+stdoutDestPath="$finalOutputDir2/stdout"
+stderrDestPath="$finalOutputDir2/stderr"
+
+jobDir="$finalOutputDir2"
+
+mkdir -p $$jobDir
+mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
 
 exit $$LOAMSTREAM_JOB_EXIT_CODE
 

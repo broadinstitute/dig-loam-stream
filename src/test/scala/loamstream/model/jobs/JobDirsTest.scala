@@ -197,7 +197,7 @@ final class JobDirsTest extends FunSuite {
       assert(exists(expectedDirs(2)) === false)
       assert(exists(expectedDirs(3)) === false)
       
-      interior.makeDirsUnder(workDir)
+      assert(interior.makeDirsUnder(workDir))
       
       assert(exists(expectedDirs(0)) === true)
       assert(exists(expectedDirs(1)) === true)
@@ -260,7 +260,7 @@ final class JobDirsTest extends FunSuite {
       assert(exists(expectedDirs(6)) === false)
       assert(exists(expectedDirs(7)) === false)
       
-      interior.makeDirsUnder(workDir)
+      assert(interior.makeDirsUnder(workDir))
       
       assert(exists(expectedDirs(0)) === true)
       assert(exists(expectedDirs(1)) === true)

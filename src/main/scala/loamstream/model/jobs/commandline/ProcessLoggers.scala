@@ -10,7 +10,7 @@ import java.nio.file.Path
  * Nov 13, 2017
  */
 object ProcessLoggers {
-  def forNamedJob(executionConfig: ExecutionConfig, job: LJob, jobOutputDir: Path): ToFilesProcessLogger = {
-    ToFilesProcessLogger(LogFileNames.outputStreams(job, jobOutputDir))
+  def forNamedJob(jobOutputDir: Path): ToFilesProcessLogger = {
+    ToFilesProcessLogger(LogFileNames.outputStreams(jobOutputDir))
   }
 }

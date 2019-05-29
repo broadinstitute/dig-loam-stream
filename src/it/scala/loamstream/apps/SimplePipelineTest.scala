@@ -66,7 +66,6 @@ final class SimplePipelineTest extends FunSuite {
     
     val contents = s"""|loamstream {
                        |  execution {
-                       |    outputDir = "$jobOutputDir"
                        |    maxWaitTimeForOutputs = "1 minute"
                        |    singularity {
                        |      mappedDirs = ["/humgen"]

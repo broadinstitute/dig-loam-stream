@@ -210,7 +210,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val Seq(wrapper0) = taskArray.drmJobs
 
-      val expected = path(s"${jobOracle.dirFor(j0)}/${j0.id}.stdout").toAbsolutePath
+      val expected = path(s"${jobOracle.dirFor(j0)}/stdout").toAbsolutePath
 
       assert(wrapper0.outputStreams.stdout === expected)
     }
@@ -235,7 +235,7 @@ final class DrmJobWrapperTest extends FunSuite {
 
       val Seq(wrapper0) = taskArray.drmJobs
 
-      val expected = path(s"${jobOracle.dirFor(j0)}/${j0.id}.stderr").toAbsolutePath
+      val expected = path(s"${jobOracle.dirFor(j0)}/stderr").toAbsolutePath
 
       assert(wrapper0.outputStreams.stderr === expected)
     }
@@ -276,12 +276,17 @@ final class DrmJobWrapperTest extends FunSuite {
                          |
                          |LOAMSTREAM_JOB_EXIT_CODE=$$?
                          |
-                         |stdoutDestPath="${(jobOracle.dirFor(j0) / j0.id.toString).render}.stdout"
-                         |stderrDestPath="${(jobOracle.dirFor(j0) / j0.id.toString).render}.stderr"
+                         |origStdoutPath="${(workDir / jobName).render}.1.stdout"
+                         |origStderrPath="${(workDir / jobName).render}.1.stderr"
                          |
-                         |mkdir -p ${jobOracle.dirFor(j0).render}
-                         |mv ${(workDir / jobName).render}.1.stdout $$stdoutDestPath || echo "Couldn't move DRM std out log ${(workDir / jobName).render}.1.stdout; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
-                         |mv ${(workDir / jobName).render}.1.stderr $$stderrDestPath || echo "Couldn't move DRM std err log ${(workDir / jobName).render}.1.stderr; it's likely the job wasn't submitted successfully" > $$stderrDestPath
+                         |stdoutDestPath="${(jobOracle.dirFor(j0) / "stdout").render}"
+                         |stderrDestPath="${(jobOracle.dirFor(j0) / "stderr").render}"
+                         |
+                         |jobDir="${jobOracle.dirFor(j0).render}"
+                         |
+                         |mkdir -p $$jobDir
+                         |mv $$origStdoutPath $$stdoutDestPath || echo "Couldn't move DRM std out log $$origStdoutPath; it's likely the job wasn't submitted successfully" > $$stdoutDestPath
+                         |mv $$origStderrPath $$stderrDestPath || echo "Couldn't move DRM std err log $$origStderrPath; it's likely the job wasn't submitted successfully" > $$stderrDestPath
                          |
                          |exit $$LOAMSTREAM_JOB_EXIT_CODE
                          |""".stripMargin

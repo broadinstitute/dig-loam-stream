@@ -59,7 +59,7 @@ object Files {
   def createDirsIfNecessary(directory: Path): Unit = {
     val dir = directory.toFile
 
-    if (! dir.exists) dir.mkdirs()
+    if (! dir.exists) { dir.mkdirs() }
 
     require(dir.exists)
   }

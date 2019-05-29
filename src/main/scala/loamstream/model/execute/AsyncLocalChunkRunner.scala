@@ -67,7 +67,7 @@ object AsyncLocalChunkRunner extends Loggable {
     
     val jobDir = jobOracle.dirFor(job)
     
-    val processLogger = ProcessLoggers.forNamedJob(executionConfig, job, jobDir)
+    val processLogger = ProcessLoggers.forNamedJob(jobDir)
     
     val result = LocalJobStrategy.execute(job, processLogger)
 

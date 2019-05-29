@@ -24,25 +24,23 @@ object FileSystemExecutionRecorder extends ExecutionRecorder {
       
       java.nio.file.Files.createDirectories(jobDir)
       
-      val settingsFilePath = makeSettingsFilePath(job, jobDir)
+      val settingsFilePath = makeSettingsFilePath(jobDir)
       
       Files.writeTo(settingsFilePath)(settingsToString(execution.settings))
       
       execution.resources.foreach { rs =>
-        val accountingFilePath = FileSystemExecutionRecorder.makeAccountingFilePath(job, jobDir)
+        val accountingFilePath = FileSystemExecutionRecorder.makeAccountingFilePath(jobDir)
       
         Files.writeTo(accountingFilePath)(resourcesToString(rs))
       }
     }
   }
 
-  private def pathWithExtension(extension: String, job: LJob, dir: Path): Path = {
-    dir.resolve(s"${Paths.mungePathRelatedChars(job.name)}.${extension}")
-  }
+  private def pathWithExtension(dir: Path, fileName: String): Path = dir.resolve(fileName).toAbsolutePath
   
-  private[execute] def makeSettingsFilePath(job: LJob, dir: Path): Path = pathWithExtension("settings", job, dir)
+  private[execute] def makeSettingsFilePath(dir: Path): Path = pathWithExtension(dir, "settings")
   
-  private[execute] def makeAccountingFilePath(job: LJob, dir: Path): Path = pathWithExtension("accounting", job, dir)
+  private[execute] def makeAccountingFilePath(dir: Path): Path = pathWithExtension(dir, "accounting")
   
   private object SettingsKeys {
     val settingsType = "settings-type"

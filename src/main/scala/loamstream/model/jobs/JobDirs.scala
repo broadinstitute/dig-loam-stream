@@ -2,10 +2,12 @@ package loamstream.model.jobs
 
 import scala.collection.Seq
 import loamstream.util.{ Paths => LPaths }
+import loamstream.util.{ Files => LFiles }
 import loamstream.util.Sequence
 import java.nio.file.Path
 import java.nio.file.Paths.{ get => path }
 import java.nio.file.Files
+import scala.util.Try
 
 
 object JobDirs {
@@ -63,10 +65,15 @@ object JobDirs {
       doPathsByJob(jobDataDir)(this).toMap
     }
     
-    def makeDirsUnder(root: Path): Unit = {
+    def makeDirsUnder(root: Path): Boolean = {
       import LPaths.Implicits._
+      import LFiles.createDirsIfNecessary
       
-      pathsByJob(root).values.map(root.resolve(_)).foreach(loamstream.util.Files.createDirsIfNecessary)
+      val pathsToCreate = pathsByJob(root).values.iterator.map(root.resolve(_))
+      
+      val attempts = pathsToCreate.map(p => Try(createDirsIfNecessary(p)))
+      
+      attempts.forall(_.isSuccess)
     }
   }
   

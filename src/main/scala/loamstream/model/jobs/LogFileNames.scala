@@ -9,18 +9,17 @@ import loamstream.util.Paths
  */
 object LogFileNames {
   
-  def outputStreams(job: LJob, outputDirName: Path): OutputStreams = {
-    OutputStreams(stdout(job, outputDirName), stderr(job, outputDirName))
+  def outputStreams(outputDirName: Path): OutputStreams = {
+    OutputStreams(stdout(outputDirName), stderr(outputDirName))
   }
   
-  def stdout(job: LJob, outputDir: Path): Path = makePath(job, "stdout", outputDir)
+  def stdout(outputDir: Path): Path = makePath(outputDir, "stdout")
   
-  def stderr(job: LJob, outputDir: Path): Path = makePath(job, "stderr", outputDir)
+  def stderr(outputDir: Path): Path = makePath(outputDir, "stderr")
   
-  private def makePath(job: LJob, suffix: String, outputDir: Path): Path = {
+  private def makePath(outputDir: Path, fileName: String): Path = {
     import Paths.Implicits._
-    import Paths.mungePathRelatedChars
     
-    (outputDir / s"${mungePathRelatedChars(job.name)}.$suffix").toAbsolutePath
+    (outputDir / fileName).toAbsolutePath
   }
 }

@@ -251,7 +251,7 @@ object Main extends Loggable {
       
       import loamstream.util.Maps.Implicits._
       
-      def makePath(fileName: String) = executionConfig.logDir.resolve("all-jobs.tsv")
+      def makePath(fileName: String) = executionConfig.logDir.resolve(fileName)
       
       write(jobsToExecutions, makePath("all-jobs.tsv"))
       

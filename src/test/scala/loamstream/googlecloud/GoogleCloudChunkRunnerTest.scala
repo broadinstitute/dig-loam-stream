@@ -21,6 +21,7 @@ import loamstream.conf.ExecutionConfig
 import loamstream.model.jobs.OutputStreams
 import loamstream.model.jobs.RunData
 import loamstream.util.Maps
+import java.nio.file.Path
 
 
 /**
@@ -47,7 +48,7 @@ final class GoogleCloudChunkRunnerTest extends FunSuite with ProvidesEnvAndResou
   private def mockJob(
       result: JobResult, 
       resources: Option[Resources] = None, 
-      outputStreams: Option[OutputStreams] = None) = MockJob(result, resources, outputStreams)
+      jobDir: Option[Path] = None) = MockJob(result, resources, jobDir)
 
   test("addCluster") {
     import GoogleCloudChunkRunner.addCluster

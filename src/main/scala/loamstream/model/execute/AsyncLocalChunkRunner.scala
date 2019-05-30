@@ -69,7 +69,7 @@ object AsyncLocalChunkRunner extends Loggable {
     
     val processLogger = ProcessLoggers.forNamedJob(jobDir)
     
-    val result = LocalJobStrategy.execute(job, processLogger)
+    val result = LocalJobStrategy.execute(job, jobDir, processLogger)
 
     import loamstream.util.Futures.Implicits._
   

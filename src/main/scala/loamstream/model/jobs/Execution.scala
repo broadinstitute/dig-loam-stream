@@ -23,7 +23,7 @@ final case class Execution(
     result: Option[JobResult] = None,
     resources: Option[Resources] = None,
     outputs: Set[StoreRecord] = Set.empty,
-    outputStreams: Option[OutputStreams],
+    jobDir: Option[Path],
     terminationReason: Option[TerminationReason]) {
 
   require(
@@ -71,7 +71,7 @@ object Execution extends Loggable {
   def apply(settings: Settings,
             cmd: String,
             result: JobResult,
-            outputStreams: OutputStreams,
+            jobDir: Path,
             outputs: StoreRecord*): Execution = {
     
     Execution(
@@ -81,14 +81,14 @@ object Execution extends Loggable {
         result = Option(result), 
         resources = None, 
         outputs = outputs.toSet,
-        outputStreams = Option(outputStreams),
+        jobDir = Option(jobDir),
         terminationReason = None)
   }
 
   def fromOutputs(settings: Settings,
                   cmd: String,
                   result: JobResult,
-                  outputStreams: OutputStreams,
+                  jobDir: Path,
                   outputs: Set[DataHandle]): Execution = {
     
     apply(
@@ -98,7 +98,7 @@ object Execution extends Loggable {
         result = Option(result), 
         resources = None, 
         outputs = outputs.map(_.toStoreRecord),
-        outputStreams = Option(outputStreams),
+        jobDir = Option(jobDir),
         terminationReason = None)
   }
 
@@ -106,7 +106,7 @@ object Execution extends Loggable {
       job: LJob, 
       status: JobStatus, 
       result: Option[JobResult] = None, 
-      outputStreams: Option[OutputStreams] = None,
+      jobDir: Option[Path] = None,
       resources: Option[Resources] = None,
       terminationReason: Option[TerminationReason]): Execution = {
     
@@ -124,7 +124,7 @@ object Execution extends Loggable {
       result = result,
       resources = resources, 
       outputs = outputRecords,
-      outputStreams = outputStreams,
+      jobDir = jobDir,
       terminationReason = terminationReason)
   }
 }

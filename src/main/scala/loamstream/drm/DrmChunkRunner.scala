@@ -203,7 +203,7 @@ object DrmChunkRunner extends Loggable {
         jobStatus = toJobStatus(s),
         jobResult = toJobResult(s),
         resourcesOpt = infoOpt.map(_.resources),
-        outputStreamsOpt = Option(wrapper.outputStreams),
+        jobDirOpt = Option(wrapper.jobDir),
         terminationReasonOpt = infoOpt.flatMap(_.terminationReasonOpt))
   }
   
@@ -269,7 +269,7 @@ object DrmChunkRunner extends Loggable {
           jobStatus = status, 
           jobResult = Option(result), 
           resourcesOpt = None, 
-          outputStreamsOpt = Option(jobWrapper.outputStreams),
+          jobDirOpt = Option(jobWrapper.jobDir),
           terminationReasonOpt = None)
     }
 

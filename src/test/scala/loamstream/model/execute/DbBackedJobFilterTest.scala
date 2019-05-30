@@ -22,7 +22,8 @@ import loamstream.util.Paths
  */
 final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao with ProvidesEnvAndResources {
 
-  import loamstream.TestHelpers.path
+  import TestHelpers.path
+  import TestHelpers.dummyJobDir
   
   private val nonexistentPath = path("non/existent/blah.txt")
 
@@ -63,7 +64,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     }
   }
 
-  import loamstream.TestHelpers.dummyOutputStreams
+  import loamstream.TestHelpers.dummyJobDir
   import loamstream.model.jobs.JobResult._
 
   test("sanity check paths") {
@@ -112,20 +113,18 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
         
-        import TestHelpers.{ dummyOutputStreams => outputStreams }
-        
         val failedExec = Execution.fromOutputs(
             mockUgerSettings, 
             failedCommandLine, 
             failure, 
-            outputStreams, 
+            dummyJobDir, 
             failedJob.outputs)
         
         val successfulExec = Execution.fromOutputs(
             mockUgerSettings, 
             successfulCommandLine, 
             success, 
-            outputStreams, 
+            dummyJobDir, 
             successfulJob.outputs)
   
         recorder.record(TestHelpers.DummyJobOracle, Seq(failedJob -> failedExec, successfulJob -> successfulExec))
@@ -157,10 +156,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
         
-        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyOutputStreams, Set(o0))
+        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyJobDir, Set(o0))
         
         val successfulExec = {
-          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
+          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyJobDir, Set(o1, nonExistentOutput))
         }
   
         val executionTuples = {
@@ -245,10 +244,10 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
         val success = CommandResult(0)
         assert(success.isSuccess)
 
-        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyOutputStreams, Set(o0))
+        val failedExec = Execution.fromOutputs(mockUgerSettings, mockCmd, failure, dummyJobDir, Set(o0))
         
         val successfulExec = {
-          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyOutputStreams, Set(o1, nonExistentOutput))
+          Execution.fromOutputs(mockUgerSettings, mockCmd, success, dummyJobDir, Set(o1, nonExistentOutput))
         }
   
         val executionTuples = {
@@ -337,7 +336,7 @@ final class DbBackedJobFilterTest extends FunSuite with ProvidesSlickLoamDao wit
     }
 
     def execution(cmd: String, outputs: Set[DataHandle]): Execution = {
-      Execution.fromOutputs(mockUgerSettings, cmd, CommandResult(0), dummyOutputStreams, outputs)
+      Execution.fromOutputs(mockUgerSettings, cmd, CommandResult(0), dummyJobDir, outputs)
     }
 
     val cmd0 = "cmd0"

@@ -10,6 +10,7 @@ import loamstream.util.Futures
 import loamstream.model.execute.Resources
 import loamstream.model.execute.LocalSettings
 import loamstream.model.execute.Settings
+import java.nio.file.Path
 
 /**
  * @author clint
@@ -105,10 +106,10 @@ object MockJob {
   def apply(
       jobResult: JobResult,
       resources: Option[Resources],
-      outputStreams: Option[OutputStreams]): MockJob = {
+      jobDir: Option[Path]): MockJob = {
     
     def makeRunData(job: LJob) = {
-      runDataFrom(job, LocalSettings, jobResult.toJobStatus, Option(jobResult), resources, outputStreams)
+      runDataFrom(job, LocalSettings, jobResult.toJobStatus, Option(jobResult), resources, jobDir)
     }
     
     new FromJobFn(

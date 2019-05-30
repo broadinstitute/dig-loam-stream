@@ -52,7 +52,7 @@ trait ProvidesEnvAndResources extends FunSuite {
   val mockExecution: Execution = Execution(
       settings = mockUgerSettings,
       status = mockStatus, 
-      outputStreams = Some(TestHelpers.dummyOutputStreams),
+      jobDir = Some(TestHelpers.dummyJobDir),
       terminationReason = None)
       
   def mockRunData(job: LJob): RunData = {
@@ -62,7 +62,7 @@ trait ProvidesEnvAndResources extends FunSuite {
         status = mockStatus, 
         result = None, 
         resources = None, 
-        outputStreams = Some(TestHelpers.dummyOutputStreams))
+        jobDir = Some(TestHelpers.dummyJobDir))
   }
 
   protected def assertEqualFieldsFor(actual: Iterable[Execution], expected: Iterable[Execution]): Unit = {
@@ -71,7 +71,7 @@ trait ProvidesEnvAndResources extends FunSuite {
     assert(actual.map(_.result) === expected.map(_.result))
     assert(actual.map(_.settings) === expected.map(_.settings))
     assert(actual.map(_.resources) === expected.map(_.resources))
-    assert(actual.map(_.outputStreams) === expected.map(_.outputStreams))
+    assert(actual.map(_.jobDir) === expected.map(_.jobDir))
     assert(actual.map(_.outputs) === expected.map(_.outputs))
   }
 }

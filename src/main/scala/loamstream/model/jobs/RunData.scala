@@ -3,6 +3,7 @@ package loamstream.model.jobs
 import loamstream.model.jobs.commandline.CommandLineJob
 import loamstream.model.execute.Resources
 import loamstream.model.execute.Settings
+import java.nio.file.Path
 
 /**
  * @author clint
@@ -21,14 +22,14 @@ final case class RunData(
     jobStatus: JobStatus, 
     jobResult: Option[JobResult],
     resourcesOpt: Option[Resources] = None, 
-    outputStreamsOpt: Option[OutputStreams] = None,
+    jobDirOpt: Option[Path] = None,
     terminationReasonOpt: Option[TerminationReason]) {
 
   override def toString: String = {
     val name = getClass.getSimpleName
     val id = job.id
     
-    s"${name}(Job#$id, $settings, $jobStatus, $jobResult, $resourcesOpt, $outputStreamsOpt, $terminationReasonOpt)"
+    s"${name}(Job#$id, $settings, $jobStatus, $jobResult, $resourcesOpt, $jobDirOpt, $terminationReasonOpt)"
   }
   
   def withResources(r: Resources): RunData = copy(resourcesOpt = Some(r))
@@ -50,7 +51,7 @@ final case class RunData(
       result = jobResult,
       resources = resourcesOpt,
       outputs = job.outputs.map(_.toStoreRecord),
-      outputStreams = outputStreamsOpt,
+      jobDir = jobDirOpt,
       terminationReason = terminationReasonOpt)
   }
 }

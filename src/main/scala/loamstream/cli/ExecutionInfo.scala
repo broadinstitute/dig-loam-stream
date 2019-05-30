@@ -43,8 +43,7 @@ object ExecutionInfo {
     
     val result = execution.result
     
-    val stdout = execution.outputStreams.map(_.stdout).getOrElse("<Not produced>")
-    val stderr = execution.outputStreams.map(_.stderr).getOrElse("<Not produced>")
+    val jobDir = execution.jobDir.map(_.toString).getOrElse("<None>")
   
     val numOutputs = execution.outputs.size
   
@@ -54,9 +53,7 @@ object ExecutionInfo {
                              #Result: $result
                              #Environment: $envType
                              #Settings: $envSettings
-                             #Output streams:
-                             #  Stdout: $stdout
-                             #  Stderr: $stderr
+                             #Job directory (stdout, stderr, metadata): $jobDir
                              #Recorded information about $numOutputs output(s) follows:""".stripMargin('#')
       
     def outputRecordToString(o: StoreRecord): String = {

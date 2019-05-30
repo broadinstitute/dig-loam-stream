@@ -116,8 +116,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //NB: Specify the length of this column so that we hopefully don't get a too-small VARCHAR,
     //and instead some DB-specific column type appropriate for strings thousands of chars long.
     def cmd = column[String]("CMD", O.Length(maxStringColumnLength))
-    def stdoutPath = column[String]("STDOUT_PATH", O.Length(maxStringColumnLength))
-    def stderrPath = column[String]("STDERR_PATH", O.Length(maxStringColumnLength))
+    def jobDir = column[Option[String]]("JOB_DIR", O.Length(maxStringColumnLength))
     def exitCode = column[Int]("EXIT_CODE")
     def status = column[JobStatus]("STATUS")
     def terminationReasonType = column[Option[String]]("TERM_REASON_TYPE")
@@ -126,7 +125,7 @@ final class Tables(val driver: JdbcProfile) extends DbHelpers with Loggable {
     //NB: Required by Slick to define the mapping between DB columns and case class fields.
     //It's unlikely devs will need to call it directly.
     override def * = {
-      (id, env, cmd, status, exitCode, stdoutPath, stderrPath, terminationReasonType, rawTerminationReason) <> 
+      (id, env, cmd, status, exitCode, jobDir, terminationReasonType, rawTerminationReason) <> 
           (ExecutionRow.tupled, ExecutionRow.unapply)
     }
   }

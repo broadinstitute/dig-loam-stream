@@ -27,11 +27,11 @@ final case class ToFilesProcessLogger(
   private val writeToStdOut = new LazyWriterRef(stdoutPath)
   private val writeToStdErr = new LazyWriterRef(stderrPath)
   
-  private val delegate = ProcessLogger(fout = writeToStdOut.writeFn, ferr = writeToStdErr.writeFn)
+  private val delegate = ProcessLogger(fout = writeToStdOut, ferr = writeToStdErr)
   
   override def stop(): Unit = {
-    writeToStdOut.close()
-    writeToStdErr.close()
+    Throwables.quietly(s"Error closing $stdoutPath")(writeToStdOut.close())
+    Throwables.quietly(s"Error closing $stderrPath")(writeToStdErr.close())
   }
   
   //Methods from ProcessLogger 
@@ -68,8 +68,8 @@ object ToFilesProcessLogger {
     Option(outputFile.normalize.getParent).foreach(Files.createDirsIfNecessary)
   }
   
-  private final class LazyWriterRef(dest: Path)(implicit logContext: LogContext) {
-    val writeFn: String => Unit = { line =>
+  private final class LazyWriterRef(dest: Path)(implicit logContext: LogContext) extends (String => Unit) {
+    override def apply(line: String): Unit = {
       anyWritingDone.set(true)
       
       writer.write(line)

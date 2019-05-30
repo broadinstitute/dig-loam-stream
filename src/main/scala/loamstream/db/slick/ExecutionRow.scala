@@ -21,8 +21,7 @@ final case class ExecutionRow(
     cmd: String, 
     status: JobStatus, 
     exitCode: Int,
-    stdoutPath: String,
-    stderrPath: String,
+    jobDir: Option[String],
     terminationReasonType: Option[String],
     rawTerminationReason: Option[String]) {
   
@@ -32,8 +31,6 @@ final case class ExecutionRow(
     
     import Paths.{get => toPath}
     
-    val streamsOpt = Option(OutputStreams(toPath(stdoutPath), toPath(stderrPath)))
-
     val termReason = terminationReasonType.flatMap(TerminationReason.fromNameAndRawValue(_, rawTerminationReason))
     
     Execution(
@@ -43,7 +40,7 @@ final case class ExecutionRow(
         result = Option(commandResult),
         resources = resourcesOpt,
         outputs = outputs,
-        outputStreams = streamsOpt,
+        jobDir = jobDir.map(toPath(_)),
         terminationReason = termReason)
   }
 }

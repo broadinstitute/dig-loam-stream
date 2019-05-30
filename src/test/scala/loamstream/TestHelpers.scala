@@ -139,16 +139,16 @@ object TestHelpers {
       status: JobStatus,
       result: Option[JobResult] = None,
       resources: Option[Resources] = None,
-      outputStreams: Option[OutputStreams] = None,
+      jobDir: Option[Path] = None,
       terminationReasonOpt: Option[TerminationReason] = None): RunData = {
     
-    RunData(job, settings, status, result, resources, outputStreams, terminationReasonOpt)
+    RunData(job, settings, status, result, resources, jobDir, terminationReasonOpt)
   }
   
   def executionFrom(status: JobStatus,
                     result: Option[JobResult] = None,
                     resources: Option[Resources] = None,
-                    outputStreams: Option[OutputStreams] = None): Execution = {
+                    jobDir: Option[Path] = None): Execution = {
     Execution(
         settings = LocalSettings,
         cmd = None,
@@ -156,7 +156,7 @@ object TestHelpers {
         result = result,
         resources = resources,
         outputs = Set.empty[StoreRecord],
-        outputStreams = outputStreams,
+        jobDir = jobDir,
         terminationReason = None)
   }
 
@@ -263,7 +263,9 @@ object TestHelpers {
       None)
   }
   
-  def dummyFileName: Path = TestHelpers.path(s"${UUID.randomUUID.toString}.log")
+  def dummyJobDir: Path = path(UUID.randomUUID.toString).toAbsolutePath
+  
+  def dummyFileName: Path = path(s"${UUID.randomUUID.toString}.log")
     
   def dummyOutputStreams: OutputStreams = OutputStreams(dummyFileName, dummyFileName)
   

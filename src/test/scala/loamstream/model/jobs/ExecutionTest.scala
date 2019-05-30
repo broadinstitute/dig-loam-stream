@@ -36,7 +36,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
   private val p0 = Paths.get("foo/bar/baz")
   private val p1 = Paths.get("nuh")
   
-  import loamstream.TestHelpers.dummyOutputStreams
+  import loamstream.TestHelpers.dummyJobDir
   
   test("guards") {
     val localSettings = LocalSettings
@@ -96,7 +96,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
           status = result.toJobStatus,
           result = Option(result),
           resources = resources,
-          outputStreams = Option(dummyOutputStreams), 
+          jobDir = Option(dummyJobDir), 
           outputs = Set.empty,
           terminationReason = None)
       }
@@ -128,16 +128,16 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     val job0 = CommandLineJob("foo", path("."), TestHelpers.defaultUgerSettings)
     val job1 = MockJob(status1)
     
-    val outputStreamsOpt = Some(dummyOutputStreams)
+    val jobDirOpt = Some(dummyJobDir)
     
-    val e0 = Execution.from(job0, status0, Option(result0), outputStreamsOpt, terminationReason = None)
+    val e0 = Execution.from(job0, status0, Option(result0), jobDirOpt, terminationReason = None)
     val e1 = Execution.from(job1, status1, terminationReason = None)
     
     assert(e0.cmd === Some("foo"))
     assert(e0.settings.isUger)
     assert(e0.result === Some(result0))
     assert(e0.outputs === Set.empty)
-    assert(e0.outputStreams === outputStreamsOpt)
+    assert(e0.jobDir === jobDirOpt)
     //TODO: Check settings field once it's no longer a placeholder 
     
     assert(e1.cmd === None)
@@ -145,7 +145,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
     assert(e1.status === status1)
     assert(e1.result === None)
     assert(e1.outputs === Set.empty)
-    assert(e1.outputStreams === None)
+    assert(e1.jobDir === None)
     //TODO: Check settings field once it's no longer a placeholder
   }
 
@@ -157,7 +157,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
           status = result.toJobStatus,
           result = Option(result),
           resources = None,
-          outputStreams = Option(dummyOutputStreams),
+          jobDir = Option(dummyJobDir),
           outputs = Set.empty,
           terminationReason = None)
       
@@ -171,7 +171,7 @@ final class ExecutionTest extends FunSuite with ProvidesEnvAndResources {
           status = result.toJobStatus,
           result = Option(result),
           resources = None,
-          outputStreams = Option(dummyOutputStreams),
+          jobDir = Option(dummyJobDir),
           outputs = Set.empty,
           terminationReason = None)
       

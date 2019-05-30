@@ -30,19 +30,6 @@ object JobDirs {
   }
   
   sealed trait DirNode {
-    def print(): Unit = {
-      def doPrint(n: DirNode, indent: Int): Unit = n match {
-        case DirNode.Leaf(contents) => println(s"${"=" * indent}>${contents}")
-        case DirNode.Interior(id, children) => {
-          println(s"${"=" * indent}($id)+")
-          
-          children.foreach(c => doPrint(c, indent + 1))
-        }
-      }
-      
-      doPrint(this, 0)
-    }
-    
     def toSimplePathName: String = LPaths.mungePathRelatedChars {
       this match {
         case l: DirNode.Leaf => l.job.name

@@ -56,7 +56,7 @@ object JobDirs {
       import LPaths.Implicits._
       import LFiles.createDirsIfNecessary
       
-      val pathsToCreate = pathsByJob(root).values.iterator.map(root.resolve(_))
+      val pathsToCreate = pathsByJob(root).values.iterator
       
       val attempts = pathsToCreate.map(p => Try(createDirsIfNecessary(p)))
       

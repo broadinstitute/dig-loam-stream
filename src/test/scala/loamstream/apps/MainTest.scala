@@ -65,8 +65,6 @@ object MainTest {
     
     override def executionRecorder: ExecutionRecorder = ???
     
-    override def writeIndexFiles(): Unit = ???
-    
     override def shutdown(): Seq[Throwable] = {
       shutdownInvocations += 1
       

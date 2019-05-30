@@ -84,7 +84,6 @@ import loamstream.conf.Locations
 import loamstream.drm.lsf.BacctAccountingClient
 import loamstream.drm.DrmaaClient
 import loamstream.model.execute.FileSystemExecutionRecorder
-import loamstream.model.execute.BuildsIndexExecutionRecorder
 
 
 /**
@@ -104,8 +103,6 @@ trait AppWiring {
   def jobFilter: JobFilter
   
   def executionRecorder: ExecutionRecorder
-
-  def writeIndexFiles(): Unit 
   
   def shutdown(): Seq[Throwable]
   
@@ -161,20 +158,8 @@ object AppWiring extends Loggable {
     }
   }
   
-  private[AppWiring] def makeExecutionRecorders(
-      getDao: => LoamDao): (ExecutionRecorder, BuildsIndexExecutionRecorder) = {
-    
-    val dao = getDao
-    
-    val buildsIndexExecutionRecorder = new BuildsIndexExecutionRecorder
-
-    val rootExecutionRecorder = {
-      FileSystemExecutionRecorder && 
-      (new DbBackedExecutionRecorder(dao)) &&
-      buildsIndexExecutionRecorder
-    }
-    
-    (rootExecutionRecorder, buildsIndexExecutionRecorder)
+  private[AppWiring] def makeExecutionRecorder(getDao: => LoamDao): ExecutionRecorder = {
+    FileSystemExecutionRecorder && (new DbBackedExecutionRecorder(getDao))
   }
   
   private final class DefaultAppWiring(
@@ -191,35 +176,9 @@ object AppWiring extends Loggable {
 
     override lazy val cloudStorageClient: Option[CloudStorageClient] = makeCloudStorageClient(intent.confFile, config)
 
-    override def writeIndexFiles(): Unit = {
-      val allJobs = buildsIndexExecutionRecorder.toIndex
-      
-      val failedJobs = allJobs.filter(_.jobStatus.isFailure)
-      
-      val allJobsIndexFile = Locations.Default.logDir.resolve("all-jobs.tsv")
-      
-      val failedJobsIndexFile = Locations.Default.logDir.resolve("failed-jobs.tsv")
-      
-      allJobs.writeToFile(allJobsIndexFile)
-      
-      failedJobs.writeToFile(failedJobsIndexFile)
-    }
-    
     override lazy val jobFilter: JobFilter = makeJobFilter(intent.jobFilterIntent, intent.hashingStrategy, dao)
     
-    private lazy val executionRecorders = makeExecutionRecorders(dao)
-    
-    private lazy val buildsIndexExecutionRecorder = {
-      val (_, bier) = executionRecorders
-      
-      bier
-    }
-    
-    override lazy val executionRecorder: ExecutionRecorder = {
-      val (er, _) = executionRecorders
-      
-      er
-    }
+    override lazy val executionRecorder: ExecutionRecorder = makeExecutionRecorder(dao)
     
     private lazy val terminableExecuter: TerminableExecuter = {
       trace("Creating executer...")

@@ -32,6 +32,7 @@ import loamstream.conf.DrmConfig
 import loamstream.db.slick.DbDescriptor
 import loamstream.conf.ExecutionConfig
 import loamstream.conf.Locations
+import loamstream.util.Files
 
 
 /**
@@ -173,10 +174,8 @@ object Main extends Loggable {
         val runResults = shutdownAfter(wiring) {
           wiring.loamRunner.run(project)
         }
-  
-        wiring.writeIndexFiles()
         
-        describeRunResults(runResults)
+        describeRunResults(loamEngine.config, runResults)
       } catch {
         case e: DrmaaException => warn(s"Unexpected DRMAA exception: ${e.getClass.getName}", e)
       }
@@ -192,41 +191,71 @@ object Main extends Loggable {
       })
     }
     
-    private def describeRunResults(runResults: Either[LoamCompiler.Result, Map[LJob, Execution]]): Unit = {
-      runResults match {
-        case Left(compilationResults) => {
-          compilationResults.errors.foreach(e => error(s"Compilation error: $e"))
-        }
-        case Right(jobsToExecutions) => {
-          listResults(jobsToExecutions)
+    private def describeRunResults(
+        config: LoamConfig, 
+        runResults: Either[LoamCompiler.Result, Map[LJob, Execution]]): Unit = runResults match {
+
+      case Left(compilationResults) => compilationResults.errors.foreach(e => error(s"Compilation error: $e"))
+      case Right(jobsToExecutions) => {
+        listResults(jobsToExecutions)
+        
+        writeIndexFiles(config.executionConfig, jobsToExecutions)
+    
+        describeExecutions(jobsToExecutions.values)
+      }
+    }
+    
+    //NB: Order (LJob, Execution) tuples based on the Executions' start times (if any).
+    //If no start time is present (for jobs where Resources couldn't be - or weren't - 
+    //determined, like Skipped jobs, those jobs/Executions come first.
+    private def executionTupleOrdering(a: (LJob, Execution), b: (LJob, Execution)): Boolean = {
+      val (_, executionA) = a
+      val (_, executionB) = b
       
-          describeExecutions(jobsToExecutions.values)
+      (executionA.resources, executionB.resources) match {
+        case (Some(resourcesA), Some(resourcesB)) => {
+          resourcesA.startTime.toEpochMilli < resourcesB.startTime.toEpochMilli
         }
+        case (_, None) => false
+        case _ => true
       }
     }
     
     private def listResults(jobsToExecutions: Map[LJob, Execution]): Unit = {
-      //NB: Order (LJob, Execution) tuples based on the Executions' start times (if any).
-      //If no start time is present (for jobs where Resources couldn't be - or weren't - 
-      //determined, like Skipped jobs, those jobs/Executions come first. 
-      def ordering(a: (LJob, Execution), b: (LJob, Execution)): Boolean = {
-        val (_, executionA) = a
-        val (_, executionB) = b
-        
-        (executionA.resources, executionB.resources) match {
-          case (Some(resourcesA), Some(resourcesB)) => {
-            resourcesA.startTime.toEpochMilli < resourcesB.startTime.toEpochMilli
-          }
-          case (_, None) => false
-          case _ => true
-        }
-      }
-      
       for {
-        (job, execution) <- jobsToExecutions.toSeq.sortWith(ordering)
+        (job, execution) <- jobsToExecutions.toSeq.sortWith(executionTupleOrdering)
       } {
         info(s"${execution.status}\t(${execution.result}):\tRan $job got $execution")
       }
+    }
+    
+    private def writeIndexFiles(
+        executionConfig: ExecutionConfig, 
+        jobsToExecutions: Map[LJob, Execution]): Unit = {
+      
+      def tabSeperate[A](as: A*): String = as.mkString("\t")
+      
+      val headerLine = tabSeperate("JOB_ID", "JOB_NAME", "JOB_STATUS", "JOB_DIR")
+      
+      def write(tuples: Iterable[(LJob, Execution)], dest: Path): Unit = {
+        val sorted = tuples.toSeq.sortWith(executionTupleOrdering)
+        
+        val lines = sorted.map {
+          case (j, e) => tabSeperate(j.id, j.name, e.status, e.jobDir.map(_.toAbsolutePath.toString).getOrElse(""))
+        }
+        
+        val contents = (headerLine +: lines).mkString(System.lineSeparator())
+        
+        Files.writeTo(dest)(contents)
+      }
+      
+      import loamstream.util.Maps.Implicits._
+      
+      def makePath(fileName: String) = executionConfig.logDir.resolve("all-jobs.tsv")
+      
+      write(jobsToExecutions, makePath("all-jobs.tsv"))
+      
+      write(jobsToExecutions.filterValues(_.isFailure), makePath("failed-jobs.tsv"))
     }
     
     private def describeExecutions(executions: Iterable[Execution]): Unit = {

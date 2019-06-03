@@ -131,13 +131,13 @@ final case class RxExecuter(
   }
   
   private def cancelJobs(jobsToCancel: Iterable[LJob]): Map[LJob, Execution] = {
-    import JobStatus.FailedPermanently
+    import JobStatus.CouldNotStart
     
-    jobsToCancel.foreach(_.transitionTo(FailedPermanently))
+    jobsToCancel.foreach(_.transitionTo(CouldNotStart))
     
     import loamstream.util.Traversables.Implicits._
     
-    jobsToCancel.mapTo(job => Execution.from(job, FailedPermanently))
+    jobsToCancel.mapTo(job => Execution.from(job, CouldNotStart))
   }
   
   private def handleSkippedJobs(skippedJobs: Iterable[LJob]): Unit = {

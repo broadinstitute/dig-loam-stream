@@ -98,8 +98,7 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
         exitCode = commandResult.exitCode,
         stdoutPath = execution.outputStreams.get.stdout.toString,
         stderrPath = execution.outputStreams.get.stderr.toString,
-        terminationReasonType = execution.terminationReason.map(_.name),
-        rawTerminationReason = execution.terminationReason.flatMap(_.raw))
+        terminationReason = execution.terminationReason.map(_.name))
     }
 
     import Implicits._
@@ -144,10 +143,10 @@ trait ExecutionDaoOps extends LoamDao { self: CommonDaoOps with OutputDaoOps =>
   
   private def insertableExecutions(executions: Iterable[Execution]): Iterable[(Execution, CommandResult)] = {
     executions.collect {
-      case e @ Execution( _, _, _, Some(cr: CommandResult), _, _, _, _) => e -> cr
+      case e @ Execution.WithCommandResult(cr) => e -> cr
       //NB: Allow storing the failure to invoke a command; give this case DummyExitCode
-      case e @ Execution( _, _, _, Some(cr: CommandInvocationFailure), _, _, _, _) => {
-        // TODO: Better assign e -> JobResult.Failure?
+      case e @ Execution.WithCommandInvocationFailure(cif) => {
+        // TODO: Better to assign e -> JobResult.Failure?
         e -> CommandResult(JobResult.DummyExitCode)
       }
     }

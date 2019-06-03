@@ -119,7 +119,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
         resources = Option(TestHelpers.ugerResources), 
         outputStreams = Option(dummyOutputStreams), 
         outputs = outputs.toSet,
-        terminationReason = Some(TerminationReason.CpuTime(Some("TERM_CPULIMIT"))))
+        terminationReason = Some(TerminationReason.CpuTime))
 
     dao.insertExecutions(execution)
   }
@@ -249,7 +249,6 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           mockExitCode,
           outputStreams.stdout.toString,
           outputStreams.stderr.toString,
-          None,
           None)
       
       assert(allExecutionRows.isEmpty)
@@ -268,8 +267,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(recorded.exitCode === mockExitCode)
       assert(recorded.stdoutPath === outputStreams.stdout.toString)
       assert(recorded.stderrPath === outputStreams.stderr.toString)
-      assert(recorded.terminationReasonType === None)
-      assert(recorded.rawTerminationReason === None)
+      assert(recorded.terminationReason === None)
     }
   }
   
@@ -290,8 +288,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           mockExitCode,
           outputStreams.stdout.toString,
           outputStreams.stderr.toString,
-          Some(TerminationReason.Memory.Name),
-          Some("TERM_MEMLIMIT"))
+          Some(TerminationReason.Memory.name))
       
       assert(allExecutionRows.isEmpty)
 
@@ -309,8 +306,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
       assert(recorded.exitCode === mockExitCode)
       assert(recorded.stdoutPath === outputStreams.stdout.toString)
       assert(recorded.stderrPath === outputStreams.stderr.toString)
-      assert(recorded.terminationReasonType === Some(TerminationReason.Memory.Name))
-      assert(recorded.rawTerminationReason === Some("TERM_MEMLIMIT"))
+      assert(recorded.terminationReason === Some(TerminationReason.Memory.name))
     }
   }
 
@@ -363,7 +359,7 @@ final class SlickLoamDaoTest extends FunSuite with ProvidesSlickLoamDao with Pro
           resources = Option(lsfResources),
           outputStreams = Option(dummyOutputStreams), 
           outputs = Set.empty,
-          terminationReason = Some(TerminationReason.UserRequested(Some("FOO"))))
+          terminationReason = Some(TerminationReason.UserRequested))
 
       val succeeded = Execution(
           settings = googleSettings,

@@ -23,8 +23,7 @@ final case class ExecutionRow(
     exitCode: Int,
     stdoutPath: String,
     stderrPath: String,
-    terminationReasonType: Option[String],
-    rawTerminationReason: Option[String]) {
+    terminationReason: Option[String]) {
   
   def toExecution(settings: Settings, resourcesOpt: Option[Resources], outputs: Set[StoreRecord]): Execution = {
     val commandResult = CommandResult(exitCode)
@@ -34,7 +33,7 @@ final case class ExecutionRow(
     
     val streamsOpt = Option(OutputStreams(toPath(stdoutPath), toPath(stderrPath)))
 
-    val termReason = terminationReasonType.flatMap(TerminationReason.fromNameAndRawValue(_, rawTerminationReason))
+    val termReason = terminationReason.flatMap(TerminationReason.fromName)
     
     Execution(
         settings = settings,

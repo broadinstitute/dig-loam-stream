@@ -128,7 +128,7 @@ trait JobNode extends Loggable {
         for {
           inputStatuses <- finalInputStatuses
           _ = trace(logMsg(s"deps finished with statuses: $inputStatuses"))
-          anyInputFailures = inputStatuses.exists(_.isFailure)
+          anyInputFailures = inputStatuses.exists(_.canStopExecution)
           runnable <- if(anyInputFailures) stopDueToDependencyFailure() else justUs
         } yield {
           runnable

@@ -17,7 +17,7 @@ sealed abstract class TerminationReason {
   final def name: String = toString
   
   //NB: Field's identifier needs to start with a capital letter for pattern-matching :\ 
-  private[TerminationReason] lazy val Name: String = name
+  private[TerminationReason] val Name: String = name.toLowerCase
   
   final def isRunTime: Boolean = this == RunTime
   final def isCpuTime: Boolean = this == CpuTime
@@ -42,7 +42,7 @@ object TerminationReason {
   //A job was killed by the underlying environment, but we don't know why.
   final case object Unknown extends TerminationReason
   
-  def fromName(name: String): Option[TerminationReason] = name match {
+  def fromName(name: String): Option[TerminationReason] = name.trim.toLowerCase match {
     case RunTime.Name => Some(RunTime)
     case CpuTime.Name => Some(CpuTime)
     case Memory.Name => Some(Memory)
